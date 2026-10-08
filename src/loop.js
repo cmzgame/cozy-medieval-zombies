@@ -1,8 +1,11 @@
-// Copied from cozy-zombie-game src/loop.js on 2026-10-09. Unchanged.
+// Copied from cozy-zombie-game src/loop.js on 2026-10-09. MAX_FRAME lowered, see below.
 // Fixed-timestep update, rAF render, coarse sim tick. See docs/05-architecture.md.
 
 const STEP = 1 / 60;
-const MAX_FRAME = 0.25;
+// Catch-up clamp. The parent allowed 0.25 s (15 steps per frame); with
+// visibility and pathing in every step that let one hitch spiral into a freeze.
+// 0.1 s means a slow frame costs at most six steps and time dilates instead.
+const MAX_FRAME = 0.1;
 
 let running = false;
 let paused = false;

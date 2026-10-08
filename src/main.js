@@ -33,6 +33,8 @@ let playerRoom = 0;
 let drawAll = false; // debug: V shows everything, fog off
 let deaths = 0;
 let drawn = 0;
+let visKey = null; // player tile and camera tile the visible set was computed for
+const timing = { step: 0, stepMax: 0, vis: 0, maxResetAt: 0 };
 
 function resize() {
   const scale = Math.max(1, Math.floor(Math.min(window.innerWidth / CANVAS_W, window.innerHeight / CANVAS_H)));
@@ -49,6 +51,7 @@ function resize() {
 }
 
 function update(dt) {
+  const t0 = performance.now();
   if (input.wasPressed("KeyV")) drawAll = !drawAll;
   if (input.wasPressed("KeyC")) setCutaway(cutaway === "stub" ? "translucent" : "stub");
   camera.follow(player, dt);
@@ -61,10 +64,27 @@ function update(dt) {
     deaths++;
     player.hp = player.maxHp;
   }
-  tiles = camera.viewportTiles(CANVAS_W, CANVAS_H);
-  playerRoom = map.roomAt(Math.round(player.gx), Math.round(player.gy));
-  visible = visibility.computeVisible(player.gx, player.gy, tiles);
+  const px = Math.round(player.gx);
+  const py = Math.round(player.gy);
+  playerRoom = map.roomAt(px, py);
+  // Sight is cast from the player's tile centre and only recomputed when the
+  // player or the camera enters a new tile. Casting every step at 60 Hz was the
+  // bulk of a step's cost and fed the catch-up spiral behind the freezes.
+  const key = `${px},${py}|${Math.round(camera.cam.gx)},${Math.round(camera.cam.gy)}`;
+  if (key !== visKey) {
+    const t1 = performance.now();
+    tiles = camera.viewportTiles(CANVAS_W, CANVAS_H);
+    visible = visibility.computeVisible(px, py, tiles);
+    visKey = key;
+    timing.vis = performance.now() - t1;
+  }
   input.endStep();
+  timing.step = performance.now() - t0;
+  if (t0 - timing.maxResetAt > 3000) {
+    timing.stepMax = 0;
+    timing.maxResetAt = t0;
+  }
+  timing.stepMax = Math.max(timing.stepMax, timing.step);
 }
 
 function render() {
@@ -85,7 +105,7 @@ function render() {
     `fps ${loop.getFps()}\n` +
     `player ${player.gx.toFixed(2)},${player.gy.toFixed(2)} ${player.facing} hp ${player.hp} deaths ${deaths}\n` +
     `chunk ${cx},${cy}  room ${playerRoom}  rooms ${map.roomCount()}\n` +
-    `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}\n` +
+    `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms\n` +
     `zombies ${zombies.length}  ${zombies.map((z) => z.state).join(" ")}\n` +
     `V: ${drawAll ? "showing everything" : "fog on"}   C: near walls ${cutaway}`;
 }

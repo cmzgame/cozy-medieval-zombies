@@ -48,6 +48,7 @@ export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false 
     idleTimer: WANDER_IDLE_MIN + Math.random() * (WANDER_IDLE_MAX - WANDER_IDLE_MIN),
     attackCooldown: 0,
     attackHit: false,
+    pathFailed: false,
     dead: false,
   };
 }
@@ -73,10 +74,15 @@ function tileOf(e) {
   return [Math.round(e.gx), Math.round(e.gy)];
 }
 
+// A failed search backs off for a second rather than retrying every frame,
+// which was a freeze waiting to happen on a map with no edge to stop a search.
+const REPATH_FAIL_BACKOFF = 1.0;
+
 function repath(z, goalTile) {
   const path = findPath(tileOf(z), goalTile, canStep);
   z.path = path || [];
-  z.repathTimer = ZOMBIE_REPATH;
+  z.pathFailed = path === null;
+  z.repathTimer = z.pathFailed ? REPATH_FAIL_BACKOFF : ZOMBIE_REPATH;
 }
 
 function followPath(z, dt, others) {
@@ -188,7 +194,7 @@ export function updateZombie(z, dt, player, others) {
       }
       const pt = tileOf(player);
       const tileChanged = !z.lastPlayerTile || z.lastPlayerTile[0] !== pt[0] || z.lastPlayerTile[1] !== pt[1];
-      if (z.repathTimer <= 0 || tileChanged || !z.path.length) {
+      if (z.repathTimer <= 0 || ((tileChanged || !z.path.length) && !z.pathFailed)) {
         z.lastPlayerTile = pt;
         repath(z, pt);
       }

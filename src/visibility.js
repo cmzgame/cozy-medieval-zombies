@@ -44,8 +44,10 @@ export function lineOfSight(ax, ay, bx, by) {
   return true;
 }
 
+// Numeric tile keys, so a visibility set costs no string allocation.
+const KEY_OFF = 32768;
 export function tileKey(x, y) {
-  return `${x},${y}`;
+  return (x + KEY_OFF) * 65536 + (y + KEY_OFF);
 }
 
 // The set of tiles (as "x,y" keys) visible from (ox, oy) among `tiles`.

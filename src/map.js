@@ -19,6 +19,7 @@ let roomsDirty = true;
 
 export function reset({ floor = "floor_grass", authored = null } = {}) {
   chunks.clear();
+  lastChunk = null;
   rooms.clear();
   source = authored;
   defaultFloor = floor;
@@ -34,29 +35,42 @@ export function createWall(kind, sprite) {
   return { kind, sprite, open: kind === "door", glass: kind === "window" ? "intact" : null };
 }
 
+// Numeric keys: string keys allocated on every tile lookup were a measurable
+// cost when visibility walked thousands of edges per step (2026-10-09).
+const KEY_OFF = 32768;
 export function chunkKey(cx, cy) {
-  return `${cx},${cy}`;
+  return (cx + KEY_OFF) * 65536 + (cy + KEY_OFF);
 }
 
 export function chunkCoord(x, y) {
   return [Math.floor(x / CHUNK), Math.floor(y / CHUNK)];
 }
 
+let lastChunk = null; // most lookups hit the same chunk as the last one
+
 export function getChunk(cx, cy, create = true) {
+  if (lastChunk && lastChunk.cx === cx && lastChunk.cy === cy) return lastChunk;
   const k = chunkKey(cx, cy);
   let c = chunks.get(k);
+  if (c) lastChunk = c;
   if (c || !create) return c || null;
   const tiles = new Array(CHUNK * CHUNK);
+  let hasWalls = false;
   for (let ly = 0; ly < CHUNK; ly++) {
     for (let lx = 0; lx < CHUNK; lx++) {
       const x = cx * CHUNK + lx;
       const y = cy * CHUNK + ly;
-      tiles[ly * CHUNK + lx] = (source && source(x, y)) || createTile();
+      const t = (source && source(x, y)) || createTile();
+      if (t.n || t.w) hasWalls = true;
+      tiles[ly * CHUNK + lx] = t;
     }
   }
   c = { cx, cy, tiles, floorCache: null, floorDirty: true };
   chunks.set(k, c);
-  roomsDirty = true;
+  lastChunk = c;
+  // Open field cannot change any room, so only a chunk with walls (or one whose
+  // edge walls a neighbouring room may touch) forces the rooms to be refound.
+  if (hasWalls) roomsDirty = true;
   return c;
 }
 
@@ -257,27 +271,36 @@ export function markRoomsDirty() {
   roomsDirty = true;
 }
 
+const UNVISITED = -1;
+const OUTDOORS = -2;
+const STEPS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
 export function rebuildRooms() {
   roomsDirty = false;
   rooms.clear();
-  for (const c of chunks.values()) for (const t of c.tiles) t.room = 0;
+  // Outdoors is marked with its own value during the pass. A first version set
+  // finished outdoor tiles back to 0, the same as "not visited", so every grass
+  // tile started a new fill over the whole outdoors: 1.6 s for 16 chunks, and
+  // the freeze Michael saw when walking into new ground (2026-10-09).
+  for (const c of chunks.values()) for (const t of c.tiles) t.room = UNVISITED;
   let nextId = 1;
   for (const c of chunks.values()) {
     for (let i = 0; i < c.tiles.length; i++) {
       const t0 = c.tiles[i];
-      if (t0.room !== 0) continue;
+      if (t0.room !== UNVISITED) continue;
       const x0 = c.cx * CHUNK + (i % CHUNK);
       const y0 = c.cy * CHUNK + Math.floor(i / CHUNK);
       const id = nextId;
       const region = [];
-      const stack = [[x0, y0]];
-      t0.room = -1; // visiting
+      const stack = [x0, y0];
+      t0.room = id;
       let outdoors = false;
       while (stack.length) {
-        const [x, y] = stack.pop();
-        region.push([x, y]);
-        if (region.length > ROOM_MAX) outdoors = true;
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const y = stack.pop();
+        const x = stack.pop();
+        region.push(x, y);
+        if (region.length > ROOM_MAX * 2) outdoors = true;
+        for (const [dx, dy] of STEPS4) {
           const nx = x + dx;
           const ny = y + dy;
           const nt = peekTile(nx, ny);
@@ -285,20 +308,21 @@ export function rebuildRooms() {
             outdoors = true;
             continue;
           }
-          if (nt.room !== 0) continue;
+          if (nt.room !== UNVISITED) continue;
           if (wallBetween(x, y, nx, ny)) continue; // any wall bounds a room
-          nt.room = -1;
-          stack.push([nx, ny]);
+          nt.room = id;
+          stack.push(nx, ny);
         }
       }
-      const final = outdoors ? 0 : id;
-      for (const [x, y] of region) peekTile(x, y).room = final;
-      if (!outdoors) {
-        rooms.set(id, { id, size: region.length });
+      if (outdoors) {
+        for (let j = 0; j < region.length; j += 2) peekTile(region[j], region[j + 1]).room = OUTDOORS;
+      } else {
+        rooms.set(id, { id, size: region.length / 2 });
         nextId++;
       }
     }
   }
+  for (const c of chunks.values()) for (const t of c.tiles) if (t.room < 0) t.room = 0;
 }
 
 export function roomsIfDirty() {
