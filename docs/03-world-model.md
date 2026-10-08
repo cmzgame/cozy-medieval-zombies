@@ -89,7 +89,7 @@ A record is `{ id, chunk, tile, state, target, timer, hp, aggro, ...body fields 
 
 Upper floors are the one thing this model makes harder than nodes did. Zomboid stacks floors in a cell and hides the ones above you, which is its hardest rendering. Ruled: the village is single storey until the probe passes, tile data carries a layer index from day one, and upper floors are decided then. Options at that point: z-layers in the chunk, or small separate areas reached by stairs with a cut. Nothing in the renderer or the tile format may assume one layer forever (`05-someday.md`).
 
-## The questions this draft asked, and the answers (2026-10-08)
+## The questions this page asked, and the answers (2026-10-08)
 
 1. **Village or countryside?** Block by block from the start, so the countryside is possible. Michael: one file cuts off too many opportunities, provided the cost is not multiples of the code. It is not.
 2. **Off-screen break-ins?** Only inside the active region. Beyond it, nothing.
