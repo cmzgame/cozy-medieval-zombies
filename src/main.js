@@ -10,7 +10,7 @@ import * as events from "./events.js";
 import * as map from "./map.js";
 import * as camera from "./camera.js";
 import * as visibility from "./visibility.js";
-import { renderScene } from "./render.js";
+import { renderScene, setCutaway, cutaway } from "./render.js";
 import { createPlayer, updatePlayer, damagePlayer } from "./entities/player.js";
 import { createZombie, updateZombie } from "./entities/zombie.js";
 
@@ -50,6 +50,7 @@ function resize() {
 
 function update(dt) {
   if (input.wasPressed("KeyV")) drawAll = !drawAll;
+  if (input.wasPressed("KeyC")) setCutaway(cutaway === "stub" ? "translucent" : "stub");
   camera.follow(player, dt);
   camera.applyOrigin(CANVAS_W, CANVAS_H);
   updatePlayer(player, dt);
@@ -86,7 +87,7 @@ function render() {
     `chunk ${cx},${cy}  room ${playerRoom}  rooms ${map.roomCount()}\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}\n` +
     `zombies ${zombies.length}  ${zombies.map((z) => z.state).join(" ")}\n` +
-    `V: ${drawAll ? "showing everything" : "fog on"}`;
+    `V: ${drawAll ? "showing everything" : "fog on"}   C: near walls ${cutaway}`;
 }
 
 async function boot() {

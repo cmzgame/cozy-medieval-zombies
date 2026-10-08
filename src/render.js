@@ -15,6 +15,18 @@ import { WALL_T, NEAR_STUB } from "./placeholders.js";
 // looking at it. Tuned by eye; the probe decides whether it reads.
 const FOG = "rgba(8, 10, 26, 0.74)";
 
+// How a room's near walls draw while you are inside it. "translucent": the same
+// full-height wall the outside sees, faded so the room stays readable, which
+// keeps windows and doors identical inside and out (Michael, 2026-10-09: the
+// stub's sunken frames were a leftover from faked near edges). "stub": the cozy
+// parent's low cutaway, kept for comparison on the C key.
+export let cutaway = "translucent";
+const NEAR_WALL_ALPHA = 0.42;
+
+export function setCutaway(mode) {
+  cutaway = mode;
+}
+
 // Occlusion: fade the tall prop and draw a silhouette (cozy parent rule).
 const OCCLUDER_MIN_HEIGHT = 64;
 const OCCLUDER_ALPHA = 0.4;
@@ -106,12 +118,14 @@ function makeWall(wall, edge, tx, ty, vis, stub) {
   const y = Math.round(p.y);
   const h = sheet.wallHeight || 72;
   const T = WALL_T;
+  const lowStub = stub && cutaway === "stub";
+  const faded = stub && !lowStub;
   let fogPoly = null;
-  if (vis && !stub) {
+  if (vis && !lowStub) {
     fogPoly = edge === "n"
       ? [[x, y - iso.HH], [x + iso.HW, y], [x + iso.HW + T, y - T / 2], [x + iso.HW + T, y - T / 2 - h], [x + T, y - iso.HH - T / 2 - h], [x, y - iso.HH - h]]
       : [[x - iso.HW, y], [x, y - iso.HH], [x, y - iso.HH - h], [x - T, y - iso.HH - h - T / 2], [x - iso.HW - T, y - h - T / 2], [x - iso.HW - T, y - T / 2]];
-  } else if (vis && stub) {
+  } else if (vis && lowStub) {
     fogPoly = edge === "n"
       ? [[x, y - iso.HH], [x + iso.HW, y], [x + iso.HW, y - NEAR_STUB], [x, y - iso.HH - NEAR_STUB]]
       : [[x - iso.HW, y], [x, y - iso.HH], [x, y - iso.HH - NEAR_STUB], [x - iso.HW, y - NEAR_STUB]];
@@ -122,7 +136,7 @@ function makeWall(wall, edge, tx, ty, vis, stub) {
     vis,
     fogPoly,
     draw(ctx) {
-      if (stub) {
+      if (lowStub) {
         if (edge === "n") {
           const q = iso.toScreen(tx, ty - 1);
           drawFrame(ctx, sheet, `south_${variant}_0`, Math.round(q.x), Math.round(q.y), false, sheet.anchorSouth);
@@ -130,11 +144,15 @@ function makeWall(wall, edge, tx, ty, vis, stub) {
           const q = iso.toScreen(tx - 1, ty);
           drawFrame(ctx, sheet, `east_${variant}_0`, Math.round(q.x), Math.round(q.y), false, sheet.anchorEast);
         }
-      } else if (edge === "n") {
+        return;
+      }
+      if (faded) ctx.globalAlpha = NEAR_WALL_ALPHA;
+      if (edge === "n") {
         drawFrame(ctx, sheet, `north_${variant}_0`, x, y, false, sheet.anchor);
       } else {
         drawFrame(ctx, sheet, `west_${variant}_0`, x, y, false, sheet.anchorWest);
       }
+      if (faded) ctx.globalAlpha = 1;
     },
   };
 }
