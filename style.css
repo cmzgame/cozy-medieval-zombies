@@ -1,0 +1,53 @@
+/* Base styles copied from cozy-zombie-game style.css on 2026-10-09; UI rules return with their milestones. */
+
+[hidden] {
+  display: none !important;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: #101014;
+  overflow: hidden;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: #eee;
+  user-select: none;
+}
+
+#stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#game {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #1c1c24;
+  display: block;
+}
+
+/* #ui is sized and positioned by main.js to exactly cover the canvas. */
+#ui {
+  position: absolute;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+#ui > * {
+  pointer-events: auto;
+}
+
+#debug {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font: 12px/1.4 Consolas, monospace;
+  color: #9a9;
+  white-space: pre;
+  pointer-events: none;
+}

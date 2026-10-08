@@ -42,14 +42,16 @@ These are the current rulings. The list grows as `docs/02-decisions.md` does.
 
 ## Running
 
-Not yet runnable. When it is:
-
 ```
-python serve.py 8000
+python serve.py 8010
 ```
 
-Then open http://localhost:8000. ES modules will not load from `file://`. The server must disable caching or edited modules go stale.
+Then open http://localhost:8010. ES modules will not load from `file://`. `serve.py` disables caching and serves its own folder, so it can be launched from any directory. `.claude/launch.json` names it `medieval`.
 
 ## Testing from a browser console
 
-The cozy parent's pattern, to be carried: `window.__game` exposes live state, `loop.setPaused(true)` then `loop.advance(seconds)` steps time deterministically. Never drive the live game with large single steps.
+`window.__game` exposes live state (`player`, `zombies`, `map`, `visible`, `teleport(gx, gy)`). `loop.setPaused(true)` then `loop.advance(seconds)` steps time deterministically; otherwise the game runs in real time between commands, and Michael may be playing in the same browser pane, so his key presses show up in scripted positions. Never drive the live game with large single steps. `V` toggles the fog off.
+
+## Code map
+
+`map.js` tiles, edge walls, collision, rooms, authoring · `visibility.js` line of sight · `camera.js` · `render.js` floors, walls, cutaway, fog · `pathfind.js` · `entities/` player and the dead · the rest copied from the cozy parent, see each file's header.

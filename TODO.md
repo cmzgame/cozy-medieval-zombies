@@ -4,11 +4,12 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 
 ## Status
 
-- **Current milestone:** none. Pre-code. Repo scaffolded 2026-10-08 with the vision, the inheritance list, a decisions log, the chunk world model, and an NPC assessment.
-- **Last completed task (2026-10-08):** both parents' docs read and harvested into `docs/01-parents.md`. Chunks ruled in: block-by-block storage from the start, active radius 2, break-ins only inside the active region, rooms by flood fill, single storey first (`docs/02`, `docs/03`). Building kept open as a player feature and as the dev tool. NPCs assessed in `docs/04-npcs.md` at Michael's request.
-- **Pre-code conversations:** complete as of 2026-10-08. Also ruled today: NPCs killable and fleeing with follow and stay; farming and fire added to the vision as pillars; quests and roofs to `docs/05-someday.md`.
-- **Blocked on:** nothing.
-- **Next:** Milestone 1, the probe.
+- **Current milestone:** 1, the probe. Built 2026-10-09 and awaiting Michael's verdict on the four proofs. Runs at 60 fps.
+- **What exists:** a chunked map stored block by block with edge walls (`map.js`), rooms by flood fill, line of sight by grid traversal (`visibility.js`), a following camera over cached chunk floors (`camera.js`, `render.js`), four-walled buildings with cutaway stubs when you are inside, fog over what you cannot see, the player and three of the dead on a hand-written square (`data/maps/square.json`) with a cottage and a shed. Copied modules carry origin headers.
+- **Last completed task (2026-10-09):** Milestone 1 built and checked by script in the browser: the player walks from the square through the cottage door with no cut and a zombie follows through it; a wall stops the player at its face; a window shows a wedge of the room from outside and a wedge of the square from inside; stubs on the near walls indoors; the fog leaves no seams; 60 fps with about 730 tiles in view.
+- **Blocked on:** Michael playing it. Proof 1 (feel) and proof 4 (viewport) are his to judge; proofs 2 and 3 look right to me in screenshots.
+- **Next:** if the probe passes, the port order below, starting with lighting. If a proof fails, write why in `docs/02` and talk.
+- **Notes:** run `python serve.py 8010` in this repo (the file serves its own folder, so it can be launched from elsewhere). `V` toggles the fog off to compare. Michael plays in the in-app browser pane while work happens, so scripted tests see his inputs.
 - **Notes:** Michael wants to burn this week's credits on this. He likes a pause between phases (docs, then build) and plays in his own browser while work happens. Nothing from either parent is gospel.
 
 ## Conversations to have before code
@@ -26,13 +27,13 @@ The remaining open questions in `docs/02` are decided at the milestone that need
 
 Placeholder art. No sim beyond the active region, no inventory, no needs, no save, no UI beyond a debug corner. The point is to answer four questions, not to make a game.
 
-- [ ] Repo plumbing: `index.html`, `style.css`, `serve.py`, `src/main.js`, copied `iso.js`, `loop.js`, `input.js`, `events.js`, `sprites.js`, `placeholders.js`, `render-util.js` with origin headers.
-- [ ] Chunked map: a dictionary of 16×16 chunks behind `tileAt`, loaded on demand one chunk file at a time with a ring ahead of the active region, a missing chunk is empty field. A hand-written 32×32 village square as the test map.
-- [ ] Camera: float grid position following the player, `toScreen` / `toGrid` with offset, integer-scaled 960×540, only visible chunks drawn, floor cached per chunk.
-- [ ] One cottage: four walls, a door opening, two glass windows, interior floor, a few solid props. Near walls become stubs when the player is inside.
-- [ ] Player copied and walking with collision against the tile grid. Three dead copied, pathing and chasing with the existing A\* and a bounded search.
-- [ ] Visibility: shadow cast from the player over the viewport. Out-of-sight tiles darkened, out-of-sight dead not drawn. Glass passes sight and blocks movement.
-- [ ] Debug corner: fps, player tile, chunk, visible tile count.
+- [x] Repo plumbing: `index.html`, `style.css`, `serve.py`, `src/main.js`, copied `iso.js`, `loop.js`, `input.js`, `events.js`, `sprites.js`, `placeholders.js`, `render-util.js`, `assets.js` with origin headers.
+- [x] Chunked map: a dictionary of 16×16 chunks behind `tileAt`; a missing chunk is empty field, created on demand, so the grass goes on forever. The authored square is sliced into chunks at load; fetching chunk files on demand is a later step, the shape allows it. Walls sit on tile edges (`n`, `w`), Zomboid style; a door keeps its jambs for collision; glass blocks bodies and passes sight.
+- [x] Camera: float grid position following the player, origin derived from it so `iso.js` is unchanged, integer-scaled 960×540, only chunks in view drawn, floor cached per chunk as one image.
+- [x] One cottage and one shed: four walls, door openings, glass windows, wood floors, a bed, a table, a chest, barrels. The player's room is found by flood fill; its near walls draw as stubs.
+- [x] Player copied and walking with circle collision against props and wall segments. Three dead copied; they path with the bounded A\* through doorways and chase on sight.
+- [x] Visibility: a ray to every tile in view, walked edge by edge. Out-of-sight tiles fogged, out-of-sight dead not drawn, visible walls and sprites cut out of the fog.
+- [x] Debug corner: fps, position, chunk, room, tile and visible counts, zombie states. `V` toggles the fog.
 
 **Accept when** all four proofs hold:
 
@@ -42,6 +43,8 @@ Placeholder art. No sim beyond the active region, no inventory, no needs, no sav
 4. The viewport shows enough of the square to feel like a village and the pixels still look chunky at 2x.
 
 If any proof fails: stop, write down why in `docs/02`, and talk.
+
+**Scripted checks, 2026-10-09:** from the square, holding up-right for 1.3 s took the player through the door to (15, 7.05) in room 1, and a chasing zombie followed through the same doorway; the same walk aimed at the wall beside the window stopped at 8.85, the wall face plus the body radius; after Michael found doors impassable in play (the first version kept the jambs solid, leaving a gap exactly one body wide), doorways became passable across their width and gained a door magnet in `moveCircle`: approaching the cottage door 0.35 and 0.7 tiles off centre, and the shed's west door straight on and 0.4 off, all slid into the opening and ended inside, while a wall with no door within a tile still stopped the player with no sideways movement; from (13, 10.2) outside the left window, the two tiles straight through the glass were visible and the tiles either side were not; inside, the south and east walls drew as stubs and the square showed as wedges through the door and windows; 60 fps with 714 to 753 tiles in view and about 60 drawables.
 
 ## After the probe (sketch, not a plan)
 

@@ -6,9 +6,17 @@ Plain HTML, CSS, and JavaScript. Canvas 2D for the world, DOM for the UI. No eng
 
 Started 2026-10-08 as the marriage of two earlier prototypes: `cozy-zombie-game` (the look, the lighting, melee, inventory) and `medieval-zombie-survival` (the setting, no guns, glass windows, barred doors). Both are kept as they were.
 
+## Running
+
+```bash
+python serve.py 8010
+```
+
+Then open http://localhost:8010. WASD or arrows to walk, Shift to sprint, mouse to aim. `V` toggles the fog of what you cannot see.
+
 ## Status
 
-Pre-code. See `TODO.md` for where things stand and `docs/00-vision.md` for what this is.
+Milestone 1, the probe: a scrolling chunked map, a cottage and a shed with four walls and cutaway stubs, line of sight through glass, the player and three of the dead. See `TODO.md` for where things stand and `docs/00-vision.md` for what this is.
 
 ## Documents
 

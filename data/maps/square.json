@@ -1,0 +1,52 @@
+{
+  "name": "Village square",
+  "floor": "floor_grass",
+  "floorRects": [
+    { "rect": [11, 11, 10, 10], "sprite": "floor_cobble" },
+    { "rect": [15, 9, 1, 2], "sprite": "floor_cobble" },
+    { "rect": [21, 14, 2, 1], "sprite": "floor_cobble" }
+  ],
+  "buildings": [
+    {
+      "rect": [12, 3, 7, 6],
+      "wall": "wall_plaster",
+      "floor": "floor_wood",
+      "openings": [
+        { "side": "s", "at": 3, "kind": "door" },
+        { "side": "s", "at": 1, "kind": "window" },
+        { "side": "s", "at": 5, "kind": "window" },
+        { "side": "e", "at": 2, "kind": "window" }
+      ],
+      "props": [
+        { "sprite": "bed", "tile": [0, 0], "footprint": [2, 1] },
+        { "sprite": "table", "tile": [3, 2], "footprint": [2, 1] },
+        { "sprite": "chest", "tile": [6, 0] }
+      ]
+    },
+    {
+      "rect": [23, 13, 4, 4],
+      "wall": "wall_plaster",
+      "floor": "floor_wood",
+      "openings": [
+        { "side": "w", "at": 1, "kind": "door" },
+        { "side": "s", "at": 2, "kind": "window" }
+      ],
+      "props": [
+        { "sprite": "barrel", "tile": [3, 0] },
+        { "sprite": "barrel", "tile": [3, 1] }
+      ]
+    }
+  ],
+  "props": [
+    { "sprite": "tree", "tile": [6, 14] },
+    { "sprite": "tree", "tile": [7, 22] },
+    { "sprite": "tree", "tile": [24, 7] },
+    { "sprite": "tree", "tile": [27, 20] },
+    { "sprite": "tree", "tile": [22, 26] },
+    { "sprite": "tree", "tile": [10, 27] },
+    { "sprite": "tree", "tile": [4, 6] },
+    { "sprite": "barrel", "tile": [20, 11] }
+  ],
+  "spawn": [15, 15],
+  "zombies": [[27, 23], [8, 19], [19, 28]]
+}

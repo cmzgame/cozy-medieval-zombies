@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "medieval",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["serve.py", "8010"],
+      "port": 8010
+    }
+  ]
+}
