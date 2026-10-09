@@ -28,8 +28,10 @@ export const night = {
   alpha: 0.96,
   pool: 190,
   poolStrength: 0.42,
-  climb: 0,
+  climb: 56, // px a pool climbs a wall face or a trunk; 0 for the flat face
   linear: true,
+  standingFloor: 0, // a floor on the light of props and characters, for legibility
+  debug: 0, // 0 none, 1 the light texture, 2 ambient, 3 fog (the L key)
 };
 const FOG_COLOR = [22 / 255, 14 / 255, 32 / 255];
 const FOG_ALPHA = 0.36;
@@ -313,7 +315,7 @@ function propDrawables(tiles, visible, out) {
       canOcclude: !!f && f[3] >= OCCLUDER_MIN_HEIGHT,
       occluder: false,
       emit() {
-        const flags = d.occluder ? gl.FLAG_OCCLUDER : 0;
+        const flags = gl.FLAG_STANDING | (d.occluder ? gl.FLAG_OCCLUDER : 0);
         frameQuad(sheet, name, x, y, { world: [tx, ty], heights: f ? [f[3], f[3], 0, 0] : 0, flags });
         if (flame) frameQuad(sheet, flameName, x, y, { world: [tx, ty], flags: gl.FLAG_UNLIT });
       },
@@ -344,7 +346,7 @@ function entityDrawables(entities, visible, out, drawAll) {
       occluded: false,
       emit() {
         const world = [e.gx, e.gy];
-        frameQuad(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0, flags: gl.FLAG_NOFOG }, r.flip);
+        frameQuad(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING }, r.flip);
         if (torch) {
           const [hx, hy] = torch;
           gl.poly([[hx - 1, hy], [hx + 2, hy], [hx + 2, hy + 12], [hx - 1, hy + 12]], gl.rgb(WOOD), { world, flags: gl.FLAG_NOFOG });
@@ -392,6 +394,7 @@ function buildArea(tiles, visible, drawAll, camGx, camGy) {
   const oy = c0y * map.CHUNK;
   const RES = light.RES;
   const LW = AREA_TILES * RES;
+  const now = performance.now() / 1000;
   lightArea.fill(0);
   for (let cy = 0; cy < AREA_CHUNKS; cy++) {
     for (let cx = 0; cx < AREA_CHUNKS; cx++) {
@@ -400,10 +403,17 @@ function buildArea(tiles, visible, drawAll, camGx, camGy) {
       const N = map.CHUNK * RES + 2;
       const bx = cx * map.CHUNK * RES;
       const by = cy * map.CHUNK * RES;
+      // Flicker: each flickering source's own layer is taken back by the
+      // share its weight leaves out this frame.
+      const dims = entry.layers.map((l) => ({ own: l.contrib, loss: 1 - light.flickerWeight(l.flicker, l.seed, now) }));
       for (let j = 1; j <= map.CHUNK * RES; j++) {
         const row = (by + j - 1) * LW + bx;
         const src = j * N;
-        for (let i = 1; i <= map.CHUNK * RES; i++) lightArea[row + i - 1] = Math.round(entry.contrib[src + i] * 255);
+        for (let i = 1; i <= map.CHUNK * RES; i++) {
+          let v = entry.contrib[src + i];
+          for (const dl of dims) v -= dl.own[src + i] * dl.loss;
+          lightArea[row + i - 1] = Math.round(Math.max(0, v) * 255);
+        }
       }
     }
   }
@@ -411,6 +421,7 @@ function buildArea(tiles, visible, drawAll, camGx, camGy) {
   const carrier = light.carried();
   if (carrier) {
     const r = carrier.radius;
+    const cw = light.flickerWeight(carrier.flicker, 1.3, now);
     const i0 = Math.max(0, Math.floor((carrier.gx - r - ox + 0.25) * RES));
     const i1 = Math.min(LW - 1, Math.ceil((carrier.gx + r - ox + 0.25) * RES));
     const j0 = Math.max(0, Math.floor((carrier.gy - r - oy + 0.25) * RES));
@@ -421,7 +432,7 @@ function buildArea(tiles, visible, drawAll, camGx, camGy) {
         const gx = ox - 0.25 + i / RES;
         const d = Math.hypot(gx - carrier.gx, gy - carrier.gy);
         if (d >= r) continue;
-        const v = d < 0.6 ? 1 : Math.min(1, CORE_GAIN * (1 - d / r)) * light.lightPath(carrier.gx, carrier.gy, gx, gy);
+        const v = (d < 0.6 ? 1 : Math.min(1, CORE_GAIN * (1 - d / r)) * light.lightPath(carrier.gx, carrier.gy, gx, gy)) * cw;
         if (v <= 0) continue;
         const k = j * LW + i;
         lightArea[k] = Math.min(255, lightArea[k] + Math.round(v * 255));
@@ -492,6 +503,8 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
     holes,
     holeInner: HOLE_INNER,
     holeOuter: HOLE_OUTER,
+    minStanding: night.standingFloor,
+    debug: night.debug,
   });
   return drawables.length;
 }

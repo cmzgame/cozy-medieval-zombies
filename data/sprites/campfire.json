@@ -1,1 +1,1 @@
-{"placeholder": {"kind": "campfire", "color": "#6a645c"}, "fire": {"radius": 4, "burns": true, "cooks": true, "maxFuel": 4}}
+{"placeholder": {"kind": "campfire", "color": "#6a645c"}, "fire": {"radius": 4, "burns": true, "cooks": true, "maxFuel": 4, "flicker": {"amp": 0.22, "speed": 7}}}

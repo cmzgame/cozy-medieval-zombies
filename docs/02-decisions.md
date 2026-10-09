@@ -6,6 +6,8 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ### 2026-10-09, night — The renderer goes to WebGL (Michael)
 
+Built the same night, all three phases (`08-renderer.md`). Michael at Phase 2: "MILES better, and I could not produce a single weird polygon bug anymore. Wall shading suddenly feels way more intuitive." The Canvas renderer stays on the `G` key until he accepts the whole.
+
 Michael took the lighting problem to an outside agent with only the lighting and scaling parts of the game described, and brought back a spec (`medieval_pixel_world_game_spec.md`, in his downloads) recommending PixiJS on WebGL. Read together on 2026-10-09; most of its architecture is what we already have (authoritative world data, derived light maps per chunk, materials apart from art, emitters as data, rooms found not authored). Rulings:
 
 - **Raw WebGL2, not PixiJS, not Canvas 2D for the world.** Michael: libraries like PixiJS exist to make this easier for humans to write; with me writing it, raw WebGL costs little and we own the pipeline. The reason it is worth doing now: everything he was still dissatisfied with is light per pixel (a pool climbing a wall, his own pool on the wall beside him, a tree lit at the trunk and dark at the crown), which Canvas 2D cannot do and a shader does by sampling a light texture at each pixel. The Canvas 2D ordered pass stays until the WebGL renderer reaches parity, then goes. Canvas 2D keeps generating the placeholder art, which uploads as textures. The design is `08-renderer.md`.

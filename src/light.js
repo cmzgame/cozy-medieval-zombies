@@ -53,11 +53,11 @@ export function update() {
     }
     if (p.fire.radius > 0) curSources.push({ gx: p.tile[0], gy: p.tile[1], radius: p.fire.radius, intensity: 1, kind: p.sprite, flicker: p.fire.flicker });
   }
-  const torchRadius = getItem("torch").fire.radius;
+  const torchFire = getItem("torch").fire;
   for (const b of map.brackets()) {
     if (!b.wall.bracket.torch) continue;
     const [gx, gy] = map.bracketPos(b);
-    curSources.push({ gx, gy, radius: torchRadius, intensity: 1, kind: "torch" });
+    curSources.push({ gx, gy, radius: torchFire.radius, intensity: 1, kind: "torch", flicker: torchFire.flicker });
   }
   // Portals: an opening is a source on its darker side, as bright as the
   // difference between its sides, through its transmission, lighting only
@@ -241,7 +241,18 @@ export function poolRays() {
 
 // ---- the static map, per chunk ----
 
-const cache = new Map(); // chunk key -> { sig, contrib, canvas, any }
+const cache = new Map(); // chunk key -> { sig, contrib, layers, canvas, any }
+
+// Flicker (docs/08, Phase 3): a source's weight this instant, 1 - amp .. 1,
+// from two slow sines with a seed per source, so flames never beat together.
+// Applied where the light map is composed for the GPU, never in the chunk
+// maps, so the ray grid is untouched.
+export function flickerWeight(flicker, seed, t) {
+  if (!flicker) return 1;
+  const a = Math.sin(t * flicker.speed + seed) * 0.5 + 0.5;
+  const b = Math.sin(t * flicker.speed * 1.73 + seed * 2.1) * 0.5 + 0.5;
+  return 1 - flicker.amp * (0.35 + 0.65 * a * b);
+}
 
 // Grid position of the centre of cell i (0..N-1) along one axis of chunk c.
 function cellGrid(c, i) {
@@ -271,11 +282,16 @@ function sigFor(cx, cy) {
 
 function build(cx, cy, sig) {
   const contrib = new Float32Array(N * N);
+  // Sources that flicker keep their own layer too, so the composer can scale
+  // each by its weight this frame.
+  const layers = [];
   let any = false;
   const x0 = cx * map.CHUNK - 0.5;
   const y0 = cy * map.CHUNK - 0.5;
   for (const l of curSources) {
     if (!reaches(l, cx, cy)) continue;
+    const own = l.flicker ? new Float32Array(N * N) : null;
+    if (own) layers.push({ contrib: own, flicker: l.flicker, seed: (l.gx * 7.3 + l.gy * 3.1) % 6.28 });
     // Only the cells within the radius.
     const i0 = Math.max(0, Math.floor((l.gx - l.radius - x0) * RES + 0.5));
     const i1 = Math.min(N - 1, Math.ceil((l.gx + l.radius - x0) * RES + 0.5));
@@ -294,7 +310,9 @@ function build(cx, cy, sig) {
         const through = lightPath(l.gx, l.gy, gx, gy);
         if (through <= 0) continue;
         const k = j * N + i;
-        contrib[k] = Math.min(1, contrib[k] + Math.min(1, CORE_GAIN * (1 - d / l.radius)) * intensity * through);
+        const v = Math.min(1, CORE_GAIN * (1 - d / l.radius)) * intensity * through;
+        contrib[k] = Math.min(1, contrib[k] + v);
+        if (own) own[k] = v;
         any = true;
       }
     }
@@ -318,7 +336,7 @@ function build(cx, cy, sig) {
     }
     ctx.putImageData(img, 0, 0);
   }
-  return { sig, contrib, canvas, any };
+  return { sig, contrib, layers, canvas, any };
 }
 
 // The map of a chunk, rebuilt if its sources or the walls changed.

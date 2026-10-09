@@ -1,6 +1,6 @@
 # Cozy Medieval Zombies
 
-A cute isometric medieval village, in the Habbo / early-2000s pixel style, overrun by the dead. One continuous map with real line of sight. Plain HTML, CSS, and JavaScript with ES modules. Canvas 2D for the world, DOM for UI. No build step, no engine, no framework.
+A cute isometric medieval village, in the Habbo / early-2000s pixel style, overrun by the dead. One continuous map with real line of sight. Plain HTML, CSS, and JavaScript with ES modules. Raw WebGL2 for the world (`src/gl.js`, since 2026-10-09; Canvas 2D generates the dev art and uploads it as textures), DOM for UI. No build step, no engine, no framework, no rendering library.
 
 Started 2026-10-08 as the marriage of two prototypes, both kept as they are:
 
@@ -35,7 +35,7 @@ These are the current rulings. The list grows as `docs/02-decisions.md` does.
 - The map is stored block by block. Every tile access goes through `tileAt`. A missing chunk is grown on demand: plain floor inside the authored bounds, wild forest with a few of the dead beyond them.
 - Rooms are found by flood fill, never authored. Walls are state on tile edges (`n` and `w` slots, Zomboid style), never objects; a door or a window is a wall with a kind and a state.
 - Windows have shutters, not glass. Closed shutters block sight. Doors start closed and block sight and bodies.
-- Light is one function. Nothing else computes light. Light feeds sight.
+- Light is one function. Nothing else computes light. Light feeds sight. In the renderer every vertex carries the world point its light is read from; nothing is lit in screen space.
 - Villagers carry no weapons and never fight for the player. They flee, follow, stay, and die.
 - Check `docs/05-someday.md` before a choice that would foreclose something cheaply. Say so before making it.
 - Placeholder art is generated at boot through the same interface as real sprite sheets. Do not wait for art.

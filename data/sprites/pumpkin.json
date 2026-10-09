@@ -1,1 +1,1 @@
-{ "placeholder": { "kind": "pumpkin", "color": "#c8692a" }, "fire": { "radius": 1.5, "lit": true } }
+{"placeholder": {"kind": "pumpkin", "color": "#c8692a"}, "fire": {"radius": 1.5, "lit": true, "flicker": {"amp": 0.12, "speed": 5}}}

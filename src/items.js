@@ -5,7 +5,7 @@
 // written fresh when the inventory arrives.
 
 export const ITEMS = {
-  torch: { id: "torch", name: "torch", hands: "off", fire: { radius: 3 } },
+  torch: { id: "torch", name: "torch", hands: "off", fire: { radius: 3, flicker: { amp: 0.14, speed: 9 } } },
 };
 
 export function getItem(id) {

@@ -14,6 +14,7 @@ export const FLAG_UNLIT = 1;
 export const FLAG_OCCLUDER = 2;
 export const FLAG_SKY = 4;
 export const FLAG_NOFOG = 8;
+export const FLAG_STANDING = 16; // a prop or a character: takes the legibility floor
 
 const STRIDE = 12; // floats per vertex
 const ATLAS = 2048;
@@ -124,6 +125,8 @@ uniform vec2 u_holes[8];
 uniform int u_holeCount;
 uniform float u_holeInner;
 uniform float u_holeOuter;
+uniform float u_minStanding;
+uniform int u_debug;
 
 // The player's own weak night vision: the cozy parent's gradient stops.
 float poolAt(vec2 p) {
@@ -143,15 +146,23 @@ void main() {
   bool occ = mod(floor(f / 2.0), 2.0) >= 1.0;
   bool sky = mod(floor(f / 4.0), 2.0) >= 1.0;
   bool nofog = mod(floor(f / 8.0), 2.0) >= 1.0;
+  bool standing = mod(floor(f / 16.0), 2.0) >= 1.0;
   // Texel i of the tile textures covers [origin + i - 0.5, origin + i + 0.5);
   // the light texture spans the same area at more texels per tile.
   vec2 tileUV = (v_world - u_areaOrigin + 0.5) / u_areaTiles;
   vec3 rgb = tex.rgb;
+  // Debug views (docs/08): the light, ambient, or fog texture as grey over the
+  // world, read at the fragment's own sample point.
+  if (u_debug == 1) { o = vec4(vec3(texture(u_light, tileUV).r), 1.0); return; }
+  if (u_debug == 2) { o = vec4(vec3(texture(u_ambient, tileUV).r), 1.0); return; }
+  if (u_debug == 3) { o = vec4(vec3(texture(u_fog, tileUV).r), 1.0); return; }
   if (!unlit) {
     float amb = sky ? u_outdoor : texture(u_ambient, tileUV).r;
     float st = sky ? 0.0 : texture(u_light, tileUV).r;
+    // A pool climbs a wall or a tree from its foot and fades with height.
     if (u_climb > 0.0) st *= max(0.0, 1.0 - v_height / u_climb);
     float light = min(1.0, amb + st);
+    if (standing) light = max(light, u_minStanding);
     float dark = clamp((1.0 - light) / (1.0 - u_nightFloor), 0.0, 1.0) * u_nightAlpha;
     dark *= 1.0 - poolAt(v_screen);
     rgb *= mix(vec3(1.0), u_tint, dark);
@@ -189,7 +200,7 @@ export function init(canvas) {
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
   gl.useProgram(program);
-  for (const name of ["u_res", "u_atlas", "u_tex", "u_light", "u_ambient", "u_fog", "u_areaOrigin", "u_areaTiles", "u_nightFloor", "u_nightAlpha", "u_tint", "u_outdoor", "u_player", "u_pool", "u_poolStrength", "u_climb", "u_fogColor", "u_fogAlpha", "u_holes", "u_holeCount", "u_holeInner", "u_holeOuter"]) {
+  for (const name of ["u_res", "u_atlas", "u_tex", "u_light", "u_ambient", "u_fog", "u_areaOrigin", "u_areaTiles", "u_nightFloor", "u_nightAlpha", "u_tint", "u_outdoor", "u_player", "u_pool", "u_poolStrength", "u_climb", "u_fogColor", "u_fogAlpha", "u_holes", "u_holeCount", "u_holeInner", "u_holeOuter", "u_minStanding", "u_debug"]) {
     uniforms[name] = gl.getUniformLocation(program, name);
   }
   vao = gl.createVertexArray();
@@ -377,6 +388,8 @@ export function end(u) {
   gl.uniform1i(uniforms.u_holeCount, Math.min(8, u.holes.length));
   gl.uniform1f(uniforms.u_holeInner, u.holeInner);
   gl.uniform1f(uniforms.u_holeOuter, u.holeOuter);
+  gl.uniform1f(uniforms.u_minStanding, u.minStanding);
+  gl.uniform1i(uniforms.u_debug, u.debug);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, atlasTex);
   gl.activeTexture(gl.TEXTURE1);

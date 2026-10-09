@@ -89,6 +89,7 @@ function update(dt) {
     setCutaway(mode);
     renderCanvas.setCutaway(mode);
   }
+  if (input.wasPressed("KeyL")) night.debug = (night.debug + 1) % 4;
   if (input.wasPressed("KeyG") && !glError) {
     renderer = renderer === "gl" ? "canvas" : "gl";
     showRenderer();
@@ -127,7 +128,7 @@ function update(dt) {
   const py = Math.round(player.gy);
   playerRoom = map.roomAt(px, py); // refinds rooms if a wall changed
   const held = items.heldFire(player.hands);
-  light.setCarrier(held ? { gx: player.gx, gy: player.gy, radius: held.radius } : null);
+  light.setCarrier(held ? { gx: player.gx, gy: player.gy, radius: held.radius, flicker: held.flicker || null } : null);
   light.update();
   // Sight is cast from the player's tile centre and only recomputed when the
   // player or the camera enters a new tile. Casting every step at 60 Hz was the
@@ -181,7 +182,7 @@ function render() {
     `chunk ${cx},${cy}  room ${playerRoom}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `zombies ${zombies.length}  near ${zombies.filter((z) => Math.abs(z.gx - player.gx) <= ACTIVE_TILES && Math.abs(z.gy - player.gy) <= ACTIVE_TILES).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
-    `V: ${drawAll ? "showing everything" : "fog on"}   C: near walls ${cutaway}   ] [: skip an hour   T: torch   G: renderer ${renderer}${glError ? ` (WebGL2 unavailable: ${glError})` : ""}`;
+    `V: ${drawAll ? "showing everything" : "fog on"}   C: near walls ${cutaway}   ] [: skip an hour   T: torch   G: renderer ${renderer}${glError ? ` (WebGL2 unavailable: ${glError})` : ""}   L: debug view ${["off", "light", "ambient", "fog"][night.debug]}`;
 }
 
 async function boot() {
