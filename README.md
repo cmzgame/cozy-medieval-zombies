@@ -29,3 +29,4 @@ Milestone 1, the probe, passed on 2026-10-09: a scrolling chunked map with real 
 | [04-npcs.md](docs/04-npcs.md) | Villagers: killable, they flee, follow, and stay, carry no weapons; what talking does. |
 | [05-someday.md](docs/05-someday.md) | Wanted but unscheduled: quests, roofs, upper floors, building, the countryside. Never foreclose these cheaply. |
 | [06-art.md](docs/06-art.md) | Art direction: spooky medieval, never permanently night; the genre test and the dev palette. |
+| [07-lighting.md](docs/07-lighting.md) | Milestone 2: the clock, light as one function per chunk and room, fire as data, torches that mount, hands, the dead seeing flames. |

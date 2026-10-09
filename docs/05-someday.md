@@ -17,3 +17,7 @@ Started 2026-10-08.
 - **Warmth and cold.** The sibling had a cold moodle the fireplace answers. Here fire is already everything; a winter would make it more so. Not scheduled.
 - **Low-fantasy headroom.** A cursed blade, a staff, something in the woods. The setting allows it; nothing asks for it.
 - **Animals.** Hunting, a goat, a chicken. The sibling's entity-registry idea. Farming comes first.
+- **The shuttered lantern.** A carried light you can hide without putting it out: the torch's upgrade, if the torch ever needs one. The carried-light term in `light.js` is a radius with an on flag, so a lantern is a second item with the same shape. Ruled out of Milestone 2 on 2026-10-09.
+- **Candles.** The cozy parent's stealthy room light. Torches took their job here; a candle would be a tiny fire kind in the same table, and nothing stops one being added.
+- **A great hall.** The hearth lights its whole room by one rule. A room big enough to make that silly wants a cap by room size, one line, when such a room exists.
+- **A character gear screen.** Hand slots exist from Milestone 2 with the `main`, `off`, `both` designation on every holdable item; a gear screen is a view of them plus armour slots later.

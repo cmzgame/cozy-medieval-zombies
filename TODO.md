@@ -12,8 +12,9 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 - **Forest pass, 2026-10-09:** big trees in three sizes and four harvest colours, scattered by rule with noise-shaped density, a padding ring around buildings, trunk-only collision with deflection, and the wild beyond the authored map grown as forest with a few of the dead per chunk. Blue and purple trees are on file for a gloomy zone later.
 - **Pin, end of 2026-10-09.** Michael: "this suddenly genuinely looks like a real game." His call on what comes next, and it is the important note of the session: **the last thing the vibe pass needs is a real lighting system like the cozy parent's.** Dynamic light that changes what a room looks like, not a gradient glow: hearth, candles, the jack-o'-lanterns, lit windows, night. From there every gameplay decision will be more fun to test. The parent's art looked good but felt sterile; this is a different place.
 - **Docs pass, 2026-10-09 (midday):** the docs caught up with the day's rulings. Glass and curtains became shutters everywhere, stubs became translucent walls in `docs/03`, "walls are tiles" became "walls are state on tile edges", the missing-chunk rule now says wild forest, `docs/02` is newest first within the day with the superseded shirt and Gloomwood lines struck, `docs/06` has the real tree sizes and collision radii, and the parent's tuning numbers are open question 19. One code fix: an animated prop west or north of the origin asked for a negative frame index.
-- **Blocked on:** nothing.
-- **Next:** Milestone 2 is **lighting**. Write its doc (what the parent's `light.js` and `14-lighting-reference.md` give us, what changes for chunks and rooms, the lantern question, the pumpkin as a source, the hearth that burns wood) with an acceptance test, then build it. **Discussion point Michael wants first: torches, carried and placed.** One thing medieval gives back that modern took: a torch in the hand is the walking light, and a torch jammed in a bracket or the ground is a placed one. It bears on the lantern question (open question 8) and on the fire-and-resources pillar. Openings with the dead breaking in and the melee port follow, which together make "a night in the cottage".
+- **Torches and fire talked through, 2026-10-09 (afternoon):** rulings in `docs/02` and the design in `docs/07-lighting.md`. Hands on every holdable item (main, off, both); torches never burn out and mount in brackets or on posts, never on the ground; the dead see fire from far away at night; fires are data with a campfire and a hearth that burn wood and cook; the clock comes first; the fog becomes light. The spear is tabled until combat.
+- **Blocked on:** Michael reading `docs/07-lighting.md`. One ruling it asks for: smoothing the light erase layer as the parent did, an exception to "never scale in `drawImage`" for a gradient that is not pixel art.
+- **Next:** build Milestone 2 in the order `docs/07` gives, with a pause after the night layer (step 3) for the tint and the day cap. Openings with the dead breaking in and the melee port follow, which together make "a night in the cottage".
 - **Notes:** the debug corner shows the cost of a logic step and the worst step in the last three seconds; a freeze should show up there first. Run `python serve.py 8010` in this repo (the file serves its own folder, so it can be launched from elsewhere). `V` toggles the fog off to compare. Michael plays in the in-app browser pane while work happens, so scripted tests see his inputs.
 - **Notes:** Michael wants to burn this week's credits on this. He likes a pause between phases (docs, then build) and plays in his own browser while work happens. Nothing from either parent is gospel.
 
@@ -51,11 +52,23 @@ If any proof fails: stop, write down why in `docs/02`, and talk.
 
 **Scripted checks, 2026-10-09:** from the square, holding up-right for 1.3 s took the player through the door to (15, 7.05) in room 1, and a chasing zombie followed through the same doorway; the same walk aimed at the wall beside the window stopped at 8.85, the wall face plus the body radius; after Michael found doors impassable in play (the first version kept the jambs solid, leaving a gap exactly one body wide), doorways became passable across their width and gained a door magnet in `moveCircle`: approaching the cottage door 0.35 and 0.7 tiles off centre, and the shed's west door straight on and 0.4 off, all slid into the opening and ended inside, while a wall with no door within a tile still stopped the player with no sideways movement; Michael then reported freezes of a second or two: refinding rooms took 1.6 s for 16 chunks because finished outdoor tiles were marked the same as unvisited ones, so every grass tile restarted the fill, and it ran whenever walking created a chunk. Fixed (2.9 ms for 23 chunks, and wall-less chunks no longer trigger it), alongside numeric tile and chunk keys, sight recomputed only when the player or camera changes tile, a heap in the pathfinder with a backoff after a failed search, and a 0.1 s catch-up clamp in the loop; sprinting across 23 chunks with chasers: worst step 1.6 ms at 60 fps; from (13, 10.2) outside the left window, the two tiles straight through the glass were visible and the tiles either side were not; inside, the south and east walls drew as stubs and the square showed as wedges through the door and windows; 60 fps with 714 to 753 tiles in view and about 60 drawables.
 
+## Milestone 2 — Lighting, fire, and the clock (see `docs/07-lighting.md`)
+
+Each step checkable on its own. Michael looks after step 3.
+
+- [ ] `clock.js` copied; clock label in the HUD and debug corner; `]` skips an hour.
+- [ ] `light.js`: ambient by room and openings, per-chunk static map with shadows, `lightAt`; the jack-o'-lanterns as the first sources.
+- [ ] Night layer: dusky tint, room erase, chunk maps, the player's pool. **Pause for Michael: tint, day cap, room light.**
+- [ ] Fire data on sprites; hearth and campfire placeholders; woodpile; burning; `E` lights and feeds; flames drawn.
+- [ ] `items.js` with hands; the torch on `T`; carried pool with rays; brackets and posts; `E` mounts and takes.
+- [ ] Zombie sight by light; the dead see fire at night.
+- [ ] Acceptance: the seven checks in `docs/07`, scripted and played.
+
 ## After the probe (sketch, not a plan)
 
 Porting order, each one milestone, each with its own doc. Order is a guess and will change.
 
-- Lighting: the light map per chunk, night, hearths that burn wood, candles, lit windows, the jack-o'-lantern as a real light source (keep its drawn flicker). The lantern.
+- ~~Lighting~~: now Milestone 2, above.
 - Openings: doors barred from inside, boards over shutters and doors, broken shutters, the dead breaking in, how the dead get through a door, how slow and loud a climb is. (Shutters replaced the sibling's glass and curtains: closed is opaque, no pane to break.)
 - Combat port: melee rework, shove, knockdown. Sword and spear as the first two lines.
 - Inventory, items, moodles, hunger, thirst. Everything is an item.

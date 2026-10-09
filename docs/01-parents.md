@@ -19,7 +19,7 @@ Written 2026-10-08 from a full read of both repos' docs.
 | `placeholders.js` | Character, box, flat, post generators. The wall kind needs all four orientations and a cutaway variant. |
 | `combat.js` | Screen-space wedge drawn as tested, swings resolve on the click, knockdown, finishers, shove, hit-stop. The pistol path could become the crossbow's hitscan or go. |
 | `entities/player.js`, `entities/zombie.js` | Movement, stamina, hunger, thirst; zombie states, sight scaled by light, wind-up. Sight would gain a visibility test. The zombie file is also the template for villagers (`04-npcs.md`). |
-| `light.js` | `lightAt` as the one function, static map with shadows, ambient by room and openings. The map would become per chunk. The beam is an open question. |
+| `light.js`, `clock.js` | `lightAt` as the one function, static map with shadows, ambient by room and openings; a twelve-minute day. The map becomes per chunk and the beam becomes a carried radius (ruled 2026-10-09, see `07-lighting.md`). |
 | `ui/*` | Context menu, prompt, HUD, overlay, inventory panel. DOM over canvas. |
 
 ### Code that does not transfer

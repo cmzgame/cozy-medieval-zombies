@@ -29,7 +29,7 @@ What neither could do, and this one exists to do: **walk from building to buildi
 ## Pillars
 
 1. **One continuous place.** Buildings are made of the same tiles as the street. No cut between inside and outside. You look out a window; they look in.
-2. **Sight is the game.** What you can see is what can see you. Light and line of sight are one system: darkness hides, lamps reveal, and a lit window is an invitation.
+2. **Sight is the game.** What you can see is what can see you. Light and line of sight are one system: darkness hides, fire reveals, and a lit window is an invitation. So is the torch in your hand: at night the dead see a flame from far further than they see a person.
 3. **The home matters.** You furnish it, light it, barricade it, sleep in it, and grow food beside it. Decoration has mechanical weight. Farming is load-bearing: simple, Stardew-like, and if it is not fun the game probably is not either.
 4. **Fire and resources are the economy.** The hearth is light, warmth, and cooking. Wood, water, and seed are what you go out for. Nothing shuts off on a timer; things run out because you used them. This, and the setting, is what separates the game from Zomboid while the open world moves toward it.
 5. **One rule or one meter.** Depth comes from a few simple rules colliding, never from a body map or a spreadsheet.
