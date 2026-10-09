@@ -12,6 +12,7 @@ import { getDef } from "./assets.js";
 
 export const CHUNK = 16;
 const ROOM_MAX = 300; // a region bigger than this is outdoors, not a room
+const ROUND_BODY_RADIUS = 0.2; // a body's radius against round props; 0.3 against walls
 
 const chunks = new Map(); // "cx,cy" -> { cx, cy, tiles, floorCache, floorDirty }
 let source = null; // authored tiles: (x, y) => tile | null
@@ -219,10 +220,12 @@ export function circleBlocked(gx, gy, r) {
         if (t.prop.radius) {
           // A round thing (a trunk, a barrel) blocks only a circle at the tile
           // centre, so you can slip between canopies (Michael, 2026-10-09:
-          // whole-tile trees made the wood impenetrable).
+          // whole-tile trees made the wood impenetrable). Against round things
+          // a body counts as narrower than against walls: two trunks a tile
+          // apart left a 0.64 gap for a 0.6 body, passable only dead centre.
           const dx = gx - tx;
           const dy = gy - ty;
-          const rr = r + t.prop.radius;
+          const rr = Math.min(r, ROUND_BODY_RADIUS) + t.prop.radius;
           if (dx * dx + dy * dy < rr * rr) return true;
         } else {
           // Tile square spans [tx - 0.5, tx + 0.5]. Closest point to the circle centre:
@@ -278,8 +281,50 @@ function doorOnColumn(col, y) {
 // at a door only fits when nearly centred. When a step into a wall is blocked
 // and an open doorway is within a tile along that wall, the blocked motion
 // becomes a slide toward the doorway's centre instead.
+// The round prop (trunk, barrel) that blocks a body at (gx, gy), or null.
+function roundBlockerAt(gx, gy, r) {
+  const cx = Math.round(gx);
+  const cy = Math.round(gy);
+  let best = null;
+  let bestD = Infinity;
+  for (let ty = cy - 1; ty <= cy + 1; ty++) {
+    for (let tx = cx - 1; tx <= cx + 1; tx++) {
+      const p = tileAt(tx, ty).prop;
+      if (!p || !p.solid || !p.radius) continue;
+      const dx = gx - tx;
+      const dy = gy - ty;
+      const rr = Math.min(r, ROUND_BODY_RADIUS) + p.radius;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < rr * rr && d2 < bestD) {
+        bestD = d2;
+        best = [tx, ty];
+      }
+    }
+  }
+  return best;
+}
+
 export function moveCircle(gx, gy, r, dx, dy) {
   if (circleBlocked(gx, gy, r)) return { gx: gx + dx, gy: gy + dy };
+  // Round things deflect: a step that would hit a trunk slides along its
+  // tangent instead of stopping, so two trunks a tile apart funnel you into
+  // the gap between them rather than catching you at the edge.
+  const tx = gx + dx;
+  const ty0 = gy + dy;
+  if ((dx !== 0 || dy !== 0) && circleBlocked(tx, ty0, r)) {
+    const c = roundBlockerAt(tx, ty0, r);
+    if (c) {
+      const vx = gx - c[0];
+      const vy = gy - c[1];
+      const len = Math.hypot(vx, vy) || 1;
+      const tangX = -vy / len;
+      const tangY = vx / len;
+      const s = dx * tangX + dy * tangY;
+      const sx = gx + tangX * s;
+      const sy = gy + tangY * s;
+      if (s !== 0 && !circleBlocked(sx, sy, r)) return { gx: sx, gy: sy };
+    }
+  }
   let nx = gx + dx;
   let ny = gy;
   if (dx !== 0 && circleBlocked(nx, gy, r)) {
