@@ -16,7 +16,7 @@ import { WALL_T, NEAR_STUB, drawPlankLeaf } from "./placeholders.js";
 // looking at it. Michael (2026-10-09): shade it clearly, never so dark that it
 // distracts from what is actually there. The first level, 0.74, was near black.
 // Dusky purple rather than blue-black, for the palette in docs/06-art.md.
-const FOG = "rgba(22, 14, 32, 0.46)";
+const FOG = "rgba(22, 14, 32, 0.36)"; // 0.46 was still a smidge dark (Michael, 2026-10-09)
 
 // How a room's near walls draw while you are inside it. "translucent": the same
 // full-height wall the outside sees, faded so the room stays readable, which

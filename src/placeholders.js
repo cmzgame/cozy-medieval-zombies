@@ -696,12 +696,20 @@ function drawArms(ctx, facing, anim, i, pal, col, bodyTop, side, profile, back) 
   const dir = { s: [0, 1], sw: [-1, 0.5], w: [-1, 0], nw: [-1, -0.5], n: [0, -1] }[facing];
 
   if (!forward && !attacking) {
-    ctx.fillStyle = col(pal.skin);
-    if (profile) {
-      ctx.fillRect(-2, bodyTop + 2, armW, armH);
-    } else {
-      ctx.fillRect(-7 - armW, bodyTop + 2, armW, armH);
-      ctx.fillRect(7, bodyTop + 2, armW, armH);
+    // Sleeves to the wrist, then a hand; a palette without `sleeves` gets bare
+    // arms as before (Michael, 2026-10-09).
+    const sleeve = pal.sleeves ? col(pal.sleeves) : col(pal.skin);
+    const hand = 4;
+    const draw = (x) => {
+      ctx.fillStyle = sleeve;
+      ctx.fillRect(x, bodyTop + 2, armW, armH - hand);
+      ctx.fillStyle = col(pal.skin);
+      ctx.fillRect(x, bodyTop + 2 + armH - hand, armW, hand);
+    };
+    if (profile) draw(-2);
+    else {
+      draw(-7 - armW);
+      draw(7);
     }
     return;
   }

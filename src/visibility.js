@@ -50,11 +50,27 @@ export function tileKey(x, y) {
   return (x + KEY_OFF) * 65536 + (y + KEY_OFF);
 }
 
-// The set of tiles (as "x,y" keys) visible from (ox, oy) among `tiles`.
+// A tile counts as visible if its centre can be seen, or failing that any of
+// four points near its corners. One ray per tile left pizza-slice slivers
+// behind wall ends, where a tile mostly in view lost its centre line to the
+// corner (Michael, 2026-10-09). The extra rays only run for tiles whose
+// centre is hidden.
+const CORNER = 0.42;
+const CORNERS = [[-CORNER, -CORNER], [CORNER, -CORNER], [-CORNER, CORNER], [CORNER, CORNER]];
+
+function tileVisible(ox, oy, tx, ty) {
+  if (lineOfSight(ox, oy, tx, ty)) return true;
+  for (const [dx, dy] of CORNERS) {
+    if (lineOfSight(ox, oy, tx + dx, ty + dy)) return true;
+  }
+  return false;
+}
+
+// The set of tiles (as numeric keys) visible from (ox, oy) among `tiles`.
 export function computeVisible(ox, oy, tiles) {
   const out = new Set();
   for (const [tx, ty] of tiles) {
-    if (lineOfSight(ox, oy, tx, ty)) out.add(tileKey(tx, ty));
+    if (tileVisible(ox, oy, tx, ty)) out.add(tileKey(tx, ty));
   }
   return out;
 }

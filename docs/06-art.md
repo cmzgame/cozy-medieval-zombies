@@ -43,13 +43,13 @@ It is a balancing act the whole way, and the answer is **by zone**: the two regi
 | Trees, harvest | oak `#3f5a33`, orange `#a4602a`, yellow `#b09038`, red `#8c3a2c`, trunks `#4a3324` | 112 to 126 px tall; big, and they overlap |
 | Old giants | oak `#36502e`, orange `#9a5826`, trunks `#3e2a1c` | 186 to 196 px tall, 124 to 134 wide; about one in eighty tiles |
 | Trees, gloom (on file) | blue `#3a4e62`, purple `#4a3b5e` | for a later zone, not placed |
-| Player | shirt `#d3c8b0`, breeches `#5a4030`, boots `#3a2a1c` | dirty off-white and brown, no denim |
+| Player | shirt `#c9b98e`, sleeves `#bfae84`, breeches `#5a4030`, boots `#3a2a1c` | worn yellowed linen with sleeves, brown, no denim |
 | The dead | unchanged | dusty purple shirt, kept |
 | Bed | `#8a4a44` | a muted red accent |
 | Table, chest, barrel | `#7a5a3c`, `#5e4630`, `#6a4d33` | browns, no orange |
 | Door and shutter wood | `#5e4028`, strips `#2b2a32` | the same on every building |
 | Jack-o'-lantern | body `#c8692a`, stem `#5a3d22`, fire `#ffb347` to `#ffd37a` | October 2026 |
-| Fog | `rgba(22, 14, 32, 0.46)` | |
+| Fog | `rgba(22, 14, 32, 0.36)` | lowered twice from 0.74 |
 | Canvas background | `#16121c` | |
 
 All of it is tunable and all of it is placeholder. Real art replaces files, not code.
