@@ -8,15 +8,19 @@
 // through a wall. Noise is deliberately not a factor yet (docs/02).
 
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, canStep } from "../map.js";
+import { moveCircle, isWalkableTile, canStep, nearestWalkable } from "../map.js";
 import { findPath } from "../pathfind.js";
 import { lineOfSight } from "../visibility.js";
+import * as light from "../light.js";
+import * as clock from "../clock.js";
 import { getSheet } from "../assets.js";
 import { createAnimation, playAnimation, advanceAnimation, isActiveFrame } from "../sprites.js";
 import { emit } from "../events.js";
 
 export const ZOMBIE_SPEED = 1.0; // tiles per second: Romero shamblers
-export const ZOMBIE_SIGHT = 8; // tiles, by day; light comes back with the lighting milestone
+export const ZOMBIE_SIGHT = 8; // tiles, in full light; scaled by the light on the player
+export const SIGHT_DARK_FRACTION = 0.35; // of full range when the player is unlit
+export const FLAME_RANGE = 12; // tiles: at full night the dead see a flame this far (docs/07)
 export const ZOMBIE_CONTACT = 0.7;
 export const ZOMBIE_DAMAGE = 8;
 export const ZOMBIE_COOLDOWN = 1.2;
@@ -77,10 +81,33 @@ function faceToward(z, dx, dy) {
 }
 
 // Symmetric with the player's own sight: if you could see it, it can see you.
+// The range scales with the light on the player (the cozy parent's rule):
+// unlit at night about a third, in a pool or by day the whole of it.
 function canSee(z, player) {
   if (player.dead) return false;
-  if (distTo(z, player) > ZOMBIE_SIGHT) return false;
+  const range = ZOMBIE_SIGHT * (SIGHT_DARK_FRACTION + (1 - SIGHT_DARK_FRACTION) * light.lightAt(player.gx, player.gy));
+  if (distTo(z, player) > range) return false;
   return lineOfSight(z.gx, z.gy, player.gx, player.gy);
+}
+
+// At night the dead see fire from far away (docs/02, 2026-10-09): the nearest
+// lit flame within FLAME_RANGE scaled by how dark it is, with a clear line.
+// A carried torch is a sighting of the player; any other flame is a sighting
+// at the flame, and the memory rule does the rest.
+function nearestFlame(z) {
+  const nf = clock.nightFactor();
+  if (nf <= 0) return null;
+  const range = FLAME_RANGE * nf;
+  let best = null;
+  let bestD = Infinity;
+  for (const s of light.allSources()) {
+    const d = Math.hypot(s.gx - z.gx, s.gy - z.gy);
+    if (d > range || d >= bestD) continue;
+    if (!lineOfSight(z.gx, z.gy, s.gx, s.gy)) continue;
+    best = s;
+    bestD = d;
+  }
+  return best;
 }
 
 function tileOf(e) {
@@ -194,6 +221,16 @@ export function updateZombie(z, dt, player, others) {
     if (z.seesNow) {
       z.aggro = true;
       z.lastSeen = [player.gx, player.gy];
+    } else {
+      const f = nearestFlame(z);
+      if (f) {
+        z.aggro = true;
+        z.lastSeen = f.carried ? [player.gx, player.gy] : [f.gx, f.gy];
+        if (z.state === "search") {
+          z.state = "chase";
+          z.repathTimer = 0;
+        }
+      }
     }
   }
   if (z.aggro && !z.lastSeen) z.lastSeen = [player.gx, player.gy]; // spawned aggro
@@ -241,7 +278,10 @@ export function updateZombie(z, dt, player, others) {
         }
         break;
       }
-      const goal = z.seesNow ? tileOf(player) : [Math.round(z.lastSeen[0]), Math.round(z.lastSeen[1])];
+      let goal = z.seesNow ? tileOf(player) : [Math.round(z.lastSeen[0]), Math.round(z.lastSeen[1])];
+      // A sighting on a solid tile (a campfire, a lantern on a post) is
+      // walked to from beside it.
+      if (!isWalkableTile(goal[0], goal[1])) goal = nearestWalkable(goal[0], goal[1]) || goal;
       const arrived = moveToward(z, dt, goal, others);
       const atSighting = Math.hypot(z.lastSeen[0] - z.gx, z.lastSeen[1] - z.gy) <= ARRIVED;
       if (!z.seesNow && (arrived || atSighting || z.pathFailed)) startSearch(z);

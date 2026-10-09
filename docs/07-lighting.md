@@ -27,6 +27,18 @@ Light is one number per position, 0 to 1, and everything reads it: what you see,
 - **Ambient is per tile, not per node.** Outdoors is the clock's brightness. A room tile gets its room's ambient. The night layer is one tint for the outdoor darkness, then each visible room erases its floor diamonds and the faces of its own walls by how much brighter it is than outdoors, so a lit cottage glows whole at night and an unlit one is as dark as the yard. Wall faces lit by the floor map (a torch pool climbing a wall) stays parked, as in the parent.
 - **The hearth is both ambient and a source.** Its room is lit by the ambient rule; its radius pool spills through an open door or shutter onto the ground outside, by the ray test, so the parent's separate "lit window emits outdoors" rule is not needed. Close the shutters and the spill is gone.
 
+## How things are lit, as built
+
+The night layer works in screen space, so the rules below say what takes which light. Michael set the first two from play on 2026-10-09 after a wall hidden from the player kept the dark of the room floor behind it, and a canopy over a lit room took the room's light.
+
+- **The floor takes the map**: the clock, the room's ambient, and the fire pools with their shadows.
+- **A wall face takes the light of the tile it looks onto.** The camera looks from the south-east, so a north wall shows its south face and a west wall its east face; each looks onto the tile its edge belongs to. An exterior face therefore matches the ground beside it, seen by the player or not; an interior face matches its room. A corner post's two faces look onto the tiles beside it, one each.
+- **The top of a wall or a post always takes the sky**, never the room, so a run of walls and its posts agree.
+- **Everything standing on a tile takes the light of its own tile**: a tree outside a lit cottage stays dark where its canopy crosses the room on screen, and a figure in a dark yard is dark against a lit wall. Done by cutting each sprite out of the layer and painting it back at its own darkness, only for sprites that overlap a room whose light differs from outdoors.
+- **A translucent near wall takes its room's light**, since the room shows through it.
+- **Flames never dim.** They draw in their own layer above the night, stencilled by whatever the sort order draws after them, so a flame behind a wall or a head is hidden.
+- Parked, as in the parent: a pool climbing a wall face, and the player's own pool on the faces beside them beyond a small term at their foot.
+
 ## Fire is data
 
 Every fire kind is a definition, not a case. A sprite definition declares `fire: { radius, burns, cooks, place }`; a wall edge may carry a torch; an item may be a fire in the hand.

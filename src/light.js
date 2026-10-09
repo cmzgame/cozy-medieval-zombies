@@ -13,6 +13,7 @@
 import * as clock from "./clock.js";
 import * as map from "./map.js";
 import { lineOfSight } from "./visibility.js";
+import { getItem } from "./items.js";
 
 export const RES = 2; // light cells per tile, so shadow edges are soft
 const N = map.CHUNK * RES + 2; // cells across a chunk's map, one beyond each side
@@ -33,6 +34,7 @@ function clamp01(v) {
 
 let litRooms = new Set(); // room ids with a lit hearth, refreshed each step
 let curSources = []; // lit static sources, refreshed each step
+let carrier = null; // { gx, gy, radius }: the torch in the player's hand, or null
 
 // Once per logic step, after the rooms are current.
 export function update() {
@@ -46,6 +48,70 @@ export function update() {
     }
     if (p.fire.radius > 0) curSources.push({ gx: p.tile[0], gy: p.tile[1], radius: p.fire.radius });
   }
+  const torchRadius = getItem("torch").fire.radius;
+  for (const b of map.brackets()) {
+    if (!b.wall.bracket.torch) continue;
+    const [gx, gy] = map.bracketPos(b);
+    curSources.push({ gx, gy, radius: torchRadius });
+  }
+}
+
+// The light you carry is not in any map: it is evaluated at query time, so the
+// drawn pool, the sight test, and the light value always agree.
+export function setCarrier(c) {
+  carrier = c;
+}
+
+export function carried() {
+  return carrier;
+}
+
+// Every lit flame, static and carried, for the dead to notice at night.
+export function allSources() {
+  return carrier ? [...curSources, { ...carrier, carried: true }] : curSources;
+}
+
+// March a ray from (gx, gy) along (dx, dy), stopping at a sight-blocking edge
+// or an opaque prop, at most `range` tiles. Returns the grid endpoint.
+const RAY_STEP = 0.15;
+export function castRay(gx, gy, dx, dy, range) {
+  let x = gx;
+  let y = gy;
+  let tx = Math.round(x);
+  let ty = Math.round(y);
+  for (let t = 0; t < range; t += RAY_STEP) {
+    const nx = x + dx * RAY_STEP;
+    const ny = y + dy * RAY_STEP;
+    const ntx = Math.round(nx);
+    const nty = Math.round(ny);
+    if (ntx !== tx) {
+      if (map.blocksSight(map.wallBetween(tx, ty, ntx, ty))) return { gx: x, gy: y };
+      const p = map.tileAt(ntx, ty).prop;
+      if (p && p.opaque) return { gx: x, gy: y };
+      tx = ntx;
+    }
+    if (nty !== ty) {
+      if (map.blocksSight(map.wallBetween(tx, ty, tx, nty))) return { gx: x, gy: y };
+      const p = map.tileAt(tx, nty).prop;
+      if (p && p.opaque) return { gx: x, gy: y };
+      ty = nty;
+    }
+    x = nx;
+    y = ny;
+  }
+  return { gx: x, gy: y };
+}
+
+// The outline of the carried pool: ray endpoints around the carrier.
+export const POOL_RAYS = 28;
+export function poolRays() {
+  if (!carrier) return [];
+  const pts = [];
+  for (let i = 0; i < POOL_RAYS; i++) {
+    const a = (i / POOL_RAYS) * Math.PI * 2;
+    pts.push(castRay(carrier.gx, carrier.gy, Math.cos(a), Math.sin(a), carrier.radius));
+  }
+  return pts;
 }
 
 export function outdoorAmbient() {
@@ -198,11 +264,16 @@ export function staticContribAt(gx, gy) {
   return a * (1 - fv) + b * fv;
 }
 
-// Light level at a grid position, 0..1: ambient + static map (+ carried light,
-// which arrives with the torch).
+// Light level at a grid position, 0..1: ambient + static map + carried light.
 export function lightAt(gx, gy) {
   let l = ambientAt(Math.round(gx), Math.round(gy));
   if (l >= 1) return 1;
   l += staticContribAt(gx, gy);
+  if (carrier && l < 1) {
+    const d = Math.hypot(gx - carrier.gx, gy - carrier.gy);
+    // Holding a torch makes you a fully visible point in the dark.
+    if (d < 0.6) l += 1;
+    else if (d < carrier.radius && lineOfSight(carrier.gx, carrier.gy, gx, gy)) l += Math.min(1, CORE_GAIN * (1 - d / carrier.radius));
+  }
   return Math.min(1, l);
 }

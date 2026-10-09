@@ -196,6 +196,14 @@
                 1
               ]
             }
+          ],
+          "brackets": [
+            {
+              "side": "n",
+              "at": 1,
+              "facing": "in",
+              "torch": true
+            }
           ]
         }
       ],
@@ -268,6 +276,25 @@
           ],
           "lit": true,
           "fuel": 2
+        }
+      ]
+    },
+    {
+      "name": "torch post",
+      "rect": [
+        24,
+        18,
+        1,
+        1
+      ],
+      "padding": 0,
+      "props": [
+        {
+          "sprite": "torch_post",
+          "tile": [
+            0,
+            0
+          ]
         }
       ]
     }

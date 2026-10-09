@@ -7,6 +7,7 @@ import * as input from "../input.js";
 import { moveCircle } from "../map.js";
 import { getSheet } from "../assets.js";
 import { createAnimation, playAnimation, advanceAnimation } from "../sprites.js";
+import { createHands } from "../items.js";
 
 export const PLAYER_SPEED = 3.0; // tiles per second
 export const PLAYER_RADIUS = 0.3;
@@ -41,6 +42,7 @@ export function createPlayer(gx, gy) {
     moving: false,
     dead: false,
     climb: null, // { from, to, t } while climbing through a window
+    hands: createHands(), // { main, off }: item ids (docs/07, items.js)
     anim: createAnimation("idle"),
   };
 }

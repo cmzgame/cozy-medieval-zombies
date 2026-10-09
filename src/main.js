@@ -19,6 +19,7 @@ import { createZombie, updateZombie } from "./entities/zombie.js";
 import { initHud, updateHud } from "./ui/hud.js";
 import { initPrompt, updatePrompt } from "./ui/prompt.js";
 import * as interact from "./interact.js";
+import * as items from "./items.js";
 
 const CANVAS_W = 960;
 const CANVAS_H = 540;
@@ -64,6 +65,11 @@ function update(dt) {
   // Debug: ] and [ skip the clock an hour forward or back.
   if (input.wasPressed("BracketRight")) clock.setHour(clock.getHour() + 1);
   if (input.wasPressed("BracketLeft")) clock.setHour(clock.getHour() - 1);
+  // T: the torch in and out of the off-hand, until the inventory does it.
+  if (input.wasPressed("KeyT")) {
+    if (items.holding(player.hands, "torch")) items.release(player.hands, "torch");
+    else items.hold(player.hands, "torch");
+  }
   clock.update(dt);
   map.burnFires(dt);
   camera.follow(player, dt);
@@ -89,6 +95,8 @@ function update(dt) {
   const px = Math.round(player.gx);
   const py = Math.round(player.gy);
   playerRoom = map.roomAt(px, py); // refinds rooms if a wall changed
+  const held = items.heldFire(player.hands);
+  light.setCarrier(held ? { gx: player.gx, gy: player.gy, radius: held.radius } : null);
   light.update();
   // Sight is cast from the player's tile centre and only recomputed when the
   // player or the camera enters a new tile. Casting every step at 60 Hz was the
@@ -132,11 +140,11 @@ function render() {
   debugEl.textContent =
     `fps ${loop.getFps()}\n` +
     `player ${player.gx.toFixed(2)},${player.gy.toFixed(2)} ${player.facing} hp ${player.hp} deaths ${deaths}\n` +
-    `${clock.getLabel()} ${clock.getPhase()}  bright ${clock.getBrightness().toFixed(2)}  light@player ${light.lightAt(player.gx, player.gy).toFixed(2)}\n` +
+    `${clock.getLabel()} ${clock.getPhase()}  bright ${clock.getBrightness().toFixed(2)}  light@player ${light.lightAt(player.gx, player.gy).toFixed(2)}  hands ${player.hands.main || "-"}/${player.hands.off || "-"}\n` +
     `chunk ${cx},${cy}  room ${playerRoom}  rooms ${map.roomCount()}\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `zombies ${zombies.length}  near ${zombies.filter((z) => Math.abs(z.gx - player.gx) <= ACTIVE_TILES && Math.abs(z.gy - player.gy) <= ACTIVE_TILES).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
-    `V: ${drawAll ? "showing everything" : "fog on"}   C: near walls ${cutaway}   ] [: skip an hour`;
+    `V: ${drawAll ? "showing everything" : "fog on"}   C: near walls ${cutaway}   ] [: skip an hour   T: torch`;
 }
 
 async function boot() {
@@ -163,7 +171,7 @@ async function boot() {
   loop.start({ update, render, simTick() {} }, { simIntervalMs: 1000 });
 
   window.__game = {
-    iso, input, loop, assets, events, map, camera, visibility, interact, clock, light,
+    iso, input, loop, assets, events, map, camera, visibility, interact, clock, light, items,
     render: { night },
     get player() { return player; },
     get zombies() { return zombies; },

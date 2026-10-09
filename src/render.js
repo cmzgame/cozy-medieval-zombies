@@ -11,7 +11,13 @@ import { poly, shade } from "./render-util.js";
 import * as map from "./map.js";
 import * as light from "./light.js";
 import { tileKey } from "./visibility.js";
-import { WALL_T, NEAR_STUB, drawPlankLeaf } from "./placeholders.js";
+import { WALL_T, NEAR_STUB, drawPlankLeaf, drawBracket, drawTorchFlame, torchHandPoint, drawHandTorch } from "./placeholders.js";
+import { heldFire } from "./items.js";
+
+// Flame frames flicker on a shared clock, 0..2.
+function flameFrame(seed = 0) {
+  return Math.floor(performance.now() / 180 + seed) % 3;
+}
 
 // The night layer (docs/07-lighting.md): a tint erased where there is light,
 // composited with multiply. Tunables Michael picks by eye; live on
@@ -182,7 +188,18 @@ function makePost(tx, ty, sheet, vis, near) {
   const faded = near && cutaway !== "stub";
   const hidden = near && cutaway === "stub";
   const rooms = [map.tileAt(tx, ty).room, map.tileAt(tx - 1, ty).room, map.tileAt(tx, ty - 1).room, map.tileAt(tx - 1, ty - 1).room];
-  const facePoly = hidden ? null : [D, A, B, up(B), up(C), up(D)];
+  // Faces and the top, kept apart for the night layer: a face takes the light
+  // of the tile it looks onto, the top always the sky. The post stands at the
+  // top vertex of (tx, ty); its left face continues the north-wall line and
+  // looks onto (tx - 1, ty), its right face continues the west-wall line and
+  // looks onto (tx, ty - 1).
+  const facePoly = hidden ? null : [D, A, B, up(B), up(A), up(D)];
+  const faces = hidden ? null : [
+    { poly: [D, A, up(A), up(D)], tile: [tx - 1, ty] },
+    { poly: [A, B, up(B), up(A)], tile: [tx, ty - 1] },
+  ];
+  const topPoly = hidden ? null : [up(A), up(B), up(C), up(D)];
+  const fullPoly = hidden ? null : [D, A, B, up(B), up(C), up(D)];
   return {
     key: (tx + ty - 1) * 1000 + 0.5,
     kind: "wall",
@@ -190,9 +207,11 @@ function makePost(tx, ty, sheet, vis, near) {
     rooms,
     near: faded,
     // The tiles the visible faces of the post look onto, for the night layer.
-    nearTiles: [[tx, ty], [tx - 1, ty], [tx, ty - 1]],
+    faces,
     facePoly,
-    fogPoly: vis ? facePoly : null,
+    topPoly,
+    fullPoly,
+    fogPoly: vis ? fullPoly : null,
     draw(ctx) {
       if (hidden) return;
       if (faded) ctx.globalAlpha = NEAR_WALL_ALPHA;
@@ -244,29 +263,60 @@ function makeWall(wall, edge, tx, ty, vis, stub) {
   const T = WALL_T;
   const lowStub = stub && cutaway === "stub";
   const faded = stub && !lowStub;
+  // The face you see, the top strip of the wall's thickness, and both together
+  // (for the fog and the flame stencil). The night layer lights the face by
+  // the tile it looks onto and the top by the sky (Michael, 2026-10-09).
   let facePoly;
+  let topPoly = null;
+  let fullPoly;
   if (!lowStub) {
-    facePoly = edge === "n"
-      ? [[x, y - iso.HH], [x + iso.HW, y], [x + iso.HW + T, y - T / 2], [x + iso.HW + T, y - T / 2 - h], [x + T, y - iso.HH - T / 2 - h], [x, y - iso.HH - h]]
-      : [[x - iso.HW, y], [x, y - iso.HH], [x, y - iso.HH - h], [x - T, y - iso.HH - h - T / 2], [x - iso.HW - T, y - h - T / 2], [x - iso.HW - T, y - T / 2]];
+    if (edge === "n") {
+      facePoly = [[x, y - iso.HH], [x + iso.HW, y], [x + iso.HW, y - h], [x, y - iso.HH - h]];
+      topPoly = [[x, y - iso.HH - h], [x + iso.HW, y - h], [x + iso.HW + T, y - T / 2 - h], [x + T, y - iso.HH - T / 2 - h]];
+      fullPoly = [[x, y - iso.HH], [x + iso.HW, y], [x + iso.HW + T, y - T / 2], [x + iso.HW + T, y - T / 2 - h], [x + T, y - iso.HH - T / 2 - h], [x, y - iso.HH - h]];
+    } else {
+      facePoly = [[x - iso.HW, y], [x, y - iso.HH], [x, y - iso.HH - h], [x - iso.HW, y - h]];
+      topPoly = [[x - iso.HW, y - h], [x, y - iso.HH - h], [x - T, y - iso.HH - h - T / 2], [x - iso.HW - T, y - h - T / 2]];
+      fullPoly = [[x - iso.HW, y], [x, y - iso.HH], [x, y - iso.HH - h], [x - T, y - iso.HH - h - T / 2], [x - iso.HW - T, y - h - T / 2], [x - iso.HW - T, y - T / 2]];
+    }
   } else {
     facePoly = edge === "n"
       ? [[x, y - iso.HH], [x + iso.HW, y], [x + iso.HW, y - NEAR_STUB], [x, y - iso.HH - NEAR_STUB]]
       : [[x - iso.HW, y], [x, y - iso.HH], [x, y - iso.HH - NEAR_STUB], [x - iso.HW, y - NEAR_STUB]];
+    fullPoly = facePoly;
   }
   const rooms = [map.tileAt(tx, ty).room, edge === "n" ? map.tileAt(tx, ty - 1).room : map.tileAt(tx - 1, ty).room];
+  // A bracket on the visible face (the near side of the edge) is drawn on the
+  // wall; its torch's flame goes above the night layer. One on the far face is
+  // hidden by the wall and only its light shows.
+  const br = wall.bracket && wall.bracket.side > 0 && !lowStub ? wall.bracket : null;
+  let bx = 0;
+  let by = 0;
+  if (br) {
+    const a = edge === "n" ? [x, y - iso.HH] : [x - iso.HW, y];
+    const b = edge === "n" ? [x + iso.HW, y] : [x, y - iso.HH];
+    bx = Math.round((a[0] + b[0]) / 2);
+    by = Math.round((a[1] + b[1]) / 2 - h * 0.5);
+  }
+  const flame = br && br.torch && vis ? { rect: { x: bx - 16, y: by - 34, w: 32, h: 30 } } : null;
   return {
     key: depth * 1000,
     kind: "wall",
     vis,
     rooms,
     near: faded,
+    flame,
+    drawFlame(ctx) {
+      drawTorchFlame(ctx, bx + 0.5, by - 15, flameFrame(tx + ty));
+    },
     // The camera looks from the south-east, so the face you see of a north
     // wall is its south face and of a west wall its east face: both look onto
     // the tile the edge belongs to. The night layer lights the face by that tile.
-    nearTiles: [[tx, ty]],
+    faces: [{ poly: facePoly, tile: [tx, ty] }],
     facePoly,
-    fogPoly: vis ? facePoly : null,
+    topPoly,
+    fullPoly,
+    fogPoly: vis ? fullPoly : null,
     draw(ctx) {
       if (lowStub) {
         if (edge === "n") {
@@ -289,6 +339,7 @@ function makeWall(wall, edge, tx, ty, vis, stub) {
         drawFrame(ctx, sheet, `west_${variant}_0`, x, y, false, sheet.anchorWest);
       }
       if (open && outside > 0) drawSwungLeaves(ctx, wall, edge, x, y, h, outside);
+      if (br) drawBracket(ctx, bx, by, br.torch);
       if (faded) ctx.globalAlpha = 1;
     },
   };
@@ -333,6 +384,7 @@ function propDrawables(tiles, visible, out) {
       kind: "prop",
       vis: visible.has(tileKey(tx, ty)),
       rect,
+      lightPos: [tx, ty],
       flame,
       drawFlame(ctx) {
         drawFrame(ctx, sheet, flameName, x, y);
@@ -356,16 +408,25 @@ function entityDrawables(entities, visible, out, drawAll) {
     const y = Math.round(p.y);
     const r = resolveFacing(sheet, e.facing);
     const rect = frameRect(sheet, frameName(sheet, e.anim.name, r.facing, e.anim.frame), x, y);
+    // A torch in the hand: the stick is part of the figure, the flame goes
+    // above the night layer.
+    const torch = e.hands && heldFire(e.hands) ? torchHandPoint(e.facing, x, y) : null;
     out.push({
       key: (e.gx + e.gy) * 1000 + (e.dead ? 0 : 2),
       kind: "entity",
       entity: e,
       sheet,
       rect,
+      lightPos: [e.gx, e.gy],
       vis: true,
       occluded: false,
+      flame: torch ? { rect: { x: torch[0] - 14, y: torch[1] - 22, w: 28, h: 26 } } : null,
+      drawFlame(ctx) {
+        drawTorchFlame(ctx, torch[0] + 0.5, torch[1] - 3, flameFrame(1));
+      },
       draw(ctx) {
         drawCharacter(ctx, sheet, e.anim, e.facing, x, y);
+        if (torch) drawHandTorch(ctx, torch[0], torch[1]);
       },
     });
   }
@@ -489,6 +550,8 @@ function drawFog(ctx, w, h, tiles, visible, drawables) {
 
 let nightCanvas = null;
 let nightCtx = null;
+let spriteCanvas = null;
+let spriteCtx = null;
 
 function tileDiamonds(g, list) {
   g.beginPath();
@@ -618,26 +681,126 @@ function drawNight(ctx, w, h, tiles, drawables, player) {
     g.restore();
   }
 
-  // Wall faces: the floor erase behind a wall shows on its face, so each
-  // visible face is repainted with the darkness of the tile it looks onto,
-  // less the player's pool at its foot. Wall faces lit by the pools climbing
-  // them stays parked, as in the parent.
-  for (const d of drawables) {
-    if (d.kind !== "wall" || !d.vis || !d.facePoly || d.near) continue;
-    let l = 0;
-    for (const [tx, ty] of d.nearTiles) l = Math.max(l, light.lightAt(tx, ty));
-    const foot = d.facePoly[1];
-    const pool = player ? poolAt(foot[0], foot[1], ox, oy) : 0;
-    const a = night.alpha * light.darknessOf(l) * (1 - pool);
+  // The torch in the hand: a polygon of ray endpoints, erased with a gradient
+  // from the carrier outward, so the pool stops at walls and closed shutters.
+  const carrier = light.carried();
+  if (carrier) {
+    const pts = light.poolRays().map((p) => iso.toScreen(p.gx, p.gy));
+    const c = iso.toScreen(carrier.gx, carrier.gy);
+    let radius = 1;
+    for (const p of pts) radius = Math.max(radius, Math.hypot(p.x - c.x, p.y - c.y));
+    g.save();
+    g.globalCompositeOperation = "destination-out";
+    poly(g, pts.map((p) => [p.x, p.y]));
+    g.clip();
+    const grad = g.createRadialGradient(c.x, c.y, 0, c.x, c.y, radius);
+    grad.addColorStop(0, "rgba(255,255,255,1)");
+    grad.addColorStop(0.5, "rgba(255,255,255,0.9)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = grad;
+    g.fillRect(c.x - radius, c.y - radius, radius * 2, radius * 2);
+    g.restore();
+  }
+
+  // Wall faces: whatever the floor behind a wall did to the layer shows on its
+  // face, so every face is repainted with the darkness of the tile it looks
+  // onto (seen or not: the fog is a separate matter), less the player's pool
+  // at its foot; an exterior face thus matches the ground beside it. The top
+  // strip of a wall or a post is open to the sky and always takes the outdoor
+  // darkness (Michael, 2026-10-09). Wall faces lit by the pools climbing them
+  // stays parked, as in the parent.
+  const setAlpha = (p, a) => {
     g.globalCompositeOperation = "destination-out";
     g.fillStyle = "#fff";
-    poly(g, d.facePoly);
+    poly(g, p);
     g.fill();
-    if (a <= 0) continue;
+    if (a <= 0) return;
     g.globalCompositeOperation = "source-over";
     g.fillStyle = `rgba(${night.tint}, ${a})`;
-    poly(g, d.facePoly);
+    poly(g, p);
     g.fill();
+  };
+  // A face polygon's first two points are its foot; the face is extended two
+  // pixels below them so the hair of overlap the room diamonds leave never
+  // shows as a lit line under a wall.
+  const footed = (p) => p.map((pt, i) => (i < 2 ? [pt[0], pt[1] + 2] : pt));
+  for (const d of drawables) {
+    if (d.kind !== "wall" || !d.faces) continue;
+    if (!d.near) {
+      for (const f of d.faces) {
+        const l = light.lightAt(f.tile[0], f.tile[1]);
+        const foot = f.poly[1];
+        const pool = player ? poolAt(foot[0], foot[1], ox, oy) : 0;
+        setAlpha(footed(f.poly), night.alpha * light.darknessOf(l) * (1 - pool));
+      }
+    }
+    if (d.topPoly) {
+      const top = d.topPoly[0];
+      const pool = player ? poolAt(top[0], top[1], ox, oy) : 0;
+      setAlpha(d.topPoly, base * (1 - pool));
+    }
+  }
+
+  // Everything that stands on a tile takes the light of its own tile (Michael,
+  // 2026-10-09): a tree outside a lit cottage stays dark where its canopy
+  // crosses the room on screen, and a figure in a dark yard is dark against
+  // a lit wall. Each sprite's pixels are cut out of the layer and repainted at
+  // their own darkness; props first, then characters, so a character seen
+  // through a canopy keeps its own light.
+  if (!spriteCanvas) {
+    spriteCanvas = document.createElement("canvas");
+    spriteCtx = spriteCanvas.getContext("2d");
+  }
+  if (spriteCanvas.width !== w || spriteCanvas.height !== h) {
+    spriteCanvas.width = w;
+    spriteCanvas.height = h;
+  }
+  const s = spriteCtx;
+  s.imageSmoothingEnabled = false;
+  // Only sprites that overlap a room whose darkness differs from outdoors
+  // need this; everywhere else the floor under a sprite already has its
+  // light, and the pass is not free on the GPU.
+  const roomBoxes = [];
+  for (const [id, list] of byRoom) {
+    if (Math.abs(roomDark.get(id) - base) < 0.02) continue;
+    let x0 = Infinity;
+    let y0 = Infinity;
+    let x1 = -Infinity;
+    let y1 = -Infinity;
+    for (const [tx, ty] of list) {
+      const p = iso.toScreen(tx, ty);
+      x0 = Math.min(x0, p.x - iso.HW);
+      x1 = Math.max(x1, p.x + iso.HW);
+      y0 = Math.min(y0, p.y - iso.HH - 80); // the walls above the floor too
+      y1 = Math.max(y1, p.y + iso.HH);
+    }
+    roomBoxes.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
+  }
+  for (const pass of roomBoxes.length ? ["prop", "entity"] : []) {
+    for (const d of drawables) {
+      if (d.kind !== pass || !d.rect || !d.lightPos) continue;
+      const r = d.rect;
+      if (r.x + r.w < 0 || r.y + r.h < 0 || r.x > w || r.y > h) continue;
+      let touches = false;
+      for (const b of roomBoxes) if (rectsOverlap(r, b)) { touches = true; break; }
+      if (!touches) continue;
+      const l = light.lightAt(d.lightPos[0], d.lightPos[1]);
+      const pool = player ? poolAt(r.x + r.w / 2, r.y + r.h, ox, oy) : 0;
+      const a = night.alpha * light.darknessOf(l) * (1 - pool);
+      // The sprite's own pixels, tinted: draw it, then keep only the tint
+      // where it is opaque.
+      s.globalCompositeOperation = "source-over";
+      s.clearRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
+      d.draw(s);
+      s.globalCompositeOperation = "source-in";
+      s.fillStyle = `rgba(${night.tint}, ${a})`;
+      s.fillRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
+      // Cut the sprite out of the layer and lay its tint back in.
+      g.globalCompositeOperation = "destination-out";
+      d.draw(g);
+      g.globalCompositeOperation = "source-over";
+      g.drawImage(spriteCanvas, r.x - 1, r.y - 1, r.w + 2, r.h + 2, r.x - 1, r.y - 1, r.w + 2, r.h + 2);
+    }
   }
   g.globalCompositeOperation = "source-over";
 
@@ -690,8 +853,8 @@ function drawFlames(ctx, w, h, drawables) {
     for (let j = i + 1; j < drawables.length; j++) {
       const o = drawables[j];
       if (o.kind === "wall") {
-        if (o.facePoly && polyOverlaps(o.facePoly, d.flame.rect)) {
-          poly(g, o.facePoly);
+        if (o.fullPoly && polyOverlaps(o.fullPoly, d.flame.rect)) {
+          poly(g, o.fullPoly);
           g.fill();
         }
       } else if (o.rect && rectsOverlap(o.rect, d.flame.rect)) {

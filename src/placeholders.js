@@ -1035,3 +1035,83 @@ export function generateCampfire(ph) {
     bounds: { x: HW - 20, y: fh - 10 - 30, w: 40, h: 40 },
   };
 }
+
+// ---------------------------------------------------------------------------
+// Torches (docs/07): never burn out, mount in a bracket on a wall or on a
+// post. The flame and the bracket are drawn by the renderer at the wall, since
+// a bracket is state on an edge rather than a sprite of its own.
+// ---------------------------------------------------------------------------
+
+// A torch flame with its base at (x, y). `k` picks the frame, 0..2.
+export function drawTorchFlame(ctx, x, y, k) {
+  drawGlow(ctx, x, y - 4, 14, 0.45 + 0.1 * (k % 2));
+  drawFlame(ctx, x, y, 7, 11 + k * 2, k);
+}
+
+// An iron bracket on a wall face at (x, y), and the torch in it if any: a
+// stick with a wrapped head, the flame drawn separately above the night layer.
+export function drawBracket(ctx, x, y, hasTorch) {
+  ctx.fillStyle = METAL;
+  ctx.fillRect(x - 2, y - 3, 4, 7);
+  ctx.fillRect(x - 4, y - 1, 8, 2);
+  if (!hasTorch) return;
+  ctx.fillStyle = WOOD;
+  ctx.fillRect(x - 1, y - 14, 3, 13);
+  ctx.fillStyle = "#3a2a22";
+  ctx.fillRect(x - 2, y - 17, 5, 5);
+}
+
+// The torch in the player's hand: on the side the figure faces, at chest
+// height. Returns where the flame sits so the renderer can place it.
+export function torchHandPoint(facing, x, y) {
+  const left = facing === "w" || facing === "sw" || facing === "nw" || facing === "s";
+  const dx = left ? -10 : 10;
+  return [x + dx, y - 34];
+}
+
+export function drawHandTorch(ctx, x, y) {
+  ctx.fillStyle = WOOD;
+  ctx.fillRect(x - 1, y, 3, 12);
+  ctx.fillStyle = "#3a2a22";
+  ctx.fillRect(x - 2, y - 3, 5, 5);
+}
+
+// A torch post: a wooden pole with an iron cup. Anchor is the tile centre.
+export function generateTorchPost(ph) {
+  const h = 46;
+  const fw = TW;
+  const fh = TH + h;
+  const frames = 3;
+  const { canvas, ctx } = makeCanvas(fw * frames, fh * 2);
+  const wood = ph.color || "#4a3324";
+  const frameMap = {};
+  for (let i = 0; i < frames; i++) {
+    const ox = i * fw;
+    const cx = ox + HW;
+    const cy = h + HH;
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 7, 3.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = wood;
+    ctx.fillRect(cx - 2, cy - h + 6, 5, h - 6);
+    ctx.fillStyle = shade(wood, 1.25);
+    ctx.fillRect(cx - 2, cy - h + 6, 2, h - 6);
+    ctx.fillStyle = METAL;
+    ctx.fillRect(cx - 4, cy - h + 2, 9, 5);
+    ctx.fillRect(cx - 3, cy - h, 7, 3);
+    frameMap[`idle_${i}`] = [ox, 0, fw, fh];
+    const fy = fh;
+    drawTorchFlame(ctx, cx + 0.5, fy + cy - h + 1, i);
+    frameMap[`flame_${i}`] = [ox, fy, fw, fh];
+  }
+  return {
+    image: canvas,
+    frames: frameMap,
+    anchor: [HW, h + HH],
+    animations: { idle: { fps: 5, loop: true, frames } },
+    facings: [],
+    mirror: {},
+    bounds: { x: HW - 8, y: 0, w: 16, h: fh },
+  };
+}

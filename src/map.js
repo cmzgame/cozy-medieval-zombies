@@ -77,6 +77,70 @@ export function feedFire(prop) {
   return true;
 }
 
+// ---- torches: brackets on walls, posts on tiles ----
+// A bracket is state on a wall edge: `wall.bracket = { side, torch }`, where
+// side is +1 for the near side of the edge (south of a north edge, east of a
+// west edge) and -1 for the far side. A post is a prop whose fire `holds` a
+// torch. Torches never burn out (docs/02, 2026-10-09).
+
+const bracketSet = new Set(); // { tx, ty, edge, wall }
+
+export function brackets() {
+  return bracketSet;
+}
+
+export function addBracket(tx, ty, edge, side, torch = false) {
+  const wall = tileAt(tx, ty)[edge];
+  if (!wall) return null;
+  wall.bracket = { side, torch };
+  const b = { tx, ty, edge, wall };
+  bracketSet.add(b);
+  return b;
+}
+
+// Where a bracket's torch burns, in grid space: a little off the edge on its side.
+export function bracketPos(b) {
+  const s = b.wall.bracket.side * 0.3;
+  return b.edge === "n" ? [b.tx, b.ty - 0.5 + s] : [b.tx - 0.5 + s, b.ty];
+}
+
+export function bracketsNear(gx, gy, r = 1.15) {
+  const out = [];
+  for (const b of bracketSet) {
+    const mx = b.edge === "n" ? b.tx : b.tx - 0.5;
+    const my = b.edge === "n" ? b.ty - 0.5 : b.ty;
+    const d = Math.hypot(gx - mx, gy - my);
+    if (d <= r) out.push({ bracket: b, d, mx, my });
+  }
+  out.sort((a, b) => a.d - b.d);
+  return out;
+}
+
+// Holders (posts) within `r` tiles, nearest first.
+export function holdersNear(gx, gy, r = 1.3) {
+  const out = [];
+  for (const p of fireProps) {
+    if (!p.fire.holds) continue;
+    const d = Math.hypot(gx - p.tile[0], gy - p.tile[1]);
+    if (d <= r) out.push({ prop: p, d });
+  }
+  out.sort((a, b) => a.d - b.d);
+  return out;
+}
+
+// Does a bracket or a holder hold a torch?
+export function holderHas(target) {
+  return target.kind === "bracket" ? target.bracket.wall.bracket.torch : target.prop.fire.has;
+}
+
+export function setHolder(target, has) {
+  if (target.kind === "bracket") target.bracket.wall.bracket.torch = has;
+  else {
+    target.prop.fire.has = has;
+    target.prop.fire.lit = has;
+  }
+}
+
 // Burners within `r` tiles of (gx, gy), nearest first.
 export function burnersNear(gx, gy, r = 1.3) {
   const out = [];
@@ -647,12 +711,16 @@ export function createProp(def, offset = [0, 0]) {
   // (lit, fuel) sits on the prop.
   if (sdef.fire) {
     const f = sdef.fire;
+    const holds = f.holds || null;
+    const has = holds ? !!def.torch : false;
     prop.fire = {
       radius: f.radius || 0,
       room: !!f.room,
       burns: !!f.burns,
       cooks: !!f.cooks,
-      lit: def.lit ?? f.lit ?? !f.burns,
+      holds, // "torch": a post, lit while it holds one
+      has,
+      lit: holds ? has : def.lit ?? f.lit ?? !f.burns,
       fuel: def.fuel ?? f.fuel ?? 0,
       maxFuel: f.maxFuel ?? 4,
     };
@@ -707,6 +775,8 @@ export function ensureAround(x, y, radius = 3) {
 //   is scatter all the way down.
 export function loadMap(json) {
   fireProps.clear(); // props are created below, before reset() runs
+  bracketSet.clear();
+  const pendingBrackets = []; // [tx, ty, edge, side, torch], added once the map is live
   const authored = new Map();
   const key = (x, y) => `${x},${y}`;
   const get = (x, y) => {
@@ -762,6 +832,17 @@ export function loadMap(json) {
       else if (o.side === "e") get(bx + bw, by + o.at).w = wall;
     }
     for (const p of b.props || []) placeProp(p, [bx, by]);
+    // Brackets: `{ side, at, facing: "in" | "out", torch }`. The inside of a
+    // north or west wall is the near side of its edge (+1); of a south or east
+    // wall, the far side (-1).
+    for (const br of b.brackets || []) {
+      const inSide = br.side === "n" || br.side === "w" ? 1 : -1;
+      const side = br.facing === "out" ? -inSide : inSide;
+      if (br.side === "n") pendingBrackets.push([bx + br.at, by, "n", side, !!br.torch]);
+      else if (br.side === "s") pendingBrackets.push([bx + br.at, by + bh, "n", side, !!br.torch]);
+      else if (br.side === "w") pendingBrackets.push([bx, by + br.at, "w", side, !!br.torch]);
+      else if (br.side === "e") pendingBrackets.push([bx + bw, by + br.at, "w", side, !!br.torch]);
+    }
   }
   const baseFloor = json.floor || "floor_grass";
   // Reserved tiles take no scatter: each building's rectangle plus its
@@ -812,5 +893,6 @@ export function loadMap(json) {
     wildRule,
     mapBounds: json.bounds || null,
   });
+  for (const [tx, ty, edge, side, torch] of pendingBrackets) addBracket(tx, ty, edge, side, torch);
   return { props, spawn: json.spawn || [0, 0], zombies: json.zombies || [], name: json.name || "map" };
 }
