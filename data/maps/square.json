@@ -1,8 +1,15 @@
 {
   "name": "Village square",
   "floor": "floor_grass",
-  "floorRects": [
+  "bounds": [
+    0,
+    0,
+    32,
+    32
+  ],
+  "features": [
     {
+      "kind": "road",
       "rect": [
         11,
         11,
@@ -12,6 +19,7 @@
       "sprite": "floor_dirt"
     },
     {
+      "kind": "road",
       "rect": [
         15,
         9,
@@ -21,6 +29,7 @@
       "sprite": "floor_dirt"
     },
     {
+      "kind": "road",
       "rect": [
         21,
         14,
@@ -30,6 +39,7 @@
       "sprite": "floor_dirt"
     },
     {
+      "kind": "road",
       "rect": [
         21,
         15,
@@ -37,194 +47,202 @@
         2
       ],
       "sprite": "floor_dirt"
+    }
+  ],
+  "sets": [
+    {
+      "name": "cottage",
+      "rect": [
+        11,
+        2,
+        9,
+        9
+      ],
+      "padding": 1,
+      "buildings": [
+        {
+          "rect": [
+            1,
+            1,
+            7,
+            6
+          ],
+          "wall": "wall_wood",
+          "floor": "floor_wood",
+          "openings": [
+            {
+              "side": "s",
+              "at": 3,
+              "kind": "door"
+            },
+            {
+              "side": "s",
+              "at": 1,
+              "kind": "window"
+            },
+            {
+              "side": "s",
+              "at": 5,
+              "kind": "window"
+            },
+            {
+              "side": "e",
+              "at": 2,
+              "kind": "window"
+            }
+          ],
+          "props": [
+            {
+              "sprite": "bed",
+              "tile": [
+                0,
+                0
+              ],
+              "footprint": [
+                2,
+                1
+              ]
+            },
+            {
+              "sprite": "table",
+              "tile": [
+                3,
+                2
+              ],
+              "footprint": [
+                2,
+                1
+              ]
+            },
+            {
+              "sprite": "chest",
+              "tile": [
+                6,
+                0
+              ]
+            }
+          ]
+        }
+      ],
+      "props": [
+        {
+          "sprite": "pumpkin",
+          "tile": [
+            3,
+            8
+          ],
+          "solid": false
+        },
+        {
+          "sprite": "pumpkin",
+          "tile": [
+            5,
+            8
+          ],
+          "solid": false
+        }
+      ]
     },
     {
+      "name": "shed",
+      "rect": [
+        22,
+        12,
+        6,
+        6
+      ],
+      "padding": 1,
+      "buildings": [
+        {
+          "rect": [
+            1,
+            1,
+            4,
+            4
+          ],
+          "wall": "wall_stone",
+          "floor": "floor_stone",
+          "openings": [
+            {
+              "side": "w",
+              "at": 1,
+              "kind": "door"
+            },
+            {
+              "side": "s",
+              "at": 2,
+              "kind": "window"
+            }
+          ],
+          "props": [
+            {
+              "sprite": "barrel",
+              "tile": [
+                3,
+                0
+              ]
+            },
+            {
+              "sprite": "barrel",
+              "tile": [
+                3,
+                1
+              ]
+            }
+          ]
+        }
+      ],
+      "props": [
+        {
+          "sprite": "pumpkin",
+          "tile": [
+            0,
+            1
+          ],
+          "solid": false
+        }
+      ]
+    },
+    {
+      "name": "farm plot",
       "rect": [
         5,
         8,
         4,
         3
       ],
-      "sprite": "floor_farm"
-    }
-  ],
-  "buildings": [
-    {
-      "rect": [
-        12,
-        3,
-        7,
-        6
-      ],
-      "wall": "wall_wood",
-      "floor": "floor_wood",
-      "openings": [
+      "padding": 1,
+      "floorRects": [
         {
-          "side": "s",
-          "at": 3,
-          "kind": "door"
-        },
-        {
-          "side": "s",
-          "at": 1,
-          "kind": "window"
-        },
-        {
-          "side": "s",
-          "at": 5,
-          "kind": "window"
-        },
-        {
-          "side": "e",
-          "at": 2,
-          "kind": "window"
-        }
-      ],
-      "props": [
-        {
-          "sprite": "bed",
-          "tile": [
+          "rect": [
             0,
-            0
+            0,
+            4,
+            3
           ],
-          "footprint": [
-            2,
-            1
-          ]
-        },
-        {
-          "sprite": "table",
-          "tile": [
-            3,
-            2
-          ],
-          "footprint": [
-            2,
-            1
-          ]
-        },
-        {
-          "sprite": "chest",
-          "tile": [
-            6,
-            0
-          ]
+          "sprite": "floor_farm"
         }
-      ],
-      "padding": 1
-    },
-    {
-      "rect": [
-        23,
-        13,
-        4,
-        4
-      ],
-      "wall": "wall_stone",
-      "floor": "floor_stone",
-      "openings": [
-        {
-          "side": "w",
-          "at": 1,
-          "kind": "door"
-        },
-        {
-          "side": "s",
-          "at": 2,
-          "kind": "window"
-        }
-      ],
-      "props": [
-        {
-          "sprite": "barrel",
-          "tile": [
-            3,
-            0
-          ]
-        },
-        {
-          "sprite": "barrel",
-          "tile": [
-            3,
-            1
-          ]
-        }
-      ],
-      "padding": 1
-    }
-  ],
-  "props": [
-    {
-      "sprite": "barrel",
-      "tile": [
-        20,
-        11
       ]
     },
     {
-      "sprite": "pumpkin",
-      "tile": [
-        14,
-        10
-      ],
-      "solid": false
-    },
-    {
-      "sprite": "pumpkin",
-      "tile": [
-        16,
-        10
-      ],
-      "solid": false
-    },
-    {
-      "sprite": "pumpkin",
-      "tile": [
-        22,
-        13
-      ],
-      "solid": false
-    }
-  ],
-  "spawn": [
-    15,
-    15
-  ],
-  "zombies": [
-    [
-      27,
-      23
-    ],
-    [
-      8,
-      19
-    ],
-    [
-      19,
-      28
-    ]
-  ],
-  "scatter": [
-    {
+      "name": "barrel",
       "rect": [
-        0,
-        0,
-        32,
-        32
+        20,
+        11,
+        1,
+        1
       ],
-      "density": [
-        0.06,
-        0.36
-      ],
-      "biome": "harvest",
-      "seed": 11
+      "padding": 0,
+      "props": [
+        {
+          "sprite": "barrel",
+          "tile": [
+            0,
+            0
+          ]
+        }
+      ]
     }
-  ],
-  "bounds": [
-    0,
-    0,
-    32,
-    32
   ],
   "biomes": {
     "harvest": {
@@ -247,11 +265,27 @@
       "scale": 9
     }
   },
+  "scatter": [
+    {
+      "rect": [
+        0,
+        0,
+        32,
+        32
+      ],
+      "density": [
+        0.04,
+        0.26
+      ],
+      "biome": "harvest",
+      "seed": 11
+    }
+  ],
   "wild": {
     "biome": "harvest",
     "density": [
-      0.12,
-      0.4
+      0.09,
+      0.29
     ],
     "seed": 21,
     "zombiesPerChunk": [
@@ -259,12 +293,22 @@
       2
     ]
   },
-  "reserve": [
+  "spawn": [
+    15,
+    15
+  ],
+  "zombies": [
     [
-      4,
-      7,
-      6,
-      5
+      27,
+      23
+    ],
+    [
+      8,
+      19
+    ],
+    [
+      19,
+      28
     ]
   ]
 }

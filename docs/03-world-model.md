@@ -76,10 +76,15 @@ A record is `{ id, chunk, tile, state, target, timer, hp, aggro, ...body fields 
 - Sorted drawables, occlusion fade and silhouettes, and the night layer carry over. The night layer and the light map are drawn per visible chunk.
 - **Visibility:** a shadow cast from the player over the viewport using the light map's ray code with the player as the source. Tiles out of sight draw darkened; the dead out of sight are not drawn at all. Walls you can see the face of are visible. A glass tile passes sight and blocks movement; a closed curtain or a board blocks both.
 
-## Authoring
+## Authoring: sets, features, scatter, wild
 
-- The village is authored as **prefabs** stamped at positions plus freehand tiles. A prefab is a small JSON with a tile grid, a legend, and markers. This is the sibling's prefab format without creative mode; the in-game creative tool (question 14 in `02`) can replace hand-written JSON later.
-- Authoring is sliced into chunk files by a build step or at first load, and chunks are what the game fetches and saves, per the block-storage ruling. Nothing in the runtime knows a building's name; it knows tiles and rooms.
+Michael's vocabulary (2026-10-09), as built in `map.js`:
+
+- A **set** is an authored thing with a footprint and a **padding ring** that scatter never enters: a cottage, a farm plot, an overturned wagon to loot, a whole castle compound. Its buildings, floors, and props are placed relative to its corner. A set is defined by its own outline, so two sets joined by a road stay two sets; a compound is one big set with a yard's worth of padding.
+- A **feature** is linear and reserves only its own tiles, with no padding: roads now, rivers and bridges later. A road may run right up to a set's edge.
+- **Scatter** fills what is left by rule: a rectangle, a biome's kinds, a density range shaped by noise, a seed. Trees now; carts, bodies, and events are later kinds.
+- The **wild** beyond the authored bounds is scatter all the way down, plus a few of the dead per chunk.
+- Authoring is sliced into chunks at first load, and chunks are what the game fetches and saves, per the block-storage ruling. Nothing in the runtime knows a set's name; it knows tiles and rooms. The in-game creative tool (question 14 in `02`) can replace hand-written JSON later.
 
 ## Save
 

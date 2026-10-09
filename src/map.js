@@ -574,11 +574,17 @@ export function ensureAround(x, y, radius = 3) {
 }
 
 // Build an authored-tile lookup from a map file, then reset the map onto it.
-// Authored: floors, roads, buildings, placed props. Scattered: filler such as
-// trees, by rule (a rectangle, a density, a mix of kinds, a seed), only onto
-// the default floor, never on or beside a wall, never on a placed prop.
-// Michael (2026-10-09): author the roads, buildings, and any water; scatter
-// the rest.
+//
+// The vocabulary (Michael, 2026-10-09):
+// - A **set** is an authored thing with a footprint and a padding ring that
+//   scatter never enters: a cottage, a farm plot, an overturned wagon, a whole
+//   castle compound. Its buildings, floors, and props are placed relative to
+//   its corner. A set is defined by its own outline, so two sets joined by a
+//   road stay two sets.
+// - A **feature** is linear and reserves only its own tiles, with no padding:
+//   roads now, rivers and bridges later. A road may run right up to a set.
+// - **Scatter** fills what is left by rule, and the **wild** beyond the bounds
+//   is scatter all the way down.
 export function loadMap(json) {
   const authored = new Map();
   const key = (x, y) => `${x},${y}`;
@@ -590,19 +596,30 @@ export function loadMap(json) {
     }
     return t;
   };
-  for (const r of json.floorRects || []) {
-    const [x0, y0, w, h] = r.rect;
-    for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) get(x, y).floor = r.sprite;
-  }
   const props = [];
   const placeProp = (def, offset) => {
     const prop = createProp(def, offset);
     props.push(prop);
     for (const [tx, ty] of prop.tiles) get(tx, ty).prop = prop;
   };
+  const floorRect = (r, offset) => {
+    const [x0, y0, w, h] = r.rect;
+    for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) get(x + offset[0], y + offset[1]).floor = r.sprite;
+  };
+  // Features and loose top-level content.
+  for (const f of json.features || []) floorRect(f, [0, 0]);
+  for (const r of json.floorRects || []) floorRect(r, [0, 0]);
   for (const p of json.props || []) placeProp(p, [0, 0]);
-  for (const b of json.buildings || []) {
-    const [bx, by, bw, bh] = b.rect;
+  // Sets: everything inside is relative to the set's corner.
+  const buildings = [...(json.buildings || []).map((b) => ({ ...b, origin: [0, 0] }))];
+  for (const s of json.sets || []) {
+    const origin = [s.rect[0], s.rect[1]];
+    for (const r of s.floorRects || []) floorRect(r, origin);
+    for (const p of s.props || []) placeProp(p, origin);
+    for (const b of s.buildings || []) buildings.push({ ...b, origin });
+  }
+  for (const b of buildings) {
+    const [bx, by, bw, bh] = [b.rect[0] + b.origin[0], b.rect[1] + b.origin[1], b.rect[2], b.rect[3]];
     for (let y = by; y < by + bh; y++) for (let x = bx; x < bx + bw; x++) get(x, y).floor = b.floor || json.floor;
     // Perimeter walls. North wall: n edge of the top row. West wall: w edge of
     // the left column. South wall: n edge of the row below. East wall: w edge
@@ -633,6 +650,10 @@ export function loadMap(json) {
   const reserveRect = (x0, y0, w, h) => {
     for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) reserved.add(key(x, y));
   };
+  for (const s of json.sets || []) {
+    const pad = s.padding ?? 1;
+    reserveRect(s.rect[0] - pad, s.rect[1] - pad, s.rect[2] + pad * 2, s.rect[3] + pad * 2);
+  }
   for (const b of json.buildings || []) {
     const pad = b.padding ?? 1;
     reserveRect(b.rect[0] - pad, b.rect[1] - pad, b.rect[2] + pad * 2, b.rect[3] + pad * 2);

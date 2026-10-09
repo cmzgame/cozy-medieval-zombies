@@ -93,12 +93,20 @@ export async function loadMapSprites(json) {
   const ids = new Map(); // id -> tileCount
   const want = (id, n = 1) => { if (id) ids.set(id, Math.max(n, ids.get(id) || 1)); };
   want(json.floor);
-  for (const r of json.floorRects || []) want(r.sprite);
-  for (const p of json.props || []) want(p.sprite, (p.footprint?.[0] || 1) * (p.footprint?.[1] || 1));
-  for (const b of json.buildings || []) {
+  const wantProp = (p) => want(p.sprite, (p.footprint?.[0] || 1) * (p.footprint?.[1] || 1));
+  const wantBuilding = (b) => {
     want(b.wall);
     want(b.floor);
-    for (const p of b.props || []) want(p.sprite, (p.footprint?.[0] || 1) * (p.footprint?.[1] || 1));
+    for (const p of b.props || []) wantProp(p);
+  };
+  for (const r of json.floorRects || []) want(r.sprite);
+  for (const f of json.features || []) want(f.sprite);
+  for (const p of json.props || []) wantProp(p);
+  for (const b of json.buildings || []) wantBuilding(b);
+  for (const s of json.sets || []) {
+    for (const r of s.floorRects || []) want(r.sprite);
+    for (const p of s.props || []) wantProp(p);
+    for (const b of s.buildings || []) wantBuilding(b);
   }
   for (const sc of json.scatter || []) for (const id in sc.kinds || {}) want(id, (sc.footprint?.[0] || 1) * (sc.footprint?.[1] || 1));
   for (const name in json.biomes || {}) for (const id in json.biomes[name].kinds || {}) want(id);
