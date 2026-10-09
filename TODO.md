@@ -22,8 +22,9 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 - **Phase 1 of 2b built, 2026-10-09:** portals, transmission, the floor field. Knobs: `__game.map.openingTunables.shutterLeak` (0.05), `__game.light.tunables.roomBounce` (0.5; 1 is the old flat room).
 - **Milestone 2b built, 2026-10-09:** the world is drawn in WebGL2. Knobs on `__game.render.night`: `climb` (56 px, 0 for flat faces), `linear` (false for per-cell light), `standingFloor` (0), `debug` (or the `L` key); `G` shows the old Canvas renderer for comparison.
 - **Accepted, 2026-10-09.** Michael: "THIS is the right system. It looks amazing." The debug view is "like looking at the map with infrared goggles on." `render-canvas.js`, the second canvas, and the `G` key are gone.
-- **Blocked on:** nothing.
-- **Next:** openings, with the dead breaking in (doors barred from inside, boards, broken shutters, how the dead get through a door, how slow and loud a climb is). Write its doc first, then build. Then the melee port. Together they make "a night in the cottage". Openings with the dead breaking in and the melee port follow, which together make "a night in the cottage".
+- **Openings ruled and designed, 2026-10-10:** bars on both sides, the opening as a stack read from the attacker's side, the dead climb through windows and attack the room's nearest opening, nothing breaks a wall, sealed derived per room. `docs/09-openings.md`.
+- **Blocked on:** Michael reading `docs/09-openings.md`. One open question it decides: 6, boards spent (lean) or refunded.
+- **Next:** build Milestone 3 in the order `docs/09` gives, then the melee port. Together they make "a night in the cottage"., with the dead breaking in (doors barred from inside, boards, broken shutters, how the dead get through a door, how slow and loud a climb is). Write its doc first, then build. Then the melee port. Together they make "a night in the cottage". Openings with the dead breaking in and the melee port follow, which together make "a night in the cottage".
 - **Notes:** the debug corner shows the cost of a logic step and the worst step in the last three seconds; a freeze should show up there first. Run `python serve.py 8010` in this repo (the file serves its own folder, so it can be launched from elsewhere). `V` toggles the fog off to compare. Michael plays in the in-app browser pane while work happens, so scripted tests see his inputs.
 - **Notes:** Michael wants to burn this week's credits on this. He likes a pause between phases (docs, then build) and plays in his own browser while work happens. Nothing from either parent is gospel.
 
@@ -81,12 +82,21 @@ Each step checkable on its own. Michael looks after step 3.
 - [x] Phase 3 (2026-10-09): pools climb walls and trunks (`night.climb`, 56 px); flames flicker in the light from per-source layers summed with weights at upload; `L` cycles debug views of the light, ambient, and fog textures; `night.standingFloor` is the legibility floor (0 until it is needed); `night.linear` false gives the per-cell look.
 - [x] Acceptance, scripted (2026-10-09): day and night smooth with no texture touched; the campfire's light beyond a wall placed from the console drops on the next step and returns when it is removed; the hearth's spill through the window and door comes from the portals and stops with the shutter; several lights in view at once; the light reads the same either side of a chunk edge; sorting unchanged; every lookup takes a layer; pixels crisp with nearest sampling; the four views that broke the Canvas night look right and a bracket torch lights its wall from the base. Accepted by Michael the same night; the Canvas renderer is deleted.
 
+## Milestone 3 — Openings, and the dead get in (see `docs/09-openings.md`)
+
+- [ ] The stack on walls: bars, boards, hp, broken; transmission and passability from the stack; sealed per room; the prompt names the stack.
+- [ ] The player's actions: `E` and `B`, both sides.
+- [ ] Zombie `breach`: find the room's nearest opening, attack the stack, repath when the way opens.
+- [ ] The dead climb, 1.6 s, no bite while climbing.
+- [ ] Bars, boards, and broken leaves drawn.
+- [ ] Acceptance: the seven checks in `docs/09`.
+
 ## After the probe (sketch, not a plan)
 
 Porting order, each one milestone, each with its own doc. Order is a guess and will change.
 
 - ~~Lighting~~: now Milestone 2, above.
-- Openings: doors barred from inside, boards over shutters and doors, broken shutters, the dead breaking in, how the dead get through a door, how slow and loud a climb is. (Shutters replaced the sibling's glass and curtains: closed is opaque, no pane to break.)
+- ~~Openings~~: now Milestone 3, above.
 - Combat port: melee rework, shove, knockdown. Sword and spear as the first two lines.
 - Inventory, items, moodles, hunger, thirst. Everything is an item.
 - Records beyond the active region: alarm, lure, trickle.

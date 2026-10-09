@@ -31,3 +31,4 @@ Milestone 1, the probe, passed on 2026-10-09: a scrolling chunked map with real 
 | [06-art.md](docs/06-art.md) | Art direction: spooky medieval, never permanently night; the genre test and the dev palette. |
 | [07-lighting.md](docs/07-lighting.md) | Milestone 2: the clock, light as one function per chunk and room, fire as data, torches that mount, hands, the dead seeing flames. |
 | [08-renderer.md](docs/08-renderer.md) | Milestone 2b: portals as emitters, transmission, the floor field, then a raw WebGL2 renderer and light per pixel. |
+| [09-openings.md](docs/09-openings.md) | Milestone 3: an opening as a stack of bars, boards, and a leaf, read from the attacker's side; the dead break in and climb through windows. |

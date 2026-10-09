@@ -4,6 +4,17 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-10 — Openings (Michael)
+
+The milestone after the renderer: the dead get in. Design in `09-openings.md`.
+
+- **Doors and windows can be barred from either side.** Michael's call. A bar holds the leaf shut for both sides and only the side that put it there can take it off, so you can bar your own door from inside, bar the storehouse from outside, or shut a zombie in the shed.
+- **An opening is a stack, read from the attacker's side.** Michael asked how "bars, door, bars inside" could work when the dead attack. Whatever is on the attacker's side breaks first, then the leaf, then whatever is on the far side. A zombie outside a door barred inside breaks the door before it ever touches the bar; one trapped in a barred shed breaks the shutters and climbs out. One rule, no special cases.
+- **The dead climb through open windows**, slower than you and unable to bite while they do. Michael was about to ask for this; it is this milestone.
+- **The dead attack the room's nearest opening.** When the way to what they want is shut, they go to the nearest opening of the room it is in on their own side, and hit the stack until it gives. Nothing ever breaks a wall. Noise stays out (question 18).
+- **What the dead break returns nothing.** The sibling's rule. A broken door is a doorway until repaired, a broken shutter an open window that cannot be closed. Repair comes with the inventory.
+- **Sealed is derived** from a room's openings each step: every door closed and whole, every window shuttered or boarded and whole. It gates sleep later and costs nothing now.
+
 ### 2026-10-09, night — The renderer goes to WebGL (Michael)
 
 Built the same night, all three phases (`08-renderer.md`). Michael at Phase 2: "MILES better, and I could not produce a single weird polygon bug anymore. Wall shading suddenly feels way more intuitive." At the end of Phase 3: "THIS is the right system. It looks amazing." Accepted; the Canvas renderer is deleted. The light debug view is "like looking at the map with infrared goggles on."
