@@ -13,6 +13,9 @@ Rulings with reasons, newest first. If a ruling is reversed, strike it and add t
 - **Dev art gets the game's visual identity now.** Spooky medieval, a bit haunted, never permanently night; Tirisfal Glades, not Stardew. Thick walls, planks and bricks, open windows, dirt roads, a farm tile, dull grass. Characters stay as they are. See `06-art.md`, which also records the genre test for any new colour.
 - **The fog is lighter.** It shades what you cannot see clearly but never distracts from what is there. 0.74 alpha was near black; now 0.46 in a dusky purple.
 - **The stamina bar is the first UI**, because Michael sprints everywhere. Sprint lasts about six seconds instead of two and a half.
+- **The dead know only where they last saw you.** Michael drew the case: he ran a route around a house with solid walls and the dead cut the corner straight to him, as if they had his coordinates. They did: chase was pathing to the player's live tile. Now a zombie remembers the last place it saw you, walks there, searches around it for ten seconds, and gives up. No biting through walls either: a bite needs line of sight. **Noise is deliberately not a factor yet**; Michael is unsure it fits the cosy idea and with no guns there is nothing loud. Open question 18.
+- **Every window has wooden shutters, worked the Zomboid way.** Tap E to open or close, hold E to climb through once open. Checked against Zomboid's own description: a quick press does one thing, a hold does the other. Closed shutters block sight. Climbing takes 0.9 s and cannot be interrupted: a window is a desperate exit, not a shortcut. Shutters start closed.
+- **Corner posts.** Where walls meet at a corner, end, or junction, a post of the wall's thickness fills the notch the thickness leaves. Stone wins over wood where they meet. A straight run gets no posts.
 
 ### 2026-10-08 — The project exists (Michael)
 
@@ -57,3 +60,4 @@ The pre-code conversations closed on 2026-10-08. Each remaining question is deci
 15. ~~**NPCs.**~~ Ruled above: killable, flee until cornered, follow and stay, no weapons, never fight for you. What talking does and the order of the three steps are in `04-npcs.md` and get decided at that milestone.
 16. **Water as a chore, not a countdown.** With no shutoff, thirst and crops both draw from the well, and the question is only how far you carry it. Lean: the well is infinite, bottles and buckets are the inventory cost, and watering a plot is the daily reason to walk outside. Decide with farming.
 17. **Fuel.** Does the hearth burn wood and go out without it? Lean: yes, see the fire ruling above. Decide with the lighting port.
+18. **Noise.** The cozy parent had gunshots and breaking glass as noise that pulled the dead; the sibling planned hearing as a flood fill. Michael (2026-10-09) is not sure noise fits the cosy idea at all, and with no guns little is loud. Lean: leave it out until something in the game is loud, then decide whether that thing should carry.

@@ -82,3 +82,16 @@ html, body {
 .hud-stamina.winded .hud-stamina-fill {
   background: #8a6a7a;
 }
+
+/* Prompt over a world point, copied from the cozy parent's style. */
+#prompt {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: rgba(20, 14, 26, 0.85);
+  border: 1px solid #6a5a70;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+}

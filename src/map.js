@@ -30,9 +30,16 @@ export function createTile(floor = defaultFloor) {
   return { floor, n: null, w: null, prop: null, room: 0 };
 }
 
-// A wall segment on a tile edge. kind: "wall" | "door" | "window".
+// A wall segment on a tile edge. kind: "wall" | "door" | "window". A window has
+// wooden shutters: closed blocks sight, open lets you see and climb through.
 export function createWall(kind, sprite) {
-  return { kind, sprite, open: kind === "door", glass: kind === "window" ? "intact" : null };
+  return { kind, sprite, open: kind === "door", shutter: kind === "window" ? "closed" : null };
+}
+
+// Bumped whenever a wall changes state, so sight can be recomputed.
+export let worldVersion = 0;
+export function touch() {
+  worldVersion++;
 }
 
 // Numeric keys: string keys allocated on every tile lookup were a measurable
@@ -112,9 +119,36 @@ export function blocksMove(wall) {
 
 export function blocksSight(wall) {
   if (!wall) return false;
-  if (wall.kind === "window") return false; // glass: sight through, bodies not
+  if (wall.kind === "window") return wall.shutter === "closed";
   if (wall.kind === "door") return !wall.open;
   return true;
+}
+
+// Windows within `r` tiles of (gx, gy), nearest first. Each carries the edge
+// midpoint and the tile on the far side from the asker, for climbing through.
+export function windowsNear(gx, gy, r = 1.15) {
+  const out = [];
+  const cx = Math.round(gx);
+  const cy = Math.round(gy);
+  for (let ty = cy - 2; ty <= cy + 2; ty++) {
+    for (let tx = cx - 2; tx <= cx + 2; tx++) {
+      const t = tileAt(tx, ty);
+      if (t.n && t.n.kind === "window") {
+        const mx = tx;
+        const my = ty - 0.5;
+        const d = Math.hypot(gx - mx, gy - my);
+        if (d <= r) out.push({ wall: t.n, edge: "n", tx, ty, mx, my, d, to: gy < my ? [tx, ty] : [tx, ty - 1] });
+      }
+      if (t.w && t.w.kind === "window") {
+        const mx = tx - 0.5;
+        const my = ty;
+        const d = Math.hypot(gx - mx, gy - my);
+        if (d <= r) out.push({ wall: t.w, edge: "w", tx, ty, mx, my, d, to: gx < mx ? [tx, ty] : [tx - 1, ty] });
+      }
+    }
+  }
+  out.sort((a, b) => a.d - b.d);
+  return out;
 }
 
 // Segments of an edge (as fractions 0..1 along it) that a body cannot pass.

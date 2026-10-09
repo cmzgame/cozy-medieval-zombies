@@ -6,7 +6,7 @@
 import * as iso from "./iso.js";
 import { getSheet } from "./assets.js";
 import { drawFrame, drawCharacter, resolveFacing, frameName, frameRect } from "./sprites.js";
-import { poly } from "./render-util.js";
+import { poly, shade } from "./render-util.js";
 import * as map from "./map.js";
 import { tileKey } from "./visibility.js";
 import { WALL_T, NEAR_STUB } from "./placeholders.js";
@@ -84,8 +84,82 @@ function drawFloor(ctx, tiles, w, h) {
 
 function wallVariant(wall) {
   if (wall.kind === "door") return "door";
-  if (wall.kind === "window") return wall.glass === "broken" ? "window_broken" : "window";
+  if (wall.kind === "window") return wall.shutter === "closed" ? "window_shut" : "window";
   return "plain";
+}
+
+// Is the wall on this edge a near wall of the player's room: the room lies on
+// its far (north or west) side and not on its near side.
+function isNearWall(tx, ty, edge, playerRoom) {
+  if (playerRoom <= 0) return false;
+  const t = map.tileAt(tx, ty);
+  const far = edge === "n" ? map.tileAt(tx, ty - 1) : map.tileAt(tx - 1, ty);
+  return far.room === playerRoom && t.room !== playerRoom;
+}
+
+// Corner posts. Four edges meet at the top vertex of tile (tx, ty): this
+// tile's north and west walls, the north wall of the tile to the west, and
+// the west wall of the tile to the north. Two walls in a straight line need
+// nothing; any other arrangement that includes a wall gets a post, which fills
+// the notch the wall thickness leaves at a corner or a run's end (Michael,
+// 2026-10-09). Stone wins over wood where they meet.
+function postDrawables(tiles, visible, playerRoom, out) {
+  for (const [tx, ty] of tiles) {
+    const nE = map.tileAt(tx, ty).n;
+    const nW = map.tileAt(tx - 1, ty).n;
+    const wS = map.tileAt(tx, ty).w;
+    const wN = map.tileAt(tx, ty - 1).w;
+    if (!nE && !nW && !wS && !wN) continue;
+    if (nE && nW && !wS && !wN) continue;
+    if (wS && wN && !nE && !nW) continue;
+    const walls = [nE, nW, wS, wN].filter(Boolean);
+    let sheet = getSheet(walls[0].sprite);
+    for (const w of walls) {
+      const s = getSheet(w.sprite);
+      if (s.pattern === "brick" && sheet.pattern !== "brick") sheet = s;
+    }
+    const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty)) || visible.has(tileKey(tx, ty - 1)) || visible.has(tileKey(tx - 1, ty - 1));
+    const near = (nE && isNearWall(tx, ty, "n", playerRoom)) || (nW && isNearWall(tx - 1, ty, "n", playerRoom))
+      || (wS && isNearWall(tx, ty, "w", playerRoom)) || (wN && isNearWall(tx, ty - 1, "w", playerRoom));
+    out.push(makePost(tx, ty, sheet, vis, !!near));
+  }
+}
+
+function makePost(tx, ty, sheet, vis, near) {
+  const p = iso.toScreen(tx - 0.5, ty - 0.5);
+  const x = Math.round(p.x);
+  const y = Math.round(p.y);
+  const h = sheet.wallHeight || 72;
+  const T = WALL_T;
+  const color = sheet.color || "#888";
+  // Base diamond of the post, then the same lifted by h.
+  const A = [x, y];
+  const B = [x + T, y - T / 2];
+  const C = [x, y - T];
+  const D = [x - T, y - T / 2];
+  const up = ([px, py]) => [px, py - h];
+  const faded = near && cutaway !== "stub";
+  const hidden = near && cutaway === "stub";
+  return {
+    key: (tx + ty - 1) * 1000 + 0.5,
+    kind: "wall",
+    vis,
+    fogPoly: vis && !hidden ? [D, A, B, up(B), up(C), up(D)] : null,
+    draw(ctx) {
+      if (hidden) return;
+      if (faded) ctx.globalAlpha = NEAR_WALL_ALPHA;
+      ctx.fillStyle = shade(color, 0.5);
+      poly(ctx, [D, A, up(A), up(D)]);
+      ctx.fill();
+      ctx.fillStyle = shade(color, 0.62);
+      poly(ctx, [A, B, up(B), up(A)]);
+      ctx.fill();
+      ctx.fillStyle = shade(color, 1.18);
+      poly(ctx, [up(A), up(B), up(C), up(D)]);
+      ctx.fill();
+      if (faded) ctx.globalAlpha = 1;
+    },
+  };
 }
 
 // A wall on the north edge of (tx, ty) runs from that tile's top vertex to its
@@ -319,6 +393,7 @@ export function renderScene(ctx, { w, h, tiles, visible, entities, playerRoom, d
   drawFloor(ctx, tiles, w, h);
   const drawables = [];
   wallDrawables(tiles, visible, playerRoom, drawables);
+  postDrawables(tiles, visible, playerRoom, drawables);
   propDrawables(tiles, visible, drawables);
   entityDrawables(entities, visible, drawables, drawAll);
   drawables.sort((a, b) => a.key - b.key);

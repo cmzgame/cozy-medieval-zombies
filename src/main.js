@@ -14,6 +14,8 @@ import { renderScene, setCutaway, cutaway } from "./render.js";
 import { createPlayer, updatePlayer, damagePlayer } from "./entities/player.js";
 import { createZombie, updateZombie } from "./entities/zombie.js";
 import { initHud, updateHud } from "./ui/hud.js";
+import { initPrompt, updatePrompt } from "./ui/prompt.js";
+import * as interact from "./interact.js";
 
 const CANVAS_W = 960;
 const CANVAS_H = 540;
@@ -57,6 +59,7 @@ function update(dt) {
   if (input.wasPressed("KeyC")) setCutaway(cutaway === "stub" ? "translucent" : "stub");
   camera.follow(player, dt);
   camera.applyOrigin(CANVAS_W, CANVAS_H);
+  interact.updateInteract(player, dt);
   updatePlayer(player, dt);
   const others = [player, ...zombies];
   for (const z of zombies) updateZombie(z, dt, player, others);
@@ -71,7 +74,7 @@ function update(dt) {
   // Sight is cast from the player's tile centre and only recomputed when the
   // player or the camera enters a new tile. Casting every step at 60 Hz was the
   // bulk of a step's cost and fed the catch-up spiral behind the freezes.
-  const key = `${px},${py}|${Math.round(camera.cam.gx)},${Math.round(camera.cam.gy)}`;
+  const key = `${px},${py}|${Math.round(camera.cam.gx)},${Math.round(camera.cam.gy)}|${map.worldVersion}`;
   if (key !== visKey) {
     const t1 = performance.now();
     tiles = camera.viewportTiles(CANVAS_W, CANVAS_H);
@@ -80,6 +83,7 @@ function update(dt) {
     timing.vis = performance.now() - t1;
   }
   updateHud({ player });
+  updatePrompt(interact.promptFor(player));
   input.endStep();
   timing.step = performance.now() - t0;
   if (t0 - timing.maxResetAt > 3000) {
@@ -130,12 +134,13 @@ async function boot() {
   map.rebuildRooms();
 
   initHud();
+  initPrompt();
   events.on("playerHit", ({ damage }) => damagePlayer(player, damage));
 
   loop.start({ update, render, simTick() {} }, { simIntervalMs: 1000 });
 
   window.__game = {
-    iso, input, loop, assets, events, map, camera, visibility,
+    iso, input, loop, assets, events, map, camera, visibility, interact,
     get player() { return player; },
     get zombies() { return zombies; },
     get tiles() { return tiles; },

@@ -77,10 +77,10 @@ export function generateWall(ph) {
   const T = ph.thickness ?? WALL_T;
   const fw = HW + T;
   const fh = HH + h + T / 2;
-  const variants = ["plain", "door", "window", "window_broken", "boarded", "door_boarded", "stairs", "cap"];
+  const variants = ["plain", "door", "window", "window_shut", "window_broken", "boarded", "door_boarded", "stairs", "cap"];
   const sides = ["north", "west"];
   // Near-edge stubs (south, east): low cutaway walls with their own small frames.
-  const nearVariants = ["plain", "door", "window", "window_broken", "boarded", "door_boarded", "stairs"];
+  const nearVariants = ["plain", "door", "window", "window_shut", "window_broken", "boarded", "door_boarded", "stairs"];
   const nearSides = ["south", "east"];
   const nfw = HW;
   const nfh = NEAR_FRAME_H + HH;
@@ -115,6 +115,8 @@ export function generateWall(ph) {
     anchorSouth: [HW, NEAR_FRAME_H],
     anchorEast: [0, NEAR_FRAME_H],
     wallHeight: h,
+    color: ph.color,
+    pattern: ph.pattern || null,
     animations: {},
     facings: [],
     mirror: {},
@@ -150,10 +152,12 @@ function drawNearVariant(ctx, ox, oy, side, variant, ph) {
   if (variant.startsWith("window") || variant === "boarded") {
     const t0 = 0.2;
     const t1 = 0.8;
-    if (variant !== "window_broken") {
-      ctx.fillStyle = "rgba(158, 200, 224, 0.38)";
+    if (variant === "window_shut") {
+      ctx.fillStyle = shade(color, 0.42);
       poly(ctx, [lerp(t0, NEAR_STUB), lerp(t1, NEAR_STUB), lerp(t1, NEAR_WINDOW_H), lerp(t0, NEAR_WINDOW_H)]);
       ctx.fill();
+    } else if (variant !== "window_broken") {
+      // Open: nothing in the frame.
     } else {
       ctx.strokeStyle = "#cfe6f0";
       ctx.lineWidth = 1;
@@ -325,10 +329,41 @@ function drawWallVariant(ctx, ox, oy, side, variant, ph, T) {
     const y0 = h * 0.35;
     const y1 = h * 0.8;
     const quad = [lerp(t0, y0), lerp(t1, y0), lerp(t1, y1), lerp(t0, y1)];
-    ctx.globalCompositeOperation = "destination-out";
-    poly(ctx, quad);
-    ctx.fill();
-    ctx.globalCompositeOperation = "source-over";
+    const shutter = shade(color, 0.42);
+    if (variant === "window_shut") {
+      // Closed shutters: two leaves of planks over the opening.
+      ctx.fillStyle = shutter;
+      poly(ctx, quad);
+      ctx.fill();
+      ctx.strokeStyle = shade(color, 0.3);
+      ctx.lineWidth = 1;
+      const mid = lerp((t0 + t1) / 2, y0);
+      const midB = lerp((t0 + t1) / 2, y1);
+      ctx.beginPath();
+      ctx.moveTo(mid[0], mid[1]);
+      ctx.lineTo(midB[0], midB[1]);
+      ctx.stroke();
+      for (const yy of [0.3, 0.6]) {
+        const p0 = lerp(t0, y0 + (y1 - y0) * yy);
+        const p1 = lerp(t1, y0 + (y1 - y0) * yy);
+        ctx.beginPath();
+        ctx.moveTo(p0[0], p0[1]);
+        ctx.lineTo(p1[0], p1[1]);
+        ctx.stroke();
+      }
+    } else {
+      ctx.globalCompositeOperation = "destination-out";
+      poly(ctx, quad);
+      ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
+      // Open shutters: a leaf folded back against the wall on each side.
+      const lw = 0.09;
+      ctx.fillStyle = shutter;
+      poly(ctx, [lerp(t0 - lw, y0), lerp(t0, y0), lerp(t0, y1), lerp(t0 - lw, y1)]);
+      ctx.fill();
+      poly(ctx, [lerp(t1, y0), lerp(t1 + lw, y0), lerp(t1 + lw, y1), lerp(t1, y1)]);
+      ctx.fill();
+    }
     ctx.strokeStyle = shade(color, 0.45);
     ctx.lineWidth = 2;
     poly(ctx, quad);

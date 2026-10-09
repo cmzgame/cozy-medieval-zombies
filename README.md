@@ -12,7 +12,7 @@ Started 2026-10-08 as the marriage of two earlier prototypes: `cozy-zombie-game`
 python serve.py 8010
 ```
 
-Then open http://localhost:8010. WASD or arrows to walk, Shift to sprint, mouse to aim. `V` toggles the fog of what you cannot see.
+Then open http://localhost:8010. WASD or arrows to walk, Shift to sprint, mouse to aim. At a window, tap `E` to open or close the shutters and hold `E` to climb through. `V` toggles the fog of what you cannot see, `C` switches how near walls draw.
 
 ## Status
 

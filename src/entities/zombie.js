@@ -1,7 +1,11 @@
 // The dead. Copied from cozy-zombie-game src/entities/zombie.js on 2026-10-09 and
-// cut down for the probe: idle, wander, chase, bite. Sight uses the map's line
-// of sight so a wall or a closed door hides you and a window does not. Combat
-// (damage, knockdown, bodies) returns with the combat milestone.
+// cut down for the probe: idle, wander, chase, bite. Combat (damage, knockdown,
+// bodies) returns with the combat milestone.
+//
+// Memory (Michael, 2026-10-09): the dead know only where they last saw you.
+// They chase that spot, and when they get there without seeing you they search
+// around it for a while and then give up. Nothing tells them your position
+// through a wall. Noise is deliberately not a factor yet (docs/02).
 
 import * as iso from "../iso.js";
 import { moveCircle, isWalkableTile, canStep } from "../map.js";
@@ -19,10 +23,16 @@ export const ZOMBIE_COOLDOWN = 1.2;
 export const ZOMBIE_HP = 100;
 export const ZOMBIE_REPATH = 0.3;
 export const ZOMBIE_RADIUS = 0.3;
+export const SEARCH_TIME = 10; // seconds spent looking around the last sighting
+const SEARCH_RADIUS = 3; // tiles
 const WANDER_IDLE_MIN = 1.5;
 const WANDER_IDLE_MAX = 4.0;
 const SEPARATION = 0.55;
-const SIGHT_CHECK = 0.25; // seconds between sight tests while not chasing
+const SIGHT_CHECK = 0.25; // seconds between sight tests
+const ARRIVED = 0.6; // tiles: close enough to the last sighting to count as there
+// A failed search backs off for a second rather than retrying every frame,
+// which was a freeze waiting to happen on a map with no edge to stop a search.
+const REPATH_FAIL_BACKOFF = 1.0;
 
 let nextId = 1;
 
@@ -40,11 +50,14 @@ export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false 
     maxHp: ZOMBIE_HP,
     state: aggro ? "chase" : "idle",
     aggro,
+    lastSeen: null, // [gx, gy] where the player was last seen
+    seesNow: false,
+    searchTimer: 0,
     anim: createAnimation("idle"),
     path: [],
     repathTimer: 0,
     sightTimer: Math.random() * SIGHT_CHECK,
-    lastPlayerTile: null,
+    lastGoal: null,
     idleTimer: WANDER_IDLE_MIN + Math.random() * (WANDER_IDLE_MAX - WANDER_IDLE_MIN),
     attackCooldown: 0,
     attackHit: false,
@@ -74,14 +87,11 @@ function tileOf(e) {
   return [Math.round(e.gx), Math.round(e.gy)];
 }
 
-// A failed search backs off for a second rather than retrying every frame,
-// which was a freeze waiting to happen on a map with no edge to stop a search.
-const REPATH_FAIL_BACKOFF = 1.0;
-
 function repath(z, goalTile) {
   const path = findPath(tileOf(z), goalTile, canStep);
   z.path = path || [];
   z.pathFailed = path === null;
+  z.lastGoal = goalTile;
   z.repathTimer = z.pathFailed ? REPATH_FAIL_BACKOFF : ZOMBIE_REPATH;
 }
 
@@ -128,13 +138,48 @@ function separate(z, dt, others) {
   }
 }
 
-function pickWanderTarget(z) {
+function pickTargetAround(x, y, radius) {
   for (let tries = 0; tries < 10; tries++) {
-    const tx = Math.round(z.gx) + Math.floor(Math.random() * 7) - 3;
-    const ty = Math.round(z.gy) + Math.floor(Math.random() * 7) - 3;
+    const tx = Math.round(x) + Math.floor(Math.random() * (radius * 2 + 1)) - radius;
+    const ty = Math.round(y) + Math.floor(Math.random() * (radius * 2 + 1)) - radius;
     if (isWalkableTile(tx, ty)) return [tx, ty];
   }
   return null;
+}
+
+// Walk toward a goal tile, repathing on the interval or when the goal moves.
+function moveToward(z, dt, goalTile, others) {
+  const goalChanged = !z.lastGoal || z.lastGoal[0] !== goalTile[0] || z.lastGoal[1] !== goalTile[1];
+  if (z.repathTimer <= 0 || ((goalChanged || !z.path.length) && !z.pathFailed)) repath(z, goalTile);
+  playAnimation(z.anim, "walk");
+  if (z.path.length) return followPath(z, dt, others);
+  // Same tile or unreachable: nudge straight at it.
+  const dx = goalTile[0] - z.gx;
+  const dy = goalTile[1] - z.gy;
+  const n = iso.normalize(dx, dy);
+  faceToward(z, dx, dy);
+  const moved = moveCircle(z.gx, z.gy, z.radius, n.x * z.speed * dt, n.y * z.speed * dt);
+  z.gx = moved.gx;
+  z.gy = moved.gy;
+  separate(z, dt, others);
+  return Math.hypot(dx, dy) < 0.2;
+}
+
+function startSearch(z) {
+  z.state = "search";
+  z.searchTimer = SEARCH_TIME;
+  z.path = [];
+  z.lastGoal = null;
+  z.idleTimer = 0;
+}
+
+function giveUp(z) {
+  z.state = "idle";
+  z.aggro = false;
+  z.lastSeen = null;
+  z.path = [];
+  z.lastGoal = null;
+  z.idleTimer = WANDER_IDLE_MIN + Math.random() * (WANDER_IDLE_MAX - WANDER_IDLE_MIN);
 }
 
 export function updateZombie(z, dt, player, others) {
@@ -143,12 +188,15 @@ export function updateZombie(z, dt, player, others) {
   z.attackCooldown = Math.max(0, z.attackCooldown - dt);
   z.repathTimer -= dt;
   z.sightTimer -= dt;
-  let sees = false;
   if (z.sightTimer <= 0) {
     z.sightTimer = SIGHT_CHECK;
-    sees = canSee(z, player);
-    if (sees) z.aggro = true;
+    z.seesNow = canSee(z, player);
+    if (z.seesNow) {
+      z.aggro = true;
+      z.lastSeen = [player.gx, player.gy];
+    }
   }
+  if (z.aggro && !z.lastSeen) z.lastSeen = [player.gx, player.gy]; // spawned aggro
 
   switch (z.state) {
     case "idle": {
@@ -158,7 +206,7 @@ export function updateZombie(z, dt, player, others) {
         z.state = "chase";
         z.repathTimer = 0;
       } else if (z.idleTimer <= 0) {
-        const target = pickWanderTarget(z);
+        const target = pickTargetAround(z.gx, z.gy, 3);
         if (target) {
           repath(z, target);
           z.state = "wander";
@@ -178,8 +226,9 @@ export function updateZombie(z, dt, player, others) {
       break;
     }
     case "chase": {
+      // A bite needs reach and a clear line: no biting through a wall.
       const d = distTo(z, player);
-      if (d <= ZOMBIE_CONTACT) {
+      if (d <= ZOMBIE_CONTACT && z.seesNow) {
         z.path = [];
         faceToward(z, player.gx - z.gx, player.gy - z.gy);
         if (z.attackCooldown <= 0) {
@@ -192,31 +241,44 @@ export function updateZombie(z, dt, player, others) {
         }
         break;
       }
-      const pt = tileOf(player);
-      const tileChanged = !z.lastPlayerTile || z.lastPlayerTile[0] !== pt[0] || z.lastPlayerTile[1] !== pt[1];
-      if (z.repathTimer <= 0 || ((tileChanged || !z.path.length) && !z.pathFailed)) {
-        z.lastPlayerTile = pt;
-        repath(z, pt);
+      const goal = z.seesNow ? tileOf(player) : [Math.round(z.lastSeen[0]), Math.round(z.lastSeen[1])];
+      const arrived = moveToward(z, dt, goal, others);
+      const atSighting = Math.hypot(z.lastSeen[0] - z.gx, z.lastSeen[1] - z.gy) <= ARRIVED;
+      if (!z.seesNow && (arrived || atSighting || z.pathFailed)) startSearch(z);
+      break;
+    }
+    case "search": {
+      // Look around the last sighting: short walks nearby, then give up.
+      z.searchTimer -= dt;
+      if (z.seesNow) {
+        z.state = "chase";
+        z.repathTimer = 0;
+        break;
       }
-      playAnimation(z.anim, "walk");
+      if (z.searchTimer <= 0) {
+        giveUp(z);
+        break;
+      }
       if (z.path.length) {
+        playAnimation(z.anim, "walk");
         followPath(z, dt, others);
       } else {
-        const dx = player.gx - z.gx;
-        const dy = player.gy - z.gy;
-        const n = iso.normalize(dx, dy);
-        faceToward(z, dx, dy);
-        const moved = moveCircle(z.gx, z.gy, z.radius, n.x * z.speed * dt, n.y * z.speed * dt);
-        z.gx = moved.gx;
-        z.gy = moved.gy;
-        separate(z, dt, others);
+        playAnimation(z.anim, "idle");
+        z.idleTimer -= dt;
+        if (z.idleTimer <= 0) {
+          const target = pickTargetAround(z.lastSeen[0], z.lastSeen[1], SEARCH_RADIUS);
+          if (target) repath(z, target);
+          z.idleTimer = 0.8 + Math.random() * 1.2;
+        }
       }
       break;
     }
     case "attack": {
       if (isActiveFrame(z.anim, sheet) && !z.attackHit) {
         z.attackHit = true;
-        if (distTo(z, player) <= ZOMBIE_CONTACT + 0.2) emit("playerHit", { zombie: z, damage: ZOMBIE_DAMAGE });
+        if (distTo(z, player) <= ZOMBIE_CONTACT + 0.2 && lineOfSight(z.gx, z.gy, player.gx, player.gy)) {
+          emit("playerHit", { zombie: z, damage: ZOMBIE_DAMAGE });
+        }
       }
       if (z.anim.done) {
         z.attackCooldown = ZOMBIE_COOLDOWN;

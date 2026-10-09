@@ -40,6 +40,7 @@ export function createPlayer(gx, gy) {
     winded: false,
     moving: false,
     dead: false,
+    climb: null, // { from, to, t } while climbing through a window
     anim: createAnimation("idle"),
   };
 }
@@ -48,6 +49,27 @@ export function damagePlayer(player, amount) {
   if (player.hp <= 0) return;
   player.hp = Math.max(0, player.hp - amount);
   if (player.hp > 0) playAnimation(player.anim, "hurt", true);
+}
+
+// Climbing through a window: the body moves from where it stands to the tile
+// on the far side over CLIMB_TIME, ignoring walls and input. Slow and
+// committed on purpose: a window is a desperate exit, not a shortcut.
+export const CLIMB_TIME = 0.9;
+
+export function startClimb(player, win) {
+  player.climb = { from: [player.gx, player.gy], to: [win.to[0], win.to[1]], t: 0 };
+  player.moving = false;
+  player.sprinting = false;
+}
+
+function updateClimb(player, dt) {
+  const c = player.climb;
+  c.t += dt;
+  const k = Math.min(1, c.t / CLIMB_TIME);
+  const ease = k * k * (3 - 2 * k);
+  player.gx = c.from[0] + (c.to[0] - c.from[0]) * ease;
+  player.gy = c.from[1] + (c.to[1] - c.from[1]) * ease;
+  if (k >= 1) player.climb = null;
 }
 
 export function aimOrigin(player) {
@@ -65,6 +87,13 @@ function moveToward(player, dt, dx, dy, mult = 1) {
 
 export function updatePlayer(player, dt) {
   const sheet = getSheet(player.sprite);
+
+  if (player.climb) {
+    updateClimb(player, dt);
+    playAnimation(player.anim, "walk");
+    advanceAnimation(player.anim, sheet, dt);
+    return;
+  }
 
   // Keys snap to the eight iso directions, so a diagonal key walks along a wall.
   const axis = input.moveAxis();
