@@ -504,10 +504,42 @@ function tileDiamonds(g, list) {
   }
 }
 
+// Bring a region of the layer from the base darkness to a target darkness:
+// erase a fraction of it, or lay more tint over it.
+function adjustTo(g, base, target, pathFn) {
+  if (Math.abs(target - base) < 0.005) return;
+  if (target < base) {
+    g.globalCompositeOperation = "destination-out";
+    g.fillStyle = `rgba(255,255,255,${1 - target / base})`;
+  } else {
+    g.globalCompositeOperation = "source-over";
+    g.fillStyle = `rgba(${night.tint}, ${(target - base) / (1 - base)})`;
+  }
+  pathFn();
+  g.fill();
+}
+
 function drawNight(ctx, w, h, tiles, drawables, player) {
   const out = light.outdoorAmbient();
-  const dark = light.darknessOf(out);
-  if (dark <= 0.01) return;
+  const base = night.alpha * light.darknessOf(out);
+  // Rooms in view and how dark each is: a lit hearth makes one brighter than
+  // the night outside, closed shutters make one darker than the day outside.
+  // The parent's "board everything and noon is midnight", with shutters.
+  const byRoom = new Map();
+  for (const t of tiles) {
+    const id = map.tileAt(t[0], t[1]).room;
+    if (id <= 0) continue;
+    if (!byRoom.has(id)) byRoom.set(id, []);
+    byRoom.get(id).push(t);
+  }
+  const roomDark = new Map();
+  let anyRoomDark = false;
+  for (const id of byRoom.keys()) {
+    const target = night.alpha * light.darknessOf(light.roomAmbient(id));
+    roomDark.set(id, target);
+    if (target > 0.01) anyRoomDark = true;
+  }
+  if (base <= 0.01 && !anyRoomDark) return;
   if (!nightCanvas) {
     nightCanvas = document.createElement("canvas");
     nightCtx = nightCanvas.getContext("2d");
@@ -520,38 +552,29 @@ function drawNight(ctx, w, h, tiles, drawables, player) {
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.globalCompositeOperation = "source-over";
   g.clearRect(0, 0, w, h);
-  g.fillStyle = `rgba(${night.tint}, ${night.alpha * dark})`;
-  g.fillRect(0, 0, w, h);
-  g.globalCompositeOperation = "destination-out";
+  if (base > 0) {
+    g.fillStyle = `rgba(${night.tint}, ${base})`;
+    g.fillRect(0, 0, w, h);
+  }
 
-  // Rooms brighter than outdoors: erase their floor by the difference.
-  const byRoom = new Map();
-  for (const t of tiles) {
-    const id = map.tileAt(t[0], t[1]).room;
-    if (id <= 0) continue;
-    if (!byRoom.has(id)) byRoom.set(id, []);
-    byRoom.get(id).push(t);
-  }
-  const roomAmt = new Map();
-  for (const [id, list] of byRoom) {
-    const amt = Math.max(0, Math.min(1, (light.roomAmbient(id) - out) / (1 - out)));
-    roomAmt.set(id, amt);
-    if (amt <= 0) continue;
-    g.fillStyle = `rgba(255,255,255,${amt})`;
-    tileDiamonds(g, list);
-    g.fill();
-  }
+  // Each room's floor to its own darkness.
+  for (const [id, list] of byRoom) adjustTo(g, base, roomDark.get(id), () => tileDiamonds(g, list));
   // Translucent near walls show the room through them, so they take the
-  // room's erase; every other wall face is repainted below with its own light.
+  // room's level; every other wall face is repainted below with its own light.
   for (const d of drawables) {
     if (d.kind !== "wall" || !d.fogPoly || !d.near) continue;
-    let amt = 0;
-    for (const r of d.rooms) amt = Math.max(amt, roomAmt.get(r) || 0);
-    if (amt <= 0) continue;
-    g.fillStyle = `rgba(255,255,255,${amt})`;
-    poly(g, d.fogPoly);
-    g.fill();
+    let target = base;
+    let best = Infinity;
+    for (const r of d.rooms) {
+      const t = roomDark.get(r);
+      if (t !== undefined && t < best) {
+        best = t;
+        target = t;
+      }
+    }
+    adjustTo(g, base, target, () => poly(g, d.fogPoly));
   }
+  g.globalCompositeOperation = "destination-out";
 
   // The player's inherent visibility: partial erase, long smooth falloff.
   let ox = 0;
