@@ -157,6 +157,10 @@ export function getRoom(id) {
   return rooms.get(id) || null;
 }
 
+export function allRooms() {
+  return rooms.values();
+}
+
 function inBounds(x, y) {
   return !!bounds && x >= bounds[0] && y >= bounds[1] && x < bounds[0] + bounds[2] && y < bounds[1] + bounds[3];
 }
@@ -239,8 +243,11 @@ export function touch() {
 // Numeric keys: string keys allocated on every tile lookup were a measurable
 // cost when visibility walked thousands of edges per step (2026-10-09).
 const KEY_OFF = 32768;
-export function chunkKey(cx, cy) {
-  return (cx + KEY_OFF) * 65536 + (cy + KEY_OFF);
+// Every lookup takes a layer (docs/02, 2026-10-08: layer-ready data from day
+// one; docs/08: added 2026-10-09). It is always 0 for now; a chunk on another
+// layer is empty and never wild.
+export function chunkKey(cx, cy, layer = 0) {
+  return layer * 4294967296 + (cx + KEY_OFF) * 65536 + (cy + KEY_OFF);
 }
 
 export function chunkCoord(x, y) {
@@ -249,9 +256,9 @@ export function chunkCoord(x, y) {
 
 let lastChunk = null; // most lookups hit the same chunk as the last one
 
-export function getChunk(cx, cy, create = true) {
-  if (lastChunk && lastChunk.cx === cx && lastChunk.cy === cy) return lastChunk;
-  const k = chunkKey(cx, cy);
+export function getChunk(cx, cy, create = true, layer = 0) {
+  if (lastChunk && lastChunk.cx === cx && lastChunk.cy === cy && lastChunk.layer === layer) return lastChunk;
+  const k = chunkKey(cx, cy, layer);
   let c = chunks.get(k);
   if (c) lastChunk = c;
   if (c || !create) return c || null;
@@ -262,9 +269,9 @@ export function getChunk(cx, cy, create = true) {
     for (let lx = 0; lx < CHUNK; lx++) {
       const x = cx * CHUNK + lx;
       const y = cy * CHUNK + ly;
-      let t = source && source(x, y);
+      let t = layer === 0 && source && source(x, y);
       if (!t) {
-        if (inBounds(x, y)) t = createTile();
+        if (layer !== 0 || inBounds(x, y)) t = createTile();
         else {
           t = wildTile(x, y);
           anyWild = true;
@@ -274,7 +281,7 @@ export function getChunk(cx, cy, create = true) {
       tiles[ly * CHUNK + lx] = t;
     }
   }
-  c = { cx, cy, tiles, floorCache: null, floorDirty: true };
+  c = { cx, cy, layer, tiles, floorCache: null, floorDirty: true };
   chunks.set(k, c);
   lastChunk = c;
   // Open field cannot change any room, so only a chunk with walls (or one whose
@@ -300,16 +307,16 @@ export function loadedChunks() {
 }
 
 // The tile at integer (x, y). Creates the chunk if needed.
-export function tileAt(x, y) {
+export function tileAt(x, y, layer = 0) {
   const cx = Math.floor(x / CHUNK);
   const cy = Math.floor(y / CHUNK);
-  const c = getChunk(cx, cy);
+  const c = getChunk(cx, cy, true, layer);
   return c.tiles[(y - cy * CHUNK) * CHUNK + (x - cx * CHUNK)];
 }
 
 // The tile at (x, y) only if its chunk is loaded.
-export function peekTile(x, y) {
-  const c = getChunk(Math.floor(x / CHUNK), Math.floor(y / CHUNK), false);
+export function peekTile(x, y, layer = 0) {
+  const c = getChunk(Math.floor(x / CHUNK), Math.floor(y / CHUNK), false, layer);
   if (!c) return null;
   return c.tiles[(y - c.cy * CHUNK) * CHUNK + (x - c.cx * CHUNK)];
 }
@@ -339,11 +346,22 @@ export function blocksMove(wall) {
   return true; // walls and glass
 }
 
+// How much light an edge lets through, 0..1 (docs/08). A plain wall and a
+// closed door nothing, an open door or shutter everything, a closed shutter a
+// small leak between the planks; later a glass pane most and a curtain little.
+// Sight is transmission above a half: light and sight share one set of
+// blockers, now with a number.
+export const openingTunables = { shutterLeak: 0.05 };
+
+export function transmission(wall) {
+  if (!wall) return 1;
+  if (wall.kind === "window") return wall.shutter === "closed" ? openingTunables.shutterLeak : 1;
+  if (wall.kind === "door") return wall.open ? 1 : 0;
+  return 0;
+}
+
 export function blocksSight(wall) {
-  if (!wall) return false;
-  if (wall.kind === "window") return wall.shutter === "closed";
-  if (wall.kind === "door") return !wall.open;
-  return true;
+  return transmission(wall) < 0.5;
 }
 
 // Openings (doors and windows) within `r` tiles of (gx, gy), nearest first.
@@ -723,6 +741,7 @@ export function createProp(def, offset = [0, 0]) {
       lit: holds ? has : def.lit ?? f.lit ?? !f.burns,
       fuel: def.fuel ?? f.fuel ?? 0,
       maxFuel: f.maxFuel ?? 4,
+      flicker: f.flicker || null, // { amp, speed }: applied when the light map is composed on the GPU (docs/08)
     };
     fireProps.add(prop);
   }

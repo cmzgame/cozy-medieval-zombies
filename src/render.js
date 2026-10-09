@@ -753,13 +753,9 @@ function drawNight(ctx, w, h, tiles, drawables, player, holes) {
     }));
     boxes.push({ x: b.x - iso.HW, y: b.y - iso.HH - 90, w: b.w + iso.TW, h: b.h + iso.TH + 90 });
   }
-  for (const s of light.allSources()) {
-    const p = iso.toScreen(s.gx, s.gy);
-    const rx = s.radius * iso.HW + 48;
-    const ry = s.radius * iso.HH + 48;
-    boxes.push({ x: p.x - rx, y: p.y - ry - 130, w: rx * 2, h: ry * 2 + 130 });
-  }
-  if (player) boxes.push({ x: ox - night.pool, y: oy - night.pool - 130, w: night.pool * 2, h: night.pool * 2 + 130 });
+  // Pools on the floor are left out on purpose: a canopy over a pool taking
+  // the pool's light reads fine, and repainting every sprite near every fire
+  // cost the frame rate (20 fps against 60 with rooms only, 2026-10-09).
   const touches = (r) => {
     for (const b of boxes) if (rectsOverlap(r, b)) return true;
     return false;

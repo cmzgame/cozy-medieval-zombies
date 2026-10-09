@@ -47,6 +47,7 @@ export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false 
     id: id || `z${nextId++}`,
     gx,
     gy,
+    layer: 0, // always 0 for now (docs/08)
     facing: "s",
     speed: ZOMBIE_SPEED,
     radius: ZOMBIE_RADIUS,

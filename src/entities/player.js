@@ -41,6 +41,7 @@ export function createPlayer(gx, gy) {
     winded: false,
     moving: false,
     dead: false,
+    layer: 0, // the floor the player is on; always 0 for now (docs/08)
     climb: null, // { from, to, t } while climbing through a window
     hands: createHands(), // { main, off }: item ids (docs/07, items.js)
     anim: createAnimation("idle"),
