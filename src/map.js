@@ -50,6 +50,45 @@ export function fires() {
   return fireProps;
 }
 
+// Burning (docs/07): a burner holds logs and burns one per two game hours.
+// At zero it goes out. Nothing shuts off on a timer; it burned what you gave it.
+export const LOG_SECONDS = 60; // real seconds per log: two hours of a 12-minute day
+
+export function burnFires(dt) {
+  for (const p of fireProps) {
+    const f = p.fire;
+    if (!f.burns || !f.lit) continue;
+    f.fuel -= dt / LOG_SECONDS;
+    if (f.fuel <= 0) {
+      f.fuel = 0;
+      f.lit = false;
+    }
+  }
+}
+
+// Light a burner with a log, or add one. Logs are free until the inventory
+// exists (Michael, 2026-10-09). Returns false if it is full.
+export function feedFire(prop) {
+  const f = prop.fire;
+  if (!f || !f.burns) return false;
+  if (f.fuel >= f.maxFuel) return false;
+  f.fuel = Math.min(f.maxFuel, f.fuel + 1);
+  f.lit = true;
+  return true;
+}
+
+// Burners within `r` tiles of (gx, gy), nearest first.
+export function burnersNear(gx, gy, r = 1.3) {
+  const out = [];
+  for (const p of fireProps) {
+    if (!p.fire.burns) continue;
+    const d = Math.hypot(gx - p.tile[0], gy - p.tile[1]);
+    if (d <= r) out.push({ prop: p, d });
+  }
+  out.sort((a, b) => a.d - b.d);
+  return out;
+}
+
 export function getRoom(id) {
   return rooms.get(id) || null;
 }

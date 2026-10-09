@@ -65,6 +65,7 @@ function update(dt) {
   if (input.wasPressed("BracketRight")) clock.setHour(clock.getHour() + 1);
   if (input.wasPressed("BracketLeft")) clock.setHour(clock.getHour() - 1);
   clock.update(dt);
+  map.burnFires(dt);
   camera.follow(player, dt);
   camera.applyOrigin(CANVAS_W, CANVAS_H);
   // Grow the world three chunks ahead of the player, so wild forest and its

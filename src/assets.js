@@ -71,6 +71,8 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
       case "flat": sheet = placeholders.generateFlat(ph); break;
       case "wall": sheet = placeholders.generateWall(ph); break;
       case "pumpkin": sheet = placeholders.generatePumpkin(ph); break;
+      case "hearth": sheet = placeholders.generateHearth(ph); break;
+      case "campfire": sheet = placeholders.generateCampfire(ph); break;
       default: throw new Error(`Unknown placeholder kind ${ph.kind} for ${id}`);
     }
   } else {

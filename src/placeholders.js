@@ -873,3 +873,165 @@ export function generatePumpkin(ph) {
     bounds: { x: fw / 2 - 15, y: fh - 14 - 30, w: 30, h: 32 },
   };
 }
+
+// ---------------------------------------------------------------------------
+// Fires (docs/07-lighting.md). Each has three identical `idle_i` body frames
+// (so the renderer's idle animation picks a flame index) and three `flame_i`
+// frames of fire and glow, drawn above the night layer while lit.
+// ---------------------------------------------------------------------------
+const FLAME_COLORS = ["#ffb347", "#ffd37a", "#ff9a2e"];
+
+// A tongue of flame with its base at (x, y), `hgt` tall, `wid` wide, in two
+// tones. `k` varies the lean per frame.
+function drawFlame(ctx, x, y, wid, hgt, k) {
+  const lean = (k - 1) * wid * 0.25;
+  ctx.fillStyle = "#e8702a";
+  ctx.beginPath();
+  ctx.moveTo(x - wid / 2, y);
+  ctx.quadraticCurveTo(x - wid / 2 + lean, y - hgt * 0.55, x + lean * 1.5, y - hgt);
+  ctx.quadraticCurveTo(x + wid / 2 + lean, y - hgt * 0.55, x + wid / 2, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = FLAME_COLORS[k];
+  ctx.beginPath();
+  ctx.moveTo(x - wid / 4, y);
+  ctx.quadraticCurveTo(x - wid / 4 + lean * 0.6, y - hgt * 0.35, x + lean, y - hgt * 0.6);
+  ctx.quadraticCurveTo(x + wid / 4 + lean * 0.6, y - hgt * 0.35, x + wid / 4, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawGlow(ctx, x, y, r, a) {
+  const g = ctx.createRadialGradient(x, y, 1, x, y, r);
+  g.addColorStop(0, `rgba(255, 170, 60, ${a})`);
+  g.addColorStop(1, "rgba(255, 170, 60, 0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(x - r, y - r, r * 2, r * 2);
+}
+
+// Hearth: a stone block against a wall with a dark firebox on its front-left
+// face. Anchor is the tile centre.
+export function generateHearth(ph) {
+  const h = 40;
+  const fw = TW;
+  const fh = TH + h;
+  const frames = 3;
+  const { canvas, ctx } = makeCanvas(fw * frames, fh * 2);
+  const color = ph.color || "#7b7670";
+  const inset = 4;
+  const hw = HW - inset;
+  const hh = HH - inset / 2;
+  const frameMap = {};
+  for (let i = 0; i < frames; i++) {
+    const ox = i * fw;
+    const cx = ox + HW;
+    const cy = h + HH;
+    // The block.
+    const top = [[cx, cy - hh - h], [cx + hw, cy - h], [cx, cy + hh - h], [cx - hw, cy - h]];
+    const left = [[cx - hw, cy], [cx, cy + hh], [cx, cy + hh - h], [cx - hw, cy - h]];
+    const right = [[cx, cy + hh], [cx + hw, cy], [cx + hw, cy - h], [cx, cy + hh - h]];
+    ctx.fillStyle = shade(color, 0.72);
+    poly(ctx, left);
+    ctx.fill();
+    ctx.fillStyle = shade(color, 0.55);
+    poly(ctx, right);
+    ctx.fill();
+    ctx.fillStyle = color;
+    poly(ctx, top);
+    ctx.fill();
+    // Brick seams on the faces.
+    ctx.strokeStyle = shade(color, 0.45);
+    ctx.lineWidth = 1;
+    for (let yy = 8; yy < h; yy += 8) {
+      ctx.beginPath();
+      ctx.moveTo(cx - hw, cy - yy);
+      ctx.lineTo(cx, cy + hh - yy);
+      ctx.lineTo(cx + hw, cy - yy);
+      ctx.stroke();
+    }
+    // Firebox: a dark arch on the left face.
+    const lerp = (t, up) => [cx - hw + (cx - (cx - hw)) * t, cy + hh * t - up];
+    const box = [lerp(0.2, 2), lerp(0.8, 2), lerp(0.8, 24), lerp(0.2, 24)];
+    ctx.fillStyle = "#1a1210";
+    poly(ctx, box);
+    ctx.fill();
+    frameMap[`idle_${i}`] = [ox, 0, fw, fh];
+    // Flame frame: fire in the firebox and a glow spilling out of it.
+    const fy = fh;
+    const fc = lerp(0.5, 4);
+    drawGlow(ctx, fc[0], fy + fc[1] - 6, 22, 0.45 + 0.1 * (i % 2));
+    drawFlame(ctx, fc[0] - 5, fy + fc[1], 9, 14 + i * 2, i);
+    drawFlame(ctx, fc[0] + 4, fy + fc[1], 8, 11 + ((i + 1) % 3) * 2, (i + 1) % 3);
+    frameMap[`flame_${i}`] = [ox, fy, fw, fh];
+  }
+  return {
+    image: canvas,
+    frames: frameMap,
+    anchor: [HW, h + HH],
+    animations: { idle: { fps: 5, loop: true, frames } },
+    facings: [],
+    mirror: {},
+  };
+}
+
+// Campfire: a ring of stones and crossed logs on the ground. Anchor is the
+// tile centre; the flames rise above it.
+export function generateCampfire(ph) {
+  const fw = TW;
+  const fh = 56;
+  const frames = 3;
+  const { canvas, ctx } = makeCanvas(fw * frames, fh * 2);
+  const stone = ph.color || "#6a645c";
+  const log = "#4a3324";
+  const frameMap = {};
+  for (let i = 0; i < frames; i++) {
+    const ox = i * fw;
+    const cx = ox + HW;
+    const cy = fh - 10;
+    // Scorched ground.
+    ctx.fillStyle = "rgba(20, 14, 10, 0.45)";
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 15, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Logs, crossed.
+    ctx.save();
+    ctx.translate(cx, cy - 2);
+    for (const a of [-0.5, 0.6]) {
+      ctx.save();
+      ctx.rotate(a);
+      ctx.fillStyle = log;
+      ctx.fillRect(-11, -2.5, 22, 5);
+      ctx.fillStyle = shade(log, 1.3);
+      ctx.fillRect(-11, -2.5, 22, 1.5);
+      ctx.restore();
+    }
+    ctx.restore();
+    // Stones.
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      const sx = cx + Math.cos(a) * 17;
+      const sy = cy + Math.sin(a) * 8;
+      ctx.fillStyle = shade(stone, 0.85 + 0.2 * (k % 2));
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, 4, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    frameMap[`idle_${i}`] = [ox, 0, fw, fh];
+    // Flame frame: three tongues and a glow.
+    const fy = fh;
+    drawGlow(ctx, cx, fy + cy - 8, 26, 0.4 + 0.12 * (i % 2));
+    drawFlame(ctx, cx - 6, fy + cy - 2, 10, 16 + ((i + 2) % 3) * 3, (i + 2) % 3);
+    drawFlame(ctx, cx + 6, fy + cy - 2, 10, 14 + ((i + 1) % 3) * 3, (i + 1) % 3);
+    drawFlame(ctx, cx, fy + cy - 3, 12, 22 + i * 3, i);
+    frameMap[`flame_${i}`] = [ox, fy, fw, fh];
+  }
+  return {
+    image: canvas,
+    frames: frameMap,
+    anchor: [HW, fh - 10],
+    animations: { idle: { fps: 6, loop: true, frames } },
+    facings: [],
+    mirror: {},
+    bounds: { x: HW - 20, y: fh - 10 - 30, w: 40, h: 40 },
+  };
+}

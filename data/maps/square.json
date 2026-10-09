@@ -120,6 +120,13 @@
                 6,
                 0
               ]
+            },
+            {
+              "sprite": "hearth",
+              "tile": [
+                4,
+                0
+              ]
             }
           ]
         }
@@ -240,6 +247,27 @@
             0,
             0
           ]
+        }
+      ]
+    },
+    {
+      "name": "campfire",
+      "rect": [
+        18,
+        18,
+        1,
+        1
+      ],
+      "padding": 1,
+      "props": [
+        {
+          "sprite": "campfire",
+          "tile": [
+            0,
+            0
+          ],
+          "lit": true,
+          "fuel": 2
         }
       ]
     }
