@@ -566,6 +566,31 @@ export function createProp(def, offset = [0, 0]) {
   };
 }
 
+// A set's origin: explicit, else its rect's corner, else its first rect's.
+function setOrigin(s) {
+  if (s.origin) return [s.origin[0], s.origin[1]];
+  if (s.rect) return [s.rect[0], s.rect[1]];
+  if (s.rects && s.rects.length) return [s.rects[0][0], s.rects[0][1]];
+  return [0, 0];
+}
+
+// Every tile of a set's footprint, in world coordinates.
+function setFootprint(s) {
+  const out = [];
+  const addRect = ([x0, y0, w, h]) => {
+    for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) out.push([x, y]);
+  };
+  if (s.rect) addRect(s.rect);
+  for (const r of s.rects || []) addRect(r);
+  if (s.mask) {
+    const [ox, oy] = setOrigin(s);
+    s.mask.forEach((row, dy) => {
+      for (let dx = 0; dx < row.length; dx++) if (row[dx] === "#") out.push([ox + dx, oy + dy]);
+    });
+  }
+  return out;
+}
+
 // Make sure every chunk within `radius` chunks of (x, y) exists, so wild
 // forest and its dead are grown well outside the viewport, never in it.
 export function ensureAround(x, y, radius = 3) {
@@ -610,10 +635,11 @@ export function loadMap(json) {
   for (const f of json.features || []) floorRect(f, [0, 0]);
   for (const r of json.floorRects || []) floorRect(r, [0, 0]);
   for (const p of json.props || []) placeProp(p, [0, 0]);
-  // Sets: everything inside is relative to the set's corner.
+  // Sets: everything inside is relative to the set's origin (its rect's corner
+  // unless an `origin` is given).
   const buildings = [...(json.buildings || []).map((b) => ({ ...b, origin: [0, 0] }))];
   for (const s of json.sets || []) {
-    const origin = [s.rect[0], s.rect[1]];
+    const origin = setOrigin(s);
     for (const r of s.floorRects || []) floorRect(r, origin);
     for (const p of s.props || []) placeProp(p, origin);
     for (const b of s.buildings || []) buildings.push({ ...b, origin });
@@ -650,9 +676,13 @@ export function loadMap(json) {
   const reserveRect = (x0, y0, w, h) => {
     for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) reserved.add(key(x, y));
   };
+  // A set's footprint may be any shape: a `rect`, a union of `rects`, or a
+  // `mask` of text rows ('#' is footprint) at the set's `origin`. The padding
+  // ring is the footprint grown outward by `padding` tiles in every direction,
+  // which works for concave shapes and courtyards alike (Michael, 2026-10-09).
   for (const s of json.sets || []) {
     const pad = s.padding ?? 1;
-    reserveRect(s.rect[0] - pad, s.rect[1] - pad, s.rect[2] + pad * 2, s.rect[3] + pad * 2);
+    for (const [x, y] of setFootprint(s)) reserveRect(x - pad, y - pad, pad * 2 + 1, pad * 2 + 1);
   }
   for (const b of json.buildings || []) {
     const pad = b.padding ?? 1;

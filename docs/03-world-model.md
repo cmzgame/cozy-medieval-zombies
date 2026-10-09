@@ -80,7 +80,7 @@ A record is `{ id, chunk, tile, state, target, timer, hp, aggro, ...body fields 
 
 Michael's vocabulary (2026-10-09), as built in `map.js`:
 
-- A **set** is an authored thing with a footprint and a **padding ring** that scatter never enters: a cottage, a farm plot, an overturned wagon to loot, a whole castle compound. Its buildings, floors, and props are placed relative to its corner. A set is defined by its own outline, so two sets joined by a road stay two sets; a compound is one big set with a yard's worth of padding.
+- A **set** is an authored thing with a footprint and a **padding ring** that scatter never enters: a cottage, a farm plot, an overturned wagon to loot, a whole castle compound. The footprint may be any shape: a rectangle, a union of rectangles, or a text mask, concave or with a courtyard; the ring is the footprint grown outward by the padding distance. Its buildings, floors, and props are placed relative to its origin. A set is defined by its own outline, so two sets joined by a road stay two sets; a compound is one big set with a yard's worth of padding.
 - A **feature** is linear and reserves only its own tiles, with no padding: roads now, rivers and bridges later. A road may run right up to a set's edge.
 - **Scatter** fills what is left by rule: a rectangle, a biome's kinds, a density range shaped by noise, a seed. Trees now; carts, bodies, and events are later kinds.
 - The **wild** beyond the authored bounds is scatter all the way down, plus a few of the dead per chunk.
