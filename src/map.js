@@ -8,6 +8,8 @@
 // A chunk that nobody authored is open field. Chunks are created on demand, so
 // the field goes on forever and the camera never shows the void.
 
+import { getDef } from "./assets.js";
+
 export const CHUNK = 16;
 const ROOM_MAX = 300; // a region bigger than this is outdoors, not a room
 
@@ -214,12 +216,22 @@ export function circleBlocked(gx, gy, r) {
     for (let tx = minX; tx <= maxX + 1; tx++) {
       const t = tileAt(tx, ty);
       if (t.prop && t.prop.solid && tx <= maxX && ty <= maxY) {
-        // Tile square spans [tx - 0.5, tx + 0.5]. Closest point to the circle centre:
-        const cx = Math.max(tx - 0.5, Math.min(gx, tx + 0.5));
-        const cy = Math.max(ty - 0.5, Math.min(gy, ty + 0.5));
-        const dx = gx - cx;
-        const dy = gy - cy;
-        if (dx * dx + dy * dy < r2) return true;
+        if (t.prop.radius) {
+          // A round thing (a trunk, a barrel) blocks only a circle at the tile
+          // centre, so you can slip between canopies (Michael, 2026-10-09:
+          // whole-tile trees made the wood impenetrable).
+          const dx = gx - tx;
+          const dy = gy - ty;
+          const rr = r + t.prop.radius;
+          if (dx * dx + dy * dy < rr * rr) return true;
+        } else {
+          // Tile square spans [tx - 0.5, tx + 0.5]. Closest point to the circle centre:
+          const cx = Math.max(tx - 0.5, Math.min(gx, tx + 0.5));
+          const cy = Math.max(ty - 0.5, Math.min(gy, ty + 0.5));
+          const dx = gx - cx;
+          const dy = gy - cy;
+          if (dx * dx + dy * dy < r2) return true;
+        }
       }
       const ns = moveSegments(t.n);
       if (ns) {
@@ -395,6 +407,12 @@ export function createProp(def, offset = [0, 0]) {
   const oy = def.tile[1] + offset[1];
   const tiles = [];
   for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) tiles.push([ox + dx, oy + dy]);
+  // A sprite definition may declare `collide: { radius }` in tiles: the prop
+  // then blocks a circle at its tile centre rather than the whole tile. Tiles
+  // with a solid prop stay unwalkable for pathing either way, so the dead walk
+  // around trees while a body can brush past the trunk.
+  const sdef = getDef(def.sprite);
+  const radius = def.radius ?? sdef.collide?.radius ?? 0;
   return {
     kind: "prop",
     sprite: def.sprite,
@@ -403,6 +421,7 @@ export function createProp(def, offset = [0, 0]) {
     tiles,
     solid: def.solid !== false,
     opaque: !!def.opaque,
+    radius: w === 1 && h === 1 ? radius : 0,
   };
 }
 
