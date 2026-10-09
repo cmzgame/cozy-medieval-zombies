@@ -153,55 +153,6 @@
   ],
   "props": [
     {
-      "sprite": "tree",
-      "tile": [
-        6,
-        14
-      ]
-    },
-    {
-      "sprite": "tree",
-      "tile": [
-        7,
-        22
-      ]
-    },
-    {
-      "sprite": "tree",
-      "tile": [
-        24,
-        7
-      ]
-    },
-    {
-      "sprite": "tree",
-      "tile": [
-        27,
-        20
-      ]
-    },
-    {
-      "sprite": "tree",
-      "tile": [
-        22,
-        26
-      ]
-    },
-    {
-      "sprite": "tree",
-      "tile": [
-        10,
-        27
-      ]
-    },
-    {
-      "sprite": "tree",
-      "tile": [
-        4,
-        6
-      ]
-    },
-    {
       "sprite": "barrel",
       "tile": [
         20,
@@ -231,6 +182,244 @@
         13
       ],
       "solid": false
+    },
+    {
+      "sprite": "tree_big",
+      "tile": [
+        2,
+        13
+      ]
+    },
+    {
+      "sprite": "tree",
+      "tile": [
+        4,
+        15
+      ]
+    },
+    {
+      "sprite": "tree_blue",
+      "tile": [
+        6,
+        14
+      ]
+    },
+    {
+      "sprite": "tree_purple",
+      "tile": [
+        3,
+        18
+      ]
+    },
+    {
+      "sprite": "tree",
+      "tile": [
+        6,
+        18
+      ]
+    },
+    {
+      "sprite": "tree_big",
+      "tile": [
+        8,
+        21
+      ]
+    },
+    {
+      "sprite": "tree_blue",
+      "tile": [
+        4,
+        22
+      ]
+    },
+    {
+      "sprite": "tree",
+      "tile": [
+        7,
+        24
+      ]
+    },
+    {
+      "sprite": "tree_purple",
+      "tile": [
+        2,
+        26
+      ]
+    },
+    {
+      "sprite": "tree",
+      "tile": [
+        5,
+        28
+      ]
+    },
+    {
+      "sprite": "tree_amber",
+      "tile": [
+        9,
+        27
+      ]
+    },
+    {
+      "sprite": "tree_blue",
+      "tile": [
+        3,
+        30
+      ]
+    },
+    {
+      "sprite": "tree_big",
+      "tile": [
+        7,
+        31
+      ]
+    },
+    {
+      "sprite": "tree",
+      "tile": [
+        4,
+        5
+      ]
+    },
+    {
+      "sprite": "tree_blue",
+      "tile": [
+        2,
+        8
+      ]
+    },
+    {
+      "sprite": "tree_purple",
+      "tile": [
+        9,
+        2
+      ]
+    },
+    {
+      "sprite": "tree",
+      "tile": [
+        21,
+        1
+      ]
+    },
+    {
+      "sprite": "tree_big",
+      "tile": [
+        24,
+        4
+      ]
+    },
+    {
+      "sprite": "tree_blue",
+      "tile": [
+        27,
+        7
+      ]
+    },
+    {
+      "sprite": "tree_amber",
+      "tile": [
+        29,
+        2
+      ]
+    },
+    {
+      "sprite": "tree_purple",
+      "tile": [
+        29,
+        10
+      ]
+    },
+    {
+      "sprite": "tree",
+      "tile": [
+        30,
+        13
+      ]
+    },
+    {
+      "sprite": "tree_big",
+      "tile": [
+        28,
+        19
+      ]
+    },
+    {
+      "sprite": "tree_blue",
+      "tile": [
+        30,
+        22
+      ]
+    },
+    {
+      "sprite": "tree",
+      "tile": [
+        27,
+        24
+      ]
+    },
+    {
+      "sprite": "tree_purple",
+      "tile": [
+        31,
+        26
+      ]
+    },
+    {
+      "sprite": "tree",
+      "tile": [
+        29,
+        29
+      ]
+    },
+    {
+      "sprite": "tree_big",
+      "tile": [
+        22,
+        26
+      ]
+    },
+    {
+      "sprite": "tree",
+      "tile": [
+        19,
+        29
+      ]
+    },
+    {
+      "sprite": "tree_blue",
+      "tile": [
+        16,
+        27
+      ]
+    },
+    {
+      "sprite": "tree_amber",
+      "tile": [
+        13,
+        29
+      ]
+    },
+    {
+      "sprite": "tree_purple",
+      "tile": [
+        10,
+        30
+      ]
+    },
+    {
+      "sprite": "tree",
+      "tile": [
+        24,
+        30
+      ]
+    },
+    {
+      "sprite": "tree_big",
+      "tile": [
+        17,
+        31
+      ]
     }
   ],
   "spawn": [

@@ -6,6 +6,7 @@
 import * as iso from "./iso.js";
 import { getSheet } from "./assets.js";
 import { drawFrame, drawCharacter, resolveFacing, frameName, frameRect } from "./sprites.js";
+// (drawCharacter is used by entity drawables; the silhouette pass is gone.)
 import { poly, shade } from "./render-util.js";
 import * as map from "./map.js";
 import { tileKey } from "./visibility.js";
@@ -29,11 +30,14 @@ export function setCutaway(mode) {
   cutaway = mode;
 }
 
-// Occlusion: fade the tall prop and draw a silhouette (cozy parent rule).
+// Occlusion. The cozy parent faded a tall prop to 40 percent and drew a
+// silhouette. With big overlapping canopies that stacks into mud (Michael,
+// 2026-10-09), so instead a soft hole is cut through every occluding prop
+// around each character behind it, Zomboid style. Five canopies over your
+// head read the same as one.
 const OCCLUDER_MIN_HEIGHT = 64;
-const OCCLUDER_ALPHA = 0.4;
-const SILHOUETTE_ALPHA = 0.55;
-const SILHOUETTE_COLORS = { player: "#ffe08a", zombie: "#a8e898" };
+const HOLE_INNER = 34; // px, fully clear
+const HOLE_OUTER = 78; // px, fade to solid
 
 // ---- floor, cached per chunk ----
 
@@ -347,29 +351,40 @@ function computeOcclusion(drawables) {
   }
 }
 
-let silCanvas = null;
-let silCtx = null;
-function drawSilhouette(ctx, d) {
-  const { sheet, entity: e } = d;
-  const f = d.rect;
-  if (!silCanvas) {
-    silCanvas = document.createElement("canvas");
-    silCtx = silCanvas.getContext("2d");
+// An occluder is drawn into a scratch layer, the holes are erased out of it,
+// and the layer is composited in the occluder's place in the sort order, so
+// it still sits correctly behind and in front of everything else.
+let occCanvas = null;
+let occCtx = null;
+function drawWithHoles(ctx, d, holes, w, h) {
+  if (!occCanvas) {
+    occCanvas = document.createElement("canvas");
+    occCtx = occCanvas.getContext("2d");
   }
-  if (silCanvas.width < f.w || silCanvas.height < f.h) {
-    silCanvas.width = Math.max(silCanvas.width, f.w);
-    silCanvas.height = Math.max(silCanvas.height, f.h);
+  if (occCanvas.width !== w || occCanvas.height !== h) {
+    occCanvas.width = w;
+    occCanvas.height = h;
   }
-  silCtx.imageSmoothingEnabled = false;
-  silCtx.globalCompositeOperation = "source-over";
-  silCtx.clearRect(0, 0, silCanvas.width, silCanvas.height);
-  drawCharacter(silCtx, sheet, e.anim, e.facing, sheet.anchor[0], sheet.anchor[1]);
-  silCtx.globalCompositeOperation = "source-in";
-  silCtx.fillStyle = SILHOUETTE_COLORS[e.kind] || "#ffffff";
-  silCtx.fillRect(0, 0, f.w, f.h);
-  ctx.globalAlpha = SILHOUETTE_ALPHA;
-  ctx.drawImage(silCanvas, 0, 0, f.w, f.h, f.x, f.y, f.w, f.h);
-  ctx.globalAlpha = 1;
+  const r = d.rect;
+  const x0 = Math.max(0, Math.floor(r.x) - 2);
+  const y0 = Math.max(0, Math.floor(r.y) - 2);
+  const x1 = Math.min(w, Math.ceil(r.x + r.w) + 2);
+  const y1 = Math.min(h, Math.ceil(r.y + r.h) + 2);
+  if (x1 <= x0 || y1 <= y0) return;
+  occCtx.imageSmoothingEnabled = false;
+  occCtx.globalCompositeOperation = "source-over";
+  occCtx.clearRect(x0, y0, x1 - x0, y1 - y0);
+  d.draw(occCtx);
+  occCtx.globalCompositeOperation = "destination-out";
+  for (const [hx, hy] of holes) {
+    const g = occCtx.createRadialGradient(hx, hy, HOLE_INNER, hx, hy, HOLE_OUTER);
+    g.addColorStop(0, "rgba(0,0,0,1)");
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    occCtx.fillStyle = g;
+    occCtx.fillRect(hx - HOLE_OUTER, hy - HOLE_OUTER, HOLE_OUTER * 2, HOLE_OUTER * 2);
+  }
+  occCtx.globalCompositeOperation = "source-over";
+  ctx.drawImage(occCanvas, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
 }
 
 // ---- fog ----
@@ -435,16 +450,13 @@ export function renderScene(ctx, { w, h, tiles, visible, entities, playerRoom, d
   entityDrawables(entities, visible, drawables, drawAll);
   drawables.sort((a, b) => a.key - b.key);
   computeOcclusion(drawables);
+  // Hole centres: the chest of every occluded character.
+  const holes = [];
+  for (const d of drawables) if (d.occluded && d.rect) holes.push([d.rect.x + d.rect.w / 2, d.rect.y + d.rect.h * 0.45]);
   for (const d of drawables) {
-    if (d.occluder) {
-      ctx.globalAlpha = OCCLUDER_ALPHA;
-      d.draw(ctx);
-      ctx.globalAlpha = 1;
-    } else {
-      d.draw(ctx);
-    }
+    if (d.occluder && holes.length) drawWithHoles(ctx, d, holes, w, h);
+    else d.draw(ctx);
   }
-  for (const d of drawables) if (d.occluded) drawSilhouette(ctx, d);
   if (fog) drawFog(ctx, w, h, tiles, visible, drawables);
   return drawables.length;
 }

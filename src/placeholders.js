@@ -510,7 +510,9 @@ export function generatePost(ph) {
   const cy = h + HH;
   const color = ph.color;
   const trunkW = Math.max(4, Math.round(width / 4));
-  ctx.fillStyle = shade(color, 0.45);
+  // Trunks are brown, whatever the canopy (Michael, 2026-10-09); a post with no
+  // `trunk` keeps the parent's darker-shade rule, which suits barrels and lamps.
+  ctx.fillStyle = ph.trunk || shade(color, 0.45);
   ctx.fillRect(cx - trunkW / 2, cy - h + width / 2, trunkW, h - width / 2);
   ctx.fillStyle = "rgba(0,0,0,0.25)";
   ctx.beginPath();

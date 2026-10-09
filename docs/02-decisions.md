@@ -21,6 +21,10 @@ Rulings with reasons, newest first. If a ruling is reversed, strike it and add t
 - **Doors, second.** Doors are real now that windows work: tap E opens or closes, closed blocks sight and bodies, the dead cannot open them yet (the openings milestone decides how they get through). Doors start closed.
 - **Fittings are one wood everywhere.** Doors and shutters are the same wood whatever the wall, as vertical planks with dark metal strips across them, two on a door and one on a shutter leaf. Michael: "I know this is not a thing but I like how it sounds."
 - **Open shutters and doors swing out on the outside of the wall**, perpendicular to it at the jambs, as if pushed open from inside. History be damned. The renderer knows which side is outdoors from the rooms.
+- **Gloomwood, two registers.** Michael's vibe statement is in `06-art.md`: an aggressively autumn cosy register and a Tirisfal gloomy register, balanced so farming never feels bad. Trees are big now, in green, dusky blue, purple, and the odd amber, and there is more forest than plains.
+- **Occlusion is a hole, not a fade.** A character behind a tree shows through a soft hole cut in every canopy over them, so overlapping big trees never stack into mud. The silhouette pass is gone.
+- **The player wears a dirty off-white shirt and brown breeches.** No denim. The dead keep their dusty purple.
+- **The pumpkin's glow joins the lighting pass.** When dynamic lighting lands, the jack-o'-lantern lights the ground around it the way candles did in the cozy parent; the flicker inside stays as drawn. Noted in the lighting milestone.
 - **A jack-o'-lantern**, because it is October: a carved pumpkin with a stem and a flickering fire inside, three on the square. The first animated prop, and a light source once lighting lands.
 
 ### 2026-10-08 — The project exists (Michael)

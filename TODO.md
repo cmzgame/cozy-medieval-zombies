@@ -52,7 +52,7 @@ If any proof fails: stop, write down why in `docs/02`, and talk.
 
 Porting order, each one milestone, each with its own doc. Order is a guess and will change.
 
-- Lighting: the light map per chunk, night, hearths that burn wood, candles, lit windows. The lantern.
+- Lighting: the light map per chunk, night, hearths that burn wood, candles, lit windows, the jack-o'-lantern as a real light source (keep its drawn flicker). The lantern.
 - Openings as tiles: doors barred from inside, glass with curtains and boards, the dead breaking in.
 - Combat port: melee rework, shove, knockdown. Sword and spear as the first two lines.
 - Inventory, items, moodles, hunger, thirst. Everything is an item.
