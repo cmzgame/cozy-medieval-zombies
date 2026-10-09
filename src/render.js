@@ -622,20 +622,26 @@ function drawNight(ctx, w, h, tiles, drawables, player) {
 
   // Each room's floor to its own darkness.
   for (const [id, list] of byRoom) adjustTo(g, base, roomDark.get(id), () => tileDiamonds(g, list));
-  // Translucent near walls show the room through them, so they take the
-  // room's level; every other wall face is repainted below with its own light.
+  // A translucent near wall is drawn at NEAR_WALL_ALPHA over the room floor,
+  // so its light is the same mix: mostly the room's, partly its own face's
+  // (Michael, 2026-10-09: from the doorway of a lit cottage the whole east
+  // wall lit up behind the trees). Its top stays on the sky, below.
   for (const d of drawables) {
-    if (d.kind !== "wall" || !d.fogPoly || !d.near) continue;
-    let target = base;
+    if (d.kind !== "wall" || !d.faces || !d.near) continue;
+    let roomTarget = base;
     let best = Infinity;
     for (const r of d.rooms) {
       const t = roomDark.get(r);
       if (t !== undefined && t < best) {
         best = t;
-        target = t;
+        roomTarget = t;
       }
     }
-    adjustTo(g, base, target, () => poly(g, d.fogPoly));
+    for (const f of d.faces) {
+      const faceDark = night.alpha * light.darknessOf(light.lightAt(f.tile[0], f.tile[1]));
+      const target = NEAR_WALL_ALPHA * faceDark + (1 - NEAR_WALL_ALPHA) * roomTarget;
+      adjustTo(g, base, target, () => poly(g, f.poly));
+    }
   }
   g.globalCompositeOperation = "destination-out";
 
