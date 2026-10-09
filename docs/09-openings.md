@@ -1,6 +1,6 @@
 # 09 — Milestone 3: openings, and the dead get in
 
-Ruled 2026-10-10 (`02-decisions.md`, "Openings"). Until now a closed door stops the dead for good. After this milestone your walls are something you prepare, not something you hide behind: you bar the door, board the window, light the hearth, and listen to them hit the boards until dawn. If a board gives, one climbs through the window into the lit room. The melee port comes next, because once they can get in you need something to swing.
+Ruled 2026-10-10 (`02-decisions.md`, "Openings"). Until now a closed door stops the dead for good. After this milestone your walls are something you prepare, not something you hide behind: you shut the door, board the window, light the hearth, and listen to them hit the boards until dawn. If a board gives, one climbs through the window into the lit room. The melee port comes next, because once they can get in you need something to swing.
 
 ## What is already true
 
@@ -42,7 +42,7 @@ Planks are free until the inventory, like logs. `E` keeps its meaning; `B` is bo
 
 ## What the dead do
 
-- **Finding a way in.** A zombie in `chase` whose path to its goal fails, and whose goal tile is in a room, picks the nearest opening of that room it can reach on its own side (the room's openings, filtered by which side it can path to), paths to the tile beside it, and enters `breach`.
+- **Finding a way in, or out.** A zombie in `chase` whose path to its goal fails picks a room to breach: the one it is shut in, if its goal is elsewhere, else the one its goal is in. It takes the nearest opening of that room on its own side, paths to the tile beside it, and enters `breach`. Nearest, not weakest: the dead are dumb.
 - **Breaching.** Facing the opening, it attacks on the bite cooldown, `BREACH_DAMAGE` (5) into the stack in attack order. Hit points to start: a board 40, a door 100, shutters 60, so one shambler takes about 24 s through a bare door and about 80 s through one boarded three deep on both sides; three of them a third of that. When the way is open it repaths. If the goal moves to another room or it sees the player, it drops the breach and chases.
 - **Climbing.** At an open or broken window with no boards, it climbs: 1.6 s against the player's 0.9, no bite while climbing, drawn as the walk through the window. The living and the dead use the same climb code with a different duration.
 - **Nothing breaks a wall.** The dead never attack a plain wall. A room with no openings is a room they cannot enter.
@@ -74,10 +74,10 @@ The wall sheet already carries `boarded`, `door_boarded`, and `window_broken` va
 
 1. **The door takes a while.** Close the cottage door and stand in view of the window. A zombie that saw you comes to the door and hits it for about 24 s before it breaks and it walks in. The debug corner showed the cottage sealed until the door broke, and the door is an opening afterward.
 2. **Boards buy time.** Three boards each side of that door: about 80 s for one shambler, outside boards first, then the door, then the inside boards. Three boards on the left window from inside: a zombie that picks it breaks them, then the shutters, then climbs through in 1.6 s and cannot bite until it is in.
-3. **Boarded from outside.** Shut a zombie in the shed and board the door from outside. It breaks the shutters, not the door, and climbs out.
+3. **Boarded from outside.** Shut a zombie in the shed and board the door from outside. It breaks out through the nearest opening on its side, the dumb rule, not the weakest one: standing by the door it takes the door and the boards; standing by the window it takes the shutters and climbs out.
 4. **Light follows the stack.** Boarding the window kills its portal and its spill; breaking the shutters restores an open window's.
 5. **Nothing comes back.** A broken door cannot be closed and shows as a doorway; a broken shutter cannot be shut and shows as a hole; the dead get nothing from either.
-6. **Michael's night.** Bar, board, light the hearth, wait. It should be tense and legible: you hear nothing, so you must see it, and the lit room through the breaking window is the image.
+6. **Michael's night.** Shut, board, light the hearth, wait. It should be tense and legible: you hear nothing, so you must see it, and the lit room through the breaking window is the image.
 7. **60 fps** with a breach in view.
 
 If any fails, stop, write down why in `02-decisions.md`, and talk.

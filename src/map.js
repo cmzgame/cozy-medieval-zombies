@@ -230,8 +230,144 @@ export function createTile(floor = defaultFloor) {
 
 // A wall segment on a tile edge. kind: "wall" | "door" | "window". A window has
 // wooden shutters: closed blocks sight, open lets you see and climb through.
+//
+// An opening is a stack (docs/09): boards on either side, each with its own
+// health, and the leaf (the door, or the shutters) with health of its own.
+// Read from the attacker's side: that side's boards, the leaf, the far side's
+// boards. Everything is spent; a broken leaf is never a leaf again.
+export const BOARD_HP = 40;
+export const DOOR_HP = 100;
+export const SHUTTER_HP = 60;
+export const BOARDS_PER_SIDE = 3;
+
 export function createWall(kind, sprite) {
-  return { kind, sprite, open: false, shutter: kind === "window" ? "closed" : null };
+  return {
+    kind,
+    sprite,
+    open: false,
+    shutter: kind === "window" ? "closed" : null,
+    boards: { near: [], far: [] }, // hit points per board, outermost last
+    hp: kind === "door" ? DOOR_HP : kind === "window" ? SHUTTER_HP : Infinity,
+    broken: false,
+  };
+}
+
+export function boarded(wall) {
+  return !!wall && (wall.boards.near.length + wall.boards.far.length > 0);
+}
+
+// Which side of the edge at (tx, ty) an actor at (gx, gy) stands on: +1 the
+// near side (south of a north edge, east of a west edge), -1 the far side.
+export function sideOf(tx, ty, edge, gx, gy) {
+  return edge === "n" ? (gy >= ty - 0.5 ? 1 : -1) : gx >= tx - 0.5 ? 1 : -1;
+}
+
+function boardsOn(wall, side) {
+  return side > 0 ? wall.boards.near : wall.boards.far;
+}
+
+// Nail a board on a side, if there is room. Planks are free until the inventory.
+export function addBoard(wall, side) {
+  const b = boardsOn(wall, side);
+  if (b.length >= BOARDS_PER_SIDE) return false;
+  b.push(BOARD_HP);
+  touch();
+  return true;
+}
+
+// Pull a board on a side. It is gone.
+export function pullBoard(wall, side) {
+  const b = boardsOn(wall, side);
+  if (!b.length) return false;
+  b.pop();
+  touch();
+  return true;
+}
+
+// Hit the stack from a side. Returns "board", "leaf", or null for what broke,
+// after taking `amount` off whatever stands first in attack order.
+export function damageOpening(wall, side, amount) {
+  const mine = boardsOn(wall, side);
+  const theirs = boardsOn(wall, -side);
+  let broke = null;
+  if (mine.length) {
+    mine[mine.length - 1] -= amount;
+    if (mine[mine.length - 1] <= 0) {
+      mine.pop();
+      broke = "board";
+    }
+  } else if (!wall.broken) {
+    wall.hp -= amount;
+    if (wall.hp <= 0) {
+      wall.hp = 0;
+      wall.broken = true;
+      // A broken door is a doorway; broken shutters are an open hole.
+      if (wall.kind === "door") wall.open = true;
+      if (wall.kind === "window") wall.shutter = "open";
+      broke = "leaf";
+    }
+  } else if (theirs.length) {
+    theirs[theirs.length - 1] -= amount;
+    if (theirs[theirs.length - 1] <= 0) {
+      theirs.pop();
+      broke = "board";
+    }
+  }
+  if (broke) touch();
+  return broke;
+}
+
+// Can a walking body pass this opening?
+export function wayOpen(wall) {
+  if (!wall) return true;
+  if (boarded(wall)) return false;
+  if (wall.kind === "door") return wall.open || wall.broken;
+  return false;
+}
+
+// Can a body climb through this opening (windows only)?
+export function climbable(wall) {
+  return !!wall && wall.kind === "window" && !boarded(wall) && (wall.shutter === "open" || wall.broken);
+}
+
+// Is a room sealed (docs/09): every door shut and whole or boarded, every
+// window shuttered and whole or boarded.
+export function roomSealed(room) {
+  for (const op of room.openings) {
+    const w = tileAt(op.tx, op.ty)[op.edge];
+    if (!w) continue;
+    if (boarded(w)) continue;
+    if (w.broken) return false;
+    if (w.kind === "door" && w.open) return false;
+    if (w.kind === "window" && w.shutter === "open") return false;
+  }
+  return true;
+}
+
+// The opening of a room nearest to (gx, gy) that an attacker outside the room
+// can stand beside: the tile on the attacker's side, which is whichever side
+// of the edge is not in the room. Returns { wall, tx, ty, edge, stand, side }.
+export function breachTarget(room, gx, gy) {
+  // Breaking in from outside, or out from inside: the attacker stands on
+  // whichever side of the opening they are on and goes through to the other.
+  const inside = tileAt(Math.round(gx), Math.round(gy)).room === room.id;
+  let best = null;
+  for (const op of room.openings) {
+    const w = tileAt(op.tx, op.ty)[op.edge];
+    if (!w) continue;
+    const nearTile = [op.tx, op.ty];
+    const farTile = op.edge === "n" ? [op.tx, op.ty - 1] : [op.tx - 1, op.ty];
+    const nearIn = tileAt(nearTile[0], nearTile[1]).room === room.id;
+    const roomTile = nearIn ? nearTile : farTile;
+    const outTile = nearIn ? farTile : nearTile;
+    const stand = inside ? roomTile : outTile;
+    const into = inside ? outTile : roomTile;
+    const side = stand === nearTile ? 1 : -1;
+    if (!isWalkableTile(stand[0], stand[1])) continue;
+    const d = Math.hypot(gx - stand[0], gy - stand[1]);
+    if (!best || d < best.d) best = { wall: w, tx: op.tx, ty: op.ty, edge: op.edge, stand, side, d, into };
+  }
+  return best;
 }
 
 // Bumped whenever a wall changes state, so sight can be recomputed.
@@ -342,8 +478,7 @@ export function wallBetween(x0, y0, x1, y1) {
 
 export function blocksMove(wall) {
   if (!wall) return false;
-  if (wall.kind === "door") return !wall.open;
-  return true; // walls and glass
+  return !wayOpen(wall);
 }
 
 // How much light an edge lets through, 0..1 (docs/08). A plain wall and a
@@ -355,9 +490,11 @@ export const openingTunables = { shutterLeak: 0.05 };
 
 export function transmission(wall) {
   if (!wall) return 1;
+  if (wall.kind === "wall") return 0;
+  if (boarded(wall)) return 0;
+  if (wall.broken) return 1;
   if (wall.kind === "window") return wall.shutter === "closed" ? openingTunables.shutterLeak : 1;
-  if (wall.kind === "door") return wall.open ? 1 : 0;
-  return 0;
+  return wall.open ? 1 : 0;
 }
 
 export function blocksSight(wall) {
@@ -408,7 +545,7 @@ export function outsideSign(tx, ty, edge) {
 // perfectly centred, and Michael found the doors impassable (2026-10-09).
 function moveSegments(wall) {
   if (!wall) return null;
-  if (wall.kind === "door" && wall.open) return null;
+  if (wayOpen(wall)) return null;
   return FULL_EDGE;
 }
 const FULL_EDGE = [[0, 1]];
@@ -496,7 +633,7 @@ function doorOnRow(x, row) {
   let best = null;
   for (const tx of [x, x - 1, x + 1]) {
     const w = tileAt(tx, row).n;
-    if (w && w.kind === "door" && w.open && (best === null || Math.abs(tx - x) < Math.abs(best - x))) best = tx;
+    if (w && w.kind === "door" && wayOpen(w) && (best === null || Math.abs(tx - x) < Math.abs(best - x))) best = tx;
   }
   return best;
 }
@@ -505,7 +642,7 @@ function doorOnColumn(col, y) {
   let best = null;
   for (const ty of [y, y - 1, y + 1]) {
     const w = tileAt(col, ty).w;
-    if (w && w.kind === "door" && w.open && (best === null || Math.abs(ty - y) < Math.abs(best - y))) best = ty;
+    if (w && w.kind === "door" && wayOpen(w) && (best === null || Math.abs(ty - y) < Math.abs(best - y))) best = ty;
   }
   return best;
 }

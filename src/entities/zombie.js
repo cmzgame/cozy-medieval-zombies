@@ -8,7 +8,7 @@
 // through a wall. Noise is deliberately not a factor yet (docs/02).
 
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, canStep, nearestWalkable } from "../map.js";
+import { moveCircle, isWalkableTile, canStep, nearestWalkable, tileAt, getRoom, breachTarget, damageOpening, wayOpen, climbable } from "../map.js";
 import { findPath } from "../pathfind.js";
 import { lineOfSight } from "../visibility.js";
 import * as light from "../light.js";
@@ -28,6 +28,9 @@ export const ZOMBIE_HP = 100;
 export const ZOMBIE_REPATH = 0.3;
 export const ZOMBIE_RADIUS = 0.3;
 export const SEARCH_TIME = 10; // seconds spent looking around the last sighting
+export const BREACH_DAMAGE = 5; // per hit into an opening's stack (docs/09)
+export const ZOMBIE_CLIMB = 1.6; // seconds through a window, against the player's 0.9
+const BREACH_REACH = 1.1; // tiles from the edge midpoint to hit it
 const SEARCH_RADIUS = 3; // tiles
 const WANDER_IDLE_MIN = 1.5;
 const WANDER_IDLE_MAX = 4.0;
@@ -67,8 +70,33 @@ export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false 
     attackCooldown: 0,
     attackHit: false,
     pathFailed: false,
+    breach: null, // { wall, tx, ty, edge, stand, side, into } while breaking in
+    climb: null, // { from, to, t } while climbing through a window
     dead: false,
   };
+}
+
+// The room the dead want into: where they last saw the player.
+function goalRoom(z) {
+  if (!z.lastSeen) return 0;
+  return tileAt(Math.round(z.lastSeen[0]), Math.round(z.lastSeen[1])).room;
+}
+
+// Where the dead stand to hit an opening: the tile beside it on their side.
+function startBreach(z, target) {
+  z.breach = target;
+  z.state = "breach";
+  z.path = [];
+  z.lastGoal = null;
+  z.pathFailed = false;
+  z.repathTimer = 0;
+}
+
+function startClimb(z, from, to) {
+  z.climb = { from: [from[0], from[1]], to: [to[0], to[1]], t: 0 };
+  z.path = [];
+  z.breach = null;
+  z.state = "chase";
 }
 
 function distTo(z, e) {
@@ -213,6 +241,23 @@ function giveUp(z) {
 export function updateZombie(z, dt, player, others) {
   const sheet = getSheet(z.sprite);
   if (z.dead) return;
+  // Climbing: slow, committed, no bite until it is through (docs/09).
+  if (z.climb) {
+    const c = z.climb;
+    c.t += dt;
+    const k = Math.min(1, c.t / ZOMBIE_CLIMB);
+    const ease = k * k * (3 - 2 * k);
+    z.gx = c.from[0] + (c.to[0] - c.from[0]) * ease;
+    z.gy = c.from[1] + (c.to[1] - c.from[1]) * ease;
+    faceToward(z, c.to[0] - c.from[0], c.to[1] - c.from[1]);
+    playAnimation(z.anim, "walk");
+    if (k >= 1) {
+      z.climb = null;
+      z.repathTimer = 0;
+    }
+    advanceAnimation(z.anim, sheet, dt);
+    return;
+  }
   z.attackCooldown = Math.max(0, z.attackCooldown - dt);
   z.repathTimer -= dt;
   z.sightTimer -= dt;
@@ -284,8 +329,92 @@ export function updateZombie(z, dt, player, others) {
       // walked to from beside it.
       if (!isWalkableTile(goal[0], goal[1])) goal = nearestWalkable(goal[0], goal[1]) || goal;
       const arrived = moveToward(z, dt, goal, others);
+      // No way there and the goal is in a room: go for the room's nearest
+      // opening and break in (docs/09). Only when the dead are not in that
+      // room already.
+      if (z.pathFailed) {
+        const roomId = goalRoom(z);
+        const here = tileAt(Math.round(z.gx), Math.round(z.gy)).room;
+        // Shut in a room with the goal elsewhere: break out of this one
+        // first. Outside with the goal in a room: break into that one.
+        let room = null;
+        if (here > 0 && here !== roomId) room = getRoom(here);
+        else if (roomId > 0 && here !== roomId) room = getRoom(roomId);
+        const target = room ? breachTarget(room, z.gx, z.gy) : null;
+        if (target) {
+          startBreach(z, target);
+          break;
+        }
+      }
       const atSighting = Math.hypot(z.lastSeen[0] - z.gx, z.lastSeen[1] - z.gy) <= ARRIVED;
       if (!z.seesNow && (arrived || atSighting || z.pathFailed)) startSearch(z);
+      break;
+    }
+    case "breach": {
+      const b = z.breach;
+      // A bite in reach beats a door; a goal that moved rooms drops the breach.
+      if (z.seesNow && distTo(z, player) <= ZOMBIE_CONTACT) {
+        z.breach = null;
+        z.state = "chase";
+        break;
+      }
+      // Keep at it while the goal is still on the other side of this opening:
+      // in the room it leads into, or anywhere but the room it leads out of.
+      const roomId = goalRoom(z);
+      const here = tileAt(Math.round(z.gx), Math.round(z.gy)).room;
+      const stillWanted = here > 0 ? roomId !== here : roomId === tileAt(b.into[0], b.into[1]).room;
+      if (!z.aggro || !stillWanted) {
+        z.breach = null;
+        z.state = z.aggro ? "chase" : "idle";
+        z.repathTimer = 0;
+        break;
+      }
+      const mx = b.edge === "n" ? b.tx : b.tx - 0.5;
+      const my = b.edge === "n" ? b.ty - 0.5 : b.ty;
+      const dEdge = Math.hypot(mx - z.gx, my - z.gy);
+      if (dEdge > BREACH_REACH) {
+        moveToward(z, dt, b.stand, others);
+        if (z.pathFailed) {
+          // Cannot even reach the opening: give the search a go instead.
+          z.breach = null;
+          startSearch(z);
+        }
+        break;
+      }
+      faceToward(z, mx - z.gx, my - z.gy);
+      // The way is open: through the door, or up and over the sill.
+      if (wayOpen(b.wall) || climbable(b.wall)) {
+        if (b.wall.kind === "window") startClimb(z, [z.gx, z.gy], b.into);
+        else {
+          z.breach = null;
+          z.state = "chase";
+          z.repathTimer = 0;
+        }
+        break;
+      }
+      if (z.attackCooldown <= 0) {
+        z.state = "breachHit";
+        z.attackHit = false;
+        playAnimation(z.anim, "attack", true);
+      } else {
+        playAnimation(z.anim, "idle");
+      }
+      break;
+    }
+    case "breachHit": {
+      const b = z.breach;
+      if (!b) {
+        z.state = "chase";
+        break;
+      }
+      if (isActiveFrame(z.anim, sheet) && !z.attackHit) {
+        z.attackHit = true;
+        damageOpening(b.wall, b.side, BREACH_DAMAGE);
+      }
+      if (z.anim.done) {
+        z.attackCooldown = ZOMBIE_COOLDOWN;
+        z.state = "breach";
+      }
       break;
     }
     case "search": {

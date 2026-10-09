@@ -149,10 +149,10 @@ function render() {
     `fps ${loop.getFps()}\n` +
     `player ${player.gx.toFixed(2)},${player.gy.toFixed(2)} ${player.facing} hp ${player.hp} deaths ${deaths}\n` +
     `${clock.getLabel()} ${clock.getPhase()}  bright ${clock.getBrightness().toFixed(2)}  light@player ${light.lightAt(player.gx, player.gy).toFixed(2)}  hands ${player.hands.main || "-"}/${player.hands.off || "-"}\n` +
-    `chunk ${cx},${cy}  room ${playerRoom}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
+    `chunk ${cx},${cy}  room ${playerRoom}${playerRoom > 0 ? (map.roomSealed(map.getRoom(playerRoom)) ? " sealed" : " open") : ""}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `zombies ${zombies.length}  near ${zombies.filter((z) => Math.abs(z.gx - player.gx) <= ACTIVE_TILES && Math.abs(z.gy - player.gy) <= ACTIVE_TILES).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
-    `V: ${drawAll ? "showing everything" : "fog on"}   C: near walls ${cutaway}   ] [: skip an hour   T: torch   L: debug view ${["off", "light", "ambient", "fog"][night.debug]}`;
+    `V: ${drawAll ? "showing everything" : "fog on"}   C: near walls ${cutaway}   ] [: skip an hour   T: torch   B: boards   L: debug view ${["off", "light", "ambient", "fog"][night.debug]}`;
 }
 
 async function boot() {

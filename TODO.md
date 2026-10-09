@@ -23,8 +23,9 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 - **Milestone 2b built, 2026-10-09:** the world is drawn in WebGL2. Knobs on `__game.render.night`: `climb` (56 px, 0 for flat faces), `linear` (false for per-cell light), `standingFloor` (0), `debug` (or the `L` key); `G` shows the old Canvas renderer for comparison.
 - **Accepted, 2026-10-09.** Michael: "THIS is the right system. It looks amazing." The debug view is "like looking at the map with infrared goggles on." `render-canvas.js`, the second canvas, and the `G` key are gone.
 - **Openings ruled and designed, 2026-10-10:** bars on both sides, the opening as a stack read from the attacker's side, the dead climb through windows and attack the room's nearest opening, nothing breaks a wall, sealed derived per room. `docs/09-openings.md`.
-- **Michael's revision, 2026-10-10:** no bars, boards only on both sides, the leaf has health, everything spent, no repair, one shambler takes a while. Question 6 closed: spent. Building.
-- **Blocked on:** nothing.
+- **Milestone 3 built, 2026-10-10:** the dead get in. Boards on both sides of any opening with `B`, the leaf with health, nothing repaired; the dead breach the nearest opening of the room they want into or out of, and climb through open windows. Scripted acceptance passed; Michael's night pending.
+- **Blocked on:** Michael's night in the cottage.
+- **Next after his verdict:** the melee port.
 - **Next:** build Milestone 3 in the order `docs/09` gives, then the melee port. Together they make "a night in the cottage"., with the dead breaking in (doors barred from inside, boards, broken shutters, how the dead get through a door, how slow and loud a climb is). Write its doc first, then build. Then the melee port. Together they make "a night in the cottage". Openings with the dead breaking in and the melee port follow, which together make "a night in the cottage".
 - **Notes:** the debug corner shows the cost of a logic step and the worst step in the last three seconds; a freeze should show up there first. Run `python serve.py 8010` in this repo (the file serves its own folder, so it can be launched from elsewhere). `V` toggles the fog off to compare. Michael plays in the in-app browser pane while work happens, so scripted tests see his inputs.
 - **Notes:** Michael wants to burn this week's credits on this. He likes a pause between phases (docs, then build) and plays in his own browser while work happens. Nothing from either parent is gospel.
@@ -85,12 +86,12 @@ Each step checkable on its own. Michael looks after step 3.
 
 ## Milestone 3 — Openings, and the dead get in (see `docs/09-openings.md`)
 
-- [ ] The stack on walls: boards, hp, broken; transmission and passability from the stack; sealed per room; the prompt names the stack.
-- [ ] The player's actions: `E` as before, `B` for boards, both sides.
-- [ ] Zombie `breach`: find the room's nearest opening, attack the stack, repath when the way opens.
-- [ ] The dead climb, 1.6 s, no bite while climbing.
-- [ ] Boards and broken leaves drawn.
-- [ ] Acceptance: the seven checks in `docs/09`.
+- [x] The stack on walls (2026-10-10): boards per side with health, the leaf's health, broken; transmission, passability, pathing, and sealed from the stack; the prompt names the stack.
+- [x] The player's actions: `E` as before, `B` nails a board on your side, hold `B` pulls one, gone.
+- [x] Zombie `breach`: the nearest opening of the room it wants into, or out of; hits the stack on the bite cooldown; repaths when the way opens.
+- [x] The dead climb, 1.6 s, no bite while climbing.
+- [x] Boards and broken leaves drawn (far-side boards not drawn).
+- [x] Acceptance, scripted: a bare door takes one shambler about 30 s and it walks in; three boards each side take about 106 s, outside boards then the door then the inside boards; an open window is climbed in about 3 s from three tiles away; a zombie shut in the shed with the door boarded from outside breaks out through the nearest opening in 67 s; sealed shows and clears; prompts name the stack. Michael's night is his.
 
 ## After the probe (sketch, not a plan)
 

@@ -92,9 +92,18 @@ function emitFloor(tiles) {
 
 // ---- walls ----
 
+// The frame for a wall's state. Boards on the visible (near) face draw as the
+// boarded variants; boards on the far face are not seen, and a broken leaf is
+// the open frame with nothing in it (docs/09).
 function wallVariant(wall) {
-  if (wall.kind === "door") return wall.open ? "door" : "door_shut";
-  if (wall.kind === "window") return wall.shutter === "closed" ? "window_shut" : "window";
+  if (wall.kind === "door") {
+    if (wall.boards.near.length) return "door_boarded";
+    return wall.open || wall.broken ? "door" : "door_shut";
+  }
+  if (wall.kind === "window") {
+    if (wall.boards.near.length) return "boarded";
+    return wall.shutter === "closed" && !wall.broken ? "window_shut" : "window";
+  }
   return "plain";
 }
 
@@ -250,7 +259,8 @@ function makeWall(wall, edge, tx, ty, vis, stub) {
         frameQuad(sheet, name, Math.round(q.x), Math.round(q.y), { world: [tx, ty], color: tint, flags }, false, edge === "n" ? sheet.anchorSouth : sheet.anchorEast);
         return;
       }
-      const open = wall.kind === "door" ? wall.open : wall.kind === "window" && wall.shutter === "open";
+      // Swung leaves only for a whole, open, unboarded leaf.
+      const open = !wall.broken && !map.boarded(wall) && (wall.kind === "door" ? wall.open : wall.kind === "window" && wall.shutter === "open");
       const outside = open ? map.outsideSign(tx, ty, edge) : 0;
       const leafOpts = { world: [tx, ty], flags, alpha };
       if (open && outside < 0) emitSwungLeaves(wall, edge, x, y, h, outside, leafOpts);
