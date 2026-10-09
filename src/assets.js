@@ -74,6 +74,7 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
       case "hearth": sheet = placeholders.generateHearth(ph); break;
       case "campfire": sheet = placeholders.generateCampfire(ph); break;
       case "torch_post": sheet = placeholders.generateTorchPost(ph); break;
+      case "flame": sheet = placeholders.generateFlame(); break;
       default: throw new Error(`Unknown placeholder kind ${ph.kind} for ${id}`);
     }
   } else {
@@ -116,5 +117,6 @@ export async function loadMapSprites(json) {
   for (const id in json.wild?.kinds || {}) want(id);
   want("player");
   want("zombie");
+  want("flame");
   await Promise.all([...ids].map(([id, n]) => loadSprite(id, { tileCount: n })));
 }

@@ -1115,3 +1115,26 @@ export function generateTorchPost(ph) {
     bounds: { x: HW - 8, y: 0, w: 16, h: fh },
   };
 }
+
+// A torch flame as a sheet of its own, three frames with the base at the
+// anchor, so the WebGL renderer can draw bracket and hand torches from the
+// atlas like every other flame.
+export function generateFlame() {
+  const fw = 28;
+  const fh = 32;
+  const frames = 3;
+  const { canvas, ctx } = makeCanvas(fw * frames, fh);
+  const frameMap = {};
+  for (let i = 0; i < frames; i++) {
+    drawTorchFlame(ctx, i * fw + fw / 2 + 0.5, fh - 4, i);
+    frameMap[`flame_${i}`] = [i * fw, 0, fw, fh];
+  }
+  return {
+    image: canvas,
+    frames: frameMap,
+    anchor: [fw / 2, fh - 4],
+    animations: { idle: { fps: 0, loop: false, frames: 1 } },
+    facings: [],
+    mirror: {},
+  };
+}
