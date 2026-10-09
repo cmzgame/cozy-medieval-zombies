@@ -122,7 +122,11 @@ export function generateWall(ph) {
   const T = ph.thickness ?? WALL_T;
   const fw = HW + T;
   const fh = HH + h + T / 2;
-  const variants = ["plain", "door", "door_shut", "window", "window_shut", "window_broken", "boarded", "door_boarded", "stairs", "cap"];
+  // Boards (docs/09): one frame per count, over a shut leaf and over an open
+  // or broken one, so one plank looks like one plank (Michael, 2026-10-10).
+  const boardVariants = [];
+  for (let n = 1; n <= 3; n++) boardVariants.push(`boarded${n}`, `window_shut_boarded${n}`, `door_boarded${n}`, `door_shut_boarded${n}`);
+  const variants = ["plain", "door", "door_shut", "window", "window_shut", "window_broken", "stairs", "cap", ...boardVariants];
   const sides = ["north", "west"];
   // Near-edge stubs (south, east): low cutaway walls with their own small frames.
   const nearVariants = ["plain", "door", "door_shut", "window", "window_shut", "window_broken", "boarded", "door_boarded", "stairs"];
@@ -251,9 +255,26 @@ function drawNearVariant(ctx, ox, oy, side, variant, ph) {
   ctx.restore();
 }
 
-function drawWallVariant(ctx, ox, oy, side, variant, ph, T) {
+function drawWallVariant(ctx, ox, oy, side, variantName, ph, T) {
   const h = ph.height;
   const color = ph.color;
+  // "door_shut_boarded2": the base variant and how many boards cross it.
+  const boards = /\d$/.test(variantName) ? Number(variantName.slice(-1)) : 0;
+  const variant = boards ? variantName.slice(0, -1) : variantName;
+  // Planks nailed across an opening, outermost first: a few slots, the first
+  // `n` filled.
+  const drawBoards = (lerp, t0, t1, y0, y1, n) => {
+    ctx.strokeStyle = "#8a6a3a";
+    ctx.lineWidth = 4;
+    for (const yy of [0.5, 0.22, 0.78].slice(0, n)) {
+      const p0 = lerp(t0 - 0.05, y0 + (y1 - y0) * yy);
+      const p1 = lerp(t1 + 0.05, y0 + (y1 - y0) * yy);
+      ctx.beginPath();
+      ctx.moveTo(p0[0], p0[1]);
+      ctx.lineTo(p1[0], p1[1]);
+      ctx.stroke();
+    }
+  };
   // Thickness direction on screen: north walls extend up-right, west walls up-left.
   const off = side === "north" ? [T, -T / 2] : [-T, -T / 2];
   const shift = [side === "west" ? T : 0, T / 2];
@@ -322,6 +343,7 @@ function drawWallVariant(ctx, ox, oy, side, variant, ph, T) {
 
   const isDoor = variant.startsWith("door") || variant === "stairs";
   const isWindow = variant.startsWith("window") || variant === "boarded";
+  const shutLeaf = variant === "window_shut" || variant === "window_shut_boarded" || variant === "door_shut" || variant === "door_shut_boarded";
   if (isDoor || isWindow) {
     // A rectangle-ish opening on the wall plane. Parametrize along the edge: t in [0,1].
     const lerp = (t, y) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t - y];
@@ -338,18 +360,6 @@ function drawWallVariant(ctx, ox, oy, side, variant, ph, T) {
       // Windows are open holes with a frame: no glass in this village, shutters
       // later (Michael, 2026-10-09). The hole is punched out after the wall is
       // finished, below, so the room shows through.
-    }
-    if (variant === "boarded" || variant === "door_boarded") {
-      ctx.strokeStyle = "#8a6a3a";
-      ctx.lineWidth = 4;
-      for (const yy of [0.2, 0.5, 0.8]) {
-        const p0 = lerp(t0 - 0.05, y0 + (y1 - y0) * yy);
-        const p1 = lerp(t1 + 0.05, y0 + (y1 - y0) * yy);
-        ctx.beginPath();
-        ctx.moveTo(p0[0], p0[1]);
-        ctx.lineTo(p1[0], p1[1]);
-        ctx.stroke();
-      }
     }
   }
 
@@ -379,7 +389,7 @@ function drawWallVariant(ctx, ox, oy, side, variant, ph, T) {
     const y0 = h * 0.35;
     const y1 = h * 0.8;
     const quad = [lerp(t0, y0), lerp(t1, y0), lerp(t1, y1), lerp(t0, y1)];
-    if (variant === "window_shut") {
+    if (shutLeaf) {
       // Closed shutters: two plank leaves meeting in the middle, one band each.
       const tm = (t0 + t1) / 2;
       drawPlankLeaf(ctx, [lerp(t0, y0), lerp(t0, y1), lerp(tm, y1), lerp(tm, y0)], 1);
@@ -403,6 +413,7 @@ function drawWallVariant(ctx, ox, oy, side, variant, ph, T) {
     ctx.moveTo(quad[3][0], quad[3][1] - 1);
     ctx.lineTo(quad[2][0], quad[2][1] - 1);
     ctx.stroke();
+    if (boards) drawBoards(lerp, t0, t1, y0, y1, boards);
   }
   if (isDoor) {
     // Punch the doorway out of the finished wall, then draw jambs and lintel edge.
@@ -411,7 +422,7 @@ function drawWallVariant(ctx, ox, oy, side, variant, ph, T) {
     const t1 = 0.82;
     const y1 = h * 0.82;
     const quad = [lerp(t0, 0), lerp(t1, 0), lerp(t1, y1), lerp(t0, y1)];
-    if (variant === "door_shut") {
+    if (shutLeaf) {
       // A closed door: one plank leaf with two metal bands, filling the doorway.
       drawPlankLeaf(ctx, [lerp(t0, 0), lerp(t0, y1), lerp(t1, y1), lerp(t1, 0)], 2);
     } else {
@@ -442,18 +453,7 @@ function drawWallVariant(ctx, ox, oy, side, variant, ph, T) {
         ctx.stroke();
       }
     }
-    if (variant === "door_boarded") {
-      ctx.strokeStyle = "#8a6a3a";
-      ctx.lineWidth = 4;
-      for (const yy of [0.25, 0.5, 0.75]) {
-        const p0 = lerp(t0 - 0.05, y1 * yy);
-        const p1 = lerp(t1 + 0.05, y1 * yy);
-        ctx.beginPath();
-        ctx.moveTo(p0[0], p0[1]);
-        ctx.lineTo(p1[0], p1[1]);
-        ctx.stroke();
-      }
-    }
+    if (boards) drawBoards(lerp, t0, t1, 0, y1, boards);
   }
   ctx.restore();
 }

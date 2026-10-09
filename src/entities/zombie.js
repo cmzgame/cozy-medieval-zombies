@@ -21,6 +21,8 @@ export const ZOMBIE_SPEED = 1.0; // tiles per second: Romero shamblers
 export const ZOMBIE_SIGHT = 8; // tiles, in full light; scaled by the light on the player
 export const SIGHT_DARK_FRACTION = 0.35; // of full range when the player is unlit
 export const FLAME_RANGE = 12; // tiles: at full night the dead see a flame this far (docs/07)
+export const FLAME_PATIENCE = 8; // seconds after seeing the player before a flame can take over (Michael, 2026-10-10)
+const STUCK_TIME = 1.5; // seconds of no progress along a path before it is dropped
 export const ZOMBIE_CONTACT = 0.7;
 export const ZOMBIE_DAMAGE = 8;
 export const ZOMBIE_COOLDOWN = 1.2;
@@ -72,8 +74,15 @@ export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false 
     pathFailed: false,
     breach: null, // { wall, tx, ty, edge, stand, side, into } while breaking in
     climb: null, // { from, to, t } while climbing through a window
+    sincePlayer: Infinity, // seconds since the player was last seen
+    stuckTime: 0,
     dead: false,
   };
+}
+
+// The room the dead are standing in (0 outdoors).
+function roomOf(z) {
+  return tileAt(Math.round(z.gx), Math.round(z.gy)).room;
 }
 
 // The room the dead want into: where they last saw the player.
@@ -164,9 +173,20 @@ function followPath(z, dt, others) {
   const step = Math.min(d, z.speed * dt);
   faceToward(z, dx, dy);
   const moved = moveCircle(z.gx, z.gy, z.radius, (dx / d) * step, (dy / d) * step);
+  // No progress for a while (a trunk, another body in a gap): drop the path
+  // rather than bounce on the spot (Michael, 2026-10-10).
+  const gained = Math.hypot(moved.gx - z.gx, moved.gy - z.gy);
+  z.stuckTime = gained < step * 0.25 ? z.stuckTime + dt : 0;
   z.gx = moved.gx;
   z.gy = moved.gy;
   separate(z, dt, others);
+  if (z.stuckTime > STUCK_TIME) {
+    z.stuckTime = 0;
+    z.path = [];
+    z.lastGoal = null;
+    z.repathTimer = REPATH_FAIL_BACKOFF;
+    return true;
+  }
   return false;
 }
 
@@ -194,11 +214,14 @@ function separate(z, dt, others) {
   }
 }
 
-function pickTargetAround(x, y, radius) {
-  for (let tries = 0; tries < 10; tries++) {
+// A walkable tile near (x, y) on the same side of the walls as `room`: a
+// zombie outside a cottage searching for someone seen inside walks the yard,
+// not into the wall (Michael, 2026-10-10: pacing at the window).
+function pickTargetAround(x, y, radius, room = 0) {
+  for (let tries = 0; tries < 12; tries++) {
     const tx = Math.round(x) + Math.floor(Math.random() * (radius * 2 + 1)) - radius;
     const ty = Math.round(y) + Math.floor(Math.random() * (radius * 2 + 1)) - radius;
-    if (isWalkableTile(tx, ty)) return [tx, ty];
+    if (isWalkableTile(tx, ty) && tileAt(tx, ty).room === room) return [tx, ty];
   }
   return null;
 }
@@ -261,13 +284,17 @@ export function updateZombie(z, dt, player, others) {
   z.attackCooldown = Math.max(0, z.attackCooldown - dt);
   z.repathTimer -= dt;
   z.sightTimer -= dt;
+  z.sincePlayer += dt;
   if (z.sightTimer <= 0) {
     z.sightTimer = SIGHT_CHECK;
     z.seesNow = canSee(z, player);
     if (z.seesNow) {
       z.aggro = true;
       z.lastSeen = [player.gx, player.gy];
-    } else {
+      z.sincePlayer = 0;
+    } else if (z.sincePlayer > FLAME_PATIENCE) {
+      // A flame only takes over once the player has been out of sight a while,
+      // so a zombie you just pulled off a window does not turn straight back.
       const f = nearestFlame(z);
       if (f) {
         z.aggro = true;
@@ -289,7 +316,7 @@ export function updateZombie(z, dt, player, others) {
         z.state = "chase";
         z.repathTimer = 0;
       } else if (z.idleTimer <= 0) {
-        const target = pickTargetAround(z.gx, z.gy, 3);
+        const target = pickTargetAround(z.gx, z.gy, 3, roomOf(z));
         if (target) {
           repath(z, target);
           z.state = "wander";
@@ -436,7 +463,7 @@ export function updateZombie(z, dt, player, others) {
         playAnimation(z.anim, "idle");
         z.idleTimer -= dt;
         if (z.idleTimer <= 0) {
-          const target = pickTargetAround(z.lastSeen[0], z.lastSeen[1], SEARCH_RADIUS);
+          const target = pickTargetAround(z.lastSeen[0], z.lastSeen[1], SEARCH_RADIUS, roomOf(z));
           if (target) repath(z, target);
           z.idleTimer = 0.8 + Math.random() * 1.2;
         }

@@ -96,15 +96,26 @@ function emitFloor(tiles) {
 // boarded variants; boards on the far face are not seen, and a broken leaf is
 // the open frame with nothing in it (docs/09).
 function wallVariant(wall) {
+  const n = wall.boards.near.length;
   if (wall.kind === "door") {
-    if (wall.boards.near.length) return "door_boarded";
-    return wall.open || wall.broken ? "door" : "door_shut";
+    const shut = !wall.open && !wall.broken;
+    if (n) return `${shut ? "door_shut_boarded" : "door_boarded"}${n}`;
+    return shut ? "door_shut" : "door";
   }
   if (wall.kind === "window") {
-    if (wall.boards.near.length) return "boarded";
-    return wall.shutter === "closed" && !wall.broken ? "window_shut" : "window";
+    const shut = wall.shutter === "closed" && !wall.broken;
+    if (n) return `${shut ? "window_shut_boarded" : "boarded"}${n}`;
+    return shut ? "window_shut" : "window";
   }
   return "plain";
+}
+
+// The low stubs have no board frames; a boarded leaf stubs as its leaf.
+function stubVariant(variant) {
+  const base = variant.replace(/\d$/, "");
+  if (base === "window_shut_boarded") return "window_shut";
+  if (base === "door_shut_boarded") return "door_shut";
+  return base;
 }
 
 // A plank leaf in the quad [p0, p1, p2, p3] (p0 and p3 the bottom corners),
@@ -255,7 +266,7 @@ function makeWall(wall, edge, tx, ty, vis, stub) {
       const tint = [1, 1, 1, alpha];
       if (lowStub) {
         const q = edge === "n" ? iso.toScreen(tx, ty - 1) : iso.toScreen(tx - 1, ty);
-        const name = edge === "n" ? `south_${variant}_0` : `east_${variant}_0`;
+        const name = edge === "n" ? `south_${stubVariant(variant)}_0` : `east_${stubVariant(variant)}_0`;
         frameQuad(sheet, name, Math.round(q.x), Math.round(q.y), { world: [tx, ty], color: tint, flags }, false, edge === "n" ? sheet.anchorSouth : sheet.anchorEast);
         return;
       }
