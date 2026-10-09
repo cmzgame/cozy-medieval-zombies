@@ -29,15 +29,17 @@ Light is one number per position, 0 to 1, and everything reads it: what you see,
 
 ## How things are lit, as built
 
-The night layer works in screen space, so the rules below say what takes which light. Michael set the first two from play on 2026-10-09 after a wall hidden from the player kept the dark of the room floor behind it, and a canopy over a lit room took the room's light.
+The night layer works in screen space and is painted in two stages, so the rules below say what takes which light. Michael set the first three from play on 2026-10-09, after a wall hidden from the player kept the dark of the room floor behind it, a canopy over a lit room took the room's light, and the chest behind a translucent wall showed through it lit; then asked for the stencils that patched those to become one rule.
 
-- **The floor takes the map**: the clock, the room's ambient, and the fire pools with their shadows.
-- **A wall face takes the light of the tile it looks onto.** The camera looks from the south-east, so a north wall shows its south face and a west wall its east face; each looks onto the tile its edge belongs to. An exterior face therefore matches the ground beside it, seen by the player or not; an interior face matches its room. A corner post's two faces look onto the tiles beside it, one each.
-- **The top of a wall or a post always takes the sky**, never the room, so a run of walls and its posts agree.
-- **Everything standing on a tile takes the light of its own tile**: a tree outside a lit cottage stays dark where its canopy crosses the room on screen, and a figure in a dark yard is dark against a lit wall. Done by cutting each sprite out of the layer and painting it back at its own darkness, only for sprites that overlap a room whose light differs from outdoors; a wall drawn after the sprite then gets its own darkness painted back over the overlap, so a chest behind a translucent wall does not show through it lit (Michael's diagnosis, 2026-10-09).
-- **A translucent near wall takes a mix**: mostly its room's light, partly its own face's, in the proportion it is drawn.
-- **Flames never dim.** They draw in their own layer above the night, stencilled by whatever the sort order draws after them, so a flame behind a wall or a head is hidden.
-- Parked, as in the parent: a pool climbing a wall face, and the player's own pool on the faces beside them beyond a small term at their foot.
+- **The floor first**: the clock, each room's ambient (brighter or darker than outdoors), the fire pools with their shadows, the player's own weak pool, and the pool of the torch in the hand.
+- **Then everything standing, in the scene's own sort order.** Each drawable paints its own darkness over its own shape, so whatever covers a thing in the scene covers it in the light too. No stencils, no special cases for what is in front of what.
+- **A wall face takes the light of the tile it looks onto.** The camera looks from the south-east, so a north wall shows its south face and a west wall its east face; each looks onto the tile its edge belongs to. An exterior face matches the ground beside it, seen by the player or not; an interior face matches its room. A corner post's two faces look onto the tiles beside it, one each.
+- **The top of a wall or a post always takes the sky**, never the room.
+- **A translucent near wall takes a mix**: mostly whatever shows through it, partly its own face, in the proportion it is drawn.
+- **A prop or a character takes the light at its feet**, holes for occluded characters included, so a tree outside a lit cottage stays dark where its canopy crosses the room on screen and a figure in a dark yard is dark against a lit wall.
+- **A flame erases itself from the layer in its turn**, so it never dims, and a wall or a head drawn after it hides it.
+- A thing at the outdoor darkness that touches no room, pool, or glow would paint base over base and is skipped, which is most of a forest at night; the pass costs about 3 ms a frame in the village.
+- Parked, as in the parent: a pool climbing a wall face, and the player's own pool on the faces beside them beyond a small term at their foot. Both need light per pixel rather than per thing, which is a WebGL renderer or, at a rough grain, wall faces drawn as slivers lit from the floor map at their feet.
 
 ## Fire is data
 
