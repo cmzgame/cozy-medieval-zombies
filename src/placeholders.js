@@ -774,50 +774,21 @@ function drawDying(ctx, facing, i, pal) {
 
 // ---------------------------------------------------------------------------
 // Jack-o'-lantern: a one-off for October 2026, at Michael's request. A carved
-// pumpkin with a stem and a flickering fire inside: three frames of idle at a
-// slow flicker. Anchor is the tile centre. Lighting proper arrives with the
-// lighting milestone; the glow here is drawn into the frames.
+// pumpkin with a stem and a flickering fire inside. The body frames (`idle_i`)
+// carry a dark, unlit face; the `flame_i` frames hold the lit face and a small
+// glow, and the renderer draws them above the night layer. The ground around
+// it is lit by the light map now, not by a painted glow (docs/07).
 // ---------------------------------------------------------------------------
 export function generatePumpkin(ph) {
   const fw = 64;
   const fh = 56;
   const frames = 3;
-  const { canvas, ctx } = makeCanvas(fw * frames, fh);
+  const { canvas, ctx } = makeCanvas(fw * frames, fh * 2);
   const glowColors = ["#ffb347", "#ffd37a", "#ff9a2e"];
-  const glowAlpha = [0.45, 0.6, 0.38];
+  const glowAlpha = [0.5, 0.65, 0.42];
   const body = ph.color || "#c8692a";
-  for (let i = 0; i < frames; i++) {
-    const ox = i * fw;
-    const cx = ox + fw / 2;
-    const base = fh - 14; // ground point sits at the tile centre, anchor below
-    ctx.save();
-    // Ground glow.
-    const g = ctx.createRadialGradient(cx, base, 2, cx, base, 30);
-    g.addColorStop(0, `rgba(255, 170, 60, ${glowAlpha[i]})`);
-    g.addColorStop(1, "rgba(255, 170, 60, 0)");
-    ctx.fillStyle = g;
-    ctx.fillRect(ox, base - 30, fw, 44);
-    // Body: a squat ellipse with ridges.
-    const w = 26;
-    const h = 20;
-    const cy = base - h / 2 - 2;
-    ctx.fillStyle = body;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, w / 2, h / 2, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = shade(body, 0.7);
-    ctx.lineWidth = 1;
-    for (const rx of [-8, -3, 3, 8]) {
-      ctx.beginPath();
-      ctx.ellipse(cx + rx * 0.4, cy, Math.abs(rx) * 0.9 + 3, h / 2 - 1, 0, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    // Stem.
-    ctx.fillStyle = "#5a3d22";
-    ctx.fillRect(cx - 2, cy - h / 2 - 5, 4, 6);
-    ctx.fillRect(cx - 1, cy - h / 2 - 7, 4, 3);
-    // Face: triangle eyes, a small nose, a jagged grin, lit from inside.
-    ctx.fillStyle = glowColors[i];
+  const face = (cx, cy, color) => {
+    ctx.fillStyle = color;
     ctx.beginPath();
     ctx.moveTo(cx - 8, cy - 1);
     ctx.lineTo(cx - 3, cy - 1);
@@ -853,10 +824,45 @@ export function generatePumpkin(ph) {
     ctx.fillStyle = body;
     ctx.fillRect(cx - 3, cy + 6, 2, 3);
     ctx.fillRect(cx + 2, cy + 6, 2, 3);
-    ctx.restore();
+  };
+  const w = 26;
+  const h = 20;
+  const base = fh - 14; // ground point sits at the tile centre, anchor below
+  const cy = base - h / 2 - 2;
+  for (let i = 0; i < frames; i++) {
+    const ox = i * fw;
+    const cx = ox + fw / 2;
+    // Body: a squat ellipse with ridges, and the carved face unlit.
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, w / 2, h / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = shade(body, 0.7);
+    ctx.lineWidth = 1;
+    for (const rx of [-8, -3, 3, 8]) {
+      ctx.beginPath();
+      ctx.ellipse(cx + rx * 0.4, cy, Math.abs(rx) * 0.9 + 3, h / 2 - 1, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // Stem.
+    ctx.fillStyle = "#5a3d22";
+    ctx.fillRect(cx - 2, cy - h / 2 - 5, 4, 6);
+    ctx.fillRect(cx - 1, cy - h / 2 - 7, 4, 3);
+    face(cx, cy, "#2a1608");
+    // Flame frame: a small glow around the face, then the face lit.
+    const fy = fh;
+    const g = ctx.createRadialGradient(cx, fy + cy, 2, cx, fy + cy, 16);
+    g.addColorStop(0, `rgba(255, 170, 60, ${glowAlpha[i]})`);
+    g.addColorStop(1, "rgba(255, 170, 60, 0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(cx - 16, fy + cy - 16, 32, 32);
+    face(cx, fy + cy, glowColors[i]);
   }
   const frameMap = {};
-  for (let i = 0; i < frames; i++) frameMap[`idle_${i}`] = [i * fw, 0, fw, fh];
+  for (let i = 0; i < frames; i++) {
+    frameMap[`idle_${i}`] = [i * fw, 0, fw, fh];
+    frameMap[`flame_${i}`] = [i * fw, fh, fw, fh];
+  }
   return {
     image: canvas,
     frames: frameMap,

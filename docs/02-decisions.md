@@ -15,6 +15,9 @@ The conversation that opens Milestone 2. Its design is `07-lighting.md`.
 - **A lit hearth lights its whole room.** The cozy parent's room-light rule, with the hearth as the switch. A great hall may want a cap by room size; decide when one exists.
 - **The clock comes first.** Lighting has nothing to do without a night, so Milestone 2 starts with the parent's clock: a twelve-minute day, brightness from full to about 0.22 at night, never black, a debug key to skip an hour. The night tint is our dusky purple, not the parent's blue, and whether full day is ever quite full is decided by eye, since Halloween never ends here. Sleep, routines, and the trickle hang off the same clock later.
 - **The fog becomes light.** At night an unlit tile in your line of sight is dark, and the dead standing in it are drawn dim, never hidden; the parent found that not drawing them read as spawning. The player's night-vision pool is small and weak: going dark is possible but blind.
+- **Logs are free until you can cut a tree.** Michael: pretend you always have logs on you; `E` feeds a burner as if from the inventory, and consumption rates are not worth testing until trees fall and logs go in a bag. No woodpile prop. The burn rate still runs so a fire still goes out.
+- **The light layer may be smoothed.** Michael liked what the parent was going for: the two-cell-per-tile erase map drawn through the iso transform with image smoothing on. An exception to "never scale in `drawImage`" for that one layer, which is a gradient and not pixel art. Per-cell chunky light stays on the backburner in case the first pass does not please.
+- **Campfires go on any outdoor walkable tile with no prop.**
 - **Open question 8 is closed**: a carried radius, not a cone or a shuttered lantern. The lantern moves to `05-someday.md` as a toggle upgrade. **Open question 17 is closed**: the hearth burns wood and goes out.
 
 ### 2026-10-09 — Milestone 1 passed, and the vibe pass (Michael)

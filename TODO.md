@@ -13,8 +13,10 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 - **Pin, end of 2026-10-09.** Michael: "this suddenly genuinely looks like a real game." His call on what comes next, and it is the important note of the session: **the last thing the vibe pass needs is a real lighting system like the cozy parent's.** Dynamic light that changes what a room looks like, not a gradient glow: hearth, candles, the jack-o'-lanterns, lit windows, night. From there every gameplay decision will be more fun to test. The parent's art looked good but felt sterile; this is a different place.
 - **Docs pass, 2026-10-09 (midday):** the docs caught up with the day's rulings. Glass and curtains became shutters everywhere, stubs became translucent walls in `docs/03`, "walls are tiles" became "walls are state on tile edges", the missing-chunk rule now says wild forest, `docs/02` is newest first within the day with the superseded shirt and Gloomwood lines struck, `docs/06` has the real tree sizes and collision radii, and the parent's tuning numbers are open question 19. One code fix: an animated prop west or north of the origin asked for a negative frame index.
 - **Torches and fire talked through, 2026-10-09 (afternoon):** rulings in `docs/02` and the design in `docs/07-lighting.md`. Hands on every holdable item (main, off, both); torches never burn out and mount in brackets or on posts, never on the ground; the dead see fire from far away at night; fires are data with a campfire and a hearth that burn wood and cook; the clock comes first; the fog becomes light. The spear is tabled until combat.
-- **Blocked on:** Michael reading `docs/07-lighting.md`. One ruling it asks for: smoothing the light erase layer as the parent did, an exception to "never scale in `drawImage`" for a gradient that is not pixel art.
-- **Next:** build Milestone 2 in the order `docs/07` gives, with a pause after the night layer (step 3) for the tint and the day cap. Openings with the dead breaking in and the melee port follow, which together make "a night in the cottage".
+- **Go, 2026-10-09:** Michael read `docs/07` and said go. Logs are free until trees can be cut; the light layer may be smoothed as the parent's was, with per-cell light on the backburner.
+- **Steps 1 to 3 of Milestone 2 built, 2026-10-09:** the clock, `light.js`, and the night layer. Michael's first look: "even better than I hoped". Knobs for the pause, from the console: `__game.render.night.tint` (now `36, 22, 56`) and `.alpha`, `__game.light.tunables.dayCap` (0.92; set 1 for a full day), `]` and `[` to move the clock.
+- **Blocked on:** Michael's call on the tint, the day cap, and whether an unlit room at night reads right, before fire and torches go in.
+- **Next:** steps 4 to 7 of Milestone 2 in the order `docs/07` gives. Openings with the dead breaking in and the melee port follow, which together make "a night in the cottage".
 - **Notes:** the debug corner shows the cost of a logic step and the worst step in the last three seconds; a freeze should show up there first. Run `python serve.py 8010` in this repo (the file serves its own folder, so it can be launched from elsewhere). `V` toggles the fog off to compare. Michael plays in the in-app browser pane while work happens, so scripted tests see his inputs.
 - **Notes:** Michael wants to burn this week's credits on this. He likes a pause between phases (docs, then build) and plays in his own browser while work happens. Nothing from either parent is gospel.
 
@@ -56,10 +58,10 @@ If any proof fails: stop, write down why in `docs/02`, and talk.
 
 Each step checkable on its own. Michael looks after step 3.
 
-- [ ] `clock.js` copied; clock label in the HUD and debug corner; `]` skips an hour.
-- [ ] `light.js`: ambient by room and openings, per-chunk static map with shadows, `lightAt`; the jack-o'-lanterns as the first sources.
-- [ ] Night layer: dusky tint, room erase, chunk maps, the player's pool. **Pause for Michael: tint, day cap, room light.**
-- [ ] Fire data on sprites; hearth and campfire placeholders; woodpile; burning; `E` lights and feeds; flames drawn.
+- [x] `clock.js` copied; clock label in the HUD and debug corner; `]` and `[` skip an hour.
+- [x] `light.js`: ambient by room and openings, per-chunk static map with shadows, `lightAt`; the jack-o'-lanterns as the first sources. Checked by script: a lantern's pool stops at the shed wall and spills through its open door (0.22 closed, 0.57 open on the door tile).
+- [x] Night layer: dusky tint, room erase, chunk maps, the player's pool, wall faces repainted by the tile they look onto, flames in a stencilled layer so a lantern never shows through a wall or a head (Michael caught it in play). Render about 1.5 ms at night. **Paused for Michael: tint, day cap, room light.**
+- [ ] Fire data on sprites; hearth and campfire placeholders; burning; `E` lights and feeds with free logs; flames drawn.
 - [ ] `items.js` with hands; the torch on `T`; carried pool with rays; brackets and posts; `E` mounts and takes.
 - [ ] Zombie sight by light; the dead see fire at night.
 - [ ] Acceptance: the seven checks in `docs/07`, scripted and played.

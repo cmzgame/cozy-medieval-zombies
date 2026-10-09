@@ -35,13 +35,13 @@ Every fire kind is a definition, not a case. A sprite definition declares `fire:
 |---|---|---|---|---|
 | Torch, held | 3 | no | no | the off-hand |
 | Torch, mounted | 3 | no | no | a bracket on a wall edge, or a post prop outdoors |
-| Campfire | 4 | yes, goes out | yes | any outdoor walkable tile with no prop |
+| Campfire | 4 | yes, goes out | yes | any outdoor walkable tile with no prop (ruled) |
 | Hearth | its whole room, plus a pool of 3 through its openings | yes, goes out | yes | indoors against a wall; rare in authored houses, buildable later |
 | Jack-o'-lantern | 1.5 | no | no | decoration; its painted ground glow leaves the sprite |
 | Furnace | later | yes | no, it forges | the smithy |
 
 - **Burning.** A burner holds up to four logs and burns one per two in-game hours (sixty real seconds). A full night from dusk to dawn costs about four. At zero it goes out: no ambient, no pool, no flame drawn. Nothing shuts off on a timer; a fire goes out because it burned what you gave it.
-- **Lighting and feeding, before the inventory exists.** A `woodpile` prop holds a count of logs. `E` at an unlit burner takes a log from a woodpile within two tiles and lights it; `E` at a lit one adds a log if there is room. The inventory port replaces the woodpile reach with "a log in your bag" and nothing else changes. Lighting needs no flame source: torches are always lit, so fire is never scarce, wood is.
+- **Lighting and feeding, before the inventory exists.** Logs are free (Michael, 2026-10-09): `E` at an unlit burner lights it with a log you are pretending to carry, and `E` at a lit one adds a log if there is room. The inventory port makes the log real and nothing else changes. The burn rate runs so a fire still goes out. Lighting needs no flame source: torches are always lit, so fire is never scarce, wood is.
 - **Flames are drawn** on top of the night layer, like the pumpkin's face: a few frames of flicker per fire kind, and a warm glow sprite at the base. The jack-o'-lantern keeps its flicker and loses its painted ground glow, which the map now does properly.
 
 ## Torches, hands, and the first items
@@ -64,7 +64,7 @@ Every fire kind is a definition, not a case. A sprite definition declares `fire:
 
 - **The tint is dusky purple**, not the parent's blue. Start at `rgb(36, 22, 56)` at `0.96 × darkness` and pick by eye between two adjacent steps, as the parent's tint was chosen.
 - **Full day may never be quite full.** The vision says Halloween never ends here. Try a day cap of 0.92 and see whether the dusky look holds without reading as a bug. Michael decides by eye.
-- **Pools are smooth, shadows are soft.** The parent drew the two-cell-per-tile map through the iso transform with image smoothing on, which breaks the letter of "never scale in `drawImage`". That rule exists for pixel art; the erase layer is a gradient, not a sprite, and the parent's look depends on the smoothing. **Ruling asked for:** allow it for the light erase layer only. The alternative, chunky per-cell diamonds in the Minecraft manner, is one function away and might suit the pixels; try the parent's way first because it is the look that was asked for.
+- **Pools are smooth, shadows are soft.** The parent drew the two-cell-per-tile map through the iso transform with image smoothing on, which breaks the letter of "never scale in `drawImage`". That rule exists for pixel art; the erase layer is a gradient, not a sprite, and the parent's look depends on the smoothing. Ruled 2026-10-09: allowed for the light erase layer only. The alternative, chunky per-cell diamonds in the Minecraft manner, is one function away and stays on the backburner in case the first pass does not please.
 
 ## What this must not foreclose
 
@@ -82,7 +82,7 @@ Each step is checkable on its own, and Michael looks after step 3 before the res
 1. `clock.js` copied. Clock label in the HUD and the debug corner. `]` skips an hour.
 2. `light.js`: ambient by room and openings, the per-chunk static map, `lightAt`. The three jack-o'-lanterns are the first sources. `light@player` in the debug corner.
 3. The night layer in `render.js`: tint, room erase, chunk maps, the player's pool. **Pause here: the tint, the day cap, and whether the room-light rule reads.**
-4. Fire data on the sprites, hearth and campfire placeholders, the woodpile, burning, `E` to light and feed, flames drawn. A hearth in the cottage, a campfire on the square, a woodpile beside each.
+4. Fire data on the sprites, hearth and campfire placeholders, burning, `E` to light and feed with free logs, flames drawn. A hearth in the cottage, a campfire on the square.
 5. `items.js`, hands, the torch on `T`, the carried pool with rays, brackets and posts, `E` to mount and take. A bracket inside the shed, a post by the road.
 6. Zombie sight by light; the dead see fire at night.
 7. Acceptance, scripted and played.
@@ -92,7 +92,7 @@ Each step is checkable on its own, and Michael looks after step 3 before the res
 1. **The room changes, not a glow.** At night, the cottage with its hearth lit is bright inside, whole, and its open window and door throw pools onto the square; shuttered, the spill is gone and the cottage is dark from outside. Michael: this is the thing the parent had.
 2. **The night is dusky, never black.** Far unlit ground is dim but there. The tint reads as this place, not the parent's suburb.
 3. **Fire pulls.** A zombie ten tiles from the campfire at night with a clear line walks to it and mills about; with a wall between, it does not. The same zombie ignores you in the dark at six tiles and comes at you at ten when you light the torch.
-4. **The hearth burns and goes out.** Lit with four logs it lasts a night and dies at dawn; `E` with a woodpile in reach relights it.
+4. **The hearth burns and goes out.** Lit with four logs it lasts a night and dies at dawn; `E` relights it.
 5. **The torch mounts.** Taken from the shed's bracket, carried through the forest as a pool that stops at trunks and walls, mounted on the post by the road, where it lights the road and never burns down.
 6. **The fog is light.** In the forest at night without a torch you see the few tiles around you and a dim shape where a zombie stands in your line of sight.
 7. **60 fps** with the night layer over the usual seven hundred tiles and all three kinds of fire in view.

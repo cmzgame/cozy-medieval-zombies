@@ -18,8 +18,11 @@ const ROUND_BODY_RADIUS = 0.2; // a body's radius against round props; 0.3 again
 const chunks = new Map(); // "cx,cy" -> { cx, cy, tiles, floorCache, floorDirty }
 let source = null; // authored tiles: (x, y) => tile | null
 let defaultFloor = "floor_grass";
-const rooms = new Map(); // room id -> { id, size }
+const rooms = new Map(); // room id -> { id, size, openings: [{ tx, ty, edge }] }
 let roomsDirty = true;
+// Every prop whose sprite definition declares `fire`, so light can list its
+// sources and lit rooms without walking every tile (docs/07-lighting.md).
+const fireProps = new Set();
 // Beyond the authored bounds the world is wild: forest grown by rule, with a
 // few of the dead per chunk (Michael, 2026-10-09). Harvest register, so the
 // gloomy one is always a choice of place and never the default.
@@ -41,6 +44,14 @@ export function reset({ floor = "floor_grass", authored = null, wildRule = null,
 
 export function takePendingSpawns() {
   return pendingSpawns.splice(0, pendingSpawns.length);
+}
+
+export function fires() {
+  return fireProps;
+}
+
+export function getRoom(id) {
+  return rooms.get(id) || null;
 }
 
 function inBounds(x, y) {
@@ -201,6 +212,14 @@ export function peekTile(x, y) {
 }
 
 // ---- walls on edges ----
+
+// The tile and slot that hold the edge between two 4-adjacent tiles.
+export function edgeBetween(x0, y0, x1, y1) {
+  if (x1 === x0 + 1) return [x1, y0, "w"];
+  if (x1 === x0 - 1) return [x0, y0, "w"];
+  if (y1 === y0 + 1) return [x0, y1, "n"];
+  return [x0, y0, "n"];
+}
 
 // The wall on the edge between two 4-adjacent tiles, or null.
 export function wallBetween(x0, y0, x1, y1) {
@@ -494,6 +513,10 @@ export function rebuildRooms() {
       const stack = [x0, y0];
       t0.room = id;
       let outdoors = false;
+      // The doors and windows the fill touched, so light can ask how much
+      // daylight a room's openings admit (docs/07-lighting.md).
+      const openings = [];
+      const seenEdges = new Set();
       while (stack.length) {
         const y = stack.pop();
         const x = stack.pop();
@@ -507,8 +530,20 @@ export function rebuildRooms() {
             outdoors = true;
             continue;
           }
+          const wall = wallBetween(x, y, nx, ny);
+          if (wall) {
+            // any wall bounds a room
+            if (wall.kind !== "wall" && !outdoors) {
+              const [ex, ey, edge] = edgeBetween(x, y, nx, ny);
+              const k = `${ex},${ey},${edge}`;
+              if (!seenEdges.has(k)) {
+                seenEdges.add(k);
+                openings.push({ tx: ex, ty: ey, edge });
+              }
+            }
+            continue;
+          }
           if (nt.room !== UNVISITED) continue;
-          if (wallBetween(x, y, nx, ny)) continue; // any wall bounds a room
           nt.room = id;
           stack.push(nx, ny);
         }
@@ -516,7 +551,7 @@ export function rebuildRooms() {
       if (outdoors) {
         for (let j = 0; j < region.length; j += 2) peekTile(region[j], region[j + 1]).room = OUTDOORS;
       } else {
-        rooms.set(id, { id, size: region.length / 2 });
+        rooms.set(id, { id, size: region.length / 2, openings });
         nextId++;
       }
     }
@@ -557,7 +592,7 @@ export function createProp(def, offset = [0, 0]) {
   // around trees while a body can brush past the trunk.
   const sdef = getDef(def.sprite);
   const radius = def.radius ?? sdef.collide?.radius ?? 0;
-  return {
+  const prop = {
     kind: "prop",
     sprite: def.sprite,
     tile: [ox, oy],
@@ -566,7 +601,25 @@ export function createProp(def, offset = [0, 0]) {
     solid: def.solid !== false,
     opaque: !!def.opaque,
     radius: w === 1 && h === 1 ? radius : 0,
+    fire: null,
   };
+  // Fire is data on the sprite definition (docs/07-lighting.md): a light
+  // radius, whether it lights its whole room, burns wood, cooks. Live state
+  // (lit, fuel) sits on the prop.
+  if (sdef.fire) {
+    const f = sdef.fire;
+    prop.fire = {
+      radius: f.radius || 0,
+      room: !!f.room,
+      burns: !!f.burns,
+      cooks: !!f.cooks,
+      lit: def.lit ?? f.lit ?? !f.burns,
+      fuel: def.fuel ?? f.fuel ?? 0,
+      maxFuel: f.maxFuel ?? 4,
+    };
+    fireProps.add(prop);
+  }
+  return prop;
 }
 
 // A set's origin: explicit, else its rect's corner, else its first rect's.
@@ -614,6 +667,7 @@ export function ensureAround(x, y, radius = 3) {
 // - **Scatter** fills what is left by rule, and the **wild** beyond the bounds
 //   is scatter all the way down.
 export function loadMap(json) {
+  fireProps.clear(); // props are created below, before reset() runs
   const authored = new Map();
   const key = (x, y) => `${x},${y}`;
   const get = (x, y) => {

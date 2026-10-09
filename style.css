@@ -64,6 +64,12 @@ html, body {
   text-shadow: 0 1px 0 #000;
 }
 
+.hud-clock {
+  color: #cfc4d8;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
 .hud-stamina {
   width: 160px;
   height: 6px;

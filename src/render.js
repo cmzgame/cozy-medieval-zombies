@@ -9,8 +9,19 @@ import { drawFrame, drawCharacter, resolveFacing, frameName, frameRect } from ".
 // (drawCharacter is used by entity drawables; the silhouette pass is gone.)
 import { poly, shade } from "./render-util.js";
 import * as map from "./map.js";
+import * as light from "./light.js";
 import { tileKey } from "./visibility.js";
 import { WALL_T, NEAR_STUB, drawPlankLeaf } from "./placeholders.js";
+
+// The night layer (docs/07-lighting.md): a tint erased where there is light,
+// composited with multiply. Tunables Michael picks by eye; live on
+// window.__game.render.night.
+export const night = {
+  tint: "36, 22, 56", // dusky purple, not the parent's blue
+  alpha: 0.96,
+  pool: 190, // px: the player's own weak night vision
+  poolStrength: 0.42,
+};
 
 // What you cannot see is shaded but drawn: the world is there, you just are not
 // looking at it. Michael (2026-10-09): shade it clearly, never so dark that it
@@ -170,11 +181,18 @@ function makePost(tx, ty, sheet, vis, near) {
   const up = ([px, py]) => [px, py - h];
   const faded = near && cutaway !== "stub";
   const hidden = near && cutaway === "stub";
+  const rooms = [map.tileAt(tx, ty).room, map.tileAt(tx - 1, ty).room, map.tileAt(tx, ty - 1).room, map.tileAt(tx - 1, ty - 1).room];
+  const facePoly = hidden ? null : [D, A, B, up(B), up(C), up(D)];
   return {
     key: (tx + ty - 1) * 1000 + 0.5,
     kind: "wall",
     vis,
-    fogPoly: vis && !hidden ? [D, A, B, up(B), up(C), up(D)] : null,
+    rooms,
+    near: faded,
+    // The tiles the visible faces of the post look onto, for the night layer.
+    nearTiles: [[tx, ty], [tx - 1, ty], [tx, ty - 1]],
+    facePoly,
+    fogPoly: vis ? facePoly : null,
     draw(ctx) {
       if (hidden) return;
       if (faded) ctx.globalAlpha = NEAR_WALL_ALPHA;
@@ -226,21 +244,29 @@ function makeWall(wall, edge, tx, ty, vis, stub) {
   const T = WALL_T;
   const lowStub = stub && cutaway === "stub";
   const faded = stub && !lowStub;
-  let fogPoly = null;
-  if (vis && !lowStub) {
-    fogPoly = edge === "n"
+  let facePoly;
+  if (!lowStub) {
+    facePoly = edge === "n"
       ? [[x, y - iso.HH], [x + iso.HW, y], [x + iso.HW + T, y - T / 2], [x + iso.HW + T, y - T / 2 - h], [x + T, y - iso.HH - T / 2 - h], [x, y - iso.HH - h]]
       : [[x - iso.HW, y], [x, y - iso.HH], [x, y - iso.HH - h], [x - T, y - iso.HH - h - T / 2], [x - iso.HW - T, y - h - T / 2], [x - iso.HW - T, y - T / 2]];
-  } else if (vis && lowStub) {
-    fogPoly = edge === "n"
+  } else {
+    facePoly = edge === "n"
       ? [[x, y - iso.HH], [x + iso.HW, y], [x + iso.HW, y - NEAR_STUB], [x, y - iso.HH - NEAR_STUB]]
       : [[x - iso.HW, y], [x, y - iso.HH], [x, y - iso.HH - NEAR_STUB], [x - iso.HW, y - NEAR_STUB]];
   }
+  const rooms = [map.tileAt(tx, ty).room, edge === "n" ? map.tileAt(tx, ty - 1).room : map.tileAt(tx - 1, ty).room];
   return {
     key: depth * 1000,
     kind: "wall",
     vis,
-    fogPoly,
+    rooms,
+    near: faded,
+    // The camera looks from the south-east, so the face you see of a north
+    // wall is its south face and of a west wall its east face: both look onto
+    // the tile the edge belongs to. The night layer lights the face by that tile.
+    nearTiles: [[tx, ty]],
+    facePoly,
+    fogPoly: vis ? facePoly : null,
     draw(ctx) {
       if (lowStub) {
         if (edge === "n") {
@@ -295,11 +321,22 @@ function propDrawables(tiles, visible, out) {
         ? { x: x - sheet.anchor[0] + sheet.bounds.x, y: y - sheet.anchor[1] + sheet.bounds.y, w: sheet.bounds.w, h: sheet.bounds.h }
         : { x: x - sheet.anchor[0], y: y - sheet.anchor[1], w: f[2], h: f[3] }
       : null;
+    // A lit fire's flame frame is drawn above the night layer, stencilled by
+    // whatever the sort order draws over it, so it neither dims nor shows
+    // through a wall.
+    const flameName = `flame_${frameIdx}`;
+    const flame = prop.fire && prop.fire.lit && sheet.frames[flameName] && visible.has(tileKey(tx, ty))
+      ? { name: flameName, rect: { x: x - sheet.anchor[0], y: y - sheet.anchor[1], w: sheet.frames[flameName][2], h: sheet.frames[flameName][3] } }
+      : null;
     out.push({
       key: (tx + ty) * 1000 + 1,
       kind: "prop",
       vis: visible.has(tileKey(tx, ty)),
       rect,
+      flame,
+      drawFlame(ctx) {
+        drawFrame(ctx, sheet, flameName, x, y);
+      },
       canOcclude: !!f && f[3] >= OCCLUDER_MIN_HEIGHT,
       occluder: false,
       draw(ctx) {
@@ -442,9 +479,224 @@ function drawFog(ctx, w, h, tiles, visible, drawables) {
   ctx.drawImage(fogCanvas, 0, 0);
 }
 
+// ---- night ----
+// One offscreen layer: the night tint, with light erased out of it, composited
+// with multiply so colours darken proportionally (the cozy parent's
+// drawNightOverlay, over the viewport instead of one node). Erased, in order:
+// the floors and walls of rooms brighter than outdoors, the player's own weak
+// pool, and each visible chunk's light map drawn through the iso transform
+// with smoothing on and clipped to the chunk, so neighbours meet seamlessly.
+
+let nightCanvas = null;
+let nightCtx = null;
+
+function tileDiamonds(g, list) {
+  g.beginPath();
+  for (const [tx, ty] of list) {
+    const p = iso.toScreen(tx, ty);
+    const x = Math.round(p.x);
+    const y = Math.round(p.y);
+    g.moveTo(x, y - iso.HH - 1);
+    g.lineTo(x + iso.HW + 1, y);
+    g.lineTo(x, y + iso.HH + 1);
+    g.lineTo(x - iso.HW - 1, y);
+    g.closePath();
+  }
+}
+
+function drawNight(ctx, w, h, tiles, drawables, player) {
+  const out = light.outdoorAmbient();
+  const dark = light.darknessOf(out);
+  if (dark <= 0.01) return;
+  if (!nightCanvas) {
+    nightCanvas = document.createElement("canvas");
+    nightCtx = nightCanvas.getContext("2d");
+  }
+  if (nightCanvas.width !== w || nightCanvas.height !== h) {
+    nightCanvas.width = w;
+    nightCanvas.height = h;
+  }
+  const g = nightCtx;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalCompositeOperation = "source-over";
+  g.clearRect(0, 0, w, h);
+  g.fillStyle = `rgba(${night.tint}, ${night.alpha * dark})`;
+  g.fillRect(0, 0, w, h);
+  g.globalCompositeOperation = "destination-out";
+
+  // Rooms brighter than outdoors: erase their floor by the difference.
+  const byRoom = new Map();
+  for (const t of tiles) {
+    const id = map.tileAt(t[0], t[1]).room;
+    if (id <= 0) continue;
+    if (!byRoom.has(id)) byRoom.set(id, []);
+    byRoom.get(id).push(t);
+  }
+  const roomAmt = new Map();
+  for (const [id, list] of byRoom) {
+    const amt = Math.max(0, Math.min(1, (light.roomAmbient(id) - out) / (1 - out)));
+    roomAmt.set(id, amt);
+    if (amt <= 0) continue;
+    g.fillStyle = `rgba(255,255,255,${amt})`;
+    tileDiamonds(g, list);
+    g.fill();
+  }
+  // Translucent near walls show the room through them, so they take the
+  // room's erase; every other wall face is repainted below with its own light.
+  for (const d of drawables) {
+    if (d.kind !== "wall" || !d.fogPoly || !d.near) continue;
+    let amt = 0;
+    for (const r of d.rooms) amt = Math.max(amt, roomAmt.get(r) || 0);
+    if (amt <= 0) continue;
+    g.fillStyle = `rgba(255,255,255,${amt})`;
+    poly(g, d.fogPoly);
+    g.fill();
+  }
+
+  // The player's inherent visibility: partial erase, long smooth falloff.
+  let ox = 0;
+  let oy = 0;
+  if (player) {
+    const p = iso.toScreen(player.gx, player.gy);
+    ox = p.x;
+    oy = p.y - 12;
+    const r = night.pool;
+    const s = night.poolStrength;
+    const pg = g.createRadialGradient(ox, oy, 0, ox, oy, r);
+    pg.addColorStop(0, `rgba(255,255,255,${s})`);
+    pg.addColorStop(0.35, `rgba(255,255,255,${s * 0.8})`);
+    pg.addColorStop(0.7, `rgba(255,255,255,${s * 0.35})`);
+    pg.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = pg;
+    g.fillRect(ox - r, oy - r, r * 2, r * 2);
+  }
+
+  // Fire with shadows: each visible chunk's map, one pixel per light cell.
+  const org = iso.getOrigin();
+  const seen = new Set();
+  for (const [tx, ty] of tiles) {
+    const [cx, cy] = map.chunkCoord(tx, ty);
+    const k = map.chunkKey(cx, cy);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    const layer = light.chunkLight(cx, cy);
+    if (!layer.any) continue;
+    g.save();
+    g.setTransform(iso.HW, iso.HH, -iso.HW, iso.HH, org.x, org.y);
+    g.translate(cx * map.CHUNK - 0.5, cy * map.CHUNK - 0.5);
+    g.beginPath();
+    g.rect(0, 0, map.CHUNK, map.CHUNK);
+    g.clip();
+    g.imageSmoothingEnabled = true;
+    g.imageSmoothingQuality = "high";
+    g.scale(1 / light.RES, 1 / light.RES);
+    g.translate(-1, -1);
+    g.drawImage(layer.canvas, 0, 0);
+    g.restore();
+  }
+
+  // Wall faces: the floor erase behind a wall shows on its face, so each
+  // visible face is repainted with the darkness of the tile it looks onto,
+  // less the player's pool at its foot. Wall faces lit by the pools climbing
+  // them stays parked, as in the parent.
+  for (const d of drawables) {
+    if (d.kind !== "wall" || !d.vis || !d.facePoly || d.near) continue;
+    let l = 0;
+    for (const [tx, ty] of d.nearTiles) l = Math.max(l, light.lightAt(tx, ty));
+    const foot = d.facePoly[1];
+    const pool = player ? poolAt(foot[0], foot[1], ox, oy) : 0;
+    const a = night.alpha * light.darknessOf(l) * (1 - pool);
+    g.globalCompositeOperation = "destination-out";
+    g.fillStyle = "#fff";
+    poly(g, d.facePoly);
+    g.fill();
+    if (a <= 0) continue;
+    g.globalCompositeOperation = "source-over";
+    g.fillStyle = `rgba(${night.tint}, ${a})`;
+    poly(g, d.facePoly);
+    g.fill();
+  }
+  g.globalCompositeOperation = "source-over";
+
+  ctx.globalCompositeOperation = "multiply";
+  ctx.drawImage(nightCanvas, 0, 0);
+  ctx.globalCompositeOperation = "source-over";
+}
+
+// The player's pool, 0..1, at a screen point: the same stops as the gradient.
+function poolAt(x, y, ox, oy) {
+  const t = Math.hypot(x - ox, y - oy) / night.pool;
+  const s = night.poolStrength;
+  if (t >= 1) return 0;
+  if (t < 0.35) return s - (s - s * 0.8) * (t / 0.35);
+  if (t < 0.7) return s * 0.8 - (s * 0.8 - s * 0.35) * ((t - 0.35) / 0.35);
+  return s * 0.35 * (1 - (t - 0.7) / 0.3);
+}
+
+// ---- flames ----
+// Flames are drawn into their own layer in sort order, and everything the
+// sort order draws after a flame erases it where they overlap, so a flame
+// behind a wall or a tree is hidden. The layer goes on above the night layer,
+// so a flame never dims.
+
+let flameCanvas = null;
+let flameCtx = null;
+
+function drawFlames(ctx, w, h, drawables) {
+  let any = false;
+  for (const d of drawables) if (d.flame) { any = true; break; }
+  if (!any) return;
+  if (!flameCanvas) {
+    flameCanvas = document.createElement("canvas");
+    flameCtx = flameCanvas.getContext("2d");
+  }
+  if (flameCanvas.width !== w || flameCanvas.height !== h) {
+    flameCanvas.width = w;
+    flameCanvas.height = h;
+  }
+  const g = flameCtx;
+  g.imageSmoothingEnabled = false;
+  g.globalCompositeOperation = "source-over";
+  g.clearRect(0, 0, w, h);
+  for (let i = 0; i < drawables.length; i++) {
+    const d = drawables[i];
+    if (!d.flame) continue;
+    g.globalCompositeOperation = "source-over";
+    d.drawFlame(g);
+    g.globalCompositeOperation = "destination-out";
+    for (let j = i + 1; j < drawables.length; j++) {
+      const o = drawables[j];
+      if (o.kind === "wall") {
+        if (o.facePoly && polyOverlaps(o.facePoly, d.flame.rect)) {
+          poly(g, o.facePoly);
+          g.fill();
+        }
+      } else if (o.rect && rectsOverlap(o.rect, d.flame.rect)) {
+        o.draw(g);
+      }
+    }
+  }
+  g.globalCompositeOperation = "source-over";
+  ctx.drawImage(flameCanvas, 0, 0);
+}
+
+function polyOverlaps(p, r) {
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const [x, y] of p) {
+    x0 = Math.min(x0, x);
+    y0 = Math.min(y0, y);
+    x1 = Math.max(x1, x);
+    y1 = Math.max(y1, y);
+  }
+  return x0 < r.x + r.w && x1 > r.x && y0 < r.y + r.h && y1 > r.y;
+}
+
 // ---- the scene ----
 
-export function renderScene(ctx, { w, h, tiles, visible, entities, playerRoom, drawAll = false, fog = true }) {
+export function renderScene(ctx, { w, h, tiles, visible, entities, playerRoom, player = null, drawAll = false, fog = true }) {
   drawFloor(ctx, tiles, w, h);
   const drawables = [];
   wallDrawables(tiles, visible, playerRoom, drawables);
@@ -460,6 +712,8 @@ export function renderScene(ctx, { w, h, tiles, visible, entities, playerRoom, d
     if (d.occluder && holes.length) drawWithHoles(ctx, d, holes, w, h);
     else d.draw(ctx);
   }
+  drawNight(ctx, w, h, tiles, drawables, player);
+  drawFlames(ctx, w, h, drawables);
   if (fog) drawFog(ctx, w, h, tiles, visible, drawables);
   return drawables.length;
 }
