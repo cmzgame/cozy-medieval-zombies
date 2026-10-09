@@ -28,3 +28,4 @@ Milestone 1, the probe: a scrolling chunked map, a cottage and a shed with four 
 | [03-world-model.md](docs/03-world-model.md) | Chunks instead of nodes: block storage, the active region, records, rooms, the camera. |
 | [04-npcs.md](docs/04-npcs.md) | Villagers: killable, they flee, follow, and stay, carry no weapons; what talking does. |
 | [05-someday.md](docs/05-someday.md) | Wanted but unscheduled: quests, roofs, upper floors, building, the countryside. Never foreclose these cheaply. |
+| [06-art.md](docs/06-art.md) | Art direction: spooky medieval, never permanently night; the genre test and the dev palette. |

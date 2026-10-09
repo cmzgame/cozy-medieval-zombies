@@ -4,11 +4,11 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 
 ## Status
 
-- **Current milestone:** 1, the probe. Built 2026-10-09 and awaiting Michael's verdict on the four proofs. Runs at 60 fps.
+- **Current milestone:** 1, the probe, **passed** on 2026-10-09 (Michael: cohesive and spatially real like Zomboid; the window wedge is spooky how Zomboid it feels; one screen is a few huts or a square and that is plenty). Rulings in `docs/02`. Same day: translucent near walls, lighter fog, a stamina bar and a longer sprint, and the first re-themed dev art (`docs/06-art.md`): thick plank and brick walls, open windows, dull grass, dirt roads, a farm tile.
 - **What exists:** a chunked map stored block by block with edge walls (`map.js`), rooms by flood fill, line of sight by grid traversal (`visibility.js`), a following camera over cached chunk floors (`camera.js`, `render.js`), four-walled buildings with cutaway stubs when you are inside, fog over what you cannot see, the player and three of the dead on a hand-written square (`data/maps/square.json`) with a cottage and a shed. Copied modules carry origin headers.
 - **Last completed task (2026-10-09):** Milestone 1 built and checked by script in the browser: the player walks from the square through the cottage door with no cut and a zombie follows through it; a wall stops the player at its face; a window shows a wedge of the room from outside and a wedge of the square from inside; stubs on the near walls indoors; the fog leaves no seams; 60 fps with about 730 tiles in view.
-- **Blocked on:** Michael playing it. Proof 1 (feel) and proof 4 (viewport) are his to judge; proofs 2 and 3 look right to me in screenshots.
-- **Next:** if the probe passes, the port order below, starting with lighting. If a proof fails, write why in `docs/02` and talk.
+- **Blocked on:** Michael's answer on the proposed Milestone 2, "a night in the cottage": lighting on the big map, openings as tiles with the dead breaking in, and the melee port, as the shortest path to the moment the game exists for. Plus a village-scale stress map on the side.
+- **Next:** write the Milestone 2 doc with its acceptance test once Michael agrees, then build it.
 - **Notes:** the debug corner shows the cost of a logic step and the worst step in the last three seconds; a freeze should show up there first. Run `python serve.py 8010` in this repo (the file serves its own folder, so it can be launched from elsewhere). `V` toggles the fog off to compare. Michael plays in the in-app browser pane while work happens, so scripted tests see his inputs.
 - **Notes:** Michael wants to burn this week's credits on this. He likes a pause between phases (docs, then build) and plays in his own browser while work happens. Nothing from either parent is gospel.
 

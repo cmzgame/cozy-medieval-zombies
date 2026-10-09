@@ -13,7 +13,10 @@ export const PLAYER_RADIUS = 0.3;
 export const PLAYER_HP = 100;
 export const PLAYER_STAMINA = 100;
 export const SPRINT_MULT = 1.75;
-export const SPRINT_DRAIN = 40;
+// The parent drained 40 per second: a sprint lasted 2.5 s, about a third of a
+// screen. Michael wanted longer (2026-10-09): 16 per second is just over 6 s,
+// about a screen and a half at 5.25 tiles per second.
+export const SPRINT_DRAIN = 16;
 export const STAMINA_REGEN = 22;
 export const SPRINT_RECOVER_AT = 20;
 // Aim originates from the chest, this many pixels above the feet.

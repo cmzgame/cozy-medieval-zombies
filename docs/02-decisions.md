@@ -4,6 +4,16 @@ Rulings with reasons, newest first. If a ruling is reversed, strike it and add t
 
 ## Decisions
 
+### 2026-10-09 — Milestone 1 passed (Michael)
+
+- **All four proofs hold.** Michael's words: the continuous map does not feel more "real" than the dioramas, which were legible, but it feels cohesive and spatially real the way Zomboid does; the window wedge is "spooky how much like Zomboid it feels"; the viewport is plenty. The engine question is answered. The next question is whether the game is fun.
+- **Near walls draw full height and translucent when you are inside.** Michael likes seeing the full wall. Stubs stay on the `C` key for now and may come back later. This supersedes the stub plan in `03-world-model.md`.
+- **Players can go through windows.** Michael, on seeing the wedge: "now we can let players go through windows!" Open question 5 is settled: the living and the dead both, with the details (slow, loud, broken or open) decided at the openings milestone.
+- **One screen is a few huts, a small square, part of a castle, or barely all of a small one. That is plenty.** Michael: all of those are scenarios where one screen would be generous. 960×540 stands, no zoom. The countryside stays in `05-someday.md`.
+- **Dev art gets the game's visual identity now.** Spooky medieval, a bit haunted, never permanently night; Tirisfal Glades, not Stardew. Thick walls, planks and bricks, open windows, dirt roads, a farm tile, dull grass. Characters stay as they are. See `06-art.md`, which also records the genre test for any new colour.
+- **The fog is lighter.** It shades what you cannot see clearly but never distracts from what is there. 0.74 alpha was near black; now 0.46 in a dusky purple.
+- **The stamina bar is the first UI**, because Michael sprints everywhere. Sprint lasts about six seconds instead of two and a half.
+
 ### 2026-10-08 — The project exists (Michael)
 
 - **A new project, not a rewrite of either parent.** Both parents stay playable as they are. This game borrows by copying. Reason: the two things Michael missed, knights and moving fluidly between buildings, belong to one game that is neither parent, and a fork leaves nothing broken behind.
@@ -34,7 +44,7 @@ The pre-code conversations closed on 2026-10-08. Each remaining question is deci
 2. ~~**Viewport.**~~ Ruled: 960×540 for the probe, which is Zomboid's 100 percent zoom exactly (see `03-world-model.md`, "Zomboid for reference"). A zoom-out stays in `05-someday.md`.
 3. ~~**Upper floors.**~~ Ruled: single storey first, layer-ready data. How floors render is decided after the probe.
 4. ~~**Roofs.**~~ Ruled: none for the probe, nothing written to foreclose them. In `05-someday.md`.
-5. **Who passes a broken window.** Cozy: only the dead, inward. Sibling: anyone who fits. Zomboid: anyone, with a stagger. Lean: the dead and the player both, slowly and loudly, so a window is a desperate exit and not a shortcut.
+5. ~~**Who passes a broken window.**~~ Ruled 2026-10-09: anyone. How slow and how loud is decided at the openings milestone.
 6. **Boards: refunded or spent.** Cozy refunds; the sibling spends. Lean: spent, since "reinforcement is spent" is the cleaner rule.
 7. ~~**Player-built walls.**~~ Folded into question 14.
 8. **The light you carry.** An aimed beam does not fit a lantern. A shuttered lantern as a toggle (a radius you can hide), or a held torch as a wide short cone. Lean: shuttered lantern; the beam's aiming skill is the one thing we knowingly give up.

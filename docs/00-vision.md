@@ -24,6 +24,7 @@ What neither could do, and this one exists to do: **walk from building to buildi
 - **Contrast is the joke and the horror.** Do not resolve it in either direction.
 - **Medieval, low fantasy, no guns. Ever.** Low fantasy means headroom, not decoration: nothing here forecloses a cursed blade someday, and nothing schedules one. The dead are the point.
 - **Deaths are stated plainly.** "The bite took you."
+- **Spooky, a bit haunted, never permanently night.** Tirisfal Glades, not Stardew: a place where Halloween never quite ends. Dull grass, thick walls, dusky shade. Cute and gloomy are not in conflict; the knight still has a big head. See `06-art.md`.
 
 ## Pillars
 

@@ -13,6 +13,7 @@ import * as visibility from "./visibility.js";
 import { renderScene, setCutaway, cutaway } from "./render.js";
 import { createPlayer, updatePlayer, damagePlayer } from "./entities/player.js";
 import { createZombie, updateZombie } from "./entities/zombie.js";
+import { initHud, updateHud } from "./ui/hud.js";
 
 const CANVAS_W = 960;
 const CANVAS_H = 540;
@@ -78,6 +79,7 @@ function update(dt) {
     visKey = key;
     timing.vis = performance.now() - t1;
   }
+  updateHud({ player });
   input.endStep();
   timing.step = performance.now() - t0;
   if (t0 - timing.maxResetAt > 3000) {
@@ -88,7 +90,8 @@ function update(dt) {
 }
 
 function render() {
-  ctx.fillStyle = "#1c1c24";
+  const r0 = performance.now();
+  ctx.fillStyle = "#16121c";
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
   drawn = renderScene(ctx, {
     w: CANVAS_W,
@@ -100,12 +103,13 @@ function render() {
     drawAll,
     fog: !drawAll,
   });
+  timing.render = performance.now() - r0;
   const [cx, cy] = map.chunkCoord(Math.round(player.gx), Math.round(player.gy));
   debugEl.textContent =
     `fps ${loop.getFps()}\n` +
     `player ${player.gx.toFixed(2)},${player.gy.toFixed(2)} ${player.facing} hp ${player.hp} deaths ${deaths}\n` +
     `chunk ${cx},${cy}  room ${playerRoom}  rooms ${map.roomCount()}\n` +
-    `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms\n` +
+    `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `zombies ${zombies.length}  ${zombies.map((z) => z.state).join(" ")}\n` +
     `V: ${drawAll ? "showing everything" : "fog on"}   C: near walls ${cutaway}`;
 }
@@ -125,6 +129,7 @@ async function boot() {
   tiles = camera.viewportTiles(CANVAS_W, CANVAS_H);
   map.rebuildRooms();
 
+  initHud();
   events.on("playerHit", ({ damage }) => damagePlayer(player, damage));
 
   loop.start({ update, render, simTick() {} }, { simIntervalMs: 1000 });

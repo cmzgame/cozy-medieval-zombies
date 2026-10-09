@@ -11,9 +11,11 @@ import * as map from "./map.js";
 import { tileKey } from "./visibility.js";
 import { WALL_T, NEAR_STUB } from "./placeholders.js";
 
-// What you cannot see is dark but drawn: the world is there, you just are not
-// looking at it. Tuned by eye; the probe decides whether it reads.
-const FOG = "rgba(8, 10, 26, 0.74)";
+// What you cannot see is shaded but drawn: the world is there, you just are not
+// looking at it. Michael (2026-10-09): shade it clearly, never so dark that it
+// distracts from what is actually there. The first level, 0.74, was near black.
+// Dusky purple rather than blue-black, for the palette in docs/06-art.md.
+const FOG = "rgba(22, 14, 32, 0.46)";
 
 // How a room's near walls draw while you are inside it. "translucent": the same
 // full-height wall the outside sees, faded so the room stays readable, which

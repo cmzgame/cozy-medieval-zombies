@@ -32,6 +32,24 @@ export function generateFlat(ph) {
     ctx.strokeStyle = shade(ph.color, 0.85);
     ctx.lineWidth = 1;
     ctx.stroke();
+    if (ph.lines) {
+      // Furrows: lines parallel to the tile's north-east edge, for farm plots.
+      ctx.save();
+      poly(ctx, [[cx, 0], [cx + HW, cy], [cx, TH], [cx - HW, cy]]);
+      ctx.clip();
+      ctx.strokeStyle = ph.lines;
+      ctx.lineWidth = 2;
+      // Each furrow runs parallel to the south-west edge and is offset along
+      // the north-west edge direction, so the set sweeps across the diamond.
+      for (let k = 1; k <= 5; k++) {
+        const ox = k * (HW / 3);
+        ctx.beginPath();
+        ctx.moveTo(cx - HW + ox, cy - ox / 2);
+        ctx.lineTo(cx + ox, TH - ox / 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
     frames[`idle_${i}`] = [i * TW, 0, TW, TH];
   });
   return {
@@ -50,7 +68,9 @@ export function generateFlat(ph) {
 // ---------------------------------------------------------------------------
 // Wall thickness in screen pixels: the top face and end caps extend this far
 // "behind" the wall plane, which sells the diorama look.
-export const WALL_T = 6;
+// Thicker than the parent's 6 px: thin reads modern, thick reads chonky and
+// cosy (Michael, 2026-10-09).
+export const WALL_T = 12;
 
 export function generateWall(ph) {
   const h = ph.height;
@@ -219,6 +239,33 @@ function drawWallVariant(ctx, ox, oy, side, variant, ph, T) {
   poly(ctx, [a, b, [b[0], b[1] - h], [a[0], a[1] - h]]);
   ctx.fill();
 
+  // Face pattern: planks are courses along the wall; bricks add staggered seams.
+  if (ph.pattern) {
+    const lerpP = (t, y) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t - y];
+    const course = ph.pattern === "brick" ? 10 : 9;
+    ctx.strokeStyle = shade(color, f * 0.82);
+    ctx.lineWidth = 1;
+    let row = 0;
+    for (let y = course; y < h; y += course, row++) {
+      const p0 = lerpP(0, y);
+      const p1 = lerpP(1, y);
+      ctx.beginPath();
+      ctx.moveTo(p0[0], p0[1] + 0.5);
+      ctx.lineTo(p1[0], p1[1] + 0.5);
+      ctx.stroke();
+      if (ph.pattern === "brick") {
+        for (let t = row % 2 ? 0.25 : 0.5; t < 1; t += 0.5) {
+          const q0 = lerpP(t, y);
+          const q1 = lerpP(t, Math.min(h, y + course));
+          ctx.beginPath();
+          ctx.moveTo(q0[0] + 0.5, q0[1]);
+          ctx.lineTo(q1[0] + 0.5, q1[1]);
+          ctx.stroke();
+        }
+      }
+    }
+  }
+
   const isDoor = variant.startsWith("door") || variant === "stairs";
   const isWindow = variant.startsWith("window") || variant === "boarded";
   if (isDoor || isWindow) {
@@ -234,46 +281,9 @@ function drawWallVariant(ctx, ox, oy, side, variant, ph, T) {
       // finished (below), so the threshold tile and whatever stands in the
       // doorway show through. Nothing to draw here.
     } else {
-      // Glass is see-through: the room behind shows through the pane (docs/03-world-model.md).
-      ctx.fillStyle = variant === "window_broken" ? "rgba(32, 36, 44, 0.15)" : "rgba(158, 200, 224, 0.42)";
-      poly(ctx, quad);
-      ctx.fill();
-      ctx.strokeStyle = shade(color, 0.5);
-      ctx.lineWidth = 2;
-      poly(ctx, quad);
-      ctx.stroke();
-      if (variant === "window") {
-        // Cross bars
-        ctx.strokeStyle = shade(color, 0.6);
-        ctx.lineWidth = 1;
-        const m0 = lerp((t0 + t1) / 2, y0);
-        const m1 = lerp((t0 + t1) / 2, y1);
-        ctx.beginPath();
-        ctx.moveTo(m0[0], m0[1]);
-        ctx.lineTo(m1[0], m1[1]);
-        ctx.stroke();
-        const s0 = lerp(t0, (y0 + y1) / 2);
-        const s1 = lerp(t1, (y0 + y1) / 2);
-        ctx.beginPath();
-        ctx.moveTo(s0[0], s0[1]);
-        ctx.lineTo(s1[0], s1[1]);
-        ctx.stroke();
-      }
-      if (variant === "window_broken") {
-        // Jagged glass remnants
-        ctx.strokeStyle = "#cfe6f0";
-        ctx.lineWidth = 1;
-        const p1 = lerp(t0, y0);
-        const p2 = lerp(t0 + 0.15, y0 + (y1 - y0) * 0.3);
-        const p3 = lerp(t1, y1);
-        const p4 = lerp(t1 - 0.12, y1 - (y1 - y0) * 0.35);
-        ctx.beginPath();
-        ctx.moveTo(p1[0], p1[1]);
-        ctx.lineTo(p2[0], p2[1]);
-        ctx.moveTo(p3[0], p3[1]);
-        ctx.lineTo(p4[0], p4[1]);
-        ctx.stroke();
-      }
+      // Windows are open holes with a frame: no glass in this village, shutters
+      // later (Michael, 2026-10-09). The hole is punched out after the wall is
+      // finished, below, so the room shows through.
     }
     if (variant === "boarded" || variant === "door_boarded") {
       ctx.strokeStyle = "#8a6a3a";
@@ -308,6 +318,29 @@ function drawWallVariant(ctx, ox, oy, side, variant, ph, T) {
   ctx.lineTo(b[0], b[1]);
   ctx.stroke();
 
+  if (isWindow) {
+    const lerp = (t, y) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t - y];
+    const t0 = 0.25;
+    const t1 = 0.75;
+    const y0 = h * 0.35;
+    const y1 = h * 0.8;
+    const quad = [lerp(t0, y0), lerp(t1, y0), lerp(t1, y1), lerp(t0, y1)];
+    ctx.globalCompositeOperation = "destination-out";
+    poly(ctx, quad);
+    ctx.fill();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.strokeStyle = shade(color, 0.45);
+    ctx.lineWidth = 2;
+    poly(ctx, quad);
+    ctx.stroke();
+    // Sill: a lighter ledge along the bottom of the opening.
+    ctx.strokeStyle = shade(color, 1.15);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(quad[3][0], quad[3][1] - 1);
+    ctx.lineTo(quad[2][0], quad[2][1] - 1);
+    ctx.stroke();
+  }
   if (isDoor) {
     // Punch the doorway out of the finished wall, then draw jambs and lintel edge.
     const lerp = (t, y) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t - y];
