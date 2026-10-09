@@ -26,8 +26,9 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 - **Milestone 3 built, 2026-10-10:** the dead get in. Boards on both sides of any opening with `B`, the leaf with health, nothing repaired; the dead breach the nearest opening of the room they want into or out of, and climb through open windows. Scripted acceptance passed; Michael's night pending.
 - **Michael's first night, 2026-10-10:** "I like this a lot. The system works." Three things fixed from it: a boarded leaf drew as a see-through frame with three planks whatever the count, so the sheet now has a frame per count over a shut leaf and over an open one; a zombie paced outside a window because it was searching around a sighting inside the room, so a search now stays on the searcher's side of the walls; and a flame could pull a zombie you had just drawn off straight back, so a flame cannot take over for eight seconds after it last saw you. Two stuck on each other in a gap now drop their path after a second and a half of no progress.
 - **Milestone 3 accepted, 2026-10-10.** Michael: "Tested and working as desired."
-- **Blocked on:** nothing. Michael is taking a break.
-- **Next: interface, before combat.** Michael's call (2026-10-10): the inventory, right-click menus, click to move. The inventory is the cozy parent's grid, everything a tetris piece, copied and re-decided. Write its doc first (`docs/10`), then build; the melee port follows it.
+- **Milestone 4, the interface, designed 2026-10-10** (`docs/10-interface.md`) and building: the grid inventory, right-click menus, click to move, the health bar and moodles, logs and planks as items with Chop down and Split, the well. Michael said go ahead; the doc is there to overrule.
+- **Blocked on:** nothing.
+- **Next:** the melee port after the interface.
 - **Next:** build Milestone 3 in the order `docs/09` gives, then the melee port. Together they make "a night in the cottage"., with the dead breaking in (doors barred from inside, boards, broken shutters, how the dead get through a door, how slow and loud a climb is). Write its doc first, then build. Then the melee port. Together they make "a night in the cottage". Openings with the dead breaking in and the melee port follow, which together make "a night in the cottage".
 - **Notes:** the debug corner shows the cost of a logic step and the worst step in the last three seconds; a freeze should show up there first. Run `python serve.py 8010` in this repo (the file serves its own folder, so it can be launched from elsewhere). `V` toggles the fog off to compare. Michael plays in the in-app browser pane while work happens, so scripted tests see his inputs.
 - **Notes:** Michael wants to burn this week's credits on this. He likes a pause between phases (docs, then build) and plays in his own browser while work happens. Nothing from either parent is gospel.
@@ -85,6 +86,13 @@ Each step checkable on its own. Michael looks after step 3.
 - [x] Phase 2 (2026-10-09): `gl.js` and the WebGL `render.js` at parity: one atlas, one vertex buffer, one shader; light and ambient and fog textures over the chunks around the camera; holes as uniforms; flat triangles for posts, leaves, brackets; a flame sheet. Old renderer kept as `render-canvas.js` on `G`. About 1 ms of JavaScript a frame against 4 to 5. Michael, mid-build: "MILES better, and I could not produce a single weird polygon bug anymore. Wall shading suddenly feels way more intuitive."
 - [x] Phase 3 (2026-10-09): pools climb walls and trunks (`night.climb`, 56 px); flames flicker in the light from per-source layers summed with weights at upload; `L` cycles debug views of the light, ambient, and fog textures; `night.standingFloor` is the legibility floor (0 until it is needed); `night.linear` false gives the per-cell look.
 - [x] Acceptance, scripted (2026-10-09): day and night smooth with no texture touched; the campfire's light beyond a wall placed from the console drops on the next step and returns when it is removed; the hearth's spill through the window and door comes from the portals and stops with the shutter; several lights in view at once; the light reads the same either side of a chunk edge; sorting unchanged; every lookup takes a layer; pixels crisp with nearest sampling; the four views that broke the Canvas night look right and a bracket torch lights its wall from the base. Accepted by Michael the same night; the Canvas renderer is deleted.
+
+## Milestone 4 — The interface (see `docs/10-interface.md`)
+
+- [ ] Copy the grid, bag, items, menu, panel, prompt, HUD, moodles; CSS; fresh item and loot data; floor items; the bag with the starter kit, hands wired to it.
+- [ ] `interact.js` on the action shape: items, containers, openings, fires, torches, trees, the well, Walk here; right-click menus, E, auto-walk, click to move, timed actions.
+- [ ] Hunger and thirst, eating and drinking, the moodle row, the health bar.
+- [ ] Acceptance: the nine checks in `docs/10`.
 
 ## Milestone 3 — Openings, and the dead get in (see `docs/09-openings.md`)
 
