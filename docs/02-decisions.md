@@ -6,7 +6,7 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ### 2026-10-09, night — The renderer goes to WebGL (Michael)
 
-Built the same night, all three phases (`08-renderer.md`). Michael at Phase 2: "MILES better, and I could not produce a single weird polygon bug anymore. Wall shading suddenly feels way more intuitive." The Canvas renderer stays on the `G` key until he accepts the whole.
+Built the same night, all three phases (`08-renderer.md`). Michael at Phase 2: "MILES better, and I could not produce a single weird polygon bug anymore. Wall shading suddenly feels way more intuitive." At the end of Phase 3: "THIS is the right system. It looks amazing." Accepted; the Canvas renderer is deleted. The light debug view is "like looking at the map with infrared goggles on."
 
 Michael took the lighting problem to an outside agent with only the lighting and scaling parts of the game described, and brought back a spec (`medieval_pixel_world_game_spec.md`, in his downloads) recommending PixiJS on WebGL. Read together on 2026-10-09; most of its architecture is what we already have (authoritative world data, derived light maps per chunk, materials apart from art, emitters as data, rooms found not authored). Rulings:
 

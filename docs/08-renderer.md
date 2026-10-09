@@ -24,7 +24,7 @@ Accept when: at midnight, a lit cottage with the hearth far from its window stil
 
 ## Phase 2 — the WebGL renderer, at parity
 
-`src/gl.js` and a rewritten `render.js`, behind the same `renderScene` signature. The old `render.js` is kept as `render-canvas.js` until Phase 3 is accepted, then deleted.
+`src/gl.js` and a rewritten `render.js`, behind the same `renderScene` signature. The old `render.js` was kept as `render-canvas.js` on a `G` key for the side-by-side until Phase 3 was accepted on 2026-10-09, then deleted.
 
 - **Context.** WebGL2 on the same canvas, `antialias: false`, `premultipliedAlpha: true`. Integer display scaling stays CSS. If WebGL2 is missing, say so on the debug corner; no fallback renderer.
 - **Textures.** One per sprite sheet, uploaded from its canvas at load, `NEAREST` and `CLAMP_TO_EDGE`. A 1×1 white texture for flat polygons (posts, swung leaves, brackets, debug marks). Sheets are not atlased; a draw call per run of consecutive drawables that share a texture, which is a few hundred calls a frame at most. Atlas later only if it shows.

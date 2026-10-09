@@ -12,7 +12,7 @@ Started 2026-10-08 as the marriage of two earlier prototypes: `cozy-zombie-game`
 python serve.py 8010
 ```
 
-Then open http://localhost:8010. WASD or arrows to walk, Shift to sprint, mouse to aim. At a door, tap `E` to open or close it. At a window, tap `E` to open or close the shutters and hold `E` to climb through. `T` takes the torch in hand. `]` and `[` move the clock an hour. `V` toggles the fog of what you cannot see, `C` switches how near walls draw, `L` cycles debug views of the light, ambient, and fog textures, `G` shows the old Canvas 2D renderer for comparison.
+Then open http://localhost:8010. WASD or arrows to walk, Shift to sprint, mouse to aim. At a door, tap `E` to open or close it. At a window, tap `E` to open or close the shutters and hold `E` to climb through. `T` takes the torch in hand. `]` and `[` move the clock an hour. `V` toggles the fog of what you cannot see, `C` switches how near walls draw, `L` cycles debug views of the light, ambient, and fog textures.
 
 ## Status
 

@@ -15,7 +15,6 @@ import * as clock from "./clock.js";
 import * as light from "./light.js";
 import * as gl from "./gl.js";
 import { renderScene, setCutaway, cutaway, night } from "./render.js";
-import * as renderCanvas from "./render-canvas.js";
 import { createPlayer, updatePlayer, damagePlayer } from "./entities/player.js";
 import { createZombie, updateZombie } from "./entities/zombie.js";
 import { initHud, updateHud } from "./ui/hud.js";
@@ -29,25 +28,15 @@ const MAP_FILE = "data/maps/square.json";
 const ACTIVE_TILES = 40; // the dead beyond this many tiles from the player do not think
 
 const canvas = document.getElementById("game");
-const canvas2d = document.getElementById("game2d");
-const ctx2d = canvas2d.getContext("2d");
-ctx2d.imageSmoothingEnabled = false;
 const ui = document.getElementById("ui");
 const debugEl = document.getElementById("debug");
-// The world is drawn in WebGL (docs/08); the Canvas 2D renderer stays on the
-// G key for a side-by-side until Phase 3 is accepted.
-let renderer = "gl";
+// The world is drawn in raw WebGL2 (docs/08). There is no other renderer: if
+// WebGL2 is missing the debug corner says so and nothing is drawn.
 let glError = null;
 try {
   gl.init(canvas);
 } catch (err) {
-  renderer = "canvas";
   glError = err.message;
-}
-
-function showRenderer() {
-  canvas.style.visibility = renderer === "gl" ? "visible" : "hidden";
-  canvas2d.style.visibility = renderer === "gl" ? "hidden" : "visible";
 }
 
 let info = null;
@@ -68,11 +57,6 @@ function resize() {
   canvas.style.height = `${CANVAS_H * scale}px`;
   input.setScale(scale);
   const rect = canvas.getBoundingClientRect();
-  canvas2d.style.width = canvas.style.width;
-  canvas2d.style.height = canvas.style.height;
-  canvas2d.style.left = `${rect.left}px`;
-  canvas2d.style.top = `${rect.top}px`;
-  showRenderer();
   ui.style.left = `${rect.left}px`;
   ui.style.top = `${rect.top}px`;
   ui.style.width = `${CANVAS_W}px`;
@@ -84,16 +68,8 @@ function resize() {
 function update(dt) {
   const t0 = performance.now();
   if (input.wasPressed("KeyV")) drawAll = !drawAll;
-  if (input.wasPressed("KeyC")) {
-    const mode = cutaway === "stub" ? "translucent" : "stub";
-    setCutaway(mode);
-    renderCanvas.setCutaway(mode);
-  }
+  if (input.wasPressed("KeyC")) setCutaway(cutaway === "stub" ? "translucent" : "stub");
   if (input.wasPressed("KeyL")) night.debug = (night.debug + 1) % 4;
-  if (input.wasPressed("KeyG") && !glError) {
-    renderer = renderer === "gl" ? "canvas" : "gl";
-    showRenderer();
-  }
   // Debug: ] and [ skip the clock an hour forward or back.
   if (input.wasPressed("BracketRight")) clock.setHour(clock.getHour() + 1);
   if (input.wasPressed("BracketLeft")) clock.setHour(clock.getHour() - 1);
@@ -166,13 +142,7 @@ function render() {
     drawAll,
     fog: !drawAll,
   };
-  if (renderer === "gl") {
-    drawn = renderScene(scene);
-  } else {
-    ctx2d.fillStyle = "#16121c";
-    ctx2d.fillRect(0, 0, CANVAS_W, CANVAS_H);
-    drawn = renderCanvas.renderScene(ctx2d, scene);
-  }
+  if (!glError) drawn = renderScene(scene);
   timing.render = performance.now() - r0;
   const [cx, cy] = map.chunkCoord(Math.round(player.gx), Math.round(player.gy));
   debugEl.textContent =
@@ -182,7 +152,7 @@ function render() {
     `chunk ${cx},${cy}  room ${playerRoom}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `zombies ${zombies.length}  near ${zombies.filter((z) => Math.abs(z.gx - player.gx) <= ACTIVE_TILES && Math.abs(z.gy - player.gy) <= ACTIVE_TILES).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
-    `V: ${drawAll ? "showing everything" : "fog on"}   C: near walls ${cutaway}   ] [: skip an hour   T: torch   G: renderer ${renderer}${glError ? ` (WebGL2 unavailable: ${glError})` : ""}   L: debug view ${["off", "light", "ambient", "fog"][night.debug]}`;
+    `V: ${drawAll ? "showing everything" : "fog on"}   C: near walls ${cutaway}   ] [: skip an hour   T: torch   L: debug view ${["off", "light", "ambient", "fog"][night.debug]}`;
 }
 
 async function boot() {
@@ -210,7 +180,7 @@ async function boot() {
 
   window.__game = {
     iso, input, loop, assets, events, map, camera, visibility, interact, clock, light, items,
-    render: { night, canvasNight: renderCanvas.night, get renderer() { return renderer; } },
+    render: { night },
     get player() { return player; },
     get zombies() { return zombies; },
     get tiles() { return tiles; },

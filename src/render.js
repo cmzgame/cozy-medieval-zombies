@@ -1,6 +1,6 @@
-// The WebGL renderer (docs/08-renderer.md, Phase 2). Builds the same drawable
-// list as the Canvas 2D renderer it replaces (kept as render-canvas.js for a
-// side-by-side on the G key), in the same sort order, but every drawable
+// The WebGL renderer (docs/08-renderer.md). Builds the drawable list the
+// Canvas 2D renderer built before it (the same sort order; that renderer was
+// deleted on 2026-10-09 when Michael accepted this one), but every drawable
 // pushes quads and polygons into gl.js's batch with the world point its light
 // is read from: a floor pixel its own point, a standing thing its foot, a wall
 // face a point along its foot line, a wall top the sky. The shader samples
@@ -21,8 +21,8 @@ import * as gl from "./gl.js";
 
 // The night, as before: tunables Michael picks by eye, live on
 // window.__game.render.night. `climb` is how many pixels a pool climbs a wall
-// face (0 is the Canvas renderer's flat face); `linear` is the light
-// sampling, false for the per-cell look.
+// face (0 for a flat face); `linear` is the light sampling, false for the
+// per-cell look.
 export const night = {
   tint: "36, 22, 56",
   alpha: 0.96,
