@@ -6,7 +6,9 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ### 2026-10-10 — Openings (Michael)
 
-The milestone after the renderer: the dead get in. Design in `09-openings.md`.
+The milestone after the renderer: the dead get in. Design in `09-openings.md`. **Accepted the same day**: "Tested and working as desired." His first night found four things, fixed: boards drawn by count, the search staying on the searcher's side of the walls, a flame unable to retake a zombie for eight seconds after it saw you, and a stuck pair dropping their path.
+
+- **Interface before combat.** Michael, 2026-10-10: before the melee port, the inventory, right-click menus, and click to move. The inventory is the cozy parent's grid, everything a tetris piece; its rulings (a grid, no weight, right-click as the complete interface, E as the shortcut for the nearest simple action, out-of-range actions auto-walk) are inputs to re-decide at that milestone, not rules yet. Noted, not designed; the doc comes first when the break ends.
 
 - **Boards only, no bars.** Michael, on reading the first draft: bars and boards together are too fussy. Planks on either side of a door or a window, two or three a side, and the leaf (the door itself, or the shutters) has health of its own. One kind of thing, one number.
 - **An opening is a stack, read from the attacker's side**: that side's boards, then the leaf, then the far side's boards. A zombie outside a door boarded on both sides breaks the outside boards, then the door, then the inside boards, and then it is an opening again. Nothing can be walked or pathed through while a board stands on either side. One rule, no special cases.

@@ -25,8 +25,9 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 - **Openings ruled and designed, 2026-10-10:** bars on both sides, the opening as a stack read from the attacker's side, the dead climb through windows and attack the room's nearest opening, nothing breaks a wall, sealed derived per room. `docs/09-openings.md`.
 - **Milestone 3 built, 2026-10-10:** the dead get in. Boards on both sides of any opening with `B`, the leaf with health, nothing repaired; the dead breach the nearest opening of the room they want into or out of, and climb through open windows. Scripted acceptance passed; Michael's night pending.
 - **Michael's first night, 2026-10-10:** "I like this a lot. The system works." Three things fixed from it: a boarded leaf drew as a see-through frame with three planks whatever the count, so the sheet now has a frame per count over a shut leaf and over an open one; a zombie paced outside a window because it was searching around a sighting inside the room, so a search now stays on the searcher's side of the walls; and a flame could pull a zombie you had just drawn off straight back, so a flame cannot take over for eight seconds after it last saw you. Two stuck on each other in a gap now drop their path after a second and a half of no progress.
-- **Blocked on:** Michael's second night.
-- **Next after his verdict:** the melee port.
+- **Milestone 3 accepted, 2026-10-10.** Michael: "Tested and working as desired."
+- **Blocked on:** nothing. Michael is taking a break.
+- **Next: interface, before combat.** Michael's call (2026-10-10): the inventory, right-click menus, click to move. The inventory is the cozy parent's grid, everything a tetris piece, copied and re-decided. Write its doc first (`docs/10`), then build; the melee port follows it.
 - **Next:** build Milestone 3 in the order `docs/09` gives, then the melee port. Together they make "a night in the cottage"., with the dead breaking in (doors barred from inside, boards, broken shutters, how the dead get through a door, how slow and loud a climb is). Write its doc first, then build. Then the melee port. Together they make "a night in the cottage". Openings with the dead breaking in and the melee port follow, which together make "a night in the cottage".
 - **Notes:** the debug corner shows the cost of a logic step and the worst step in the last three seconds; a freeze should show up there first. Run `python serve.py 8010` in this repo (the file serves its own folder, so it can be launched from elsewhere). `V` toggles the fog off to compare. Michael plays in the in-app browser pane while work happens, so scripted tests see his inputs.
 - **Notes:** Michael wants to burn this week's credits on this. He likes a pause between phases (docs, then build) and plays in his own browser while work happens. Nothing from either parent is gospel.
@@ -100,8 +101,9 @@ Porting order, each one milestone, each with its own doc. Order is a guess and w
 
 - ~~Lighting~~: now Milestone 2, above.
 - ~~Openings~~: now Milestone 3, above.
-- Combat port: melee rework, shove, knockdown. Sword and spear as the first two lines.
-- Inventory, items, moodles, hunger, thirst. Everything is an item.
+- Interface (next): the grid inventory from the cozy parent, tetris pieces, no weight; right-click menus as the complete interface; click to move with auto-walk to out-of-range actions; the stand-in keys (T, B, E at fires) fold into it. Items become real: logs and planks stop being free.
+- Combat port, after the interface: melee rework, shove, knockdown. Sword and spear as the first two lines.
+- Moodles, hunger, thirst.
 - Records beyond the active region: alarm, lure, trickle.
 - Save and load, start screen, pause.
 - Bow and crossbow with recoverable arrows.
