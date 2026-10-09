@@ -182,244 +182,6 @@
         13
       ],
       "solid": false
-    },
-    {
-      "sprite": "tree_big",
-      "tile": [
-        2,
-        13
-      ]
-    },
-    {
-      "sprite": "tree",
-      "tile": [
-        4,
-        15
-      ]
-    },
-    {
-      "sprite": "tree_blue",
-      "tile": [
-        6,
-        14
-      ]
-    },
-    {
-      "sprite": "tree_purple",
-      "tile": [
-        3,
-        18
-      ]
-    },
-    {
-      "sprite": "tree",
-      "tile": [
-        6,
-        18
-      ]
-    },
-    {
-      "sprite": "tree_big",
-      "tile": [
-        8,
-        21
-      ]
-    },
-    {
-      "sprite": "tree_blue",
-      "tile": [
-        4,
-        22
-      ]
-    },
-    {
-      "sprite": "tree",
-      "tile": [
-        7,
-        24
-      ]
-    },
-    {
-      "sprite": "tree_purple",
-      "tile": [
-        2,
-        26
-      ]
-    },
-    {
-      "sprite": "tree",
-      "tile": [
-        5,
-        28
-      ]
-    },
-    {
-      "sprite": "tree_amber",
-      "tile": [
-        9,
-        27
-      ]
-    },
-    {
-      "sprite": "tree_blue",
-      "tile": [
-        3,
-        30
-      ]
-    },
-    {
-      "sprite": "tree_big",
-      "tile": [
-        7,
-        31
-      ]
-    },
-    {
-      "sprite": "tree",
-      "tile": [
-        4,
-        5
-      ]
-    },
-    {
-      "sprite": "tree_blue",
-      "tile": [
-        2,
-        8
-      ]
-    },
-    {
-      "sprite": "tree_purple",
-      "tile": [
-        9,
-        2
-      ]
-    },
-    {
-      "sprite": "tree",
-      "tile": [
-        21,
-        1
-      ]
-    },
-    {
-      "sprite": "tree_big",
-      "tile": [
-        24,
-        4
-      ]
-    },
-    {
-      "sprite": "tree_blue",
-      "tile": [
-        27,
-        7
-      ]
-    },
-    {
-      "sprite": "tree_amber",
-      "tile": [
-        29,
-        2
-      ]
-    },
-    {
-      "sprite": "tree_purple",
-      "tile": [
-        29,
-        10
-      ]
-    },
-    {
-      "sprite": "tree",
-      "tile": [
-        30,
-        13
-      ]
-    },
-    {
-      "sprite": "tree_big",
-      "tile": [
-        28,
-        19
-      ]
-    },
-    {
-      "sprite": "tree_blue",
-      "tile": [
-        30,
-        22
-      ]
-    },
-    {
-      "sprite": "tree",
-      "tile": [
-        27,
-        24
-      ]
-    },
-    {
-      "sprite": "tree_purple",
-      "tile": [
-        31,
-        26
-      ]
-    },
-    {
-      "sprite": "tree",
-      "tile": [
-        29,
-        29
-      ]
-    },
-    {
-      "sprite": "tree_big",
-      "tile": [
-        22,
-        26
-      ]
-    },
-    {
-      "sprite": "tree",
-      "tile": [
-        19,
-        29
-      ]
-    },
-    {
-      "sprite": "tree_blue",
-      "tile": [
-        16,
-        27
-      ]
-    },
-    {
-      "sprite": "tree_amber",
-      "tile": [
-        13,
-        29
-      ]
-    },
-    {
-      "sprite": "tree_purple",
-      "tile": [
-        10,
-        30
-      ]
-    },
-    {
-      "sprite": "tree",
-      "tile": [
-        24,
-        30
-      ]
-    },
-    {
-      "sprite": "tree_big",
-      "tile": [
-        17,
-        31
-      ]
     }
   ],
   "spawn": [
@@ -439,5 +201,101 @@
       19,
       28
     ]
+  ],
+  "scatter": [
+    {
+      "rect": [
+        0,
+        0,
+        32,
+        32
+      ],
+      "density": 0.035,
+      "kinds": {
+        "tree_oak": 4,
+        "tree_orange": 3,
+        "tree_yellow": 2,
+        "tree_red": 2
+      },
+      "seed": 11
+    },
+    {
+      "rect": [
+        0,
+        9,
+        8,
+        23
+      ],
+      "density": 0.2,
+      "kinds": {
+        "tree_oak": 4,
+        "tree_orange": 3,
+        "tree_yellow": 2,
+        "tree_red": 2
+      },
+      "seed": 12
+    },
+    {
+      "rect": [
+        26,
+        0,
+        6,
+        32
+      ],
+      "density": 0.2,
+      "kinds": {
+        "tree_oak": 4,
+        "tree_orange": 3,
+        "tree_yellow": 2,
+        "tree_red": 2
+      },
+      "seed": 13
+    },
+    {
+      "rect": [
+        8,
+        25,
+        18,
+        7
+      ],
+      "density": 0.17,
+      "kinds": {
+        "tree_oak": 4,
+        "tree_orange": 3,
+        "tree_yellow": 2,
+        "tree_red": 2
+      },
+      "seed": 14
+    },
+    {
+      "rect": [
+        0,
+        0,
+        10,
+        7
+      ],
+      "density": 0.15,
+      "kinds": {
+        "tree_oak": 4,
+        "tree_orange": 3,
+        "tree_yellow": 2,
+        "tree_red": 2
+      },
+      "seed": 15
+    },
+    {
+      "rect": [
+        0,
+        0,
+        32,
+        32
+      ],
+      "density": 0.012,
+      "kinds": {
+        "tree_oak_old": 3,
+        "tree_orange_old": 2
+      },
+      "seed": 16
+    }
   ]
 }

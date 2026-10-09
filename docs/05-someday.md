@@ -9,6 +9,7 @@ Started 2026-10-08.
 - **Roofs.** Drawn and hidden when inside. Not for the probe, no real art yet. Nothing in the renderer may assume buildings are open to the sky forever.
 - **Upper floors.** Single storey first; tile data carries a layer index from day one. Z-layers in the chunk or separate areas via stairs, decided after the probe.
 - **Building and expanding.** Find a castle and expand it. Kept open at zero cost by walls-as-tiles and flood-fill rooms. Also the dev tool: a creative mode that places tiles is how the village gets authored. Question 14 in `02-decisions.md`.
+- **Zones, or biomes.** Regions of the map with their own register: the harvest village now, a Tirisfal-gloomy wood later with blue and purple trees, the plague doctor, scarecrow men. A zone is a rectangle with a palette and a scatter mix, which the scatter rule already half is. Michael's rule: harvest first, until the farming game is fun.
 - **The countryside.** Block storage allows the world to grow past the village. Authored places, generated fields between. Question 9 in `02-decisions.md`.
 - **A zoom-out.** Integer scaling makes it awkward. Revisit if the village feels cramped at Zomboid's 100 percent.
 - **Infection, treatable.** The cozy parent's "not now, not never". Moodles leave the door open with a queasy icon that might be bad stew or might be the bite.

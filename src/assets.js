@@ -100,7 +100,7 @@ export async function loadMapSprites(json) {
     want(b.floor);
     for (const p of b.props || []) want(p.sprite, (p.footprint?.[0] || 1) * (p.footprint?.[1] || 1));
   }
-  for (const b of json.buildings || []) for (const o of b.openings || []) if (o.kind) want(b.wall);
+  for (const sc of json.scatter || []) for (const id in sc.kinds || {}) want(id, (sc.footprint?.[0] || 1) * (sc.footprint?.[1] || 1));
   want("player");
   want("zombie");
   await Promise.all([...ids].map(([id, n]) => loadSprite(id, { tileCount: n })));

@@ -13,7 +13,7 @@ Michael's clearest statement of the vibe (2026-10-09), word-vomit mood board and
 - **The cosy register is aggressively autumn.** Harvest colours, pumpkins, ochre and amber. The north star: it can never get so grim that farming feels bad.
 - **The gloomy register is Tirisfal.** Dark, earthy, blues and purples and greens mixed in. A green vial of poison. A plague doctor. Not as bright as Tirisfal itself.
 
-It is a balancing act the whole way, by place and by time of day. Trees come in both: dusky blue and purple canopies beside the green, and the occasional amber one so the wood has a harvest edge. More forest than plains.
+It is a balancing act the whole way, and the answer is **by zone**: the two registers do not share a wood. Blue and purple canopies next to orange ones looked like Halloween candy (2026-10-09), so the first map is all harvest, and the gloomy register's trees wait on file for a zone of their own. More forest than plains, and the forest is scattered by rule rather than placed by hand.
 
 ## Rules for dev art
 
@@ -40,7 +40,9 @@ It is a balancing act the whole way, by place and by time of day. Trees come in 
 | Stone floor | `#67645e` / `#5f5c56` | |
 | Wood wall | `#6e4b32` planks | |
 | Stone wall | `#7b7670` bricks | |
-| Trees | green `#3b5a39` / `#365236`, blue `#3a4e62`, purple `#4a3b5e`, amber `#8a5a26` | 118 to 150 px tall, 72 to 96 wide; big, and they overlap |
+| Trees, harvest | oak `#3f5a33`, orange `#a4602a`, yellow `#b09038`, red `#8c3a2c`, trunks `#4a3324` | 112 to 126 px tall; big, and they overlap |
+| Old giants | oak `#36502e`, orange `#9a5826`, trunks `#3e2a1c` | 186 to 196 px tall, 124 to 134 wide; about one in eighty tiles |
+| Trees, gloom (on file) | blue `#3a4e62`, purple `#4a3b5e` | for a later zone, not placed |
 | Player | shirt `#d3c8b0`, breeches `#5a4030`, boots `#3a2a1c` | dirty off-white and brown, no denim |
 | The dead | unchanged | dusty purple shirt, kept |
 | Bed | `#8a4a44` | a muted red accent |

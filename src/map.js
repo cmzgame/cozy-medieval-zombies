@@ -406,7 +406,36 @@ export function createProp(def, offset = [0, 0]) {
   };
 }
 
+// Seeded random, so a map's scatter grows the same way every load (mulberry32).
+function seededRandom(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Pick a key from { key: weight } with a 0..1 roll.
+function weightedPick(weights, roll) {
+  let total = 0;
+  for (const k in weights) total += weights[k];
+  let r = roll * total;
+  for (const k in weights) {
+    r -= weights[k];
+    if (r <= 0) return k;
+  }
+  return Object.keys(weights)[0];
+}
+
 // Build an authored-tile lookup from a map file, then reset the map onto it.
+// Authored: floors, roads, buildings, placed props. Scattered: filler such as
+// trees, by rule (a rectangle, a density, a mix of kinds, a seed), only onto
+// the default floor, never on or beside a wall, never on a placed prop.
+// Michael (2026-10-09): author the roads, buildings, and any water; scatter
+// the rest.
 export function loadMap(json) {
   const authored = new Map();
   const key = (x, y) => `${x},${y}`;
@@ -452,6 +481,33 @@ export function loadMap(json) {
     }
     for (const p of b.props || []) placeProp(p, [bx, by]);
   }
-  reset({ floor: json.floor || "floor_grass", authored: (x, y) => authored.get(key(x, y)) || null });
+  const baseFloor = json.floor || "floor_grass";
+  const hasWallNear = (x, y) => {
+    const t = authored.get(key(x, y));
+    if (t && (t.n || t.w)) return true;
+    const e = authored.get(key(x + 1, y));
+    if (e && e.w) return true;
+    const s = authored.get(key(x, y + 1));
+    if (s && s.n) return true;
+    return false;
+  };
+  for (const sc of json.scatter || []) {
+    const rnd = seededRandom(sc.seed ?? 1);
+    const [x0, y0, w, h] = sc.rect;
+    const footprint = sc.footprint || [1, 1];
+    for (let y = y0; y < y0 + h; y++) {
+      for (let x = x0; x < x0 + w; x++) {
+        const roll = rnd();
+        const kindRoll = rnd();
+        if (roll >= sc.density) continue;
+        const t = authored.get(key(x, y));
+        if (t && (t.floor !== baseFloor || t.prop)) continue;
+        if (t && t.room !== 0) continue;
+        if (hasWallNear(x, y)) continue;
+        placeProp({ sprite: weightedPick(sc.kinds, kindRoll), tile: [x, y], footprint, solid: sc.solid !== false, opaque: !!sc.opaque }, [0, 0]);
+      }
+    }
+  }
+  reset({ floor: baseFloor, authored: (x, y) => authored.get(key(x, y)) || null });
   return { props, spawn: json.spawn || [0, 0], zombies: json.zombies || [], name: json.name || "map" };
 }
