@@ -225,7 +225,44 @@ function wildTile(x, y) {
 }
 
 export function createTile(floor = defaultFloor) {
-  return { floor, n: null, w: null, prop: null, room: 0 };
+  return { floor, n: null, w: null, prop: null, room: 0, items: null };
+}
+
+// ---- items on the floor (docs/10) ----
+// Entries { id, count, fill? } lying on a tile; the list is made on first use.
+
+export function itemsAt(x, y, layer = 0) {
+  return tileAt(x, y, layer).items || [];
+}
+
+export function dropItem(x, y, entry, layer = 0) {
+  const t = tileAt(x, y, layer);
+  if (!t.items) t.items = [];
+  const { id, count, fill } = entry;
+  const e = { id, count };
+  if (fill != null) e.fill = fill;
+  t.items.push(e);
+  return e;
+}
+
+export function takeItem(x, y, entry, layer = 0) {
+  const t = tileAt(x, y, layer);
+  if (!t.items) return false;
+  const i = t.items.indexOf(entry);
+  if (i >= 0) t.items.splice(i, 1);
+  if (!t.items.length) t.items = null;
+  return i >= 0;
+}
+
+// Clear a prop from every tile it stands on. Felling a tree is this plus logs
+// on the ground (docs/02: nothing caches a tree anywhere else).
+export function removeProp(prop) {
+  for (const [tx, ty] of prop.tiles) {
+    const t = tileAt(tx, ty);
+    if (t.prop === prop) t.prop = null;
+  }
+  fireProps.delete(prop);
+  touch();
 }
 
 // A wall segment on a tile edge. kind: "wall" | "door" | "window". A window has
@@ -860,6 +897,13 @@ export function createProp(def, offset = [0, 0]) {
     opaque: !!def.opaque,
     radius: w === 1 && h === 1 ? radius : 0,
     fire: null,
+    // docs/10: a container has a bag made on first search from its loot
+    // table; a tree has wood to chop; the well has water.
+    container: sdef.container ? { ...sdef.container } : null,
+    bag: null,
+    searched: false,
+    wood: sdef.wood || 0,
+    water: !!sdef.water,
   };
   // Fire is data on the sprite definition (docs/07-lighting.md): a light
   // radius, whether it lights its whole room, burns wood, cooks. Live state

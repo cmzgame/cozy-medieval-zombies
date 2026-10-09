@@ -1,32 +1,485 @@
-// Interaction with the world: doors, windows, fires, torches, and boards.
-// Zomboid's scheme, which Michael remembered right and we checked (2026-10-09):
-// tap E to open or close, hold E to climb through an open window. Doors only
-// open and close. Fires (docs/07): tap E to light a hearth or a campfire with
-// a log, or to add one; logs are free until the inventory exists. Torches: tap
-// E at a bracket or a post to take the torch into the off-hand or to mount
-// the one you hold. Boards (docs/09): tap B to nail a plank on your side of a
-// door or a window, hold B to pull one, and it is gone; planks are free until
-// the inventory. B is a stand-in key until there is more interface.
+// Interaction: what can be done to the world (docs/10-interface.md). Rewritten
+// on cozy-zombie-game src/interact.js's action shape on 2026-10-10:
+//
+//   { kind, label, tiles, mx, my, range, duration, enabled, simple, perform() }
+//
+// `tiles` is where the target is; the player must be within `range` of one of
+// them. Right-click builds a menu of every action under the cursor
+// (actionsAt); E runs the nearest simple action in range (nearestSimpleAction);
+// an action out of range auto-walks the player there first (runAction). Timed
+// actions show the prompt's bar and cancel on movement. The stand-in keys stay
+// as shortcuts: hold E climbs an open window, B boards, T takes the torch.
 
+import * as iso from "./iso.js";
 import * as input from "./input.js";
-import { openingsNear, burnersNear, bracketsNear, holdersNear, feedFire, holderHas, setHolder, touch, boarded, climbable, sideOf, addBoard, pullBoard, BOARDS_PER_SIDE } from "./map.js";
-import { startClimb } from "./entities/player.js";
-import { hold, release, holding, canHold } from "./items.js";
+import * as map from "./map.js";
+import { getSheet } from "./assets.js";
+import { getItem, hold, release, holding, canHold, containerGrid, rollLoot } from "./items.js";
+import { addItem, removeItem, countItem, createBag, waterContainers, fixHands } from "./inventory.js";
+import * as grid from "./grid.js";
+import { startClimb, autoWalk, eat, drink } from "./entities/player.js";
+import { showMessage } from "./ui/prompt.js";
+import { emit } from "./events.js";
 
-export const REACH = 1.15; // tiles from the player to the opening's midpoint
+export const INTERACT_RANGE = 1.15; // tiles
+export const SEARCH_TIME = 1.0;
+export const BOARD_TIME = 2.0;
+export const PULL_TIME = 1.5;
+export const CHOP_TIME = 3.0;
+export const DRINK_TIME = 1.5;
+export const FILL_TIME = 2.0;
 export const HOLD_TIME = 0.35; // seconds of a key that count as a hold
 
-// A tap-or-hold tracker per key.
+export function distToTiles(player, tiles) {
+  let best = Infinity;
+  for (const [tx, ty] of tiles) best = Math.min(best, Math.hypot(player.gx - tx, player.gy - ty));
+  return best;
+}
+
+function act(a) {
+  return { range: INTERACT_RANGE, duration: 0, enabled: true, simple: false, ...a };
+}
+
+// ---- action builders ----
+
+function itemActions(entry, tx, ty, player) {
+  const def = getItem(entry.id);
+  const fill = entry.fill != null ? ` (${Math.round(entry.fill)}%)` : "";
+  const count = entry.count > 1 ? ` (${entry.count})` : "";
+  return [act({
+    kind: "item",
+    simple: true,
+    label: `Pick up ${def.name}${fill}${count}`,
+    tiles: [[tx, ty]],
+    mx: tx,
+    my: ty,
+    perform() {
+      const added = addItem(player.bag, entry.id, entry.count, entry.fill != null ? { fill: entry.fill } : {});
+      if (added <= 0) {
+        showMessage("No room in your bag.");
+        return false;
+      }
+      entry.count -= added;
+      if (entry.count <= 0) map.takeItem(tx, ty, entry);
+      return true;
+    },
+  })];
+}
+
+// A container prop's bag, made on first use from its loot table's grid.
+export function bagOf(prop) {
+  if (!prop.bag) {
+    const [cols, rows] = containerGrid(prop.container.loot);
+    prop.bag = createBag(cols, rows, prop.sprite.replace(/_/g, " "));
+    prop.searched = false;
+  }
+  return prop.bag;
+}
+
+function containerActions(prop) {
+  const name = prop.sprite.replace(/_/g, " ");
+  return [act({
+    kind: "container",
+    simple: true,
+    label: prop.searched ? `Open ${name}` : `Search ${name}`,
+    tiles: prop.tiles,
+    mx: prop.tile[0],
+    my: prop.tile[1],
+    duration: prop.searched ? 0 : SEARCH_TIME,
+    perform() {
+      const bag = bagOf(prop);
+      if (!prop.searched) {
+        prop.searched = true;
+        // Rolled loot is placed into the grid; what does not fit is not spawned.
+        if (!bag.items.length) grid.fill(bag, rollLoot(prop.container.loot));
+      }
+      emit("containerOpened", { prop });
+      return true;
+    },
+  })];
+}
+
+// Hearths and campfires take a log from the bag (docs/07; logs stopped being free with docs/10).
+function fireActions(prop, player) {
+  const f = prop.fire;
+  if (!f || !f.burns) return [];
+  const name = prop.sprite.replace(/_/g, " ");
+  const logs = countItem(player.bag, "log");
+  const full = f.fuel >= f.maxFuel;
+  let label;
+  if (!f.lit) label = logs ? `Light the ${name}` : `Light the ${name} (need a log)`;
+  else if (full) label = `${name}: full (${f.maxFuel}/${f.maxFuel})`;
+  else label = logs ? `Add a log (${Math.ceil(f.fuel)}/${f.maxFuel})` : `Add a log (need a log)`;
+  return [act({
+    kind: "fire",
+    simple: logs > 0 && !full,
+    label,
+    tiles: prop.tiles,
+    mx: prop.tile[0],
+    my: prop.tile[1] - 0.6,
+    enabled: logs > 0 && !full,
+    perform() {
+      if (countItem(player.bag, "log") <= 0) return false;
+      if (!map.feedFire(prop)) return false;
+      removeItem(player.bag, "log", 1);
+      return true;
+    },
+  })];
+}
+
+// Brackets and posts: take the torch into the bag, or mount the one you carry.
+function holderActions(target, player) {
+  const what = target.kind === "bracket" ? "bracket" : "post";
+  const mx = target.kind === "bracket" ? target.mx : target.prop.tile[0];
+  const my = target.kind === "bracket" ? target.my - 0.4 : target.prop.tile[1] - 0.9;
+  const tiles = target.kind === "bracket" ? [[target.bracket.tx, target.bracket.ty]] : target.prop.tiles;
+  const has = map.holderHas(target);
+  if (has) {
+    return [act({
+      kind: "holder",
+      simple: true,
+      label: "Take the torch",
+      tiles,
+      mx,
+      my,
+      perform() {
+        if (addItem(player.bag, "torch", 1) <= 0) {
+          showMessage("No room in your bag.");
+          return false;
+        }
+        map.setHolder(target, false);
+        // Into the off-hand if it is free: a torch you reach for is one you mean to carry.
+        if (canHold(player.hands, "torch")) hold(player.hands, "torch");
+        return true;
+      },
+    })];
+  }
+  const have = countItem(player.bag, "torch") > 0;
+  return [act({
+    kind: "holder",
+    simple: have,
+    label: have ? "Mount the torch" : `An empty ${what} (need a torch)`,
+    tiles,
+    mx,
+    my,
+    enabled: have,
+    perform() {
+      if (removeItem(player.bag, "torch", 1) <= 0) return false;
+      fixHands(player);
+      map.setHolder(target, true);
+      return true;
+    },
+  })];
+}
+
+// Doors and windows: open and close, climb, board and pull (docs/09).
+function openingActions(o, player) {
+  const w = o.wall;
+  const name = w.kind === "door" ? "door" : "shutters";
+  const side = map.sideOf(o.tx, o.ty, o.edge, player.gx, player.gy);
+  const mine = side > 0 ? w.boards.near : w.boards.far;
+  const theirs = side > 0 ? w.boards.far : w.boards.near;
+  const tiles = [[o.tx, o.ty], o.edge === "n" ? [o.tx, o.ty - 1] : [o.tx - 1, o.ty]];
+  const base = { tiles, mx: o.mx, my: o.my };
+  const out = [];
+  const open = w.kind === "door" ? w.open : w.shutter === "open";
+  if (map.boarded(w)) {
+    const parts = [];
+    if (mine.length) parts.push(`${mine.length} this side`);
+    if (theirs.length) parts.push(`${theirs.length} far side`);
+    out.push(act({ ...base, kind: "opening", label: `${name}: boarded (${parts.join(", ")})`, enabled: false }));
+  } else if (w.broken) {
+    out.push(act({ ...base, kind: "opening", label: w.kind === "door" ? "A broken doorway" : "Broken shutters", enabled: false }));
+  } else {
+    out.push(act({
+      ...base,
+      kind: "opening",
+      simple: true,
+      label: open ? `Close ${name}` : `Open ${name}`,
+      perform() {
+        if (w.kind === "door") w.open = !w.open;
+        else w.shutter = w.shutter === "open" ? "closed" : "open";
+        map.touch();
+        return true;
+      },
+    }));
+  }
+  if (map.climbable(w)) {
+    out.push(act({
+      ...base,
+      kind: "climb",
+      label: "Climb through",
+      perform() {
+        startClimb(player, o);
+        return true;
+      },
+    }));
+  }
+  const planks = countItem(player.bag, "plank");
+  if (mine.length < map.BOARDS_PER_SIDE) {
+    out.push(act({
+      ...base,
+      kind: "board",
+      label: planks ? `Board up (${mine.length}/${map.BOARDS_PER_SIDE})` : "Board up (need a plank)",
+      duration: BOARD_TIME,
+      enabled: planks > 0,
+      perform() {
+        if (countItem(player.bag, "plank") <= 0) return false;
+        if (!map.addBoard(w, side)) return false;
+        removeItem(player.bag, "plank", 1);
+        return true;
+      },
+    }));
+  }
+  if (mine.length) {
+    out.push(act({
+      ...base,
+      kind: "pull",
+      label: `Pull a board (${mine.length} this side, gone)`,
+      duration: PULL_TIME,
+      perform() {
+        return map.pullBoard(w, side);
+      },
+    }));
+  }
+  return out;
+}
+
+// Trees: chop down, logs on the ground, the tree gone (docs/02: felling is clearing the tile's prop).
+function treeActions(prop) {
+  return [act({
+    kind: "tree",
+    label: `Chop down (${prop.wood} log${prop.wood > 1 ? "s" : ""})`,
+    tiles: prop.tiles,
+    mx: prop.tile[0],
+    my: prop.tile[1],
+    duration: CHOP_TIME,
+    perform() {
+      const [tx, ty] = prop.tile;
+      map.removeProp(prop);
+      for (let i = 0; i < prop.wood; i++) map.dropItem(tx, ty, { id: "log", count: 1 });
+      showMessage(`${prop.wood} logs on the ground.`);
+      return true;
+    },
+  })];
+}
+
+// The well: infinite water (docs/02, question 16).
+function wellActions(prop, player) {
+  const toFill = () => waterContainers(player.bag).filter((it) => (it.fill ?? 0) < 100);
+  return [
+    act({
+      kind: "water",
+      simple: player.thirst < 90,
+      label: "Drink from the well",
+      tiles: prop.tiles,
+      mx: prop.tile[0],
+      my: prop.tile[1] - 0.6,
+      duration: DRINK_TIME,
+      perform() {
+        player.thirst = player.maxThirst;
+        showMessage("You drink your fill.");
+        return true;
+      },
+    }),
+    act({
+      kind: "fill",
+      label: toFill().length ? "Fill waterskins" : "Fill waterskins (none to fill)",
+      tiles: prop.tiles,
+      mx: prop.tile[0],
+      my: prop.tile[1] - 0.6,
+      duration: FILL_TIME,
+      enabled: toFill().length > 0,
+      perform() {
+        const list = toFill();
+        for (const it of list) it.fill = 100;
+        showMessage(list.length > 1 ? `Filled ${list.length} waterskins.` : "Filled your waterskin.");
+        return list.length > 0;
+      },
+    }),
+  ];
+}
+
+function walkAction(tile) {
+  return act({
+    kind: "floor",
+    label: "Walk here",
+    tiles: [tile],
+    mx: tile[0],
+    my: tile[1],
+    range: 0,
+    goal: tile,
+    perform() {
+      return true;
+    },
+  });
+}
+
+// ---- hit testing ----
+
+function pointInRect(x, y, r) {
+  return r && x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
+}
+
+function propRect(prop, tx, ty) {
+  const sheet = getSheet(prop.sprite, prop.tiles.length);
+  const i = prop.tiles.findIndex(([px, py]) => px === tx && py === ty);
+  const f = sheet.frames[`idle_${Math.max(0, i)}`];
+  if (!f) return null;
+  const p = iso.toScreen(tx, ty);
+  const x = Math.round(p.x) - sheet.anchor[0];
+  const y = Math.round(p.y) - sheet.anchor[1];
+  const b = sheet.bounds;
+  return b ? { x: x + b.x, y: y + b.y, w: b.w, h: b.h } : { x, y, w: f[2], h: f[3] };
+}
+
+function propActions(prop, player) {
+  if (prop.container) return containerActions(prop);
+  if (prop.fire && prop.fire.burns) return fireActions(prop, player);
+  if (prop.fire && prop.fire.holds) return holderActions({ kind: "post", prop }, player);
+  if (prop.wood) return treeActions(prop);
+  if (prop.water) return wellActions(prop, player);
+  return [];
+}
+
+// Every action for whatever is under a canvas point.
+export function actionsAt(sx, sy, player) {
+  const g = iso.toGrid(sx, sy);
+  const tx = Math.round(g.gx);
+  const ty = Math.round(g.gy);
+  const out = [];
+  for (const entry of map.itemsAt(tx, ty)) out.push(...itemActions(entry, tx, ty, player));
+  // Props: on their tile, or under their sprite in the tiles around (a tall tree).
+  const seen = new Set();
+  for (let dy = -3; dy <= 1; dy++) {
+    for (let dx = -3; dx <= 1; dx++) {
+      const prop = map.tileAt(tx + dx, ty + dy).prop;
+      if (!prop || seen.has(prop)) continue;
+      const onTile = dx === 0 && dy === 0;
+      const onSprite = !onTile && pointInRect(sx, sy, propRect(prop, tx + dx, ty + dy));
+      if (!onTile && !onSprite) continue;
+      seen.add(prop);
+      out.push(...propActions(prop, player));
+    }
+  }
+  for (const o of map.openingsNear(g.gx, g.gy, 0.8)) out.push(...openingActions(o, player));
+  for (const b of map.bracketsNear(g.gx, g.gy, 0.8)) out.push(...holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player));
+  if (!out.length && map.isWalkableTile(tx, ty)) out.push(walkAction([tx, ty]));
+  return out;
+}
+
+// The nearest simple action within range, for the E key and the prompt.
+export function nearestSimpleAction(player) {
+  let best = null;
+  let bestD = Infinity;
+  const consider = (actions) => {
+    for (const a of actions) {
+      if (!a.simple || a.enabled === false) continue;
+      const d = distToTiles(player, a.tiles);
+      if (d <= a.range && d < bestD) {
+        best = a;
+        bestD = d;
+      }
+    }
+  };
+  const px = Math.round(player.gx);
+  const py = Math.round(player.gy);
+  const seen = new Set();
+  for (let dy = -2; dy <= 2; dy++) {
+    for (let dx = -2; dx <= 2; dx++) {
+      const t = map.tileAt(px + dx, py + dy);
+      for (const entry of map.itemsAt(px + dx, py + dy)) consider(itemActions(entry, px + dx, py + dy, player));
+      if (t.prop && !seen.has(t.prop)) {
+        seen.add(t.prop);
+        consider(propActions(t.prop, player));
+      }
+    }
+  }
+  for (const o of map.openingsNear(player.gx, player.gy, INTERACT_RANGE)) consider(openingActions(o, player));
+  for (const b of map.bracketsNear(player.gx, player.gy, INTERACT_RANGE)) consider(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player));
+  return best;
+}
+
+// ---- performing ----
+
+// Start an action the player is already in range of. Timed ones go on player.action.
+export function startAction(player, action) {
+  if (!action || action.enabled === false) return false;
+  if (action.duration <= 0) {
+    action.perform();
+    return true;
+  }
+  player.action = { action, elapsed: 0 };
+  return true;
+}
+
+// Advance a timed action. Returns progress 0..1 or null when idle. Keyboard
+// movement or drifting out of range cancels it.
+export function updateAction(player, dt) {
+  const a = player.action;
+  if (!a) return null;
+  if (player.moving || distToTiles(player, a.action.tiles) > a.action.range + 0.2) {
+    player.action = null;
+    return null;
+  }
+  a.elapsed += dt;
+  if (a.elapsed >= a.action.duration) {
+    player.action = null;
+    a.action.perform();
+    return null;
+  }
+  return a.elapsed / a.action.duration;
+}
+
+// A walkable tile within range of the action's tiles, nearest to the player.
+export function approachTile(action, player) {
+  if (action.goal) return action.goal;
+  let best = null;
+  let bestD = Infinity;
+  for (const [tx, ty] of action.tiles) {
+    for (let dy = -2; dy <= 2; dy++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        const x = tx + dx;
+        const y = ty + dy;
+        if (!map.isWalkableTile(x, y)) continue;
+        if (Math.hypot(dx, dy) > action.range) continue;
+        const d = Math.hypot(player.gx - x, player.gy - y);
+        if (d < bestD) {
+          bestD = d;
+          best = [x, y];
+        }
+      }
+    }
+  }
+  return best;
+}
+
+// Do an action now if in range, else walk over and do it on arrival.
+export function runAction(player, action) {
+  if (action.enabled === false) return;
+  if (distToTiles(player, action.tiles) <= action.range) {
+    startAction(player, action);
+    return;
+  }
+  const goal = approachTile(action, player);
+  const onArrive = (arrived) => {
+    if (arrived) startAction(player, action);
+    else if (action.kind !== "floor") showMessage("Can't reach that.");
+  };
+  if (!goal || !autoWalk(player, goal, { tiles: action.tiles, range: action.range, onArrive })) {
+    showMessage("Can't get there from here.");
+  }
+}
+
+// ---- keys ----
+
 function keyTracker(code) {
   return { code, held: 0, consumed: false };
 }
 const keyE = keyTracker("KeyE");
 const keyB = keyTracker("KeyB");
 
-// Advance a tracker; calls onHold once when the hold time passes and onTap on
-// a release that was not a hold.
 function track(k, dt, onHold, onTap) {
-  // wasPressed catches a tap shorter than one step, which isDown would miss.
   if (input.isDown(k.code) || input.wasPressed(k.code)) {
     k.held += dt;
     if (!k.consumed && k.held >= HOLD_TIME) {
@@ -40,138 +493,121 @@ function track(k, dt, onHold, onTap) {
   }
 }
 
-export function nearestOpening(player) {
-  return openingsNear(player.gx, player.gy, REACH)[0] || null;
+function nearestOpening(player) {
+  return map.openingsNear(player.gx, player.gy, INTERACT_RANGE)[0] || null;
 }
 
-// The nearest thing E acts on: an opening, a burner, a bracket, or a post.
-export function nearestTarget(player) {
-  const c = [];
-  const o = nearestOpening(player);
-  if (o) c.push({ kind: "opening", o, d: o.d });
-  const b = burnersNear(player.gx, player.gy)[0];
-  if (b) c.push({ kind: "fire", prop: b.prop, d: b.d });
-  const br = bracketsNear(player.gx, player.gy, REACH)[0];
-  if (br) c.push({ kind: "bracket", bracket: br.bracket, d: br.d, mx: br.mx, my: br.my });
-  const h = holdersNear(player.gx, player.gy)[0];
-  if (h) c.push({ kind: "post", prop: h.prop, d: h.d });
-  if (!c.length) return null;
-  c.sort((a, b) => a.d - b.d);
-  return c[0];
-}
-
-function isOpen(o) {
-  return o.wall.kind === "door" ? o.wall.open : o.wall.shutter === "open";
-}
-
-// Tap E at an opening: open or close the leaf, unless boarded or broken.
-function toggle(o) {
-  const w = o.wall;
-  if (boarded(w) || w.broken) return false;
-  if (w.kind === "door") w.open = !w.open;
-  else w.shutter = w.shutter === "open" ? "closed" : "open";
-  touch();
-  return true;
-}
-
-function fireName(prop) {
-  return prop.sprite.replace(/_/g, " ");
-}
-
-// Take a torch from a holder into the off-hand, or mount the held one.
-function useHolder(player, t) {
-  if (holderHas(t)) {
-    if (!canHold(player.hands, "torch")) return false;
-    hold(player.hands, "torch");
-    setHolder(t, false);
-    return true;
-  }
-  if (!holding(player.hands, "torch")) return false;
-  release(player.hands, "torch");
-  setHolder(t, true);
-  return true;
-}
-
-function holderLabel(player, t) {
-  const what = t.kind === "bracket" ? "bracket" : "post";
-  if (holderHas(t)) return canHold(player.hands, "torch") ? "E: take the torch" : `a torch (your off-hand is full)`;
-  if (holding(player.hands, "torch")) return "E: mount the torch";
-  return `an empty ${what}`;
-}
-
-// The player's side of an opening.
-function mySide(player, o) {
-  return sideOf(o.tx, o.ty, o.edge, player.gx, player.gy);
-}
-
-// The stack as words: "2 boards out, 1 in", from the player's side.
-function stackLabel(o, side) {
-  const w = o.wall;
-  const mine = side > 0 ? w.boards.near.length : w.boards.far.length;
-  const theirs = side > 0 ? w.boards.far.length : w.boards.near.length;
-  const parts = [];
-  if (mine) parts.push(`${mine} board${mine > 1 ? "s" : ""} this side`);
-  if (theirs) parts.push(`${theirs} board${theirs > 1 ? "s" : ""} far side`);
-  return parts.join(", ");
-}
-
-function openingLabel(player, o) {
-  const w = o.wall;
-  const name = w.kind === "door" ? "door" : "shutters";
-  const side = mySide(player, o);
-  const mine = side > 0 ? w.boards.near.length : w.boards.far.length;
-  const stack = stackLabel(o, side);
-  let first;
-  if (boarded(w)) first = `${name}: boarded (${stack})`;
-  else if (w.broken) first = w.kind === "door" ? "a broken doorway" : "broken shutters   hold E: climb through";
-  else if (w.kind === "door") first = w.open ? "E: close door" : "E: open door";
-  else first = isOpen(o) ? "E: close shutters   hold E: climb through" : "E: open shutters";
-  const board = mine < BOARDS_PER_SIDE ? `B: nail a board (${mine}/${BOARDS_PER_SIDE})` : `boards ${mine}/${BOARDS_PER_SIDE}`;
-  const pull = mine ? "   hold B: pull one" : "";
-  return `${first}   ${board}${pull}`;
-}
-
-// What the prompt should say, and where, or null.
-export function promptFor(player) {
+// What the prompt should say, and where, or null: a running action with its
+// bar, else the nearest simple action with E.
+export function promptFor(player, progress) {
   if (player.climb) return null;
-  const t = nearestTarget(player);
-  if (!t) return null;
-  if (t.kind === "fire") {
-    const f = t.prop.fire;
-    const name = fireName(t.prop);
-    let label;
-    if (!f.lit) label = `E: light the ${name}`;
-    else if (f.fuel < f.maxFuel) label = `E: add a log (${Math.ceil(f.fuel)}/${f.maxFuel})`;
-    else label = `${name}: full (${f.maxFuel}/${f.maxFuel})`;
-    return { label, mx: t.prop.tile[0], my: t.prop.tile[1] - 0.6 };
+  if (player.action) {
+    const a = player.action.action;
+    return { label: a.label, mx: a.mx, my: a.my, progress };
   }
-  if (t.kind === "bracket") return { label: holderLabel(player, t), mx: t.mx, my: t.my - 0.4 };
-  if (t.kind === "post") return { label: holderLabel(player, t), mx: t.prop.tile[0], my: t.prop.tile[1] - 0.9 };
-  return { label: openingLabel(player, t.o), mx: t.o.mx, my: t.o.my };
+  const a = nearestSimpleAction(player);
+  if (!a) return null;
+  return { label: `E: ${a.label}`, mx: a.mx, my: a.my, progress: null };
 }
 
 export function updateInteract(player, dt) {
   if (player.climb) {
     keyE.held = 0;
-    keyE.consumed = true; // the hold that started the climb is spent
+    keyE.consumed = true;
     return;
   }
-  const t = nearestTarget(player);
   track(keyE, dt,
     () => {
-      if (t && t.kind === "opening" && climbable(t.o.wall)) startClimb(player, t.o);
+      const o = nearestOpening(player);
+      if (o && map.climbable(o.wall)) startClimb(player, o);
     },
     () => {
-      if (!t) return;
-      if (t.kind === "opening") toggle(t.o);
-      else if (t.kind === "fire") feedFire(t.prop);
-      else useHolder(player, t);
+      if (player.action) return;
+      const a = nearestSimpleAction(player);
+      if (a) startAction(player, a);
     });
   track(keyB, dt,
     () => {
-      if (t && t.kind === "opening") pullBoard(t.o.wall, mySide(player, t.o));
+      const o = nearestOpening(player);
+      if (o) {
+        const a = openingActions(o, player).find((x) => x.kind === "pull");
+        if (a) startAction(player, a);
+      }
     },
     () => {
-      if (t && t.kind === "opening") addBoard(t.o.wall, mySide(player, t.o));
+      const o = nearestOpening(player);
+      if (o) {
+        const a = openingActions(o, player).find((x) => x.kind === "board");
+        if (a && a.enabled) startAction(player, a);
+        else if (a) showMessage("You need a plank.");
+      }
     });
+  if (input.wasPressed("KeyT")) {
+    if (holding(player.hands, "torch")) release(player.hands, "torch");
+    else if (countItem(player.bag, "torch") > 0 && canHold(player.hands, "torch")) hold(player.hands, "torch");
+    else if (countItem(player.bag, "torch") <= 0) showMessage("No torch in your bag.");
+  }
+}
+
+// ---- the item menu, for the panel ----
+
+export function itemMenu(player, entry, bag, otherBag) {
+  const def = getItem(entry.id);
+  const out = [];
+  const inBag = bag === player.bag;
+  if (def.hands && inBag) {
+    const held = holding(player.hands, entry.id);
+    out.push({
+      label: held ? "Unequip" : `Equip (${def.hands === "both" ? "both hands" : `${def.hands} hand`})`,
+      enabled: held || canHold(player.hands, entry.id),
+      onSelect: () => {
+        if (held) release(player.hands, entry.id);
+        else hold(player.hands, entry.id);
+      },
+    });
+  }
+  if (def.kind === "food") {
+    out.push({ label: "Eat", enabled: true, onSelect: () => { eat(player, def); entry.count -= 1; if (entry.count <= 0) grid.remove(bag, entry); fixHands(player); } });
+  }
+  if (def.capacity) {
+    const pct = Math.round(entry.fill ?? 0);
+    out.push({ label: `Drink (${pct}%)`, enabled: pct > 0, onSelect: () => drink(player, entry) });
+  }
+  if (def.splitsInto && inBag) {
+    const s = def.splitsInto;
+    out.push({
+      label: `Split into ${s.count} ${getItem(s.id).name.toLowerCase()}s`,
+      enabled: true,
+      onSelect: () => {
+        grid.remove(bag, entry);
+        const added = addItem(bag, s.id, s.count);
+        if (added < s.count) {
+          for (let i = added; i < s.count; i++) map.dropItem(Math.round(player.gx), Math.round(player.gy), { id: s.id, count: 1 });
+          showMessage("Some planks fell to the floor.");
+        }
+      },
+    });
+  }
+  if (otherBag) {
+    out.push({
+      label: inBag ? `Store in ${otherBag.container}` : "Take",
+      enabled: true,
+      onSelect: () => {
+        if (!grid.transfer(bag, otherBag, entry)) showMessage(inBag ? "No room in there." : "No room in your bag.");
+        fixHands(player);
+      },
+    });
+  }
+  if (inBag) {
+    out.push({
+      label: entry.count > 1 ? `Drop all (${entry.count})` : "Drop",
+      enabled: true,
+      onSelect: () => {
+        grid.remove(bag, entry);
+        map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
+        fixHands(player);
+      },
+    });
+  }
+  return out;
 }

@@ -1,1 +1,1 @@
-{"placeholder": {"kind": "post", "color": "#6a4d33", "height": 30, "width": 26}, "collide": {"radius": 0.26}}
+{"placeholder": {"kind": "post", "color": "#6a4d33", "height": 30, "width": 26}, "collide": {"radius": 0.26}, "container": {"loot": "barrel"}}

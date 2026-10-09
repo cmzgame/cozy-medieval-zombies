@@ -16,7 +16,7 @@ import * as map from "./map.js";
 import * as light from "./light.js";
 import { tileKey } from "./visibility.js";
 import { WALL_T, WOOD, METAL, torchHandPoint } from "./placeholders.js";
-import { heldFire } from "./items.js";
+import { heldFire, getItem } from "./items.js";
 import * as gl from "./gl.js";
 
 // The night, as before: tunables Michael picks by eye, live on
@@ -345,6 +345,39 @@ function propDrawables(tiles, visible, out) {
   }
 }
 
+// Items on the floor: a small block in the item's colour per entry, fanned a
+// little so a pile reads as a pile (docs/10).
+function floorItemDrawables(tiles, visible, out) {
+  for (const [tx, ty] of tiles) {
+    const items = map.tileAt(tx, ty).items;
+    if (!items || !items.length) continue;
+    const p = iso.toScreen(tx, ty);
+    const x = Math.round(p.x);
+    const y = Math.round(p.y);
+    const vis = visible.has(tileKey(tx, ty));
+    out.push({
+      key: (tx + ty) * 1000 + 0.8,
+      kind: "prop",
+      vis,
+      rect: { x: x - 16, y: y - 14, w: 32, h: 18 },
+      canOcclude: false,
+      occluder: false,
+      emit() {
+        items.forEach((e, i) => {
+          const c = gl.rgb(getItem(e.id).color || "#8a8296");
+          const ox = x + ((i % 3) - 1) * 9;
+          const oy = y - 3 - Math.floor(i / 3) * 5;
+          const flags = gl.FLAG_STANDING | (vis ? gl.FLAG_NOFOG : 0);
+          gl.poly([[ox - 7, oy], [ox, oy - 4], [ox + 7, oy], [ox, oy + 4]], gl.rgb("#1a1410"), { world: [tx, ty], flags });
+          gl.poly([[ox - 6, oy], [ox, oy - 3], [ox + 6, oy], [ox, oy + 3]], c, { world: [tx, ty], flags });
+          gl.poly([[ox - 6, oy], [ox, oy + 3], [ox, oy + 6], [ox - 6, oy + 3]], [c[0] * 0.6, c[1] * 0.6, c[2] * 0.6, 1], { world: [tx, ty], flags });
+          gl.poly([[ox, oy + 3], [ox + 6, oy], [ox + 6, oy + 3], [ox, oy + 6]], [c[0] * 0.75, c[1] * 0.75, c[2] * 0.75, 1], { world: [tx, ty], flags });
+        });
+      },
+    });
+  }
+}
+
 function entityDrawables(entities, visible, out, drawAll) {
   for (const e of entities) {
     const vis = e.kind === "player" || drawAll || visible.has(tileKey(Math.round(e.gx), Math.round(e.gy)));
@@ -497,6 +530,7 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
   wallDrawables(tiles, visible, playerRoom, drawables);
   postDrawables(tiles, visible, playerRoom, drawables);
   propDrawables(tiles, visible, drawables);
+  floorItemDrawables(tiles, visible, drawables);
   entityDrawables(entities, visible, drawables, drawAll);
   drawables.sort((a, b) => a.key - b.key);
   computeOcclusion(drawables);

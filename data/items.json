@@ -1,0 +1,10 @@
+[
+  {"id": "torch", "name": "Torch", "kind": "tool", "hands": "off", "fire": {"radius": 3, "flicker": {"amp": 0.14, "speed": 9}}, "size": [1, 2], "color": "#8a5a2a", "short": "Torch"},
+  {"id": "log", "name": "Log", "kind": "material", "size": [2, 2], "color": "#6a4a30", "short": "Log", "splitsInto": {"id": "plank", "count": 2}},
+  {"id": "plank", "name": "Plank", "kind": "material", "size": [1, 4], "color": "#9a7448", "short": "Plank"},
+  {"id": "hatchet", "name": "Hatchet", "kind": "tool", "hands": "main", "size": [1, 2], "color": "#5a5a62", "short": "Hatchet"},
+  {"id": "bread", "name": "Loaf of bread", "kind": "food", "hunger": 40, "size": [1, 1], "color": "#c8a060", "short": "Bread"},
+  {"id": "apple", "name": "Apple", "kind": "food", "hunger": 15, "thirst": 5, "stack": 5, "size": [1, 1], "color": "#b0402a", "short": "Apple"},
+  {"id": "cheese", "name": "Wheel of cheese", "kind": "food", "hunger": 30, "size": [1, 1], "color": "#d8b848", "short": "Cheese"},
+  {"id": "waterskin", "name": "Waterskin", "kind": "drink", "capacity": 100, "size": [1, 2], "color": "#7a6a52", "short": "Water"}
+]

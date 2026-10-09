@@ -1,7 +1,8 @@
 // Boot and the game state. A scrolling camera over a chunked map with real
 // line of sight, buildings with doors and shuttered windows, forest scattered
-// by rule, the player, and the dead. Milestone 1 (the probe) passed on
-// 2026-10-09; lighting is next. See TODO.md and docs/00-vision.md.
+// by rule, the player with a bag, and the dead. Milestone 1 (the probe)
+// passed on 2026-10-09; lighting, the renderer, openings, and the interface
+// followed. See TODO.md and docs/00-vision.md.
 
 import * as iso from "./iso.js";
 import * as input from "./input.js";
@@ -15,17 +16,22 @@ import * as clock from "./clock.js";
 import * as light from "./light.js";
 import * as gl from "./gl.js";
 import { renderScene, setCutaway, cutaway, night } from "./render.js";
-import { createPlayer, updatePlayer, damagePlayer } from "./entities/player.js";
+import { createPlayer, updatePlayer, damagePlayer, autoWalk } from "./entities/player.js";
 import { createZombie, updateZombie } from "./entities/zombie.js";
 import { initHud, updateHud } from "./ui/hud.js";
-import { initPrompt, updatePrompt } from "./ui/prompt.js";
+import { initPrompt, updatePrompt, showMessage, updateMessage } from "./ui/prompt.js";
+import * as menu from "./ui/context-menu.js";
+import * as panel from "./ui/inventory-panel.js";
 import * as interact from "./interact.js";
 import * as items from "./items.js";
+import * as inventory from "./inventory.js";
+import * as grid from "./grid.js";
 
 const CANVAS_W = 960;
 const CANVAS_H = 540;
 const MAP_FILE = "data/maps/square.json";
 const ACTIVE_TILES = 40; // the dead beyond this many tiles from the player do not think
+const CONTAINER_CLOSE_DIST = 2.0; // tiles: an open container closes when you walk away
 
 const canvas = document.getElementById("game");
 const ui = document.getElementById("ui");
@@ -49,6 +55,8 @@ let drawAll = false; // debug: V shows everything, fog off
 let deaths = 0;
 let drawn = 0;
 let visKey = null; // player tile and camera tile the visible set was computed for
+let openContainer = null; // the prop whose bag is open beside yours
+let progress = null; // 0..1 of a timed action
 const timing = { step: 0, stepMax: 0, vis: 0, maxResetAt: 0 };
 
 function resize() {
@@ -65,6 +73,39 @@ function resize() {
   ui.style.transformOrigin = "0 0";
 }
 
+// Right-click builds a menu of what is under the cursor; a left click on the
+// floor walks there (docs/10). A click that dismissed a menu does nothing else.
+function handleMouse() {
+  const m = input.getMouse();
+  if (input.mouseRightPressed()) {
+    const actions = interact.actionsAt(m.x, m.y, player);
+    if (actions.length) {
+      menu.openContextMenu(m.x, m.y, actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => interact.runAction(player, a) })), CANVAS_W, CANVAS_H);
+    }
+  }
+  const dismissed = menu.tookClick();
+  if (input.mouseLeftPressed() && !dismissed && !menu.isMenuOpen() && m.inside) {
+    const actions = interact.actionsAt(m.x, m.y, player);
+    const walk = actions.find((a) => a.kind === "floor");
+    if (walk) interact.runAction(player, walk);
+    else if (actions.length && actions[0].simple) interact.runAction(player, actions[0]);
+  }
+  if (menu.isMenuOpen() && player.moving) menu.closeContextMenu();
+}
+
+function updateInventoryUi() {
+  if (input.wasPressed("Tab")) {
+    panel.toggle();
+    if (!panel.isOpen()) openContainer = null;
+  }
+  if (openContainer) {
+    let d = Infinity;
+    for (const [tx, ty] of openContainer.tiles) d = Math.min(d, Math.hypot(player.gx - tx, player.gy - ty));
+    if (d > CONTAINER_CLOSE_DIST) openContainer = null;
+  }
+  panel.renderInventoryPanel(player.bag, openContainer ? openContainer.bag : null, player.hands);
+}
+
 function update(dt) {
   const t0 = performance.now();
   if (input.wasPressed("KeyV")) drawAll = !drawAll;
@@ -73,11 +114,6 @@ function update(dt) {
   // Debug: ] and [ skip the clock an hour forward or back.
   if (input.wasPressed("BracketRight")) clock.setHour(clock.getHour() + 1);
   if (input.wasPressed("BracketLeft")) clock.setHour(clock.getHour() - 1);
-  // T: the torch in and out of the off-hand, until the inventory does it.
-  if (input.wasPressed("KeyT")) {
-    if (items.holding(player.hands, "torch")) items.release(player.hands, "torch");
-    else items.hold(player.hands, "torch");
-  }
   clock.update(dt);
   map.burnFires(dt);
   camera.follow(player, dt);
@@ -86,8 +122,11 @@ function update(dt) {
   // dead appear far outside the viewport.
   map.ensureAround(player.gx, player.gy, 3);
   for (const [x, y] of map.takePendingSpawns()) zombies.push(createZombie(x, y));
+  handleMouse();
   interact.updateInteract(player, dt);
   updatePlayer(player, dt);
+  progress = interact.updateAction(player, dt);
+  inventory.fixHands(player);
   const others = [player, ...zombies];
   // The dead far from the player stand still: a stand-in for the records of
   // docs/03 until that milestone.
@@ -96,9 +135,11 @@ function update(dt) {
     updateZombie(z, dt, player, others);
   }
   if (player.hp <= 0) {
-    // The probe has no death yet: count it and carry on.
+    // No death yet: count it and carry on.
     deaths++;
     player.hp = player.maxHp;
+    player.hunger = Math.max(player.hunger, 50);
+    player.thirst = Math.max(player.thirst, 50);
   }
   const px = Math.round(player.gx);
   const py = Math.round(player.gy);
@@ -117,8 +158,10 @@ function update(dt) {
     visKey = key;
     timing.vis = performance.now() - t1;
   }
+  updateInventoryUi();
   updateHud({ player });
-  updatePrompt(interact.promptFor(player));
+  updatePrompt(interact.promptFor(player, progress), progress);
+  updateMessage(dt);
   input.endStep();
   timing.step = performance.now() - t0;
   if (t0 - timing.maxResetAt > 3000) {
@@ -147,12 +190,35 @@ function render() {
   const [cx, cy] = map.chunkCoord(Math.round(player.gx), Math.round(player.gy));
   debugEl.textContent =
     `fps ${loop.getFps()}\n` +
-    `player ${player.gx.toFixed(2)},${player.gy.toFixed(2)} ${player.facing} hp ${player.hp} deaths ${deaths}\n` +
+    `player ${player.gx.toFixed(2)},${player.gy.toFixed(2)} ${player.facing} hp ${Math.ceil(player.hp)} hunger ${Math.round(player.hunger)} thirst ${Math.round(player.thirst)} deaths ${deaths}\n` +
     `${clock.getLabel()} ${clock.getPhase()}  bright ${clock.getBrightness().toFixed(2)}  light@player ${light.lightAt(player.gx, player.gy).toFixed(2)}  hands ${player.hands.main || "-"}/${player.hands.off || "-"}\n` +
     `chunk ${cx},${cy}  room ${playerRoom}${playerRoom > 0 ? (map.roomSealed(map.getRoom(playerRoom)) ? " sealed" : " open") : ""}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `zombies ${zombies.length}  near ${zombies.filter((z) => Math.abs(z.gx - player.gx) <= ACTIVE_TILES && Math.abs(z.gy - player.gy) <= ACTIVE_TILES).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
-    `V: ${drawAll ? "showing everything" : "fog on"}   C: near walls ${cutaway}   ] [: skip an hour   T: torch   B: boards   L: debug view ${["off", "light", "ambient", "fog"][night.debug]}`;
+    `Tab: bag   right-click: actions   click: walk   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   C: near walls ${cutaway}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
+}
+
+// The player's bag can hold what the panel does to it (docs/10).
+function panelHandlers() {
+  return {
+    changed() {
+      inventory.fixHands(player);
+    },
+    handOf(id) {
+      return items.handOf(player.hands, id);
+    },
+    dropToFloor(entry, bag) {
+      grid.remove(bag, entry);
+      map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
+      inventory.fixHands(player);
+    },
+    noRoom(intoBag) {
+      showMessage(intoBag ? "No room in your bag." : "No room in there.");
+    },
+    itemMenu(entry, bag, otherBag) {
+      return interact.itemMenu(player, entry, bag, otherBag);
+    },
+  };
 }
 
 async function boot() {
@@ -160,10 +226,19 @@ async function boot() {
   window.addEventListener("resize", resize);
   resize();
 
+  items.loadItems(await assets.loadJson("data/items.json"));
+  items.loadLoot(await assets.loadJson("data/loot.json"));
   const json = await assets.loadJson(MAP_FILE);
   await assets.loadMapSprites(json);
   info = map.loadMap(json);
   player = createPlayer(info.spawn[0], info.spawn[1]);
+  // The starter kit (docs/10): a torch in the off-hand, water, a little food, one plank.
+  inventory.addItem(player.bag, "torch", 1);
+  inventory.addItem(player.bag, "waterskin", 1, { fill: 100 });
+  inventory.addItem(player.bag, "bread", 1);
+  inventory.addItem(player.bag, "apple", 2);
+  inventory.addItem(player.bag, "plank", 1);
+  items.hold(player.hands, "torch");
   zombies = info.zombies.map(([x, y]) => createZombie(x, y));
   camera.snapTo(player.gx, player.gy);
   camera.applyOrigin(CANVAS_W, CANVAS_H);
@@ -174,12 +249,18 @@ async function boot() {
 
   initHud();
   initPrompt();
+  menu.initContextMenu();
+  panel.initInventoryPanel(panelHandlers());
   events.on("playerHit", ({ damage }) => damagePlayer(player, damage));
+  events.on("containerOpened", ({ prop }) => {
+    openContainer = prop;
+    panel.setOpen(true);
+  });
 
   loop.start({ update, render, simTick() {} }, { simIntervalMs: 1000 });
 
   window.__game = {
-    iso, input, loop, assets, events, map, camera, visibility, interact, clock, light, items,
+    iso, input, loop, assets, events, map, camera, visibility, interact, clock, light, items, inventory, grid, panel, menu,
     render: { night },
     get player() { return player; },
     get zombies() { return zombies; },
@@ -187,7 +268,9 @@ async function boot() {
     get visible() { return visible; },
     get playerRoom() { return playerRoom; },
     get info() { return info; },
-    teleport(gx, gy) { player.gx = gx; player.gy = gy; camera.snapTo(gx, gy); },
+    get openContainer() { return openContainer; },
+    teleport(gx, gy) { player.gx = gx; player.gy = gy; player.auto = null; camera.snapTo(gx, gy); },
+    walkTo(gx, gy) { return autoWalk(player, [gx, gy]); },
   };
 }
 

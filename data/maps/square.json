@@ -297,6 +297,25 @@
           ]
         }
       ]
+    },
+    {
+      "name": "well",
+      "rect": [
+        13,
+        15,
+        1,
+        1
+      ],
+      "padding": 1,
+      "props": [
+        {
+          "sprite": "well",
+          "tile": [
+            0,
+            0
+          ]
+        }
+      ]
     }
   ],
   "biomes": {

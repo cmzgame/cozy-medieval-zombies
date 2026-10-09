@@ -26,8 +26,8 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 - **Milestone 3 built, 2026-10-10:** the dead get in. Boards on both sides of any opening with `B`, the leaf with health, nothing repaired; the dead breach the nearest opening of the room they want into or out of, and climb through open windows. Scripted acceptance passed; Michael's night pending.
 - **Michael's first night, 2026-10-10:** "I like this a lot. The system works." Three things fixed from it: a boarded leaf drew as a see-through frame with three planks whatever the count, so the sheet now has a frame per count over a shut leaf and over an open one; a zombie paced outside a window because it was searching around a sighting inside the room, so a search now stays on the searcher's side of the walls; and a flame could pull a zombie you had just drawn off straight back, so a flame cannot take over for eight seconds after it last saw you. Two stuck on each other in a gap now drop their path after a second and a half of no progress.
 - **Milestone 3 accepted, 2026-10-10.** Michael: "Tested and working as desired."
-- **Milestone 4, the interface, designed 2026-10-10** (`docs/10-interface.md`) and building: the grid inventory, right-click menus, click to move, the health bar and moodles, logs and planks as items with Chop down and Split, the well. Michael said go ahead; the doc is there to overrule.
-- **Blocked on:** nothing.
+- **Milestone 4, the interface, built 2026-10-10** (`docs/10-interface.md`): the grid inventory on Tab, right-click menus for everything, left-click to walk, E for the nearest simple thing, the health bar, hunger and thirst as moodles, logs and planks as real items with Chop down and Split, the well. Scripted acceptance passed; Michael's play verdict pending.
+- **Blocked on:** Michael playing it.
 - **Next:** the melee port after the interface.
 - **Next:** build Milestone 3 in the order `docs/09` gives, then the melee port. Together they make "a night in the cottage"., with the dead breaking in (doors barred from inside, boards, broken shutters, how the dead get through a door, how slow and loud a climb is). Write its doc first, then build. Then the melee port. Together they make "a night in the cottage". Openings with the dead breaking in and the melee port follow, which together make "a night in the cottage".
 - **Notes:** the debug corner shows the cost of a logic step and the worst step in the last three seconds; a freeze should show up there first. Run `python serve.py 8010` in this repo (the file serves its own folder, so it can be launched from elsewhere). `V` toggles the fog off to compare. Michael plays in the in-app browser pane while work happens, so scripted tests see his inputs.
@@ -89,10 +89,10 @@ Each step checkable on its own. Michael looks after step 3.
 
 ## Milestone 4 — The interface (see `docs/10-interface.md`)
 
-- [ ] Copy the grid, bag, items, menu, panel, prompt, HUD, moodles; CSS; fresh item and loot data; floor items; the bag with the starter kit, hands wired to it.
-- [ ] `interact.js` on the action shape: items, containers, openings, fires, torches, trees, the well, Walk here; right-click menus, E, auto-walk, click to move, timed actions.
-- [ ] Hunger and thirst, eating and drinking, the moodle row, the health bar.
-- [ ] Acceptance: the nine checks in `docs/10`.
+- [x] Copied (2026-10-10) with origin headers: `grid.js`, `inventory.js`, the registry in `items.js`, `moodles.js`, `ui/moodles.js`, `ui/context-menu.js`, `ui/inventory-panel.js`, `ui/prompt.js`, `ui/hud.js`, the CSS. Fresh `data/items.json` and `data/loot.json`. Floor items on tiles, drawn as small blocks. The bag with the starter kit; the torch starts in the off-hand.
+- [x] `interact.js` on the action shape: items, containers, openings, fires, brackets and posts, trees (Chop down), the well, Walk here; right-click menus; E for the nearest simple action; auto-walk; left-click to walk; timed actions with the bar; the item menu (Equip, Eat, Drink, Split, Take or Store, Drop).
+- [x] Hunger and thirst with the parent's drains, eating and drinking, the moodle row, the health bar, the hands line.
+- [x] Acceptance, scripted (2026-10-10): the kit lays out without overlap and Tab shows it with the torch outlined blue; Search chest auto-walks, runs its bar, opens the chest beside the bag, and leaving closes it; Add a log is disabled without a log and takes one with; Chop down walks to a tree, takes 3 s, leaves its logs on the ground and the tree gone; Split makes two planks; E picks up and says so when the bag is full; walking by click arrives; T equips and unequips; eating and drinking move hunger and thirst and the moodles follow; the well fills a waterskin. The frame rate could not be read with the pane suspended; the renderer cost did not change.
 
 ## Milestone 3 — Openings, and the dead get in (see `docs/09-openings.md`)
 

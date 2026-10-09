@@ -1,0 +1,102 @@
+{
+  "chest": {
+    "grid": [
+      4,
+      3
+    ],
+    "rolls": [
+      2,
+      3
+    ],
+    "entries": [
+      {
+        "item": "bread",
+        "weight": 3
+      },
+      {
+        "item": "cheese",
+        "weight": 2
+      },
+      {
+        "item": "plank",
+        "weight": 3
+      },
+      {
+        "item": "log",
+        "weight": 2
+      },
+      {
+        "item": "hatchet",
+        "weight": 1
+      },
+      {
+        "item": "nothing",
+        "weight": 2
+      }
+    ]
+  },
+  "barrel": {
+    "grid": [
+      2,
+      3
+    ],
+    "rolls": [
+      2,
+      3
+    ],
+    "entries": [
+      {
+        "item": "apple",
+        "count": [
+          1,
+          4
+        ],
+        "weight": 4
+      },
+      {
+        "item": "waterskin",
+        "weight": 2
+      },
+      {
+        "item": "log",
+        "weight": 2
+      },
+      {
+        "item": "nothing",
+        "weight": 2
+      }
+    ]
+  },
+  "body": {
+    "grid": [
+      3,
+      3
+    ],
+    "rolls": [
+      0,
+      2
+    ],
+    "entries": [
+      {
+        "item": "nothing",
+        "weight": 2
+      },
+      {
+        "item": "apple",
+        "count": [
+          1,
+          2
+        ],
+        "weight": 2
+      },
+      {
+        "item": "bread",
+        "weight": 1
+      },
+      {
+        "item": "waterskin",
+        "weight": 1
+      }
+    ]
+  }
+}

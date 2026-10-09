@@ -1,0 +1,67 @@
+// Copied from cozy-zombie-game src/ui/context-menu.js on 2026-10-10. Unchanged.
+// Right-click context menu. Entries: [{ label, enabled, onSelect }].
+
+let root = null;
+let open = false;
+let swallowedClick = false;
+
+export function initContextMenu() {
+  root = document.createElement("div");
+  root.id = "menu";
+  root.hidden = true;
+  document.getElementById("ui").appendChild(root);
+
+  root.addEventListener("mousedown", (e) => e.stopPropagation());
+  root.addEventListener("contextmenu", (e) => e.preventDefault());
+  root.addEventListener("click", (e) => {
+    const el = e.target.closest(".menu-entry");
+    if (!el || el.classList.contains("disabled")) return;
+    const fn = el._onSelect;
+    closeContextMenu();
+    fn?.();
+  });
+
+  // Any mousedown outside the menu closes it and is not treated as a click on the world.
+  window.addEventListener("mousedown", (e) => {
+    if (!open || root.contains(e.target)) return;
+    closeContextMenu();
+    swallowedClick = true;
+  }, true);
+  window.addEventListener("keydown", (e) => {
+    if (open && (e.code === "Escape" || e.code === "Tab")) closeContextMenu();
+  });
+}
+
+export function openContextMenu(x, y, entries, canvasW = 960, canvasH = 540) {
+  root.innerHTML = "";
+  for (const en of entries) {
+    const el = document.createElement("div");
+    el.className = `menu-entry${en.enabled === false ? " disabled" : ""}`;
+    el.textContent = en.label;
+    el._onSelect = en.onSelect;
+    root.appendChild(el);
+  }
+  root.hidden = false;
+  open = true;
+  // Clamp inside the canvas.
+  const w = root.offsetWidth || 160;
+  const h = root.offsetHeight || 24 * entries.length;
+  root.style.left = `${Math.max(0, Math.min(canvasW - w, x + 2))}px`;
+  root.style.top = `${Math.max(0, Math.min(canvasH - h, y + 2))}px`;
+}
+
+export function closeContextMenu() {
+  open = false;
+  if (root) root.hidden = true;
+}
+
+export function isMenuOpen() {
+  return open;
+}
+
+// True once if a click was used to dismiss the menu this frame.
+export function tookClick() {
+  const v = swallowedClick;
+  swallowedClick = false;
+  return v;
+}
