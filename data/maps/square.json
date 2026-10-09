@@ -110,7 +110,8 @@
             0
           ]
         }
-      ]
+      ],
+      "padding": 1
     },
     {
       "rect": [
@@ -148,7 +149,8 @@
             1
           ]
         }
-      ]
+      ],
+      "padding": 1
     }
   ],
   "props": [
@@ -210,92 +212,59 @@
         32,
         32
       ],
-      "density": 0.035,
-      "kinds": {
-        "tree_oak": 4,
-        "tree_orange": 3,
-        "tree_yellow": 2,
-        "tree_red": 2
-      },
+      "density": [
+        0.06,
+        0.36
+      ],
+      "biome": "harvest",
       "seed": 11
-    },
-    {
-      "rect": [
-        0,
-        9,
-        8,
-        23
-      ],
-      "density": 0.2,
-      "kinds": {
-        "tree_oak": 4,
-        "tree_orange": 3,
-        "tree_yellow": 2,
-        "tree_red": 2
-      },
-      "seed": 12
-    },
-    {
-      "rect": [
-        26,
-        0,
-        6,
-        32
-      ],
-      "density": 0.2,
-      "kinds": {
-        "tree_oak": 4,
-        "tree_orange": 3,
-        "tree_yellow": 2,
-        "tree_red": 2
-      },
-      "seed": 13
-    },
-    {
-      "rect": [
-        8,
-        25,
-        18,
-        7
-      ],
-      "density": 0.17,
-      "kinds": {
-        "tree_oak": 4,
-        "tree_orange": 3,
-        "tree_yellow": 2,
-        "tree_red": 2
-      },
-      "seed": 14
-    },
-    {
-      "rect": [
-        0,
-        0,
-        10,
-        7
-      ],
-      "density": 0.15,
-      "kinds": {
-        "tree_oak": 4,
-        "tree_orange": 3,
-        "tree_yellow": 2,
-        "tree_red": 2
-      },
-      "seed": 15
-    },
-    {
-      "rect": [
-        0,
-        0,
-        32,
-        32
-      ],
-      "density": 0.012,
-      "kinds": {
-        "tree_oak_old": 3,
-        "tree_orange_old": 2
-      },
-      "seed": 16
     }
+  ],
+  "bounds": [
+    0,
+    0,
+    32,
+    32
+  ],
+  "biomes": {
+    "harvest": {
+      "kinds": {
+        "tree_oak_s": 1,
+        "tree_oak_m": 1,
+        "tree_oak_l": 1,
+        "tree_orange_s": 1,
+        "tree_orange_m": 1,
+        "tree_orange_l": 1,
+        "tree_yellow_s": 1,
+        "tree_yellow_m": 1,
+        "tree_yellow_l": 1,
+        "tree_red_s": 1,
+        "tree_red_m": 1,
+        "tree_red_l": 1,
+        "tree_oak_old": 0.12,
+        "tree_orange_old": 0.12
+      },
+      "scale": 9
+    }
+  },
+  "wild": {
+    "biome": "harvest",
+    "density": [
+      0.12,
+      0.4
+    ],
+    "seed": 21,
+    "zombiesPerChunk": [
+      0,
+      2
+    ]
+  },
+  "reserve": [
+    [
+      4,
+      7,
+      6,
+      5
+    ]
   ]
 }

@@ -101,6 +101,8 @@ export async function loadMapSprites(json) {
     for (const p of b.props || []) want(p.sprite, (p.footprint?.[0] || 1) * (p.footprint?.[1] || 1));
   }
   for (const sc of json.scatter || []) for (const id in sc.kinds || {}) want(id, (sc.footprint?.[0] || 1) * (sc.footprint?.[1] || 1));
+  for (const name in json.biomes || {}) for (const id in json.biomes[name].kinds || {}) want(id);
+  for (const id in json.wild?.kinds || {}) want(id);
   want("player");
   want("zombie");
   await Promise.all([...ids].map(([id, n]) => loadSprite(id, { tileCount: n })));

@@ -19,14 +19,90 @@ let source = null; // authored tiles: (x, y) => tile | null
 let defaultFloor = "floor_grass";
 const rooms = new Map(); // room id -> { id, size }
 let roomsDirty = true;
+// Beyond the authored bounds the world is wild: forest grown by rule, with a
+// few of the dead per chunk (Michael, 2026-10-09). Harvest register, so the
+// gloomy one is always a choice of place and never the default.
+let wild = null; // { biome: { kinds, scale }, density: [min, max], seed, zombiesPerChunk }
+let bounds = null; // [x, y, w, h] of the authored map
+const pendingSpawns = []; // [x, y] tiles where a wild chunk wants a zombie
 
-export function reset({ floor = "floor_grass", authored = null } = {}) {
+export function reset({ floor = "floor_grass", authored = null, wildRule = null, mapBounds = null } = {}) {
   chunks.clear();
   lastChunk = null;
   rooms.clear();
   source = authored;
   defaultFloor = floor;
+  wild = wildRule;
+  bounds = mapBounds;
+  pendingSpawns.length = 0;
   roomsDirty = true;
+}
+
+export function takePendingSpawns() {
+  return pendingSpawns.splice(0, pendingSpawns.length);
+}
+
+function inBounds(x, y) {
+  return !!bounds && x >= bounds[0] && y >= bounds[1] && x < bounds[0] + bounds[2] && y < bounds[1] + bounds[3];
+}
+
+// ---- deterministic randomness ----
+// Every roll is a hash of the tile and a seed, never a sequence, so a tile
+// rolls the same whatever order chunks load in.
+
+function hash2(x, y, seed) {
+  let h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263) ^ Math.imul(seed | 0, 2246822519);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+
+// Smooth value noise, 0..1, with lattice points `scale` tiles apart. Density
+// drifts with it: thickets and clearings instead of an even sprinkle.
+function valueNoise(x, y, scale, seed) {
+  const fx = x / scale;
+  const fy = y / scale;
+  const x0 = Math.floor(fx);
+  const y0 = Math.floor(fy);
+  const tx = fx - x0;
+  const ty = fy - y0;
+  const sx = tx * tx * (3 - 2 * tx);
+  const sy = ty * ty * (3 - 2 * ty);
+  const a = hash2(x0, y0, seed);
+  const b = hash2(x0 + 1, y0, seed);
+  const c = hash2(x0, y0 + 1, seed);
+  const d = hash2(x0 + 1, y0 + 1, seed);
+  return (a + (b - a) * sx) * (1 - sy) + (c + (d - c) * sx) * sy;
+}
+
+function densityAt(rule, biome, x, y) {
+  if (!Array.isArray(rule.density)) return rule.density;
+  const [lo, hi] = rule.density;
+  return lo + (hi - lo) * valueNoise(x, y, biome.scale || 8, (rule.seed ?? 1) + 7);
+}
+
+// Pick a key from { key: weight } with a 0..1 roll.
+function weightedPick(weights, roll) {
+  let total = 0;
+  for (const k in weights) total += weights[k];
+  let r = roll * total;
+  for (const k in weights) {
+    r -= weights[k];
+    if (r <= 0) return k;
+  }
+  return Object.keys(weights)[0];
+}
+
+// A wild tile: forest by the wild rule, or plain grass.
+function wildTile(x, y) {
+  const t = createTile();
+  if (!wild) return t;
+  const roll = hash2(x, y, wild.seed ?? 1);
+  if (roll < densityAt(wild, wild.biome, x, y)) {
+    const kind = weightedPick(wild.biome.kinds, hash2(x, y, (wild.seed ?? 1) + 1));
+    t.prop = createProp({ sprite: kind, tile: [x, y] });
+  }
+  return t;
 }
 
 export function createTile(floor = defaultFloor) {
@@ -66,11 +142,19 @@ export function getChunk(cx, cy, create = true) {
   if (c || !create) return c || null;
   const tiles = new Array(CHUNK * CHUNK);
   let hasWalls = false;
+  let anyWild = false;
   for (let ly = 0; ly < CHUNK; ly++) {
     for (let lx = 0; lx < CHUNK; lx++) {
       const x = cx * CHUNK + lx;
       const y = cy * CHUNK + ly;
-      const t = (source && source(x, y)) || createTile();
+      let t = source && source(x, y);
+      if (!t) {
+        if (inBounds(x, y)) t = createTile();
+        else {
+          t = wildTile(x, y);
+          anyWild = true;
+        }
+      }
       if (t.n || t.w) hasWalls = true;
       tiles[ly * CHUNK + lx] = t;
     }
@@ -81,6 +165,18 @@ export function getChunk(cx, cy, create = true) {
   // Open field cannot change any room, so only a chunk with walls (or one whose
   // edge walls a neighbouring room may touch) forces the rooms to be refound.
   if (hasWalls) roomsDirty = true;
+  // A wild chunk brings a few of the dead with it, on free tiles.
+  if (anyWild && wild && wild.zombiesPerChunk) {
+    const [lo, hi] = wild.zombiesPerChunk;
+    const n = lo + Math.floor(hash2(cx, cy, (wild.seed ?? 1) + 3) * (hi - lo + 1));
+    for (let i = 0; i < n; i++) {
+      const lx = Math.floor(hash2(cx * 31 + i, cy, (wild.seed ?? 1) + 4) * CHUNK);
+      const ly = Math.floor(hash2(cx, cy * 31 + i, (wild.seed ?? 1) + 5) * CHUNK);
+      const x = cx * CHUNK + lx;
+      const y = cy * CHUNK + ly;
+      if (!tiles[ly * CHUNK + lx].prop) pendingSpawns.push([x, y]);
+    }
+  }
   return c;
 }
 
@@ -470,28 +566,11 @@ export function createProp(def, offset = [0, 0]) {
   };
 }
 
-// Seeded random, so a map's scatter grows the same way every load (mulberry32).
-function seededRandom(seed) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-// Pick a key from { key: weight } with a 0..1 roll.
-function weightedPick(weights, roll) {
-  let total = 0;
-  for (const k in weights) total += weights[k];
-  let r = roll * total;
-  for (const k in weights) {
-    r -= weights[k];
-    if (r <= 0) return k;
-  }
-  return Object.keys(weights)[0];
+// Make sure every chunk within `radius` chunks of (x, y) exists, so wild
+// forest and its dead are grown well outside the viewport, never in it.
+export function ensureAround(x, y, radius = 3) {
+  const [cx, cy] = chunkCoord(Math.round(x), Math.round(y));
+  for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) getChunk(cx + dx, cy + dy);
 }
 
 // Build an authored-tile lookup from a map file, then reset the map onto it.
@@ -546,32 +625,45 @@ export function loadMap(json) {
     for (const p of b.props || []) placeProp(p, [bx, by]);
   }
   const baseFloor = json.floor || "floor_grass";
-  const hasWallNear = (x, y) => {
-    const t = authored.get(key(x, y));
-    if (t && (t.n || t.w)) return true;
-    const e = authored.get(key(x + 1, y));
-    if (e && e.w) return true;
-    const s = authored.get(key(x, y + 1));
-    if (s && s.n) return true;
-    return false;
+  // Reserved tiles take no scatter: each building's rectangle plus its
+  // `padding` ring (default 1, so a trunk can stand one tile from a wall,
+  // which reads as deep woods), and any `reserve` rectangles for yards,
+  // fields, and compounds. Michael's CSS-padding idea (2026-10-09).
+  const reserved = new Set();
+  const reserveRect = (x0, y0, w, h) => {
+    for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) reserved.add(key(x, y));
   };
+  for (const b of json.buildings || []) {
+    const pad = b.padding ?? 1;
+    reserveRect(b.rect[0] - pad, b.rect[1] - pad, b.rect[2] + pad * 2, b.rect[3] + pad * 2);
+  }
+  for (const r of json.reserve || []) reserveRect(...r);
+  const biomes = json.biomes || {};
   for (const sc of json.scatter || []) {
-    const rnd = seededRandom(sc.seed ?? 1);
+    const biome = sc.biome ? biomes[sc.biome] : { kinds: sc.kinds, scale: sc.scale || 8 };
     const [x0, y0, w, h] = sc.rect;
     const footprint = sc.footprint || [1, 1];
+    const seed = sc.seed ?? 1;
     for (let y = y0; y < y0 + h; y++) {
       for (let x = x0; x < x0 + w; x++) {
-        const roll = rnd();
-        const kindRoll = rnd();
-        if (roll >= sc.density) continue;
+        if (reserved.has(key(x, y))) continue;
+        if (hash2(x, y, seed) >= densityAt(sc, biome, x, y)) continue;
         const t = authored.get(key(x, y));
-        if (t && (t.floor !== baseFloor || t.prop)) continue;
-        if (t && t.room !== 0) continue;
-        if (hasWallNear(x, y)) continue;
-        placeProp({ sprite: weightedPick(sc.kinds, kindRoll), tile: [x, y], footprint, solid: sc.solid !== false, opaque: !!sc.opaque }, [0, 0]);
+        if (t && (t.floor !== baseFloor || t.prop || t.n || t.w)) continue;
+        placeProp({ sprite: weightedPick(biome.kinds, hash2(x, y, seed + 1)), tile: [x, y], footprint, solid: sc.solid !== false, opaque: !!sc.opaque }, [0, 0]);
       }
     }
   }
-  reset({ floor: baseFloor, authored: (x, y) => authored.get(key(x, y)) || null });
+  let wildRule = null;
+  if (json.wild) {
+    const biome = json.wild.biome ? biomes[json.wild.biome] : { kinds: json.wild.kinds, scale: json.wild.scale || 8 };
+    wildRule = { ...json.wild, biome };
+  }
+  reset({
+    floor: baseFloor,
+    authored: (x, y) => authored.get(key(x, y)) || null,
+    wildRule,
+    mapBounds: json.bounds || null,
+  });
   return { props, spawn: json.spawn || [0, 0], zombies: json.zombies || [], name: json.name || "map" };
 }

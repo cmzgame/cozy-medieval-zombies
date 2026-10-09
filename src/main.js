@@ -20,6 +20,7 @@ import * as interact from "./interact.js";
 const CANVAS_W = 960;
 const CANVAS_H = 540;
 const MAP_FILE = "data/maps/square.json";
+const ACTIVE_TILES = 40; // the dead beyond this many tiles from the player do not think
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -59,10 +60,19 @@ function update(dt) {
   if (input.wasPressed("KeyC")) setCutaway(cutaway === "stub" ? "translucent" : "stub");
   camera.follow(player, dt);
   camera.applyOrigin(CANVAS_W, CANVAS_H);
+  // Grow the world three chunks ahead of the player, so wild forest and its
+  // dead appear far outside the viewport.
+  map.ensureAround(player.gx, player.gy, 3);
+  for (const [x, y] of map.takePendingSpawns()) zombies.push(createZombie(x, y));
   interact.updateInteract(player, dt);
   updatePlayer(player, dt);
   const others = [player, ...zombies];
-  for (const z of zombies) updateZombie(z, dt, player, others);
+  // The dead far from the player stand still: a stand-in for the records of
+  // docs/03 until that milestone.
+  for (const z of zombies) {
+    if (Math.abs(z.gx - player.gx) > ACTIVE_TILES || Math.abs(z.gy - player.gy) > ACTIVE_TILES) continue;
+    updateZombie(z, dt, player, others);
+  }
   if (player.hp <= 0) {
     // The probe has no death yet: count it and carry on.
     deaths++;
@@ -114,7 +124,7 @@ function render() {
     `player ${player.gx.toFixed(2)},${player.gy.toFixed(2)} ${player.facing} hp ${player.hp} deaths ${deaths}\n` +
     `chunk ${cx},${cy}  room ${playerRoom}  rooms ${map.roomCount()}\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
-    `zombies ${zombies.length}  ${zombies.map((z) => z.state).join(" ")}\n` +
+    `zombies ${zombies.length}  near ${zombies.filter((z) => Math.abs(z.gx - player.gx) <= ACTIVE_TILES && Math.abs(z.gy - player.gy) <= ACTIVE_TILES).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
     `V: ${drawAll ? "showing everything" : "fog on"}   C: near walls ${cutaway}`;
 }
 
@@ -130,6 +140,8 @@ async function boot() {
   zombies = info.zombies.map(([x, y]) => createZombie(x, y));
   camera.snapTo(player.gx, player.gy);
   camera.applyOrigin(CANVAS_W, CANVAS_H);
+  map.ensureAround(player.gx, player.gy, 3);
+  for (const [x, y] of map.takePendingSpawns()) zombies.push(createZombie(x, y));
   tiles = camera.viewportTiles(CANVAS_W, CANVAS_H);
   map.rebuildRooms();
 
