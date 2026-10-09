@@ -23,7 +23,8 @@ Michael, 2026-10-10: before combat, bring back the cozy parent's interface. The 
 - **The inventory is a grid and there is no weight.** The parent's reasons hold: "full" is a picture, this game has dozens of items, and Michael never wants weight to slow you down. The bag is 6×4 to start.
 - **Right-click is the complete interface.** Everything you can do to the world is in the menu of the thing under the cursor. **E is the shortcut for the nearest simple action**, which here already means open or close a door or shutters, light or feed a fire, take or mount a torch, pick up, search. The stand-in keys fold in: `B` stays as a shortcut for boarding while planks are in the bag, `T` for the torch while one is in the bag.
 - **Out-of-range actions auto-walk** to a tile within range and then happen; a walk that cannot arrive says so and does nothing.
-- **Left-click on the floor walks there.** Michael's ask. The parent kept left-click for attacking; when combat comes, a click on a zombie with a weapon in the main hand attacks and a click on the floor walks, which is the next milestone's call to confirm.
+- ~~**Left-click on the floor walks there.**~~ Built, played, and withdrawn the same day: Michael wants left click free for selecting and placing things later; Walk here in the right-click menu is plenty. Combat's click is still the next milestone's call.
+- **Escape closes the top thing that can close, then pauses.** The menu first, then the bag; with nothing open it pauses the game, and again resumes. Zomboid's rule, Michael's ask (2026-10-10).
 - **Hands are the two slots** already ruled: main and off. Equipping from the item menu puts the item's id in a slot; the item stays in the bag with an outline, gold for the main hand and blue for the off-hand. The torch in the off-hand is lit.
 - **Containers are bags** with their own grid, opened by Search (first time, 1 s, rolls loot) or Open. A container closes when you walk away. Eating and drinking work straight from an open container, the parent's later ruling.
 - **Floor items** lie on tiles as small coloured blocks, picked up by E or the menu, dropped from the panel.
@@ -38,8 +39,8 @@ Sizes in cells; `hands` where holdable (`docs/02`, hands).
 | Item | Size | Kind | Notes |
 |---|---|---|---|
 | Torch | 1×2 | tool, off-hand | lit in the off-hand; never burns out |
-| Log | 2×2 | material | feeds a fire; splits into 2 planks |
-| Plank | 1×4 | material | one board |
+| Log | 2×3 | material | feeds a fire; splits into 3 planks. Six cells of log make nine cells of planks, so logs store denser, the opposite of Zomboid's back-breaking logs (Michael, 2026-10-10) |
+| Plank | 1×3 | material | one board |
 | Hatchet | 1×2 | tool, main hand | not needed yet; the first main-hand item |
 | Bread | 1×1 | food | hunger 40 |
 | Apple | 1×1 | food, stacks to 5 | hunger 15, thirst 5 |

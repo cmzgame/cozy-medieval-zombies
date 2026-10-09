@@ -73,8 +73,9 @@ function resize() {
   ui.style.transformOrigin = "0 0";
 }
 
-// Right-click builds a menu of what is under the cursor; a left click on the
-// floor walks there (docs/10). A click that dismissed a menu does nothing else.
+// Right-click builds a menu of what is under the cursor; Walk here is in it
+// (docs/10). Left click is kept free for selecting and placing things later
+// (Michael, 2026-10-10).
 function handleMouse() {
   const m = input.getMouse();
   if (input.mouseRightPressed()) {
@@ -83,14 +84,40 @@ function handleMouse() {
       menu.openContextMenu(m.x, m.y, actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => interact.runAction(player, a) })), CANVAS_W, CANVAS_H);
     }
   }
-  const dismissed = menu.tookClick();
-  if (input.mouseLeftPressed() && !dismissed && !menu.isMenuOpen() && m.inside) {
-    const actions = interact.actionsAt(m.x, m.y, player);
-    const walk = actions.find((a) => a.kind === "floor");
-    if (walk) interact.runAction(player, walk);
-    else if (actions.length && actions[0].simple) interact.runAction(player, actions[0]);
-  }
+  menu.tookClick();
   if (menu.isMenuOpen() && player.moving) menu.closeContextMenu();
+}
+
+// Escape closes the top thing that can close: the menu (which closes itself
+// and says so), then the bag; with nothing open it pauses, and again
+// resumes (Michael, 2026-10-10, as Zomboid does). Handled on the key event,
+// not in the step, because the step does not run while paused.
+let pauseEl = null;
+
+function setPaused(v) {
+  loop.setPaused(v);
+  if (!pauseEl) {
+    pauseEl = document.createElement("div");
+    pauseEl.id = "pause";
+    pauseEl.innerHTML = `<div class="pause-card"><b>Paused</b><span>Esc to resume</span></div>`;
+    ui.appendChild(pauseEl);
+  }
+  pauseEl.hidden = !v;
+  if (!v) input.endStep(); // keys pressed while paused do not fire on resume
+}
+
+function handleEscape() {
+  if (menu.tookEscape()) return;
+  if (loop.isPaused()) {
+    setPaused(false);
+    return;
+  }
+  if (panel.isOpen()) {
+    panel.setOpen(false);
+    openContainer = null;
+    return;
+  }
+  setPaused(true);
 }
 
 function updateInventoryUi() {
@@ -195,7 +222,7 @@ function render() {
     `chunk ${cx},${cy}  room ${playerRoom}${playerRoom > 0 ? (map.roomSealed(map.getRoom(playerRoom)) ? " sealed" : " open") : ""}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `zombies ${zombies.length}  near ${zombies.filter((z) => Math.abs(z.gx - player.gx) <= ACTIVE_TILES && Math.abs(z.gy - player.gy) <= ACTIVE_TILES).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
-    `Tab: bag   right-click: actions   click: walk   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   C: near walls ${cutaway}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
+    `Tab: bag   right-click: actions   Esc: close or pause   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   C: near walls ${cutaway}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
 }
 
 // The player's bag can hold what the panel does to it (docs/10).
@@ -252,6 +279,10 @@ async function boot() {
   menu.initContextMenu();
   panel.initInventoryPanel(panelHandlers());
   events.on("playerHit", ({ damage }) => damagePlayer(player, damage));
+  // After the menu's own listener, so a menu closed by Escape is seen first.
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "Escape") handleEscape();
+  });
   events.on("containerOpened", ({ prop }) => {
     openContainer = prop;
     panel.setOpen(true);
@@ -270,6 +301,7 @@ async function boot() {
     get info() { return info; },
     get openContainer() { return openContainer; },
     teleport(gx, gy) { player.gx = gx; player.gy = gy; player.auto = null; camera.snapTo(gx, gy); },
+    setPaused,
     walkTo(gx, gy) { return autoWalk(player, [gx, gy]); },
   };
 }

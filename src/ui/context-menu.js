@@ -4,6 +4,7 @@
 let root = null;
 let open = false;
 let swallowedClick = false;
+let swallowedEscape = false;
 
 export function initContextMenu() {
   root = document.createElement("div");
@@ -28,7 +29,10 @@ export function initContextMenu() {
     swallowedClick = true;
   }, true);
   window.addEventListener("keydown", (e) => {
-    if (open && (e.code === "Escape" || e.code === "Tab")) closeContextMenu();
+    if (open && (e.code === "Escape" || e.code === "Tab")) {
+      closeContextMenu();
+      if (e.code === "Escape") swallowedEscape = true;
+    }
   });
 }
 
@@ -57,6 +61,14 @@ export function closeContextMenu() {
 
 export function isMenuOpen() {
   return open;
+}
+
+// True once if an Escape was used to close the menu (docs/10: Escape closes
+// the top thing that can close, then pauses).
+export function tookEscape() {
+  const v = swallowedEscape;
+  swallowedEscape = false;
+  return v;
 }
 
 // True once if a click was used to dismiss the menu this frame.
