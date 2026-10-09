@@ -34,8 +34,8 @@ The night layer works in screen space, so the rules below say what takes which l
 - **The floor takes the map**: the clock, the room's ambient, and the fire pools with their shadows.
 - **A wall face takes the light of the tile it looks onto.** The camera looks from the south-east, so a north wall shows its south face and a west wall its east face; each looks onto the tile its edge belongs to. An exterior face therefore matches the ground beside it, seen by the player or not; an interior face matches its room. A corner post's two faces look onto the tiles beside it, one each.
 - **The top of a wall or a post always takes the sky**, never the room, so a run of walls and its posts agree.
-- **Everything standing on a tile takes the light of its own tile**: a tree outside a lit cottage stays dark where its canopy crosses the room on screen, and a figure in a dark yard is dark against a lit wall. Done by cutting each sprite out of the layer and painting it back at its own darkness, only for sprites that overlap a room whose light differs from outdoors.
-- **A translucent near wall takes its room's light**, since the room shows through it.
+- **Everything standing on a tile takes the light of its own tile**: a tree outside a lit cottage stays dark where its canopy crosses the room on screen, and a figure in a dark yard is dark against a lit wall. Done by cutting each sprite out of the layer and painting it back at its own darkness, only for sprites that overlap a room whose light differs from outdoors; a wall drawn after the sprite then gets its own darkness painted back over the overlap, so a chest behind a translucent wall does not show through it lit (Michael's diagnosis, 2026-10-09).
+- **A translucent near wall takes a mix**: mostly its room's light, partly its own face's, in the proportion it is drawn.
 - **Flames never dim.** They draw in their own layer above the night, stencilled by whatever the sort order draws after them, so a flame behind a wall or a head is hidden.
 - Parked, as in the parent: a pool climbing a wall face, and the player's own pool on the faces beside them beyond a small term at their foot.
 

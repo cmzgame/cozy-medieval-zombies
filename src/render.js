@@ -637,9 +637,11 @@ function drawNight(ctx, w, h, tiles, drawables, player) {
         roomTarget = t;
       }
     }
+    d.nightFaces = [];
     for (const f of d.faces) {
       const faceDark = night.alpha * light.darknessOf(light.lightAt(f.tile[0], f.tile[1]));
       const target = NEAR_WALL_ALPHA * faceDark + (1 - NEAR_WALL_ALPHA) * roomTarget;
+      d.nightFaces.push(target);
       adjustTo(g, base, target, () => poly(g, f.poly));
     }
   }
@@ -733,19 +735,28 @@ function drawNight(ctx, w, h, tiles, drawables, player) {
   for (const d of drawables) {
     if (d.kind !== "wall" || !d.faces) continue;
     if (!d.near) {
+      d.nightFaces = [];
       for (const f of d.faces) {
         const l = light.lightAt(f.tile[0], f.tile[1]);
         const foot = f.poly[1];
         const pool = player ? poolAt(foot[0], foot[1], ox, oy) : 0;
-        setAlpha(footed(f.poly), night.alpha * light.darknessOf(l) * (1 - pool));
+        const a = night.alpha * light.darknessOf(l) * (1 - pool);
+        d.nightFaces.push(a);
+        setAlpha(footed(f.poly), a);
       }
     }
     if (d.topPoly) {
       const top = d.topPoly[0];
       const pool = player ? poolAt(top[0], top[1], ox, oy) : 0;
-      setAlpha(d.topPoly, base * (1 - pool));
+      d.nightTop = base * (1 - pool);
+      setAlpha(d.topPoly, d.nightTop);
     }
   }
+  // Paint a wall's darkness back over a region, as recorded above.
+  const restoreWall = (d) => {
+    if (d.nightFaces) d.faces.forEach((f, i) => setAlpha(d.near ? f.poly : footed(f.poly), d.nightFaces[i]));
+    if (d.topPoly && d.nightTop !== undefined) setAlpha(d.topPoly, d.nightTop);
+  };
 
   // Everything that stands on a tile takes the light of its own tile (Michael,
   // 2026-10-09): a tree outside a lit cottage stays dark where its canopy
@@ -806,6 +817,14 @@ function drawNight(ctx, w, h, tiles, drawables, player) {
       d.draw(g);
       g.globalCompositeOperation = "source-over";
       g.drawImage(spriteCanvas, r.x - 1, r.y - 1, r.w + 2, r.h + 2, r.x - 1, r.y - 1, r.w + 2, r.h + 2);
+      // A wall drawn after this sprite covers it (Michael, 2026-10-09: the
+      // chest behind the translucent east wall showed through it lit), so
+      // the wall's darkness goes back over the overlap.
+      const i = drawables.indexOf(d);
+      for (let j = i + 1; j < drawables.length; j++) {
+        const o = drawables[j];
+        if (o.kind === "wall" && o.fullPoly && polyOverlaps(o.fullPoly, r)) restoreWall(o);
+      }
     }
   }
   g.globalCompositeOperation = "source-over";
