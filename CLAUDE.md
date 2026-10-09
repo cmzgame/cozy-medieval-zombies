@@ -32,8 +32,9 @@ These are the current rulings. The list grows as `docs/02-decisions.md` does.
 - Tiles are 64×32. Integer display scaling. Never scale in `drawImage`. Never draw UI into the canvas.
 - One continuous map. No cuts between inside and outside. If a design needs a scene transition, it is wrong for this game.
 - Nothing materialises in view. The active region's boundary stays well beyond the viewport.
-- The map is stored block by block. Every tile access goes through `tileAt`. A missing chunk is empty field.
-- Rooms are found by flood fill, never authored. Walls are tiles with state.
+- The map is stored block by block. Every tile access goes through `tileAt`. A missing chunk is grown on demand: plain floor inside the authored bounds, wild forest with a few of the dead beyond them.
+- Rooms are found by flood fill, never authored. Walls are state on tile edges (`n` and `w` slots, Zomboid style), never objects; a door or a window is a wall with a kind and a state.
+- Windows have shutters, not glass. Closed shutters block sight. Doors start closed and block sight and bodies.
 - Light is one function. Nothing else computes light. Light feeds sight.
 - Villagers carry no weapons and never fight for the player. They flee, follow, stay, and die.
 - Check `docs/05-someday.md` before a choice that would foreclose something cheaply. Say so before making it.
@@ -54,4 +55,4 @@ Then open http://localhost:8010. ES modules will not load from `file://`. `serve
 
 ## Code map
 
-`map.js` tiles, edge walls, collision, rooms, authoring · `visibility.js` line of sight · `camera.js` · `render.js` floors, walls, cutaway, fog · `pathfind.js` · `entities/` player and the dead · the rest copied from the cozy parent, see each file's header.
+`map.js` tiles, edge walls, collision, rooms, authoring (sets, features, scatter, wild) · `visibility.js` line of sight · `camera.js` · `render.js` floors, walls, posts, swung leaves, occlusion holes, fog · `interact.js` doors and shutters on `E` · `pathfind.js` · `entities/` player and the dead · `placeholders.js` dev art generators, copied then re-themed · `ui/` the stamina bar and the prompt · the rest copied from the cozy parent, see each file's header.

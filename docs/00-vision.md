@@ -51,13 +51,13 @@ If those four hold, everything else is porting and data. If any fails, stop and 
 - **Not Zomboid with cute art.** Village scale, dozens of items, a few rules. No body map, no vision cone stance, no skill grind, no water shutoff or power cut.
 - **Not an RPG, yet.** No quests for a good long while. Never say never; see `05-someday.md`.
 - **Not the 2D sibling in isometric.** No digging, no terrain editing, no mining tiers. The ground is the ground.
-- **Not a procedural world, at first.** One hand-authored village. Prove the loop in it.
+- **Not a procedural world.** Authored structure, scattered filler (ruled 2026-10-09): the roads, buildings, and water are placed by hand; trees, carts, and events are scattered by rule, and the wild beyond the map is forest grown the same way. Nothing that matters is generated.
 - **Not finished art.** Placeholders through the same pipeline real sprites will use.
 
 ## Guiding principles for rulings
 
 - Prefer the option that keeps sight honest: if you could see it, you see it; if they could see you, they do.
-- Prefer the option that adds no special case to tiles. A window is a tile with two booleans, not a system.
+- Prefer the option that adds no special case to tiles. A window is a wall on a tile edge with a kind and a shutter state, not a system.
 - Prefer dumb distributed dead over clever ones.
 - Prefer placeholder art that exercises the real pipeline over waiting for art.
 - When in doubt, cut. Look at how a parent did it before writing anything new, then decide for this game.

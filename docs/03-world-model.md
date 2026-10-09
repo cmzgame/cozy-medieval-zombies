@@ -63,18 +63,18 @@ A record is `{ id, chunk, tile, state, target, timer, hp, aggro, ...body fields 
 
 ## Rooms
 
-- Flood fill from any interior floor tile through floor, stopping at walls, doors, and windows. Each enclosed region is a room with an id. Recomputed when a wall tile changes.
-- A room carries `hearthLit` (the cozy room-light boolean renamed), its openings, and derived **sealed**: no broken window, no open or broken door, every window curtained or boarded. Sealed is the sibling's enclosure state, found instead of flood-filled from the player, and it gates sleep.
+- Flood fill from any interior floor tile through floor, stopping at any wall on an edge, whether plain, door, or window. Each enclosed region is a room with an id. Recomputed when a wall changes. Walls are not tiles: every tile has a slot for a wall on its north edge and one on its west edge, Zomboid style, so a building's south wall is the north wall of the tiles below it.
+- A room carries `hearthLit` (the cozy room-light boolean renamed), its openings, and derived **sealed**: no broken shutter, no open or broken door, every window shuttered or boarded. Sealed is the sibling's enclosure state, found instead of flood-filled from the player, and it gates sleep.
 - Ambient light indoors follows the cozy parent's rule: a lit hearth lights the room; an unlit room gets daylight by its openings.
-- Door and window tiles belong to the room on their inside.
+- A door or a window sits on the edge between two tiles. Which side is outdoors is read from the rooms on either side (`outsideSign` in `map.js`), which is how open leaves know which way to swing.
 
 ## Rendering with a camera
 
 - The camera is a float grid position; `toScreen` subtracts it. Draw the chunks that intersect the viewport plus one.
 - **Floor per chunk is cached** as one offscreen canvas and drawn as one image. The static part of a chunk never changes between edits.
-- Walls on all four sides of a building. **Cutaway:** when the player is inside a room, that room's walls on the near two sides (south and east) draw as low stubs, the cozy parent's near-stub art generalised. Walls of other buildings draw full height. How this reads is proof 2 of the probe.
-- Sorted drawables, occlusion fade and silhouettes, and the night layer carry over. The night layer and the light map are drawn per visible chunk.
-- **Visibility:** a shadow cast from the player over the viewport using the light map's ray code with the player as the source. Tiles out of sight draw darkened; the dead out of sight are not drawn at all. Walls you can see the face of are visible. A glass tile passes sight and blocks movement; a closed curtain or a board blocks both.
+- Walls on all four sides of a building. **Cutaway:** when the player is inside a room, that room's walls on the near two sides (south and east) draw full height and translucent, so a window or a door looks the same inside and out (ruled 2026-10-09; the cozy parent's low stubs were the plan and stay on the `C` key for comparison). Walls of other buildings draw full height. How this reads was proof 2 of the probe, and it passed.
+- Sorted drawables carry over. Occlusion is a soft hole cut through every canopy over a character, not a fade, and the parent's silhouette pass is gone. The night layer and the light map arrive with lighting and are drawn per visible chunk.
+- **Visibility:** a shadow cast from the player over the viewport using the light map's ray code with the player as the source. A tile is visible if its centre can be seen or, failing that, any of four points near its corners. Tiles out of sight draw darkened; the dead out of sight are not drawn at all. Walls you can see the face of are visible. An open shutter passes sight and blocks bodies except a climb; a closed shutter, a closed door, or a board blocks both.
 
 ## Authoring: sets, features, scatter, wild
 
@@ -88,7 +88,7 @@ Michael's vocabulary (2026-10-09), as built in `map.js`:
 
 ## Save
 
-- Per chunk: run-length rows of tile kinds plus a sparse list of tiles with non-default state. Records as a list. Rooms, light maps, and floor caches are rebuilt, never saved.
+- Per chunk: run-length rows of floor kinds, the edge walls with their kind and state, and a sparse list of tiles with non-default state (a prop felled, a shutter open). Wild chunks are regrown from the seed and save only their differences. Records as a list. Rooms, light maps, and floor caches are rebuilt, never saved.
 
 ## Single storey, for now
 

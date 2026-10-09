@@ -12,11 +12,11 @@ Started 2026-10-08 as the marriage of two earlier prototypes: `cozy-zombie-game`
 python serve.py 8010
 ```
 
-Then open http://localhost:8010. WASD or arrows to walk, Shift to sprint, mouse to aim. At a window, tap `E` to open or close the shutters and hold `E` to climb through. `V` toggles the fog of what you cannot see, `C` switches how near walls draw.
+Then open http://localhost:8010. WASD or arrows to walk, Shift to sprint, mouse to aim. At a door, tap `E` to open or close it. At a window, tap `E` to open or close the shutters and hold `E` to climb through. `V` toggles the fog of what you cannot see, `C` switches how near walls draw.
 
 ## Status
 
-Milestone 1, the probe: a scrolling chunked map, a cottage and a shed with four walls and cutaway stubs, line of sight through glass, the player and three of the dead. See `TODO.md` for where things stand and `docs/00-vision.md` for what this is.
+Milestone 1, the probe, passed on 2026-10-09: a scrolling chunked map with real line of sight, a cottage and a shed with doors and shuttered windows, near walls translucent when you are inside, a farm plot, jack-o'-lanterns, harvest forest scattered by rule, and wild forest with a few of the dead beyond the authored map. Milestone 2 is lighting. See `TODO.md` for where things stand and `docs/00-vision.md` for what this is.
 
 ## Documents
 

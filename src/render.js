@@ -279,8 +279,11 @@ function propDrawables(tiles, visible, out) {
     // A single-tile prop with an animated idle plays it; multi-tile props use
     // one frame per footprint tile.
     const anim = sheet.animations && sheet.animations.idle;
+    // The tile offset desynchronises neighbours; the abs keeps the modulo
+    // positive west and north of the origin, where JS would give a negative
+    // index and a missing frame.
     const frameIdx = prop.tiles.length === 1 && anim && anim.fps > 0
-      ? Math.floor((performance.now() / 1000) * anim.fps + tx * 7 + ty * 3) % anim.frames
+      ? Math.floor((performance.now() / 1000) * anim.fps + Math.abs(tx * 7 + ty * 3)) % anim.frames
       : i;
     const name = `idle_${frameIdx}`;
     const f = sheet.frames[name];

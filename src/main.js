@@ -1,6 +1,7 @@
-// Boot and the probe's game state. Milestone 1: a scrolling camera over a
-// chunked map, one cottage with cutaway walls, line of sight through glass,
-// the player, and three of the dead. See TODO.md and docs/00-vision.md.
+// Boot and the game state. A scrolling camera over a chunked map with real
+// line of sight, buildings with doors and shuttered windows, forest scattered
+// by rule, the player, and the dead. Milestone 1 (the probe) passed on
+// 2026-10-09; lighting is next. See TODO.md and docs/00-vision.md.
 
 import * as iso from "./iso.js";
 import * as input from "./input.js";

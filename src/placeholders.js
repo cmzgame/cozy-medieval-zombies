@@ -1,7 +1,11 @@
-// Copied from cozy-zombie-game src/placeholders.js on 2026-10-09. Window panes made translucent.
+// Copied from cozy-zombie-game src/placeholders.js on 2026-10-09 and re-themed
+// the same day for docs/06-art.md: thick patterned walls, windows as shuttered
+// holes with no glass, plank doors and leaves with metal strips, brown-trunked
+// trees, the jack-o'-lantern, sleeves on the player.
 // Placeholder sprite sheet generation. Everything here produces the same sheet
 // shape that assets.js builds from a real PNG + JSON, so real art can replace
-// any of it without code changes. See docs/03-rendering.md.
+// any of it without code changes. (The parent's docs/03-rendering.md describes
+// the sheet shape; this repo's docs/06 holds the palette.)
 
 import { TW, TH, HW, HH } from "./iso.js";
 import { shade, poly } from "./render-util.js";

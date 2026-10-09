@@ -1,6 +1,6 @@
 # 06 — Art direction and the dev palette
 
-Michael, 2026-10-09: spooky medieval, a bit haunted, never permanently night. Not Stardew's bright lawn; closer to Tirisfal Glades, a place where Halloween never quite ends. The dev art should carry that identity now, before real art, because a visual identity helps motivation. The character placeholders (the player and the dead) are good as they are and stay.
+Michael, 2026-10-09: spooky medieval, a bit haunted, never permanently night. Not Stardew's bright lawn; closer to Tirisfal Glades, a place where Halloween never quite ends. The dev art should carry that identity now, before real art, because a visual identity helps motivation. The character placeholders were kept at first; later the same day the player got worn yellowed linen with sleeves and brown breeches (no denim), and the dead stayed as they were.
 
 ## The genre test
 
@@ -40,16 +40,16 @@ It is a balancing act the whole way, and the answer is **by zone**: the two regi
 | Stone floor | `#67645e` / `#5f5c56` | |
 | Wood wall | `#6e4b32` planks | |
 | Stone wall | `#7b7670` bricks | |
-| Trees, harvest | oak `#3f5a33`, orange `#a4602a`, yellow `#b09038`, red `#8c3a2c`, trunks `#4a3324` | 112 to 126 px tall; big, and they overlap |
-| Old giants | oak `#36502e`, orange `#9a5826`, trunks `#3e2a1c` | 186 to 196 px tall, 124 to 134 wide; about one in eighty tiles |
+| Trees, harvest | oak `#3f5a33`, orange `#a4602a`, yellow `#b09038`, red `#8c3a2c`, trunks `#4a3324` | three sizes: 92, 124, and 152 px tall, 56, 78, and 98 wide; trunks collide at 0.14, 0.18, and 0.22 tiles; big, and they overlap |
+| Old giants | oak `#36502e`, orange `#9a5826`, trunks `#3e2a1c` | 196 px tall, 134 wide, trunk 0.3 tiles; about one tree in fifty |
 | Trees, gloom (on file) | blue `#3a4e62`, purple `#4a3b5e` | for a later zone, not placed |
 | Player | shirt `#c9b98e`, sleeves `#bfae84`, breeches `#5a4030`, boots `#3a2a1c` | worn yellowed linen with sleeves, brown, no denim |
 | The dead | unchanged | dusty purple shirt, kept |
 | Bed | `#8a4a44` | a muted red accent |
-| Table, chest, barrel | `#7a5a3c`, `#5e4630`, `#6a4d33` | browns, no orange |
+| Table, chest, barrel | `#7a5a3c`, `#5e4630`, `#6a4d33` | browns, no orange; the barrel is round and collides at 0.26 tiles |
 | Door and shutter wood | `#5e4028`, strips `#2b2a32` | the same on every building |
 | Jack-o'-lantern | body `#c8692a`, stem `#5a3d22`, fire `#ffb347` to `#ffd37a` | October 2026 |
 | Fog | `rgba(22, 14, 32, 0.36)` | lowered twice from 0.74 |
 | Canvas background | `#16121c` | |
 
-All of it is tunable and all of it is placeholder. Real art replaces files, not code.
+All of it is tunable and all of it is placeholder. Real art replaces files, not code. Colours, sizes, and collision radii live in `data/sprites/*.json`; when one changes, this table changes with it.

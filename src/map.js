@@ -5,8 +5,9 @@
 // wall of the tiles just south of it, and its east wall is the west wall of the
 // tiles just east. A door or a window is a wall with a different kind and state.
 //
-// A chunk that nobody authored is open field. Chunks are created on demand, so
-// the field goes on forever and the camera never shows the void.
+// Chunks are created on demand, so the ground goes on forever and the camera
+// never shows the void. Inside the authored bounds an unauthored tile is plain
+// floor; beyond them a chunk is wild, grown from the map's `wild` rule.
 
 import { getDef } from "./assets.js";
 
@@ -537,10 +538,12 @@ export function roomCount() {
 }
 
 // ---- authoring ----
-// A map file is grass plus floor rectangles, free props, and buildings: a
-// rectangle of interior tiles with walls on its perimeter edges, openings in
-// those walls, its own floor, and props placed relative to its corner. See
-// data/maps/square.json. The result is sliced into chunks on first load.
+// A map file is a base floor, `features` (roads), `sets` (buildings, floors,
+// and props placed relative to a set's origin, with a padding ring), `scatter`
+// rules, and a `wild` rule for beyond the bounds. A building is a rectangle of
+// interior tiles with walls on its perimeter edges, openings in those walls,
+// its own floor, and props placed relative to its corner. See loadMap below
+// and data/maps/square.json. The result is sliced into chunks on first load.
 
 export function createProp(def, offset = [0, 0]) {
   const [w, h] = def.footprint || [1, 1];
