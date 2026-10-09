@@ -4,6 +4,17 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-09, night — The renderer goes to WebGL (Michael)
+
+Michael took the lighting problem to an outside agent with only the lighting and scaling parts of the game described, and brought back a spec (`medieval_pixel_world_game_spec.md`, in his downloads) recommending PixiJS on WebGL. Read together on 2026-10-09; most of its architecture is what we already have (authoritative world data, derived light maps per chunk, materials apart from art, emitters as data, rooms found not authored). Rulings:
+
+- **Raw WebGL2, not PixiJS, not Canvas 2D for the world.** Michael: libraries like PixiJS exist to make this easier for humans to write; with me writing it, raw WebGL costs little and we own the pipeline. The reason it is worth doing now: everything he was still dissatisfied with is light per pixel (a pool climbing a wall, his own pool on the wall beside him, a tree lit at the trunk and dark at the crown), which Canvas 2D cannot do and a shader does by sampling a light texture at each pixel. The Canvas 2D ordered pass stays until the WebGL renderer reaches parity, then goes. Canvas 2D keeps generating the placeholder art, which uploads as textures. The design is `08-renderer.md`.
+- **Portals are emitters.** An opening is a light source on its darker side with the brighter side's ambient as its intensity, times its transmission. At night a lit room's open window and door cast warm patches outside whether or not the hearth is within its radius of them; by day the same openings pool daylight on the floor inside, which replaces the flat per-room openness number with light by each window. One rule for both directions. Michael: matches what he wants from windows, daylight pooling included.
+- **Openings carry a transmission scalar**, not a yes or no: a plain wall and a closed door 0, an open shutter and an open doorway 1, a closed shutter a small leak to tune, and later a glass pane most and a curtain little. Light multiplies through; sight is transmission above a threshold. Same one set of blockers, now with a number.
+- **The floor field exists.** Ruled on 2026-10-08 and never added: chunks and lookups take a layer, always 0 for now.
+- **A pause on gameplay for this is accepted.** Michael: get this right while we are very early, since openings and combat will be written against the drawable interface this produces. He also ruled that my wall-clock estimates are worthless and I should give scope instead.
+- **From the spec, taken:** flicker as emitter data, a light-map sampling toggle (nearest is his per-cell backburner, now one line), a debug view of the light map and blockers. **Ignored, as Michael agreed:** TypeScript, 32-tile chunks, top-down Y sorting, Tiled, building as first-class now (question 14 stays open at zero cost), and its vertical slice, which ours exceeds except for construction and save.
+
 ### 2026-10-09, afternoon — Torches, fire, hands, and the clock (Michael)
 
 The conversation that opens Milestone 2. Its design is `07-lighting.md`.

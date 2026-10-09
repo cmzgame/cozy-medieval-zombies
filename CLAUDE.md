@@ -17,7 +17,7 @@ Started 2026-10-08 as the marriage of two prototypes, both kept as they are:
 
 ## Docs
 
-`docs/00` vision · `01` what the parents offer · `02` decisions and open questions · `03` world model: chunks · `04` NPCs · `05` someday (never foreclose these cheaply) · `06` art direction and the dev palette · `07` milestone 2: lighting, fire, and the clock.
+`docs/00` vision · `01` what the parents offer · `02` decisions and open questions · `03` world model: chunks · `04` NPCs · `05` someday (never foreclose these cheaply) · `06` art direction and the dev palette · `07` milestone 2: lighting, fire, and the clock · `08` milestone 2b: portals and the WebGL renderer (the world moves from Canvas 2D to raw WebGL2 here; Canvas 2D keeps generating the dev art).
 
 ## Borrowing from the parents
 
