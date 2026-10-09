@@ -8,11 +8,12 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 The milestone after the renderer: the dead get in. Design in `09-openings.md`.
 
-- **Doors and windows can be barred from either side.** Michael's call. A bar holds the leaf shut for both sides and only the side that put it there can take it off, so you can bar your own door from inside, bar the storehouse from outside, or shut a zombie in the shed.
-- **An opening is a stack, read from the attacker's side.** Michael asked how "bars, door, bars inside" could work when the dead attack. Whatever is on the attacker's side breaks first, then the leaf, then whatever is on the far side. A zombie outside a door barred inside breaks the door before it ever touches the bar; one trapped in a barred shed breaks the shutters and climbs out. One rule, no special cases.
+- **Boards only, no bars.** Michael, on reading the first draft: bars and boards together are too fussy. Planks on either side of a door or a window, two or three a side, and the leaf (the door itself, or the shutters) has health of its own. One kind of thing, one number.
+- **An opening is a stack, read from the attacker's side**: that side's boards, then the leaf, then the far side's boards. A zombie outside a door boarded on both sides breaks the outside boards, then the door, then the inside boards, and then it is an opening again. Nothing can be walked or pathed through while a board stands on either side. One rule, no special cases.
+- **Everything is spent, nothing is repaired.** Michael: if the dead break your door, you do not have a door anymore; the boards they break are gone; pulling your own board is gone too. No repair; the opening stays an opening. Open question 6 is closed by this: spent. Wood is what you go out for: planks for the walls and logs for the fires.
+- **One shambler takes a while.** A bare door should cost one zombie tens of seconds and a fully boarded one more than a minute; a Romero shambler does not kick a door down in a few seconds. Numbers tuned by eye in `09-openings.md`.
 - **The dead climb through open windows**, slower than you and unable to bite while they do. Michael was about to ask for this; it is this milestone.
 - **The dead attack the room's nearest opening.** When the way to what they want is shut, they go to the nearest opening of the room it is in on their own side, and hit the stack until it gives. Nothing ever breaks a wall. Noise stays out (question 18).
-- **What the dead break returns nothing.** The sibling's rule. A broken door is a doorway until repaired, a broken shutter an open window that cannot be closed. Repair comes with the inventory.
 - **Sealed is derived** from a room's openings each step: every door closed and whole, every window shuttered or boarded and whole. It gates sleep later and costs nothing now.
 
 ### 2026-10-09, night — The renderer goes to WebGL (Michael)
@@ -108,7 +109,7 @@ The pre-code conversations closed on 2026-10-08. Each remaining question is deci
 3. ~~**Upper floors.**~~ Ruled: single storey first, layer-ready data. How floors render is decided after the probe.
 4. ~~**Roofs.**~~ Ruled: none for the probe, nothing written to foreclose them. In `05-someday.md`.
 5. ~~**Who passes a broken window.**~~ Ruled 2026-10-09: anyone. How slow and how loud is decided at the openings milestone.
-6. **Boards: refunded or spent.** Cozy refunds; the sibling spends. Lean: spent, since "reinforcement is spent" is the cleaner rule.
+6. ~~**Boards: refunded or spent.**~~ Ruled 2026-10-10: spent, and so is everything else the dead break. No repair.
 7. ~~**Player-built walls.**~~ Folded into question 14.
 8. ~~**The light you carry, and torches.**~~ Ruled 2026-10-09: a held torch is a radius, never a cone, and never burns out; mounted torches go in brackets and on posts, never on the ground. The aiming skill of the parent's beam is knowingly given up. The shuttered lantern waits in `05-someday.md`.
 9. **Authored village or seeded world.** Narrowed 2026-10-09 by "authored structure, scattered filler": places are authored, trees and the like are scattered by rule, and the wild beyond the bounds is grown forest. What remains open is whether the world ever grows past one village, with authored places and generated country between (`05-someday.md`). Lean: the village is authored by hand first and later with the in-game creative tool (question 14).
