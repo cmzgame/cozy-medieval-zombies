@@ -70,6 +70,7 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
       case "post": sheet = placeholders.generatePost(ph); break;
       case "flat": sheet = placeholders.generateFlat(ph); break;
       case "wall": sheet = placeholders.generateWall(ph); break;
+      case "pumpkin": sheet = placeholders.generatePumpkin(ph); break;
       default: throw new Error(`Unknown placeholder kind ${ph.kind} for ${id}`);
     }
   } else {
@@ -99,6 +100,7 @@ export async function loadMapSprites(json) {
     want(b.floor);
     for (const p of b.props || []) want(p.sprite, (p.footprint?.[0] || 1) * (p.footprint?.[1] || 1));
   }
+  for (const b of json.buildings || []) for (const o of b.openings || []) if (o.kind) want(b.wall);
   want("player");
   want("zombie");
   await Promise.all([...ids].map(([id, n]) => loadSprite(id, { tileCount: n })));

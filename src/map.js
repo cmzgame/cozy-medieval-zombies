@@ -33,7 +33,7 @@ export function createTile(floor = defaultFloor) {
 // A wall segment on a tile edge. kind: "wall" | "door" | "window". A window has
 // wooden shutters: closed blocks sight, open lets you see and climb through.
 export function createWall(kind, sprite) {
-  return { kind, sprite, open: kind === "door", shutter: kind === "window" ? "closed" : null };
+  return { kind, sprite, open: false, shutter: kind === "window" ? "closed" : null };
 }
 
 // Bumped whenever a wall changes state, so sight can be recomputed.
@@ -124,22 +124,22 @@ export function blocksSight(wall) {
   return true;
 }
 
-// Windows within `r` tiles of (gx, gy), nearest first. Each carries the edge
-// midpoint and the tile on the far side from the asker, for climbing through.
-export function windowsNear(gx, gy, r = 1.15) {
+// Openings (doors and windows) within `r` tiles of (gx, gy), nearest first.
+// Each carries the edge midpoint and the tile on the far side from the asker.
+export function openingsNear(gx, gy, r = 1.15) {
   const out = [];
   const cx = Math.round(gx);
   const cy = Math.round(gy);
   for (let ty = cy - 2; ty <= cy + 2; ty++) {
     for (let tx = cx - 2; tx <= cx + 2; tx++) {
       const t = tileAt(tx, ty);
-      if (t.n && t.n.kind === "window") {
+      if (t.n && t.n.kind !== "wall") {
         const mx = tx;
         const my = ty - 0.5;
         const d = Math.hypot(gx - mx, gy - my);
         if (d <= r) out.push({ wall: t.n, edge: "n", tx, ty, mx, my, d, to: gy < my ? [tx, ty] : [tx, ty - 1] });
       }
-      if (t.w && t.w.kind === "window") {
+      if (t.w && t.w.kind !== "wall") {
         const mx = tx - 0.5;
         const my = ty;
         const d = Math.hypot(gx - mx, gy - my);
@@ -149,6 +149,17 @@ export function windowsNear(gx, gy, r = 1.15) {
   }
   out.sort((a, b) => a.d - b.d);
   return out;
+}
+
+// Which side of the edge at (tx, ty) is outdoors: +1 for the near side (south
+// of a north edge, east of a west edge), -1 for the far side. When both sides
+// are rooms or both are outdoors, the near side is treated as outside.
+export function outsideSign(tx, ty, edge) {
+  const near = tileAt(tx, ty).room;
+  const far = edge === "n" ? tileAt(tx, ty - 1).room : tileAt(tx - 1, ty).room;
+  if (far !== 0 && near === 0) return 1;
+  if (far === 0 && near !== 0) return -1;
+  return 1;
 }
 
 // Segments of an edge (as fractions 0..1 along it) that a body cannot pass.

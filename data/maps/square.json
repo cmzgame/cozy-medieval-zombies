@@ -207,6 +207,30 @@
         20,
         11
       ]
+    },
+    {
+      "sprite": "pumpkin",
+      "tile": [
+        14,
+        10
+      ],
+      "solid": false
+    },
+    {
+      "sprite": "pumpkin",
+      "tile": [
+        16,
+        10
+      ],
+      "solid": false
+    },
+    {
+      "sprite": "pumpkin",
+      "tile": [
+        22,
+        13
+      ],
+      "solid": false
     }
   ],
   "spawn": [

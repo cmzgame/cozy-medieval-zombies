@@ -72,15 +72,56 @@ export function generateFlat(ph) {
 // cosy (Michael, 2026-10-09).
 export const WALL_T = 12;
 
+// Fittings are the same wood everywhere, whatever the wall: doors and shutters
+// are vertical planks with dark metal strips across them (Michael, 2026-10-09:
+// "I know this is not a thing but I like how it sounds").
+export const WOOD = "#5e4028";
+export const METAL = "#2b2a32";
+
+// A plank leaf in the quad [p0, p1, p2, p3] (p0 and p3 are the bottom corners,
+// p1 and p2 the top), with `strips` metal bands across it.
+export function drawPlankLeaf(ctx, quad, strips = 2, shadeF = 1) {
+  const [p0, p1, p2, p3] = quad;
+  const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+  ctx.fillStyle = shade(WOOD, shadeF);
+  poly(ctx, quad);
+  ctx.fill();
+  ctx.strokeStyle = shade(WOOD, shadeF * 0.7);
+  ctx.lineWidth = 1;
+  for (const t of [0.33, 0.66]) {
+    const a = lerp(p0, p3, t);
+    const b = lerp(p1, p2, t);
+    ctx.beginPath();
+    ctx.moveTo(a[0] + 0.5, a[1]);
+    ctx.lineTo(b[0] + 0.5, b[1]);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = METAL;
+  ctx.lineWidth = 3;
+  const bands = strips === 1 ? [0.5] : [0.3, 0.7];
+  for (const t of bands) {
+    const a = lerp(p0, p1, t);
+    const b = lerp(p3, p2, t);
+    ctx.beginPath();
+    ctx.moveTo(a[0], a[1]);
+    ctx.lineTo(b[0], b[1]);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = shade(WOOD, shadeF * 0.5);
+  ctx.lineWidth = 1;
+  poly(ctx, quad);
+  ctx.stroke();
+}
+
 export function generateWall(ph) {
   const h = ph.height;
   const T = ph.thickness ?? WALL_T;
   const fw = HW + T;
   const fh = HH + h + T / 2;
-  const variants = ["plain", "door", "window", "window_shut", "window_broken", "boarded", "door_boarded", "stairs", "cap"];
+  const variants = ["plain", "door", "door_shut", "window", "window_shut", "window_broken", "boarded", "door_boarded", "stairs", "cap"];
   const sides = ["north", "west"];
   // Near-edge stubs (south, east): low cutaway walls with their own small frames.
-  const nearVariants = ["plain", "door", "window", "window_shut", "window_broken", "boarded", "door_boarded", "stairs"];
+  const nearVariants = ["plain", "door", "door_shut", "window", "window_shut", "window_broken", "boarded", "door_boarded", "stairs"];
   const nearSides = ["south", "east"];
   const nfw = HW;
   const nfh = NEAR_FRAME_H + HH;
@@ -130,7 +171,7 @@ const NEAR_FRAME_H = 30; // px of headroom in a near frame, for window posts
 const NEAR_WINDOW_H = 26;
 
 function drawNearVariant(ctx, ox, oy, side, variant, ph) {
-  if (variant.startsWith("door") || variant === "stairs") return; // a gap
+  if ((variant.startsWith("door") && variant !== "door_shut") || variant === "stairs") return; // a gap
   const color = ph.color;
   // South edge runs from the left vertex to the bottom vertex of the tile;
   // east edge from the bottom vertex to the right vertex.
@@ -149,13 +190,18 @@ function drawNearVariant(ctx, ox, oy, side, variant, ph) {
   ctx.lineTo(b[0], b[1] - NEAR_STUB);
   ctx.stroke();
 
+  if (variant === "door_shut") {
+    // A closed door on a stub: a short plank panel standing in the gap.
+    const lerpD = (t, y) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t - y];
+    drawPlankLeaf(ctx, [lerpD(0.18, 0), lerpD(0.18, NEAR_WINDOW_H), lerpD(0.82, NEAR_WINDOW_H), lerpD(0.82, 0)], 2);
+    ctx.restore();
+    return;
+  }
   if (variant.startsWith("window") || variant === "boarded") {
     const t0 = 0.2;
     const t1 = 0.8;
     if (variant === "window_shut") {
-      ctx.fillStyle = shade(color, 0.42);
-      poly(ctx, [lerp(t0, NEAR_STUB), lerp(t1, NEAR_STUB), lerp(t1, NEAR_WINDOW_H), lerp(t0, NEAR_WINDOW_H)]);
-      ctx.fill();
+      drawPlankLeaf(ctx, [lerp(t0, NEAR_STUB), lerp(t0, NEAR_WINDOW_H), lerp(t1, NEAR_WINDOW_H), lerp(t1, NEAR_STUB)], 1);
     } else if (variant !== "window_broken") {
       // Open: nothing in the frame.
     } else {
@@ -329,40 +375,18 @@ function drawWallVariant(ctx, ox, oy, side, variant, ph, T) {
     const y0 = h * 0.35;
     const y1 = h * 0.8;
     const quad = [lerp(t0, y0), lerp(t1, y0), lerp(t1, y1), lerp(t0, y1)];
-    const shutter = shade(color, 0.42);
     if (variant === "window_shut") {
-      // Closed shutters: two leaves of planks over the opening.
-      ctx.fillStyle = shutter;
-      poly(ctx, quad);
-      ctx.fill();
-      ctx.strokeStyle = shade(color, 0.3);
-      ctx.lineWidth = 1;
-      const mid = lerp((t0 + t1) / 2, y0);
-      const midB = lerp((t0 + t1) / 2, y1);
-      ctx.beginPath();
-      ctx.moveTo(mid[0], mid[1]);
-      ctx.lineTo(midB[0], midB[1]);
-      ctx.stroke();
-      for (const yy of [0.3, 0.6]) {
-        const p0 = lerp(t0, y0 + (y1 - y0) * yy);
-        const p1 = lerp(t1, y0 + (y1 - y0) * yy);
-        ctx.beginPath();
-        ctx.moveTo(p0[0], p0[1]);
-        ctx.lineTo(p1[0], p1[1]);
-        ctx.stroke();
-      }
+      // Closed shutters: two plank leaves meeting in the middle, one band each.
+      const tm = (t0 + t1) / 2;
+      drawPlankLeaf(ctx, [lerp(t0, y0), lerp(t0, y1), lerp(tm, y1), lerp(tm, y0)], 1);
+      drawPlankLeaf(ctx, [lerp(tm, y0), lerp(tm, y1), lerp(t1, y1), lerp(t1, y0)], 1);
     } else {
+      // Open: a hole. The swung-out leaves are drawn by the renderer, which
+      // knows which side of the wall is outside.
       ctx.globalCompositeOperation = "destination-out";
       poly(ctx, quad);
       ctx.fill();
       ctx.globalCompositeOperation = "source-over";
-      // Open shutters: a leaf folded back against the wall on each side.
-      const lw = 0.09;
-      ctx.fillStyle = shutter;
-      poly(ctx, [lerp(t0 - lw, y0), lerp(t0, y0), lerp(t0, y1), lerp(t0 - lw, y1)]);
-      ctx.fill();
-      poly(ctx, [lerp(t1, y0), lerp(t1 + lw, y0), lerp(t1 + lw, y1), lerp(t1, y1)]);
-      ctx.fill();
     }
     ctx.strokeStyle = shade(color, 0.45);
     ctx.lineWidth = 2;
@@ -383,10 +407,15 @@ function drawWallVariant(ctx, ox, oy, side, variant, ph, T) {
     const t1 = 0.82;
     const y1 = h * 0.82;
     const quad = [lerp(t0, 0), lerp(t1, 0), lerp(t1, y1), lerp(t0, y1)];
-    ctx.globalCompositeOperation = "destination-out";
-    poly(ctx, quad);
-    ctx.fill();
-    ctx.globalCompositeOperation = "source-over";
+    if (variant === "door_shut") {
+      // A closed door: one plank leaf with two metal bands, filling the doorway.
+      drawPlankLeaf(ctx, [lerp(t0, 0), lerp(t0, y1), lerp(t1, y1), lerp(t1, 0)], 2);
+    } else {
+      ctx.globalCompositeOperation = "destination-out";
+      poly(ctx, quad);
+      ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
+    }
     ctx.strokeStyle = shade(color, 0.45);
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -727,4 +756,100 @@ function drawDying(ctx, facing, i, pal) {
   ctx.fillStyle = pal.eyes;
   ctx.fillRect(12, -7, 2, 1);
   ctx.fillRect(12, -5, 2, 1);
+}
+
+// ---------------------------------------------------------------------------
+// Jack-o'-lantern: a one-off for October 2026, at Michael's request. A carved
+// pumpkin with a stem and a flickering fire inside: three frames of idle at a
+// slow flicker. Anchor is the tile centre. Lighting proper arrives with the
+// lighting milestone; the glow here is drawn into the frames.
+// ---------------------------------------------------------------------------
+export function generatePumpkin(ph) {
+  const fw = 64;
+  const fh = 56;
+  const frames = 3;
+  const { canvas, ctx } = makeCanvas(fw * frames, fh);
+  const glowColors = ["#ffb347", "#ffd37a", "#ff9a2e"];
+  const glowAlpha = [0.45, 0.6, 0.38];
+  const body = ph.color || "#c8692a";
+  for (let i = 0; i < frames; i++) {
+    const ox = i * fw;
+    const cx = ox + fw / 2;
+    const base = fh - 14; // ground point sits at the tile centre, anchor below
+    ctx.save();
+    // Ground glow.
+    const g = ctx.createRadialGradient(cx, base, 2, cx, base, 30);
+    g.addColorStop(0, `rgba(255, 170, 60, ${glowAlpha[i]})`);
+    g.addColorStop(1, "rgba(255, 170, 60, 0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(ox, base - 30, fw, 44);
+    // Body: a squat ellipse with ridges.
+    const w = 26;
+    const h = 20;
+    const cy = base - h / 2 - 2;
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, w / 2, h / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = shade(body, 0.7);
+    ctx.lineWidth = 1;
+    for (const rx of [-8, -3, 3, 8]) {
+      ctx.beginPath();
+      ctx.ellipse(cx + rx * 0.4, cy, Math.abs(rx) * 0.9 + 3, h / 2 - 1, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // Stem.
+    ctx.fillStyle = "#5a3d22";
+    ctx.fillRect(cx - 2, cy - h / 2 - 5, 4, 6);
+    ctx.fillRect(cx - 1, cy - h / 2 - 7, 4, 3);
+    // Face: triangle eyes, a small nose, a jagged grin, lit from inside.
+    ctx.fillStyle = glowColors[i];
+    ctx.beginPath();
+    ctx.moveTo(cx - 8, cy - 1);
+    ctx.lineTo(cx - 3, cy - 1);
+    ctx.lineTo(cx - 5.5, cy - 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx + 3, cy - 1);
+    ctx.lineTo(cx + 8, cy - 1);
+    ctx.lineTo(cx + 5.5, cy - 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx - 1.5, cy + 2.5);
+    ctx.lineTo(cx + 1.5, cy + 2.5);
+    ctx.lineTo(cx, cy);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx - 9, cy + 4);
+    ctx.lineTo(cx - 6, cy + 7);
+    ctx.lineTo(cx - 4, cy + 4.5);
+    ctx.lineTo(cx - 1, cy + 8);
+    ctx.lineTo(cx + 1, cy + 4.5);
+    ctx.lineTo(cx + 4, cy + 8);
+    ctx.lineTo(cx + 6, cy + 4.5);
+    ctx.lineTo(cx + 9, cy + 4);
+    ctx.lineTo(cx + 6, cy + 9);
+    ctx.lineTo(cx - 6, cy + 9);
+    ctx.closePath();
+    ctx.fill();
+    // A tooth or two left in the grin.
+    ctx.fillStyle = body;
+    ctx.fillRect(cx - 3, cy + 6, 2, 3);
+    ctx.fillRect(cx + 2, cy + 6, 2, 3);
+    ctx.restore();
+  }
+  const frameMap = {};
+  for (let i = 0; i < frames; i++) frameMap[`idle_${i}`] = [i * fw, 0, fw, fh];
+  return {
+    image: canvas,
+    frames: frameMap,
+    anchor: [fw / 2, fh - 14 + 2],
+    animations: { idle: { fps: 5, loop: true, frames } },
+    facings: [],
+    mirror: {},
+    bounds: { x: fw / 2 - 15, y: fh - 14 - 30, w: 30, h: 32 },
+  };
 }

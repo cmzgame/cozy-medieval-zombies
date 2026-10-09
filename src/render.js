@@ -9,7 +9,7 @@ import { drawFrame, drawCharacter, resolveFacing, frameName, frameRect } from ".
 import { poly, shade } from "./render-util.js";
 import * as map from "./map.js";
 import { tileKey } from "./visibility.js";
-import { WALL_T, NEAR_STUB } from "./placeholders.js";
+import { WALL_T, NEAR_STUB, drawPlankLeaf } from "./placeholders.js";
 
 // What you cannot see is shaded but drawn: the world is there, you just are not
 // looking at it. Michael (2026-10-09): shade it clearly, never so dark that it
@@ -83,9 +83,35 @@ function drawFloor(ctx, tiles, w, h) {
 // ---- walls ----
 
 function wallVariant(wall) {
-  if (wall.kind === "door") return "door";
+  if (wall.kind === "door") return wall.open ? "door" : "door_shut";
   if (wall.kind === "window") return wall.shutter === "closed" ? "window_shut" : "window";
   return "plain";
+}
+
+// Open shutters and doors swing out on the outside of the wall, perpendicular
+// to it, at the jambs (Michael, 2026-10-09: "history be damned"). The outward
+// direction on screen is the grid axis the wall does not run along, signed by
+// which side is outdoors.
+function drawSwungLeaves(ctx, wall, edge, x, y, h, outside) {
+  // Base line of the wall segment on screen, parametrised 0..1.
+  const a = edge === "n" ? [x, y - iso.HH] : [x - iso.HW, y];
+  const b = edge === "n" ? [x + iso.HW, y] : [x, y - iso.HH];
+  const lerp = (t, up) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t - up];
+  // Perpendicular grid axis, in screen pixels per tile.
+  const perp = edge === "n" ? [-iso.HW, iso.HH] : [iso.HW, iso.HH];
+  const isDoor = wall.kind === "door";
+  const len = isDoor ? 0.55 : 0.32; // tiles the leaf swings out
+  const v = [perp[0] * len * outside, perp[1] * len * outside];
+  const y0 = isDoor ? 0 : h * 0.35;
+  const y1 = isDoor ? h * 0.82 : h * 0.8;
+  const jambs = isDoor ? [0.18] : [0.25, 0.75];
+  for (const t of jambs) {
+    const p0 = lerp(t, y0);
+    const p1 = lerp(t, y1);
+    // A leaf facing the viewer on the near side is lit; on the far side it sits
+    // behind the wall and only its top edge shows.
+    drawPlankLeaf(ctx, [p0, p1, [p1[0] + v[0], p1[1] + v[1]], [p0[0] + v[0], p0[1] + v[1]]], isDoor ? 2 : 1, outside > 0 ? 0.95 : 0.7);
+  }
 }
 
 // Is the wall on this edge a near wall of the player's room: the room lies on
@@ -223,11 +249,16 @@ function makeWall(wall, edge, tx, ty, vis, stub) {
         return;
       }
       if (faded) ctx.globalAlpha = NEAR_WALL_ALPHA;
+      const open = wall.kind === "door" ? wall.open : wall.kind === "window" && wall.shutter === "open";
+      const outside = open ? map.outsideSign(tx, ty, edge) : 0;
+      // A leaf swung out on the far side sits behind the wall face.
+      if (open && outside < 0) drawSwungLeaves(ctx, wall, edge, x, y, h, outside);
       if (edge === "n") {
         drawFrame(ctx, sheet, `north_${variant}_0`, x, y, false, sheet.anchor);
       } else {
         drawFrame(ctx, sheet, `west_${variant}_0`, x, y, false, sheet.anchorWest);
       }
+      if (open && outside > 0) drawSwungLeaves(ctx, wall, edge, x, y, h, outside);
       if (faded) ctx.globalAlpha = 1;
     },
   };
@@ -241,7 +272,13 @@ function propDrawables(tiles, visible, out) {
     if (!prop) continue;
     const i = prop.tiles.findIndex(([px, py]) => px === tx && py === ty);
     const sheet = getSheet(prop.sprite, prop.tiles.length);
-    const name = `idle_${i}`;
+    // A single-tile prop with an animated idle plays it; multi-tile props use
+    // one frame per footprint tile.
+    const anim = sheet.animations && sheet.animations.idle;
+    const frameIdx = prop.tiles.length === 1 && anim && anim.fps > 0
+      ? Math.floor((performance.now() / 1000) * anim.fps + tx * 7 + ty * 3) % anim.frames
+      : i;
+    const name = `idle_${frameIdx}`;
     const f = sheet.frames[name];
     const p = iso.toScreen(tx, ty);
     const x = Math.round(p.x);

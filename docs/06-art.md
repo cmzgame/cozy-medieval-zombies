@@ -10,7 +10,10 @@ Three AI reference pieces Michael made earlier set the vibe, not the art: a stee
 
 - **Walls are thick.** Thin walls read modern; thick walls read chonky and cosy. Thickness is 12 px (the parent's was 6), height 64.
 - **Walls are wood planks or stone bricks.** Both carry a face pattern: courses for planks, staggered seams for bricks. Plaster is gone.
-- **Windows are open holes with a frame and a sill.** No glass in this village. Shutters come later as state on the window; for now every window is open.
+- **Windows are holes with a frame, a sill, and wooden shutters.** No glass in this village. Closed shutters are two plank leaves meeting in the middle; open ones swing out on the outside of the wall at the jambs.
+- **Doors are plank leaves with two dark metal strips.** Closed, the leaf fills the doorway; open, it swings out on the outside at the hinge jamb.
+- **Fittings are one wood everywhere** (`#5e4028`, strips `#2b2a32`), whatever the wall is made of.
+- **The setting is dark medieval fantasy.** Skeletons, plague doctors, scarecrow men would fit. Never a ceiling.
 - **Floors are wood or stone indoors; grass, dirt, or farm outdoors.** No cobbles or concrete greys. Roads are dirt. A farm tile is harvest yellow with furrows.
 - **Grass is dull.** A greyed green with a hint of blue, not a mowed lawn.
 - **Fog is dusky purple at a light hand.** What you cannot see is shaded clearly but never distracts from what is there.
@@ -30,6 +33,8 @@ Three AI reference pieces Michael made earlier set the vibe, not the art: a stee
 | Tree canopy | `#3d5b3b` | darker and bluer than before |
 | Bed | `#8a4a44` | a muted red accent |
 | Table, chest, barrel | `#7a5a3c`, `#5e4630`, `#6a4d33` | browns, no orange |
+| Door and shutter wood | `#5e4028`, strips `#2b2a32` | the same on every building |
+| Jack-o'-lantern | body `#c8692a`, stem `#5a3d22`, fire `#ffb347` to `#ffd37a` | October 2026 |
 | Fog | `rgba(22, 14, 32, 0.46)` | |
 | Canvas background | `#16121c` | |
 
