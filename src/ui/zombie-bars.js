@@ -1,0 +1,63 @@
+// Small health bars over damaged zombies, so a finisher reads as itself
+// without a dedicated animation (Michael, 2026-10-11): the bar dropping by
+// half in one hit already says what happened. DOM over the canvas, through
+// view.toUi like ui/prompt.js, never drawn into it (CLAUDE.md).
+
+import * as iso from "../iso.js";
+import * as view from "../view.js";
+import { tileKey } from "../visibility.js";
+
+// World px above the feet anchor (iso.toScreen's tile centre, where the
+// figure is drawn from): figure.js's sprite is FH 72 px tall from the feet,
+// so this clears the head at any zoom. A flat ui-px offset (prompt.js's way)
+// does not: at close zoom the figure outgrows it and the bar sits on the chest.
+const HEAD_CLEARANCE = 76;
+
+let root = null;
+const pool = new Map(); // zombie id -> { el, fill }
+
+export function initZombieBars() {
+  root = document.createElement("div");
+  root.id = "zombie-bars";
+  document.getElementById("ui").appendChild(root);
+}
+
+function barFor(id) {
+  let entry = pool.get(id);
+  if (!entry) {
+    const el = document.createElement("div");
+    el.className = "zombie-bar";
+    const fill = document.createElement("div");
+    fill.className = "zombie-bar-fill";
+    el.appendChild(fill);
+    root.appendChild(el);
+    entry = { el, fill };
+    pool.set(id, entry);
+  }
+  return entry;
+}
+
+// Shown only for a zombie that has taken damage and is not yet a corpse: full
+// health needs no readout, a corpse has nothing left to show. `visible` is
+// the player's fog-of-war set (main.js), so a bar never floats through a wall.
+export function updateZombieBars(zombies, visible) {
+  const seen = new Set();
+  for (const z of zombies) {
+    if (z.dead || z.hp >= z.maxHp) continue;
+    if (!visible.has(tileKey(Math.round(z.gx), Math.round(z.gy)))) continue;
+    seen.add(z.id);
+    const { el, fill } = barFor(z.id);
+    const s = iso.toScreen(z.gx, z.gy);
+    const p = view.toUi(s.x, s.y - HEAD_CLEARANCE);
+    el.style.left = `${Math.round(p.x)}px`;
+    el.style.top = `${Math.round(p.y)}px`;
+    const pct = Math.max(0, z.hp / z.maxHp);
+    fill.style.width = `${Math.round(pct * 100)}%`;
+    fill.style.background = pct > 0.5 ? "#6fbf5f" : pct > 0.25 ? "#d9b84a" : "#d05050";
+  }
+  for (const [id, entry] of pool) {
+    if (seen.has(id)) continue;
+    entry.el.remove();
+    pool.delete(id);
+  }
+}

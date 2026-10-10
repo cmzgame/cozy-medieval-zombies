@@ -20,6 +20,7 @@ import { createPlayer, updatePlayer, damagePlayer, autoWalk, eat, drink } from "
 import { createZombie, updateZombie } from "./entities/zombie.js";
 import { initHud, updateHud } from "./ui/hud.js";
 import { initPrompt, updatePrompt, showMessage, updateMessage } from "./ui/prompt.js";
+import { initZombieBars, updateZombieBars } from "./ui/zombie-bars.js";
 import * as menu from "./ui/context-menu.js";
 import * as panel from "./ui/inventory-panel.js";
 import * as interact from "./interact.js";
@@ -327,6 +328,7 @@ function update(dt) {
   refreshFigure();
   updateHud({ player });
   updatePrompt(interact.promptFor(player, progress), progress);
+  updateZombieBars(zombies, visible);
   updateMessage(dt);
   input.endStep();
   timing.step = performance.now() - t0;
@@ -567,6 +569,7 @@ async function boot() {
 
   initHud();
   initPrompt();
+  initZombieBars();
   menu.initContextMenu();
   const handlers = panelHandlers();
   panel.initInventoryPanel(handlers);

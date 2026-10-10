@@ -40,7 +40,7 @@ export const KICK_TIME = 0.08;
 export const WEDGE_TIME = 0.12;
 const TIRED_DAMAGE = 0.5; // a swing at zero stamina still lands, at half
 
-export const FISTS = { damage: 6, range: 0.9, arc: 100, swing: 0.4, knockback: 0.5, stamina: 3, knockdown: 0, style: "one_handed" };
+export const FISTS = { damage: 6, range: 0.9, arc: 100, swing: 0.4, knockback: 0.17, stamina: 3, knockdown: 0, style: "one_handed" };
 export const SHOVE = { range: 1.0, arc: 100, knockback: 1.6, stagger: 0.6, knockdown: 0.25, stamina: 5, cooldown: 0.45 };
 
 let time = 0; // combat's own clock, for the combo window

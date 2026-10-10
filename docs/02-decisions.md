@@ -4,6 +4,17 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-11 — A floating health bar is the finisher's tell
+
+Michael's fix for "how do I know hitting a downed zombie is doing anything": not a special animation, a small bar over any damaged zombie (`src/ui/zombie-bars.js`) that halves visibly on a finisher. DOM over the canvas, world point through `view.toUi`, same pattern as the interact prompt. Only shown for `0 < hp < maxHp` and currently visible (fog-checked), so it never floats through a wall or sits over an untouched or dead zombie.
+
+### 2026-10-11 — Melee's first play notes, on a trackpad
+
+Michael is on a laptop with no mouse right now, so item 3 of `14-combat.md`'s testing list (feel numbers) cannot be judged yet — a trackpad cannot show swing timing or aim pull the way a mouse does. **A real mouse pass is still owed before melee's feel is trusted.** Two things he was sure of anyway:
+
+- **Knockback cut to a third, fists and every weapon, `SHOVE` excepted.** It was punting zombies across the room. Shove's 1.6 is untouched: a strong push is the point of the move, not a side effect to tune down.
+- **Attacking a downed zombie already works** (it was in the original scope, `isDown(z)` → finisher, double damage, no knockback). Not a gap; just no visible tell that a hit was a finisher rather than an ordinary one. Head-stomping (Zomboid's) is **not** added — if the finisher still does not read as its own thing in play, the fix on the table is a bigger hit-stop or kick on it, not a new input or animation.
+
 ### 2026-10-11 — Placement and melee scoped (for a cheaper model to build)
 
 Michael is conserving credits: the scoping is done here, the building by another model from `13-placement.md` and `14-combat.md`. The rulings those docs make, pending his read:

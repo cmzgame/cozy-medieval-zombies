@@ -243,6 +243,31 @@ html, body {
   background: #e8b84a;
 }
 
+#zombie-bars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.zombie-bar {
+  position: absolute;
+  width: 28px;
+  height: 4px;
+  transform: translate(-50%, -100%);
+  background: #2a2630;
+  border: 1px solid #1a1620;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.zombie-bar-fill {
+  height: 100%;
+  width: 100%;
+  background: #6fbf5f;
+  border-radius: 1px;
+  transition: width 0.1s;
+}
+
 #message {
   position: absolute;
   left: 50%;

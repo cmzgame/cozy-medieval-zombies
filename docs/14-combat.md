@@ -26,6 +26,14 @@ The parent's lesson is the starting point: `cozy-zombie-game/docs/22-melee.md`, 
 
 **Known and harmless:** the browser console may show one "connection refused" line from the preview pane itself; every request the game makes returns 200. When scripting tests, stepping the game re-aims the player at the real mouse, so set `player.aim` just before each swing.
 
+**Michael's first pass, 2026-10-11, on a trackpad:** melee works end to end, but a trackpad cannot judge swing feel (timing, the arc, the cursor's pull on aim); **item 3, feel numbers, needs a real mouse pass before it is trusted.** Two notes he could be sure of without one:
+
+- **Knockback punted too far.** Every weapon's `knockback` (and `FISTS`') is now a third of what it was: fists 0.5 → 0.17, torch 0.4 → 0.13, stick 0.6 → 0.2, hatchet and sword 0.8 → 0.27, mace 1.0 → 0.33. `SHOVE`'s 1.6 is untouched; its whole point is the big push. Still a feel number, so still on the list for the mouse pass.
+- **Hitting the downed is already in:** a hit on a downed zombie is a finisher (`isDown(z)`, `combat.js`) — double damage, no knockback, no stagger, landed the normal way (same wedge, same click). Nothing was missing; it just reads the same as any other hit, with no extra tell that it was a finisher. No head-stomping added. If a downed kill still does not feel distinct in play, the fix is a feedback tell (a bigger hit-stop or kick on a finisher), not a new input.
+- **The finisher's tell, built the same day:** a floating health bar over any damaged zombie (`src/ui/zombie-bars.js`, below, "Feedback"). Michael's read: "works, and does tell me a lot." The downed-zombie question is closed by this, not by a new mechanic.
+
+**Paused here, 2026-10-11, until Michael is at his PC with a mouse.** Nothing in items 1, 2, 4, 5, 6 of the testing list was judged on the trackpad and none of it should be trusted until it is; item 3's two trackpad-safe notes (knockback, the health bar) are taken, the rest of it waits too. Pick up by reading this Status block, then play with a mouse in this order: legibility (Show hit shapes on) first, then the swing's look, then the rest of the feel numbers, then the dead's reactions, then the weapons, then the interactions with placement — same list as above, nothing reordered. **Do not resume building melee from this doc without a fresh mouse pass first**; script-verified is not the same as felt right, and everything past knockback and the finisher is still only the former.
+
 ## What exists, and is not to be changed
 
 - The rig (docs/12, `src/figure.js`): an `attack` animation of 4 frames at 12 fps with `activeFrame: 1`, keyframed in `pose()` as arm pitches and a lean; the main hand's held item points along the forearm during it (`angSwing`). Zombies have their own attack keyframes.
@@ -101,7 +109,7 @@ Ported from the parent, `src/combat.js`:
 
 ```js
 // combat.js
-export const FISTS = { damage: 6, range: 0.9, arc: 100, swing: 0.4, knockback: 0.5, stamina: 3, style: "one_handed" };
+export const FISTS = { damage: 6, range: 0.9, arc: 100, swing: 0.4, knockback: 0.17, stamina: 3, style: "one_handed" };
 export function weaponOf(player)                     // the main hand's item's weapon block, else FISTS
 export function tryAttack(player, zombies)           // on left click: cooldown, stamina, wedge, hits; returns the hit list
 export function tryShove(player, zombies)
@@ -128,6 +136,7 @@ A **Show hit shapes** setting (off by default, beside the debug corner) keeps th
 - **Hit-stop:** the loop skips `HIT_STOP` 45 ms of game time on a hit, 90 ms on a kill (`loop` gains `freeze(seconds)` that holds the accumulator).
 - **Screen kick:** the camera origin jolts 3 px along the aim for 80 ms (`camera.kick(dx, dy, seconds)` adds to `applyOrigin`).
 - **Flash:** the zombie's `hurt` frame 0 is white already.
+- **A health bar** (`src/ui/zombie-bars.js`, 2026-10-11) floats over any zombie with `0 < hp < maxHp` and still visible in the fog, through `view.toUi` like `ui/prompt.js` — DOM, never drawn into the canvas. It is the finisher's tell Michael asked for in place of a special animation: hit a downed zombie and the bar drops by double, legibly. The vertical offset is world px (`HEAD_CLEARANCE` 76, figure.js's `FH` 72) converted through `toUi`, not a flat ui-px offset like the prompt's — a flat offset undershoots at close zoom, where the figure outgrows it and the bar sits on the chest instead of over the head.
 - No sounds; there is no audio module yet.
 
 ## The dead, unchanged except
@@ -150,7 +159,7 @@ Aggro on (`settings.set("zombieAggro", true)`), paused, stepped with `loop.advan
 
 1. `combat.inWedge` is true for a zombie 1.2 tiles away in each of the eight aim directions (its sprite overlaps the wedge) and false at 2.3 tiles in all eight. Down-screen: hit at 1.5 and 1.9, missed at 2.2.
 2. A zombie at 0.4 tiles behind the player is hit (point blank).
-3. Ten `tryAttack` calls in one second with a hatchet produce the swings the 0.55 s cooldown allows, each resolved; the zombie's hp drops by 30 per hit and it is pushed back about 0.8 tiles.
+3. Ten `tryAttack` calls in one second with a hatchet produce the swings the 0.55 s cooldown allows, each resolved; the zombie's hp drops by 30 per hit and it is pushed back about 0.27 tiles.
 4. Third consecutive hit knocks down; a hit while down does 60; it gets up after 2 s if alive; a mace kill from full health takes three hits with no knockdown luck involved (38, 38, finisher 76 or plain 38).
 5. `tryShove` pushes a zombie 1.6 tiles, staggers it, does no damage, and sometimes knocks it down.
 6. A zombie at zero hp sets `dead`, plays `die` to its last frame, stops moving, and is walked through.
