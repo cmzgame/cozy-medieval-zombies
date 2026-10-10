@@ -625,6 +625,13 @@ async function boot() {
     handlers,
     // Customisation from the console until the creation screen: skin, hair, hairStyle (short, long, bald), eyes.
     setLook(partial) { Object.assign(player.look, partial); refreshFigure(); },
+    // Put an item in your bag, or at your feet if it does not fit: __game.give("sword").
+    give(id, count = 1) {
+      const bag = inventory.bagOf(player);
+      const added = bag ? inventory.addItem(bag, id, count) : 0;
+      if (added < count) map.dropItem(Math.round(player.gx), Math.round(player.gy), { id, count: count - added });
+      return added;
+    },
     // The Developer Bag, twelve by eight, at your feet (docs/11). Never loot.
     giveDevBag() { map.dropItem(Math.round(player.gx), Math.round(player.gy), { id: "dev_bag", count: 1 }); showMessage("A Developer Bag lies at your feet."); },
   };

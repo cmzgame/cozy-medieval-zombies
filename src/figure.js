@@ -997,6 +997,24 @@ const HELD_SHAPES = {
     f.capsule(16, 8, 16, 25, 1.3, c(0, "#8a6a3a"));
     f.poly([{ x: 16, y: 6 }, { x: 23, y: 7 }, { x: 23, y: 13 }, { x: 16, y: 13 }], c(1, "#9aa0a8"));
   },
+  stick: (f, c) => {
+    f.capsule(16, 4, 16, 27, 1.5, c(0, "#7a5a3a"));
+    f.px(17, 9, [90, 66, 44]);
+    f.px(15, 15, [90, 66, 44]);
+  },
+  sword: (f, c) => {
+    // A blade up from the guard, a crossguard, a wrapped grip, a pommel.
+    f.capsule(16, 2, 16, 16, 1.6, c(0, "#c4cad2"));
+    f.capsule(12.5, 17, 19.5, 17, 1.1, c(2, "#c8a040"));
+    f.capsule(16, 18, 16, 24, 1.3, c(1, "#8a6a3a"));
+    f.ellipse(16, 25.5, 1.8, 1.6, c(2, "#c8a040"));
+  },
+  mace: (f, c) => {
+    // A shaft and a studded iron head.
+    f.capsule(16, 9, 16, 26, 1.3, c(0, "#8a6a3a"));
+    f.ellipse(16, 7, 3.8, 3.8, c(1, "#7a7a84"));
+    for (const [x, y] of [[11, 7], [21, 7], [16, 2], [12, 3], [20, 3], [12, 11], [20, 11]]) f.px(x, y, [58, 58, 66]);
+  },
   plank: (f, c) => {
     f.capsule(16, 5, 16, 27, 2, c(0, "#9a7448"));
   },
