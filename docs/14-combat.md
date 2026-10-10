@@ -60,7 +60,7 @@ The attack keyframes move out of `pose()` into data Michael can edit, loaded at 
 
 ## Held item art, painted
 
-`tools/layers.html` gains a slot **held**: a 32 by 32 grid with the grip marked at (16, 20), painted upright, saved as `data/held/<name>.json` `{ name, pixels: [[x, y, "#hex"], ...], tip: [x, y] }` and listed in `data/held/index.json` (the server's POST regex gains `held`). The game turns it into sixteen angles with the same rotation as `generateHeld` (`generateHeldFromPixels(pixels, tip)`), registered as `held_<item id>` when an item says `"held": { "painted": "name", "swing": true }`. The torch's flame sits at `tip`.
+`tools/layers.html` gains a slot **held**: a 32 by 32 grid with the grip marked at (16, 20), painted upright, saved as `data/held/<name>.json` `{ name, pixels: [[x, y, "#hex"], ...], tip: [x, y] }` and listed in `data/held/index.json` (the server's POST regex gains `held`). The game turns it into sixteen angles with the same rotation as `generateHeld` (`generateHeldFromPixels(pixels, tip)`), registered as `held_<item id>` when an item says `"held": { "painted": "name", "swing": true }`. The torch's flame sits at `tip`. The editor's Preview poses shows the item in the hand through the swing, so the rotation's look is judged before saving. If rotated pixels ever read badly, the format allows `angles: { "0": [...], "4": [...] }`, hand-drawn frames for some or all of the sixteen angles that replace the rotated ones; not built until wanted.
 
 ## Hitting
 
@@ -89,6 +89,16 @@ export function effects()                            // { wedge: {...} | null, k
 ```
 
 `zombie.js` gains `damageZombie(z, amount, { from, knockback, knockdown })`, the `hurt`, `down`, and `dead` handling in `updateZombie` (a downed or dead zombie returns early), and `z.hits` (timestamps for the third-hit rule).
+
+## Legibility, the rule
+
+Michael's test (2026-10-11): never a swing whose animation visibly clips a zombie with no hit. Three things make that hold, and the implementer treats them as one rule:
+
+1. **The shape that is drawn is the shape that is tested.** The wedge on the floor is the hit test, in grid space, with nothing else deciding.
+2. **The body is hit, not the feet.** A zombie whose sprite overlaps the wedge is in it, because the samples run up its body and the down-screen slack covers the case where its feet are a tile away but its head is on your legs.
+3. **The swing is never lost.** It resolves on the click; the arm's animation is a picture of a decision already made, about eighty milliseconds behind, which play cannot see.
+
+A **Show hit shapes** setting (off by default, beside the debug corner) keeps the wedge drawn whenever a weapon is held and marks each zombie's body samples as dots, so a miss can be read on screen rather than argued about. It is the first thing to turn on when a hit feels wrong.
 
 ## Feedback
 
