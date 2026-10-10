@@ -15,6 +15,16 @@ Michael is conserving credits: the scoping is done here, the building by another
 - **Stamina never locks you out of hitting**: at zero a swing lands at half damage.
 - **Not ported now:** the parent's wind-up and lunge (a trial after play), weapon condition, hit locations.
 
+### 2026-10-11, build — Melee steps 1 to 4 (the building model)
+
+- **The hit test counts the drawn body.** `BODY_HALF_W` is 10 px, not the spec's 7, and the samples run feet to chest at five heights, because the rule is that a sprite overlapping the wedge is hit. A zombie very close but well off to the side can still be hit, since a close body spans a wide angle from the chest. The reach comparison is inclusive.
+- **Weapon blocks carry a per-hit `knockdown` chance** (mace 0.6, fists 0, default 0.3); fists never floor, even on the third hit.
+- **A push is spread over 0.15 s**, not a jump, and stops at walls. The downed and the dead block nothing.
+- **Swings are made after the player has turned to the cursor in the same step**, so the wedge is where the mouse is. The click is placement's first.
+- **A hit zombie only hunts when Zombie aggro is on**; with it off the dead stay punching bags.
+- **The swing's keyframes are data** (`data/poses.json`), each figure bakes its own attack length, and a weapon names its style.
+- Status and the testing list are in `14-combat.md`, "Status".
+
 ### 2026-10-11, build — Removal and longer reach (Michael)
 
 - **A removal tool** (X, or Remove on the build palette): highlight in green what was placed or built, click to destroy it. Props that can be carried and walls the player built are removable; authored walls, trees, the well, fires, and posts are not and never highlight. Containers spill their contents; nothing is refunded. Made to undo "built myself into a little wall box".

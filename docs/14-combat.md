@@ -4,6 +4,28 @@ The player hits the dead. One good one-handed swing first, because it serves swo
 
 The parent's lesson is the starting point: `cozy-zombie-game/docs/22-melee.md`, "Melee that lands". Its reasons come along; its numbers are re-decided below. Scoped 2026-10-11 for implementation by another model; "default" marks what Michael may overrule.
 
+## Status, 2026-10-11 (paused for Michael's play-testing)
+
+**Built and script-verified (steps 1 to 4):** the swing as data (`data/poses.json`, with Preview and Reload poses in the layer editor); the weapons (hatchet, torch, new stick, sword, mace, fists) with generated held art; `combat.js` with the wedge hit test, swings that resolve on the click, cooldowns and stamina, the shove; the dead's stagger, knockback, knockdown, finisher, and death; hit-stop, the screen kick, the drawn wedge, and the Show hit shapes setting. Acceptance checks 1 to 8 pass by script and through the real click and Space path; check 9 passes (a changed pitch rebakes the attack frame and the editor shows it).
+
+**Needs Michael's hands-on testing, in this order of importance:**
+
+1. **Legibility.** Does every swing that visibly covers a zombie hit it, and none that does not? Turn on Settings, Show hit shapes (and Zombie aggro) and fight in the open, in a doorway, from above and below the dead. Any miss that feels wrong: note where the zombie stood and which samples were green. The knobs are `BODY_HALF_W` 10, `BODY_SAMPLES`, `BODY_SLACK` 0.8, `POINT_BLANK` 0.55 in `combat.js`.
+2. **The swing's look.** The keyframes in `data/poses.json` are a first draft: wind-up, strike sweeping across the body, follow-through, recovery, four frames at 12 fps. Edit, Reload poses in `tools/layers.html`, reload the game. Frame count and speed are in the same file.
+3. **Feel numbers.** Damage, cooldown, stamina cost, knockback, knockdown chances, the hit-stop (45 and 90 ms) and the kick (3 px, 80 ms), the shove. Weapon numbers are blocks in `data/items.json`; the rest are named constants at the top of `combat.js` and `entities/zombie.js`.
+4. **What the dead do when hit.** The hurt flash and stagger, the push, falling, lying, rising after two seconds, the corpse staying. Also that a hit zombie only turns on you when aggro is on.
+5. **The weapons.** `__game.give("sword")` (or hatchet, mace, stick) and double-click it in the bag. Does each read as itself in the hand at every facing, and does the balance of stick, hatchet, sword, and mace feel right?
+6. **Interactions with the other modes.** Left click while placing, building, or removing is the mode's, not a swing; no swing while carrying; Space and clicks with the bag or a screen open.
+
+**Next after testing, in order:**
+
+1. Fix and tune what the testing finds; it is the bulk of what is left.
+2. **Step 5, the painted held slot** (see "Held item art, painted"): the `held` slot in `tools/layers.html`, `data/held/`, `generateHeldFromPixels`, the server path. Acceptance check 10. Not started; the generated held art stands until it is.
+3. Run the whole acceptance list once more and tick Milestone 8 in `TODO.md`.
+4. Candidates, none scheduled: the parent's wind-up and lunge for the dead (a trial after play); sounds (there is no audio module); corpses that can be searched (the `body` loot table exists); two-handed styles and weapons; weapon condition; the dead's speed and variety (`02-decisions.md`, question 19); the creation screen and the belt as its own paintable item, which are separate pins.
+
+**Known and harmless:** the browser console may show one "connection refused" line from the preview pane itself; every request the game makes returns 200. When scripting tests, stepping the game re-aims the player at the real mouse, so set `player.aim` just before each swing.
+
 ## What exists, and is not to be changed
 
 - The rig (docs/12, `src/figure.js`): an `attack` animation of 4 frames at 12 fps with `activeFrame: 1`, keyframed in `pose()` as arm pitches and a lean; the main hand's held item points along the forearm during it (`angSwing`). Zombies have their own attack keyframes.
