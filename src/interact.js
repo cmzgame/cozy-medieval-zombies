@@ -709,10 +709,21 @@ export function itemMenu(player, entry, bag, otherBag) {
   return out;
 }
 
-// An item in a slot: "worn:head", "belt:2", "hand:main".
+// An item in a slot: "worn:head", "belt:2", "hand:main". Every slot offers
+// Drop, which puts the thing at your feet without passing through the sack
+// (Michael, 2026-10-10 night); a belt or a bag drops as a container, with
+// what it holds still in it.
 export function slotMenu(player, slotId) {
   const [kind, key] = slotId.split(":");
   const out = [];
+  const dropEntry = (entry) => ({
+    label: "Drop",
+    enabled: true,
+    onSelect: () => {
+      detach(player, entry);
+      map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
+    },
+  });
   if (kind === "worn") {
     const entry = player.worn[key];
     if (!entry) return out;
@@ -727,6 +738,7 @@ export function slotMenu(player, slotId) {
         }
       },
     });
+    out.push(dropEntry(entry));
   } else if (kind === "belt") {
     const belt = beltOf(player);
     const entry = belt && belt[Number(key)];
@@ -743,10 +755,12 @@ export function slotMenu(player, slotId) {
         }
       },
     });
+    out.push(dropEntry(entry));
   } else if (kind === "hand") {
     const entry = player.hands[key];
     if (!entry) return out;
     out.push({ label: "Unequip", enabled: true, onSelect: () => unequip(player, entry) });
+    out.push(dropEntry(entry));
   }
   return out;
 }

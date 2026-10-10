@@ -54,7 +54,18 @@ export function initInventoryPanel(h) {
     el.addEventListener("pointerdown", onPointerDown);
     el.addEventListener("dblclick", (e) => {
       const hit = entryFromEvent(e);
-      if (hit && hit.bag) quickMove(hit);
+      if (!hit) return;
+      // Double-click uses the thing (Michael, 2026-10-10 night): equip or wear
+      // from your bag, draw from the belt, unequip from a hand, take off a
+      // worn slot. Anything else, or from a container, goes across.
+      const used = hit.slot ? handlers.useSlot?.(hit.slot) : hit.bag === bags.inv && handlers.use?.(hit.entry, hit.bag);
+      if (used) {
+        handlers.changed?.();
+        lastSignature = "";
+        hotbar.dataset.sig = "";
+        return;
+      }
+      if (hit.bag) quickMove(hit);
     });
     el.addEventListener("contextmenu", (e) => {
       e.preventDefault();

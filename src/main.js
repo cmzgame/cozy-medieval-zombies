@@ -128,6 +128,13 @@ function updateInventoryUi() {
 function update(dt) {
   const t0 = performance.now();
   if (input.wasPressed("KeyV")) drawAll = !drawAll;
+  // The wheel zooms in integer steps, 1× to 3× (docs/02, 2026-10-10 night):
+  // down zooms out. The panel's own wheel use (rotating a drag) wins.
+  const wheel = input.takeWheel();
+  if (wheel && !panel.isOpen()) {
+    const next = Math.max(1, Math.min(3, V.worldScale - Math.sign(wheel)));
+    if (next !== V.worldScale) settings.set("worldScale", next);
+  }
   if (input.wasPressed("KeyK")) setCutaway(cutaway === "stub" ? "translucent" : "stub");
   if (input.wasPressed("KeyL")) night.debug = (night.debug + 1) % 4;
   // Debug: ] and [ skip the clock an hour forward or back.
@@ -333,6 +340,20 @@ function panelHandlers() {
     },
     itemMenu(entry, bag, otherBag) {
       return interact.itemMenu(player, entry, bag, otherBag);
+    },
+    // Double-click in your bag: equip what can be held, wear what can be worn.
+    use(entry, bag) {
+      const def = items.getItem(entry.id);
+      if (def.hands) return interact.equipFrom(player, entry);
+      if (def.wear) return interact.wearFrom(player, entry, bag);
+      return false;
+    },
+    // Double-click on a slot: its first menu entry (Equip, Unequip, Take off).
+    useSlot(slotId) {
+      const m = interact.slotMenu(player, slotId);
+      if (!m.length) return false;
+      m[0].onSelect();
+      return true;
     },
     slotMenu(slotId) {
       return interact.slotMenu(player, slotId);

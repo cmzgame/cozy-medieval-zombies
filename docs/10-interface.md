@@ -89,4 +89,6 @@ The world fills the window at an integer pixel scale and the interface scales on
 - **Dead**, when the player's health reaches zero: the day and hour, and one button back to the title, which reloads the page.
 - The pause menu also carries a disabled **Save game**, a placeholder for the save milestone.
 
+Later the same night: double-click uses a thing (equip, wear, draw, unequip, take off; else across), and the wheel zooms the world in whole steps between 1× and 3×, writing the world-scale setting (docs/02).
+
 Any screen up means the game is paused. Escape steps back: settings or controls to the screen that opened them, pause to the game; the title stays until Play. The Escape chain is therefore: menu, then a screen, then the bag or character screen, then pause.
