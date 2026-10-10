@@ -31,12 +31,14 @@ let current = null;
 let from = null; // the screen settings or controls return to
 let onChange = () => {};
 let hairApi = null; // { styles(), current(), set(name), reload() } from main.js
+let layersApi = null; // { slots(), names(slot), current(slot), set(slot, name) }
 let onReload = () => window.location.reload();
 let data = {};
 
 export function initScreens(handlers = {}) {
   onChange = handlers.onChange || onChange;
   hairApi = handlers.hair || null;
+  layersApi = handlers.layers || null;
   onReload = handlers.onReload || onReload;
   root = document.getElementById("screens");
   root.hidden = true;
@@ -51,6 +53,11 @@ export function initScreens(handlers = {}) {
     const hair = e.target.closest("button[data-hair]");
     if (hair && hairApi) {
       hairApi.set(hair.dataset.hair);
+      render();
+    }
+    const layer = e.target.closest("button[data-layer-slot]");
+    if (layer && layersApi) {
+      layersApi.set(layer.dataset.layerSlot, layer.dataset.layerName || null);
       render();
     }
     if (e.target.closest("#hair-reload") && hairApi) {
@@ -120,6 +127,18 @@ function hairRow() {
   return `<div class="setting"><span>Hair</span><span class="choices">${choices}<button id="hair-reload" title="Pick up styles saved from tools/hair.html">Reload</button></span></div>`;
 }
 
+// Painted layers per slot, to try on over whatever is worn; "worn" means the item's own art.
+function layerRows() {
+  if (!layersApi) return "";
+  return layersApi.slots().map((slot) => {
+    const names = layersApi.names(slot);
+    if (!names.length) return "";
+    const cur = layersApi.current(slot);
+    const btn = (name, label) => `<button data-layer-slot="${slot}" data-layer-name="${name || ""}" class="${(name || null) === cur ? "on" : ""}">${label}</button>`;
+    return `<div class="setting"><span>Painted ${slot}</span><span class="choices">${btn(null, "worn")}${names.map((n) => btn(n, n)).join("")}</span></div>`;
+  }).join("");
+}
+
 function render() {
   root.className = current || "";
   if (current === "title") {
@@ -147,6 +166,7 @@ function render() {
         ${settingRow("survival", "Survival")}
         ${settingRow("debugCorner", "Debug corner")}
         ${hairRow()}
+        ${layerRows()}
         <div class="screen-buttons row"><button data-key="__reset" hidden></button>${button("back", "Back")}<button id="settings-reset">Defaults</button></div>
       </div>`;
     root.querySelector("#settings-reset").addEventListener("click", () => {

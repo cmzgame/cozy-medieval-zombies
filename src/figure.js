@@ -472,15 +472,45 @@ function col(garment, i = 0, fallback = "#888") {
 // Hair painted in the editor (tools/hair.html): per facing, pixels relative
 // to the head's centre, [dx, dy, "#rrggbb"]. Registered at boot from
 // data/hair/index.json; a look's hairStyle may name one.
-const paintedHair = new Map();
+// Painted layers (tools/layers.html, docs/12 "The next editors"). A layer is
+// { name, slot, options, parts: { part: { facing: [[dx, dy, "#hex"], ...] } } },
+// pixels relative to the part's anchor joint in the rest frame (idle 0 of
+// that facing). "subst" parts only recolour pixels the generated part owns,
+// so the standard silhouette holds; "free" parts draw anywhere and follow
+// their joint, arms turning with the arm.
+export const LAYER_SLOTS = {
+  hair: { head: "free" },
+  head: { head: "free" },
+  chest: { torso: "subst", armL: "free", armR: "free" },
+  legs: { legL: "subst", legR: "subst" },
+  hands: { handL: "free", handR: "free" },
+  feet: { footL: "free", footR: "free" },
+  body: { torso: "subst", legL: "subst", legR: "subst", armL: "subst", armR: "subst" },
+};
+const layers = new Map(); // "slot/name" -> layer
+let layersVersion = 0;
+
+export function registerLayer(slot, name, data) {
+  // The first hair files were { frames } alone: that is a head part.
+  const parts = data.parts || (data.frames ? { head: data.frames } : {});
+  layers.set(`${slot}/${name}`, { ...data, name, slot, parts, options: data.options || {}, variant: data.variant || "player" });
+  layersVersion++;
+}
+export function getLayer(slot, name) {
+  return (name && layers.get(`${slot}/${name}`)) || null;
+}
+export function layerNames(slot) {
+  const pre = `${slot}/`;
+  return [...layers.keys()].filter((k) => k.startsWith(pre)).map((k) => k.slice(pre.length));
+}
 export function registerHair(name, data) {
-  paintedHair.set(name, data);
+  registerLayer("hair", name, data);
 }
 export function hairStyles() {
-  return ["short", "long", "bald", ...paintedHair.keys()];
+  return ["short", "long", "bald", ...layerNames("hair")];
 }
 export function hairIsPainted(name) {
-  return paintedHair.has(name);
+  return !!getLayer("hair", name);
 }
 
 // Part ids, for the shading pass.
@@ -511,13 +541,49 @@ function drawFrame(frame, spec, facing, anim, i) {
   const add = (depth, draw) => parts.push({ depth, draw });
   const along = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
 
+  // Painted layers, by slot, and the rest pose their pixels were painted on.
+  const painted = spec.painted || {};
+  // Each layer's pixels sit on the rest pose of the body they were painted
+  // on, player or zombie; the stamp carries them from that pose to this frame.
+  const rests = {};
+  const restOf = (variant) => (rests[variant] ||= joints(pose(variant, "idle", 0, { main: false, off: false })));
+  const restJ = restOf(spec.variant);
+  const layerPx = (slot, partName) => {
+    const L = painted[slot];
+    return L && L.parts && L.parts[partName] ? L.parts[partName][facing] || null : null;
+  };
+  const layerRest = (slot) => restOf(painted[slot] ? painted[slot].variant : spec.variant);
+  // Carry pixels painted relative to the rest segment a0 -> b0 onto this
+  // frame's segment a -> b: translate, turn, and scale with it. With
+  // `allowed`, only pixels the generated part already owns are recoloured.
+  const stamp = (pixels, a0, b0, a, b, allowed = null) => {
+    if (!pixels || !pixels.length) return;
+    const v0x = b0.x - a0.x, v0y = b0.y - a0.y, vx = b.x - a.x, vy = b.y - a.y;
+    const l0 = Math.hypot(v0x, v0y), l1 = Math.hypot(vx, vy);
+    const sc = l0 < 0.5 || l1 < 0.5 ? 1 : l1 / l0;
+    const th = l0 < 0.5 || l1 < 0.5 ? 0 : Math.atan2(vy, vx) - Math.atan2(v0y, v0x);
+    const cs = Math.cos(th), sn = Math.sin(th);
+    for (const [dx, dy, c] of pixels) {
+      const x = Math.round(a.x + (dx * cs - dy * sn) * sc);
+      const y = Math.round(a.y + (dx * sn + dy * cs) * sc);
+      if (x < 0 || y < 0 || x >= FW || y >= FH) continue;
+      const i = y * FW + x;
+      if (allowed && !allowed.has(frame.part[i])) continue;
+      frame.set(i, flash ? WHITE : hexToRgb(c), 3, allowed ? frame.part[i] : 0);
+    }
+  };
+  const point = (q) => ({ x: q.x, y: q.y });
+  const below = (q) => ({ x: q.x, y: q.y + 1 });
+
   // Legs: each leg is one outlined shape, thigh to foot; breeches, undies,
   // and boots are colour on it, never more outline (docs/02, 2026-10-10:
   // no Michelin rolls).
-  const leg = (hip, foot, side, part) => {
+  const leg = (hip, foot, side, part, rhip, rfoot) => {
     const top = [hip[0], hip[1], hip[2] + 2]; // starts inside the torso
     const a = P(top);
     const b = P(foot);
+    const legName = part === PART.legL ? "legL" : "legR";
+    const footName = part === PART.legL ? "footL" : "footR";
     const fb = P([foot[0], foot[1] + 1.5, foot[2]]);
     // The legs always draw under the torso (the shirt covers the pants,
     // Michael 2026-10-10), the nearer leg over the farther.
@@ -544,15 +610,22 @@ function drawFrame(frame, spec, facing, anim, i) {
       } else {
         frame.ellipse(fb.x, fb.y + 1, B.footRx - 0.5, B.footRy, paint(tone(skin, -0.12)), { outline: false, part });
       }
+      const own = new Set([part]);
+      const rest = (slot) => { const R = layerRest(slot); const hip = part === PART.legL ? R.hipL : R.hipR; const foot = part === PART.legL ? R.footL : R.footR; return [P([hip[0], hip[1], hip[2] + 2]), P(foot)]; };
+      let r = rest("body"); stamp(layerPx("body", legName), r[0], r[1], a, b, own);
+      r = rest("legs"); stamp(layerPx("legs", legName), r[0], r[1], a, b, own);
+      r = rest("feet"); stamp(layerPx("feet", footName), r[1], below(r[1]), b, below(b));
     });
   };
-  leg(J.hipL, J.footL, -1, PART.legL);
-  leg(J.hipR, J.footR, 1, PART.legR);
+  leg(J.hipL, J.footL, -1, PART.legL, restJ.hipL, restJ.footL);
+  leg(J.hipR, J.footR, 1, PART.legR, restJ.hipR, restJ.footR);
 
   // Torso: one outlined hull; a tunic colours it, a second colour runs down
   // the front, a belt bands the waist.
   const torsoPts = [];
-  const hem = outfit.chest ? 3 : 2; // a tunic hangs a little below the hips, shirt length (Michael: not to the knees)
+  const chestLayer = painted.chest || null;
+  const longTunic = chestLayer && chestLayer.options.length === "long";
+  const hem = outfit.chest ? (longTunic ? 6 : 3) : 2; // shirt length unless the painted layer says long (Michael: not to the knees)
   for (const [l, d, h] of [
     [-B.shoulderL + 1, -B.torsoD, J.shoulderL[2]], [B.shoulderL - 1, -B.torsoD, J.shoulderR[2]],
     [-B.shoulderL + 1, B.torsoD, J.shoulderL[2]], [B.shoulderL - 1, B.torsoD, J.shoulderR[2]],
@@ -567,7 +640,7 @@ function drawFrame(frame, spec, facing, anim, i) {
       const bot = P([0, B.hipD + 0.5, J.hip[2] + 2]);
       frame.capsule(top.x, top.y, bot.x, bot.y, 2, paint(col(chest, 1)), { outline: false, part: PART.torso });
     }
-    const waist = outfit.waist;
+    const waist = chestLayer && chestLayer.options.hideBelt ? null : outfit.waist;
     if (waist && !p.lying) {
       const band = [];
       for (const [l, d] of [[-B.hipL - 0.5, -B.hipD], [B.hipL + 0.5, -B.hipD], [-B.hipL - 0.5, B.hipD], [B.hipL + 0.5, B.hipD]]) {
@@ -579,6 +652,12 @@ function drawFrame(frame, spec, facing, anim, i) {
         const buckle = P([0, B.hipD + 0.6, J.hip[2] + 1.8]);
         frame.px(buckle.x, buckle.y, paint(col(waist, 1, "#c8a040")));
       }
+    }
+    const tn = P(J.neck), th = P(J.hip);
+    const own = new Set([PART.torso]);
+    for (const slot of ["body", "chest"]) {
+      const R = layerRest(slot);
+      stamp(layerPx(slot, "torso"), P(R.neck), P(R.hip), tn, th, own);
     }
   });
 
@@ -597,9 +676,11 @@ function drawFrame(frame, spec, facing, anim, i) {
 
   // Arms: one outlined shape from shoulder to hand; the sleeve and the glove
   // are colour on it.
-  const arm = (sh, hand, side, part) => {
+  const arm = (sh, hand, side, part, rsh, rhand) => {
     const a = P(sh);
     const b = P(hand);
+    const armName = part === PART.armL ? "armL" : "armR";
+    const handName = part === PART.armL ? "handL" : "handR";
     const depth = (a.depth + b.depth) / 2 + 0.002 * side;
     add(depth, () => {
       const chest = outfit.chest;
@@ -614,11 +695,15 @@ function drawFrame(frame, spec, facing, anim, i) {
         frame.capsule(a.x, a.y, u.x, u.y, B.armR, paint(col(chest)), { outline: false, part });
       }
       if (gloves) frame.ellipse(b.x, b.y, B.handR, B.handR, paint(col(gloves)), { outline: false, part });
+      const rest = (slot) => { const R = layerRest(slot); return [P(part === PART.armL ? R.shoulderL : R.shoulderR), P(part === PART.armL ? R.handL : R.handR)]; };
+      let r = rest("body"); stamp(layerPx("body", armName), r[0], r[1], a, b, new Set([part]));
+      r = rest("chest"); stamp(layerPx("chest", armName), r[0], r[1], a, b);
+      r = rest("hands"); stamp(layerPx("hands", handName), r[1], below(r[1]), b, below(b));
     });
     return { a, b };
   };
-  const armL = arm(J.shoulderL, J.handL, -1, PART.armL);
-  const armR = arm(J.shoulderR, J.handR, 1, PART.armR);
+  const armL = arm(J.shoulderL, J.handL, -1, PART.armL, restJ.shoulderL, restJ.handL);
+  const armR = arm(J.shoulderR, J.handR, 1, PART.armR, restJ.shoulderR, restJ.handR);
 
   // Head: a rounded square, not an egg. Hair is a helmet of its own worn over
   // it (Michael, 2026-10-10), and any hat replaces it.
@@ -626,14 +711,15 @@ function drawFrame(frame, spec, facing, anim, i) {
   const SQ = 3; // superellipse exponent: squarer than round
   add(hc.depth + 0.01, () => {
     const head = outfit.head;
-    const helm = head && head.shape === "helm";
+    const paintedHead = head ? painted.head || null : null; // a painted helm or hat replaces the shape rule and the hair
+    const helm = !paintedHead && head && head.shape === "helm";
     frame.begin();
     frame.addSuper(hc.x, hc.y, B.headRx, B.headRy, SQ);
     frame.outline();
     frame.fill(paint(helm ? col(head) : skin), PART.head);
     const fromBehind = F.fy < -0.3;
-    const painted = !head && paintedHair.get(look.hairStyle);
-    if (!head && !painted && look.hairStyle !== "bald") {
+    const paintedHair = !head ? painted.hair || null : null;
+    if (!head && !paintedHair && look.hairStyle !== "bald") {
       // The hair helmet: the top of the head, down the back and sides, with
       // a straight fringe across the forehead from the front.
       // The cap's mass sits toward the back of the head, so it turns with the
@@ -664,7 +750,7 @@ function drawFrame(frame, spec, facing, anim, i) {
       frame.outline();
       frame.fill(paint(hair), PART.hair);
     }
-    if (head && !helm) {
+    if (head && !helm && !paintedHead) {
       if (head.shape === "hood") {
         frame.begin();
         frame.addSuper(hc.x, hc.y - 1, B.headRx + 1.5, B.headRy + 2, SQ);
@@ -726,10 +812,8 @@ function drawFrame(frame, spec, facing, anim, i) {
         for (const x of [outer, mid]) for (const dy of [-1, 0, 1]) frame.px(x, ey + dy, pupil);
       }
     }
-    if (painted) {
-      const px = (painted.frames && painted.frames[facing]) || [];
-      for (const [dx, dy, c] of px) frame.px(hc.x + dx, hc.y + dy, flash ? WHITE : hexToRgb(c));
-    }
+    if (paintedHair) { const r = P(layerRest("hair").head); stamp(layerPx("hair", "head"), r, below(r), hc, below(hc)); }
+    if (paintedHead) { const r = P(layerRest("head").head); stamp(layerPx("head", "head"), r, below(r), hc, below(hc)); }
     if (spec.wound && !helm) {
       const w = P([spec.wound[0], spec.wound[1], J.head[2] + spec.wound[2]]);
       if (w.depth >= -1) {
@@ -759,7 +843,25 @@ function drawFrame(frame, spec, facing, anim, i) {
     ang: angleIndex(restAxis(side)),
     angSwing: angleIndex([arm.b.x - arm.a.x, arm.b.y - arm.a.y]),
   });
-  return { main: hand(armR, 1), off: hand(armL, -1), head: { x: Math.round(hc.x) - FEET_X, y: Math.round(hc.y) - FEET_Y } };
+  const jp = (pt) => {
+    const q = P(pt);
+    return { x: Math.round(q.x) - FEET_X, y: Math.round(q.y) - FEET_Y };
+  };
+  return {
+    main: hand(armR, 1),
+    off: hand(armL, -1),
+    head: jp(J.head),
+    neck: jp(J.neck),
+    hip: jp(J.hip),
+    shoulderL: jp(J.shoulderL),
+    shoulderR: jp(J.shoulderR),
+    handL: jp(J.handL),
+    handR: jp(J.handR),
+    hipL: jp([J.hipL[0], J.hipL[1], J.hipL[2] + 2]),
+    hipR: jp([J.hipR[0], J.hipR[1], J.hipR[2] + 2]),
+    footL: jp(J.footL),
+    footR: jp(J.footR),
+  };
 }
 
 const HELD_TILT = 32; // degrees forward off vertical for an item held at rest
@@ -786,6 +888,7 @@ export function generateFigure(spec) {
   const ctx = canvas.getContext("2d");
   const frames = {};
   const jointTable = {};
+  const partMaps = spec.partMaps ? {} : null;
   const frame = new Frame();
   FACINGS.forEach((facing, row) => {
     let colIdx = 0;
@@ -799,6 +902,7 @@ export function generateFigure(spec) {
         const name = `${anim}_${facing}_${i}`;
         frames[name] = [ox, oy, FW, FH];
         jointTable[name] = j;
+        if (partMaps) partMaps[name] = new Uint8Array(frame.part);
         colIdx++;
       }
     }
@@ -811,8 +915,11 @@ export function generateFigure(spec) {
     facings: [...FACINGS],
     mirror: {},
     joints: jointTable,
+    partMaps,
   };
 }
+
+export { PART };
 
 // ---- held items ----
 
@@ -918,27 +1025,49 @@ export function zombieSpec(k) {
     hands: null,
     back: null,
   };
+  // Painted layers marked for the dead join the pool, slot by slot: a layer
+  // or the generated garment, deterministic by k.
+  const painted = {};
+  ["hair", "head", "chest", "legs", "hands", "feet", "body"].forEach((slot, n) => {
+    const pool = layerNames(slot).filter((name) => getLayer(slot, name).options.zombie);
+    if (!pool.length) return;
+    const i = (k * 5 + n * 3) % (pool.length + 1);
+    if (i < pool.length) painted[slot] = getLayer(slot, pool[i]);
+  });
+  const look = { skin: pick(ZOMBIE_SKINS, 0), hair: pick(HAIRS, 1), hairStyle: k % 4 === 3 ? "bald" : k % 3 === 1 ? "long" : "short", eyes: "#2a1414", under: "#b8b0a0" };
+  if (painted.hair) look.hairStyle = painted.hair.name;
+  if (painted.head) outfit.head = outfit.head || { shape: "cap", colours: ["#555"] }; // a painted head piece needs a head item to replace
   return {
     variant: "zombie",
-    look: { skin: pick(ZOMBIE_SKINS, 0), hair: pick(HAIRS, 1), hairStyle: k % 4 === 3 ? "bald" : k % 3 === 1 ? "long" : "short", eyes: "#2a1414", under: "#b8b0a0" },
+    look,
     outfit,
     wound: [k % 2 ? 5 : -5, 3, k % 3 - 1],
+    painted,
   };
 }
 
 // The player's spec from their look and what they wear; `worn` is the slot map
 // of item entries and `artOf` gives an item id's garment art.
-export function playerSpec(look, worn, artOf, hands = null) {
+// `overrides` names a painted layer per slot to try on regardless of what is
+// worn (the settings screen); otherwise a worn item's `art.painted` names one.
+export function playerSpec(look, worn, artOf, hands = null, overrides = {}) {
   const outfit = {};
+  const painted = {};
   for (const slot of ["head", "chest", "hands", "legs", "feet", "waist", "back"]) {
     const e = worn[slot];
-    outfit[slot] = e ? artOf(e.id) || null : null;
+    const art = e ? artOf(e.id) || null : null;
+    outfit[slot] = art;
+    if (LAYER_SLOTS[slot]) painted[slot] = getLayer(slot, overrides[slot] || (art && art.painted) || null);
   }
+  painted.body = getLayer("body", overrides.body || look.body || null);
+  const fullLook = { ...DEFAULT_LOOK, ...look };
+  painted.hair = getLayer("hair", fullLook.hairStyle);
   const holding = { main: !!(hands && hands.main), off: !!(hands && hands.off) };
-  return { variant: "player", look: { ...DEFAULT_LOOK, ...look }, outfit, wound: null, holding };
+  return { variant: "player", look: fullLook, outfit, wound: null, holding, painted };
 }
 
 // A key that changes when the drawing would.
 export function specKey(spec) {
-  return JSON.stringify([spec.variant, spec.look, spec.outfit, spec.wound, spec.holding]);
+  const names = spec.painted ? Object.fromEntries(Object.entries(spec.painted).map(([k, v]) => [k, v ? v.name : null])) : null;
+  return JSON.stringify([spec.variant, spec.look, spec.outfit, spec.wound, spec.holding, names, layersVersion]);
 }

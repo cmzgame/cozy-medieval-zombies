@@ -19,12 +19,17 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
     def do_POST(self):
         # Dev only: POST /data/hair/<name>.json saves a painted hair style from
         # tools/hair.html and lists it in data/hair/index.json (docs/12).
-        if self.path.startswith("/data/hair/"):
-            name = os.path.basename(self.path)
-            if not re.fullmatch(r"[a-z0-9_-]{1,40}\.json", name) or name == "index.json":
-                self.send_error(400, "style names are lowercase letters, digits, _ and -")
+        m = re.fullmatch(r"/data/(hair|layers/(?:head|chest|legs|hands|feet|body))/([a-z0-9_-]{1,40})\.json", self.path)
+        if self.path.startswith("/data/") and not m:
+            self.send_error(400, "paint saves under data/hair or data/layers/<slot>, lowercase names")
+            return
+        if m:
+            folder = os.path.join("data", *m.group(1).split("/"))
+            name = m.group(2) + ".json"
+            if name == "index.json":
+                self.send_error(400, "index is kept by the server")
                 return
-            os.makedirs(os.path.join("data", "hair"), exist_ok=True)
+            os.makedirs(folder, exist_ok=True)
             length = int(self.headers.get("Content-Length", "0"))
             body = self.rfile.read(length)
             try:
@@ -32,9 +37,9 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
             except ValueError:
                 self.send_error(400, "not JSON")
                 return
-            with open(os.path.join("data", "hair", name), "wb") as f:
+            with open(os.path.join(folder, name), "wb") as f:
                 f.write(body)
-            index_path = os.path.join("data", "hair", "index.json")
+            index_path = os.path.join(folder, "index.json")
             try:
                 with open(index_path, encoding="utf-8") as f:
                     index = json.load(f)

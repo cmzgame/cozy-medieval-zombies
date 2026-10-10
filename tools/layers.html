@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Layer editor</title>
+  <style>
+    html, body { margin: 0; background: #16121c; color: #eee; font-family: "Segoe UI", system-ui, sans-serif; font-size: 13px; }
+    #bar { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 8px 12px; background: #221c2a; border-bottom: 2px solid #4a4058; position: sticky; top: 0; z-index: 2; }
+    #bar label { display: flex; gap: 6px; align-items: center; }
+    .sep { width: 1px; height: 22px; background: #4a4058; }
+    button, select { font: inherit; padding: 4px 10px; background: #4a4058; color: #eee; border: 1px solid #6a5a70; border-radius: 3px; cursor: pointer; }
+    button.on { background: #8a6a90; border-color: #c0a0c8; }
+    button.part.on { background: #5a7a60; border-color: #90c098; }
+    input[type=text] { font: inherit; padding: 3px 6px; background: #1a141f; color: #eee; border: 1px solid #4a4058; border-radius: 3px; width: 110px; }
+    #sheets { display: grid; grid-template-columns: repeat(4, max-content); gap: 8px; padding: 10px 12px; }
+    .cell canvas { image-rendering: pixelated; border: 1px solid #4a4058; cursor: crosshair; display: block; background: #2a2430; }
+    .cell span { display: block; padding: 2px; color: #a098ac; text-align: center; }
+    #preview { display: flex; gap: 6px; padding: 0 12px 10px; align-items: flex-end; flex-wrap: wrap; }
+    #preview canvas { image-rendering: pixelated; background: #2a2430; border: 1px solid #4a4058; }
+    #help { padding: 0 12px 16px; color: #a098ac; max-width: 980px; line-height: 1.5; }
+    kbd { background: #2a2430; padding: 0 4px; border-radius: 2px; border: 1px solid #4a4058; }
+    #status { color: #a098ac; }
+  </style>
+</head>
+<body>
+  <div id="bar">
+    <label>Figure <select id="variant"><option value="player">player</option><option value="zombie">zombie</option></select></label>
+    <label>Slot <select id="slot"></select></label>
+    <label>Name <input id="name" type="text" value="mine"></label>
+    <span id="parts"></span>
+    <span class="sep"></span>
+    <label>Colour <input id="colour" type="color" value="#8a7a52"></label>
+    <button id="pencil" class="on">Pencil (P)</button>
+    <button id="eraser">Eraser (E)</button>
+    <button id="dropper">Dropper (D)</button>
+    <button id="fill">Fill (F)</button>
+    <span class="sep"></span>
+    <button id="fromGen">Start from generated</button>
+    <button id="mirror">Mirror left to right</button>
+    <button id="clear">Clear all</button>
+    <span id="options"></span>
+    <label title="The dead draw from the layers marked here, slot by slot"><input id="optZombie" type="checkbox"> worn by the dead</label>
+    <span class="sep"></span>
+    <button id="saveGame">Save to game</button>
+    <label>From game <select id="styles"><option value="">(pick)</option></select></label>
+    <button id="previewBtn">Preview poses</button>
+    <span id="status"></span>
+  </div>
+  <div id="sheets"></div>
+  <div id="preview"></div>
+  <div id="help">
+    One item per file. Pick the figure (the dead have their own rest pose; a layer remembers which body it was painted on), the slot, name it, pick a part or leave <b>auto</b> (the part under the cursor), and paint on the full frame in each facing.
+    Substitution parts (torso, legs, the body) only take pixels where the generated part already is, so the standard silhouette holds; free parts (arms, hands, feet, head) take anything and follow their joint, arms turning with the arm.
+    Pixels are saved relative to each part's anchor, marked in red. <kbd>P</kbd> pencil, <kbd>E</kbd> eraser, <kbd>D</kbd> dropper, <kbd>F</kbd> fill, right-click erases, <kbd>Shift</kbd> paints a line from the last pixel.
+    <b>Save to game</b> writes <code>data/layers/&lt;slot&gt;/&lt;name&gt;.json</code> (hair under <code>data/hair/</code>) and lists it; in the game, Settings has a row per slot to try a layer on, and Reload picks up new saves. To bind a layer to an item for good, give the item <code>"art": { ..., "painted": "&lt;name&gt;" }</code> in <code>data/items.json</code>.
+  </div>
+  <script type="module">
+    import * as figure from "../src/figure.js";
+
+    const Z = 6;
+    const FW = figure.FW, FH = figure.FH, AX = figure.FEET_X, AY = figure.FEET_Y;
+    const FACINGS = figure.FACINGS;
+    const PART = figure.PART;
+    const SLOTS = figure.LAYER_SLOTS;
+    // Which generated part a layer part paints over, and the joint it hangs from.
+    const PART_INFO = {
+      torso: { gen: [PART.torso], anchor: "neck" },
+      legL: { gen: [PART.legL], anchor: "hipL" },
+      legR: { gen: [PART.legR], anchor: "hipR" },
+      armL: { gen: [PART.armL], anchor: "shoulderL" },
+      armR: { gen: [PART.armR], anchor: "shoulderR" },
+      handL: { gen: [PART.armL], anchor: "handL" },
+      handR: { gen: [PART.armR], anchor: "handR" },
+      footL: { gen: [PART.legL], anchor: "footL" },
+      footR: { gen: [PART.legR], anchor: "footR" },
+      head: { gen: [PART.head, PART.hair, PART.hat], anchor: "head" },
+    };
+    const MIRROR = { armL: "armR", armR: "armL", legL: "legR", legR: "legL", handL: "handR", handR: "handL", footL: "footR", footR: "footL" };
+    const FLIP_FACING = { w: "e", sw: "se", nw: "ne", s: "s", n: "n" };
+
+    const starter = {
+      chest: { shape: "tunic", colours: ["#c9b98e"] }, legs: { shape: "breeches", colours: ["#5a4030"] },
+      feet: { shape: "boots", colours: ["#3a2a1c"] }, waist: { shape: "belt", colours: ["#5e4028", "#8a7a60"] },
+      hands: { shape: "gloves", colours: ["#6a5240"] }, head: { shape: "hood", colours: ["#4a3a30"] }, back: null,
+    };
+    // The background wears no hood unless the head slot is being edited, so the hair and face show.
+    const BARE_HEAD = true;
+    const look = { ...figure.DEFAULT_LOOK };
+
+    // ---- state ----
+    const els = Object.fromEntries(["variant", "optZombie", "slot", "name", "parts", "colour", "pencil", "eraser", "dropper", "fill", "fromGen", "mirror", "clear", "options", "saveGame", "styles", "previewBtn", "status", "sheets", "preview"].map((id) => [id, document.getElementById(id)]));
+    let slot = "chest";
+    let variant = "player";
+    let part = "auto";
+    let tool = "pencil";
+    let last = null;
+    let options = {};
+    let layer = {}; // part -> facing -> Map("dx,dy" -> hex)
+    let bg = null; // the sheet painted over, with part maps
+    let gen = null; // the same with this slot's generated garment, for "start from"
+    const cells = {};
+
+    // What the background wears: the starter kit minus the edited slot, so you
+    // paint over bare where your item goes; the body slot is naked and bald.
+    function specFor(withSlot) {
+      const outfit = {};
+      for (const k in starter) outfit[k] = starter[k];
+      if (slot === "body") for (const k in outfit) outfit[k] = null;
+      else if (slot !== "hair") outfit[slot] = withSlot ? starter[slot] : null;
+      if (slot !== "head" || !withSlot) outfit.head = null;
+      const hairStyle = slot === "hair" ? (withSlot ? "short" : "bald") : slot === "head" ? "bald" : slot === "body" ? "bald" : "short";
+      const zl = variant === "zombie" ? { skin: "#9fbf88", hair: "#3a2a1c", eyes: "#2a1414", under: "#b8b0a0" } : {};
+      return { variant, look: { ...look, ...zl, hairStyle }, outfit, wound: null, holding: { main: false, off: false }, partMaps: true };
+    }
+
+    function rebuildBackground() {
+      bg = figure.generateFigure(specFor(false));
+      gen = figure.generateFigure(specFor(true));
+    }
+
+    function resetLayer() {
+      layer = {};
+      for (const p of Object.keys(SLOTS[slot])) layer[p] = Object.fromEntries(FACINGS.map((f) => [f, new Map()]));
+      options = slot === "chest" ? { length: "shirt", hideBelt: false } : {};
+    }
+
+    function anchorOf(p, f) {
+      const j = bg.joints[`idle_${f}_0`][PART_INFO[p].anchor];
+      return { x: AX + j.x, y: AY + j.y };
+    }
+
+    function frameData(sheet, f) {
+      const fr = sheet.frames[`idle_${f}_0`];
+      return sheet.image.getContext("2d").getImageData(fr[0], fr[1], fr[2], fr[3]);
+    }
+
+    function partAt(f, x, y) {
+      const map = bg.partMaps[`idle_${f}_0`];
+      if (x < 0 || y < 0 || x >= FW || y >= FH) return 0;
+      return map[y * FW + x];
+    }
+
+    // The layer part a frame pixel belongs to, for auto and for substitution masks.
+    function layerPartFor(f, x, y) {
+      const g = partAt(f, x, y);
+      for (const p of Object.keys(SLOTS[slot])) if (PART_INFO[p].gen.includes(g)) return p;
+      return null;
+    }
+
+    function rgbHex(r, g, b) {
+      return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+    }
+
+    // ---- ui building ----
+    els.slot.innerHTML = Object.keys(SLOTS).map((s) => `<option value="${s}">${s}</option>`).join("");
+    els.slot.value = slot;
+    function buildParts() {
+      const names = Object.keys(SLOTS[slot]);
+      els.parts.innerHTML = [`<button class="part ${part === "auto" ? "on" : ""}" data-part="auto">auto</button>`, ...names.map((p) => `<button class="part ${part === p ? "on" : ""}" data-part="${p}">${p} <small>${SLOTS[slot][p]}</small></button>`)].join("");
+      for (const b of els.parts.querySelectorAll("button")) b.addEventListener("click", () => { part = b.dataset.part; buildParts(); });
+      els.options.innerHTML = slot === "chest"
+        ? `<label>Length <select id="optLength"><option value="shirt">shirt</option><option value="long">long</option></select></label><label><input id="optBelt" type="checkbox"> hide belt</label>`
+        : "";
+      if (slot === "chest") {
+        const L = document.getElementById("optLength"), B = document.getElementById("optBelt");
+        L.value = options.length || "shirt"; B.checked = !!options.hideBelt;
+        L.addEventListener("change", () => { options.length = L.value; });
+        B.addEventListener("change", () => { options.hideBelt = B.checked; });
+      }
+    }
+    function buildCells() {
+      els.sheets.innerHTML = "";
+      for (const f of FACINGS) {
+        const wrap = document.createElement("div");
+        wrap.className = "cell";
+        const c = document.createElement("canvas");
+        c.width = FW * Z; c.height = FH * Z; c.dataset.facing = f;
+        const label = document.createElement("span");
+        label.textContent = f;
+        wrap.append(c, label);
+        els.sheets.appendChild(wrap);
+        cells[f] = c;
+        c.addEventListener("contextmenu", (e) => e.preventDefault());
+        c.addEventListener("pointerdown", (e) => { paintAt(e, true); c.setPointerCapture(e.pointerId); });
+        c.addEventListener("pointermove", (e) => { if (e.buttons) paintAt(e, false); });
+        c.addEventListener("pointerup", () => { last = null; });
+      }
+    }
+
+    // ---- painting ----
+    function cellOf(e) {
+      const c = e.currentTarget;
+      const r = c.getBoundingClientRect();
+      return { f: c.dataset.facing, x: Math.floor((e.clientX - r.left) / (r.width / FW)), y: Math.floor((e.clientY - r.top) / (r.height / FH)) };
+    }
+
+    // Auto: the part under the cursor; off the body, the free part whose anchor is nearest.
+    function pixelPart(f, x, y) {
+      if (part !== "auto") return part;
+      const on = layerPartFor(f, x, y);
+      if (on) return on;
+      let best = null, bestD = Infinity;
+      for (const p of Object.keys(SLOTS[slot])) {
+        if (SLOTS[slot][p] !== "free") continue;
+        const a = anchorOf(p, f);
+        const d = Math.hypot(a.x - x, a.y - y);
+        if (d < bestD) { bestD = d; best = p; }
+      }
+      return best || Object.keys(SLOTS[slot])[0];
+    }
+
+    function keyFor(p, f, x, y) {
+      const a = anchorOf(p, f);
+      return `${x - a.x},${y - a.y}`;
+    }
+
+    function getAt(f, x, y) {
+      for (const p of Object.keys(SLOTS[slot])) {
+        const v = layer[p][f].get(keyFor(p, f, x, y));
+        if (v) return { p, v };
+      }
+      return null;
+    }
+
+    function putAt(f, x, y, hex) {
+      if (x < 0 || y < 0 || x >= FW || y >= FH) return;
+      const existing = getAt(f, x, y);
+      if (!hex) { if (existing) layer[existing.p][f].delete(keyFor(existing.p, f, x, y)); return; }
+      const p = existing ? existing.p : pixelPart(f, x, y);
+      if (SLOTS[slot][p] === "subst" && !PART_INFO[p].gen.includes(partAt(f, x, y))) return; // not on the part: refused
+      if (existing && existing.p !== p) layer[existing.p][f].delete(keyFor(existing.p, f, x, y));
+      layer[p][f].set(keyFor(p, f, x, y), hex);
+    }
+
+    function paintAt(e, start) {
+      const { f, x, y } = cellOf(e);
+      const erase = tool === "eraser" || e.button === 2 || (e.buttons & 2);
+      if (tool === "dropper" && !erase) {
+        const own = getAt(f, x, y);
+        if (own) els.colour.value = own.v;
+        else {
+          const d = frameData(bg, f).data, i = (y * FW + x) * 4;
+          if (d[i + 3]) els.colour.value = rgbHex(d[i], d[i + 1], d[i + 2]);
+        }
+        return;
+      }
+      if (tool === "fill" && start) {
+        const target = getAt(f, x, y);
+        const tv = target ? target.v : null;
+        const rep = erase ? null : els.colour.value;
+        if (tv === rep) return;
+        const seen = new Set();
+        const stack = [[x, y]];
+        while (stack.length) {
+          const [px, py] = stack.pop();
+          const k = `${px},${py}`;
+          if (seen.has(k) || px < 0 || py < 0 || px >= FW || py >= FH) continue;
+          const cur = getAt(f, px, py);
+          if ((cur ? cur.v : null) !== tv) continue;
+          // An empty fill stays within the generated part under the first click, so it cannot flood the whole frame.
+          if (!tv && layerPartFor(f, px, py) !== layerPartFor(f, x, y)) continue;
+          seen.add(k);
+          putAt(f, px, py, rep);
+          stack.push([px + 1, py], [px - 1, py], [px, py + 1], [px, py - 1]);
+        }
+        draw(f);
+        return;
+      }
+      const hex = erase ? null : els.colour.value;
+      if (e.shiftKey && last && last.f === f) {
+        const n = Math.max(Math.abs(x - last.x), Math.abs(y - last.y)) || 1;
+        for (let i = 0; i <= n; i++) putAt(f, Math.round(last.x + (x - last.x) * i / n), Math.round(last.y + (y - last.y) * i / n), hex);
+      } else putAt(f, x, y, hex);
+      last = { f, x, y };
+      draw(f);
+    }
+
+    // ---- drawing ----
+    function draw(f) {
+      const c = cells[f];
+      const ctx = c.getContext("2d");
+      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, c.width, c.height);
+      const tmp = document.createElement("canvas");
+      tmp.width = FW; tmp.height = FH;
+      tmp.getContext("2d").putImageData(frameData(bg, f), 0, 0);
+      ctx.drawImage(tmp, 0, 0, FW * Z, FH * Z);
+      for (const p of Object.keys(SLOTS[slot])) {
+        const a = anchorOf(p, f);
+        for (const [k, hex] of layer[p][f]) {
+          const [dx, dy] = k.split(",").map(Number);
+          ctx.fillStyle = hex;
+          ctx.fillRect((a.x + dx) * Z, (a.y + dy) * Z, Z, Z);
+        }
+      }
+      ctx.strokeStyle = "rgba(255,255,255,0.06)";
+      for (let i = 0; i <= FW; i++) { ctx.beginPath(); ctx.moveTo(i * Z + 0.5, 0); ctx.lineTo(i * Z + 0.5, FH * Z); ctx.stroke(); }
+      for (let i = 0; i <= FH; i++) { ctx.beginPath(); ctx.moveTo(0, i * Z + 0.5); ctx.lineTo(FW * Z, i * Z + 0.5); ctx.stroke(); }
+      ctx.strokeStyle = "rgba(255,110,110,0.7)";
+      for (const p of Object.keys(SLOTS[slot])) {
+        const a = anchorOf(p, f);
+        ctx.strokeRect(a.x * Z + 0.5, a.y * Z + 0.5, Z - 1, Z - 1);
+      }
+    }
+    function drawAll() { for (const f of FACINGS) draw(f); }
+
+    // The layer baked into the real figure, in a few poses.
+    function preview() {
+      const data = toJson();
+      figure.registerLayer(slot, "__preview", data);
+      const spec = specFor(false);
+      spec.partMaps = false;
+      spec.painted = { [slot]: figure.getLayer(slot, "__preview") };
+      if (slot === "hair") spec.look.hairStyle = "__preview";
+      const sheet = figure.generateFigure(spec);
+      els.preview.innerHTML = "";
+      const S = 3;
+      for (const [anim, i] of [["idle", 0], ["walk", 1], ["walk", 3], ["attack", 1], ["attack", 2]]) {
+        for (const f of ["s", "sw", "w", "n", "e"]) {
+          const fr = sheet.frames[`${anim}_${f}_${i}`];
+          const c = document.createElement("canvas");
+          c.width = FW * S; c.height = FH * S;
+          const ctx = c.getContext("2d");
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(sheet.image, fr[0], fr[1], FW, FH, 0, 0, FW * S, FH * S);
+          c.title = `${anim} ${i} ${f}`;
+          els.preview.appendChild(c);
+        }
+      }
+    }
+
+    // ---- start from the generated garment ----
+    function startFromGenerated() {
+      for (const f of FACINGS) {
+        const a = frameData(bg, f).data, b = frameData(gen, f).data;
+        const gmap = gen.partMaps[`idle_${f}_0`];
+        for (const p of Object.keys(SLOTS[slot])) layer[p][f] = new Map();
+        for (let y = 0; y < FH; y++) for (let x = 0; x < FW; x++) {
+          const i = (y * FW + x) * 4;
+          if (b[i + 3] === 0) continue;
+          if (a[i] === b[i] && a[i + 1] === b[i + 1] && a[i + 2] === b[i + 2] && a[i + 3] === b[i + 3]) continue;
+          const g = gmap[y * FW + x];
+          const p = Object.keys(SLOTS[slot]).find((q) => PART_INFO[q].gen.includes(g));
+          if (!p) continue;
+          layer[p][f].set(keyFor(p, f, x, y), rgbHex(b[i], b[i + 1], b[i + 2]));
+        }
+      }
+      drawAll();
+      say("Loaded the generated garment as a starting point.");
+    }
+
+    function mirror() {
+      const names = Object.keys(SLOTS[slot]);
+      const next = {};
+      for (const p of names) next[p] = Object.fromEntries(FACINGS.map((f) => [f, new Map()]));
+      for (const p of names) for (const f of FACINGS) for (const [k, hex] of layer[p][f]) next[p][f].set(k, hex);
+      for (const [from, to] of Object.entries(FLIP_FACING)) {
+        for (const p of names) {
+          const q = MIRROR[p] || p;
+          const m = new Map();
+          for (const [k, hex] of layer[p][from]) {
+            const [dx, dy] = k.split(",").map(Number);
+            // Flip about the frame's centre line, then re-anchor to the mirrored part.
+            const a = anchorOf(p, from), a2 = anchorOf(q, to);
+            const x = a.x + dx, y = a.y + dy;
+            const mx = (FW - 1) - x;
+            m.set(`${mx - a2.x},${y - a2.y}`, hex);
+          }
+          next[q][to] = m;
+        }
+      }
+      layer = next;
+      drawAll();
+    }
+
+    // ---- files ----
+    function toJson() {
+      const parts = {};
+      for (const p of Object.keys(SLOTS[slot])) {
+        parts[p] = {};
+        for (const f of FACINGS) parts[p][f] = [...layer[p][f]].map(([k, hex]) => { const [dx, dy] = k.split(",").map(Number); return [dx, dy, hex]; });
+      }
+      return { name: cleanName(), slot, variant, options: { ...options, zombie: els.optZombie.checked }, parts };
+    }
+    function fromJson(data) {
+      resetLayer();
+      options = { ...options, ...(data.options || {}) };
+      els.optZombie.checked = !!options.zombie;
+      if (data.variant && data.variant !== variant) { variant = data.variant; els.variant.value = variant; rebuildBackground(); }
+      const parts = data.parts || (data.frames ? { head: data.frames } : {});
+      for (const p of Object.keys(SLOTS[slot])) for (const f of FACINGS) for (const [dx, dy, hex] of (parts[p] && parts[p][f]) || []) layer[p][f].set(`${dx},${dy}`, hex);
+      els.name.value = data.name || els.name.value;
+      buildParts();
+      drawAll();
+    }
+    function cleanName() {
+      const n = els.name.value.toLowerCase().replace(/[^a-z0-9_-]/g, "_").slice(0, 40) || "mine";
+      els.name.value = n;
+      return n;
+    }
+    function folder() { return slot === "hair" ? "/data/hair" : `/data/layers/${slot}`; }
+    function say(t) { els.status.textContent = t; setTimeout(() => { if (els.status.textContent === t) els.status.textContent = ""; }, 5000); }
+    async function refreshStyles() {
+      try {
+        const idx = await (await fetch(`${folder()}/index.json`)).json();
+        els.styles.innerHTML = `<option value="">(pick)</option>` + (idx.styles || []).map((s) => `<option value="${s}">${s}</option>`).join("");
+      } catch { els.styles.innerHTML = `<option value="">(none yet)</option>`; }
+    }
+
+    // ---- wiring ----
+    const toolButtons = { pencil: els.pencil, eraser: els.eraser, dropper: els.dropper, fill: els.fill };
+    function setTool(t) { tool = t; for (const k in toolButtons) toolButtons[k].classList.toggle("on", k === t); }
+    for (const k in toolButtons) toolButtons[k].addEventListener("click", () => setTool(k));
+    window.addEventListener("keydown", (e) => {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+      if (e.code === "KeyP") setTool("pencil");
+      if (e.code === "KeyE") setTool("eraser");
+      if (e.code === "KeyD") setTool("dropper");
+      if (e.code === "KeyF") setTool("fill");
+    });
+    els.variant.addEventListener("change", () => { variant = els.variant.value; rebuildBackground(); drawAll(); els.preview.innerHTML = ""; });
+    els.slot.addEventListener("change", () => { slot = els.slot.value; part = "auto"; rebuildBackground(); resetLayer(); buildParts(); drawAll(); refreshStyles(); els.preview.innerHTML = ""; });
+    els.fromGen.addEventListener("click", startFromGenerated);
+    els.mirror.addEventListener("click", mirror);
+    els.clear.addEventListener("click", () => { resetLayer(); buildParts(); drawAll(); });
+    els.previewBtn.addEventListener("click", preview);
+    els.saveGame.addEventListener("click", async () => {
+      const data = toJson();
+      const res = await fetch(`${folder()}/${data.name}.json`, { method: "POST", body: JSON.stringify(data) });
+      if (res.ok) { say(`Saved ${folder().slice(1)}/${data.name}.json. In the game: Settings, Painted ${slot}, Reload.`); refreshStyles(); }
+      else say(`Save failed: ${res.status} ${res.statusText}`);
+    });
+    els.styles.addEventListener("change", async () => {
+      const s = els.styles.value;
+      if (!s) return;
+      fromJson(await (await fetch(`${folder()}/${s}.json`)).json());
+      say(`Loaded ${s}.`);
+    });
+
+    rebuildBackground();
+    resetLayer();
+    buildParts();
+    buildCells();
+    drawAll();
+    refreshStyles();
+  </script>
+</body>
+</html>

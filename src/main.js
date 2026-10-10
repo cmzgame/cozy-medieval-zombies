@@ -168,20 +168,30 @@ function beltFire(belt) {
 // styles. Reloaded from the settings screen so a style saved a moment ago
 // shows without a restart.
 async function loadPaintedHair() {
-  try {
-    const idx = await assets.loadJson("data/hair/index.json");
-    for (const name of idx.styles || []) figure.registerHair(name, await assets.loadJson(`data/hair/${name}.json`));
-  } catch (err) {
-    console.warn("No painted hair loaded:", err.message);
+  const folders = [["hair", "data/hair"], ...["head", "chest", "legs", "hands", "feet", "body"].map((s) => [s, `data/layers/${s}`])];
+  for (const [slot, folder] of folders) {
+    try {
+      const idx = await assets.loadJson(`${folder}/index.json`);
+      for (const name of idx.styles || []) figure.registerLayer(slot, name, await assets.loadJson(`${folder}/${name}.json`));
+    } catch {
+      // No such folder yet: nothing painted for this slot.
+    }
   }
   figureKey = ""; // the pixels may have changed under the same name
+  // The dead rebake too, since their outfits draw from the painted pool.
+  for (let k = 0; k < figure.ZOMBIE_OUTFITS; k++) {
+    let existing = null;
+    try { existing = assets.getSheet(`zombie_${k}`); } catch { existing = null; }
+    if (!existing) continue;
+    gl.redrawSheet(assets.replaceSheet(`zombie_${k}`, figure.generateFigure(figure.zombieSpec(k))));
+  }
 }
 
 // The player's sheet is rebuilt whenever their look or their clothes change
 // (docs/12): a few milliseconds, redrawn into the atlas in place.
 let figureKey = "";
 function refreshFigure() {
-  const spec = figure.playerSpec(player.look, player.worn, (id) => items.getItem(id).art || null, player.hands);
+  const spec = figure.playerSpec(player.look, player.worn, (id) => items.getItem(id).art || null, player.hands, settings.get("paintedLayers") || {});
   const key = figure.specKey(spec);
   if (key === figureKey) return;
   figureKey = key;
@@ -507,6 +517,18 @@ async function boot() {
       current: () => player.look.hairStyle,
       set: (name) => { player.look.hairStyle = name; settings.set("hairStyle", name); refreshFigure(); },
       reload: async () => { await loadPaintedHair(); refreshFigure(); },
+    },
+    // Painted layers to try on, per slot, regardless of what is worn (docs/12).
+    layers: {
+      slots: () => ["body", "head", "chest", "legs", "hands", "feet"],
+      names: (slot) => figure.layerNames(slot),
+      current: (slot) => (settings.get("paintedLayers") || {})[slot] || null,
+      set: (slot, name) => {
+        const next = { ...(settings.get("paintedLayers") || {}) };
+        if (name) next[slot] = name; else delete next[slot];
+        settings.set("paintedLayers", next);
+        refreshFigure();
+      },
     },
   });
   events.on("playerHit", ({ damage }) => damagePlayer(player, damage));
