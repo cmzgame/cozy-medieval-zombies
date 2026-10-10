@@ -1,8 +1,8 @@
 // Boot and the game state. A scrolling camera over a chunked map with real
 // line of sight, buildings with doors and shuttered windows, forest scattered
-// by rule, the player with a bag, and the dead. Milestone 1 (the probe)
-// passed on 2026-10-09; lighting, the renderer, openings, and the interface
-// followed. See TODO.md and docs/00-vision.md.
+// by rule, the player with a sack on their back, and the dead. Milestone 1
+// (the probe) passed on 2026-10-09; lighting, the renderer, openings, the
+// interface, and the character followed. See TODO.md and docs/00-vision.md.
 
 import * as iso from "./iso.js";
 import * as input from "./input.js";
@@ -55,7 +55,7 @@ let drawAll = false; // debug: V shows everything, fog off
 let deaths = 0;
 let drawn = 0;
 let visKey = null; // player tile and camera tile the visible set was computed for
-let openContainer = null; // the prop whose bag is open beside yours
+let openBag = null; // { bag, tiles, name }: the container open beside yours
 let progress = null; // 0..1 of a timed action
 const timing = { step: 0, stepMax: 0, vis: 0, maxResetAt: 0 };
 
@@ -89,9 +89,9 @@ function handleMouse() {
 }
 
 // Escape closes the top thing that can close: the menu (which closes itself
-// and says so), then the bag; with nothing open it pauses, and again
-// resumes (Michael, 2026-10-10, as Zomboid does). Handled on the key event,
-// not in the step, because the step does not run while paused.
+// and says so), then the bag or the character screen; with nothing open it
+// pauses, and again resumes (Michael, 2026-10-10, as Zomboid does). Handled on
+// the key event, not in the step, because the step does not run while paused.
 let pauseEl = null;
 
 function setPaused(v) {
@@ -114,29 +114,40 @@ function handleEscape() {
   }
   if (panel.isOpen()) {
     panel.setOpen(false);
-    openContainer = null;
+    openBag = null;
     return;
   }
   setPaused(true);
 }
 
 function updateInventoryUi() {
-  if (input.wasPressed("Tab")) {
-    panel.toggle();
-    if (!panel.isOpen()) openContainer = null;
+  // Tab opens the bag; with none worn it opens the character screen instead,
+  // with the message (docs/11, check 6). C opens the character screen.
+  if (input.wasPressed("Tab") || input.wasPressed("KeyC")) {
+    const noBag = !inventory.bagOf(player);
+    panel.toggle({ character: input.wasPressed("KeyC") || noBag });
+    if (!panel.isOpen()) openBag = null;
+    else if (noBag) showMessage("No bag on your back.");
   }
-  if (openContainer) {
+  // Belt keys: swap the slot with its hand (docs/11).
+  for (let i = 0; i < 4; i++) {
+    if (!input.wasPressed(`Digit${i + 1}`)) continue;
+    const r = inventory.beltKey(player, i);
+    if (r === "nobelt") showMessage("No belt, or no such slot.");
+    else if (r === "handsfull") showMessage("Your hands are full.");
+  }
+  if (openBag) {
     let d = Infinity;
-    for (const [tx, ty] of openContainer.tiles) d = Math.min(d, Math.hypot(player.gx - tx, player.gy - ty));
-    if (d > CONTAINER_CLOSE_DIST) openContainer = null;
+    for (const [tx, ty] of openBag.tiles) d = Math.min(d, Math.hypot(player.gx - tx, player.gy - ty));
+    if (d > CONTAINER_CLOSE_DIST) openBag = null;
   }
-  panel.renderInventoryPanel(player.bag, openContainer ? openContainer.bag : null, player.hands);
+  panel.renderInventoryPanel(player, inventory.bagOf(player), openBag ? openBag.bag : null, inventory.beltOf(player));
 }
 
 function update(dt) {
   const t0 = performance.now();
   if (input.wasPressed("KeyV")) drawAll = !drawAll;
-  if (input.wasPressed("KeyC")) setCutaway(cutaway === "stub" ? "translucent" : "stub");
+  if (input.wasPressed("KeyK")) setCutaway(cutaway === "stub" ? "translucent" : "stub");
   if (input.wasPressed("KeyL")) night.debug = (night.debug + 1) % 4;
   // Debug: ] and [ skip the clock an hour forward or back.
   if (input.wasPressed("BracketRight")) clock.setHour(clock.getHour() + 1);
@@ -153,7 +164,6 @@ function update(dt) {
   interact.updateInteract(player, dt);
   updatePlayer(player, dt);
   progress = interact.updateAction(player, dt);
-  inventory.fixHands(player);
   const others = [player, ...zombies];
   // The dead far from the player stand still: a stand-in for the records of
   // docs/03 until that milestone.
@@ -215,29 +225,112 @@ function render() {
   if (!glError) drawn = renderScene(scene);
   timing.render = performance.now() - r0;
   const [cx, cy] = map.chunkCoord(Math.round(player.gx), Math.round(player.gy));
+  const hand = (e) => (e ? e.id : "-");
   debugEl.textContent =
     `fps ${loop.getFps()}\n` +
     `player ${player.gx.toFixed(2)},${player.gy.toFixed(2)} ${player.facing} hp ${Math.ceil(player.hp)} hunger ${Math.round(player.hunger)} thirst ${Math.round(player.thirst)} deaths ${deaths}\n` +
-    `${clock.getLabel()} ${clock.getPhase()}  bright ${clock.getBrightness().toFixed(2)}  light@player ${light.lightAt(player.gx, player.gy).toFixed(2)}  hands ${player.hands.main || "-"}/${player.hands.off || "-"}\n` +
+    `${clock.getLabel()} ${clock.getPhase()}  bright ${clock.getBrightness().toFixed(2)}  light@player ${light.lightAt(player.gx, player.gy).toFixed(2)}  hands ${hand(player.hands.main)}/${hand(player.hands.off)}\n` +
     `chunk ${cx},${cy}  room ${playerRoom}${playerRoom > 0 ? (map.roomSealed(map.getRoom(playerRoom)) ? " sealed" : " open") : ""}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `zombies ${zombies.length}  near ${zombies.filter((z) => Math.abs(z.gx - player.gx) <= ACTIVE_TILES && Math.abs(z.gy - player.gy) <= ACTIVE_TILES).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
-    `Tab: bag   right-click: actions   Esc: close or pause   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   C: near walls ${cutaway}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
+    `Tab: bag   C: character   1-4: belt   right-click: actions   Esc: close or pause   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   K: near walls ${cutaway}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
 }
 
-// The player's bag can hold what the panel does to it (docs/10).
+// ---- the panel's handlers: moves that involve a slot know the player ----
+
+function slotParts(id) {
+  const [kind, key] = id.split(":");
+  return { kind, key, index: Number(key) };
+}
+
+function slotGet(id) {
+  const { kind, key, index } = slotParts(id);
+  if (kind === "worn") return player.worn[key];
+  if (kind === "belt") return inventory.beltOf(player)?.[index] ?? null;
+  if (kind === "hand") return player.hands[key];
+  return null;
+}
+
+function slotSet(id, entry) {
+  const { kind, key, index } = slotParts(id);
+  if (kind === "worn") player.worn[key] = entry;
+  else if (kind === "belt") {
+    const belt = inventory.beltOf(player);
+    if (belt) belt[index] = entry;
+  }
+}
+
+// Take an entry out of where a drag started.
+function detachFrom(entry, from) {
+  if (from.kind === "bag") grid.remove(from.bag, entry);
+  else if (slotGet(from.id) === entry) slotSet(from.id, null);
+}
+
+function restoreTo(entry, from) {
+  if (from.kind === "bag") {
+    if (!grid.insert(from.bag, entry)) map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
+  } else slotSet(from.id, entry);
+}
+
 function panelHandlers() {
   return {
-    changed() {
-      inventory.fixHands(player);
+    changed() {},
+    belt() {
+      return inventory.beltOf(player);
     },
-    handOf(id) {
-      return items.handOf(player.hands, id);
+    isItemBag(bag) {
+      return bag === inventory.bagOf(player);
     },
-    dropToFloor(entry, bag) {
-      grid.remove(bag, entry);
+    canPlace(entry, slotId) {
+      const { kind, key, index } = slotParts(slotId);
+      const def = items.getItem(entry.id);
+      if (kind === "worn") return def.wear === key;
+      if (kind === "belt") {
+        const belt = inventory.beltOf(player);
+        return !!belt && index < belt.length && !!def.hands && entry.count === 1;
+      }
+      return false;
+    },
+    // Drop onto a worn or belt slot. An occupant goes to the bag or belt if
+    // it can; an old bag on the back drops at your feet, since bags do not nest.
+    placeInSlot(entry, from, slotId) {
+      const { kind, key } = slotParts(slotId);
+      const occupant = slotGet(slotId);
+      if (occupant === entry) return;
+      detachFrom(entry, from);
+      // Dragging a bag off your back takes its grid away; the bag column may
+      // have been the source, so it is detached already.
+      if (occupant) {
+        slotSet(slotId, null);
+        if (kind === "worn" && key === "back") {
+          slotSet(slotId, entry);
+          map.dropItem(Math.round(player.gx), Math.round(player.gy), occupant);
+          return;
+        }
+        if (!inventory.stow(player, occupant)) {
+          slotSet(slotId, occupant);
+          restoreTo(entry, from);
+          showMessage("No room to swap.");
+          return;
+        }
+      }
+      slotSet(slotId, entry);
+    },
+    // Drop from a slot into a grid at a cell.
+    placeInGrid(entry, from, bag, x, y, rot) {
+      if (items.getItem(entry.id).bag && bag === inventory.bagOf(player)) return;
+      detachFrom(entry, from);
+      // Taking the bag off the back while dropping into its own grid cannot work.
+      if (!bag.items && !bag.cols) return restoreTo(entry, from);
+      if (!grid.fits(bag, entry.id, x, y, rot)) return restoreTo(entry, from);
+      entry.x = x;
+      entry.y = y;
+      entry.rot = !!rot;
+      bag.items.push(entry);
+    },
+    dropToFloor(entry, from) {
+      detachFrom(entry, from);
       map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
-      inventory.fixHands(player);
     },
     noRoom(intoBag) {
       showMessage(intoBag ? "No room in your bag." : "No room in there.");
@@ -245,7 +338,27 @@ function panelHandlers() {
     itemMenu(entry, bag, otherBag) {
       return interact.itemMenu(player, entry, bag, otherBag);
     },
+    slotMenu(slotId) {
+      return interact.slotMenu(player, slotId);
+    },
   };
+}
+
+// The starter kit (docs/11): worn hood, tunic, breeches, boots, a belt with two
+// slots, a small sack with water, a little food, and one plank; the torch in
+// the off-hand.
+function giveStarterKit() {
+  const entry = (id, props = {}) => ({ id, count: 1, ...props });
+  for (const id of ["hood", "tunic", "breeches", "boots", "belt", "small_sack"]) {
+    const e = entry(id);
+    player.worn[items.getItem(id).wear] = e;
+  }
+  const bag = inventory.bagOf(player);
+  inventory.addItem(bag, "waterskin", 1, { fill: 100 });
+  inventory.addItem(bag, "bread", 1);
+  inventory.addItem(bag, "apple", 2);
+  inventory.addItem(bag, "plank", 1);
+  items.hold(player.hands, entry("torch"));
 }
 
 async function boot() {
@@ -259,13 +372,7 @@ async function boot() {
   await assets.loadMapSprites(json);
   info = map.loadMap(json);
   player = createPlayer(info.spawn[0], info.spawn[1]);
-  // The starter kit (docs/10): a torch in the off-hand, water, a little food, one plank.
-  inventory.addItem(player.bag, "torch", 1);
-  inventory.addItem(player.bag, "waterskin", 1, { fill: 100 });
-  inventory.addItem(player.bag, "bread", 1);
-  inventory.addItem(player.bag, "apple", 2);
-  inventory.addItem(player.bag, "plank", 1);
-  items.hold(player.hands, "torch");
+  giveStarterKit();
   zombies = info.zombies.map(([x, y]) => createZombie(x, y));
   camera.snapTo(player.gx, player.gy);
   camera.applyOrigin(CANVAS_W, CANVAS_H);
@@ -277,15 +384,16 @@ async function boot() {
   initHud();
   initPrompt();
   menu.initContextMenu();
-  panel.initInventoryPanel(panelHandlers());
+  const handlers = panelHandlers();
+  panel.initInventoryPanel(handlers);
   events.on("playerHit", ({ damage }) => damagePlayer(player, damage));
+  events.on("containerOpened", ({ bag, tiles: where, name }) => {
+    openBag = { bag, tiles: where, name };
+    panel.setOpen(true, { character: panel.isCharacter() });
+  });
   // After the menu's own listener, so a menu closed by Escape is seen first.
   window.addEventListener("keydown", (e) => {
     if (e.code === "Escape") handleEscape();
-  });
-  events.on("containerOpened", ({ prop }) => {
-    openContainer = prop;
-    panel.setOpen(true);
   });
 
   loop.start({ update, render, simTick() {} }, { simIntervalMs: 1000 });
@@ -299,10 +407,13 @@ async function boot() {
     get visible() { return visible; },
     get playerRoom() { return playerRoom; },
     get info() { return info; },
-    get openContainer() { return openContainer; },
+    get openBag() { return openBag; },
     teleport(gx, gy) { player.gx = gx; player.gy = gy; player.auto = null; camera.snapTo(gx, gy); },
-    setPaused,
     walkTo(gx, gy) { return autoWalk(player, [gx, gy]); },
+    setPaused,
+    handlers,
+    // The Developer Bag, twelve by eight, at your feet (docs/11). Never loot.
+    giveDevBag() { map.dropItem(Math.round(player.gx), Math.round(player.gy), { id: "dev_bag", count: 1 }); showMessage("A Developer Bag lies at your feet."); },
   };
 }
 

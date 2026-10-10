@@ -238,9 +238,12 @@ export function itemsAt(x, y, layer = 0) {
 export function dropItem(x, y, entry, layer = 0) {
   const t = tileAt(x, y, layer);
   if (!t.items) t.items = [];
-  const { id, count, fill } = entry;
-  const e = { id, count };
-  if (fill != null) e.fill = fill;
+  // The entry itself goes on the floor, less its grid position, so a bag
+  // keeps everything in it and a belt its slots (docs/11).
+  const e = { ...entry };
+  delete e.x;
+  delete e.y;
+  delete e.rot;
   t.items.push(e);
   return e;
 }

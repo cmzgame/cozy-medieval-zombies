@@ -9,7 +9,7 @@ import { findPath } from "../pathfind.js";
 import { getSheet } from "../assets.js";
 import { createAnimation, playAnimation, advanceAnimation } from "../sprites.js";
 import { createHands } from "../items.js";
-import { createBag } from "../inventory.js";
+import { createWorn } from "../inventory.js";
 
 export const PLAYER_SPEED = 3.0; // tiles per second
 export const PLAYER_RADIUS = 0.3;
@@ -54,8 +54,8 @@ export function createPlayer(gx, gy) {
     dead: false,
     layer: 0, // the floor the player is on; always 0 for now (docs/08)
     climb: null, // { from, to, t } while climbing through a window
-    hands: createHands(), // { main, off }: item ids (docs/07, items.js)
-    bag: createBag(), // the grid inventory (docs/10)
+    hands: createHands(), // { main, off }: entries (docs/11, items.js)
+    worn: createWorn(), // the doll: head, chest, hands, legs, feet, waist, back; the bag and belt are read from it
     hunger: HUNGER_MAX,
     maxHunger: HUNGER_MAX,
     thirst: THIRST_MAX,

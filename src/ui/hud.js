@@ -36,8 +36,8 @@ export function initHud() {
   root.hidden = false;
 }
 
-function handName(id) {
-  return id ? getItem(id).name : "–";
+function handName(entry) {
+  return entry ? getItem(entry.id).name : "–";
 }
 
 export function updateHud({ player }) {

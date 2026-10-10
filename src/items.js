@@ -1,8 +1,9 @@
 // Items: definitions and loot tables from data/items.json and data/loot.json
 // (the registry copied from cozy-zombie-game src/items.js on 2026-10-10), and
-// the two hand slots (docs/02, hands: every holdable item is `main`, `off`,
-// or `both`; a two-handed item needs both slots). An equipped item stays in
-// the bag; the hand holds its id (docs/10-interface.md).
+// the hand slots. Everything is a slot, nothing is a pointer (docs/11): a hand
+// holds an entry, which is then nowhere else. A definition may carry `hands`
+// (`main`, `off`, `both`), `wear` (a doll slot), `beltSlots` (a belt), or
+// `bag: [cols, rows]` (a bag).
 
 const items = new Map();
 let lootTables = {};
@@ -66,6 +67,7 @@ export function createHands() {
   return { main: null, off: null };
 }
 
+// Which hand an item of this id goes in, and whether that is free.
 export function canHold(hands, id) {
   const it = items.get(id);
   if (!it || !it.hands) return false;
@@ -73,25 +75,31 @@ export function canHold(hands, id) {
   return !hands[it.hands];
 }
 
-export function hold(hands, id) {
-  if (!canHold(hands, id)) return false;
-  const it = getItem(id);
+// The slot name an item id wants: "main", "off", or "both".
+export function handFor(id) {
+  return items.get(id)?.hands || null;
+}
+
+export function hold(hands, entry) {
+  if (!canHold(hands, entry.id)) return false;
+  const it = getItem(entry.id);
   if (it.hands === "both") {
-    hands.main = id;
-    hands.off = id;
+    hands.main = entry;
+    hands.off = entry;
   } else {
-    hands[it.hands] = id;
+    hands[it.hands] = entry;
   }
   return true;
 }
 
-export function release(hands, id) {
+// Take an entry out of the hands. Returns true if it was there.
+export function release(hands, entry) {
   let did = false;
-  if (hands.main === id) {
+  if (hands.main === entry) {
     hands.main = null;
     did = true;
   }
-  if (hands.off === id) {
+  if (hands.off === entry) {
     hands.off = null;
     did = true;
   }
@@ -99,20 +107,21 @@ export function release(hands, id) {
 }
 
 export function holding(hands, id) {
-  return hands.main === id || hands.off === id;
+  return (hands.main && hands.main.id === id) || (hands.off && hands.off.id === id) || false;
 }
 
-// Which hand holds an item id, or null.
-export function handOf(hands, id) {
-  if (hands.main === id) return "main";
-  if (hands.off === id) return "off";
+// The entry held for an id, or null.
+export function heldEntry(hands, id) {
+  if (hands.main && hands.main.id === id) return hands.main;
+  if (hands.off && hands.off.id === id) return hands.off;
   return null;
 }
 
 // The fire of a held item, if any: the light you carry.
 export function heldFire(hands) {
   for (const slot of ["main", "off"]) {
-    const it = hands[slot] && items.get(hands[slot]);
+    const e = hands[slot];
+    const it = e && items.get(e.id);
     if (it && it.fire) return it.fire;
   }
   return null;

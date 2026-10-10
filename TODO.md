@@ -28,7 +28,7 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 - **Milestone 3 accepted, 2026-10-10.** Michael: "Tested and working as desired."
 - **Milestone 4, the interface, built 2026-10-10** (`docs/10-interface.md`): the grid inventory on Tab, right-click menus for everything, left-click to walk, E for the nearest simple thing, the health bar, hunger and thirst as moodles, logs and planks as real items with Chop down and Split, the well. Scripted acceptance passed; Michael's play verdict pending.
 - **Michael's notes after play, 2026-10-10:** "It's awesome." Left-click to walk removed (left click stays free for selecting and placing later); Escape closes the menu, then the bag, then pauses and resumes; a log is 2×3 and splits into three 1×3 planks.
-- **Milestone 5, the character, designed 2026-10-10** (`docs/11-character.md`), building: everything is a slot; the belt gives the hotbar, the bag on your back gives the grid; the bag is an item.
+- **Milestone 5, the character, built 2026-10-10** (`docs/11-character.md`): everything is a slot; the belt gives the hotbar and keys 1 to 4, the bag on your back gives the grid; the bag is an item that drops with its contents, opens on the floor, and swaps. The character screen on C, the cutaway on K. The eight scripted checks pass (a step with the screen open is under 2 ms); Michael's play verdict pending.
 - **Blocked on:** nothing.
 - **Next:** the player sprite and customisation conversation Michael wants, then the melee port.
 - **Next:** build Milestone 3 in the order `docs/09` gives, then the melee port. Together they make "a night in the cottage"., with the dead breaking in (doors barred from inside, boards, broken shutters, how the dead get through a door, how slow and loud a climb is). Write its doc first, then build. Then the melee port. Together they make "a night in the cottage". Openings with the dead breaking in and the melee port follow, which together make "a night in the cottage".
@@ -91,12 +91,12 @@ Each step checkable on its own. Michael looks after step 3.
 
 ## Milestone 5 — The character (see `docs/11-character.md`)
 
-- [ ] Slot data: hands hold entries; `worn` with seven slots; the belt's slots; a bag entry's grid; items get `wear`, `beltSlots`, `bag`.
-- [ ] The character screen on `C`: the doll, the hand boxes, the bag beside; drag on and off slots; the cutaway comparison moves to `K`.
-- [ ] The hotbar strip and keys 1 to 4.
-- [ ] The bag as an item: drop with contents, open on the floor, wear, swap; no bag means no grid; the Developer Bag from the console.
-- [ ] Starter kit worn; wearables and bags in loot.
-- [ ] Acceptance: the eight checks in `docs/11`.
+- [x] Slot data (2026-10-10): hands hold entries; `worn` with seven slots; the belt's slots; a bag entry's grid; items get `wear`, `beltSlots`, `bag`.
+- [x] The character screen on `C` (2026-10-10): the doll, the hand boxes, the bag beside; drag on and off slots; the cutaway comparison moves to `K`.
+- [x] The hotbar strip and keys 1 to 4 (2026-10-10). The strip shows only while a belt is worn.
+- [x] The bag as an item (2026-10-10): drop with contents, open on the floor, wear, swap; no bag means no grid; the Developer Bag from the console.
+- [x] Starter kit worn; wearables and bags in loot (2026-10-10). Tab with no bag opens the character screen with the message.
+- [x] Acceptance, scripted (2026-10-10): the eight checks in `docs/11` pass. Michael's play verdict pending.
 
 ## Milestone 4 — The interface (see `docs/10-interface.md`)
 

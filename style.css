@@ -460,3 +460,114 @@ html, body {
   font-size: 12px;
   color: #a098ac;
 }
+
+/* ---- docs/11: the character screen and the belt ---- */
+.doll-body {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.doll-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.doll-row {
+  display: flex;
+  gap: 4px;
+}
+
+.doll-slot,
+.doll-gap,
+.doll-hand {
+  width: 38px;
+  height: 38px;
+  box-sizing: border-box;
+}
+
+.doll-slot,
+.doll-hand {
+  position: relative;
+  background: #1a141f;
+  border: 1px solid #3a3242;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.doll-hand {
+  border-style: dashed;
+}
+
+.doll-hands {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 42px;
+}
+
+.slot-label {
+  font-size: 9px;
+  color: #6a6274;
+  text-align: center;
+  line-height: 1.1;
+  pointer-events: none;
+}
+
+.doll-slot.ok,
+.hot-slot.ok {
+  box-shadow: 0 0 0 2px #7ee08a;
+}
+
+.doll-slot.bad,
+.hot-slot.bad {
+  box-shadow: 0 0 0 2px #e87070;
+}
+
+.inv-item.in-slot {
+  position: relative;
+}
+
+.inv-nobag {
+  color: #a098ac;
+  font-size: 12px;
+  min-width: 160px;
+}
+
+#hotbar {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: rgba(24, 18, 30, 0.85);
+  border: 2px solid #6a5a70;
+  border-radius: 6px;
+  pointer-events: auto;
+}
+
+.hot-slot {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  box-sizing: border-box;
+  background: #1a141f;
+  border: 1px solid #3a3242;
+  border-radius: 3px;
+}
+
+.hot-key {
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  font-size: 9px;
+  color: #a098ac;
+  z-index: 1;
+  pointer-events: none;
+  text-shadow: 0 1px 1px #000;
+}

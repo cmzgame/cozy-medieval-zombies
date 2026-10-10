@@ -6,5 +6,15 @@
   {"id": "bread", "name": "Loaf of bread", "kind": "food", "hunger": 40, "size": [1, 1], "color": "#c8a060", "short": "Bread"},
   {"id": "apple", "name": "Apple", "kind": "food", "hunger": 15, "thirst": 5, "stack": 5, "size": [1, 1], "color": "#b0402a", "short": "Apple"},
   {"id": "cheese", "name": "Wheel of cheese", "kind": "food", "hunger": 30, "size": [1, 1], "color": "#d8b848", "short": "Cheese"},
-  {"id": "waterskin", "name": "Waterskin", "kind": "drink", "capacity": 100, "size": [1, 2], "color": "#7a6a52", "short": "Water"}
+  {"id": "waterskin", "name": "Waterskin", "kind": "drink", "capacity": 100, "size": [1, 2], "color": "#7a6a52", "short": "Water"},
+  {"id": "hood", "name": "Hood", "kind": "clothing", "wear": "head", "size": [1, 1], "color": "#4a3a30", "short": "Hood"},
+  {"id": "tunic", "name": "Tunic", "kind": "clothing", "wear": "chest", "size": [2, 2], "color": "#8a7a52", "short": "Tunic"},
+  {"id": "gloves", "name": "Gloves", "kind": "clothing", "wear": "hands", "size": [1, 1], "color": "#6a5240", "short": "Gloves"},
+  {"id": "breeches", "name": "Breeches", "kind": "clothing", "wear": "legs", "size": [2, 2], "color": "#5a4030", "short": "Brch"},
+  {"id": "boots", "name": "Boots", "kind": "clothing", "wear": "feet", "size": [1, 2], "color": "#3a2a1c", "short": "Boots"},
+  {"id": "belt", "name": "Belt", "kind": "clothing", "wear": "waist", "beltSlots": 2, "size": [2, 1], "color": "#5e4028", "short": "Belt"},
+  {"id": "good_belt", "name": "Good belt", "kind": "clothing", "wear": "waist", "beltSlots": 4, "size": [2, 1], "color": "#7a5020", "short": "Belt+"},
+  {"id": "small_sack", "name": "Small sack", "kind": "bag", "wear": "back", "bag": [6, 4], "size": [2, 2], "color": "#9a8a6a", "short": "Sack"},
+  {"id": "rucksack", "name": "Rucksack", "kind": "bag", "wear": "back", "bag": [8, 5], "size": [2, 3], "color": "#6a6a4a", "short": "Ruck"},
+  {"id": "dev_bag", "name": "Developer Bag", "kind": "bag", "wear": "back", "bag": [12, 8], "size": [2, 2], "color": "#c040c0", "short": "DEV"}
 ]

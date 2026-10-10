@@ -7,15 +7,17 @@
 // them. Right-click builds a menu of every action under the cursor
 // (actionsAt); E runs the nearest simple action in range (nearestSimpleAction);
 // an action out of range auto-walks the player there first (runAction). Timed
-// actions show the prompt's bar and cancel on movement. The stand-in keys stay
-// as shortcuts: hold E climbs an open window, B boards, T takes the torch.
+// actions show the prompt's bar and cancel on movement. Items live in slots
+// (docs/11): a hand, a worn slot, the belt, the bag on your back, a container,
+// or the floor, and every move here takes an entry out of one and puts it in
+// another.
 
 import * as iso from "./iso.js";
 import * as input from "./input.js";
 import * as map from "./map.js";
 import { getSheet } from "./assets.js";
-import { getItem, hold, release, holding, canHold, containerGrid, rollLoot } from "./items.js";
-import { addItem, removeItem, countItem, createBag, waterContainers, fixHands } from "./inventory.js";
+import { getItem, hold, release, holding, canHold, handFor, containerGrid, rollLoot } from "./items.js";
+import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, addItem, createBag, waterContainers } from "./inventory.js";
 import * as grid from "./grid.js";
 import { startClimb, autoWalk, eat, drink } from "./entities/player.js";
 import { showMessage } from "./ui/prompt.js";
@@ -40,34 +42,88 @@ function act(a) {
   return { range: INTERACT_RANGE, duration: 0, enabled: true, simple: false, ...a };
 }
 
+function nameOf(entry) {
+  return getItem(entry.id).name;
+}
+
+// Put a loose entry somewhere on the player: a free hand if it is holdable,
+// else the bag or belt. Returns where it went, or null with a message.
+export function takeIn(player, entry) {
+  if (canHold(player.hands, entry.id) && entry.count === 1 && hold(player.hands, entry)) return "hand";
+  const where = stow(player, entry);
+  if (!where) showMessage(bagOf(player) ? "No room in your bag." : "You have no bag.");
+  return where;
+}
+
 // ---- action builders ----
 
 function itemActions(entry, tx, ty, player) {
   const def = getItem(entry.id);
+  const tiles = [[tx, ty]];
+  if (def.bag) {
+    // A bag on the floor is a container you can also wear (docs/11).
+    const bag = ensureBag(entry);
+    const out = [act({
+      kind: "container",
+      simple: true,
+      label: `Open ${def.name.toLowerCase()}`,
+      tiles,
+      mx: tx,
+      my: ty,
+      perform() {
+        emit("containerOpened", { bag, tiles, name: def.name.toLowerCase() });
+        return true;
+      },
+    })];
+    const worn = player.worn.back;
+    out.push(act({
+      kind: "wear",
+      label: worn ? `Swap bags (drop your ${nameOf(worn).toLowerCase()})` : `Wear ${def.name.toLowerCase()}`,
+      tiles,
+      mx: tx,
+      my: ty,
+      perform() {
+        map.takeItem(tx, ty, entry);
+        if (player.worn.back) map.dropItem(Math.round(player.gx), Math.round(player.gy), player.worn.back);
+        player.worn.back = entry;
+        return true;
+      },
+    }));
+    return out;
+  }
   const fill = entry.fill != null ? ` (${Math.round(entry.fill)}%)` : "";
   const count = entry.count > 1 ? ` (${entry.count})` : "";
   return [act({
     kind: "item",
     simple: true,
     label: `Pick up ${def.name}${fill}${count}`,
-    tiles: [[tx, ty]],
+    tiles,
     mx: tx,
     my: ty,
     perform() {
-      const added = addItem(player.bag, entry.id, entry.count, entry.fill != null ? { fill: entry.fill } : {});
-      if (added <= 0) {
-        showMessage("No room in your bag.");
+      const bag = bagOf(player);
+      if (bag && def.stack) {
+        const added = addItem(bag, entry.id, entry.count, entry.fill != null ? { fill: entry.fill } : {});
+        if (added <= 0) {
+          showMessage("No room in your bag.");
+          return false;
+        }
+        entry.count -= added;
+        if (entry.count <= 0) map.takeItem(tx, ty, entry);
+        return true;
+      }
+      map.takeItem(tx, ty, entry);
+      if (!takeIn(player, entry)) {
+        map.dropItem(tx, ty, entry);
         return false;
       }
-      entry.count -= added;
-      if (entry.count <= 0) map.takeItem(tx, ty, entry);
       return true;
     },
   })];
 }
 
 // A container prop's bag, made on first use from its loot table's grid.
-export function bagOf(prop) {
+export function propBag(prop) {
   if (!prop.bag) {
     const [cols, rows] = containerGrid(prop.container.loot);
     prop.bag = createBag(cols, rows, prop.sprite.replace(/_/g, " "));
@@ -87,24 +143,24 @@ function containerActions(prop) {
     my: prop.tile[1],
     duration: prop.searched ? 0 : SEARCH_TIME,
     perform() {
-      const bag = bagOf(prop);
+      const bag = propBag(prop);
       if (!prop.searched) {
         prop.searched = true;
         // Rolled loot is placed into the grid; what does not fit is not spawned.
         if (!bag.items.length) grid.fill(bag, rollLoot(prop.container.loot));
       }
-      emit("containerOpened", { prop });
+      emit("containerOpened", { bag, tiles: prop.tiles, name });
       return true;
     },
   })];
 }
 
-// Hearths and campfires take a log from the bag (docs/07; logs stopped being free with docs/10).
+// Hearths and campfires take a log from wherever you have one (docs/07; logs stopped being free with docs/10).
 function fireActions(prop, player) {
   const f = prop.fire;
   if (!f || !f.burns) return [];
   const name = prop.sprite.replace(/_/g, " ");
-  const logs = countItem(player.bag, "log");
+  const logs = countAll(player, "log");
   const full = f.fuel >= f.maxFuel;
   let label;
   if (!f.lit) label = logs ? `Light the ${name}` : `Light the ${name} (need a log)`;
@@ -119,15 +175,15 @@ function fireActions(prop, player) {
     my: prop.tile[1] - 0.6,
     enabled: logs > 0 && !full,
     perform() {
-      if (countItem(player.bag, "log") <= 0) return false;
+      if (countAll(player, "log") <= 0) return false;
       if (!map.feedFire(prop)) return false;
-      removeItem(player.bag, "log", 1);
+      takeAll(player, "log", 1);
       return true;
     },
   })];
 }
 
-// Brackets and posts: take the torch into the bag, or mount the one you carry.
+// Brackets and posts: take the torch into a hand or the bag, or mount the one you carry.
 function holderActions(target, player) {
   const what = target.kind === "bracket" ? "bracket" : "post";
   const mx = target.kind === "bracket" ? target.mx : target.prop.tile[0];
@@ -143,18 +199,14 @@ function holderActions(target, player) {
       mx,
       my,
       perform() {
-        if (addItem(player.bag, "torch", 1) <= 0) {
-          showMessage("No room in your bag.");
-          return false;
-        }
+        const entry = { id: "torch", count: 1 };
+        if (!takeIn(player, entry)) return false;
         map.setHolder(target, false);
-        // Into the off-hand if it is free: a torch you reach for is one you mean to carry.
-        if (canHold(player.hands, "torch")) hold(player.hands, "torch");
         return true;
       },
     })];
   }
-  const have = countItem(player.bag, "torch") > 0;
+  const have = countAll(player, "torch") > 0;
   return [act({
     kind: "holder",
     simple: have,
@@ -164,8 +216,9 @@ function holderActions(target, player) {
     my,
     enabled: have,
     perform() {
-      if (removeItem(player.bag, "torch", 1) <= 0) return false;
-      fixHands(player);
+      const found = findItem(player, "torch");
+      if (!found) return false;
+      detach(player, found.entry);
       map.setHolder(target, true);
       return true;
     },
@@ -215,7 +268,7 @@ function openingActions(o, player) {
       },
     }));
   }
-  const planks = countItem(player.bag, "plank");
+  const planks = countAll(player, "plank");
   if (mine.length < map.BOARDS_PER_SIDE) {
     out.push(act({
       ...base,
@@ -224,9 +277,9 @@ function openingActions(o, player) {
       duration: BOARD_TIME,
       enabled: planks > 0,
       perform() {
-        if (countItem(player.bag, "plank") <= 0) return false;
+        if (countAll(player, "plank") <= 0) return false;
         if (!map.addBoard(w, side)) return false;
-        removeItem(player.bag, "plank", 1);
+        takeAll(player, "plank", 1);
         return true;
       },
     }));
@@ -266,7 +319,7 @@ function treeActions(prop) {
 
 // The well: infinite water (docs/02, question 16).
 function wellActions(prop, player) {
-  const toFill = () => waterContainers(player.bag).filter((it) => (it.fill ?? 0) < 100);
+  const toFill = () => waterContainers(bagOf(player)).filter((it) => (it.fill ?? 0) < 100);
   return [
     act({
       kind: "water",
@@ -402,7 +455,6 @@ export function nearestSimpleAction(player) {
 
 // ---- performing ----
 
-// Start an action the player is already in range of. Timed ones go on player.action.
 export function startAction(player, action) {
   if (!action || action.enabled === false) return false;
   if (action.duration <= 0) {
@@ -510,6 +562,48 @@ export function promptFor(player, progress) {
   return { label: `E: ${a.label}`, mx: a.mx, my: a.my, progress: null };
 }
 
+// Unequip a held entry: into the bag, else the belt, else it stays in hand.
+export function unequip(player, entry) {
+  release(player.hands, entry);
+  if (stow(player, entry)) return true;
+  hold(player.hands, entry);
+  showMessage("Nowhere to put it.");
+  return false;
+}
+
+// Equip an entry from the belt or a bag, swapping out what the hand holds.
+export function equipFrom(player, entry) {
+  if (!detach(player, entry)) return false;
+  if (equip(player, entry)) return true;
+  if (!stow(player, entry)) map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
+  showMessage("Your hands are full.");
+  return false;
+}
+
+// Wear an entry from a bag (yours or a container's). A bag on the back with
+// one already worn swaps, the old one dropping at your feet; any other slot
+// swaps into the bag if there is room.
+export function wearFrom(player, entry, fromBag) {
+  const def = getItem(entry.id);
+  if (!def.wear) return false;
+  const old = player.worn[def.wear];
+  if (fromBag) grid.remove(fromBag, entry);
+  else detach(player, entry);
+  if (old) {
+    player.worn[def.wear] = null;
+    if (def.wear === "back") map.dropItem(Math.round(player.gx), Math.round(player.gy), old);
+    else if (!stow(player, old)) {
+      player.worn[def.wear] = old;
+      if (fromBag) grid.insert(fromBag, entry);
+      else stow(player, entry);
+      showMessage("No room to take the old one off.");
+      return false;
+    }
+  }
+  player.worn[def.wear] = entry;
+  return true;
+}
+
 export function updateInteract(player, dt) {
   if (player.climb) {
     keyE.held = 0;
@@ -543,37 +637,40 @@ export function updateInteract(player, dt) {
       }
     });
   if (input.wasPressed("KeyT")) {
-    if (holding(player.hands, "torch")) release(player.hands, "torch");
-    else if (countItem(player.bag, "torch") > 0 && canHold(player.hands, "torch")) hold(player.hands, "torch");
-    else if (countItem(player.bag, "torch") <= 0) showMessage("No torch in your bag.");
+    if (holding(player.hands, "torch")) unequip(player, player.hands.off);
+    else {
+      const found = findItem(player, "torch");
+      if (!found) showMessage("No torch on you.");
+      else equipFrom(player, found.entry);
+    }
   }
 }
 
-// ---- the item menu, for the panel ----
+// ---- the item menus, for the panel ----
 
+// An item in a grid: yours or an open container's.
 export function itemMenu(player, entry, bag, otherBag) {
   const def = getItem(entry.id);
   const out = [];
-  const inBag = bag === player.bag;
-  if (def.hands && inBag) {
-    const held = holding(player.hands, entry.id);
+  const mine = bag === bagOf(player);
+  if (def.hands && mine) {
     out.push({
-      label: held ? "Unequip" : `Equip (${def.hands === "both" ? "both hands" : `${def.hands} hand`})`,
-      enabled: held || canHold(player.hands, entry.id),
-      onSelect: () => {
-        if (held) release(player.hands, entry.id);
-        else hold(player.hands, entry.id);
-      },
+      label: `Equip (${def.hands === "both" ? "both hands" : `${def.hands} hand`})`,
+      enabled: true,
+      onSelect: () => equipFrom(player, entry),
     });
   }
+  if (def.wear) {
+    out.push({ label: def.bag ? `Wear (${def.bag[0]}×${def.bag[1]})` : "Wear", enabled: true, onSelect: () => wearFrom(player, entry, bag) });
+  }
   if (def.kind === "food") {
-    out.push({ label: "Eat", enabled: true, onSelect: () => { eat(player, def); entry.count -= 1; if (entry.count <= 0) grid.remove(bag, entry); fixHands(player); } });
+    out.push({ label: "Eat", enabled: true, onSelect: () => { eat(player, def); entry.count -= 1; if (entry.count <= 0) grid.remove(bag, entry); } });
   }
   if (def.capacity) {
     const pct = Math.round(entry.fill ?? 0);
     out.push({ label: `Drink (${pct}%)`, enabled: pct > 0, onSelect: () => drink(player, entry) });
   }
-  if (def.splitsInto && inBag) {
+  if (def.splitsInto && mine) {
     const s = def.splitsInto;
     out.push({
       label: `Split into ${s.count} ${getItem(s.id).name.toLowerCase()}s`,
@@ -589,25 +686,67 @@ export function itemMenu(player, entry, bag, otherBag) {
     });
   }
   if (otherBag) {
+    const toMine = !mine;
+    const nested = toMine && !!def.bag; // a bag never goes inside a bag
     out.push({
-      label: inBag ? `Store in ${otherBag.container}` : "Take",
-      enabled: true,
+      label: mine ? `Store in ${otherBag.container}` : "Take",
+      enabled: !nested,
       onSelect: () => {
-        if (!grid.transfer(bag, otherBag, entry)) showMessage(inBag ? "No room in there." : "No room in your bag.");
-        fixHands(player);
+        if (!grid.transfer(bag, otherBag, entry)) showMessage(mine ? "No room in there." : "No room in your bag.");
       },
     });
   }
-  if (inBag) {
+  if (mine) {
     out.push({
       label: entry.count > 1 ? `Drop all (${entry.count})` : "Drop",
       enabled: true,
       onSelect: () => {
         grid.remove(bag, entry);
         map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
-        fixHands(player);
       },
     });
+  }
+  return out;
+}
+
+// An item in a slot: "worn:head", "belt:2", "hand:main".
+export function slotMenu(player, slotId) {
+  const [kind, key] = slotId.split(":");
+  const out = [];
+  if (kind === "worn") {
+    const entry = player.worn[key];
+    if (!entry) return out;
+    out.push({
+      label: "Take off",
+      enabled: true,
+      onSelect: () => {
+        player.worn[key] = null;
+        if (key === "back" || !stow(player, entry)) {
+          map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
+          showMessage(key === "back" ? `You set the ${nameOf(entry).toLowerCase()} down.` : "No room in your bag; it is on the floor.");
+        }
+      },
+    });
+  } else if (kind === "belt") {
+    const belt = beltOf(player);
+    const entry = belt && belt[Number(key)];
+    if (!entry) return out;
+    out.push({ label: "Equip", enabled: true, onSelect: () => equipFrom(player, entry) });
+    out.push({
+      label: "Put in bag",
+      enabled: !!bagOf(player),
+      onSelect: () => {
+        belt[Number(key)] = null;
+        if (!grid.insert(bagOf(player), entry)) {
+          belt[Number(key)] = entry;
+          showMessage("No room in your bag.");
+        }
+      },
+    });
+  } else if (kind === "hand") {
+    const entry = player.hands[key];
+    if (!entry) return out;
+    out.push({ label: "Unequip", enabled: true, onSelect: () => unequip(player, entry) });
   }
   return out;
 }

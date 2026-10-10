@@ -1,9 +1,9 @@
-// Copied from cozy-zombie-game src/ui/inventory-panel.js on 2026-10-10. The
-// equipped outline became the two hands (gold main, blue off) through the
-// `handOf` handler; otherwise unchanged.
-// Grid inventory panel (Tab), with whatever container is open beside it.
-// Drag and drop, rotation, quick transfer, right-click menus.
-// See docs/10-interface.md. Rules live in grid.js; this file is only DOM.
+// Copied from cozy-zombie-game src/ui/inventory-panel.js on 2026-10-10 and
+// grown for docs/11: besides the grids (your bag and an open container) it
+// draws the doll with its worn slots and the hands, and the belt as a hotbar
+// strip, and drags between all of them. Grid rules live in grid.js; moves
+// that involve a slot go through the handlers, which know the player.
+// Tab opens the bag alone, C the character screen with the bag beside it.
 
 import { getItem } from "../items.js";
 import * as grid from "../grid.js";
@@ -11,13 +11,23 @@ import * as menu from "./context-menu.js";
 
 const CELL = 38; // internal pixels; the UI layer is scaled with the canvas
 const DRAG_THRESHOLD = 4; // screen pixels before a press becomes a drag
+const WORN_LAYOUT = [
+  ["back", "head", "waist"],
+  ["hands", "chest", null],
+  [null, "legs", null],
+  [null, "feet", null],
+];
+const SLOT_NAMES = { head: "Head", chest: "Chest", hands: "Hands", legs: "Legs", feet: "Feet", waist: "Waist", back: "Back" };
 
 let root = null;
 let body = null;
+let hotbar = null;
 let open = false;
+let character = false;
 let handlers = {};
 let lastSignature = "";
 let bags = { inv: null, container: null };
+let view = { player: null };
 let drag = null;
 
 export function initInventoryPanel(h) {
@@ -26,18 +36,24 @@ export function initInventoryPanel(h) {
   root.hidden = true;
   root.innerHTML = `<div class="inv-body"></div>`;
   body = root.querySelector(".inv-body");
+  hotbar = document.createElement("div");
+  hotbar.id = "hotbar";
+  hotbar.hidden = true;
+  document.getElementById("ui").appendChild(hotbar);
 
-  root.addEventListener("pointerdown", onPointerDown);
-  root.addEventListener("dblclick", (e) => {
-    const hit = entryFromEvent(e);
-    if (hit) quickMove(hit);
-  });
-  root.addEventListener("contextmenu", (e) => {
-    e.preventDefault();
-    if (drag?.started) return;
-    const hit = entryFromEvent(e);
-    if (hit) openItemMenu(hit, e);
-  });
+  for (const el of [root, hotbar]) {
+    el.addEventListener("pointerdown", onPointerDown);
+    el.addEventListener("dblclick", (e) => {
+      const hit = entryFromEvent(e);
+      if (hit && hit.bag) quickMove(hit);
+    });
+    el.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      if (drag?.started) return;
+      const hit = entryFromEvent(e);
+      if (hit) openItemMenu(hit, e);
+    });
+  }
   root.addEventListener("click", (e) => {
     const btn = e.target.closest("button[data-tidy]");
     if (!btn) return;
@@ -64,15 +80,22 @@ export function isOpen() {
   return open;
 }
 
-export function setOpen(v) {
+export function isCharacter() {
+  return open && character;
+}
+
+export function setOpen(v, { character: c = false } = {}) {
   open = v;
+  character = v && c;
   root.hidden = !v;
   lastSignature = "";
   if (!v) cancelDrag();
 }
 
-export function toggle() {
-  setOpen(!open);
+export function toggle(opts) {
+  const c = !!opts?.character;
+  if (open && character === c) setOpen(false);
+  else setOpen(true, { character: c });
 }
 
 function capitalize(s) {
@@ -81,37 +104,30 @@ function capitalize(s) {
 
 // ---- rendering ----
 
-function itemHtml(entry, index, which, hand) {
+function blockHtml(entry, attrs, cell = CELL, w = 1, h = 1, extraCls = "") {
   const def = getItem(entry.id);
-  const [w, h] = grid.sizeOf(entry);
-  const cls = ["inv-item"];
-  if (hand) cls.push(`equipped-${hand}`);
+  const cls = ["inv-item", extraCls];
   if (h > w) cls.push("tall");
-  if (entry.count > 1) cls.push("stacked"); // label moves up so the count has room
+  if (entry.count > 1) cls.push("stacked");
   let inner = "";
   if (entry.fill != null) {
-    // A water level: from the bottom when upright, from the left when on its side.
     const pct = Math.max(0, Math.min(100, entry.fill));
     inner += `<div class="inv-level" style="${h >= w ? `height:${pct}%;width:100%` : `width:${pct}%;height:100%`}"></div>`;
   }
   inner += `<span class="inv-label">${def.short || def.name}</span>`;
   if (entry.count > 1) inner += `<span class="inv-stack">${entry.count}</span>`;
-  const title = `${def.name}${entry.fill != null ? ` (${Math.round(entry.fill)}%)` : ""}${entry.count > 1 ? ` x${entry.count}` : ""}${hand ? ` (${hand} hand)` : ""}`;
-  return `<div class="${cls.join(" ")}" data-bag="${which}" data-index="${index}" title="${title}" style="left:${entry.x * CELL}px;top:${entry.y * CELL}px;width:${w * CELL}px;height:${h * CELL}px;--item:${def.color || "#8a8296"}">${inner}</div>`;
+  const title = `${def.name}${entry.fill != null ? ` (${Math.round(entry.fill)}%)` : ""}${entry.count > 1 ? ` x${entry.count}` : ""}`;
+  return `<div class="${cls.join(" ")}" ${attrs} title="${title}" style="width:${w * cell}px;height:${h * cell}px;--item:${def.color || "#8a8296"}">${inner}</div>`;
 }
 
-function columnHtml(which, bag, title, withHands) {
-  const seen = new Set();
-  const items = bag.items.map((e, i) => {
-    let hand = null;
-    if (withHands) {
-      hand = handlers.handOf?.(e.id) || null;
-      // One outline per held id: the first entry of that item wears it.
-      if (hand && seen.has(e.id)) hand = null;
-      if (hand) seen.add(e.id);
-    }
-    return itemHtml(e, i, which, hand);
-  }).join("");
+function itemHtml(entry, index, which) {
+  const [w, h] = grid.sizeOf(entry);
+  const html = blockHtml(entry, `data-bag="${which}" data-index="${index}"`, CELL, w, h);
+  return html.replace('style="', `style="left:${entry.x * CELL}px;top:${entry.y * CELL}px;position:absolute;`);
+}
+
+function columnHtml(which, bag, title) {
+  const items = bag.items.map((e, i) => itemHtml(e, i, which)).join("");
   return `
     <div class="inv-column">
       <div class="inv-header"><span>${title}</span><button data-tidy="${which}" title="Repack">Tidy</button></div>
@@ -119,26 +135,79 @@ function columnHtml(which, bag, title, withHands) {
     </div>`;
 }
 
-// Re-render if anything changed. `container` is any bag with a `container` name, or null.
-export function renderInventoryPanel(inv, container, hands) {
-  bags = { inv, container: container || null };
+function slotHtml(id, entry, label) {
+  const inner = entry ? blockHtml(entry, `data-slot="${id}"`, CELL, 1, 1, "in-slot") : `<span class="slot-label">${label}</span>`;
+  return `<div class="doll-slot${entry ? "" : " empty"}" data-slot="${id}" title="${label}">${inner}</div>`;
+}
+
+function dollHtml(player) {
+  const rows = WORN_LAYOUT.map((row) => `<div class="doll-row">${row.map((k) => (k ? slotHtml(`worn:${k}`, player.worn[k], SLOT_NAMES[k]) : `<div class="doll-gap"></div>`)).join("")}</div>`).join("");
+  const hand = (key, label) => {
+    const e = player.hands[key];
+    return `<div class="doll-hand" title="${label}">${e ? blockHtml(e, `data-slot="hand:${key}"`, CELL, 1, 1, "in-slot") : `<span class="slot-label">${label}</span>`}</div>`;
+  };
+  return `
+    <div class="inv-column doll">
+      <div class="inv-header"><span>You</span></div>
+      <div class="doll-body">
+        <div class="doll-grid">${rows}</div>
+        <div class="doll-hands">${hand("main", "Main hand")}${hand("off", "Off-hand")}</div>
+      </div>
+    </div>`;
+}
+
+function hotbarHtml(belt) {
+  return belt.map((e, i) => `<div class="hot-slot${e ? "" : " empty"}" data-slot="belt:${i}"><span class="hot-key">${i + 1}</span>${e ? blockHtml(e, `data-slot="belt:${i}"`, CELL, 1, 1, "in-slot") : ""}</div>`).join("");
+}
+
+// Re-render if anything changed. `inv` is the bag on the back or null;
+// `container` is any open bag or null.
+export function renderInventoryPanel(player, inv, container, belt) {
+  bags = { inv: inv || null, container: container || null };
+  view.player = player;
+  // The hotbar is always shown while a belt is worn.
+  const beltSig = JSON.stringify(belt);
+  if (!belt) hotbar.hidden = true;
+  else {
+    hotbar.hidden = false;
+    if (hotbar.dataset.sig !== beltSig) {
+      hotbar.innerHTML = hotbarHtml(belt);
+      hotbar.dataset.sig = beltSig;
+    }
+  }
   if (!open) return;
-  if (drag && drag.bag !== inv && drag.bag !== container) cancelDrag();
-  const sig = JSON.stringify([inv.items, hands, inv.cols, inv.rows, container?.container, container?.items, container?.cols, container?.rows]);
+  if (drag && drag.from.kind === "bag" && drag.from.bag !== inv && drag.from.bag !== container) cancelDrag();
+  const sig = JSON.stringify([character, inv?.items, inv?.cols, inv?.rows, container?.container, container?.items, container?.cols, container?.rows, player.worn, player.hands]);
   if (sig === lastSignature) return;
   lastSignature = sig;
-  // The bag always sits in the top-right corner; anything opened appears to its left.
+  // The bag sits in the top-right corner; anything opened appears to its left;
+  // the doll to the left of that.
   body.innerHTML =
-    (container ? columnHtml("container", container, capitalize(container.container), false) : "") +
-    columnHtml("inv", inv, "Bag", true) +
+    (character ? dollHtml(player) : "") +
+    (container ? columnHtml("container", container, capitalize(container.container)) : "") +
+    (inv ? columnHtml("inv", inv, capitalize(inv.container)) : `<div class="inv-column inv-nobag">No bag on your back.</div>`) +
     `<div class="inv-hint">Drag to move · R rotates · Shift-click sends across · Right-click for actions</div>`;
 }
 
 // ---- hit testing ----
 
+function slotEntry(slotId) {
+  const [kind, key] = slotId.split(":");
+  const p = view.player;
+  if (!p) return null;
+  if (kind === "worn") return p.worn[key] || null;
+  if (kind === "hand") return p.hands[key] || null;
+  if (kind === "belt") return handlers.belt?.()?.[Number(key)] || null;
+  return null;
+}
+
 function entryFromEvent(e) {
   const el = e.target.closest(".inv-item");
   if (!el) return null;
+  if (el.dataset.slot) {
+    const entry = slotEntry(el.dataset.slot);
+    return entry ? { entry, slot: el.dataset.slot, el } : null;
+  }
   const bag = bags[el.dataset.bag];
   const entry = bag?.items[Number(el.dataset.index)];
   return entry ? { entry, bag, el } : null;
@@ -156,8 +225,17 @@ function gridAt(clientX, clientY) {
   return null;
 }
 
+// Which droppable slot is under a screen point (worn or belt; never a hand).
+function slotAt(clientX, clientY) {
+  for (const el of [...body.querySelectorAll(".doll-slot"), ...hotbar.querySelectorAll(".hot-slot")]) {
+    const r = el.getBoundingClientRect();
+    if (clientX >= r.left && clientX < r.right && clientY >= r.top && clientY < r.bottom) return { el, id: el.dataset.slot };
+  }
+  return null;
+}
+
 function overPanel(clientX, clientY) {
-  for (const el of body.querySelectorAll(".inv-column")) {
+  for (const el of [...body.querySelectorAll(".inv-column"), hotbar]) {
     const r = el.getBoundingClientRect();
     if (clientX >= r.left && clientX < r.right && clientY >= r.top && clientY < r.bottom) return true;
   }
@@ -170,17 +248,18 @@ function onPointerDown(e) {
   if (e.button !== 0 || drag) return;
   const hit = entryFromEvent(e);
   if (!hit) return;
+  if (hit.slot && hit.slot.startsWith("hand:")) return; // hands are drawn, not dragged
   e.preventDefault();
   const r = hit.el.getBoundingClientRect();
-  const [w] = grid.sizeOf(hit.entry);
+  const [w] = hit.bag ? grid.sizeOf(hit.entry) : [1];
   const cellPx = r.width / w;
   drag = {
     entry: hit.entry,
-    bag: hit.bag,
-    rot: !!hit.entry.rot,
-    grabX: Math.floor((e.clientX - r.left) / cellPx),
-    grabY: Math.floor((e.clientY - r.top) / cellPx),
-    cellPx,
+    from: hit.bag ? { kind: "bag", bag: hit.bag } : { kind: "slot", id: hit.slot },
+    rot: hit.bag ? !!hit.entry.rot : false,
+    grabX: hit.bag ? Math.floor((e.clientX - r.left) / cellPx) : 0,
+    grabY: hit.bag ? Math.floor((e.clientY - r.top) / cellPx) : 0,
+    cellPx: hit.bag ? cellPx : CELL * (r.width / CELL),
     startX: e.clientX,
     startY: e.clientY,
     lastX: e.clientX,
@@ -227,6 +306,7 @@ function onPointerMove(e) {
 
 function clearHighlights() {
   for (const hl of body.querySelectorAll(".inv-hl")) hl.hidden = true;
+  for (const el of [...body.querySelectorAll(".doll-slot"), ...hotbar.querySelectorAll(".hot-slot")]) el.classList.remove("ok", "bad");
 }
 
 function updateDrag(clientX, clientY) {
@@ -240,6 +320,13 @@ function updateDrag(clientX, clientY) {
 
   clearHighlights();
   drag.target = null;
+  const slot = slotAt(clientX, clientY);
+  if (slot) {
+    const ok = !!handlers.canPlace?.(drag.entry, slot.id);
+    drag.target = { slot: slot.id, ok };
+    slot.el.classList.add(ok ? "ok" : "bad");
+    return;
+  }
   const at = gridAt(clientX, clientY);
   if (!at) return;
   const x = at.cx - drag.grabX;
@@ -247,10 +334,10 @@ function updateDrag(clientX, clientY) {
   const def = getItem(drag.entry.id);
   const under = grid.entryAt(at.bag, at.cx, at.cy);
   const merges = !!(def.stack && under && under !== drag.entry && under.id === drag.entry.id && under.count < def.stack);
-  const ok = merges || grid.fits(at.bag, drag.entry.id, x, y, drag.rot, drag.entry);
+  const nested = !!def.bag && !!handlers.isItemBag?.(at.bag); // a bag never goes inside a bag
+  const ok = !nested && (merges || grid.fits(at.bag, drag.entry.id, x, y, drag.rot, drag.entry));
   drag.target = { bag: at.bag, x: merges ? at.cx : x, y: merges ? at.cy : y, ok };
   const hl = at.el.querySelector(".inv-hl");
-  // Clip the highlight to the grid so a bad position still reads clearly.
   const hx = Math.max(0, x);
   const hy = Math.max(0, y);
   const hw = Math.min(at.bag.cols, x + w) - hx;
@@ -269,15 +356,17 @@ function onPointerUp(e) {
   const d = drag;
   if (!d.started) {
     drag = null;
-    if (d.shift) quickMove({ entry: d.entry, bag: d.bag });
+    if (d.shift && d.from.kind === "bag") quickMove({ entry: d.entry, bag: d.from.bag });
     return;
   }
   const t = d.target;
   if (t && t.ok) {
-    grid.moveEntry(d.bag, t.bag, d.entry, t.x, t.y, d.rot);
+    if (t.slot) handlers.placeInSlot?.(d.entry, d.from, t.slot);
+    else if (d.from.kind === "bag") grid.moveEntry(d.from.bag, t.bag, d.entry, t.x, t.y, d.rot);
+    else handlers.placeInGrid?.(d.entry, d.from, t.bag, t.x, t.y, d.rot);
     handlers.changed?.();
   } else if (!t && !overPanel(e.clientX, e.clientY)) {
-    handlers.dropToFloor?.(d.entry, d.bag);
+    handlers.dropToFloor?.(d.entry, d.from);
   }
   cancelDrag();
 }
@@ -289,37 +378,42 @@ function cancelDrag() {
   root.classList.remove("dragging");
   if (body) clearHighlights();
   lastSignature = "";
+  hotbar.dataset.sig = "";
 }
 
 // ---- shortcuts and menus ----
 
 function otherBag(bag) {
-  if (!bags.container) return null;
+  if (!bags.container || !bags.inv) return null;
   return bag === bags.inv ? bags.container : bags.inv;
 }
 
 function quickMove({ entry, bag }) {
   const to = otherBag(bag);
   if (!to) return;
+  if (!!getItem(entry.id).bag && handlers.isItemBag?.(to)) return handlers.noRoom?.(to === bags.inv);
   if (!grid.transfer(bag, to, entry)) handlers.noRoom?.(to === bags.inv);
   handlers.changed?.();
   lastSignature = "";
 }
 
 function openItemMenu(hit, e) {
-  const entries = handlers.itemMenu?.(hit.entry, hit.bag, otherBag(hit.bag)) || [];
-  const [w, h] = grid.sizeOfId(hit.entry.id);
-  if (w !== h) {
-    entries.push({
-      label: "Rotate",
-      enabled: grid.fits(hit.bag, hit.entry.id, hit.entry.x, hit.entry.y, !hit.entry.rot, hit.entry),
-      onSelect: () => {
-        hit.entry.rot = !hit.entry.rot;
-      },
-    });
+  const entries = hit.slot
+    ? handlers.slotMenu?.(hit.slot) || []
+    : handlers.itemMenu?.(hit.entry, hit.bag, otherBag(hit.bag)) || [];
+  if (hit.bag) {
+    const [w, h] = grid.sizeOfId(hit.entry.id);
+    if (w !== h) {
+      entries.push({
+        label: "Rotate",
+        enabled: grid.fits(hit.bag, hit.entry.id, hit.entry.x, hit.entry.y, !hit.entry.rot, hit.entry),
+        onSelect: () => {
+          hit.entry.rot = !hit.entry.rot;
+        },
+      });
+    }
   }
   if (!entries.length) return;
-  // The menu lives in the UI layer, which is laid out in internal pixels.
   const ui = document.getElementById("ui").getBoundingClientRect();
   const scale = ui.width / 960 || 1;
   const wrapped = entries.map((en) => ({
@@ -328,6 +422,7 @@ function openItemMenu(hit, e) {
       en.onSelect();
       handlers.changed?.();
       lastSignature = "";
+      hotbar.dataset.sig = "";
     },
   }));
   menu.openContextMenu((e.clientX - ui.left) / scale, (e.clientY - ui.top) / scale, wrapped);
