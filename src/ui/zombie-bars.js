@@ -13,6 +13,11 @@ import { tileKey } from "../visibility.js";
 // does not: at close zoom the figure outgrows it and the bar sits on the chest.
 const HEAD_CLEARANCE = 76;
 
+// A damaged zombie this close keeps its bar even behind a canopy: it is the one
+// being fought, and in a dense forest nearly everything has some canopy in front.
+// Farther off, a bar over a zombie hidden by a tree would give it away.
+const NEAR = 3.5; // tiles from the player
+
 let root = null;
 const pool = new Map(); // zombie id -> { el, fill }
 
@@ -40,10 +45,11 @@ function barFor(id) {
 // Shown only for a zombie that has taken damage and is not yet a corpse: full
 // health needs no readout, a corpse has nothing left to show. `visible` is
 // the player's fog-of-war set (main.js), so a bar never floats through a wall.
-export function updateZombieBars(zombies, visible) {
+export function updateZombieBars(zombies, visible, player) {
   const seen = new Set();
   for (const z of zombies) {
     if (z.dead || z.hp >= z.maxHp) continue;
+    if (z.behindProp && Math.hypot(z.gx - player.gx, z.gy - player.gy) > NEAR) continue;
     if (!visible.has(tileKey(Math.round(z.gx), Math.round(z.gy)))) continue;
     seen.add(z.id);
     const { el, fill } = barFor(z.id);

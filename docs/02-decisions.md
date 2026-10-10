@@ -35,6 +35,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 - **Stamina never locks you out of hitting**: at zero a swing lands at half damage.
 - **Not ported now:** the parent's wind-up and lunge (a trial after play), weapon condition, hit locations.
 
+### 2026-10-11 — No laser vision through the forest (Michael)
+
+The soft see-through hole in a canopy is the player's alone. It was punched for every figure, so each zombie behind a tree showed through its own window, which gave away far too much. Now only the player gets it; a zombie behind a tree is hidden by the tree, by depth order, like anything else, and the floating health bar over a damaged zombie hides with it (`computeOcclusion` sets `behindProp` on every figure; the bar reads it), except within 3.5 tiles of the player, since in a dense forest nearly everything has some canopy in front and the zombie being fought must keep its bar, the finisher's tell. Sight (the fog set) is unchanged: trees still do not block line of sight, so a zombie in the open past a tree is still seen; only what the canopy covers is hidden.
+
 ### 2026-10-11, build — Melee steps 1 to 4 (the building model)
 
 - **The hit test counts the drawn body.** `BODY_HALF_W` is 10 px, not the spec's 7, and the samples run feet to chest at five heights, because the rule is that a sprite overlapping the wedge is hit. A zombie very close but well off to the side can still be hit, since a close body spans a wide angle from the chest. The reach comparison is inclusive.

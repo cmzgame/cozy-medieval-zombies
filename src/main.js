@@ -328,7 +328,7 @@ function update(dt) {
   refreshFigure();
   updateHud({ player });
   updatePrompt(interact.promptFor(player, progress), progress);
-  updateZombieBars(zombies, visible);
+  updateZombieBars(zombies, visible, player);
   updateMessage(dt);
   input.endStep();
   timing.step = performance.now() - t0;

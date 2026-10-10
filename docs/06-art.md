@@ -27,7 +27,7 @@ It is a balancing act the whole way, and the answer is **by zone**: the two regi
 - **Grass is dull.** A greyed green with a hint of blue, not a mowed lawn.
 - **Fog is dusky purple at a light hand.** What you cannot see is shaded clearly but never distracts from what is there.
 - **Backgrounds are near-black purple**, not blue-grey.
-- **A character behind a tree is seen through a soft hole in the canopy**, not through a faded tree, so overlapping canopies never stack into mud.
+- **The player behind a tree is seen through a soft hole in the canopy**, not through a faded tree, so overlapping canopies never stack into mud. **The dead are not**: a zombie behind a tree is hidden by it, and its health bar hides too, so a forest never gives laser vision (Michael, 2026-10-11).
 - **Tree canopies are lumpy, not round.** A jittered polygon, trunks taper with a root flare, not a rectangle (`src/placeholders.js`, `generateTree`, 2026-10-11). A cartoon-circle canopy reads "happy", and the same shapes have to carry Gloomwood's blue and purple trees later without a mood change, so the outline stays a little ragged on purpose.
 
 ## The palette, as of 2026-10-09

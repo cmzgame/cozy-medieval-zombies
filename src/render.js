@@ -540,19 +540,30 @@ function rectsOverlap(a, b) {
   return a && b && a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
+// Who is behind a tall prop. Only the player is seen through it, by a soft
+// hole in the canopy (docs/06); the dead are not: a zombie behind a tree is
+// hidden by the tree like anything else, so the forest gives no laser vision
+// (Michael, 2026-10-11). Every figure gets `behindProp` for the UI that floats
+// over it (the health bars) to stay out of the same leak.
 function computeOcclusion(drawables) {
   for (let i = 0; i < drawables.length; i++) {
     const d = drawables[i];
     if (d.kind !== "entity" || d.entity.dead || !d.rect) continue;
+    const isPlayer = d.entity.kind === "player";
     const body = { x: d.rect.x, y: d.rect.y, w: d.rect.w, h: Math.max(1, d.rect.h - 14) };
+    let behind = false;
     for (let j = i + 1; j < drawables.length; j++) {
       const o = drawables[j];
       if (o.kind !== "prop" || !o.canOcclude) continue;
       if (rectsOverlap(body, o.rect)) {
-        d.occluded = true;
-        o.occluder = true;
+        behind = true;
+        if (isPlayer) {
+          d.occluded = true;
+          o.occluder = true;
+        }
       }
     }
+    d.entity.behindProp = behind;
   }
 }
 
