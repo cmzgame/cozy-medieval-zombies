@@ -553,6 +553,148 @@ export function generatePost(ph) {
 }
 
 // ---------------------------------------------------------------------------
+// Tree: a split from generatePost (2026-10-11, Michael: the tree variety and
+// palette are fine, the models are flat, give the trunk and canopy the pass
+// the figure got). Posts stay the round blob-on-a-stick for barrels and lamps,
+// where that reads fine; trees get their own shape, still code not art, aimed
+// at a halfway point between a drawn treetop and a circle on a pole. The
+// canopy is a lumpy polygon, not a ring of perfect circles, on purpose: a
+// cartoon-round outline reads "happy", and these palettes have to carry
+// Gloomwood's blue and purple canopies later (docs/06) without the shape
+// itself fighting that mood. Deterministic per spec (seeded on its own
+// height and width), so the same tree looks the same every boot.
+// ---------------------------------------------------------------------------
+
+function seeded(seed) {
+  let s = seed >>> 0 || 1;
+  return () => {
+    s ^= s << 13;
+    s ^= s >>> 17;
+    s ^= s << 5;
+    s >>>= 0;
+    return s / 4294967296;
+  };
+}
+
+// Points jittered around a centre, for an outline that bulges and dents
+// rather than running a true circle. Returned separately from the path
+// (below) so the same points can be filled, shaded, and stroked as one shape.
+function blobPoints(cx, cy, r, rnd, { count = 10, jitter = 0.3, squashY = 0.86 } = {}) {
+  const pts = [];
+  for (let i = 0; i < count; i++) {
+    const a = (i / count) * Math.PI * 2;
+    const rr = r * (1 - jitter / 2 + rnd() * jitter);
+    pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * squashY]);
+  }
+  return pts;
+}
+
+// A smooth-ish path through jittered points: curves to each point's midpoint
+// with its neighbour, so the bulges round off instead of reading as spikes.
+function blobPath(ctx, pts) {
+  const n = pts.length;
+  const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const m0 = mid(pts[n - 1], pts[0]);
+  ctx.beginPath();
+  ctx.moveTo(m0[0], m0[1]);
+  for (let i = 0; i < n; i++) {
+    const next = pts[(i + 1) % n];
+    const m = mid(pts[i], next);
+    ctx.quadraticCurveTo(pts[i][0], pts[i][1], m[0], m[1]);
+  }
+  ctx.closePath();
+}
+
+export function generateTree(ph) {
+  const h = ph.height;
+  const width = ph.width;
+  const fw = Math.max(TW, Math.ceil(width * 1.3));
+  const fh = h + TH;
+  const { canvas, ctx } = makeCanvas(fw, fh);
+  const cx = fw / 2;
+  const cy = h + HH;
+  const color = ph.color;
+  const trunkColor = ph.trunk || shade(color, 0.45);
+  const rnd = seeded(Math.round(width * 31 + h * 7));
+
+  // Ground shadow, unchanged from the post.
+  ctx.fillStyle = "rgba(0,0,0,0.25)";
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, width / 2, width / 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Trunk: a tapered trapezoid with a root flare at the base, not a rectangle,
+  // and two bark streaks (one lit, one dark, off-centre) for a smidge of
+  // texture. It runs up to the canopy's own centre, same as the post did, so
+  // it disappears into the lumps rather than poking out the top.
+  const canopyCy = cy - h + width / 2;
+  const baseW = Math.max(5, Math.round(width / 3.2));
+  const topW = Math.max(3, Math.round(baseW * 0.55));
+  const flare = baseW * 0.4;
+  const flareH = baseW * 0.45;
+  ctx.fillStyle = trunkColor;
+  poly(ctx, [
+    [cx - baseW / 2 - flare, cy],
+    [cx - baseW / 2, cy - flareH],
+    [cx - topW / 2, canopyCy],
+    [cx + topW / 2, canopyCy],
+    [cx + baseW / 2, cy - flareH],
+    [cx + baseW / 2 + flare, cy],
+  ]);
+  ctx.fill();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = shade(trunkColor, 1.3);
+  ctx.beginPath();
+  ctx.moveTo(cx - baseW / 5, cy - 2);
+  ctx.lineTo(cx - topW / 5, canopyCy + 3);
+  ctx.stroke();
+  ctx.strokeStyle = shade(trunkColor, 0.65);
+  ctx.beginPath();
+  ctx.moveTo(cx + baseW / 6, cy - 3);
+  ctx.lineTo(cx + topW / 6, canopyCy + 4);
+  ctx.stroke();
+
+  // Canopy: one lumpy base shape (shaded underside, then the flat colour over
+  // it, then an outline in its own hue), plus a small shadow lobe and a small
+  // highlight lobe, each its own jittered blob rather than a nested circle.
+  const basePts = blobPoints(cx, canopyCy + 2, width / 2, rnd, { count: 11, jitter: 0.32 });
+  blobPath(ctx, basePts);
+  ctx.fillStyle = shade(color, 0.78);
+  ctx.fill();
+
+  const facePts = blobPoints(cx, canopyCy, width * 0.47, rnd, { count: 10, jitter: 0.28 });
+  blobPath(ctx, facePts);
+  ctx.fillStyle = color;
+  ctx.fill();
+  blobPath(ctx, facePts);
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = shade(color, 0.58);
+  ctx.stroke();
+
+  const shPts = blobPoints(cx + width * 0.16, canopyCy + width * 0.14, width * 0.26, rnd, { count: 8, jitter: 0.3 });
+  blobPath(ctx, shPts);
+  ctx.fillStyle = shade(color, 0.68);
+  ctx.globalAlpha = 0.5;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  const hiPts = blobPoints(cx - width * 0.15, canopyCy - width * 0.14, width * 0.22, rnd, { count: 8, jitter: 0.3 });
+  blobPath(ctx, hiPts);
+  ctx.fillStyle = shade(color, 1.18);
+  ctx.fill();
+
+  return {
+    image: canvas,
+    frames: { idle_0: [0, 0, fw, fh] },
+    anchor: [cx, cy],
+    bounds: { x: cx - width / 2 - 2, y: 0, w: width + 4, h: fh },
+    animations: { idle: { fps: 0, loop: false, frames: 1 } },
+    facings: [],
+    mirror: {},
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Character: blocky big-headed figure. Facings s, sw, w, nw, n drawn; se, e, ne
 // mirrored. Animations idle, walk, attack, hurt, die.
 // ---------------------------------------------------------------------------

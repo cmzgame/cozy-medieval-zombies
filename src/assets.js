@@ -74,6 +74,7 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
         break;
       case "box": sheet = placeholders.generateBox(ph, tileCount); break;
       case "post": sheet = placeholders.generatePost(ph); break;
+      case "tree": sheet = placeholders.generateTree(ph); break;
       case "flat": sheet = placeholders.generateFlat(ph); break;
       case "wall": sheet = placeholders.generateWall(ph); break;
       case "pumpkin": sheet = placeholders.generatePumpkin(ph); break;

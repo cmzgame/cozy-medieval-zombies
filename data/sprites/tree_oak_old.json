@@ -1,1 +1,1 @@
-{"placeholder": {"kind": "post", "color": "#36502e", "height": 196, "width": 134, "trunk": "#3e2a1c"}, "collide": {"radius": 0.3}, "wood": 6}
+{"placeholder": {"kind": "tree", "color": "#36502e", "height": 196, "width": 134, "trunk": "#3e2a1c"}, "collide": {"radius": 0.3}, "wood": 6}

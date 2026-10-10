@@ -4,6 +4,15 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-11 — The older dev art, first cut: trees
+
+Pin 1 from the five (2026-10-10 night), started: trees only for now, campfire/hearth/bed/crate/well still queued. `generateTree` splits off from `generatePost` (`src/placeholders.js`; `generatePost` keeps serving the barrel and lamps, which still read fine as a blob on a stick). The palette and sizes are unchanged (`docs/06`'s table still holds); what changed is the shape:
+
+- **The canopy is a lumpy polygon** (jittered points through `blobPath`, a base lobe, a small shadow lobe, a small highlight lobe), not a ring of perfect circles. Michael's steer: halfway between a drawn treetop and circles on a pole, and **the outline must not read "happy"** — these palettes carry over to Gloomwood's blue and purple canopies later (`06-art.md`), and a cartoon-round silhouette would fight that mood before it ever gets there. No change to the harvest colours themselves, which Michael said are fine.
+- **The trunk is a tapered trapezoid with a root flare**, not a rectangle, plus two bark streak lines (one lit, one dark) for a smidge of texture, per his ask.
+- **Deterministic**, seeded on each tree's own height and width (`seeded()` in `placeholders.js`), not `Math.random`: the same spec draws the same tree every boot, matching how every other placeholder here works.
+- Occlusion (`docs/06`, "a character behind a tree is seen through a soft hole") is unaffected: the hole is a generic bounding-rect punch in `render.js`, not shaped to the canopy art.
+
 ### 2026-10-11 — A floating health bar is the finisher's tell
 
 Michael's fix for "how do I know hitting a downed zombie is doing anything": not a special animation, a small bar over any damaged zombie (`src/ui/zombie-bars.js`) that halves visibly on a finisher. DOM over the canvas, world point through `view.toUi`, same pattern as the interact prompt. Only shown for `0 < hp < maxHp` and currently visible (fog-checked), so it never floats through a wall or sits over an untouched or dead zombie.
