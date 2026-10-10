@@ -38,8 +38,8 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 - **Fixes, 2026-10-10 late:** right-click on a door or shutter face finds the opening again (the hit test was only the edge's midpoint on the ground, and the face is 72 px tall); the key watchdog (drop a key that stops auto-repeating) was tried against the player walking off on their own and withdrawn within the hour: Windows repeats only the newest key, so it broke diagonals and stranded the player. Held keys now drop on blur, focus, and hidden. The walking-off bug is still not reproduced; cause unknown.
 - **Blocked on:** nothing.
 - **Loose ends:** the walking-straight-up bug (Michael and his brother, cause unknown, watch for when it starts and which direction); Michael's eye on the fractional zoom levels; auto-drinking (question 22); Save game is a disabled placeholder.
-- **Milestone 6, the figure, designed 2026-10-10** (`docs/12-figure.md`): the rig, the paper doll, eight facings, the chunky proportion from Michael's references. Awaiting his read before code.
-- **Next:** build Milestone 6 on his go, then the melee port.
+- **Milestone 6, the figure, built 2026-10-10** (`docs/12-figure.md`, `src/figure.js`): a software-rasterised rig, eight facings drawn, the chunky proportion (head two fifths), outline and two tones, garments as rules baked per outfit, held art at the hand joints with the flame at the torch's tip, carry poses, ten zombie outfits, look parameters from the console. Michael saw it live: the torch in hand, the figure next to his references. The creation screen is next in this line.
+- **Next:** Michael's verdict on the figure; the creation screen; then the melee port.
 - **Next:** build Milestone 3 in the order `docs/09` gives, then the melee port. Together they make "a night in the cottage"., with the dead breaking in (doors barred from inside, boards, broken shutters, how the dead get through a door, how slow and loud a climb is). Write its doc first, then build. Then the melee port. Together they make "a night in the cottage". Openings with the dead breaking in and the melee port follow, which together make "a night in the cottage".
 - **Notes:** the debug corner shows the cost of a logic step and the worst step in the last three seconds; a freeze should show up there first. Run `python serve.py 8010` in this repo (the file serves its own folder, so it can be launched from elsewhere). `V` toggles the fog off to compare. Michael plays in the in-app browser pane while work happens, so scripted tests see his inputs.
 - **Notes:** Michael wants to burn this week's credits on this. He likes a pause between phases (docs, then build) and plays in his own browser while work happens. Nothing from either parent is gospel.
@@ -100,14 +100,14 @@ Each step checkable on its own. Michael looks after step 3.
 
 ## Milestone 6 — The figure (see `docs/12-figure.md`)
 
-- [ ] The rig: joint tables for eight facings and the animations; the body in the chunky proportion with outline and tones.
-- [ ] Layered drawing: the order table; body plus worn slots as a stack of quads.
-- [ ] Garment rules: tunic, breeches, boots, gloves, hood, belt, sack, rucksack; the doll changes the figure live.
-- [ ] Held art at the hand joints: torch, hatchet, plank, log; the torch's light from the joint.
-- [ ] Carry poses and the furniture box from the carry hands.
-- [ ] Zombie outfits and decay.
-- [ ] Customisation parameters; the creation screen if cheap.
-- [ ] Acceptance: the eight checks in `docs/12`.
+- [x] The rig (2026-10-10): a projected body with joints per pose, parts sorted far to near, rasterised without anti-aliasing with a one-pixel outline and edge two-tone; eight facings; idle, walk, attack, hurt, die, carry_idle, carry_walk.
+- [x] Drawing: outfits bake per figure (see docs/12 for why not layers); the player's sheet rebuilds on any change and is redrawn into the atlas in place; the atlas is 4096.
+- [x] Garment rules: tunic (with a second colour down the front), breeches, boots, gloves, hood, cap, helm, belt with buckle, sack and rucksack on the back behind or in front by facing; the doll changes the figure live.
+- [x] Held art at the hand joints in eight angles: torch, hatchet, plank, log; the flame at the torch's tip; a weapon follows the arm in the attack frames.
+- [x] Carry poses; the furniture box lifts to the carry hands.
+- [x] Ten zombie outfits, green skins, a wound, the shamble.
+- [x] Look parameters (skin, hair, hairStyle, eyes) on the player, set from the console. The creation screen is the next item.
+- [ ] Acceptance: checks 1 to 7 of `docs/12` seen in the browser on 2026-10-10 (the hatchet swing by forcing the attack frame; melee itself is not built). Check 8, the spec sheet, when the numbers have settled in play.
 
 ## Milestone 5 — The character (see `docs/11-character.md`)
 

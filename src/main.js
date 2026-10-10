@@ -29,6 +29,7 @@ import * as grid from "./grid.js";
 import * as view from "./view.js";
 import * as settings from "./settings.js";
 import * as screens from "./ui/screens.js";
+import * as figure from "./figure.js";
 
 const V = view.view; // the world's size in its own pixels, kept current by view.js
 const MAP_FILE = "data/maps/square.json";
@@ -162,6 +163,18 @@ function beltFire(belt) {
   return null;
 }
 
+// The player's sheet is rebuilt whenever their look or their clothes change
+// (docs/12): a few milliseconds, redrawn into the atlas in place.
+let figureKey = "";
+function refreshFigure() {
+  const spec = figure.playerSpec(player.look, player.worn, (id) => items.getItem(id).art || null);
+  const key = figure.specKey(spec);
+  if (key === figureKey) return;
+  figureKey = key;
+  const sheet = assets.replaceSheet("player", figure.generateFigure(spec));
+  gl.redrawSheet(sheet);
+}
+
 function update(dt) {
   const t0 = performance.now();
   if (input.wasPressed("KeyV")) drawAll = !drawAll;
@@ -233,6 +246,7 @@ function update(dt) {
     timing.vis = performance.now() - t1;
   }
   updateInventoryUi();
+  refreshFigure();
   updateHud({ player });
   updatePrompt(interact.promptFor(player, progress), progress);
   updateMessage(dt);
@@ -446,9 +460,14 @@ async function boot() {
   items.loadLoot(await assets.loadJson("data/loot.json"));
   const json = await assets.loadJson(MAP_FILE);
   await assets.loadMapSprites(json);
+  // The dead's outfits and the held art, generated like everything else (docs/12).
+  for (let k = 0; k < figure.ZOMBIE_OUTFITS; k++) assets.registerSheet(`zombie_${k}`, figure.generateFigure(figure.zombieSpec(k)));
+  for (const def of items.allItems()) if (def.held) assets.registerSheet(`held_${def.id}`, figure.generateHeld(def.held.shape, def.held.colours));
   info = map.loadMap(json);
   player = createPlayer(info.spawn[0], info.spawn[1]);
+  player.look = { ...figure.DEFAULT_LOOK };
   giveStarterKit();
+  refreshFigure();
   zombies = info.zombies.map(([x, y]) => createZombie(x, y));
   camera.snapTo(player.gx, player.gy);
   camera.applyOrigin(V.w, V.h);
@@ -481,7 +500,7 @@ async function boot() {
   screens.show("title");
 
   window.__game = {
-    iso, input, loop, assets, events, map, camera, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens,
+    iso, input, loop, assets, events, map, camera, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure,
     render: { night },
     get player() { return player; },
     get zombies() { return zombies; },
@@ -494,6 +513,8 @@ async function boot() {
     walkTo(gx, gy) { return autoWalk(player, [gx, gy]); },
     setPaused,
     handlers,
+    // Customisation from the console until the creation screen: skin, hair, hairStyle (short, long, bald), eyes.
+    setLook(partial) { Object.assign(player.look, partial); refreshFigure(); },
     // The Developer Bag, twelve by eight, at your feet (docs/11). Never loot.
     giveDevBag() { map.dropItem(Math.round(player.gx), Math.round(player.gy), { id: "dev_bag", count: 1 }); showMessage("A Developer Bag lies at your feet."); },
   };

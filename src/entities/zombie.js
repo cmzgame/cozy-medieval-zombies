@@ -8,6 +8,7 @@
 // through a wall. Noise is deliberately not a factor yet (docs/02).
 
 import * as settings from "../settings.js";
+import { ZOMBIE_OUTFITS } from "../figure.js";
 import * as iso from "../iso.js";
 import { moveCircle, isWalkableTile, canStep, nearestWalkable, tileAt, getRoom, breachTarget, damageOpening, wayOpen, climbable } from "../map.js";
 import { findPath } from "../pathfind.js";
@@ -49,7 +50,7 @@ let nextId = 1;
 export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false } = {}) {
   return {
     kind: "zombie",
-    sprite: "zombie",
+    sprite: `zombie_${Math.floor(Math.random() * ZOMBIE_OUTFITS)}`, // one of the outfits (docs/12)
     id: id || `z${nextId++}`,
     gx,
     gy,

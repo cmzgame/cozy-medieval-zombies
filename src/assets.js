@@ -3,6 +3,7 @@
 // generated placeholder sheet have the same shape. See docs/03 and docs/06.
 
 import * as placeholders from "./placeholders.js";
+import * as figure from "./figure.js";
 
 const defs = new Map();
 const sheets = new Map();
@@ -65,7 +66,12 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
   } else if (def.placeholder) {
     const ph = def.placeholder;
     switch (ph.kind) {
-      case "character": sheet = placeholders.generateCharacter(ph); break;
+      case "character":
+        // The figure (docs/12). The player's sheet is rebuilt by main.js
+        // whenever their look or clothes change; the dead get ten outfits
+        // registered under zombie_0 to zombie_9.
+        sheet = figure.generateFigure(ph.variant === "zombie" ? figure.zombieSpec(0) : figure.playerSpec(ph.look || {}, {}, () => null));
+        break;
       case "box": sheet = placeholders.generateBox(ph, tileCount); break;
       case "post": sheet = placeholders.generatePost(ph); break;
       case "flat": sheet = placeholders.generateFlat(ph); break;
@@ -83,6 +89,22 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
   sheet.id = id;
   sheets.set(key, sheet);
   return sheet;
+}
+
+// A sheet made in code (held art, the dead's outfits), by id.
+export function registerSheet(id, sheet) {
+  sheet.id = id;
+  sheets.set(id, sheet);
+  return sheet;
+}
+
+// Swap a sheet's content in place, keeping the object every holder has. The
+// caller redraws it into the atlas (gl.redrawSheet); the image must keep its size.
+export function replaceSheet(id, next) {
+  const s = sheets.get(id);
+  if (!s) return registerSheet(id, next);
+  Object.assign(s, next, { id });
+  return s;
 }
 
 export function getSheet(id, tileCount = 1) {

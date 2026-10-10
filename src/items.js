@@ -23,6 +23,10 @@ export function getItem(id) {
   return def;
 }
 
+export function allItems() {
+  return [...items.values()];
+}
+
 export function hasItemDef(id) {
   return items.has(id);
 }

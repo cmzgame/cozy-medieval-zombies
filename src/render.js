@@ -15,8 +15,9 @@ import { shade } from "./render-util.js";
 import * as map from "./map.js";
 import * as light from "./light.js";
 import { tileKey } from "./visibility.js";
-import { WALL_T, WOOD, METAL, torchHandPoint } from "./placeholders.js";
-import { heldFire, getItem } from "./items.js";
+import { WALL_T, WOOD, METAL } from "./placeholders.js";
+import { heldAngle } from "./figure.js";
+import { getItem } from "./items.js";
 import * as gl from "./gl.js";
 
 // The night, as before: tunables Michael picks by eye, live on
@@ -407,9 +408,30 @@ function entityDrawables(entities, visible, out, drawAll) {
     const name = frameName(sheet, e.anim.name, r.facing, e.anim.frame);
     const f = sheet.frames[name];
     const rect = f ? { x: x - sheet.anchor[0], y: y - sheet.anchor[1], w: f[2], h: f[3] } : null;
-    const torch = e.hands && heldFire(e.hands) ? torchHandPoint(e.facing, x, y) : null;
+    // Held items sit at the hand joints the figure's sheet reports (docs/12):
+    // a far hand draws before the body, a near hand after; an item with fire
+    // gets the flame at its tip.
+    const joints = sheet.joints ? sheet.joints[name] : null;
+    const held = [];
+    if (e.hands && joints) {
+      const seen = new Set();
+      for (const slot of ["main", "off"]) {
+        const entry = e.hands[slot];
+        if (!entry || seen.has(entry)) continue;
+        seen.add(entry);
+        const def = getItem(entry.id);
+        if (!def.held) continue;
+        let hs = null;
+        try { hs = getSheet(`held_${entry.id}`); } catch { continue; }
+        const j = joints[slot];
+        const along = e.anim.name === "attack" && slot === "main" && def.held.swing !== false;
+        const k = heldAngle(j.dir, along);
+        held.push({ sheet: hs, k, x: x + j.x, y: y + j.y, near: j.near, tip: def.fire ? hs.tips[k] : null });
+      }
+    }
     const carried = e.carrying || null;
     const carrySheet = carried ? getSheet(carried.sprite, carried.tiles.length) : null;
+    const lift = joints && joints.main ? Math.max(24, -joints.main.y + 2) : 30;
     out.push({
       key: (e.gx + e.gy) * 1000 + (e.dead ? 0 : 2),
       kind: "entity",
@@ -419,7 +441,13 @@ function entityDrawables(entities, visible, out, drawAll) {
       occluded: false,
       emit() {
         const world = [e.gx, e.gy];
+        const drawHeld = (h) => {
+          frameQuad(h.sheet, `held_${h.k}`, h.x, h.y, { world, heights: 40, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING });
+          if (h.tip) frameQuad(getSheet("flame"), `flame_${flameFrame(1)}`, h.x + h.tip[0], h.y + h.tip[1] - 2, { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
+        };
+        for (const h of held) if (!h.near) drawHeld(h);
         frameQuad(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING }, r.flip);
+        for (const h of held) if (h.near) drawHeld(h);
         if (carried) {
           // Each footprint slice at its offset from the anchor, lifted over the head.
           const [cw, ch] = carried.footprint;
@@ -428,15 +456,9 @@ function entityDrawables(entities, visible, out, drawAll) {
             for (let dx = 0; dx < cw; dx++, i++) {
               const o = iso.toScreen(e.gx + dx - (cw - 1) / 2, e.gy + dy - (ch - 1) / 2);
               const cf = carrySheet.frames[`idle_${i}`];
-              frameQuad(carrySheet, `idle_${i}`, Math.round(o.x), Math.round(o.y) - 30, { world, heights: cf ? [cf[3] + 30, cf[3] + 30, 30, 30] : 30, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING });
+              frameQuad(carrySheet, `idle_${i}`, Math.round(o.x), Math.round(o.y) - lift, { world, heights: cf ? [cf[3] + lift, cf[3] + lift, lift, lift] : lift, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING });
             }
           }
-        }
-        if (torch) {
-          const [hx, hy] = torch;
-          gl.poly([[hx - 1, hy], [hx + 2, hy], [hx + 2, hy + 12], [hx - 1, hy + 12]], gl.rgb(WOOD), { world, flags: gl.FLAG_NOFOG });
-          gl.poly([[hx - 2, hy - 3], [hx + 3, hy - 3], [hx + 3, hy + 2], [hx - 2, hy + 2]], gl.rgb("#3a2a22"), { world, flags: gl.FLAG_NOFOG });
-          frameQuad(getSheet("flame"), `flame_${flameFrame(1)}`, hx, hy - 3, { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
         }
       },
     });

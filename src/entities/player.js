@@ -253,6 +253,6 @@ export function updatePlayer(player, dt) {
   }
 
   const oneShot = player.anim.name === "attack" || player.anim.name === "hurt";
-  if (!oneShot || player.anim.done) playAnimation(player.anim, walking ? "walk" : "idle");
+  if (!oneShot || player.anim.done) playAnimation(player.anim, (player.carrying ? "carry_" : "") + (walking ? "walk" : "idle"));
   advanceAnimation(player.anim, sheet, dt);
 }

@@ -17,7 +17,7 @@ export const FLAG_NOFOG = 8;
 export const FLAG_STANDING = 16; // a prop or a character: takes the legibility floor
 
 const STRIDE = 12; // floats per vertex
-const ATLAS = 2048;
+let ATLAS = 2048; // raised to 4096 in init when the GPU allows: the figures' sheets are large (docs/12)
 
 export let gl = null;
 let program = null;
@@ -59,6 +59,15 @@ function place(sheet) {
   shelfH = Math.max(shelfH, h);
   atlasDirty = true;
   return p;
+}
+
+// Redraw a sheet whose image changed (the player's clothes) at its place.
+export function redrawSheet(sheet) {
+  const p = placed.get(sheet);
+  if (!p) return;
+  atlasCtx.clearRect(p.ax, p.ay, sheet.image.width, sheet.image.height);
+  atlasCtx.drawImage(sheet.image, p.ax, p.ay);
+  atlasDirty = true;
 }
 
 // Atlas coordinates of a frame, in texels: [u0, v0, u1, v1].
@@ -220,6 +229,9 @@ export function init(canvas) {
   attr("a_color", 4, 7);
   attr("a_flags", 1, 11);
   // The atlas, with a white texel for flat polygons.
+  ATLAS = Math.min(4096, gl.getParameter(gl.MAX_TEXTURE_SIZE) || 2048);
+  atlasCanvas.width = ATLAS;
+  atlasCanvas.height = ATLAS;
   atlasCtx.fillStyle = "#fff";
   atlasCtx.fillRect(0, 0, 4, 4);
   shelfX = 5;
