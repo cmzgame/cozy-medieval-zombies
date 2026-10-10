@@ -84,8 +84,9 @@ function pushes(weapon) {
 
 // What the player cannot swing through: carrying furniture, a climb, a timed
 // action under way, or being dead.
-function canAct(player) {
-  return !player.carrying && !player.climb && !player.action && !player.dead && player.hp > 0;
+// `ignoreAction` is for the outline, which is shown while a timed action runs.
+function canAct(player, ignoreAction = false) {
+  return !player.carrying && !player.climb && (ignoreAction || !player.action) && !player.dead && player.hp > 0;
 }
 
 function screenAngleBetween(ax, ay, bx, by) {
@@ -228,6 +229,22 @@ export function tryShove(player, zombies) {
     kick(player);
   }
   return hit;
+}
+
+// The zombies the next swing would hit, by the very test the swing uses, and
+// without the cooldown: green means the swing would land (docs/14, "Swing
+// targets"). Empty while the player cannot swing.
+export function swingTargets(player, zombies) {
+  if (!canAct(player, true)) return [];
+  const w = weaponOf(player);
+  const near = zombies.filter((z) => Math.abs(z.gx - player.gx) <= w.range + BODY_SLACK + 1 && Math.abs(z.gy - player.gy) <= w.range + BODY_SLACK + 1);
+  return targetsIn(player, w, near);
+}
+
+// Flag each zombie for the renderer's outline: `on` marks the targets, else clears.
+export function markTargets(player, zombies, on) {
+  const hit = on ? new Set(swingTargets(player, zombies)) : null;
+  for (const z of zombies) z.swingTarget = !!hit && hit.has(z);
 }
 
 // Each logic step: cooldowns and the effects' timers.

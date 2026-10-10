@@ -147,6 +147,14 @@ Michael's test (2026-10-11): never a swing whose animation visibly clips a zombi
 
 A **Show hit shapes** setting (off by default, beside the debug corner) keeps the wedge drawn whenever a weapon is held and marks each zombie's body samples as dots, so a miss can be read on screen rather than argued about. It is the first thing to turn on when a hit feels wrong.
 
+## Swing targets (the outline)
+
+Michael, 2026-10-11, after reading how Zomboid's aim outline works (a per-zombie outline in its Display options, green when a zombie is in melee reach; players report it signals range and does not always guarantee a hit): ours is **deterministic**. A zombie gets a one-pixel green outline when the next swing would hit it, by the very test `tryAttack` uses (`combat.swingTargets` and `targetsIn`), so **green means the swing lands**; a swing that misses a green zombie would be a bug. It does **not** consider the swing's cooldown, so it does not flicker; it follows the aim every step; with multi-hit off only the nearest is outlined. It shows whenever the player could swing (not carrying, climbing, or dead), with fists too, and is for testing and for play alike.
+
+- **Setting:** Swing targets, off by default, on the settings screen. Show hit shapes (the wedge and the body samples) stays the debug view; this is the player-facing one.
+- **Drawing:** eight copies of the sprite, one pixel out, flat green (`FLAG_SOLID`, a shader flag that draws a quad in its colour with the sprite's shape), just behind the figure, unlit and unfogged so it reads at night. A zombie hidden behind a canopy has its outline hidden with it.
+- **Cost:** one wedge test per zombie within reach each step.
+
 ## Feedback
 
 - **The wedge** is drawn for 120 ms on the floor as a translucent polygon (`gl.poly`, 24 segments of the arc, colour `[1, 1, 1, 0.18]`, `FLAG_NOFOG | FLAG_UNLIT`), exactly the shape tested.

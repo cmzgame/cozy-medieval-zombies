@@ -324,6 +324,8 @@ function update(dt) {
     visKey = key;
     timing.vis = performance.now() - t1;
   }
+  // Who the next swing would hit, flagged for the renderer's outline (docs/14).
+  combat.markTargets(player, zombies, settings.get("showSwingTargets"));
   updateInventoryUi();
   refreshFigure();
   updateHud({ player });

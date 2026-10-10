@@ -35,6 +35,11 @@ Michael is conserving credits: the scoping is done here, the building by another
 - **Stamina never locks you out of hitting**: at zero a swing lands at half damage.
 - **Not ported now:** the parent's wind-up and lunge (a trial after play), weapon condition, hit locations.
 
+### 2026-10-11 — Swing targets, and a pin for a sandbox screen (Michael)
+
+- **A green outline on what the next swing would hit.** Deterministic (it is the swing's own test, so green means the swing lands), blind to the swing's cooldown, for testing and for players, a setting that is off by default. Multi-hit stays on by default. Design in `14-combat.md`, "Swing targets".
+- **Pinned: a compact "sandbox settings" screen** to replace the growing list of single rows (design notes in `10-interface.md`). Until it exists the settings screen scrolls.
+
 ### 2026-10-11 — Melee tunables, the shove, and multi-hit (Michael)
 
 - **Every number on a weapon is tunable per item**, now including `knockbackChance` and `stagger` beside `damage`, `knockback`, `knockdown`, `range`, `arc`, `swing`, and `stamina`. Fists and the shove are the same fields in `data/combat.json`. Table in `14-combat.md`.

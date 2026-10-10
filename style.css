@@ -739,3 +739,11 @@ html, body {
   color: #a098ac;
   max-width: 220px;
 }
+
+/* The settings screen outgrows a short window as settings are added; scroll it
+   rather than lose the Back button. A compact sandbox screen is pinned (docs/10). */
+.screen {
+  max-height: 92%;
+  overflow-y: auto;
+  box-sizing: border-box;
+}

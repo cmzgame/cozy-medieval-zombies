@@ -171,6 +171,7 @@ function render() {
         ${settingRow("survival", "Survival")}
         ${settingRow("freeBuilding", "Free building")}
         ${settingRow("debugCorner", "Debug corner")}
+        ${settingRow("showSwingTargets", "Swing targets")}
         ${settingRow("multiHit", "Multi-hit")}
         ${settingRow("showHitShapes", "Show hit shapes")}
         ${hairRow()}

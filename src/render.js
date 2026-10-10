@@ -467,6 +467,9 @@ function floorItemDrawables(tiles, visible, out) {
   }
 }
 
+const SWING_OUTLINE = [0.38, 1, 0.38, 1];
+const SWING_OUTLINE_OFFSETS = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]];
+
 function entityDrawables(entities, visible, out, drawAll) {
   for (const e of entities) {
     const vis = e.kind === "player" || drawAll || visible.has(tileKey(Math.round(e.gx), Math.round(e.gy)));
@@ -512,6 +515,13 @@ function entityDrawables(entities, visible, out, drawAll) {
       occluded: false,
       emit() {
         const world = [e.gx, e.gy];
+        if (e.swingTarget) {
+          // The next swing would hit this one (docs/14): a one-pixel outline, eight copies of the
+          // sprite flat green just behind it, unlit and unfogged so it reads at night.
+          for (const [ox, oy] of SWING_OUTLINE_OFFSETS) {
+            frameQuad(sheet, name, x + ox, y + oy, { world, heights: f ? [f[3], f[3], 0, 0] : 0, color: SWING_OUTLINE, flags: gl.FLAG_NOFOG | gl.FLAG_UNLIT | gl.FLAG_SOLID }, r.flip);
+          }
+        }
         const drawHeld = (h) => {
           frameQuad(h.sheet, `held_${h.k}`, h.x, h.y, { world, heights: 40, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING });
           if (h.tip) frameQuad(getSheet("flame"), `flame_${flameFrame(1)}`, h.x + h.tip[0], h.y + h.tip[1] - 2, { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });

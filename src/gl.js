@@ -15,6 +15,7 @@ export const FLAG_OCCLUDER = 2;
 export const FLAG_SKY = 4;
 export const FLAG_NOFOG = 8;
 export const FLAG_STANDING = 16; // a prop or a character: takes the legibility floor
+export const FLAG_SOLID = 32; // the quad's colour, flat, keeping the sprite's shape: an outline (docs/14)
 
 const STRIDE = 12; // floats per vertex
 let ATLAS = 2048; // raised to 4096 in init when the GPU allows: the figures' sheets are large (docs/12)
@@ -156,10 +157,11 @@ void main() {
   bool sky = mod(floor(f / 4.0), 2.0) >= 1.0;
   bool nofog = mod(floor(f / 8.0), 2.0) >= 1.0;
   bool standing = mod(floor(f / 16.0), 2.0) >= 1.0;
+  bool solid = mod(floor(f / 32.0), 2.0) >= 1.0;
   // Texel i of the tile textures covers [origin + i - 0.5, origin + i + 0.5);
   // the light texture spans the same area at more texels per tile.
   vec2 tileUV = (v_world - u_areaOrigin + 0.5) / u_areaTiles;
-  vec3 rgb = tex.rgb;
+  vec3 rgb = solid ? v_color.rgb : tex.rgb;
   // Debug views (docs/08): the light, ambient, or fog texture as grey over the
   // world, read at the fragment's own sample point.
   if (u_debug == 1) { o = vec4(vec3(texture(u_light, tileUV).r), 1.0); return; }

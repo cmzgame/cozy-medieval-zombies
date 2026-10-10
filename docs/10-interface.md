@@ -78,6 +78,10 @@ Starter kit: torch, waterskin (full), bread, two apples, one plank.
 
 Bag 6×4; search 1 s; board 2 s; pull 1.5 s; chop 3 s; hunger and thirst drain as the parent's (`11-hunger-and-night.md`, `20-thirst.md`), to be retuned with farming.
 
+## Pinned: a compact "sandbox settings" screen
+
+Michael, 2026-10-11: the settings screen is collecting single stray rows (interface size, zoom, zombie aggro, survival, free building, swing targets, multi-hit, show hit shapes, the debug corner, hair, one row per painted slot) and "eventually we are going to need a more compact sandbox settings type screen, otherwise we will run out of room." Not built. For now the screen scrolls inside the window so nothing becomes unreachable. When it is built, the shape that fits: a registry in `settings.js` (key, label, group, kind) so a row is one entry and the screen is generated; groups as tabs or sections (Display, World rules: aggro, survival, free building; Combat: multi-hit, swing targets, hit shapes; Look: hair and painted layers; Debug); toggles and dropdowns instead of rows of buttons; and the world-rule settings (a "sandbox") told apart from the personal ones (zoom, interface size).
+
 ## Screens (2026-10-10, night)
 
 The world fills the window at an integer pixel scale and the interface scales on its own, like a web page (`src/view.js`; docs/02, the view). On top of that, four screens, all DOM in `src/ui/screens.js`:
