@@ -4,6 +4,15 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-10, night — Goobers, and five pins (Michael, before bed)
+
+- **The figures are goobers, not humans.** Stripped down they are the same small body, deliberately neutral in every way: no sex to the body, undies optional. Gender is only ever inferred from dress, hair, and facial hair, which the editors supply, and the game's own text uses they and them for every figure. The dead are goobers too. Michael: "if you strip em down, goobers." Ruled; written into `00-vision.md` tone rules and `12-figure.md`.
+- **Pinned for the next conversations, in his order:**
+  1. The older dev art: trees (the variety is right, the models are flat), campfire, hearth, bed, crate, well. The walls, openings, and figures are fine. A pass with the same care the figure got.
+  2. The belt as its own paintable item, one design per belt item, instead of one shape with hide or show.
+  3. Placement: one tool for building (walls, windows, doors) and placing (chest, hearth, chair) with a hover preview, R to rotate, a validity check, replacing "press E and hope" for carried furniture.
+  4. Combat animation and item art before combat itself: what he can paint, how it plays, and a good one-handed swing first, since it serves sword, axe, mace, stick, and torch alike.
+
 ### 2026-10-10 — The figure (Michael)
 
 - **The figure is a paper doll on a small rig, generated.** A naked body in undies, every garment its own sheet on the same frame grid drawn by the same rig code, stacked at draw time in a per-facing order; items held at hand joints; the dead on the same rig. Michael's question was how far dev art can go before commissioning: the answer is the rig, and the commission waits until the rig's numbers are frozen by play. Design in `12-figure.md`.

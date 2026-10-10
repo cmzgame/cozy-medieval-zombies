@@ -26,6 +26,8 @@ What neither could do, and this one exists to do: **walk from building to buildi
 - **Deaths are stated plainly.** "The bite took you."
 - **Spooky, a bit haunted, never permanently night.** Tirisfal Glades, not Stardew: a place where Halloween never quite ends. Dull grass, thick walls, dusky shade. Cute and gloomy are not in conflict; the knight still has a big head. See `06-art.md`.
 
+- **Goobers.** The people are small neutral figures, the same body for everyone, the dead included. Gender is read from dress and hair if at all, never from the body, and the game's text says they and them. (Michael, 2026-10-10.)
+
 ## Pillars
 
 1. **One continuous place.** Buildings are made of the same tiles as the street. No cut between inside and outside. You look out a window; they look in.
