@@ -62,7 +62,7 @@ A garment definition in `data/items.json` is `art: { shape, colours }`: the shap
 
 ## Held items
 
-Each hand joint has a position and an angle per facing and frame. A holdable item draws its **held art** at the hand: a torch is a stick with a flame, a hatchet a stick with a head, a plank a long board, a log a short fat one. Two-handed items draw between both hands. Attack keyframes move the hand, and the item moves with it; the flame's light point moves with the torch, replacing today's fixed per-facing hand point in the renderer.
+A hand that holds something raises its arm forward and keeps it there through the walk (Michael, after first play: the torch read as strapped to the arm with the flame at the shoulder). The held item tilts forward from the hand, about a third off vertical toward the facing, with a small outward lean on the hand's own side so it clears the body from the front; in the attack the main hand's item points along the forearm. Held art is drawn in sixteen angles. Each hand joint has a position and an angle per facing and frame. A holdable item draws its **held art** at the hand: a torch is a stick with a flame, a hatchet a stick with a head, a plank a long board, a log a short fat one. Two-handed items draw between both hands. Attack keyframes move the hand, and the item moves with it; the flame's light point moves with the torch, replacing today's fixed per-facing hand point in the renderer.
 
 Held art is generated per facing like everything else (a hatchet from behind shows its back). An artist later supplies per-facing held sprites or a single sprite the generator rotates in whole 45-degree steps; both go through the same anchor.
 

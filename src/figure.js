@@ -276,7 +276,13 @@ function restPose() {
   };
 }
 
-function pose(variant, anim, i) {
+// A hand that holds something raises its arm forward (Michael, 2026-10-10:
+// not strapped to the side) and does not swing in the walk; the main hand
+// still swings in the attack.
+const HOLD_PITCH = 55;
+const HOLD_OUT = 1.5;
+
+function pose(variant, anim, i, holding = { main: false, off: false }) {
   const p = restPose();
   const zombie = variant === "zombie";
   const swing = [1, 0, -1, 0][i % 4];
@@ -287,6 +293,8 @@ function pose(variant, anim, i) {
         p.armPitch = [60, 55];
         p.lean = 1.5;
         p.headD = 1;
+      } else {
+        p.armPitch = [i === 1 ? 2 : 0, i === 1 ? 2 : 0];
       }
       break;
     case "walk":
@@ -338,6 +346,17 @@ function pose(variant, anim, i) {
       p.armOut = [2, 2];
       p.bob = i % 2 === 0 ? -1 : 0;
       break;
+  }
+  // Holding: the arm comes forward and stays there, except the main arm in
+  // the attack and both arms when carrying or dying.
+  const fixed = anim === "die" || anim.startsWith("carry");
+  if (holding.off && !fixed) {
+    p.armPitch[0] = HOLD_PITCH;
+    p.armOut[0] = HOLD_OUT;
+  }
+  if (holding.main && !fixed && anim !== "attack") {
+    p.armPitch[1] = HOLD_PITCH;
+    p.armOut[1] = HOLD_OUT;
   }
   return p;
 }
@@ -398,7 +417,7 @@ function col(garment, i = 0, fallback = "#888") {
 
 function drawFrame(frame, spec, facing, anim, i) {
   const F = facingVectors(facing);
-  const p = pose(spec.variant, anim, i);
+  const p = pose(spec.variant, anim, i, spec.holding);
   const J = joints(p);
   const look = spec.look;
   const outfit = spec.outfit || {};
@@ -589,13 +608,34 @@ function drawFrame(frame, spec, facing, anim, i) {
 
   // The joints the renderer needs: hand points in frame pixels, with the
   // forearm direction and whether the hand is in front of the body.
-  const hand = (arm) => ({
+  // A held item at rest tilts forward from the hand, HELD_TILT degrees off
+  // vertical toward the facing; in a swing it points along the forearm.
+  // The tilt is forward plus a little outward on the hand's own side, so a
+  // torch seen from the front leans away from the body instead of standing
+  // straight up through the face.
+  const st = Math.sin((HELD_TILT * Math.PI) / 180);
+  const so = Math.sin((HELD_LEAN_OUT * Math.PI) / 180);
+  const restAxis = (side) => [F.fx * st + side * F.rx * so, -Math.cos((HELD_TILT * Math.PI) / 180) + (F.fy * st + side * F.ry * so) * ISO];
+  const hand = (arm, side) => ({
     x: Math.round(arm.b.x) - FEET_X,
     y: Math.round(arm.b.y) - FEET_Y,
     dir: [arm.b.x - arm.a.x, arm.b.y - arm.a.y],
     near: arm.b.depth >= 0,
+    ang: angleIndex(restAxis(side)),
+    angSwing: angleIndex([arm.b.x - arm.a.x, arm.b.y - arm.a.y]),
   });
-  return { main: hand(armR), off: hand(armL), head: { x: Math.round(hc.x) - FEET_X, y: Math.round(hc.y) - FEET_Y } };
+  return { main: hand(armR, 1), off: hand(armL, -1), head: { x: Math.round(hc.x) - FEET_X, y: Math.round(hc.y) - FEET_Y } };
+}
+
+const HELD_TILT = 32; // degrees forward off vertical for an item held at rest
+const HELD_LEAN_OUT = 18; // and this much outward, on the hand's side
+export const HELD_ANGLES = 16; // frames per held item, 22.5 degrees apart, 0 up, clockwise
+
+// The nearest held angle for a screen direction.
+export function angleIndex(dir) {
+  const a = Math.atan2(dir[0], -dir[1]);
+  const k = Math.round(a / ((2 * Math.PI) / HELD_ANGLES));
+  return ((k % HELD_ANGLES) + HELD_ANGLES) % HELD_ANGLES;
 }
 
 // ---- sheets ----
@@ -668,19 +708,20 @@ const HELD_SHAPES = {
 export function generateHeld(shape, colours = []) {
   const draw = HELD_SHAPES[shape] || HELD_SHAPES.plank;
   const S = HELD_SIZE;
+  const N = HELD_ANGLES;
   // Draw upright once into a frame-sized scratch, then sample it rotated.
   const src = new Frame();
   const c = (i, fb) => hexToRgb(colours[i] || fb);
   draw(src, c);
   src.shade();
   const canvas = document.createElement("canvas");
-  canvas.width = S * 8;
+  canvas.width = S * N;
   canvas.height = S;
   const ctx = canvas.getContext("2d");
   const frames = {};
   const grip = { x: 16, y: 20 }; // where the hand holds it, in the upright drawing
-  for (let k = 0; k < 8; k++) {
-    const a = (k * 45 * Math.PI) / 180;
+  for (let k = 0; k < N; k++) {
+    const a = (k * (360 / N) * Math.PI) / 180;
     const cos = Math.cos(a);
     const sin = Math.sin(a);
     const img = ctx.createImageData(S, S);
@@ -707,8 +748,8 @@ export function generateHeld(shape, colours = []) {
   }
   // The tip (for a torch's flame), per angle, relative to the grip.
   const tips = [];
-  for (let k = 0; k < 8; k++) {
-    const a = (k * 45 * Math.PI) / 180;
+  for (let k = 0; k < N; k++) {
+    const a = (k * (360 / N) * Math.PI) / 180;
     const len = shape === "torch" ? 12 : 10;
     tips.push([Math.round(Math.sin(a) * len), Math.round(-Math.cos(a) * len)]);
   }
@@ -718,11 +759,7 @@ export function generateHeld(shape, colours = []) {
 // Which of the eight held angles a forearm direction (screen dx, dy) wants,
 // for an item that points along the arm; `upright` items point up at rest.
 export function heldAngle(dir, alongArm) {
-  if (!alongArm) return 0;
-  const a = Math.atan2(dir[0], -dir[1]); // 0 = up, clockwise
-  let k = Math.round(a / (Math.PI / 4));
-  k = ((k % 8) + 8) % 8;
-  return k;
+  return alongArm ? angleIndex(dir) : 0;
 }
 
 // ---- looks and outfits ----
@@ -757,16 +794,17 @@ export function zombieSpec(k) {
 
 // The player's spec from their look and what they wear; `worn` is the slot map
 // of item entries and `artOf` gives an item id's garment art.
-export function playerSpec(look, worn, artOf) {
+export function playerSpec(look, worn, artOf, hands = null) {
   const outfit = {};
   for (const slot of ["head", "chest", "hands", "legs", "feet", "waist", "back"]) {
     const e = worn[slot];
     outfit[slot] = e ? artOf(e.id) || null : null;
   }
-  return { variant: "player", look: { ...DEFAULT_LOOK, ...look }, outfit, wound: null };
+  const holding = { main: !!(hands && hands.main), off: !!(hands && hands.off) };
+  return { variant: "player", look: { ...DEFAULT_LOOK, ...look }, outfit, wound: null, holding };
 }
 
 // A key that changes when the drawing would.
 export function specKey(spec) {
-  return JSON.stringify([spec.variant, spec.look, spec.outfit, spec.wound]);
+  return JSON.stringify([spec.variant, spec.look, spec.outfit, spec.wound, spec.holding]);
 }

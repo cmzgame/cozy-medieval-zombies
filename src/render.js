@@ -16,7 +16,6 @@ import * as map from "./map.js";
 import * as light from "./light.js";
 import { tileKey } from "./visibility.js";
 import { WALL_T, WOOD, METAL } from "./placeholders.js";
-import { heldAngle } from "./figure.js";
 import { getItem } from "./items.js";
 import * as gl from "./gl.js";
 
@@ -425,7 +424,7 @@ function entityDrawables(entities, visible, out, drawAll) {
         try { hs = getSheet(`held_${entry.id}`); } catch { continue; }
         const j = joints[slot];
         const along = e.anim.name === "attack" && slot === "main" && def.held.swing !== false;
-        const k = heldAngle(j.dir, along);
+        const k = along ? j.angSwing : j.ang;
         held.push({ sheet: hs, k, x: x + j.x, y: y + j.y, near: j.near, tip: def.fire ? hs.tips[k] : null });
       }
     }

@@ -167,7 +167,7 @@ function beltFire(belt) {
 // (docs/12): a few milliseconds, redrawn into the atlas in place.
 let figureKey = "";
 function refreshFigure() {
-  const spec = figure.playerSpec(player.look, player.worn, (id) => items.getItem(id).art || null);
+  const spec = figure.playerSpec(player.look, player.worn, (id) => items.getItem(id).art || null, player.hands);
   const key = figure.specKey(spec);
   if (key === figureKey) return;
   figureKey = key;
