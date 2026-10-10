@@ -1,8 +1,9 @@
 // The view: how the window is divided between the world and the interface
 // (docs/02, 2026-10-10 night; re-decides the 960×540 probe viewport).
 //
-// The world fills the window at an integer pixel scale, so the pixel art stays
-// crisp and the canvas shows as many tiles as the window has room for. The
+// The world fills the window at the zoom, a continuous scale the GPU applies
+// to the world's pixels (the canvas buffer is the window; the renderer draws
+// world pixels and the viewport scales them with nearest sampling). The
 // interface is DOM and takes its own, fractional scale, like a web page, so it
 // reads well on any screen regardless of what the world is doing.
 //
@@ -15,15 +16,25 @@
 import * as input from "./input.js";
 import * as settings from "./settings.js";
 
-// The size the probe was designed at; "auto" world scale is the largest
-// integer at which this still fits, so a small window never drops below it.
+// The size the probe was designed at; "auto" zoom is the largest integer at
+// which this still fits the window, clamped to the zoom range.
 export const BASE_W = 960;
 export const BASE_H = 540;
 
+// Zoom (docs/02, 2026-10-10, late): screen pixels per world pixel, continuous
+// between these, eased toward a target so a jumpy wheel still moves smoothly.
+// Michael asked for about ten percent off either end of 1× to 3×.
+export const ZOOM_MIN = 1.1;
+export const ZOOM_MAX = 2.7;
+export const ZOOM_STEP = 1.18; // per wheel notch, multiplicative
+const ZOOM_EASE = 10; // per second
+
 export const view = {
-  w: BASE_W, // world pixels across the canvas
+  w: BASE_W, // world pixels across the window
   h: BASE_H,
-  worldScale: 1, // screen pixels per world pixel
+  bufW: BASE_W, // the canvas buffer, which is the window
+  bufH: BASE_H,
+  worldScale: 1, // screen pixels per world pixel: the zoom
   uiScale: 1, // screen pixels per UI pixel
   uiW: BASE_W, // UI pixels across the window
   uiH: BASE_H,
@@ -31,6 +42,8 @@ export const view = {
 
 let canvas = null;
 let ui = null;
+let zoom = 1;
+let zoomTarget = 1;
 const listeners = new Set();
 
 export function init(canvasEl, uiEl) {
@@ -38,13 +51,27 @@ export function init(canvasEl, uiEl) {
   ui = uiEl;
   window.addEventListener("resize", resize);
   settings.onChange((key) => {
-    if (key === "uiScale" || key === "worldScale") resize();
+    if (key === "uiScale") resize();
+    if (key === "worldScale") {
+      zoom = zoomTarget = zoomFromSetting();
+      resize();
+    }
   });
+  zoom = zoomTarget = zoomFromSetting();
   resize();
+}
+
+function clampZoom(z) {
+  return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
 }
 
 function autoWorldScale(ww, wh) {
   return Math.max(1, Math.floor(Math.min(ww / BASE_W, wh / BASE_H)));
+}
+
+function zoomFromSetting() {
+  const ws = settings.get("worldScale");
+  return clampZoom(ws === "auto" ? autoWorldScale(window.innerWidth, window.innerHeight) : Number(ws) || 1);
 }
 
 // A UI scale that reads on this window: about 85 percent of what the probe
@@ -54,21 +81,40 @@ function autoUiScale(ww, wh) {
   return Math.max(1, Math.round(fit * 0.85 * 4) / 4);
 }
 
+// Nudge the zoom target by whole notches; the easing does the rest.
+export function zoomBy(notches) {
+  zoomTarget = clampZoom(zoomTarget * Math.pow(ZOOM_STEP, notches));
+}
+
+export function zoomTargetValue() {
+  return zoomTarget;
+}
+
+// Each frame: ease toward the target. When it settles, the zoom is kept in
+// the world-scale setting so it comes back next run.
+export function update(dt) {
+  if (zoom === zoomTarget) return;
+  const k = Math.min(1, ZOOM_EASE * dt);
+  zoom += (zoomTarget - zoom) * k;
+  if (Math.abs(zoomTarget - zoom) < 0.003) {
+    zoom = zoomTarget;
+    settings.set("worldScale", Math.round(zoom * 100) / 100);
+  }
+  resize();
+}
+
 export function resize() {
   const ww = Math.max(1, window.innerWidth);
   const wh = Math.max(1, window.innerHeight);
-  const ws = settings.get("worldScale");
-  // A fixed scale is honoured even when it shows less than the probe size:
-  // 2× on a 1080p window is the old look, and that is a choice.
-  const s = ws === "auto" ? autoWorldScale(ww, wh) : Math.max(1, Math.floor(ws));
-  const w = Math.max(1, Math.floor(ww / s));
-  const h = Math.max(1, Math.floor(wh / s));
-  if (canvas.width !== w || canvas.height !== h) {
-    canvas.width = w;
-    canvas.height = h;
+  const s = zoom;
+  const w = ww / s;
+  const h = wh / s;
+  if (canvas.width !== ww || canvas.height !== wh) {
+    canvas.width = ww;
+    canvas.height = wh;
   }
-  canvas.style.width = `${w * s}px`;
-  canvas.style.height = `${h * s}px`;
+  canvas.style.width = `${ww}px`;
+  canvas.style.height = `${wh}px`;
   input.setScale(s);
 
   const us = settings.get("uiScale");
@@ -82,7 +128,7 @@ export function resize() {
   ui.style.transform = `scale(${u})`;
   ui.style.transformOrigin = "0 0";
 
-  Object.assign(view, { w, h, worldScale: s, uiScale: u, uiW: uw, uiH: uh });
+  Object.assign(view, { w, h, bufW: ww, bufH: wh, worldScale: s, uiScale: u, uiW: uw, uiH: uh });
   for (const fn of listeners) fn(view);
 }
 

@@ -12,7 +12,7 @@ const CONTROLS = [
   ["E", "Nearest action; hold to climb through a window"],
   ["Right-click", "Everything you can do to what is under the cursor"],
   ["Double-click", "Equip, wear, or take off a thing; else move it across"],
-  ["Wheel", "Zoom, in whole steps"],
+  ["Wheel", "Zoom"],
   ["Tab", "Your bag"],
   ["C", "Your character"],
   ["1 to 4", "Swap a belt slot with your hand"],
@@ -124,7 +124,7 @@ function render() {
         <h1>Settings</h1>
         <div class="sub">Kept in this browser</div>
         ${settingRow("uiScale", "Interface size")}
-        ${settingRow("worldScale", "World pixel scale")}
+        ${settingRow("worldScale", "Zoom")}
         ${settingRow("zombieAggro", "Zombie aggro")}
         ${settingRow("debugCorner", "Debug corner")}
         <div class="screen-buttons row"><button data-key="__reset" hidden></button>${button("back", "Back")}<button id="settings-reset">Defaults</button></div>

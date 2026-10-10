@@ -29,8 +29,8 @@ Started 2026-10-08 as the marriage of two prototypes, both kept as they are:
 
 These are the current rulings. The list grows as `docs/02-decisions.md` does.
 
-- Tiles are 64×32. Integer display scaling. Never scale in `drawImage`. Never draw UI into the canvas.
-- The world fills the window at an integer scale and the UI layer has its own scale (`src/view.js`). Nothing is laid out against 960×540. DOM over a world point goes through `view.toUi`.
+- Tiles are 64×32. Art is drawn at whole pixels in world space; never scale in `drawImage`. Never draw UI into the canvas.
+- The world fills the window at a continuous zoom (1.1× to 2.7×, `src/view.js`) that the GPU applies; the UI layer has its own scale. Nothing is laid out against 960×540. DOM over a world point goes through `view.toUi`.
 - If the game is good, people will sit for a loading screen. Never let a load time or an assumed browser limit squash an idea (`docs/00-vision.md`, Laws).
 - One continuous map. No cuts between inside and outside. If a design needs a scene transition, it is wrong for this game.
 - Nothing materialises in view. The active region's boundary stays well beyond the viewport.

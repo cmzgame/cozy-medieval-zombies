@@ -16,7 +16,7 @@ import * as clock from "./clock.js";
 import * as light from "./light.js";
 import * as gl from "./gl.js";
 import { renderScene, setCutaway, cutaway, night } from "./render.js";
-import { createPlayer, updatePlayer, damagePlayer, autoWalk } from "./entities/player.js";
+import { createPlayer, updatePlayer, damagePlayer, autoWalk, eat, drink } from "./entities/player.js";
 import { createZombie, updateZombie } from "./entities/zombie.js";
 import { initHud, updateHud } from "./ui/hud.js";
 import { initPrompt, updatePrompt, showMessage, updateMessage } from "./ui/prompt.js";
@@ -34,6 +34,9 @@ const V = view.view; // the world's size in its own pixels, kept current by view
 const MAP_FILE = "data/maps/square.json";
 const ACTIVE_TILES = 40; // the dead beyond this many tiles from the player do not think
 const CONTAINER_CLOSE_DIST = 2.0; // tiles: an open container closes when you walk away
+const ZOOM_PACE = 0.12; // seconds between wheel notches that count
+const BELT_LIGHT = 0.5; // a lit torch on the belt gives this much of its light (docs/02)
+let lastZoomAt = 0;
 
 const canvas = document.getElementById("game");
 const ui = document.getElementById("ui");
@@ -110,9 +113,22 @@ function updateInventoryUi() {
     if (!panel.isOpen()) openBag = null;
     else if (noBag) showMessage("No bag on your back.");
   }
-  // Belt keys: swap the slot with its hand (docs/11).
+  // Belt keys: a consumable on the slot is used; anything else swaps with
+  // its hand (docs/11; the belt as utility slots, Michael 2026-10-10 late).
   for (let i = 0; i < 4; i++) {
     if (!input.wasPressed(`Digit${i + 1}`)) continue;
+    const belt = inventory.beltOf(player);
+    const e = belt && belt[i];
+    const def = e && items.getItem(e.id);
+    if (def && !def.hands && (def.kind === "food" || def.capacity)) {
+      if (def.kind === "food") {
+        eat(player, def);
+        e.count -= 1;
+        if (e.count <= 0) belt[i] = null;
+      } else if ((e.fill ?? 0) > 0) drink(player, e);
+      else showMessage("It is empty.");
+      continue;
+    }
     const r = inventory.beltKey(player, i);
     if (r === "nobelt") showMessage("No belt, or no such slot.");
     else if (r === "handsfull") showMessage("Your hands are full.");
@@ -125,6 +141,16 @@ function updateInventoryUi() {
   panel.renderInventoryPanel(player, inventory.bagOf(player), openBag ? openBag.bag : null, inventory.beltOf(player));
 }
 
+// The fire of a lit item on the belt, if any.
+function beltFire(belt) {
+  if (!belt) return null;
+  for (const e of belt) {
+    const def = e && items.getItem(e.id);
+    if (def && def.fire) return def.fire;
+  }
+  return null;
+}
+
 function update(dt) {
   const t0 = performance.now();
   if (input.wasPressed("KeyV")) drawAll = !drawAll;
@@ -132,8 +158,13 @@ function update(dt) {
   // down zooms out. The panel's own wheel use (rotating a drag) wins.
   const wheel = input.takeWheel();
   if (wheel && !panel.isOpen()) {
-    const next = Math.max(1, Math.min(3, V.worldScale - Math.sign(wheel)));
-    if (next !== V.worldScale) settings.set("worldScale", next);
+    // Paced: a burst of wheel events from a rough mouse is one notch every
+    // ZOOM_PACE seconds; the easing in view.js makes even that smooth.
+    const now = performance.now();
+    if (now - lastZoomAt >= ZOOM_PACE * 1000) {
+      lastZoomAt = now;
+      view.zoomBy(-Math.sign(wheel));
+    }
   }
   if (input.wasPressed("KeyK")) setCutaway(cutaway === "stub" ? "translucent" : "stub");
   if (input.wasPressed("KeyL")) night.debug = (night.debug + 1) % 4;
@@ -144,9 +175,9 @@ function update(dt) {
   map.burnFires(dt);
   camera.follow(player, dt);
   camera.applyOrigin(V.w, V.h);
-  // Grow the world four chunks ahead of the player, so wild forest and its
-  // dead appear outside even a big window's view (docs/02, the view).
-  map.ensureAround(player.gx, player.gy, 4);
+  // Grow the world three chunks ahead of the player, so wild forest and its
+  // dead appear outside the view even at the widest zoom (docs/02, the view).
+  map.ensureAround(player.gx, player.gy, 3);
   for (const [x, y] of map.takePendingSpawns()) zombies.push(createZombie(x, y));
   handleMouse();
   interact.updateInteract(player, dt);
@@ -169,8 +200,13 @@ function update(dt) {
   const px = Math.round(player.gx);
   const py = Math.round(player.gy);
   playerRoom = map.roomAt(px, py); // refinds rooms if a wall changed
+  // The light you carry: a torch in hand at full, else one on the belt at
+  // half, which also halves how far the dead see it (zombie.js).
   const held = items.heldFire(player.hands);
-  light.setCarrier(held ? { gx: player.gx, gy: player.gy, radius: held.radius, flicker: held.flicker || null } : null);
+  const belted = held ? null : beltFire(inventory.beltOf(player));
+  const fire = held || belted;
+  const strength = held ? 1 : BELT_LIGHT;
+  light.setCarrier(fire ? { gx: player.gx, gy: player.gy, radius: fire.radius * strength, flicker: fire.flicker || null, strength } : null);
   light.update();
   // Sight is cast from the player's tile centre and only recomputed when the
   // player or the camera enters a new tile. Casting every step at 60 Hz was the
@@ -198,6 +234,7 @@ function update(dt) {
 
 function render() {
   const r0 = performance.now();
+  view.update(1 / 60); // the zoom eases even while paused
   const scene = {
     w: V.w,
     h: V.h,
@@ -279,8 +316,11 @@ function panelHandlers() {
       const def = items.getItem(entry.id);
       if (kind === "worn") return def.wear === key;
       if (kind === "belt") {
+        // Hand items, one at a time, or consumables as a stack.
         const belt = inventory.beltOf(player);
-        return !!belt && index < belt.length && !!def.hands && entry.count === 1;
+        if (!belt || index >= belt.length) return false;
+        if (def.hands) return entry.count === 1;
+        return def.kind === "food" || !!def.capacity;
       }
       // A hand takes what fits it; an occupant swaps out if it can be stowed.
       if (kind === "hand") return !!def.hands && entry.count === 1 && (def.hands === "both" || def.hands === "either" || def.hands === key);

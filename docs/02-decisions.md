@@ -4,11 +4,18 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-10, late — The belt as utility slots, a belt torch, the zoom (Michael)
+
+- **The belt is utility slots.** Michael withdrew his question about the belt's usefulness and answered it: tools are used from a hand, so the belt is for consumables and carry items. Food and drink can go on a belt slot, as a stack; its key eats or drinks one. Hand items still swap with the hand. "Health potions, etc." when there are such things. A confirmation on eating can come if it is ever eaten by accident.
+- **A lit torch on the belt gives half its light, and the dead see it from half as far.** Michael: ignore that you would be on fire; it is a trade-off, free hands and a smaller glow against less sight, and perhaps an upgrade for stealth. It is not drawn on the body; only the glow. A torch in hand always wins over one on the belt. No objection from me beyond the note that the light-at-player rule means the dead's plain sight of you also drops with the dimmer glow, which is the stealth he means.
+- **The zoom is continuous and paced**, between 1.1× and 2.7× (about ten percent off either end of 1× to 3×), eased toward its target every frame, and the wheel counts one notch per 120 ms so a rough mouse cannot make it jump. The settled zoom is kept in the browser. This withdraws the integer display-scaling rule for the zoom: the GPU scales the world's pixels with nearest sampling, so at a fractional zoom some pixels are one screen pixel wider than their neighbours. Michael asked for it with his eyes open and will judge the look; the law in `docs/00` applies. Tiles, sprites, and the dev art are still drawn at whole pixels in world space; nothing is scaled in the art pipeline.
+- **The spawn area follows the narrower view:** chunk growth back to three ahead.
+
 ### 2026-10-10, night, later still — Double-click, zoom (Michael)
 
 - **Double-click uses a thing.** In your bag it equips what can be held and wears what can be worn; on the belt it draws; on a hand it unequips; on a worn slot it takes off. Anything else, or anything in a container, moves across as before.
 - **Every slot's menu has Drop**, which puts the thing at your feet without passing through the sack. A belt or a bag dropped this way is just a container on the floor, with what it holds still in it.
-- **Zoom is the wheel stepping the world's integer scale, 1× to 3×.** Down zooms out. It writes the world-scale setting, so it sticks. Smooth zoom is foreclosed by the pixel art: anything but a whole multiple shimmers, and that is the Habbo look we are keeping. Nothing the dead do depends on the view; aggro, sight, and the active region are all in tiles. The range is deliberately small, in Michael's words "a bit in or a bit out, not Zomboid's whole-field zoom": at 1× on a 1080p window you see what Zomboid shows at 100 percent; 2× is the old 960×540 framing; 3× is a close-up.
+- ~~**Zoom is the wheel stepping the world's integer scale, 1× to 3×.**~~ Replaced the same night by the continuous zoom above. Was: Down zooms out. It writes the world-scale setting, so it sticks. Smooth zoom is foreclosed by the pixel art: anything but a whole multiple shimmers, and that is the Habbo look we are keeping. Nothing the dead do depends on the view; aggro, sight, and the active region are all in tiles. The range is deliberately small, in Michael's words "a bit in or a bit out, not Zomboid's whole-field zoom": at 1× on a 1080p window you see what Zomboid shows at 100 percent; 2× is the old 960×540 framing; 3× is a close-up.
 
 ### 2026-10-10, night, later — Michael's notes on the screens
 

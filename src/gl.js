@@ -362,7 +362,9 @@ export function end(u) {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlasCanvas);
     atlasDirty = false;
   }
-  gl.viewport(0, 0, u.w, u.h);
+  // The viewport is the whole buffer while u_res is the world's size in its
+  // own pixels: the difference is the zoom, applied by the GPU (view.js).
+  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
   gl.clearColor(u.clear[0], u.clear[1], u.clear[2], 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.useProgram(program);
