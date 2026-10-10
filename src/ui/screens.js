@@ -30,11 +30,13 @@ let root = null;
 let current = null;
 let from = null; // the screen settings or controls return to
 let onChange = () => {};
+let hairApi = null; // { styles(), current(), set(name), reload() } from main.js
 let onReload = () => window.location.reload();
 let data = {};
 
 export function initScreens(handlers = {}) {
   onChange = handlers.onChange || onChange;
+  hairApi = handlers.hair || null;
   onReload = handlers.onReload || onReload;
   root = document.getElementById("screens");
   root.hidden = true;
@@ -45,6 +47,14 @@ export function initScreens(handlers = {}) {
     if (choice) {
       settings.set(choice.dataset.key, JSON.parse(choice.dataset.value));
       render();
+    }
+    const hair = e.target.closest("button[data-hair]");
+    if (hair && hairApi) {
+      hairApi.set(hair.dataset.hair);
+      render();
+    }
+    if (e.target.closest("#hair-reload") && hairApi) {
+      hairApi.reload().then(render);
     }
   });
   settings.onChange(() => {
@@ -102,6 +112,14 @@ function settingRow(key, label) {
   return `<div class="setting"><span>${label}</span><span class="choices">${choices}</span></div>`;
 }
 
+// Hair styles, generated and painted (docs/12), with a reload for ones just saved from the editor.
+function hairRow() {
+  if (!hairApi) return "";
+  const cur = hairApi.current();
+  const choices = hairApi.styles().map((s) => `<button data-hair="${s}" class="${s === cur ? "on" : ""}">${s}</button>`).join("");
+  return `<div class="setting"><span>Hair</span><span class="choices">${choices}<button id="hair-reload" title="Pick up styles saved from tools/hair.html">Reload</button></span></div>`;
+}
+
 function render() {
   root.className = current || "";
   if (current === "title") {
@@ -128,6 +146,7 @@ function render() {
         ${settingRow("zombieAggro", "Zombie aggro")}
         ${settingRow("survival", "Survival")}
         ${settingRow("debugCorner", "Debug corner")}
+        ${hairRow()}
         <div class="screen-buttons row"><button data-key="__reset" hidden></button>${button("back", "Back")}<button id="settings-reset">Defaults</button></div>
       </div>`;
     root.querySelector("#settings-reset").addEventListener("click", () => {

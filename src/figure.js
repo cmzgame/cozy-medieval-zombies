@@ -572,8 +572,8 @@ function drawFrame(frame, spec, facing, anim, i) {
     if (waist && !p.lying) {
       const band = [];
       for (const [l, d] of [[-B.hipL - 0.5, -B.hipD], [B.hipL + 0.5, -B.hipD], [-B.hipL - 0.5, B.hipD], [B.hipL + 0.5, B.hipD]]) {
-        band.push(P([l, d + p.lean * 0.3, J.hip[2] + 0.9]));
-        band.push(P([l, d + p.lean * 0.3, J.hip[2] + 2.3]));
+        band.push(P([l, d + p.lean * 0.3, J.hip[2] + 1.6]));
+        band.push(P([l, d + p.lean * 0.3, J.hip[2] + 2.4]));
       }
       frame.poly(band, paint(col(waist)), { outline: false, part: PART.torso });
       if (faceFront || faceSide) {
@@ -694,7 +694,7 @@ function drawFrame(frame, spec, facing, anim, i) {
     if (!p.lying && (faceFront || faceSide)) {
       const pupil = flash ? WHITE : spec.variant === "zombie" ? [150, 40, 40] : hexToRgb(look.eyes || "#1c1a22");
       const white = flash ? WHITE : spec.variant === "zombie" ? [200, 200, 170] : [245, 245, 240];
-      const ey = Math.round(hc.y);
+      const ey = Math.round(hc.y) + 3; // the eyes sit low on the face; there is no mouth to make room for
       const shift = Math.round(F.fx * 1.5); // a nudge toward where the figure looks
       if (helm) {
         for (const dx of [-3, 0, 3]) for (const dy of [-1, 0, 1]) frame.px(hc.x + dx + shift, ey + dy, OUTLINE);
@@ -705,7 +705,7 @@ function drawFrame(frame, spec, facing, anim, i) {
           const outer = Math.round(hc.x) + side * 4 + shift;
           const mid = outer - side;
           const inner = outer - 2 * side;
-          for (let dy = -2; dy <= 1; dy++) {
+          for (let dy = -3; dy <= 1; dy++) {
             frame.px(outer, ey + dy, white);
             frame.px(mid, ey + dy, white);
             frame.px(inner, ey + dy, white);
@@ -716,7 +716,7 @@ function drawFrame(frame, spec, facing, anim, i) {
         // From the side: one eye on the forward edge.
         const ex = Math.round(hc.x + F.fx * (B.headRx - 4.5));
         const sgn = Math.sign(F.fx);
-        for (let dy = -2; dy <= 1; dy++) {
+        for (let dy = -3; dy <= 1; dy++) {
           frame.px(ex, ey + dy, white);
           frame.px(ex + sgn, ey + dy, white);
         }

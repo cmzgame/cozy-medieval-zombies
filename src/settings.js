@@ -11,6 +11,7 @@ export const DEFAULTS = {
   debugCorner: true, // the text in the top-left corner
   zombieAggro: false, // off: the dead wander and ignore you, there to be looked at (Michael, 2026-10-10)
   survival: false, // off: no hunger, thirst, or any other need; the body is a workbench too
+  hairStyle: "short", // the player's hair, picked on the settings screen's Hair row; no choices row, the row is built live
 };
 
 // What the settings screen offers, in order.

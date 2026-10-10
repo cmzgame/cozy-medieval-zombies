@@ -3,7 +3,9 @@
 
 Usage: python serve.py [port]
 """
+import json
 import os
+import re
 import sys
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
@@ -15,6 +17,38 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_POST(self):
+        # Dev only: POST /data/hair/<name>.json saves a painted hair style from
+        # tools/hair.html and lists it in data/hair/index.json (docs/12).
+        if self.path.startswith("/data/hair/"):
+            name = os.path.basename(self.path)
+            if not re.fullmatch(r"[a-z0-9_-]{1,40}\.json", name) or name == "index.json":
+                self.send_error(400, "style names are lowercase letters, digits, _ and -")
+                return
+            os.makedirs(os.path.join("data", "hair"), exist_ok=True)
+            length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(length)
+            try:
+                json.loads(body)
+            except ValueError:
+                self.send_error(400, "not JSON")
+                return
+            with open(os.path.join("data", "hair", name), "wb") as f:
+                f.write(body)
+            index_path = os.path.join("data", "hair", "index.json")
+            try:
+                with open(index_path, encoding="utf-8") as f:
+                    index = json.load(f)
+            except (OSError, ValueError):
+                index = {"styles": []}
+            style = name[:-5]
+            if style not in index.get("styles", []):
+                index.setdefault("styles", []).append(style)
+                with open(index_path, "w", encoding="utf-8", newline="\n") as f:
+                    json.dump(index, f, indent=2)
+                    f.write("\n")
+            self.send_response(204)
+            self.end_headers()
+            return
         # Dev only: POST /__screenshot/<name>.png saves the body under screenshots/.
         if not self.path.startswith("/__screenshot/"):
             self.send_error(404)

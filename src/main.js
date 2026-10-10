@@ -164,6 +164,19 @@ function beltFire(belt) {
   return null;
 }
 
+// Hair painted in tools/hair.html (docs/12): data/hair/index.json lists the
+// styles. Reloaded from the settings screen so a style saved a moment ago
+// shows without a restart.
+async function loadPaintedHair() {
+  try {
+    const idx = await assets.loadJson("data/hair/index.json");
+    for (const name of idx.styles || []) figure.registerHair(name, await assets.loadJson(`data/hair/${name}.json`));
+  } catch (err) {
+    console.warn("No painted hair loaded:", err.message);
+  }
+  figureKey = ""; // the pixels may have changed under the same name
+}
+
 // The player's sheet is rebuilt whenever their look or their clothes change
 // (docs/12): a few milliseconds, redrawn into the atlas in place.
 let figureKey = "";
@@ -461,13 +474,7 @@ async function boot() {
 
   items.loadItems(await assets.loadJson("data/items.json"));
   items.loadLoot(await assets.loadJson("data/loot.json"));
-  // Hair painted in tools/hair.html (docs/12): data/hair/index.json lists the styles.
-  try {
-    const idx = await assets.loadJson("data/hair/index.json");
-    for (const name of idx.styles || []) figure.registerHair(name, await assets.loadJson(`data/hair/${name}.json`));
-  } catch (err) {
-    console.warn("No painted hair loaded:", err.message);
-  }
+  await loadPaintedHair();
   const json = await assets.loadJson(MAP_FILE);
   await assets.loadMapSprites(json);
   // The dead's outfits and the held art, generated like everything else (docs/12).
@@ -475,7 +482,7 @@ async function boot() {
   for (const def of items.allItems()) if (def.held) assets.registerSheet(`held_${def.id}`, figure.generateHeld(def.held.shape, def.held.colours));
   info = map.loadMap(json);
   player = createPlayer(info.spawn[0], info.spawn[1]);
-  player.look = { ...figure.DEFAULT_LOOK };
+  player.look = { ...figure.DEFAULT_LOOK, hairStyle: settings.get("hairStyle") || "short" };
   giveStarterKit();
   refreshFigure();
   zombies = info.zombies.map(([x, y]) => createZombie(x, y));
@@ -492,7 +499,16 @@ async function boot() {
   const handlers = panelHandlers();
   panel.initInventoryPanel(handlers);
   // Any screen up means the game is paused; the title is up at boot.
-  screens.initScreens({ onChange: (name) => setPaused(!!name), onReload: () => window.location.reload() });
+  screens.initScreens({
+    onChange: (name) => setPaused(!!name),
+    onReload: () => window.location.reload(),
+    hair: {
+      styles: () => figure.hairStyles(),
+      current: () => player.look.hairStyle,
+      set: (name) => { player.look.hairStyle = name; settings.set("hairStyle", name); refreshFigure(); },
+      reload: async () => { await loadPaintedHair(); refreshFigure(); },
+    },
+  });
   events.on("playerHit", ({ damage }) => damagePlayer(player, damage));
   events.on("containerOpened", ({ bag, tiles: where, name }) => {
     openBag = { bag, tiles: where, name };

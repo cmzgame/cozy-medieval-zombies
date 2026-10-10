@@ -27,22 +27,26 @@
     <button id="pencil" class="on">Pencil (P)</button>
     <button id="eraser">Eraser (E)</button>
     <button id="dropper">Dropper (D)</button>
+    <button id="fill">Fill (F)</button>
     <span style="width:14px"></span>
     <button id="fromShort">Start from short</button>
     <button id="fromLong">Start from long</button>
     <button id="mirror">Mirror left to right</button>
     <button id="clear">Clear all</button>
     <span style="width:14px"></span>
-    <button id="save">Save JSON</button>
-    <label><button id="loadBtn">Load JSON</button><input id="load" type="file" accept="application/json" hidden></label>
+    <button id="saveGame">Save to game</button>
+    <label>From game <select id="styles"><option value="">(pick)</option></select></label>
+    <button id="save">Download</button>
+    <label><button id="loadBtn">Load file</button><input id="load" type="file" accept="application/json" hidden></label>
+    <span id="status" style="color:#a098ac"></span>
     <label>Face <input id="showFace" type="checkbox" checked></label>
   </div>
   <div id="sheets"></div>
   <div id="preview"></div>
   <div id="help">
     Paint over the head in each facing. The grid is 32 by 32 world pixels centred on the head; the figure beneath is the game's bald body, so you see what you cover.
-    <kbd>P</kbd> pencil, <kbd>E</kbd> eraser, <kbd>D</kbd> dropper (picks from your layer, else from the body), right-click erases, hold <kbd>Shift</kbd> to paint a line from the last pixel.
-    Save writes <code>&lt;style&gt;.json</code>; put it in <code>data/hair/</code> and add the name to <code>data/hair/index.json</code>, then in the game <code>__game.setLook({ hairStyle: "&lt;style&gt;" })</code>.
+    <kbd>P</kbd> pencil, <kbd>E</kbd> eraser, <kbd>D</kbd> dropper (picks from your layer, else from the body), <kbd>F</kbd> fill (the connected run of one colour, or of empty), right-click erases, hold <kbd>Shift</kbd> to paint a line from the last pixel.
+    <b>Save to game</b> writes <code>data/hair/&lt;style&gt;.json</code> through the dev server and lists it; a new name makes a new style. In the game, Settings has a Hair row with a Reload button that picks up what you just saved. Download and Load file are the same JSON by hand.
   </div>
   <script type="module">
     import * as figure from "../src/figure.js";
@@ -155,6 +159,27 @@
         if (erase) layers[f].delete(`${x},${y}`);
         else layers[f].set(`${x},${y}`, colourEl.value);
       };
+      if (tool === "fill" && start) {
+        // Flood the connected run of the clicked colour (or of empty) within the grid.
+        const L = layers[f];
+        const target = L.get(`${dx},${dy}`) || null;
+        const replacement = erase ? null : colourEl.value;
+        if (target === replacement) return;
+        const stack = [[dx, dy]];
+        const seen = new Set();
+        while (stack.length) {
+          const [x, y] = stack.pop();
+          const k = `${x},${y}`;
+          if (seen.has(k) || Math.abs(x) >= G / 2 || Math.abs(y) >= G / 2) continue;
+          if ((L.get(k) || null) !== target) continue;
+          seen.add(k);
+          if (replacement) L.set(k, replacement); else L.delete(k);
+          stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+        }
+        draw(f);
+        drawPreview();
+        return;
+      }
       if (e.shiftKey && last && last.f === f) {
         const n = Math.max(Math.abs(dx - last.dx), Math.abs(dy - last.dy)) || 1;
         for (let i = 0; i <= n; i++) put(Math.round(last.dx + (dx - last.dx) * i / n), Math.round(last.dy + (dy - last.dy) * i / n));
@@ -223,7 +248,7 @@
     }
 
     // ---- tools and buttons ----
-    const toolButtons = { pencil: document.getElementById("pencil"), eraser: document.getElementById("eraser"), dropper: document.getElementById("dropper") };
+    const toolButtons = { pencil: document.getElementById("pencil"), eraser: document.getElementById("eraser"), dropper: document.getElementById("dropper"), fill: document.getElementById("fill") };
     function setTool(t) {
       tool = t;
       for (const k in toolButtons) toolButtons[k].classList.toggle("on", k === t);
@@ -234,6 +259,7 @@
       if (e.code === "KeyP") setTool("pencil");
       if (e.code === "KeyE") setTool("eraser");
       if (e.code === "KeyD") setTool("dropper");
+      if (e.code === "KeyF") setTool("fill");
     });
     document.getElementById("fromShort").addEventListener("click", () => { for (const f of FACINGS) layers[f] = capLayer("short", f); drawAll(); });
     document.getElementById("fromLong").addEventListener("click", () => { for (const f of FACINGS) layers[f] = capLayer("long", f); drawAll(); });
@@ -263,6 +289,37 @@
       a.click();
       URL.revokeObjectURL(a.href);
     });
+    const statusEl = document.getElementById("status");
+    const say = (t) => { statusEl.textContent = t; setTimeout(() => { if (statusEl.textContent === t) statusEl.textContent = ""; }, 4000); };
+    document.getElementById("saveGame").addEventListener("click", async () => {
+      const data = toJson();
+      const name = data.name.toLowerCase().replace(/[^a-z0-9_-]/g, "_");
+      nameEl.value = name;
+      data.name = name;
+      const res = await fetch(`/data/hair/${name}.json`, { method: "POST", body: JSON.stringify(data) });
+      if (res.ok) { say(`Saved data/hair/${name}.json. In the game: Settings, Hair, Reload.`); refreshStyles(); }
+      else say(`Save failed: ${res.status} ${res.statusText}`);
+    });
+    const stylesEl = document.getElementById("styles");
+    async function refreshStyles() {
+      try {
+        const idx = await (await fetch("/data/hair/index.json")).json();
+        stylesEl.innerHTML = `<option value="">(pick)</option>` + (idx.styles || []).map((s) => `<option value="${s}">${s}</option>`).join("");
+      } catch { /* no styles yet */ }
+    }
+    stylesEl.addEventListener("change", async () => {
+      const s = stylesEl.value;
+      if (!s) return;
+      const data = await (await fetch(`/data/hair/${s}.json`)).json();
+      nameEl.value = data.name || s;
+      for (const f of FACINGS) {
+        layers[f] = new Map();
+        for (const [dx, dy, col] of (data.frames && data.frames[f]) || []) layers[f].set(`${dx},${dy}`, col);
+      }
+      drawAll();
+      say(`Loaded ${s}.`);
+    });
+    refreshStyles();
     document.getElementById("loadBtn").addEventListener("click", () => document.getElementById("load").click());
     document.getElementById("load").addEventListener("change", async (e) => {
       const file = e.target.files[0];
