@@ -16,7 +16,7 @@ import * as iso from "./iso.js";
 import * as input from "./input.js";
 import * as map from "./map.js";
 import { getSheet } from "./assets.js";
-import { getItem, hold, release, holding, canHold, handFor, containerGrid, rollLoot } from "./items.js";
+import { getItem, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
 import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, addItem, createBag, waterContainers } from "./inventory.js";
 import * as grid from "./grid.js";
 import { startClimb, autoWalk, eat, drink } from "./entities/player.js";
@@ -637,7 +637,7 @@ export function updateInteract(player, dt) {
       }
     });
   if (input.wasPressed("KeyT")) {
-    if (holding(player.hands, "torch")) unequip(player, player.hands.off);
+    if (holding(player.hands, "torch")) unequip(player, heldEntry(player.hands, "torch"));
     else {
       const found = findItem(player, "torch");
       if (!found) showMessage("No torch on you.");
@@ -655,7 +655,7 @@ export function itemMenu(player, entry, bag, otherBag) {
   const mine = bag === bagOf(player);
   if (def.hands && mine) {
     out.push({
-      label: `Equip (${def.hands === "both" ? "both hands" : `${def.hands} hand`})`,
+      label: `Equip (${def.hands === "both" ? "both hands" : def.hands === "either" ? "a hand" : `${def.hands} hand`})`,
       enabled: true,
       onSelect: () => equipFrom(player, entry),
     });

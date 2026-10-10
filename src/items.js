@@ -67,12 +67,24 @@ export function createHands() {
   return { main: null, off: null };
 }
 
-// Which hand an item of this id goes in, and whether that is free.
-export function canHold(hands, id) {
+// Whether an item of this id can go in a hand now. `hands` on an item is
+// "main", "off", "both", or "either" (one hand, whichever is free; `prefer`
+// names one).
+export function canHold(hands, id, prefer = null) {
   const it = items.get(id);
   if (!it || !it.hands) return false;
   if (it.hands === "both") return !hands.main && !hands.off;
+  if (it.hands === "either") return prefer ? !hands[prefer] : !hands.main || !hands.off;
   return !hands[it.hands];
+}
+
+// The hand an "either" item would take now: the preferred one if free, else
+// the main hand, else the off-hand.
+export function pickHand(hands, id, prefer = null) {
+  const which = handFor(id);
+  if (which !== "either") return which;
+  if (prefer && !hands[prefer]) return prefer;
+  return !hands.main ? "main" : "off";
 }
 
 // The slot name an item id wants: "main", "off", or "both".
@@ -80,14 +92,14 @@ export function handFor(id) {
   return items.get(id)?.hands || null;
 }
 
-export function hold(hands, entry) {
-  if (!canHold(hands, entry.id)) return false;
-  const it = getItem(entry.id);
-  if (it.hands === "both") {
+export function hold(hands, entry, prefer = null) {
+  if (!canHold(hands, entry.id, prefer)) return false;
+  const which = pickHand(hands, entry.id, prefer);
+  if (which === "both") {
     hands.main = entry;
     hands.off = entry;
   } else {
-    hands[it.hands] = entry;
+    hands[which] = entry;
   }
   return true;
 }

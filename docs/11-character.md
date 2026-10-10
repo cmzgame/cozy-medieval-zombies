@@ -21,7 +21,7 @@ A held, worn, or belted item is out of the bag. This replaces the earlier rule t
 
 ## The bag is an item
 
-- The player starts wearing a **small sack**, six by four, and a **belt** with two slots. The items you carry belong to the sack, not to you.
+- The player starts wearing a **burlap sack**, six by four, and a **rope belt** with two slots. The items you carry belong to the sack, not to you.
 - Drag the sack off the back slot onto the floor and it lies there with everything in it. Open it like a chest. Wear a bigger bag, then move things over. A **rucksack** (eight by five) turns up in chests; a **Developer Bag** (twelve by eight) comes from `__game.giveDevBag()` on the console and never from loot.
 - A bag cannot go inside a bag. Picking up a bag with one on your back offers **Swap bags**: yours drops where you stand, the new one goes on.
 - With no bag on your back, Tab still opens the character screen so you can put one on, and says "No bag on your back." Picking something up with no bag puts it in a free hand if it is holdable, else refuses.
@@ -38,7 +38,7 @@ A held, worn, or belted item is out of the bag. This replaces the earlier rule t
 | Boots | feet | |
 | Belt | waist | 2 belt slots |
 | Good belt | waist | 4 belt slots; chest loot |
-| Small sack | back | 6×4 |
+| Burlap sack | back | 6×4 |
 | Rucksack | back | 8×5; chest loot |
 
 All placeholders, plain coloured blocks in their slots. They do nothing yet beyond occupying the slot; armour and warmth are `05-someday.md`. The hood, tunic, breeches, and boots are the first layers the player sprite will be drawn from, which is the next conversation; this screen is where that lands.
@@ -53,7 +53,8 @@ All placeholders, plain coloured blocks in their slots. They do nothing yet beyo
 
 - **C** opens the character screen: the doll with its seven slots, the two hand boxes, and the bag column beside it. **Tab** opens the bag alone as before. Escape closes either (docs/10). The cutaway comparison moves from C to **K**.
 - Dragging onto a doll slot checks the item's `wear` word; a wrong slot shows red. Dragging onto an occupied slot swaps if the occupant fits in the bag, else refuses.
-- The hands are drawn, not dropped on.
+- The hands are slots like any other (Michael, after play): drag onto a hand to equip, swapping out what was held into the bag or belt; drag out of a hand to the bag, the belt, or the floor. A torch goes in either hand.
+- The screen sits in the centre of the view, laid out as an RPG doll from Michael's drawing: belt top-left, bag top-right, head, chest, legs, feet down the middle, a hand either side, gloves under the main hand; the bottom corners are free for later. The bag column stands to its right, an open container to its left. Tab alone keeps the bag in the top-right corner.
 
 ## Data
 
@@ -62,10 +63,10 @@ All placeholders, plain coloured blocks in their slots. They do nothing yet beyo
 
 ## Accept when
 
-1. The character screen shows the starter kit worn: hood, tunic, breeches, boots, belt, sack; the torch in the off-hand box; the bag beside.
+1. The character screen shows the starter kit worn: tunic, breeches, boots, rope belt, burlap sack, the head slot empty; the torch in a hand box; the bag beside.
 2. Drag the sack to the floor: it lies there with its contents; open it; wear it again; everything is still in it.
 3. Wear a rucksack from a chest with the sack on: Swap bags drops the sack; move the items over from the sack on the floor.
-4. Drag the torch from the bag to belt slot 1; press 1: it is in the off-hand and lit; press 1: it is back on the belt and out.
+4. Drag the torch from the bag to belt slot 1; press 1: it is in a hand and lit; press 1: it is back on the belt and out. Drag the torch from a hand into the bag, and from the bag onto either hand.
 5. Drag a hood onto the feet slot: red, refused. Onto the head with a hood already on: swapped, the old hood in the bag.
 6. Take the sack off and press Tab: the character screen opens with the message and no bag column; Pick up an apple with no bag refuses; a torch goes to a free hand.
 7. Give the Developer Bag from the console, wear it, and the bag column is twelve by eight.

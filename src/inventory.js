@@ -169,9 +169,12 @@ export function stow(player, entry) {
 // Equip an entry into its hand, swapping out what is there into the bag or
 // belt. The entry must already be detached. Returns true, or false and the
 // entry is left for the caller to put back.
-export function equip(player, entry) {
-  const which = handFor(entry.id);
+export function equip(player, entry, prefer = null) {
+  let which = handFor(entry.id);
   if (!which) return false;
+  // An "either" item takes a free hand if there is one, else the preferred or
+  // main hand, swapping out what is there.
+  if (which === "either") which = prefer || (!player.hands.main ? "main" : !player.hands.off ? "off" : "main");
   const slots = which === "both" ? ["main", "off"] : [which];
   const outgoing = [];
   for (const s of slots) {
@@ -186,7 +189,7 @@ export function equip(player, entry) {
       return false;
     }
   }
-  return hold(player.hands, entry);
+  return hold(player.hands, entry, which === "both" ? null : which);
 }
 
 // Belt key n: swap slot n with the hand its item belongs to (docs/11).

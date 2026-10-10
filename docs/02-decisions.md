@@ -4,6 +4,14 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-10, after play — The character, Michael's notes
+
+- **The hands are slots like any other.** Drag an item onto a hand and it goes there, whatever was held swapping out to the bag or belt; drag out of a hand to the bag, the belt, or the floor. Michael wants parity between hand items and clothes. This replaces the ruling below that the hands were drawn and never dropped on; keys 1 to 4 and the item menu stay as the quick ways.
+- **A torch goes in either hand.** An item's `hands` may now be `either`: it takes a free hand, the main one first, or the hand it is dropped on.
+- **The starter kit is poor and says so.** A rope belt and a burlap sack, so better ones found in chests read as better. No hood to start: the head slot begins empty.
+- **The character screen sits in the centre of the view, laid out like an RPG doll** from Michael's drawing: the belt top-left, the bag top-right, head, chest, legs, and feet down the middle, a hand either side, gloves under the main hand, the bottom corners free for later. The bag column stands beside it. Tab alone keeps the bag in the top-right corner.
+- **Only hand items go on the belt; a belt may ride in a bag; a bag never goes in a bag.** Stated so it is clear. Whether a bag may go inside a bigger bag is open question 20.
+
 ### 2026-10-10, later — The character (Michael)
 
 Milestone 5, before combat: the worn screen and a hotbar, designed in `11-character.md`.
@@ -11,7 +19,7 @@ Milestone 5, before combat: the worn screen and a hotbar, designed in `11-charac
 - **Everything is a slot, nothing is a pointer.** An item is in one place: a hand, a worn slot, the belt, a bag, a container, or the floor. A held item leaves the bag; this reverses the interface ruling that it stayed in the bag outlined. Michael, on the two readings of a hotbar: a bookmark leaves the sword eating bag cells, a free four-slot strip is storage outside the grid; both rejected.
 - **Carrying capacity is always a worn item.** The belt gives the hotbar its slots (two on a plain belt, four on a good one), and the bag on your back gives the grid. Michael's addition and his reason: if the hotbar ties to wearing a belt, the bag must tie to wearing a bag. Zomboid does the same, but that is not why.
 - **The bag is an item.** You start wearing a small sack; the items belong to it, not to you. Drop it and everything goes with it; open it on the floor like a chest; wear a bigger one and move things over. A bag never goes inside a bag; picking one up with one on offers Swap. No bag on your back means no grid, with a message. A Developer Bag of twelve by eight comes from the console, never loot; bags are not craftable yet.
-- **The hands are drawn on the character screen, never dropped on.** Equip from the item menu or the number keys, which swap a belt slot with its hand.
+- ~~**The hands are drawn on the character screen, never dropped on.**~~ Overruled the same evening, above: the hands are slots with full drag parity. The item menu and the number keys remain.
 - **Worn things do nothing yet** beyond their slot. Hood, tunic, gloves, breeches, boots, belts, bags as plain blocks; the first four are the sprite layers of the next conversation.
 
 ### 2026-10-10 — Openings (Michael)
@@ -135,3 +143,5 @@ The pre-code conversations closed on 2026-10-08. Each remaining question is deci
 17. ~~**Fuel.**~~ Ruled 2026-10-09: the hearth and the campfire burn wood and go out; torches burn nothing. The furnace joins the burners with the smithy.
 18. **Noise.** The cozy parent had gunshots and breaking glass as noise that pulled the dead; the sibling planned hearing as a flood fill. Michael (2026-10-09) is not sure noise fits the cosy idea at all, and with no guns little is loud. Lean: leave it out until something in the game is loud, then decide whether that thing should carry.
 19. **The parent's tuning numbers.** Found in the docs pass of 2026-10-09: the dead walk at 1.0 tiles per second with no runners, see 8 tiles by day, bite for 8 on a 1.2 s cooldown, and bodies are 0.3 tiles round; the player walks at 3.0 and sprints at 1.75 times that. All of it came with the copied entity files and none of it has been re-decided here. Lean: keep them as placeholders, and rule on speed and variety (Romero only, or not) at the combat milestone, on sight range at the lighting milestone, where sight scales with light anyway.
+20. **Bags inside bigger bags.** Ruled no bag in a bag (docs/11), which keeps the Developer Bag from swallowing every sack. Michael asked (2026-10-10) whether a bag or belt can ride in a bag or belt. Today: a belt may ride in a bag, a bag may not, and only hand items go on a belt. Lean: allow a bag inside a strictly larger bag only if play wants it; nothing is lost by waiting.
+21. **The view on a big window.** Ruled 960×540 at integer scale (question 2). On Michael's 1917×910 window that is 1×, with three quarters of the screen black and the UI small; 2× needs 1920×1080 or more. Options: the UI layer scales on its own (it is DOM, not pixel art); or the world fills the window at the integer scale that fits, showing more tiles; or both. The second changes how much the player sees and is a design call. Raised 2026-10-10.

@@ -11,13 +11,16 @@ import * as menu from "./context-menu.js";
 
 const CELL = 38; // internal pixels; the UI layer is scaled with the canvas
 const DRAG_THRESHOLD = 4; // screen pixels before a press becomes a drag
-const WORN_LAYOUT = [
-  ["back", "head", "waist"],
-  ["hands", "chest", null],
-  [null, "legs", null],
-  [null, "feet", null],
+// The doll, Michael's drawing of 2026-10-10: the belt top-left, the bag
+// top-right, the body down the middle, a hand either side, gloves under the
+// main hand. The bottom corners stay free for later.
+const DOLL_AREAS = [
+  "waist . head . back",
+  ". . chest . .",
+  "main . legs . off",
+  "gloves . feet . .",
 ];
-const SLOT_NAMES = { head: "Head", chest: "Chest", hands: "Hands", legs: "Legs", feet: "Feet", waist: "Waist", back: "Back" };
+const SLOT_NAMES = { head: "Head", chest: "Chest", hands: "Gloves", legs: "Legs", feet: "Feet", waist: "Belt", back: "Bag" };
 
 let root = null;
 let body = null;
@@ -88,6 +91,7 @@ export function setOpen(v, { character: c = false } = {}) {
   open = v;
   character = v && c;
   root.hidden = !v;
+  root.classList.toggle("character", character);
   lastSignature = "";
   if (!v) cancelDrag();
 }
@@ -141,17 +145,19 @@ function slotHtml(id, entry, label) {
 }
 
 function dollHtml(player) {
-  const rows = WORN_LAYOUT.map((row) => `<div class="doll-row">${row.map((k) => (k ? slotHtml(`worn:${k}`, player.worn[k], SLOT_NAMES[k]) : `<div class="doll-gap"></div>`)).join("")}</div>`).join("");
+  const area = (name, html) => html.replace('class="doll-slot', `style="grid-area:${name}" class="doll-slot`);
   const hand = (key, label) => {
     const e = player.hands[key];
-    return `<div class="doll-hand" title="${label}">${e ? blockHtml(e, `data-slot="hand:${key}"`, CELL, 1, 1, "in-slot") : `<span class="slot-label">${label}</span>`}</div>`;
+    const inner = e ? blockHtml(e, `data-slot="hand:${key}"`, CELL, 1, 1, "in-slot") : `<span class="slot-label">${label}</span>`;
+    return `<div class="doll-slot doll-hand${e ? "" : " empty"}" data-slot="hand:${key}" title="${label}" style="grid-area:${key}">${inner}</div>`;
   };
+  const worn = (k) => area(k === "hands" ? "gloves" : k, slotHtml(`worn:${k}`, player.worn[k], SLOT_NAMES[k]));
   return `
     <div class="inv-column doll">
       <div class="inv-header"><span>You</span></div>
-      <div class="doll-body">
-        <div class="doll-grid">${rows}</div>
-        <div class="doll-hands">${hand("main", "Main hand")}${hand("off", "Off-hand")}</div>
+      <div class="doll-grid" style="grid-template-areas:${DOLL_AREAS.map((r) => `'${r}'`).join(" ")}">
+        ${["waist", "head", "back", "chest", "legs", "feet", "hands"].map(worn).join("")}
+        ${hand("main", "Main hand")}${hand("off", "Off-hand")}
       </div>
     </div>`;
 }
@@ -225,7 +231,7 @@ function gridAt(clientX, clientY) {
   return null;
 }
 
-// Which droppable slot is under a screen point (worn or belt; never a hand).
+// Which slot is under a screen point: worn, a hand, or the belt.
 function slotAt(clientX, clientY) {
   for (const el of [...body.querySelectorAll(".doll-slot"), ...hotbar.querySelectorAll(".hot-slot")]) {
     const r = el.getBoundingClientRect();
@@ -248,7 +254,6 @@ function onPointerDown(e) {
   if (e.button !== 0 || drag) return;
   const hit = entryFromEvent(e);
   if (!hit) return;
-  if (hit.slot && hit.slot.startsWith("hand:")) return; // hands are drawn, not dragged
   e.preventDefault();
   const r = hit.el.getBoundingClientRect();
   const [w] = hit.bag ? grid.sizeOf(hit.entry) : [1];

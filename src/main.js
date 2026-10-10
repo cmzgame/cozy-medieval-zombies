@@ -257,6 +257,11 @@ function slotSet(id, entry) {
   else if (kind === "belt") {
     const belt = inventory.beltOf(player);
     if (belt) belt[index] = entry;
+  } else if (kind === "hand") {
+    // Clearing a hand releases the entry (from both hands if it is two-handed);
+    // filling one goes through equip in placeInSlot, so this only clears.
+    if (entry) items.hold(player.hands, entry, key);
+    else if (player.hands[key]) items.release(player.hands, player.hands[key]);
   }
 }
 
@@ -289,6 +294,8 @@ function panelHandlers() {
         const belt = inventory.beltOf(player);
         return !!belt && index < belt.length && !!def.hands && entry.count === 1;
       }
+      // A hand takes what fits it; an occupant swaps out if it can be stowed.
+      if (kind === "hand") return !!def.hands && entry.count === 1 && (def.hands === "both" || def.hands === "either" || def.hands === key);
       return false;
     },
     // Drop onto a worn or belt slot. An occupant goes to the bag or belt if
@@ -298,6 +305,14 @@ function panelHandlers() {
       const occupant = slotGet(slotId);
       if (occupant === entry) return;
       detachFrom(entry, from);
+      if (kind === "hand") {
+        // equip swaps whatever is in the way out to the bag or belt.
+        if (!inventory.equip(player, entry, key)) {
+          restoreTo(entry, from);
+          showMessage("No room to swap.");
+        }
+        return;
+      }
       // Dragging a bag off your back takes its grid away; the bag column may
       // have been the source, so it is detached already.
       if (occupant) {
@@ -344,12 +359,12 @@ function panelHandlers() {
   };
 }
 
-// The starter kit (docs/11): worn hood, tunic, breeches, boots, a belt with two
-// slots, a small sack with water, a little food, and one plank; the torch in
-// the off-hand.
+// The starter kit (docs/11): worn tunic, breeches, boots, a rope belt with two
+// slots, a burlap sack with water, a little food, and one plank; the torch in
+// a hand. No hood: the head slot starts empty (Michael, 2026-10-10).
 function giveStarterKit() {
   const entry = (id, props = {}) => ({ id, count: 1, ...props });
-  for (const id of ["hood", "tunic", "breeches", "boots", "belt", "small_sack"]) {
+  for (const id of ["tunic", "breeches", "boots", "belt", "small_sack"]) {
     const e = entry(id);
     player.worn[items.getItem(id).wear] = e;
   }
