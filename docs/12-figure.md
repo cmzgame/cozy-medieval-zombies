@@ -10,7 +10,8 @@ From the two reference figures Michael shared (a knight with a red scarf, a zomb
 
 - **The head is about a third of the height.** Shoulders are no wider than the head. The body is a block; the figure is chunky, not lanky.
 - **Limbs fuse to the body.** Arms hang against the torso and are separated from it only by the outline. Legs are two blocks with a one-pixel gap. No armpit gaps, no drawn elbows.
-- **One-pixel dark outline** around the whole silhouette and between major parts. Two or three tones per colour, light from the upper left. Dither never.
+- **One-pixel dark outline per body part**, never per garment (Michael's first art critique, 2026-10-10: outlining every sleeve, forearm, and hand made Michelin rolls). An arm is one outlined shape and its sleeve is a colour change on it; a leg likewise with its boot; the torso one shape with the tunic and belt as colour. Shading is Habbo's: each part flat on the lit side and one tone darker on its right-hand share, light from the upper left. No edge rims. Dither never.
+- **The head is a rounded square, not an egg. Hair is a helmet worn over it**, outlined on its own, with a straight fringe so the forehead shows, short at the sides and down the back; a hat replaces the hair entirely. The face is drawn front-on toward the viewer: two eyes with whites and pupils and a small grim mouth from the three facings toward the camera, one eye from the side, none from behind (Stardew and Habbo both cheat the face toward the camera).
 - **Accents tell the story.** A scarf, a buckle, a wound, a visor of three slits. Faces are two to four pixels: eyes and a mouth line, and they read.
 - **Dev art is simpler than the references** and that is fine. The generator aims for their proportions and their rules, not their detail.
 

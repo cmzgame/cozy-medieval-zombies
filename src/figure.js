@@ -43,10 +43,10 @@ export const BODY = {
   shoulder: 28,
   neck: 30,
   head: 38, // centre; the top of the head is at about 48, so the head is two fifths of the height
-  headRx: 10.5,
+  headRx: 10,
   headRy: 9.5,
   shoulderL: 8, // lateral offsets; the shoulders stay inside the head's width
-  hipL: 5.5,
+  hipL: 7,
   torsoD: 4, // forward half-thickness at the shoulders
   hipD: 3,
   legL: 3.5,
@@ -96,99 +96,81 @@ function project(F, l, d, h) {
 class Frame {
   constructor() {
     this.rgb = new Uint8ClampedArray(FW * FH * 3);
-    this.kind = new Uint8Array(FW * FH); // 0 empty, 1 outline, 2 fill, 3 flat (no shading)
-    this.mask = new Uint8Array(FW * FH); // scratch
+    this.kind = new Uint8Array(FW * FH); // 0 empty, 1 outline, 2 fill (shaded), 3 flat
+    this.part = new Uint8Array(FW * FH); // which body part a fill pixel belongs to, for shading
+    this.mask = new Uint8Array(FW * FH); // the shape being built
+    this.bbox = null;
   }
 
-  // Rasterise a shape test over a bbox into the scratch mask; returns the bbox.
-  shape(x0, y0, x1, y1, test) {
-    const m = this.mask;
-    m.fill(0);
+  clear() {
+    this.rgb.fill(0);
+    this.kind.fill(0);
+    this.part.fill(0);
+  }
+
+  // ---- building a mask: begin, add shapes, then outline and fill it ----
+
+  begin() {
+    this.mask.fill(0);
+    this.bbox = null;
+  }
+
+  grow(x0, y0, x1, y1) {
     const bx0 = Math.max(0, Math.floor(x0));
     const by0 = Math.max(0, Math.floor(y0));
     const bx1 = Math.min(FW - 1, Math.ceil(x1));
     const by1 = Math.min(FH - 1, Math.ceil(y1));
-    for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) if (test(x + 0.5, y + 0.5)) m[y * FW + x] = 1;
+    const bb = this.bbox;
+    this.bbox = bb ? [Math.min(bb[0], bx0), Math.min(bb[1], by0), Math.max(bb[2], bx1), Math.max(bb[3], by1)] : [bx0, by0, bx1, by1];
     return [bx0, by0, bx1, by1];
   }
 
-  // Paint the scratch mask as a part: outline (dilated by one) then fill.
-  paint(bbox, rgb, { outline = true, kind = 2 } = {}) {
-    const [bx0, by0, bx1, by1] = bbox;
+  addTest(x0, y0, x1, y1, test) {
+    const [bx0, by0, bx1, by1] = this.grow(x0, y0, x1, y1);
     const m = this.mask;
-    if (outline) {
-      for (let y = Math.max(0, by0 - 1); y <= Math.min(FH - 1, by1 + 1); y++) {
-        for (let x = Math.max(0, bx0 - 1); x <= Math.min(FW - 1, bx1 + 1); x++) {
-          const i = y * FW + x;
-          if (m[i]) continue;
-          const near = (x > 0 && m[i - 1]) || (x < FW - 1 && m[i + 1]) || (y > 0 && m[i - FW]) || (y < FH - 1 && m[i + FW]);
-          if (near) this.set(i, OUTLINE, 1);
-        }
-      }
-    }
-    for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) {
-      const i = y * FW + x;
-      if (m[i]) this.set(i, rgb, kind);
-    }
+    for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) if (test(x + 0.5, y + 0.5)) m[y * FW + x] = 1;
   }
 
-  set(i, rgb, kind) {
-    this.rgb[i * 3] = rgb[0];
-    this.rgb[i * 3 + 1] = rgb[1];
-    this.rgb[i * 3 + 2] = rgb[2];
-    this.kind[i] = kind;
-  }
-
-  px(x, y, rgb, kind = 3) {
-    x = Math.round(x);
-    y = Math.round(y);
-    if (x < 0 || y < 0 || x >= FW || y >= FH) return;
-    this.set(y * FW + x, rgb, kind);
-  }
-
-  capsule(x0, y0, x1, y1, r, rgb, opts) {
+  addCapsule(x0, y0, x1, y1, r) {
     const dx = x1 - x0;
     const dy = y1 - y0;
     const len2 = dx * dx + dy * dy || 1;
-    const bbox = this.shape(Math.min(x0, x1) - r, Math.min(y0, y1) - r, Math.max(x0, x1) + r, Math.max(y0, y1) + r, (px, py) => {
+    this.addTest(Math.min(x0, x1) - r, Math.min(y0, y1) - r, Math.max(x0, x1) + r, Math.max(y0, y1) + r, (px, py) => {
       let t = ((px - x0) * dx + (py - y0) * dy) / len2;
       t = Math.max(0, Math.min(1, t));
       const cx = x0 + dx * t;
       const cy = y0 + dy * t;
       return (px - cx) * (px - cx) + (py - cy) * (py - cy) <= r * r;
     });
-    this.paint(bbox, rgb, opts);
   }
 
-  ellipse(cx, cy, rx, ry, rgb, opts) {
-    const bbox = this.shape(cx - rx, cy - ry, cx + rx, cy + ry, (px, py) => {
+  addEllipse(cx, cy, rx, ry) {
+    this.addTest(cx - rx, cy - ry, cx + rx, cy + ry, (px, py) => {
       const ex = (px - cx) / rx;
       const ey = (py - cy) / ry;
       return ex * ex + ey * ey <= 1;
     });
-    this.paint(bbox, rgb, opts);
   }
 
-  // Part of an ellipse: the pixels of it above (or below) a horizontal line.
-  ellipseCut(cx, cy, rx, ry, cutY, above, rgb, opts) {
-    const bbox = this.shape(cx - rx, cy - ry, cx + rx, cy + ry, (px, py) => {
-      const ex = (px - cx) / rx;
-      const ey = (py - cy) / ry;
-      if (ex * ex + ey * ey > 1) return false;
-      return above ? py <= cutY : py >= cutY;
+  // A superellipse: n = 2 is an ellipse, higher is squarer. Optional clip
+  // keeps only the pixels for which clip(px, py) is true.
+  addSuper(cx, cy, rx, ry, n, clip = null) {
+    this.addTest(cx - rx, cy - ry, cx + rx, cy + ry, (px, py) => {
+      const ex = Math.abs((px - cx) / rx);
+      const ey = Math.abs((py - cy) / ry);
+      if (Math.pow(ex, n) + Math.pow(ey, n) > 1) return false;
+      return clip ? clip(px, py) : true;
     });
-    this.paint(bbox, rgb, opts);
   }
 
-  // Convex polygon from points [{x, y}]; the hull is taken, so any order works.
-  poly(points, rgb, opts) {
+  addPoly(points) {
     const hull = convexHull(points);
     if (hull.length < 3) return;
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const p of hull) {
       x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y);
     }
-    const bbox = this.shape(x0, y0, x1, y1, (px, py) => {
+    this.addTest(x0, y0, x1, y1, (px, py) => {
       for (let i = 0; i < hull.length; i++) {
         const a = hull[i];
         const b = hull[(i + 1) % hull.length];
@@ -196,27 +178,94 @@ class Frame {
       }
       return true;
     });
-    this.paint(bbox, rgb, opts);
   }
 
-  // Two-tone: light on the upper-left edge of every fill, dark on the lower-right.
-  shade() {
-    const k = this.kind;
-    const out = new Uint8ClampedArray(this.rgb);
-    const edge = (i) => k[i] !== 2;
-    for (let y = 0; y < FH; y++) {
-      for (let x = 0; x < FW; x++) {
+  // The one-pixel outline around the current mask.
+  outline() {
+    if (!this.bbox) return;
+    const [bx0, by0, bx1, by1] = this.bbox;
+    const m = this.mask;
+    for (let y = Math.max(0, by0 - 1); y <= Math.min(FH - 1, by1 + 1); y++) {
+      for (let x = Math.max(0, bx0 - 1); x <= Math.min(FW - 1, bx1 + 1); x++) {
         const i = y * FW + x;
-        if (k[i] !== 2) continue;
-        const c = [this.rgb[i * 3], this.rgb[i * 3 + 1], this.rgb[i * 3 + 2]];
-        let t = null;
-        if ((y > 0 && edge(i - FW)) || (x > 0 && edge(i - 1))) t = tone(c, 0.22);
-        else if ((y < FH - 1 && edge(i + FW)) || (x < FW - 1 && edge(i + 1))) t = tone(c, -0.22);
-        if (t) {
-          out[i * 3] = t[0];
-          out[i * 3 + 1] = t[1];
-          out[i * 3 + 2] = t[2];
+        if (m[i]) continue;
+        const near = (x > 0 && m[i - 1]) || (x < FW - 1 && m[i + 1]) || (y > 0 && m[i - FW]) || (y < FH - 1 && m[i + FW]);
+        if (near) this.set(i, OUTLINE, 1, 0);
+      }
+    }
+  }
+
+  // Fill the current mask with a colour as a fill of `part`.
+  fill(rgb, part = 0, kind = 2) {
+    if (!this.bbox) return;
+    const [bx0, by0, bx1, by1] = this.bbox;
+    const m = this.mask;
+    for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) {
+      const i = y * FW + x;
+      if (m[i]) this.set(i, rgb, kind, part);
+    }
+  }
+
+  set(i, rgb, kind, part) {
+    this.rgb[i * 3] = rgb[0];
+    this.rgb[i * 3 + 1] = rgb[1];
+    this.rgb[i * 3 + 2] = rgb[2];
+    this.kind[i] = kind;
+    this.part[i] = part;
+  }
+
+  px(x, y, rgb, kind = 3) {
+    x = Math.round(x);
+    y = Math.round(y);
+    if (x < 0 || y < 0 || x >= FW || y >= FH) return;
+    this.set(y * FW + x, rgb, kind, 0);
+  }
+
+  // ---- one-call shapes ----
+
+  capsule(x0, y0, x1, y1, r, rgb, { outline = true, part = 0 } = {}) {
+    this.begin();
+    this.addCapsule(x0, y0, x1, y1, r);
+    if (outline) this.outline();
+    this.fill(rgb, part);
+  }
+
+  ellipse(cx, cy, rx, ry, rgb, { outline = true, part = 0 } = {}) {
+    this.begin();
+    this.addEllipse(cx, cy, rx, ry);
+    if (outline) this.outline();
+    this.fill(rgb, part);
+  }
+
+  poly(points, rgb, { outline = true, part = 0 } = {}) {
+    this.begin();
+    this.addPoly(points);
+    if (outline) this.outline();
+    this.fill(rgb, part);
+  }
+
+  // Habbo shading: each part is flat on the lit side and one tone darker on
+  // the right-hand share of every row it occupies. Light from the upper left.
+  shade() {
+    const out = new Uint8ClampedArray(this.rgb);
+    for (let y = 0; y < FH; y++) {
+      let x = 0;
+      while (x < FW) {
+        const i = y * FW + x;
+        if (this.kind[i] !== 2) { x++; continue; }
+        const part = this.part[i];
+        let x1 = x;
+        while (x1 + 1 < FW && this.kind[y * FW + x1 + 1] === 2 && this.part[y * FW + x1 + 1] === part) x1++;
+        const run = x1 - x + 1;
+        const dark = Math.floor(run * SHADE_SHARE);
+        for (let k = x1 - dark + 1; k <= x1; k++) {
+          const j = y * FW + k;
+          const t = tone([this.rgb[j * 3], this.rgb[j * 3 + 1], this.rgb[j * 3 + 2]], -SHADE_TONE);
+          out[j * 3] = t[0];
+          out[j * 3 + 1] = t[1];
+          out[j * 3 + 2] = t[2];
         }
+        x = x1 + 1;
       }
     }
     this.rgb = out;
@@ -235,6 +284,9 @@ class Frame {
     ctx.putImageData(img, ox, oy);
   }
 }
+
+const SHADE_SHARE = 0.4; // of each row run that is in shadow
+const SHADE_TONE = 0.16; // how much darker
 
 function convexHull(pts) {
   const p = [...pts].sort((a, b) => a.x - b.x || a.y - b.y);
@@ -266,7 +318,7 @@ function restPose() {
     bob: 0, // body down by this many px
     lean: 0, // whole upper body forward by this many body units
     armPitch: [0, 0], // [left, right]
-    armOut: [0, 0], // lateral spread
+    armOut: [1.5, 1.5], // lateral spread: hands hang beside the hips, not over them
     stride: [0, 0], // [left, right] forward offsets of the feet
     lift: [0, 0], // knee lift in height units
     headD: 0, // head forward
@@ -415,6 +467,9 @@ function col(garment, i = 0, fallback = "#888") {
 
 // ---- drawing one frame ----
 
+// Part ids, for the shading pass.
+const PART = { legL: 1, legR: 2, torso: 3, armL: 4, armR: 5, head: 6, hair: 7, bag: 8, hat: 9 };
+
 function drawFrame(frame, spec, facing, anim, i) {
   const F = facingVectors(facing);
   const p = pose(spec.variant, anim, i, spec.holding);
@@ -431,38 +486,52 @@ function drawFrame(frame, spec, facing, anim, i) {
     const q = project(F, pt[0], pt[1], pt[2]);
     return { x: FEET_X + q.x, y: FEET_Y + q.y, depth: q.depth };
   };
-  const facingViewer = F.fy > -0.35; // the face shows
+  // The face is drawn front-on (Stardew, Habbo): both eyes toward the viewer,
+  // one eye from the side, none from behind.
+  const faceFront = F.fy > 0.3;
+  const faceSide = !faceFront && F.fy > -0.3;
   const parts = [];
   const add = (depth, draw) => parts.push({ depth, draw });
+  const along = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
 
-  // Legs: hip to foot, a foot block, breeches, boots.
-  const leg = (hip, foot, side) => {
-    const a = P(hip);
+  // Legs: each leg is one outlined shape, thigh to foot; breeches, undies,
+  // and boots are colour on it, never more outline (docs/02, 2026-10-10:
+  // no Michelin rolls).
+  const leg = (hip, foot, side, part) => {
+    const top = [hip[0], hip[1], hip[2] + 2]; // starts inside the torso
+    const a = P(top);
     const b = P(foot);
+    const fb = P([foot[0], foot[1] + 1.5, foot[2]]);
     const depth = (a.depth + b.depth) / 2 + 0.001 * side;
     add(depth, () => {
       const legs = outfit.legs;
-      frame.capsule(a.x, a.y, b.x, b.y, B.legR, paint(legs ? col(legs) : skin));
-      if (!legs) {
-        // Undies: the top third of each leg.
-        const t = 0.38;
-        frame.capsule(a.x, a.y, a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, B.legR, under, { outline: false });
-      }
       const feet = outfit.feet;
-      const fb = P([foot[0], foot[1] + 1.5, foot[2]]);
+      frame.begin();
+      frame.addCapsule(a.x, a.y, b.x, b.y, B.legR);
+      frame.addEllipse(fb.x, fb.y + 1, B.footRx, B.footRy);
+      frame.outline();
+      frame.fill(paint(legs ? col(legs) : skin), part);
+      if (!legs) {
+        const u = along(a, b, 0.4);
+        frame.capsule(a.x, a.y, u.x, u.y, B.legR, paint(under), { outline: false, part });
+      }
       if (feet) {
-        const t = 0.6;
-        frame.capsule(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, b.x, b.y, B.legR + 0.3, paint(col(feet)));
-        frame.ellipse(fb.x, fb.y + 1, B.footRx, B.footRy, paint(col(feet)));
+        const u = along(a, b, 0.62);
+        frame.capsule(u.x, u.y, b.x, b.y, B.legR, paint(col(feet)), { outline: false, part });
+        frame.ellipse(fb.x, fb.y + 1, B.footRx, B.footRy, paint(col(feet)), { outline: false, part });
+        // The boot's top, one darker row.
+        const cuff = tone(col(feet), -0.35);
+        frame.capsule(u.x, u.y, u.x, u.y, B.legR - 0.4, paint(cuff), { outline: false, part });
       } else {
-        frame.ellipse(fb.x, fb.y + 1, B.footRx - 0.5, B.footRy, skin);
+        frame.ellipse(fb.x, fb.y + 1, B.footRx - 0.5, B.footRy, paint(tone(skin, -0.12)), { outline: false, part });
       }
     });
   };
-  leg(J.hipL, J.footL, -1);
-  leg(J.hipR, J.footR, 1);
+  leg(J.hipL, J.footL, -1, PART.legL);
+  leg(J.hipR, J.footR, 1, PART.legR);
 
-  // Torso: the hull of the shoulder and hip corners; a tunic colours it; a belt bands it.
+  // Torso: one outlined hull; a tunic colours it, a second colour runs down
+  // the front, a belt bands the waist.
   const torsoPts = [];
   for (const [l, d, h] of [
     [-B.shoulderL + 1, -B.torsoD, J.shoulderL[2]], [B.shoulderL - 1, -B.torsoD, J.shoulderR[2]],
@@ -470,15 +539,13 @@ function drawFrame(frame, spec, facing, anim, i) {
     [-B.hipL, -B.hipD, J.hip[2] - 2], [B.hipL, -B.hipD, J.hip[2] - 2],
     [-B.hipL, B.hipD, J.hip[2] - 2], [B.hipL, B.hipD, J.hip[2] - 2],
   ]) torsoPts.push(P([l, d + (h > J.hip[2] ? p.lean : p.lean * 0.3), h]));
-  const torsoDepth = P(J.hip).depth * 0 + 0.0005;
-  add(torsoDepth, () => {
+  add(0.0005, () => {
     const chest = outfit.chest;
-    frame.poly(torsoPts, paint(chest ? col(chest) : skin));
-    if (chest && chest.colours && chest.colours.length > 1 && facingViewer) {
-      // A second colour is a tabard or a scarf down the front.
+    frame.poly(torsoPts, paint(chest ? col(chest) : skin), { part: PART.torso });
+    if (chest && chest.colours && chest.colours.length > 1 && faceFront) {
       const top = P([0, B.torsoD + 0.5, J.shoulderL[2] - 1]);
       const bot = P([0, B.hipD + 0.5, J.hip[2] + 2]);
-      frame.capsule(top.x, top.y, bot.x, bot.y, 2, paint(col(chest, 1)), { outline: false });
+      frame.capsule(top.x, top.y, bot.x, bot.y, 2, paint(col(chest, 1)), { outline: false, part: PART.torso });
     }
     const waist = outfit.waist;
     if (waist && !p.lying) {
@@ -487,8 +554,8 @@ function drawFrame(frame, spec, facing, anim, i) {
         band.push(P([l, d + p.lean * 0.3, J.hip[2] + 0.5]));
         band.push(P([l, d + p.lean * 0.3, J.hip[2] + 3]));
       }
-      frame.poly(band, paint(col(waist)), { outline: false });
-      if (facingViewer) {
+      frame.poly(band, paint(col(waist)), { outline: false, part: PART.torso });
+      if (faceFront || faceSide) {
         const buckle = P([0, B.hipD + 0.6, J.hip[2] + 1.8]);
         frame.px(buckle.x, buckle.y, paint(col(waist, 1, "#c8a040")));
       }
@@ -503,93 +570,128 @@ function drawFrame(frame, spec, facing, anim, i) {
     add(c.depth - 0.5, () => {
       const w = big ? 5.5 : 4.5;
       const h = big ? 7 : 5.5;
-      frame.poly([{ x: c.x - w, y: c.y - h + 1 }, { x: c.x + w, y: c.y - h + 1 }, { x: c.x + w + 1, y: c.y - h + 2 }, { x: c.x + w + 1, y: c.y + h - 1 }, { x: c.x + w, y: c.y + h }, { x: c.x - w, y: c.y + h }, { x: c.x - w - 1, y: c.y + h - 1 }, { x: c.x - w - 1, y: c.y - h + 2 }], paint(col(back)));
-      // The flap or the tie across the top.
-      frame.capsule(c.x - w + 1, c.y - h + 3, c.x + w - 1, c.y - h + 3, 1, paint(col(back, 1, "#5a4a3a")), { outline: false });
+      frame.poly([{ x: c.x - w, y: c.y - h + 1 }, { x: c.x + w, y: c.y - h + 1 }, { x: c.x + w + 1, y: c.y - h + 2 }, { x: c.x + w + 1, y: c.y + h - 1 }, { x: c.x + w, y: c.y + h }, { x: c.x - w, y: c.y + h }, { x: c.x - w - 1, y: c.y + h - 1 }, { x: c.x - w - 1, y: c.y - h + 2 }], paint(col(back)), { part: PART.bag });
+      frame.capsule(c.x - w + 1, c.y - h + 3, c.x + w - 1, c.y - h + 3, 1, paint(col(back, 1, "#5a4a3a")), { outline: false, part: PART.bag });
     });
   }
 
-  // Arms: shoulder to hand, a hand, sleeves, gloves.
-  const arm = (sh, hand, side) => {
+  // Arms: one outlined shape from shoulder to hand; the sleeve and the glove
+  // are colour on it.
+  const arm = (sh, hand, side, part) => {
     const a = P(sh);
     const b = P(hand);
     const depth = (a.depth + b.depth) / 2 + 0.002 * side;
     add(depth, () => {
       const chest = outfit.chest;
-      frame.capsule(a.x, a.y, b.x, b.y, B.armR, paint(chest ? col(chest) : skin));
-      if (chest) {
-        // Bare forearm below the sleeve.
-        const t = 0.5;
-        frame.capsule(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, b.x, b.y, B.armR - 0.2, skin);
-      }
       const gloves = outfit.hands;
-      frame.ellipse(b.x, b.y, B.handR, B.handR, paint(gloves ? col(gloves) : skin));
+      frame.begin();
+      frame.addCapsule(a.x, a.y, b.x, b.y, B.armR);
+      frame.addEllipse(b.x, b.y, B.handR, B.handR);
+      frame.outline();
+      frame.fill(skin, part);
+      if (chest) {
+        const u = along(a, b, 0.5);
+        frame.capsule(a.x, a.y, u.x, u.y, B.armR, paint(col(chest)), { outline: false, part });
+      }
+      if (gloves) frame.ellipse(b.x, b.y, B.handR, B.handR, paint(col(gloves)), { outline: false, part });
     });
     return { a, b };
   };
-  const armL = arm(J.shoulderL, J.handL, -1);
-  const armR = arm(J.shoulderR, J.handR, 1);
+  const armL = arm(J.shoulderL, J.handL, -1, PART.armL);
+  const armR = arm(J.shoulderR, J.handR, 1, PART.armR);
 
-  // Head, hair, face, and what sits on the head.
+  // Head: a rounded square, not an egg. Hair is a helmet of its own worn over
+  // it (Michael, 2026-10-10), and any hat replaces it.
   const hc = P(J.head);
+  const SQ = 3; // superellipse exponent: squarer than round
   add(hc.depth + 0.01, () => {
     const head = outfit.head;
     const helm = head && head.shape === "helm";
-    frame.ellipse(hc.x, hc.y, B.headRx, B.headRy, paint(helm ? col(head) : skin));
-    // Hair: a cap over the top, more of the head from behind; long hair reaches the shoulders.
-    if (!helm && look.hairStyle !== "bald") {
-      const fromBehind = F.fy < 0;
-      const cut = hc.y - (fromBehind ? -2 : 2);
-      frame.ellipseCut(hc.x, hc.y, B.headRx, B.headRy, cut, true, hair, { outline: false });
+    frame.begin();
+    frame.addSuper(hc.x, hc.y, B.headRx, B.headRy, SQ);
+    frame.outline();
+    frame.fill(paint(helm ? col(head) : skin), PART.head);
+    const fromBehind = F.fy < -0.3;
+    if (!head && look.hairStyle !== "bald") {
+      // The hair helmet: the top of the head, down the back and sides, with
+      // a straight fringe across the forehead from the front.
+      const fringe = hc.y - 3; // the forehead shows below this
+      const sideW = B.headRx - 2.5;
+      frame.begin();
+      frame.addSuper(hc.x, hc.y - 1, B.headRx + 1, B.headRy + 1, SQ, (px, py) => {
+        if (py <= fringe) return true; // the cap
+        if (fromBehind) return py <= hc.y + 4; // the back of the head
+        if (Math.abs(px - hc.x) >= sideW) return py <= hc.y + 1; // the sides
+        return false;
+      });
       if (look.hairStyle === "long") {
+        // Down to the shoulders at the sides and the back.
         const s0 = P([-B.headRx + 1, -2, J.head[2] - 2]);
         const s1 = P([B.headRx - 1, -2, J.head[2] - 2]);
-        const e0 = P([-B.headRx + 1, -2, J.neck[2] - 4]);
-        const e1 = P([B.headRx - 1, -2, J.neck[2] - 4]);
-        if (P([0, -2, 0]).depth <= 0 || fromBehind) {
-          frame.capsule(s0.x, s0.y, e0.x, e0.y, 2, hair);
-          frame.capsule(s1.x, s1.y, e1.x, e1.y, 2, hair);
-        }
+        const e0 = P([-B.headRx + 1, -2, J.neck[2] - 5]);
+        const e1 = P([B.headRx - 1, -2, J.neck[2] - 5]);
+        frame.addCapsule(s0.x, s0.y, e0.x, e0.y, 2.2);
+        frame.addCapsule(s1.x, s1.y, e1.x, e1.y, 2.2);
+        if (fromBehind) frame.addPoly([{ x: s0.x - 1, y: s0.y }, { x: s1.x + 1, y: s1.y }, { x: e1.x + 1, y: e1.y }, { x: e0.x - 1, y: e0.y }]);
       }
+      frame.outline();
+      frame.fill(paint(hair), PART.hair);
     }
     if (head && !helm) {
       if (head.shape === "hood") {
-        frame.ellipse(hc.x, hc.y - 1, B.headRx + 1, B.headRy + 1.5, paint(col(head)));
+        frame.begin();
+        frame.addSuper(hc.x, hc.y - 1, B.headRx + 1.5, B.headRy + 2, SQ);
         const tip = P([0, -3, J.head[2] + B.headRy + 4]);
-        frame.capsule(hc.x, hc.y - B.headRy, tip.x, tip.y, 2, paint(col(head)));
-        // The face opening.
-        if (facingViewer) {
-          const fo = P([0, 5, J.head[2] - 1]);
-          frame.ellipse(fo.x, fo.y, 5, 5, skin, { outline: false });
+        frame.addCapsule(hc.x, hc.y - B.headRy, tip.x, tip.y, 2);
+        frame.outline();
+        frame.fill(paint(col(head)), PART.hat);
+        if (faceFront || faceSide) {
+          // The face opening.
+          frame.begin();
+          frame.addSuper(hc.x + F.fx * 1.5, hc.y + 1.5, B.headRx - 3.5, B.headRy - 3, SQ);
+          frame.fill(skin, PART.head);
         }
       } else if (head.shape === "cap") {
-        frame.ellipseCut(hc.x, hc.y, B.headRx + 0.5, B.headRy + 0.5, hc.y - 2, true, paint(col(head)));
-        if (facingViewer) {
+        frame.begin();
+        frame.addSuper(hc.x, hc.y - 1, B.headRx + 1, B.headRy + 1, SQ, (px, py) => py <= hc.y - 3);
+        if (faceFront || faceSide) {
           const brim = P([0, B.headRx - 1, J.head[2] + 2]);
-          frame.capsule(brim.x - 3, brim.y, brim.x + 3, brim.y, 1.2, paint(col(head)), { outline: false });
+          frame.addCapsule(brim.x - 3, brim.y, brim.x + 3, brim.y, 1.2);
         }
+        frame.outline();
+        frame.fill(paint(col(head)), PART.hat);
       }
     }
-    // Face: two eyes and a mouth, or three visor slits.
-    if (facingViewer && !p.lying) {
-      const eyes = flash ? WHITE : hexToRgb(look.eyes || "#1c1a22");
+    // The face: whites and pupils, and a small grim mouth. Front-on.
+    if (!p.lying && (faceFront || faceSide)) {
+      const pupil = flash ? WHITE : spec.variant === "zombie" ? [150, 40, 40] : hexToRgb(look.eyes || "#1c1a22");
+      const white = flash ? WHITE : spec.variant === "zombie" ? [200, 200, 170] : [245, 245, 240];
+      const ey = Math.round(hc.y);
+      const shift = Math.round(F.fx * 1.5); // a nudge toward where the figure looks
       if (helm) {
-        for (const l of [-3, 0, 3]) {
-          const s = P([l, B.headRx - 1, J.head[2] + 1]);
-          frame.px(s.x, s.y, OUTLINE);
-          frame.px(s.x, s.y + 1, OUTLINE);
-          frame.px(s.x, s.y - 1, OUTLINE);
+        for (const dx of [-3, 0, 3]) for (const dy of [-1, 0, 1]) frame.px(hc.x + dx + shift, ey + dy, OUTLINE);
+      } else if (faceFront) {
+        for (const side of [-1, 1]) {
+          const ex = Math.round(hc.x) + side * 3 + shift;
+          frame.px(ex, ey, white);
+          frame.px(ex, ey + 1, white);
+          frame.px(ex - side, ey, white);
+          frame.px(ex - side, ey + 1, white);
+          // The pupil on the inner column, looking a touch toward the facing.
+          const px = shift > 0 ? ex - Math.min(side, 0) * 0 + (side < 0 ? 0 : -1) : (side > 0 ? ex - 1 : ex);
+          frame.px(px, ey + 1, pupil);
         }
+        const mx = Math.round(hc.x) + shift;
+        frame.px(mx - 1, ey + 5, tone(skin, -0.4));
+        frame.px(mx, ey + 5, tone(skin, -0.4));
+        if (spec.variant === "zombie") frame.px(mx + 1, ey + 5, tone(skin, -0.4));
       } else {
-        for (const l of [-3, 3]) {
-          const e = P([l, B.headRx - 1, J.head[2] + 1]);
-          frame.px(e.x, e.y, eyes);
-          frame.px(e.x, e.y + 1, eyes);
-          if (spec.variant === "zombie") frame.px(e.x, e.y, [150, 40, 40]);
-        }
-        const m = P([0, B.headRx - 1, J.head[2] - 3]);
-        frame.px(m.x, m.y, tone(skin, -0.45));
-        if (spec.variant === "zombie") frame.px(m.x + 1, m.y, tone(skin, -0.45));
+        // From the side: one eye on the forward edge.
+        const ex = Math.round(hc.x + F.fx * (B.headRx - 4));
+        frame.px(ex, ey, white);
+        frame.px(ex, ey + 1, white);
+        frame.px(ex + Math.sign(F.fx), ey + 1, pupil);
+        frame.px(Math.round(hc.x + F.fx * (B.headRx - 3)), ey + 5, tone(skin, -0.4));
       }
     }
     if (spec.wound && !helm) {
@@ -608,11 +710,8 @@ function drawFrame(frame, spec, facing, anim, i) {
 
   // The joints the renderer needs: hand points in frame pixels, with the
   // forearm direction and whether the hand is in front of the body.
-  // A held item at rest tilts forward from the hand, HELD_TILT degrees off
-  // vertical toward the facing; in a swing it points along the forearm.
-  // The tilt is forward plus a little outward on the hand's own side, so a
-  // torch seen from the front leans away from the body instead of standing
-  // straight up through the face.
+  // A held item at rest tilts forward from the hand and a little outward on
+  // the hand's own side; in a swing it points along the forearm.
   const st = Math.sin((HELD_TILT * Math.PI) / 180);
   const so = Math.sin((HELD_LEAN_OUT * Math.PI) / 180);
   const restAxis = (side) => [F.fx * st + side * F.rx * so, -Math.cos((HELD_TILT * Math.PI) / 180) + (F.fy * st + side * F.ry * so) * ISO];
@@ -656,8 +755,7 @@ export function generateFigure(spec) {
     let colIdx = 0;
     for (const anim of animNames) {
       for (let i = 0; i < ANIMS[anim].frames; i++) {
-        frame.rgb.fill(0);
-        frame.kind.fill(0);
+        frame.clear();
         const j = drawFrame(frame, spec, facing, anim, i);
         const ox = colIdx * FW;
         const oy = row * FH;

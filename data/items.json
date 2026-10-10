@@ -8,7 +8,7 @@
   {"id": "cheese", "name": "Wheel of cheese", "kind": "food", "hunger": 30, "size": [1, 1], "color": "#d8b848", "short": "Cheese"},
   {"id": "waterskin", "name": "Waterskin", "kind": "drink", "capacity": 100, "size": [1, 2], "color": "#7a6a52", "short": "Water"},
   {"id": "hood", "name": "Hood", "kind": "clothing", "wear": "head", "size": [1, 1], "color": "#4a3a30", "short": "Hood", "art": {"shape": "hood", "colours": ["#4a3a30"]}},
-  {"id": "tunic", "name": "Tunic", "kind": "clothing", "wear": "chest", "size": [2, 2], "color": "#8a7a52", "short": "Tunic", "art": {"shape": "tunic", "colours": ["#8a7a52"]}},
+  {"id": "tunic", "name": "Tunic", "kind": "clothing", "wear": "chest", "size": [2, 2], "color": "#c9b98e", "short": "Tunic", "art": {"shape": "tunic", "colours": ["#c9b98e"]}},
   {"id": "gloves", "name": "Gloves", "kind": "clothing", "wear": "hands", "size": [1, 1], "color": "#6a5240", "short": "Gloves", "art": {"shape": "gloves", "colours": ["#6a5240"]}},
   {"id": "breeches", "name": "Breeches", "kind": "clothing", "wear": "legs", "size": [2, 2], "color": "#5a4030", "short": "Brch", "art": {"shape": "breeches", "colours": ["#5a4030"]}},
   {"id": "boots", "name": "Boots", "kind": "clothing", "wear": "feet", "size": [1, 2], "color": "#3a2a1c", "short": "Boots", "art": {"shape": "boots", "colours": ["#3a2a1c"]}},
