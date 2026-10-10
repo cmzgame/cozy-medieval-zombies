@@ -7,7 +7,7 @@ const KEY = "cmz.settings";
 
 export const DEFAULTS = {
   uiScale: "auto", // "auto" or a number: how big the interface is drawn
-  worldScale: "auto", // the zoom: "auto" or a number between view.ZOOM_MIN and ZOOM_MAX
+  worldScale: "auto", // the zoom: "auto" or one of view.ZOOM_LEVELS
   debugCorner: true, // the text in the top-left corner
   zombieAggro: false, // off: the dead wander and ignore you, there to be looked at (Michael, 2026-10-10)
 };
@@ -15,7 +15,7 @@ export const DEFAULTS = {
 // What the settings screen offers, in order.
 export const CHOICES = {
   uiScale: [["auto", "Auto"], [1, "1×"], [1.25, "1.25×"], [1.5, "1.5×"], [1.75, "1.75×"], [2, "2×"], [2.5, "2.5×"], [3, "3×"]],
-  worldScale: [["auto", "Auto"], [1.1, "Widest"], [1.5, "1.5×"], [2, "2×"], [2.7, "Closest"]],
+  worldScale: [["auto", "Auto"], [1.1, "Wide"], [1.8, "Middle"], [2.7, "Close"]],
   debugCorner: [[true, "Shown"], [false, "Hidden"]],
   zombieAggro: [[false, "Off (they ignore you)"], [true, "On (they hunt you)"]],
 };

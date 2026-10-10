@@ -21,13 +21,13 @@ import * as settings from "./settings.js";
 export const BASE_W = 960;
 export const BASE_H = 540;
 
-// Zoom (docs/02, 2026-10-10, late): screen pixels per world pixel, continuous
-// between these, eased toward a target so a jumpy wheel still moves smoothly.
-// Michael asked for about ten percent off either end of 1× to 3×.
-export const ZOOM_MIN = 1.1;
-export const ZOOM_MAX = 2.7;
-export const ZOOM_STEP = 1.18; // per wheel notch, multiplicative
-const ZOOM_EASE = 10; // per second
+// Zoom (docs/02, 2026-10-10, late): screen pixels per world pixel, one of
+// three levels, snapped. A smooth zoom was tried and withdrawn the same
+// night: the world sliding under the cursor spun the player and jerked the
+// view. Wide is the whole-window view, close is a close-up.
+export const ZOOM_LEVELS = [1.1, 1.8, 2.7];
+export const ZOOM_MIN = ZOOM_LEVELS[0];
+export const ZOOM_MAX = ZOOM_LEVELS[ZOOM_LEVELS.length - 1];
 
 export const view = {
   w: BASE_W, // world pixels across the window
@@ -42,8 +42,7 @@ export const view = {
 
 let canvas = null;
 let ui = null;
-let zoom = 1;
-let zoomTarget = 1;
+let zoom = ZOOM_MIN;
 const listeners = new Set();
 
 export function init(canvasEl, uiEl) {
@@ -53,25 +52,30 @@ export function init(canvasEl, uiEl) {
   settings.onChange((key) => {
     if (key === "uiScale") resize();
     if (key === "worldScale") {
-      zoom = zoomTarget = zoomFromSetting();
+      zoom = zoomFromSetting();
       resize();
     }
   });
-  zoom = zoomTarget = zoomFromSetting();
+  zoom = zoomFromSetting();
   resize();
 }
 
-function clampZoom(z) {
-  return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
+// The level nearest a value.
+function nearestLevel(z) {
+  let best = ZOOM_LEVELS[0];
+  for (const l of ZOOM_LEVELS) if (Math.abs(l - z) < Math.abs(best - z)) best = l;
+  return best;
 }
 
 function autoWorldScale(ww, wh) {
   return Math.max(1, Math.floor(Math.min(ww / BASE_W, wh / BASE_H)));
 }
 
+// "auto" is the level nearest the integer scale the window fits: wide on a
+// 1080p window, middle on a 4K one.
 function zoomFromSetting() {
   const ws = settings.get("worldScale");
-  return clampZoom(ws === "auto" ? autoWorldScale(window.innerWidth, window.innerHeight) : Number(ws) || 1);
+  return nearestLevel(ws === "auto" ? autoWorldScale(window.innerWidth, window.innerHeight) : Number(ws) || 1);
 }
 
 // A UI scale that reads on this window: about 85 percent of what the probe
@@ -81,27 +85,28 @@ function autoUiScale(ww, wh) {
   return Math.max(1, Math.round(fit * 0.85 * 4) / 4);
 }
 
-// Nudge the zoom target by whole notches; the easing does the rest.
-export function zoomBy(notches) {
-  zoomTarget = clampZoom(zoomTarget * Math.pow(ZOOM_STEP, notches));
+export function zoomIndex() {
+  return ZOOM_LEVELS.indexOf(nearestLevel(zoom));
 }
 
-export function zoomTargetValue() {
-  return zoomTarget;
-}
-
-// Each frame: ease toward the target. When it settles, the zoom is kept in
-// the world-scale setting so it comes back next run.
-export function update(dt) {
-  if (zoom === zoomTarget) return;
-  const k = Math.min(1, ZOOM_EASE * dt);
-  zoom += (zoomTarget - zoom) * k;
-  if (Math.abs(zoomTarget - zoom) < 0.003) {
-    zoom = zoomTarget;
-    settings.set("worldScale", Math.round(zoom * 100) / 100);
-  }
+// Snap to a level and keep it in the setting.
+export function setZoom(z) {
+  const level = nearestLevel(z);
+  if (level === zoom) return;
+  zoom = level;
+  settings.set("worldScale", level); // the listener above resizes
   resize();
 }
+
+// One level in or out; `wrap` cycles from close back to wide (the Z key).
+export function zoomStep(dir, wrap = false) {
+  let i = zoomIndex() + Math.sign(dir);
+  if (wrap) i = (i + ZOOM_LEVELS.length) % ZOOM_LEVELS.length;
+  else i = Math.max(0, Math.min(ZOOM_LEVELS.length - 1, i));
+  setZoom(ZOOM_LEVELS[i]);
+}
+
+export function update() {}
 
 export function resize() {
   const ww = Math.max(1, window.innerWidth);

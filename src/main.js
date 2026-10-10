@@ -34,7 +34,7 @@ const V = view.view; // the world's size in its own pixels, kept current by view
 const MAP_FILE = "data/maps/square.json";
 const ACTIVE_TILES = 40; // the dead beyond this many tiles from the player do not think
 const CONTAINER_CLOSE_DIST = 2.0; // tiles: an open container closes when you walk away
-const ZOOM_PACE = 0.12; // seconds between wheel notches that count
+const ZOOM_PACE = 0.3; // seconds between wheel steps that count
 const BELT_LIGHT = 0.5; // a lit torch on the belt gives this much of its light (docs/02)
 let lastZoomAt = 0;
 
@@ -156,14 +156,16 @@ function update(dt) {
   if (input.wasPressed("KeyV")) drawAll = !drawAll;
   // The wheel zooms in integer steps, 1× to 3× (docs/02, 2026-10-10 night):
   // down zooms out. The panel's own wheel use (rotating a drag) wins.
+  // Zoom snaps between three levels: Z cycles them, the wheel steps one way
+  // or the other, one step per ZOOM_PACE seconds so a rough wheel's burst is
+  // one step (Michael, 2026-10-10 late).
+  if (input.wasPressed("KeyZ")) view.zoomStep(1, true);
   const wheel = input.takeWheel();
   if (wheel && !panel.isOpen()) {
-    // Paced: a burst of wheel events from a rough mouse is one notch every
-    // ZOOM_PACE seconds; the easing in view.js makes even that smooth.
     const now = performance.now();
     if (now - lastZoomAt >= ZOOM_PACE * 1000) {
       lastZoomAt = now;
-      view.zoomBy(-Math.sign(wheel));
+      view.zoomStep(-Math.sign(wheel));
     }
   }
   if (input.wasPressed("KeyK")) setCutaway(cutaway === "stub" ? "translucent" : "stub");
@@ -234,7 +236,6 @@ function update(dt) {
 
 function render() {
   const r0 = performance.now();
-  view.update(1 / 60); // the zoom eases even while paused
   const scene = {
     w: V.w,
     h: V.h,
@@ -258,7 +259,7 @@ function render() {
     `chunk ${cx},${cy}  room ${playerRoom}${playerRoom > 0 ? (map.roomSealed(map.getRoom(playerRoom)) ? " sealed" : " open") : ""}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `zombies ${zombies.length}  near ${zombies.filter((z) => Math.abs(z.gx - player.gx) <= ACTIVE_TILES && Math.abs(z.gy - player.gy) <= ACTIVE_TILES).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
-    `Tab: bag   C: character   1-4: belt   right-click: actions   Esc: close or pause   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   K: near walls ${cutaway}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
+    `Tab: bag   C: character   1-4: belt   Z: zoom   right-click: actions   Esc: close or pause   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   K: near walls ${cutaway}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
 }
 
 // ---- the panel's handlers: moves that involve a slot know the player ----

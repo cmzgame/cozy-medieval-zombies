@@ -12,7 +12,7 @@ const CONTROLS = [
   ["E", "Nearest action; hold to climb through a window"],
   ["Right-click", "Everything you can do to what is under the cursor"],
   ["Double-click", "Equip, wear, or take off a thing; else move it across"],
-  ["Wheel", "Zoom"],
+  ["Z / wheel", "Zoom: wide, middle, close"],
   ["Tab", "Your bag"],
   ["C", "Your character"],
   ["1 to 4", "Swap a belt slot with your hand"],
