@@ -17,7 +17,8 @@ import * as input from "./input.js";
 import * as map from "./map.js";
 import { getSheet } from "./assets.js";
 import { getItem, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
-import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, addItem, createBag, waterContainers } from "./inventory.js";
+import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
+import { getDef } from "./assets.js";
 import * as grid from "./grid.js";
 import { startClimb, autoWalk, eat, drink } from "./entities/player.js";
 import { showMessage } from "./ui/prompt.js";
@@ -57,11 +58,39 @@ export function takeIn(player, entry) {
 
 // ---- action builders ----
 
+// Wear something lying on the floor: what was in that slot stows, or for a
+// bag drops where you stand.
+function wearAction(entry, tx, ty, player) {
+  const def = getItem(entry.id);
+  const worn = player.worn[def.wear];
+  const name = def.name.toLowerCase();
+  const swap = worn ? (def.wear === "back" ? `Swap bags (drop your ${nameOf(worn).toLowerCase()})` : `Wear ${name} (swap)`) : `Wear ${name}`;
+  return act({
+    kind: "wear",
+    label: swap,
+    tiles: [[tx, ty]],
+    mx: tx,
+    my: ty,
+    perform() {
+      map.takeItem(tx, ty, entry);
+      const old = player.worn[def.wear];
+      if (old) {
+        player.worn[def.wear] = null;
+        if (def.wear === "back" || !stow(player, old)) map.dropItem(tx, ty, old);
+      }
+      player.worn[def.wear] = entry;
+      return true;
+    },
+  });
+}
+
 function itemActions(entry, tx, ty, player) {
   const def = getItem(entry.id);
   const tiles = [[tx, ty]];
+  if (player.carrying) return [];
   if (def.bag) {
-    // A bag on the floor is a container you can also wear (docs/11).
+    // A bag on the floor is a container you can also wear (docs/11), and
+    // pick up into your bag while it is empty (the container rule).
     const bag = ensureBag(entry);
     const out = [act({
       kind: "container",
@@ -75,28 +104,28 @@ function itemActions(entry, tx, ty, player) {
         return true;
       },
     })];
-    const worn = player.worn.back;
-    out.push(act({
-      kind: "wear",
-      label: worn ? `Swap bags (drop your ${nameOf(worn).toLowerCase()})` : `Wear ${def.name.toLowerCase()}`,
-      tiles,
-      mx: tx,
-      my: ty,
-      perform() {
-        map.takeItem(tx, ty, entry);
-        if (player.worn.back) map.dropItem(Math.round(player.gx), Math.round(player.gy), player.worn.back);
-        player.worn.back = entry;
-        return true;
-      },
-    }));
+    out.push(wearAction(entry, tx, ty, player));
+    if (canStoreIn(entry)) out.push(pickUpAction(entry, tx, ty, player, false));
     return out;
   }
+  const out = [];
+  const storable = canStoreIn(entry);
+  out.push(pickUpAction(entry, tx, ty, player, storable));
+  if (def.wear) out.push(wearAction(entry, tx, ty, player));
+  return out;
+}
+
+function pickUpAction(entry, tx, ty, player, simple) {
+  const def = getItem(entry.id);
+  const tiles = [[tx, ty]];
   const fill = entry.fill != null ? ` (${Math.round(entry.fill)}%)` : "";
   const count = entry.count > 1 ? ` (${entry.count})` : "";
-  return [act({
+  const storable = canStoreIn(entry);
+  return act({
     kind: "item",
-    simple: true,
-    label: `Pick up ${def.name}${fill}${count}`,
+    simple: simple && storable,
+    enabled: storable,
+    label: storable ? `Pick up ${def.name}${fill}${count}` : `Pick up ${def.name} (empty it first, or wear it)`,
     tiles,
     mx: tx,
     my: ty,
@@ -119,7 +148,84 @@ function itemActions(entry, tx, ty, player) {
       }
       return true;
     },
-  })];
+  });
+}
+
+// ---- carrying furniture (docs/02, 2026-10-10 late) ----
+// A prop whose sprite says `carry` can be lifted with both hands empty. While
+// carrying you can only walk: no sprint, no actions, no bag, no climb. Put it
+// down on any clear tiles in reach, or with E on the tile you face.
+
+function propName(prop) {
+  return prop.sprite.replace(/_/g, " ");
+}
+
+export function canCarry(prop) {
+  return !!getDef(prop.sprite).carry;
+}
+
+function carryAction(prop, player) {
+  const free = !player.hands.main && !player.hands.off;
+  return act({
+    kind: "carry",
+    label: free ? `Pick up ${propName(prop)}` : `Pick up ${propName(prop)} (needs both hands)`,
+    tiles: prop.tiles,
+    mx: prop.tile[0],
+    my: prop.tile[1],
+    enabled: free && !player.carrying,
+    perform() {
+      if (player.carrying || !(!player.hands.main && !player.hands.off)) return false;
+      map.removeProp(prop);
+      player.carrying = prop;
+      player.auto = null;
+      return true;
+    },
+  });
+}
+
+// Whether the carried prop could stand with its anchor at (tx, ty): every
+// footprint tile clear, walkable, and not under the player.
+export function canPutDown(player, tx, ty) {
+  const prop = player.carrying;
+  if (!prop) return false;
+  const [w, h] = prop.footprint;
+  for (let dy = 0; dy < h; dy++) {
+    for (let dx = 0; dx < w; dx++) {
+      const x = tx + dx;
+      const y = ty + dy;
+      const t = map.tileAt(x, y);
+      if (t.prop || !map.isWalkableTile(x, y)) return false;
+      if (Math.hypot(player.gx - x, player.gy - y) < 0.7) return false;
+    }
+  }
+  return true;
+}
+
+function putDownAction(player, tx, ty, simple = false) {
+  const prop = player.carrying;
+  const ok = canPutDown(player, tx, ty);
+  return act({
+    kind: "putdown",
+    simple,
+    label: ok ? `Put down ${propName(prop)}` : `Put down ${propName(prop)} (no room)`,
+    tiles: [[tx, ty]],
+    range: 1.6,
+    mx: tx,
+    my: ty,
+    enabled: ok,
+    perform() {
+      if (!canPutDown(player, tx, ty)) return false;
+      map.placeProp(prop, tx, ty);
+      player.carrying = null;
+      return true;
+    },
+  });
+}
+
+// The tile in front of the player, for E.
+export function putDownTarget(player) {
+  const [dx, dy] = iso.DIRS[player.facing] || [0, 1];
+  return [Math.round(player.gx + dx), Math.round(player.gy + dy)];
 }
 
 // A container prop's bag, made on first use from its loot table's grid.
@@ -387,7 +493,11 @@ function propRect(prop, tx, ty) {
 }
 
 function propActions(prop, player) {
-  if (prop.container) return containerActions(prop);
+  if (player.carrying) return [];
+  const out = [];
+  if (prop.container) out.push(...containerActions(prop));
+  if (canCarry(prop)) out.push(carryAction(prop, player));
+  if (out.length) return out;
   if (prop.fire && prop.fire.burns) return fireActions(prop, player);
   if (prop.fire && prop.fire.holds) return holderActions({ kind: "post", prop }, player);
   if (prop.wood) return treeActions(prop);
@@ -401,6 +511,12 @@ export function actionsAt(sx, sy, player) {
   const tx = Math.round(g.gx);
   const ty = Math.round(g.gy);
   const out = [];
+  if (player.carrying) {
+    // Only walking and putting the thing down.
+    out.push(putDownAction(player, tx, ty));
+    if (map.isWalkableTile(tx, ty)) out.push(walkAction([tx, ty]));
+    return out;
+  }
   for (const entry of map.itemsAt(tx, ty)) out.push(...itemActions(entry, tx, ty, player));
   // Props: on their tile, or under their sprite in the tiles around (a tall tree).
   const seen = new Set();
@@ -423,6 +539,11 @@ export function actionsAt(sx, sy, player) {
 
 // The nearest simple action within range, for the E key and the prompt.
 export function nearestSimpleAction(player) {
+  if (player.carrying) {
+    const [tx, ty] = putDownTarget(player);
+    const a = putDownAction(player, tx, ty, true);
+    return a.enabled ? a : null;
+  }
   let best = null;
   let bestD = Infinity;
   const consider = (actions) => {
@@ -553,6 +674,11 @@ function nearestOpening(player) {
 // bar, else the nearest simple action with E.
 export function promptFor(player, progress) {
   if (player.climb) return null;
+  if (player.carrying) {
+    const [tx, ty] = putDownTarget(player);
+    const a = putDownAction(player, tx, ty, true);
+    return { label: a.enabled ? `E: ${a.label}` : a.label, mx: tx, my: ty, progress: null, enabled: a.enabled };
+  }
   if (player.action) {
     const a = player.action.action;
     return { label: a.label, mx: a.mx, my: a.my, progress };
@@ -608,6 +734,19 @@ export function updateInteract(player, dt) {
   if (player.climb) {
     keyE.held = 0;
     keyE.consumed = true;
+    return;
+  }
+  if (player.carrying) {
+    // Only E, and only to put it down.
+    if (input.wasPressed("KeyE")) {
+      const a = nearestSimpleAction(player);
+      if (a) startAction(player, a);
+      else showMessage("No room to put it down there.");
+    }
+    keyE.held = 0;
+    keyE.consumed = true;
+    keyB.held = 0;
+    keyB.consumed = true;
     return;
   }
   track(keyE, dt,
@@ -686,10 +825,9 @@ export function itemMenu(player, entry, bag, otherBag) {
     });
   }
   if (otherBag) {
-    const toMine = !mine;
-    const nested = toMine && !!def.bag; // a bag never goes inside a bag
+    const nested = !canStoreIn(entry); // the container rule: only empty containers go in
     out.push({
-      label: mine ? `Store in ${otherBag.container}` : "Take",
+      label: (mine ? `Store in ${otherBag.container}` : "Take") + (nested ? " (empty it first)" : ""),
       enabled: !nested,
       onSelect: () => {
         if (!grid.transfer(bag, otherBag, entry)) showMessage(mine ? "No room in there." : "No room in your bag.");

@@ -53,6 +53,7 @@ All placeholders, plain coloured blocks in their slots. They do nothing yet beyo
 
 - **C** opens the character screen: the doll with its seven slots, the two hand boxes, and the bag column beside it. **Tab** opens the bag alone as before. Escape closes either (docs/10). The cutaway comparison moves from C to **K**.
 - Dragging onto a doll slot checks the item's `wear` word; a wrong slot shows red. Dragging onto an occupied slot swaps if the occupant fits in the bag, else refuses.
+- The one container rule (docs/02, 2026-10-10 late): a bag or a belt goes inside a container only while empty. This replaces "no bag in a bag".
 - The hands are slots like any other (Michael, after play): drag onto a hand to equip, swapping out what was held into the bag or belt; drag out of a hand to the bag, the belt, or the floor. A torch goes in either hand.
 - The screen sits in the centre of the view, laid out as an RPG doll from Michael's drawing: belt top-left, bag top-right, head, chest, legs, feet down the middle, a hand either side, gloves under the main hand; the bottom corners are free for later. The bag column stands to its right, an open container to its left. Tab alone keeps the bag in the top-right corner.
 

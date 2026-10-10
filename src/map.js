@@ -259,6 +259,18 @@ export function takeItem(x, y, entry, layer = 0) {
 
 // Clear a prop from every tile it stands on. Felling a tree is this plus logs
 // on the ground (docs/02: nothing caches a tree anywhere else).
+// Stand a prop (lifted with removeProp) with its anchor at (tx, ty). The
+// footprint keeps its shape; the caller checks the tiles are clear.
+export function placeProp(prop, tx, ty) {
+  const [w, h] = prop.footprint;
+  prop.tile = [tx, ty];
+  prop.tiles = [];
+  for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) prop.tiles.push([tx + dx, ty + dy]);
+  for (const [x, y] of prop.tiles) tileAt(x, y).prop = prop;
+  if (prop.fire) fireProps.add(prop);
+  touch();
+}
+
 export function removeProp(prop) {
   for (const [tx, ty] of prop.tiles) {
     const t = tileAt(tx, ty);

@@ -53,6 +53,7 @@ export function createPlayer(gx, gy) {
     winded: false,
     moving: false,
     dead: false,
+    carrying: null, // a prop lifted in both hands (docs/02); only walking until it is put down
     layer: 0, // the floor the player is on; always 0 for now (docs/08)
     climb: null, // { from, to, t } while climbing through a window
     hands: createHands(), // { main, off }: entries (docs/11, items.js)
@@ -79,6 +80,7 @@ export function damagePlayer(player, amount) {
 export const CLIMB_TIME = 0.9;
 
 export function startClimb(player, win) {
+  if (player.carrying) return;
   player.climb = { from: [player.gx, player.gy], to: [win.to[0], win.to[1]], t: 0 };
   player.moving = false;
   player.sprinting = false;
@@ -221,7 +223,7 @@ export function updatePlayer(player, dt) {
   const wantSprint = input.isDown("ShiftLeft") || input.isDown("ShiftRight");
   if (player.winded && player.stamina >= SPRINT_RECOVER_AT) player.winded = false;
   const anyMovement = player.moving || !!player.auto;
-  player.sprinting = wantSprint && anyMovement && !player.winded && player.stamina > 0;
+  player.sprinting = wantSprint && anyMovement && !player.winded && player.stamina > 0 && !player.carrying;
   if (player.sprinting) {
     player.stamina = Math.max(0, player.stamina - SPRINT_DRAIN * dt);
     if (player.stamina <= 0) player.winded = true;

@@ -89,6 +89,6 @@ The world fills the window at an integer pixel scale and the interface scales on
 - **Dead**, when the player's health reaches zero: the day and hour, and one button back to the title, which reloads the page.
 - The pause menu also carries a disabled **Save game**, a placeholder for the save milestone.
 
-Later the same night: double-click uses a thing (equip, wear, draw, unequip, take off; else across), and Z or the wheel snaps the zoom between wide, middle, and close (1.1×, 1.8×, 2.7×), kept in the world-scale setting (docs/02). The belt takes consumables as well as hand items; its key eats or drinks one. A lit torch on the belt glows at half and is not drawn.
+Later the same night: double-click uses a thing (equip, wear, draw, unequip, take off; else across), and Z or the wheel snaps the zoom between wide, middle, and close (1.1×, 1.8×, 2.7×), kept in the world-scale setting (docs/02). The belt takes consumables as well as hand items; its key eats or drinks one. A lit torch on the belt glows at half and is not drawn. Big furniture (sprites with `carry`) can be picked up with both hands empty and carried, walking only, and put down on clear tiles (docs/02).
 
 Any screen up means the game is paused. Escape steps back: settings or controls to the screen that opened them, pause to the game; the title stays until Play. The Escape chain is therefore: menu, then a screen, then the bag or character screen, then pause.

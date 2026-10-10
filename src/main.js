@@ -105,6 +105,17 @@ function applyDebugCorner() {
 }
 
 function updateInventoryUi() {
+  // Carrying furniture: both hands are full and nothing else happens until it
+  // is down (docs/02). The bag closes if it was open.
+  if (player.carrying) {
+    if (panel.isOpen()) {
+      panel.setOpen(false);
+      openBag = null;
+    }
+    if (input.wasPressed("Tab") || input.wasPressed("KeyC")) showMessage("Your hands are full.");
+    panel.renderInventoryPanel(player, inventory.bagOf(player), null, inventory.beltOf(player));
+    return;
+  }
   // Tab opens the bag; with none worn it opens the character screen instead,
   // with the message (docs/11, check 6). C opens the character screen.
   if (input.wasPressed("Tab") || input.wasPressed("KeyC")) {
@@ -312,6 +323,9 @@ function panelHandlers() {
     isItemBag(bag) {
       return bag === inventory.bagOf(player);
     },
+    canStore(entry) {
+      return inventory.canStoreIn(entry);
+    },
     canPlace(entry, slotId) {
       const { kind, key, index } = slotParts(slotId);
       const def = items.getItem(entry.id);
@@ -362,7 +376,7 @@ function panelHandlers() {
     },
     // Drop from a slot into a grid at a cell.
     placeInGrid(entry, from, bag, x, y, rot) {
-      if (items.getItem(entry.id).bag && bag === inventory.bagOf(player)) return;
+      if (!inventory.canStoreIn(entry)) return showMessage("Empty it first, or wear it.");
       detachFrom(entry, from);
       // Taking the bag off the back while dropping into its own grid cannot work.
       if (!bag.items && !bag.cols) return restoreTo(entry, from);

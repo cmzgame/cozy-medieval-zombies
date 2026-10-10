@@ -356,7 +356,7 @@ function updateDrag(clientX, clientY) {
   const def = getItem(drag.entry.id);
   const under = grid.entryAt(at.bag, at.cx, at.cy);
   const merges = !!(def.stack && under && under !== drag.entry && under.id === drag.entry.id && under.count < def.stack);
-  const nested = !!def.bag && !!handlers.isItemBag?.(at.bag); // a bag never goes inside a bag
+  const nested = !(handlers.canStore?.(drag.entry) ?? true); // the container rule: only empty containers go in
   const ok = !nested && (merges || grid.fits(at.bag, drag.entry.id, x, y, drag.rot, drag.entry));
   drag.target = { bag: at.bag, x: merges ? at.cx : x, y: merges ? at.cy : y, ok };
   const hl = at.el.querySelector(".inv-hl");
@@ -413,7 +413,7 @@ function otherBag(bag) {
 function quickMove({ entry, bag }) {
   const to = otherBag(bag);
   if (!to) return;
-  if (!!getItem(entry.id).bag && handlers.isItemBag?.(to)) return handlers.noRoom?.(to === bags.inv);
+  if (!(handlers.canStore?.(entry) ?? true)) return handlers.noRoom?.(to === bags.inv);
   if (!grid.transfer(bag, to, entry)) handlers.noRoom?.(to === bags.inv);
   handlers.changed?.();
   lastSignature = "";

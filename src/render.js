@@ -408,6 +408,8 @@ function entityDrawables(entities, visible, out, drawAll) {
     const f = sheet.frames[name];
     const rect = f ? { x: x - sheet.anchor[0], y: y - sheet.anchor[1], w: f[2], h: f[3] } : null;
     const torch = e.hands && heldFire(e.hands) ? torchHandPoint(e.facing, x, y) : null;
+    const carried = e.carrying || null;
+    const carrySheet = carried ? getSheet(carried.sprite, carried.tiles.length) : null;
     out.push({
       key: (e.gx + e.gy) * 1000 + (e.dead ? 0 : 2),
       kind: "entity",
@@ -418,6 +420,18 @@ function entityDrawables(entities, visible, out, drawAll) {
       emit() {
         const world = [e.gx, e.gy];
         frameQuad(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING }, r.flip);
+        if (carried) {
+          // Each footprint slice at its offset from the anchor, lifted over the head.
+          const [cw, ch] = carried.footprint;
+          let i = 0;
+          for (let dy = 0; dy < ch; dy++) {
+            for (let dx = 0; dx < cw; dx++, i++) {
+              const o = iso.toScreen(e.gx + dx - (cw - 1) / 2, e.gy + dy - (ch - 1) / 2);
+              const cf = carrySheet.frames[`idle_${i}`];
+              frameQuad(carrySheet, `idle_${i}`, Math.round(o.x), Math.round(o.y) - 30, { world, heights: cf ? [cf[3] + 30, cf[3] + 30, 30, 30] : 30, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING });
+            }
+          }
+        }
         if (torch) {
           const [hx, hy] = torch;
           gl.poly([[hx - 1, hy], [hx + 2, hy], [hx + 2, hy + 12], [hx - 1, hy + 12]], gl.rgb(WOOD), { world, flags: gl.FLAG_NOFOG });

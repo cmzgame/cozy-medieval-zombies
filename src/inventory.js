@@ -150,11 +150,27 @@ export function detach(player, entry) {
   return false;
 }
 
+// The one container rule (docs/02, 2026-10-10 late): a container, which is
+// any item with a grid or belt slots, goes inside another container only
+// while it is empty. Wear it or drop it once it holds something.
+export function isContainer(entry) {
+  const d = getItem(entry.id);
+  return !!(d.bag || d.beltSlots);
+}
+
+export function containerEmpty(entry) {
+  return (!entry.bag || entry.bag.items.length === 0) && (!entry.slots || entry.slots.every((s) => !s));
+}
+
+export function canStoreIn(entry) {
+  return !isContainer(entry) || containerEmpty(entry);
+}
+
 // Put an entry somewhere on the player: the bag if it fits, else a free belt
 // slot if it is holdable. Returns where it went, or null.
 export function stow(player, entry) {
   const bag = bagOf(player);
-  if (bag && grid.insert(bag, entry)) return "bag";
+  if (bag && canStoreIn(entry) && grid.insert(bag, entry)) return "bag";
   const belt = beltOf(player);
   if (belt && handFor(entry.id)) {
     const i = belt.indexOf(null);
