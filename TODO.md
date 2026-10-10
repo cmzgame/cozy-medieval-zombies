@@ -28,8 +28,9 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 - **Milestone 3 accepted, 2026-10-10.** Michael: "Tested and working as desired."
 - **Milestone 4, the interface, built 2026-10-10** (`docs/10-interface.md`): the grid inventory on Tab, right-click menus for everything, left-click to walk, E for the nearest simple thing, the health bar, hunger and thirst as moodles, logs and planks as real items with Chop down and Split, the well. Scripted acceptance passed; Michael's play verdict pending.
 - **Michael's notes after play, 2026-10-10:** "It's awesome." Left-click to walk removed (left click stays free for selecting and placing later); Escape closes the menu, then the bag, then pauses and resumes; a log is 2×3 and splits into three 1×3 planks.
+- **Milestone 5, the character, designed 2026-10-10** (`docs/11-character.md`), building: everything is a slot; the belt gives the hotbar, the bag on your back gives the grid; the bag is an item.
 - **Blocked on:** nothing.
-- **Next:** the melee port after the interface.
+- **Next:** the player sprite and customisation conversation Michael wants, then the melee port.
 - **Next:** build Milestone 3 in the order `docs/09` gives, then the melee port. Together they make "a night in the cottage"., with the dead breaking in (doors barred from inside, boards, broken shutters, how the dead get through a door, how slow and loud a climb is). Write its doc first, then build. Then the melee port. Together they make "a night in the cottage". Openings with the dead breaking in and the melee port follow, which together make "a night in the cottage".
 - **Notes:** the debug corner shows the cost of a logic step and the worst step in the last three seconds; a freeze should show up there first. Run `python serve.py 8010` in this repo (the file serves its own folder, so it can be launched from elsewhere). `V` toggles the fog off to compare. Michael plays in the in-app browser pane while work happens, so scripted tests see his inputs.
 - **Notes:** Michael wants to burn this week's credits on this. He likes a pause between phases (docs, then build) and plays in his own browser while work happens. Nothing from either parent is gospel.
@@ -87,6 +88,15 @@ Each step checkable on its own. Michael looks after step 3.
 - [x] Phase 2 (2026-10-09): `gl.js` and the WebGL `render.js` at parity: one atlas, one vertex buffer, one shader; light and ambient and fog textures over the chunks around the camera; holes as uniforms; flat triangles for posts, leaves, brackets; a flame sheet. Old renderer kept as `render-canvas.js` on `G`. About 1 ms of JavaScript a frame against 4 to 5. Michael, mid-build: "MILES better, and I could not produce a single weird polygon bug anymore. Wall shading suddenly feels way more intuitive."
 - [x] Phase 3 (2026-10-09): pools climb walls and trunks (`night.climb`, 56 px); flames flicker in the light from per-source layers summed with weights at upload; `L` cycles debug views of the light, ambient, and fog textures; `night.standingFloor` is the legibility floor (0 until it is needed); `night.linear` false gives the per-cell look.
 - [x] Acceptance, scripted (2026-10-09): day and night smooth with no texture touched; the campfire's light beyond a wall placed from the console drops on the next step and returns when it is removed; the hearth's spill through the window and door comes from the portals and stops with the shutter; several lights in view at once; the light reads the same either side of a chunk edge; sorting unchanged; every lookup takes a layer; pixels crisp with nearest sampling; the four views that broke the Canvas night look right and a bracket torch lights its wall from the base. Accepted by Michael the same night; the Canvas renderer is deleted.
+
+## Milestone 5 — The character (see `docs/11-character.md`)
+
+- [ ] Slot data: hands hold entries; `worn` with seven slots; the belt's slots; a bag entry's grid; items get `wear`, `beltSlots`, `bag`.
+- [ ] The character screen on `C`: the doll, the hand boxes, the bag beside; drag on and off slots; the cutaway comparison moves to `K`.
+- [ ] The hotbar strip and keys 1 to 4.
+- [ ] The bag as an item: drop with contents, open on the floor, wear, swap; no bag means no grid; the Developer Bag from the console.
+- [ ] Starter kit worn; wearables and bags in loot.
+- [ ] Acceptance: the eight checks in `docs/11`.
 
 ## Milestone 4 — The interface (see `docs/10-interface.md`)
 

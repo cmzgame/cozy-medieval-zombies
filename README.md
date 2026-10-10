@@ -32,4 +32,5 @@ Milestone 1, the probe, passed on 2026-10-09: a scrolling chunked map with real 
 | [07-lighting.md](docs/07-lighting.md) | Milestone 2: the clock, light as one function per chunk and room, fire as data, torches that mount, hands, the dead seeing flames. |
 | [08-renderer.md](docs/08-renderer.md) | Milestone 2b: portals as emitters, transmission, the floor field, then a raw WebGL2 renderer and light per pixel. |
 | [09-openings.md](docs/09-openings.md) | Milestone 3: an opening as a stack of boards and a leaf, read from the attacker's side; the dead break in and climb through windows. |
-| [10-interface.md](docs/10-interface.md) | Milestone 4: the grid inventory, right-click menus, click to move, the HUD and moodles, logs and planks as items. |
+| [10-interface.md](docs/10-interface.md) | Milestone 4: the grid inventory, right-click menus, the HUD and moodles, logs and planks as items. |
+| [11-character.md](docs/11-character.md) | Milestone 5: everything is a slot; the worn screen, the belt as the hotbar, the bag as an item on your back. |

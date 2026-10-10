@@ -4,6 +4,16 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-10, later — The character (Michael)
+
+Milestone 5, before combat: the worn screen and a hotbar, designed in `11-character.md`.
+
+- **Everything is a slot, nothing is a pointer.** An item is in one place: a hand, a worn slot, the belt, a bag, a container, or the floor. A held item leaves the bag; this reverses the interface ruling that it stayed in the bag outlined. Michael, on the two readings of a hotbar: a bookmark leaves the sword eating bag cells, a free four-slot strip is storage outside the grid; both rejected.
+- **Carrying capacity is always a worn item.** The belt gives the hotbar its slots (two on a plain belt, four on a good one), and the bag on your back gives the grid. Michael's addition and his reason: if the hotbar ties to wearing a belt, the bag must tie to wearing a bag. Zomboid does the same, but that is not why.
+- **The bag is an item.** You start wearing a small sack; the items belong to it, not to you. Drop it and everything goes with it; open it on the floor like a chest; wear a bigger one and move things over. A bag never goes inside a bag; picking one up with one on offers Swap. No bag on your back means no grid, with a message. A Developer Bag of twelve by eight comes from the console, never loot; bags are not craftable yet.
+- **The hands are drawn on the character screen, never dropped on.** Equip from the item menu or the number keys, which swap a belt slot with its hand.
+- **Worn things do nothing yet** beyond their slot. Hood, tunic, gloves, breeches, boots, belts, bags as plain blocks; the first four are the sprite layers of the next conversation.
+
 ### 2026-10-10 — Openings (Michael)
 
 The milestone after the renderer: the dead get in. Design in `09-openings.md`. **Accepted the same day**: "Tested and working as desired." His first night found four things, fixed: boards drawn by count, the search staying on the searcher's side of the walls, a flame unable to retake a zombie for eight seconds after it saw you, and a stuck pair dropping their path.
