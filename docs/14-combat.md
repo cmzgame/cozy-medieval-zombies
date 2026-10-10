@@ -69,6 +69,23 @@ A `weapon` block on an item:
 
 `range` is tiles from the feet; `arc` degrees of the aim wedge; `swing` is the cooldown in seconds; `knockback` in tiles; `stamina` per swing. `style` names the keyframe set in `data/poses.json`; all of these are `one_handed`. Two-handed styles are a later milestone.
 
+**Every field of a weapon block is a tunable, per item** (Michael, 2026-10-11), live in the console too (`__game.items.getItem("hatchet").weapon.damage = 40`, no reload):
+
+| Field | Meaning | Default if absent |
+|---|---|---|
+| `damage` | health taken per hit | required |
+| `range`, `arc` | the wedge: tiles from the feet, degrees | required |
+| `swing` | seconds between swings | required |
+| `stamina` | cost per swing | required |
+| `knockback` | tiles a hit pushes the zombie | required |
+| `knockbackChance` | chance, 0 to 1, that a hit pushes at all | 1 |
+| `knockdown` | chance, 0 to 1, that a hit floors it (0 also turns off the third-hit floor) | 0.3 |
+| `stagger` | seconds a hit stops it | 0.3 |
+| `multiHit` | `false` makes this weapon hit only the nearest zombie, whatever the setting | true |
+| `style` | the swing's keyframe set | `one_handed` |
+
+Fists and the shove are the same fields in `data/combat.json`, since they belong to no item. The Multi-hit setting (settings screen, on by default) turns multi-hit off for everything; off, a blow and a shove reach only the nearest zombie in the wedge.
+
 New items also need `held` art (a shape for `generateHeld`, or a painted one, below) and `size`, `color`, `short` like every item.
 
 ## The swing: `data/poses.json`
@@ -169,6 +186,8 @@ Aggro on (`settings.set("zombieAggro", true)`), paused, stepped with `loop.advan
 10. A painted held item saved from the editor appears in the hand in sixteen angles and swings with the arm.
 
 ## As built
+
+Weapon fields, shove, and multi-hit (2026-10-11, after Michael's first melee pass): `knockbackChance` and a per-item `stagger` joined the weapon block; fists and the shove moved to `data/combat.json`; the **shove's push was cut to a third (1.6 to 0.53)**, since at 1.6 it threw zombies across the room (the rest of the knockbacks had been cut the same way on his laptop); `multiHit` is a setting (default on) and a per-weapon override, and the shove obeys it.
 
 Step 1, the swing as data (2026-10-11):
 

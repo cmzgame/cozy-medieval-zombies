@@ -15,6 +15,7 @@ import * as iso from "./iso.js";
 import * as items from "./items.js";
 import * as loop from "./loop.js";
 import * as camera from "./camera.js";
+import * as settings from "./settings.js";
 import { emit } from "./events.js";
 import { playAnimation } from "./sprites.js";
 import { aimOrigin } from "./entities/player.js";
@@ -41,7 +42,15 @@ export const WEDGE_TIME = 0.12;
 const TIRED_DAMAGE = 0.5; // a swing at zero stamina still lands, at half
 
 export const FISTS = { damage: 6, range: 0.9, arc: 100, swing: 0.4, knockback: 0.17, stamina: 3, knockdown: 0, style: "one_handed" };
-export const SHOVE = { range: 1.0, arc: 100, knockback: 1.6, stagger: 0.6, knockdown: 0.25, stamina: 5, cooldown: 0.45 };
+export const SHOVE = { range: 1.0, arc: 100, knockback: 0.53, knockbackChance: 1, stagger: 0.6, knockdown: 0.25, stamina: 5, cooldown: 0.45 };
+
+// The numbers that belong to no item, from data/combat.json (fists and the
+// shove). Merged in place, so `weaponOf(player) !== FISTS` keeps working.
+export function setCombatData(data) {
+  if (!data) return;
+  Object.assign(FISTS, data.fists || {});
+  Object.assign(SHOVE, data.shove || {});
+}
 
 let time = 0; // combat's own clock, for the combo window
 const fx = { wedge: null, kick: null };
@@ -55,6 +64,22 @@ export function weaponOf(player) {
 
 export function holdsWeapon(player) {
   return weaponOf(player) !== FISTS;
+}
+
+// The zombies a blow reaches: everything in the wedge, or only the nearest one
+// when multi-hit is off (the setting, or the weapon's own `multiHit: false`).
+function targetsIn(player, weapon, zombies, accept = () => true) {
+  const list = zombies.filter((z) => !z.dead && accept(z) && inWedge(player, weapon, z));
+  const multi = settings.get("multiHit") && weapon.multiHit !== false;
+  if (multi || list.length < 2) return list;
+  const d = (z) => Math.hypot(z.gx - player.gx, z.gy - player.gy);
+  list.sort((a, b) => d(a) - d(b));
+  return [list[0]];
+}
+
+// Whether a blow pushes at all: the weapon's `knockbackChance` (default always).
+function pushes(weapon) {
+  return Math.random() < (weapon.knockbackChance ?? 1);
 }
 
 // What the player cannot swing through: carrying furniture, a climb, a timed
@@ -154,8 +179,7 @@ export function tryAttack(player, zombies) {
   const dir = gridAim(player);
   const hit = [];
   let killed = false;
-  for (const z of zombies) {
-    if (z.dead || !inWedge(player, weapon, z)) continue;
+  for (const z of targetsIn(player, weapon, zombies)) {
     hit.push(z);
     const finisher = isDown(z);
     // The third hit within the window always floors it; fists never do.
@@ -171,7 +195,8 @@ export function tryAttack(player, zombies) {
     const chance = weapon.knockdown ?? KNOCKDOWN_CHANCE;
     const knockdown = !finisher && (combo || Math.random() < chance);
     const amount = Math.round(weapon.damage * (tired ? TIRED_DAMAGE : 1) * (finisher ? FINISHER_MULT : 1));
-    const r = damageZombie(z, amount, { dir: [dir.x, dir.y], knockback: finisher ? 0 : weapon.knockback, knockdown, from: [player.gx, player.gy] });
+    const push = !finisher && pushes(weapon) ? weapon.knockback : 0;
+    const r = damageZombie(z, amount, { dir: [dir.x, dir.y], knockback: push, knockdown, stagger: weapon.stagger, from: [player.gx, player.gy] });
     if (r.killed) killed = true;
   }
   if (hit.length) {
@@ -193,10 +218,9 @@ export function tryShove(player, zombies) {
   fx.wedge = { ttl: WEDGE_TIME, points: wedgePolygon(player, SHOVE) };
   const dir = gridAim(player);
   const hit = [];
-  for (const z of zombies) {
-    if (z.dead || isDown(z) || !inWedge(player, SHOVE, z)) continue;
+  for (const z of targetsIn(player, SHOVE, zombies, (z) => !isDown(z))) {
     hit.push(z);
-    damageZombie(z, 0, { dir: [dir.x, dir.y], knockback: SHOVE.knockback, knockdown: Math.random() < SHOVE.knockdown, stagger: SHOVE.stagger, from: [player.gx, player.gy] });
+    damageZombie(z, 0, { dir: [dir.x, dir.y], knockback: pushes(SHOVE) ? SHOVE.knockback : 0, knockdown: Math.random() < SHOVE.knockdown, stagger: SHOVE.stagger, from: [player.gx, player.gy] });
   }
   emit("shove", { count: hit.length });
   if (hit.length) {

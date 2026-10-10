@@ -540,6 +540,12 @@ async function boot() {
 
   items.loadItems(await assets.loadJson("data/items.json"));
   placement.setBuildData(await assets.loadJson("data/build.json"));
+  // The fists' and the shove's numbers (docs/14); the weapons' are on their items.
+  try {
+    combat.setCombatData(await assets.loadJson("data/combat.json"));
+  } catch (err) {
+    console.warn("No combat.json; using the built-in numbers:", err.message);
+  }
   // The swing's keyframes, as data Michael can edit (docs/14); defaults live in figure.js.
   try {
     figure.setPoses(await assets.loadJson("data/poses.json"));
