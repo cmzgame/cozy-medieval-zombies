@@ -38,7 +38,8 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 - **Fixes, 2026-10-10 late:** right-click on a door or shutter face finds the opening again (the hit test was only the edge's midpoint on the ground, and the face is 72 px tall); the key watchdog (drop a key that stops auto-repeating) was tried against the player walking off on their own and withdrawn within the hour: Windows repeats only the newest key, so it broke diagonals and stranded the player. Held keys now drop on blur, focus, and hidden. The walking-off bug is still not reproduced; cause unknown.
 - **Blocked on:** nothing.
 - **Loose ends:** the walking-straight-up bug (Michael and his brother, cause unknown, watch for when it starts and which direction); Michael's eye on the fractional zoom levels; auto-drinking (question 22); Save game is a disabled placeholder.
-- **Next:** the player sprite and customisation conversation Michael wants, then the melee port.
+- **Milestone 6, the figure, designed 2026-10-10** (`docs/12-figure.md`): the rig, the paper doll, eight facings, the chunky proportion from Michael's references. Awaiting his read before code.
+- **Next:** build Milestone 6 on his go, then the melee port.
 - **Next:** build Milestone 3 in the order `docs/09` gives, then the melee port. Together they make "a night in the cottage"., with the dead breaking in (doors barred from inside, boards, broken shutters, how the dead get through a door, how slow and loud a climb is). Write its doc first, then build. Then the melee port. Together they make "a night in the cottage". Openings with the dead breaking in and the melee port follow, which together make "a night in the cottage".
 - **Notes:** the debug corner shows the cost of a logic step and the worst step in the last three seconds; a freeze should show up there first. Run `python serve.py 8010` in this repo (the file serves its own folder, so it can be launched from elsewhere). `V` toggles the fog off to compare. Michael plays in the in-app browser pane while work happens, so scripted tests see his inputs.
 - **Notes:** Michael wants to burn this week's credits on this. He likes a pause between phases (docs, then build) and plays in his own browser while work happens. Nothing from either parent is gospel.
@@ -96,6 +97,17 @@ Each step checkable on its own. Michael looks after step 3.
 - [x] Phase 2 (2026-10-09): `gl.js` and the WebGL `render.js` at parity: one atlas, one vertex buffer, one shader; light and ambient and fog textures over the chunks around the camera; holes as uniforms; flat triangles for posts, leaves, brackets; a flame sheet. Old renderer kept as `render-canvas.js` on `G`. About 1 ms of JavaScript a frame against 4 to 5. Michael, mid-build: "MILES better, and I could not produce a single weird polygon bug anymore. Wall shading suddenly feels way more intuitive."
 - [x] Phase 3 (2026-10-09): pools climb walls and trunks (`night.climb`, 56 px); flames flicker in the light from per-source layers summed with weights at upload; `L` cycles debug views of the light, ambient, and fog textures; `night.standingFloor` is the legibility floor (0 until it is needed); `night.linear` false gives the per-cell look.
 - [x] Acceptance, scripted (2026-10-09): day and night smooth with no texture touched; the campfire's light beyond a wall placed from the console drops on the next step and returns when it is removed; the hearth's spill through the window and door comes from the portals and stops with the shutter; several lights in view at once; the light reads the same either side of a chunk edge; sorting unchanged; every lookup takes a layer; pixels crisp with nearest sampling; the four views that broke the Canvas night look right and a bracket torch lights its wall from the base. Accepted by Michael the same night; the Canvas renderer is deleted.
+
+## Milestone 6 — The figure (see `docs/12-figure.md`)
+
+- [ ] The rig: joint tables for eight facings and the animations; the body in the chunky proportion with outline and tones.
+- [ ] Layered drawing: the order table; body plus worn slots as a stack of quads.
+- [ ] Garment rules: tunic, breeches, boots, gloves, hood, belt, sack, rucksack; the doll changes the figure live.
+- [ ] Held art at the hand joints: torch, hatchet, plank, log; the torch's light from the joint.
+- [ ] Carry poses and the furniture box from the carry hands.
+- [ ] Zombie outfits and decay.
+- [ ] Customisation parameters; the creation screen if cheap.
+- [ ] Acceptance: the eight checks in `docs/12`.
 
 ## Milestone 5 — The character (see `docs/11-character.md`)
 

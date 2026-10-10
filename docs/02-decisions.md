@@ -4,6 +4,13 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-10 — The figure (Michael)
+
+- **The figure is a paper doll on a small rig, generated.** A naked body in undies, every garment its own sheet on the same frame grid drawn by the same rig code, stacked at draw time in a per-facing order; items held at hand joints; the dead on the same rig. Michael's question was how far dev art can go before commissioning: the answer is the rig, and the commission waits until the rig's numbers are frozen by play. Design in `12-figure.md`.
+- **Eight facings drawn, none mirrored.** Michael: yes if the cost is small; for a generator it is nothing, and the main hand stays on its side. The mirror table remains for an artist who delivers five.
+- **Chunky proportion, from the references.** Michael shared two image-model figures as vibe, not to copy: the head about a third of the height, shoulders no wider than the head, limbs fused to the body with only an outline between, one-pixel outline, two or three tones, accents doing the storytelling. "Habbo for a chonkier figure." The generator aims for those rules, not their detail.
+- **Clothes do nothing yet** still holds; this milestone is how they look.
+
 ### 2026-10-10, late — Containers and carrying (Michael)
 
 - **One container rule: no container goes inside another unless it is empty.** A container is anything with a grid or belt slots: bags, belts, and any small world container that can be picked up later. An empty one rides in your bag like any item; once it holds something you wear it or drop it. Moving things between containers is already there to fix it. This closes question 20 and replaces the "no bag in a bag" rule of docs/11. In the interface: a non-empty container cannot be dragged into a grid, taken from a chest, stored in one, or picked up off the floor into your bag; the labels say "empty it first, or wear it". Clothes and belts on the floor offer Wear as bags do.
