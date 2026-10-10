@@ -94,6 +94,18 @@ Pause with `loop.setPaused(true)` and step with `loop.advance(1/60)`. The cursor
 7. A built wall blocks sight, light, and movement at once (the debug corner's room and sealed readouts agree; light inside a built room dims).
 8. Frame rate unchanged with the ghost showing.
 
+## As built
+
+Step 1, prop mode (2026-10-11), with the places the build had to settle:
+
+- **`canPutDown` and `putDownTarget` moved into `placement.js`** and `interact.js` re-exports them, so the dependency runs one way (interact imports placement) with no import cycle. Callers see no change.
+- **`canPutDown` now also refuses a footprint with a wall between two of its own tiles**, so a bed cannot straddle a wall. E in front gets the same rule.
+- **The prop prompt does not say "Esc cancel".** Escape cannot cancel carrying (the prop stays in the hands), so the green prompt reads `Click to place · R turn · E in front`, and the red one is the reason alone: `Too far` (checked first) or `No room`.
+- **"Escape while carrying does nothing"** means it does not cancel the carry or leave prop mode; Escape with nothing else to close still opens the pause menu, as everywhere.
+- **Reach is measured to the anchor tile**, as written. The footprint is centred on the cursor, so a 2×1 bed's anchor is its left tile.
+- **The ghost also draws a tinted diamond under each footprint tile**, so the footprint reads where the box is dark.
+- **Edge naming (for step 2):** the spec's "top-left" and "top-right" sides are swapped against the iso maths. A tile's `n` edge is its upper-right side on screen (toward the tile above and to the right) and its `w` edge its upper-left side. Edge picking uses the cursor's fractional offset in the tile, not those labels.
+
 ## Tunables
 
 `PLACE_REACH` 1.6 tiles, `BUILD_REACH` 1.6, the costs and seconds in `data/build.json`, the ghost tints in `render.js`.

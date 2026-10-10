@@ -15,6 +15,11 @@ Michael is conserving credits: the scoping is done here, the building by another
 - **Stamina never locks you out of hitting**: at zero a swing lands at half damage.
 - **Not ported now:** the parent's wind-up and lunge (a trial after play), weapon condition, hit locations.
 
+### 2026-10-11, build — Placement step 1 (the building model)
+
+- Escape never cancels a carry; with nothing else open it opens the pause menu as usual. The prop prompt says `Click to place · R turn · E in front`, not "Esc cancel", which the spec's own acceptance list contradicted.
+- A carried prop cannot be put down straddling a wall (this also applies to E). Placement owns `canPutDown`; interact re-exports it.
+
 ### 2026-10-10, night — Goobers, and five pins (Michael, before bed)
 
 - **The figures are goobers, not humans.** Stripped down they are the same small body, deliberately neutral in every way: no sex to the body, undies optional. Gender is only ever inferred from dress, hair, and facial hair, which the editors supply, and the game's own text uses they and them for every figure. The dead are goobers too. Michael: "if you strip em down, goobers." Ruled; written into `00-vision.md` tone rules and `12-figure.md`.

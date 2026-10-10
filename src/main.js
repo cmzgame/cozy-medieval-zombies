@@ -30,6 +30,7 @@ import * as view from "./view.js";
 import * as settings from "./settings.js";
 import * as screens from "./ui/screens.js";
 import * as figure from "./figure.js";
+import * as placement from "./placement.js";
 
 const V = view.view; // the world's size in its own pixels, kept current by view.js
 const MAP_FILE = "data/maps/square.json";
@@ -94,6 +95,7 @@ function setPaused(v) {
 function handleEscape() {
   if (menu.tookEscape()) return;
   if (screens.back()) return;
+  if (placement.cancel()) return;
   if (panel.isOpen()) {
     panel.setOpen(false);
     openBag = null;
@@ -229,6 +231,10 @@ function update(dt) {
   // dead appear outside the view even at the widest zoom (docs/02, the view).
   map.ensureAround(player.gx, player.gy, 3);
   for (const [x, y] of map.takePendingSpawns()) zombies.push(createZombie(x, y));
+  // Placement first: its ghost follows the cursor and a left click that
+  // places is spent before anything else can use it (docs/13).
+  placement.update(player);
+  if (input.mouseLeftPressed() && !menu.tookClick()) placement.tryConfirm(player);
   handleMouse();
   interact.updateInteract(player, dt);
   updatePlayer(player, dt);
@@ -298,6 +304,7 @@ function render() {
     camera: camera.cam,
     drawAll,
     fog: !drawAll,
+    ghost: placement.ghost(),
   };
   if (!glError) drawn = renderScene(scene);
   timing.render = performance.now() - r0;
@@ -548,7 +555,7 @@ async function boot() {
   screens.show("title");
 
   window.__game = {
-    iso, input, loop, assets, events, map, camera, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure,
+    iso, input, loop, assets, events, map, camera, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement,
     render: { night },
     get player() { return player; },
     get zombies() { return zombies; },

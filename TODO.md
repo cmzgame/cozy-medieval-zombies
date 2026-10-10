@@ -109,7 +109,7 @@ Each step checkable on its own. Michael looks after step 3.
 
 ## Milestone 7 — Placement (see `docs/13-placement.md`)
 
-- [ ] `placement.js`, prop mode: the ghost, R turns the footprint, left click places in reach; E in front still works.
+- [x] `placement.js`, prop mode (2026-10-11): the ghost, R turns the footprint, left click places in reach; E in front still works. Tested by script and a real click; Michael's hands-on pass pending.
 - [ ] The build palette on N; `map.canBuildWall`, `buildWall`, `edgeTiles`; edge picking; the wall ghost; the timed build; planks spent; `data/build.json`.
 - [ ] Doors and windows through the same path.
 - [ ] Prompt lines and reasons; Escape order.

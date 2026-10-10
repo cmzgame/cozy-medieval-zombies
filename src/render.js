@@ -322,6 +322,41 @@ function makeWall(wall, edge, tx, ty, vis, stub) {
 
 // ---- props and characters ----
 
+// One slice of a prop's sheet at a tile; `color` tints it (the ghost's green or red).
+function propSlice(sheet, name, f, x, y, tx, ty, flags, color) {
+  const opts = { world: [tx, ty], heights: f ? [f[3], f[3], 0, 0] : 0, flags };
+  if (color) opts.color = color;
+  frameQuad(sheet, name, x, y, opts);
+}
+
+// The placement ghost (docs/13): an overlay in green where the thing may go
+// and red where it may not. It never joins the sort or occlusion lists.
+const GHOST_OK = [0.6, 1, 0.6, 0.55];
+const GHOST_BAD = [1, 0.5, 0.5, 0.55];
+const GHOST_FLAGS = () => gl.FLAG_NOFOG | gl.FLAG_UNLIT;
+
+function emitGhost(ghost) {
+  const tint = ghost.ok ? GHOST_OK : GHOST_BAD;
+  if (ghost.kind === "prop") {
+    const [w, h] = ghost.footprint;
+    const sheet = getSheet(ghost.prop.sprite, w * h);
+    const floor = gl.rgb(ghost.ok ? "#60ff60" : "#ff5050", 0.35);
+    for (let dy = 0; dy < h; dy++) {
+      for (let dx = 0; dx < w; dx++) {
+        const tx = ghost.tx + dx;
+        const ty = ghost.ty + dy;
+        const p = iso.toScreen(tx, ty);
+        const x = Math.round(p.x);
+        const y = Math.round(p.y);
+        // A tinted diamond on the floor so the footprint reads even where the box is dark.
+        gl.poly([[x, y - iso.HH], [x + iso.HW, y], [x, y + iso.HH], [x - iso.HW, y]], floor, { world: [tx, ty], flags: GHOST_FLAGS() });
+        const name = `idle_${dy * w + dx}`;
+        propSlice(sheet, name, sheet.frames[name], x, y, tx, ty, GHOST_FLAGS(), tint);
+      }
+    }
+  }
+}
+
 function propDrawables(tiles, visible, out) {
   for (const [tx, ty] of tiles) {
     const prop = map.tileAt(tx, ty).prop;
@@ -354,7 +389,7 @@ function propDrawables(tiles, visible, out) {
       occluder: false,
       emit() {
         const flags = gl.FLAG_STANDING | (d.occluder ? gl.FLAG_OCCLUDER : 0);
-        frameQuad(sheet, name, x, y, { world: [tx, ty], heights: f ? [f[3], f[3], 0, 0] : 0, flags });
+        propSlice(sheet, name, f, x, y, tx, ty, flags);
         if (flame) frameQuad(sheet, flameName, x, y, { world: [tx, ty], flags: gl.FLAG_UNLIT });
       },
     };
@@ -565,7 +600,7 @@ function buildArea(tiles, visible, drawAll, camGx, camGy) {
 
 let lastLinear = null;
 
-export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true }) {
+export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null }) {
   ensureArea(w, h);
   if (lastLinear !== night.linear) {
     gl.setLightSampling(night.linear);
@@ -587,6 +622,7 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
   const holes = [];
   for (const d of drawables) if (d.occluded && d.rect) holes.push([d.rect.x + d.rect.w / 2, d.rect.y + d.rect.h * 0.45]);
   for (const d of drawables) d.emit();
+  if (ghost) emitGhost(ghost);
 
   const pp = player ? iso.toScreen(player.gx, player.gy) : { x: -9999, y: -9999 };
   gl.end({

@@ -19,6 +19,8 @@ import { getSheet } from "./assets.js";
 import { getItem, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
 import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
 import { getDef } from "./assets.js";
+import { canPutDown, putDownTarget } from "./placement.js";
+import * as placement from "./placement.js";
 import * as grid from "./grid.js";
 import { startClimb, autoWalk, eat, drink } from "./entities/player.js";
 import { showMessage } from "./ui/prompt.js";
@@ -183,23 +185,9 @@ function carryAction(prop, player) {
   });
 }
 
-// Whether the carried prop could stand with its anchor at (tx, ty): every
-// footprint tile clear, walkable, and not under the player.
-export function canPutDown(player, tx, ty) {
-  const prop = player.carrying;
-  if (!prop) return false;
-  const [w, h] = prop.footprint;
-  for (let dy = 0; dy < h; dy++) {
-    for (let dx = 0; dx < w; dx++) {
-      const x = tx + dx;
-      const y = ty + dy;
-      const t = map.tileAt(x, y);
-      if (t.prop || !map.isWalkableTile(x, y)) return false;
-      if (Math.hypot(player.gx - x, player.gy - y) < 0.7) return false;
-    }
-  }
-  return true;
-}
+// Whether the carried prop could stand with its anchor at (tx, ty): the rule
+// lives in placement.js (docs/13), re-exported here for the callers below.
+export { canPutDown, putDownTarget };
 
 function putDownAction(player, tx, ty, simple = false) {
   const prop = player.carrying;
@@ -220,12 +208,6 @@ function putDownAction(player, tx, ty, simple = false) {
       return true;
     },
   });
-}
-
-// The tile in front of the player, for E.
-export function putDownTarget(player) {
-  const [dx, dy] = iso.DIRS[player.facing] || [0, 1];
-  return [Math.round(player.gx + dx), Math.round(player.gy + dy)];
 }
 
 // A container prop's bag, made on first use from its loot table's grid.
@@ -702,6 +684,9 @@ function nearestOpening(player) {
 // bar, else the nearest simple action with E.
 export function promptFor(player, progress) {
   if (player.climb) return null;
+  // Placement first: its ghost carries its own prompt (docs/13).
+  const pp = !player.action ? placement.prompt() : null;
+  if (pp) return pp;
   if (player.carrying) {
     const [tx, ty] = putDownTarget(player);
     const a = putDownAction(player, tx, ty, true);
