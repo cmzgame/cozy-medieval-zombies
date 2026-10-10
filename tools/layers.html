@@ -44,6 +44,7 @@
     <button id="saveGame">Save to game</button>
     <label>From game <select id="styles"><option value="">(pick)</option></select></label>
     <button id="previewBtn">Preview poses</button>
+    <button id="reloadPoses" title="Re-read data/poses.json and redraw">Reload poses</button>
     <span id="status"></span>
   </div>
   <div id="sheets"></div>
@@ -112,6 +113,14 @@
       const zl = variant === "zombie" ? { skin: "#9fbf88", hair: "#3a2a1c", eyes: "#2a1414", under: "#b8b0a0" } : {};
       return { variant, look: { ...look, ...zl, hairStyle }, outfit, wound: null, holding: { main: false, off: false }, partMaps: true };
     }
+
+    // The swing's keyframes (docs/14): the same file the game reads.
+    async function loadPoses() {
+      try {
+        figure.setPoses(await (await fetch("/data/poses.json", { cache: "no-store" })).json());
+      } catch { /* the built-in swing stands */ }
+    }
+    await loadPoses();
 
     function rebuildBackground() {
       bg = figure.generateFigure(specFor(false));
@@ -315,7 +324,8 @@
       const sheet = figure.generateFigure(spec);
       els.preview.innerHTML = "";
       const S = 3;
-      for (const [anim, i] of [["idle", 0], ["walk", 1], ["walk", 3], ["attack", 1], ["attack", 2]]) {
+      const swing = Array.from({ length: sheet.animations.attack.frames }, (_, i) => ["attack", i]);
+      for (const [anim, i] of [["idle", 0], ["walk", 1], ["walk", 3], ...swing]) {
         for (const f of ["s", "sw", "w", "n", "e"]) {
           const fr = sheet.frames[`${anim}_${f}_${i}`];
           const c = document.createElement("canvas");
@@ -424,6 +434,13 @@
     els.mirror.addEventListener("click", mirror);
     els.clear.addEventListener("click", () => { resetLayer(); buildParts(); drawAll(); });
     els.previewBtn.addEventListener("click", preview);
+    document.getElementById("reloadPoses").addEventListener("click", async () => {
+      await loadPoses();
+      rebuildBackground();
+      drawAll();
+      preview();
+      say("Reloaded data/poses.json.");
+    });
     els.saveGame.addEventListener("click", async () => {
       const data = toJson();
       const res = await fetch(`${folder()}/${data.name}.json`, { method: "POST", body: JSON.stringify(data) });

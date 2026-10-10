@@ -120,7 +120,7 @@ Each step checkable on its own. Michael looks after step 3.
 
 ## Milestone 8 — Melee (see `docs/14-combat.md`)
 
-- [ ] `data/poses.json` and `figure.setPoses`; the editor's Preview and Reload poses.
+- [x] `data/poses.json` and `figure.setPoses`; the editor's Preview and Reload poses (2026-10-11).
 - [ ] Weapons in `items.json`: stick, sword, mace; stats on hatchet and torch; held shapes; loot.
 - [ ] `combat.js`: the wedge, swings on the click, cooldowns, stamina; `damageZombie` with hurt, stagger, knockback, down, finisher, death; left click and Space; `zombieDied`.
 - [ ] Feedback: the wedge drawn, hit-stop, screen kick.

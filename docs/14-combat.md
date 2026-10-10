@@ -137,6 +137,16 @@ Aggro on (`settings.set("zombieAggro", true)`), paused, stepped with `loop.advan
 9. Changing a pitch in `poses.json` and reloading changes the baked attack frame; Preview poses in the editor shows the same frame.
 10. A painted held item saved from the editor appears in the hand in sixteen angles and swings with the arm.
 
+## As built
+
+Step 1, the swing as data (2026-10-11):
+
+- `data/poses.json` holds the styles; `figure.setPoses` takes them, `figure.js` keeps the same numbers as built-in defaults so a missing file is not fatal, and a style the file lacks keeps its default. `figure.animsFor(spec)` gives each figure its own animation table, so a style may be longer or faster than four frames at twelve: the sheet is laid out from it.
+- A frame is `{ pitch, out, lean, bob }`, with two optional fields the dead use: `offPitch` and `offOut` pose the other arm. `out` is the main hand's lateral offset from its shoulder, absolute (it replaces the rest spread of 1.5), negative across the body.
+- The player's style comes from the main-hand item's `weapon.style` (none yet: `one_handed`), joined to the spec and its key; the dead use `zombie`; an unknown style name falls back.
+- The editor loads the same file, shows every attack frame in Preview poses, and has a Reload poses button.
+- The player's swing now sweeps across the body (the `out` column); the off arm holds its pose instead of the old small motion.
+
 ## Tunables
 
 `POINT_BLANK` 0.55, `BODY_SLACK` 0.8, `STAGGER` 0.3, `KNOCKDOWN_CHANCE` 0.3, `DOWN_TIME` 2, `HIT_STOP` 0.045 and 0.09, the kick 3 px for 80 ms, the shove numbers, `FISTS`, and every weapon block.

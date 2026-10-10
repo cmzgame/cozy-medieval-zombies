@@ -1,0 +1,14 @@
+{
+  "one_handed": { "fps": 12, "activeFrame": 1, "frames": [
+    {"pitch": -110, "out": 4, "lean": 0, "bob": 0},
+    {"pitch": 75, "out": -2, "lean": 2, "bob": 0},
+    {"pitch": 105, "out": -6, "lean": 2.5, "bob": 1},
+    {"pitch": 30, "out": 0, "lean": 1, "bob": 0}
+  ] },
+  "zombie": { "fps": 12, "activeFrame": 1, "frames": [
+    {"pitch": 40, "offPitch": 40, "lean": 0},
+    {"pitch": 95, "offPitch": 90, "lean": 2},
+    {"pitch": 105, "offPitch": 95, "lean": 2.5},
+    {"pitch": 60, "offPitch": 55, "lean": 1}
+  ] }
+}

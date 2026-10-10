@@ -36,6 +36,62 @@ export const ANIMS = {
   carry_walk: { fps: 8, loop: true, frames: 4 },
 };
 
+// ---- the attack keyframes, as data (docs/14) ----
+//
+// data/poses.json, handed in through setPoses() before any sheet is made. A
+// style is { fps, activeFrame, frames: [{ pitch, out, lean, bob, offPitch?,
+// offOut? }] }: `pitch` is the main arm's forward angle (0 hanging, 180 straight
+// up), `out` the main hand's lateral offset from its shoulder (negative
+// across the body), `lean` and `bob` move the body, and `offPitch` and
+// `offOut` pose the other arm when the style needs it (the dead use both).
+// These defaults are what the file holds, so a missing file is not fatal.
+const DEFAULT_POSES = {
+  one_handed: {
+    fps: 12,
+    activeFrame: 1,
+    frames: [
+      { pitch: -110, out: 4, lean: 0, bob: 0 },
+      { pitch: 75, out: -2, lean: 2, bob: 0 },
+      { pitch: 105, out: -6, lean: 2.5, bob: 1 },
+      { pitch: 30, out: 0, lean: 1, bob: 0 },
+    ],
+  },
+  zombie: {
+    fps: 12,
+    activeFrame: 1,
+    frames: [
+      { pitch: 40, offPitch: 40, lean: 0 },
+      { pitch: 95, offPitch: 90, lean: 2 },
+      { pitch: 105, offPitch: 95, lean: 2.5 },
+      { pitch: 60, offPitch: 55, lean: 1 },
+    ],
+  },
+};
+let POSES = DEFAULT_POSES;
+
+// Replace the styles with those in a loaded file; a style the file lacks keeps its default.
+export function setPoses(data) {
+  POSES = { ...DEFAULT_POSES, ...(data || {}) };
+}
+
+export function poseStyles() {
+  return Object.keys(POSES);
+}
+
+// The style a figure's attack uses: the spec's, else the dead's own or the one-handed swing.
+function styleFor(spec) {
+  const fallback = spec.variant === "zombie" ? "zombie" : "one_handed";
+  return spec.style && POSES[spec.style] ? spec.style : fallback;
+}
+
+// The animation table for a figure: the shared one, with the attack taking its
+// speed, active frame, and length from the style, so a style may be longer.
+export function animsFor(spec) {
+  const st = POSES[styleFor(spec)];
+  if (!st || !st.frames || !st.frames.length) return ANIMS;
+  return { ...ANIMS, attack: { ...ANIMS.attack, fps: st.fps ?? ANIMS.attack.fps, activeFrame: st.activeFrame ?? ANIMS.attack.activeFrame, frames: st.frames.length } };
+}
+
 // The chunky proportion (docs/12): the head about a third of the height,
 // shoulders no wider than the head, limbs against the body.
 export const BODY = {
@@ -336,7 +392,7 @@ function restPose() {
 const HOLD_PITCH = 55;
 const HOLD_OUT = 1.5;
 
-function pose(variant, anim, i, holding = { main: false, off: false }) {
+function pose(variant, anim, i, holding = { main: false, off: false }, style = null) {
   const p = restPose();
   const zombie = variant === "zombie";
   const swing = [1, 0, -1, 0][i % 4];
@@ -368,10 +424,13 @@ function pose(variant, anim, i, holding = { main: false, off: false }) {
       }
       break;
     case "attack": {
-      const main = zombie ? [40, 95, 105, 60][i] : [-110, 75, 105, 30][i];
-      const off = zombie ? [40, 90, 95, 55][i] : [10, 15, 10, 5][i];
-      p.armPitch = [off, main];
-      p.lean = [0, 2, 2.5, 1][i];
+      const f = (POSES[style || (zombie ? "zombie" : "one_handed")] || DEFAULT_POSES.one_handed).frames[i];
+      if (f) {
+        p.armPitch = [f.offPitch ?? 0, f.pitch];
+        p.armOut = [f.offOut ?? p.armOut[0], f.out ?? p.armOut[1]];
+        p.lean = f.lean ?? 0;
+        p.bob = f.bob ?? 0;
+      }
       break;
     }
     case "hurt":
@@ -518,7 +577,7 @@ const PART = { legL: 1, legR: 2, torso: 3, armL: 4, armR: 5, head: 6, hair: 7, b
 
 function drawFrame(frame, spec, facing, anim, i) {
   const F = facingVectors(facing);
-  const p = pose(spec.variant, anim, i, spec.holding);
+  const p = pose(spec.variant, anim, i, spec.holding, styleFor(spec));
   const J = joints(p);
   const look = spec.look;
   const outfit = spec.outfit || {};
@@ -880,8 +939,9 @@ export function angleIndex(dir) {
 // spec: { variant: "player" | "zombie", look: { skin, hair, hairStyle, eyes, under },
 //         outfit: { slot: { shape, colours } }, wound: [l, d, hOffset] | null }
 export function generateFigure(spec) {
-  const animNames = Object.keys(ANIMS);
-  const totalFrames = animNames.reduce((n, a) => n + ANIMS[a].frames, 0);
+  const anims = animsFor(spec);
+  const animNames = Object.keys(anims);
+  const totalFrames = animNames.reduce((n, a) => n + anims[a].frames, 0);
   const canvas = document.createElement("canvas");
   canvas.width = FW * totalFrames;
   canvas.height = FH * FACINGS.length;
@@ -893,7 +953,7 @@ export function generateFigure(spec) {
   FACINGS.forEach((facing, row) => {
     let colIdx = 0;
     for (const anim of animNames) {
-      for (let i = 0; i < ANIMS[anim].frames; i++) {
+      for (let i = 0; i < anims[anim].frames; i++) {
         frame.clear();
         const j = drawFrame(frame, spec, facing, anim, i);
         const ox = colIdx * FW;
@@ -911,7 +971,7 @@ export function generateFigure(spec) {
     image: canvas,
     frames,
     anchor: [FEET_X, FEET_Y],
-    animations: ANIMS,
+    animations: anims,
     facings: [...FACINGS],
     mirror: {},
     joints: jointTable,
@@ -1050,7 +1110,7 @@ export function zombieSpec(k) {
 // of item entries and `artOf` gives an item id's garment art.
 // `overrides` names a painted layer per slot to try on regardless of what is
 // worn (the settings screen); otherwise a worn item's `art.painted` names one.
-export function playerSpec(look, worn, artOf, hands = null, overrides = {}) {
+export function playerSpec(look, worn, artOf, hands = null, overrides = {}, style = null) {
   const outfit = {};
   const painted = {};
   for (const slot of ["head", "chest", "hands", "legs", "feet", "waist", "back"]) {
@@ -1063,11 +1123,11 @@ export function playerSpec(look, worn, artOf, hands = null, overrides = {}) {
   const fullLook = { ...DEFAULT_LOOK, ...look };
   painted.hair = getLayer("hair", fullLook.hairStyle);
   const holding = { main: !!(hands && hands.main), off: !!(hands && hands.off) };
-  return { variant: "player", look: fullLook, outfit, wound: null, holding, painted };
+  return { variant: "player", look: fullLook, outfit, wound: null, holding, painted, style };
 }
 
 // A key that changes when the drawing would.
 export function specKey(spec) {
   const names = spec.painted ? Object.fromEntries(Object.entries(spec.painted).map(([k, v]) => [k, v ? v.name : null])) : null;
-  return JSON.stringify([spec.variant, spec.look, spec.outfit, spec.wound, spec.holding, names, layersVersion]);
+  return JSON.stringify([spec.variant, spec.look, spec.outfit, spec.wound, spec.holding, names, layersVersion, spec.style || null]);
 }

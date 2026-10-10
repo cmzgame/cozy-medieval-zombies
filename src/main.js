@@ -223,7 +223,10 @@ async function loadPaintedHair() {
 // (docs/12): a few milliseconds, redrawn into the atlas in place.
 let figureKey = "";
 function refreshFigure() {
-  const spec = figure.playerSpec(player.look, player.worn, (id) => items.getItem(id).art || null, player.hands, settings.get("paintedLayers") || {});
+  // The swing's keyframe set follows the weapon in the main hand (docs/14).
+  const mainDef = player.hands.main && items.getItem(player.hands.main.id);
+  const style = (mainDef && mainDef.weapon && mainDef.weapon.style) || null;
+  const spec = figure.playerSpec(player.look, player.worn, (id) => items.getItem(id).art || null, player.hands, settings.get("paintedLayers") || {}, style);
   const key = figure.specKey(spec);
   if (key === figureKey) return;
   figureKey = key;
@@ -527,6 +530,12 @@ async function boot() {
 
   items.loadItems(await assets.loadJson("data/items.json"));
   placement.setBuildData(await assets.loadJson("data/build.json"));
+  // The swing's keyframes, as data Michael can edit (docs/14); defaults live in figure.js.
+  try {
+    figure.setPoses(await assets.loadJson("data/poses.json"));
+  } catch (err) {
+    console.warn("No poses.json; using the built-in swing:", err.message);
+  }
   items.loadLoot(await assets.loadJson("data/loot.json"));
   await loadPaintedHair();
   const json = await assets.loadJson(MAP_FILE);
