@@ -43,7 +43,7 @@ export const BODY = {
   shoulder: 28,
   neck: 30,
   head: 38, // centre; the top of the head is at about 48, so the head is two fifths of the height
-  headRx: 10,
+  headRx: 8.5, // narrower than tall (Michael: too wide read as a scared frog)
   headRy: 9.5,
   shoulderL: 8, // lateral offsets; the shoulders stay inside the head's width
   hipL: 7,
@@ -254,6 +254,7 @@ class Frame {
         const i = y * FW + x;
         if (this.kind[i] !== 2) { x++; continue; }
         const part = this.part[i];
+        if (part === NO_SHADE) { x++; continue; } // the face stays flat
         let x1 = x;
         while (x1 + 1 < FW && this.kind[y * FW + x1 + 1] === 2 && this.part[y * FW + x1 + 1] === part) x1++;
         const run = x1 - x + 1;
@@ -287,6 +288,7 @@ class Frame {
 
 const SHADE_SHARE = 0.4; // of each row run that is in shadow
 const SHADE_TONE = 0.16; // how much darker
+const NO_SHADE = 6; // PART.head: shading across a face reads as a smudge
 
 function convexHull(pts) {
   const p = [...pts].sort((a, b) => a.x - b.x || a.y - b.y);
@@ -502,7 +504,10 @@ function drawFrame(frame, spec, facing, anim, i) {
     const a = P(top);
     const b = P(foot);
     const fb = P([foot[0], foot[1] + 1.5, foot[2]]);
-    const depth = (a.depth + b.depth) / 2 + 0.001 * side;
+    // The legs always draw under the torso (the shirt covers the pants,
+    // Michael 2026-10-10), the nearer leg over the farther.
+    const raw = (a.depth + b.depth) / 2;
+    const depth = Math.min(raw, 0) - 0.003 + raw * 0.0001;
     add(depth, () => {
       const legs = outfit.legs;
       const feet = outfit.feet;
@@ -533,11 +538,12 @@ function drawFrame(frame, spec, facing, anim, i) {
   // Torso: one outlined hull; a tunic colours it, a second colour runs down
   // the front, a belt bands the waist.
   const torsoPts = [];
+  const hem = outfit.chest ? 5 : 2; // a tunic hangs below the hips over the legs
   for (const [l, d, h] of [
     [-B.shoulderL + 1, -B.torsoD, J.shoulderL[2]], [B.shoulderL - 1, -B.torsoD, J.shoulderR[2]],
     [-B.shoulderL + 1, B.torsoD, J.shoulderL[2]], [B.shoulderL - 1, B.torsoD, J.shoulderR[2]],
-    [-B.hipL, -B.hipD, J.hip[2] - 2], [B.hipL, -B.hipD, J.hip[2] - 2],
-    [-B.hipL, B.hipD, J.hip[2] - 2], [B.hipL, B.hipD, J.hip[2] - 2],
+    [-B.hipL, -B.hipD, J.hip[2] - hem], [B.hipL, -B.hipD, J.hip[2] - hem],
+    [-B.hipL, B.hipD, J.hip[2] - hem], [B.hipL, B.hipD, J.hip[2] - hem],
   ]) torsoPts.push(P([l, d + (h > J.hip[2] ? p.lean : p.lean * 0.3), h]));
   add(0.0005, () => {
     const chest = outfit.chest;
@@ -615,14 +621,20 @@ function drawFrame(frame, spec, facing, anim, i) {
     if (!head && look.hairStyle !== "bald") {
       // The hair helmet: the top of the head, down the back and sides, with
       // a straight fringe across the forehead from the front.
-      const fringe = hc.y - 3; // the forehead shows below this
-      const sideW = B.headRx - 2.5;
+      // The cap's mass sits toward the back of the head, so it turns with the
+      // face; its edge curves down from a high centre so the forehead shows
+      // and the sides stay thin, to the ears.
+      const cxh = hc.x - F.fx * 1.5;
+      const rxh = B.headRx + 1;
       frame.begin();
-      frame.addSuper(hc.x, hc.y - 1, B.headRx + 1, B.headRy + 1, SQ, (px, py) => {
-        if (py <= fringe) return true; // the cap
+      frame.addSuper(cxh, hc.y - 1, rxh, B.headRy + 1, SQ, (px, py) => {
+        const u = (px - cxh) / rxh;
+        const fringe = hc.y - 4.5 + u * u * 3.5;
+        if (py <= fringe) return true; // the curved cap
         if (fromBehind) return py <= hc.y + 4; // the back of the head
-        if (Math.abs(px - hc.x) >= sideW) return py <= hc.y + 1; // the sides
-        return false;
+        const forward = (px - hc.x) * F.fx; // positive toward the face
+        if (Math.abs(F.fx) > 0.5) return forward < -1 && py <= hc.y + 2; // from the side: down the back only
+        return Math.abs(px - hc.x) >= B.headRx - 1.5 && py <= hc.y; // from the front: thin sides to the ears
       });
       if (look.hairStyle === "long") {
         // Down to the shoulders at the sides and the back.
@@ -671,27 +683,24 @@ function drawFrame(frame, spec, facing, anim, i) {
       if (helm) {
         for (const dx of [-3, 0, 3]) for (const dy of [-1, 0, 1]) frame.px(hc.x + dx + shift, ey + dy, OUTLINE);
       } else if (faceFront) {
+        // Two eyes, two wide and three tall, whites with the pupil low on
+        // the inner column. No mouth (Michael, 2026-10-10).
         for (const side of [-1, 1]) {
-          const ex = Math.round(hc.x) + side * 3 + shift;
-          frame.px(ex, ey, white);
-          frame.px(ex, ey + 1, white);
-          frame.px(ex - side, ey, white);
-          frame.px(ex - side, ey + 1, white);
-          // The pupil on the inner column, looking a touch toward the facing.
-          const px = shift > 0 ? ex - Math.min(side, 0) * 0 + (side < 0 ? 0 : -1) : (side > 0 ? ex - 1 : ex);
-          frame.px(px, ey + 1, pupil);
+          const outer = Math.round(hc.x) + side * 3 + shift;
+          const inner = outer - side;
+          for (let dy = -1; dy <= 1; dy++) {
+            frame.px(outer, ey + dy, white);
+            frame.px(inner, ey + dy, white);
+          }
+          frame.px(inner, ey, pupil);
+          frame.px(inner, ey + 1, pupil);
         }
-        const mx = Math.round(hc.x) + shift;
-        frame.px(mx - 1, ey + 5, tone(skin, -0.4));
-        frame.px(mx, ey + 5, tone(skin, -0.4));
-        if (spec.variant === "zombie") frame.px(mx + 1, ey + 5, tone(skin, -0.4));
       } else {
         // From the side: one eye on the forward edge.
         const ex = Math.round(hc.x + F.fx * (B.headRx - 4));
-        frame.px(ex, ey, white);
-        frame.px(ex, ey + 1, white);
+        for (let dy = -1; dy <= 1; dy++) frame.px(ex, ey + dy, white);
+        frame.px(ex + Math.sign(F.fx), ey, pupil);
         frame.px(ex + Math.sign(F.fx), ey + 1, pupil);
-        frame.px(Math.round(hc.x + F.fx * (B.headRx - 3)), ey + 5, tone(skin, -0.4));
       }
     }
     if (spec.wound && !helm) {
