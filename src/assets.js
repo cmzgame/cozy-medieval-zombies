@@ -59,6 +59,7 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
       image,
       frames: def.frames,
       anchor: def.anchor,
+      bounds: def.bounds, // the visible extent, for occlusion and hit tests (placeholders provide it too)
       animations: def.animations || {},
       facings: def.facings || [],
       mirror: def.mirror || {},

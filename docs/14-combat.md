@@ -4,35 +4,27 @@ The player hits the dead. One good one-handed swing first, because it serves swo
 
 The parent's lesson is the starting point: `cozy-zombie-game/docs/22-melee.md`, "Melee that lands". Its reasons come along; its numbers are re-decided below. Scoped 2026-10-11 for implementation by another model; "default" marks what Michael may overrule.
 
-## Status, 2026-10-11 (paused for Michael's play-testing)
+## Status, 2026-10-11 (accepted for now)
 
-**Built and script-verified (steps 1 to 4):** the swing as data (`data/poses.json`, with Preview and Reload poses in the layer editor); the weapons (hatchet, torch, new stick, sword, mace, fists) with generated held art; `combat.js` with the wedge hit test, swings that resolve on the click, cooldowns and stamina, the shove; the dead's stagger, knockback, knockdown, finisher, and death; hit-stop, the screen kick, the drawn wedge, and the Show hit shapes setting. Acceptance checks 1 to 8 pass by script and through the real click and Space path; check 9 passes (a changed pitch rebakes the attack frame and the editor shows it).
+**Michael's verdict after the mouse pass: melee "feels good", the swing-target outline "feels great, it makes combat super duper legible", and multi-hit and single-hit "both work as advertised". "We can basically call this good."** Melee is done for the moment except for more weapons, drawn and given stats.
 
-**Needs Michael's hands-on testing, in this order of importance:**
+**Built, tested by script, and played:** the swing as data (`data/poses.json`, with Preview and Reload poses in the layer editor); the weapons (hatchet, torch, stick, sword, mace, fists) with generated held art and every number tunable per item (`damage`, `knockback`, `knockbackChance`, `knockdown`, `stagger`, `multiHit`, and the rest, table below); `combat.js` with the wedge test, swings that resolve on the click, cooldowns and stamina, the shove (push cut to a third), multi-hit as a setting and a per-weapon override; the dead's stagger, knockback, knockdown, finisher, and death; hit-stop, the screen kick, the drawn wedge, Show hit shapes (debug), **Swing targets** (the green outline, for play), and the floating health bar. Acceptance checks 1 to 9 pass; check 10 waits on step 5.
 
-1. **Legibility.** Does every swing that visibly covers a zombie hit it, and none that does not? Turn on Settings, Show hit shapes (and Zombie aggro) and fight in the open, in a doorway, from above and below the dead. Any miss that feels wrong: note where the zombie stood and which samples were green. The knobs are `BODY_HALF_W` 10, `BODY_SAMPLES`, `BODY_SLACK` 0.8, `POINT_BLANK` 0.55 in `combat.js`.
-2. **The swing's look.** The keyframes in `data/poses.json` are a first draft: wind-up, strike sweeping across the body, follow-through, recovery, four frames at 12 fps. Edit, Reload poses in `tools/layers.html`, reload the game. Frame count and speed are in the same file.
-3. **Feel numbers.** Damage, cooldown, stamina cost, knockback, knockdown chances, the hit-stop (45 and 90 ms) and the kick (3 px, 80 ms), the shove. Weapon numbers are blocks in `data/items.json`; the rest are named constants at the top of `combat.js` and `entities/zombie.js`.
-4. **What the dead do when hit.** The hurt flash and stagger, the push, falling, lying, rising after two seconds, the corpse staying. Also that a hit zombie only turns on you when aggro is on.
-5. **The weapons.** `__game.give("sword")` (or hatchet, mace, stick) and double-click it in the bag. Does each read as itself in the hand at every facing, and does the balance of stick, hatchet, sword, and mace feel right?
-6. **Interactions with the other modes.** Left click while placing, building, or removing is the mode's, not a swing; no swing while carrying; Space and clicks with the bag or a screen open.
+**Still open in this milestone:** **step 5, the painted held slot** ("Held item art, painted"): the `held` slot in `tools/layers.html`, `data/held/`, `generateHeldFromPixels`, the server path. It is also how new weapons get drawn, so it comes first below.
 
-**Next after testing, in order:**
+**Weapons backlog, Michael's list of 2026-10-11, in the order the work falls:**
 
-1. Fix and tune what the testing finds; it is the bulk of what is left.
-2. **Step 5, the painted held slot** (see "Held item art, painted"): the `held` slot in `tools/layers.html`, `data/held/`, `generateHeldFromPixels`, the server path. Acceptance check 10. Not started; the generated held art stands until it is.
-3. Run the whole acceptance list once more and tick Milestone 8 in `TODO.md`.
-4. Candidates, none scheduled: the parent's wind-up and lunge for the dead (a trial after play); sounds (there is no audio module); corpses that can be searched (the `body` loot table exists); two-handed styles and weapons; weapon condition; the dead's speed and variety (`02-decisions.md`, question 19); the creation screen and the belt as its own paintable item, which are separate pins.
+1. **Step 5, the painted held slot.** Needed to draw a weapon at all; the generated shapes stand until then.
+2. **More one-handed melee weapons**, drawn and given stats: a block in `data/items.json` and a drawing each. Candidates he has named over time: axe, shovel, club; others as wanted (knife, machete). No code beyond data once step 5 exists.
+3. **Dual wielding: decide, so the game has an answer** (`02-decisions.md`, question 23). Today: an `either` item can sit in each hand (two torches, two sticks), but only the main hand's weapon swings; the off-hand item does nothing in a fight.
+4. **A usable shield** (question 24): the off-hand's natural job, and it competes with the torch for that hand.
+5. **The bow and arrow** (question 25): Michael's favourite weapon in these games and he is picky, so it gets its own design conversation and doc before any code, not a spec-and-build in one go.
+
+**Candidates beyond, none scheduled:** the parent's wind-up and lunge for the dead (a trial); sounds (there is no audio module); searchable corpses (the `body` loot table exists); two-handed styles and weapons; weapon condition; the dead's speed and variety (question 19).
 
 **Known and harmless:** the browser console may show one "connection refused" line from the preview pane itself; every request the game makes returns 200. When scripting tests, stepping the game re-aims the player at the real mouse, so set `player.aim` just before each swing.
 
-**Michael's first pass, 2026-10-11, on a trackpad:** melee works end to end, but a trackpad cannot judge swing feel (timing, the arc, the cursor's pull on aim); **item 3, feel numbers, needs a real mouse pass before it is trusted.** Two notes he could be sure of without one:
-
-- **Knockback punted too far.** Every weapon's `knockback` (and `FISTS`') is now a third of what it was: fists 0.5 → 0.17, torch 0.4 → 0.13, stick 0.6 → 0.2, hatchet and sword 0.8 → 0.27, mace 1.0 → 0.33. `SHOVE`'s 1.6 is untouched; its whole point is the big push. Still a feel number, so still on the list for the mouse pass.
-- **Hitting the downed is already in:** a hit on a downed zombie is a finisher (`isDown(z)`, `combat.js`) — double damage, no knockback, no stagger, landed the normal way (same wedge, same click). Nothing was missing; it just reads the same as any other hit, with no extra tell that it was a finisher. No head-stomping added. If a downed kill still does not feel distinct in play, the fix is a feedback tell (a bigger hit-stop or kick on a finisher), not a new input.
-- **The finisher's tell, built the same day:** a floating health bar over any damaged zombie (`src/ui/zombie-bars.js`, below, "Feedback"). Michael's read: "works, and does tell me a lot." The downed-zombie question is closed by this, not by a new mechanic.
-
-**Paused here, 2026-10-11, until Michael is at his PC with a mouse.** Nothing in items 1, 2, 4, 5, 6 of the testing list was judged on the trackpad and none of it should be trusted until it is; item 3's two trackpad-safe notes (knockback, the health bar) are taken, the rest of it waits too. Pick up by reading this Status block, then play with a mouse in this order: legibility (Show hit shapes on) first, then the swing's look, then the rest of the feel numbers, then the dead's reactions, then the weapons, then the interactions with placement — same list as above, nothing reordered. **Do not resume building melee from this doc without a fresh mouse pass first**; script-verified is not the same as felt right, and everything past knockback and the finisher is still only the former.
+**History of the testing, for the record:** the first pass (2026-10-11, on a trackpad) judged only knockback (cut to a third on every weapon and then the shove) and the finisher's legibility (answered by the health bar); the mouse pass judged the rest and accepted it. The testing list that drove it (legibility, the swing's look, feel numbers, the dead's reactions, the weapons, the interactions with placement) is closed.
 
 ## What exists, and is not to be changed
 
