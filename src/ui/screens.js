@@ -126,6 +126,7 @@ function render() {
         ${settingRow("uiScale", "Interface size")}
         ${settingRow("worldScale", "Zoom")}
         ${settingRow("zombieAggro", "Zombie aggro")}
+        ${settingRow("survival", "Survival")}
         ${settingRow("debugCorner", "Debug corner")}
         <div class="screen-buttons row"><button data-key="__reset" hidden></button>${button("back", "Back")}<button id="settings-reset">Defaults</button></div>
       </div>`;

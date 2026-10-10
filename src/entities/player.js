@@ -10,6 +10,7 @@ import { getSheet } from "../assets.js";
 import { createAnimation, playAnimation, advanceAnimation } from "../sprites.js";
 import { createHands } from "../items.js";
 import { createWorn } from "../inventory.js";
+import * as settings from "../settings.js";
 
 export const PLAYER_SPEED = 3.0; // tiles per second
 export const PLAYER_RADIUS = 0.3;
@@ -115,7 +116,15 @@ export function drink(player, entry) {
   return true;
 }
 
+// Hunger and thirst drain, and kill at zero. The Survival setting turns all
+// of it off (Michael, 2026-10-10 late): off, nothing drains and the needs
+// stay full, so the moodles never show.
 function updateNeeds(player, dt) {
+  if (!settings.get("survival")) {
+    player.hunger = player.maxHunger ?? HUNGER_MAX;
+    player.thirst = player.maxThirst ?? THIRST_MAX;
+    return;
+  }
   player.hunger = Math.max(0, player.hunger - HUNGER_DRAIN * dt);
   player.thirst = Math.max(0, player.thirst - THIRST_DRAIN * dt);
   if (player.hunger <= 0) player.hp = Math.max(0, player.hp - STARVE_DAMAGE * dt);
