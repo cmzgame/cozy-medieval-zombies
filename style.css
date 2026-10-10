@@ -256,12 +256,27 @@ html, body {
   pointer-events: none;
 }
 
+/* The panel covers the UI layer and lets clicks through; its two parts are
+   placed on their own: the bag top-right, the doll dead centre. */
 #inventory {
+  position: absolute;
+  inset: 0;
+  font-size: 13px;
+  pointer-events: none;
+}
+
+#inventory .inv-body {
   position: absolute;
   right: 12px;
   top: 12px;
-  font-size: 13px;
-  pointer-events: none;
+  max-width: calc(100% - 24px);
+}
+
+#inventory .doll-wrap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 
 #inventory .inv-column,
@@ -502,6 +517,15 @@ html, body {
   background: #3a3044;
 }
 
+.screen button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.screen button:disabled:hover {
+  background: #2a2232;
+}
+
 .setting {
   display: flex;
   justify-content: space-between;
@@ -545,26 +569,6 @@ html, body {
 }
 
 /* ---- docs/11: the character screen and the belt ---- */
-/* The character screen sits in the centre of the view; the bag alone (Tab)
-   keeps the top-right corner. */
-#inventory.character {
-  right: auto;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: max-content; /* else the box only gets the right half to grow into and wraps */
-  max-width: 940px;
-}
-
-#inventory.character .inv-body {
-  justify-content: center;
-}
-
-#inventory.character .inv-hint {
-  flex: 0 0 100%;
-  text-align: center;
-}
-
 .doll-grid {
   display: grid;
   grid-template-columns: repeat(5, 38px);

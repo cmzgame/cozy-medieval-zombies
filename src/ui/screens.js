@@ -28,9 +28,12 @@ let root = null;
 let current = null;
 let from = null; // the screen settings or controls return to
 let onChange = () => {};
+let onReload = () => window.location.reload();
+let data = {};
 
 export function initScreens(handlers = {}) {
   onChange = handlers.onChange || onChange;
+  onReload = handlers.onReload || onReload;
   root = document.getElementById("screens");
   root.hidden = true;
   root.addEventListener("click", (e) => {
@@ -51,7 +54,8 @@ export function currentScreen() {
   return current;
 }
 
-export function show(name) {
+export function show(name, extra = {}) {
+  data = extra;
   if (name === "settings" || name === "controls") {
     if (current && current !== "settings" && current !== "controls") from = current;
   } else from = null;
@@ -73,13 +77,14 @@ export function back() {
   if (!current) return false;
   if (current === "settings" || current === "controls") show(from || "pause");
   else if (current === "pause") hide();
-  // The title stays until Play.
+  // The title stays until Play; the dead screen until the title.
   return true;
 }
 
 function go(where) {
   if (where === "play" || where === "resume") hide();
   else if (where === "back") back();
+  else if (where === "reload") onReload();
   else show(where);
 }
 
@@ -109,7 +114,7 @@ function render() {
       <div class="screen">
         <h1>Paused</h1>
         <div class="sub">Esc to resume</div>
-        <div class="screen-buttons">${button("resume", "Resume")}${button("settings", "Settings")}${button("controls", "Controls")}${button("title", "Title screen")}</div>
+        <div class="screen-buttons">${button("resume", "Resume")}<button disabled title="Not yet: saving is planned, not built">Save game</button>${button("settings", "Settings")}${button("controls", "Controls")}${button("title", "Title screen")}</div>
       </div>`;
   } else if (current === "settings") {
     root.innerHTML = `
@@ -118,6 +123,7 @@ function render() {
         <div class="sub">Kept in this browser</div>
         ${settingRow("uiScale", "Interface size")}
         ${settingRow("worldScale", "World pixel scale")}
+        ${settingRow("zombieAggro", "Zombie aggro")}
         ${settingRow("debugCorner", "Debug corner")}
         <div class="screen-buttons row"><button data-key="__reset" hidden></button>${button("back", "Back")}<button id="settings-reset">Defaults</button></div>
       </div>`;
@@ -125,6 +131,13 @@ function render() {
       settings.reset();
       render();
     });
+  } else if (current === "dead") {
+    root.innerHTML = `
+      <div class="screen">
+        <h1>You died</h1>
+        <div class="sub">${data.when || ""}</div>
+        <div class="screen-buttons">${button("reload", "Back to the title")}</div>
+      </div>`;
   } else if (current === "controls") {
     root.innerHTML = `
       <div class="screen screen-wide">

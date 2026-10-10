@@ -25,6 +25,7 @@ const SLOT_NAMES = { head: "Head", chest: "Chest", hands: "Gloves", legs: "Legs"
 
 let root = null;
 let body = null;
+let dollEl = null;
 let hotbar = null;
 let open = false;
 let character = false;
@@ -38,8 +39,12 @@ export function initInventoryPanel(h) {
   handlers = h;
   root = document.getElementById("inventory");
   root.hidden = true;
-  root.innerHTML = `<div class="inv-body"></div>`;
+  // The bag and any open container live in .inv-body, top-right; the doll
+  // lives in .doll-wrap, dead centre, so opening one never moves the other
+  // (Michael, 2026-10-10 night).
+  root.innerHTML = `<div class="inv-body"></div><div class="doll-wrap" hidden></div>`;
   body = root.querySelector(".inv-body");
+  dollEl = root.querySelector(".doll-wrap");
   hotbar = document.createElement("div");
   hotbar.id = "hotbar";
   hotbar.hidden = true;
@@ -92,7 +97,6 @@ export function setOpen(v, { character: c = false } = {}) {
   open = v;
   character = v && c;
   root.hidden = !v;
-  root.classList.toggle("character", character);
   lastSignature = "";
   if (!v) cancelDrag();
 }
@@ -187,10 +191,11 @@ export function renderInventoryPanel(player, inv, container, belt) {
   const sig = JSON.stringify([character, inv?.items, inv?.cols, inv?.rows, container?.container, container?.items, container?.cols, container?.rows, player.worn, player.hands]);
   if (sig === lastSignature) return;
   lastSignature = sig;
-  // The bag sits in the top-right corner; anything opened appears to its left;
-  // the doll to the left of that.
+  // The bag sits in the top-right corner; anything opened appears to its left.
+  // The doll, when the character screen is up, sits in the centre on its own.
+  dollEl.hidden = !character;
+  dollEl.innerHTML = character ? dollHtml(player) : "";
   body.innerHTML =
-    (character ? dollHtml(player) : "") +
     (container ? columnHtml("container", container, capitalize(container.container)) : "") +
     (inv ? columnHtml("inv", inv, capitalize(inv.container)) : `<div class="inv-column inv-nobag">No bag on your back.</div>`) +
     `<div class="inv-hint">Drag to move · R rotates · Shift-click sends across · Right-click for actions</div>`;
@@ -234,7 +239,7 @@ function gridAt(clientX, clientY) {
 
 // Which slot is under a screen point: worn, a hand, or the belt.
 function slotAt(clientX, clientY) {
-  for (const el of [...body.querySelectorAll(".doll-slot"), ...hotbar.querySelectorAll(".hot-slot")]) {
+  for (const el of [...root.querySelectorAll(".doll-slot"), ...hotbar.querySelectorAll(".hot-slot")]) {
     const r = el.getBoundingClientRect();
     if (clientX >= r.left && clientX < r.right && clientY >= r.top && clientY < r.bottom) return { el, id: el.dataset.slot };
   }
@@ -242,7 +247,7 @@ function slotAt(clientX, clientY) {
 }
 
 function overPanel(clientX, clientY) {
-  for (const el of [...body.querySelectorAll(".inv-column"), hotbar]) {
+  for (const el of [...root.querySelectorAll(".inv-column"), hotbar]) {
     const r = el.getBoundingClientRect();
     if (clientX >= r.left && clientX < r.right && clientY >= r.top && clientY < r.bottom) return true;
   }
@@ -312,7 +317,7 @@ function onPointerMove(e) {
 
 function clearHighlights() {
   for (const hl of body.querySelectorAll(".inv-hl")) hl.hidden = true;
-  for (const el of [...body.querySelectorAll(".doll-slot"), ...hotbar.querySelectorAll(".hot-slot")]) el.classList.remove("ok", "bad");
+  for (const el of [...root.querySelectorAll(".doll-slot"), ...hotbar.querySelectorAll(".hot-slot")]) el.classList.remove("ok", "bad");
 }
 
 function updateDrag(clientX, clientY) {

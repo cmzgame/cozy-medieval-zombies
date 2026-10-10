@@ -84,7 +84,9 @@ The world fills the window at an integer pixel scale and the interface scales on
 
 - **Title**, at boot, over the drawn village: Play, Settings, Controls.
 - **Pause**, on Escape with nothing else open: Resume, Settings, Controls, Title screen.
-- **Settings** (`src/settings.js`, kept in the browser): interface size (auto or 1× to 3×), world pixel scale (auto, the largest that fits, or a fixed 1× to 3×), the debug corner. Defaults button. More as Michael asks.
+- **Settings** (`src/settings.js`, kept in the browser): interface size (auto or 1× to 3×), world pixel scale (auto, the largest that fits, or a fixed 1× to 3×), zombie aggro (off by default while the game is a workbench: the dead wander and ignore you), the debug corner. Defaults button. More as Michael asks.
 - **Controls**: the key list.
+- **Dead**, when the player's health reaches zero: the day and hour, and one button back to the title, which reloads the page.
+- The pause menu also carries a disabled **Save game**, a placeholder for the save milestone.
 
 Any screen up means the game is paused. Escape steps back: settings or controls to the screen that opened them, pause to the game; the title stays until Play. The Escape chain is therefore: menu, then a screen, then the bag or character screen, then pause.

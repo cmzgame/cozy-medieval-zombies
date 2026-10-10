@@ -9,6 +9,7 @@ export const DEFAULTS = {
   uiScale: "auto", // "auto" or a number: how big the interface is drawn
   worldScale: "auto", // "auto", 1, 2, or 3: the integer pixel scale of the world
   debugCorner: true, // the text in the top-left corner
+  zombieAggro: false, // off: the dead wander and ignore you, there to be looked at (Michael, 2026-10-10)
 };
 
 // What the settings screen offers, in order.
@@ -16,6 +17,7 @@ export const CHOICES = {
   uiScale: [["auto", "Auto"], [1, "1×"], [1.25, "1.25×"], [1.5, "1.5×"], [1.75, "1.75×"], [2, "2×"], [2.5, "2.5×"], [3, "3×"]],
   worldScale: [["auto", "Auto (largest that fits)"], [1, "1× (most world)"], [2, "2×"], [3, "3×"]],
   debugCorner: [[true, "Shown"], [false, "Hidden"]],
+  zombieAggro: [[false, "Off (they ignore you)"], [true, "On (they hunt you)"]],
 };
 
 const settings = { ...DEFAULTS };

@@ -54,7 +54,6 @@ let tiles = [];
 let visible = new Set();
 let playerRoom = 0;
 let drawAll = false; // debug: V shows everything, fog off
-let deaths = 0;
 let drawn = 0;
 let visKey = null; // player tile and camera tile the visible set was computed for
 let openBag = null; // { bag, tiles, name }: the container open beside yours
@@ -153,12 +152,12 @@ function update(dt) {
     if (Math.abs(z.gx - player.gx) > ACTIVE_TILES || Math.abs(z.gy - player.gy) > ACTIVE_TILES) continue;
     updateZombie(z, dt, player, others);
   }
-  if (player.hp <= 0) {
-    // No death yet: count it and carry on.
-    deaths++;
-    player.hp = player.maxHp;
-    player.hunger = Math.max(player.hunger, 50);
-    player.thirst = Math.max(player.thirst, 50);
+  if (player.hp <= 0 && !player.dead) {
+    // Death (Michael, 2026-10-10 night): the game stops on the dead screen,
+    // and the way back to the title is a fresh load.
+    player.dead = true;
+    events.emit("gameOver", { player });
+    screens.show("dead", { when: clock.getLabel() });
   }
   const px = Math.round(player.gx);
   const py = Math.round(player.gy);
@@ -210,7 +209,7 @@ function render() {
   const hand = (e) => (e ? e.id : "-");
   debugEl.textContent =
     `fps ${loop.getFps()}\n` +
-    `player ${player.gx.toFixed(2)},${player.gy.toFixed(2)} ${player.facing} hp ${Math.ceil(player.hp)} hunger ${Math.round(player.hunger)} thirst ${Math.round(player.thirst)} deaths ${deaths}\n` +
+    `player ${player.gx.toFixed(2)},${player.gy.toFixed(2)} ${player.facing} hp ${Math.ceil(player.hp)} hunger ${Math.round(player.hunger)} thirst ${Math.round(player.thirst)}\n` +
     `${clock.getLabel()} ${clock.getPhase()}  bright ${clock.getBrightness().toFixed(2)}  light@player ${light.lightAt(player.gx, player.gy).toFixed(2)}  hands ${hand(player.hands.main)}/${hand(player.hands.off)}\n` +
     `chunk ${cx},${cy}  room ${playerRoom}${playerRoom > 0 ? (map.roomSealed(map.getRoom(playerRoom)) ? " sealed" : " open") : ""}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
@@ -388,7 +387,7 @@ async function boot() {
   const handlers = panelHandlers();
   panel.initInventoryPanel(handlers);
   // Any screen up means the game is paused; the title is up at boot.
-  screens.initScreens({ onChange: (name) => setPaused(!!name) });
+  screens.initScreens({ onChange: (name) => setPaused(!!name), onReload: () => window.location.reload() });
   events.on("playerHit", ({ damage }) => damagePlayer(player, damage));
   events.on("containerOpened", ({ bag, tiles: where, name }) => {
     openBag = { bag, tiles: where, name };

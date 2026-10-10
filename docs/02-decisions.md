@@ -4,6 +4,13 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-10, night, later — Michael's notes on the screens
+
+- **The bag stays top-right; the character screen is dead centre, on its own.** Opening one never moves the other. Michael did not like the bag shooting across the screen when C followed Tab.
+- **Zombie aggro is a setting, off by default for now.** Off, the dead spawn and wander forever and never notice the player or a flame; they are there to show spawn distribution while things are tested. On, they hunt as before. When the game is a game the default flips; until then this is the workbench.
+- **The dead kill.** The player can die. Death stops the game on a dead screen with the day and hour; the one way out is back to the title, which is a fresh load of the page. A load is fine (the law above). Starvation and thirst kill too, which with aggro off is the only way to die.
+- **Save game** sits on the pause menu, disabled, so it is not forgotten. Saving comes later.
+
 ### 2026-10-10, night — The view, the screens, and a law (Michael)
 
 - **A law: if the game is good, people will sit for a loading screen.** Michael, in his words: never let that squash good ideas, "in the same way I keep letting what I assume the browser can't do (like dynamic lighting) stop me from actually doing things the way I truly want." Written into `docs/00-vision.md` under Laws, where it outranks the pillars.

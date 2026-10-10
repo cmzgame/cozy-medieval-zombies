@@ -7,6 +7,7 @@
 // around it for a while and then give up. Nothing tells them your position
 // through a wall. Noise is deliberately not a factor yet (docs/02).
 
+import * as settings from "../settings.js";
 import * as iso from "../iso.js";
 import { moveCircle, isWalkableTile, canStep, nearestWalkable, tileAt, getRoom, breachTarget, damageOpening, wayOpen, climbable } from "../map.js";
 import { findPath } from "../pathfind.js";
@@ -122,7 +123,7 @@ function faceToward(z, dx, dy) {
 // The range scales with the light on the player (the cozy parent's rule):
 // unlit at night about a third, in a pool or by day the whole of it.
 function canSee(z, player) {
-  if (player.dead) return false;
+  if (player.dead || !settings.get("zombieAggro")) return false;
   const range = ZOMBIE_SIGHT * (SIGHT_DARK_FRACTION + (1 - SIGHT_DARK_FRACTION) * light.lightAt(player.gx, player.gy));
   if (distTo(z, player) > range) return false;
   return lineOfSight(z.gx, z.gy, player.gx, player.gy);
@@ -133,6 +134,7 @@ function canSee(z, player) {
 // A carried torch is a sighting of the player; any other flame is a sighting
 // at the flame, and the memory rule does the rest.
 function nearestFlame(z) {
+  if (!settings.get("zombieAggro")) return null;
   const nf = clock.nightFactor();
   if (nf <= 0) return null;
   const range = FLAME_RANGE * nf;
