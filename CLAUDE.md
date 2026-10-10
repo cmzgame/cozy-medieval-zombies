@@ -17,7 +17,7 @@ Started 2026-10-08 as the marriage of two prototypes, both kept as they are:
 
 ## Docs
 
-`docs/00` vision · `01` what the parents offer · `02` decisions and open questions · `03` world model: chunks · `04` NPCs · `05` someday (never foreclose these cheaply) · `06` art direction and the dev palette · `07` milestone 2: lighting, fire, and the clock · `08` milestone 2b: portals and the WebGL renderer (the world moves from Canvas 2D to raw WebGL2 here; Canvas 2D keeps generating the dev art) · `09` milestone 3: openings, the dead get in · `10` milestone 4: the interface, and the screens · `11` milestone 5: the character, slots, the bag as an item · `12` milestone 6: the figure, the rig and the paper doll · `13` milestone 7: placement, the ghost, building · `14` milestone 8: melee, the swing, held art · `15` the ground (open conversation, not yet a spec; the kit's brief is `15a`).
+`docs/00` vision · `01` what the parents offer · `02` decisions and open questions · `03` world model: chunks · `04` NPCs · `05` someday (never foreclose these cheaply) · `06` art direction and the dev palette · `07` milestone 2: lighting, fire, and the clock · `08` milestone 2b: portals and the WebGL renderer (the world moves from Canvas 2D to raw WebGL2 here; Canvas 2D keeps generating the dev art) · `09` milestone 3: openings, the dead get in · `10` milestone 4: the interface, and the screens · `11` milestone 5: the character, slots, the bag as an item · `12` milestone 6: the figure, the rig and the paper doll · `13` milestone 7: placement, the ghost, building · `14` milestone 8: melee, the swing, held art · `15` milestone 9: the ground, baked per chunk (the kit's brief is `15a`).
 
 ## Borrowing from the parents
 
@@ -37,6 +37,7 @@ These are the current rulings. The list grows as `docs/02-decisions.md` does.
 - The map is stored block by block. Every tile access goes through `tileAt`. A missing chunk is grown on demand: plain floor inside the authored bounds, wild forest with a few of the dead beyond them.
 - Rooms are found by flood fill, never authored. Walls are state on tile edges (`n` and `w` slots, Zomboid style), never objects; a door or a window is a wall with a kind and a state.
 - Windows have shutters, not glass. Closed shutters block sight. Doors start closed and block sight and bodies.
+- The ground is one baked picture per chunk (`docs/15`), drawn as one quad; nothing draws the floor per tile and nothing on the ground plane alternates by tile parity. A floor changes only through `map.setFloor`.
 - Light is one function. Nothing else computes light. Light feeds sight. In the renderer every vertex carries the world point its light is read from; nothing is lit in screen space.
 - Villagers carry no weapons and never fight for the player. They flee, follow, stay, and die.
 - Check `docs/05-someday.md` before a choice that would foreclose something cheaply. Say so before making it.
