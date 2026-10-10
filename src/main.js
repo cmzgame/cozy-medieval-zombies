@@ -37,6 +37,7 @@ const ACTIVE_TILES = 40; // the dead beyond this many tiles from the player do n
 const CONTAINER_CLOSE_DIST = 2.0; // tiles: an open container closes when you walk away
 const ZOOM_PACE = 0.3; // seconds between wheel steps that count
 const BELT_LIGHT = 0.5; // a lit torch on the belt gives this much of its light (docs/02)
+const TWO_TORCHES = 1.35; // a torch in each hand: this much of one torch's light, and seen from this much further
 let lastZoomAt = 0;
 
 const canvas = document.getElementById("game");
@@ -226,12 +227,14 @@ function update(dt) {
   const px = Math.round(player.gx);
   const py = Math.round(player.gy);
   playerRoom = map.roomAt(px, py); // refinds rooms if a wall changed
-  // The light you carry: a torch in hand at full, else one on the belt at
-  // half, which also halves how far the dead see it (zombie.js).
+  // The light you carry (docs/02): a torch in hand at full, two at more,
+  // else one on the belt at half. The strength also scales how far the dead
+  // see the flame (zombie.js).
   const held = items.heldFire(player.hands);
+  const twoHanded = held && player.hands.main && player.hands.off && player.hands.main !== player.hands.off && items.getItem(player.hands.main.id).fire && items.getItem(player.hands.off.id).fire;
   const belted = held ? null : beltFire(inventory.beltOf(player));
   const fire = held || belted;
-  const strength = held ? 1 : BELT_LIGHT;
+  const strength = held ? (twoHanded ? TWO_TORCHES : 1) : BELT_LIGHT;
   light.setCarrier(fire ? { gx: player.gx, gy: player.gy, radius: fire.radius * strength, flicker: fire.flicker || null, strength } : null);
   light.update();
   // Sight is cast from the player's tile centre and only recomputed when the
