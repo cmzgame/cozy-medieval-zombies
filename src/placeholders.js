@@ -33,9 +33,13 @@ export function generateFlat(ph) {
     poly(ctx, [[cx, 0], [cx + HW, cy], [cx, TH], [cx - HW, cy]]);
     ctx.fillStyle = color;
     ctx.fill();
-    ctx.strokeStyle = shade(ph.color, 0.85);
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    // The outline drew the grid on every floor; the earth kinds go without it
+    // (`outline: false`) now that the ground is baked (docs/15).
+    if (ph.outline !== false) {
+      ctx.strokeStyle = shade(ph.color, 0.85);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
     if (ph.lines) {
       // Furrows: lines parallel to the tile's north-east edge, for farm plots.
       ctx.save();

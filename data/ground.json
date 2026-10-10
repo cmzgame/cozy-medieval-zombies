@@ -1,0 +1,23 @@
+{
+  "seed": 1,
+  "floors": {
+    "floor_grass": "grass",
+    "floor_dirt": "dirt",
+    "floor_farm": "farm",
+    "floor_wood": "laid",
+    "floor_stone": "laid"
+  },
+  "biomes": {
+    "harvest": {
+      "grass": [
+        "data/art/ground/grass_0.png",
+        "data/art/ground/grass_1.png",
+        "data/art/ground/grass_2.png",
+        "data/art/ground/grass_3.png",
+        "data/art/ground/grass_sparse_0.png",
+        "data/art/ground/grass_sparse_1.png"
+      ],
+      "grassBase": [75, 95, 61]
+    }
+  }
+}

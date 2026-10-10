@@ -29,6 +29,14 @@ const fireProps = new Set();
 let wild = null; // { biome: { kinds, scale }, density: [min, max], seed, zombiesPerChunk }
 let bounds = null; // [x, y, w, h] of the authored map
 const pendingSpawns = []; // [x, y] tiles where a wild chunk wants a zombie
+// Which biome a tile is in, for the ground (docs/15): the scatter rules' rects
+// inside the bounds, the wild rule's biome beyond them.
+let biomeRects = []; // [{ rect: [x, y, w, h], biome }]
+let wildBiome = null;
+// Called with (tiles, prop) when a floor changes or a prop comes or goes, so
+// the ground can re-bake what it touches (docs/15). The ground registers it;
+// the map does not import the ground.
+const groundListeners = [];
 
 export function reset({ floor = "floor_grass", authored = null, wildRule = null, mapBounds = null } = {}) {
   chunks.clear();
@@ -169,7 +177,7 @@ function inBounds(x, y) {
 // Every roll is a hash of the tile and a seed, never a sequence, so a tile
 // rolls the same whatever order chunks load in.
 
-function hash2(x, y, seed) {
+export function hash2(x, y, seed) {
   let h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263) ^ Math.imul(seed | 0, 2246822519);
   h = Math.imul(h ^ (h >>> 13), 1274126177);
   h ^= h >>> 16;
@@ -178,7 +186,7 @@ function hash2(x, y, seed) {
 
 // Smooth value noise, 0..1, with lattice points `scale` tiles apart. Density
 // drifts with it: thickets and clearings instead of an even sprinkle.
-function valueNoise(x, y, scale, seed) {
+export function valueNoise(x, y, scale, seed) {
   const fx = x / scale;
   const fy = y / scale;
   const x0 = Math.floor(fx);
@@ -269,6 +277,7 @@ export function placeProp(prop, tx, ty) {
   for (const [x, y] of prop.tiles) tileAt(x, y).prop = prop;
   if (prop.fire) fireProps.add(prop);
   touch();
+  groundChanged(prop.tiles, prop);
 }
 
 export function removeProp(prop) {
@@ -278,6 +287,39 @@ export function removeProp(prop) {
   }
   fireProps.delete(prop);
   touch();
+  groundChanged(prop.tiles, prop);
+}
+
+// ---- the ground's hooks (docs/15) ----
+
+export function onGroundChange(fn) {
+  groundListeners.push(fn);
+}
+
+function groundChanged(tiles, prop = null) {
+  for (const fn of groundListeners) fn(tiles, prop);
+}
+
+// The only way a floor changes after load, so the ground hears of it.
+export function setFloor(x, y, id, layer = 0) {
+  const t = tileAt(x, y, layer);
+  if (t.floor === id) return;
+  t.floor = id;
+  touch();
+  groundChanged([[x, y]]);
+}
+
+// The biome a tile belongs to: inside the bounds the first scatter rule whose
+// rect holds it, beyond them the wild rule's, else "harvest".
+export function biomeAt(x, y) {
+  if (inBounds(x, y)) {
+    for (const r of biomeRects) {
+      const [rx, ry, rw, rh] = r.rect;
+      if (x >= rx && y >= ry && x < rx + rw && y < ry + rh) return r.biome;
+    }
+    return "harvest";
+  }
+  return wildBiome || "harvest";
 }
 
 // A wall segment on a tile edge. kind: "wall" | "door" | "window". A window has
@@ -1161,5 +1203,7 @@ export function loadMap(json) {
     mapBounds: json.bounds || null,
   });
   for (const [tx, ty, edge, side, torch] of pendingBrackets) addBracket(tx, ty, edge, side, torch);
+  biomeRects = (json.scatter || []).filter((sc) => sc.biome).map((sc) => ({ rect: sc.rect, biome: sc.biome }));
+  wildBiome = json.wild?.biome || null;
   return { props, spawn: json.spawn || [0, 0], zombies: json.zombies || [], name: json.name || "map" };
 }

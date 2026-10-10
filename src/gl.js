@@ -88,7 +88,7 @@ in float a_height;
 in vec4 a_color;
 in float a_flags;
 uniform vec2 u_res;
-uniform float u_atlas;
+uniform vec2 u_texSize; // the bound texture's size in texels: the atlas, or a chunk's ground (docs/15)
 out vec2 v_uv;
 out vec2 v_world;
 out float v_height;
@@ -96,7 +96,7 @@ out vec4 v_color;
 flat out float v_flags;
 out vec2 v_screen;
 void main() {
-  v_uv = a_uv / u_atlas;
+  v_uv = a_uv / u_texSize;
   v_world = a_world;
   v_height = a_height;
   v_color = a_color;
@@ -211,7 +211,7 @@ export function init(canvas) {
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
   gl.useProgram(program);
-  for (const name of ["u_res", "u_atlas", "u_tex", "u_light", "u_ambient", "u_fog", "u_areaOrigin", "u_areaTiles", "u_nightFloor", "u_nightAlpha", "u_tint", "u_outdoor", "u_player", "u_pool", "u_poolStrength", "u_climb", "u_fogColor", "u_fogAlpha", "u_holes", "u_holeCount", "u_holeInner", "u_holeOuter", "u_minStanding", "u_debug"]) {
+  for (const name of ["u_res", "u_texSize", "u_tex", "u_light", "u_ambient", "u_fog", "u_areaOrigin", "u_areaTiles", "u_nightFloor", "u_nightAlpha", "u_tint", "u_outdoor", "u_player", "u_pool", "u_poolStrength", "u_climb", "u_fogColor", "u_fogAlpha", "u_holes", "u_holeCount", "u_holeInner", "u_holeOuter", "u_minStanding", "u_debug"]) {
     uniforms[name] = gl.getUniformLocation(program, name);
   }
   vao = gl.createVertexArray();
@@ -245,7 +245,6 @@ export function init(canvas) {
   gl.uniform1i(uniforms.u_light, 1);
   gl.uniform1i(uniforms.u_ambient, 2);
   gl.uniform1i(uniforms.u_fog, 3);
-  gl.uniform1f(uniforms.u_atlas, ATLAS);
   lightTex = makeTexture(gl.LINEAR);
   ambientTex = makeTexture(gl.NEAREST);
   fogTex = makeTexture(gl.NEAREST);
@@ -292,10 +291,54 @@ export function uploadArea(light, lw, lh, ambient, fog, aw, ah) {
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, aw, ah, 0, gl.RED, gl.UNSIGNED_BYTE, fog);
 }
 
+// ---- the ground (docs/15) ----
+// One texture per chunk, baked on the CPU. Ground quads are the first thing in
+// the batch; end() draws each with its own texture, then the rest with the atlas.
+
+const groundTex = new Map(); // chunk key -> { tex, w, h }
+const groundRanges = []; // { rec, first }: six vertices each, from the start of the buffer
+let groundFloats = 0; // floats written by ground quads this frame
+
+export function uploadGround(key, image) {
+  let rec = groundTex.get(key);
+  gl.activeTexture(gl.TEXTURE0);
+  if (!rec) {
+    rec = { tex: makeTexture(gl.NEAREST), w: image.width, h: image.height };
+    groundTex.set(key, rec);
+  }
+  gl.bindTexture(gl.TEXTURE_2D, rec.tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+  rec.w = image.width;
+  rec.h = image.height;
+  return rec;
+}
+
+export function deleteGround(key) {
+  const rec = groundTex.get(key);
+  if (!rec) return;
+  gl.deleteTexture(rec.tex);
+  groundTex.delete(key);
+}
+
+export function groundTextures() {
+  return groundTex.size;
+}
+
+// A chunk's ground picture at screen (x, y), its whole texture, with the grid
+// point under each corner (TL, TR, BR, BL) for the light, the night, and the fog.
+export function groundQuad(rec, x, y, world) {
+  if (count !== groundFloats) throw new Error("ground quads must come before everything else in the frame");
+  groundRanges.push({ rec, first: count / STRIDE });
+  quad(x, y, rec.w, rec.h, [0, 0, rec.w, rec.h], { world });
+  groundFloats = count;
+}
+
 // ---- the batch ----
 
 export function begin() {
   count = 0;
+  groundFloats = 0;
+  groundRanges.length = 0;
 }
 
 function grow(need) {
@@ -417,7 +460,16 @@ export function end(u) {
   gl.bindVertexArray(vao);
   gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
   gl.bufferData(gl.ARRAY_BUFFER, verts.subarray(0, count), gl.DYNAMIC_DRAW);
-  gl.drawArrays(gl.TRIANGLES, 0, count / STRIDE);
+  gl.activeTexture(gl.TEXTURE0);
+  for (const r of groundRanges) {
+    gl.bindTexture(gl.TEXTURE_2D, r.rec.tex);
+    gl.uniform2f(uniforms.u_texSize, r.rec.w, r.rec.h);
+    gl.drawArrays(gl.TRIANGLES, r.first, 6);
+  }
+  gl.bindTexture(gl.TEXTURE_2D, atlasTex);
+  gl.uniform2f(uniforms.u_texSize, ATLAS, ATLAS);
+  const first = groundFloats / STRIDE;
+  if (count > groundFloats) gl.drawArrays(gl.TRIANGLES, first, count / STRIDE - first);
   return count / STRIDE;
 }
 

@@ -15,6 +15,7 @@ import * as visibility from "./visibility.js";
 import * as clock from "./clock.js";
 import * as light from "./light.js";
 import * as gl from "./gl.js";
+import * as ground from "./ground.js";
 import { renderScene, setCutaway, cutaway, night } from "./render.js";
 import { createPlayer, updatePlayer, damagePlayer, autoWalk, eat, drink } from "./entities/player.js";
 import { createZombie, updateZombie } from "./entities/zombie.js";
@@ -268,6 +269,8 @@ function update(dt) {
   // dead appear outside the view even at the widest zoom (docs/02, the view).
   map.ensureAround(player.gx, player.gy, 3);
   for (const [x, y] of map.takePendingSpawns()) zombies.push(createZombie(x, y));
+  // The ground: re-bake what changed in view, bake one chunk ahead, evict far ones (docs/15).
+  if (!glError) ground.update(camera.cam.gx, camera.cam.gy, tiles);
   // Placement first: its ghost follows the cursor and a left click that
   // places is spent before anything else can use it (docs/13).
   placement.update(player);
@@ -341,6 +344,11 @@ function update(dt) {
   timing.stepMax = Math.max(timing.stepMax, timing.step);
 }
 
+function groundLine() {
+  const s = ground.stats();
+  return `${s.baked} baked, last ${s.lastMs.toFixed(1)}ms, max ${s.maxMs.toFixed(1)}ms, ${s.textures} textures`;
+}
+
 function render() {
   const r0 = performance.now();
   const scene = {
@@ -367,6 +375,7 @@ function render() {
     `${clock.getLabel()} ${clock.getPhase()}  bright ${clock.getBrightness().toFixed(2)}  light@player ${light.lightAt(player.gx, player.gy).toFixed(2)}  hands ${hand(player.hands.main)}/${hand(player.hands.off)}\n` +
     `chunk ${cx},${cy}  room ${playerRoom}${playerRoom > 0 ? (map.roomSealed(map.getRoom(playerRoom)) ? " sealed" : " open") : ""}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
+    `ground ${groundLine()}\n` +
     `zombies ${zombies.length}  near ${zombies.filter((z) => Math.abs(z.gx - player.gx) <= ACTIVE_TILES && Math.abs(z.gy - player.gy) <= ACTIVE_TILES).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
     `Tab: bag   C: character   1-4: belt   N: build   X: remove   Z: zoom   right-click: actions   Esc: close or pause   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   K: near walls ${cutaway}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
 }
@@ -574,6 +583,13 @@ async function boot() {
   for (const [x, y] of map.takePendingSpawns()) zombies.push(createZombie(x, y));
   tiles = camera.viewportTiles(V.w, V.h);
   map.rebuildRooms();
+  // The ground's pictures for the view and a ring around it, before the
+  // first frame (docs/15); the title screen covers the wait.
+  if (!glError) {
+    await ground.init(json);
+    map.onGroundChange(ground.invalidate);
+    ground.prebake(tiles);
+  }
 
   initHud();
   initPrompt();
@@ -629,7 +645,7 @@ async function boot() {
   screens.show("title");
 
   window.__game = {
-    iso, input, loop, assets, events, map, camera, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette, combat,
+    iso, input, loop, assets, events, map, camera, ground, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette, combat,
     render: { night },
     get player() { return player; },
     get zombies() { return zombies; },

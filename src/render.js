@@ -18,6 +18,7 @@ import { tileKey } from "./visibility.js";
 import { WALL_T, WOOD, METAL } from "./placeholders.js";
 import { getItem } from "./items.js";
 import * as gl from "./gl.js";
+import * as ground from "./ground.js";
 
 // The night, as before: tunables Michael picks by eye, live on
 // window.__game.render.night. `climb` is how many pixels a pool climbs a wall
@@ -87,23 +88,27 @@ function frameQuad(sheet, name, x, y, opts, flip = false, anchor = sheet.anchor)
   gl.quad(rx, y - anchor[1], f[2], f[3], uv, { ...opts, flip });
 }
 
-// ---- floor ----
+// ---- the ground (docs/15) ----
 
-function emitFloor(tiles) {
-  for (const [tx, ty] of tiles) {
-    const t = map.tileAt(tx, ty);
-    const sheet = getSheet(t.floor);
-    const alt = (tx + ty) % 2 === 0 ? 0 : 1;
-    const name = `idle_${alt}`;
-    const f = sheet.frames[name];
-    if (!f) continue;
-    const p = iso.toScreen(tx, ty);
-    const x = Math.round(p.x);
-    const y = Math.round(p.y);
-    // The frame's corners lie on the floor plane one tile out along each
-    // axis, so the light is read per pixel across the diamond.
-    const world = [[tx - 1, ty], [tx, ty - 1], [tx + 1, ty], [tx, ty + 1]];
-    gl.quad(x - sheet.anchor[0], y - sheet.anchor[1], f[2], f[3], gl.frameUV(sheet, name), { world });
+// World pixel (origin at zero) to grid: the inverse of iso.toScreen.
+function worldToGrid(wx, wy) {
+  return [(wx / iso.HW + wy / iso.HH) / 2, (wy / iso.HH - wx / iso.HW) / 2];
+}
+
+// One baked picture per chunk the view touches, drawn before anything else.
+// The picture's corners carry their grid points, so the light, the night, and
+// the fog are read per pixel across it as they were across each tile. A chunk
+// with no picture yet is baked now: nothing draws as a hole in view.
+function emitGround(tiles) {
+  const o = iso.getOrigin(); // whole pixels: camera.applyOrigin rounds
+  for (const [cx, cy] of ground.chunksOf(tiles)) {
+    const rec = ground.textureFor(cx, cy) || ground.bakeNow(cx, cy);
+    const x0 = cx * map.CHUNK;
+    const y0 = cy * map.CHUNK;
+    const left = (x0 - y0 - map.CHUNK) * iso.HW;
+    const top = (x0 + y0) * iso.HH - iso.HH;
+    const world = [worldToGrid(left, top), worldToGrid(left + rec.w, top), worldToGrid(left + rec.w, top + rec.h), worldToGrid(left, top + rec.h)];
+    gl.groundQuad(rec, left + o.x, top + o.y, world);
   }
 }
 
@@ -668,7 +673,7 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
   const areaOrigin = buildArea(tiles, visible, drawAll || !fog, cam.gx, cam.gy);
 
   gl.begin();
-  emitFloor(tiles);
+  emitGround(tiles);
   const drawables = [];
   wallDrawables(tiles, visible, playerRoom, drawables);
   postDrawables(tiles, visible, playerRoom, drawables);
