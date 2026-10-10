@@ -539,9 +539,8 @@ function drawFrame(frame, spec, facing, anim, i) {
         const u = along(a, b, 0.62);
         frame.capsule(u.x, u.y, b.x, b.y, B.legR, paint(col(feet)), { outline: false, part });
         frame.ellipse(fb.x, fb.y + 1, B.footRx, B.footRy, paint(col(feet)), { outline: false, part });
-        // The boot's top, one darker row.
-        const cuff = tone(col(feet), -0.35);
-        frame.capsule(u.x, u.y, u.x, u.y, B.legR - 0.4, paint(cuff), { outline: false, part });
+        // The boot's top: one dark row, a seam between two slots.
+        frame.capsule(u.x, u.y, u.x, u.y, B.legR - 0.3, OUTLINE, { outline: false, part: 0 });
       } else {
         frame.ellipse(fb.x, fb.y + 1, B.footRx - 0.5, B.footRy, paint(tone(skin, -0.12)), { outline: false, part });
       }
@@ -553,7 +552,7 @@ function drawFrame(frame, spec, facing, anim, i) {
   // Torso: one outlined hull; a tunic colours it, a second colour runs down
   // the front, a belt bands the waist.
   const torsoPts = [];
-  const hem = outfit.chest ? 5 : 2; // a tunic hangs below the hips over the legs
+  const hem = outfit.chest ? 3 : 2; // a tunic hangs a little below the hips, shirt length (Michael: not to the knees)
   for (const [l, d, h] of [
     [-B.shoulderL + 1, -B.torsoD, J.shoulderL[2]], [B.shoulderL - 1, -B.torsoD, J.shoulderR[2]],
     [-B.shoulderL + 1, B.torsoD, J.shoulderL[2]], [B.shoulderL - 1, B.torsoD, J.shoulderR[2]],
@@ -710,18 +709,21 @@ function drawFrame(frame, spec, facing, anim, i) {
             frame.px(mid, ey + dy, white);
             frame.px(inner, ey + dy, white);
           }
-          for (const x of [mid, inner]) for (const dy of [0, 1]) frame.px(x, ey + dy, pupil);
+          for (const x of [mid, inner]) for (const dy of [-1, 0, 1]) frame.px(x, ey + dy, pupil);
         }
       } else {
-        // From the side: one eye on the forward edge.
-        const ex = Math.round(hc.x + F.fx * (B.headRx - 4.5));
+        // From the side: one eye, drawn exactly as a front eye, on the forward
+        // side of the face, pupil toward where the figure looks.
         const sgn = Math.sign(F.fx);
+        const outer = Math.round(hc.x + F.fx * (B.headRx - 2.5));
+        const mid = outer - sgn;
+        const inner = outer - 2 * sgn;
         for (let dy = -3; dy <= 1; dy++) {
-          frame.px(ex, ey + dy, white);
-          frame.px(ex + sgn, ey + dy, white);
+          frame.px(outer, ey + dy, white);
+          frame.px(mid, ey + dy, white);
+          frame.px(inner, ey + dy, white);
         }
-        frame.px(ex + sgn, ey, pupil);
-        frame.px(ex + sgn, ey + 1, pupil);
+        for (const x of [outer, mid]) for (const dy of [-1, 0, 1]) frame.px(x, ey + dy, pupil);
       }
     }
     if (painted) {
