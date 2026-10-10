@@ -505,6 +505,34 @@ function propActions(prop, player) {
   return [];
 }
 
+// Openings under a canvas point. A door or shutter is drawn as a face up to
+// WALL_FACE pixels tall above its edge, so the click is tested against that
+// face on screen, not only against the edge's midpoint on the ground (a
+// right-click on the door itself found nothing, Michael 2026-10-10).
+const WALL_FACE = 72;
+const FACE_HALF_W = 26;
+
+function openingsAtScreen(sx, sy) {
+  const seen = new Set();
+  const out = [];
+  for (const dy of [0, WALL_FACE / 2, WALL_FACE]) {
+    const g = iso.toGrid(sx, sy + dy);
+    for (const o of map.openingsNear(g.gx, g.gy, 2.5)) {
+      const k = `${o.edge}@${o.tx},${o.ty}`;
+      if (seen.has(k)) continue;
+      const p = iso.toScreen(o.mx, o.my);
+      const dx = sx - p.x;
+      const dyy = sy - p.y;
+      if (Math.abs(dx) <= FACE_HALF_W && dyy >= -WALL_FACE && dyy <= 12) {
+        seen.add(k);
+        out.push(o);
+      }
+    }
+  }
+  out.sort((a, b) => Math.hypot(a.mx - iso.toGrid(sx, sy).gx, a.my - iso.toGrid(sx, sy).gy) - Math.hypot(b.mx - iso.toGrid(sx, sy).gx, b.my - iso.toGrid(sx, sy).gy));
+  return out;
+}
+
 // Every action for whatever is under a canvas point.
 export function actionsAt(sx, sy, player) {
   const g = iso.toGrid(sx, sy);
@@ -531,7 +559,7 @@ export function actionsAt(sx, sy, player) {
       out.push(...propActions(prop, player));
     }
   }
-  for (const o of map.openingsNear(g.gx, g.gy, 0.8)) out.push(...openingActions(o, player));
+  for (const o of openingsAtScreen(sx, sy)) out.push(...openingActions(o, player));
   for (const b of map.bracketsNear(g.gx, g.gy, 0.8)) out.push(...holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player));
   if (!out.length && map.isWalkableTile(tx, ty)) out.push(walkAction([tx, ty]));
   return out;

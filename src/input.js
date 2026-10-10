@@ -3,6 +3,15 @@
 
 const keys = new Set();
 const justPressed = new Set();
+// A key whose keyup was lost (focus moved without a blur, a dialog took it)
+// would walk the player forever (Michael and his brother, 2026-10-10). The OS
+// repeats keydown while a key is really held, so once a repeat has been seen
+// a held key that stops repeating for STALE_MS is dropped. Modifiers do not
+// repeat on every platform, so they are left alone.
+const lastDown = new Map();
+let repeatSeen = false;
+const STALE_MS = 1200;
+const MODIFIERS = /^(Shift|Control|Alt|Meta)/;
 const mouse = { x: 0, y: 0, inside: false };
 let leftDown = false;
 let leftJustPressed = false;
@@ -21,13 +30,21 @@ export function init(targetCanvas) {
     if (PREVENT.has(e.code)) e.preventDefault();
     if (!keys.has(e.code)) justPressed.add(e.code);
     keys.add(e.code);
+    lastDown.set(e.code, performance.now());
+    if (e.repeat) repeatSeen = true;
   });
   window.addEventListener("keyup", (e) => {
     keys.delete(e.code);
+    lastDown.delete(e.code);
   });
-  window.addEventListener("blur", () => {
+  const dropAll = () => {
     keys.clear();
+    lastDown.clear();
     leftDown = false;
+  };
+  window.addEventListener("blur", dropAll);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) dropAll();
   });
 
   canvas.addEventListener("mousemove", (e) => {
@@ -112,4 +129,14 @@ export function endStep() {
   justPressed.clear();
   leftJustPressed = false;
   rightJustPressed = false;
+  if (!repeatSeen) return;
+  const now = performance.now();
+  for (const code of keys) {
+    if (MODIFIERS.test(code)) continue;
+    const t = lastDown.get(code);
+    if (t !== undefined && now - t > STALE_MS) {
+      keys.delete(code);
+      lastDown.delete(code);
+    }
+  }
 }
