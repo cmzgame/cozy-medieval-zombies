@@ -131,6 +131,18 @@ Steps 2 to 4, building (2026-10-11):
 - **`map.js`** gained `canBuildWall(tx, ty, edge, kind)`, `buildWall`, `edgeTiles`, `edgeMid`, `WALL_SPRITE_DEFAULT`. A built wall is `createWall` exactly as an authored one, so doors and windows open, close, take boards, and are breached by the dead the same way.
 - **The log wall's sheet** is `wall_log`: the wall generator with a new `log` pattern (rounded courses, a lit line and a seam each). Colour and height are in `data/sprites/wall_log.json`.
 
+## Accepted, and what is left for later
+
+Michael, 2026-10-11, after building a one-tile house for himself and the jack-o'-lantern: "the fundamentals are here." Left for later, so nothing here forecloses them:
+
+- **Stone.** No stone item, so no stone wall. When stone is gathered (a quarry, rubble), `data/build.json` takes a `stone_wall` row with `wall_stone` as its sheet and nothing else changes.
+- **Tear-down of authored walls.** The removal tool only takes walls with `built` set. One line (`wall.built` ignored in `removalTarget`) opens the village's own walls to it; Michael has not asked.
+- **Refunds.** Removal gives nothing back. Salvage (a log back from a log wall) is a cost table away.
+- **The campfire** cannot be carried while lit or at all; `"carry": true` in its sprite file would allow it once a carried fire has an answer.
+- **An in-game building editor.** Placement is its seed: a ghost, a validity rule, a palette. Floors, props from inventory, and rotation of real furniture art would grow from here. Not scheduled.
+- **Placing items from the bag** (dropping a chest you carry in the bag as a prop) is not placement; the bag's Drop puts items on the floor as entries. A prop-from-item path waits for crafting.
+- **Hands-on testing** of doors and windows built into real houses, and of several builders' worth of rooms, is still to do.
+
 ## Tunables
 
 `PLACE_REACH` 2.6 tiles, `BUILD_REACH` 2.6, `REMOVE_REACH` 2.6 (all raised a full tile on 2026-10-11), the costs and seconds in `data/build.json`, the ghost tints in `render.js`.
