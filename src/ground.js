@@ -12,8 +12,16 @@
 // own roll), or a floor sheet's frame. Pixels no tile of the chunk owns stay
 // transparent, so neighbouring chunks meet without a seam or an overlap.
 //
-// Built so far: step 1 (grass by hash, laid floors, the ownership clip). Until
-// step 4, dirt and farm draw as their sheet's first frame, a hard diamond.
+// Built so far: step 1 (grass by hash, laid floors, the ownership clip) and
+// step 2 (the patch tint and canopy darkening on the grass, baked tree
+// shadows). Until step 4, dirt and farm draw as their sheet's first frame, a
+// hard diamond.
+//
+// The tint is read from a grid of samples four to a tile, one tile beyond the
+// chunk on every side, and interpolated per pixel, so it drifts smoothly with
+// no step at a tile's edge. Each tree darkens the grass around it by
+// 1 / (1 + d) out to its own canopy reach, faded to nothing over the last tile
+// so the reach has no rim; d is the distance in tiles from the trunk.
 
 import * as map from "./map.js";
 import * as gl from "./gl.js";
@@ -40,6 +48,14 @@ const stat = { baked: 0, lastMs: 0, maxMs: 0 };
 let OWNER = null; // Int16Array: the local tile index (ly * 16 + lx) owning each pixel, or -1
 let FX = null; // Uint8Array: the pixel's column in its owner tile's frame
 let FY = null; // Uint8Array: its row
+// The tint grid: samples SPT to a tile from one tile before the chunk to one
+// after, so GRID across. Per pixel, the grid index of the sample up and left of
+// it and its fractional place between samples.
+const SPT = 4;
+const GRID = (C + 2) * SPT + 1;
+let TI = null; // Int32Array
+let TU = null; // Float32Array
+let TV = null; // Float32Array
 
 // The chunk's canvas sits at world pixel left = (x0 - y0 - 16) * 32,
 // top = (x0 + y0) * 16 - 16. A pixel's centre is then at fractional grid
@@ -51,6 +67,9 @@ function buildOwnership() {
   OWNER = new Int16Array(W * H);
   FX = new Uint8Array(W * H);
   FY = new Uint8Array(W * H);
+  TI = new Int32Array(W * H);
+  TU = new Float32Array(W * H);
+  TV = new Float32Array(W * H);
   for (let py = 0; py < H; py++) {
     const b = (py + 0.5) / 16 - 1;
     for (let px = 0; px < W; px++) {
@@ -65,6 +84,13 @@ function buildOwnership() {
       OWNER[i] = ly * C + lx;
       FX[i] = px - (lx - ly + 15) * 32;
       FY[i] = py - (lx + ly) * 16;
+      const u = ((a + b) / 2 + 1) * SPT;
+      const v = ((b - a) / 2 + 1) * SPT;
+      const iu = Math.floor(u);
+      const iv = Math.floor(v);
+      TI[i] = iv * GRID + iu;
+      TU[i] = u - iu;
+      TV[i] = v - iv;
     }
   }
 }
@@ -102,7 +128,13 @@ export async function init(mapJson) {
       const img = await loadImage(src);
       grass.push({ w: img.width, h: img.height, px: pixelsOf(img) });
     }
-    biomes.set(name, { grass, base: b.grassBase || [75, 95, 61] });
+    biomes.set(name, {
+      grass,
+      base: b.grassBase || [75, 95, 61],
+      patch: b.patch || { scaleA: 5, scaleB: 2.2, mix: 0.7, r: [1, 0], g: [1, 0], b: [1, 0] },
+      canopy: b.canopy || { perTree: 0, max: 0 },
+      shadow: b.shadow || { steps: 3, alpha: 0.09, squash: 0.6, dropPx: 2 },
+    });
   }
   buildOwnership();
 }
@@ -134,6 +166,114 @@ function frameNames(sheetId) {
 
 // ---- the bake ----
 
+// Every prop within `pad` tiles of the chunk whose definition has `key`, once each.
+function propsNear(x0, y0, pad, key) {
+  const seen = new Set();
+  const out = [];
+  for (let y = y0 - pad; y < y0 + C + pad; y++) {
+    for (let x = x0 - pad; x < x0 + C + pad; x++) {
+      const p = map.tileAt(x, y).prop;
+      if (!p || seen.has(p)) continue;
+      seen.add(p);
+      const def = assets.getDef(p.sprite);
+      if (def[key]) out.push({ prop: p, def });
+    }
+  }
+  return out;
+}
+
+// The tint grid for a chunk: three Float32Arrays (r, g, b multipliers). The
+// canopy is summed tree by tree over only the samples within each tree's
+// reach, then the patch noise and the darkening are combined per sample.
+function tintGrid(x0, y0) {
+  const N = GRID * GRID;
+  const canopy = new Float32Array(N);
+  const gx0 = x0 - 1;
+  const gy0 = y0 - 1;
+  for (const { prop, def } of propsNear(x0, y0, REACH_MAX + 1, "canopy")) {
+    const tx = prop.tile[0];
+    const ty = prop.tile[1];
+    const reach = def.canopy.reach;
+    const i0 = Math.max(0, Math.ceil((tx - reach - gx0) * SPT));
+    const i1 = Math.min(GRID - 1, Math.floor((tx + reach - gx0) * SPT));
+    const j0 = Math.max(0, Math.ceil((ty - reach - gy0) * SPT));
+    const j1 = Math.min(GRID - 1, Math.floor((ty + reach - gy0) * SPT));
+    for (let j = j0; j <= j1; j++) {
+      const dy = gy0 + j / SPT - ty;
+      for (let i = i0; i <= i1; i++) {
+        const dx = gx0 + i / SPT - tx;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d >= reach) continue;
+        canopy[j * GRID + i] += Math.min(1, reach - d) / (1 + d);
+      }
+    }
+  }
+  // The biome per tile, looked up once per tile rather than per sample.
+  const T = C + 3;
+  const bioTile = new Array(T * T);
+  for (let ty = 0; ty < T; ty++) for (let tx = 0; tx < T; tx++) bioTile[ty * T + tx] = biomeOf(gx0 + tx, gy0 + ty);
+  const R = new Float32Array(N);
+  const G = new Float32Array(N);
+  const B = new Float32Array(N);
+  for (let j = 0; j < GRID; j++) {
+    const gy = gy0 + j / SPT;
+    const ty = Math.round(j / SPT);
+    for (let i = 0; i < GRID; i++) {
+      const gx = gx0 + i / SPT;
+      const bio = bioTile[ty * T + Math.round(i / SPT)];
+      const p = bio.patch;
+      const v = p.mix * map.valueNoise(gx, gy, p.scaleA, seed + 1) + (1 - p.mix) * map.valueNoise(gx, gy, p.scaleB, seed + 2);
+      const k = j * GRID + i;
+      const dark = 1 - Math.min(bio.canopy.max, bio.canopy.perTree * canopy[k]);
+      R[k] = (p.r[0] + p.r[1] * v) * dark;
+      G[k] = (p.g[0] + p.g[1] * v) * dark;
+      B[k] = (p.b[0] + p.b[1] * v) * dark;
+    }
+  }
+  return [R, G, B];
+}
+
+// Soft stepped shadows under every prop that declares one, within REACH_MAX
+// of the chunk (a shadow can reach in from a neighbour): `steps` ellipses from
+// the full size down to half, each darkening by `alpha`, Habbo-stepped, never a
+// gradient. Only pixels this chunk owns are touched.
+function bakeShadows(out, x0, y0, left, top) {
+  for (const { prop, def } of propsNear(x0, y0, REACH_MAX, "shadow")) {
+    const sh = biomeOf(prop.tile[0], prop.tile[1]).shadow;
+    const sheet = assets.getSheet(prop.sprite);
+    const fw = Object.values(sheet.frames)[0][2];
+    const rx = def.shadow.width * fw;
+    const ry = (rx * sh.squash) / 2;
+    const cx = (prop.tile[0] - prop.tile[1]) * 32 - left;
+    const cy = (prop.tile[0] + prop.tile[1]) * 16 - top + sh.dropPx;
+    const px0 = Math.max(0, Math.floor(cx - rx));
+    const px1 = Math.min(W - 1, Math.ceil(cx + rx));
+    const py0 = Math.max(0, Math.floor(cy - ry));
+    const py1 = Math.min(H - 1, Math.ceil(cy + ry));
+    if (px0 > px1 || py0 > py1) continue;
+    const steps = Math.max(1, sh.steps);
+    const keep = [];
+    for (let n = 0; n <= steps; n++) keep.push(Math.pow(1 - sh.alpha, n));
+    for (let py = py0; py <= py1; py++) {
+      const ey = (py + 0.5 - cy) / ry;
+      for (let px = px0; px <= px1; px++) {
+        const i = py * W + px;
+        if (OWNER[i] < 0) continue;
+        const ex = (px + 0.5 - cx) / rx;
+        const e = Math.sqrt(ex * ex + ey * ey);
+        if (e > 1) continue;
+        let n = 0;
+        for (let s = 0; s < steps; s++) if (e <= 1 - (steps > 1 ? (s * 0.5) / (steps - 1) : 0)) n++;
+        const f = keep[n];
+        const k = i * 4;
+        out[k] = Math.round(out[k] * f);
+        out[k + 1] = Math.round(out[k + 1] * f);
+        out[k + 2] = Math.round(out[k + 2] * f);
+      }
+    }
+  }
+}
+
 // The chunk's picture as ImageData. Pure: the same chunk, seed, and tiles
 // give the same bytes.
 export function bakeImage(cx, cy) {
@@ -161,6 +301,7 @@ export function bakeImage(cx, cy) {
       } else top[o] = frameOf(floor, frameNames(floor)[0]); // the earth kinds, hard until step 4
     }
   }
+  const [TR, TG, TB] = tintGrid(x0, y0);
   const img = new ImageData(W, H);
   const out = img.data;
   for (let i = 0; i < W * H; i++) {
@@ -189,18 +330,34 @@ export function bakeImage(cx, cy) {
     const g = grass[o];
     const gc = flip[o] ? g.w - 1 - fx : fx;
     const j = (fy * g.w + gc) * 4;
+    let r, gg, bb;
     if (fy < g.h && gc >= 0 && gc < g.w && g.px[j + 3] > 0) {
-      out[k] = g.px[j];
-      out[k + 1] = g.px[j + 1];
-      out[k + 2] = g.px[j + 2];
+      r = g.px[j];
+      gg = g.px[j + 1];
+      bb = g.px[j + 2];
     } else {
       const c = base[o];
-      out[k] = c[0];
-      out[k + 1] = c[1];
-      out[k + 2] = c[2];
+      r = c[0];
+      gg = c[1];
+      bb = c[2];
     }
+    // The grass takes the tint, read between the four nearest samples.
+    const q = TI[i];
+    const u = TU[i];
+    const v = TV[i];
+    const w00 = (1 - u) * (1 - v);
+    const w10 = u * (1 - v);
+    const w01 = (1 - u) * v;
+    const w11 = u * v;
+    const q1 = q + 1;
+    const q2 = q + GRID;
+    const q3 = q2 + 1;
+    out[k] = Math.round(r * (TR[q] * w00 + TR[q1] * w10 + TR[q2] * w01 + TR[q3] * w11));
+    out[k + 1] = Math.round(gg * (TG[q] * w00 + TG[q1] * w10 + TG[q2] * w01 + TG[q3] * w11));
+    out[k + 2] = Math.round(bb * (TB[q] * w00 + TB[q1] * w10 + TB[q2] * w01 + TB[q3] * w11));
     out[k + 3] = 255;
   }
+  bakeShadows(out, x0, y0, (x0 - y0 - C) * 32, (x0 + y0) * 16 - 16);
   return img;
 }
 
