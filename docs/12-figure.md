@@ -74,6 +74,10 @@ Furniture carried over the head keeps its own drawing (`02-decisions.md`, carryi
 
 Parameters on the body, all of them palette or shape choices in the generator: skin tone, hair shape (short, long, bald), hair colour, eye colour. Stored on the player as `look`, settable from the console with `__game.setLook({ skin, hair, hairStyle, eyes })`. The **creation screen** is the first item after this milestone.
 
+## Painted hair, and the editor
+
+Hair is the first layer Michael paints himself (2026-10-10). `tools/hair.html`, served by `serve.py` like the game, shows the bald figure in all eight facings at eight times size with a 32 by 32 grid over the head, and paints a hair layer on it: pencil with the browser's colour picker, eraser, dropper, start from the generated short or long cap, mirror left to right, save and load. A style saves as `data/hair/<name>.json`, pixels per facing relative to the head's centre, and is listed in `data/hair/index.json`; the game registers it at boot and a look's `hairStyle` may name it. Painted hair is drawn last on the head, over the face, with its own colours as painted. The same editor can grow to beards, hats, and the rest of the head later.
+
 ## The dead
 
 The same rig and the same garments. A zombie is a body with a decay tint, a wound accent, the shamble keyframes, and a random outfit from a list of garment shapes and drab colours, some torn (a torn flag on the garment rule drops a sleeve or ragged hem). Variety comes from the outfit list and the palette, not from new drawings. The dead that fall stay as the die animation's last frame, as now.

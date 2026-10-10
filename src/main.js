@@ -461,6 +461,13 @@ async function boot() {
 
   items.loadItems(await assets.loadJson("data/items.json"));
   items.loadLoot(await assets.loadJson("data/loot.json"));
+  // Hair painted in tools/hair.html (docs/12): data/hair/index.json lists the styles.
+  try {
+    const idx = await assets.loadJson("data/hair/index.json");
+    for (const name of idx.styles || []) figure.registerHair(name, await assets.loadJson(`data/hair/${name}.json`));
+  } catch (err) {
+    console.warn("No painted hair loaded:", err.message);
+  }
   const json = await assets.loadJson(MAP_FILE);
   await assets.loadMapSprites(json);
   // The dead's outfits and the held art, generated like everything else (docs/12).

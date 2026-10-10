@@ -49,7 +49,7 @@ These are the current rulings. The list grows as `docs/02-decisions.md` does.
 python serve.py 8010
 ```
 
-Then open http://localhost:8010. ES modules will not load from `file://`. `serve.py` disables caching and serves its own folder, so it can be launched from any directory. `.claude/launch.json` names it `medieval`.
+Then open http://localhost:8010. ES modules will not load from `file://`. The hair editor is http://localhost:8010/tools/hair.html (docs/12). `serve.py` disables caching and serves its own folder, so it can be launched from any directory. `.claude/launch.json` names it `medieval`.
 
 ## Testing from a browser console
 

@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Hair editor</title>
+  <style>
+    html, body { margin: 0; background: #16121c; color: #eee; font-family: "Segoe UI", system-ui, sans-serif; font-size: 13px; }
+    #bar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 8px 12px; background: #221c2a; border-bottom: 2px solid #4a4058; position: sticky; top: 0; }
+    #bar label { display: flex; gap: 6px; align-items: center; }
+    button { font: inherit; padding: 4px 10px; background: #4a4058; color: #eee; border: 1px solid #6a5a70; border-radius: 3px; cursor: pointer; }
+    button.on { background: #8a6a90; border-color: #c0a0c8; }
+    input[type=text] { font: inherit; padding: 3px 6px; background: #1a141f; color: #eee; border: 1px solid #4a4058; border-radius: 3px; width: 120px; }
+    #sheets { display: grid; grid-template-columns: repeat(4, max-content); gap: 10px; padding: 12px; }
+    .cell { text-align: center; }
+    .cell canvas { image-rendering: pixelated; border: 1px solid #4a4058; cursor: crosshair; display: block; background: #2a2430; }
+    .cell span { display: block; padding: 2px; color: #a098ac; }
+    #preview { display: flex; gap: 6px; padding: 0 12px 12px; align-items: flex-end; }
+    #preview canvas { image-rendering: pixelated; background: #2a2430; border: 1px solid #4a4058; }
+    #help { padding: 0 12px 16px; color: #a098ac; max-width: 900px; line-height: 1.5; }
+    kbd { background: #2a2430; padding: 0 4px; border-radius: 2px; border: 1px solid #4a4058; }
+  </style>
+</head>
+<body>
+  <div id="bar">
+    <label>Style <input id="name" type="text" value="mine"></label>
+    <label>Colour <input id="colour" type="color" value="#5a3a20"></label>
+    <button id="pencil" class="on">Pencil (P)</button>
+    <button id="eraser">Eraser (E)</button>
+    <button id="dropper">Dropper (D)</button>
+    <span style="width:14px"></span>
+    <button id="fromShort">Start from short</button>
+    <button id="fromLong">Start from long</button>
+    <button id="mirror">Mirror left to right</button>
+    <button id="clear">Clear all</button>
+    <span style="width:14px"></span>
+    <button id="save">Save JSON</button>
+    <label><button id="loadBtn">Load JSON</button><input id="load" type="file" accept="application/json" hidden></label>
+    <label>Face <input id="showFace" type="checkbox" checked></label>
+  </div>
+  <div id="sheets"></div>
+  <div id="preview"></div>
+  <div id="help">
+    Paint over the head in each facing. The grid is 32 by 32 world pixels centred on the head; the figure beneath is the game's bald body, so you see what you cover.
+    <kbd>P</kbd> pencil, <kbd>E</kbd> eraser, <kbd>D</kbd> dropper (picks from your layer, else from the body), right-click erases, hold <kbd>Shift</kbd> to paint a line from the last pixel.
+    Save writes <code>&lt;style&gt;.json</code>; put it in <code>data/hair/</code> and add the name to <code>data/hair/index.json</code>, then in the game <code>__game.setLook({ hairStyle: "&lt;style&gt;" })</code>.
+  </div>
+  <script type="module">
+    import * as figure from "../src/figure.js";
+
+    const Z = 8; // screen pixels per world pixel in the editor
+    const G = 32; // grid cells across
+    const FACINGS = figure.FACINGS;
+    const FW = figure.FW, FH = figure.FH, AX = figure.FEET_X, AY = figure.FEET_Y;
+    const nameEl = document.getElementById("name");
+    const colourEl = document.getElementById("colour");
+    const sheetsEl = document.getElementById("sheets");
+    const previewEl = document.getElementById("preview");
+    const showFace = document.getElementById("showFace");
+
+    // The bald body in the starter kit, and the generated caps to start from.
+    const look = { ...figure.DEFAULT_LOOK };
+    const outfit = {
+      chest: { shape: "tunic", colours: ["#c9b98e"] }, legs: { shape: "breeches", colours: ["#5a4030"] },
+      feet: { shape: "boots", colours: ["#3a2a1c"] }, waist: { shape: "belt", colours: ["#5e4028", "#8a7a60"] }, back: null, head: null, hands: null,
+    };
+    const spec = (hairStyle) => ({ variant: "player", look: { ...look, hairStyle }, outfit, wound: null, holding: { main: false, off: false } });
+    const bald = figure.generateFigure(spec("bald"));
+    const caps = { short: figure.generateFigure(spec("short")), long: figure.generateFigure(spec("long")) };
+
+    // State: per facing, a Map of "dx,dy" -> "#hex", relative to the head centre.
+    const layers = Object.fromEntries(FACINGS.map((f) => [f, new Map()]));
+    let tool = "pencil";
+    let last = null; // last painted cell for shift-lines
+
+    function headOf(sheet, f) {
+      const j = sheet.joints[`idle_${f}_0`].head;
+      return { x: AX + j.x, y: AY + j.y };
+    }
+
+    function framePixels(sheet, f) {
+      const fr = sheet.frames[`idle_${f}_0`];
+      const ctx = sheet.image.getContext("2d");
+      return ctx.getImageData(fr[0], fr[1], fr[2], fr[3]);
+    }
+
+    const bodyData = Object.fromEntries(FACINGS.map((f) => [f, framePixels(bald, f)]));
+
+    // The generated cap as a layer: the pixels where the haired frame differs from the bald one.
+    function capLayer(style, f) {
+      const a = bodyData[f].data;
+      const b = framePixels(caps[style], f).data;
+      const h = headOf(bald, f);
+      const out = new Map();
+      for (let y = 0; y < FH; y++) for (let x = 0; x < FW; x++) {
+        const i = (y * FW + x) * 4;
+        if (a[i] === b[i] && a[i + 1] === b[i + 1] && a[i + 2] === b[i + 2] && a[i + 3] === b[i + 3]) continue;
+        if (b[i + 3] === 0) continue;
+        const dx = x - h.x, dy = y - h.y;
+        if (Math.abs(dx) >= G / 2 || Math.abs(dy) >= G / 2) continue;
+        out.set(`${dx},${dy}`, rgbHex(b[i], b[i + 1], b[i + 2]));
+      }
+      return out;
+    }
+
+    function rgbHex(r, g, b) {
+      return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+    }
+
+    // ---- the eight canvases ----
+    const cells = {};
+    for (const f of FACINGS) {
+      const wrap = document.createElement("div");
+      wrap.className = "cell";
+      const c = document.createElement("canvas");
+      c.width = G * Z; c.height = G * Z;
+      c.dataset.facing = f;
+      const label = document.createElement("span");
+      label.textContent = f;
+      wrap.append(c, label);
+      sheetsEl.appendChild(wrap);
+      cells[f] = c;
+      c.addEventListener("contextmenu", (e) => e.preventDefault());
+      c.addEventListener("pointerdown", (e) => { paintAt(e, true); c.setPointerCapture(e.pointerId); });
+      c.addEventListener("pointermove", (e) => { if (e.buttons) paintAt(e, false); });
+      c.addEventListener("pointerup", () => { last = null; });
+    }
+
+    function cellOf(e) {
+      const c = e.currentTarget;
+      const r = c.getBoundingClientRect();
+      const gx = Math.floor((e.clientX - r.left) / (r.width / G));
+      const gy = Math.floor((e.clientY - r.top) / (r.height / G));
+      return { f: c.dataset.facing, dx: gx - G / 2, dy: gy - G / 2 };
+    }
+
+    function paintAt(e, start) {
+      const { f, dx, dy } = cellOf(e);
+      const erase = tool === "eraser" || e.button === 2 || (e.buttons & 2);
+      if (tool === "dropper" && !erase) {
+        const k = `${dx},${dy}`;
+        const own = layers[f].get(k);
+        if (own) colourEl.value = own;
+        else {
+          const h = headOf(bald, f);
+          const x = h.x + dx, y = h.y + dy;
+          if (x >= 0 && y >= 0 && x < FW && y < FH) {
+            const d = bodyData[f].data, i = (y * FW + x) * 4;
+            if (d[i + 3]) colourEl.value = rgbHex(d[i], d[i + 1], d[i + 2]);
+          }
+        }
+        return;
+      }
+      const put = (x, y) => {
+        if (Math.abs(x) >= G / 2 || Math.abs(y) >= G / 2) return;
+        if (erase) layers[f].delete(`${x},${y}`);
+        else layers[f].set(`${x},${y}`, colourEl.value);
+      };
+      if (e.shiftKey && last && last.f === f) {
+        const n = Math.max(Math.abs(dx - last.dx), Math.abs(dy - last.dy)) || 1;
+        for (let i = 0; i <= n; i++) put(Math.round(last.dx + (dx - last.dx) * i / n), Math.round(last.dy + (dy - last.dy) * i / n));
+      } else put(dx, dy);
+      last = { f, dx, dy };
+      draw(f);
+      drawPreview();
+    }
+
+    function draw(f) {
+      const c = cells[f];
+      const ctx = c.getContext("2d");
+      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, c.width, c.height);
+      // The body, head centred.
+      const h = headOf(bald, f);
+      const tmp = document.createElement("canvas");
+      tmp.width = FW; tmp.height = FH;
+      tmp.getContext("2d").putImageData(bodyData[f], 0, 0);
+      ctx.globalAlpha = showFace.checked ? 1 : 0.35;
+      ctx.drawImage(tmp, (G / 2 - h.x) * Z, (G / 2 - h.y) * Z, FW * Z, FH * Z);
+      ctx.globalAlpha = 1;
+      // Grid.
+      ctx.strokeStyle = "rgba(255,255,255,0.07)";
+      for (let i = 0; i <= G; i++) {
+        ctx.beginPath(); ctx.moveTo(i * Z + 0.5, 0); ctx.lineTo(i * Z + 0.5, G * Z); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i * Z + 0.5); ctx.lineTo(G * Z, i * Z + 0.5); ctx.stroke();
+      }
+      // Head centre mark.
+      ctx.strokeStyle = "rgba(255,120,120,0.5)";
+      ctx.strokeRect(G / 2 * Z + 0.5, G / 2 * Z + 0.5, Z - 1, Z - 1);
+      // The layer.
+      for (const [k, col] of layers[f]) {
+        const [dx, dy] = k.split(",").map(Number);
+        ctx.fillStyle = col;
+        ctx.fillRect((dx + G / 2) * Z, (dy + G / 2) * Z, Z, Z);
+      }
+    }
+
+    function drawPreview() {
+      previewEl.innerHTML = "";
+      for (const f of FACINGS) {
+        const c = document.createElement("canvas");
+        const S = 3;
+        c.width = FW * S; c.height = FH * S;
+        const ctx = c.getContext("2d");
+        ctx.imageSmoothingEnabled = false;
+        const tmp = document.createElement("canvas");
+        tmp.width = FW; tmp.height = FH;
+        const tctx = tmp.getContext("2d");
+        tctx.putImageData(bodyData[f], 0, 0);
+        const h = headOf(bald, f);
+        for (const [k, col] of layers[f]) {
+          const [dx, dy] = k.split(",").map(Number);
+          tctx.fillStyle = col;
+          tctx.fillRect(h.x + dx, h.y + dy, 1, 1);
+        }
+        ctx.drawImage(tmp, 0, 0, FW * S, FH * S);
+        previewEl.appendChild(c);
+      }
+    }
+
+    function drawAll() {
+      for (const f of FACINGS) draw(f);
+      drawPreview();
+    }
+
+    // ---- tools and buttons ----
+    const toolButtons = { pencil: document.getElementById("pencil"), eraser: document.getElementById("eraser"), dropper: document.getElementById("dropper") };
+    function setTool(t) {
+      tool = t;
+      for (const k in toolButtons) toolButtons[k].classList.toggle("on", k === t);
+    }
+    for (const k in toolButtons) toolButtons[k].addEventListener("click", () => setTool(k));
+    window.addEventListener("keydown", (e) => {
+      if (e.target.tagName === "INPUT") return;
+      if (e.code === "KeyP") setTool("pencil");
+      if (e.code === "KeyE") setTool("eraser");
+      if (e.code === "KeyD") setTool("dropper");
+    });
+    document.getElementById("fromShort").addEventListener("click", () => { for (const f of FACINGS) layers[f] = capLayer("short", f); drawAll(); });
+    document.getElementById("fromLong").addEventListener("click", () => { for (const f of FACINGS) layers[f] = capLayer("long", f); drawAll(); });
+    document.getElementById("clear").addEventListener("click", () => { for (const f of FACINGS) layers[f].clear(); drawAll(); });
+    document.getElementById("mirror").addEventListener("click", () => {
+      // The west-side facings flipped onto the east side; s and n stay.
+      for (const [from, to] of [["w", "e"], ["sw", "se"], ["nw", "ne"]]) {
+        const m = new Map();
+        for (const [k, col] of layers[from]) { const [dx, dy] = k.split(",").map(Number); m.set(`${-dx},${dy}`, col); }
+        layers[to] = m;
+      }
+      drawAll();
+    });
+    showFace.addEventListener("change", drawAll);
+
+    function toJson() {
+      const frames = {};
+      for (const f of FACINGS) frames[f] = [...layers[f]].map(([k, col]) => { const [dx, dy] = k.split(",").map(Number); return [dx, dy, col]; });
+      return { name: nameEl.value || "hair", frames };
+    }
+    document.getElementById("save").addEventListener("click", () => {
+      const data = toJson();
+      const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${data.name}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    document.getElementById("loadBtn").addEventListener("click", () => document.getElementById("load").click());
+    document.getElementById("load").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const data = JSON.parse(await file.text());
+      nameEl.value = data.name || nameEl.value;
+      for (const f of FACINGS) {
+        layers[f] = new Map();
+        for (const [dx, dy, col] of (data.frames && data.frames[f]) || []) layers[f].set(`${dx},${dy}`, col);
+      }
+      drawAll();
+      e.target.value = "";
+    });
+
+    // Start from the generated short cap so there is something to edit.
+    for (const f of FACINGS) layers[f] = capLayer("short", f);
+    drawAll();
+  </script>
+</body>
+</html>

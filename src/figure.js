@@ -469,6 +469,20 @@ function col(garment, i = 0, fallback = "#888") {
 
 // ---- drawing one frame ----
 
+// Hair painted in the editor (tools/hair.html): per facing, pixels relative
+// to the head's centre, [dx, dy, "#rrggbb"]. Registered at boot from
+// data/hair/index.json; a look's hairStyle may name one.
+const paintedHair = new Map();
+export function registerHair(name, data) {
+  paintedHair.set(name, data);
+}
+export function hairStyles() {
+  return ["short", "long", "bald", ...paintedHair.keys()];
+}
+export function hairIsPainted(name) {
+  return paintedHair.has(name);
+}
+
 // Part ids, for the shading pass.
 const PART = { legL: 1, legR: 2, torso: 3, armL: 4, armR: 5, head: 6, hair: 7, bag: 8, hat: 9 };
 
@@ -490,8 +504,9 @@ function drawFrame(frame, spec, facing, anim, i) {
   };
   // The face is drawn front-on (Stardew, Habbo): both eyes toward the viewer,
   // one eye from the side, none from behind.
-  const faceFront = F.fy > 0.3;
-  const faceSide = !faceFront && F.fy > -0.3;
+  const faceFront = F.fy > 0.3; // s, sw, se: both eyes
+  const faceSide = !faceFront && F.fy > -0.3; // e, w: one eye
+  const hairSide = Math.abs(F.fx) > 0.8; // e, w only; the three-quarter facings keep the front cap, shifted back
   const parts = [];
   const add = (depth, draw) => parts.push({ depth, draw });
   const along = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
@@ -557,8 +572,8 @@ function drawFrame(frame, spec, facing, anim, i) {
     if (waist && !p.lying) {
       const band = [];
       for (const [l, d] of [[-B.hipL - 0.5, -B.hipD], [B.hipL + 0.5, -B.hipD], [-B.hipL - 0.5, B.hipD], [B.hipL + 0.5, B.hipD]]) {
-        band.push(P([l, d + p.lean * 0.3, J.hip[2] + 0.5]));
-        band.push(P([l, d + p.lean * 0.3, J.hip[2] + 3]));
+        band.push(P([l, d + p.lean * 0.3, J.hip[2] + 0.9]));
+        band.push(P([l, d + p.lean * 0.3, J.hip[2] + 2.3]));
       }
       frame.poly(band, paint(col(waist)), { outline: false, part: PART.torso });
       if (faceFront || faceSide) {
@@ -618,7 +633,8 @@ function drawFrame(frame, spec, facing, anim, i) {
     frame.outline();
     frame.fill(paint(helm ? col(head) : skin), PART.head);
     const fromBehind = F.fy < -0.3;
-    if (!head && look.hairStyle !== "bald") {
+    const painted = !head && paintedHair.get(look.hairStyle);
+    if (!head && !painted && look.hairStyle !== "bald") {
       // The hair helmet: the top of the head, down the back and sides, with
       // a straight fringe across the forehead from the front.
       // The cap's mass sits toward the back of the head, so it turns with the
@@ -633,7 +649,7 @@ function drawFrame(frame, spec, facing, anim, i) {
         if (py <= fringe) return true; // the curved cap
         if (fromBehind) return py <= hc.y + 4; // the back of the head
         const forward = (px - hc.x) * F.fx; // positive toward the face
-        if (Math.abs(F.fx) > 0.5) return forward < -1 && py <= hc.y + 2; // from the side: down the back only
+        if (hairSide) return forward < -1 && py <= hc.y + 2; // from the side: down the back only
         return Math.abs(px - hc.x) >= B.headRx - 1.5 && py <= hc.y; // from the front: thin sides to the ears
       });
       if (look.hairStyle === "long") {
@@ -686,22 +702,31 @@ function drawFrame(frame, spec, facing, anim, i) {
         // Two eyes, two wide and three tall, whites with the pupil low on
         // the inner column. No mouth (Michael, 2026-10-10).
         for (const side of [-1, 1]) {
-          const outer = Math.round(hc.x) + side * 3 + shift;
-          const inner = outer - side;
-          for (let dy = -1; dy <= 1; dy++) {
+          const outer = Math.round(hc.x) + side * 4 + shift;
+          const mid = outer - side;
+          const inner = outer - 2 * side;
+          for (let dy = -2; dy <= 1; dy++) {
             frame.px(outer, ey + dy, white);
+            frame.px(mid, ey + dy, white);
             frame.px(inner, ey + dy, white);
           }
-          frame.px(inner, ey, pupil);
-          frame.px(inner, ey + 1, pupil);
+          for (const x of [mid, inner]) for (const dy of [0, 1]) frame.px(x, ey + dy, pupil);
         }
       } else {
         // From the side: one eye on the forward edge.
-        const ex = Math.round(hc.x + F.fx * (B.headRx - 4));
-        for (let dy = -1; dy <= 1; dy++) frame.px(ex, ey + dy, white);
-        frame.px(ex + Math.sign(F.fx), ey, pupil);
-        frame.px(ex + Math.sign(F.fx), ey + 1, pupil);
+        const ex = Math.round(hc.x + F.fx * (B.headRx - 4.5));
+        const sgn = Math.sign(F.fx);
+        for (let dy = -2; dy <= 1; dy++) {
+          frame.px(ex, ey + dy, white);
+          frame.px(ex + sgn, ey + dy, white);
+        }
+        frame.px(ex + sgn, ey, pupil);
+        frame.px(ex + sgn, ey + 1, pupil);
       }
+    }
+    if (painted) {
+      const px = (painted.frames && painted.frames[facing]) || [];
+      for (const [dx, dy, c] of px) frame.px(hc.x + dx, hc.y + dy, flash ? WHITE : hexToRgb(c));
     }
     if (spec.wound && !helm) {
       const w = P([spec.wound[0], spec.wound[1], J.head[2] + spec.wound[2]]);
