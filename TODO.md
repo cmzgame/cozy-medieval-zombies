@@ -110,10 +110,11 @@ Each step checkable on its own. Michael looks after step 3.
 ## Milestone 7 — Placement (see `docs/13-placement.md`)
 
 - [x] `placement.js`, prop mode (2026-10-11): the ghost, R turns the footprint, left click places in reach; E in front still works. Tested by script and a real click; Michael's hands-on pass pending.
-- [ ] The build palette on N; `map.canBuildWall`, `buildWall`, `edgeTiles`; edge picking; the wall ghost; the timed build; planks spent; `data/build.json`.
-- [ ] Doors and windows through the same path.
-- [ ] Prompt lines and reasons; Escape order.
-- [ ] Acceptance: the eight checks in `docs/13`.
+- [x] The build palette on N; `map.canBuildWall`, `buildWall`, `edgeTiles`; edge picking; the wall ghost; the timed build; logs spent; `data/build.json` (2026-10-11).
+- [x] Doors and windows through the same path.
+- [x] Prompt lines and reasons; Escape order.
+- [x] The carry rule (`canCarry`) and the Free building setting, from Michael's notes on step 1.
+- [x] Acceptance, scripted (2026-10-11): all eight checks in `docs/13` pass, with a log wall in place of the plank wall. Michael's hands-on pass pending.
 
 ## Milestone 8 — Melee (see `docs/14-combat.md`)
 

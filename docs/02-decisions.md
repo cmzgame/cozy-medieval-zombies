@@ -15,6 +15,13 @@ Michael is conserving credits: the scoping is done here, the building by another
 - **Stamina never locks you out of hitting**: at zero a swing lands at half damage.
 - **Not ported now:** the parent's wind-up and lunge (a trial after play), weapon condition, hit locations.
 
+### 2026-10-11, build — Placement: carry rule, log wall, free building (Michael)
+
+- **What can be carried is a rule**: anything not rooted (trees, the well), not built in (hearth, torch posts), and not a burning fire (the campfire). The jack-o'-lantern now lifts; it goes dark while carried and lights when set down. An explicit `carry` flag on a sprite overrides the rule. The campfire is fixed until Michael says otherwise.
+- **A log wall, paid in logs.** Michael: build a log wall that consumes logs. Costs are `{ item: count }` in `data/build.json`: a log wall one log, a door three planks, a window two planks. One tree is three logs, so about three wall edges. The wall has its own sheet, `wall_log`, with a log pattern.
+- **A Free building setting**, off by default, erases every cost so structures can be tested without gathering; build time still applies. Planks for boards (`B`) are untouched.
+- **Building** rules the build forced: the palette on `N`, a `Step back` refusal when the player stands on the edge, and Escape closing the palette before leaving build mode.
+
 ### 2026-10-11, build — Placement step 1 (the building model)
 
 - Escape never cancels a carry; with nothing else open it opens the pause menu as usual. The prop prompt says `Click to place · R turn · E in front`, not "Esc cancel", which the spec's own acceptance list contradicted.

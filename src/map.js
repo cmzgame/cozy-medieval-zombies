@@ -292,6 +292,43 @@ export const DOOR_HP = 100;
 export const SHUTTER_HP = 60;
 export const BOARDS_PER_SIDE = 3;
 
+// ---- building (docs/13) ----
+
+export const WALL_SPRITE_DEFAULT = "wall_log";
+
+// The two tiles an edge separates: its own, and the one across it.
+export function edgeTiles(tx, ty, edge) {
+  return edge === "n" ? [[tx, ty], [tx, ty - 1]] : [[tx, ty], [tx - 1, ty]];
+}
+
+// The edge's midpoint on the ground, in grid coordinates.
+export function edgeMid(tx, ty, edge) {
+  return edge === "n" ? [tx, ty - 0.5] : [tx - 0.5, ty];
+}
+
+// Whether a wall of this kind may be built on the edge: nothing there yet, no
+// solid prop whose footprint spans it, and a door needs both its tiles to be
+// walkable so it can be walked through.
+export function canBuildWall(tx, ty, edge, kind = "wall") {
+  if (tileAt(tx, ty)[edge]) return false;
+  const [a, b] = edgeTiles(tx, ty, edge);
+  const pa = tileAt(a[0], a[1]).prop;
+  const pb = tileAt(b[0], b[1]).prop;
+  if (pa && pa === pb && pa.solid) return false;
+  if (kind === "door" && (!isWalkableTile(a[0], a[1]) || !isWalkableTile(b[0], b[1]))) return false;
+  return true;
+}
+
+// Build a wall, door, or window on an edge, as an authored one would be, and
+// tell sight, light, and the rooms.
+export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT) {
+  if (tileAt(tx, ty)[edge]) return false;
+  tileAt(tx, ty)[edge] = createWall(kind, sprite);
+  touch();
+  markRoomsDirty();
+  return true;
+}
+
 export function createWall(kind, sprite) {
   return {
     kind,

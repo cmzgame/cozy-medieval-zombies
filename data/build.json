@@ -1,0 +1,26 @@
+{
+  "wall": {
+    "label": "Log wall",
+    "sprite": "wall_log",
+    "cost": {
+      "log": 1
+    },
+    "seconds": 3
+  },
+  "door": {
+    "label": "Door",
+    "sprite": "wall_log",
+    "cost": {
+      "plank": 3
+    },
+    "seconds": 4
+  },
+  "window": {
+    "label": "Window",
+    "sprite": "wall_log",
+    "cost": {
+      "plank": 2
+    },
+    "seconds": 3
+  }
+}

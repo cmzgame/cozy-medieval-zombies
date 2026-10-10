@@ -162,8 +162,17 @@ function propName(prop) {
   return prop.sprite.replace(/_/g, " ");
 }
 
+// The rule (docs/13, "What can be carried", Michael 2026-10-11): a prop can be
+// lifted unless it is rooted (a tree, a well), built in (a hearth, a torch
+// post), or a fire that burns fuel (a campfire). A sprite's own `carry`
+// flag, true or false, overrides the rule either way. Everything else, the
+// furniture, the barrels, the jack-o'-lantern, can be picked up.
 export function canCarry(prop) {
-  return !!getDef(prop.sprite).carry;
+  const d = getDef(prop.sprite);
+  if (d.carry !== undefined) return !!d.carry;
+  if (prop.wood || prop.water) return false;
+  if (prop.fire && (prop.fire.room || prop.fire.holds || prop.fire.burns)) return false;
+  return true;
 }
 
 function carryAction(prop, player) {
@@ -474,17 +483,18 @@ function propRect(prop, tx, ty) {
   return b ? { x: x + b.x, y: y + b.y, w: b.w, h: b.h } : { x, y, w: f[2], h: f[3] };
 }
 
+// What can be done to a prop: its own actions first, and lifting it last when
+  // the rule (canCarry) allows. Additive, so a prop with several uses lists them all.
 function propActions(prop, player) {
   if (player.carrying) return [];
   const out = [];
   if (prop.container) out.push(...containerActions(prop));
+  if (prop.fire && prop.fire.burns) out.push(...fireActions(prop, player));
+  if (prop.fire && prop.fire.holds) out.push(...holderActions({ kind: "post", prop }, player));
+  if (prop.wood) out.push(...treeActions(prop));
+  if (prop.water) out.push(...wellActions(prop, player));
   if (canCarry(prop)) out.push(carryAction(prop, player));
-  if (out.length) return out;
-  if (prop.fire && prop.fire.burns) return fireActions(prop, player);
-  if (prop.fire && prop.fire.holds) return holderActions({ kind: "post", prop }, player);
-  if (prop.wood) return treeActions(prop);
-  if (prop.water) return wellActions(prop, player);
-  return [];
+  return out;
 }
 
 // Openings under a canvas point. A door or shutter is drawn as a face up to

@@ -656,3 +656,51 @@ html, body {
   pointer-events: none;
   text-shadow: 0 1px 1px #000;
 }
+
+/* ---- docs/13: the build palette ---- */
+#build-palette {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 200px;
+  padding: 8px;
+  background: rgba(24, 18, 30, 0.92);
+  border: 2px solid #6a5a70;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.bp-title {
+  font-size: 15px;
+  margin-bottom: 6px;
+  color: #d8c8e0;
+}
+
+.bp-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 5px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.bp-row:hover {
+  background: #3a3044;
+}
+
+.bp-cost {
+  color: #a8d8a0;
+}
+
+.bp-row.short .bp-cost {
+  color: #e87070;
+}
+
+.bp-hint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #a098ac;
+  max-width: 220px;
+}

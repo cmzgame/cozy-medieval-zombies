@@ -31,6 +31,7 @@ import * as settings from "./settings.js";
 import * as screens from "./ui/screens.js";
 import * as figure from "./figure.js";
 import * as placement from "./placement.js";
+import * as buildPalette from "./ui/build-palette.js";
 
 const V = view.view; // the world's size in its own pixels, kept current by view.js
 const MAP_FILE = "data/maps/square.json";
@@ -95,6 +96,10 @@ function setPaused(v) {
 function handleEscape() {
   if (menu.tookEscape()) return;
   if (screens.back()) return;
+  if (buildPalette.isOpen()) {
+    buildPalette.close();
+    return;
+  }
   if (placement.cancel()) return;
   if (panel.isOpen()) {
     panel.setOpen(false);
@@ -102,6 +107,19 @@ function handleEscape() {
     return;
   }
   screens.show("pause");
+}
+
+// N: the build palette, or out of build mode if in it. Not while carrying or
+// with the bag open (docs/13).
+function toggleBuild() {
+  if (placement.cancel()) return;
+  if (buildPalette.isOpen()) {
+    buildPalette.close();
+    return;
+  }
+  if (player.carrying) return showMessage("Your hands are full.");
+  if (panel.isOpen()) return;
+  buildPalette.openPalette(player);
 }
 
 function applyDebugCorner() {
@@ -204,6 +222,7 @@ function refreshFigure() {
 function update(dt) {
   const t0 = performance.now();
   if (input.wasPressed("KeyV")) drawAll = !drawAll;
+  if (input.wasPressed("KeyN")) toggleBuild();
   // The wheel zooms in integer steps, 1× to 3× (docs/02, 2026-10-10 night):
   // down zooms out. The panel's own wheel use (rotating a drag) wins.
   // Zoom snaps between three levels: Z cycles them, the wheel steps one way
@@ -234,6 +253,10 @@ function update(dt) {
   // Placement first: its ghost follows the cursor and a left click that
   // places is spent before anything else can use it (docs/13).
   placement.update(player);
+  if (buildPalette.isOpen()) {
+    if (player.carrying || panel.isOpen()) buildPalette.close();
+    else buildPalette.render(player);
+  }
   if (input.mouseLeftPressed() && !menu.tookClick()) placement.tryConfirm(player);
   handleMouse();
   interact.updateInteract(player, dt);
@@ -317,7 +340,7 @@ function render() {
     `chunk ${cx},${cy}  room ${playerRoom}${playerRoom > 0 ? (map.roomSealed(map.getRoom(playerRoom)) ? " sealed" : " open") : ""}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `zombies ${zombies.length}  near ${zombies.filter((z) => Math.abs(z.gx - player.gx) <= ACTIVE_TILES && Math.abs(z.gy - player.gy) <= ACTIVE_TILES).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
-    `Tab: bag   C: character   1-4: belt   Z: zoom   right-click: actions   Esc: close or pause   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   K: near walls ${cutaway}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
+    `Tab: bag   C: character   1-4: belt   N: build   Z: zoom   right-click: actions   Esc: close or pause   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   K: near walls ${cutaway}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
 }
 
 // ---- the panel's handlers: moves that involve a slot know the player ----
@@ -490,10 +513,12 @@ async function boot() {
   });
 
   items.loadItems(await assets.loadJson("data/items.json"));
+  placement.setBuildData(await assets.loadJson("data/build.json"));
   items.loadLoot(await assets.loadJson("data/loot.json"));
   await loadPaintedHair();
   const json = await assets.loadJson(MAP_FILE);
   await assets.loadMapSprites(json);
+  for (const k of placement.buildKinds()) await assets.loadSprite(k.sprite); // what can be built must be drawable
   // The dead's outfits and the held art, generated like everything else (docs/12).
   for (let k = 0; k < figure.ZOMBIE_OUTFITS; k++) assets.registerSheet(`zombie_${k}`, figure.generateFigure(figure.zombieSpec(k)));
   for (const def of items.allItems()) if (def.held) assets.registerSheet(`held_${def.id}`, figure.generateHeld(def.held.shape, def.held.colours));
@@ -515,6 +540,13 @@ async function boot() {
   menu.initContextMenu();
   const handlers = panelHandlers();
   panel.initInventoryPanel(handlers);
+  placement.init({ startAction: interact.startAction });
+  buildPalette.initBuildPalette({
+    onPick: (what) => {
+      buildPalette.close();
+      placement.beginBuild(what);
+    },
+  });
   // Any screen up means the game is paused; the title is up at boot.
   screens.initScreens({
     onChange: (name) => setPaused(!!name),
@@ -555,7 +587,7 @@ async function boot() {
   screens.show("title");
 
   window.__game = {
-    iso, input, loop, assets, events, map, camera, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement,
+    iso, input, loop, assets, events, map, camera, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette,
     render: { night },
     get player() { return player; },
     get zombies() { return zombies; },

@@ -63,15 +63,15 @@ In `update`, before `handleMouse`: `placement.update(player)`; then if `input.mo
 
 ## Data
 
-`data/build.json`, loaded at boot like items:
+`data/build.json`, loaded at boot like items. Costs are item ids and counts, so any mix works, and each kind names the wall sheet it uses:
 
 ```json
-{ "wall":   { "label": "Wood wall", "planks": 2, "seconds": 3 },
-  "door":   { "label": "Door",      "planks": 3, "seconds": 4 },
-  "window": { "label": "Window",    "planks": 2, "seconds": 3 } }
+{ "wall":   { "label": "Log wall", "sprite": "wall_log", "cost": { "log": 1 },   "seconds": 3 },
+  "door":   { "label": "Door",     "sprite": "wall_log", "cost": { "plank": 3 }, "seconds": 4 },
+  "window": { "label": "Window",   "sprite": "wall_log", "cost": { "plank": 2 }, "seconds": 3 } }
 ```
 
-Defaults; Michael tunes by editing the file.
+Defaults; Michael tunes by editing the file. (The first draft of this spec had a plank wall; Michael asked for a log wall that spends logs, 2026-10-11.)
 
 ## Build order
 
@@ -94,6 +94,14 @@ Pause with `loop.setPaused(true)` and step with `loop.advance(1/60)`. The cursor
 7. A built wall blocks sight, light, and movement at once (the debug corner's room and sealed readouts agree; light inside a built room dims).
 8. Frame rate unchanged with the ghost showing.
 
+## What can be carried
+
+A rule, not a list (Michael, 2026-10-11: "extend it to other items that can be picked up as a rule"). `interact.canCarry(prop)`: a prop can be lifted unless it is **rooted** (a tree, the well), **built in** (the hearth, a torch post), or **a fire that burns fuel** (the campfire). Everything else can: the bed, table, chest, barrel, and the jack-o'-lantern. A sprite's own `carry` flag, true or false, overrides the rule. A lit prop goes dark while carried (it leaves the fire set) and lights again when set down. The campfire is held fixed for now because a burning fire has no good answer to being carried; flip it with `"carry": true` in `data/sprites/campfire.json`.
+
+## Free building
+
+The setting `freeBuilding` (settings screen, default off, kept in the browser): while on, every build costs nothing, the palette shows "free", and nothing is taken from the bag. Build time still applies. It is for testing structures; turn it off to test the costs.
+
 ## As built
 
 Step 1, prop mode (2026-10-11), with the places the build had to settle:
@@ -105,6 +113,14 @@ Step 1, prop mode (2026-10-11), with the places the build had to settle:
 - **Reach is measured to the anchor tile**, as written. The footprint is centred on the cursor, so a 2×1 bed's anchor is its left tile.
 - **The ghost also draws a tinted diamond under each footprint tile**, so the footprint reads where the box is dark.
 - **Edge naming (for step 2):** the spec's "top-left" and "top-right" sides are swapped against the iso maths. A tile's `n` edge is its upper-right side on screen (toward the tile above and to the right) and its `w` edge its upper-left side. Edge picking uses the cursor's fractional offset in the tile, not those labels.
+
+Steps 2 to 4, building (2026-10-11):
+
+- **`placement.js` carries both modes.** Build mode: `beginBuild(what)`, `pickEdge` (the nearest side of the hovered tile), a ghost drawn by the real wall code (`makeWall` takes a tint), the cost check (`costOf`, `shortfall`, `costText`), and the timed build through `interact.startAction`, handed in by `placement.init` so there is no import cycle. Nothing is spent until the bar finishes, and everything is checked again then; moving cancels it.
+- **Reasons, in order:** `Too far`, `Already a wall`, `No room` (a solid prop spans the edge, or a door's tiles are not both walkable), `Step back` (the player is within 0.45 tiles of the edge), then `Need 1 log` and the like. `Step back` is an addition: a wall built under the player's feet would trap them.
+- **`N`** opens the palette; in build mode it leaves build mode; with the palette open it closes it; it does nothing while carrying (a message) or with the bag open. **Escape** closes the palette first, then leaves build mode, then the usual order.
+- **`map.js`** gained `canBuildWall(tx, ty, edge, kind)`, `buildWall`, `edgeTiles`, `edgeMid`, `WALL_SPRITE_DEFAULT`. A built wall is `createWall` exactly as an authored one, so doors and windows open, close, take boards, and are breached by the dead the same way.
+- **The log wall's sheet** is `wall_log`: the wall generator with a new `log` pattern (rounded courses, a lit line and a seam each). Colour and height are in `data/sprites/wall_log.json`.
 
 ## Tunables
 

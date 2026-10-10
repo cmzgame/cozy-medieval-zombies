@@ -248,7 +248,8 @@ function wallDrawables(tiles, visible, playerRoom, out) {
   }
 }
 
-function makeWall(wall, edge, tx, ty, vis, stub) {
+// `ghostTint` draws the wall as the placement ghost (docs/13): tinted, unlit, and unfogged.
+function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null) {
   const sheet = getSheet(wall.sprite);
   const variant = wallVariant(wall);
   const depth = edge === "n" ? tx + ty - 0.5 : tx - 0.5 + ty;
@@ -260,7 +261,7 @@ function makeWall(wall, edge, tx, ty, vis, stub) {
   const lowStub = stub && cutaway === "stub";
   const faded = stub && !lowStub;
   const alpha = faded ? NEAR_WALL_ALPHA : 1;
-  const flags = vis ? gl.FLAG_NOFOG : 0;
+  const flags = ghostTint ? GHOST_FLAGS() : vis ? gl.FLAG_NOFOG : 0;
   const color = sheet.color || "#888";
   // The edge on screen, a to b. The face's light is read along its foot a
   // little inside the tile it looks onto, never on the boundary itself, where
@@ -280,7 +281,7 @@ function makeWall(wall, edge, tx, ty, vis, stub) {
     key: depth * 1000,
     kind: "wall",
     emit() {
-      const tint = [1, 1, 1, alpha];
+      const tint = ghostTint || [1, 1, 1, alpha];
       if (lowStub) {
         const q = edge === "n" ? iso.toScreen(tx, ty - 1) : iso.toScreen(tx - 1, ty);
         const name = edge === "n" ? `south_${stubVariant(variant)}_0` : `east_${stubVariant(variant)}_0`;
@@ -304,7 +305,7 @@ function makeWall(wall, edge, tx, ty, vis, stub) {
       const top = edge === "n"
         ? [[x, y - iso.HH - h], [x + iso.HW, y - h], [x + iso.HW + T, y - T / 2 - h], [x + T, y - iso.HH - T / 2 - h]]
         : [[x - iso.HW, y - h], [x, y - iso.HH - h], [x - T, y - iso.HH - h - T / 2], [x - iso.HW - T, y - h - T / 2]];
-      gl.poly(top, gl.rgb(shade(color, 1.18), alpha), { world: [tx, ty], flags: flags | gl.FLAG_SKY });
+      gl.poly(top, ghostTint ? ghostColor(shade(color, 1.18), ghostTint) : gl.rgb(shade(color, 1.18), alpha), { world: [tx, ty], flags: flags | gl.FLAG_SKY });
       if (open && outside > 0) emitSwungLeaves(wall, edge, x, y, h, outside, leafOpts);
       if (br) {
         const opts = { world: [tx, ty], flags };
@@ -335,8 +336,20 @@ const GHOST_OK = [0.6, 1, 0.6, 0.55];
 const GHOST_BAD = [1, 0.5, 0.5, 0.55];
 const GHOST_FLAGS = () => gl.FLAG_NOFOG | gl.FLAG_UNLIT;
 
+// A flat colour multiplied by the ghost's tint, as a fresh array (gl.rgb's are shared).
+function ghostColor(color, tint) {
+  const c = gl.rgb(color, tint[3]);
+  return [c[0] * tint[0], c[1] * tint[1], c[2] * tint[2], c[3]];
+}
+
 function emitGhost(ghost) {
   const tint = ghost.ok ? GHOST_OK : GHOST_BAD;
+  if (ghost.kind === "wall") {
+    // A wall, door, or window as it would stand, drawn by the real wall code.
+    const wall = map.createWall(ghost.wallKind, ghost.sprite);
+    makeWall(wall, ghost.edge, ghost.tx, ghost.ty, true, false, tint).emit();
+    return;
+  }
   if (ghost.kind === "prop") {
     const [w, h] = ghost.footprint;
     const sheet = getSheet(ghost.prop.sprite, w * h);

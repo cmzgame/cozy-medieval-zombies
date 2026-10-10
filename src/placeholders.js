@@ -317,8 +317,8 @@ function drawWallVariant(ctx, ox, oy, side, variantName, ph, T) {
   // Face pattern: planks are courses along the wall; bricks add staggered seams.
   if (ph.pattern) {
     const lerpP = (t, y) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t - y];
-    const course = ph.pattern === "brick" ? 10 : 9;
-    ctx.strokeStyle = shade(color, f * 0.82);
+    const course = ph.pattern === "brick" ? 10 : ph.pattern === "log" ? 12 : 9;
+    ctx.strokeStyle = shade(color, f * (ph.pattern === "log" ? 0.66 : 0.82));
     ctx.lineWidth = 1;
     let row = 0;
     for (let y = course; y < h; y += course, row++) {
@@ -328,6 +328,16 @@ function drawWallVariant(ctx, ox, oy, side, variantName, ph, T) {
       ctx.moveTo(p0[0], p0[1] + 0.5);
       ctx.lineTo(p1[0], p1[1] + 0.5);
       ctx.stroke();
+      if (ph.pattern === "log") {
+        // Each log is round: a lit line a few pixels above its lower seam, and a darker one just under it.
+        const hi = [lerpP(0, y - 4), lerpP(1, y - 4)];
+        ctx.strokeStyle = shade(color, f * 1.2);
+        ctx.beginPath();
+        ctx.moveTo(hi[0][0], hi[0][1] + 0.5);
+        ctx.lineTo(hi[1][0], hi[1][1] + 0.5);
+        ctx.stroke();
+        ctx.strokeStyle = shade(color, f * 0.66);
+      }
       if (ph.pattern === "brick") {
         for (let t = row % 2 ? 0.25 : 0.5; t < 1; t += 0.5) {
           const q0 = lerpP(t, y);

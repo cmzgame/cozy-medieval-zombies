@@ -17,6 +17,8 @@ const CONTROLS = [
   ["C", "Your character"],
   ["1 to 4", "Swap a belt slot with your hand"],
   ["T", "Torch in or out of hand"],
+  ["N", "Build menu: walls, doors, windows"],
+  ["R", "Turn what you are placing"],
   ["B", "Board up the nearest opening; hold to pull a board"],
   ["Esc", "Close what is open, else pause"],
   ["R / wheel", "Rotate the item you are dragging"],
@@ -164,6 +166,7 @@ function render() {
         ${settingRow("worldScale", "Zoom")}
         ${settingRow("zombieAggro", "Zombie aggro")}
         ${settingRow("survival", "Survival")}
+        ${settingRow("freeBuilding", "Free building")}
         ${settingRow("debugCorner", "Debug corner")}
         ${hairRow()}
         ${layerRows()}
