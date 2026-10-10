@@ -35,6 +35,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 - **Stamina never locks you out of hitting**: at zero a swing lands at half damage.
 - **Not ported now:** the parent's wind-up and lunge (a trial after play), weapon condition, hit locations.
 
+### 2026-10-11 — The drawn trees come in (Michael)
+
+Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
+
 ### 2026-10-11 — Melee accepted for now (Michael)
 
 After the mouse pass: melee feels good, the swing-target outline is great ("super duper legible"), multi-hit on and off both work as advertised. Called good. **Left to do, in order:** step 5 (painted held items, the way weapons get drawn); more one-handed weapons with art and stats; an answer on dual wielding (question 23); a usable shield (24); the bow and arrow (25), a careful design of its own; and finishing the trees, whose drawn sheet Michael is making with Claude Design (`06-art.md`). Status in `14-combat.md`.

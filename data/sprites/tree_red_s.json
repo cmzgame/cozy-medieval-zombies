@@ -1,1 +1,1 @@
-{"placeholder": {"kind": "tree", "color": "#8c3a2c", "height": 92, "width": 56, "trunk": "#4a3324"}, "collide": {"radius": 0.14}, "wood": 2}
+{"image": "data/art/trees/tree_oak_S_red.png", "frames": {"idle_0": [0, 0, 54, 67]}, "anchor": [26, 63], "bounds": {"x": 0, "y": 0, "w": 54, "h": 67}, "collide": {"radius": 0.14}, "wood": 2}
