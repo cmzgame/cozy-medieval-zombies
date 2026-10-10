@@ -31,6 +31,7 @@ import * as settings from "./settings.js";
 import * as screens from "./ui/screens.js";
 import * as figure from "./figure.js";
 import * as placement from "./placement.js";
+import * as combat from "./combat.js";
 import * as buildPalette from "./ui/build-palette.js";
 
 const V = view.view; // the world's size in its own pixels, kept current by view.js
@@ -273,10 +274,16 @@ function update(dt) {
     if (player.carrying || panel.isOpen()) buildPalette.close();
     else buildPalette.render(player);
   }
-  if (input.mouseLeftPressed() && !menu.tookClick()) placement.tryConfirm(player);
+  // A left click is placement's if it takes it, else a swing (docs/14), made
+  // after the player has turned to the cursor this step.
+  const clicked = input.mouseLeftPressed() && !menu.tookClick();
+  const clickSpent = clicked && placement.tryConfirm(player);
   handleMouse();
   interact.updateInteract(player, dt);
   updatePlayer(player, dt);
+  if (clicked && !clickSpent) combat.tryAttack(player, zombies);
+  if (input.wasPressed("Space")) combat.tryShove(player, zombies);
+  combat.updateCombat(player, zombies, dt);
   progress = interact.updateAction(player, dt);
   const others = [player, ...zombies];
   // The dead far from the player stand still: a stand-in for the records of
@@ -344,6 +351,7 @@ function render() {
     drawAll,
     fog: !drawAll,
     ghost: placement.ghost(),
+    hitShapes: combat.overlays(player, zombies, settings.get("showHitShapes")),
   };
   if (!glError) drawn = renderScene(scene);
   timing.render = performance.now() - r0;
@@ -610,7 +618,7 @@ async function boot() {
   screens.show("title");
 
   window.__game = {
-    iso, input, loop, assets, events, map, camera, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette,
+    iso, input, loop, assets, events, map, camera, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette, combat,
     render: { night },
     get player() { return player; },
     get zombies() { return zombies; },

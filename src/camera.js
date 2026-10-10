@@ -11,7 +11,14 @@ export function snapTo(gx, gy) {
   cam.gy = gy;
 }
 
+// A screen jolt (docs/14): `x`, `y` pixels, fading to nothing over `seconds`.
+let jolt = { x: 0, y: 0, ttl: 0, total: 1 };
+export function kick(x, y, seconds) {
+  jolt = { x, y, ttl: seconds, total: seconds };
+}
+
 export function follow(target, dt) {
+  jolt.ttl = Math.max(0, jolt.ttl - dt);
   const k = Math.min(1, FOLLOW * dt);
   cam.gx += (target.gx - cam.gx) * k;
   cam.gy += (target.gy - cam.gy) * k;
@@ -19,8 +26,9 @@ export function follow(target, dt) {
 
 // Put the camera position at the canvas centre. Rounded so pixels stay crisp.
 export function applyOrigin(w, h) {
-  const ox = Math.round(w / 2 - (cam.gx - cam.gy) * iso.HW);
-  const oy = Math.round(h / 2 - (cam.gx + cam.gy) * iso.HH);
+  const f = jolt.ttl > 0 ? jolt.ttl / jolt.total : 0;
+  const ox = Math.round(w / 2 - (cam.gx - cam.gy) * iso.HW + jolt.x * f);
+  const oy = Math.round(h / 2 - (cam.gx + cam.gy) * iso.HH + jolt.y * f);
   iso.setOrigin(ox, oy);
 }
 

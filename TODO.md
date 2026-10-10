@@ -122,8 +122,8 @@ Each step checkable on its own. Michael looks after step 3.
 
 - [x] `data/poses.json` and `figure.setPoses`; the editor's Preview and Reload poses (2026-10-11).
 - [x] Weapons in `items.json`: stick, sword, mace; stats on hatchet and torch; held shapes; loot (2026-10-11). `__game.give("sword")` puts any item in the bag for testing.
-- [ ] `combat.js`: the wedge, swings on the click, cooldowns, stamina; `damageZombie` with hurt, stagger, knockback, down, finisher, death; left click and Space; `zombieDied`.
-- [ ] Feedback: the wedge drawn, hit-stop, screen kick.
+- [x] `combat.js`: the wedge, swings on the click, cooldowns, stamina; `damageZombie` with hurt, stagger, knockback, down, finisher, death; left click and Space; `zombieDied` (2026-10-11).
+- [x] Feedback: the wedge drawn, hit-stop, screen kick, and the Show hit shapes setting (2026-10-11).
 - [ ] The painted held slot in the editor, `data/held/`, `generateHeldFromPixels`.
 - [ ] Acceptance: the ten checks in `docs/14`.
 

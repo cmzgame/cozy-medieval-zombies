@@ -10,6 +10,7 @@ export const DEFAULTS = {
   worldScale: "auto", // the zoom: "auto" or one of view.ZOOM_LEVELS
   debugCorner: true, // the text in the top-left corner
   zombieAggro: false, // off: the dead wander and ignore you, there to be looked at (Michael, 2026-10-10)
+  showHitShapes: false, // draw the swing's wedge and the dead's body samples (docs/14)
   freeBuilding: false, // on: building costs nothing (docs/13), for testing structures
   survival: false, // off: no hunger, thirst, or any other need; the body is a workbench too
   hairStyle: "short", // the player's hair, picked on the settings screen's Hair row; no choices row, the row is built live
@@ -22,6 +23,7 @@ export const CHOICES = {
   worldScale: [["auto", "Auto"], [1.1, "Wide"], [1.8, "Middle"], [2.7, "Close"]],
   debugCorner: [[true, "Shown"], [false, "Hidden"]],
   zombieAggro: [[false, "Off (they ignore you)"], [true, "On (they hunt you)"]],
+  showHitShapes: [[false, "Off"], [true, "On (wedge and body samples)"]],
   freeBuilding: [[false, "Off (costs apply)"], [true, "On (no costs)"]],
   survival: [[false, "Off (no hunger or thirst)"], [true, "On"]],
 };

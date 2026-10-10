@@ -147,6 +147,16 @@ Step 1, the swing as data (2026-10-11):
 - The editor loads the same file, shows every attack frame in Preview poses, and has a Reload poses button.
 - The player's swing now sweeps across the body (the `out` column); the off arm holds its pose instead of the old small motion.
 
+Steps 3 and 4, hitting and its feedback (2026-10-11):
+
+- **`combat.js`** is the parent's hit test with this figure's numbers. Where the build departed from the spec: `BODY_HALF_W` is **10** px, not 7, because the drawn body with its arms is about that wide and the rule is that a sprite overlapping the wedge is hit; the five samples sit at heights 2, 10, 18, 26, and 34 (feet to chest); `BODY_TOP` is 48 for the slack; the reach comparison is inclusive (a zombie exactly at range is in range, which the hatchet's 1.2 and the acceptance's 1.2 need). A close zombie's body subtends a wide angle from the chest, so one placed 60 degrees off the aim at one tile is still hit: that is the overlap rule working, not a bug.
+- **Weapon blocks gained `knockdown`**: the per-hit floor chance (the mace's is 0.6, fists' 0, default 0.3). Fists never floor, the third-hit rule included.
+- **A push is spread over 0.15 s** (`z.knock`) rather than a jump, and goes through `moveCircle`, so walls stop it.
+- **`damageZombie`** (`zombie.js`) takes `{ dir, knockback, knockdown, stagger, from }`. A blow cancels a bite begun; when Zombie aggro is on, the zombie then knows where it came from; with aggro off a hit zombie stays a passive punching bag. The dead, the downed, and rising zombies are skipped by separation, so nothing is blocked by them.
+- **Down** is one state for lying and rising: the `die` frames forward, hold two seconds, then backward over 0.6 s. A hit at any point of it is a finisher (double damage, no push, no stagger).
+- **Feedback:** `loop.freeze(seconds)` holds game time (the longest request wins), `camera.kick(x, y, seconds)` jolts the origin and fades, and the wedge is a translucent floor polygon for 0.12 s. **Show hit shapes** (settings) keeps the wedge up whenever a weapon is held and marks each nearby zombie's body samples, green when it is in the wedge. A held weapon is anything with a `weapon` block; fists do not count.
+- The click is placement's first, then the swing, made after the player has turned to the cursor that step. Space is the shove. Neither works while carrying, climbing, or mid-action.
+
 ## Tunables
 
 `POINT_BLANK` 0.55, `BODY_SLACK` 0.8, `STAGGER` 0.3, `KNOCKDOWN_CHANCE` 0.3, `DOWN_TIME` 2, `HIT_STOP` 0.045 and 0.09, the kick 3 px for 80 ms, the shove numbers, `FISTS`, and every weapon block.

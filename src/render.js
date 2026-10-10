@@ -357,6 +357,16 @@ function emitPropCells(sheet, cells, ok) {
   }
 }
 
+// The swing's wedge and, with Show hit shapes, the dead's body samples (docs/14).
+function emitHitShapes(o) {
+  const flags = gl.FLAG_NOFOG | gl.FLAG_UNLIT;
+  if (o.wedge && o.wedge.length > 2) gl.poly(o.wedge, gl.rgb("#ffffff", 0.18), { world: o.world, flags });
+  for (const [x, y, hit] of o.dots) {
+    const c = gl.rgb(hit ? "#60ff60" : "#a0a0a0", hit ? 0.95 : 0.6);
+    gl.poly([[x - 1, y - 1], [x + 1, y - 1], [x + 1, y + 1], [x - 1, y + 1]], c, { world: o.world, flags });
+  }
+}
+
 function emitGhost(ghost) {
   const tint = ghost.ok ? GHOST_OK : GHOST_BAD;
   if (ghost.kind === "remove") {
@@ -627,7 +637,7 @@ function buildArea(tiles, visible, drawAll, camGx, camGy) {
 
 let lastLinear = null;
 
-export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null }) {
+export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null }) {
   ensureArea(w, h);
   if (lastLinear !== night.linear) {
     gl.setLightSampling(night.linear);
@@ -650,6 +660,7 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
   for (const d of drawables) if (d.occluded && d.rect) holes.push([d.rect.x + d.rect.w / 2, d.rect.y + d.rect.h * 0.45]);
   for (const d of drawables) d.emit();
   if (ghost) emitGhost(ghost);
+  if (hitShapes) emitHitShapes(hitShapes);
 
   const pp = player ? iso.toScreen(player.gx, player.gy) : { x: -9999, y: -9999 };
   gl.end({

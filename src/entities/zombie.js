@@ -34,6 +34,10 @@ export const ZOMBIE_RADIUS = 0.3;
 export const SEARCH_TIME = 10; // seconds spent looking around the last sighting
 export const BREACH_DAMAGE = 5; // per hit into an opening's stack (docs/09)
 export const ZOMBIE_CLIMB = 1.6; // seconds through a window, against the player's 0.9
+export const STAGGER = 0.3; // seconds a hit stops it (docs/14)
+export const DOWN_TIME = 2; // seconds on the floor after a knockdown
+export const GET_UP_TIME = 0.6; // seconds to rise, the fall played backwards
+export const KNOCK_TIME = 0.15; // a push is spread over this long, not a teleport
 const BREACH_REACH = 1.1; // tiles from the edge midpoint to hit it
 const SEARCH_RADIUS = 3; // tiles
 const WANDER_IDLE_MIN = 1.5;
@@ -79,7 +83,119 @@ export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false 
     sincePlayer: Infinity, // seconds since the player was last seen
     stuckTime: 0,
     dead: false,
+    hits: [], // when the player's blows landed, for the third-hit rule (combat.js)
+    stagger: 0, // seconds left of being stopped by a blow
+    knock: null, // { x, y, left } a push being spread over KNOCK_TIME
+    downTimer: 0, // seconds left on the floor
+    upTimer: 0, // seconds left of getting up
+    gettingUp: false,
   };
+}
+
+// On the floor, lying or rising: a hit now is a finisher (docs/14).
+export function isDown(z) {
+  return z.state === "down";
+}
+
+// A climb cut short leaves the body at whichever end of it is nearer.
+function endClimb(z) {
+  if (!z.climb) return;
+  const c = z.climb;
+  const at = c.t / ZOMBIE_CLIMB < 0.5 ? c.from : c.to;
+  z.gx = at[0];
+  z.gy = at[1];
+  z.climb = null;
+}
+
+// Hurt a zombie (docs/14). `dir` is the grid unit vector the blow travels
+// along, `knockback` tiles of push, `knockdown` floors it, `stagger` seconds it
+// is stopped, `from` where the blow came from (the dead then know where). A
+// downed zombie takes the damage and nothing else. Returns { killed, downed }.
+export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown = false, stagger = STAGGER, from = null } = {}) {
+  if (z.dead) return { killed: false, downed: false };
+  const wasDown = isDown(z);
+  z.hp = Math.max(0, z.hp - amount);
+  endClimb(z);
+  z.path = [];
+  z.lastGoal = null;
+  if (knockback > 0 && !wasDown) z.knock = { x: dir[0] * knockback, y: dir[1] * knockback, left: KNOCK_TIME };
+  if (z.hp <= 0) {
+    // Dead: the fall plays once and holds, the body stays, nothing thinks again.
+    z.dead = true;
+    z.state = "dead";
+    z.breach = null;
+    z.stagger = 0;
+    z.gettingUp = false;
+    playAnimation(z.anim, "die", true);
+    emit("zombieDied", { zombie: z });
+    return { killed: true, downed: false };
+  }
+  // The dead then know where the blow came from, when they are hunting at all.
+  if (from && settings.get("zombieAggro")) {
+    z.aggro = true;
+    z.lastSeen = [from[0], from[1]];
+    z.sincePlayer = 0;
+  }
+  if (wasDown) return { killed: false, downed: false };
+  // Whatever it was doing, a blow ends it: a bite begun is lost, a breach waits.
+  z.attackHit = false;
+  if (z.state === "attack") z.state = "chase";
+  if (knockdown) {
+    z.state = "down";
+    z.breach = null;
+    z.downTimer = DOWN_TIME;
+    z.gettingUp = false;
+    z.stagger = 0;
+    playAnimation(z.anim, "die", true);
+    return { killed: false, downed: true };
+  }
+  z.stagger = Math.max(z.stagger, stagger);
+  playAnimation(z.anim, "hurt", true);
+  return { killed: false, downed: false };
+}
+
+// Pushed, stopped, or on the floor: nothing else happens until it is over.
+// Returns true when the zombie is not free to act this step.
+function updateHurt(z, dt, sheet) {
+  if (z.knock) {
+    const k = Math.min(dt, z.knock.left) / KNOCK_TIME;
+    const moved = moveCircle(z.gx, z.gy, z.radius, z.knock.x * k, z.knock.y * k);
+    z.gx = moved.gx;
+    z.gy = moved.gy;
+    z.knock.left -= dt;
+    if (z.knock.left <= 0) z.knock = null;
+  }
+  if (z.state === "down") {
+    if (!z.gettingUp) {
+      advanceAnimation(z.anim, sheet, dt); // the fall plays and holds its last frame
+      z.downTimer -= dt;
+      if (z.downTimer <= 0) {
+        z.gettingUp = true;
+        z.upTimer = GET_UP_TIME;
+      }
+    } else {
+      // Rising is the fall backwards: the frames, last to first, over GET_UP_TIME.
+      z.upTimer -= dt;
+      z.anim.name = "die";
+      z.anim.done = false;
+      z.anim.frame = Math.max(0, Math.min(3, Math.floor((Math.max(0, z.upTimer) / GET_UP_TIME) * 4)));
+      if (z.upTimer <= 0) {
+        z.gettingUp = false;
+        z.state = z.aggro && z.lastSeen ? "chase" : "idle";
+        z.idleTimer = 0.5;
+        z.repathTimer = 0;
+        playAnimation(z.anim, "idle", true);
+      }
+    }
+    return true;
+  }
+  if (z.stagger > 0) {
+    z.stagger -= dt;
+    advanceAnimation(z.anim, sheet, dt);
+    if (z.stagger <= 0) playAnimation(z.anim, "idle", true);
+    return true;
+  }
+  return false;
 }
 
 // The room the dead are standing in (0 outdoors).
@@ -198,7 +314,7 @@ function separate(z, dt, others) {
   let px = 0;
   let py = 0;
   for (const o of others) {
-    if (o === z || o.dead) continue;
+    if (o === z || o.dead || o.state === "down") continue; // the fallen and the dead block nothing (docs/14)
     const dx = z.gx - o.gx;
     const dy = z.gy - o.gy;
     const d = Math.hypot(dx, dy);
@@ -267,7 +383,13 @@ function giveUp(z) {
 
 export function updateZombie(z, dt, player, others) {
   const sheet = getSheet(z.sprite);
-  if (z.dead) return;
+  if (z.dead) {
+    // The fall plays out and holds; a corpse thinks no more (docs/14).
+    if (z.knock) updateHurt(z, dt, sheet);
+    advanceAnimation(z.anim, sheet, dt);
+    return;
+  }
+  if (updateHurt(z, dt, sheet)) return;
   // Climbing: slow, committed, no bite until it is through (docs/09).
   if (z.climb) {
     const c = z.climb;

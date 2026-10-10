@@ -17,6 +17,8 @@ const CONTROLS = [
   ["C", "Your character"],
   ["1 to 4", "Swap a belt slot with your hand"],
   ["T", "Torch in or out of hand"],
+  ["Left-click", "Swing what you hold; fists with nothing"],
+  ["Space", "Shove: pushes the dead back, no damage"],
   ["N", "Build menu: walls, doors, windows"],
   ["X", "Remove: highlights what you placed or built, click to destroy it"],
   ["R", "Turn what you are placing"],
@@ -169,6 +171,7 @@ function render() {
         ${settingRow("survival", "Survival")}
         ${settingRow("freeBuilding", "Free building")}
         ${settingRow("debugCorner", "Debug corner")}
+        ${settingRow("showHitShapes", "Show hit shapes")}
         ${hairRow()}
         ${layerRows()}
         <div class="screen-buttons row"><button data-key="__reset" hidden></button>${button("back", "Back")}<button id="settings-reset">Defaults</button></div>

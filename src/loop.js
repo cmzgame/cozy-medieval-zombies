@@ -16,6 +16,7 @@ let simInterval = 1;
 let frames = 0;
 let fps = 0;
 let fpsTimer = 0;
+let freezeLeft = 0;
 
 let hooks = { update: () => {}, render: () => {}, simTick: () => {} };
 
@@ -33,6 +34,17 @@ export function setPaused(p) {
 
 export function isPaused() {
   return paused;
+}
+
+// Hold game time for `seconds` (hit-stop, docs/14). Rendering goes on; the
+// longest request wins, they do not add.
+export function freeze(seconds) {
+  freezeLeft = Math.max(freezeLeft, seconds);
+}
+
+// Seconds of freeze still to run.
+export function getFreeze() {
+  return freezeLeft;
 }
 
 export function getFps() {
@@ -53,7 +65,8 @@ function frame(now) {
     fpsTimer = 0;
   }
 
-  if (!paused) {
+  if (freezeLeft > 0) freezeLeft = Math.max(0, freezeLeft - dt);
+  else if (!paused) {
     accumulator += dt;
     while (accumulator >= STEP) {
       step();
