@@ -18,13 +18,16 @@ import * as map from "./map.js";
 import * as inventory from "./inventory.js";
 import * as items from "./items.js";
 import * as settings from "./settings.js";
+import { getDef, getSheet } from "./assets.js";
 import { showMessage } from "./ui/prompt.js";
 
-export const PLACE_REACH = 1.6; // tiles from the player to a carried prop's anchor tile
-export const BUILD_REACH = 1.6; // tiles from the player to the middle of a built edge
+// Reach was raised by a full tile on 2026-10-11 (Michael: easier).
+export const PLACE_REACH = 2.6; // tiles from the player to a carried prop's anchor tile
+export const BUILD_REACH = 2.6; // tiles from the player to the middle of a built edge
+export const REMOVE_REACH = 2.6; // tiles from the player to the nearest part of what is removed
 const EDGE_CLEARANCE = 0.45; // the player may not stand closer than this to an edge being built
 
-// kind is null, "prop", or "build". ghost is what the renderer draws.
+// kind is null, "prop", "build", or "remove". ghost is what the renderer draws.
 export const state = { active: false, kind: null, prop: null, build: null, ghost: null };
 
 let buildData = {}; // data/build.json
@@ -41,6 +44,32 @@ export function setBuildData(data) {
 // What can be built, for the palette: [{ id, label, sprite, cost, seconds }].
 export function buildKinds() {
   return Object.entries(buildData).map(([id, d]) => ({ id, ...d }));
+}
+
+// ---- the carry rule ----
+
+// A prop can be lifted unless it is rooted (a tree, a well), built in (a
+// hearth, a torch post), or a fire that burns fuel (a campfire). A sprite's own
+// `carry` flag, true or false, overrides the rule either way (docs/13).
+export function canCarry(prop) {
+  const d = getDef(prop.sprite);
+  if (d.carry !== undefined) return !!d.carry;
+  if (prop.wood || prop.water) return false;
+  if (prop.fire && (prop.fire.room || prop.fire.holds || prop.fire.burns)) return false;
+  return true;
+}
+
+// The screen rectangle a prop's slice at (tx, ty) covers, for hit tests.
+export function propRect(prop, tx, ty) {
+  const sheet = getSheet(prop.sprite, prop.tiles.length);
+  const i = prop.tiles.findIndex(([px, py]) => px === tx && py === ty);
+  const f = sheet.frames[`idle_${Math.max(0, i)}`];
+  if (!f) return null;
+  const p = iso.toScreen(tx, ty);
+  const x = Math.round(p.x) - sheet.anchor[0];
+  const y = Math.round(p.y) - sheet.anchor[1];
+  const b = sheet.bounds;
+  return b ? { x: x + b.x, y: y + b.y, w: b.w, h: b.h } : { x, y, w: f[2], h: f[3] };
 }
 
 // ---- carrying: where a prop may stand ----
@@ -168,11 +197,19 @@ export function beginBuild(what) {
   return true;
 }
 
+// The removal tool: highlight what the player placed or built, click to destroy.
+export function beginRemove() {
+  state.kind = "remove";
+  state.build = null;
+  state.prop = null;
+  state.active = true;
+}
+
 // Escape, or N again. Returns true if a mode was open and is now closed.
 // Carrying cannot be cancelled: the prop stays in the hands, so prop mode
 // answers false.
 export function cancel() {
-  if (state.kind !== "build") return false;
+  if (state.kind !== "build" && state.kind !== "remove") return false;
   end();
   return true;
 }
@@ -201,7 +238,7 @@ function turn(prop) {
 // the cursor is.
 export function update(player) {
   if (player.carrying) {
-    if (state.kind === "build") end(); // hands full: no building
+    if (state.kind === "build" || state.kind === "remove") end(); // hands full: no building or removing
     if (state.kind !== "prop" || state.prop !== player.carrying) beginProp(player.carrying);
     if (input.wasPressed("KeyR")) turn(player.carrying);
   } else if (state.kind === "prop") {
@@ -209,7 +246,126 @@ export function update(player) {
   }
   if (state.kind === "prop") state.ghost = propGhost(player);
   else if (state.kind === "build") state.ghost = buildGhost(player);
+  else if (state.kind === "remove") state.ghost = removeGhost(player);
   else state.ghost = null;
+}
+
+// ---- removal ----
+
+function pointInRect(x, y, r) {
+  return !!r && x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
+}
+
+// Whether a screen point is inside a convex quad given in order.
+function pointInQuad(px, py, q) {
+  let sign = 0;
+  for (let i = 0; i < 4; i++) {
+    const a = q[i];
+    const b = q[(i + 1) % 4];
+    const c = (b[0] - a[0]) * (py - a[1]) - (b[1] - a[1]) * (px - a[0]);
+    if (c !== 0) {
+      if (sign === 0) sign = Math.sign(c);
+      else if (Math.sign(c) !== sign) return false;
+    }
+  }
+  return true;
+}
+
+// The face of a wall on screen, as the renderer draws it (render.js makeWall).
+function wallFace(tx, ty, edge, wall) {
+  const p = iso.toScreen(tx, ty);
+  const x = Math.round(p.x);
+  const y = Math.round(p.y);
+  const h = getSheet(wall.sprite).wallHeight || 72;
+  const a = edge === "n" ? [x, y - iso.HH] : [x - iso.HW, y];
+  const b = edge === "n" ? [x + iso.HW, y] : [x, y - iso.HH];
+  return [a, b, [b[0], b[1] - h], [a[0], a[1] - h]];
+}
+
+// What the removal tool would take at a screen point: the front-most thing
+// the player placed (a prop that can be carried) or built (a wall, door, or
+// window with `built` set), or null. Authored walls and rooted things are not
+// candidates, so they never highlight.
+export function removalTarget(sx, sy) {
+  let best = null;
+  const consider = (t, depth) => {
+    if (!best || depth > best.depth) best = { ...t, depth };
+  };
+  const g0 = iso.toGrid(sx, sy);
+  const cx = Math.round(g0.gx);
+  const cy = Math.round(g0.gy);
+  // Props: on their tile, or under their drawn rectangle in the tiles around.
+  const seen = new Set();
+  for (let dy = -3; dy <= 1; dy++) {
+    for (let dx = -3; dx <= 1; dx++) {
+      const prop = map.tileAt(cx + dx, cy + dy).prop;
+      if (!prop || seen.has(prop) || !canCarry(prop)) continue;
+      const onTile = dx === 0 && dy === 0;
+      if (!onTile && !pointInRect(sx, sy, propRect(prop, cx + dx, cy + dy))) continue;
+      seen.add(prop);
+      consider({ type: "prop", prop }, Math.max(...prop.tiles.map(([x, y]) => x + y)));
+    }
+  }
+  // Walls: the face under the cursor, looking up from the ground tiles it could stand on.
+  const walls = new Set();
+  for (let k = 0; k <= 72; k += 12) {
+    const g = iso.toGrid(sx, sy + k);
+    const gx = Math.round(g.gx);
+    const gy = Math.round(g.gy);
+    for (let ty = gy - 1; ty <= gy + 1; ty++) {
+      for (let tx = gx - 1; tx <= gx + 1; tx++) {
+        for (const edge of ["n", "w"]) {
+          const wall = map.tileAt(tx, ty)[edge];
+          if (!wall || !wall.built || walls.has(wall)) continue;
+          if (!pointInQuad(sx, sy, wallFace(tx, ty, edge, wall))) continue;
+          walls.add(wall);
+          consider({ type: "wall", tx, ty, edge, wall }, tx + ty - 0.5);
+        }
+      }
+    }
+  }
+  // The edge on the ground under the cursor, as building picks it, a little behind a face hit.
+  const e = pickEdge(g0.gx, g0.gy);
+  const ew = map.tileAt(e.tx, e.ty)[e.edge];
+  if (ew && ew.built && !walls.has(ew)) consider({ type: "wall", tx: e.tx, ty: e.ty, edge: e.edge, wall: ew }, e.tx + e.ty - 0.75);
+  return best;
+}
+
+function targetReach(player, t) {
+  if (t.type === "wall") {
+    const [mx, my] = map.edgeMid(t.tx, t.ty, t.edge);
+    return Math.hypot(player.gx - mx, player.gy - my);
+  }
+  return Math.min(...t.prop.tiles.map(([x, y]) => Math.hypot(player.gx - x, player.gy - y)));
+}
+
+function removeGhost(player) {
+  const m = input.getMouse();
+  if (!m.inside) return null;
+  const target = removalTarget(m.x, m.y);
+  if (!target) return null;
+  const ok = targetReach(player, target) <= REMOVE_REACH;
+  return { kind: "remove", target, ok, reason: ok ? "" : "Too far" };
+}
+
+function targetName(t) {
+  if (t.type === "prop") return t.prop.sprite.replace(/_/g, " ");
+  const d = buildData[t.wall.kind];
+  return (d && d.label ? d.label : t.wall.kind).toLowerCase();
+}
+
+// Destroy it. A container spills what it held onto the floor; a wall takes its boards with it.
+function destroy(t) {
+  if (t.type === "prop") {
+    const prop = t.prop;
+    if (prop.bag) {
+      for (const e of [...prop.bag.items]) map.dropItem(prop.tile[0], prop.tile[1], e);
+      prop.bag.items.length = 0;
+    }
+    map.removeProp(prop);
+  } else {
+    map.destroyWall(t.tx, t.ty, t.edge);
+  }
 }
 
 function propGhost(player) {
@@ -250,6 +406,17 @@ export function tryConfirm(player) {
     map.placeProp(state.prop, g.tx, g.ty);
     player.carrying = null;
     end();
+    return true;
+  }
+  if (state.kind === "remove") {
+    // Every click in this mode is the tool's, over a target or not.
+    const g = state.ghost;
+    if (!g) return true;
+    if (!g.ok) {
+      showMessage(g.reason);
+      return true;
+    }
+    destroy(g.target);
     return true;
   }
   if (state.kind === "build") {
@@ -303,6 +470,12 @@ export function prompt() {
   if (g.kind === "prop") {
     if (!g.ok) return { label: g.reason, mx: g.tx, my: g.ty, progress: null, enabled: false };
     return { label: "Click to place · R turn · E in front", mx: g.tx, my: g.ty, progress: null, enabled: true };
+  }
+  if (g.kind === "remove") {
+    const t = g.target;
+    const [mx, my] = t.type === "wall" ? map.edgeMid(t.tx, t.ty, t.edge) : t.prop.tile;
+    if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
+    return { label: `Click to remove ${targetName(t)} · Esc cancel`, mx, my, progress: null, enabled: true };
   }
   const [mx, my] = map.edgeMid(g.tx, g.ty, g.edge);
   if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };

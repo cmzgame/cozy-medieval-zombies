@@ -19,7 +19,7 @@ import { getSheet } from "./assets.js";
 import { getItem, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
 import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
 import { getDef } from "./assets.js";
-import { canPutDown, putDownTarget } from "./placement.js";
+import { canPutDown, putDownTarget, canCarry, propRect } from "./placement.js";
 import * as placement from "./placement.js";
 import * as grid from "./grid.js";
 import { startClimb, autoWalk, eat, drink } from "./entities/player.js";
@@ -162,19 +162,6 @@ function propName(prop) {
   return prop.sprite.replace(/_/g, " ");
 }
 
-// The rule (docs/13, "What can be carried", Michael 2026-10-11): a prop can be
-// lifted unless it is rooted (a tree, a well), built in (a hearth, a torch
-// post), or a fire that burns fuel (a campfire). A sprite's own `carry`
-// flag, true or false, overrides the rule either way. Everything else, the
-// furniture, the barrels, the jack-o'-lantern, can be picked up.
-export function canCarry(prop) {
-  const d = getDef(prop.sprite);
-  if (d.carry !== undefined) return !!d.carry;
-  if (prop.wood || prop.water) return false;
-  if (prop.fire && (prop.fire.room || prop.fire.holds || prop.fire.burns)) return false;
-  return true;
-}
-
 function carryAction(prop, player) {
   const free = !player.hands.main && !player.hands.off;
   return act({
@@ -196,7 +183,7 @@ function carryAction(prop, player) {
 
 // Whether the carried prop could stand with its anchor at (tx, ty): the rule
 // lives in placement.js (docs/13), re-exported here for the callers below.
-export { canPutDown, putDownTarget };
+export { canPutDown, putDownTarget, canCarry };
 
 function putDownAction(player, tx, ty, simple = false) {
   const prop = player.carrying;
@@ -471,20 +458,9 @@ function pointInRect(x, y, r) {
   return r && x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
 }
 
-function propRect(prop, tx, ty) {
-  const sheet = getSheet(prop.sprite, prop.tiles.length);
-  const i = prop.tiles.findIndex(([px, py]) => px === tx && py === ty);
-  const f = sheet.frames[`idle_${Math.max(0, i)}`];
-  if (!f) return null;
-  const p = iso.toScreen(tx, ty);
-  const x = Math.round(p.x) - sheet.anchor[0];
-  const y = Math.round(p.y) - sheet.anchor[1];
-  const b = sheet.bounds;
-  return b ? { x: x + b.x, y: y + b.y, w: b.w, h: b.h } : { x, y, w: f[2], h: f[3] };
-}
-
 // What can be done to a prop: its own actions first, and lifting it last when
-  // the rule (canCarry) allows. Additive, so a prop with several uses lists them all.
+// the rule (canCarry, in placement.js) allows. Additive, so a prop with several
+// uses lists them all.
 function propActions(prop, player) {
   if (player.carrying) return [];
   const out = [];

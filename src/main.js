@@ -122,6 +122,18 @@ function toggleBuild() {
   buildPalette.openPalette(player);
 }
 
+// X: the removal tool, or out of it if in it. Same limits as N.
+function toggleRemove() {
+  if (placement.state.kind === "remove") {
+    placement.cancel();
+    return;
+  }
+  if (player.carrying) return showMessage("Your hands are full.");
+  if (panel.isOpen()) return;
+  buildPalette.close();
+  placement.beginRemove();
+}
+
 function applyDebugCorner() {
   debugEl.hidden = !settings.get("debugCorner");
 }
@@ -223,6 +235,7 @@ function update(dt) {
   const t0 = performance.now();
   if (input.wasPressed("KeyV")) drawAll = !drawAll;
   if (input.wasPressed("KeyN")) toggleBuild();
+  if (input.wasPressed("KeyX")) toggleRemove();
   // The wheel zooms in integer steps, 1× to 3× (docs/02, 2026-10-10 night):
   // down zooms out. The panel's own wheel use (rotating a drag) wins.
   // Zoom snaps between three levels: Z cycles them, the wheel steps one way
@@ -340,7 +353,7 @@ function render() {
     `chunk ${cx},${cy}  room ${playerRoom}${playerRoom > 0 ? (map.roomSealed(map.getRoom(playerRoom)) ? " sealed" : " open") : ""}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `zombies ${zombies.length}  near ${zombies.filter((z) => Math.abs(z.gx - player.gx) <= ACTIVE_TILES && Math.abs(z.gy - player.gy) <= ACTIVE_TILES).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
-    `Tab: bag   C: character   1-4: belt   N: build   Z: zoom   right-click: actions   Esc: close or pause   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   K: near walls ${cutaway}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
+    `Tab: bag   C: character   1-4: belt   N: build   X: remove   Z: zoom   right-click: actions   Esc: close or pause   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   K: near walls ${cutaway}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
 }
 
 // ---- the panel's handlers: moves that involve a slot know the player ----
@@ -544,7 +557,8 @@ async function boot() {
   buildPalette.initBuildPalette({
     onPick: (what) => {
       buildPalette.close();
-      placement.beginBuild(what);
+      if (what === "__remove") placement.beginRemove();
+      else placement.beginBuild(what);
     },
   });
   // Any screen up means the game is paused; the title is up at boot.

@@ -342,8 +342,34 @@ function ghostColor(color, tint) {
   return [c[0] * tint[0], c[1] * tint[1], c[2] * tint[2], c[3]];
 }
 
+// A prop's slices as a ghost: `cells` are [tx, ty, frameIndex].
+function emitPropCells(sheet, cells, ok) {
+  const tint = ok ? GHOST_OK : GHOST_BAD;
+  const floor = gl.rgb(ok ? "#60ff60" : "#ff5050", 0.35);
+  for (const [tx, ty, i] of cells) {
+    const p = iso.toScreen(tx, ty);
+    const x = Math.round(p.x);
+    const y = Math.round(p.y);
+    // A tinted diamond on the floor so the footprint reads even where the box is dark.
+    gl.poly([[x, y - iso.HH], [x + iso.HW, y], [x, y + iso.HH], [x - iso.HW, y]], floor, { world: [tx, ty], flags: GHOST_FLAGS() });
+    const name = `idle_${i}`;
+    propSlice(sheet, name, sheet.frames[name], x, y, tx, ty, GHOST_FLAGS(), tint);
+  }
+}
+
 function emitGhost(ghost) {
   const tint = ghost.ok ? GHOST_OK : GHOST_BAD;
+  if (ghost.kind === "remove") {
+    // What the removal tool would take, washed in green (red when out of reach).
+    const t = ghost.target;
+    if (t.type === "wall") {
+      const shut = { ...t.wall, open: false, shutter: t.wall.kind === "window" ? "closed" : null };
+      makeWall(shut, t.edge, t.tx, t.ty, true, false, tint).emit();
+    } else {
+      emitPropCells(getSheet(t.prop.sprite, t.prop.tiles.length), t.prop.tiles.map(([x, y], i) => [x, y, i]), ghost.ok);
+    }
+    return;
+  }
   if (ghost.kind === "wall") {
     // A wall, door, or window as it would stand, drawn by the real wall code.
     const wall = map.createWall(ghost.wallKind, ghost.sprite);
@@ -352,21 +378,9 @@ function emitGhost(ghost) {
   }
   if (ghost.kind === "prop") {
     const [w, h] = ghost.footprint;
-    const sheet = getSheet(ghost.prop.sprite, w * h);
-    const floor = gl.rgb(ghost.ok ? "#60ff60" : "#ff5050", 0.35);
-    for (let dy = 0; dy < h; dy++) {
-      for (let dx = 0; dx < w; dx++) {
-        const tx = ghost.tx + dx;
-        const ty = ghost.ty + dy;
-        const p = iso.toScreen(tx, ty);
-        const x = Math.round(p.x);
-        const y = Math.round(p.y);
-        // A tinted diamond on the floor so the footprint reads even where the box is dark.
-        gl.poly([[x, y - iso.HH], [x + iso.HW, y], [x, y + iso.HH], [x - iso.HW, y]], floor, { world: [tx, ty], flags: GHOST_FLAGS() });
-        const name = `idle_${dy * w + dx}`;
-        propSlice(sheet, name, sheet.frames[name], x, y, tx, ty, GHOST_FLAGS(), tint);
-      }
-    }
+    const cells = [];
+    for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) cells.push([ghost.tx + dx, ghost.ty + dy, dy * w + dx]);
+    emitPropCells(getSheet(ghost.prop.sprite, w * h), cells, ghost.ok);
   }
 }
 

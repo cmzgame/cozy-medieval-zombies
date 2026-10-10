@@ -15,6 +15,11 @@ Michael is conserving credits: the scoping is done here, the building by another
 - **Stamina never locks you out of hitting**: at zero a swing lands at half damage.
 - **Not ported now:** the parent's wind-up and lunge (a trial after play), weapon condition, hit locations.
 
+### 2026-10-11, build — Removal and longer reach (Michael)
+
+- **A removal tool** (X, or Remove on the build palette): highlight in green what was placed or built, click to destroy it. Props that can be carried and walls the player built are removable; authored walls, trees, the well, fires, and posts are not and never highlight. Containers spill their contents; nothing is refunded. Made to undo "built myself into a little wall box".
+- **Reach is a full tile longer**: placing, building, and removing all reach 2.6 tiles instead of 1.6. `canCarry` and the prop hit rectangle moved into `placement.js` so interact and placement still import one way.
+
 ### 2026-10-11, build — Placement: carry rule, log wall, free building (Michael)
 
 - **What can be carried is a rule**: anything not rooted (trees, the well), not built in (hearth, torch posts), and not a burning fire (the campfire). The jack-o'-lantern now lifts; it goes dark while carried and lights when set down. An explicit `carry` flag on a sprite overrides the rule. The campfire is fixed until Michael says otherwise.

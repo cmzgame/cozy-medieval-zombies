@@ -18,6 +18,7 @@ const CONTROLS = [
   ["1 to 4", "Swap a belt slot with your hand"],
   ["T", "Torch in or out of hand"],
   ["N", "Build menu: walls, doors, windows"],
+  ["X", "Remove: highlights what you placed or built, click to destroy it"],
   ["R", "Turn what you are placing"],
   ["B", "Board up the nearest opening; hold to pull a board"],
   ["Esc", "Close what is open, else pause"],

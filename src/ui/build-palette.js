@@ -43,7 +43,8 @@ export function render(player) {
     const short = placement.shortfall(player, k.id);
     return `<div class="bp-row${short ? " short" : ""}" data-kind="${k.id}" title="${short || "Click to build"}"><span class="bp-name">${k.label}</span><span class="bp-cost">${placement.costText(k.id)}</span></div>`;
   }).join("");
-  const html = `<div class="bp-title">Build</div>${rows}<div class="bp-hint">Click one, then click the ground. N or Esc to close.</div>`;
+  const remove = `<div class="bp-row bp-remove" data-kind="__remove" title="Highlights what you placed or built; click to destroy it"><span class="bp-name">Remove</span><span class="bp-cost">X</span></div>`;
+  const html = `<div class="bp-title">Build</div>${rows}${remove}<div class="bp-hint">Click one, then click the ground. N or Esc to close.</div>`;
   if (root.dataset.html !== html) {
     root.innerHTML = html;
     root.dataset.html = html;

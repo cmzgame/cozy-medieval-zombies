@@ -114,7 +114,8 @@ Each step checkable on its own. Michael looks after step 3.
 - [x] Doors and windows through the same path.
 - [x] Prompt lines and reasons; Escape order.
 - [x] The carry rule (`canCarry`) and the Free building setting, from Michael's notes on step 1.
-- [x] Acceptance, scripted (2026-10-11): all eight checks in `docs/13` pass, with a log wall in place of the plank wall. Michael's hands-on pass pending.
+- [x] Acceptance, scripted (2026-10-11): all eight checks in `docs/13` pass, with a log wall in place of the plank wall. Michael's hands-on pass found it good.
+- [x] The removal tool (X): green highlight, click to destroy what was placed or built; containers spill; reach raised to 2.6 tiles for placing, building, and removing (Michael's notes, 2026-10-11).
 
 ## Milestone 8 — Melee (see `docs/14-combat.md`)
 

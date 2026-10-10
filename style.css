@@ -698,6 +698,16 @@ html, body {
   color: #e87070;
 }
 
+.bp-remove {
+  margin-top: 4px;
+  border-top: 1px solid #4a4058;
+  padding-top: 8px;
+}
+
+.bp-remove .bp-cost {
+  color: #d8c8e0;
+}
+
 .bp-hint {
   margin-top: 6px;
   font-size: 11px;

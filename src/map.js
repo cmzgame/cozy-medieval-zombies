@@ -323,7 +323,22 @@ export function canBuildWall(tx, ty, edge, kind = "wall") {
 // tell sight, light, and the rooms.
 export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT) {
   if (tileAt(tx, ty)[edge]) return false;
-  tileAt(tx, ty)[edge] = createWall(kind, sprite);
+  const wall = createWall(kind, sprite);
+  wall.built = true; // made by the player: the removal tool may take it down (docs/13)
+  tileAt(tx, ty)[edge] = wall;
+  touch();
+  markRoomsDirty();
+  return true;
+}
+
+// Take a wall, door, or window off an edge, and whatever hangs on it (its
+// boards go with it, a torch bracket is forgotten).
+export function destroyWall(tx, ty, edge) {
+  const t = tileAt(tx, ty);
+  const wall = t[edge];
+  if (!wall) return false;
+  for (const b of [...bracketSet]) if (b.wall === wall) bracketSet.delete(b);
+  t[edge] = null;
   touch();
   markRoomsDirty();
   return true;

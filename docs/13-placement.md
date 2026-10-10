@@ -98,6 +98,15 @@ Pause with `loop.setPaused(true)` and step with `loop.advance(1/60)`. The cursor
 
 A rule, not a list (Michael, 2026-10-11: "extend it to other items that can be picked up as a rule"). `interact.canCarry(prop)`: a prop can be lifted unless it is **rooted** (a tree, the well), **built in** (the hearth, a torch post), or **a fire that burns fuel** (the campfire). Everything else can: the bed, table, chest, barrel, and the jack-o'-lantern. A sprite's own `carry` flag, true or false, overrides the rule. A lit prop goes dark while carried (it leaves the fire set) and lights again when set down. The campfire is held fixed for now because a burning fire has no good answer to being carried; flip it with `"carry": true` in `data/sprites/campfire.json`.
 
+## Removal
+
+The removal tool (Michael, 2026-10-11: "delete anything placed or built, highlight green, click to destroy"). **X** enters it, or the Remove row on the build palette; X, N, or Escape leaves it. Moving the cursor highlights the front-most thing under it that the player placed or built, in the ghost's green; red with "Too far" past `REMOVE_REACH`; a click destroys it instantly and the tool stays on.
+
+- **What can be removed:** a prop that can be carried (`canCarry`: the bed, table, chest, barrel, jack-o'-lantern) and a wall, door, or window with `built` set (everything the player builds; authored walls are not). Trees, the well, the hearth, the campfire, torch posts, and the cottage's own walls never highlight, so the tool is quiet over a forest.
+- **What it does:** a prop is removed from the map and a container spills what it held onto its tile; a wall is taken off its edge with its boards and bracket, and sight, light, rooms, and pathing update at once. Nothing is refunded.
+- **Finding the target:** a prop by its tile or its drawn rectangle; a wall by its drawn face on screen, or by the ground edge the building tool would pick, a little behind a face hit. The front-most (highest tile sum) wins.
+- Hands full means no removal, like building.
+
 ## Free building
 
 The setting `freeBuilding` (settings screen, default off, kept in the browser): while on, every build costs nothing, the palette shows "free", and nothing is taken from the bag. Build time still applies. It is for testing structures; turn it off to test the costs.
@@ -124,4 +133,4 @@ Steps 2 to 4, building (2026-10-11):
 
 ## Tunables
 
-`PLACE_REACH` 1.6 tiles, `BUILD_REACH` 1.6, the costs and seconds in `data/build.json`, the ghost tints in `render.js`.
+`PLACE_REACH` 2.6 tiles, `BUILD_REACH` 2.6, `REMOVE_REACH` 2.6 (all raised a full tile on 2026-10-11), the costs and seconds in `data/build.json`, the ghost tints in `render.js`.
