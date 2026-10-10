@@ -77,3 +77,14 @@ Starter kit: torch, waterskin (full), bread, two apples, one plank.
 ## Tunables
 
 Bag 6×4; search 1 s; board 2 s; pull 1.5 s; chop 3 s; hunger and thirst drain as the parent's (`11-hunger-and-night.md`, `20-thirst.md`), to be retuned with farming.
+
+## Screens (2026-10-10, night)
+
+The world fills the window at an integer pixel scale and the interface scales on its own, like a web page (`src/view.js`; docs/02, the view). On top of that, four screens, all DOM in `src/ui/screens.js`:
+
+- **Title**, at boot, over the drawn village: Play, Settings, Controls.
+- **Pause**, on Escape with nothing else open: Resume, Settings, Controls, Title screen.
+- **Settings** (`src/settings.js`, kept in the browser): interface size (auto or 1× to 3×), world pixel scale (auto, the largest that fits, or a fixed 1× to 3×), the debug corner. Defaults button. More as Michael asks.
+- **Controls**: the key list.
+
+Any screen up means the game is paused. Escape steps back: settings or controls to the screen that opened them, pause to the game; the title stays until Play. The Escape chain is therefore: menu, then a screen, then the bag or character screen, then pause.

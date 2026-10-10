@@ -4,6 +4,7 @@
 // tile, since our openings sit on edges.
 
 import * as iso from "../iso.js";
+import * as view from "../view.js";
 
 let root = null;
 let labelEl = null;
@@ -33,7 +34,8 @@ export function updatePrompt(target, progress = null) {
     root.hidden = true;
     return;
   }
-  const p = iso.toScreen(target.mx, target.my);
+  const s = iso.toScreen(target.mx, target.my);
+  const p = view.toUi(s.x, s.y);
   root.style.left = `${Math.round(p.x)}px`;
   root.style.top = `${Math.round(p.y) - 44}px`;
   labelEl.textContent = target.label;

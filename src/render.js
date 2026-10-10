@@ -48,8 +48,25 @@ const OCCLUDER_MIN_HEIGHT = 64;
 const HOLE_INNER = 34; // px, fully clear
 const HOLE_OUTER = 78; // px, fade to solid
 
-const AREA_CHUNKS = 5; // chunks across the light and fog textures
-const AREA_TILES = AREA_CHUNKS * map.CHUNK;
+// Chunks across the light and fog textures: enough to cover the view from any
+// camera position in its chunk, so it grows with the window (docs/02, the view).
+let areaChunks = 0;
+let areaTiles = 0;
+let lightArea = null;
+let ambientArea = null;
+let fogArea = null;
+
+function ensureArea(w, h) {
+  // Tiles from the camera to the view's corner, plus tall sprites and margin.
+  const r = (w / 2 / iso.HW + h / 2 / iso.HH) / 2 + 6;
+  const need = 2 * Math.ceil(r / map.CHUNK) + 1;
+  if (need === areaChunks) return;
+  areaChunks = need;
+  areaTiles = need * map.CHUNK;
+  lightArea = new Uint8Array(areaTiles * light.RES * areaTiles * light.RES);
+  ambientArea = new Uint8Array(areaTiles * areaTiles);
+  fogArea = new Uint8Array(areaTiles * areaTiles);
+}
 const CORE_GAIN = 1.4;
 
 function flameFrame(seed = 0) {
@@ -436,22 +453,19 @@ function computeOcclusion(drawables) {
 // Over the chunks around the camera: light at two cells per tile from the
 // CPU chunk maps plus the carried pool; ambient and fog at one texel per tile.
 
-const lightArea = new Uint8Array(AREA_TILES * light.RES * AREA_TILES * light.RES);
-const ambientArea = new Uint8Array(AREA_TILES * AREA_TILES);
-const fogArea = new Uint8Array(AREA_TILES * AREA_TILES);
 
 function buildArea(tiles, visible, drawAll, camGx, camGy) {
   const [ccx, ccy] = map.chunkCoord(Math.round(camGx), Math.round(camGy));
-  const c0x = ccx - (AREA_CHUNKS >> 1);
-  const c0y = ccy - (AREA_CHUNKS >> 1);
+  const c0x = ccx - (areaChunks >> 1);
+  const c0y = ccy - (areaChunks >> 1);
   const ox = c0x * map.CHUNK;
   const oy = c0y * map.CHUNK;
   const RES = light.RES;
-  const LW = AREA_TILES * RES;
+  const LW = areaTiles * RES;
   const now = performance.now() / 1000;
   lightArea.fill(0);
-  for (let cy = 0; cy < AREA_CHUNKS; cy++) {
-    for (let cx = 0; cx < AREA_CHUNKS; cx++) {
+  for (let cy = 0; cy < areaChunks; cy++) {
+    for (let cx = 0; cx < areaChunks; cx++) {
       const entry = light.chunkLight(c0x + cx, c0y + cy);
       if (!entry.any) continue;
       const N = map.CHUNK * RES + 2;
@@ -493,9 +507,9 @@ function buildArea(tiles, visible, drawAll, camGx, camGy) {
       }
     }
   }
-  for (let ty = 0; ty < AREA_TILES; ty++) {
-    for (let tx = 0; tx < AREA_TILES; tx++) {
-      ambientArea[ty * AREA_TILES + tx] = Math.round(light.ambientAt(ox + tx, oy + ty) * 255);
+  for (let ty = 0; ty < areaTiles; ty++) {
+    for (let tx = 0; tx < areaTiles; tx++) {
+      ambientArea[ty * areaTiles + tx] = Math.round(light.ambientAt(ox + tx, oy + ty) * 255);
     }
   }
   fogArea.fill(drawAll ? 255 : 0);
@@ -504,11 +518,11 @@ function buildArea(tiles, visible, drawAll, camGx, camGy) {
       if (!visible.has(tileKey(tx, ty))) continue;
       const ax = tx - ox;
       const ay = ty - oy;
-      if (ax < 0 || ay < 0 || ax >= AREA_TILES || ay >= AREA_TILES) continue;
-      fogArea[ay * AREA_TILES + ax] = 255;
+      if (ax < 0 || ay < 0 || ax >= areaTiles || ay >= areaTiles) continue;
+      fogArea[ay * areaTiles + ax] = 255;
     }
   }
-  gl.uploadArea(lightArea, LW, LW, ambientArea, fogArea, AREA_TILES, AREA_TILES);
+  gl.uploadArea(lightArea, LW, LW, ambientArea, fogArea, areaTiles, areaTiles);
   return [ox, oy];
 }
 
@@ -517,6 +531,7 @@ function buildArea(tiles, visible, drawAll, camGx, camGy) {
 let lastLinear = null;
 
 export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true }) {
+  ensureArea(w, h);
   if (lastLinear !== night.linear) {
     gl.setLightSampling(night.linear);
     lastLinear = night.linear;
@@ -544,7 +559,7 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
     h,
     clear: CLEAR,
     areaOrigin,
-    areaTiles: [AREA_TILES, AREA_TILES],
+    areaTiles: [areaTiles, areaTiles],
     nightFloor: clock.NIGHT_BRIGHTNESS,
     nightAlpha: night.alpha,
     tint: tintRGB(),

@@ -16,12 +16,10 @@ html, body {
   user-select: none;
 }
 
+/* The canvas and the UI layer both start at the window's origin (view.js). */
 #stage {
   position: absolute;
   inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 #game {
@@ -31,9 +29,11 @@ html, body {
   display: block;
 }
 
-/* #ui is sized and positioned by main.js to exactly cover the canvas. */
+/* #ui covers the window at its own scale; view.js sizes it. */
 #ui {
   position: absolute;
+  left: 0;
+  top: 0;
   pointer-events: none;
   overflow: hidden;
 }
@@ -435,30 +435,113 @@ html, body {
 }
 
 /* Escape with nothing open pauses (docs/10). */
-#pause {
+/* ---- screens: title, pause, settings, controls (docs/10) ---- */
+#screens {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 6, 14, 0.45);
-  pointer-events: none;
+  background: rgba(10, 6, 14, 0.5);
 }
 
-.pause-card {
-  background: rgba(24, 18, 30, 0.95);
+#screens.title {
+  background: radial-gradient(ellipse at center, rgba(10, 6, 14, 0.35), rgba(10, 6, 14, 0.8));
+}
+
+.screen {
+  background: rgba(24, 18, 30, 0.96);
   border: 2px solid #6a5a70;
-  border-radius: 6px;
-  padding: 14px 28px;
+  border-radius: 8px;
+  padding: 22px 32px 24px;
+  min-width: 280px;
   text-align: center;
-  font-size: 18px;
 }
 
-.pause-card span {
-  display: block;
-  margin-top: 4px;
-  font-size: 12px;
+.screen-wide {
+  min-width: 420px;
+  max-width: 560px;
+}
+
+.screen h1 {
+  font-size: 28px;
+  margin: 0 0 4px;
+  letter-spacing: 1px;
+}
+
+.screen .sub {
   color: #a098ac;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+.screen-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.screen-buttons.row {
+  flex-direction: row;
+  justify-content: center;
+}
+
+.screen button {
+  font: inherit;
+  font-size: 16px;
+  padding: 8px 18px;
+  background: #2a2232;
+  color: #eee;
+  border: 1px solid #6a5a70;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.screen button:hover {
+  background: #3a3044;
+}
+
+.setting {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid #2e2636;
+  text-align: left;
+  font-size: 14px;
+}
+
+.setting .choices {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.setting .choices button {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.setting .choices button.on {
+  background: #6a5a70;
+  border-color: #b0a0b8;
+}
+
+.controls {
+  text-align: left;
+  font-size: 13px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 5px 16px;
+  margin-top: 8px;
+}
+
+.controls b {
+  color: #d8c8e0;
+  white-space: nowrap;
 }
 
 /* ---- docs/11: the character screen and the belt ---- */

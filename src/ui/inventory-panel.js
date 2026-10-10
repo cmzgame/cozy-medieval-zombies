@@ -8,6 +8,7 @@
 import { getItem } from "../items.js";
 import * as grid from "../grid.js";
 import * as menu from "./context-menu.js";
+import * as view from "../view.js";
 
 const CELL = 38; // internal pixels; the UI layer is scaled with the canvas
 const DRAG_THRESHOLD = 4; // screen pixels before a press becomes a drag
@@ -30,7 +31,7 @@ let character = false;
 let handlers = {};
 let lastSignature = "";
 let bags = { inv: null, container: null };
-let view = { player: null };
+let shown = { player: null }; // who the doll is drawn for
 let drag = null;
 
 export function initInventoryPanel(h) {
@@ -170,7 +171,7 @@ function hotbarHtml(belt) {
 // `container` is any open bag or null.
 export function renderInventoryPanel(player, inv, container, belt) {
   bags = { inv: inv || null, container: container || null };
-  view.player = player;
+  shown.player = player;
   // The hotbar is always shown while a belt is worn.
   const beltSig = JSON.stringify(belt);
   if (!belt) hotbar.hidden = true;
@@ -199,7 +200,7 @@ export function renderInventoryPanel(player, inv, container, belt) {
 
 function slotEntry(slotId) {
   const [kind, key] = slotId.split(":");
-  const p = view.player;
+  const p = shown.player;
   if (!p) return null;
   if (kind === "worn") return p.worn[key] || null;
   if (kind === "hand") return p.hands[key] || null;
@@ -419,8 +420,6 @@ function openItemMenu(hit, e) {
     }
   }
   if (!entries.length) return;
-  const ui = document.getElementById("ui").getBoundingClientRect();
-  const scale = ui.width / 960 || 1;
   const wrapped = entries.map((en) => ({
     ...en,
     onSelect: () => {
@@ -430,5 +429,6 @@ function openItemMenu(hit, e) {
       hotbar.dataset.sig = "";
     },
   }));
-  menu.openContextMenu((e.clientX - ui.left) / scale, (e.clientY - ui.top) / scale, wrapped);
+  const u = view.clientToUi(e.clientX, e.clientY);
+  menu.openContextMenu(u.x, u.y, wrapped);
 }

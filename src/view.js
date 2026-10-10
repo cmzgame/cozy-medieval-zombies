@@ -1,0 +1,106 @@
+// The view: how the window is divided between the world and the interface
+// (docs/02, 2026-10-10 night; re-decides the 960×540 probe viewport).
+//
+// The world fills the window at an integer pixel scale, so the pixel art stays
+// crisp and the canvas shows as many tiles as the window has room for. The
+// interface is DOM and takes its own, fractional scale, like a web page, so it
+// reads well on any screen regardless of what the world is doing.
+//
+// Three coordinate spaces meet here:
+//   world pixels   the canvas's own pixels (what iso.toScreen gives), w × h
+//   UI pixels      the #ui layer's pixels, uiW × uiH, scaled by uiScale
+//   client pixels  the browser's, as mouse events report them
+// Everything that places a DOM element over a world point goes through toUi.
+
+import * as input from "./input.js";
+import * as settings from "./settings.js";
+
+// The size the probe was designed at; "auto" world scale is the largest
+// integer at which this still fits, so a small window never drops below it.
+export const BASE_W = 960;
+export const BASE_H = 540;
+
+export const view = {
+  w: BASE_W, // world pixels across the canvas
+  h: BASE_H,
+  worldScale: 1, // screen pixels per world pixel
+  uiScale: 1, // screen pixels per UI pixel
+  uiW: BASE_W, // UI pixels across the window
+  uiH: BASE_H,
+};
+
+let canvas = null;
+let ui = null;
+const listeners = new Set();
+
+export function init(canvasEl, uiEl) {
+  canvas = canvasEl;
+  ui = uiEl;
+  window.addEventListener("resize", resize);
+  settings.onChange((key) => {
+    if (key === "uiScale" || key === "worldScale") resize();
+  });
+  resize();
+}
+
+function autoWorldScale(ww, wh) {
+  return Math.max(1, Math.floor(Math.min(ww / BASE_W, wh / BASE_H)));
+}
+
+// A UI scale that reads on this window: about 85 percent of what the probe
+// size would scale to, in quarter steps, never below 1.
+function autoUiScale(ww, wh) {
+  const fit = Math.min(ww / BASE_W, wh / BASE_H);
+  return Math.max(1, Math.round(fit * 0.85 * 4) / 4);
+}
+
+export function resize() {
+  const ww = Math.max(1, window.innerWidth);
+  const wh = Math.max(1, window.innerHeight);
+  const ws = settings.get("worldScale");
+  // A fixed scale is honoured even when it shows less than the probe size:
+  // 2× on a 1080p window is the old look, and that is a choice.
+  const s = ws === "auto" ? autoWorldScale(ww, wh) : Math.max(1, Math.floor(ws));
+  const w = Math.max(1, Math.floor(ww / s));
+  const h = Math.max(1, Math.floor(wh / s));
+  if (canvas.width !== w || canvas.height !== h) {
+    canvas.width = w;
+    canvas.height = h;
+  }
+  canvas.style.width = `${w * s}px`;
+  canvas.style.height = `${h * s}px`;
+  input.setScale(s);
+
+  const us = settings.get("uiScale");
+  const u = us === "auto" ? autoUiScale(ww, wh) : us;
+  const uw = Math.ceil(ww / u);
+  const uh = Math.ceil(wh / u);
+  ui.style.left = "0px";
+  ui.style.top = "0px";
+  ui.style.width = `${uw}px`;
+  ui.style.height = `${uh}px`;
+  ui.style.transform = `scale(${u})`;
+  ui.style.transformOrigin = "0 0";
+
+  Object.assign(view, { w, h, worldScale: s, uiScale: u, uiW: uw, uiH: uh });
+  for (const fn of listeners) fn(view);
+}
+
+// Called with the view after every resize.
+export function onResize(fn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
+// World pixels to UI pixels. The canvas sits at the window's origin, so the
+// two spaces share it and differ only by the two scales.
+export function toUi(x, y) {
+  const k = view.worldScale / view.uiScale;
+  return { x: x * k, y: y * k };
+}
+
+// Browser client pixels to UI pixels.
+export function clientToUi(clientX, clientY) {
+  const r = ui.getBoundingClientRect();
+  return { x: (clientX - r.left) / view.uiScale, y: (clientY - r.top) / view.uiScale };
+}

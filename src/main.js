@@ -26,9 +26,11 @@ import * as interact from "./interact.js";
 import * as items from "./items.js";
 import * as inventory from "./inventory.js";
 import * as grid from "./grid.js";
+import * as view from "./view.js";
+import * as settings from "./settings.js";
+import * as screens from "./ui/screens.js";
 
-const CANVAS_W = 960;
-const CANVAS_H = 540;
+const V = view.view; // the world's size in its own pixels, kept current by view.js
 const MAP_FILE = "data/maps/square.json";
 const ACTIVE_TILES = 40; // the dead beyond this many tiles from the player do not think
 const CONTAINER_CLOSE_DIST = 2.0; // tiles: an open container closes when you walk away
@@ -59,20 +61,6 @@ let openBag = null; // { bag, tiles, name }: the container open beside yours
 let progress = null; // 0..1 of a timed action
 const timing = { step: 0, stepMax: 0, vis: 0, maxResetAt: 0 };
 
-function resize() {
-  const scale = Math.max(1, Math.floor(Math.min(window.innerWidth / CANVAS_W, window.innerHeight / CANVAS_H)));
-  canvas.style.width = `${CANVAS_W * scale}px`;
-  canvas.style.height = `${CANVAS_H * scale}px`;
-  input.setScale(scale);
-  const rect = canvas.getBoundingClientRect();
-  ui.style.left = `${rect.left}px`;
-  ui.style.top = `${rect.top}px`;
-  ui.style.width = `${CANVAS_W}px`;
-  ui.style.height = `${CANVAS_H}px`;
-  ui.style.transform = `scale(${scale})`;
-  ui.style.transformOrigin = "0 0";
-}
-
 // Right-click builds a menu of what is under the cursor; Walk here is in it
 // (docs/10). Left click is kept free for selecting and placing things later
 // (Michael, 2026-10-10).
@@ -81,7 +69,8 @@ function handleMouse() {
   if (input.mouseRightPressed()) {
     const actions = interact.actionsAt(m.x, m.y, player);
     if (actions.length) {
-      menu.openContextMenu(m.x, m.y, actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => interact.runAction(player, a) })), CANVAS_W, CANVAS_H);
+      const u = view.toUi(m.x, m.y);
+      menu.openContextMenu(u.x, u.y, actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => interact.runAction(player, a) })));
     }
   }
   menu.tookClick();
@@ -89,35 +78,28 @@ function handleMouse() {
 }
 
 // Escape closes the top thing that can close: the menu (which closes itself
-// and says so), then the bag or the character screen; with nothing open it
-// pauses, and again resumes (Michael, 2026-10-10, as Zomboid does). Handled on
-// the key event, not in the step, because the step does not run while paused.
-let pauseEl = null;
-
+// and says so), then a screen steps back, then the bag or the character
+// screen; with nothing open it opens the pause menu (Michael, 2026-10-10, as
+// Zomboid does). Handled on the key event, not in the step, because the step
+// does not run while paused.
 function setPaused(v) {
   loop.setPaused(v);
-  if (!pauseEl) {
-    pauseEl = document.createElement("div");
-    pauseEl.id = "pause";
-    pauseEl.innerHTML = `<div class="pause-card"><b>Paused</b><span>Esc to resume</span></div>`;
-    ui.appendChild(pauseEl);
-  }
-  pauseEl.hidden = !v;
   if (!v) input.endStep(); // keys pressed while paused do not fire on resume
 }
 
 function handleEscape() {
   if (menu.tookEscape()) return;
-  if (loop.isPaused()) {
-    setPaused(false);
-    return;
-  }
+  if (screens.back()) return;
   if (panel.isOpen()) {
     panel.setOpen(false);
     openBag = null;
     return;
   }
-  setPaused(true);
+  screens.show("pause");
+}
+
+function applyDebugCorner() {
+  debugEl.hidden = !settings.get("debugCorner");
 }
 
 function updateInventoryUi() {
@@ -155,10 +137,10 @@ function update(dt) {
   clock.update(dt);
   map.burnFires(dt);
   camera.follow(player, dt);
-  camera.applyOrigin(CANVAS_W, CANVAS_H);
-  // Grow the world three chunks ahead of the player, so wild forest and its
-  // dead appear far outside the viewport.
-  map.ensureAround(player.gx, player.gy, 3);
+  camera.applyOrigin(V.w, V.h);
+  // Grow the world four chunks ahead of the player, so wild forest and its
+  // dead appear outside even a big window's view (docs/02, the view).
+  map.ensureAround(player.gx, player.gy, 4);
   for (const [x, y] of map.takePendingSpawns()) zombies.push(createZombie(x, y));
   handleMouse();
   interact.updateInteract(player, dt);
@@ -187,10 +169,10 @@ function update(dt) {
   // Sight is cast from the player's tile centre and only recomputed when the
   // player or the camera enters a new tile. Casting every step at 60 Hz was the
   // bulk of a step's cost and fed the catch-up spiral behind the freezes.
-  const key = `${px},${py}|${Math.round(camera.cam.gx)},${Math.round(camera.cam.gy)}|${map.worldVersion}`;
+  const key = `${px},${py}|${Math.round(camera.cam.gx)},${Math.round(camera.cam.gy)}|${map.worldVersion}|${V.w}x${V.h}`;
   if (key !== visKey) {
     const t1 = performance.now();
-    tiles = camera.viewportTiles(CANVAS_W, CANVAS_H);
+    tiles = camera.viewportTiles(V.w, V.h);
     visible = visibility.computeVisible(px, py, tiles);
     visKey = key;
     timing.vis = performance.now() - t1;
@@ -211,8 +193,8 @@ function update(dt) {
 function render() {
   const r0 = performance.now();
   const scene = {
-    w: CANVAS_W,
-    h: CANVAS_H,
+    w: V.w,
+    h: V.h,
     tiles,
     visible,
     entities: [player, ...zombies],
@@ -378,8 +360,12 @@ function giveStarterKit() {
 
 async function boot() {
   input.init(canvas);
-  window.addEventListener("resize", resize);
-  resize();
+  settings.load();
+  view.init(canvas, ui);
+  applyDebugCorner();
+  settings.onChange((key) => {
+    if (key === "debugCorner") applyDebugCorner();
+  });
 
   items.loadItems(await assets.loadJson("data/items.json"));
   items.loadLoot(await assets.loadJson("data/loot.json"));
@@ -390,10 +376,10 @@ async function boot() {
   giveStarterKit();
   zombies = info.zombies.map(([x, y]) => createZombie(x, y));
   camera.snapTo(player.gx, player.gy);
-  camera.applyOrigin(CANVAS_W, CANVAS_H);
-  map.ensureAround(player.gx, player.gy, 3);
+  camera.applyOrigin(V.w, V.h);
+  map.ensureAround(player.gx, player.gy, 4);
   for (const [x, y] of map.takePendingSpawns()) zombies.push(createZombie(x, y));
-  tiles = camera.viewportTiles(CANVAS_W, CANVAS_H);
+  tiles = camera.viewportTiles(V.w, V.h);
   map.rebuildRooms();
 
   initHud();
@@ -401,6 +387,8 @@ async function boot() {
   menu.initContextMenu();
   const handlers = panelHandlers();
   panel.initInventoryPanel(handlers);
+  // Any screen up means the game is paused; the title is up at boot.
+  screens.initScreens({ onChange: (name) => setPaused(!!name) });
   events.on("playerHit", ({ damage }) => damagePlayer(player, damage));
   events.on("containerOpened", ({ bag, tiles: where, name }) => {
     openBag = { bag, tiles: where, name };
@@ -411,10 +399,14 @@ async function boot() {
     if (e.code === "Escape") handleEscape();
   });
 
+  // Sight once before the first frame, so the village behind the title is
+  // seen as the player sees it rather than all fog.
+  visible = visibility.computeVisible(Math.round(player.gx), Math.round(player.gy), tiles);
   loop.start({ update, render, simTick() {} }, { simIntervalMs: 1000 });
+  screens.show("title");
 
   window.__game = {
-    iso, input, loop, assets, events, map, camera, visibility, interact, clock, light, items, inventory, grid, panel, menu,
+    iso, input, loop, assets, events, map, camera, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens,
     render: { night },
     get player() { return player; },
     get zombies() { return zombies; },

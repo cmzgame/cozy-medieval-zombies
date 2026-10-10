@@ -61,3 +61,9 @@ If those four hold, everything else is porting and data. If any fails, stop and 
 - Prefer dumb distributed dead over clever ones.
 - Prefer placeholder art that exercises the real pipeline over waiting for art.
 - When in doubt, cut. Look at how a parent did it before writing anything new, then decide for this game.
+
+## Laws
+
+Rulings that outrank the rest of this document. Added as Michael states them.
+
+- **If the game is good, people will sit for a loading screen.** (Michael, 2026-10-10.) Never let the cost of a load, or an assumption about what a browser cannot do, squash a good idea. Dynamic lighting was "something browsers can't do" until it was built in an afternoon; so was a window-filling world. Build the thing the way it is truly wanted, measure it, and only then decide what it costs.

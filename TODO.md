@@ -29,6 +29,7 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 - **Milestone 4, the interface, built 2026-10-10** (`docs/10-interface.md`): the grid inventory on Tab, right-click menus for everything, left-click to walk, E for the nearest simple thing, the health bar, hunger and thirst as moodles, logs and planks as real items with Chop down and Split, the well. Scripted acceptance passed; Michael's play verdict pending.
 - **Michael's notes after play, 2026-10-10:** "It's awesome." Left-click to walk removed (left click stays free for selecting and placing later); Escape closes the menu, then the bag, then pauses and resumes; a log is 2×3 and splits into three 1×3 planks.
 - **Milestone 5, the character, built 2026-10-10** (`docs/11-character.md`), Michael's play notes applied the same evening (hands are full slots, torch in either hand, rope belt and burlap sack, no starter hood, the centred RPG doll; open questions 20 and 21 on bags in bags and the view on a big window): everything is a slot; the belt gives the hotbar and keys 1 to 4, the bag on your back gives the grid; the bag is an item that drops with its contents, opens on the floor, and swaps. The character screen on C, the cutaway on K. The eight scripted checks pass (a step with the screen open is under 2 ms); Michael's play verdict pending.
+- **The view and the screens, 2026-10-10 night:** the world fills the window at an integer scale, the interface scales on its own, title and pause and settings and controls screens, settings kept in the browser. Michael's law written into `docs/00`: if the game is good, people will sit for a loading screen.
 - **Blocked on:** nothing.
 - **Next:** the player sprite and customisation conversation Michael wants, then the melee port.
 - **Next:** build Milestone 3 in the order `docs/09` gives, then the melee port. Together they make "a night in the cottage"., with the dead breaking in (doors barred from inside, boards, broken shutters, how the dead get through a door, how slow and loud a climb is). Write its doc first, then build. Then the melee port. Together they make "a night in the cottage". Openings with the dead breaking in and the melee port follow, which together make "a night in the cottage".
@@ -97,6 +98,8 @@ Each step checkable on its own. Michael looks after step 3.
 - [x] The bag as an item (2026-10-10): drop with contents, open on the floor, wear, swap; no bag means no grid; the Developer Bag from the console.
 - [x] Starter kit worn; wearables and bags in loot (2026-10-10). Tab with no bag opens the character screen with the message.
 - [x] Acceptance, scripted (2026-10-10): the eight checks in `docs/11` pass. Michael's play verdict pending.
+- [x] The view (2026-10-10 night): `view.js`; the world fills the window at an integer scale; UI layer at its own scale; prompt, message, and menus through `toUi`; light and fog textures sized to the view; chunk growth four ahead.
+- [x] Screens (2026-10-10 night): title, pause, settings (interface size, world scale, debug corner), controls; Escape steps back; `settings.js` in localStorage.
 
 ## Milestone 4 — The interface (see `docs/10-interface.md`)
 

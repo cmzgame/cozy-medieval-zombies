@@ -1,5 +1,6 @@
 // Copied from cozy-zombie-game src/ui/context-menu.js on 2026-10-10. Unchanged.
 // Right-click context menu. Entries: [{ label, enabled, onSelect }].
+import * as view from "../view.js";
 
 let root = null;
 let open = false;
@@ -36,7 +37,7 @@ export function initContextMenu() {
   });
 }
 
-export function openContextMenu(x, y, entries, canvasW = 960, canvasH = 540) {
+export function openContextMenu(x, y, entries, canvasW = view.view.uiW, canvasH = view.view.uiH) {
   root.innerHTML = "";
   for (const en of entries) {
     const el = document.createElement("div");
@@ -47,7 +48,7 @@ export function openContextMenu(x, y, entries, canvasW = 960, canvasH = 540) {
   }
   root.hidden = false;
   open = true;
-  // Clamp inside the canvas.
+  // Clamp inside the UI layer (x and y are UI pixels).
   const w = root.offsetWidth || 160;
   const h = root.offsetHeight || 24 * entries.length;
   root.style.left = `${Math.max(0, Math.min(canvasW - w, x + 2))}px`;

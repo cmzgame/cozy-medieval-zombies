@@ -17,7 +17,7 @@ Started 2026-10-08 as the marriage of two prototypes, both kept as they are:
 
 ## Docs
 
-`docs/00` vision · `01` what the parents offer · `02` decisions and open questions · `03` world model: chunks · `04` NPCs · `05` someday (never foreclose these cheaply) · `06` art direction and the dev palette · `07` milestone 2: lighting, fire, and the clock · `08` milestone 2b: portals and the WebGL renderer (the world moves from Canvas 2D to raw WebGL2 here; Canvas 2D keeps generating the dev art) · `09` milestone 3: openings, the dead get in · `10` milestone 4: the interface · `11` milestone 5: the character, slots, the bag as an item.
+`docs/00` vision · `01` what the parents offer · `02` decisions and open questions · `03` world model: chunks · `04` NPCs · `05` someday (never foreclose these cheaply) · `06` art direction and the dev palette · `07` milestone 2: lighting, fire, and the clock · `08` milestone 2b: portals and the WebGL renderer (the world moves from Canvas 2D to raw WebGL2 here; Canvas 2D keeps generating the dev art) · `09` milestone 3: openings, the dead get in · `10` milestone 4: the interface, and the screens · `11` milestone 5: the character, slots, the bag as an item.
 
 ## Borrowing from the parents
 
@@ -30,6 +30,8 @@ Started 2026-10-08 as the marriage of two prototypes, both kept as they are:
 These are the current rulings. The list grows as `docs/02-decisions.md` does.
 
 - Tiles are 64×32. Integer display scaling. Never scale in `drawImage`. Never draw UI into the canvas.
+- The world fills the window at an integer scale and the UI layer has its own scale (`src/view.js`). Nothing is laid out against 960×540. DOM over a world point goes through `view.toUi`.
+- If the game is good, people will sit for a loading screen. Never let a load time or an assumed browser limit squash an idea (`docs/00-vision.md`, Laws).
 - One continuous map. No cuts between inside and outside. If a design needs a scene transition, it is wrong for this game.
 - Nothing materialises in view. The active region's boundary stays well beyond the viewport.
 - The map is stored block by block. Every tile access goes through `tileAt`. A missing chunk is grown on demand: plain floor inside the authored bounds, wild forest with a few of the dead beyond them.
