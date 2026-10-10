@@ -54,12 +54,30 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
   const def = await loadSpriteDef(id);
   let sheet;
   if (def.image) {
-    const image = await loadImage(def.image);
+    let image = await loadImage(def.image);
+    let { frames, anchor, bounds } = def;
+    if (def.scale && def.scale !== 1) {
+      // Drawn bigger, once, at load (the sprite's `scale`): resampled into a canvas so the world still
+      // draws it 1:1 and never scales in drawImage at display time. Frames, anchor, and bounds scale with it.
+      const k = def.scale;
+      const c = document.createElement("canvas");
+      c.width = Math.round(image.width * k);
+      c.height = Math.round(image.height * k);
+      const g = c.getContext("2d");
+      g.imageSmoothingEnabled = def.smooth !== false;
+      g.imageSmoothingQuality = "high";
+      g.drawImage(image, 0, 0, c.width, c.height);
+      image = c;
+      const sc = (r) => r.map((n) => Math.round(n * k));
+      frames = Object.fromEntries(Object.entries(frames).map(([n, r]) => [n, sc(r)]));
+      anchor = sc(anchor);
+      if (bounds) bounds = { x: Math.round(bounds.x * k), y: Math.round(bounds.y * k), w: Math.round(bounds.w * k), h: Math.round(bounds.h * k) };
+    }
     sheet = {
       image,
-      frames: def.frames,
-      anchor: def.anchor,
-      bounds: def.bounds, // the visible extent, for occlusion and hit tests (placeholders provide it too)
+      frames,
+      anchor,
+      bounds, // the visible extent, for occlusion and hit tests (placeholders provide it too)
       animations: def.animations || {},
       facings: def.facings || [],
       mirror: def.mirror || {},

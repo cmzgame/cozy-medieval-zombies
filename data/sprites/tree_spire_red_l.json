@@ -1,1 +1,1 @@
-{"image": "data/art/trees/tree_spire_L_red.png", "frames": {"idle_0": [0, 0, 88, 143]}, "anchor": [44, 139], "bounds": {"x": 0, "y": 0, "w": 88, "h": 143}, "collide": {"radius": 0.22}, "wood": 4}
+{"image": "data/art/trees/tree_spire_M_red.png", "scale": 1.5, "frames": {"idle_0": [0, 0, 62, 103]}, "anchor": [30, 99], "bounds": {"x": 0, "y": 0, "w": 62, "h": 103}, "collide": {"radius": 0.22}, "wood": 4}

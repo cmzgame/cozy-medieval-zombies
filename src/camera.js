@@ -35,7 +35,7 @@ export function applyOrigin(w, h) {
 // Every tile whose diamond or tall sprite could touch the canvas. The grid
 // bounding box of the screen corners is a diamond's bounding box, so about half
 // of it is off screen; those are filtered by screen position.
-export function viewportTiles(w, h, margin = 2, tallPx = 110) {
+export function viewportTiles(w, h, margin = 2, tallPx = 230) {
   const corners = [iso.toGrid(0, 0), iso.toGrid(w, 0), iso.toGrid(0, h), iso.toGrid(w, h)];
   let minX = Infinity;
   let maxX = -Infinity;

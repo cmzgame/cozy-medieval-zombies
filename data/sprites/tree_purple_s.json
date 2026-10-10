@@ -1,1 +1,0 @@
-{"image": "data/art/trees/tree_oak_S_purple.png", "frames": {"idle_0": [0, 0, 54, 69]}, "anchor": [27, 65], "bounds": {"x": 0, "y": 0, "w": 54, "h": 69}, "collide": {"radius": 0.14}, "wood": 2}

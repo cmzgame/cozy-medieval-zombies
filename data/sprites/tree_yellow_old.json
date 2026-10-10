@@ -1,0 +1,1 @@
+{"image": "data/art/trees/tree_oak_L_yellow.png", "scale": 1.5, "frames": {"idle_0": [0, 0, 102, 133]}, "anchor": [50, 129], "bounds": {"x": 0, "y": 0, "w": 102, "h": 133}, "collide": {"radius": 0.3}, "wood": 6}

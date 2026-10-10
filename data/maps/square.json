@@ -321,32 +321,30 @@
   "biomes": {
     "harvest": {
       "kinds": {
-        "tree_oak_s": 1,
         "tree_oak_m": 1,
         "tree_oak_l": 1,
-        "tree_orange_s": 1,
-        "tree_orange_m": 1,
-        "tree_orange_l": 1,
-        "tree_yellow_s": 1,
+        "tree_oak_old": 0.5,
         "tree_yellow_m": 1,
         "tree_yellow_l": 1,
-        "tree_red_s": 1,
+        "tree_yellow_old": 0.5,
+        "tree_orange_m": 1,
+        "tree_orange_l": 1,
+        "tree_orange_old": 0.5,
         "tree_red_m": 1,
         "tree_red_l": 1,
-        "tree_oak_old": 0.12,
-        "tree_orange_old": 0.12,
-        "tree_spire_green_s": 0.5,
+        "tree_red_old": 0.5,
         "tree_spire_green_m": 0.5,
         "tree_spire_green_l": 0.5,
-        "tree_spire_yellow_s": 0.5,
+        "tree_spire_green_old": 0.25,
         "tree_spire_yellow_m": 0.5,
         "tree_spire_yellow_l": 0.5,
-        "tree_spire_orange_s": 0.5,
+        "tree_spire_yellow_old": 0.25,
         "tree_spire_orange_m": 0.5,
         "tree_spire_orange_l": 0.5,
-        "tree_spire_red_s": 0.5,
+        "tree_spire_orange_old": 0.25,
         "tree_spire_red_m": 0.5,
-        "tree_spire_red_l": 0.5
+        "tree_spire_red_l": 0.5,
+        "tree_spire_red_old": 0.25
       },
       "scale": 9
     }
