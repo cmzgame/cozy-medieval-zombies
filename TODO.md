@@ -47,7 +47,8 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 - **Michael painted a purple short (2026-10-10) and it worked in game.** Pupils a row taller, the side eye is the front eye, tunic shirt length, a boot seam. The next editors are ruled in `docs/12`: arms and gloves as free shapes, the rest substitution, helms as hair, tunic length and hide-belt options.
 - **The layer editor, 2026-10-10** (`tools/layers.html`): every slot, player or zombie body, substitution and free parts, start from generated, mirror, preview poses, save to game, a pool for the dead; settings rows per slot. Michael's purple hair is in the repo (`data/hair/purple.json`). He paints; the game he plays is served from this worktree.
 - **Pinned before bed, 2026-10-10:** goobers ruled (neutral body, they/them in text); next conversations in order: the older dev art (trees, campfire, hearth, bed, crate, well), the belt as its own paintable item, a placement tool (hover preview, R to rotate, validity) that unifies building and placing and replaces E-to-drop for carried furniture, combat animation and item art with a good one-handed swing first, the character creation screen.
-- **Next:** those five conversations in order, with Michael's painted layers arriving meanwhile; then the melee port.
+- **Scoped 2026-10-11:** pins 3 and 4 are `docs/13-placement.md` and `docs/14-combat.md`, written for another model to build (see `CLAUDE.md`, "Implementing from a spec"). Pins 1 and 2 (the older dev art, the belt as a paintable item) are to be inferred from what exists; pin 5 (the creation screen) follows.
+- **Next:** Michael reads 13 and 14; a cheaper model builds 7 then 8; then the belt item and the dev-art pass; then the creation screen.
 - **Next:** build Milestone 3 in the order `docs/09` gives, then the melee port. Together they make "a night in the cottage"., with the dead breaking in (doors barred from inside, boards, broken shutters, how the dead get through a door, how slow and loud a climb is). Write its doc first, then build. Then the melee port. Together they make "a night in the cottage". Openings with the dead breaking in and the melee port follow, which together make "a night in the cottage".
 - **Notes:** the debug corner shows the cost of a logic step and the worst step in the last three seconds; a freeze should show up there first. Run `python serve.py 8010` in this repo (the file serves its own folder, so it can be launched from elsewhere). `V` toggles the fog off to compare. Michael plays in the in-app browser pane while work happens, so scripted tests see his inputs.
 - **Notes:** Michael wants to burn this week's credits on this. He likes a pause between phases (docs, then build) and plays in his own browser while work happens. Nothing from either parent is gospel.
@@ -105,6 +106,23 @@ Each step checkable on its own. Michael looks after step 3.
 - [x] Phase 2 (2026-10-09): `gl.js` and the WebGL `render.js` at parity: one atlas, one vertex buffer, one shader; light and ambient and fog textures over the chunks around the camera; holes as uniforms; flat triangles for posts, leaves, brackets; a flame sheet. Old renderer kept as `render-canvas.js` on `G`. About 1 ms of JavaScript a frame against 4 to 5. Michael, mid-build: "MILES better, and I could not produce a single weird polygon bug anymore. Wall shading suddenly feels way more intuitive."
 - [x] Phase 3 (2026-10-09): pools climb walls and trunks (`night.climb`, 56 px); flames flicker in the light from per-source layers summed with weights at upload; `L` cycles debug views of the light, ambient, and fog textures; `night.standingFloor` is the legibility floor (0 until it is needed); `night.linear` false gives the per-cell look.
 - [x] Acceptance, scripted (2026-10-09): day and night smooth with no texture touched; the campfire's light beyond a wall placed from the console drops on the next step and returns when it is removed; the hearth's spill through the window and door comes from the portals and stops with the shutter; several lights in view at once; the light reads the same either side of a chunk edge; sorting unchanged; every lookup takes a layer; pixels crisp with nearest sampling; the four views that broke the Canvas night look right and a bracket torch lights its wall from the base. Accepted by Michael the same night; the Canvas renderer is deleted.
+
+## Milestone 7 — Placement (see `docs/13-placement.md`)
+
+- [ ] `placement.js`, prop mode: the ghost, R turns the footprint, left click places in reach; E in front still works.
+- [ ] The build palette on N; `map.canBuildWall`, `buildWall`, `edgeTiles`; edge picking; the wall ghost; the timed build; planks spent; `data/build.json`.
+- [ ] Doors and windows through the same path.
+- [ ] Prompt lines and reasons; Escape order.
+- [ ] Acceptance: the eight checks in `docs/13`.
+
+## Milestone 8 — Melee (see `docs/14-combat.md`)
+
+- [ ] `data/poses.json` and `figure.setPoses`; the editor's Preview and Reload poses.
+- [ ] Weapons in `items.json`: stick, sword, mace; stats on hatchet and torch; held shapes; loot.
+- [ ] `combat.js`: the wedge, swings on the click, cooldowns, stamina; `damageZombie` with hurt, stagger, knockback, down, finisher, death; left click and Space; `zombieDied`.
+- [ ] Feedback: the wedge drawn, hit-stop, screen kick.
+- [ ] The painted held slot in the editor, `data/held/`, `generateHeldFromPixels`.
+- [ ] Acceptance: the ten checks in `docs/14`.
 
 ## Milestone 6 — The figure (see `docs/12-figure.md`)
 

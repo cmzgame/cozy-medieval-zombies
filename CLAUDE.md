@@ -17,7 +17,7 @@ Started 2026-10-08 as the marriage of two prototypes, both kept as they are:
 
 ## Docs
 
-`docs/00` vision · `01` what the parents offer · `02` decisions and open questions · `03` world model: chunks · `04` NPCs · `05` someday (never foreclose these cheaply) · `06` art direction and the dev palette · `07` milestone 2: lighting, fire, and the clock · `08` milestone 2b: portals and the WebGL renderer (the world moves from Canvas 2D to raw WebGL2 here; Canvas 2D keeps generating the dev art) · `09` milestone 3: openings, the dead get in · `10` milestone 4: the interface, and the screens · `11` milestone 5: the character, slots, the bag as an item · `12` milestone 6: the figure, the rig and the paper doll.
+`docs/00` vision · `01` what the parents offer · `02` decisions and open questions · `03` world model: chunks · `04` NPCs · `05` someday (never foreclose these cheaply) · `06` art direction and the dev palette · `07` milestone 2: lighting, fire, and the clock · `08` milestone 2b: portals and the WebGL renderer (the world moves from Canvas 2D to raw WebGL2 here; Canvas 2D keeps generating the dev art) · `09` milestone 3: openings, the dead get in · `10` milestone 4: the interface, and the screens · `11` milestone 5: the character, slots, the bag as an item · `12` milestone 6: the figure, the rig and the paper doll · `13` milestone 7: placement, the ghost, building · `14` milestone 8: melee, the swing, held art.
 
 ## Borrowing from the parents
 
@@ -42,6 +42,20 @@ These are the current rulings. The list grows as `docs/02-decisions.md` does.
 - Check `docs/05-someday.md` before a choice that would foreclose something cheaply. Say so before making it.
 - Placeholder art is generated at boot through the same interface as real sprite sheets. Do not wait for art.
 - Milestone 1 is a probe with four proofs in `docs/00-vision.md`. Build nothing else until it passes.
+
+## Implementing from a spec
+
+Michael scopes with one model and builds with a cheaper one. When a milestone doc says "scoped for implementation by another model", the implementer:
+
+1. Reads the whole doc, then the files it names, before writing code. The doc decides; "default" marks what Michael may overrule, not what the implementer may.
+2. Follows the doc's build order, one step at a time, and verifies each step in the browser pane through `window.__game` with `loop.setPaused(true)` and `loop.advance(1/60)` before the next. Never asks Michael to test by hand.
+3. Edits files with small Python patch scripts written to the scratchpad and run with `python -I script.py "$PWD"`; long heredocs break the Bash tool. Runs `node --check` on every touched module.
+4. Changes nothing in the rig's numbers (`BODY`, the poses) or the drawing rules in `src/figure.js` beyond what the doc asks; does not touch `data/hair`, `data/layers`, `data/held`, or their index files, which are Michael's art (commit them as they appear, never edit or delete them).
+5. Runs the doc's acceptance list as a script and reports each result plainly, failures included.
+6. Ticks `TODO.md`, updates its Status line, commits with a plain message in the existing style (no attribution lines), and pushes to `origin main`.
+7. Logs any ruling the build forces in `docs/02-decisions.md` under the day's date, and says so in the final message.
+
+The game Michael plays is served from this worktree by the app's preview server (`.claude/launch.json`, `medieval`); after editing `serve.py` the server must be restarted for the change to take.
 
 ## Running
 

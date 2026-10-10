@@ -4,6 +4,17 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-11 — Placement and melee scoped (for a cheaper model to build)
+
+Michael is conserving credits: the scoping is done here, the building by another model from `13-placement.md` and `14-combat.md`. The rulings those docs make, pending his read:
+
+- **One placement mode** (`src/placement.js`): carrying furniture is the mode for props, a ghost follows the cursor, R turns the footprint, left click places in reach; E in front still works. **N opens a build palette**: wood wall, door, window, each costing planks (2, 3, 2 by default in `data/build.json`) and seconds on the prompt bar. A built edge is `createWall` like an authored one, so sight, light, rooms, and the dead treat it as real at once. The edge under the cursor is the nearest side of the hovered diamond. Stone is not buildable (no stone item). No tear-down yet.
+- **Left click swings, Space shoves.** Placement declines the click first. Zomboid's convention, and the mouse stays the aim.
+- **The swing resolves on the click**, the animation is cosmetic, the cooldown is the rate limit: the parent's hard-won rule (`cozy-zombie-game/docs/22-melee.md`), kept. Reach is a grid circle cut to a screen-space arc with body samples, point blank always hits, down-screen slack. Knockdown, finishers, stagger, knockback, death with the corpse staying. Hit-stop and screen kick. No sounds yet.
+- **What Michael shapes:** the swing's keyframes live in `data/poses.json` with a Preview and Reload in the layer editor; held item art gets a painted slot in the editor (`data/held/`); weapon numbers are blocks in `items.json`. Weapons to add: stick, sword, mace; the hatchet and the torch get stats; fists exist.
+- **Stamina never locks you out of hitting**: at zero a swing lands at half damage.
+- **Not ported now:** the parent's wind-up and lunge (a trial after play), weapon condition, hit locations.
+
 ### 2026-10-10, night — Goobers, and five pins (Michael, before bed)
 
 - **The figures are goobers, not humans.** Stripped down they are the same small body, deliberately neutral in every way: no sex to the body, undies optional. Gender is only ever inferred from dress, hair, and facial hair, which the editors supply, and the game's own text uses they and them for every figure. The dead are goobers too. Michael: "if you strip em down, goobers." Ruled; written into `00-vision.md` tone rules and `12-figure.md`.
