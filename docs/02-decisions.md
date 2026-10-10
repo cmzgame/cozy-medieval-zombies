@@ -12,6 +12,7 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
   2. The belt as its own paintable item, one design per belt item, instead of one shape with hide or show.
   3. Placement: one tool for building (walls, windows, doors) and placing (chest, hearth, chair) with a hover preview, R to rotate, a validity check, replacing "press E and hope" for carried furniture.
   4. Combat animation and item art before combat itself: what he can paint, how it plays, and a good one-handed swing first, since it serves sword, axe, mace, stick, and torch alike.
+  5. The character creation screen: look, hair, facial hair, the painted layers, on the settings screen's pattern.
 
 ### 2026-10-10 — The figure (Michael)
 
