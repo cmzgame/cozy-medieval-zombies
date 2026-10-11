@@ -51,7 +51,7 @@ All placeholders, plain coloured blocks in their slots. They do nothing yet beyo
 
 ## The screen
 
-- **C** opens the character screen: the doll with its seven slots, the two hand boxes, and the bag column beside it. **Tab** opens the bag alone as before. Escape closes either (docs/10). The cutaway comparison moves from C to **K**.
+- **C** opens the character screen: the doll with its seven slots, the two hand boxes, and the bag column beside it. **Tab** opens the bag alone as before. Escape closes either (docs/10). The cutaway comparison moves from C to **K** (both retired with the stubs on 2026-10-11, `17`).
 - Dragging onto a doll slot checks the item's `wear` word; a wrong slot shows red. Dragging onto an occupied slot swaps if the occupant fits in the bag, else refuses.
 - The one container rule (docs/02, 2026-10-10 late): a bag or a belt goes inside a container only while empty. This replaces "no bag in a bag".
 - The hands are slots like any other (Michael, after play): drag onto a hand to equip, swapping out what was held into the bag or belt; drag out of a hand to the bag, the belt, or the floor. A torch goes in either hand.

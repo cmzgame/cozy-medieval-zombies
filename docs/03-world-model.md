@@ -71,9 +71,9 @@ A record is `{ id, chunk, tile, state, target, timer, hp, aggro, ...body fields 
 ## Rendering with a camera
 
 - The camera is a float grid position; `toScreen` subtracts it. Draw the chunks that intersect the viewport plus one.
-- **Floor per chunk is cached** as one offscreen canvas and drawn as one image. The static part of a chunk never changes between edits.
-- Walls on all four sides of a building. **Cutaway:** when the player is inside a room, that room's walls on the near two sides (south and east) draw full height and translucent, so a window or a door looks the same inside and out (ruled 2026-10-09; the cozy parent's low stubs were the plan and stay on the `C` key for comparison). Walls of other buildings draw full height. How this reads was proof 2 of the probe, and it passed.
-- Sorted drawables carry over. Occlusion is a soft hole cut through every canopy over a character, not a fade, and the parent's silhouette pass is gone. The night layer and the light map arrive with lighting and are drawn per visible chunk.
+- **The ground is one picture per chunk**, baked on the CPU and drawn as one quad (`15-ground.md`, 2026-10-11; it replaced the per-chunk floor cache).
+- Walls on all four sides of a building. **Cutaway:** when the player is inside a room, that room's walls on the near two sides (south and east) draw full height and translucent, so a window or a door looks the same inside and out (ruled 2026-10-09; the cozy parent's low stubs were the plan, lived on a key for comparison, and retired with the drawn walls on 2026-10-11, kept as an idea in `05-someday.md`). Walls of other buildings draw full height. How this reads was proof 2 of the probe, and it passed.
+- Sorted drawables carry over. Occlusion is a soft hole cut through every tree's canopy over the player (trees only, 2026-10-11), not a fade, and the parent's silhouette pass is gone. The night layer and the light map arrive with lighting and are drawn per visible chunk.
 - **Visibility:** a shadow cast from the player over the viewport using the light map's ray code with the player as the source. A tile is visible if its centre can be seen or, failing that, any of four points near its corners. Tiles out of sight draw darkened; the dead out of sight are not drawn at all. Walls you can see the face of are visible. An open shutter passes sight and blocks bodies except a climb; a closed shutter, a closed door, or a board blocks both.
 
 ## Authoring: sets, features, scatter, wild

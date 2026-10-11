@@ -4,6 +4,8 @@
 
 ## Status, 2026-10-11
 
+**Since acceptance (2026-10-11 night, with milestone 10):** the farm and the water are drawn. The farm kind's `"tiles"` takes a list of floor sheets (`["floor_farm", "floor_farm_y"]`, the two furrow directions); each tile reads a frame picked by hash from its own floor's sheet, or a neighbour's where the blend spills past a plot's edge. The water is Claude Design's seamless 128×64 texture through `ground_water`. Floor sheets name their furrows (`"furrows": "x"` or `"y"`) so crops can follow them (`17`).
+
 **Accepted by Michael (2026-10-11): "Ground looks amazing, I think we hit the perfect spot, and if we need to adjust later we have the knobs. Done!"** Milestone 9 is closed; all ten acceptance checks pass. The history below is kept for the record.
 
 **Tuned by Michael after seeing the new art (2026-10-11):** every decal about halved, then mushrooms down by two thirds more and tufts by a third; twigs became a per-tree rule (0 to 2 within 1.2 tiles of each trunk); the generic forest is 40% thinner. Mushrooms are to become clickable and big rocks are wanted: both are interactables, not decals (question 27 in `02`).

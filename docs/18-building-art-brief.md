@@ -1,5 +1,7 @@
 # 18 — Art brief for Claude Design: building pieces
 
+**Delivered and in the game (2026-10-11).** The log walls, the board overlays, and the far-side leaves came back in `village_art(1)` and are built (`17`, steps 2 and 3). Kept as the record.
+
 Michael, 2026-10-11, after the village art (`17`) arrived. Two things players will do with walls that the first set did not cover: build with logs, and board openings up. Players and Michael both place walls one segment at a time, so every segment has to look right alone and beside any other. One paste-ready request.
 
 ## What exists
