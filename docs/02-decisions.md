@@ -39,6 +39,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-11 — The rocks redrawn as stone clusters (Michael)
+
+Michael's third rock pass from Claude Design (`decals_v2(3)`, only the rocks changed): each rock is now a cluster of smaller stones seen from above, which sits better in the 2:1 view than one big faceted boulder. Swapped in under the same names; anchors re-measured from the new bases. Everything else about them (solid, clickable, sparse in the wild, three in the village) is unchanged.
+
 ### 2026-10-11 — One poke for everything you can touch: swing and sway (Michael)
 
 Michael wants the "touch to get" economy to start as one default response, an in-world to-do list of what needs work later. **Rulings:**
