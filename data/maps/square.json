@@ -372,8 +372,8 @@
         32
       ],
       "density": [
-        0.024,
-        0.156
+        0.018,
+        0.117
       ],
       "biome": "harvest",
       "seed": 11
@@ -382,14 +382,26 @@
   "wild": {
     "biome": "harvest",
     "density": [
-      0.054,
-      0.174
+      0.0405,
+      0.1305
     ],
     "seed": 21,
     "zombiesPerChunk": [
       0,
       2
-    ]
+    ],
+    "rocks": {
+      "kinds": {
+        "rock_0": 1,
+        "rock_1": 1,
+        "rock_2": 1,
+        "rock_3": 1
+      },
+      "cell": 40,
+      "chance": 0.6,
+      "seed": 51,
+      "note": "sparse big rocks in the wild: one in 60% of 40x40-tile patches, under one a screen on average (Michael, 2026-10-11)"
+    }
   },
   "spawn": [
     15,
@@ -443,7 +455,7 @@
       "mushroom_3": 1,
       "mushroom_4": 1
     },
-    "chance": 0.042,
+    "chance": 0.021,
     "near": 2,
     "seed": 41,
     "note": "mushrooms as objects near trees, inside the bounds and in the wild (Michael, 2026-10-11)"

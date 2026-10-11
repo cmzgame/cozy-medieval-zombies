@@ -39,6 +39,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-11 — Sparser again, and big rocks in the wild (Michael, art direction)
+
+An art-direction pass, not a performance one. Measured over the same test area, before and after: trees 983 to 750 (density a quarter lower: the scatter 0.018 to 0.117, the wild 0.0405 to 0.1305), mushrooms 270 to 135 (forage chance 0.021), leaf decals 407 to 224 (`perReach` 0.3, `extraChance` 0.22, `openChance` 0.05). **Big rocks join the wild's generator** (`wild.rocks` in `square.json`): each 40-by-40-tile patch has a 60% chance of one rock at a spot rolled from the patch, in place of whatever tree stood there; at Michael's monitor size (about 2,000 tiles a screen) 144 sampled screens showed 0, 1, or 2 rocks (74, 58, 12) and never more. The village keeps its three placed rocks. Performance gains are small but real: fewer sprites to sort and draw each frame, and slightly cheaper bakes (7.5 ms median, from about 8.7).
+
 ### 2026-10-11 — Mushrooms and rocks become game objects that wiggle (Michael)
 
 Michael's redrawn art (bigger mushrooms outlined all the way round; rocks with a curved, bedded base and top faces seen from above) and a ruling: mushrooms and rocks are clickable game objects now, with no stats or actions; a click makes one wiggle on a short cooldown, "I recognize you clicked me". **Built:**

@@ -160,6 +160,7 @@ export async function loadMapSprites(json) {
   for (const name in json.biomes || {}) for (const id in json.biomes[name].kinds || {}) want(id);
   for (const id in json.wild?.kinds || {}) want(id);
   for (const id in json.forage?.kinds || {}) want(id); // mushrooms near trees (docs/02, question 27)
+  for (const id in json.wild?.rocks?.kinds || {}) want(id); // big rocks in the wild
   want("player");
   want("zombie");
   want("flame");

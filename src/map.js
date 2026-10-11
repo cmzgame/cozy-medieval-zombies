@@ -222,11 +222,26 @@ function weightedPick(weights, roll) {
   return Object.keys(weights)[0];
 }
 
+// A big rock in the wild (Michael, 2026-10-11: sparse, no more than about two
+// a screen): each `cell`-square patch of the wild has `chance` of one rock, at
+// a spot rolled from the patch. Returns the rock's sprite at this tile, or null.
+function wildRockAt(x, y) {
+  const r = wild && wild.rocks;
+  if (!r) return null;
+  const c = r.cell || 40;
+  const s = r.seed ?? 51;
+  const cx = Math.floor(x / c);
+  const cy = Math.floor(y / c);
+  if (hash2(cx, cy, s) >= r.chance) return null;
+  if (x !== cx * c + Math.floor(hash2(cx, cy, s + 1) * c) || y !== cy * c + Math.floor(hash2(cx, cy, s + 2) * c)) return null;
+  return weightedPick(r.kinds, hash2(cx, cy, s + 3));
+}
+
 // The wild rule's tree at a tile, or null, without making the tile: the same
 // rolls wildTile makes, so anything can ask where the trees are before their
 // chunks exist.
 function wildTreeAt(x, y) {
-  if (!wild || hash2(x, y, wild.seed ?? 1) >= densityAt(wild, wild.biome, x, y)) return null;
+  if (!wild || wildRockAt(x, y) || hash2(x, y, wild.seed ?? 1) >= densityAt(wild, wild.biome, x, y)) return null;
   return weightedPick(wild.biome.kinds, hash2(x, y, (wild.seed ?? 1) + 1));
 }
 
@@ -263,8 +278,10 @@ function forageProp(x, y) {
 function wildTile(x, y) {
   const t = createTile();
   if (!wild) return t;
+  const rock = wildRockAt(x, y);
   const kind = wildTreeAt(x, y);
-  if (kind) t.prop = createProp({ sprite: kind, tile: [x, y] });
+  if (rock) t.prop = createProp({ sprite: rock, tile: [x, y] });
+  else if (kind) t.prop = createProp({ sprite: kind, tile: [x, y] });
   else t.prop = forageProp(x, y);
   return t;
 }

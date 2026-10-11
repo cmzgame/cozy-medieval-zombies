@@ -31,7 +31,7 @@
       "canopy": { "perTree": 0.07, "max": 0.20 },
       "shadow": { "steps": 3, "alpha": 0.09, "squash": 0.6, "dropPx": 2 },
       "decals": [
-        { "id": "leaves", "kind": "leaves", "layer": "flat", "on": ["grass", "dirt"], "treeColour": 0.8, "perReach": 0.4, "extraChance": 0.25, "openChance": 0.06,
+        { "id": "leaves", "kind": "leaves", "layer": "flat", "on": ["grass", "dirt"], "treeColour": 0.8, "perReach": 0.3, "extraChance": 0.22, "openChance": 0.05,
           "files": {
             "yellow": ["data/art/ground/leaves_yellow_0.png", "data/art/ground/leaves_yellow_1.png", "data/art/ground/leaves_yellow_2.png", "data/art/ground/leaves_yellow_3.png", "data/art/ground/leaves_yellow_4.png"],
             "orange": ["data/art/ground/leaves_orange_0.png", "data/art/ground/leaves_orange_1.png", "data/art/ground/leaves_orange_2.png", "data/art/ground/leaves_orange_3.png", "data/art/ground/leaves_orange_4.png"],
