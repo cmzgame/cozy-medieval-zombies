@@ -344,6 +344,12 @@ function update(dt) {
   timing.stepMax = Math.max(timing.stepMax, timing.step);
 }
 
+let squareTiles = [];
+function applySquareSurface() {
+  const floor = settings.get("squareSurface") === "dirt" ? "floor_dirt" : "floor_cobble";
+  for (const [x, y] of squareTiles) map.setFloor(x, y, floor);
+}
+
 function groundLine() {
   const s = ground.stats();
   return `${s.baked} baked, last ${s.lastMs.toFixed(1)}ms, max ${s.maxMs.toFixed(1)}ms, ${s.textures} textures`;
@@ -583,6 +589,18 @@ async function boot() {
   for (const [x, y] of map.takePendingSpawns()) zombies.push(createZombie(x, y));
   tiles = camera.viewportTiles(V.w, V.h);
   map.rebuildRooms();
+  // The square and its paths, cobble or dirt by the setting (docs/15, for
+  // comparing): the map's features with `group: "square"`.
+  squareTiles = [];
+  for (const f of json.features || []) {
+    if (f.group !== "square") continue;
+    const [fx, fy, fw, fh] = f.rect;
+    for (let y = fy; y < fy + fh; y++) for (let x = fx; x < fx + fw; x++) squareTiles.push([x, y]);
+  }
+  applySquareSurface();
+  settings.onChange((key) => {
+    if (key === "squareSurface") applySquareSurface();
+  });
   // The ground's pictures for the view and a ring around it, before the
   // first frame (docs/15); the title screen covers the wait.
   if (!glError) {

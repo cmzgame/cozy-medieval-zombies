@@ -1119,37 +1119,89 @@ export function generateGround(ph) {
     d[k + 3] = 255;
   };
   if (ph.variant === "cobble") {
-    // Rounded stones in rows eight pixels deep, staggered, a one-pixel gap
-    // between them; each stone a shade of its own, lit along its top row.
+    // Round stones packed at random (Michael, 2026-10-11: the rows read as a
+    // brick wall). Stone centres sit on a staggered grid, jittered, and each
+    // pixel belongs to the nearest centre, measured on the wrapped image so it
+    // tiles. A pixel is stone when it is well inside its cell (the gap to the
+    // next centre is wide) and near its centre, which rounds every stone; the
+    // rest is the mortar between. Distances count vertical pixels 1.6 times,
+    // so the stones are wider than tall, as round stones look from this angle.
     const gap = hexRgb(ph.gap || "#4a433d");
     const stone = hexRgb(ph.color || "#6a6058");
     const lit = hexRgb(ph.top || "#756a61");
     const dark = hexRgb(ph.bottom || "#5c534c");
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) put(x, y, gap);
-    const rowH = 8;
-    for (let r = 0; r < h / rowH; r++) {
-      const y0 = r * rowH;
-      let x = Math.floor(roll2(r, 0, 31) * 12);
-      const end = x + w;
-      let k = 0;
-      while (x < end) {
-        let sw = 9 + Math.floor(roll2(r, k, 32) * 5);
-        if (end - (x + sw) < 7) sw = end - x; // the last stone closes the row
-        const shade = (roll2(r, k, 33) - 0.5) * 14;
-        const tone = (c) => c.map((v) => Math.max(0, Math.min(255, Math.round(v + shade))));
-        const sx0 = x;
-        const sx1 = x + sw - 2; // a one-pixel gap after the stone
-        for (let yy = 0; yy < rowH - 1; yy++) {
-          for (let xx = sx0; xx <= sx1; xx++) {
-            const corner = (yy === 0 || yy === rowH - 2) && (xx === sx0 || xx === sx1);
-            if (corner) continue;
-            const c = yy === 0 ? lit : yy >= rowH - 3 ? dark : stone;
-            put(xx, y0 + yy, tone(c));
-          }
-        }
-        x += sw;
-        k++;
+    const cols = ph.cols || 12;
+    const rows = ph.rows || 10;
+    const cw = w / cols;
+    const ch = h / rows;
+    const ASPECT = 1.6;
+    const seeds = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const jx = (roll2(c, r, 61) - 0.5) * 0.55;
+        const jy = (roll2(c, r, 62) - 0.5) * 0.55;
+        seeds.push({
+          x: (c + 0.5 + (r % 2) * 0.5 + jx) * cw,
+          y: (r + 0.5 + jy) * ch,
+          shade: (roll2(c, r, 63) - 0.5) * 18,
+          size: 0.5 + roll2(c, r, 64) * 0.16,
+        });
       }
+    }
+    const R = cw; // the stone radius scale, in pixels
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let f1 = Infinity;
+        let f2 = Infinity;
+        let best = null;
+        let bdx = 0;
+        let bdy = 0;
+        for (const sd of seeds) {
+          let dx = x + 0.5 - sd.x;
+          let dy = y + 0.5 - sd.y;
+          dx -= Math.round(dx / w) * w;
+          dy -= Math.round(dy / h) * h;
+          const d = Math.hypot(dx, dy * ASPECT);
+          if (d < f1) {
+            f2 = f1;
+            f1 = d;
+            best = sd;
+            bdx = dx;
+            bdy = dy;
+          } else if (d < f2) f2 = d;
+        }
+        const inside = f2 - f1 > 1.7 && f1 < R * best.size;
+        if (!inside) {
+          put(x, y, gap);
+          continue;
+        }
+        // Lit from the top left: the stone's upper left is lighter, its lower
+        // right darker, and its rim against the mortar darkest of all.
+        const l = -(bdx * 0.55 + bdy * ASPECT * 0.85) / (R * best.size);
+        const rim = f2 - f1 < 2.8 && bdx + bdy * ASPECT > 0;
+        let c = l > 0.35 ? lit : l < -0.3 || rim ? dark : stone;
+        c = c.map((v) => Math.max(0, Math.min(255, Math.round(v + best.shade))));
+        put(x, y, c);
+      }
+    }
+  } else if (ph.variant === "water") {
+    // Still water, rough: a dusky teal drifting a little, with short pale
+    // ripple dashes and darker troughs, all seamless (docs/15, a trial).
+    const base = hexRgb(ph.color || "#2f4a54");
+    const ripple = hexRgb(ph.light || "#557880");
+    const trough = hexRgb(ph.dark || "#253d46");
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const v = 0.92 + 0.16 * tileNoise(x, y, w, h, 32, 71);
+        put(x, y, base.map((c) => Math.round(c * v)));
+      }
+    }
+    for (let i = 0; i < Math.round((w * h) / 140); i++) {
+      const x = Math.floor(roll2(i, 1, 72) * w);
+      const y = Math.floor(roll2(i, 2, 72) * h);
+      const len = 3 + Math.floor(roll2(i, 3, 72) * 4);
+      const c = roll2(i, 4, 72) < 0.55 ? ripple : trough;
+      for (let k = 0; k < len; k++) put(x + k, y, c);
     }
   } else {
     // Dirt: the base colour drifting a few percent with soft noise, a low

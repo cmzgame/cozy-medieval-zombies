@@ -16,7 +16,8 @@
         10,
         10
       ],
-      "sprite": "floor_cobble"
+      "sprite": "floor_cobble",
+      "group": "square"
     },
     {
       "kind": "road",
@@ -26,7 +27,8 @@
         1,
         2
       ],
-      "sprite": "floor_dirt"
+      "sprite": "floor_cobble",
+      "group": "square"
     },
     {
       "kind": "road",
@@ -36,7 +38,8 @@
         2,
         1
       ],
-      "sprite": "floor_dirt"
+      "sprite": "floor_cobble",
+      "group": "square"
     },
     {
       "kind": "road",
@@ -47,6 +50,17 @@
         2
       ],
       "sprite": "floor_dirt"
+    },
+    {
+      "kind": "water",
+      "rect": [
+        22,
+        21,
+        2,
+        2
+      ],
+      "sprite": "floor_water",
+      "note": "a trial pond (Michael, 2026-10-11), likely removed"
     }
   ],
   "sets": [

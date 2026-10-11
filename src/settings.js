@@ -10,6 +10,7 @@ export const DEFAULTS = {
   worldScale: "auto", // the zoom: "auto" or one of view.ZOOM_LEVELS
   debugCorner: true, // the text in the top-left corner
   zombieAggro: false, // off: the dead wander and ignore you, there to be looked at (Michael, 2026-10-10)
+  squareSurface: "cobble", // the square and its two paths: "cobble" or "dirt", to compare (docs/15, for now)
   showSwingTargets: false, // outline the zombies the next swing would hit (docs/14), for testing and for play
   multiHit: true, // on: a blow reaches everything in its wedge; off: only the nearest (docs/14)
   showHitShapes: false, // draw the swing's wedge and the dead's body samples (docs/14)
@@ -25,6 +26,7 @@ export const CHOICES = {
   worldScale: [["auto", "Auto"], [1.1, "Wide"], [1.8, "Middle"], [2.7, "Close"]],
   debugCorner: [[true, "Shown"], [false, "Hidden"]],
   zombieAggro: [[false, "Off (they ignore you)"], [true, "On (they hunt you)"]],
+  squareSurface: [["cobble", "Cobble"], ["dirt", "Dirt"]],
   showSwingTargets: [[false, "Off"], [true, "On (green outline on what you would hit)"]],
   multiHit: [[true, "On (everything in the wedge)"], [false, "Off (nearest only)"]],
   showHitShapes: [[false, "Off"], [true, "On (wedge and body samples)"]],

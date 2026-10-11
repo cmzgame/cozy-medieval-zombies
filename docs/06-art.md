@@ -37,7 +37,8 @@ It is a balancing act the whole way, and the answer is **by zone**: the two regi
 |---|---|---|
 | Grass | drawn tiles, base `#4b5f3d` (was `#596f49` / `#526842` flat) | dull, cool; tinted 0.88 to 1.12 by patch noise, up to 20% darker under canopy |
 | Dirt | `#6e5a43`, specks `#5e4c37` and `#7a6650` (generated world texture until drawn) | roads; blends into grass with a ragged edge |
-| Cobble | stone `#6a6058`, top `#756a61`, gaps `#4a433d` (generated until drawn) | the square; always in a dirt verge, never on grass |
+| Cobble | stone `#6a6058`, top `#756a61`, gaps `#4a433d` (generated until drawn) | round stones packed at random, not rows; the square and its paths (a setting compares dirt); always in a dirt verge, never on grass |
+| Water (trial) | `#2f4a54`, ripples `#557880`, troughs `#253d46` (generated) | a 2×2 trial pond in a dirt bank; likely removed |
 | Farm | `#a08c3c` / `#988536`, furrows `#6b5c26` | the one warm ground |
 | Wood floor | `#5e452f` / `#573f2b` | |
 | Stone floor | `#67645e` / `#5f5c56` | |
