@@ -20,7 +20,8 @@ const HEAD_TOP = 68;
 const NEAR = 3.5; // tiles from the player
 
 const EDGE = 8; // UI px a bubble keeps clear of the window's edge
-const TAIL_MARGIN = 12; // UI px the tail keeps from a box's corner
+const TAIL_MARGIN = 18; // UI px the tail keeps from a box's corner (its half-width, 9, plus the rounded corner)
+const BORDER = 2; // the outline's width: the tail is placed from the padding box's edge, inside it
 
 let root = null;
 let uiEl = null;
@@ -77,7 +78,7 @@ export function updateSpeech(characters, visible, player, dt) {
     const tail = Math.max(TAIL_MARGIN, Math.min(p.x - (cx - half), entry.w - TAIL_MARGIN));
     entry.el.style.left = `${Math.round(cx)}px`;
     entry.el.style.top = `${Math.round(p.y)}px`;
-    entry.el.style.setProperty("--tail-x", `${Math.round(tail)}px`);
+    entry.el.style.setProperty("--tail-x", `${Math.round(tail) - BORDER}px`);
   }
   for (const [id, entry] of pool) {
     if (seen.has(id)) continue;

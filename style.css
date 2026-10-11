@@ -268,20 +268,23 @@ html, body {
   transition: width 0.1s;
 }
 
-/* Speech bubbles (docs/19): a rounded rectangle that wraps and grows to any
-   length, a tail at the bottom pointing at the speaker's head. The box's bottom
-   edge sits 7px above the anchor; the tail's tip lands on it. */
+/* Speech bubbles (docs/19): white with a black outline all the way round, the
+   tail's included, and black text. A rounded rectangle that wraps and grows to
+   any length, a tail at the bottom pointing at the speaker's head. The tail is
+   a black triangle with a white one inside it (the outline's 2px is the
+   difference); its tip lands 8px below the box's bottom edge, which the
+   transform lifts onto the anchor. */
 .speech {
   position: absolute;
   box-sizing: border-box;
   width: max-content;
   max-width: 240px;
-  transform: translate(-50%, calc(-100% - 7px));
-  padding: 6px 10px;
-  background: #1c1522;
-  border: 1px solid #6a5a70;
+  transform: translate(-50%, calc(-100% - 8px));
+  padding: 9px 14px;
+  background: #fff;
+  border: 2px solid #000;
   border-radius: 8px;
-  color: #efe6f2;
+  color: #000;
   font-size: 12px;
   line-height: 1.35;
   text-align: center;
@@ -298,20 +301,20 @@ html, body {
   width: 0;
   height: 0;
   transform: translateX(-50%);
-  border-left: 7px solid transparent;
-  border-right: 7px solid transparent;
 }
 
 .speech::before {
   top: 100%;
-  border-top: 8px solid #6a5a70;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-top: 10px solid #000;
 }
 
 .speech::after {
   top: 100%;
-  border-left-width: 6px;
-  border-right-width: 6px;
-  border-top: 7px solid #1c1522;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 8px solid #fff;
 }
 
 #message {
