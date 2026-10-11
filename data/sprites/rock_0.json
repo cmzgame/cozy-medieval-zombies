@@ -1,0 +1,1 @@
+{"image": "data/art/ground/rock_0.png", "frames": {"idle_0": [0, 0, 50, 30]}, "anchor": [25, 27], "bounds": {"x": 0, "y": 0, "w": 50, "h": 30}, "collide": {"radius": 0.38}, "carry": false, "shadow": {"width": 0.5}, "note": "a big rock, a trial (Michael, 2026-10-11): solid, not carried, nothing to do with it yet; question 27"}

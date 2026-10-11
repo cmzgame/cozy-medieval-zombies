@@ -39,6 +39,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-11 — Three trial rocks on the map (Michael)
+
+To see them in the game: three of the drawn rocks as props near the houses, at [9, 13] west of the square, [17, 23] south of it by the pond, and [28, 14] east of the shed (`props` in `square.json`; definitions `rock_0` to `rock_3`). Solid like a tree trunk (collide radius 0.38), not carriable, a baked ground shadow, no action yet. A look only; question 27 decides what they are.
+
 ### 2026-10-11 — Fewer mushrooms, sticks under trees, fewer tufts, a thinner forest (Michael)
 
 - **Mushrooms** down by two thirds (0.042 per tile near a tree).

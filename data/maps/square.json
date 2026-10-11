@@ -408,5 +408,31 @@
       19,
       28
     ]
+  ],
+  "props": [
+    {
+      "sprite": "rock_0",
+      "tile": [
+        9,
+        13
+      ],
+      "note": "trial rock near spawn"
+    },
+    {
+      "sprite": "rock_2",
+      "tile": [
+        17,
+        23
+      ],
+      "note": "trial rock south of the square"
+    },
+    {
+      "sprite": "rock_3",
+      "tile": [
+        28,
+        14
+      ],
+      "note": "trial rock east of the shed"
+    }
   ]
 }
