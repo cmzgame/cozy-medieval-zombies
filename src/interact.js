@@ -24,6 +24,7 @@ import * as placement from "./placement.js";
 import * as grid from "./grid.js";
 import { startClimb, autoWalk, eat, drink } from "./entities/player.js";
 import { showMessage } from "./ui/prompt.js";
+import { pokeVillager } from "./entities/villager.js";
 import { emit } from "./events.js";
 
 export const INTERACT_RANGE = 1.15; // tiles
@@ -532,6 +533,8 @@ export function actionsAt(sx, sy, player) {
   }
   for (const o of openingsAtScreen(sx, sy)) out.push(...openingActions(o, player));
   for (const b of map.bracketsNear(g.gx, g.gy, 0.8)) out.push(...holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player));
+  const under = characterAt(sx, sy);
+  if (under) out.push(...characterActions(under, player));
   if (!out.length && map.isWalkableTile(tx, ty)) out.push(walkAction([tx, ty]));
   return out;
 }
@@ -968,6 +971,53 @@ export function pokeAt(sx, sy, player) {
   const now = performance.now();
   if (inReach(prop, player) && (!prop.pokedAt || now - prop.pokedAt >= POKE_COOLDOWN_MS)) prop.pokedAt = now;
   return prop;
+}
+
+// ---- characters under the cursor (docs/19) ----
+
+let allCharacters = () => []; // main.js hands in everyone but the player
+export function setCharacters(fn) {
+  allCharacters = fn;
+}
+
+// The character (never the player) whose body the point falls on: a box a
+// little wider than the figure and as tall as it, standing on its feet, since
+// a figure moves and a pixel test would be fussy. The nearest to the camera
+// wins a tie.
+export function characterAt(sx, sy) {
+  let best = null;
+  for (const c of allCharacters()) {
+    if (c.kind === "player") continue;
+    const p = iso.toScreen(c.gx, c.gy);
+    if (sx < p.x - 12 || sx > p.x + 12 || sy < p.y - 64 || sy > p.y + 2) continue;
+    if (!best || c.gx + c.gy > best.gx + best.gy) best = c;
+  }
+  return best;
+}
+
+// A left click on a villager within reach pokes it. Returns the character under the cursor.
+export function clickCharacterAt(sx, sy, player) {
+  const c = characterAt(sx, sy);
+  if (c && c.kind === "villager" && Math.hypot(player.gx - c.gx, player.gy - c.gy) <= CLICK_REACH) pokeVillager(c, player);
+  return c;
+}
+
+// What a right-click on a character offers, by kind.
+function characterActions(c, player) {
+  if (c.kind === "villager") {
+    return [act({
+      kind: "poke",
+      label: `Poke ${c.name}`,
+      tiles: [[Math.round(c.gx), Math.round(c.gy)]],
+      range: CLICK_REACH,
+      simple: false,
+      perform() {
+        pokeVillager(c, player);
+        return true;
+      },
+    })];
+  }
+  return [];
 }
 
 // A prop with a click animation (`clickAnim` on its sprite: the well's bucket)

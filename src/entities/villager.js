@@ -1,0 +1,99 @@
+// Villagers (docs/19, step 3): living figures on the character model that
+// wander near where the map put them and, when poked, stop, turn to you, and
+// say their line. Nothing else yet: the dead ignore them, a swing passes
+// through them, they have no needs. `hp`, `maxHp`, `dead`, `radius`, `worn`, and
+// `look` are on them so that fleeing, dying, and turning (docs/04) need no
+// reshaping. They walk with the dead's own walking code (zombie.js exports it),
+// on a tether to `home`.
+
+import { createCharacter, wardrobeInto, say } from "./character.js";
+import { getSheet } from "../assets.js";
+import { playAnimation, advanceAnimation } from "../sprites.js";
+import { pickTargetAround, repath, followPath, separate, faceToward, roomOf, WANDER_IDLE_MIN, WANDER_IDLE_MAX } from "./zombie.js";
+
+export const VILLAGER_SPEED = 1.4; // tiles per second: an amble, between the dead (1.0) and the player (3.0)
+export const VILLAGER_RADIUS = 0.3;
+export const WANDER_RADIUS = 4; // tiles from home a wander may reach
+export const TALK_TIME = 2; // seconds a poked villager stands and faces you, at least
+export const POKE_COOLDOWN_MS = 600; // as a wiggle's (interact.js): spam does not restart the line
+
+let nextId = 1;
+
+const idleTime = () => WANDER_IDLE_MIN + Math.random() * (WANDER_IDLE_MAX - WANDER_IDLE_MIN);
+
+// `line` is what they say when poked ("Hey!" unless the map gives one);
+// `wardrobe` indexes the village wardrobes in data/wardrobes.json.
+export function createVillager(gx, gy, { id = null, name = null, line = null, wardrobe = 0 } = {}) {
+  const v = {
+    ...createCharacter("villager", gx, gy, { id: id || `v${nextId++}`, name, speed: VILLAGER_SPEED, radius: VILLAGER_RADIUS, hp: 100 }),
+    home: [gx, gy],
+    state: "idle", // idle | wander | talk
+    greeting: line || "Hey!",
+    path: [],
+    repathTimer: 0,
+    idleTimer: idleTime(),
+    stuckTime: 0,
+    pathFailed: false,
+    lastGoal: null,
+    talkTimer: 0,
+    pokedAt: 0, // performance.now() of the last poke that spoke
+  };
+  wardrobeInto(v, "village", wardrobe);
+  return v;
+}
+
+export function updateVillager(v, dt, others) {
+  const sheet = getSheet(v.sprite);
+  switch (v.state) {
+    case "idle": {
+      playAnimation(v.anim, "idle");
+      v.idleTimer -= dt;
+      if (v.idleTimer <= 0) {
+        // A walkable tile within WANDER_RADIUS of home, on their own side of the walls
+        // (the picker draws from a square; the leash is a circle).
+        let target = null;
+        for (let tries = 0; tries < 6 && !target; tries++) {
+          const t = pickTargetAround(v.home[0], v.home[1], WANDER_RADIUS, roomOf(v));
+          if (t && Math.hypot(t[0] - v.home[0], t[1] - v.home[1]) <= WANDER_RADIUS) target = t;
+        }
+        if (target) {
+          repath(v, target);
+          v.state = "wander";
+        }
+        v.idleTimer = idleTime();
+      }
+      break;
+    }
+    case "wander": {
+      playAnimation(v.anim, "walk");
+      if (followPath(v, dt, others)) v.state = "idle";
+      break;
+    }
+    case "talk": {
+      playAnimation(v.anim, "idle");
+      separate(v, dt, others);
+      v.talkTimer -= dt;
+      if (v.talkTimer <= 0) {
+        v.state = "idle";
+        v.idleTimer = idleTime();
+      }
+      break;
+    }
+  }
+  advanceAnimation(v.anim, sheet, dt);
+}
+
+// A poke: stop where they stand, turn to the player, say the line. Returns
+// whether it spoke (a second poke inside the cooldown does nothing).
+export function pokeVillager(v, player) {
+  const now = performance.now();
+  if (now - v.pokedAt < POKE_COOLDOWN_MS) return false;
+  v.pokedAt = now;
+  v.path = [];
+  v.lastGoal = null;
+  v.state = "talk";
+  faceToward(v, player.gx - v.gx, player.gy - v.gy);
+  say(v, v.greeting);
+  v.talkTimer = Math.max(TALK_TIME, v.line.left);
+  return true;
+}

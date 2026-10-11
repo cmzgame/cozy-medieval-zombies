@@ -713,5 +713,40 @@
     "near": 2,
     "seed": 41,
     "note": "mushrooms as objects near trees, inside the bounds and in the wild (Michael, 2026-10-11)"
-  }
+  },
+  "villagers": [
+    {
+      "tile": [
+        14,
+        13
+      ],
+      "name": "Wren",
+      "wardrobe": 0
+    },
+    {
+      "tile": [
+        17,
+        16
+      ],
+      "name": "Ash",
+      "wardrobe": 1
+    },
+    {
+      "tile": [
+        13,
+        19
+      ],
+      "name": "Tam",
+      "wardrobe": 2,
+      "line": "Keep the shutters closed."
+    },
+    {
+      "tile": [
+        13,
+        6
+      ],
+      "name": "Rook",
+      "wardrobe": 3
+    }
+  ]
 }

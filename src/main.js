@@ -19,6 +19,7 @@ import * as ground from "./ground.js";
 import { renderScene, night } from "./render.js";
 import { createPlayer, updatePlayer, damagePlayer, autoWalk, eat, drink } from "./entities/player.js";
 import { createZombie, updateZombie } from "./entities/zombie.js";
+import { createVillager, updateVillager } from "./entities/villager.js";
 import { initHud, updateHud } from "./ui/hud.js";
 import { initPrompt, updatePrompt, showMessage, updateMessage } from "./ui/prompt.js";
 import { initZombieBars, updateZombieBars } from "./ui/zombie-bars.js";
@@ -62,6 +63,7 @@ try {
 let info = null;
 let player = null;
 let zombies = [];
+let villagers = [];
 let tiles = [];
 let visible = new Set();
 let playerRoom = 0;
@@ -294,17 +296,22 @@ function update(dt) {
   if (clicked && !clickSpent) {
     interact.pokeAt(input.getMouse().x, input.getMouse().y, player);
     interact.playAt(input.getMouse().x, input.getMouse().y, player); // the well's bucket, for fun
+    interact.clickCharacterAt(input.getMouse().x, input.getMouse().y, player); // a villager answers (docs/19)
     combat.tryAttack(player, zombies);
   }
   if (input.wasPressed("Space")) combat.tryShove(player, zombies);
   combat.updateCombat(player, zombies, dt);
   progress = interact.updateAction(player, dt);
-  const others = [player, ...zombies];
+  const others = [player, ...zombies, ...villagers];
   // The dead far from the player stand still: a stand-in for the records of
   // docs/03 until that milestone.
   for (const z of zombies) {
     if (Math.abs(z.gx - player.gx) > ACTIVE_TILES || Math.abs(z.gy - player.gy) > ACTIVE_TILES) continue;
     updateZombie(z, dt, player, others);
+  }
+  for (const v of villagers) {
+    if (Math.abs(v.gx - player.gx) > ACTIVE_TILES || Math.abs(v.gy - player.gy) > ACTIVE_TILES) continue;
+    updateVillager(v, dt, others);
   }
   if (player.hp <= 0 && !player.dead) {
     // Death (Michael, 2026-10-10 night): the game stops on the dead screen,
@@ -344,7 +351,7 @@ function update(dt) {
   updateHud({ player });
   updatePrompt(interact.promptFor(player, progress), progress);
   updateZombieBars(zombies, visible, player);
-  updateSpeech([player, ...zombies], visible, player, dt);
+  updateSpeech([player, ...zombies, ...villagers], visible, player, dt);
   updateMessage(dt);
   input.endStep();
   timing.step = performance.now() - t0;
@@ -373,7 +380,7 @@ function render() {
     h: V.h,
     tiles,
     visible,
-    entities: [player, ...zombies],
+    entities: [player, ...zombies, ...villagers],
     playerRoom,
     player,
     camera: camera.cam,
@@ -395,7 +402,7 @@ function render() {
     `chunk ${cx},${cy}  room ${playerRoom}${playerRoom > 0 ? (map.roomSealed(map.getRoom(playerRoom)) ? " sealed" : " open") : ""}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `ground ${groundLine()}\n` +
-    `zombies ${zombies.length}  near ${zombies.filter((z) => Math.abs(z.gx - player.gx) <= ACTIVE_TILES && Math.abs(z.gy - player.gy) <= ACTIVE_TILES).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
+    `villagers ${villagers.length}  zombies ${zombies.length}  near ${zombies.filter((z) => Math.abs(z.gx - player.gx) <= ACTIVE_TILES && Math.abs(z.gy - player.gy) <= ACTIVE_TILES).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
     `Tab: bag   C: character   1-4: belt   N: build   X: remove   Z: zoom   right-click: actions   Esc: close or pause   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
 }
 
@@ -597,6 +604,8 @@ async function boot() {
   giveStarterKit();
   refreshFigure();
   zombies = info.zombies.map(([x, y]) => createZombie(x, y));
+  villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i }));
+  interact.setCharacters(() => [...villagers, ...zombies]);
   camera.snapTo(player.gx, player.gy);
   camera.applyOrigin(V.w, V.h);
   map.ensureAround(player.gx, player.gy, 4);
@@ -682,6 +691,7 @@ async function boot() {
     render: { night },
     get player() { return player; },
     get zombies() { return zombies; },
+    get villagers() { return villagers; },
     say: (text, seconds) => say(player, text, seconds), // a bubble over the player, to test the system (docs/19)
     get tiles() { return tiles; },
     get visible() { return visible; },

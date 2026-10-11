@@ -1303,7 +1303,7 @@ export function loadMap(json) {
     if (prop.furrowsPending) prop.facing = furrowsOf(get(prop.tile[0], prop.tile[1]).floor) || prop.facing;
     delete prop.furrowsPending;
   }
-  return { props, spawn: json.spawn || [0, 0], zombies: json.zombies || [], name: json.name || "map" };
+  return { props, spawn: json.spawn || [0, 0], zombies: json.zombies || [], villagers: json.villagers || [], name: json.name || "map" };
 }
 
 // The direction a floor's furrows run ("x" or "y"), or null for a floor without.

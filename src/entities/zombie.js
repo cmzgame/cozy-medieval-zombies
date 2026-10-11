@@ -44,8 +44,8 @@ export const GET_UP_TIME = 0.6; // seconds to rise, the fall played backwards
 export const KNOCK_TIME = 0.15; // a push is spread over this long, not a teleport
 const BREACH_REACH = 1.1; // tiles from the edge midpoint to hit it
 const SEARCH_RADIUS = 3; // tiles
-const WANDER_IDLE_MIN = 1.5;
-const WANDER_IDLE_MAX = 4.0;
+export const WANDER_IDLE_MIN = 1.5;
+export const WANDER_IDLE_MAX = 4.0;
 const SEPARATION = 0.55;
 const SIGHT_CHECK = 0.25; // seconds between sight tests
 const ARRIVED = 0.6; // tiles: close enough to the last sighting to count as there
@@ -195,7 +195,7 @@ function updateHurt(z, dt, sheet) {
 }
 
 // The room the dead are standing in (0 outdoors).
-function roomOf(z) {
+export function roomOf(z) {
   return tileAt(Math.round(z.gx), Math.round(z.gy)).room;
 }
 
@@ -226,7 +226,7 @@ function distTo(z, e) {
   return Math.hypot(e.gx - z.gx, e.gy - z.gy);
 }
 
-function faceToward(z, dx, dy) {
+export function faceToward(z, dx, dy) {
   if (dx === 0 && dy === 0) return;
   const s = iso.gridDirToScreen(dx, dy);
   z.facing = iso.facingFromScreenVector(s.sx, s.sy);
@@ -268,7 +268,7 @@ function tileOf(e) {
   return [Math.round(e.gx), Math.round(e.gy)];
 }
 
-function repath(z, goalTile) {
+export function repath(z, goalTile) {
   const path = findPath(tileOf(z), goalTile, canStep);
   z.path = path || [];
   z.pathFailed = path === null;
@@ -276,7 +276,7 @@ function repath(z, goalTile) {
   z.repathTimer = z.pathFailed ? REPATH_FAIL_BACKOFF : ZOMBIE_REPATH;
 }
 
-function followPath(z, dt, others) {
+export function followPath(z, dt, others) {
   if (!z.path.length) return true;
   const [tx, ty] = z.path[0];
   const dx = tx - z.gx;
@@ -306,7 +306,7 @@ function followPath(z, dt, others) {
   return false;
 }
 
-function separate(z, dt, others) {
+export function separate(z, dt, others) {
   let px = 0;
   let py = 0;
   for (const o of others) {
@@ -333,7 +333,7 @@ function separate(z, dt, others) {
 // A walkable tile near (x, y) on the same side of the walls as `room`: a
 // zombie outside a cottage searching for someone seen inside walks the yard,
 // not into the wall (Michael, 2026-10-10: pacing at the window).
-function pickTargetAround(x, y, radius, room = 0) {
+export function pickTargetAround(x, y, radius, room = 0) {
   for (let tries = 0; tries < 12; tries++) {
     const tx = Math.round(x) + Math.floor(Math.random() * (radius * 2 + 1)) - radius;
     const ty = Math.round(y) + Math.floor(Math.random() * (radius * 2 + 1)) - radius;

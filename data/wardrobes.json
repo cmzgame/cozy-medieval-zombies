@@ -1,5 +1,5 @@
 {
- "note": "Wardrobes (docs/19): who wears what. Each worn entry is an item id with an optional dye: colour (replaces the item's first tone) or colours (replaces all). The ten for the dead are written from the old generated outfits so they look as they did; add a small_sack to some to give them a back grid (and a sack on the body). Michael edits these.",
+ "note": "Wardrobes (docs/19): who wears what. Each worn entry is an item id with an optional dye: colour (replaces the item's first tone) or colours (replaces all). The village's six are warm (ochre, rust, moss, slate, linen, plum) so the living read apart from the drab dead. The ten for the dead are written from the old generated outfits so they look as they did; add a small_sack to some to give them a back grid (and a sack on the body). Michael edits these.",
  "zombie": [
   {
    "look": {
@@ -355,5 +355,207 @@
    "loot": "body"
   }
  ],
- "village": []
+ "village": [
+  {
+   "look": {
+    "skin": "#f0c8a0",
+    "hair": "#6a3a28",
+    "hairStyle": "short",
+    "eyes": "#1c1a22",
+    "under": "#e9dfc8"
+   },
+   "worn": {
+    "chest": {
+     "item": "tunic",
+     "colour": "#b08a3e"
+    },
+    "legs": {
+     "item": "breeches",
+     "colour": "#5a4030"
+    },
+    "feet": {
+     "item": "boots",
+     "colour": "#3a2a1c"
+    },
+    "waist": {
+     "item": "belt",
+     "colours": [
+      "#5e4028",
+      "#8a7a60"
+     ]
+    }
+   },
+   "pockets": [
+    3,
+    2
+   ],
+   "loot": null
+  },
+  {
+   "look": {
+    "skin": "#c89870",
+    "hair": "#2a2a2a",
+    "hairStyle": "long",
+    "eyes": "#1c1a22",
+    "under": "#e9dfc8"
+   },
+   "worn": {
+    "chest": {
+     "item": "tunic",
+     "colour": "#4f6a85"
+    },
+    "legs": {
+     "item": "breeches",
+     "colour": "#4a4036"
+    },
+    "feet": {
+     "item": "boots",
+     "colour": "#3a2a1c"
+    },
+    "head": {
+     "item": "hood",
+     "colour": "#6b7a3a"
+    }
+   },
+   "pockets": [
+    3,
+    2
+   ],
+   "loot": null
+  },
+  {
+   "look": {
+    "skin": "#e0b088",
+    "hair": "#8a7a60",
+    "hairStyle": "short",
+    "eyes": "#1c1a22",
+    "under": "#e9dfc8"
+   },
+   "worn": {
+    "chest": {
+     "item": "tunic",
+     "colour": "#d8ccaa"
+    },
+    "legs": {
+     "item": "breeches",
+     "colour": "#8a4a2a"
+    },
+    "feet": {
+     "item": "boots",
+     "colour": "#3a2a1c"
+    },
+    "head": {
+     "item": "cap",
+     "colour": "#7a4a62"
+    },
+    "waist": {
+     "item": "belt",
+     "colours": [
+      "#5e4028",
+      "#8a7a60"
+     ]
+    }
+   },
+   "pockets": [
+    3,
+    2
+   ],
+   "loot": null
+  },
+  {
+   "look": {
+    "skin": "#8a5e3c",
+    "hair": "#1c1a22",
+    "hairStyle": "bald",
+    "eyes": "#1c1a22",
+    "under": "#e9dfc8"
+   },
+   "worn": {
+    "chest": {
+     "item": "tunic",
+     "colour": "#a0522d"
+    },
+    "legs": {
+     "item": "breeches",
+     "colour": "#4a4036"
+    },
+    "feet": {
+     "item": "boots",
+     "colour": "#3a2a1c"
+    },
+    "waist": {
+     "item": "belt",
+     "colours": [
+      "#5e4028",
+      "#8a7a60"
+     ]
+    }
+   },
+   "pockets": [
+    3,
+    2
+   ],
+   "loot": null
+  },
+  {
+   "look": {
+    "skin": "#a87850",
+    "hair": "#5a4a30",
+    "hairStyle": "long",
+    "eyes": "#1c1a22",
+    "under": "#e9dfc8"
+   },
+   "worn": {
+    "chest": {
+     "item": "tunic",
+     "colour": "#6b7a3a"
+    },
+    "legs": {
+     "item": "breeches",
+     "colour": "#5a4030"
+    },
+    "head": {
+     "item": "hood",
+     "colour": "#b08a3e"
+    }
+   },
+   "pockets": [
+    3,
+    2
+   ],
+   "loot": null
+  },
+  {
+   "look": {
+    "skin": "#f0c8a0",
+    "hair": "#b05a2a",
+    "hairStyle": "short",
+    "eyes": "#1c1a22",
+    "under": "#e9dfc8"
+   },
+   "worn": {
+    "chest": {
+     "item": "tunic",
+     "colour": "#7a4a62"
+    },
+    "legs": {
+     "item": "breeches",
+     "colour": "#c8bc98"
+    },
+    "feet": {
+     "item": "boots",
+     "colour": "#3a2a1c"
+    },
+    "head": {
+     "item": "cap",
+     "colour": "#4f6a85"
+    }
+   },
+   "pockets": [
+    3,
+    2
+   ],
+   "loot": null
+  }
+ ]
 }
