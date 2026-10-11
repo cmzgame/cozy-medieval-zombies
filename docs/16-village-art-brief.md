@@ -1,6 +1,6 @@
 # 16 — Art brief for Claude Design: the village
 
-**Corrected 2026-10-11:** the first version had the wall directions swapped in its requests. The engine is the truth: a north wall runs from a tile's top corner down to its right corner (\, a room's back-right wall), a west wall from its left corner up to its top corner (/, the back-left wall). Claude Design caught the mismatch.
+**Corrected 2026-10-11:** the first version had the wall directions swapped in its requests. The engine is the truth: a north wall runs from a tile's top corner down to its right corner (`\`, a room's back-right wall), a west wall from its left corner up to its top corner (`/`, the back-left wall). Claude Design caught the mismatch.
 
 Michael, 2026-10-11, after the trees, the ground decals, and the rocks came back well: more work in the same style. Each part has a request to paste into Claude Design; everything between the fences is meant to be pasted as it is. **Settled since the first draft (Michael, 2026-10-11):** walls are **80 px tall**, **16 px thick for stone and 14 for wood** (18 for the log walls the player builds); doors and windows keep fixed sizes from the floor (door 48 px tall), though those sizes are not gospel; open shutters fold back flat against the wall. The section below answers the questions Claude Design asked before drawing.
 
