@@ -39,6 +39,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-11 — The road under the shed stays (Michael)
+
+The east road in `square.json` was authored before the shed and runs under it, so a two-tile dirt stub sits beside the shed and the shed's cobble path hides behind its far (west) wall. Michael: leave it; the map is meant to become customisable, and that is when it gets fixed. Floors already change through one function (`map.setFloor`) that re-bakes the ground; the tool to paint them (laying floors from the build palette, or the editor of question 14) does not exist yet.
+
 ### 2026-10-11 — Authored surfaces cover their tiles; edges reach outward (Michael)
 
 Michael on the paths: the shed path looked like dirt until he opened the door (it was cobble shrunk to a hairline), and the cottage path let too much grass spill over it; that it looked right beside a house is not a rule, and roads and paths are hand-authored. **Ruling:** an authored surface (dirt, cobble, water) covers its own tiles and its ragged edge reaches only outward onto the grass; a laid floor beside an earth tile counts as that earth in the blend, so a path runs to the door. The pond stays as it is: blue ground you can walk on (Michael). Numbers and checks in `15-ground.md`.
