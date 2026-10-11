@@ -159,6 +159,7 @@ export async function loadMapSprites(json) {
   for (const sc of json.scatter || []) for (const id in sc.kinds || {}) want(id, (sc.footprint?.[0] || 1) * (sc.footprint?.[1] || 1));
   for (const name in json.biomes || {}) for (const id in json.biomes[name].kinds || {}) want(id);
   for (const id in json.wild?.kinds || {}) want(id);
+  for (const id in json.forage?.kinds || {}) want(id); // mushrooms near trees (docs/02, question 27)
   want("player");
   want("zombie");
   want("flame");

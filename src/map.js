@@ -33,6 +33,8 @@ const pendingSpawns = []; // [x, y] tiles where a wild chunk wants a zombie
 // inside the bounds, the wild rule's biome beyond them.
 let biomeRects = []; // [{ rect: [x, y, w, h], biome }]
 let wildBiome = null;
+// Small things placed near trees (docs/02, question 27): mushrooms now.
+let forage = null; // { kinds, chance, near, seed }
 // Called with (tiles, prop) when a floor changes or a prop comes or goes, so
 // the ground can re-bake what it touches (docs/15). The ground registers it;
 // the map does not import the ground.
@@ -220,15 +222,50 @@ function weightedPick(weights, roll) {
   return Object.keys(weights)[0];
 }
 
-// A wild tile: forest by the wild rule, or plain grass.
+// The wild rule's tree at a tile, or null, without making the tile: the same
+// rolls wildTile makes, so anything can ask where the trees are before their
+// chunks exist.
+function wildTreeAt(x, y) {
+  if (!wild || hash2(x, y, wild.seed ?? 1) >= densityAt(wild, wild.biome, x, y)) return null;
+  return weightedPick(wild.biome.kinds, hash2(x, y, (wild.seed ?? 1) + 1));
+}
+
+// Whether a tree stands at a tile: the authored map inside the bounds, the
+// wild rule beyond them. Pure, so it answers the same in any order.
+function treeAt(x, y) {
+  if (inBounds(x, y)) {
+    const t = source && source(x, y);
+    return !!(t && t.prop && getDef(t.prop.sprite).canopy);
+  }
+  const k = wildTreeAt(x, y);
+  return !!(k && getDef(k).canopy);
+}
+
+function treeNear(x, y, r) {
+  for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if ((dx || dy) && treeAt(x + dx, y + dy)) return true;
+  return false;
+}
+
+// A forage object for a tile, or null: by chance, only near a tree, at a small
+// offset inside the tile so they do not line up (docs/02, question 27).
+function forageProp(x, y) {
+  if (!forage) return null;
+  const s = forage.seed ?? 41;
+  if (hash2(x, y, s) >= forage.chance) return null;
+  if (!treeNear(x, y, forage.near ?? 2)) return null;
+  const kind = weightedPick(forage.kinds, hash2(x, y, s + 1));
+  const u = (hash2(x, y, s + 2) - 0.5) * 0.6;
+  const v = (hash2(x, y, s + 3) - 0.5) * 0.6;
+  return createProp({ sprite: kind, tile: [x, y], solid: false, offset: [Math.round((u - v) * 32), Math.round((u + v) * 16)] });
+}
+
+// A wild tile: forest by the wild rule, a forage object near the trees, or plain grass.
 function wildTile(x, y) {
   const t = createTile();
   if (!wild) return t;
-  const roll = hash2(x, y, wild.seed ?? 1);
-  if (roll < densityAt(wild, wild.biome, x, y)) {
-    const kind = weightedPick(wild.biome.kinds, hash2(x, y, (wild.seed ?? 1) + 1));
-    t.prop = createProp({ sprite: kind, tile: [x, y] });
-  }
+  const kind = wildTreeAt(x, y);
+  if (kind) t.prop = createProp({ sprite: kind, tile: [x, y] });
+  else t.prop = forageProp(x, y);
   return t;
 }
 
@@ -1013,6 +1050,10 @@ export function createProp(def, offset = [0, 0]) {
     searched: false,
     wood: sdef.wood || 0,
     water: !!sdef.water,
+    // Drawn this many screen pixels off its tile's centre (forage objects), and
+    // a thing the player can click (it wiggles, for now; question 27).
+    offset: def.offset || null,
+    interactable: !!sdef.interactable,
   };
   // Fire is data on the sprite definition (docs/07-lighting.md): a light
   // radius, whether it lights its whole room, burns wood, cooks. Live state
@@ -1205,5 +1246,21 @@ export function loadMap(json) {
   for (const [tx, ty, edge, side, torch] of pendingBrackets) addBracket(tx, ty, edge, side, torch);
   biomeRects = (json.scatter || []).filter((sc) => sc.biome).map((sc) => ({ rect: sc.rect, biome: sc.biome }));
   wildBiome = json.wild?.biome || null;
+  // Forage inside the bounds, now that the trees and the wild rule are known:
+  // on plain base floor with nothing on it. Beyond the bounds wildTile does it.
+  forage = json.forage || null;
+  if (forage && json.bounds) {
+    const [bx, by, bw, bh] = json.bounds;
+    for (let y = by; y < by + bh; y++) {
+      for (let x = bx; x < bx + bw; x++) {
+        const t = authored.get(key(x, y));
+        if (t && (t.floor !== baseFloor || t.prop || t.n || t.w)) continue;
+        const prop = forageProp(x, y);
+        if (!prop) continue;
+        props.push(prop);
+        get(x, y).prop = prop;
+      }
+    }
+  }
   return { props, spawn: json.spawn || [0, 0], zombies: json.zombies || [], name: json.name || "map" };
 }

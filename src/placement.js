@@ -66,8 +66,9 @@ export function propRect(prop, tx, ty) {
   const f = sheet.frames[`idle_${Math.max(0, i)}`];
   if (!f) return null;
   const p = iso.toScreen(tx, ty);
-  const x = Math.round(p.x) - sheet.anchor[0];
-  const y = Math.round(p.y) - sheet.anchor[1];
+  const off = prop.offset || [0, 0];
+  const x = Math.round(p.x) + off[0] - sheet.anchor[0];
+  const y = Math.round(p.y) + off[1] - sheet.anchor[1];
   const b = sheet.bounds;
   return b ? { x: x + b.x, y: y + b.y, w: b.w, h: b.h } : { x, y, w: f[2], h: f[3] };
 }

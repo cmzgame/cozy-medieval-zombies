@@ -901,3 +901,60 @@ export function slotMenu(player, slotId) {
   }
   return out;
 }
+
+// ---- interactables (docs/02, question 27) ----
+// A mushroom or a rock under the cursor, by its visible pixels, the frontmost
+// one; it wiggles, then rests for a moment before it will wiggle again.
+const POKE_COOLDOWN_MS = 600;
+const pokePixels = new Map(); // sheet -> { w, h, a: Uint8Array of alpha }
+
+function alphaOf(sheet) {
+  let p = pokePixels.get(sheet);
+  if (p) return p;
+  const img = sheet.image;
+  const c = document.createElement("canvas");
+  c.width = img.width;
+  c.height = img.height;
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0);
+  const d = ctx.getImageData(0, 0, img.width, img.height).data;
+  const a = new Uint8Array(img.width * img.height);
+  for (let i = 0; i < a.length; i++) a[i] = d[i * 4 + 3];
+  p = { w: img.width, h: img.height, a };
+  pokePixels.set(sheet, p);
+  return p;
+}
+
+export function interactableAt(sx, sy) {
+  const g = iso.toGrid(sx, sy);
+  const tx = Math.round(g.gx);
+  const ty = Math.round(g.gy);
+  let best = null;
+  for (let dy = -2; dy <= 2; dy++) {
+    for (let dx = -2; dx <= 2; dx++) {
+      const prop = map.tileAt(tx + dx, ty + dy).prop;
+      if (!prop || !prop.interactable) continue;
+      const r = propRect(prop, prop.tile[0], prop.tile[1]);
+      if (!r || !pointInRect(sx, sy, r)) continue;
+      const sheet = getSheet(prop.sprite, prop.tiles.length);
+      const f = sheet.frames.idle_0;
+      const px = Math.floor(sx - r.x) + (sheet.bounds ? sheet.bounds.x : 0) + f[0];
+      const py = Math.floor(sy - r.y) + (sheet.bounds ? sheet.bounds.y : 0) + f[1];
+      const al = alphaOf(sheet);
+      if (px < 0 || py < 0 || px >= al.w || py >= al.h || al.a[py * al.w + px] === 0) continue;
+      const depth = prop.tile[0] + prop.tile[1];
+      if (!best || depth > best.depth) best = { prop, depth };
+    }
+  }
+  return best ? best.prop : null;
+}
+
+// Poke the interactable under the cursor: true if there was one (so the click
+// is spent on it), whether or not it was resting.
+export function pokeAt(sx, sy) {
+  const prop = interactableAt(sx, sy);
+  if (!prop) return false;
+  const now = performance.now();
+  if (!prop.pokedAt || now - prop.pokedAt >= POKE_COOLDOWN_MS) prop.pokedAt = now;
+  return true;
+}

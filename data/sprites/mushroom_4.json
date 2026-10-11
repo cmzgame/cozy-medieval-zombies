@@ -1,0 +1,1 @@
+{"image": "data/art/ground/mushroom_4.png", "frames": {"idle_0": [0, 0, 28, 23]}, "anchor": [18, 21], "bounds": {"x": 0, "y": 0, "w": 28, "h": 23}, "carry": false, "interactable": true, "note": "a mushroom to forage, later (question 27); for now it wiggles when clicked"}

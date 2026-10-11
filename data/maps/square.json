@@ -434,5 +434,18 @@
       ],
       "note": "trial rock east of the shed"
     }
-  ]
+  ],
+  "forage": {
+    "kinds": {
+      "mushroom_0": 1,
+      "mushroom_1": 1,
+      "mushroom_2": 1,
+      "mushroom_3": 1,
+      "mushroom_4": 1
+    },
+    "chance": 0.042,
+    "near": 2,
+    "seed": 41,
+    "note": "mushrooms as objects near trees, inside the bounds and in the wild (Michael, 2026-10-11)"
+  }
 }

@@ -39,6 +39,13 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-11 — Mushrooms and rocks become game objects that wiggle (Michael)
+
+Michael's redrawn art (bigger mushrooms outlined all the way round; rocks with a curved, bedded base and top faces seen from above) and a ruling: mushrooms and rocks are clickable game objects now, with no stats or actions; a click makes one wiggle on a short cooldown, "I recognize you clicked me". **Built:**
+- **Mushrooms are props, not decals.** A `forage` rule in `square.json` places them near trees (a tree within two tiles, 0.042 per tile, five kinds), inside the bounds at load and in the wild as chunks grow, from pure rolls (`treeAt` answers where trees are without making chunks, so the same mushrooms come back whatever order chunks load in). Each sits a few pixels off its tile's centre (a prop `offset`) so they do not line up. Walkable; not carriable.
+- **Rocks** take the new art; anchors sit midway between the base's lowest point and its ends.
+- **The wiggle:** a click on an interactable's visible pixels (`interactable: true` on its sprite definition) shakes it side to side, about two pixels, dying away over 0.42 s; it will not wiggle again for 0.6 s. Right-click pokes it (and opens no "Walk here" menu); **left-click pokes it instead of swinging**, since clicking on a thing means the thing. The test is per pixel, so a click beside a mushroom still swings.
+
 ### 2026-10-11 — Three trial rocks on the map (Michael)
 
 To see them in the game: three of the drawn rocks as props near the houses, at [9, 13] west of the square, [17, 23] south of it by the pond, and [28, 14] east of the shed (`props` in `square.json`; definitions `rock_0` to `rock_3`). Solid like a tree trunk (collide radius 0.38), not carriable, a baked ground shadow, no action yet. A look only; question 27 decides what they are.

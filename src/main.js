@@ -76,7 +76,11 @@ const timing = { step: 0, stepMax: 0, vis: 0, maxResetAt: 0 };
 function handleMouse() {
   const m = input.getMouse();
   if (input.mouseRightPressed()) {
-    const actions = interact.actionsAt(m.x, m.y, player);
+    // A mushroom or a rock wiggles; the menu still opens if it has actions
+    // other than walking there (none yet; question 27).
+    const poked = interact.pokeAt(m.x, m.y);
+    let actions = interact.actionsAt(m.x, m.y, player);
+    if (poked) actions = actions.filter((a) => a.kind !== "walk" && !/^Walk/.test(a.label || ""));
     if (actions.length) {
       const u = view.toUi(m.x, m.y);
       menu.openContextMenu(u.x, u.y, actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => interact.runAction(player, a) })));
@@ -285,7 +289,10 @@ function update(dt) {
   handleMouse();
   interact.updateInteract(player, dt);
   updatePlayer(player, dt);
-  if (clicked && !clickSpent) combat.tryAttack(player, zombies);
+  // A left click on a mushroom or a rock (its visible pixels) pokes it instead
+  // of swinging: clicking on a thing means the thing.
+  const poked = clicked && !clickSpent && interact.pokeAt(input.getMouse().x, input.getMouse().y);
+  if (clicked && !clickSpent && !poked) combat.tryAttack(player, zombies);
   if (input.wasPressed("Space")) combat.tryShove(player, zombies);
   combat.updateCombat(player, zombies, dt);
   progress = interact.updateAction(player, dt);

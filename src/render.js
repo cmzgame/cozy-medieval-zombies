@@ -399,6 +399,17 @@ function emitGhost(ghost) {
   }
 }
 
+// A clicked interactable shakes side to side, a few pixels, dying away
+// (Michael, 2026-10-11: "I recognize you clicked me"). Whole pixels only.
+const WIGGLE_MS = 420;
+function wiggleOf(prop) {
+  if (!prop.pokedAt) return 0;
+  const t = performance.now() - prop.pokedAt;
+  if (t >= WIGGLE_MS) return 0;
+  const k = t / WIGGLE_MS;
+  return Math.round(Math.sin(k * Math.PI * 6) * 2.2 * (1 - k));
+}
+
 function propDrawables(tiles, visible, out) {
   for (const [tx, ty] of tiles) {
     const prop = map.tileAt(tx, ty).prop;
@@ -412,8 +423,9 @@ function propDrawables(tiles, visible, out) {
     const name = `idle_${frameIdx}`;
     const f = sheet.frames[name];
     const p = iso.toScreen(tx, ty);
-    const x = Math.round(p.x);
-    const y = Math.round(p.y);
+    const off = prop.offset || [0, 0];
+    const x = Math.round(p.x) + off[0] + wiggleOf(prop);
+    const y = Math.round(p.y) + off[1];
     const rect = f
       ? sheet.bounds
         ? { x: x - sheet.anchor[0] + sheet.bounds.x, y: y - sheet.anchor[1] + sheet.bounds.y, w: sheet.bounds.w, h: sheet.bounds.h }
