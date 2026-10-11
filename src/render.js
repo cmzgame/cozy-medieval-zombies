@@ -520,6 +520,20 @@ function swayOf(prop, height) {
   return Math.round(Math.sin(k * Math.PI * 3) * reach * (1 - k));
 }
 
+// The frame of a playing click animation (the well's bucket), or null when it
+// is not playing (interact.play starts it).
+function clickFrame(prop) {
+  if (!prop.playedAt) return null;
+  const anim = getDef(prop.sprite).clickAnim;
+  if (!anim) return null;
+  let t = performance.now() - prop.playedAt;
+  for (let k = 0; k < anim.frames.length; k++) {
+    if (t < anim.ms[k]) return anim.frames[k];
+    t -= anim.ms[k];
+  }
+  return null;
+}
+
 function propDrawables(tiles, visible, out) {
   for (const [tx, ty] of tiles) {
     const prop = map.tileAt(tx, ty).prop;
@@ -530,7 +544,7 @@ function propDrawables(tiles, visible, out) {
     const frameIdx = prop.tiles.length === 1 && anim && anim.fps > 0
       ? Math.floor((performance.now() / 1000) * anim.fps + Math.abs(tx * 7 + ty * 3)) % anim.frames
       : i;
-    const name = idleFrame(sheet, prop, frameIdx);
+    const name = clickFrame(prop) || idleFrame(sheet, prop, frameIdx);
     const f = sheet.frames[name];
     const p = iso.toScreen(tx, ty);
     const off = prop.offset || [0, 0];

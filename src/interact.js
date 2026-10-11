@@ -413,6 +413,9 @@ function wellActions(prop, player) {
       mx: prop.tile[0],
       my: prop.tile[1] - 0.6,
       duration: DRINK_TIME,
+      onStart() {
+        play(prop); // the bucket goes down for the water
+      },
       perform() {
         player.thirst = player.maxThirst;
         showMessage("You drink your fill.");
@@ -574,6 +577,7 @@ export function nearestSimpleAction(player) {
 
 export function startAction(player, action) {
   if (!action || action.enabled === false) return false;
+  if (action.onStart) action.onStart();
   if (action.duration <= 0) {
     action.perform();
     return true;
@@ -925,7 +929,7 @@ function alphaOf(sheet) {
   return p;
 }
 
-export function interactableAt(sx, sy) {
+export function interactableAt(sx, sy, wanted = (prop) => prop.interactable) {
   const g = iso.toGrid(sx, sy);
   const tx = Math.round(g.gx);
   const ty = Math.round(g.gy);
@@ -935,7 +939,7 @@ export function interactableAt(sx, sy) {
   for (let dy = -2; dy <= 7; dy++) {
     for (let dx = -2; dx <= 7; dx++) {
       const prop = map.tileAt(tx + dx, ty + dy).prop;
-      if (!prop || !prop.interactable) continue;
+      if (!prop || !wanted(prop)) continue;
       const r = propRect(prop, prop.tile[0], prop.tile[1]);
       if (!r || !pointInRect(sx, sy, r)) continue;
       const sheet = getSheet(prop.sprite, prop.tiles.length);
@@ -958,6 +962,26 @@ export function pokeAt(sx, sy) {
   if (!prop) return null;
   const now = performance.now();
   if (!prop.pokedAt || now - prop.pokedAt >= POKE_COOLDOWN_MS) prop.pokedAt = now;
+  return prop;
+}
+
+// A prop with a click animation (`clickAnim` on its sprite: the well's bucket)
+// plays it once. Just for fun, so a click while it plays does nothing: spam
+// cannot stack or restart it (Michael, 2026-10-11). Returns whether it started.
+export function play(prop) {
+  const anim = prop && getDef(prop.sprite).clickAnim;
+  if (!anim) return false;
+  const now = performance.now();
+  const total = anim.ms.reduce((a, b) => a + b, 0);
+  if (prop.playedAt && now - prop.playedAt < total) return false;
+  prop.playedAt = now;
+  return true;
+}
+
+// Left click: play the click animation of the thing under the cursor, by its pixels.
+export function playAt(sx, sy) {
+  const prop = interactableAt(sx, sy, (p) => !!getDef(p.sprite).clickAnim);
+  if (prop) play(prop);
   return prop;
 }
 

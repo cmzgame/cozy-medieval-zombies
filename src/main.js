@@ -296,6 +296,7 @@ function update(dt) {
   // that thing sways too. No meaning yet: an in-world to-do (Michael, 2026-10-11).
   if (clicked && !clickSpent) {
     interact.pokeAt(input.getMouse().x, input.getMouse().y);
+    interact.playAt(input.getMouse().x, input.getMouse().y); // the well's bucket, for fun
     combat.tryAttack(player, zombies);
   }
   if (input.wasPressed("Space")) combat.tryShove(player, zombies);

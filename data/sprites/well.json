@@ -1,18 +1,27 @@
 {
  "anchorVertex": "top",
- "facings": [
-  "a"
+ "images": {
+  "idle_0": "data/art/village/well_0.png",
+  "crank_1": "data/art/village/well_1.png",
+  "crank_2": "data/art/village/well_2.png"
+ },
+ "anchor": [
+  37,
+  77
  ],
- "drawings": {
-  "a": {
-   "image": "data/art/village/well.png",
-   "anchor": [
-    37.0,
-    77.0
-   ]
-  }
+ "clickAnim": {
+  "frames": [
+   "crank_1",
+   "crank_2",
+   "crank_1"
+  ],
+  "ms": [
+   220,
+   420,
+   220
+  ]
  },
  "water": true,
  "carry": false,
- "note": "the drawn well (docs/17), one tile"
+ "note": "the drawn well (docs/17), one tile; clickAnim lowers the bucket and winds it back up (part down, down, part down, up) on a left click or when drinking (Michael, 2026-10-11)"
 }
