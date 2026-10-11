@@ -1,1 +1,42 @@
-{"placeholder": {"kind": "pumpkin", "color": "#c8692a"}, "fire": {"radius": 1.5, "lit": true, "flicker": {"amp": 0.12, "speed": 5}}}
+{
+ "images": {
+  "idle_left_0": "data/art/village/jackolantern_left.png",
+  "flame_left_0": "data/art/village/jackolantern_left_glow_0.png",
+  "idle_left_1": "data/art/village/jackolantern_left.png",
+  "flame_left_1": "data/art/village/jackolantern_left_glow_1.png",
+  "idle_left_2": "data/art/village/jackolantern_left.png",
+  "flame_left_2": "data/art/village/jackolantern_left_glow_2.png",
+  "idle_right_0": "data/art/village/jackolantern_right.png",
+  "flame_right_0": "data/art/village/jackolantern_right_glow_0.png",
+  "idle_right_1": "data/art/village/jackolantern_right.png",
+  "flame_right_1": "data/art/village/jackolantern_right_glow_1.png",
+  "idle_right_2": "data/art/village/jackolantern_right.png",
+  "flame_right_2": "data/art/village/jackolantern_right_glow_2.png"
+ },
+ "facings": [
+  "left",
+  "right"
+ ],
+ "anchor": [
+  16,
+  23
+ ],
+ "animations": {
+  "idle": {
+   "fps": 5,
+   "loop": true,
+   "frames": 3
+  }
+ },
+ "fire": {
+  "radius": 1.5,
+  "lit": true,
+  "flicker": {
+   "amp": 0.12,
+   "speed": 5
+  }
+ },
+ "interactable": true,
+ "carry": true,
+ "note": "the jack-o'-lantern (docs/17): two faces, three unlit glow frames over the cuts; a gatherable (clicking sways it)"
+}

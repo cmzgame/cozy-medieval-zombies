@@ -15,7 +15,7 @@
 import * as iso from "./iso.js";
 import * as input from "./input.js";
 import * as map from "./map.js";
-import { getSheet } from "./assets.js";
+import { getSheet, idleFrame } from "./assets.js";
 import { getItem, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
 import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
 import { getDef } from "./assets.js";
@@ -939,7 +939,7 @@ export function interactableAt(sx, sy) {
       const r = propRect(prop, prop.tile[0], prop.tile[1]);
       if (!r || !pointInRect(sx, sy, r)) continue;
       const sheet = getSheet(prop.sprite, prop.tiles.length);
-      const f = sheet.frames.idle_0;
+      const f = sheet.frames[idleFrame(sheet, prop, 0)];
       const px = Math.floor(sx - r.x) + (sheet.bounds ? sheet.bounds.x : 0) + f[0];
       const py = Math.floor(sy - r.y) + (sheet.bounds ? sheet.bounds.y : 0) + f[1];
       const al = alphaOf(sheet);

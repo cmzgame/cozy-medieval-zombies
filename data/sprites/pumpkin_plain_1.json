@@ -1,0 +1,12 @@
+{
+ "images": {
+  "idle_0": "data/art/village/pumpkin_1.png"
+ },
+ "anchor": [
+  13,
+  21
+ ],
+ "interactable": true,
+ "carry": true,
+ "note": "a plain pumpkin (docs/17), a gatherable"
+}

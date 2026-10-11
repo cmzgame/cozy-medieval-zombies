@@ -9,7 +9,7 @@
 
 import * as iso from "./iso.js";
 import * as clock from "./clock.js";
-import { getSheet } from "./assets.js";
+import { getSheet, idleFrame } from "./assets.js";
 import { resolveFacing, frameName } from "./sprites.js";
 import { shade } from "./render-util.js";
 import * as map from "./map.js";
@@ -365,7 +365,7 @@ function ghostColor(color, tint) {
 }
 
 // A prop's slices as a ghost: `cells` are [tx, ty, frameIndex].
-function emitPropCells(sheet, cells, ok) {
+function emitPropCells(sheet, cells, ok, prop = null) {
   const tint = ok ? GHOST_OK : GHOST_BAD;
   const floor = gl.rgb(ok ? "#60ff60" : "#ff5050", 0.35);
   for (const [tx, ty, i] of cells) {
@@ -374,7 +374,7 @@ function emitPropCells(sheet, cells, ok) {
     const y = Math.round(p.y);
     // A tinted diamond on the floor so the footprint reads even where the box is dark.
     gl.poly([[x, y - iso.HH], [x + iso.HW, y], [x, y + iso.HH], [x - iso.HW, y]], floor, { world: [tx, ty], flags: GHOST_FLAGS() });
-    const name = `idle_${i}`;
+    const name = idleFrame(sheet, prop, i);
     propSlice(sheet, name, sheet.frames[name], x, y, tx, ty, GHOST_FLAGS(), tint);
   }
 }
@@ -398,7 +398,7 @@ function emitGhost(ghost) {
       const shut = { ...t.wall, open: false, shutter: t.wall.kind === "window" ? "closed" : null };
       makeWall(shut, t.edge, t.tx, t.ty, true, false, tint).emit();
     } else {
-      emitPropCells(getSheet(t.prop.sprite, t.prop.tiles.length), t.prop.tiles.map(([x, y], i) => [x, y, i]), ghost.ok);
+      emitPropCells(getSheet(t.prop.sprite, t.prop.tiles.length), t.prop.tiles.map(([x, y], i) => [x, y, i]), ghost.ok, t.prop);
     }
     return;
   }
@@ -412,7 +412,7 @@ function emitGhost(ghost) {
     const [w, h] = ghost.footprint;
     const cells = [];
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) cells.push([ghost.tx + dx, ghost.ty + dy, dy * w + dx]);
-    emitPropCells(getSheet(ghost.prop.sprite, w * h), cells, ghost.ok);
+    emitPropCells(getSheet(ghost.prop.sprite, w * h), cells, ghost.ok, ghost.prop);
   }
 }
 
@@ -440,7 +440,7 @@ function propDrawables(tiles, visible, out) {
     const frameIdx = prop.tiles.length === 1 && anim && anim.fps > 0
       ? Math.floor((performance.now() / 1000) * anim.fps + Math.abs(tx * 7 + ty * 3)) % anim.frames
       : i;
-    const name = `idle_${frameIdx}`;
+    const name = idleFrame(sheet, prop, frameIdx);
     const f = sheet.frames[name];
     const p = iso.toScreen(tx, ty);
     const off = prop.offset || [0, 0];
@@ -452,7 +452,7 @@ function propDrawables(tiles, visible, out) {
         : { x: x - sheet.anchor[0], y: y - sheet.anchor[1], w: f[2], h: f[3] }
       : null;
     const vis = visible.has(tileKey(tx, ty));
-    const flameName = `flame_${frameIdx}`;
+    const flameName = idleFrame(sheet, prop, frameIdx, "flame");
     const flame = !!(prop.fire && prop.fire.lit && sheet.frames[flameName] && vis);
     const d = {
       key: (tx + ty) * 1000 + 1,
@@ -573,8 +573,9 @@ function entityDrawables(entities, visible, out, drawAll) {
           for (let dy = 0; dy < ch; dy++) {
             for (let dx = 0; dx < cw; dx++, i++) {
               const o = iso.toScreen(e.gx + dx - (cw - 1) / 2, e.gy + dy - (ch - 1) / 2);
-              const cf = carrySheet.frames[`idle_${i}`];
-              frameQuad(carrySheet, `idle_${i}`, Math.round(o.x), Math.round(o.y) - lift, { world, heights: cf ? [cf[3] + lift, cf[3] + lift, lift, lift] : lift, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING });
+              const cn = idleFrame(carrySheet, carried, i);
+              const cf = carrySheet.frames[cn];
+              frameQuad(carrySheet, cn, Math.round(o.x), Math.round(o.y) - lift, { world, heights: cf ? [cf[3] + lift, cf[3] + lift, lift, lift] : lift, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING });
             }
           }
         }

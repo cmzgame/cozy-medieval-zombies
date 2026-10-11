@@ -2,6 +2,10 @@
 
 **Scoped for implementation by another model** (planned with Michael on 2026-10-11; nothing built yet). Claude Design delivered the whole of brief `16` and a little more, in `C:\Users\micha\Downloads\village_art` (69 files, with `README_village.md`, two anchor JSONs, and the generators that made the art). The art is right; the engine's walls, props, and loader were built for generated placeholders and need plumbing to take it. This doc is that plumbing. The doc decides; "default" marks what Michael may overrule, not what the implementer may.
 
+## Status
+
+**Step 1 built and verified (2026-10-11), paused for Michael.** The loader builds a sheet from several PNGs (`images`, each distinct image packed once), converts top-vertex anchors (`anchorVertex: "top"`), and keeps per-frame anchors (`anchors`, stored as `sheet.frameAnchors` for step 2's leaves); props have facings (`facings` on the definition, `prop.facing`, frames `idle_<facing>_<i>` and `flame_<facing>_<i>` through `assets.idleFrame`; R cycles the facings of a one-tile prop). The drawn wood and stone floors are in (four frames each, picked by hash in the ground bake); the map's `pumpkin` is the drawn jack-o'-lantern (two faces, three unlit glow frames over the cuts, its fire kept); `pumpkin_plain_0` and `pumpkin_plain_1` stand on the farm plot. All 108 village and pumpkin PNGs are in `data/art/village/`, most not yet used. Checks: the ground acceptance script passes nine of nine with the drawn floors; a carried jack-o'-lantern turns left, right, left with R and keeps its one-tile footprint; the jack-o'-lanterns glow at night.
+
 ## What arrived
 
 Every PNG is hard-pixelled (alpha 0 or 255), tightly cropped, 1:1, and comes with a `anchor_px`: the pixel where the **tile's top vertex at ground level** sits.

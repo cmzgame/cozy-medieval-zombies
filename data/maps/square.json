@@ -251,6 +251,24 @@
           ],
           "sprite": "floor_farm"
         }
+      ],
+      "props": [
+        {
+          "sprite": "pumpkin_plain_0",
+          "tile": [
+            1,
+            1
+          ],
+          "solid": false
+        },
+        {
+          "sprite": "pumpkin_plain_1",
+          "tile": [
+            3,
+            2
+          ],
+          "solid": false
+        }
       ]
     },
     {

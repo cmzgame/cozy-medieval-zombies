@@ -18,7 +18,7 @@ import * as map from "./map.js";
 import * as inventory from "./inventory.js";
 import * as items from "./items.js";
 import * as settings from "./settings.js";
-import { getDef, getSheet } from "./assets.js";
+import { idleFrame, getDef, getSheet } from "./assets.js";
 import { showMessage } from "./ui/prompt.js";
 
 // Reach was raised by a full tile on 2026-10-11 (Michael: easier).
@@ -63,7 +63,7 @@ export function canCarry(prop) {
 export function propRect(prop, tx, ty) {
   const sheet = getSheet(prop.sprite, prop.tiles.length);
   const i = prop.tiles.findIndex(([px, py]) => px === tx && py === ty);
-  const f = sheet.frames[`idle_${Math.max(0, i)}`];
+  const f = sheet.frames[idleFrame(sheet, prop, Math.max(0, i))];
   if (!f) return null;
   const p = iso.toScreen(tx, ty);
   const off = prop.offset || [0, 0];
@@ -230,7 +230,15 @@ export function ghost() {
 // R turns the carried prop's footprint: [w, h] becomes [h, w]. The slices keep
 // their frames (the dev art is boxes); canPutDown and placeProp read the
 // prop's footprint, so E in front uses the turned shape too.
+// R: a prop with facings turns to the next one (docs/17, Zomboid style);
+// otherwise its footprint turns.
 function turn(prop) {
+  const sheet = getSheet(prop.sprite, prop.tiles.length);
+  if (sheet.facings && sheet.facings.length > 1 && prop.tiles.length === 1) {
+    const i = sheet.facings.indexOf(prop.facing);
+    prop.facing = sheet.facings[(i + 1) % sheet.facings.length];
+    return;
+  }
   const [w, h] = prop.footprint;
   prop.footprint = [h, w];
 }

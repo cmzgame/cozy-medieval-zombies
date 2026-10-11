@@ -53,7 +53,9 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
   if (sheets.has(key)) return sheets.get(key);
   const def = await loadSpriteDef(id);
   let sheet;
-  if (def.image) {
+  if (def.images) {
+    sheet = await sheetFromImages(def);
+  } else if (def.image) {
     let image = await loadImage(def.image);
     let { frames, anchor, bounds } = def;
     if (def.scale && def.scale !== 1) {
@@ -134,6 +136,61 @@ export function getSheet(id, tileCount = 1) {
   const s = sheets.get(key);
   if (!s) throw new Error(`Sprite sheet not loaded: ${key}`);
   return s;
+}
+
+// The half-height of a tile: a "top vertex" anchor sits this far above the tile centre.
+const TILE_HH = 16;
+
+// An anchor in a definition, in the engine's convention (the pixel drawn at
+// the tile's centre). `anchorVertex: "top"` marks anchors given at the tile's
+// top vertex at ground level, Claude Design's convention (docs/17).
+function toCentreAnchor(def, a) {
+  if (!a) return a;
+  return def.anchorVertex === "top" ? [a[0], a[1] + TILE_HH] : [a[0], a[1]];
+}
+
+// A sheet built from several PNGs (docs/17): `images` maps a frame name to a
+// path; each distinct image is packed once, side by side, into one canvas, and
+// every name pointing at it gets its rectangle. `frames` given too add to or
+// override those. `anchors` gives an anchor per frame where frames differ.
+async function sheetFromImages(def) {
+  const paths = [...new Set(Object.values(def.images))];
+  const imgs = await Promise.all(paths.map((p) => loadImage(p)));
+  const at = new Map();
+  let w = 0;
+  let h = 0;
+  imgs.forEach((img, i) => {
+    at.set(paths[i], [w, 0, img.width, img.height]);
+    w += img.width + 1;
+    h = Math.max(h, img.height);
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, w);
+  canvas.height = Math.max(1, h);
+  const ctx = canvas.getContext("2d");
+  imgs.forEach((img, i) => ctx.drawImage(img, at.get(paths[i])[0], 0));
+  const frames = {};
+  for (const [name, path] of Object.entries(def.images)) frames[name] = [...at.get(path)];
+  Object.assign(frames, def.frames || {});
+  const frameAnchors = {};
+  for (const [name, a] of Object.entries(def.anchors || {})) frameAnchors[name] = toCentreAnchor(def, a);
+  return {
+    image: canvas,
+    frames,
+    anchor: toCentreAnchor(def, def.anchor),
+    frameAnchors,
+    bounds: def.bounds,
+    animations: def.animations || {},
+    facings: def.facings || [],
+    mirror: def.mirror || {},
+  };
+}
+
+// The idle frame of a prop's sheet for footprint slice `i`, in the prop's
+// facing when the sheet has facings (docs/17): `idle_<facing>_<i>`, else `idle_<i>`.
+export function idleFrame(sheet, prop, i = 0, kind = "idle") {
+  if (sheet.facings && sheet.facings.length) return `${kind}_${(prop && prop.facing) || sheet.facings[0]}_${i}`;
+  return `${kind}_${i}`;
 }
 
 // Load every sheet a map file refers to: floors, walls, props, plus the characters.

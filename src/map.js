@@ -1071,6 +1071,8 @@ export function createProp(def, offset = [0, 0]) {
     // a thing the player can click (it wiggles, for now; question 27).
     offset: def.offset || null,
     interactable: !!sdef.interactable,
+    // Which way it faces, for a sprite with facings (docs/17): the map's, else the first.
+    facing: sdef.facings && sdef.facings.length ? (sdef.facings.includes(def.facing) ? def.facing : sdef.facings[0]) : null,
   };
   // Fire is data on the sprite definition (docs/07-lighting.md): a light
   // radius, whether it lights its whole room, burns wood, cooks. Live state
