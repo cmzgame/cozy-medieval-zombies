@@ -10,10 +10,10 @@
     "floor_stone": "laid"
   },
   "terrain": {
-    "dirt":   { "priority": 1, "texture": "ground_dirt", "threshold": [0.25, 0.5], "lip": 0.18, "lipBand": 0.06, "includes": ["cobble", "water"] },
+    "dirt":   { "priority": 1, "texture": "ground_dirt", "threshold": [0.15, 0.3], "lip": 0.18, "lipBand": 0.06, "includes": ["cobble", "water"] },
     "farm":   { "priority": 2, "tiles": "floor_farm", "threshold": [0.40, 0.12], "lip": 0 },
-    "cobble": { "priority": 3, "texture": "ground_cobble", "thresholdAbove": "dirt", "verge": 0.2, "lip": 0.12, "lipBand": 0.06 },
-    "water":  { "priority": 4, "texture": "ground_water", "thresholdAbove": "dirt", "verge": 0.15, "lip": 0.25, "lipBand": 0.07 }
+    "cobble": { "priority": 3, "texture": "ground_cobble", "thresholdAbove": "dirt", "verge": 0.15, "lip": 0.12, "lipBand": 0.06 },
+    "water":  { "priority": 4, "texture": "ground_water", "threshold": [0.40, 0.5], "thresholdAbove": "dirt", "verge": 0.15, "lip": 0.25, "lipBand": 0.07 }
   },
   "edgeNoise": "ground_noise",
   "biomes": {

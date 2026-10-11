@@ -194,7 +194,7 @@ export async function init(mapJson) {
   terrain = [];
   const entries = Object.entries(data.terrain || {}).sort((a, b) => a[1].priority - b[1].priority);
   for (const [name, t] of entries) {
-    const k = { name, id: 3 + terrain.length, threshold: t.threshold || [0.25, 0.5], above: t.thresholdAbove || null, verge: t.verge || 0, lip: t.lip || 0, lipBand: t.lipBand || 0, includes: t.includes || [] };
+    const k = { name, id: 3 + terrain.length, threshold: t.threshold || (t.thresholdAbove ? null : [0.25, 0.5]), above: t.thresholdAbove || null, verge: t.verge || 0, lip: t.lip || 0, lipBand: t.lipBand || 0, includes: t.includes || [] };
     if (t.texture) {
       const sheet = await assets.loadSprite(t.texture);
       k.texture = { w: sheet.image.width, h: sheet.image.height, px: pixelsOf(sheet.image) };
@@ -478,11 +478,29 @@ export function bakeImage(cx, cy, kindsOut = null) {
     tp = now;
   };
   // The kinds of the chunk's tiles and one beyond, and the earth's fields.
+  // Kinds over the chunk and two tiles beyond: the fields need one beyond, and
+  // a laid tile in that ring looks at its own neighbours.
+  const K2 = FIELD + 2;
+  const kind2 = new Array(K2 * K2);
+  for (let fy = 0; fy < K2; fy++) for (let fx = 0; fx < K2; fx++) kind2[fy * K2 + fx] = kindOf(map.tileAt(x0 - 2 + fx, y0 - 2 + fy).floor);
   const kindAt = new Array(FIELD * FIELD);
-  for (let fy = 0; fy < FIELD; fy++) for (let fx = 0; fx < FIELD; fx++) kindAt[fy * FIELD + fx] = kindOf(map.tileAt(x0 - 1 + fx, y0 - 1 + fy).floor);
+  for (let fy = 0; fy < FIELD; fy++) for (let fx = 0; fx < FIELD; fx++) kindAt[fy * FIELD + fx] = kind2[(fy + 1) * K2 + fx + 1];
+  // A kind's field is 1 on its tiles, and on a laid tile beside one of its
+  // tiles: a path that meets a building's floor runs right up to the wall
+  // instead of fading out before the door (Michael, 2026-10-11).
   const fields = terrain.map((t) => {
+    const is = (k) => k === t.name || t.includes.includes(k);
     const f = new Float32Array(FIELD * FIELD);
-    for (let i = 0; i < f.length; i++) if (kindAt[i] === t.name || t.includes.includes(kindAt[i])) f[i] = 1;
+    for (let fy = 0; fy < FIELD; fy++) {
+      for (let fx = 0; fx < FIELD; fx++) {
+        const k = kindAt[fy * FIELD + fx];
+        if (is(k)) f[fy * FIELD + fx] = 1;
+        else if (k === "laid") {
+          const c = (fy + 1) * K2 + fx + 1;
+          if (is(kind2[c - 1]) || is(kind2[c + 1]) || is(kind2[c - K2]) || is(kind2[c + K2])) f[fy * FIELD + fx] = 1;
+        }
+      }
+    }
     return f;
   });
   const grass = new Array(C * C); // per tile: the grass source
@@ -505,7 +523,7 @@ export function bakeImage(cx, cy, kindsOut = null) {
         const names = frameNames(floor);
         top[o] = frameOf(floor, names[Math.floor(map.hash2(x, y, seed + 12) * names.length)]);
       } else top[o] = null;
-      for (let dy = 0; dy <= 2 && !earthNear[o]; dy++) for (let dx = 0; dx <= 2; dx++) if (earth.has(kindAt[(ly + dy) * FIELD + lx + dx])) earthNear[o] = 1;
+      for (let dy = 0; dy <= 2 && !earthNear[o]; dy++) for (let dx = 0; dx <= 2; dx++) for (const f of fields) if (f[(ly + dy) * FIELD + lx + dx] > 0) earthNear[o] = 1;
     }
   }
   lap("tiles");
@@ -595,10 +613,13 @@ export function bakeImage(cx, cy, kindsOut = null) {
           const wgt = f[e] * e00 + f[e + 1] * e10 + f[e + FIELD] * e01 + f[e + FIELD + 1] * e11;
           if (wgt <= 0) continue;
           let thr;
+          // A kind's own threshold, and at least a verge above another's when
+          // it lies inside that kind (cobble and water inside dirt).
+          thr = T.threshold ? T.threshold[0] + T.threshold[1] * n : 0;
           if (T.above) {
             const A = dirtLike(T.above);
-            thr = A.threshold[0] + A.threshold[1] * n + T.verge;
-          } else thr = T.threshold[0] + T.threshold[1] * n;
+            thr = Math.max(thr, A.threshold[0] + A.threshold[1] * n + T.verge);
+          }
           if (wgt < thr) continue;
           let cr, cg, cb;
           if (T.texture) {
