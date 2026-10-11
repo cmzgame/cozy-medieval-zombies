@@ -1073,6 +1073,7 @@ export function createProp(def, offset = [0, 0]) {
     interactable: !!sdef.interactable,
     // Which way it faces, for a sprite with facings (docs/17): the map's, else the first.
     facing: facingFor(sdef, def, w, h),
+    furrowsPending: !!sdef.furrows && !def.facing,
   };
   // Fire is data on the sprite definition (docs/07-lighting.md): a light
   // radius, whether it lights its whole room, burns wood, cooks. Live state
@@ -1296,5 +1297,20 @@ export function loadMap(json) {
       }
     }
   }
+  // A crop's rows follow the furrows of the soil it stands in (docs/17), unless
+  // the map gave it a facing; the floors are all laid by now.
+  for (const prop of props) {
+    if (prop.furrowsPending) prop.facing = furrowsOf(get(prop.tile[0], prop.tile[1]).floor) || prop.facing;
+    delete prop.furrowsPending;
+  }
   return { props, spawn: json.spawn || [0, 0], zombies: json.zombies || [], name: json.name || "map" };
+}
+
+// The direction a floor's furrows run ("x" or "y"), or null for a floor without.
+function furrowsOf(floor) {
+  try {
+    return getDef(floor).furrows || null;
+  } catch {
+    return null;
+  }
 }

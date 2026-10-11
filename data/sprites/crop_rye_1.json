@@ -1,0 +1,29 @@
+{
+ "anchorVertex": "top",
+ "facings": [
+  "x",
+  "y"
+ ],
+ "images": {
+  "idle_x_0": "data/art/crops/crop_rye_1_tlbr.png",
+  "idle_y_0": "data/art/crops/crop_rye_1_trbl.png"
+ },
+ "anchors": {
+  "idle_x_0": [
+   20.0,
+   2.0
+  ],
+  "idle_y_0": [
+   21.0,
+   2.0
+  ]
+ },
+ "anchor": [
+  20.0,
+  2.0
+ ],
+ "furrows": true,
+ "interactable": true,
+ "carry": false,
+ "note": "rye, growing (Claude Design, 2026-10-11): one farm tile's plants in rows along world x or y; the facing follows the soil's furrows"
+}

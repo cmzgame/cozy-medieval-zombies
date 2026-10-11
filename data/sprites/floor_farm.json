@@ -9,5 +9,6 @@
   32,
   16
  ],
- "note": "tilled soil (Claude Design, 2026-10-11), four variants, furrows continuous across every edge, as drawn; the bake picks a frame by hash"
+ "furrows": "x",
+ "note": "tilled soil (Claude Design, 2026-10-11), four variants, furrows along world x (\\ on screen), continuous across every edge; the bake picks a frame by hash"
 }

@@ -1,0 +1,29 @@
+{
+ "anchorVertex": "top",
+ "facings": [
+  "x",
+  "y"
+ ],
+ "images": {
+  "idle_x_0": "data/art/crops/crop_potato_0_tlbr.png",
+  "idle_y_0": "data/art/crops/crop_potato_0_trbl.png"
+ },
+ "anchors": {
+  "idle_x_0": [
+   13.0,
+   -6.0
+  ],
+  "idle_y_0": [
+   13.0,
+   -6.0
+  ]
+ },
+ "anchor": [
+  13.0,
+  -6.0
+ ],
+ "furrows": true,
+ "interactable": true,
+ "carry": false,
+ "note": "potato, planted (Claude Design, 2026-10-11): one farm tile's plants in rows along world x or y; the facing follows the soil's furrows"
+}

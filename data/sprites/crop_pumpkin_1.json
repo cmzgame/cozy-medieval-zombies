@@ -1,0 +1,29 @@
+{
+ "anchorVertex": "top",
+ "facings": [
+  "x",
+  "y"
+ ],
+ "images": {
+  "idle_x_0": "data/art/crops/crop_pumpkin_1_tlbr.png",
+  "idle_y_0": "data/art/crops/crop_pumpkin_1_trbl.png"
+ },
+ "anchors": {
+  "idle_x_0": [
+   11.0,
+   -5.0
+  ],
+  "idle_y_0": [
+   12.0,
+   -5.0
+  ]
+ },
+ "anchor": [
+  11.0,
+  -5.0
+ ],
+ "furrows": true,
+ "interactable": true,
+ "carry": false,
+ "note": "pumpkin, growing (Claude Design, 2026-10-11): one farm tile's plants in rows along world x or y; the facing follows the soil's furrows"
+}
