@@ -136,6 +136,7 @@ uniform int u_holeCount;
 uniform float u_holeInner;
 uniform float u_holeOuter;
 uniform float u_minStanding;
+uniform float u_softLight;
 uniform int u_debug;
 
 // The player's own weak night vision: the cozy parent's gradient stops.
@@ -172,7 +173,10 @@ void main() {
     float st = sky ? 0.0 : texture(u_light, tileUV).r;
     // A pool climbs a wall or a tree from its foot and fades with height.
     if (u_climb > 0.0) st *= max(0.0, 1.0 - v_height / u_climb);
-    float light = min(1.0, amb + st);
+    // The sum, capped: where ambient alone is near full, a pool's climb running
+    // out draws a line across the wall. Soft: the two combine like two lamps,
+    // never capped, so the pool fades out smoothly (a knob, 2026-10-12).
+    float light = u_softLight > 0.5 ? 1.0 - (1.0 - amb) * (1.0 - st) : min(1.0, amb + st);
     if (standing) light = max(light, u_minStanding);
     float dark = clamp((1.0 - light) / (1.0 - u_nightFloor), 0.0, 1.0) * u_nightAlpha;
     dark *= 1.0 - poolAt(v_screen);
@@ -211,7 +215,7 @@ export function init(canvas) {
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
   gl.useProgram(program);
-  for (const name of ["u_res", "u_texSize", "u_tex", "u_light", "u_ambient", "u_fog", "u_areaOrigin", "u_areaTiles", "u_nightFloor", "u_nightAlpha", "u_tint", "u_outdoor", "u_player", "u_pool", "u_poolStrength", "u_climb", "u_fogColor", "u_fogAlpha", "u_holes", "u_holeCount", "u_holeInner", "u_holeOuter", "u_minStanding", "u_debug"]) {
+  for (const name of ["u_res", "u_texSize", "u_tex", "u_light", "u_ambient", "u_fog", "u_areaOrigin", "u_areaTiles", "u_nightFloor", "u_nightAlpha", "u_tint", "u_outdoor", "u_player", "u_pool", "u_poolStrength", "u_climb", "u_fogColor", "u_fogAlpha", "u_holes", "u_holeCount", "u_holeInner", "u_holeOuter", "u_minStanding", "u_softLight", "u_debug"]) {
     uniforms[name] = gl.getUniformLocation(program, name);
   }
   vao = gl.createVertexArray();
@@ -460,6 +464,7 @@ export function end(u) {
   gl.uniform1f(uniforms.u_holeInner, u.holeInner);
   gl.uniform1f(uniforms.u_holeOuter, u.holeOuter);
   gl.uniform1f(uniforms.u_minStanding, u.minStanding);
+  gl.uniform1f(uniforms.u_softLight, u.softLight || 0);
   gl.uniform1i(uniforms.u_debug, u.debug);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, atlasTex);

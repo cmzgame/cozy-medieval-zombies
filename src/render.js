@@ -32,6 +32,7 @@ export const night = {
   climb: 70, // px a pool climbs a wall face or a trunk; 0 for the flat face (56 on the old 64 px walls)
   linear: true,
   standingFloor: 0, // a floor on the light of props and characters, for legibility
+  softLight: false, // true: ambient and standing light combine without a hard cap (no knee where a pool's climb runs out on a bright wall)
   debug: 0, // 0 none, 1 the light texture, 2 ambient, 3 fog (the L key)
 };
 const FOG_COLOR = [22 / 255, 14 / 255, 32 / 255];
@@ -202,6 +203,8 @@ function drawnVariant(variant) {
 
 // A frame of a sheet drawn at the tile centre (x, y) by its own anchor, lit
 // along the wall's foot (`wa` to `wb`) and climbing its height.
+const CAP_MARGIN = 1; // ground px the sky-lit cap redraw reaches past the cap's exact edges
+
 function wallPartQuad(sheet, name, x, y, o) {
   const f = sheet && sheet.frames[name];
   if (!f) return;
@@ -245,7 +248,14 @@ function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
   if (o.faded && o.cuts && (o.cuts.near != null || o.cuts.far != null)) emitCutWall(sheet, name, edge, x, y, h, T, o, o.cuts);
   else wallPartQuad(sheet, name, x, y, o);
   if (!o.faded && !o.ghost) {
-    const corners = edge === "n" ? [[0, -T / 2], [32, -T / 2], [32, T / 2], [0, T / 2]] : [[-T / 2, 0], [T / 2, 0], [T / 2, 32], [-T / 2, 32]];
+    // A margin of a ground pixel all round: the drawn cap's edges are stair
+    // steps that poke past the exact parallelogram, and those pixels took the
+    // face's light, a dotted bright line along the cap at night (Michael,
+    // 2026-10-12). Beyond the cap the picture is empty or the next cap.
+    const m = CAP_MARGIN;
+    const corners = edge === "n"
+      ? [[-m, -T / 2 - m], [32 + m, -T / 2 - m], [32 + m, T / 2 + m], [-m, T / 2 + m]]
+      : [[-T / 2 - m, -m], [T / 2 + m, -m], [T / 2 + m, 32 + m], [-T / 2 - m, 32 + m]];
     emitCapFromFrame(sheet, name, anchor, [x, y - iso.HH], corners, h, [tx, ty], o.flags);
   }
   if (boards) wallPartQuad(getSheet(sheet.wall.boards || "wall_boards"), `boards_${boards}_${side}_${n}`, x, y, o);
@@ -279,9 +289,13 @@ function postAt(tx, ty, playerRoom) {
     const s = getSheet(w.sprite);
     if (rank(s) > rank(sheet)) sheet = s;
   }
-  const near = (nE && isNearWall(tx, ty, "n", playerRoom)) || (nW && isNearWall(tx - 1, ty, "n", playerRoom))
-    || (wS && isNearWall(tx, ty, "w", playerRoom)) || (wN && isNearWall(tx, ty - 1, "w", playerRoom));
-  return { sheet, near: !!near };
+  // Translucent only when every wall it joins is a near wall (the front corner);
+  // where a near wall meets a far one the post stays solid with the far wall
+  // (Michael's designer, 2026-10-12: a ghost post over a solid wall's end read
+  // as a pale column).
+  const near = [[nE, tx, ty, "n"], [nW, tx - 1, ty, "n"], [wS, tx, ty, "w"], [wN, tx, ty - 1, "w"]]
+    .every(([w, x, y, e]) => !w || isNearWall(x, y, e, playerRoom));
+  return { sheet, near };
 }
 
 // Corner posts.
@@ -299,13 +313,12 @@ function postDrawables(tiles, visible, playerRoom, out) {
 // which the next segment covers, and a post covers both walls' ends; drawn at
 // the wall's alpha, every overlap showed twice as dark. So a translucent
 // segment is cut: at its near end where the next segment goes on translucent
-// (through the joint, c = 0), and at either end where a translucent post stands
-// (at the post's face, c = half its thickness). null: not cut.
+// (through the joint, c = 0), and at either end where a post stands, solid or
+// translucent (at the post's face, c = half its thickness). null: not cut.
 function wallCuts(edge, tx, ty, playerRoom) {
   const atPost = (px, py) => {
     const post = postAt(px, py, playerRoom);
-    if (!post) return undefined;
-    return post.near ? (post.sheet.thickness || WALL_T) / 2 : null;
+    return post ? (post.sheet.thickness || WALL_T) / 2 : undefined;
   };
   // The near end: the right vertex of a north wall, the left vertex of a west wall.
   const [nx, ny] = edge === "n" ? [tx + 1, ty] : [tx, ty + 1];
@@ -418,7 +431,8 @@ function makePost(tx, ty, sheet, vis, near) {
             const uv = gl.frameUV(ps, "idle_0");
             const pts = [];
             const uvs = [];
-            for (const [X, Y] of [[-T / 2, -T / 2], [T / 2, -T / 2], [T / 2, T / 2], [-T / 2, T / 2]]) {
+            const m = T / 2 + CAP_MARGIN + 1; // the drawn post is a pixel proud of the wall
+            for (const [X, Y] of [[-m, -m], [m, -m], [m, m], [-m, m]]) {
               const ox = X - Y;
               const oy = (X + Y) / 2 - h;
               pts.push([x + ox, y + oy]);
@@ -1018,6 +1032,7 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
     holeInner: HOLE_INNER,
     holeOuter: HOLE_OUTER,
     minStanding: night.standingFloor,
+    softLight: night.softLight ? 1 : 0,
     debug: night.debug,
   });
   return drawables.length;
