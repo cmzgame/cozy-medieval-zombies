@@ -39,6 +39,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-11 — The redrawn decals come in; rocks wait (Michael)
+
+Michael's redrawn decal set from Claude Design replaces the kit's (details in `15-ground.md`). Rulings the swap made: upright decals stand on their point; leaf counts halve per tile of reach for the bigger piles (`perReach` 0.5), mushrooms one per pick at the same chance. The set's four "mineable rocks" are a new concept Michael has not explained yet: their files are kept, nothing places them, and the design conversation comes first.
+
 ### 2026-10-11 — The ground, step 5 built; the floor stamp pinned (Michael)
 
 Step 5 is in: the build-mode grid (faint white edges, build and remove mode only), a count of draw-time bakes, and the acceptance list as a script (`tools/ground-check.js`); nine of nine scripted checks pass, check 10 is Michael's eye (results in `15-ground.md`). **Ground stays authored.** Michael will build buildings in the customiser and Claude grounds them; or, later, a **floor stamp** in build mode writes the authored floors and the no-scatter ring into the map file. Michael's rulings for it: a no-scatter stamp takes effect on the next load, no trickery; laid floors stamped onto grass keep a straight hard edge, walls or not, and that is fine; the blend rules cover only the kinds that must merge. Pinned in `15-ground.md`, not built.

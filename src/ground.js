@@ -78,6 +78,8 @@ let TV = null; // Float32Array
 // FIELD across. Per pixel, the index of the tile centre up and left of it and
 // its fractional place between centres.
 const FIELD = C + 2;
+let ROW0 = null; // Int16Array: per canvas row, the first pixel the chunk owns (each row's owned pixels are one run)
+let ROW1 = null; // Int16Array: one past the last
 let FI = null; // Int32Array
 let FU = null; // Float32Array
 let FV = null; // Float32Array
@@ -91,6 +93,7 @@ let noise = null; // { w, h, v: Uint8Array } the edge noise, grey 0..255
 // whole pixels and the centres on halves), so the kit's diamond mask and
 // this rule pick exactly the same pixels.
 function buildOwnership() {
+  // (ROW0 and ROW1 are filled at the end, from OWNER.)
   OWNER = new Int16Array(W * H);
   FX = new Uint8Array(W * H);
   FY = new Uint8Array(W * H);
@@ -100,6 +103,8 @@ function buildOwnership() {
   FI = new Int32Array(W * H);
   FU = new Float32Array(W * H);
   FV = new Float32Array(W * H);
+  ROW0 = new Int16Array(H);
+  ROW1 = new Int16Array(H);
   for (let py = 0; py < H; py++) {
     const b = (py + 0.5) / 16 - 1;
     for (let px = 0; px < W; px++) {
@@ -129,6 +134,18 @@ function buildOwnership() {
       FU[i] = fu - ju;
       FV[i] = fv - jv;
     }
+  }
+  for (let py = 0; py < H; py++) {
+    let first = -1;
+    let last = -1;
+    for (let px = 0; px < W; px++) {
+      if (OWNER[py * W + px] < 0) continue;
+      if (first < 0) first = px;
+      last = px;
+    }
+    ROW0[py] = first < 0 ? 0 : first;
+    ROW1[py] = first < 0 ? 0 : last + 1;
+    for (let px = ROW0[py]; px < ROW1[py]; px++) if (OWNER[py * W + px] < 0) throw new Error("ground: a row's owned pixels are not one run");
   }
 }
 
@@ -333,9 +350,10 @@ function decalOf(img) {
 
 // Draw one decal with its centre at canvas (sx, sy), mirrored or not, onto
 // the pixels this chunk owns.
-function stamp(out, img, sx, sy, flip) {
+// An upright decal (`stand`) has its base on the point, a flat one its centre.
+function stamp(out, img, sx, sy, flip, stand = false) {
   const dx = Math.round(sx - img.w / 2);
-  const dy = Math.round(sy - img.h / 2);
+  const dy = Math.round(stand ? sy - img.h + 1 : sy - img.h / 2);
   if (dx + img.w <= 0 || dy + img.h <= 0 || dx >= W || dy >= H) return;
   const d = img.dots;
   for (let n = 0; n < d.length; n += 6) {
@@ -384,14 +402,14 @@ function bakeDecals(out, x0, y0, left, top, log = null) {
       const roll = () => map.hash2(x, y, seed + 20 + k++);
       const cxp = (x - y) * 32 - left;
       const cyp = (x + y) * 16 - top;
-      const place = (img, id, colour = null) => {
+      const place = (img, id, colour = null, stand = false) => {
         // A point uniform in the tile's diamond: uniform in grid space.
         const u = roll() - 0.5;
         const v = roll() - 0.5;
         const flip = roll() < 0.5;
         const sx = cxp + (u - v) * 32;
         const sy = cyp + (u + v) * 16;
-        if (out) stamp(out, img, sx, sy, flip);
+        if (out) stamp(out, img, sx, sy, flip, stand);
         if (log) log.push({ tile: [x, y], id, colour, near: near ? near.leaves : null, wx: Math.round(sx + left), wy: Math.round(sy + top) });
       };
       const pick = (list) => list[Math.floor(roll() * list.length)];
@@ -401,7 +419,7 @@ function bakeDecals(out, x0, y0, left, top, log = null) {
           let n = 0;
           let colourOf = null;
           if (near) {
-            n = Math.max(0, Math.floor(near.reach - nd)) + (roll() < d.extraChance ? 1 : 0);
+            n = Math.max(0, Math.floor((near.reach - nd) * (d.perReach ?? 1))) + (roll() < d.extraChance ? 1 : 0);
             colourOf = () => (roll() < d.treeColour ? near.leaves : "brown");
           } else if (roll() < d.openChance) {
             n = 1;
@@ -410,7 +428,7 @@ function bakeDecals(out, x0, y0, left, top, log = null) {
           for (let i = 0; i < n; i++) {
             const colour = colourOf();
             const list = d.files[colour] || d.files.brown;
-            if (list && list.length) place(pick(list), d.id, colour);
+            if (list && list.length) place(pick(list), d.id, colour, !!d.stand);
           }
           continue;
         }
@@ -418,7 +436,7 @@ function bakeDecals(out, x0, y0, left, top, log = null) {
         if (!ok || roll() >= d.chance) continue;
         const [lo, hi] = d.count;
         const n = lo + Math.floor(roll() * (hi - lo + 1));
-        for (let i = 0; i < n; i++) place(pick(d.files.all), d.id);
+        for (let i = 0; i < n; i++) place(pick(d.files.all), d.id, null, !!d.stand);
       }
     }
   }
@@ -538,14 +556,16 @@ export function bakeImage(cx, cy, kindsOut = null) {
   const dirtLike = (name) => terrain.find((t) => t.name === name);
   const img = new ImageData(W, H);
   const out = img.data;
+  const texRow = new Int32Array(terrain.length);
   for (let py = 0; py < H; py++) {
     const wy = canvasTop + py;
     const noiseRow = noise ? mod(wy, noise.h) * noise.w : 0;
-    const texRow = terrain.map((t) => (t.texture ? mod(wy, t.texture.h) * t.texture.w : 0));
-    for (let px = 0; px < W; px++) {
+    for (let ti = 0; ti < terrain.length; ti++) texRow[ti] = terrain[ti].texture ? mod(wy, terrain[ti].texture.h) * terrain[ti].texture.w : 0;
+    // Only the row's run of owned pixels: the rest of the box stays transparent.
+    const px1 = ROW1[py];
+    for (let px = ROW0[py]; px < px1; px++) {
       const i = py * W + px;
       const o = OWNER[i];
-      if (o < 0) continue;
       const fx = FX[i];
       const fy = FY[i];
       const k = i * 4;

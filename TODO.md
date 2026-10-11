@@ -125,7 +125,8 @@ Each step checkable on its own. Michael looks after step 3.
 - [x] Step 4 (2026-10-11): the earth blends (dirt, farm, cobble with its verge), generated world textures and noise, the square cobbled. Verified: cobble never touches grass, farm covers its tiles, a one-tile road reads as a path, no partial alpha, no seams, deterministic, bakes 9.3 ms median.
 - [x] Step 5 (2026-10-11): the build-mode grid, eviction checks, the acceptance list as a script (`tools/ground-check.js`): nine of nine scripted checks pass.
 - [ ] Check 10, Michael's eye: a forest edge with a clearing against the mockup.
-- [ ] Swap in the redrawn trees and decals from Claude Design (`docs/15b`): drop `scale`, re-measure anchors, retune the leaf and mushroom counts.
+- [x] The redrawn decals from Claude Design swapped in (2026-10-11); the four rocks wait for a design conversation.
+- [ ] The redrawn trees from Claude Design (`docs/15b`): drop `scale`, re-measure anchors.
 - [ ] Pinned: the floor stamp in build mode (`docs/15`, "Pinned"), writing authored floors and the no-scatter ring into the map file.
 
 ## Milestone 7 — Placement (see `docs/13-placement.md`)
