@@ -1,1 +1,1 @@
-{"image": "data/art/trees/tree_spire_S_blue.png", "scale": 1.5, "frames": {"idle_0": [0, 0, 48, 75]}, "anchor": [24, 71], "bounds": {"x": 0, "y": 0, "w": 48, "h": 75}, "collide": {"radius": 0.18}, "wood": 3, "canopy": {"reach": 2}, "shadow": {"width": 0.42}, "leaves": "brown"}
+{"image": "data/art/trees/tree_spire_S_blue.png", "frames": {"idle_0": [0, 0, 71, 114]}, "anchor": [35, 103], "bounds": {"x": 0, "y": 0, "w": 71, "h": 114}, "collide": {"radius": 0.18}, "wood": 3, "canopy": {"reach": 2}, "shadow": {"width": 0.42}, "leaves": "brown"}

@@ -39,6 +39,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-11 — The trees, redrawn at final size, come in (Michael)
+
+Michael's `trees_v2` from Claude Design: all 36 trees drawn natively at the size the game shows them (within a few pixels of the request), hard pixels, detail at the same pixel size. The `scale` comes off every tree definition, so nothing is resampled and the blur is gone; anchors are re-measured from the new trunks. Acceptance passes nine of nine.
+
 ### 2026-10-11 — The redrawn decals come in; rocks wait (Michael)
 
 Michael's redrawn decal set from Claude Design replaces the kit's (details in `15-ground.md`). Rulings the swap made: upright decals stand on their point; leaf counts halve per tile of reach for the bigger piles (`perReach` 0.5), mushrooms one per pick at the same chance. The set's four "mineable rocks" are a new concept Michael has not explained yet: their files are kept, nothing places them, and the design conversation comes first.
