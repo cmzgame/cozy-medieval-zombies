@@ -41,7 +41,7 @@ Michael made a tree sheet with Claude Design and "they look amazing": two shapes
 
 ### 2026-10-11 — Half the debris (Michael)
 
-Michael on the new decals: the art is amazing, but there is far too much of it. **Ruling:** every decal except flowers comes down by about half. In `data/ground.json`: twigs 0.1, pebbles 0.03, tufts 0.175, mushrooms 0.125 per tile; leaves `perReach` 0.4 with `extraChance` 0.25 and `openChance` 0.06 (the per-tile count rounds down, so the leaf knobs were set by measuring: 469 leaf decals over four test chunks against 886 before). Flowers unchanged.
+Michael on the new decals: the art is amazing, but there is far too much of it. **Ruling:** every decal except flowers comes down by about half. In `data/ground.json`: twigs 0.1, pebbles 0.03, tufts 0.175, mushrooms 0.125 per tile; leaves `perReach` 0.4 with `extraChance` 0.25 and `openChance` 0.06 (the per-tile count rounds down, so the leaf knobs were set by measuring: 469 leaf decals over four test chunks against 886 before). Flowers unchanged at first; then halved too (0.05 per open tile), the same as the rest (Michael).
 
 ### 2026-10-11 — The trees, redrawn at final size, come in (Michael)
 
