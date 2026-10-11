@@ -242,7 +242,8 @@ function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
   // A leaf swung away from the camera stands behind the wall: drawn only when
   // the wall is translucent, just before it (docs/17, ruling 2).
   if (outside < 0 && o.faded) for (const p of leaves("_far")) wallPartQuad(parts, p, x, y, o);
-  wallPartQuad(sheet, name, x, y, o);
+  if (o.faded && o.cuts && (o.cuts.near != null || o.cuts.far != null)) emitCutWall(sheet, name, edge, x, y, h, T, o, o.cuts);
+  else wallPartQuad(sheet, name, x, y, o);
   if (!o.faded && !o.ghost) {
     const corners = edge === "n" ? [[0, -T / 2], [32, -T / 2], [32, T / 2], [0, T / 2]] : [[-T / 2, 0], [T / 2, 0], [T / 2, 32], [-T / 2, 32]];
     emitCapFromFrame(sheet, name, anchor, [x, y - iso.HH], corners, h, [tx, ty], o.flags);
@@ -258,31 +259,132 @@ function isNearWall(tx, ty, edge, playerRoom) {
   return far.room === playerRoom && t.room !== playerRoom;
 }
 
-// Corner posts: where walls meet at a corner, end, or junction (docs/02).
+// The post at the top vertex of (tx, ty), if one stands there: where walls meet
+// at a corner, end, or junction (docs/02), or where the material changes along
+// a straight run (docs/17: the three thicknesses leave a step in the cap).
+// `sheet` is the heavier material's (stone over log over wood); `near` is
+// whether it is translucent with a near wall.
+function postAt(tx, ty, playerRoom) {
+  const nE = map.tileAt(tx, ty).n;
+  const nW = map.tileAt(tx - 1, ty).n;
+  const wS = map.tileAt(tx, ty).w;
+  const wN = map.tileAt(tx, ty - 1).w;
+  if (!nE && !nW && !wS && !wN) return null;
+  if (nE && nW && !wS && !wN && nE.sprite === nW.sprite) return null;
+  if (wS && wN && !nE && !nW && wS.sprite === wN.sprite) return null;
+  const walls = [nE, nW, wS, wN].filter(Boolean);
+  const rank = (s) => ({ stone: 3, log: 2, wood: 1 })[s.wall ? s.wall.material : s.pattern === "brick" ? "stone" : s.pattern === "log" ? "log" : "wood"] || 0;
+  let sheet = getSheet(walls[0].sprite);
+  for (const w of walls) {
+    const s = getSheet(w.sprite);
+    if (rank(s) > rank(sheet)) sheet = s;
+  }
+  const near = (nE && isNearWall(tx, ty, "n", playerRoom)) || (nW && isNearWall(tx - 1, ty, "n", playerRoom))
+    || (wS && isNearWall(tx, ty, "w", playerRoom)) || (wN && isNearWall(tx, ty - 1, "w", playerRoom));
+  return { sheet, near: !!near };
+}
+
+// Corner posts.
 function postDrawables(tiles, visible, playerRoom, out) {
   for (const [tx, ty] of tiles) {
-    const nE = map.tileAt(tx, ty).n;
-    const nW = map.tileAt(tx - 1, ty).n;
-    const wS = map.tileAt(tx, ty).w;
-    const wN = map.tileAt(tx, ty - 1).w;
-    if (!nE && !nW && !wS && !wN) continue;
-    // A straight run needs no post, unless the material changes there (docs/17:
-    // the three thicknesses leave a step in the cap).
-    if (nE && nW && !wS && !wN && nE.sprite === nW.sprite) continue;
-    if (wS && wN && !nE && !nW && wS.sprite === wN.sprite) continue;
-    const walls = [nE, nW, wS, wN].filter(Boolean);
-    // The heavier material's post: stone over log over wood.
-    const rank = (s) => ({ stone: 3, log: 2, wood: 1 })[s.wall ? s.wall.material : s.pattern === "brick" ? "stone" : s.pattern === "log" ? "log" : "wood"] || 0;
-    let sheet = getSheet(walls[0].sprite);
-    for (const w of walls) {
-      const s = getSheet(w.sprite);
-      if (rank(s) > rank(sheet)) sheet = s;
-    }
+    const post = postAt(tx, ty, playerRoom);
+    if (!post) continue;
     const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty)) || visible.has(tileKey(tx, ty - 1)) || visible.has(tileKey(tx - 1, ty - 1));
-    const near = (nE && isNearWall(tx, ty, "n", playerRoom)) || (nW && isNearWall(tx - 1, ty, "n", playerRoom))
-      || (wS && isNearWall(tx, ty, "w", playerRoom)) || (wN && isNearWall(tx, ty - 1, "w", playerRoom));
-    out.push(makePost(tx, ty, sheet, vis, !!near));
+    out.push(makePost(tx, ty, post.sheet, vis, post.near));
   }
+}
+
+// Where a translucent near wall's segment stops short (Michael, 2026-10-12: the
+// near walls at night were banded). A drawn segment carries its near end face,
+// which the next segment covers, and a post covers both walls' ends; drawn at
+// the wall's alpha, every overlap showed twice as dark. So a translucent
+// segment is cut: at its near end where the next segment goes on translucent
+// (through the joint, c = 0), and at either end where a translucent post stands
+// (at the post's face, c = half its thickness). null: not cut.
+function wallCuts(edge, tx, ty, playerRoom) {
+  const atPost = (px, py) => {
+    const post = postAt(px, py, playerRoom);
+    if (!post) return undefined;
+    return post.near ? (post.sheet.thickness || WALL_T) / 2 : null;
+  };
+  // The near end: the right vertex of a north wall, the left vertex of a west wall.
+  const [nx, ny] = edge === "n" ? [tx + 1, ty] : [tx, ty + 1];
+  let near = atPost(nx, ny);
+  if (near === undefined) {
+    const next = edge === "n" ? map.tileAt(nx, ny).n : map.tileAt(nx, ny).w;
+    near = next && isNearWall(nx, ny, edge, playerRoom) ? 0 : null;
+  }
+  const far = atPost(tx, ty);
+  return { near, far: far === undefined ? null : far };
+}
+
+// A translucent drawn wall's frame drawn as pieces that leave out what lies
+// beyond its cuts. A cut is a vertical plane across the wall: on screen, a
+// vertical line through the face and a slant across the cap, so the frame is
+// split into strips at each cut's two face corners. Light and heights are
+// interpolated over the frame as the whole quad's are.
+function emitCutWall(sheet, name, edge, x, y, h, T, o, cuts) {
+  const f = sheet.frames[name];
+  const an = (sheet.frameAnchors && sheet.frameAnchors[name]) || sheet.anchor;
+  const L = x - an[0];
+  const Tp = y - an[1];
+  const R = L + f[2];
+  const B = Tp + f[3];
+  const uv = gl.frameUV(sheet, name);
+  const piece = (pts) => {
+    const c = pts.map(([px, py]) => [Math.min(R, Math.max(L, px)), Math.min(B, Math.max(Tp, py))]);
+    gl.texQuad(c, c.map(([px, py]) => [uv[0] + px - L, uv[1] + py - Tp]), {
+      world: c.map(([px]) => {
+        const k = (px - L) / f[2];
+        return [o.wa[0] + (o.wb[0] - o.wa[0]) * k, o.wa[1] + (o.wb[1] - o.wa[1]) * k];
+      }),
+      heights: c.map(([, py]) => B - py),
+      color: o.tint,
+      flags: o.flags,
+    });
+  };
+  let xL = L;
+  let xR = R;
+  if (edge === "n") {
+    // From the top vertex a (far end) down to the right vertex b (near end);
+    // along the wall is (1, 1/2) per pixel, the near face (-T/2, T/4) off the edge.
+    const a = [x, y - iso.HH];
+    const b = [x + iso.HW, y];
+    if (cuts.far != null) {
+      const E = [a[0] + cuts.far, a[1] + cuts.far / 2];
+      const N = [E[0] - T / 2, E[1] + T / 4];
+      const F = [E[0] + T / 2, E[1] - T / 4];
+      piece([[N[0], N[1] - h], [F[0], F[1] - h], [F[0], B], [N[0], B]]); // the cap beyond the slant, the face below
+      xL = F[0];
+    }
+    if (cuts.near != null) {
+      const E = [b[0] - cuts.near, b[1] - cuts.near / 2];
+      const N = [E[0] - T / 2, E[1] + T / 4];
+      const F = [E[0] + T / 2, E[1] - T / 4];
+      piece([[N[0], Tp], [F[0], Tp], [F[0], F[1] - h], [N[0], N[1] - h]]); // only the cap short of the slant
+      xR = N[0];
+    }
+  } else {
+    // From the top vertex b (far end) down to the left vertex a (near end);
+    // along the wall is (-1, 1/2) per pixel, the near face (T/2, T/4) off the edge.
+    const a = [x - iso.HW, y];
+    const b = [x, y - iso.HH];
+    if (cuts.near != null) {
+      const E = [a[0] + cuts.near, a[1] - cuts.near / 2];
+      const N = [E[0] + T / 2, E[1] + T / 4];
+      const F = [E[0] - T / 2, E[1] - T / 4];
+      piece([[F[0], Tp], [N[0], Tp], [N[0], N[1] - h], [F[0], F[1] - h]]);
+      xL = N[0];
+    }
+    if (cuts.far != null) {
+      const E = [b[0] - cuts.far, b[1] + cuts.far / 2];
+      const N = [E[0] + T / 2, E[1] + T / 4];
+      const F = [E[0] - T / 2, E[1] - T / 4];
+      piece([[F[0], F[1] - h], [N[0], N[1] - h], [N[0], B], [F[0], B]]);
+      xR = F[0];
+    }
+  }
+  if (xR > xL) piece([[xL, Tp], [xR, Tp], [xR, B], [xL, B]]);
 }
 
 function makePost(tx, ty, sheet, vis, near) {
@@ -344,19 +446,19 @@ function wallDrawables(tiles, visible, playerRoom, out) {
       const far = map.tileAt(tx, ty - 1);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx, ty - 1));
       const stub = playerRoom > 0 && far.room === playerRoom && t.room !== playerRoom;
-      out.push(makeWall(t.n, "n", tx, ty, vis, stub));
+      out.push(makeWall(t.n, "n", tx, ty, vis, stub, null, stub ? wallCuts("n", tx, ty, playerRoom) : null));
     }
     if (t.w) {
       const far = map.tileAt(tx - 1, ty);
       const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty));
       const stub = playerRoom > 0 && far.room === playerRoom && t.room !== playerRoom;
-      out.push(makeWall(t.w, "w", tx, ty, vis, stub));
+      out.push(makeWall(t.w, "w", tx, ty, vis, stub, null, stub ? wallCuts("w", tx, ty, playerRoom) : null));
     }
   }
 }
 
 // `ghostTint` draws the wall as the placement ghost (docs/13): tinted, unlit, and unfogged.
-function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null) {
+function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts = null) {
   const sheet = getSheet(wall.sprite);
   const variant = wallVariant(wall);
   const depth = edge === "n" ? tx + ty - 0.5 : tx - 0.5 + ty;
@@ -397,7 +499,7 @@ function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null) {
     emit() {
       const tint = ghostTint || [1, 1, 1, alpha];
       if (sheet.wall) {
-        emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, { wa, wb, tint, flags, faded, ghost: !!ghostTint });
+        emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, { wa, wb, tint, flags, faded, ghost: !!ghostTint, cuts });
       } else {
       // Swung leaves only for a whole, open, unboarded leaf.
       const open = !wall.broken && !map.boarded(wall) && (wall.kind === "door" ? wall.open : wall.kind === "window" && wall.shutter === "open");

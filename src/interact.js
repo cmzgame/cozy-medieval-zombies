@@ -910,6 +910,11 @@ export function slotMenu(player, slotId) {
 // A mushroom or a rock under the cursor, by its visible pixels, the frontmost
 // one; it wiggles, then rests for a moment before it will wiggle again.
 const POKE_COOLDOWN_MS = 600;
+// A click sways a thing, or plays its animation, only within the player's reach,
+// the same as placing and building (Michael, 2026-10-12: trees wiggled from
+// across the map). A far right-click still finds it for its menu.
+export const CLICK_REACH = 2.6;
+const inReach = (prop, player) => !!player && distToTiles(player, prop.tiles) <= CLICK_REACH;
 const pokePixels = new Map(); // sheet -> { w, h, a: Uint8Array of alpha }
 
 function alphaOf(sheet) {
@@ -955,13 +960,13 @@ export function interactableAt(sx, sy, wanted = (prop) => prop.interactable) {
   return best ? best.prop : null;
 }
 
-// Poke the interactable under the cursor: the thing poked, or null. It sways
-// unless it is still resting from the last poke.
-export function pokeAt(sx, sy) {
+// Poke the interactable under the cursor: the thing found, or null. It sways
+// if it is within the player's reach and not still resting from the last poke.
+export function pokeAt(sx, sy, player) {
   const prop = interactableAt(sx, sy);
   if (!prop) return null;
   const now = performance.now();
-  if (!prop.pokedAt || now - prop.pokedAt >= POKE_COOLDOWN_MS) prop.pokedAt = now;
+  if (inReach(prop, player) && (!prop.pokedAt || now - prop.pokedAt >= POKE_COOLDOWN_MS)) prop.pokedAt = now;
   return prop;
 }
 
@@ -978,10 +983,11 @@ export function play(prop) {
   return true;
 }
 
-// Left click: play the click animation of the thing under the cursor, by its pixels.
-export function playAt(sx, sy) {
+// Left click: play the click animation of the thing under the cursor, by its
+// pixels, if it is within the player's reach.
+export function playAt(sx, sy, player) {
   const prop = interactableAt(sx, sy, (p) => !!getDef(p.sprite).clickAnim);
-  if (prop) play(prop);
+  if (prop && inReach(prop, player)) play(prop);
   return prop;
 }
 

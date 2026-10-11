@@ -78,7 +78,7 @@ function handleMouse() {
   if (input.mouseRightPressed()) {
     // A mushroom or a rock wiggles; the menu still opens if it has actions
     // other than walking there (none yet; question 27).
-    const poked = interact.pokeAt(m.x, m.y);
+    const poked = interact.pokeAt(m.x, m.y, player);
     let actions = interact.actionsAt(m.x, m.y, player);
     if (poked) {
       // The thing clicked offers its own actions (a tree: Chop down), once each.
@@ -295,8 +295,8 @@ function update(dt) {
   // A left click swings; on a mushroom, a rock, or a tree (its visible pixels)
   // that thing sways too. No meaning yet: an in-world to-do (Michael, 2026-10-11).
   if (clicked && !clickSpent) {
-    interact.pokeAt(input.getMouse().x, input.getMouse().y);
-    interact.playAt(input.getMouse().x, input.getMouse().y); // the well's bucket, for fun
+    interact.pokeAt(input.getMouse().x, input.getMouse().y, player);
+    interact.playAt(input.getMouse().x, input.getMouse().y, player); // the well's bucket, for fun
     combat.tryAttack(player, zombies);
   }
   if (input.wasPressed("Space")) combat.tryShove(player, zombies);
