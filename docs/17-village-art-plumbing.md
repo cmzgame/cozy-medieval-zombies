@@ -1,0 +1,148 @@
+# 17 — Milestone 10: the village art comes in (walls, doors, furniture, floors)
+
+**Scoped for implementation by another model** (planned with Michael on 2026-10-11; nothing built yet). Claude Design delivered the whole of brief `16` and a little more, in `C:\Users\micha\Downloads\village_art` (69 files, with `README_village.md`, two anchor JSONs, and the generators that made the art). The art is right; the engine's walls, props, and loader were built for generated placeholders and need plumbing to take it. This doc is that plumbing. The doc decides; "default" marks what Michael may overrule, not what the implementer may.
+
+## What arrived
+
+Every PNG is hard-pixelled (alpha 0 or 255), tightly cropped, 1:1, and comes with a `anchor_px`: the pixel where the **tile's top vertex at ground level** sits.
+
+| Set | Files | Notes |
+|---|---|---|
+| Wall segments | 20: `wall_<wood|stone>_<north|west>_<plain|door_shut|door_open|window_shut|window_open>` | one tile edge long, 80 px tall; stone 16 thick, wood 14, **centred on the edge line**; the cap (top face) and the near end face are in the sprite; patterns repeat every 32 px; doorway 20 px wide and 48 tall; window 16 wide, sill 22, top 51; stone courses are larger than our bricks, as invited |
+| Corner posts | `post_wood`, `post_stone` | a drop-in for the dev post, the wall's thickness square, a pixel proud; anchored on their own centre at ground |
+| Open door leaves | 4: `door_open_<wood|stone>_<north|west>` | swung 90° outward toward the camera, hinged at the jamb nearer the top of the screen; a 3 px free edge, strap hinges; outlined |
+| Open shutters | 8: `shutter_<left|right>_<wood|stone>_<north|west>` | folded back 160° against the outside face; left and right are screen sides; outlined |
+| Furniture | `well`, `bed`, `table`, `chair_front`, `chair_back`, `fireplace`, `fire_0..2` | outlined; long sides run along world y ("/"); the fireplace backs against a west wall and stands half a tile out; the flames are 18×16 frames with no glow, placed by `fire_base_px` |
+| Floors | `floor_wood_0..3`, `floor_stone_0..3` | 64×32 diamonds patterned in world space, so any variant meets any other |
+| Previews | building cutaway and exterior, doors, furniture, floors, at 1× and 3× | the building previews were assembled from the PNGs and anchors, so they are also a placement test |
+| Generators | `iso3d.py`, `village.py`, `furniture.py`, `floors.py`, `village_preview.py` | Claude Design built a small isometric 3D renderer and drew everything with it, so more pieces in the same style (log walls, caps, more furniture) are cheap to ask for |
+
+**Orientation matches the engine** (the corrected brief): north is the tile edge from its top vertex to its right vertex, "\" on screen, a room's back-right wall; west is top vertex to left vertex, "/", the back-left wall. Nothing is mirrored.
+
+**Not in this set, by design:** boarded and broken variants (boards stay engine polygons), the log wall the player builds, the chest, barrel, campfire, torch post, pumpkins (still generated), dirt and cobble textures (still generated), ground shadows (the engine's).
+
+## What the engine does today, and why it cannot take the art as is
+
+- **Walls** (`render.js`, `makeWall`): one quad per segment from a *generated* sheet whose frames are named `${side}_${variant}_0`, sides `north` and `west`, variants `plain`, `door` (open), `door_shut`, `window` (open), `window_shut`, `window_broken`, and boarded forms (`boarded1..3`, `door_boarded1..3`, ...) with the boards baked in; the cap is a separate flat polygon on the sky flag; open leaves and shutters are flat polygons (`emitSwungLeaves`); the generated wall sits on the far side of the edge line, not centred on it; the "stub" cutaway mode draws separate low `south`/`east` frames. Anchors are per side (`anchor`, `anchorWest`), bottom-left or bottom-right of the frame.
+- **Posts** (`makePost`): three polygons, the wall's thickness square, at the tile's top vertex.
+- **Props** (`propDrawables`, `generateBox`): a multi-tile prop is drawn once per footprint tile, each tile drawing frame `idle_<i>` at its own tile centre with one shared anchor. The generated box does not slice: every tile gets the same full box, so a 2-tile bed today is two one-tile boxes. There is no prop facing, no mirror for a rotated footprint. Flames on a fire prop are frames `flame_<i>` drawn at the prop anchor, animated only for one-tile props.
+- **Loader** (`assets.loadSprite`): one `image` per definition, `frames` as rectangles into it, one `anchor` at the engine's convention (the point drawn at the tile **centre**; walls use their own), optional `scale` and `bounds`.
+- **Floors**: the ground bake (`ground.js`) draws a laid tile from its sheet's `idle_*` frames, picked by hash; the sheets are generated two-frame flats.
+
+## The plan, in one paragraph
+
+The loader learns to build one sheet from several PNGs with named frames, and to take anchors in Claude Design's "top vertex" convention. Walls become drawn sheets with an alias table from the engine's variant names to the art's five, the cap stays inside the sprite, boards are drawn as polygons over the sprite, posts and open leaves and shutters become sprites, and the stub cutaway retires. Multi-tile furniture is sliced per tile at load along the tile boundary and mirrored when its footprint is turned; the chair gains facings; the fireplace's flames animate on the tile that holds the firebox. Floors are four-frame drawn sheets and need nothing else. The map's hearth becomes the two-tile fireplace.
+
+## Rulings (defaults Michael may overrule)
+
+1. **The stub cutaway mode retires.** Near walls draw full height and translucent (the 2026-10-09 ruling); the low stubs on the `K` key have no drawn art and go. `generateWall` keeps making stub frames for the generated log wall only until it, too, is drawn.
+2. **Open leaves and shutters that swing to the far side of their wall are not drawn.** The art swings toward the camera (the near side). A leaf on the far face stands behind an 80 px wall and cannot be seen; the open doorway or window frame is what shows. Today's polygons for that case go.
+3. **The cap stays in the wall sprite, lit with the face.** The shader lights a whole quad from one sample point, so a cap can no longer take the sky flag separately; at night the caps of a lit room's back walls will glow a little with the room. Accepted as a stopgap; the follow-up art request asks for the cap as its own layer (four small PNGs), and then the cap gets the sky flag back.
+4. **Boards are engine polygons over the drawn wall**, on the near face, at the opening's fixed sizes, with the plank look `emitPlankLeaf` already draws. Broken is the open frame: `window_broken` draws the `window_open` art, a broken door the `door_open` art (docs/09's rule). No boarded art is requested.
+5. **The chair gets facings.** A prop may declare `facings` (four, from two drawings and their mirrors); `R` in placement turns a one-tile prop with facings through them; the map file may give a `facing`. Default is to build this now, since the chair is useless without it.
+6. **Multi-tile furniture is one drawing, sliced at load.** Art is drawn with the long side along world y (footprint `[1, 2]`); a prop placed along x (footprint `[2, 1]`, as the cottage's bed and table are today) draws the mirror. The accepted cost of mirroring is that the lit side swaps.
+7. **The cottage's hearth becomes the two-tile fireplace** in `square.json` (its fire data moves over; `hearth.json` stays for anything else that uses it, which is nothing). The campfire, chest, barrel, torch post, pumpkins, and the player's log walls stay generated until drawn.
+8. **Posts take the material of the stone-first rule as now**; a corner of log walls (player-built) uses `post_wood`.
+9. **Nothing about collision, rooms, light, sight, or the dead changes.** Walls are still edge state; a drawn wall is a picture of the same edge.
+
+## The loader
+
+In `assets.loadSprite`, beside `image`:
+
+- **`images`**: `{ "<frameName>": "<path>" }`. The loader loads each PNG, packs them into one canvas (a simple shelf, as the atlas does), and writes `frames` as the rectangles. `frames` given alongside override or add (for frames that are rectangles into one of the images, which nothing needs yet). Floors use it (`idle_0..3`), walls use it (ten frames), the fireplace uses it (the body and `flame_0..2`).
+- **`anchorVertex: "top"`**: the definition's `anchor` is Claude Design's top-vertex pixel; the loader converts to the engine's tile-centre convention by adding `[0, HH]` (16 px). Wall and post definitions say which point they anchor on (see below) and are not converted this way.
+- **`slice`** (props): `{ "along": "y" }` with a footprint of two tiles: the loader builds `idle_0` and `idle_1` as full-size masked copies of the image, each shifted so the one shared anchor places it right when drawn at its own tile's centre. The mask is the tile boundary's screen line (from world `(0, 32)` to `(32, 32)` relative to the top tile's top vertex: slope one half, "\" on screen), extended as a straight screen line; pixels above and right of it belong to tile 0, the rest to tile 1. Imperfect for tall things, as every isometric engine's slicing is, and the same imperfection the generated boxes avoid only by being boxes. Four-tile footprints are not needed and not built.
+- **`mirror` for a turned footprint**: when a prop's footprint is the transpose of its art's (`[2, 1]` for art drawn `[1, 2]`), the renderer draws the slices flipped and swaps their tile order. The loader records the art's native axis (`along`) on the sheet; `propDrawables` and `propRect` compare it with the prop's footprint.
+- **`facings`** (props): `{ "se": { "image": "chair_front.png" }, "ne": { "mirror": "se" }, "sw": { "image": "chair_back.png" }, "nw": { "mirror": "sw" } }` or the equivalent built from `images`; the sheet's `facings` and `mirror` fields already exist for characters, and `resolveFacing` already resolves a mirror. A prop carries `facing` (default the first); frames are `idle_<facing>_<i>`.
+- **Flames on a multi-tile prop**: the definition's `fire.at` is the `fire_base_px` from the anchors file (converted like the anchor); the loader composes `flame_0..2` as full-size frames with each 18×16 flame drawn so its pixel `(9, 15)` lands on that point, and records `flameTile`, the footprint tile under that point. `propDrawables` draws the flame once, on that tile, animated by time as one-tile flames are today.
+
+Nothing changes for definitions that have `image` and `frames` as now; the trees and decals keep working.
+
+## Walls
+
+A drawn wall definition (`data/sprites/wall_wood.json`):
+
+```json
+{
+  "wall": {
+    "height": 80, "thickness": 14, "color": "#6e4b32", "pattern": "plank",
+    "images": {
+      "north_plain": "data/art/village/wall_wood_north_plain.png",
+      "north_door_shut": "...", "north_door_open": "...", "north_window_shut": "...", "north_window_open": "...",
+      "west_plain": "...", "west_door_shut": "...", "west_door_open": "...", "west_window_shut": "...", "west_window_open": "..."
+    },
+    "anchors": { "north": [7, 84], "west": [39, 84] },
+    "post": "post_wood", "leaf": "door_open_wood", "shutters": "shutter_wood"
+  }
+}
+```
+
+- **Anchors**: both sides anchor on the **tile's top vertex at ground**. `makeWall` draws the frame at `(x − ax, y − HH − ay)` where `(x, y)` is the tile centre, for both sides. (The generated walls used bottom corners per side; those stay for the generated log wall until it is drawn, behind the same `anchor` / `anchorWest` fields, so the one function handles both by a flag on the sheet.)
+- **Variant aliases** in `wallVariant`'s consumer: `door` → `door_open`, `window` → `window_open`, `window_broken` → `window_open`; a boarded variant → its base variant plus a board count. Frame names stay `${side}_${variant}_0`.
+- **The quad**: as now, `world: [wa, wb, wb, wa]`, `heights: [f[3], f[3], 0, 0]`, the tint for translucent near walls and the ghost. **No top polygon** for drawn walls (ruling 3).
+- **Posts**: `post` names a sprite definition (`post_wood.json`: `image`, `anchor` as given, `anchorVertex: "vertex"`, meaning drawn at the vertex itself, no conversion); `makePost` draws it as a quad at `toScreen(tx − 0.5, ty − 0.5)` with the vertex's world point and `heights: [h, h, 0, 0]`. Log-wall corners fall back to `post_wood`; a sheet with no `post` keeps the polygons.
+- **Leaves and shutters**: `leaf` and `shutters` name definition prefixes; the leaf definition `door_open_wood.json` has `images: { north: ..., west: ... }` and per-frame anchors (the art's anchors differ per side), so the loader accepts `anchors: { "<frame>": [x, y] }` beside a single `anchor`. Drawn, when the opening is open, whole, unboarded, and its outside is the near side (`outsideSign > 0`), at the wall's anchor, after the wall. Shutters: `left` and `right` both. Far side: nothing (ruling 2).
+- **Boards**: `wall.boards.near` planks, each a polygon across the opening on the near face, at the opening's fixed sizes (`DOOR_TOP`, `WINDOW_SILL`, `WINDOW_TOP`), spaced as the generator spaced them (one at the middle, then at 0.22 and 0.78 of the height), drawn after the wall with the wall's `world` and `heights` so the light climbs them.
+- **Brackets**: the torch bracket sits on the near face, which is now half the thickness nearer the camera than the edge line; `bx, by` move by `perp · T/2`. One line.
+- **Hit test for openings** (`interact.openingsAtScreen`): `WALL_FACE` becomes the sheet's wall height (80), and the face rect shifts by the same half thickness.
+- **The build ghost** draws the wall through `makeWall` with a tint and needs nothing new; it builds `wall_log`, which stays generated.
+- **Stubs retire**: `cutaway` loses the `"stub"` value, the `K` key and its debug line go, `isNearWall` keeps deciding translucency, `drawNearVariant` and the `south`/`east` frames go from `generateWall`.
+
+## Furniture
+
+Definitions (`data/sprites/`), anchors converted by `anchorVertex: "top"`:
+
+| Id | Footprint | Fields |
+|---|---|---|
+| `well` | 1×1 | `image`, `anchor [37, 77]`, `water: true`, `carry: false` (as now), outlined by the art |
+| `bed` | native `[1, 2]`, `slice.along "y"` | `anchor [64, 27]`, `carry: true` |
+| `table` | native `[1, 2]` | `anchor [61, 21]`, `carry: true` |
+| `chair` | 1×1, `facings` from `chair_front` (anchor `[19, 25]`) and `chair_back` (`[19, 18]`) | `carry: true`; new in the map, two by the table |
+| `fireplace` | native `[1, 2]`, backs against a west wall; mirrored, against a north wall | `anchor [63, 50]`, `fire` as the hearth's (`radius 3, room, burns, cooks, maxFuel 4, flicker`), `fire.at [42, 67.5]`, flames `fire_0..2`, `carry: false` |
+
+The map: the cottage's `hearth` at `[4, 0]` becomes `fireplace` at `[3, 0]` with footprint `[2, 1]` (against the north wall, two tiles wide); the bed and table keep `[2, 1]` and draw mirrored; two chairs join the table. `assets.loadMapSprites` already wants a prop's sprite with its tile count.
+
+**Occlusion**: a prop whose frame is 64 px or taller becomes an occluder (the see-through hole for a character behind it); the well (104) and the fireplace (91) qualify, which is right.
+
+## Floors
+
+`floor_wood.json`: `{ "images": { "idle_0": ".../floor_wood_0.png", ..., "idle_3": "..." }, "anchor": [32, 16] }`; the same for `floor_stone`. The ground bake picks a frame by hash and reads the sheet's anchor as the tile centre. Nothing else changes. The farm and the earth kinds are untouched.
+
+## Files, where they go
+
+- PNGs to `data/art/village/` as named. The README, the anchor JSONs, and the generators stay in Michael's folder (the generators are Claude Design's; the anchors are copied into the definitions by the import script).
+- An import script in the scratchpad writes the definitions from the anchor JSONs, so a re-roll from Claude Design re-imports in one run.
+
+## Build order, with pauses for Michael
+
+1. **The loader**: `images`, `anchorVertex`, per-frame `anchors`; the floors in. **Verify**: the cottage's wood floor and the shed's stone floor show the drawn planks and flagstones, variants mixed by hash, no seams at tile edges (the ground acceptance script still passes nine of nine). *Pause.*
+2. **Walls and posts**: the two drawn wall sheets with aliases, top-vertex anchors, no top polygon; drawn posts; boards as polygons; stubs retired; the bracket and hit-test offsets. **Verify**: the cottage (wood) and the shed (stone) match the previews in shape; segments meet without a seam or a doubled end face; doors and shutters closed and open show the right frames; a boarded window still shows its planks; near walls go translucent inside; the build ghost still draws; night light climbs the drawn faces; the log wall the palette builds still works. *Pause: Michael looks at the buildings.*
+3. **Leaves and shutters as sprites**: drawn for near-side openings; far-side ones drop. **Verify**: open the cottage's door and windows from outside and inside; the leaf never covers the doorway; shutters sit beside the window on the outside face. *Pause.*
+4. **Furniture**: slicing, mirroring, facings, flames; the well, bed, table, chairs, fireplace; the map change. **Verify**: the cottage interior matches the cutaway preview; the bed and table sort against the player walking round them; `R` turns a carried chair through four facings and a carried bed through two; the fireplace's flames animate in the firebox and light the room as the hearth did; Add a log and cooking still work on it; the well still fills a waterskin. *Pause: Michael looks at the room.*
+5. **Docs**: `06-art.md`'s palette and tables, `02`, `TODO`; the follow-up art request below.
+
+## Accept when
+
+1. The cottage and the shed, outside and inside, read like `preview_building_exterior` and `preview_building` (allowing for lighting and the fog).
+2. No seam, gap, or doubled end face along any wall; corners covered by posts.
+3. Every opening state draws: door shut, open, broken, boarded on either side; window shut, open, broken, boarded.
+4. Near walls translucent indoors as before; no stub mode remains.
+5. Open leaves and shutters appear only on the near face and never cover the opening.
+6. The bed, table, chairs, well, and fireplace stand where the map puts them, slice and sort against a walking character, mirror when turned, and the chair turns through four facings.
+7. The fireplace lights its room and animates its flames; the well gives water.
+8. The ground acceptance script passes nine of nine with the drawn floors.
+9. Frame and bake costs unchanged within noise.
+10. Michael's eye.
+
+## Follow-up requests for Claude Design (not blocking)
+
+- **Caps as their own layer**: the top face of each wall orientation and material as a separate PNG (four files), so the engine can light caps from the sky again (ruling 3).
+- **The log wall** the player builds, in the same five variants, so built walls stop being dev art beside the village's. Then the build palette can also offer the drawn wood wall.
+- **Later, when wanted**: the chest, barrel, campfire, torch post, pumpkins; boarded variants if the polygon boards ever look wrong; dirt and cobble textures.
+
+## What this must not foreclose
+
+- **Upper floors**: walls still carry a layer; a drawn wall is a picture of an edge on a layer.
+- **Roofs**: the cap being inside the sprite today does not stop a roof layer later; the cap layer request is the clean path.
+- **The floor stamp** (docs/15): laid floors are sheets picked by hash; a stamped wood tile is a floor id like any other.
+- **Michael's map editor**: props with facings and turned footprints are data on the prop (`facing`, `footprint`), which the editor writes.

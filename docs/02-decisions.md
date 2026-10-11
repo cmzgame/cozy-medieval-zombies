@@ -39,6 +39,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-11 — The village art arrived; milestone 10 planned (Michael)
+
+Claude Design delivered all of brief 16 and more (`village_art`: 20 wall segments, corner posts, door leaves and shutters per material, six furniture pieces with flame frames, eight floor tiles, anchors, previews, and the small 3D renderer that drew them). Michael: it needs plumbing rework; plan first, build later. The plan is `17-village-art-plumbing.md`, scoped for another model, with defaults Michael may overrule: the stub cutaway retires; far-side leaves are not drawn; the cap stays in the wall sprite for now (a cap layer is the follow-up request); boards stay engine polygons and broken is the open frame; the chair gets facings; multi-tile furniture is sliced at load and mirrored when turned; the cottage's hearth becomes the two-tile fireplace; player-built log walls stay generated until drawn.
+
 ### 2026-10-11 — The ground is accepted; the gatherables law; the real map is its own conversation (Michael)
 
 - **Milestone 9, the ground, is accepted.** Michael: "Ground looks amazing, I think we hit the perfect spot, and if we need to adjust later we have the knobs. Done!" Check 10 passes.

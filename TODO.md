@@ -4,7 +4,7 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 
 ## Status
 
-- **Current milestone:** none open. 9, the ground (`docs/15-ground.md`), **accepted 2026-10-11**; melee (8) is accepted for now with step 5 and more weapons open. Next up: the village art from Claude Design (`docs/16`), then the conversation about what the whole authored map should hold (see "Where work stopped" below; the Status below is history, oldest first).
+- **Current milestone:** 10, the village art comes in (`docs/17-village-art-plumbing.md`), **planned 2026-10-11, not started**; Michael's rulings on the plan's defaults come first. 9, the ground, accepted; melee (8) accepted for now with step 5 and more weapons open (see "Where work stopped" below; the Status below is history, oldest first).
 - **What exists:** a chunked map stored block by block with edge walls (`map.js`), rooms by flood fill, line of sight by grid traversal with corner sampling (`visibility.js`), a following camera over cached chunk floors (`camera.js`, `render.js`), four-walled buildings whose near walls go translucent when you are inside, doors and shuttered windows worked with `E` (`interact.js`), corner posts, fog over what you cannot see, the dead with memory of where they last saw you, a stamina bar, and a hand-written square (`data/maps/square.json`) with a cottage, a shed, a farm plot, three jack-o'-lanterns, harvest forest scattered by rule, and wild forest with a few of the dead per chunk beyond the authored bounds. Copied modules carry origin headers.
 - **Last completed task (2026-10-09):** Milestone 1 built and checked by script in the browser: the player walks from the square through the cottage door with no cut and a zombie follows through it; a wall stops the player at its face; a window shows a wedge of the room from outside and a wedge of the square from inside; stubs on the near walls indoors; the fog leaves no seams; 60 fps with about 730 tiles in view.
 - **Also on 2026-10-09, from Michael's play notes:** the dead remember only where they last saw you (chase, search ten seconds, give up); every window has shutters, tap E to open or close, hold E to climb through, the Zomboid scheme; corner posts where walls meet; no bites through walls. He sprinted out of town with no freezes and the infinite grass felt freeing.
@@ -118,6 +118,15 @@ Each step checkable on its own. Michael looks after step 3.
 - [x] Phase 2 (2026-10-09): `gl.js` and the WebGL `render.js` at parity: one atlas, one vertex buffer, one shader; light and ambient and fog textures over the chunks around the camera; holes as uniforms; flat triangles for posts, leaves, brackets; a flame sheet. Old renderer kept as `render-canvas.js` on `G`. About 1 ms of JavaScript a frame against 4 to 5. Michael, mid-build: "MILES better, and I could not produce a single weird polygon bug anymore. Wall shading suddenly feels way more intuitive."
 - [x] Phase 3 (2026-10-09): pools climb walls and trunks (`night.climb`, 56 px); flames flicker in the light from per-source layers summed with weights at upload; `L` cycles debug views of the light, ambient, and fog textures; `night.standingFloor` is the legibility floor (0 until it is needed); `night.linear` false gives the per-cell look.
 - [x] Acceptance, scripted (2026-10-09): day and night smooth with no texture touched; the campfire's light beyond a wall placed from the console drops on the next step and returns when it is removed; the hearth's spill through the window and door comes from the portals and stops with the shutter; several lights in view at once; the light reads the same either side of a chunk edge; sorting unchanged; every lookup takes a layer; pixels crisp with nearest sampling; the four views that broke the Canvas night look right and a bracket torch lights its wall from the base. Accepted by Michael the same night; the Canvas renderer is deleted.
+
+## Milestone 10 — The village art comes in (see `docs/17-village-art-plumbing.md`)
+
+- [ ] Michael's rulings on the plan's defaults (stubs, far-side leaves, caps, chair facings, log walls, the map change).
+- [ ] Step 1: the loader (`images`, `anchorVertex`, per-frame anchors); the drawn floors.
+- [ ] Step 2: drawn walls and posts; boards as polygons; stubs retired.
+- [ ] Step 3: open leaves and shutters as sprites.
+- [ ] Step 4: furniture (slicing, mirroring, facings, flames); the map's fireplace and chairs.
+- [ ] Step 5: docs; the follow-up art request (caps, the log wall).
 
 ## Milestone 9 — The ground (see `docs/15-ground.md`)
 
