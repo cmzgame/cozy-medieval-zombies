@@ -39,6 +39,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-11 — Drawn walls in; the dev server's queue fixed
+
+Steps 2 and 3 of `17` are in (status there). One fix outside the plan: `serve.py`'s listen queue was Python's default of five, so the hundred-plus images the game requests at boot overflowed it and some were refused, the cause of every "connection refused" and failed boot seen since the trees came in. Raised to 128.
+
 ### 2026-10-11 — The building batch arrived; milestone 10 begins (Michael)
 
 Claude Design's brief-18 batch (`village_art(1)`, a superset of the first village folder): the log wall set with its post, leaves, and shutters; twelve board overlays in a weathered grey-tan that reads on all three materials; the optional far-side leaves and shutters; and placement previews of single segments, mixed lines, corners, junctions, and boarded openings. **Ruled with it:** a post wherever the material changes along a straight line, and at mixed corners, in the heavier material (stone over log over wood: the designer's finding from the placement test, using the existing posts); the log wall is drawn now; the board overlays replace the polygon boards outright. Michael's hold on step 1 is lifted by the batch's arrival: all the art goes in, then the work turns to non-art things.

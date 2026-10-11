@@ -1,0 +1,68 @@
+{
+ "anchorVertex": "top",
+ "images": {
+  "leaf_north": "data/art/village/door_open_log_north.png",
+  "leaf_far_north": "data/art/village/door_open_far_log_north.png",
+  "shutter_left_north": "data/art/village/shutter_left_log_north.png",
+  "shutter_right_north": "data/art/village/shutter_right_log_north.png",
+  "shutter_far_left_north": "data/art/village/shutter_far_left_log_north.png",
+  "shutter_far_right_north": "data/art/village/shutter_far_right_log_north.png",
+  "leaf_west": "data/art/village/door_open_log_west.png",
+  "leaf_far_west": "data/art/village/door_open_far_log_west.png",
+  "shutter_left_west": "data/art/village/shutter_left_log_west.png",
+  "shutter_right_west": "data/art/village/shutter_right_log_west.png",
+  "shutter_far_left_west": "data/art/village/shutter_far_left_log_west.png",
+  "shutter_far_right_west": "data/art/village/shutter_far_right_log_west.png"
+ },
+ "anchors": {
+  "leaf_north": [
+   25.0,
+   42.0
+  ],
+  "leaf_far_north": [
+   -12.0,
+   61.0
+  ],
+  "shutter_left_north": [
+   15.0,
+   46.0
+  ],
+  "shutter_right_north": [
+   -10.0,
+   35.0
+  ],
+  "shutter_far_left_north": [
+   -12.0,
+   59.0
+  ],
+  "shutter_far_right_north": [
+   -31.0,
+   47.0
+  ],
+  "leaf_west": [
+   3.0,
+   42.0
+  ],
+  "leaf_far_west": [
+   40.0,
+   61.0
+  ],
+  "shutter_left_west": [
+   20.0,
+   35.0
+  ],
+  "shutter_right_west": [
+   1.0,
+   46.0
+  ],
+  "shutter_far_left_west": [
+   47.0,
+   47.0
+  ],
+  "shutter_far_right_west": [
+   22.0,
+   59.0
+  ]
+ },
+ "note": "a drawn wall's open door leaves and shutters, near and far side (docs/17)"
+}

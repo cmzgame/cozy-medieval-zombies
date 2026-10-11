@@ -392,6 +392,16 @@ export function quad(x, y, w, h, uv, { world, heights = 0, color = WHITE, flags 
   vertex(x, y1, u0, v1, W[3][0], W[3][1], H[3], color, flags);
 }
 
+// A textured convex quad with any four screen corners and their own atlas
+// texel coordinates, in order around it (docs/17: a drawn wall's cap redrawn
+// on the sky). `world` is one [gx, gy] or four; `heights` likewise.
+export function texQuad(pts, uvs, { world, heights = 0, color = WHITE, flags = 0 } = {}) {
+  grow(STRIDE * 6);
+  const W = typeof world[0] === "number" ? [world, world, world, world] : world;
+  const H = typeof heights === "number" ? [heights, heights, heights, heights] : heights;
+  for (const k of [0, 1, 2, 0, 2, 3]) vertex(pts[k][0], pts[k][1], uvs[k][0], uvs[k][1], W[k][0], W[k][1], H[k], color, flags);
+}
+
 // A flat-coloured convex polygon, fanned from its first point. `world` is one
 // [gx, gy] for all points or one per point; `heights` likewise.
 export function poly(points, color, { world, heights = 0, flags = 0 } = {}) {

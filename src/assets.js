@@ -55,6 +55,10 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
   let sheet;
   if (def.images) {
     sheet = await sheetFromImages(def);
+    // A drawn wall brings its post, its parts, and the board overlays with it.
+    if (def.wall) {
+      for (const id of [def.wall.post, def.wall.parts, def.wall.boards || "wall_boards"]) if (id) await loadSprite(id);
+    }
   } else if (def.image) {
     let image = await loadImage(def.image);
     let { frames, anchor, bounds } = def;
@@ -174,7 +178,7 @@ async function sheetFromImages(def) {
   Object.assign(frames, def.frames || {});
   const frameAnchors = {};
   for (const [name, a] of Object.entries(def.anchors || {})) frameAnchors[name] = toCentreAnchor(def, a);
-  return {
+  const sheet = {
     image: canvas,
     frames,
     anchor: toCentreAnchor(def, def.anchor),
@@ -184,6 +188,10 @@ async function sheetFromImages(def) {
     facings: def.facings || [],
     mirror: def.mirror || {},
   };
+  // A drawn wall (docs/17): its height, thickness, colour, material, and the
+  // names of its post and parts (leaves, shutters) sheets.
+  if (def.wall) Object.assign(sheet, { wall: def.wall, wallHeight: def.wall.height, thickness: def.wall.thickness, color: def.wall.color });
+  return sheet;
 }
 
 // The idle frame of a prop's sheet for footprint slice `i`, in the prop's

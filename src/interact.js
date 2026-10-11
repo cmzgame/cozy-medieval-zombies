@@ -477,7 +477,7 @@ function propActions(prop, player) {
 // WALL_FACE pixels tall above its edge, so the click is tested against that
 // face on screen, not only against the edge's midpoint on the ground (a
 // right-click on the door itself found nothing, Michael 2026-10-10).
-const WALL_FACE = 72;
+const WALL_FACE = 80; // the walls' height since 2026-10-11 (docs/17)
 const FACE_HALF_W = 26;
 
 function openingsAtScreen(sx, sy) {

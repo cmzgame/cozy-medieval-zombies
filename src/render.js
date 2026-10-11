@@ -38,12 +38,8 @@ const FOG_COLOR = [22 / 255, 14 / 255, 32 / 255];
 const FOG_ALPHA = 0.36;
 const CLEAR = [0x16 / 255, 0x12 / 255, 0x1c / 255];
 
-export let cutaway = "translucent";
 const NEAR_WALL_ALPHA = 0.42;
 
-export function setCutaway(mode) {
-  cutaway = mode;
-}
 
 const OCCLUDER_MIN_HEIGHT = 64;
 const HOLE_INNER = 34; // px, fully clear
@@ -132,13 +128,6 @@ function wallVariant(wall) {
   return "plain";
 }
 
-// The low stubs have no board frames; a boarded leaf stubs as its leaf.
-function stubVariant(variant) {
-  const base = variant.replace(/\d$/, "");
-  if (base === "window_shut_boarded") return "window_shut";
-  if (base === "door_shut_boarded") return "door_shut";
-  return base;
-}
 
 // A plank leaf in the quad [p0, p1, p2, p3] (p0 and p3 the bottom corners),
 // with metal strips, as flat polygons.
@@ -191,6 +180,72 @@ function emitSwungLeaves(wall, edge, x, y, h, outside, opts) {
   }
 }
 
+// ---- drawn walls (docs/17) ----
+
+// The engine's opening states, mapped onto the art's five variants and a board count.
+function drawnVariant(variant) {
+  const m = variant.match(/^(.*?)(\d)?$/);
+  const base = m[1];
+  const n = m[2] ? Number(m[2]) : 0;
+  const art = {
+    plain: "plain", door: "door_open", door_shut: "door_shut", window: "window_open", window_broken: "window_open",
+    window_shut: "window_shut", boarded: "window_open", window_shut_boarded: "window_shut",
+    door_boarded: "door_open", door_shut_boarded: "door_shut",
+  }[base] || "plain";
+  return { art, boards: n ? (base.startsWith("door") ? "door" : "window") : null, n: Math.min(3, n) };
+}
+
+// A frame of a sheet drawn at the tile centre (x, y) by its own anchor, lit
+// along the wall's foot (`wa` to `wb`) and climbing its height.
+function wallPartQuad(sheet, name, x, y, o) {
+  const f = sheet && sheet.frames[name];
+  if (!f) return;
+  const a = (sheet.frameAnchors && sheet.frameAnchors[name]) || sheet.anchor;
+  gl.quad(x - a[0], y - a[1], f[2], f[3], gl.frameUV(sheet, name), { world: [o.wa, o.wb, o.wb, o.wa], heights: [f[3], f[3], 0, 0], color: o.tint, flags: o.flags });
+}
+
+// The cap of a drawn wall, drawn again from the same picture with the sky's
+// light, so it is not lit by the room its face looks into (docs/17, ruling 3).
+// The cap is the wall's top, the edge pushed half the thickness either side,
+// at the wall's height; `top` is the screen point of the tile's top vertex.
+function emitCapFromFrame(sheet, name, anchor, top, corners, h, world, flags) {
+  const uv = gl.frameUV(sheet, name);
+  const tu = uv[0] + anchor[0];
+  const tv = uv[1] + anchor[1] - iso.HH; // the top vertex in the frame (anchors are tile-centre)
+  const pts = [];
+  const uvs = [];
+  for (const [X, Y] of corners) {
+    const ox = X - Y;
+    const oy = (X + Y) / 2 - h;
+    pts.push([top[0] + ox, top[1] + oy]);
+    uvs.push([tu + ox, tv + oy]);
+  }
+  gl.texQuad(pts, uvs, { world, flags: flags | gl.FLAG_SKY });
+}
+
+function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
+  const side = edge === "n" ? "north" : "west";
+  const { art, boards, n } = drawnVariant(variant);
+  const name = `${side}_${art}`;
+  const f = sheet.frames[name];
+  if (!f) return;
+  const anchor = sheet.frameAnchors[name] || sheet.anchor;
+  const parts = sheet.wall.parts ? getSheet(sheet.wall.parts) : null;
+  const open = !wall.broken && !map.boarded(wall) && (wall.kind === "door" ? wall.open : wall.kind === "window" && wall.shutter === "open");
+  const outside = open && !o.ghost ? map.outsideSign(tx, ty, edge) : 0;
+  const leaves = (far) => (wall.kind === "door" ? [`leaf${far}_${side}`] : [`shutter${far}_left_${side}`, `shutter${far}_right_${side}`]);
+  // A leaf swung away from the camera stands behind the wall: drawn only when
+  // the wall is translucent, just before it (docs/17, ruling 2).
+  if (outside < 0 && o.faded) for (const p of leaves("_far")) wallPartQuad(parts, p, x, y, o);
+  wallPartQuad(sheet, name, x, y, o);
+  if (!o.faded && !o.ghost) {
+    const corners = edge === "n" ? [[0, -T / 2], [32, -T / 2], [32, T / 2], [0, T / 2]] : [[-T / 2, 0], [T / 2, 0], [T / 2, 32], [-T / 2, 32]];
+    emitCapFromFrame(sheet, name, anchor, [x, y - iso.HH], corners, h, [tx, ty], o.flags);
+  }
+  if (boards) wallPartQuad(getSheet(sheet.wall.boards || "wall_boards"), `boards_${boards}_${side}_${n}`, x, y, o);
+  if (outside > 0) for (const p of leaves("")) wallPartQuad(parts, p, x, y, o);
+}
+
 function isNearWall(tx, ty, edge, playerRoom) {
   if (playerRoom <= 0) return false;
   const t = map.tileAt(tx, ty);
@@ -206,13 +261,17 @@ function postDrawables(tiles, visible, playerRoom, out) {
     const wS = map.tileAt(tx, ty).w;
     const wN = map.tileAt(tx, ty - 1).w;
     if (!nE && !nW && !wS && !wN) continue;
-    if (nE && nW && !wS && !wN) continue;
-    if (wS && wN && !nE && !nW) continue;
+    // A straight run needs no post, unless the material changes there (docs/17:
+    // the three thicknesses leave a step in the cap).
+    if (nE && nW && !wS && !wN && nE.sprite === nW.sprite) continue;
+    if (wS && wN && !nE && !nW && wS.sprite === wN.sprite) continue;
     const walls = [nE, nW, wS, wN].filter(Boolean);
+    // The heavier material's post: stone over log over wood.
+    const rank = (s) => ({ stone: 3, log: 2, wood: 1 })[s.wall ? s.wall.material : s.pattern === "brick" ? "stone" : s.pattern === "log" ? "log" : "wood"] || 0;
     let sheet = getSheet(walls[0].sprite);
     for (const w of walls) {
       const s = getSheet(w.sprite);
-      if (s.pattern === "brick" && sheet.pattern !== "brick") sheet = s;
+      if (rank(s) > rank(sheet)) sheet = s;
     }
     const vis = visible.has(tileKey(tx, ty)) || visible.has(tileKey(tx - 1, ty)) || visible.has(tileKey(tx, ty - 1)) || visible.has(tileKey(tx - 1, ty - 1));
     const near = (nE && isNearWall(tx, ty, "n", playerRoom)) || (nW && isNearWall(tx - 1, ty, "n", playerRoom))
@@ -233,8 +292,8 @@ function makePost(tx, ty, sheet, vis, near) {
   const C = [x, y - T];
   const D = [x - T, y - T / 2];
   const up = ([px, py]) => [px, py - h];
-  const faded = near && cutaway !== "stub";
-  const hidden = near && cutaway === "stub";
+  const faded = near; // a near wall's post is translucent like the wall (docs/17: the stub mode retired)
+  const hidden = false;
   const alpha = faded ? NEAR_WALL_ALPHA : 1;
   const flags = vis ? gl.FLAG_NOFOG : 0;
   return {
@@ -242,6 +301,27 @@ function makePost(tx, ty, sheet, vis, near) {
     kind: "wall",
     emit() {
       if (hidden) return;
+      if (sheet.wall && sheet.wall.post) {
+        // The drawn post (docs/17), anchored on the vertex itself, its cap redrawn on the sky.
+        const ps = getSheet(sheet.wall.post);
+        const pf = ps.frames.idle_0;
+        if (pf) {
+          gl.quad(x - ps.anchor[0], y - ps.anchor[1], pf[2], pf[3], gl.frameUV(ps, "idle_0"), { world: [[tx - 1, ty], [tx, ty - 1], [tx, ty - 1], [tx - 1, ty]], heights: [pf[3], pf[3], 0, 0], color: [1, 1, 1, alpha], flags });
+          if (!faded) {
+            const uv = gl.frameUV(ps, "idle_0");
+            const pts = [];
+            const uvs = [];
+            for (const [X, Y] of [[-T / 2, -T / 2], [T / 2, -T / 2], [T / 2, T / 2], [-T / 2, T / 2]]) {
+              const ox = X - Y;
+              const oy = (X + Y) / 2 - h;
+              pts.push([x + ox, y + oy]);
+              uvs.push([uv[0] + ps.anchor[0] + ox, uv[1] + ps.anchor[1] + oy]);
+            }
+            gl.texQuad(pts, uvs, { world: [tx, ty], flags: flags | gl.FLAG_SKY });
+          }
+        }
+        return;
+      }
       // The post stands at the top vertex of (tx, ty); its left face continues
       // the north-wall line and looks onto (tx - 1, ty), its right face the
       // west-wall line and looks onto (tx, ty - 1); the top is the sky.
@@ -280,8 +360,9 @@ function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null) {
   const y = Math.round(p.y);
   const h = sheet.wallHeight || 72;
   const T = sheet.thickness || WALL_T;
-  const lowStub = stub && cutaway === "stub";
-  const faded = stub && !lowStub;
+  // `stub` is a near wall while the player is inside: drawn translucent (the low
+  // stub mode retired with the drawn walls, docs/17).
+  const faded = stub;
   const alpha = faded ? NEAR_WALL_ALPHA : 1;
   const flags = ghostTint ? GHOST_FLAGS() : vis ? gl.FLAG_NOFOG : 0;
   const color = sheet.color || "#888";
@@ -292,24 +373,27 @@ function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null) {
   const b = edge === "n" ? [x + iso.HW, y] : [x, y - iso.HH];
   const wa = edge === "n" ? [tx - 0.4, ty - 0.2] : [tx - 0.2, ty - 0.4];
   const wb = edge === "n" ? [tx + 0.4, ty - 0.2] : [tx - 0.2, ty + 0.4];
-  const br = wall.bracket && wall.bracket.side > 0 && !lowStub ? wall.bracket : null;
+  const br = wall.bracket && wall.bracket.side > 0 ? wall.bracket : null;
   let bx = 0;
   let by = 0;
   if (br) {
     bx = Math.round((a[0] + b[0]) / 2);
     by = Math.round((a[1] + b[1]) / 2 - Math.min(BRACKET_UP, h * 0.5));
+    if (sheet.wall) {
+      // A drawn wall is centred on its edge, so its near face is half the
+      // thickness nearer the camera: the bracket sits on that face.
+      bx += edge === "n" ? -Math.round(T / 2) : Math.round(T / 2);
+      by += Math.round(T / 4);
+    }
   }
   return {
     key: depth * 1000,
     kind: "wall",
     emit() {
       const tint = ghostTint || [1, 1, 1, alpha];
-      if (lowStub) {
-        const q = edge === "n" ? iso.toScreen(tx, ty - 1) : iso.toScreen(tx - 1, ty);
-        const name = edge === "n" ? `south_${stubVariant(variant)}_0` : `east_${stubVariant(variant)}_0`;
-        frameQuad(sheet, name, Math.round(q.x), Math.round(q.y), { world: [tx, ty], color: tint, flags }, false, edge === "n" ? sheet.anchorSouth : sheet.anchorEast);
-        return;
-      }
+      if (sheet.wall) {
+        emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, { wa, wb, tint, flags, faded, ghost: !!ghostTint });
+      } else {
       // Swung leaves only for a whole, open, unboarded leaf.
       const open = !wall.broken && !map.boarded(wall) && (wall.kind === "door" ? wall.open : wall.kind === "window" && wall.shutter === "open");
       const outside = open ? map.outsideSign(tx, ty, edge) : 0;
@@ -329,6 +413,7 @@ function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null) {
         : [[x - iso.HW, y - h], [x, y - iso.HH - h], [x - T, y - iso.HH - h - T / 2], [x - iso.HW - T, y - h - T / 2]];
       gl.poly(top, ghostTint ? ghostColor(shade(color, 1.18), ghostTint) : gl.rgb(shade(color, 1.18), alpha), { world: [tx, ty], flags: flags | gl.FLAG_SKY });
       if (open && outside > 0) emitSwungLeaves(wall, edge, x, y, h, outside, leafOpts);
+      }
       if (br) {
         const opts = { world: [tx, ty], flags };
         gl.poly([[bx - 2, by - 3], [bx + 2, by - 3], [bx + 2, by + 4], [bx - 2, by + 4]], gl.rgb(METAL, alpha), opts);

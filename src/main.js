@@ -16,7 +16,7 @@ import * as clock from "./clock.js";
 import * as light from "./light.js";
 import * as gl from "./gl.js";
 import * as ground from "./ground.js";
-import { renderScene, setCutaway, cutaway, night } from "./render.js";
+import { renderScene, night } from "./render.js";
 import { createPlayer, updatePlayer, damagePlayer, autoWalk, eat, drink } from "./entities/player.js";
 import { createZombie, updateZombie } from "./entities/zombie.js";
 import { initHud, updateHud } from "./ui/hud.js";
@@ -264,7 +264,6 @@ function update(dt) {
       view.zoomStep(-Math.sign(wheel));
     }
   }
-  if (input.wasPressed("KeyK")) setCutaway(cutaway === "stub" ? "translucent" : "stub");
   if (input.wasPressed("KeyL")) night.debug = (night.debug + 1) % 4;
   // Debug: ] and [ skip the clock an hour forward or back.
   if (input.wasPressed("BracketRight")) clock.setHour(clock.getHour() + 1);
@@ -398,7 +397,7 @@ function render() {
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `ground ${groundLine()}\n` +
     `zombies ${zombies.length}  near ${zombies.filter((z) => Math.abs(z.gx - player.gx) <= ACTIVE_TILES && Math.abs(z.gy - player.gy) <= ACTIVE_TILES).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
-    `Tab: bag   C: character   1-4: belt   N: build   X: remove   Z: zoom   right-click: actions   Esc: close or pause   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   K: near walls ${cutaway}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
+    `Tab: bag   C: character   1-4: belt   N: build   X: remove   Z: zoom   right-click: actions   Esc: close or pause   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
 }
 
 // ---- the panel's handlers: moves that involve a slot know the player ----

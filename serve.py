@@ -10,6 +10,14 @@ import sys
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 
+class ServerWithRoom(ThreadingHTTPServer):
+    # The game asks for a hundred or more images at once at boot; the default
+    # listen queue of 5 refused the overflow ("connection refused", a failed
+    # boot now and then). 2026-10-11.
+    request_queue_size = 128
+    daemon_threads = True
+
+
 class NoCacheHandler(SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header("Cache-Control", "no-store, must-revalidate")
@@ -80,4 +88,4 @@ if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
     print(f"Serving on http://localhost:{port} (no-cache)")
-    ThreadingHTTPServer(("127.0.0.1", port), NoCacheHandler).serve_forever()
+    ServerWithRoom(("127.0.0.1", port), NoCacheHandler).serve_forever()

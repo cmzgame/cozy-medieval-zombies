@@ -1,0 +1,16 @@
+{
+ "image": "data/art/village/post_log.png",
+ "frames": {
+  "idle_0": [
+   0,
+   0,
+   39,
+   99
+  ]
+ },
+ "anchor": [
+  19.0,
+  89.0
+ ],
+ "note": "a drawn corner post, anchored on the grid vertex itself (docs/17)"
+}

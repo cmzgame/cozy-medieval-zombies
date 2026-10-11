@@ -1,1 +1,66 @@
-{"placeholder": {"kind": "wall", "color": "#7b7670", "height": 80, "pattern": "brick", "thickness": 16}}
+{
+ "anchorVertex": "top",
+ "images": {
+  "north_plain": "data/art/village/wall_stone_north_plain.png",
+  "north_door_shut": "data/art/village/wall_stone_north_door_shut.png",
+  "north_door_open": "data/art/village/wall_stone_north_door_open.png",
+  "north_window_shut": "data/art/village/wall_stone_north_window_shut.png",
+  "north_window_open": "data/art/village/wall_stone_north_window_open.png",
+  "west_plain": "data/art/village/wall_stone_west_plain.png",
+  "west_door_shut": "data/art/village/wall_stone_west_door_shut.png",
+  "west_door_open": "data/art/village/wall_stone_west_door_open.png",
+  "west_window_shut": "data/art/village/wall_stone_west_window_shut.png",
+  "west_window_open": "data/art/village/wall_stone_west_window_open.png"
+ },
+ "anchors": {
+  "north_plain": [
+   8.0,
+   84.0
+  ],
+  "north_door_shut": [
+   8.0,
+   84.0
+  ],
+  "north_door_open": [
+   8.0,
+   84.0
+  ],
+  "north_window_shut": [
+   8.0,
+   84.0
+  ],
+  "north_window_open": [
+   8.0,
+   84.0
+  ],
+  "west_plain": [
+   40.0,
+   84.0
+  ],
+  "west_door_shut": [
+   40.0,
+   84.0
+  ],
+  "west_door_open": [
+   40.0,
+   84.0
+  ],
+  "west_window_shut": [
+   40.0,
+   84.0
+  ],
+  "west_window_open": [
+   40.0,
+   84.0
+  ]
+ },
+ "wall": {
+  "height": 80,
+  "thickness": 16,
+  "color": "#7b7670",
+  "material": "stone",
+  "post": "post_stone",
+  "parts": "wall_parts_stone"
+ },
+ "note": "a drawn wall (docs/17), five variants per side; anchors at the tile's top vertex"
+}
