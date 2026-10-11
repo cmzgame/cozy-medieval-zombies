@@ -39,6 +39,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-11 — The wall preview at 80, with openings fixed in pixels (Michael)
+
+Michael on the 96 px preview: too tall, try halfway (80 px); and the door got "comically large" because the openings scaled with the wall, which biased the comparison. **Ruled:** the preview offers 64 and 80; doors, windows, and torch brackets are fixed in pixels from the floor at their 64 px sizes (door top 51, window sill 22 and top 51, bracket 32: `DOOR_TOP`, `WINDOW_SILL`, `WINDOW_TOP`, `BRACKET_UP` in `placeholders.js`, used by the wall art and the swung leaves), so a taller wall only adds wall above them. At 64 nothing visible changes. The Claude Design brief's sizes follow whichever height Michael picks.
+
 ### 2026-10-11 — Cottage shutters, and a wall height preview (Michael)
 
 - **Ruled: open shutters fold back nearly flat against the outside wall,** about 160 degrees, each away from the window's middle, a little off the wall, as cottage shutters do. Changes the shutter half of the 2026-10-09 ruling; open doors still stand at 90 degrees. Done in the dev art now (`emitSwungLeaves` in `render.js`) and written into the Claude Design brief (`16-village-art-brief.md`, part 3).

@@ -15,7 +15,7 @@ import { shade } from "./render-util.js";
 import * as map from "./map.js";
 import * as light from "./light.js";
 import { tileKey } from "./visibility.js";
-import { WALL_T, WOOD, METAL } from "./placeholders.js";
+import { WALL_T, WOOD, METAL, DOOR_TOP, WINDOW_SILL, WINDOW_TOP, BRACKET_UP } from "./placeholders.js";
 import { getItem } from "./items.js";
 import * as gl from "./gl.js";
 import * as ground from "./ground.js";
@@ -167,8 +167,9 @@ function emitSwungLeaves(wall, edge, x, y, h, outside, opts) {
   const perp = edge === "n" ? [-iso.HW, iso.HH] : [iso.HW, iso.HH];
   const along = [b[0] - a[0], b[1] - a[1]]; // the whole edge, one tile long, like perp
   const isDoor = wall.kind === "door";
-  const y0 = isDoor ? 0 : h * 0.35;
-  const y1 = isDoor ? h * 0.82 : h * 0.8;
+  // Fixed heights from the floor, as the wall art's openings (placeholders.js).
+  const y0 = isDoor ? 0 : Math.min(WINDOW_SILL, h * 0.35);
+  const y1 = Math.min(isDoor ? DOOR_TOP + 1 : WINDOW_TOP, h - 4);
   if (isDoor) {
     const len = 0.55;
     const v = [perp[0] * len * outside, perp[1] * len * outside];
@@ -296,7 +297,7 @@ function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null) {
   let by = 0;
   if (br) {
     bx = Math.round((a[0] + b[0]) / 2);
-    by = Math.round((a[1] + b[1]) / 2 - h * 0.5);
+    by = Math.round((a[1] + b[1]) / 2 - Math.min(BRACKET_UP, h * 0.5));
   }
   return {
     key: depth * 1000,

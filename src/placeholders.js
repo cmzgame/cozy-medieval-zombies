@@ -80,6 +80,14 @@ export function generateFlat(ph) {
 // cosy (Michael, 2026-10-09).
 export const WALL_T = 12;
 
+// Openings in pixels from the floor, the same whatever the wall's height, so a
+// taller wall only adds wall above them (Michael, 2026-10-11: the door got
+// "comically large" with the walls). These are their sizes on the 64 px walls.
+export const DOOR_TOP = 51;
+export const WINDOW_SILL = 22;
+export const WINDOW_TOP = 51;
+export const BRACKET_UP = 32; // a torch bracket's height on its wall
+
 // Fittings are the same wood everywhere, whatever the wall: doors and shutters
 // are vertical planks with dark metal strips across them (Michael, 2026-10-09:
 // "I know this is not a thing but I like how it sounds").
@@ -363,8 +371,8 @@ function drawWallVariant(ctx, ox, oy, side, variantName, ph, T) {
     const lerp = (t, y) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t - y];
     const t0 = isDoor ? 0.2 : 0.25;
     const t1 = isDoor ? 0.8 : 0.75;
-    const y0 = isDoor ? 0 : h * 0.35;
-    const y1 = isDoor ? h * 0.8 : h * 0.8;
+    const y0 = isDoor ? 0 : Math.min(WINDOW_SILL, h * 0.35);
+    const y1 = Math.min(isDoor ? DOOR_TOP : WINDOW_TOP, h - 4);
     const quad = [lerp(t0, y0), lerp(t1, y0), lerp(t1, y1), lerp(t0, y1)];
     if (isDoor) {
       // Doors are open doorways: the opening is punched out after the wall is
