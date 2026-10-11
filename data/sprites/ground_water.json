@@ -1,1 +1,16 @@
-{"placeholder": {"kind": "ground", "variant": "water", "width": 128, "height": 64, "color": "#2f4a54", "light": "#557880", "dark": "#253d46"}}
+{
+ "image": "data/art/ground/water_0.png",
+ "frames": {
+  "idle_0": [
+   0,
+   0,
+   128,
+   64
+  ]
+ },
+ "anchor": [
+  0,
+  0
+ ],
+ "note": "still water (Claude Design, 2026-10-11), a seamless 128x64 world texture, no shore"
+}

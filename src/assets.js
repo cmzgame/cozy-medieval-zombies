@@ -174,7 +174,9 @@ async function sheetFromImages(def) {
   canvas.width = Math.max(1, w);
   canvas.height = Math.max(1, h);
   const ctx = canvas.getContext("2d");
-  imgs.forEach((img, i) => ctx.drawImage(img, at.get(paths[i])[0], 0));
+  // `mirrored`: every image mirrored at load, a second sheet from the same art
+  // (the farm's other furrow direction, docs/17).
+  imgs.forEach((img, i) => ctx.drawImage(def.mirrored ? canvasOf(img, true) : img, at.get(paths[i])[0], 0));
   const frames = {};
   for (const [name, path] of Object.entries(def.images)) frames[name] = [...at.get(path)];
   Object.assign(frames, def.frames || {});
@@ -183,7 +185,7 @@ async function sheetFromImages(def) {
   const sheet = {
     image: canvas,
     frames,
-    anchor: toCentreAnchor(def, def.anchor),
+    anchor: mirroredAnchor(def, toCentreAnchor(def, def.anchor), imgs[0]),
     frameAnchors,
     bounds: def.bounds,
     animations: def.animations || {},
@@ -194,6 +196,10 @@ async function sheetFromImages(def) {
   // names of its post and parts (leaves, shutters) sheets.
   if (def.wall) Object.assign(sheet, { wall: def.wall, wallHeight: def.wall.height, thickness: def.wall.thickness, color: def.wall.color });
   return sheet;
+}
+
+function mirroredAnchor(def, a, img) {
+  return def.mirrored && a && img ? [img.width - a[0], a[1]] : a;
 }
 
 // ---- furniture (docs/17, step 4) ----

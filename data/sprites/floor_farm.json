@@ -1,1 +1,13 @@
-{"placeholder": {"kind": "flat", "color": "#a08c3c", "alt": "#988536", "lines": "#6b5c26", "outline": false}}
+{
+ "images": {
+  "idle_0": "data/art/ground/farm_soil_0.png",
+  "idle_1": "data/art/ground/farm_soil_1.png",
+  "idle_2": "data/art/ground/farm_soil_2.png",
+  "idle_3": "data/art/ground/farm_soil_3.png"
+ },
+ "anchor": [
+  32,
+  16
+ ],
+ "note": "tilled soil (Claude Design, 2026-10-11), four variants, furrows continuous across every edge, as drawn; the bake picks a frame by hash"
+}

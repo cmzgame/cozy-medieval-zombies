@@ -23,7 +23,7 @@ It is a balancing act the whole way, and the answer is **by zone**: the two regi
 - **Doors are plank leaves with two dark metal strips.** Closed, the leaf fills the doorway; open, it swings out on the outside at the hinge jamb.
 - **Fittings are one wood everywhere** (`#5e4028`, strips `#2b2a32`), whatever the wall is made of.
 - **The setting is dark medieval fantasy.** Skeletons, plague doctors, scarecrow men would fit. Never a ceiling.
-- **Floors are wood or stone indoors; grass, dirt, farm, or cobble outdoors.** Re-decided 2026-10-11 (`15-ground.md`): cobblestone is allowed for squares and later roads, in dusky warm greys, never concrete; it is always laid in a dirt verge and never touches grass. Roads are dirt until authored otherwise. A farm tile is **dark tilled soil** with furrows, no plants (Michael, 2026-10-11: the crops supply the warmth; crops, the pumpkins among them, are sprites standing on it). The generated harvest-yellow tile stands in until Claude Design's soil arrives. The earth blends with ragged edges; laid floors are hard diamonds; there is no checker anywhere.
+- **Floors are wood or stone indoors; grass, dirt, farm, or cobble outdoors.** Re-decided 2026-10-11 (`15-ground.md`): cobblestone is allowed for squares and later roads, in dusky warm greys, never concrete; it is always laid in a dirt verge and never touches grass. Roads are dirt until authored otherwise. A farm tile is **dark tilled soil** with furrows, no plants (Michael, 2026-10-11: the crops supply the warmth; crops, the pumpkins among them, are sprites standing on it). Claude Design's soil arrived 2026-10-11, in four variants and two furrow directions (`floor_farm`, `floor_farm_y`, the second a mirror). The earth blends with ragged edges; laid floors are hard diamonds; there is no checker anywhere.
 - **Grass is dull.** A greyed green with a hint of blue, not a mowed lawn. Since the ground kit (2026-10-11) the grass is Michael's drawn tiles with base `(75, 95, 61)`, tinted per chunk between lush and dry and darker under canopy (`15-ground.md`).
 - **Fog is dusky purple at a light hand.** What you cannot see is shaded clearly but never distracts from what is there.
 - **Backgrounds are near-black purple**, not blue-grey.
@@ -38,8 +38,8 @@ It is a balancing act the whole way, and the answer is **by zone**: the two regi
 | Grass | drawn tiles, base `#4b5f3d` (was `#596f49` / `#526842` flat) | dull, cool; tinted 0.88 to 1.12 by patch noise, up to 20% darker under canopy |
 | Dirt | `#6e5a43`, specks `#5e4c37` and `#7a6650` (generated world texture until drawn) | roads; blends into grass with a ragged edge |
 | Cobble | stone `#6a6058`, top `#756a61`, gaps `#4a433d` (generated until drawn) | round stones packed at random, not rows; the square and its paths (a setting compares dirt); always in a dirt verge, never on grass |
-| Water (trial) | `#2f4a54`, ripples `#557880`, troughs `#253d46` (generated) | a 2×2 trial pond in a dirt bank; likely removed |
-| Farm | `#a08c3c` / `#988536`, furrows `#6b5c26` | the one warm ground |
+| Water | Claude Design's still water (2026-10-11): `#293f4c` to `#304957`, ripples `#4a6b7c` / `#6f8e9c` | a seamless world texture; the 2×2 trial pond in a dirt bank |
+| Farm | Claude Design's tilled soil (2026-10-11): base `#4a3524`, troughs `#2a1d14`, crests `#664b34` | dark soil; the crops supply the warmth |
 | Wood floor | `#5e452f` / `#573f2b` | |
 | Stone floor | `#67645e` / `#5f5c56` | |
 | Wood wall | `#6e4b32` planks | |

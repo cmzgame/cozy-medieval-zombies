@@ -1,0 +1,14 @@
+{
+ "images": {
+  "idle_0": "data/art/ground/farm_soil_0.png",
+  "idle_1": "data/art/ground/farm_soil_1.png",
+  "idle_2": "data/art/ground/farm_soil_2.png",
+  "idle_3": "data/art/ground/farm_soil_3.png"
+ },
+ "mirrored": true,
+ "anchor": [
+  32,
+  16
+ ],
+ "note": "the same soil mirrored at load: the furrows run along the other diagonal"
+}

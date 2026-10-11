@@ -4,6 +4,7 @@
     "floor_grass": "grass",
     "floor_dirt": "dirt",
     "floor_farm": "farm",
+    "floor_farm_y": "farm",
     "floor_cobble": "cobble",
     "floor_water": "water",
     "floor_wood": "laid",
@@ -11,7 +12,7 @@
   },
   "terrain": {
     "dirt":   { "priority": 1, "texture": "ground_dirt", "threshold": [0.15, 0.3], "lip": 0.18, "lipBand": 0.06, "includes": ["cobble", "water"] },
-    "farm":   { "priority": 2, "tiles": "floor_farm", "threshold": [0.40, 0.12], "lip": 0 },
+    "farm":   { "priority": 2, "tiles": ["floor_farm", "floor_farm_y"], "threshold": [0.40, 0.12], "lip": 0 },
     "cobble": { "priority": 3, "texture": "ground_cobble", "thresholdAbove": "dirt", "verge": 0.15, "lip": 0.12, "lipBand": 0.06 },
     "water":  { "priority": 4, "texture": "ground_water", "threshold": [0.40, 0.5], "thresholdAbove": "dirt", "verge": 0.15, "lip": 0.25, "lipBand": 0.07 }
   },

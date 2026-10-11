@@ -216,8 +216,10 @@ export async function init(mapJson) {
       const sheet = await assets.loadSprite(t.texture);
       k.texture = { w: sheet.image.width, h: sheet.image.height, px: pixelsOf(sheet.image) };
     } else if (t.tiles) {
-      await assets.loadSprite(t.tiles);
-      k.frame = frameOf(t.tiles, frameNames(t.tiles)[0]);
+      // Laid per tile from floor sheets, each tile a frame picked by hash from
+      // its own floor's sheet (the farm's two furrow directions, docs/17).
+      k.sheets = Array.isArray(t.tiles) ? t.tiles : [t.tiles];
+      for (const id of k.sheets) await assets.loadSprite(id);
     }
     terrain.push(k);
   }
@@ -257,11 +259,19 @@ function frameOf(sheetId, name) {
   return f;
 }
 
+const namesOf = new Map();
 function frameNames(sheetId) {
-  return Object.keys(assets.getSheet(sheetId).frames).filter((n) => n.startsWith("idle_")).sort();
+  let n = namesOf.get(sheetId);
+  if (!n) {
+    n = Object.keys(assets.getSheet(sheetId).frames).filter((k) => k.startsWith("idle_")).sort();
+    namesOf.set(sheetId, n);
+  }
+  return n;
 }
 
 // ---- the bake ----
+
+const NEIGHBOURS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
 
 // Every prop within `pad` tiles of the chunk whose definition has `key`, once each.
 function propsNear(x0, y0, pad, key) {
@@ -563,6 +573,10 @@ export function bakeImage(cx, cy, kindsOut = null) {
   const base = new Array(C * C);
   const top = new Array(C * C); // per tile: a laid floor's frame, or null
   const earthNear = new Uint8Array(C * C); // per tile: a blended kind in it or around it
+  // Per tile, for each kind laid from floor sheets: the frame its pixels read,
+  // from the tile's own floor if it is one of the kind's, else a neighbour's
+  // (so the blend spilling past the plot's edge carries on its furrows).
+  const tileFrames = terrain.map((t) => (t.sheets ? new Array(C * C) : null));
   const earth = new Set(terrain.map((t) => t.name));
   for (let ly = 0; ly < C; ly++) {
     for (let lx = 0; lx < C; lx++) {
@@ -578,6 +592,19 @@ export function bakeImage(cx, cy, kindsOut = null) {
         const names = frameNames(floor);
         top[o] = frameOf(floor, names[Math.floor(map.hash2(x, y, seed + 12) * names.length)]);
       } else top[o] = null;
+      for (let ti = 0; ti < terrain.length; ti++) {
+        const T = terrain[ti];
+        if (!T.sheets) continue;
+        let sheetId = T.sheets.includes(floor) ? floor : null;
+        for (const [dx, dy] of NEIGHBOURS) {
+          if (sheetId) break;
+          const nf = map.tileAt(x + dx, y + dy).floor;
+          if (T.sheets.includes(nf)) sheetId = nf;
+        }
+        sheetId = sheetId || T.sheets[0];
+        const names = frameNames(sheetId);
+        tileFrames[ti][o] = frameOf(sheetId, names[Math.floor(map.hash2(x, y, seed + 13) * names.length)]);
+      }
       for (let dy = 0; dy <= 2 && !earthNear[o]; dy++) for (let dx = 0; dx <= 2; dx++) for (const f of fields) if (f[(ly + dy) * FIELD + lx + dx] > 0) earthNear[o] = 1;
     }
   }
@@ -684,8 +711,8 @@ export function bakeImage(cx, cy, kindsOut = null) {
             cr = T.texture.px[tj];
             cg = T.texture.px[tj + 1];
             cb = T.texture.px[tj + 2];
-          } else if (T.frame) {
-            const fr = T.frame;
+          } else if (T.sheets) {
+            const fr = tileFrames[ti][o];
             const col = fx - fr.ox;
             const row = fy - fr.oy;
             if (col < 0 || row < 0 || col >= fr.w || row >= fr.h) continue;
