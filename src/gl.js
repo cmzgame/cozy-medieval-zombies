@@ -372,7 +372,9 @@ const WHITE = [1, 1, 1, 1];
 // A textured quad at (x, y, w, h) on screen from atlas rect uv. `world` is
 // one [gx, gy] for every corner or four, in the order TL, TR, BR, BL;
 // `heights` likewise one number or four.
-export function quad(x, y, w, h, uv, { world, heights = 0, color = WHITE, flags = 0, flip = false } = {}) {
+// `skew` leans the quad: its top edge moves that many pixels sideways while the
+// bottom stays put (a clicked thing's sway; docs/02, question 27).
+export function quad(x, y, w, h, uv, { world, heights = 0, color = WHITE, flags = 0, flip = false, skew = 0 } = {}) {
   grow(STRIDE * 6);
   const u0 = flip ? uv[2] : uv[0];
   const u1 = flip ? uv[0] : uv[2];
@@ -382,10 +384,10 @@ export function quad(x, y, w, h, uv, { world, heights = 0, color = WHITE, flags 
   const H = typeof heights === "number" ? [heights, heights, heights, heights] : heights;
   const x1 = x + w;
   const y1 = y + h;
-  vertex(x, y, u0, v0, W[0][0], W[0][1], H[0], color, flags);
-  vertex(x1, y, u1, v0, W[1][0], W[1][1], H[1], color, flags);
+  vertex(x + skew, y, u0, v0, W[0][0], W[0][1], H[0], color, flags);
+  vertex(x1 + skew, y, u1, v0, W[1][0], W[1][1], H[1], color, flags);
   vertex(x1, y1, u1, v1, W[2][0], W[2][1], H[2], color, flags);
-  vertex(x, y, u0, v0, W[0][0], W[0][1], H[0], color, flags);
+  vertex(x + skew, y, u0, v0, W[0][0], W[0][1], H[0], color, flags);
   vertex(x1, y1, u1, v1, W[2][0], W[2][1], H[2], color, flags);
   vertex(x, y1, u0, v1, W[3][0], W[3][1], H[3], color, flags);
 }

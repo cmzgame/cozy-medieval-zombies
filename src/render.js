@@ -329,8 +329,8 @@ function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null) {
 // ---- props and characters ----
 
 // One slice of a prop's sheet at a tile; `color` tints it (the ghost's green or red).
-function propSlice(sheet, name, f, x, y, tx, ty, flags, color) {
-  const opts = { world: [tx, ty], heights: f ? [f[3], f[3], 0, 0] : 0, flags };
+function propSlice(sheet, name, f, x, y, tx, ty, flags, color, skew = 0) {
+  const opts = { world: [tx, ty], heights: f ? [f[3], f[3], 0, 0] : 0, flags, skew };
   if (color) opts.color = color;
   frameQuad(sheet, name, x, y, opts);
 }
@@ -399,15 +399,18 @@ function emitGhost(ghost) {
   }
 }
 
-// A clicked interactable shakes side to side, a few pixels, dying away
-// (Michael, 2026-10-11: "I recognize you clicked me"). Whole pixels only.
-const WIGGLE_MS = 420;
-function wiggleOf(prop) {
+// A clicked interactable sways: its base stays put and its top leans one way,
+// then the other, dying away (Michael, 2026-10-11: "I recognize you clicked
+// me", then "a bit less jittery"). Tall things lean further: a pixel and a half
+// for a mushroom, up to five for a giant tree. Whole pixels at the top.
+const WIGGLE_MS = 560;
+function swayOf(prop, height) {
   if (!prop.pokedAt) return 0;
   const t = performance.now() - prop.pokedAt;
   if (t >= WIGGLE_MS) return 0;
   const k = t / WIGGLE_MS;
-  return Math.round(Math.sin(k * Math.PI * 6) * 2.2 * (1 - k));
+  const reach = Math.max(1.5, Math.min(5, height / 40));
+  return Math.round(Math.sin(k * Math.PI * 3) * reach * (1 - k));
 }
 
 function propDrawables(tiles, visible, out) {
@@ -424,7 +427,7 @@ function propDrawables(tiles, visible, out) {
     const f = sheet.frames[name];
     const p = iso.toScreen(tx, ty);
     const off = prop.offset || [0, 0];
-    const x = Math.round(p.x) + off[0] + wiggleOf(prop);
+    const x = Math.round(p.x) + off[0];
     const y = Math.round(p.y) + off[1];
     const rect = f
       ? sheet.bounds
@@ -443,7 +446,7 @@ function propDrawables(tiles, visible, out) {
       occluder: false,
       emit() {
         const flags = gl.FLAG_STANDING | (d.occluder ? gl.FLAG_OCCLUDER : 0);
-        propSlice(sheet, name, f, x, y, tx, ty, flags);
+        propSlice(sheet, name, f, x, y, tx, ty, flags, undefined, f ? swayOf(prop, f[3]) : 0);
         if (flame) frameQuad(sheet, flameName, x, y, { world: [tx, ty], flags: gl.FLAG_UNLIT });
       },
     };

@@ -930,8 +930,10 @@ export function interactableAt(sx, sy) {
   const tx = Math.round(g.gx);
   const ty = Math.round(g.gy);
   let best = null;
-  for (let dy = -2; dy <= 2; dy++) {
-    for (let dx = -2; dx <= 2; dx++) {
+  // A giant tree's crown is about six tiles up the screen from its trunk's
+  // tile, so look that far down the grid as well as a little around.
+  for (let dy = -2; dy <= 7; dy++) {
+    for (let dx = -2; dx <= 7; dx++) {
       const prop = map.tileAt(tx + dx, ty + dy).prop;
       if (!prop || !prop.interactable) continue;
       const r = propRect(prop, prop.tile[0], prop.tile[1]);
@@ -949,12 +951,18 @@ export function interactableAt(sx, sy) {
   return best ? best.prop : null;
 }
 
-// Poke the interactable under the cursor: true if there was one (so the click
-// is spent on it), whether or not it was resting.
+// Poke the interactable under the cursor: the thing poked, or null. It sways
+// unless it is still resting from the last poke.
 export function pokeAt(sx, sy) {
   const prop = interactableAt(sx, sy);
-  if (!prop) return false;
+  if (!prop) return null;
   const now = performance.now();
   if (!prop.pokedAt || now - prop.pokedAt >= POKE_COOLDOWN_MS) prop.pokedAt = now;
-  return true;
+  return prop;
+}
+
+// The actions of a thing the player clicked by its pixels (a tree's crown is
+// further up the screen than the menu's own search reaches).
+export function actionsForProp(prop, player) {
+  return propActions(prop, player);
 }

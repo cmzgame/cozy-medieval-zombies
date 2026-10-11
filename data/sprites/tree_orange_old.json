@@ -1,1 +1,1 @@
-{"image": "data/art/trees/tree_oak_L_orange.png", "frames": {"idle_0": [0, 0, 154, 196]}, "anchor": [77, 185], "bounds": {"x": 0, "y": 0, "w": 154, "h": 196}, "collide": {"radius": 0.3}, "wood": 6, "canopy": {"reach": 4}, "shadow": {"width": 0.42}, "leaves": "orange"}
+{"image": "data/art/trees/tree_oak_L_orange.png", "frames": {"idle_0": [0, 0, 154, 196]}, "anchor": [77, 185], "bounds": {"x": 0, "y": 0, "w": 154, "h": 196}, "collide": {"radius": 0.3}, "wood": 6, "canopy": {"reach": 4}, "shadow": {"width": 0.42}, "leaves": "orange", "interactable": true}

@@ -80,7 +80,11 @@ function handleMouse() {
     // other than walking there (none yet; question 27).
     const poked = interact.pokeAt(m.x, m.y);
     let actions = interact.actionsAt(m.x, m.y, player);
-    if (poked) actions = actions.filter((a) => a.kind !== "walk" && !/^Walk/.test(a.label || ""));
+    if (poked) {
+      // The thing clicked offers its own actions (a tree: Chop down), once each.
+      actions = actions.filter((a) => a.kind !== "walk" && !/^Walk/.test(a.label || ""));
+      for (const a of interact.actionsForProp(poked, player)) if (!actions.some((b) => b.label === a.label)) actions.push(a);
+    }
     if (actions.length) {
       const u = view.toUi(m.x, m.y);
       menu.openContextMenu(u.x, u.y, actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => interact.runAction(player, a) })));
@@ -289,10 +293,12 @@ function update(dt) {
   handleMouse();
   interact.updateInteract(player, dt);
   updatePlayer(player, dt);
-  // A left click on a mushroom or a rock (its visible pixels) pokes it instead
-  // of swinging: clicking on a thing means the thing.
-  const poked = clicked && !clickSpent && interact.pokeAt(input.getMouse().x, input.getMouse().y);
-  if (clicked && !clickSpent && !poked) combat.tryAttack(player, zombies);
+  // A left click swings; on a mushroom, a rock, or a tree (its visible pixels)
+  // that thing sways too. No meaning yet: an in-world to-do (Michael, 2026-10-11).
+  if (clicked && !clickSpent) {
+    interact.pokeAt(input.getMouse().x, input.getMouse().y);
+    combat.tryAttack(player, zombies);
+  }
   if (input.wasPressed("Space")) combat.tryShove(player, zombies);
   combat.updateCombat(player, zombies, dt);
   progress = interact.updateAction(player, dt);
