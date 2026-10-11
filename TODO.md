@@ -121,12 +121,12 @@ Each step checkable on its own. Michael looks after step 3.
 
 ## Milestone 10 — The village art comes in (see `docs/17-village-art-plumbing.md`)
 
-- [ ] Michael's rulings on the plan's defaults (stubs, far-side leaves, caps, chair facings, log walls, the map change).
+- [x] Michael's rulings on the plan's defaults (2026-10-11): stubs retire, far-side leaves not drawn, the cap redrawn with the sky flag from the same picture, boards as drawn overlays (polygons until they arrive), facings Zomboid style (at least one drawing plus its mirror per asymmetrical item), the hearth becomes the fireplace, log walls requested from Claude Design (`docs/18`).
 - [ ] Step 1: the loader (`images`, `anchorVertex`, per-frame anchors); the drawn floors.
 - [ ] Step 2: drawn walls and posts; boards as polygons; stubs retired.
 - [ ] Step 3: open leaves and shutters as sprites.
 - [ ] Step 4: furniture (slicing, mirroring, facings, flames); the map's fireplace and chairs.
-- [ ] Step 5: docs; the follow-up art request (caps, the log wall).
+- [ ] Step 5: docs. (The follow-up art request is written: `docs/18`.)
 
 ## Milestone 9 — The ground (see `docs/15-ground.md`)
 
