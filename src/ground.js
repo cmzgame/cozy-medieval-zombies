@@ -382,6 +382,7 @@ function stamp(out, img, sx, sy, flip, stand = false) {
 // distance from the trunk, as the darkening), `open` one no tree reaches.
 function bakeDecals(out, x0, y0, left, top, log = null) {
   const trees = propsNear(x0, y0, REACH_MAX + DECAL_PAD, "canopy").map(({ prop, def }) => ({ x: prop.tile[0], y: prop.tile[1], reach: def.canopy.reach, leaves: def.leaves || "brown" }));
+  bakeTreeDecals(out, trees, left, top, log);
   const LEAF_COLOURS = ["yellow", "orange", "red", "brown"];
   for (let y = y0 - DECAL_PAD; y < y0 + C + DECAL_PAD; y++) {
     for (let x = x0 - DECAL_PAD; x < x0 + C + DECAL_PAD; x++) {
@@ -414,7 +415,7 @@ function bakeDecals(out, x0, y0, left, top, log = null) {
       };
       const pick = (list) => list[Math.floor(roll() * list.length)];
       for (const d of bio.decals) {
-        if (!d.on.includes(kind)) continue;
+        if (d.kind === "perTree" || !d.on.includes(kind)) continue;
         if (d.kind === "leaves") {
           let n = 0;
           let colourOf = null;
@@ -437,6 +438,42 @@ function bakeDecals(out, x0, y0, left, top, log = null) {
         const [lo, hi] = d.count;
         const n = lo + Math.floor(roll() * (hi - lo + 1));
         for (let i = 0; i < n; i++) place(pick(d.files.all), d.id, null, !!d.stand);
+      }
+    }
+  }
+}
+
+// Decals that belong to a tree rather than a tile (`kind: "perTree"`, twigs):
+// each tree drops `count` of them, rolled from its own tile, at random points
+// within `radius` tiles of its trunk but not on the trunk itself. Every chunk
+// near a tree rolls the same ones and keeps the pixels it owns.
+function bakeTreeDecals(out, trees, left, top, log) {
+  for (const t of trees) {
+    const bio = biomeOf(t.x, t.y);
+    let k = 0;
+    const roll = () => map.hash2(t.x, t.y, seed + 60 + k++);
+    for (const d of bio.decals) {
+      if (d.kind !== "perTree") continue;
+      const [lo, hi] = d.count;
+      const n = lo + Math.floor(roll() * (hi - lo + 1));
+      const r = d.radius || 1.2;
+      for (let i = 0; i < n; i++) {
+        let u = 0;
+        let v = 0;
+        for (let tries = 0; tries < 6; tries++) {
+          u = (roll() * 2 - 1) * r;
+          v = (roll() * 2 - 1) * r;
+          if (Math.hypot(u, v) <= r && Math.hypot(u, v) >= 0.35) break;
+        }
+        const gx = t.x + u;
+        const gy = t.y + v;
+        const img = d.files.all[Math.floor(roll() * d.files.all.length)];
+        const flip = roll() < 0.5;
+        if (!d.on.includes(kindOf(map.tileAt(Math.round(gx), Math.round(gy)).floor))) continue;
+        const sx = (gx - gy) * 32 - left;
+        const sy = (gx + gy) * 16 - top;
+        if (out) stamp(out, img, sx, sy, flip, !!d.stand);
+        if (log) log.push({ tile: [t.x, t.y], id: d.id, colour: null, near: t.leaves, tree: true, wx: Math.round(sx + left), wy: Math.round(sy + top), gx, gy });
       }
     }
   }

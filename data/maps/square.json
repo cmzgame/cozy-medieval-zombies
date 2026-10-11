@@ -372,8 +372,8 @@
         32
       ],
       "density": [
-        0.04,
-        0.26
+        0.024,
+        0.156
       ],
       "biome": "harvest",
       "seed": 11
@@ -382,8 +382,8 @@
   "wild": {
     "biome": "harvest",
     "density": [
-      0.09,
-      0.29
+      0.054,
+      0.174
     ],
     "seed": 21,
     "zombiesPerChunk": [

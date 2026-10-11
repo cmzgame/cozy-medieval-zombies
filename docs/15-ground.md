@@ -4,6 +4,8 @@
 
 ## Status, 2026-10-11
 
+**Tuned by Michael after seeing the new art (2026-10-11):** every decal about halved, then mushrooms down by two thirds more and tufts by a third; twigs became a per-tree rule (0 to 2 within 1.2 tiles of each trunk); the generic forest is 40% thinner. Mushrooms are to become clickable and big rocks are wanted: both are interactables, not decals (question 27 in `02`).
+
 **The redrawn trees are in too (Michael's `trees_v2`, 2026-10-11):** all 36 drawn natively at final size, so the 1.5× resample is gone and they are crisp; definitions re-measured (frames, anchors four rows above the trunk's lowest pixel, bounds); acceptance nine of nine. Both requests in `15b` are now met.
 
 **The redrawn decals are in (Michael's `decals_v2` from Claude Design, 2026-10-11):** five leaf decals per colour (three piles, two scatters), five mushrooms (toadstools and brown and pale clusters), four flower clumps, three pebble groups, four tufts, three twigs, all hard-pixelled and readable at their size; they replaced the kit's files under the same names. Upright decals (mushrooms, flowers, tufts) now stand on their point (`"stand": true`) rather than centring on it; leaf counts scale by `perReach` (0.5) since the piles are bigger. The set also brought four large faceted "mineable rocks" (`rock_0` to `rock_3`): a new concept Michael will talk through, so their files sit in `data/art/ground/` unused. The trees in `tree_sprites(1)` were unchanged; the redrawn trees come separately. The bake's pixel loop now walks only each row's owned run; acceptance passes nine of nine (bakes 8.7 ms median, 12.9 worst).

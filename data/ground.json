@@ -38,11 +38,11 @@
             "red": ["data/art/ground/leaves_red_0.png", "data/art/ground/leaves_red_1.png", "data/art/ground/leaves_red_2.png", "data/art/ground/leaves_red_3.png", "data/art/ground/leaves_red_4.png"],
             "brown": ["data/art/ground/leaves_brown_0.png", "data/art/ground/leaves_brown_1.png", "data/art/ground/leaves_brown_2.png", "data/art/ground/leaves_brown_3.png", "data/art/ground/leaves_brown_4.png"]
           } },
-        { "id": "twig", "layer": "flat", "on": ["grass", "dirt"], "where": "near", "chance": 0.1, "count": [1, 1], "files": ["data/art/ground/twig_0.png", "data/art/ground/twig_1.png", "data/art/ground/twig_2.png"] },
+        { "id": "twig", "kind": "perTree", "layer": "flat", "on": ["grass", "dirt"], "count": [0, 2], "radius": 1.2, "files": ["data/art/ground/twig_0.png", "data/art/ground/twig_1.png", "data/art/ground/twig_2.png"] },
         { "id": "pebbles", "layer": "flat", "on": ["grass", "dirt"], "where": "any", "chance": 0.03, "count": [1, 1], "files": ["data/art/ground/pebbles_0.png", "data/art/ground/pebbles_1.png", "data/art/ground/pebbles_2.png"] },
         { "id": "flowers", "layer": "flat", "stand": true, "where": "open", "chance": 0.05, "count": [1, 1], "files": ["data/art/ground/flowers_0.png", "data/art/ground/flowers_1.png", "data/art/ground/flowers_2.png", "data/art/ground/flowers_3.png"] },
-        { "id": "tuft", "layer": "flat", "stand": true, "where": "any", "chance": 0.175, "count": [1, 2], "files": ["data/art/ground/tuft_0.png", "data/art/ground/tuft_1.png", "data/art/ground/tuft_2.png", "data/art/ground/tuft_3.png"] },
-        { "id": "mushroom", "layer": "flat", "stand": true, "where": "near", "chance": 0.125, "count": [1, 1], "files": ["data/art/ground/mushroom_0.png", "data/art/ground/mushroom_1.png", "data/art/ground/mushroom_2.png", "data/art/ground/mushroom_3.png", "data/art/ground/mushroom_4.png"] }
+        { "id": "tuft", "layer": "flat", "stand": true, "where": "any", "chance": 0.117, "count": [1, 2], "files": ["data/art/ground/tuft_0.png", "data/art/ground/tuft_1.png", "data/art/ground/tuft_2.png", "data/art/ground/tuft_3.png"] },
+        { "id": "mushroom", "layer": "flat", "stand": true, "where": "near", "chance": 0.042, "count": [1, 1], "files": ["data/art/ground/mushroom_0.png", "data/art/ground/mushroom_1.png", "data/art/ground/mushroom_2.png", "data/art/ground/mushroom_3.png", "data/art/ground/mushroom_4.png"] }
       ]
     }
   }
