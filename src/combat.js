@@ -267,21 +267,20 @@ export function effects() {
   return { wedge: fx.wedge, kick: fx.kick, hitStop: loop.getFreeze() };
 }
 
-// What the renderer draws for the hit shapes: the swing's wedge for a moment
-// after a swing, and, with the Show hit shapes setting on and a weapon held,
-// the wedge always and the body samples of the dead nearby, green for those in it.
+// What the renderer draws for the hit shapes: with the Show hit shapes setting
+// on and a weapon held, the body samples of the dead nearby, green for those in
+// the wedge. The wedge itself is still the hit test but is not drawn (Michael,
+// 2026-10-12: the Swing targets outline shows the same thing).
 export function overlays(player, zombies, showShapes) {
-  let wedge = fx.wedge ? fx.wedge.points : null;
   const dots = [];
   if (showShapes && holdsWeapon(player) && !player.dead) {
     const w = weaponOf(player);
-    if (!wedge) wedge = wedgePolygon(player, w);
     for (const z of zombies) {
       if (z.dead || Math.abs(z.gx - player.gx) > 6 || Math.abs(z.gy - player.gy) > 6) continue;
       const hit = inWedge(player, w, z);
       for (const [x, y] of bodySamples(z)) dots.push([x, y, hit]);
     }
   }
-  if (!wedge && !dots.length) return null;
-  return { wedge, dots, world: [player.gx, player.gy] };
+  if (!dots.length) return null;
+  return { dots, world: [player.gx, player.gy] };
 }

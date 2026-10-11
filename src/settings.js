@@ -13,7 +13,7 @@ export const DEFAULTS = {
   squareSurface: "cobble", // the square and its two paths: "cobble" or "dirt", to compare (docs/15, for now)
   showSwingTargets: false, // outline the zombies the next swing would hit (docs/14), for testing and for play
   multiHit: true, // on: a blow reaches everything in its wedge; off: only the nearest (docs/14)
-  showHitShapes: false, // draw the swing's wedge and the dead's body samples (docs/14)
+  showHitShapes: false, // draw the dead's body samples, green when the next swing reaches them (docs/14)
   freeBuilding: false, // on: building costs nothing (docs/13), for testing structures
   survival: false, // off: no hunger, thirst, or any other need; the body is a workbench too
   hairStyle: "short", // the player's hair, picked on the settings screen's Hair row; no choices row, the row is built live
@@ -29,7 +29,7 @@ export const CHOICES = {
   squareSurface: [["cobble", "Cobble"], ["dirt", "Dirt"]],
   showSwingTargets: [[false, "Off"], [true, "On (green outline on what you would hit)"]],
   multiHit: [[true, "On (everything in the wedge)"], [false, "Off (nearest only)"]],
-  showHitShapes: [[false, "Off"], [true, "On (wedge and body samples)"]],
+  showHitShapes: [[false, "Off"], [true, "On (body samples)"]],
   freeBuilding: [[false, "Off (costs apply)"], [true, "On (no costs)"]],
   survival: [[false, "Off (no hunger or thirst)"], [true, "On"]],
 };

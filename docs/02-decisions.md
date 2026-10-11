@@ -39,6 +39,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-12 — The swing's wedge is not drawn (Michael)
+
+The white cone on the ground is gone, both the flash after a swing and the always-on one under Show hit shapes: the Swing targets outline already shows what the next swing reaches. The wedge is still the hit test. Show hit shapes keeps the body-sample dots, green for the dead in reach. Also fixed the same morning: figures beside walls sort by a box test against each segment and post, so neither a wall nor a corner post draws over someone standing in front of it (`17`, status).
+
 ### 2026-10-12 — Clicks reach 2.6 tiles; translucent walls cut at their joints
 
 From Michael's play: things swayed and the well wound from across the map. **A click sways or animates a thing only within 2.6 tiles of the player**, the reach already used for placing, building, and removing (Claude's pick of the number; tunable as `CLICK_REACH` in `interact.js`). A far right-click still finds the thing and offers its actions, which walk you there. And the near walls' night banding was overlap drawn twice at the wall's alpha, not light: translucent segments are now cut where their neighbour or a post takes over (`17`, status).

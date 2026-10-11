@@ -571,10 +571,11 @@ function emitPropCells(sheet, cells, ok, prop = null) {
   }
 }
 
-// The swing's wedge and, with Show hit shapes, the dead's body samples (docs/14).
+// With Show hit shapes, the dead's body samples, green for those the next
+// swing would hit (docs/14). The swing's wedge is no longer drawn (Michael,
+// 2026-10-12: the Swing targets outline already shows what a swing reaches).
 function emitHitShapes(o) {
   const flags = gl.FLAG_NOFOG | gl.FLAG_UNLIT;
-  if (o.wedge && o.wedge.length > 2) gl.poly(o.wedge, gl.rgb("#ffffff", 0.18), { world: o.world, flags });
   for (const [x, y, hit] of o.dots) {
     const c = gl.rgb(hit ? "#60ff60" : "#a0a0a0", hit ? 0.95 : 0.6);
     gl.poly([[x - 1, y - 1], [x + 1, y - 1], [x + 1, y + 1], [x - 1, y + 1]], c, { world: o.world, flags });
@@ -721,37 +722,42 @@ function floorItemDrawables(tiles, visible, out) {
 const SWING_OUTLINE = [0.38, 1, 0.38, 1];
 const SWING_OUTLINE_OFFSETS = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]];
 
-// A figure's sort sum, kept on the right side of the walls beside it (Michael,
-// 2026-10-12: standing against a wall's outer face near the top end of a
-// segment, the segment drew over him). A wall sorts by its midpoint, a figure
-// by where it stands, and a figure near a segment's far end sums less than the
-// segment though it stands in front of it. So against each wall whose segment
-// it could overlap on screen, a figure in front of the wall's plane sorts just
-// after it and one behind just before; otherwise by where it stands.
+// A figure's sort sum, kept on the right side of the walls and posts beside
+// it (Michael, 2026-10-12: standing against a wall's outer face near the top
+// end of a segment, or just round a corner, the wall or the post drew over
+// him). A wall sorts by its midpoint, a post by its vertex, a figure by where
+// it stands, and near a segment's end those disagree with what is in front.
+// Each wall segment and post is a box on the ground (the thickness either side
+// of its line); a figure past the box's near side on either axis stands in
+// front of it and sorts just after it, one past its far side on either axis
+// stands behind it and sorts just before, and one that is both (beyond a
+// segment's end, round a corner) or neither leaves it out.
+const WALL_HALF = 0.28; // tiles: half the thickest wall (18 px), a little over
 function besideWalls(gx, gy) {
   const s = gx + gy;
   let lo = -Infinity;
   let hi = Infinity;
+  const side = (x0, x1, y0, y1, k) => {
+    if (gx < x0 - 1 || gx > x1 + 1 || gy < y0 - 1 || gy > y1 + 1) return; // too far to overlap on screen
+    const front = gx >= x1 || gy >= y1;
+    const behind = gx <= x0 || gy <= y0;
+    if (front && !behind) lo = Math.max(lo, k);
+    else if (behind && !front) hi = Math.min(hi, k);
+  };
   const x0 = Math.round(gx);
   const y0 = Math.round(gy);
   for (let ty = y0 - 1; ty <= y0 + 2; ty++) {
     for (let tx = x0 - 1; tx <= x0 + 2; tx++) {
       const t = map.tileAt(tx, ty);
-      // A west wall is the plane x = tx - 0.5 over y in [ty - 0.5, ty + 0.5];
-      // a north wall the plane y = ty - 0.5 over x in [tx - 0.5, tx + 0.5].
-      // Both sort at tx + ty - 0.5.
-      const k = tx + ty - 0.5;
-      if (t.w && Math.abs(gx - (tx - 0.5)) < 1 && Math.abs(gy - ty) < 1) {
-        if (gx > tx - 0.5) lo = Math.max(lo, k);
-        else hi = Math.min(hi, k);
-      }
-      if (t.n && Math.abs(gy - (ty - 0.5)) < 1 && Math.abs(gx - tx) < 1) {
-        if (gy > ty - 0.5) lo = Math.max(lo, k);
-        else hi = Math.min(hi, k);
-      }
+      // A west wall lies on x = tx - 0.5 over y in [ty - 0.5, ty + 0.5], a north
+      // wall on y = ty - 0.5 over x in [tx - 0.5, tx + 0.5]; both sort at
+      // tx + ty - 0.5. The post at the tile's top vertex sorts at tx + ty - 1.
+      if (t.w) side(tx - 0.5 - WALL_HALF, tx - 0.5 + WALL_HALF, ty - 0.5, ty + 0.5, tx + ty - 0.5);
+      if (t.n) side(tx - 0.5, tx + 0.5, ty - 0.5 - WALL_HALF, ty - 0.5 + WALL_HALF, tx + ty - 0.5);
+      if (postAt(tx, ty, 0)) side(tx - 0.5 - WALL_HALF, tx - 0.5 + WALL_HALF, ty - 0.5 - WALL_HALF, ty - 0.5 + WALL_HALF, tx + ty - 1 + 0.0005);
     }
   }
-  if (lo > hi) return s; // between walls that disagree (a corner seen from inside): where it stands
+  if (lo > hi) return s; // between things that disagree: where it stands
   if (s <= lo) return lo + 0.01;
   if (s >= hi) return hi - 0.01;
   return s;

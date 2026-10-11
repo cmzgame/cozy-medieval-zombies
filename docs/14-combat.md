@@ -137,7 +137,7 @@ Michael's test (2026-10-11): never a swing whose animation visibly clips a zombi
 2. **The body is hit, not the feet.** A zombie whose sprite overlaps the wedge is in it, because the samples run up its body and the down-screen slack covers the case where its feet are a tile away but its head is on your legs.
 3. **The swing is never lost.** It resolves on the click; the arm's animation is a picture of a decision already made, about eighty milliseconds behind, which play cannot see.
 
-A **Show hit shapes** setting (off by default, beside the debug corner) keeps the wedge drawn whenever a weapon is held and marks each zombie's body samples as dots, so a miss can be read on screen rather than argued about. It is the first thing to turn on when a hit feels wrong.
+**The wedge is no longer drawn (Michael, 2026-10-12):** neither the flash after a swing nor under Show hit shapes, since the Swing targets outline already shows what the next swing reaches; it is still the hit test, so rule 1 holds through the outline. A **Show hit shapes** setting (off by default, beside the debug corner) marks each zombie's body samples as dots, green for those the next swing reaches, so a miss can be read on screen rather than argued about. It is the first thing to turn on when a hit feels wrong.
 
 ## Swing targets (the outline)
 
