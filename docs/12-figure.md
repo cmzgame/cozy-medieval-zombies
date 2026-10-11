@@ -100,6 +100,10 @@ The same rig and the same garments. A zombie is a body with a decay tint, a woun
 - Garments live on items: `art: { shape, colours, torn? }`. Held art likewise: `held: { shape, colours }`.
 - The sheet gains `joints`: per frame, each hand's pixel position, forearm direction, and whether it is in front of the body, and the head's position. The renderer uses them for held items and the carried box; nothing else needs them. The draw order is internal to the generator.
 
+## Pinned: the creation screen, and colour apart from shape (Michael, 2026-10-12)
+
+Not now, not to be lost. When the creation screen is scoped, **colour is a separate choice from shape for hair, facial hair, and eyes**, the way a dyed garment is a colour on a shape (`19-characters.md`, the dyed entry): a pigtail shape in ten colours, the same for any beard, and eyes with one shape and any colour. Today the generated hair takes `look.hair` and the generated eyes `look.eyes`, so those two already separate; **painted layers do not**: the layer editor (`tools/layers.html`) paints literal hex pixels, so a painted hair style bakes its own colours. Separating them means painted hair and facial hair are painted in a small **tone ramp** (shadow, base, highlight, perhaps an outline tone) that the bake recolours from the chosen colour, with the editor showing the ramp in a preview colour and the dropper and fill working in tones. The same ramp is how a painted garment would take a dye. Facial hair is a slot the rig does not have yet; it joins hair as a painted layer over the face. All of it is the creation screen's scope, with the look parameters (`skin, hair, hairStyle, eyes`) and whatever facial hair adds, on the settings screen's pattern (`02`, the pins of 2026-10-10).
+
 ## Not in this milestone
 
 - Real art, and the commission. The spec sheet is the output of this milestone: facings, frame counts, anchors, joint names, garment shapes, order table, all frozen by play before anyone is asked to match them.
