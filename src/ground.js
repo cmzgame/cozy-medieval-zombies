@@ -12,10 +12,18 @@
 // own roll), or a floor sheet's frame. Pixels no tile of the chunk owns stay
 // transparent, so neighbouring chunks meet without a seam or an overlap.
 //
-// Built so far: step 1 (grass by hash, laid floors, the ownership clip) and
+// Built so far: step 1 (grass by hash, laid floors, the ownership clip),
 // step 2 (the patch tint and canopy darkening on the grass, baked tree
-// shadows). Until step 4, dirt and farm draw as their sheet's first frame, a
-// hard diamond.
+// shadows), and step 3 (flat decals: leaf litter in the nearest tree's colour,
+// twigs, pebbles, flowers, tufts, mushrooms, by the rules in data/ground.json).
+// Until step 4, dirt and farm draw as their sheet's first frame, a hard
+// diamond.
+//
+// Decals are drawn after the grass and before the shadows, so a tree's shadow
+// falls across its own litter. Each tile's decals come from that tile's
+// hashes alone, and a chunk draws the decals of the tiles two beyond its edge
+// too, keeping only the pixels it owns: a decal that spills over a chunk
+// border is drawn whole, half by each chunk, at the same world position.
 //
 // The tint is read from a grid of samples four to a tile, one tile beyond the
 // chunk on every side, and interpolated per pixel, so it drifts smoothly with
@@ -41,7 +49,7 @@ let seed = 1;
 const biomes = new Map(); // name -> { grass: [{ w, h, px }], base: [r, g, b] }
 const frames = new Map(); // "sheet|frame" -> { w, h, px, ox, oy }
 const chunks = new Map(); // chunkKey -> { cx, cy, rec, dirty }
-const stat = { baked: 0, lastMs: 0, maxMs: 0 };
+const stat = { baked: 0, lastMs: 0, maxMs: 0, phases: {} }; // phases: the last bake's ms per phase
 
 // ---- ownership, the same for every chunk ----
 
@@ -128,8 +136,25 @@ export async function init(mapJson) {
       const img = await loadImage(src);
       grass.push({ w: img.width, h: img.height, px: pixelsOf(img) });
     }
+    const decals = [];
+    for (const d of b.decals || []) {
+      // `files` is a list, or for litter an object of lists by colour.
+      const load = async (list) => {
+        const out = [];
+        for (const src of list) {
+          const img = await loadImage(src);
+          out.push(decalOf(img));
+        }
+        return out;
+      };
+      const files = {};
+      if (Array.isArray(d.files)) files.all = await load(d.files);
+      else for (const [colour, list] of Object.entries(d.files)) files[colour] = await load(list);
+      decals.push({ ...d, files, on: d.on || ["grass"], count: d.count || [1, 1], flip: d.flip !== false });
+    }
     biomes.set(name, {
       grass,
+      decals,
       base: b.grassBase || [75, 95, 61],
       patch: b.patch || { scaleA: 5, scaleB: 2.2, mix: 0.7, r: [1, 0], g: [1, 0], b: [1, 0] },
       canopy: b.canopy || { perTree: 0, max: 0 },
@@ -233,6 +258,117 @@ function tintGrid(x0, y0) {
   return [R, G, B];
 }
 
+// ---- decals ----
+
+const DECAL_PAD = 2; // tiles beyond the chunk whose decals may spill into it
+
+// A decal image as the list of its visible pixels: most of a decal is empty,
+// so stamping walks only what shows. Each dot is col, row, r, g, b, a.
+function decalOf(img) {
+  const px = pixelsOf(img);
+  const dots = [];
+  for (let r = 0; r < img.height; r++) {
+    for (let c = 0; c < img.width; c++) {
+      const j = (r * img.width + c) * 4;
+      if (px[j + 3] > 0) dots.push(c, r, px[j], px[j + 1], px[j + 2], px[j + 3]);
+    }
+  }
+  return { w: img.width, h: img.height, dots: new Int16Array(dots) };
+}
+
+// Draw one decal with its centre at canvas (sx, sy), mirrored or not, onto
+// the pixels this chunk owns.
+function stamp(out, img, sx, sy, flip) {
+  const dx = Math.round(sx - img.w / 2);
+  const dy = Math.round(sy - img.h / 2);
+  if (dx + img.w <= 0 || dy + img.h <= 0 || dx >= W || dy >= H) return;
+  const d = img.dots;
+  for (let n = 0; n < d.length; n += 6) {
+    const px = dx + (flip ? img.w - 1 - d[n] : d[n]);
+    const py = dy + d[n + 1];
+    if (px < 0 || py < 0 || px >= W || py >= H) continue;
+    const i = py * W + px;
+    if (OWNER[i] < 0) continue;
+    const k = i * 4;
+    const a = d[n + 5];
+    if (a === 255) {
+      out[k] = d[n + 2];
+      out[k + 1] = d[n + 3];
+      out[k + 2] = d[n + 4];
+    } else {
+      const f = a / 255;
+      out[k] = Math.round(out[k] * (1 - f) + d[n + 2] * f);
+      out[k + 1] = Math.round(out[k + 1] * (1 - f) + d[n + 3] * f);
+      out[k + 2] = Math.round(out[k + 2] * (1 - f) + d[n + 4] * f);
+    }
+  }
+}
+
+// The decals of every tile of the chunk and DECAL_PAD beyond, by the biome's
+// rules. `near` is a tile some tree's canopy reaches (by straight-line
+// distance from the trunk, as the darkening), `open` one no tree reaches.
+function bakeDecals(out, x0, y0, left, top, log = null) {
+  const trees = propsNear(x0, y0, REACH_MAX + DECAL_PAD, "canopy").map(({ prop, def }) => ({ x: prop.tile[0], y: prop.tile[1], reach: def.canopy.reach, litter: def.litter || "brown" }));
+  const LITTER = ["yellow", "orange", "red", "brown"];
+  for (let y = y0 - DECAL_PAD; y < y0 + C + DECAL_PAD; y++) {
+    for (let x = x0 - DECAL_PAD; x < x0 + C + DECAL_PAD; x++) {
+      const kind = kindOf(map.tileAt(x, y).floor);
+      const bio = biomeOf(x, y);
+      if (!bio.decals.length) continue;
+      // The nearest tree whose reach covers this tile; the first found wins a tie.
+      let near = null;
+      let nd = Infinity;
+      for (const t of trees) {
+        const d = Math.hypot(x - t.x, y - t.y);
+        if (d < t.reach && d < nd) {
+          near = t;
+          nd = d;
+        }
+      }
+      let k = 0;
+      const roll = () => map.hash2(x, y, seed + 20 + k++);
+      const cxp = (x - y) * 32 - left;
+      const cyp = (x + y) * 16 - top;
+      const place = (img, id, colour = null) => {
+        // A point uniform in the tile's diamond: uniform in grid space.
+        const u = roll() - 0.5;
+        const v = roll() - 0.5;
+        const flip = roll() < 0.5;
+        const sx = cxp + (u - v) * 32;
+        const sy = cyp + (u + v) * 16;
+        if (out) stamp(out, img, sx, sy, flip);
+        if (log) log.push({ tile: [x, y], id, colour, near: near ? near.litter : null, wx: Math.round(sx + left), wy: Math.round(sy + top) });
+      };
+      const pick = (list) => list[Math.floor(roll() * list.length)];
+      for (const d of bio.decals) {
+        if (!d.on.includes(kind)) continue;
+        if (d.kind === "litter") {
+          let n = 0;
+          let colourOf = null;
+          if (near) {
+            n = Math.max(0, Math.floor(near.reach - nd)) + (roll() < d.extraChance ? 1 : 0);
+            colourOf = () => (roll() < d.treeColour ? near.litter : "brown");
+          } else if (roll() < d.openChance) {
+            n = 1;
+            colourOf = () => LITTER[Math.floor(roll() * LITTER.length)];
+          }
+          for (let i = 0; i < n; i++) {
+            const colour = colourOf();
+            const list = d.files[colour] || d.files.brown;
+            if (list && list.length) place(pick(list), d.id, colour);
+          }
+          continue;
+        }
+        const ok = d.where === "near" ? !!near : d.where === "open" ? !near : true;
+        if (!ok || roll() >= d.chance) continue;
+        const [lo, hi] = d.count;
+        const n = lo + Math.floor(roll() * (hi - lo + 1));
+        for (let i = 0; i < n; i++) place(pick(d.files.all), d.id);
+      }
+    }
+  }
+}
+
 // Soft stepped shadows under every prop that declares one, within REACH_MAX
 // of the chunk (a shadow can reach in from a neighbour): `steps` ellipses from
 // the full size down to half, each darkening by `alpha`, Habbo-stepped, never a
@@ -266,9 +402,9 @@ function bakeShadows(out, x0, y0, left, top) {
         for (let s = 0; s < steps; s++) if (e <= 1 - (steps > 1 ? (s * 0.5) / (steps - 1) : 0)) n++;
         const f = keep[n];
         const k = i * 4;
-        out[k] = Math.round(out[k] * f);
-        out[k + 1] = Math.round(out[k + 1] * f);
-        out[k + 2] = Math.round(out[k + 2] * f);
+        out[k] = out[k] * f;
+        out[k + 1] = out[k + 1] * f;
+        out[k + 2] = out[k + 2] * f;
       }
     }
   }
@@ -279,6 +415,13 @@ function bakeShadows(out, x0, y0, left, top) {
 export function bakeImage(cx, cy) {
   const x0 = cx * C;
   const y0 = cy * C;
+  const ph = {};
+  let tp = performance.now();
+  const lap = (name) => {
+    const now = performance.now();
+    ph[name] = now - tp;
+    tp = now;
+  };
   const grass = new Array(C * C); // per tile: the grass source
   const flip = new Uint8Array(C * C);
   const base = new Array(C * C);
@@ -301,7 +444,9 @@ export function bakeImage(cx, cy) {
       } else top[o] = frameOf(floor, frameNames(floor)[0]); // the earth kinds, hard until step 4
     }
   }
+  lap("tiles");
   const [TR, TG, TB] = tintGrid(x0, y0);
+  lap("tint");
   const img = new ImageData(W, H);
   const out = img.data;
   for (let i = 0; i < W * H; i++) {
@@ -352,12 +497,20 @@ export function bakeImage(cx, cy) {
     const q1 = q + 1;
     const q2 = q + GRID;
     const q3 = q2 + 1;
-    out[k] = Math.round(r * (TR[q] * w00 + TR[q1] * w10 + TR[q2] * w01 + TR[q3] * w11));
-    out[k + 1] = Math.round(gg * (TG[q] * w00 + TG[q1] * w10 + TG[q2] * w01 + TG[q3] * w11));
-    out[k + 2] = Math.round(bb * (TB[q] * w00 + TB[q1] * w10 + TB[q2] * w01 + TB[q3] * w11));
+    // ImageData's bytes round and clamp what they are given, the same way every time.
+    out[k] = r * (TR[q] * w00 + TR[q1] * w10 + TR[q2] * w01 + TR[q3] * w11);
+    out[k + 1] = gg * (TG[q] * w00 + TG[q1] * w10 + TG[q2] * w01 + TG[q3] * w11);
+    out[k + 2] = bb * (TB[q] * w00 + TB[q1] * w10 + TB[q2] * w01 + TB[q3] * w11);
     out[k + 3] = 255;
   }
-  bakeShadows(out, x0, y0, (x0 - y0 - C) * 32, (x0 + y0) * 16 - 16);
+  lap("pixels");
+  const canvasLeft = (x0 - y0 - C) * 32;
+  const canvasTop = (x0 + y0) * 16 - 16;
+  bakeDecals(out, x0, y0, canvasLeft, canvasTop);
+  lap("decals");
+  bakeShadows(out, x0, y0, canvasLeft, canvasTop);
+  lap("shadows");
+  stat.phases = ph;
   return img;
 }
 
@@ -365,7 +518,10 @@ export function bakeImage(cx, cy) {
 export function bakeNow(cx, cy) {
   const t0 = performance.now();
   const key = map.chunkKey(cx, cy);
-  const rec = gl.uploadGround(key, bakeImage(cx, cy));
+  const img = bakeImage(cx, cy);
+  const tu = performance.now();
+  const rec = gl.uploadGround(key, img);
+  stat.phases.upload = performance.now() - tu;
   chunks.set(key, { cx, cy, rec, dirty: false });
   stat.baked++;
   stat.lastMs = performance.now() - t0;
@@ -476,10 +632,20 @@ export function invalidate(tiles, prop = null) {
 }
 
 export function stats() {
-  return { baked: stat.baked, lastMs: stat.lastMs, maxMs: stat.maxMs, textures: chunks.size };
+  return { baked: stat.baked, lastMs: stat.lastMs, maxMs: stat.maxMs, textures: chunks.size, phases: stat.phases };
 }
 
 // ---- for testing and for Michael ----
+
+// Every decal a chunk draws, with its tile, rule, colour, and world position,
+// for testing the rules (docs/15).
+export function decalsFor(cx, cy) {
+  const x0 = cx * C;
+  const y0 = cy * C;
+  const log = [];
+  bakeDecals(null, x0, y0, (x0 - y0 - C) * 32, (x0 + y0) * 16 - 16, log);
+  return log;
+}
 
 // A short hash of a chunk's bake: equal hashes, equal bytes.
 export function hashChunk(cx, cy) {
