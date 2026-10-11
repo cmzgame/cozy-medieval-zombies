@@ -29,7 +29,7 @@ export const night = {
   alpha: 0.96,
   pool: 190,
   poolStrength: 0.42,
-  climb: 56, // px a pool climbs a wall face or a trunk; 0 for the flat face
+  climb: 70, // px a pool climbs a wall face or a trunk; 0 for the flat face (56 on the old 64 px walls)
   linear: true,
   standingFloor: 0, // a floor on the light of props and characters, for legibility
   debug: 0, // 0 none, 1 the light texture, 2 ambient, 3 fog (the L key)

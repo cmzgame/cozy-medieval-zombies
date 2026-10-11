@@ -77,13 +77,15 @@ export function generateFlat(ph) {
 // Wall thickness in screen pixels: the top face and end caps extend this far
 // "behind" the wall plane, which sells the diorama look.
 // Thicker than the parent's 6 px: thin reads modern, thick reads chonky and
-// cosy (Michael, 2026-10-09).
-export const WALL_T = 12;
+// cosy (Michael, 2026-10-09); thicker again on 2026-10-11.
+// 18 since 2026-10-11 (Michael: half again as thick), with 80 px walls.
+export const WALL_T = 18;
 
 // Openings in pixels from the floor, the same whatever the wall's height, so a
 // taller wall only adds wall above them (Michael, 2026-10-11: the door got
-// "comically large" with the walls). These are their sizes on the 64 px walls.
-export const DOOR_TOP = 51;
+// "comically large" with the walls). Their sizes on the old 64 px walls, the
+// door then a hair shorter (51 to 48, Michael, on the 80 px walls).
+export const DOOR_TOP = 48;
 export const WINDOW_SILL = 22;
 export const WINDOW_TOP = 51;
 export const BRACKET_UP = 32; // a torch bracket's height on its wall

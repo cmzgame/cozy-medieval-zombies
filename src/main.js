@@ -357,20 +357,6 @@ function update(dt) {
   timing.stepMax = Math.max(timing.stepMax, timing.step);
 }
 
-// The wall height preview (docs/16, part 4): every generated wall sheet the map
-// uses, rebuilt at the setting's height, live.
-const WALL_SPRITES = ["wall_wood", "wall_stone", "wall_log"];
-function applyWallHeight() {
-  const h = settings.get("wallPreviewHeight") || 64;
-  for (const id of WALL_SPRITES) {
-    let sheet = null;
-    try { sheet = assets.getSheet(id); } catch { continue; }
-    if (sheet.wallHeight === h) continue;
-    gl.forgetSheet(sheet);
-    assets.rebuildWall(id, h);
-  }
-}
-
 let squareTiles = [];
 function applySquareSurface() {
   const floor = settings.get("squareSurface") === "dirt" ? "floor_dirt" : "floor_cobble";
@@ -627,10 +613,8 @@ async function boot() {
     for (let y = fy; y < fy + fh; y++) for (let x = fx; x < fx + fw; x++) squareTiles.push([x, y]);
   }
   applySquareSurface();
-  applyWallHeight();
   settings.onChange((key) => {
     if (key === "squareSurface") applySquareSurface();
-    if (key === "wallPreviewHeight") applyWallHeight();
   });
   // The ground's pictures for the view and a ring around it, before the
   // first frame (docs/15); the title screen covers the wait.

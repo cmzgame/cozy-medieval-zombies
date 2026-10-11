@@ -1,6 +1,32 @@
 # 16 — Art brief for Claude Design: the village
 
-Michael, 2026-10-11, after the trees, the ground decals, and the rocks came back well: more work in the same style. Four parts, each with a request to paste into Claude Design. Everything between the fences is meant to be pasted as it is. Part 4 (wall height) should be settled before part 2 is commissioned, since it changes every wall's size.
+Michael, 2026-10-11, after the trees, the ground decals, and the rocks came back well: more work in the same style. Each part has a request to paste into Claude Design; everything between the fences is meant to be pasted as it is. **Settled since the first draft (Michael, 2026-10-11):** walls are **80 px tall** and **18 px thick**; doors and windows keep fixed sizes from the floor (door 48 px tall); open shutters fold back flat against the wall. The section below answers the questions Claude Design asked before drawing.
+
+## Answers to Claude Design's questions
+
+Claude Design looked at a screenshot and asked seven things before drawing. Michael can paste this section to it as it stands.
+
+```
+Answers to your questions, from the engine as it is now:
+
+1. Wall geometry. One wall segment covers one tile edge: 32 px across and 16 px up the screen along the diamond's edge. Walls are 80 px tall and 18 px thick; the top cap is the wall's thickness seen from above, an 18 px wide strip. Please draw both wall directions (the north edge, running bottom left to top right, and the west edge, running top left to bottom right); the light falls differently on them, so I do not mirror walls. Corners and wall ends: today the engine draws a square post the size of the wall's thickness wherever walls meet at an angle or a wall ends, covering the join, with no separate corner art. That is a stand-in, not a rule; if corner and end pieces would look better, please propose them and I will draw them in.
+
+2. How walls are built: one finished sprite per segment and variant, drawn as a single image and lit by the engine per pixel. Not geometry with a texture. Please draw finished sprites.
+
+3. Doors and windows are whole wall segments with the opening baked in: plain wall, door closed, doorway open (the opening empty), window closed (shutters shut), window open (the opening empty). The open door leaf and the open shutters are separate sprites placed by the engine at the hinge, so they can stand in front of or behind the wall depending on the side. Openings keep fixed sizes measured from the floor whatever the wall's height: the doorway is about 19 px across the edge and 48 px tall; the window is about 16 px across, its sill 22 px up and its top 51 px up.
+
+4. Floors. Inside a building the floor is laid: wood planks or flagstones, each a 64x32 diamond. Please draw three or four variants of each; the engine picks one per tile at random, so the planks or stones must line up across every edge of the diamond into the next tile. Outside, dirt and cobble are not tiles: each is one seamless texture, 128x64, that wraps in both directions and is laid across the world in world pixels; the engine blends their edges into the grass with a ragged outline. Grass is done.
+
+5. Furniture footprints and facings: bed 2x1 tiles, table 2x1, chair 1x1, well 1x1, fireplace 2x1 against a wall. One drawing each in one orientation; the engine mirrors it for the other. The chair needs two views (seat toward the viewer, and back toward the viewer); mirrors cover the other two.
+
+6. The fire. The engine already lights the room from the fireplace by data (light radius, flicker) and draws flames unlit, so please draw the flames as a separate small animation of three frames that sits in the firebox, with no glow halo baked in. The firebox itself is drawn empty and dark.
+
+7. The well: one tile, with a small roof on two posts, a crank, a rope, and a bucket.
+
+On doors and shutters: your plan matches mine. A doorway with depth (the jamb showing the wall's thickness), and the open leaf drawn edge-on at 90 degrees to the wall as a thin parallelogram with its narrow edge visible and the hinge side against the jamb. Shutters fold flat against the wall either side of the window, with the dark recess of the frame between them.
+```
+
+Notes behind the answers (for Claude): the post at corners is `makePost` in `render.js`, a box of `WALL_T` square; laid floors pick a frame by hash (`ground.js`, `frameNames`), so any number of variants works; dirt and cobble are `ground_dirt` and `ground_cobble`, 128×64 world textures; flames are a prop sheet's `flame_<n>` frames, drawn unlit, with the light from the definition's `fire`.
 
 ## What every request shares
 
@@ -38,7 +64,7 @@ For each, one transparent PNG, tightly cropped, plus the flame frames as fire_0.
 
 ## Part 2: walls, doors, and windows
 
-**What exists:** wall segments are generated, 64 px tall, 12 px thick, with plank, brick, and log patterns; a segment stands on one edge of a tile. Doors and shutters are flat polygons. **Wanted:** drawn wood and stone segments, each with a closed door, an open doorway, closed shutters, and an open window.
+**What exists:** wall segments are generated, 80 px tall and 18 px thick since 2026-10-11, with plank, brick, and log patterns; a segment stands on one edge of a tile. **Corners are dev art:** a square post the wall's thickness at every corner and wall end, covering the join; Claude Design may propose corner and end pieces instead, and the engine will take them. Doors and shutters are flat polygons. **Wanted:** drawn wood and stone segments, each with a closed door, an open doorway, closed shutters, and an open window.
 
 Engine notes: a wall stands on a tile's north edge (the diamond's top-right edge) or its west edge (top-left edge); the two run along different screen diagonals and catch the light differently, so both are drawn rather than mirrored. The top cap is the wall's thickness seen from above. Each segment covers exactly one tile edge, so the patterns must line up end to end. Near walls (between the player and the camera) are drawn translucent by the game, so the same art serves both sides. Boarded-up and broken variants exist in the game; they wait for a later pass.
 
@@ -47,7 +73,7 @@ Please draw wall segments for my game's buildings, in the same style as the tree
 
 The game: a cosy, slightly spooky medieval village in 2:1 isometric pixel art, Habbo-like. Ground tiles are 64x32 diamonds, drawn one pixel per pixel. The player is about 48 px tall. Light comes from the top left. Use three or four flat shades per material and hard pixels only (every pixel fully opaque or fully transparent, no anti-aliasing).
 
-A wall segment stands on one edge of a ground tile and is exactly one tile edge long: 32 px across and 16 px up the screen along the diamond's edge. Walls are thick and chunky (thick walls read as cosy): 12 px thick, with the top of the wall visible as a flat cap. Height: [64 or 80 px, whichever Michael picks after the preview]. The door and window openings keep the sizes below whatever the height. Segments sit end to end along a building's side, so the pattern must continue seamlessly from one segment into the next.
+A wall segment stands on one edge of a ground tile and is exactly one tile edge long: 32 px across and 16 px up the screen along the diamond's edge. Walls are thick and chunky (thick walls read as cosy): 18 px thick, with the top of the wall visible as a flat cap, and 80 px tall. Where walls meet at a corner or a wall ends, my game currently drops in a plain square post the size of the wall's thickness; if corner and end pieces would look better, please propose them. Segments sit end to end along a building's side, so the pattern must continue seamlessly from one segment into the next.
 
 Two orientations, each drawn (not mirrored, since the light falls differently on them):
 - North-edge segments, running from the bottom left up to the top right.
@@ -59,9 +85,9 @@ Two materials:
 
 For each material and orientation, five variants:
 1. Plain wall.
-2. Door, closed: a plank door with two dark metal strips (wood #5e4028, metal #2b2a32), filling the doorway. The doorway is about 20 px wide and 64 px tall.
+2. Door, closed: a plank door with two dark metal strips (wood #5e4028, metal #2b2a32), filling the doorway. The doorway is about 19 px across the wall's edge and 48 px tall, measured from the floor.
 3. Doorway, open: the same opening with no leaf in it. Show the wall's thickness inside the opening (the inner faces of the jambs, one lit and one in shade) and a threshold at the bottom, so it reads as a hole through a thick wall. The open door leaf is a separate sprite (below).
-4. Window, closed: a window hole with a wooden frame and sill, two plank shutters closed in the middle. About 20 px wide and 22 px tall, its sill about 34 px up.
+4. Window, closed: a window hole with a wooden frame and sill, two plank shutters closed in the middle. About 16 px across the wall's edge, its sill 22 px up and its top 51 px up.
 5. Window, open: the same hole with no shutters, showing the wall's thickness inside it and the sill. The open shutters are separate sprites (below).
 
 The doors and shutters are things the player uses, so they have a dark outline all the way round; the walls themselves do not.
@@ -90,18 +116,20 @@ Please draw the open door and the open shutters for my game's buildings as separ
 
 The game: 2:1 isometric pixel art, ground tiles 64x32, the player about 48 px tall, light from the top left, three or four flat shades, hard pixels only. Doors and shutters are plank wood (#5e4028) with dark metal strips (#2b2a32), with a dark outline all the way round because the player uses them.
 
-The closed door is about 20 px wide and 64 px tall. When it opens, it swings outward on its hinges to stand at 90 degrees to the wall. Draw that open leaf as a solid object, not a flat card:
+The closed door is about 19 px across and 48 px tall. When it opens, it swings outward on its hinges to stand at 90 degrees to the wall. Draw that open leaf as a solid object, not a flat card:
 - Its face is a parallelogram slanting along the other ground axis from the wall, with the planks and metal strips following the slant, one shade darker than the closed door because it has turned away from the light.
 - Its free edge is visible as a narrow strip about 3 px wide, the full height of the door, lighter than the face. Its top edge is a one-pixel highlight.
 - Two dark metal hinge straps where it meets the door frame.
 Please draw it for a door in a north-edge wall (the wall running bottom left to top right) and for a door in a west-edge wall (running top left to bottom right).
 
-Open shutters: a window has two shutters, each about 10 px wide and 22 px tall. When open, each folds back almost flat against the outside of the wall, at about 160 degrees: a slightly foreshortened face, its edge as a one-pixel strip, small hinge marks. Please draw the left and right shutter for a north-edge window and for a west-edge window.
+Open shutters: a window has two shutters, each about 8 px wide and 29 px tall. When open, each folds back almost flat against the outside of the wall, at about 160 degrees: a slightly foreshortened face, its edge as a one-pixel strip, small hinge marks. Please draw the left and right shutter for a north-edge window and for a west-edge window.
 
 One transparent PNG each, tightly cropped, named door_open_<north|west>.png and shutter_<left|right>_<north|west>.png. Please show a preview of an open door and an open window in the walls, at 1x and 3x.
 ```
 
 ## Part 4: are the walls too short?
+
+**Settled (Michael, 2026-10-11): 80 px**, after trying 96 (too tall) in the game. Doors, windows, and torch brackets keep fixed heights from the floor (door 48, a hair under its old 51; window 22 to 51; bracket 32), so the taller wall only adds wall above them. The reasoning as first written:
 
 **Michael asked; the numbers say yes.**
 
