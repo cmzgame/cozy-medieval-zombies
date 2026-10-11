@@ -8,8 +8,7 @@ import { moveCircle, canStep } from "../map.js";
 import { findPath } from "../pathfind.js";
 import { getSheet } from "../assets.js";
 import { createAnimation, playAnimation, advanceAnimation } from "../sprites.js";
-import { createHands } from "../items.js";
-import { createWorn } from "../inventory.js";
+import { createCharacter } from "./character.js";
 import * as settings from "../settings.js";
 
 export const PLAYER_SPEED = 3.0; // tiles per second
@@ -37,34 +36,21 @@ export const DRINK_SIP = 50; // per drink from a waterskin
 
 export function createPlayer(gx, gy) {
   return {
-    kind: "player",
-    sprite: "player",
-    gx,
-    gy,
-    facing: "s",
+    ...createCharacter("player", gx, gy, { id: "player", speed: PLAYER_SPEED, radius: PLAYER_RADIUS, hp: PLAYER_HP }),
+    sprite: "player", // its own sheet, rebuilt whenever their look or clothes change (main.js)
     aim: { sx: 0, sy: 1 },
-    speed: PLAYER_SPEED,
-    radius: PLAYER_RADIUS,
-    hp: PLAYER_HP,
-    maxHp: PLAYER_HP,
     stamina: PLAYER_STAMINA,
     maxStamina: PLAYER_STAMINA,
     sprinting: false,
     winded: false,
     moving: false,
-    dead: false,
-    carrying: null, // a prop lifted in both hands (docs/02); only walking until it is put down
-    layer: 0, // the floor the player is on; always 0 for now (docs/08)
     climb: null, // { from, to, t } while climbing through a window
-    hands: createHands(), // { main, off }: entries (docs/11, items.js)
-    worn: createWorn(), // the doll: head, chest, hands, legs, feet, waist, back; the bag and belt are read from it
     hunger: HUNGER_MAX,
     maxHunger: HUNGER_MAX,
     thirst: THIRST_MAX,
     maxThirst: THIRST_MAX,
     auto: null, // auto-walk: { path, tiles, range, onArrive, goalTile }
     action: null, // a timed action in progress: { action, elapsed }
-    anim: createAnimation("idle"),
   };
 }
 

@@ -221,13 +221,8 @@ async function loadPaintedHair() {
     }
   }
   figureKey = ""; // the pixels may have changed under the same name
-  // The dead rebake too, since their outfits draw from the painted pool.
-  for (let k = 0; k < figure.ZOMBIE_OUTFITS; k++) {
-    let existing = null;
-    try { existing = assets.getSheet(`zombie_${k}`); } catch { existing = null; }
-    if (!existing) continue;
-    gl.redrawSheet(assets.replaceSheet(`zombie_${k}`, figure.generateFigure(figure.zombieSpec(k))));
-  }
+  // The dead and villagers rebake too, since their outfits draw from the painted pool.
+  for (const sheet of assets.rebakeFigures()) gl.redrawSheet(sheet);
 }
 
 // The player's sheet is rebuilt whenever their look or their clothes change
@@ -237,7 +232,7 @@ function refreshFigure() {
   // The swing's keyframe set follows the weapon in the main hand (docs/14).
   const mainDef = player.hands.main && items.getItem(player.hands.main.id);
   const style = (mainDef && mainDef.weapon && mainDef.weapon.style) || null;
-  const spec = figure.playerSpec(player.look, player.worn, (id) => items.getItem(id).art || null, player.hands, settings.get("paintedLayers") || {}, style);
+  const spec = figure.characterSpec(figure.characterInputs(player, undefined, settings.get("paintedLayers") || {}, style));
   const key = figure.specKey(spec);
   if (key === figureKey) return;
   figureKey = key;
@@ -585,12 +580,13 @@ async function boot() {
     console.warn("No poses.json; using the built-in swing:", err.message);
   }
   items.loadLoot(await assets.loadJson("data/loot.json"));
+  figure.setArtResolver((id) => items.getItem(id).art || null);
+  figure.setWardrobes(await assets.loadJson("data/wardrobes.json")); // who wears what (docs/19)
   await loadPaintedHair();
   const json = await assets.loadJson(MAP_FILE);
   await assets.loadMapSprites(json);
   for (const k of placement.buildKinds()) await assets.loadSprite(k.sprite); // what can be built must be drawable
-  // The dead's outfits and the held art, generated like everything else (docs/12).
-  for (let k = 0; k < figure.ZOMBIE_OUTFITS; k++) assets.registerSheet(`zombie_${k}`, figure.generateFigure(figure.zombieSpec(k)));
+  // The held art, generated like everything else (docs/12). The dead's sheets are made as they are dressed (docs/19).
   for (const def of items.allItems()) if (def.held) assets.registerSheet(`held_${def.id}`, figure.generateHeld(def.held.shape, def.held.colours));
   info = map.loadMap(json);
   player = createPlayer(info.spawn[0], info.spawn[1]);

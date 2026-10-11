@@ -8,7 +8,8 @@
 // through a wall. Noise is deliberately not a factor yet (docs/02).
 
 import * as settings from "../settings.js";
-import { ZOMBIE_OUTFITS } from "../figure.js";
+import { wardrobeCount } from "../figure.js";
+import { createCharacter, wardrobeInto } from "./character.js";
 import * as iso from "../iso.js";
 import { moveCircle, isWalkableTile, canStep, nearestWalkable, tileAt, getRoom, breachTarget, damageOpening, wayOpen, climbable } from "../map.js";
 import { findPath } from "../pathfind.js";
@@ -52,24 +53,13 @@ const REPATH_FAIL_BACKOFF = 1.0;
 let nextId = 1;
 
 export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false } = {}) {
-  return {
-    kind: "zombie",
-    sprite: `zombie_${Math.floor(Math.random() * ZOMBIE_OUTFITS)}`, // one of the outfits (docs/12)
-    id: id || `z${nextId++}`,
-    gx,
-    gy,
-    layer: 0, // always 0 for now (docs/08)
-    facing: "s",
-    speed: ZOMBIE_SPEED,
-    radius: ZOMBIE_RADIUS,
-    hp,
-    maxHp: ZOMBIE_HP,
+  const z = {
+    ...createCharacter("zombie", gx, gy, { id: id || `z${nextId++}`, speed: ZOMBIE_SPEED, radius: ZOMBIE_RADIUS, hp, maxHp: ZOMBIE_HP }),
     state: aggro ? "chase" : "idle",
     aggro,
     lastSeen: null, // [gx, gy] where the player was last seen
     seesNow: false,
     searchTimer: 0,
-    anim: createAnimation("idle"),
     path: [],
     repathTimer: 0,
     sightTimer: Math.random() * SIGHT_CHECK,
@@ -82,7 +72,6 @@ export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false 
     climb: null, // { from, to, t } while climbing through a window
     sincePlayer: Infinity, // seconds since the player was last seen
     stuckTime: 0,
-    dead: false,
     hits: [], // when the player's blows landed, for the third-hit rule (combat.js)
     stagger: 0, // seconds left of being stopped by a blow
     knock: null, // { x, y, left } a push being spread over KNOCK_TIME
@@ -90,6 +79,9 @@ export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false 
     upTimer: 0, // seconds left of getting up
     gettingUp: false,
   };
+  // Dressed from one of the dead's wardrobes (data/wardrobes.json, docs/19).
+  wardrobeInto(z, "zombie", Math.floor(Math.random() * wardrobeCount("zombie")));
+  return z;
 }
 
 // On the floor, lying or rising: a hit now is a finisher (docs/14).

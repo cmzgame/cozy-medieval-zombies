@@ -95,8 +95,8 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
     switch (ph.kind) {
       case "character":
         // The figure (docs/12). The player's sheet is rebuilt by main.js
-        // whenever their look or clothes change; the dead get ten outfits
-        // registered under zombie_0 to zombie_9.
+        // whenever their look or clothes change; the dead and villagers
+        // share sheets by outfit (`sheetFor`, docs/19).
         sheet = figure.generateFigure(ph.variant === "zombie" ? figure.zombieSpec(0) : figure.playerSpec(ph.look || {}, {}, () => null));
         break;
       case "box": sheet = placeholders.generateBox(ph, tileCount); break;
@@ -121,7 +121,47 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
   return sheet;
 }
 
-// A sheet made in code (held art, the dead's outfits), by id.
+// ---- figure sheets, shared by outfit (docs/19) ----
+// A figure's sheet is large (about 1056 x 576 px) and the atlas is shared with
+// every tree and wall, so characters in the same clothes share one sheet:
+// `sheetFor` bakes it the first time an outfit is seen and returns its id.
+const figureSheets = new Map(); // specKey -> { id, inputs }
+let figureSeq = 0;
+const FIGURE_SHEET_CAP = 24;
+
+export function sheetFor(inputs) {
+  const spec = figure.characterSpec(inputs);
+  const key = figure.specKey(spec);
+  let e = figureSheets.get(key);
+  if (!e) {
+    if (figureSheets.size >= FIGURE_SHEET_CAP) console.warn(`${figureSheets.size + 1} figure sheets: the atlas is shared with everything else (docs/19)`);
+    e = { id: `figure_${figureSeq++}`, inputs: structuredClone(inputs) };
+    registerSheet(e.id, figure.generateFigure(spec));
+    figureSheets.set(key, e);
+  }
+  return e.id;
+}
+
+// The painted layers changed under the same names: bake every shared sheet
+// again, in place, and key them afresh. The caller redraws them into the atlas.
+export function rebakeFigures() {
+  const out = [];
+  const next = new Map();
+  for (const e of figureSheets.values()) {
+    const spec = figure.characterSpec(e.inputs);
+    out.push(replaceSheet(e.id, figure.generateFigure(spec)));
+    next.set(figure.specKey(spec), e);
+  }
+  figureSheets.clear();
+  for (const [k, v] of next) figureSheets.set(k, v);
+  return out;
+}
+
+export function figureSheetCount() {
+  return figureSheets.size;
+}
+
+// A sheet made in code (held art, the shared figures), by id.
 export function registerSheet(id, sheet) {
   sheet.id = id;
   sheets.set(id, sheet);

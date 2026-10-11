@@ -1,0 +1,359 @@
+{
+ "note": "Wardrobes (docs/19): who wears what. Each worn entry is an item id with an optional dye: colour (replaces the item's first tone) or colours (replaces all). The ten for the dead are written from the old generated outfits so they look as they did; add a small_sack to some to give them a back grid (and a sack on the body). Michael edits these.",
+ "zombie": [
+  {
+   "look": {
+    "skin": "#9fbf88",
+    "hair": "#6a3a28",
+    "hairStyle": "short",
+    "eyes": "#2a1414",
+    "under": "#b8b0a0"
+   },
+   "wound": [
+    -5,
+    3,
+    -1
+   ],
+   "worn": {
+    "chest": {
+     "item": "tunic",
+     "colour": "#6a5a48"
+    },
+    "feet": {
+     "item": "boots",
+     "colour": "#3a2a1c"
+    },
+    "waist": {
+     "item": "belt",
+     "colours": [
+      "#4a3020",
+      "#a08040"
+     ]
+    }
+   },
+   "pockets": [
+    3,
+    2
+   ],
+   "loot": "body"
+  },
+  {
+   "look": {
+    "skin": "#a8b88a",
+    "hair": "#3a2a1c",
+    "hairStyle": "long",
+    "eyes": "#2a1414",
+    "under": "#b8b0a0"
+   },
+   "wound": [
+    5,
+    3,
+    0
+   ],
+   "worn": {
+    "chest": {
+     "item": "tunic",
+     "colour": "#4e4a56"
+    },
+    "legs": {
+     "item": "breeches",
+     "colour": "#4a5060"
+    }
+   },
+   "pockets": [
+    3,
+    2
+   ],
+   "loot": "body"
+  },
+  {
+   "look": {
+    "skin": "#b0bf92",
+    "hair": "#5a4a30",
+    "hairStyle": "short",
+    "eyes": "#2a1414",
+    "under": "#b8b0a0"
+   },
+   "wound": [
+    -5,
+    3,
+    1
+   ],
+   "worn": {
+    "chest": {
+     "item": "tunic",
+     "colour": "#7a6a5a"
+    },
+    "legs": {
+     "item": "breeches",
+     "colour": "#5a4a3c"
+    },
+    "feet": {
+     "item": "boots",
+     "colour": "#3a2a1c"
+    },
+    "head": {
+     "item": "hood",
+     "colour": "#705848"
+    },
+    "waist": {
+     "item": "belt",
+     "colours": [
+      "#4a3020",
+      "#a08040"
+     ]
+    }
+   },
+   "pockets": [
+    3,
+    2
+   ],
+   "loot": "body"
+  },
+  {
+   "look": {
+    "skin": "#8fae7a",
+    "hair": "#8a7a60",
+    "hairStyle": "bald",
+    "eyes": "#2a1414",
+    "under": "#b8b0a0"
+   },
+   "wound": [
+    5,
+    3,
+    -1
+   ],
+   "worn": {
+    "chest": {
+     "item": "tunic",
+     "colour": "#565a4a"
+    },
+    "feet": {
+     "item": "boots",
+     "colour": "#3a2a1c"
+    }
+   },
+   "pockets": [
+    3,
+    2
+   ],
+   "loot": "body"
+  },
+  {
+   "look": {
+    "skin": "#93a97e",
+    "hair": "#2a2a2a",
+    "hairStyle": "long",
+    "eyes": "#2a1414",
+    "under": "#b8b0a0"
+   },
+   "wound": [
+    -5,
+    3,
+    0
+   ],
+   "worn": {
+    "chest": {
+     "item": "tunic",
+     "colour": "#705848"
+    },
+    "legs": {
+     "item": "breeches",
+     "colour": "#4e4a56"
+    },
+    "feet": {
+     "item": "boots",
+     "colour": "#3a2a1c"
+    },
+    "head": {
+     "item": "cap",
+     "colour": "#565a4a"
+    },
+    "waist": {
+     "item": "belt",
+     "colours": [
+      "#4a3020",
+      "#a08040"
+     ]
+    }
+   },
+   "pockets": [
+    3,
+    2
+   ],
+   "loot": "body"
+  },
+  {
+   "look": {
+    "skin": "#9fbf88",
+    "hair": "#6a3a28",
+    "hairStyle": "short",
+    "eyes": "#2a1414",
+    "under": "#b8b0a0"
+   },
+   "wound": [
+    5,
+    3,
+    1
+   ],
+   "worn": {
+    "chest": {
+     "item": "tunic",
+     "colour": "#6e6050"
+    },
+    "legs": {
+     "item": "breeches",
+     "colour": "#7a6a5a"
+    }
+   },
+   "pockets": [
+    3,
+    2
+   ],
+   "loot": "body"
+  },
+  {
+   "look": {
+    "skin": "#a8b88a",
+    "hair": "#3a2a1c",
+    "hairStyle": "short",
+    "eyes": "#2a1414",
+    "under": "#b8b0a0"
+   },
+   "wound": [
+    -5,
+    3,
+    -1
+   ],
+   "worn": {
+    "chest": {
+     "item": "tunic",
+     "colour": "#4a5060"
+    },
+    "feet": {
+     "item": "boots",
+     "colour": "#3a2a1c"
+    },
+    "waist": {
+     "item": "belt",
+     "colours": [
+      "#4a3020",
+      "#a08040"
+     ]
+    }
+   },
+   "pockets": [
+    3,
+    2
+   ],
+   "loot": "body"
+  },
+  {
+   "look": {
+    "skin": "#b0bf92",
+    "hair": "#5a4a30",
+    "hairStyle": "bald",
+    "eyes": "#2a1414",
+    "under": "#b8b0a0"
+   },
+   "wound": [
+    5,
+    3,
+    0
+   ],
+   "worn": {
+    "chest": {
+     "item": "tunic",
+     "colour": "#5a4a3c"
+    },
+    "legs": {
+     "item": "breeches",
+     "colour": "#705848"
+    },
+    "feet": {
+     "item": "boots",
+     "colour": "#3a2a1c"
+    },
+    "head": {
+     "item": "hood",
+     "colour": "#4e4a56"
+    }
+   },
+   "pockets": [
+    3,
+    2
+   ],
+   "loot": "body"
+  },
+  {
+   "look": {
+    "skin": "#8fae7a",
+    "hair": "#8a7a60",
+    "hairStyle": "short",
+    "eyes": "#2a1414",
+    "under": "#b8b0a0"
+   },
+   "wound": [
+    -5,
+    3,
+    1
+   ],
+   "worn": {
+    "chest": {
+     "item": "tunic",
+     "colour": "#6a5a48"
+    },
+    "legs": {
+     "item": "breeches",
+     "colour": "#6e6050"
+    },
+    "feet": {
+     "item": "boots",
+     "colour": "#3a2a1c"
+    },
+    "waist": {
+     "item": "belt",
+     "colours": [
+      "#4a3020",
+      "#a08040"
+     ]
+    }
+   },
+   "pockets": [
+    3,
+    2
+   ],
+   "loot": "body"
+  },
+  {
+   "look": {
+    "skin": "#93a97e",
+    "hair": "#2a2a2a",
+    "hairStyle": "short",
+    "eyes": "#2a1414",
+    "under": "#b8b0a0"
+   },
+   "wound": [
+    5,
+    3,
+    -1
+   ],
+   "worn": {
+    "chest": {
+     "item": "tunic",
+     "colour": "#4e4a56"
+    },
+    "head": {
+     "item": "cap",
+     "colour": "#6a5a48"
+    }
+   },
+   "pockets": [
+    3,
+    2
+   ],
+   "loot": "body"
+  }
+ ],
+ "village": []
+}
