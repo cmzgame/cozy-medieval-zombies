@@ -16,7 +16,7 @@
         10,
         10
       ],
-      "sprite": "floor_dirt"
+      "sprite": "floor_cobble"
     },
     {
       "kind": "road",

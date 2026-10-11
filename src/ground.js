@@ -16,8 +16,18 @@
 // step 2 (the patch tint and canopy darkening on the grass, baked tree
 // shadows), and step 3 (flat decals: fallen leaves in the nearest tree's colour,
 // twigs, pebbles, flowers, tufts, mushrooms, by the rules in data/ground.json).
-// Until step 4, dirt and farm draw as their sheet's first frame, a hard
-// diamond.
+// and step 4 (the earth blends: dirt, farm, and cobble meet grass and each
+// other with ragged, pixel-crisp edges; laid floors stay hard diamonds).
+//
+// The earth: each blended kind has a weight field, one value per tile, 1 where
+// the tile is that kind, over the chunk and one tile beyond (so the edges
+// match across chunk borders). A pixel reads each field between the four
+// nearest tile centres and is that kind where the weight reaches a threshold
+// set by a grey noise texture read at the pixel's world position, which makes
+// the edge ragged and keeps it still when the camera moves. Kinds are laid in
+// priority order, each over the last; dirt counts cobble as dirt and cobble's
+// threshold sits above dirt's, so cobble always lies inside a dirt verge and
+// never touches grass. A pixel is always one kind; nothing is blended.
 //
 // Decals are drawn after the grass and before the shadows, so a tree's shadow
 // falls across its own leaves. Each tile's decals come from that tile's
@@ -64,6 +74,15 @@ const GRID = (C + 2) * SPT + 1;
 let TI = null; // Int32Array
 let TU = null; // Float32Array
 let TV = null; // Float32Array
+// The terrain fields: one value per tile over the chunk and one tile beyond,
+// FIELD across. Per pixel, the index of the tile centre up and left of it and
+// its fractional place between centres.
+const FIELD = C + 2;
+let FI = null; // Int32Array
+let FU = null; // Float32Array
+let FV = null; // Float32Array
+let terrain = []; // the blended kinds, by priority: { name, id, texture | frame, ... }
+let noise = null; // { w, h, v: Uint8Array } the edge noise, grey 0..255
 
 // The chunk's canvas sits at world pixel left = (x0 - y0 - 16) * 32,
 // top = (x0 + y0) * 16 - 16. A pixel's centre is then at fractional grid
@@ -78,6 +97,9 @@ function buildOwnership() {
   TI = new Int32Array(W * H);
   TU = new Float32Array(W * H);
   TV = new Float32Array(W * H);
+  FI = new Int32Array(W * H);
+  FU = new Float32Array(W * H);
+  FV = new Float32Array(W * H);
   for (let py = 0; py < H; py++) {
     const b = (py + 0.5) / 16 - 1;
     for (let px = 0; px < W; px++) {
@@ -99,6 +121,13 @@ function buildOwnership() {
       TI[i] = iv * GRID + iu;
       TU[i] = u - iu;
       TV[i] = v - iv;
+      const fu = (a + b) / 2 + 1;
+      const fv = (b - a) / 2 + 1;
+      const ju = Math.floor(fu);
+      const jv = Math.floor(fv);
+      FI[i] = jv * FIELD + ju;
+      FU[i] = fu - ju;
+      FV[i] = fv - jv;
     }
   }
 }
@@ -161,7 +190,33 @@ export async function init(mapJson) {
       shadow: b.shadow || { steps: 3, alpha: 0.09, squash: 0.6, dropPx: 2 },
     });
   }
+  // The earth's kinds, by priority; ids 3 and up (1 is grass, 2 laid).
+  terrain = [];
+  const entries = Object.entries(data.terrain || {}).sort((a, b) => a[1].priority - b[1].priority);
+  for (const [name, t] of entries) {
+    const k = { name, id: 3 + terrain.length, threshold: t.threshold || [0.25, 0.5], above: t.thresholdAbove || null, verge: t.verge || 0, lip: t.lip || 0, lipBand: t.lipBand || 0, includes: t.includes || [] };
+    if (t.texture) {
+      const sheet = await assets.loadSprite(t.texture);
+      k.texture = { w: sheet.image.width, h: sheet.image.height, px: pixelsOf(sheet.image) };
+    } else if (t.tiles) {
+      await assets.loadSprite(t.tiles);
+      k.frame = frameOf(t.tiles, frameNames(t.tiles)[0]);
+    }
+    terrain.push(k);
+  }
+  if (data.edgeNoise) {
+    const sheet = await assets.loadSprite(data.edgeNoise);
+    const px = pixelsOf(sheet.image);
+    const v = new Uint8Array(sheet.image.width * sheet.image.height);
+    for (let i = 0; i < v.length; i++) v[i] = px[i * 4];
+    noise = { w: sheet.image.width, h: sheet.image.height, v };
+  }
   buildOwnership();
+}
+
+// The names of the kinds a kind map uses: 0 none, 1 grass, 2 laid, then the earth.
+export function kindNames() {
+  return ["none", "grass", "laid", ...terrain.map((t) => t.name)];
 }
 
 function biomeOf(x, y) {
@@ -412,7 +467,7 @@ function bakeShadows(out, x0, y0, left, top) {
 
 // The chunk's picture as ImageData. Pure: the same chunk, seed, and tiles
 // give the same bytes.
-export function bakeImage(cx, cy) {
+export function bakeImage(cx, cy, kindsOut = null) {
   const x0 = cx * C;
   const y0 = cy * C;
   const ph = {};
@@ -422,10 +477,20 @@ export function bakeImage(cx, cy) {
     ph[name] = now - tp;
     tp = now;
   };
+  // The kinds of the chunk's tiles and one beyond, and the earth's fields.
+  const kindAt = new Array(FIELD * FIELD);
+  for (let fy = 0; fy < FIELD; fy++) for (let fx = 0; fx < FIELD; fx++) kindAt[fy * FIELD + fx] = kindOf(map.tileAt(x0 - 1 + fx, y0 - 1 + fy).floor);
+  const fields = terrain.map((t) => {
+    const f = new Float32Array(FIELD * FIELD);
+    for (let i = 0; i < f.length; i++) if (kindAt[i] === t.name || t.includes.includes(kindAt[i])) f[i] = 1;
+    return f;
+  });
   const grass = new Array(C * C); // per tile: the grass source
   const flip = new Uint8Array(C * C);
   const base = new Array(C * C);
-  const top = new Array(C * C); // per tile: a floor frame over the grass, or null
+  const top = new Array(C * C); // per tile: a laid floor's frame, or null
+  const earthNear = new Uint8Array(C * C); // per tile: a blended kind in it or around it
+  const earth = new Set(terrain.map((t) => t.name));
   for (let ly = 0; ly < C; ly++) {
     for (let lx = 0; lx < C; lx++) {
       const x = x0 + lx;
@@ -436,82 +501,157 @@ export function bakeImage(cx, cy) {
       flip[o] = map.hash2(x, y, seed + 11) < 0.5 ? 1 : 0;
       base[o] = b.base;
       const floor = map.tileAt(x, y).floor;
-      const kind = kindOf(floor);
-      if (kind === "grass") top[o] = null;
-      else if (kind === "laid") {
+      if (kindOf(floor) === "laid") {
         const names = frameNames(floor);
         top[o] = frameOf(floor, names[Math.floor(map.hash2(x, y, seed + 12) * names.length)]);
-      } else top[o] = frameOf(floor, frameNames(floor)[0]); // the earth kinds, hard until step 4
+      } else top[o] = null;
+      for (let dy = 0; dy <= 2 && !earthNear[o]; dy++) for (let dx = 0; dx <= 2; dx++) if (earth.has(kindAt[(ly + dy) * FIELD + lx + dx])) earthNear[o] = 1;
     }
   }
   lap("tiles");
   const [TR, TG, TB] = tintGrid(x0, y0);
   lap("tint");
-  const img = new ImageData(W, H);
-  const out = img.data;
-  for (let i = 0; i < W * H; i++) {
-    const o = OWNER[i];
-    if (o < 0) continue;
-    const fx = FX[i];
-    const fy = FY[i];
-    const k = i * 4;
-    const t = top[o];
-    if (t) {
-      const col = fx - t.ox;
-      const row = fy - t.oy;
-      if (col >= 0 && row >= 0 && col < t.w && row < t.h) {
-        const j = (row * t.w + col) * 4;
-        if (t.px[j + 3] > 0) {
-          // An antialiased edge pixel of a generated frame keeps its colour at
-          // full alpha: a pixel is one thing or another, never a blend.
-          out[k] = t.px[j];
-          out[k + 1] = t.px[j + 1];
-          out[k + 2] = t.px[j + 2];
-          out[k + 3] = 255;
-          continue;
-        }
-      }
-    }
-    const g = grass[o];
-    const gc = flip[o] ? g.w - 1 - fx : fx;
-    const j = (fy * g.w + gc) * 4;
-    let r, gg, bb;
-    if (fy < g.h && gc >= 0 && gc < g.w && g.px[j + 3] > 0) {
-      r = g.px[j];
-      gg = g.px[j + 1];
-      bb = g.px[j + 2];
-    } else {
-      const c = base[o];
-      r = c[0];
-      gg = c[1];
-      bb = c[2];
-    }
-    // The grass takes the tint, read between the four nearest samples.
-    const q = TI[i];
-    const u = TU[i];
-    const v = TV[i];
-    const w00 = (1 - u) * (1 - v);
-    const w10 = u * (1 - v);
-    const w01 = (1 - u) * v;
-    const w11 = u * v;
-    const q1 = q + 1;
-    const q2 = q + GRID;
-    const q3 = q2 + 1;
-    // ImageData's bytes round and clamp what they are given, the same way every time.
-    out[k] = r * (TR[q] * w00 + TR[q1] * w10 + TR[q2] * w01 + TR[q3] * w11);
-    out[k + 1] = gg * (TG[q] * w00 + TG[q1] * w10 + TG[q2] * w01 + TG[q3] * w11);
-    out[k + 2] = bb * (TB[q] * w00 + TB[q1] * w10 + TB[q2] * w01 + TB[q3] * w11);
-    out[k + 3] = 255;
-  }
-  lap("pixels");
   const canvasLeft = (x0 - y0 - C) * 32;
   const canvasTop = (x0 + y0) * 16 - 16;
+  const mod = (v, n) => ((v % n) + n) % n;
+  // Columns of the world textures and the noise for this chunk's pixels.
+  const noiseCol = noise ? Int32Array.from({ length: W }, (_, px) => mod(canvasLeft + px, noise.w)) : null;
+  const texCol = terrain.map((t) => (t.texture ? Int32Array.from({ length: W }, (_, px) => mod(canvasLeft + px, t.texture.w)) : null));
+  const dirtLike = (name) => terrain.find((t) => t.name === name);
+  const img = new ImageData(W, H);
+  const out = img.data;
+  for (let py = 0; py < H; py++) {
+    const wy = canvasTop + py;
+    const noiseRow = noise ? mod(wy, noise.h) * noise.w : 0;
+    const texRow = terrain.map((t) => (t.texture ? mod(wy, t.texture.h) * t.texture.w : 0));
+    for (let px = 0; px < W; px++) {
+      const i = py * W + px;
+      const o = OWNER[i];
+      if (o < 0) continue;
+      const fx = FX[i];
+      const fy = FY[i];
+      const k = i * 4;
+      const t = top[o];
+      if (t) {
+        const col = fx - t.ox;
+        const row = fy - t.oy;
+        if (col >= 0 && row >= 0 && col < t.w && row < t.h) {
+          const j = (row * t.w + col) * 4;
+          if (t.px[j + 3] > 0) {
+            // An antialiased edge pixel of a generated frame keeps its colour at
+            // full alpha: a pixel is one thing or another, never a blend.
+            out[k] = t.px[j];
+            out[k + 1] = t.px[j + 1];
+            out[k + 2] = t.px[j + 2];
+            out[k + 3] = 255;
+            if (kindsOut) kindsOut[i] = 2;
+            continue;
+          }
+        }
+      }
+      const g = grass[o];
+      const gc = flip[o] ? g.w - 1 - fx : fx;
+      const j = (fy * g.w + gc) * 4;
+      let r, gg, bb;
+      if (fy < g.h && gc >= 0 && gc < g.w && g.px[j + 3] > 0) {
+        r = g.px[j];
+        gg = g.px[j + 1];
+        bb = g.px[j + 2];
+      } else {
+        const c = base[o];
+        r = c[0];
+        gg = c[1];
+        bb = c[2];
+      }
+      // The grass takes the tint, read between the four nearest samples.
+      const q = TI[i];
+      const u = TU[i];
+      const v = TV[i];
+      const w00 = (1 - u) * (1 - v);
+      const w10 = u * (1 - v);
+      const w01 = (1 - u) * v;
+      const w11 = u * v;
+      const q1 = q + 1;
+      const q2 = q + GRID;
+      const q3 = q2 + 1;
+      r *= TR[q] * w00 + TR[q1] * w10 + TR[q2] * w01 + TR[q3] * w11;
+      gg *= TG[q] * w00 + TG[q1] * w10 + TG[q2] * w01 + TG[q3] * w11;
+      bb *= TB[q] * w00 + TB[q1] * w10 + TB[q2] * w01 + TB[q3] * w11;
+      let kind = 1;
+      if (earthNear[o] && noise) {
+        // The earth, by priority, each kind over the last where its weight
+        // reaches its threshold.
+        const n = noise.v[noiseRow + noiseCol[px]] / 255;
+        const e = FI[i];
+        const fu = FU[i];
+        const fv = FV[i];
+        const e00 = (1 - fu) * (1 - fv);
+        const e10 = fu * (1 - fv);
+        const e01 = (1 - fu) * fv;
+        const e11 = fu * fv;
+        for (let ti = 0; ti < terrain.length; ti++) {
+          const T = terrain[ti];
+          const f = fields[ti];
+          const wgt = f[e] * e00 + f[e + 1] * e10 + f[e + FIELD] * e01 + f[e + FIELD + 1] * e11;
+          if (wgt <= 0) continue;
+          let thr;
+          if (T.above) {
+            const A = dirtLike(T.above);
+            thr = A.threshold[0] + A.threshold[1] * n + T.verge;
+          } else thr = T.threshold[0] + T.threshold[1] * n;
+          if (wgt < thr) continue;
+          let cr, cg, cb;
+          if (T.texture) {
+            const tj = (texRow[ti] + texCol[ti][px]) * 4;
+            cr = T.texture.px[tj];
+            cg = T.texture.px[tj + 1];
+            cb = T.texture.px[tj + 2];
+          } else if (T.frame) {
+            const fr = T.frame;
+            const col = fx - fr.ox;
+            const row = fy - fr.oy;
+            if (col < 0 || row < 0 || col >= fr.w || row >= fr.h) continue;
+            const fj = (row * fr.w + col) * 4;
+            if (fr.px[fj + 3] === 0) continue;
+            cr = fr.px[fj];
+            cg = fr.px[fj + 1];
+            cb = fr.px[fj + 2];
+          } else continue;
+          // The outermost band of a kind is a little darker: a trodden edge.
+          if (T.lip && wgt < thr + T.lipBand) {
+            const lf = 1 - T.lip;
+            cr *= lf;
+            cg *= lf;
+            cb *= lf;
+          }
+          r = cr;
+          gg = cg;
+          bb = cb;
+          kind = T.id;
+        }
+      }
+      // ImageData's bytes round and clamp what they are given, the same way every time.
+      out[k] = r;
+      out[k + 1] = gg;
+      out[k + 2] = bb;
+      out[k + 3] = 255;
+      if (kindsOut) kindsOut[i] = kind;
+    }
+  }
+  lap("pixels");
   bakeDecals(out, x0, y0, canvasLeft, canvasTop);
   lap("decals");
   bakeShadows(out, x0, y0, canvasLeft, canvasTop);
   lap("shadows");
   stat.phases = ph;
   return img;
+}
+
+// Which kind each pixel of a chunk's picture is (see kindNames), for tests.
+export function kindMap(cx, cy) {
+  const k = new Uint8Array(W * H);
+  bakeImage(cx, cy, k);
+  return k;
 }
 
 // Bake a chunk and upload its texture now. Returns the texture record.

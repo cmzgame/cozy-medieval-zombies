@@ -1058,3 +1058,150 @@ export function generateFlame() {
     mirror: {},
   };
 }
+
+// ---------------------------------------------------------------------------
+// The ground's world textures (docs/15): seamless in world pixels, so the
+// left edge continues the right and the top the bottom, read by the ground's
+// bake at (world x mod width, world y mod height). Generated until Michael's
+// drawn ones replace the definitions' `placeholder` with an `image`.
+// ---------------------------------------------------------------------------
+
+// A repeatable 0..1 roll for a pixel and a salt.
+function roll2(x, y, salt) {
+  let h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263) ^ Math.imul(salt | 0, 2246822519);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+
+// Tileable value noise over a w by h image with lattice cells `cell` pixels
+// apart (w and h must be multiples of cell), 0..1, smoothstepped.
+function tileNoise(x, y, w, h, cell, salt) {
+  const cw = w / cell;
+  const ch = h / cell;
+  const fx = x / cell;
+  const fy = y / cell;
+  const ix = Math.floor(fx);
+  const iy = Math.floor(fy);
+  const tx = fx - ix;
+  const ty = fy - iy;
+  const sx = tx * tx * (3 - 2 * tx);
+  const sy = ty * ty * (3 - 2 * ty);
+  const at = (i, j) => roll2(((i % cw) + cw) % cw, ((j % ch) + ch) % ch, salt);
+  const a = at(ix, iy);
+  const b = at(ix + 1, iy);
+  const c = at(ix, iy + 1);
+  const d = at(ix + 1, iy + 1);
+  return (a + (b - a) * sx) * (1 - sy) + (c + (d - c) * sx) * sy;
+}
+
+function textureSheet(canvas) {
+  return { image: canvas, frames: { idle_0: [0, 0, canvas.width, canvas.height] }, anchor: [0, 0], animations: {}, facings: [], mirror: {} };
+}
+
+function hexRgb(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+// Dirt or cobble, `ph.variant`, ph.width by ph.height (128 by 64 by default).
+export function generateGround(ph) {
+  const w = ph.width || 128;
+  const h = ph.height || 64;
+  const { canvas, ctx } = makeCanvas(w, h);
+  const img = ctx.createImageData(w, h);
+  const d = img.data;
+  const put = (x, y, c) => {
+    const k = ((((y % h) + h) % h) * w + (((x % w) + w) % w)) * 4;
+    d[k] = c[0];
+    d[k + 1] = c[1];
+    d[k + 2] = c[2];
+    d[k + 3] = 255;
+  };
+  if (ph.variant === "cobble") {
+    // Rounded stones in rows eight pixels deep, staggered, a one-pixel gap
+    // between them; each stone a shade of its own, lit along its top row.
+    const gap = hexRgb(ph.gap || "#4a433d");
+    const stone = hexRgb(ph.color || "#6a6058");
+    const lit = hexRgb(ph.top || "#756a61");
+    const dark = hexRgb(ph.bottom || "#5c534c");
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) put(x, y, gap);
+    const rowH = 8;
+    for (let r = 0; r < h / rowH; r++) {
+      const y0 = r * rowH;
+      let x = Math.floor(roll2(r, 0, 31) * 12);
+      const end = x + w;
+      let k = 0;
+      while (x < end) {
+        let sw = 9 + Math.floor(roll2(r, k, 32) * 5);
+        if (end - (x + sw) < 7) sw = end - x; // the last stone closes the row
+        const shade = (roll2(r, k, 33) - 0.5) * 14;
+        const tone = (c) => c.map((v) => Math.max(0, Math.min(255, Math.round(v + shade))));
+        const sx0 = x;
+        const sx1 = x + sw - 2; // a one-pixel gap after the stone
+        for (let yy = 0; yy < rowH - 1; yy++) {
+          for (let xx = sx0; xx <= sx1; xx++) {
+            const corner = (yy === 0 || yy === rowH - 2) && (xx === sx0 || xx === sx1);
+            if (corner) continue;
+            const c = yy === 0 ? lit : yy >= rowH - 3 ? dark : stone;
+            put(xx, y0 + yy, tone(c));
+          }
+        }
+        x += sw;
+        k++;
+      }
+    }
+  } else {
+    // Dirt: the base colour drifting a few percent with soft noise, a low
+    // scatter of darker and lighter grains, and a few small stones.
+    const base = hexRgb(ph.color || "#6e5a43");
+    const darkC = hexRgb(ph.dark || "#5e4c37");
+    const lightC = hexRgb(ph.light || "#7a6650");
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const v = 0.94 + 0.12 * tileNoise(x, y, w, h, 32, 41);
+        put(x, y, base.map((c) => Math.round(c * v)));
+      }
+    }
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const r = roll2(x, y, 42);
+        if (r < 0.035) {
+          put(x, y, darkC);
+          if (roll2(x, y, 43) < 0.4) put(x + 1, y, darkC);
+        } else if (r < 0.055) put(x, y, lightC);
+      }
+    }
+    for (let i = 0; i < Math.round((w * h) / 900); i++) {
+      const x = Math.floor(roll2(i, 1, 44) * w);
+      const y = Math.floor(roll2(i, 2, 44) * h);
+      put(x, y, [138, 122, 102]);
+      put(x + 1, y, [120, 106, 88]);
+      put(x, y + 1, darkC);
+      put(x + 1, y + 1, darkC);
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return textureSheet(canvas);
+}
+
+// Grey tileable noise, ph.size square, for the ground's ragged edges: two
+// octaves (lattice 16 and 8 pixels, 0.65 and 0.35), its contrast stretched so
+// the edge thresholds use the whole range.
+export function generateNoise(ph) {
+  const n = ph.size || 128;
+  const { canvas, ctx } = makeCanvas(n, n);
+  const img = ctx.createImageData(n, n);
+  const d = img.data;
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      let v = 0.65 * tileNoise(x, y, n, n, 16, 51) + 0.35 * tileNoise(x, y, n, n, 8, 52);
+      v = Math.max(0, Math.min(1, (v - 0.5) * (ph.contrast || 1.6) + 0.5));
+      const k = (y * n + x) * 4;
+      d[k] = d[k + 1] = d[k + 2] = Math.round(v * 255);
+      d[k + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return textureSheet(canvas);
+}

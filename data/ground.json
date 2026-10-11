@@ -4,9 +4,16 @@
     "floor_grass": "grass",
     "floor_dirt": "dirt",
     "floor_farm": "farm",
+    "floor_cobble": "cobble",
     "floor_wood": "laid",
     "floor_stone": "laid"
   },
+  "terrain": {
+    "dirt":   { "priority": 1, "texture": "ground_dirt", "threshold": [0.25, 0.5], "lip": 0.18, "lipBand": 0.06, "includes": ["cobble"] },
+    "farm":   { "priority": 2, "tiles": "floor_farm", "threshold": [0.10, 0.3], "lip": 0 },
+    "cobble": { "priority": 3, "texture": "ground_cobble", "thresholdAbove": "dirt", "verge": 0.2, "lip": 0.12, "lipBand": 0.06 }
+  },
+  "edgeNoise": "ground_noise",
   "biomes": {
     "harvest": {
       "grass": [
