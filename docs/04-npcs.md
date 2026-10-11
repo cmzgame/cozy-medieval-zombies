@@ -1,5 +1,7 @@
 # 04 — NPCs
 
+**Status (2026-10-12):** the first cut is scoped as a stub, `19-villagers-stub.md`: figures that wander and say "Hey!" when poked, and a speech system; nothing below is built yet, and the stub is written so none of it is foreclosed.
+
 Michael's question (2026-10-08): Zomboid single player is lonely once the TV goes out. A few NPCs in the village would open gameplay. He first offered hard limits (stand or pace, maybe invulnerable), then, on reading the assessment below, ruled: **killable; flee until they cannot, then die and turn; no weapons, never fight for you; the player can tell one to follow or to stay; frozen as notes beyond the active region; and do not cripple them out of worry for the browser.** The assessment is kept as written, with the rulings folded in where they land.
 
 ## What the engine already gives an NPC
