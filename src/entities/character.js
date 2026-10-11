@@ -42,6 +42,13 @@ export function createCharacter(kind, gx, gy, { id = null, name = null, speed = 
   };
 }
 
+// Say a line (docs/19): a speech bubble over the character's head until it has
+// been up for `seconds` of game time, longer for longer lines. A new line
+// replaces the one showing. `ui/speech.js` draws it; nothing here touches the DOM.
+export function say(ch, text, seconds = null) {
+  ch.line = { text, left: seconds ?? Math.max(2, text.length * 0.06) };
+}
+
 // Dress a character from a wardrobe: its look, its worn entries, its pockets.
 export function wardrobeInto(ch, kind, k) {
   const w = figure.wardrobe(kind, k);

@@ -268,6 +268,52 @@ html, body {
   transition: width 0.1s;
 }
 
+/* Speech bubbles (docs/19): a rounded rectangle that wraps and grows to any
+   length, a tail at the bottom pointing at the speaker's head. The box's bottom
+   edge sits 7px above the anchor; the tail's tip lands on it. */
+.speech {
+  position: absolute;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: 240px;
+  transform: translate(-50%, calc(-100% - 7px));
+  padding: 6px 10px;
+  background: #1c1522;
+  border: 1px solid #6a5a70;
+  border-radius: 8px;
+  color: #efe6f2;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: center;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.speech::before,
+.speech::after {
+  content: "";
+  position: absolute;
+  left: var(--tail-x, 50%);
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+}
+
+.speech::before {
+  top: 100%;
+  border-top: 8px solid #6a5a70;
+}
+
+.speech::after {
+  top: 100%;
+  border-left-width: 6px;
+  border-right-width: 6px;
+  border-top: 7px solid #1c1522;
+}
+
 #message {
   position: absolute;
   left: 50%;

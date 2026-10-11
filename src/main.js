@@ -22,6 +22,8 @@ import { createZombie, updateZombie } from "./entities/zombie.js";
 import { initHud, updateHud } from "./ui/hud.js";
 import { initPrompt, updatePrompt, showMessage, updateMessage } from "./ui/prompt.js";
 import { initZombieBars, updateZombieBars } from "./ui/zombie-bars.js";
+import { initSpeech, updateSpeech } from "./ui/speech.js";
+import { say } from "./entities/character.js";
 import * as menu from "./ui/context-menu.js";
 import * as panel from "./ui/inventory-panel.js";
 import * as interact from "./interact.js";
@@ -342,6 +344,7 @@ function update(dt) {
   updateHud({ player });
   updatePrompt(interact.promptFor(player, progress), progress);
   updateZombieBars(zombies, visible, player);
+  updateSpeech([player, ...zombies], visible, player, dt);
   updateMessage(dt);
   input.endStep();
   timing.step = performance.now() - t0;
@@ -623,6 +626,7 @@ async function boot() {
   initHud();
   initPrompt();
   initZombieBars();
+  initSpeech();
   menu.initContextMenu();
   const handlers = panelHandlers();
   panel.initInventoryPanel(handlers);
@@ -678,6 +682,7 @@ async function boot() {
     render: { night },
     get player() { return player; },
     get zombies() { return zombies; },
+    say: (text, seconds) => say(player, text, seconds), // a bubble over the player, to test the system (docs/19)
     get tiles() { return tiles; },
     get visible() { return visible; },
     get playerRoom() { return playerRoom; },

@@ -9,7 +9,7 @@
 
 import * as settings from "../settings.js";
 import { wardrobeCount } from "../figure.js";
-import { createCharacter, wardrobeInto } from "./character.js";
+import { createCharacter, wardrobeInto, say } from "./character.js";
 import * as iso from "../iso.js";
 import { moveCircle, isWalkableTile, canStep, nearestWalkable, tileAt, getRoom, breachTarget, damageOpening, wayOpen, climbable } from "../map.js";
 import { findPath } from "../pathfind.js";
@@ -35,6 +35,9 @@ export const ZOMBIE_RADIUS = 0.3;
 export const SEARCH_TIME = 10; // seconds spent looking around the last sighting
 export const BREACH_DAMAGE = 5; // per hit into an opening's stack (docs/09)
 export const ZOMBIE_CLIMB = 1.6; // seconds through a window, against the player's 0.9
+export const GROAN_TEXT = "Braaaains"; // what the dead say now and then (docs/19)
+export const GROAN_MIN = 20; // seconds between groans
+export const GROAN_MAX = 60;
 export const STAGGER = 0.3; // seconds a hit stops it (docs/14)
 export const DOWN_TIME = 2; // seconds on the floor after a knockdown
 export const GET_UP_TIME = 0.6; // seconds to rise, the fall played backwards
@@ -61,6 +64,7 @@ export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false 
     seesNow: false,
     searchTimer: 0,
     path: [],
+    groanTimer: Math.random() * GROAN_MAX, // so the dead do not all groan together
     repathTimer: 0,
     sightTimer: Math.random() * SIGHT_CHECK,
     lastGoal: null,
@@ -380,6 +384,12 @@ export function updateZombie(z, dt, player, others) {
     if (z.knock) updateHurt(z, dt, sheet);
     advanceAnimation(z.anim, sheet, dt);
     return;
+  }
+  // A groan now and then, from the living dead only (a corpse is silent).
+  z.groanTimer -= dt;
+  if (z.groanTimer <= 0) {
+    if (!isDown(z)) say(z, GROAN_TEXT);
+    z.groanTimer = GROAN_MIN + Math.random() * (GROAN_MAX - GROAN_MIN);
   }
   if (updateHurt(z, dt, sheet)) return;
   // Climbing: slow, committed, no bite until it is through (docs/09).
