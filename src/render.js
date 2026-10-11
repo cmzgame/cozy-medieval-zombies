@@ -721,6 +721,42 @@ function floorItemDrawables(tiles, visible, out) {
 const SWING_OUTLINE = [0.38, 1, 0.38, 1];
 const SWING_OUTLINE_OFFSETS = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]];
 
+// A figure's sort sum, kept on the right side of the walls beside it (Michael,
+// 2026-10-12: standing against a wall's outer face near the top end of a
+// segment, the segment drew over him). A wall sorts by its midpoint, a figure
+// by where it stands, and a figure near a segment's far end sums less than the
+// segment though it stands in front of it. So against each wall whose segment
+// it could overlap on screen, a figure in front of the wall's plane sorts just
+// after it and one behind just before; otherwise by where it stands.
+function besideWalls(gx, gy) {
+  const s = gx + gy;
+  let lo = -Infinity;
+  let hi = Infinity;
+  const x0 = Math.round(gx);
+  const y0 = Math.round(gy);
+  for (let ty = y0 - 1; ty <= y0 + 2; ty++) {
+    for (let tx = x0 - 1; tx <= x0 + 2; tx++) {
+      const t = map.tileAt(tx, ty);
+      // A west wall is the plane x = tx - 0.5 over y in [ty - 0.5, ty + 0.5];
+      // a north wall the plane y = ty - 0.5 over x in [tx - 0.5, tx + 0.5].
+      // Both sort at tx + ty - 0.5.
+      const k = tx + ty - 0.5;
+      if (t.w && Math.abs(gx - (tx - 0.5)) < 1 && Math.abs(gy - ty) < 1) {
+        if (gx > tx - 0.5) lo = Math.max(lo, k);
+        else hi = Math.min(hi, k);
+      }
+      if (t.n && Math.abs(gy - (ty - 0.5)) < 1 && Math.abs(gx - tx) < 1) {
+        if (gy > ty - 0.5) lo = Math.max(lo, k);
+        else hi = Math.min(hi, k);
+      }
+    }
+  }
+  if (lo > hi) return s; // between walls that disagree (a corner seen from inside): where it stands
+  if (s <= lo) return lo + 0.01;
+  if (s >= hi) return hi - 0.01;
+  return s;
+}
+
 function entityDrawables(entities, visible, out, drawAll) {
   for (const e of entities) {
     const vis = e.kind === "player" || drawAll || visible.has(tileKey(Math.round(e.gx), Math.round(e.gy)));
@@ -758,7 +794,7 @@ function entityDrawables(entities, visible, out, drawAll) {
     const carrySheet = carried ? getSheet(carried.sprite, carried.tiles.length) : null;
     const lift = joints && joints.main ? Math.max(24, -joints.main.y + 2) : 30;
     out.push({
-      key: (e.gx + e.gy) * 1000 + (e.dead ? 0 : 2),
+      key: besideWalls(e.gx, e.gy) * 1000 + (e.dead ? 0 : 2),
       kind: "entity",
       entity: e,
       rect,
