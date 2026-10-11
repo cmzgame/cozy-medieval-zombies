@@ -39,6 +39,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-11 — Far-side leaves answered; step 1 held (Michael, Claude Design)
+
+Claude Design agrees a far-side leaf behind an opaque wall needs nothing, and is adding optional `_far` leaves and shutters to the building batch since its renderer makes them nearly free. **Ruled:** draw them only when their wall is translucent, before the wall (`17`, ruling 2). **Michael:** hold step 1 of `17` until the building batch (`18`) arrives; then the art goes in together, and after that the work turns to non-art things for a while.
+
 ### 2026-10-11 — The pumpkin art arrived (Michael)
 
 Two plain pumpkins and two jack-o'-lanterns (faces left and right) with three unlit glow frames each, the fireplace's convention; anchors at the tile centre. Specced into step 1 of `17` (they need only the loader's `images`): the map's `pumpkin` id becomes the drawn jack-o'-lantern with its fire, two facings from the two drawings; the plain ones are new ids; all gatherables under the law, carriable, placed by the map and not the wild.
