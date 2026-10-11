@@ -312,14 +312,19 @@ export function followPath(z, dt, others) {
   }
   const step = Math.min(d, z.speed * dt);
   faceToward(z, dx, dy);
+  const sx = z.gx;
+  const sy = z.gy;
   const moved = moveCircle(z.gx, z.gy, z.radius, (dx / d) * step, (dy / d) * step);
-  // No progress for a while (a trunk, another body in a gap): drop the path
-  // rather than bounce on the spot (Michael, 2026-10-10).
-  const gained = Math.hypot(moved.gx - z.gx, moved.gy - z.gy);
-  z.stuckTime = gained < step * 0.25 ? z.stuckTime + dt : 0;
   z.gx = moved.gx;
   z.gy = moved.gy;
   separate(z, dt, others);
+  // No progress for a while (a trunk, another body in a gap): drop the path
+  // rather than bounce on the spot (Michael, 2026-10-10). Progress is measured
+  // after the push that keeps bodies apart, or a walker pressed against someone
+  // steps forward, is shoved back, and never looks stuck (Michael, 2026-10-12:
+  // two villagers walking into the player for good).
+  const gained = Math.hypot(z.gx - sx, z.gy - sy);
+  z.stuckTime = gained < step * 0.25 ? z.stuckTime + dt : 0;
   if (z.stuckTime > STUCK_TIME) {
     z.stuckTime = 0;
     z.path = [];

@@ -51,6 +51,7 @@ export function updateVillager(v, dt, others) {
   switch (v.state) {
     case "idle": {
       playAnimation(v.anim, "idle");
+      separate(v, dt, others); // step aside from whoever is standing on them, the player included
       v.idleTimer -= dt;
       if (v.idleTimer <= 0) {
         // A walkable tile within WANDER_RADIUS of home, on their own side of the walls
