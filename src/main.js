@@ -19,7 +19,7 @@ import * as ground from "./ground.js";
 import { renderScene, night } from "./render.js";
 import { createPlayer, updatePlayer, damagePlayer, autoWalk, eat, drink } from "./entities/player.js";
 import { createZombie, updateZombie } from "./entities/zombie.js";
-import { createVillager, updateVillager } from "./entities/villager.js";
+import { createVillager, updateVillager, damageVillager, turnVillager } from "./entities/villager.js";
 import { initHud, updateHud } from "./ui/hud.js";
 import { initPrompt, updatePrompt, showMessage, updateMessage } from "./ui/prompt.js";
 import { initZombieBars, updateZombieBars } from "./ui/zombie-bars.js";
@@ -307,11 +307,16 @@ function update(dt) {
   // docs/03 until that milestone.
   for (const z of zombies) {
     if (Math.abs(z.gx - player.gx) > ACTIVE_TILES || Math.abs(z.gy - player.gy) > ACTIVE_TILES) continue;
-    updateZombie(z, dt, player, others);
+    updateZombie(z, dt, player, others, villagers);
   }
   for (const v of villagers) {
     if (Math.abs(v.gx - player.gx) > ACTIVE_TILES || Math.abs(v.gy - player.gy) > ACTIVE_TILES) continue;
     updateVillager(v, dt, others);
+  }
+  // Villagers bitten through get up as the dead, in what they wore (docs/19).
+  if (villagers.some((v) => v.dead)) {
+    for (const v of villagers) if (v.dead) zombies.push(turnVillager(v));
+    villagers = villagers.filter((v) => !v.dead);
   }
   if (player.hp <= 0 && !player.dead) {
     // Death (Michael, 2026-10-10 night): the game stops on the dead screen,
@@ -671,6 +676,7 @@ async function boot() {
     },
   });
   events.on("playerHit", ({ damage }) => damagePlayer(player, damage));
+  events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, damage));
   events.on("containerOpened", ({ bag, tiles: where, name }) => {
     openBag = { bag, tiles: where, name };
     panel.setOpen(true, { character: panel.isCharacter() });

@@ -6,16 +6,19 @@
 // reshaping. They walk with the dead's own walking code (zombie.js exports it),
 // on a tether to `home`.
 
-import { createCharacter, wardrobeInto, say } from "./character.js";
+import { createCharacter, wardrobeInto, dress, say } from "./character.js";
 import { getSheet } from "../assets.js";
 import { playAnimation, advanceAnimation } from "../sprites.js";
-import { pickTargetAround, repath, followPath, separate, faceToward, roomOf, WANDER_IDLE_MIN, WANDER_IDLE_MAX } from "./zombie.js";
+import { emit } from "../events.js";
+import { createZombie, pickTargetAround, repath, followPath, separate, faceToward, roomOf, WANDER_IDLE_MIN, WANDER_IDLE_MAX } from "./zombie.js";
 
 export const VILLAGER_SPEED = 1.4; // tiles per second: an amble, between the dead (1.0) and the player (3.0)
 export const VILLAGER_RADIUS = 0.3;
 export const WANDER_RADIUS = 4; // tiles from home a wander may reach
 export const TALK_TIME = 2; // seconds a poked villager stands and faces you, at least
-export const POKE_COOLDOWN_MS = 600; // as a wiggle's (interact.js): spam does not restart the line
+export const POKE_COOLDOWN_MS = 600;
+export const HURT_TIME = 0.35; // seconds a bitten villager flinches
+const DEAD_SKIN = "#9fbf88"; // what a turned villager's skin goes // as a wiggle's (interact.js): spam does not restart the line
 
 let nextId = 1;
 
@@ -37,6 +40,7 @@ export function createVillager(gx, gy, { id = null, name = null, line = null, wa
     lastGoal: null,
     talkTimer: 0,
     pokedAt: 0, // performance.now() of the last poke that spoke
+    hurtTimer: 0,
   };
   wardrobeInto(v, "village", wardrobe);
   return v;
@@ -69,6 +73,15 @@ export function updateVillager(v, dt, others) {
       if (followPath(v, dt, others)) v.state = "idle";
       break;
     }
+    case "hurt": {
+      v.hurtTimer -= dt;
+      if (v.hurtTimer <= 0) {
+        v.state = "idle";
+        v.idleTimer = idleTime();
+        playAnimation(v.anim, "idle", true);
+      }
+      break;
+    }
     case "talk": {
       playAnimation(v.anim, "idle");
       separate(v, dt, others);
@@ -81,6 +94,47 @@ export function updateVillager(v, dt, others) {
     }
   }
   advanceAnimation(v.anim, sheet, dt);
+}
+
+// A villager bitten (the dead hunt them when the setting says so, docs/19): the
+// flinch, and at zero health they are dead, to be turned by `turnVillager`.
+// Returns whether it killed.
+export function damageVillager(v, amount) {
+  if (v.dead) return false;
+  v.hp = Math.max(0, v.hp - amount);
+  v.path = [];
+  v.lastGoal = null;
+  if (v.hp <= 0) {
+    v.dead = true;
+    v.state = "dead";
+    v.line = null;
+    return true;
+  }
+  v.state = "hurt";
+  v.hurtTimer = HURT_TIME;
+  playAnimation(v.anim, "hurt", true);
+  return false;
+}
+
+// A dead villager gets up as one of the dead, in what they wore and what they
+// carried (`04`, open point 4): a zombie from the same place, the clothes and
+// pockets and hands handed over, the skin gone green, on the floor for a
+// moment and then rising. The caller adds it to the dead.
+export function turnVillager(v) {
+  const z = createZombie(v.gx, v.gy);
+  z.facing = v.facing;
+  z.look = { ...v.look, skin: DEAD_SKIN, eyes: "#2a1414", under: "#b8b0a0" };
+  z.worn = v.worn;
+  z.hands = v.hands;
+  z.pockets = v.pockets;
+  z.wound = [5, 3, 0];
+  dress(z);
+  z.state = "down";
+  z.downTimer = 2;
+  z.gettingUp = false;
+  playAnimation(z.anim, "die", true);
+  emit("villagerDied", { villager: v, zombie: z });
+  return z;
 }
 
 // A poke: stop where they stand, turn to the player, say the line. Returns

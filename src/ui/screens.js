@@ -168,6 +168,7 @@ function render() {
         ${settingRow("uiScale", "Interface size")}
         ${settingRow("worldScale", "Zoom")}
         ${settingRow("zombieAggro", "Zombie aggro")}
+        ${settingRow("zombiesAttackVillagers", "Zombies attack villagers")}
         ${settingRow("survival", "Survival")}
         ${settingRow("freeBuilding", "Free building")}
         ${settingRow("debugCorner", "Debug corner")}

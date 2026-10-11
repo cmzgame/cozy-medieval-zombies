@@ -127,6 +127,7 @@ Each step checkable on its own. Michael looks after step 3.
 - [x] Step 1 (2026-10-12): `entities/character.js`, `createPlayer` and `createZombie` on it, `figure.characterSpec`, the dyed entry, `assets.sheetFor` and its cache, `data/wardrobes.json` (ten zombie wardrobes, pixel-identical to the old outfits), the `cap` item; the dead's pockets use the existing `body` table. *Paused: Michael looks at the dead.*
 - [x] Step 2 (2026-10-12): `ui/speech.js`, the bubble CSS (a rounded rectangle that wraps to any length, with a tail pointing at the speaker's head), `say` on the character model, `__game.say`, the dead's "Braaaains".
 - [x] Step 3 (2026-10-12): `entities/villager.js` on the model, the zombie's walking helpers exported, six village wardrobes, four villagers in the map (Wren, Ash, Tam, Rook), `characterAt`, the left-click poke, the menu's Poke, the talk state. *Paused: Michael looks at them.*
+- [x] Added (2026-10-12, Michael): the dead hunt villagers, behind the `Zombies attack villagers` setting (off), the player always preferred; a bitten villager flinches and at zero turns into a zombie in their own clothes. Fleeing is the next step (`04`).
 - [ ] Step 4: the corpse as a container (`lootOf`, `Search body` on E and in the menu).
 - [ ] Step 5: docs (`02`, `04`, `11`, `12`, `14`, `TODO`, `CLAUDE.md`).
 

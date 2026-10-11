@@ -62,6 +62,7 @@ export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false 
     aggro,
     lastSeen: null, // [gx, gy] where the player was last seen
     seesNow: false,
+    target: null, // who it is hunting right now: the player, or (the setting on) a villager it can see
     searchTimer: 0,
     path: [],
     groanTimer: Math.random() * GROAN_MAX, // so the dead do not all groan together
@@ -242,6 +243,29 @@ function canSee(z, player) {
   return lineOfSight(z.gx, z.gy, player.gx, player.gy);
 }
 
+// A villager in sight, the same rule as the player's: the range scales with the
+// light on them, and a clear line.
+function canSeeCharacter(z, c, d) {
+  const range = ZOMBIE_SIGHT * (SIGHT_DARK_FRACTION + (1 - SIGHT_DARK_FRACTION) * light.lightAt(c.gx, c.gy));
+  return d <= range && lineOfSight(z.gx, z.gy, c.gx, c.gy);
+}
+
+// With the setting on, the nearest living villager in sight (docs/19). Only asked
+// when the player is not in sight: the dead always prefer the player.
+function nearestPrey(z, villagers) {
+  if (!villagers || !villagers.length || !settings.get("zombiesAttackVillagers")) return null;
+  let best = null;
+  let bestD = Infinity;
+  for (const v of villagers) {
+    if (v.dead) continue;
+    const d = distTo(z, v);
+    if (d >= bestD || !canSeeCharacter(z, v, d)) continue;
+    best = v;
+    bestD = d;
+  }
+  return best;
+}
+
 // At night the dead see fire from far away (docs/02, 2026-10-09): the nearest
 // lit flame within FLAME_RANGE scaled by how dark it is, with a clear line.
 // A carried torch is a sighting of the player; any other flame is a sighting
@@ -371,13 +395,14 @@ function startSearch(z) {
 function giveUp(z) {
   z.state = "idle";
   z.aggro = false;
+  z.target = null;
   z.lastSeen = null;
   z.path = [];
   z.lastGoal = null;
   z.idleTimer = WANDER_IDLE_MIN + Math.random() * (WANDER_IDLE_MAX - WANDER_IDLE_MIN);
 }
 
-export function updateZombie(z, dt, player, others) {
+export function updateZombie(z, dt, player, others, villagers = null) {
   const sheet = getSheet(z.sprite);
   if (z.dead) {
     // The fall plays out and holds; a corpse thinks no more (docs/14).
@@ -416,24 +441,46 @@ export function updateZombie(z, dt, player, others) {
   if (z.sightTimer <= 0) {
     z.sightTimer = SIGHT_CHECK;
     z.seesNow = canSee(z, player);
+    z.target = null;
     if (z.seesNow) {
+      z.target = player;
       z.aggro = true;
       z.lastSeen = [player.gx, player.gy];
       z.sincePlayer = 0;
-    } else if (z.sincePlayer > FLAME_PATIENCE) {
-      // A flame only takes over once the player has been out of sight a while,
-      // so a zombie you just pulled off a window does not turn straight back.
-      const f = nearestFlame(z);
-      if (f) {
+    } else {
+      // The player first, always; failing that, with the setting on, the
+      // nearest villager in sight, hunted the same way (memory and all).
+      const prey = nearestPrey(z, villagers);
+      if (prey) {
+        z.target = prey;
+        z.seesNow = true;
         z.aggro = true;
-        z.lastSeen = f.carried ? [player.gx, player.gy] : [f.gx, f.gy];
+        z.lastSeen = [prey.gx, prey.gy];
         if (z.state === "search") {
           z.state = "chase";
           z.repathTimer = 0;
         }
+      } else if (z.sincePlayer > FLAME_PATIENCE) {
+        // A flame only takes over once the player has been out of sight a while,
+        // so a zombie you just pulled off a window does not turn straight back.
+        const f = nearestFlame(z);
+        if (f) {
+          z.aggro = true;
+          z.lastSeen = f.carried ? [player.gx, player.gy] : [f.gx, f.gy];
+          if (z.state === "search") {
+            z.state = "chase";
+            z.repathTimer = 0;
+          }
+        }
       }
     }
   }
+  // A target that died (a villager, bitten through) is no longer seen.
+  if (z.target && z.target.dead) {
+    z.target = null;
+    z.seesNow = false;
+  }
+  const tgt = z.target || player;
   if (z.aggro && !z.lastSeen) z.lastSeen = [player.gx, player.gy]; // spawned aggro
 
   switch (z.state) {
@@ -465,10 +512,10 @@ export function updateZombie(z, dt, player, others) {
     }
     case "chase": {
       // A bite needs reach and a clear line: no biting through a wall.
-      const d = distTo(z, player);
+      const d = distTo(z, tgt);
       if (d <= ZOMBIE_CONTACT && z.seesNow) {
         z.path = [];
-        faceToward(z, player.gx - z.gx, player.gy - z.gy);
+        faceToward(z, tgt.gx - z.gx, tgt.gy - z.gy);
         if (z.attackCooldown <= 0) {
           z.state = "attack";
           z.attackHit = false;
@@ -479,7 +526,7 @@ export function updateZombie(z, dt, player, others) {
         }
         break;
       }
-      let goal = z.seesNow ? tileOf(player) : [Math.round(z.lastSeen[0]), Math.round(z.lastSeen[1])];
+      let goal = z.seesNow ? tileOf(tgt) : [Math.round(z.lastSeen[0]), Math.round(z.lastSeen[1])];
       // A sighting on a solid tile (a campfire, a lantern on a post) is
       // walked to from beside it.
       if (!isWalkableTile(goal[0], goal[1])) goal = nearestWalkable(goal[0], goal[1]) || goal;
@@ -508,7 +555,7 @@ export function updateZombie(z, dt, player, others) {
     case "breach": {
       const b = z.breach;
       // A bite in reach beats a door; a goal that moved rooms drops the breach.
-      if (z.seesNow && distTo(z, player) <= ZOMBIE_CONTACT) {
+      if (z.seesNow && distTo(z, tgt) <= ZOMBIE_CONTACT) {
         z.breach = null;
         z.state = "chase";
         break;
@@ -601,8 +648,9 @@ export function updateZombie(z, dt, player, others) {
     case "attack": {
       if (isActiveFrame(z.anim, sheet) && !z.attackHit) {
         z.attackHit = true;
-        if (distTo(z, player) <= ZOMBIE_CONTACT + 0.2 && lineOfSight(z.gx, z.gy, player.gx, player.gy)) {
-          emit("playerHit", { zombie: z, damage: ZOMBIE_DAMAGE });
+        if (distTo(z, tgt) <= ZOMBIE_CONTACT + 0.2 && lineOfSight(z.gx, z.gy, tgt.gx, tgt.gy)) {
+          if (tgt === player) emit("playerHit", { zombie: z, damage: ZOMBIE_DAMAGE });
+          else emit("villagerHit", { zombie: z, villager: tgt, damage: ZOMBIE_DAMAGE });
         }
       }
       if (z.anim.done) {
