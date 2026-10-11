@@ -62,6 +62,13 @@ function place(sheet) {
   return p;
 }
 
+// Forget a sheet's place in the atlas, so a rebuilt sheet of another size gets
+// a fresh one on its next draw (the wall height preview). The old space stays
+// used until the page reloads.
+export function forgetSheet(sheet) {
+  placed.delete(sheet);
+}
+
 // Redraw a sheet whose image changed (the player's clothes) at its place.
 export function redrawSheet(sheet) {
   const p = placed.get(sheet);

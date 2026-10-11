@@ -154,23 +154,39 @@ function emitPlankLeaf(quad, strips, shadeF, opts) {
   }
 }
 
-// Open shutters and doors swing out on the outside of the wall, perpendicular
-// to it, at the jambs (Michael, 2026-10-09: "history be damned").
+// Open doors and shutters swing out on the outside of the wall at the jambs
+// (Michael, 2026-10-09: "history be damned"). A door stands perpendicular to
+// the wall. Shutters fold back nearly flat against the outside wall, about 160
+// degrees, as cottage shutters do (Michael, 2026-10-11), each away from the
+// window's middle, a little off the wall.
+const SHUTTER_FOLD = (160 * Math.PI) / 180;
 function emitSwungLeaves(wall, edge, x, y, h, outside, opts) {
   const a = edge === "n" ? [x, y - iso.HH] : [x - iso.HW, y];
   const b = edge === "n" ? [x + iso.HW, y] : [x, y - iso.HH];
   const lerp = (t, up) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t - up];
   const perp = edge === "n" ? [-iso.HW, iso.HH] : [iso.HW, iso.HH];
+  const along = [b[0] - a[0], b[1] - a[1]]; // the whole edge, one tile long, like perp
   const isDoor = wall.kind === "door";
-  const len = isDoor ? 0.55 : 0.32;
-  const v = [perp[0] * len * outside, perp[1] * len * outside];
   const y0 = isDoor ? 0 : h * 0.35;
   const y1 = isDoor ? h * 0.82 : h * 0.8;
-  const jambs = isDoor ? [0.18] : [0.25, 0.75];
-  for (const t of jambs) {
+  if (isDoor) {
+    const len = 0.55;
+    const v = [perp[0] * len * outside, perp[1] * len * outside];
+    const p0 = lerp(0.18, y0);
+    const p1 = lerp(0.18, y1);
+    emitPlankLeaf([p0, p1, [p1[0] + v[0], p1[1] + v[1]], [p0[0] + v[0], p0[1] + v[1]]], 2, outside > 0 ? 0.95 : 0.7, opts);
+    return;
+  }
+  // Each shutter is a quarter of the edge wide, hinged at its jamb, and turned
+  // SHUTTER_FOLD from closed (where it pointed at the window's middle).
+  const len = 0.25;
+  const back = -Math.cos(SHUTTER_FOLD) * len; // along the wall, away from the middle
+  const off = Math.sin(SHUTTER_FOLD) * len; // out from the wall
+  for (const [t, away] of [[0.25, -1], [0.75, 1]]) {
+    const v = [along[0] * back * away + perp[0] * off * outside, along[1] * back * away + perp[1] * off * outside];
     const p0 = lerp(t, y0);
     const p1 = lerp(t, y1);
-    emitPlankLeaf([p0, p1, [p1[0] + v[0], p1[1] + v[1]], [p0[0] + v[0], p0[1] + v[1]]], isDoor ? 2 : 1, outside > 0 ? 0.95 : 0.7, opts);
+    emitPlankLeaf([p0, p1, [p1[0] + v[0], p1[1] + v[1]], [p0[0] + v[0], p0[1] + v[1]]], 1, outside > 0 ? 0.9 : 0.7, opts);
   }
 }
 

@@ -122,6 +122,16 @@ export function registerSheet(id, sheet) {
 
 // Swap a sheet's content in place, keeping the object every holder has. The
 // caller redraws it into the atlas (gl.redrawSheet); the image must keep its size.
+// Rebuild a generated wall sheet at another height (docs/16, the wall height
+// preview). Returns the sheet, the same object, so everything holding it sees
+// the new frames; the caller frees its atlas place.
+export function rebuildWall(id, height) {
+  const def = getDef(id);
+  if (!def.placeholder || def.placeholder.kind !== "wall") return null;
+  def.placeholder.height = height;
+  return replaceSheet(id, placeholders.generateWall(def.placeholder));
+}
+
 export function replaceSheet(id, next) {
   const s = sheets.get(id);
   if (!s) return registerSheet(id, next);
