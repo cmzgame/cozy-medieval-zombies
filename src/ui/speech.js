@@ -20,8 +20,8 @@ const HEAD_TOP = 68;
 const NEAR = 3.5; // tiles from the player
 
 const EDGE = 8; // UI px a bubble keeps clear of the window's edge
-const TAIL_MARGIN = 18; // UI px the tail keeps from a box's corner (its half-width, 9, plus the rounded corner)
-const BORDER = 2; // the outline's width: the tail is placed from the padding box's edge, inside it
+const TAIL_MARGIN = 22; // UI px the tail keeps from a box's corner (its half-width, 10, plus the rounded corner)
+const BORDER = 3; // the outline's width: the tail is placed from the padding box's edge, inside it
 
 let root = null;
 let uiEl = null;
