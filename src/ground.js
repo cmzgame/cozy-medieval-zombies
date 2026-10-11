@@ -59,7 +59,7 @@ let seed = 1;
 const biomes = new Map(); // name -> { grass: [{ w, h, px }], base: [r, g, b] }
 const frames = new Map(); // "sheet|frame" -> { w, h, px, ox, oy }
 const chunks = new Map(); // chunkKey -> { cx, cy, rec, dirty }
-const stat = { baked: 0, lastMs: 0, maxMs: 0, phases: {} }; // phases: the last bake's ms per phase
+const stat = { baked: 0, lastMs: 0, maxMs: 0, phases: {}, syncBakes: 0 }; // phases: the last bake's ms per phase; syncBakes: chunks baked at draw time because no picture was ready
 
 // ---- ownership, the same for every chunk ----
 
@@ -690,6 +690,16 @@ export function bakeNow(cx, cy) {
   return rec;
 }
 
+// The picture to draw for a chunk in view: its texture, or, if it has none
+// yet, one baked now, so nothing ever draws as a hole. A bake here is a hitch
+// the ring ahead should have prevented, so it is counted.
+export function drawRecord(cx, cy) {
+  const rec = textureFor(cx, cy);
+  if (rec) return rec;
+  stat.syncBakes++;
+  return bakeNow(cx, cy);
+}
+
 // The chunk's texture record, or null if it has none yet. A dirty chunk
 // keeps drawing its old picture until it is re-baked.
 export function textureFor(cx, cy) {
@@ -793,7 +803,7 @@ export function invalidate(tiles, prop = null) {
 }
 
 export function stats() {
-  return { baked: stat.baked, lastMs: stat.lastMs, maxMs: stat.maxMs, textures: chunks.size, phases: stat.phases };
+  return { baked: stat.baked, lastMs: stat.lastMs, maxMs: stat.maxMs, textures: chunks.size, phases: stat.phases, syncBakes: stat.syncBakes };
 }
 
 // ---- for testing and for Michael ----

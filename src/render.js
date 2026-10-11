@@ -102,7 +102,7 @@ function worldToGrid(wx, wy) {
 function emitGround(tiles) {
   const o = iso.getOrigin(); // whole pixels: camera.applyOrigin rounds
   for (const [cx, cy] of ground.chunksOf(tiles)) {
-    const rec = ground.textureFor(cx, cy) || ground.bakeNow(cx, cy);
+    const rec = ground.drawRecord(cx, cy);
     const x0 = cx * map.CHUNK;
     const y0 = cy * map.CHUNK;
     const left = (x0 - y0 - map.CHUNK) * iso.HW;
@@ -663,7 +663,26 @@ function buildArea(tiles, visible, drawAll, camGx, camGy) {
 
 let lastLinear = null;
 
-export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null }) {
+// The tile grid, only in build and remove mode (docs/15): each tile's north
+// and west edges as one-pixel lines, faint white, over the ground and under
+// everything standing, unlit and unfogged so it reads at night.
+const GRID_COLOR = [1, 1, 1, 0.12];
+function emitGrid(tiles) {
+  const flags = gl.FLAG_UNLIT | gl.FLAG_NOFOG;
+  for (const [tx, ty] of tiles) {
+    const p = iso.toScreen(tx, ty);
+    const x = Math.round(p.x);
+    const y = Math.round(p.y);
+    const top = [x, y - iso.HH];
+    const right = [x + iso.HW, y];
+    const left = [x - iso.HW, y];
+    for (const [a, b] of [[left, top], [top, right]]) {
+      gl.poly([a, b, [b[0], b[1] + 1], [a[0], a[1] + 1]], GRID_COLOR, { world: [tx, ty], flags });
+    }
+  }
+}
+
+export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false }) {
   ensureArea(w, h);
   if (lastLinear !== night.linear) {
     gl.setLightSampling(night.linear);
@@ -674,6 +693,7 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
 
   gl.begin();
   emitGround(tiles);
+  if (grid) emitGrid(tiles);
   const drawables = [];
   wallDrawables(tiles, visible, playerRoom, drawables);
   postDrawables(tiles, visible, playerRoom, drawables);

@@ -352,7 +352,7 @@ function applySquareSurface() {
 
 function groundLine() {
   const s = ground.stats();
-  return `${s.baked} baked, last ${s.lastMs.toFixed(1)}ms, max ${s.maxMs.toFixed(1)}ms, ${s.textures} textures`;
+  return `${s.baked} baked, last ${s.lastMs.toFixed(1)}ms, max ${s.maxMs.toFixed(1)}ms, ${s.textures} textures, ${s.syncBakes} at draw`;
 }
 
 function render() {
@@ -370,6 +370,8 @@ function render() {
     fog: !drawAll,
     ghost: placement.ghost(),
     hitShapes: combat.overlays(player, zombies, settings.get("showHitShapes")),
+    // The tile grid shows only while building or removing (docs/15).
+    grid: placement.state.kind === "build" || placement.state.kind === "remove",
   };
   if (!glError) drawn = renderScene(scene);
   timing.render = performance.now() - r0;
