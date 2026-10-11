@@ -1,5 +1,7 @@
 # 16 — Art brief for Claude Design: the village
 
+**Corrected 2026-10-11:** the first version had the wall directions swapped in its requests. The engine is the truth: a north wall runs from a tile's top corner down to its right corner (\, a room's back-right wall), a west wall from its left corner up to its top corner (/, the back-left wall). Claude Design caught the mismatch.
+
 Michael, 2026-10-11, after the trees, the ground decals, and the rocks came back well: more work in the same style. Each part has a request to paste into Claude Design; everything between the fences is meant to be pasted as it is. **Settled since the first draft (Michael, 2026-10-11):** walls are **80 px tall**, **16 px thick for stone and 14 for wood** (18 for the log walls the player builds); doors and windows keep fixed sizes from the floor (door 48 px tall), though those sizes are not gospel; open shutters fold back flat against the wall. The section below answers the questions Claude Design asked before drawing.
 
 ## Answers to Claude Design's questions
@@ -9,7 +11,7 @@ Claude Design looked at a screenshot and asked seven things before drawing. Mich
 ```
 Answers to your questions, from the engine as it is now:
 
-1. Wall geometry. One wall segment covers one tile edge: 32 px across and 16 px up the screen along the diamond's edge. Walls are 80 px tall. Stone walls are 16 px thick and wooden walls 14; the top cap is the wall's thickness seen from above, a strip that wide. Please draw both wall directions (the north edge, running bottom left to top right, and the west edge, running top left to bottom right); the light falls differently on them, so I do not mirror walls. Corners and wall ends: today the engine draws a square post the size of the wall's thickness wherever walls meet at an angle or a wall ends, covering the join, with no separate corner art. That is a stand-in, not a rule; if corner and end pieces would look better, please propose them and I will draw them in.
+1. Wall geometry. One wall segment covers one tile edge: 32 px across and 16 px up the screen along the diamond's edge. Walls are 80 px tall. Stone walls are 16 px thick and wooden walls 14; the top cap is the wall's thickness seen from above, a strip that wide. Please draw both wall directions: the north edge runs from the top left down to the bottom right of the screen (\), the back-right wall of a room; the west edge runs from the bottom left up to the top right (/), the back-left wall; the light falls differently on them, so I do not mirror walls. Corners and wall ends: today the engine draws a square post the size of the wall's thickness wherever walls meet at an angle or a wall ends, covering the join, with no separate corner art. That is a stand-in, not a rule; if corner and end pieces would look better, please propose them and I will draw them in.
 
 2. How walls are built: one finished sprite per segment and variant, drawn as a single image and lit by the engine per pixel. Not geometry with a texture. Please draw finished sprites.
 
@@ -80,8 +82,8 @@ The game: a cosy, slightly spooky medieval village in 2:1 isometric pixel art, H
 A wall segment stands on one edge of a ground tile and is exactly one tile edge long: 32 px across and 16 px up the screen along the diamond's edge. Walls are thick and chunky (thick walls read as cosy), with the top of the wall visible as a flat cap, and 80 px tall: stone walls 16 px thick, wooden walls 14. Where walls meet at a corner or a wall ends, my game currently drops in a plain square post the size of the wall's thickness; if corner and end pieces would look better, please propose them. Segments sit end to end along a building's side, so the pattern must continue seamlessly from one segment into the next.
 
 Two orientations, each drawn (not mirrored, since the light falls differently on them):
-- North-edge segments, running from the bottom left up to the top right.
-- West-edge segments, running from the top left down to the bottom right.
+- North-edge segments, running from the top left down to the bottom right of the screen (\): the back-right wall of a room.
+- West-edge segments, running from the bottom left up to the top right (/): the back-left wall of a room.
 
 Two materials:
 - Wood: vertical or horizontal planks, around #6e4b32, with a darker sill beam at the bottom.
@@ -126,7 +128,7 @@ The closed door is about 19 px across and 48 px tall. When it opens, it swings o
 - Its face is a parallelogram slanting along the other ground axis from the wall, with the planks and metal strips following the slant, one shade darker than the closed door because it has turned away from the light.
 - Its free edge is visible as a narrow strip about 3 px wide, the full height of the door, lighter than the face. Its top edge is a one-pixel highlight.
 - Two dark metal hinge straps where it meets the door frame.
-Please draw it for a door in a north-edge wall (the wall running bottom left to top right) and for a door in a west-edge wall (running top left to bottom right).
+Please draw it for a door in a north-edge wall (the wall running top left to bottom right, \) and for a door in a west-edge wall (running bottom left to top right, /).
 
 Open shutters: a window has two shutters, each about 8 px wide and 29 px tall. When open, each folds back almost flat against the outside of the wall, at about 160 degrees: a slightly foreshortened face, its edge as a one-pixel strip, small hinge marks. Please draw the left and right shutter for a north-edge window and for a west-edge window.
 
