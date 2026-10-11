@@ -19,7 +19,19 @@ Every PNG is hard-pixelled (alpha 0 or 255), tightly cropped, 1:1, and comes wit
 
 **Orientation matches the engine** (the corrected brief): north is the tile edge from its top vertex to its right vertex, "\" on screen, a room's back-right wall; west is top vertex to left vertex, "/", the back-left wall. Nothing is mirrored.
 
-**Not in this set, by design:** boarded and broken variants (boards stay engine polygons), the log wall the player builds, the chest, barrel, campfire, torch post, pumpkins (still generated), dirt and cobble textures (still generated), ground shadows (the engine's).
+**The second batch (brief `18`, 2026-10-11, in `C:\Users\micha\Downloads\village_art(1)`, a superset of the first folder with every earlier file unchanged; use this folder as the source):**
+
+| Set | Files | Notes |
+|---|---|---|
+| Log walls | 10: `wall_log_<north|west>_<variant>` | 18 thick, centred, 80 tall, same anchors convention (`[9, 85]` north, `[41, 85]` west); five round logs with clay chinking, cut ends with rings at the near end and in the openings |
+| Log post, leaves, shutters | `post_log`, `door_open_log_<o>`, `shutter_<left|right>_log_<o>` | the post is a notched cabin corner |
+| Board overlays | 12: `boards_<door|window>_<north|west>_<1|2|3>` | weathered grey-tan planks, outlined, anchored like the wall segment they cover, drawn right after it; proud of the thickest (log) face so they never sink into a wall |
+| Far-side leaves | 18: `door_open_far_<mat>_<o>`, `shutter_far_<left|right>_<mat>_<o>` | real away-swings; drawn just before their wall, only when that wall is translucent |
+| Placement previews | `place_alone`, `place_lines`, `place_lone`, `place_corners`, `place_tees_mixed`, `place_boards`, `place_far`, at 1× and 3× | the acceptance pictures for building |
+
+**The designer's placement rules (the previews follow them; the engine already sorts this way):** a wall segment's sort key is the grid sum of its midpoint (the engine's `tx + ty − 0.5`); a post's is its grid vertex (`tx + ty − 1`); near-side leaves, shutters, and boards draw right after their wall, far-side leaves right before. **New rule: a post wherever the material changes along a straight line**, in the heavier material, **stone over log over wood**, because the three thicknesses (16, 18, 14) leave a step in the cap where two meet end to end; and at a corner where two materials meet, the heavier material's post. Lone segments need no end piece: the posts at their ends finish them.
+
+**Not in either set, by design:** the chest, barrel, campfire, torch post (still generated), dirt and cobble textures (still generated), ground shadows (the engine's). Pumpkins and jack-o'-lanterns came separately (below).
 
 ## What the engine does today, and why it cannot take the art as is
 
@@ -41,8 +53,8 @@ The loader learns to build one sheet from several PNGs with named frames, and to
 4. **Boards are overlay sprites**, drawn by Claude Design (`18-building-art-brief.md`): one, two, or three planks sized to the doorway or the window, per wall orientation, twelve small files, drawn over the wall segment at the wall's anchor on the near face, exactly as the leaves are. Michael's worry, which is right: the old polygon planks would look like dev art on the drawn walls. Until the overlays arrive, the polygon boards stand in. Broken is the open frame: `window_broken` draws the `window_open` art, a broken door the `door_open` art (docs/09's rule).
 5. **Props get facings, Zomboid style (Michael's rule).** Every asymmetrical item has at least two facings, one drawing plus its mirror; four when the item's two ends differ and both would be seen. A prop declares `facings`, each a drawing or the mirror of another; the prop carries `facing`; `R` in placement cycles them; the map file may give one. For a two-tile item the facing sets the footprint's axis. The chair: two drawings and their mirrors, four facings. The bed: one plus mirror, the headboard at the far end either way (the two facings with the headboard toward the camera are not drawn until wanted). The table: one plus mirror. The fireplace: one plus mirror, for the two back walls. The well: one. Names are fixed at import; the conversation about them comes with step 4.
 6. **Multi-tile furniture is one drawing, sliced at load.** Art is drawn with the long side along world y (footprint `[1, 2]`); a prop placed along x (footprint `[2, 1]`, as the cottage's bed and table are today) draws the mirror. The accepted cost of mirroring is that the lit side swaps.
-7. **The cottage's hearth becomes the two-tile fireplace** in `square.json` (its fire data moves over; `hearth.json` stays for anything else that uses it, which is nothing). The campfire, chest, barrel, torch post, and pumpkins stay generated until drawn. **The player's log walls, their posts, leaves, and shutters, and the board overlays are requested in `18-building-art-brief.md`**; until they arrive the log wall stays generated behind the same id and boards are polygons.
-8. **Posts take the material of the stone-first rule as now**; a corner of log walls (player-built) uses `post_wood`.
+7. **The cottage's hearth becomes the two-tile fireplace** in `square.json` (its fire data moves over; `hearth.json` stays for anything else that uses it, which is nothing). The campfire, chest, barrel, and torch post stay generated until drawn. **The log wall the player builds is drawn now** (the second batch) and replaces the generated `wall_log` behind the same id; the generated wall code stays only as a fallback for a definition with a `placeholder`.
+8. **Posts: stone over log over wood** (the designer's rule). At a corner or a junction, the heaviest material among the walls meeting there; and, new, **a post also stands where two different materials meet end to end in a straight line** (today `postDrawables` skips straight runs; it skips them only when both walls share a material). A wall with no drawn post falls back to the polygons.
 9. **Nothing about collision, rooms, light, sight, or the dead changes.** Walls are still edge state; a drawn wall is a picture of the same edge.
 
 ## The loader
@@ -82,7 +94,7 @@ A drawn wall definition (`data/sprites/wall_wood.json`):
 - **The quad**: as now, `world: [wa, wb, wb, wa]`, `heights: [f[3], f[3], 0, 0]`, the tint for translucent near walls and the ghost. **The cap**: no flat top polygon; instead the cap's parallelogram is drawn again from the frame with `FLAG_SKY` on top of the face (ruling 3), through a new `gl.texQuad(points, uvs, opts)`. For a north wall the top edge runs from the anchor's top vertex up 80 px to the right vertex up 80 px, and the cap is that edge pushed half the thickness along the ground's y axis each way (one ground unit along y is one screen pixel left and half a pixel down); for a west wall, along x (one unit is one pixel right and half down).
 - **Posts**: `post` names a sprite definition (`post_wood.json`: `image`, `anchor` as given, `anchorVertex: "vertex"`, meaning drawn at the vertex itself, no conversion); `makePost` draws it as a quad at `toScreen(tx − 0.5, ty − 0.5)` with the vertex's world point and `heights: [h, h, 0, 0]`. Log-wall corners fall back to `post_wood`; a sheet with no `post` keeps the polygons.
 - **Leaves and shutters**: `leaf` and `shutters` name definition prefixes; the leaf definition `door_open_wood.json` has `images: { north: ..., west: ... }` and per-frame anchors (the art's anchors differ per side), so the loader accepts `anchors: { "<frame>": [x, y] }` beside a single `anchor`. Drawn, when the opening is open, whole, unboarded, and its outside is the near side (`outsideSign > 0`), at the wall's anchor, after the wall. Shutters: `left` and `right` both. Far side: the `_far` sprite, drawn before the wall, only when the wall is translucent; otherwise nothing (ruling 2).
-- **Boards**: `wall.boards.near` planks drawn after the wall on the near face. With the overlays of `18`: the sprite `boards_<door|window>_<side>_<n>` at the wall's anchor, with the wall's `world` and `heights`. Until then: each a polygon across the opening at the opening's fixed sizes (`DOOR_TOP`, `WINDOW_SILL`, `WINDOW_TOP`), spaced as the generator spaced them (one at the middle, then at 0.22 and 0.78 of the height).
+- **Boards**: `wall.boards.near` (1 to 3) draws the overlay sprite `boards_<door|window>_<side>_<n>` at the wall's anchor, right after the wall, with the wall's `world` and `heights`. A window's boards over an open or shut leaf alike; a door's likewise. Board overlays are wood whatever the wall, so one set serves all three materials. The polygon boards are gone.
 - **Brackets**: the torch bracket sits on the near face, which is now half the thickness nearer the camera than the edge line; `bx, by` move by `perp · T/2`. One line.
 - **Hit test for openings** (`interact.openingsAtScreen`): `WALL_FACE` becomes the sheet's wall height (80), and the face rect shifts by the same half thickness.
 - **The build ghost** draws the wall through `makeWall` with a tint and needs nothing new; it builds `wall_log`, which stays generated.
@@ -120,7 +132,7 @@ Michael's second set of 2026-10-11 (`C:\Users\micha\Downloads\pumpkins`, with `a
 
 ## Files, where they go
 
-- PNGs to `data/art/village/` as named. The README, the anchor JSONs, and the generators stay in Michael's folder (the generators are Claude Design's; the anchors are copied into the definitions by the import script).
+- PNGs to `data/art/village/` as named, from `village_art(1)` (the superset), and the pumpkins from `pumpkins`. The README, the anchor JSONs, and the generators stay in Michael's folder (the generators are Claude Design's; the anchors are copied into the definitions by the import script).
 - An import script in the scratchpad writes the definitions from the anchor JSONs, so a re-roll from Claude Design re-imports in one run.
 
 ## Build order, with pauses for Michael
