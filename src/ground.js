@@ -14,13 +14,13 @@
 //
 // Built so far: step 1 (grass by hash, laid floors, the ownership clip),
 // step 2 (the patch tint and canopy darkening on the grass, baked tree
-// shadows), and step 3 (flat decals: leaf litter in the nearest tree's colour,
+// shadows), and step 3 (flat decals: fallen leaves in the nearest tree's colour,
 // twigs, pebbles, flowers, tufts, mushrooms, by the rules in data/ground.json).
 // Until step 4, dirt and farm draw as their sheet's first frame, a hard
 // diamond.
 //
 // Decals are drawn after the grass and before the shadows, so a tree's shadow
-// falls across its own litter. Each tile's decals come from that tile's
+// falls across its own leaves. Each tile's decals come from that tile's
 // hashes alone, and a chunk draws the decals of the tiles two beyond its edge
 // too, keeping only the pixels it owns: a decal that spills over a chunk
 // border is drawn whole, half by each chunk, at the same world position.
@@ -138,7 +138,7 @@ export async function init(mapJson) {
     }
     const decals = [];
     for (const d of b.decals || []) {
-      // `files` is a list, or for litter an object of lists by colour.
+      // `files` is a list, or for leaves an object of lists by colour.
       const load = async (list) => {
         const out = [];
         for (const src of list) {
@@ -308,8 +308,8 @@ function stamp(out, img, sx, sy, flip) {
 // rules. `near` is a tile some tree's canopy reaches (by straight-line
 // distance from the trunk, as the darkening), `open` one no tree reaches.
 function bakeDecals(out, x0, y0, left, top, log = null) {
-  const trees = propsNear(x0, y0, REACH_MAX + DECAL_PAD, "canopy").map(({ prop, def }) => ({ x: prop.tile[0], y: prop.tile[1], reach: def.canopy.reach, litter: def.litter || "brown" }));
-  const LITTER = ["yellow", "orange", "red", "brown"];
+  const trees = propsNear(x0, y0, REACH_MAX + DECAL_PAD, "canopy").map(({ prop, def }) => ({ x: prop.tile[0], y: prop.tile[1], reach: def.canopy.reach, leaves: def.leaves || "brown" }));
+  const LEAF_COLOURS = ["yellow", "orange", "red", "brown"];
   for (let y = y0 - DECAL_PAD; y < y0 + C + DECAL_PAD; y++) {
     for (let x = x0 - DECAL_PAD; x < x0 + C + DECAL_PAD; x++) {
       const kind = kindOf(map.tileAt(x, y).floor);
@@ -337,20 +337,20 @@ function bakeDecals(out, x0, y0, left, top, log = null) {
         const sx = cxp + (u - v) * 32;
         const sy = cyp + (u + v) * 16;
         if (out) stamp(out, img, sx, sy, flip);
-        if (log) log.push({ tile: [x, y], id, colour, near: near ? near.litter : null, wx: Math.round(sx + left), wy: Math.round(sy + top) });
+        if (log) log.push({ tile: [x, y], id, colour, near: near ? near.leaves : null, wx: Math.round(sx + left), wy: Math.round(sy + top) });
       };
       const pick = (list) => list[Math.floor(roll() * list.length)];
       for (const d of bio.decals) {
         if (!d.on.includes(kind)) continue;
-        if (d.kind === "litter") {
+        if (d.kind === "leaves") {
           let n = 0;
           let colourOf = null;
           if (near) {
             n = Math.max(0, Math.floor(near.reach - nd)) + (roll() < d.extraChance ? 1 : 0);
-            colourOf = () => (roll() < d.treeColour ? near.litter : "brown");
+            colourOf = () => (roll() < d.treeColour ? near.leaves : "brown");
           } else if (roll() < d.openChance) {
             n = 1;
-            colourOf = () => LITTER[Math.floor(roll() * LITTER.length)];
+            colourOf = () => LEAF_COLOURS[Math.floor(roll() * LEAF_COLOURS.length)];
           }
           for (let i = 0; i < n; i++) {
             const colour = colourOf();

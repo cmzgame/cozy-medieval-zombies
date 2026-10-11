@@ -22,18 +22,18 @@
       "canopy": { "perTree": 0.07, "max": 0.20 },
       "shadow": { "steps": 3, "alpha": 0.09, "squash": 0.6, "dropPx": 2 },
       "decals": [
-        { "id": "litter", "kind": "litter", "layer": "flat", "on": ["grass", "dirt"], "treeColour": 0.8, "extraChance": 0.5, "openChance": 0.18,
+        { "id": "leaves", "kind": "leaves", "layer": "flat", "on": ["grass", "dirt"], "treeColour": 0.8, "extraChance": 0.5, "openChance": 0.18,
           "files": {
-            "yellow": ["data/art/ground/litter_yellow_0.png", "data/art/ground/litter_yellow_1.png"],
-            "orange": ["data/art/ground/litter_orange_0.png", "data/art/ground/litter_orange_1.png"],
-            "red": ["data/art/ground/litter_red_0.png", "data/art/ground/litter_red_1.png"],
-            "brown": ["data/art/ground/litter_brown_0.png", "data/art/ground/litter_brown_1.png"]
+            "yellow": ["data/art/ground/leaves_yellow_0.png", "data/art/ground/leaves_yellow_1.png"],
+            "orange": ["data/art/ground/leaves_orange_0.png", "data/art/ground/leaves_orange_1.png"],
+            "red": ["data/art/ground/leaves_red_0.png", "data/art/ground/leaves_red_1.png"],
+            "brown": ["data/art/ground/leaves_brown_0.png", "data/art/ground/leaves_brown_1.png"]
           } },
         { "id": "twig", "layer": "flat", "on": ["grass", "dirt"], "where": "near", "chance": 0.25, "count": [1, 1], "files": ["data/art/ground/twig_0.png", "data/art/ground/twig_1.png"] },
         { "id": "pebbles", "layer": "flat", "on": ["grass", "dirt"], "where": "any", "chance": 0.06, "count": [1, 1], "files": ["data/art/ground/pebbles_0.png", "data/art/ground/pebbles_1.png"] },
         { "id": "flowers", "layer": "flat", "where": "open", "chance": 0.10, "count": [1, 1], "files": ["data/art/ground/flowers_0.png", "data/art/ground/flowers_1.png"] },
         { "id": "tuft", "layer": "flat", "where": "any", "chance": 0.45, "count": [1, 2], "files": ["data/art/ground/tuft_0.png", "data/art/ground/tuft_1.png", "data/art/ground/tuft_2.png", "data/art/ground/tuft_3.png"] },
-        { "id": "mushroom", "layer": "flat", "where": "near", "chance": 0.10, "count": [1, 1], "files": ["data/art/ground/mushroom_0.png", "data/art/ground/mushroom_1.png"] }
+        { "id": "mushroom", "layer": "flat", "where": "near", "chance": 0.25, "count": [1, 2], "files": ["data/art/ground/mushroom_0.png", "data/art/ground/mushroom_1.png"] }
       ]
     }
   }
