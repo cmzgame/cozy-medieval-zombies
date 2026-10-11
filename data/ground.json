@@ -31,18 +31,18 @@
       "canopy": { "perTree": 0.07, "max": 0.20 },
       "shadow": { "steps": 3, "alpha": 0.09, "squash": 0.6, "dropPx": 2 },
       "decals": [
-        { "id": "leaves", "kind": "leaves", "layer": "flat", "on": ["grass", "dirt"], "treeColour": 0.8, "perReach": 0.5, "extraChance": 0.4, "openChance": 0.12,
+        { "id": "leaves", "kind": "leaves", "layer": "flat", "on": ["grass", "dirt"], "treeColour": 0.8, "perReach": 0.4, "extraChance": 0.25, "openChance": 0.06,
           "files": {
             "yellow": ["data/art/ground/leaves_yellow_0.png", "data/art/ground/leaves_yellow_1.png", "data/art/ground/leaves_yellow_2.png", "data/art/ground/leaves_yellow_3.png", "data/art/ground/leaves_yellow_4.png"],
             "orange": ["data/art/ground/leaves_orange_0.png", "data/art/ground/leaves_orange_1.png", "data/art/ground/leaves_orange_2.png", "data/art/ground/leaves_orange_3.png", "data/art/ground/leaves_orange_4.png"],
             "red": ["data/art/ground/leaves_red_0.png", "data/art/ground/leaves_red_1.png", "data/art/ground/leaves_red_2.png", "data/art/ground/leaves_red_3.png", "data/art/ground/leaves_red_4.png"],
             "brown": ["data/art/ground/leaves_brown_0.png", "data/art/ground/leaves_brown_1.png", "data/art/ground/leaves_brown_2.png", "data/art/ground/leaves_brown_3.png", "data/art/ground/leaves_brown_4.png"]
           } },
-        { "id": "twig", "layer": "flat", "on": ["grass", "dirt"], "where": "near", "chance": 0.2, "count": [1, 1], "files": ["data/art/ground/twig_0.png", "data/art/ground/twig_1.png", "data/art/ground/twig_2.png"] },
-        { "id": "pebbles", "layer": "flat", "on": ["grass", "dirt"], "where": "any", "chance": 0.06, "count": [1, 1], "files": ["data/art/ground/pebbles_0.png", "data/art/ground/pebbles_1.png", "data/art/ground/pebbles_2.png"] },
+        { "id": "twig", "layer": "flat", "on": ["grass", "dirt"], "where": "near", "chance": 0.1, "count": [1, 1], "files": ["data/art/ground/twig_0.png", "data/art/ground/twig_1.png", "data/art/ground/twig_2.png"] },
+        { "id": "pebbles", "layer": "flat", "on": ["grass", "dirt"], "where": "any", "chance": 0.03, "count": [1, 1], "files": ["data/art/ground/pebbles_0.png", "data/art/ground/pebbles_1.png", "data/art/ground/pebbles_2.png"] },
         { "id": "flowers", "layer": "flat", "stand": true, "where": "open", "chance": 0.10, "count": [1, 1], "files": ["data/art/ground/flowers_0.png", "data/art/ground/flowers_1.png", "data/art/ground/flowers_2.png", "data/art/ground/flowers_3.png"] },
-        { "id": "tuft", "layer": "flat", "stand": true, "where": "any", "chance": 0.35, "count": [1, 2], "files": ["data/art/ground/tuft_0.png", "data/art/ground/tuft_1.png", "data/art/ground/tuft_2.png", "data/art/ground/tuft_3.png"] },
-        { "id": "mushroom", "layer": "flat", "stand": true, "where": "near", "chance": 0.25, "count": [1, 1], "files": ["data/art/ground/mushroom_0.png", "data/art/ground/mushroom_1.png", "data/art/ground/mushroom_2.png", "data/art/ground/mushroom_3.png", "data/art/ground/mushroom_4.png"] }
+        { "id": "tuft", "layer": "flat", "stand": true, "where": "any", "chance": 0.175, "count": [1, 2], "files": ["data/art/ground/tuft_0.png", "data/art/ground/tuft_1.png", "data/art/ground/tuft_2.png", "data/art/ground/tuft_3.png"] },
+        { "id": "mushroom", "layer": "flat", "stand": true, "where": "near", "chance": 0.125, "count": [1, 1], "files": ["data/art/ground/mushroom_0.png", "data/art/ground/mushroom_1.png", "data/art/ground/mushroom_2.png", "data/art/ground/mushroom_3.png", "data/art/ground/mushroom_4.png"] }
       ]
     }
   }
