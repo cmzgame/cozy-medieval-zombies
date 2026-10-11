@@ -9,7 +9,7 @@
 
 import * as iso from "./iso.js";
 import * as clock from "./clock.js";
-import { getSheet, idleFrame } from "./assets.js";
+import { getSheet, getDef, idleFrame } from "./assets.js";
 import { resolveFacing, frameName } from "./sprites.js";
 import { shade } from "./render-util.js";
 import * as map from "./map.js";
@@ -41,6 +41,9 @@ const CLEAR = [0x16 / 255, 0x12 / 255, 0x1c / 255];
 const NEAR_WALL_ALPHA = 0.42;
 
 
+// Only trees open a see-through hole for the player (Michael, 2026-10-11:
+// "that's really just for trees"; walls have their own fade). A tree is a
+// sprite with a canopy.
 const OCCLUDER_MIN_HEIGHT = 64;
 const HOLE_INNER = 34; // px, fully clear
 const HOLE_OUTER = 78; // px, fade to solid
@@ -553,7 +556,7 @@ function propDrawables(tiles, visible, out) {
       kind: "prop",
       vis,
       rect,
-      canOcclude: !!f && f[3] >= OCCLUDER_MIN_HEIGHT,
+      canOcclude: !!f && f[3] >= OCCLUDER_MIN_HEIGHT && !!getDef(prop.sprite).canopy,
       occluder: false,
       emit() {
         const flags = gl.FLAG_STANDING | (d.occluder ? gl.FLAG_OCCLUDER : 0);

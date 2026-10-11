@@ -39,6 +39,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-11 — Only trees are seen through (Michael)
+
+The see-through hole round the player behind something tall is for trees alone ("that's really just for trees"; walls have their own fade). It was any prop 64 px tall or more, which took in the well, the table, and the fireplace. Also fixed: two-tile furniture is sliced along a vertical screen line, not the ground line, so a far wall no longer draws over it (`17`, status).
+
 ### 2026-10-11 — Furniture drawn; the farm becomes soil (Michael)
 
 Step 4 of `17` is in (status there): the well, bed, table, chairs, and the fireplace in place of the hearth, with facings from drawings and their mirrors, two-tile pieces sliced per tile, and the fireplace's flames on its firebox. **The farm tile becomes dark tilled soil** with no plants (Michael: "crops supply the warmth"); crops, the pumpkins among them, will be sprites standing on it. The request for Claude Design is written (bare soil, furrows continuous across all four edges, two to four variants; and a seamless water texture with no shore); the generated yellow tile stands in until it arrives.

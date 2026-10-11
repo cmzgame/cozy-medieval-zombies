@@ -211,10 +211,17 @@ function canvasOf(img, mirror) {
   return c;
 }
 
-// One footprint tile's share of a two-tile drawing: the pixels on that tile's
-// side of the boundary between the two tiles, measured on the ground under
-// each pixel (so a tall part above the line goes with the far tile, as every
-// isometric slicer does). `a` is the centre anchor of the first (top) tile.
+// One footprint tile's share of a two-tile drawing, cut along a vertical
+// screen line (docs/17). The line stands at the boundary's top vertex, which is
+// the second tile's centre on screen, moved a half wall's thickness (9 px, the
+// thickest wall) toward the first tile: everything beyond it stands on the
+// second tile however high it is drawn, and the first tile's slice stops short
+// of the far wall behind the second, whose near face stands that far out. A cut
+// along the ground line put the high parts of the second tile (a quilt, a
+// chimney breast) in the first tile's slice, which sorts before that far wall,
+// and the wall drew over them (Michael, 2026-10-11). `a` is the centre anchor
+// of the first tile.
+const SLICE_INSET = 9;
 function sliceOf(canvas, a, alongY, i) {
   const w = canvas.width;
   const h = canvas.height;
@@ -223,15 +230,12 @@ function sliceOf(canvas, a, alongY, i) {
   out.height = h;
   const src = canvas.getContext("2d").getImageData(0, 0, w, h);
   const d = src.data;
-  const tvx = a[0];
-  const tvy = a[1] - TILE_HH; // the top tile's top vertex
+  // Along y the second tile lies down-left (32 px left), along x down-right.
+  const cut = alongY ? a[0] - 32 + SLICE_INSET : a[0] + 32 - SLICE_INSET;
   for (let v = 0; v < h; v++) {
     for (let u = 0; u < w; u++) {
-      const sx = u + 0.5 - tvx;
-      const sy = v + 0.5 - tvy;
-      const g = alongY ? sy - sx / 2 : sy + sx / 2; // ground Y, or ground X, in pixels
-      const mine = i === 0 ? g < 32 : g >= 32;
-      if (!mine) d[(v * w + u) * 4 + 3] = 0;
+      const second = alongY ? u < cut : u >= cut;
+      if (second !== (i === 1)) d[(v * w + u) * 4 + 3] = 0;
     }
   }
   out.getContext("2d").putImageData(src, 0, 0);
@@ -277,10 +281,8 @@ async function sheetFromDrawings(def) {
     if (fireImgs.length && def.fire.at) {
       let B = [def.fire.at[0], def.fire.at[1]];
       if (d.mirror) B = [img.width - B[0], B[1]];
-      const sx = B[0] - a[0];
-      const sy = B[1] - (a[1] - TILE_HH);
-      const g = alongY ? sy - sx / 2 : sy + sx / 2;
-      const tile = n === 1 ? 0 : g >= 32 ? 1 : 0;
+      const cut = alongY ? a[0] - 32 + SLICE_INSET : a[0] + 32 - SLICE_INSET;
+      const tile = n === 1 ? 0 : (alongY ? B[0] < cut : B[0] >= cut) ? 1 : 0;
       const o = offset(tile);
       const pin = def.fire.base || [9, 15];
       fireImgs.forEach((im, k) => {
