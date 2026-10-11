@@ -39,6 +39,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-11 — Wall thickness per material (Michael)
+
+18 px was a smidge thick. **Ruled:** stone walls 16 px, wooden walls 14 (a `thickness` on each wall definition, which the renderer's caps and corner posts now read per sheet; `WALL_T` 18 stays the default and the log walls keep it). For the brief: the door and window sizes are not gospel, Claude Design may adjust them against the carefully set walls; and the bricks and planks might read better somewhat larger, especially the stone, dealer's choice.
+
 ### 2026-10-11 — Walls 80 px tall and 18 px thick; doors a hair shorter (Michael)
 
 **Ruled:** walls are 80 px tall (`height` in `wall_*.json`; the preview setting is gone) and 18 px thick (`WALL_T`, from 12); the door's top drops from 51 to 48 px; windows and brackets keep their fixed heights; the light's climb up a wall goes from 56 to 70 px to match. The corner posts are the wall's thickness, so they thickened with it. **The corner strategy is dev art** (a square post covering each join): Claude Design may propose corner and end pieces. Claude Design's seven questions before drawing are answered in `16-village-art-brief.md`, paste-ready.

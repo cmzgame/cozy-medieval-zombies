@@ -178,6 +178,7 @@ export function generateWall(ph) {
     anchorSouth: [HW, NEAR_FRAME_H],
     anchorEast: [0, NEAR_FRAME_H],
     wallHeight: h,
+    thickness: T, // per material (data/sprites/wall_*.json), WALL_T if unset
     color: ph.color,
     pattern: ph.pattern || null,
     animations: {},

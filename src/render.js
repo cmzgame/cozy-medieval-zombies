@@ -226,7 +226,7 @@ function makePost(tx, ty, sheet, vis, near) {
   const x = Math.round(p.x);
   const y = Math.round(p.y);
   const h = sheet.wallHeight || 72;
-  const T = WALL_T;
+  const T = sheet.thickness || WALL_T;
   const color = sheet.color || "#888";
   const A = [x, y];
   const B = [x + T, y - T / 2];
@@ -279,7 +279,7 @@ function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null) {
   const x = Math.round(p.x);
   const y = Math.round(p.y);
   const h = sheet.wallHeight || 72;
-  const T = WALL_T;
+  const T = sheet.thickness || WALL_T;
   const lowStub = stub && cutaway === "stub";
   const faded = stub && !lowStub;
   const alpha = faded ? NEAR_WALL_ALPHA : 1;

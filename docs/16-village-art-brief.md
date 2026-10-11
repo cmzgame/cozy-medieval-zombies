@@ -1,6 +1,6 @@
 # 16 — Art brief for Claude Design: the village
 
-Michael, 2026-10-11, after the trees, the ground decals, and the rocks came back well: more work in the same style. Each part has a request to paste into Claude Design; everything between the fences is meant to be pasted as it is. **Settled since the first draft (Michael, 2026-10-11):** walls are **80 px tall** and **18 px thick**; doors and windows keep fixed sizes from the floor (door 48 px tall); open shutters fold back flat against the wall. The section below answers the questions Claude Design asked before drawing.
+Michael, 2026-10-11, after the trees, the ground decals, and the rocks came back well: more work in the same style. Each part has a request to paste into Claude Design; everything between the fences is meant to be pasted as it is. **Settled since the first draft (Michael, 2026-10-11):** walls are **80 px tall**, **16 px thick for stone and 14 for wood** (18 for the log walls the player builds); doors and windows keep fixed sizes from the floor (door 48 px tall), though those sizes are not gospel; open shutters fold back flat against the wall. The section below answers the questions Claude Design asked before drawing.
 
 ## Answers to Claude Design's questions
 
@@ -9,7 +9,7 @@ Claude Design looked at a screenshot and asked seven things before drawing. Mich
 ```
 Answers to your questions, from the engine as it is now:
 
-1. Wall geometry. One wall segment covers one tile edge: 32 px across and 16 px up the screen along the diamond's edge. Walls are 80 px tall and 18 px thick; the top cap is the wall's thickness seen from above, an 18 px wide strip. Please draw both wall directions (the north edge, running bottom left to top right, and the west edge, running top left to bottom right); the light falls differently on them, so I do not mirror walls. Corners and wall ends: today the engine draws a square post the size of the wall's thickness wherever walls meet at an angle or a wall ends, covering the join, with no separate corner art. That is a stand-in, not a rule; if corner and end pieces would look better, please propose them and I will draw them in.
+1. Wall geometry. One wall segment covers one tile edge: 32 px across and 16 px up the screen along the diamond's edge. Walls are 80 px tall. Stone walls are 16 px thick and wooden walls 14; the top cap is the wall's thickness seen from above, a strip that wide. Please draw both wall directions (the north edge, running bottom left to top right, and the west edge, running top left to bottom right); the light falls differently on them, so I do not mirror walls. Corners and wall ends: today the engine draws a square post the size of the wall's thickness wherever walls meet at an angle or a wall ends, covering the join, with no separate corner art. That is a stand-in, not a rule; if corner and end pieces would look better, please propose them and I will draw them in.
 
 2. How walls are built: one finished sprite per segment and variant, drawn as a single image and lit by the engine per pixel. Not geometry with a texture. Please draw finished sprites.
 
@@ -22,6 +22,10 @@ Answers to your questions, from the engine as it is now:
 6. The fire. The engine already lights the room from the fireplace by data (light radius, flicker) and draws flames unlit, so please draw the flames as a separate small animation of three frames that sits in the firebox, with no glow halo baked in. The firebox itself is drawn empty and dark.
 
 7. The well: one tile, with a small roof on two posts, a crank, a rope, and a bucket.
+
+The door and window sizes above are where my placeholders put them, not gospel. The wall height and thickness are set carefully; if a doorway or a window reads better a little wider, narrower, taller, or lower against those walls, please adjust it and tell me the sizes you used.
+
+Detail size is your call. The bricks on my stone walls and the planks on my wooden ones are quite small; both, and the stone especially, might read better with somewhat larger bricks, stones, and planks. Or they might not. Dealer's choice; I am only raising it.
 
 On doors and shutters: your plan matches mine. A doorway with depth (the jamb showing the wall's thickness), and the open leaf drawn edge-on at 90 degrees to the wall as a thin parallelogram with its narrow edge visible and the hinge side against the jamb. Shutters fold flat against the wall either side of the window, with the dark recess of the frame between them.
 ```
@@ -64,7 +68,7 @@ For each, one transparent PNG, tightly cropped, plus the flame frames as fire_0.
 
 ## Part 2: walls, doors, and windows
 
-**What exists:** wall segments are generated, 80 px tall and 18 px thick since 2026-10-11, with plank, brick, and log patterns; a segment stands on one edge of a tile. **Corners are dev art:** a square post the wall's thickness at every corner and wall end, covering the join; Claude Design may propose corner and end pieces instead, and the engine will take them. Doors and shutters are flat polygons. **Wanted:** drawn wood and stone segments, each with a closed door, an open doorway, closed shutters, and an open window.
+**What exists:** wall segments are generated, 80 px tall since 2026-10-11, 16 px thick for stone, 14 for wood, 18 for logs, with plank, brick, and log patterns; a segment stands on one edge of a tile. **Corners are dev art:** a square post the wall's thickness at every corner and wall end, covering the join; Claude Design may propose corner and end pieces instead, and the engine will take them. Doors and shutters are flat polygons. **Wanted:** drawn wood and stone segments, each with a closed door, an open doorway, closed shutters, and an open window.
 
 Engine notes: a wall stands on a tile's north edge (the diamond's top-right edge) or its west edge (top-left edge); the two run along different screen diagonals and catch the light differently, so both are drawn rather than mirrored. The top cap is the wall's thickness seen from above. Each segment covers exactly one tile edge, so the patterns must line up end to end. Near walls (between the player and the camera) are drawn translucent by the game, so the same art serves both sides. Boarded-up and broken variants exist in the game; they wait for a later pass.
 
@@ -73,7 +77,7 @@ Please draw wall segments for my game's buildings, in the same style as the tree
 
 The game: a cosy, slightly spooky medieval village in 2:1 isometric pixel art, Habbo-like. Ground tiles are 64x32 diamonds, drawn one pixel per pixel. The player is about 48 px tall. Light comes from the top left. Use three or four flat shades per material and hard pixels only (every pixel fully opaque or fully transparent, no anti-aliasing).
 
-A wall segment stands on one edge of a ground tile and is exactly one tile edge long: 32 px across and 16 px up the screen along the diamond's edge. Walls are thick and chunky (thick walls read as cosy): 18 px thick, with the top of the wall visible as a flat cap, and 80 px tall. Where walls meet at a corner or a wall ends, my game currently drops in a plain square post the size of the wall's thickness; if corner and end pieces would look better, please propose them. Segments sit end to end along a building's side, so the pattern must continue seamlessly from one segment into the next.
+A wall segment stands on one edge of a ground tile and is exactly one tile edge long: 32 px across and 16 px up the screen along the diamond's edge. Walls are thick and chunky (thick walls read as cosy), with the top of the wall visible as a flat cap, and 80 px tall: stone walls 16 px thick, wooden walls 14. Where walls meet at a corner or a wall ends, my game currently drops in a plain square post the size of the wall's thickness; if corner and end pieces would look better, please propose them. Segments sit end to end along a building's side, so the pattern must continue seamlessly from one segment into the next.
 
 Two orientations, each drawn (not mirrored, since the light falls differently on them):
 - North-edge segments, running from the bottom left up to the top right.
@@ -88,6 +92,8 @@ For each material and orientation, five variants:
 2. Door, closed: a plank door with two dark metal strips (wood #5e4028, metal #2b2a32), filling the doorway. The doorway is about 19 px across the wall's edge and 48 px tall, measured from the floor.
 3. Doorway, open: the same opening with no leaf in it. Show the wall's thickness inside the opening (the inner faces of the jambs, one lit and one in shade) and a threshold at the bottom, so it reads as a hole through a thick wall. The open door leaf is a separate sprite (below).
 4. Window, closed: a window hole with a wooden frame and sill, two plank shutters closed in the middle. About 16 px across the wall's edge, its sill 22 px up and its top 51 px up.
+
+The door and window sizes are where my placeholders put them, not gospel: the wall's height and thickness are set carefully, so if an opening reads better a little different against them, adjust it and tell me what you used. Detail size is your call too: my bricks and planks are small, and both (the stone especially) might read better a little larger, or might not.
 5. Window, open: the same hole with no shutters, showing the wall's thickness inside it and the sill. The open shutters are separate sprites (below).
 
 The doors and shutters are things the player uses, so they have a dark outline all the way round; the walls themselves do not.
