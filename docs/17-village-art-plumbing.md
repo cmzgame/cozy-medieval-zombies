@@ -104,6 +104,16 @@ The map: the cottage's `hearth` at `[4, 0]` becomes `fireplace` at `[3, 0]` with
 
 **Occlusion**: a prop whose frame is 64 px or taller becomes an occluder (the see-through hole for a character behind it); the well (104) and the fireplace (91) qualify, which is right.
 
+## Pumpkins and jack-o'-lanterns (with step 1)
+
+Michael's second set of 2026-10-11 (`C:\Users\micha\Downloads\pumpkins`, with `anchors_pumpkins.json` and `anchors_jackolantern.json`): `pumpkin_0` (32×29) and `pumpkin_1` (26×25, smaller and rounder), plain; `jackolantern_left` and `jackolantern_right` (32×29, the face turned each way) each with three glow frames the same size, drawn at the same position, unlit, filling the cuts. All outlined, hard-pixelled, seen from the game's angle so the top shows. **Their anchors are the ground point under the pumpkin's centre, the tile centre**: the engine's own convention, no top-vertex conversion (`ground_anchor_px`; `pumpkin_1`'s is `[13, 20.6]`, rounded to 21). `light_origin_px` is informational; the engine lights from the tile.
+
+- **Game objects under the gatherables law**: `interactable: true`, so a click sways them and the outline is already drawn. `solid: false` as the map places them now. `carry: true` (a pumpkin can be picked up and moved like a chest). What picking one gives is question 27's.
+- **The jack-o'-lantern keeps its fire** (`radius 1.5, lit, flicker`) and glows through the existing flame path: frames `idle_0..2` are the body three times and `flame_0..2` the glow frames, in one sheet built by the loader's `images`; `propDrawables` already animates a one-tile prop's idle frames by time and draws `flame_<same index>` unlit over them. Two facings from the two drawings (`left`, `right`), not mirrors, so `R` turns one; the map may say which.
+- **Plain pumpkins** are two sprite ids, `pumpkin_plain_0` and `pumpkin_plain_1`, no fire, one facing each. The map's `pumpkin` keeps its id and becomes the jack-o'-lantern definition (`jackolantern`? keep `pumpkin` so `square.json` and the loot tables need no change; the plain ones are new ids).
+- **Placement**: by the map, as now (three by the cottage). Not in the forage rule: pumpkins belong to gardens, not the wild. The farming milestone decides where they grow.
+- **Optional tunable, not built unless wanted**: hide the glow by day above a brightness; today's pumpkin glows at noon too and nobody has minded.
+
 ## Floors
 
 `floor_wood.json`: `{ "images": { "idle_0": ".../floor_wood_0.png", ..., "idle_3": "..." }, "anchor": [32, 16] }`; the same for `floor_stone`. The ground bake picks a frame by hash and reads the sheet's anchor as the tile centre. Nothing else changes. The farm and the earth kinds are untouched.
@@ -115,7 +125,7 @@ The map: the cottage's `hearth` at `[4, 0]` becomes `fireplace` at `[3, 0]` with
 
 ## Build order, with pauses for Michael
 
-1. **The loader**: `images`, `anchorVertex`, per-frame `anchors`; the floors in. **Verify**: the cottage's wood floor and the shed's stone floor show the drawn planks and flagstones, variants mixed by hash, no seams at tile edges (the ground acceptance script still passes nine of nine). *Pause.*
+1. **The loader**: `images`, `anchorVertex`, per-frame `anchors`; the floors in; **the pumpkins and jack-o'-lanterns in** (they need only `images` and the existing flame path). **Verify**: the cottage's wood floor and the shed's stone floor show the drawn planks and flagstones, variants mixed by hash, no seams at tile edges (the ground acceptance script still passes nine of nine); the three pumpkins by the cottage are the drawn jack-o'-lanterns, glowing at night with their light as before, swaying when clicked, `R` turning a carried one between its two faces. *Pause.*
 2. **Walls and posts**: the two drawn wall sheets with aliases, top-vertex anchors, no top polygon; drawn posts; boards as polygons; stubs retired; the bracket and hit-test offsets. **Verify**: the cottage (wood) and the shed (stone) match the previews in shape; segments meet without a seam or a doubled end face; doors and shutters closed and open show the right frames; a boarded window still shows its planks; near walls go translucent inside; the build ghost still draws; night light climbs the drawn faces; the log wall the palette builds still works. *Pause: Michael looks at the buildings.*
 3. **Leaves and shutters as sprites**: drawn for near-side openings; far-side ones drop. **Verify**: open the cottage's door and windows from outside and inside; the leaf never covers the doorway; shutters sit beside the window on the outside face. *Pause.*
 4. **Furniture**: slicing, mirroring, facings, flames; the well, bed, table, chairs, fireplace; the map change. **Verify**: the cottage interior matches the cutaway preview; the bed and table sort against the player walking round them; `R` turns a carried chair through four facings and a carried bed through two; the fireplace's flames animate in the firebox and light the room as the hearth did; Add a log and cooking still work on it; the well still fills a waterskin. *Pause: Michael looks at the room.*

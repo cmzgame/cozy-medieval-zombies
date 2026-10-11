@@ -127,7 +127,7 @@ Each step checkable on its own. Michael looks after step 3.
 - [ ] Step 3: open leaves and shutters as sprites.
 - [ ] Step 4: furniture (slicing, mirroring, facings, flames); the map's fireplace and chairs.
 - [ ] Step 5: docs. (The follow-up art request is written: `docs/18`.)
-- [ ] Pumpkins and jack-o'-lanterns as game objects under the gatherables law, when Michael's art arrives (the jack-o'-lantern keeps its fire).
+- [ ] Pumpkins and jack-o'-lanterns as game objects under the gatherables law: the art is in `Downloads/pumpkins` (two plain, two carved faces with glow frames); specced into step 1 of `docs/17`.
 
 ## Milestone 9 — The ground (see `docs/15-ground.md`)
 
