@@ -4,6 +4,8 @@
 
 ## Status, 2026-10-11
 
+**Accepted by Michael (2026-10-11): "Ground looks amazing, I think we hit the perfect spot, and if we need to adjust later we have the knobs. Done!"** Milestone 9 is closed; all ten acceptance checks pass. The history below is kept for the record.
+
 **Tuned by Michael after seeing the new art (2026-10-11):** every decal about halved, then mushrooms down by two thirds more and tufts by a third; twigs became a per-tree rule (0 to 2 within 1.2 tiles of each trunk); the generic forest is 40% thinner. Mushrooms are to become clickable and big rocks are wanted: both are interactables, not decals (question 27 in `02`).
 
 **The redrawn trees are in too (Michael's `trees_v2`, 2026-10-11):** all 36 drawn natively at final size, so the 1.5× resample is gone and they are crisp; definitions re-measured (frames, anchors four rows above the trunk's lowest pixel, bounds); acceptance nine of nine. Both requests in `15b` are now met.

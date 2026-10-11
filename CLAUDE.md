@@ -39,6 +39,7 @@ These are the current rulings. The list grows as `docs/02-decisions.md` does.
 - Windows have shutters, not glass. Closed shutters block sight. Doors start closed and block sight and bodies.
 - The ground is one baked picture per chunk (`docs/15`), drawn as one quad; nothing draws the floor per tile and nothing on the ground plane alternates by tile parity. A floor changes only through `map.setFloor`.
 - Light is one function. Nothing else computes light. Light feeds sight. In the renderer every vertex carries the world point its light is read from; nothing is lit in screen space.
+- **Gatherables wobble and are outlined** (Michael's law, 2026-10-11). Anything in the category of things that will have a gathering action (mushrooms, rocks, trees, and whatever joins them) is a game object marked `interactable`: a click makes it sway, and its art has a dark outline all the way round. Decoration has neither. Trees are excused from the outline; they stand out plenty.
 - Villagers carry no weapons and never fight for the player. They flee, follow, stay, and die.
 - Check `docs/05-someday.md` before a choice that would foreclose something cheaply. Say so before making it.
 - Placeholder art is generated at boot through the same interface as real sprite sheets. Do not wait for art.
