@@ -32,8 +32,14 @@ Please draw three more sets of building pieces for my game, in the same style an
    - a doorway and a window with one, two, and three boards over them, open and shut behind the boards.
    If anything in those pictures needs a piece I have not asked for (a wall-end piece, a special corner), say so and add it.
 
+4. A question before any drawing: doors and shutters that open away from the camera. Every wall sits on a tile edge with a near side (toward the camera) and a far side (behind). A door opens outward, toward whichever side is outdoors. Your open leaves swing toward the camera, which covers a door whose outside is the near side. When the outside is the far side (a door in a building's back wall), the leaf swings away and stands behind the 80 px wall, so a 48 px leaf is hidden; through the doorway you would see at most a sliver of its edge at the hinge. Shutters folded against the far face are hidden the same way. My current plan is to draw nothing in that case and let the open doorway or window frame speak for itself. The one place it could show is a door between two rooms seen through a wall the game draws translucent when the player is inside. Do you agree, or would you draw the far-side leaves and shutters (four leaves and eight shutters per material, since a mirror of the near-side art gives the other orientation's shape, not an away swing)? If you think they are worth having, say what they would need and I will add them to the request.
+
 Same delivery as before: one transparent PNG each, tightly cropped, anchors in a JSON, hard pixels only.
 ```
+
+## Not requested, kept in mind
+
+- **Stub (cut-down) walls.** The game once drew the walls between the player and the camera as low stumps instead of translucent full walls. Michael retired the stump mode (2026-10-11; translucent walls do not bother him) but keeps the idea: if it ever comes back it needs cut-down segments per material and orientation, with a cut cap, a door gap, and window posts.
 
 ## When it comes back
 
