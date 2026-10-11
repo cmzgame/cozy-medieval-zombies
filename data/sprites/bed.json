@@ -1,1 +1,32 @@
-{"placeholder": {"kind": "box", "color": "#8a4a44", "height": 16}, "carry": true}
+{
+ "anchorVertex": "top",
+ "facings": [
+  "y",
+  "x"
+ ],
+ "facingFootprint": {
+  "y": [
+   1,
+   2
+  ],
+  "x": [
+   2,
+   1
+  ]
+ },
+ "drawings": {
+  "y": {
+   "image": "data/art/village/bed.png",
+   "anchor": [
+    64.0,
+    27.0
+   ]
+  },
+  "x": {
+   "from": "y",
+   "mirror": true
+  }
+ },
+ "carry": true,
+ "note": "the drawn bed (docs/17): long side along y as drawn, along x as its mirror"
+}

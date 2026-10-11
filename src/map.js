@@ -1072,7 +1072,7 @@ export function createProp(def, offset = [0, 0]) {
     offset: def.offset || null,
     interactable: !!sdef.interactable,
     // Which way it faces, for a sprite with facings (docs/17): the map's, else the first.
-    facing: sdef.facings && sdef.facings.length ? (sdef.facings.includes(def.facing) ? def.facing : sdef.facings[0]) : null,
+    facing: facingFor(sdef, def, w, h),
   };
   // Fire is data on the sprite definition (docs/07-lighting.md): a light
   // radius, whether it lights its whole room, burns wood, cooks. Live state
@@ -1096,6 +1096,21 @@ export function createProp(def, offset = [0, 0]) {
     fireProps.add(prop);
   }
   return prop;
+}
+
+// A prop's facing (docs/17): the map's if it has one, else the facing whose
+// footprint matches the map's footprint (a bed laid along x is the mirror),
+// else the first.
+function facingFor(sdef, def, w, h) {
+  if (!sdef.facings || !sdef.facings.length) return null;
+  if (sdef.facings.includes(def.facing)) return def.facing;
+  if (sdef.facingFootprint) {
+    for (const f of sdef.facings) {
+      const fp = sdef.facingFootprint[f];
+      if (fp && fp[0] === w && fp[1] === h) return f;
+    }
+  }
+  return sdef.facings[0];
 }
 
 // A set's origin: explicit, else its rect's corner, else its first rect's.

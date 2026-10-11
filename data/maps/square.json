@@ -136,11 +136,31 @@
               ]
             },
             {
-              "sprite": "hearth",
+              "sprite": "fireplace",
               "tile": [
                 4,
                 0
+              ],
+              "footprint": [
+                2,
+                1
               ]
+            },
+            {
+              "sprite": "chair",
+              "tile": [
+                3,
+                3
+              ],
+              "facing": "n"
+            },
+            {
+              "sprite": "chair",
+              "tile": [
+                4,
+                3
+              ],
+              "facing": "n"
             }
           ]
         }

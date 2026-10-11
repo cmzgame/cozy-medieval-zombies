@@ -1,0 +1,35 @@
+{
+ "anchorVertex": "top",
+ "facings": [
+  "n",
+  "e",
+  "s",
+  "w"
+ ],
+ "drawings": {
+  "w": {
+   "image": "data/art/village/chair_back.png",
+   "anchor": [
+    19.0,
+    18.0
+   ]
+  },
+  "n": {
+   "from": "w",
+   "mirror": true
+  },
+  "e": {
+   "image": "data/art/village/chair_front.png",
+   "anchor": [
+    19.0,
+    25.0
+   ]
+  },
+  "s": {
+   "from": "e",
+   "mirror": true
+  }
+ },
+ "carry": true,
+ "note": "the drawn chair (docs/17): facings name where the seat faces; two drawings and their mirrors"
+}

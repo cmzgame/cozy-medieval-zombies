@@ -76,9 +76,11 @@ function tintRGB() {
 }
 
 // A frame of a sheet as a quad at (x, y) with an anchor, like drawFrame.
-function frameQuad(sheet, name, x, y, opts, flip = false, anchor = sheet.anchor) {
+function frameQuad(sheet, name, x, y, opts, flip = false, anchor = null) {
   const f = sheet.frames[name];
   if (!f) return;
+  // A frame may carry its own anchor (sliced furniture, flames, wall parts: docs/17).
+  anchor = anchor || (sheet.frameAnchors && sheet.frameAnchors[name]) || sheet.anchor;
   const uv = gl.frameUV(sheet, name);
   const rx = flip ? x - (f[2] - anchor[0]) : x - anchor[0];
   gl.quad(rx, y - anchor[1], f[2], f[3], uv, { ...opts, flip });
@@ -531,14 +533,21 @@ function propDrawables(tiles, visible, out) {
     const off = prop.offset || [0, 0];
     const x = Math.round(p.x) + off[0];
     const y = Math.round(p.y) + off[1];
+    const an = (sheet.frameAnchors && sheet.frameAnchors[name]) || sheet.anchor;
     const rect = f
       ? sheet.bounds
-        ? { x: x - sheet.anchor[0] + sheet.bounds.x, y: y - sheet.anchor[1] + sheet.bounds.y, w: sheet.bounds.w, h: sheet.bounds.h }
-        : { x: x - sheet.anchor[0], y: y - sheet.anchor[1], w: f[2], h: f[3] }
+        ? { x: x - an[0] + sheet.bounds.x, y: y - an[1] + sheet.bounds.y, w: sheet.bounds.w, h: sheet.bounds.h }
+        : { x: x - an[0], y: y - an[1], w: f[2], h: f[3] }
       : null;
     const vis = visible.has(tileKey(tx, ty));
     const flameName = idleFrame(sheet, prop, frameIdx, "flame");
-    const flame = !!(prop.fire && prop.fire.lit && sheet.frames[flameName] && vis);
+    const flame = !sheet.flames && !!(prop.fire && prop.fire.lit && sheet.frames[flameName] && vis);
+    // Furniture's flames (the fireplace): on the slice that holds the firebox,
+    // animated by time, unlit (docs/17).
+    const fl = sheet.flames && sheet.flames[prop.facing];
+    const furnFlame = fl && fl.tile === i && prop.fire && prop.fire.lit && vis
+      ? `flame_${prop.facing}_${Math.floor((performance.now() / 1000) * sheet.flameFps + Math.abs(tx * 3 + ty * 7)) % fl.count}`
+      : null;
     const d = {
       key: (tx + ty) * 1000 + 1,
       kind: "prop",
@@ -550,6 +559,7 @@ function propDrawables(tiles, visible, out) {
         const flags = gl.FLAG_STANDING | (d.occluder ? gl.FLAG_OCCLUDER : 0);
         propSlice(sheet, name, f, x, y, tx, ty, flags, undefined, f ? swayOf(prop, f[3]) : 0);
         if (flame) frameQuad(sheet, flameName, x, y, { world: [tx, ty], flags: gl.FLAG_UNLIT });
+        if (furnFlame) frameQuad(sheet, furnFlame, x, y, { world: [tx, ty], flags: gl.FLAG_UNLIT });
       },
     };
     out.push(d);

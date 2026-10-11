@@ -53,7 +53,9 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
   if (sheets.has(key)) return sheets.get(key);
   const def = await loadSpriteDef(id);
   let sheet;
-  if (def.images) {
+  if (def.drawings) {
+    sheet = await sheetFromDrawings(def);
+  } else if (def.images) {
     sheet = await sheetFromImages(def);
     // A drawn wall brings its post, its parts, and the board overlays with it.
     if (def.wall) {
@@ -192,6 +194,133 @@ async function sheetFromImages(def) {
   // names of its post and parts (leaves, shutters) sheets.
   if (def.wall) Object.assign(sheet, { wall: def.wall, wallHeight: def.wall.height, thickness: def.wall.thickness, color: def.wall.color });
   return sheet;
+}
+
+// ---- furniture (docs/17, step 4) ----
+
+function canvasOf(img, mirror) {
+  const c = document.createElement("canvas");
+  c.width = img.width;
+  c.height = img.height;
+  const ctx = c.getContext("2d");
+  if (mirror) {
+    ctx.translate(img.width, 0);
+    ctx.scale(-1, 1); // a mirror at load, not a display scale
+  }
+  ctx.drawImage(img, 0, 0);
+  return c;
+}
+
+// One footprint tile's share of a two-tile drawing: the pixels on that tile's
+// side of the boundary between the two tiles, measured on the ground under
+// each pixel (so a tall part above the line goes with the far tile, as every
+// isometric slicer does). `a` is the centre anchor of the first (top) tile.
+function sliceOf(canvas, a, alongY, i) {
+  const w = canvas.width;
+  const h = canvas.height;
+  const out = document.createElement("canvas");
+  out.width = w;
+  out.height = h;
+  const src = canvas.getContext("2d").getImageData(0, 0, w, h);
+  const d = src.data;
+  const tvx = a[0];
+  const tvy = a[1] - TILE_HH; // the top tile's top vertex
+  for (let v = 0; v < h; v++) {
+    for (let u = 0; u < w; u++) {
+      const sx = u + 0.5 - tvx;
+      const sy = v + 0.5 - tvy;
+      const g = alongY ? sy - sx / 2 : sy + sx / 2; // ground Y, or ground X, in pixels
+      const mine = i === 0 ? g < 32 : g >= 32;
+      if (!mine) d[(v * w + u) * 4 + 3] = 0;
+    }
+  }
+  out.getContext("2d").putImageData(src, 0, 0);
+  return out;
+}
+
+// A sheet of furniture from its drawings: each facing is a drawing or a mirror
+// of one; a two-tile facing is sliced per tile, each slice with its own anchor
+// (the drawing's anchor moved by its tile's offset); a fire's flame frames are
+// placed on the tile that holds the firebox. Frames are `idle_<facing>_<i>` and
+// `flame_<facing>_<k>`.
+async function sheetFromDrawings(def) {
+  const loaded = new Map();
+  const imageOf = async (p) => {
+    if (!loaded.has(p)) loaded.set(p, await loadImage(p));
+    return loaded.get(p);
+  };
+  const pieces = [];
+  const frameAnchors = {};
+  const flames = {};
+  const fireImgs = def.fire && def.fire.frames ? await Promise.all(def.fire.frames.map(imageOf)) : [];
+  for (const facing of def.facings) {
+    const d = def.drawings[facing];
+    const base = d.from ? def.drawings[d.from] : d;
+    const img = await imageOf(base.image);
+    const canvas = canvasOf(img, !!d.mirror);
+    let a = toCentreAnchor(def, base.anchor);
+    if (d.mirror) a = [img.width - a[0], a[1]];
+    const fp = (def.facingFootprint && def.facingFootprint[facing]) || [1, 1];
+    const n = fp[0] * fp[1];
+    const alongY = fp[1] === 2;
+    const offset = (i) => (i === 0 ? [0, 0] : alongY ? [-32, 16] : [32, 16]);
+    if (n === 1) {
+      pieces.push([`idle_${facing}_0`, canvas]);
+      frameAnchors[`idle_${facing}_0`] = a;
+    } else {
+      for (let i = 0; i < 2; i++) {
+        pieces.push([`idle_${facing}_${i}`, sliceOf(canvas, a, alongY, i)]);
+        const o = offset(i);
+        frameAnchors[`idle_${facing}_${i}`] = [a[0] + o[0], a[1] + o[1]];
+      }
+    }
+    if (fireImgs.length && def.fire.at) {
+      let B = [def.fire.at[0], def.fire.at[1]];
+      if (d.mirror) B = [img.width - B[0], B[1]];
+      const sx = B[0] - a[0];
+      const sy = B[1] - (a[1] - TILE_HH);
+      const g = alongY ? sy - sx / 2 : sy + sx / 2;
+      const tile = n === 1 ? 0 : g >= 32 ? 1 : 0;
+      const o = offset(tile);
+      const pin = def.fire.base || [9, 15];
+      fireImgs.forEach((im, k) => {
+        const name = `flame_${facing}_${k}`;
+        pieces.push([name, canvasOf(im, false)]);
+        frameAnchors[name] = [o[0] + a[0] - B[0] + pin[0], o[1] + a[1] - B[1] + pin[1]];
+      });
+      flames[facing] = { tile, count: fireImgs.length };
+    }
+  }
+  // Pack the pieces side by side into one canvas.
+  let w = 0;
+  let h = 0;
+  for (const [, c] of pieces) {
+    w += c.width + 1;
+    h = Math.max(h, c.height);
+  }
+  const image = document.createElement("canvas");
+  image.width = Math.max(1, w);
+  image.height = Math.max(1, h);
+  const ctx = image.getContext("2d");
+  const frames = {};
+  let x = 0;
+  for (const [name, c] of pieces) {
+    ctx.drawImage(c, x, 0);
+    frames[name] = [x, 0, c.width, c.height];
+    x += c.width + 1;
+  }
+  return {
+    image,
+    frames,
+    anchor: frameAnchors[`idle_${def.facings[0]}_0`],
+    frameAnchors,
+    facings: def.facings,
+    facingFootprint: def.facingFootprint || null,
+    mirror: {},
+    animations: {},
+    flames,
+    flameFps: (def.fire && def.fire.fps) || 6,
+  };
 }
 
 // The idle frame of a prop's sheet for footprint slice `i`, in the prop's

@@ -1,1 +1,18 @@
-{"placeholder": {"kind": "box", "color": "#6f6a63", "height": 22, "inset": 10}, "water": true}
+{
+ "anchorVertex": "top",
+ "facings": [
+  "a"
+ ],
+ "drawings": {
+  "a": {
+   "image": "data/art/village/well.png",
+   "anchor": [
+    37.0,
+    77.0
+   ]
+  }
+ },
+ "water": true,
+ "carry": false,
+ "note": "the drawn well (docs/17), one tile"
+}

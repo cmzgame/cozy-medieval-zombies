@@ -67,8 +67,9 @@ export function propRect(prop, tx, ty) {
   if (!f) return null;
   const p = iso.toScreen(tx, ty);
   const off = prop.offset || [0, 0];
-  const x = Math.round(p.x) + off[0] - sheet.anchor[0];
-  const y = Math.round(p.y) + off[1] - sheet.anchor[1];
+  const an = (sheet.frameAnchors && sheet.frameAnchors[idleFrame(sheet, prop, Math.max(0, i))]) || sheet.anchor;
+  const x = Math.round(p.x) + off[0] - an[0];
+  const y = Math.round(p.y) + off[1] - an[1];
   const b = sheet.bounds;
   return b ? { x: x + b.x, y: y + b.y, w: b.w, h: b.h } : { x, y, w: f[2], h: f[3] };
 }
@@ -234,9 +235,12 @@ export function ghost() {
 // otherwise its footprint turns.
 function turn(prop) {
   const sheet = getSheet(prop.sprite, prop.tiles.length);
-  if (sheet.facings && sheet.facings.length > 1 && prop.tiles.length === 1) {
+  if (sheet.facings && sheet.facings.length > 1) {
     const i = sheet.facings.indexOf(prop.facing);
     prop.facing = sheet.facings[(i + 1) % sheet.facings.length];
+    // A two-tile piece's facing sets its footprint's axis.
+    const fp = sheet.facingFootprint && sheet.facingFootprint[prop.facing];
+    if (fp) prop.footprint = [fp[0], fp[1]];
     return;
   }
   const [w, h] = prop.footprint;
