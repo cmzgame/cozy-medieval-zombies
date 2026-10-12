@@ -31,9 +31,11 @@ export const BODY_HALF_W = 10;
 // it lets a swing straight up-screen catch a zombie standing fully beside you.
 export const BODY_SAMPLES = [2, 10, 18, 26, 34];
 export const KNOCKDOWN_CHANCE = 0.3;
-export const COMBO_HITS = 3; // the third hit on one zombie floors it
-export const COMBO_WINDOW = 2; // seconds
-export const FINISHER_MULT = 2; // a hit on a downed zombie
+// The combo and the finisher, from data/combat.json (setCombatData): `enabled` false switches the
+// third-hit rule off for testing without removing it (Michael, 2026-10-12), `mult` is what a blow
+// on a downed zombie is multiplied by.
+export const COMBO = { enabled: true, hits: 3, window: 2 }; // the third hit on one zombie within `window` seconds floors it
+export const FINISHER = { mult: 2 };
 export const HIT_STOP = 0.045;
 export const HIT_STOP_KILL = 0.09;
 export const KICK_PX = 3;
@@ -53,6 +55,8 @@ export function setCombatData(data) {
   Object.assign(FISTS, data.fists || {});
   Object.assign(SHOVE, data.shove || {});
   Object.assign(DUAL, data.dual || {});
+  Object.assign(COMBO, data.combo || {});
+  Object.assign(FINISHER, data.finisher || {});
 }
 
 let time = 0; // combat's own clock, for the combo window
@@ -286,16 +290,16 @@ export function tryAttack(player, zombies, hand = "main", mode = null) {
     // The third hit within the window always floors it; fists never do.
     let combo = false;
     if (!finisher) {
-      z.hits = (z.hits || []).filter((t) => time - t <= COMBO_WINDOW);
+      z.hits = (z.hits || []).filter((t) => time - t <= COMBO.window);
       z.hits.push(time);
-      if (z.hits.length >= COMBO_HITS && weapon.knockdown !== 0) {
+      if (COMBO.enabled && z.hits.length >= COMBO.hits && weapon.knockdown !== 0) {
         combo = true;
         z.hits = [];
       }
     }
     const chance = weapon.knockdown ?? KNOCKDOWN_CHANCE;
     const knockdown = !finisher && (combo || Math.random() < chance);
-    const amount = Math.round(weapon.damage * (tired ? TIRED_DAMAGE : 1) * (finisher ? FINISHER_MULT : 1) * guardedMult(player));
+    const amount = Math.round(weapon.damage * (tired ? TIRED_DAMAGE : 1) * (finisher ? FINISHER.mult : 1) * guardedMult(player));
     const push = !finisher && pushes(weapon) ? weapon.knockback : 0;
     const r = damageZombie(z, amount, { dir: [dir.x, dir.y], knockback: push, knockdown, stagger: weapon.stagger, from: [player.gx, player.gy] });
     if (r.killed) killed = true;
