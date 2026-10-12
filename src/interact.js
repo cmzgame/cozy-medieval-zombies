@@ -17,6 +17,7 @@ import * as input from "./input.js";
 import * as map from "./map.js";
 import { getSheet, idleFrame } from "./assets.js";
 import { getItem, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
+import { stacks as bleedStacks, clear as clearBleed } from "./bleed.js";
 import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, restoreOffHand, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
 import { getDef } from "./assets.js";
 import { canPutDown, putDownTarget, canCarry, propRect } from "./placement.js";
@@ -824,6 +825,15 @@ export function itemMenu(player, entry, bag, otherBag) {
   }
   if (def.wear) {
     out.push({ label: def.bag ? `Wear (${def.bag[0]}×${def.bag[1]})` : "Wear", enabled: true, onSelect: () => wearFrom(player, entry, bag) });
+  }
+  if (def.bandage) {
+    // Closes a bleeding wound at once (docs/02 question 29b).
+    const bleeding = bleedStacks(player) > 0;
+    out.push({
+      label: bleeding ? "Apply" : "Apply (not bleeding)",
+      enabled: bleeding,
+      onSelect: () => { clearBleed(player); showMessage("The bleeding stops."); entry.count -= 1; if (entry.count <= 0) grid.remove(bag, entry); },
+    });
   }
   if (def.kind === "food") {
     out.push({ label: "Eat", enabled: true, onSelect: () => { eat(player, def); entry.count -= 1; if (entry.count <= 0) grid.remove(bag, entry); } });

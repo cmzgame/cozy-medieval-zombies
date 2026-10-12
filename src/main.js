@@ -28,6 +28,7 @@ import { initSpeech, updateSpeech } from "./ui/speech.js";
 import * as archery from "./archery.js";
 import * as burning from "./fire.js";
 import * as infection from "./infection.js";
+import * as bleed from "./bleed.js";
 import * as buttons from "./buttons.js";
 import { say, refreshCorpse } from "./entities/character.js";
 import * as menu from "./ui/context-menu.js";
@@ -316,6 +317,7 @@ function update(dt) {
   handleMouse();
   interact.updateInteract(player, dt);
   updatePlayer(player, dt);
+  bleed.update(player, dt);
   // A left click swings; on a mushroom, a rock, or a tree (its visible pixels)
   // that thing sways too. No meaning yet: an in-world to-do (Michael, 2026-10-11).
   // With a bow in hand the left button is the draw, not a swing or a poke (docs/20).
@@ -766,7 +768,9 @@ async function boot() {
     const taken = combat.exposedTo(player, zombie, combat.guardAgainst(player, zombie, damage));
     damagePlayer(player, taken);
     // A bite that landed may infect (a marker only for now, docs/02 question 29b).
+    const opened = bleed.onBite(player, taken); // and a wound that bleeds (docs/02 question 29b)
     if (infection.onBite(player, taken)) showMessage("The bite broke the skin.");
+    else if (opened && bleed.stacks(player) === 1) showMessage("You are bleeding. A bandage will stop it.");
   });
   // A blow met by the shield: sparks where they meet and a flash of the shield; a broken guard flashes red (docs/21).
   events.on("blocked", ({ zombie }) => {
@@ -796,6 +800,7 @@ async function boot() {
   screens.show("title");
 
   window.__game = {
+    bleed: { apply: () => bleed.apply(player), clear: () => bleed.clear(player), stacks: () => bleed.stacks(player), config: bleed.BLEED },
     infection: { infect: () => infection.infect(player), cure: () => infection.cure(player), progress: () => infection.progress(player), config: infection.INFECTION }, // the infection marker (docs/02 question 29b)
     burning, // the fire test (docs/05): burning.tunables, burning.all()
     iso, input, loop, assets, events, map, camera, ground, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette, combat, gl,
@@ -858,7 +863,7 @@ async function boot() {
         player.worn.back = dev;
       }
       const bag = inventory.bagOf(player);
-      const kit = [["sword", 1], ["hatchet", 1], ["mace", 1], ["halberd", 1], ["stick", 1], ["spear", 3], ["shield", 1], ["bow", 1], ["arrow", 40]];
+      const kit = [["sword", 1], ["hatchet", 1], ["mace", 1], ["halberd", 1], ["stick", 1], ["spear", 3], ["shield", 1], ["bow", 1], ["arrow", 40], ["bandage", 5]];
       const got = {};
       for (const [id, n] of kit) got[id] = inventory.addItem(bag, id, n);
       showMessage("A Developer Bag, with every weapon in it.");

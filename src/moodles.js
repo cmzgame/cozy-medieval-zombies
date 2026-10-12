@@ -4,6 +4,7 @@
 // it, it is a moodle (docs/00, pillar 7; docs/10).
 
 import { stageOf as infectionStage } from "./infection.js";
+import { stacks as bleedStacks } from "./bleed.js";
 
 // Inline SVG placeholder glyphs, drawn in a 16×16 box with currentColor.
 const GLYPHS = {
@@ -17,6 +18,17 @@ const GLYPHS = {
 
 // Order here is display order. `stageOf` returns 0 (hidden) to stages.length.
 export const MOODLES = [
+  {
+    id: "bleed",
+    glyph: GLYPHS.thirst, // a drop, for now
+    stages: [
+      { name: "Bleeding", text: "A wound is open. A bandage will close it." },
+      { name: "Bleeding badly", text: "Two wounds. It will not stop by itself soon." },
+      { name: "Bleeding heavily", text: "Three. Your hands are slick. Bandage it." },
+      { name: "Bleeding out", text: "You are losing blood fast. Bandage it now." },
+    ],
+    stageOf: (player) => Math.min(4, bleedStacks(player)),
+  },
   {
     id: "infection",
     glyph: GLYPHS.infection,

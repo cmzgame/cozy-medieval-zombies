@@ -13,6 +13,7 @@
 
 import * as iso from "./iso.js";
 import { setInfectionData } from "./infection.js";
+import { setBleedData } from "./bleed.js";
 import { lineOfSight } from "./visibility.js";
 import * as items from "./items.js";
 import * as loop from "./loop.js";
@@ -59,6 +60,7 @@ export function setCombatData(data) {
   Object.assign(DUAL, data.dual || {});
   Object.assign(COMBO, data.combo || {});
   setInfectionData(data.infection);
+  setBleedData(data.bleed);
   Object.assign(FINISHER, data.finisher || {});
 }
 
