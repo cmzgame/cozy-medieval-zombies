@@ -66,6 +66,35 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
         if not self._origin_ok():
             self.send_error(403, "saves come from this server's own pages")
             return
+        # Dev only (docs/23, step 3d): the sprite tool saves a drawn picture under data/art
+        # and a sprite definition under data/sprites; the manifest is regenerated so the
+        # next load, or the game's live reload, sees the new stamp.
+        path = self.path.split("?")[0]
+        art = re.fullmatch(r"/data/art/([a-z0-9_\-]+(?:/[a-z0-9_\-]+)*\.png)", path)
+        sprite = re.fullmatch(r"/data/sprites/([a-z0-9_\-]{1,60})\.json", path)
+        if art or sprite:
+            body = self._body()
+            if body is None:
+                return
+            if art:
+                if not body.startswith(PNG_MAGIC):
+                    self.send_error(400, "not a PNG")
+                    return
+                target = os.path.join("data", "art", *art.group(1).split("/"))
+            else:
+                try:
+                    json.loads(body)
+                except ValueError:
+                    self.send_error(400, "not JSON")
+                    return
+                target = os.path.join("data", "sprites", sprite.group(1) + ".json")
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            with open(target, "wb") as f:
+                f.write(body)
+            manifest_tool.write(ROOT)
+            self.send_response(204)
+            self.end_headers()
+            return
         # Dev only: POST /data/hair/<name>.json saves a painted hair style from
         # tools/hair.html and lists it in data/hair/index.json (docs/12).
         m = re.fullmatch(r"/data/(hair|layers/(?:head|chest|legs|hands|feet|body|beard|waist))/([a-z0-9_-]{1,40})\.json", self.path)

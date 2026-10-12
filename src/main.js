@@ -752,6 +752,17 @@ async function boot() {
       window.addEventListener("keydown", (e) => {
         if (e.code === "Escape") handleEscape();
       });
+      // A sprite saved by the tool in another tab shows here at once (docs/23, step 3f).
+      try {
+        new BroadcastChannel("cmz").onmessage = async (e) => {
+          if (!e.data || e.data.type !== "sheet") return;
+          await assets.reloadSheet(e.data.id);
+          if (ground.sheetIds().has(e.data.id)) await ground.reload();
+          showMessage(`Reloaded ${e.data.id}.`);
+        };
+      } catch {
+        // no BroadcastChannel: the hard refresh is the loop
+      }
     } },
   ]);
 

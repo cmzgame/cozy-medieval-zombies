@@ -173,7 +173,17 @@ export function sheetIds() {
   return usedSheets;
 }
 
+let initJson = null; // the map file, kept for reload()
+
+// The kit read again and every chunk re-baked: a floor or terrain picture was saved by the tool (docs/23, step 3f).
+export async function reload() {
+  biomes.clear();
+  await init(initJson);
+  for (const e of chunks.values()) e.dirty = true;
+}
+
 export async function init(mapJson) {
+  initJson = mapJson;
   data = await assets.loadJson("data/ground.json");
   // A restored WebGL context has no ground textures: every chunk re-bakes when next in view (docs/23a, A2).
   gl.onRestore(() => {

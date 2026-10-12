@@ -158,9 +158,43 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
   } else {
     throw new Error(`Sprite ${id} has neither image nor placeholder`);
   }
+  // Where the sheet came from (docs/23, step 3b): the files, or the generator; the tools open either.
+  sheet.source = def.placeholder ? { generated: def.placeholder.kind, def: `data/sprites/${id}.json` } : { drawn: pngsOf(def), def: `data/sprites/${id}.json` };
   sheet.id = id;
   sheets.set(key, sheet);
   return sheet;
+}
+
+// Every PNG a definition names, in order, once each.
+function pngsOf(obj, out = []) {
+  if (typeof obj === "string") { if (obj.endsWith(".png") && !out.includes(obj)) out.push(obj); }
+  else if (Array.isArray(obj)) for (const v of obj) pngsOf(v, out);
+  else if (obj && typeof obj === "object") for (const v of Object.values(obj)) pngsOf(v, out);
+  return out;
+}
+
+// Every sheet and where it came from, for the sprite browser (docs/23, step 3e).
+export function sources() {
+  return [...sheets.entries()].map(([key, s]) => ({ key, id: s.id, source: s.source || { generated: s.id }, w: s.image.width, h: s.image.height, frames: Object.keys(s.frames).length }));
+}
+
+// A sprite saved by the tool (docs/23, step 3f): the manifest read afresh for
+// the new stamps, the definition, its pictures, and every variant of the sheet
+// dropped and built again. Holders look sheets up by id each frame, so the new
+// object is drawn at once; the atlas places it at first draw.
+export async function reloadSheet(id) {
+  setManifest(await loadJson("data/manifest.json"));
+  const old = sheets.get(id);
+  const variants = [...sheets.keys()].filter((k) => k === id || k.startsWith(`${id}#`));
+  for (const k of variants) sheets.delete(k);
+  defs.delete(id);
+  pendingDefs.delete(id);
+  for (const p of (old && old.source && old.source.drawn) || []) images.delete(p);
+  const def = await loadSpriteDef(id);
+  for (const p of pngsOf(def)) images.delete(p);
+  for (const k of variants) await loadSprite(id, { tileCount: k.includes("#") ? Number(k.split("#")[1]) : 1 });
+  if (!variants.length) await loadSprite(id);
+  return sheets.get(id);
 }
 
 // ---- figure sheets, shared by outfit (docs/19) ----
@@ -181,7 +215,7 @@ export function sheetFor(inputs, only = null) {
   let e = figureSheets.get(key);
   if (!e) {
     e = { id: `figure_${figureSeq++}`, inputs: structuredClone(inputs), only };
-    registerSheet(e.id, figure.generateFigure(spec, only));
+    registerSheet(e.id, figure.generateFigure(spec, only), { generated: "figure" });
     figureSheets.set(key, e);
   }
   return e.id;
@@ -323,8 +357,9 @@ async function heldSheetFromAngles(angles) {
   return { image: canvas, frames, frameAnchors, anchor: [0, 0], animations: {}, facings: [], mirror: {}, tips: [] };
 }
 
-export function registerSheet(id, sheet) {
+export function registerSheet(id, sheet, source = null) {
   sheet.id = id;
+  sheet.source = source || sheet.source || { generated: id };
   sheets.set(id, sheet);
   return sheet;
 }
