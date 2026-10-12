@@ -24,5 +24,5 @@
   {"id": "small_sack", "name": "Burlap sack", "kind": "bag", "wear": "back", "bag": [6, 4], "size": [2, 2], "color": "#9a8a6a", "short": "Sack", "art": {"shape": "sack", "colours": ["#9a8a6a"]}},
   {"id": "rucksack", "name": "Rucksack", "kind": "bag", "wear": "back", "bag": [8, 5], "size": [2, 3], "color": "#6a6a4a", "short": "Ruck", "art": {"shape": "rucksack", "colours": ["#6a6a4a", "#5a4a3a"]}},
   {"id": "dev_bag", "name": "Developer Bag", "kind": "bag", "wear": "back", "bag": [12, 8], "size": [2, 2], "color": "#c040c0", "short": "DEV", "art": {"shape": "dev_bag", "colours": ["#c040c0", "#ffffff"]}},
-  {"id": "shield", "name": "Shield", "kind": "tool", "hands": "off", "size": [2, 2], "color": "#8a6a3a", "short": "Shield", "held": {"shape": "shield", "colours": ["#8a6a3a", "#b8a070", "#7a7a84"], "swing": false}, "shield": {"arc": 150, "through": 0.15, "stamina": 4, "stagger": 0.5, "moveMult": 0.75}}
+  {"id": "shield", "name": "Shield", "kind": "tool", "hands": "off", "size": [2, 2], "color": "#8a6a3a", "short": "Shield", "held": {"shape": "shield", "colours": ["#8a6a3a", "#b8a070", "#7a7a84"], "swing": false}, "shield": {"arc": 100, "sideArc": 220, "sideThrough": 0.5, "stamina": 5, "stagger": 0.5, "moveMult": 0.45, "attackMult": 0.35}}
 ]

@@ -215,7 +215,8 @@ export function updatePlayer(player, dt) {
   if (player.sprinting) {
     player.stamina = Math.max(0, player.stamina - SPRINT_DRAIN * dt);
     if (player.stamina <= 0) player.winded = true;
-  } else {
+  } else if (!player.blocking) {
+    // Nothing comes back while the guard is up (docs/21): each block spends it, so the guard is finite.
     player.stamina = Math.min(player.maxStamina, player.stamina + STAMINA_REGEN * dt);
   }
 

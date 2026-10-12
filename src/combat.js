@@ -78,17 +78,21 @@ export function shieldOf(player) {
   return def && def.shield ? def.shield : null;
 }
 
-// A blow aimed at the player: through the guard it does a fraction of its damage,
-// costs stamina, and staggers the attacker; from outside the guard's arc, or with
-// no stamina to spend, it lands in full. Returns the damage to take.
+// A blow aimed at the player. The zombie's hit is one event with a fixed damage, so the guard
+// scales it by where the attacker stands against the aim: inside the front arc it does nothing,
+// inside the wider side arc it does `sideThrough` of its damage, behind it lands whole. A block
+// costs stamina; with none left the guard is broken and the blow lands whole. Returns the damage to take.
 export function guardAgainst(player, zombie, damage) {
   const sh = player.blocking ? shieldOf(player) : null;
   if (!sh) return damage;
   const pf = iso.toScreen(player.gx, player.gy);
   const zs = iso.toScreen(zombie.gx, zombie.gy);
-  const half = (sh.arc * Math.PI) / 180 / 2;
-  const inside = Math.hypot(zs.x - pf.x, zs.y - pf.y) < 1e-3 || screenAngleBetween(player.aim.sx, player.aim.sy, zs.x - pf.x, zs.y - pf.y) <= half;
-  if (!inside) return damage;
+  const rad = (deg) => (deg * Math.PI) / 180 / 2;
+  const onTop = Math.hypot(zs.x - pf.x, zs.y - pf.y) < 1e-3;
+  const angle = onTop ? 0 : screenAngleBetween(player.aim.sx, player.aim.sy, zs.x - pf.x, zs.y - pf.y);
+  const front = angle <= rad(sh.arc);
+  const side = !front && angle <= rad(sh.sideArc ?? sh.arc);
+  if (!front && !side) return damage;
   if (player.stamina < sh.stamina) {
     // The guard is broken: the blow lands whole and the arm is spent.
     player.stamina = 0;
@@ -97,11 +101,18 @@ export function guardAgainst(player, zombie, damage) {
     return damage;
   }
   player.stamina -= sh.stamina;
-  staggerZombie(zombie, sh.stagger, iso.normalize(zombie.gx - player.gx, zombie.gy - player.gy), sh.push ?? 0.25);
+  if (front) staggerZombie(zombie, sh.stagger, iso.normalize(zombie.gx - player.gx, zombie.gy - player.gy), sh.push ?? 0.25);
   loop.freeze(HIT_STOP * 0.6);
   kick(player);
   emit("blocked", { player, zombie });
-  return Math.round(damage * sh.through);
+  return front ? 0 : Math.round(damage * (sh.sideThrough ?? 0.5));
+}
+
+// What a blow does from behind a raised guard (docs/21): a fraction, so the guard is for
+// holding a line and not for fighting from.
+export function guardedMult(player) {
+  const sh = player.blocking ? shieldOf(player) : null;
+  return sh ? sh.attackMult ?? 1 : 1;
 }
 
 export function holdsWeapon(player) {
@@ -239,7 +250,7 @@ export function tryAttack(player, zombies, hand = "main") {
     }
     const chance = weapon.knockdown ?? KNOCKDOWN_CHANCE;
     const knockdown = !finisher && (combo || Math.random() < chance);
-    const amount = Math.round(weapon.damage * (tired ? TIRED_DAMAGE : 1) * (finisher ? FINISHER_MULT : 1));
+    const amount = Math.round(weapon.damage * (tired ? TIRED_DAMAGE : 1) * (finisher ? FINISHER_MULT : 1) * guardedMult(player));
     const push = !finisher && pushes(weapon) ? weapon.knockback : 0;
     const r = damageZombie(z, amount, { dir: [dir.x, dir.y], knockback: push, knockdown, stagger: weapon.stagger, from: [player.gx, player.gy] });
     if (r.killed) killed = true;

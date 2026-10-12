@@ -12,6 +12,7 @@ import * as map from "./map.js";
 import { emit } from "./events.js";
 import { HELD_ANGLES, angleIndex } from "./figure.js";
 import * as settings from "./settings.js";
+import { guardedMult } from "./combat.js";
 import { getItem } from "./items.js";
 import { getSheet, idleFrame } from "./assets.js";
 import { damageZombie } from "./entities/zombie.js";
@@ -31,7 +32,7 @@ export const tunables = {
   drawTime: 0.9, // seconds to a full draw (a bow's own `drawTime` overrides it)
   minDraw: 0.15, // a release before this fraction of a draw is a dry release: nothing flies
   minDistance: 1, // tiles: a cursor closer than this still shoots this far
-  drawSpeed: 0.5,
+  drawSpeed: 0.45,
   braceMove: 0.2, // walking speed with the right button held and a bow in hand (docs/21)
   braceDrawRate: 1.5, // the draw fills this many times faster when braced: 0.9 s becomes 0.6 // walking speed while a bow is drawn (Minecraft slows you to a crawl)
   recoverTime: 0.22, // seconds after a shot before the next draw can begin
@@ -489,7 +490,7 @@ export function releaseDraw(player, mouse) {
     item = { ...L.entry };
     release(player.hands, L.entry);
   }
-  const a = shoot(player, aim.dir, aim.distance, c, { damage: L.damage ?? tunables.damage, knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, item });
+  const a = shoot(player, aim.dir, aim.distance, c, { damage: (L.damage ?? tunables.damage) * guardedMult(player), knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, item });
   recover = tunables.recoverTime;
   setPose(player, 3);
   emit("arrowShot", { player, arrow: a, c });

@@ -317,16 +317,16 @@ function update(dt) {
   // A left click swings; on a mushroom, a rock, or a tree (its visible pixels)
   // that thing sways too. No meaning yet: an in-world to-do (Michael, 2026-10-11).
   // With a bow in hand the left button is the draw, not a swing or a poke (docs/20).
-  // The right button held with a shield in the off hand raises the guard (docs/21): nothing is
-  // swung, drawn, or thrown while it is up. It is not held through carrying or a climb. It does
+  // The right button held with a shield in the off hand raises the guard (docs/21): you can
+  // still swing, stab, or throw from behind it, for much less damage (the shield's `attackMult`).
+  // It is not held through carrying or a climb. It does
   // hold with the bag open (the world goes on while you look in it, and the bag is where weapons
   // are swapped) and a menu open (a press outside the menu closes it).
   const shield = combat.shieldOf(player);
   player.blocking = !!shield && buttons.off.down && !player.carrying && !player.climb && !player.dead;
-  if (player.blocking && archery.drawState()) archery.cancelDraw(player);
   const launcher = archery.launcherOf(player);
   const bowHeld = !!launcher && launcher.button === "primary";
-  if (clicked && !clickSpent && !bowHeld && !archery.drawState() && !player.blocking) {
+  if (clicked && !clickSpent && !bowHeld && !archery.drawState()) {
     interact.pokeAt(input.getMouse().x, input.getMouse().y, player);
     interact.playAt(input.getMouse().x, input.getMouse().y, player); // the well's bucket, for fun
     interact.clickCharacterAt(input.getMouse().x, input.getMouse().y, player); // a villager answers (docs/19)
@@ -338,7 +338,7 @@ function update(dt) {
   // The off hand's weapon swings while the right button is held (docs/21), on its own cooldown.
   if (buttons.off.hold && !player.blocking && !archery.drawState() && combat.offWeaponOf(player)) combat.tryAttack(player, zombies, "off");
   archery.updateDraw(player, dt, {
-    pressed: (onAlt ? buttons.alt.pressed : clicked && !clickSpent) && !player.blocking,
+    pressed: onAlt ? buttons.alt.pressed : clicked && !clickSpent,
     down: onAlt ? buttons.alt.down : input.mouseLeftDown(),
     brace: bracing,
     mouse: input.getMouse(),

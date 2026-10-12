@@ -39,6 +39,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-12 — The guard: total in front, half at the sides, attack from behind it (Michael, `21`)
+
+After "Fixed!!": attacks are allowed from behind the guard at much less damage (35 percent); walking guarded and the free draw both slow to 0.45; **a zombie's bite is one event with fixed damage, so the guard works as a scale of it by the attacker's position against the aim: nothing in front (100 degrees), half to the sides (220 in all), whole from behind**, which Michael hoped was possible and it is; blocks cost 5 stamina and **no stamina regenerates while the guard is up**, so it cannot be lived in (Claude's addition, to keep the fight grindy rather than a stalemate). Numbers in `21`; the first build's "nothing while guarded" rule is struck.
+
 ### 2026-10-12 — The hands remember what a two-hander pushed out (a bug of Michael's finding, `21`)
 
 Flipping through weapons with a shield on lost the guard for good: the bow pushed the shield into the bag and nothing put it back. **Ruling (Claude's, small):** an item pushed out of the off hand by a two-handed one is remembered and returns, once, when a one-handed item takes the main hand with the off hand empty, or the two-hander is put away, if it is still in the bag or on the belt. Michael may want it narrower (the shield only) or off; the memory is `player.offMemory` in `inventory.js`.

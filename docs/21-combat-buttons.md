@@ -20,13 +20,13 @@ Ruled by Michael on 2026-10-12 (`02-decisions.md`, question 29 and the log entry
 - **A tap is a press released within 0.2 s of simulation time** (`buttons.js`; counted in steps, so a scripted test sees what a player sees). The menu opens on the release of a tap, at the press position. A tap while a draw is in progress **cancels the draw** instead and opens nothing.
 - **The stance is immediate; only the menu waits.** The guard rises and the brace begins on the press, not after 0.2 s, because a defence that arrives late is no defence. A quick tap with a shield up therefore still opens the menu on release; that is the split's price, and Michael's to judge in play. Swinging an off-hand weapon is the exception: it waits for the hold, or every swing would also open the menu.
 - **`Q` is the key twin of the middle button**: a trackpad has no middle button. (`R` is taken by rotating a carried or dragged thing.)
-- **While the guard is up, nothing is swung, stabbed, drawn, or thrown.** A draw in progress is cancelled when the guard goes up. Block or attack, not both (Valheim's rule); that is what keeps spear and shield from being the best of everything.
+- **While the guard is up you can still swing, stab, or throw, for 35 percent of the damage** (Michael, after play; the first build shut attacks while guarded, Valheim's rule, and he overruled it): see the second pass below.
 
 ## The weapons
 
 - **Spear** (`hands: "main"`): left is the **stab** (a `weapon` block: reach 1.9, a narrow arc of 40 degrees, damage 30, swing 0.6 s, a push of 0.25, stamina 6); middle or `Q` is the **throw** (the `thrown` block as built, `20`), 114 damage at a full draw, range 6.5. **A thrown spear may break:** `breakChance` 0.5 in its `thrown` block, rolled when it comes down; a broken spear is gone (no floor item, nothing lodged), an unbroken one lies where it fell or lodges in the body as before. A spear can be held with a shield or a torch, **never with another weapon**: `canHold` refuses it (`noDual: true` on the spear; a torch is light, not a weapon, for this rule).
 - **Bow** (`hands: "both"`): left is the draw, as built. **Right held is the brace**: the player walks at 0.2 instead of the draw's 0.5, and the draw fills half as fast again (0.9 s becomes 0.6 s, `braceDrawRate` 1.5). Two speeds to master, never one in the middle. A right tap during a draw cancels it without loosing, and the arrow stays in the bag.
-- **Shield** (`hands: "off"`, 2 x 2): held right blocks. **A blow from inside the guard's arc (150 degrees, centred on the aim) does 15 percent of its damage, costs 4 stamina, and staggers the attacker for 0.5 s**; from behind or the side, or with no stamina left (the guard is broken), it lands in full. Walking while guarded is at 0.75. The shield competes with the torch for the off hand, which is the point of it.
+- **Shield** (`hands: "off"`, 2 x 2): held right blocks: **nothing from the front, half from the sides, all from behind**, a stamina cost per block, no stamina regeneration while it is up, walking at 0.45, attacks from behind it at 35 percent (the second pass below has the numbers; this line was 15 percent through a 150 degree arc before). The shield competes with the torch for the off hand, which is the point of it.
 - **Dual wielding** (a weapon in each hand, torch included): the off hand swings on right held, repeating on its own cooldown while the button stays down, with its own stats and stamina. A rough first pass: the swing plays the main arm's animation (the off arm's swing is art work). Michael may still move both blows to the left button if the right feels clunky; the code keeps the off-hand swing a function of "a button was held" so that is a one-line change.
 
 ## Build order
@@ -39,6 +39,17 @@ Ruled by Michael on 2026-10-12 (`02-decisions.md`, question 29 and the log entry
 ## Numbers that are Claude's picks, all tunable
 
 Tap 0.2 s; stab 1.9 / 40 / 30 / 0.6 / 6; spear break 0.5; brace move 0.2, brace draw 1.5x; guard arc 150, 15 percent through, 4 stamina a block, 0.5 s stagger, walk 0.75.
+
+## The guard, second pass (Michael, after "Fixed!!", 2026-10-12)
+
+Ruled: **you can attack from behind the guard, for much less damage; walking with the guard up and with the free draw ("quick shot") is slowed by about 55 percent; protection is total in front and partial at the sides, and the guard must not be a place to live.** Built:
+
+- **How a blow is judged.** A zombie's bite is one event at its attack's active frame (in contact range, line of sight, fixed damage 8), not a hit-test against a body, so the guard scales it by where the attacker stands against the aim, in screen space: **inside the front arc (100 degrees) it does nothing and staggers the attacker; inside the side arc (220 degrees in all) it does half; behind that it lands whole.** A block costs 5 stamina; with less than that the guard is broken (the blow lands whole, the arm is spent, you are winded).
+- **No stamina comes back while the guard is up**, so the guard is finite: twenty blocks from full, and every swing from behind it spends stamina too (a stab costs 6). Drop it to recover.
+- **Attacking from behind the guard** does 35 percent (`attackMult`): a stab of 30 does 11, a thrown spear 114 does 40. That, with the stamina, is what makes a fight from behind a shield long: ten stabs to a zombie.
+- **Walking:** with the guard up 0.45 (was 0.75); the free draw 0.45 (was 0.5); braced 0.2 as before.
+
+What I would watch in play: the stamina bar is now the guard's whole clock; a zombie that hits you from the side every 1.2 s costs 5 stamina and 4 hp, so two or three sides at once end the guard in seconds. All numbers are in the shield's block in `data/items.json`.
 
 ## The shield that would not rise with the bag open (Michael, 2026-10-12)
 
