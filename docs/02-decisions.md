@@ -39,6 +39,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-12 — The throwing spear is the arrow thrown by hand (Michael)
+
+Same draw, same ground line and shadow, same landing-only hits and obstacles as the bow (`20`); about 0.30 of the bow's range (6.5 tiles) and 3 times an arrow's damage (114), so a full draw kills a 100-hp dead one. **Nothing is left in the hand after a throw**: the spear is the projectile, so you pick it up (E) or equip another; a spear that hits stays in the body and comes out in its loot, like an arrow. Claude's picks, the tunable ones: speed 14, an arc peaking between 6 and 70 px, a draw time of 0.55 s (faster than the bow's 0.9), a 0.45-tile push, a throw pose that arches the arm back. `lodged` became a map by item id for it.
+
 ### 2026-10-12 — Arrows that hit stay in the body; the bow's guide is a setting (Michael)
 
 After playing the bow ("feels very natural and the skill is real"): an arrow that hits one of the dead is **lodged in it** and drops out in its loot when it is killed and searched (no break chance; the old rule, half of them breaking, is struck); the **landing marker and dotted line are the `Bow aim guide` setting**, on for now, because Michael wants the weapon to feel right without it and does not want it on by default in the game, if ever; a landed arrow **sticking in the ground fletching-up** is for the art pass.

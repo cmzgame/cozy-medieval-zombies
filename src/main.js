@@ -242,7 +242,7 @@ let figureKey = "";
 function refreshFigure() {
   // The swing's keyframe set follows the weapon in the main hand (docs/14).
   const mainDef = player.hands.main && items.getItem(player.hands.main.id);
-  const style = (mainDef && ((mainDef.weapon && mainDef.weapon.style) || (mainDef.bow && mainDef.bow.style))) || null;
+  const style = (mainDef && ((mainDef.weapon && mainDef.weapon.style) || (mainDef.bow && mainDef.bow.style) || (mainDef.thrown && mainDef.thrown.style))) || null;
   const spec = figure.characterSpec(figure.characterInputs(player, undefined, settings.get("paintedLayers") || {}, style));
   const key = figure.specKey(spec);
   if (key === figureKey) return;
@@ -301,7 +301,7 @@ function update(dt) {
   // A left click swings; on a mushroom, a rock, or a tree (its visible pixels)
   // that thing sways too. No meaning yet: an in-world to-do (Michael, 2026-10-11).
   // With a bow in hand the left button is the draw, not a swing or a poke (docs/20).
-  if (clicked && !clickSpent && !archery.bowOf(player)) {
+  if (clicked && !clickSpent && !archery.launcherOf(player)) {
     interact.pokeAt(input.getMouse().x, input.getMouse().y, player);
     interact.playAt(input.getMouse().x, input.getMouse().y, player); // the well's bucket, for fun
     interact.clickCharacterAt(input.getMouse().x, input.getMouse().y, player); // a villager answers (docs/19)
@@ -614,6 +614,7 @@ async function boot() {
   await assets.loadMapSprites(json);
   for (const k of placement.buildKinds()) await assets.loadSprite(k.sprite); // what can be built must be drawable
   assets.registerSheet("arrow", archery.generateArrow()); // the bow's arrow, flying and landed (docs/20)
+  assets.registerSheet("spear", archery.generateSpear()); // the thrown spear
   // The held art, generated like everything else (docs/12). The dead's sheets are made as they are dressed (docs/19).
   for (const def of items.allItems()) if (def.held) assets.registerSheet(`held_${def.id}`, figure.generateHeld(def.held.shape, def.held.colours));
   info = map.loadMap(json);
@@ -730,7 +731,8 @@ async function boot() {
       // The draw, for scripts: aim somewhere, press, step the game, release.
       bow: () => archery.bowOf(player),
       setAim: (gx, gy) => archery.setAimOverride(gx == null ? null : [gx, gy]),
-      press: () => archery.beginDraw(player, archery.bowOf(player), "script"),
+      launcher: () => archery.launcherOf(player),
+      press: () => archery.beginDraw(player, archery.launcherOf(player), "script"),
       release: () => archery.releaseDraw(player, input.getMouse()),
       cancel: () => archery.cancelDraw(player),
       drawing: archery.drawState,

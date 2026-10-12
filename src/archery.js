@@ -17,6 +17,7 @@ import { getSheet, idleFrame } from "./assets.js";
 import { damageZombie } from "./entities/zombie.js";
 import { DOOR_TOP, WINDOW_SILL, WINDOW_TOP } from "./placeholders.js";
 import { countAll, takeAll } from "./inventory.js";
+import { release } from "./items.js";
 import { showMessage } from "./ui/prompt.js";
 
 // Everything is tunable from the console: __game.archery.tunables.
@@ -53,8 +54,8 @@ export function drawFraction(c) {
 }
 
 // The peak height of an arc for a shot of `s` tiles: it grows with distance.
-export function peakHeight(s) {
-  return tunables.arcMin + (tunables.arcMax - tunables.arcMin) * clamp01(s / tunables.range);
+export function peakHeight(s, p = tunables) {
+  return p.arcMin + (p.arcMax - p.arcMin) * clamp01(s / p.range);
 }
 
 // ---- the arrows in flight ----
@@ -68,22 +69,27 @@ export function arrowsInFlight() {
 // Where a release would land, without flying anything: for the marker and the
 // scripts. `dir` is a grid direction (any length), `distance` the full-draw
 // distance (the cursor's, in tiles; capped at the range), `c` the draw.
-export function preview(from, dir, distance, c = 1) {
+export function preview(from, dir, distance, c = 1, range = tunables.range) {
   const n = Math.hypot(dir[0], dir[1]) || 1;
   const ux = dir[0] / n;
   const uy = dir[1] / n;
-  const L = Math.min(distance, tunables.range);
+  const L = Math.min(distance, range);
   const s = L * drawFraction(c);
   return { dir: [ux, uy], full: [from.gx + ux * L, from.gy + uy * L], land: [from.gx + ux * s, from.gy + uy * s], distance: L, landing: s };
 }
 
 // Fire one. The landing point, the path, and the flight time are fixed here.
 // `from` is anyone with gx and gy (the archer). Returns the arrow.
-export function shoot(from, dir, distance, c = 1, { shooter = from, damage = tunables.damage, knockback = tunables.knockback } = {}) {
-  const p = preview(from, dir, distance, c);
-  const T = Math.max(1 / 120, p.landing / tunables.speed);
+export function shoot(from, dir, distance, c = 1, o = {}) {
+  const { shooter = from, damage = tunables.damage, knockback = tunables.knockback, range = tunables.range, speed = tunables.speed, arcMin = tunables.arcMin, arcMax = tunables.arcMax, z0 = tunables.z0, projectile = "arrow", item = null } = o;
+  const p = preview(from, dir, distance, c, range);
+  const T = Math.max(1 / 120, p.landing / speed);
   const a = {
     kind: "arrow",
+    projectile, // "arrow" or "spear": which picture, and which item lands or lodges
+    item, // a thrown item's own entry, which is what lands (an arrow is made fresh)
+    speed,
+    z0,
     shooter,
     damage,
     knockback,
@@ -95,12 +101,12 @@ export function shoot(from, dir, distance, c = 1, { shooter = from, damage = tun
     dy: p.dir[1],
     s: p.landing, // tiles to the landing point
     T, // seconds of flight
-    H: peakHeight(p.landing),
+    H: peakHeight(p.landing, { range, arcMin, arcMax }),
     c,
     t: 0,
     gx: from.gx,
     gy: from.gy,
-    z: tunables.z0,
+    z: z0,
     frame: 0,
     done: false,
   };
@@ -124,7 +130,7 @@ export function shoot(from, dir, distance, c = 1, { shooter = from, damage = tun
 // its own height. Above them it flies over. The first such point is where it
 // comes down: at the foot of what stopped it.
 
-const heightAt = (a, u) => tunables.z0 * (1 - u) + 4 * a.H * u * (1 - u);
+const heightAt = (a, u) => a.z0 * (1 - u) + 4 * a.H * u * (1 - u);
 
 function wallStops(wall, z) {
   if (!wall || z >= tunables.wallHeight) return false;
@@ -192,13 +198,13 @@ function pose(a) {
   const u = clamp01(a.t / a.T);
   a.gx = a.x0 + a.dx * a.s * u;
   a.gy = a.y0 + a.dy * a.s * u;
-  const z0 = tunables.z0;
+  const z0 = a.z0;
   a.z = Math.max(0, z0 * (1 - u) + 4 * a.H * u * (1 - u));
   // The picture's direction on screen, height included: along the ground it
   // goes (dx - dy) * HW and (dx + dy) * HH per tile, and up by dz/dt.
   const vz = (-z0 + 4 * a.H * (1 - 2 * u)) / a.T;
-  const sx = (a.dx - a.dy) * iso.HW * tunables.speed;
-  const sy = (a.dx + a.dy) * iso.HH * tunables.speed - vz;
+  const sx = (a.dx - a.dy) * iso.HW * a.speed;
+  const sy = (a.dx + a.dy) * iso.HH * a.speed - vz;
   a.frame = angleIndex([sx, sy]);
 }
 
@@ -232,10 +238,13 @@ function land(a) {
     damageZombie(hit, Math.round(a.damage * (0.4 + 0.6 * a.c)), { dir: [a.dx, a.dy], knockback: a.knockback, from: [a.x0, a.y0] });
     // The arrow stays in the body (Michael): it comes out in the loot when the dead one is
     // killed and searched, so getting it back means finishing the job. They stack up in there.
-    hit.lodged = (hit.lodged || 0) + 1;
+    const id = a.item ? a.item.id : "arrow";
+    hit.lodged = hit.lodged || {};
+    hit.lodged[id] = (hit.lodged[id] || 0) + 1;
     keep = false;
   }
-  if (keep) map.dropItem(Math.round(gx), Math.round(gy), { id: "arrow", count: 1, at: [gx, gy], angle: ground });
+  // What lands is the thrown item itself (a spear keeps whatever it carries) or a fresh arrow.
+  if (keep) map.dropItem(Math.round(gx), Math.round(gy), { ...(a.item || { id: "arrow", count: 1 }), at: [gx, gy], angle: ground });
   emit("arrowLanded", { arrow: a, gx, gy, hit, kept: keep, stoppedBy: a.stopWhy });
 }
 
@@ -276,26 +285,24 @@ export function getMarker() {
   return marker;
 }
 
-// ---- the arrow's picture, generated like everything else ----
-
-const AS = 24; // frame size, px
-const LEN = 16; // arrow length, px
+// ---- the projectiles' pictures, generated like everything else ----
 
 const hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 
 // Sixteen frames, 22.5 degrees apart, 0 up and clockwise (the held art's angles):
-// a shaft, a grey head at the tip, pale fletching at the tail, a dark outline,
-// in hard pixels. The frame's centre is the arrow's middle.
-export function generateArrow() {
+// a shaft, a head at the tip, fletching at the tail if it has any, a dark outline,
+// in hard pixels. The frame's centre is the projectile's middle.
+function makeProjectile(name, { size, len, thick, shaft, head, headLen, fletch }) {
+  const AS = size;
   const N = HELD_ANGLES;
   const canvas = document.createElement("canvas");
   canvas.width = AS * N;
   canvas.height = AS;
   const ctx = canvas.getContext("2d");
   const frames = {};
-  const SHAFT = hex("#8a6a3a");
-  const HEAD = hex("#c4cad2");
-  const FLETCH = hex("#e4dcc4");
+  const SHAFT = hex(shaft);
+  const HEAD = hex(head);
+  const FLETCH = fletch ? hex(fletch) : null;
   const OUT = hex("#2b2522");
   for (let k = 0; k < N; k++) {
     const a = (k * 2 * Math.PI) / N;
@@ -312,17 +319,22 @@ export function generateArrow() {
     };
     const cx = AS / 2;
     const cy = AS / 2;
-    for (let i = 0; i <= LEN * 3; i++) {
-      const t = i / 3 - LEN / 2;
-      put(cx + dx * t, cy + dy * t, t > LEN / 2 - 3 ? HEAD : SHAFT);
+    for (let i = 0; i <= len * 3; i++) {
+      const t = i / 3 - len / 2;
+      const col = t > len / 2 - headLen ? HEAD : SHAFT;
+      put(cx + dx * t, cy + dy * t, col);
+      if (thick > 1) put(cx + dx * t + nx * 0.9, cy + dy * t + ny * 0.9, col);
     }
-    // The barbs of the head, and the fletching at the tail.
-    const tb = LEN / 2 - 3;
+    // The barbs of the head.
+    const tb = len / 2 - headLen;
     put(cx + dx * tb + nx, cy + dy * tb + ny, HEAD);
     put(cx + dx * tb - nx, cy + dy * tb - ny, HEAD);
-    for (let t = -LEN / 2; t <= -LEN / 2 + 3; t += 1) {
-      put(cx + dx * t + nx, cy + dy * t + ny, FLETCH);
-      put(cx + dx * t - nx, cy + dy * t - ny, FLETCH);
+    if (thick > 1) put(cx + dx * tb + nx * 2, cy + dy * tb + ny * 2, HEAD);
+    if (FLETCH) {
+      for (let t = -len / 2; t <= -len / 2 + 3; t += 1) {
+        put(cx + dx * t + nx, cy + dy * t + ny, FLETCH);
+        put(cx + dx * t - nx, cy + dy * t - ny, FLETCH);
+      }
     }
     const img = ctx.createImageData(AS, AS);
     const d = img.data;
@@ -344,9 +356,18 @@ export function generateArrow() {
     }
     for (const [i, c] of px) set(i, c);
     ctx.putImageData(img, k * AS, 0);
-    frames[`arrow_${k}`] = [k * AS, 0, AS, AS];
+    frames[`${name}_${k}`] = [k * AS, 0, AS, AS];
   }
   return { image: canvas, frames, anchor: [AS / 2, AS / 2], animations: {}, facings: [], mirror: {} };
+}
+
+export function generateArrow() {
+  return makeProjectile("arrow", { size: 24, len: 16, thick: 1, shaft: "#8a6a3a", head: "#c4cad2", headLen: 3, fletch: "#e4dcc4" });
+}
+
+// A wooden pole with a stone point (Michael): longer and thicker than an arrow, no fletching.
+export function generateSpear() {
+  return makeProjectile("spear", { size: 32, len: 26, thick: 2, shaft: "#8a6a3a", head: "#b4b0a8", headLen: 5, fletch: null });
 }
 
 // ---- the draw (docs/20, step 2) ----
@@ -371,12 +392,23 @@ export function drawState() {
   return draw ? { t: draw.t, c: draw.c, source: draw.source } : null;
 }
 
-// The bow in the main hand, with its numbers, or null.
-export function bowOf(player) {
+// What the main hand can shoot or throw, with its numbers, or null: a bow (its
+// arrows come from the bag) or a thrown item (a spear: the item itself is the
+// projectile and leaves the hand). Each carries the numbers of its shot.
+export function launcherOf(player) {
   const e = player.hands && player.hands.main;
   const def = e && getItem(e.id);
-  if (!def || !def.bow) return null;
-  return { ...def.bow, drawTime: def.bow.drawTime ?? tunables.drawTime, entry: e };
+  if (!def) return null;
+  const common = { entry: e, range: tunables.range, speed: tunables.speed, arcMin: tunables.arcMin, arcMax: tunables.arcMax, z0: tunables.z0, drawTime: tunables.drawTime };
+  if (def.bow) return { ...common, ...def.bow, kind: "bow", ammo: "arrow", projectile: "arrow" };
+  if (def.thrown) return { ...common, ...def.thrown, kind: "thrown", ammo: null, projectile: def.thrown.projectile || def.id };
+  return null;
+}
+
+// The bow in the main hand, or null (kept for scripts).
+export function bowOf(player) {
+  const l = launcherOf(player);
+  return l && l.kind === "bow" ? l : null;
 }
 
 // The ground point the cursor means, read at chest height: a cursor on a body
@@ -414,7 +446,7 @@ function setPose(player, frame) {
 
 export function beginDraw(player, bow, source = "mouse") {
   if (draw || recover > 0 || !bow || player.dead || player.climb || player.carrying) return false;
-  if (countAll(player, "arrow") <= 0) {
+  if (bow.ammo && countAll(player, bow.ammo) <= 0) {
     showMessage("No arrows.");
     return false;
   }
@@ -431,19 +463,26 @@ export function cancelDraw(player) {
   setMarker(null);
 }
 
-// Let go: dry below the minimum, otherwise one arrow leaves the bag and flies.
+// Let go: dry below the minimum, otherwise one arrow leaves the bag and flies,
+// or the thrown item leaves the hand and flies (the hand is then empty).
 export function releaseDraw(player, mouse) {
   if (!draw) return null;
   const c = draw.c;
+  const L = launcherOf(player);
   const aim = aimFrom(player, mouse);
   cancelDraw(player);
-  if (c < tunables.minDraw) return null;
-  if (takeAll(player, "arrow", 1) < 1) {
-    showMessage("No arrows.");
-    return null;
+  if (c < tunables.minDraw || !L) return null;
+  let item = null;
+  if (L.ammo) {
+    if (takeAll(player, L.ammo, 1) < 1) {
+      showMessage("No arrows.");
+      return null;
+    }
+  } else {
+    item = { ...L.entry };
+    release(player.hands, L.entry);
   }
-  const bow = bowOf(player) || {};
-  const a = shoot(player, aim.dir, aim.distance, c, { damage: bow.damage ?? tunables.damage, knockback: bow.knockback ?? tunables.knockback });
+  const a = shoot(player, aim.dir, aim.distance, c, { damage: L.damage ?? tunables.damage, knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, item });
   recover = tunables.recoverTime;
   setPose(player, 3);
   emit("arrowShot", { player, arrow: a, c });
@@ -455,7 +494,7 @@ export function updateDraw(player, dt, ctx) {
   const now = performance.now();
   const gap = now - lastTick;
   lastTick = now;
-  const bow = bowOf(player);
+  const bow = launcherOf(player);
   if (recover > 0) {
     recover -= dt;
     setPose(player, 3);
@@ -478,7 +517,7 @@ export function updateDraw(player, dt, ctx) {
   const aim = aimFrom(player, ctx.mouse);
   // The guide (docs/20): where this draw would land, and the line out to the full draw's. A setting.
   if (settings.get("aimGuide")) {
-    const p = preview(player, aim.dir, aim.distance, draw.c);
+    const p = preview(player, aim.dir, aim.distance, draw.c, bow.range);
     setMarker({ from: [player.gx, player.gy], full: p.full, land: p.land });
   } else {
     setMarker(null);

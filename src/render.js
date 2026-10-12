@@ -721,10 +721,10 @@ function floorItemDrawables(tiles, visible, out) {
       emit() {
         items.forEach((e, i) => {
           // An arrow that landed lies where it fell, pointing as it flew (docs/20).
-          if (e.id === "arrow" && e.at) {
+          if ((e.id === "arrow" || e.id === "spear") && e.at) {
             const sp = iso.toScreen(e.at[0], e.at[1]);
-            const sheet = arrowSheet();
-            if (sheet) frameQuad(sheet, `arrow_${e.angle || 0}`, Math.round(sp.x), Math.round(sp.y) - 1, { world: [e.at[0], e.at[1]], heights: 0, flags: gl.FLAG_STANDING | (vis ? gl.FLAG_NOFOG : 0) });
+            const sheet = projectileSheet(e.id);
+            if (sheet) frameQuad(sheet, `${e.id}_${e.angle || 0}`, Math.round(sp.x), Math.round(sp.y) - 1, { world: [e.at[0], e.at[1]], heights: 0, flags: gl.FLAG_STANDING | (vis ? gl.FLAG_NOFOG : 0) });
             return;
           }
           const c = gl.rgb(getItem(e.id).color || "#8a8296");
@@ -741,9 +741,9 @@ function floorItemDrawables(tiles, visible, out) {
   }
 }
 
-function arrowSheet() {
+function projectileSheet(id) {
   try {
-    return getSheet("arrow");
+    return getSheet(id);
   } catch {
     return null;
   }
@@ -755,9 +755,9 @@ function arrowSheet() {
 // what it flies above and behind what is in front of its ground point.
 function arrowDrawables(arrows, visible, out) {
   if (!arrows || !arrows.length) return;
-  const sheet = arrowSheet();
-  if (!sheet) return;
   for (const a of arrows) {
+    const sheet = projectileSheet(a.projectile || "arrow");
+    if (!sheet) continue;
     if (!visible.has(tileKey(Math.round(a.gx), Math.round(a.gy)))) continue;
     const p = iso.toScreen(a.gx, a.gy);
     const x = Math.round(p.x);
@@ -779,7 +779,7 @@ function arrowDrawables(arrows, visible, out) {
       key: key + 3,
       kind: "arrow",
       emit() {
-        frameQuad(sheet, `arrow_${a.frame}`, x, y - Math.round(a.z), { world, heights: 0, flags: gl.FLAG_STANDING | gl.FLAG_NOFOG });
+        frameQuad(sheet, `${a.projectile || "arrow"}_${a.frame}`, x, y - Math.round(a.z), { world, heights: 0, flags: gl.FLAG_STANDING | gl.FLAG_NOFOG });
       },
     });
   }

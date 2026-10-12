@@ -46,6 +46,16 @@ export const ANIMS = {
 // `offOut` pose the other arm when the style needs it (the dead use both).
 // These defaults are what the file holds, so a missing file is not fatal.
 const DEFAULT_POSES = {
+  throw: {
+    fps: 12,
+    activeFrame: 3,
+    frames: [
+      { pitch: -50, out: 3, lean: -0.5 },
+      { pitch: -95, out: 4, lean: -1 },
+      { pitch: -130, out: 5, lean: -1.5 },
+      { pitch: 105, out: -4, lean: 2.5 },
+    ],
+  },
   bow: {
     fps: 12,
     activeFrame: 3,
@@ -1034,6 +1044,11 @@ export { PART };
 // forearm direction (docs/12, held items).
 export const HELD_SIZE = 32;
 const HELD_SHAPES = {
+  spear: (f, c) => {
+    // A long pole and a stone point (the arm is up in this drawing; the point leads).
+    f.capsule(16, 5, 16, 30, 1.3, c(0, "#8a6a3a"));
+    f.poly([{ x: 16, y: 0 }, { x: 19, y: 6 }, { x: 16, y: 7.5 }, { x: 13, y: 6 }], c(1, "#b4b0a8"));
+  },
   bow: (f, c) => {
     // Held out along the arm (up in this drawing), the limbs across it and curving
     // back toward the archer at the tips, the string straight between them.

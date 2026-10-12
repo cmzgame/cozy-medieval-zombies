@@ -1,5 +1,7 @@
 # Milestone 6: the figure
 
+**Update, 2026-10-12 (the spear, `20`):** a `throw` pose style (`data/poses.json`, mirrored in `DEFAULT_POSES`): the arm goes back and up in an arch over three frames, then forward at release (`activeFrame` 3); a `spear` held shape (a pole and a stone tip) joins the held shapes.
+
 **Update, 2026-10-12 (the atlas, `20`):** only the player's sheet has the carry frames (`carry_idle`, `carry_walk`); the dead's and villagers' sheets leave them off (`spec.noCarry`), so they are 768 px wide instead of 1056 and five fit across the atlas where three did. A `bow` pose style (`data/poses.json`) is the draw: attack frames held by hand, and a style that sets its own off arm (`offPitch`) now wins over the both-hands holding pose.
 
 **Update, 2026-10-12 (`19-characters.md`):** every figure is now drawn from `characterSpec(characterInputs(character))`, so what a character wears decides how it looks. The dead's ten outfits are data (`data/wardrobes.json`, written from the old generator's rules and verified pixel for pixel), a worn entry may carry a **dye** (`colour` for its first tone, `colours` for all), and characters in the same clothes share one baked sheet (`assets.sheetFor`), because a figure's sheet is about 1056 × 576 px and the atlas is shared. A body is one frame on its own sheet (`generateFigure(spec, { anim, frame, facing })`). Villagers dress from the `village` wardrobes. `playerSpec` and `zombieSpec(k)` remain as wrappers for the editors.

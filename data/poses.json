@@ -16,5 +16,11 @@
     {"pitch": 98, "offPitch": 62, "offOut": 4, "lean": 1},
     {"pitch": 100, "offPitch": 38, "offOut": 6, "lean": 1.5},
     {"pitch": 96, "offPitch": 75, "offOut": 3, "lean": 0.5}
+  ] },
+  "throw": { "fps": 12, "activeFrame": 3, "frames": [
+    {"pitch": -50, "out": 3, "lean": -0.5},
+    {"pitch": -95, "out": 4, "lean": -1},
+    {"pitch": -130, "out": 5, "lean": -1.5},
+    {"pitch": 105, "out": -4, "lean": 2.5}
   ] }
 }

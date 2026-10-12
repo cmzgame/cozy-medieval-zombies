@@ -316,6 +316,11 @@ export function takeItem(x, y, entry, layer = 0) {
   const i = t.items.indexOf(entry);
   if (i >= 0) t.items.splice(i, 1);
   if (!t.items.length) t.items = null;
+  // A thrown thing remembers where it landed and how it points (docs/20); in a hand or a bag it does not.
+  if (i >= 0) {
+    delete entry.at;
+    delete entry.angle;
+  }
   return i >= 0;
 }
 
