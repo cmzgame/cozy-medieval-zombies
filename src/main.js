@@ -837,7 +837,7 @@ async function boot() {
       return added;
     },
     // Every weapon, for testing (docs/21): a Developer Bag put on your back (what you carried
-    // moves into it), then a sword, hatchet, mace, stick, three spears, a shield, a bow, and
+    // moves into it), then a sword, hatchet, mace, halberd, stick, three spears, a shield, a bow, and
     // forty arrows. Nothing else is touched; the torch stays in your hand.
     giveKit() {
       const old = inventory.bagOf(player);
@@ -848,7 +848,7 @@ async function boot() {
         player.worn.back = dev;
       }
       const bag = inventory.bagOf(player);
-      const kit = [["sword", 1], ["hatchet", 1], ["mace", 1], ["stick", 1], ["spear", 3], ["shield", 1], ["bow", 1], ["arrow", 40]];
+      const kit = [["sword", 1], ["hatchet", 1], ["mace", 1], ["halberd", 1], ["stick", 1], ["spear", 3], ["shield", 1], ["bow", 1], ["arrow", 40]];
       const got = {};
       for (const [id, n] of kit) got[id] = inventory.addItem(bag, id, n);
       showMessage("A Developer Bag, with every weapon in it.");

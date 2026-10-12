@@ -1044,6 +1044,13 @@ export { PART };
 // forearm direction (docs/12, held items).
 export const HELD_SIZE = 32;
 const HELD_SHAPES = {
+  halberd: (f, c) => {
+    // A long ash shaft, an axe blade on one side, a spike above and a hook behind (docs/21).
+    f.capsule(16, 4, 16, 31, 1.3, c(0, "#8a6a3a"));
+    f.poly([{ x: 16, y: 5 }, { x: 24, y: 6 }, { x: 25, y: 12 }, { x: 16, y: 14 }], c(1, "#b4b8c0"));
+    f.poly([{ x: 16, y: 0 }, { x: 17.8, y: 4 }, { x: 14.2, y: 4 }], c(1, "#b4b8c0"));
+    f.poly([{ x: 16, y: 8 }, { x: 11, y: 9 }, { x: 16, y: 11 }], c(1, "#b4b8c0"));
+  },
   shield_guard: (f, c) => {
     // The shield raised before the chest (docs/21): bigger, and centred on the grip so it
     // can be placed by its middle and needs no angle.
