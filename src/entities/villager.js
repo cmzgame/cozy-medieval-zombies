@@ -10,7 +10,8 @@ import { createCharacter, wardrobeInto, dress, say } from "./character.js";
 import { getSheet } from "../assets.js";
 import { playAnimation, advanceAnimation } from "../sprites.js";
 import { emit } from "../events.js";
-import { createZombie, pickTargetAround, repath, followPath, separate, faceToward, roomOf, WANDER_IDLE_MIN, WANDER_IDLE_MAX } from "./zombie.js";
+import { createZombie, pickTargetAround, repath, followPath, separate, faceToward, roomOf, idleTime } from "./zombie.js";
+import * as loop from "../loop.js";
 
 export const VILLAGER_SPEED = 1.4; // tiles per second: an amble, between the dead (1.0) and the player (3.0)
 export const VILLAGER_RADIUS = 0.3;
@@ -22,7 +23,6 @@ const DEAD_SKIN = "#9fbf88"; // what a turned villager's skin goes // as a wiggl
 
 let nextId = 1;
 
-const idleTime = () => WANDER_IDLE_MIN + Math.random() * (WANDER_IDLE_MAX - WANDER_IDLE_MIN);
 
 // `line` is what they say when poked ("Hey!" unless the map gives one);
 // `wardrobe` indexes the village wardrobes in data/wardrobes.json.
@@ -39,7 +39,7 @@ export function createVillager(gx, gy, { id = null, name = null, line = null, wa
     pathFailed: false,
     lastGoal: null,
     talkTimer: 0,
-    pokedAt: 0, // performance.now() of the last poke that spoke
+    pokedAt: 0, // sim milliseconds of the last poke that spoke
     hurtTimer: 0,
   };
   wardrobeInto(v, "village", wardrobe);
@@ -141,7 +141,7 @@ export function turnVillager(v) {
 // A poke: stop where they stand, turn to the player, say the line. Returns
 // whether it spoke (a second poke inside the cooldown does nothing).
 export function pokeVillager(v, player) {
-  const now = performance.now();
+  const now = loop.simTime() * 1000; // sim milliseconds (docs/23a, C2)
   if (now - v.pokedAt < POKE_COOLDOWN_MS) return false;
   v.pokedAt = now;
   v.path = [];

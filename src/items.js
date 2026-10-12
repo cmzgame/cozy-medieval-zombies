@@ -5,6 +5,8 @@
 // (`main`, `off`, `both`), `wear` (a doll slot), `beltSlots` (a belt), or
 // `bag: [cols, rows]` (a bag).
 
+import * as rng from "./rng.js";
+
 const items = new Map();
 let lootTables = {};
 
@@ -37,7 +39,7 @@ export function containerGrid(tableId) {
 }
 
 function randInt(min, max) {
-  return min + Math.floor(Math.random() * (max - min + 1));
+  return min + rng.int(max - min + 1);
 }
 
 // Roll a loot table once. Returns [{ id, count, fill? }].
@@ -51,7 +53,7 @@ export function rollLoot(tableId) {
   const total = table.entries.reduce((n, e) => n + e.weight, 0);
   const out = [];
   for (let i = 0; i < rolls; i++) {
-    let r = Math.random() * total;
+    let r = rng.float() * total;
     for (const e of table.entries) {
       r -= e.weight;
       if (r <= 0) {

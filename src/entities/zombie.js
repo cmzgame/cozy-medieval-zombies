@@ -7,7 +7,8 @@
 // around it for a while and then give up. Nothing tells them your position
 // through a wall. Noise is deliberately not a factor yet (docs/02).
 
-import * as settings from "../settings.js";
+import * as rng from "../rng.js";
+import { rules } from "../rules.js";
 import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
@@ -52,6 +53,10 @@ const BREACH_REACH = 1.1; // tiles from the edge midpoint to hit it
 const SEARCH_RADIUS = 3; // tiles
 export const WANDER_IDLE_MIN = 1.5;
 export const WANDER_IDLE_MAX = 4.0;
+// How long the dead (and villagers) stand before wandering again; one place, one roll (docs/23a, E).
+export function idleTime() {
+  return rng.range(WANDER_IDLE_MIN, WANDER_IDLE_MAX);
+}
 const SEPARATION = 0.55;
 const SIGHT_CHECK = 0.25; // seconds between sight tests
 const ARRIVED = 0.6; // tiles: close enough to the last sighting to count as there
@@ -71,11 +76,11 @@ export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false 
     target: null, // who it is hunting right now: the player, or (the setting on) a villager it can see
     searchTimer: 0,
     path: [],
-    groanTimer: Math.random() * GROAN_MAX, // so the dead do not all groan together
+    groanTimer: rng.float() * GROAN_MAX, // so the dead do not all groan together
     repathTimer: 0,
-    sightTimer: Math.random() * SIGHT_CHECK,
+    sightTimer: rng.float() * SIGHT_CHECK,
     lastGoal: null,
-    idleTimer: WANDER_IDLE_MIN + Math.random() * (WANDER_IDLE_MAX - WANDER_IDLE_MIN),
+    idleTimer: idleTime(),
     attackCooldown: 0,
     attackHit: false,
     pathFailed: false,
@@ -92,7 +97,7 @@ export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false 
     gettingUp: false,
   };
   // Dressed from one of the dead's wardrobes (data/wardrobes.json, docs/19).
-  wardrobeInto(z, "zombie", Math.floor(Math.random() * wardrobeCount("zombie")));
+  wardrobeInto(z, "zombie", rng.int(wardrobeCount("zombie")));
   return z;
 }
 
@@ -148,7 +153,7 @@ export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown
     return { killed: true, downed: false };
   }
   // The dead then know where the blow came from, when they are hunting at all.
-  if (from && settings.get("zombieAggro")) {
+  if (from && rules.zombieAggro) {
     z.aggro = true;
     z.lastSeen = [from[0], from[1]];
     z.sincePlayer = 0;
@@ -169,7 +174,7 @@ export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown
   // weapons seldom), and not a bite already under way unless the weapon interrupts: it shrugs the blow
   // off and finishes the bite (the damage and the push still land).
   const biting = z.state === "attack";
-  if (z.staggerImmune > 0 || (biting && !interrupts) || Math.random() >= staggerChance) return { killed: false, downed: false, staggered: false };
+  if (z.staggerImmune > 0 || (biting && !interrupts) || !rng.chance(staggerChance)) return { killed: false, downed: false, staggered: false };
   z.attackHit = false;
   if (biting) z.state = "chase";
   z.stagger = Math.max(z.stagger, stagger);
@@ -265,7 +270,7 @@ export function faceToward(z, dx, dy) {
 // The range scales with the light on the player (the cozy parent's rule):
 // unlit at night about a third, in a pool or by day the whole of it.
 function canSee(z, player) {
-  if (player.dead || !settings.get("zombieAggro")) return false;
+  if (player.dead || !rules.zombieAggro) return false;
   const range = ZOMBIE_SIGHT * (SIGHT_DARK_FRACTION + (1 - SIGHT_DARK_FRACTION) * light.lightAt(player.gx, player.gy));
   if (distTo(z, player) > range) return false;
   return lineOfSight(z.gx, z.gy, player.gx, player.gy);
@@ -281,7 +286,7 @@ function canSeeCharacter(z, c, d) {
 // With the setting on, the nearest living villager in sight (docs/19). Only asked
 // when the player is not in sight: the dead always prefer the player.
 function nearestPrey(z, villagers) {
-  if (!villagers || !villagers.length || !settings.get("zombiesAttackVillagers")) return null;
+  if (!villagers || !villagers.length || !rules.zombiesAttackVillagers) return null;
   let best = null;
   let bestD = Infinity;
   for (const v of villagers) {
@@ -299,7 +304,7 @@ function nearestPrey(z, villagers) {
 // A carried torch is a sighting of the player; any other flame is a sighting
 // at the flame, and the memory rule does the rest.
 function nearestFlame(z) {
-  if (!settings.get("zombieAggro")) return null;
+  if (!rules.zombieAggro) return null;
   const nf = clock.nightFactor();
   if (nf <= 0) return null;
   const range = FLAME_RANGE * nf;
@@ -376,8 +381,8 @@ export function separate(z, dt, others) {
       px += (dx / d) * f;
       py += (dy / d) * f;
     } else if (d === 0) {
-      px += Math.random() - 0.5;
-      py += Math.random() - 0.5;
+      px += rng.float() - 0.5;
+      py += rng.float() - 0.5;
     }
   }
   if (px !== 0 || py !== 0) {
@@ -392,8 +397,8 @@ export function separate(z, dt, others) {
 // not into the wall (Michael, 2026-10-10: pacing at the window).
 export function pickTargetAround(x, y, radius, room = 0) {
   for (let tries = 0; tries < 12; tries++) {
-    const tx = Math.round(x) + Math.floor(Math.random() * (radius * 2 + 1)) - radius;
-    const ty = Math.round(y) + Math.floor(Math.random() * (radius * 2 + 1)) - radius;
+    const tx = Math.round(x) + rng.int(radius * 2 + 1) - radius;
+    const ty = Math.round(y) + rng.int(radius * 2 + 1) - radius;
     if (isWalkableTile(tx, ty) && roomAt(tx, ty) === room) return [tx, ty]; // refinds the rooms if a wall changed (docs/23a, A5)
   }
   return null;
@@ -432,7 +437,7 @@ function giveUp(z) {
   z.lastSeen = null;
   z.path = [];
   z.lastGoal = null;
-  z.idleTimer = WANDER_IDLE_MIN + Math.random() * (WANDER_IDLE_MAX - WANDER_IDLE_MIN);
+  z.idleTimer = idleTime();
 }
 
 export function updateZombie(z, dt, player, others, villagers = null) {
@@ -449,7 +454,7 @@ export function updateZombie(z, dt, player, others, villagers = null) {
   z.groanTimer -= dt;
   if (z.groanTimer <= 0) {
     if (!isDown(z)) say(z, GROAN_TEXT);
-    z.groanTimer = GROAN_MIN + Math.random() * (GROAN_MAX - GROAN_MIN);
+    z.groanTimer = GROAN_MIN + rng.float() * (GROAN_MAX - GROAN_MIN);
   }
   if (updateHurt(z, dt, sheet)) return;
   // Climbing: slow, committed, no bite until it is through (docs/09).
@@ -531,7 +536,7 @@ export function updateZombie(z, dt, player, others, villagers = null) {
           repath(z, target);
           z.state = "wander";
         }
-        z.idleTimer = WANDER_IDLE_MIN + Math.random() * (WANDER_IDLE_MAX - WANDER_IDLE_MIN);
+        z.idleTimer = idleTime();
       }
       break;
     }
@@ -675,7 +680,7 @@ export function updateZombie(z, dt, player, others, villagers = null) {
         if (z.idleTimer <= 0) {
           const target = pickTargetAround(z.lastSeen[0], z.lastSeen[1], SEARCH_RADIUS, roomOf(z));
           if (target) repath(z, target);
-          z.idleTimer = 0.8 + Math.random() * 1.2;
+          z.idleTimer = rng.range(0.8, 2.0);
         }
       }
       break;

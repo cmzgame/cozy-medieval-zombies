@@ -28,6 +28,7 @@ import { showMessage } from "./ui/prompt.js";
 import { pokeVillager } from "./entities/villager.js";
 import { lootOf } from "./entities/character.js";
 import { emit } from "./events.js";
+import * as loop from "./loop.js";
 
 export const INTERACT_RANGE = 1.15; // tiles
 export const SEARCH_TIME = 1.0;
@@ -996,7 +997,7 @@ export function interactableAt(sx, sy, wanted = (prop) => prop.interactable) {
 export function pokeAt(sx, sy, player) {
   const prop = interactableAt(sx, sy);
   if (!prop) return null;
-  const now = performance.now();
+  const now = loop.simTime() * 1000; // sim milliseconds (docs/23a, C2)
   if (inReach(prop, player) && (!prop.pokedAt || now - prop.pokedAt >= POKE_COOLDOWN_MS)) prop.pokedAt = now;
   return prop;
 }
@@ -1096,7 +1097,7 @@ function playerAt(sx, sy, player) {
 export function play(prop) {
   const anim = prop && getDef(prop.sprite).clickAnim;
   if (!anim) return false;
-  const now = performance.now();
+  const now = loop.simTime() * 1000; // sim milliseconds (docs/23a, C2)
   const total = anim.ms.reduce((a, b) => a + b, 0);
   if (prop.playedAt && now - prop.playedAt < total) return false;
   prop.playedAt = now;

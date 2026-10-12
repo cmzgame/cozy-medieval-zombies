@@ -8,6 +8,8 @@
 // unless you are already very low, should be a nuisance (here 0.4 a second, under 5 health in all).
 // The numbers are `bleed` in data/combat.json.
 
+import * as rng from "./rng.js";
+
 export const BLEED = { chance: 0.5, dpsByStacks: [0.4, 1.6, 3.6, 6.4, 10], max: 5, duration: 12 };
 
 export function setBleedData(data) {
@@ -53,7 +55,7 @@ export function update(player, dt) {
 }
 
 // A bite that did damage may open (or widen) a wound. Returns whether it did.
-export function onBite(player, damageTaken, roll = Math.random()) {
+export function onBite(player, damageTaken, roll = rng.float()) {
   if (damageTaken <= 0 || player.dead) return false;
   return roll < BLEED.chance ? apply(player) : false;
 }

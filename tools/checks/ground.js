@@ -1,6 +1,6 @@
 // The ground's acceptance list as a script (docs/15-ground.md, "Accept when").
 // Run it in the game's page, from the console:
-//   const r = await (await import("/tools/ground-check.js")).run(window.__game); console.table(r.rows)
+//   const r = await __game.check("ground"); console.table(r.rows)
 // It pauses the game, moves the player and the clock, and puts them back at
 // the end. Check 10 is Michael's eye and is not scripted.
 

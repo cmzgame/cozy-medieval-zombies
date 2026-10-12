@@ -5,6 +5,7 @@
 // The numbers are `infection` in data/combat.json.
 
 import * as clock from "./clock.js";
+import * as rng from "./rng.js";
 
 export const INFECTION = { chance: 0.2, days: 1.5 };
 
@@ -43,7 +44,7 @@ export function cure(player) {
 }
 
 // A bite that did damage may infect. Returns whether this one did.
-export function onBite(player, damageTaken, roll = Math.random()) {
+export function onBite(player, damageTaken, roll = rng.float()) {
   if (damageTaken <= 0 || player.infection || player.dead) return false;
   return roll < INFECTION.chance ? infect(player) : false;
 }

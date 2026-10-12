@@ -17,6 +17,8 @@ let frames = 0;
 let fps = 0;
 let fpsTimer = 0;
 let freezeLeft = 0;
+let simSeconds = 0; // game time stepped so far: the sim's own clock, never the wall's (docs/23a, C2)
+let pauses = 0; // times the loop was paused: a draw held through a pause is dropped (archery.js)
 
 let hooks = { update: () => {}, render: () => {}, simTick: () => {}, crash: null };
 
@@ -29,6 +31,7 @@ export function start(h, opts = {}) {
 }
 
 export function setPaused(p) {
+  if (p && !paused) pauses++;
   paused = p;
 }
 
@@ -91,7 +94,17 @@ export function isRunning() {
   return running;
 }
 
+// Seconds of game time stepped: what the sim reads instead of performance.now().
+export function simTime() {
+  return simSeconds;
+}
+
+export function pauseCount() {
+  return pauses;
+}
+
 function step() {
+  simSeconds += STEP;
   hooks.update(STEP);
   simAccumulator += STEP;
   if (simAccumulator >= simInterval) {

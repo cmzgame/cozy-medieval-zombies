@@ -20,6 +20,8 @@ import { DOOR_TOP, WINDOW_SILL, WINDOW_TOP } from "./placeholders.js";
 import { countAll, takeAll } from "./inventory.js";
 import { release } from "./items.js";
 import { showMessage } from "./ui/prompt.js";
+import * as loop from "./loop.js";
+import * as rng from "./rng.js";
 
 // Everything is tunable from the console: __game.archery.tunables.
 export const tunables = {
@@ -240,7 +242,7 @@ function land(a) {
   let hit = null;
   if (a.stopD == null) hit = bodyAt(gx, gy);
   let keep = true;
-  const broken = a.breakChance > 0 && Math.random() < a.breakChance;
+  const broken = a.breakChance > 0 && rng.chance(a.breakChance);
   if (hit) {
     damageZombie(hit, Math.round(a.damage * (0.4 + 0.6 * a.c)), { dir: [a.dx, a.dy], knockback: a.knockback, staggerChance: a.staggerChance, interrupts: a.interrupts, from: [a.x0, a.y0] });
     // The arrow stays in the body (Michael): it comes out in the loot when the dead one is
@@ -391,7 +393,6 @@ export function generateSpear() {
 
 let draw = null; // { t, c, source }: a draw in progress
 let recover = 0; // seconds until the next draw may begin
-let lastTick = 0;
 let aimOverride = null; // [gx, gy]: scripts and tests aim here instead of the cursor
 
 export function setAimOverride(p) {
@@ -501,9 +502,6 @@ export function releaseDraw(player, mouse) {
 
 // Every step. `ctx`: { pressed, down, mouse, blocked }.
 export function updateDraw(player, dt, ctx) {
-  const now = performance.now();
-  const gap = now - lastTick;
-  lastTick = now;
   const bow = launcherOf(player);
   if (recover > 0) {
     recover -= dt;
@@ -514,10 +512,12 @@ export function updateDraw(player, dt, ctx) {
   if (!draw) {
     if (!(ctx.pressed && bow)) return;
     if (!beginDraw(player, bow)) return;
+    draw.pauses = loop.pauseCount();
   }
-  // A long gap between steps is a pause: a draw held through it is dropped, so
-  // letting go afterwards does not loose an arrow.
-  const paused = had && draw.source === "mouse" && gap > 350;
+  // A draw held through a pause (the menu, the pause screen) is dropped, so
+  // letting go afterwards does not loose an arrow. Counted in pauses of the
+  // loop, not in wall-clock time, so a slow frame or a test cannot drop it (docs/23a, C2).
+  const paused = had && draw.source === "mouse" && draw.pauses !== loop.pauseCount();
   if (!bow || player.dead || player.climb || player.sprinting || ctx.blocked || paused) {
     cancelDraw(player);
     return;

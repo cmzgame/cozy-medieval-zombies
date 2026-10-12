@@ -18,11 +18,12 @@ import { lineOfSight } from "./visibility.js";
 import * as items from "./items.js";
 import * as loop from "./loop.js";
 import * as camera from "./camera.js";
-import * as settings from "./settings.js";
 import { emit } from "./events.js";
 import { playAnimation } from "./sprites.js";
 import { aimOrigin } from "./entities/player.js";
 import { damageZombie, isDown, staggerZombie, STAGGER_RULES } from "./entities/zombie.js";
+import * as rng from "./rng.js";
+import { rules } from "./rules.js";
 
 // Tunables (docs/14).
 export const POINT_BLANK = 0.55; // tiles: this close is always hit
@@ -147,7 +148,7 @@ function targetsIn(player, weapon, zombies, accept = () => true) {
   // dead from biting through them (Michael found a hit on a zombie behind a wall, with no outline,
   // because the dead one was in the fog).
   const list = zombies.filter((z) => !z.dead && accept(z) && inWedge(player, weapon, z) && lineOfSight(player.gx, player.gy, z.gx, z.gy));
-  const multi = settings.get("multiHit") && weapon.multiHit !== false;
+  const multi = rules.multiHit && weapon.multiHit !== false;
   if (multi || list.length < 2) return list;
   const d = (z) => Math.hypot(z.gx - player.gx, z.gy - player.gy);
   list.sort((a, b) => d(a) - d(b));
@@ -156,7 +157,7 @@ function targetsIn(player, weapon, zombies, accept = () => true) {
 
 // Whether a blow pushes at all: the weapon's `knockbackChance` (default always).
 function pushes(weapon) {
-  return Math.random() < (weapon.knockbackChance ?? 1);
+  return rng.chance(weapon.knockbackChance ?? 1);
 }
 
 // What the player cannot swing through: carrying furniture, a climb, a timed
@@ -315,7 +316,7 @@ export function tryAttack(player, zombies, hand = "main", mode = null) {
       }
     }
     const chance = weapon.knockdown ?? KNOCKDOWN_CHANCE;
-    const knockdown = !finisher && (combo || Math.random() < chance);
+    const knockdown = !finisher && (combo || rng.chance(chance));
     const amount = Math.round(weapon.damage * (tired ? TIRED_DAMAGE : 1) * (finisher ? FINISHER.mult : 1) * guardedMult(player) * (hand === "off" ? DUAL.offDamage : 1));
     const push = !finisher && pushes(weapon) ? weapon.knockback : 0;
     const r = damageZombie(z, amount, { dir: [dir.x, dir.y], knockback: push, knockdown, stagger: weapon.stagger, staggerChance: weapon.staggerChance, interrupts: weapon.interrupts, from: [player.gx, player.gy] });
@@ -342,7 +343,7 @@ export function tryShove(player, zombies) {
   const hit = [];
   for (const z of targetsIn(player, SHOVE, zombies, (z) => !isDown(z))) {
     hit.push(z);
-    damageZombie(z, 0, { dir: [dir.x, dir.y], knockback: pushes(SHOVE) ? SHOVE.knockback : 0, knockdown: Math.random() < SHOVE.knockdown, stagger: SHOVE.stagger, staggerChance: 1, interrupts: true, from: [player.gx, player.gy] });
+    damageZombie(z, 0, { dir: [dir.x, dir.y], knockback: pushes(SHOVE) ? SHOVE.knockback : 0, knockdown: rng.chance(SHOVE.knockdown), stagger: SHOVE.stagger, staggerChance: 1, interrupts: true, from: [player.gx, player.gy] });
   }
   emit("shove", { count: hit.length });
   if (hit.length) {

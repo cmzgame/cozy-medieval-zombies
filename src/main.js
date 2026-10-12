@@ -45,6 +45,8 @@ import * as placement from "./placement.js";
 import * as combat from "./combat.js";
 import * as buildPalette from "./ui/build-palette.js";
 import * as shell from "./boot.js";
+import * as rng from "./rng.js";
+import * as rules from "./rules.js";
 
 const V = view.view; // the world's size in its own pixels, kept current by view.js
 const MAP_FILE = "data/maps/square.json";
@@ -284,6 +286,7 @@ function update(dt) {
 }
 
 function stepGame(dt) {
+  rules.refresh(); // the sim's rules, from the settings, once a step (docs/23a, C3)
   if (input.wasPressed("KeyV")) drawAll = !drawAll;
   if (input.wasPressed("KeyN")) toggleBuild();
   if (input.wasPressed("KeyX")) toggleRemove();
@@ -756,6 +759,7 @@ async function boot() {
       for (const def of items.allItems()) if (def.shield) assets.registerSheet("held_shield_guard", figure.generateHeld("shield_guard", def.held.colours)); // the raised guard (docs/21)
     } },
     { name: "world", label: "Growing the world", weight: 1, async run() {
+      rng.seed(json.seed ?? 1); // the sim's one generator, seeded from the map (docs/23a, C1)
       info = map.loadMap(json);
       player = createPlayer(info.spawn[0], info.spawn[1]);
       player.look = { ...figure.DEFAULT_LOOK, hairStyle: settings.get("hairStyle") || "short" };
@@ -893,7 +897,7 @@ async function boot() {
     bleed: { apply: () => bleed.apply(player), clear: () => bleed.clear(player), stacks: () => bleed.stacks(player), config: bleed.BLEED },
     infection: { infect: () => infection.infect(player), cure: () => infection.cure(player), progress: () => infection.progress(player), config: infection.INFECTION }, // the infection marker (docs/02 question 29b)
     burning, // the fire test (docs/05): burning.tunables, burning.all()
-    iso, input, loop, assets, events, map, camera, ground, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette, combat, gl,
+    iso, input, loop, assets, events, map, camera, ground, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette, combat, gl, rng, rules,
     render: { night },
     get player() { return player; },
     get zombies() { return zombies; },
@@ -928,6 +932,8 @@ async function boot() {
     get playerRoom() { return playerRoom; },
     get info() { return info; },
     get openBag() { return openBag; },
+    // A check from tools/checks/ by name: __game.check("determinism"), __game.check("ground").
+    check(name, opts) { return import(`/tools/checks/${name}.js`).then((m) => m.run(window.__game, opts)); },
     get timing() { return timing; }, // the step's, sight's, and render's milliseconds (tools/profile.js)
     get drawn() { return drawn; },
     teleport(gx, gy) { player.gx = gx; player.gy = gy; player.auto = null; camera.snapTo(gx, gy); },

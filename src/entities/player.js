@@ -9,7 +9,7 @@ import { findPath } from "../pathfind.js";
 import { getSheet } from "../assets.js";
 import { createAnimation, playAnimation, advanceAnimation } from "../sprites.js";
 import { createCharacter } from "./character.js";
-import * as settings from "../settings.js";
+import { rules } from "../rules.js";
 
 export const PLAYER_SPEED = 3.0; // tiles per second
 export const PLAYER_RADIUS = 0.3;
@@ -110,7 +110,7 @@ export function drink(player, entry) {
 // of it off (Michael, 2026-10-10 late): off, nothing drains and the needs
 // stay full, so the moodles never show.
 function updateNeeds(player, dt) {
-  if (!settings.get("survival")) {
+  if (!rules.survival) {
     player.hunger = player.maxHunger ?? HUNGER_MAX;
     player.thirst = player.maxThirst ?? THIRST_MAX;
     return;

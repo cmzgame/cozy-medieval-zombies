@@ -17,9 +17,9 @@ import * as input from "./input.js";
 import * as map from "./map.js";
 import * as inventory from "./inventory.js";
 import * as items from "./items.js";
-import * as settings from "./settings.js";
 import { idleFrame, getDef, getSheet } from "./assets.js";
 import { showMessage } from "./ui/prompt.js";
+import { rules } from "./rules.js";
 
 // Reach was raised by a full tile on 2026-10-11 (Michael: easier).
 export const PLACE_REACH = 2.6; // tiles from the player to a carried prop's anchor tile
@@ -107,7 +107,7 @@ export function putDownTarget(player) {
 
 // What a build costs now: nothing while Free building is on.
 export function costOf(what) {
-  if (settings.get("freeBuilding")) return {};
+  if (rules.freeBuilding) return {};
   return (buildData[what] && buildData[what].cost) || {};
 }
 

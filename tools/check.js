@@ -1,0 +1,105 @@
+// Headless checks of the pure modules (docs/23a, section H), under plain Node:
+//   node tools/check.js
+// What needs the browser (the map, the rooms, the renderer) is checked in the
+// pane from tools/checks/ through window.__game.check(name).
+
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const read = (p) => JSON.parse(fs.readFileSync(path.join(root, p), "utf8"));
+const results = [];
+const check = (name, fn) => {
+  try {
+    const detail = fn();
+    results.push({ name, ok: true, detail: detail ?? "" });
+  } catch (err) {
+    results.push({ name, ok: false, detail: err.message });
+  }
+};
+const assert = (cond, msg) => {
+  if (!cond) throw new Error(msg);
+};
+
+const rng = await import("../src/rng.js");
+const clock = await import("../src/clock.js");
+const bleed = await import("../src/bleed.js");
+const infection = await import("../src/infection.js");
+const items = await import("../src/items.js");
+const pathfind = await import("../src/pathfind.js");
+
+check("rng: the same seed gives the same sequence", () => {
+  rng.seed(7);
+  const a = Array.from({ length: 1000 }, () => rng.float());
+  rng.seed(7);
+  const b = Array.from({ length: 1000 }, () => rng.float());
+  assert(a.every((v, i) => v === b[i]), "sequences differ");
+  rng.seed(8);
+  const c = Array.from({ length: 1000 }, () => rng.float());
+  assert(a.some((v, i) => v !== c[i]), "two seeds gave one sequence");
+  assert(a.every((v) => v >= 0 && v < 1), "a float outside 0..1");
+  for (let i = 0; i < 1000; i++) {
+    const n = rng.int(6);
+    assert(n >= 0 && n < 6 && Number.isInteger(n), `int(6) gave ${n}`);
+  }
+  return `1000 floats, mean ${(a.reduce((s, v) => s + v, 0) / a.length).toFixed(3)}`;
+});
+
+check("clock: an hour set is the hour read", () => {
+  clock.reset();
+  for (const h of [0, 6.5, 12, 23]) {
+    clock.setHour(h);
+    assert(Math.abs(clock.getHour() - h) < 1e-6, `set ${h}, read ${clock.getHour()}`);
+  }
+  assert(clock.getBrightness() > 0 && clock.getBrightness() <= 1, "brightness outside 0..1");
+});
+
+check("bleed and infection: a bite rolls against its chance, nothing on zero damage", () => {
+  const combat = read("data/combat.json");
+  if (combat.bleed) bleed.setBleedData(combat.bleed);
+  if (combat.infection) infection.setInfectionData(combat.infection);
+  const fresh = () => ({ hp: 100, dead: false, infection: null, bleed: null });
+  assert(bleed.onBite(fresh(), 0, 0) === false, "a bite of zero damage bled");
+  assert(bleed.onBite(fresh(), 8, 0) === true, "a roll of 0 did not bleed");
+  assert(bleed.onBite(fresh(), 8, 0.999) === false, "a roll of 0.999 bled");
+  assert(infection.onBite(fresh(), 8, 0) === true, "a roll of 0 did not infect");
+  assert(infection.onBite(fresh(), 8, 0.999) === false, "a roll of 0.999 infected");
+});
+
+check("loot: a table rolled under one seed is the same table rolled again", () => {
+  items.loadItems(read("data/items.json"));
+  items.loadLoot(read("data/loot.json"));
+  rng.seed(3);
+  const a = JSON.stringify(Array.from({ length: 20 }, () => items.rollLoot("chest")));
+  rng.seed(3);
+  const b = JSON.stringify(Array.from({ length: 20 }, () => items.rollLoot("chest")));
+  assert(a === b, "two rolls under one seed differ");
+  rng.seed(4);
+  const c = JSON.stringify(Array.from({ length: 20 }, () => items.rollLoot("chest")));
+  assert(a !== c, "two seeds rolled the same chests");
+  return `${JSON.parse(a).flat().length} items over 20 chests`;
+});
+
+check("pathfind: a path round a wall, none through it", () => {
+  // A wall along x = 5 from y = 0 to 8 with a gap at y = 9; canStep refuses crossing it.
+  const canStep = (x, y, nx, ny) => {
+    if (nx < 0 || ny < 0 || nx > 12 || ny > 12) return false;
+    if ((x < 5 && nx >= 5) || (x >= 5 && nx < 5)) return Math.max(y, ny) >= 9 && Math.min(y, ny) >= 9;
+    return true;
+  };
+  const path = pathfind.findPath([2, 2], [9, 2], canStep, 1500);
+  assert(path && path.length, "no path found");
+  assert(path.some(([, y]) => y >= 9), "the path went through the wall");
+  const none = pathfind.findPath([2, 2], [9, 2], (x, y, nx, ny) => nx !== 5 && ny >= 0 && nx >= 0, 200);
+  assert(!none || none.length === 0, "a path was found where none exists");
+  return `${path.length} tiles round the wall`;
+});
+
+let failed = 0;
+for (const r of results) {
+  if (!r.ok) failed++;
+  console.log(`${r.ok ? "pass" : "FAIL"}  ${r.name}${r.detail ? `  (${r.detail})` : ""}`);
+}
+console.log(`${results.length - failed} of ${results.length} pass`);
+process.exit(failed ? 1 : 0);
