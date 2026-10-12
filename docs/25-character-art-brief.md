@@ -22,11 +22,11 @@ Michael's intent, in his words where they matter: the body is **agender in body 
 
 ### 1. The body (first, before anything else)
 
-**One body.** Agender: no hint of sex in the shape; a plain undergarment that can be on or off (Q1); gender is said by hair, facial hair, and dress. What the brief asks for in it, beyond the look above: **shoulders that read** (a visible shoulder line and a little mass there, so a pauldron or a mail shirt has a place to sit and the walk's arm swing shows at the shoulder); **legs that are quiet** (short, close together, a one-pixel gap, nothing that fights a long tunic or a dress); **distinct feet** (a real foot shape with a sole line, so shoes and boots read as shoes and boots); hands as mitts, no fingers. Delivered as parts per facing on the template, in the rest pose, in the canonical skin tones.
+**One body.** Agender: no hint of sex in the shape; **no undergarment** (Q1: the goobers are asexual, the body is drawn bare); gender is said by hair, facial hair, and dress. What the brief asks for in it, beyond the look above: **shoulders that read** (a visible shoulder line and a little mass there, so a pauldron or a mail shirt has a place to sit and the walk's arm swing shows at the shoulder); **legs that are quiet** (short, close together, a one-pixel gap, nothing that fights a long tunic or a dress); **distinct feet** (a real foot shape with a sole line, so shoes and boots read as shoes and boots); hands as mitts, no fingers. Delivered as parts per facing on the template, in the rest pose, in the canonical skin tones.
 
 **Skin: a ramp, not options.** Eight tones for the living, from pale to deep brown, each a base and a shadow, chosen so that outline and eyes read on all of them; the artist proposes the eight, Michael approves. The dead get three more (grey-green, grey, bruised blue), the same way. A character's skin is one choice from the ramp.
 
-**Three things for the artist to offer three of:** eyes (a round pair, a narrow pair, a wide-and-low pair; any colour, since the eye is dyed), the wound layer for the dead (a gash across the face, a torn-open torso, a missing hand), and the undergarment shape if Q1 says it stays (shorts, a shift, a wrap).
+**Two things for the artist to offer three of:** eyes (a round pair, a narrow pair, a wide-and-low pair; any colour, since the eye is dyed), and the wound layer for the dead (a gash across the face, a torn-open torso, a missing hand).
 
 ### 2. Hair
 
@@ -100,12 +100,12 @@ The starter look stays what Michael likes: **tunic, belt, breeches, boots; no gl
 
 - One PNG per item (one garment, one hair, one beard, one hat) **drawn over the template**, at 1x, hard pixels, transparent background, the canonical two tones plus outline, all eight facings on the template's rows (or the five, if nothing in it is asymmetric). One PNG for the body in the same way.
 - A short README per delivery listing which parts each item paints, whether it is symmetric, and anything the slicer must know (a hat that hides hair; a dress that hides the legs' garment; a beard that needs the mouth line).
-- The game-side work to receive it (to build before the first delivery lands, `23` pillar 3): the template exporter, the slicer from PNG to layer files, a `waist` and a `beard` layer slot, the "covers" flags (a hat hides hair; a dress hides the leg garment; the onion hat hides facial hair, per Q2), and the `dye` plumbing extended to hair and facial hair (it exists for garments).
+- The game-side work to receive it (to build before the first delivery lands, `23` pillar 3): the template exporter, the slicer from PNG to layer files, a `waist` and a `beard` layer slot, the "covers" flags (a hat hides the hair on the top of the head; a dress hides the leg garment; never a beard or a thing under a hat, per Q2), and the `dye` plumbing extended to hair and facial hair (it exists for garments).
 
 ## Questions for Michael
 
-- **Q1. Undies:** on by default, off by default, or an item like any other (the body is drawn naked and a `shift` is the first garment)? The doc says optional; the brief needs a default.
-- **Q2. Facial hair under the onion hat:** the hat covers the face but the eyes, so a beard is hidden (simplest: the hat's "covers" flag hides the beard layer); or the beard pokes out below the hat's chin edge (which means the hat is drawn to end at the chin and the big beard reads under it, the gnome in an onion hat, which is a strong image). Claude's lean: pokes out, for that image alone.
+- **Q1. Undies: none** (Michael, 2026-10-12). The goobers are asexual, so there is nothing a decency garment is for; the body is drawn bare and a shift, if one is ever wanted, is a garment like any other. "The first time a human tells me this is weird we'll scope it out. I kinda like letting people confirm." The brief tells the artist: draw the body with no undergarment and nothing to hide.
+- **Q2. Facial hair under the onion hat: it pokes out** below the hat's chin edge (Michael, 2026-10-12: the gnome in an onion hat). **And the general rule:** for any hat and any thing that would be very hard to make work under it, the hat does not hide it: the artist draws the hat to end where the thing begins (a beard below the chin edge, long hair out of the back of a cap) and the combination is allowed. The engine's "covers" flag is used only where a hat truly replaces a thing (a hat replaces the hair on the top of the head), never to dodge a hard combination.
 - **Q3. One body, or builds?** The brief asks for one body because every garment layer must fit it; a second build (stout, slight) would double every garment. One body, with the head and shoulders doing the character, is the recommendation.
 - **Q4. The third hat and the third facial hair:** the coif or the existing cap; the goatee or a chin strip.
 - **Q5. Dresses and legs:** a dress hides the leg garment but not the boots (the recommendation), or hides both?
