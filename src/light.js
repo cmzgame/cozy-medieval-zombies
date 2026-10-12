@@ -40,6 +40,8 @@ let litRooms = new Set(); // room ids with a lit hearth, refreshed each step
 let curSources = []; // lit static sources, refreshed each step
 let carrier = null; // { gx, gy, radius }: the torch in the player's hand, or null
 let burners = []; // burning characters as lights (fire.js), evaluated like the carrier
+let srcVersion = 0; // bumped when the list of sources changes (a fire lit, a portal's intensity moving with the clock)
+let lastSourcesDesc = "";
 
 // Once per logic step, after the rooms are current: lit rooms, then fires
 // and mounted torches, then the portals, which need the ambients.
@@ -91,6 +93,21 @@ export function update() {
       });
     }
   }
+  // One version number for the whole list, so the chunk signatures and the
+  // renderer's area can ask "did the sources change?" without a string each (docs/23a, B4, B6).
+  const desc = curSources.map(describe).join("|");
+  if (desc !== lastSourcesDesc) {
+    lastSourcesDesc = desc;
+    srcVersion++;
+  }
+}
+
+function describe(l) {
+  return `${l.gx},${l.gy},${l.radius},${Math.round(l.intensity * 20)}${l.dir ? `,${l.dir[0]},${l.dir[1]}` : ""}`;
+}
+
+export function getSourcesVersion() {
+  return srcVersion;
 }
 
 export function outdoorAmbient() {
@@ -254,7 +271,15 @@ export function poolRays() {
 
 // ---- the static map, per chunk ----
 
-const cache = new Map(); // chunk key -> { sig, contrib, layers, canvas, any }
+const cache = new Map(); // chunk key -> { sig, contrib, layers, any }
+const sigCache = new Map(); // chunk key -> { sv, lv, sig }: the signature, rebuilt only when the sources or the chunk's walls changed
+
+// A dropped chunk takes its light with it (docs/23a, B2).
+export function forgetChunk(key) {
+  cache.delete(key);
+  sigCache.delete(key);
+}
+map.onEvict(forgetChunk);
 
 // Flicker (docs/08, Phase 3): a source's weight this instant, 1 - amp .. 1,
 // from two slow sines with a seed per source, so flames never beat together.
@@ -283,13 +308,22 @@ function reaches(l, cx, cy) {
 
 // A chunk's map depends on the sources within their radius of it, their
 // intensity (portals change with the clock, so it is rounded to steps), and
-// on the walls, which cast the shadows.
-function sigFor(cx, cy) {
-  let s = `${map.worldVersion}`;
+// on the walls near it, which cast the shadows: the chunk's own light version
+// (map.touch bumps it for the touched chunk and its neighbours), not the
+// world's, so a door across the village rebuilds nothing here (docs/23a, B4).
+// Memoised per chunk on the sources' version and the chunk's, so lightAt
+// builds no string.
+function sigFor(cx, cy, key) {
+  const c = map.getChunk(cx, cy, false);
+  const lv = c ? c.lightVersion : 0;
+  const m = sigCache.get(key);
+  if (m && m.sv === srcVersion && m.lv === lv) return m.sig;
+  let s = `${lv}`;
   for (const l of curSources) {
     if (!reaches(l, cx, cy)) continue;
-    s += `|${l.gx},${l.gy},${l.radius},${Math.round(l.intensity * 20)}${l.dir ? `,${l.dir[0]},${l.dir[1]}` : ""}`;
+    s += `|${describe(l)}`;
   }
+  sigCache.set(key, { sv: srcVersion, lv, sig: s });
   return s;
 }
 
@@ -330,32 +364,13 @@ function build(cx, cy, sig) {
       }
     }
   }
-  // The same data as a tiny image: alpha = how much darkness to remove. The
-  // renderer draws it through the iso transform with smoothing on, the one
-  // place scaling in drawImage is allowed (docs/02, 2026-10-09).
-  let canvas = null;
-  if (any) {
-    canvas = document.createElement("canvas");
-    canvas.width = N;
-    canvas.height = N;
-    const ctx = canvas.getContext("2d");
-    const img = ctx.createImageData(N, N);
-    for (let k = 0; k < N * N; k++) {
-      const o = k * 4;
-      img.data[o] = 255;
-      img.data[o + 1] = 255;
-      img.data[o + 2] = 255;
-      img.data[o + 3] = Math.round(contrib[k] * 255);
-    }
-    ctx.putImageData(img, 0, 0);
-  }
-  return { sig, contrib, layers, canvas, any };
+  return { sig, contrib, layers, any };
 }
 
 // The map of a chunk, rebuilt if its sources or the walls changed.
 export function chunkLight(cx, cy, layer = 0) {
   const key = map.chunkKey(cx, cy, layer);
-  const sig = sigFor(cx, cy);
+  const sig = sigFor(cx, cy, key);
   let entry = cache.get(key);
   if (!entry || entry.sig !== sig) {
     entry = build(cx, cy, sig);
@@ -366,6 +381,7 @@ export function chunkLight(cx, cy, layer = 0) {
 
 export function resetCache() {
   cache.clear();
+  sigCache.clear();
 }
 
 // Bilinear sample of the static contribution at a grid position, 0..1.

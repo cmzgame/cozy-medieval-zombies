@@ -22,6 +22,7 @@ export async function run(game, { steps = 600 } = {}) {
     `player ${f(G.player.gx)},${f(G.player.gy)} hp ${G.player.hp}`,
     ...G.zombies.map((z) => `${z.id} ${f(z.gx)},${f(z.gy)} ${z.state} ${z.wardrobe} hp ${z.hp}`),
     ...G.villagers.map((v) => `${v.id} ${f(v.gx)},${f(v.gy)} ${v.state}`),
+    ...G.corpses.map((z) => `${z.id} ${f(z.gx)},${f(z.gy)} corpse`),
   ];
   const hash = hashOf(parts.join("\n"));
   const key = "cmz.determinism";

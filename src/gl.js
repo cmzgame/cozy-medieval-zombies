@@ -22,6 +22,10 @@ let ATLAS = 2048; // raised to 4096 in init when the GPU allows: the figures' sh
 
 export let gl = null;
 let lost = false; // the WebGL context is gone until the browser restores it (docs/23a, A2)
+let areaEpoch = 0; // bumped when the area textures must be uploaded afresh (a restored context)
+export function getAreaEpoch() {
+  return areaEpoch;
+}
 const restoreHooks = [];
 let program = null;
 let vao = null;
@@ -255,6 +259,7 @@ export function init(canvas) {
   canvas.addEventListener("webglcontextrestored", () => {
     setup();
     lost = false;
+    areaEpoch++;
     for (const fn of restoreHooks) fn();
     console.warn("WebGL context restored: the atlas re-uploaded, the ground re-baked");
   });
@@ -338,6 +343,25 @@ export function setLightSampling(linear) {
 }
 
 // The three small textures: light (R8, cells), ambient and fog (R8, tiles).
+// The three area textures upload apart, each only when it changed (docs/23a, B6).
+export function uploadLight(light, lw, lh) {
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, lightTex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, lw, lh, 0, gl.RED, gl.UNSIGNED_BYTE, light);
+}
+
+export function uploadAmbient(ambient, aw, ah) {
+  gl.activeTexture(gl.TEXTURE2);
+  gl.bindTexture(gl.TEXTURE_2D, ambientTex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, aw, ah, 0, gl.RED, gl.UNSIGNED_BYTE, ambient);
+}
+
+export function uploadFog(fog, aw, ah) {
+  gl.activeTexture(gl.TEXTURE3);
+  gl.bindTexture(gl.TEXTURE_2D, fogTex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, aw, ah, 0, gl.RED, gl.UNSIGNED_BYTE, fog);
+}
+
 export function uploadArea(light, lw, lh, ambient, fog, aw, ah) {
   gl.activeTexture(gl.TEXTURE1);
   gl.bindTexture(gl.TEXTURE_2D, lightTex);

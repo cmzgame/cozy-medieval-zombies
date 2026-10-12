@@ -21,8 +21,7 @@ export async function run(game, { steps = 120 } = {}) {
   try {
     G.loop.setPaused(true);
     if (window.__boot) add("boot (ms)", Object.entries(window.__boot.timings).map(([k, v]) => `${k} ${v}`).join(", "));
-    const dead = G.zombies.filter((z) => z.dead).length;
-    add("world", `${[...G.map.loadedChunks()].length} chunks, ${G.zombies.length} dead (${dead} corpses), ${G.villagers.length} villagers, ${G.map.roomCount()} rooms, ${G.light.sources().length} light sources`);
+    add("world", `${G.map.chunkCount()} chunks, ${G.zombies.length} dead, ${G.corpses.length} corpses, ${G.villagers.length} villagers, ${G.map.roomCount()} rooms, ${G.light.sources().length} light sources`);
     const atlas = G.gl.atlasInfo();
     add("atlas", `${Math.round(atlas.fraction * 100)}% (${atlas.usedRows} of ${atlas.size} rows), ${G.assets.figureSheetCount()} figure sheets, ${G.assets.corpseSheetCount()} corpse sheets`);
     for (const [name, scale] of [["middle", G.view.ZOOM_LEVELS[1]], ["wide", G.view.ZOOM_LEVELS[0]]]) {

@@ -51,6 +51,7 @@ import * as rules from "./rules.js";
 const V = view.view; // the world's size in its own pixels, kept current by view.js
 const MAP_FILE = "data/maps/square.json";
 const ACTIVE_TILES = 40; // the dead beyond this many tiles from the player do not think
+const EVICT_CHUNKS = 8; // wild chunks farther than this from the player are dropped, their dead asleep on record (docs/23a, B2)
 const CONTAINER_CLOSE_DIST = 2.0; // tiles: an open container closes when you walk away
 const ZOOM_PACE = 0.3; // seconds between wheel steps that count
 const BELT_LIGHT = 0.5; // a lit torch on the belt gives this much of its light (docs/02)
@@ -71,7 +72,8 @@ try {
 
 let info = null;
 let player = null;
-let zombies = [];
+let zombies = []; // the dead that still think; the fallen move to corpses (docs/23a, B1)
+let corpses = [];
 let villagers = [];
 let tiles = [];
 let visible = new Set();
@@ -316,6 +318,19 @@ function stepGame(dt) {
   // dead appear outside the view even at the widest zoom (docs/02, the view).
   map.ensureAround(player.gx, player.gy, 3);
   for (const [x, y] of map.takePendingSpawns()) zombies.push(createZombie(x, y));
+  // Chunks far behind are dropped and the characters in them sleep with their
+  // chunk, back when it grows again (docs/23a, B1, B2). Villagers hold a chunk.
+  const inChunk = (e, cx, cy) => {
+    const [ex, ey] = map.chunkCoord(Math.round(e.gx), Math.round(e.gy));
+    return ex === cx && ey === cy;
+  };
+  for (const [key, cx, cy] of map.evictFar(player.gx, player.gy, EVICT_CHUNKS, (cx, cy) => villagers.some((v) => inChunk(v, cx, cy)))) {
+    const sleeping = [];
+    zombies = zombies.filter((z) => !inChunk(z, cx, cy) || (sleeping.push(z), false));
+    corpses = corpses.filter((z) => !inChunk(z, cx, cy) || (sleeping.push(z), false));
+    map.sleep(key, sleeping);
+  }
+  for (const ch of map.takeWoken()) (ch.dead ? corpses : zombies).push(ch);
   // The ground: re-bake what changed in view, bake one chunk ahead, evict far ones (docs/15).
   if (!glError) ground.update(camera.cam.gx, camera.cam.gy, tiles);
   // Placement first: its ghost follows the cursor and a left click that
@@ -369,9 +384,10 @@ function stepGame(dt) {
   if (input.wasPressed("Space")) combat.tryShove(player, zombies);
   combat.updateCombat(player, zombies, dt);
   archery.update(dt);
-  burning.update(dt, [player, ...zombies, ...villagers]); // the burning, a visual (docs/05)
+  const others = [player, ...zombies, ...villagers]; // the living, who block and are hunted
+  const everyone = [...others, ...corpses]; // and the fallen, who burn and are drawn
+  burning.update(dt, everyone); // the burning, a visual (docs/05)
   progress = interact.updateAction(player, dt);
-  const others = [player, ...zombies, ...villagers];
   // The dead far from the player stand still: a stand-in for the records of
   // docs/03 until that milestone.
   for (const z of zombies) {
@@ -386,6 +402,11 @@ function stepGame(dt) {
   if (villagers.some((v) => v.dead)) {
     for (const v of villagers) if (v.dead) zombies.push(turnVillager(v));
     villagers = villagers.filter((v) => !v.dead);
+  }
+  // The fallen leave the thinking list (docs/23a, B1): a corpse is drawn and looted, never iterated by the AI.
+  if (zombies.some((z) => z.dead)) {
+    corpses.push(...zombies.filter((z) => z.dead));
+    zombies = zombies.filter((z) => !z.dead);
   }
   if (player.hp <= 0 && !player.dead) {
     // Death (Michael, 2026-10-10 night): the game stops on the dead screen,
@@ -406,7 +427,7 @@ function stepGame(dt) {
   const fire = held || belted;
   const strength = held ? (twoHanded ? TWO_TORCHES : 1) : BELT_LIGHT;
   light.setCarrier(fire ? { gx: player.gx, gy: player.gy, radius: fire.radius * strength, flicker: fire.flicker || null, strength } : null);
-  light.setBurners(burning.lights([player, ...zombies, ...villagers]));
+  light.setBurners(burning.lights(everyone));
   light.update();
   // Sight is cast from the player's tile centre and only recomputed when the
   // player or the camera enters a new tile. Casting every step at 60 Hz was the
@@ -427,7 +448,7 @@ function stepGame(dt) {
   updatePrompt(interact.promptFor(player, progress), progress);
   updateZombieBars(zombies, visible, player);
   updateSwingTimer(player);
-  updateSpeech([player, ...zombies, ...villagers], visible, player, dt);
+  updateSpeech(others, visible, player, dt);
   updateMessage(dt);
 }
 
@@ -449,7 +470,7 @@ function render() {
     h: V.h,
     tiles,
     visible,
-    entities: [player, ...zombies, ...villagers],
+    entities: [player, ...zombies, ...villagers, ...corpses],
     arrows: archery.arrowsInFlight(),
     fire: burning.all(),
     marker: archery.getMarker(),
@@ -474,7 +495,7 @@ function render() {
     `chunk ${cx},${cy}  room ${playerRoom}${playerRoom > 0 ? (map.roomSealed(map.getRoom(playerRoom)) ? " sealed" : " open") : ""}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `ground ${groundLine()}\n` +
-    `villagers ${villagers.length}  zombies ${zombies.length}  near ${zombies.filter((z) => Math.abs(z.gx - player.gx) <= ACTIVE_TILES && Math.abs(z.gy - player.gy) <= ACTIVE_TILES).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
+    `villagers ${villagers.length}  zombies ${zombies.length}  corpses ${corpses.length}  chunks ${map.chunkCount()}  near ${zombies.filter((z) => Math.abs(z.gx - player.gx) <= ACTIVE_TILES && Math.abs(z.gy - player.gy) <= ACTIVE_TILES).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
     `Tab: bag   C: character   1-4: belt   N: build   X: remove   Z: zoom   right-click: actions   Esc: close or pause   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
 }
 
@@ -767,7 +788,7 @@ async function boot() {
       refreshFigure();
       zombies = info.zombies.map(([x, y]) => createZombie(x, y));
       villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i }));
-      interact.setCharacters(() => [...villagers, ...zombies]);
+      interact.setCharacters(() => [...villagers, ...zombies, ...corpses]);
       archery.setTargets(() => zombies); // what an arrow can hit when it lands (docs/20)
       camera.snapTo(player.gx, player.gy);
       camera.applyOrigin(V.w, V.h);
@@ -901,6 +922,7 @@ async function boot() {
     render: { night },
     get player() { return player; },
     get zombies() { return zombies; },
+    get corpses() { return corpses; },
     get villagers() { return villagers; },
     // The bow's arc, fired from the console (docs/20, step 1). `dir` is a grid
     // direction [dx, dy], `distance` the full-draw distance in tiles, `c` the draw (0 to 1).

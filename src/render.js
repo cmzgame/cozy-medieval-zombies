@@ -57,6 +57,16 @@ let areaTiles = 0;
 let lightArea = null;
 let ambientArea = null;
 let fogArea = null;
+// What each area texture was composed for, so a frame in which nothing moved
+// uploads nothing (docs/23a, B6). The static light (the chunk maps) is kept
+// apart from what changes per frame (flicker, the carried light).
+let staticArea = null;
+let staticKey = "";
+let ambientKey = "";
+let fogKey = "";
+let fogVisible = null;
+let lightEpoch = -1;
+let wasDynamic = false; // the last frame had a carried light or a flicker in it: one more composition clears it
 
 function ensureArea(w, h) {
   // Tiles from the camera to the view's corner, plus tall sprites and margin.
@@ -66,6 +76,10 @@ function ensureArea(w, h) {
   areaChunks = need;
   areaTiles = need * map.CHUNK;
   lightArea = new Uint8Array(areaTiles * light.RES * areaTiles * light.RES);
+  staticArea = new Uint8Array(lightArea.length);
+  staticKey = "";
+  ambientKey = "";
+  fogKey = "";
   ambientArea = new Uint8Array(areaTiles * areaTiles);
   fogArea = new Uint8Array(areaTiles * areaTiles);
 }
@@ -1044,68 +1058,120 @@ function buildArea(tiles, visible, drawAll, camGx, camGy) {
   const oy = c0y * map.CHUNK;
   const RES = light.RES;
   const LW = areaTiles * RES;
+  const N = map.CHUNK * RES + 2;
   const now = performance.now() / 1000;
-  lightArea.fill(0);
+  const epoch = gl.getAreaEpoch();
+  // The chunk maps, composed once per (camera chunk, world, sources): the static light.
+  const sKey = `${c0x},${c0y}|${map.worldVersion}|${light.getSourcesVersion()}|${areaChunks}`;
+  const entries = new Array(areaChunks * areaChunks);
+  let anyFlicker = false;
   for (let cy = 0; cy < areaChunks; cy++) {
     for (let cx = 0; cx < areaChunks; cx++) {
       const entry = light.chunkLight(c0x + cx, c0y + cy);
-      if (!entry.any) continue;
-      const N = map.CHUNK * RES + 2;
-      const bx = cx * map.CHUNK * RES;
-      const by = cy * map.CHUNK * RES;
-      // Flicker: each flickering source's own layer is taken back by the
-      // share its weight leaves out this frame.
-      const dims = entry.layers.map((l) => ({ own: l.contrib, loss: 1 - light.flickerWeight(l.flicker, l.seed, now) }));
-      for (let j = 1; j <= map.CHUNK * RES; j++) {
-        const row = (by + j - 1) * LW + bx;
-        const src = j * N;
-        for (let i = 1; i <= map.CHUNK * RES; i++) {
-          let v = entry.contrib[src + i];
-          for (const dl of dims) v -= dl.own[src + i] * dl.loss;
-          lightArea[row + i - 1] = Math.round(Math.max(0, v) * 255);
+      entries[cy * areaChunks + cx] = entry;
+      if (entry.any && entry.layers.length) anyFlicker = true;
+    }
+  }
+  const staticChanged = sKey !== staticKey;
+  if (staticChanged) {
+    staticKey = sKey;
+    staticArea.fill(0);
+    for (let cy = 0; cy < areaChunks; cy++) {
+      for (let cx = 0; cx < areaChunks; cx++) {
+        const entry = entries[cy * areaChunks + cx];
+        if (!entry.any) continue;
+        const bx = cx * map.CHUNK * RES;
+        const by = cy * map.CHUNK * RES;
+        for (let j = 1; j <= map.CHUNK * RES; j++) {
+          const row = (by + j - 1) * LW + bx;
+          const src = j * N;
+          for (let i = 1; i <= map.CHUNK * RES; i++) staticArea[row + i - 1] = Math.round(Math.max(0, entry.contrib[src + i]) * 255);
         }
       }
     }
   }
-  // The torch in the hand, and the burning (fire.js), evaluated here rather than in any map.
+  // Per frame only when something moves: a flame's flicker, the torch in the hand, the burning;
+  // and once more after it stops, so the last pool does not stay baked in (ground check 6 caught it).
   const carriers = light.carriers();
-  for (let ci = 0; ci < carriers.length; ci++) {
-    const carrier = carriers[ci];
-    const r = carrier.radius;
-    const cw = light.flickerWeight(carrier.flicker, 1.3 + ci * 1.7, now);
-    const i0 = Math.max(0, Math.floor((carrier.gx - r - ox + 0.25) * RES));
-    const i1 = Math.min(LW - 1, Math.ceil((carrier.gx + r - ox + 0.25) * RES));
-    const j0 = Math.max(0, Math.floor((carrier.gy - r - oy + 0.25) * RES));
-    const j1 = Math.min(LW - 1, Math.ceil((carrier.gy + r - oy + 0.25) * RES));
-    for (let j = j0; j <= j1; j++) {
-      const gy = oy - 0.25 + j / RES;
-      for (let i = i0; i <= i1; i++) {
-        const gx = ox - 0.25 + i / RES;
-        const d = Math.hypot(gx - carrier.gx, gy - carrier.gy);
-        if (d >= r) continue;
-        const v = (d < 0.6 ? 1 : Math.min(1, CORE_GAIN * (1 - d / r)) * light.lightPath(carrier.gx, carrier.gy, gx, gy)) * cw;
-        if (v <= 0) continue;
-        const k = j * LW + i;
-        lightArea[k] = Math.min(255, lightArea[k] + Math.round(v * 255));
+  const dynamic = anyFlicker || carriers.length > 0;
+  if (staticChanged || dynamic || wasDynamic || lightEpoch !== epoch) {
+    lightArea.set(staticArea);
+    if (anyFlicker) {
+      for (let cy = 0; cy < areaChunks; cy++) {
+        for (let cx = 0; cx < areaChunks; cx++) {
+          const entry = entries[cy * areaChunks + cx];
+          if (!entry.any || !entry.layers.length) continue;
+          const bx = cx * map.CHUNK * RES;
+          const by = cy * map.CHUNK * RES;
+          // Flicker: each flickering source's own layer is taken back by the
+          // share its weight leaves out this frame.
+          const dims = entry.layers.map((l) => ({ own: l.contrib, loss: 1 - light.flickerWeight(l.flicker, l.seed, now) }));
+          for (let j = 1; j <= map.CHUNK * RES; j++) {
+            const row = (by + j - 1) * LW + bx;
+            const src = j * N;
+            for (let i = 1; i <= map.CHUNK * RES; i++) {
+              let v = entry.contrib[src + i];
+              for (const dl of dims) v -= dl.own[src + i] * dl.loss;
+              lightArea[row + i - 1] = Math.round(Math.max(0, v) * 255);
+            }
+          }
+        }
       }
     }
-  }
-  for (let ty = 0; ty < areaTiles; ty++) {
-    for (let tx = 0; tx < areaTiles; tx++) {
-      ambientArea[ty * areaTiles + tx] = Math.round(light.ambientAt(ox + tx, oy + ty) * 255);
+    // The torch in the hand, and the burning (fire.js), evaluated here rather than in any map.
+    for (let ci = 0; ci < carriers.length; ci++) {
+      const carrier = carriers[ci];
+      const r = carrier.radius;
+      const cw = light.flickerWeight(carrier.flicker, 1.3 + ci * 1.7, now);
+      const i0 = Math.max(0, Math.floor((carrier.gx - r - ox + 0.25) * RES));
+      const i1 = Math.min(LW - 1, Math.ceil((carrier.gx + r - ox + 0.25) * RES));
+      const j0 = Math.max(0, Math.floor((carrier.gy - r - oy + 0.25) * RES));
+      const j1 = Math.min(LW - 1, Math.ceil((carrier.gy + r - oy + 0.25) * RES));
+      for (let j = j0; j <= j1; j++) {
+        const gy = oy - 0.25 + j / RES;
+        for (let i = i0; i <= i1; i++) {
+          const gx = ox - 0.25 + i / RES;
+          const d = Math.hypot(gx - carrier.gx, gy - carrier.gy);
+          if (d >= r) continue;
+          const v = (d < 0.6 ? 1 : Math.min(1, CORE_GAIN * (1 - d / r)) * light.lightPath(carrier.gx, carrier.gy, gx, gy)) * cw;
+          if (v <= 0) continue;
+          const k = j * LW + i;
+          lightArea[k] = Math.min(255, lightArea[k] + Math.round(v * 255));
+        }
+      }
     }
+    gl.uploadLight(lightArea, LW, LW);
   }
-  fogArea.fill(drawAll ? 255 : 0);
-  if (!drawAll) {
-    for (const [tx, ty] of tiles) {
-      if (!visible.has(tileKey(tx, ty))) continue;
-      const ax = tx - ox;
-      const ay = ty - oy;
-      if (ax < 0 || ay < 0 || ax >= areaTiles || ay >= areaTiles) continue;
-      fogArea[ay * areaTiles + ax] = 255;
+  // Ambient: the rooms (the world), the fires (the sources), the clock, quantised as the texture is.
+  const aKey = `${c0x},${c0y}|${map.worldVersion}|${light.getSourcesVersion()}|${Math.round(light.outdoorAmbient() * 255)}|${Math.round(clock.nightFactor() * 255)}|${areaChunks}|${epoch}`;
+  if (aKey !== ambientKey) {
+    ambientKey = aKey;
+    for (let ty = 0; ty < areaTiles; ty++) {
+      for (let tx = 0; tx < areaTiles; tx++) {
+        ambientArea[ty * areaTiles + tx] = Math.round(light.ambientAt(ox + tx, oy + ty) * 255);
+      }
     }
+    gl.uploadAmbient(ambientArea, areaTiles, areaTiles);
   }
-  gl.uploadArea(lightArea, LW, LW, ambientArea, fogArea, areaTiles, areaTiles);
+  // Fog: the visible set is a new Set each time sight is recomputed (main.js).
+  const fKey = `${c0x},${c0y}|${drawAll}|${areaChunks}|${epoch}`;
+  if (fKey !== fogKey || visible !== fogVisible) {
+    fogKey = fKey;
+    fogVisible = visible;
+    fogArea.fill(drawAll ? 255 : 0);
+    if (!drawAll) {
+      for (const [tx, ty] of tiles) {
+        if (!visible.has(tileKey(tx, ty))) continue;
+        const ax = tx - ox;
+        const ay = ty - oy;
+        if (ax < 0 || ay < 0 || ax >= areaTiles || ay >= areaTiles) continue;
+        fogArea[ay * areaTiles + ax] = 255;
+      }
+    }
+    gl.uploadFog(fogArea, areaTiles, areaTiles);
+  }
+  lightEpoch = epoch;
+  wasDynamic = dynamic;
   return [ox, oy];
 }
 

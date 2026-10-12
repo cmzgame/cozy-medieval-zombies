@@ -42,6 +42,9 @@ const groundListeners = [];
 
 export function reset({ floor = "floor_grass", authored = null, wildRule = null, mapBounds = null } = {}) {
   chunks.clear();
+  sleepers.clear();
+  woken.length = 0;
+  nextRoomId = 1;
   lastChunk = null;
   rooms.clear();
   source = authored;
@@ -298,6 +301,7 @@ export function itemsAt(x, y, layer = 0) {
 }
 
 export function dropItem(x, y, entry, layer = 0) {
+  markDirty(x, y);
   const t = tileAt(x, y, layer);
   if (!t.items) t.items = [];
   // The entry itself goes on the floor, less its grid position, so a bag
@@ -311,6 +315,7 @@ export function dropItem(x, y, entry, layer = 0) {
 }
 
 export function takeItem(x, y, entry, layer = 0) {
+  markDirty(x, y);
   const t = tileAt(x, y, layer);
   if (!t.items) return false;
   const i = t.items.indexOf(entry);
@@ -335,7 +340,7 @@ export function placeProp(prop, tx, ty) {
   for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) prop.tiles.push([tx + dx, ty + dy]);
   for (const [x, y] of prop.tiles) tileAt(x, y).prop = prop;
   if (prop.fire) fireProps.add(prop);
-  touch();
+  touch(tx, ty);
   groundChanged(prop.tiles, prop);
 }
 
@@ -345,7 +350,7 @@ export function removeProp(prop) {
     if (t.prop === prop) t.prop = null;
   }
   fireProps.delete(prop);
-  touch();
+  touch(prop.tile[0], prop.tile[1]);
   groundChanged(prop.tiles, prop);
 }
 
@@ -364,7 +369,7 @@ export function setFloor(x, y, id, layer = 0) {
   const t = tileAt(x, y, layer);
   if (t.floor === id) return;
   t.floor = id;
-  touch();
+  touch(x, y);
   groundChanged([[x, y]]);
 }
 
@@ -426,9 +431,10 @@ export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT) {
   if (tileAt(tx, ty)[edge]) return false;
   const wall = createWall(kind, sprite);
   wall.built = true; // made by the player: the removal tool may take it down (docs/13)
+  wall.at = [tx, ty];
   tileAt(tx, ty)[edge] = wall;
-  touch();
-  markRoomsDirty();
+  touch(tx, ty);
+  rebuildRoomsAround(tx, ty, edge);
   return true;
 }
 
@@ -440,8 +446,8 @@ export function destroyWall(tx, ty, edge) {
   if (!wall) return false;
   for (const b of [...bracketSet]) if (b.wall === wall) bracketSet.delete(b);
   t[edge] = null;
-  touch();
-  markRoomsDirty();
+  touch(tx, ty);
+  rebuildRoomsAround(tx, ty, edge);
   return true;
 }
 
@@ -476,7 +482,7 @@ export function addBoard(wall, side) {
   const b = boardsOn(wall, side);
   if (b.length >= BOARDS_PER_SIDE) return false;
   b.push(BOARD_HP);
-  touch();
+  touchWall(wall);
   return true;
 }
 
@@ -485,7 +491,7 @@ export function pullBoard(wall, side) {
   const b = boardsOn(wall, side);
   if (!b.length) return false;
   b.pop();
-  touch();
+  touchWall(wall);
   return true;
 }
 
@@ -518,7 +524,7 @@ export function damageOpening(wall, side, amount) {
       broke = "board";
     }
   }
-  if (broke) touch();
+  if (broke) touchWall(wall);
   return broke;
 }
 
@@ -538,6 +544,7 @@ export function climbable(wall) {
 // Is a room sealed (docs/09): every door shut and whole or boarded, every
 // window shuttered and whole or boarded.
 export function roomSealed(room) {
+  if (!room) return false; // a room id from a step before a refind
   for (const op of room.openings) {
     const w = tileAt(op.tx, op.ty)[op.edge];
     if (!w) continue;
@@ -575,10 +582,95 @@ export function breachTarget(room, gx, gy) {
   return best;
 }
 
-// Bumped whenever a wall changes state, so sight can be recomputed.
+// Bumped whenever the world changes, so sight is recomputed. With a tile given,
+// the light's per-chunk version is bumped only for that chunk and its eight
+// neighbours (a wall's shadow reaches no further than a source's radius, under
+// a chunk) and the chunk is marked dirty, so it is never evicted (docs/23a, B2,
+// B4); with none, every loaded chunk's version is bumped.
 export let worldVersion = 0;
-export function touch() {
+export function touch(x = null, y = null) {
   worldVersion++;
+  if (x === null) {
+    for (const c of chunks.values()) c.lightVersion++;
+    return;
+  }
+  const [cx, cy] = chunkCoord(Math.round(x), Math.round(y));
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const c = getChunk(cx + dx, cy + dy, false);
+      if (c) c.lightVersion++;
+    }
+  }
+  markDirty(x, y);
+}
+
+// A change on a wall names the wall's tile when the wall knows it.
+function touchWall(wall) {
+  if (wall.at) touch(wall.at[0], wall.at[1]);
+  else touch();
+}
+
+// A chunk changed by play (a floor, a prop, an item, a wall): kept in memory for good.
+export function markDirty(x, y) {
+  const [cx, cy] = chunkCoord(Math.round(x), Math.round(y));
+  const c = getChunk(cx, cy, false);
+  if (c) c.dirty = true;
+}
+
+export function chunkCount() {
+  return chunks.size;
+}
+
+// ---- eviction, and the dead that sleep with their chunk (docs/23a, B1, B2: a first slice of 03's records) ----
+
+const sleepers = new Map(); // chunk key -> the characters that stood in it when it was dropped (an empty list: grown before, its dead gone elsewhere)
+const woken = []; // keys of chunks grown again with sleepers on record
+const evictListeners = [];
+
+// Called with (key, cx, cy) for every chunk dropped; the light cache forgets it.
+export function onEvict(fn) {
+  evictListeners.push(fn);
+}
+
+// Drop every wild chunk that play has not changed and that lies more than
+// `radius` chunks (Chebyshev) from (gx, gy), unless `keep(cx, cy)` says not to.
+// Returns [[key, cx, cy], ...]; the caller puts the characters standing in them
+// to sleep (sleep). The wild is deterministic by hash, so a dropped chunk grows
+// back the same chunk, and its dead come back from their record.
+export function evictFar(gx, gy, radius, keep = () => false) {
+  const [pcx, pcy] = chunkCoord(Math.round(gx), Math.round(gy));
+  const out = [];
+  for (const [k, c] of chunks) {
+    if (!c.wild || c.dirty || c.layer !== 0) continue;
+    if (Math.max(Math.abs(c.cx - pcx), Math.abs(c.cy - pcy)) <= radius) continue;
+    if (keep(c.cx, c.cy)) continue;
+    chunks.delete(k);
+    out.push([k, c.cx, c.cy]);
+    for (const fn of evictListeners) fn(k, c.cx, c.cy);
+  }
+  if (out.length) lastChunk = null;
+  return out;
+}
+
+export function sleep(key, list) {
+  sleepers.set(key, list);
+}
+
+// How many characters sleep on dropped chunks' records (for the checks).
+export function sleepingCount() {
+  let n = 0;
+  for (const list of sleepers.values()) n += list.length;
+  return n;
+}
+
+// The characters whose chunks grew back since the last call, to rejoin the world.
+export function takeWoken() {
+  const out = [];
+  for (const k of woken.splice(0)) {
+    out.push(...(sleepers.get(k) || []));
+    sleepers.delete(k);
+  }
+  return out;
 }
 
 // Numeric keys: string keys allocated on every tile lookup were a measurable
@@ -619,17 +711,21 @@ export function getChunk(cx, cy, create = true, layer = 0) {
         }
       }
       if (t.n || t.w) hasWalls = true;
+      if (t.n) t.n.at = [x, y]; // so a change on the wall can name its tile (touchWall)
+      if (t.w) t.w.at = [x, y];
       tiles[ly * CHUNK + lx] = t;
     }
   }
-  c = { cx, cy, layer, tiles, floorCache: null, floorDirty: true };
+  // `wild` and `dirty` decide eviction (docs/23a, B2); `lightVersion` is the light cache's key (B4).
+  c = { cx, cy, layer, tiles, floorCache: null, floorDirty: true, wild: anyWild, dirty: false, lightVersion: 0 };
   chunks.set(k, c);
   lastChunk = c;
   // Open field cannot change any room, so only a chunk with walls (or one whose
   // edge walls a neighbouring room may touch) forces the rooms to be refound.
   if (hasWalls) roomsDirty = true;
   // A wild chunk brings a few of the dead with it, on free tiles.
-  if (anyWild && wild && wild.zombiesPerChunk) {
+  if (sleepers.has(k)) woken.push(k); // grown before: its dead sleep on record, not rolled again (B2)
+  else if (anyWild && wild && wild.zombiesPerChunk) {
     const [lo, hi] = wild.zombiesPerChunk;
     const n = lo + Math.floor(hash2(cx, cy, (wild.seed ?? 1) + 3) * (hi - lo + 1));
     for (let i = 0; i < n; i++) {
@@ -956,6 +1052,67 @@ const UNVISITED = -1;
 const OUTDOORS = -2;
 const STEPS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
+let nextRoomId = 1; // never reused in a session, so a local refind cannot collide with a room it did not touch
+
+// Flood-fill one region from (x0, y0) as room `id` over tiles whose room
+// `fillable` accepts, stopping at any wall. Outdoors is a fill that reaches an
+// unloaded tile or grows past ROOM_MAX; with `stopOutdoors` the fill ends
+// there (a local refind throws the region away), without it the fill goes on
+// to mark the whole outdoors in one pass (a full rebuild, which must not start
+// a fill from every grass tile). Returns { region, outdoors, openings }.
+function fillRegion(x0, y0, id, fillable, stopOutdoors = false) {
+  const region = [];
+  const stack = [x0, y0];
+  tileAt(x0, y0).room = id;
+  let outdoors = false;
+  // The doors and windows the fill touched, so light can ask how much
+  // daylight a room's openings admit (docs/07-lighting.md).
+  const openings = [];
+  const seenEdges = new Set();
+  while (stack.length) {
+    if (outdoors && stopOutdoors) {
+      // Stop here, but every tile marked `id` must be in the region the caller resets:
+      // the ones still on the stack were marked when pushed.
+      while (stack.length) {
+        const y = stack.pop();
+        const x = stack.pop();
+        region.push(x, y);
+      }
+      break;
+    }
+    const y = stack.pop();
+    const x = stack.pop();
+    region.push(x, y);
+    if (region.length > ROOM_MAX * 2) outdoors = true;
+    for (const [dx, dy] of STEPS4) {
+      const nx = x + dx;
+      const ny = y + dy;
+      const nt = peekTile(nx, ny);
+      if (!nt) {
+        outdoors = true;
+        continue;
+      }
+      const wall = wallBetween(x, y, nx, ny);
+      if (wall) {
+        // any wall bounds a room
+        if (wall.kind !== "wall" && !outdoors) {
+          const [ex, ey, edge] = edgeBetween(x, y, nx, ny);
+          const k = `${ex},${ey},${edge}`;
+          if (!seenEdges.has(k)) {
+            seenEdges.add(k);
+            openings.push({ tx: ex, ty: ey, edge });
+          }
+        }
+        continue;
+      }
+      if (!fillable(nt.room)) continue;
+      nt.room = id;
+      stack.push(nx, ny);
+    }
+  }
+  return { region, outdoors, openings };
+}
+
 export function rebuildRooms() {
   roomsDirty = false;
   rooms.clear();
@@ -964,62 +1121,60 @@ export function rebuildRooms() {
   // tile started a new fill over the whole outdoors: 1.6 s for 16 chunks, and
   // the freeze Michael saw when walking into new ground (2026-10-09).
   for (const c of chunks.values()) for (const t of c.tiles) t.room = UNVISITED;
-  let nextId = 1;
   for (const c of chunks.values()) {
     for (let i = 0; i < c.tiles.length; i++) {
       const t0 = c.tiles[i];
       if (t0.room !== UNVISITED) continue;
       const x0 = c.cx * CHUNK + (i % CHUNK);
       const y0 = c.cy * CHUNK + Math.floor(i / CHUNK);
-      const id = nextId;
-      const region = [];
-      const stack = [x0, y0];
-      t0.room = id;
-      let outdoors = false;
-      // The doors and windows the fill touched, so light can ask how much
-      // daylight a room's openings admit (docs/07-lighting.md).
-      const openings = [];
-      const seenEdges = new Set();
-      while (stack.length) {
-        const y = stack.pop();
-        const x = stack.pop();
-        region.push(x, y);
-        if (region.length > ROOM_MAX * 2) outdoors = true;
-        for (const [dx, dy] of STEPS4) {
-          const nx = x + dx;
-          const ny = y + dy;
-          const nt = peekTile(nx, ny);
-          if (!nt) {
-            outdoors = true;
-            continue;
-          }
-          const wall = wallBetween(x, y, nx, ny);
-          if (wall) {
-            // any wall bounds a room
-            if (wall.kind !== "wall" && !outdoors) {
-              const [ex, ey, edge] = edgeBetween(x, y, nx, ny);
-              const k = `${ex},${ey},${edge}`;
-              if (!seenEdges.has(k)) {
-                seenEdges.add(k);
-                openings.push({ tx: ex, ty: ey, edge });
-              }
-            }
-            continue;
-          }
-          if (nt.room !== UNVISITED) continue;
-          nt.room = id;
-          stack.push(nx, ny);
-        }
-      }
+      const id = nextRoomId;
+      const { region, outdoors, openings } = fillRegion(x0, y0, id, (r) => r === UNVISITED);
       if (outdoors) {
         for (let j = 0; j < region.length; j += 2) peekTile(region[j], region[j + 1]).room = OUTDOORS;
       } else {
         rooms.set(id, { id, size: region.length / 2, openings });
-        nextId++;
+        nextRoomId++;
       }
     }
   }
   for (const c of chunks.values()) for (const t of c.tiles) if (t.room < 0) t.room = 0;
+}
+
+// The rooms a wall change on one edge can touch, refound alone (docs/23a, B3):
+// the edge's two tiles name at most two rooms; those rooms' tiles are reset
+// and refilled from each tile. Outdoors (room 0) is fillable here, since a
+// room opened to the yard must become the yard, and a fill that crosses open
+// ground reaches ROOM_MAX and is outdoors as before; a yard newly walled in is
+// a bounded fill from a tile of room 0, and becomes a room. A full rebuild
+// scanned every loaded chunk (7 to 10 ms) on every wall built.
+export function rebuildRoomsAround(tx, ty, edge) {
+  if (roomsDirty) {
+    rebuildRooms();
+    return;
+  }
+  const seeds = [[tx, ty], edge === "n" ? [tx, ty - 1] : [tx - 1, ty]];
+  const ids = new Set();
+  for (const [x, y] of seeds) {
+    const t = peekTile(x, y);
+    if (t && t.room > 0) ids.add(t.room);
+  }
+  if (ids.size) {
+    for (const c of chunks.values()) for (const t of c.tiles) if (ids.has(t.room)) t.room = UNVISITED;
+    for (const id of ids) rooms.delete(id);
+  }
+  for (const [x, y] of seeds) {
+    const t = peekTile(x, y);
+    if (!t || t.room > 0) continue; // unloaded, or already refilled from the other seed
+    const id = nextRoomId;
+    const { region, outdoors, openings } = fillRegion(x, y, id, (r) => r === UNVISITED || r === 0, true);
+    if (outdoors) {
+      for (let j = 0; j < region.length; j += 2) peekTile(region[j], region[j + 1]).room = 0;
+    } else {
+      rooms.set(id, { id, size: region.length / 2, openings });
+      nextRoomId++;
+    }
+  }
+  for (const c of chunks.values()) for (const t of c.tiles) if (t.room === UNVISITED) t.room = 0;
 }
 
 export function roomsIfDirty() {
