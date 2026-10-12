@@ -193,12 +193,19 @@ export class Frame {
   // than `minFill` fill pixels left of it (a far arm behind the torso, a sliver
   // beside the hip) and every pixel it still owns is cleared (Michael,
   // 2026-10-12: not enough to read as an arm, too much to go unnoticed).
-  cullPart(part, minFill) {
-    let n = 0;
-    for (let i = 0; i < FW * FH; i++) if (this.part[i] === part && this.kind[i] === 2) n++;
-    if (n === 0 || n >= minFill) return false;
-    for (let i = 0; i < FW * FH; i++) if (this.part[i] === part) this.set(i, [0, 0, 0], 0, 0);
-    return true;
+  // With `splitY`, the rows above and below it are judged apart: a far arm's
+  // shoulder may be a sliver while its hand shows whole (Michael, 2026-10-12).
+  cullPart(part, minFill, splitY = null, minUpper = minFill) {
+    const bands = splitY === null ? [[0, FH, minFill]] : [[0, Math.round(splitY), minUpper], [Math.round(splitY), FH, minFill]];
+    let any = false;
+    for (const [y0, y1, least] of bands) {
+      let n = 0;
+      for (let y = y0; y < y1; y++) for (let x = 0; x < FW; x++) { const i = y * FW + x; if (this.part[i] === part && this.kind[i] === 2) n++; }
+      if (n === 0 || n >= least) continue;
+      for (let y = y0; y < y1; y++) for (let x = 0; x < FW; x++) { const i = y * FW + x; if (this.part[i] === part) this.set(i, [0, 0, 0], 0, 0); }
+      any = true;
+    }
+    return any;
   }
 
   // No double outline: where a vertical edge of a part `isMine` accepts (an arm)

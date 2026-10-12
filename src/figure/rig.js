@@ -117,8 +117,8 @@ export const BODY = {
   headRy: 9.5,
   shoulderL: 8, // lateral offsets; the shoulders stay inside the head's width
   hipL: 7,
-  torsoD: 4, // forward half-thickness at the shoulders
-  hipD: 3,
+  torsoD: 3, // forward half-thickness at the shoulders: the arm's width, so no neck block shows wider than the arm from the side (4 until 2026-10-12)
+  hipD: 3.4, // a hair over the legs' radius, so the legs start inside the hips and never jut past them (3 until 2026-10-12)
   legL: 3.5,
   legR: 3.3, // limb radii
   armR: 2.9,
