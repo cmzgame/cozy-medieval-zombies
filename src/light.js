@@ -39,6 +39,7 @@ function clamp01(v) {
 let litRooms = new Set(); // room ids with a lit hearth, refreshed each step
 let curSources = []; // lit static sources, refreshed each step
 let carrier = null; // { gx, gy, radius }: the torch in the player's hand, or null
+let burners = []; // burning characters as lights (fire.js), evaluated like the carrier
 
 // Once per logic step, after the rooms are current: lit rooms, then fires
 // and mounted torches, then the portals, which need the ambients.
@@ -142,6 +143,18 @@ export function setCarrier(c) {
 
 export function carried() {
   return carrier;
+}
+
+// The burning bodies (fire.js): moving lights evaluated at query time like the
+// torch, so nothing re-bakes as they walk. Not flames the dead notice: the
+// fire is a visual test (docs/05).
+export function setBurners(list) {
+  burners = list;
+}
+
+// Every light evaluated at query time: the torch in hand, then the burning.
+export function carriers() {
+  return carrier ? [carrier, ...burners] : burners;
 }
 
 // Every lit flame, static and carried, for the dead to notice at night.
@@ -379,11 +392,12 @@ export function lightAt(gx, gy, layer = 0) {
   let l = ambientAt(Math.round(gx), Math.round(gy), layer);
   if (l >= 1) return 1;
   l += staticContribAt(gx, gy, layer);
-  if (carrier && l < 1) {
-    const d = Math.hypot(gx - carrier.gx, gy - carrier.gy);
-    // Holding a torch makes you a fully visible point in the dark.
+  for (const c of carriers()) {
+    if (l >= 1) break;
+    const d = Math.hypot(gx - c.gx, gy - c.gy);
+    // Holding a torch (or burning) makes you a fully visible point in the dark.
     if (d < 0.6) l += 1;
-    else if (d < carrier.radius) l += Math.min(1, CORE_GAIN * (1 - d / carrier.radius)) * lightPath(carrier.gx, carrier.gy, gx, gy);
+    else if (d < c.radius) l += Math.min(1, CORE_GAIN * (1 - d / c.radius)) * lightPath(c.gx, c.gy, gx, gy);
   }
   return Math.min(1, l);
 }

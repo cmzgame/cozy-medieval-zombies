@@ -41,6 +41,8 @@ export function createCharacter(kind, gx, gy, { id = null, name = null, speed = 
     lootTable: null, // the table the pockets roll from on first search
     loot: null, // a body's grid, made on first search: what is still on it (docs/19)
     lodged: {}, // what hit it and stayed in it, by item id (arrows, a spear): it comes out in its loot (docs/20)
+    burning: false, // on fire: a visual only, set from its menu (fire.js, docs/05)
+    burnAcc: 0, // flames owed this step
     corpse: false, // the fall is over and the body is one frame (dressCorpse)
     corpseKey: "", // which worn garments the corpse is drawn in
     searched: false,

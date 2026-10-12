@@ -860,6 +860,50 @@ function besideWalls(gx, gy) {
   return s;
 }
 
+// A burning figure's flames, embers, and smoke (fire.js): each a small sprite at
+// a height above a world point, unlit (fire is its own light) and unfogged,
+// sorted just after the figure. The flames ride the figure; the rest stay put.
+function fireDrawables(particles, visible, out) {
+  if (!particles || !particles.length) return;
+  for (const p of particles) {
+    const gx = p.ch ? p.ch.gx : p.gx;
+    const gy = p.ch ? p.ch.gy : p.gy;
+    if (!visible.has(tileKey(Math.round(gx), Math.round(gy)))) continue;
+    const s = iso.toScreen(gx, gy);
+    const x = Math.round(s.x + p.ox);
+    const y = Math.round(s.y - p.z);
+    const u = p.t / p.life;
+    let name;
+    let color;
+    if (p.kind === "flame") {
+      name = `flame_${Math.min(3, Math.floor(u * 4))}`;
+    } else if (p.kind === "ember") {
+      name = "ember";
+      color = [1, 1, 1, u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4];
+    } else {
+      name = u < 0.5 ? "smoke_0" : "smoke_1";
+      color = [1, 1, 1, 0.8 * (1 - u)];
+    }
+    const world = [gx, gy];
+    out.push({
+      key: besideWalls(gx, gy) * 1000 + 2.5,
+      kind: "fire",
+      emit() {
+        frameQuad(getSheet("burn"), name, x, y, { world, heights: 0, color, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
+      },
+    });
+  }
+}
+
+// The wash on a burning figure: an orange pulse, multiplied in (fire.js).
+function burnTint() {
+  const t = performance.now() / 1000;
+  const a = Math.sin(t * 11) * 0.5 + 0.5;
+  const b = Math.sin(t * 17.3 + 1.1) * 0.5 + 0.5;
+  const k = 0.35 + 0.65 * a * b;
+  return [1, 0.72 + 0.16 * k, 0.4 + 0.2 * k, 1];
+}
+
 function entityDrawables(entities, visible, out, drawAll) {
   for (const e of entities) {
     const vis = e.kind === "player" || drawAll || visible.has(tileKey(Math.round(e.gx), Math.round(e.gy)));
@@ -917,7 +961,7 @@ function entityDrawables(entities, visible, out, drawAll) {
           if (h.tip) frameQuad(getSheet("flame"), `flame_${flameFrame(1)}`, h.x + h.tip[0], h.y + h.tip[1] - 2, { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
         };
         for (const h of held) if (!h.near) drawHeld(h);
-        frameQuad(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING }, r.flip);
+        frameQuad(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0, color: e.burning ? burnTint() : undefined, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING }, r.flip);
         for (const h of held) if (h.near) drawHeld(h);
         if (carried) {
           // Each footprint slice at its offset from the anchor, lifted over the head.
@@ -1004,11 +1048,12 @@ function buildArea(tiles, visible, drawAll, camGx, camGy) {
       }
     }
   }
-  // The torch in the hand, evaluated here rather than in any map.
-  const carrier = light.carried();
-  if (carrier) {
+  // The torch in the hand, and the burning (fire.js), evaluated here rather than in any map.
+  const carriers = light.carriers();
+  for (let ci = 0; ci < carriers.length; ci++) {
+    const carrier = carriers[ci];
     const r = carrier.radius;
-    const cw = light.flickerWeight(carrier.flicker, 1.3, now);
+    const cw = light.flickerWeight(carrier.flicker, 1.3 + ci * 1.7, now);
     const i0 = Math.max(0, Math.floor((carrier.gx - r - ox + 0.25) * RES));
     const i1 = Math.min(LW - 1, Math.ceil((carrier.gx + r - ox + 0.25) * RES));
     const j0 = Math.max(0, Math.floor((carrier.gy - r - oy + 0.25) * RES));
@@ -1068,7 +1113,7 @@ function emitGrid(tiles) {
   }
 }
 
-export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, marker = null }) {
+export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, fire = null, marker = null }) {
   ensureArea(w, h);
   if (lastLinear !== night.linear) {
     gl.setLightSampling(night.linear);
@@ -1087,6 +1132,7 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
   floorItemDrawables(tiles, visible, drawables);
   entityDrawables(entities, visible, drawables, drawAll);
   arrowDrawables(arrows, visible, drawables);
+  fireDrawables(fire, visible, drawables);
   drawables.sort((a, b) => a.key - b.key);
   computeOcclusion(drawables);
   const holes = [];

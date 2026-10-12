@@ -25,6 +25,7 @@ import { initPrompt, updatePrompt, showMessage, updateMessage } from "./ui/promp
 import { initZombieBars, updateZombieBars } from "./ui/zombie-bars.js";
 import { initSpeech, updateSpeech } from "./ui/speech.js";
 import * as archery from "./archery.js";
+import * as burning from "./fire.js";
 import { say, refreshCorpse } from "./entities/character.js";
 import * as menu from "./ui/context-menu.js";
 import * as panel from "./ui/inventory-panel.js";
@@ -311,6 +312,7 @@ function update(dt) {
   if (input.wasPressed("Space")) combat.tryShove(player, zombies);
   combat.updateCombat(player, zombies, dt);
   archery.update(dt);
+  burning.update(dt, [player, ...zombies, ...villagers]); // the burning, a visual (docs/05)
   progress = interact.updateAction(player, dt);
   const others = [player, ...zombies, ...villagers];
   // The dead far from the player stand still: a stand-in for the records of
@@ -347,6 +349,7 @@ function update(dt) {
   const fire = held || belted;
   const strength = held ? (twoHanded ? TWO_TORCHES : 1) : BELT_LIGHT;
   light.setCarrier(fire ? { gx: player.gx, gy: player.gy, radius: fire.radius * strength, flicker: fire.flicker || null, strength } : null);
+  light.setBurners(burning.lights([player, ...zombies, ...villagers]));
   light.update();
   // Sight is cast from the player's tile centre and only recomputed when the
   // player or the camera enters a new tile. Casting every step at 60 Hz was the
@@ -397,6 +400,7 @@ function render() {
     visible,
     entities: [player, ...zombies, ...villagers],
     arrows: archery.arrowsInFlight(),
+    fire: burning.all(),
     marker: archery.getMarker(),
     playerRoom,
     player,
@@ -615,6 +619,7 @@ async function boot() {
   for (const k of placement.buildKinds()) await assets.loadSprite(k.sprite); // what can be built must be drawable
   assets.registerSheet("arrow", archery.generateArrow()); // the bow's arrow, flying and landed (docs/20)
   assets.registerSheet("spear", archery.generateSpear()); // the thrown spear
+  assets.registerSheet("burn", burning.generateSheet()); // flames, embers, and smoke on a burning figure (docs/05)
   // The held art, generated like everything else (docs/12). The dead's sheets are made as they are dressed (docs/19).
   for (const def of items.allItems()) if (def.held) assets.registerSheet(`held_${def.id}`, figure.generateHeld(def.held.shape, def.held.colours));
   info = map.loadMap(json);
@@ -708,6 +713,7 @@ async function boot() {
   screens.show("title");
 
   window.__game = {
+    burning, // the fire test (docs/05): burning.tunables, burning.all()
     iso, input, loop, assets, events, map, camera, ground, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette, combat, gl,
     render: { night },
     get player() { return player; },

@@ -536,6 +536,7 @@ export function actionsAt(sx, sy, player) {
   for (const b of map.bracketsNear(g.gx, g.gy, 0.8)) out.push(...holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player));
   const under = characterAt(sx, sy);
   if (under) out.push(...characterActions(under, player));
+  else if (playerAt(sx, sy, player)) out.push(...characterActions(player, player));
   if (!out.length && map.isWalkableTile(tx, ty)) out.push(walkAction([tx, ty]));
   return out;
 }
@@ -1029,11 +1030,14 @@ function searchBodyAction(c) {
   });
 }
 
-// What a right-click on a character offers, by kind.
+// What a right-click on a character offers, by kind. Everyone, the player
+// included, can be set on fire and put out: a visual test with no effect
+// (fire.js, docs/05 "Burning"), from anywhere on screen.
 function characterActions(c, player) {
-  if (c.kind === "zombie" && c.dead && c.corpse) return [searchBodyAction(c)];
+  const out = [];
+  if (c.kind === "zombie" && c.dead && c.corpse) out.push(searchBodyAction(c));
   if (c.kind === "villager") {
-    return [act({
+    out.push(act({
       kind: "poke",
       label: `Poke ${c.name}`,
       tiles: [[Math.round(c.gx), Math.round(c.gy)]],
@@ -1043,9 +1047,26 @@ function characterActions(c, player) {
         pokeVillager(c, player);
         return true;
       },
-    })];
+    }));
   }
-  return [];
+  out.push(act({
+    kind: "burn",
+    label: c.burning ? "Put out" : "Set on fire",
+    tiles: [[Math.round(c.gx), Math.round(c.gy)]],
+    range: Infinity,
+    simple: false,
+    perform() {
+      c.burning = !c.burning;
+      return true;
+    },
+  }));
+  return out;
+}
+
+// The player's own figure under the cursor (characterAt skips the player).
+function playerAt(sx, sy, player) {
+  const p = iso.toScreen(player.gx, player.gy);
+  return sx >= p.x - 12 && sx <= p.x + 12 && sy >= p.y - 64 && sy <= p.y + 2;
 }
 
 // A prop with a click animation (`clickAnim` on its sprite: the well's bucket)
