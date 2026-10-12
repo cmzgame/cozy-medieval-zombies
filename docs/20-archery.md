@@ -4,42 +4,48 @@
 
 ## The gold standard, in Michael's words
 
-Minecraft's bow. A clear draw and release; the best arcing in any game, not realistic but **the platonic bow**: high arcs possible, long distances, **highly accurate if the same motion is repeated**, so that with practice you can snipe across the map; a flight time fast enough to hit where you meant but **not hitscan**, so you sometimes lead; arcs **from nearly flat to high**; arrows that **stay where they land** and come back to you when you walk over them, and getting them back matters. Sounds later.
+Minecraft's bow. A clear draw and release; the best arcing in any game, not realistic but **the platonic bow**: high arcs possible, long distances, **highly accurate if the same motion is repeated**, so that with practice you can snipe across the map; a flight time fast enough to hit where you meant but **not hitscan**, so you sometimes lead; arcs **from nearly flat to high**; arrows that **stay where they land** and can be taken back (by E here, not by walking over them), and getting them back matters. Sounds later.
 
 ## The one idea that makes an arc work in isometric
 
-An arrow has two motions that never mix: **where it is on the ground**, and **how high it is**. On the ground it flies in a straight line from the archer toward the aim at a steady speed, exactly like a thing walking very fast. Its height follows a parabola. On screen the arrow is drawn at its ground point's screen position **lifted by its height in pixels**, and **a small shadow is drawn at the ground point**. The shadow is what makes the arc readable in 2D: the eye sees the arrow rise away from its shadow and come back down to meet it. Every isometric game with grenades does this; it costs one subtraction. The ground line is what collides with walls and bodies; the height decides whether it passes over them.
+**The outcome of a shot is fixed at the instant of release** (Michael's plan, 2026-10-12). The arrow is really **a point moving in a straight line along the ground**, at a steady speed, from the archer to a landing point. The arc is only visual: the arrow is drawn above that point, lifted by a height that follows a simple parabola (zero at launch, highest at the midpoint, zero at landing), and **a small shadow is drawn at the ground point**. The arrow and its shadow start together at the archer and meet again where the shot lands; the eye reads the arc from the gap between them. The ground line is what collides with walls and bodies; the height decides whether it passes over them. Nothing is hitscan: a target that moves away in time is safe.
 
-So "flat to high" is simply: **a short draw gives a low, quick, short arc; a full draw gives a long, high one.** Both the range and the apex grow with the draw, the apex faster, so a full-draw arrow clears a wall or a crowd mid-flight and comes down on what is behind.
+**Where the skill is:** in release timing and leading moving targets, not in judging an arc. That suits an isometric view. The cost, accepted: there are no deliberate long high lobs (the arc's height follows the distance, with no key to change it).
 
-## The control: hold to draw, the cursor is the direction, the draw is the distance
+## The control
 
-- **Hold the left button to draw**, release to shoot, as the swing is a click (`14`). Holding plays the draw over `drawTime` (0.6 s) and then **holds at full draw** for as long as the button is held; a release before a minimum draw (0.15) is a dry release, nothing flies.
-- **The cursor gives the direction only.** The arrow flies along the line from the archer through the cursor. **How far it flies is the draw**: a quarter draw lobs a few tiles, a full draw reaches `range` (22 tiles, about the wide view's width). The cursor's distance is deliberately ignored, as a bow ignores it: you aim, and you learn how much to draw. This is the thing that makes "the same motion hits the same spot" true and gives the practice something to learn. **Default; the alternative** (the cursor's distance sets the landing point and the draw only sets power) is point-and-click with a delay, and Michael can ask for it after playing this.
-- **An aim guide, as Swing targets is** (`14`): while drawing, a small marker on the ground at where the arrow would land, running outward as the draw grows, and the faint ground line to it. Setting `Aim guide: Off / Landing point / Full arc` (the full arc draws the parabola's shadow line and the arc as dots). **Default: Landing point** for the first play, so the draw-is-distance idea teaches itself; Michael turns it off once his hands know it, as Minecraft gives nothing.
-- **Facing and movement:** the figure turns to the aim while drawing; walking while drawn is allowed at half speed (`drawSpeed` 0.5; Minecraft slows you to a crawl), sprinting cancels the draw. No stamina for drawing in the first cut; a tunable `drawStamina` per second of hold is there for later.
+- **Hold the left button to draw**, release to shoot, as the swing is a click (`14`). Holding plays the draw over `drawTime`, then **holds at full draw** as long as the button is held. A release before a minimum draw (0.15) is a dry release: nothing flies.
+- **The cursor sets the direction and the full-draw landing point.** The ground point under the cursor is where a **full draw lands exactly**, up to a maximum range (`range`, 22 tiles, about the wide view's width); a cursor beyond it is pulled back along the same line to the maximum.
+- **The draw sets how far along that line the arrow lands.** A partial draw goes the same way and falls short: landing distance `s = L · f(c)`, where `L` is the full-draw distance (the cursor's, capped), `c` the draw (held time over `drawTime`, 0 to 1), and `f` **ramps up quickly at first and slows near full draw** (`f(c) = 1 − (1 − c)²`, tunable). So the last stretch of the range takes the most time, and a held full draw is always exact: timing matters only for quick shots, which is where the precision worry about timing was answered.
+- **Release commits the shot.** The landing point, the flight path, and the flight time are all fixed at that moment, from the cursor and the draw as they are then.
+- **The aim guide: the UI shows where the current draw will land** (Michael's plan): a small marker on the ground at the landing point for the current draw, running out along the line as the draw grows, with a faint ground line to the full-draw point. Setting `Aim guide: On / Off`, **default On**; Michael turns it off once his hands know it, as Minecraft gives nothing.
+- **Facing and movement:** the figure turns to the aim while drawing; walking while drawn is at half speed (`drawSpeed` 0.5; Minecraft slows you to a crawl), sprinting cancels the draw. No stamina for drawing in the first cut; a tunable `drawStamina` per second of hold is there for later.
 - **Two hands.** The bow is a `both` item: equipping it takes both hands, so the torch goes to the belt or the bag (a belt torch lights at half, `11`). Light against reach is the night's trade, the same one the shield will pose (question 24).
 
-## The arc, as numbers
+## The flight, as numbers
 
-Draw `c` in [0, 1] = time held / `drawTime`, clamped. From it:
+- **Ground speed:** constant, `speed` (16 tiles/s), so **a longer shot takes longer to arrive** (a full 22-tile shot 1.4 s, a 5-tile one 0.3 s) and leading matters more at range; a zombie crossing the line at 1 tile/s needs about a tile of lead at full range.
+- **Height:** with `u` the fraction of the way from the archer to the landing point, `z(u) = z0 · (1 − u) + 4 · H · u · (1 − u)` px above the ground, `H` the **peak height, which scales with the shot's distance** (`H = arcMin + (arcMax − arcMin) · s / range`: a flat 8 px for a hand's-length shot to about 150 px, a tree's height, for the longest). **Claude's tweak, to confirm:** the arrow leaves at the bow's height (`z0`, about 30 px) rather than at zero, so it visibly leaves the bow and not the archer's feet, and comes down to the ground at the landing point where the shadow meets it. Strictly zero at launch is one number (`z0 = 0`).
+- **Rotation:** the arrow sprite follows the visible curve on screen: tilting up early in the flight and down near the end (the angle comes from the screen velocity, height included).
+- **Shadow:** a flat dark ellipse at the ground point that shrinks and fades with height.
+- The flight is stepped at the game's fixed step and is deterministic from the release; `window.__game.archery.shoot(dir, distance, c)` fires one for scripts.
 
-- **Range** `R(c) = rangeMin + (range − rangeMin) · c` (3 to 22 tiles).
-- **Apex** `H(c) = arcMin + (arcMax − arcMin) · c²` (10 to 150 px above the ground; 150 is about a tree's height, 80 is a wall).
-- **Ground speed** `speed` constant, 16 tiles/s, so a full shot takes about 1.4 s to the far end and a short lob 0.2 s, and a zombie walking across the line at 1 tile/s needs a lead of about a tile at range. (Minecraft's speed is fixed at full draw too; distance comes from the pitch, which the draw stands in for here.)
-- **Height along the flight:** with `u = s / R` for ground distance `s`, `z(u) = z0 · (1 − u) + 4 · H · u · (1 − u)`, launched from chest height `z0` (36 px), landing at 0. Not Newton, a parabola by design: every shot with the same `c` and direction flies the same path, to the pixel.
-- The flight is stepped at the game's fixed step and is deterministic given the release; `window.__game.archery.shoot(dir, c)` fires one for scripts.
+## What an arrow hits (the laws of `14` hold)
 
-## What an arrow hits, and how it is decided (the laws of `14` hold)
+**Open decision (Michael, 2026-10-12):** *where along the flight is a body checked?* His plan names it: if hits are checked only at landing, arrows fly over close enemies on the way to a far target, which lets a player shoot over the front of a crowd but can feel wrong when an enemy is right in front of the archer. The options:
 
-The ground line is walked tile by tile each step, and at each sample the arrow's height says what it can touch:
+- **A. Landing only.** The arrow hurts whatever is at the landing point (within `hitRadius` of it, sized to a body's footprint) and nothing it passes. Simplest and most readable; you hit what you aimed at, and only that.
+- **B. Landing plus the low final stretch.** As A, and a body the arrow passes through while it is low on the way down is hit too.
+- **C. The whole path, by height** (Claude's recommendation). The arrow hits the first body it passes through whose body spans its height at that point, and anything at the landing point. Because it leaves at the bow's height, **a body right in front of the archer is hit** (a close shot's arc is low, so it stays below head height the whole way); because the arc rises with distance, **a far shot flies over the front of a crowd** and comes down on what is aimed at; and a body under the descent near the landing point is hit. It is the geometry of the picture: the arrow hits what it is drawn touching.
 
-- **The dead:** hit when the ground point passes within `radius + 0.1` of a zombie and `z` is between its feet and its body's top (the `BODY_SAMPLES` of `combat.js` already name those heights; a fallen one is 14 px tall). The hit is `damageZombie` with the arrow's damage scaled by the draw (`damage · (0.4 + 0.6 c)`, Minecraft needs full draw for full damage), a small knockback along the ground direction, the usual stagger. **A hit tells the dead where you are**: `aggro`, `lastSeen` = the launch point. Default; Michael may prefer that a silent arrow leaves them searching where they stand.
-- **Walls, doors, shutters, boards:** `map.wallBetween` on the ground step, blocking when `z` is below the wall's height (80) unless the opening's stack lets it through at that height (an open doorway, an open unboarded window between its sill and its top). An arrow above a wall flies over it: **you can shoot over your own palisade from inside, and the dead on the other side are hit.**
-- **Trees:** the trunk's collision circle blocks below the trunk's height (about 40 px); the canopy does not. Arrows fly through leaves. Default.
-- **Props:** solid props block below their frame's height. Later; the first cut passes through them.
-- **The archer** is never hit by their own arrow; villagers are never hit (`19`, swings pass through the living).
-- Nothing is hitscan, nothing is rolled: the arrow is where it is drawn, and it hits what it is drawn hitting.
+Whichever is chosen, the rest holds:
+
+- **Hits on the dead:** `damageZombie` with damage scaled by the draw (`damage · (0.4 + 0.6 c)`: Minecraft needs a full draw for full damage), a small knockback along the ground direction, the usual stagger. **A hit tells the dead where you are** (decision 3). The arrow stops at the first hit (no piercing). The hit radius is tunable (start at a body's `radius` 0.3 plus 0.1): too small feels unfair, too large makes leading a moving target not matter.
+- **Walls, doors, shutters, boards:** the ground path needs a line-of-flight check or arrows pass through walls (`map.wallBetween` on the ground step), blocking when the arrow's height there is below the wall's height (80) unless the opening's stack lets it through at that height (an open doorway, an open unboarded window between sill and top). **Tall obstacles block and low ones can be cleared because the arrow is above them:** a high shot clears a wall mid-flight; a close one cannot.
+- **Trees:** the trunk (about 40 px) blocks below its height; the canopy does not, so arrows fly through leaves.
+- **Props:** solid props block below their frame's height (fences and crates can be cleared; a wall of barrels at a hand's length cannot). Later; the first cut passes through them.
+- **The archer** is never hit by their own arrow; villagers are never hit (`19`).
+- **Draw order:** an arrow and its shadow sort by their **ground position**, not where they appear on screen, as the figures do, so a high arrow is drawn over what it flies above and behind what is in front of its ground point.
 
 ## Arrows are items, and they come back
 
@@ -60,7 +66,7 @@ The ground line is walked tile by tile each step, and at each sample the arrow's
 
 ## Rough build order
 
-1. The arc on its own: `archery.js` with `shoot(dir, c)` from the console, arrows drawn with shadows, landing as floor items; the guide. Michael watches arrows fly and tunes speed, range, apex until it feels like the thing.
+1. The arc on its own: `archery.js` with `shoot(dir, distance, c)` from the console, arrows drawn with shadows, landing as floor items; the landing marker. Michael watches arrows fly and tunes speed, range, apex until it feels like the thing.
 2. The draw: hold and release on the bow, the pose, the half-speed walk, the facing; arrows as items that are consumed and picked up.
 3. Hits: the dead, walls and openings by height, trees; damage by draw; the dead's reaction.
 4. Sounds and art, when they arrive.
@@ -69,16 +75,18 @@ The ground line is walked tile by tile each step, and at each sample the arrow's
 
 **Settled:**
 
-1. **Aiming: the cursor is the direction only; the draw time sets the distance** (the first draft's design, chosen over a cursor-as-landing-point). *Claude's note, kept so it is weighed when tuning:* a short draw window covering a long range makes release timing the precision limit (at the draft's numbers, 50 ms early or late is about 2.5 tiles), which works against sniping across the map by repeating one motion. If it proves fiddly in play, the fixes that stay inside this ruling are a **longer draw with an ease-out curve** (so the last stretch of distance takes more time, giving the top of the range finer control) and a **draw cue** (the bow's bend, later the creak's pitch) so the hands can learn the timing; the cursor-as-landing-point model remains available as a setting if Michael wants it.
+1. **Aiming (revised by Michael's plan, which replaces the first answer, direction-only):** the cursor sets the direction **and** the full-draw landing point (capped at the maximum range); the draw time sets how far along that line the arrow lands, quickly at first and slowing near full; the shot is fixed at release. *Claude's note:* this is the hybrid recommended before the first answer, and it answers the precision worry (a held full draw is always exact).
 2. **Arrows are picked up with E**, like everything else (not by walking over them).
-3. **A hit tells the dead where you are** (the first draft's default), as a melee blow does when they hunt at all.
+3. **A hit tells the dead where you are**, as a melee blow does when they hunt at all.
 4. **The bow takes both hands**; the torch goes to the belt or the bag while it is held (a belt torch still glows at half).
 5. **No stamina to draw or hold; the player walks at half speed while drawn**; sprinting cancels the draw.
 6. **Arrows that hit the dead break about half the time** (`breakChance` 0.5, else they drop at its feet); arrows that miss, or hit a wall or a tree, always survive and drop where they land.
+7. **The arc is automatic by distance, with no lob key** (the plan: the arc is visual, its peak height scales with the shot's distance). No deliberate long high lobs, accepted.
+8. **The aim guide: the UI shows where the current draw will land** (a marker; a setting to turn it off, default on).
 
-**Waiting on Michael (he has notes from another agent on this, to paste):**
+**Open:**
 
-7. **The arc: how it goes from flat to high.** Candidates offered: automatic by distance (near flat, far high) with a lob key (Shift) to loft over walls; automatic by distance only; one high arc always.
-8. **The aim guide.** With the distance set by the draw's timing, a landing marker is the natural teacher; the options were a setting (Off, Landing marker, Full arc), none, or always the full arc. Michael said his mechanics preference should answer it.
+9. **Where hits are checked along the flight:** A (landing only), B (landing plus the low final stretch), or C (the whole path, by height). Claude recommends C.
+10. **Claude's tweak to confirm:** the arrow leaves at the bow's height (about 30 px) rather than at zero, then comes down to the ground at the landing point.
 
-**Michael's to tune in play, as always:** every number above.
+**Michael's to tune in play, as always:** every number above (`drawTime`, `range`, `speed`, `arcMin`, `arcMax`, the ramp, `hitRadius`, `breakChance`, `drawSpeed`).
