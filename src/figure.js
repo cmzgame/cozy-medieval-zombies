@@ -46,6 +46,16 @@ export const ANIMS = {
 // `offOut` pose the other arm when the style needs it (the dead use both).
 // These defaults are what the file holds, so a missing file is not fatal.
 const DEFAULT_POSES = {
+  bow: {
+    fps: 12,
+    activeFrame: 3,
+    frames: [
+      { pitch: 95, offPitch: 85, offOut: 2, lean: 0.5 },
+      { pitch: 98, offPitch: 62, offOut: 4, lean: 1 },
+      { pitch: 100, offPitch: 38, offOut: 6, lean: 1.5 },
+      { pitch: 96, offPitch: 75, offOut: 3, lean: 0.5 },
+    ],
+  },
   one_handed: {
     fps: 12,
     activeFrame: 1,
@@ -426,6 +436,7 @@ function pose(variant, anim, i, holding = { main: false, off: false }, style = n
     case "attack": {
       const f = (POSES[style || (zombie ? "zombie" : "one_handed")] || DEFAULT_POSES.one_handed).frames[i];
       if (f) {
+        p.offOwn = f.offPitch != null; // the style moves the off arm itself (the bow's string hand): holding does not override it
         p.armPitch = [f.offPitch ?? 0, f.pitch];
         p.armOut = [f.offOut ?? p.armOut[0], f.out ?? p.armOut[1]];
         p.lean = f.lean ?? 0;
@@ -463,7 +474,7 @@ function pose(variant, anim, i, holding = { main: false, off: false }, style = n
   // Holding: the arm comes forward and stays there, except the main arm in
   // the attack and both arms when carrying or dying.
   const fixed = anim === "die" || anim.startsWith("carry");
-  if (holding.off && !fixed) {
+  if (holding.off && !fixed && !p.offOwn) {
     p.armPitch[0] = HOLD_PITCH;
     p.armOut[0] = HOLD_OUT;
   }
@@ -1015,6 +1026,13 @@ export { PART };
 // forearm direction (docs/12, held items).
 export const HELD_SIZE = 32;
 const HELD_SHAPES = {
+  bow: (f, c) => {
+    // Held out along the arm (up in this drawing), the limbs across it and curving
+    // back toward the archer at the tips, the string straight between them.
+    const limb = [[7, 25], [9, 22], [12, 20], [16, 19], [20, 20], [23, 22], [25, 25]];
+    for (let i = 0; i < limb.length - 1; i++) f.capsule(limb[i][0], limb[i][1], limb[i + 1][0], limb[i + 1][1], 1.2, c(0, "#7a5a3a"));
+    for (let x = 8; x <= 24; x++) f.px(x, 25, c(1, "#d8d0b8"));
+  },
   torch: (f, c) => {
     f.capsule(16, 10, 16, 24, 1.3, c(0, "#8a5a2a"));
     f.ellipse(16, 8, 2.6, 2.6, c(1, "#3a2a22"));

@@ -242,7 +242,7 @@ let figureKey = "";
 function refreshFigure() {
   // The swing's keyframe set follows the weapon in the main hand (docs/14).
   const mainDef = player.hands.main && items.getItem(player.hands.main.id);
-  const style = (mainDef && mainDef.weapon && mainDef.weapon.style) || null;
+  const style = (mainDef && ((mainDef.weapon && mainDef.weapon.style) || (mainDef.bow && mainDef.bow.style))) || null;
   const spec = figure.characterSpec(figure.characterInputs(player, undefined, settings.get("paintedLayers") || {}, style));
   const key = figure.specKey(spec);
   if (key === figureKey) return;
@@ -300,12 +300,14 @@ function update(dt) {
   updatePlayer(player, dt);
   // A left click swings; on a mushroom, a rock, or a tree (its visible pixels)
   // that thing sways too. No meaning yet: an in-world to-do (Michael, 2026-10-11).
-  if (clicked && !clickSpent) {
+  // With a bow in hand the left button is the draw, not a swing or a poke (docs/20).
+  if (clicked && !clickSpent && !archery.bowOf(player)) {
     interact.pokeAt(input.getMouse().x, input.getMouse().y, player);
     interact.playAt(input.getMouse().x, input.getMouse().y, player); // the well's bucket, for fun
     interact.clickCharacterAt(input.getMouse().x, input.getMouse().y, player); // a villager answers (docs/19)
     combat.tryAttack(player, zombies);
   }
+  archery.updateDraw(player, dt, { pressed: clicked && !clickSpent, down: input.mouseLeftDown(), mouse: input.getMouse(), blocked: panel.isOpen() || menu.isMenuOpen() });
   if (input.wasPressed("Space")) combat.tryShove(player, zombies);
   combat.updateCombat(player, zombies, dt);
   archery.update(dt);
@@ -724,6 +726,13 @@ async function boot() {
         return p;
       },
       clearMarker: () => archery.setMarker(null),
+      // The draw, for scripts: aim somewhere, press, step the game, release.
+      bow: () => archery.bowOf(player),
+      setAim: (gx, gy) => archery.setAimOverride(gx == null ? null : [gx, gy]),
+      press: () => archery.beginDraw(player, archery.bowOf(player), "script"),
+      release: () => archery.releaseDraw(player, input.getMouse()),
+      cancel: () => archery.cancelDraw(player),
+      drawing: archery.drawState,
     },
     say: (text, seconds) => say(player, text, seconds), // a bubble over the player, to test the system (docs/19)
     get tiles() { return tiles; },

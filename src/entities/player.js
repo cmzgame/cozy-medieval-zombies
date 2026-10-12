@@ -51,6 +51,8 @@ export function createPlayer(gx, gy) {
     maxThirst: THIRST_MAX,
     auto: null, // auto-walk: { path, tiles, range, onArrive, goalTile }
     action: null, // a timed action in progress: { action, elapsed }
+    drawing: false, // a bow drawn (docs/20); archery.js sets it
+    moveMult: 1, // walking speed while a bow is drawn
   };
 }
 
@@ -157,7 +159,7 @@ function followAuto(player, dt) {
     }
     const before = [player.gx, player.gy];
     const n = iso.normalize(dx, dy);
-    const step = Math.min(d, player.speed * (player.sprinting ? SPRINT_MULT : 1) * dt);
+    const step = Math.min(d, player.speed * (player.sprinting ? SPRINT_MULT : 1) * (player.moveMult ?? 1) * dt);
     const moved = moveCircle(player.gx, player.gy, player.radius, n.x * step, n.y * step);
     player.gx = moved.gx;
     player.gy = moved.gy;
@@ -221,7 +223,7 @@ export function updatePlayer(player, dt) {
   if (player.moving) {
     const f = iso.facingFromScreenVector(axis.x, axis.y);
     const [dx, dy] = iso.DIRS[f];
-    moveToward(player, dt, dx, dy, player.sprinting ? SPRINT_MULT : 1);
+    moveToward(player, dt, dx, dy, (player.sprinting ? SPRINT_MULT : 1) * (player.moveMult ?? 1));
   } else if (player.auto) {
     walking = followAuto(player, dt);
   }

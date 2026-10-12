@@ -11,6 +11,9 @@ import * as iso from "./iso.js";
 import * as map from "./map.js";
 import { emit } from "./events.js";
 import { HELD_ANGLES, angleIndex } from "./figure.js";
+import { getItem } from "./items.js";
+import { countAll, takeAll } from "./inventory.js";
+import { showMessage } from "./ui/prompt.js";
 
 // Everything is tunable from the console: __game.archery.tunables.
 export const tunables = {
@@ -20,10 +23,13 @@ export const tunables = {
   arcMax: 150, // px: the peak height of the longest shot (about a tree's height)
   z0: 30, // px: the height the arrow leaves the bow at (0: it leaves the archer's feet)
   ramp: 2, // the draw-to-distance curve, f(c) = 1 - (1 - c)^ramp: quick at first, slow near full
-  drawTime: 0.9, // seconds to a full draw (the next step)
-  minDraw: 0.15, // a release before this fraction of a draw is a dry release (the next step)
+  drawTime: 0.9, // seconds to a full draw (a bow's own `drawTime` overrides it)
+  minDraw: 0.15, // a release before this fraction of a draw is a dry release: nothing flies
+  minDistance: 1, // tiles: a cursor closer than this still shoots this far
+  drawSpeed: 0.5, // walking speed while a bow is drawn (Minecraft slows you to a crawl)
+  recoverTime: 0.22, // seconds after a shot before the next draw can begin
   hitRadius: 0.5, // tiles around the landing point that count as a hit (step 3)
-  aimLift: 22, // px: the cursor is read at chest height, so a cursor on a body targets its feet (the next step)
+  aimLift: 22, // px: the cursor is read at chest height, so a cursor on a body targets its feet
   shadowRx: 7, // px: the shadow's size on the ground, shrinking as the arrow rises
   shadowRy: 3.5,
   shadowAlpha: 0.55, // how dark it is at the ground, fading as the arrow rises
@@ -211,4 +217,138 @@ export function generateArrow() {
     frames[`arrow_${k}`] = [k * AS, 0, AS, AS];
   }
   return { image: canvas, frames, anchor: [AS / 2, AS / 2], animations: {}, facings: [], mirror: {} };
+}
+
+// ---- the draw (docs/20, step 2) ----
+//
+// With a bow in the main hand the left button is the draw: hold to draw, release
+// to shoot. The cursor sets the direction and where a full draw lands; the draw
+// sets how far short (`drawFraction`); the shot is fixed at release. While the
+// bow is drawn the player turns to the cursor (they always do), walks at half
+// speed, and shows where the arrow would land. Sprinting, opening a panel, or a
+// pause cancels the draw. A release before `minDraw` is a dry release.
+
+let draw = null; // { t, c, source }: a draw in progress
+let recover = 0; // seconds until the next draw may begin
+let lastTick = 0;
+let aimOverride = null; // [gx, gy]: scripts and tests aim here instead of the cursor
+
+export function setAimOverride(p) {
+  aimOverride = p;
+}
+
+export function drawState() {
+  return draw ? { t: draw.t, c: draw.c, source: draw.source } : null;
+}
+
+// The bow in the main hand, with its numbers, or null.
+export function bowOf(player) {
+  const e = player.hands && player.hands.main;
+  const def = e && getItem(e.id);
+  if (!def || !def.bow) return null;
+  return { ...def.bow, drawTime: def.bow.drawTime ?? tunables.drawTime, entry: e };
+}
+
+// The ground point the cursor means, read at chest height: a cursor on a body
+// is not over its feet on the ground plane, so the point is the one whose chest
+// the cursor is over (`aimLift`), and a cursor on a zombie targets its feet.
+export function aimPoint(mouse) {
+  if (aimOverride) return aimOverride;
+  const g = iso.toGrid(mouse.x, mouse.y + tunables.aimLift);
+  return [g.gx, g.gy];
+}
+
+function aimFrom(player, mouse) {
+  const [cx, cy] = aimPoint(mouse);
+  let dx = cx - player.gx;
+  let dy = cy - player.gy;
+  let L = Math.hypot(dx, dy);
+  if (L < 1e-3) {
+    const f = iso.DIRS[player.facing] || [1, 0];
+    dx = f[0];
+    dy = f[1];
+    L = 0;
+  }
+  return { dir: [dx, dy], distance: Math.max(L, tunables.minDistance) };
+}
+
+// The figure's pose is the bow style's attack frames, held by hand: 0 nocked,
+// 1 drawing, 2 full draw, 3 the release.
+function setPose(player, frame) {
+  const a = player.anim;
+  a.name = "attack";
+  a.frame = frame;
+  a.elapsed = 0;
+  a.done = false;
+}
+
+export function beginDraw(player, bow, source = "mouse") {
+  if (draw || recover > 0 || !bow || player.dead || player.climb || player.carrying) return false;
+  if (countAll(player, "arrow") <= 0) {
+    showMessage("No arrows.");
+    return false;
+  }
+  player.auto = null;
+  player.drawing = true;
+  draw = { t: 0, c: 0, source };
+  return true;
+}
+
+export function cancelDraw(player) {
+  draw = null;
+  player.drawing = false;
+  player.moveMult = 1;
+  setMarker(null);
+}
+
+// Let go: dry below the minimum, otherwise one arrow leaves the bag and flies.
+export function releaseDraw(player, mouse) {
+  if (!draw) return null;
+  const c = draw.c;
+  const aim = aimFrom(player, mouse);
+  cancelDraw(player);
+  if (c < tunables.minDraw) return null;
+  if (takeAll(player, "arrow", 1) < 1) {
+    showMessage("No arrows.");
+    return null;
+  }
+  const a = shoot(player, aim.dir, aim.distance, c);
+  recover = tunables.recoverTime;
+  setPose(player, 3);
+  emit("arrowShot", { player, arrow: a, c });
+  return a;
+}
+
+// Every step. `ctx`: { pressed, down, mouse, blocked }.
+export function updateDraw(player, dt, ctx) {
+  const now = performance.now();
+  const gap = now - lastTick;
+  lastTick = now;
+  const bow = bowOf(player);
+  if (recover > 0) {
+    recover -= dt;
+    setPose(player, 3);
+    return;
+  }
+  const had = !!draw;
+  if (!draw) {
+    if (!(ctx.pressed && bow)) return;
+    if (!beginDraw(player, bow)) return;
+  }
+  // A long gap between steps is a pause: a draw held through it is dropped, so
+  // letting go afterwards does not loose an arrow.
+  const paused = had && draw.source === "mouse" && gap > 350;
+  if (!bow || player.dead || player.climb || player.sprinting || ctx.blocked || paused) {
+    cancelDraw(player);
+    return;
+  }
+  draw.t += dt;
+  draw.c = Math.min(1, draw.t / bow.drawTime);
+  const aim = aimFrom(player, ctx.mouse);
+  const p = preview(player, aim.dir, aim.distance, draw.c);
+  setMarker({ from: [player.gx, player.gy], full: p.full, land: p.land });
+  player.moveMult = tunables.drawSpeed;
+  setPose(player, draw.c < 0.35 ? 0 : draw.c < 0.8 ? 1 : 2);
+  const down = draw.source === "script" ? true : ctx.down;
+  if (!down) releaseDraw(player, ctx.mouse);
 }
