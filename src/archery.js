@@ -12,6 +12,9 @@ import * as map from "./map.js";
 import { emit } from "./events.js";
 import { HELD_ANGLES, angleIndex } from "./figure.js";
 import { getItem } from "./items.js";
+import { getSheet, idleFrame } from "./assets.js";
+import { damageZombie } from "./entities/zombie.js";
+import { DOOR_TOP, WINDOW_SILL, WINDOW_TOP } from "./placeholders.js";
 import { countAll, takeAll } from "./inventory.js";
 import { showMessage } from "./ui/prompt.js";
 
@@ -28,7 +31,14 @@ export const tunables = {
   minDistance: 1, // tiles: a cursor closer than this still shoots this far
   drawSpeed: 0.5, // walking speed while a bow is drawn (Minecraft slows you to a crawl)
   recoverTime: 0.22, // seconds after a shot before the next draw can begin
-  hitRadius: 0.5, // tiles around the landing point that count as a hit (step 3)
+  hitRadius: 0.5, // tiles around the landing point that count as a hit (a body's radius 0.3 and a little)
+  damage: 38, // at a full draw; scaled by 0.4 + 0.6 c (a bow's own `damage` overrides it)
+  knockback: 0.2, // tiles of push along the arrow's ground direction
+  breakChance: 0.5, // of an arrow that hits one of the dead (a miss never breaks)
+  wallHeight: 80, // px: an arrow below this is stopped by a wall (an opening's own heights let it through)
+  trunkHeight: 40, // px: a trunk, a barrel: round obstacles block below this
+  propHeight: 50, // px: a tile prop blocks below its own height, to at most this
+  scanStep: 0.1, // tiles between the steps the flight is checked at, once, when the arrow is shot
   aimLift: 22, // px: the cursor is read at chest height, so a cursor on a body targets its feet
   shadowRx: 7, // px: the shadow's size on the ground, shrinking as the arrow rises
   shadowRy: 3.5,
@@ -69,12 +79,17 @@ export function preview(from, dir, distance, c = 1) {
 
 // Fire one. The landing point, the path, and the flight time are fixed here.
 // `from` is anyone with gx and gy (the archer). Returns the arrow.
-export function shoot(from, dir, distance, c = 1, { shooter = from } = {}) {
+export function shoot(from, dir, distance, c = 1, { shooter = from, damage = tunables.damage, knockback = tunables.knockback, breakChance = tunables.breakChance } = {}) {
   const p = preview(from, dir, distance, c);
   const T = Math.max(1 / 120, p.landing / tunables.speed);
   const a = {
     kind: "arrow",
     shooter,
+    damage,
+    knockback,
+    breakChance,
+    stopD: null, // ground distance at which a wall, a trunk, or a prop stops it, or null
+    stopWhy: null,
     x0: from.gx,
     y0: from.gy,
     dx: p.dir[0],
@@ -91,8 +106,86 @@ export function shoot(from, dir, distance, c = 1, { shooter = from } = {}) {
     done: false,
   };
   pose(a);
+  const stop = scanPath(a);
+  if (stop) {
+    a.stopD = stop.d;
+    a.stopWhy = stop.why;
+  }
   flying.push(a);
   return a;
+}
+
+// ---- what stops an arrow (docs/20) ----
+//
+// The flight is fixed at release, so it is walked once, here, in short steps
+// along the ground line, with the height the arrow will have at each one.
+// A wall stops it below the wall's height unless the opening's own heights let
+// it through (an open doorway under its lintel, an open window between sill and
+// top); a round obstacle (a trunk, a barrel) below its height; a tile prop below
+// its own height. Above them it flies over. The first such point is where it
+// comes down: at the foot of what stopped it.
+
+const heightAt = (a, u) => tunables.z0 * (1 - u) + 4 * a.H * u * (1 - u);
+
+function wallStops(wall, z) {
+  if (!wall || z >= tunables.wallHeight) return false;
+  if (map.boarded(wall)) return true;
+  if (wall.kind === "door") return !((wall.open || wall.broken) && z < DOOR_TOP);
+  if (wall.kind === "window") return !((wall.shutter === "open" || wall.broken) && z >= WINDOW_SILL && z < WINDOW_TOP);
+  return true;
+}
+
+// Between two neighbouring tiles (a diagonal step may go either way round).
+function edgeStops(ax, ay, bx, by, z) {
+  if (ax !== bx && ay !== by) {
+    const viaX = wallStops(map.wallBetween(ax, ay, bx, ay), z) || wallStops(map.wallBetween(bx, ay, bx, by), z);
+    const viaY = wallStops(map.wallBetween(ax, ay, ax, by), z) || wallStops(map.wallBetween(ax, by, bx, by), z);
+    return viaX && viaY;
+  }
+  return wallStops(map.wallBetween(ax, ay, bx, by), z);
+}
+
+function tilePropHeight(prop) {
+  try {
+    const sheet = getSheet(prop.sprite, prop.tiles.length);
+    const f = sheet.frames[idleFrame(sheet, prop, 0)];
+    return Math.min(f ? f[3] : tunables.propHeight, tunables.propHeight);
+  } catch {
+    return tunables.propHeight;
+  }
+}
+
+function scanPath(a) {
+  const step = tunables.scanStep;
+  const n = Math.ceil(a.s / step);
+  let tx = Math.round(a.x0);
+  let ty = Math.round(a.y0);
+  for (let i = 1; i <= n; i++) {
+    const d = Math.min(a.s, i * step);
+    const before = Math.max(0, (i - 1) * step);
+    const gx = a.x0 + a.dx * d;
+    const gy = a.y0 + a.dy * d;
+    const z = heightAt(a, d / a.s);
+    const nx = Math.round(gx);
+    const ny = Math.round(gy);
+    if (nx !== tx || ny !== ty) {
+      if (edgeStops(tx, ty, nx, ny, z)) return { d: before, why: "wall" };
+      const prop = map.tileAt(nx, ny).prop;
+      if (prop && prop.solid && !(prop.radius > 0) && z < tilePropHeight(prop)) return { d: before, why: "prop" };
+      tx = nx;
+      ty = ny;
+    }
+    // Round obstacles in the tiles about this point: a trunk is hit where its circle is.
+    if (z < tunables.trunkHeight) {
+      for (let oy = -1; oy <= 1; oy++) {
+        for (let ox = -1; ox <= 1; ox++) {
+          const prop = map.tileAt(nx + ox, ny + oy).prop;
+          if (prop && prop.solid && prop.radius > 0 && Math.hypot(gx - prop.tile[0], gy - prop.tile[1]) < prop.radius + 0.08) return { d: before, why: "trunk" };
+        }
+      }
+    }
+  }
+  return null;
 }
 
 // The arrow's place and pose at its time t.
@@ -115,7 +208,8 @@ export function update(dt) {
     const a = flying[i];
     a.t += dt;
     pose(a);
-    if (a.t >= a.T) {
+    const end = a.stopD != null ? (a.T * a.stopD) / a.s : a.T;
+    if (a.t >= end) {
       flying.splice(i, 1);
       land(a);
     }
@@ -126,11 +220,45 @@ export function update(dt) {
 // up (docs/20), remembering its exact place and which way it points.
 function land(a) {
   a.done = true;
-  const gx = a.x0 + a.dx * a.s;
-  const gy = a.y0 + a.dy * a.s;
+  const d = a.stopD != null ? a.stopD : a.s;
+  const gx = a.x0 + a.dx * d;
+  const gy = a.y0 + a.dy * d;
   const ground = angleIndex([(a.dx - a.dy) * iso.HW, (a.dx + a.dy) * iso.HH]);
-  map.dropItem(Math.round(gx), Math.round(gy), { id: "arrow", count: 1, at: [gx, gy], angle: ground });
-  emit("arrowLanded", { arrow: a, gx, gy });
+  // A shot that came down on its own (not stopped short) hurts the body at the
+  // landing point, if one is there (docs/20: hits are checked at landing only).
+  let hit = null;
+  if (a.stopD == null) hit = bodyAt(gx, gy);
+  let keep = true;
+  if (hit) {
+    damageZombie(hit, Math.round(a.damage * (0.4 + 0.6 * a.c)), { dir: [a.dx, a.dy], knockback: a.knockback, from: [a.x0, a.y0] });
+    keep = Math.random() >= a.breakChance; // an arrow that hit the dead may break
+  }
+  if (keep) map.dropItem(Math.round(gx), Math.round(gy), { id: "arrow", count: 1, at: [gx, gy], angle: ground });
+  emit("arrowLanded", { arrow: a, gx, gy, hit, kept: keep, stoppedBy: a.stopWhy });
+}
+
+// ---- who can be hit ----
+
+let targets = () => [];
+
+// main.js hands in the dead that can be hit (the living dead; villagers and the archer never are).
+export function setTargets(fn) {
+  targets = fn;
+}
+
+// The nearest living zombie within `hitRadius` of the landing point, or null.
+function bodyAt(gx, gy) {
+  let best = null;
+  let bestD = tunables.hitRadius;
+  for (const z of targets()) {
+    if (z.dead) continue;
+    const d = Math.hypot(z.gx - gx, z.gy - gy);
+    if (d <= bestD) {
+      best = z;
+      bestD = d;
+    }
+  }
+  return best;
 }
 
 // ---- the landing marker (docs/20): where the current draw would land ----
@@ -312,7 +440,8 @@ export function releaseDraw(player, mouse) {
     showMessage("No arrows.");
     return null;
   }
-  const a = shoot(player, aim.dir, aim.distance, c);
+  const bow = bowOf(player) || {};
+  const a = shoot(player, aim.dir, aim.distance, c, { damage: bow.damage ?? tunables.damage, knockback: bow.knockback ?? tunables.knockback, breakChance: bow.breakChance ?? tunables.breakChance });
   recover = tunables.recoverTime;
   setPose(player, 3);
   emit("arrowShot", { player, arrow: a, c });

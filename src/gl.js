@@ -27,6 +27,8 @@ let vbo = null;
 let verts = new Float32Array(1 << 17);
 let count = 0; // floats written
 let whiteUV = null;
+let emptyUV = null; // a transparent patch: what a sprite that did not fit in the atlas draws as
+let atlasWarned = 0; // 0: no warning yet, 1: nearly full, 2: full
 let currentWhite = [0, 0, 0, 0];
 
 // ---- atlas ----
@@ -52,14 +54,29 @@ function place(sheet) {
     shelfY += shelfH + 1;
     shelfH = 0;
   }
-  if (shelfY + h > ATLAS) throw new Error("sprite atlas full");
+  if (shelfY + h > ATLAS) {
+    // Full: that sprite is not drawn (one warning), but the frame is, instead of an error every frame.
+    if (atlasWarned < 2) console.warn(`sprite atlas full: ${w}x${h} sheet not drawn (docs/19: the atlas is the budget)`);
+    atlasWarned = 2;
+    return null;
+  }
   atlasCtx.drawImage(img, shelfX, shelfY);
   p = { ax: shelfX, ay: shelfY };
   placed.set(sheet, p);
   shelfX += w + 1;
   shelfH = Math.max(shelfH, h);
   atlasDirty = true;
+  if (atlasWarned < 1 && (shelfY + shelfH) / ATLAS > 0.85) {
+    atlasWarned = 1;
+    console.warn("sprite atlas over 85% full (docs/19: the atlas is the budget)");
+  }
   return p;
+}
+
+// How full the atlas is: its side, the rows used so far (px), and the fraction.
+export function atlasInfo() {
+  const used = shelfY + shelfH;
+  return { size: ATLAS, usedRows: used, fraction: +(used / ATLAS).toFixed(3) };
 }
 
 // Redraw a sheet whose image changed (the player's clothes) at its place.
@@ -76,6 +93,7 @@ export function frameUV(sheet, name) {
   const f = sheet.frames[name];
   if (!f) return null;
   const p = place(sheet);
+  if (!p) return emptyUV;
   return [p.ax + f[0], p.ay + f[1], p.ax + f[0] + f[2], p.ay + f[1] + f[3]];
 }
 
@@ -240,9 +258,10 @@ export function init(canvas) {
   atlasCanvas.height = ATLAS;
   atlasCtx.fillStyle = "#fff";
   atlasCtx.fillRect(0, 0, 4, 4);
-  shelfX = 5;
+  shelfX = 10;
   shelfH = 4;
   whiteUV = [1, 1, 3, 3];
+  emptyUV = [6, 1, 8, 3]; // x 5 to 9 of the first row is left transparent
   atlasTex = makeTexture(gl.NEAREST);
   atlasDirty = true;
   gl.uniform1i(uniforms.u_tex, 0);

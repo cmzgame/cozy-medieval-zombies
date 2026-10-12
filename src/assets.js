@@ -127,12 +127,10 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
 // `sheetFor` bakes it the first time an outfit is seen and returns its id.
 const figureSheets = new Map(); // specKey -> { id, inputs }
 let figureSeq = 0;
-const FIGURE_SHEET_CAP = 24;
 
 // `only` ({ anim, frame, facing }) asks for that one frame on a sheet of its
 // own: a corpse (docs/19). Corpse sheets are tiny (48 x 72) and shared by
 // outfit and pose like the others, but counted apart.
-const CORPSE_SHEET_CAP = 400;
 const keyOf = (spec, only) => figure.specKey(spec) + (only ? `|${only.anim}|${only.frame}|${only.facing}` : "");
 
 export function sheetFor(inputs, only = null) {
@@ -140,8 +138,6 @@ export function sheetFor(inputs, only = null) {
   const key = keyOf(spec, only);
   let e = figureSheets.get(key);
   if (!e) {
-    if (!only && figureSheetCount() >= FIGURE_SHEET_CAP) console.warn(`${figureSheetCount() + 1} figure sheets: the atlas is shared with everything else (docs/19)`);
-    if (only && corpseSheetCount() >= CORPSE_SHEET_CAP) console.warn(`${corpseSheetCount() + 1} corpse sheets: the atlas is shared with everything else (docs/19)`);
     e = { id: `figure_${figureSeq++}`, inputs: structuredClone(inputs), only };
     registerSheet(e.id, figure.generateFigure(spec, only));
     figureSheets.set(key, e);

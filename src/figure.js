@@ -98,8 +98,16 @@ function styleFor(spec) {
 // speed, active frame, and length from the style, so a style may be longer.
 export function animsFor(spec) {
   const st = POSES[styleFor(spec)];
-  if (!st || !st.frames || !st.frames.length) return ANIMS;
-  return { ...ANIMS, attack: { ...ANIMS.attack, fps: st.fps ?? ANIMS.attack.fps, activeFrame: st.activeFrame ?? ANIMS.attack.activeFrame, frames: st.frames.length } };
+  let out = ANIMS;
+  if (st && st.frames && st.frames.length) out = { ...ANIMS, attack: { ...ANIMS.attack, fps: st.fps ?? ANIMS.attack.fps, activeFrame: st.activeFrame ?? ANIMS.attack.activeFrame, frames: st.frames.length } };
+  // Only the player carries furniture: for everyone else the six carry frames are
+  // left off, which makes the sheet 27 percent narrower and so five fit across the
+  // atlas where three did (docs/19: the atlas is the budget).
+  if (spec.noCarry) {
+    const { carry_idle, carry_walk, ...rest } = out;
+    out = rest;
+  }
+  return out;
 }
 
 // The chunky proportion (docs/12): the head about a third of the height,
@@ -1188,6 +1196,7 @@ export function characterInputs(ch, artOf = artResolver, overrides = {}, style =
     holding: zombie ? null : { main: !!(ch.hands && ch.hands.main), off: !!(ch.hands && ch.hands.off) },
     wardrobe: ch.wardrobe || 0,
     wound: ch.wound || null,
+    noCarry: ch.kind !== "player",
     overrides,
     style,
   };
@@ -1212,7 +1221,7 @@ export function characterSpec(inp) {
     if (painted.hair) look.hairStyle = painted.hair.name;
     const outfit = { ...inp.outfit };
     if (painted.head) outfit.head = outfit.head || { shape: "cap", colours: ["#555"] }; // a painted head piece needs a head item to replace
-    return { variant: "zombie", look, outfit, wound: inp.wound, painted };
+    return { variant: "zombie", look, outfit, wound: inp.wound, painted, noCarry: !!inp.noCarry };
   }
   const painted = {};
   for (const slot of OUTFIT_SLOTS) {
@@ -1222,7 +1231,7 @@ export function characterSpec(inp) {
   painted.body = getLayer("body", overrides.body || (inp.look && inp.look.body) || null);
   const fullLook = { ...DEFAULT_LOOK, ...inp.look };
   painted.hair = getLayer("hair", fullLook.hairStyle);
-  return { variant: "player", look: fullLook, outfit: inp.outfit, wound: null, holding: inp.holding, painted, style: inp.style };
+  return { variant: "player", look: fullLook, outfit: inp.outfit, wound: null, holding: inp.holding, painted, style: inp.style, noCarry: !!inp.noCarry };
 }
 
 // The player's spec from their look and what they wear; `worn` is the slot map
@@ -1242,5 +1251,5 @@ export function zombieSpec(k) {
 // A key that changes when the drawing would.
 export function specKey(spec) {
   const names = spec.painted ? Object.fromEntries(Object.entries(spec.painted).map(([k, v]) => [k, v ? v.name : null])) : null;
-  return JSON.stringify([spec.variant, spec.look, spec.outfit, spec.wound, spec.holding, names, layersVersion, spec.style || null]);
+  return JSON.stringify([spec.variant, spec.look, spec.outfit, spec.wound, spec.holding, names, layersVersion, spec.style || null, !!spec.noCarry]);
 }

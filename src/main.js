@@ -624,6 +624,7 @@ async function boot() {
   zombies = info.zombies.map(([x, y]) => createZombie(x, y));
   villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i }));
   interact.setCharacters(() => [...villagers, ...zombies]);
+  archery.setTargets(() => zombies); // what an arrow can hit when it lands (docs/20)
   camera.snapTo(player.gx, player.gy);
   camera.applyOrigin(V.w, V.h);
   map.ensureAround(player.gx, player.gy, 4);
@@ -706,7 +707,7 @@ async function boot() {
   screens.show("title");
 
   window.__game = {
-    iso, input, loop, assets, events, map, camera, ground, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette, combat,
+    iso, input, loop, assets, events, map, camera, ground, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette, combat, gl,
     render: { night },
     get player() { return player; },
     get zombies() { return zombies; },
