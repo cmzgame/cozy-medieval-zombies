@@ -12,6 +12,7 @@
 //      is a picture of a decision already made.
 
 import * as iso from "./iso.js";
+import { lineOfSight } from "./visibility.js";
 import * as items from "./items.js";
 import * as loop from "./loop.js";
 import * as camera from "./camera.js";
@@ -137,7 +138,10 @@ export function holdsWeapon(player) {
 // The zombies a blow reaches: everything in the wedge, or only the nearest one
 // when multi-hit is off (the setting, or the weapon's own `multiHit: false`).
 function targetsIn(player, weapon, zombies, accept = () => true) {
-  const list = zombies.filter((z) => !z.dead && accept(z) && inWedge(player, weapon, z));
+  // A blow does not go through a wall, a shut door, or shut shutters: the same sight that keeps the
+  // dead from biting through them (Michael found a hit on a zombie behind a wall, with no outline,
+  // because the dead one was in the fog).
+  const list = zombies.filter((z) => !z.dead && accept(z) && inWedge(player, weapon, z) && lineOfSight(player.gx, player.gy, z.gx, z.gy));
   const multi = settings.get("multiHit") && weapon.multiHit !== false;
   if (multi || list.length < 2) return list;
   const d = (z) => Math.hypot(z.gx - player.gx, z.gy - player.gy);
@@ -233,6 +237,14 @@ function kick(player) {
 // The left click. The swing resolves now, on the click: the cooldown is the
 // only rate limit, and an interrupted animation cannot lose it. Returns the
 // zombies hit, or null if nothing was swung.
+// The weapon the next left click would swing: the off hand's when it would take the click (the main
+// hand still recovering, the off hand ready), else the main hand's. The outline follows it.
+export function nextSwingWeapon(player) {
+  const off = offWeaponOf(player);
+  if (off && (player.attackCooldown || 0) > 0 && (player.offCooldown || 0) <= 0) return off;
+  return weaponOf(player);
+}
+
 // The left button (docs/21): with one weapon, a swing; with a weapon in each hand, the main hand
 // swings when it is ready, and the off hand when the main is still recovering, so clicking faster
 // than a swing's recovery goes back and forth.
@@ -340,7 +352,7 @@ export function tryShove(player, zombies) {
 // targets"). Empty while the player cannot swing.
 export function swingTargets(player, zombies) {
   if (!canAct(player, true)) return [];
-  const w = weaponOf(player);
+  const w = nextSwingWeapon(player);
   const near = zombies.filter((z) => Math.abs(z.gx - player.gx) <= w.range + BODY_SLACK + 1 && Math.abs(z.gy - player.gy) <= w.range + BODY_SLACK + 1);
   return targetsIn(player, w, near);
 }
