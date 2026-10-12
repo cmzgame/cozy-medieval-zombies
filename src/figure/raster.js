@@ -124,7 +124,9 @@ export class Frame {
   }
 
   // The one-pixel outline around the current mask.
-  outline() {
+  // The outline pixels carry the part that drew them (0 for none), so a pass
+  // after drawing can tell whose outline is whose (mergeOutlines, cullPart).
+  outline(part = 0) {
     if (!this.bbox) return;
     const [bx0, by0, bx1, by1] = this.bbox;
     const m = this.mask;
@@ -133,7 +135,7 @@ export class Frame {
         const i = y * FW + x;
         if (m[i]) continue;
         const near = (x > 0 && m[i - 1]) || (x < FW - 1 && m[i + 1]) || (y > 0 && m[i - FW]) || (y < FH - 1 && m[i + FW]);
-        if (near) this.set(i, OUTLINE, 1, 0);
+        if (near) this.set(i, OUTLINE, 1, part);
       }
     }
   }
@@ -169,22 +171,78 @@ export class Frame {
   capsule(x0, y0, x1, y1, r, rgb, { outline = true, part = 0 } = {}) {
     this.begin();
     this.addCapsule(x0, y0, x1, y1, r);
-    if (outline) this.outline();
+    if (outline) this.outline(part);
     this.fill(rgb, part);
   }
 
   ellipse(cx, cy, rx, ry, rgb, { outline = true, part = 0 } = {}) {
     this.begin();
     this.addEllipse(cx, cy, rx, ry);
-    if (outline) this.outline();
+    if (outline) this.outline(part);
     this.fill(rgb, part);
   }
 
   poly(points, rgb, { outline = true, part = 0 } = {}) {
     this.begin();
     this.addPoly(points);
-    if (outline) this.outline();
+    if (outline) this.outline(part);
     this.fill(rgb, part);
+  }
+
+  // A part that is mostly hidden shows a real piece of itself or nothing: fewer
+  // than `minFill` fill pixels left of it (a far arm behind the torso, a sliver
+  // beside the hip) and every pixel it still owns is cleared (Michael,
+  // 2026-10-12: not enough to read as an arm, too much to go unnoticed).
+  cullPart(part, minFill) {
+    let n = 0;
+    for (let i = 0; i < FW * FH; i++) if (this.part[i] === part && this.kind[i] === 2) n++;
+    if (n === 0 || n >= minFill) return false;
+    for (let i = 0; i < FW * FH; i++) if (this.part[i] === part) this.set(i, [0, 0, 0], 0, 0);
+    return true;
+  }
+
+  // No double outline: where a vertical edge of a part `isMine` accepts (an arm)
+  // stands right beside another part's vertical edge with no fill between,
+  // the outline of the frontmost part (`priority`, higher is nearer) stays and
+  // each other pixel of the run becomes what lies beyond it, that part's fill
+  // if it is there, else nothing (Michael, 2026-10-12: if there is no column of
+  // skin between two borders, do not draw both).
+  mergeOutlines(isMine, priority) {
+    for (let y = 0; y < FH; y++) {
+      let x = 0;
+      while (x < FW) {
+        const row = y * FW;
+        if (this.kind[row + x] !== 1) { x++; continue; }
+        let x1 = x;
+        while (x1 + 1 < FW && this.kind[row + x1 + 1] === 1) x1++;
+        // Exactly two side by side, each on a vertical edge (an outline pixel above or
+        // below it): two borders with no column of fill between. A longer run is a
+        // horizontal edge (the neck line, a shoulder's top) and is left alone.
+        const vertical = (k) => (y > 0 && this.kind[row - FW + k] === 1) || (y < FH - 1 && this.kind[row + FW + k] === 1);
+        if (x1 === x + 1 && vertical(x) && vertical(x1)) {
+          const parts = new Set();
+          for (let k = x; k <= x1; k++) parts.add(this.part[row + k]);
+          if (parts.size > 1 && [...parts].some(isMine)) {
+            let keep = x;
+            let best = -Infinity;
+            for (let k = x; k <= x1; k++) {
+              const pr = priority(this.part[row + k]);
+              if (pr > best) { best = pr; keep = k; }
+            }
+            const kept = this.part[row + keep];
+            for (let k = x; k <= x1; k++) {
+              const i = row + k;
+              if (this.part[i] === kept) continue;
+              const out = k < keep ? k - 1 : k + 1;
+              const j = row + out;
+              if (out >= 0 && out < FW && this.kind[j] === 2 && this.part[j] === this.part[i]) this.set(i, [this.rgb[j * 3], this.rgb[j * 3 + 1], this.rgb[j * 3 + 2]], 2, this.part[j]);
+              else this.set(i, [0, 0, 0], 0, 0);
+            }
+          }
+        }
+        x = x1 + 1;
+      }
+    }
   }
 
   // Habbo shading: each part is flat on the lit side and one tone darker on

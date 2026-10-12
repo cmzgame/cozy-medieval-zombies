@@ -256,16 +256,16 @@ async function loadPaintedHair() {
 // (docs/12): a few milliseconds, redrawn into the atlas in place.
 let figureKey = "";
 let figureQuick = "";
-function refreshFigure() {
+function refreshFigure(force = false) {
   // The swing's keyframe set follows the weapon in the main hand (docs/14); a spear's throw has its own.
   const style = combat.styleOf(player, !!archery.drawState());
   // What the sheet depends on, as ids: the cheap test every step; the spec and its key only when it changed (docs/23a, B7).
   const quick = JSON.stringify([player.look, player.worn, player.hands, style, settings.get("paintedLayers") || null]);
-  if (quick === figureQuick) return;
+  if (!force && quick === figureQuick) return; // `force`: the rig's numbers changed from the console (dev.js setLook), which no key sees
   figureQuick = quick;
   const spec = figure.characterSpec(figure.characterInputs(player, undefined, settings.get("paintedLayers") || {}, style));
   const key = figure.specKey(spec);
-  if (key === figureKey) return;
+  if (!force && key === figureKey) return;
   figureKey = key;
   const sheet = assets.replaceSheet("player", figure.generateFigure(spec));
   gl.redrawSheet(sheet);

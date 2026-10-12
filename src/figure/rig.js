@@ -109,7 +109,7 @@ export function animsFor(spec) {
 // The chunky proportion (docs/12): the head about a third of the height,
 // shoulders no wider than the head, limbs against the body.
 export const BODY = {
-  hip: 15, // heights above the feet
+  hip: 17, // heights above the feet (15 until 2026-10-12: Michael wanted the body a smidge smaller and the legs longer)
   shoulder: 28,
   neck: 30,
   head: 38, // centre; the top of the head is at about 48, so the head is two fifths of the height

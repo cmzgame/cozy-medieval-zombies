@@ -65,6 +65,7 @@ export function hairIsPainted(name) {
 
 // Part ids, for the shading pass.
 const PART = { legL: 1, legR: 2, torso: 3, armL: 4, armR: 5, head: 6, hair: 7, bag: 8, hat: 9 };
+const FAR_ARM_MIN = 8; // fill pixels: a far arm shows at least this much skin, or not at all (Michael, 2026-10-12)
 
 function drawFrame(frame, spec, facing, anim, i) {
   const F = facingVectors(facing);
@@ -89,6 +90,8 @@ function drawFrame(frame, spec, facing, anim, i) {
   const hairSide = Math.abs(F.fx) > 0.8; // e, w only; the three-quarter facings keep the front cap, shifted back
   const parts = [];
   const add = (depth, draw) => parts.push({ depth, draw });
+  let torsoDrawn = false;
+  const farArms = []; // the arms drawn before the torso, behind it
   const along = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
 
   // Painted layers, by slot, and the rest pose their pixels were painted on.
@@ -106,7 +109,7 @@ function drawFrame(frame, spec, facing, anim, i) {
   // Carry pixels painted relative to the rest segment a0 -> b0 onto this
   // frame's segment a -> b: translate, turn, and scale with it. With
   // `allowed`, only pixels the generated part already owns are recoloured.
-  const stamp = (pixels, a0, b0, a, b, allowed = null) => {
+  const stamp = (pixels, a0, b0, a, b, allowed = null, tag = 0) => {
     if (!pixels || !pixels.length) return;
     const v0x = b0.x - a0.x, v0y = b0.y - a0.y, vx = b.x - a.x, vy = b.y - a.y;
     const l0 = Math.hypot(v0x, v0y), l1 = Math.hypot(vx, vy);
@@ -118,8 +121,8 @@ function drawFrame(frame, spec, facing, anim, i) {
       const y = Math.round(a.y + (dx * sn + dy * cs) * sc);
       if (x < 0 || y < 0 || x >= FW || y >= FH) continue;
       const i = y * FW + x;
-      if (allowed && !allowed.has(frame.part[i])) continue;
-      frame.set(i, flash ? WHITE : hexToRgb(c), 3, allowed ? frame.part[i] : 0);
+      if (allowed && (!allowed.has(frame.part[i]) || frame.kind[i] === 1)) continue;
+      frame.set(i, flash ? WHITE : hexToRgb(c), 3, allowed ? frame.part[i] : tag);
     }
   };
   const point = (q) => ({ x: q.x, y: q.y });
@@ -145,7 +148,7 @@ function drawFrame(frame, spec, facing, anim, i) {
       frame.begin();
       frame.addCapsule(a.x, a.y, b.x, b.y, B.legR);
       frame.addEllipse(fb.x, fb.y + 1, B.footRx, B.footRy);
-      frame.outline();
+      frame.outline(part);
       frame.fill(paint(legs ? col(legs) : skin), part);
       if (!legs) {
         const u = along(a, b, 0.4);
@@ -184,6 +187,7 @@ function drawFrame(frame, spec, facing, anim, i) {
   ]) torsoPts.push(P([l, d + (h > J.hip[2] ? p.lean : p.lean * 0.3), h]));
   add(0.0005, () => {
     const chest = outfit.chest;
+    torsoDrawn = true;
     frame.poly(torsoPts, paint(chest ? col(chest) : skin), { part: PART.torso });
     if (chest && chest.colours && chest.colours.length > 1 && faceFront) {
       const top = P([0, B.torsoD + 0.5, J.shoulderL[2] - 1]);
@@ -233,12 +237,13 @@ function drawFrame(frame, spec, facing, anim, i) {
     const handName = part === PART.armL ? "handL" : "handR";
     const depth = (a.depth + b.depth) / 2 + 0.002 * side;
     add(depth, () => {
+      if (!torsoDrawn) farArms.push(part);
       const chest = outfit.chest;
       const gloves = outfit.hands;
       frame.begin();
       frame.addCapsule(a.x, a.y, b.x, b.y, B.armR);
       frame.addEllipse(b.x, b.y, B.handR, B.handR);
-      frame.outline();
+      frame.outline(part);
       frame.fill(skin, part);
       if (chest) {
         const u = along(a, b, 0.5);
@@ -247,8 +252,8 @@ function drawFrame(frame, spec, facing, anim, i) {
       if (gloves) frame.ellipse(b.x, b.y, B.handR, B.handR, paint(col(gloves)), { outline: false, part });
       const rest = (slot) => { const R = layerRest(slot); return [P(part === PART.armL ? R.shoulderL : R.shoulderR), P(part === PART.armL ? R.handL : R.handR)]; };
       let r = rest("body"); stamp(layerPx("body", armName), r[0], r[1], a, b, new Set([part]));
-      r = rest("chest"); stamp(layerPx("chest", armName), r[0], r[1], a, b);
-      r = rest("hands"); stamp(layerPx("hands", handName), r[1], below(r[1]), b, below(b));
+      r = rest("chest"); stamp(layerPx("chest", armName), r[0], r[1], a, b, null, part);
+      r = rest("hands"); stamp(layerPx("hands", handName), r[1], below(r[1]), b, below(b), null, part);
     });
     return { a, b };
   };
@@ -265,7 +270,7 @@ function drawFrame(frame, spec, facing, anim, i) {
     const helm = !paintedHead && head && head.shape === "helm";
     frame.begin();
     frame.addSuper(hc.x, hc.y, B.headRx, B.headRy, SQ);
-    frame.outline();
+    frame.outline(PART.head);
     frame.fill(paint(helm ? col(head) : skin), PART.head);
     const fromBehind = F.fy < -0.3;
     const paintedHair = !head ? painted.hair || null : null;
@@ -297,7 +302,7 @@ function drawFrame(frame, spec, facing, anim, i) {
         frame.addCapsule(s1.x, s1.y, e1.x, e1.y, 2.2);
         if (fromBehind) frame.addPoly([{ x: s0.x - 1, y: s0.y }, { x: s1.x + 1, y: s1.y }, { x: e1.x + 1, y: e1.y }, { x: e0.x - 1, y: e0.y }]);
       }
-      frame.outline();
+      frame.outline(PART.hair);
       frame.fill(paint(hair), PART.hair);
     }
     if (head && !helm && !paintedHead) {
@@ -306,7 +311,7 @@ function drawFrame(frame, spec, facing, anim, i) {
         frame.addSuper(hc.x, hc.y - 1, B.headRx + 1.5, B.headRy + 2, SQ);
         const tip = P([0, -3, J.head[2] + B.headRy + 4]);
         frame.addCapsule(hc.x, hc.y - B.headRy, tip.x, tip.y, 2);
-        frame.outline();
+        frame.outline(PART.hat);
         frame.fill(paint(col(head)), PART.hat);
         if (faceFront || faceSide) {
           // The face opening.
@@ -321,7 +326,7 @@ function drawFrame(frame, spec, facing, anim, i) {
           const brim = P([0, B.headRx - 1, J.head[2] + 2]);
           frame.addCapsule(brim.x - 3, brim.y, brim.x + 3, brim.y, 1.2);
         }
-        frame.outline();
+        frame.outline(PART.hat);
         frame.fill(paint(col(head)), PART.hat);
       }
     }
@@ -376,6 +381,12 @@ function drawFrame(frame, spec, facing, anim, i) {
 
   parts.sort((a, b) => a.depth - b.depth);
   for (const part of parts) part.draw();
+  // Michael's two arm rules (2026-10-12, docs/12): a far arm shows a real sliver
+  // or nothing, and an arm's outline never doubles another part's in a row;
+  // the nearer part's outline wins.
+  for (const p of farArms) frame.cullPart(p, FAR_ARM_MIN);
+  const isArm = (p) => p === PART.armL || p === PART.armR;
+  frame.mergeOutlines(isArm, (p) => (farArms.includes(p) ? 0 : isArm(p) ? 2 : 1));
   frame.shade();
 
   // The joints the renderer needs: hand points in frame pixels, with the

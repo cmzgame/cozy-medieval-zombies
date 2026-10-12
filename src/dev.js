@@ -91,7 +91,8 @@ export function createDevApi(ctx) {
     setPaused: ctx.setPaused,
     get handlers() { return ctx.handlers; },
     // Customisation from the console until the creation screen: skin, hair, hairStyle (short, long, bald), eyes.
-    setLook(partial) { Object.assign(P().look, partial); ctx.refreshFigure(); },
+    // Always rebakes, so an edit to figure.BODY from the console shows: __game.figure.BODY.hip = 17; __game.setLook({}).
+    setLook(partial) { Object.assign(P().look, partial); ctx.refreshFigure(true); },
     // Put an item in your bag, or at your feet if it does not fit: __game.give("sword").
     give(id, count = 1) {
       const p = P();
