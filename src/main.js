@@ -797,6 +797,24 @@ async function boot() {
       if (added < count) map.dropItem(Math.round(player.gx), Math.round(player.gy), { id, count: count - added });
       return added;
     },
+    // Every weapon, for testing (docs/21): a Developer Bag put on your back (what you carried
+    // moves into it), then a sword, hatchet, mace, stick, three spears, a shield, a bow, and
+    // forty arrows. Nothing else is touched; the torch stays in your hand.
+    giveKit() {
+      const old = inventory.bagOf(player);
+      if (!player.worn.back || player.worn.back.id !== "dev_bag") {
+        const dev = { id: "dev_bag", count: 1 };
+        const bag = inventory.ensureBag(dev);
+        if (old) for (const e of old.items) inventory.addItem(bag, e.id, e.count, e.fill != null ? { fill: e.fill } : {});
+        player.worn.back = dev;
+      }
+      const bag = inventory.bagOf(player);
+      const kit = [["sword", 1], ["hatchet", 1], ["mace", 1], ["stick", 1], ["spear", 3], ["shield", 1], ["bow", 1], ["arrow", 40]];
+      const got = {};
+      for (const [id, n] of kit) got[id] = inventory.addItem(bag, id, n);
+      showMessage("A Developer Bag, with every weapon in it.");
+      return got;
+    },
     // The Developer Bag, twelve by eight, at your feet (docs/11). Never loot.
     giveDevBag() { map.dropItem(Math.round(player.gx), Math.round(player.gy), { id: "dev_bag", count: 1 }); showMessage("A Developer Bag lies at your feet."); },
   };
