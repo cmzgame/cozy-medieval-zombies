@@ -938,7 +938,8 @@ export function angleIndex(dir) {
 
 // spec: { variant: "player" | "zombie", look: { skin, hair, hairStyle, eyes, under },
 //         outfit: { slot: { shape, colours } }, wound: [l, d, hOffset] | null }
-export function generateFigure(spec) {
+export function generateFigure(spec, only = null) {
+  if (only) return generateOneFrame(spec, only);
   const anims = animsFor(spec);
   const animNames = Object.keys(anims);
   const totalFrames = animNames.reduce((n, a) => n + anims[a].frames, 0);
@@ -976,6 +977,31 @@ export function generateFigure(spec) {
     mirror: {},
     joints: jointTable,
     partMaps,
+  };
+}
+
+// One frame of a figure on a sheet of its own (docs/19): a corpse holds the last
+// frame of its fall in the facing it died in, and needs no sheet of a hundred
+// and seventy-six frames, so a body can be redrawn as it is stripped.
+function generateOneFrame(spec, { anim, frame: index, facing }) {
+  const anims = animsFor(spec);
+  const canvas = document.createElement("canvas");
+  canvas.width = FW;
+  canvas.height = FH;
+  const f = new Frame();
+  f.clear();
+  const joints = drawFrame(f, spec, facing, anim, index);
+  f.blit(canvas.getContext("2d"), 0, 0);
+  const name = `${anim}_${facing}_${index}`;
+  return {
+    image: canvas,
+    frames: { [name]: [0, 0, FW, FH] },
+    anchor: [FEET_X, FEET_Y],
+    animations: { [anim]: anims[anim] },
+    facings: [facing],
+    mirror: {},
+    joints: { [name]: joints },
+    partMaps: null,
   };
 }
 

@@ -1,5 +1,7 @@
 # 11 — Milestone 5: the character
 
+**Update, 2026-10-12 (`19-characters.md`):** the doll, the hands, and the grid are no longer only the player's. Every character (the player, the dead, villagers) has `worn` and `hands`, and the dead and villagers also carry `pockets`, a small grid of their own that needs no bag or belt; the player's grid is still the bag on their back and their hotbar the belt. **A dead zombie is a container**: its body's grid holds what it wore, held, and carried, and taking things from it strips the body.
+
 Michael, 2026-10-10: before combat, the worn screen and a hotbar, and this is more interesting to him right now than fighting, since nothing here can kill you and that makes testing easy. Ruled in `02-decisions.md`.
 
 ## The one rule

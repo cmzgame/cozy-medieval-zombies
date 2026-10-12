@@ -24,7 +24,7 @@ import { initHud, updateHud } from "./ui/hud.js";
 import { initPrompt, updatePrompt, showMessage, updateMessage } from "./ui/prompt.js";
 import { initZombieBars, updateZombieBars } from "./ui/zombie-bars.js";
 import { initSpeech, updateSpeech } from "./ui/speech.js";
-import { say } from "./entities/character.js";
+import { say, refreshCorpse } from "./entities/character.js";
 import * as menu from "./ui/context-menu.js";
 import * as panel from "./ui/inventory-panel.js";
 import * as interact from "./interact.js";
@@ -70,7 +70,8 @@ let playerRoom = 0;
 let drawAll = false; // debug: V shows everything, fog off
 let drawn = 0;
 let visKey = null; // player tile and camera tile the visible set was computed for
-let openBag = null; // { bag, tiles, name }: the container open beside yours
+let openBag = null; // { bag, tiles, name, corpse? }: the container open beside yours
+let corpseWatch = null; // the body whose grid is open: redrawn as things leave it, once more when it closes
 let progress = null; // 0..1 of a timed action
 const timing = { step: 0, stepMax: 0, vis: 0, maxResetAt: 0 };
 
@@ -197,6 +198,11 @@ function updateInventoryUi() {
     let d = Infinity;
     for (const [tx, ty] of openBag.tiles) d = Math.min(d, Math.hypot(player.gx - tx, player.gy - ty));
     if (d > CONTAINER_CLOSE_DIST) openBag = null;
+  }
+  if (openBag && openBag.corpse) corpseWatch = openBag.corpse;
+  if (corpseWatch) {
+    refreshCorpse(corpseWatch); // what was taken from its grid comes off its body
+    if (!openBag || openBag.corpse !== corpseWatch) corpseWatch = null;
   }
   panel.renderInventoryPanel(player, inventory.bagOf(player), openBag ? openBag.bag : null, inventory.beltOf(player));
 }
@@ -677,8 +683,8 @@ async function boot() {
   });
   events.on("playerHit", ({ damage }) => damagePlayer(player, damage));
   events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, damage));
-  events.on("containerOpened", ({ bag, tiles: where, name }) => {
-    openBag = { bag, tiles: where, name };
+  events.on("containerOpened", ({ bag, tiles: where, name, corpse }) => {
+    openBag = { bag, tiles: where, name, corpse: corpse || null };
     panel.setOpen(true, { character: panel.isCharacter() });
   });
   // After the menu's own listener, so a menu closed by Escape is seen first.

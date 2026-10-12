@@ -6,6 +6,8 @@ The parent's lesson is the starting point: `cozy-zombie-game/docs/22-melee.md`, 
 
 ## Status, 2026-10-11 (accepted for now)
 
+**Since (2026-10-12, `19-characters.md`):** a zombie killed now ends its fall as a baked one-frame body that can be searched and stripped (`Search body` on E); the dead also groan now and then, and with the `Zombies attack villagers` setting on they hunt villagers when the player is not in sight. Nothing in the swing, the hit test, or the wedge changed (the wedge is still the hit test; it is just no longer drawn).
+
 **Michael's verdict after the mouse pass: melee "feels good", the swing-target outline "feels great, it makes combat super duper legible", and multi-hit and single-hit "both work as advertised". "We can basically call this good."** Melee is done for the moment except for more weapons, drawn and given stats.
 
 **Built, tested by script, and played:** the swing as data (`data/poses.json`, with Preview and Reload poses in the layer editor); the weapons (hatchet, torch, stick, sword, mace, fists) with generated held art and every number tunable per item (`damage`, `knockback`, `knockbackChance`, `knockdown`, `stagger`, `multiHit`, and the rest, table below); `combat.js` with the wedge test, swings that resolve on the click, cooldowns and stamina, the shove (push cut to a third), multi-hit as a setting and a per-weapon override; the dead's stagger, knockback, knockdown, finisher, and death; hit-stop, the screen kick, the drawn wedge, Show hit shapes (debug), **Swing targets** (the green outline, for play), and the floating health bar. Acceptance checks 1 to 9 pass; check 10 waits on step 5.

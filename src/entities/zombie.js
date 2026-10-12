@@ -9,7 +9,7 @@
 
 import * as settings from "../settings.js";
 import { wardrobeCount } from "../figure.js";
-import { createCharacter, wardrobeInto, say } from "./character.js";
+import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
 import { moveCircle, isWalkableTile, canStep, nearestWalkable, tileAt, getRoom, breachTarget, damageOpening, wayOpen, climbable } from "../map.js";
 import { findPath } from "../pathfind.js";
@@ -413,6 +413,8 @@ export function updateZombie(z, dt, player, others, villagers = null) {
     // The fall plays out and holds; a corpse thinks no more (docs/14).
     if (z.knock) updateHurt(z, dt, sheet);
     advanceAnimation(z.anim, sheet, dt);
+    // The fall is over: the body becomes one baked frame, so it can be stripped (docs/19).
+    if (z.anim.done && !z.corpse) dressCorpse(z);
     return;
   }
   // A groan now and then, from the living dead only (a corpse is silent).

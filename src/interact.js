@@ -25,6 +25,7 @@ import * as grid from "./grid.js";
 import { startClimb, autoWalk, eat, drink } from "./entities/player.js";
 import { showMessage } from "./ui/prompt.js";
 import { pokeVillager } from "./entities/villager.js";
+import { lootOf } from "./entities/character.js";
 import { emit } from "./events.js";
 
 export const INTERACT_RANGE = 1.15; // tiles
@@ -573,6 +574,11 @@ export function nearestSimpleAction(player) {
   }
   for (const o of map.openingsNear(player.gx, player.gy, INTERACT_RANGE)) consider(openingActions(o, player));
   for (const b of map.bracketsNear(player.gx, player.gy, INTERACT_RANGE)) consider(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player));
+  // A body lying within reach (a corpse is a container, docs/19).
+  for (const c of allCharacters()) {
+    if (c.kind !== "zombie" || !c.dead || !c.corpse || Math.abs(c.gx - player.gx) > 3 || Math.abs(c.gy - player.gy) > 3) continue;
+    consider(characterActions(c, player));
+  }
   return best;
 }
 
@@ -1002,8 +1008,30 @@ export function clickCharacterAt(sx, sy, player) {
   return c;
 }
 
+// A dead zombie's body, searched like a chest (docs/19): the first time takes a
+// moment and rolls its pockets; after that it just opens. The grid is the body's.
+function searchBodyAction(c) {
+  const tiles = [[Math.round(c.gx), Math.round(c.gy)]];
+  return act({
+    kind: "container",
+    simple: true,
+    label: c.searched ? "Open body" : "Search body",
+    tiles,
+    mx: c.gx,
+    my: c.gy,
+    duration: c.searched ? 0 : SEARCH_TIME,
+    perform() {
+      const bag = lootOf(c);
+      c.searched = true;
+      emit("containerOpened", { bag, tiles, name: "body", corpse: c });
+      return true;
+    },
+  });
+}
+
 // What a right-click on a character offers, by kind.
 function characterActions(c, player) {
+  if (c.kind === "zombie" && c.dead && c.corpse) return [searchBodyAction(c)];
   if (c.kind === "villager") {
     return [act({
       kind: "poke",

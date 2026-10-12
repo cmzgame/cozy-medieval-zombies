@@ -129,14 +129,21 @@ const figureSheets = new Map(); // specKey -> { id, inputs }
 let figureSeq = 0;
 const FIGURE_SHEET_CAP = 24;
 
-export function sheetFor(inputs) {
+// `only` ({ anim, frame, facing }) asks for that one frame on a sheet of its
+// own: a corpse (docs/19). Corpse sheets are tiny (48 x 72) and shared by
+// outfit and pose like the others, but counted apart.
+const CORPSE_SHEET_CAP = 400;
+const keyOf = (spec, only) => figure.specKey(spec) + (only ? `|${only.anim}|${only.frame}|${only.facing}` : "");
+
+export function sheetFor(inputs, only = null) {
   const spec = figure.characterSpec(inputs);
-  const key = figure.specKey(spec);
+  const key = keyOf(spec, only);
   let e = figureSheets.get(key);
   if (!e) {
-    if (figureSheets.size >= FIGURE_SHEET_CAP) console.warn(`${figureSheets.size + 1} figure sheets: the atlas is shared with everything else (docs/19)`);
-    e = { id: `figure_${figureSeq++}`, inputs: structuredClone(inputs) };
-    registerSheet(e.id, figure.generateFigure(spec));
+    if (!only && figureSheetCount() >= FIGURE_SHEET_CAP) console.warn(`${figureSheetCount() + 1} figure sheets: the atlas is shared with everything else (docs/19)`);
+    if (only && corpseSheetCount() >= CORPSE_SHEET_CAP) console.warn(`${corpseSheetCount() + 1} corpse sheets: the atlas is shared with everything else (docs/19)`);
+    e = { id: `figure_${figureSeq++}`, inputs: structuredClone(inputs), only };
+    registerSheet(e.id, figure.generateFigure(spec, only));
     figureSheets.set(key, e);
   }
   return e.id;
@@ -149,8 +156,8 @@ export function rebakeFigures() {
   const next = new Map();
   for (const e of figureSheets.values()) {
     const spec = figure.characterSpec(e.inputs);
-    out.push(replaceSheet(e.id, figure.generateFigure(spec)));
-    next.set(figure.specKey(spec), e);
+    out.push(replaceSheet(e.id, figure.generateFigure(spec, e.only)));
+    next.set(keyOf(spec, e.only), e);
   }
   figureSheets.clear();
   for (const [k, v] of next) figureSheets.set(k, v);
@@ -158,7 +165,15 @@ export function rebakeFigures() {
 }
 
 export function figureSheetCount() {
-  return figureSheets.size;
+  let n = 0;
+  for (const e of figureSheets.values()) if (!e.only) n++;
+  return n;
+}
+
+export function corpseSheetCount() {
+  let n = 0;
+  for (const e of figureSheets.values()) if (e.only) n++;
+  return n;
 }
 
 // A sheet made in code (held art, the shared figures), by id.

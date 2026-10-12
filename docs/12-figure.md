@@ -1,5 +1,7 @@
 # Milestone 6: the figure
 
+**Update, 2026-10-12 (`19-characters.md`):** every figure is now drawn from `characterSpec(characterInputs(character))`, so what a character wears decides how it looks. The dead's ten outfits are data (`data/wardrobes.json`, written from the old generator's rules and verified pixel for pixel), a worn entry may carry a **dye** (`colour` for its first tone, `colours` for all), and characters in the same clothes share one baked sheet (`assets.sheetFor`), because a figure's sheet is about 1056 × 576 px and the atlas is shared. A body is one frame on its own sheet (`generateFigure(spec, { anim, frame, facing })`). Villagers dress from the `village` wardrobes. `playerSpec` and `zombieSpec(k)` remain as wrappers for the editors.
+
 The player and the dead drawn as a paper doll on a small rig: a naked body in undies, clothes as layers that match it exactly, items held at the hands, eight facings drawn, and a chunky big-headed proportion taken from Michael's reference art. All of it generated at boot through the sprite pipeline, so real art can replace a layer at a time later. Designed 2026-10-10 from the conversation in `02-decisions.md` under that date; what the parent drew is in `01-parents.md`.
 
 The pair of rulings this grows from: everything the character wears is a slot (`11-character.md`), and dev art goes as far as it can before anyone is paid (`00-vision.md`, Laws: build it the way it is truly wanted, then measure).
