@@ -334,6 +334,8 @@ function update(dt) {
   }
   // The bow draws on the left button, a throw on the middle one (or Q); the right button held braces a bow (docs/21).
   const onAlt = !!launcher && launcher.button === "alt";
+  // The main hand's other melee mode on the middle button (docs/21): the halberd's thrust.
+  if (!onAlt && buttons.alt.pressed && !archery.drawState() && combat.altWeaponOf(player)) combat.tryAttack(player, zombies, "main", "alt");
   const bracing = buttons.off.down && !!launcher && launcher.kind === "bow";
   // The off hand's weapon swings while the right button is held (docs/21), on its own cooldown.
   if (buttons.off.hold && !player.blocking && !archery.drawState() && combat.offWeaponOf(player)) combat.tryAttack(player, zombies, "off");
@@ -682,7 +684,7 @@ async function boot() {
   assets.registerSheet("spear", archery.generateSpear()); // the thrown spear
   assets.registerSheet("burn", burning.generateSheet()); // flames, embers, and smoke on a burning figure (docs/05)
   // The held art, generated like everything else (docs/12). The dead's sheets are made as they are dressed (docs/19).
-  for (const def of items.allItems()) if (def.held) assets.registerSheet(`held_${def.id}`, figure.generateHeld(def.held.shape, def.held.colours));
+  for (const def of items.allItems()) if (def.held) assets.registerSheet(`held_${def.id}`, figure.generateHeld(def.held.shape, def.held.colours, def.held.size));
   for (const def of items.allItems()) if (def.shield) assets.registerSheet("held_shield_guard", figure.generateHeld("shield_guard", def.held.colours)); // the raised guard (docs/21)
   info = map.loadMap(json);
   player = createPlayer(info.spawn[0], info.spawn[1]);

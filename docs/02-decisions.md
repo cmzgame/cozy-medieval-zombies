@@ -39,6 +39,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-12 — The halberd's thrust and a longer picture (Michael)
+
+Michael loved the second mode and asked for a longer drawing to match the green hit outline. **Built:** a thrust on the middle button or `Q` (reach 3.0, a 12 degree arc, 40 damage, 1.1 s, nearest only), and a held picture that can be larger than 32 px with its own grip (the halberd's is 112 px, 52 px of pole forward of the hand). **Any weapon can carry an `alt` block now.** `21` has the numbers.
+
 ### 2026-10-12 — The weapon order, and the halberd (Michael)
 
 **Design principle: the mace is the strongest (crush the skull) and the sword second (cut off the head), even if they end up overtuned.** The halberd, roughed out the same day: two-handed, reach 2.3, damage 30 (below the sword), 0.8 s swing, no shield; a second mode (thrust on the middle button) is for later. Numbers and a measured kill time in `21`.

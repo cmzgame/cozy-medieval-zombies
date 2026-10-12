@@ -1045,11 +1045,12 @@ export { PART };
 export const HELD_SIZE = 32;
 const HELD_SHAPES = {
   halberd: (f, c) => {
-    // A long ash shaft, an axe blade on one side, a spike above and a hook behind (docs/21).
-    f.capsule(16, 4, 16, 31, 1.3, c(0, "#8a6a3a"));
-    f.poly([{ x: 16, y: 5 }, { x: 24, y: 6 }, { x: 25, y: 12 }, { x: 16, y: 14 }], c(1, "#b4b8c0"));
-    f.poly([{ x: 16, y: 0 }, { x: 17.8, y: 4 }, { x: 14.2, y: 4 }], c(1, "#b4b8c0"));
-    f.poly([{ x: 16, y: 8 }, { x: 11, y: 9 }, { x: 16, y: 11 }], c(1, "#b4b8c0"));
+    // A long ash shaft (the hand holds it at y 56, so 52 px reach forward), an axe blade on one
+    // side, a spike above and a hook behind (docs/21). Drawn in the 48 x 72 frame, centred on x 24.
+    f.capsule(24, 8, 24, 70, 1.4, c(0, "#8a6a3a"));
+    f.poly([{ x: 24, y: 10 }, { x: 36, y: 12 }, { x: 38, y: 24 }, { x: 24, y: 28 }], c(1, "#b4b8c0"));
+    f.poly([{ x: 24, y: 3 }, { x: 26.6, y: 10 }, { x: 21.4, y: 10 }], c(1, "#b4b8c0"));
+    f.poly([{ x: 24, y: 16 }, { x: 15, y: 18 }, { x: 24, y: 22 }], c(1, "#b4b8c0"));
   },
   shield_guard: (f, c) => {
     // The shield raised before the chest (docs/21): bigger, and centred on the grip so it
@@ -1115,9 +1116,12 @@ const HELD_SHAPES = {
   },
 };
 
-export function generateHeld(shape, colours = []) {
+// Where the hand holds a held picture in its upright drawing; the default is the 32 px frame's.
+const HELD_GRIPS = { halberd: { x: 24, y: 56 } };
+
+export function generateHeld(shape, colours = [], size = HELD_SIZE) {
   const draw = HELD_SHAPES[shape] || HELD_SHAPES.plank;
-  const S = HELD_SIZE;
+  const S = size;
   const N = HELD_ANGLES;
   // Draw upright once into a frame-sized scratch, then sample it rotated.
   const src = new Frame();
@@ -1129,7 +1133,7 @@ export function generateHeld(shape, colours = []) {
   canvas.height = S;
   const ctx = canvas.getContext("2d");
   const frames = {};
-  const grip = { x: 16, y: 20 }; // where the hand holds it, in the upright drawing
+  const grip = HELD_GRIPS[shape] || { x: 16, y: 20 }; // where the hand holds it, in the upright drawing
   for (let k = 0; k < N; k++) {
     const a = (k * (360 / N) * Math.PI) / 180;
     const cos = Math.cos(a);
@@ -1139,8 +1143,8 @@ export function generateHeld(shape, colours = []) {
     for (let y = 0; y < S; y++) {
       for (let x = 0; x < S; x++) {
         // Destination pixel relative to the grip, rotated back into the source.
-        const dx = x + 0.5 - 16;
-        const dy = y + 0.5 - 16;
+        const dx = x + 0.5 - S / 2;
+        const dy = y + 0.5 - S / 2;
         const sx = Math.floor(grip.x + dx * cos + dy * sin);
         const sy = Math.floor(grip.y - dx * sin + dy * cos);
         if (sx < 0 || sy < 0 || sx >= FW || sy >= FH) continue;
@@ -1163,7 +1167,7 @@ export function generateHeld(shape, colours = []) {
     const len = shape === "torch" ? 12 : 10;
     tips.push([Math.round(Math.sin(a) * len), Math.round(-Math.cos(a) * len)]);
   }
-  return { image: canvas, frames, anchor: [16, 16], animations: {}, facings: [], mirror: {}, tips };
+  return { image: canvas, frames, anchor: [S / 2, S / 2], animations: {}, facings: [], mirror: {}, tips };
 }
 
 // Which of the eight held angles a forearm direction (screen dx, dy) wants,

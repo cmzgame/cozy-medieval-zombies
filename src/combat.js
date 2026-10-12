@@ -62,6 +62,14 @@ export function weaponOf(player) {
   return def && def.weapon ? def.weapon : FISTS;
 }
 
+// The main hand's other melee mode, the middle button's (docs/21): the weapon's `alt` block laid
+// over its own numbers, or null. The halberd's thrust.
+export function altWeaponOf(player) {
+  const e = player.hands.main;
+  const def = e && items.getItem(e.id);
+  return def && def.weapon && def.weapon.alt ? { ...def.weapon, ...def.weapon.alt } : null;
+}
+
 // The weapon in the off hand, or null: a dual-wielded blow (docs/21). Not fists, not a
 // two-handed item (the same entry in both hands), not a shield.
 export function offWeaponOf(player) {
@@ -218,10 +226,10 @@ function kick(player) {
 // The left click. The swing resolves now, on the click: the cooldown is the
 // only rate limit, and an interrupted animation cannot lose it. Returns the
 // zombies hit, or null if nothing was swung.
-export function tryAttack(player, zombies, hand = "main") {
+export function tryAttack(player, zombies, hand = "main", mode = null) {
   const cd = hand === "off" ? "offCooldown" : "attackCooldown";
   if (!canAct(player) || (player[cd] || 0) > 0) return null;
-  const weapon = hand === "off" ? offWeaponOf(player) : weaponOf(player);
+  const weapon = hand === "off" ? offWeaponOf(player) : mode === "alt" ? altWeaponOf(player) : weaponOf(player);
   if (!weapon) return null;
   // A swing at zero stamina still lands, at half damage: never locked out of hitting.
   const tired = player.stamina <= 0;
