@@ -1045,7 +1045,7 @@ export { PART };
 export const HELD_SIZE = 32;
 const HELD_SHAPES = {
   halberd: (f, c) => {
-    // A long ash shaft (the hand holds it at y 56, so 52 px reach forward), an axe blade on one
+    // A long ash shaft (the hand holds it at y 64, so 61 px reach forward), an axe blade on one
     // side, a spike above and a hook behind (docs/21). Drawn in the 48 x 72 frame, centred on x 24.
     f.capsule(24, 8, 24, 70, 1.4, c(0, "#8a6a3a"));
     f.poly([{ x: 24, y: 10 }, { x: 36, y: 12 }, { x: 38, y: 24 }, { x: 24, y: 28 }], c(1, "#b4b8c0"));
@@ -1117,7 +1117,7 @@ const HELD_SHAPES = {
 };
 
 // Where the hand holds a held picture in its upright drawing; the default is the 32 px frame's.
-const HELD_GRIPS = { halberd: { x: 24, y: 56 } };
+const HELD_GRIPS = { halberd: { x: 24, y: 64 } };
 
 export function generateHeld(shape, colours = [], size = HELD_SIZE) {
   const draw = HELD_SHAPES[shape] || HELD_SHAPES.plank;

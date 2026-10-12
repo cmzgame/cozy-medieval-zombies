@@ -39,6 +39,12 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-12 — Multi-hit is the easy button, off by default (Michael)
+
+After a long play with sword and shield (no trees in the testing mode, so easier than the real map): **holding right to guard and backing away with a horde trailing has recreated Zomboid's walk-backwards play, and Michael likes it a lot**; he never uses multi-hit in Zomboid because it is the easy button, and it feels overpowered here for the same reason, "which tells you we've built a coherent combat system". **Ruled: the Multi-hit setting stays in the menu, 100 percent, and is off by default as the intended way to play** (the default was on; his own pane already had it off). No special rule for the guard: it already cuts what a blow does to 35 percent. **Open for him:** with multi-hit off by default, the halberd's sweep loses its crowd identity and becomes a forgiving-aim first-target blow against the thrust's narrow reach; one answer is to make the halberd's sweep cleave regardless of the setting (the only weapon that does, paid for in its slow swing and 12 stamina); not done.
+
+**The halberd tuned** the same night after "potentially OP": a slower swing and a larger stamina cost on both modes, a slightly shorter reach, a longer drawing (`21`).
+
 ### 2026-10-12 — The halberd's thrust and a longer picture (Michael)
 
 Michael loved the second mode and asked for a longer drawing to match the green hit outline. **Built:** a thrust on the middle button or `Q` (reach 3.0, a 12 degree arc, 40 damage, 1.1 s, nearest only), and a held picture that can be larger than 32 px with its own grip (the halberd's is 112 px, 52 px of pole forward of the hand). **Any weapon can carry an `alt` block now.** `21` has the numbers.
