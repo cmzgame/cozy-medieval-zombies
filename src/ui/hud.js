@@ -16,10 +16,10 @@ export function initHud() {
   root.innerHTML = `
     <div class="hud-row hud-moodles"></div>
     <div class="hud-row">
-      <div class="hud-health"><div class="hud-health-fill"></div><span class="hud-health-text"></span></div>
+      <div class="hud-health"><div class="hud-health-fill"></div><span class="hud-label">Health</span><span class="hud-health-text"></span></div>
     </div>
     <div class="hud-row">
-      <div class="hud-stamina"><div class="hud-stamina-fill"></div></div>
+      <div class="hud-stamina"><div class="hud-stamina-fill"></div><span class="hud-label">Stamina</span><span class="hud-stamina-text"></span></div>
     </div>
     <div class="hud-row hud-hands"></div>
     <div class="hud-clock"></div>
@@ -28,6 +28,7 @@ export function initHud() {
     fill: root.querySelector(".hud-health-fill"),
     text: root.querySelector(".hud-health-text"),
     stamina: root.querySelector(".hud-stamina"),
+    staminaText: root.querySelector(".hud-stamina-text"),
     staminaFill: root.querySelector(".hud-stamina-fill"),
     hands: root.querySelector(".hud-hands"),
     clock: root.querySelector(".hud-clock"),
@@ -49,6 +50,7 @@ export function updateHud({ player }) {
 
   const st = Math.max(0, Math.min(1, player.stamina / player.maxStamina));
   els.staminaFill.style.width = `${Math.round(st * 100)}%`;
+  els.staminaText.textContent = `${Math.round(st * 100)}%`;
   els.stamina.classList.toggle("winded", !!player.winded);
   // A blow met by the shield pulses the bar (docs/21): gold for a block, red for a broken guard.
   els.stamina.classList.toggle("blocked", player.blockFlash > 0 && !player.flashBroken);

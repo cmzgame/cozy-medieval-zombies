@@ -71,8 +71,9 @@ html, body {
 }
 
 .hud-stamina {
+  position: relative;
   width: 160px;
-  height: 6px;
+  height: 14px;
   background: #2a2630;
   border: 2px solid #55505f;
   border-radius: 3px;
@@ -131,10 +132,21 @@ html, body {
   transition: width 0.15s;
 }
 
-.hud-health-text {
+.hud-health-text,
+.hud-stamina-text {
   position: absolute;
   inset: 0;
-  text-align: center;
+  padding-right: 4px;
+  text-align: right;
+  font-size: 11px;
+  line-height: 14px;
+}
+
+/* "Health" and "Stamina" on the left of their bars, the numbers on the right. */
+.hud-label {
+  position: absolute;
+  left: 4px;
+  top: 0;
   font-size: 11px;
   line-height: 14px;
 }
@@ -271,7 +283,7 @@ html, body {
 }
 
 /* The swing timer (docs/21): two bars at bottom centre above the belt, the size and shape of the
-   health bar, labelled inside, gold; the exposure bar stays over the head. */
+   health bar, gold, unlabelled, always there and empty at rest; the exposure bar stays over the head. */
 #swing-bars {
   position: absolute;
   left: 50%;
@@ -303,16 +315,6 @@ html, body {
   height: 100%;
   width: 0;
   background: #e8c860;
-}
-
-.swing-bar-text {
-  position: absolute;
-  inset: 0;
-  text-align: center;
-  font-size: 11px;
-  line-height: 14px;
-  color: #fff;
-  text-shadow: 0 1px 0 #000, 0 0 3px #000;
 }
 
 .swing-timer {

@@ -1,8 +1,8 @@
 // The swing timer (Michael, 2026-10-12, after World of Warcraft's): while a weapon's swing
 // recovers, a bar in a fixed place on the HUD fills across exactly that recovery and goes away the
-// moment the next blow is ready, so the rhythm of a fight can be played, not guessed. One bar for
-// the main hand and, when an off-hand weapon swings (dual wielding, docs/21), one for the off hand;
-// each the size and shape of the health bar, labelled inside, gold. At bottom centre above the
+// moment the next blow is ready, so the rhythm of a fight can be played, not guessed. Two bars, the
+// main hand's and the off hand's (dual wielding, docs/21), always there, empty at rest;
+// each the size and shape of the health bar, gold, unlabelled (main hand on top, off hand under it). At bottom centre above the
 // belt, where nothing else of the HUD grows into it (the left stack's moodles grow upward).
 // The exposure bar is a different thing and stays over the head: the time left in which a blow
 // is amplified (docs/21), the most immediate danger near the character.
@@ -23,16 +23,14 @@ export function initSwingTimer() {
   hud = document.createElement("div");
   hud.id = "swing-bars";
   document.getElementById("ui").appendChild(hud);
-  for (const [k, label] of [["main", "Main hand"], ["off", "Off hand"]]) {
+  // Main hand on top, off hand under it, always there (empty when not swinging), so each keeps its place.
+  for (const k of ["main", "off"]) {
     const el = document.createElement("div");
-    el.className = "swing-bar";
+    el.className = `swing-bar swing-bar-${k}`;
     el.hidden = true;
     const fill = document.createElement("div");
     fill.className = "swing-bar-fill";
-    const text = document.createElement("span");
-    text.className = "swing-bar-text";
-    text.textContent = label;
-    el.append(fill, text);
+    el.appendChild(fill);
     hud.appendChild(el);
     bars[k] = { el, fill };
   }
@@ -55,9 +53,10 @@ export function updateSwingTimer(player) {
   const on = settings.get("swingTimer") && !player.dead;
   for (const [k, left, total] of [["main", player.attackCooldown, player.swingTotal], ["off", player.offCooldown, player.offSwingTotal]]) {
     const b = bars[k];
-    const show = on && left > 0 && total > 0;
-    b.el.hidden = !show;
-    if (show) b.fill.style.width = `${Math.round(Math.max(0, Math.min(1, 1 - left / total)) * 100)}%`;
+    b.el.hidden = !on;
+    // Empty when not swinging; filling across the recovery while it runs.
+    const swinging = left > 0 && total > 0;
+    b.fill.style.width = swinging ? `${Math.round(Math.max(0, Math.min(1, 1 - left / total)) * 100)}%` : "0%";
   }
   // Over the head: how long a blow is amplified (docs/21). Not part of the setting: it is danger, not rhythm.
   const showExp = !player.dead && player.exposedFor > 0;
