@@ -10,49 +10,42 @@ import { getSheet } from "../assets.js";
 import { createAnimation, playAnimation, advanceAnimation } from "../sprites.js";
 import { createCharacter } from "./character.js";
 import { rules } from "../rules.js";
+import { player as T } from "../tuning.js";
 
-export const PLAYER_SPEED = 3.0; // tiles per second
-export const PLAYER_RADIUS = 0.3;
-export const PLAYER_HP = 100;
-export const PLAYER_STAMINA = 100;
-export const SPRINT_MULT = 1.75;
-// The parent drained 40 per second: a sprint lasted 2.5 s, about a third of a
-// screen. Michael wanted longer (2026-10-09): 16 per second is just over 6 s,
-// about a screen and a half at 5.25 tiles per second.
-export const SPRINT_DRAIN = 16;
-export const STAMINA_REGEN = 22;
-export const SPRINT_RECOVER_AT = 20;
-// Aim originates from the chest, this many pixels above the feet.
-export const AIM_Y = 22;
-// Slow needs (docs/10): the cozy parent's drains, to be retuned with farming.
-// Hunger empties in ten real minutes, thirst in seven; at zero they take health.
-export const HUNGER_MAX = 100;
-export const THIRST_MAX = 100;
-export const HUNGER_DRAIN = HUNGER_MAX / 600;
-export const THIRST_DRAIN = THIRST_MAX / 420;
-export const STARVE_DAMAGE = 1.5; // hp per second at zero
-export const DEHYDRATE_DAMAGE = 2;
-export const DRINK_SIP = 50; // per drink from a waterskin
 
 export function createPlayer(gx, gy) {
   return {
-    ...createCharacter("player", gx, gy, { id: "player", speed: PLAYER_SPEED, radius: PLAYER_RADIUS, hp: PLAYER_HP }),
+    ...createCharacter("player", gx, gy, { id: "player", speed: T.speed, radius: T.radius, hp: T.hp }),
     sprite: "player", // its own sheet, rebuilt whenever their look or clothes change (main.js)
     aim: { sx: 0, sy: 1 },
-    stamina: PLAYER_STAMINA,
-    maxStamina: PLAYER_STAMINA,
+    stamina: T.stamina,
+    maxStamina: T.stamina,
     sprinting: false,
     winded: false,
     moving: false,
     climb: null, // { from, to, t } while climbing through a window
-    hunger: HUNGER_MAX,
-    maxHunger: HUNGER_MAX,
-    thirst: THIRST_MAX,
-    maxThirst: THIRST_MAX,
+    hunger: T.hungerMax,
+    maxHunger: T.hungerMax,
+    thirst: T.thirstMax,
+    maxThirst: T.thirstMax,
     auto: null, // auto-walk: { path, tiles, range, onArrive, goalTile }
     action: null, // a timed action in progress: { action, elapsed }
     drawing: false, // a bow drawn (docs/20); archery.js sets it
     moveMult: 1, // walking speed while a bow is drawn
+    // Combat's state on the player, declared here so the shape is in one place (docs/23a, D8):
+    // combat.js, inventory.js, bleed.js, and infection.js write these.
+    attackCooldown: 0, // seconds until the main hand may swing again
+    offCooldown: 0, // and the off hand
+    shoveCooldown: 0,
+    swingLock: 0, // seconds in which the other hand may not swing (two weapons never land on one frame)
+    lastHand: "main", // which hand swung last; the left button alternates them (docs/21)
+    exposedFor: 0, // seconds of the off-hand swing's exposure (docs/21)
+    blocking: false, // the shield up (the right button held)
+    blockFlash: 0, // seconds the shield flashes after a blow met it
+    flashBroken: false, // the flash is the red one of a broken guard
+    offMemory: null, // what a two-hander pushed out of the off hand, to come back (inventory.js)
+    bleed: null, // { stacks, left } while bleeding (bleed.js)
+    infection: null, // { since } once infected (infection.js)
   };
 }
 
@@ -62,10 +55,6 @@ export function damagePlayer(player, amount) {
   if (player.hp > 0) playAnimation(player.anim, "hurt", true);
 }
 
-// Climbing through a window: the body moves from where it stands to the tile
-// on the far side over CLIMB_TIME, ignoring walls and input. Slow and
-// committed on purpose: a window is a desperate exit, not a shortcut.
-export const CLIMB_TIME = 0.9;
 
 export function startClimb(player, win) {
   if (player.carrying) return;
@@ -77,7 +66,7 @@ export function startClimb(player, win) {
 function updateClimb(player, dt) {
   const c = player.climb;
   c.t += dt;
-  const k = Math.min(1, c.t / CLIMB_TIME);
+  const k = Math.min(1, c.t / T.climbTime);
   const ease = k * k * (3 - 2 * k);
   player.gx = c.from[0] + (c.to[0] - c.from[0]) * ease;
   player.gy = c.from[1] + (c.to[1] - c.from[1]) * ease;
@@ -86,7 +75,7 @@ function updateClimb(player, dt) {
 
 export function aimOrigin(player) {
   const p = iso.toScreen(player.gx, player.gy);
-  return { x: p.x, y: p.y - AIM_Y };
+  return { x: p.x, y: p.y - T.aimY };
 }
 
 // ---- needs ----
@@ -97,9 +86,9 @@ export function eat(player, def) {
   player.hp = Math.min(player.maxHp, player.hp + (def.heal || 0));
 }
 
-// A sip from a waterskin entry: up to DRINK_SIP of its fill.
+// A sip from a waterskin entry: up to T.drinkSip of its fill.
 export function drink(player, entry) {
-  const amount = Math.min(entry.fill ?? 0, DRINK_SIP, player.maxThirst - player.thirst + 1);
+  const amount = Math.min(entry.fill ?? 0, T.drinkSip, player.maxThirst - player.thirst + 1);
   if (amount <= 0) return false;
   entry.fill -= amount;
   player.thirst = Math.min(player.maxThirst, player.thirst + amount);
@@ -111,14 +100,14 @@ export function drink(player, entry) {
 // stay full, so the moodles never show.
 function updateNeeds(player, dt) {
   if (!rules.survival) {
-    player.hunger = player.maxHunger ?? HUNGER_MAX;
-    player.thirst = player.maxThirst ?? THIRST_MAX;
+    player.hunger = player.maxHunger ?? T.hungerMax;
+    player.thirst = player.maxThirst ?? T.thirstMax;
     return;
   }
-  player.hunger = Math.max(0, player.hunger - HUNGER_DRAIN * dt);
-  player.thirst = Math.max(0, player.thirst - THIRST_DRAIN * dt);
-  if (player.hunger <= 0) player.hp = Math.max(0, player.hp - STARVE_DAMAGE * dt);
-  if (player.thirst <= 0) player.hp = Math.max(0, player.hp - DEHYDRATE_DAMAGE * dt);
+  player.hunger = Math.max(0, player.hunger - (T.hungerMax / T.hungerDrainSeconds) * dt);
+  player.thirst = Math.max(0, player.thirst - (T.thirstMax / T.thirstDrainSeconds) * dt);
+  if (player.hunger <= 0) player.hp = Math.max(0, player.hp - T.starveDamage * dt);
+  if (player.thirst <= 0) player.hp = Math.max(0, player.hp - T.dehydrateDamage * dt);
 }
 
 // ---- auto-walk (copied from the cozy parent's player.js, 2026-10-10) ----
@@ -159,7 +148,7 @@ function followAuto(player, dt) {
     }
     const before = [player.gx, player.gy];
     const n = iso.normalize(dx, dy);
-    const step = Math.min(d, player.speed * (player.sprinting ? SPRINT_MULT : 1) * (player.moveMult ?? 1) * dt);
+    const step = Math.min(d, player.speed * (player.sprinting ? T.sprintMult : 1) * (player.moveMult ?? 1) * dt);
     const moved = moveCircle(player.gx, player.gy, player.radius, n.x * step, n.y * step);
     player.gx = moved.gx;
     player.gy = moved.gy;
@@ -209,22 +198,22 @@ export function updatePlayer(player, dt) {
   if (player.moving) player.auto = null;
 
   const wantSprint = input.isDown("ShiftLeft") || input.isDown("ShiftRight");
-  if (player.winded && player.stamina >= SPRINT_RECOVER_AT) player.winded = false;
+  if (player.winded && player.stamina >= T.sprintRecoverAt) player.winded = false;
   const anyMovement = player.moving || !!player.auto;
   player.sprinting = wantSprint && anyMovement && !player.winded && player.stamina > 0 && !player.carrying && !player.blocking;
   if (player.sprinting) {
-    player.stamina = Math.max(0, player.stamina - SPRINT_DRAIN * dt);
+    player.stamina = Math.max(0, player.stamina - T.sprintDrain * dt);
     if (player.stamina <= 0) player.winded = true;
   } else if (!player.blocking) {
     // Nothing comes back while the guard is up (docs/21): each block spends it, so the guard is finite.
-    player.stamina = Math.min(player.maxStamina, player.stamina + STAMINA_REGEN * dt);
+    player.stamina = Math.min(player.maxStamina, player.stamina + T.staminaRegen * dt);
   }
 
   let walking = player.moving;
   if (player.moving) {
     const f = iso.facingFromScreenVector(axis.x, axis.y);
     const [dx, dy] = iso.DIRS[f];
-    moveToward(player, dt, dx, dy, (player.sprinting ? SPRINT_MULT : 1) * (player.moveMult ?? 1));
+    moveToward(player, dt, dx, dy, (player.sprinting ? T.sprintMult : 1) * (player.moveMult ?? 1));
   } else if (player.auto) {
     walking = followAuto(player, dt);
   }

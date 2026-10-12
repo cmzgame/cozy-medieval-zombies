@@ -9,6 +9,12 @@ import * as grid from "./grid.js";
 export const WORN_SLOTS = ["head", "chest", "hands", "legs", "feet", "waist", "back"];
 
 // `container` names a bag for the panel's header.
+// A slot id, "kind:key" (a hand, a worn slot, a belt index, a bag cell), taken apart (docs/23a, E).
+export function parseSlot(id) {
+  const [kind, key] = id.split(":");
+  return { kind, key, index: Number(key) };
+}
+
 export function createBag(cols, rows, container = "bag") {
   return { cols, rows, items: [], container };
 }

@@ -10,6 +10,7 @@ import { getItem } from "../items.js";
 import * as grid from "../grid.js";
 import * as menu from "./context-menu.js";
 import * as view from "../view.js";
+import { parseSlot } from "../inventory.js";
 
 const CELL = 38; // internal pixels; the UI layer is scaled with the canvas
 const DRAG_THRESHOLD = 4; // screen pixels before a press becomes a drag
@@ -228,7 +229,7 @@ export function renderInventoryPanel(player, inv, container, belt) {
 // ---- hit testing ----
 
 function slotEntry(slotId) {
-  const [kind, key] = slotId.split(":");
+  const { kind, key } = parseSlot(slotId);
   const p = shown.player;
   if (!p) return null;
   if (kind === "worn") return p.worn[key] || null;

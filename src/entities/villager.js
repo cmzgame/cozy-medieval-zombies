@@ -10,15 +10,11 @@ import { createCharacter, wardrobeInto, dress, say } from "./character.js";
 import { getSheet } from "../assets.js";
 import { playAnimation, advanceAnimation } from "../sprites.js";
 import { emit } from "../events.js";
-import { createZombie, pickTargetAround, repath, followPath, separate, faceToward, roomOf, idleTime } from "./zombie.js";
+import { createZombie } from "./zombie.js";
+import { pickTargetAround, repath, followPath, separate, faceToward, roomOf, idleTime } from "./movement.js";
 import * as loop from "../loop.js";
+import { villager as T } from "../tuning.js";
 
-export const VILLAGER_SPEED = 1.4; // tiles per second: an amble, between the dead (1.0) and the player (3.0)
-export const VILLAGER_RADIUS = 0.3;
-export const WANDER_RADIUS = 4; // tiles from home a wander may reach
-export const TALK_TIME = 2; // seconds a poked villager stands and faces you, at least
-export const POKE_COOLDOWN_MS = 600;
-export const HURT_TIME = 0.35; // seconds a bitten villager flinches
 const DEAD_SKIN = "#9fbf88"; // what a turned villager's skin goes // as a wiggle's (interact.js): spam does not restart the line
 
 let nextId = 1;
@@ -28,7 +24,7 @@ let nextId = 1;
 // `wardrobe` indexes the village wardrobes in data/wardrobes.json.
 export function createVillager(gx, gy, { id = null, name = null, line = null, wardrobe = 0 } = {}) {
   const v = {
-    ...createCharacter("villager", gx, gy, { id: id || `v${nextId++}`, name, speed: VILLAGER_SPEED, radius: VILLAGER_RADIUS, hp: 100 }),
+    ...createCharacter("villager", gx, gy, { id: id || `v${nextId++}`, name, speed: T.speed, radius: T.radius, hp: 100 }),
     home: [gx, gy],
     state: "idle", // idle | wander | talk
     greeting: line || "Hey!",
@@ -54,12 +50,12 @@ export function updateVillager(v, dt, others) {
       separate(v, dt, others); // step aside from whoever is standing on them, the player included
       v.idleTimer -= dt;
       if (v.idleTimer <= 0) {
-        // A walkable tile within WANDER_RADIUS of home, on their own side of the walls
+        // A walkable tile within T.wanderRadius of home, on their own side of the walls
         // (the picker draws from a square; the leash is a circle).
         let target = null;
         for (let tries = 0; tries < 6 && !target; tries++) {
-          const t = pickTargetAround(v.home[0], v.home[1], WANDER_RADIUS, roomOf(v));
-          if (t && Math.hypot(t[0] - v.home[0], t[1] - v.home[1]) <= WANDER_RADIUS) target = t;
+          const t = pickTargetAround(v.home[0], v.home[1], T.wanderRadius, roomOf(v));
+          if (t && Math.hypot(t[0] - v.home[0], t[1] - v.home[1]) <= T.wanderRadius) target = t;
         }
         if (target) {
           repath(v, target);
@@ -112,7 +108,7 @@ export function damageVillager(v, amount) {
     return true;
   }
   v.state = "hurt";
-  v.hurtTimer = HURT_TIME;
+  v.hurtTimer = T.hurtTime;
   playAnimation(v.anim, "hurt", true);
   return false;
 }
@@ -142,13 +138,13 @@ export function turnVillager(v) {
 // whether it spoke (a second poke inside the cooldown does nothing).
 export function pokeVillager(v, player) {
   const now = loop.simTime() * 1000; // sim milliseconds (docs/23a, C2)
-  if (now - v.pokedAt < POKE_COOLDOWN_MS) return false;
+  if (now - v.pokedAt < T.pokeCooldownMs) return false;
   v.pokedAt = now;
   v.path = [];
   v.lastGoal = null;
   v.state = "talk";
   faceToward(v, player.gx - v.gx, player.gy - v.gy);
   say(v, v.greeting);
-  v.talkTimer = Math.max(TALK_TIME, v.line.left);
+  v.talkTimer = Math.max(T.talkTime, v.line.left);
   return true;
 }

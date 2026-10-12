@@ -47,15 +47,11 @@ import * as buildPalette from "./ui/build-palette.js";
 import * as shell from "./boot.js";
 import * as rng from "./rng.js";
 import * as rules from "./rules.js";
+import * as tuning from "./tuning.js";
 
 const V = view.view; // the world's size in its own pixels, kept current by view.js
 const MAP_FILE = "data/maps/square.json";
-const ACTIVE_TILES = 40; // the dead beyond this many tiles from the player do not think
-const EVICT_CHUNKS = 8; // wild chunks farther than this from the player are dropped, their dead asleep on record (docs/23a, B2)
-const CONTAINER_CLOSE_DIST = 2.0; // tiles: an open container closes when you walk away
 const ZOOM_PACE = 0.3; // seconds between wheel steps that count
-const BELT_LIGHT = 0.5; // a lit torch on the belt gives this much of its light (docs/02)
-const TWO_TORCHES = 1.35; // a torch in each hand: this much of one torch's light, and seen from this much further
 let lastZoomAt = 0;
 
 const canvas = document.getElementById("game");
@@ -220,7 +216,7 @@ function updateInventoryUi() {
   if (openBag) {
     let d = Infinity;
     for (const [tx, ty] of openBag.tiles) d = Math.min(d, Math.hypot(player.gx - tx, player.gy - ty));
-    if (d > CONTAINER_CLOSE_DIST) openBag = null;
+    if (d > tuning.world.containerCloseDist) openBag = null;
   }
   if (openBag && openBag.corpse) corpseWatch = openBag.corpse;
   if (corpseWatch) {
@@ -249,6 +245,7 @@ async function loadPaintedHair() {
   const indexes = await Promise.all(folders.map(([, folder]) => assets.loadJson(`${folder}/index.json`).catch(() => ({ styles: [] })))); // no folder yet: nothing painted
   await Promise.all(folders.flatMap(([slot, folder], i) => (indexes[i].styles || []).map(async (name) => figure.registerLayer(slot, name, await assets.loadJson(`${folder}/${name}.json`)))));
   figureKey = ""; // the pixels may have changed under the same name
+  figureQuick = "";
   // The dead and villagers rebake too, since their outfits draw from the painted pool.
   for (const sheet of assets.rebakeFigures()) gl.redrawSheet(sheet);
 }
@@ -256,12 +253,14 @@ async function loadPaintedHair() {
 // The player's sheet is rebuilt whenever their look or their clothes change
 // (docs/12): a few milliseconds, redrawn into the atlas in place.
 let figureKey = "";
+let figureQuick = "";
 function refreshFigure() {
-  // The swing's keyframe set follows the weapon in the main hand (docs/14).
-  const mainDef = player.hands.main && items.getItem(player.hands.main.id);
-  // A spear stabs in the one-handed style and throws in its own; the wind-up of a throw is the throw's.
-  const throwing = mainDef && mainDef.thrown && archery.drawState();
-  const style = (mainDef && ((throwing && mainDef.thrown.style) || (mainDef.weapon && mainDef.weapon.style) || (mainDef.bow && mainDef.bow.style) || (mainDef.thrown && mainDef.thrown.style))) || null;
+  // The swing's keyframe set follows the weapon in the main hand (docs/14); a spear's throw has its own.
+  const style = combat.styleOf(player, !!archery.drawState());
+  // What the sheet depends on, as ids: the cheap test every step; the spec and its key only when it changed (docs/23a, B7).
+  const quick = JSON.stringify([player.look, player.worn, player.hands, style, settings.get("paintedLayers") || null]);
+  if (quick === figureQuick) return;
+  figureQuick = quick;
   const spec = figure.characterSpec(figure.characterInputs(player, undefined, settings.get("paintedLayers") || {}, style));
   const key = figure.specKey(spec);
   if (key === figureKey) return;
@@ -324,7 +323,7 @@ function stepGame(dt) {
     const [ex, ey] = map.chunkCoord(Math.round(e.gx), Math.round(e.gy));
     return ex === cx && ey === cy;
   };
-  for (const [key, cx, cy] of map.evictFar(player.gx, player.gy, EVICT_CHUNKS, (cx, cy) => villagers.some((v) => inChunk(v, cx, cy)))) {
+  for (const [key, cx, cy] of map.evictFar(player.gx, player.gy, tuning.world.evictChunks, (cx, cy) => villagers.some((v) => inChunk(v, cx, cy)))) {
     const sleeping = [];
     zombies = zombies.filter((z) => !inChunk(z, cx, cy) || (sleeping.push(z), false));
     corpses = corpses.filter((z) => !inChunk(z, cx, cy) || (sleeping.push(z), false));
@@ -391,11 +390,11 @@ function stepGame(dt) {
   // The dead far from the player stand still: a stand-in for the records of
   // docs/03 until that milestone.
   for (const z of zombies) {
-    if (Math.abs(z.gx - player.gx) > ACTIVE_TILES || Math.abs(z.gy - player.gy) > ACTIVE_TILES) continue;
+    if (!nearPlayer(z)) continue;
     updateZombie(z, dt, player, others, villagers);
   }
   for (const v of villagers) {
-    if (Math.abs(v.gx - player.gx) > ACTIVE_TILES || Math.abs(v.gy - player.gy) > ACTIVE_TILES) continue;
+    if (!nearPlayer(v)) continue;
     updateVillager(v, dt, others);
   }
   // Villagers bitten through get up as the dead, in what they wore (docs/19).
@@ -425,7 +424,7 @@ function stepGame(dt) {
   const twoHanded = held && player.hands.main && player.hands.off && player.hands.main !== player.hands.off && items.getItem(player.hands.main.id).fire && items.getItem(player.hands.off.id).fire;
   const belted = held ? null : beltFire(inventory.beltOf(player));
   const fire = held || belted;
-  const strength = held ? (twoHanded ? TWO_TORCHES : 1) : BELT_LIGHT;
+  const strength = held ? (twoHanded ? tuning.world.twoTorches : 1) : tuning.world.beltLight;
   light.setCarrier(fire ? { gx: player.gx, gy: player.gy, radius: fire.radius * strength, flicker: fire.flicker || null, strength } : null);
   light.setBurners(burning.lights(everyone));
   light.update();
@@ -495,19 +494,15 @@ function render() {
     `chunk ${cx},${cy}  room ${playerRoom}${playerRoom > 0 ? (map.roomSealed(map.getRoom(playerRoom)) ? " sealed" : " open") : ""}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `ground ${groundLine()}\n` +
-    `villagers ${villagers.length}  zombies ${zombies.length}  corpses ${corpses.length}  chunks ${map.chunkCount()}  near ${zombies.filter((z) => Math.abs(z.gx - player.gx) <= ACTIVE_TILES && Math.abs(z.gy - player.gy) <= ACTIVE_TILES).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
+    `villagers ${villagers.length}  zombies ${zombies.length}  corpses ${corpses.length}  chunks ${map.chunkCount()}  near ${zombies.filter(nearPlayer).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
     `Tab: bag   C: character   1-4: belt   N: build   X: remove   Z: zoom   right-click: actions   Esc: close or pause   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
 }
 
 // ---- the panel's handlers: moves that involve a slot know the player ----
 
-function slotParts(id) {
-  const [kind, key] = id.split(":");
-  return { kind, key, index: Number(key) };
-}
 
 function slotGet(id) {
-  const { kind, key, index } = slotParts(id);
+  const { kind, key, index } = inventory.parseSlot(id);
   if (kind === "worn") return player.worn[key];
   if (kind === "belt") return inventory.beltOf(player)?.[index] ?? null;
   if (kind === "hand") return player.hands[key];
@@ -515,7 +510,7 @@ function slotGet(id) {
 }
 
 function slotSet(id, entry) {
-  const { kind, key, index } = slotParts(id);
+  const { kind, key, index } = inventory.parseSlot(id);
   if (kind === "worn") player.worn[key] = entry;
   else if (kind === "belt") {
     const belt = inventory.beltOf(player);
@@ -553,7 +548,7 @@ function panelHandlers() {
       return inventory.canStoreIn(entry);
     },
     canPlace(entry, slotId) {
-      const { kind, key, index } = slotParts(slotId);
+      const { kind, key, index } = inventory.parseSlot(slotId);
       const def = items.getItem(entry.id);
       if (kind === "worn") return def.wear === key;
       if (kind === "belt") {
@@ -570,13 +565,13 @@ function panelHandlers() {
     // Drop onto a worn or belt slot. An occupant goes to the bag or belt if
     // it can; an old bag on the back drops at your feet, since bags do not nest.
     placeInSlot(entry, from, slotId) {
-      const { kind, key } = slotParts(slotId);
+      const { kind, key } = inventory.parseSlot(slotId);
       const occupant = slotGet(slotId);
       if (occupant === entry) return;
       // One hand dragged onto the other swaps the two (Michael, 2026-10-12), instead of sending the
       // one in the way to the bag, when each is allowed in the other's hand.
       if (kind === "hand" && from.kind === "hand" && occupant) {
-        const fromKey = slotParts(from.id).key;
+        const fromKey = inventory.parseSlot(from.id).key;
         const allowed = (e, k) => { const h = items.getItem(e.id).hands; return h === "either" || h === k; };
         if (fromKey !== key && allowed(entry, key) && allowed(occupant, fromKey)) {
           player.hands[fromKey] = occupant;
@@ -687,6 +682,11 @@ function addTestingDead(spawn) {
   }
 }
 
+// Inside the box of tiles around the player where the dead and villagers think.
+function nearPlayer(e) {
+  return Math.abs(e.gx - player.gx) <= tuning.world.activeTiles && Math.abs(e.gy - player.gy) <= tuning.world.activeTiles;
+}
+
 // A file that may be missing: null instead of a failed boot (combat.json and
 // poses.json have built-in numbers behind them).
 async function optionalJson(path) {
@@ -728,6 +728,7 @@ async function boot() {
         assets.loadJson("data/loot.json"),
         assets.loadJson("data/wardrobes.json"),
       ]);
+      tuning.load(await optionalJson("data/tuning.json")); // the entities' numbers (docs/23a, D9)
       items.loadItems(itemsJson);
       placement.setBuildData(buildJson);
       if (combatJson) combat.setCombatData(combatJson); // the fists' and the shove's numbers (docs/14); the weapons' are on their items

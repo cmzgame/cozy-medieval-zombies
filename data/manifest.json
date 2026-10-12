@@ -1,5 +1,5 @@
 {
-  "version": "c480a3f2",
+  "version": "8e154676",
   "files": {
     "data/build.json": {"size": 392, "stamp": "d20c5483"},
     "data/combat.json": {"size": 2154, "stamp": "22f3d3c3"},
@@ -7,6 +7,7 @@
     "data/items.json": {"size": 8791, "stamp": "815fcaf1"},
     "data/loot.json": {"size": 1566, "stamp": "6e0d3325"},
     "data/poses.json": {"size": 1085, "stamp": "6cd9debd"},
+    "data/tuning.json": {"size": 1430, "stamp": "dfb347e9"},
     "data/wardrobes.json": {"size": 9038, "stamp": "d7c7b4b8"},
     "data/art/crops/crop_cabbage_0_tlbr.png": {"size": 262, "stamp": "f5a22bd1"},
     "data/art/crops/crop_cabbage_0_trbl.png": {"size": 267, "stamp": "ab8e55f2"},

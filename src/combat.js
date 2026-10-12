@@ -78,6 +78,14 @@ export function weaponOf(player) {
 
 // The main hand's other melee mode, the middle button's (docs/21): the weapon's `alt` block laid
 // over its own numbers, or null. The halberd's thrust.
+// The swing style the figure draws from (docs/14), by what the main hand holds:
+// a thrown weapon's own style while it is being thrown, else its weapon's, a bow's, or a thrown one's.
+export function styleOf(player, throwing = false) {
+  const def = player.hands.main && items.getItem(player.hands.main.id);
+  if (!def) return null;
+  return (throwing && def.thrown && def.thrown.style) || (def.weapon && def.weapon.style) || (def.bow && def.bow.style) || (def.thrown && def.thrown.style) || null;
+}
+
 export function altWeaponOf(player) {
   const e = player.hands.main;
   const def = e && items.getItem(e.id);

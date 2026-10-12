@@ -12,63 +12,30 @@ import { rules } from "../rules.js";
 import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, canStep, nearestWalkable, tileAt, getRoom, breachTarget, damageOpening, wayOpen, climbable, roomAt } from "../map.js";
-import { findPath } from "../pathfind.js";
+import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, damageOpening, wayOpen, climbable } from "../map.js";
 import { lineOfSight } from "../visibility.js";
 import * as light from "../light.js";
 import * as clock from "../clock.js";
 import { getSheet } from "../assets.js";
 import { createAnimation, playAnimation, advanceAnimation, isActiveFrame } from "../sprites.js";
 import { emit } from "../events.js";
+import { zombie as T } from "../tuning.js";
+import { idleTime, roomOf, faceToward, tileOf, repath, followPath, separate, pickTargetAround } from "./movement.js";
+// The walking is movement.js's, shared with the villagers (docs/23a, D7); still exported here for the files that import it from the dead.
+export { idleTime, roomOf, faceToward, repath, followPath, separate, pickTargetAround };
 
-export const ZOMBIE_SPEED = 1.0; // tiles per second: Romero shamblers
-export const ZOMBIE_SIGHT = 8; // tiles, in full light; scaled by the light on the player
-export const SIGHT_DARK_FRACTION = 0.35; // of full range when the player is unlit
-export const FLAME_RANGE = 12; // tiles: at full night the dead see a flame this far (docs/07)
-export const FLAME_PATIENCE = 8; // seconds after seeing the player before a flame can take over (Michael, 2026-10-10)
-const STUCK_TIME = 1.5; // seconds of no progress along a path before it is dropped
-export const ZOMBIE_CONTACT = 0.7;
-export const ZOMBIE_DAMAGE = 8;
-export const ZOMBIE_COOLDOWN = 1.2;
-export const ZOMBIE_HP = 100;
-export const ZOMBIE_REPATH = 0.3;
-export const ZOMBIE_RADIUS = 0.3;
-export const SEARCH_TIME = 10; // seconds spent looking around the last sighting
-export const BREACH_DAMAGE = 5; // per hit into an opening's stack (docs/09)
-export const ZOMBIE_CLIMB = 1.6; // seconds through a window, against the player's 0.9
-export const GROAN_TEXT = "Braaaains"; // what the dead say now and then (docs/19)
-export const GROAN_MIN = 20; // seconds between groans
-export const GROAN_MAX = 60;
-export const STAGGER = 0.3; // seconds a hit stops it (docs/14)
 // How a hit staggers (docs/02 question 29b, Michael: stun plus knockdown on every hit felt too strong).
 // `chance` is the default that a hit staggers at all (each weapon has its own `staggerChance`, by weight);
 // `immunity` is the seconds after a stagger ends in which another cannot start, so a stream of hits cannot
 // hold one of the dead forever. A bite under way is not cancelled by a stagger, only by a knockdown or a
 // weapon that `interrupts` (the heavy ones). Filled from data/combat.json.
 export const STAGGER_RULES = { chance: 0.5, immunity: 0.6 };
-export const DOWN_TIME = 2; // seconds on the floor after a knockdown
-export const GET_UP_TIME = 0.6; // seconds to rise, the fall played backwards
-export const KNOCK_TIME = 0.15; // a push is spread over this long, not a teleport
-const BREACH_REACH = 1.1; // tiles from the edge midpoint to hit it
-const SEARCH_RADIUS = 3; // tiles
-export const WANDER_IDLE_MIN = 1.5;
-export const WANDER_IDLE_MAX = 4.0;
-// How long the dead (and villagers) stand before wandering again; one place, one roll (docs/23a, E).
-export function idleTime() {
-  return rng.range(WANDER_IDLE_MIN, WANDER_IDLE_MAX);
-}
-const SEPARATION = 0.55;
-const SIGHT_CHECK = 0.25; // seconds between sight tests
-const ARRIVED = 0.6; // tiles: close enough to the last sighting to count as there
-// A failed search backs off for a second rather than retrying every frame,
-// which was a freeze waiting to happen on a map with no edge to stop a search.
-const REPATH_FAIL_BACKOFF = 1.0;
 
 let nextId = 1;
 
-export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false } = {}) {
+export function createZombie(gx, gy, { id = null, hp = T.hp, aggro = false } = {}) {
   const z = {
-    ...createCharacter("zombie", gx, gy, { id: id || `z${nextId++}`, speed: ZOMBIE_SPEED, radius: ZOMBIE_RADIUS, hp, maxHp: ZOMBIE_HP }),
+    ...createCharacter("zombie", gx, gy, { id: id || `z${nextId++}`, speed: T.speed, radius: T.radius, hp, maxHp: T.hp }),
     state: aggro ? "chase" : "idle",
     aggro,
     lastSeen: null, // [gx, gy] where the player was last seen
@@ -76,9 +43,9 @@ export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false 
     target: null, // who it is hunting right now: the player, or (the setting on) a villager it can see
     searchTimer: 0,
     path: [],
-    groanTimer: rng.float() * GROAN_MAX, // so the dead do not all groan together
+    groanTimer: rng.float() * T.groanMax, // so the dead do not all groan together
     repathTimer: 0,
-    sightTimer: rng.float() * SIGHT_CHECK,
+    sightTimer: rng.float() * T.sightCheck,
     lastGoal: null,
     idleTimer: idleTime(),
     attackCooldown: 0,
@@ -91,7 +58,7 @@ export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false 
     hits: [], // when the player's blows landed, for the third-hit rule (combat.js)
     stagger: 0, // seconds left of being stopped by a blow
     staggerImmune: 0, // seconds left in which a blow cannot stagger it again (STAGGER_RULES)
-    knock: null, // { x, y, left } a push being spread over KNOCK_TIME
+    knock: null, // { x, y, left } a push being spread over T.knockTime
     downTimer: 0, // seconds left on the floor
     upTimer: 0, // seconds left of getting up
     gettingUp: false,
@@ -105,11 +72,11 @@ export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false 
 // A blow met by a shield: the dead one's attack is lost and it reels for `seconds` (docs/21).
 export function staggerZombie(z, seconds, dir = null, push = 0) {
   if (z.dead || isDown(z)) return;
-  if (dir && push > 0) z.knock = { x: dir.x * push, y: dir.y * push, left: KNOCK_TIME };
+  if (dir && push > 0) z.knock = { x: dir.x * push, y: dir.y * push, left: T.knockTime };
   z.attackHit = false;
   if (z.state === "attack") {
     z.state = "chase";
-    z.attackCooldown = ZOMBIE_COOLDOWN;
+    z.attackCooldown = T.cooldown;
   }
   z.stagger = Math.max(z.stagger, seconds);
   playAnimation(z.anim, "hurt", true);
@@ -123,7 +90,7 @@ export function isDown(z) {
 function endClimb(z) {
   if (!z.climb) return;
   const c = z.climb;
-  const at = c.t / ZOMBIE_CLIMB < 0.5 ? c.from : c.to;
+  const at = c.t / T.climb < 0.5 ? c.from : c.to;
   z.gx = at[0];
   z.gy = at[1];
   z.climb = null;
@@ -133,14 +100,14 @@ function endClimb(z) {
 // along, `knockback` tiles of push, `knockdown` floors it, `stagger` seconds it
 // is stopped, `from` where the blow came from (the dead then know where). A
 // downed zombie takes the damage and nothing else. Returns { killed, downed }.
-export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown = false, stagger = STAGGER, staggerChance = STAGGER_RULES.chance, interrupts = false, from = null } = {}) {
+export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown = false, stagger = T.stagger, staggerChance = STAGGER_RULES.chance, interrupts = false, from = null } = {}) {
   if (z.dead) return { killed: false, downed: false };
   const wasDown = isDown(z);
   z.hp = Math.max(0, z.hp - amount);
   endClimb(z);
   z.path = [];
   z.lastGoal = null;
-  if (knockback > 0 && !wasDown) z.knock = { x: dir[0] * knockback, y: dir[1] * knockback, left: KNOCK_TIME };
+  if (knockback > 0 && !wasDown) z.knock = { x: dir[0] * knockback, y: dir[1] * knockback, left: T.knockTime };
   if (z.hp <= 0) {
     // Dead: the fall plays once and holds, the body stays, nothing thinks again.
     z.dead = true;
@@ -164,7 +131,7 @@ export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown
     z.attackHit = false;
     z.state = "down";
     z.breach = null;
-    z.downTimer = DOWN_TIME;
+    z.downTimer = T.downTime;
     z.gettingUp = false;
     z.stagger = 0;
     playAnimation(z.anim, "die", true);
@@ -187,7 +154,7 @@ export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown
 // Returns true when the zombie is not free to act this step.
 function updateHurt(z, dt, sheet) {
   if (z.knock) {
-    const k = Math.min(dt, z.knock.left) / KNOCK_TIME;
+    const k = Math.min(dt, z.knock.left) / T.knockTime;
     const moved = moveCircle(z.gx, z.gy, z.radius, z.knock.x * k, z.knock.y * k);
     z.gx = moved.gx;
     z.gy = moved.gy;
@@ -200,14 +167,14 @@ function updateHurt(z, dt, sheet) {
       z.downTimer -= dt;
       if (z.downTimer <= 0) {
         z.gettingUp = true;
-        z.upTimer = GET_UP_TIME;
+        z.upTimer = T.getUpTime;
       }
     } else {
-      // Rising is the fall backwards: the frames, last to first, over GET_UP_TIME.
+      // Rising is the fall backwards: the frames, last to first, over T.getUpTime.
       z.upTimer -= dt;
       z.anim.name = "die";
       z.anim.done = false;
-      z.anim.frame = Math.max(0, Math.min(3, Math.floor((Math.max(0, z.upTimer) / GET_UP_TIME) * 4)));
+      z.anim.frame = Math.max(0, Math.min(3, Math.floor((Math.max(0, z.upTimer) / T.getUpTime) * 4)));
       if (z.upTimer <= 0) {
         z.gettingUp = false;
         z.state = z.aggro && z.lastSeen ? "chase" : "idle";
@@ -228,10 +195,6 @@ function updateHurt(z, dt, sheet) {
   return false;
 }
 
-// The room the dead are standing in (0 outdoors).
-export function roomOf(z) {
-  return tileAt(Math.round(z.gx), Math.round(z.gy)).room;
-}
 
 // The room the dead want into: where they last saw the player.
 function goalRoom(z) {
@@ -260,18 +223,13 @@ function distTo(z, e) {
   return Math.hypot(e.gx - z.gx, e.gy - z.gy);
 }
 
-export function faceToward(z, dx, dy) {
-  if (dx === 0 && dy === 0) return;
-  const s = iso.gridDirToScreen(dx, dy);
-  z.facing = iso.facingFromScreenVector(s.sx, s.sy);
-}
 
 // Symmetric with the player's own sight: if you could see it, it can see you.
 // The range scales with the light on the player (the cozy parent's rule):
 // unlit at night about a third, in a pool or by day the whole of it.
 function canSee(z, player) {
   if (player.dead || !rules.zombieAggro) return false;
-  const range = ZOMBIE_SIGHT * (SIGHT_DARK_FRACTION + (1 - SIGHT_DARK_FRACTION) * light.lightAt(player.gx, player.gy));
+  const range = T.sight * (T.sightDarkFraction + (1 - T.sightDarkFraction) * light.lightAt(player.gx, player.gy));
   if (distTo(z, player) > range) return false;
   return lineOfSight(z.gx, z.gy, player.gx, player.gy);
 }
@@ -279,7 +237,7 @@ function canSee(z, player) {
 // A villager in sight, the same rule as the player's: the range scales with the
 // light on them, and a clear line.
 function canSeeCharacter(z, c, d) {
-  const range = ZOMBIE_SIGHT * (SIGHT_DARK_FRACTION + (1 - SIGHT_DARK_FRACTION) * light.lightAt(c.gx, c.gy));
+  const range = T.sight * (T.sightDarkFraction + (1 - T.sightDarkFraction) * light.lightAt(c.gx, c.gy));
   return d <= range && lineOfSight(z.gx, z.gy, c.gx, c.gy);
 }
 
@@ -300,14 +258,14 @@ function nearestPrey(z, villagers) {
 }
 
 // At night the dead see fire from far away (docs/02, 2026-10-09): the nearest
-// lit flame within FLAME_RANGE scaled by how dark it is, with a clear line.
+// lit flame within T.flameRange scaled by how dark it is, with a clear line.
 // A carried torch is a sighting of the player; any other flame is a sighting
 // at the flame, and the memory rule does the rest.
 function nearestFlame(z) {
   if (!rules.zombieAggro) return null;
   const nf = clock.nightFactor();
   if (nf <= 0) return null;
-  const range = FLAME_RANGE * nf;
+  const range = T.flameRange * nf;
   let best = null;
   let bestD = Infinity;
   for (const s of light.allSources()) {
@@ -321,88 +279,10 @@ function nearestFlame(z) {
   return best;
 }
 
-function tileOf(e) {
-  return [Math.round(e.gx), Math.round(e.gy)];
-}
 
-export function repath(z, goalTile) {
-  const path = findPath(tileOf(z), goalTile, canStep);
-  z.path = path || [];
-  z.pathFailed = path === null;
-  z.lastGoal = goalTile;
-  z.repathTimer = z.pathFailed ? REPATH_FAIL_BACKOFF : ZOMBIE_REPATH;
-}
 
-export function followPath(z, dt, others) {
-  if (!z.path.length) return true;
-  const [tx, ty] = z.path[0];
-  const dx = tx - z.gx;
-  const dy = ty - z.gy;
-  const d = Math.hypot(dx, dy);
-  if (d < 0.08) {
-    z.path.shift();
-    return z.path.length === 0;
-  }
-  const step = Math.min(d, z.speed * dt);
-  faceToward(z, dx, dy);
-  const sx = z.gx;
-  const sy = z.gy;
-  const moved = moveCircle(z.gx, z.gy, z.radius, (dx / d) * step, (dy / d) * step);
-  z.gx = moved.gx;
-  z.gy = moved.gy;
-  separate(z, dt, others);
-  // No progress for a while (a trunk, another body in a gap): drop the path
-  // rather than bounce on the spot (Michael, 2026-10-10). Progress is measured
-  // after the push that keeps bodies apart, or a walker pressed against someone
-  // steps forward, is shoved back, and never looks stuck (Michael, 2026-10-12:
-  // two villagers walking into the player for good).
-  const gained = Math.hypot(z.gx - sx, z.gy - sy);
-  z.stuckTime = gained < step * 0.25 ? z.stuckTime + dt : 0;
-  if (z.stuckTime > STUCK_TIME) {
-    z.stuckTime = 0;
-    z.path = [];
-    z.lastGoal = null;
-    z.repathTimer = REPATH_FAIL_BACKOFF;
-    return true;
-  }
-  return false;
-}
 
-export function separate(z, dt, others) {
-  let px = 0;
-  let py = 0;
-  for (const o of others) {
-    if (o === z || o.dead || o.state === "down") continue; // the fallen and the dead block nothing (docs/14)
-    const dx = z.gx - o.gx;
-    const dy = z.gy - o.gy;
-    const d = Math.hypot(dx, dy);
-    if (d > 0 && d < SEPARATION) {
-      const f = (SEPARATION - d) / SEPARATION;
-      px += (dx / d) * f;
-      py += (dy / d) * f;
-    } else if (d === 0) {
-      px += rng.float() - 0.5;
-      py += rng.float() - 0.5;
-    }
-  }
-  if (px !== 0 || py !== 0) {
-    const moved = moveCircle(z.gx, z.gy, z.radius, px * dt * 2, py * dt * 2);
-    z.gx = moved.gx;
-    z.gy = moved.gy;
-  }
-}
 
-// A walkable tile near (x, y) on the same side of the walls as `room`: a
-// zombie outside a cottage searching for someone seen inside walks the yard,
-// not into the wall (Michael, 2026-10-10: pacing at the window).
-export function pickTargetAround(x, y, radius, room = 0) {
-  for (let tries = 0; tries < 12; tries++) {
-    const tx = Math.round(x) + rng.int(radius * 2 + 1) - radius;
-    const ty = Math.round(y) + rng.int(radius * 2 + 1) - radius;
-    if (isWalkableTile(tx, ty) && roomAt(tx, ty) === room) return [tx, ty]; // refinds the rooms if a wall changed (docs/23a, A5)
-  }
-  return null;
-}
 
 // Walk toward a goal tile, repathing on the interval or when the goal moves.
 function moveToward(z, dt, goalTile, others) {
@@ -424,7 +304,7 @@ function moveToward(z, dt, goalTile, others) {
 
 function startSearch(z) {
   z.state = "search";
-  z.searchTimer = SEARCH_TIME;
+  z.searchTimer = T.searchTime;
   z.path = [];
   z.lastGoal = null;
   z.idleTimer = 0;
@@ -453,15 +333,15 @@ export function updateZombie(z, dt, player, others, villagers = null) {
   // A groan now and then, from the living dead only (a corpse is silent).
   z.groanTimer -= dt;
   if (z.groanTimer <= 0) {
-    if (!isDown(z)) say(z, GROAN_TEXT);
-    z.groanTimer = GROAN_MIN + rng.float() * (GROAN_MAX - GROAN_MIN);
+    if (!isDown(z)) say(z, T.groanText);
+    z.groanTimer = T.groanMin + rng.float() * (T.groanMax - T.groanMin);
   }
   if (updateHurt(z, dt, sheet)) return;
   // Climbing: slow, committed, no bite until it is through (docs/09).
   if (z.climb) {
     const c = z.climb;
     c.t += dt;
-    const k = Math.min(1, c.t / ZOMBIE_CLIMB);
+    const k = Math.min(1, c.t / T.climb);
     const ease = k * k * (3 - 2 * k);
     z.gx = c.from[0] + (c.to[0] - c.from[0]) * ease;
     z.gy = c.from[1] + (c.to[1] - c.from[1]) * ease;
@@ -479,7 +359,7 @@ export function updateZombie(z, dt, player, others, villagers = null) {
   z.sightTimer -= dt;
   z.sincePlayer += dt;
   if (z.sightTimer <= 0) {
-    z.sightTimer = SIGHT_CHECK;
+    z.sightTimer = T.sightCheck;
     z.seesNow = canSee(z, player);
     z.target = null;
     if (z.seesNow) {
@@ -500,7 +380,7 @@ export function updateZombie(z, dt, player, others, villagers = null) {
           z.state = "chase";
           z.repathTimer = 0;
         }
-      } else if (z.sincePlayer > FLAME_PATIENCE) {
+      } else if (z.sincePlayer > T.flamePatience) {
         // A flame only takes over once the player has been out of sight a while,
         // so a zombie you just pulled off a window does not turn straight back.
         const f = nearestFlame(z);
@@ -553,7 +433,7 @@ export function updateZombie(z, dt, player, others, villagers = null) {
     case "chase": {
       // A bite needs reach and a clear line: no biting through a wall.
       const d = distTo(z, tgt);
-      if (d <= ZOMBIE_CONTACT && z.seesNow) {
+      if (d <= T.contact && z.seesNow) {
         z.path = [];
         faceToward(z, tgt.gx - z.gx, tgt.gy - z.gy);
         if (z.attackCooldown <= 0) {
@@ -588,14 +468,14 @@ export function updateZombie(z, dt, player, others, villagers = null) {
           break;
         }
       }
-      const atSighting = Math.hypot(z.lastSeen[0] - z.gx, z.lastSeen[1] - z.gy) <= ARRIVED;
+      const atSighting = Math.hypot(z.lastSeen[0] - z.gx, z.lastSeen[1] - z.gy) <= T.arrived;
       if (!z.seesNow && (arrived || atSighting || z.pathFailed)) startSearch(z);
       break;
     }
     case "breach": {
       const b = z.breach;
       // A bite in reach beats a door; a goal that moved rooms drops the breach.
-      if (z.seesNow && distTo(z, tgt) <= ZOMBIE_CONTACT) {
+      if (z.seesNow && distTo(z, tgt) <= T.contact) {
         z.breach = null;
         z.state = "chase";
         break;
@@ -614,7 +494,7 @@ export function updateZombie(z, dt, player, others, villagers = null) {
       const mx = b.edge === "n" ? b.tx : b.tx - 0.5;
       const my = b.edge === "n" ? b.ty - 0.5 : b.ty;
       const dEdge = Math.hypot(mx - z.gx, my - z.gy);
-      if (dEdge > BREACH_REACH) {
+      if (dEdge > T.breachReach) {
         moveToward(z, dt, b.stand, others);
         if (z.pathFailed) {
           // Cannot even reach the opening: give the search a go instead.
@@ -651,10 +531,10 @@ export function updateZombie(z, dt, player, others, villagers = null) {
       }
       if (isActiveFrame(z.anim, sheet) && !z.attackHit) {
         z.attackHit = true;
-        damageOpening(b.wall, b.side, BREACH_DAMAGE);
+        damageOpening(b.wall, b.side, T.breachDamage);
       }
       if (z.anim.done) {
-        z.attackCooldown = ZOMBIE_COOLDOWN;
+        z.attackCooldown = T.cooldown;
         z.state = "breach";
       }
       break;
@@ -678,7 +558,7 @@ export function updateZombie(z, dt, player, others, villagers = null) {
         playAnimation(z.anim, "idle");
         z.idleTimer -= dt;
         if (z.idleTimer <= 0) {
-          const target = pickTargetAround(z.lastSeen[0], z.lastSeen[1], SEARCH_RADIUS, roomOf(z));
+          const target = pickTargetAround(z.lastSeen[0], z.lastSeen[1], T.searchRadius, roomOf(z));
           if (target) repath(z, target);
           z.idleTimer = rng.range(0.8, 2.0);
         }
@@ -688,13 +568,13 @@ export function updateZombie(z, dt, player, others, villagers = null) {
     case "attack": {
       if (isActiveFrame(z.anim, sheet) && !z.attackHit) {
         z.attackHit = true;
-        if (distTo(z, tgt) <= ZOMBIE_CONTACT + 0.2 && lineOfSight(z.gx, z.gy, tgt.gx, tgt.gy)) {
-          if (tgt === player) emit("playerHit", { zombie: z, damage: ZOMBIE_DAMAGE });
-          else emit("villagerHit", { zombie: z, villager: tgt, damage: ZOMBIE_DAMAGE });
+        if (distTo(z, tgt) <= T.contact + 0.2 && lineOfSight(z.gx, z.gy, tgt.gx, tgt.gy)) {
+          if (tgt === player) emit("playerHit", { zombie: z, damage: T.damage });
+          else emit("villagerHit", { zombie: z, villager: tgt, damage: T.damage });
         }
       }
       if (z.anim.done) {
-        z.attackCooldown = ZOMBIE_COOLDOWN;
+        z.attackCooldown = T.cooldown;
         z.state = "chase";
       }
       break;

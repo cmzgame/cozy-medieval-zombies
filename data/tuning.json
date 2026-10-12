@@ -1,0 +1,7 @@
+{
+  "note": "The entities' numbers (docs/23a, D9; src/tuning.js has each one's meaning). These are the values the code carried until 2026-10-12, the cozy parent's for the most part, never re-decided: docs/02 question 19 is answered by editing this file. A section or a key left out keeps its default.",
+  "zombie": { "speed": 1.0, "sight": 8, "sightDarkFraction": 0.35, "flameRange": 12, "flamePatience": 8, "stuckTime": 1.5, "contact": 0.7, "damage": 8, "cooldown": 1.2, "hp": 100, "repath": 0.3, "radius": 0.3, "searchTime": 10, "breachDamage": 5, "climb": 1.6, "groanText": "Braaaains", "groanMin": 20, "groanMax": 60, "stagger": 0.3, "downTime": 2, "getUpTime": 0.6, "knockTime": 0.15, "breachReach": 1.1, "searchRadius": 3, "wanderIdleMin": 1.5, "wanderIdleMax": 4.0, "separation": 0.55, "sightCheck": 0.25, "arrived": 0.6, "repathFailBackoff": 1.0 },
+  "player": { "speed": 3.0, "radius": 0.3, "hp": 100, "stamina": 100, "sprintMult": 1.75, "sprintDrain": 16, "staminaRegen": 22, "sprintRecoverAt": 20, "aimY": 22, "hungerMax": 100, "thirstMax": 100, "hungerDrainSeconds": 600, "thirstDrainSeconds": 420, "starveDamage": 1.5, "dehydrateDamage": 2, "drinkSip": 50, "climbTime": 0.9 },
+  "villager": { "speed": 1.4, "radius": 0.3, "wanderRadius": 4, "talkTime": 2, "pokeCooldownMs": 600, "hurtTime": 0.35 },
+  "world": { "activeTiles": 40, "evictChunks": 8, "containerCloseDist": 2.0, "beltLight": 0.5, "twoTorches": 1.35 }
+}
