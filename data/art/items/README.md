@@ -38,7 +38,7 @@ All art is authored at 1x and uses hard pixels only (alpha is 0 or 255). There i
 The five hand-drawn files cover 0° to 90°, tilting clockwise (orb to the right). Each angle was drawn from scratch rather than by rotating the upright picture, so the lines stay clean. Use them in place of nearest-pixel rotation:
 
 - **Angles from 90° to 180° (orb pointing down-right):** flip the matching 0°–90° file vertically and mirror its grip y.
-- **Angles from 180° to 360°:** flip horizontally and mirror the grip x.
+- **Angles from 180° to 270° (orb pointing down-left):** the drawn file at `angle - 180`, flipped **both** vertically and horizontally (mirror the grip x and y). **Angles from 270° to 360°:** the drawn file at `360 - angle`, flipped horizontally (mirror the grip x). *[Corrected 2026-10-12: this section first said "180° to 360°: flip horizontally", which is right only for 270° to 360°; `docs/art/07-items-and-icons.md` has the table, and the game's loader (`assets.heldSheetFromImage`, mode `angles`) already does it this way.]*
 
 Flipping moves the light to the wrong side on the mirrored angles. That's normal for sprites and nobody notices at 1x.
 
