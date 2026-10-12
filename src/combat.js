@@ -236,6 +236,7 @@ export function tryAttack(player, zombies, hand = "main", mode = null) {
   player.stamina = Math.max(0, player.stamina - weapon.stamina);
   if (player.stamina <= 0) player.winded = true;
   player[cd] = weapon.swing;
+  player[hand === "off" ? "offSwingTotal" : "swingTotal"] = weapon.swing; // the swing timer's whole (ui/swing-timer.js)
   playAnimation(player.anim, "attack", true);
   fx.wedge = { ttl: WEDGE_TIME, points: wedgePolygon(player, weapon) };
   emit("meleeSwing", { player, weapon });

@@ -43,6 +43,10 @@ Ruled by Michael on 2026-10-12 (`02-decisions.md`, question 29 and the log entry
 
 Tap 0.2 s; stab 1.9 / 40 / 30 / 0.6 / 6; spear break 0.5; brace move 0.2, brace draw 1.5x; guard arc 150, 15 percent through, 4 stamina a block, 0.5 s stagger, walk 0.75.
 
+## The swing timer (Michael, 2026-10-12)
+
+"A little bar above the player's head after you swing that shows precisely how long the cooldown lasts": World of Warcraft's swing timer, "a baseline client feature now". **Built** (`src/ui/swing-timer.js`, DOM over the canvas through `view.toUi` like the zombie bars): a thin gold bar over the head that appears when a weapon swings, fills across exactly that weapon's recovery (`attackCooldown` against the `swingTotal` the swing set), and is gone the moment the next blow is ready; a dual-wielded off-hand weapon has its own thinner bar under it. It follows each mode's own recovery (the halberd's sweep 0.95 s, its thrust 1.3 s). **A setting**, `Swing timer`, on by default. Not covered yet: the bow's draw and recovery, the thrown spear, and the shove (their own cooldowns; the draw already shows itself by the pose and the guide).
+
 ## The guard, second pass (Michael, after "Fixed!!", 2026-10-12)
 
 Ruled: **you can attack from behind the guard, for much less damage; walking with the guard up and with the free draw ("quick shot") is slowed by about 55 percent; protection is total in front and partial at the sides, and the guard must not be a place to live.** Built:

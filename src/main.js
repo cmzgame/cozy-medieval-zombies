@@ -23,6 +23,7 @@ import { createVillager, updateVillager, damageVillager, turnVillager } from "./
 import { initHud, updateHud } from "./ui/hud.js";
 import { initPrompt, updatePrompt, showMessage, updateMessage } from "./ui/prompt.js";
 import { initZombieBars, updateZombieBars } from "./ui/zombie-bars.js";
+import { initSwingTimer, updateSwingTimer } from "./ui/swing-timer.js";
 import { initSpeech, updateSpeech } from "./ui/speech.js";
 import * as archery from "./archery.js";
 import * as burning from "./fire.js";
@@ -408,6 +409,7 @@ function update(dt) {
   updateHud({ player });
   updatePrompt(interact.promptFor(player, progress), progress);
   updateZombieBars(zombies, visible, player);
+  updateSwingTimer(player);
   updateSpeech([player, ...zombies, ...villagers], visible, player, dt);
   updateMessage(dt);
   input.endStep();
@@ -725,6 +727,7 @@ async function boot() {
   initHud();
   initPrompt();
   initZombieBars();
+  initSwingTimer();
   initSpeech();
   menu.initContextMenu();
   const handlers = panelHandlers();
