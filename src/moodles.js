@@ -3,16 +3,31 @@
 // The rule: if you react to it within a second it is a bar; if you plan around
 // it, it is a moodle (docs/00, pillar 7; docs/10).
 
+import { stageOf as infectionStage } from "./infection.js";
+
 // Inline SVG placeholder glyphs, drawn in a 16×16 box with currentColor.
 const GLYPHS = {
   // A bowl with a spoon.
   hunger: `<path d="M2 8h12a6 6 0 0 1-12 0z" fill="currentColor"/><path d="M10 7l3-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>`,
+  // A virus: a ball with spikes (the infection marker, docs/02 question 29b).
+  infection: `<circle cx="8" cy="8" r="3.6" fill="currentColor"/><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2.1 2.1M10.5 10.5l2.1 2.1M12.6 3.4l-2.1 2.1M5.5 10.5l-2.1 2.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>`,
   // A droplet.
   thirst: `<path d="M8 1.5c2.6 3.4 4.5 5.8 4.5 8.2a4.5 4.5 0 0 1-9 0c0-2.4 1.9-4.8 4.5-8.2z" fill="currentColor"/>`,
 };
 
 // Order here is display order. `stageOf` returns 0 (hidden) to stages.length.
 export const MOODLES = [
+  {
+    id: "infection",
+    glyph: GLYPHS.infection,
+    stages: [
+      { name: "Bitten", text: "The bite broke the skin. You feel fine. Watch it." },
+      { name: "Fevered", text: "A chill and a headache. It is spreading." },
+      { name: "Sick", text: "Your hands shake. There is not much time." },
+      { name: "Turning", text: "It has taken hold. (Nothing happens yet: a marker.)" },
+    ],
+    stageOf: (player) => infectionStage(player),
+  },
   {
     id: "hunger",
     glyph: GLYPHS.hunger,

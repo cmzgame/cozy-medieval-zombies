@@ -12,6 +12,7 @@
 //      is a picture of a decision already made.
 
 import * as iso from "./iso.js";
+import { setInfectionData } from "./infection.js";
 import { lineOfSight } from "./visibility.js";
 import * as items from "./items.js";
 import * as loop from "./loop.js";
@@ -57,6 +58,7 @@ export function setCombatData(data) {
   Object.assign(SHOVE, data.shove || {});
   Object.assign(DUAL, data.dual || {});
   Object.assign(COMBO, data.combo || {});
+  setInfectionData(data.infection);
   Object.assign(FINISHER, data.finisher || {});
 }
 

@@ -27,6 +27,7 @@ import { initSwingTimer, updateSwingTimer } from "./ui/swing-timer.js";
 import { initSpeech, updateSpeech } from "./ui/speech.js";
 import * as archery from "./archery.js";
 import * as burning from "./fire.js";
+import * as infection from "./infection.js";
 import * as buttons from "./buttons.js";
 import { say, refreshCorpse } from "./entities/character.js";
 import * as menu from "./ui/context-menu.js";
@@ -761,7 +762,12 @@ async function boot() {
       },
     },
   });
-  events.on("playerHit", ({ zombie, damage }) => damagePlayer(player, combat.exposedTo(player, zombie, combat.guardAgainst(player, zombie, damage))));
+  events.on("playerHit", ({ zombie, damage }) => {
+    const taken = combat.exposedTo(player, zombie, combat.guardAgainst(player, zombie, damage));
+    damagePlayer(player, taken);
+    // A bite that landed may infect (a marker only for now, docs/02 question 29b).
+    if (infection.onBite(player, taken)) showMessage("The bite broke the skin.");
+  });
   // A blow met by the shield: sparks where they meet and a flash of the shield; a broken guard flashes red (docs/21).
   events.on("blocked", ({ zombie }) => {
     player.blockFlash = 0.14;
@@ -790,6 +796,7 @@ async function boot() {
   screens.show("title");
 
   window.__game = {
+    infection: { infect: () => infection.infect(player), cure: () => infection.cure(player), progress: () => infection.progress(player), config: infection.INFECTION }, // the infection marker (docs/02 question 29b)
     burning, // the fire test (docs/05): burning.tunables, burning.all()
     iso, input, loop, assets, events, map, camera, ground, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette, combat, gl,
     render: { night },

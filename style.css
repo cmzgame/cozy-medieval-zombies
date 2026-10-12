@@ -180,6 +180,12 @@ html, body {
 .moodle.stage-3 { background: #dc7440; }
 .moodle.stage-4 { background: #d04444; color: #fff0e8; }
 
+/* The infection goes green, yellow, orange, red (docs/02 question 29b). */
+.moodle[data-id="infection"].stage-1 { background: #7fbf5f; }
+.moodle[data-id="infection"].stage-2 { background: #e0d060; }
+.moodle[data-id="infection"].stage-3 { background: #e0884a; }
+.moodle[data-id="infection"].stage-4 { background: #d04444; color: #fff0e8; }
+
 .moodle.pop {
   animation: moodle-pop 0.45s ease-out;
 }
