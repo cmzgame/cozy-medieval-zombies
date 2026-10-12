@@ -40,6 +40,7 @@ export function createCharacter(kind, gx, gy, { id = null, name = null, speed = 
     line: null, // { text, until } while a speech bubble shows (docs/19)
     lootTable: null, // the table the pockets roll from on first search
     loot: null, // a body's grid, made on first search: what is still on it (docs/19)
+    lodged: 0, // arrows that hit it and stayed in it: they come out in its loot (docs/20)
     corpse: false, // the fall is over and the body is one frame (dressCorpse)
     corpseKey: "", // which worn garments the corpse is drawn in
     searched: false,
@@ -86,6 +87,12 @@ export function lootOf(ch) {
   ch.hands.off = null;
   if (ch.pockets) ch.pockets.items = [];
   for (const e of entries) if (!grid.insert(bag, e)) dropItem(Math.round(ch.gx), Math.round(ch.gy), e);
+  // The arrows that hit it, stacked: what did not fit lies at its feet.
+  if (ch.lodged > 0) {
+    const put = grid.add(bag, "arrow", ch.lodged);
+    for (let i = put; i < ch.lodged; i++) dropItem(Math.round(ch.gx), Math.round(ch.gy), { id: "arrow", count: 1 });
+    ch.lodged = 0;
+  }
   return bag;
 }
 

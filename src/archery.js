@@ -11,6 +11,7 @@ import * as iso from "./iso.js";
 import * as map from "./map.js";
 import { emit } from "./events.js";
 import { HELD_ANGLES, angleIndex } from "./figure.js";
+import * as settings from "./settings.js";
 import { getItem } from "./items.js";
 import { getSheet, idleFrame } from "./assets.js";
 import { damageZombie } from "./entities/zombie.js";
@@ -34,7 +35,6 @@ export const tunables = {
   hitRadius: 0.5, // tiles around the landing point that count as a hit (a body's radius 0.3 and a little)
   damage: 38, // at a full draw; scaled by 0.4 + 0.6 c (a bow's own `damage` overrides it)
   knockback: 0.2, // tiles of push along the arrow's ground direction
-  breakChance: 0.5, // of an arrow that hits one of the dead (a miss never breaks)
   wallHeight: 80, // px: an arrow below this is stopped by a wall (an opening's own heights let it through)
   trunkHeight: 40, // px: a trunk, a barrel: round obstacles block below this
   propHeight: 50, // px: a tile prop blocks below its own height, to at most this
@@ -79,7 +79,7 @@ export function preview(from, dir, distance, c = 1) {
 
 // Fire one. The landing point, the path, and the flight time are fixed here.
 // `from` is anyone with gx and gy (the archer). Returns the arrow.
-export function shoot(from, dir, distance, c = 1, { shooter = from, damage = tunables.damage, knockback = tunables.knockback, breakChance = tunables.breakChance } = {}) {
+export function shoot(from, dir, distance, c = 1, { shooter = from, damage = tunables.damage, knockback = tunables.knockback } = {}) {
   const p = preview(from, dir, distance, c);
   const T = Math.max(1 / 120, p.landing / tunables.speed);
   const a = {
@@ -87,7 +87,6 @@ export function shoot(from, dir, distance, c = 1, { shooter = from, damage = tun
     shooter,
     damage,
     knockback,
-    breakChance,
     stopD: null, // ground distance at which a wall, a trunk, or a prop stops it, or null
     stopWhy: null,
     x0: from.gx,
@@ -231,7 +230,10 @@ function land(a) {
   let keep = true;
   if (hit) {
     damageZombie(hit, Math.round(a.damage * (0.4 + 0.6 * a.c)), { dir: [a.dx, a.dy], knockback: a.knockback, from: [a.x0, a.y0] });
-    keep = Math.random() >= a.breakChance; // an arrow that hit the dead may break
+    // The arrow stays in the body (Michael): it comes out in the loot when the dead one is
+    // killed and searched, so getting it back means finishing the job. They stack up in there.
+    hit.lodged = (hit.lodged || 0) + 1;
+    keep = false;
   }
   if (keep) map.dropItem(Math.round(gx), Math.round(gy), { id: "arrow", count: 1, at: [gx, gy], angle: ground });
   emit("arrowLanded", { arrow: a, gx, gy, hit, kept: keep, stoppedBy: a.stopWhy });
@@ -441,7 +443,7 @@ export function releaseDraw(player, mouse) {
     return null;
   }
   const bow = bowOf(player) || {};
-  const a = shoot(player, aim.dir, aim.distance, c, { damage: bow.damage ?? tunables.damage, knockback: bow.knockback ?? tunables.knockback, breakChance: bow.breakChance ?? tunables.breakChance });
+  const a = shoot(player, aim.dir, aim.distance, c, { damage: bow.damage ?? tunables.damage, knockback: bow.knockback ?? tunables.knockback });
   recover = tunables.recoverTime;
   setPose(player, 3);
   emit("arrowShot", { player, arrow: a, c });
@@ -474,8 +476,13 @@ export function updateDraw(player, dt, ctx) {
   draw.t += dt;
   draw.c = Math.min(1, draw.t / bow.drawTime);
   const aim = aimFrom(player, ctx.mouse);
-  const p = preview(player, aim.dir, aim.distance, draw.c);
-  setMarker({ from: [player.gx, player.gy], full: p.full, land: p.land });
+  // The guide (docs/20): where this draw would land, and the line out to the full draw's. A setting.
+  if (settings.get("aimGuide")) {
+    const p = preview(player, aim.dir, aim.distance, draw.c);
+    setMarker({ from: [player.gx, player.gy], full: p.full, land: p.land });
+  } else {
+    setMarker(null);
+  }
   player.moveMult = tunables.drawSpeed;
   setPose(player, draw.c < 0.35 ? 0 : draw.c < 0.8 ? 1 : 2);
   const down = draw.source === "script" ? true : ctx.down;
