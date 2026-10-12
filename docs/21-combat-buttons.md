@@ -4,7 +4,7 @@ Ruled by Michael on 2026-10-12 (`02-decisions.md`, question 29 and the log entry
 
 ## Status
 
-Not built. Steps below, in order, each verified before the next.
+**Steps 1 and 2 built and verified (2026-10-12).** Step 1: the buttons (a hold opens nothing; a tap opens the menu on release; a tap during a draw cancels it and keeps the arrow; the middle button and `Q` both read as `alt`). Step 2: the spear stabs on the left (100 to 70 hp at 1.4 tiles; the left button no longer starts a draw with a spear), throws on the middle button or `Q` (a draw, the hand empty at release), may break (26 of 60 in a test, about the 0.5 set), and `canHold` refuses a stick beside a spear and allows a torch; the bow braces on the held right button (walk 0.2 against the draw's 0.5; a draw 0.6 s long is a full 1.0 braced and 0.67 plain). Steps 3 and 4 are not built.
 
 ## The convention
 

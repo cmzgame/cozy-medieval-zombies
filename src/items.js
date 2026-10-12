@@ -78,8 +78,23 @@ export function canHold(hands, id, prefer = null) {
   const it = items.get(id);
   if (!it || !it.hands) return false;
   if (it.hands === "both") return !hands.main && !hands.off;
-  if (it.hands === "either") return prefer ? !hands[prefer] : !hands.main || !hands.off;
-  return !hands[it.hands];
+  if (it.hands === "either" ? !(prefer ? !hands[prefer] : !hands.main || !hands.off) : hands[it.hands]) return false;
+  return !dualRefused(hands, it);
+}
+
+// A weapon for the dual rule: a blow, a bow, or a throw (a torch is a light, not a weapon).
+function isWeapon(def) {
+  return !!((def.weapon && !def.fire) || def.bow || def.thrown);
+}
+
+// A spear is never held beside another weapon (`noDual`, docs/21); a shield or a torch is fine.
+function dualRefused(hands, it) {
+  for (const slot of ["main", "off"]) {
+    const other = hands[slot] && items.get(hands[slot].id);
+    if (!other) continue;
+    if ((it.noDual && isWeapon(other)) || (other.noDual && isWeapon(it))) return true;
+  }
+  return false;
 }
 
 // The hand an "either" item would take now: the preferred one if free, else

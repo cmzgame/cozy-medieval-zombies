@@ -31,7 +31,9 @@ export const tunables = {
   drawTime: 0.9, // seconds to a full draw (a bow's own `drawTime` overrides it)
   minDraw: 0.15, // a release before this fraction of a draw is a dry release: nothing flies
   minDistance: 1, // tiles: a cursor closer than this still shoots this far
-  drawSpeed: 0.5, // walking speed while a bow is drawn (Minecraft slows you to a crawl)
+  drawSpeed: 0.5,
+  braceMove: 0.2, // walking speed with the right button held and a bow in hand (docs/21)
+  braceDrawRate: 1.5, // the draw fills this many times faster when braced: 0.9 s becomes 0.6 // walking speed while a bow is drawn (Minecraft slows you to a crawl)
   recoverTime: 0.22, // seconds after a shot before the next draw can begin
   hitRadius: 0.5, // tiles around the landing point that count as a hit (a body's radius 0.3 and a little)
   damage: 38, // at a full draw; scaled by 0.4 + 0.6 c (a bow's own `damage` overrides it)
@@ -81,13 +83,14 @@ export function preview(from, dir, distance, c = 1, range = tunables.range) {
 // Fire one. The landing point, the path, and the flight time are fixed here.
 // `from` is anyone with gx and gy (the archer). Returns the arrow.
 export function shoot(from, dir, distance, c = 1, o = {}) {
-  const { shooter = from, damage = tunables.damage, knockback = tunables.knockback, range = tunables.range, speed = tunables.speed, arcMin = tunables.arcMin, arcMax = tunables.arcMax, z0 = tunables.z0, projectile = "arrow", item = null } = o;
+  const { shooter = from, damage = tunables.damage, knockback = tunables.knockback, range = tunables.range, speed = tunables.speed, arcMin = tunables.arcMin, arcMax = tunables.arcMax, z0 = tunables.z0, projectile = "arrow", breakChance = 0, item = null } = o;
   const p = preview(from, dir, distance, c, range);
   const T = Math.max(1 / 120, p.landing / speed);
   const a = {
     kind: "arrow",
     projectile, // "arrow" or "spear": which picture, and which item lands or lodges
     item, // a thrown item's own entry, which is what lands (an arrow is made fresh)
+    breakChance, // of a thrown item: rolled as it comes down; a broken one is gone
     speed,
     z0,
     shooter,
@@ -234,18 +237,22 @@ function land(a) {
   let hit = null;
   if (a.stopD == null) hit = bodyAt(gx, gy);
   let keep = true;
+  const broken = a.breakChance > 0 && Math.random() < a.breakChance;
   if (hit) {
     damageZombie(hit, Math.round(a.damage * (0.4 + 0.6 * a.c)), { dir: [a.dx, a.dy], knockback: a.knockback, from: [a.x0, a.y0] });
     // The arrow stays in the body (Michael): it comes out in the loot when the dead one is
     // killed and searched, so getting it back means finishing the job. They stack up in there.
     const id = a.item ? a.item.id : "arrow";
-    hit.lodged = hit.lodged || {};
-    hit.lodged[id] = (hit.lodged[id] || 0) + 1;
+    if (!broken) {
+      hit.lodged = hit.lodged || {};
+      hit.lodged[id] = (hit.lodged[id] || 0) + 1;
+    }
     keep = false;
   }
+  if (broken) keep = false; // a spear that broke is gone: nothing lies there, nothing lodges
   // What lands is the thrown item itself (a spear keeps whatever it carries) or a fresh arrow.
   if (keep) map.dropItem(Math.round(gx), Math.round(gy), { ...(a.item || { id: "arrow", count: 1 }), at: [gx, gy], angle: ground });
-  emit("arrowLanded", { arrow: a, gx, gy, hit, kept: keep, stoppedBy: a.stopWhy });
+  emit("arrowLanded", { arrow: a, gx, gy, hit, kept: keep, broken, stoppedBy: a.stopWhy });
 }
 
 // ---- who can be hit ----
@@ -400,8 +407,9 @@ export function launcherOf(player) {
   const def = e && getItem(e.id);
   if (!def) return null;
   const common = { entry: e, range: tunables.range, speed: tunables.speed, arcMin: tunables.arcMin, arcMax: tunables.arcMax, z0: tunables.z0, drawTime: tunables.drawTime };
-  if (def.bow) return { ...common, ...def.bow, kind: "bow", ammo: "arrow", projectile: "arrow" };
-  if (def.thrown) return { ...common, ...def.thrown, kind: "thrown", ammo: null, projectile: def.thrown.projectile || def.id };
+  // `button` is the button that draws it (docs/21): the bow on the left, a throw on the middle.
+  if (def.bow) return { ...common, ...def.bow, kind: "bow", button: "primary", ammo: "arrow", projectile: "arrow" };
+  if (def.thrown) return { ...common, ...def.thrown, kind: "thrown", button: "alt", ammo: null, projectile: def.thrown.projectile || def.id };
   return null;
 }
 
@@ -459,7 +467,6 @@ export function beginDraw(player, bow, source = "mouse") {
 export function cancelDraw(player) {
   draw = null;
   player.drawing = false;
-  player.moveMult = 1;
   setMarker(null);
 }
 
@@ -482,7 +489,7 @@ export function releaseDraw(player, mouse) {
     item = { ...L.entry };
     release(player.hands, L.entry);
   }
-  const a = shoot(player, aim.dir, aim.distance, c, { damage: L.damage ?? tunables.damage, knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, item });
+  const a = shoot(player, aim.dir, aim.distance, c, { damage: L.damage ?? tunables.damage, knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, item });
   recover = tunables.recoverTime;
   setPose(player, 3);
   emit("arrowShot", { player, arrow: a, c });
@@ -512,7 +519,8 @@ export function updateDraw(player, dt, ctx) {
     cancelDraw(player);
     return;
   }
-  draw.t += dt;
+  // Braced (the right button held with a bow), the draw fills faster; the walk is slower (main.js).
+  draw.t += dt * (ctx.brace && bow.kind === "bow" ? tunables.braceDrawRate : 1);
   draw.c = Math.min(1, draw.t / bow.drawTime);
   const aim = aimFrom(player, ctx.mouse);
   // The guide (docs/20): where this draw would land, and the line out to the full draw's. A setting.
@@ -522,7 +530,6 @@ export function updateDraw(player, dt, ctx) {
   } else {
     setMarker(null);
   }
-  player.moveMult = tunables.drawSpeed;
   setPose(player, draw.c < 0.35 ? 0 : draw.c < 0.8 ? 1 : 2);
   const down = draw.source === "script" ? true : ctx.down;
   if (!down) releaseDraw(player, ctx.mouse);

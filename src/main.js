@@ -255,7 +255,9 @@ let figureKey = "";
 function refreshFigure() {
   // The swing's keyframe set follows the weapon in the main hand (docs/14).
   const mainDef = player.hands.main && items.getItem(player.hands.main.id);
-  const style = (mainDef && ((mainDef.weapon && mainDef.weapon.style) || (mainDef.bow && mainDef.bow.style) || (mainDef.thrown && mainDef.thrown.style))) || null;
+  // A spear stabs in the one-handed style and throws in its own; the wind-up of a throw is the throw's.
+  const throwing = mainDef && mainDef.thrown && archery.drawState();
+  const style = (mainDef && ((throwing && mainDef.thrown.style) || (mainDef.weapon && mainDef.weapon.style) || (mainDef.bow && mainDef.bow.style) || (mainDef.thrown && mainDef.thrown.style))) || null;
   const spec = figure.characterSpec(figure.characterInputs(player, undefined, settings.get("paintedLayers") || {}, style));
   const key = figure.specKey(spec);
   if (key === figureKey) return;
@@ -315,13 +317,26 @@ function update(dt) {
   // A left click swings; on a mushroom, a rock, or a tree (its visible pixels)
   // that thing sways too. No meaning yet: an in-world to-do (Michael, 2026-10-11).
   // With a bow in hand the left button is the draw, not a swing or a poke (docs/20).
-  if (clicked && !clickSpent && !archery.launcherOf(player)) {
+  const launcher = archery.launcherOf(player);
+  const bowHeld = !!launcher && launcher.button === "primary";
+  if (clicked && !clickSpent && !bowHeld && !archery.drawState()) {
     interact.pokeAt(input.getMouse().x, input.getMouse().y, player);
     interact.playAt(input.getMouse().x, input.getMouse().y, player); // the well's bucket, for fun
     interact.clickCharacterAt(input.getMouse().x, input.getMouse().y, player); // a villager answers (docs/19)
     combat.tryAttack(player, zombies);
   }
-  archery.updateDraw(player, dt, { pressed: clicked && !clickSpent, down: input.mouseLeftDown(), mouse: input.getMouse(), blocked: panel.isOpen() || menu.isMenuOpen() });
+  // The bow draws on the left button, a throw on the middle one (or Q); the right button held braces a bow (docs/21).
+  const onAlt = !!launcher && launcher.button === "alt";
+  const bracing = buttons.off.down && !!launcher && launcher.kind === "bow";
+  archery.updateDraw(player, dt, {
+    pressed: onAlt ? buttons.alt.pressed : clicked && !clickSpent,
+    down: onAlt ? buttons.alt.down : input.mouseLeftDown(),
+    brace: bracing,
+    mouse: input.getMouse(),
+    blocked: panel.isOpen() || menu.isMenuOpen(),
+  });
+  // One place decides the walking speed: braced slowest, a draw next (docs/21).
+  player.moveMult = bracing ? archery.tunables.braceMove : player.drawing ? archery.tunables.drawSpeed : 1;
   if (input.wasPressed("Space")) combat.tryShove(player, zombies);
   combat.updateCombat(player, zombies, dt);
   archery.update(dt);
