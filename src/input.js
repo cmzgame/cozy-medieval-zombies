@@ -13,6 +13,11 @@ const mouse = { x: 0, y: 0, inside: false };
 let leftDown = false;
 let leftJustPressed = false;
 let rightJustPressed = false;
+let rightDown = false;
+let rightReleased = false;
+let rightAt = { x: 0, y: 0 }; // where the right button went down: a tap opens its menu there (docs/21)
+let middleDown = false;
+let middleJustPressed = false;
 let wheelDelta = 0;
 
 let canvas = null;
@@ -34,6 +39,8 @@ export function init(targetCanvas) {
   const dropAll = () => {
     keys.clear();
     leftDown = false;
+    rightDown = false;
+    middleDown = false;
   };
   window.addEventListener("blur", dropAll);
   window.addEventListener("focus", dropAll);
@@ -56,10 +63,20 @@ export function init(targetCanvas) {
       leftJustPressed = true;
     } else if (e.button === 2) {
       rightJustPressed = true;
+      rightDown = true;
+      rightAt = { x: mouse.x, y: mouse.y };
+    } else if (e.button === 1) {
+      e.preventDefault(); // no autoscroll: the middle button is the main hand's other mode (docs/21)
+      middleDown = true;
+      middleJustPressed = true;
     }
   });
   window.addEventListener("mouseup", (e) => {
     if (e.button === 0) leftDown = false;
+    else if (e.button === 2 && rightDown) {
+      rightDown = false;
+      rightReleased = true;
+    } else if (e.button === 1) middleDown = false;
   });
   // No browser context menu anywhere in the game, canvas or DOM UI. Right-click
   // is a game input. The debug corner keeps the native menu so Inspect works.
@@ -97,6 +114,27 @@ export function mouseRightPressed() {
   return rightJustPressed;
 }
 
+export function mouseRightDown() {
+  return rightDown;
+}
+
+// The right button was let go since the last step (docs/21).
+export function mouseRightReleased() {
+  return rightReleased;
+}
+
+export function mouseRightAt() {
+  return rightAt;
+}
+
+export function mouseMiddleDown() {
+  return middleDown;
+}
+
+export function mouseMiddlePressed() {
+  return middleJustPressed;
+}
+
 export function getMouse() {
   return mouse;
 }
@@ -123,4 +161,6 @@ export function endStep() {
   justPressed.clear();
   leftJustPressed = false;
   rightJustPressed = false;
+  rightReleased = false;
+  middleJustPressed = false;
 }

@@ -26,6 +26,7 @@ import { initZombieBars, updateZombieBars } from "./ui/zombie-bars.js";
 import { initSpeech, updateSpeech } from "./ui/speech.js";
 import * as archery from "./archery.js";
 import * as burning from "./fire.js";
+import * as buttons from "./buttons.js";
 import { say, refreshCorpse } from "./entities/character.js";
 import * as menu from "./ui/context-menu.js";
 import * as panel from "./ui/inventory-panel.js";
@@ -81,24 +82,35 @@ const timing = { step: 0, stepMax: 0, vis: 0, maxResetAt: 0 };
 // (docs/10). Left click is kept free for selecting and placing things later
 // (Michael, 2026-10-10).
 function handleMouse() {
-  const m = input.getMouse();
-  if (input.mouseRightPressed()) {
-    // A mushroom or a rock wiggles; the menu still opens if it has actions
-    // other than walking there (none yet; question 27).
-    const poked = interact.pokeAt(m.x, m.y, player);
-    let actions = interact.actionsAt(m.x, m.y, player);
-    if (poked) {
-      // The thing clicked offers its own actions (a tree: Chop down), once each.
-      actions = actions.filter((a) => a.kind !== "walk" && !/^Walk/.test(a.label || ""));
-      for (const a of interact.actionsForProp(poked, player)) if (!actions.some((b) => b.label === a.label)) actions.push(a);
-    }
-    if (actions.length) {
-      const u = view.toUi(m.x, m.y);
-      menu.openContextMenu(u.x, u.y, actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => interact.runAction(player, a) })));
+  // A right tap is the actions menu, opened where it was pressed; the end of a
+  // draw spends it instead. The right button held is the off hand's stance (docs/21).
+  const tap = buttons.off.tap;
+  if (tap) {
+    if (archery.drawState()) {
+      archery.cancelDraw(player);
+      buttons.spendTap();
+    } else {
+      openActionsMenu(tap);
     }
   }
   menu.tookClick();
   if (menu.isMenuOpen() && player.moving) menu.closeContextMenu();
+}
+
+function openActionsMenu(m) {
+  // A mushroom or a rock wiggles; the menu still opens if it has actions
+  // other than walking there (none yet; question 27).
+  const poked = interact.pokeAt(m.x, m.y, player);
+  let actions = interact.actionsAt(m.x, m.y, player);
+  if (poked) {
+    // The thing clicked offers its own actions (a tree: Chop down), once each.
+    actions = actions.filter((a) => a.kind !== "walk" && !/^Walk/.test(a.label || ""));
+    for (const a of interact.actionsForProp(poked, player)) if (!actions.some((b) => b.label === a.label)) actions.push(a);
+  }
+  if (actions.length) {
+    const u = view.toUi(m.x, m.y);
+    menu.openContextMenu(u.x, u.y, actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => interact.runAction(player, a) })));
+  }
 }
 
 // Escape closes the top thing that can close: the menu (which closes itself
@@ -294,6 +306,7 @@ function update(dt) {
   }
   // A left click is placement's if it takes it, else a swing (docs/14), made
   // after the player has turned to the cursor this step.
+  buttons.update(dt);
   const clicked = input.mouseLeftPressed() && !menu.tookClick();
   const clickSpent = clicked && placement.tryConfirm(player);
   handleMouse();
