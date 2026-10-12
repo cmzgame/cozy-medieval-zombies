@@ -17,7 +17,7 @@ import * as light from "./light.js";
 import * as gl from "./gl.js";
 import * as ground from "./ground.js";
 import { renderScene, night } from "./render.js";
-import { createPlayer, updatePlayer, damagePlayer, autoWalk, eat, drink } from "./entities/player.js";
+import { createPlayer, updatePlayer, damagePlayer, eat, drink } from "./entities/player.js";
 import { createZombie, updateZombie } from "./entities/zombie.js";
 import { createVillager, updateVillager, damageVillager, turnVillager } from "./entities/villager.js";
 import { initHud, updateHud } from "./ui/hud.js";
@@ -30,13 +30,12 @@ import * as burning from "./fire.js";
 import * as infection from "./infection.js";
 import * as bleed from "./bleed.js";
 import * as buttons from "./buttons.js";
-import { say, refreshCorpse, createCharacter, wardrobeInto } from "./entities/character.js";
+import { refreshCorpse, createCharacter, wardrobeInto } from "./entities/character.js";
 import * as menu from "./ui/context-menu.js";
 import * as panel from "./ui/inventory-panel.js";
 import * as interact from "./interact.js";
 import * as items from "./items.js";
 import * as inventory from "./inventory.js";
-import * as grid from "./grid.js";
 import * as view from "./view.js";
 import * as settings from "./settings.js";
 import * as screens from "./ui/screens.js";
@@ -45,6 +44,9 @@ import * as placement from "./placement.js";
 import * as combat from "./combat.js";
 import * as buildPalette from "./ui/build-palette.js";
 import * as shell from "./boot.js";
+import { controlPlayer } from "./player-controller.js";
+import { createDevApi } from "./dev.js";
+import { createInventoryActions } from "./ui/inventory-actions.js";
 import * as rng from "./rng.js";
 import * as rules from "./rules.js";
 import * as tuning from "./tuning.js";
@@ -70,6 +72,8 @@ let info = null;
 let player = null;
 let zombies = []; // the dead that still think; the fallen move to corpses (docs/23a, B1)
 let corpses = [];
+let others = []; // the living, rebuilt each step; the interface reads it between steps
+let uiSimTime = 0; // the sim time the interface was last ticked to (docs/23a, F)
 let villagers = [];
 let tiles = [];
 let visible = new Set();
@@ -182,7 +186,6 @@ function updateInventoryUi() {
       openBag = null;
     }
     if (input.wasPressed("Tab") || input.wasPressed("KeyC")) showMessage("Your hands are full.");
-    panel.renderInventoryPanel(player, inventory.bagOf(player), null, inventory.beltOf(player));
     return;
   }
   // Tab opens the bag; with none worn it opens the character screen instead,
@@ -223,7 +226,6 @@ function updateInventoryUi() {
     refreshCorpse(corpseWatch); // what was taken from its grid comes off its body
     if (!openBag || openBag.corpse !== corpseWatch) corpseWatch = null;
   }
-  panel.renderInventoryPanel(player, inventory.bagOf(player), openBag ? openBag.bag : null, inventory.beltOf(player));
 }
 
 // The fire of a lit item on the belt, if any.
@@ -348,42 +350,20 @@ function stepGame(dt) {
   interact.updateInteract(player, dt);
   updatePlayer(player, dt);
   bleed.update(player, dt);
-  // A left click swings; on a mushroom, a rock, or a tree (its visible pixels)
-  // that thing sways too. No meaning yet: an in-world to-do (Michael, 2026-10-11).
-  // With a bow in hand the left button is the draw, not a swing or a poke (docs/20).
-  // The right button held with a shield in the off hand raises the guard (docs/21): you can
-  // still swing, stab, or throw from behind it, for much less damage (the shield's `attackMult`).
-  // It is not held through carrying or a climb. It does
-  // hold with the bag open (the world goes on while you look in it, and the bag is where weapons
-  // are swapped) and a menu open (a press outside the menu closes it).
-  const shield = combat.shieldOf(player);
-  player.blocking = !!shield && buttons.off.down && !player.carrying && !player.climb && !player.dead;
-  const launcher = archery.launcherOf(player);
-  const bowHeld = !!launcher && launcher.button === "primary";
-  if (clicked && !clickSpent && !bowHeld && !archery.drawState()) {
-    interact.pokeAt(input.getMouse().x, input.getMouse().y, player);
-    interact.playAt(input.getMouse().x, input.getMouse().y, player); // the well's bucket, for fun
-    interact.clickCharacterAt(input.getMouse().x, input.getMouse().y, player); // a villager answers (docs/19)
-    combat.swingFromLeft(player, zombies); // one weapon swings; two take turns (docs/21)
-  }
-  // The bow draws on the left button, a throw on the middle one (or Q); the right button held braces a bow (docs/21).
-  const onAlt = !!launcher && launcher.button === "alt";
-  // The main hand's other melee mode on the middle button (docs/21): the halberd's thrust.
-  if (!onAlt && buttons.alt.pressed && !archery.drawState() && combat.altWeaponOf(player)) combat.tryAttack(player, zombies, "main", "alt");
-  const bracing = buttons.off.down && !!launcher && launcher.kind === "bow";
-  archery.updateDraw(player, dt, {
-    pressed: onAlt ? buttons.alt.pressed : clicked && !clickSpent,
-    down: onAlt ? buttons.alt.down : input.mouseLeftDown(),
-    brace: bracing,
+  // The mouse and the keys, as a snapshot, to the player's controller (docs/23a, D1; never the input module).
+  controlPlayer(player, zombies, dt, {
+    clicked,
+    clickSpent,
     mouse: input.getMouse(),
+    leftDown: input.mouseLeftDown(),
+    altPressed: buttons.alt.pressed,
+    altDown: buttons.alt.down,
+    offDown: buttons.off.down,
+    space: input.wasPressed("Space"),
     blocked: panel.isOpen() || menu.isMenuOpen(),
   });
-  // One place decides the walking speed: braced slowest, a draw next (docs/21).
-  player.moveMult = (bracing ? archery.tunables.braceMove : player.drawing ? archery.tunables.drawSpeed : 1) * (player.blocking ? shield.moveMult : 1);
-  if (input.wasPressed("Space")) combat.tryShove(player, zombies);
-  combat.updateCombat(player, zombies, dt);
   archery.update(dt);
-  const others = [player, ...zombies, ...villagers]; // the living, who block and are hunted
+  others = [player, ...zombies, ...villagers]; // the living, who block and are hunted
   const everyone = [...others, ...corpses]; // and the fallen, who burn and are drawn
   burning.update(dt, everyone); // the burning, a visual (docs/05)
   progress = interact.updateAction(player, dt);
@@ -443,12 +423,6 @@ function stepGame(dt) {
   combat.markTargets(player, zombies, settings.get("showSwingTargets"));
   updateInventoryUi();
   refreshFigure();
-  updateHud({ player });
-  updatePrompt(interact.promptFor(player, progress), progress);
-  updateZombieBars(zombies, visible, player);
-  updateSwingTimer(player);
-  updateSpeech(others, visible, player, dt);
-  updateMessage(dt);
 }
 
 let squareTiles = [];
@@ -460,6 +434,23 @@ function applySquareSurface() {
 function groundLine() {
   const s = ground.stats();
   return `${s.baked} baked, last ${s.lastMs.toFixed(1)}ms, max ${s.maxMs.toFixed(1)}ms, ${s.textures} textures, ${s.syncBakes} at draw`;
+}
+
+// The interface, every frame rather than every step (docs/23a, F): it follows
+// the camera and a resize while paused, and its cost is not the step's. What it
+// ticks (a bubble's life, the message's fade) ticks on sim time, so it freezes
+// with the sim.
+function renderUi() {
+  const now = loop.simTime();
+  const dt = now - uiSimTime;
+  uiSimTime = now;
+  panel.renderInventoryPanel(player, inventory.bagOf(player), openBag ? openBag.bag : null, inventory.beltOf(player));
+  updateHud({ player });
+  updatePrompt(interact.promptFor(player, progress), progress);
+  updateZombieBars(zombies, visible, player);
+  updateSwingTimer(player);
+  updateSpeech(others, visible, player, dt);
+  updateMessage(dt);
 }
 
 function render() {
@@ -485,6 +476,7 @@ function render() {
   };
   if (!glError) drawn = renderScene(scene);
   timing.render = performance.now() - r0;
+  renderUi();
   const [cx, cy] = map.chunkCoord(Math.round(player.gx), Math.round(player.gy));
   const hand = (e) => (e ? e.id : "-");
   debugEl.textContent =
@@ -498,155 +490,7 @@ function render() {
     `Tab: bag   C: character   1-4: belt   N: build   X: remove   Z: zoom   right-click: actions   Esc: close or pause   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
 }
 
-// ---- the panel's handlers: moves that involve a slot know the player ----
 
-
-function slotGet(id) {
-  const { kind, key, index } = inventory.parseSlot(id);
-  if (kind === "worn") return player.worn[key];
-  if (kind === "belt") return inventory.beltOf(player)?.[index] ?? null;
-  if (kind === "hand") return player.hands[key];
-  return null;
-}
-
-function slotSet(id, entry) {
-  const { kind, key, index } = inventory.parseSlot(id);
-  if (kind === "worn") player.worn[key] = entry;
-  else if (kind === "belt") {
-    const belt = inventory.beltOf(player);
-    if (belt) belt[index] = entry;
-  } else if (kind === "hand") {
-    // Clearing a hand releases the entry (from both hands if it is two-handed);
-    // filling one goes through equip in placeInSlot, so this only clears.
-    if (entry) items.hold(player.hands, entry, key);
-    else if (player.hands[key]) items.release(player.hands, player.hands[key]);
-  }
-}
-
-// Take an entry out of where a drag started.
-function detachFrom(entry, from) {
-  if (from.kind === "bag") grid.remove(from.bag, entry);
-  else if (slotGet(from.id) === entry) slotSet(from.id, null);
-}
-
-function restoreTo(entry, from) {
-  if (from.kind === "bag") {
-    if (!grid.insert(from.bag, entry)) map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
-  } else slotSet(from.id, entry);
-}
-
-function panelHandlers() {
-  return {
-    changed() {},
-    belt() {
-      return inventory.beltOf(player);
-    },
-    isItemBag(bag) {
-      return bag === inventory.bagOf(player);
-    },
-    canStore(entry) {
-      return inventory.canStoreIn(entry);
-    },
-    canPlace(entry, slotId) {
-      const { kind, key, index } = inventory.parseSlot(slotId);
-      const def = items.getItem(entry.id);
-      if (kind === "worn") return def.wear === key;
-      if (kind === "belt") {
-        // Hand items, one at a time, or consumables as a stack.
-        const belt = inventory.beltOf(player);
-        if (!belt || index >= belt.length) return false;
-        if (def.hands) return entry.count === 1;
-        return def.kind === "food" || !!def.capacity;
-      }
-      // A hand takes what fits it; an occupant swaps out if it can be stowed.
-      if (kind === "hand") return !!def.hands && entry.count === 1 && (def.hands === "both" || def.hands === "either" || def.hands === key);
-      return false;
-    },
-    // Drop onto a worn or belt slot. An occupant goes to the bag or belt if
-    // it can; an old bag on the back drops at your feet, since bags do not nest.
-    placeInSlot(entry, from, slotId) {
-      const { kind, key } = inventory.parseSlot(slotId);
-      const occupant = slotGet(slotId);
-      if (occupant === entry) return;
-      // One hand dragged onto the other swaps the two (Michael, 2026-10-12), instead of sending the
-      // one in the way to the bag, when each is allowed in the other's hand.
-      if (kind === "hand" && from.kind === "hand" && occupant) {
-        const fromKey = inventory.parseSlot(from.id).key;
-        const allowed = (e, k) => { const h = items.getItem(e.id).hands; return h === "either" || h === k; };
-        if (fromKey !== key && allowed(entry, key) && allowed(occupant, fromKey)) {
-          player.hands[fromKey] = occupant;
-          player.hands[key] = entry;
-          return;
-        }
-      }
-      detachFrom(entry, from);
-      if (kind === "hand") {
-        // equip swaps whatever is in the way out to the bag or belt.
-        if (!inventory.equip(player, entry, key)) {
-          restoreTo(entry, from);
-          showMessage("No room to swap.");
-        }
-        return;
-      }
-      // Dragging a bag off your back takes its grid away; the bag column may
-      // have been the source, so it is detached already.
-      if (occupant) {
-        slotSet(slotId, null);
-        if (kind === "worn" && key === "back") {
-          slotSet(slotId, entry);
-          map.dropItem(Math.round(player.gx), Math.round(player.gy), occupant);
-          return;
-        }
-        if (!inventory.stow(player, occupant)) {
-          slotSet(slotId, occupant);
-          restoreTo(entry, from);
-          showMessage("No room to swap.");
-          return;
-        }
-      }
-      slotSet(slotId, entry);
-    },
-    // Drop from a slot into a grid at a cell.
-    placeInGrid(entry, from, bag, x, y, rot) {
-      if (!inventory.canStoreIn(entry)) return showMessage("Empty it first, or wear it.");
-      detachFrom(entry, from);
-      // Taking the bag off the back while dropping into its own grid cannot work.
-      if (!bag.items && !bag.cols) return restoreTo(entry, from);
-      if (!grid.fits(bag, entry.id, x, y, rot)) return restoreTo(entry, from);
-      entry.x = x;
-      entry.y = y;
-      entry.rot = !!rot;
-      bag.items.push(entry);
-    },
-    dropToFloor(entry, from) {
-      detachFrom(entry, from);
-      map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
-    },
-    noRoom(intoBag) {
-      showMessage(intoBag ? "No room in your bag." : "No room in there.");
-    },
-    itemMenu(entry, bag, otherBag) {
-      return interact.itemMenu(player, entry, bag, otherBag);
-    },
-    // Double-click in your bag: equip what can be held, wear what can be worn.
-    use(entry, bag) {
-      const def = items.getItem(entry.id);
-      if (def.hands) return interact.equipFrom(player, entry);
-      if (def.wear) return interact.wearFrom(player, entry, bag);
-      return false;
-    },
-    // Double-click on a slot: its first menu entry (Equip, Unequip, Take off).
-    useSlot(slotId) {
-      const m = interact.slotMenu(player, slotId);
-      if (!m.length) return false;
-      m[0].onSelect();
-      return true;
-    },
-    slotMenu(slotId) {
-      return interact.slotMenu(player, slotId);
-    },
-  };
-}
 
 // The starter kit (docs/11): worn tunic, breeches, boots, a rope belt with two
 // slots, a burlap sack with water, a little food, and one plank; the torch in
@@ -847,7 +691,7 @@ async function boot() {
       initSwingTimer();
       initSpeech();
       menu.initContextMenu();
-      handlers = panelHandlers();
+      handlers = createInventoryActions(() => player);
       panel.initInventoryPanel(handlers);
       placement.init({ startAction: interact.startAction });
       buildPalette.initBuildPalette({
@@ -915,84 +759,22 @@ async function boot() {
   screens.show("title");
   await shell.finish(); // the screen goes once the first frame is under it
 
-  window.__game = {
-    bleed: { apply: () => bleed.apply(player), clear: () => bleed.clear(player), stacks: () => bleed.stacks(player), config: bleed.BLEED },
-    infection: { infect: () => infection.infect(player), cure: () => infection.cure(player), progress: () => infection.progress(player), config: infection.INFECTION }, // the infection marker (docs/02 question 29b)
-    burning, // the fire test (docs/05): burning.tunables, burning.all()
-    iso, input, loop, assets, events, map, camera, ground, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette, combat, gl, rng, rules,
-    render: { night },
+  window.__game = createDevApi({
     get player() { return player; },
     get zombies() { return zombies; },
     get corpses() { return corpses; },
     get villagers() { return villagers; },
-    // The bow's arc, fired from the console (docs/20, step 1). `dir` is a grid
-    // direction [dx, dy], `distance` the full-draw distance in tiles, `c` the draw (0 to 1).
-    archery: {
-      tunables: archery.tunables,
-      flying: archery.arrowsInFlight,
-      preview: archery.preview,
-      setMarker: archery.setMarker,
-      shoot: (dir, distance, c = 1) => archery.shoot(player, dir, distance, c),
-      shootAt: (gx, gy, c = 1) => archery.shoot(player, [gx - player.gx, gy - player.gy], Math.hypot(gx - player.gx, gy - player.gy), c),
-      markAt: (gx, gy, c = 1) => {
-        const p = archery.preview(player, [gx - player.gx, gy - player.gy], Math.hypot(gx - player.gx, gy - player.gy), c);
-        archery.setMarker({ from: [player.gx, player.gy], full: p.full, land: p.land });
-        return p;
-      },
-      clearMarker: () => archery.setMarker(null),
-      // The draw, for scripts: aim somewhere, press, step the game, release.
-      bow: () => archery.bowOf(player),
-      setAim: (gx, gy) => archery.setAimOverride(gx == null ? null : [gx, gy]),
-      launcher: () => archery.launcherOf(player),
-      press: () => archery.beginDraw(player, archery.launcherOf(player), "script"),
-      release: () => archery.releaseDraw(player, input.getMouse()),
-      cancel: () => archery.cancelDraw(player),
-      drawing: archery.drawState,
-    },
-    say: (text, seconds) => say(player, text, seconds), // a bubble over the player, to test the system (docs/19)
     get tiles() { return tiles; },
     get visible() { return visible; },
     get playerRoom() { return playerRoom; },
     get info() { return info; },
     get openBag() { return openBag; },
-    // A check from tools/checks/ by name: __game.check("determinism"), __game.check("ground").
-    check(name, opts) { return import(`/tools/checks/${name}.js`).then((m) => m.run(window.__game, opts)); },
-    get timing() { return timing; }, // the step's, sight's, and render's milliseconds (tools/profile.js)
+    get handlers() { return handlers; },
+    get timing() { return timing; },
     get drawn() { return drawn; },
-    teleport(gx, gy) { player.gx = gx; player.gy = gy; player.auto = null; camera.snapTo(gx, gy); },
-    walkTo(gx, gy) { return autoWalk(player, [gx, gy]); },
     setPaused,
-    handlers,
-    // Customisation from the console until the creation screen: skin, hair, hairStyle (short, long, bald), eyes.
-    setLook(partial) { Object.assign(player.look, partial); refreshFigure(); },
-    // Put an item in your bag, or at your feet if it does not fit: __game.give("sword").
-    give(id, count = 1) {
-      const bag = inventory.bagOf(player);
-      const added = bag ? inventory.addItem(bag, id, count) : 0;
-      if (added < count) map.dropItem(Math.round(player.gx), Math.round(player.gy), { id, count: count - added });
-      return added;
-    },
-    // Every weapon, for testing (docs/21): a Developer Bag put on your back (what you carried
-    // moves into it), then a sword, hatchet, mace, halberd, stick, three spears, a shield, a bow, and
-    // forty arrows. Nothing else is touched; the torch stays in your hand.
-    giveKit() {
-      const old = inventory.bagOf(player);
-      if (!player.worn.back || player.worn.back.id !== "dev_bag") {
-        const dev = { id: "dev_bag", count: 1 };
-        const bag = inventory.ensureBag(dev);
-        if (old) for (const e of old.items) inventory.addItem(bag, e.id, e.count, e.fill != null ? { fill: e.fill } : {});
-        player.worn.back = dev;
-      }
-      const bag = inventory.bagOf(player);
-      const kit = [["sword", 1], ["hatchet", 1], ["mace", 1], ["halberd", 1], ["stick", 1], ["spear", 3], ["shield", 1], ["bow", 1], ["arrow", 40], ["bandage", 5], ["book_of_fire", 1], ["staff_of_fire", 1], ["throwing_knife", 100], ["throwing_axe", 100]];
-      const got = {};
-      for (const [id, n] of kit) got[id] = inventory.addItem(bag, id, n);
-      showMessage("A Developer Bag, with every weapon in it.");
-      return got;
-    },
-    // The Developer Bag, twelve by eight, at your feet (docs/11). Never loot.
-    giveDevBag() { map.dropItem(Math.round(player.gx), Math.round(player.gy), { id: "dev_bag", count: 1 }); showMessage("A Developer Bag lies at your feet."); },
-  };
+    refreshFigure,
+  });
 }
 
 boot().catch((err) => {
