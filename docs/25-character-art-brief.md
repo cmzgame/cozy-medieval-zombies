@@ -1,6 +1,6 @@
 # 25 — Art brief for Claude Design: the characters redone
 
-**Status: a brief drafted from Michael's notes of 2026-10-12, with three options per category and his questions marked Q. Not sent, nothing commissioned, nothing built. The engine facts in "The contract" are true today; the option lists are proposals for Michael to strike or add to before this goes to the design agent.**
+**Status: a brief drafted from Michael's notes of 2026-10-12, with three options per category; all six questions are answered (at the end). Ready to send once the engine's template exporter exists. Nothing commissioned, nothing built. The engine facts in "The contract" are true today; the option lists are proposals for Michael to strike or add to before this goes to the design agent.**
 
 ## What this is for
 
@@ -34,7 +34,7 @@ Six shapes, one head, any colour. **Three traditionally male:** a short crop; a 
 
 ### 3. Facial hair (a new slot)
 
-Three shapes, any colour (the hair palette): **a moustache** (Michael's must), **a big bushy beard** in the manner of the vanilla WoW gnome in his reference (Michael's must: wide, full, rounded, reaching the chest, bigger than the chin), and a third: a goatee or a chin strip. Facial hair is a layer on the head, drawn below the eye line, over the top of the torso where the beard falls past the chin. **Q2 decides what a hat that covers the face does to it.**
+Three shapes, any colour (the hair palette), all ruled by Michael: **a moustache**, and it should read as a cop moustache or a porn moustache (a thick, full handlebar-less bar across the upper lip, drooping a little at the corners, unmistakable at this size); **a big bushy beard** in the manner of the vanilla WoW gnome in his reference (wide, full, rounded, reaching the chest, bigger than the chin, the moustache part of it); and **a tight, short, cropped professional beard**: close to the jaw, with enough texture in its outline that it reads as hair and not as a painted chin, but close enough that you could go to work in it. **No stubble**, now or as a fourth. Facial hair is a layer on the head, drawn below the eye line, over the top of the torso where the beard falls past the chin. **Q2 decides what a hat that covers the face does to it.**
 
 ### 4. Head slot: the onion hat, and the world it implies
 
@@ -42,7 +42,7 @@ Michael's favourite is the hood as it is drawn today: the green onion hat that c
 
 - **Option 1, the onion hat, redrawn as the hero head item**, with the eye slit, the nub, and a soft bulge; and **two variants for the artist to propose from** (a taller nub that flops over, a short squat one, a one with the slit a little wider), since a popular look comes in versions.
 - **Option 2, a straw hat** (a wide brim; the first thing a farmer wears; it does not cover the face, so hair shows under it).
-- **Option 3, a coif or arming cap** (a close cloth cap tied under the chin; the under-helmet look that is also just a peasant's cap). The existing `cap` is in this family and can be the third if the artist prefers.
+- **Option 3, a coif** (ruled): a close cloth cap tied under the chin; the under-helmet look that is also just a peasant's cap. It replaces the existing generated `cap`.
 - **For the world:** the villagers' wardrobes (`data/wardrobes.json`) should put the onion hat on about a third of them in greens and browns once it lands; the dead's on fewer, torn. That is data, not art.
 - A **kettle helm** is the first armour head and belongs to the armour brief, not here.
 
@@ -50,7 +50,7 @@ Michael's favourite is the hood as it is drawn today: the green onion hat that c
 
 - **Option 1, the tunic** (keep; redraw): the default, a belted-length shirt, with a **long** variant to the mid-thigh (the painted layer's `length: "long"` flag exists; `12`).
 - **Option 2, a jerkin or vest over a shirt** (the gnome's leather vest with its buckles: a layered look in two tones, so the dye gives a leather vest over a cloth shirt).
-- **Option 3, a dress or gown**: long, to the shins, covering the legs (the legs stay quiet under it, by design); the gender-tuning piece, in any colour. The legs slot still draws under it (boots show), and it needs the engine to treat the chest layer as covering the leg parts (small, in the garment rules).
+- **Option 3, a dress or gown**: long, to the shins, covering the legs (the legs stay quiet under it, by design); the gender-tuning piece, in any colour. **Ruled: a dress hides the leg garment and shows the shoes**, since shoes are being made more prominent; the engine treats the chest layer as covering the leg parts but not the feet (small, in the garment rules).
 - **Later, not here:** a robe for the fire mage (`24`), a cloak (it would need to sway: not in this pipeline).
 
 ### 6. Legs
@@ -102,14 +102,14 @@ The starter look stays what Michael likes: **tunic, belt, breeches, boots; no gl
 - A short README per delivery listing which parts each item paints, whether it is symmetric, and anything the slicer must know (a hat that hides hair; a dress that hides the legs' garment; a beard that needs the mouth line).
 - The game-side work to receive it (to build before the first delivery lands, `23` pillar 3): the template exporter, the slicer from PNG to layer files, a `waist` and a `beard` layer slot, the "covers" flags (a hat hides the hair on the top of the head; a dress hides the leg garment; never a beard or a thing under a hat, per Q2), and the `dye` plumbing extended to hair and facial hair (it exists for garments).
 
-## Questions for Michael
+## The questions, answered (2026-10-12)
 
 - **Q1. Undies: none** (Michael, 2026-10-12). The goobers are asexual, so there is nothing a decency garment is for; the body is drawn bare and a shift, if one is ever wanted, is a garment like any other. "The first time a human tells me this is weird we'll scope it out. I kinda like letting people confirm." The brief tells the artist: draw the body with no undergarment and nothing to hide.
 - **Q2. Facial hair under the onion hat: it pokes out** below the hat's chin edge (Michael, 2026-10-12: the gnome in an onion hat). **And the general rule:** for any hat and any thing that would be very hard to make work under it, the hat does not hide it: the artist draws the hat to end where the thing begins (a beard below the chin edge, long hair out of the back of a cap) and the combination is allowed. The engine's "covers" flag is used only where a hat truly replaces a thing (a hat replaces the hair on the top of the head), never to dodge a hard combination.
-- **Q3. One body, or builds?** The brief asks for one body because every garment layer must fit it; a second build (stout, slight) would double every garment. One body, with the head and shoulders doing the character, is the recommendation.
-- **Q4. The third hat and the third facial hair:** the coif or the existing cap; the goatee or a chin strip.
-- **Q5. Dresses and legs:** a dress hides the leg garment but not the boots (the recommendation), or hides both?
-- **Q6. The template:** 4x with anchors marked as described, or does the design agent want the 1x body sheet and a written table of anchors instead?
+- **Q3. One body** (ruled): every garment layer fits the one body; builds, if they ever matter, are done then.
+- **Q4. The coif, and the facial hair set** (ruled): the coif is the third hat; the facial hair is the cop-or-porn moustache, the big gnome beard, and a tight cropped professional beard with texture in its outline; never stubble.
+- **Q5. A dress hides the leg garment and shows the shoes** (ruled).
+- **Q6. The template is the 4x one** (ruled): the rest-pose body at eight facings with each part's anchor and segment marked, for the artist to draw over, and the slicer reads it back.
 
 ## What the engine must do before the art can land (so it is not a surprise)
 

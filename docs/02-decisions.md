@@ -39,6 +39,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-12 — The character brief's last four questions (Michael, `25`)
+
+**One body** (builds later if they ever matter). **The coif** is the third hat. **Facial hair:** a moustache that reads as a cop moustache or a porn moustache, the big gnome beard, and a tight cropped professional beard with texture in its outline; **stubble never**. **A dress hides the leg garment and shows the shoes** (the shoes are being made more prominent). **The template is the 4x one** with anchors marked. The brief is complete; it waits only for the template exporter.
+
 ### 2026-10-12 — No undergarment; a hat never hides what is hard to fit under it (Michael, `25`)
 
 Two rulings on the character brief. **No undies, ever, by default:** the goobers are asexual, so there is nothing a decency garment is for; the body is drawn bare, and if a human ever says it is weird, it gets scoped then ("I kinda like letting people confirm"). **A beard pokes out below the onion hat**, and the general rule: for any hat and any thing that would be hard to make work under it, the hat is drawn to end where the thing begins, so the combination is allowed; the engine's "covers" flag only replaces what a hat truly replaces (the hair on top of the head), never to dodge a hard combination.
