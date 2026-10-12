@@ -64,6 +64,12 @@ If those four hold, everything else is porting and data. If any fails, stop and 
 - Prefer placeholder art that exercises the real pipeline over waiting for art.
 - When in doubt, cut. Look at how a parent did it before writing anything new, then decide for this game.
 
+## Playtest signals: how we know it is working
+
+Soft measures of immersion, noted when they happen, so later tuning can be judged against them.
+
+- **The check before standing up** (Michael, 2026-10-12, the first time): with the game open on his main monitor, he checked that his character was safe before getting up to refill a water bottle, the way he would in an OSRS Ironman or hardcore WoW game. The stakes were real enough to act on. **What it asks of tuning:** do not ease the danger so far that this stops happening. If a tuning change makes testers stop checking before they walk away, it has eased too far; if they never get to leave the keyboard, it may have swung too hard. Whatever fair danger the stagger, bleed, infection, and exposure numbers settle on, this is the feeling they are for. The game runs in real time while its window is visible (Esc pauses, a hidden tab stops), and that is part of why it works; no auto-pause on lost focus unless Michael asks for an option.
+
 ## Laws
 
 Rulings that outrank the rest of this document. Added as Michael states them.
