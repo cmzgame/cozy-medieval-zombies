@@ -62,6 +62,15 @@ export function weaponOf(player) {
   return def && def.weapon ? def.weapon : FISTS;
 }
 
+// The weapon in the off hand, or null: a dual-wielded blow (docs/21). Not fists, not a
+// two-handed item (the same entry in both hands), not a shield.
+export function offWeaponOf(player) {
+  const e = player.hands.off;
+  if (!e || e === player.hands.main) return null;
+  const def = items.getItem(e.id);
+  return def && def.weapon && !def.shield ? def.weapon : null;
+}
+
 // The shield in the off hand, or null (docs/21).
 export function shieldOf(player) {
   const e = player.hands.off;
@@ -198,14 +207,16 @@ function kick(player) {
 // The left click. The swing resolves now, on the click: the cooldown is the
 // only rate limit, and an interrupted animation cannot lose it. Returns the
 // zombies hit, or null if nothing was swung.
-export function tryAttack(player, zombies) {
-  if (!canAct(player) || (player.attackCooldown || 0) > 0) return null;
-  const weapon = weaponOf(player);
+export function tryAttack(player, zombies, hand = "main") {
+  const cd = hand === "off" ? "offCooldown" : "attackCooldown";
+  if (!canAct(player) || (player[cd] || 0) > 0) return null;
+  const weapon = hand === "off" ? offWeaponOf(player) : weaponOf(player);
+  if (!weapon) return null;
   // A swing at zero stamina still lands, at half damage: never locked out of hitting.
   const tired = player.stamina <= 0;
   player.stamina = Math.max(0, player.stamina - weapon.stamina);
   if (player.stamina <= 0) player.winded = true;
-  player.attackCooldown = weapon.swing;
+  player[cd] = weapon.swing;
   playAnimation(player.anim, "attack", true);
   fx.wedge = { ttl: WEDGE_TIME, points: wedgePolygon(player, weapon) };
   emit("meleeSwing", { player, weapon });
@@ -284,6 +295,7 @@ export function markTargets(player, zombies, on) {
 export function updateCombat(player, zombies, dt) {
   time += dt;
   player.attackCooldown = Math.max(0, (player.attackCooldown || 0) - dt);
+  player.offCooldown = Math.max(0, (player.offCooldown || 0) - dt);
   player.shoveCooldown = Math.max(0, (player.shoveCooldown || 0) - dt);
   if (fx.wedge) {
     fx.wedge.ttl -= dt;

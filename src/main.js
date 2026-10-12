@@ -333,6 +333,8 @@ function update(dt) {
   // The bow draws on the left button, a throw on the middle one (or Q); the right button held braces a bow (docs/21).
   const onAlt = !!launcher && launcher.button === "alt";
   const bracing = buttons.off.down && !!launcher && launcher.kind === "bow";
+  // The off hand's weapon swings while the right button is held (docs/21), on its own cooldown.
+  if (buttons.off.hold && !player.blocking && !archery.drawState() && combat.offWeaponOf(player)) combat.tryAttack(player, zombies, "off");
   archery.updateDraw(player, dt, {
     pressed: (onAlt ? buttons.alt.pressed : clicked && !clickSpent) && !player.blocking,
     down: onAlt ? buttons.alt.down : input.mouseLeftDown(),
