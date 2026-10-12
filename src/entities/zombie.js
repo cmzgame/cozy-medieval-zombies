@@ -90,6 +90,19 @@ export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false 
 }
 
 // On the floor, lying or rising: a hit now is a finisher (docs/14).
+// A blow met by a shield: the dead one's attack is lost and it reels for `seconds` (docs/21).
+export function staggerZombie(z, seconds, dir = null, push = 0) {
+  if (z.dead || isDown(z)) return;
+  if (dir && push > 0) z.knock = { x: dir.x * push, y: dir.y * push, left: KNOCK_TIME };
+  z.attackHit = false;
+  if (z.state === "attack") {
+    z.state = "chase";
+    z.attackCooldown = ZOMBIE_COOLDOWN;
+  }
+  z.stagger = Math.max(z.stagger, seconds);
+  playAnimation(z.anim, "hurt", true);
+}
+
 export function isDown(z) {
   return z.state === "down";
 }

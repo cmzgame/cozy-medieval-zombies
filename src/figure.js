@@ -1044,6 +1044,14 @@ export { PART };
 // forearm direction (docs/12, held items).
 export const HELD_SIZE = 32;
 const HELD_SHAPES = {
+  shield: (f, c) => {
+    // A round wooden shield held up before the hand: an iron rim, planks, a boss.
+    f.ellipse(16, 13, 8, 8, c(2, "#7a7a84"));
+    f.ellipse(16, 13, 6.8, 6.8, c(0, "#8a6a3a"));
+    for (const x of [12.5, 16, 19.5]) f.capsule(x, 8.5, x, 17.5, 0.5, c(1, "#b8a070"));
+    f.ellipse(16, 13, 2.2, 2.2, c(2, "#7a7a84"));
+    f.px(15, 12, [200, 200, 210]);
+  },
   spear: (f, c) => {
     // A long pole and a stone point (the arm is up in this drawing; the point leads).
     f.capsule(16, 5, 16, 30, 1.3, c(0, "#8a6a3a"));

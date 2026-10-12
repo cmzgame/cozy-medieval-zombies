@@ -317,9 +317,14 @@ function update(dt) {
   // A left click swings; on a mushroom, a rock, or a tree (its visible pixels)
   // that thing sways too. No meaning yet: an in-world to-do (Michael, 2026-10-11).
   // With a bow in hand the left button is the draw, not a swing or a poke (docs/20).
+  // The right button held with a shield in the off hand raises the guard (docs/21): nothing is
+  // swung, drawn, or thrown while it is up, and it is not held through a menu, a panel, or a climb.
+  const shield = combat.shieldOf(player);
+  player.blocking = !!shield && buttons.off.down && !player.carrying && !player.climb && !player.dead && !panel.isOpen() && !menu.isMenuOpen();
+  if (player.blocking && archery.drawState()) archery.cancelDraw(player);
   const launcher = archery.launcherOf(player);
   const bowHeld = !!launcher && launcher.button === "primary";
-  if (clicked && !clickSpent && !bowHeld && !archery.drawState()) {
+  if (clicked && !clickSpent && !bowHeld && !archery.drawState() && !player.blocking) {
     interact.pokeAt(input.getMouse().x, input.getMouse().y, player);
     interact.playAt(input.getMouse().x, input.getMouse().y, player); // the well's bucket, for fun
     interact.clickCharacterAt(input.getMouse().x, input.getMouse().y, player); // a villager answers (docs/19)
@@ -329,14 +334,14 @@ function update(dt) {
   const onAlt = !!launcher && launcher.button === "alt";
   const bracing = buttons.off.down && !!launcher && launcher.kind === "bow";
   archery.updateDraw(player, dt, {
-    pressed: onAlt ? buttons.alt.pressed : clicked && !clickSpent,
+    pressed: (onAlt ? buttons.alt.pressed : clicked && !clickSpent) && !player.blocking,
     down: onAlt ? buttons.alt.down : input.mouseLeftDown(),
     brace: bracing,
     mouse: input.getMouse(),
     blocked: panel.isOpen() || menu.isMenuOpen(),
   });
   // One place decides the walking speed: braced slowest, a draw next (docs/21).
-  player.moveMult = bracing ? archery.tunables.braceMove : player.drawing ? archery.tunables.drawSpeed : 1;
+  player.moveMult = (bracing ? archery.tunables.braceMove : player.drawing ? archery.tunables.drawSpeed : 1) * (player.blocking ? shield.moveMult : 1);
   if (input.wasPressed("Space")) combat.tryShove(player, zombies);
   combat.updateCombat(player, zombies, dt);
   archery.update(dt);
@@ -723,7 +728,7 @@ async function boot() {
       },
     },
   });
-  events.on("playerHit", ({ damage }) => damagePlayer(player, damage));
+  events.on("playerHit", ({ zombie, damage }) => damagePlayer(player, combat.guardAgainst(player, zombie, damage)));
   events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, damage));
   events.on("containerOpened", ({ bag, tiles: where, name, corpse }) => {
     openBag = { bag, tiles: where, name, corpse: corpse || null };

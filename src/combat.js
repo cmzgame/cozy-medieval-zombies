@@ -19,7 +19,7 @@ import * as settings from "./settings.js";
 import { emit } from "./events.js";
 import { playAnimation } from "./sprites.js";
 import { aimOrigin } from "./entities/player.js";
-import { damageZombie, isDown } from "./entities/zombie.js";
+import { damageZombie, isDown, staggerZombie } from "./entities/zombie.js";
 
 // Tunables (docs/14).
 export const POINT_BLANK = 0.55; // tiles: this close is always hit
@@ -60,6 +60,39 @@ export function weaponOf(player) {
   const e = player.hands.main;
   const def = e && items.getItem(e.id);
   return def && def.weapon ? def.weapon : FISTS;
+}
+
+// The shield in the off hand, or null (docs/21).
+export function shieldOf(player) {
+  const e = player.hands.off;
+  const def = e && items.getItem(e.id);
+  return def && def.shield ? def.shield : null;
+}
+
+// A blow aimed at the player: through the guard it does a fraction of its damage,
+// costs stamina, and staggers the attacker; from outside the guard's arc, or with
+// no stamina to spend, it lands in full. Returns the damage to take.
+export function guardAgainst(player, zombie, damage) {
+  const sh = player.blocking ? shieldOf(player) : null;
+  if (!sh) return damage;
+  const pf = iso.toScreen(player.gx, player.gy);
+  const zs = iso.toScreen(zombie.gx, zombie.gy);
+  const half = (sh.arc * Math.PI) / 180 / 2;
+  const inside = Math.hypot(zs.x - pf.x, zs.y - pf.y) < 1e-3 || screenAngleBetween(player.aim.sx, player.aim.sy, zs.x - pf.x, zs.y - pf.y) <= half;
+  if (!inside) return damage;
+  if (player.stamina < sh.stamina) {
+    // The guard is broken: the blow lands whole and the arm is spent.
+    player.stamina = 0;
+    player.winded = true;
+    emit("guardBroken", { player, zombie });
+    return damage;
+  }
+  player.stamina -= sh.stamina;
+  staggerZombie(zombie, sh.stagger, iso.normalize(zombie.gx - player.gx, zombie.gy - player.gy), sh.push ?? 0.25);
+  loop.freeze(HIT_STOP * 0.6);
+  kick(player);
+  emit("blocked", { player, zombie });
+  return Math.round(damage * sh.through);
 }
 
 export function holdsWeapon(player) {

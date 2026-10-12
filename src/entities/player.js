@@ -211,7 +211,7 @@ export function updatePlayer(player, dt) {
   const wantSprint = input.isDown("ShiftLeft") || input.isDown("ShiftRight");
   if (player.winded && player.stamina >= SPRINT_RECOVER_AT) player.winded = false;
   const anyMovement = player.moving || !!player.auto;
-  player.sprinting = wantSprint && anyMovement && !player.winded && player.stamina > 0 && !player.carrying;
+  player.sprinting = wantSprint && anyMovement && !player.winded && player.stamina > 0 && !player.carrying && !player.blocking;
   if (player.sprinting) {
     player.stamina = Math.max(0, player.stamina - SPRINT_DRAIN * dt);
     if (player.stamina <= 0) player.winded = true;
