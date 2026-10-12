@@ -45,7 +45,7 @@ const TIRED_DAMAGE = 0.5; // a swing at zero stamina still lands, at half
 
 export const FISTS = { damage: 6, range: 0.9, arc: 100, swing: 0.4, knockback: 0.17, stamina: 3, knockdown: 0, style: "one_handed" };
 // Dual wielding (docs/21): the off hand's swing, and what it costs. Filled from data/combat.json.
-export const DUAL = { window: 2.5, lockout: 0.45, front: 1.5, side: 2.5, behind: 100, arc: 100, sideArc: 220 };
+export const DUAL = { offDamage: 1, window: 2.5, lockout: 0.45, front: 1.5, side: 2.5, behind: 100, arc: 100, sideArc: 220 };
 export const SHOVE = { range: 1.0, arc: 100, knockback: 0.53, knockbackChance: 1, stagger: 0.6, knockdown: 0.25, stamina: 5, cooldown: 0.45 };
 
 // The numbers that belong to no item, from data/combat.json (fists and the
@@ -299,7 +299,7 @@ export function tryAttack(player, zombies, hand = "main", mode = null) {
     }
     const chance = weapon.knockdown ?? KNOCKDOWN_CHANCE;
     const knockdown = !finisher && (combo || Math.random() < chance);
-    const amount = Math.round(weapon.damage * (tired ? TIRED_DAMAGE : 1) * (finisher ? FINISHER.mult : 1) * guardedMult(player));
+    const amount = Math.round(weapon.damage * (tired ? TIRED_DAMAGE : 1) * (finisher ? FINISHER.mult : 1) * guardedMult(player) * (hand === "off" ? DUAL.offDamage : 1));
     const push = !finisher && pushes(weapon) ? weapon.knockback : 0;
     const r = damageZombie(z, amount, { dir: [dir.x, dir.y], knockback: push, knockdown, stagger: weapon.stagger, from: [player.gx, player.gy] });
     if (r.killed) killed = true;
