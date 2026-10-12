@@ -39,6 +39,10 @@ Michael is conserving credits: the scoping is done here, the building by another
 
 Michael made a tree sheet with Claude Design and "they look amazing": two shapes (oak and spire), three sizes, six colours, 36 PNGs, brought into `data/art/trees/` with definitions in `data/sprites/`; details in `06-art.md`. **Rulings the build made:** the oak ids kept their old names so the map is untouched, and the spires are new ids mixed into the harvest forest at half an oak's weight (about a third of the trees); the gloom colours are defined and not placed; the old giants stay generated until there is a drawn size, so they look out of place; the drawn trees are lower than the generated ones were (69, 96, 131 px against 92, 124, 152); and the generated placeholders and `generateTree` stay for the giants.
 
+### 2026-10-12 — The hands remember what a two-hander pushed out (a bug of Michael's finding, `21`)
+
+Flipping through weapons with a shield on lost the guard for good: the bow pushed the shield into the bag and nothing put it back. **Ruling (Claude's, small):** an item pushed out of the off hand by a two-handed one is remembered and returns, once, when a one-handed item takes the main hand with the off hand empty, or the two-hander is put away, if it is still in the bag or on the belt. Michael may want it narrower (the shield only) or off; the memory is `player.offMemory` in `inventory.js`.
+
 ### 2026-10-12 — The guard shows; the bow's free draw slowed (Michael, `21`)
 
 Options 1 and 2 for the guard's legibility are built (the raised shield, the spark, the flash, the stamina pulse; the raised-guard pose is for the art). **The bow's free draw goes from 0.9 s to 1.4 s, the braced draw stays 0.6 s**, so the two modes are distinct and the bow loses the race to melee (about 4.9 s a kill free, 2.5 braced, the sword 1.5): the safe weapon is the slow one. Michael: "the shooting mechanics are perfect", so only the numbers move; `21` lists the knobs in the order to turn them, including the dead learning where a shot came from.

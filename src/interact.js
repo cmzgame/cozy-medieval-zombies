@@ -17,7 +17,7 @@ import * as input from "./input.js";
 import * as map from "./map.js";
 import { getSheet, idleFrame } from "./assets.js";
 import { getItem, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
-import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
+import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, restoreOffHand, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
 import { getDef } from "./assets.js";
 import { canPutDown, putDownTarget, canCarry, propRect } from "./placement.js";
 import * as placement from "./placement.js";
@@ -703,8 +703,12 @@ export function promptFor(player, progress) {
 
 // Unequip a held entry: into the bag, else the belt, else it stays in hand.
 export function unequip(player, entry) {
+  const both = getItem(entry.id).hands === "both";
   release(player.hands, entry);
-  if (stow(player, entry)) return true;
+  if (stow(player, entry)) {
+    if (both) restoreOffHand(player); // the shield it pushed out comes back (docs/21)
+    return true;
+  }
   hold(player.hands, entry);
   showMessage("Nowhere to put it.");
   return false;

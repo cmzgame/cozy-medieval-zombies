@@ -192,6 +192,9 @@ export function equip(player, entry, prefer = null) {
   // main hand, swapping out what is there.
   if (which === "either") which = prefer || (!player.hands.main ? "main" : !player.hands.off ? "off" : "main");
   const slots = which === "both" ? ["main", "off"] : [which];
+  // A two-handed item pushes the off hand's item away (the shield); remember it, so going back to
+  // a one-handed weapon puts it back (docs/21: flipping through weapons lost the guard).
+  const displaced = which === "both" && player.hands.off && player.hands.off !== player.hands.main ? player.hands.off : null;
   const outgoing = [];
   for (const s of slots) {
     const e = player.hands[s];
@@ -205,7 +208,23 @@ export function equip(player, entry, prefer = null) {
       return false;
     }
   }
-  return hold(player.hands, entry, which === "both" ? null : which);
+  const ok = hold(player.hands, entry, which === "both" ? null : which);
+  if (ok) {
+    if (which === "both") player.offMemory = displaced || null;
+    else if (which === "off") player.offMemory = null;
+    else restoreOffHand(player);
+  }
+  return ok;
+}
+
+// The off-hand item a two-handed one pushed out comes back when a one-handed item takes the main
+// hand and the off hand is empty, if it is still in the bag or on the belt. Once only.
+export function restoreOffHand(player) {
+  const m = player.offMemory;
+  player.offMemory = null;
+  if (!m || player.hands.off || !canHold(player.hands, m.id, "off")) return false;
+  if (!detach(player, m)) return false;
+  return hold(player.hands, m, "off");
 }
 
 // Belt key n: swap slot n with the hand its item belongs to (docs/11).
@@ -225,6 +244,7 @@ export function beltKey(player, index) {
     if (held && handFor(held.id)) {
       release(player.hands, held);
       belt[index] = held;
+      if (handFor(held.id) === "both") restoreOffHand(player);
       return "stowed";
     }
   }
