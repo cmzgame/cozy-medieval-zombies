@@ -5,6 +5,7 @@
 // that involve a slot go through the handlers, which know the player.
 // Tab opens the bag alone, C the character screen with the bag beside it.
 
+import { url as assetUrl } from "../assets.js"; // icons carry the manifest stamp (docs/23)
 import { getItem } from "../items.js";
 import * as grid from "../grid.js";
 import * as menu from "./context-menu.js";
@@ -143,7 +144,7 @@ function blockHtml(entry, attrs, cell = CELL, w = 1, h = 1, extraCls = "") {
     const fh = rot ? iw : ih;
     const s = Math.max(1, Math.floor(Math.min((w * cell) / fw, (h * cell) / fh)));
     cls.push("has-icon");
-    inner += `<img class="inv-icon" src="${def.icon.src}" alt="" draggable="false" style="width:${iw * s}px;height:${ih * s}px${rot ? ";transform:rotate(90deg)" : ""}">`;
+    inner += `<img class="inv-icon" src="${assetUrl(def.icon.src)}" alt="" draggable="false" style="width:${iw * s}px;height:${ih * s}px${rot ? ";transform:rotate(90deg)" : ""}">`;
   } else {
     inner += `<span class="inv-label">${def.short || def.name}</span>`;
   }

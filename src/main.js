@@ -30,7 +30,7 @@ import * as burning from "./fire.js";
 import * as infection from "./infection.js";
 import * as bleed from "./bleed.js";
 import * as buttons from "./buttons.js";
-import { say, refreshCorpse } from "./entities/character.js";
+import { say, refreshCorpse, createCharacter, wardrobeInto } from "./entities/character.js";
 import * as menu from "./ui/context-menu.js";
 import * as panel from "./ui/inventory-panel.js";
 import * as interact from "./interact.js";
@@ -44,6 +44,7 @@ import * as figure from "./figure.js";
 import * as placement from "./placement.js";
 import * as combat from "./combat.js";
 import * as buildPalette from "./ui/build-palette.js";
+import * as shell from "./boot.js";
 
 const V = view.view; // the world's size in its own pixels, kept current by view.js
 const MAP_FILE = "data/maps/square.json";
@@ -79,6 +80,7 @@ let visKey = null; // player tile and camera tile the visible set was computed f
 let openBag = null; // { bag, tiles, name, corpse? }: the container open beside yours
 let corpseWatch = null; // the body whose grid is open: redrawn as things leave it, once more when it closes
 let progress = null; // 0..1 of a timed action
+let handlers = null; // the inventory panel's handlers, on window.__game for tests
 const timing = { step: 0, stepMax: 0, vis: 0, maxResetAt: 0 };
 
 // Right-click builds a menu of what is under the cursor; Walk here is in it
@@ -239,14 +241,9 @@ function beltFire(belt) {
 // shows without a restart.
 async function loadPaintedHair() {
   const folders = [["hair", "data/hair"], ...["head", "chest", "legs", "hands", "feet", "body"].map((s) => [s, `data/layers/${s}`])];
-  for (const [slot, folder] of folders) {
-    try {
-      const idx = await assets.loadJson(`${folder}/index.json`);
-      for (const name of idx.styles || []) figure.registerLayer(slot, name, await assets.loadJson(`${folder}/${name}.json`));
-    } catch {
-      // No such folder yet: nothing painted for this slot.
-    }
-  }
+  // Every index at once, then every style at once (docs/23: the server answers in parallel).
+  const indexes = await Promise.all(folders.map(([, folder]) => assets.loadJson(`${folder}/index.json`).catch(() => ({ styles: [] })))); // no folder yet: nothing painted
+  await Promise.all(folders.flatMap(([slot, folder], i) => (indexes[i].styles || []).map(async (name) => figure.registerLayer(slot, name, await assets.loadJson(`${folder}/${name}.json`)))));
   figureKey = ""; // the pixels may have changed under the same name
   // The dead and villagers rebake too, since their outfits draw from the painted pool.
   for (const sheet of assets.rebakeFigures()) gl.redrawSheet(sheet);
@@ -657,6 +654,21 @@ function addTestingDead(spawn) {
   }
 }
 
+// A file that may be missing: null instead of a failed boot (combat.json and
+// poses.json have built-in numbers behind them).
+async function optionalJson(path) {
+  try {
+    return await assets.loadJson(path);
+  } catch (err) {
+    console.warn(`No ${path}; using the built-in numbers:`, err.message);
+    return null;
+  }
+}
+
+// Boot is a plan of stages run behind the loading screen (docs/23, step 1;
+// src/boot.js): each names what it does, moves the bar, fails naming its file,
+// and is timed on window.__boot. Everything the manifest lists is loaded and
+// everything that can be baked is baked here, so nothing bakes in play.
 async function boot() {
   input.init(canvas);
   settings.load();
@@ -665,155 +677,208 @@ async function boot() {
   settings.onChange((key) => {
     if (key === "debugCorner") applyDebugCorner();
   });
-
-  items.loadItems(await assets.loadJson("data/items.json"));
-  placement.setBuildData(await assets.loadJson("data/build.json"));
-  // The fists' and the shove's numbers (docs/14); the weapons' are on their items.
-  try {
-    combat.setCombatData(await assets.loadJson("data/combat.json"));
-  } catch (err) {
-    console.warn("No combat.json; using the built-in numbers:", err.message);
-  }
-  // The swing's keyframes, as data Michael can edit (docs/14); defaults live in figure.js.
-  try {
-    figure.setPoses(await assets.loadJson("data/poses.json"));
-  } catch (err) {
-    console.warn("No poses.json; using the built-in swing:", err.message);
-  }
-  items.loadLoot(await assets.loadJson("data/loot.json"));
-  figure.setArtResolver((id) => items.getItem(id).art || null);
-  figure.setWardrobes(await assets.loadJson("data/wardrobes.json")); // who wears what (docs/19)
-  await loadPaintedHair();
-  const json = await assets.loadJson(MAP_FILE);
   // Combat testing (docs/21, read at load): no trees, anywhere, so nothing stands between a
-  // blow or a shot and its target; the dead are added once the rooms are known, below.
+  // blow or a shot and its target; the dead are added once the rooms are known.
   const combatTesting = !!settings.get("combatTesting");
-  if (combatTesting) {
-    json.scatter = [];
-    if (json.wild) json.wild = { ...json.wild, density: [0, 0] };
-  }
-  await assets.loadMapSprites(json);
-  for (const k of placement.buildKinds()) await assets.loadSprite(k.sprite); // what can be built must be drawable
-  assets.registerSheet("arrow", archery.generateArrow()); // the bow's arrow, flying and landed (docs/20)
-  assets.registerSheet("spear", archery.generateSpear()); // the thrown spear
-  assets.registerSheet("burn", burning.generateSheet()); // flames, embers, and smoke on a burning figure (docs/05)
-  // The held art, generated like everything else (docs/12). The dead's sheets are made as they are dressed (docs/19).
-  for (const def of items.allItems()) {
-    if (!def.held) continue;
-    // Drawn items (the book) come from a picture and a grip pixel; the rest are generated shapes.
-    if (def.held.image || def.held.angles) assets.registerSheet(`held_${def.id}`, await assets.heldSheetFromImage(def.held));
-    else assets.registerSheet(`held_${def.id}`, figure.generateHeld(def.held.shape, def.held.colours, def.held.size));
-  }
-  for (const def of items.allItems()) if (def.shield) assets.registerSheet("held_shield_guard", figure.generateHeld("shield_guard", def.held.colours)); // the raised guard (docs/21)
-  info = map.loadMap(json);
-  player = createPlayer(info.spawn[0], info.spawn[1]);
-  player.look = { ...figure.DEFAULT_LOOK, hairStyle: settings.get("hairStyle") || "short" };
-  giveStarterKit();
-  refreshFigure();
-  zombies = info.zombies.map(([x, y]) => createZombie(x, y));
-  villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i }));
-  interact.setCharacters(() => [...villagers, ...zombies]);
-  archery.setTargets(() => zombies); // what an arrow can hit when it lands (docs/20)
-  camera.snapTo(player.gx, player.gy);
-  camera.applyOrigin(V.w, V.h);
-  map.ensureAround(player.gx, player.gy, 4);
-  for (const [x, y] of map.takePendingSpawns()) zombies.push(createZombie(x, y));
-  tiles = camera.viewportTiles(V.w, V.h);
-  map.rebuildRooms();
-  if (combatTesting) addTestingDead(info.spawn);
-  // The square and its paths, cobble or dirt by the setting (docs/15, for
-  // comparing): the map's features with `group: "square"`.
-  squareTiles = [];
-  for (const f of json.features || []) {
-    if (f.group !== "square") continue;
-    const [fx, fy, fw, fh] = f.rect;
-    for (let y = fy; y < fy + fh; y++) for (let x = fx; x < fx + fw; x++) squareTiles.push([x, y]);
-  }
-  applySquareSurface();
-  settings.onChange((key) => {
-    if (key === "squareSurface") applySquareSurface();
-  });
-  // The ground's pictures for the view and a ring around it, before the
-  // first frame (docs/15); the title screen covers the wait.
-  if (!glError) {
-    await ground.init(json);
-    map.onGroundChange(ground.invalidate);
-    ground.prebake(tiles);
-  }
+  let json = null;
 
-  initHud();
-  initPrompt();
-  initZombieBars();
-  initSwingTimer();
-  initSpeech();
-  menu.initContextMenu();
-  const handlers = panelHandlers();
-  panel.initInventoryPanel(handlers);
-  placement.init({ startAction: interact.startAction });
-  buildPalette.initBuildPalette({
-    onPick: (what) => {
-      buildPalette.close();
-      if (what === "__remove") placement.beginRemove();
-      else placement.beginBuild(what);
-    },
-  });
-  // Any screen up means the game is paused; the title is up at boot.
-  screens.initScreens({
-    onChange: (name) => setPaused(!!name),
-    onReload: () => window.location.reload(),
-    hair: {
-      styles: () => figure.hairStyles(),
-      current: () => player.look.hairStyle,
-      set: (name) => { player.look.hairStyle = name; settings.set("hairStyle", name); refreshFigure(); },
-      reload: async () => { await loadPaintedHair(); refreshFigure(); },
-    },
-    // Painted layers to try on, per slot, regardless of what is worn (docs/12).
-    layers: {
-      slots: () => ["body", "head", "chest", "legs", "hands", "feet"],
-      names: (slot) => figure.layerNames(slot),
-      current: (slot) => (settings.get("paintedLayers") || {})[slot] || null,
-      set: (slot, name) => {
-        const next = { ...(settings.get("paintedLayers") || {}) };
-        if (name) next[slot] = name; else delete next[slot];
-        settings.set("paintedLayers", next);
-        refreshFigure();
-      },
-    },
-  });
-  events.on("playerHit", ({ zombie, damage }) => {
-    const taken = combat.exposedTo(player, zombie, combat.guardAgainst(player, zombie, damage));
-    damagePlayer(player, taken);
-    // A bite that landed may infect (a marker only for now, docs/02 question 29b).
-    const opened = bleed.onBite(player, taken); // and a wound that bleeds (docs/02 question 29b)
-    if (infection.onBite(player, taken)) showMessage("The bite broke the skin.");
-    else if (opened && bleed.stacks(player) === 1) showMessage("You are bleeding. A bandage will stop it.");
-  });
-  // A blow met by the shield: sparks where they meet and a flash of the shield; a broken guard flashes red (docs/21).
-  events.on("blocked", ({ zombie }) => {
-    player.blockFlash = 0.14;
-    player.flashBroken = false;
-    const d = iso.normalize(zombie.gx - player.gx, zombie.gy - player.gy);
-    burning.spark(player.gx + d.x * 0.45, player.gy + d.y * 0.45, 22);
-  });
-  events.on("guardBroken", () => {
-    player.blockFlash = 0.35;
-    player.flashBroken = true;
-  });
-  events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, damage));
-  events.on("containerOpened", ({ bag, tiles: where, name, corpse }) => {
-    openBag = { bag, tiles: where, name, corpse: corpse || null };
-    panel.setOpen(true, { character: panel.isCharacter() });
-  });
-  // After the menu's own listener, so a menu closed by Escape is seen first.
-  window.addEventListener("keydown", (e) => {
-    if (e.code === "Escape") handleEscape();
-  });
+  await shell.run([
+    { name: "manifest", label: "Reading the manifest", weight: 1, async run() {
+      assets.setManifest(await assets.loadJson("data/manifest.json"));
+    } },
+    { name: "data", label: "Reading the data", weight: 2, async run() {
+      const [itemsJson, buildJson, combatJson, posesJson, lootJson, wardrobesJson] = await Promise.all([
+        assets.loadJson("data/items.json"),
+        assets.loadJson("data/build.json"),
+        optionalJson("data/combat.json"),
+        optionalJson("data/poses.json"),
+        assets.loadJson("data/loot.json"),
+        assets.loadJson("data/wardrobes.json"),
+      ]);
+      items.loadItems(itemsJson);
+      placement.setBuildData(buildJson);
+      if (combatJson) combat.setCombatData(combatJson); // the fists' and the shove's numbers (docs/14); the weapons' are on their items
+      if (posesJson) figure.setPoses(posesJson); // the swing's keyframes, as data Michael can edit (docs/14)
+      items.loadLoot(lootJson);
+      figure.setArtResolver((id) => items.getItem(id).art || null);
+      figure.setWardrobes(wardrobesJson); // who wears what (docs/19)
+    } },
+    // Every sprite definition and every picture in the manifest, not only what the map names.
+    { name: "art", label: "Loading the art", weight: 10, run: (progress) => assets.loadAll(progress) },
+    { name: "layers", label: "Reading the painted layers", weight: 1, run: () => loadPaintedHair() },
+    { name: "map", label: "Reading the map", weight: 1, async run() {
+      json = await assets.loadJson(MAP_FILE);
+      if (combatTesting) {
+        json.scatter = [];
+        if (json.wild) json.wild = { ...json.wild, density: [0, 0] };
+      }
+      // Everything is loaded already; this adds the two-tile variants, and a name the manifest lacks fails here with its id.
+      await assets.loadMapSprites(json);
+      for (const k of placement.buildKinds()) await assets.loadSprite(k.sprite); // what can be built must be drawable
+    } },
+    // Every outfit the wardrobes can produce is baked now, one per frame so the bar moves, so no one is baked when first seen.
+    { name: "figures", label: "Dressing everyone", weight: 6, async run(progress) {
+      assets.registerSheet("arrow", archery.generateArrow()); // the bow's arrow, flying and landed (docs/20)
+      assets.registerSheet("spear", archery.generateSpear()); // the thrown spear
+      assets.registerSheet("burn", burning.generateSheet()); // flames, embers, and smoke on a burning figure (docs/05)
+      const nZ = figure.wardrobeCount("zombie");
+      const nV = figure.wardrobeCount("village");
+      let n = 0;
+      for (let k = 0; k < nZ; k++) {
+        wardrobeInto(createCharacter("zombie", 0, 0), "zombie", k); // what createZombie does, for the sheet alone
+        progress(++n / (nZ + nV));
+        await shell.nextFrame();
+      }
+      for (let k = 0; k < nV; k++) {
+        createVillager(0, 0, { id: "bake", wardrobe: k });
+        progress(++n / (nZ + nV));
+        await shell.nextFrame();
+      }
+    } },
+    // The held art, generated like everything else (docs/12); drawn items come from a picture and a grip pixel.
+    { name: "held", label: "Making the held things", weight: 2, async run(progress) {
+      const held = items.allItems().filter((def) => def.held);
+      for (let i = 0; i < held.length; i++) {
+        const def = held[i];
+        if (def.held.image || def.held.angles) assets.registerSheet(`held_${def.id}`, await assets.heldSheetFromImage(def.held));
+        else assets.registerSheet(`held_${def.id}`, figure.generateHeld(def.held.shape, def.held.colours, def.held.size));
+        progress((i + 1) / held.length);
+      }
+      for (const def of items.allItems()) if (def.shield) assets.registerSheet("held_shield_guard", figure.generateHeld("shield_guard", def.held.colours)); // the raised guard (docs/21)
+    } },
+    { name: "world", label: "Growing the world", weight: 1, async run() {
+      info = map.loadMap(json);
+      player = createPlayer(info.spawn[0], info.spawn[1]);
+      player.look = { ...figure.DEFAULT_LOOK, hairStyle: settings.get("hairStyle") || "short" };
+      giveStarterKit();
+      refreshFigure();
+      zombies = info.zombies.map(([x, y]) => createZombie(x, y));
+      villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i }));
+      interact.setCharacters(() => [...villagers, ...zombies]);
+      archery.setTargets(() => zombies); // what an arrow can hit when it lands (docs/20)
+      camera.snapTo(player.gx, player.gy);
+      camera.applyOrigin(V.w, V.h);
+      map.ensureAround(player.gx, player.gy, 4);
+      for (const [x, y] of map.takePendingSpawns()) zombies.push(createZombie(x, y));
+      tiles = camera.viewportTiles(V.w, V.h);
+      map.rebuildRooms();
+      if (combatTesting) addTestingDead(info.spawn);
+      // The square and its paths, cobble or dirt by the setting (docs/15, for
+      // comparing): the map's features with `group: "square"`.
+      squareTiles = [];
+      for (const f of json.features || []) {
+        if (f.group !== "square") continue;
+        const [fx, fy, fw, fh] = f.rect;
+        for (let y = fy; y < fy + fh; y++) for (let x = fx; x < fx + fw; x++) squareTiles.push([x, y]);
+      }
+      applySquareSurface();
+      settings.onChange((key) => {
+        if (key === "squareSurface") applySquareSurface();
+      });
+      // The light's sources, its cache for the chunks around the spawn, and the
+      // first sight, so the first frame is warm and the village behind the title
+      // is seen as the player sees it rather than all fog.
+      light.update();
+      for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
+      visible = visibility.computeVisible(Math.round(player.gx), Math.round(player.gy), tiles);
+    } },
+    // The ground's pictures for the view and a ring around it (docs/15), two per frame.
+    { name: "ground", label: "Baking the ground", weight: 6, async run(progress) {
+      if (glError) return;
+      await ground.init(json);
+      map.onGroundChange(ground.invalidate);
+      const targets = ground.prebakeTargets(tiles);
+      for (let i = 0; i < targets.length; i++) {
+        const [cx, cy] = targets[i];
+        if (!ground.textureFor(cx, cy)) ground.bakeNow(cx, cy);
+        progress((i + 1) / targets.length);
+        if (i % 2 === 1) await shell.nextFrame();
+      }
+    } },
+    // Every sheet into the atlas now, so its one full upload happens here, not at the first sight of a thing.
+    { name: "atlas", label: "Packing the atlas", weight: 1, async run() {
+      if (glError) return;
+      // Tallest first: the atlas packs in shelves, and a figure sheet (768 x 576) beside
+      // small sprites wastes a shelf's height (94 percent full in registration order, 2026-10-12).
+      const unseen = ground.sheetIds(); // read by the bake, never drawn
+      unseen.add("zombie"); // the dead draw their shared outfit sheets, never the definition's generated body
+      const sheets = assets.allSheets().filter((s) => !unseen.has(s.id)).sort((a, b) => b.image.height - a.image.height);
+      for (const sheet of sheets) gl.placeSheet(sheet);
+    } },
+    { name: "ui", label: "Setting the table", weight: 1, async run() {
+      initHud();
+      initPrompt();
+      initZombieBars();
+      initSwingTimer();
+      initSpeech();
+      menu.initContextMenu();
+      handlers = panelHandlers();
+      panel.initInventoryPanel(handlers);
+      placement.init({ startAction: interact.startAction });
+      buildPalette.initBuildPalette({
+        onPick: (what) => {
+          buildPalette.close();
+          if (what === "__remove") placement.beginRemove();
+          else placement.beginBuild(what);
+        },
+      });
+      // Any screen up means the game is paused; the title is up at boot.
+      screens.initScreens({
+        onChange: (name) => setPaused(!!name),
+        onReload: () => window.location.reload(),
+        hair: {
+          styles: () => figure.hairStyles(),
+          current: () => player.look.hairStyle,
+          set: (name) => { player.look.hairStyle = name; settings.set("hairStyle", name); refreshFigure(); },
+          reload: async () => { await loadPaintedHair(); refreshFigure(); },
+        },
+        // Painted layers to try on, per slot, regardless of what is worn (docs/12).
+        layers: {
+          slots: () => ["body", "head", "chest", "legs", "hands", "feet"],
+          names: (slot) => figure.layerNames(slot),
+          current: (slot) => (settings.get("paintedLayers") || {})[slot] || null,
+          set: (slot, name) => {
+            const next = { ...(settings.get("paintedLayers") || {}) };
+            if (name) next[slot] = name; else delete next[slot];
+            settings.set("paintedLayers", next);
+            refreshFigure();
+          },
+        },
+      });
+      events.on("playerHit", ({ zombie, damage }) => {
+        const taken = combat.exposedTo(player, zombie, combat.guardAgainst(player, zombie, damage));
+        damagePlayer(player, taken);
+        // A bite that landed may infect (a marker only for now, docs/02 question 29b).
+        const opened = bleed.onBite(player, taken); // and a wound that bleeds (docs/02 question 29b)
+        if (infection.onBite(player, taken)) showMessage("The bite broke the skin.");
+        else if (opened && bleed.stacks(player) === 1) showMessage("You are bleeding. A bandage will stop it.");
+      });
+      // A blow met by the shield: sparks where they meet and a flash of the shield; a broken guard flashes red (docs/21).
+      events.on("blocked", ({ zombie }) => {
+        player.blockFlash = 0.14;
+        player.flashBroken = false;
+        const d = iso.normalize(zombie.gx - player.gx, zombie.gy - player.gy);
+        burning.spark(player.gx + d.x * 0.45, player.gy + d.y * 0.45, 22);
+      });
+      events.on("guardBroken", () => {
+        player.blockFlash = 0.35;
+        player.flashBroken = true;
+      });
+      events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, damage));
+      events.on("containerOpened", ({ bag, tiles: where, name, corpse }) => {
+        openBag = { bag, tiles: where, name, corpse: corpse || null };
+        panel.setOpen(true, { character: panel.isCharacter() });
+      });
+      // After the menu's own listener, so a menu closed by Escape is seen first.
+      window.addEventListener("keydown", (e) => {
+        if (e.code === "Escape") handleEscape();
+      });
+    } },
+  ]);
 
-  // Sight once before the first frame, so the village behind the title is
-  // seen as the player sees it rather than all fog.
-  visible = visibility.computeVisible(Math.round(player.gx), Math.round(player.gy), tiles);
   loop.start({ update, render, simTick() {} }, { simIntervalMs: 1000 });
   screens.show("title");
+  await shell.finish(); // the screen goes once the first frame is under it
 
   window.__game = {
     bleed: { apply: () => bleed.apply(player), clear: () => bleed.clear(player), stacks: () => bleed.stacks(player), config: bleed.BLEED },

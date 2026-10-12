@@ -7,6 +7,20 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- The loading shell (docs/23, step 1): on screen at the first paint, before any script runs.
+       src/boot.js moves the bar and the line, names a failure, and hides it when the game is up. -->
+  <div id="loading">
+    <div class="box">
+      <h1>Cozy Medieval Zombies</h1>
+      <div class="sub">a village, seen whole, overrun</div>
+      <div class="bar"><div class="fill"></div></div>
+      <div class="line">Waking the village…</div>
+      <div class="error" hidden>
+        <p class="msg"></p>
+        <button type="button">Reload</button>
+      </div>
+    </div>
+  </div>
   <div id="stage">
     <canvas id="game" width="960" height="540"></canvas>
     <div id="ui">

@@ -4,23 +4,65 @@
 
 import * as placeholders from "./placeholders.js";
 import * as figure from "./figure.js";
+import { inBatches } from "./boot.js";
 
 const defs = new Map();
 const sheets = new Map();
 
+// The manifest (docs/23, step 1; data/manifest.json, made by tools/manifest.py):
+// every file under data/ with a stamp. A path in it is fetched as path?v=stamp,
+// which serve.py caches for a year, so a hard refresh re-fetches only what changed.
+let manifest = null;
+export function setManifest(m) {
+  manifest = m;
+}
+
+export function url(path) {
+  const entry = manifest && manifest.files[path];
+  return entry ? `${path}?v=${entry.stamp}` : path;
+}
+
 export async function loadJson(path) {
-  const res = await fetch(path);
-  if (!res.ok) throw new Error(`Failed to load ${path}`);
+  const res = await fetch(url(path));
+  if (!res.ok) throw new Error(`Failed to load ${path} (${res.status})`);
   return res.json();
 }
 
-function loadImage(src) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error(`Failed to load image ${src}`));
-    img.src = src;
-  });
+// Images are fetched once per path and shared (several definitions and the
+// two-tile slices ask for the same picture).
+const images = new Map();
+export function loadImage(src) {
+  if (!images.has(src)) {
+    images.set(src, new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => {
+        images.delete(src);
+        reject(new Error(`Failed to load image ${src}`));
+      };
+      img.src = url(src);
+    }));
+  }
+  return images.get(src);
+}
+
+// Everything the manifest lists, up front (docs/23): every sprite definition
+// (its pictures with it), then every picture nothing named yet. `progress`
+// gets 0..1 as files land.
+export async function loadAll(progress = () => {}) {
+  if (!manifest) throw new Error("No manifest loaded");
+  const paths = Object.keys(manifest.files);
+  const ids = paths.filter((p) => /^data\/sprites\/[^/]+\.json$/.test(p)).map((p) => p.slice("data/sprites/".length, -5));
+  const pngs = paths.filter((p) => p.endsWith(".png"));
+  const total = ids.length + pngs.length;
+  let n = 0;
+  await inBatches(ids, (id) => loadSprite(id), 8, () => progress(++n / total));
+  await inBatches(pngs, (p) => loadImage(p), 12, () => progress(++n / total));
+}
+
+// Every sheet registered so far, for packing the atlas at boot.
+export function allSheets() {
+  return [...sheets.values()];
 }
 
 const pendingDefs = new Map();
@@ -361,7 +403,7 @@ function canvasOf(img, mirror) {
   const c = document.createElement("canvas");
   c.width = img.width;
   c.height = img.height;
-  const ctx = c.getContext("2d");
+  const ctx = c.getContext("2d", { willReadFrequently: true }); // sliceOf reads it back (docs/23)
   if (mirror) {
     ctx.translate(img.width, 0);
     ctx.scale(-1, 1); // a mirror at load, not a display scale

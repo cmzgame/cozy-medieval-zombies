@@ -73,6 +73,12 @@ function place(sheet) {
   return p;
 }
 
+// Pack a sheet now rather than at its first draw: boot packs every sheet, so the
+// one full upload happens behind the loading screen (docs/23, step 1).
+export function placeSheet(sheet) {
+  return place(sheet);
+}
+
 // How full the atlas is: its side, the rows used so far (px), and the fraction.
 export function atlasInfo() {
   const used = shelfY + shelfH;

@@ -151,14 +151,8 @@ function buildOwnership() {
 
 // ---- loading ----
 
-function loadImage(src) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error(`Failed to load image ${src}`));
-    img.src = src;
-  });
-}
+// Pictures come through assets' cache, with the manifest's stamp (docs/23, step 1).
+const loadImage = assets.loadImage;
 
 // The RGBA pixels of a region of an image or canvas, copied at 1:1.
 function pixelsOf(img, x = 0, y = 0, w = img.width, h = img.height) {
@@ -172,10 +166,20 @@ function pixelsOf(img, x = 0, y = 0, w = img.width, h = img.height) {
 
 // Load the ground's data and art. `mapJson.ground.seed`, if given, overrides
 // the data's seed for that map.
+// The sheets the bake reads (floors, the earth's textures, the noise): never drawn, so
+// never packed into the atlas (docs/23, step 1).
+const usedSheets = new Set();
+export function sheetIds() {
+  return usedSheets;
+}
+
 export async function init(mapJson) {
   data = await assets.loadJson("data/ground.json");
   seed = mapJson?.ground?.seed ?? data.seed ?? 1;
-  for (const id in data.floors) await assets.loadSprite(id);
+  for (const id in data.floors) {
+    await assets.loadSprite(id);
+    usedSheets.add(id);
+  }
   for (const [name, b] of Object.entries(data.biomes)) {
     const grass = [];
     for (const src of b.grass) {
@@ -214,17 +218,22 @@ export async function init(mapJson) {
     const k = { name, id: 3 + terrain.length, threshold: t.threshold || (t.thresholdAbove ? null : [0.25, 0.5]), above: t.thresholdAbove || null, verge: t.verge || 0, lip: t.lip || 0, lipBand: t.lipBand || 0, includes: t.includes || [] };
     if (t.texture) {
       const sheet = await assets.loadSprite(t.texture);
+      usedSheets.add(t.texture);
       k.texture = { w: sheet.image.width, h: sheet.image.height, px: pixelsOf(sheet.image) };
     } else if (t.tiles) {
       // Laid per tile from floor sheets, each tile a frame picked by hash from
       // its own floor's sheet (the farm's two furrow directions, docs/17).
       k.sheets = Array.isArray(t.tiles) ? t.tiles : [t.tiles];
-      for (const id of k.sheets) await assets.loadSprite(id);
+      for (const id of k.sheets) {
+        await assets.loadSprite(id);
+        usedSheets.add(id);
+      }
     }
     terrain.push(k);
   }
   if (data.edgeNoise) {
     const sheet = await assets.loadSprite(data.edgeNoise);
+    usedSheets.add(data.edgeNoise);
     const px = pixelsOf(sheet.image);
     const v = new Uint8Array(sheet.image.width * sheet.image.height);
     for (let i = 0; i < v.length; i++) v[i] = px[i * 4];
@@ -809,7 +818,13 @@ export function chunksOf(tiles) {
 // Before the first frame: every chunk the view touches and a ring of one
 // around them, so nothing is baked while the player watches.
 export function prebake(tiles) {
-  for (const [cx, cy] of withRing(chunksOf(tiles))) if (!textureFor(cx, cy)) bakeNow(cx, cy);
+  for (const [cx, cy] of prebakeTargets(tiles)) if (!textureFor(cx, cy)) bakeNow(cx, cy);
+}
+
+// The chunks the view touches and a ring around them: what boot bakes in slices
+// behind the loading screen (docs/23, step 1), and what the light cache warms.
+export function prebakeTargets(tiles) {
+  return withRing(chunksOf(tiles));
 }
 
 function withRing(list) {
