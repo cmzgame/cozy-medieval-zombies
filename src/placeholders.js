@@ -1268,3 +1268,55 @@ export function generateNoise(ph) {
   ctx.putImageData(img, 0, 0);
   return textureSheet(canvas);
 }
+
+// ---------------------------------------------------------------------------
+// The UI kit (docs/23, step 4): a stone frame, an inset well, and a button in
+// three states, each a 9-slice tile three slices square, side by side on one
+// sheet. The interface shows them at 2x (ui/kit.js). Grey bevelled stone is
+// the placeholder; the drawn kit replaces it through the same definition.
+// ---------------------------------------------------------------------------
+export function generateUiKit(ph) {
+  const stone = ph.stone || "#7a746c";
+  const well = ph.well || "#221c26";
+  const timber = ph.timber || "#7a5230";
+  const OUTLINE = "#241e1c";
+  const tiles = [
+    { name: "frame", s: 6, fill: stone, light: shade(stone, 1.28), dark: shade(stone, 0.66), speckle: shade(stone, 0.82) },
+    { name: "well", s: 3, fill: well, light: shade(well, 0.6), dark: shade(well, 2.4), inset: true },
+    { name: "button", s: 4, fill: timber, light: shade(timber, 1.35), dark: shade(timber, 0.6) },
+    { name: "button_hover", s: 4, fill: shade(timber, 1.18), light: shade(timber, 1.55), dark: shade(timber, 0.7) },
+    { name: "button_down", s: 4, fill: shade(timber, 0.88), light: shade(timber, 0.55), dark: shade(timber, 1.2), inset: true },
+  ];
+  const width = tiles.reduce((n, t) => n + t.s * 3, 0);
+  const height = Math.max(...tiles.map((t) => t.s * 3));
+  const { canvas, ctx } = makeCanvas(width, height);
+  const frames = {};
+  let x0 = 0;
+  for (const t of tiles) {
+    const n = t.s * 3;
+    ctx.fillStyle = t.fill;
+    ctx.fillRect(x0, 0, n, n);
+    if (t.speckle) {
+      // A few darker pixels in a fixed pattern, so the stone is not flat; the
+      // pattern repeats every slice, so the edges tile without a seam.
+      ctx.fillStyle = t.speckle;
+      for (let y = 2; y < n - 2; y++) for (let x = 2; x < n - 2; x++) if (((x % t.s) * 5 + (y % t.s) * 3) % 7 === 1) ctx.fillRect(x0 + x, y, 1, 1);
+    }
+    // The outline all round, then the bevel inside it: light top and left,
+    // dark bottom and right (the game's light is top-left); an inset tile swaps them.
+    ctx.fillStyle = OUTLINE;
+    ctx.fillRect(x0, 0, n, 1);
+    ctx.fillRect(x0, n - 1, n, 1);
+    ctx.fillRect(x0, 0, 1, n);
+    ctx.fillRect(x0 + n - 1, 0, 1, n);
+    ctx.fillStyle = t.light;
+    ctx.fillRect(x0 + 1, 1, n - 2, 1);
+    ctx.fillRect(x0 + 1, 1, 1, n - 2);
+    ctx.fillStyle = t.dark;
+    ctx.fillRect(x0 + 1, n - 2, n - 2, 1);
+    ctx.fillRect(x0 + n - 2, 1, 1, n - 2);
+    frames[t.name] = [x0, 0, n, n];
+    x0 += n;
+  }
+  return { image: canvas, frames, anchor: [0, 0], bounds: { x: 0, y: 0, w: width, h: height }, animations: {}, facings: [], mirror: {} };
+}

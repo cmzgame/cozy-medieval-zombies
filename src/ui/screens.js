@@ -113,7 +113,7 @@ function go(where) {
 }
 
 function button(go, label) {
-  return `<button data-go="${go}">${label}</button>`;
+  return `<button class="kit-button" data-go="${go}">${label}</button>`;
 }
 
 function settingRow(key, label) {

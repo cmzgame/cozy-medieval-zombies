@@ -3,7 +3,10 @@
 // draws the doll with its worn slots and the hands, and the belt as a hotbar
 // strip, and drags between all of them. Grid rules live in grid.js; moves
 // that involve a slot go through the handlers, which know the player.
-// Tab opens the bag alone, C the character screen with the bag beside it.
+// The bag (Tab) and the character screen (C) are two panels that open and
+// close on their own; closing one never closes the other (Michael, 2026-10-12,
+// docs/23 step 4). Both grow with the window (view.panelCell), the character
+// screen most: its slot is two cells square and shows the item's portrait.
 
 import { url as assetUrl } from "../assets.js"; // icons carry the manifest stamp (docs/23)
 import { getItem } from "../items.js";
@@ -12,11 +15,15 @@ import * as menu from "./context-menu.js";
 import * as view from "../view.js";
 import { parseSlot } from "../inventory.js";
 
-const CELL = 38; // internal pixels; the UI layer is scaled with the canvas
+let CELL = view.BASE_CELL; // the bag's cell in UI pixels, read from the view at every render
+const HOT_CELL = view.BASE_CELL; // the belt is HUD and keeps the base size
+const ICON_PX = 19; // a bag icon's pixels per cell (docs/26)
+const PORTRAIT_PX = 38; // a portrait's pixels per character slot (docs/26)
 const DRAG_THRESHOLD = 4; // screen pixels before a press becomes a drag
 // The doll, Michael's drawing of 2026-10-10: the belt top-left, the bag
 // top-right, the body down the middle, a hand either side, gloves under the
-// main hand. The bottom corners stay free for later.
+// main hand. The bottom corners stay free for later. The spacer columns are
+// half a slot wide.
 const DOLL_AREAS = [
   "waist . head . back",
   ". . chest . .",
@@ -29,8 +36,8 @@ let root = null;
 let body = null;
 let dollEl = null;
 let hotbar = null;
-let open = false;
-let character = false;
+let open = false; // the bag
+let character = false; // the character screen
 let handlers = {};
 let lastSignature = "";
 let bags = { inv: null, container: null };
@@ -98,26 +105,49 @@ export function initInventoryPanel(h) {
   }, { passive: true });
 }
 
+// Either panel is up.
 export function isOpen() {
+  return open || character;
+}
+
+export function isBagOpen() {
   return open;
 }
 
 export function isCharacter() {
-  return open && character;
+  return character;
 }
 
-export function setOpen(v, { character: c = false } = {}) {
-  open = v;
-  character = v && c;
-  root.hidden = !v;
+function refreshVisibility() {
+  root.hidden = !(open || character);
+  root.classList.toggle("character", character);
+  root.classList.toggle("bag", open);
   lastSignature = "";
-  if (!v) cancelDrag();
+  if (!open && !character) cancelDrag();
 }
 
-export function toggle(opts) {
-  const c = !!opts?.character;
-  if (open && character === c) setOpen(false);
-  else setOpen(true, { character: c });
+export function setBagOpen(v) {
+  open = !!v;
+  refreshVisibility();
+}
+
+export function setCharacterOpen(v) {
+  character = !!v;
+  refreshVisibility();
+}
+
+export function toggleBag() {
+  setBagOpen(!open);
+}
+
+export function toggleCharacter() {
+  setCharacterOpen(!character);
+}
+
+export function closeAll() {
+  open = false;
+  character = false;
+  refreshVisibility();
 }
 
 function capitalize(s) {
@@ -126,7 +156,18 @@ function capitalize(s) {
 
 // ---- rendering ----
 
-function blockHtml(entry, attrs, cell = CELL, w = 1, h = 1, extraCls = "") {
+// A picture for a slot (docs/26): the item's portrait, a square drawn for the
+// character screen; failing that its bag icon if that is square; else none,
+// and the slot shows the coloured block with the label as the bag does.
+function portraitOf(def) {
+  if (def.portrait) return def.portrait;
+  if (def.icon && def.icon.size[0] === def.icon.size[1]) return def.icon;
+  return null;
+}
+
+// An item as a block: in a bag (`w` by `h` cells of `cell` pixels) or, with
+// `slot` set, in a slot `cell` pixels square showing its portrait.
+function blockHtml(entry, attrs, cell = CELL, w = 1, h = 1, extraCls = "", slot = false) {
   const def = getItem(entry.id);
   const cls = ["inv-item", extraCls];
   if (h > w) cls.push("tall");
@@ -136,16 +177,17 @@ function blockHtml(entry, attrs, cell = CELL, w = 1, h = 1, extraCls = "") {
     const pct = Math.max(0, Math.min(100, entry.fill));
     inner += `<div class="inv-level" style="${h >= w ? `height:${pct}%;width:100%` : `width:${pct}%;height:100%`}"></div>`;
   }
-  if (def.icon) {
+  const pic = slot ? portraitOf(def) : def.icon;
+  if (pic) {
     // An item with drawn art shows the picture, upright, centred in its footprint, enlarged by a whole
     // number (nearest-pixel), and keeps the slot dark behind it; the same art as in the hand (docs/24).
-    const [iw, ih] = def.icon.size;
-    const rot = !!entry.rot && w !== h;
+    const [iw, ih] = pic.size;
+    const rot = !slot && !!entry.rot && w !== h;
     const fw = rot ? ih : iw;
     const fh = rot ? iw : ih;
     const s = Math.max(1, Math.floor(Math.min((w * cell) / fw, (h * cell) / fh)));
     cls.push("has-icon");
-    inner += `<img class="inv-icon" src="${assetUrl(def.icon.src)}" alt="" draggable="false" style="width:${iw * s}px;height:${ih * s}px${rot ? ";transform:rotate(90deg)" : ""}">`;
+    inner += `<img class="inv-icon" src="${assetUrl(pic.src)}" alt="" draggable="false" style="width:${iw * s}px;height:${ih * s}px${rot ? ";transform:rotate(90deg)" : ""}">`;
   } else {
     inner += `<span class="inv-label">${def.short || def.name}</span>`;
   }
@@ -163,29 +205,30 @@ function itemHtml(entry, index, which) {
 function columnHtml(which, bag, title) {
   const items = bag.items.map((e, i) => itemHtml(e, i, which)).join("");
   return `
-    <div class="inv-column">
-      <div class="inv-header"><span>${title}</span><button data-tidy="${which}" title="Repack">Tidy</button></div>
-      <div class="inv-grid" data-bag="${which}" style="width:${bag.cols * CELL}px;height:${bag.rows * CELL}px;--cell:${CELL}px">${items}<div class="inv-hl" hidden></div></div>
+    <div class="inv-column kit-frame">
+      <div class="inv-header"><span>${title}</span><button class="kit-button" data-tidy="${which}" title="Repack">Tidy</button></div>
+      <div class="inv-grid-well kit-well"><div class="inv-grid" data-bag="${which}" style="width:${bag.cols * CELL}px;height:${bag.rows * CELL}px;--cell:${CELL}px">${items}<div class="inv-hl" hidden></div></div></div>
     </div>`;
 }
 
-function slotHtml(id, entry, label) {
-  const inner = entry ? blockHtml(entry, `data-slot="${id}"`, CELL, 1, 1, "in-slot") : `<span class="slot-label">${label}</span>`;
-  return `<div class="doll-slot${entry ? "" : " empty"}" data-slot="${id}" title="${label}">${inner}</div>`;
+// A character slot is two bag cells square.
+function slotHtml(id, entry, label, extra = "") {
+  const px = CELL * 2;
+  const inner = entry ? blockHtml(entry, `data-slot="${id}"`, px, 1, 1, "in-slot", true) : `<span class="slot-label">${label}</span>`;
+  const box = `calc(${px}px + 2 * var(--kit-well-w, 6px))`; // the content plus the well's border
+  return `<div class="doll-slot kit-well${extra}${entry ? "" : " empty"}" data-slot="${id}" title="${label}" style="width:${box};height:${box}">${inner}</div>`;
 }
 
 function dollHtml(player) {
   const area = (name, html) => html.replace('class="doll-slot', `style="grid-area:${name}" class="doll-slot`);
-  const hand = (key, label) => {
-    const e = player.hands[key];
-    const inner = e ? blockHtml(e, `data-slot="hand:${key}"`, CELL, 1, 1, "in-slot") : `<span class="slot-label">${label}</span>`;
-    return `<div class="doll-slot doll-hand${e ? "" : " empty"}" data-slot="hand:${key}" title="${label}" style="grid-area:${key}">${inner}</div>`;
-  };
+  const hand = (key, label) => area(key, slotHtml(`hand:${key}`, player.hands[key], label, " doll-hand"));
   const worn = (k) => area(k === "hands" ? "gloves" : k, slotHtml(`worn:${k}`, player.worn[k], SLOT_NAMES[k]));
+  const slot = `calc(${CELL * 2}px + 2 * var(--kit-well-w, 6px))`; // a slot's box, the well's border included
+  const cols = `${slot} ${CELL}px ${slot} ${CELL}px ${slot}`;
   return `
-    <div class="inv-column doll">
+    <div class="inv-column kit-frame doll">
       <div class="inv-header"><span>You</span></div>
-      <div class="doll-grid" style="grid-template-areas:${DOLL_AREAS.map((r) => `'${r}'`).join(" ")}">
+      <div class="doll-grid" style="grid-template-columns:${cols};grid-auto-rows:${slot};grid-template-areas:${DOLL_AREAS.map((r) => `'${r}'`).join(" ")}">
         ${["waist", "head", "back", "chest", "legs", "feet", "hands"].map(worn).join("")}
         ${hand("main", "Main hand")}${hand("off", "Off-hand")}
       </div>
@@ -193,7 +236,7 @@ function dollHtml(player) {
 }
 
 function hotbarHtml(belt) {
-  return belt.map((e, i) => `<div class="hot-slot${e ? "" : " empty"}" data-slot="belt:${i}"><span class="hot-key">${i + 1}</span>${e ? blockHtml(e, `data-slot="belt:${i}"`, CELL, 1, 1, "in-slot") : ""}</div>`).join("");
+  return belt.map((e, i) => `<div class="hot-slot kit-well${e ? "" : " empty"}" data-slot="belt:${i}"><span class="hot-key">${i + 1}</span>${e ? blockHtml(e, `data-slot="belt:${i}"`, HOT_CELL, 1, 1, "in-slot", true) : ""}</div>`).join("");
 }
 
 // Re-render if anything changed. `inv` is the bag on the back or null;
@@ -211,18 +254,21 @@ export function renderInventoryPanel(player, inv, container, belt) {
       hotbar.dataset.sig = beltSig;
     }
   }
-  if (!open) return;
+  if (!open && !character) return;
   if (drag && drag.from.kind === "bag" && drag.from.bag !== inv && drag.from.bag !== container) cancelDrag();
-  const sig = JSON.stringify([character, inv?.items, inv?.cols, inv?.rows, container?.container, container?.items, container?.cols, container?.rows, player.worn, player.hands]);
+  CELL = view.panelCell();
+  const sig = JSON.stringify([open, character, CELL, inv?.items, inv?.cols, inv?.rows, container?.container, container?.items, container?.cols, container?.rows, player.worn, player.hands]);
   if (sig === lastSignature) return;
   lastSignature = sig;
   // The bag sits in the top-right corner; anything opened appears to its left.
-  // The doll, when the character screen is up, sits in the centre on its own.
+  // The doll sits at the left edge, centred vertically, on its own; neither
+  // moves when the other opens (Michael, 2026-10-10 night).
   dollEl.hidden = !character;
   dollEl.innerHTML = character ? dollHtml(player) : "";
-  body.innerHTML =
+  body.hidden = !open;
+  body.innerHTML = !open ? "" :
     (container ? columnHtml("container", container, capitalize(container.container)) : "") +
-    (inv ? columnHtml("inv", inv, capitalize(inv.container)) : `<div class="inv-column inv-nobag">No bag on your back.</div>`) +
+    (inv ? columnHtml("inv", inv, capitalize(inv.container)) : `<div class="inv-column kit-frame inv-nobag">No bag on your back.</div>`) +
     `<div class="inv-hint">Drag to move · R rotates · Shift-click sends across · Right-click for actions</div>`;
 }
 
@@ -295,7 +341,7 @@ function onPointerDown(e) {
     rot: hit.bag ? !!hit.entry.rot : false,
     grabX: hit.bag ? Math.floor((e.clientX - r.left) / cellPx) : 0,
     grabY: hit.bag ? Math.floor((e.clientY - r.top) / cellPx) : 0,
-    cellPx: hit.bag ? cellPx : CELL * (r.width / CELL),
+    cellPx: hit.bag ? cellPx : CELL * view.view.uiScale, // from a slot, the ghost is at the bag's scale
     startX: e.clientX,
     startY: e.clientY,
     lastX: e.clientX,

@@ -12,7 +12,7 @@ Started 2026-10-08 as the marriage of two earlier prototypes: `cozy-zombie-game`
 python serve.py 8010
 ```
 
-Then open http://localhost:8010. WASD or arrows to walk, Shift to sprint, mouse to aim. At a door, tap `E` to open or close it. At a window, tap `E` to open or close the shutters and hold `E` to climb through. `T` takes the torch in hand. Tab opens the bag, `C` the character screen, 1 to 4 use the belt, `N` builds, `X` removes, `B` boards, `Z` and the wheel zoom, Escape closes or pauses, right-click is the actions menu, left-click swings (and the middle button or `Q` is the main hand's other mode, `docs/21`). `]` and `[` move the clock an hour. `V` toggles the fog of what you cannot see, `L` cycles debug views of the light, ambient, and fog textures.
+Then open http://localhost:8010. WASD or arrows to walk, Shift to sprint, mouse to aim. At a door, tap `E` to open or close it. At a window, tap `E` to open or close the shutters and hold `E` to climb through. `T` takes the torch in hand. Tab opens the bag, `C` the character screen (each on its own), 1 to 4 use the belt, `N` builds, `X` removes, `B` boards, `Z` and the wheel zoom, Escape closes or pauses, right-click is the actions menu, left-click swings (and the middle button or `Q` is the main hand's other mode, `docs/21`). `]` and `[` move the clock an hour. `V` toggles the fog of what you cannot see, `L` cycles debug views of the light, ambient, and fog textures.
 
 ## Status
 

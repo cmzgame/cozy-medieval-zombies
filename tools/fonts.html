@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<base href="/">
+<title>Fonts on the kit (docs/23, Q4c)</title>
+<!-- The three candidates come from Google Fonts for this comparison only (a dev page, never the game);
+     the winner's file is copied into data/fonts/ under its Open Font License and named in style.css. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Pixelify+Sans:wght@400;700&family=Jersey+15&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+  html, body { overflow: auto; background: #3b4a30; }
+  #page { padding: 16px; color: #eee; font-family: "Segoe UI", system-ui, sans-serif; }
+  #page h1 { font-size: 18px; margin: 0 0 6px; }
+  #page p { font-size: 13px; color: #cfc7d8; margin: 0 0 12px; max-width: 900px; }
+  #page label { font-size: 13px; margin-right: 16px; }
+  #ui { position: static; pointer-events: auto; overflow: visible; transform-origin: 0 0; }
+  .row { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+  .col { display: flex; flex-direction: column; gap: 10px; width: 300px; }
+  .col .name { font-size: 12px; color: #e8e0d0; text-shadow: 0 1px 0 #000; }
+  .col .screen { min-width: 0; padding: 10px 14px 12px; }
+  .col .screen h1 { font-size: 22px; }
+  .col .inv-column { align-self: flex-start; }
+  .col .doll-slot { width: calc(76px + 2 * var(--kit-well-w, 6px)); height: calc(76px + 2 * var(--kit-well-w, 6px)); }
+  .col .hud-panel { align-self: flex-start; }
+  .col #menu, .col .menu { position: static; }
+  .sample-items { position: relative; width: 190px; height: 76px; }
+</style>
+</head>
+<body>
+<div id="page">
+  <h1>The font, on the kit (docs/23, Q4c)</h1>
+  <p>The same strings in the game's own panels, once per candidate. All three are free under the Open Font License, so the winner's file can be copied into the game; Segoe UI is what the interface uses today. The scale box is the interface scale the game would use on a window (1.75 on a 1080p one).</p>
+  <label>Scale <input id="scale" type="number" min="1" max="4" step="0.25" value="1.75"></label>
+  <label>Size offset <input id="offset" type="number" min="-4" max="6" step="1" value="0"> px (pixel fonts often want one or two more)</label>
+  <div id="ui"><div class="row" id="row"></div></div>
+</div>
+<script type="module">
+  import * as assets from "../src/assets.js";
+  import * as kit from "../src/ui/kit.js";
+
+  const FONTS = [
+    ["Segoe UI (today)", '"Segoe UI", system-ui, sans-serif'],
+    ["Silkscreen", '"Silkscreen", monospace'],
+    ["Pixelify Sans", '"Pixelify Sans", sans-serif'],
+    ["Jersey 15", '"Jersey 15", sans-serif'],
+  ];
+
+  function sample(name, family) {
+    return `
+      <div class="col" style="--font-ui:${family.replace(/"/g, "&quot;")}; font-family: var(--font-ui)">
+        <div class="name">${name}</div>
+        <div class="hud-panel">
+          <div class="hud-row"><div class="hud-health kit-well"><div class="hud-health-fill" style="width:72%"></div><span class="hud-label">Health</span><span class="hud-health-text">72 / 100</span></div></div>
+          <div class="hud-row"><div class="hud-stamina kit-well"><div class="hud-stamina-fill" style="width:40%"></div><span class="hud-label">Stamina</span><span class="hud-stamina-text">40%</span></div></div>
+          <div class="hud-row hud-hands">Hands: Sword / Torch</div>
+          <div class="hud-clock">Day 3, 17:40</div>
+        </div>
+        <div class="inv-column kit-frame">
+          <div class="inv-header"><span>Burlap sack</span><button class="kit-button">Tidy</button></div>
+          <div class="inv-grid-well kit-well"><div class="inv-grid sample-items" style="--cell:38px">
+            <div class="inv-item stacked" style="left:0;top:0;width:38px;height:38px;--item:#c9a060"><span class="inv-label">Bread</span><span class="inv-stack">3</span></div>
+            <div class="inv-item tall" style="left:38px;top:0;width:38px;height:76px;--item:#8a8a92"><span class="inv-label">Sword</span></div>
+            <div class="inv-item" style="left:76px;top:0;width:76px;height:38px;--item:#5e4028"><span class="inv-label">Rope</span></div>
+          </div></div>
+        </div>
+        <div class="doll-slot kit-well"><span class="slot-label">Main hand</span></div>
+        <div class="menu kit-frame" id="menu"><div class="menu-entry">Open the door</div><div class="menu-entry">Board it up</div><div class="menu-entry disabled">Climb through</div></div>
+        <div class="screen">
+          <h1>Paused</h1>
+          <div class="sub">Esc to resume</div>
+          <div class="setting"><span>Zombie aggro</span><span class="choices"><button class="on">Off</button><button>On</button></span></div>
+          <div class="screen-buttons"><button>Resume</button><button>Settings</button></div>
+        </div>
+      </div>`;
+  }
+
+  const manifest = await assets.loadJson("data/manifest.json");
+  assets.setManifest(manifest);
+  await assets.loadSprite("ui_kit");
+  kit.apply();
+  const row = document.getElementById("row");
+  row.innerHTML = FONTS.map(([n, f]) => sample(n, f)).join("");
+  const ui = document.getElementById("ui");
+  const scaleEl = document.getElementById("scale");
+  const offsetEl = document.getElementById("offset");
+  const refresh = () => {
+    ui.style.transform = `scale(${scaleEl.value})`;
+    ui.style.width = `${100 / Number(scaleEl.value)}%`;
+    const off = Number(offsetEl.value);
+    for (const col of row.querySelectorAll(".col")) {
+      for (const el of col.querySelectorAll("*")) {
+        if (!el.dataset.base) el.dataset.base = getComputedStyle(el).fontSize;
+        if (col.dataset.candidate !== "0") el.style.fontSize = `${parseFloat(el.dataset.base) + off}px`;
+      }
+    }
+  };
+  row.querySelectorAll(".col").forEach((c, i) => { c.dataset.candidate = String(i); });
+  scaleEl.addEventListener("input", refresh);
+  offsetEl.addEventListener("input", refresh);
+  refresh();
+</script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+{"placeholder": {"kind": "ui", "stone": "#7a746c", "well": "#221c26", "timber": "#7a5230"}, "slices": {"frame": 6, "well": 3, "button": 4}, "note": "the UI kit (docs/23, step 4): a stone frame, an inset well, a button in three states, each a 9-slice; `slices` is each picture's corner size in kit pixels, shown at 2x in the interface (src/ui/kit.js)"}

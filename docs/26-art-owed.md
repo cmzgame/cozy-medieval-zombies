@@ -5,7 +5,8 @@
 ## How an item's art works in the game today (so a request is the right shape)
 
 - **In the world (held in the hand):** one upright drawing and its grip pixel. Either **fixed** (shown unrotated: the book), **rotated** by nearest pixel into 16 angles about the grip (the knife and axe), or **hand-drawn angles** (0, 22.5, 45, 67.5, 90 degrees clockwise from up, flipped for the rest: the staff, the model for any long weapon). `figure.js` still generates a picture for every weapon below; the generated ones are placeholders and `def.held.image` / `def.held.angles` replaces them with no other change.
-- **In the bag:** `def.icon` (`src` and `size`): a picture on a canvas of the item's exact bag footprint at 19 px a cell, shown at an exact 2x on a dark slot. Items without it show a coloured block with a text label.
+- **In the bag:** `def.icon` (`src` and `size`): a picture on a canvas of the item's exact bag footprint at 19 px a cell, shown at a whole scale on a dark slot. Items without it show a coloured block with a text label.
+- **In a slot (the character screen's worn slots and hands, and the belt; since 2026-10-12, `23` step 4):** `def.portrait` (`src` and `size`): a **square picture, 38 by 38**, of the thing as a thing (a sword upright, a tunic folded or hung), drawn from the same design as the other two, shown at a whole scale in the slot. **Every item that can be held or worn owes one**, besides its world picture and its bag icon (Michael, 2026-10-12). Until it comes, a square bag icon stands in; anything else shows the coloured block with its label. Items on the ground stay coloured boxes for a good long while: their art is basement priority (Michael).
 - **Sizes** (in game pixels at 1x): the figure is 55 tall and 26 wide, a hand hangs about 14 above the feet, a tile is 64 x 32. The design agent's first two rounds (`data/art/items/`) are the reference for style: hard pixels, a 1 px `#2b2522` outline, light from the top left.
 
 ## Owed, in the order Michael's testing meets them
@@ -33,6 +34,7 @@ Round 2 (2026-10-12): the **book of fire**, **staff of fire**, **throwing knife*
 
 - **How a delivery is checked and landed, and how the agent's own docs come in, is `27`.**
 
+- **Since 2026-10-12 the pair is a trio for anything held or worn:** the world picture, the bag icon, and the 38 by 38 portrait for the character screen's slots. A delivery that lacks any of the three is flagged.
 - **Ask for the pair, in the same folder, with the grip pixel,** and for hand-drawn angles for anything long (the halberd, the spear, the bow's arm, a future polearm).
 - **A thrown item is one picture three times** (held, flying, lying on the floor); the knife and axe set the pattern.
 - **A stack's count is drawn by the bag** in the lower right of the cell: leave that corner clear on stackable items.

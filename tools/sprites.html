@@ -91,7 +91,7 @@
 
   // ---- the editor ----
   let cur = null; // { id, def, sheet, work (canvas), zoom, tool, colour, undo: [], anchorDrag }
-  const SAVE_AS_DRAWN_KINDS = ["tree", "post", "flat", "pumpkin", "campfire", "hearth", "torch_post"];
+  const SAVE_AS_DRAWN_KINDS = ["tree", "post", "flat", "pumpkin", "campfire", "hearth", "torch_post", "ui"];
 
   async function open(id) {
     for (const el of els.browser.querySelectorAll(".item")) el.classList.toggle("on", el.dataset.id === id);

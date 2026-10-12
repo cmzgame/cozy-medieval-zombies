@@ -33,6 +33,7 @@ import * as buttons from "./buttons.js";
 import { refreshCorpse, createCharacter, wardrobeInto } from "./entities/character.js";
 import * as menu from "./ui/context-menu.js";
 import * as panel from "./ui/inventory-panel.js";
+import * as kit from "./ui/kit.js";
 import * as interact from "./interact.js";
 import * as items from "./items.js";
 import * as inventory from "./inventory.js";
@@ -141,7 +142,7 @@ function handleEscape() {
   }
   if (placement.cancel()) return;
   if (panel.isOpen()) {
-    panel.setOpen(false);
+    panel.closeAll();
     openBag = null;
     return;
   }
@@ -182,20 +183,24 @@ function updateInventoryUi() {
   // is down (docs/02). The bag closes if it was open.
   if (player.carrying) {
     if (panel.isOpen()) {
-      panel.setOpen(false);
+      panel.closeAll();
       openBag = null;
     }
     if (input.wasPressed("Tab") || input.wasPressed("KeyC")) showMessage("Your hands are full.");
     return;
   }
-  // Tab opens the bag; with none worn it opens the character screen instead,
-  // with the message (docs/11, check 6). C opens the character screen.
-  if (input.wasPressed("Tab") || input.wasPressed("KeyC")) {
-    const noBag = !inventory.bagOf(player);
-    panel.toggle({ character: input.wasPressed("KeyC") || noBag });
-    if (!panel.isOpen()) openBag = null;
-    else if (noBag) showMessage("No bag on your back.");
+  // Tab opens and closes the bag; with none worn it opens the character screen
+  // instead, with the message (docs/11, check 6). C opens and closes the
+  // character screen. The two are independent (Michael, 2026-10-12).
+  if (input.wasPressed("Tab")) {
+    if (inventory.bagOf(player)) panel.toggleBag();
+    else {
+      panel.toggleCharacter();
+      if (panel.isCharacter()) showMessage("No bag on your back.");
+    }
+    if (!panel.isBagOpen()) openBag = null;
   }
+  if (input.wasPressed("KeyC")) panel.toggleCharacter();
   // Belt keys: a consumable on the slot is used; anything else swaps with
   // its hand (docs/11; the belt as utility slots, Michael 2026-10-10 late).
   for (let i = 0; i < 4; i++) {
@@ -685,6 +690,7 @@ async function boot() {
       for (const sheet of sheets) gl.placeSheet(sheet);
     } },
     { name: "ui", label: "Setting the table", weight: 1, async run() {
+      kit.apply(); // the stone, the well, and the button as CSS, before any panel is built (docs/23, step 4)
       initHud();
       initPrompt();
       initZombieBars();
@@ -746,7 +752,7 @@ async function boot() {
       events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, damage));
       events.on("containerOpened", ({ bag, tiles: where, name, corpse }) => {
         openBag = { bag, tiles: where, name, corpse: corpse || null };
-        panel.setOpen(true, { character: panel.isCharacter() });
+        panel.setBagOpen(true);
       });
       // After the menu's own listener, so a menu closed by Escape is seen first.
       window.addEventListener("keydown", (e) => {
@@ -758,6 +764,7 @@ async function boot() {
           if (!e.data || e.data.type !== "sheet") return;
           await assets.reloadSheet(e.data.id);
           if (ground.sheetIds().has(e.data.id)) await ground.reload();
+          if (e.data.id === "ui_kit") kit.apply();
           showMessage(`Reloaded ${e.data.id}.`);
         };
       } catch {

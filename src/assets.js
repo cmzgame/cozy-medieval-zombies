@@ -153,6 +153,7 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
       case "flame": sheet = placeholders.generateFlame(); break;
       case "ground": sheet = placeholders.generateGround(ph); break; // docs/15: dirt, cobble
       case "noise": sheet = placeholders.generateNoise(ph); break; // docs/15: the edges' noise
+      case "ui": sheet = placeholders.generateUiKit(ph); break; // docs/23 step 4: the interface's frame, well, and button
       default: throw new Error(`Unknown placeholder kind ${ph.kind} for ${id}`);
     }
   } else {
