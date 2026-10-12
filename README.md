@@ -47,3 +47,5 @@ Milestone 1, the probe, passed on 2026-10-09: a scrolling chunked map with real 
 | [24-throwables-and-fire-magic.md](docs/24-throwables-and-fire-magic.md) | A spec in summary: throwing knives and axes, the fireball, the staff and the book of fire. |
 | [25-character-art-brief.md](docs/25-character-art-brief.md) | The brief to redo the characters: the body first, three options per slot. |
 | [26-art-owed.md](docs/26-art-owed.md) | The item art still owed, each as a world picture and an inventory icon. |
+| [27-art-integration.md](docs/27-art-integration.md) | How the design agent's work comes in: the delivery checklist, the shared worktree, the audit. |
+| [art/README.md](docs/art/README.md) | The design agent's own docs: a style bible and a page per area of art. |

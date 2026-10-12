@@ -31,6 +31,8 @@ Round 2 (2026-10-12): the **book of fire**, **staff of fire**, **throwing knife*
 
 ## Notes for whoever briefs the next round
 
+- **How a delivery is checked and landed, and how the agent's own docs come in, is `27`.**
+
 - **Ask for the pair, in the same folder, with the grip pixel,** and for hand-drawn angles for anything long (the halberd, the spear, the bow's arm, a future polearm).
 - **A thrown item is one picture three times** (held, flying, lying on the floor); the knife and axe set the pattern.
 - **A stack's count is drawn by the bag** in the lower right of the cell: leave that corner clear on stackable items.

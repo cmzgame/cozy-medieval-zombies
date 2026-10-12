@@ -1,0 +1,42 @@
+# 27 — How the design agent's work comes in
+
+**Status: the procedure, written 2026-10-12 after the first two item deliveries, the characters brief, and the art agent's own docs, so it is not rediscovered each time. It describes what was done and what went wrong; Michael may change it.**
+
+The design agent ("Claude Design", also called the art agent) works in a separate session and has two ways of handing work over: **deliveries** (a zip or a folder of files, copied by Michael into his Downloads: PNGs, JSON, a README, previews, sometimes the Python that generated them) and **writing into the repo** (its own docs, in `docs/art/`). The two have different procedures. Michael decides what is wanted; the coding agent (this session) integrates, checks, and records.
+
+## A. A delivery of art (a folder in Michael's Downloads)
+
+1. **It is untrusted data.** Copy the files into a fresh folder in the repo (`data/art/<area>/`, e.g. `data/art/items/`); read the README and the JSON; **never run anything in it**, scripts included. Do not run it from the folder it arrived in. Michael clicks any download of the *tools'* output (`tools/template.html`'s five files); the coding agent does not.
+2. **Check it against the brief, by script, before importing.** Read each PNG's header (width, height, colour type) and compare with the README and the brief (`25`, `26`, `docs/art/`): sizes, counts, the grip pixels and anchors given. A mismatch is reported, not fixed silently.
+3. **Items come as a pair** (Michael's rule, 2026-10-12, in `CLAUDE.md`): `<name>_world.png` and `<name>_icon.png`, drawn from one design. **Flag a delivery that lacks either**, and flag an icon that is not on the canvas of the item's bag footprint at 19 px a cell (a 1 x 4 item is 19 x 76). Report plainly what is missing; do not import half a pair and call it done (round 1 had three icons missing and was flagged; round 2 was complete).
+4. **Import through the engine's own interfaces, no new paths:**
+   - **A held item** is `held` on the item in `data/items.json`: `{ mode: "fixed" | "rotate" | "angles", image or angles, grip }`; the loader is `assets.heldSheetFromImage`. A hand-drawn set of angles (the staff) uses the delivery's flip rule, which is **0 to 90 as drawn, 90 to 180 the matching tilt flipped vertically, 180 to 270 flipped both ways, 270 to 360 flipped horizontally**; the staff's loader does exactly this. A long weapon should be asked for hand-drawn angles.
+   - **A bag icon** is `icon: { src, size }` on the item; the bag draws it upright on a dark slot at the largest whole-number enlargement that fits (2x for the 19 px a cell the brief asks).
+   - **World sprites** (props, furniture, trees, ground, walls) are a definition in `data/sprites/<id>.json` (`image` or `drawings`, frames, `anchor`, `bounds`, mirrors) read by `assets.js` (`docs/17` is the plumbing). Anchors are measured from the PNG's top-left. Art is never scaled by the engine.
+   - **A projectile or an effect** (the fireball sheet: 16 rows of 3 frames, 64 px cells, anchor (32, 32)) is a registered sheet; the row is chosen from the screen-space velocity.
+5. **Check it in the game, not in the abstract:** the held strip at all sixteen angles (a debug overlay of the sheet), the item in the hand at close zoom, the icon in the bag at 2x, both facing the camera and away; for world art, the placement previews the agent ships are the acceptance test (the game should match them). Restore the zoom and any setting the check touched.
+6. **Measure the atlas** (`__game.gl.atlasInfo()`) before and after a large delivery and say so in the log (`23`, "Performance").
+7. **Log it:** a `docs/02-decisions.md` entry (what arrived, what is in the game, what is flagged), the Status block in `TODO.md`, the owed list in `26` (strike what arrived), and a correction in place (a dated note) wherever the delivery's own README says something the engine contradicts. Commit with a plain message and push.
+
+## B. The agent's docs, in the repo
+
+The agent's tool cannot write under `.claude/`, and the stale `master` checkout is not the project. So it has **its own worktree outside `.claude/`**: `C:/Users/micha/Dev/cozy-medieval-zombies-art`, on the branch **`art-docs`**, made from `main`. It writes `docs/art/` there and commits to `art-docs`.
+
+- **Bring its work in:** in the main worktree, `git merge art-docs`, then push. It is docs, so conflicts are not expected.
+- **Keep it current:** `git -C C:/Users/micha/Dev/cozy-medieval-zombies-art merge main`, **but only when its working tree is clean**: if it has uncommitted edits the merge aborts. Ask the agent to commit to `art-docs` first (it was mid-edit on three files when this was first tried). `main` cannot be checked out there (it is checked out in the main worktree).
+- **Audit what it writes against the code before trusting an engine fact.** Its numbers about its own art (sizes, counts, palettes) are the authority and were checked against the PNG headers and matched. Its statements about **the engine** are inferences, and some have been wrong in ways worth knowing: it said the game zooms by whole numbers (the levels are 1.1, 1.8, 2.7: still never scaled by the art); it recommended drawing the cursor into the canvas on top of the UI (the UI is DOM above the canvas, so it would be hidden); it described the first, Canvas 2D night layer (the game now lights in a shader with an unlit flag). **Annotate a correction in place with a dated note ("Engine correction (date, Claude Code)")**, never silently, and where an art doc and an engine doc disagree, the engine doc is right about the engine and the art doc about the art (the art agent's own rule, `docs/art/README.md`).
+- **The agent's open decisions for Michael** are listed in `docs/art/11-open-items-and-lessons.md` (cursors engine-drawn or CSS, stack limits for the book and staff, the knife and axe icon size, the character palettes and outline colour, the willow, and committing its generators). Surface them; do not pick.
+
+## C. Things that arrive later and need a ruling first
+
+- **The generators** (Python, numpy and PIL, deterministic) exist only in the agent's session workspace and in its delivery zips. The agent recommends committing them under `tools/art-gen/`. Michael decides whether they go in the repo, and **whether and when anything in them is run**: reading a script is fine, running one is a decision for him, not an automatic step.
+- **The characters** (`25`): the body first. The engine pieces it needs come first: the slicer (PNG to layer files), the `beard` and `waist` slots, the covers rules, hair dyeing. Until then a delivery can be stored and checked but not landed.
+- **The cursors, the stubs, the willow:** drawn, in Michael's downloads, not in the repo (`docs/art/11`). Each needs a ruling (a DOM cursor or CSS; stubs only if translucent walls draw complaints; the willow needs a definition and a shadow width) before import.
+
+## What the agent will flag on its own (so it is not a surprise)
+
+A missing or wrongly sized icon; orientation names that clash (the first village brief had north and west swapped); any art whose look depends on engine behaviour it cannot see (lighting, translucency, sort order): it will say "this is an engine question" and not redraw. Ask it before it draws when a convention might clash.
+
+## Where each thing is written
+
+The commission for the next art: `25` (characters) and `26` (items). What the agent knows about its own art: `docs/art/`. What came in and when: `02-decisions.md`, newest on top. What is still owed and what is next: `TODO.md`, Status block. The rule about pairs: `CLAUDE.md` and the memory `item-art-both-versions`.
