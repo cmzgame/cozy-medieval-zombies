@@ -1,11 +1,21 @@
 /* Base styles copied from cozy-zombie-game style.css on 2026-10-09; UI rules return with their milestones.
-   Rebuilt on the UI kit on 2026-10-12 (docs/23, step 4): every panel is the stone frame, every slot and bar
-   the inset well, every button the timber button, all three read from the `ui_kit` sheet by src/ui/kit.js
-   into the custom properties `--kit-frame`, `--kit-well`, `--kit-button` (and `_hover`, `_down`), each with
-   its `-slice` (kit pixels) and `-w` (interface pixels). The palette is the block of tokens below. */
+   The UI kit arrived on 2026-10-12 (docs/23, step 4): src/ui/kit.js reads the `ui_kit` sheet into the custom
+   properties `--kit-frame`, `--kit-well`, `--kit-well_thin`, `--kit-cell`, `--kit-button` (and `_hover`, `_down`),
+   each with its `-slice` and `-w` (interface pixels) and `-size`. Michael's ruling on seeing the first cut, the
+   same night: the stone goes on the bag, the character screen, and the belt alone; everything else keeps its
+   dark translucent look and the bars sit straight on the map. The palette is the block of tokens below. */
+
+/* The interface's font (docs/23, Q4c; Michael, 2026-10-12: "Pixelify Sans, it's the real deal"), a pixel
+   sans under the Open Font License, served from data/fonts; Segoe stands in until the file is there. */
+@font-face {
+  font-family: "Pixelify Sans";
+  src: url("data/fonts/PixelifySans.ttf") format("truetype");
+  font-weight: 400 700;
+  font-display: swap;
+}
 
 :root {
-  --font-ui: "Segoe UI", system-ui, sans-serif; /* the pixel font question (docs/23, Q4c) changes this line */
+  --font-ui: "Pixelify Sans", "Segoe UI", system-ui, sans-serif;
   --text: #efe8da; /* parchment on stone */
   --muted: #bdb2a3;
   --dim: #8a8078;
@@ -14,7 +24,10 @@
   --orange: #e0862d; /* stamina: blue is kept for mana, gold for the swing timer */
   --green: #6fbf5f; /* health */
   --red: #d05050;
-  --well-fill: #221c26; /* what a well shows when empty */
+  --panel: rgba(24, 18, 30, 0.92); /* the dark panels: screens, menus, the build list */
+  --panel-edge: #6a5a70;
+  --bar-bg: #2a2630;
+  --bar-edge: #55505f;
 }
 
 [hidden] {
@@ -69,43 +82,42 @@ html, body {
   pointer-events: none;
 }
 
-/* ---- the kit (docs/23, step 4) ---- */
+/* ---- the kit (docs/23, step 4): the stone, on the bag, the character screen, and the belt ---- */
 
-/* The stone frame: any panel. The picture's centre fills the box, so a panel needs no background. */
+/* The brick frame. The picture's centre fills the box, so a panel needs no background. */
 .kit-frame,
-.screen,
 .inv-column,
-#menu,
-#build-palette,
-#hotbar,
-.hud-panel {
+#hotbar {
   box-sizing: border-box;
-  border: var(--kit-frame-w, 12px) solid transparent;
+  border: var(--kit-frame-w, 8px) solid transparent;
   border-image-source: var(--kit-frame);
-  border-image-slice: var(--kit-frame-slice, 6) fill;
-  border-image-width: var(--kit-frame-w, 12px);
+  border-image-slice: var(--kit-frame-slice, 8) fill;
+  border-image-width: var(--kit-frame-w, 8px);
   border-image-repeat: repeat;
   image-rendering: pixelated;
   color: var(--text);
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
 }
 
-/* The inset well: slots, bars, the grid, small labels over the world. */
+/* The cutout: a character slot, dark with the inset edge, waiting for its icon. */
 .kit-well,
-.doll-slot,
-.hot-slot,
-.inv-grid-well,
-.hud-health,
-.hud-stamina,
-.swing-bar,
-#prompt,
-#message,
-.moodle-tip {
+.doll-slot {
   box-sizing: border-box;
-  border: var(--kit-well-w, 6px) solid transparent;
+  border: var(--kit-well-w, 5px) solid transparent;
   border-image-source: var(--kit-well);
-  border-image-slice: var(--kit-well-slice, 3) fill;
-  border-image-width: var(--kit-well-w, 6px);
+  border-image-slice: var(--kit-well-slice, 5) fill;
+  border-image-width: var(--kit-well-w, 5px);
+  border-image-repeat: repeat;
+  image-rendering: pixelated;
+}
+
+/* The thin cutout: a belt slot. */
+.hot-slot {
+  box-sizing: border-box;
+  border: var(--kit-well_thin-w, 3px) solid transparent;
+  border-image-source: var(--kit-well_thin);
+  border-image-slice: var(--kit-well_thin-slice, 3) fill;
+  border-image-width: var(--kit-well_thin-w, 3px);
   border-image-repeat: repeat;
   image-rendering: pixelated;
 }
@@ -121,10 +133,10 @@ html, body {
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
   background: none;
   cursor: pointer;
-  border: var(--kit-button-w, 8px) solid transparent;
+  border: var(--kit-button-w, 6px) solid transparent;
   border-image-source: var(--kit-button);
-  border-image-slice: var(--kit-button-slice, 4) fill;
-  border-image-width: var(--kit-button-w, 8px);
+  border-image-slice: var(--kit-button-slice, 6) fill;
+  border-image-width: var(--kit-button-w, 6px);
   border-image-repeat: repeat;
   image-rendering: pixelated;
   padding: 2px 10px;
@@ -152,28 +164,20 @@ html, body {
   border-image-source: var(--kit-button);
 }
 
-/* ---- HUD: the moodles float, the bars sit on a stone panel bottom-left ---- */
+/* ---- HUD: the moodles, the bars, the hands, the clock, straight on the map bottom-left ---- */
 #hud {
   position: absolute;
   left: 12px;
   bottom: 10px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   gap: 4px;
   font-size: 13px;
   text-shadow: 0 1px 0 #000;
 }
 
-.hud-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 2px 4px;
-}
-
 .hud-clock {
-  color: var(--text);
+  color: #cfc4d8;
   font-size: 12px;
   letter-spacing: 0.02em;
 }
@@ -181,8 +185,11 @@ html, body {
 .hud-health,
 .hud-stamina {
   position: relative;
-  width: calc(160px + 2 * var(--kit-well-w, 6px));
-  height: calc(12px + 2 * var(--kit-well-w, 6px));
+  width: 160px;
+  height: 14px;
+  background: var(--bar-bg);
+  border: 2px solid var(--bar-edge);
+  border-radius: 3px;
 }
 
 .hud-stamina-fill {
@@ -197,10 +204,12 @@ html, body {
 }
 
 .hud-stamina.blocked {
+  border-color: var(--gold);
   box-shadow: 0 0 6px var(--gold);
 }
 
 .hud-stamina.broken {
+  border-color: var(--red);
   box-shadow: 0 0 6px var(--red);
 }
 
@@ -218,7 +227,7 @@ html, body {
   padding-right: 4px;
   text-align: right;
   font-size: 11px;
-  line-height: 12px;
+  line-height: 14px;
 }
 
 /* "Health" and "Stamina" on the left of their bars, the numbers on the right. */
@@ -227,12 +236,12 @@ html, body {
   left: 4px;
   top: 0;
   font-size: 11px;
-  line-height: 12px;
+  line-height: 14px;
 }
 
 .hud-hands {
   font-size: 12px;
-  color: var(--text);
+  color: #cfc4d8;
 }
 
 .hud-moodles {
@@ -281,9 +290,12 @@ html, body {
   left: 36px;
   bottom: 0;
   white-space: nowrap;
-  padding: 1px 6px;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 4px;
+  padding: 3px 8px;
   font-size: 12px;
-  color: var(--text);
+  color: #eee;
   text-shadow: none;
 }
 
@@ -292,7 +304,7 @@ html, body {
 }
 
 .moodle-tip span {
-  color: var(--muted);
+  color: #b0a8b8;
   font-size: 11px;
 }
 
@@ -304,27 +316,30 @@ html, body {
 #prompt {
   position: absolute;
   transform: translate(-50%, -100%);
-  padding: 1px 6px;
+  background: rgba(20, 14, 26, 0.85);
+  border: 1px solid var(--panel-edge);
+  border-radius: 4px;
+  padding: 3px 8px;
   font-size: 12px;
-  color: var(--text);
   white-space: nowrap;
   pointer-events: none;
 }
 
 #prompt.disabled {
-  color: var(--dim);
+  color: #8a8a90;
 }
 
 .prompt-bar {
   margin-top: 3px;
   height: 4px;
-  background: #2a2630;
+  background: var(--bar-bg);
+  border-radius: 2px;
 }
 
 .prompt-fill {
   height: 100%;
   width: 0;
-  background: var(--gold);
+  background: #e8b84a;
 }
 
 #message {
@@ -332,9 +347,11 @@ html, body {
   left: 50%;
   top: 16px;
   transform: translateX(-50%);
-  padding: 1px 10px;
+  background: rgba(20, 14, 26, 0.85);
+  border: 1px solid var(--panel-edge);
+  border-radius: 4px;
+  padding: 4px 12px;
   font-size: 13px;
-  color: var(--text);
   pointer-events: none;
 }
 
@@ -342,23 +359,26 @@ html, body {
 #menu {
   position: absolute;
   min-width: 150px;
-  padding: 1px 0;
+  background: rgba(24, 18, 30, 0.96);
+  border: 2px solid var(--panel-edge);
+  border-radius: 4px;
+  padding: 3px 0;
   font-size: 12px;
   z-index: 5;
 }
 
 .menu-entry {
-  padding: 4px 10px;
+  padding: 4px 12px;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .menu-entry:hover {
-  background: rgba(0, 0, 0, 0.28);
+  background: #4a4058;
 }
 
 .menu-entry.disabled {
-  color: var(--dim);
+  color: #7a7a84;
   cursor: default;
 }
 
@@ -378,7 +398,7 @@ html, body {
   width: 28px;
   height: 4px;
   transform: translate(-50%, -100%);
-  background: #2a2630;
+  background: var(--bar-bg);
   border: 1px solid #1a1620;
   border-radius: 2px;
   pointer-events: none;
@@ -397,7 +417,7 @@ html, body {
 #swing-bars {
   position: absolute;
   left: 50%;
-  bottom: 92px;
+  bottom: 74px;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
@@ -414,8 +434,12 @@ html, body {
 
 .swing-bar {
   position: relative;
-  width: calc(160px + 2 * var(--kit-well-w, 6px));
-  height: calc(10px + 2 * var(--kit-well-w, 6px));
+  width: 160px;
+  height: 14px;
+  box-sizing: border-box;
+  background: var(--bar-bg);
+  border: 2px solid var(--bar-edge);
+  border-radius: 3px;
 }
 
 .swing-bar-fill {
@@ -429,7 +453,7 @@ html, body {
   width: 26px;
   height: 3px;
   transform: translate(-50%, -100%);
-  background: #2a2630;
+  background: var(--bar-bg);
   border: 1px solid #50181c;
   border-radius: 2px;
   pointer-events: none;
@@ -499,7 +523,7 @@ html, body {
    #inventory covers the UI layer and lets clicks through. The bag sits top-right with any open
    container to its left; the character screen sits at the left edge, centred vertically. Neither moves
    when the other opens (Michael, 2026-10-10 night), and each opens and closes on its own
-   (Michael, 2026-10-12). Their cell comes from view.panelCell. */
+   (Michael, 2026-10-12). Both are on the stone. */
 #inventory {
   position: absolute;
   inset: 0;
@@ -535,7 +559,7 @@ html, body {
 }
 
 .inv-column {
-  padding: 0 2px 2px;
+  padding: 2px 4px 4px;
 }
 
 .inv-header {
@@ -552,18 +576,14 @@ html, body {
   padding: 0 6px;
 }
 
-.inv-grid-well {
-  display: inline-block;
-}
-
+/* The grid is tiled with the kit's cell: each one a cutout, waiting for an item. */
 .inv-grid {
   position: relative;
   display: block;
   background-color: #1a141f;
-  background-image:
-    linear-gradient(to right, #3a3242 1px, transparent 1px),
-    linear-gradient(to bottom, #3a3242 1px, transparent 1px);
+  background-image: var(--kit-cell);
   background-size: var(--cell) var(--cell);
+  image-rendering: pixelated;
 }
 
 .inv-item {
@@ -597,7 +617,7 @@ html, body {
   background: rgba(22, 18, 28, 0.78);
 }
 
-/* In a slot the well is the dark behind the portrait. */
+/* In a slot the cutout is the dark behind the portrait. */
 .doll-slot .inv-item.has-icon,
 .hot-slot .inv-item.has-icon {
   background: transparent;
@@ -693,7 +713,7 @@ html, body {
   padding: 2px 6px;
   border-radius: 3px;
   background: rgba(24, 18, 30, 0.8);
-  color: var(--muted);
+  color: #a098ac;
   font-size: 9px;
   order: 2;
 }
@@ -723,7 +743,11 @@ html, body {
 /* The settings screen outgrows a short window as settings are added; scroll it
    rather than lose the Back button. */
 .screen {
-  padding: 12px 24px 14px;
+  box-sizing: border-box;
+  background: rgba(24, 18, 30, 0.96);
+  border: 2px solid var(--panel-edge);
+  border-radius: 8px;
+  padding: 22px 32px 24px;
   min-width: 280px;
   max-height: 92%;
   overflow-y: auto;
@@ -742,7 +766,7 @@ html, body {
 }
 
 .screen .sub {
-  color: var(--muted);
+  color: #a098ac;
   font-size: 12px;
   margin-bottom: 16px;
 }
@@ -770,7 +794,7 @@ html, body {
   align-items: center;
   gap: 16px;
   padding: 6px 0;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid #2e2636;
   text-align: left;
   font-size: 14px;
 }
@@ -797,7 +821,7 @@ html, body {
 }
 
 .controls b {
-  color: var(--text);
+  color: #d8c8e0;
   white-space: nowrap;
 }
 
@@ -808,8 +832,7 @@ html, body {
   padding: 2px 2px 4px;
 }
 
-/* A slot's box is its content (two cells) plus the well's border, so the portrait fills
-   the content; the width and height are set inline from the cell. */
+/* A slot's box is its cell plus the cutout's edge; the width and height are set inline. */
 .doll-slot {
   position: relative;
   display: flex;
@@ -822,7 +845,7 @@ html, body {
 }
 
 .slot-label {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--dim);
   text-align: center;
   line-height: 1.1;
@@ -856,15 +879,15 @@ html, body {
   bottom: 10px;
   transform: translateX(-50%);
   display: flex;
-  gap: 6px;
+  gap: 4px;
   padding: 0;
   pointer-events: auto;
 }
 
 .hot-slot {
   position: relative;
-  width: calc(38px + 2 * var(--kit-well-w, 6px));
-  height: calc(38px + 2 * var(--kit-well-w, 6px));
+  width: calc(38px + 2 * var(--kit-well_thin-w, 3px));
+  height: calc(38px + 2 * var(--kit-well_thin-w, 3px));
 }
 
 .hot-key {
@@ -885,13 +908,17 @@ html, body {
   top: 50%;
   transform: translateY(-50%);
   min-width: 200px;
-  padding: 2px 4px 4px;
+  padding: 8px;
+  background: var(--panel);
+  border: 2px solid var(--panel-edge);
+  border-radius: 6px;
   font-size: 13px;
 }
 
 .bp-title {
   font-size: 15px;
   margin-bottom: 6px;
+  color: #d8c8e0;
 }
 
 .bp-row {
@@ -904,7 +931,7 @@ html, body {
 }
 
 .bp-row:hover {
-  background: rgba(0, 0, 0, 0.28);
+  background: #3a3044;
 }
 
 .bp-cost {
@@ -917,18 +944,18 @@ html, body {
 
 .bp-remove {
   margin-top: 4px;
-  border-top: 1px solid rgba(0, 0, 0, 0.3);
+  border-top: 1px solid #4a4058;
   padding-top: 8px;
 }
 
 .bp-remove .bp-cost {
-  color: var(--text);
+  color: #d8c8e0;
 }
 
 .bp-hint {
   margin-top: 6px;
   font-size: 11px;
-  color: var(--muted);
+  color: #a098ac;
   max-width: 220px;
 }
 

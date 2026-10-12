@@ -1270,53 +1270,83 @@ export function generateNoise(ph) {
 }
 
 // ---------------------------------------------------------------------------
-// The UI kit (docs/23, step 4): a stone frame, an inset well, and a button in
-// three states, each a 9-slice tile three slices square, side by side on one
-// sheet. The interface shows them at 2x (ui/kit.js). Grey bevelled stone is
-// the placeholder; the drawn kit replaces it through the same definition.
+// The UI kit (docs/23, step 4): the stone frame, the cutout well in two
+// weights, the cutout cell the bag's grid is tiled with, and the timber
+// button in three states, each a 9-slice (the cell a plain tile) side by side
+// on one sheet at the interface's own pixel size (ui/kit.js, K = 1). Michael,
+// 2026-10-12, on the first cut: tiled stone like a brick wall, not speckle;
+// the slots darker cutouts with Minecraft's inset edge (dark top and left,
+// light bottom and right), waiting for an icon. The frame is a flat band
+// round a brick field: the band is the border slices, the field the centre,
+// and the field's period (16 by 8) divides the centre slice so it repeats
+// without a seam. A drawn kit replaces this through the same definition.
 // ---------------------------------------------------------------------------
 export function generateUiKit(ph) {
-  const stone = ph.stone || "#7a746c";
-  const well = ph.well || "#221c26";
+  const stone = ph.stone || "#8a8580";
+  const cut = ph.cut || "#5a5654"; // a cutout's fill, darker than the stone
   const timber = ph.timber || "#7a5230";
   const OUTLINE = "#241e1c";
-  const tiles = [
-    { name: "frame", s: 6, fill: stone, light: shade(stone, 1.28), dark: shade(stone, 0.66), speckle: shade(stone, 0.82) },
-    { name: "well", s: 3, fill: well, light: shade(well, 0.6), dark: shade(well, 2.4), inset: true },
-    { name: "button", s: 4, fill: timber, light: shade(timber, 1.35), dark: shade(timber, 0.6) },
-    { name: "button_hover", s: 4, fill: shade(timber, 1.18), light: shade(timber, 1.55), dark: shade(timber, 0.7) },
-    { name: "button_down", s: 4, fill: shade(timber, 0.88), light: shade(timber, 0.55), dark: shade(timber, 1.2), inset: true },
-  ];
-  const width = tiles.reduce((n, t) => n + t.s * 3, 0);
-  const height = Math.max(...tiles.map((t) => t.s * 3));
-  const { canvas, ctx } = makeCanvas(width, height);
+  const light = shade(stone, 1.22);
+  const dark = shade(stone, 0.72);
+  const mortar = shade(stone, 0.58);
+  const cutDark = shade(cut, 0.5);
+  const cutLight = shade(stone, 1.3);
+  const { canvas, ctx } = makeCanvas(32 + 15 + 9 + 38 + 18 * 3, 38);
   const frames = {};
   let x0 = 0;
-  for (const t of tiles) {
-    const n = t.s * 3;
-    ctx.fillStyle = t.fill;
-    ctx.fillRect(x0, 0, n, n);
-    if (t.speckle) {
-      // A few darker pixels in a fixed pattern, so the stone is not flat; the
-      // pattern repeats every slice, so the edges tile without a seam.
-      ctx.fillStyle = t.speckle;
-      for (let y = 2; y < n - 2; y++) for (let x = 2; x < n - 2; x++) if (((x % t.s) * 5 + (y % t.s) * 3) % 7 === 1) ctx.fillRect(x0 + x, y, 1, 1);
+  const px = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x0 + x, y, w, h); };
+  // An outlined, bevelled tile n square: the outline, then `b` pixels of
+  // light and dark; `inset` swaps them (a cutout, a pressed button).
+  const chrome = (n, b, fill, lt, dk, inset) => {
+    px(0, 0, n, n, fill);
+    px(0, 0, n, 1, OUTLINE); px(0, n - 1, n, 1, OUTLINE); px(0, 0, 1, n, OUTLINE); px(n - 1, 0, 1, n, OUTLINE);
+    const a = inset ? dk : lt;
+    const z = inset ? lt : dk;
+    px(1, 1, n - 2, b, a); px(1, 1, b, n - 2, a);
+    px(1, n - 1 - b, n - 2, b, z); px(n - 1 - b, 1, b, n - 2, z);
+  };
+
+  // The frame: 32 square, the band 8 wide (slice 8), the brick field 16 square.
+  chrome(32, 2, stone, light, dark, false);
+  px(7, 7, 18, 1, dark); px(7, 24, 18, 1, dark); px(7, 7, 1, 18, dark); px(24, 7, 1, 18, dark); // the groove round the field
+  for (let y = 8; y < 24; y += 8) {
+    const off = ((y - 8) / 8) % 2 ? 8 : 0;
+    for (let x = off - 16; x < 24; x += 16) {
+      // One brick: stone, a light top and left, mortar at the bottom and the right, clipped to the field.
+      const bx = Math.max(8, x), bw = Math.min(24, x + 16) - bx;
+      if (bw <= 0) continue;
+      px(bx, y, bw, 8, stone);
+      if (x >= 8) px(x, y, 1, 7, light);
+      px(bx, y, bw, 1, light);
+      px(bx, y + 7, bw, 1, mortar);
+      if (x + 15 < 24) px(x + 15, y, 1, 8, mortar);
     }
-    // The outline all round, then the bevel inside it: light top and left,
-    // dark bottom and right (the game's light is top-left); an inset tile swaps them.
-    ctx.fillStyle = OUTLINE;
-    ctx.fillRect(x0, 0, n, 1);
-    ctx.fillRect(x0, n - 1, n, 1);
-    ctx.fillRect(x0, 0, 1, n);
-    ctx.fillRect(x0 + n - 1, 0, 1, n);
-    ctx.fillStyle = t.light;
-    ctx.fillRect(x0 + 1, 1, n - 2, 1);
-    ctx.fillRect(x0 + 1, 1, 1, n - 2);
-    ctx.fillStyle = t.dark;
-    ctx.fillRect(x0 + 1, n - 2, n - 2, 1);
-    ctx.fillRect(x0 + n - 2, 1, 1, n - 2);
-    frames[t.name] = [x0, 0, n, n];
-    x0 += n;
   }
-  return { image: canvas, frames, anchor: [0, 0], bounds: { x: 0, y: 0, w: width, h: height }, animations: {}, facings: [], mirror: {} };
+  frames.frame = [x0, 0, 32, 32];
+  x0 += 32;
+
+  // The well, a cutout 15 square (slice 5): the outline, two of dark, two of light.
+  chrome(15, 2, cut, cutLight, cutDark, true);
+  frames.well = [x0, 0, 15, 15];
+  x0 += 15;
+  // The thin well for the belt (slice 3): one of each.
+  chrome(9, 1, cut, cutLight, cutDark, true);
+  frames.well_thin = [x0, 0, 9, 9];
+  x0 += 9;
+  // The cell the bag's grid is tiled with, 38 square: a one-pixel stone
+  // separator, then the cutout's edge and fill.
+  px(0, 0, 38, 38, stone);
+  px(1, 1, 36, 36, cut);
+  px(1, 1, 36, 2, cutDark); px(1, 1, 2, 36, cutDark);
+  px(1, 36, 36, 1, cutLight); px(36, 1, 1, 36, cutLight);
+  frames.cell = [x0, 0, 38, 38];
+  x0 += 38;
+
+  // The button, 18 square (slice 6), three states.
+  for (const [name, fill, k, inset] of [["button", timber, 1, false], ["button_hover", shade(timber, 1.18), 1.1, false], ["button_down", shade(timber, 0.88), 1, true]]) {
+    chrome(18, 2, fill, shade(timber, 1.35 * k), shade(timber, 0.6), inset);
+    frames[name] = [x0, 0, 18, 18];
+    x0 += 18;
+  }
+  return { image: canvas, frames, anchor: [0, 0], bounds: { x: 0, y: 0, w: canvas.width, h: canvas.height }, animations: {}, facings: [], mirror: {} };
 }

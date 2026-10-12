@@ -108,18 +108,14 @@ export function zoomStep(dir, wrap = false) {
 
 export function update() {}
 
-// The bag's cell in UI pixels (docs/23 step 4; Michael, 2026-10-12: the character
-// screen and the bag grow with the window, the character screen most). The cell
-// is 38 times a half-step factor from 1 to 3, the largest at which a character
-// screen eight cells tall fits nine tenths of the height and a character screen
-// beside a rucksack, sixteen cells, fits the width. Half steps keep the icons
-// (19 px a cell) and the portraits (38 px a slot of two cells) at whole scales.
+// The bag's and the character screen's cell in UI pixels (docs/23 step 4). A
+// growth with the window was built and withdrawn the same night (Michael,
+// 2026-10-12: the character screen came out far too big; Minecraft's size or a
+// hair bigger). One place to change if it comes back; the icons are 19 px a
+// cell and a portrait 38 px a slot, so a factor keeps to half steps.
 export const BASE_CELL = 38;
 export function panelCell() {
-  const byH = (view.uiH * 0.9 - 80) / 8;
-  const byW = (view.uiW - 80) / 16;
-  const k = Math.max(1, Math.min(3, Math.floor((Math.min(byH, byW) / BASE_CELL) * 2) / 2));
-  return BASE_CELL * k;
+  return BASE_CELL;
 }
 
 export function resize() {

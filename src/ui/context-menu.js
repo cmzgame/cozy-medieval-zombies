@@ -11,7 +11,6 @@ let swallowedEscape = false;
 export function initContextMenu() {
   root = document.createElement("div");
   root.id = "menu";
-  root.className = "kit-frame";
   root.hidden = true;
   document.getElementById("ui").appendChild(root);
 

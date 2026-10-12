@@ -5,8 +5,8 @@
 // that involve a slot go through the handlers, which know the player.
 // The bag (Tab) and the character screen (C) are two panels that open and
 // close on their own; closing one never closes the other (Michael, 2026-10-12,
-// docs/23 step 4). Both grow with the window (view.panelCell), the character
-// screen most: its slot is two cells square and shows the item's portrait.
+// docs/23 step 4). Both are 38 px a cell (view.panelCell); a character slot is
+// one cell in a cutout and shows the item's portrait.
 
 import { url as assetUrl } from "../assets.js"; // icons carry the manifest stamp (docs/23)
 import { getItem } from "../items.js";
@@ -207,15 +207,16 @@ function columnHtml(which, bag, title) {
   return `
     <div class="inv-column kit-frame">
       <div class="inv-header"><span>${title}</span><button class="kit-button" data-tidy="${which}" title="Repack">Tidy</button></div>
-      <div class="inv-grid-well kit-well"><div class="inv-grid" data-bag="${which}" style="width:${bag.cols * CELL}px;height:${bag.rows * CELL}px;--cell:${CELL}px">${items}<div class="inv-hl" hidden></div></div></div>
+      <div class="inv-grid" data-bag="${which}" style="width:${bag.cols * CELL}px;height:${bag.rows * CELL}px;--cell:${CELL}px">${items}<div class="inv-hl" hidden></div></div>
     </div>`;
 }
 
-// A character slot is two bag cells square.
+// A character slot is one cell square inside its cutout edge (Michael,
+// 2026-10-12: Minecraft's size or a hair bigger; two cells was far too big).
 function slotHtml(id, entry, label, extra = "") {
-  const px = CELL * 2;
+  const px = CELL;
   const inner = entry ? blockHtml(entry, `data-slot="${id}"`, px, 1, 1, "in-slot", true) : `<span class="slot-label">${label}</span>`;
-  const box = `calc(${px}px + 2 * var(--kit-well-w, 6px))`; // the content plus the well's border
+  const box = `calc(${px}px + 2 * var(--kit-well-w, 5px))`; // the content plus the well's border
   return `<div class="doll-slot kit-well${extra}${entry ? "" : " empty"}" data-slot="${id}" title="${label}" style="width:${box};height:${box}">${inner}</div>`;
 }
 
@@ -223,8 +224,8 @@ function dollHtml(player) {
   const area = (name, html) => html.replace('class="doll-slot', `style="grid-area:${name}" class="doll-slot`);
   const hand = (key, label) => area(key, slotHtml(`hand:${key}`, player.hands[key], label, " doll-hand"));
   const worn = (k) => area(k === "hands" ? "gloves" : k, slotHtml(`worn:${k}`, player.worn[k], SLOT_NAMES[k]));
-  const slot = `calc(${CELL * 2}px + 2 * var(--kit-well-w, 6px))`; // a slot's box, the well's border included
-  const cols = `${slot} ${CELL}px ${slot} ${CELL}px ${slot}`;
+  const slot = `calc(${CELL}px + 2 * var(--kit-well-w, 5px))`; // a slot's box, the well's border included
+  const cols = `${slot} ${CELL / 2}px ${slot} ${CELL / 2}px ${slot}`;
   return `
     <div class="inv-column kit-frame doll">
       <div class="inv-header"><span>You</span></div>
@@ -236,7 +237,7 @@ function dollHtml(player) {
 }
 
 function hotbarHtml(belt) {
-  return belt.map((e, i) => `<div class="hot-slot kit-well${e ? "" : " empty"}" data-slot="belt:${i}"><span class="hot-key">${i + 1}</span>${e ? blockHtml(e, `data-slot="belt:${i}"`, HOT_CELL, 1, 1, "in-slot", true) : ""}</div>`).join("");
+  return belt.map((e, i) => `<div class="hot-slot${e ? "" : " empty"}" data-slot="belt:${i}"><span class="hot-key">${i + 1}</span>${e ? blockHtml(e, `data-slot="belt:${i}"`, HOT_CELL, 1, 1, "in-slot", true) : ""}</div>`).join("");
 }
 
 // Re-render if anything changed. `inv` is the bag on the back or null;

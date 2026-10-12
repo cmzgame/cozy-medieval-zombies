@@ -13,20 +13,18 @@ let lastLabel = "";
 
 export function initHud() {
   root = document.getElementById("hud");
-  // The moodles float; the bars, the hands, and the clock sit on one stone
-  // panel so they read over grass and cobbles at every zoom (docs/23, step 4).
+  // Everything sits straight on the map, no panel behind it (Michael,
+  // 2026-10-12: stone on the bag, the character screen, and the belt alone).
   root.innerHTML = `
     <div class="hud-row hud-moodles"></div>
-    <div class="hud-panel kit-frame">
-      <div class="hud-row">
-        <div class="hud-health kit-well"><div class="hud-health-fill"></div><span class="hud-label">Health</span><span class="hud-health-text"></span></div>
-      </div>
-      <div class="hud-row">
-        <div class="hud-stamina kit-well"><div class="hud-stamina-fill"></div><span class="hud-label">Stamina</span><span class="hud-stamina-text"></span></div>
-      </div>
-      <div class="hud-row hud-hands"></div>
-      <div class="hud-clock"></div>
+    <div class="hud-row">
+      <div class="hud-health"><div class="hud-health-fill"></div><span class="hud-label">Health</span><span class="hud-health-text"></span></div>
     </div>
+    <div class="hud-row">
+      <div class="hud-stamina"><div class="hud-stamina-fill"></div><span class="hud-label">Stamina</span><span class="hud-stamina-text"></span></div>
+    </div>
+    <div class="hud-row hud-hands"></div>
+    <div class="hud-clock"></div>
   `;
   els = {
     fill: root.querySelector(".hud-health-fill"),

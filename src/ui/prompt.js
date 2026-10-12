@@ -22,10 +22,8 @@ export function initPrompt() {
   labelEl = root.querySelector(".prompt-label");
   barEl = root.querySelector(".prompt-bar");
   fillEl = root.querySelector(".prompt-fill");
-  root.classList.add("kit-well");
   messageEl = document.createElement("div");
   messageEl.id = "message";
-  messageEl.className = "kit-well";
   messageEl.hidden = true;
   document.getElementById("ui").appendChild(messageEl);
 }

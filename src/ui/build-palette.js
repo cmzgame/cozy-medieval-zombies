@@ -12,7 +12,6 @@ export function initBuildPalette(handlers = {}) {
   onPick = handlers.onPick || onPick;
   root = document.createElement("div");
   root.id = "build-palette";
-  root.className = "kit-frame";
   root.hidden = true;
   document.getElementById("ui").appendChild(root);
   root.addEventListener("mousedown", (e) => e.stopPropagation());
