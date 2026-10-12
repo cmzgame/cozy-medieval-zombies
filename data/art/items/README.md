@@ -1,20 +1,36 @@
 # Item art: throwing knife, throwing axe, staff of fire, book of fire, fireball
 
+Every item is one design with two renderings, delivered under one name: `<name>_world.png` and `<name>_icon.png`. Each icon is the same drawing as its world sprite, pixel for pixel, centred unscaled on a canvas the size of the item's bag footprint. So if a design changes, both files change together. The book is the only exception: its world art is the open book and its icon is the same book closed, with the flame on the cover, which reads better at 19 px.
+
+## Inventory icons (19 px per cell, shown at 2x in the 38 px cell)
+
+| Icon | Slot (cols x rows) | Canvas | Stacks to |
+|---|---|---|---|
+| `throwing_knife_icon.png` | 1 x 1 | 19 x 19 | 100 |
+| `throwing_axe_icon.png` | 1 x 1 | 19 x 19 | 100 |
+| `book_of_fire_icon.png` | 1 x 1 | 19 x 19 | not stated in the brief |
+| `staff_of_fire_icon.png` | 1 x 4 | 19 x 76 | not stated in the brief |
+
+- **Layout:** each icon is drawn upright on a transparent background, with the same `#2b2522` outline as the world art. An item uses only the space it honestly fills; nothing is stretched.
+- **Stack counts:** the knife and axe leave the lower-right corner of the cell clear for the stack number.
+- **Rotation:** the game handles rotated placement in the bag.
+
+## World sprites
+
 All art is authored at 1x and uses hard pixels only (alpha is 0 or 255). There is a 1 px `#2b2522` outline, and light comes from the top-left.
 
-`grip_px` is the pixel where the hand holds the item, measured from the PNG's top-left corner. Put that pixel on the hand. Every value is also in `items.json`.
+`grip_px` is the pixel where the hand holds the item, measured from the PNG's top-left corner. Put that pixel on the hand. Every value is also in `items.json` (world grips and icon slot sizes).
 
 | File | Size | grip_px | Notes |
 |---|---|---|---|
-| `throwing_knife.png` | 5 × 13 | (2, 9) | Blade points up. Use the same picture when held, flying and on the ground. |
-| `throwing_axe.png` | 9 × 15 | (6, 10) | Head at the top, cutting edge on the left. |
-| `staff_of_fire.png` | 16 × 50 | (8, 32) | Upright. Same picture as the 0° angle. |
-| `staff_of_fire_22_5.png` | 27 × 49 | (9, 32) | Hand-drawn, tilted 22.5° clockwise from straight up. |
-| `staff_of_fire_45.png` | 42 × 42 | (14, 28) | Tilted 45°. |
-| `staff_of_fire_67_5.png` | 49 × 27 | (17, 18) | Tilted 67.5°. |
-| `staff_of_fire_90.png` | 50 × 16 | (18, 8) | Lying flat, orb pointing right. |
-| `book_of_fire.png` | 16 × 14 | (7, 9) | Open, pages up, spine pointing at the camera. Glue it to the hand. The grip is the middle of the cover's near edge. |
-| `book_of_fire_icon.png` | 14 × 13 | — | Closed book, for the inventory icon. |
+| `throwing_knife_world.png` | 5 × 13 | (2, 9) | Blade points up. Use the same picture when held, flying and on the ground. |
+| `throwing_axe_world.png` | 9 × 15 | (6, 10) | Head at the top, cutting edge on the left. |
+| `staff_of_fire_world.png` | 16 × 50 | (8, 32) | Upright. Same picture as the 0° angle. |
+| `staff_of_fire_world_22_5.png` | 27 × 49 | (9, 32) | Hand-drawn, tilted 22.5° clockwise from straight up. |
+| `staff_of_fire_world_45.png` | 42 × 42 | (14, 28) | Tilted 45°. |
+| `staff_of_fire_world_67_5.png` | 49 × 27 | (17, 18) | Tilted 67.5°. |
+| `staff_of_fire_world_90.png` | 50 × 16 | (18, 8) | Lying flat, orb pointing right. |
+| `book_of_fire_world.png` | 16 × 14 | (7, 9) | Open, pages up, spine pointing at the camera. Glue it to the hand. The grip is the middle of the cover's near edge. |
 | `fireball.png` | sheet 192 × 1024 | — | See below. |
 
 ## Staff angles

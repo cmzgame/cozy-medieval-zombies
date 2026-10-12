@@ -1,5 +1,5 @@
 {
- "throwing_knife": {
+ "throwing_knife_world": {
   "size": [
    5,
    13
@@ -7,10 +7,9 @@
   "grip_px": [
    2,
    9
-  ],
-  "note": "blade points up; same picture held, flying and on the ground"
+  ]
  },
- "throwing_axe": {
+ "throwing_axe_world": {
   "size": [
    9,
    15
@@ -18,10 +17,19 @@
   "grip_px": [
    6,
    10
-  ],
-  "note": "head at the top, cutting edge on the left"
+  ]
  },
- "staff_of_fire": {
+ "book_of_fire_world": {
+  "size": [
+   16,
+   14
+  ],
+  "grip_px": [
+   7,
+   9
+  ]
+ },
+ "staff_of_fire_world": {
   "size": [
    16,
    50
@@ -29,10 +37,9 @@
   "grip_px": [
    8,
    32
-  ],
-  "tilt_deg_clockwise_from_up": 0
+  ]
  },
- "staff_of_fire_22_5": {
+ "staff_of_fire_world_22_5": {
   "size": [
    27,
    49
@@ -43,7 +50,7 @@
   ],
   "tilt_deg_clockwise_from_up": 22.5
  },
- "staff_of_fire_45": {
+ "staff_of_fire_world_45": {
   "size": [
    42,
    42
@@ -52,9 +59,9 @@
    14,
    28
   ],
-  "tilt_deg_clockwise_from_up": 45
+  "tilt_deg_clockwise_from_up": 45.0
  },
- "staff_of_fire_67_5": {
+ "staff_of_fire_world_67_5": {
   "size": [
    49,
    27
@@ -65,7 +72,7 @@
   ],
   "tilt_deg_clockwise_from_up": 67.5
  },
- "staff_of_fire_90": {
+ "staff_of_fire_world_90": {
   "size": [
    50,
    16
@@ -74,25 +81,7 @@
    18,
    8
   ],
-  "tilt_deg_clockwise_from_up": 90
- },
- "book_of_fire": {
-  "size": [
-   16,
-   14
-  ],
-  "grip_px": [
-   7,
-   9
-  ],
-  "note": "glue to the hand: grip is the middle of the cover's near edge"
- },
- "book_of_fire_icon": {
-  "size": [
-   14,
-   13
-  ],
-  "note": "inventory icon, closed"
+  "tilt_deg_clockwise_from_up": 90.0
  },
  "fireball": {
   "sheet": "fireball.png",
@@ -107,5 +96,51 @@
    32
   ],
   "anchor_note": "the centre of the head; put the projectile's position there"
+ },
+ "throwing_knife_icon": {
+  "slot_cols_rows": [
+   1,
+   1
+  ],
+  "size": [
+   19,
+   19
+  ],
+  "stack_max": 100,
+  "drawn_from": "throwing_knife_world"
+ },
+ "throwing_axe_icon": {
+  "slot_cols_rows": [
+   1,
+   1
+  ],
+  "size": [
+   19,
+   19
+  ],
+  "stack_max": 100,
+  "drawn_from": "throwing_axe_world"
+ },
+ "book_of_fire_icon": {
+  "slot_cols_rows": [
+   1,
+   1
+  ],
+  "size": [
+   19,
+   19
+  ],
+  "drawn_from": "same design, closed"
+ },
+ "staff_of_fire_icon": {
+  "slot_cols_rows": [
+   1,
+   4
+  ],
+  "size": [
+   19,
+   76
+  ],
+  "drawn_from": "staff_of_fire_world"
  }
 }

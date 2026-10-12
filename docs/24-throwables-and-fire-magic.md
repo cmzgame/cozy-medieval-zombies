@@ -1,6 +1,6 @@
 # 24 — Throwing knives and axes, and the fireball (a spec in summary)
 
-**Art arrived 2026-10-12 (`data/art/items/`): the book is in the game as a holdable (art only); the knife, axe, staff, and fireball art are stored, their icons are missing (knife, axe, staff), and nothing else is wired. See `02`.** **Status: a summary of what it would take, written at Michael's request on 2026-10-12. Not built, nothing ruled. Both ride on the projectile system of `20` (the ground line is the real path, the arc is art, the hit is checked at landing, obstacles are scanned once at release) and the thrown-item path the spear opened.**
+**Art arrived 2026-10-12, round 2 complete (`data/art/items/`, both versions of every item): the book, staff, knife, and axe are in the game as holdable items with icons (art only: they do nothing yet); the fireball sheet is stored and unused. See `02`.** **Status: a summary of what it would take, written at Michael's request on 2026-10-12. Not built, nothing ruled. Both ride on the projectile system of `20` (the ground line is the real path, the arc is art, the hit is checked at landing, obstacles are scanned once at release) and the thrown-item path the spear opened.**
 
 ## 1. Throwing knives and throwing axes (stacks of up to 100)
 

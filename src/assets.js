@@ -177,8 +177,16 @@ export function corpseSheetCount() {
 // where the hand holds it, drawn upright and shown at every one of the 16 held angles unrotated
 // ("glued to the hand", the book), or, for an item with hand-drawn angles, the picture at each tilt.
 // `src` is the upright drawing; the sheet's anchor is the grip, so the renderer puts the grip on the hand.
-export async function heldSheetFromImage(src, grip) {
-  const img = await loadImage(src);
+// Three modes (`held.mode`): "fixed" (the picture at every angle, unrotated: the book), "rotate" (the
+// upright picture turned into the 16 angles about its grip by nearest pixel, as the generated shapes are:
+// the knife and axe), and "angles" (hand-drawn tilts from 0 to 90 degrees clockwise with flips for the rest:
+// the staff; the design agent's README has the rule). Sixteen angles, 0 up, clockwise, 22.5 apart.
+export async function heldSheetFromImage(held) {
+  const mode = held.mode || "fixed";
+  if (mode === "angles") return heldSheetFromAngles(held.angles);
+  const img = await loadImage(held.image);
+  const grip = held.grip;
+  if (mode === "rotate") return heldSheetRotated(img, grip, held.size || 32);
   const canvas = document.createElement("canvas");
   canvas.width = img.width;
   canvas.height = img.height;
@@ -186,6 +194,91 @@ export async function heldSheetFromImage(src, grip) {
   const frames = {};
   for (let k = 0; k < 16; k++) frames[`held_${k}`] = [0, 0, img.width, img.height];
   return { image: canvas, frames, anchor: [grip[0], grip[1]], animations: {}, facings: [], mirror: {}, tips: [] };
+}
+
+function heldSheetRotated(img, grip, S) {
+  const src = document.createElement("canvas");
+  src.width = img.width;
+  src.height = img.height;
+  const sctx = src.getContext("2d", { willReadFrequently: true });
+  sctx.drawImage(img, 0, 0);
+  const sd = sctx.getImageData(0, 0, img.width, img.height).data;
+  const canvas = document.createElement("canvas");
+  canvas.width = S * 16;
+  canvas.height = S;
+  const ctx = canvas.getContext("2d");
+  const frames = {};
+  for (let k = 0; k < 16; k++) {
+    const a = (k * 22.5 * Math.PI) / 180;
+    const cos = Math.cos(a);
+    const sin = Math.sin(a);
+    const out = ctx.createImageData(S, S);
+    for (let y = 0; y < S; y++) {
+      for (let x = 0; x < S; x++) {
+        const dx = x + 0.5 - S / 2;
+        const dy = y + 0.5 - S / 2;
+        const sx = Math.floor(grip[0] + 0.5 + dx * cos + dy * sin);
+        const sy = Math.floor(grip[1] + 0.5 - dx * sin + dy * cos);
+        if (sx < 0 || sy < 0 || sx >= img.width || sy >= img.height) continue;
+        const i = (sy * img.width + sx) * 4;
+        if (sd[i + 3] === 0) continue;
+        const o = (y * S + x) * 4;
+        out.data[o] = sd[i];
+        out.data[o + 1] = sd[i + 1];
+        out.data[o + 2] = sd[i + 2];
+        out.data[o + 3] = 255;
+      }
+    }
+    ctx.putImageData(out, k * S, 0);
+    frames[`held_${k}`] = [k * S, 0, S, S];
+  }
+  return { image: canvas, frames, anchor: [S / 2, S / 2], animations: {}, facings: [], mirror: {}, tips: [] };
+}
+
+// `angles`: [{ src, grip: [x, y] }] for 0, 22.5, 45, 67.5, 90 degrees clockwise from up. 90 to 180 is the
+// matching drawn tilt flipped vertically (grip y mirrored); 180 to 360 the matching one flipped
+// horizontally (grip x mirrored): the design agent's rule for the staff.
+async function heldSheetFromAngles(angles) {
+  const imgs = await Promise.all(angles.map((a) => loadImage(a.src)));
+  const flip = (c, gx, gy, v) => {
+    const o = document.createElement("canvas");
+    o.width = c.width;
+    o.height = c.height;
+    const x = o.getContext("2d");
+    if (v) { x.translate(0, c.height); x.scale(1, -1); } else { x.translate(c.width, 0); x.scale(-1, 1); }
+    x.drawImage(c, 0, 0);
+    return { c: o, gx: v ? gx : c.width - 1 - gx, gy: v ? c.height - 1 - gy : gy };
+  };
+  const base = []; // k = 0..8
+  imgs.forEach((img, i) => {
+    const c = document.createElement("canvas");
+    c.width = img.width;
+    c.height = img.height;
+    c.getContext("2d").drawImage(img, 0, 0);
+    base[i] = { c, gx: angles[i].grip[0], gy: angles[i].grip[1] };
+  });
+  for (let k = 5; k <= 8; k++) { const m = base[8 - k]; base[k] = flip(m.c, m.gx, m.gy, true); }
+  const all = [];
+  for (let k = 0; k < 16; k++) {
+    if (k <= 8) all[k] = base[k];
+    else { const m = base[16 - k]; all[k] = flip(m.c, m.gx, m.gy, false); }
+  }
+  const W = all.reduce((n, f) => n + f.c.width + 1, 0);
+  const H = Math.max(...all.map((f) => f.c.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  const frames = {};
+  const frameAnchors = {};
+  let x = 0;
+  all.forEach((f, k) => {
+    ctx.drawImage(f.c, x, 0);
+    frames[`held_${k}`] = [x, 0, f.c.width, f.c.height];
+    frameAnchors[`held_${k}`] = [f.gx, f.gy];
+    x += f.c.width + 1;
+  });
+  return { image: canvas, frames, frameAnchors, anchor: [0, 0], animations: {}, facings: [], mirror: {}, tips: [] };
 }
 
 export function registerSheet(id, sheet) {

@@ -141,7 +141,7 @@ function blockHtml(entry, attrs, cell = CELL, w = 1, h = 1, extraCls = "") {
     const rot = !!entry.rot && w !== h;
     const fw = rot ? ih : iw;
     const fh = rot ? iw : ih;
-    const s = Math.max(1, Math.floor(Math.min((w * cell - 2) / fw, (h * cell - 2) / fh)));
+    const s = Math.max(1, Math.floor(Math.min((w * cell) / fw, (h * cell) / fh)));
     cls.push("has-icon");
     inner += `<img class="inv-icon" src="${def.icon.src}" alt="" draggable="false" style="width:${iw * s}px;height:${ih * s}px${rot ? ";transform:rotate(90deg)" : ""}">`;
   } else {
