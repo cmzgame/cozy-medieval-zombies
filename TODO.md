@@ -70,7 +70,8 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 ## The characters redone (see `docs/25-character-art-brief.md`) — brief drafted 2026-10-12, not sent
 
 - [x] Michael answered Q1 to Q6 (2026-10-12; the option lists stand).
-- [ ] The template exporter and the slicer, the `beard` and `waist` layer slots, the covers rules, hair dyeing (engine work before the first delivery, part of `23` pillar 3); then the brief goes to the design agent, the body first.
+- [x] The template exporter (`tools/template.html`, 2026-10-12): Michael downloads the five files and sends them with the brief.
+- [ ] The slicer, the `beard` and `waist` layer slots, the covers rules, hair dyeing (engine work before the first delivery, part of `23` pillar 3); then the brief goes to the design agent, the body first.
 
 ## Throwing knives and axes, and fire magic (see `docs/24-throwables-and-fire-magic.md`) — specced 2026-10-12, nothing built
 
