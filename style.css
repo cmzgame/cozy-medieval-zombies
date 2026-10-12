@@ -86,8 +86,7 @@ html, body {
 
 /* The brick frame. The picture's centre fills the box, so a panel needs no background. */
 .kit-frame,
-.inv-column,
-#hotbar {
+.inv-column {
   box-sizing: border-box;
   border: var(--kit-frame-w, 8px) solid transparent;
   border-image-source: var(--kit-frame);
@@ -97,6 +96,18 @@ html, body {
   image-rendering: pixelated;
   color: var(--text);
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
+}
+
+/* The flat plate: a panel's header strip and the belt's bar (Michael, 2026-10-12: simple there). */
+.kit-plate,
+#hotbar {
+  box-sizing: border-box;
+  border: var(--kit-plate-w, 3px) solid transparent;
+  border-image-source: var(--kit-plate);
+  border-image-slice: var(--kit-plate-slice, 3) fill;
+  border-image-width: var(--kit-plate-w, 3px);
+  border-image-repeat: repeat;
+  image-rendering: pixelated;
 }
 
 /* The cutout: a character slot, dark with the inset edge, waiting for its icon. */
@@ -562,18 +573,36 @@ html, body {
   padding: 2px 4px 4px;
 }
 
+/* The header: the title on the flat plate, the buttons and the X on the right; drag it to move the
+   panel (Michael, 2026-10-12). */
 .inv-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   font-weight: bold;
-  padding: 0 2px 6px;
+  padding: 1px 2px 1px 6px;
+  margin: 0 0 6px;
+  cursor: move;
+}
+
+.inv-tools {
+  display: flex;
+  gap: 4px;
+  align-items: center;
 }
 
 .inv-header button {
   font-size: 11px;
   font-weight: normal;
   padding: 0 6px;
+  cursor: pointer;
+}
+
+.inv-header .inv-close {
+  padding: 0 5px;
+  font-size: 13px;
+  line-height: 1;
 }
 
 /* The grid is tiled with the kit's cell: each one a cutout, waiting for an item. */
@@ -612,9 +641,13 @@ html, body {
   border: 2px solid #6ab0ff;
 }
 
-/* Items with drawn art: the picture on a dark slot, not a coloured block (docs/24). */
+/* Items with drawn art: the picture as one cutout over the cells it covers, the dividers under it
+   gone, the same fill and inset edge as a cell (Michael, 2026-10-12; docs/24). */
 .inv-item.has-icon {
-  background: rgba(22, 18, 28, 0.78);
+  background: var(--kit-cut, #5a5654);
+  border: 1px solid var(--kit-stone, #8a8580);
+  border-radius: 0;
+  box-shadow: inset 2px 2px 0 var(--kit-cut-dark, #2d2b2a), inset -1px -1px 0 var(--kit-cut-light, #b4ada6);
 }
 
 /* In a slot the cutout is the dark behind the portrait. */
@@ -706,6 +739,19 @@ html, body {
   color: #fff;
   text-shadow: 0 1px 1px #000;
   font-family: var(--font-ui);
+}
+
+/* An item with art is carried as the art alone. */
+.inv-ghost.art {
+  background: none;
+  border: none;
+  opacity: 0.9;
+}
+
+.inv-ghost.art img {
+  object-fit: contain;
+  image-rendering: pixelated;
+  pointer-events: none;
 }
 
 .inv-hint {
@@ -880,7 +926,7 @@ html, body {
   transform: translateX(-50%);
   display: flex;
   gap: 4px;
-  padding: 0;
+  padding: 3px;
   pointer-events: auto;
 }
 

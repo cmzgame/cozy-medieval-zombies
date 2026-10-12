@@ -201,6 +201,7 @@ function updateInventoryUi() {
     if (!panel.isBagOpen()) openBag = null;
   }
   if (input.wasPressed("KeyC")) panel.toggleCharacter();
+  if (openBag && !panel.isBagOpen()) openBag = null; // the bag closed by its own button
   // Belt keys: a consumable on the slot is used; anything else swaps with
   // its hand (docs/11; the belt as utility slots, Michael 2026-10-10 late).
   for (let i = 0; i < 4; i++) {

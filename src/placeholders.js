@@ -1271,7 +1271,7 @@ export function generateNoise(ph) {
 
 // ---------------------------------------------------------------------------
 // The UI kit (docs/23, step 4): the stone frame, the cutout well in two
-// weights, the cutout cell the bag's grid is tiled with, and the timber
+// weights, the cutout cell the bag's grid is tiled with, the flat plate, and the timber
 // button in three states, each a 9-slice (the cell a plain tile) side by side
 // on one sheet at the interface's own pixel size (ui/kit.js, K = 1). Michael,
 // 2026-10-12, on the first cut: tiled stone like a brick wall, not speckle;
@@ -1291,7 +1291,7 @@ export function generateUiKit(ph) {
   const mortar = shade(stone, 0.58);
   const cutDark = shade(cut, 0.5);
   const cutLight = shade(stone, 1.3);
-  const { canvas, ctx } = makeCanvas(32 + 15 + 9 + 38 + 18 * 3, 38);
+  const { canvas, ctx } = makeCanvas(32 + 15 + 9 + 38 + 18 * 3 + 9, 38);
   const frames = {};
   let x0 = 0;
   const px = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x0 + x, y, w, h); };
@@ -1341,6 +1341,12 @@ export function generateUiKit(ph) {
   px(1, 36, 36, 1, cutLight); px(36, 1, 1, 36, cutLight);
   frames.cell = [x0, 0, 38, 38];
   x0 += 38;
+
+  // The plate, flat stone with a one-pixel bevel (slice 3): a panel's header
+  // strip, and the belt's bar (Michael, 2026-10-12: flat and simple there).
+  chrome(9, 1, stone, light, dark, false);
+  frames.plate = [x0, 0, 9, 9];
+  x0 += 9;
 
   // The button, 18 square (slice 6), three states.
   for (const [name, fill, k, inset] of [["button", timber, 1, false], ["button_hover", shade(timber, 1.18), 1.1, false], ["button_down", shade(timber, 0.88), 1, true]]) {

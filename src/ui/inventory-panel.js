@@ -13,6 +13,7 @@ import { getItem } from "../items.js";
 import * as grid from "../grid.js";
 import * as menu from "./context-menu.js";
 import * as view from "../view.js";
+import * as settings from "../settings.js";
 import { parseSlot } from "../inventory.js";
 
 let CELL = view.BASE_CELL; // the bag's cell in UI pixels, read from the view at every render
@@ -43,6 +44,7 @@ let lastSignature = "";
 let bags = { inv: null, container: null };
 let shown = { player: null }; // who the doll is drawn for
 let drag = null;
+let move = null; // a panel being dragged by its header: { which, wrap, dx, dy }
 
 export function initInventoryPanel(h) {
   handlers = h;
@@ -84,6 +86,13 @@ export function initInventoryPanel(h) {
     });
   }
   root.addEventListener("click", (e) => {
+    const close = e.target.closest("button[data-close]");
+    if (close) {
+      // The X on a header (Michael, 2026-10-12); the key still works.
+      if (close.dataset.close === "bag") setBagOpen(false);
+      else setCharacterOpen(false);
+      return;
+    }
     const btn = e.target.closest("button[data-tidy]");
     if (!btn) return;
     const bag = bags[btn.dataset.tidy];
@@ -93,6 +102,7 @@ export function initInventoryPanel(h) {
   });
   window.addEventListener("pointermove", onPointerMove);
   window.addEventListener("pointerup", onPointerUp);
+  view.onResize(() => applyPositions());
   window.addEventListener("keydown", (e) => {
     if (drag?.started && e.code === "KeyR") rotateDrag();
   });
@@ -202,11 +212,18 @@ function itemHtml(entry, index, which) {
   return html.replace('style="', `style="left:${entry.x * CELL}px;top:${entry.y * CELL}px;position:absolute;`);
 }
 
+// A panel's header: the title on a flat plate, its buttons on the right, the X
+// that closes the panel (Michael, 2026-10-12); dragging it moves the panel.
+function headerHtml(title, buttons = "", close = null) {
+  const x = close ? `<button class="kit-button inv-close" data-close="${close}" title="Close">×</button>` : "";
+  return `<div class="inv-header kit-plate"><span class="inv-title">${title}</span><span class="inv-tools">${buttons}${x}</span></div>`;
+}
+
 function columnHtml(which, bag, title) {
   const items = bag.items.map((e, i) => itemHtml(e, i, which)).join("");
   return `
     <div class="inv-column kit-frame">
-      <div class="inv-header"><span>${title}</span><button class="kit-button" data-tidy="${which}" title="Repack">Tidy</button></div>
+      ${headerHtml(title, `<button class="kit-button" data-tidy="${which}" title="Repack">Tidy</button>`, which === "inv" ? "bag" : null)}
       <div class="inv-grid" data-bag="${which}" style="width:${bag.cols * CELL}px;height:${bag.rows * CELL}px;--cell:${CELL}px">${items}<div class="inv-hl" hidden></div></div>
     </div>`;
 }
@@ -228,7 +245,7 @@ function dollHtml(player) {
   const cols = `${slot} ${CELL / 2}px ${slot} ${CELL / 2}px ${slot}`;
   return `
     <div class="inv-column kit-frame doll">
-      <div class="inv-header"><span>You</span></div>
+      ${headerHtml("You", "", "character")}
       <div class="doll-grid" style="grid-template-columns:${cols};grid-auto-rows:${slot};grid-template-areas:${DOLL_AREAS.map((r) => `'${r}'`).join(" ")}">
         ${["waist", "head", "back", "chest", "legs", "feet", "hands"].map(worn).join("")}
         ${hand("main", "Main hand")}${hand("off", "Off-hand")}
@@ -269,8 +286,40 @@ export function renderInventoryPanel(player, inv, container, belt) {
   body.hidden = !open;
   body.innerHTML = !open ? "" :
     (container ? columnHtml("container", container, capitalize(container.container)) : "") +
-    (inv ? columnHtml("inv", inv, capitalize(inv.container)) : `<div class="inv-column kit-frame inv-nobag">No bag on your back.</div>`) +
+    (inv ? columnHtml("inv", inv, capitalize(inv.container)) : `<div class="inv-column kit-frame inv-nobag">${headerHtml("Bag", "", "bag")}No bag on your back.</div>`) +
     `<div class="inv-hint">Drag to move · R rotates · Shift-click sends across · Right-click for actions</div>`;
+  applyPositions();
+}
+
+// ---- where the panels sit ----
+// Each panel has a home (the bag top-right, the character screen left of
+// centre) and, once dragged by its header, a remembered place in UI pixels
+// (settings.panelPos), kept inside the window (Michael, 2026-10-12).
+
+function wrapOf(which) {
+  return which === "bag" ? body : dollEl;
+}
+
+function place(wrap, x, y) {
+  const w = wrap.offsetWidth;
+  const h = wrap.offsetHeight;
+  const px = Math.max(0, Math.min(view.view.uiW - w, Math.round(x)));
+  const py = Math.max(0, Math.min(view.view.uiH - h, Math.round(y)));
+  wrap.style.left = `${px}px`;
+  wrap.style.top = `${py}px`;
+  wrap.style.right = "auto";
+  wrap.style.transform = "none";
+  return { x: px, y: py };
+}
+
+function applyPositions() {
+  const pos = settings.get("panelPos") || {};
+  for (const which of ["bag", "character"]) {
+    const wrap = wrapOf(which);
+    if (!wrap || wrap.hidden) continue;
+    if (pos[which]) place(wrap, pos[which].x, pos[which].y);
+    else wrap.removeAttribute("style");
+  }
 }
 
 // ---- hit testing ----
@@ -329,7 +378,19 @@ function overPanel(clientX, clientY) {
 // ---- drag and drop ----
 
 function onPointerDown(e) {
-  if (e.button !== 0 || drag) return;
+  if (e.button !== 0 || drag || move) return;
+  // A press on a header (not on its buttons) picks the panel up.
+  const head = e.target.closest(".inv-header");
+  if (head && !e.target.closest("button")) {
+    const wrap = head.closest(".inv-body, .doll-wrap");
+    if (!wrap) return;
+    const u = view.clientToUi(e.clientX, e.clientY);
+    const r = wrap.getBoundingClientRect();
+    const o = view.clientToUi(r.left, r.top);
+    move = { which: wrap === body ? "bag" : "character", wrap, dx: u.x - o.x, dy: u.y - o.y };
+    e.preventDefault();
+    return;
+  }
   const hit = entryFromEvent(e);
   if (!hit) return;
   e.preventDefault();
@@ -360,8 +421,14 @@ function startDrag() {
   const def = getItem(drag.entry.id);
   const g = document.createElement("div");
   g.className = "inv-ghost";
-  g.style.setProperty("--item", def.color || "#8a8296");
-  g.textContent = def.short || def.name;
+  if (def.icon) {
+    // An item with art is carried as the art alone, nothing behind it (Michael, 2026-10-12).
+    g.classList.add("art");
+    g.innerHTML = `<img src="${assetUrl(def.icon.src)}" alt="" draggable="false">`;
+  } else {
+    g.style.setProperty("--item", def.color || "#8a8296");
+    g.textContent = def.short || def.name;
+  }
   document.body.appendChild(g);
   drag.ghost = g;
   root.classList.add("dragging");
@@ -377,6 +444,11 @@ function rotateDrag() {
 }
 
 function onPointerMove(e) {
+  if (move) {
+    const u = view.clientToUi(e.clientX, e.clientY);
+    place(move.wrap, u.x - move.dx, u.y - move.dy);
+    return;
+  }
   if (!drag) return;
   drag.lastX = e.clientX;
   drag.lastY = e.clientY;
@@ -395,11 +467,20 @@ function clearHighlights() {
 function updateDrag(clientX, clientY) {
   const [w, h] = grid.sizeOfId(drag.entry.id, drag.rot);
   const g = drag.ghost;
-  g.style.width = `${w * drag.cellPx}px`;
-  g.style.height = `${h * drag.cellPx}px`;
+  const bw = w * drag.cellPx;
+  const bh = h * drag.cellPx;
+  g.style.width = `${bw}px`;
+  g.style.height = `${bh}px`;
   g.style.left = `${clientX - (drag.grabX + 0.5) * drag.cellPx}px`;
   g.style.top = `${clientY - (drag.grabY + 0.5) * drag.cellPx}px`;
   g.style.fontSize = `${Math.round(drag.cellPx * 0.32)}px`;
+  const img = g.querySelector("img");
+  if (img) {
+    // The art fills the footprint, turned with it.
+    img.style.width = `${drag.rot ? bh : bw}px`;
+    img.style.height = `${drag.rot ? bw : bh}px`;
+    img.style.transform = drag.rot ? "rotate(90deg)" : "none";
+  }
 
   clearHighlights();
   drag.target = null;
@@ -435,6 +516,15 @@ function updateDrag(clientX, clientY) {
 }
 
 function onPointerUp(e) {
+  if (move && e.button === 0) {
+    // Put down: remember where, clamped, for next time.
+    const r = move.wrap.getBoundingClientRect();
+    const o = view.clientToUi(r.left, r.top);
+    const at = place(move.wrap, o.x, o.y);
+    settings.set("panelPos", { ...(settings.get("panelPos") || {}), [move.which]: at });
+    move = null;
+    return;
+  }
   if (!drag || e.button !== 0) return;
   const d = drag;
   if (!d.started) {

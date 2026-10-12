@@ -22,6 +22,7 @@ export const DEFAULTS = {
   survival: false, // off: no hunger, thirst, or any other need; the body is a workbench too
   hairStyle: "short", // the player's hair, picked on the settings screen's Hair row; no choices row, the row is built live
   paintedLayers: {}, // slot -> painted layer name to try on, from the settings screen (docs/12)
+  panelPos: {}, // "bag" | "character" -> { x, y } in UI pixels where its header was dragged to (docs/23 step 4; Michael, 2026-10-12)
 };
 
 // What the settings screen offers, in order.

@@ -1,5 +1,5 @@
 {
-  "version": "cb4657cb",
+  "version": "98ebde25",
   "files": {
     "data/build.json": {"size": 392, "stamp": "d20c5483"},
     "data/combat.json": {"size": 2154, "stamp": "22f3d3c3"},
@@ -258,6 +258,8 @@
     "data/art/village/well_0.png": {"size": 3147, "stamp": "3a647571"},
     "data/art/village/well_1.png": {"size": 3130, "stamp": "ddf1b0e7"},
     "data/art/village/well_2.png": {"size": 2966, "stamp": "42854c92"},
+    "data/fonts/PixelifySans-OFL.txt": {"size": 4488, "stamp": "41c76fdd"},
+    "data/fonts/PixelifySans.ttf": {"size": 79160, "stamp": "f7e96197"},
     "data/hair/index.json": {"size": 40, "stamp": "f425c09b"},
     "data/hair/purple.json": {"size": 34978, "stamp": "3f6e65d1"},
     "data/layers/beard/index.json": {"size": 19, "stamp": "e924073b"},
@@ -359,7 +361,7 @@
     "data/sprites/tree_yellow_l.json": {"size": 293, "stamp": "bc81a543"},
     "data/sprites/tree_yellow_m.json": {"size": 290, "stamp": "71469207"},
     "data/sprites/tree_yellow_old.json": {"size": 292, "stamp": "e3d6629b"},
-    "data/sprites/ui_kit.json": {"size": 443, "stamp": "712e84a7"},
+    "data/sprites/ui_kit.json": {"size": 497, "stamp": "7a91224f"},
     "data/sprites/wall_boards.json": {"size": 1650, "stamp": "42ce3cfb"},
     "data/sprites/wall_log.json": {"size": 1492, "stamp": "34f9a1b7"},
     "data/sprites/wall_parts_log.json": {"size": 1634, "stamp": "46fded74"},
