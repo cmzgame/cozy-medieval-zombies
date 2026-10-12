@@ -318,9 +318,11 @@ function update(dt) {
   // that thing sways too. No meaning yet: an in-world to-do (Michael, 2026-10-11).
   // With a bow in hand the left button is the draw, not a swing or a poke (docs/20).
   // The right button held with a shield in the off hand raises the guard (docs/21): nothing is
-  // swung, drawn, or thrown while it is up, and it is not held through a menu, a panel, or a climb.
+  // swung, drawn, or thrown while it is up. It is not held through carrying or a climb. It does
+  // hold with the bag open (the world goes on while you look in it, and the bag is where weapons
+  // are swapped) and a menu open (a press outside the menu closes it).
   const shield = combat.shieldOf(player);
-  player.blocking = !!shield && buttons.off.down && !player.carrying && !player.climb && !player.dead && !panel.isOpen() && !menu.isMenuOpen();
+  player.blocking = !!shield && buttons.off.down && !player.carrying && !player.climb && !player.dead;
   if (player.blocking && archery.drawState()) archery.cancelDraw(player);
   const launcher = archery.launcherOf(player);
   const bowHeld = !!launcher && launcher.button === "primary";

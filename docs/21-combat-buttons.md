@@ -40,7 +40,11 @@ Ruled by Michael on 2026-10-12 (`02-decisions.md`, question 29 and the log entry
 
 Tap 0.2 s; stab 1.9 / 40 / 30 / 0.6 / 6; spear break 0.5; brace move 0.2, brace draw 1.5x; guard arc 150, 15 percent through, 4 stamina a block, 0.5 s stagger, walk 0.75.
 
-## The shield that vanished while flipping through weapons (Michael, 2026-10-12)
+## The shield that would not rise with the bag open (Michael, 2026-10-12)
+
+**The real cause, found on his second report ("spawn, take a hatchet and the shield from the chest, equip both, hold right, the shield does not move"):** the guard was gated on the bag and the menu being closed (`!panel.isOpen() && !menu.isMenuOpen()` in `main.js`), and weapons are swapped with the bag open, so every test made while flipping through weapons had the bag open and the guard refused, and a test with it closed worked ("I have seen it work"). **Fix:** the gate is gone. The guard holds with the bag open (the world goes on while you look in it) and with a menu open (a press outside a menu closes it and raises the guard in the same press). Verified with the bag open and with a menu open. Michael's pane had no bow involved; the bow bug below was a real one found while looking, and stays fixed.
+
+### The bow pushing the shield out (found first, a real bug, fixed)
 
 "Holding right to raise the shield with a variety of one-handed weapons: I have seen it work, but after flipping through a bunch of weapons it just stopped for everything; they all swing." **Cause, reproduced:** the bow takes both hands, so equipping it pushes the shield into the bag, and equipping a one-handed weapon afterwards fills only the main hand: the shield stayed in the bag and the right button had nothing to raise (`sword -> sword/shield`, `bow -> bow/bow`, `sword -> sword/` in the console). The guard itself, the menu, the panel, and the right button were all fine through twenty flips by the menu, the panel's DOM, and the belt keys; nothing was wrong with the art. **Fix:** the hands remember. A two-handed item that pushes the off-hand item out remembers it (`player.offMemory`), and when a one-handed item next takes the main hand with the off hand empty, or the two-hander is unequipped or hung on the belt, the remembered item comes back if it is still in the bag or on the belt, once. Something put into the off hand by choice clears the memory. **Also:** the debug corner now ends its hands line with `guard no shield / ready / UP`, so a missing shield is the first thing it shows.
 
