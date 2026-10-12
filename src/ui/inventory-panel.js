@@ -134,7 +134,19 @@ function blockHtml(entry, attrs, cell = CELL, w = 1, h = 1, extraCls = "") {
     const pct = Math.max(0, Math.min(100, entry.fill));
     inner += `<div class="inv-level" style="${h >= w ? `height:${pct}%;width:100%` : `width:${pct}%;height:100%`}"></div>`;
   }
-  inner += `<span class="inv-label">${def.short || def.name}</span>`;
+  if (def.icon) {
+    // An item with drawn art shows the picture, upright, centred in its footprint, enlarged by a whole
+    // number (nearest-pixel), and keeps the slot dark behind it; the same art as in the hand (docs/24).
+    const [iw, ih] = def.icon.size;
+    const rot = !!entry.rot && w !== h;
+    const fw = rot ? ih : iw;
+    const fh = rot ? iw : ih;
+    const s = Math.max(1, Math.floor(Math.min((w * cell - 2) / fw, (h * cell - 2) / fh)));
+    cls.push("has-icon");
+    inner += `<img class="inv-icon" src="${def.icon.src}" alt="" draggable="false" style="width:${iw * s}px;height:${ih * s}px${rot ? ";transform:rotate(90deg)" : ""}">`;
+  } else {
+    inner += `<span class="inv-label">${def.short || def.name}</span>`;
+  }
   if (entry.count > 1) inner += `<span class="inv-stack">${entry.count}</span>`;
   const title = `${def.name}${entry.fill != null ? ` (${Math.round(entry.fill)}%)` : ""}${entry.count > 1 ? ` x${entry.count}` : ""}`;
   return `<div class="${cls.join(" ")}" ${attrs} title="${title}" style="width:${w * cell}px;height:${h * cell}px;--item:${def.color || "#8a8296"}">${inner}</div>`;

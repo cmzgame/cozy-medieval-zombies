@@ -503,6 +503,17 @@ html, body {
   border: 2px solid #6ab0ff;
 }
 
+/* Items with drawn art: the picture on a dark slot, not a coloured block (docs/24). */
+.inv-item.has-icon {
+  background: rgba(22, 18, 28, 0.78);
+}
+
+.inv-icon {
+  position: relative;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
 .inv-label {
   position: relative;
   font-size: 11px;

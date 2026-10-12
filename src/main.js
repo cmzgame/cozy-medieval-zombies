@@ -687,7 +687,12 @@ async function boot() {
   assets.registerSheet("spear", archery.generateSpear()); // the thrown spear
   assets.registerSheet("burn", burning.generateSheet()); // flames, embers, and smoke on a burning figure (docs/05)
   // The held art, generated like everything else (docs/12). The dead's sheets are made as they are dressed (docs/19).
-  for (const def of items.allItems()) if (def.held) assets.registerSheet(`held_${def.id}`, figure.generateHeld(def.held.shape, def.held.colours, def.held.size));
+  for (const def of items.allItems()) {
+    if (!def.held) continue;
+    // Drawn items (the book) come from a picture and a grip pixel; the rest are generated shapes.
+    if (def.held.image) assets.registerSheet(`held_${def.id}`, await assets.heldSheetFromImage(def.held.image, def.held.grip));
+    else assets.registerSheet(`held_${def.id}`, figure.generateHeld(def.held.shape, def.held.colours, def.held.size));
+  }
   for (const def of items.allItems()) if (def.shield) assets.registerSheet("held_shield_guard", figure.generateHeld("shield_guard", def.held.colours)); // the raised guard (docs/21)
   info = map.loadMap(json);
   player = createPlayer(info.spawn[0], info.spawn[1]);
@@ -863,7 +868,7 @@ async function boot() {
         player.worn.back = dev;
       }
       const bag = inventory.bagOf(player);
-      const kit = [["sword", 1], ["hatchet", 1], ["mace", 1], ["halberd", 1], ["stick", 1], ["spear", 3], ["shield", 1], ["bow", 1], ["arrow", 40], ["bandage", 5]];
+      const kit = [["sword", 1], ["hatchet", 1], ["mace", 1], ["halberd", 1], ["stick", 1], ["spear", 3], ["shield", 1], ["bow", 1], ["arrow", 40], ["bandage", 5], ["book_of_fire", 1]];
       const got = {};
       for (const [id, n] of kit) got[id] = inventory.addItem(bag, id, n);
       showMessage("A Developer Bag, with every weapon in it.");

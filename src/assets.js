@@ -173,6 +173,21 @@ export function corpseSheetCount() {
 }
 
 // A sheet made in code (held art, the shared figures), by id.
+// A held item drawn as a picture (docs/24, the design agent's item art): one image, its grip pixel
+// where the hand holds it, drawn upright and shown at every one of the 16 held angles unrotated
+// ("glued to the hand", the book), or, for an item with hand-drawn angles, the picture at each tilt.
+// `src` is the upright drawing; the sheet's anchor is the grip, so the renderer puts the grip on the hand.
+export async function heldSheetFromImage(src, grip) {
+  const img = await loadImage(src);
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+  canvas.getContext("2d").drawImage(img, 0, 0);
+  const frames = {};
+  for (let k = 0; k < 16; k++) frames[`held_${k}`] = [0, 0, img.width, img.height];
+  return { image: canvas, frames, anchor: [grip[0], grip[1]], animations: {}, facings: [], mirror: {}, tips: [] };
+}
+
 export function registerSheet(id, sheet) {
   sheet.id = id;
   sheets.set(id, sheet);
