@@ -7,6 +7,7 @@
 // the light, ambient, and fog textures there, so the night and the fog are
 // per pixel and there is no night layer, no fog layer, and no stencil.
 
+import { tunables as archeryTunables } from "./archery.js";
 import * as iso from "./iso.js";
 import * as clock from "./clock.js";
 import { getSheet, getDef, idleFrame } from "./assets.js";
@@ -719,6 +720,13 @@ function floorItemDrawables(tiles, visible, out) {
       occluder: false,
       emit() {
         items.forEach((e, i) => {
+          // An arrow that landed lies where it fell, pointing as it flew (docs/20).
+          if (e.id === "arrow" && e.at) {
+            const sp = iso.toScreen(e.at[0], e.at[1]);
+            const sheet = arrowSheet();
+            if (sheet) frameQuad(sheet, `arrow_${e.angle || 0}`, Math.round(sp.x), Math.round(sp.y) - 1, { world: [e.at[0], e.at[1]], heights: 0, flags: gl.FLAG_STANDING | (vis ? gl.FLAG_NOFOG : 0) });
+            return;
+          }
           const c = gl.rgb(getItem(e.id).color || "#8a8296");
           const ox = x + ((i % 3) - 1) * 9;
           const oy = y - 3 - Math.floor(i / 3) * 5;
@@ -731,6 +739,81 @@ function floorItemDrawables(tiles, visible, out) {
       },
     });
   }
+}
+
+function arrowSheet() {
+  try {
+    return getSheet("arrow");
+  } catch {
+    return null;
+  }
+}
+
+// The arrows in flight (docs/20): the arrow, drawn above its ground point by its
+// height, and a shadow at the ground point that shrinks and fades as it rises.
+// Both sort by the ground point, as the figures do, so a high arrow is drawn over
+// what it flies above and behind what is in front of its ground point.
+function arrowDrawables(arrows, visible, out) {
+  if (!arrows || !arrows.length) return;
+  const sheet = arrowSheet();
+  if (!sheet) return;
+  for (const a of arrows) {
+    if (!visible.has(tileKey(Math.round(a.gx), Math.round(a.gy)))) continue;
+    const p = iso.toScreen(a.gx, a.gy);
+    const x = Math.round(p.x);
+    const y = Math.round(p.y);
+    const h = Math.min(1, a.z / 160);
+    const rx = Math.max(2, Math.round(archeryTunables.shadowRx * (1 - 0.4 * h)));
+    const ry = Math.max(1, Math.round(archeryTunables.shadowRy * (1 - 0.4 * h)));
+    const alpha = archeryTunables.shadowAlpha * (1 - 0.6 * h);
+    const world = [a.gx, a.gy];
+    const key = (a.gx + a.gy) * 1000;
+    out.push({
+      key: key + 0.2,
+      kind: "arrowShadow",
+      emit() {
+        gl.poly([[x - rx, y], [x - rx / 2, y - ry], [x + rx / 2, y - ry], [x + rx, y], [x + rx / 2, y + ry], [x - rx / 2, y + ry]], gl.rgb("#000000", alpha), { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
+      },
+    });
+    out.push({
+      key: key + 3,
+      kind: "arrow",
+      emit() {
+        frameQuad(sheet, `arrow_${a.frame}`, x, y - Math.round(a.z), { world, heights: 0, flags: gl.FLAG_STANDING | gl.FLAG_NOFOG });
+      },
+    });
+  }
+}
+
+// The landing marker (docs/20): a ring on the ground where the current draw
+// would come down, a fainter one where a full draw would, and a dotted line out
+// to it, unlit and unfogged so it reads at night.
+function emitMarker(m) {
+  const flags = gl.FLAG_NOFOG | gl.FLAG_UNLIT;
+  const ring = (g, rx, ry, k, color) => {
+    const p = iso.toScreen(g[0], g[1]);
+    const x = Math.round(p.x);
+    const y = Math.round(p.y);
+    const O = [[x, y - ry], [x + rx, y], [x, y + ry], [x - rx, y]];
+    const I = O.map(([px, py]) => [Math.round(x + (px - x) * k), Math.round(y + (py - y) * k)]);
+    for (let i = 0; i < 4; i++) gl.poly([O[i], O[(i + 1) % 4], I[(i + 1) % 4], I[i]], color, { world: g, flags });
+  };
+  if (m.from && m.full) {
+    const a = iso.toScreen(m.from[0], m.from[1]);
+    const b = iso.toScreen(m.full[0], m.full[1]);
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    const n = Math.floor(len / 10);
+    for (let i = 1; i < n; i++) {
+      const t = i / n;
+      const gx = m.from[0] + (m.full[0] - m.from[0]) * t;
+      const gy = m.from[1] + (m.full[1] - m.from[1]) * t;
+      const px = Math.round(a.x + (b.x - a.x) * t);
+      const py = Math.round(a.y + (b.y - a.y) * t);
+      gl.poly([[px - 1, py - 1], [px + 1, py - 1], [px + 1, py + 1], [px - 1, py + 1]], gl.rgb("#ffffff", 0.35), { world: [gx, gy], flags });
+    }
+  }
+  if (m.full) ring(m.full, 8, 4, 0.55, gl.rgb("#ffffff", 0.35));
+  if (m.land) ring(m.land, 11, 5.5, 0.6, gl.rgb("#ffffff", 0.95));
 }
 
 const SWING_OUTLINE = [0.38, 1, 0.38, 1];
@@ -985,7 +1068,7 @@ function emitGrid(tiles) {
   }
 }
 
-export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false }) {
+export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, marker = null }) {
   ensureArea(w, h);
   if (lastLinear !== night.linear) {
     gl.setLightSampling(night.linear);
@@ -1003,6 +1086,7 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
   propDrawables(tiles, visible, drawables);
   floorItemDrawables(tiles, visible, drawables);
   entityDrawables(entities, visible, drawables, drawAll);
+  arrowDrawables(arrows, visible, drawables);
   drawables.sort((a, b) => a.key - b.key);
   computeOcclusion(drawables);
   const holes = [];
@@ -1010,6 +1094,7 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
   for (const d of drawables) d.emit();
   if (ghost) emitGhost(ghost);
   if (hitShapes) emitHitShapes(hitShapes);
+  if (marker) emitMarker(marker);
 
   const pp = player ? iso.toScreen(player.gx, player.gy) : { x: -9999, y: -9999 };
   gl.end({

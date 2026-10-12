@@ -24,6 +24,7 @@ import { initHud, updateHud } from "./ui/hud.js";
 import { initPrompt, updatePrompt, showMessage, updateMessage } from "./ui/prompt.js";
 import { initZombieBars, updateZombieBars } from "./ui/zombie-bars.js";
 import { initSpeech, updateSpeech } from "./ui/speech.js";
+import * as archery from "./archery.js";
 import { say, refreshCorpse } from "./entities/character.js";
 import * as menu from "./ui/context-menu.js";
 import * as panel from "./ui/inventory-panel.js";
@@ -307,6 +308,7 @@ function update(dt) {
   }
   if (input.wasPressed("Space")) combat.tryShove(player, zombies);
   combat.updateCombat(player, zombies, dt);
+  archery.update(dt);
   progress = interact.updateAction(player, dt);
   const others = [player, ...zombies, ...villagers];
   // The dead far from the player stand still: a stand-in for the records of
@@ -392,6 +394,8 @@ function render() {
     tiles,
     visible,
     entities: [player, ...zombies, ...villagers],
+    arrows: archery.arrowsInFlight(),
+    marker: archery.getMarker(),
     playerRoom,
     player,
     camera: camera.cam,
@@ -607,6 +611,7 @@ async function boot() {
   const json = await assets.loadJson(MAP_FILE);
   await assets.loadMapSprites(json);
   for (const k of placement.buildKinds()) await assets.loadSprite(k.sprite); // what can be built must be drawable
+  assets.registerSheet("arrow", archery.generateArrow()); // the bow's arrow, flying and landed (docs/20)
   // The held art, generated like everything else (docs/12). The dead's sheets are made as they are dressed (docs/19).
   for (const def of items.allItems()) if (def.held) assets.registerSheet(`held_${def.id}`, figure.generateHeld(def.held.shape, def.held.colours));
   info = map.loadMap(json);
@@ -704,6 +709,22 @@ async function boot() {
     get player() { return player; },
     get zombies() { return zombies; },
     get villagers() { return villagers; },
+    // The bow's arc, fired from the console (docs/20, step 1). `dir` is a grid
+    // direction [dx, dy], `distance` the full-draw distance in tiles, `c` the draw (0 to 1).
+    archery: {
+      tunables: archery.tunables,
+      flying: archery.arrowsInFlight,
+      preview: archery.preview,
+      setMarker: archery.setMarker,
+      shoot: (dir, distance, c = 1) => archery.shoot(player, dir, distance, c),
+      shootAt: (gx, gy, c = 1) => archery.shoot(player, [gx - player.gx, gy - player.gy], Math.hypot(gx - player.gx, gy - player.gy), c),
+      markAt: (gx, gy, c = 1) => {
+        const p = archery.preview(player, [gx - player.gx, gy - player.gy], Math.hypot(gx - player.gx, gy - player.gy), c);
+        archery.setMarker({ from: [player.gx, player.gy], full: p.full, land: p.land });
+        return p;
+      },
+      clearMarker: () => archery.setMarker(null),
+    },
     say: (text, seconds) => say(player, text, seconds), // a bubble over the player, to test the system (docs/19)
     get tiles() { return tiles; },
     get visible() { return visible; },
