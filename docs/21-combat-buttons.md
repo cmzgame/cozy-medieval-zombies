@@ -40,7 +40,13 @@ Ruled by Michael on 2026-10-12 (`02-decisions.md`, question 29 and the log entry
 
 Tap 0.2 s; stab 1.9 / 40 / 30 / 0.6 / 6; spear break 0.5; brace move 0.2, brace draw 1.5x; guard arc 150, 15 percent through, 4 stamina a block, 0.5 s stagger, walk 0.75.
 
-## The guard is hard to read (Michael, after play, 2026-10-12)
+## The guard made legible, and the bow's two draws pulled apart (2026-10-12)
+
+**The guard (options 1 and 2 below, built; 4 waits for the art; 3 only if these do not read).** While `player.blocking` the shield is drawn **raised before the chest toward the aim** (a bigger, grip-centred `shield_guard` held sheet, placed in front of the body when the aim is toward the camera, and beside the body with its rim showing when away); a blocked blow **throws nine sparks where it lands, flashes the shield flat gold for 0.14 s, and pulses the stamina bar gold**; a broken guard flashes the shield and the bar red for 0.35 s. Verified in the pane, both aim directions, and the events. Not yet seen by Michael.
+
+**The bow's two draws.** Michael: both modes felt the same, the quick one cannot get much quicker without becoming hitscan, so the free draw is slowed a good deal, and he suspected the bow was too strong anyway, being safe at range. Done: **the free draw is 1.4 s (was 0.9) and the braced draw stays 0.6 s** (`braceDrawTime` on the bow item; the rate is derived), so the two are now 2.3 to 1 (they were 1.5 to 1); braced walking is 0.2, free-draw walking 0.5. A kill is three full arrows: **about 4.9 s a kill free** (was 3.4) and **2.5 s braced** (unchanged), against **1.5 s for the sword** (34 damage, 0.5 s, three blows, but in reach and through a wedge that hits several) and **2.4 s for the spear stab** (30, 0.6 s). The bow stays the safe weapon and loses the race, which is its price. **The knobs, if it still reads strong or weak**, in the order I would turn them: the free draw time and the braced one (`data/items.json`, `bow`); damage 38 and the scaling `0.4 + 0.6 c` (a half-drawn shot is 70 percent damage over 75 percent of the range, which is the third thing the free draw offers: a fast short weak shot); the arrows (40 in the testing chest; a hit leaves the arrow in the body, so a kill costs about three until the body is searched); the walking speeds; the recovery 0.22 s; **who learns where the shot came from** (today only the zombie hit hunts the shooter, with aggro on; a shot could alert the dead within some radius, louder braced or louder free, which is the lever against shooting a crowd from afar); the bow taking both hands (no shield, no torch, so no light at night).
+
+## The guard was hard to read (Michael, after play, 2026-10-12)
 
 "I know what you said it would do but visually it kinda just looks like you are standing there": with the right button held the shield sits at the hand exactly as it did before, so the only evidence of a guard is a blocked blow. Options, cheapest first, none built:
 

@@ -50,6 +50,9 @@ export function updateHud({ player }) {
   const st = Math.max(0, Math.min(1, player.stamina / player.maxStamina));
   els.staminaFill.style.width = `${Math.round(st * 100)}%`;
   els.stamina.classList.toggle("winded", !!player.winded);
+  // A blow met by the shield pulses the bar (docs/21): gold for a block, red for a broken guard.
+  els.stamina.classList.toggle("blocked", player.blockFlash > 0 && !player.flashBroken);
+  els.stamina.classList.toggle("broken", player.blockFlash > 0 && !!player.flashBroken);
 
   updateMoodles(player);
 

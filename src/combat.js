@@ -296,6 +296,7 @@ export function updateCombat(player, zombies, dt) {
   time += dt;
   player.attackCooldown = Math.max(0, (player.attackCooldown || 0) - dt);
   player.offCooldown = Math.max(0, (player.offCooldown || 0) - dt);
+  player.blockFlash = Math.max(0, (player.blockFlash || 0) - dt);
   player.shoveCooldown = Math.max(0, (player.shoveCooldown || 0) - dt);
   if (fx.wedge) {
     fx.wedge.ttl -= dt;

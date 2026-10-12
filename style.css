@@ -89,6 +89,16 @@ html, body {
   background: #8a6a7a;
 }
 
+.hud-stamina.blocked {
+  border-color: #e8d890;
+  box-shadow: 0 0 6px #e8d890;
+}
+
+.hud-stamina.broken {
+  border-color: #d05050;
+  box-shadow: 0 0 6px #d05050;
+}
+
 /* Prompt over a world point, copied from the cozy parent's style. */
 #prompt {
   position: absolute;

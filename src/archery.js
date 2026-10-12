@@ -520,7 +520,9 @@ export function updateDraw(player, dt, ctx) {
     return;
   }
   // Braced (the right button held with a bow), the draw fills faster; the walk is slower (main.js).
-  draw.t += dt * (ctx.brace && bow.kind === "bow" ? tunables.braceDrawRate : 1);
+  // The bow names its braced draw time; the rate is how much faster that is than the free draw.
+  const braced = ctx.brace && bow.kind === "bow";
+  draw.t += dt * (braced ? (bow.braceDrawTime ? bow.drawTime / bow.braceDrawTime : tunables.braceDrawRate) : 1);
   draw.c = Math.min(1, draw.t / bow.drawTime);
   const aim = aimFrom(player, ctx.mouse);
   // The guide (docs/20): where this draw would land, and the line out to the full draw's. A setting.

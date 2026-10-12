@@ -1044,6 +1044,15 @@ export { PART };
 // forearm direction (docs/12, held items).
 export const HELD_SIZE = 32;
 const HELD_SHAPES = {
+  shield_guard: (f, c) => {
+    // The shield raised before the chest (docs/21): bigger, and centred on the grip so it
+    // can be placed by its middle and needs no angle.
+    f.ellipse(16, 20, 9.5, 9.5, c(2, "#7a7a84"));
+    f.ellipse(16, 20, 8.2, 8.2, c(0, "#8a6a3a"));
+    for (const x of [11.5, 16, 20.5]) f.capsule(x, 14.5, x, 25.5, 0.6, c(1, "#b8a070"));
+    f.ellipse(16, 20, 2.8, 2.8, c(2, "#7a7a84"));
+    f.px(15, 19, [210, 210, 220]);
+  },
   shield: (f, c) => {
     // A round wooden shield held up before the hand: an iron rim, planks, a boss.
     f.ellipse(16, 13, 8, 8, c(2, "#7a7a84"));

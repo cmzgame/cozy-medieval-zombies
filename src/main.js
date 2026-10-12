@@ -681,6 +681,7 @@ async function boot() {
   assets.registerSheet("burn", burning.generateSheet()); // flames, embers, and smoke on a burning figure (docs/05)
   // The held art, generated like everything else (docs/12). The dead's sheets are made as they are dressed (docs/19).
   for (const def of items.allItems()) if (def.held) assets.registerSheet(`held_${def.id}`, figure.generateHeld(def.held.shape, def.held.colours));
+  for (const def of items.allItems()) if (def.shield) assets.registerSheet("held_shield_guard", figure.generateHeld("shield_guard", def.held.colours)); // the raised guard (docs/21)
   info = map.loadMap(json);
   player = createPlayer(info.spawn[0], info.spawn[1]);
   player.look = { ...figure.DEFAULT_LOOK, hairStyle: settings.get("hairStyle") || "short" };
@@ -756,6 +757,17 @@ async function boot() {
     },
   });
   events.on("playerHit", ({ zombie, damage }) => damagePlayer(player, combat.guardAgainst(player, zombie, damage)));
+  // A blow met by the shield: sparks where they meet and a flash of the shield; a broken guard flashes red (docs/21).
+  events.on("blocked", ({ zombie }) => {
+    player.blockFlash = 0.14;
+    player.flashBroken = false;
+    const d = iso.normalize(zombie.gx - player.gx, zombie.gy - player.gy);
+    burning.spark(player.gx + d.x * 0.45, player.gy + d.y * 0.45, 22);
+  });
+  events.on("guardBroken", () => {
+    player.blockFlash = 0.35;
+    player.flashBroken = true;
+  });
   events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, damage));
   events.on("containerOpened", ({ bag, tiles: where, name, corpse }) => {
     openBag = { bag, tiles: where, name, corpse: corpse || null };

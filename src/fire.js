@@ -57,11 +57,20 @@ export function update(dt, characters) {
   for (const p of particles) {
     p.t += dt;
     if (p.t >= p.life) continue;
+    if (p.g) p.vz -= p.g * dt;
     p.z += p.vz * dt;
     p.ox += p.vx * dt;
     keep.push(p);
   }
   particles = keep;
+}
+
+// A burst of sparks at a world point and a height, flying outward and falling: a blow met by a
+// shield (docs/21). Drawn as the ember, so a spark is a bright two-pixel dot.
+export function spark(gx, gy, z, n = 9) {
+  for (let i = 0; i < n; i++) {
+    particles.push({ kind: "spark", gx, gy, ox: rnd(-2, 2), z: z + rnd(-2, 2), vz: rnd(10, 80), vx: rnd(-70, 70), g: 220, t: 0, life: rnd(0.15, 0.32) });
+  }
 }
 
 export function all() {

@@ -877,7 +877,7 @@ function fireDrawables(particles, visible, out) {
     let color;
     if (p.kind === "flame") {
       name = `flame_${Math.min(3, Math.floor(u * 4))}`;
-    } else if (p.kind === "ember") {
+    } else if (p.kind === "ember" || p.kind === "spark") {
       name = "ember";
       color = [1, 1, 1, u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4];
     } else {
@@ -904,6 +904,9 @@ function burnTint() {
   return [1, 0.72 + 0.16 * k, 0.4 + 0.2 * k, 1];
 }
 
+const SHIELD_FLASH = [1, 0.95, 0.7, 1]; // a blow blocked
+const SHIELD_BROKEN = [1, 0.3, 0.25, 1]; // the guard broken
+
 function entityDrawables(entities, visible, out, drawAll) {
   for (const e of entities) {
     const vis = e.kind === "player" || drawAll || visible.has(tileKey(Math.round(e.gx), Math.round(e.gy)));
@@ -929,6 +932,21 @@ function entityDrawables(entities, visible, out, drawAll) {
         seen.add(entry);
         const def = getItem(entry.id);
         if (!def.held) continue;
+        // A raised guard (docs/21): the shield comes up before the chest, toward where the player
+        // aims, in front of the body when that is toward the camera and behind it when away.
+        if (slot === "off" && def.shield && e.blocking && e.aim) {
+          let gs = null;
+          try { gs = getSheet("held_shield_guard"); } catch { gs = null; }
+          if (gs) {
+            const n = Math.hypot(e.aim.sx, e.aim.sy) || 1;
+            const ax = e.aim.sx / n;
+            const ay = e.aim.sy / n;
+            // Facing away, the shield is behind the body; it is pushed out to the side so its rim still shows.
+            const sx = ay > 0 ? Math.round(ax * 9) : (ax >= 0 ? 12 : -12);
+            held.push({ sheet: gs, k: 0, x: x + sx, y: y - 24 + Math.round(ay * 5), near: ay > 0, tip: null, flash: e.blockFlash > 0 ? (e.flashBroken ? SHIELD_BROKEN : SHIELD_FLASH) : null });
+            continue;
+          }
+        }
         let hs = null;
         try { hs = getSheet(`held_${entry.id}`); } catch { continue; }
         const j = joints[slot];
@@ -957,7 +975,8 @@ function entityDrawables(entities, visible, out, drawAll) {
           }
         }
         const drawHeld = (h) => {
-          frameQuad(h.sheet, `held_${h.k}`, h.x, h.y, { world, heights: 40, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING });
+          // A shield that just met a blow is flat bright for a moment (docs/21).
+          frameQuad(h.sheet, `held_${h.k}`, h.x, h.y, h.flash ? { world, heights: 40, color: h.flash, flags: gl.FLAG_NOFOG | gl.FLAG_UNLIT | gl.FLAG_SOLID } : { world, heights: 40, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING });
           if (h.tip) frameQuad(getSheet("flame"), `flame_${flameFrame(1)}`, h.x + h.tip[0], h.y + h.tip[1] - 2, { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
         };
         for (const h of held) if (!h.near) drawHeld(h);
