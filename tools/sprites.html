@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<base href="/">
+<title>Sprites: the browser and the editor</title>
+<style>
+  body { margin: 0; background: #1b1722; color: #d8d0e0; font: 13px/1.4 system-ui, sans-serif; }
+  header { padding: 10px 16px; background: #26202e; border-bottom: 1px solid #4a4056; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 16px; }
+  main { display: grid; grid-template-columns: 300px 1fr; gap: 0; height: calc(100vh - 48px); }
+  #browser { overflow: auto; border-right: 1px solid #4a4056; padding: 8px; }
+  #editor { overflow: auto; padding: 10px 14px; display: grid; gap: 10px; align-content: start; }
+  .item { display: flex; gap: 8px; align-items: center; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
+  .item:hover, .item.on { background: #332a3e; }
+  .item canvas { width: 48px; height: 48px; image-rendering: pixelated; background: #8fa07a; border: 1px solid #4a4056; flex: none; }
+  .item .name { font-weight: 600; }
+  .item .kind { color: #a098ac; font-size: 11px; }
+  button { background: #3b3248; color: #eee; border: 1px solid #6a5a78; border-radius: 4px; padding: 5px 10px; cursor: pointer; }
+  button:hover { background: #4a3f5a; } button.on { background: #6a5a78; } button:disabled { opacity: 0.45; cursor: default; }
+  input, select, textarea { background: #120f18; color: #eee; border: 1px solid #4a4056; border-radius: 4px; padding: 3px 6px; font: inherit; }
+  textarea { width: 100%; min-height: 120px; font: 11px/1.3 Consolas, monospace; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  #sheet { image-rendering: pixelated; background: #8fa07a; border: 1px solid #4a4056; cursor: crosshair; }
+  .report { background: #120f18; border: 1px solid #3a3246; padding: 6px 8px; white-space: pre-wrap; font-size: 12px; }
+  .ok { color: #8fd48f; } .warn { color: #e8c860; } .bad { color: #e08a8a; }
+  .note { color: #b0a6bc; max-width: 900px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Sprites</h1>
+  <input id="filter" placeholder="filter by name" size="18">
+  <select id="kindFilter"><option value="">all</option><option value="drawn">drawn</option><option value="generated">generated</option></select>
+  <span id="count" class="note"></span>
+  <span class="note">Edit any sprite the game draws and see it in the game at once (docs/23, step 3): a drawn sheet's pixels and anchors, or a generated one saved as drawn. The game tab reloads what you save.</span>
+</header>
+<main>
+  <div id="browser"></div>
+  <div id="editor">
+    <div class="note">Pick a sprite on the left.</div>
+  </div>
+</main>
+<script type="module">
+  import * as assets from "../src/assets.js";
+
+  const manifest = await (await fetch("data/manifest.json", { cache: "no-store" })).json();
+  assets.setManifest(manifest);
+  const ids = Object.keys(manifest.files).filter((p) => /^data\/sprites\/[^/]+\.json$/.test(p)).map((p) => p.slice("data/sprites/".length, -5)).sort();
+  const els = Object.fromEntries(["browser", "editor", "filter", "kindFilter", "count"].map((id) => [id, document.getElementById(id)]));
+  const channel = (() => { try { return new BroadcastChannel("cmz"); } catch { return null; } })();
+  const TILE_HH = 16;
+
+  // ---- the browser ----
+  const loaded = new Map();
+  async function sheetOf(id) {
+    if (!loaded.has(id)) loaded.set(id, assets.loadSprite(id).catch((e) => ({ error: e.message })));
+    return loaded.get(id);
+  }
+  const kindOf = (sheet) => (sheet.source && sheet.source.generated ? "generated" : "drawn");
+  async function buildBrowser() {
+    els.browser.innerHTML = "";
+    let n = 0;
+    for (const id of ids) {
+      const sheet = await sheetOf(id);
+      if (sheet.error) continue;
+      const kind = kindOf(sheet);
+      if (els.kindFilter.value && kind !== els.kindFilter.value) continue;
+      if (els.filter.value && !id.includes(els.filter.value)) continue;
+      n++;
+      const item = document.createElement("div");
+      item.className = "item"; item.dataset.id = id;
+      const thumb = document.createElement("canvas");
+      thumb.width = 48; thumb.height = 48;
+      const x = thumb.getContext("2d"); x.imageSmoothingEnabled = false;
+      const first = Object.values(sheet.frames)[0];
+      if (first) { const k = Math.min(1, 44 / Math.max(first[2], first[3])); x.drawImage(sheet.image, first[0], first[1], first[2], first[3], 2, 2, Math.round(first[2] * k), Math.round(first[3] * k)); }
+      const text = document.createElement("div");
+      text.innerHTML = `<div class="name">${id}</div><div class="kind">${kind}${sheet.source.generated ? ` (${sheet.source.generated})` : ""}, ${sheet.image.width} x ${sheet.image.height}, ${Object.keys(sheet.frames).length} frames</div>`;
+      item.append(thumb, text);
+      item.addEventListener("click", () => open(id));
+      els.browser.appendChild(item);
+    }
+    const total = ids.length;
+    const px = (await Promise.all(ids.map(sheetOf))).filter((s) => !s.error).reduce((a, s) => a + s.image.width * s.image.height, 0);
+    els.count.textContent = `${n} of ${total} shown; ${(px / 1e6).toFixed(1)} Mpx of sheets (the atlas is 16.8 Mpx; the game's gl.atlasInfo() says how full)`;
+  }
+  els.filter.addEventListener("input", buildBrowser);
+  els.kindFilter.addEventListener("change", buildBrowser);
+  await buildBrowser();
+
+  // ---- the editor ----
+  let cur = null; // { id, def, sheet, work (canvas), zoom, tool, colour, undo: [], anchorDrag }
+  const SAVE_AS_DRAWN_KINDS = ["tree", "post", "flat", "pumpkin", "campfire", "hearth", "torch_post"];
+
+  async function open(id) {
+    for (const el of els.browser.querySelectorAll(".item")) el.classList.toggle("on", el.dataset.id === id);
+    const def = await assets.loadSpriteDef(id);
+    const sheet = await sheetOf(id);
+    const work = document.createElement("canvas");
+    work.width = sheet.image.width; work.height = sheet.image.height;
+    work.getContext("2d").drawImage(sheet.image, 0, 0);
+    cur = { id, def, sheet, work, zoom: Math.max(2, Math.min(8, Math.floor(900 / Math.max(work.width, 1)))), tool: "pencil", colour: "#000000", undo: [], anchorDrag: null };
+    renderEditor();
+  }
+
+  function layoutOf(def) {
+    // How the def's pictures became the sheet, so a save can split it back.
+    if (def.images) return { kind: "images", paths: [...new Set(Object.values(def.images))] };
+    if (def.image) return { kind: "image", paths: [def.image] };
+    if (def.drawings) return { kind: "drawings", paths: [...new Set(Object.values(def.drawings).filter((d) => d.image).map((d) => d.image))] };
+    return { kind: "generated", paths: [] };
+  }
+
+  // The anchors the editor shows as handles: the sheet's, and per frame where the def has them.
+  // Each handle knows how to write itself back into the def (anchorVertex "top" stores it 16 higher).
+  function anchorsOf() {
+    const { def, sheet } = cur;
+    const off = def.anchorVertex === "top" ? TILE_HH : 0;
+    const out = [];
+    if (def.anchor && (def.image || def.images)) out.push({ name: "anchor", x: sheet.anchor[0], y: sheet.anchor[1], frame: null, set: (x, y) => { def.anchor = [x, y - off]; sheet.anchor = [x, y]; } });
+    for (const [name, a] of Object.entries(def.anchors || {})) {
+      const f = sheet.frames[name];
+      if (!f) continue;
+      out.push({ name, x: f[0] + (sheet.frameAnchors[name] || sheet.anchor)[0], y: f[1] + (sheet.frameAnchors[name] || sheet.anchor)[1], frame: name, set: (x, y) => { def.anchors[name] = [x - f[0], y - f[1] - off]; sheet.frameAnchors[name] = [x - f[0], y - f[1]]; } });
+    }
+    return out;
+  }
+
+  function renderEditor() {
+    const { id, def, sheet, work, zoom } = cur;
+    const lay = layoutOf(def);
+    const editable = lay.kind === "image" || lay.kind === "images";
+    const generated = lay.kind === "generated";
+    const canSaveAsDrawn = generated && SAVE_AS_DRAWN_KINDS.includes(def.placeholder.kind);
+    els.editor.innerHTML = `
+      <div class="row">
+        <b>${id}</b> <span class="note">${lay.kind}${generated ? ` (${def.placeholder.kind})` : ""}, ${work.width} x ${work.height}, ${Object.keys(sheet.frames).length} frames${lay.paths.length ? `: ${lay.paths.join(", ")}` : ""}</span>
+      </div>
+      <div class="row">
+        <label>zoom <select id="zoom">${[2, 3, 4, 6, 8, 12].map((z) => `<option value="${z}" ${z === zoom ? "selected" : ""}>${z}x</option>`).join("")}</select></label>
+        <button id="tPencil" class="on">pencil</button><button id="tEraser">eraser</button><button id="tDropper">dropper</button><button id="tFill">fill</button>
+        <label>colour <input id="colour" type="color" value="${cur.colour}"></label>
+        <button id="undo" ${cur.undo.length ? "" : "disabled"}>undo</button>
+        <label><input id="showFrames" type="checkbox" checked> frames</label>
+        <label><input id="showAnchors" type="checkbox" checked> anchors (drag them)</label>
+      </div>
+      <canvas id="sheet"></canvas>
+      <div class="row">
+        ${editable ? `<button id="save"><b>Save to the game</b></button>` : ""}
+        ${canSaveAsDrawn ? `<button id="saveDrawn"><b>Save as drawn</b> (the generated picture becomes data/art/generated/${id}.png and the definition points at it)</button>` : ""}
+        ${generated && !canSaveAsDrawn ? `<span class="note">A generated ${def.placeholder.kind} is not saved as drawn here (it needs per-tile or wall fields the drawn form has not got); edit its generator in src/placeholders.js.</span>` : ""}
+        ${lay.kind === "drawings" ? `<span class="note">A furniture sheet is packed from its drawings with slices and mirrors; edit its PNGs (${lay.paths.join(", ")}) in an image editor and save them over the files, then reload the game; its anchors are in the definition below.</span>` : ""}
+        <button id="download">Download the sheet PNG</button>
+      </div>
+      <div class="note">The definition (edit and Apply; frames are [x, y, w, h], anchors are the pixel drawn at the tile's centre, or at its top vertex when anchorVertex is "top"):</div>
+      <textarea id="defText">${JSON.stringify(def, null, 1).replace(/</g, "&lt;")}</textarea>
+      <div class="row"><button id="applyDef">Apply the definition</button></div>
+      <div class="report" id="report">Ready.</div>`;
+    const c = document.getElementById("sheet");
+    c.width = work.width * zoom; c.height = work.height * zoom;
+    drawSheet();
+    document.getElementById("zoom").addEventListener("change", (e) => { cur.zoom = Number(e.target.value); renderEditor(); });
+    for (const t of ["pencil", "eraser", "dropper", "fill"]) document.getElementById("t" + t[0].toUpperCase() + t.slice(1)).addEventListener("click", () => { cur.tool = t; for (const u of ["pencil", "eraser", "dropper", "fill"]) document.getElementById("t" + u[0].toUpperCase() + u.slice(1)).classList.toggle("on", u === t); });
+    document.getElementById("colour").addEventListener("input", (e) => { cur.colour = e.target.value; });
+    document.getElementById("undo").addEventListener("click", () => { const s = cur.undo.pop(); if (s) { work.getContext("2d").putImageData(s, 0, 0); drawSheet(); document.getElementById("undo").disabled = !cur.undo.length; } });
+    document.getElementById("showFrames").addEventListener("change", drawSheet);
+    document.getElementById("showAnchors").addEventListener("change", drawSheet);
+    document.getElementById("download").addEventListener("click", () => { const a = document.createElement("a"); a.href = work.toDataURL("image/png"); a.download = `${id}.png`; a.click(); });
+    document.getElementById("applyDef").addEventListener("click", () => { try { cur.def = JSON.parse(document.getElementById("defText").value); Object.assign(def, cur.def); report("Definition applied (not saved yet).", "warn"); drawSheet(); } catch (e) { report(`Not JSON: ${e.message}`, "bad"); } });
+    if (editable) document.getElementById("save").addEventListener("click", save);
+    if (canSaveAsDrawn) document.getElementById("saveDrawn").addEventListener("click", saveAsDrawn);
+    c.addEventListener("mousedown", onDown);
+    c.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
+  function drawSheet() {
+    const { sheet, work, zoom } = cur;
+    const c = document.getElementById("sheet"); if (!c) return;
+    const x = c.getContext("2d"); x.imageSmoothingEnabled = false;
+    x.clearRect(0, 0, c.width, c.height);
+    x.drawImage(work, 0, 0, work.width * zoom, work.height * zoom);
+    if (zoom >= 4) { x.strokeStyle = "rgba(255,255,255,0.08)"; x.lineWidth = 1; for (let i = 0; i <= work.width; i++) { x.beginPath(); x.moveTo(i * zoom + 0.5, 0); x.lineTo(i * zoom + 0.5, c.height); x.stroke(); } for (let j = 0; j <= work.height; j++) { x.beginPath(); x.moveTo(0, j * zoom + 0.5); x.lineTo(c.width, j * zoom + 0.5); x.stroke(); } }
+    if (document.getElementById("showFrames")?.checked) {
+      x.strokeStyle = "rgba(100,180,255,0.9)"; x.lineWidth = 1; x.font = "10px monospace"; x.fillStyle = "rgba(100,180,255,0.9)";
+      for (const [name, f] of Object.entries(sheet.frames)) { x.strokeRect(f[0] * zoom + 0.5, f[1] * zoom + 0.5, f[2] * zoom - 1, f[3] * zoom - 1); x.fillText(name, f[0] * zoom + 2, f[1] * zoom + 10); }
+    }
+    if (document.getElementById("showAnchors")?.checked) {
+      for (const a of anchorsOf()) { const cx = (a.x + 0.5) * zoom, cy = (a.y + 0.5) * zoom; x.strokeStyle = "#ff2030"; x.lineWidth = 2; x.beginPath(); x.moveTo(cx - 7, cy); x.lineTo(cx + 7, cy); x.moveTo(cx, cy - 7); x.lineTo(cx, cy + 7); x.stroke(); }
+    }
+  }
+
+  function pixelAt(e) {
+    const c = document.getElementById("sheet"); const r = c.getBoundingClientRect();
+    return { x: Math.floor((e.clientX - r.left) / cur.zoom), y: Math.floor((e.clientY - r.top) / cur.zoom) };
+  }
+  function snapshot() { cur.undo.push(cur.work.getContext("2d").getImageData(0, 0, cur.work.width, cur.work.height)); if (cur.undo.length > 40) cur.undo.shift(); document.getElementById("undo").disabled = false; }
+  let painting = false;
+  function onDown(e) {
+    const p = pixelAt(e);
+    if (document.getElementById("showAnchors").checked) {
+      const hit = anchorsOf().find((a) => Math.abs(a.x - p.x) <= 1 && Math.abs(a.y - p.y) <= 1);
+      if (hit) { cur.anchorDrag = hit; return; }
+    }
+    const x = cur.work.getContext("2d", { willReadFrequently: true });
+    if (cur.tool === "dropper") { const d = x.getImageData(p.x, p.y, 1, 1).data; if (d[3]) { cur.colour = "#" + [d[0], d[1], d[2]].map((v) => v.toString(16).padStart(2, "0")).join(""); document.getElementById("colour").value = cur.colour; } return; }
+    snapshot();
+    if (cur.tool === "fill") { fill(p.x, p.y); drawSheet(); return; }
+    painting = true; paint(p);
+  }
+  function onMove(e) {
+    if (cur && cur.anchorDrag) { const p = pixelAt(e); cur.anchorDrag.set(p.x, p.y); drawSheet(); return; }
+    if (painting) paint(pixelAt(e));
+  }
+  function onUp() { if (cur && cur.anchorDrag) { cur.anchorDrag = null; document.getElementById("defText").value = JSON.stringify(cur.def, null, 1); report("Anchor moved (not saved yet).", "warn"); } painting = false; }
+  function paint(p) {
+    const x = cur.work.getContext("2d");
+    if (p.x < 0 || p.y < 0 || p.x >= cur.work.width || p.y >= cur.work.height) return;
+    if (cur.tool === "eraser") x.clearRect(p.x, p.y, 1, 1); else { x.fillStyle = cur.colour; x.fillRect(p.x, p.y, 1, 1); }
+    drawSheet();
+  }
+  function fill(sx, sy) {
+    const w = cur.work.width, h = cur.work.height, x = cur.work.getContext("2d", { willReadFrequently: true });
+    const img = x.getImageData(0, 0, w, h), d = img.data;
+    const at = (i) => [d[i], d[i + 1], d[i + 2], d[i + 3]].join(",");
+    const target = at((sy * w + sx) * 4);
+    const [r, g, b] = cur.colour.match(/[0-9a-f]{2}/gi).map((v) => parseInt(v, 16));
+    const stack = [[sx, sy]]; const seen = new Uint8Array(w * h);
+    while (stack.length) { const [px, py] = stack.pop(); if (px < 0 || py < 0 || px >= w || py >= h) continue; const i = py * w + px; if (seen[i]) continue; seen[i] = 1; if (at(i * 4) !== target) continue; d[i * 4] = r; d[i * 4 + 1] = g; d[i * 4 + 2] = b; d[i * 4 + 3] = 255; stack.push([px + 1, py], [px - 1, py], [px, py + 1], [px, py - 1]); }
+    x.putImageData(img, 0, 0);
+  }
+
+  // ---- saving ----
+  const blobOf = (canvas) => new Promise((r) => canvas.toBlob(r, "image/png"));
+  async function post(path, body, type) {
+    const res = await fetch(`/${path}`, { method: "POST", headers: { "Content-Type": type }, body });
+    if (!res.ok) throw new Error(`${path}: ${res.status} ${res.statusText}`);
+  }
+  function report(text, cls = "") { const r = document.getElementById("report"); if (r) { r.textContent = text; r.className = `report ${cls}`; } }
+
+  // A drawn sheet: its PNG, or, for a packed one, each picture cut back out at
+  // the place sheetFromImages put it (side by side, in path order, a pixel apart).
+  async function save() {
+    const { id, def, work } = cur;
+    const lay = layoutOf(def);
+    try {
+      // Only a picture whose pixels changed is written, so a save touches one file, not every picture of a packed sheet.
+      const written = [];
+      let x0 = 0;
+      for (const p of lay.paths) {
+        const img = await assets.loadImage(p);
+        const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
+        const cx = c.getContext("2d", { willReadFrequently: true });
+        cx.drawImage(work, x0, 0, img.width, img.height, 0, 0, img.width, img.height);
+        const o = document.createElement("canvas"); o.width = img.width; o.height = img.height;
+        const ox = o.getContext("2d", { willReadFrequently: true }); ox.drawImage(img, 0, 0);
+        const a = cx.getImageData(0, 0, img.width, img.height).data, b = ox.getImageData(0, 0, img.width, img.height).data;
+        let same = a.length === b.length; for (let i = 0; same && i < a.length; i++) if (a[i] !== b[i]) same = false;
+        if (!same) { await post(p, await blobOf(c), "image/png"); written.push(p); }
+        x0 += img.width + 1;
+      }
+      const clean = { ...def }; delete clean.id; // the loader's own field, not the file's
+      await post(`data/sprites/${id}.json`, JSON.stringify(clean, null, 1) + "\n", "application/json");
+      if (channel) channel.postMessage({ type: "sheet", id });
+      loaded.set(id, assets.reloadSheet(id)); // the tool's own copy, fresh from the files it just wrote
+      await open(id);
+      report(`Saved ${written.length ? written.join(", ") + " and " : ""}data/sprites/${id}.json; the game tab reloads it (or hard refresh).`, "ok");
+    } catch (e) { report(`Save failed: ${e.message}. Is the server the current serve.py (restart it for the new save paths)?`, "bad"); }
+  }
+
+  // A generated sprite saved as drawn: the picture to data/art/generated, the
+  // definition rewritten to point at it with the frames and anchor the generator
+  // gave, its other fields kept. The placeholder generator is no longer used for it.
+  async function saveAsDrawn() {
+    const { id, def, sheet, work } = cur;
+    const path = `data/art/generated/${id}.png`;
+    const next = { ...def };
+    delete next.placeholder;
+    delete next.id;
+    next.image = path;
+    next.frames = sheet.frames;
+    next.anchor = sheet.anchor;
+    if (sheet.bounds) next.bounds = sheet.bounds;
+    if (sheet.animations && Object.keys(sheet.animations).length) next.animations = sheet.animations;
+    if (sheet.facings && sheet.facings.length) next.facings = sheet.facings;
+    if (sheet.mirror && Object.keys(sheet.mirror).length) next.mirror = sheet.mirror;
+    try {
+      await post(path, await blobOf(work), "image/png");
+      await post(`data/sprites/${id}.json`, JSON.stringify(next, null, 1) + "\n", "application/json");
+      if (channel) channel.postMessage({ type: "sheet", id });
+      loaded.set(id, assets.reloadSheet(id));
+      await open(id);
+      report(`Saved as drawn: ${path} and data/sprites/${id}.json. From now on the game draws the file, and this page edits it.`, "ok");
+    } catch (e) { report(`Save failed: ${e.message}`, "bad"); }
+  }
+
+  window.__sprites = { open, sheetOf, ids, layoutOf, get cur() { return cur; } };
+</script>
+</body>
+</html>

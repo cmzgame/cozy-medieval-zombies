@@ -4,12 +4,15 @@
 // stage's milliseconds on window.__boot. `?boot` in the URL keeps the screen up
 // with the timings until a click. The same screen is the crash screen (23a, A1).
 
+// A page without the loading screen (the tools import assets.js, which imports
+// this) gets a shell that draws nothing: every element below may be null.
 const root = document.getElementById("loading");
-const fill = root.querySelector(".fill");
-const line = root.querySelector(".line");
-const errorBox = root.querySelector(".error");
-const errorMsg = errorBox.querySelector(".msg");
-errorBox.querySelector("button").addEventListener("click", () => window.location.reload());
+const q = (sel) => (root ? root.querySelector(sel) : null);
+const fill = q(".fill");
+const line = q(".line");
+const errorBox = q(".error");
+const errorMsg = errorBox ? errorBox.querySelector(".msg") : null;
+if (errorBox) errorBox.querySelector("button").addEventListener("click", () => window.location.reload());
 
 export const timings = {};
 
@@ -47,11 +50,13 @@ export async function inBatches(items, fn, limit = 12, onEach = null) {
 }
 
 function show(label, fraction) {
+  if (!root) return;
   fill.style.width = `${Math.round(Math.max(0, Math.min(1, fraction)) * 100)}%`;
   line.textContent = `${label}…`;
 }
 
 function fail(stage, err) {
+  if (!root) return;
   errorMsg.textContent = `Failed while ${stage.label.toLowerCase()} (stage "${stage.name}"): ${err.message}`;
   errorBox.hidden = false;
   line.textContent = "";
@@ -84,6 +89,7 @@ export async function run(stages) {
 
 // The game is up: hide the screen, or, with `?boot`, show the timings until a click.
 export async function finish() {
+  if (!root) return;
   if (new URLSearchParams(window.location.search).has("boot")) {
     const parts = Object.entries(timings).filter(([k]) => k !== "total").map(([k, v]) => `${k} ${v}`);
     line.textContent = `Booted in ${timings.total} ms: ${parts.join(", ")}\nClick to continue.`;
@@ -94,6 +100,7 @@ export async function finish() {
 
 // The game stopped (an exception in the loop, 23a A1): the screen comes back with the message.
 export function crash(err) {
+  if (!root) return;
   errorMsg.textContent = `The game stopped: ${err && err.message ? err.message : err}`;
   errorBox.hidden = false;
   line.textContent = "";

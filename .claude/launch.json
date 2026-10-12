@@ -4,8 +4,20 @@
     {
       "name": "medieval",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["serve.py", "8010"],
+      "runtimeArgs": [
+        "serve.py",
+        "8010"
+      ],
       "port": 8010
+    },
+    {
+      "name": "medieval-second",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "serve.py",
+        "8011"
+      ],
+      "port": 8011
     }
   ]
 }

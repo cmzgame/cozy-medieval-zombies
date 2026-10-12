@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-12 — The sprite tool is its own page, and a generated sprite becomes a drawn one with no pixel changed (step 3 of `23`)
+
+`23` said the layer editor would grow three modes; built as **`tools/sprites.html`, a page of its own**, so Michael's painting tool stays exactly as he uses it, and the new page is the browser of every sprite and the editor of any drawn sheet (pixels, the anchors as handles, the definition), with "save as drawn" for the generated kinds the drawn form can hold. **Ruled by the proof:** the campfire saved as drawn reloaded in the game and hashed identically to the generated one, so dev art becomes real art one sprite at a time with nothing changing on screen until someone edits it. **Also:** the game reloads a saved sprite at once over a `BroadcastChannel`, and the hard refresh works by the manifest's stamps; a second launch configuration on 8011 exists for when Michael's own server holds 8010. Step 3 is done; the design agent waits for step 4.
+
 ### 2026-10-12 — The slicer, and the rules the design agent paints by
 
 Step 3a of `23`: `tools/slice.html` turns a PNG painted over the character template into a layer file the game wears, exactly as the layer editor would write it, and proves itself by slicing the template's own body and wearing it with no pixel changed. The `beard` and `waist` slots exist. **Ruled with it:** what the design agent is asked for from now on is painted *parts on the template*, one slot per file, on the 4x grid, the garment alone and never the body, as `28-painting-for-the-slicer.md` says; a delivery that breaks those rules is read by the slicer anyway and reported (ragged blocks, dropped pixels), and the report is what goes back to the agent. The covers rules and hair dyeing are still to build, and the agent is told what cannot be done yet (moving cloth, a wider trunk, a drawing per pose).
