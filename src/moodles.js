@@ -1,4 +1,5 @@
-// Copied from cozy-zombie-game src/moodles.js on 2026-10-10. Unchanged.
+// Copied from cozy-zombie-game src/moodles.js on 2026-10-10. Since: the infection and bleed moodles read from
+// infection.js and bleed.js (docs/02 question 29b, 2026-10-12).
 // Moodles: pictorial status icons for slow needs. Pure logic, no DOM.
 // The rule: if you react to it within a second it is a bar; if you plan around
 // it, it is a moodle (docs/00, pillar 7; docs/10).

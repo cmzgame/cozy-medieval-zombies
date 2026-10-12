@@ -1,4 +1,5 @@
-// Copied from cozy-zombie-game src/ui/context-menu.js on 2026-10-10. Unchanged.
+// Copied from cozy-zombie-game src/ui/context-menu.js on 2026-10-10. Since: clamped to the UI layer's size
+// through view.js instead of 960 by 540, and an Escape that closed the menu is swallowed (docs/10, 2026-10-10).
 // Right-click context menu. Entries: [{ label, enabled, onSelect }].
 import * as view from "../view.js";
 

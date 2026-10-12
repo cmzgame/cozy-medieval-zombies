@@ -70,7 +70,7 @@ Starter kit: torch, waterskin (full), bread, two apples, one plank.
 2. Right-click the chest in the cottage: Search, a 1 s bar, loot laid out beside the bag; drag it over; walk away and the chest closes.
 3. Right-click the hearth from across the room: Add a log auto-walks you there and takes a log from the bag; with no logs the entry is disabled and says so.
 4. Right-click a tree: Chop down, 3 s, logs on the ground; Split a log in the bag into two planks; Board the window takes a plank, with `B` as the shortcut.
-5. Left-click on the floor walks there around obstacles; any key cancels it.
+5. ~~Left-click on the floor walks there around obstacles; any key cancels it.~~ Withdrawn (the ruling above); Walk here in the menu auto-walks the same way.
 6. The torch equips from its menu into the off-hand and lights; `T` toggles it; the bracket's Take and Mount go through the menu too.
 7. Eat bread from the bag and from an open chest; drink from the waterskin; fill it at the well; the hunger and thirst moodles appear and clear at the parent's stages.
 8. The HUD shows health, stamina, the moodle row, the hands, and the clock, and nothing is drawn into the canvas.

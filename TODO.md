@@ -4,7 +4,7 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 
 ## Status
 
-- **Where work stopped, 2026-10-12, late (READ THIS FIRST; every bullet below is history, and where one says "Next" it is superseded by this one).** **The next task is the engine upgrade, `docs/23-engine-upgrade.md`**, rewritten tonight with the code review behind it (`docs/23a-review.md`: a whole-codebase read, a live profile, eighteen docs-versus-code discrepancies, and a ranked fix list with file:line). Michael's call: the game is further along than any prototype before it, he intends to finish it, and now is the time for big engine changes, before more is built on top. **The order he set: 0 the docs made true (`23a` J), 1 the loading shell, 2 the engine hardened (the review's checklist), 3 the sprite system with the slicer first, 4 the UI kit.** Each step is specced for a cheaper model with defaults in brackets; the questions still his are in `23` (Q1a to Q4c) and two in step 0 (infection's days, furniture solid). **Measured tonight:** 0.74 ms a step and render at the widest zoom with 67 dead; boot 250 requests, 15.5 s to the last one; atlas 42 percent. The combat test below is paused, not abandoned; its loose ends stand.
+- **Where work stopped, 2026-10-12, late (READ THIS FIRST; every bullet below is history, and where one says "Next" it is superseded by this one).** **The next task is the engine upgrade, `docs/23-engine-upgrade.md`**, rewritten tonight with the code review behind it (`docs/23a-review.md`: a whole-codebase read, a live profile, eighteen docs-versus-code discrepancies, and a ranked fix list with file:line). Michael's call: the game is further along than any prototype before it, he intends to finish it, and now is the time for big engine changes, before more is built on top. **The order he set: 0 the docs made true (`23a` J; done the same night, see the engine upgrade's checklist below), 1 the loading shell (next), 2 the engine hardened (the review's checklist), 3 the sprite system with the slicer first, 4 the UI kit.** Work is on the `engine-upgrade` branch, merged to `main` at the end of each step; Michael plays from this worktree, which is on that branch. Each step is specced for a cheaper model with defaults in brackets; the questions still his are in `23` (Q1a to Q4c) and two in step 0 (infection's days, furniture solid). **Measured tonight:** 0.74 ms a step and render at the widest zoom with 67 dead; boot 250 requests, 15.5 s to the last one; atlas 42 percent. The combat test below is paused, not abandoned; its loose ends stand.
 - **Where work stopped, 2026-10-12 night (now history; the engine upgrade above is next).**
   - **Combat, where Michael stopped:** testing **bleed stacks together with the infection marker** (a moodle that does nothing else yet), in the combat-testing mode with aggro on, after the stagger-by-weight fix. Everything built, the switched-off-for-testing rules (third-hit knockdown off, finisher 1.5, multi-hit off by default), the tools (dev chest by the well, `giveKit()`), and **what is not built** (the spin-click turn cap first; the push per hit; infection's effects and cures; health potions; weapon durability; the thrown knife and axe, the fireball and the book's role; the art-pass poses) are in the **state-of-combat block at the top of `docs/21`**. Rulings in `docs/02` (the 2026-10-12 entries, newest on top).
   - **Art in flight:** Claude Design (now in the desktop app, working in the repo) has the characters brief, `docs/25` (the body first), with the 4x template from `tools/template.html`. **Delivered and in the game:** the book, staff, knife, axe as art-only holdables with icons; the fireball sheet is stored unused. **Still owed:** the hand items in the starting bag and dev chest (torch, hatchet, sword, mace, stick, plank, log, spear, halberd, bow, shield and its raised guard, bandage, arrow, the food and drink icons), each as a world picture and an icon: `docs/26`. The rule: every item arrives as a pair; flag a delivery that lacks either.
@@ -95,7 +95,7 @@ In order; each step ends with this Status updated, its rulings in `02`, and a co
 
 - [x] The review written (`23a`, 2026-10-12): the baseline, findings A to I ranked with file:line, the docs discrepancies (J), the target tree, the checklist.
 - [ ] Michael reads `23a` and strikes what he disagrees with; answers `23`'s questions or lets the defaults stand (Q1a to Q4c; step 0's two).
-- [ ] Step 0: the docs made true (`23a` J, eighteen items), one JSON style for `data/`, the preview PNGs out. One commit.
+- [x] Step 0 (2026-10-12, late): the docs made true (`23a` J: banners on `03`, `04`, `07`; the stale numbers in `08`, `11`, `13`, `14`, `19`, `21`; the struck rulings and questions in `02`, its entries back in order; `CLAUDE.md`'s code map whole; `README` current; the ticks here); three copied-file headers that said "Unchanged" corrected (`input.js`, `moodles.js`, `ui/context-menu.js`); the design agent's two preview PNGs moved to `docs/art/previews/`; the data-style ruling (no reformat) in `02`. Verified by a script over every backticked repo path in the docs.
 - [ ] Step 1: the loading shell (`index.html`'s screen, `src/boot.js`, `tools/manifest.py` and `data/manifest.json`, `serve.py`'s cache headers and POST checks, bounded parallel loading, everything baked up front in slices, `window.__boot.timings`). Verified by refresh-to-title times and a first minute with no bake over 5 ms.
 - [ ] Step 2: the engine hardened, `23a`'s checklist in order: the instruments; A robustness; C determinism (`rng.js`, `loop.simTime()`, `rules.js`, `tools/check.js`); B growth (the light cache per chunk, the area on change, rooms local, corpses and chunks bounded); D, E, F ownership (`game.js`, `player-controller.js`, `dev.js`, `inventory-actions.js`, `movement.js`, `data/tuning.json`, the UI from `render()`); G, I leftovers.
 - [ ] Step 3: the slicer and the character slots (`beard`, `waist`, covers, hair dye) first; then the sprite model with `source`, the editor's three modes, the save path for `data/art` and `data/sprites`, the browser, the live reload.
@@ -110,7 +110,7 @@ In order; each step ends with this Status updated, its rulings in `02`, and a co
 In order. Each ends with a line in `docs/02-decisions.md`.
 
 - [x] **Chunks instead of nodes** (`docs/03-world-model.md`). Ruled 2026-10-08.
-- [x] Viewport size for the probe: 960×540, which is Zomboid's 100 percent zoom.
+- [x] Viewport size for the probe: 960×540, which is Zomboid's 100 percent zoom. (Withdrawn 2026-10-10: the world fills the window at three zoom levels, `02` question 2.)
 - [x] Single storey first, with layer-ready tile data.
 - [x] Roofs: none for the probe, nothing written to foreclose them.
 - [ ] **A real loading screen** (Michael, 2026-10-11: he wants to talk about one; question 28 in `docs/02`). Today the page waits while sprites load and the ground prebakes, then shows the title over the live world.
@@ -162,7 +162,7 @@ Each step checkable on its own. Michael looks after step 3.
 
 ## Milestone 11 — Characters, and villagers v0.1 on them (see `docs/19-characters.md`)
 
-- [ ] Michael approves the defaults in `docs/19` (one model, three kinds; everyone dressed from items, the dyed entry, wardrobes as data, sheets shared by outfit and bounded by the atlas; the corpse opens like a chest and keeps its sheet; the dead groan; a living zombie offers no menu; villagers tethered, poked within click reach; four in the square).
+- [x] Michael approves the defaults in `docs/19` (approved in play as the steps landed, 2026-10-12) (one model, three kinds; everyone dressed from items, the dyed entry, wardrobes as data, sheets shared by outfit and bounded by the atlas; the corpse opens like a chest and keeps its sheet; the dead groan; a living zombie offers no menu; villagers tethered, poked within click reach; four in the square).
 - [x] Step 1 (2026-10-12): `entities/character.js`, `createPlayer` and `createZombie` on it, `figure.characterSpec`, the dyed entry, `assets.sheetFor` and its cache, `data/wardrobes.json` (ten zombie wardrobes, pixel-identical to the old outfits), the `cap` item; the dead's pockets use the existing `body` table. *Paused: Michael looks at the dead.*
 - [x] Step 2 (2026-10-12): `ui/speech.js`, the bubble CSS (a rounded rectangle that wraps to any length, with a tail pointing at the speaker's head), `say` on the character model, `__game.say`, the dead's "Braaaains".
 - [x] Step 3 (2026-10-12): `entities/villager.js` on the model, the zombie's walking helpers exported, six village wardrobes, four villagers in the map (Wren, Ash, Tam, Rook), `characterAt`, the left-click poke, the menu's Poke, the talk state. *Paused: Michael looks at them.*
@@ -215,7 +215,7 @@ Each step checkable on its own. Michael looks after step 3.
 - [ ] The painted held slot in the editor, `data/held/`, `generateHeldFromPixels`. Not started; it is how new weapons get drawn, so it is next.
 - [x] Acceptance, played (2026-10-11): checks 1 to 9 pass by script and Michael's mouse pass accepted the feel ("basically call this good"); check 10 waits on the painted held slot.
 - [ ] More one-handed weapons, drawn and with stats (after the painted held slot).
-- [ ] Decide dual wielding, the shield, and the bow and arrow (`docs/02`, questions 23 to 25); the bow gets its own design conversation first.
+- [x] Decide dual wielding, the shield, and the bow and arrow (`docs/02`, questions 23 to 25): all three ruled and built 2026-10-12 (`docs/20`, `21`).
 
 ## Milestone 6 — The figure (see `docs/12-figure.md`)
 
@@ -231,7 +231,7 @@ Each step checkable on its own. Michael looks after step 3.
 ## Milestone 5 — The character (see `docs/11-character.md`)
 
 - [x] Slot data (2026-10-10): hands hold entries; `worn` with seven slots; the belt's slots; a bag entry's grid; items get `wear`, `beltSlots`, `bag`.
-- [x] The character screen on `C` (2026-10-10): the doll, the hand boxes, the bag beside; drag on and off slots; the cutaway comparison moves to `K`.
+- [x] The character screen on `C` (2026-10-10): the doll, the hand boxes, the bag beside; drag on and off slots; the cutaway comparison moves to `K` (retired with the drawn walls, 2026-10-11).
 - [x] The hotbar strip and keys 1 to 4 (2026-10-10). The strip shows only while a belt is worn.
 - [x] The bag as an item (2026-10-10): drop with contents, open on the floor, wear, swap; no bag means no grid; the Developer Bag from the console.
 - [x] Starter kit worn; wearables and bags in loot (2026-10-10). Tab with no bag opens the character screen with the message.

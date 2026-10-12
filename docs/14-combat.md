@@ -116,7 +116,7 @@ Ported from the parent, `src/combat.js`:
 - A hit does `damage`, pushes the zombie `knockback` tiles away along the aim (through `map.moveCircle`, so walls stop it), plays its `hurt` animation (its first frame is baked white: the flash), and staggers it `STAGGER` 0.3 s, during which it does not move or bite.
 - **Knockdown:** every hit has `KNOCKDOWN_CHANCE` 0.3; the third hit on the same zombie within 2 s always knocks it down **[switched off for testing since 2026-10-12]**; a mace doubles the chance. Down: lies for `DOWN_TIME` 2 s (the `die` animation's lying frames, 2 and 3), blocks nothing, does nothing; gets up over 0.6 s (frames 1 then 0) and resumes. A hit on a downed zombie is a **finisher**: double damage.
 - **Death:** `hp <= 0` sets `z.dead = true`, plays `die` once and holds the last frame, the body stays as a corpse, not solid, never thinks again, is skipped by `others` for separation. Event `zombieDied`. The corpse is not searchable yet (loot table `body` exists for later).
-- **Shove (Space):** reach 1.0, arc 100, no damage, knockback 1.6, stagger 0.6 s, 25 percent knockdown, costs 5 stamina, 0.45 s cooldown. Works with anything in hand or nothing.
+- **Shove (Space):** reach 1.0, arc 100, no damage, knockback 0.53 (1.6 at first, cut to a third on 2026-10-11; `data/combat.json`), stagger 0.6 s, 25 percent knockdown, costs 5 stamina, 0.45 s cooldown. Works with anything in hand or nothing.
 - **Stamina:** a swing costs its `stamina`; at zero stamina the swing still happens at half damage (the player is never locked out of hitting; default).
 - **Hurt cancels nothing:** a swing during the player's hurt animation lands (it resolved on the click).
 

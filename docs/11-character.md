@@ -25,7 +25,7 @@ A held, worn, or belted item is out of the bag. This replaces the earlier rule t
 
 - The player starts wearing a **burlap sack**, six by four, and a **rope belt** with two slots. The items you carry belong to the sack, not to you.
 - Drag the sack off the back slot onto the floor and it lies there with everything in it. Open it like a chest. Wear a bigger bag, then move things over. A **rucksack** (eight by five) turns up in chests; a **Developer Bag** (twelve by eight) comes from `__game.giveDevBag()` on the console and never from loot.
-- A bag cannot go inside a bag. Picking up a bag with one on your back offers **Swap bags**: yours drops where you stand, the new one goes on.
+- ~~A bag cannot go inside a bag.~~ An empty bag or belt can go inside anything; one with something in it cannot (the one container rule, `02` question 20, 2026-10-10 night). Picking up a bag with one on your back offers **Swap bags**: yours drops where you stand, the new one goes on.
 - With no bag on your back, Tab still opens the character screen so you can put one on, and says "No bag on your back." Picking something up with no bag puts it in a free hand if it is holdable, else refuses.
 - Bags are not craftable yet; the sack is plenty for now.
 

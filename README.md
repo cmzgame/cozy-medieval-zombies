@@ -12,11 +12,11 @@ Started 2026-10-08 as the marriage of two earlier prototypes: `cozy-zombie-game`
 python serve.py 8010
 ```
 
-Then open http://localhost:8010. WASD or arrows to walk, Shift to sprint, mouse to aim. At a door, tap `E` to open or close it. At a window, tap `E` to open or close the shutters and hold `E` to climb through. `T` takes the torch in hand. `]` and `[` move the clock an hour. `V` toggles the fog of what you cannot see, `C` switches how near walls draw, `L` cycles debug views of the light, ambient, and fog textures.
+Then open http://localhost:8010. WASD or arrows to walk, Shift to sprint, mouse to aim. At a door, tap `E` to open or close it. At a window, tap `E` to open or close the shutters and hold `E` to climb through. `T` takes the torch in hand. Tab opens the bag, `C` the character screen, 1 to 4 use the belt, `N` builds, `X` removes, `B` boards, `Z` and the wheel zoom, Escape closes or pauses, right-click is the actions menu, left-click swings (and the middle button or `Q` is the main hand's other mode, `docs/21`). `]` and `[` move the clock an hour. `V` toggles the fog of what you cannot see, `L` cycles debug views of the light, ambient, and fog textures.
 
 ## Status
 
-Milestone 1, the probe, passed on 2026-10-09: a scrolling chunked map with real line of sight, a cottage and a shed with doors and shuttered windows, near walls translucent when you are inside, a farm plot, jack-o'-lanterns, harvest forest scattered by rule, and wild forest with a few of the dead beyond the authored map. Milestone 2 is lighting. See `TODO.md` for where things stand and `docs/00-vision.md` for what this is.
+Milestones 1 to 11 are built (2026-10-09 to 2026-10-12): a chunked map with real line of sight, WebGL2 lighting, openings the dead break through, the grid inventory and menus, the character and the figure, placement and building, melee, the bow, the ground baked per chunk, the village art, and one character model for the player, the dead, and villagers. **The next task is the engine upgrade** (`docs/23`, with the code review in `docs/23a`). See `TODO.md` for where things stand and `docs/00-vision.md` for what this is.
 
 ## Documents
 
@@ -43,7 +43,8 @@ Milestone 1, the probe, passed on 2026-10-09: a scrolling chunked map with real 
 | [20-archery.md](docs/20-archery.md) | The bow and arrow, and the thrown spear. |
 | [21-combat-buttons.md](docs/21-combat-buttons.md) | The mouse in combat, and **the state of combat at the top (read first)**: stagger, bleed, infection, dual wielding, the guard, the swing timer. |
 | [22-the-big-pass.md](docs/22-the-big-pass.md) | A draft to-do list: stations, tools, seeds, weapon durability, item interactions. |
-| [23-engine-upgrade.md](docs/23-engine-upgrade.md) | Scoped: a loading shell, a code review, the sprite system and its editor, the UI's look. |
+| [23-engine-upgrade.md](docs/23-engine-upgrade.md) | **The next task:** the docs made true, the loading shell, the engine hardened, the sprite system with the slicer first, the UI's look. |
+| [23a-review.md](docs/23a-review.md) | The code review behind it: the measured baseline, findings with file:line, the docs-versus-code list, the target tree, the fix checklist. |
 | [24-throwables-and-fire-magic.md](docs/24-throwables-and-fire-magic.md) | A spec in summary: throwing knives and axes, the fireball, the staff and the book of fire. |
 | [25-character-art-brief.md](docs/25-character-art-brief.md) | The brief to redo the characters: the body first, three options per slot. |
 | [26-art-owed.md](docs/26-art-owed.md) | The item art still owed, each as a world picture and an inventory icon. |

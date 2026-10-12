@@ -1,6 +1,6 @@
 # 19 — Characters: one model for the player, the dead, and villagers (and villagers v0.1 on it)
 
-**Scoped for implementation by another model** (planned with Michael on 2026-10-12; nothing built yet). Read `CLAUDE.md`, "Implementing from a spec", then this whole doc, then the files it names. "Default" marks what Michael may overrule, not what the implementer may.
+**Scoped for implementation by another model** (planned with Michael on 2026-10-12; **built the same day, all five steps**, see Status). Read `CLAUDE.md`, "Implementing from a spec", then this whole doc, then the files it names. "Default" marks what Michael may overrule, not what the implementer may.
 
 ## Status
 
@@ -119,7 +119,7 @@ As the first scope said, now on the base above:
 - **Tethered wander:** idle 1.5 to 4 s, then a walkable tile within `WANDER_RADIUS` (4) of `home` (the map tile) in their own room; `VILLAGER_SPEED` 1.4 tiles/s.
 - **Poke:** within `CLICK_REACH` (2.6 tiles), `POKE_COOLDOWN_MS` (600) through `pokedAt`: the path drops, they face the player, `state = "talk"` for `TALK_TIME` (2 s) with the idle animation, and `say(v, v.say)`, where `say` is the map entry's `line` or `"Hey!"`.
 - **The dead ignore them** in v0.1: `updateZombie` still takes the player alone; villagers are in `others` for body separation only. **Swings pass through them** (`04`, open point 3, closed): `tryAttack`, `tryShove`, `markTargets` keep taking the zombie list.
-- **Dressed from the village wardrobes**, living skin from a small `LIVING_SKINS` list, hair style from `hairStyles()` (so Michael's painted hair appears on villagers), no wound.
+- **Dressed from the village wardrobes**, living skin from each wardrobe's `look` in `data/wardrobes.json` (the spec's `LIVING_SKINS` list became that), hair style from `hairStyles()` (so Michael's painted hair appears on villagers), no wound.
 - **The map:** `"villagers": [{ "tile", "name", "wardrobe"?, "line"? }]` at the top level of `data/maps/square.json`; `loadMap` returns them untouched. Four in the square: three on the cobbles (`[14, 13]` Wren, `[17, 16]` Ash, `[13, 19]` Tam with a line, "Keep the shutters closed."), one in the cottage (`[16, 6]` Rook). Names are neutral goobers' names and Michael's to change. Wild chunks never make one.
 - `main.js`: `villagers` created at boot after the dead; updated inside the `ACTIVE_TILES` gate after them; in `others`, in `renderScene`'s entities, in the debug corner (`villagers N`), and on `window.__game`.
 
@@ -163,4 +163,4 @@ As the first scope said, now on the base above:
 
 ## Tunables
 
-`VILLAGER_SPEED` 1.4, `WANDER_RADIUS` 4, `TALK_TIME` 2, the idle range (1.5 to 4 s), `HEAD_CLEARANCE` 76 (+4 for the tail), `GROAN_TEXT`, `GROAN_MIN` 20, `GROAN_MAX` 60, the wardrobes and the `body` loot table (data), `LIVING_SKINS`, the pockets' size per wardrobe, the atlas's fill warnings (85 percent, full).
+`VILLAGER_SPEED` 1.4, `WANDER_RADIUS` 4, `TALK_TIME` 2, the idle range (1.5 to 4 s), `HEAD_CLEARANCE` 76 (+4 for the tail), `GROAN_TEXT`, `GROAN_MIN` 20, `GROAN_MAX` 60, the wardrobes with their `look` and the `body` loot table (data), the pockets' size per wardrobe, the atlas's fill warnings (85 percent, full).

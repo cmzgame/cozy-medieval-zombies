@@ -2,6 +2,8 @@
 
 Michael's proposal, ruled 2026-10-08 (see `02-decisions.md`): replace nodes with chunks, Zomboid style. A correctly chunked world feels like one continuous world. Render the dead nearby; simulate the rest. Keep it far simpler than Zomboid's meta-zombie maths. Rulings on the questions at the end: block-by-block storage from the start, active radius 2, break-ins only inside the active region, rooms by flood fill, single storey first. Authored versus procedural stays open as question 9 in `02`.
 
+**Status (2026-10-12):** the storage, `tileAt`, the wild, the rooms, the camera, and the authoring vocabulary below are built as described. **The records are not**: there is no active region of radius 2, no record hopping, no alarm, lure, or trickle, and nothing dematerialises. Today the dead beyond a 40-tile box around the player simply do not think (`ACTIVE_TILES` in `src/main.js`), and chunks are never evicted. `23-engine-upgrade.md` step 2 bounds the dead and the chunks (a corpse list, eviction with sleepers) as a first slice; the rest of this page's records stay a milestone of their own (`TODO.md`, "After the probe").
+
 ## What nodes did, and what takes over
 
 The cozy parent's node was five things at once. In a continuous map they come apart, and only some of them want to be chunks.
@@ -64,7 +66,7 @@ A record is `{ id, chunk, tile, state, target, timer, hp, aggro, ...body fields 
 ## Rooms
 
 - Flood fill from any interior floor tile through floor, stopping at any wall on an edge, whether plain, door, or window. Each enclosed region is a room with an id. Recomputed when a wall changes. Walls are not tiles: every tile has a slot for a wall on its north edge and one on its west edge, Zomboid style, so a building's south wall is the north wall of the tiles below it.
-- A room carries `hearthLit` (the cozy room-light boolean renamed), its openings, and derived **sealed**: no broken shutter, no open or broken door, every window shuttered or boarded. Sealed is the sibling's enclosure state, found instead of flood-filled from the player, and it gates sleep.
+- A room carries its openings and whether it is lit (derived at light time from its fires' `lit`, `map.js`; the spec's `hearthLit` field was never stored, `07`), and derived **sealed**: no broken shutter, no open or broken door, every window shuttered or boarded. Sealed is the sibling's enclosure state, found instead of flood-filled from the player, and it gates sleep.
 - Ambient light indoors follows the cozy parent's rule: a lit hearth lights the room; an unlit room gets daylight by its openings.
 - A door or a window sits on the edge between two tiles. Which side is outdoors is read from the rooms on either side (`outsideSign` in `map.js`), which is how open leaves know which way to swing.
 

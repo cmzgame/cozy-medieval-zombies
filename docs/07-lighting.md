@@ -2,7 +2,7 @@
 
 Ruled 2026-10-09 (`02-decisions.md`, "Torches, fire, hands, and the clock"). This is the design to build. Michael's brief: the last thing the vibe pass needs is a real lighting system like the cozy parent's, where a candle changed what a room looked like rather than glowing. The parent's art looked good but felt sterile; this is a different place, and from here every gameplay decision is more fun to test.
 
-The parent's system is described in its `docs/14-lighting-reference.md` and built in its `src/light.js` and `src/clock.js`. This page says what carries over, what changes for chunks and rooms, and what is new: fire as data, torches that mount, hands, and the dead seeing flames.
+The parent's system is described in its own `docs/14-lighting-reference.md` (a file of `cozy-zombie-game`, not of this repo; `14` here is combat) and built in its `src/light.js` and `src/clock.js`. This page says what carries over, what changes for chunks and rooms, and what is new: fire as data, torches that mount, hands, and the dead seeing flames.
 
 ## The idea in four sentences
 
@@ -28,6 +28,8 @@ Light is one number per position, 0 to 1, and everything reads it: what you see,
 - **The hearth is both ambient and a source.** Its room is lit by the ambient rule; its radius pool spills through an open door or shutter onto the ground outside, by the ray test, so the parent's separate "lit window emits outdoors" rule is not needed. Close the shutters and the spill is gone.
 
 ## How things are lit, as built
+
+**Superseded (2026-10-09, the same night; kept as history).** This section describes the Canvas 2D night layer, which was deleted when the WebGL2 renderer was accepted (`08-renderer.md`). Nothing is lit in screen space now: every vertex carries the world point its light is read from and the shader samples the light, ambient, and fog textures there (`src/render.js`, its header). **Michael's rules below for what takes which light still hold**, and the WebGL renderer applies them per pixel: a wall face the tile it looks onto, a wall top the sky, a prop or a character its feet.
 
 The night layer works in screen space and is painted in two stages, so the rules below say what takes which light. Michael set the first three from play on 2026-10-09, after a wall hidden from the player kept the dark of the room floor behind it, a canopy over a lit room took the room's light, and the chest behind a translucent wall showed through it lit; then asked for the stencils that patched those to become one rule.
 

@@ -30,7 +30,7 @@ The near side of an edge is the tile it belongs to (south of a north edge, east 
 
 ## What you can do
 
-Planks are free until the inventory, like logs. `E` keeps its meaning; `B` is boards, a stand-in key until there is more interface.
+Planks were free until the inventory (milestone 4, 2026-10-10); a board spends a real plank now, like logs feed a fire. `E` keeps its meaning; `B` is boards, a stand-in key until there is more interface.
 
 | At | Tap E | Hold E | Tap B | Hold B |
 |---|---|---|---|---|

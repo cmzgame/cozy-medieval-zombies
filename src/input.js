@@ -1,4 +1,5 @@
-// Copied from cozy-zombie-game src/input.js on 2026-10-09. Unchanged.
+// Copied from cozy-zombie-game src/input.js on 2026-10-09. Since: the right and middle buttons with a tap-or-hold
+// record (docs/21), held keys dropped on blur, focus, and hidden (2026-10-10), the wheel taken per step.
 // Keyboard and mouse state. Mouse coordinates are in internal canvas pixels.
 
 const keys = new Set();
