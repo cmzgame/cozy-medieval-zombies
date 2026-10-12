@@ -18,7 +18,7 @@ let fps = 0;
 let fpsTimer = 0;
 let freezeLeft = 0;
 
-let hooks = { update: () => {}, render: () => {}, simTick: () => {} };
+let hooks = { update: () => {}, render: () => {}, simTick: () => {}, crash: null };
 
 export function start(h, opts = {}) {
   hooks = { ...hooks, ...h };
@@ -53,6 +53,8 @@ export function getFps() {
 
 function frame(now) {
   if (!running) return;
+  // Rescheduled first, so a throw below cannot leave the loop unscheduled (docs/23a, A1).
+  requestAnimationFrame(frame);
   let dt = (now - last) / 1000;
   last = now;
   if (dt > MAX_FRAME) dt = MAX_FRAME;
@@ -65,17 +67,28 @@ function frame(now) {
     fpsTimer = 0;
   }
 
-  if (freezeLeft > 0) freezeLeft = Math.max(0, freezeLeft - dt);
-  else if (!paused) {
-    accumulator += dt;
-    while (accumulator >= STEP) {
-      step();
-      accumulator -= STEP;
+  try {
+    if (freezeLeft > 0) freezeLeft = Math.max(0, freezeLeft - dt);
+    else if (!paused) {
+      accumulator += dt;
+      while (accumulator >= STEP) {
+        step();
+        accumulator -= STEP;
+      }
     }
+    hooks.render();
+  } catch (err) {
+    // One exception ends the game, loudly: the sim stops where it threw and the
+    // crash screen says why (src/boot.js), instead of a frozen canvas and a
+    // console line (docs/23a, A1).
+    running = false;
+    console.error(err);
+    if (hooks.crash) hooks.crash(err);
   }
+}
 
-  hooks.render();
-  requestAnimationFrame(frame);
+export function isRunning() {
+  return running;
 }
 
 function step() {

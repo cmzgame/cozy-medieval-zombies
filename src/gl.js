@@ -21,6 +21,8 @@ const STRIDE = 12; // floats per vertex
 let ATLAS = 2048; // raised to 4096 in init when the GPU allows: the figures' sheets are large (docs/12)
 
 export let gl = null;
+let lost = false; // the WebGL context is gone until the browser restores it (docs/23a, A2)
+const restoreHooks = [];
 let program = null;
 let vao = null;
 let vbo = null;
@@ -233,6 +235,42 @@ const uniforms = {};
 export function init(canvas) {
   gl = canvas.getContext("webgl2", { antialias: false, premultipliedAlpha: true, alpha: false });
   if (!gl) throw new Error("WebGL2 is not available");
+  // The atlas canvas lives on the CPU and survives a context loss; everything on
+  // the GPU is made in setup(), which runs again when the context comes back.
+  ATLAS = Math.min(4096, gl.getParameter(gl.MAX_TEXTURE_SIZE) || 2048);
+  atlasCanvas.width = ATLAS;
+  atlasCanvas.height = ATLAS;
+  atlasCtx.fillStyle = "#fff";
+  atlasCtx.fillRect(0, 0, 4, 4);
+  shelfX = 10;
+  shelfH = 4;
+  whiteUV = [1, 1, 3, 3];
+  emptyUV = [6, 1, 8, 3]; // x 5 to 9 of the first row is left transparent
+  setup();
+  canvas.addEventListener("webglcontextlost", (e) => {
+    e.preventDefault(); // without it the browser never restores the context
+    lost = true;
+    console.warn("WebGL context lost; drawing stops until the browser restores it (docs/23a, A2)");
+  });
+  canvas.addEventListener("webglcontextrestored", () => {
+    setup();
+    lost = false;
+    for (const fn of restoreHooks) fn();
+    console.warn("WebGL context restored: the atlas re-uploaded, the ground re-baked");
+  });
+}
+
+export function isLost() {
+  return lost;
+}
+
+// Called after a restored context has its program and textures again; the
+// ground registers one to mark its chunks for re-baking (its textures are gone).
+export function onRestore(fn) {
+  restoreHooks.push(fn);
+}
+
+function setup() {
   program = gl.createProgram();
   gl.attachShader(program, compile(gl.VERTEX_SHADER, VS));
   gl.attachShader(program, compile(gl.FRAGMENT_SHADER, FS));
@@ -258,18 +296,10 @@ export function init(canvas) {
   attr("a_height", 1, 6);
   attr("a_color", 4, 7);
   attr("a_flags", 1, 11);
-  // The atlas, with a white texel for flat polygons.
-  ATLAS = Math.min(4096, gl.getParameter(gl.MAX_TEXTURE_SIZE) || 2048);
-  atlasCanvas.width = ATLAS;
-  atlasCanvas.height = ATLAS;
-  atlasCtx.fillStyle = "#fff";
-  atlasCtx.fillRect(0, 0, 4, 4);
-  shelfX = 10;
-  shelfH = 4;
-  whiteUV = [1, 1, 3, 3];
-  emptyUV = [6, 1, 8, 3]; // x 5 to 9 of the first row is left transparent
+  // The atlas texture (the canvas behind it is kept across a loss) and the area textures.
   atlasTex = makeTexture(gl.NEAREST);
   atlasDirty = true;
+  groundTex.clear(); // a lost context took the ground's textures with it; the ground re-bakes
   gl.uniform1i(uniforms.u_tex, 0);
   gl.uniform1i(uniforms.u_light, 1);
   gl.uniform1i(uniforms.u_ambient, 2);
@@ -454,6 +484,7 @@ export function poly(points, color, { world, heights = 0, flags = 0 } = {}) {
 
 // Draw everything pushed since begin() with these uniforms.
 export function end(u) {
+  if (lost) return; // nothing to draw to; the batch is dropped
   if (atlasDirty) {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, atlasTex);

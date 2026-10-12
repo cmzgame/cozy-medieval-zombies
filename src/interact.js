@@ -524,7 +524,7 @@ export function actionsAt(sx, sy, player) {
   const seen = new Set();
   for (let dy = -3; dy <= 1; dy++) {
     for (let dx = -3; dx <= 1; dx++) {
-      const prop = map.tileAt(tx + dx, ty + dy).prop;
+      const prop = map.peekTile(tx + dx, ty + dy)?.prop; // a hit test never grows a chunk (docs/23a, A4)
       if (!prop || seen.has(prop)) continue;
       const onTile = dx === 0 && dy === 0;
       const onSprite = !onTile && pointInRect(sx, sy, propRect(prop, tx + dx, ty + dy));
@@ -566,7 +566,8 @@ export function nearestSimpleAction(player) {
   const seen = new Set();
   for (let dy = -2; dy <= 2; dy++) {
     for (let dx = -2; dx <= 2; dx++) {
-      const t = map.tileAt(px + dx, py + dy);
+      const t = map.peekTile(px + dx, py + dy); // a hit test never grows a chunk (docs/23a, A4)
+      if (!t) continue;
       for (const entry of map.itemsAt(px + dx, py + dy)) consider(itemActions(entry, px + dx, py + dy, player));
       if (t.prop && !seen.has(t.prop)) {
         seen.add(t.prop);
@@ -973,7 +974,7 @@ export function interactableAt(sx, sy, wanted = (prop) => prop.interactable) {
   // tile, so look that far down the grid as well as a little around.
   for (let dy = -2; dy <= 7; dy++) {
     for (let dx = -2; dx <= 7; dx++) {
-      const prop = map.tileAt(tx + dx, ty + dy).prop;
+      const prop = map.peekTile(tx + dx, ty + dy)?.prop; // a hit test never grows a chunk (docs/23a, A4)
       if (!prop || !wanted(prop)) continue;
       const r = propRect(prop, prop.tile[0], prop.tile[1]);
       if (!r || !pointInRect(sx, sy, r)) continue;

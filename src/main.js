@@ -266,8 +266,24 @@ function refreshFigure() {
   gl.redrawSheet(sheet);
 }
 
+// One step of the game. The keys' and the mouse's "pressed this step" state is
+// cleared in a finally, so a throw cannot re-apply a press on the next step (docs/23a, A1).
 function update(dt) {
   const t0 = performance.now();
+  try {
+    stepGame(dt);
+  } finally {
+    input.endStep();
+  }
+  timing.step = performance.now() - t0;
+  if (t0 - timing.maxResetAt > 3000) {
+    timing.stepMax = 0;
+    timing.maxResetAt = t0;
+  }
+  timing.stepMax = Math.max(timing.stepMax, timing.step);
+}
+
+function stepGame(dt) {
   if (input.wasPressed("KeyV")) drawAll = !drawAll;
   if (input.wasPressed("KeyN")) toggleBuild();
   if (input.wasPressed("KeyX")) toggleRemove();
@@ -410,13 +426,6 @@ function update(dt) {
   updateSwingTimer(player);
   updateSpeech([player, ...zombies, ...villagers], visible, player, dt);
   updateMessage(dt);
-  input.endStep();
-  timing.step = performance.now() - t0;
-  if (t0 - timing.maxResetAt > 3000) {
-    timing.stepMax = 0;
-    timing.maxResetAt = t0;
-  }
-  timing.stepMax = Math.max(timing.stepMax, timing.step);
 }
 
 let squareTiles = [];
@@ -876,7 +885,7 @@ async function boot() {
     } },
   ]);
 
-  loop.start({ update, render, simTick() {} }, { simIntervalMs: 1000 });
+  loop.start({ update, render, simTick() {}, crash: shell.crash }, { simIntervalMs: 1000 });
   screens.show("title");
   await shell.finish(); // the screen goes once the first frame is under it
 
@@ -919,6 +928,8 @@ async function boot() {
     get playerRoom() { return playerRoom; },
     get info() { return info; },
     get openBag() { return openBag; },
+    get timing() { return timing; }, // the step's, sight's, and render's milliseconds (tools/profile.js)
+    get drawn() { return drawn; },
     teleport(gx, gy) { player.gx = gx; player.gy = gy; player.auto = null; camera.snapTo(gx, gy); },
     walkTo(gx, gy) { return autoWalk(player, [gx, gy]); },
     setPaused,

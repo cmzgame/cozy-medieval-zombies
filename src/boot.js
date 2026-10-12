@@ -17,6 +17,9 @@ export const timings = {};
 // tab gets no frames, so a short timer stands in: boot never waits on a frame
 // that is not coming (measured 2026-10-12: 7 s of stalls in a backgrounded pane).
 export function nextFrame() {
+  // Hidden, there is no bar to paint and the browser throttles timers to one a
+  // second (16 outfits took 7.9 s that way): no wait at all.
+  if (document.hidden) return Promise.resolve();
   return new Promise((resolve) => {
     const timer = setTimeout(resolve, 40);
     requestAnimationFrame(() => {

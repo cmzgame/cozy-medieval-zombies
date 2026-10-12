@@ -11,7 +11,7 @@ import * as settings from "../settings.js";
 import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, canStep, nearestWalkable, tileAt, getRoom, breachTarget, damageOpening, wayOpen, climbable } from "../map.js";
+import { moveCircle, isWalkableTile, canStep, nearestWalkable, tileAt, getRoom, breachTarget, damageOpening, wayOpen, climbable, roomAt } from "../map.js";
 import { findPath } from "../pathfind.js";
 import { lineOfSight } from "../visibility.js";
 import * as light from "../light.js";
@@ -394,7 +394,7 @@ export function pickTargetAround(x, y, radius, room = 0) {
   for (let tries = 0; tries < 12; tries++) {
     const tx = Math.round(x) + Math.floor(Math.random() * (radius * 2 + 1)) - radius;
     const ty = Math.round(y) + Math.floor(Math.random() * (radius * 2 + 1)) - radius;
-    if (isWalkableTile(tx, ty) && tileAt(tx, ty).room === room) return [tx, ty];
+    if (isWalkableTile(tx, ty) && roomAt(tx, ty) === room) return [tx, ty]; // refinds the rooms if a wall changed (docs/23a, A5)
   }
   return null;
 }

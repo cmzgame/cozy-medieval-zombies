@@ -175,6 +175,10 @@ export function sheetIds() {
 
 export async function init(mapJson) {
   data = await assets.loadJson("data/ground.json");
+  // A restored WebGL context has no ground textures: every chunk re-bakes when next in view (docs/23a, A2).
+  gl.onRestore(() => {
+    for (const e of chunks.values()) e.dirty = true;
+  });
   seed = mapJson?.ground?.seed ?? data.seed ?? 1;
   for (const id in data.floors) {
     await assets.loadSprite(id);
