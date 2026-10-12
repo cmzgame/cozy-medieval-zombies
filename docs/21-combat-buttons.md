@@ -40,6 +40,17 @@ Ruled by Michael on 2026-10-12 (`02-decisions.md`, question 29 and the log entry
 
 Tap 0.2 s; stab 1.9 / 40 / 30 / 0.6 / 6; spear break 0.5; brace move 0.2, brace draw 1.5x; guard arc 150, 15 percent through, 4 stamina a block, 0.5 s stagger, walk 0.75.
 
+## The guard is hard to read (Michael, after play, 2026-10-12)
+
+"I know what you said it would do but visually it kinda just looks like you are standing there": with the right button held the shield sits at the hand exactly as it did before, so the only evidence of a guard is a blocked blow. Options, cheapest first, none built:
+
+1. **Move the shield, no pose, no re-bake (recommended first).** While `player.blocking`, the renderer draws the held shield where a guard would hold it: in front of the chest toward the aim, a little above the hand, instead of at the hand. A render-only change in the held-item draw (`joints[slot]` replaced for the off slot), sorted in front of the body when the aim is toward the camera and behind when away. It reads as "the shield came up" at a glance and costs nothing on the sheet.
+2. **A cue that the guard is up and its arc**: a shield icon over the head like the moodles, or a faint arc on the ground in front of the guard's 150 degrees. The arc is useful (it tells you which attackers are blocked) but is a cousin of the swing wedge Michael had removed (the "semi transparent white cone"), so it should be much fainter and only while guarded, and is his call.
+3. **A blocked blow shows**: a spark and a short flash on the shield at the point of contact, the stamina bar pulsing for the 4 it cost, "Blocked" in the speech-bubble style if wanted; a broken guard flashes red. Cheap, and it answers "is this working" at the moment it matters.
+4. **A real raised-guard pose** (the off arm up with the shield before the chest): the art pass, and it needs striding legs for walking guarded (the same gap as the drawn bow).
+
+Claude's lean: 1 and 3 together now, 4 with the art, 2 only if the first two do not read.
+
 ## Not here
 
 A raised-guard pose and a thrust pose (the stab reuses the swing, the guard just holds the shield at the hand), sounds, a shield that breaks, a block timing window (a parry), hit feedback on a block, armour.

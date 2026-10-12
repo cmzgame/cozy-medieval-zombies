@@ -12,7 +12,7 @@ Started 2026-10-08.
 - **Zones, or biomes.** Regions of the map with their own register: the harvest village now, a Tirisfal-gloomy wood later with blue and purple trees, the plague doctor, scarecrow men. A zone is a rectangle with a palette and a scatter mix, which the scatter rule already half is. Michael's rule: harvest first, until the farming game is fun.
 - **The countryside.** Block storage allows the world to grow past the village. Authored places, generated fields between. Question 9 in `02-decisions.md`.
 - **A zoom-out.** Integer scaling makes it awkward. Revisit if the village feels cramped at Zomboid's 100 percent.
-- **Infection, treatable.** The cozy parent's "not now, not never". Moodles leave the door open with a queasy icon that might be bad stew or might be the bite.
+- **Infection, treatable.** **Tied to combat difficulty (Michael, 2026-10-12): see `02`. If this is added, the dead's damage and numbers come down with it; if it never is, combat has to carry the danger alone.** The cozy parent's "not now, not never". Moodles leave the door open with a queasy icon that might be bad stew or might be the bite.
 - **Armour.** More slots of the shield's shape. The sibling's post-1.0 note.
 - **Warmth and cold.** The sibling had a cold moodle the fireplace answers. Here fire is already everything; a winter would make it more so. Not scheduled.
 - **Low-fantasy headroom.** A cursed blade, a staff, something in the woods. The setting allows it; nothing asks for it.
