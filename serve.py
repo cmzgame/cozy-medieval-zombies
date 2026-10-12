@@ -68,7 +68,7 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
             return
         # Dev only: POST /data/hair/<name>.json saves a painted hair style from
         # tools/hair.html and lists it in data/hair/index.json (docs/12).
-        m = re.fullmatch(r"/data/(hair|layers/(?:head|chest|legs|hands|feet|body))/([a-z0-9_-]{1,40})\.json", self.path)
+        m = re.fullmatch(r"/data/(hair|layers/(?:head|chest|legs|hands|feet|body|beard|waist))/([a-z0-9_-]{1,40})\.json", self.path)
         if self.path.startswith("/data/") and not m:
             self.send_error(400, "paint saves under data/hair or data/layers/<slot>, lowercase names")
             return

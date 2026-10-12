@@ -242,7 +242,7 @@ function beltFire(belt) {
 // styles. Reloaded from the settings screen so a style saved a moment ago
 // shows without a restart.
 async function loadPaintedHair() {
-  const folders = [["hair", "data/hair"], ...["head", "chest", "legs", "hands", "feet", "body"].map((s) => [s, `data/layers/${s}`])];
+  const folders = [["hair", "data/hair"], ...["head", "chest", "legs", "hands", "feet", "body", "beard", "waist"].map((s) => [s, `data/layers/${s}`])];
   // Every index at once, then every style at once (docs/23: the server answers in parallel).
   const indexes = await Promise.all(folders.map(([, folder]) => assets.loadJson(`${folder}/index.json`).catch(() => ({ styles: [] })))); // no folder yet: nothing painted
   await Promise.all(folders.flatMap(([slot, folder], i) => (indexes[i].styles || []).map(async (name) => figure.registerLayer(slot, name, await assets.loadJson(`${folder}/${name}.json`)))));
@@ -713,7 +713,7 @@ async function boot() {
         },
         // Painted layers to try on, per slot, regardless of what is worn (docs/12).
         layers: {
-          slots: () => ["body", "head", "chest", "legs", "hands", "feet"],
+          slots: () => ["body", "head", "beard", "chest", "waist", "legs", "hands", "feet"],
           names: (slot) => figure.layerNames(slot),
           current: (slot) => (settings.get("paintedLayers") || {})[slot] || null,
           set: (slot, name) => {

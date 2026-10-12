@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Slicer: a painted template to layer files</title>
+<style>
+  body { margin: 0; background: #1b1722; color: #d8d0e0; font: 13px/1.4 system-ui, sans-serif; }
+  header { padding: 12px 16px; background: #26202e; border-bottom: 1px solid #4a4056; }
+  h1 { margin: 0 0 4px; font-size: 16px; }
+  main { padding: 12px 16px; display: grid; gap: 12px; }
+  button { background: #3b3248; color: #eee; border: 1px solid #6a5a78; border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+  button:hover { background: #4a3f5a; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  input, select { background: #120f18; color: #eee; border: 1px solid #4a4056; border-radius: 4px; padding: 4px 6px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  canvas { image-rendering: pixelated; background: #8fa07a; border: 1px solid #4a4056; max-width: 100%; }
+  .note { max-width: 960px; color: #b0a6bc; }
+  .report { background: #120f18; border: 1px solid #3a3246; padding: 8px; white-space: pre-wrap; font-size: 12px; max-height: 260px; overflow: auto; }
+  .ok { color: #8fd48f; } .warn { color: #e8c860; } .bad { color: #e08a8a; }
+  .drop { border: 2px dashed #6a5a78; border-radius: 6px; padding: 18px; text-align: center; color: #b0a6bc; }
+  .drop.over { background: #2e2638; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Slicer</h1>
+  <div class="note">A PNG painted over the character template (<code>tools/template.html</code>: eight facings, four cells across and two down, 192 x 288 each, at 4x) becomes one layer file the game wears (docs/12, docs/23 step 3a, docs/25). Each painted 4x block becomes one game pixel; each pixel is given to a part by where it lies: on the body, the part under it; off the body, the nearest free part of the slot (arms, hands, feet, head). The file is saved exactly as <code>tools/layers.html</code> would save it, into <code>data/layers/&lt;slot&gt;/</code>, and listed in that slot's index.</div>
+</header>
+<main>
+  <div class="row">
+    <label>Slot <select id="slot"></select></label>
+    <label>Name <input id="name" value="" placeholder="e.g. tunic_green" size="18"></label>
+    <label>Painted on the <select id="variant"><option value="player">player</option><option value="zombie">zombie</option></select> body</label>
+    <span id="options"></span>
+  </div>
+  <div id="drop" class="drop">Drop the painted 4x PNG here, or <label><input id="file" type="file" accept="image/png"> choose it</label>.</div>
+  <div class="row">
+    <button id="slice" disabled>Slice</button>
+    <button id="save" disabled>Save to the game</button>
+    <button id="download" disabled>Download the JSON</button>
+    <button id="selfTest">Self-test: the template's own body, sliced and worn</button>
+    <label><input id="showAssign" type="checkbox" checked> colour the preview by part</label>
+  </div>
+  <div class="report" id="report">Nothing loaded.</div>
+  <div class="note">Left: what was read from the PNG, each game pixel tinted by the part it was given (torso blue, legs green, arms orange, hands red, feet teal, head purple). Right: the layer worn by the figure, idle at every facing, then the walk and the attack facing south-west.</div>
+  <div class="row" style="align-items: flex-start">
+    <canvas id="read"></canvas>
+    <canvas id="worn"></canvas>
+  </div>
+</main>
+<script type="module">
+  import * as figure from "../src/figure.js";
+
+  const S = 4;
+  const FW = figure.FW, FH = figure.FH, AX = figure.FEET_X, AY = figure.FEET_Y;
+  const FACINGS = figure.FACINGS, PART = figure.PART;
+  const SLOTS = figure.LAYER_SLOTS;
+  const COLS = 4, ROWS = 2;
+  const W = FW * S * COLS, H = FH * S * ROWS;
+  // The same table as tools/layers.html: a layer part's generated parts and its anchor joint.
+  const PART_INFO = {
+    torso: { gen: [PART.torso], anchor: "neck", tint: "#6a9aff" },
+    legL: { gen: [PART.legL], anchor: "hipL", tint: "#6adf80" },
+    legR: { gen: [PART.legR], anchor: "hipR", tint: "#6adf80" },
+    armL: { gen: [PART.armL], anchor: "shoulderL", tint: "#ffb060" },
+    armR: { gen: [PART.armR], anchor: "shoulderR", tint: "#ffb060" },
+    handL: { gen: [PART.armL], anchor: "handL", tint: "#ff6060" },
+    handR: { gen: [PART.armR], anchor: "handR", tint: "#ff6060" },
+    footL: { gen: [PART.legL], anchor: "footL", tint: "#60e0e0" },
+    footR: { gen: [PART.legR], anchor: "footR", tint: "#60e0e0" },
+    head: { gen: [PART.head, PART.hair, PART.hat], anchor: "head", tint: "#d080ff" },
+  };
+  const els = Object.fromEntries(["slot", "name", "variant", "options", "drop", "file", "slice", "save", "download", "selfTest", "showAssign", "report", "read", "worn"].map((id) => [id, document.getElementById(id)]));
+  els.slot.innerHTML = Object.keys(SLOTS).map((s) => `<option value="${s}">${s}</option>`).join("");
+  els.slot.value = "chest";
+  let slot = els.slot.value;
+  let variant = "player";
+  let options = {};
+  let loaded = null; // the painted PNG as an image
+  let result = null; // { json, report, assigned: [{f, x, y, part}] }
+
+  // The bare body of the variant, as the template draws it, with part maps and joints.
+  const look = { ...figure.DEFAULT_LOOK, hairStyle: "bald" };
+  look.under = look.skin;
+  const zombieLook = { skin: "#9fbf88", hair: "#3a2a1c", eyes: "#2a1414", under: "#9fbf88" };
+  const bareSpec = (v) => ({ variant: v, look: v === "zombie" ? { ...look, ...zombieLook, hairStyle: "bald" } : look, outfit: { head: null, chest: null, legs: null, hands: null, feet: null, waist: null, back: null }, wound: null, holding: { main: false, off: false }, partMaps: true });
+  const bodies = {};
+  const bodyOf = (v) => (bodies[v] ||= figure.generateFigure(bareSpec(v)));
+  const anchorOf = (bg, p, f) => { const j = bg.joints[`idle_${f}_0`][PART_INFO[p].anchor]; return { x: AX + j.x, y: AY + j.y }; };
+  const partAt = (bg, f, x, y) => (x < 0 || y < 0 || x >= FW || y >= FH ? 0 : bg.partMaps[`idle_${f}_0`][y * FW + x]);
+
+  function setOptionsUi() {
+    options = slot === "chest" ? { length: "shirt", hideBelt: false } : {};
+    els.options.innerHTML = slot === "chest"
+      ? `<label>length <select id="optLength"><option value="shirt">shirt</option><option value="long">long</option></select></label> <label><input id="optHideBelt" type="checkbox"> hide the belt</label>`
+      : "";
+    if (slot === "chest") {
+      document.getElementById("optLength").addEventListener("change", (e) => { options.length = e.target.value; });
+      document.getElementById("optHideBelt").addEventListener("change", (e) => { options.hideBelt = e.target.checked; });
+    }
+  }
+  setOptionsUi();
+  els.slot.addEventListener("change", () => { slot = els.slot.value; setOptionsUi(); result = null; els.save.disabled = els.download.disabled = true; });
+  els.variant.addEventListener("change", () => { variant = els.variant.value; });
+
+  // ---- reading the PNG ----
+  // Each 4 x 4 block is one game pixel: its colour is the most common opaque
+  // colour among the sixteen samples if at least half are opaque; a block of
+  // several colours is counted as ragged (painted off the grid).
+  function readBlocks(img) {
+    const c = document.createElement("canvas");
+    c.width = img.width; c.height = img.height;
+    const x = c.getContext("2d", { willReadFrequently: true });
+    x.drawImage(img, 0, 0);
+    const d = x.getImageData(0, 0, img.width, img.height).data;
+    const cells = {};
+    let ragged = 0, painted = 0;
+    FACINGS.forEach((f, i) => {
+      const ox = (i % COLS) * FW * S, oy = Math.floor(i / COLS) * FH * S;
+      const px = []; // [x, y, hex]
+      for (let y = 0; y < FH; y++) for (let xx = 0; xx < FW; xx++) {
+        const counts = new Map();
+        let opaque = 0;
+        for (let sy = 0; sy < S; sy++) for (let sx = 0; sx < S; sx++) {
+          const j = ((oy + y * S + sy) * img.width + (ox + xx * S + sx)) * 4;
+          if (d[j + 3] < 128) continue;
+          opaque++;
+          const hex = "#" + [d[j], d[j + 1], d[j + 2]].map((v) => v.toString(16).padStart(2, "0")).join("");
+          counts.set(hex, (counts.get(hex) || 0) + 1);
+        }
+        if (opaque < S * S / 2) continue;
+        let best = null, bestN = 0;
+        for (const [hex, n] of counts) if (n > bestN) { bestN = n; best = hex; }
+        if (counts.size > 1 || opaque < S * S) ragged++;
+        painted++;
+        px.push([xx, y, best]);
+      }
+      cells[f] = px;
+    });
+    return { cells, ragged, painted };
+  }
+
+  // ---- giving each pixel a part, and the layer file ----
+  function assign(bg, cells) {
+    const parts = {};
+    for (const p of Object.keys(SLOTS[slot])) { parts[p] = {}; for (const f of FACINGS) parts[p][f] = []; }
+    const assigned = [];
+    let dropped = 0;
+    const free = Object.keys(SLOTS[slot]).filter((p) => SLOTS[slot][p] === "free");
+    for (const f of FACINGS) {
+      for (const [x, y, hex] of cells[f]) {
+        const g = partAt(bg, f, x, y);
+        let p = Object.keys(SLOTS[slot]).find((q) => PART_INFO[q].gen.includes(g)) || null;
+        if (!p) {
+          let bestD = Infinity;
+          for (const q of free) { const a = anchorOf(bg, q, f); const dd = Math.hypot(a.x - x, a.y - y); if (dd < bestD) { bestD = dd; p = q; } }
+        }
+        if (!p) { dropped++; continue; }
+        const a = anchorOf(bg, p, f);
+        parts[p][f].push([x - a.x, y - a.y, hex]);
+        assigned.push({ f, x, y, p });
+      }
+    }
+    return { parts, assigned, dropped };
+  }
+
+  function cleanName() {
+    const n = els.name.value.toLowerCase().replace(/[^a-z0-9_-]/g, "_").slice(0, 40) || "mine";
+    els.name.value = n;
+    return n;
+  }
+
+  function slice(img, forSlot = slot) {
+    const bg = bodyOf(variant);
+    const { cells, ragged, painted } = readBlocks(img);
+    const saved = slot; slot = forSlot;
+    const { parts, assigned, dropped } = assign(bg, cells);
+    slot = saved;
+    const json = { name: cleanName(), slot: forSlot, variant, options: { ...options, zombie: !!options.zombie }, parts };
+    const perPart = Object.fromEntries(Object.keys(parts).map((p) => [p, FACINGS.reduce((n, f) => n + parts[p][f].length, 0)]));
+    const lines = [
+      `${painted} game pixels read over 8 facings${ragged ? `; ${ragged} ragged blocks (several colours or a partly transparent 4 x 4 block: painted off the grid, the majority colour taken)` : ""}.`,
+      `Given to parts: ${Object.entries(perPart).map(([p, n]) => `${p} ${n}`).join(", ")}.`,
+      dropped ? `${dropped} pixels dropped: on a part this slot does not own (a body layer owns no head, a chest layer no legs), or off the body on a slot with no free part to take them.` : "Nothing dropped.",
+    ];
+    return { json, report: lines, assigned, cells, raggedCount: ragged };
+  }
+
+  // ---- drawing ----
+  function drawRead(img, res) {
+    const c = els.read; c.width = W; c.height = H;
+    const x = c.getContext("2d"); x.imageSmoothingEnabled = false;
+    x.globalAlpha = 0.35; x.drawImage(bodyOf(variant).image, 0, 0, 1, 1, 0, 0, 1, 1); x.globalAlpha = 1;
+    // the bare body faint, then the read pixels
+    const bg = bodyOf(variant);
+    FACINGS.forEach((f, i) => { const fr = bg.frames[`idle_${f}_0`]; x.globalAlpha = 0.3; x.drawImage(bg.image, fr[0], fr[1], fr[2], fr[3], (i % COLS) * FW * S, Math.floor(i / COLS) * FH * S, FW * S, FH * S); x.globalAlpha = 1; });
+    const byKey = new Map(res.assigned.map((a) => [`${a.f}:${a.x},${a.y}`, a.p]));
+    FACINGS.forEach((f, i) => {
+      const ox = (i % COLS) * FW * S, oy = Math.floor(i / COLS) * FH * S;
+      for (const [px, py, hex] of res.cells[f]) {
+        x.fillStyle = hex; x.fillRect(ox + px * S, oy + py * S, S, S);
+        if (els.showAssign.checked) { const p = byKey.get(`${f}:${px},${py}`); x.fillStyle = p ? PART_INFO[p].tint + "88" : "#ff000088"; x.fillRect(ox + px * S, oy + py * S, S, S); }
+      }
+    });
+  }
+
+  function wornSheet(json) {
+    figure.registerLayer(json.slot, json.name, json);
+    const v = json.variant;
+    const base = bareSpec(v);
+    const spec = { ...base, partMaps: false, painted: { [json.slot]: figure.getLayer(json.slot, json.name) } };
+    return figure.generateFigure(spec);
+  }
+
+  function drawWorn(json) {
+    const sheet = wornSheet(json);
+    const names = [...FACINGS.map((f) => `idle_${f}_0`), ...Object.keys(sheet.frames).filter((n) => /^walk_sw_\d+$/.test(n)).sort(), ...Object.keys(sheet.frames).filter((n) => /^attack_sw_\d+$/.test(n)).sort()];
+    const cols = 8, rows = Math.ceil(names.length / cols);
+    const c = els.worn; c.width = cols * FW * S; c.height = rows * FH * S;
+    const x = c.getContext("2d"); x.imageSmoothingEnabled = false;
+    names.forEach((n, i) => { const fr = sheet.frames[n]; if (fr) x.drawImage(sheet.image, fr[0], fr[1], fr[2], fr[3], (i % cols) * FW * S, Math.floor(i / cols) * FH * S, FW * S, FH * S); });
+    return sheet;
+  }
+
+  function report(lines, cls = "") {
+    els.report.innerHTML = lines.map((l) => `<div class="${cls}">${l}</div>`).join("");
+  }
+
+  // ---- files in and out ----
+  function loadFile(file) {
+    const img = new Image();
+    img.onload = () => {
+      if (img.width !== W || img.height !== H) { report([`This PNG is ${img.width} x ${img.height}; the template is ${W} x ${H} (four cells of ${FW * S} x ${FH * S} across, two down).`], "bad"); return; }
+      loaded = img;
+      els.slice.disabled = false;
+      report([`${file.name} loaded: ${img.width} x ${img.height}. Pick the slot and a name, then Slice.`]);
+      if (!els.name.value) els.name.value = file.name.replace(/\.png$/i, "").toLowerCase().replace(/[^a-z0-9_-]/g, "_").slice(0, 40);
+    };
+    img.src = URL.createObjectURL(file);
+  }
+  els.file.addEventListener("change", () => { if (els.file.files[0]) loadFile(els.file.files[0]); });
+  els.drop.addEventListener("dragover", (e) => { e.preventDefault(); els.drop.classList.add("over"); });
+  els.drop.addEventListener("dragleave", () => els.drop.classList.remove("over"));
+  els.drop.addEventListener("drop", (e) => { e.preventDefault(); els.drop.classList.remove("over"); const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
+
+  els.slice.addEventListener("click", () => {
+    if (!loaded) return;
+    result = slice(loaded);
+    drawRead(loaded, result);
+    drawWorn(result.json);
+    report([...result.report, `Ready to save as data/layers/${slot}/${result.json.name}.json.`], result.raggedCount ? "warn" : "ok");
+    els.save.disabled = els.download.disabled = false;
+  });
+  els.showAssign.addEventListener("change", () => { if (loaded && result) drawRead(loaded, result); });
+
+  els.save.addEventListener("click", async () => {
+    if (!result) return;
+    const res = await fetch(`/data/layers/${result.json.slot}/${result.json.name}.json`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(result.json) });
+    report([...result.report, res.ok ? `Saved: data/layers/${result.json.slot}/${result.json.name}.json, listed in the slot's index. In the game, Settings has a row per slot to try it on; the game's own loader reads it at the next boot.` : `Save failed: ${res.status} ${res.statusText}`], res.ok ? "ok" : "bad");
+  });
+  els.download.addEventListener("click", () => {
+    if (!result) return;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(result.json)], { type: "application/json" }));
+    a.download = `${result.json.name}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+
+  // ---- the self-test (docs/23, step 3a's verify) ----
+  // The template's own body, drawn as template.html draws it, sliced as a
+  // body layer and worn by the bare figure, must be pixel-identical to the
+  // bare figure drawn directly, in every idle facing.
+  async function selfTest() {
+    const bg = bodyOf(variant);
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const x = c.getContext("2d"); x.imageSmoothingEnabled = false;
+    FACINGS.forEach((f, i) => { const fr = bg.frames[`idle_${f}_0`]; x.drawImage(bg.image, fr[0], fr[1], fr[2], fr[3], (i % COLS) * FW * S, Math.floor(i / COLS) * FH * S, FW * S, FH * S); });
+    const img = new Image();
+    await new Promise((r) => { img.onload = r; img.src = c.toDataURL("image/png"); });
+    const savedName = els.name.value; els.name.value = "selftest";
+    const res = slice(img, "body");
+    els.name.value = savedName;
+    loaded = img; result = null;
+    drawRead(img, res);
+    const worn = drawWorn(res.json);
+    const diffs = [];
+    let total = 0;
+    for (const f of FACINGS) {
+      const a = bg.frames[`idle_${f}_0`], b = worn.frames[`idle_${f}_0`];
+      const da = bg.image.getContext("2d").getImageData(a[0], a[1], a[2], a[3]).data;
+      const db = worn.image.getContext("2d").getImageData(b[0], b[1], b[2], b[3]).data;
+      let n = 0;
+      for (let i = 0; i < da.length; i += 4) if (da[i] !== db[i] || da[i + 1] !== db[i + 1] || da[i + 2] !== db[i + 2] || da[i + 3] !== db[i + 3]) n++;
+      total += n;
+      diffs.push(`${f} ${n}`);
+    }
+    const ok = total === 0;
+    report([...res.report, ok ? "Self-test passed: the template's body, sliced and worn, is pixel-identical to the body drawn directly, in all eight facings." : `Self-test FAILED: ${total} pixels differ (${diffs.join(", ")}).`], ok ? "ok" : "bad");
+    return { ok, total, diffs, res };
+  }
+  els.selfTest.addEventListener("click", selfTest);
+  window.__slice = { selfTest, slice, bodyOf, readBlocks };
+</script>
+</body>
+</html>

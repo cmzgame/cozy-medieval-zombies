@@ -1,0 +1,54 @@
+# 28 — Painting for the slicer: the rules for the design agent
+
+**Status: written 2026-10-12 with the slicer (`tools/slice.html`, `23` step 3a), the night the body was ruled final (`02`, "We have a body"). This is the page to hand the design agent, whole. It says what the engine does with a painting, so the painting is made the way the engine can take it. The brief for what to draw is `25`; this is how to draw it so it goes in.**
+
+## What the engine is, in four sentences
+
+The character is not a set of sprites. It is a small **rig**: a body described in numbers, posed by joints, projected into eight facings, and rasterised at boot into every frame of every animation. What you paint are **parts** of a garment (or of hair, a hat, a beard, a belt), pinned to the rig's joints in the rest pose, and the rig carries your pixels through every walk, swing, and fall by turning and scaling them along the limb they belong to. You never draw a frame, a pose, or a second angle of the same part: one drawing per part per facing, in the rest pose, and the game animates it.
+
+## The template, and the file you deliver
+
+1. **Paint over `character_template_body_4x.png`** (from `tools/template.html`, the five files Michael sends). It is the bare body at all eight facings, **4x**: eight cells, four across and two down, each 192 by 288, in the order **s, sw, w, nw** on the top row and **n, ne, e, se** below. The guides file shows every part's anchor (a red cross) and its segment; the parts-tint file shows which pixels belong to which part.
+2. **Deliver a PNG of exactly 768 by 576**, the template's size, with a **transparent background**, containing **only the garment**, not the body under it. The body is the game's; a pixel of body in your file would be painted over the game's body as if it were clothing.
+3. **One slot per file.** A tunic is one file; its belt is another (the `waist` slot); gloves another (`hands`). The slots: `body` (the skin itself, if the skin is ever repainted), `hair`, `head` (hats, hoods, helms), `beard`, `chest` (tunics, with sleeves), `waist` (belts), `legs`, `hands`, `feet`.
+4. **Stay on the grid.** Every game pixel is a 4 by 4 block in the file. Paint whole blocks, aligned to the template's grid (the guides draw it), one flat colour per block, fully opaque. A block of mixed colours or a half-transparent block is read as its majority colour and counted as "ragged" in the slicer's report; a run of them means the painting slipped off the grid. **No anti-aliasing, no soft brushes, no gradients.**
+5. **Name the file for the slot and the thing:** `chest_tunic_green.png`, `head_coif.png`, `beard_gnome.png`.
+
+## Which part takes a pixel
+
+The slicer gives every painted pixel to a part by where it lies:
+
+- **On the body:** the part under it, as the parts-tint shows. A pixel on the torso goes to the torso; a pixel on the upper arm to that arm.
+- **Off the body:** the nearest **free** part of the slot. Free parts are the ones that may change the silhouette: the arms (with their shoulders), the hands, the feet, the head. So a sleeve wider than the arm, a pauldron, a big boot, a hat above the head, a beard below the chin all work: paint them where they go and they follow their joint.
+- **Substitution parts keep the body's shape.** The torso and the legs are substitution parts: a pixel painted beyond the torso's or a leg's silhouette is dropped, and the slicer counts it. A tunic cannot be wider than the torso; a skirt that flares past the hips is not possible yet (the covers rules, when they come, hide the legs under a dress; they do not widen it). If you want a wider torso, that is a body number, not a painting; ask.
+- A pixel on a part the slot does not own is dropped and counted: a chest file's pixels on the legs, a hands file's pixels on the torso.
+
+## Facings and mirrors
+
+- **Paint all eight cells.** The game shows every facing.
+- **Mirrors are allowed and expected** where the garment is symmetrical: east is west mirrored, north-east is north-west mirrored, south-east is south-west mirrored. Asymmetrical things (a satchel strap, a scar) are drawn per facing. South and north are their own.
+- The **far arm** in the three-quarter and side facings is mostly behind the body; paint its sleeve anyway, whole, as if the body were glass: the engine hides what the body covers and shows the hand and wrist that peek out.
+
+## Colour
+
+- **Two tones per garment** where you can: a light and a dark, with the light on the upper-left side of each shape, the game's light. The game's own garments are shaded that way by a rule; a painted garment keeps the colours you paint, exactly, so paint the shading in.
+- **Outlines:** the body's outline is the game's. Do not outline your garment against the body (the game draws no outline between a sleeve and the skin either). Outline the garment's silhouette **only where it extends past the body** (a hat's brim, a pauldron, a boot's sole), one pixel of the game's outline colour, `#1a1420`.
+- **Dyeing** (for later, when the two-tone dye lands): if a garment should take the player's chosen colour, paint it in exactly two tones so the game can swap them; a garment painted in five tones cannot be dyed.
+- No transparency inside a garment except where the skin is meant to show (a neckline, a sleeveless jerkin): the rig puts skin there by itself.
+
+## Hats, hair, beards
+
+- A **hat or helm** (`head`) replaces the hair: paint the whole top of the head as it should look with the hat on, hair included if any shows under it.
+- **Hair** (`hair`) is painted over a bald head and is drawn last on the head, over the face; leave the face clear.
+- A **beard** (`beard`) is drawn after the hair, so it is never covered; paint it on the chin and cheeks, over the skin, leaving the mouth area as you want it.
+
+## What the slicer does with your file, and what to read in its report
+
+Michael (or a session) opens `tools/slice.html`, drops the PNG, picks the slot and a name, and presses Slice. The page shows what it read (each pixel tinted by the part it was given) and the layer **worn by the figure**, idle at every facing and walking and swinging, before anything is saved. The report says how many pixels were read, how many went to each part, how many were ragged, and how many were dropped. A good delivery reads: no ragged blocks, nothing dropped, and the worn preview looking as you meant it in all eight facings. Then Save writes it into the game and it can be tried on from the Settings screen.
+
+## What cannot be done yet, so it is not asked for
+
+- Cloth that moves (a cloak, a skirt swinging): a part is stiff and follows its joint.
+- A garment that changes the body's silhouette on a substitution part (a fat tunic, a wide skirt).
+- A different drawing for a pose (a sleeve that bunches in the swing): one drawing per part per facing.
+- More than one slot in one file.

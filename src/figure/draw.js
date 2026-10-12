@@ -36,6 +36,8 @@ export const LAYER_SLOTS = {
   hands: { handL: "free", handR: "free" },
   feet: { footL: "free", footR: "free" },
   body: { torso: "subst", legL: "subst", legR: "subst", armL: "subst", armR: "subst" },
+  beard: { head: "free" }, // facial hair (docs/25): drawn after the face and the hair, so it is never covered
+  waist: { torso: "subst" }, // a belt, over the chest's torso pixels
 };
 const layers = new Map(); // "slot/name" -> layer
 export let layersVersion = 0;
@@ -165,6 +167,7 @@ function drawFrame(frame, spec, facing, anim, i) {
         frame.ellipse(fb.x, fb.y + 1, B.footRx - 0.5, B.footRy, paint(tone(skin, -0.12)), { outline: false, part });
       }
       const own = new Set([part]);
+      // A painted leg is relative to the leg's top, two above the hip joint, which is the hipL the sheet's joints report (draw.js, the joints) and the editor and the slicer anchor to.
       const rest = (slot) => { const R = layerRest(slot); const hip = part === PART.legL ? R.hipL : R.hipR; const foot = part === PART.legL ? R.footL : R.footR; return [P([hip[0], hip[1], hip[2] + 2]), P(foot)]; };
       let r = rest("body"); stamp(layerPx("body", legName), r[0], r[1], a, b, own);
       r = rest("legs"); stamp(layerPx("legs", legName), r[0], r[1], a, b, own);
@@ -210,7 +213,7 @@ function drawFrame(frame, spec, facing, anim, i) {
     }
     const tn = P(J.neck), th = P(J.hip);
     const own = new Set([PART.torso]);
-    for (const slot of ["body", "chest"]) {
+    for (const slot of ["body", "chest", "waist"]) {
       const R = layerRest(slot);
       stamp(layerPx(slot, "torso"), P(R.neck), P(R.hip), tn, th, own);
     }
@@ -371,6 +374,7 @@ function drawFrame(frame, spec, facing, anim, i) {
     }
     if (paintedHair) { const r = P(layerRest("hair").head); stamp(layerPx("hair", "head"), r, below(r), hc, below(hc)); }
     if (paintedHead) { const r = P(layerRest("head").head); stamp(layerPx("head", "head"), r, below(r), hc, below(hc)); }
+    if (painted.beard) { const r = P(layerRest("beard").head); stamp(layerPx("beard", "head"), r, below(r), hc, below(hc)); }
     if (spec.wound && !helm) {
       const w = P([spec.wound[0], spec.wound[1], J.head[2] + spec.wound[2]]);
       if (w.depth >= -1) {
