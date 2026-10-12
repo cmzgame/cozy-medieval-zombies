@@ -677,6 +677,11 @@
   ],
   "props": [
     {
+      "sprite": "dev_chest",
+      "tile": [14, 17],
+      "note": "combat testing: every weapon, by the well (docs/21)"
+    },
+    {
       "sprite": "rock_0",
       "tile": [
         9,

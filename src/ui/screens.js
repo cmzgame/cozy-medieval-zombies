@@ -174,6 +174,7 @@ function render() {
         ${settingRow("debugCorner", "Debug corner")}
         ${settingRow("squareSurface", "Square and paths")}
         ${settingRow("aimGuide", "Bow aim guide")}
+        ${settingRow("combatTesting", "Combat testing")}
         ${settingRow("showSwingTargets", "Swing targets")}
         ${settingRow("multiHit", "Multi-hit")}
         ${settingRow("showHitShapes", "Show hit shapes")}

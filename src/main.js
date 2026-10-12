@@ -622,6 +622,23 @@ function giveStarterKit() {
   items.hold(player.hands, entry("torch"));
 }
 
+// Forty of the dead standing about the open ground of the square, the same places every
+// time (a small generator, not Math.random), at least five tiles from where you start.
+function addTestingDead(spawn) {
+  let seed = 90210;
+  const rand = () => ((seed = (Math.imul(seed, 1103515245) + 12345) >>> 0) / 4294967296);
+  const placed = [];
+  for (let tries = 0; tries < 4000 && placed.length < 40; tries++) {
+    const x = 1 + Math.floor(rand() * 30);
+    const y = 1 + Math.floor(rand() * 30);
+    if (!map.isWalkableTile(x, y) || map.tileAt(x, y).room > 0) continue;
+    if (Math.hypot(x - spawn[0], y - spawn[1]) < 5) continue;
+    if (placed.some(([px, py]) => Math.hypot(px - x, py - y) < 2)) continue;
+    placed.push([x, y]);
+    zombies.push(createZombie(x, y));
+  }
+}
+
 async function boot() {
   input.init(canvas);
   settings.load();
@@ -650,6 +667,13 @@ async function boot() {
   figure.setWardrobes(await assets.loadJson("data/wardrobes.json")); // who wears what (docs/19)
   await loadPaintedHair();
   const json = await assets.loadJson(MAP_FILE);
+  // Combat testing (docs/21, read at load): no trees, anywhere, so nothing stands between a
+  // blow or a shot and its target; the dead are added once the rooms are known, below.
+  const combatTesting = !!settings.get("combatTesting");
+  if (combatTesting) {
+    json.scatter = [];
+    if (json.wild) json.wild = { ...json.wild, density: [0, 0] };
+  }
   await assets.loadMapSprites(json);
   for (const k of placement.buildKinds()) await assets.loadSprite(k.sprite); // what can be built must be drawable
   assets.registerSheet("arrow", archery.generateArrow()); // the bow's arrow, flying and landed (docs/20)
@@ -672,6 +696,7 @@ async function boot() {
   for (const [x, y] of map.takePendingSpawns()) zombies.push(createZombie(x, y));
   tiles = camera.viewportTiles(V.w, V.h);
   map.rebuildRooms();
+  if (combatTesting) addTestingDead(info.spawn);
   // The square and its paths, cobble or dirt by the setting (docs/15, for
   // comparing): the map's features with `group: "square"`.
   squareTiles = [];

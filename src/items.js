@@ -44,6 +44,9 @@ function randInt(min, max) {
 export function rollLoot(tableId) {
   const table = lootTables[tableId];
   if (!table) return [];
+  // A fixed table is the same every time (the combat-testing chest); a stack of N is N items,
+  // for the ones that do not stack.
+  if (table.fixed) return table.fixed.flatMap((e) => (getItem(e.item).stack > 1 || !e.count ? [{ id: e.item, count: e.count || 1 }] : Array.from({ length: e.count }, () => ({ id: e.item, count: 1 }))));
   const rolls = randInt(table.rolls[0], table.rolls[1]);
   const total = table.entries.reduce((n, e) => n + e.weight, 0);
   const out = [];

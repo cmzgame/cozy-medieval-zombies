@@ -12,6 +12,7 @@ export const DEFAULTS = {
   zombieAggro: false, // off: the dead wander and ignore you, there to be looked at (Michael, 2026-10-10)
   zombiesAttackVillagers: false, // on: the dead hunt villagers too, always preferring the player when both are in sight (docs/19)
   squareSurface: "cobble", // the square and its two paths: "cobble" or "dirt", to compare (docs/15, for now)
+  combatTesting: false, // on (read at load): no trees, forty more of the dead standing about the square (docs/21)
   aimGuide: true, // the bow's landing marker and dotted line while you draw (docs/20); Michael wants the weapon to feel right without it, so it is a setting, on for now
   showSwingTargets: false, // outline the zombies the next swing would hit (docs/14), for testing and for play
   multiHit: true, // on: a blow reaches everything in its wedge; off: only the nearest (docs/14)
@@ -31,6 +32,7 @@ export const CHOICES = {
   zombiesAttackVillagers: [[false, "Off (villagers are safe)"], [true, "On (they hunt villagers too, you first)"]],
   squareSurface: [["cobble", "Cobble"], ["dirt", "Dirt"]],
   aimGuide: [[true, "On (landing marker and dotted line)"], [false, "Off"]],
+  combatTesting: [[false, "Off"], [true, "On (no trees, forty more dead; reload the page)"]],
   showSwingTargets: [[false, "Off"], [true, "On (green outline on what you would hit)"]],
   multiHit: [[true, "On (everything in the wedge)"], [false, "Off (nearest only)"]],
   showHitShapes: [[false, "Off"], [true, "On (body samples)"]],
