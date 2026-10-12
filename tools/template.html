@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Character template exporter</title>
+<style>
+  body { margin: 0; background: #1b1722; color: #d8d0e0; font: 13px/1.4 system-ui, sans-serif; }
+  header { padding: 12px 16px; background: #26202e; border-bottom: 1px solid #4a4056; }
+  h1 { margin: 0 0 4px; font-size: 16px; }
+  main { padding: 12px 16px; display: grid; gap: 12px; }
+  button { background: #3b3248; color: #eee; border: 1px solid #6a5a78; border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+  button:hover { background: #4a3f5a; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  canvas { image-rendering: pixelated; background: #8fa07a; border: 1px solid #4a4056; max-width: 100%; }
+  pre { background: #120f18; border: 1px solid #3a3246; padding: 8px; max-height: 220px; overflow: auto; font-size: 11px; }
+  code { color: #e8c860; }
+  .note { max-width: 900px; color: #b0a6bc; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Character template exporter</h1>
+  <div class="note">The rest-pose body at all eight facings, 4x, for the artist to draw over (docs/25). One cell is one facing: 48 x 72 game pixels at 4x = 192 x 288, four cells across and two down, in the game's facing order
+  <code>s, sw, w, nw</code> on the top row and <code>n, ne, e, se</code> below. Each part's anchor (red cross) and segment (a line from its anchor to its other end) is marked; the JSON gives the same numbers in 1x frame pixels.</div>
+</header>
+<main>
+  <div class="row">
+    <button id="dlBody">Body (transparent PNG)</button>
+    <button id="dlGuides">Guides (transparent PNG)</button>
+    <button id="dlParts">Parts tint (transparent PNG)</button>
+    <button id="dlCombined">Body + guides (PNG)</button>
+    <button id="dlJson">Numbers (JSON)</button>
+    <button id="dlAll"><b>Download all five</b></button>
+    <label><input id="showParts" type="checkbox" checked> show the parts tint in the preview</label>
+  </div>
+  <canvas id="preview"></canvas>
+  <div class="note">Parts tint: <span style="color:#6a9aff">torso</span>, <span style="color:#6adf80">legs</span>, <span style="color:#ffb060">arms</span>, <span style="color:#d080ff">head</span>. Anchors: torso at the neck (segment neck to hip), each leg at its hip (hip to foot), each arm at its shoulder (shoulder to hand), the head at its centre. The hand and foot are accent areas at the ends of the arm and leg segments. The body drawn here is the generator's placeholder with no undergarment (the goobers are asexual, docs/25 Q1); the artist's body replaces it.</div>
+  <pre id="json"></pre>
+</main>
+<script type="module">
+  import * as figure from "../src/figure.js";
+
+  const S = 4; // output scale
+  const FW = figure.FW, FH = figure.FH, AX = figure.FEET_X, AY = figure.FEET_Y;
+  const FACINGS = figure.FACINGS, PART = figure.PART;
+  const COLS = 4, ROWS = 2;
+  const W = FW * S * COLS, H = FH * S * ROWS;
+
+  // The bare body: bald, bareheaded, nothing worn, and the undergarment drawn in the skin colour so none shows.
+  const look = { ...figure.DEFAULT_LOOK, hairStyle: "bald" };
+  look.under = look.skin;
+  const spec = { variant: "player", look, outfit: { head: null, chest: null, legs: null, hands: null, feet: null, waist: null, back: null }, wound: null, holding: { main: false, off: false }, partMaps: true };
+  const sheet = figure.generateFigure(spec);
+
+  // Each part: its anchor joint and the joint at the other end of its segment (docs/25).
+  const PARTS = [
+    { name: "torso", gen: [PART.torso], a: "neck", b: "hip", tint: "#6a9aff" },
+    { name: "legL", gen: [PART.legL], a: "hipL", b: "footL", tint: "#6adf80" },
+    { name: "legR", gen: [PART.legR], a: "hipR", b: "footR", tint: "#6adf80" },
+    { name: "armL", gen: [PART.armL], a: "shoulderL", b: "handL", tint: "#ffb060" },
+    { name: "armR", gen: [PART.armR], a: "shoulderR", b: "handR", tint: "#ffb060" },
+    { name: "head", gen: [PART.head], a: "head", b: null, tint: "#d080ff" },
+  ];
+  const cellOf = (i) => ({ x: (i % COLS) * FW * S, y: Math.floor(i / COLS) * FH * S });
+  const jointPx = (j) => ({ x: AX + j.x, y: AY + j.y }); // frame pixels (fractions kept)
+
+  function makeCanvas() { const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d"); x.imageSmoothingEnabled = false; return [c, x]; }
+
+  function drawBody(ctx) {
+    FACINGS.forEach((f, i) => {
+      const fr = sheet.frames[`idle_${f}_0`];
+      const o = cellOf(i);
+      ctx.drawImage(sheet.image, fr[0], fr[1], fr[2], fr[3], o.x, o.y, FW * S, FH * S);
+    });
+  }
+
+  function drawParts(ctx) {
+    FACINGS.forEach((f, i) => {
+      const map = sheet.partMaps[`idle_${f}_0`];
+      const o = cellOf(i);
+      for (const p of PARTS) {
+        ctx.fillStyle = p.tint + "66";
+        for (let y = 0; y < FH; y++) for (let x = 0; x < FW; x++) if (p.gen.includes(map[y * FW + x])) ctx.fillRect(o.x + x * S, o.y + y * S, S, S);
+      }
+    });
+  }
+
+  function drawGuides(ctx) {
+    FACINGS.forEach((f, i) => {
+      const o = cellOf(i);
+      const J = sheet.joints[`idle_${f}_0`];
+      // the pixel grid, finer every pixel and stronger every eight
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= FW; x++) { ctx.strokeStyle = x % 8 === 0 ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.08)"; ctx.beginPath(); ctx.moveTo(o.x + x * S + 0.5, o.y); ctx.lineTo(o.x + x * S + 0.5, o.y + FH * S); ctx.stroke(); }
+      for (let y = 0; y <= FH; y++) { ctx.strokeStyle = y % 8 === 0 ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.08)"; ctx.beginPath(); ctx.moveTo(o.x, o.y + y * S + 0.5); ctx.lineTo(o.x + FW * S, o.y + y * S + 0.5); ctx.stroke(); }
+      // the frame
+      ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(o.x + 1, o.y + 1, FW * S - 2, FH * S - 2);
+      // the segments, then the anchors
+      for (const p of PARTS) {
+        const a = jointPx(J[p.a]);
+        const b = p.b ? jointPx(J[p.b]) : { x: a.x, y: a.y + 1 };
+        ctx.strokeStyle = p.tint; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(o.x + (a.x + 0.5) * S, o.y + (a.y + 0.5) * S); ctx.lineTo(o.x + (b.x + 0.5) * S, o.y + (b.y + 0.5) * S); ctx.stroke();
+      }
+      for (const p of PARTS) {
+        const a = jointPx(J[p.a]);
+        const cx = o.x + (Math.floor(a.x) + 0.5) * S, cy = o.y + (Math.floor(a.y) + 0.5) * S;
+        ctx.strokeStyle = "#ff2030"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(cx - 6, cy); ctx.lineTo(cx + 6, cy); ctx.moveTo(cx, cy - 6); ctx.lineTo(cx, cy + 6); ctx.stroke();
+        ctx.fillStyle = "#ffffff"; ctx.font = "10px monospace"; ctx.fillText(p.name, cx + 8, cy - 4);
+      }
+      // the feet anchor (24, 66) and the facing's name
+      const fx = o.x + (AX + 0.5) * S, fy = o.y + (AY + 0.5) * S;
+      ctx.strokeStyle = "#ffe040"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(fx - 10, fy); ctx.lineTo(fx + 10, fy); ctx.moveTo(fx, fy - 10); ctx.lineTo(fx, fy + 10); ctx.stroke();
+      ctx.fillStyle = "#ffe040"; ctx.font = "11px monospace"; ctx.fillText("feet " + AX + "," + AY, fx + 12, fy + 4);
+      ctx.fillStyle = "#ffffff"; ctx.font = "13px monospace"; ctx.fillText(f, o.x + 6, o.y + 16);
+    });
+  }
+
+  function numbers() {
+    const out = {
+      note: "The character template (docs/25). Coordinates are 1x game pixels from the top-left of one 48 x 72 frame; the PNGs are at 4x, four cells across and two down, facings in the order below, row by row. `anchor` is the pixel a part's drawing is relative to; `segment` runs from the anchor to the other end of the part in the rest pose (a part is carried through every animation by turning and scaling along its segment).",
+      scale: S, frame: [FW, FH], feetAnchor: [AX, AY], layout: { columns: COLS, rows: ROWS, cell: [FW * S, FH * S], order: FACINGS },
+      parts: PARTS.map((p) => ({ name: p.name, anchor: p.a, segmentEnd: p.b })),
+      facings: {},
+    };
+    for (const f of FACINGS) {
+      const J = sheet.joints[`idle_${f}_0`];
+      const round = (v) => Math.round(v * 100) / 100;
+      out.facings[f] = {};
+      for (const p of PARTS) {
+        const a = jointPx(J[p.a]);
+        const b = p.b ? jointPx(J[p.b]) : null;
+        out.facings[f][p.name] = { anchor: [round(a.x), round(a.y)], pixel: [Math.floor(a.x), Math.floor(a.y)], segment: b ? [[round(a.x), round(a.y)], [round(b.x), round(b.y)]] : null };
+      }
+      out.facings[f].joints = Object.fromEntries(Object.entries(J).filter(([k, v]) => v && typeof v.x === "number" && !["main", "off"].includes(k)).map(([k, v]) => [k, [round(AX + v.x), round(AY + v.y)]]));
+    }
+    return out;
+  }
+
+  const [body, bctx] = makeCanvas(); drawBody(bctx);
+  const [guides, gctx] = makeCanvas(); drawGuides(gctx);
+  const [parts, pctx] = makeCanvas(); drawParts(pctx);
+  const [combined, cctx] = makeCanvas(); cctx.drawImage(body, 0, 0); cctx.drawImage(guides, 0, 0);
+  const data = numbers();
+  document.getElementById("json").textContent = JSON.stringify(data, null, 1).slice(0, 3000) + "\n...";
+
+  const preview = document.getElementById("preview");
+  preview.width = W; preview.height = H;
+  function paintPreview() {
+    const x = preview.getContext("2d"); x.clearRect(0, 0, W, H);
+    x.drawImage(body, 0, 0);
+    if (document.getElementById("showParts").checked) x.drawImage(parts, 0, 0);
+    x.drawImage(guides, 0, 0);
+  }
+  paintPreview();
+  document.getElementById("showParts").addEventListener("change", paintPreview);
+
+  function save(blob, name) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+  const png = (c, name) => new Promise((res) => c.toBlob((b) => { save(b, name); res(); }, "image/png"));
+  const json = () => save(new Blob([JSON.stringify(data, null, 1)], { type: "application/json" }), "character_template.json");
+  document.getElementById("dlBody").onclick = () => png(body, "character_template_body_4x.png");
+  document.getElementById("dlGuides").onclick = () => png(guides, "character_template_guides_4x.png");
+  document.getElementById("dlParts").onclick = () => png(parts, "character_template_parts_4x.png");
+  document.getElementById("dlCombined").onclick = () => png(combined, "character_template_4x.png");
+  document.getElementById("dlJson").onclick = json;
+  document.getElementById("dlAll").onclick = async () => { await png(body, "character_template_body_4x.png"); await png(guides, "character_template_guides_4x.png"); await png(parts, "character_template_parts_4x.png"); await png(combined, "character_template_4x.png"); json(); };
+  window.__template = { sheet, data, canvases: { body, guides, parts, combined }, W, H };
+</script>
+</body>
+</html>
