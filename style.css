@@ -293,6 +293,16 @@ html, body {
   height: 3px;
 }
 
+.swing-timer-exposed {
+  width: 26px;
+  height: 3px;
+  border-color: #50181c;
+}
+
+.swing-timer-exposed .swing-timer-fill {
+  background: #d04848;
+}
+
 .swing-timer-fill {
   height: 100%;
   width: 0;

@@ -715,9 +715,9 @@ export function unequip(player, entry) {
 }
 
 // Equip an entry from the belt or a bag, swapping out what the hand holds.
-export function equipFrom(player, entry) {
+export function equipFrom(player, entry, prefer = null) {
   if (!detach(player, entry)) return false;
-  if (equip(player, entry)) return true;
+  if (equip(player, entry, prefer)) return true;
   if (!stow(player, entry)) map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
   showMessage("Your hands are full.");
   return false;
@@ -810,11 +810,17 @@ export function itemMenu(player, entry, bag, otherBag) {
   const out = [];
   const mine = bag === bagOf(player);
   if (def.hands && mine) {
-    out.push({
-      label: `Equip (${def.hands === "both" ? "both hands" : def.hands === "either" ? "a hand" : `${def.hands} hand`})`,
-      enabled: true,
-      onSelect: () => equipFrom(player, entry),
-    });
+    if (def.hands === "either") {
+      // A weapon fits either hand: the main hand swaps what is there, the off hand takes a second weapon (docs/21).
+      out.push({ label: "Equip (main hand)", enabled: true, onSelect: () => equipFrom(player, entry, "main") });
+      out.push({ label: "Equip (off hand)", enabled: true, onSelect: () => equipFrom(player, entry, "off") });
+    } else {
+      out.push({
+        label: `Equip (${def.hands === "both" ? "both hands" : `${def.hands} hand`})`,
+        enabled: true,
+        onSelect: () => equipFrom(player, entry),
+      });
+    }
   }
   if (def.wear) {
     out.push({ label: def.bag ? `Wear (${def.bag[0]}×${def.bag[1]})` : "Wear", enabled: true, onSelect: () => wearFrom(player, entry, bag) });

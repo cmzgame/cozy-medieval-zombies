@@ -331,15 +331,13 @@ function update(dt) {
     interact.pokeAt(input.getMouse().x, input.getMouse().y, player);
     interact.playAt(input.getMouse().x, input.getMouse().y, player); // the well's bucket, for fun
     interact.clickCharacterAt(input.getMouse().x, input.getMouse().y, player); // a villager answers (docs/19)
-    combat.tryAttack(player, zombies);
+    combat.swingFromLeft(player, zombies); // one weapon swings; two take turns (docs/21)
   }
   // The bow draws on the left button, a throw on the middle one (or Q); the right button held braces a bow (docs/21).
   const onAlt = !!launcher && launcher.button === "alt";
   // The main hand's other melee mode on the middle button (docs/21): the halberd's thrust.
   if (!onAlt && buttons.alt.pressed && !archery.drawState() && combat.altWeaponOf(player)) combat.tryAttack(player, zombies, "main", "alt");
   const bracing = buttons.off.down && !!launcher && launcher.kind === "bow";
-  // The off hand's weapon swings while the right button is held (docs/21), on its own cooldown.
-  if (buttons.off.hold && !player.blocking && !archery.drawState() && combat.offWeaponOf(player)) combat.tryAttack(player, zombies, "off");
   archery.updateDraw(player, dt, {
     pressed: onAlt ? buttons.alt.pressed : clicked && !clickSpent,
     down: onAlt ? buttons.alt.down : input.mouseLeftDown(),
@@ -763,7 +761,7 @@ async function boot() {
       },
     },
   });
-  events.on("playerHit", ({ zombie, damage }) => damagePlayer(player, combat.guardAgainst(player, zombie, damage)));
+  events.on("playerHit", ({ zombie, damage }) => damagePlayer(player, combat.exposedTo(player, zombie, combat.guardAgainst(player, zombie, damage))));
   // A blow met by the shield: sparks where they meet and a flash of the shield; a broken guard flashes red (docs/21).
   events.on("blocked", ({ zombie }) => {
     player.blockFlash = 0.14;

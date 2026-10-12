@@ -42,6 +42,8 @@ export const WEDGE_TIME = 0.12;
 const TIRED_DAMAGE = 0.5; // a swing at zero stamina still lands, at half
 
 export const FISTS = { damage: 6, range: 0.9, arc: 100, swing: 0.4, knockback: 0.17, stamina: 3, knockdown: 0, style: "one_handed" };
+// Dual wielding (docs/21): the off hand's swing, and what it costs. Filled from data/combat.json.
+export const DUAL = { window: 2.5, lockout: 0.45, front: 1.5, side: 2.5, behind: 100, arc: 100, sideArc: 220 };
 export const SHOVE = { range: 1.0, arc: 100, knockback: 0.53, knockbackChance: 1, stagger: 0.6, knockdown: 0.25, stamina: 5, cooldown: 0.45 };
 
 // The numbers that belong to no item, from data/combat.json (fists and the
@@ -50,6 +52,7 @@ export function setCombatData(data) {
   if (!data) return;
   Object.assign(FISTS, data.fists || {});
   Object.assign(SHOVE, data.shove || {});
+  Object.assign(DUAL, data.dual || {});
 }
 
 let time = 0; // combat's own clock, for the combo window
@@ -226,9 +229,37 @@ function kick(player) {
 // The left click. The swing resolves now, on the click: the cooldown is the
 // only rate limit, and an interrupted animation cannot lose it. Returns the
 // zombies hit, or null if nothing was swung.
+// The left button (docs/21): with one weapon, a swing; with a weapon in each hand, the main hand
+// swings when it is ready, and the off hand when the main is still recovering, so clicking faster
+// than a swing's recovery goes back and forth.
+export function swingFromLeft(player, zombies) {
+  if (!offWeaponOf(player)) return tryAttack(player, zombies);
+  const mainReady = (player.attackCooldown || 0) <= 0;
+  const offReady = (player.offCooldown || 0) <= 0;
+  if (mainReady) return tryAttack(player, zombies, "main"); // the main hand first, always: a torch in the off hand is never used at a pace the main weapon keeps
+  if (offReady) return tryAttack(player, zombies, "off");
+  return null;
+}
+
+// What a blow does to a player who has swung the off hand lately (docs/21): more from the front,
+// more again from the sides, and from behind (the `behind` multiple, fatal) it lands whole and then
+// some. A zombie's bite is one event with fixed damage, so this scales it by where the biter stands
+// against the aim, as the shield's guard does.
+export function exposedTo(player, zombie, damage) {
+  if (!(player.exposedFor > 0)) return damage;
+  const pf = iso.toScreen(player.gx, player.gy);
+  const zs = iso.toScreen(zombie.gx, zombie.gy);
+  const onTop = Math.hypot(zs.x - pf.x, zs.y - pf.y) < 1e-3;
+  const angle = onTop ? 0 : screenAngleBetween(player.aim.sx, player.aim.sy, zs.x - pf.x, zs.y - pf.y);
+  const rad = (deg) => (deg * Math.PI) / 180 / 2;
+  const mult = angle <= rad(DUAL.arc) ? DUAL.front : angle <= rad(DUAL.sideArc) ? DUAL.side : DUAL.behind;
+  return Math.round(damage * mult);
+}
+
 export function tryAttack(player, zombies, hand = "main", mode = null) {
   const cd = hand === "off" ? "offCooldown" : "attackCooldown";
   if (!canAct(player) || (player[cd] || 0) > 0) return null;
+  if ((player.swingLock || 0) > 0 && offWeaponOf(player)) return null; // the other hand must wait its turn
   const weapon = hand === "off" ? offWeaponOf(player) : mode === "alt" ? altWeaponOf(player) : weaponOf(player);
   if (!weapon) return null;
   // A swing at zero stamina still lands, at half damage: never locked out of hitting.
@@ -237,6 +268,11 @@ export function tryAttack(player, zombies, hand = "main", mode = null) {
   if (player.stamina <= 0) player.winded = true;
   player[cd] = weapon.swing;
   player[hand === "off" ? "offSwingTotal" : "swingTotal"] = weapon.swing; // the swing timer's whole (ui/swing-timer.js)
+  player.lastHand = hand;
+  if (offWeaponOf(player)) {
+    player.swingLock = weapon.swing * DUAL.lockout; // so two swings never land on the same frame
+    if (hand === "off") player.exposedFor = DUAL.window; // the price of the second weapon
+  }
   playAnimation(player.anim, "attack", true);
   fx.wedge = { ttl: WEDGE_TIME, points: wedgePolygon(player, weapon) };
   emit("meleeSwing", { player, weapon });
@@ -317,6 +353,8 @@ export function updateCombat(player, zombies, dt) {
   player.attackCooldown = Math.max(0, (player.attackCooldown || 0) - dt);
   player.offCooldown = Math.max(0, (player.offCooldown || 0) - dt);
   player.blockFlash = Math.max(0, (player.blockFlash || 0) - dt);
+  player.swingLock = Math.max(0, (player.swingLock || 0) - dt);
+  player.exposedFor = Math.max(0, (player.exposedFor || 0) - dt);
   player.shoveCooldown = Math.max(0, (player.shoveCooldown || 0) - dt);
   if (fx.wedge) {
     fx.wedge.ttl -= dt;

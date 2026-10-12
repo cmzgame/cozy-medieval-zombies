@@ -234,7 +234,9 @@ export function beltKey(player, index) {
   const e = belt[index];
   if (e) {
     belt[index] = null;
-    if (equip(player, e)) return "drawn";
+    // A weapon drawn from the belt takes the main hand (swapping), so flipping through them is not dual wielding by accident.
+    const def = getItem(e.id);
+    if (equip(player, e, def.hands === "either" && def.weapon && !def.fire ? "main" : null)) return "drawn";
     belt[index] = e;
     return "handsfull";
   }

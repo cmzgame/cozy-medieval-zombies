@@ -7,6 +7,7 @@
 import * as iso from "../iso.js";
 import * as view from "../view.js";
 import * as settings from "../settings.js";
+import { DUAL } from "../combat.js";
 
 const HEAD_CLEARANCE = 58; // world px above the feet: just over the figure's head (the figure is about 50 px tall in its 72 px frame)
 
@@ -17,7 +18,7 @@ export function initSwingTimer() {
   root = document.createElement("div");
   root.id = "swing-timer";
   document.getElementById("ui").appendChild(root);
-  for (const k of ["main", "off"]) {
+  for (const k of ["main", "off", "exposed"]) {
     const el = document.createElement("div");
     el.className = `swing-timer swing-timer-${k}`;
     el.hidden = true;
@@ -35,13 +36,15 @@ export function updateSwingTimer(player) {
   const on = settings.get("swingTimer") && !player.dead;
   const s = iso.toScreen(player.gx, player.gy);
   const p = view.toUi(s.x, s.y - HEAD_CLEARANCE);
-  for (const [k, left, total] of [["main", player.attackCooldown, player.swingTotal], ["off", player.offCooldown, player.offSwingTotal]]) {
+  for (const [k, left, total] of [["main", player.attackCooldown, player.swingTotal], ["off", player.offCooldown, player.offSwingTotal], ["exposed", player.exposedFor, DUAL.window]]) {
     const b = bars[k];
     const show = on && left > 0 && total > 0;
     b.el.hidden = !show;
     if (!show) continue;
     b.el.style.left = `${Math.round(p.x)}px`;
-    b.el.style.top = `${Math.round(p.y) + (k === "off" ? 7 : 0)}px`;
-    b.fill.style.width = `${Math.round(Math.max(0, Math.min(1, 1 - left / total)) * 100)}%`;
+    b.el.style.top = `${Math.round(p.y) + (k === "off" ? 7 : k === "exposed" ? -7 : 0)}px`;
+    // The swing bars fill; the exposure bar drains: it is the time left in which a blow is amplified.
+    const f = k === "exposed" ? left / total : 1 - left / total;
+    b.fill.style.width = `${Math.round(Math.max(0, Math.min(1, f)) * 100)}%`;
   }
 }
