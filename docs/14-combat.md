@@ -1,5 +1,7 @@
 # Milestone 8: melee, the swing, and the art of it
 
+**Superseded or changed since this doc was written (2026-10-12; the current state is in `21`, the rulings in `02`):** the **third-hit knockdown is switched off for testing** (`combo.enabled` in `data/combat.json`, the code and hit counting kept) and **the downed-enemy bonus is 1.5, not 2** (`finisher.mult`); **multi-hit is off by default** (the setting stays in the menu); **stagger is by weapon weight** (`staggerChance` on each weapon), with a 0.6 s immunity after a stagger and no cancelling a bite under way except by the heavy weapons (`interrupts`); **melee and the shove need line of sight** (a blow no longer lands through a wall); **dual wielding** is on the left click; the sword, hatchet, mace, stick, plank, and torch go in either hand; the plank and the halberd are weapons. Where a line below says otherwise, it is the history.
+
 The player hits the dead. One good one-handed swing first, because it serves sword, axe, mace, stick, and torch alike (Michael, 2026-10-10 pin 4), with the parts Michael can shape himself: the swing's keyframes in a data file he can edit and preview, held item art he can paint in the layer editor, and the weapon numbers in `items.json`.
 
 The parent's lesson is the starting point: `cozy-zombie-game/docs/22-melee.md`, "Melee that lands". Its reasons come along; its numbers are re-decided below. Scoped 2026-10-11 for implementation by another model; "default" marks what Michael may overrule.
@@ -58,7 +60,7 @@ A `weapon` block on an item:
 | stick | 14 | 1.2 | 90 | 0.5 | new item, `hands: either`, size 1×3, found in the wild (loot: body, wild) |
 | torch | 8 | 1.1 | 90 | 0.5 | you can, it is bad |
 | hatchet | 30 | 1.2 | 80 | 0.55 | existing |
-| sword | 34 | 1.35 | 100 | 0.5 | new, `hands: main`, 1×3, chest loot, rare |
+| sword | 34 | 1.35 | 100 | 0.5 | new, `hands: either` (was main), 1×3, chest loot, rare |
 | mace | 38 | 1.2 | 80 | 0.65 | new, `hands: main`, 1×2, chest loot, rare; knockdown chance doubled |
 
 `range` is tiles from the feet; `arc` degrees of the aim wedge; `swing` is the cooldown in seconds; `knockback` in tiles; `stamina` per swing. `style` names the keyframe set in `data/poses.json`; all of these are `one_handed`. Two-handed styles are a later milestone.
@@ -78,7 +80,7 @@ A `weapon` block on an item:
 | `multiHit` | `false` makes this weapon hit only the nearest zombie, whatever the setting | true |
 | `style` | the swing's keyframe set | `one_handed` |
 
-Fists and the shove are the same fields in `data/combat.json`, since they belong to no item. The Multi-hit setting (settings screen, on by default) turns multi-hit off for everything; off, a blow and a shove reach only the nearest zombie in the wedge.
+Fists and the shove are the same fields in `data/combat.json`, since they belong to no item. The Multi-hit setting (settings screen, **off by default since 2026-10-12**: it is the easy button) turns multi-hit off for everything; off, a blow and a shove reach only the nearest zombie in the wedge.
 
 New items also need `held` art (a shape for `generateHeld`, or a painted one, below) and `size`, `color`, `short` like every item.
 
@@ -112,7 +114,7 @@ Ported from the parent, `src/combat.js`:
 - **Point blank always hits**: a zombie within `POINT_BLANK` 0.55 tiles is hit whatever the angle.
 - **Down-screen slack**: a zombie whose feet are below the player's on screen gets up to `BODY_SLACK` 0.8 tiles of extra reach, scaling with how far below. The parent found this by play; keep it.
 - A hit does `damage`, pushes the zombie `knockback` tiles away along the aim (through `map.moveCircle`, so walls stop it), plays its `hurt` animation (its first frame is baked white: the flash), and staggers it `STAGGER` 0.3 s, during which it does not move or bite.
-- **Knockdown:** every hit has `KNOCKDOWN_CHANCE` 0.3; the third hit on the same zombie within 2 s always knocks it down; a mace doubles the chance. Down: lies for `DOWN_TIME` 2 s (the `die` animation's lying frames, 2 and 3), blocks nothing, does nothing; gets up over 0.6 s (frames 1 then 0) and resumes. A hit on a downed zombie is a **finisher**: double damage.
+- **Knockdown:** every hit has `KNOCKDOWN_CHANCE` 0.3; the third hit on the same zombie within 2 s always knocks it down **[switched off for testing since 2026-10-12]**; a mace doubles the chance. Down: lies for `DOWN_TIME` 2 s (the `die` animation's lying frames, 2 and 3), blocks nothing, does nothing; gets up over 0.6 s (frames 1 then 0) and resumes. A hit on a downed zombie is a **finisher**: double damage.
 - **Death:** `hp <= 0` sets `z.dead = true`, plays `die` once and holds the last frame, the body stays as a corpse, not solid, never thinks again, is skipped by `others` for separation. Event `zombieDied`. The corpse is not searchable yet (loot table `body` exists for later).
 - **Shove (Space):** reach 1.0, arc 100, no damage, knockback 1.6, stagger 0.6 s, 25 percent knockdown, costs 5 stamina, 0.45 s cooldown. Works with anything in hand or nothing.
 - **Stamina:** a swing costs its `stamina`; at zero stamina the swing still happens at half damage (the player is never locked out of hitting; default).
@@ -205,7 +207,7 @@ Steps 3 and 4, hitting and its feedback (2026-10-11):
 - **Weapon blocks gained `knockdown`**: the per-hit floor chance (the mace's is 0.6, fists' 0, default 0.3). Fists never floor, the third-hit rule included.
 - **A push is spread over 0.15 s** (`z.knock`) rather than a jump, and goes through `moveCircle`, so walls stop it.
 - **`damageZombie`** (`zombie.js`) takes `{ dir, knockback, knockdown, stagger, from }`. A blow cancels a bite begun; when Zombie aggro is on, the zombie then knows where it came from; with aggro off a hit zombie stays a passive punching bag. The dead, the downed, and rising zombies are skipped by separation, so nothing is blocked by them.
-- **Down** is one state for lying and rising: the `die` frames forward, hold two seconds, then backward over 0.6 s. A hit at any point of it is a finisher (double damage, no push, no stagger).
+- **Down** is one state for lying and rising: the `die` frames forward, hold two seconds, then backward over 0.6 s. A hit at any point of it is a finisher (1.5 times the damage since 2026-10-12, it was double; no push, no stagger).
 - **Feedback:** `loop.freeze(seconds)` holds game time (the longest request wins), `camera.kick(x, y, seconds)` jolts the origin and fades, and the wedge is a translucent floor polygon for 0.12 s. **Show hit shapes** (settings) keeps the wedge up whenever a weapon is held and marks each nearby zombie's body samples, green when it is in the wedge. A held weapon is anything with a `weapon` block; fists do not count.
 - The click is placement's first, then the swing, made after the player has turned to the cursor that step. Space is the shove. Neither works while carrying, climbing, or mid-action.
 

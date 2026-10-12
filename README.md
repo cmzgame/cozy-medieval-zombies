@@ -34,3 +34,16 @@ Milestone 1, the probe, passed on 2026-10-09: a scrolling chunked map with real 
 | [09-openings.md](docs/09-openings.md) | Milestone 3: an opening as a stack of boards and a leaf, read from the attacker's side; the dead break in and climb through windows. |
 | [10-interface.md](docs/10-interface.md) | Milestone 4: the grid inventory, right-click menus, the HUD and moodles, logs and planks as items. |
 | [11-character.md](docs/11-character.md) | Milestone 5: everything is a slot; the worn screen, the belt as the hotbar, the bag as an item on your back. |
+| [12-figure.md](docs/12-figure.md) | Milestone 6: the figure, a rig and a paper doll, eight facings, held items. |
+| [13-placement.md](docs/13-placement.md) | Milestone 7: the ghost, carried props, building. |
+| [14-combat.md](docs/14-combat.md) | Milestone 8: melee, the swing, held art (with a note of what has since changed). |
+| [15-ground.md](docs/15-ground.md) | Milestone 9: the ground baked per chunk. |
+| [16-village-art-brief.md](docs/16-village-art-brief.md), [17-village-art-plumbing.md](docs/17-village-art-plumbing.md), [18-building-art-brief.md](docs/18-building-art-brief.md) | The village art: the brief, the plumbing, the building brief. |
+| [19-characters.md](docs/19-characters.md) | Milestone 11: one character model for the player, the dead, and villagers. |
+| [20-archery.md](docs/20-archery.md) | The bow and arrow, and the thrown spear. |
+| [21-combat-buttons.md](docs/21-combat-buttons.md) | The mouse in combat, and **the state of combat at the top (read first)**: stagger, bleed, infection, dual wielding, the guard, the swing timer. |
+| [22-the-big-pass.md](docs/22-the-big-pass.md) | A draft to-do list: stations, tools, seeds, weapon durability, item interactions. |
+| [23-engine-upgrade.md](docs/23-engine-upgrade.md) | Scoped: a loading shell, a code review, the sprite system and its editor, the UI's look. |
+| [24-throwables-and-fire-magic.md](docs/24-throwables-and-fire-magic.md) | A spec in summary: throwing knives and axes, the fireball, the staff and the book of fire. |
+| [25-character-art-brief.md](docs/25-character-art-brief.md) | The brief to redo the characters: the body first, three options per slot. |
+| [26-art-owed.md](docs/26-art-owed.md) | The item art still owed, each as a world picture and an inventory icon. |

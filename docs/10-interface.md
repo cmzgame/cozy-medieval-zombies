@@ -1,5 +1,7 @@
 # 10 — Milestone 4: the interface
 
+**Update, 2026-10-12 (the HUD grew; `21`):** the health and stamina bars are the same size and **labelled** ("Health 70 / 100", "Stamina 65%"), **stamina is orange** (blue is kept for mana, gold for the swing timer); **two gold swing-timer bars** sit at bottom centre above the belt (main hand on top, off hand under, always there and empty at rest); the **exposure bar** (red, dual wielding) and **your own health bar** (once hurt) float over the head; the moodles gained **bleeding** and **infection** (a marker); items with drawn art show their **icon** in the bag at an exact 2x on a dark slot (`26`). The item menu gained **Equip (main hand) / Equip (off hand)** for anything that fits either hand, and dragging one hand's item onto the other's slot swaps them.
+
 Michael, 2026-10-10: before combat, bring back the cozy parent's interface. The grid inventory where everything is a tetris piece, right-click menus, click to move, the health bar, and whatever else there was. The parent's docs `21-grid-inventory.md`, `17-moodles.md`, and `04-gameplay.md` are the inputs; its rulings are re-decided below, per new game, new gospel. Code is copied by file with origin headers; every item, loot table, and sprite is written fresh.
 
 ## What there was, and what comes back

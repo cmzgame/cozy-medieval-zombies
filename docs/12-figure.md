@@ -1,5 +1,7 @@
 # Milestone 6: the figure
 
+**Update, 2026-10-12 night (`25`, `26`):** the characters are to be redrawn by Claude Design from `25-character-art-brief.md`: the body first (agender, no undergarment, a skin ramp), hair, facial hair (a new slot), the onion hat, and three options for every slot, as **parts painted once per facing in the rest pose** and carried through every animation by the rig (so the artist delivers parts, not frames, and garments are stiff). The 4x **template exporter** is `tools/template.html` (five downloads); the **slicer** that reads finished PNGs back into layer files, the `beard` and `waist` slots, the covers rules, and hair dyeing are still to build (`23`, pillar 3). Held items drawn as pictures (a grip pixel, three modes) and bag icons exist (`26`).
+
 **Update, 2026-10-12 (the spear, `20`):** a `throw` pose style (`data/poses.json`, mirrored in `DEFAULT_POSES`): the arm goes back and up in an arch over three frames, then forward at release (`activeFrame` 3); a `spear` held shape (a pole and a stone tip) joins the held shapes.
 
 **Update, 2026-10-12 (the atlas, `20`):** only the player's sheet has the carry frames (`carry_idle`, `carry_walk`); the dead's and villagers' sheets leave them off (`spec.noCarry`), so they are 768 px wide instead of 1056 and five fit across the atlas where three did. A `bow` pose style (`data/poses.json`) is the draw: attack frames held by hand, and a style that sets its own off arm (`offPitch`) now wins over the both-hands holding pose.

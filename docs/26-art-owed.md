@@ -1,0 +1,37 @@
+# 26 — Art still owed: the items in the starting bag and the dev chest
+
+**Status: a backlog, written 2026-10-12 so it is not lost while the characters brief is with the design agent. Nothing here is commissioned yet. The rule for every item (Michael, 2026-10-12): it arrives as a pair, an in-world picture and an inventory icon drawn from the same design, so one change changes both; the first delivery to lack either is flagged.**
+
+## How an item's art works in the game today (so a request is the right shape)
+
+- **In the world (held in the hand):** one upright drawing and its grip pixel. Either **fixed** (shown unrotated: the book), **rotated** by nearest pixel into 16 angles about the grip (the knife and axe), or **hand-drawn angles** (0, 22.5, 45, 67.5, 90 degrees clockwise from up, flipped for the rest: the staff, the model for any long weapon). `figure.js` still generates a picture for every weapon below; the generated ones are placeholders and `def.held.image` / `def.held.angles` replaces them with no other change.
+- **In the bag:** `def.icon` (`src` and `size`): a picture on a canvas of the item's exact bag footprint at 19 px a cell, shown at an exact 2x on a dark slot. Items without it show a coloured block with a text label.
+- **Sizes** (in game pixels at 1x): the figure is 55 tall and 26 wide, a hand hangs about 14 above the feet, a tile is 64 x 32. The design agent's first two rounds (`data/art/items/`) are the reference for style: hard pixels, a 1 px `#2b2522` outline, light from the top left.
+
+## Owed, in the order Michael's testing meets them
+
+Slot sizes are columns x rows as they are in `data/items.json` now; the icon canvas is 19 x 19 per cell (a 1 x 3 item is 19 x 57). The existing generated sizes, length by thickness, are the proportions to keep.
+
+**The starting bag and the dev chest (hand items, each needs a world picture and an icon):**
+- **Torch**, 1 x 2, 22 x 8 plus its flame. Held lit in the off hand and carried on the belt at half light; the flame is drawn separately by the renderer (`flame` frames), so the torch art is the unlit stick and head. Also placed in brackets and posts (a separate prop, not this item).
+- **Hatchet**, 1 x 2, 22 x 10. **Sword**, 1 x 3, 24 x 10 with its guard. **Mace**, 1 x 2, 24 x 11. **Stick**, 1 x 3, 25 x 6. **Plank**, 1 x 3, 26 x 6 (also a building material and the boards on windows: the same picture serves). **Log**, 2 x 3, 22 x 10 (held when carried; splits into three planks).
+- **Spear**, 1 x 4, 28 x 8 (a wooden pole with a stone point; the thrown projectile is the same picture drawn smaller, see below). **Halberd**, 1 x 5, 69 x 24 (a 128 px frame, the hand 61 px from the tip; it needs hand-drawn angles as the staff has, since it is the longest). **Bow**, 2 x 3, 22 wide by 10, held in both hands at the main hand's angle. **Shield**, 2 x 2, 18 x 18, and **the raised guard** (a larger version, 20 x 20, shown before the chest when the right button is held: the pair is the held shield and the raised shield, plus the one icon).
+- **Bandage**, 1 x 1 (stacks to 5): no held art needed (it is applied from the bag), an icon only; and the first item that is not a hand item.
+- **Arrow**, 1 x 2 (stacks to 20): an icon, and the arrow in flight and on the ground, 16 directions (today generated: a thin shaft with a head and fletching, about 26 long).
+
+**Food and drink (icon only, the bag shows them; no held art):** bread, apple (stacks to 5), cheese, waterskin (1 x 2, shows a fill level as a coloured bar over its icon).
+
+**Clothing and bags** are covered by the characters brief (`25`): tunic, breeches, boots, belt (and the good belt), gloves, cap and the onion hat, the small sack, the rucksack, and the developer bag. Each also needs an **inventory icon** for the bag, drawn from the same design as its worn art, so the character brief should be read as owing icons too (flagged here so it is not forgotten when it comes back).
+
+**Effects and projectiles that are generated today:** the spear in flight, the arrow in flight, the burning-character flames, embers and smoke (`fire.js`), the landing marker (a ring and a dotted line, a UI-like overlay, probably stays code). These are placeholders; real versions are wanted but are the least urgent.
+
+## Already delivered and in the game (for the record)
+
+Round 2 (2026-10-12): the **book of fire**, **staff of fire**, **throwing knife**, and **throwing axe**, each as a pair, in `data/art/items/` and in the game as art-only holdables. The **fireball** sheet (16 directions x 3 frames, 64 px cells) is stored and not yet used (`24`).
+
+## Notes for whoever briefs the next round
+
+- **Ask for the pair, in the same folder, with the grip pixel,** and for hand-drawn angles for anything long (the halberd, the spear, the bow's arm, a future polearm).
+- **A thrown item is one picture three times** (held, flying, lying on the floor); the knife and axe set the pattern.
+- **A stack's count is drawn by the bag** in the lower right of the cell: leave that corner clear on stackable items.
+- **The atlas is the budget** (`22`, `23`): a long weapon's frames cost real space, so ask for the smallest frame that holds the drawing.
