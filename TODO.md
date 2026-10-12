@@ -67,6 +67,10 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 - **Notes:** the debug corner shows the cost of a logic step and the worst step in the last three seconds; a freeze should show up there first. Run `python serve.py 8010` in this repo (the file serves its own folder, so it can be launched from elsewhere). `V` toggles the fog off to compare. Michael plays in the in-app browser pane while work happens, so scripted tests see his inputs.
 - **Notes:** Michael wants to burn this week's credits on this. He likes a pause between phases (docs, then build) and plays in his own browser while work happens. Nothing from either parent is gospel.
 
+## The characters redone (see `docs/25-character-art-brief.md`) — brief drafted 2026-10-12, not sent
+
+- [ ] Michael strikes or adds to the option lists and answers Q1 to Q6; the template exporter and the slicer, the `beard` and `waist` layer slots, the covers rules, hair dyeing (engine work before the first delivery, part of `23` pillar 3); then the brief goes to the design agent, the body first.
+
 ## Throwing knives and axes, and fire magic (see `docs/24-throwables-and-fire-magic.md`) — specced 2026-10-12, nothing built
 
 - [ ] Michael answers Q1 to Q5 in `24` (the book's role, the cost, lock-on, an area burst, pickup); then stacks and the left-button throw, then the spell kind and the fireball, then magnetism and the book.
