@@ -1,6 +1,6 @@
 # 20 — The bow and arrow: a rough scope for the feel
 
-**A rough scope, not yet for implementation** (Michael and Claude, 2026-10-12; decisions being settled the same day, see the end). It answers question 25 in `02`: how a bow should feel here, and how an arc works in an isometric world. The art (the bow, the arrow, the draw pose) is a later conversation; the feel is the hard part and Michael is picky about it. When this is approved it becomes a milestone doc in the usual form.
+**A scope with every decision settled** (Michael and Claude, 2026-10-12; see the end), not yet built. It answers question 25 in `02`: how a bow should feel here, and how an arc works in an isometric world. The art (the bow, the arrow, the draw pose) is a later conversation; the feel is the hard part and Michael is picky about it. When this is approved it becomes a milestone doc in the usual form.
 
 ## The gold standard, in Michael's words
 
@@ -15,7 +15,7 @@ Minecraft's bow. A clear draw and release; the best arcing in any game, not real
 ## The control
 
 - **Hold the left button to draw**, release to shoot, as the swing is a click (`14`). Holding plays the draw over `drawTime`, then **holds at full draw** as long as the button is held. A release before a minimum draw (0.15) is a dry release: nothing flies.
-- **The cursor sets the direction and the full-draw landing point.** The ground point under the cursor is where a **full draw lands exactly**, up to a maximum range (`range`, 22 tiles, about the wide view's width); a cursor beyond it is pulled back along the same line to the maximum.
+- **The cursor sets the direction and the full-draw landing point.** The ground point the cursor means is where a **full draw lands exactly**, up to a maximum range (`range`, 22 tiles, about the wide view's width); a cursor beyond it is pulled back along the same line to the maximum. **The cursor is read at chest height** (Claude's addition, `aimLift` about 22 px, tunable): a cursor on a zombie's body is not over its feet on the ground plane (it would read two or three tiles behind it, so aiming at a zombie would miss it), so the ground point is the one whose chest the cursor is over, and a cursor on a body targets its feet. The landing marker then lands on the zombie's feet, which is the feedback that it will hit.
 - **The draw sets how far along that line the arrow lands.** A partial draw goes the same way and falls short: landing distance `s = L · f(c)`, where `L` is the full-draw distance (the cursor's, capped), `c` the draw (held time over `drawTime`, 0 to 1), and `f` **ramps up quickly at first and slows near full draw** (`f(c) = 1 − (1 − c)²`, tunable). So the last stretch of the range takes the most time, and a held full draw is always exact: timing matters only for quick shots, which is where the precision worry about timing was answered.
 - **Release commits the shot.** The landing point, the flight path, and the flight time are all fixed at that moment, from the cursor and the draw as they are then.
 - **The aim guide: the UI shows where the current draw will land** (Michael's plan): a small marker on the ground at the landing point for the current draw, running out along the line as the draw grows, with a faint ground line to the full-draw point. Setting `Aim guide: On / Off`, **default On**; Michael turns it off once his hands know it, as Minecraft gives nothing.
@@ -32,15 +32,11 @@ Minecraft's bow. A clear draw and release; the best arcing in any game, not real
 
 ## What an arrow hits (the laws of `14` hold)
 
-**Open decision (Michael, 2026-10-12):** *where along the flight is a body checked?* His plan names it: if hits are checked only at landing, arrows fly over close enemies on the way to a far target, which lets a player shoot over the front of a crowd but can feel wrong when an enemy is right in front of the archer. The options:
+**Settled (Michael's lean, Claude agrees, 2026-10-12): hits are checked at landing only.** The arrow is a point on the ground with a picture above it; when it comes down it hurts the body within `hitRadius` of the landing point (the nearest to the point if there are several), and it hurts nothing it flew over on the way, so **you can shoot over the front of a crowd**. If you want the zombie in front of you, put the cursor on it (a short shot is a nearly flat arc); to take the one behind, aim behind and do not draw fully, so the arrow falls shorter. Skill is where the cursor goes, how long the draw is held, and leading a mover (it is checked where the target is when the arrow arrives). *Considered and not taken:* checking the low final stretch or the whole path by height (it makes a front zombie intercept a shot aimed at the one behind, which is the opposite of shooting over a crowd; it is a sweep where this is one event, and a single touchdown is also the easier thing to keep in sync if a second player ever comes). *The cost, accepted:* an arrow can visibly pass through a body mid-flight without hitting it.
 
-- **A. Landing only.** The arrow hurts whatever is at the landing point (within `hitRadius` of it, sized to a body's footprint) and nothing it passes. Simplest and most readable; you hit what you aimed at, and only that.
-- **B. Landing plus the low final stretch.** As A, and a body the arrow passes through while it is low on the way down is hit too.
-- **C. The whole path, by height** (Claude's recommendation). The arrow hits the first body it passes through whose body spans its height at that point, and anything at the landing point. Because it leaves at the bow's height, **a body right in front of the archer is hit** (a close shot's arc is low, so it stays below head height the whole way); because the arc rises with distance, **a far shot flies over the front of a crowd** and comes down on what is aimed at; and a body under the descent near the landing point is hit. It is the geometry of the picture: the arrow hits what it is drawn touching.
+The rest:
 
-Whichever is chosen, the rest holds:
-
-- **Hits on the dead:** `damageZombie` with damage scaled by the draw (`damage · (0.4 + 0.6 c)`: Minecraft needs a full draw for full damage), a small knockback along the ground direction, the usual stagger. **A hit tells the dead where you are** (decision 3). The arrow stops at the first hit (no piercing). The hit radius is tunable (start at a body's `radius` 0.3 plus 0.1): too small feels unfair, too large makes leading a moving target not matter.
+- **Hits on the dead:** at touchdown, `damageZombie` on the body nearest the landing point within `hitRadius`, with damage scaled by the draw (`damage · (0.4 + 0.6 c)`: Minecraft needs a full draw for full damage), a small knockback along the ground direction, the usual stagger. **A hit tells the dead where you are** (decision 3). No piercing. The hit radius is tunable (start at a body's `radius` 0.3 plus 0.2, so 0.5): too small feels unfair, too large makes leading a moving target not matter.
 - **Walls, doors, shutters, boards:** the ground path needs a line-of-flight check or arrows pass through walls (`map.wallBetween` on the ground step), blocking when the arrow's height there is below the wall's height (80) unless the opening's stack lets it through at that height (an open doorway, an open unboarded window between sill and top). **Tall obstacles block and low ones can be cleared because the arrow is above them:** a high shot clears a wall mid-flight; a close one cannot.
 - **Trees:** the trunk (about 40 px) blocks below its height; the canopy does not, so arrows fly through leaves.
 - **Props:** solid props block below their frame's height (fences and crates can be cleared; a wall of barrels at a hand's length cannot). Later; the first cut passes through them.
@@ -84,9 +80,10 @@ Whichever is chosen, the rest holds:
 7. **The arc is automatic by distance, with no lob key** (the plan: the arc is visual, its peak height scales with the shot's distance). No deliberate long high lobs, accepted.
 8. **The aim guide: the UI shows where the current draw will land** (a marker; a setting to turn it off, default on).
 
-**Open:**
+9. **Hits are checked at landing only** (option A; Michael's lean, Claude agrees). Considered: the low final stretch (B) and the whole path by height (C).
+10. **The arrow leaves at the bow's height** (about 30 px) and comes down to the ground at the landing point (Michael: "good call"); strictly zero is one number.
+11. **The cursor is read at chest height** (`aimLift` about 22 px), so a cursor on a zombie's body targets its feet. Claude's addition, needed under A; tell Claude if it should be otherwise.
 
-9. **Where hits are checked along the flight:** A (landing only), B (landing plus the low final stretch), or C (the whole path, by height). Claude recommends C.
-10. **Claude's tweak to confirm:** the arrow leaves at the bow's height (about 30 px) rather than at zero, then comes down to the ground at the landing point.
+**Open:** nothing blocks a build-ready milestone doc.
 
-**Michael's to tune in play, as always:** every number above (`drawTime`, `range`, `speed`, `arcMin`, `arcMax`, the ramp, `hitRadius`, `breakChance`, `drawSpeed`).
+**Michael's to tune in play, as always:** every number above (`drawTime`, `range`, `speed`, `arcMin`, `arcMax`, the ramp, `hitRadius`, `aimLift`, `breakChance`, `drawSpeed`).
