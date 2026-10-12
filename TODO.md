@@ -67,6 +67,10 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 - **Notes:** the debug corner shows the cost of a logic step and the worst step in the last three seconds; a freeze should show up there first. Run `python serve.py 8010` in this repo (the file serves its own folder, so it can be launched from elsewhere). `V` toggles the fog off to compare. Michael plays in the in-app browser pane while work happens, so scripted tests see his inputs.
 - **Notes:** Michael wants to burn this week's credits on this. He likes a pause between phases (docs, then build) and plays in his own browser while work happens. Nothing from either parent is gospel.
 
+## Throwing knives and axes, and fire magic (see `docs/24-throwables-and-fire-magic.md`) — specced 2026-10-12, nothing built
+
+- [ ] Michael answers Q1 to Q5 in `24` (the book's role, the cost, lock-on, an area burst, pickup); then stacks and the left-button throw, then the spell kind and the fireball, then magnetism and the book.
+
 ## The engine upgrade (see `docs/23-engine-upgrade.md`) — scoped 2026-10-12, nothing built
 
 - [ ] Michael reads `23` and answers its questions (Q2a to Q4c); then the loading shell, the review document and its fixes, the sprite model and the editor, the UI kit and the panels on it.
