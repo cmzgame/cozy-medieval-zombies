@@ -17,6 +17,7 @@ const HEAD_CLEARANCE = 76;
 // being fought, and in a dense forest nearly everything has some canopy in front.
 // Farther off, a bar over a zombie hidden by a tree would give it away.
 const NEAR = 3.5; // tiles from the player
+const PLAYER_CLEARANCE = 66; // world px above the player's feet: over the head and the exposure bar (58)
 
 let root = null;
 const pool = new Map(); // zombie id -> { el, fill }
@@ -58,6 +59,19 @@ export function updateZombieBars(zombies, visible, player) {
     el.style.left = `${Math.round(p.x)}px`;
     el.style.top = `${Math.round(p.y)}px`;
     const pct = Math.max(0, z.hp / z.maxHp);
+    fill.style.width = `${Math.round(pct * 100)}%`;
+    fill.style.background = pct > 0.5 ? "#6fbf5f" : pct > 0.25 ? "#d9b84a" : "#d05050";
+  }
+  // Your own, over your head, while you are hurt (Michael, 2026-10-12): health and exposure are the
+  // most immediate things near the character. A little above the exposure bar, which sits just over the head.
+  if (!player.dead && player.hp < player.maxHp) {
+    seen.add("player");
+    const { el, fill } = barFor("player");
+    const s = iso.toScreen(player.gx, player.gy);
+    const p = view.toUi(s.x, s.y - PLAYER_CLEARANCE);
+    el.style.left = `${Math.round(p.x)}px`;
+    el.style.top = `${Math.round(p.y)}px`;
+    const pct = Math.max(0, player.hp / player.maxHp);
     fill.style.width = `${Math.round(pct * 100)}%`;
     fill.style.background = pct > 0.5 ? "#6fbf5f" : pct > 0.25 ? "#d9b84a" : "#d05050";
   }
