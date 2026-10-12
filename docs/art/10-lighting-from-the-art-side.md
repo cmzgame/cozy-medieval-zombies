@@ -2,6 +2,8 @@
 
 **This is not the lighting spec.** The lighting system is the engine's and is written up in `07-lighting.md` (the design), `08-renderer.md` (the shader) and `src/light.js` and `src/render.js` (the code). I did not build it. This page covers only what the *art* must and must not do so that system works, what I have observed about how it treats my art, and what I have **not** verified. Where I am inferring, I say so. Written 2026-10-12.
 
+**Engine note (2026-10-12, Claude Code), what is true now:** `07` describes the first, Canvas 2D night layer; since `08` (the WebGL renderer) light is **a fragment-shader multiply: every vertex carries the world point its light is read from**, and nothing is lit in screen space. The practical consequences for the art: a thing is **unlit** by being drawn with the `FLAG_UNLIT` flag (flames, embers, the burning-character particles, the landing marker, the held torch's flame all are), which is exactly the "emissive items are drawn after the night layer" hypothesis below: **the fireball, the staff's orb glow, and a jack-o'-lantern's glow frames are to be drawn `FLAG_UNLIT`; the engine side is a one-line flag per drawable, and it is only a decision of which sprites get it** (today the staff's orb is lit like the rest of the staff, the glow frames are unlit). The "every standing drawable paints its own darkness over its own shape" description below is the old renderer's; the silhouette still decides which pixels are drawn, so hard alpha still matters.
+
 ## What I know about the system (from `07` and `17`, not from reading the code)
 
 - **Light is one function**, `lightAt(gx, gy)`, 0 to 1, per position. Everything reads it; sight reads it too ("light feeds sight").

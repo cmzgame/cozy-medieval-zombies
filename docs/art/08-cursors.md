@@ -24,6 +24,8 @@ The one pixel that counts as the mouse position, from the image's top-left. `(4,
 
 ## Implementation options
 
+**Engine correction (2026-10-12, Claude Code):** the UI (the bag, menus, the HUD, screens) is **DOM over the canvas**, so a cursor drawn into the canvas, however late, is **beneath** every panel and menu and would vanish behind them. Option A must therefore be a **DOM image that follows the pointer in the top-most layer** (`pointer-events: none`, `image-rendering: pixelated`, positioned by `pointermove`, scaled by a whole-number factor from the UI scale, hidden when the pointer leaves the window), which keeps the pixel look over both the world and the UI; Option B (CSS) needs none of this. The "never draw UI into the canvas" rule is not what blocks the canvas version: the stacking order is.
+
 ### A. Draw it in the engine (recommended)
 
 Keeps the cursor at the world's pixel scale at every zoom and snaps to the pixel grid like every other sprite.
