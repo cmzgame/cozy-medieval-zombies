@@ -22,7 +22,7 @@ import * as settings from "./settings.js";
 import { emit } from "./events.js";
 import { playAnimation } from "./sprites.js";
 import { aimOrigin } from "./entities/player.js";
-import { damageZombie, isDown, staggerZombie } from "./entities/zombie.js";
+import { damageZombie, isDown, staggerZombie, STAGGER_RULES } from "./entities/zombie.js";
 
 // Tunables (docs/14).
 export const POINT_BLANK = 0.55; // tiles: this close is always hit
@@ -59,6 +59,7 @@ export function setCombatData(data) {
   Object.assign(SHOVE, data.shove || {});
   Object.assign(DUAL, data.dual || {});
   Object.assign(COMBO, data.combo || {});
+  Object.assign(STAGGER_RULES, data.stagger || {});
   setInfectionData(data.infection);
   setBleedData(data.bleed);
   Object.assign(FINISHER, data.finisher || {});
@@ -317,7 +318,7 @@ export function tryAttack(player, zombies, hand = "main", mode = null) {
     const knockdown = !finisher && (combo || Math.random() < chance);
     const amount = Math.round(weapon.damage * (tired ? TIRED_DAMAGE : 1) * (finisher ? FINISHER.mult : 1) * guardedMult(player) * (hand === "off" ? DUAL.offDamage : 1));
     const push = !finisher && pushes(weapon) ? weapon.knockback : 0;
-    const r = damageZombie(z, amount, { dir: [dir.x, dir.y], knockback: push, knockdown, stagger: weapon.stagger, from: [player.gx, player.gy] });
+    const r = damageZombie(z, amount, { dir: [dir.x, dir.y], knockback: push, knockdown, stagger: weapon.stagger, staggerChance: weapon.staggerChance, interrupts: weapon.interrupts, from: [player.gx, player.gy] });
     if (r.killed) killed = true;
   }
   if (hit.length) {
@@ -341,7 +342,7 @@ export function tryShove(player, zombies) {
   const hit = [];
   for (const z of targetsIn(player, SHOVE, zombies, (z) => !isDown(z))) {
     hit.push(z);
-    damageZombie(z, 0, { dir: [dir.x, dir.y], knockback: pushes(SHOVE) ? SHOVE.knockback : 0, knockdown: Math.random() < SHOVE.knockdown, stagger: SHOVE.stagger, from: [player.gx, player.gy] });
+    damageZombie(z, 0, { dir: [dir.x, dir.y], knockback: pushes(SHOVE) ? SHOVE.knockback : 0, knockdown: Math.random() < SHOVE.knockdown, stagger: SHOVE.stagger, staggerChance: 1, interrupts: true, from: [player.gx, player.gy] });
   }
   emit("shove", { count: hit.length });
   if (hit.length) {

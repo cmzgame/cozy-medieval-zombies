@@ -1,5 +1,6 @@
 {
-  "fists": { "damage": 6, "range": 0.9, "arc": 100, "swing": 0.4, "knockback": 0.17, "knockbackChance": 1, "stamina": 3, "knockdown": 0, "style": "one_handed" },
+  "fists": { "staggerChance": 0.2, "damage": 6, "range": 0.9, "arc": 100, "swing": 0.4, "knockback": 0.17, "knockbackChance": 1, "stamina": 3, "knockdown": 0, "style": "one_handed" },
+  "stagger": { "chance": 0.5, "immunity": 0.6, "note": "a hit staggers the dead one with the weapon's staggerChance (this is the default); after a stagger ends it cannot be staggered again for immunity seconds; a bite under way is not cancelled unless the weapon interrupts (docs/02 question 29b)" },
   "bleed": { "chance": 0.5, "dpsByStacks": [0.4, 1.6, 3.6, 6.4, 10], "max": 5, "duration": 12, "note": "a landed bite opens a wound with this chance, one more stack each (to max); the wound drains dpsByStacks[stacks - 1] a second, the timer is refreshed by each new bite and runs out by itself after duration seconds; a bandage stops it. Michael's bounds: five fresh stacks kill from full health in 10 s (not under 8 to 10 s), and one stack is a nuisance (under 5 health in all)" },
   "infection": { "chance": 0.2, "days": 1.5, "note": "a landed bite infects with this chance; the moodle goes green, yellow, orange, red over this many in-game days; it does nothing else yet (docs/02 question 29b)" },
   "combo": { "enabled": false, "hits": 3, "window": 2, "note": "the third hit on one dead one within `window` seconds always floors it; switched off for testing (Michael, 2026-10-12), the code kept" },

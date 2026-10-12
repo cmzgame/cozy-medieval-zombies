@@ -39,6 +39,12 @@ export const GROAN_TEXT = "Braaaains"; // what the dead say now and then (docs/1
 export const GROAN_MIN = 20; // seconds between groans
 export const GROAN_MAX = 60;
 export const STAGGER = 0.3; // seconds a hit stops it (docs/14)
+// How a hit staggers (docs/02 question 29b, Michael: stun plus knockdown on every hit felt too strong).
+// `chance` is the default that a hit staggers at all (each weapon has its own `staggerChance`, by weight);
+// `immunity` is the seconds after a stagger ends in which another cannot start, so a stream of hits cannot
+// hold one of the dead forever. A bite under way is not cancelled by a stagger, only by a knockdown or a
+// weapon that `interrupts` (the heavy ones). Filled from data/combat.json.
+export const STAGGER_RULES = { chance: 0.5, immunity: 0.6 };
 export const DOWN_TIME = 2; // seconds on the floor after a knockdown
 export const GET_UP_TIME = 0.6; // seconds to rise, the fall played backwards
 export const KNOCK_TIME = 0.15; // a push is spread over this long, not a teleport
@@ -79,6 +85,7 @@ export function createZombie(gx, gy, { id = null, hp = ZOMBIE_HP, aggro = false 
     stuckTime: 0,
     hits: [], // when the player's blows landed, for the third-hit rule (combat.js)
     stagger: 0, // seconds left of being stopped by a blow
+    staggerImmune: 0, // seconds left in which a blow cannot stagger it again (STAGGER_RULES)
     knock: null, // { x, y, left } a push being spread over KNOCK_TIME
     downTimer: 0, // seconds left on the floor
     upTimer: 0, // seconds left of getting up
@@ -121,7 +128,7 @@ function endClimb(z) {
 // along, `knockback` tiles of push, `knockdown` floors it, `stagger` seconds it
 // is stopped, `from` where the blow came from (the dead then know where). A
 // downed zombie takes the damage and nothing else. Returns { killed, downed }.
-export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown = false, stagger = STAGGER, from = null } = {}) {
+export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown = false, stagger = STAGGER, staggerChance = STAGGER_RULES.chance, interrupts = false, from = null } = {}) {
   if (z.dead) return { killed: false, downed: false };
   const wasDown = isDown(z);
   z.hp = Math.max(0, z.hp - amount);
@@ -147,10 +154,9 @@ export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown
     z.sincePlayer = 0;
   }
   if (wasDown) return { killed: false, downed: false };
-  // Whatever it was doing, a blow ends it: a bite begun is lost, a breach waits.
-  z.attackHit = false;
-  if (z.state === "attack") z.state = "chase";
   if (knockdown) {
+    // Floored: whatever it was doing is lost, a bite begun and a breach.
+    z.attackHit = false;
     z.state = "down";
     z.breach = null;
     z.downTimer = DOWN_TIME;
@@ -159,9 +165,17 @@ export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown
     playAnimation(z.anim, "die", true);
     return { killed: false, downed: true };
   }
+  // Does the blow stagger it? Not while it is immune from the last stagger, not at all by chance (light
+  // weapons seldom), and not a bite already under way unless the weapon interrupts: it shrugs the blow
+  // off and finishes the bite (the damage and the push still land).
+  const biting = z.state === "attack";
+  if (z.staggerImmune > 0 || (biting && !interrupts) || Math.random() >= staggerChance) return { killed: false, downed: false, staggered: false };
+  z.attackHit = false;
+  if (biting) z.state = "chase";
   z.stagger = Math.max(z.stagger, stagger);
+  z.staggerImmune = z.stagger + STAGGER_RULES.immunity;
   playAnimation(z.anim, "hurt", true);
-  return { killed: false, downed: false };
+  return { killed: false, downed: false, staggered: true };
 }
 
 // Pushed, stopped, or on the floor: nothing else happens until it is over.
@@ -199,6 +213,7 @@ function updateHurt(z, dt, sheet) {
     }
     return true;
   }
+  if (z.staggerImmune > 0) z.staggerImmune -= dt;
   if (z.stagger > 0) {
     z.stagger -= dt;
     advanceAnimation(z.anim, sheet, dt);
