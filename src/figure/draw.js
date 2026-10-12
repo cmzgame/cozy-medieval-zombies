@@ -67,6 +67,7 @@ export function hairIsPainted(name) {
 
 // Part ids, for the shading pass.
 const PART = { legL: 1, legR: 2, torso: 3, armL: 4, armR: 5, head: 6, hair: 7, bag: 8, hat: 9 };
+const SHADE_DYE = 0.16; // how much darker a dyed layer's second tone is than the hair colour (the two-tone rule)
 const FAR_ARM_SLIVER = 2; // px: what is left of a far arm shows only if some row of it is wider than this (Michael, 2026-10-12)
 const RAISED_ARM = 40; // degrees of pitch from which an arm (holding, swinging) is never judged as hidden
 
@@ -107,6 +108,23 @@ function drawFrame(frame, spec, facing, anim, i) {
   const layerPx = (slot, partName) => {
     const L = painted[slot];
     return L && L.parts && L.parts[partName] ? L.parts[partName][facing] || null : null;
+  };
+  // Dyeing (docs/25): a hair or beard layer with `options.dye` is painted in
+  // the wearer's hair colour: its lightest colour becomes the hair colour, every
+  // other its darker tone, and the outline colour stays. A layer without the
+  // option keeps the colours it was painted in (Michael's purple).
+  const hexOf = (rgb) => "#" + rgb.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
+  const dye = (slot, pixels) => {
+    const L = painted[slot];
+    if (!pixels || !L || !L.options || !L.options.dye) return pixels;
+    const hex = (slot === "beard" && look.beardColour) || look.hair;
+    const outline = hexOf(OUTLINE);
+    const lum = (h) => { const [r, g, b] = hexToRgb(h); return 0.3 * r + 0.59 * g + 0.11 * b; };
+    const cols = [...new Set(pixels.map((p) => p[2]))].filter((c) => c !== outline).sort((a, b) => lum(b) - lum(a));
+    const base = hexOf(hexToRgb(hex));
+    const dark = hexOf(tone(hexToRgb(hex), -SHADE_DYE));
+    const map = new Map(cols.map((c, i) => [c, i === 0 ? base : dark]));
+    return pixels.map(([x, y, c]) => [x, y, map.get(c) || c]);
   };
   const layerRest = (slot) => restOf(painted[slot] ? painted[slot].variant : spec.variant);
   // Carry pixels painted relative to the rest segment a0 -> b0 onto this
@@ -372,9 +390,9 @@ function drawFrame(frame, spec, facing, anim, i) {
         for (const x of [outer, mid]) for (const dy of [-1, 0, 1]) frame.px(x, ey + dy, pupil);
       }
     }
-    if (paintedHair) { const r = P(layerRest("hair").head); stamp(layerPx("hair", "head"), r, below(r), hc, below(hc)); }
+    if (paintedHair) { const r = P(layerRest("hair").head); stamp(dye("hair", layerPx("hair", "head")), r, below(r), hc, below(hc)); }
     if (paintedHead) { const r = P(layerRest("head").head); stamp(layerPx("head", "head"), r, below(r), hc, below(hc)); }
-    if (painted.beard) { const r = P(layerRest("beard").head); stamp(layerPx("beard", "head"), r, below(r), hc, below(hc)); }
+    if (painted.beard) { const r = P(layerRest("beard").head); stamp(dye("beard", layerPx("beard", "head")), r, below(r), hc, below(hc)); }
     if (spec.wound && !helm) {
       const w = P([spec.wound[0], spec.wound[1], J.head[2] + spec.wound[2]]);
       if (w.depth >= -1) {

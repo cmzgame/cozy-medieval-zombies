@@ -92,12 +92,16 @@
   function setOptionsUi() {
     options = slot === "chest" ? { length: "shirt", hideBelt: false } : {};
     els.options.innerHTML = slot === "chest"
-      ? `<label>length <select id="optLength"><option value="shirt">shirt</option><option value="long">long</option></select></label> <label><input id="optHideBelt" type="checkbox"> hide the belt</label>`
-      : "";
+      ? `<label>length <select id="optLength"><option value="shirt">shirt</option><option value="long">long</option></select></label> <label><input id="optHideBelt" type="checkbox"> hide the belt</label> <label><input id="optCoversLegs" type="checkbox"> covers the legs (a dress: the leg garment is hidden, the shoes show)</label>`
+      : slot === "hair" || slot === "beard"
+        ? `<label><input id="optDye" type="checkbox"> dye to the wearer's hair colour (paint it in two tones)</label>`
+        : "";
     if (slot === "chest") {
       document.getElementById("optLength").addEventListener("change", (e) => { options.length = e.target.value; });
       document.getElementById("optHideBelt").addEventListener("change", (e) => { options.hideBelt = e.target.checked; });
+      document.getElementById("optCoversLegs").addEventListener("change", (e) => { if (e.target.checked) options.covers = ["legs"]; else delete options.covers; });
     }
+    if (slot === "hair" || slot === "beard") document.getElementById("optDye").addEventListener("change", (e) => { options.dye = e.target.checked; });
   }
   setOptionsUi();
   els.slot.addEventListener("change", () => { slot = els.slot.value; setOptionsUi(); result = null; els.save.disabled = els.download.disabled = true; });

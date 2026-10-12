@@ -48,6 +48,26 @@ function dyed(art, entry) {
 
 const OUTFIT_SLOTS = ["head", "chest", "hands", "legs", "feet", "waist", "back"];
 
+// The covers rules (docs/25, Michael: a dress hides the leg garment and shows the
+// shoes): a garment's art or its painted layer names the slots it hides
+// (`covers: ["legs"]`), and those slots draw nothing, neither their rule nor
+// their painted layer. Data decides; nothing here knows what a dress is.
+function applyCovers(outfit, painted) {
+  const hidden = new Set();
+  for (const slot of Object.keys(outfit)) {
+    const art = outfit[slot];
+    for (const c of (art && art.covers) || []) if (c !== slot) hidden.add(c);
+  }
+  for (const slot of Object.keys(painted)) {
+    const L = painted[slot];
+    for (const c of (L && L.options && L.options.covers) || []) if (c !== slot) hidden.add(c);
+  }
+  for (const c of hidden) {
+    if (c in outfit) outfit[c] = null;
+    if (c in painted) painted[c] = null;
+  }
+}
+
 // What a character's drawing is made from, as plain data: the kind's variant,
 // the look, the outfit (each worn entry's garment art, dyed), what is in the
 // hands, the dead's wardrobe index and wound, and the painted-layer overrides.
@@ -81,7 +101,7 @@ export function characterSpec(inp) {
   if (inp.variant === "zombie") {
     const k = inp.wardrobe;
     const painted = {};
-    ["hair", "head", "chest", "legs", "hands", "feet", "body"].forEach((slot, n) => {
+    ["hair", "head", "chest", "legs", "hands", "feet", "body", "beard", "waist"].forEach((slot, n) => {
       const pool = layerNames(slot).filter((name) => getLayer(slot, name).options.zombie);
       if (!pool.length) return;
       const i = (k * 5 + n * 3) % (pool.length + 1);
@@ -91,6 +111,7 @@ export function characterSpec(inp) {
     if (painted.hair) look.hairStyle = painted.hair.name;
     const outfit = { ...inp.outfit };
     if (painted.head) outfit.head = outfit.head || { shape: "cap", colours: ["#555"] }; // a painted head piece needs a head item to replace
+    applyCovers(outfit, painted);
     return { variant: "zombie", look, outfit, wound: inp.wound, painted, noCarry: !!inp.noCarry };
   }
   const painted = {};
@@ -101,7 +122,10 @@ export function characterSpec(inp) {
   painted.body = getLayer("body", overrides.body || (inp.look && inp.look.body) || null);
   const fullLook = { ...DEFAULT_LOOK, ...inp.look };
   painted.hair = getLayer("hair", fullLook.hairStyle);
-  return { variant: "player", look: fullLook, outfit: inp.outfit, wound: null, holding: inp.holding, painted, style: inp.style, noCarry: !!inp.noCarry };
+  painted.beard = getLayer("beard", overrides.beard || fullLook.beard || null); // facial hair (docs/25), a look like the hair
+  const outfit = { ...inp.outfit };
+  applyCovers(outfit, painted);
+  return { variant: "player", look: fullLook, outfit, wound: null, holding: inp.holding, painted, style: inp.style, noCarry: !!inp.noCarry };
 }
 
 // The player's spec from their look and what they wear; `worn` is the slot map

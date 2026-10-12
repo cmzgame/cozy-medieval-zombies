@@ -33,7 +33,7 @@ The slicer gives every painted pixel to a part by where it lies:
 
 - **Two tones per garment** where you can: a light and a dark, with the light on the upper-left side of each shape, the game's light. The game's own garments are shaded that way by a rule; a painted garment keeps the colours you paint, exactly, so paint the shading in.
 - **Outlines:** the body's outline is the game's. Do not outline your garment against the body (the game draws no outline between a sleeve and the skin either). Outline the garment's silhouette **only where it extends past the body** (a hat's brim, a pauldron, a boot's sole), one pixel of the game's outline colour, `#1a1420`.
-- **Dyeing** (for later, when the two-tone dye lands): if a garment should take the player's chosen colour, paint it in exactly two tones so the game can swap them; a garment painted in five tones cannot be dyed.
+- **Dyeing:** hair and beards may take the wearer's hair colour: paint them in **exactly two tones** (plus the outline colour where the silhouette needs it) and say so in the delivery; the slicer's dye option maps the lighter tone to the hair colour and the darker to its shade. A layer painted in five tones cannot be dyed and keeps its colours.
 - No transparency inside a garment except where the skin is meant to show (a neckline, a sleeveless jerkin): the rig puts skin there by itself.
 
 ## Hats, hair, beards
@@ -48,7 +48,7 @@ Michael (or a session) opens `tools/slice.html`, drops the PNG, picks the slot a
 
 ## What cannot be done yet, so it is not asked for
 
-- Cloth that moves (a cloak, a skirt swinging): a part is stiff and follows its joint.
+- Cloth that moves (a cloak, a skirt swinging): a part is stiff and follows its joint. (A dress is possible: a chest file marked "covers the legs" hides the leg garment and shows the shoes; its hem still ends at the torso's silhouette.)
 - A garment that changes the body's silhouette on a substitution part (a fat tunic, a wide skirt).
 - A different drawing for a pose (a sleeve that bunches in the swing): one drawing per part per facing.
 - More than one slot in one file.
