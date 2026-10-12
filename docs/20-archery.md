@@ -1,6 +1,6 @@
 # 20 — The bow and arrow: a rough scope for the feel
 
-**A rough scope, not yet for implementation** (Michael and Claude, 2026-10-12). It answers question 25 in `02`: how a bow should feel here, and how an arc works in an isometric world. The art (the bow, the arrow, the draw pose) is a later conversation; the feel is the hard part and Michael is picky about it. When this is approved it becomes a milestone doc in the usual form.
+**A rough scope, not yet for implementation** (Michael and Claude, 2026-10-12; decisions being settled the same day, see the end). It answers question 25 in `02`: how a bow should feel here, and how an arc works in an isometric world. The art (the bow, the arrow, the draw pose) is a later conversation; the feel is the hard part and Michael is picky about it. When this is approved it becomes a milestone doc in the usual form.
 
 ## The gold standard, in Michael's words
 
@@ -44,7 +44,7 @@ The ground line is walked tile by tile each step, and at each sample the arrow's
 ## Arrows are items, and they come back
 
 - `arrow` is a stackable item (`count`), 1 × 2 in the grid, in the bag or on the belt; the quiver as a worn slot is `05-someday`. The bow needs an arrow somewhere on you; drawing with none shows the prompt "No arrows" and does not draw.
-- **An arrow that lands sticks in the ground where it fell**, drawn as a small angled sprite in the floor-item layer, and is an ordinary floor item (`map.itemsAt`), so E picks it up like anything else. **Walking over one picks it up on its own**, arrows only, with a setting `Arrows: walk over to take / E to take`, default walk-over, which is the Minecraft delight Michael named. Default; it is the one departure from "everything is E", made because arrows are the player's own.
+- **An arrow that lands sticks in the ground where it fell**, drawn as a small angled sprite in the floor-item layer, and is an ordinary floor item (`map.itemsAt`), so E picks it up like anything else. **E picks it up, like everything else** (Michael, 2026-10-12; the walk-over pickup in the first draft is struck). Getting arrows back is a deliberate act, which is part of what makes it matter.
 - **An arrow that hits the dead** breaks with `breakChance` (0.5) or drops at their feet; one that hits a wall or a tree drops at its foot (sticking in the wall is a later picture). Arrows never despawn in the first cut (they are floor items, cheap and few); a cap is a tunable if a field of them ever bothers Michael.
 - Crafting arrows (a stick, a feather, a flint) is a later conversation; the dev bag carries thirty.
 
@@ -65,11 +65,20 @@ The ground line is walked tile by tile each step, and at each sample the arrow's
 3. Hits: the dead, walls and openings by height, trees; damage by draw; the dead's reaction.
 4. Sounds and art, when they arrive.
 
-## Decisions for Michael
+## Decisions (Michael, 2026-10-12)
 
-1. **The cursor is direction only; the draw is distance** (default) versus the cursor's distance as the landing point.
-2. **Aim guide default:** Landing point (default) versus Off, Minecraft's way.
-3. **A hit tells the dead where you are** (default) versus a silent arrow.
-4. **Walk-over pickup for arrows** (default) versus E like everything else.
-5. **No stamina to draw or hold** in the first cut.
-6. The numbers above, all of which are his to tune in play.
+**Settled:**
+
+1. **Aiming: the cursor is the direction only; the draw time sets the distance** (the first draft's design, chosen over a cursor-as-landing-point). *Claude's note, kept so it is weighed when tuning:* a short draw window covering a long range makes release timing the precision limit (at the draft's numbers, 50 ms early or late is about 2.5 tiles), which works against sniping across the map by repeating one motion. If it proves fiddly in play, the fixes that stay inside this ruling are a **longer draw with an ease-out curve** (so the last stretch of distance takes more time, giving the top of the range finer control) and a **draw cue** (the bow's bend, later the creak's pitch) so the hands can learn the timing; the cursor-as-landing-point model remains available as a setting if Michael wants it.
+2. **Arrows are picked up with E**, like everything else (not by walking over them).
+3. **A hit tells the dead where you are** (the first draft's default), as a melee blow does when they hunt at all.
+4. **The bow takes both hands**; the torch goes to the belt or the bag while it is held (a belt torch still glows at half).
+5. **No stamina to draw or hold; the player walks at half speed while drawn**; sprinting cancels the draw.
+6. **Arrows that hit the dead break about half the time** (`breakChance` 0.5, else they drop at its feet); arrows that miss, or hit a wall or a tree, always survive and drop where they land.
+
+**Waiting on Michael (he has notes from another agent on this, to paste):**
+
+7. **The arc: how it goes from flat to high.** Candidates offered: automatic by distance (near flat, far high) with a lob key (Shift) to loft over walls; automatic by distance only; one high arc always.
+8. **The aim guide.** With the distance set by the draw's timing, a landing marker is the natural teacher; the options were a setting (Off, Landing marker, Full arc), none, or always the full arc. Michael said his mechanics preference should answer it.
+
+**Michael's to tune in play, as always:** every number above.
