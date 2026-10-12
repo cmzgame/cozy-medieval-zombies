@@ -755,7 +755,7 @@ async function boot() {
     } },
   ]);
 
-  loop.start({ update, render, simTick() {}, crash: shell.crash }, { simIntervalMs: 1000 });
+  loop.start({ update, render, crash: shell.crash });
   screens.show("title");
   await shell.finish(); // the screen goes once the first frame is under it
 

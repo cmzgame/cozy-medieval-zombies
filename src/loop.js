@@ -1,5 +1,5 @@
 // Copied from cozy-zombie-game src/loop.js on 2026-10-09. MAX_FRAME lowered, see below.
-// Fixed-timestep update, rAF render, coarse sim tick. See docs/05-architecture.md.
+// Fixed-timestep update, rAF render. (The parent's coarse sim tick, never used here, went on 2026-10-12, docs/23a G.)
 
 const STEP = 1 / 60;
 // Catch-up clamp. The parent allowed 0.25 s (15 steps per frame); with
@@ -11,8 +11,6 @@ let running = false;
 let paused = false;
 let last = 0;
 let accumulator = 0;
-let simAccumulator = 0;
-let simInterval = 1;
 let frames = 0;
 let fps = 0;
 let fpsTimer = 0;
@@ -20,11 +18,10 @@ let freezeLeft = 0;
 let simSeconds = 0; // game time stepped so far: the sim's own clock, never the wall's (docs/23a, C2)
 let pauses = 0; // times the loop was paused: a draw held through a pause is dropped (archery.js)
 
-let hooks = { update: () => {}, render: () => {}, simTick: () => {}, crash: null };
+let hooks = { update: () => {}, render: () => {}, crash: null };
 
-export function start(h, opts = {}) {
+export function start(h) {
   hooks = { ...hooks, ...h };
-  simInterval = (opts.simIntervalMs ?? 1000) / 1000;
   running = true;
   last = performance.now();
   requestAnimationFrame(frame);
@@ -106,11 +103,6 @@ export function pauseCount() {
 function step() {
   simSeconds += STEP;
   hooks.update(STEP);
-  simAccumulator += STEP;
-  if (simAccumulator >= simInterval) {
-    simAccumulator -= simInterval;
-    hooks.simTick(simInterval);
-  }
 }
 
 // Run game time forward synchronously. For tests and debugging; rAF is
