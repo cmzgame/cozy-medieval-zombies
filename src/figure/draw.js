@@ -65,8 +65,8 @@ export function hairIsPainted(name) {
 
 // Part ids, for the shading pass.
 const PART = { legL: 1, legR: 2, torso: 3, armL: 4, armR: 5, head: 6, hair: 7, bag: 8, hat: 9 };
-const FAR_ARM_MIN = 8; // fill pixels: a far arm's hand and wrist show at least this much skin, or not at all (Michael, 2026-10-12)
-const FAR_ARM_MIN_UPPER = 24; // its shoulder half shows only when most of it does (both arms from behind), never as a strip along the torso
+const FAR_ARM_SLIVER = 2; // px: what is left of a far arm shows only if some row of it is wider than this (Michael, 2026-10-12)
+const RAISED_ARM = 40; // degrees of pitch from which an arm (holding, swinging) is never judged as hidden
 
 function drawFrame(frame, spec, facing, anim, i) {
   const F = facingVectors(facing);
@@ -238,7 +238,8 @@ function drawFrame(frame, spec, facing, anim, i) {
     const handName = part === PART.armL ? "handL" : "handR";
     const depth = (a.depth + b.depth) / 2 + 0.002 * side;
     add(depth, () => {
-      if (!torsoDrawn) farArms.push({ part, midY: (a.y + b.y) / 2 });
+      const raised = Math.abs(p.armPitch[part === PART.armL ? 0 : 1]) > RAISED_ARM;
+      if (!torsoDrawn && !raised) farArms.push({ part, midY: (a.y + b.y) / 2 });
       const chest = outfit.chest;
       const gloves = outfit.hands;
       frame.begin();
@@ -385,7 +386,7 @@ function drawFrame(frame, spec, facing, anim, i) {
   // Michael's two arm rules (2026-10-12, docs/12): a far arm shows a real sliver
   // or nothing, and an arm's outline never doubles another part's in a row;
   // the nearer part's outline wins.
-  for (const f of farArms) frame.cullPart(f.part, FAR_ARM_MIN, f.midY, FAR_ARM_MIN_UPPER); // the shoulder's half and the hand's judged apart
+  for (const f of farArms) frame.cullPart(f.part, FAR_ARM_SLIVER, f.midY); // the shoulder's half and the hand's judged apart
   const isArm = (p) => p === PART.armL || p === PART.armR;
   const isFar = (p) => farArms.some((f) => f.part === p);
   frame.mergeOutlines(isArm, (p) => (isFar(p) ? 0 : isArm(p) ? 2 : 1));

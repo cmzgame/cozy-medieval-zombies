@@ -189,19 +189,28 @@ export class Frame {
     this.fill(rgb, part);
   }
 
-  // A part that is mostly hidden shows a real piece of itself or nothing: fewer
-  // than `minFill` fill pixels left of it (a far arm behind the torso, a sliver
-  // beside the hip) and every pixel it still owns is cleared (Michael,
-  // 2026-10-12: not enough to read as an arm, too much to go unnoticed).
+  // A part that is mostly hidden shows a real piece of itself or nothing: what
+  // is left of it is a sliver (no row of its fill wider than `maxSliver`
+  // pixels: the one or two beside the hip, the strip along the torso, the
+  // shoulder's rounded top) and every pixel it still owns is cleared. A short
+  // but whole piece (a back-swung arm seen from the front, three or more wide)
+  // stays; a count of pixels could not tell those apart (Michael, 2026-10-12).
   // With `splitY`, the rows above and below it are judged apart: a far arm's
-  // shoulder may be a sliver while its hand shows whole (Michael, 2026-10-12).
-  cullPart(part, minFill, splitY = null, minUpper = minFill) {
-    const bands = splitY === null ? [[0, FH, minFill]] : [[0, Math.round(splitY), minUpper], [Math.round(splitY), FH, minFill]];
+  // shoulder may be a sliver while its hand shows whole.
+  cullPart(part, maxSliver = 2, splitY = null) {
+    const bands = splitY === null ? [[0, FH]] : [[0, Math.round(splitY)], [Math.round(splitY), FH]];
     let any = false;
-    for (const [y0, y1, least] of bands) {
+    for (const [y0, y1] of bands) {
       let n = 0;
-      for (let y = y0; y < y1; y++) for (let x = 0; x < FW; x++) { const i = y * FW + x; if (this.part[i] === part && this.kind[i] === 2) n++; }
-      if (n === 0 || n >= least) continue;
+      let widest = 0;
+      for (let y = y0; y < y1; y++) {
+        let run = 0;
+        for (let x = 0; x < FW; x++) {
+          const i = y * FW + x;
+          if (this.part[i] === part && this.kind[i] === 2) { n++; run++; widest = Math.max(widest, run); } else run = 0;
+        }
+      }
+      if (n === 0 || widest > maxSliver) continue;
       for (let y = y0; y < y1; y++) for (let x = 0; x < FW; x++) { const i = y * FW + x; if (this.part[i] === part) this.set(i, [0, 0, 0], 0, 0); }
       any = true;
     }
