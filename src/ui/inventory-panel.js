@@ -34,8 +34,11 @@ const DOLL_AREAS = [
 const SLOT_NAMES = { head: "Head", chest: "Chest", hands: "Gloves", legs: "Legs", feet: "Feet", waist: "Belt", back: "Bag" };
 
 let root = null;
-let body = null;
+let body = null; // the bag and the hint
+let containerEl = null; // an open chest or corpse, its own panel (Michael, 2026-10-12: it moves apart from the bag)
 let dollEl = null;
+let containerClosed = false; // the container's X was pressed; main.js takes it
+let order = ["container", "character", "bag"]; // back to front
 let hotbar = null;
 let open = false; // the bag
 let character = false; // the character screen
@@ -53,8 +56,9 @@ export function initInventoryPanel(h) {
   // The bag and any open container live in .inv-body, top-right; the doll
   // lives in .doll-wrap, dead centre, so opening one never moves the other
   // (Michael, 2026-10-10 night).
-  root.innerHTML = `<div class="inv-body"></div><div class="doll-wrap" hidden></div>`;
+  root.innerHTML = `<div class="inv-body"></div><div class="container-wrap" hidden></div><div class="doll-wrap" hidden></div>`;
   body = root.querySelector(".inv-body");
+  containerEl = root.querySelector(".container-wrap");
   dollEl = root.querySelector(".doll-wrap");
   hotbar = document.createElement("div");
   hotbar.id = "hotbar";
@@ -62,8 +66,8 @@ export function initInventoryPanel(h) {
   document.getElementById("ui").appendChild(hotbar);
 
   root.addEventListener("pointerdown", (e) => {
-    const wrap = e.target.closest(".inv-body, .doll-wrap");
-    if (wrap) focus(wrap === body ? "bag" : "character");
+    const wrap = e.target.closest(".inv-body, .doll-wrap, .container-wrap");
+    if (wrap) focus(whichOf(wrap));
   }, true);
   for (const el of [root, hotbar]) {
     el.addEventListener("pointerdown", onPointerDown);
@@ -94,6 +98,7 @@ export function initInventoryPanel(h) {
     if (close) {
       // The X on a header (Michael, 2026-10-12); the key still works.
       if (close.dataset.close === "bag") setBagOpen(false);
+      else if (close.dataset.close === "container") containerClosed = true;
       else setCharacterOpen(false);
       return;
     }
@@ -140,11 +145,22 @@ function refreshVisibility() {
   if (!open && !character) cancelDrag();
 }
 
-// Where the two overlap, the one last opened or touched is on top (Michael, 2026-10-12).
+// Where panels overlap, the one last opened or touched is on top (Michael, 2026-10-12).
 function focus(which) {
-  if (!body || !dollEl) return;
-  body.style.zIndex = which === "bag" ? "2" : "1";
-  dollEl.style.zIndex = which === "bag" ? "1" : "2";
+  if (!body) return;
+  order = [...order.filter((w) => w !== which), which];
+  order.forEach((w, i) => { wrapOf(w).style.zIndex = String(i + 1); });
+}
+
+function whichOf(wrap) {
+  return wrap === body ? "bag" : wrap === containerEl ? "container" : "character";
+}
+
+// True once after the container's X was pressed (main.js drops the open container).
+export function takeContainerClose() {
+  const v = containerClosed;
+  containerClosed = false;
+  return v;
 }
 
 export function setBagOpen(v) {
@@ -236,7 +252,7 @@ function columnHtml(which, bag, title) {
   const items = bag.items.map((e, i) => itemHtml(e, i, which)).join("");
   return `
     <div class="inv-column kit-frame">
-      ${headerHtml(title, `<button class="kit-button" data-tidy="${which}" title="Repack">Tidy</button>`, which === "inv" ? "bag" : null)}
+      ${headerHtml(title, `<button class="kit-button" data-tidy="${which}" title="Repack">Tidy</button>`, which === "inv" ? "bag" : "container")}
       <div class="inv-grid" data-bag="${which}" style="width:${bag.cols * CELL}px;height:${bag.rows * CELL}px;--cell:${CELL}px">${items}<div class="inv-hl" hidden></div></div>
     </div>`;
 }
@@ -290,17 +306,21 @@ export function renderInventoryPanel(player, inv, container, belt) {
   CELL = view.panelCell();
   const sig = JSON.stringify([open, character, CELL, inv?.items, inv?.cols, inv?.rows, container?.container, container?.items, container?.cols, container?.rows, player.worn, player.hands]);
   if (sig === lastSignature) return;
+  const hadContainer = lastSignature !== "" && /"container"/.test(lastSignature);
   lastSignature = sig;
-  // The bag sits in the top-right corner; anything opened appears to its left.
-  // The doll sits at the left edge, centred vertically, on its own; neither
-  // moves when the other opens (Michael, 2026-10-10 night).
+  // The bag sits in the top-right corner; an opened container to its left, its
+  // own panel; the doll at the left edge, centred vertically. None moves when
+  // another opens (Michael, 2026-10-10 night).
   dollEl.hidden = !character;
   dollEl.innerHTML = character ? dollHtml(player) : "";
   body.hidden = !open;
   body.innerHTML = !open ? "" :
-    (container ? columnHtml("container", container, capitalize(container.container)) : "") +
     (inv ? columnHtml("inv", inv, capitalize(inv.container)) : `<div class="inv-column kit-frame inv-nobag">${headerHtml("Bag", "", "bag")}No bag on your back.</div>`) +
     `<div class="inv-hint">Drag to move · R rotates · Shift-click sends across · Right-click for actions</div>`;
+  const showContainer = open && !!container;
+  containerEl.hidden = !showContainer;
+  containerEl.innerHTML = showContainer ? columnHtml("container", container, capitalize(container.container)) : "";
+  if (showContainer && !hadContainer) focus("container"); // a chest just opened comes to the front
   applyPositions();
 }
 
@@ -310,7 +330,7 @@ export function renderInventoryPanel(player, inv, container, belt) {
 // (settings.panelPos), kept inside the window (Michael, 2026-10-12).
 
 function wrapOf(which) {
-  return which === "bag" ? body : dollEl;
+  return which === "bag" ? body : which === "container" ? containerEl : dollEl;
 }
 
 function place(wrap, x, y) {
@@ -327,11 +347,16 @@ function place(wrap, x, y) {
 
 function applyPositions() {
   const pos = settings.get("panelPos") || {};
-  for (const which of ["bag", "character"]) {
+  for (const which of ["bag", "character", "container"]) {
     const wrap = wrapOf(which);
     if (!wrap || wrap.hidden) continue;
     if (pos[which]) place(wrap, pos[which].x, pos[which].y);
-    else for (const k of ["left", "top", "right", "transform"]) wrap.style.removeProperty(k); // home, as the stylesheet puts it
+    else if (which === "container" && !body.hidden) {
+      // Home: to the left of the bag, as it was when the two were one panel.
+      const r = body.getBoundingClientRect();
+      const o = view.clientToUi(r.left, r.top);
+      place(wrap, o.x - wrap.offsetWidth - 8, o.y);
+    } else for (const k of ["left", "top", "right", "transform"]) wrap.style.removeProperty(k); // home, as the stylesheet puts it
   }
 }
 
@@ -361,7 +386,7 @@ function entryFromEvent(e) {
 
 // Which grid is under a screen point, and which cell.
 function gridAt(clientX, clientY) {
-  for (const el of body.querySelectorAll(".inv-grid")) {
+  for (const el of root.querySelectorAll(".inv-grid")) {
     const r = el.getBoundingClientRect();
     if (clientX < r.left || clientX >= r.right || clientY < r.top || clientY >= r.bottom) continue;
     const bag = bags[el.dataset.bag];
@@ -395,12 +420,12 @@ function onPointerDown(e) {
   // A press on a header (not on its buttons) picks the panel up.
   const head = e.target.closest(".inv-header");
   if (head && !e.target.closest("button")) {
-    const wrap = head.closest(".inv-body, .doll-wrap");
+    const wrap = head.closest(".inv-body, .doll-wrap, .container-wrap");
     if (!wrap) return;
     const u = view.clientToUi(e.clientX, e.clientY);
     const r = wrap.getBoundingClientRect();
     const o = view.clientToUi(r.left, r.top);
-    move = { which: wrap === body ? "bag" : "character", wrap, dx: u.x - o.x, dy: u.y - o.y };
+    move = { which: whichOf(wrap), wrap, dx: u.x - o.x, dy: u.y - o.y };
     e.preventDefault();
     return;
   }
@@ -473,7 +498,7 @@ function onPointerMove(e) {
 }
 
 function clearHighlights() {
-  for (const hl of body.querySelectorAll(".inv-hl")) hl.hidden = true;
+  for (const hl of root.querySelectorAll(".inv-hl")) hl.hidden = true;
   for (const el of [...root.querySelectorAll(".doll-slot"), ...hotbar.querySelectorAll(".hot-slot")]) el.classList.remove("ok", "bad");
 }
 
@@ -562,7 +587,7 @@ function cancelDrag() {
   drag.ghost?.remove();
   drag = null;
   root.classList.remove("dragging");
-  if (body) clearHighlights();
+  if (root) clearHighlights();
   lastSignature = "";
   hotbar.dataset.sig = "";
 }

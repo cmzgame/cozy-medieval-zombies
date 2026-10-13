@@ -386,7 +386,7 @@ html, body {
   border-radius: 4px;
   padding: 3px 0;
   font-size: 12px;
-  z-index: 5;
+  z-index: 9; /* over the panels */
 }
 
 .menu-entry {
@@ -549,8 +549,15 @@ html, body {
 #inventory {
   position: absolute;
   inset: 0;
+  z-index: 7; /* over the bubbles (6) and the bars over the dead; under the menu (9) and the screens (10) */
   font-size: 13px;
   pointer-events: none;
+}
+
+#inventory .container-wrap {
+  position: absolute;
+  right: 12px; /* until placed to the left of the bag, or where it was dragged */
+  top: 12px;
 }
 
 #inventory .inv-body {
@@ -570,6 +577,13 @@ html, body {
 #inventory .inv-column,
 #inventory .inv-hint {
   pointer-events: auto;
+}
+
+/* The panel titles in capitals: the pixel font's lowercase vowels were hard to read at this size
+   (Michael, 2026-10-12, to see whether it feels overbearing). */
+.inv-title {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .inv-body {
@@ -656,9 +670,15 @@ html, body {
    gone, the same fill and inset edge as a cell (Michael, 2026-10-12; docs/24). */
 .inv-item.has-icon {
   background: var(--kit-cut, #5a5654);
-  border: 1px solid var(--kit-stone, #8a8580);
+  border: none; /* the edge is painted as shadows, so the art keeps the whole cell (19 px a cell at 2x) */
   border-radius: 0;
-  box-shadow: inset 2px 2px 0 var(--kit-cut-dark, #2d2b2a), inset -1px -1px 0 var(--kit-cut-light, #b4ada6);
+  box-shadow: inset 0 0 0 1px var(--kit-stone, #8a8580), inset 3px 3px 0 var(--kit-cut-dark, #2d2b2a), inset -2px -2px 0 var(--kit-cut-light, #b4ada6);
+}
+
+/* A stack of art stays centred; the count sits over its corner. */
+.inv-item.has-icon.stacked {
+  align-items: center;
+  padding-top: 0;
 }
 
 /* In a slot the cutout is the dark behind the portrait. */
@@ -935,6 +955,7 @@ html, body {
   left: 50%;
   bottom: 10px;
   transform: translateX(-50%);
+  z-index: 7;
   display: flex;
   gap: 4px;
   padding: 3px;
@@ -964,6 +985,7 @@ html, body {
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
+  z-index: 7;
   min-width: 200px;
   padding: 8px;
   background: var(--panel);

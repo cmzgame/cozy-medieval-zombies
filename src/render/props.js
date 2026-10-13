@@ -11,6 +11,7 @@ import * as gl from "../gl.js";
 import { projectileSheet } from "./entities.js";
 import { OCCLUDER_MIN_HEIGHT, frameQuad } from "./scene.js";
 import { makeWall } from "./walls.js";
+import * as loop from "../loop.js"; // the sim clock: a poke's stamp is in sim milliseconds (docs/23a, C2)
 
 // ---- props and characters ----
 
@@ -93,7 +94,9 @@ export function emitGhost(ghost) {
 const WIGGLE_MS = 560;
 function swayOf(prop, height) {
   if (!prop.pokedAt) return 0;
-  const t = performance.now() - prop.pokedAt;
+  // Sim milliseconds, the clock interact.pokeAt stamps with. Reading the wall
+  // clock here (as it did until 2026-10-12) made every sway over before it began.
+  const t = loop.simTime() * 1000 - prop.pokedAt;
   if (t >= WIGGLE_MS) return 0;
   const k = t / WIGGLE_MS;
   const reach = Math.max(1.5, Math.min(5, height / 40));
@@ -106,7 +109,7 @@ function clickFrame(prop) {
   if (!prop.playedAt) return null;
   const anim = getDef(prop.sprite).clickAnim;
   if (!anim) return null;
-  let t = performance.now() - prop.playedAt;
+  let t = loop.simTime() * 1000 - prop.playedAt; // sim milliseconds, as interact.play stamps it
   for (let k = 0; k < anim.frames.length; k++) {
     if (t < anim.ms[k]) return anim.frames[k];
     t -= anim.ms[k];

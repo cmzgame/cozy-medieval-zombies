@@ -994,10 +994,15 @@ export function interactableAt(sx, sy, wanted = (prop) => prop.interactable) {
 
 // Poke the interactable under the cursor: the thing found, or null. It sways
 // if it is within the player's reach and not still resting from the last poke.
+// The rule (Michael, 2026-10-12, written in stone): anything interactable
+// wobbles when clicked, by default; a definition turns it off with
+// `"sway": false`, and one with a `clickAnim` plays that instead (the well).
 export function pokeAt(sx, sy, player) {
   const prop = interactableAt(sx, sy);
   if (!prop) return null;
-  const now = loop.simTime() * 1000; // sim milliseconds (docs/23a, C2)
+  const def = getDef(prop.sprite);
+  if (def.sway === false || def.clickAnim) return prop;
+  const now = loop.simTime() * 1000; // sim milliseconds (docs/23a, C2); the renderer reads the same clock
   if (inReach(prop, player) && (!prop.pokedAt || now - prop.pokedAt >= POKE_COOLDOWN_MS)) prop.pokedAt = now;
   return prop;
 }
