@@ -1449,6 +1449,18 @@ export function loadMap(json) {
     }
     for (const o of b.openings || []) {
       const wall = createWall(o.kind, o.wall || matOf(o.side));
+      // An opening's state as authored (docs/30 step 1): `open`, `broken` (a door kicked in: an
+      // opening for good), and `boards: { in, out }` nailed on the inside or the outside. The
+      // inside of a north or west wall is the near side of its edge; of a south or east, the far.
+      if (o.open) { wall.open = true; if (o.kind === "window") wall.shutter = "open"; }
+      if (o.broken) { wall.broken = true; wall.hp = 0; if (o.kind === "door") wall.open = true; if (o.kind === "window") wall.shutter = "open"; }
+      if (o.boards) {
+        const inNear = o.side === "n" || o.side === "w";
+        const inside = inNear ? wall.boards.near : wall.boards.far;
+        const outside = inNear ? wall.boards.far : wall.boards.near;
+        for (let i = 0; i < Math.min(BOARDS_PER_SIDE, o.boards.in || 0); i++) inside.push(BOARD_HP);
+        for (let i = 0; i < Math.min(BOARDS_PER_SIDE, o.boards.out || 0); i++) outside.push(BOARD_HP);
+      }
       if (o.side === "n") get(bx + o.at, by).n = wall;
       else if (o.side === "s") get(bx + o.at, by + bh).n = wall;
       else if (o.side === "w") get(bx, by + o.at).w = wall;

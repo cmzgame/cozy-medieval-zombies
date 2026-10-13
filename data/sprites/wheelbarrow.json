@@ -1,0 +1,1 @@
+{"placeholder": {"kind": "box", "color": "#7a6a4a", "height": 18, "inset": 10, "label": "Barrow"}, "container": {"loot": "dev_kit"}, "carry": false, "note": "the wheelbarrow (docs/30 section 9.1 ruled: one big immovable grid); the dev kit's grid stands in for its own until step 3"}
