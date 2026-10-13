@@ -180,7 +180,7 @@ export function serialize() {
 // What a restored character carries: the prop by id if it stands on the map, else revived from its record.
 export function carriedOf(c) {
   if (!c._carryingId) return null;
-  return map.propById(c._carryingId) || (c._carried ? map.reviveProp(c._carried) : null);
+  return map.propById(c._carryingId) || (c._carried ? map.reviveProp(c._carried, false) : null);
 }
 
 export function restore(saved, json) {

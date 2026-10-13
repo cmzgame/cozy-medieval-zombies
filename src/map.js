@@ -368,6 +368,7 @@ export function placeProp(prop, tx, ty) {
   for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) prop.tiles.push([tx + dx, ty + dy]);
   for (const [x, y] of prop.tiles) growTile(x, y).prop = prop;
   if (prop.fire) fireProps.add(prop);
+  propsById.set(prop.id, prop); // a lifted prop left the registry (removeProp); put down, it is findable by its id again
   touch(tx, ty);
   groundChanged(prop.tiles, prop);
 }
@@ -732,6 +733,19 @@ export function installChunk(d) {
   const { cx, cy } = d;
   const layer = d.layer || 0;
   const k = chunkKey(cx, cy, layer);
+  // The chunk this one replaces: the props that stood on it (anchored here) leave the registry and the fire
+  // set, and the delta's own are put back by installProp. Without this a prop removed on the host stayed in
+  // a guest's registry and kept burning in its fire set, a light at a tile where nothing stood (found
+  // reviewing placement, 2026-10-13). Only the authored ones were let go before.
+  const old = chunks.get(k);
+  if (old) {
+    for (const t of old.tiles) {
+      const pr = t && t.prop;
+      if (!pr || pr.tile[0] < cx * CHUNK || pr.tile[0] >= (cx + 1) * CHUNK || pr.tile[1] < cy * CHUNK || pr.tile[1] >= (cy + 1) * CHUNK) continue;
+      fireProps.delete(pr);
+      if (propsById.get(pr.id) === pr) propsById.delete(pr.id);
+    }
+  }
   for (let i = 0; i < CHUNK * CHUNK; i++) {
     const x = cx * CHUNK + (i % CHUNK);
     const y = cy * CHUNK + Math.floor(i / CHUNK);
@@ -758,12 +772,14 @@ export function installChunk(d) {
 // its live fields put over the fresh ones.
 // A prop from its record, not on any tile: what a character carries (docs/13) rides in its own
 // record (entities/character.js `carried`), since a lifted prop is on no chunk to be found by id.
-export function reviveProp(data) {
+export function reviveProp(data, onMap = true) {
   const prop = createProp({ id: data.id, sprite: data.sprite, tile: data.tile, footprint: data.footprint, facing: data.facing, offset: data.offset, solid: data.solid, radius: data.radius });
   Object.assign(prop, data, { tiles: prop.tiles, kind: "prop" });
   for (const k of Object.keys(prop)) if (!(k in data) && !PROP_DERIVED.has(k)) delete prop[k]; // exactly the saved shape (a field the load had dropped stays dropped)
-  if (prop.fire) fireProps.add(prop);
+  // A carried prop stands on no tile, so it is no light at its old one and not in the registry (as removeProp leaves it).
+  if (prop.fire && onMap) fireProps.add(prop);
   else fireProps.delete(prop);
+  if (!onMap) propsById.delete(prop.id);
   return prop;
 }
 

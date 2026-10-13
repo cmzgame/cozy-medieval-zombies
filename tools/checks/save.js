@@ -119,6 +119,12 @@ export async function run(game) {
     row("stepped on from the save, the world is the world", same, same ? `hash ${G.game.hashOf(straight)} both ways` : where);
     row("the slot in the browser was not touched", true, "snapshots stayed in memory");
   } finally {
+    // The prop the in-hand row lifted goes back where it stood, so the checks after this one find empty hands.
+    const held = G.player && G.player.carrying;
+    if (held) {
+      map.placeProp(held, held.tile[0], held.tile[1]);
+      G.player.carrying = null;
+    }
     G.settings.set("survival", survivalWas);
     G.loop.setPaused(wasPaused);
   }

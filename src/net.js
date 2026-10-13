@@ -620,7 +620,9 @@ function applyFrame(f) {
         const keep = c.sprite;
         const { targetId, carryingId, carried, ...rest } = data;
         Object.assign(c, rest);
-        c.carrying = propById(carryingId) || (carried && carried.id === carryingId ? map.reviveProp(carried) : null);
+        // Kept as it is while the same prop stays in hand: rebuilt every frame it would lose the turns the ghost has
+        // been given and register a fresh copy each time (the carried prop is the guest's to turn, the host's at the put-down).
+        c.carrying = c.carrying && c.carrying.id === carryingId ? c.carrying : propById(carryingId) || (carried && carried.id === carryingId ? map.reviveProp(carried, false) : null);
         if (c.kind === "player") c.sprite = keep || c.sprite;
         else if (c.corpse) dressCorpse(c);
       }
