@@ -1,0 +1,18 @@
+# The relay on Fly (docs/31/04; docs/31/07, question 20). `fly launch --copy-config --no-deploy`
+# keeps this file as it is; the app's name is its address: wss://cmz-relay.fly.dev.
+app = "cmz-relay"
+primary_region = "ord"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

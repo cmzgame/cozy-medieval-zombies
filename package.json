@@ -1,0 +1,13 @@
+{
+  "name": "cozy-medieval-zombies-relay",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "The relay for Cozy Medieval Zombies (server/relay.js, docs/31/04): a hosting tier's way to find and start it. The game itself has no build step and no dependency.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server/relay.js"
+  }
+}
