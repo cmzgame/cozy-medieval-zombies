@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-12 — The 1.0 map's first rulings (Michael, on `29-world`): water stops the dead, 256 by 256, fishing later, the cuts taken, the where and the what decided together
+
+Michael on the other agent's ideation (`29`, "nothing in it is gospel, it was brainstorming"): **water stops the dead** (and the player, and villagers), with shallow crossings slow for everyone: the river is a design element, the crossings are gates (`29/10`, ask 1). **256 by 256**, as spacious as it can be. **Fishing yes, later**; the waters are placed as if yes. **The cut list taken as written** otherwise (the maze, the second smithy, the tannery, coin and the treasury, the paired gate and locked doors, carpet as an autotile, the willow's eyes): "some of those flights were a bit too fanciful". **Art first what exists:** the ground, most buildings, the fields can be laid with what is drawn; the art pipeline (Michael is on clothing and hair now) must not hold the map back, and the effort is recognised. **The generator script comes first** (Claude's call, Michael deferring): the map is written by a tool from a description per place, never by hand. **The what and the where are one plan:** `22`'s big pass is worked up against `29`, changing `29` where it must, into one spec that names every action the player can take and every action they must take to stay alive; its questions go to Michael first.
+
 ### 2026-10-12 — Combat changes paused, deliberately (Michael)
 
 No combat changes until Michael has settled other mechanics, filled out the art, fixed animations, and had a lot more time to test: **hold the spin-click turn cap, leave bleed as it is** until he comes back and complains about it, and **leave the infection as the fake marker** it is. The loose ends in `21`'s state block stay listed, not scheduled. The design agent's handoff (`28`) is under way, by Michael himself.
