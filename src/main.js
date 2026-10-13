@@ -108,9 +108,67 @@ function lookOf(identity) {
   return { ...figure.DEFAULT_LOOK, ...chosen, hairStyle: chosen.hairStyle || "short" };
 }
 
-// The identity a test world's player wears: the last kept, else what the browser had before identities.
+// The identity a test world's player wears: `&as=<name>` on the URL, else the last kept, else what the
+// browser had before identities.
 function testIdentity() {
+  const asName = URLQ.get("as");
+  if (asName) return { name: asName.slice(0, 24), look: { hairStyle: "short" } };
   return identities.last() || { name: settings.get("playerName") || null, look: { ...(settings.get("look") || {}), hairStyle: settings.get("hairStyle") || "short" } };
+}
+
+// Whose character is whose in the world here (docs/31/09): the save's wrapper for a world of this
+// browser's, a page's own for a test world. `owners`: a browser id's hash to the player it made;
+// `dormant`: the hash to the record of a character gone dormant with its player away.
+const testStore = { owners: {}, dormant: {} };
+function ownersStore() {
+  return currentWorld || testStore;
+}
+const myHash = () => identities.idHash(identities.clientId());
+
+// A join on the host (net.js hooks.joinFor): the character this browser made here, back from dormancy
+// if it went; never the host's own; a dead one or an unknown browser asks for an identity (`who`).
+function joinFor(hash, identity) {
+  const store = ownersStore();
+  const myId = S.player ? S.player.id : null;
+  let owned = hash ? store.owners[hash] : null;
+  if (owned && owned === myId) owned = null;
+  if (owned) {
+    let p = S.players.find((q) => q.id === owned) || null;
+    if (!p && store.dormant[hash]) {
+      p = game.putPlayer(store.dormant[hash]);
+      delete store.dormant[hash];
+      if (p) refreshFigureOf(p, true);
+    }
+    if (p && !p.dead) return { player: p };
+    if (!identity) return { who: { dead: !!(p && p.dead) } };
+  }
+  if (!identity) return { who: {} };
+  const spawn = S.info ? S.info.spawn : [S.player.gx, S.player.gy];
+  const at = map.nearestWalkable(spawn[0] + 1, spawn[1] + 1, (x, y) => S.players.some((p) => Math.round(p.gx) === x && Math.round(p.gy) === y)) || spawn;
+  const p = game.addPlayer(at[0], at[1], { look: identity.look, name: identity.name });
+  if (hash) store.owners[hash] = p.id;
+  return { player: p };
+}
+
+// A guest's identity as the host accepts it: a short name, a listed hair style, hex colours, nothing else.
+function clampIdentity(raw) {
+  const styles = new Set(figure.hairStyles());
+  const hex = (v) => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
+  const L = (raw && raw.look) || {};
+  const look = {};
+  if (styles.has(L.hairStyle)) look.hairStyle = L.hairStyle;
+  for (const k of ["skin", "hair", "eyes"]) if (hex(L[k])) look[k] = L[k];
+  const name = typeof raw.name === "string" ? raw.name.replace(/[\u0000-\u001f]/g, "").trim().slice(0, 24) : "";
+  return { name: name || null, look: lookOf({ look }) };
+}
+
+// A guest's character after the grace (net.js hooks.dormant): out of the simulation, its record kept.
+function dormantNow(playerId) {
+  const store = ownersStore();
+  const hash = Object.keys(store.owners).find((h) => store.owners[h] === playerId) || null;
+  const rec = game.takePlayer(playerId);
+  if (rec && hash) store.dormant[hash] = game.toSafe(rec);
+  saveWorld();
 }
 
 // After a world is set (made or restored): the player's sheet, the camera, the first sight.
@@ -148,20 +206,26 @@ function enterNewWorld(name, identity, { keep = true } = {}) {
   });
   afterWorldSet();
   inWorld = true;
-  currentWorld = keep ? { worldId: save.newWorldId(), name: name || "A world", code: null, created: Date.now(), owners: { [identities.clientId()]: S.player.id } } : null;
+  currentWorld = keep ? { worldId: save.newWorldId(), name: name || "A world", code: null, created: Date.now(), owners: { [myHash()]: S.player.id }, dormant: {} } : null;
   started = keep;
-  if (keep) saveWorld();
   screens.hide();
+  return keep ? saveWorld() : Promise.resolve(false);
 }
 
 // A world of this browser's, put back, as the character this browser made there.
 async function playWorld(worldId) {
-  const snap = save.readWorld(worldId);
+  const snap = await save.readWorld(worldId);
   if (!snap || snap.mapName !== MAP_NAME) return false;
   await restoreWorld(snap);
-  currentWorld = { worldId, name: snap.name || "A world", code: snap.code || null, created: snap.created || snap.savedAt, owners: { ...(snap.owners || {}) } };
-  const mineId = currentWorld.owners[identities.clientId()] || snap.myPlayerId;
-  const mine = S.players.find((p) => p.id === mineId) || S.players[0];
+  currentWorld = { worldId, name: snap.name || "A world", code: snap.code || null, created: snap.created || snap.savedAt, owners: { ...(snap.owners || {}) }, dormant: { ...(snap.dormant || {}) } };
+  const mineId = currentWorld.owners[myHash()] || snap.myPlayerId;
+  let mine = S.players.find((p) => p.id === mineId) || null;
+  if (!mine && currentWorld.dormant[myHash()]) {
+    mine = game.putPlayer(currentWorld.dormant[myHash()]);
+    delete currentWorld.dormant[myHash()];
+    if (mine) refreshFigureOf(mine, true);
+  }
+  mine = mine || S.players[0];
   if (mine) {
     game.pickPlayer(mine);
     camera.snapTo(mine.gx, mine.gy);
@@ -185,23 +249,27 @@ function respawn(identity) {
   game.pickPlayer(p);
   refreshFigureOf(p, true);
   camera.snapTo(p.gx, p.gy);
-  if (currentWorld) currentWorld.owners[identities.clientId()] = p.id;
-  saveWorld();
+  ownersStore().owners[myHash()] = p.id;
   screens.hide();
-  return true;
+  return saveWorld();
 }
 
 // The world's save, with its own fields (save.js writeWorld); never for a guest or a test world.
-function saveWorld(extra = {}) {
+// A save that fails says so on screen (Michael, 2026-10-13: never silently).
+async function saveWorld(extra = {}) {
   if (!inWorld || !currentWorld || net.isGuest()) return false;
-  const ok = save.writeWorld(save.snapshot(MAP_NAME, { worldId: currentWorld.worldId, name: currentWorld.name, code: currentWorld.code, created: currentWorld.created, owners: currentWorld.owners, myPlayerId: S.player.id, ...extra }));
-  if (ok) lastAutosave = loop.simTime();
-  return ok;
+  const r = await save.writeWorld(save.snapshot(MAP_NAME, { worldId: currentWorld.worldId, name: currentWorld.name, code: currentWorld.code, created: currentWorld.created, owners: currentWorld.owners, dormant: currentWorld.dormant || {}, myPlayerId: S.player.id, ...extra }));
+  if (r.ok) lastAutosave = loop.simTime();
+  else showMessage(`The world could not be saved: ${r.error}.`, 6);
+  return r.ok;
 }
 
-// Out of the world: saved if it is this browser's, the wire closed, the title back.
-function leaveWorld() {
-  if (inWorld) saveWorld();
+// Out of the world: the guests' characters dormant at once, saved if it is this browser's, the wire
+// closed, the title back.
+async function leaveWorld() {
+  if (inWorld && net.isHost()) for (const id of net.guestPlayerIds()) dormantNow(id);
+  if (inWorld) await saveWorld();
+  if (net.isGuest()) net.leave(); // the host begins the grace at once, not at the socket's drop
   if (net.onTheWire()) net.close();
   inWorld = false;
   started = false;
@@ -760,8 +828,9 @@ async function optionalJson(path) {
 async function boot() {
   input.init(canvas);
   settings.load();
-  save.migrate(MAP_NAME, "The valley"); // the one slot per map before docs/31/09 becomes a world
+  await save.migrate(MAP_NAME, "The valley"); // the one slot per map before docs/31/09 becomes a world
   identities.migrate(); // the one name and look kept before identities become the first identity
+  net.setClient(identities.clientId()); // the browser's id on every join (its hash is what a world records)
   view.init(canvas, ui);
   applyDebugCorner();
   settings.onChange((key) => {
@@ -957,28 +1026,37 @@ async function boot() {
         wire: {
           status: () => net.status(),
           setOpen,
-          join: (code, identityId) => {
-            const identity = identities.get(identityId);
-            if (!identity || !code) return;
-            net.setIdentity({ name: identity.name || null, look: lookOf(identity) });
-            identities.rememberJoined({ code, myCharacter: identity.name || null });
-            standInWorld(identity);
+          // A join goes out with the browser's id and no identity: the host hands back the character this
+          // browser made there, or asks (`who`) for an identity, which the creation steps give (joinAs).
+          join: (code) => {
+            if (!code) return;
+            net.setIdentity(null);
+            identities.rememberJoined({ code });
+            standInWorld(identities.last() || testIdentity());
             if (!net.open({ join: code, lag: urlLag })) return;
             started = false; // a guest's world is the host's to save
             screens.hide();
             showMessage(`Joining ${code}…`, 4);
           },
+          joinAs: (identityId) => {
+            const identity = identities.get(identityId);
+            if (!identity || !net.isGuest()) return;
+            net.setIdentity({ name: identity.name || null, look: lookOf(identity) });
+            identities.rememberJoined({ code: net.status().code, myCharacter: identity.name || null });
+            screens.hide();
+            showMessage(`Joining ${net.status().code} as ${identity.name || "a survivor"}…`, 4);
+          },
+          isOpen: (code) => net.isOpen(code),
         },
         onSave: () => {
-          const ok = saveWorld();
-          showMessage(ok ? "Saved." : "The world could not be saved.");
+          saveWorld().then((ok) => { if (ok) showMessage("Saved."); });
         },
         // The worlds flow (docs/31/09): this browser's worlds and the friends' worlds it has joined.
         worlds: {
           list: () => save.listWorlds().map((r) => ({ ...r, playable: r.mapName === MAP_NAME })),
           friends: () => identities.joined(),
           play: (worldId) => { playWorld(worldId); },
-          remove: (worldId) => save.deleteWorld(worldId),
+          remove: (worldId) => save.deleteWorld(worldId), // a promise: the screen re-renders when it settles
           forget: (code) => identities.forgetJoined(code),
           create: (name, identityId) => { const identity = identities.get(identityId); if (identity) enterNewWorld(name, identity); },
           respawn: (identityId) => respawn(identities.get(identityId)),
@@ -1133,7 +1211,7 @@ async function boot() {
   const joinCode = TEST_WORLD ? url.get("join") : null; // `?host=` and `?join=` are the checks' (a test world); the game's own flow is the Worlds screen
   net.setIdentity({ name: testIdentity().name || null, look: lookOf(testIdentity()) }); // the wire's identity until a join picks one
   net.init({ host: TEST_WORLD ? url.get("host") : null, join: joinCode, lag: urlLag }, {
-    restore: async (snap, playerId) => {
+    restore: async (snap, playerId, world) => {
       await restoreWorld(snap);
       S.player = S.players.find((p) => p.id === playerId) || S.player;
       game.state.player = S.player;
@@ -1142,7 +1220,19 @@ async function boot() {
       inWorld = true;
       currentWorld = null; // the host's world, never saved here
       started = false;
+      // The bookmark learns the world's name, its host, and my character there (docs/31/09).
+      identities.rememberJoined({ code: net.status().code, name: world ? world.name : null, hostName: world ? world.host : null, myCharacter: S.player.name || S.player.id });
     },
+    // What a welcome says about this world (the guest's bookmark).
+    worldInfo: () => ({ name: currentWorld ? currentWorld.name : "a world", host: S.player ? S.player.name || S.player.id : null }),
+    // The host's side of a join (docs/31/09): whose character, a guest's identity as accepted, the saves.
+    joinFor,
+    clampIdentity,
+    guestJoined: () => { saveWorld(); },
+    guestLeft: () => { saveWorld(); },
+    dormant: dormantNow,
+    // The host knows no living character of mine here: the creation steps, then joinAs.
+    who: (dead) => { screens.creationFor({ for: "join", code: net.status().code, dead }); },
     joined: (id) => showMessage(`Joined as ${id}.`, 3),
     message: (text, seconds = 3) => showMessage(text, seconds),
     // A container my player opened on the host: the grid is on my replica's prop, entry, or body, found by
@@ -1169,6 +1259,9 @@ async function boot() {
         relay: `${where[0].toUpperCase()}${where.slice(1)} could not be reached.`,
         dropped: "The connection to the host dropped.",
         hostLeft: "The host closed the world.",
+        replaced: "This world was joined again from another tab or window; this one let go.",
+        versionGuest: "The host is on a newer build. Refresh and rejoin.",
+        versionHost: "You are on a newer build than the host; they should refresh.",
       };
       const note = notes[why] || `The wire to "${code}" is gone.`;
       if (role === "host") {
@@ -1217,7 +1310,7 @@ async function boot() {
     // A second player into this world, for the checks and for the plan (docs/31/03): standing, controlled by nobody.
     net,
     // The worlds flow (docs/31/09), for check("worlds"): a world made, left, listed, played again; a new character after a death.
-    worlds: { create: (name, identityId) => enterNewWorld(name, identities.get(identityId)), play: playWorld, leave: leaveWorld, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), get current() { return currentWorld; }, get inWorld() { return inWorld; } },
+    worlds: { create: (name, identityId) => enterNewWorld(name, identities.get(identityId)), play: playWorld, leave: leaveWorld, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor, dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
     identities,
     addPlayer: (gx, gy, opts) => {
       const p = game.addPlayer(gx, gy, opts);

@@ -20,6 +20,8 @@ import * as world from "./world.js";
 import * as rules from "./rules.js";
 import * as archery from "./archery.js";
 import * as interact from "./interact.js";
+import { VERSION as SAVE_VERSION } from "./save.js";
+import { idHash } from "./identities.js";
 import { updatePlayer } from "./entities/player.js";
 import { serializeCharacter, restoreCharacter, dress, dressCorpse } from "./entities/character.js";
 import { createPlayer } from "./entities/player.js";
@@ -51,14 +53,17 @@ let seq = 0; // the guest's input count, so the host can say which it has applie
 const pending = []; // the guest's inputs not yet acknowledged, replayed over each frame (prediction)
 let lastCorrection = 0; // tiles the last frame moved my predicted player: the misprediction, for the checks
 
-let identity = { name: null, look: null }; // what a guest says it is on the join (the You screen)
+let identity = null; // what a guest says it is on the join, once chosen (docs/31/09); null asks the host whether it knows this browser
 
 export function setHooks(h) {
   hooks = { ...hooks, ...h };
 }
 
+// The identity a join carries, or null for a join that asks the host first whether it knows this
+// browser (docs/31/09: a character the browser made in that world comes back without one).
 export function setIdentity(id) {
-  identity = { ...identity, ...id };
+  identity = id ? { name: null, look: null, ...id } : null;
+  joinSentAt = 0; // the next step sends the join again, with what was set
 }
 
 export function init(opts = {}, h = {}) {
@@ -69,12 +74,31 @@ export function init(opts = {}, h = {}) {
 // A short code for a world, for friends to type (the Host screen): a tree and three letters or
 // digits from an alphabet with no look-alikes (no i, l, o, 0, 1: Michael could not read one from the
 // pixel font, 2026-10-13).
+// Two tree words and four letters (Michael, 2026-10-13, after the review: a tree and three letters was
+// eighteen bits, which someone could scan, and a hit gives them a whole world; this is near thirty).
 const CODE_CHARS = "abcdefghjkmnpqrstuvwxyz23456789";
 export function makeCode() {
-  const words = ["oak", "elm", "ash", "yew", "fir", "hazel", "rowan", "thorn", "moss", "fern"];
+  const words = ["oak", "elm", "ash", "yew", "fir", "hazel", "rowan", "thorn", "moss", "fern", "birch", "alder", "willow", "holly", "pine", "maple"];
   let tail = "";
-  for (let i = 0; i < 3; i++) tail += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
-  return `${words[Math.floor(Math.random() * words.length)]}-${tail}`;
+  for (let i = 0; i < 4; i++) tail += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+  const a = words[Math.floor(Math.random() * words.length)];
+  let b = words[Math.floor(Math.random() * words.length)];
+  if (b === a) b = words[(words.indexOf(a) + 1) % words.length];
+  return `${a}-${b}-${tail}`;
+}
+
+// The wire's protocol (the coder agent's review, 2026-10-13: a build version has nothing to compare, the
+// wire and the save do): bumped by hand when a message or the save changes shape; the host refuses a
+// guest on another with a word for whose is newer.
+export const PROTOCOL = 1;
+
+// A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
+// through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
+const GRACE_S = 60;
+const away = new Map(); // playerId -> the sim time its guest went
+let clientId = null; // this browser's id on the join (identities.js); the host records its hash
+export function setClient(id) {
+  clientId = id || null;
 }
 
 // A guest that no host answers within this long gives up (hooks.failed) rather than wait in a
@@ -95,6 +119,7 @@ export function close() {
   firstJoinAt = 0;
   inbox.length = 0;
   guests.clear();
+  away.clear();
   pending.length = 0;
   pendingOpened.length = 0;
 }
@@ -224,8 +249,28 @@ export function hasGuests() {
   return role === "host" && guests.size > 0;
 }
 
+// The guests' players, for the client (a host leaving makes every one of them dormant first).
+export function guestPlayerIds() {
+  return [...guests.values()].map((g) => g.playerId);
+}
+
+// The relay's answer to "is this world open?" (server/relay.js /open): { open, guests }, or null with no
+// relay or no answer. Rejoin polls this and joins once (the review, 2026-10-13), and the green dot reads it.
+export async function isOpen(code) {
+  if (!relayUrl || typeof fetch === "undefined") return null;
+  try {
+    const base = relayUrl.replace(/^ws/, "http").replace(/\/+$/, "");
+    const res = await fetch(`${base}/open?code=${encodeURIComponent(String(code || "").trim().toLowerCase())}`, { cache: "no-store" });
+    if (!res.ok) return null;
+    const j = await res.json();
+    return j && typeof j.open === "boolean" ? { open: j.open, guests: j.guests | 0 } : null;
+  } catch {
+    return null;
+  }
+}
+
 export function status() {
-  return { role, code, lag, selfId, guests: [...guests.values()].map((g) => g.playerId), myPlayerId, joined, framesSeen, lastFrameAt, tick, waiting: role === "guest" && !joined, transport: transport ? transport.kind : null, relay: relayUrl };
+  return { role, code, lag, selfId, guests: [...guests.values()].map((g) => g.playerId), myPlayerId, joined, framesSeen, lastFrameAt, tick, waiting: role === "guest" && !joined, transport: transport ? transport.kind : null, relay: relayUrl, protocol: PROTOCOL };
 }
 
 export function setTestSnapshot(s) {
@@ -248,13 +293,45 @@ export function hostStep(mySnap, me) {
   for (const msg of inbox.splice(0)) {
     if (msg.type === "join") {
       if (guests.has(msg.from)) continue;
-      const spawn = game.state.info ? game.state.info.spawn : [me.gx, me.gy];
-      const at = map.nearestWalkable(spawn[0] + 1, spawn[1] + 1, (x, y) => game.state.players.some((p) => Math.round(p.gx) === x && Math.round(p.gy) === y)) || spawn;
-      const p = game.addPlayer(at[0], at[1], { look: msg.look || null, name: msg.name || null });
-      guests.set(msg.from, { playerId: p.id, queue: [], last: null, ack: 0, joinedAt: tick });
+      // Another protocol or save shape: refused with a word for whose is newer.
+      const protocol = msg.protocol | 0;
+      const version = msg.version | 0;
+      if (protocol !== PROTOCOL || version !== SAVE_VERSION) {
+        send({ type: "bye", to: msg.from, reason: "version", newer: protocol > PROTOCOL || version > SAVE_VERSION ? "guest" : "host" });
+        continue;
+      }
+      const hash = typeof msg.clientId === "string" && msg.clientId ? idHash(msg.clientId) : null;
+      // A newer join from the same browser replaces the older connection (a refresh with the old socket
+      // still open): the old one is told and dropped; its character is the new one's to take back.
+      if (hash) {
+        for (const [key, g] of guests) {
+          if (g.hash !== hash) continue;
+          send({ type: "bye", to: key, reason: "replaced" });
+          guests.delete(key);
+        }
+      }
+      const raw = msg.look && typeof msg.look === "object" ? { name: typeof msg.name === "string" ? msg.name : null, look: msg.look } : null;
+      const identity = raw && hooks.clampIdentity ? hooks.clampIdentity(raw) : raw; // the host trusts no payload (the review, 2026-10-13)
+      // Whose character this is, by the browser's hash (the client keeps the owners; docs/31/09): the one
+      // it made here, back from dormancy if it went; a dead one or an unknown browser asks for an identity.
+      let r;
+      if (hooks.joinFor) r = hooks.joinFor(hash, identity);
+      else {
+        const spawn = game.state.info ? game.state.info.spawn : [me.gx, me.gy];
+        const at = map.nearestWalkable(spawn[0] + 1, spawn[1] + 1, (x, y) => game.state.players.some((p) => Math.round(p.gx) === x && Math.round(p.gy) === y)) || spawn;
+        r = { player: game.addPlayer(at[0], at[1], { look: identity ? identity.look : null, name: identity ? identity.name : null }) };
+      }
+      if (!r || !r.player) {
+        send({ type: "who", to: msg.from, dead: !!(r && r.who && r.who.dead) });
+        continue;
+      }
+      const p = r.player;
+      away.delete(p.id);
+      guests.set(msg.from, { playerId: p.id, hash, queue: [], last: null, ack: 0, joinedAt: tick });
       for (const c of allCharacters()) known.add(c.id);
-      send({ type: "welcome", to: msg.from, playerId: p.id, save: game.serialize() });
-      hooks.message(`${msg.name || p.id} joined.`);
+      send({ type: "welcome", to: msg.from, playerId: p.id, save: game.serialize(), world: hooks.worldInfo ? hooks.worldInfo() : null });
+      hooks.message(`${p.name || p.id} joined.`);
+      if (hooks.guestJoined) hooks.guestJoined(p);
     } else if (msg.type === "input") {
       const g = guests.get(msg.from);
       if (!g) continue;
@@ -297,13 +374,22 @@ export function hostStep(mySnap, me) {
       const p = g && game.state.players.find((q) => q.id === g.playerId);
       if (p && typeof msg.text === "string" && msg.text.trim()) say(p, msg.text.trim().slice(0, 200));
     } else if (msg.type === "leave") {
+      // A guest gone: its character stands for the grace (the away map), then goes dormant (below).
       const g = guests.get(msg.from);
       if (!g) continue;
       const p = game.state.players.find((q) => q.id === g.playerId);
-      game.removePlayer(g.playerId);
       guests.delete(msg.from);
+      if (![...guests.values()].some((o) => o.playerId === g.playerId)) away.set(g.playerId, loop.simTime());
       hooks.message(`${(p && p.name) || g.playerId} left.`);
+      if (hooks.guestLeft) hooks.guestLeft(p);
     }
+  }
+  // The grace run out: the character leaves the simulation through the client, which keeps its record.
+  for (const [id, at] of away) {
+    if (loop.simTime() - at < GRACE_S) continue;
+    away.delete(id);
+    if (hooks.dormant) hooks.dormant(id);
+    else game.removePlayer(id);
   }
   for (const g of guests.values()) {
     // The next input in the queue; with none this step, the last one held (the key is still down).
@@ -386,14 +472,15 @@ export function guestStep(mySnap) {
   if (!joined && (!joinSentAt || now - joinSentAt > 2000)) {
     joinSentAt = now;
     if (!firstJoinAt && transport && transport.ready) firstJoinAt = now; // the wait starts once the relay has answered the socket (a sleeping tier wakes slowly)
-    send({ type: "join", name: identity.name, look: identity.look });
+    // The browser's id and the protocol always; the identity when one was chosen (the host asks with `who` otherwise).
+    send({ type: "join", clientId, protocol: PROTOCOL, version: SAVE_VERSION, name: identity ? identity.name : null, look: identity ? identity.look : null });
   }
   for (const msg of inbox.splice(0)) {
     if (msg.type === "welcome") {
       if (joined) continue;
       myPlayerId = msg.playerId;
       joined = true;
-      hooks.restore(msg.save, myPlayerId); // main.js: game.restore, then the client's own refresh
+      hooks.restore(msg.save, myPlayerId, msg.world || null); // main.js: game.restore, then the client's own refresh
       hooks.joined(myPlayerId);
     } else if (msg.type === "frame" && joined) {
       applyFrame(game.fromSafe(msg));
@@ -403,6 +490,15 @@ export function guestStep(mySnap) {
       hooks.message(msg.text, msg.seconds);
     } else if (msg.type === "log") {
       if (hooks.log) hooks.log(msg.text, msg.kind);
+    } else if (msg.type === "who" && !joined) {
+      // The host knows no living character of this browser's here: a character is to be made (main.js shows the steps).
+      firstJoinAt = 0; // the wait starts over once the identity is chosen
+      joinSentAt = now + 1e9; // no join until setIdentity resets it
+      if (hooks.who) hooks.who(!!msg.dead);
+    } else if (msg.type === "bye") {
+      // The host let go: replaced by a newer join from this browser, or another protocol.
+      dropped(msg.reason === "version" ? (msg.newer === "guest" ? "versionHost" : "versionGuest") : msg.reason === "replaced" ? "replaced" : "hostLeft");
+      return;
     } else if (msg.type === "opened") {
       pendingOpened.push(msg.what); // after the frame that carries the grid (frames queue behind it)
     }

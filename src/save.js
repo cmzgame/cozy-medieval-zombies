@@ -5,15 +5,19 @@
 // serialisation (game.serialize: the clock, the generator, the counters, every loaded
 // chunk, every character), which is also what a joining player receives (docs/31/04:
 // the join is a load), so the shape is owned by the modules that own the state; the
-// world's own fields ride with it: its id, its name, its code once it has one, when it
-// was made, and whose character is whose (`characters`: a browser id to a player id).
+// world's own fields ride with it in the wrapper, outside what a guest ever receives:
+// its id, its name, its code once it has one, when it was made, whose character is
+// whose (`owners`: a hash of a browser id to a player id), and the characters gone
+// dormant with their players away (`dormant`: the hash to the character's record).
 // Not saved: an auto-walk, a timed action's progress, a draw, arrows in flight, the
 // renderer's and the interface's state. Loading drops you where you were, standing still.
 //
-// `?nosave` on the URL puts the store in memory for that page: nothing read from the
-// browser, nothing written to it, and the Worlds screen works on worlds that live as long
-// as the page. The scripted tests run with it, since the browser pane shares localStorage
-// with Michael's own browser (CLAUDE.md).
+// The records live in IndexedDB (Michael, 2026-10-13: a save is already most of a
+// megabyte and grows with the land explored; the small store holds five megabytes for
+// the whole site), the index in localStorage, small and read at once for the screen.
+// `?nosave` on the URL puts both in memory for that page: nothing read from the
+// browser, nothing written to it. The scripted tests run with it, since the browser
+// pane shares its storage with Michael's own (CLAUDE.md).
 
 import * as game from "./game.js";
 import * as clock from "./clock.js";
@@ -21,26 +25,65 @@ import * as clock from "./clock.js";
 export const VERSION = 1;
 const INDEX_KEY = "cmz.worlds";
 const OLD_KEY = "cmz.save"; // the one slot per map before docs/31/09
+const DB_NAME = "cmz";
+const DB_STORE = "worlds";
 const disabled = typeof location !== "undefined" && new URLSearchParams(location.search).has("nosave");
+const haveBrowser = typeof localStorage !== "undefined";
+const haveDb = typeof indexedDB !== "undefined";
 
-function memoryStore() {
-  const m = new Map();
-  return { get: (k) => (m.has(k) ? m.get(k) : null), set: (k, v) => m.set(k, v), remove: (k) => m.delete(k) };
+// ---- the stores: the index small and at hand, the records large and asynchronous ----
+
+function memoryIndex() {
+  let raw = null;
+  return { get: () => raw, set: (v) => { raw = v; } };
 }
 
-function browserStore() {
+function browserIndex() {
+  return { get: () => localStorage.getItem(INDEX_KEY), set: (v) => localStorage.setItem(INDEX_KEY, v) };
+}
+
+function memoryRecords() {
+  const m = new Map();
   return {
-    get: (k) => localStorage.getItem(k),
-    set: (k, v) => localStorage.setItem(k, v),
-    remove: (k) => localStorage.removeItem(k),
+    get: async (k) => (m.has(k) ? m.get(k) : null),
+    set: async (k, v) => { m.set(k, v); },
+    remove: async (k) => { m.delete(k); },
   };
 }
 
-const store = disabled || typeof localStorage === "undefined" ? memoryStore() : browserStore();
-
-function worldKey(worldId) {
-  return `cmz.world.${worldId}`;
+function dbRecords() {
+  let opening = null;
+  const open = () => {
+    if (!opening) {
+      opening = new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = () => { req.result.createObjectStore(DB_STORE); };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error || new Error("IndexedDB would not open"));
+        req.onblocked = () => reject(new Error("IndexedDB is blocked by another tab"));
+      });
+    }
+    return opening;
+  };
+  const run = async (mode, fn) => {
+    const db = await open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, mode);
+      const req = fn(tx.objectStore(DB_STORE));
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error || new Error("the store refused"));
+      tx.onabort = () => reject(tx.error || new Error("the write was aborted"));
+    });
+  };
+  return {
+    get: (k) => run("readonly", (s) => s.get(k)).then((v) => (v === undefined ? null : v)),
+    set: (k, v) => run("readwrite", (s) => s.put(v, k)),
+    remove: (k) => run("readwrite", (s) => s.delete(k)),
+  };
 }
+
+const index = disabled || !haveBrowser ? memoryIndex() : browserIndex();
+const records = disabled || !haveDb ? memoryRecords() : dbRecords();
 
 export function isDisabled() {
   return disabled;
@@ -59,7 +102,7 @@ export function newWorldId() {
 
 export function listWorlds() {
   try {
-    const raw = store.get(INDEX_KEY);
+    const raw = index.get();
     const list = raw ? JSON.parse(raw) : [];
     return Array.isArray(list) ? list : [];
   } catch {
@@ -69,7 +112,7 @@ export function listWorlds() {
 
 function writeIndex(list) {
   try {
-    store.set(INDEX_KEY, JSON.stringify(list));
+    index.set(JSON.stringify(list));
   } catch (err) {
     console.warn("The worlds index could not be written:", err.message);
   }
@@ -94,26 +137,25 @@ function rowFor(snap) {
 
 // ---- the records ----
 
-export function writeWorld(snap) {
-  if (!snap || !snap.worldId) return false;
+// The save written; the index after it. Resolves { ok, error }: a save that fails says why (the screen tells).
+export async function writeWorld(snap) {
+  if (!snap || !snap.worldId) return { ok: false, error: "no world" };
   try {
-    store.set(worldKey(snap.worldId), JSON.stringify(snap));
+    await records.set(snap.worldId, snap);
   } catch (err) {
-    console.warn("The save did not fit or could not be written:", err.message);
-    return false;
+    console.warn("The save did not fit or could not be written:", err && err.message);
+    return { ok: false, error: (err && err.message) || "the store refused" };
   }
   const list = listWorlds().filter((r) => r.worldId !== snap.worldId);
   list.unshift(rowFor(snap));
   writeIndex(list);
-  return true;
+  return { ok: true };
 }
 
 // A world's save, or null when there is none or it is not this version.
-export function readWorld(worldId) {
+export async function readWorld(worldId) {
   try {
-    const raw = store.get(worldKey(worldId));
-    if (!raw) return null;
-    const s = JSON.parse(raw);
+    const s = await records.get(worldId);
     if (!s || s.version !== VERSION || !s.map || !s.characters) return null;
     return s;
   } catch {
@@ -121,9 +163,9 @@ export function readWorld(worldId) {
   }
 }
 
-export function deleteWorld(worldId) {
+export async function deleteWorld(worldId) {
   try {
-    store.remove(worldKey(worldId));
+    await records.remove(worldId);
   } catch {
     // nothing to remove
   }
@@ -137,9 +179,9 @@ export function label(s) {
 
 // The one slot per map from before docs/31/09 becomes a world named for its map, with no
 // code and no owner recorded (the first Play there is this browser's; main.js fills the
-// characters map on entry). Runs once; the old key goes.
-export function migrate(mapName, worldName = "The valley") {
-  if (disabled) return null;
+// owners on entry). Runs once; the old key goes once the record is written.
+export async function migrate(mapName, worldName = "The valley") {
+  if (disabled || !haveBrowser) return null;
   try {
     const key = `${OLD_KEY}.${mapName}`;
     const raw = localStorage.getItem(key);
@@ -150,10 +192,11 @@ export function migrate(mapName, worldName = "The valley") {
       return null;
     }
     const players = (old.characters && old.characters.players) || [];
-    const snap = { ...old, worldId: newWorldId(), name: worldName, code: null, created: old.savedAt, characters: old.characters, owners: {}, myPlayerId: players[0] ? players[0].id : null };
+    const snap = { ...old, worldId: newWorldId(), name: worldName, code: null, created: old.savedAt, owners: {}, dormant: {}, myPlayerId: players[0] ? players[0].id : null };
     delete snap.dead;
-    if (writeWorld(snap)) localStorage.removeItem(key);
-    return snap.worldId;
+    const r = await writeWorld(snap);
+    if (r.ok) localStorage.removeItem(key);
+    return r.ok ? snap.worldId : null;
   } catch {
     return null;
   }

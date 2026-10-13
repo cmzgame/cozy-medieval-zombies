@@ -1113,6 +1113,9 @@ html, body {
 .row-sub code { font: 0.95em ui-monospace, Consolas, "Courier New", monospace; color: #c9a24a; letter-spacing: 1px; }
 .row-buttons { display: flex; gap: 6px; flex-shrink: 0; }
 .row-buttons .kit-button.on { border-color: #c9a24a; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; background: #555; border: 1px solid #333; vertical-align: middle; }
+.dot.on { background: #5fcf63; border-color: #2f7a33; box-shadow: 0 0 4px #5fcf63; }
+.dot.off { background: #7a3a3a; border-color: #4a2222; }
 .screen .sub {
   color: #a098ac;
   font-size: 12px;

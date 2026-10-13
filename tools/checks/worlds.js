@@ -18,12 +18,12 @@ export async function run(game) {
   try {
     G.loop.setPaused(true);
     // 0. Out of the test world: nothing runs, the title is up.
-    W.leave();
+    await W.leave();
     row("out of a world nothing runs and the title is up", !W.inWorld && G.screens.currentScreen() === "title", `inWorld ${W.inWorld}, screen ${G.screens.currentScreen()}`);
     // 1. Two identities; a world from the first.
     const a = I.add({ name: "Ada", look: { hairStyle: "short" } });
     const b = I.add({ name: "Bram", look: { hairStyle: "bald" } });
-    W.create("First world", a.id);
+    await W.create("First world", a.id);
     step(2);
     const first = W.current;
     row("a world made from an identity has a character by its name", W.inWorld && !!first && S.player.name === "Ada" && first.owners && Object.values(first.owners).includes(S.player.id), `world ${first && first.name}, player ${S.player.name} ${S.player.id}`);
@@ -34,15 +34,15 @@ export async function run(game) {
     G.grid.remove(bag, plank);
     G.map.dropItem(at[0], at[1], plank);
     step(2);
-    W.leave();
+    await W.leave();
     const listed = G.save.listWorlds();
     row("left, the world is listed with my character's name", !W.inWorld && listed.length === 1 && listed[0].name === "First world" && listed[0].myCharacter === "Ada", `${listed.length} listed: ${listed.map((w) => `${w.name} as ${w.myCharacter}`).join(", ")}`);
     // 2. A second world from the second identity.
-    W.create("Second world", b.id);
+    await W.create("Second world", b.id);
     step(2);
     const second = W.current;
     row("a second world has its own character from the other identity", S.player.name === "Bram" && second.worldId !== first.worldId && G.save.listWorlds().length === 2, `player ${S.player.name}, ${G.save.listWorlds().length} listed`);
-    W.leave();
+    await W.leave();
     // 3. The first world played again: the same character, the plank where it fell.
     await W.play(first.worldId);
     step(2);
@@ -56,11 +56,11 @@ export async function run(game) {
     G.events.emit("playerHit", { zombie: S.zombies[0], damage: 1000, victim: S.player });
     step(2);
     const deadScreen = G.screens.currentScreen() === "dead";
-    W.respawn(b.id);
+    await W.respawn(b.id);
     step(2);
     const body = S.players.find((p) => p.id === deadId);
     row("after a death a new character stands in the same world and the body stays", deadScreen && S.player.id !== deadId && S.player.name === "Bram" && !!body && body.dead && W.current.worldId === first.worldId, `dead screen ${deadScreen}, now ${S.player.name} ${S.player.id}, body ${body ? (body.dead ? "dead" : "alive") : "gone"}`);
-    W.leave();
+    await W.leave();
     const after = G.save.listWorlds().find((w) => w.worldId === first.worldId);
     row("the world's row names the new character", !!after && after.myCharacter === "Bram" && !after.dead, after ? `${after.name} as ${after.myCharacter}${after.dead ? " (dead)" : ""}` : "no row");
     await wait(10);

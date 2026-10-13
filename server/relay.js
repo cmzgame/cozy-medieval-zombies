@@ -24,6 +24,20 @@ const PORT = Number(process.env.PORT || process.argv[2] || 8012);
 const GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 const MAX_MESSAGE = 16 * 1024 * 1024; // the welcome is a whole save, under a megabyte today
 const PING_EVERY_MS = 30000;
+const LOOKUPS_PER_MINUTE = 30; // per address: /open answers and refused joins (nohost, taken), so a code cannot be scanned (the review, 2026-10-13)
+const lookups = new Map(); // address -> { count, since }
+
+function overLimit(address) {
+  const now = Date.now();
+  let l = lookups.get(address);
+  if (!l || now - l.since > 60000) {
+    l = { count: 0, since: now };
+    lookups.set(address, l);
+  }
+  l.count++;
+  return l.count > LOOKUPS_PER_MINUTE;
+}
+
 const DEAD_AFTER_MS = 90000;
 
 const rooms = new Map(); // code -> { host: Conn, guests: Map<id, Conn> }
@@ -157,7 +171,10 @@ function onMessage(conn, text) {
     const code = typeof msg.code === "string" ? msg.code.trim().toLowerCase().slice(0, 32) : "";
     if (!code) return conn.close(1008);
     if (msg.type === "host") {
-      if (rooms.has(code)) return conn.sendJson({ type: "error", reason: "taken" }), conn.close(1008);
+      if (rooms.has(code)) {
+        overLimit(conn.address);
+        return conn.sendJson({ type: "error", reason: "taken" }), conn.close(1008);
+      }
       conn.role = "host";
       conn.code = code;
       rooms.set(code, { host: conn, guests: new Map() });
@@ -165,7 +182,10 @@ function onMessage(conn, text) {
       log(`host ${conn.id} opened ${code}`);
     } else if (msg.type === "guest") {
       const room = rooms.get(code);
-      if (!room) return conn.sendJson({ type: "error", reason: "nohost" }), conn.close(1008);
+      if (!room) {
+        if (overLimit(conn.address)) return conn.close(1008); // scanned: no word at all
+        return conn.sendJson({ type: "error", reason: "nohost" }), conn.close(1008);
+      }
       conn.role = "guest";
       conn.code = code;
       room.guests.set(conn.id, conn);
@@ -214,6 +234,19 @@ function log(line) {
 // ---- the server ----
 
 const server = http.createServer((req, res) => {
+  const url = new URL(req.url, "http://relay");
+  const address = (req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim();
+  // "Is this world open?" for a code: { open, guests }. Rate-limited per address, as a refused join is.
+  if (url.pathname === "/open") {
+    if (overLimit(address)) {
+      res.writeHead(429, { "content-type": "application/json", "access-control-allow-origin": "*" });
+      return res.end('{"error":"slow down"}');
+    }
+    const code = (url.searchParams.get("code") || "").trim().toLowerCase().slice(0, 32);
+    const room = rooms.get(code);
+    res.writeHead(200, { "content-type": "application/json", "access-control-allow-origin": "*", "cache-control": "no-store" });
+    return res.end(JSON.stringify({ open: !!room, guests: room ? room.guests.size : 0 }));
+  }
   res.writeHead(200, { "content-type": "text/plain; charset=utf-8", "access-control-allow-origin": "*" });
   let guests = 0;
   for (const r of rooms.values()) guests += r.guests.size;
@@ -231,6 +264,7 @@ server.on("upgrade", (req, socket) => {
   socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
   socket.setNoDelay(true);
   const conn = new Conn(socket);
+  conn.address = (req.headers["x-forwarded-for"] || socket.remoteAddress || "").split(",")[0].trim();
   // A socket that never says who it is (host or guest, which code) is let go: only room members are pinged.
   setTimeout(() => { if (!conn.role) conn.close(1008); }, 10000).unref();
   socket.on("data", (chunk) => conn.feed(chunk));

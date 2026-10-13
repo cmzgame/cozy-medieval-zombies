@@ -60,6 +60,10 @@ let data = {};
 let previewTimer = null; // the identity editor's turning figure
 let previewFacing = 0;
 let creation = null; // character creation in progress: { for: "new" | "join" | "respawn", name, code, step, identityId }
+const CREATION_STEPS = 2; // the identity, then the placeholder for the skills to come (docs/31/09; 1 switches the placeholder off)
+let waitTimer = null; // Rejoin's wait for the host to open the world: polls the relay, joins once
+let openState = new Map(); // code -> { open, guests } from the relay, for the friends' rows' dot
+let dotTimer = null;
 
 export function initScreens(handlers = {}) {
   onChange = handlers.onChange || onChange;
@@ -189,12 +193,18 @@ function go(where, ds = {}) {
   else if (where === "back") back();
   else if (where === "reload") onReload();
   else if (where === "save") onSave();
-  else if (where === "leave") { if (worldsApi) worldsApi.leave(); }
+  else if (where === "leave") {
+    if (!worldsApi) return;
+    const h = worldsApi.here();
+    if (h.role === "host" && h.guests > 0 && !window.confirm(`Leaving closes the world to the ${h.guests} with you. Leave?`)) return;
+    worldsApi.leave();
+  }
   // The Worlds screen's rows.
   else if (where === "play") { if (worldsApi) worldsApi.play(ds.world); }
-  else if (where === "delete") { if (worldsApi && window.confirm("Delete this world and every character in it?")) { worldsApi.remove(ds.world); render(); } }
+  else if (where === "delete") { if (worldsApi && window.confirm("Delete this world and every character in it?")) Promise.resolve(worldsApi.remove(ds.world)).then(() => { if (current === "worlds") render(); }); }
   else if (where === "forget") { if (worldsApi) { worldsApi.forget(ds.code); render(); } }
-  else if (where === "rejoin") beginCreation({ for: "join", code: ds.code });
+  else if (where === "rejoin") startRejoin(ds.code, ds.name || "");
+  else if (where === "wait-cancel") { stopWait(); show("worlds"); }
   // A new world: its name, then a character for it.
   else if (where === "newworld") show("newworld", { name: worldsApi ? worldsApi.defaultName() : "" });
   else if (where === "newworld-next") {
@@ -205,15 +215,16 @@ function go(where, ds = {}) {
   // Joining: the code, then a character for the friend's world.
   else if (where === "join") show("join", {});
   else if (where === "join-next") {
+    // The join goes out at once with the browser's id; the host asks for an identity only if it must (main.js).
     const field = root.querySelector("#join-code");
     const code = (field && field.value.trim().toLowerCase()) || "";
-    if (code) beginCreation({ for: "join", code });
+    if (code && wireApi) wireApi.join(code);
   }
   // Character creation's steps.
   else if (where === "create-next") {
     if (!creation) return;
     if (creation.step === 1 && !creation.identityId) return;
-    if (creation.step < 2) { creation.step++; render(); return; }
+    if (creation.step < CREATION_STEPS) { creation.step++; render(); return; }
     finishCreation();
   }
   // The identity editor, from the identities screen or from creation's first step.
@@ -241,14 +252,66 @@ function beginCreation(c) {
   show("create");
 }
 
+// The host asked for an identity (main.js, `who`): the steps, over the stand-in world; `dead` says why.
+export function creationFor(c) {
+  beginCreation(c);
+}
+
 function finishCreation() {
   const c = creation;
   creation = null;
   if (!c || !c.identityId) return;
   if (identitiesApi) identitiesApi.setLast(c.identityId);
   if (c.for === "new" && worldsApi) worldsApi.create(c.name, c.identityId);
-  else if (c.for === "join" && wireApi) wireApi.join(c.code, c.identityId);
+  else if (c.for === "join" && wireApi) wireApi.joinAs(c.identityId);
   else if (c.for === "respawn" && worldsApi) worldsApi.respawn(c.identityId);
+}
+
+// Rejoin (docs/31/09): with a relay, ask every few seconds whether the world is open, for a minute, and
+// join once it is (two friends refreshing at once is the usual case); without one, join at once.
+function startRejoin(code, name) {
+  if (!wireApi) return;
+  const st = wireApi.status();
+  if (!st || !st.relay || !wireApi.isOpen) return wireApi.join(code);
+  stopWait();
+  show("waiting", { code, name, since: Date.now() });
+  const tryOnce = async () => {
+    const r = await wireApi.isOpen(code);
+    if (current !== "waiting") return stopWait();
+    if (r && r.open) {
+      stopWait();
+      wireApi.join(code);
+    } else if (Date.now() - data.since > 60000) {
+      stopWait();
+      show("worlds", { note: `${name || code} did not open in a minute. Rejoin tries again.` });
+    }
+  };
+  tryOnce();
+  waitTimer = setInterval(tryOnce, 3000);
+}
+
+function stopWait() {
+  if (waitTimer) clearInterval(waitTimer);
+  waitTimer = null;
+}
+
+// The friends' rows' dot: the relay asked for each code every few seconds while the Worlds screen is up.
+function pollOpen() {
+  if (current !== "worlds" || !wireApi || !wireApi.isOpen) return;
+  const st = wireApi.status();
+  if (!st || !st.relay) return;
+  const rows = worldsApi ? worldsApi.friends() : [];
+  Promise.all(rows.map((r) => wireApi.isOpen(r.code).then((o) => [r.code, o]))).then((pairs) => {
+    if (current !== "worlds") return;
+    let changed = false;
+    for (const [code, o] of pairs) {
+      const was = openState.get(code);
+      if (!o) continue;
+      if (!was || was.open !== o.open || was.guests !== o.guests) changed = true;
+      openState.set(code, o);
+    }
+    if (changed) render();
+  });
 }
 
 function button(go, label, extra = "") {
@@ -359,10 +422,15 @@ function worldRows() {
 function friendRows() {
   const rows = worldsApi ? worldsApi.friends() : [];
   if (!rows.length) return "";
+  const dot = (code) => {
+    const o = openState.get(code);
+    if (!o) return `<span class="dot" title="not asked yet"></span>`;
+    return `<span class="dot ${o.open ? "on" : "off"}" title="${o.open ? `open now, ${o.guests} in` : "not open now"}"></span>`;
+  };
   return `<h2>Friends' worlds</h2><div class="rows">${rows.map((r) => `
     <div class="row-item">
-      <div class="row-main"><b>${esc(r.name || `${esc(r.code)}`)}</b><span class="row-sub">${r.hostName ? `${esc(r.hostName)}'s · ` : ""}code <code>${esc(r.code)}</code>${r.myCharacter ? ` · as ${esc(r.myCharacter)}` : ""}</span></div>
-      <div class="row-buttons">${button("rejoin", "Rejoin", ` data-code="${esc(r.code)}"`)}${button("forget", "Forget", ` data-code="${esc(r.code)}"`)}</div>
+      <div class="row-main"><b>${dot(r.code)}${esc(r.name || r.code)}</b><span class="row-sub">${r.hostName ? `${esc(r.hostName)}'s · ` : ""}code <code>${esc(r.code)}</code>${r.myCharacter ? ` · as ${esc(r.myCharacter)}` : ""}</span></div>
+      <div class="row-buttons">${button("rejoin", "Rejoin", ` data-code="${esc(r.code)}" data-name="${esc(r.name || "")}"`)}${button("forget", "Forget", ` data-code="${esc(r.code)}"`)}</div>
     </div>`).join("")}</div>`;
 }
 
@@ -381,6 +449,8 @@ function render() {
   if (!root) return;
   root.className = current || "";
   stopPreview();
+  if (dotTimer) { clearInterval(dotTimer); dotTimer = null; }
+  if (current !== "waiting") stopWait();
   if (current === "title") {
     root.innerHTML = `
       <div class="screen">
@@ -394,10 +464,21 @@ function render() {
       <div class="screen screen-wide">
         <h1>Worlds</h1>
         <div class="sub">Each world keeps its own characters. Nothing runs until you choose one.</div>
+        ${data.note ? `<div class="sub note">${esc(data.note)}</div>` : ""}
         <h2>My worlds</h2>
         ${worldRows()}
         ${friendRows()}
         <div class="screen-buttons row">${button("newworld", "New world")}${button("join", "Join a game")}${button("back", "Back")}</div>
+      </div>`;
+    pollOpen();
+    dotTimer = setInterval(pollOpen, 5000);
+  } else if (current === "waiting") {
+    root.innerHTML = `
+      <div class="screen">
+        <h1>Rejoin</h1>
+        <div class="sub">Waiting for ${esc(data.name || data.code)} to open. The join goes as soon as it is.</div>
+        <div class="sub">code <code>${esc(data.code)}</code></div>
+        <div class="screen-buttons row">${button("wait-cancel", "Cancel")}</div>
       </div>`;
   } else if (current === "newworld") {
     root.innerHTML = `
@@ -428,14 +509,16 @@ function render() {
   } else if (current === "create" && creation) {
     const c = creation;
     const what = c.for === "new" ? `for ${esc(c.name)}` : c.for === "join" ? `for ${esc(c.code)}'s world` : "for this world";
+    const why = c.for === "join" && c.dead ? `<div class="sub note">Your survivor there died. A new one, from any identity.</div>` : "";
     const stepHtml = c.step === 1
-      ? `<h2>Step 1 of 2: the identity</h2><div class="sub">The name and the face this character is made from. A character keeps them for life.</div>${identityRows(true)}<div class="screen-buttons row">${button("identity-new", "New identity")}</div>`
-      : `<h2>Step 2 of 2: to come</h2><div class="sub">Skills and a profession will be chosen here. Nothing to choose yet; Next makes the character.</div>`;
+      ? `<h2>Step 1 of ${CREATION_STEPS}: the identity</h2><div class="sub">The name and the face this character is made from. A character keeps them for life.</div>${identityRows(true)}<div class="screen-buttons row">${button("identity-new", "New identity")}</div>`
+      : `<h2>Step 2 of ${CREATION_STEPS}: to come</h2><div class="sub">Skills and a profession will be chosen here. Nothing to choose yet; Next makes the character.</div>`;
     root.innerHTML = `
       <div class="screen screen-wide">
         <h1>A character ${what}</h1>
+        ${why}
         ${stepHtml}
-        <div class="screen-buttons row">${button("create-next", c.step < 2 ? "Next" : c.for === "join" ? "Join as this" : "Into the valley")}${button("back", "Back")}</div>
+        <div class="screen-buttons row">${button("create-next", c.step < CREATION_STEPS ? "Next" : c.for === "join" ? "Join as this" : "Into the valley")}${button("back", "Back")}</div>
       </div>`;
   } else if (current === "identities") {
     root.innerHTML = `

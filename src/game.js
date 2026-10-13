@@ -271,6 +271,31 @@ export function removePlayer(id) {
   if (S.player && S.player.id === id) S.player = S.players[0] || null;
 }
 
+// A player gone dormant (docs/31/09; Michael, 2026-10-13, Zomboid's way): out of the simulation,
+// not drawn and not hunted, its record kept by the client in the save's wrapper; and back again
+// on the rejoin, where it stood, with what it carried. Its id and sheet are its own still.
+export function takePlayer(id) {
+  const p = state.players.find((q) => q.id === id);
+  if (!p) return null;
+  const record = serializeCharacter(p);
+  removePlayer(id);
+  return record;
+}
+
+export function putPlayer(record) {
+  if (!record || record.kind !== "player") return null;
+  const S = state;
+  if (S.players.some((q) => q.id === record.id)) return S.players.find((q) => q.id === record.id);
+  const p = restoreCharacter(fromSafe(record), { player: createPlayer, zombie: createZombie, villager: createVillager });
+  p.target = null;
+  p.carrying = p._carryingId ? map.propById(p._carryingId) : null;
+  delete p._targetId;
+  delete p._carryingId;
+  S.players.push(p);
+  if (!S.player) S.player = p;
+  return p;
+}
+
 // Inside the box of tiles around any player where the dead and villagers think
 // (a stand-in for the records of docs/03 until that milestone; a union of
 // boxes with more than one player, docs/31/05 item 19).

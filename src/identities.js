@@ -59,7 +59,23 @@ export function setLast(id) {
   write("lastIdentity", id || "");
 }
 
-// The browser id: drawn once, never shown, never typed; a world keys its characters' owners by it.
+// What a world records an owner by: a hash of the browser id, never the id (the coder agent's
+// review, 2026-10-13: an exported save must not hand out the proof of who owns a character).
+// FNV-1a over the id, twice with different seeds, as sixteen hex digits.
+export function idHash(id) {
+  const s = String(id || "");
+  const fnv = (seed) => {
+    let h = seed >>> 0;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    return h.toString(16).padStart(8, "0");
+  };
+  return fnv(2166136261) + fnv(0x9747b28c);
+}
+
+// The browser id: drawn once, never shown, never typed; a world keys its characters' owners by its hash.
 export function clientId() {
   let id = read("clientId");
   if (!id) {
@@ -93,7 +109,7 @@ export function migrate() {
   if (list().length) return;
   const name = settings.get("playerName") || "";
   const look = settings.get("look") || {};
-  if (!name && !Object.keys(look).length && !settings.get("identityChosen")) return;
+  if (!name && !Object.keys(look).length) return;
   const made = add({ name: name || "Survivor", look });
   setLast(made.id);
 }
