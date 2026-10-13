@@ -72,6 +72,16 @@ export async function run(game) {
     const z = G.zombies.find((z) => Math.hypot(z.gx - p.gx, z.gy - p.gy) < 60);
     if (z) z.hp -= 37;
     p.hp = 71;
+    // Something in hand (docs/13): a carryable prop lifted, as the carry action lifts it, to come back in hand.
+    let lifted = null;
+    for (let r = 1; r <= 6 && !lifted; r++) for (let dy = -r; dy <= r && !lifted; dy++) for (let dx = -r; dx <= r && !lifted; dx++) {
+      const pr = map.tileAt(Math.round(p.gx) + dx, Math.round(p.gy) + dy).prop;
+      if (pr && G.placement.canCarry(pr) && !pr.bag) lifted = pr;
+    }
+    if (lifted) {
+      map.removeProp(lifted);
+      p.carrying = lifted;
+    }
     p.hunger = 55;
     G.clock.setHour(21);
     step(120);
@@ -85,6 +95,7 @@ export async function run(game) {
     const diff = deepEqual(a, b, "save");
     row("a save put back and taken again is the same save", !diff, diff || `${(textA.length / 1024).toFixed(0)} KB, ${a.map.chunks.length} chunks, ${a.characters.zombies.length} dead`);
     const doorBack = door && (map.peekTile(door.at[0], door.at[1]).n || map.peekTile(door.at[0], door.at[1]).w);
+    row("what was in hand is in hand again", !lifted || (G.player.carrying && G.player.carrying.id === lifted.id), lifted ? `${lifted.sprite} ${lifted.id}: ${G.player.carrying ? G.player.carrying.id : "nothing"} in hand, on the map ${!!map.propById(lifted.id)}` : "nothing carryable near the spawn");
     row("the mess survived", G.player.hp === 71 && (!door || (doorBack && doorBack.open === door.open)) && (!hearth || (map.propById(hearth.id).fire.lit && map.propById(hearth.id).fire.fuel > 0)), `hp ${G.player.hp}, the door ${door ? (doorBack && doorBack.open === door.open ? "as left" : "changed") : "none"}, hearth ${hearth ? `lit with ${map.propById(hearth.id).fire.fuel.toFixed(2)} fuel` : "none"}`);
     const dropped = map.itemsAt(sx, sy).find((e) => e.id === "plank");
     row("the dropped plank lies where it fell", !plank || !!dropped, dropped ? `uid ${dropped.uid}` : "missing");

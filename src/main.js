@@ -376,7 +376,7 @@ function openActionsMenu(m) {
   const guest = net.isGuest();
   const entries = actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => (guest ? net.sendAct(a.target, a.label) : interact.runAction(S.player, a)) }));
   // Build is in every menu, in case the key is forgotten (Michael, 2026-10-12).
-  entries.push({ label: "Build", enabled: !guest && !S.player.carrying && !panel.isOpen(), onSelect: toggleBuild });
+  entries.push({ label: "Build", enabled: !S.player.carrying && !panel.isOpen(), onSelect: toggleBuild });
   const u = view.toUi(m.x, m.y);
   menu.openContextMenu(u.x, u.y, entries);
 }
@@ -628,7 +628,8 @@ function stepGame(dt) {
   if (!glError) ground.update(camera.cam.gx, camera.cam.gy, tiles);
   // Placement first: its ghost follows the cursor and a left click that
   // places is spent before anything else can use it (docs/13).
-  if (!guest) placement.update(S.player);
+  if (guest) placement.syncCarried(S.player); // the carried prop's mode follows the record (placement.js)
+  placement.update(S.player);
   if (buildPalette.isOpen()) {
     if (S.player.carrying || panel.isOpen()) buildPalette.close();
     else buildPalette.render(S.player);
@@ -649,7 +650,7 @@ function stepGame(dt) {
       clicked = false;
     }
   }
-  const clickSpent = !guest && clicked && placement.tryConfirm(S.player);
+  const clickSpent = clicked && placement.tryConfirm(S.player); // on a guest the confirm is a command (placement.setSender)
   handleMouse();
   // E, B, and T as events in my snapshot (interact.keyEvents): the world performs them for my player in its
   // step, here or on the host (game.step), so a guest's climb, boards, and torch are the host's doing.
@@ -1013,6 +1014,8 @@ async function boot() {
           if (src && addr) net.sendUse({ uid: cur.entry.uid, src, target: addr });
         });
       }
+      // A guest's placement goes to the host as a command, performed there with the host's reach (placement.js).
+      if (handlers.addressOf) placement.setSender((cmd) => net.sendPlace(cmd));
       // A host's own drag into a chest marks its chunk, so a guest sees the chest change.
       handlers.changed = () => { if (!net.isGuest() && openBag && openBag.tiles && openBag.tiles[0]) map.markDirty(openBag.tiles[0][0], openBag.tiles[0][1]); };
       panel.initInventoryPanel(handlers);
@@ -1254,6 +1257,8 @@ async function boot() {
     // A guest's panel command, and its Use, run here as its player (ui/inventory-actions.js).
     item: (p, cmd) => performItemCommand(p, cmd),
     use: (p, cmd) => performUseCommand(p, cmd, (id) => [...S.players, ...S.zombies, ...S.villagers, ...S.corpses].find((c) => c.id === id) || null),
+    // A guest's placement: a carried prop put down, a wall built, a built thing removed (placement.js).
+    place: (p, cmd) => placement.performPlacement(p, cmd),
     // A log line said for my player on the host (the Use mode's result).
     log: (text, kind) => log.push(text, kind),
     // The wire gone (net.js dropped): a guest back at the title, told why, the world here untouched; a host told and playing on alone.

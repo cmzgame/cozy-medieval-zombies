@@ -28,7 +28,22 @@ export const REMOVE_REACH = 2.6; // tiles from the player to the nearest part of
 const EDGE_CLEARANCE = 0.45; // the player may not stand closer than this to an edge being built
 
 // kind is null, "prop", "build", or "remove". ghost is what the renderer draws.
-export const state = { active: false, kind: null, prop: null, build: null, ghost: null };
+export const state = { active: false, kind: null, prop: null, build: null, ghost: null, turns: 0 };
+// On a guest (docs/31/05 item 10, tier 3): the ghost is the replica's, and the click goes to the host as
+// a command (main.js sets the sender), which performs it for the guest's player with its own reach.
+let sender = null;
+export function setSender(fn) {
+  sender = fn;
+}
+
+// A guest's carried prop follows its record: the mode begins when the host says it carries, ends when
+// it no longer does, and the ghost's prop is the replica's object as it is this frame.
+export function syncCarried(player) {
+  if (player.carrying) {
+    if (state.kind !== "prop") beginProp(player.carrying);
+    else state.prop = player.carrying;
+  } else if (state.kind === "prop") end();
+}
 
 let buildData = {}; // data/build.json
 let startAction = null; // interact.startAction, from init()
@@ -188,6 +203,7 @@ export function beginProp(prop) {
   state.prop = prop;
   state.build = null;
   state.active = true;
+  state.turns = 0;
 }
 
 export function beginBuild(what) {
@@ -222,6 +238,7 @@ function end() {
   state.build = null;
   state.active = false;
   state.ghost = null;
+  state.turns = 0;
 }
 
 export function ghost() {
@@ -234,6 +251,7 @@ export function ghost() {
 // R: a prop with facings turns to the next one (docs/17, Zomboid style);
 // otherwise its footprint turns.
 function turn(prop) {
+  state.turns = (state.turns || 0) + 1; // for a guest's command: the host turns its copy the same number of times
   const sheet = getSheet(prop.sprite, prop.tiles.length);
   if (sheet.facings && sheet.facings.length > 1) {
     const i = sheet.facings.indexOf(prop.facing);
@@ -416,6 +434,12 @@ export function tryConfirm(player) {
       showMessage(g.reason);
       return true;
     }
+    if (sender) {
+      // The host places what the guest carries, turned as the guest turned it (the R presses, in order).
+      sender({ kind: "prop", tx: g.tx, ty: g.ty, turns: state.turns });
+      end();
+      return true;
+    }
     map.placeProp(state.prop, g.tx, g.ty);
     player.carrying = null;
     end();
@@ -429,6 +453,10 @@ export function tryConfirm(player) {
       showMessage(g.reason);
       return true;
     }
+    if (sender) {
+      sender({ kind: "remove", target: addressOf(g.target) });
+      return true;
+    }
     destroy(g.target);
     return true;
   }
@@ -440,7 +468,79 @@ export function tryConfirm(player) {
       showMessage(g.reason);
       return true;
     }
+    if (sender) {
+      sender({ kind: "build", what: g.wallKind, tx: g.tx, ty: g.ty, edge: g.edge });
+      return true;
+    }
     startBuild(player, g);
+    return true;
+  }
+  return false;
+}
+
+// A removal target as an address: a prop by id, a wall by its edge.
+function addressOf(t) {
+  return t.type === "prop" ? { type: "prop", id: t.prop.id } : { type: "wall", tx: t.tx, ty: t.ty, edge: t.edge };
+}
+
+// A guest's placement on the host (net.js hooks.place): the same rules its own click meets, the reach
+// checked here against the guest's player, the refusal said to it through the acting player.
+export function performPlacement(player, cmd) {
+  if (!player || !cmd) return false;
+  if (cmd.kind === "prop") {
+    const prop = player.carrying;
+    if (!prop) return false;
+    const tx = Math.round(Number(cmd.tx));
+    const ty = Math.round(Number(cmd.ty));
+    if (!Number.isFinite(tx) || !Number.isFinite(ty)) return false;
+    const turns = ((Math.round(Number(cmd.turns)) || 0) % 4 + 4) % 4;
+    for (let i = 0; i < turns; i++) turn(prop);
+    if (Math.hypot(player.gx - tx, player.gy - ty) > PLACE_REACH) {
+      showMessage("Too far");
+      return true;
+    }
+    if (!canPutDown(player, tx, ty)) {
+      showMessage("No room");
+      return true;
+    }
+    map.placeProp(prop, tx, ty);
+    player.carrying = null;
+    return true;
+  }
+  if (cmd.kind === "build") {
+    const what = typeof cmd.what === "string" && buildData[cmd.what] ? cmd.what : null;
+    const tx = Math.round(Number(cmd.tx));
+    const ty = Math.round(Number(cmd.ty));
+    const edge = cmd.edge === "n" || cmd.edge === "w" ? cmd.edge : null;
+    if (!what || !edge || !Number.isFinite(tx) || !Number.isFinite(ty)) return false;
+    if (player.action) return true;
+    const why = buildReason(player, what, tx, ty, edge);
+    if (why) {
+      showMessage(why);
+      return true;
+    }
+    startBuild(player, { wallKind: what, tx, ty, edge });
+    return true;
+  }
+  if (cmd.kind === "remove") {
+    const a = cmd.target;
+    if (!a) return false;
+    let t = null;
+    if (a.type === "prop") {
+      const prop = typeof a.id === "string" ? map.propById(a.id) : null;
+      if (prop && canCarry(prop) && map.tileAt(prop.tile[0], prop.tile[1]).prop === prop) t = { type: "prop", prop };
+    } else if (a.type === "wall" && (a.edge === "n" || a.edge === "w")) {
+      const tx = Math.round(Number(a.tx));
+      const ty = Math.round(Number(a.ty));
+      const wall = Number.isFinite(tx) && Number.isFinite(ty) ? map.tileAt(tx, ty)[a.edge] : null;
+      if (wall && wall.built) t = { type: "wall", tx, ty, edge: a.edge, wall };
+    }
+    if (!t) return false;
+    if (targetReach(player, t) > REMOVE_REACH) {
+      showMessage("Too far");
+      return true;
+    }
+    destroy(t);
     return true;
   }
   return false;

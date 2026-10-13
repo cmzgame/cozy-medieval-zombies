@@ -677,7 +677,7 @@ export function allProps() {
 
 const PROP_DERIVED = new Set(["kind", "tiles"]); // made again by createProp from the sprite and the footprint
 
-function serializeProp(p) {
+export function serializeProp(p) {
   const out = {};
   for (const [k, v] of Object.entries(p)) if (!PROP_DERIVED.has(k) && typeof v !== "function") out[k] = v;
   return out;
@@ -756,12 +756,19 @@ export function installChunk(d) {
 // A saved prop back on its tiles (after every chunk is installed, since a
 // footprint may cross a chunk's edge): made by createProp from its sprite, then
 // its live fields put over the fresh ones.
-export function installProp(data) {
+// A prop from its record, not on any tile: what a character carries (docs/13) rides in its own
+// record (entities/character.js `carried`), since a lifted prop is on no chunk to be found by id.
+export function reviveProp(data) {
   const prop = createProp({ id: data.id, sprite: data.sprite, tile: data.tile, footprint: data.footprint, facing: data.facing, offset: data.offset, solid: data.solid, radius: data.radius });
   Object.assign(prop, data, { tiles: prop.tiles, kind: "prop" });
   for (const k of Object.keys(prop)) if (!(k in data) && !PROP_DERIVED.has(k)) delete prop[k]; // exactly the saved shape (a field the load had dropped stays dropped)
   if (prop.fire) fireProps.add(prop);
   else fireProps.delete(prop);
+  return prop;
+}
+
+export function installProp(data) {
+  const prop = reviveProp(data);
   for (const [x, y] of prop.tiles) {
     const t = peekTile(x, y, prop.layer || 0);
     if (t) t.prop = prop;

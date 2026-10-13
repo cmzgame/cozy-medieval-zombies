@@ -404,13 +404,13 @@ export function hostStep(mySnap, me) {
           game.state.acting = null;
         }
       }
-    } else if (msg.type === "item" || msg.type === "use") {
+    } else if (msg.type === "item" || msg.type === "use" || msg.type === "place") {
       // The panel's drags, drops, and menus, and the Use mode's pair, from a guest (docs/31/05, item 9):
       // run here as the guest's player through the same code its own panel uses (main.js hands in
       // inventory-actions.js's executors).
       const g = guests.get(msg.from);
       const p = g && game.state.players.find((q) => q.id === g.playerId);
-      const hook = msg.type === "item" ? hooks.item : hooks.use;
+      const hook = msg.type === "item" ? hooks.item : msg.type === "use" ? hooks.use : hooks.place;
       if (p && hook) {
         game.state.acting = p;
         try {
@@ -611,15 +611,16 @@ function applyFrame(f) {
         c = restoreCharacter(data, makers);
         c.target = null;
         delete c._targetId;
-        c.carrying = propById(c._carryingId);
+        c.carrying = game.carriedOf(c);
         delete c._carryingId;
+        delete c._carried;
         if (c.kind !== "player") (c.corpse ? dressCorpse(c) : dress(c));
         byId.set(c.id, c);
       } else {
         const keep = c.sprite;
-        const { targetId, carryingId, ...rest } = data;
+        const { targetId, carryingId, carried, ...rest } = data;
         Object.assign(c, rest);
-        c.carrying = propById(carryingId);
+        c.carrying = propById(carryingId) || (carried && carried.id === carryingId ? map.reviveProp(carried) : null);
         if (c.kind === "player") c.sprite = keep || c.sprite;
         else if (c.corpse) dressCorpse(c);
       }
@@ -675,6 +676,11 @@ export function sendAct(target, label) {
 // The panel's command (ui/inventory-actions.js, createRemoteInventoryActions): an op by uid, slot, and bag address.
 export function sendItem(cmd) {
   if (role === "guest" && cmd && cmd.op) send({ type: "item", ...cmd });
+}
+
+// A placement (placement.js): a carried prop put down at a tile, a wall built on an edge, a built thing removed.
+export function sendPlace(cmd) {
+  if (role === "guest" && cmd && cmd.kind) send({ type: "place", ...cmd });
 }
 
 // The Use mode's pair (use.js): the item by uid and source, the target by address.

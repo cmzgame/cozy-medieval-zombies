@@ -10,7 +10,7 @@ import * as figure from "../figure.js";
 import * as assets from "../assets.js";
 import { createHands, rollLoot } from "../items.js";
 import * as grid from "../grid.js";
-import { dropItem } from "../map.js";
+import { dropItem, serializeProp } from "../map.js";
 import { createWorn, createBag } from "../inventory.js";
 import { createAnimation } from "../sprites.js";
 
@@ -67,6 +67,7 @@ export function serializeCharacter(ch) {
   }
   out.targetId = ch.target ? ch.target.id : null;
   out.carryingId = ch.carrying ? ch.carrying.id : null;
+  out.carried = ch.carrying ? serializeProp(ch.carrying) : null; // the prop itself: lifted, it is on no chunk (a save with something in hand lost it, found 2026-10-13)
   return out;
 }
 
@@ -79,7 +80,7 @@ export function restoreCharacter(data, makers) {
   if (data.kind === "player") ch = makers.player(data.gx, data.gy, { id: data.id });
   else if (data.kind === "zombie") ch = makers.zombie(data.gx, data.gy, { id: data.id });
   else ch = makers.villager(data.gx, data.gy, { id: data.id, name: data.name, line: data.greeting || null, wardrobe: data.wardrobe || 0 });
-  const { targetId, carryingId, worn, hands, pockets, loot, ...rest } = data;
+  const { targetId, carryingId, carried, worn, hands, pockets, loot, ...rest } = data;
   Object.assign(ch, rest);
   ch.worn = worn || createWorn();
   ch.pockets = pockets || null;
@@ -104,6 +105,7 @@ export function restoreCharacter(data, makers) {
   ch.behindProp = false;
   ch._targetId = targetId || null;
   ch._carryingId = carryingId || null;
+  ch._carried = carried || null; // the caller revives it when the id finds nothing on the map (game.js, net.js)
   return ch;
 }
 

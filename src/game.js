@@ -177,6 +177,12 @@ export function serialize() {
 // given its saved fields, the links made by id, the counters, the clock, and the
 // generator put back last (the creators roll). What the client must do after:
 // its camera, sight, the ground's pictures, the player's sheet, the light.
+// What a restored character carries: the prop by id if it stands on the map, else revived from its record.
+export function carriedOf(c) {
+  if (!c._carryingId) return null;
+  return map.propById(c._carryingId) || (c._carried ? map.reviveProp(c._carried) : null);
+}
+
 export function restore(saved, json) {
   const S = state;
   const save = fromSafe(saved); // the tokens back to numbers, and nothing shared with the caller's object
@@ -203,9 +209,10 @@ export function restore(saved, json) {
   const byId = new Map(all.map((c) => [c.id, c]));
   for (const c of all) {
     c.target = c._targetId ? byId.get(c._targetId) || null : null;
-    c.carrying = c._carryingId ? map.propById(c._carryingId) : null;
+    c.carrying = carriedOf(c);
     delete c._targetId;
     delete c._carryingId;
+    delete c._carried;
     if (c.kind !== "player") {
       if (c.corpse) dressCorpse(c);
       else dress(c);
@@ -296,9 +303,10 @@ export function putPlayer(record) {
   if (S.players.some((q) => q.id === record.id)) return S.players.find((q) => q.id === record.id);
   const p = restoreCharacter(fromSafe(record), { player: createPlayer, zombie: createZombie, villager: createVillager });
   p.target = null;
-  p.carrying = p._carryingId ? map.propById(p._carryingId) : null;
+  p.carrying = carriedOf(p);
   delete p._targetId;
   delete p._carryingId;
+  delete p._carried;
   S.players.push(p);
   if (!S.player) S.player = p;
   return p;
