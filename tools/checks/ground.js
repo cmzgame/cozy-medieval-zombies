@@ -169,6 +169,9 @@ export async function run(game) {
     step(5);
     game.teleport(start[0], start[1]);
     step(5);
+    // Back at the start the far chunk has been evicted (wild, beyond eight chunks), and a bake
+    // reads blank land where nothing is grown: grow it again, as a second visit would, then hash.
+    game.map.ensureAround(13 * C + 8, C + 8, 1);
     const after = G.hashChunk(13, 1);
     add(4, "Deterministic", a && before === after, `same chunk twice ${a ? "identical" : "different"}; wild chunk (13, 1) before and after a visit ${before === after ? "identical" : "different"}`);
   }
