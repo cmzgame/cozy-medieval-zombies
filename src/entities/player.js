@@ -318,10 +318,12 @@ export function updatePlayer(player, dt, snap = IDLE) {
   }
 
   // Aim: mouse relative to the chest. Facing follows the aim, not the walk.
+  // The aim is the cursor relative to the chest; a client not here sends that vector as `aim`, since
+  // its cursor is in its own view's pixels and means nothing in another's (docs/31/05, item 16).
   const m = snap.mouse;
   const o = m ? aimOrigin(player) : null;
-  const ax = m ? m.x - o.x : 0;
-  const ay = m ? m.y - o.y : 0;
+  const ax = snap.aim ? snap.aim.x : m ? m.x - o.x : 0;
+  const ay = snap.aim ? snap.aim.y : m ? m.y - o.y : 0;
   if (ax !== 0 || ay !== 0) {
     const n = iso.normalize(ax, ay);
     player.aim.sx = n.x;

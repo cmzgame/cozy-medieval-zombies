@@ -176,6 +176,13 @@ export function sheetIds() {
 let initJson = null; // the map file, kept for reload()
 
 // The kit read again and every chunk re-baked: a floor or terrain picture was saved by the tool (docs/23, step 3f).
+// Every chunk re-baked when next in view, the kit as it is: a world put back from a save or
+// from a host (docs/31/05, item 24; net.js). Synchronous, so a step between cannot bake on an
+// empty kit the way reload()'s await could.
+export function invalidateAll() {
+  for (const e of chunks.values()) e.dirty = true;
+}
+
 export async function reload() {
   biomes.clear();
   await init(initJson);
