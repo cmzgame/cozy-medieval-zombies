@@ -1,0 +1,71 @@
+# 31.05 — The seams: what changes in the code
+
+The concrete list, grouped by the free rule each serves, each item with where it is (`02` has the lines) and its scope in the house's terms (small: a function or a field; medium: a file reshaped, callers touched; large: a module or a pattern across files). No times (`no-time-estimates`). Nothing here is to be built now; it is the map of the work, and `06` orders it. Items marked **(now)** are the ones `08` asks the big pass's implementer to keep, because they cost nothing while the code is being written and a rewrite later.
+
+## A. Ids on everything that can be named (large by count, small each)
+
+1. **Props get an id** (`map.createProp`): a per-world counter (`nextPropId`), saved and restored, assigned at load (the generator may write them) and at creation; `tile.prop` keeps the object, a `props` map by id joins it; the address on the wire is the id. **(now)**: new code refers to a prop by `prop.id` where it stores a reference across steps (an action's target, `player.carrying`, `placement.state.prop`, a zombie's breach target).
+2. **Walls are addressed by `(x, y, edge)`** (`wall.at` exists): no id needed; the action target is the address.
+3. **Item entries get an instance id** (`grid.add`, `map.dropItem`, `items.hold`, the starter kit, loot rolls, `lootOf`): a per-world counter on every entry; **copies keep the id** (`dropItem`'s copy, the thrown item's copies, the torch from a holder keeps the holder's entry) and **merges name the survivor** (`grid.insert`, `transfer`: the entry that absorbed and the one that emptied). Medium: `grid.js`, `inventory.js`, `items.js`, `map.js`, `interact.js:291`, `archery.js:259, :493`. **(now)**: new code that makes an entry makes it through one function (`items.makeEntry`), never a literal `{ id, count }`.
+4. **Characters' ids come from the world's counter**, saved with it, never `"player"`; players are `p<n>`; `createZombie` stops owning `nextId`. Small.
+5. **The sheet id `"player"`** becomes `player_<id>`; `ui/hud.js:68`, `ui/zombie-bars.js:68`, `main.js:295` follow. Small.
+
+## B. Every world change through a mutator, and every mutator an event (medium across files)
+
+6. **Doors and shutters** toggle through `map.setOpening(at, {open|shutter})` instead of `interact.js:342-344`; **container state** through `map.searchContainer(prop)` and the grid's own functions; **corpse search** likewise; **sway and play stamps** through `map.poke(prop, tick)` and `map.play(prop, tick)`; the carried prop's turn through placement's own mutator; the removal tool's spill through `removeProp` itself. Each mutator calls `touch(x, y)` with its tile (the no-argument `touch()` stays for boot only) and **emits its event** on the bus, which is the wire's event list. Medium in `map.js`, `interact.js`, `placement.js`. **(now)**: new world changes in the big pass (soil, planting, growth, watering, harvest, a station's queue, a fire's fuel, a stack that gives, mining a rock) are each a mutator that touches its tile and emits.
+7. **The renderer and the UI stop writing on sim objects**: `behindProp` (`render/scene.js:119`) and `swingTarget` (`combat.js:375`) become per-client maps keyed by id; `ui/speech.js` reads the line's end tick from the sim instead of aging `ch.line`. Small each.
+8. **The three loose `tileAt` growers become `peekTile`**: `render/walls.js`, `ground.js:305, :422, :573`, `light.js:54, :221`, `visibility.js:40`, `archery.scanPath`, `placement.canPutDown`, `removalTarget`; growth only from `ensureAround` per player. Small each; **this one matters before any headless run**, since it is why a server and a host would diverge (`02` section 4). The determinism check gains a run at two window sizes to prove it.
+
+## C. The step owns every change (medium)
+
+9. **The DOM handlers queue commands instead of mutating.** The context menu's `onSelect` (`ui/context-menu.js:19-25`), every item and slot menu entry (`interact.js:812-944`), the panel's `pointerup`, double-click, Tidy, Rotate, `quickMove` (`ui/inventory-panel.js:75-112, :565-631`), the settings screen's `squareSurface`, Escape: each becomes `world.command(me, {...})`, applied at the top of the next step. The handlers keep their closures for the *client's* preview (the red slot, the greyed entry) and the world's truth moves to the step. Medium in `inventory-actions.js` (which already takes a `getPlayer` and is the natural place), `interact.js`'s menus, `context-menu.js`. **(now)**: a new menu entry or panel handler calls one function that does the thing, with the player and a target address as arguments, so that function is later called from the command queue unchanged.
+10. **The action becomes data** (`interact.js:49-51, :592-619`): `{verb, target, args, startTick, duration, range}` on `player.action`, with `perform` looked up by verb from a table (`actions/` of `23a` D2, which `30` step 3's `interactions.json` resolver is already half of) and **re-validating its target at completion** (the tree still stands, the chest still exists, the planks are still there). Medium; closes the double-fell bug in passing. **(now)**: every new verb in the big pass is a row in a verb table keyed by name, `perform(world, player, target, args)`, never an inline closure.
+11. **The timed-action bar** is drawn from `player.action`'s start tick and duration on any client that holds the player. Small.
+
+## D. The player passed, never reached for; per-player state on the player (medium, the D8 list)
+
+12. **`archery`'s draw, recover, aimOverride, marker** move onto the player (`player.draw`, `player.marker` client-side). Medium: `archery.js:289-540`, `main.js:103, :286`.
+13. **`combat`'s `time` and `fx`** onto the player; `kick` emits a `hit` event the client turns into its own camera kick; **`loop.freeze` goes**: the client holds its own interpolation and animation for the hit-stop's length on its own `hit` event; the authority never freezes. Small in `combat.js:69-70, :135, :243-249, :334, :358`; `loop.js:41-50` keeps `freeze` for the client's render clock only.
+14. **`placement.state`, `use.current`, `interact.keyE/keyB`, `buttons.alt/off`** become per-client objects owned by the client (they are input and preview, not world); the sim functions they feed take the player and a command. Medium in `placement.js`, `use.js`, `interact.js:663-807`, `buttons.js`.
+15. **`light.carrier` becomes a list with owners** (`setCarriers([{owner, gx, gy, radius, flicker, strength}])`; `allSources` appends each; `zombie.js:389` walks to the owner). Small.
+16. **`camera.cam` and `iso`'s origin leave the sim.** `updatePlayer` (`player.js:196-231`), `interact.pokeAt/playAt/characterAt/interactableAt` (`:974-1059`), `placement.propGhost/buildGhost/removalTarget`, `archery.aimPoint` take **world-space points** from the command (the client converts through its own camera before sending). Medium, and the one change that touches the most call sites; it is also the change that lets the authority run without a window.
+17. **`main.js`'s singletons become `world.players` and `client.me`**: `player`, `visible`, `tiles`, `playerRoom`, `openBag`, `corpseWatch`, `progress`, `drawAll`, `figureKey` sorted into the world (players, each with their `action`, `carrying`, `openContainer`) and the client (my id, my sight, my room, my open panel, my debug). Large in `main.js` (the split `23a` D1 named as `game.js` and never finished), and the backbone of the whole thing.
+18. **Events name their people**: `playerHit {victim}`, `containerOpened {by}`, `gameOver {who}`, `blocked {who}`, `guardBroken {who}`; listeners in `main.js:774-797` look the player up. Small.
+19. **The dead's target list** is `[...players, ...villagers]` with players preferred (`zombie.js:363-404`); `nearPlayer` is "near any player"; `ensureAround` and `evictFar` take a list of points (`map.js:640, :1304`). Small each.
+20. **`kind === "player"` meaning "me"** becomes `id === client.me` in `render/scene.js:101`, `render/entities.js:184`, `ui/speech.js:64`. Small.
+
+## E. No feature that freezes the whole sim; time is the world's (small)
+
+21. **`world.timeScale`** replaces the planned loop multiplier of `30` 3.3: the loop runs `timeScale` steps per step-worth of real time; sleep sets it from the rule in `03` (every connected player in bed); pause is scale 0, accepted only alone. Small in `loop.js`, the sleep code to come. **(now)**: `30` step 2's sleep sets a world field, not a loop variable.
+22. **The authority steps on a timer, not a frame** (`setInterval` with the accumulator; the render stays on `requestAnimationFrame`): a hidden host tab keeps stepping as well as the browser allows, and Node steps the same code. Small in `loop.js`.
+
+## F. The world headless (medium)
+
+23. **`src/world/` as the module `04` describes**: the state and the step order out of `main.js`; `create`, `join`, `leave`, `command`, `step`, `events`, `snapshot`, `delta`, `serialize`, `restore`, `hash`. No `document`, no `window`, no `input`, no `showMessage` (a `message` event), no `settings` (rules handed in). What blocks it today: `assets.js`'s `document` (the sim needs only sheet metadata: frame counts and the active frames, since bites fire on `isActiveFrame(z.anim, sheet)`, `zombie.js:532, :569`, so the authority needs the definitions, not the pixels; a headless `assets` that loads definitions alone), the pixel pick in `interact.js` (client-side by item 16), `figure` (client-side; the authority never bakes). Medium, mostly moves; `tools/check.js` grows into `node tools/world.js` as the proof: boot a world in Node, step it a minute, hash it.
+24. **`serialize()` and `restore()` per module** (the parent's `15-save-load.md` shape, versioned, discarded whole on mismatch): the map's dirty chunks (run-length floors, edge walls with their stack, sparse tiles with props by id and items by id), the characters (players, the dead, corpses, sleepers), fires, arrows in flight, the clock, the rng's four words, the counters, the rules. Medium; **this is the save system**, built once, used by the save slot, the join, and the hash.
+25. **`check("sync")`** as `04` describes: two tabs, the loopback with delay, a scripted minute, equal hashes. Small once 24 exists; it is the gate of every tier in `06`.
+
+## G. The client (medium)
+
+26. **A `client` object** (`me`, the replica, the transport, the predictor, the interpolator) in `main.js`'s place; boot unchanged up to the world stage, which becomes "connect or create".
+27. **Prediction and reconciliation** for my own walking: `updatePlayer`'s movement run locally against the replica, inputs kept by tick, replayed on correction. Medium; one new file. The rest of my player's state is shown as received.
+28. **Interpolation** for others: a snapshot ring per character, drawn one snapshot behind. Small; `render/entities.js` reads an interpolated position.
+29. **Sheets per player** (`player_<id>`, redrawn in place from the identity and the worn list), `assets.sheetFor` untouched for the rest. Small; the second atlas page when a group of friends asks for it (`gl.js`, a second texture and draw call, `23`'s own note).
+30. **The identity screen** (the creation screen of `02`'s pin with a name), stored as a setting, sent on join, editable from the pause menu. Medium; new UI on the kit. Wanted by single player anyway.
+31. **The join screen**: host (a code shown) or join (a code typed), the transport chosen by it; the title's Play is "host, alone". Small.
+32. **The log as the chat**: a text input at the log's foot, Enter sends `say`. Small.
+33. **The dead screen per player**: New survivor, the spectate rule of `03`. Small once the survivor logic (item 34) exists.
+
+## H. The world's rules that are single-player today (small each)
+
+34. **Death and the next survivor**: `turnVillager`'s path for a player (a zombie in their clothes with their hands and pockets), the respawn at the inn, the toll house, or the croft by turn (`30` 3.5), the survivor count; the game-over listener that exists nowhere today. Medium; owed to single player by `02`'s 2026-10-08 ruling regardless.
+35. **Settings sorted** (`02` section 8): the world's rules read on the authority from the host's settings or the server's config file; a guest's settings screen shows them read-only; `hairStyle` and `paintedLayers` move into the identity. Small.
+36. **The records milestone** (`03-world-model.md`), when built, takes the list of players as its centre: the union of regions, eviction by nearest, alarm and lure per chunk. Not a change, a constraint on an unbuilt thing; noted so it is built once.
+
+## I. The server process (medium, new)
+
+37. **`tools/server/` or `server/`** (a Node program, the house style): the WebSocket relay for a listen server, and the dedicated authority that imports `src/world/` and steps it on a timer, saving to disk; a code per world; the version check on join. Medium; the first non-browser runtime in the repo and the one dependency decision (`ws`, or a hand-written handshake).
+
+## What the list is not
+
+Not a rewrite. Items 1 to 22 are the D1, D2, D8 moves of `23a` finished, with ids and events added; the files keep their names and most of their lines. Items 23 to 25 are the save system, owed anyway. Items 26 to 33 are the client, new. Items 34 to 36 are single-player debts. Item 37 is the one genuinely new thing. The biggest single cost by volume is `05-someday`'s tier 3 (every item move and world change as a command), which is items 3, 6, 9, 10 here, and the one most likely to produce duplication bugs, which is why `check("sync")` with the whole world hashed is the gate.
