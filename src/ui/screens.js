@@ -91,6 +91,15 @@ export function initScreens(handlers = {}) {
       const code = (root.querySelector("#join-code").value || "").trim().toLowerCase();
       if (code) wireApi.join(code);
     }
+    // The host's code to the clipboard (Michael, 2026-10-13: he had to copy it out of the DOM).
+    const copy = e.target.closest("#host-copy");
+    if (copy) {
+      const field = root.querySelector("#host-code");
+      const code = field ? field.value : "";
+      const done = () => { copy.textContent = "Copied"; };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(done, () => { field && field.select(); });
+      else if (field) { field.select(); try { document.execCommand("copy"); done(); } catch { /* selected, at least */ } }
+    }
   });
   root.addEventListener("input", (e) => {
     const name = e.target.closest("input[data-name]");
@@ -147,8 +156,9 @@ function go(where) {
     else hide();
   } else if (where === "resume") hide();
   else if (where === "done") {
-    // The character screen's Done: into the game it was opened for, else back where it came from.
+    // The character screen's Done: into the game it was opened for, into the join it was opened for, else back where it came from.
     if (data.then === "play") hide();
+    else if (data.then === "join") { const code = data.code; hide(); if (wireApi) wireApi.join(code, true); }
     else back();
   } else if (where === "back") back();
   else if (where === "reload") onReload();
@@ -196,7 +206,7 @@ function characterHtml() {
   return `
     <div class="screen screen-wide you">
       <h1>Your character</h1>
-      <div class="sub">${data.then === "play" ? "Who walks into the valley" : "Kept in this browser; a join carries it"}</div>
+      <div class="sub">${data.then === "play" ? "Who walks into the valley" : data.then === "join" ? `Who joins ${data.code}'s world` : "Kept in this browser; a join carries it"}</div>
       <div class="you-body">
         <canvas class="you-preview" width="144" height="216"></canvas>
         <div class="you-rows">
@@ -208,7 +218,7 @@ function characterHtml() {
           ${swatchRow("Eyes", "eyes", pal.eyes, look.eyes)}
         </div>
       </div>
-      <div class="screen-buttons row">${button("done", data.then === "play" ? "Into the valley" : "Done")}${data.then === "play" ? button("back", "Back") : ""}<button id="hair-reload" title="Pick up styles saved from tools/hair.html">Reload hair</button></div>
+      <div class="screen-buttons row">${button("done", data.then === "play" ? "Into the valley" : data.then === "join" ? "Join as this" : "Done")}${data.then === "play" || data.then === "join" ? button("back", "Back") : ""}<button id="hair-reload" title="Pick up styles saved from tools/hair.html">Reload hair</button></div>
     </div>`;
 }
 
@@ -259,6 +269,7 @@ function render() {
       <div class="screen">
         <h1>Cozy Medieval Zombies</h1>
         <div class="sub">A village of the dead. Keep the shutters closed.</div>
+        ${data.note ? `<div class="sub note">${data.note}</div>` : ""}
         ${data.save && data.save.dead ? `<div class="sub">Your last survivor died. Play starts the village over.</div>` : ""}
         <div class="screen-buttons">${data.save && !data.save.dead ? button("continue", `Continue, ${data.saveLabel}`) : ""}${button("play", data.save ? "New game" : "Play")}${youApi ? button("character", "Character") : ""}${button("settings", "Settings")}${button("controls", "Controls")}</div>
         ${wireApi ? `<div class="screen-buttons">${button("host", "Host a game")}${button("join", "Join a game")}</div>` : ""}
@@ -278,7 +289,7 @@ function render() {
     root.innerHTML = `
       <div class="screen">
         <h1>Host a game</h1>
-        ${open ? `<div class="sub">Your code: <b class="code">${st.code}</b></div><div class="sub">${st.guests.length ? `With you: ${st.guests.join(", ")}` : "Waiting for friends. The world runs while this screen is up only if you go back to it."}</div>` : `<div class="sub">Opens this world to friends on this computer's browser for now, and on the wire later (docs/31/04).</div>`}
+        ${open ? `<div class="sub">Your code: <input id="host-code" class="code" type="text" readonly value="${st.code}" spellcheck="false"> <button id="host-copy" class="kit-button">Copy</button></div><div class="sub">${st.guests.length ? `With you: ${st.guests.join(", ")}` : "Waiting for friends. The world runs while this screen is up only if you go back to it."}</div>` : `<div class="sub">Opens this world to friends. For now a friend must join from another tab of this same browser; the relay that reaches friends anywhere is the next move (docs/31/04).</div>`}
         <div class="screen-buttons">${open ? "" : button("host-open", "Open this world")}${button("back", open ? "Back to the game" : "Back")}</div>
       </div>`;
   } else if (current === "join" && wireApi) {

@@ -1468,4 +1468,7 @@ html, body {
 #log-input:focus { border-color: #c9a24a; }
 #log { bottom: 30px; }
 .code { font-size: 1.3em; letter-spacing: 1px; color: #c9a24a; }
-#join-code { font: 13px var(--font-ui, sans-serif); padding: 2px 6px; background: rgba(10, 6, 14, 0.6); color: #f4ecd9; border: 1px solid #5a4a3a; border-radius: 3px; }
+/* The code in a plain monospace, never the pixel font: every letter must read as itself (Michael, 2026-10-13). */
+#host-code, #join-code { font: 15px ui-monospace, Consolas, "Courier New", monospace; letter-spacing: 2px; padding: 2px 6px; background: rgba(10, 6, 14, 0.6); color: #f4ecd9; border: 1px solid #5a4a3a; border-radius: 3px; }
+#host-code { width: 11ch; text-align: center; color: #c9a24a; cursor: text; }
+.screen .sub.note { color: #e8b86a; }

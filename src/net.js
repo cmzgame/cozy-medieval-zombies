@@ -67,10 +67,36 @@ export function init(opts = {}, h = {}) {
   open(opts);
 }
 
-// A short code for a world, for friends to type (the Host screen).
+// A short code for a world, for friends to type (the Host screen): a tree and three letters or
+// digits from an alphabet with no look-alikes (no i, l, o, 0, 1: Michael could not read one from the
+// pixel font, 2026-10-13).
+const CODE_CHARS = "abcdefghjkmnpqrstuvwxyz23456789";
 export function makeCode() {
   const words = ["oak", "elm", "ash", "yew", "fir", "hazel", "rowan", "thorn", "moss", "fern"];
-  return `${words[Math.floor(Math.random() * words.length)]}-${Math.random().toString(36).slice(2, 5)}`;
+  let tail = "";
+  for (let i = 0; i < 3; i++) tail += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+  return `${words[Math.floor(Math.random() * words.length)]}-${tail}`;
+}
+
+// A guest that no host answers within this long gives up (hooks.failed) rather than wait in a
+// world nothing steps (Michael's two-browser test, 2026-10-13, `02`). Counted from the first join
+// sent, not from the open: a hidden pane steps only when a script steps it.
+const JOIN_WAIT_MS = 10000;
+let firstJoinAt = 0;
+
+// Leave the wire: the channel closed, the role given up; the world here stays as it is.
+export function close() {
+  if (channel) channel.close();
+  channel = null;
+  role = null;
+  code = null;
+  joined = false;
+  joinSentAt = 0;
+  firstJoinAt = 0;
+  inbox.length = 0;
+  guests.clear();
+  pending.length = 0;
+  pendingOpened.length = 0;
 }
 
 // Open this tab's world to guests (host) or join another's (guest), once.
@@ -109,7 +135,7 @@ export function hasGuests() {
 }
 
 export function status() {
-  return { role, code, lag, selfId, guests: [...guests.values()].map((g) => g.playerId), myPlayerId, joined, framesSeen, lastFrameAt, tick };
+  return { role, code, lag, selfId, guests: [...guests.values()].map((g) => g.playerId), myPlayerId, joined, framesSeen, lastFrameAt, tick, waiting: role === "guest" && !joined };
 }
 
 export function setTestSnapshot(s) {
@@ -259,8 +285,15 @@ export function hostAfterStep() {
 export function guestStep(mySnap) {
   if (role !== "guest") return;
   const now = performance.now();
+  if (!joined && firstJoinAt && now - firstJoinAt > JOIN_WAIT_MS) {
+    const c = code;
+    close();
+    if (hooks.failed) hooks.failed(c);
+    return;
+  }
   if (!joined && (!joinSentAt || now - joinSentAt > 2000)) {
     joinSentAt = now;
+    if (!firstJoinAt) firstJoinAt = now;
     send({ type: "join", name: identity.name, look: identity.look });
   }
   for (const msg of inbox.splice(0)) {

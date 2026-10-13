@@ -87,6 +87,13 @@ try {
 const S = game.state;
 let uiSimTime = 0; // the sim time the interface was last ticked to (docs/23a, F)
 let started = false; // Play or Continue pressed: the autosave runs only after, and never while dead (save.js)
+let urlLag = null; // `?lag=` for a join opened later from the Join screen
+
+// What the title shows: the slot's save, and whether the character screen comes first.
+function titleData() {
+  const slot = save.read(MAP_NAME);
+  return { save: slot, saveLabel: slot ? save.label(slot) : "", needsCharacter: !hasIdentity() || !!(slot && slot.dead) };
+}
 let lastAutosave = 0; // sim seconds at the last autosave
 const AUTOSAVE = 60; // seconds of game time between autosaves (the parent's cadence)
 let mapJson = null; // the map file, kept for a restore
@@ -820,8 +827,11 @@ async function boot() {
         wire: {
           status: () => net.status(),
           host: () => { if (net.open({ host: net.makeCode() })) showMessage(`Hosting: your code is ${net.status().code}.`, 5); },
-          join: (code) => {
-            if (!net.open({ join: code })) return;
+          // A guest with nothing chosen yet goes through the character screen first (`ready` is its Done):
+          // the join carries the identity, so there is no later moment for it (docs/31/03).
+          join: (code, ready = false) => {
+            if (!ready && !hasIdentity()) { screens.show("character", { then: "join", code }); return; }
+            if (!net.open({ join: code, lag: urlLag })) return;
             screens.hide();
             started = true;
             showMessage(`Joining ${code}…`, 4);
@@ -954,8 +964,10 @@ async function boot() {
   // The wire (net.js, docs/31/04): `?host=<code>` opens this world to guests on this origin; `?join=<code>`
   // joins one (`&lag=100` adds a delay each way). A guest skips the title: its world arrives from the host.
   const url = new URLSearchParams(window.location.search);
+  urlLag = url.get("lag");
+  const joinCode = url.get("join");
   net.setIdentity({ name: settings.get("playerName") || null, look: myLook() }); // the identity on the wire from boot; applyIdentity keeps it current
-  net.init({ host: url.get("host"), join: url.get("join"), lag: url.get("lag") }, {
+  net.init({ host: url.get("host"), join: joinCode && hasIdentity() ? joinCode : null, lag: urlLag }, {
     restore: async (snap, playerId) => {
       await restoreWorld(snap);
       S.player = S.players.find((p) => p.id === playerId) || S.player;
@@ -975,6 +987,11 @@ async function boot() {
     },
     // A guest's panel command, run here as its player (ui/inventory-actions.js).
     item: (p, cmd) => performItemCommand(p, cmd),
+    // No host answered the code (net.js JOIN_WAIT_MS): back at the title, told why, the world here untouched.
+    failed: (code) => {
+      started = false;
+      screens.show("title", { ...titleData(), note: `No host answered "${code}". For now the host and its guests must be tabs of one browser; the relay that reaches friends anywhere is the next move.` });
+    },
     chunksChanged: (chunks) => {
       for (const d of chunks) ground.invalidate([[d.cx * map.CHUNK + 8, d.cy * map.CHUNK + 8], [d.cx * map.CHUNK, d.cy * map.CHUNK], [d.cx * map.CHUNK + 15, d.cy * map.CHUNK + 15]]);
     },
@@ -982,11 +999,13 @@ async function boot() {
   window.addEventListener("pagehide", () => net.leave());
   loop.start({ update, render, crash: shell.crash });
   // The slot's save shows on the title as Continue (save.js); a dead one as a line and New game.
-  const slot = save.read(MAP_NAME);
   if (net.isGuest()) {
     started = true;
     showMessage("Joining the host's world…", 4);
-  } else screens.show("title", { save: slot, saveLabel: slot ? save.label(slot) : "", needsCharacter: !hasIdentity() || !!(slot && slot.dead) }); // the first game and the next survivor start at the character screen
+  } else {
+    screens.show("title", titleData()); // the first game and the next survivor start at the character screen
+    if (joinCode) screens.show("character", { then: "join", code: joinCode }); // `?join=` with nothing chosen yet: the character first, Back to the title
+  }
   // Autosave: every AUTOSAVE seconds of game time, and when the tab is hidden or left (the parent's rule).
   const autosave = () => {
     if (!started || S.player.dead || net.isGuest()) return; // a guest's world is the host's to save
