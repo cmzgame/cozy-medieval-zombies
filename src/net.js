@@ -47,6 +47,7 @@ let joined = false;
 let joinSentAt = 0;
 let framesSeen = 0;
 let lastFrameAt = 0;
+let stallTold = false; // the guest has been told the host has gone quiet, once per quiet spell
 let testSnapshot = null; // a check drives the guest's player with this instead of the keyboard
 const pendingOpened = []; // containers the host says my player opened, applied once the frames before them are
 let seq = 0; // the guest's input count, so the host can say which it has applied
@@ -95,6 +96,8 @@ export const PROTOCOL = 1;
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
 const GRACE_S = 60;
+const MAX_PENDING = 180; // a guest's unacknowledged inputs kept for the replay: three seconds
+const MAX_BACKLOG = 10; // a guest's inputs the host will hold: a sixth of a second, so the internet's own jitter is not corrected
 const away = new Map(); // playerId -> the sim time its guest went
 let clientId = null; // this browser's id on the join (identities.js); the host records its hash
 export function setClient(id) {
@@ -346,9 +349,16 @@ export function hostStep(mySnap, me) {
       const g = guests.get(msg.from);
       if (!g) continue;
       g.queue.push(msg); // one input per step, in order; the guest replays what is not yet acknowledged
-      if (g.queue.length > 1 && (msg.snap.clicked || msg.snap.altPressed || msg.snap.space)) {
-        // A press is one shot: when the queue runs ahead it must not be lost to the hold rule below.
-        g.queue[g.queue.length - 1].snap = { ...msg.snap };
+      // The queue is bounded. The host takes one input a step and a guest sends one a step, so a queue
+      // that ever ran ahead (the host's window throttled while covered, a hitch) would stay that far
+      // behind for ever, the guest's body replaying old walking and swings long after it stopped
+      // (Michael's first real join, 2026-10-13). Past the bound the oldest are let go, their one-shot
+      // presses carried onto the next so a swing or a space is never lost; the guest's own prediction is
+      // corrected by the frame, as for any other misprediction.
+      while (g.queue.length > MAX_BACKLOG) {
+        const gone = g.queue.shift();
+        const keep = g.queue[0];
+        for (const f of ["clicked", "altPressed", "space"]) if (gone.snap[f] && !keep.snap[f]) keep.snap = { ...keep.snap, [f]: true };
       }
     } else if (msg.type === "act") {
       // A verb on the world from a guest's menu or its E (docs/31/05, item 10; tier 3): the action with that
@@ -496,6 +506,7 @@ export function guestStep(mySnap) {
       applyFrame(game.fromSafe(msg));
       framesSeen++;
       lastFrameAt = now;
+      stallTold = false;
     } else if (msg.type === "message") {
       hooks.message(msg.text, msg.seconds);
     } else if (msg.type === "log") {
@@ -513,6 +524,12 @@ export function guestStep(mySnap) {
       pendingOpened.push(msg.what); // after the frame that carries the grid (frames queue behind it)
     }
   }
+  // The host's frames stopped coming: its window is most likely covered or in the background, where a
+  // browser slows a page to a crawl (Michael's first real join, 2026-10-13). Say so, once.
+  if (joined && lastFrameAt && !stallTold && now - lastFrameAt > 2500) {
+    stallTold = true;
+    hooks.message("The host's game has gone quiet. Its window may be covered or in the background.", 6);
+  }
   if (pendingOpened.length && hooks.opened) for (const w of pendingOpened.splice(0)) hooks.opened(w);
   if (joined && game.state.player) {
     const s = mySnap.idle ? mySnap : testSnapshot || mySnap; // a screen up: nothing pressed, whatever a check says
@@ -521,6 +538,7 @@ export function guestStep(mySnap) {
     const snap = { axis: s.axis, sprint: !!s.sprint, aim: s.aim || null, aimAt: s.aimAt || null, space: !!s.space, clicked: !!s.clicked, clickSpent: false, leftDown: !!s.leftDown, altPressed: !!s.altPressed, altDown: !!s.altDown, offDown: !!s.offDown, blocked: !!s.blocked };
     seq++;
     pending.push({ seq, snap });
+    if (pending.length > MAX_PENDING) pending.shift(); // a host that has acknowledged nothing for seconds: the replay is bounded
     send({ type: "input", seq, snap });
     // Prediction (docs/31/04): my own walking runs here at once against the replica's walls; the host's
     // word arrives a wire later and the inputs it has not yet applied are replayed over it (applyFrame).

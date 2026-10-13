@@ -1298,6 +1298,12 @@ async function boot() {
   };
   events.on("autosaveTick", autosave);
   document.addEventListener("visibilitychange", () => { if (document.hidden) autosave(); });
+  // A hosting window with friends in it must stay in front (a covered one is slowed to a crawl by the browser,
+  // and its world with it): the tab's title says so while it is hidden, where the tab strip and the taskbar show it.
+  const plainTitle = document.title;
+  document.addEventListener("visibilitychange", () => {
+    document.title = document.hidden && net.isHost() && net.hasGuests() ? "Friends are waiting: keep this window in front" : plainTitle;
+  });
   window.addEventListener("pagehide", autosave);
   await shell.finish(); // the screen goes once the first frame is under it
 
