@@ -906,52 +906,56 @@ export function wearFrom(player, entry, fromBag) {
   return true;
 }
 
-export function updateInteract(player, dt) {
-  if (player.climb) {
-    keyE.held = 0;
-    keyE.consumed = true;
-    return;
-  }
+// The keys' events for this step, from the keyboard here: a tap or a hold of E and B (the trackers'
+// state is this client's), a press of E, a press of T. They ride in the player's snapshot (main.js), so
+// a guest's go to the host in its input and the host performs them for the guest's player (game.step;
+// docs/31/05 item 10, tier 3). Nothing pressed gives an empty object, which the snapshot leaves out.
+export function keyEvents(dt) {
+  const ev = {};
+  track(keyE, dt, () => { ev.eHold = true; }, () => { ev.eTap = true; });
+  track(keyB, dt, () => { ev.bHold = true; }, () => { ev.bTap = true; });
+  if (input.wasPressed("KeyE")) ev.ePressed = true;
+  if (input.wasPressed("KeyT")) ev.t = true;
+  return Object.keys(ev).length ? ev : null;
+}
+
+// What the keys do to a player: E's tap the nearest simple action, its hold the climb; B's tap a board
+// on the nearest opening, its hold a board pulled; T the torch in or out of hand. The events are the
+// player's own client's (keyEvents), handed in by the step with its snapshot.
+export function updateInteract(player, dt, keys) {
+  if (!keys) return;
+  if (player.climb) return;
   if (player.carrying) {
     // Only E, and only to put it down.
-    if (input.wasPressed("KeyE")) {
+    if (keys.ePressed) {
       const a = nearestSimpleAction(player);
       if (a) startAction(player, a);
       else showMessage("No room to put it down there.");
     }
-    keyE.held = 0;
-    keyE.consumed = true;
-    keyB.held = 0;
-    keyB.consumed = true;
     return;
   }
-  track(keyE, dt,
-    () => {
-      const o = nearestOpening(player);
-      if (o && map.climbable(o.wall)) startClimb(player, o);
-    },
-    () => {
-      if (player.action) return;
-      const a = nearestSimpleAction(player);
+  if (keys.eHold) {
+    const o = nearestOpening(player);
+    if (o && map.climbable(o.wall)) startClimb(player, o);
+  } else if (keys.eTap && !player.action) {
+    const a = nearestSimpleAction(player);
+    if (a) startAction(player, a);
+  }
+  if (keys.bHold) {
+    const o = nearestOpening(player);
+    if (o) {
+      const a = openingActions(o, player).find((x) => x.kind === "pull");
       if (a) startAction(player, a);
-    });
-  track(keyB, dt,
-    () => {
-      const o = nearestOpening(player);
-      if (o) {
-        const a = openingActions(o, player).find((x) => x.kind === "pull");
-        if (a) startAction(player, a);
-      }
-    },
-    () => {
-      const o = nearestOpening(player);
-      if (o) {
-        const a = openingActions(o, player).find((x) => x.kind === "board");
-        if (a && a.enabled) startAction(player, a);
-        else if (a) showMessage("You need a plank.");
-      }
-    });
-  if (input.wasPressed("KeyT")) {
+    }
+  } else if (keys.bTap) {
+    const o = nearestOpening(player);
+    if (o) {
+      const a = openingActions(o, player).find((x) => x.kind === "board");
+      if (a && a.enabled) startAction(player, a);
+      else if (a) showMessage("You need a plank.");
+    }
+  }
+  if (keys.t) {
     if (holding(player.hands, "torch")) unequip(player, heldEntry(player.hands, "torch"));
     else {
       const found = findItem(player, "torch");

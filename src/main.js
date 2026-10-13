@@ -94,6 +94,13 @@ let urlLag = null; // `?lag=` for a join opened later from the Join screen
 // player it made there); null for a guest, whose world is the host's, and for a test world.
 let inWorld = false;
 let currentWorld = null;
+// In a world or not: the step and the frame run only in one, and the interface (the bars, the log, the
+// belt) shows only in one; the title sits over black otherwise (docs/31/09).
+function setInWorld(v) {
+  inWorld = !!v;
+  const el = typeof document !== "undefined" ? document.getElementById("ui") : null;
+  if (el) el.classList.toggle("no-world", !inWorld);
+}
 const URLQ = new URLSearchParams(typeof location !== "undefined" ? location.search : "");
 const TEST_WORLD = URLQ.has("nosave"); // the checks want a fresh world at boot, as the game always had (CLAUDE.md)
 let editing = null; // the identity being edited on the identity screen: { id?, name, look }
@@ -209,7 +216,7 @@ function enterNewWorld(name, identity, { keep = true } = {}) {
     combatTesting: !!settings.get("combatTesting"),
   });
   afterWorldSet();
-  inWorld = true;
+  setInWorld(true);
   currentWorld = keep ? { worldId: save.newWorldId(), name: name || "A world", code: null, created: Date.now(), owners: { [myHash()]: S.player.id }, dormant: {} } : null;
   started = keep;
   screens.hide();
@@ -234,7 +241,7 @@ async function playWorld(worldId) {
     game.pickPlayer(mine);
     camera.snapTo(mine.gx, mine.gy);
   }
-  inWorld = true;
+  setInWorld(true);
   started = true;
   if (S.player.dead) screens.show("dead", { when: clock.getLabel(), who: S.player.name || S.player.id });
   else {
@@ -275,7 +282,7 @@ async function leaveWorld() {
   if (inWorld) await saveWorld();
   if (net.isGuest()) net.leave(); // the host begins the grace at once, not at the socket's drop
   if (net.onTheWire()) net.close();
-  inWorld = false;
+  setInWorld(false);
   started = false;
   currentWorld = null;
   panel.closeAll();
@@ -644,13 +651,9 @@ function stepGame(dt) {
   }
   const clickSpent = !guest && clicked && placement.tryConfirm(S.player);
   handleMouse();
-  if (!guest) interact.updateInteract(S.player, dt);
-  else if (input.wasPressed("KeyE") && !panel.isOpen() && !menu.isMenuOpen()) {
-    // A guest's E: the nearest simple action, read off the replica, sent as a command (the hold to climb and
-    // the board and torch keys wait for their verbs).
-    const a = interact.nearestSimpleAction(S.player);
-    if (a && a.target) net.sendAct(a.target, a.label);
-  }
+  // E, B, and T as events in my snapshot (interact.keyEvents): the world performs them for my player in its
+  // step, here or on the host (game.step), so a guest's climb, boards, and torch are the host's doing.
+  const keys = panel.isOpen() || menu.isMenuOpen() ? (interact.keyEvents(dt), null) : interact.keyEvents(dt);
   // The world: the player from the mouse and the keys as a snapshot (docs/23a, D1;
   // never the input module), the dead, the villagers, the light (game.js).
   const mouse = input.getMouse();
@@ -662,6 +665,7 @@ function stepGame(dt) {
     aimAt: archery.aimPoint(S.player, mouse), // the ground point the cursor means, for a bow drawn on a host (net.js)
     clicked,
     clickSpent,
+    keys,
     mouse: input.getMouse(),
     leftDown: input.mouseLeftDown(),
     altPressed: buttons.alt.pressed,
@@ -947,7 +951,7 @@ async function boot() {
         light.update();
         for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
         visible = visibility.computeVisible(Math.round(S.player.gx), Math.round(S.player.gy), tiles);
-        inWorld = true;
+        setInWorld(true);
       }
     } },
     // The ground's pictures for the view and a ring around it (docs/15), two per frame.
@@ -1221,7 +1225,7 @@ async function boot() {
       game.state.player = S.player;
       refreshFigure(true);
       camera.snapTo(S.player.gx, S.player.gy);
-      inWorld = true;
+      setInWorld(true);
       currentWorld = null; // the host's world, never saved here
       started = false;
       // The bookmark learns the world's name, its host, and my character there (docs/31/09).
@@ -1275,7 +1279,7 @@ async function boot() {
         return showMessage(note, 5);
       }
       // A guest's wire gone: out of the stand-in or the replica, the title with the reason.
-      inWorld = false;
+      setInWorld(false);
       started = false;
       currentWorld = null;
       screens.show("title", { note });

@@ -285,6 +285,34 @@ function send(msg) {
   transport.send({ ...msg, from: selfId });
 }
 
+// What the host will take of a guest's snapshot: the shape the step reads, nothing else, every number finite
+// (a NaN aim or a far aim point would ride into the player's record and the save), the key events only the
+// ones that exist.
+const KEY_EVENTS = ["eTap", "eHold", "ePressed", "bTap", "bHold", "t"];
+function cleanSnap(raw) {
+  const s = raw && typeof raw === "object" ? raw : {};
+  const num = (v, lim) => (typeof v === "number" && Number.isFinite(v) ? Math.max(-lim, Math.min(lim, v)) : 0);
+  const vec = (v, lim) => (v && typeof v === "object" ? { x: num(v.x, lim), y: num(v.y, lim) } : null);
+  const axis = vec(s.axis, 1) || { x: 0, y: 0 };
+  let keys = null;
+  if (s.keys && typeof s.keys === "object") for (const k of KEY_EVENTS) if (s.keys[k] === true) (keys = keys || {})[k] = true;
+  return {
+    axis: { x: Math.sign(axis.x), y: Math.sign(axis.y) },
+    sprint: !!s.sprint,
+    aim: vec(s.aim, 4096),
+    aimAt: vec(s.aimAt, 100000),
+    space: !!s.space,
+    clicked: !!s.clicked,
+    clickSpent: false,
+    leftDown: !!s.leftDown,
+    altPressed: !!s.altPressed,
+    altDown: !!s.altDown,
+    offDown: !!s.offDown,
+    blocked: !!s.blocked,
+    keys,
+  };
+}
+
 // ---- the host ----
 
 // Before the world's step: the guests' latest inputs beside my own, and the
@@ -348,6 +376,7 @@ export function hostStep(mySnap, me) {
     } else if (msg.type === "input") {
       const g = guests.get(msg.from);
       if (!g) continue;
+      msg.snap = cleanSnap(msg.snap); // the host trusts no payload (reviewing the keys move, 2026-10-13)
       g.queue.push(msg); // one input per step, in order; the guest replays what is not yet acknowledged
       // The queue is bounded. The host takes one input a step and a guest sends one a step, so a queue
       // that ever ran ahead (the host's window throttled while covered, a hitch) would stay that far
@@ -359,6 +388,8 @@ export function hostStep(mySnap, me) {
         const gone = g.queue.shift();
         const keep = g.queue[0];
         for (const f of ["clicked", "altPressed", "space"]) if (gone.snap[f] && !keep.snap[f]) keep.snap = { ...keep.snap, [f]: true };
+        // The key events (E, B, T; interact.keyEvents) ride the same way: a tap or a hold let go with its input is not lost.
+        if (gone.snap.keys) keep.snap = { ...keep.snap, keys: { ...gone.snap.keys, ...(keep.snap.keys || {}) } };
       }
     } else if (msg.type === "act") {
       // A verb on the world from a guest's menu or its E (docs/31/05, item 10; tier 3): the action with that
@@ -417,7 +448,7 @@ export function hostStep(mySnap, me) {
     if (next) {
       g.last = next.snap;
       g.ack = next.seq;
-    } else if (g.last) g.last = { ...g.last, space: false, clicked: false, altPressed: false }; // a press is one step
+    } else if (g.last) g.last = { ...g.last, space: false, clicked: false, altPressed: false, keys: null }; // a press, and a key event, is one step
     if (g.last) snapshots.set(g.playerId, g.last);
   }
   return snapshots;
@@ -535,7 +566,7 @@ export function guestStep(mySnap) {
     const s = mySnap.idle ? mySnap : testSnapshot || mySnap; // a screen up: nothing pressed, whatever a check says
     // The fight (docs/31/06, tier 2): the clicks and the buttons go as they are, the aim as a vector and
     // a ground point; the host resolves the swing, the draw, and the shove against its own dead.
-    const snap = { axis: s.axis, sprint: !!s.sprint, aim: s.aim || null, aimAt: s.aimAt || null, space: !!s.space, clicked: !!s.clicked, clickSpent: false, leftDown: !!s.leftDown, altPressed: !!s.altPressed, altDown: !!s.altDown, offDown: !!s.offDown, blocked: !!s.blocked };
+    const snap = { axis: s.axis, sprint: !!s.sprint, aim: s.aim || null, aimAt: s.aimAt || null, space: !!s.space, clicked: !!s.clicked, clickSpent: false, leftDown: !!s.leftDown, altPressed: !!s.altPressed, altDown: !!s.altDown, offDown: !!s.offDown, blocked: !!s.blocked, keys: s.keys || null };
     seq++;
     pending.push({ seq, snap });
     if (pending.length > MAX_PENDING) pending.shift(); // a host that has acknowledged nothing for seconds: the replay is bounded

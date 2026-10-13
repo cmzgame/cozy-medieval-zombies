@@ -39,6 +39,8 @@ export async function run(game) {
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const wasPaused = G.loop.isPaused();
   G.loop.setPaused(true);
+  const survivalWas = G.settings.get("survival");
+  G.settings.set("survival", false); // no regeneration between the mess and the save: hp 71 stays 71 in any pane
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const p = G.player;
   try {
@@ -106,6 +108,7 @@ export async function run(game) {
     row("stepped on from the save, the world is the world", same, same ? `hash ${G.game.hashOf(straight)} both ways` : where);
     row("the slot in the browser was not touched", true, "snapshots stayed in memory");
   } finally {
+    G.settings.set("survival", survivalWas);
     G.loop.setPaused(wasPaused);
   }
   for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);

@@ -383,6 +383,7 @@ export function step(dt, snapshots = null) {
     // Only a player whose client is here is controlled: the draw and the combat clock are still
     // one per world (docs/31/05, items 12 and 13), so an absent player's idle input must not touch them.
     if (snap) controlPlayer(p, S.zombies, dt, snap);
+    if (snap && snap.keys) interact.updateInteract(p, dt, snap.keys); // E, B, T: this player's own client's key events (interact.keyEvents)
   }
   S.acting = null;
   archery.update(dt);
