@@ -236,6 +236,35 @@ function canSee(z, player) {
   return lineOfSight(z.gx, z.gy, player.gx, player.gy);
 }
 
+// The nearest living player, seen or not (the chase's fallback, the spawned-aggro target).
+function nearestPlayer(z, players) {
+  let best = null;
+  let bestD = Infinity;
+  for (const p of players) {
+    if (p.dead) continue;
+    const d = distTo(z, p);
+    if (d < bestD) {
+      best = p;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
+// The nearest player in sight by the player's own rule (canSee).
+function nearestSeenPlayer(z, players) {
+  let best = null;
+  let bestD = Infinity;
+  for (const p of players) {
+    if (p.dead) continue; // a fallen player draws no one while another still stands
+    const d = distTo(z, p);
+    if (d >= bestD || !canSee(z, p)) continue;
+    best = p;
+    bestD = d;
+  }
+  return best;
+}
+
 // A villager in sight, the same rule as the player's: the range scales with the
 // light on them, and a clear line.
 function canSeeCharacter(z, c, d) {
@@ -323,7 +352,7 @@ function giveUp(z) {
   z.idleTimer = idleTime();
 }
 
-export function updateZombie(z, dt, player, others, villagers = null) {
+export function updateZombie(z, dt, players, others, villagers = null) {
   const sheet = getSheet(z.sprite);
   if (z.dead) {
     // The fall plays out and holds; a corpse thinks no more (docs/14).
@@ -363,12 +392,14 @@ export function updateZombie(z, dt, player, others, villagers = null) {
   z.sincePlayer += dt;
   if (z.sightTimer <= 0) {
     z.sightTimer = T.sightCheck;
-    z.seesNow = canSee(z, player);
+    // The nearest player in sight, players preferred (docs/31/03: one zombie, one target, decided here).
+    const seen = nearestSeenPlayer(z, players);
+    z.seesNow = !!seen;
     z.target = null;
-    if (z.seesNow) {
-      z.target = player;
+    if (seen) {
+      z.target = seen;
       z.aggro = true;
-      z.lastSeen = [player.gx, player.gy];
+      z.lastSeen = [seen.gx, seen.gy];
       z.sincePlayer = 0;
     } else {
       // The player first, always; failing that, with the setting on, the
@@ -389,7 +420,7 @@ export function updateZombie(z, dt, player, others, villagers = null) {
         const f = nearestFlame(z);
         if (f) {
           z.aggro = true;
-          z.lastSeen = f.carried ? [player.gx, player.gy] : [f.gx, f.gy];
+          z.lastSeen = [f.gx, f.gy]; // a carried flame is where its carrier stands (light.js: the source moves with them)
           if (z.state === "search") {
             z.state = "chase";
             z.repathTimer = 0;
@@ -403,8 +434,9 @@ export function updateZombie(z, dt, player, others, villagers = null) {
     z.target = null;
     z.seesNow = false;
   }
-  const tgt = z.target || player;
-  if (z.aggro && !z.lastSeen) z.lastSeen = [player.gx, player.gy]; // spawned aggro
+  const tgt = z.target || nearestPlayer(z, players);
+  if (!tgt) return; // no one alive to hunt: nothing to do this step
+  if (z.aggro && !z.lastSeen) z.lastSeen = [tgt.gx, tgt.gy]; // spawned aggro
 
   switch (z.state) {
     case "idle": {
@@ -572,7 +604,7 @@ export function updateZombie(z, dt, player, others, villagers = null) {
       if (isActiveFrame(z.anim, sheet) && !z.attackHit) {
         z.attackHit = true;
         if (distTo(z, tgt) <= T.contact + 0.2 && lineOfSight(z.gx, z.gy, tgt.gx, tgt.gy)) {
-          if (tgt === player) emit("playerHit", { zombie: z, damage: T.damage });
+          if (tgt.kind === "player") emit("playerHit", { zombie: z, damage: T.damage, victim: tgt });
           else emit("villagerHit", { zombie: z, villager: tgt, damage: T.damage });
         }
       }

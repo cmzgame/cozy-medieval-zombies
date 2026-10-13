@@ -277,21 +277,36 @@ async function loadPaintedHair() {
 
 // The player's sheet is rebuilt whenever their look or their clothes change
 // (docs/12): a few milliseconds, redrawn into the atlas in place.
-let figureKey = "";
+// One sheet per player, named by their id and redrawn in place (docs/31/05, item 5): mine
+// from my own look and clothes, another player's from theirs as the world reports them.
+const figureKeys = new Map(); // player id -> { key, quick }
+let figureKey = ""; // kept for loadPaintedHair, which clears the keys
 let figureQuick = "";
 function refreshFigure(force = false) {
+  if (figureKey === "" && figureQuick === "") figureKeys.clear(); // a painted layer reloaded: every sheet again
+  figureKey = "-";
+  figureQuick = "-";
+  for (const p of S.players) refreshFigureOf(p, force);
+}
+function refreshFigureOf(p, force = false) {
   // The swing's keyframe set follows the weapon in the main hand (docs/14); a spear's throw has its own.
-  const style = combat.styleOf(S.player, !!archery.drawState());
+  const style = combat.styleOf(p, p === S.player && !!archery.drawState());
+  const painted = p === S.player ? settings.get("paintedLayers") || {} : {};
   // What the sheet depends on, as ids: the cheap test every step; the spec and its key only when it changed (docs/23a, B7).
-  const quick = JSON.stringify([S.player.look, S.player.worn, S.player.hands, style, settings.get("paintedLayers") || null]);
-  if (!force && quick === figureQuick) return; // `force`: the rig's numbers changed from the console (dev.js setLook), which no key sees
-  figureQuick = quick;
-  const spec = figure.characterSpec(figure.characterInputs(S.player, undefined, settings.get("paintedLayers") || {}, style));
+  const quick = JSON.stringify([p.look, p.worn, p.hands, style, painted]);
+  const keys = figureKeys.get(p.id) || { key: "", quick: "" };
+  if (!force && quick === keys.quick) return; // `force`: the rig's numbers changed from the console (dev.js setLook), which no key sees
+  keys.quick = quick;
+  figureKeys.set(p.id, keys);
+  const spec = figure.characterSpec(figure.characterInputs(p, undefined, painted, style));
   const key = figure.specKey(spec);
-  if (!force && key === figureKey) return;
-  figureKey = key;
-  const sheet = assets.replaceSheet("player", figure.generateFigure(spec));
+  if (!force && key === keys.key) return;
+  keys.key = key;
+  const id = `player_${p.id}`;
+  const sheet = assets.replaceSheet(id, figure.generateFigure(spec));
+  gl.placeSheet(sheet); // a new player's sheet into the atlas; an old one is already there
   gl.redrawSheet(sheet);
+  p.sprite = id;
 }
 
 // One step of the game. The keys' and the mouse's "pressed this step" state is
@@ -368,7 +383,9 @@ function stepGame(dt) {
   interact.updateInteract(S.player, dt);
   // The world: the player from the mouse and the keys as a snapshot (docs/23a, D1;
   // never the input module), the dead, the villagers, the light (game.js).
-  game.step(dt, {
+  game.step(dt, new Map([[S.player.id, {
+    axis: input.moveAxis(),
+    sprint: input.isDown("ShiftLeft") || input.isDown("ShiftRight"),
     clicked,
     clickSpent,
     mouse: input.getMouse(),
@@ -378,7 +395,7 @@ function stepGame(dt) {
     offDown: buttons.off.down,
     space: input.wasPressed("Space"),
     blocked: panel.isOpen() || menu.isMenuOpen(),
-  });
+  }]]));
   const px = Math.round(S.player.gx);
   const py = Math.round(S.player.gy);
   playerRoom = map.roomAt(px, py); // refinds rooms if a wall changed
@@ -708,27 +725,32 @@ async function boot() {
           },
         },
       });
-      events.on("playerHit", ({ zombie, damage }) => {
-        const taken = combat.exposedTo(S.player, zombie, combat.guardAgainst(S.player, zombie, damage));
-        damagePlayer(S.player, taken);
+      // A bite names its victim (docs/31/05, item 18): the wound is theirs; the words are mine alone.
+      events.on("playerHit", ({ zombie, damage, victim }) => {
+        const p = victim || S.player;
+        const taken = combat.exposedTo(p, zombie, combat.guardAgainst(p, zombie, damage));
+        damagePlayer(p, taken);
         // A bite that landed may infect (a marker only for now, docs/02 question 29b).
-        const opened = bleed.onBite(S.player, taken); // and a wound that bleeds (docs/02 question 29b)
-        if (infection.onBite(S.player, taken)) showMessage("The bite broke the skin.");
-        else if (opened && bleed.stacks(S.player) === 1) showMessage("You are bleeding. A bandage will stop it.");
+        const opened = bleed.onBite(p, taken); // and a wound that bleeds (docs/02 question 29b)
+        const infected = infection.onBite(p, taken);
+        if (p !== S.player) return;
+        if (infected) showMessage("The bite broke the skin.");
+        else if (opened && bleed.stacks(p) === 1) showMessage("You are bleeding. A bandage will stop it.");
       });
       // A blow met by the shield: sparks where they meet and a flash of the shield; a broken guard flashes red (docs/21).
-      events.on("blocked", ({ zombie }) => {
-        S.player.blockFlash = 0.14;
-        S.player.flashBroken = false;
-        const d = iso.normalize(zombie.gx - S.player.gx, zombie.gy - S.player.gy);
-        burning.spark(S.player.gx + d.x * 0.45, S.player.gy + d.y * 0.45, 22);
+      events.on("blocked", ({ zombie, player: p = S.player }) => {
+        p.blockFlash = 0.14;
+        p.flashBroken = false;
+        const d = iso.normalize(zombie.gx - p.gx, zombie.gy - p.gy);
+        burning.spark(p.gx + d.x * 0.45, p.gy + d.y * 0.45, 22);
       });
-      events.on("guardBroken", () => {
-        S.player.blockFlash = 0.35;
-        S.player.flashBroken = true;
+      events.on("guardBroken", ({ player: p = S.player }) => {
+        p.blockFlash = 0.35;
+        p.flashBroken = true;
       });
       events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, damage));
-      events.on("gameOver", () => {
+      events.on("gameOver", ({ player: p }) => {
+        if (p !== S.player) return; // another player's death is theirs to see
         // The world says so (game.js); the client shows it, and the slot keeps the world with the
         // survivor dead, so Continue refuses it until the next survivor exists (docs/31/05, item 34).
         if (started) save.write(save.snapshot(MAP_NAME, { dead: true }));
@@ -795,6 +817,12 @@ async function boot() {
     game,
     save,
     restoreWorld,
+    // A second player into this world, for the checks and for the plan (docs/31/03): standing, controlled by nobody.
+    addPlayer: (gx, gy, opts) => {
+      const p = game.addPlayer(gx, gy, opts);
+      refreshFigureOf(p, true);
+      return p;
+    },
     get openBag() { return openBag; },
     get handlers() { return handlers; },
     get timing() { return timing; },

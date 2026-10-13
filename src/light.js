@@ -38,7 +38,7 @@ function clamp01(v) {
 
 let litRooms = new Set(); // room ids with a lit hearth, refreshed each step
 let curSources = []; // lit static sources, refreshed each step
-let carrier = null; // { gx, gy, radius }: the torch in the player's hand, or null
+let carried = []; // the lights in players' hands, one per carrier: { owner, gx, gy, radius, flicker, strength }
 let burners = []; // burning characters as lights (fire.js), evaluated like the carrier
 let srcVersion = 0; // bumped when the list of sources changes (a fire lit, a portal's intensity moving with the clock)
 let lastSourcesDesc = "";
@@ -155,11 +155,12 @@ export function sources() {
 // The light you carry is not in any map: it is evaluated at query time, so the
 // drawn pool, the sight test, and the light value always agree.
 export function setCarrier(c) {
-  carrier = c;
+  carried = c ? [c] : [];
 }
 
-export function carried() {
-  return carrier;
+// One per player who carries a flame, each with its owner's id (docs/31/05, item 15).
+export function setCarriers(list) {
+  carried = list;
 }
 
 // The burning bodies (fire.js): moving lights evaluated at query time like the
@@ -171,14 +172,14 @@ export function setBurners(list) {
 
 // Every light evaluated at query time: the torch in hand, then the burning.
 export function carriers() {
-  return carrier ? [carrier, ...burners] : burners;
+  return carried.length ? [...carried, ...burners] : burners;
 }
 
 // Every lit flame, static and carried, for the dead to notice at night.
 // Portals are not flames: the dead are drawn to fire, not to a doorway.
 export function allSources() {
   const flames = curSources.filter((s) => s.kind !== "portal");
-  return carrier ? [...flames, { ...carrier, carried: true }] : flames;
+  return carried.length ? [...flames, ...carried.map((c) => ({ ...c, carried: true }))] : flames;
 }
 
 // ---- rays ----

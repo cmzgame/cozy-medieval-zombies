@@ -76,7 +76,7 @@ export function serializeCharacter(ch) {
 // exists (`_targetId`, `_carryingId`).
 export function restoreCharacter(data, makers) {
   let ch;
-  if (data.kind === "player") ch = makers.player(data.gx, data.gy);
+  if (data.kind === "player") ch = makers.player(data.gx, data.gy, { id: data.id });
   else if (data.kind === "zombie") ch = makers.zombie(data.gx, data.gy, { id: data.id });
   else ch = makers.villager(data.gx, data.gy, { id: data.id, name: data.name, line: data.greeting || null, wardrobe: data.wardrobe || 0 });
   const { targetId, carryingId, worn, hands, pockets, loot, ...rest } = data;

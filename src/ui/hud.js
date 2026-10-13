@@ -65,7 +65,7 @@ function handName(entry) {
 // The head from the player's sheet, facing the viewer, idle; once per sheet.
 function drawPortrait() {
   let sheet;
-  try { sheet = getSheet("player"); } catch { return; }
+  try { sheet = getSheet(player.sprite); } catch { return; }
   if (sheet === drawnSheet) return;
   drawnSheet = sheet;
   let f = null;

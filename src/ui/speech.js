@@ -61,7 +61,7 @@ export function updateSpeech(characters, visible, player, dt) {
       continue;
     }
     const shown =
-      ch.kind === "player" ||
+      ch === player ||
       (visible.has(tileKey(Math.round(ch.gx), Math.round(ch.gy))) && !(ch.behindProp && Math.hypot(ch.gx - player.gx, ch.gy - player.gy) > NEAR));
     if (!shown) continue;
     seen.add(ch.id);
@@ -71,7 +71,7 @@ export function updateSpeech(characters, visible, player, dt) {
       entry.text = line.text;
       entry.w = entry.el.offsetWidth; // the box's width for this text, whatever its length
       // A line said within sight goes to the log as "Name: line" (Michael, 2026-10-12); the dead's groans do not.
-      if (ch.kind !== "zombie") log.push(line.text, "say", ch.name || (ch.kind === "player" ? "You" : "Villager"));
+      if (ch.kind !== "zombie") log.push(line.text, "say", ch === player ? "You" : ch.name || (ch.kind === "player" ? "Someone" : "Villager"));
     }
     const s = iso.toScreen(ch.gx, ch.gy);
     const p = view.toUi(s.x, s.y - HEAD_TOP);

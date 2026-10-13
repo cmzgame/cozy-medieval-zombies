@@ -3,7 +3,6 @@
 // flashlight, and auto-walk come back with their own milestones.
 
 import * as iso from "../iso.js";
-import * as input from "../input.js";
 import { moveCircle, canStep, floorSpeedAt, propById, roomAt } from "../map.js";
 import { findPath } from "../pathfind.js";
 import { getSheet, getDef } from "../assets.js";
@@ -14,16 +13,18 @@ import { player as T } from "../tuning.js";
 import { tiredStage, hungerStage, thirstStage } from "../moodles.js";
 import { stacks as bleedStacks } from "../bleed.js";
 import * as verbs from "../verbs.js";
-import { setTimeScale } from "../world.js";
+import { setTimeScale, nextId } from "../world.js";
 import * as clock from "../clock.js";
 import * as loop from "../loop.js";
 import { emit } from "../events.js";
 
 
-export function createPlayer(gx, gy) {
+export function createPlayer(gx, gy, { id = null } = {}) {
   return {
-    ...createCharacter("player", gx, gy, { id: "player", speed: T.speed, radius: T.radius, hp: T.hp }),
-    sprite: "player", // its own sheet, rebuilt whenever their look or clothes change (main.js)
+    // The id from the world's counter (docs/31/05, item 4): never the literal "player", which a second one would share.
+    ...createCharacter("player", gx, gy, { id: id || nextId("P"), speed: T.speed, radius: T.radius, hp: T.hp }),
+    // The shared player sheet until a client bakes this one's own (main.js refreshFigure names it player_<id>; docs/31/05, item 5).
+    sprite: "player",
     aim: { sx: 0, sy: 1 },
     stamina: T.stamina,
     maxStamina: T.stamina,
@@ -263,7 +264,12 @@ function moveToward(player, dt, dx, dy, mult = 1) {
   player.gy = moved.gy;
 }
 
-export function updatePlayer(player, dt) {
+// `snap` is this player's input for the step (docs/31/05, item 16): `axis` {x, y}
+// in screen directions, `sprint`, and `mouse` in the client's world pixels (null
+// for a player whose client is not here: they stand, facing as they were).
+const IDLE = { axis: { x: 0, y: 0 }, sprint: false, mouse: null };
+
+export function updatePlayer(player, dt, snap = IDLE) {
   const sheet = getSheet(player.sprite);
 
   if (player.climb) {
@@ -286,11 +292,11 @@ export function updatePlayer(player, dt) {
 
   // Keys snap to the eight iso directions, so a diagonal key walks along a wall.
   // Any key cancels an auto-walk.
-  const axis = input.moveAxis();
+  const axis = snap.axis || IDLE.axis;
   player.moving = axis.x !== 0 || axis.y !== 0;
   if (player.moving) player.auto = null;
 
-  const wantSprint = input.isDown("ShiftLeft") || input.isDown("ShiftRight");
+  const wantSprint = !!snap.sprint;
   if (player.winded && player.stamina >= T.sprintRecoverAt) player.winded = false;
   const anyMovement = player.moving || !!player.auto;
   player.sprinting = wantSprint && anyMovement && !player.winded && player.stamina > 0 && !player.carrying && !player.blocking && tiredStage(player) < 3; // exhausted: no sprint (docs/30, 3.3)
@@ -312,10 +318,10 @@ export function updatePlayer(player, dt) {
   }
 
   // Aim: mouse relative to the chest. Facing follows the aim, not the walk.
-  const m = input.getMouse();
-  const o = aimOrigin(player);
-  const ax = m.x - o.x;
-  const ay = m.y - o.y;
+  const m = snap.mouse;
+  const o = m ? aimOrigin(player) : null;
+  const ax = m ? m.x - o.x : 0;
+  const ay = m ? m.y - o.y : 0;
   if (ax !== 0 || ay !== 0) {
     const n = iso.normalize(ax, ay);
     player.aim.sx = n.x;

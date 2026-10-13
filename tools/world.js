@@ -8,6 +8,8 @@
 //   node tools/world.js valley 600 --devchest
 //                                    with the dev chest, as a pane whose setting is on (the chest's
 //                                    id moves every id after it, so the hashes compare only alike)
+//   node tools/world.js valley 600 --players=2
+//                                    more players, standing five tiles apart: the dead hunt whoever is nearest
 //   node tools/world.js valley 600 --roundtrip
 //                                    the save proved: the world serialised half way, the run
 //                                    finished, then a fresh world restored from the save and run
@@ -78,6 +80,9 @@ const json = read(`data/maps/${mapName}.json`);
 // The world's options as the pane has them, so the hashes compare: the dev chest and the
 // testing dead each make props and so move every id after them (docs/31/05, item 4).
 game.create({ json, devChest: flags.has("--devchest"), combatTesting: flags.has("--combat") });
+const playersFlag = [...flags].find((f) => f.startsWith("--players="));
+const nPlayers = playersFlag ? Number(playersFlag.split("=")[1]) : 1;
+for (let i = 1; i < nPlayers; i++) game.addPlayer(game.state.player.gx + 5 * i, game.state.player.gy, {});
 const booted = performance.now() - t0;
 
 loop.init({
@@ -103,7 +108,7 @@ const stepped = performance.now() - t1;
 
 const text = game.hashText();
 const S = game.state;
-console.log(`${mapName}: ${S.zombies.length} dead, ${S.villagers.length} villagers, ${map.chunkCount()} chunks, ${map.roomCount()} rooms`);
+console.log(`${mapName}: ${S.players.length} player${S.players.length === 1 ? "" : "s"}, ${S.zombies.length} dead, ${S.villagers.length} villagers, ${map.chunkCount()} chunks, ${map.roomCount()} rooms`);
 console.log(`booted in ${booted.toFixed(0)} ms, ${steps} steps in ${stepped.toFixed(0)} ms (${(stepped / steps).toFixed(2)} ms a step)`);
 console.log(`hash ${game.hashOf(text)} over ${text.split("\n").length - 2} entities after ${steps} steps`);
 

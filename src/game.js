@@ -240,7 +240,26 @@ export function hashOf(text) {
 
 // An input snapshot with nothing pressed: what a player who is not there sends.
 export function idleSnapshot() {
-  return { clicked: false, clickSpent: false, mouse: { x: 0, y: 0, inside: false }, leftDown: false, altPressed: false, altDown: false, offDown: false, space: false, blocked: false };
+  return { axis: { x: 0, y: 0 }, sprint: false, clicked: false, clickSpent: false, mouse: null, leftDown: false, altPressed: false, altDown: false, offDown: false, space: false, blocked: false };
+}
+
+// A second (or later) player into the world (docs/31/03): their own character
+// with the kit, standing at (gx, gy). The client bakes their sheet when it sees
+// them (main.js refreshFigure). Returns the player.
+export function addPlayer(gx, gy, { look = null, id = null } = {}) {
+  const S = state;
+  const p = createPlayer(gx, gy, { id });
+  if (look) p.look = { ...p.look, ...look };
+  giveStarterKit(p);
+  S.players.push(p);
+  if (!S.player) S.player = p;
+  return p;
+}
+
+export function removePlayer(id) {
+  const S = state;
+  S.players = S.players.filter((p) => p.id !== id);
+  if (S.player && S.player.id === id) S.player = S.players[0] || null;
 }
 
 // Inside the box of tiles around any player where the dead and villagers think
@@ -307,25 +326,36 @@ function nearChunk(p, cx, cy, radius) {
 // The world's second part of a step: the player from their snapshot, the
 // arrows, the burning, the timed action, the dead and the villagers that are
 // near anyone, the fallen and the turned, death, and the light.
-export function step(dt, snapshot) {
+// `snapshots`: each present player's input for the step by id (Map or object);
+// a player with none stands where they are and does nothing (their client is
+// not here). The step is the same for every player, in the players' order.
+export function step(dt, snapshots = null) {
   const S = state;
-  const player = S.player;
-  updatePlayer(player, dt);
-  bleed.update(player, dt);
-  // The mouse and the keys, as a snapshot, to the player's controller (docs/23a, D1; never the input module).
-  controlPlayer(player, S.zombies, dt, snapshot);
+  const snapOf = (p) => (snapshots instanceof Map ? snapshots.get(p.id) : snapshots && snapshots[p.id]) || null;
+  for (const p of S.players) {
+    const snap = snapOf(p);
+    updatePlayer(p, dt, snap || undefined);
+    bleed.update(p, dt);
+    // The mouse and the keys, as a snapshot, to the player's controller (docs/23a, D1; never the input module).
+    // Only a player whose client is here is controlled: the draw and the combat clock are still
+    // one per world (docs/31/05, items 12 and 13), so an absent player's idle input must not touch them.
+    if (snap) controlPlayer(p, S.zombies, dt, snap);
+  }
   archery.update(dt);
-  S.others = [player, ...S.zombies, ...S.villagers]; // the living, who block and are hunted
+  S.others = [...S.players, ...S.zombies, ...S.villagers]; // the living, who block and are hunted
   const everyone = [...S.others, ...S.corpses]; // and the fallen, who burn and are drawn
   burning.update(dt, everyone); // the burning, a visual (docs/05)
-  S.progress = interact.updateAction(player, dt);
+  for (const p of S.players) {
+    p.actionProgress = interact.updateAction(p, dt);
+    // Anyone walking through a crop or a mushroom sets it swaying (Michael, 2026-10-12).
+    interact.brushThrough(p);
+  }
+  S.progress = S.player ? S.player.actionProgress : null;
   // The dead far from every player stand still: a stand-in for the records of
   // docs/03 until that milestone.
-  // Anyone walking through a crop or a mushroom sets it swaying (Michael, 2026-10-12).
-  interact.brushThrough(player);
   for (const z of S.zombies) {
     if (!nearPlayer(z)) continue;
-    updateZombie(z, dt, player, S.others, S.villagers);
+    updateZombie(z, dt, S.players, S.others, S.villagers);
     interact.brushThrough(z);
   }
   for (const v of S.villagers) {
@@ -346,24 +376,30 @@ export function step(dt, snapshot) {
     S.corpses.push(...S.zombies.filter((z) => z.corpse));
     S.zombies = S.zombies.filter((z) => !z.corpse);
   }
-  if (player.hp <= 0 && !player.dead) {
-    // Death (Michael, 2026-10-10 night): the world says so; the client shows the
-    // dead screen, and the way back to the title is a fresh load.
-    player.dead = true;
-    events.emit("gameOver", { player });
+  for (const p of S.players) {
+    if (p.hp <= 0 && !p.dead) {
+      // Death (Michael, 2026-10-10 night): the world says so; the client whose player it is shows the
+      // dead screen, and the way back to the title is a fresh load.
+      p.dead = true;
+      events.emit("gameOver", { player: p });
+    }
   }
   // Rooms refound if a wall changed, before the light reads them (light.update
   // asks for current rooms; the one-file step had the client's roomAt do this).
   map.roomsIfDirty();
-  // The light you carry (docs/02): a torch in hand at full, two at more,
+  // The light each player carries (docs/02): a torch in hand at full, two at more,
   // else one on the belt at half. The strength also scales how far the dead
-  // see the flame (zombie.js).
-  const held = items.heldFire(player.hands);
-  const twoHanded = held && player.hands.main && player.hands.off && player.hands.main !== player.hands.off && items.getItem(player.hands.main.id).fire && items.getItem(player.hands.off.id).fire;
-  const belted = held ? null : beltFire(inventory.beltOf(player));
-  const fire = held || belted;
-  const strength = held ? (twoHanded ? tuning.world.twoTorches : 1) : tuning.world.beltLight;
-  light.setCarrier(fire ? { gx: player.gx, gy: player.gy, radius: fire.radius * strength, flicker: fire.flicker || null, strength } : null);
+  // see the flame (zombie.js). One carried light per player, with its owner (docs/31/05, item 15).
+  const carried = [];
+  for (const p of S.players) {
+    const held = items.heldFire(p.hands);
+    const twoHanded = held && p.hands.main && p.hands.off && p.hands.main !== p.hands.off && items.getItem(p.hands.main.id).fire && items.getItem(p.hands.off.id).fire;
+    const belted = held ? null : beltFire(inventory.beltOf(p));
+    const fire = held || belted;
+    const strength = held ? (twoHanded ? tuning.world.twoTorches : 1) : tuning.world.beltLight;
+    if (fire) carried.push({ owner: p.id, gx: p.gx, gy: p.gy, radius: fire.radius * strength, flicker: fire.flicker || null, strength });
+  }
+  light.setCarriers(carried);
   light.setBurners(burning.lights(everyone));
   light.update();
 }

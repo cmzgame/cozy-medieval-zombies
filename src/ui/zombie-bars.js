@@ -65,8 +65,8 @@ export function updateZombieBars(zombies, visible, player) {
   // Your own, over your head, while you are hurt (Michael, 2026-10-12): health and exposure are the
   // most immediate things near the character. A little above the exposure bar, which sits just over the head.
   if (!player.dead && player.hp < player.maxHp) {
-    seen.add("player");
-    const { el, fill } = barFor("player");
+    seen.add(player.id);
+    const { el, fill } = barFor(player.id);
     const s = iso.toScreen(player.gx, player.gy);
     const p = view.toUi(s.x, s.y - PLAYER_CLEARANCE);
     el.style.left = `${Math.round(p.x)}px`;
