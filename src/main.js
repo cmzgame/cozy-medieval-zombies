@@ -1198,7 +1198,8 @@ async function boot() {
         screens.show("dead", { when: clock.getLabel(), who: p.name || p.id });
       });
       // Sleep and fire say what happened (docs/30 step 2): the world's events, shown here.
-      events.on("sleepStart", () => showMessage("You lie down. The night goes on without you."));
+      // Time skips only when everyone in the world is asleep (game.everyoneAsleep): said to the sleeper, here or on the guest the verb ran for.
+      events.on("sleepStart", () => showMessage(game.everyoneAsleep() ? "You lie down. The night goes on without you." : "You lie down. Time will pass faster once everyone in the world is asleep.", 5));
       events.on("sleepEnd", ({ hours }) => showMessage(`${clock.getLabel()}. You slept ${hours} hours.`, 4));
       events.on("fireOut", ({ tile }) => {
         if (Math.hypot(tile[0] - S.player.gx, tile[1] - S.player.gy) <= 8) showMessage("A fire has gone out.");

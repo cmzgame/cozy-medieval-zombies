@@ -28,7 +28,7 @@ import * as rng from "./rng.js";
 import * as world from "./world.js";
 import * as loop from "./loop.js";
 import { serializeCharacter, restoreCharacter, dress, dressCorpse } from "./entities/character.js";
-import { createPlayer, updatePlayer } from "./entities/player.js";
+import { createPlayer, updatePlayer, setSleepScaleRule } from "./entities/player.js";
 import { createZombie, updateZombie } from "./entities/zombie.js";
 import { createVillager, updateVillager, turnVillager } from "./entities/villager.js";
 import { controlPlayer } from "./player-controller.js";
@@ -247,6 +247,18 @@ export function hashText() {
   ].join("\n");
 }
 
+// How fast the world runs, from who is asleep (Michael, 2026-10-13): the sleep speed only while every living player
+// in the world is asleep, ordinary time otherwise: a friend still awake keeps the world at its pace, and sleep
+// stays optional. A dormant player is out of the world's list and does not count; a dead one does not either.
+export function everyoneAsleep() {
+  const living = state.players.filter((p) => !p.dead);
+  return living.length > 0 && living.every((p) => p.sleeping);
+}
+export function timeScaleNow() {
+  return everyoneAsleep() ? tuning.player.sleepTimeScale : 1;
+}
+setSleepScaleRule(timeScaleNow);
+
 // The whole world in parts, each hashed, for the sync check (docs/31/04, "a replica check"; tier 3's gate):
 // what the wire promises a replica has. The map chunk by chunk (floors, walls, props with their bags and
 // their fires), the prop registry (every id the map answers to, the carried ones apart: a guest that
@@ -421,6 +433,7 @@ export function step(dt, snapshots = null) {
     if (snap && snap.keys) interact.updateInteract(p, dt, snap.keys); // E, B, T: this player's own client's key events (interact.keyEvents)
   }
   S.acting = null;
+  world.setTimeScale(timeScaleNow()); // each step, so a guest who joins, leaves, wakes, or dies puts the speed right
   archery.update(dt);
   S.others = [...S.players, ...S.zombies, ...S.villagers]; // the living, who block and are hunted
   const everyone = [...S.others, ...S.corpses]; // and the fallen, who burn and are drawn

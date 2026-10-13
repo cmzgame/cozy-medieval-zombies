@@ -32,6 +32,7 @@ export async function run(game) {
     return { rows: [{ check: "setup", result: "FAIL", detail: "no bed within 12 tiles of the spawn" }] };
   }
   const fireSaved = fire ? { lit: fire.fire.lit, fuel: fire.fire.fuel } : null;
+  let other = null;
   try {
     G.settings.set("survival", true);
     step();
@@ -65,7 +66,28 @@ export async function run(game) {
     const gained = p.hp - 60;
     const expectedHp = Math.min(40, (slept * 30 / 60) * G.tuning.player.sleepRegenPerMinute);
     row("health came back at the sleeping rate", Math.abs(gained - expectedHp) < 2, `+${gained.toFixed(1)} (expected about ${expectedHp.toFixed(1)})`);
+    // 4. Two players (Michael, 2026-10-13: sleep is optional in a world with friends in it, and time skips only when
+    // every living player is in bed): one asleep, the other awake, the world keeps its pace; both asleep, it skips;
+    // one wakes, it slows again.
+    G.clock.setHour(22);
+    p.tired = 30;
+    G.teleport(bed.tile[0], bed.tile[1] + 1);
+    other = G.addPlayer(bed.tile[0] + 1, bed.tile[1] + 1);
+    other.tired = 30;
+    step();
+    const first = G.verbs.run("sleep", G.world.world, p, { prop: bed.id });
+    step();
+    row("one asleep and one awake: the world keeps its pace", first.ok && !!p.sleeping && !other.sleeping && G.world.world.timeScale === 1, `${first.ok ? "asleep" : first.reason}, scale ${G.world.world.timeScale}`);
+    const second = G.verbs.run("sleep", G.world.world, other, { prop: bed.id });
+    step();
+    row("both asleep: time skips", second.ok && !!other.sleeping && G.world.world.timeScale > 1, `${second.ok ? "asleep" : second.reason}, scale ${G.world.world.timeScale}`);
+    p.tired = p.maxTired;
+    G.clock.setHour(7);
+    step();
+    step();
+    row("one wakes: the world is back at its pace", !p.sleeping && !!other.sleeping && G.world.world.timeScale === 1, `first asleep ${!!p.sleeping}, second asleep ${!!other.sleeping}, scale ${G.world.world.timeScale}`);
   } finally {
+    if (other) G.game.removePlayer(other.id);
     if (p.sleeping) G.player.sleeping = null;
     G.world.setTimeScale(1);
     G.teleport(saved.gx, saved.gy);

@@ -152,13 +152,21 @@ export function staminaRegenMult(player) {
 // is later. A verb in the table, so a menu entry, a key, or a command queue
 // all go through one door. (distToTiles is the auto-walk's, above.)
 
+// The world's time scale is the world's, not one sleeper's (Michael, 2026-10-13: in a world with friends in it,
+// sleep is optional, and time skips only when every living player in it is in bed). game.js hands in the rule
+// (`scaleNow`: the speed the world should run at, given who is asleep); a lone player is "everyone".
+let scaleNow = () => T.sleepTimeScale;
+export function setSleepScaleRule(fn) {
+  scaleNow = fn;
+}
+
 export function startSleep(player, bed) {
   player.sleeping = { bed: bed.id, since: loop.simTime(), hour: clock.getHour() };
   player.moving = false;
   player.sprinting = false;
   player.auto = null;
   player.action = null;
-  setTimeScale(T.sleepTimeScale);
+  setTimeScale(scaleNow());
   emit("sleepStart", { who: player.id, bed: bed.id });
 }
 
@@ -167,7 +175,7 @@ export function wake(player) {
   if (!s) return;
   const hours = (loop.simTime() - s.since) / 30; // thirty real seconds a game hour (map.HOUR_SECONDS)
   player.sleeping = null;
-  setTimeScale(1);
+  setTimeScale(scaleNow());
   emit("sleepEnd", { who: player.id, bed: s.bed, hours: Math.round(hours * 10) / 10 });
 }
 
