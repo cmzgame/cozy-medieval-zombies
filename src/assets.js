@@ -575,17 +575,23 @@ export async function loadMapSprites(json) {
   const want = (id, n = 1) => { if (id) ids.set(id, Math.max(n, ids.get(id) || 1)); };
   want(json.floor);
   const wantProp = (p) => want(p.sprite, (p.footprint?.[0] || 1) * (p.footprint?.[1] || 1));
+  // A wall material: one id, or one per side (docs/30 step 0).
+  const wantWall = (w) => { if (typeof w === "string") want(w); else if (w) for (const id of Object.values(w)) want(id); };
   const wantBuilding = (b) => {
-    want(b.wall);
+    wantWall(b.wall);
     want(b.floor);
+    for (const o of b.openings || []) want(o.wall);
+    for (const part of b.partitions || []) want(part.wall);
     for (const p of b.props || []) wantProp(p);
   };
+  const wantFence = (f) => want(f.wall || "wall_fence");
   for (const r of json.floorRects || []) want(r.sprite);
-  for (const f of json.features || []) want(f.sprite);
+  for (const f of json.features || []) (f.kind === "fence" ? wantFence(f) : want(f.sprite));
   for (const p of json.props || []) wantProp(p);
   for (const b of json.buildings || []) wantBuilding(b);
   for (const s of json.sets || []) {
     for (const r of s.floorRects || []) want(r.sprite);
+    for (const f of s.fences || []) wantFence(f);
     for (const p of s.props || []) wantProp(p);
     for (const b of s.buildings || []) wantBuilding(b);
   }

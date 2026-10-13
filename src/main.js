@@ -57,7 +57,9 @@ import * as rules from "./rules.js";
 import * as tuning from "./tuning.js";
 
 const V = view.view; // the world's size in its own pixels, kept current by view.js
-const MAP_FILE = "data/maps/square.json";
+// The map: the valley (docs/29, 30) unless the URL says `?map=square` (the old proving ground, which the checks still use).
+const MAP_NAME = new URLSearchParams(window.location.search).get("map") || "valley";
+const MAP_FILE = `data/maps/${/^[a-z0-9_-]+$/.test(MAP_NAME) ? MAP_NAME : "valley"}.json`;
 const ZOOM_PACE = 0.3; // seconds between wheel steps that count
 let lastZoomAt = 0;
 
@@ -670,6 +672,11 @@ async function boot() {
     { name: "world", label: "Growing the world", weight: 1, async run() {
       rng.seed(json.seed ?? 1); // the sim's one generator, seeded from the map (docs/23a, C1)
       info = map.loadMap(json);
+      // The dev chest by the spawn, a setting rather than a thing in the map (docs/30 step 0).
+      if (settings.get("devChest")) {
+        const at = map.nearestWalkable(info.spawn[0] + 1, info.spawn[1] + 2, (x, y) => !!map.tileAt(x, y).prop || (x === info.spawn[0] && y === info.spawn[1]));
+        if (at) map.placeProp(map.createProp({ sprite: "dev_chest", tile: at }), at[0], at[1]);
+      }
       player = createPlayer(info.spawn[0], info.spawn[1]);
       player.look = { ...figure.DEFAULT_LOOK, hairStyle: settings.get("hairStyle") || "short" };
       giveStarterKit();

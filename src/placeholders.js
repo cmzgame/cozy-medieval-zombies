@@ -514,8 +514,28 @@ export function generateBox(ph, tileCount = 1) {
   ctx.lineWidth = 1;
   poly(ctx, top);
   ctx.stroke();
+  // A labelled box says what it is (Michael, 2026-10-12: "make sure I have a
+  // way to tell what every random box is"): the name on the top face, and on
+  // the front face too when the box is tall enough. Only the first tile of a
+  // multi-tile box carries it, so a long counter reads once.
   const frames = {};
-  for (let i = 0; i < tileCount; i++) frames[`idle_${i}`] = [0, 0, fw, fh];
+  if (ph.label) {
+    const plain = ctx.getImageData(0, 0, fw, fh);
+    drawBoxLabel(ctx, ph.label, cx, cy - h, h, color);
+    if (tileCount > 1) {
+      // The labelled picture first, the plain one after it on the same sheet.
+      const labelled = ctx.getImageData(0, 0, fw, fh);
+      canvas.width = fw * 2;
+      const c2 = canvas.getContext("2d");
+      c2.imageSmoothingEnabled = false;
+      c2.putImageData(labelled, 0, 0);
+      c2.putImageData(plain, fw, 0);
+      frames.idle_0 = [0, 0, fw, fh];
+      for (let i = 1; i < tileCount; i++) frames[`idle_${i}`] = [fw, 0, fw, fh];
+    } else frames.idle_0 = [0, 0, fw, fh];
+  } else {
+    for (let i = 0; i < tileCount; i++) frames[`idle_${i}`] = [0, 0, fw, fh];
+  }
   return {
     image: canvas,
     frames,
@@ -524,6 +544,24 @@ export function generateBox(ph, tileCount = 1) {
     facings: [],
     mirror: {},
   };
+}
+
+function drawBoxLabel(ctx, label, cx, topY, h, color) {
+  ctx.save();
+  ctx.font = "bold 9px Consolas, monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const dark = shade(color, 0.3);
+  const text = String(label).toUpperCase().slice(0, 9);
+  // On the top face, dark on the colour.
+  ctx.fillStyle = dark;
+  ctx.fillText(text, cx, topY);
+  // On the front faces, light, when there is room.
+  if (h >= 14) {
+    ctx.fillStyle = "#f4ecd9";
+    ctx.fillText(text, cx, topY + HH / 2 + h / 2);
+  }
+  ctx.restore();
 }
 
 // ---------------------------------------------------------------------------

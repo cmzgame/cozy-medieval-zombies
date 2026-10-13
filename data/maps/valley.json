@@ -1,0 +1,5673 @@
+{
+ "name": "The valley",
+ "floor": "floor_grass",
+ "bounds": [
+  0,
+  0,
+  256,
+  256
+ ],
+ "features": [
+  {
+   "kind": "bank",
+   "rect": [
+    117,
+    0,
+    7,
+    10
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    116,
+    10,
+    7,
+    17
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    115,
+    27,
+    7,
+    10
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    115,
+    36,
+    7,
+    2
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    114,
+    38,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    113,
+    41,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    112,
+    45,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    111,
+    48,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    110,
+    52,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    109,
+    55,
+    7,
+    2
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    109,
+    56,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    110,
+    59,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    111,
+    62,
+    7,
+    5
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    112,
+    67,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    113,
+    70,
+    7,
+    5
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    114,
+    75,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    115,
+    78,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    115,
+    80,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    116,
+    84,
+    7,
+    8
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    117,
+    92,
+    7,
+    7
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    118,
+    99,
+    7,
+    8
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    119,
+    107,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    119,
+    110,
+    7,
+    16
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    120,
+    126,
+    7,
+    29
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    121,
+    155,
+    7,
+    16
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    121,
+    170,
+    7,
+    2
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    122,
+    172,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    123,
+    175,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    124,
+    179,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    125,
+    182,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    126,
+    186,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    127,
+    189,
+    7,
+    2
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    127,
+    190,
+    7,
+    2
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    128,
+    192,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    129,
+    196,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    130,
+    200,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    131,
+    203,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    132,
+    207,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    133,
+    211,
+    7,
+    2
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    133,
+    212,
+    7,
+    6
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    134,
+    218,
+    7,
+    11
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    135,
+    229,
+    7,
+    11
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    136,
+    240,
+    7,
+    11
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    137,
+    251,
+    7,
+    6
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    118,
+    0,
+    5,
+    10
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    117,
+    10,
+    5,
+    17
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    116,
+    27,
+    5,
+    10
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    116,
+    36,
+    5,
+    2
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    115,
+    38,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    114,
+    41,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    113,
+    45,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    112,
+    48,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    111,
+    52,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    110,
+    55,
+    5,
+    2
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    110,
+    56,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    111,
+    59,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    112,
+    62,
+    5,
+    5
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    113,
+    67,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    114,
+    70,
+    5,
+    5
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    115,
+    75,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    116,
+    78,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    116,
+    80,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    117,
+    84,
+    5,
+    8
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    118,
+    92,
+    5,
+    7
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    119,
+    99,
+    5,
+    8
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    120,
+    107,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    120,
+    110,
+    5,
+    16
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    121,
+    126,
+    5,
+    29
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    122,
+    155,
+    5,
+    16
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    122,
+    170,
+    5,
+    2
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    123,
+    172,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    124,
+    175,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    125,
+    179,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    126,
+    182,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    127,
+    186,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    128,
+    189,
+    5,
+    2
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    128,
+    190,
+    5,
+    2
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    129,
+    192,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    130,
+    196,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    131,
+    200,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    132,
+    203,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    133,
+    207,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    134,
+    211,
+    5,
+    2
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    134,
+    212,
+    5,
+    6
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    135,
+    218,
+    5,
+    11
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    136,
+    229,
+    5,
+    11
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    137,
+    240,
+    5,
+    11
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    138,
+    251,
+    5,
+    6
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "bridge",
+   "rect": [
+    116,
+    157,
+    18,
+    3
+   ],
+   "sprite": "floor_stone",
+   "note": "the stone bridge (29/02); floor_bridge_stone when drawn"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    132,
+    206,
+    7,
+    3
+   ],
+   "sprite": "floor_water_shallow",
+   "note": "the ford (29/02): the drove crosses here; the water and its banks, nothing wider"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    84,
+    157,
+    33,
+    3
+   ],
+   "sprite": "floor_cobble",
+   "group": "high street"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    0,
+    157,
+    85,
+    3
+   ],
+   "sprite": "floor_dirt",
+   "group": "west road"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    134,
+    157,
+    7,
+    3
+   ],
+   "sprite": "floor_cobble",
+   "group": "bridge road"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    84,
+    152,
+    12,
+    12
+   ],
+   "sprite": "floor_cobble",
+   "group": "square"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    89,
+    100,
+    3,
+    53
+   ],
+   "sprite": "floor_cobble",
+   "group": "nobles street"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    89,
+    182,
+    2,
+    45
+   ],
+   "sprite": "floor_dirt",
+   "group": "south lane"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    64,
+    211,
+    45,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "the lane"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    108,
+    211,
+    3,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "drove"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    111,
+    210,
+    4,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "drove"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    115,
+    209,
+    5,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "drove"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    120,
+    208,
+    5,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "drove"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    125,
+    207,
+    4,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "drove"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    129,
+    206,
+    3,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "drove"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    141,
+    206,
+    20,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "drove"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    76,
+    163,
+    9,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "lane"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    95,
+    182,
+    2,
+    9
+   ],
+   "sprite": "floor_dirt",
+   "group": "lane"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    85,
+    189,
+    8,
+    8
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    86,
+    190,
+    6,
+    6
+   ],
+   "sprite": "floor_water",
+   "note": "the duck pond (29/04)"
+  },
+  {
+   "kind": "fence",
+   "rect": [
+    74,
+    84,
+    32,
+    14
+   ],
+   "wall": "wall_fence",
+   "gates": [
+    {
+     "side": "s",
+     "at": 17
+    }
+   ],
+   "note": "the graveyard's wall (a low stone wall when drawn); the lychgate on the street"
+  }
+ ],
+ "sets": [
+  {
+   "name": "your cottage",
+   "rect": [
+    98,
+    212,
+    16,
+    12
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      7,
+      5
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "s",
+       "at": 1,
+       "kind": "door"
+      },
+      {
+       "side": "s",
+       "at": 5,
+       "kind": "window"
+      },
+      {
+       "side": "n",
+       "at": 2,
+       "kind": "window"
+      },
+      {
+       "side": "e",
+       "at": 2,
+       "kind": "window"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        4,
+        0
+       ],
+       "len": 5,
+       "openings": [
+        {
+         "at": 3,
+         "kind": "door"
+        }
+       ]
+      }
+     ],
+     "props": [
+      {
+       "sprite": "fireplace",
+       "tile": [
+        0,
+        1
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        1,
+        2
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        1,
+        1
+       ],
+       "facing": "s"
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        1,
+        3
+       ],
+       "facing": "n"
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        3,
+        4
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        5,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        6,
+        4
+       ]
+      },
+      {
+       "sprite": "shelf",
+       "tile": [
+        4,
+        4
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "w",
+       "at": 0,
+       "facing": "in",
+       "torch": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [
+    {
+     "rect": [
+      9,
+      1,
+      6,
+      6
+     ],
+     "sprite": "floor_farm"
+    }
+   ],
+   "fences": [
+    {
+     "rect": [
+      0,
+      0,
+      16,
+      12
+     ],
+     "wall": "wall_fence",
+     "gates": [
+      {
+       "side": "s",
+       "at": 4
+      },
+      {
+       "side": "w",
+       "at": 9
+      }
+     ]
+    }
+   ],
+   "props": [
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      9,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      10,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      11,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      12,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      13,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      14,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      9,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      10,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      11,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      12,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      13,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      14,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      9,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      10,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      11,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      12,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      13,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      14,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      9,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      10,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      11,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      12,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      13,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      14,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      9,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      10,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      11,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      12,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      13,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      14,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      9,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      10,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      11,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      12,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      13,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      14,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "well",
+     "tile": [
+      9,
+      9
+     ]
+    },
+    {
+     "sprite": "barrel",
+     "tile": [
+      11,
+      9
+     ]
+    },
+    {
+     "sprite": "woodpile",
+     "tile": [
+      13,
+      9
+     ]
+    }
+   ]
+  },
+  {
+   "name": "the inn",
+   "rect": [
+    98,
+    150,
+    18,
+    30
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      12,
+      10
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "w",
+       "at": 4,
+       "kind": "door"
+      },
+      {
+       "side": "w",
+       "at": 1,
+       "kind": "window",
+       "boards": {
+        "in": 3
+       }
+      },
+      {
+       "side": "w",
+       "at": 7,
+       "kind": "window",
+       "boards": {
+        "in": 3
+       }
+      },
+      {
+       "side": "n",
+       "at": 2,
+       "kind": "window",
+       "boards": {
+        "in": 3
+       }
+      },
+      {
+       "side": "n",
+       "at": 9,
+       "kind": "window"
+      },
+      {
+       "side": "e",
+       "at": 8,
+       "kind": "door"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        8,
+        0
+       ],
+       "len": 10,
+       "openings": [
+        {
+         "at": 3,
+         "kind": "door"
+        }
+       ]
+      }
+     ],
+     "props": [
+      {
+       "sprite": "counter",
+       "tile": [
+        5,
+        0
+       ],
+       "footprint": [
+        3,
+        1
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        7,
+        1
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        7,
+        2
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        1,
+        2
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        1,
+        1
+       ],
+       "facing": "s"
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        2,
+        1
+       ],
+       "facing": "s"
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        1,
+        3
+       ],
+       "facing": "n"
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        2,
+        3
+       ],
+       "facing": "n"
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        1,
+        6
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        1,
+        5
+       ],
+       "facing": "s"
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        2,
+        5
+       ],
+       "facing": "s"
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        1,
+        7
+       ],
+       "facing": "n"
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        2,
+        7
+       ],
+       "facing": "n"
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        5,
+        4
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        4,
+        4
+       ],
+       "facing": "e"
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        6,
+        5
+       ],
+       "facing": "w"
+      },
+      {
+       "sprite": "fireplace",
+       "tile": [
+        0,
+        8
+       ],
+       "footprint": [
+        1,
+        2
+       ],
+       "lit": true,
+       "fuel": 3
+      },
+      {
+       "sprite": "fireplace",
+       "tile": [
+        9,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ],
+       "lit": true,
+       "fuel": 3
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        8,
+        3
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "shelf",
+       "tile": [
+        11,
+        2
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        11,
+        4
+       ]
+      },
+      {
+       "sprite": "cupboard",
+       "tile": [
+        8,
+        6
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        11,
+        8
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 5,
+       "facing": "in",
+       "torch": true
+      },
+      {
+       "side": "w",
+       "at": 4,
+       "facing": "out",
+       "torch": true
+      }
+     ]
+    },
+    {
+     "rect": [
+      1,
+      11,
+      12,
+      5
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "n",
+       "at": 1,
+       "kind": "door"
+      },
+      {
+       "side": "n",
+       "at": 5,
+       "kind": "door"
+      },
+      {
+       "side": "n",
+       "at": 9,
+       "kind": "door"
+      },
+      {
+       "side": "s",
+       "at": 2,
+       "kind": "window"
+      },
+      {
+       "side": "s",
+       "at": 6,
+       "kind": "window"
+      },
+      {
+       "side": "s",
+       "at": 10,
+       "kind": "window"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        4,
+        0
+       ],
+       "len": 5,
+       "openings": []
+      },
+      {
+       "edge": "w",
+       "at": [
+        8,
+        0
+       ],
+       "len": 5,
+       "openings": []
+      }
+     ],
+     "props": [
+      {
+       "sprite": "bed",
+       "tile": [
+        0,
+        2
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        3,
+        0
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        4,
+        2
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        7,
+        0
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        8,
+        2
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        11,
+        0
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "s",
+       "at": 0,
+       "facing": "in",
+       "torch": true
+      },
+      {
+       "side": "s",
+       "at": 8,
+       "facing": "in",
+       "torch": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [
+    {
+     "rect": [
+      0,
+      17,
+      18,
+      12
+     ],
+     "wall": "wall_fence",
+     "gates": [
+      {
+       "side": "w",
+       "at": 6
+      }
+     ]
+    }
+   ],
+   "props": [
+    {
+     "sprite": "well",
+     "tile": [
+      3,
+      20
+     ]
+    },
+    {
+     "sprite": "woodpile",
+     "tile": [
+      6,
+      19
+     ]
+    },
+    {
+     "sprite": "privy",
+     "tile": [
+      16,
+      27
+     ]
+    },
+    {
+     "sprite": "cart",
+     "tile": [
+      10,
+      22
+     ],
+     "footprint": [
+      2,
+      3
+     ]
+    },
+    {
+     "sprite": "trough",
+     "tile": [
+      13,
+      19
+     ],
+     "footprint": [
+      2,
+      1
+     ]
+    }
+   ]
+  },
+  {
+   "name": "the chapel",
+   "rect": [
+    84,
+    86,
+    12,
+    12
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      10,
+      10
+     ],
+     "wall": "wall_stone",
+     "floor": "floor_stone",
+     "openings": [
+      {
+       "side": "s",
+       "at": 4,
+       "kind": "door"
+      },
+      {
+       "side": "w",
+       "at": 2,
+       "kind": "window"
+      },
+      {
+       "side": "w",
+       "at": 6,
+       "kind": "window"
+      },
+      {
+       "side": "e",
+       "at": 6,
+       "kind": "window"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        8,
+        0
+       ],
+       "len": 4,
+       "openings": [
+        {
+         "at": 2,
+         "kind": "door"
+        }
+       ]
+      }
+     ],
+     "props": [
+      {
+       "sprite": "altar",
+       "tile": [
+        4,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "lectern",
+       "tile": [
+        6,
+        1
+       ]
+      },
+      {
+       "sprite": "font",
+       "tile": [
+        1,
+        8
+       ]
+      },
+      {
+       "sprite": "pew",
+       "tile": [
+        1,
+        3
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "pew",
+       "tile": [
+        1,
+        5
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "pew",
+       "tile": [
+        1,
+        7
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "pew",
+       "tile": [
+        5,
+        3
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "pew",
+       "tile": [
+        5,
+        5
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "pew",
+       "tile": [
+        5,
+        7
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        9,
+        0
+       ]
+      },
+      {
+       "sprite": "cupboard",
+       "tile": [
+        9,
+        3
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 2,
+       "facing": "in",
+       "torch": false
+      },
+      {
+       "side": "n",
+       "at": 7,
+       "facing": "in",
+       "torch": false
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
+  },
+  {
+   "name": "the crypt",
+   "rect": [
+    99,
+    85,
+    6,
+    6
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      4,
+      4
+     ],
+     "wall": "wall_stone",
+     "floor": "floor_stone",
+     "openings": [
+      {
+       "side": "w",
+       "at": 2,
+       "kind": "door"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "coffin",
+       "tile": [
+        0,
+        0
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "coffin",
+       "tile": [
+        3,
+        0
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        3,
+        3
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 1,
+       "facing": "in",
+       "torch": false
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
+  },
+  {
+   "name": "the priest's house",
+   "rect": [
+    98,
+    88,
+    8,
+    8
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      6,
+      6
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "s",
+       "at": 1,
+       "kind": "door",
+       "boards": {
+        "in": 2
+       }
+      },
+      {
+       "side": "e",
+       "at": 2,
+       "kind": "window"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        3,
+        0
+       ],
+       "len": 6,
+       "openings": [
+        {
+         "at": 3,
+         "kind": "door"
+        }
+       ]
+      }
+     ],
+     "props": [
+      {
+       "sprite": "fireplace",
+       "tile": [
+        0,
+        1
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        1,
+        3
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        1,
+        4
+       ],
+       "facing": "n"
+      },
+      {
+       "sprite": "bookcase",
+       "tile": [
+        2,
+        0
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        5,
+        0
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        5,
+        5
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 4,
+       "facing": "in",
+       "torch": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
+  },
+  {
+   "name": "the manor",
+   "rect": [
+    94,
+    116,
+    16,
+    34
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      12,
+      10
+     ],
+     "wall": "wall_stone",
+     "floor": "floor_stone",
+     "openings": [
+      {
+       "side": "w",
+       "at": 3,
+       "kind": "door"
+      },
+      {
+       "side": "w",
+       "at": 7,
+       "kind": "window"
+      },
+      {
+       "side": "n",
+       "at": 3,
+       "kind": "window"
+      },
+      {
+       "side": "n",
+       "at": 9,
+       "kind": "window"
+      },
+      {
+       "side": "e",
+       "at": 2,
+       "kind": "window"
+      },
+      {
+       "side": "e",
+       "at": 7,
+       "kind": "window"
+      },
+      {
+       "side": "s",
+       "at": 9,
+       "kind": "door"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        7,
+        0
+       ],
+       "len": 10,
+       "openings": [
+        {
+         "at": 5,
+         "kind": "door"
+        }
+       ]
+      },
+      {
+       "edge": "n",
+       "at": [
+        0,
+        6
+       ],
+       "len": 7,
+       "openings": [
+        {
+         "at": 3,
+         "kind": "door"
+        }
+       ]
+      }
+     ],
+     "props": [
+      {
+       "sprite": "fireplace",
+       "tile": [
+        2,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        3,
+        2
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        2,
+        2
+       ],
+       "facing": "e"
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        2,
+        3
+       ],
+       "facing": "e"
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        4,
+        2
+       ],
+       "facing": "w"
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        4,
+        3
+       ],
+       "facing": "w"
+      },
+      {
+       "sprite": "cupboard",
+       "tile": [
+        6,
+        0
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        0,
+        5
+       ]
+      },
+      {
+       "sprite": "fireplace",
+       "tile": [
+        0,
+        7
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        2,
+        7
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        5,
+        9
+       ]
+      },
+      {
+       "sprite": "shelf",
+       "tile": [
+        6,
+        6
+       ]
+      },
+      {
+       "sprite": "cupboard",
+       "tile": [
+        6,
+        9
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        8,
+        1
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        11,
+        0
+       ]
+      },
+      {
+       "sprite": "bookcase",
+       "tile": [
+        7,
+        0
+       ]
+      },
+      {
+       "sprite": "desk",
+       "tile": [
+        10,
+        4
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        10,
+        5
+       ],
+       "facing": "n"
+      },
+      {
+       "sprite": "strongbox",
+       "tile": [
+        11,
+        9
+       ]
+      },
+      {
+       "sprite": "cupboard",
+       "tile": [
+        8,
+        9
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 6,
+       "facing": "in",
+       "torch": true
+      },
+      {
+       "side": "e",
+       "at": 5,
+       "facing": "in",
+       "torch": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [
+    {
+     "rect": [
+      2,
+      14,
+      12,
+      8
+     ],
+     "sprite": "floor_grass"
+    },
+    {
+     "rect": [
+      9,
+      26,
+      4,
+      4
+     ],
+     "sprite": "floor_dirt"
+    },
+    {
+     "rect": [
+      10,
+      27,
+      2,
+      2
+     ],
+     "sprite": "floor_water"
+    }
+   ],
+   "fences": [
+    {
+     "rect": [
+      0,
+      12,
+      16,
+      22
+     ],
+     "wall": "wall_fence",
+     "gates": [
+      {
+       "side": "w",
+       "at": 6
+      },
+      {
+       "side": "e",
+       "at": 14
+      }
+     ]
+    }
+   ],
+   "props": [
+    {
+     "sprite": "bench",
+     "tile": [
+      4,
+      16
+     ],
+     "facing": "s"
+    },
+    {
+     "sprite": "bench",
+     "tile": [
+      10,
+      16
+     ],
+     "facing": "s"
+    },
+    {
+     "sprite": "beehive",
+     "tile": [
+      3,
+      24
+     ]
+    },
+    {
+     "sprite": "beehive",
+     "tile": [
+      6,
+      24
+     ]
+    },
+    {
+     "sprite": "beehive",
+     "tile": [
+      9,
+      24
+     ]
+    },
+    {
+     "sprite": "trough",
+     "tile": [
+      2,
+      30
+     ],
+     "footprint": [
+      2,
+      1
+     ]
+    }
+   ]
+  },
+  {
+   "name": "the merchant's house",
+   "rect": [
+    72,
+    124,
+    12,
+    24
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      10,
+      10
+     ],
+     "wall": "wall_stone",
+     "floor": "floor_stone",
+     "openings": [
+      {
+       "side": "e",
+       "at": 2,
+       "kind": "door"
+      },
+      {
+       "side": "e",
+       "at": 7,
+       "kind": "window"
+      },
+      {
+       "side": "n",
+       "at": 2,
+       "kind": "window"
+      },
+      {
+       "side": "w",
+       "at": 2,
+       "kind": "window"
+      },
+      {
+       "side": "w",
+       "at": 7,
+       "kind": "window"
+      },
+      {
+       "side": "s",
+       "at": 7,
+       "kind": "door"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        5,
+        0
+       ],
+       "len": 10,
+       "openings": [
+        {
+         "at": 2,
+         "kind": "door"
+        }
+       ]
+      },
+      {
+       "edge": "n",
+       "at": [
+        5,
+        5
+       ],
+       "len": 5,
+       "openings": [
+        {
+         "at": 2,
+         "kind": "door"
+        }
+       ]
+      }
+     ],
+     "props": [
+      {
+       "sprite": "fireplace",
+       "tile": [
+        0,
+        1
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        2,
+        3
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        1,
+        3
+       ],
+       "facing": "e"
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        3,
+        4
+       ],
+       "facing": "w"
+      },
+      {
+       "sprite": "cupboard",
+       "tile": [
+        4,
+        0
+       ]
+      },
+      {
+       "sprite": "shelf",
+       "tile": [
+        0,
+        8
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        4,
+        9
+       ]
+      },
+      {
+       "sprite": "desk",
+       "tile": [
+        6,
+        1
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        6,
+        2
+       ],
+       "facing": "n"
+      },
+      {
+       "sprite": "strongbox",
+       "tile": [
+        9,
+        0
+       ]
+      },
+      {
+       "sprite": "bookcase",
+       "tile": [
+        9,
+        3
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        6,
+        7
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        9,
+        9
+       ]
+      },
+      {
+       "sprite": "cupboard",
+       "tile": [
+        9,
+        6
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 7,
+       "facing": "in",
+       "torch": true
+      },
+      {
+       "side": "w",
+       "at": 5,
+       "facing": "in",
+       "torch": true
+      }
+     ]
+    },
+    {
+     "rect": [
+      1,
+      13,
+      8,
+      6
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "e",
+       "at": 2,
+       "kind": "door"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "shelf",
+       "tile": [
+        0,
+        0
+       ]
+      },
+      {
+       "sprite": "shelf",
+       "tile": [
+        2,
+        0
+       ]
+      },
+      {
+       "sprite": "shelf",
+       "tile": [
+        4,
+        0
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        7,
+        0
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        0,
+        5
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        1,
+        5
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        7,
+        5
+       ]
+      },
+      {
+       "sprite": "cupboard",
+       "tile": [
+        4,
+        5
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 6,
+       "facing": "in",
+       "torch": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [
+    {
+     "rect": [
+      0,
+      12,
+      12,
+      12
+     ],
+     "wall": "wall_fence",
+     "gates": [
+      {
+       "side": "e",
+       "at": 5
+      }
+     ]
+    }
+   ],
+   "props": [
+    {
+     "sprite": "cart",
+     "tile": [
+      10,
+      20
+     ],
+     "footprint": [
+      2,
+      3
+     ]
+    }
+   ]
+  },
+  {
+   "name": "the baker",
+   "rect": [
+    74,
+    176,
+    8,
+    6
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      6,
+      4
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "n",
+       "at": 1,
+       "kind": "door"
+      },
+      {
+       "side": "n",
+       "at": 3,
+       "kind": "window"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        4,
+        0
+       ],
+       "len": 4,
+       "openings": [
+        {
+         "at": 2,
+         "kind": "door"
+        }
+       ]
+      }
+     ],
+     "props": [
+      {
+       "sprite": "oven",
+       "tile": [
+        0,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ],
+       "lit": true,
+       "fuel": 2
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        1,
+        2
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "shelf",
+       "tile": [
+        3,
+        0
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        0,
+        3
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        5,
+        0
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        4,
+        3
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 5,
+       "facing": "in",
+       "torch": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
+  },
+  {
+   "name": "the joiner",
+   "rect": [
+    70,
+    182,
+    10,
+    14
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      8,
+      5
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "e",
+       "at": 2,
+       "kind": "door"
+      },
+      {
+       "side": "n",
+       "at": 2,
+       "kind": "window"
+      },
+      {
+       "side": "n",
+       "at": 5,
+       "kind": "window"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "workbench",
+       "tile": [
+        1,
+        1
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        4,
+        1
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "shelf",
+       "tile": [
+        7,
+        0
+       ]
+      },
+      {
+       "sprite": "shelf",
+       "tile": [
+        0,
+        0
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        7,
+        4
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        0,
+        4
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 4,
+       "facing": "in",
+       "torch": true
+      }
+     ]
+    },
+    {
+     "rect": [
+      1,
+      6,
+      8,
+      5
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "n",
+       "at": 3,
+       "kind": "door"
+      },
+      {
+       "side": "w",
+       "at": 2,
+       "kind": "window"
+      },
+      {
+       "side": "e",
+       "at": 3,
+       "kind": "window"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        4,
+        0
+       ],
+       "len": 5,
+       "openings": [
+        {
+         "at": 2,
+         "kind": "door"
+        }
+       ]
+      }
+     ],
+     "props": [
+      {
+       "sprite": "fireplace",
+       "tile": [
+        0,
+        1
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        1,
+        3
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        2,
+        4
+       ],
+       "facing": "n"
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        5,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        7,
+        4
+       ]
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": [
+    {
+     "sprite": "sawpit",
+     "tile": [
+      2,
+      12
+     ],
+     "footprint": [
+      2,
+      1
+     ]
+    },
+    {
+     "sprite": "woodpile",
+     "tile": [
+      6,
+      12
+     ]
+    },
+    {
+     "sprite": "woodpile",
+     "tile": [
+      7,
+      12
+     ]
+    },
+    {
+     "sprite": "wheelbarrow",
+     "tile": [
+      0,
+      12
+     ],
+     "note": "the joiner's wheelbarrow (docs/30 section 9.1)"
+    }
+   ]
+  },
+  {
+   "name": "the weaver",
+   "rect": [
+    66,
+    148,
+    14,
+    10
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      8,
+      6
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "s",
+       "at": 2,
+       "kind": "door"
+      },
+      {
+       "side": "s",
+       "at": 6,
+       "kind": "window"
+      },
+      {
+       "side": "n",
+       "at": 2,
+       "kind": "window"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        5,
+        0
+       ],
+       "len": 6,
+       "openings": [
+        {
+         "at": 3,
+         "kind": "door"
+        }
+       ]
+      }
+     ],
+     "props": [
+      {
+       "sprite": "loom",
+       "tile": [
+        1,
+        1
+       ],
+       "footprint": [
+        2,
+        2
+       ]
+      },
+      {
+       "sprite": "spinningwheel",
+       "tile": [
+        4,
+        1
+       ]
+      },
+      {
+       "sprite": "shelf",
+       "tile": [
+        0,
+        0
+       ]
+      },
+      {
+       "sprite": "cupboard",
+       "tile": [
+        4,
+        5
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        6,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        7,
+        5
+       ]
+      },
+      {
+       "sprite": "fireplace",
+       "tile": [
+        5,
+        3
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 6,
+       "facing": "in",
+       "torch": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": [
+    {
+     "sprite": "dyevat",
+     "tile": [
+      10,
+      3
+     ]
+    },
+    {
+     "sprite": "dyevat",
+     "tile": [
+      11,
+      3
+     ]
+    },
+    {
+     "sprite": "dyevat",
+     "tile": [
+      12,
+      3
+     ]
+    },
+    {
+     "sprite": "woodpile",
+     "tile": [
+      12,
+      7
+     ]
+    }
+   ]
+  },
+  {
+   "name": "the smithy",
+   "rect": [
+    98,
+    184,
+    12,
+    12
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      6,
+      5
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_stone",
+     "openings": [
+      {
+       "side": "s",
+       "at": 1,
+       "kind": "door",
+       "open": true
+      },
+      {
+       "side": "s",
+       "at": 4,
+       "kind": "door",
+       "open": true
+      },
+      {
+       "side": "n",
+       "at": 3,
+       "kind": "window"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "forge",
+       "tile": [
+        1,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "anvil",
+       "tile": [
+        2,
+        2
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        4,
+        2
+       ]
+      },
+      {
+       "sprite": "grindstone",
+       "tile": [
+        4,
+        4
+       ]
+      },
+      {
+       "sprite": "shelf",
+       "tile": [
+        0,
+        0
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        0,
+        4
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 5,
+       "facing": "in",
+       "torch": true
+      }
+     ]
+    },
+    {
+     "rect": [
+      7,
+      1,
+      4,
+      5
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "w",
+       "at": 2,
+       "kind": "door"
+      },
+      {
+       "side": "e",
+       "at": 1,
+       "kind": "window"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "bed",
+       "tile": [
+        3,
+        0
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        3,
+        4
+       ]
+      },
+      {
+       "sprite": "cupboard",
+       "tile": [
+        0,
+        4
+       ]
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": [
+    {
+     "sprite": "woodpile",
+     "tile": [
+      1,
+      8
+     ]
+    },
+    {
+     "sprite": "cart",
+     "tile": [
+      6,
+      7
+     ],
+     "footprint": [
+      2,
+      3
+     ]
+    }
+   ]
+  },
+  {
+   "name": "the toll house",
+   "rect": [
+    112,
+    174,
+    6,
+    8
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      4,
+      4
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "w",
+       "at": 1,
+       "kind": "door"
+      },
+      {
+       "side": "n",
+       "at": 2,
+       "kind": "window"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "strongbox",
+       "tile": [
+        3,
+        0
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        0,
+        2
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        3,
+        3
+       ]
+      },
+      {
+       "sprite": "shelf",
+       "tile": [
+        2,
+        0
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "w",
+       "at": 3,
+       "facing": "out",
+       "torch": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
+  },
+  {
+   "name": "a cottage by the merchant's",
+   "rect": [
+    58,
+    130,
+    8,
+    6
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      6,
+      4
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "s",
+       "at": 1,
+       "kind": "door",
+       "broken": false
+      },
+      {
+       "side": "n",
+       "at": 4,
+       "kind": "window"
+      },
+      {
+       "side": "e",
+       "at": 1,
+       "kind": "window"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        3,
+        0
+       ],
+       "len": 4,
+       "openings": [
+        {
+         "at": 2,
+         "kind": "door"
+        }
+       ]
+      }
+     ],
+     "props": [
+      {
+       "sprite": "fireplace",
+       "tile": [
+        0,
+        1
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        1,
+        1
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        2,
+        2
+       ],
+       "facing": "n"
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        2,
+        3
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        3,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        5,
+        3
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "w",
+       "at": 0,
+       "facing": "in",
+       "torch": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": [
+    {
+     "sprite": "woodpile",
+     "tile": [
+      7,
+      4
+     ]
+    }
+   ]
+  },
+  {
+   "name": "the cooper's long house",
+   "rect": [
+    58,
+    138,
+    8,
+    8
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      6,
+      6
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "s",
+       "at": 1,
+       "kind": "door"
+      },
+      {
+       "side": "w",
+       "at": 1,
+       "kind": "window"
+      },
+      {
+       "side": "e",
+       "at": 4,
+       "kind": "window"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "n",
+       "at": [
+        0,
+        4
+       ],
+       "len": 6,
+       "openings": [
+        {
+         "at": 2,
+         "kind": "door"
+        }
+       ],
+       "wall": "wall_fence"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "fireplace",
+       "tile": [
+        1,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        3,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        5,
+        1
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        0,
+        1
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        1,
+        2
+       ],
+       "facing": "w"
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        0,
+        5
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        1,
+        5
+       ]
+      },
+      {
+       "sprite": "haystack",
+       "tile": [
+        5,
+        5
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 4,
+       "facing": "in",
+       "torch": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
+  },
+  {
+   "name": "a cottage by the baker's",
+   "rect": [
+    58,
+    178,
+    8,
+    6
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      6,
+      4
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "n",
+       "at": 1,
+       "kind": "door",
+       "broken": false
+      },
+      {
+       "side": "s",
+       "at": 4,
+       "kind": "window"
+      },
+      {
+       "side": "e",
+       "at": 1,
+       "kind": "window"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        3,
+        0
+       ],
+       "len": 4,
+       "openings": [
+        {
+         "at": 2,
+         "kind": "door"
+        }
+       ]
+      }
+     ],
+     "props": [
+      {
+       "sprite": "fireplace",
+       "tile": [
+        0,
+        1
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        1,
+        1
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        2,
+        2
+       ],
+       "facing": "n"
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        2,
+        3
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        3,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        5,
+        3
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "w",
+       "at": 0,
+       "facing": "in",
+       "torch": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": [
+    {
+     "sprite": "woodpile",
+     "tile": [
+      7,
+      4
+     ]
+    }
+   ]
+  },
+  {
+   "name": "the chandler's house",
+   "rect": [
+    58,
+    188,
+    10,
+    10
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      6,
+      4
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "s",
+       "at": 1,
+       "kind": "door"
+      },
+      {
+       "side": "n",
+       "at": 1,
+       "kind": "window"
+      },
+      {
+       "side": "n",
+       "at": 4,
+       "kind": "window"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        3,
+        0
+       ],
+       "len": 4,
+       "openings": [
+        {
+         "at": 1,
+         "kind": "door"
+        }
+       ]
+      }
+     ],
+     "props": [
+      {
+       "sprite": "fireplace",
+       "tile": [
+        0,
+        1
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        1,
+        1
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        1,
+        2
+       ],
+       "facing": "n"
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        3,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        5,
+        3
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "w",
+       "at": 0,
+       "facing": "in",
+       "torch": true
+      }
+     ]
+    },
+    {
+     "rect": [
+      7,
+      1,
+      2,
+      4
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "w",
+       "at": 1,
+       "kind": "door"
+      },
+      {
+       "side": "e",
+       "at": 2,
+       "kind": "window"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "shelf",
+       "tile": [
+        1,
+        0
+       ]
+      },
+      {
+       "sprite": "workbench",
+       "tile": [
+        0,
+        3
+       ]
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
+  },
+  {
+   "name": "the first cottage on the lane",
+   "rect": [
+    60,
+    214,
+    8,
+    6
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      6,
+      4
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "n",
+       "at": 1,
+       "kind": "door",
+       "broken": true
+      },
+      {
+       "side": "s",
+       "at": 4,
+       "kind": "window"
+      },
+      {
+       "side": "e",
+       "at": 1,
+       "kind": "window"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        3,
+        0
+       ],
+       "len": 4,
+       "openings": [
+        {
+         "at": 2,
+         "kind": "door"
+        }
+       ]
+      }
+     ],
+     "props": [
+      {
+       "sprite": "fireplace",
+       "tile": [
+        0,
+        1
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        1,
+        1
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        2,
+        2
+       ],
+       "facing": "n"
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        2,
+        3
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        3,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        5,
+        3
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "w",
+       "at": 0,
+       "facing": "in",
+       "torch": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": [
+    {
+     "sprite": "woodpile",
+     "tile": [
+      7,
+      4
+     ]
+    }
+   ]
+  },
+  {
+   "name": "the second cottage on the lane",
+   "rect": [
+    70,
+    214,
+    8,
+    8
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      6,
+      6
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "s",
+       "at": 1,
+       "kind": "door"
+      },
+      {
+       "side": "w",
+       "at": 1,
+       "kind": "window"
+      },
+      {
+       "side": "e",
+       "at": 4,
+       "kind": "window"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "n",
+       "at": [
+        0,
+        4
+       ],
+       "len": 6,
+       "openings": [
+        {
+         "at": 2,
+         "kind": "door"
+        }
+       ],
+       "wall": "wall_fence"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "fireplace",
+       "tile": [
+        1,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        3,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        5,
+        1
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        0,
+        1
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        1,
+        2
+       ],
+       "facing": "w"
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        0,
+        5
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        1,
+        5
+       ]
+      },
+      {
+       "sprite": "haystack",
+       "tile": [
+        5,
+        5
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 4,
+       "facing": "in",
+       "torch": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
+  },
+  {
+   "name": "the shut cottage",
+   "rect": [
+    80,
+    214,
+    8,
+    6
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      6,
+      4
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "n",
+       "at": 1,
+       "kind": "door",
+       "broken": false
+      },
+      {
+       "side": "s",
+       "at": 4,
+       "kind": "window"
+      },
+      {
+       "side": "e",
+       "at": 1,
+       "kind": "window"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        3,
+        0
+       ],
+       "len": 4,
+       "openings": [
+        {
+         "at": 2,
+         "kind": "door"
+        }
+       ]
+      }
+     ],
+     "props": [
+      {
+       "sprite": "fireplace",
+       "tile": [
+        0,
+        1
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        1,
+        1
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        2,
+        2
+       ],
+       "facing": "n"
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        2,
+        3
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        3,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        5,
+        3
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "w",
+       "at": 0,
+       "facing": "in",
+       "torch": false
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": [
+    {
+     "sprite": "woodpile",
+     "tile": [
+      7,
+      4
+     ]
+    }
+   ]
+  },
+  {
+   "name": "the reeve's house",
+   "rect": [
+    90,
+    214,
+    8,
+    6
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      6,
+      4
+     ],
+     "wall": {
+      "n": "wall_stone",
+      "w": "wall_stone",
+      "s": "wall_wood",
+      "e": "wall_wood"
+     },
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "n",
+       "at": 1,
+       "kind": "door"
+      },
+      {
+       "side": "n",
+       "at": 4,
+       "kind": "window"
+      },
+      {
+       "side": "e",
+       "at": 1,
+       "kind": "window"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        3,
+        0
+       ],
+       "len": 4,
+       "openings": [
+        {
+         "at": 2,
+         "kind": "door"
+        }
+       ]
+      }
+     ],
+     "props": [
+      {
+       "sprite": "fireplace",
+       "tile": [
+        0,
+        1
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        1,
+        1
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        2,
+        2
+       ],
+       "facing": "n"
+      },
+      {
+       "sprite": "desk",
+       "tile": [
+        2,
+        3
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        3,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        5,
+        3
+       ]
+      },
+      {
+       "sprite": "bookcase",
+       "tile": [
+        3,
+        3
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 5,
+       "facing": "in",
+       "torch": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
+  }
+ ],
+ "reserve": [
+  [
+   56,
+   84,
+   64,
+   144
+  ],
+  [
+   136,
+   126,
+   66,
+   64
+  ],
+  [
+   36,
+   230,
+   64,
+   26
+  ],
+  [
+   64,
+   24,
+   56,
+   44
+  ]
+ ],
+ "biomes": {
+  "harvest": {
+   "kinds": {
+    "tree_oak_m": 1,
+    "tree_oak_l": 1,
+    "tree_oak_old": 0.5,
+    "tree_yellow_m": 1,
+    "tree_yellow_l": 1,
+    "tree_yellow_old": 0.5,
+    "tree_orange_m": 1,
+    "tree_orange_l": 1,
+    "tree_orange_old": 0.5,
+    "tree_red_m": 1,
+    "tree_red_l": 1,
+    "tree_red_old": 0.5,
+    "tree_spire_green_m": 0.5,
+    "tree_spire_green_l": 0.5,
+    "tree_spire_green_old": 0.25,
+    "tree_spire_yellow_m": 0.5,
+    "tree_spire_yellow_l": 0.5,
+    "tree_spire_yellow_old": 0.25,
+    "tree_spire_orange_m": 0.5,
+    "tree_spire_orange_l": 0.5,
+    "tree_spire_orange_old": 0.25,
+    "tree_spire_red_m": 0.5,
+    "tree_spire_red_l": 0.5,
+    "tree_spire_red_old": 0.25
+   },
+   "scale": 9
+  }
+ },
+ "scatter": [
+  {
+   "rect": [
+    0,
+    0,
+    256,
+    256
+   ],
+   "density": [
+    0.05,
+    0.16
+   ],
+   "biome": "harvest",
+   "seed": 11
+  }
+ ],
+ "wild": {
+  "biome": "harvest",
+  "density": [
+   0.0405,
+   0.1305
+  ],
+  "seed": 21,
+  "zombiesPerChunk": [
+   0,
+   2
+  ],
+  "rocks": {
+   "kinds": {
+    "rock_0": 1,
+    "rock_1": 1,
+    "rock_2": 1,
+    "rock_3": 1
+   },
+   "cell": 40,
+   "chance": 0.6,
+   "seed": 51
+  }
+ },
+ "spawn": [
+  104,
+  216
+ ],
+ "zombies": [
+  [
+   87,
+   155
+  ],
+  [
+   93,
+   161
+  ],
+  [
+   92,
+   156
+  ],
+  [
+   86,
+   162
+  ],
+  [
+   90,
+   108
+  ],
+  [
+   90,
+   136
+  ],
+  [
+   88,
+   144
+  ],
+  [
+   90,
+   188
+  ],
+  [
+   90,
+   200
+  ],
+  [
+   76,
+   212
+  ],
+  [
+   100,
+   212
+  ],
+  [
+   80,
+   164
+  ],
+  [
+   114,
+   160
+  ],
+  [
+   115,
+   156
+  ],
+  [
+   113,
+   161
+  ],
+  [
+   117,
+   155
+  ],
+  [
+   112,
+   158
+  ],
+  [
+   116,
+   159
+  ],
+  [
+   135,
+   159
+  ],
+  [
+   136,
+   156
+  ],
+  [
+   137,
+   160
+  ],
+  [
+   138,
+   158
+  ],
+  [
+   77,
+   88
+  ],
+  [
+   81,
+   94
+  ],
+  [
+   79,
+   91
+  ],
+  [
+   98,
+   93
+  ],
+  [
+   102,
+   96
+  ],
+  [
+   87,
+   96
+  ],
+  [
+   94,
+   96
+  ],
+  [
+   84,
+   85
+  ],
+  [
+   100,
+   191
+  ],
+  [
+   77,
+   176
+  ],
+  [
+   79,
+   185
+  ],
+  [
+   75,
+   156
+  ],
+  [
+   76,
+   128
+  ],
+  [
+   74,
+   139
+  ],
+  [
+   102,
+   134
+  ],
+  [
+   66,
+   132
+  ],
+  [
+   74,
+   210
+  ],
+  [
+   62,
+   184
+  ]
+ ],
+ "props": [
+  {
+   "sprite": "well",
+   "tile": [
+    89,
+    157
+   ],
+   "note": "the square's well (29/04)"
+  },
+  {
+   "sprite": "marketcross",
+   "tile": [
+    90,
+    152
+   ]
+  },
+  {
+   "sprite": "stall",
+   "tile": [
+    84,
+    152
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "note": "vegetables"
+  },
+  {
+   "sprite": "stall",
+   "tile": [
+    87,
+    152
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "note": "cloth"
+  },
+  {
+   "sprite": "stall",
+   "tile": [
+    92,
+    152
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "note": "pots"
+  },
+  {
+   "sprite": "stall",
+   "tile": [
+    94,
+    152
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "note": "knives"
+  },
+  {
+   "sprite": "trough",
+   "tile": [
+    86,
+    160
+   ],
+   "footprint": [
+    2,
+    1
+   ]
+  },
+  {
+   "sprite": "noticeboard",
+   "tile": [
+    95,
+    159
+   ],
+   "note": "by the inn's door; the quest board of 1.1"
+  },
+  {
+   "sprite": "stocks",
+   "tile": [
+    95,
+    163
+   ]
+  },
+  {
+   "sprite": "torch_post",
+   "tile": [
+    84,
+    163
+   ]
+  },
+  {
+   "sprite": "torch_post",
+   "tile": [
+    95,
+    154
+   ]
+  },
+  {
+   "sprite": "torch_post",
+   "tile": [
+    84,
+    154
+   ]
+  },
+  {
+   "sprite": "maypole",
+   "tile": [
+    82,
+    186
+   ]
+  },
+  {
+   "sprite": "bench",
+   "tile": [
+    84,
+    192
+   ],
+   "facing": "e"
+  },
+  {
+   "sprite": "bench",
+   "tile": [
+    93,
+    193
+   ],
+   "facing": "w"
+  },
+  {
+   "sprite": "woodpile",
+   "tile": [
+    94,
+    208
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    76,
+    86
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    76,
+    89
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    76,
+    92
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    76,
+    95
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    78,
+    86
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    78,
+    89
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    78,
+    92
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    78,
+    95
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    80,
+    86
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    80,
+    89
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    80,
+    92
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    80,
+    95
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    82,
+    86
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    82,
+    89
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    82,
+    92
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    82,
+    95
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    97,
+    91
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    97,
+    94
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    99,
+    91
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    99,
+    94
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    101,
+    91
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    101,
+    94
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    103,
+    91
+   ]
+  },
+  {
+   "sprite": "headstone",
+   "tile": [
+    103,
+    94
+   ]
+  }
+ ],
+ "forage": {
+  "kinds": {
+   "mushroom_0": 1,
+   "mushroom_1": 1,
+   "mushroom_2": 1,
+   "mushroom_3": 1,
+   "mushroom_4": 1
+  },
+  "chance": 0.021,
+  "near": 2,
+  "seed": 41
+ },
+ "villagers": [
+  {
+   "tile": [
+    104,
+    153
+   ],
+   "name": "Innkeeper",
+   "wardrobe": 0,
+   "line": "Shut that behind you."
+  },
+  {
+   "tile": [
+    101,
+    162
+   ],
+   "name": "Guest",
+   "wardrobe": 1,
+   "line": "I only stopped for the night."
+  },
+  {
+   "tile": [
+    102,
+    156
+   ],
+   "name": "Child",
+   "wardrobe": 5
+  },
+  {
+   "tile": [
+    93,
+    88
+   ],
+   "name": "Priest",
+   "wardrobe": 2,
+   "line": "The bell stopped on the third day."
+  },
+  {
+   "tile": [
+    92,
+    217
+   ],
+   "name": "Reeve",
+   "wardrobe": 3,
+   "line": "I have the keys and no one to give them to."
+  },
+  {
+   "tile": [
+    76,
+    140
+   ],
+   "name": "Apprentice",
+   "wardrobe": 4,
+   "line": "It is all here. Every bale. Nobody to buy it."
+  },
+  {
+   "tile": [
+    82,
+    217
+   ],
+   "name": "Neighbour",
+   "wardrobe": 1,
+   "line": "Go away."
+  }
+ ]
+}

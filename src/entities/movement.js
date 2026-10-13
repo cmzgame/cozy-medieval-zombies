@@ -5,7 +5,7 @@
 // villagers share.
 
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, canStep, tileAt, roomAt } from "../map.js";
+import { moveCircle, isWalkableTile, canStep, tileAt, roomAt, floorSpeedAt } from "../map.js";
 import { findPath } from "../pathfind.js";
 import * as rng from "../rng.js";
 import { zombie as T } from "../tuning.js";
@@ -48,7 +48,7 @@ export function followPath(e, dt, others) {
     e.path.shift();
     return e.path.length === 0;
   }
-  const step = Math.min(d, e.speed * dt);
+  const step = Math.min(d, e.speed * floorSpeedAt(e.gx, e.gy) * dt); // shallow water slows everyone (docs/30, law 8)
   faceToward(e, dx, dy);
   const sx = e.gx;
   const sy = e.gy;

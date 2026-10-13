@@ -1,0 +1,1 @@
+{"placeholder": {"kind": "box", "color": "#6a4a2a", "height": 26, "inset": 6, "label": "Counter"}, "container": {"loot": "chest"}, "carry": false, "note": "a dev box for the counter (docs/30 step 1; docs/29/09 has its art request)"}

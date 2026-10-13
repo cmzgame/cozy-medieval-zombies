@@ -1,0 +1,1 @@
+{"placeholder": {"kind": "box", "color": "#7a6a5a", "height": 34, "inset": 6, "label": "Oven"}, "fire": {"radius": 2, "burns": true, "cooks": true, "maxFuel": 3, "flicker": {"amp": 0.15, "speed": 6}}, "station": "oven", "carry": false, "note": "a dev box for the oven (docs/30 step 1; docs/29/09 has its art request)"}

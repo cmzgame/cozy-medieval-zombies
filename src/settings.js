@@ -25,6 +25,7 @@ export const DEFAULTS = {
   panelPos: {}, // "bag" | "character" | "container" -> { x, y } in UI pixels where its header was dragged to (docs/23 step 4; Michael, 2026-10-12)
   cursor: "default", // the system's own, or one of the three hands (ui/cursor.js; Michael, 2026-10-12)
   logSize: null, // { w, h } in UI pixels the text log was resized to (ui/log.js)
+  devChest: true, // the chest of every item placed by the spawn (read at load; docs/30 step 0: the map file stays clean)
 };
 
 // What the settings screen offers, in order.
@@ -44,6 +45,7 @@ export const CHOICES = {
   freeBuilding: [[false, "Off (costs apply)"], [true, "On (no costs)"]],
   survival: [[false, "Off (no hunger or thirst)"], [true, "On"]],
   cursor: [["default", "Default"], ["human", "A hand"], ["severed", "A severed hand"], ["zombie", "A zombie hand"]],
+  devChest: [[true, "On (by the spawn; reload the page)"], [false, "Off"]],
 };
 
 const settings = { ...DEFAULTS };

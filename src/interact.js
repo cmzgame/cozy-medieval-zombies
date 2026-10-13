@@ -406,21 +406,21 @@ function treeActions(prop) {
   })];
 }
 
-// The well: infinite water (docs/02, question 16).
-function wellActions(prop, player) {
+// Water to drink and fill from: the well (infinite, docs/02 question 16) and, since docs/30
+// law 8, any water tile beside you (the river, a pond, the mere). `source` is
+// { tiles, mx, my, name, onStart? }.
+function waterActions(source, player) {
   const toFill = () => waterContainers(bagOf(player)).filter((it) => (it.fill ?? 0) < 100);
   return [
     act({
       kind: "water",
       simple: player.thirst < 90,
-      label: "Drink from the well",
-      tiles: prop.tiles,
-      mx: prop.tile[0],
-      my: prop.tile[1] - 0.6,
+      label: `Drink from the ${source.name}`,
+      tiles: source.tiles,
+      mx: source.mx,
+      my: source.my,
       duration: DRINK_TIME,
-      onStart() {
-        play(prop); // the bucket goes down for the water
-      },
+      onStart: source.onStart || null,
       perform() {
         player.thirst = player.maxThirst;
         showMessage("You drink your fill.");
@@ -430,9 +430,9 @@ function wellActions(prop, player) {
     act({
       kind: "fill",
       label: toFill().length ? "Fill waterskins" : "Fill waterskins (none to fill)",
-      tiles: prop.tiles,
-      mx: prop.tile[0],
-      my: prop.tile[1] - 0.6,
+      tiles: source.tiles,
+      mx: source.mx,
+      my: source.my,
       duration: FILL_TIME,
       enabled: toFill().length > 0,
       perform() {
@@ -443,6 +443,15 @@ function wellActions(prop, player) {
       },
     }),
   ];
+}
+
+function wellActions(prop, player) {
+  return waterActions({ tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] - 0.6, name: "well", onStart: () => play(prop) }, player); // the bucket goes down for the water
+}
+
+// A water tile's actions, from its bank.
+function waterTileActions(tx, ty, player) {
+  return waterActions({ tiles: [[tx, ty]], mx: tx, my: ty, name: "water" }, player);
 }
 
 function walkAction(tile) {
@@ -522,6 +531,7 @@ export function actionsAt(sx, sy, player) {
     return out;
   }
   for (const entry of map.itemsAt(tx, ty)) out.push(...itemActions(entry, tx, ty, player));
+  if (map.peekTile(tx, ty) && map.drinkableAt(tx, ty)) out.push(...waterTileActions(tx, ty, player)); // the river, a pond (docs/30, law 8)
   // Props: on their tile, or under their sprite in the tiles around (a tall tree).
   const seen = new Set();
   for (let dy = -3; dy <= 1; dy++) {
@@ -571,6 +581,7 @@ export function nearestSimpleAction(player) {
       const t = map.peekTile(px + dx, py + dy); // a hit test never grows a chunk (docs/23a, A4)
       if (!t) continue;
       for (const entry of map.itemsAt(px + dx, py + dy)) consider(itemActions(entry, px + dx, py + dy, player));
+      if (map.drinkableAt(px + dx, py + dy)) consider(waterTileActions(px + dx, py + dy, player)); // E at the bank
       if (t.prop && !seen.has(t.prop)) {
         seen.add(t.prop);
         consider(propActions(t.prop, player));
