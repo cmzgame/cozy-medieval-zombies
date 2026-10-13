@@ -23,6 +23,7 @@ export const DEFAULTS = {
   hairStyle: "short", // the player's hair (the character screen writes it, and `look.hairStyle` with it; kept for what reads it)
   playerName: "", // who you are to the others (docs/31/03: the identity; the character screen); empty means your player's id
   look: {}, // the look chosen on the character screen: skin, hair, eyes (hex), hairStyle; the rest DEFAULT_LOOK's. With playerName, the identity a guest sends on a join
+  nameTags: true, // another player's name over their head while in sight (docs/31/03)
   paintedLayers: {}, // slot -> painted layer name to try on, from the settings screen (docs/12)
   panelPos: {}, // "bag" | "character" | "container" -> { x, y } in UI pixels where its header was dragged to (docs/23 step 4; Michael, 2026-10-12)
   cursor: "default", // the system's own, or one of the three hands (ui/cursor.js; Michael, 2026-10-12)
@@ -48,6 +49,7 @@ export const CHOICES = {
   survival: [[true, "On (hunger, thirst, tiredness)"], [false, "Off (no needs)"]],
   cursor: [["default", "Default"], ["human", "A hand"], ["severed", "A severed hand"], ["zombie", "A zombie hand"]],
   devChest: [[true, "On (by the spawn; reload the page)"], [false, "Off"]],
+  nameTags: [[true, "Shown"], [false, "Hidden"]],
 };
 
 const settings = { ...DEFAULTS };

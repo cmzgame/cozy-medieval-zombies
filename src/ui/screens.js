@@ -41,6 +41,7 @@ let onReload = () => window.location.reload();
 let onContinue = () => {};
 let onSave = () => {};
 let youApi = null; // the character screen's api from main.js (docs/12, the creation screen; docs/31/03, the identity)
+let wireApi = null; // { host(), join(code), status() } from main.js (net.js: Host a game, Join a game)
 let data = {};
 let previewTimer = null; // the character screen's turning figure
 let previewFacing = 0;
@@ -53,6 +54,7 @@ export function initScreens(handlers = {}) {
   onContinue = handlers.onContinue || onContinue;
   onSave = handlers.onSave || onSave;
   youApi = handlers.you || null;
+  wireApi = handlers.wire || null;
   root = document.getElementById("screens");
   root.hidden = true;
   root.addEventListener("click", (e) => {
@@ -83,6 +85,10 @@ export function initScreens(handlers = {}) {
     if (e.target.closest("#hair-reload") && hairApi) {
       hairApi.reload().then(render);
     }
+    if (e.target.closest("#join-go") && wireApi) {
+      const code = (root.querySelector("#join-code").value || "").trim().toLowerCase();
+      if (code) wireApi.join(code);
+    }
   });
   root.addEventListener("input", (e) => {
     const name = e.target.closest("input[data-name]");
@@ -98,7 +104,7 @@ export function currentScreen() {
 }
 
 // The screens that return to where they were opened from (Escape, Back, Done).
-const SUB = new Set(["settings", "controls", "character"]);
+const SUB = new Set(["settings", "controls", "character", "host", "join"]);
 
 export function show(name, extra = {}) {
   const titleData = current === "title" ? data : null;
@@ -146,6 +152,7 @@ function go(where) {
   else if (where === "reload") onReload();
   else if (where === "continue") onContinue();
   else if (where === "save") onSave();
+  else if (where === "host-open") { if (wireApi) wireApi.host(); render(); }
   else show(where);
 }
 
@@ -252,6 +259,7 @@ function render() {
         <div class="sub">A village of the dead. Keep the shutters closed.</div>
         ${data.save && data.save.dead ? `<div class="sub">Your last survivor died. Play starts the village over.</div>` : ""}
         <div class="screen-buttons">${data.save && !data.save.dead ? button("continue", `Continue, ${data.saveLabel}`) : ""}${button("play", data.save ? "New game" : "Play")}${youApi ? button("character", "Character") : ""}${button("settings", "Settings")}${button("controls", "Controls")}</div>
+        ${wireApi ? `<div class="screen-buttons">${button("host", "Host a game")}${button("join", "Join a game")}</div>` : ""}
       </div>`;
   } else if (current === "pause") {
     root.innerHTML = `
@@ -259,7 +267,33 @@ function render() {
         <h1>Paused</h1>
         <div class="sub">Esc to resume</div>
         <div class="screen-buttons">${button("resume", "Resume")}${button("save", "Save game")}${youApi ? button("character", "Character") : ""}${button("settings", "Settings")}${button("controls", "Controls")}${button("title", "Title screen")}</div>
+        ${wireApi ? `<div class="screen-buttons">${button("host", "Host this game")}</div>` : ""}
       </div>`;
+  } else if (current === "host" && wireApi) {
+    // Hosting (docs/31/04, the listen server): this world open to friends on this origin; the code is theirs to type.
+    const st = wireApi.status();
+    const open = st && st.role === "host";
+    root.innerHTML = `
+      <div class="screen">
+        <h1>Host a game</h1>
+        ${open ? `<div class="sub">Your code: <b class="code">${st.code}</b></div><div class="sub">${st.guests.length ? `With you: ${st.guests.join(", ")}` : "Waiting for friends. The world runs while this screen is up only if you go back to it."}</div>` : `<div class="sub">Opens this world to friends on this computer's browser for now, and on the wire later (docs/31/04).</div>`}
+        <div class="screen-buttons">${open ? "" : button("host-open", "Open this world")}${button("back", open ? "Back to the game" : "Back")}</div>
+      </div>`;
+  } else if (current === "join" && wireApi) {
+    const st = wireApi.status();
+    root.innerHTML = `
+      <div class="screen">
+        <h1>Join a game</h1>
+        <div class="sub">${st && st.role === "guest" ? (st.joined ? `In ${st.code}'s world as ${st.myPlayerId}.` : `Joining ${st.code}…`) : "Type the host's code."}</div>
+        ${st && st.role === "guest" ? "" : `<div class="setting"><span>Code</span><span class="choices"><input id="join-code" type="text" maxlength="24" placeholder="oak-abc" autocomplete="off" spellcheck="false"><button id="join-go">Join</button></span></div>`}
+        <div class="screen-buttons">${button("back", "Back")}</div>
+      </div>`;
+    const codeEl = root.querySelector("#join-code");
+    if (codeEl) {
+      codeEl.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.code === "Enter" && wireApi) { const c = codeEl.value.trim().toLowerCase(); if (c) wireApi.join(c); } });
+      codeEl.addEventListener("keyup", (e) => e.stopPropagation());
+      codeEl.focus();
+    }
   } else if (current === "character" && youApi) {
     root.innerHTML = characterHtml();
     startPreview();

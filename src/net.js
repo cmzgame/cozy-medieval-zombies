@@ -23,6 +23,7 @@ import { serializeCharacter, restoreCharacter, dress, dressCorpse } from "./enti
 import { createPlayer } from "./entities/player.js";
 import { createZombie } from "./entities/zombie.js";
 import { createVillager } from "./entities/villager.js";
+import { say } from "./entities/character.js";
 
 let role = null; // "host" | "guest" | null (alone)
 let channel = null;
@@ -48,10 +49,31 @@ let seq = 0; // the guest's input count, so the host can say which it has applie
 const pending = []; // the guest's inputs not yet acknowledged, replayed over each frame (prediction)
 let lastCorrection = 0; // tiles the last frame moved my predicted player: the misprediction, for the checks
 
-export function init({ host = null, join = null, lag: l = 0 } = {}, h = {}) {
+let identity = { name: null, look: null }; // what a guest says it is on the join (the You screen)
+
+export function setHooks(h) {
   hooks = { ...hooks, ...h };
-  if (!host && !join) return;
-  if (typeof BroadcastChannel === "undefined") return;
+}
+
+export function setIdentity(id) {
+  identity = { ...identity, ...id };
+}
+
+export function init(opts = {}, h = {}) {
+  setHooks(h);
+  open(opts);
+}
+
+// A short code for a world, for friends to type (the Host screen).
+export function makeCode() {
+  const words = ["oak", "elm", "ash", "yew", "fir", "hazel", "rowan", "thorn", "moss", "fern"];
+  return `${words[Math.floor(Math.random() * words.length)]}-${Math.random().toString(36).slice(2, 5)}`;
+}
+
+// Open this tab's world to guests (host) or join another's (guest), once.
+export function open({ host = null, join = null, lag: l = 0 } = {}) {
+  if (role || (!host && !join)) return false;
+  if (typeof BroadcastChannel === "undefined") return false;
   role = host ? "host" : "guest";
   code = host || join;
   lag = Math.max(0, Number(l) || 0);
@@ -63,6 +85,7 @@ export function init({ host = null, join = null, lag: l = 0 } = {}, h = {}) {
     if (lag) setTimeout(() => inbox.push(msg), lag);
     else inbox.push(msg);
   };
+  return true;
 }
 
 export function isHost() {
@@ -99,21 +122,27 @@ export function hostStep(mySnap, me) {
       if (guests.has(msg.from)) continue;
       const spawn = game.state.info ? game.state.info.spawn : [me.gx, me.gy];
       const at = map.nearestWalkable(spawn[0] + 1, spawn[1] + 1, (x, y) => game.state.players.some((p) => Math.round(p.gx) === x && Math.round(p.gy) === y)) || spawn;
-      const p = game.addPlayer(at[0], at[1], { look: msg.look || null });
+      const p = game.addPlayer(at[0], at[1], { look: msg.look || null, name: msg.name || null });
       guests.set(msg.from, { playerId: p.id, queue: [], last: null, ack: 0, joinedAt: tick });
       for (const c of allCharacters()) known.add(c.id);
       send({ type: "welcome", to: msg.from, playerId: p.id, save: game.serialize() });
-      hooks.message(`${msg.name || "Someone"} joined as ${p.id}.`);
+      hooks.message(`${msg.name || p.id} joined.`);
     } else if (msg.type === "input") {
       const g = guests.get(msg.from);
       if (!g) continue;
       g.queue.push(msg); // one input per step, in order; the guest replays what is not yet acknowledged
+    } else if (msg.type === "say") {
+      // The first command over the wire (docs/31/03, chat): a guest's line, said by their player here.
+      const g = guests.get(msg.from);
+      const p = g && game.state.players.find((q) => q.id === g.playerId);
+      if (p && typeof msg.text === "string" && msg.text.trim()) say(p, msg.text.trim().slice(0, 200));
     } else if (msg.type === "leave") {
       const g = guests.get(msg.from);
       if (!g) continue;
+      const p = game.state.players.find((q) => q.id === g.playerId);
       game.removePlayer(g.playerId);
       guests.delete(msg.from);
-      hooks.message(`${g.playerId} left.`);
+      hooks.message(`${(p && p.name) || g.playerId} left.`);
     }
   }
   for (const g of guests.values()) {
@@ -142,7 +171,7 @@ function slim(c) {
 function record(c) {
   if (c.kind === "player" || !known.has(c.id)) {
     known.add(c.id);
-    const r = { full: true, ...serializeCharacter(c) };
+    const r = { full: true, ...serializeCharacter(c), line: c.line }; // the save drops a bubble; a frame carries it (the chat)
     if (c.kind === "player") for (const g of guests.values()) if (g.playerId === c.id) r.ack = g.ack; // the last input of theirs this record reflects
     return r;
   }
@@ -183,7 +212,7 @@ export function guestStep(mySnap) {
   const now = performance.now();
   if (!joined && (!joinSentAt || now - joinSentAt > 2000)) {
     joinSentAt = now;
-    send({ type: "join", name: mySnap && mySnap.name, look: null });
+    send({ type: "join", name: identity.name, look: identity.look });
   }
   for (const msg of inbox.splice(0)) {
     if (msg.type === "welcome") {
@@ -286,6 +315,11 @@ function applyFrame(f) {
   light.setCarriers(f.carriers);
   light.setBurners([]);
   light.update();
+}
+
+// A line to say: the host says it at once; a guest asks the host to (its player speaks there).
+export function sendSay(text) {
+  if (role === "guest") send({ type: "say", text });
 }
 
 export function leave() {

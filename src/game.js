@@ -58,7 +58,7 @@ export function setPlayer(p) {
 // world stage) and headless (tools/world.js), so both worlds hash the same.
 // What the client does after (the camera, sight, the ground, the player's
 // sheet) touches nothing the hash sees.
-export function create({ json, look = null, devChest = false, combatTesting = false }) {
+export function create({ json, look = null, name = null, devChest = false, combatTesting = false }) {
   const S = state;
   rng.seed(json.seed ?? 1); // the sim's one generator, seeded from the map (docs/23a, C1)
   world.reset(json.idCounter || 0); // the world's time scale and id counter (docs/30 step 2; docs/31/08)
@@ -72,6 +72,7 @@ export function create({ json, look = null, devChest = false, combatTesting = fa
   }
   setPlayer(createPlayer(info.spawn[0], info.spawn[1]));
   if (look) S.player.look = { ...S.player.look, ...look };
+  if (name) S.player.name = name;
   giveStarterKit(S.player);
   S.zombies = info.zombies.map(([x, y]) => createZombie(x, y));
   S.corpses = [];
@@ -246,10 +247,11 @@ export function idleSnapshot() {
 // A second (or later) player into the world (docs/31/03): their own character
 // with the kit, standing at (gx, gy). The client bakes their sheet when it sees
 // them (main.js refreshFigure). Returns the player.
-export function addPlayer(gx, gy, { look = null, id = null } = {}) {
+export function addPlayer(gx, gy, { look = null, name = null, id = null } = {}) {
   const S = state;
   const p = createPlayer(gx, gy, { id });
   if (look) p.look = { ...p.look, ...look };
+  if (name) p.name = name;
   giveStarterKit(p);
   S.players.push(p);
   if (!S.player) S.player = p;
