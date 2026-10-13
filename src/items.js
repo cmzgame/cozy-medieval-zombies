@@ -6,9 +6,19 @@
 // `bag: [cols, rows]` (a bag).
 
 import * as rng from "./rng.js";
+import { nextId } from "./world.js";
 
 const items = new Map();
 let lootTables = {};
+
+// Every item entry is made here (docs/31/08, habit 2): `{ id, count, ...props }`
+// stamped with an instance id `uid` from the world's counter. A copy of an
+// entry (a drop, a throw) keeps its uid; when stacks merge, the one that
+// absorbed keeps its uid and the emptied one is gone. Code written before
+// step 2 still makes some entries as literals; new code never does.
+export function makeEntry(id, count = 1, props = {}) {
+  return { id, count, ...props, uid: nextId("e") };
+}
 
 export function loadItems(list) {
   items.clear();

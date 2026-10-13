@@ -39,6 +39,8 @@ import * as buildPalette from "./ui/build-palette.js";
 import * as rng from "./rng.js";
 import * as rules from "./rules.js";
 import * as tuning from "./tuning.js";
+import * as world from "./world.js"; // the time scale and the id counter (docs/30 step 2)
+import * as verbs from "./verbs.js"; // the verb table (docs/31/08, habit 4)
 
 export function createDevApi(ctx) {
   const P = () => ctx.player;
@@ -46,7 +48,7 @@ export function createDevApi(ctx) {
     bleed: { apply: () => bleed.apply(P()), clear: () => bleed.clear(P()), stacks: () => bleed.stacks(P()), config: bleed.BLEED },
     infection: { infect: () => infection.infect(P()), cure: () => infection.cure(P()), progress: () => infection.progress(P()), config: infection.INFECTION }, // the infection marker (docs/02 question 29b)
     burning, // the fire test (docs/05): burning.tunables, burning.all()
-    iso, input, loop, assets, events, map, camera, ground, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette, combat, gl, rng, rules, tuning,
+    iso, input, loop, assets, events, map, camera, ground, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette, combat, gl, rng, rules, tuning, world, verbs,
     render: { night },
     get player() { return ctx.player; },
     get zombies() { return ctx.zombies; },

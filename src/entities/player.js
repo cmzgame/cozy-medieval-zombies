@@ -4,13 +4,20 @@
 
 import * as iso from "../iso.js";
 import * as input from "../input.js";
-import { moveCircle, canStep, floorSpeedAt } from "../map.js";
+import { moveCircle, canStep, floorSpeedAt, propById, roomAt } from "../map.js";
 import { findPath } from "../pathfind.js";
-import { getSheet } from "../assets.js";
+import { getSheet, getDef } from "../assets.js";
 import { createAnimation, playAnimation, advanceAnimation } from "../sprites.js";
 import { createCharacter } from "./character.js";
 import { rules } from "../rules.js";
 import { player as T } from "../tuning.js";
+import { tiredStage, hungerStage, thirstStage } from "../moodles.js";
+import { stacks as bleedStacks } from "../bleed.js";
+import * as verbs from "../verbs.js";
+import { setTimeScale } from "../world.js";
+import * as clock from "../clock.js";
+import * as loop from "../loop.js";
+import { emit } from "../events.js";
 
 
 export function createPlayer(gx, gy) {
@@ -28,6 +35,9 @@ export function createPlayer(gx, gy) {
     maxHunger: T.hungerMax,
     thirst: T.thirstMax,
     maxThirst: T.thirstMax,
+    tired: T.tiredMax, // tiredness (docs/30, 3.3): drains awake, restored asleep, never kills
+    maxTired: T.tiredMax,
+    sleeping: null, // { bed: a prop id, since: sim seconds, hour } while asleep in a bed
     auto: null, // auto-walk: { path, tiles, range, onArrive, goalTile }
     action: null, // a timed action in progress: { action, elapsed }
     drawing: false, // a bow drawn (docs/20); archery.js sets it
@@ -95,20 +105,94 @@ export function drink(player, entry) {
   return true;
 }
 
-// Hunger and thirst drain, and kill at zero. The Survival setting turns all
-// of it off (Michael, 2026-10-10 late): off, nothing drains and the needs
-// stay full, so the moodles never show.
+// Hunger, thirst, and tiredness drain (docs/30, section 3); hunger and thirst
+// kill at zero, tiredness never does. The Survival setting turns all of it off
+// (Michael, 2026-10-10 late): off, nothing drains and the needs stay full, so
+// the moodles never show. Health comes back slowly while fed and watered and
+// nothing bleeds, faster asleep, not at all when falling asleep on your feet.
 function updateNeeds(player, dt) {
   if (!rules.survival) {
     player.hunger = player.maxHunger ?? T.hungerMax;
     player.thirst = player.maxThirst ?? T.thirstMax;
+    player.tired = player.maxTired ?? T.tiredMax;
     return;
   }
   player.hunger = Math.max(0, player.hunger - (T.hungerMax / T.hungerDrainSeconds) * dt);
   player.thirst = Math.max(0, player.thirst - (T.thirstMax / T.thirstDrainSeconds) * dt);
+  if (player.sleeping) player.tired = Math.min(player.maxTired, player.tired + (T.tiredMax / T.sleepRestoreSeconds) * dt);
+  else player.tired = Math.max(0, player.tired - (T.tiredMax / T.tiredDrainSeconds) * dt);
   if (player.hunger <= 0) player.hp = Math.max(0, player.hp - T.starveDamage * dt);
   if (player.thirst <= 0) player.hp = Math.max(0, player.hp - T.dehydrateDamage * dt);
+  // Regeneration (docs/30, 3.4).
+  const fed = hungerStage(player) < 2 && thirstStage(player) < 2;
+  if (player.hp > 0 && player.hp < player.maxHp && fed && bleedStacks(player) === 0 && tiredStage(player) < 4) {
+    const perMinute = player.sleeping ? T.sleepRegenPerMinute : T.healthRegenPerMinute;
+    player.hp = Math.min(player.maxHp, player.hp + (perMinute / 60) * dt);
+  }
 }
+
+// How fast stamina comes back, by the needs (docs/30, 3.2 and 3.3): halved past
+// "hungry" or "thirsty", three quarters past "tired".
+export function staminaRegenMult(player) {
+  let k = 1;
+  if (hungerStage(player) >= 3 || thirstStage(player) >= 3) k *= T.needsStaminaRegenMult;
+  if (tiredStage(player) >= 2) k *= T.tiredStaminaRegenMult;
+  return k;
+}
+
+// ---- sleep (docs/30, 3.3; docs/31/08, habits 4 and 6) ----
+// Only in a bed, indoors. The world's time scale rises and the whole simulation
+// runs fast: the dead walk, fires burn down, crops grow; the sleeper is never
+// woken (Michael's ruling) and gets up when rested and it is morning, whichever
+// is later. A verb in the table, so a menu entry, a key, or a command queue
+// all go through one door. (distToTiles is the auto-walk's, above.)
+
+export function startSleep(player, bed) {
+  player.sleeping = { bed: bed.id, since: loop.simTime(), hour: clock.getHour() };
+  player.moving = false;
+  player.sprinting = false;
+  player.auto = null;
+  player.action = null;
+  setTimeScale(T.sleepTimeScale);
+  emit("sleepStart", { who: player.id, bed: bed.id });
+}
+
+export function wake(player) {
+  const s = player.sleeping;
+  if (!s) return;
+  const hours = (loop.simTime() - s.since) / 30; // thirty real seconds a game hour (map.HOUR_SECONDS)
+  player.sleeping = null;
+  setTimeScale(1);
+  emit("sleepEnd", { who: player.id, bed: s.bed, hours: Math.round(hours * 10) / 10 });
+}
+
+function updateSleep(player, dt) {
+  updateNeeds(player, dt);
+  const rested = player.tired >= player.maxTired;
+  const h = clock.getHour();
+  const morning = h >= T.wakeHour && h < 22;
+  if (rested && morning) wake(player);
+  else if (!propById(player.sleeping.bed)) wake(player); // the bed is gone from under you
+}
+
+verbs.define("sleep", {
+  validate(world, player, target) {
+    const bed = propById(target.prop);
+    if (!bed) return "That bed is gone.";
+    if (!getDef(bed.sprite).sleep) return "You cannot sleep on that.";
+    if (player.sleeping) return "You are asleep.";
+    if (player.carrying) return "Your hands are full.";
+    if (distToTiles(player, bed.tiles) > 1.6) return "Too far from the bed.";
+    if (roomAt(bed.tile[0], bed.tile[1]) === 0) return "Not out here.";
+    const h = clock.getHour();
+    if (tiredStage(player) === 0 && h >= T.wakeHour && h < 20) return "You are not tired.";
+    return true;
+  },
+  perform(world, player, target) {
+    startSleep(player, propById(target.prop));
+    return { ok: true };
+  },
+});
 
 // ---- auto-walk (copied from the cozy parent's player.js, 2026-10-10) ----
 
@@ -189,6 +273,15 @@ export function updatePlayer(player, dt) {
     return;
   }
 
+  // Asleep: nothing moves the sleeper; the needs and the night run on. (The rig has no lying
+  // pose yet; the sleeper stands by the bed until the art pass gives it one.)
+  if (player.sleeping) {
+    updateSleep(player, dt);
+    playAnimation(player.anim, "idle");
+    advanceAnimation(player.anim, sheet, dt);
+    return;
+  }
+
   updateNeeds(player, dt);
 
   // Keys snap to the eight iso directions, so a diagonal key walks along a wall.
@@ -200,13 +293,13 @@ export function updatePlayer(player, dt) {
   const wantSprint = input.isDown("ShiftLeft") || input.isDown("ShiftRight");
   if (player.winded && player.stamina >= T.sprintRecoverAt) player.winded = false;
   const anyMovement = player.moving || !!player.auto;
-  player.sprinting = wantSprint && anyMovement && !player.winded && player.stamina > 0 && !player.carrying && !player.blocking;
+  player.sprinting = wantSprint && anyMovement && !player.winded && player.stamina > 0 && !player.carrying && !player.blocking && tiredStage(player) < 3; // exhausted: no sprint (docs/30, 3.3)
   if (player.sprinting) {
     player.stamina = Math.max(0, player.stamina - T.sprintDrain * dt);
     if (player.stamina <= 0) player.winded = true;
   } else if (!player.blocking) {
     // Nothing comes back while the guard is up (docs/21): each block spends it, so the guard is finite.
-    player.stamina = Math.min(player.maxStamina, player.stamina + T.staminaRegen * dt);
+    player.stamina = Math.min(player.maxStamina, player.stamina + T.staminaRegen * staminaRegenMult(player) * dt);
   }
 
   let walking = player.moving;

@@ -15,6 +15,8 @@ const GLYPHS = {
   infection: `<circle cx="8" cy="8" r="3.6" fill="currentColor"/><path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3M3.4 3.4l2.1 2.1M10.5 10.5l2.1 2.1M12.6 3.4l-2.1 2.1M5.5 10.5l-2.1 2.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>`,
   // A droplet.
   thirst: `<path d="M8 1.5c2.6 3.4 4.5 5.8 4.5 8.2a4.5 4.5 0 0 1-9 0c0-2.4 1.9-4.8 4.5-8.2z" fill="currentColor"/>`,
+  // A crescent moon (tiredness, docs/30 step 2).
+  tired: `<path d="M10.5 2a6 6 0 1 0 3.5 10.9A5 5 0 0 1 10.5 2z" fill="currentColor"/>`,
 };
 
 // Order here is display order. `stageOf` returns 0 (hidden) to stages.length.
@@ -75,12 +77,42 @@ export const MOODLES = [
       return 0;
     },
   },
+  {
+    // Tiredness (docs/30 section 3.3): never kills; sleep in a bed, indoors.
+    id: "tired",
+    glyph: GLYPHS.tired,
+    stages: [
+      { name: "Yawning", text: "A bed would be welcome." },
+      { name: "Tired", text: "Stamina comes back slower." },
+      { name: "Exhausted", text: "You cannot run. Sleep." },
+      { name: "Falling asleep", text: "Nothing heals until you sleep." },
+    ],
+    stageOf: (player) => tiredStage(player),
+  },
 ];
+
+// Tiredness in stages, 0 rested to 4; used by the moodle and by the player's own rules.
+export function tiredStage(player) {
+  const t = player.tired ?? player.maxTired ?? 100;
+  if (t <= 0) return 4;
+  if (t < 15) return 3;
+  if (t < 35) return 2;
+  if (t < 60) return 1;
+  return 0;
+}
+
+export function hungerStage(player) {
+  return MOODLES.find((m) => m.id === "hunger").stageOf(player);
+}
+
+export function thirstStage(player) {
+  return MOODLES.find((m) => m.id === "thirst").stageOf(player);
+}
 
 // [{ id, glyph, stage, name, text }] for every moodle currently showing.
 // Every moodle, always (Michael, 2026-10-12: all showing, green when nothing is
 // wrong); stage 0 is "fine" with the moodle's own name.
-const FINE = { bleed: ["Not bleeding", "No open wound."], infection: ["Not bitten", "Nothing in your blood."], hunger: ["Fed", "You are not hungry."], thirst: ["Watered", "You are not thirsty."] };
+const FINE = { bleed: ["Not bleeding", "No open wound."], infection: ["Not bitten", "Nothing in your blood."], hunger: ["Fed", "You are not hungry."], thirst: ["Watered", "You are not thirsty."], tired: ["Rested", "You are awake and well."] };
 export function activeMoodles(player) {
   const out = [];
   for (const m of MOODLES) {

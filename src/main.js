@@ -38,6 +38,8 @@ import * as cursor from "./ui/cursor.js";
 import * as log from "./ui/log.js";
 import * as use from "./use.js";
 import * as interactions from "./interactions.js";
+import * as world from "./world.js";
+import * as verbs from "./verbs.js";
 import * as interact from "./interact.js";
 import * as items from "./items.js";
 import * as inventory from "./inventory.js";
@@ -671,6 +673,7 @@ async function boot() {
     } },
     { name: "world", label: "Growing the world", weight: 1, async run() {
       rng.seed(json.seed ?? 1); // the sim's one generator, seeded from the map (docs/23a, C1)
+      world.reset(json.idCounter || 0); // the world's time scale and id counter (docs/30 step 2; docs/31/08)
       info = map.loadMap(json);
       // The dev chest by the spawn, a setting rather than a thing in the map (docs/30 step 0).
       if (settings.get("devChest")) {
@@ -798,6 +801,12 @@ async function boot() {
         player.flashBroken = true;
       });
       events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, damage));
+      // Sleep and fire say what happened (docs/30 step 2): the world's events, shown here.
+      events.on("sleepStart", () => showMessage("You lie down. The night goes on without you."));
+      events.on("sleepEnd", ({ hours }) => showMessage(`${clock.getLabel()}. You slept ${hours} hours.`, 4));
+      events.on("fireOut", ({ tile }) => {
+        if (Math.hypot(tile[0] - player.gx, tile[1] - player.gy) <= 8) showMessage("A fire has gone out.");
+      });
       events.on("containerOpened", ({ bag, tiles: where, name, corpse }) => {
         openBag = { bag, tiles: where, name, corpse: corpse || null };
         panel.setBagOpen(true);

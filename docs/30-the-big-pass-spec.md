@@ -166,6 +166,13 @@ The order from `29/11` with the pass's pieces placed where they first matter. Ea
 - **The map format grew again:** an opening's `open`, `broken`, and `boards: { in, out }`; a prop's `lit` and `fuel` were already read.
 - The boot: 1.7 s cold with the village (the ground's prebake 650 ms, the figures 460).
 
+### Step 2 as built (2026-10-13), the first step under `31/08`'s habits
+
+- **Tiredness** on the player (`tired`, 0 to 100, `data/tuning.json`: full to empty in 900 sim seconds, a day and a quarter; restored in 240 asleep), a fifth moodle (a crescent; "Rested" when fine) with its four stages: stamina regenerates at three quarters past "Tired", no sprint past "Exhausted", no health regeneration at "Falling asleep". Hunger and thirst retuned to the day (1080 and 720 sim seconds) and their last stages halve stamina regeneration. **Health regenerates** 1 a minute while fed and watered with nothing bleeding, 4 asleep. **Survival is on by default.**
+- **Sleep** is a verb in the table (`verbs.define("sleep", …)` in `entities/player.js`): validated by the bed's id (`map.propById`), the bed's definition (`sleep: true` on the bed), the reach, indoors (`roomAt`), and not rested by day; performed as `startSleep`, which sets **the world's time scale** (`world.setTimeScale(60)`, `src/world.js`) and emits `sleepStart`. The loop reads the scale to run more fixed steps per real second (up to 120 a frame; each still a sixtieth), never a dt multiplier or a clock jump. The sleeper is never woken; they get up when rested and it is morning (06:00 to 22:00), or if the bed is gone, through `wake`, which emits `sleepEnd` with the hours. The bed's menu entry and `E` call `verbs.run`; a refusal's reason is the message. No lying pose yet: the rig has none, so the sleeper stands by the bed until the art pass.
+- **Fire is maintenance:** a fire's definition says what it burns (`fire.fuel`, an item id: logs for hearths, charcoal for the forge; `charcoal` is a new item) and `fire.hoursPerUnit` (hearth 3, campfire 2, oven 2, forge 2); `map.feedFire` is the one mutator (touches the tile, emits `fireFed`), `burnFires` emits `fireOut`, and the menu's Feed names the fuel and the hours left.
+- **The habits, begun:** `src/world.js` (the time scale, the id counter), `src/verbs.js` (the table), `items.makeEntry` stamping every entry with a `uid` (the grid's `add` goes through it), every prop with an `id` and `map.propById`, `fireFed` / `fireOut` / `sleepStart` / `sleepEnd` / `timeScale` on the bus; `main.js` shows the messages from the events. `check("sleep")`, six rows.
+
 ## 12. Engine asks, consolidated
 
 From `29/10` with the cuts applied and this pass's needs added; sizes without times.

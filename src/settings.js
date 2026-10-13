@@ -19,7 +19,7 @@ export const DEFAULTS = {
   multiHit: false, // on: a blow reaches everything in its wedge; off: only the nearest. Off is the intended way to play (Michael, 2026-10-12): multi-hit is the easy button (docs/14)
   showHitShapes: false, // draw the dead's body samples, green when the next swing reaches them (docs/14)
   freeBuilding: false, // on: building costs nothing (docs/13), for testing structures
-  survival: false, // off: no hunger, thirst, or any other need; the body is a workbench too
+  survival: true, // on since docs/30 step 2 (hunger, thirst, tiredness drain); off: the body is a workbench
   hairStyle: "short", // the player's hair, picked on the settings screen's Hair row; no choices row, the row is built live
   paintedLayers: {}, // slot -> painted layer name to try on, from the settings screen (docs/12)
   panelPos: {}, // "bag" | "character" | "container" -> { x, y } in UI pixels where its header was dragged to (docs/23 step 4; Michael, 2026-10-12)
@@ -43,7 +43,7 @@ export const CHOICES = {
   multiHit: [[false, "Off (nearest only: the intended way)"], [true, "On (everything in the wedge: the easy button)"]],
   showHitShapes: [[false, "Off"], [true, "On (body samples)"]],
   freeBuilding: [[false, "Off (costs apply)"], [true, "On (no costs)"]],
-  survival: [[false, "Off (no hunger or thirst)"], [true, "On"]],
+  survival: [[true, "On (hunger, thirst, tiredness)"], [false, "Off (no needs)"]],
   cursor: [["default", "Default"], ["human", "A hand"], ["severed", "A severed hand"], ["zombie", "A zombie hand"]],
   devChest: [[true, "On (by the spawn; reload the page)"], [false, "Off"]],
 };

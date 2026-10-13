@@ -6,7 +6,7 @@
 // per-instance state such as `fill`. (x, y) is the top-left cell; `rot` swaps
 // the item's width and height.
 
-import { getItem } from "./items.js";
+import { getItem, makeEntry } from "./items.js";
 
 // [w, h] in cells for an item id at a rotation.
 export function sizeOfId(id, rot = false) {
@@ -76,7 +76,7 @@ export function add(bag, id, count = 1, props = {}) {
     const spot = findSpot(bag, id);
     if (!spot) break;
     const take = def.stack ? Math.min(remaining, def.stack) : 1;
-    bag.items.push({ id, count: take, ...props, x: spot.x, y: spot.y, rot: spot.rot });
+    bag.items.push(makeEntry(id, take, { ...props, x: spot.x, y: spot.y, rot: spot.rot })); // one maker for every entry (docs/31/08, habit 2)
     remaining -= take;
   }
   return count - remaining;

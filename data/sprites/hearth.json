@@ -1,1 +1,1 @@
-{"placeholder": {"kind": "hearth", "color": "#7b7670"}, "fire": {"radius": 3, "room": true, "burns": true, "cooks": true, "maxFuel": 4, "flicker": {"amp": 0.18, "speed": 6}}}
+{"placeholder": {"kind": "hearth", "color": "#7b7670"}, "fire": {"radius": 3, "room": true, "burns": true, "cooks": true, "maxFuel": 4, "flicker": {"amp": 0.18, "speed": 6}, "fuel": "log", "hoursPerUnit": 3}}

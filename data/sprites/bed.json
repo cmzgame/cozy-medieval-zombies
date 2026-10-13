@@ -28,5 +28,6 @@
   }
  },
  "carry": true,
- "note": "the drawn bed (docs/17): long side along y as drawn, along x as its mirror"
+ "note": "the drawn bed (docs/17): long side along y as drawn, along x as its mirror",
+ "sleep": true
 }

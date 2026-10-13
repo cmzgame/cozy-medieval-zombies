@@ -10,8 +10,16 @@
 // floor; beyond them a chunk is wild, grown from the map's `wild` rule.
 
 import { getDef } from "./assets.js";
+import { nextId } from "./world.js";
+import { emit } from "./events.js";
 
 export const CHUNK = 16;
+// Every prop by its id (docs/31/08, habit 1): anything kept across a step
+// refers to a prop by id and looks it up here when the step runs.
+const propsById = new Map();
+export function propById(id) {
+  return propsById.get(id) || null;
+}
 const ROOM_MAX = 300; // a region bigger than this is outdoors, not a room
 const ROUND_BODY_RADIUS = 0.2; // a body's radius against round props; 0.3 against walls
 
@@ -63,31 +71,46 @@ export function fires() {
   return fireProps;
 }
 
-// Burning (docs/07): a burner holds logs and burns one per two game hours.
-// At zero it goes out. Nothing shuts off on a timer; it burned what you gave it.
-export const LOG_SECONDS = 60; // real seconds per log: two hours of a 12-minute day
+// Burning (docs/07; docs/30 section 7, fire is maintenance): a burner holds
+// units of its fuel (a log, a lump of charcoal: the definition's `fire.fuel`)
+// and burns one per `fire.hoursPerUnit` game hours (two unless the definition
+// says). At zero it goes out and says so. Nothing shuts off on a timer; it
+// burned what you gave it.
+export const HOUR_SECONDS = 30; // real seconds per game hour: a 12-minute day (clock.js's DAY_LENGTH / 24)
+export const LOG_SECONDS = 2 * HOUR_SECONDS; // the default: two hours a unit
 
 export function burnFires(dt) {
   for (const p of fireProps) {
     const f = p.fire;
     if (!f.burns || !f.lit) continue;
-    f.fuel -= dt / LOG_SECONDS;
+    f.fuel -= dt / (f.hoursPerUnit * HOUR_SECONDS);
     if (f.fuel <= 0) {
       f.fuel = 0;
       f.lit = false;
+      touch(p.tile[0], p.tile[1]);
+      emit("fireOut", { id: p.id, tile: p.tile });
     }
   }
 }
 
-// Light a burner with a log, or add one. Logs are free until the inventory
-// exists (Michael, 2026-10-09). Returns false if it is full.
+// Feed a burner one unit of its fuel (the caller has taken the item), lighting
+// it if it was out. The one mutator of a fire's fuel: it touches the tile and
+// says what changed (docs/31/08, habit 3). Returns false if it is full.
 export function feedFire(prop) {
   const f = prop.fire;
   if (!f || !f.burns) return false;
   if (f.fuel >= f.maxFuel) return false;
   f.fuel = Math.min(f.maxFuel, f.fuel + 1);
   f.lit = true;
+  touch(prop.tile[0], prop.tile[1]);
+  emit("fireFed", { id: prop.id, tile: prop.tile, fuel: f.fuel });
   return true;
+}
+
+// Game hours a fire has left in it.
+export function fireHoursLeft(prop) {
+  const f = prop.fire;
+  return f && f.burns ? f.fuel * f.hoursPerUnit : 0;
 }
 
 // ---- torches: brackets on walls, posts on tiles ----
@@ -350,6 +373,7 @@ export function removeProp(prop) {
     if (t.prop === prop) t.prop = null;
   }
   fireProps.delete(prop);
+  propsById.delete(prop.id);
   touch(prop.tile[0], prop.tile[1]);
   groundChanged(prop.tiles, prop);
 }
@@ -1262,6 +1286,7 @@ export function createProp(def, offset = [0, 0]) {
   const radius = def.radius ?? sdef.collide?.radius ?? 0;
   const prop = {
     kind: "prop",
+    id: def.id || nextId("p"), // the map file may carry one; else the world's counter (docs/31/08, habit 1)
     sprite: def.sprite,
     tile: [ox, oy],
     footprint: [w, h],
@@ -1302,10 +1327,13 @@ export function createProp(def, offset = [0, 0]) {
       lit: holds ? has : def.lit ?? f.lit ?? !f.burns,
       fuel: def.fuel ?? f.fuel ?? 0,
       maxFuel: f.maxFuel ?? 4,
+      fuelItem: f.fuel || "log", // the item (or tag) it burns (docs/30 section 7)
+      hoursPerUnit: f.hoursPerUnit ?? 2,
       flicker: f.flicker || null, // { amp, speed }: applied when the light map is composed on the GPU (docs/08)
     };
     fireProps.add(prop);
   }
+  propsById.set(prop.id, prop);
   return prop;
 }
 
@@ -1370,6 +1398,7 @@ export function ensureAround(x, y, radius = 3) {
 //   is scatter all the way down.
 export function loadMap(json) {
   fireProps.clear(); // props are created below, before reset() runs
+  propsById.clear();
   bracketSet.clear();
   const pendingBrackets = []; // [tx, ty, edge, side, torch], added once the map is live
   const authored = new Map();
@@ -1388,6 +1417,7 @@ export function loadMap(json) {
     props.push(prop);
     for (const [tx, ty] of prop.tiles) get(tx, ty).prop = prop;
   };
+  // placeProp above the map's `placeProp` export: the sheet's slices need the prop placed before the tiles exist.
   const floorRect = (r, offset) => {
     const [x0, y0, w, h] = r.rect;
     for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) get(x + offset[0], y + offset[1]).floor = r.sprite;

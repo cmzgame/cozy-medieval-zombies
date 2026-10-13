@@ -1,11 +1,18 @@
 // Copied from cozy-zombie-game src/loop.js on 2026-10-09. MAX_FRAME lowered, see below.
 // Fixed-timestep update, rAF render. (The parent's coarse sim tick, never used here, went on 2026-10-12, docs/23a G.)
 
+import { world } from "./world.js";
+
 const STEP = 1 / 60;
 // Catch-up clamp. The parent allowed 0.25 s (15 steps per frame); with
 // visibility and pathing in every step that let one hitch spiral into a freeze.
 // 0.1 s means a slow frame costs at most six steps and time dilates instead.
 const MAX_FRAME = 0.1;
+// While the world's time scale is above one (someone asleep, docs/30 step 2;
+// docs/31/08 habit 6: a field on the world, never a dt multiplier), each frame
+// runs up to this many fixed steps; past it the rest is dropped and the night
+// takes a little longer in real time. Each step is still one sixtieth.
+const MAX_STEPS_FAST = 120;
 
 let running = false;
 let paused = false;
@@ -70,11 +77,16 @@ function frame(now) {
   try {
     if (freezeLeft > 0) freezeLeft = Math.max(0, freezeLeft - dt);
     else if (!paused) {
-      accumulator += dt;
-      while (accumulator >= STEP) {
+      // The world's time scale says how many fixed steps a real second is worth.
+      accumulator += dt * world.timeScale;
+      let n = 0;
+      const maxSteps = world.timeScale > 1 ? MAX_STEPS_FAST : Infinity;
+      while (accumulator >= STEP && n < maxSteps) {
         step();
         accumulator -= STEP;
+        n++;
       }
+      if (n >= maxSteps) accumulator = 0;
     }
     hooks.render();
   } catch (err) {

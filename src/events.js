@@ -1,7 +1,8 @@
 // Copied from cozy-zombie-game src/events.js on 2026-10-09. Since: the header names this game's events, and the
 // never-called clearing of every listener went (docs/23a, G).
 // Minimal pub/sub. Events emitted: arrowShot, arrowLanded, blocked, containerOpened, gameOver, guardBroken,
-// meleeHit, meleeSwing, playerHit, shove, villagerDied, villagerHit, zombieDied.
+// meleeHit, meleeSwing, playerHit, shove, villagerDied, villagerHit, zombieDied; since docs/30 step 2 (every
+// world change emits, docs/31/08 habit 3): fireFed, fireOut, sleepStart, sleepEnd, timeScale.
 
 const listeners = new Map();
 

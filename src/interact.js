@@ -30,6 +30,10 @@ import { lootOf } from "./entities/character.js";
 import { emit } from "./events.js";
 import * as loop from "./loop.js";
 import * as use from "./use.js"; // the Use entry on item menus (docs/30, law 2)
+import * as verbs from "./verbs.js"; // the verb table (docs/31/08, habit 4)
+import { world } from "./world.js";
+import * as clock from "./clock.js";
+import { tiredStage } from "./moodles.js";
 
 export const INTERACT_RANGE = 1.15; // tiles
 export const SEARCH_TIME = 1.0;
@@ -244,30 +248,55 @@ function containerActions(prop) {
   })];
 }
 
-// Hearths and campfires take a log from wherever you have one (docs/07; logs stopped being free with docs/10).
+// A fire takes a unit of its own fuel from wherever you have one (docs/07; logs stopped being free
+// with docs/10; the fuel and the hours per unit are the definition's since docs/30 step 2). The
+// label says what it burns and how long it has: maintenance, not a hassle.
 function fireActions(prop, player) {
   const f = prop.fire;
   if (!f || !f.burns) return [];
   const name = prop.sprite.replace(/_/g, " ");
-  const logs = countAll(player, "log");
+  const fuelId = f.fuelItem;
+  const fuelName = getItem(fuelId).name.toLowerCase();
+  const have = countAll(player, fuelId);
   const full = f.fuel >= f.maxFuel;
+  const hours = map.fireHoursLeft(prop);
+  const left = f.lit ? `, ${hours < 1 ? "under an hour" : `${Math.round(hours)} h`} left` : "";
   let label;
-  if (!f.lit) label = logs ? `Light the ${name}` : `Light the ${name} (need a log)`;
-  else if (full) label = `${name}: full (${f.maxFuel}/${f.maxFuel})`;
-  else label = logs ? `Add a log (${Math.ceil(f.fuel)}/${f.maxFuel})` : `Add a log (need a log)`;
+  if (!f.lit) label = have ? `Light the ${name} (a ${fuelName})` : `Light the ${name} (need a ${fuelName})`;
+  else if (full) label = `The ${name} is full (${f.maxFuel} ${fuelName}s${left})`;
+  else label = have ? `Feed the ${name} (${Math.ceil(f.fuel)} of ${f.maxFuel}${left})` : `Feed the ${name} (need a ${fuelName}${left})`;
   return [act({
     kind: "fire",
-    simple: logs > 0 && !full,
+    simple: have > 0 && !full,
     label,
     tiles: prop.tiles,
     mx: prop.tile[0],
     my: prop.tile[1] - 0.6,
-    enabled: logs > 0 && !full,
+    enabled: have > 0 && !full,
     perform() {
-      if (countAll(player, "log") <= 0) return false;
+      if (countAll(player, fuelId) <= 0) return false;
       if (!map.feedFire(prop)) return false;
-      takeAll(player, "log", 1);
+      takeAll(player, fuelId, 1);
       return true;
+    },
+  })];
+}
+
+// A bed (docs/30, 3.3): one entry that runs the sleep verb; the verb says no with a reason.
+function sleepAction(prop, player) {
+  const h = clock.getHour();
+  const night = h >= 20 || h < 6;
+  return [act({
+    kind: "sleep",
+    simple: tiredStage(player) >= 1 || night,
+    label: "Sleep",
+    tiles: prop.tiles,
+    mx: prop.tile[0],
+    my: prop.tile[1] - 0.6,
+    perform() {
+      const r = verbs.run("sleep", world, player, { prop: prop.id });
+      if (!r.ok) showMessage(r.reason);
+      return r.ok;
     },
   })];
 }
@@ -486,6 +515,7 @@ function propActions(prop, player) {
   if (prop.fire && prop.fire.holds) out.push(...holderActions({ kind: "post", prop }, player));
   if (prop.wood) out.push(...treeActions(prop));
   if (prop.water) out.push(...wellActions(prop, player));
+  if (getDef(prop.sprite).sleep) out.push(...sleepAction(prop, player));
   if (canCarry(prop)) out.push(carryAction(prop, player));
   return out;
 }
