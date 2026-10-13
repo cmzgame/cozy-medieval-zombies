@@ -14,6 +14,11 @@ export const rules = {
   freeBuilding: false, // building costs nothing
 };
 
+// A guest's rules are the host's (docs/31/03, docs/31/07 question 13): set whole from a frame.
+export function set(obj) {
+  for (const key of Object.keys(rules)) if (key in obj) rules[key] = !!obj[key];
+}
+
 export function refresh() {
   for (const key of Object.keys(rules)) rules[key] = !!settings.get(key);
 }
