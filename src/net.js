@@ -100,6 +100,24 @@ const MAX_PENDING = 180; // a guest's unacknowledged inputs kept for the replay:
 const MAX_BACKLOG = 10; // a guest's inputs the host will hold: a sixth of a second, so the internet's own jitter is not corrected
 const away = new Map(); // playerId -> the sim time its guest went
 const lastCarried = new Map(); // character id -> the carried prop's id last sent in a full record (null for none)
+// The sync check (docs/31/04; tools/checks/sync.js): with reports on, a guest hashes its world after every
+// thirtieth frame and sends the parts with the frame's tick; the host hashes its own at the same ticks
+// and keeps the last few, so the check compares like with like.
+const SYNC_EVERY = 30;
+let syncReports = false;
+const syncRing = new Map(); // tick -> parts (the host's own)
+const guestSync = new Map(); // guest key -> { tick, parts }
+export function setSyncReports(on) {
+  syncReports = !!on;
+  if (!on) {
+    syncRing.clear();
+    guestSync.clear();
+  }
+  if (role === "host") send({ type: "syncOn", on: syncReports });
+}
+export function syncReport() {
+  return { ring: syncRing, guests: new Map([...guestSync].map(([key, v]) => [guests.get(key) ? guests.get(key).playerId : key, v])) };
+}
 let clientId = null; // this browser's id on the join (identities.js); the host records its hash
 export function setClient(id) {
   clientId = id || null;
@@ -421,6 +439,9 @@ export function hostStep(mySnap, me) {
           game.state.acting = null;
         }
       }
+    } else if (msg.type === "sync") {
+      // A guest's hashes at a tick (the sync check).
+      if (guests.has(msg.from) && msg.parts && typeof msg.parts === "object") guestSync.set(msg.from, { tick: msg.tick | 0, parts: msg.parts });
     } else if (msg.type === "say") {
       // The first command over the wire (docs/31/03, chat): a guest's line, said by their player here.
       const g = guests.get(msg.from);
@@ -512,6 +533,10 @@ export function hostAfterStep() {
     arrows: archery.arrowsInFlight().filter((a) => !a.done).map((a) => ({ gx: a.gx, gy: a.gy, z: a.z, frame: a.frame, projectile: a.projectile })),
   };
   send(game.toSafe(frame));
+  if (syncReports && tick % SYNC_EVERY === 0) {
+    syncRing.set(tick, game.syncParts());
+    for (const k of syncRing.keys()) if (syncRing.size > 8) syncRing.delete(k); else break;
+  }
 }
 
 // ---- the guest ----
@@ -543,6 +568,9 @@ export function guestStep(mySnap) {
       applyFrame(game.fromSafe(msg));
       framesSeen++;
       lastFrameAt = now;
+      if (syncReports && (msg.tick | 0) % SYNC_EVERY === 0) send({ type: "sync", tick: msg.tick | 0, parts: game.syncParts() });
+    } else if (msg.type === "syncOn" && msg.from) {
+      syncReports = !!msg.on;
       stallTold = false;
     } else if (msg.type === "message") {
       hooks.message(msg.text, msg.seconds);

@@ -88,7 +88,11 @@ export function burnFires(dt) {
   for (const p of fireProps) {
     const f = p.fire;
     if (!f.burns || !f.lit) continue;
+    const before = f.fuel;
     f.fuel -= dt / (f.hoursPerUnit * HOUR_SECONDS);
+    // A guest's copy of the fuel refreshes when the chunk is sent: at every whole unit burned, so a guest's
+    // hours left are never more than a unit behind (the sync check compares fuel to the unit; docs/31/04).
+    if (Math.floor(before) !== Math.floor(f.fuel)) markDirty(p.tile[0], p.tile[1]);
     if (f.fuel <= 0) {
       f.fuel = 0;
       f.lit = false;
@@ -840,6 +844,14 @@ export function evictFar(gx, gy, radius, keep = () => false) {
     if (!c.wild || c.dirty || c.layer !== 0) continue;
     if (Math.max(Math.abs(c.cx - pcx), Math.abs(c.cy - pcy)) <= radius) continue;
     if (keep(c.cx, c.cy)) continue;
+    // Its props leave the registry and the fire set with it (the sync check found evicted mushrooms kept
+    // as ghosts in the host's registry, 2026-10-13); the chunk grows back with new props and new ids.
+    for (const t of c.tiles) {
+      const pr = t && t.prop;
+      if (!pr || pr.tile[0] < c.cx * CHUNK || pr.tile[0] >= (c.cx + 1) * CHUNK || pr.tile[1] < c.cy * CHUNK || pr.tile[1] >= (c.cy + 1) * CHUNK) continue;
+      fireProps.delete(pr);
+      if (propsById.get(pr.id) === pr) propsById.delete(pr.id);
+    }
     chunks.delete(k);
     out.push([k, c.cx, c.cy]);
     for (const fn of evictListeners) fn(k, c.cx, c.cy);
@@ -1763,7 +1775,6 @@ export function loadMap(json) {
     wildRule,
     mapBounds: json.bounds || null,
   });
-  for (const [tx, ty, edge, side, torch] of pendingBrackets) addBracket(tx, ty, edge, side, torch);
   biomeRects = (json.scatter || []).filter((sc) => sc.biome).map((sc) => ({ rect: sc.rect, biome: sc.biome }));
   wildBiome = json.wild?.biome || null;
   // Forage inside the bounds, now that the trees and the wild rule are known:
@@ -1782,6 +1793,10 @@ export function loadMap(json) {
       }
     }
   }
+  // The brackets last: placing one grows its chunk, and a chunk grown before the forage pass took a blank
+  // tile wherever nothing was authored, so the forage's mushroom landed on an authored tile that chunk never
+  // saw (fifteen ghosts in the registry, found by the sync check, 2026-10-13).
+  for (const [tx, ty, edge, side, torch] of pendingBrackets) addBracket(tx, ty, edge, side, torch);
   // A crop's rows follow the furrows of the soil it stands in (docs/17), unless
   // the map gave it a facing; the floors are all laid by now.
   for (const prop of props) {

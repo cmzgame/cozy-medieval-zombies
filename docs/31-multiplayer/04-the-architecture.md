@@ -74,7 +74,7 @@ A replica is told about **its own active box** (the 80-tile square `activeTiles`
 Not lockstep. Three jobs:
 
 1. **The wild grows the same everywhere**, so wild chunks never travel: the seed and `hash2` do it today.
-2. **A replica check**: `check("sync")` boots an authority and a replica in two tabs through the loopback with a delay, drives a scripted minute of input, and compares `world.hash()` on both at the same tick, with the whole world hashed (tiles, props, walls, items, inventories, fires, the rng) rather than today's entities alone. This is the test that says the wire is complete: every mutation that bypassed an event shows up as a hash that differs.
+2. **A replica check**: `check("sync")` boots an authority and a replica in two tabs through the loopback with a delay, drives a scripted minute of input, and compares `world.hash()` on both at the same tick, with the whole world hashed (tiles, props, walls, items, inventories, fires, the rng) rather than today's entities alone. This is the test that says the wire is complete: every mutation that bypassed an event shows up as a hash that differs. *Built 2026-10-13 (`02`): `game.syncParts` hashes the map, the registry, the fires, the players, the dead, and the clock, not the generator or the id counter, which a replica never uses; a guest reports after every thirtieth frame with reports on; the check names the first part that differs. It found two ghosts in the host's registry on its first run.*
 3. **A save that loads the same** on a host or a server, which is the same property.
 
 The authority's own rolls stay on `rng.js`; the replica has an rng too and uses it for nothing that matters.
