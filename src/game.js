@@ -259,7 +259,7 @@ export function syncParts() {
   const f = (n) => (typeof n === "number" ? n.toFixed(3) : String(n));
   const m = map.serializeMap();
   // A fire's fuel to the unit: a replica refreshes it at each whole unit burned (map.burnFires), not each step.
-  const chunks = (m.chunks || []).slice().sort((a, b) => (a.cx - b.cx) || (a.cy - b.cy)).map((c) => ({ ...c, props: (c.props || []).map((p) => (p.fire && typeof p.fire.fuel === "number" ? { ...p, fire: { ...p.fire, fuel: Math.floor(p.fire.fuel) } } : p)) }));
+  const chunks = (m.chunks || []).slice().sort((a, b) => (a.cx - b.cx) || (a.cy - b.cy)).map((c) => ({ ...c, props: (c.props || []).map((p) => { const { pokedAt, ...q } = p; return q.fire && typeof q.fire.fuel === "number" ? { ...q, fire: { ...q.fire, fuel: Math.floor(q.fire.fuel) } } : q; }) }));
   const entryText = (e) => (e ? `${e.id}#${e.uid}x${e.count ?? 1}${e.fill != null ? `f${f(e.fill)}` : ""}${e.bag ? `[${(e.bag.items || []).map(entryText).join(",")}]` : ""}` : "-");
   const playerText = (p) => [`${p.id} ${f(p.gx)},${f(p.gy)} hp ${f(p.hp)} ${p.dead ? "dead" : "alive"}`, `hands ${entryText(p.hands.main)} ${entryText(p.hands.off)}`, `worn ${Object.keys(p.worn).sort().map((k) => `${k}:${entryText(p.worn[k])}`).join(" ")}`, `carrying ${p.carrying ? p.carrying.id : "-"}`].join(" | ");
   const parts = {

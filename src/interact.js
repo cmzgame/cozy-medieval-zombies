@@ -1161,13 +1161,25 @@ export function interactableAt(sx, sy, wanted = (prop) => prop.interactable) {
 // The rule (Michael, 2026-10-12, written in stone): anything interactable
 // wobbles when clicked, by default; a definition turns it off with
 // `"sway": false`, and one with a `clickAnim` plays that instead (the well).
+// The props stamped this step, [id, sim ms], for the frame to carry: a stamp is presentation (the sway), but
+// a guest watching someone walk through a field should see it wobble (the sync check found the stamps
+// differing, 2026-10-13). Drained by net.js each step.
+const stamped = [];
+export function takePokes() {
+  return stamped.splice(0);
+}
+function stamp(prop, now) {
+  prop.pokedAt = now;
+  if (stamped.length < 400) stamped.push([prop.id, now]);
+}
+
 export function pokeAt(sx, sy, player) {
   const prop = interactableAt(sx, sy);
   if (!prop) return null;
   const def = getDef(prop.sprite);
   if (def.sway === false || def.clickAnim) return prop;
   const now = loop.simTime() * 1000; // sim milliseconds (docs/23a, C2); the renderer reads the same clock
-  if (inReach(prop, player) && (!prop.pokedAt || now - prop.pokedAt >= POKE_COOLDOWN_MS)) prop.pokedAt = now;
+  if (inReach(prop, player) && (!prop.pokedAt || now - prop.pokedAt >= POKE_COOLDOWN_MS)) stamp(prop, now);
   return prop;
 }
 
@@ -1192,7 +1204,7 @@ export function brushThrough(ch) {
   const def = getDef(prop.sprite);
   if (def.sway === false || def.clickAnim) return;
   const now = loop.simTime() * 1000;
-  if (!prop.pokedAt || now - prop.pokedAt >= BRUSH_MS) prop.pokedAt = now;
+  if (!prop.pokedAt || now - prop.pokedAt >= BRUSH_MS) stamp(prop, now);
 }
 
 // ---- characters under the cursor (docs/19) ----

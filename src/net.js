@@ -441,7 +441,11 @@ export function hostStep(mySnap, me) {
       }
     } else if (msg.type === "sync") {
       // A guest's hashes at a tick (the sync check).
-      if (guests.has(msg.from) && msg.parts && typeof msg.parts === "object") guestSync.set(msg.from, { tick: msg.tick | 0, parts: msg.parts });
+      if (guests.has(msg.from) && msg.parts && typeof msg.parts === "object") {
+        const parts = {};
+        for (const k of Object.keys(msg.parts).slice(0, 12)) if (typeof msg.parts[k] === "string") parts[k] = msg.parts[k].slice(0, 200);
+        guestSync.set(msg.from, { tick: msg.tick | 0, parts });
+      }
     } else if (msg.type === "say") {
       // The first command over the wire (docs/31/03, chat): a guest's line, said by their player here.
       const g = guests.get(msg.from);
@@ -513,9 +517,11 @@ export function hostAfterStep() {
   tick++;
   if (role !== "host" || !guests.size) {
     map.takeTouched(); // nobody to tell: the touched set is drained, not kept for ever (a grown chunk names itself to it in every game)
+    interact.takePokes();
     return;
   }
   const S = game.state;
+  for (const id of lastCarried.keys()) if (!S.players.some((q) => q.id === id)) lastCarried.delete(id); // a player gone dormant and back is sent its prop in hand afresh
   const touched = map.takeTouched();
   const frame = {
     type: "frame",
@@ -528,6 +534,7 @@ export function hostAfterStep() {
     zombies: S.zombies.map(record),
     villagers: S.villagers.map(record),
     corpses: S.corpses.map(record),
+    pokes: interact.takePokes(), // the sways stamped this step (interact.js): a guest sees a field wobble when anyone walks through it
     carriers: light.carriers().filter((c) => c.owner),
     rules: { ...rules.rules }, // the world's rules are the host's (docs/31/07, question 13)
     arrows: archery.arrowsInFlight().filter((a) => !a.done).map((a) => ({ gx: a.gx, gy: a.gy, z: a.z, frame: a.frame, projectile: a.projectile })),
@@ -568,10 +575,10 @@ export function guestStep(mySnap) {
       applyFrame(game.fromSafe(msg));
       framesSeen++;
       lastFrameAt = now;
+      stallTold = false; // frames are coming again: the next quiet spell is told afresh
       if (syncReports && (msg.tick | 0) % SYNC_EVERY === 0) send({ type: "sync", tick: msg.tick | 0, parts: game.syncParts() });
     } else if (msg.type === "syncOn" && msg.from) {
       syncReports = !!msg.on;
-      stallTold = false;
     } else if (msg.type === "message") {
       hooks.message(msg.text, msg.seconds);
     } else if (msg.type === "log") {
@@ -633,6 +640,10 @@ function applyFrame(f) {
     map.rebuildBrackets();
     light.forgetAll();
     hooks.chunksChanged && hooks.chunksChanged(f.chunks);
+  }
+  if (f.pokes) for (const [id, at] of f.pokes) {
+    const pr = id ? map.propById(id) : null;
+    if (pr && typeof at === "number" && !(pr.pokedAt >= at)) pr.pokedAt = at;
   }
   const byId = new Map();
   for (const c of allCharacters()) byId.set(c.id, c);
