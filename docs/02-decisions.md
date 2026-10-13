@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-13 — The one-handed swing is a high-to-fall slash, never behind the back (Michael)
+
+Michael on the first swing pass, in the frames editor: the behind-the-back part was the problem; a general one-handed swing raises to head level or a smidge higher and no more, never behind the back, and reads as a slash with a sword while still bopping plausibly with a stick; the high-to-fall slash is the play. **Ruled, and in the data:** `one_handed` is raise (pitch 150, the hand beside the head, the body back half a unit), hit on the way down (90, the body dropping a pixel and leaning in), the follow-through low and across the body (35, out 5 across), settle (55). No negative pitch in the style. **The walk's first pass is accepted** ("looks great").
+
 ### 2026-10-13 — The GitHub Pages boot fixed: the character delivery is not fetched at boot, and `.nojekyll`
 
 Michael: the Pages site always failed in the art stage on `data/art/character/layers/_superseded/hair_plaits.png`. Two causes, both fixed. The boot fetched **every** PNG in the manifest, the design agent's character delivery included, though nothing at boot draws those (the slicer's inputs and previews; the game reads the layer files installed from them): the loader now skips `data/art/character/`. And GitHub Pages runs Jekyll, which serves nothing under a folder named with a leading underscore, so `_superseded/` was a hole on the site and not on the local server: **a `.nojekyll` file at the repo's root** turns that off, so any future `_` path serves too. The lesson for deliveries: a folder the game does not draw from is data, and the boot must not depend on it.

@@ -7,10 +7,10 @@
     {"stride": [0, 0], "lift": [3, 0], "arms": [0, 0], "bob": -1, "lean": 0.5}
   ] },
   "one_handed": { "fps": 12, "activeFrame": 1, "frames": [
-    {"pitch": -75, "out": 4, "lean": -1, "bob": 0},
-    {"pitch": 85, "out": -1, "lean": 2, "bob": 1},
-    {"pitch": 125, "out": -5, "lean": 2.5, "bob": 1},
-    {"pitch": 50, "out": 1, "lean": 0.5, "bob": 0}
+    {"pitch": 150, "out": 2, "lean": -0.5, "bob": 0},
+    {"pitch": 90, "out": -1, "lean": 1.5, "bob": 1},
+    {"pitch": 35, "out": -5, "lean": 2, "bob": 1},
+    {"pitch": 55, "out": 0, "lean": 0.5, "bob": 0}
   ] },
   "zombie": { "fps": 12, "activeFrame": 1, "frames": [
     {"pitch": 40, "offPitch": 40, "lean": 0},
