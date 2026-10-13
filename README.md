@@ -16,7 +16,7 @@ Then open http://localhost:8010. WASD or arrows to walk, Shift to sprint, mouse 
 
 ## Status
 
-Milestones 1 to 11 are built (2026-10-09 to 2026-10-12): a chunked map with real line of sight, WebGL2 lighting, openings the dead break through, the grid inventory and menus, the character and the figure, placement and building, melee, the bow, the ground baked per chunk, the village art, and one character model for the player, the dead, and villagers. **The engine upgrade is done** (2026-10-12: `docs/23`, with the code review in `docs/23a`): the loading shell, the engine hardened and deterministic, the sprite tools, and the interface's stone look in Pixelify Sans. Next the design agent dresses the characters (`docs/28`) and the open threads close. See `TODO.md` for where things stand and `docs/00-vision.md` for what this is.
+Milestones 1 to 11 are built (2026-10-09 to 2026-10-12): a chunked map with real line of sight, WebGL2 lighting, openings the dead break through, the grid inventory and menus, the character and the figure, placement and building, melee, the bow, the ground baked per chunk, the village art, and one character model for the player, the dead, and villagers. **The engine upgrade is done** (2026-10-12: `docs/23`, with the code review in `docs/23a`): the loading shell, the engine hardened and deterministic, the sprite tools, and the interface's stone look in Pixelify Sans. Next the big pass (`docs/30`): the needs, the stations, farming, and the 1.0 map built place by place; the design agent dresses the characters meanwhile (`docs/28`). See `TODO.md` for where things stand and `docs/00-vision.md` for what this is.
 
 ## Documents
 
@@ -50,5 +50,6 @@ Milestones 1 to 11 are built (2026-10-09 to 2026-10-12): a chunked map with real
 | [26-art-owed.md](docs/26-art-owed.md) | The item art still owed, each as a world picture and an inventory icon. |
 | [27-art-integration.md](docs/27-art-integration.md) | How the design agent's work comes in: the delivery checklist, the shared worktree, the audit. |
 | [28-painting-for-the-slicer.md](docs/28-painting-for-the-slicer.md) | The rules the design agent paints by, and what the slicer does with a file. |
+| [30-the-big-pass-spec.md](docs/30-the-big-pass-spec.md) | **The next task:** the big pass specified: the needs, every verb, the stations, farming, durability, the map built place by place. |
 | [29-world/README.md](docs/29-world/README.md) | The 1.0 map, ideated: a valley with a river, the castle, the village, the farms, the forest places; art and engine asks; a cut list and the questions. Nothing ruled yet. |
 | [art/README.md](docs/art/README.md) | The design agent's own docs: a style bible and a page per area of art. |

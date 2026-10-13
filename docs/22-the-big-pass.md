@@ -1,6 +1,6 @@
 # 22 — The big "what should we add" pass: stations, tools, seeds, durability
 
-**Status: a draft to-do list with open questions, not a spec (Michael's brain-dump of 2026-10-12, turned into a list). Nothing here is built. Every question marked Q is for Michael before the step it belongs to.**
+**Status: superseded on 2026-10-12 by `30-the-big-pass-spec.md`, the spec written from this list, `29-world`, and Michael's answers (`02`, "The big pass answered"); kept as the record of the brain-dump and its first rulings. Was: a draft to-do list with open questions, not a spec (Michael's brain-dump of 2026-10-12, turned into a list). Nothing here is built. Every question marked Q is for Michael before the step it belongs to.**
 
 ## What Michael wants in the pass
 
