@@ -388,25 +388,53 @@ function entryFromEvent(e) {
   return entry ? { entry, bag, el } : null;
 }
 
-// Which grid is under a screen point, and which cell.
+// How high an element's panel sits where panels overlap (focus sets the z-index); the belt is above all.
+function zOf(el) {
+  const wrap = el.closest(".inv-body, .doll-wrap, .container-wrap");
+  return wrap ? Number(wrap.style.zIndex || 0) : 99;
+}
+
+// The panel under a screen point, the one on top where they overlap; null off every panel.
+function panelAt(clientX, clientY) {
+  let best = null;
+  for (const wrap of [body, dollEl, containerEl]) {
+    if (!wrap || wrap.hidden) continue;
+    const el = wrap.querySelector(".inv-column") || wrap;
+    const r = el.getBoundingClientRect();
+    if (clientX < r.left || clientX >= r.right || clientY < r.top || clientY >= r.bottom) continue;
+    if (!best || zOf(wrap) > zOf(best)) best = wrap;
+  }
+  return best;
+}
+
+// Which grid is under a screen point, and which cell: the one on top where panels overlap.
 function gridAt(clientX, clientY) {
+  let best = null;
   for (const el of root.querySelectorAll(".inv-grid")) {
     const r = el.getBoundingClientRect();
     if (clientX < r.left || clientX >= r.right || clientY < r.top || clientY >= r.bottom) continue;
+    if (best && zOf(el) <= zOf(best.el)) continue;
     const bag = bags[el.dataset.bag];
     const cellPx = r.width / bag.cols;
-    return { el, bag, cellPx, cx: Math.floor((clientX - r.left) / cellPx), cy: Math.floor((clientY - r.top) / cellPx) };
+    best = { el, bag, cellPx, cx: Math.floor((clientX - r.left) / cellPx), cy: Math.floor((clientY - r.top) / cellPx) };
   }
-  return null;
+  return best;
 }
 
-// Which slot is under a screen point: worn, a hand, or the belt.
+// Which slot is under a screen point: worn, a hand, or the belt; the one on top where panels overlap.
 function slotAt(clientX, clientY) {
+  let best = null;
   for (const el of [...root.querySelectorAll(".doll-slot"), ...hotbar.querySelectorAll(".hot-slot")]) {
     const r = el.getBoundingClientRect();
-    if (clientX >= r.left && clientX < r.right && clientY >= r.top && clientY < r.bottom) return { el, id: el.dataset.slot };
+    if (clientX < r.left || clientX >= r.right || clientY < r.top || clientY >= r.bottom) continue;
+    if (best && zOf(el) <= zOf(best.el)) continue;
+    best = { el, id: el.dataset.slot };
   }
-  return null;
+  if (!best) return null;
+  // A slot under another panel is not a target: the panel on top is (a grid there is found by gridAt).
+  const over = panelAt(clientX, clientY);
+  if (over && zOf(best.el) < zOf(over)) return null;
+  return best;
 }
 
 function overPanel(clientX, clientY) {
@@ -505,6 +533,11 @@ function onPointerMove(e) {
     if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < DRAG_THRESHOLD) return;
     startDrag();
   }
+  // Carrying something over a panel brings it to the front, as a click would
+  // (Michael, 2026-10-13): a slot under the container can be reached by
+  // dragging onto the part of the character screen that shows.
+  const over = panelAt(e.clientX, e.clientY);
+  if (over && whichOf(over) !== order[order.length - 1]) focus(whichOf(over));
   updateDrag(e.clientX, e.clientY);
 }
 
