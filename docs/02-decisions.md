@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-13 — Worlds, identities, characters: the four questions answered, and five more rulings (docs/31/09)
+
+Michael's answers: a world's name typed with a default offered; a character's look fixed after creation ("sprint into the dead" is the way to a new one); a dead character's bookmark on a friend's world kept, Rejoin leading to New character; spectating later with tier 4. His additions, now in `09`: **character creation is a multi-step process**, step 1 the identity, step 2 a placeholder page for the skills and profession to come, with Back and Next as Zomboid has them, so it is plain the identity is one part of a character; **an identity is a stamp**: edited and saved, it applies to every character made from it afterwards and never backfills one already stamped; **hosting is a switch**, "Open to friends" on or off per world, the code drawn and saved the first time it goes on, no separate kind of save; **friends' worlds show whether they are open right now**, a green dot the relay answers to a plain request for the code, so the confirmation comes before Rejoin is pressed; and yes, many single-player worlds at different hours, revisited freely, which is the My worlds list.
+
 ### 2026-10-13 — Ruled: worlds, identities, characters (docs/31/09), Zomboid's model, before the rest of tier 3
 
 **What Michael found** after his first real join: it is never clear which game you are in. A world is created at load whatever you do, so New game only closes the menu; a hard refresh leaves you unsure whether you are in a new game, your old one, or need to rejoin; a rejoin gives a new survivor; hosting from the title hosts the background world and not the save; the one identity per browser is used in every game, so a name changed for one game is changed for the next; nothing says which saves exist or which were ever hosted.

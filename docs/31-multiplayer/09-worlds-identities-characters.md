@@ -6,18 +6,18 @@
 
 - **A world** is a valley with its state: the map as changed, the dead, the fires, the clock, and every character in it. A world is saved in the browser that made it, one record each, and it is what a host opens to friends. A world keeps its code once it has one.
 - **A character** is a survivor in one world: a player record there, with its bag, its wounds, its position, and later its skills, its profession, its story. **A character belongs to its world, full stop.** When the world goes, so does the character. A character is never moved between worlds and never saved apart from its world.
-- **An identity** is a name and a look, kept in the browser, reusable. It is the seed a character is made from, and nothing more: once the character exists, the identity is not consulted again. Michael keeps a "Michael Dippold" identity and makes a character from it in every world; no two of those characters are the same character because they share it. Editing an identity changes no character anywhere.
+- **An identity** is a name and a look, kept in the browser, reusable. It is the seed a character is made from, and nothing more: once the character exists, the identity is not consulted again. **A stamp** (Michael): an identity edited and saved applies to every character made from it afterwards and never backfills a character already stamped; that character keeps its name and face until it dies. Michael keeps a "Michael Dippold" identity and makes a character from it in every world; no two of those characters are the same character because they share it. Editing an identity changes no character anywhere.
 - **A browser id** is a hidden token each browser carries, so a world can remember which browser's character is which. It is not shown and never typed.
 
 ## The rules
 
 1. **Each character belongs to a world.** Its bag, its hurt, and everything later hangs from the character, and the character hangs from the world.
-2. **Entering a world means making a character for it.** A new world of your own: make a character. Joining a friend's world the first time: make a character. The screen for that is one choice, which identity, since the identity carries the name and the look; the world then has a character seeded from it.
+2. **Entering a world means making a character for it.** A new world of your own: make a character. Joining a friend's world the first time: make a character. **Character creation is a multi-step process** (Michael): step 1 is the identity (pick one, make one, edit one), step 2 is a placeholder page reading "Step 2 of 2: to come" where skills and a profession will go, with Back and Next as Zomboid has them; Next on the last step makes the character. The steps exist now so that it is plain the identity is one part of a character and not the character.
 3. **Identities are kept and reused.** The identities screen lists them, lets you make, edit, and delete them. A new character after a death takes an identity the same way; you make a new identity only if you want a different name or face.
 4. **Rejoining a world you have a character in returns you to that character.** The world remembers your browser id against your character. No identity is asked for: you were made to make a character the first time, so you have one. If that character died, you make a new character for that world (rule 2), choosing an identity (rule 3); the body stays where it fell.
 5. **No world runs until you choose one.** The title is a plain screen; nothing is created, stepped, or autosaved behind it. The checks get a fresh world through the test flag on the URL.
 6. **A guest never saves a world.** The world is the host's; a guest keeps only a bookmark to it (below).
-7. **A world keeps its code.** Hosting a world the first time draws a code and saves it with the world; every later hosting uses the same code, so friends come back with the one they have. If the relay reports the code in use, a new one is drawn and saved.
+7. **A world keeps its code, and hosting is a switch** (Michael): "Open to friends", on or off, on the world's row and in the pause menu. On, the world is registered on the relay under its code and anyone with the code can join; off, the relay drops the room, guests are told the host closed the world, and their characters stand in it, saved. The first time the switch goes on, the code is drawn and saved with the world. A world is a world: one with a code has been open at some point, and the row shows the code; there is no separate kind of save. If the relay reports the code in use, a new one is drawn and saved.
 8. **The host's save is never older than the last join or leave.** Hosting saves the world first; a guest joining or leaving saves it again; the autosave runs as before.
 9. **The join carries the build's version.** A host refuses a guest on another build with a sentence that says whose is newer; both refresh.
 
@@ -27,7 +27,7 @@
 
 **Worlds.** Two lists and three buttons.
 - *My worlds*: one row per world saved in this browser: its name, the day and hour, your character's name there (or "no survivor" after a death), and its code if it has one. Each row: Play, Host, Delete (Delete asks once).
-- *Friends' worlds*: one row per world this browser has joined or tried to join: the world's name as the host sent it, the host's name, the code, your character's name there, when you were last in it. Each row: Rejoin, Forget.
+- *Friends' worlds*: one row per world this browser has joined or tried to join: the world's name as the host sent it, the host's name, the code, your character's name there, when you were last in it, **and whether it is open right now** (Michael: a green dot), which the relay answers to a plain request for the code (`GET /open?code=…` gives whether a host holds it and how many guests are in), asked every few seconds while the screen is up; the dot is the confirmation that the world is running in someone's browser and open before Rejoin is pressed. Each row: Rejoin, Forget.
 - *New world*: asks for a name (a default offered: the map's and the date) and which identity; creates the world, makes your character from the identity, enters.
 - *Join a game*: asks for a code; the join goes out with your browser id; if the host knows no character for it, the host answers "who", the screen asks which identity, and the join goes again with it; then the welcome. The bookmark is written at the first attempt, so a failed join still leaves a row to Rejoin from.
 - *Rejoin* on a friend's row: the join with the saved code and your browser id. While the relay answers that no world is open under the code, it keeps trying every few seconds for a minute, with "Waiting for Michael to open the valley" and a Cancel: two friends refreshing at once is the usual case, not a failure.
@@ -67,9 +67,11 @@
 
 Then tier 3's remainder over it (`06`).
 
-## Questions for Michael
+## Questions for Michael, answered 2026-10-13
 
-1. A world's name: typed with a default offered (the recommendation), or automatic and renamable later.
-2. A character's look after creation: fixed (Zomboid; the recommendation), or editable from the pause menu's Character screen. Fixed keeps "a new face is a new character" true.
-3. A dead character's bookmark on a friend's world: the row stays and Rejoin leads to New character (the recommendation), or the row is dropped.
-4. Spectating after a death in a friend's world (`05` item 33): later, with tier 4; the dead screen's two choices are enough now.
+1. A world's name: **typed, with a default offered.**
+2. A character's look after creation: **fixed.** "If you need a new character, sprint into the dead; that will do it."
+3. A dead character's bookmark on a friend's world: **kept; Rejoin leads to New character.**
+4. Spectating after a death in a friend's world: **later, with tier 4.**
+
+And, asked back: many single-player worlds at different points in time, revisited freely, **yes**: that is the My worlds list, each row a world at its own hour.
