@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-13 — The GitHub Pages boot fixed: the character delivery is not fetched at boot, and `.nojekyll`
+
+Michael: the Pages site always failed in the art stage on `data/art/character/layers/_superseded/hair_plaits.png`. Two causes, both fixed. The boot fetched **every** PNG in the manifest, the design agent's character delivery included, though nothing at boot draws those (the slicer's inputs and previews; the game reads the layer files installed from them): the loader now skips `data/art/character/`. And GitHub Pages runs Jekyll, which serves nothing under a folder named with a leading underscore, so `_superseded/` was a hole on the site and not on the local server: **a `.nojekyll` file at the repo's root** turns that off, so any future `_` path serves too. The lesson for deliveries: a folder the game does not draw from is data, and the boot must not depend on it.
+
 ### 2026-10-13 — Animations begun: the walk as data, and the walk and the one-handed swing passed over
 
 The first of `docs/32`'s items, the easiest to test (Michael's call): **the walk's four keyframes left the rig's code for `data/poses.json`** (`walk`: `stride`, `lift`, `arms`, `bob`, `lean`, `headD` per frame; the rig's defaults hold the old numbers so a missing file is not fatal), and were moved: the body low at the two contact frames and up a pixel at the passing frames, where before it was the other way round; the swinging leg's knee lifts three at the passing frames, where before the planted foot lifted at the contact; half a unit of lean into the walk. **The one-handed swing** was passed over in the same cut: the wind-up coils back at 75 degrees with the body leaning back a unit, instead of the arm overhead-and-behind at 110, so the swing reads as a swing and not a flail; the hit drops the body a pixel; the follow-through reaches 125 and the settle comes to 50. **Both are first cuts for Michael's eye in play**, tuned by editing the file and `__game.reloadPoses()`, which rebakes the player at once; the sheets check re-baselined on the eight player-variant sheets.
