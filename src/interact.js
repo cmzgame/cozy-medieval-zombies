@@ -1007,6 +1007,30 @@ export function pokeAt(sx, sy, player) {
   return prop;
 }
 
+// ---- brushing through (Michael, 2026-10-12) ----
+// Any character walking through an interactable that can be walked through
+// (a crop, a mushroom: `solid` false; never a tree or a rock) sets it swaying
+// as a click would. One round finishes before the next starts, so a walk
+// through a field keeps it wobbling without ever restarting a sway mid-way;
+// standing still in it does nothing.
+const BRUSH_MS = 560; // the sway's length (render/props.js, WIGGLE_MS)
+export function brushThrough(ch) {
+  if (!ch || ch.dead) return;
+  // Moved: a fiftieth of a tile since the last point that counted, so a slow
+  // walker (the dead at one tile a second cover a sixtieth a step) adds up to
+  // it over a few steps and a stander never does.
+  const moved = ch.brushX === undefined || Math.hypot(ch.gx - ch.brushX, ch.gy - ch.brushY) > 0.02;
+  if (!moved) return;
+  ch.brushX = ch.gx;
+  ch.brushY = ch.gy;
+  const prop = map.peekTile(Math.round(ch.gx), Math.round(ch.gy))?.prop;
+  if (!prop || !prop.interactable || prop.solid) return;
+  const def = getDef(prop.sprite);
+  if (def.sway === false || def.clickAnim) return;
+  const now = loop.simTime() * 1000;
+  if (!prop.pokedAt || now - prop.pokedAt >= BRUSH_MS) prop.pokedAt = now;
+}
+
 // ---- characters under the cursor (docs/19) ----
 
 let allCharacters = () => []; // main.js hands in everyone but the player

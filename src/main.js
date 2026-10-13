@@ -375,13 +375,17 @@ function stepGame(dt) {
   progress = interact.updateAction(player, dt);
   // The dead far from the player stand still: a stand-in for the records of
   // docs/03 until that milestone.
+  // Anyone walking through a crop or a mushroom sets it swaying (Michael, 2026-10-12).
+  interact.brushThrough(player);
   for (const z of zombies) {
     if (!nearPlayer(z)) continue;
     updateZombie(z, dt, player, others, villagers);
+    interact.brushThrough(z);
   }
   for (const v of villagers) {
     if (!nearPlayer(v)) continue;
     updateVillager(v, dt, others);
+    interact.brushThrough(v);
   }
   // Villagers bitten through get up as the dead, in what they wore (docs/19).
   if (villagers.some((v) => v.dead)) {
