@@ -29,6 +29,7 @@ export function initStationPanel(playerGetter) {
   root.addEventListener("click", (e) => {
     if (!open) return;
     if (e.target.closest("[data-close]")) return close();
+    if (e.target.closest("[data-output]")) { const prop = map.propById(open.propId); if (prop) openOutput(prop); return; }
     const row = e.target.closest("[data-recipe]");
     if (row) { open.recipe = row.dataset.recipe; lastHtml = ""; return; }
     if (e.target.closest("[data-make]")) {
@@ -55,10 +56,16 @@ export function openFor(prop, player) {
   open = { propId: prop.id, station, recipe: list[0] ? list[0].id : null, count: 1 };
   root.hidden = false;
   lastHtml = "";
-  // The output beside the bag, as any container (main.js hears this and opens it).
-  emit("containerOpened", { bag: stations.outputOf(prop), tiles: prop.tiles, name: "output" });
+  openOutput(prop);
   render(player);
   return true;
+}
+
+// The output beside the bag, as any container (main.js hears this and opens
+// it). It stays open as far as the panel does, a tile past the station's
+// reach, not the plain container's two tiles (Michael lost it at the doorway).
+function openOutput(prop) {
+  emit("containerOpened", { bag: stations.outputOf(prop), tiles: prop.tiles, name: "output", closeDist: stations.REACH + 1 });
 }
 
 // Returns true if it was open.
@@ -109,7 +116,7 @@ function render(player) {
     const paused = rr && rr.fire && !(prop.fire && prop.fire.lit);
     return `<div class="st-job"><span>${rr ? nameOfOut(rr) : j.recipe}${j.count > 1 ? ` ×${j.count}` : ""}${paused ? " (the fire is out)" : ""}</span><div class="st-bar"><div style="width:${Math.round((p || 0) * 100)}%"></div></div></div>`;
   }).join("");
-  const html = `<div class="inv-header kit-header"><span class="inv-title">${title(open.station)}</span><span class="inv-tools"><button class="kit-button inv-close" data-close title="Close">×</button></span></div><div class="st-body"><div class="st-list kit-well">${rows || "<div class='st-note'>Nothing to make here yet.</div>"}</div>${detail}</div>${q ? `<div class="st-queue kit-well">${q}</div>` : ""}`;
+  const html = `<div class="inv-header kit-header"><span class="inv-title">${title(open.station)}</span><span class="inv-tools"><button class="kit-button" data-output title="Open the station's output box again">Output</button><button class="kit-button inv-close" data-close title="Close">×</button></span></div><div class="st-body"><div class="st-list kit-well">${rows || "<div class='st-note'>Nothing to make here yet.</div>"}</div>${detail}</div>${q ? `<div class="st-queue kit-well">${q}</div>` : ""}`;
   if (html !== lastHtml) {
     root.innerHTML = html;
     lastHtml = html;

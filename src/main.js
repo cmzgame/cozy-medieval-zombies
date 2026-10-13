@@ -92,7 +92,7 @@ let playerRoom = 0;
 let drawAll = false; // debug: V shows everything, fog off
 let drawn = 0;
 let visKey = null; // player tile and camera tile the visible set was computed for
-let openBag = null; // { bag, tiles, name, corpse? }: the container open beside yours
+let openBag = null; // { bag, tiles, name, corpse?, closeDist? }: the container open beside yours
 let corpseWatch = null; // the body whose grid is open: redrawn as things leave it, once more when it closes
 let progress = null; // 0..1 of a timed action
 let handlers = null; // the inventory panel's handlers, on window.__game for tests
@@ -251,7 +251,7 @@ function updateInventoryUi() {
   if (openBag) {
     let d = Infinity;
     for (const [tx, ty] of openBag.tiles) d = Math.min(d, Math.hypot(player.gx - tx, player.gy - ty));
-    if (d > tuning.world.containerCloseDist) openBag = null;
+    if (d > (openBag.closeDist || tuning.world.containerCloseDist)) openBag = null; // a station's output reaches as far as its panel
   }
   if (openBag && openBag.corpse) corpseWatch = openBag.corpse;
   if (corpseWatch) {
@@ -822,8 +822,8 @@ async function boot() {
         if (Math.hypot(tile[0] - player.gx, tile[1] - player.gy) <= 12) log.push(`Made ${out.prop ? out.prop.replace(/_/g, " ") : `${out.count > 1 ? `${out.count} ` : ""}${items.getItem(out.id).name.toLowerCase()}`}.`, "result");
       });
       events.on("weaponBroke", ({ item }) => showMessage(`Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3));
-      events.on("containerOpened", ({ bag, tiles: where, name, corpse }) => {
-        openBag = { bag, tiles: where, name, corpse: corpse || null };
+      events.on("containerOpened", ({ bag, tiles: where, name, corpse, closeDist }) => {
+        openBag = { bag, tiles: where, name, corpse: corpse || null, closeDist: closeDist || 0 };
         panel.setBagOpen(true);
       });
       // After the menu's own listener, so a menu closed by Escape is seen first.
