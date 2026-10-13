@@ -475,7 +475,7 @@ function onPointerDown(e) {
   e.preventDefault();
   // In Use mode a click on an item is the target (use.js), never a drag.
   if (use.isActive()) {
-    use.apply({ kind: "item", entry: hit.entry }, shown.player);
+    use.apply({ kind: "item", entry: hit.entry, bag: hit.bag }, shown.player);
     lastSignature = "";
     hotbar.dataset.sig = "";
     return;

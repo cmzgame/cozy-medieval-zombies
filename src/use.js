@@ -17,6 +17,11 @@ import { world } from "./world.js";
 let current = null; // { entry, from }
 let label = null;
 let last = { x: 0, y: 0 };
+let sender = null; // on a guest (docs/31/05 item 9): the apply goes to the host as a command instead of resolving here
+
+export function setSender(fn) {
+  sender = fn;
+}
 
 export function init() {
   label = document.createElement("div");
@@ -58,7 +63,8 @@ export function current_() {
 }
 
 export function isSelected(entry) {
-  return !!current && current.entry === entry;
+  if (!current || !entry) return false;
+  return current.entry === entry || (entry.uid != null && current.entry.uid === entry.uid); // a replica's objects are new each frame
 }
 
 // What the cursor is over, named, for the label; null for nothing.
@@ -70,10 +76,22 @@ export function hover(target) {
   label.textContent = `Use ${name} → ${to}`;
 }
 
-// The click landed on `target`: resolve and report, then the mode ends.
+// The click landed on `target`: resolve and report, then the mode ends. On a guest the sender
+// carries the pair to the host, which runs applyWith as that player (ui/inventory-actions.js).
 export function apply(target, player) {
   if (!current) return false;
-  const entry = current.entry;
+  if (sender) {
+    sender(current, target);
+    cancel();
+    return true;
+  }
+  applyWith(current.entry, target, player);
+  cancel();
+  return true;
+}
+
+// The resolution itself: the first row for the pair, its verb run or its line said.
+export function applyWith(entry, target, player) {
   const row = interactions.resolve(entry, target);
   const def = getItem(entry.id);
   if (!row) log.push(interactions.NOTHING, "result");
@@ -83,6 +101,4 @@ export function apply(target, player) {
     if (!r.ok) log.push(r.reason || interactions.NOTHING, "result");
   } else if (row.message) log.push(row.message, "result");
   else log.push(interactions.NOTHING, "result");
-  cancel();
-  return true;
 }

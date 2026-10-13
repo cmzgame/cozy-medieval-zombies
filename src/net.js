@@ -276,15 +276,17 @@ export function hostStep(mySnap, me) {
           game.state.acting = null;
         }
       }
-    } else if (msg.type === "item") {
-      // The panel's drags, drops, and menus from a guest (docs/31/05, item 9): run here as the guest's
-      // player through the same handlers its own panel uses (main.js hands in inventory-actions.js's executor).
+    } else if (msg.type === "item" || msg.type === "use") {
+      // The panel's drags, drops, and menus, and the Use mode's pair, from a guest (docs/31/05, item 9):
+      // run here as the guest's player through the same code its own panel uses (main.js hands in
+      // inventory-actions.js's executors).
       const g = guests.get(msg.from);
       const p = g && game.state.players.find((q) => q.id === g.playerId);
-      if (p && hooks.item) {
+      const hook = msg.type === "item" ? hooks.item : hooks.use;
+      if (p && hook) {
         game.state.acting = p;
         try {
-          hooks.item(p, msg);
+          hook(p, msg);
         } finally {
           game.state.acting = null;
         }
@@ -399,6 +401,8 @@ export function guestStep(mySnap) {
       lastFrameAt = now;
     } else if (msg.type === "message") {
       hooks.message(msg.text, msg.seconds);
+    } else if (msg.type === "log") {
+      if (hooks.log) hooks.log(msg.text, msg.kind);
     } else if (msg.type === "opened") {
       pendingOpened.push(msg.what); // after the frame that carries the grid (frames queue behind it)
     }
@@ -516,6 +520,19 @@ export function sendAct(target, label) {
 // The panel's command (ui/inventory-actions.js, createRemoteInventoryActions): an op by uid, slot, and bag address.
 export function sendItem(cmd) {
   if (role === "guest" && cmd && cmd.op) send({ type: "item", ...cmd });
+}
+
+// The Use mode's pair (use.js): the item by uid and source, the target by address.
+export function sendUse(cmd) {
+  if (role === "guest" && cmd && cmd.uid != null && cmd.target) send({ type: "use", ...cmd });
+}
+
+// A log line for a player whose screen is on a guest (main.js's log sink).
+export function logTo(playerId, text, kind = "info") {
+  const to = guestOf(playerId);
+  if (!to) return false;
+  send({ type: "log", to, text, kind });
+  return true;
 }
 
 function guestOf(playerId) {

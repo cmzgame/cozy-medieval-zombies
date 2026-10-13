@@ -58,7 +58,7 @@ import * as combat from "./combat.js";
 import * as buildPalette from "./ui/build-palette.js";
 import * as shell from "./boot.js";
 import { createDevApi } from "./dev.js";
-import { createInventoryActions, createRemoteInventoryActions, performItemCommand } from "./ui/inventory-actions.js";
+import { createInventoryActions, createRemoteInventoryActions, performItemCommand, performUseCommand } from "./ui/inventory-actions.js";
 import * as rng from "./rng.js";
 import * as rules from "./rules.js";
 import * as tuning from "./tuning.js";
@@ -438,7 +438,7 @@ function stepGame(dt) {
   const under = interact.characterAt(input.getMouse().x, input.getMouse().y);
   cursor.setOverDead(!!under && under.kind === "zombie" && !under.dead);
   // Use mode (use.js): the label names what is under the cursor, and a left click on the world is the target, spent here.
-  if (!guest && use.isActive()) {
+  if (use.isActive()) {
     const target = useTargetAt(input.getMouse().x, input.getMouse().y);
     use.hover(target);
     if (clicked && !panel.isOpen()) {
@@ -801,6 +801,19 @@ async function boot() {
       handlers = new URLSearchParams(window.location.search).get("join")
         ? createRemoteInventoryActions(() => S.player, () => openBag, (cmd) => net.sendItem(cmd))
         : createInventoryActions(() => S.player);
+      // A guest's Use goes to the host as the pair's addresses (use.setSender; performUseCommand runs it there).
+      if (handlers.addressOf) {
+        use.setSender((cur, target) => {
+          const bagAddr = (bag, kept) => kept || handlers.addressOf(bag);
+          const src = cur.from.kind === "slot" ? { kind: "slot", id: cur.from.id } : (a => a && { kind: "bag", bag: a })(bagAddr(cur.from.bag, cur.from.address));
+          let addr = null;
+          if (target.kind === "item") { const b = handlers.addressOf(target.bag); if (b) addr = { kind: "item", uid: target.entry.uid, bag: b }; }
+          else if (target.kind === "prop") addr = { kind: "prop", id: target.prop.id };
+          else if (target.kind === "character") addr = { kind: "character", id: target.ch.id };
+          else if (target.kind === "tile") addr = { kind: "tile", x: target.x, y: target.y };
+          if (src && addr) net.sendUse({ uid: cur.entry.uid, src, target: addr });
+        });
+      }
       // A host's own drag into a chest marks its chunk, so a guest sees the chest change.
       handlers.changed = () => { if (!net.isGuest() && openBag && openBag.tiles && openBag.tiles[0]) map.markDirty(openBag.tiles[0][0], openBag.tiles[0][1]); };
       panel.initInventoryPanel(handlers);
@@ -943,6 +956,12 @@ async function boot() {
         if (!by || by === S.player || !net.isHost()) return false;
         return net.messageTo(by.id, text, seconds);
       });
+      // And a log line (the Use mode's result, use.js) the same way.
+      log.setSink((text, kind) => {
+        const by = game.state.acting;
+        if (!by || by === S.player || !net.isHost()) return false;
+        return net.logTo(by.id, text, kind);
+      });
       // After the menu's own listener, so a menu closed by Escape is seen first.
       window.addEventListener("keydown", (e) => {
         if (e.code === "Escape") handleEscape();
@@ -987,8 +1006,11 @@ async function boot() {
       openBag = { bag: c.bag, tiles: w.tiles, name: w.name, corpse: c.corpse, closeDist: w.closeDist || 0, address: w };
       panel.setBagOpen(true);
     },
-    // A guest's panel command, run here as its player (ui/inventory-actions.js).
+    // A guest's panel command, and its Use, run here as its player (ui/inventory-actions.js).
     item: (p, cmd) => performItemCommand(p, cmd),
+    use: (p, cmd) => performUseCommand(p, cmd, (id) => [...S.players, ...S.zombies, ...S.villagers, ...S.corpses].find((c) => c.id === id) || null),
+    // A log line said for my player on the host (the Use mode's result).
+    log: (text, kind) => log.push(text, kind),
     // The wire gone (net.js dropped): a guest back at the title, told why, the world here untouched; a host told and playing on alone.
     failed: (code, why, role) => {
       const st = net.status();

@@ -10,6 +10,7 @@ import * as grid from "../grid.js";
 import * as map from "../map.js";
 import * as interact from "../interact.js";
 import * as tuning from "../tuning.js";
+import * as use from "../use.js";
 import { showMessage } from "./prompt.js";
 
 function slotGet(player, id) {
@@ -192,9 +193,13 @@ export function createRemoteInventoryActions(getPlayer, getOpen, send) {
     const f = fromAddress(from, addressOf);
     if (f) send({ op, uid: entry.uid, src: f, ...more });
   };
+  // Use begins here as it does alone, with the bag's address kept on the mode, since the replica's bag
+  // object is new with every frame (main.js's sender reads it when the click lands).
   const remoteMenu = (entries, more) => entries.map((en) => (en.label === "Use" ? en : { ...en, onSelect: () => send({ op: "menu", label: en.label, ...more }) }));
+  const useFromBag = (entries, entry, bag, address) => entries.map((en) => (en.label === "Use" ? { ...en, onSelect: () => use.begin(entry, { kind: "bag", bag, address }) } : en));
   return {
     ...local,
+    addressOf,
     placeInSlot(entry, from, slotId) {
       sendFrom("slot", entry, from, { slot: slotId });
     },
@@ -223,7 +228,7 @@ export function createRemoteInventoryActions(getPlayer, getOpen, send) {
     itemMenu(entry, bag, otherBag) {
       const from = addressOf(bag);
       if (!from) return [];
-      return remoteMenu(local.itemMenu(entry, bag, otherBag), { uid: entry.uid, src: { kind: "bag", bag: from }, other: addressOf(otherBag) });
+      return useFromBag(remoteMenu(local.itemMenu(entry, bag, otherBag), { uid: entry.uid, src: { kind: "bag", bag: from }, other: addressOf(otherBag) }), entry, bag, from);
     },
     use(entry, bag) {
       sendFrom("dbl", entry, { kind: "bag", bag }, {});
@@ -246,9 +251,9 @@ export function createRemoteInventoryActions(getPlayer, getOpen, send) {
 // (the frame that moved the thing was still in flight) finds nothing and does nothing. A container
 // not the player's must be within the panel's closing distance, the same rule that shuts it. Returns
 // true when something ran. Messages said on the way reach the guest through the acting player (net.js).
-export function performItemCommand(player, c) {
-  if (!player || !c) return false;
-  const h = createInventoryActions(() => player);
+// What a command's addresses mean on this world: the bag, the source, the entry, each found again,
+// and the tiles of every container not the player's own, marked once something ran.
+function resolvers(player) {
   const touched = new Set();
   const containerOf = (a) => {
     const r = interact.containerAt(player, a);
@@ -273,6 +278,13 @@ export function performItemCommand(player, c) {
     }
     return from.bag.items.find((e) => e.uid === uid) || null;
   };
+  return { touched, containerOf, fromOf, entryIn };
+}
+
+export function performItemCommand(player, c) {
+  if (!player || !c) return false;
+  const h = createInventoryActions(() => player);
+  const { touched, containerOf, fromOf, entryIn } = resolvers(player);
   let ran = false;
   if (c.op === "tidy") {
     const to = containerOf(c.bag);
@@ -325,4 +337,38 @@ export function performItemCommand(player, c) {
   }
   if (ran) for (const [tx, ty] of touched) map.markDirty(tx, ty); // a container's grid travels with its chunk
   return ran;
+}
+
+// A guest's Use (use.js, docs/30 law 2): the item by its uid and source, the target by its address
+// (an item in a bag, a prop by id, a character by id, a tile), resolved and run here as that player;
+// the line it says reaches the guest through the log's sink (main.js). `findCharacter` is the
+// world's lookup across players, the dead, villagers, and corpses.
+export function performUseCommand(player, c, findCharacter) {
+  if (!player || !c || !c.target) return false;
+  const { touched, containerOf, fromOf, entryIn } = resolvers(player);
+  const from = fromOf(c.src);
+  const entry = from ? entryIn(from, c.uid) : null;
+  if (!entry) return false;
+  const t = c.target;
+  let target = null;
+  if (t.kind === "item") {
+    const r = containerOf(t.bag);
+    const e = r && r.bag.items.find((q) => q.uid === t.uid);
+    if (e) target = { kind: "item", entry: e };
+  } else if (t.kind === "prop") {
+    const prop = typeof t.id === "string" ? map.propById(t.id) : null;
+    if (prop) target = { kind: "prop", prop };
+  } else if (t.kind === "character") {
+    const ch = findCharacter && typeof t.id === "string" ? findCharacter(t.id) : null;
+    if (ch) target = { kind: "character", ch };
+  } else if (t.kind === "tile") {
+    const x = Math.round(t.x) || 0;
+    const y = Math.round(t.y) || 0;
+    const tile = map.peekTile(x, y);
+    target = { kind: "tile", x, y, floor: tile ? tile.floor : null };
+  }
+  if (!target) return false;
+  use.applyWith(entry, target, player);
+  for (const [tx, ty] of touched) map.markDirty(tx, ty);
+  return true;
 }

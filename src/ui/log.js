@@ -80,8 +80,16 @@ export function initLog(handlers = {}) {
 
 // `kind`: info (the game), result (an action's outcome), say (a character's
 // line), warn (something to act on). `who` names the speaker for `say`.
+// A sink takes a line before it is shown here (main.js: a line for a guest's player, over the wire).
+let sink = null;
+export function setSink(fn) {
+  sink = fn;
+}
+
 export function push(text, kind = "info", who = null) {
-  if (!root || !text) return;
+  if (!text) return;
+  if (sink && sink(text, kind, who)) return;
+  if (!root) return;
   const line = document.createElement("div");
   line.className = `log-line log-${kind}`;
   if (who) {
