@@ -1230,252 +1230,288 @@
      "tile": [
       9,
       1
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_potato_1",
      "tile": [
       10,
       1
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_cabbage_1",
      "tile": [
       11,
       1
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_potato_1",
      "tile": [
       12,
       1
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_cabbage_1",
      "tile": [
       13,
       1
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_potato_1",
      "tile": [
       14,
       1
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_potato_2",
      "tile": [
       9,
       2
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_cabbage_2",
      "tile": [
       10,
       2
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_potato_2",
      "tile": [
       11,
       2
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_cabbage_2",
      "tile": [
       12,
       2
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_potato_2",
      "tile": [
       13,
       2
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_cabbage_2",
      "tile": [
       14,
       2
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_cabbage_2",
      "tile": [
       9,
       3
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_potato_2",
      "tile": [
       10,
       3
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_cabbage_2",
      "tile": [
       11,
       3
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_potato_2",
      "tile": [
       12,
       3
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_cabbage_2",
      "tile": [
       13,
       3
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_potato_2",
      "tile": [
       14,
       3
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_potato_1",
      "tile": [
       9,
       4
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_cabbage_1",
      "tile": [
       10,
       4
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_potato_1",
      "tile": [
       11,
       4
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_cabbage_1",
      "tile": [
       12,
       4
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_potato_1",
      "tile": [
       13,
       4
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_cabbage_1",
      "tile": [
       14,
       4
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_cabbage_2",
      "tile": [
       9,
       5
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_potato_2",
      "tile": [
       10,
       5
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_cabbage_2",
      "tile": [
       11,
       5
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_potato_2",
      "tile": [
       12,
       5
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_cabbage_2",
      "tile": [
       13,
       5
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_potato_2",
      "tile": [
       14,
       5
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_potato_2",
      "tile": [
       9,
       6
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_cabbage_2",
      "tile": [
       10,
       6
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_potato_2",
      "tile": [
       11,
       6
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_cabbage_2",
      "tile": [
       12,
       6
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_potato_2",
      "tile": [
       13,
       6
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "crop_cabbage_2",
      "tile": [
       14,
       6
-     ]
+     ],
+     "solid": false
     },
     {
      "sprite": "well",

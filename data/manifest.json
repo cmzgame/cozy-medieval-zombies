@@ -1,5 +1,5 @@
 {
-  "version": "b3ec2fb7",
+  "version": "87099591",
   "files": {
     "data/build.json": {"size": 392, "stamp": "d20c5483"},
     "data/combat.json": {"size": 2154, "stamp": "22f3d3c3"},
@@ -283,7 +283,7 @@
     "data/layers/legs/index.json": {"size": 22, "stamp": "50610d07"},
     "data/layers/waist/index.json": {"size": 19, "stamp": "e924073b"},
     "data/maps/square.json": {"size": 13693, "stamp": "685b52fd"},
-    "data/maps/valley.json": {"size": 19160, "stamp": "fe105289"},
+    "data/maps/valley.json": {"size": 19916, "stamp": "e52f68fa"},
     "data/sprites/barrel.json": {"size": 159, "stamp": "a48a8bf3"},
     "data/sprites/bed.json": {"size": 427, "stamp": "193b5e40"},
     "data/sprites/campfire.json": {"size": 164, "stamp": "2454cbc7"},

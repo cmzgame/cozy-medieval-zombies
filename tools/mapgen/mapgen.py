@@ -195,7 +195,7 @@ class Place:
             for dx in range(w):
                 k = kinds[(dx + dy * 7 + seed) % len(kinds)]
                 st = stages[(dx * 3 + dy + seed) % len(stages)]
-                self.prop(f"crop_{k}_{st}", (x0 + dx, y0 + dy))
+                self.prop(f"crop_{k}_{st}", (x0 + dx, y0 + dy), solid=False)  # walked through, and it wobbles (CLAUDE.md's law)
 
 
 def _merge_runs(rects):
