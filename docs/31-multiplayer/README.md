@@ -38,3 +38,5 @@ Feasible, and the engine work of 2026-10-12 did most of the cheap part already: 
 - **Interest region:** the chunks a replica is told about, the client's own active box; the union of every player's region is what the authority simulates.
 - **Listen server:** the authority runs inside the host player's browser page; guests connect to it.
 - **Dedicated server:** the authority runs in a Node process with no renderer; everyone, the host included, connects as a guest.
+
+`09-worlds-identities-characters.md` — ruled 2026-10-13 after the first real join: a world is chosen, never assumed; an identity is a name and a look kept in the browser; a character belongs to one world; the Worlds and Identities screens, the reconnect by a browser id, a world's code kept.
