@@ -91,8 +91,8 @@ export function emitGhost(ghost) {
 // then the other, dying away (Michael, 2026-10-11: "I recognize you clicked
 // me", then "a bit less jittery"). Tall things lean further: a pixel and a half
 // for a mushroom, up to five for a giant tree. Whole pixels at the top.
-const WIGGLE_MS = 560;
-function swayOf(prop, height) {
+export const WIGGLE_MS = 560;
+export function swayOf(prop, height) { // exported for tools/checks/sway.js
   if (!prop.pokedAt) return 0;
   // Sim milliseconds, the clock interact.pokeAt stamps with. Reading the wall
   // clock here (as it did until 2026-10-12) made every sway over before it began.
