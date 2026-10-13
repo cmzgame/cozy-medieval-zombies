@@ -141,7 +141,9 @@ export async function run(game) {
   }
 
   // 3. Pixel-crisp: no partial alpha anywhere; the bake does not depend on the camera.
+  // A bake reads and never grows (docs/31/05, item 8): the chunks it reads are grown first.
   {
+    game.map.ensureAround(8, 8, 1);
     let partial = 0;
     for (const [cx, cy] of [[0, 0], [1, 0], [1, 1]]) {
       const d = G.bakeImage(cx, cy).data;
@@ -157,8 +159,11 @@ export async function run(game) {
   }
 
   // 4. Deterministic: twice, and a wild chunk twelve chunks out on two visits.
+  // A bake reads and never grows (docs/31/05, item 8), so the far chunk is
+  // grown first, as a visit would grow it.
   {
     const a = G.hashChunk(0, 0) === G.hashChunk(0, 0);
+    game.map.ensureAround(13 * C + 8, C + 8, 1); // its neighbours too: a bake reads REACH_MAX tiles into them
     const before = G.hashChunk(13, 1);
     game.teleport(13 * C + 8, C + 8);
     step(5);

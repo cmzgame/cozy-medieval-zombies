@@ -10,6 +10,8 @@ The one thing that should come **before** the net and **after** the pass's needs
 
 ## Tier 0 — The world apart, and the viewer (small to medium)
 
+**Built so far:** item 8 (2026-10-13, `02`: reading never grows; `check("growth")`; the hash equal across zooms and window sizes).
+
 What: items 8 (growth by players only), 17 (the singletons sorted into world and client), 21 and 22 (time scale, the timer), 23 (`src/world/` headless; `node tools/world.js` boots and steps a world with no window), 24 (`serialize`/`restore`), and a **one-way viewer**: a second tab that receives snapshots through a `BroadcastChannel` and draws the host's world from its own camera, no player of its own. `05-someday`'s tier 0: "small, and it proves the pipe and the interpolation".
 
 Check: `node tools/world.js` hashes the same as the pane's `world.hash()` after the same scripted minute (the proof that growth no longer depends on the window); a save round-trips deep-equal (the parent's acceptance); the viewer's picture matches the host's at the same camera (`check("frame")` over the loopback).

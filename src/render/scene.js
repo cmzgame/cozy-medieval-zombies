@@ -79,6 +79,7 @@ function emitGround(tiles) {
   const o = iso.getOrigin(); // whole pixels: camera.applyOrigin rounds
   for (const [cx, cy] of ground.chunksOf(tiles)) {
     const rec = ground.drawRecord(cx, cy);
+    if (!rec) continue; // not grown by the sim yet: nothing to draw (docs/31/05, item 8)
     const x0 = cx * map.CHUNK;
     const y0 = cy * map.CHUNK;
     const left = (x0 - y0 - map.CHUNK) * iso.HW;
