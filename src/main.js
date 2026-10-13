@@ -338,6 +338,8 @@ let visKey = null; // player tile and camera tile the visible set was computed f
 let openBag = null; // { bag, tiles, name, corpse?, closeDist? }: the container open beside yours
 let corpseWatch = null; // the body whose grid is open: redrawn as things leave it, once more when it closes
 let handlers = null; // the inventory panel's handlers, on window.__game for tests
+let remoteHandlers = null; // the same panel's commands as a guest sends them (ui/inventory-actions.js)
+let armedGuest = false; // the guest's senders (Use, placement, Make) are set while this client is a guest
 const timing = { step: 0, stepMax: 0, vis: 0, maxResetAt: 0 };
 
 // Right-click builds a menu of what is under the cursor; Walk here is in it
@@ -584,10 +586,31 @@ function update(dt) {
   timing.stepMax = Math.max(timing.stepMax, timing.step);
 }
 
+// A guest's Use, placement, and Make go to the host as commands; a host's run here. The senders are set while
+// this client is a guest and cleared when it is not (checked each step, since a client joins and leaves
+// without a reload).
+function armGuest(on) {
+  if (on === armedGuest || !remoteHandlers) return;
+  armedGuest = on;
+  use.setSender(on ? (cur, target) => {
+    const bagAddr = (bag, kept) => kept || remoteHandlers.addressOf(bag);
+    const src = cur.from.kind === "slot" ? { kind: "slot", id: cur.from.id } : (a => a && { kind: "bag", bag: a })(bagAddr(cur.from.bag, cur.from.address));
+    let addr = null;
+    if (target.kind === "item") { const b = remoteHandlers.addressOf(target.bag); if (b) addr = { kind: "item", uid: target.entry.uid, bag: b }; }
+    else if (target.kind === "prop") addr = { kind: "prop", id: target.prop.id };
+    else if (target.kind === "character") addr = { kind: "character", id: target.ch.id };
+    else if (target.kind === "tile") addr = { kind: "tile", x: target.x, y: target.y };
+    if (src && addr) net.sendUse({ uid: cur.entry.uid, src, target: addr });
+  } : null);
+  placement.setSender(on ? (cmd) => net.sendPlace(cmd) : null);
+  stationPanel.setSender(on ? (cmd) => net.sendCraft(cmd) : null);
+}
+
 function stepGame(dt) {
   // A guest's world is the host's (net.js): nothing here steps it; the keys, the camera, sight,
   // and the ground are still this client's own.
   const guest = net.isGuest();
+  armGuest(guest);
   // A screen up on the wire: the world runs on, but nothing pressed reaches it or this client's modes.
   const screenUp = !!screens.currentScreen();
   loop.setFreezeAllowed(!net.onTheWire());
@@ -998,26 +1021,19 @@ async function boot() {
       initSpeech();
       menu.initContextMenu();
       // A guest's panel sends commands (docs/31/05, item 9); the open container is found by its address each frame.
-      handlers = new URLSearchParams(window.location.search).get("join")
-        ? createRemoteInventoryActions(() => S.player, () => openBag, (cmd) => net.sendItem(cmd))
-        : createInventoryActions(() => S.player);
-      // A guest's Use goes to the host as the pair's addresses (use.setSender; performUseCommand runs it there).
-      if (handlers.addressOf) {
-        use.setSender((cur, target) => {
-          const bagAddr = (bag, kept) => kept || handlers.addressOf(bag);
-          const src = cur.from.kind === "slot" ? { kind: "slot", id: cur.from.id } : (a => a && { kind: "bag", bag: a })(bagAddr(cur.from.bag, cur.from.address));
-          let addr = null;
-          if (target.kind === "item") { const b = handlers.addressOf(target.bag); if (b) addr = { kind: "item", uid: target.entry.uid, bag: b }; }
-          else if (target.kind === "prop") addr = { kind: "prop", id: target.prop.id };
-          else if (target.kind === "character") addr = { kind: "character", id: target.ch.id };
-          else if (target.kind === "tile") addr = { kind: "tile", x: target.x, y: target.y };
-          if (src && addr) net.sendUse({ uid: cur.entry.uid, src, target: addr });
-        });
+      // Which handlers the panel uses is decided at each call, by whether this client is a guest right now, not
+      // once at boot by looking for ?join= in the URL: a joiner who came in through the Worlds screen (Join a game,
+      // Rejoin) has no ?join=, got the host's handlers, and its every panel action changed its own copy of the
+      // world and told the host nothing (a bag taken from the dev chest vanished from the joiner's chest and went
+      // nowhere; Michael's real join, 2026-10-13).
+      const localHandlers = createInventoryActions(() => S.player);
+      remoteHandlers = createRemoteInventoryActions(() => S.player, () => openBag, (cmd) => net.sendItem(cmd));
+      handlers = {};
+      for (const k of new Set([...Object.keys(localHandlers), ...Object.keys(remoteHandlers)])) {
+        const lv = localHandlers[k];
+        const rv = remoteHandlers[k];
+        handlers[k] = typeof lv === "function" || typeof rv === "function" ? (...a) => ((net.isGuest() && typeof rv === "function") || typeof lv !== "function" ? rv : lv)(...a) : lv;
       }
-      // A guest's placement goes to the host as a command, performed there with the host's reach (placement.js).
-      if (handlers.addressOf) placement.setSender((cmd) => net.sendPlace(cmd));
-      // A guest's Make goes to the host as a command (ui/station-panel.js), the verb run there as the guest's player.
-      if (handlers.addressOf) stationPanel.setSender((cmd) => net.sendCraft(cmd));
       // A host's own drag into a chest marks its chunk, so a guest sees the chest change.
       handlers.changed = () => { if (!net.isGuest() && openBag && openBag.tiles && openBag.tiles[0]) map.markDirty(openBag.tiles[0][0], openBag.tiles[0][1]); };
       panel.initInventoryPanel(handlers);
