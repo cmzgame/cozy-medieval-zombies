@@ -5,6 +5,7 @@
 
 import * as iso from "../iso.js";
 import * as view from "../view.js";
+import * as log from "./log.js";
 
 let root = null;
 let labelEl = null;
@@ -53,6 +54,7 @@ export function showMessage(text, seconds = 2) {
   messageEl.textContent = text;
   messageEl.hidden = false;
   messageTimer = seconds;
+  log.push(text, "info"); // every message is also a line in the log (Michael, 2026-10-12)
 }
 
 export function updateMessage(dt) {

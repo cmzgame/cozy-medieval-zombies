@@ -7,6 +7,7 @@
 // its time down in game time, and takes it away.
 
 import * as iso from "../iso.js";
+import * as log from "./log.js";
 import * as view from "../view.js";
 import { tileKey } from "../visibility.js";
 
@@ -69,6 +70,8 @@ export function updateSpeech(characters, visible, player, dt) {
       entry.el.textContent = line.text;
       entry.text = line.text;
       entry.w = entry.el.offsetWidth; // the box's width for this text, whatever its length
+      // A line said within sight goes to the log as "Name: line" (Michael, 2026-10-12); the dead's groans do not.
+      if (ch.kind !== "zombie") log.push(line.text, "say", ch.name || (ch.kind === "player" ? "You" : "Villager"));
     }
     const s = iso.toScreen(ch.gx, ch.gy);
     const p = view.toUi(s.x, s.y - HEAD_TOP);

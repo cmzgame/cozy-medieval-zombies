@@ -35,6 +35,9 @@ import * as menu from "./ui/context-menu.js";
 import * as panel from "./ui/inventory-panel.js";
 import * as kit from "./ui/kit.js";
 import * as cursor from "./ui/cursor.js";
+import * as log from "./ui/log.js";
+import * as use from "./use.js";
+import * as interactions from "./interactions.js";
 import * as interact from "./interact.js";
 import * as items from "./items.js";
 import * as inventory from "./inventory.js";
@@ -100,6 +103,8 @@ function handleMouse() {
     if (archery.drawState()) {
       archery.cancelDraw(player);
       buttons.spendTap();
+    } else if (use.cancel()) {
+      // A right click in Use mode puts the thing down (use.js).
     } else {
       openActionsMenu(tap);
     }
@@ -118,10 +123,22 @@ function openActionsMenu(m) {
     actions = actions.filter((a) => a.kind !== "walk" && !/^Walk/.test(a.label || ""));
     for (const a of interact.actionsForProp(poked, player)) if (!actions.some((b) => b.label === a.label)) actions.push(a);
   }
-  if (actions.length) {
-    const u = view.toUi(m.x, m.y);
-    menu.openContextMenu(u.x, u.y, actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => interact.runAction(player, a) })));
-  }
+  const entries = actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => interact.runAction(player, a) }));
+  // Build is in every menu, in case the key is forgotten (Michael, 2026-10-12).
+  entries.push({ label: "Build", enabled: !player.carrying && !panel.isOpen(), onSelect: toggleBuild });
+  const u = view.toUi(m.x, m.y);
+  menu.openContextMenu(u.x, u.y, entries);
+}
+
+// What is under the cursor for Use mode (use.js): a character, else a prop by its pixels, else the tile.
+function useTargetAt(sx, sy) {
+  const ch = interact.characterAt(sx, sy);
+  if (ch) return { kind: "character", ch };
+  const prop = interact.interactableAt(sx, sy, () => true);
+  if (prop) return { kind: "prop", prop };
+  const g = iso.toGrid(sx, sy);
+  const t = map.peekTile(Math.round(g.gx), Math.round(g.gy));
+  return { kind: "tile", x: Math.round(g.gx), y: Math.round(g.gy), floor: t ? t.floor : null };
 }
 
 // Escape closes the top thing that can close: the menu (which closes itself
@@ -136,6 +153,7 @@ function setPaused(v) {
 
 function handleEscape() {
   if (menu.tookEscape()) return;
+  if (use.cancel()) return; // Use mode is the top thing that can close
   if (screens.back()) return;
   if (buildPalette.isOpen()) {
     buildPalette.close();
@@ -351,10 +369,19 @@ function stepGame(dt) {
   // A left click is placement's if it takes it, else a swing (docs/14), made
   // after the player has turned to the cursor this step.
   buttons.update(dt);
-  const clicked = input.mouseLeftPressed() && !menu.tookClick();
+  let clicked = input.mouseLeftPressed() && !menu.tookClick();
   // With the hand cursor, the zombie hand over one of the dead (ui/cursor.js).
   const under = interact.characterAt(input.getMouse().x, input.getMouse().y);
   cursor.setOverDead(!!under && under.kind === "zombie" && !under.dead);
+  // Use mode (use.js): the label names what is under the cursor, and a left click on the world is the target, spent here.
+  if (use.isActive()) {
+    const target = useTargetAt(input.getMouse().x, input.getMouse().y);
+    use.hover(target);
+    if (clicked && !panel.isOpen()) {
+      use.apply(target, player);
+      clicked = false;
+    }
+  }
   const clickSpent = clicked && placement.tryConfirm(player);
   handleMouse();
   interact.updateInteract(player, dt);
@@ -578,14 +605,16 @@ async function boot() {
       assets.setManifest(await assets.loadJson("data/manifest.json"));
     } },
     { name: "data", label: "Reading the data", weight: 2, async run() {
-      const [itemsJson, buildJson, combatJson, posesJson, lootJson, wardrobesJson] = await Promise.all([
+      const [itemsJson, buildJson, combatJson, posesJson, lootJson, wardrobesJson, interactionsJson] = await Promise.all([
         assets.loadJson("data/items.json"),
         assets.loadJson("data/build.json"),
         optionalJson("data/combat.json"),
         optionalJson("data/poses.json"),
         assets.loadJson("data/loot.json"),
         assets.loadJson("data/wardrobes.json"),
+        optionalJson("data/interactions.json"),
       ]);
+      interactions.load(interactionsJson); // anything on anything (docs/30, law 2)
       tuning.load(await optionalJson("data/tuning.json")); // the entities' numbers (docs/23a, D9)
       items.loadItems(itemsJson);
       placement.setBuildData(buildJson);
@@ -701,6 +730,8 @@ async function boot() {
     { name: "ui", label: "Setting the table", weight: 1, async run() {
       kit.apply(); // the stone, the well, and the button as CSS, before any panel is built (docs/23, step 4)
       cursor.init();
+      log.initLog(); // before anything can show a message
+      use.init();
       initHud();
       initPrompt();
       initZombieBars();

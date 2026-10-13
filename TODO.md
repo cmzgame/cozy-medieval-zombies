@@ -113,6 +113,7 @@ In order; each step ends with this Status updated, its rulings in `02`, and a co
 - [ ] Step 0: the generator (`tools/mapgen/`) and the engine's tier 1 (water stops walkers, see-through walls, unclimbable openings, partitions and per-side materials, fences as features, drinking at water, the dev chest as a setting); `check("water")`.
 - [ ] Step 1: the village from the art that exists, on the 256 map, the bridge to nothing.
 - [ ] Step 2: the needs (sleep, regeneration, the rates, fire fuel and feeding); `check("sleep")`.
+- [x] Ahead of step 3 (2026-10-12): Build in every right-click menu; Use on every item (OSRS style: outlined in place, a label on the cursor, the next click the target); `interactions.js` with the default "Nothing interesting happens"; the text log bottom-left with every message and every spoken line.
 - [ ] Step 3: interactions and the first stations (workbench, anvil and forge, cooking hearth, oven), recipes, durability by kills, the tools; `check("craft")`, `check("wear")`.
 - [ ] Step 4: the farms, the mill, farming (till, plant, grow, water, harvest, seeds), the bucket, the scythe; `check("farm")`.
 - [ ] Step 5: the castle and the bridge road.

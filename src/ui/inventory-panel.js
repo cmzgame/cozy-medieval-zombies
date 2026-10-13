@@ -14,6 +14,7 @@ import * as grid from "../grid.js";
 import * as menu from "./context-menu.js";
 import * as view from "../view.js";
 import * as settings from "../settings.js";
+import * as use from "../use.js";
 import { parseSlot } from "../inventory.js";
 
 let CELL = view.BASE_CELL; // the bag's cell in UI pixels, read from the view at every render
@@ -211,6 +212,7 @@ function blockHtml(entry, attrs, cell = CELL, w = 1, h = 1, extraCls = "", slot 
   const cls = ["inv-item", extraCls];
   if (h > w) cls.push("tall");
   if (entry.count > 1) cls.push("stacked");
+  if (use.isSelected(entry)) cls.push("selected"); // the thing being used (use.js)
   let inner = "";
   if (entry.fill != null) {
     const pct = Math.max(0, Math.min(100, entry.fill));
@@ -304,7 +306,7 @@ export function renderInventoryPanel(player, inv, container, belt) {
   if (!open && !character) return;
   if (drag && drag.from.kind === "bag" && drag.from.bag !== inv && drag.from.bag !== container) cancelDrag();
   CELL = view.panelCell();
-  const sig = JSON.stringify([open, character, CELL, inv?.items, inv?.cols, inv?.rows, container?.container, container?.items, container?.cols, container?.rows, player.worn, player.hands]);
+  const sig = JSON.stringify([open, character, CELL, use.isActive() && use.current_()?.entry, inv?.items, inv?.cols, inv?.rows, container?.container, container?.items, container?.cols, container?.rows, player.worn, player.hands]);
   if (sig === lastSignature) return;
   const hadContainer = lastSignature !== "" && /"container"/.test(lastSignature);
   lastSignature = sig;
@@ -432,6 +434,13 @@ function onPointerDown(e) {
   const hit = entryFromEvent(e);
   if (!hit) return;
   e.preventDefault();
+  // In Use mode a click on an item is the target (use.js), never a drag.
+  if (use.isActive()) {
+    use.apply({ kind: "item", entry: hit.entry }, shown.player);
+    lastSignature = "";
+    hotbar.dataset.sig = "";
+    return;
+  }
   const r = hit.el.getBoundingClientRect();
   const [w] = hit.bag ? grid.sizeOf(hit.entry) : [1];
   const cellPx = r.width / w;

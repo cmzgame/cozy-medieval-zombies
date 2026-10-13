@@ -19,7 +19,7 @@ Rulings, all in `02`:
 5. **Durability is kills.** A weapon's number is the dead it will put down; the wear per landed hit is derived from its hits per kill; a miss costs nothing; at zero it is gone; no repair (`22`'s ruling stands). A stick is about five, the best weapon no more than a hundred.
 6. **Sleep fast-forwards the simulation.** Only in a bed, indoors; the clock runs fast with the world simulated at that speed until morning; you are never woken; you get up. Decided by the co-op tiebreaker (`CLAUDE.md`): the sim runs, nothing is poked.
 7. **Nothing waits for art.** Every new thing has a placeholder from boot through the same sheet interface; a bookcase is a box with a definition until the picture arrives (`CLAUDE.md`'s rule, applied to every item below).
-8. **Water stops walkers.** The river and its crossings are the map's shape (`29`); shallow water is slow for everyone; you drink and fill from any water beside you, as from the well.
+8. **Water stops walkers.** A tile that is wholly water is unwalkable by every entity: you, the dead, villagers, animals (Michael, 2026-10-12: "it also segments the map"). The bank's blend is ground. The ford and the weir's crest are a shallow kind with stones showing, never blue water, slow for everyone. The river and its crossings are the map's shape (`29`); you drink and fill from any water beside you, as from the well. Boats are someday (`05`); for now water is a source of water and, later, of fish, and that is all.
 9. **Animals last.** Chickens and deer are the last step, so nothing before them depends on them; the knife's skinning, raw meat, leather, and the tannery ride with them.
 
 ## 3. Staying alive: the needs
@@ -89,6 +89,8 @@ The whole vocabulary. "Exists" means built today; everything else is this pass. 
 On a weapon's block: `kills` (the design number) and, derived at load, `wearPerHit = 1 / (kills * hitsPerKill)` where `hitsPerKill` is the weapon's damage against the standard zombie's health, rounded up. A landed hit subtracts `wearPerHit` from the entry's `wear` (0 to 1); at 1 the entry evaporates with a message. Dual wielding splits the wear as ruled. **Display:** a thin bar on the item's icon once `wear > 0`, red under a fifth; no warning. **Defaults** (`items.json`, Michael's numbers, tuned up if unfair): stick 5, plank 5, hatchet 20, spear 25, mace 40, sword 60, halberd 80, the bow's string 100 shots, tools as weapons 5.
 
 ### 5.3 Interactions (law 2)
+
+**Built ahead, 2026-10-12** (`02`, "Build in every right-click menu, Use on every item, and a text log"): the Use mode (`src/use.js`: the item outlined where it is, a label following the cursor, the next click the target, Escape cancels), `src/interactions.js` with `resolve` and the default message, the text log (`src/ui/log.js`) as the place results print, and Build in every world menu. Step 3 adds the rows' actions.
 
 `data/interactions.json`: rows of `{ "use": <item id or tag>, "on": <item id, tag, prop sprite, or "tree" | "rock" | "water" | "soil" | "grass">, "verb": "Chop", "action": <kind>, ...}`. Kinds: `give` (a result item, a count, a confirmation if the input is consumed), `transform` (the target becomes another prop or floor: a tree to a stump, grass to soil), `open` (a station panel), `fill`, `plant`, `water`, `message` (a specific line). Without a row: "Nothing interesting happens." The menu lists only rows whose `use` is in a hand; the drag in the bag tries the row for the pair. A number picker appears when the input stacks and the row allows a count.
 

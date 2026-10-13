@@ -29,6 +29,7 @@ import { pokeVillager } from "./entities/villager.js";
 import { lootOf } from "./entities/character.js";
 import { emit } from "./events.js";
 import * as loop from "./loop.js";
+import * as use from "./use.js"; // the Use entry on item menus (docs/30, law 2)
 
 export const INTERACT_RANGE = 1.15; // tiles
 export const SEARCH_TIME = 1.0;
@@ -812,6 +813,8 @@ export function itemMenu(player, entry, bag, otherBag) {
   const def = getItem(entry.id);
   const out = [];
   const mine = bag === bagOf(player);
+  // Use: pick the thing up as what you are about to use on something (docs/30, law 2; Michael, 2026-10-12).
+  out.push({ label: "Use", enabled: true, onSelect: () => use.begin(entry, { kind: "bag", bag }) });
   if (def.hands && mine) {
     if (def.hands === "either") {
       // A weapon fits either hand: the main hand swaps what is there, the off hand takes a second weapon (docs/21).
@@ -889,6 +892,8 @@ export function itemMenu(player, entry, bag, otherBag) {
 export function slotMenu(player, slotId) {
   const [kind, key] = slotId.split(":");
   const out = [];
+  const held = kind === "worn" ? player.worn[key] : kind === "hand" ? player.hands[key] : kind === "belt" ? beltOf(player)?.[Number(key)] : null;
+  if (held) out.push({ label: "Use", enabled: true, onSelect: () => use.begin(held, { kind: "slot", id: slotId }) });
   const dropEntry = (entry) => ({
     label: "Drop",
     enabled: true,
