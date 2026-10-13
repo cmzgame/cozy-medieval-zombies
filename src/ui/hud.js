@@ -108,7 +108,9 @@ export function updateHud({ player }) {
     els.name.textContent = name;
     lastName = name;
   }
-  const hands = `${handName(player.hands.main)} / ${handName(player.hands.off)}`;
+  // A two-handed thing is one entry in both hands: named once, no slash (Michael, 2026-10-13: "Halberd / Halberd").
+  const twoHanded = player.hands.main && player.hands.main === player.hands.off;
+  const hands = twoHanded ? handName(player.hands.main) : `${handName(player.hands.main)} / ${handName(player.hands.off)}`;
   if (hands !== lastHands) {
     els.hands.textContent = `Hands: ${hands}`;
     lastHands = hands;
