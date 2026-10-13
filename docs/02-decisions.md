@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-12 — Combat changes paused, deliberately (Michael)
+
+No combat changes until Michael has settled other mechanics, filled out the art, fixed animations, and had a lot more time to test: **hold the spin-click turn cap, leave bleed as it is** until he comes back and complains about it, and **leave the infection as the fake marker** it is. The loose ends in `21`'s state block stay listed, not scheduled. The design agent's handoff (`28`) is under way, by Michael himself.
+
 ### 2026-10-12 — Step 4 of `23` closed: the kit stays as it is (Q4a), no art request for it; the engine upgrade is done (Michael)
 
 **Q4a is ruled by keeping what is there:** the grey brick kit with its cutouts, headers, and timber buttons is the interface; a drawn version "would just be a spiffier version of what there is now, we can leave it alone". So no art request goes to the design agent for the kit, and the kit's definition stays generated (`ui_kit`, `placeholder.kind: "ui"`), editable in the sprite tool if a pixel ever wants changing. **The sway has its check** (`tools/checks/sway.js`: the click finds and stamps, the renderer leans on the same clock, the rest holds, walking through stamps once, standing still adds none, a slow walk restamps only after a round). **With that, every step of `23` is built** (0 the docs, 1 the shell, 2 the engine, 3 the sprites, 4 the look), and **the graphics part of the rework is finished, so the design agent can be handed `docs/28`** and a garment slot to try, which was the condition set the same day. Michael restarted his own server on 8010, so the sprite tool's save paths work there now.
