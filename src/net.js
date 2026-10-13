@@ -346,7 +346,7 @@ export function hostStep(mySnap, me) {
       const g = guests.get(msg.from);
       if (!g) continue;
       g.queue.push(msg); // one input per step, in order; the guest replays what is not yet acknowledged
-      if (g.queue.length > 1 && (msg.snap.clicked || msg.snap.altPressed || msg.snap.space)) {
+      if (g.queue.length > 1 && (msg.snap.clicked || msg.snap.altPressed || msg.snap.space)) { // a key event stays where it was queued: copied here it would fire twice (T toggled the torch out and back)
         // A press is one shot: when the queue runs ahead it must not be lost to the hold rule below.
         g.queue[g.queue.length - 1].snap = { ...msg.snap };
       }
@@ -407,7 +407,7 @@ export function hostStep(mySnap, me) {
     if (next) {
       g.last = next.snap;
       g.ack = next.seq;
-    } else if (g.last) g.last = { ...g.last, space: false, clicked: false, altPressed: false }; // a press is one step
+    } else if (g.last) g.last = { ...g.last, space: false, clicked: false, altPressed: false, keys: null }; // a press, and a key event, is one step
     if (g.last) snapshots.set(g.playerId, g.last);
   }
   return snapshots;
@@ -518,7 +518,7 @@ export function guestStep(mySnap) {
     const s = mySnap.idle ? mySnap : testSnapshot || mySnap; // a screen up: nothing pressed, whatever a check says
     // The fight (docs/31/06, tier 2): the clicks and the buttons go as they are, the aim as a vector and
     // a ground point; the host resolves the swing, the draw, and the shove against its own dead.
-    const snap = { axis: s.axis, sprint: !!s.sprint, aim: s.aim || null, aimAt: s.aimAt || null, space: !!s.space, clicked: !!s.clicked, clickSpent: false, leftDown: !!s.leftDown, altPressed: !!s.altPressed, altDown: !!s.altDown, offDown: !!s.offDown, blocked: !!s.blocked };
+    const snap = { axis: s.axis, sprint: !!s.sprint, aim: s.aim || null, aimAt: s.aimAt || null, space: !!s.space, clicked: !!s.clicked, clickSpent: false, leftDown: !!s.leftDown, altPressed: !!s.altPressed, altDown: !!s.altDown, offDown: !!s.offDown, blocked: !!s.blocked, keys: s.keys || null };
     seq++;
     pending.push({ seq, snap });
     send({ type: "input", seq, snap });

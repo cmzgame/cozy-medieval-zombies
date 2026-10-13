@@ -4,6 +4,16 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-13 — The eighteenth move: the keys for a guest (E, B, T as events in the snapshot), the interface hidden with no world, the save check's survival
+
+**The keys.** E's tap and hold, B's tap and hold, a press of E and of T are events a client reads off its own keyboard each step (`interact.keyEvents`: the tap-or-hold trackers are the client's, with its own clock) and puts in its player's snapshot, host and guest alike; the world performs them in its step for whichever player's snapshot carries them (`game.step`, `interact.updateInteract(player, dt, keys)`): E's tap the nearest simple action, its hold the climb, B's tap a board on the nearest opening, its hold a board pulled, T the torch in or out of hand. So a guest's climb, boards, and torch are the host's doing, with its messages ("You need a plank.") finding the guest through the acting player, and the special case of a guest's E as a sent address is gone. The headless world passes no keys and hashes as before.
+
+**Two things learned on the host's queue.** A snapshot held over while no new input arrived (the key still down) must clear its key events as it clears its presses, or a tap repeats every step (T toggled the torch out and back in); and the one-shot rule that copies a press onto the last queued input when the queue runs ahead must leave key events where they were queued, or they fire twice. A test that steps a guest twenty times before pressing queues twenty inputs on the host, which performs one a step: the event is applied when the host reaches it, not before; in play the queue stays a step deep.
+
+**Alongside:** with no world chosen the world's interface (the bars, the belt, the log, the moodles, the clock, the names, the bubbles, the panels, the debug corner) is hidden under the black title (the coder agent's note); `check("save")` turns survival off for its run and restores it, so the hp it sets is the hp it finds in any pane (the review's "the mess survived" failing by three hundredths in a pane with survival on).
+
+**Verified in two tabs on the loopback:** the guest's T took the torch out of its hand on the host and into its bag, and a second T brought it back, each seen on the guest; the guest's B boarded the window beside it with its own plank, the board and the plank gone seen on both sides. The hold-to-climb rides the same event and is not yet proved in two tabs (the spawn's openings are shuttered). Alone: the hash d9a6eb31 in the pane and headless, determinism, save 6 of 6 with survival restored, players 7 of 7, worlds 8 of 8, the headless checks 5 of 5; at the title the bars, the log, the belt, and the moodles are not displayed.
+
 ### 2026-10-13 — The worlds model merged (docs/31/09, moves sixteen and seventeen), and seven faults found in review
 
 Merged from the multiplayer branch with one conflict (this log's top, both kept); checked: determinism `d9a6eb31`, headless `d9a6eb31` and `9c26c0df` (roundtrip the same), the headless checks 5 of 5, `check("worlds")` 8 of 8, players 7 of 7, craft 9 of 9, wear 4 of 4, the Worlds screen over black from the title, a host and a guest through a local relay. Fixed here, not left for the branch:
