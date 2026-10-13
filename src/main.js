@@ -17,9 +17,9 @@ import * as light from "./light.js";
 import * as gl from "./gl.js";
 import * as ground from "./ground.js";
 import { renderScene, night } from "./render.js";
-import { createPlayer, updatePlayer, damagePlayer, eat, drink } from "./entities/player.js";
-import { createZombie, updateZombie } from "./entities/zombie.js";
-import { createVillager, updateVillager, damageVillager, turnVillager } from "./entities/villager.js";
+import { createPlayer, damagePlayer, eat, drink } from "./entities/player.js";
+import { createZombie } from "./entities/zombie.js";
+import { createVillager, damageVillager } from "./entities/villager.js";
 import { initHud, updateHud } from "./ui/hud.js";
 import { initPrompt, updatePrompt, showMessage, updateMessage } from "./ui/prompt.js";
 import { initZombieBars, updateZombieBars } from "./ui/zombie-bars.js";
@@ -39,6 +39,7 @@ import * as log from "./ui/log.js";
 import * as use from "./use.js";
 import * as interactions from "./interactions.js";
 import * as world from "./world.js";
+import * as game from "./game.js";
 import * as verbs from "./verbs.js";
 import * as stations from "./stations.js";
 import * as stationPanel from "./ui/station-panel.js";
@@ -53,7 +54,6 @@ import * as placement from "./placement.js";
 import * as combat from "./combat.js";
 import * as buildPalette from "./ui/build-palette.js";
 import * as shell from "./boot.js";
-import { controlPlayer } from "./player-controller.js";
 import { createDevApi } from "./dev.js";
 import { createInventoryActions } from "./ui/inventory-actions.js";
 import * as rng from "./rng.js";
@@ -79,13 +79,10 @@ try {
   glError = err.message;
 }
 
-let info = null;
-let player = null;
-let zombies = []; // the dead that still think; the fallen move to corpses (docs/23a, B1)
-let corpses = [];
-let others = []; // the living, rebuilt each step; the interface reads it between steps
+// The world's state (the player, the dead, the villagers, the map's info) is
+// game.js's; this file is the client: the view, the keys, the panels (docs/31/05, item 17).
+const S = game.state;
 let uiSimTime = 0; // the sim time the interface was last ticked to (docs/23a, F)
-let villagers = [];
 let tiles = [];
 let visible = new Set();
 let playerRoom = 0;
@@ -94,7 +91,6 @@ let drawn = 0;
 let visKey = null; // player tile and camera tile the visible set was computed for
 let openBag = null; // { bag, tiles, name, corpse?, closeDist? }: the container open beside yours
 let corpseWatch = null; // the body whose grid is open: redrawn as things leave it, once more when it closes
-let progress = null; // 0..1 of a timed action
 let handlers = null; // the inventory panel's handlers, on window.__game for tests
 const timing = { step: 0, stepMax: 0, vis: 0, maxResetAt: 0 };
 
@@ -107,7 +103,7 @@ function handleMouse() {
   const tap = buttons.off.tap;
   if (tap) {
     if (archery.drawState()) {
-      archery.cancelDraw(player);
+      archery.cancelDraw(S.player);
       buttons.spendTap();
     } else if (use.cancel()) {
       // A right click in Use mode puts the thing down (use.js).
@@ -116,22 +112,22 @@ function handleMouse() {
     }
   }
   menu.tookClick();
-  if (menu.isMenuOpen() && player.moving) menu.closeContextMenu();
+  if (menu.isMenuOpen() && S.player.moving) menu.closeContextMenu();
 }
 
 function openActionsMenu(m) {
   // A mushroom or a rock wiggles; the menu still opens if it has actions
   // other than walking there (none yet; question 27).
-  const poked = interact.pokeAt(m.x, m.y, player);
-  let actions = interact.actionsAt(m.x, m.y, player);
+  const poked = interact.pokeAt(m.x, m.y, S.player);
+  let actions = interact.actionsAt(m.x, m.y, S.player);
   if (poked) {
     // The thing clicked offers its own actions (a tree: Chop down), once each.
     actions = actions.filter((a) => a.kind !== "walk" && !/^Walk/.test(a.label || ""));
-    for (const a of interact.actionsForProp(poked, player)) if (!actions.some((b) => b.label === a.label)) actions.push(a);
+    for (const a of interact.actionsForProp(poked, S.player)) if (!actions.some((b) => b.label === a.label)) actions.push(a);
   }
-  const entries = actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => interact.runAction(player, a) }));
+  const entries = actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => interact.runAction(S.player, a) }));
   // Build is in every menu, in case the key is forgotten (Michael, 2026-10-12).
-  entries.push({ label: "Build", enabled: !player.carrying && !panel.isOpen(), onSelect: toggleBuild });
+  entries.push({ label: "Build", enabled: !S.player.carrying && !panel.isOpen(), onSelect: toggleBuild });
   const u = view.toUi(m.x, m.y);
   menu.openContextMenu(u.x, u.y, entries);
 }
@@ -183,9 +179,9 @@ function toggleBuild() {
     buildPalette.close();
     return;
   }
-  if (player.carrying) return showMessage("Your hands are full.");
+  if (S.player.carrying) return showMessage("Your hands are full.");
   if (panel.isOpen()) return;
-  buildPalette.openPalette(player);
+  buildPalette.openPalette(S.player);
 }
 
 // X: the removal tool, or out of it if in it. Same limits as N.
@@ -194,7 +190,7 @@ function toggleRemove() {
     placement.cancel();
     return;
   }
-  if (player.carrying) return showMessage("Your hands are full.");
+  if (S.player.carrying) return showMessage("Your hands are full.");
   if (panel.isOpen()) return;
   buildPalette.close();
   placement.beginRemove();
@@ -207,7 +203,7 @@ function applyDebugCorner() {
 function updateInventoryUi() {
   // Carrying furniture: both hands are full and nothing else happens until it
   // is down (docs/02). The bag closes if it was open.
-  if (player.carrying) {
+  if (S.player.carrying) {
     if (panel.isOpen()) {
       panel.closeAll();
       openBag = null;
@@ -219,7 +215,7 @@ function updateInventoryUi() {
   // instead, with the message (docs/11, check 6). C opens and closes the
   // character screen. The two are independent (Michael, 2026-10-12).
   if (input.wasPressed("Tab")) {
-    if (inventory.bagOf(player)) panel.toggleBag();
+    if (inventory.bagOf(S.player)) panel.toggleBag();
     else {
       panel.toggleCharacter();
       if (panel.isCharacter()) showMessage("No bag on your back.");
@@ -232,25 +228,25 @@ function updateInventoryUi() {
   // its hand (docs/11; the belt as utility slots, Michael 2026-10-10 late).
   for (let i = 0; i < 4; i++) {
     if (!input.wasPressed(`Digit${i + 1}`)) continue;
-    const belt = inventory.beltOf(player);
+    const belt = inventory.beltOf(S.player);
     const e = belt && belt[i];
     const def = e && items.getItem(e.id);
     if (def && !def.hands && (def.kind === "food" || def.capacity)) {
       if (def.kind === "food") {
-        eat(player, def);
+        eat(S.player, def);
         e.count -= 1;
         if (e.count <= 0) belt[i] = null;
-      } else if ((e.fill ?? 0) > 0) drink(player, e);
+      } else if ((e.fill ?? 0) > 0) drink(S.player, e);
       else showMessage("It is empty.");
       continue;
     }
-    const r = inventory.beltKey(player, i);
+    const r = inventory.beltKey(S.player, i);
     if (r === "nobelt") showMessage("No belt, or no such slot.");
     else if (r === "handsfull") showMessage("Your hands are full.");
   }
   if (openBag) {
     let d = Infinity;
-    for (const [tx, ty] of openBag.tiles) d = Math.min(d, Math.hypot(player.gx - tx, player.gy - ty));
+    for (const [tx, ty] of openBag.tiles) d = Math.min(d, Math.hypot(S.player.gx - tx, S.player.gy - ty));
     if (d > (openBag.closeDist || tuning.world.containerCloseDist)) openBag = null; // a station's output reaches as far as its panel
   }
   if (openBag && openBag.corpse) corpseWatch = openBag.corpse;
@@ -258,16 +254,6 @@ function updateInventoryUi() {
     refreshCorpse(corpseWatch); // what was taken from its grid comes off its body
     if (!openBag || openBag.corpse !== corpseWatch) corpseWatch = null;
   }
-}
-
-// The fire of a lit item on the belt, if any.
-function beltFire(belt) {
-  if (!belt) return null;
-  for (const e of belt) {
-    const def = e && items.getItem(e.id);
-    if (def && def.fire) return def.fire;
-  }
-  return null;
 }
 
 // Hair painted in tools/hair.html (docs/12): data/hair/index.json lists the
@@ -290,12 +276,12 @@ let figureKey = "";
 let figureQuick = "";
 function refreshFigure(force = false) {
   // The swing's keyframe set follows the weapon in the main hand (docs/14); a spear's throw has its own.
-  const style = combat.styleOf(player, !!archery.drawState());
+  const style = combat.styleOf(S.player, !!archery.drawState());
   // What the sheet depends on, as ids: the cheap test every step; the spec and its key only when it changed (docs/23a, B7).
-  const quick = JSON.stringify([player.look, player.worn, player.hands, style, settings.get("paintedLayers") || null]);
+  const quick = JSON.stringify([S.player.look, S.player.worn, S.player.hands, style, settings.get("paintedLayers") || null]);
   if (!force && quick === figureQuick) return; // `force`: the rig's numbers changed from the console (dev.js setLook), which no key sees
   figureQuick = quick;
-  const spec = figure.characterSpec(figure.characterInputs(player, undefined, settings.get("paintedLayers") || {}, style));
+  const spec = figure.characterSpec(figure.characterInputs(S.player, undefined, settings.get("paintedLayers") || {}, style));
   const key = figure.specKey(spec);
   if (!force && key === figureKey) return;
   figureKey = key;
@@ -321,7 +307,8 @@ function update(dt) {
 }
 
 function stepGame(dt) {
-  rules.refresh(); // the sim's rules, from the settings, once a step (docs/23a, C3)
+  // The world first: the rules, the clock, the fires, the chunks round each player (game.js).
+  game.begin(dt);
   if (input.wasPressed("KeyV")) drawAll = !drawAll;
   if (input.wasPressed("KeyN")) toggleBuild();
   if (input.wasPressed("KeyX")) toggleRemove();
@@ -343,39 +330,17 @@ function stepGame(dt) {
   // Debug: ] and [ skip the clock an hour forward or back.
   if (input.wasPressed("BracketRight")) clock.setHour(clock.getHour() + 1);
   if (input.wasPressed("BracketLeft")) clock.setHour(clock.getHour() - 1);
-  clock.update(dt);
-  map.burnFires(dt);
-  stations.update(dt); // every station's queue, in the world's time (docs/30, section 6)
-  stationPanel.update(player);
-  camera.follow(player, dt);
+  stationPanel.update(S.player); // the panel follows the station's queue, which game.begin stepped
+  camera.follow(S.player, dt);
   camera.applyOrigin(V.w, V.h);
-  // Grow the world four chunks ahead of the player, so wild forest and its dead
-  // appear outside the view even at the widest zoom (docs/02, the view), and the
-  // ground can bake every viewed chunk with its neighbours grown: this ring is
-  // the only growth there is, since reading never grows (docs/31/05, item 8).
-  map.ensureAround(player.gx, player.gy, 4);
-  for (const [x, y] of map.takePendingSpawns()) zombies.push(createZombie(x, y));
-  // Chunks far behind are dropped and the characters in them sleep with their
-  // chunk, back when it grows again (docs/23a, B1, B2). Villagers hold a chunk.
-  const inChunk = (e, cx, cy) => {
-    const [ex, ey] = map.chunkCoord(Math.round(e.gx), Math.round(e.gy));
-    return ex === cx && ey === cy;
-  };
-  for (const [key, cx, cy] of map.evictFar(player.gx, player.gy, tuning.world.evictChunks, (cx, cy) => villagers.some((v) => inChunk(v, cx, cy)))) {
-    const sleeping = [];
-    zombies = zombies.filter((z) => !inChunk(z, cx, cy) || (sleeping.push(z), false));
-    corpses = corpses.filter((z) => !inChunk(z, cx, cy) || (sleeping.push(z), false));
-    map.sleep(key, sleeping);
-  }
-  for (const ch of map.takeWoken()) (ch.dead ? corpses : zombies).push(ch);
   // The ground: re-bake what changed in view, bake one chunk ahead, evict far ones (docs/15).
   if (!glError) ground.update(camera.cam.gx, camera.cam.gy, tiles);
   // Placement first: its ghost follows the cursor and a left click that
   // places is spent before anything else can use it (docs/13).
-  placement.update(player);
+  placement.update(S.player);
   if (buildPalette.isOpen()) {
-    if (player.carrying || panel.isOpen()) buildPalette.close();
-    else buildPalette.render(player);
+    if (S.player.carrying || panel.isOpen()) buildPalette.close();
+    else buildPalette.render(S.player);
   }
   // A left click is placement's if it takes it, else a swing (docs/14), made
   // after the player has turned to the cursor this step.
@@ -389,17 +354,16 @@ function stepGame(dt) {
     const target = useTargetAt(input.getMouse().x, input.getMouse().y);
     use.hover(target);
     if (clicked && !panel.isOpen()) {
-      use.apply(target, player);
+      use.apply(target, S.player);
       clicked = false;
     }
   }
-  const clickSpent = clicked && placement.tryConfirm(player);
+  const clickSpent = clicked && placement.tryConfirm(S.player);
   handleMouse();
-  interact.updateInteract(player, dt);
-  updatePlayer(player, dt);
-  bleed.update(player, dt);
-  // The mouse and the keys, as a snapshot, to the player's controller (docs/23a, D1; never the input module).
-  controlPlayer(player, zombies, dt, {
+  interact.updateInteract(S.player, dt);
+  // The world: the player from the mouse and the keys as a snapshot (docs/23a, D1;
+  // never the input module), the dead, the villagers, the light (game.js).
+  game.step(dt, {
     clicked,
     clickSpent,
     mouse: input.getMouse(),
@@ -410,56 +374,9 @@ function stepGame(dt) {
     space: input.wasPressed("Space"),
     blocked: panel.isOpen() || menu.isMenuOpen(),
   });
-  archery.update(dt);
-  others = [player, ...zombies, ...villagers]; // the living, who block and are hunted
-  const everyone = [...others, ...corpses]; // and the fallen, who burn and are drawn
-  burning.update(dt, everyone); // the burning, a visual (docs/05)
-  progress = interact.updateAction(player, dt);
-  // The dead far from the player stand still: a stand-in for the records of
-  // docs/03 until that milestone.
-  // Anyone walking through a crop or a mushroom sets it swaying (Michael, 2026-10-12).
-  interact.brushThrough(player);
-  for (const z of zombies) {
-    if (!nearPlayer(z)) continue;
-    updateZombie(z, dt, player, others, villagers);
-    interact.brushThrough(z);
-  }
-  for (const v of villagers) {
-    if (!nearPlayer(v)) continue;
-    updateVillager(v, dt, others);
-    interact.brushThrough(v);
-  }
-  // Villagers bitten through get up as the dead, in what they wore (docs/19).
-  if (villagers.some((v) => v.dead)) {
-    for (const v of villagers) if (v.dead) zombies.push(turnVillager(v));
-    villagers = villagers.filter((v) => !v.dead);
-  }
-  // The fallen leave the thinking list (docs/23a, B1): a corpse is drawn and looted, never iterated by the AI.
-  if (zombies.some((z) => z.dead)) {
-    corpses.push(...zombies.filter((z) => z.dead));
-    zombies = zombies.filter((z) => !z.dead);
-  }
-  if (player.hp <= 0 && !player.dead) {
-    // Death (Michael, 2026-10-10 night): the game stops on the dead screen,
-    // and the way back to the title is a fresh load.
-    player.dead = true;
-    events.emit("gameOver", { player });
-    screens.show("dead", { when: clock.getLabel() });
-  }
-  const px = Math.round(player.gx);
-  const py = Math.round(player.gy);
+  const px = Math.round(S.player.gx);
+  const py = Math.round(S.player.gy);
   playerRoom = map.roomAt(px, py); // refinds rooms if a wall changed
-  // The light you carry (docs/02): a torch in hand at full, two at more,
-  // else one on the belt at half. The strength also scales how far the dead
-  // see the flame (zombie.js).
-  const held = items.heldFire(player.hands);
-  const twoHanded = held && player.hands.main && player.hands.off && player.hands.main !== player.hands.off && items.getItem(player.hands.main.id).fire && items.getItem(player.hands.off.id).fire;
-  const belted = held ? null : beltFire(inventory.beltOf(player));
-  const fire = held || belted;
-  const strength = held ? (twoHanded ? tuning.world.twoTorches : 1) : tuning.world.beltLight;
-  light.setCarrier(fire ? { gx: player.gx, gy: player.gy, radius: fire.radius * strength, flicker: fire.flicker || null, strength } : null);
-  light.setBurners(burning.lights(everyone));
-  light.update();
   // Sight is cast from the player's tile centre and only recomputed when the
   // player or the camera enters a new tile. Casting every step at 60 Hz was the
   // bulk of a step's cost and fed the catch-up spiral behind the freezes.
@@ -472,7 +389,7 @@ function stepGame(dt) {
     timing.vis = performance.now() - t1;
   }
   // Who the next swing would hit, flagged for the renderer's outline (docs/14).
-  combat.markTargets(player, zombies, settings.get("showSwingTargets"));
+  combat.markTargets(S.player, S.zombies, settings.get("showSwingTargets"));
   updateInventoryUi();
   refreshFigure();
 }
@@ -496,12 +413,12 @@ function renderUi() {
   const now = loop.simTime();
   const dt = now - uiSimTime;
   uiSimTime = now;
-  panel.renderInventoryPanel(player, inventory.bagOf(player), openBag ? openBag.bag : null, inventory.beltOf(player));
-  updateHud({ player });
-  updatePrompt(interact.promptFor(player, progress), progress);
-  updateZombieBars(zombies, visible, player);
-  updateSwingTimer(player);
-  updateSpeech(others, visible, player, dt);
+  panel.renderInventoryPanel(S.player, inventory.bagOf(S.player), openBag ? openBag.bag : null, inventory.beltOf(S.player));
+  updateHud({ player: S.player });
+  updatePrompt(interact.promptFor(S.player, S.progress), S.progress);
+  updateZombieBars(S.zombies, visible, S.player);
+  updateSwingTimer(S.player);
+  updateSpeech(S.others, visible, S.player, dt);
   updateMessage(dt);
 }
 
@@ -512,33 +429,33 @@ function render() {
     h: V.h,
     tiles,
     visible,
-    entities: [player, ...zombies, ...villagers, ...corpses],
+    entities: [S.player, ...S.zombies, ...S.villagers, ...S.corpses],
     arrows: archery.arrowsInFlight(),
     fire: burning.all(),
     marker: archery.getMarker(),
     playerRoom,
-    player,
+    player: S.player,
     camera: camera.cam,
     drawAll,
     fog: !drawAll,
     ghost: placement.ghost(),
-    hitShapes: combat.overlays(player, zombies, settings.get("showHitShapes")),
+    hitShapes: combat.overlays(S.player, S.zombies, settings.get("showHitShapes")),
     // The tile grid shows only while building or removing (docs/15).
     grid: placement.state.kind === "build" || placement.state.kind === "remove",
   };
   if (!glError) drawn = renderScene(scene);
   timing.render = performance.now() - r0;
   renderUi();
-  const [cx, cy] = map.chunkCoord(Math.round(player.gx), Math.round(player.gy));
+  const [cx, cy] = map.chunkCoord(Math.round(S.player.gx), Math.round(S.player.gy));
   const hand = (e) => (e ? e.id : "-");
   debugEl.textContent =
     `fps ${loop.getFps()}\n` +
-    `player ${player.gx.toFixed(2)},${player.gy.toFixed(2)} ${player.facing} hp ${Math.ceil(player.hp)} hunger ${Math.round(player.hunger)} thirst ${Math.round(player.thirst)}\n` +
-    `${clock.getLabel()} ${clock.getPhase()}  bright ${clock.getBrightness().toFixed(2)}  light@player ${light.lightAt(player.gx, player.gy).toFixed(2)}  hands ${hand(player.hands.main)}/${hand(player.hands.off)}  guard ${combat.shieldOf(player) ? (player.blocking ? "UP" : "ready") : "no shield"}\n` +
+    `player ${S.player.gx.toFixed(2)},${S.player.gy.toFixed(2)} ${S.player.facing} hp ${Math.ceil(S.player.hp)} hunger ${Math.round(S.player.hunger)} thirst ${Math.round(S.player.thirst)}\n` +
+    `${clock.getLabel()} ${clock.getPhase()}  bright ${clock.getBrightness().toFixed(2)}  light@player ${light.lightAt(S.player.gx, S.player.gy).toFixed(2)}  hands ${hand(S.player.hands.main)}/${hand(S.player.hands.off)}  guard ${combat.shieldOf(S.player) ? (S.player.blocking ? "UP" : "ready") : "no shield"}\n` +
     `chunk ${cx},${cy}  room ${playerRoom}${playerRoom > 0 ? (map.roomSealed(map.getRoom(playerRoom)) ? " sealed" : " open") : ""}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `ground ${groundLine()}\n` +
-    `villagers ${villagers.length}  zombies ${zombies.length}  corpses ${corpses.length}  chunks ${map.chunkCount()}  near ${zombies.filter(nearPlayer).length}  ${zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
+    `villagers ${S.villagers.length}  zombies ${S.zombies.length}  corpses ${S.corpses.length}  chunks ${map.chunkCount()}  near ${S.zombies.filter(game.nearPlayer).length}  ${S.zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
     `Tab: bag   C: character   1-4: belt   N: build   X: remove   Z: zoom   right-click: actions   Esc: close or pause   E: nearest   T: torch   B: boards   V: ${drawAll ? "all" : "fog"}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
 }
 
@@ -551,14 +468,14 @@ function giveStarterKit() {
   const entry = (id, props = {}) => ({ id, count: 1, ...props });
   for (const id of ["tunic", "breeches", "boots", "belt", "small_sack"]) {
     const e = entry(id);
-    player.worn[items.getItem(id).wear] = e;
+    S.player.worn[items.getItem(id).wear] = e;
   }
-  const bag = inventory.bagOf(player);
+  const bag = inventory.bagOf(S.player);
   inventory.addItem(bag, "waterskin", 1, { fill: 100 });
   inventory.addItem(bag, "bread", 1);
   inventory.addItem(bag, "apple", 2);
   inventory.addItem(bag, "plank", 1);
-  items.hold(player.hands, entry("torch"));
+  items.hold(S.player.hands, entry("torch"));
 }
 
 // Forty of the dead standing about the open ground of the square, the same places every
@@ -574,13 +491,8 @@ function addTestingDead(spawn) {
     if (Math.hypot(x - spawn[0], y - spawn[1]) < 5) continue;
     if (placed.some(([px, py]) => Math.hypot(px - x, py - y) < 2)) continue;
     placed.push([x, y]);
-    zombies.push(createZombie(x, y));
+    S.zombies.push(createZombie(x, y));
   }
-}
-
-// Inside the box of tiles around the player where the dead and villagers think.
-function nearPlayer(e) {
-  return Math.abs(e.gx - player.gx) <= tuning.world.activeTiles && Math.abs(e.gy - player.gy) <= tuning.world.activeTiles;
 }
 
 // A file that may be missing: null instead of a failed boot (combat.json and
@@ -682,25 +594,26 @@ async function boot() {
     { name: "world", label: "Growing the world", weight: 1, async run() {
       rng.seed(json.seed ?? 1); // the sim's one generator, seeded from the map (docs/23a, C1)
       world.reset(json.idCounter || 0); // the world's time scale and id counter (docs/30 step 2; docs/31/08)
-      info = map.loadMap(json);
+      S.info = map.loadMap(json);
+      const info = S.info;
       map.ensureAround(info.spawn[0], info.spawn[1], 4); // reading never grows (docs/31/05, item 8): the ring first
       // The dev chest by the spawn, a setting rather than a thing in the map (docs/30 step 0).
       if (settings.get("devChest")) {
         const at = map.nearestWalkable(info.spawn[0] + 1, info.spawn[1] + 2, (x, y) => !!map.tileAt(x, y).prop || (x === info.spawn[0] && y === info.spawn[1]));
         if (at) map.placeProp(map.createProp({ sprite: "dev_chest", tile: at }), at[0], at[1]);
       }
-      player = createPlayer(info.spawn[0], info.spawn[1]);
-      player.look = { ...figure.DEFAULT_LOOK, hairStyle: settings.get("hairStyle") || "short" };
+      game.setPlayer(createPlayer(info.spawn[0], info.spawn[1]));
+      S.player.look = { ...figure.DEFAULT_LOOK, hairStyle: settings.get("hairStyle") || "short" };
       giveStarterKit();
       refreshFigure();
-      zombies = info.zombies.map(([x, y]) => createZombie(x, y));
-      villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i }));
-      interact.setCharacters(() => [...villagers, ...zombies, ...corpses]);
-      archery.setTargets(() => zombies); // what an arrow can hit when it lands (docs/20)
-      camera.snapTo(player.gx, player.gy);
+      S.zombies = info.zombies.map(([x, y]) => createZombie(x, y));
+      S.villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i }));
+      interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses]);
+      archery.setTargets(() => S.zombies); // what an arrow can hit when it lands (docs/20)
+      camera.snapTo(S.player.gx, S.player.gy);
       camera.applyOrigin(V.w, V.h);
-      map.ensureAround(player.gx, player.gy, 4);
-      for (const [x, y] of map.takePendingSpawns()) zombies.push(createZombie(x, y));
+      map.ensureAround(S.player.gx, S.player.gy, 4);
+      for (const [x, y] of map.takePendingSpawns()) S.zombies.push(createZombie(x, y));
       tiles = camera.viewportTiles(V.w, V.h);
       map.rebuildRooms();
       if (combatTesting) addTestingDead(info.spawn);
@@ -721,7 +634,7 @@ async function boot() {
       // is seen as the player sees it rather than all fog.
       light.update();
       for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
-      visible = visibility.computeVisible(Math.round(player.gx), Math.round(player.gy), tiles);
+      visible = visibility.computeVisible(Math.round(S.player.gx), Math.round(S.player.gy), tiles);
     } },
     // The ground's pictures for the view and a ring around it (docs/15), two per frame.
     { name: "ground", label: "Baking the ground", weight: 6, async run(progress) {
@@ -751,14 +664,14 @@ async function boot() {
       cursor.init();
       log.initLog(); // before anything can show a message
       use.init();
-      stationPanel.initStationPanel(() => player);
+      stationPanel.initStationPanel(() => S.player);
       initHud();
       initPrompt();
       initZombieBars();
       initSwingTimer();
       initSpeech();
       menu.initContextMenu();
-      handlers = createInventoryActions(() => player);
+      handlers = createInventoryActions(() => S.player);
       panel.initInventoryPanel(handlers);
       placement.init({ startAction: interact.startAction });
       buildPalette.initBuildPalette({
@@ -774,8 +687,8 @@ async function boot() {
         onReload: () => window.location.reload(),
         hair: {
           styles: () => figure.hairStyles(),
-          current: () => player.look.hairStyle,
-          set: (name) => { player.look.hairStyle = name; settings.set("hairStyle", name); refreshFigure(); },
+          current: () => S.player.look.hairStyle,
+          set: (name) => { S.player.look.hairStyle = name; settings.set("hairStyle", name); refreshFigure(); },
           reload: async () => { await loadPaintedHair(); refreshFigure(); },
         },
         // Painted layers to try on, per slot, regardless of what is worn (docs/12).
@@ -792,34 +705,35 @@ async function boot() {
         },
       });
       events.on("playerHit", ({ zombie, damage }) => {
-        const taken = combat.exposedTo(player, zombie, combat.guardAgainst(player, zombie, damage));
-        damagePlayer(player, taken);
+        const taken = combat.exposedTo(S.player, zombie, combat.guardAgainst(S.player, zombie, damage));
+        damagePlayer(S.player, taken);
         // A bite that landed may infect (a marker only for now, docs/02 question 29b).
-        const opened = bleed.onBite(player, taken); // and a wound that bleeds (docs/02 question 29b)
-        if (infection.onBite(player, taken)) showMessage("The bite broke the skin.");
-        else if (opened && bleed.stacks(player) === 1) showMessage("You are bleeding. A bandage will stop it.");
+        const opened = bleed.onBite(S.player, taken); // and a wound that bleeds (docs/02 question 29b)
+        if (infection.onBite(S.player, taken)) showMessage("The bite broke the skin.");
+        else if (opened && bleed.stacks(S.player) === 1) showMessage("You are bleeding. A bandage will stop it.");
       });
       // A blow met by the shield: sparks where they meet and a flash of the shield; a broken guard flashes red (docs/21).
       events.on("blocked", ({ zombie }) => {
-        player.blockFlash = 0.14;
-        player.flashBroken = false;
-        const d = iso.normalize(zombie.gx - player.gx, zombie.gy - player.gy);
-        burning.spark(player.gx + d.x * 0.45, player.gy + d.y * 0.45, 22);
+        S.player.blockFlash = 0.14;
+        S.player.flashBroken = false;
+        const d = iso.normalize(zombie.gx - S.player.gx, zombie.gy - S.player.gy);
+        burning.spark(S.player.gx + d.x * 0.45, S.player.gy + d.y * 0.45, 22);
       });
       events.on("guardBroken", () => {
-        player.blockFlash = 0.35;
-        player.flashBroken = true;
+        S.player.blockFlash = 0.35;
+        S.player.flashBroken = true;
       });
       events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, damage));
+      events.on("gameOver", () => screens.show("dead", { when: clock.getLabel() })); // the world says so (game.js); the client shows it
       // Sleep and fire say what happened (docs/30 step 2): the world's events, shown here.
       events.on("sleepStart", () => showMessage("You lie down. The night goes on without you."));
       events.on("sleepEnd", ({ hours }) => showMessage(`${clock.getLabel()}. You slept ${hours} hours.`, 4));
       events.on("fireOut", ({ tile }) => {
-        if (Math.hypot(tile[0] - player.gx, tile[1] - player.gy) <= 8) showMessage("A fire has gone out.");
+        if (Math.hypot(tile[0] - S.player.gx, tile[1] - S.player.gy) <= 8) showMessage("A fire has gone out.");
       });
       // A craft done and a weapon worn out (docs/30, sections 5.2 and 6).
       events.on("craftDone", ({ out, tile }) => {
-        if (Math.hypot(tile[0] - player.gx, tile[1] - player.gy) <= 12) log.push(`Made ${out.prop ? out.prop.replace(/_/g, " ") : `${out.count > 1 ? `${out.count} ` : ""}${items.getItem(out.id).name.toLowerCase()}`}.`, "result");
+        if (Math.hypot(tile[0] - S.player.gx, tile[1] - S.player.gy) <= 12) log.push(`Made ${out.prop ? out.prop.replace(/_/g, " ") : `${out.count > 1 ? `${out.count} ` : ""}${items.getItem(out.id).name.toLowerCase()}`}.`, "result");
       });
       events.on("weaponBroke", ({ item }) => showMessage(`Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3));
       events.on("containerOpened", ({ bag, tiles: where, name, corpse, closeDist }) => {
@@ -850,14 +764,14 @@ async function boot() {
   await shell.finish(); // the screen goes once the first frame is under it
 
   window.__game = createDevApi({
-    get player() { return player; },
-    get zombies() { return zombies; },
-    get corpses() { return corpses; },
-    get villagers() { return villagers; },
+    get player() { return S.player; },
+    get zombies() { return S.zombies; },
+    get corpses() { return S.corpses; },
+    get villagers() { return S.villagers; },
     get tiles() { return tiles; },
     get visible() { return visible; },
     get playerRoom() { return playerRoom; },
-    get info() { return info; },
+    get info() { return S.info; },
     get openBag() { return openBag; },
     get handlers() { return handlers; },
     get timing() { return timing; },
