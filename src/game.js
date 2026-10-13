@@ -51,6 +51,12 @@ export function setPlayer(p) {
   state.players = p ? [p] : [];
 }
 
+// Me among the players, the list kept: a world played again as the character this browser made there,
+// or a new character after a death with the body still listed (docs/31/09).
+export function pickPlayer(p) {
+  if (p && state.players.includes(p)) state.player = p;
+}
+
 // The world from a map file: the generator seeded, the map loaded and the
 // spawn's ring grown first (reading never grows), the dev chest if asked, the
 // player with their look and the starter kit, the authored dead and villagers,
@@ -263,6 +269,31 @@ export function removePlayer(id) {
   const S = state;
   S.players = S.players.filter((p) => p.id !== id);
   if (S.player && S.player.id === id) S.player = S.players[0] || null;
+}
+
+// A player gone dormant (docs/31/09; Michael, 2026-10-13, Zomboid's way): out of the simulation,
+// not drawn and not hunted, its record kept by the client in the save's wrapper; and back again
+// on the rejoin, where it stood, with what it carried. Its id and sheet are its own still.
+export function takePlayer(id) {
+  const p = state.players.find((q) => q.id === id);
+  if (!p) return null;
+  const record = serializeCharacter(p);
+  removePlayer(id);
+  return record;
+}
+
+export function putPlayer(record) {
+  if (!record || record.kind !== "player") return null;
+  const S = state;
+  if (S.players.some((q) => q.id === record.id)) return S.players.find((q) => q.id === record.id);
+  const p = restoreCharacter(fromSafe(record), { player: createPlayer, zombie: createZombie, villager: createVillager });
+  p.target = null;
+  p.carrying = p._carryingId ? map.propById(p._carryingId) : null;
+  delete p._targetId;
+  delete p._carryingId;
+  S.players.push(p);
+  if (!S.player) S.player = p;
+  return p;
 }
 
 // Inside the box of tiles around any player where the dead and villagers think

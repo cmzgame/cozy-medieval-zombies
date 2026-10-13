@@ -1104,6 +1104,18 @@ html, body {
   letter-spacing: 1px;
 }
 
+.screen h2 { font-size: 1.05em; margin: 10px 0 4px; color: #e8dcc0; }
+.rows { display: flex; flex-direction: column; gap: 6px; max-height: 46vh; overflow-y: auto; margin: 4px 0 8px; }
+.row-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 10px; background: rgba(10, 6, 14, 0.45); border: 1px solid #5a4a3a; border-radius: 4px; }
+.row-item.on { border-color: #c9a24a; }
+.row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: left; }
+.row-sub { font-size: 0.85em; color: #c8bca4; }
+.row-sub code { font: 0.95em ui-monospace, Consolas, "Courier New", monospace; color: #c9a24a; letter-spacing: 1px; }
+.row-buttons { display: flex; gap: 6px; flex-shrink: 0; }
+.row-buttons .kit-button.on { border-color: #c9a24a; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; background: #555; border: 1px solid #333; vertical-align: middle; }
+.dot.on { background: #5fcf63; border-color: #2f7a33; box-shadow: 0 0 4px #5fcf63; }
+.dot.off { background: #7a3a3a; border-color: #4a2222; }
 .screen .sub {
   color: #a098ac;
   font-size: 12px;
