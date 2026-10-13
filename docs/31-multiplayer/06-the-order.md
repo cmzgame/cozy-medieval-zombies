@@ -38,7 +38,7 @@ Check: `check("sync")` with a scripted fight; the Zomboid test by hand: both pla
 
 ## Tier 3 — Everything else as a command (large by volume)
 
-**Built so far (2026-10-13, `02`):** a guest's world verbs by address and label (the menu and E), with the walk, the bar, the messages, and the opened containers finding the guest; the door and the search touch their tiles. Then (2026-10-13, `02`): the panel's drags, drops, double-clicks, and item and slot menus as commands by uid, slot, and bag address, the open container found by its address each frame, a host's own drag into a chest marking its chunk. Left: the Use mode, the keys, placement, the stations' panel, the whole-world sync check.
+**Built so far (2026-10-13, `02`):** a guest's world verbs by address and label (the menu and E), with the walk, the bar, the messages, and the opened containers finding the guest; the door and the search touch their tiles. Then (2026-10-13, `02`): the panel's drags, drops, double-clicks, and item and slot menus as commands by uid, slot, and bag address, the open container found by its address each frame, a host's own drag into a chest marking its chunk. Left: the Use mode, the keys, placement, the stations' panel, the whole-world sync check. **Reordered 2026-10-13 (Michael, `02`): before the rest of tier 3, two moves pulled forward.** First, three small fixes: the host's code copyable (a selectable field and a Copy button), a guest with no answer in a few seconds told so and sent back to the title rather than left in a frozen world, a guest with no identity through the character screen before the join. Second, **the relay** (tier 4's item 37 in relay mode): a Node WebSocket process the host and guests connect to by code, `net.js` with a second transport beside the BroadcastChannel loopback and the messages unchanged, `wss://` because the GitHub Pages site is `https` (`07`, question 20: where it runs). The rest of tier 3 then lands over the relay with real latency under it.
 
 What: items 3 (entry ids), 6 (mutators and events for every change), 9 and 10 (the DOM handlers and the action as data), 14 (placement, use, the key trackers per client), 7 (no render writes on the sim); doors, boards, building, carrying, containers, floor items, fires, the bag and the belt and the hands, the big pass's stations, crops, the bucket; a container open on two screens.
 
@@ -48,7 +48,7 @@ Why last among the mechanics: it is the largest by volume and the likeliest to b
 
 ## Tier 4 — The dedicated server, joining, leaving, dying (medium)
 
-What: item 37 (the Node process: relay and authority), 33 and 34 (death that keeps the world, the next survivor, spectating), 35 (settings sorted; the host's rules), the version check, reconnecting with the grace period, the save on disk and on the last leave, the world that stops with nobody in it (`03`).
+What: item 37 (the Node process: relay and authority; **the relay mode is pulled forward into tier 3, `02` 2026-10-13**), 33 and 34 (death that keeps the world, the next survivor, spectating), 35 (settings sorted; the host's rules), the version check, reconnecting with the grace period, the save on disk and on the last leave, the world that stops with nobody in it (`03`).
 
 Check: a world hosted in Node, two browsers join by code, one dies and takes a new survivor while the other loots the body; one closes the tab and rejoins to find their character where it stood; the server is stopped and started and the valley is as it was.
 

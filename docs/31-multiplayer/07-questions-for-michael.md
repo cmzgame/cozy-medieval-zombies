@@ -43,3 +43,5 @@ Defaults in brackets, in the house style. An answer is a ruling for `02` under t
 18. **The wire in JSON?** Plain objects, readable in the console, the house style; a binary snapshot only if a profile ever asks. [JSON.]
 
 19. **Voice: never in 1.0?** The browser could carry it (WebRTC audio) with the same signalling the relay provides. [Not in 1.0; nothing forecloses it; the text log is the chat.]
+
+20. **Where does the relay run?** (2026-10-13, after the two-browser test: the GitHub Pages site is the client, so the relay must be reachable from it as `wss://`, which means TLS.) The choices: a free hosting tier that gives TLS and a stable name for nothing (Fly, Render, Glitch, and the like; the process sleeps when idle and wakes on the first connection, which costs the host a few seconds); Michael's own machine with a tunnel (`cloudflared`, `ngrok`) that gives the TLS name, up only while he runs it; a cheap box later. [The relay's address a constant in `net.js` the Pages build carries, overridable by `?relay=`; a free tier first, since nothing of his stays on when he closes the laptop and a sleeping relay costs only a wait at the first join.]
