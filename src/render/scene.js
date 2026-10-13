@@ -99,11 +99,11 @@ function rectsOverlap(a, b) {
 // hidden by the tree like anything else, so the forest gives no laser vision
 // (Michael, 2026-10-11). Every figure gets `behindProp` for the UI that floats
 // over it (the health bars) to stay out of the same leak.
-function computeOcclusion(drawables) {
+function computeOcclusion(drawables, me) {
   for (let i = 0; i < drawables.length; i++) {
     const d = drawables[i];
     if (d.kind !== "entity" || d.entity.dead || !d.rect) continue;
-    const isPlayer = d.entity.kind === "player";
+    const isPlayer = d.entity === me; // the hole is mine alone (docs/31/03: another player is seen like anyone)
     const body = { x: d.rect.x, y: d.rect.y, w: d.rect.w, h: Math.max(1, d.rect.h - 14) };
     let behind = false;
     for (let j = i + 1; j < drawables.length; j++) {
@@ -162,11 +162,11 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
   postDrawables(tiles, visible, playerRoom, drawables);
   propDrawables(tiles, visible, drawables);
   floorItemDrawables(tiles, visible, drawables);
-  entityDrawables(entities, visible, drawables, drawAll);
+  entityDrawables(entities, visible, drawables, drawAll, player);
   arrowDrawables(arrows, visible, drawables);
   fireDrawables(fire, visible, drawables);
   drawables.sort((a, b) => a.key - b.key);
-  computeOcclusion(drawables);
+  computeOcclusion(drawables, player);
   const holes = [];
   for (const d of drawables) if (d.occluded && d.rect) holes.push([d.rect.x + d.rect.w / 2, d.rect.y + d.rect.h * 0.45]);
   for (const d of drawables) d.emit();

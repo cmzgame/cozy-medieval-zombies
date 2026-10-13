@@ -20,6 +20,8 @@ Why first: it is the save system plus the split `23a` D1 asked for; nothing in i
 
 ## Tier 1 — A second walker (medium)
 
+**Built so far (2026-10-13, `02`):** the world holds a list of players and steps each from its own snapshot; the dead hunt the nearest they see; a bite names its victim; carried lights by owner; ids from the counter; a sheet per player; "me" by identity (`check("players")`, `node tools/world.js --players=2`). Left: the client object, the loopback, prediction and interpolation, the identity and join screens, chat.
+
 What: items 1, 4, 5 (ids for props and players), 15, 16, 19, 20 (the carried lights, world-space commands, the dead's target list, "me"), 26 to 29 (the client, prediction, interpolation, a sheet per player), 30 and 31 (the identity and join screens), 32 (chat). A second human walks the valley, is seen, is hunted, carries a torch that lures, says a line.
 
 Check: `check("sync")` first exists here: two tabs through the loopback with 100 ms of delay, a scripted minute of walking by both, equal hashes at the end; the dead chase whichever walker they see; a torch in tab B draws a zombie to B.

@@ -179,9 +179,9 @@ function burnTint() {
 const SHIELD_FLASH = [1, 0.95, 0.7, 1]; // a blow blocked
 const SHIELD_BROKEN = [1, 0.3, 0.25, 1]; // the guard broken
 
-export function entityDrawables(entities, visible, out, drawAll) {
+export function entityDrawables(entities, visible, out, drawAll, me = null) {
   for (const e of entities) {
-    const vis = e.kind === "player" || drawAll || visible.has(tileKey(Math.round(e.gx), Math.round(e.gy)));
+    const vis = e === me || drawAll || visible.has(tileKey(Math.round(e.gx), Math.round(e.gy))); // another player is seen like anyone, never through a wall (docs/31/03)
     if (!vis) continue; // the dead you cannot see are not drawn, full stop
     const sheet = getSheet(e.sprite);
     const p = iso.toScreen(e.gx, e.gy);
