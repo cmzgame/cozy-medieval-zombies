@@ -6,6 +6,11 @@
 
 import * as settings from "../settings.js";
 
+// A code or an address can come off the URL (`?join=`, `?relay=`): never into innerHTML as it is.
+function esc(text) {
+  return String(text ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
 const CONTROLS = [
   ["W A S D / arrows", "Walk"],
   ["Shift", "Sprint"],
@@ -156,6 +161,7 @@ function go(where) {
     else hide();
   } else if (where === "resume") hide();
   else if (where === "done") {
+    if (youApi && youApi.confirm) youApi.confirm();
     // The character screen's Done: into the game it was opened for, into the join it was opened for, else back where it came from.
     if (data.then === "play") hide();
     else if (data.then === "join") { const code = data.code; hide(); if (wireApi) wireApi.join(code, true); }
@@ -206,7 +212,7 @@ function characterHtml() {
   return `
     <div class="screen screen-wide you">
       <h1>Your character</h1>
-      <div class="sub">${data.then === "play" ? "Who walks into the valley" : data.then === "join" ? `Who joins ${data.code}'s world` : "Kept in this browser; a join carries it"}</div>
+      <div class="sub">${data.then === "play" ? "Who walks into the valley" : data.then === "join" ? `Who joins ${esc(data.code)}'s world` : "Kept in this browser; a join carries it"}</div>
       <div class="you-body">
         <canvas class="you-preview" width="144" height="216"></canvas>
         <div class="you-rows">
@@ -269,7 +275,7 @@ function render() {
       <div class="screen">
         <h1>Cozy Medieval Zombies</h1>
         <div class="sub">A village of the dead. Keep the shutters closed.</div>
-        ${data.note ? `<div class="sub note">${data.note}</div>` : ""}
+        ${data.note ? `<div class="sub note">${esc(data.note)}</div>` : ""}
         ${data.save && data.save.dead ? `<div class="sub">Your last survivor died. Play starts the village over.</div>` : ""}
         <div class="screen-buttons">${data.save && !data.save.dead ? button("continue", `Continue, ${data.saveLabel}`) : ""}${button("play", data.save ? "New game" : "Play")}${youApi ? button("character", "Character") : ""}${button("settings", "Settings")}${button("controls", "Controls")}</div>
         ${wireApi ? `<div class="screen-buttons">${button("host", "Host a game")}${button("join", "Join a game")}</div>` : ""}
@@ -289,7 +295,7 @@ function render() {
     root.innerHTML = `
       <div class="screen">
         <h1>Host a game</h1>
-        ${open ? `<div class="sub">Your code: <input id="host-code" class="code" type="text" readonly value="${st.code}" spellcheck="false"> <button id="host-copy" class="kit-button">Copy</button></div><div class="sub">${st.guests.length ? `With you: ${st.guests.join(", ")}` : "Waiting for friends. The world runs while this screen is up only if you go back to it."}</div>` : `<div class="sub">${st && st.relay ? `Opens this world to friends anywhere, through the relay at ${st.relay}: they type the code on Join a game.` : "Opens this world to friends. With no relay set, a friend must join from another tab of this same browser (docs/31/04)."}</div>`}
+        ${open ? `<div class="sub">Your code: <input id="host-code" class="code" type="text" readonly value="${esc(st.code)}" spellcheck="false"> <button id="host-copy" class="kit-button">Copy</button></div><div class="sub">${st.guests.length ? `With you: ${esc(st.guests.join(", "))}` : "Waiting for friends. The world runs while this screen is up only if you go back to it."}</div>` : `<div class="sub">${st && st.relay ? `Opens this world to friends anywhere, through the relay at ${esc(st.relay)}: they type the code on Join a game.` : "Opens this world to friends. With no relay set, a friend must join from another tab of this same browser (docs/31/04)."}</div>`}
         <div class="screen-buttons">${open ? "" : button("host-open", "Open this world")}${button("back", open ? "Back to the game" : "Back")}</div>
       </div>`;
   } else if (current === "join" && wireApi) {
@@ -297,7 +303,7 @@ function render() {
     root.innerHTML = `
       <div class="screen">
         <h1>Join a game</h1>
-        <div class="sub">${st && st.role === "guest" ? (st.joined ? `In ${st.code}'s world as ${st.myPlayerId}.` : `Joining ${st.code}…`) : "Type the host's code."}</div>
+        <div class="sub">${st && st.role === "guest" ? (st.joined ? `In ${esc(st.code)}'s world as ${esc(st.myPlayerId)}.` : `Joining ${esc(st.code)}…`) : "Type the host's code."}</div>
         ${st && st.role === "guest" ? "" : `<div class="setting"><span>Code</span><span class="choices"><input id="join-code" type="text" maxlength="24" placeholder="oak-abc" autocomplete="off" spellcheck="false"><button id="join-go">Join</button></span></div>`}
         <div class="screen-buttons">${button("back", "Back")}</div>
       </div>`;

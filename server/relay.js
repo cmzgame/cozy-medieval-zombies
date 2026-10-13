@@ -231,6 +231,8 @@ server.on("upgrade", (req, socket) => {
   socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
   socket.setNoDelay(true);
   const conn = new Conn(socket);
+  // A socket that never says who it is (host or guest, which code) is let go: only room members are pinged.
+  setTimeout(() => { if (!conn.role) conn.close(1008); }, 10000).unref();
   socket.on("data", (chunk) => conn.feed(chunk));
   socket.on("close", () => { conn.closed = true; leave(conn); });
   socket.on("error", () => { conn.closed = true; leave(conn); socket.destroy(); });

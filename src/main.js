@@ -109,7 +109,7 @@ function myLook() {
 
 // Anything chosen yet: the first Play opens the character screen until then.
 function hasIdentity() {
-  return !!(settings.get("playerName") || Object.keys(settings.get("look") || {}).length);
+  return !!(settings.get("identityChosen") || settings.get("playerName") || Object.keys(settings.get("look") || {}).length);
 }
 
 // The identity's shape is { name, look } (docs/31/03), `look` exactly what game.create and
@@ -855,6 +855,7 @@ async function boot() {
           setName: (n) => applyIdentity({ name: n }),
           look: () => myLook(),
           setLook: (partial) => applyIdentity({ look: partial }),
+          confirm: () => settings.set("identityChosen", true), // Done: whatever is shown is who this is
           styles: () => figure.hairStyles(),
           palette: () => looksJson || { skins: { living: [figure.DEFAULT_LOOK.skin], dead: [] }, hair: [figure.DEFAULT_LOOK.hair], eyes: [figure.DEFAULT_LOOK.eyes] },
           // The figure in what the player wears (the kit's five before the world exists), the hands empty, baked by the game's own code.

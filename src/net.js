@@ -118,12 +118,14 @@ export function setRelay(url) {
 // A message in from either transport: the relay's own words answered here, the rest to the inbox.
 function receive(msg) {
   if (!msg || typeof msg !== "object") return;
-  if (msg.type === "relay") {
+  // The relay's own words carry no `from`; everything a peer sends arrives stamped with one. So a guest
+  // cannot send the host "hostLeft" or "relay" and have it obeyed as the relay's (found in review, 2026-10-13).
+  if (!msg.from && msg.type === "relay") {
     selfId = msg.id; // the relay names me; the host keys its guests by these
     return;
   }
-  if (msg.type === "error") return dropped(msg.reason === "nohost" || msg.reason === "taken" ? msg.reason : "relay");
-  if (msg.type === "hostLeft") return dropped("hostLeft");
+  if (!msg.from && msg.type === "error") return dropped(msg.reason === "nohost" || msg.reason === "taken" ? msg.reason : "relay");
+  if (!msg.from && msg.type === "hostLeft") return dropped("hostLeft");
   if (msg.to && msg.to !== selfId) return; // the loopback is one channel for everyone; the relay routes
   if (lag) setTimeout(() => inbox.push(msg), lag);
   else inbox.push(msg);
@@ -376,7 +378,7 @@ export function guestStep(mySnap) {
   if (!joined && firstJoinAt && now - firstJoinAt > JOIN_WAIT_MS) {
     const c = code;
     close();
-    if (hooks.failed) hooks.failed(c);
+    if (hooks.failed) hooks.failed(c, "timeout", "guest");
     return;
   }
   if (!joined && (!joinSentAt || now - joinSentAt > 2000)) {
