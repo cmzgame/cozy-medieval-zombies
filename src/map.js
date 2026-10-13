@@ -892,6 +892,7 @@ export function getChunk(cx, cy, create = true, layer = 0) {
   // `wild` and `dirty` decide eviction (docs/23a, B2); `lightVersion` is the light cache's key (B4).
   c = { cx, cy, layer, tiles, floorCache: null, floorDirty: true, wild: anyWild, dirty: false, lightVersion: 0 };
   chunks.set(k, c);
+  touched.add(k); // grown: a guest learns of it like any change (net.js; the guest cannot grow it itself, its settings could shape it differently)
   lastChunk = c;
   // Open field cannot change any room, so only a chunk with walls (or one whose
   // edge walls a neighbouring room may touch) forces the rooms to be refound.

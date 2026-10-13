@@ -48,7 +48,7 @@ The concrete list, grouped by the free rule each serves, each item with where it
 ## G. The client (medium)
 
 26. **First form built 2026-10-13 (`02`): `src/net.js` holds the roles and the transport; `main.js`'s step branches on them.** The client object proper is still owed. Was: **A `client` object** (`me`, the replica, the transport, the predictor, the interpolator) in `main.js`'s place; boot unchanged up to the world stage, which becomes "connect or create".
-27. **Prediction and reconciliation** for my own walking: `updatePlayer`'s movement run locally against the replica, inputs kept by tick, replayed on correction. Medium; one new file. The rest of my player's state is shown as received.
+27. **Built 2026-10-13 (`02`): the guest predicts its walking, the host acknowledges by sequence, the guest replays the rest.** Was: **Prediction and reconciliation** for my own walking: `updatePlayer`'s movement run locally against the replica, inputs kept by tick, replayed on correction. Medium; one new file. The rest of my player's state is shown as received.
 28. **Interpolation** for others: a snapshot ring per character, drawn one snapshot behind. Small; `render/entities.js` reads an interpolated position.
 29. **Sheets per player** (`player_<id>`, redrawn in place from the identity and the worn list), `assets.sheetFor` untouched for the rest. Small; the second atlas page when a group of friends asks for it (`gl.js`, a second texture and draw call, `23`'s own note).
 30. **The identity screen** (the creation screen of `02`'s pin with a name), stored as a setting, sent on join, editable from the pause menu. Medium; new UI on the kit. Wanted by single player anyway.
@@ -59,7 +59,7 @@ The concrete list, grouped by the free rule each serves, each item with where it
 ## H. The world's rules that are single-player today (small each)
 
 34. **Death and the next survivor**: `turnVillager`'s path for a player (a zombie in their clothes with their hands and pockets), the respawn at the inn, the toll house, or the croft by turn (`30` 3.5), the survivor count; the game-over listener that exists nowhere today. Medium; owed to single player by `02`'s 2026-10-08 ruling regardless.
-35. **Settings sorted** (`02` section 8): the world's rules read on the authority from the host's settings or the server's config file; a guest's settings screen shows them read-only; `hairStyle` and `paintedLayers` move into the identity. Small.
+35. **In part 2026-10-13 (`02`): the host's rules travel in every frame and bind the guest's sim reads; grown chunks cross the wire.** The read-only screen is owed. Was: **Settings sorted** (`02` section 8): the world's rules read on the authority from the host's settings or the server's config file; a guest's settings screen shows them read-only; `hairStyle` and `paintedLayers` move into the identity. Small.
 36. **The records milestone** (`03-world-model.md`), when built, takes the list of players as its centre: the union of regions, eviction by nearest, alarm and lure per chunk. Not a change, a constraint on an unbuilt thing; noted so it is built once.
 
 ## I. The server process (medium, new)

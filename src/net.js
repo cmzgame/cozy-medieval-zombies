@@ -17,6 +17,8 @@ import * as clock from "./clock.js";
 import * as loop from "./loop.js";
 import * as light from "./light.js";
 import * as world from "./world.js";
+import * as rules from "./rules.js";
+import { updatePlayer } from "./entities/player.js";
 import { serializeCharacter, restoreCharacter, dress, dressCorpse } from "./entities/character.js";
 import { createPlayer } from "./entities/player.js";
 import { createZombie } from "./entities/zombie.js";
@@ -42,6 +44,9 @@ let joinSentAt = 0;
 let framesSeen = 0;
 let lastFrameAt = 0;
 let testSnapshot = null; // a check drives the guest's player with this instead of the keyboard
+let seq = 0; // the guest's input count, so the host can say which it has applied
+const pending = []; // the guest's inputs not yet acknowledged, replayed over each frame (prediction)
+let lastCorrection = 0; // tiles the last frame moved my predicted player: the misprediction, for the checks
 
 export function init({ host = null, join = null, lag: l = 0 } = {}, h = {}) {
   hooks = { ...hooks, ...h };
@@ -95,16 +100,14 @@ export function hostStep(mySnap, me) {
       const spawn = game.state.info ? game.state.info.spawn : [me.gx, me.gy];
       const at = map.nearestWalkable(spawn[0] + 1, spawn[1] + 1, (x, y) => game.state.players.some((p) => Math.round(p.gx) === x && Math.round(p.gy) === y)) || spawn;
       const p = game.addPlayer(at[0], at[1], { look: msg.look || null });
-      guests.set(msg.from, { playerId: p.id, snap: null, joinedAt: tick });
+      guests.set(msg.from, { playerId: p.id, queue: [], last: null, ack: 0, joinedAt: tick });
       for (const c of allCharacters()) known.add(c.id);
       send({ type: "welcome", to: msg.from, playerId: p.id, save: game.serialize() });
       hooks.message(`${msg.name || "Someone"} joined as ${p.id}.`);
     } else if (msg.type === "input") {
       const g = guests.get(msg.from);
       if (!g) continue;
-      // One-shot presses accumulate until the step consumes them.
-      const prev = g.snap;
-      g.snap = { ...msg.snap, clicked: !!(msg.snap.clicked || (prev && prev.clicked)), space: !!(msg.snap.space || (prev && prev.space)) };
+      g.queue.push(msg); // one input per step, in order; the guest replays what is not yet acknowledged
     } else if (msg.type === "leave") {
       const g = guests.get(msg.from);
       if (!g) continue;
@@ -114,9 +117,13 @@ export function hostStep(mySnap, me) {
     }
   }
   for (const g of guests.values()) {
-    if (!g.snap) continue;
-    snapshots.set(g.playerId, g.snap);
-    g.snap = { ...g.snap, clicked: false, space: false }; // consumed
+    // The next input in the queue; with none this step, the last one held (the key is still down).
+    const next = g.queue.shift();
+    if (next) {
+      g.last = next.snap;
+      g.ack = next.seq;
+    } else if (g.last) g.last = { ...g.last, space: false };
+    if (g.last) snapshots.set(g.playerId, g.last);
   }
   return snapshots;
 }
@@ -135,7 +142,9 @@ function slim(c) {
 function record(c) {
   if (c.kind === "player" || !known.has(c.id)) {
     known.add(c.id);
-    return { full: true, ...serializeCharacter(c) };
+    const r = { full: true, ...serializeCharacter(c) };
+    if (c.kind === "player") for (const g of guests.values()) if (g.playerId === c.id) r.ack = g.ack; // the last input of theirs this record reflects
+    return r;
   }
   return slim(c);
 }
@@ -158,6 +167,7 @@ export function hostAfterStep() {
     villagers: S.villagers.map(record),
     corpses: S.corpses.map(record),
     carriers: light.carriers().filter((c) => c.owner),
+    rules: { ...rules.rules }, // the world's rules are the host's (docs/31/07, question 13)
   };
   send(game.toSafe(frame));
 }
@@ -185,16 +195,30 @@ export function guestStep(mySnap) {
       lastFrameAt = now;
     }
   }
-  if (joined) {
+  if (joined && game.state.player) {
     const s = testSnapshot || mySnap;
-    send({ type: "input", snap: { axis: s.axis, sprint: !!s.sprint, aim: s.aim || null, space: !!s.space } });
+    const snap = { axis: s.axis, sprint: !!s.sprint, aim: s.aim || null, space: !!s.space };
+    seq++;
+    pending.push({ seq, snap });
+    send({ type: "input", seq, snap });
+    // Prediction (docs/31/04): my own walking runs here at once against the replica's walls; the host's
+    // word arrives a wire later and the inputs it has not yet applied are replayed over it (applyFrame).
+    updatePlayer(game.state.player, 1 / 60, snap);
   }
+}
+
+export function correction() {
+  return lastCorrection;
 }
 
 const makers = { player: createPlayer, zombie: createZombie, villager: createVillager };
 
+let predictedPos = null; // where my prediction had me before this frame's record replaced it
+
 function applyFrame(f) {
   const S = game.state;
+  if (S.player) predictedPos = [S.player.gx, S.player.gy];
+  if (f.rules) rules.set(f.rules);
   clock.setElapsed(f.clock);
   loop.setSimTime(f.simTime);
   world.setTimeScale(f.timeScale);
@@ -241,6 +265,19 @@ function applyFrame(f) {
   S.villagers = bring(f.villagers);
   S.corpses = bring(f.corpses);
   S.player = S.players.find((p) => p.id === myPlayerId) || S.player;
+  // Reconciliation: the host's record of me stands at its tick; my inputs it has not yet applied
+  // go over it again, so what I see is the host's truth plus what I have done since.
+  const me = S.player;
+  const mine = f.players.find((r) => r.id === myPlayerId);
+  if (me && mine) {
+    const predictedX = predictedPos ? predictedPos[0] : me.gx;
+    const predictedY = predictedPos ? predictedPos[1] : me.gy;
+    const ack = mine.ack || 0;
+    while (pending.length && pending[0].seq <= ack) pending.shift();
+    for (const p of pending) updatePlayer(me, 1 / 60, p.snap);
+    lastCorrection = Math.hypot(me.gx - predictedX, me.gy - predictedY);
+  }
+  predictedPos = null;
   S.others = [...S.players, ...S.zombies, ...S.villagers];
   S.progress = S.player ? S.player.actionProgress : null;
   light.setCarriers(f.carriers);
