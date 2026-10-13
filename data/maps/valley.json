@@ -1,0 +1,1704 @@
+{
+ "name": "The valley",
+ "floor": "floor_grass",
+ "bounds": [
+  0,
+  0,
+  256,
+  256
+ ],
+ "features": [
+  {
+   "kind": "bank",
+   "rect": [
+    117,
+    0,
+    7,
+    10
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    116,
+    10,
+    7,
+    17
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    115,
+    27,
+    7,
+    10
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    115,
+    36,
+    7,
+    2
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    114,
+    38,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    113,
+    41,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    112,
+    45,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    111,
+    48,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    110,
+    52,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    109,
+    55,
+    7,
+    2
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    109,
+    56,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    110,
+    59,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    111,
+    62,
+    7,
+    5
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    112,
+    67,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    113,
+    70,
+    7,
+    5
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    114,
+    75,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    115,
+    78,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    115,
+    80,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    116,
+    84,
+    7,
+    8
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    117,
+    92,
+    7,
+    7
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    118,
+    99,
+    7,
+    8
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    119,
+    107,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    119,
+    110,
+    7,
+    16
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    120,
+    126,
+    7,
+    29
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    121,
+    155,
+    7,
+    16
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    121,
+    170,
+    7,
+    2
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    122,
+    172,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    123,
+    175,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    124,
+    179,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    125,
+    182,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    126,
+    186,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    127,
+    189,
+    7,
+    2
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    127,
+    190,
+    7,
+    2
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    128,
+    192,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    129,
+    196,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    130,
+    200,
+    7,
+    3
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    131,
+    203,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    132,
+    207,
+    7,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    133,
+    211,
+    7,
+    2
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    133,
+    212,
+    7,
+    6
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    134,
+    218,
+    7,
+    11
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    135,
+    229,
+    7,
+    11
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    136,
+    240,
+    7,
+    11
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    137,
+    251,
+    7,
+    6
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    118,
+    0,
+    5,
+    10
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    117,
+    10,
+    5,
+    17
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    116,
+    27,
+    5,
+    10
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    116,
+    36,
+    5,
+    2
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    115,
+    38,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    114,
+    41,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    113,
+    45,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    112,
+    48,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    111,
+    52,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    110,
+    55,
+    5,
+    2
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    110,
+    56,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    111,
+    59,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    112,
+    62,
+    5,
+    5
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    113,
+    67,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    114,
+    70,
+    5,
+    5
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    115,
+    75,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    116,
+    78,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    116,
+    80,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    117,
+    84,
+    5,
+    8
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    118,
+    92,
+    5,
+    7
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    119,
+    99,
+    5,
+    8
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    120,
+    107,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    120,
+    110,
+    5,
+    16
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    121,
+    126,
+    5,
+    29
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    122,
+    155,
+    5,
+    16
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    122,
+    170,
+    5,
+    2
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    123,
+    172,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    124,
+    175,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    125,
+    179,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    126,
+    182,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    127,
+    186,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    128,
+    189,
+    5,
+    2
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    128,
+    190,
+    5,
+    2
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    129,
+    192,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    130,
+    196,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    131,
+    200,
+    5,
+    3
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    132,
+    203,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    133,
+    207,
+    5,
+    4
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    134,
+    211,
+    5,
+    2
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    134,
+    212,
+    5,
+    6
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    135,
+    218,
+    5,
+    11
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    136,
+    229,
+    5,
+    11
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    137,
+    240,
+    5,
+    11
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    138,
+    251,
+    5,
+    6
+   ],
+   "sprite": "floor_water"
+  },
+  {
+   "kind": "bridge",
+   "rect": [
+    116,
+    157,
+    18,
+    3
+   ],
+   "sprite": "floor_stone",
+   "note": "the stone bridge (29/02); floor_bridge_stone when drawn"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    132,
+    206,
+    7,
+    3
+   ],
+   "sprite": "floor_water_shallow",
+   "note": "the ford (29/02): the drove crosses here; the water and its banks, nothing wider"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    84,
+    157,
+    33,
+    3
+   ],
+   "sprite": "floor_cobble",
+   "group": "high street"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    0,
+    157,
+    85,
+    3
+   ],
+   "sprite": "floor_dirt",
+   "group": "west road"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    134,
+    157,
+    7,
+    3
+   ],
+   "sprite": "floor_cobble",
+   "group": "bridge road"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    84,
+    152,
+    12,
+    12
+   ],
+   "sprite": "floor_cobble",
+   "group": "square"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    89,
+    100,
+    3,
+    53
+   ],
+   "sprite": "floor_cobble",
+   "group": "nobles street"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    89,
+    182,
+    2,
+    45
+   ],
+   "sprite": "floor_dirt",
+   "group": "south lane"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    64,
+    211,
+    45,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "the lane"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    108,
+    211,
+    3,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "drove"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    111,
+    210,
+    4,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "drove"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    115,
+    209,
+    5,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "drove"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    120,
+    208,
+    5,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "drove"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    125,
+    207,
+    4,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "drove"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    129,
+    206,
+    3,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "drove"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    141,
+    206,
+    20,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "drove"
+  }
+ ],
+ "sets": [
+  {
+   "name": "your cottage",
+   "rect": [
+    98,
+    212,
+    16,
+    12
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      7,
+      5
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "s",
+       "at": 1,
+       "kind": "door"
+      },
+      {
+       "side": "s",
+       "at": 5,
+       "kind": "window"
+      },
+      {
+       "side": "n",
+       "at": 2,
+       "kind": "window"
+      },
+      {
+       "side": "e",
+       "at": 2,
+       "kind": "window"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        4,
+        0
+       ],
+       "len": 5,
+       "openings": [
+        {
+         "at": 3,
+         "kind": "door"
+        }
+       ]
+      }
+     ],
+     "props": [
+      {
+       "sprite": "fireplace",
+       "tile": [
+        1,
+        0
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        1,
+        2
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        0,
+        2
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        3,
+        2
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        0,
+        4
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        5,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        6,
+        4
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "w",
+       "at": 1,
+       "facing": "in",
+       "torch": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [
+    {
+     "rect": [
+      9,
+      1,
+      6,
+      6
+     ],
+     "sprite": "floor_farm"
+    }
+   ],
+   "fences": [
+    {
+     "rect": [
+      0,
+      0,
+      16,
+      12
+     ],
+     "wall": "wall_fence",
+     "gates": [
+      {
+       "side": "s",
+       "at": 4
+      },
+      {
+       "side": "w",
+       "at": 9
+      }
+     ]
+    }
+   ],
+   "props": [
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      9,
+      1
+     ]
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      10,
+      1
+     ]
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      11,
+      1
+     ]
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      12,
+      1
+     ]
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      13,
+      1
+     ]
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      14,
+      1
+     ]
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      9,
+      2
+     ]
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      10,
+      2
+     ]
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      11,
+      2
+     ]
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      12,
+      2
+     ]
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      13,
+      2
+     ]
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      14,
+      2
+     ]
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      9,
+      3
+     ]
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      10,
+      3
+     ]
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      11,
+      3
+     ]
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      12,
+      3
+     ]
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      13,
+      3
+     ]
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      14,
+      3
+     ]
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      9,
+      4
+     ]
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      10,
+      4
+     ]
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      11,
+      4
+     ]
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      12,
+      4
+     ]
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      13,
+      4
+     ]
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      14,
+      4
+     ]
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      9,
+      5
+     ]
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      10,
+      5
+     ]
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      11,
+      5
+     ]
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      12,
+      5
+     ]
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      13,
+      5
+     ]
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      14,
+      5
+     ]
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      9,
+      6
+     ]
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      10,
+      6
+     ]
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      11,
+      6
+     ]
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      12,
+      6
+     ]
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      13,
+      6
+     ]
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      14,
+      6
+     ]
+    },
+    {
+     "sprite": "well",
+     "tile": [
+      9,
+      9
+     ]
+    },
+    {
+     "sprite": "barrel",
+     "tile": [
+      11,
+      9
+     ]
+    }
+   ]
+  }
+ ],
+ "reserve": [
+  [
+   56,
+   84,
+   64,
+   144
+  ],
+  [
+   136,
+   126,
+   66,
+   64
+  ],
+  [
+   36,
+   230,
+   64,
+   26
+  ],
+  [
+   64,
+   24,
+   56,
+   44
+  ]
+ ],
+ "biomes": {
+  "harvest": {
+   "kinds": {
+    "tree_oak_m": 1,
+    "tree_oak_l": 1,
+    "tree_oak_old": 0.5,
+    "tree_yellow_m": 1,
+    "tree_yellow_l": 1,
+    "tree_yellow_old": 0.5,
+    "tree_orange_m": 1,
+    "tree_orange_l": 1,
+    "tree_orange_old": 0.5,
+    "tree_red_m": 1,
+    "tree_red_l": 1,
+    "tree_red_old": 0.5,
+    "tree_spire_green_m": 0.5,
+    "tree_spire_green_l": 0.5,
+    "tree_spire_green_old": 0.25,
+    "tree_spire_yellow_m": 0.5,
+    "tree_spire_yellow_l": 0.5,
+    "tree_spire_yellow_old": 0.25,
+    "tree_spire_orange_m": 0.5,
+    "tree_spire_orange_l": 0.5,
+    "tree_spire_orange_old": 0.25,
+    "tree_spire_red_m": 0.5,
+    "tree_spire_red_l": 0.5,
+    "tree_spire_red_old": 0.25
+   },
+   "scale": 9
+  }
+ },
+ "scatter": [
+  {
+   "rect": [
+    0,
+    0,
+    256,
+    256
+   ],
+   "density": [
+    0.05,
+    0.16
+   ],
+   "biome": "harvest",
+   "seed": 11
+  }
+ ],
+ "wild": {
+  "biome": "harvest",
+  "density": [
+   0.0405,
+   0.1305
+  ],
+  "seed": 21,
+  "zombiesPerChunk": [
+   0,
+   2
+  ],
+  "rocks": {
+   "kinds": {
+    "rock_0": 1,
+    "rock_1": 1,
+    "rock_2": 1,
+    "rock_3": 1
+   },
+   "cell": 40,
+   "chance": 0.6,
+   "seed": 51
+  }
+ },
+ "spawn": [
+  104,
+  216
+ ],
+ "zombies": [
+  [
+   90,
+   196
+  ],
+  [
+   92,
+   204
+  ],
+  [
+   86,
+   214
+  ],
+  [
+   100,
+   206
+  ],
+  [
+   112,
+   200
+  ],
+  [
+   76,
+   160
+  ],
+  [
+   100,
+   160
+  ],
+  [
+   118,
+   150
+  ],
+  [
+   130,
+   162
+  ],
+  [
+   138,
+   170
+  ],
+  [
+   60,
+   150
+  ],
+  [
+   104,
+   236
+  ]
+ ],
+ "props": [
+  {
+   "sprite": "well",
+   "tile": [
+    89,
+    157
+   ],
+   "note": "the square's well (29/04)"
+  }
+ ],
+ "forage": {
+  "kinds": {
+   "mushroom_0": 1,
+   "mushroom_1": 1,
+   "mushroom_2": 1,
+   "mushroom_3": 1,
+   "mushroom_4": 1
+  },
+  "chance": 0.021,
+  "near": 2,
+  "seed": 41
+ },
+ "villagers": [
+  {
+   "tile": [
+    86,
+    154
+   ],
+   "name": "Wren",
+   "wardrobe": 0
+  },
+  {
+   "tile": [
+    92,
+    160
+   ],
+   "name": "Ash",
+   "wardrobe": 1
+  },
+  {
+   "tile": [
+    104,
+    226
+   ],
+   "name": "Tam",
+   "wardrobe": 2,
+   "line": "Keep the shutters closed."
+  },
+  {
+   "tile": [
+    90,
+    104
+   ],
+   "name": "Rook",
+   "wardrobe": 3
+  }
+ ]
+}

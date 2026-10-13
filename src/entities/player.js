@@ -4,7 +4,7 @@
 
 import * as iso from "../iso.js";
 import * as input from "../input.js";
-import { moveCircle, canStep } from "../map.js";
+import { moveCircle, canStep, floorSpeedAt } from "../map.js";
 import { findPath } from "../pathfind.js";
 import { getSheet } from "../assets.js";
 import { createAnimation, playAnimation, advanceAnimation } from "../sprites.js";
@@ -148,7 +148,7 @@ function followAuto(player, dt) {
     }
     const before = [player.gx, player.gy];
     const n = iso.normalize(dx, dy);
-    const step = Math.min(d, player.speed * (player.sprinting ? T.sprintMult : 1) * (player.moveMult ?? 1) * dt);
+    const step = Math.min(d, player.speed * (player.sprinting ? T.sprintMult : 1) * (player.moveMult ?? 1) * floorSpeedAt(player.gx, player.gy) * dt);
     const moved = moveCircle(player.gx, player.gy, player.radius, n.x * step, n.y * step);
     player.gx = moved.gx;
     player.gy = moved.gy;
@@ -173,7 +173,7 @@ function finishAuto(player) {
 
 function moveToward(player, dt, dx, dy, mult = 1) {
   const n = iso.normalize(dx, dy);
-  const step = player.speed * mult * dt;
+  const step = player.speed * mult * floorSpeedAt(player.gx, player.gy) * dt; // shallow water slows everyone (docs/30, law 8)
   const moved = moveCircle(player.gx, player.gy, player.radius, n.x * step, n.y * step);
   player.gx = moved.gx;
   player.gy = moved.gy;

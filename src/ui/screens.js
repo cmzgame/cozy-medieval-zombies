@@ -177,6 +177,7 @@ function render() {
         ${settingRow("aimGuide", "Bow aim guide")}
         ${settingRow("swingTimer", "Swing timer")}
         ${settingRow("combatTesting", "Combat testing")}
+        ${settingRow("devChest", "Dev chest")}
         ${settingRow("showSwingTargets", "Swing targets")}
         ${settingRow("multiHit", "Multi-hit")}
         ${settingRow("showHitShapes", "Show hit shapes")}

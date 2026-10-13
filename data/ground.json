@@ -7,6 +7,7 @@
     "floor_farm_y": "farm",
     "floor_cobble": "cobble",
     "floor_water": "water",
+  "floor_water_shallow": "laid",
     "floor_wood": "laid",
     "floor_stone": "laid"
   },

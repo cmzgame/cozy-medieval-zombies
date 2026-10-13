@@ -4,6 +4,14 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-12 — Step 0 of `30` built: the generator and the engine's tier 1; the rulings the build forced
+
+**Floors and walls carry their rules as data:** `walk` and `drink` on a floor definition, `seeThrough` and `climb` on a wall's; nothing in code names water or a fence. **A see-through wall bounds no room** (a fenced field is outdoors; a cell behind bars shares its corridor's room and light), the simplest rule that makes fields read right; if bars ever need their own room, the rule gets a second flag. **Shallow water is a laid flat** in the ground kit (a hard diamond) until the ford is drawn. **The map is generated**, never typed: `tools/mapgen/` writes `data/maps/valley.json` from `valley.py`; the proving ground stays as `?map=square`. **The dev chest is a setting**, on by default while the game is in development (the chest by the spawn), so no map carries it; 1.0 flips the default. **The valley's coordinates follow 29/04's room plans where the overview disagrees** (the bridge at the high street's row, 158), as 29's README said they should.
+
+### 2026-10-12 — The big pass is approved as written; dev art for everything, and every box says what it is (Michael)
+
+Michael read `30` with his own eyes: nothing in it bugs him, so it is built as written, step 0 first. **Dev art for everything:** every station and new prop is a coloured box from boot so it can be placed and used the moment its code works; a box may be bigger than one tile (a 2 by 2 where the thing is a 2 by 2). **Every box carries its name** on its face, drawn by the generator, and its menu names it, so no box is a mystery. Real art replaces a box through the sprite definition as it lands, as always.
+
 ### 2026-10-12 — The HUD rearranged: the bars top-left with a portrait, the time top centre, the moodles down the right, the log true bottom-left and resizable, the swing bars a two-slot belt wide (Michael)
 
 Michael, on seeing the log: it is DOM, so it is **resizable** (by its corner, the size remembered in `settings.logSize`) and sits **true bottom-left**; **health, stamina, and the hands move to the top left**, with mana to join them someday, and **a small portrait beside the bars** as WoW has: the player's own baked sheet cropped at the head, hat and all, at 2x, redrawn when the sheet is rebuilt. **The time goes very top centre** (the floating message under it). **The moodles go down the far right edge** in a vertical stack as Zomboid does, **all four always showing, green when nothing is wrong** ("Not bleeding", "Not bitten", "Fed", "Watered"), their tips opening leftward. **The swing timer bars are always a two-slot belt's width** (104 px) whatever belt is worn: "they're pretty wide as is". The debug corner moves under the HUD.

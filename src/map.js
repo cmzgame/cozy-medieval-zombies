@@ -536,9 +536,9 @@ export function wayOpen(wall) {
   return false;
 }
 
-// Can a body climb through this opening (windows only)?
+// Can a body climb through this opening (windows only; never through a material whose `climb` is false, an arrow slit)?
 export function climbable(wall) {
-  return !!wall && wall.kind === "window" && !boarded(wall) && (wall.shutter === "open" || wall.broken);
+  return !!wall && wall.kind === "window" && !boarded(wall) && (wall.shutter === "open" || wall.broken) && wallRule(wall.sprite).climb;
 }
 
 // Is a room sealed (docs/09): every door shut and whole or boarded, every
@@ -791,11 +791,11 @@ export const openingTunables = { shutterLeak: 0.05 };
 
 export function transmission(wall) {
   if (!wall) return 1;
-  if (wall.kind === "wall") return 0;
   if (boarded(wall)) return 0;
+  if (wall.kind === "wall") return wallRule(wall.sprite).seeThrough ? 1 : 0; // a fence or bars: sight and light pass
   if (wall.broken) return 1;
   if (wall.kind === "window") return wall.shutter === "closed" ? openingTunables.shutterLeak : 1;
-  return wall.open ? 1 : 0;
+  return wall.open || wallRule(wall.sprite).seeThrough ? 1 : 0; // a shut gate in a fence still passes sight
 }
 
 export function blocksSight(wall) {
@@ -851,9 +851,50 @@ function moveSegments(wall) {
 }
 const FULL_EDGE = [[0, 1]];
 
+// ---- what a floor allows (docs/30, law 8) ----
+// A floor's sprite definition may say `walk: false` (water: no entity walks
+// it), `walk: 0.5` (shallow water: everyone slows), and `drink: true` (you
+// drink and fill beside it, as at the well). Read once per floor id.
+const floorRules = new Map();
+export function floorRule(id) {
+  let r = floorRules.get(id);
+  if (r) return r;
+  let def = null;
+  try { def = getDef(id); } catch { def = null; }
+  const walk = def && def.walk !== undefined ? def.walk : true;
+  r = { walk: walk === false ? false : walk === true ? 1 : Number(walk) || 1, drink: !!(def && def.drink) };
+  floorRules.set(id, r);
+  return r;
+}
+
+// What a wall material allows (docs/30 step 0): `wall.seeThrough` (a fence, bars,
+// a parapet: sight and light pass, bodies do not, and it bounds no room) and
+// `wall.climb: false` (an arrow slit: nothing climbs through its openings).
+const wallRules = new Map();
+export function wallRule(sprite) {
+  let r = wallRules.get(sprite);
+  if (r) return r;
+  let def = null;
+  try { def = getDef(sprite); } catch { def = null; }
+  const w = (def && def.wall) || {};
+  r = { seeThrough: !!w.seeThrough, climb: w.climb !== false };
+  wallRules.set(sprite, r);
+  return r;
+}
+
 export function isWalkableTile(x, y) {
   const t = tileAt(x, y);
-  return !(t.prop && t.prop.solid);
+  return !(t.prop && t.prop.solid) && floorRule(t.floor).walk !== false;
+}
+
+// The speed factor of the ground under a point: 1 on land, less in shallow water.
+export function floorSpeedAt(gx, gy) {
+  const r = floorRule(tileAt(Math.round(gx), Math.round(gy)).floor);
+  return r.walk === false ? 1 : r.walk;
+}
+
+export function drinkableAt(x, y) {
+  return floorRule(tileAt(x, y).floor).drink;
 }
 
 // One tile-to-tile move for pathing. Diagonals need both corner tiles free and
@@ -891,6 +932,14 @@ export function circleBlocked(gx, gy, r) {
   for (let ty = minY; ty <= maxY + 1; ty++) {
     for (let tx = minX; tx <= maxX + 1; tx++) {
       const t = tileAt(tx, ty);
+      // Water blocks like a solid tile: no body enters a wholly-water tile (docs/30, law 8).
+      if (tx <= maxX && ty <= maxY && floorRule(t.floor).walk === false) {
+        const cx = Math.max(tx - 0.5, Math.min(gx, tx + 0.5));
+        const cy = Math.max(ty - 0.5, Math.min(gy, ty + 0.5));
+        const dx = gx - cx;
+        const dy = gy - cy;
+        if (dx * dx + dy * dy < r2) return true;
+      }
       if (t.prop && t.prop.solid && tx <= maxX && ty <= maxY) {
         if (t.prop.radius) {
           // A round thing (a trunk, a barrel) blocks only a circle at the tile
@@ -1093,8 +1142,9 @@ function fillRegion(x0, y0, id, fillable, stopOutdoors = false) {
         continue;
       }
       const wall = wallBetween(x, y, nx, ny);
-      if (wall) {
-        // any wall bounds a room
+      // Any wall bounds a room, except a see-through one (a fence round a field, bars): a
+      // region closed by fences is outdoors, and a cell behind bars is its corridor's room (docs/30 step 0).
+      if (wall && !wallRule(wall.sprite).seeThrough) {
         if (wall.kind !== "wall" && !outdoors) {
           const [ex, ey, edge] = edgeBetween(x, y, nx, ny);
           const k = `${ex},${ey},${edge}`;
@@ -1342,8 +1392,32 @@ export function loadMap(json) {
     const [x0, y0, w, h] = r.rect;
     for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) get(x + offset[0], y + offset[1]).floor = r.sprite;
   };
-  // Features and loose top-level content.
-  for (const f of json.features || []) floorRect(f, [0, 0]);
+  // Features and loose top-level content. A `fence` feature is a run of walls round a
+  // rect's perimeter in a see-through material, with gates (docs/30 step 0): it makes no
+  // room, so a fenced field stays outdoors.
+  const fence = (f, offset) => {
+    const [x0, y0, w, h] = [f.rect[0] + offset[0], f.rect[1] + offset[1], f.rect[2], f.rect[3]];
+    const mat = f.wall || "wall_fence";
+    for (let x = x0; x < x0 + w; x++) {
+      if (!get(x, y0).n) get(x, y0).n = createWall("wall", mat);
+      if (!get(x, y0 + h).n) get(x, y0 + h).n = createWall("wall", mat);
+    }
+    for (let y = y0; y < y0 + h; y++) {
+      if (!get(x0, y).w) get(x0, y).w = createWall("wall", mat);
+      if (!get(x0 + w, y).w) get(x0 + w, y).w = createWall("wall", mat);
+    }
+    for (const g of f.gates || []) {
+      const wall = createWall("door", mat);
+      if (g.side === "n") get(x0 + g.at, y0).n = wall;
+      else if (g.side === "s") get(x0 + g.at, y0 + h).n = wall;
+      else if (g.side === "w") get(x0, y0 + g.at).w = wall;
+      else if (g.side === "e") get(x0 + w, y0 + g.at).w = wall;
+    }
+  };
+  for (const f of json.features || []) {
+    if (f.kind === "fence") fence(f, [0, 0]);
+    else floorRect(f, [0, 0]);
+  }
   for (const r of json.floorRects || []) floorRect(r, [0, 0]);
   for (const p of json.props || []) placeProp(p, [0, 0]);
   // Sets: everything inside is relative to the set's origin (its rect's corner
@@ -1352,29 +1426,46 @@ export function loadMap(json) {
   for (const s of json.sets || []) {
     const origin = setOrigin(s);
     for (const r of s.floorRects || []) floorRect(r, origin);
+    for (const f of s.fences || []) fence(f, origin);
     for (const p of s.props || []) placeProp(p, origin);
     for (const b of s.buildings || []) buildings.push({ ...b, origin });
   }
   for (const b of buildings) {
     const [bx, by, bw, bh] = [b.rect[0] + b.origin[0], b.rect[1] + b.origin[1], b.rect[2], b.rect[3]];
     for (let y = by; y < by + bh; y++) for (let x = bx; x < bx + bw; x++) get(x, y).floor = b.floor || json.floor;
+    // The material: one for all, or one per side (`{ n, s, e, w }`, stone at the back and
+    // wood at the front; docs/30 step 0). The renderer's material-change posts handle the corners.
+    const matOf = (side) => (typeof b.wall === "string" ? b.wall : (b.wall && (b.wall[side] || b.wall.all)) || WALL_SPRITE_DEFAULT);
     // Perimeter walls. North wall: n edge of the top row. West wall: w edge of
     // the left column. South wall: n edge of the row below. East wall: w edge
     // of the column to the right.
     for (let x = bx; x < bx + bw; x++) {
-      get(x, by).n = createWall("wall", b.wall);
-      get(x, by + bh).n = createWall("wall", b.wall);
+      get(x, by).n = createWall("wall", matOf("n"));
+      get(x, by + bh).n = createWall("wall", matOf("s"));
     }
     for (let y = by; y < by + bh; y++) {
-      get(bx, y).w = createWall("wall", b.wall);
-      get(bx + bw, y).w = createWall("wall", b.wall);
+      get(bx, y).w = createWall("wall", matOf("w"));
+      get(bx + bw, y).w = createWall("wall", matOf("e"));
     }
     for (const o of b.openings || []) {
-      const wall = createWall(o.kind, b.wall);
+      const wall = createWall(o.kind, o.wall || matOf(o.side));
       if (o.side === "n") get(bx + o.at, by).n = wall;
       else if (o.side === "s") get(bx + o.at, by + bh).n = wall;
       else if (o.side === "w") get(bx, by + o.at).w = wall;
       else if (o.side === "e") get(bx + bw, by + o.at).w = wall;
+    }
+    // Interior partitions (docs/30 step 0): a run of `len` edges on the `n` or `w` slot
+    // starting at a tile inside the building, with openings along it by index, so a house
+    // of several rooms is one entry. `{ "edge": "n", "at": [x, y], "len": 4, "openings": [{ "at": 1, "kind": "door" }] }`
+    for (const part of b.partitions || []) {
+      const mat = part.wall || matOf(part.edge === "n" ? "n" : "w");
+      const [px, py] = [bx + part.at[0], by + part.at[1]];
+      for (let i = 0; i < part.len; i++) {
+        const o = (part.openings || []).find((op) => op.at === i);
+        const wall = createWall(o ? o.kind : "wall", mat);
+        if (part.edge === "n") get(px + i, py).n = wall;
+        else get(px, py + i).w = wall;
+      }
     }
     for (const p of b.props || []) placeProp(p, [bx, by]);
     // Brackets: `{ side, at, facing: "in" | "out", torch }`. The inside of a

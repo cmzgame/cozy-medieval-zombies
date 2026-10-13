@@ -12,7 +12,7 @@ import { rules } from "../rules.js";
 import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, damageOpening, wayOpen, climbable } from "../map.js";
+import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, damageOpening, wayOpen, climbable, floorSpeedAt } from "../map.js";
 import { lineOfSight } from "../visibility.js";
 import * as light from "../light.js";
 import * as clock from "../clock.js";
@@ -295,7 +295,8 @@ function moveToward(z, dt, goalTile, others) {
   const dy = goalTile[1] - z.gy;
   const n = iso.normalize(dx, dy);
   faceToward(z, dx, dy);
-  const moved = moveCircle(z.gx, z.gy, z.radius, n.x * z.speed * dt, n.y * z.speed * dt);
+  const sp = z.speed * floorSpeedAt(z.gx, z.gy); // shallow water slows the dead too (docs/30, law 8)
+  const moved = moveCircle(z.gx, z.gy, z.radius, n.x * sp * dt, n.y * sp * dt);
   z.gx = moved.gx;
   z.gy = moved.gy;
   separate(z, dt, others);
