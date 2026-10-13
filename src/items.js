@@ -7,6 +7,7 @@
 
 import * as rng from "./rng.js";
 import { nextId } from "./world.js";
+import { zombie as ZT } from "./tuning.js";
 
 const items = new Map();
 let lootTables = {};
@@ -18,6 +19,25 @@ let lootTables = {};
 // step 2 still makes some entries as literals; new code never does.
 export function makeEntry(id, count = 1, props = {}) {
   return { id, count, ...props, uid: nextId("e") };
+}
+
+// Durability is kills (docs/30, law 5 and 5.2): a weapon's `kills` is the
+// design number; the wear a landed hit costs is one over kills times the hits
+// a kill takes against the standard zombie. A bow wears by its `shots`.
+export function hitsPerKill(def) {
+  const w = def && def.weapon;
+  if (!w || !w.damage) return 0;
+  return Math.ceil(ZT.hp / w.damage);
+}
+
+export function wearPerHit(def) {
+  const w = def && def.weapon;
+  if (!w || !w.kills) return 0;
+  return 1 / (w.kills * hitsPerKill(def));
+}
+
+export function wearPerShot(def) {
+  return def && def.shots ? 1 / def.shots : 0;
 }
 
 export function loadItems(list) {

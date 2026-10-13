@@ -11,6 +11,8 @@ import * as interactions from "./interactions.js";
 import * as log from "./ui/log.js";
 import * as view from "./view.js";
 import { getItem } from "./items.js";
+import * as verbs from "./verbs.js";
+import { world } from "./world.js";
 
 let current = null; // { entry, from }
 let label = null;
@@ -75,8 +77,12 @@ export function apply(target, player) {
   const row = interactions.resolve(entry, target);
   const def = getItem(entry.id);
   if (!row) log.push(interactions.NOTHING, "result");
-  else if (row.message) log.push(row.message, "result");
-  else log.push(`${row.verb || "Use"} ${def ? def.name : entry.id} on ${interactions.nameOfTarget(target)}: not yet.`, "result"); // actions come with docs/30 step 3
+  else if (row.action) {
+    // A row's `action` names a verb in the table (docs/31/08, habit 4; `verb` is only its label): run it with the entry and the target.
+    const r = verbs.run(row.action, world, player, { ...target, entry: entry.uid, item: entry.id }, row.args || {});
+    if (!r.ok) log.push(r.reason || interactions.NOTHING, "result");
+  } else if (row.message) log.push(row.message, "result");
+  else log.push(interactions.NOTHING, "result");
   cancel();
   return true;
 }

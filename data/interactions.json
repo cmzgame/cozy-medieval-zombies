@@ -1,5 +1,5 @@
 {
- "note": "docs/30 law 2 (Michael's OSRS rule): anything can be used on anything and the default is 'Nothing interesting happens.' A row here replaces that with an outcome. `use` is an item id or tag; `on` is an item id or tag, a prop's sprite id, 'character' | 'zombie' | 'villager', a floor sprite id, or 'tile'. Until the big pass's step 3 runs actions, a row may carry only a `message`, which is printed to the log.",
+ "note": "docs/30 law 2 (Michael's OSRS rule): anything can be used on anything and the default is 'Nothing interesting happens.' A row here replaces that with an outcome. `use` is an item id or tag; `on` is an item id or tag, a prop's sprite id, 'character' | 'zombie' | 'villager', a floor sprite id, or 'tile'. `verb` is the row's label; `action` names a verb in the verb table (src/verbs.js), run with the entry and the target and `args`; a row with only a `message` prints it to the log.",
  "rows": [
   {"use": "torch", "on": "campfire", "verb": "Light", "message": "You hold the torch to the fire. It is already burning."},
   {"use": "waterskin", "on": "well", "verb": "Fill", "message": "The well's own menu fills it; this is just a note that the rule works."}

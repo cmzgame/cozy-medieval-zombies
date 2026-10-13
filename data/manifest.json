@@ -1,13 +1,14 @@
 {
-  "version": "058480a3",
+  "version": "c1b91b99",
   "files": {
     "data/build.json": {"size": 392, "stamp": "d20c5483"},
     "data/combat.json": {"size": 2154, "stamp": "22f3d3c3"},
     "data/ground.json": {"size": 3543, "stamp": "b0e42d19"},
-    "data/interactions.json": {"size": 701, "stamp": "5b7a3a41"},
-    "data/items.json": {"size": 9032, "stamp": "eb86334d"},
+    "data/interactions.json": {"size": 775, "stamp": "b1224ad3"},
+    "data/items.json": {"size": 14876, "stamp": "7b1801fe"},
     "data/loot.json": {"size": 1566, "stamp": "6e0d3325"},
     "data/poses.json": {"size": 1085, "stamp": "6cd9debd"},
+    "data/recipes.json": {"size": 6989, "stamp": "ad94c853"},
     "data/tuning.json": {"size": 2007, "stamp": "31c34d03"},
     "data/wardrobes.json": {"size": 9038, "stamp": "d7c7b4b8"},
     "data/art/crops/crop_cabbage_0_tlbr.png": {"size": 262, "stamp": "f5a22bd1"},

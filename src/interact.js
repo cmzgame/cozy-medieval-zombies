@@ -34,6 +34,8 @@ import * as verbs from "./verbs.js"; // the verb table (docs/31/08, habit 4)
 import { world } from "./world.js";
 import * as clock from "./clock.js";
 import { tiredStage } from "./moodles.js";
+import * as stations from "./stations.js"; // what a prop is as a station (docs/30, section 6)
+import * as stationPanel from "./ui/station-panel.js";
 
 export const INTERACT_RANGE = 1.15; // tiles
 export const SEARCH_TIME = 1.0;
@@ -516,8 +518,26 @@ function propActions(prop, player) {
   if (prop.wood) out.push(...treeActions(prop));
   if (prop.water) out.push(...wellActions(prop, player));
   if (getDef(prop.sprite).sleep) out.push(...sleepAction(prop, player));
+  if (stations.stationOf(prop)) out.push(...stationActions(prop, player));
   if (canCarry(prop)) out.push(carryAction(prop, player));
   return out;
+}
+
+// A station (docs/30, section 6): one entry that opens its panel; the panel calls the craft verb.
+function stationActions(prop, player) {
+  const station = stations.stationOf(prop);
+  const label = station === "cooking" ? "Cook here" : `Use the ${prop.sprite.replace(/_/g, " ")}`;
+  return [act({
+    kind: "station",
+    simple: true,
+    label,
+    tiles: prop.tiles,
+    mx: prop.tile[0],
+    my: prop.tile[1] - 0.6,
+    perform() {
+      return stationPanel.openFor(prop, player);
+    },
+  })];
 }
 
 // Openings under a canvas point. A door or shutter is drawn as a face up to

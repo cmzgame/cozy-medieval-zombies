@@ -1,0 +1,495 @@
+{
+ "note": "docs/30 section 6: a recipe is a row; `in` names item ids or tags with counts; `fire` needs the station's fire lit; `tool` needs that item in a hand; `out.prop` places a prop beside the station instead of an item in its output. Seconds are sim seconds (a game hour is 30).",
+ "rows": [
+  {
+   "id": "torch",
+   "station": "workbench",
+   "out": {
+    "id": "torch",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "stick",
+     "count": 1
+    },
+    {
+     "tag": "cloth",
+     "count": 1
+    }
+   ],
+   "seconds": 4
+  },
+  {
+   "id": "handle",
+   "station": "workbench",
+   "out": {
+    "id": "stick",
+    "count": 2
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 1
+    }
+   ],
+   "seconds": 3
+  },
+  {
+   "id": "hoe",
+   "station": "workbench",
+   "out": {
+    "id": "hoe",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "stick",
+     "count": 1
+    },
+    {
+     "id": "plank",
+     "count": 1
+    }
+   ],
+   "seconds": 8
+  },
+  {
+   "id": "shovel",
+   "station": "workbench",
+   "out": {
+    "id": "shovel",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "stick",
+     "count": 1
+    },
+    {
+     "id": "plank",
+     "count": 1
+    }
+   ],
+   "seconds": 8
+  },
+  {
+   "id": "bow",
+   "station": "workbench",
+   "out": {
+    "id": "bow",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "stick",
+     "count": 2
+    },
+    {
+     "tag": "cloth",
+     "count": 1
+    }
+   ],
+   "seconds": 12
+  },
+  {
+   "id": "arrows",
+   "station": "workbench",
+   "out": {
+    "id": "arrow",
+    "count": 5
+   },
+   "in": [
+    {
+     "id": "stick",
+     "count": 1
+    }
+   ],
+   "seconds": 5
+  },
+  {
+   "id": "shield",
+   "station": "workbench",
+   "out": {
+    "id": "shield",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 3
+    }
+   ],
+   "seconds": 12
+  },
+  {
+   "id": "chest",
+   "station": "workbench",
+   "out": {
+    "prop": "chest"
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 4
+    }
+   ],
+   "seconds": 10
+  },
+  {
+   "id": "shelf",
+   "station": "workbench",
+   "out": {
+    "prop": "shelf"
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 3
+    }
+   ],
+   "seconds": 8
+  },
+  {
+   "id": "bench",
+   "station": "workbench",
+   "out": {
+    "prop": "bench"
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 2
+    }
+   ],
+   "seconds": 6
+  },
+  {
+   "id": "table",
+   "station": "workbench",
+   "out": {
+    "prop": "table",
+    "footprint": [
+     2,
+     1
+    ]
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 4
+    }
+   ],
+   "seconds": 10
+  },
+  {
+   "id": "bed",
+   "station": "workbench",
+   "out": {
+    "prop": "bed",
+    "footprint": [
+     2,
+     1
+    ]
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 6
+    },
+    {
+     "tag": "cloth",
+     "count": 1
+    }
+   ],
+   "seconds": 16
+  },
+  {
+   "id": "workbench",
+   "station": "workbench",
+   "out": {
+    "prop": "workbench",
+    "footprint": [
+     2,
+     1
+    ]
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 5
+    },
+    {
+     "id": "log",
+     "count": 1
+    }
+   ],
+   "seconds": 14
+  },
+  {
+   "id": "wheelbarrow",
+   "station": "workbench",
+   "out": {
+    "prop": "wheelbarrow"
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 5
+    },
+    {
+     "id": "iron_bar",
+     "count": 1
+    }
+   ],
+   "seconds": 16
+  },
+  {
+   "id": "iron_bar",
+   "station": "forge",
+   "out": {
+    "id": "iron_bar",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "iron_ore",
+     "count": 2
+    }
+   ],
+   "seconds": 10,
+   "fire": true
+  },
+  {
+   "id": "knife",
+   "station": "anvil",
+   "out": {
+    "id": "knife",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "iron_bar",
+     "count": 1
+    },
+    {
+     "id": "stick",
+     "count": 1
+    }
+   ],
+   "seconds": 8,
+   "tool": "hammer"
+  },
+  {
+   "id": "hammer",
+   "station": "anvil",
+   "out": {
+    "id": "hammer",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "iron_bar",
+     "count": 1
+    },
+    {
+     "id": "stick",
+     "count": 1
+    }
+   ],
+   "seconds": 8
+  },
+  {
+   "id": "hatchet",
+   "station": "anvil",
+   "out": {
+    "id": "hatchet",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "iron_bar",
+     "count": 2
+    },
+    {
+     "id": "stick",
+     "count": 1
+    }
+   ],
+   "seconds": 10,
+   "tool": "hammer"
+  },
+  {
+   "id": "pickaxe",
+   "station": "anvil",
+   "out": {
+    "id": "pickaxe",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "iron_bar",
+     "count": 2
+    },
+    {
+     "id": "stick",
+     "count": 1
+    }
+   ],
+   "seconds": 10,
+   "tool": "hammer"
+  },
+  {
+   "id": "scythe",
+   "station": "anvil",
+   "out": {
+    "id": "scythe",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "iron_bar",
+     "count": 1
+    },
+    {
+     "id": "stick",
+     "count": 2
+    }
+   ],
+   "seconds": 10,
+   "tool": "hammer"
+  },
+  {
+   "id": "spear",
+   "station": "anvil",
+   "out": {
+    "id": "spear",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "iron_bar",
+     "count": 1
+    },
+    {
+     "id": "stick",
+     "count": 2
+    }
+   ],
+   "seconds": 10,
+   "tool": "hammer"
+  },
+  {
+   "id": "mace",
+   "station": "anvil",
+   "out": {
+    "id": "mace",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "iron_bar",
+     "count": 2
+    },
+    {
+     "id": "stick",
+     "count": 1
+    }
+   ],
+   "seconds": 12,
+   "tool": "hammer"
+  },
+  {
+   "id": "sword",
+   "station": "anvil",
+   "out": {
+    "id": "sword",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "iron_bar",
+     "count": 3
+    },
+    {
+     "id": "stick",
+     "count": 1
+    }
+   ],
+   "seconds": 16,
+   "tool": "hammer"
+  },
+  {
+   "id": "roast_potato",
+   "station": "cooking",
+   "out": {
+    "id": "roast_potato",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "potato",
+     "count": 1
+    }
+   ],
+   "seconds": 6,
+   "fire": true
+  },
+  {
+   "id": "stew",
+   "station": "cooking",
+   "out": {
+    "id": "stew",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "potato",
+     "count": 2
+    },
+    {
+     "id": "cabbage",
+     "count": 1
+    },
+    {
+     "id": "garlic",
+     "count": 1
+    }
+   ],
+   "seconds": 12,
+   "fire": true
+  },
+  {
+   "id": "porridge",
+   "station": "cooking",
+   "out": {
+    "id": "porridge",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "grain",
+     "count": 2
+    }
+   ],
+   "seconds": 8,
+   "fire": true
+  },
+  {
+   "id": "bread",
+   "station": "oven",
+   "out": {
+    "id": "bread",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "flour",
+     "count": 2
+    }
+   ],
+   "seconds": 10,
+   "fire": true
+  }
+ ]
+}

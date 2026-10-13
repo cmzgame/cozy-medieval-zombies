@@ -233,7 +233,9 @@ function blockHtml(entry, attrs, cell = CELL, w = 1, h = 1, extraCls = "", slot 
     inner += `<span class="inv-label">${def.short || def.name}</span>`;
   }
   if (entry.count > 1) inner += `<span class="inv-stack">${entry.count}</span>`;
-  const title = `${def.name}${entry.fill != null ? ` (${Math.round(entry.fill)}%)` : ""}${entry.count > 1 ? ` x${entry.count}` : ""}`;
+  // Durability (docs/30, 5.2): a thin bar once worn, red under a fifth left.
+  if (entry.wear > 0) inner += `<div class="inv-wear${entry.wear > 0.8 ? " low" : ""}"><div style="width:${Math.round((1 - entry.wear) * 100)}%"></div></div>`;
+  const title = `${def.name}${entry.fill != null ? ` (${Math.round(entry.fill)}%)` : ""}${entry.count > 1 ? ` x${entry.count}` : ""}${entry.wear > 0 ? ` (${Math.round((1 - entry.wear) * 100)}% left)` : ""}`;
   return `<div class="${cls.join(" ")}" ${attrs} title="${title}" style="width:${w * cell}px;height:${h * cell}px;--item:${def.color || "#8a8296"}">${inner}</div>`;
 }
 

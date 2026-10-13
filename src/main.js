@@ -40,6 +40,8 @@ import * as use from "./use.js";
 import * as interactions from "./interactions.js";
 import * as world from "./world.js";
 import * as verbs from "./verbs.js";
+import * as stations from "./stations.js";
+import * as stationPanel from "./ui/station-panel.js";
 import * as interact from "./interact.js";
 import * as items from "./items.js";
 import * as inventory from "./inventory.js";
@@ -158,6 +160,7 @@ function setPaused(v) {
 function handleEscape() {
   if (menu.tookEscape()) return;
   if (use.cancel()) return; // Use mode is the top thing that can close
+  if (stationPanel.close()) return;
   if (screens.back()) return;
   if (buildPalette.isOpen()) {
     buildPalette.close();
@@ -342,6 +345,8 @@ function stepGame(dt) {
   if (input.wasPressed("BracketLeft")) clock.setHour(clock.getHour() - 1);
   clock.update(dt);
   map.burnFires(dt);
+  stations.update(dt); // every station's queue, in the world's time (docs/30, section 6)
+  stationPanel.update(player);
   camera.follow(player, dt);
   camera.applyOrigin(V.w, V.h);
   // Grow the world four chunks ahead of the player, so wild forest and its dead
@@ -621,6 +626,7 @@ async function boot() {
         optionalJson("data/interactions.json"),
       ]);
       interactions.load(interactionsJson); // anything on anything (docs/30, law 2)
+      stations.loadRecipes(await optionalJson("data/recipes.json")); // the stations' recipes (docs/30, section 6)
       tuning.load(await optionalJson("data/tuning.json")); // the entities' numbers (docs/23a, D9)
       items.loadItems(itemsJson);
       placement.setBuildData(buildJson);
@@ -745,6 +751,7 @@ async function boot() {
       cursor.init();
       log.initLog(); // before anything can show a message
       use.init();
+      stationPanel.initStationPanel(() => player);
       initHud();
       initPrompt();
       initZombieBars();
@@ -810,6 +817,11 @@ async function boot() {
       events.on("fireOut", ({ tile }) => {
         if (Math.hypot(tile[0] - player.gx, tile[1] - player.gy) <= 8) showMessage("A fire has gone out.");
       });
+      // A craft done and a weapon worn out (docs/30, sections 5.2 and 6).
+      events.on("craftDone", ({ out, tile }) => {
+        if (Math.hypot(tile[0] - player.gx, tile[1] - player.gy) <= 12) log.push(`Made ${out.prop ? out.prop.replace(/_/g, " ") : `${out.count > 1 ? `${out.count} ` : ""}${items.getItem(out.id).name.toLowerCase()}`}.`, "result");
+      });
+      events.on("weaponBroke", ({ item }) => showMessage(`Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3));
       events.on("containerOpened", ({ bag, tiles: where, name, corpse }) => {
         openBag = { bag, tiles: where, name, corpse: corpse || null };
         panel.setBagOpen(true);

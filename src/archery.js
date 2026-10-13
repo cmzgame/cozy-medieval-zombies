@@ -17,8 +17,8 @@ import { getItem } from "./items.js";
 import { getSheet, idleFrame } from "./assets.js";
 import { damageZombie } from "./entities/zombie.js";
 import { DOOR_TOP, WINDOW_SILL, WINDOW_TOP } from "./placeholders.js";
-import { countAll, takeAll } from "./inventory.js";
-import { release } from "./items.js";
+import { countAll, takeAll, detach } from "./inventory.js";
+import { release, wearPerShot } from "./items.js";
 import { showMessage } from "./ui/prompt.js";
 import * as loop from "./loop.js";
 import * as rng from "./rng.js";
@@ -497,6 +497,16 @@ export function releaseDraw(player, mouse) {
   recover = tunables.recoverTime;
   setPose(player, 3);
   emit("arrowShot", { player, arrow: a, c });
+  // The string wears by the shot (docs/30, 5.2: a bow's `shots`); at the last one the bow is gone from the hand.
+  const bowEntry = player.hands.main;
+  const per = bowEntry ? wearPerShot(getItem(bowEntry.id)) : 0;
+  if (per) {
+    bowEntry.wear = Math.min(1, (bowEntry.wear || 0) + per);
+    if (bowEntry.wear >= 1) {
+      detach(player, bowEntry);
+      emit("weaponBroke", { who: player.id, item: bowEntry.id, uid: bowEntry.uid });
+    }
+  }
   return a;
 }
 

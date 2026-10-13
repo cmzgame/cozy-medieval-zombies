@@ -24,6 +24,7 @@ import { aimOrigin } from "./entities/player.js";
 import { damageZombie, isDown, staggerZombie, STAGGER_RULES } from "./entities/zombie.js";
 import * as rng from "./rng.js";
 import { rules } from "./rules.js";
+import { detach } from "./inventory.js"; // a worn-out weapon leaves the hand (docs/30, 5.2)
 
 // Tunables (docs/14).
 export const POINT_BLANK = 0.55; // tiles: this close is always hit
@@ -334,8 +335,24 @@ export function tryAttack(player, zombies, hand = "main", mode = null) {
     loop.freeze(killed ? HIT_STOP_KILL : HIT_STOP);
     kick(player);
     emit("meleeHit", { count: hit.length, killed });
+    wearWeapon(player, hand === "off" ? "off" : "main", hit.length); // a landed hit costs the weapon its wear (docs/30, 5.2); a miss nothing
   }
   return hit;
+}
+
+// Durability is kills (docs/30, law 5): each landed hit wears the weapon that
+// swung by its per-hit share, and at one it is gone from the hand, with a
+// word. Two weapons each wear their own, so per kill the cost is the same.
+export function wearWeapon(player, slot, hits = 1) {
+  const entry = player.hands[slot];
+  if (!entry) return;
+  const per = items.wearPerHit(items.getItem(entry.id));
+  if (!per) return;
+  entry.wear = Math.min(1, (entry.wear || 0) + per * hits);
+  if (entry.wear >= 1) {
+    detach(player, entry);
+    emit("weaponBroke", { who: player.id, item: entry.id, uid: entry.uid });
+  }
 }
 
 // Space: no damage, a strong push, a stagger, sometimes a knockdown. Works with

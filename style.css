@@ -838,11 +838,151 @@ html, body {
   pointer-events: none;
 }
 
+/* Durability (docs/30, 5.2): a thin bar at the foot of a worn item. */
+.inv-wear {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  bottom: 2px;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+.inv-wear div {
+  height: 100%;
+  background: var(--green);
+}
+
+.inv-wear.low div {
+  background: var(--red);
+}
+
 .inv-hl {
   position: absolute;
   box-sizing: border-box;
   pointer-events: none;
   border-radius: 3px;
+}
+
+/* ---- the station panel (docs/30, section 6): recipes, the chosen one, the queue ---- */
+#station {
+  position: absolute;
+  left: 50%;
+  top: 34px;
+  transform: translateX(-50%);
+  z-index: 7;
+  width: 460px;
+  font-size: 12px;
+  line-height: 1.35;
+  pointer-events: auto;
+}
+
+/* The list, the detail, and the queue sit in dark wells on the bricks, like the slots (the cutouts rule). */
+.st-body {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.st-list {
+  flex: 1 1 55%;
+  max-height: 232px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: 2px;
+}
+
+.st-row {
+  padding: 3px 6px;
+  cursor: pointer;
+  border-radius: 2px;
+  line-height: 1.35;
+}
+
+.st-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.st-row.selected {
+  background: rgba(255, 255, 255, 0.08);
+  outline: 1px solid var(--gold);
+}
+
+.st-row.short b {
+  color: var(--muted);
+}
+
+.st-row .why {
+  display: block;
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--dim);
+}
+
+.st-detail {
+  flex: 1 1 45%;
+  padding: 6px 8px;
+}
+
+.st-in {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 1px 0;
+}
+
+.st-in.short span {
+  color: var(--red);
+}
+
+.st-note {
+  color: var(--muted);
+  font-size: 11px;
+  padding: 3px 0;
+}
+
+.st-make {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.st-make input {
+  width: 36px;
+  font: inherit;
+  background: var(--well-fill);
+  color: var(--text);
+  border: 1px solid var(--panel-edge);
+}
+
+.st-queue {
+  margin-top: 6px;
+  padding: 4px 6px;
+}
+
+.st-job {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px;
+}
+
+.st-job span {
+  flex: 1;
+}
+
+.st-bar {
+  width: 120px;
+  height: 8px;
+  background: var(--bar-bg);
+  border: 1px solid var(--bar-edge);
+}
+
+.st-bar div {
+  height: 100%;
+  background: var(--gold);
 }
 
 .inv-hl.ok {
