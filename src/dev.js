@@ -101,6 +101,13 @@ export function createDevApi(ctx) {
     // Customisation from the console until the creation screen: skin, hair, hairStyle (short, long, bald), eyes.
     // Always rebakes, so an edit to figure.BODY from the console shows: __game.figure.BODY.hip = 17; __game.setLook({}).
     setLook(partial) { Object.assign(P().look, partial); ctx.refreshFigure(true); },
+    // The poses re-read from data/poses.json and the player rebaked (docs/32): edit the file, then __game.reloadPoses().
+    async reloadPoses() {
+      const json = await (await fetch("/data/poses.json", { cache: "no-store" })).json();
+      figure.setPoses(json);
+      ctx.refreshFigure(true);
+      return Object.keys(json).filter((k) => k !== "note");
+    },
     // Put an item in your bag, or at your feet if it does not fit: __game.give("sword").
     give(id, count = 1) {
       const p = P();

@@ -54,6 +54,8 @@ The one item that earns frames. Today: two crouches then lying. **Six frames at 
 
 No new frames. The four walk keyframes read as nearly right (Michael); a pass on the numbers in `pose()`'s `walk` case, tried from the console with Michael watching, then moved into the poses data as a `walk` style so they are tunable without code. The leg stride and lift, the arm swing's pitch, and the bob are the knobs.
 
+*(First cut 2026-10-13: the walk is data, `walk` in `data/poses.json` with `stride`, `lift`, `arms`, `bob`, `lean`, `headD` per frame; the numbers moved so the body is low at the contact frames and up a pixel at the passing frames, the swinging leg's knee lifts at the passing frames, and the body leans half a unit into the walk. The one-handed swing was passed over at the same time, since Michael called it wild: the wind-up coils back at 75 degrees instead of overhead at 110 with the body leaning back, the hit drops the body a pixel, the follow-through reaches 125, the settle comes to 50. Both are Michael's to judge in play and to tune: edit the file and `__game.reloadPoses()` rebakes the player at once.)*
+
 ### 11. The arrow and the spear, redrawn (dev art)
 
 *(Done 2026-10-13 with this spec, in `archery.js` `makeProjectile`: a two-tone shaft, a tapered head with its socket, swept fletching and a nock on the arrow, a lashing and a broader stone point on the spear. If the drawn art from the design agent lands before this list is built, the item is moot and is struck.)* The generator keeps its sixteen angles and its frame names, so the flight, the landed picture, and the held strip change together.

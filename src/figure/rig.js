@@ -32,6 +32,16 @@ export const ANIMS = {
 // `offOut` pose the other arm when the style needs it (the dead use both).
 // These defaults are what the file holds, so a missing file is not fatal.
 const DEFAULT_POSES = {
+  // The walk (docs/32, item 10): `stride` and `lift` per leg [left, right], `arms` the pitch per arm, `bob`
+  // (positive down), `lean`, `headD`. These are the numbers the walk had in code until 2026-10-13.
+  walk: {
+    frames: [
+      { stride: [4, -4], lift: [2, 0], arms: [-28, 28], bob: -1 },
+      { stride: [0, 0], lift: [0, 0], arms: [0, 0], bob: 0 },
+      { stride: [-4, 4], lift: [0, 2], arms: [28, -28], bob: -1 },
+      { stride: [0, 0], lift: [0, 0], arms: [0, 0], bob: 0 },
+    ],
+  },
   throw: {
     fps: 12,
     activeFrame: 3,
@@ -182,10 +192,14 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
         p.lift = [swing > 0 ? 2 : 0, 0];
         p.bob = i % 2 === 0 ? 0 : 1;
       } else {
-        p.stride = [4 * swing, -4 * swing];
-        p.lift = [swing > 0 ? 2 : 0, swing < 0 ? 2 : 0];
-        p.armPitch = [-28 * swing, 28 * swing];
-        p.bob = i % 2 === 0 ? -1 : 0;
+        // The walk's four keyframes are data (docs/32, item 10): contact, passing, contact, passing.
+        const f = (POSES.walk || DEFAULT_POSES.walk).frames[i % 4];
+        p.stride = [...f.stride];
+        p.lift = [...f.lift];
+        p.armPitch = [...f.arms];
+        p.bob = f.bob ?? 0;
+        p.lean = f.lean ?? 0;
+        p.headD = f.headD ?? 0;
       }
       break;
     case "attack": {

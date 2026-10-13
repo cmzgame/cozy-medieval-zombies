@@ -136,7 +136,7 @@ Poses the game lacks, as data on the final rig; more frames only where named. In
 - [ ] 7. Sleep: the lying pose on the bed, the sim moving the sleeper there and back.
 - [ ] 8. Sit: a `sit` verb on chairs, benches, and pews (`seat: true`), a one-frame pose, stood up by any move.
 - [ ] 9. The death for every model: six frames, the atlas measured before and after.
-- [ ] 10. The walk, a quick pass on the numbers with Michael watching, then into the poses data.
+- [x] 10. The walk, a quick pass (first cut 2026-10-13: the walk as data in `poses.json`, low at contact and up at passing with the knee lifted; the one-handed swing passed over at the same time, a readable coil instead of the overhead wind-up; `__game.reloadPoses()` to tune; Michael's eye owed).
 - [x] 11. The arrow and the spear redrawn as dev art (2026-10-13, with the spec): struck if drawn art lands first.
 
 ## Conversations to have before code
