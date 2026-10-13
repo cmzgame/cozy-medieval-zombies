@@ -424,13 +424,23 @@ function drawFrame(frame, spec, facing, anim, i) {
   const st = Math.sin((HELD_TILT * Math.PI) / 180);
   const so = Math.sin((HELD_LEAN_OUT * Math.PI) / 180);
   const restAxis = (side) => [F.fx * st + side * F.rx * so, -Math.cos((HELD_TILT * Math.PI) / 180) + (F.fy * st + side * F.ry * so) * ISO];
+  // In a swing the thing points along the forearm, cocked up by the pose's wrist (docs/32: the blade stays
+  // level as the arm drops at the follow-through instead of dipping with it): the forearm's screen
+  // direction is turned toward "up" by that many degrees, whichever side it hangs on.
+  const swingAxis = (dir) => {
+    if (!p.wrist) return dir;
+    const a = Math.atan2(dir[0], -dir[1]); // clockwise from up, as the held angles are counted
+    const w = (p.wrist * Math.PI) / 180;
+    const b = a > 0 ? Math.max(0, a - w) : Math.min(0, a + w);
+    return [Math.sin(b), -Math.cos(b)];
+  };
   const hand = (arm, side) => ({
     x: Math.round(arm.b.x) - FEET_X,
     y: Math.round(arm.b.y) - FEET_Y,
     dir: [arm.b.x - arm.a.x, arm.b.y - arm.a.y],
     near: arm.b.depth >= 0,
     ang: angleIndex(restAxis(side)),
-    angSwing: angleIndex([arm.b.x - arm.a.x, arm.b.y - arm.a.y]),
+    angSwing: angleIndex(swingAxis([arm.b.x - arm.a.x, arm.b.y - arm.a.y])),
   });
   const jp = (pt) => {
     const q = P(pt);

@@ -158,6 +158,7 @@ function restPose() {
     crouch: 1, // scale on heights above the feet
     lying: false,
     flash: false,
+    wrist: 0, // degrees the held thing is cocked up from the forearm in a swing (docs/32): the blade stays level as the arm drops
   };
 }
 
@@ -210,6 +211,7 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
         p.armOut = [f.offOut ?? p.armOut[0], f.out ?? p.armOut[1]];
         p.lean = f.lean ?? 0;
         p.bob = f.bob ?? 0;
+        p.wrist = f.wrist ?? 0;
       }
       break;
     }

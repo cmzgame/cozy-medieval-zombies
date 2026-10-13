@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-13 — A swing has a wrist: the blade stays level as the arm drops (Michael's reading)
+
+Michael, on the high-to-fall slash: at the end the tip dips, and he suspected the hold rather than the arm. Right: in a swing a held thing points along the forearm, so at the follow-through, with the arm at 35 degrees, the blade pointed at the ground with it. **A pose now has a `wrist`**, degrees the held thing is cocked up from the forearm toward "up" on whichever side it hangs, read from the style's frame (`data/poses.json`, `wrist` per frame; the rig's default is none, so the bow and the throw are unchanged). The slash cocks 10 at the hit, 45 at the follow-through, 30 at the settle, so from the side the blade finishes level and from the front it crosses low rather than pointing down. The sheets check re-baselined on the player-variant sheets.
+
 ### 2026-10-13 — The one-handed swing is a high-to-fall slash, never behind the back (Michael)
 
 Michael on the first swing pass, in the frames editor: the behind-the-back part was the problem; a general one-handed swing raises to head level or a smidge higher and no more, never behind the back, and reads as a slash with a sword while still bopping plausibly with a stick; the high-to-fall slash is the play. **Ruled, and in the data:** `one_handed` is raise (pitch 150, the hand beside the head, the body back half a unit), hit on the way down (90, the body dropping a pixel and leaning in), the follow-through low and across the body (35, out 5 across), settle (55). No negative pitch in the style. **The walk's first pass is accepted** ("looks great").

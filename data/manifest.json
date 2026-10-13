@@ -1,5 +1,5 @@
 {
-  "version": "5a1cf279",
+  "version": "f6ccbd85",
   "files": {
     "data/build.json": {"size": 392, "stamp": "d20c5483"},
     "data/combat.json": {"size": 2154, "stamp": "22f3d3c3"},
@@ -8,7 +8,7 @@
     "data/items.json": {"size": 14876, "stamp": "7b1801fe"},
     "data/looks.json": {"size": 936, "stamp": "8e217882"},
     "data/loot.json": {"size": 1566, "stamp": "6e0d3325"},
-    "data/poses.json": {"size": 1843, "stamp": "2424c9ec"},
+    "data/poses.json": {"size": 1992, "stamp": "1c884024"},
     "data/recipes.json": {"size": 6989, "stamp": "ad94c853"},
     "data/tuning.json": {"size": 2007, "stamp": "31c34d03"},
     "data/wardrobes.json": {"size": 9038, "stamp": "d7c7b4b8"},
