@@ -301,6 +301,12 @@ export function hostStep(mySnap, me) {
         continue;
       }
       const hash = typeof msg.clientId === "string" && msg.clientId ? idHash(msg.clientId) : null;
+      // A world remembers characters by the browser's id, so a join with none is refused (it would make a
+      // character nobody could come back to, one for every join, for ever).
+      if (!hash && hooks.joinFor) {
+        send({ type: "bye", to: msg.from, reason: "refused" });
+        continue;
+      }
       // A newer join from the same browser replaces the older connection (a refresh with the old socket
       // still open): the old one is told and dropped; its character is the new one's to take back.
       if (hash) {
@@ -320,6 +326,10 @@ export function hostStep(mySnap, me) {
         const spawn = game.state.info ? game.state.info.spawn : [me.gx, me.gy];
         const at = map.nearestWalkable(spawn[0] + 1, spawn[1] + 1, (x, y) => game.state.players.some((p) => Math.round(p.gx) === x && Math.round(p.gy) === y)) || spawn;
         r = { player: game.addPlayer(at[0], at[1], { look: identity ? identity.look : null, name: identity ? identity.name : null }) };
+      }
+      if (r && r.full) {
+        send({ type: "bye", to: msg.from, reason: "full" });
+        continue;
       }
       if (!r || !r.player) {
         send({ type: "who", to: msg.from, dead: !!(r && r.who && r.who.dead) });
@@ -497,7 +507,7 @@ export function guestStep(mySnap) {
       if (hooks.who) hooks.who(!!msg.dead);
     } else if (msg.type === "bye") {
       // The host let go: replaced by a newer join from this browser, or another protocol.
-      dropped(msg.reason === "version" ? (msg.newer === "guest" ? "versionHost" : "versionGuest") : msg.reason === "replaced" ? "replaced" : "hostLeft");
+      dropped(msg.reason === "version" ? (msg.newer === "guest" ? "versionHost" : "versionGuest") : ["replaced", "full", "refused"].includes(msg.reason) ? msg.reason : "hostLeft");
       return;
     } else if (msg.type === "opened") {
       pendingOpened.push(msg.what); // after the frame that carries the grid (frames queue behind it)

@@ -24,8 +24,19 @@ const PORT = Number(process.env.PORT || process.argv[2] || 8012);
 const GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 const MAX_MESSAGE = 16 * 1024 * 1024; // the welcome is a whole save, under a megabyte today
 const PING_EVERY_MS = 30000;
-const LOOKUPS_PER_MINUTE = 30; // per address: /open answers and refused joins (nohost, taken), so a code cannot be scanned (the review, 2026-10-13)
+const LOOKUPS_PER_MINUTE = 120; // per address: /open answers and refused joins (nohost, taken), so a code cannot be scanned (the review, 2026-10-13); a Worlds screen asks for every bookmarked code every ten seconds, so thirty was too few, and at 120 a scan of the code space takes years
+
 const lookups = new Map(); // address -> { count, since }
+
+// The address a client cannot choose: Fly's own header, else the last hop a proxy appended (the first
+// X-Forwarded-For value is whatever the client sent, and would let a scan start afresh with every request),
+// else the socket's.
+function addressOf(req) {
+  const fly = req.headers["fly-client-ip"];
+  if (fly) return String(fly).trim();
+  const fwd = String(req.headers["x-forwarded-for"] || "").split(",").map((s) => s.trim()).filter(Boolean);
+  return fwd.length ? fwd[fwd.length - 1] : req.socket.remoteAddress || "";
+}
 
 function overLimit(address) {
   const now = Date.now();
@@ -197,12 +208,18 @@ function onMessage(conn, text) {
   const room = rooms.get(conn.code);
   if (!room) return conn.close(1011);
   if (conn.role === "host") {
-    // To one guest when named, else to all. `from` is the host's id, stamped here.
+    // To one guest when named, else to every guest the host has welcomed. `from` is the host's id, stamped
+    // here. A connection the host refused or has not admitted (a wrong version, a world full, no browser
+    // id) hears only what is addressed to it, never the world's frames (found reviewing the worlds move).
     const out = JSON.stringify({ ...msg, from: conn.id });
     if (msg.to) {
       const g = room.guests.get(msg.to);
-      if (g) g.sendText(out);
-    } else for (const g of room.guests.values()) g.sendText(out);
+      if (g) {
+        g.sendText(out);
+        if (msg.type === "welcome") g.admitted = true;
+        else if (msg.type === "bye") g.close(1000); // the host let this one go: the relay does too
+      }
+    } else for (const g of room.guests.values()) if (g.admitted) g.sendText(out);
   } else {
     // A guest speaks only to its host, and only as itself.
     room.host.sendText(JSON.stringify({ ...msg, from: conn.id, to: undefined }));
@@ -235,7 +252,7 @@ function log(line) {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, "http://relay");
-  const address = (req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim();
+  const address = addressOf(req);
   // "Is this world open?" for a code: { open, guests }. Rate-limited per address, as a refused join is.
   if (url.pathname === "/open") {
     if (overLimit(address)) {
@@ -264,7 +281,7 @@ server.on("upgrade", (req, socket) => {
   socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
   socket.setNoDelay(true);
   const conn = new Conn(socket);
-  conn.address = (req.headers["x-forwarded-for"] || socket.remoteAddress || "").split(",")[0].trim();
+  conn.address = addressOf(req);
   // A socket that never says who it is (host or guest, which code) is let go: only room members are pinged.
   setTimeout(() => { if (!conn.role) conn.close(1008); }, 10000).unref();
   socket.on("data", (chunk) => conn.feed(chunk));
@@ -274,6 +291,7 @@ server.on("upgrade", (req, socket) => {
 
 setInterval(() => {
   const now = Date.now();
+  for (const [a, l] of lookups) if (now - l.since > 60000) lookups.delete(a); // the table does not grow with every address ever seen
   for (const room of rooms.values()) {
     for (const c of [room.host, ...room.guests.values()]) {
       if (now - c.lastSeen > DEAD_AFTER_MS) c.close(1001);

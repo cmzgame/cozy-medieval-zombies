@@ -471,7 +471,7 @@ function render() {
         <div class="screen-buttons row">${button("newworld", "New world")}${button("join", "Join a game")}${button("back", "Back")}</div>
       </div>`;
     pollOpen();
-    dotTimer = setInterval(pollOpen, 5000);
+    dotTimer = setInterval(pollOpen, 10000);
   } else if (current === "waiting") {
     root.innerHTML = `
       <div class="screen">

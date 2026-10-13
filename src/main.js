@@ -123,6 +123,7 @@ const testStore = { owners: {}, dormant: {} };
 function ownersStore() {
   return currentWorld || testStore;
 }
+const MAX_OWNERS = 16; // the browsers a world remembers a character for
 const myHash = () => identities.idHash(identities.clientId());
 
 // A join on the host (net.js hooks.joinFor): the character this browser made here, back from dormancy
@@ -143,6 +144,9 @@ function joinFor(hash, identity) {
     if (!identity) return { who: { dead: !!(p && p.dead) } };
   }
   if (!identity) return { who: {} };
+  // A world holds so many browsers' characters: anyone with the code could otherwise make characters
+  // without end, each kept in the save (the review of the worlds move, 2026-10-13).
+  if (hash && !store.owners[hash] && Object.keys(store.owners).length >= MAX_OWNERS) return { full: true };
   const spawn = S.info ? S.info.spawn : [S.player.gx, S.player.gy];
   const at = map.nearestWalkable(spawn[0] + 1, spawn[1] + 1, (x, y) => S.players.some((p) => Math.round(p.gx) === x && Math.round(p.gy) === y)) || spawn;
   const p = game.addPlayer(at[0], at[1], { look: identity.look, name: identity.name });
@@ -1260,6 +1264,8 @@ async function boot() {
         dropped: "The connection to the host dropped.",
         hostLeft: "The host closed the world.",
         replaced: "This world was joined again from another tab or window; this one let go.",
+        full: "That world has as many survivors as it holds.",
+        refused: "The host would not take that join.",
         versionGuest: "The host is on a newer build. Refresh and rejoin.",
         versionHost: "You are on a newer build than the host; they should refresh.",
       };

@@ -19,6 +19,18 @@ function write(key, value) {
   else settings.set(key, value);
 }
 
+// The browser id is the one proof of whose character is whose, so it is drawn from the crypto source
+// where there is one (a time and a few Math.random digits could be guessed).
+function secret() {
+  try {
+    const a = new Uint8Array(16);
+    crypto.getRandomValues(a);
+    return [...a].map((b) => b.toString(16).padStart(2, "0")).join("");
+  } catch {
+    return null;
+  }
+}
+
 function token(prefix) {
   return `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 }
@@ -79,7 +91,7 @@ export function idHash(id) {
 export function clientId() {
   let id = read("clientId");
   if (!id) {
-    id = token("c");
+    id = secret() ? `c${secret()}` : token("c");
     write("clientId", id);
   }
   return id;

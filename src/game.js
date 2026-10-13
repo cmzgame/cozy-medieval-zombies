@@ -267,6 +267,8 @@ export function addPlayer(gx, gy, { look = null, name = null, id = null } = {}) 
 
 export function removePlayer(id) {
   const S = state;
+  const gone = S.players.find((p) => p.id === id);
+  if (gone && gone.sleeping && !S.players.some((q) => q !== gone && q.sleeping)) world.setTimeScale(1);
   S.players = S.players.filter((p) => p.id !== id);
   if (S.player && S.player.id === id) S.player = S.players[0] || null;
 }
@@ -277,6 +279,12 @@ export function removePlayer(id) {
 export function takePlayer(id) {
   const p = state.players.find((q) => q.id === id);
   if (!p) return null;
+  // A sleeper's bed sets the whole world's time scale (player.js); one leaving the sim in its sleep would
+  // leave the world at that scale for good, and wake dormant in a record that says asleep.
+  if (p.sleeping) {
+    p.sleeping = null;
+    if (!state.players.some((q) => q !== p && q.sleeping)) world.setTimeScale(1);
+  }
   const record = serializeCharacter(p);
   removePlayer(id);
   return record;
