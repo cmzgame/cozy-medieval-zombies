@@ -1016,6 +1016,8 @@ async function boot() {
       }
       // A guest's placement goes to the host as a command, performed there with the host's reach (placement.js).
       if (handlers.addressOf) placement.setSender((cmd) => net.sendPlace(cmd));
+      // A guest's Make goes to the host as a command (ui/station-panel.js), the verb run there as the guest's player.
+      if (handlers.addressOf) stationPanel.setSender((cmd) => net.sendCraft(cmd));
       // A host's own drag into a chest marks its chunk, so a guest sees the chest change.
       handlers.changed = () => { if (!net.isGuest() && openBag && openBag.tiles && openBag.tiles[0]) map.markDirty(openBag.tiles[0][0], openBag.tiles[0][1]); };
       panel.initInventoryPanel(handlers);
@@ -1167,17 +1169,23 @@ async function boot() {
       });
       // A craft done and a weapon worn out (docs/30, sections 5.2 and 6).
       events.on("craftDone", ({ out, tile }) => {
-        if (Math.hypot(tile[0] - S.player.gx, tile[1] - S.player.gy) <= 12) log.push(`Made ${out.prop ? out.prop.replace(/_/g, " ") : `${out.count > 1 ? `${out.count} ` : ""}${items.getItem(out.id).name.toLowerCase()}`}.`, "result");
+        const line = `Made ${out.prop ? out.prop.replace(/_/g, " ") : `${out.count > 1 ? `${out.count} ` : ""}${items.getItem(out.id).name.toLowerCase()}`}.`;
+        if (Math.hypot(tile[0] - S.player.gx, tile[1] - S.player.gy) <= 12) log.push(line, "result");
+        // And every guest whose player stands near (the stations step outside any acting player).
+        if (net.isHost()) for (const id of net.guestPlayerIds()) {
+          const p = S.players.find((q) => q.id === id);
+          if (p && Math.hypot(tile[0] - p.gx, tile[1] - p.gy) <= 12) net.logTo(id, line, "result");
+        }
       });
       events.on("weaponBroke", ({ item, who }) => {
         if (who && who !== S.player.id) return; // a guest's weapon wears out on the host (its swing resolves there): the word is theirs, not this screen's
         showMessage(`Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3);
       });
-      events.on("containerOpened", ({ bag, tiles: where, name, corpse, closeDist, prop, entry, tile, character }) => {
+      events.on("containerOpened", ({ bag, tiles: where, name, corpse, closeDist, prop, entry, tile, character, station }) => {
         // Opened by a guest's player (the acting player, game.js): told to the guest, not shown here.
         const by = game.state.acting;
         if (by && by !== S.player) {
-          net.openedFor(by.id, { propId: prop ? prop.id : null, entryUid: entry ? entry.uid : null, tile: tile || null, characterId: character ? character.id : null, tiles: where, name, closeDist: closeDist || 0 });
+          net.openedFor(by.id, { propId: prop ? prop.id : null, entryUid: entry ? entry.uid : null, tile: tile || null, characterId: character ? character.id : null, tiles: where, name, closeDist: closeDist || 0, station: !!station });
           return;
         }
         openBag = { bag, tiles: where, name, corpse: corpse || null, closeDist: closeDist || 0 };
@@ -1251,6 +1259,11 @@ async function boot() {
     opened: (w) => {
       const c = interact.containerAt(S.player, w);
       if (!c) return;
+      // A station my player used on the host: its recipes panel on my replica (the output opens below as any container).
+      if (w.station && w.propId) {
+        const pr = map.propById(w.propId);
+        if (pr) stationPanel.openPanel(pr, S.player);
+      }
       openBag = { bag: c.bag, tiles: w.tiles, name: w.name, corpse: c.corpse, closeDist: w.closeDist || 0, address: w };
       panel.setBagOpen(true);
     },
@@ -1259,6 +1272,15 @@ async function boot() {
     use: (p, cmd) => performUseCommand(p, cmd, (id) => [...S.players, ...S.zombies, ...S.villagers, ...S.corpses].find((c) => c.id === id) || null),
     // A guest's placement: a carried prop put down, a wall built, a built thing removed (placement.js).
     place: (p, cmd) => placement.performPlacement(p, cmd),
+    // A guest's Make: the craft verb as the guest's player; the verb checks the reach and says its refusals.
+    craft: (p, cmd) => {
+      const propId = typeof cmd.propId === "string" ? cmd.propId : null;
+      const recipe = typeof cmd.recipe === "string" ? cmd.recipe : null;
+      const count = Math.max(1, Math.min(10, Math.round(Number(cmd.count)) || 1));
+      if (!propId || !recipe) return;
+      const r = verbs.run("craft", world.world, p, { prop: propId }, { recipe, count }); // the world object (world.js), as the panel passes it
+      if (!r.ok) showMessage(r.reason || "Cannot.");
+    },
     // A log line said for my player on the host (the Use mode's result).
     log: (text, kind) => log.push(text, kind),
     // The wire gone (net.js dropped): a guest back at the title, told why, the world here untouched; a host told and playing on alone.

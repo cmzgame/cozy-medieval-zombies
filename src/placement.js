@@ -493,13 +493,18 @@ export function performPlacement(player, cmd) {
     const tx = Math.round(Number(cmd.tx));
     const ty = Math.round(Number(cmd.ty));
     if (!Number.isFinite(tx) || !Number.isFinite(ty)) return false;
+    // Turned as the guest turned it for the room check, and turned back if the put-down is refused, so a
+    // refusal leaves the host's copy as it was (the review, 2026-10-13).
     const turns = ((Math.round(Number(cmd.turns)) || 0) % 4 + 4) % 4;
     for (let i = 0; i < turns; i++) turn(prop);
+    const untwist = () => { for (let i = 0; i < (4 - turns) % 4; i++) turn(prop); };
     if (Math.hypot(player.gx - tx, player.gy - ty) > PLACE_REACH) {
+      untwist();
       showMessage("Too far");
       return true;
     }
     if (!canPutDown(player, tx, ty)) {
+      untwist();
       showMessage("No room");
       return true;
     }

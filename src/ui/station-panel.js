@@ -17,6 +17,11 @@ let root = null;
 let open = null; // { propId, station, recipe (id), count }
 let lastHtml = "";
 let getPlayer = () => null;
+let sender = null; // on a guest (docs/31/05 item 10, tier 3): Make goes to the host as a command, which runs the verb as the guest's player
+
+export function setSender(fn) {
+  sender = fn;
+}
 
 export function initStationPanel(playerGetter) {
   getPlayer = playerGetter;
@@ -33,8 +38,11 @@ export function initStationPanel(playerGetter) {
     const row = e.target.closest("[data-recipe]");
     if (row) { open.recipe = row.dataset.recipe; lastHtml = ""; return; }
     if (e.target.closest("[data-make]")) {
-      const r = verbs.run("craft", world, getPlayer(), { prop: open.propId }, { recipe: open.recipe, count: open.count });
-      if (!r.ok) showMessage(r.reason);
+      if (sender) sender({ propId: open.propId, recipe: open.recipe, count: open.count });
+      else {
+        const r = verbs.run("craft", world, getPlayer(), { prop: open.propId }, { recipe: open.recipe, count: open.count });
+        if (!r.ok) showMessage(r.reason);
+      }
       lastHtml = "";
       return;
     }
@@ -55,14 +63,24 @@ export function openFor(prop, player) {
   // A guest's "Use the workbench" runs on the host as the guest's player (net.js, docs/31/05 item 10): the host's
   // own panel stays shut; the output opens on the guest through containerOpened, and its recipes panel is owed.
   if (player !== getPlayer()) {
-    emit("containerOpened", { bag: stations.outputOf(prop), tiles: prop.tiles, name: "output", prop, closeDist: stations.REACH + 1 });
+    // `station` on the payload: the guest opens its own copy of this panel on its replica (main.js's opened hook).
+    emit("containerOpened", { bag: stations.outputOf(prop), tiles: prop.tiles, name: "output", prop, closeDist: stations.REACH + 1, station: true });
     return true;
   }
+  openPanel(prop, player);
+  openOutput(prop);
+  return true;
+}
+
+// The panel itself, without the output: a guest opens it on its replica once the host says its player
+// used the station (the output opens through the same `opened` as any container).
+export function openPanel(prop, player) {
+  const station = stations.stationOf(prop);
+  if (!station) return false;
   const list = stations.recipesFor(station);
   open = { propId: prop.id, station, recipe: list[0] ? list[0].id : null, count: 1 };
   root.hidden = false;
   lastHtml = "";
-  openOutput(prop);
   render(player);
   return true;
 }

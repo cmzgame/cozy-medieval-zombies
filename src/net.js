@@ -99,6 +99,7 @@ const GRACE_S = 60;
 const MAX_PENDING = 180; // a guest's unacknowledged inputs kept for the replay: three seconds
 const MAX_BACKLOG = 10; // a guest's inputs the host will hold: a sixth of a second, so the internet's own jitter is not corrected
 const away = new Map(); // playerId -> the sim time its guest went
+const lastCarried = new Map(); // character id -> the carried prop's id last sent in a full record (null for none)
 let clientId = null; // this browser's id on the join (identities.js); the host records its hash
 export function setClient(id) {
   clientId = id || null;
@@ -123,6 +124,7 @@ export function close() {
   inbox.length = 0;
   guests.clear();
   away.clear();
+  lastCarried.clear();
   pending.length = 0;
   pendingOpened.length = 0;
 }
@@ -404,13 +406,13 @@ export function hostStep(mySnap, me) {
           game.state.acting = null;
         }
       }
-    } else if (msg.type === "item" || msg.type === "use" || msg.type === "place") {
+    } else if (msg.type === "item" || msg.type === "use" || msg.type === "place" || msg.type === "craft") {
       // The panel's drags, drops, and menus, and the Use mode's pair, from a guest (docs/31/05, item 9):
       // run here as the guest's player through the same code its own panel uses (main.js hands in
       // inventory-actions.js's executors).
       const g = guests.get(msg.from);
       const p = g && game.state.players.find((q) => q.id === g.playerId);
-      const hook = msg.type === "item" ? hooks.item : msg.type === "use" ? hooks.use : hooks.place;
+      const hook = msg.type === "item" ? hooks.item : msg.type === "use" ? hooks.use : msg.type === "place" ? hooks.place : hooks.craft;
       if (p && hook) {
         game.state.acting = p;
         try {
@@ -475,6 +477,10 @@ function record(c) {
   if (c.kind === "player" || !known.has(c.id)) {
     known.add(c.id);
     const r = { full: true, ...serializeCharacter(c), line: c.line }; // the save drops a bubble; a frame carries it (the chat)
+    // The prop in hand rides once, when it changes (the review, 2026-10-13: a stocked chest every frame is its whole
+    // bag every frame); a guest keeps its copy while the id stays, and a welcome's save carries it whole.
+    if (lastCarried.get(c.id) === r.carryingId) delete r.carried;
+    else lastCarried.set(c.id, r.carryingId);
     if (c.kind === "player") for (const g of guests.values()) if (g.playerId === c.id) r.ack = g.ack; // the last input of theirs this record reflects
     return r;
   }
@@ -678,6 +684,11 @@ export function sendAct(target, label) {
 // The panel's command (ui/inventory-actions.js, createRemoteInventoryActions): an op by uid, slot, and bag address.
 export function sendItem(cmd) {
   if (role === "guest" && cmd && cmd.op) send({ type: "item", ...cmd });
+}
+
+// A craft (ui/station-panel.js Make): the station by id, the recipe, the count; the host runs the verb.
+export function sendCraft(cmd) {
+  if (role === "guest" && cmd && cmd.propId) send({ type: "craft", ...cmd });
 }
 
 // A placement (placement.js): a carried prop put down at a tile, a wall built on an edge, a built thing removed.
