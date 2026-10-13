@@ -16,6 +16,7 @@ import * as iso from "./iso.js";
 import * as input from "./input.js";
 import * as map from "./map.js";
 import { getSheet, idleFrame } from "./assets.js";
+import { resolveFacing, frameName } from "./sprites.js";
 import { getItem, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
 import { stacks as bleedStacks, clear as clearBleed } from "./bleed.js";
 import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, restoreOffHand, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
@@ -1113,10 +1114,31 @@ export function characterAt(sx, sy) {
   for (const c of allCharacters()) {
     if (c.kind === "player") continue;
     const p = iso.toScreen(c.gx, c.gy);
-    if (sx < p.x - 12 || sx > p.x + 12 || sy < p.y - 64 || sy > p.y + 2) continue;
+    if (sx < p.x - 40 || sx > p.x + 40 || sy < p.y - 72 || sy > p.y + 8) continue;
+    // The frame's own pixels, placed as the renderer places them; a standing one also
+    // keeps the forgiving column over its feet. A body lies to one side of its feet,
+    // so the column alone never found it (Michael, 2026-10-13: no Search body on a corpse).
+    const standing = !c.corpse && sx >= p.x - 12 && sx <= p.x + 12 && sy >= p.y - 64 && sy <= p.y + 2;
+    if (!standing && !characterPixelAt(c, sx, sy, p)) continue;
     if (!best || c.gx + c.gy > best.gx + best.gy) best = c;
   }
   return best;
+}
+
+// Is the point on an opaque pixel of the character's current frame?
+function characterPixelAt(c, sx, sy, p) {
+  let sheet;
+  try { sheet = getSheet(c.sprite); } catch { return false; }
+  if (!sheet || !sheet.image) return false;
+  const r = resolveFacing(sheet, c.facing);
+  const f = sheet.frames[frameName(sheet, c.anim.name, r.facing, c.anim.frame)];
+  if (!f) return false;
+  let lx = Math.floor(sx - (Math.round(p.x) - sheet.anchor[0]));
+  const ly = Math.floor(sy - (Math.round(p.y) - sheet.anchor[1]));
+  if (lx < 0 || ly < 0 || lx >= f[2] || ly >= f[3]) return false;
+  if (r.flip) lx = f[2] - 1 - lx;
+  const al = alphaOf(sheet);
+  return al.a[(f[1] + ly) * al.w + f[0] + lx] > 0;
 }
 
 // A left click on a villager within reach pokes it. Returns the character under the cursor.
