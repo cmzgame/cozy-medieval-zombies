@@ -25,7 +25,8 @@ let clockEl = null;
 let els = {};
 let lastHands = "";
 let lastLabel = "";
-let drawnSheet = null;
+let lastName = "";
+let drawnImage = null; // the sheet picture the portrait was last cut from
 
 export function initHud() {
   root = document.getElementById("hud");
@@ -33,6 +34,7 @@ export function initHud() {
     <div class="hud-top">
       <canvas class="hud-portrait" width="${HEAD.w * SCALE}" height="${HEAD.h * SCALE}"></canvas>
       <div class="hud-stack">
+        <div class="hud-name"></div>
         <div class="hud-health"><div class="hud-health-fill"></div><span class="hud-label">Health</span><span class="hud-health-text"></span></div>
         <div class="hud-stamina"><div class="hud-stamina-fill"></div><span class="hud-label">Stamina</span><span class="hud-stamina-text"></span></div>
         <div class="hud-hands"></div>
@@ -41,6 +43,7 @@ export function initHud() {
   `;
   els = {
     portrait: root.querySelector(".hud-portrait"),
+    name: root.querySelector(".hud-name"),
     fill: root.querySelector(".hud-health-fill"),
     text: root.querySelector(".hud-health-text"),
     stamina: root.querySelector(".hud-stamina"),
@@ -63,11 +66,13 @@ function handName(entry) {
 }
 
 // The head from the player's sheet, facing the viewer, idle; once per sheet.
-function drawPortrait() {
+function drawPortrait(player) {
   let sheet;
-  try { sheet = getSheet(player.sprite); } catch { return; }
-  if (sheet === drawnSheet) return;
-  drawnSheet = sheet;
+  try { sheet = getSheet(player.sprite); } catch { return; } // (since the fifth move it read `player` with none in scope and threw here every frame: no portrait at all)
+  // The sheet object is kept and its picture replaced in place when the look or the clothes change
+  // (assets.replaceSheet), so the picture is what says "redraw", not the sheet (Michael, 2026-10-13: no portrait after the character screen).
+  if (!sheet.image || sheet.image === drawnImage) return;
+  drawnImage = sheet.image;
   let f = null;
   try { f = sheet.frames[frameName(sheet, "idle", "s", 0)]; } catch { f = null; }
   if (!f) f = Object.values(sheet.frames)[0];
@@ -80,7 +85,7 @@ function drawPortrait() {
 
 export function updateHud({ player }) {
   if (!root) return;
-  drawPortrait();
+  drawPortrait(player);
   const pct = Math.max(0, Math.min(1, player.hp / player.maxHp));
   els.fill.style.width = `${Math.round(pct * 100)}%`;
   els.fill.style.background = pct > 0.5 ? "#6fbf5f" : pct > 0.25 ? "#d9b84a" : "#d05050";
@@ -96,6 +101,12 @@ export function updateHud({ player }) {
 
   updateMoodles(player);
 
+  // The nameplate (Michael, 2026-10-13): the name from the character screen, legible, over the bars; the id until one is chosen.
+  const name = player.name || player.id || "";
+  if (name !== lastName) {
+    els.name.textContent = name;
+    lastName = name;
+  }
   const hands = `${handName(player.hands.main)} / ${handName(player.hands.off)}`;
   if (hands !== lastHands) {
     els.hands.textContent = `Hands: ${hands}`;

@@ -220,6 +220,24 @@ html, body {
   filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.6));
 }
 
+/* The nameplate over the bars (Michael, 2026-10-13): the name from the character screen, read at a glance. */
+.hud-name {
+  align-self: flex-start;
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  color: #f4ecd9;
+  background: rgba(10, 6, 14, 0.7);
+  border: 1px solid #5a4a3a;
+  border-radius: 3px;
+  padding: 1px 8px;
+  text-shadow: 0 1px 0 #1a1420, 1px 0 0 #1a1420, -1px 0 0 #1a1420, 0 -1px 0 #1a1420;
+}
+
+.hud-name:empty {
+  display: none;
+}
+
 /* The time, top centre. */
 #clock {
   position: absolute;
