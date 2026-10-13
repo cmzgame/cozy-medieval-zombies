@@ -106,7 +106,7 @@ export function initInventoryPanel(h) {
     const btn = e.target.closest("button[data-tidy]");
     if (!btn) return;
     const bag = bags[btn.dataset.tidy];
-    if (bag) grid.tidy(bag);
+    if (bag) (handlers.tidy ? handlers.tidy(bag) : grid.tidy(bag));
     handlers.changed?.();
     lastSignature = "";
   });
@@ -385,7 +385,16 @@ function entryFromEvent(e) {
   }
   const bag = bags[el.dataset.bag];
   const entry = bag?.items[Number(el.dataset.index)];
-  return entry ? { entry, bag, el } : null;
+  return entry ? { entry, bag, which: el.dataset.bag, el } : null;
+}
+
+// The entry and the bag a drag began on, found again by uid and column: on a guest the replica's
+// objects are new with every frame (docs/31/04), so a drag that outlives one must not hold the old ones.
+function refind(entry, which) {
+  const bag = bags[which] || null;
+  if (!bag) return null;
+  const e = entry.uid != null ? bag.items.find((q) => q.uid === entry.uid) : bag.items.includes(entry) ? entry : null;
+  return e ? { entry: e, bag } : null;
 }
 
 // How high an element's panel sits where panels overlap (focus sets the z-index); the belt is above all.
@@ -416,7 +425,7 @@ function gridAt(clientX, clientY) {
     if (best && zOf(el) <= zOf(best.el)) continue;
     const bag = bags[el.dataset.bag];
     const cellPx = r.width / bag.cols;
-    best = { el, bag, cellPx, cx: Math.floor((clientX - r.left) / cellPx), cy: Math.floor((clientY - r.top) / cellPx) };
+    best = { el, bag, which: el.dataset.bag, cellPx, cx: Math.floor((clientX - r.left) / cellPx), cy: Math.floor((clientY - r.top) / cellPx) };
   }
   return best;
 }
@@ -476,7 +485,7 @@ function onPointerDown(e) {
   const cellPx = r.width / w;
   drag = {
     entry: hit.entry,
-    from: hit.bag ? { kind: "bag", bag: hit.bag } : { kind: "slot", id: hit.slot },
+    from: hit.bag ? { kind: "bag", bag: hit.bag, which: hit.which } : { kind: "slot", id: hit.slot },
     rot: hit.bag ? !!hit.entry.rot : false,
     grabX: hit.bag ? Math.floor((e.clientX - r.left) / cellPx) : 0,
     grabY: hit.bag ? Math.floor((e.clientY - r.top) / cellPx) : 0,
@@ -582,7 +591,7 @@ function updateDrag(clientX, clientY) {
   const merges = !!(def.stack && under && under !== drag.entry && under.id === drag.entry.id && under.count < def.stack);
   const nested = !(handlers.canStore?.(drag.entry) ?? true); // the container rule: only empty containers go in
   const ok = !nested && (merges || grid.fits(at.bag, drag.entry.id, x, y, drag.rot, drag.entry));
-  drag.target = { bag: at.bag, x: merges ? at.cx : x, y: merges ? at.cy : y, ok };
+  drag.target = { bag: at.bag, which: at.which, x: merges ? at.cx : x, y: merges ? at.cy : y, ok };
   const hl = at.el.querySelector(".inv-hl");
   const hx = Math.max(0, x);
   const hy = Math.max(0, y);
@@ -609,6 +618,15 @@ function onPointerUp(e) {
   }
   if (!drag || e.button !== 0) return;
   const d = drag;
+  // The entry and the bags as they are now, not as they were on the press (refind).
+  if (d.from.kind === "bag") {
+    const r = refind(d.entry, d.from.which);
+    if (!r) return cancelDrag();
+    d.entry = r.entry;
+    d.from.bag = r.bag;
+  } else if (slotEntry(d.from.id) !== d.entry && slotEntry(d.from.id)?.uid !== d.entry.uid) return cancelDrag();
+  else d.entry = slotEntry(d.from.id);
+  if (d.target && d.target.which && !(d.target.bag = bags[d.target.which])) return cancelDrag();
   if (!d.started) {
     drag = null;
     if (d.shift && d.from.kind === "bag") quickMove({ entry: d.entry, bag: d.from.bag });
@@ -617,7 +635,7 @@ function onPointerUp(e) {
   const t = d.target;
   if (t && t.ok) {
     if (t.slot) handlers.placeInSlot?.(d.entry, d.from, t.slot);
-    else if (d.from.kind === "bag") grid.moveEntry(d.from.bag, t.bag, d.entry, t.x, t.y, d.rot);
+    else if (d.from.kind === "bag") (handlers.moveInGrid ? handlers.moveInGrid(d.entry, d.from.bag, t.bag, t.x, t.y, d.rot) : grid.moveEntry(d.from.bag, t.bag, d.entry, t.x, t.y, d.rot));
     else handlers.placeInGrid?.(d.entry, d.from, t.bag, t.x, t.y, d.rot);
     handlers.changed?.();
   } else if (!t && !overPanel(e.clientX, e.clientY)) {
@@ -647,7 +665,8 @@ function quickMove({ entry, bag }) {
   const to = otherBag(bag);
   if (!to) return;
   if (!(handlers.canStore?.(entry) ?? true)) return handlers.noRoom?.(to === bags.inv);
-  if (!grid.transfer(bag, to, entry)) handlers.noRoom?.(to === bags.inv);
+  if (handlers.quickMove) handlers.quickMove(entry, bag, to);
+  else if (!grid.transfer(bag, to, entry)) handlers.noRoom?.(to === bags.inv);
   handlers.changed?.();
   lastSignature = "";
 }
@@ -663,7 +682,8 @@ function openItemMenu(hit, e) {
         label: "Rotate",
         enabled: grid.fits(hit.bag, hit.entry.id, hit.entry.x, hit.entry.y, !hit.entry.rot, hit.entry),
         onSelect: () => {
-          hit.entry.rot = !hit.entry.rot;
+          if (handlers.rotate) handlers.rotate(hit.entry, hit.bag);
+          else hit.entry.rot = !hit.entry.rot;
         },
       });
     }

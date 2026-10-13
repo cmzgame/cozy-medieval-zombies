@@ -38,7 +38,7 @@ Check: `check("sync")` with a scripted fight; the Zomboid test by hand: both pla
 
 ## Tier 3 — Everything else as a command (large by volume)
 
-**Built so far (2026-10-13, `02`):** a guest's world verbs by address and label (the menu and E), with the walk, the bar, the messages, and the opened containers finding the guest; the door and the search touch their tiles. Left: the item menus and the panel's drags, the keys, placement, the Use mode, the stations' panel, the whole-world sync check.
+**Built so far (2026-10-13, `02`):** a guest's world verbs by address and label (the menu and E), with the walk, the bar, the messages, and the opened containers finding the guest; the door and the search touch their tiles. Then (2026-10-13, `02`): the panel's drags, drops, double-clicks, and item and slot menus as commands by uid, slot, and bag address, the open container found by its address each frame, a host's own drag into a chest marking its chunk. Left: the Use mode, the keys, placement, the stations' panel, the whole-world sync check.
 
 What: items 3 (entry ids), 6 (mutators and events for every change), 9 and 10 (the DOM handlers and the action as data), 14 (placement, use, the key trackers per client), 7 (no render writes on the sim); doors, boards, building, carrying, containers, floor items, fires, the bag and the belt and the hands, the big pass's stations, crops, the bucket; a container open on two screens.
 
