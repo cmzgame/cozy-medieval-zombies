@@ -951,8 +951,7 @@ export function updateInteract(player, dt) {
         else if (a) showMessage("You need a plank.");
       }
     });
-  // F: the torch in or out of hand (T went to the chat box, Michael, 2026-10-13).
-  if (input.wasPressed("KeyF")) {
+  if (input.wasPressed("KeyT")) {
     if (holding(player.hands, "torch")) unequip(player, heldEntry(player.hands, "torch"));
     else {
       const found = findItem(player, "torch");

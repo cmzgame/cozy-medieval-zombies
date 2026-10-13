@@ -388,8 +388,8 @@ function stepGame(dt) {
     return;
   }
   if (input.wasPressed("KeyV")) drawAll = !drawAll;
-  // T opens the chat box with the cursor ready; a slash opens it with the slash typed, the hook for commands (Michael, 2026-10-13).
-  if (input.wasPressed("KeyT")) log.focusChat("");
+  // Enter opens the chat box with the cursor ready; a slash opens it with the slash typed, the hook for commands (Michael, 2026-10-13).
+  if (input.wasPressed("Enter") || input.wasPressed("NumpadEnter")) log.focusChat("");
   if (input.wasPressed("Slash")) log.focusChat("/");
   if (input.wasPressed("KeyN")) toggleBuild();
   if (input.wasPressed("KeyX")) toggleRemove();
@@ -613,7 +613,7 @@ function render() {
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `ground ${groundLine()}\n` +
     `villagers ${S.villagers.length}  zombies ${S.zombies.length}  corpses ${S.corpses.length}  chunks ${map.chunkCount()}  near ${S.zombies.filter(game.nearPlayer).length}  ${S.zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
-    `Tab: bag   C: character   1-4: belt   N: build   X: remove   Z: zoom   right-click: actions   Esc: close or pause   E: nearest   F: torch   T: chat   B: boards   V: ${drawAll ? "all" : "fog"}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
+    `Tab: bag   C: character   1-4: belt   N: build   X: remove   Z: zoom   right-click: actions   Esc: close or pause   E: nearest   T: torch   Enter: chat   B: boards   V: ${drawAll ? "all" : "fog"}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
 }
 
 

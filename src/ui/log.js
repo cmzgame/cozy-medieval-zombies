@@ -16,7 +16,7 @@ let input = null;
 let onSay = null; // main.js: a line typed is said by your player (docs/31/03: the log is the chat)
 let onCommand = null; // a line beginning with a slash, the slash stripped; nothing behind it yet
 
-// The chat box focused with the cursor ready, from a key (T; a slash types the slash first; Michael, 2026-10-13).
+// The chat box focused with the cursor ready, from a key (Enter; a slash types the slash first; Michael, 2026-10-13).
 export function focusChat(prefix = "") {
   if (!input) return;
   input.value = prefix;
