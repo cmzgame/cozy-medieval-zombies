@@ -33,6 +33,9 @@ const assets = await import("../src/assets.js");
 assets.setHeadless(true);
 assets.setJsonReader(async (p) => read(p));
 
+// net.js is imported for its parse alone: it has no window at module scope, and a stray brace in it once
+// passed node --check (which parses a .js as a script) and broke the browser's boot.
+await import("../src/net.js");
 const [items, placement, combat, figure, interactions, stations, tuning, map, game, loop] = await Promise.all([
   import("../src/items.js"),
   import("../src/placement.js"),

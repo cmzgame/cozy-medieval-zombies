@@ -57,6 +57,67 @@ function act(a) {
   return { range: INTERACT_RANGE, duration: 0, enabled: true, simple: false, ...a };
 }
 
+// The address of what an action is on (docs/31/05, item 10; docs/31/04, the wire): a tile, an edge,
+// a prop by id, a bracket by its edge, an item by its uid on its tile, a character by id. A guest's
+// menu entry sends its address and label, and the host rebuilds the action on its own world.
+function tag(actions, target) {
+  for (const a of actions) a.target = target;
+  return actions;
+}
+
+const onTile = (tx, ty) => ({ kind: "tile", tile: [tx, ty] });
+const onProp = (prop) => ({ kind: "prop", id: prop.id });
+const onEdge = (o) => ({ kind: "edge", tx: o.tx, ty: o.ty, edge: o.edge });
+const onBracket = (b) => ({ kind: "bracket", tx: b.tx, ty: b.ty, edge: b.edge });
+const onItem = (entry, tx, ty) => ({ kind: "item", uid: entry.uid, tile: [tx, ty] });
+const onCharacter = (c) => ({ kind: "character", id: c.id });
+
+// The actions on an address, rebuilt here from the world (a host's, for a guest's command).
+export function actionsForTarget(t, player) {
+  if (!t) return [];
+  if (t.kind === "tile") {
+    const [tx, ty] = t.tile;
+    const out = [];
+    if (player.carrying) out.push(putDownAction(player, tx, ty));
+    else if (map.peekTile(tx, ty) && map.drinkableAt(tx, ty)) out.push(...waterTileActions(tx, ty, player));
+    if (map.isWalkableTile(tx, ty)) out.push(walkAction([tx, ty]));
+    return tag(out, t);
+  }
+  if (t.kind === "item") {
+    const [tx, ty] = t.tile;
+    const entry = map.itemsAt(tx, ty).find((e) => e.uid === t.uid);
+    return entry ? tag(itemActions(entry, tx, ty, player), t) : [];
+  }
+  if (t.kind === "prop") {
+    const prop = map.propById(t.id);
+    return prop ? tag(propActions(prop, player), t) : [];
+  }
+  if (t.kind === "edge") {
+    const o = map.openingsNear(t.tx, t.ty, 2.5).find((q) => q.tx === t.tx && q.ty === t.ty && q.edge === t.edge);
+    return o ? tag(openingActions(o, player), t) : [];
+  }
+  if (t.kind === "bracket") {
+    const b = [...map.brackets()].find((q) => q.tx === t.tx && q.ty === t.ty && q.edge === t.edge);
+    if (!b) return [];
+    const [mx, my] = map.bracketPos(b);
+    return tag(holderActions({ kind: "bracket", bracket: b, mx, my }, player), t);
+  }
+  if (t.kind === "character") {
+    const c = t.id === player.id ? player : allCharacters().find((q) => q.id === t.id);
+    return c ? tag(characterActions(c, player), t) : [];
+  }
+  return [];
+}
+
+// A command from a client not here (net.js): the action with that label on that address, run as if
+// chosen from this player's own menu (the walk there, the timed bar, the message, all the host's).
+export function performByLabel(player, target, label) {
+  const a = actionsForTarget(target, player).find((q) => q.label === label);
+  if (!a) return false;
+  runAction(player, a);
+  return true;
+}
+
 function nameOf(entry) {
   return getItem(entry.id).name;
 }
@@ -114,7 +175,8 @@ function itemActions(entry, tx, ty, player) {
       mx: tx,
       my: ty,
       perform() {
-        emit("containerOpened", { bag, tiles, name: def.name.toLowerCase() });
+        map.touch(tx, ty); // the bag's grid made on first use travels with its tile (docs/31/05, item 6)
+        emit("containerOpened", { bag, tiles, name: def.name.toLowerCase(), entry, tile: [tx, ty] });
         return true;
       },
     })];
@@ -244,8 +306,9 @@ function containerActions(prop) {
         prop.searched = true;
         // Rolled loot is placed into the grid; what does not fit is not spawned.
         if (!bag.items.length) grid.fill(bag, rollLoot(prop.container.loot));
+        map.touch(prop.tile[0], prop.tile[1]); // a change on the prop: the save and the wire carry it (docs/31/05, item 6)
       }
-      emit("containerOpened", { bag, tiles: prop.tiles, name });
+      emit("containerOpened", { bag, tiles: prop.tiles, name, prop });
       return true;
     },
   })];
@@ -373,7 +436,7 @@ function openingActions(o, player) {
       perform() {
         if (w.kind === "door") w.open = !w.open;
         else w.shutter = w.shutter === "open" ? "closed" : "open";
-        map.touch();
+        map.touch(o.tx, o.ty); // the wall's own tile, so the save and the wire carry it (docs/31/05, item 6; it touched nothing before)
         return true;
       },
     }));
@@ -577,12 +640,12 @@ export function actionsAt(sx, sy, player) {
   const out = [];
   if (player.carrying) {
     // Only walking and putting the thing down.
-    out.push(putDownAction(player, tx, ty));
-    if (map.isWalkableTile(tx, ty)) out.push(walkAction([tx, ty]));
+    out.push(...tag([putDownAction(player, tx, ty)], onTile(tx, ty)));
+    if (map.isWalkableTile(tx, ty)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty)));
     return out;
   }
-  for (const entry of map.itemsAt(tx, ty)) out.push(...itemActions(entry, tx, ty, player));
-  if (map.peekTile(tx, ty) && map.drinkableAt(tx, ty)) out.push(...waterTileActions(tx, ty, player)); // the river, a pond (docs/30, law 8)
+  for (const entry of map.itemsAt(tx, ty)) out.push(...tag(itemActions(entry, tx, ty, player), onItem(entry, tx, ty)));
+  if (map.peekTile(tx, ty) && map.drinkableAt(tx, ty)) out.push(...tag(waterTileActions(tx, ty, player), onTile(tx, ty))); // the river, a pond (docs/30, law 8)
   // Props: on their tile, or under their sprite in the tiles around (a tall tree).
   const seen = new Set();
   for (let dy = -3; dy <= 1; dy++) {
@@ -593,15 +656,15 @@ export function actionsAt(sx, sy, player) {
       const onSprite = !onTile && pointInRect(sx, sy, propRect(prop, tx + dx, ty + dy));
       if (!onTile && !onSprite) continue;
       seen.add(prop);
-      out.push(...propActions(prop, player));
+      out.push(...tag(propActions(prop, player), onProp(prop)));
     }
   }
-  for (const o of openingsAtScreen(sx, sy)) out.push(...openingActions(o, player));
-  for (const b of map.bracketsNear(g.gx, g.gy, 0.8)) out.push(...holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player));
+  for (const o of openingsAtScreen(sx, sy)) out.push(...tag(openingActions(o, player), onEdge(o)));
+  for (const b of map.bracketsNear(g.gx, g.gy, 0.8)) out.push(...tag(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player), onBracket(b.bracket)));
   const under = characterAt(sx, sy);
-  if (under) out.push(...characterActions(under, player));
-  else if (playerAt(sx, sy, player)) out.push(...characterActions(player, player));
-  if (!out.length && map.isWalkableTile(tx, ty)) out.push(walkAction([tx, ty]));
+  if (under) out.push(...tag(characterActions(under, player), onCharacter(under)));
+  else if (playerAt(sx, sy, player)) out.push(...tag(characterActions(player, player), onCharacter(player)));
+  if (!out.length && map.isWalkableTile(tx, ty)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty)));
   return out;
 }
 
@@ -610,6 +673,7 @@ export function nearestSimpleAction(player) {
   if (player.carrying) {
     const [tx, ty] = putDownTarget(player);
     const a = putDownAction(player, tx, ty, true);
+    a.target = onTile(tx, ty);
     return a.enabled ? a : null;
   }
   let best = null;
@@ -631,20 +695,20 @@ export function nearestSimpleAction(player) {
     for (let dx = -2; dx <= 2; dx++) {
       const t = map.peekTile(px + dx, py + dy); // a hit test never grows a chunk (docs/23a, A4)
       if (!t) continue;
-      for (const entry of map.itemsAt(px + dx, py + dy)) consider(itemActions(entry, px + dx, py + dy, player));
-      if (map.drinkableAt(px + dx, py + dy)) consider(waterTileActions(px + dx, py + dy, player)); // E at the bank
+      for (const entry of map.itemsAt(px + dx, py + dy)) consider(tag(itemActions(entry, px + dx, py + dy, player), onItem(entry, px + dx, py + dy)));
+      if (map.drinkableAt(px + dx, py + dy)) consider(tag(waterTileActions(px + dx, py + dy, player), onTile(px + dx, py + dy))); // E at the bank
       if (t.prop && !seen.has(t.prop)) {
         seen.add(t.prop);
-        consider(propActions(t.prop, player));
+        consider(tag(propActions(t.prop, player), onProp(t.prop)));
       }
     }
   }
-  for (const o of map.openingsNear(player.gx, player.gy, INTERACT_RANGE)) consider(openingActions(o, player));
-  for (const b of map.bracketsNear(player.gx, player.gy, INTERACT_RANGE)) consider(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player));
+  for (const o of map.openingsNear(player.gx, player.gy, INTERACT_RANGE)) consider(tag(openingActions(o, player), onEdge(o)));
+  for (const b of map.bracketsNear(player.gx, player.gy, INTERACT_RANGE)) consider(tag(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player), onBracket(b.bracket)));
   // A body lying within reach (a corpse is a container, docs/19).
   for (const c of allCharacters()) {
     if (c.kind !== "zombie" || !c.dead || !c.corpse || Math.abs(c.gx - player.gx) > 3 || Math.abs(c.gy - player.gy) > 3) continue;
-    consider(characterActions(c, player));
+    consider(tag(characterActions(c, player), onCharacter(c)));
   }
   return best;
 }
@@ -1163,7 +1227,7 @@ function searchBodyAction(c) {
     perform() {
       const bag = lootOf(c);
       c.searched = true;
-      emit("containerOpened", { bag, tiles, name: "body", corpse: c });
+      emit("containerOpened", { bag, tiles, name: "body", corpse: c, character: c });
       return true;
     },
   });

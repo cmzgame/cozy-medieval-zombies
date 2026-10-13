@@ -42,6 +42,7 @@ export const state = {
   villagers: [],
   others: [], // the living, rebuilt each step; the interface reads it between steps
   progress: null, // 0..1 of the player's timed action
+  acting: null, // the player whose update or command runs right now, so a message finds its screen (net.js)
 };
 
 // The player's list, kept with the one player while the game has one.
@@ -336,6 +337,7 @@ export function step(dt, snapshots = null) {
   const snapOf = (p) => (snapshots instanceof Map ? snapshots.get(p.id) : snapshots && snapshots[p.id]) || null;
   for (const p of S.players) {
     const snap = snapOf(p);
+    S.acting = p;
     updatePlayer(p, dt, snap || undefined);
     bleed.update(p, dt);
     // The mouse and the keys, as a snapshot, to the player's controller (docs/23a, D1; never the input module).
@@ -343,15 +345,18 @@ export function step(dt, snapshots = null) {
     // one per world (docs/31/05, items 12 and 13), so an absent player's idle input must not touch them.
     if (snap) controlPlayer(p, S.zombies, dt, snap);
   }
+  S.acting = null;
   archery.update(dt);
   S.others = [...S.players, ...S.zombies, ...S.villagers]; // the living, who block and are hunted
   const everyone = [...S.others, ...S.corpses]; // and the fallen, who burn and are drawn
   burning.update(dt, everyone); // the burning, a visual (docs/05)
   for (const p of S.players) {
+    S.acting = p;
     p.actionProgress = interact.updateAction(p, dt);
     // Anyone walking through a crop or a mushroom sets it swaying (Michael, 2026-10-12).
     interact.brushThrough(p);
   }
+  S.acting = null;
   S.progress = S.player ? S.player.actionProgress : null;
   // The dead far from every player stand still: a stand-in for the records of
   // docs/03 until that milestone.

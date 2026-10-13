@@ -19,6 +19,7 @@ import * as light from "./light.js";
 import * as world from "./world.js";
 import * as rules from "./rules.js";
 import * as archery from "./archery.js";
+import * as interact from "./interact.js";
 import { updatePlayer } from "./entities/player.js";
 import { serializeCharacter, restoreCharacter, dress, dressCorpse } from "./entities/character.js";
 import { createPlayer } from "./entities/player.js";
@@ -46,6 +47,7 @@ let joinSentAt = 0;
 let framesSeen = 0;
 let lastFrameAt = 0;
 let testSnapshot = null; // a check drives the guest's player with this instead of the keyboard
+const pendingOpened = []; // containers the host says my player opened, applied once the frames before them are
 let seq = 0; // the guest's input count, so the host can say which it has applied
 const pending = []; // the guest's inputs not yet acknowledged, replayed over each frame (prediction)
 let lastCorrection = 0; // tiles the last frame moved my predicted player: the misprediction, for the checks
@@ -145,6 +147,19 @@ export function hostStep(mySnap, me) {
         // A press is one shot: when the queue runs ahead it must not be lost to the hold rule below.
         g.queue[g.queue.length - 1].snap = { ...msg.snap };
       }
+    } else if (msg.type === "act") {
+      // A verb on the world from a guest's menu or its E (docs/31/05, item 10; tier 3): the action with that
+      // label on that address, rebuilt here and run as the guest's player, the walk there and the bar included.
+      const g = guests.get(msg.from);
+      const p = g && game.state.players.find((q) => q.id === g.playerId);
+      if (p && msg.target && typeof msg.label === "string") {
+        game.state.acting = p;
+        try {
+          interact.performByLabel(p, msg.target, msg.label);
+        } finally {
+          game.state.acting = null;
+        }
+      }
     } else if (msg.type === "say") {
       // The first command over the wire (docs/31/03, chat): a guest's line, said by their player here.
       const g = guests.get(msg.from);
@@ -179,7 +194,13 @@ function allCharacters() {
 // What a guest needs of a character each step: where it is and what it is doing.
 // A player's record is whole (their client draws their bag and their bars).
 function slim(c) {
-  return { id: c.id, gx: c.gx, gy: c.gy, facing: c.facing, anim: c.anim, hp: c.hp, dead: c.dead, state: c.state, corpse: c.corpse, line: c.line, blocking: c.blocking, carryingId: c.carrying ? c.carrying.id : null };
+  const r = { id: c.id, gx: c.gx, gy: c.gy, facing: c.facing, anim: c.anim, hp: c.hp, dead: c.dead, state: c.state, corpse: c.corpse, line: c.line, blocking: c.blocking, carryingId: c.carrying ? c.carrying.id : null };
+  if (c.searched) {
+    r.searched = true;
+    r.loot = c.loot; // a body opened: its grid, for a guest with it open
+    r.worn = c.worn; // and what is still on it, which the grid is
+  }
+  return r;
 }
 
 function record(c) {
@@ -240,8 +261,13 @@ export function guestStep(mySnap) {
       applyFrame(game.fromSafe(msg));
       framesSeen++;
       lastFrameAt = now;
+    } else if (msg.type === "message") {
+      hooks.message(msg.text, msg.seconds);
+    } else if (msg.type === "opened") {
+      pendingOpened.push(msg.what); // after the frame that carries the grid (frames queue behind it)
     }
   }
+  if (pendingOpened.length && hooks.opened) for (const w of pendingOpened.splice(0)) hooks.opened(w);
   if (joined && game.state.player) {
     const s = mySnap.idle ? mySnap : testSnapshot || mySnap; // a screen up: nothing pressed, whatever a check says
     // The fight (docs/31/06, tier 2): the clicks and the buttons go as they are, the aim as a vector and
@@ -303,8 +329,14 @@ function applyFrame(f) {
         else if (c.corpse) dressCorpse(c);
       }
     } else if (c) {
-      const { carryingId, ...rest } = r;
+      const { carryingId, loot, worn, ...rest } = r;
       Object.assign(c, rest);
+      if (loot) {
+        // A body's grid is the body (docs/19): the same objects in the grid and on it, made one again by uid.
+        c.loot = c.loot && c.loot.items ? Object.assign(c.loot, loot) : loot;
+        const byUid = new Map(c.loot.items.filter((e) => e.uid != null).map((e) => [e.uid, e]));
+        if (worn) for (const slot of Object.keys(worn)) c.worn[slot] = worn[slot] ? byUid.get(worn[slot].uid) || worn[slot] : null;
+      }
       c.carrying = propById(carryingId);
       if (c.corpse && c.kind === "zombie" && !c.corpseKey) dressCorpse(c);
     }
@@ -338,6 +370,33 @@ function applyFrame(f) {
 // A line to say: the host says it at once; a guest asks the host to (its player speaks there).
 export function sendSay(text) {
   if (role === "guest") send({ type: "say", text });
+}
+
+// A verb on the world, by its address and label (interact.js): the host performs it as my player.
+export function sendAct(target, label) {
+  if (role === "guest" && target && label) send({ type: "act", target, label });
+}
+
+function guestOf(playerId) {
+  for (const [key, g] of guests) if (g.playerId === playerId) return key;
+  return null;
+}
+
+// A message for a player whose screen is on a guest (main.js's sink).
+export function messageTo(playerId, text, seconds = 2) {
+  const to = guestOf(playerId);
+  if (!to) return false;
+  send({ type: "message", to, text, seconds });
+  return true;
+}
+
+// A container a guest's player opened: told where to look, since the grid itself travels with the prop
+// or the body (the chunk delta, the record).
+export function openedFor(playerId, what) {
+  const to = guestOf(playerId);
+  if (!to) return false;
+  send({ type: "opened", to, what });
+  return true;
 }
 
 export function leave() {

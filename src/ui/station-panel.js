@@ -52,6 +52,12 @@ export function isOpen() {
 export function openFor(prop, player) {
   const station = stations.stationOf(prop);
   if (!station) return false;
+  // A guest's "Use the workbench" runs on the host as the guest's player (net.js, docs/31/05 item 10): the host's
+  // own panel stays shut; the output opens on the guest through containerOpened, and its recipes panel is owed.
+  if (player !== getPlayer()) {
+    emit("containerOpened", { bag: stations.outputOf(prop), tiles: prop.tiles, name: "output", prop, closeDist: stations.REACH + 1 });
+    return true;
+  }
   const list = stations.recipesFor(station);
   open = { propId: prop.id, station, recipe: list[0] ? list[0].id : null, count: 1 };
   root.hidden = false;
