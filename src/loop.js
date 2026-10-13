@@ -118,6 +118,11 @@ export function pauseCount() {
   return pauses;
 }
 
+// A save puts the stepped seconds back (sleep's `since`, a poke's stamp, a queue's start read it).
+export function setSimTime(s) {
+  simSeconds = s;
+}
+
 function step() {
   simSeconds += STEP;
   hooks.update(STEP);

@@ -40,6 +40,7 @@ import * as use from "./use.js";
 import * as interactions from "./interactions.js";
 import * as world from "./world.js";
 import * as game from "./game.js";
+import * as save from "./save.js";
 import * as verbs from "./verbs.js";
 import * as stations from "./stations.js";
 import * as stationPanel from "./ui/station-panel.js";
@@ -83,6 +84,10 @@ try {
 // game.js's; this file is the client: the view, the keys, the panels (docs/31/05, item 17).
 const S = game.state;
 let uiSimTime = 0; // the sim time the interface was last ticked to (docs/23a, F)
+let started = false; // Play or Continue pressed: the autosave runs only after, and never while dead (save.js)
+let lastAutosave = 0; // sim seconds at the last autosave
+const AUTOSAVE = 60; // seconds of game time between autosaves (the parent's cadence)
+let mapJson = null; // the map file, kept for a restore
 let tiles = [];
 let visible = new Set();
 let playerRoom = 0;
@@ -422,8 +427,45 @@ function renderUi() {
   updateMessage(dt);
 }
 
+// The world put back from a save (game.restore), then everything the client
+// holds about it made afresh: the player's sheet, the camera, sight, the ground's
+// pictures, the light's cache, the panels and the modes closed.
+async function restoreWorld(snap) {
+  game.restore(snap, mapJson);
+  figureKey = "";
+  figureQuick = "";
+  refreshFigure(true);
+  camera.snapTo(S.player.gx, S.player.gy);
+  camera.applyOrigin(V.w, V.h);
+  tiles = camera.viewportTiles(V.w, V.h);
+  visKey = null;
+  openBag = null;
+  corpseWatch = null;
+  panel.closeAll();
+  placement.cancel();
+  use.cancel();
+  buildPalette.close();
+  light.update();
+  if (!glError) await ground.reload();
+  visible = visibility.computeVisible(Math.round(S.player.gx), Math.round(S.player.gy), tiles);
+  lastAutosave = loop.simTime();
+}
+
+async function continueSave() {
+  const snap = save.read();
+  if (!snap || snap.dead) return;
+  if (snap.mapName !== MAP_NAME) {
+    showMessage(`That save is of ${snap.mapName}; this is ${MAP_NAME}.`, 4);
+    return;
+  }
+  await restoreWorld(snap);
+  screens.hide();
+  showMessage(`${clock.getLabel()}. Welcome back.`, 3);
+}
+
 function render() {
   const r0 = performance.now();
+  if (started && !S.player.dead && loop.simTime() - lastAutosave >= AUTOSAVE) events.emit("autosaveTick");
   const scene = {
     w: V.w,
     h: V.h,
@@ -519,6 +561,7 @@ async function boot() {
     { name: "layers", label: "Reading the painted layers", weight: 1, run: () => loadPaintedHair() },
     { name: "map", label: "Reading the map", weight: 1, async run() {
       json = await assets.loadJson(MAP_FILE);
+      mapJson = json; // kept for a restore (save.js)
       if (combatTesting) {
         json.scatter = [];
         if (json.wild) json.wild = { ...json.wild, density: [0, 0] };
@@ -635,8 +678,21 @@ async function boot() {
       });
       // Any screen up means the game is paused; the title is up at boot.
       screens.initScreens({
-        onChange: (name) => setPaused(!!name),
+        onChange: (name) => {
+          setPaused(!!name);
+          if (name === null && !started) {
+            started = true; // Play or Continue: from here the world autosaves
+            lastAutosave = loop.simTime();
+            if (!save.read()?.dead) { /* a new game over an old save: the old one is gone once the first autosave lands */ }
+          }
+        },
         onReload: () => window.location.reload(),
+        onContinue: () => continueSave(),
+        onSave: () => {
+          const ok = save.write(save.snapshot(MAP_NAME));
+          showMessage(ok ? "Saved." : "The save could not be written.");
+          lastAutosave = loop.simTime();
+        },
         hair: {
           styles: () => figure.hairStyles(),
           current: () => S.player.look.hairStyle,
@@ -676,7 +732,12 @@ async function boot() {
         S.player.flashBroken = true;
       });
       events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, damage));
-      events.on("gameOver", () => screens.show("dead", { when: clock.getLabel() })); // the world says so (game.js); the client shows it
+      events.on("gameOver", () => {
+        // The world says so (game.js); the client shows it, and the slot keeps the world with the
+        // survivor dead, so Continue refuses it until the next survivor exists (docs/31/05, item 34).
+        if (started) save.write(save.snapshot(MAP_NAME, { dead: true }));
+        screens.show("dead", { when: clock.getLabel() });
+      });
       // Sleep and fire say what happened (docs/30 step 2): the world's events, shown here.
       events.on("sleepStart", () => showMessage("You lie down. The night goes on without you."));
       events.on("sleepEnd", ({ hours }) => showMessage(`${clock.getLabel()}. You slept ${hours} hours.`, 4));
@@ -712,7 +773,18 @@ async function boot() {
   ]);
 
   loop.start({ update, render, crash: shell.crash });
-  screens.show("title");
+  // The slot's save shows on the title as Continue (save.js); a dead one as a line and New game.
+  const slot = save.read();
+  screens.show("title", { save: slot, saveLabel: slot ? save.label(slot) : "" });
+  // Autosave: every AUTOSAVE seconds of game time, and when the tab is hidden or left (the parent's rule).
+  const autosave = () => {
+    if (!started || S.player.dead) return;
+    save.write(save.snapshot(MAP_NAME));
+    lastAutosave = loop.simTime();
+  };
+  events.on("autosaveTick", autosave);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) autosave(); });
+  window.addEventListener("pagehide", autosave);
   await shell.finish(); // the screen goes once the first frame is under it
 
   window.__game = createDevApi({
@@ -725,6 +797,8 @@ async function boot() {
     get playerRoom() { return playerRoom; },
     get info() { return S.info; },
     game,
+    save,
+    restoreWorld,
     get openBag() { return openBag; },
     get handlers() { return handlers; },
     get timing() { return timing; },

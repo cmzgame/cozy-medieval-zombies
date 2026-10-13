@@ -38,6 +38,8 @@ let onChange = () => {};
 let hairApi = null; // { styles(), current(), set(name), reload() } from main.js
 let layersApi = null; // { slots(), names(slot), current(slot), set(slot, name) }
 let onReload = () => window.location.reload();
+let onContinue = () => {};
+let onSave = () => {};
 let data = {};
 
 export function initScreens(handlers = {}) {
@@ -45,6 +47,8 @@ export function initScreens(handlers = {}) {
   hairApi = handlers.hair || null;
   layersApi = handlers.layers || null;
   onReload = handlers.onReload || onReload;
+  onContinue = handlers.onContinue || onContinue;
+  onSave = handlers.onSave || onSave;
   root = document.getElementById("screens");
   root.hidden = true;
   root.addEventListener("click", (e) => {
@@ -109,6 +113,8 @@ function go(where) {
   if (where === "play" || where === "resume") hide();
   else if (where === "back") back();
   else if (where === "reload") onReload();
+  else if (where === "continue") onContinue();
+  else if (where === "save") onSave();
   else show(where);
 }
 
@@ -151,14 +157,15 @@ function render() {
       <div class="screen">
         <h1>Cozy Medieval Zombies</h1>
         <div class="sub">A village of the dead. Keep the shutters closed.</div>
-        <div class="screen-buttons">${button("play", "Play")}${button("settings", "Settings")}${button("controls", "Controls")}</div>
+        ${data.save && data.save.dead ? `<div class="sub">Your last survivor died. Play starts the village over.</div>` : ""}
+        <div class="screen-buttons">${data.save && !data.save.dead ? button("continue", `Continue, ${data.saveLabel}`) : ""}${button("play", data.save ? "New game" : "Play")}${button("settings", "Settings")}${button("controls", "Controls")}</div>
       </div>`;
   } else if (current === "pause") {
     root.innerHTML = `
       <div class="screen">
         <h1>Paused</h1>
         <div class="sub">Esc to resume</div>
-        <div class="screen-buttons">${button("resume", "Resume")}<button disabled title="Not yet: saving is planned, not built">Save game</button>${button("settings", "Settings")}${button("controls", "Controls")}${button("title", "Title screen")}</div>
+        <div class="screen-buttons">${button("resume", "Resume")}${button("save", "Save game")}${button("settings", "Settings")}${button("controls", "Controls")}${button("title", "Title screen")}</div>
       </div>`;
   } else if (current === "settings") {
     root.innerHTML = `

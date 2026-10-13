@@ -50,6 +50,63 @@ export function createCharacter(kind, gx, gy, { id = null, name = null, speed = 
   };
 }
 
+// ---- a character as data, and back (docs/31/05, item 24) ----
+// Everything plain on the character is saved as it is; what points at another
+// thing goes by id (the target, a carried prop) and what is transient goes
+// (an auto-walk, a timed action, a breach, a bubble). A body's grid holds the
+// same entries the body wears, so after the copy they are made one again by uid.
+
+const CH_BY_ID = new Set(["target", "carrying"]);
+const CH_DROPPED = new Set(["sprite", "breach", "auto", "action", "line", "behindProp"]);
+
+export function serializeCharacter(ch) {
+  const out = {};
+  for (const [k, v] of Object.entries(ch)) {
+    if (CH_BY_ID.has(k) || CH_DROPPED.has(k) || typeof v === "function") continue;
+    out[k] = v;
+  }
+  out.targetId = ch.target ? ch.target.id : null;
+  out.carryingId = ch.carrying ? ch.carrying.id : null;
+  return out;
+}
+
+// `makers` gives the creators (createPlayer, createZombie, createVillager), so
+// each kind's own fields exist before the saved ones go over them. The target
+// and the carried prop are left as ids for the caller to link once everything
+// exists (`_targetId`, `_carryingId`).
+export function restoreCharacter(data, makers) {
+  let ch;
+  if (data.kind === "player") ch = makers.player(data.gx, data.gy);
+  else if (data.kind === "zombie") ch = makers.zombie(data.gx, data.gy, { id: data.id });
+  else ch = makers.villager(data.gx, data.gy, { id: data.id, name: data.name, line: data.greeting || null, wardrobe: data.wardrobe || 0 });
+  const { targetId, carryingId, worn, hands, pockets, loot, ...rest } = data;
+  Object.assign(ch, rest);
+  ch.worn = worn || createWorn();
+  ch.pockets = pockets || null;
+  ch.loot = loot || null;
+  const main = hands ? hands.main : null;
+  let off = hands ? hands.off : null;
+  if (main && off && main.uid != null && main.uid === off.uid) off = main; // a two-handed thing is one object in both hands
+  ch.hands = { main, off };
+  if (ch.loot) {
+    const byUid = new Map(ch.loot.items.filter((e) => e.uid != null).map((e) => [e.uid, e]));
+    for (const slot of Object.keys(ch.worn)) if (ch.worn[slot] && byUid.has(ch.worn[slot].uid)) ch.worn[slot] = byUid.get(ch.worn[slot].uid);
+    for (const h of ["main", "off"]) if (ch.hands[h] && byUid.has(ch.hands[h].uid)) ch.hands[h] = byUid.get(ch.hands[h].uid);
+    if (ch.pockets) ch.pockets.items = ch.pockets.items.map((e) => (e.uid != null && byUid.get(e.uid)) || e);
+  }
+  if (data.kind !== "player") ch.sprite = null; // the player keeps the fixed sheet its creator named; dress() names the others' (game.restore)
+  ch.target = null;
+  ch.carrying = null;
+  ch.breach = null;
+  ch.auto = null;
+  ch.action = null;
+  ch.line = null;
+  ch.behindProp = false;
+  ch._targetId = targetId || null;
+  ch._carryingId = carryingId || null;
+  return ch;
+}
+
 // Say a line (docs/19): a speech bubble over the character's head until it has
 // been up for `seconds` of game time, longer for longer lines. A new line
 // replaces the one showing. `ui/speech.js` draws it; nothing here touches the DOM.

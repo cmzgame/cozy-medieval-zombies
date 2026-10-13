@@ -5,6 +5,13 @@
 // reads a window, a canvas, a keyboard, or the DOM. From the repo's root:
 //   node tools/world.js              the valley, 600 steps (the check's protocol)
 //   node tools/world.js square 1200  another map, more steps
+//   node tools/world.js valley 600 --devchest
+//                                    with the dev chest, as a pane whose setting is on (the chest's
+//                                    id moves every id after it, so the hashes compare only alike)
+//   node tools/world.js valley 600 --roundtrip
+//                                    the save proved: the world serialised half way, the run
+//                                    finished, then a fresh world restored from the save and run
+//                                    the other half; the two hashes must agree (docs/31/05, item 24)
 // Compare with the pane: await __game.check("determinism") on a fresh boot.
 
 import fs from "node:fs";
@@ -15,8 +22,10 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const read = (p) => JSON.parse(fs.readFileSync(path.join(root, p), "utf8"));
 const optional = (p) => (fs.existsSync(path.join(root, p)) ? read(p) : null);
 
-const mapName = process.argv[2] || "valley";
-const steps = Number(process.argv[3] || 600);
+const args = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+const flags = new Set(process.argv.slice(2).filter((a) => a.startsWith("--")));
+const mapName = args[0] || "valley";
+const steps = Number(args[1] || 600);
 
 const assets = await import("../src/assets.js");
 assets.setHeadless(true);
@@ -66,7 +75,9 @@ for (const [slot, folder] of folders) {
 
 // The world stage: the same calls as the browser's.
 const json = read(`data/maps/${mapName}.json`);
-game.create({ json });
+// The world's options as the pane has them, so the hashes compare: the dev chest and the
+// testing dead each make props and so move every id after them (docs/31/05, item 4).
+game.create({ json, devChest: flags.has("--devchest"), combatTesting: flags.has("--combat") });
 const booted = performance.now() - t0;
 
 loop.init({
@@ -77,7 +88,17 @@ loop.init({
   render: () => {},
 });
 const t1 = performance.now();
-for (let i = 0; i < steps; i++) loop.advance(1 / 60);
+const half = Math.floor(steps / 2);
+let snap = null;
+let snapBytes = 0;
+for (let i = 0; i < steps; i++) {
+  if (flags.has("--roundtrip") && i === half) {
+    const raw = JSON.stringify(game.serialize()); // as the slot would hold it: through text
+    snapBytes = raw.length;
+    snap = JSON.parse(raw);
+  }
+  loop.advance(1 / 60);
+}
 const stepped = performance.now() - t1;
 
 const text = game.hashText();
@@ -85,3 +106,20 @@ const S = game.state;
 console.log(`${mapName}: ${S.zombies.length} dead, ${S.villagers.length} villagers, ${map.chunkCount()} chunks, ${map.roomCount()} rooms`);
 console.log(`booted in ${booted.toFixed(0)} ms, ${steps} steps in ${stepped.toFixed(0)} ms (${(stepped / steps).toFixed(2)} ms a step)`);
 console.log(`hash ${game.hashOf(text)} over ${text.split("\n").length - 2} entities after ${steps} steps`);
+
+if (snap) {
+  // A fresh world from the save, run the other half: the same hash, or the save lost something.
+  const t2 = performance.now();
+  game.restore(snap, json);
+  const restored = performance.now() - t2;
+  for (let i = half; i < steps; i++) loop.advance(1 / 60);
+  const again = game.hashText();
+  const same = again === text;
+  console.log(`roundtrip: ${(snapBytes / 1024).toFixed(0)} KB of save at step ${half}, restored in ${restored.toFixed(0)} ms, hash ${game.hashOf(again)} after the other half: ${same ? "the same" : "DIFFERENT"}`);
+  if (!same) {
+    const a = text.split("\n");
+    const b = again.split("\n");
+    for (let i = 0; i < Math.max(a.length, b.length); i++) if (a[i] !== b[i]) { console.log(`  first difference at line ${i}:\n    ${a[i]}\n    ${b[i]}`); break; }
+    process.exit(1);
+  }
+}

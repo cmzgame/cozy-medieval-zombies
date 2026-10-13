@@ -651,6 +651,136 @@ export function chunkCount() {
   return chunks.size;
 }
 
+export function allProps() {
+  return [...propsById.values()];
+}
+
+// ---- the map as data, and back (docs/31/05, item 24: the save, and the join's snapshot) ----
+// Every loaded chunk whole: the floors run-length, the walls with their state, the
+// props by their anchor tile with their live fields, the items on the floor. A chunk
+// not loaded at the save regrows from the file and the seed. The characters that
+// sleep on dropped chunks are the caller's to serialise (game.js); the map keeps
+// the keys.
+
+const PROP_DERIVED = new Set(["kind", "tiles"]); // made again by createProp from the sprite and the footprint
+
+function serializeProp(p) {
+  const out = {};
+  for (const [k, v] of Object.entries(p)) if (!PROP_DERIVED.has(k) && typeof v !== "function") out[k] = v;
+  return out;
+}
+
+function wallData(w) {
+  const { at, ...rest } = w; // `at` is the tile it hangs on, given back on install
+  return rest;
+}
+
+export function serializeChunk(c) {
+  const floors = []; // [kind, run] over the chunk's tiles, row by row
+  const walls = [];
+  const props = [];
+  const items = [];
+  let last = null;
+  for (let i = 0; i < CHUNK * CHUNK; i++) {
+    const t = c.tiles[i];
+    if (last && last[0] === t.floor) last[1]++;
+    else floors.push((last = [t.floor, 1]));
+    const lx = i % CHUNK;
+    const ly = (i - lx) / CHUNK;
+    if (t.n) walls.push([lx, ly, "n", wallData(t.n)]);
+    if (t.w) walls.push([lx, ly, "w", wallData(t.w)]);
+    if (t.prop && t.prop.tile[0] === c.cx * CHUNK + lx && t.prop.tile[1] === c.cy * CHUNK + ly) props.push(serializeProp(t.prop));
+    if (t.items && t.items.length) items.push([lx, ly, t.items]);
+  }
+  return { cx: c.cx, cy: c.cy, layer: c.layer, wild: !!c.wild, dirty: !!c.dirty, floors, walls, props, items };
+}
+
+export function serializeMap() {
+  return {
+    chunks: [...chunks.values()].map(serializeChunk),
+    pending: pendingSpawns.map(([x, y]) => [x, y]),
+  };
+}
+
+// The sleepers' lists by chunk key, for the caller to serialise and to put back.
+export function sleeperEntries() {
+  return [...sleepers.entries()];
+}
+
+export function setSleepers(entries) {
+  sleepers.clear();
+  woken.length = 0;
+  for (const [k, list] of entries) sleepers.set(Number(k), list);
+}
+
+// A saved chunk in place of the one the file and the seed would grow. The
+// authored props the load made for these tiles are superseded by the saved ones.
+export function installChunk(d) {
+  const { cx, cy } = d;
+  const layer = d.layer || 0;
+  const k = chunkKey(cx, cy, layer);
+  for (let i = 0; i < CHUNK * CHUNK; i++) {
+    const x = cx * CHUNK + (i % CHUNK);
+    const y = cy * CHUNK + Math.floor(i / CHUNK);
+    const st = layer === 0 && source && source(x, y);
+    if (st && st.prop) {
+      fireProps.delete(st.prop);
+      if (propsById.get(st.prop.id) === st.prop) propsById.delete(st.prop.id);
+    }
+  }
+  const tiles = new Array(CHUNK * CHUNK);
+  let i = 0;
+  for (const [floor, n] of d.floors) for (let j = 0; j < n; j++) tiles[i++] = createTile(floor);
+  for (const [lx, ly, edge, w] of d.walls) tiles[ly * CHUNK + lx][edge] = { ...w, at: [cx * CHUNK + lx, cy * CHUNK + ly] };
+  for (const [lx, ly, list] of d.items) tiles[ly * CHUNK + lx].items = list;
+  const c = { cx, cy, layer, tiles, floorCache: null, floorDirty: true, wild: !!d.wild, dirty: !!d.dirty, lightVersion: 0 };
+  chunks.set(k, c);
+  lastChunk = null;
+  roomsDirty = true;
+  return c;
+}
+
+// A saved prop back on its tiles (after every chunk is installed, since a
+// footprint may cross a chunk's edge): made by createProp from its sprite, then
+// its live fields put over the fresh ones.
+export function installProp(data) {
+  const prop = createProp({ id: data.id, sprite: data.sprite, tile: data.tile, footprint: data.footprint, facing: data.facing, offset: data.offset, solid: data.solid, radius: data.radius });
+  Object.assign(prop, data, { tiles: prop.tiles, kind: "prop" });
+  for (const k of Object.keys(prop)) if (!(k in data) && !PROP_DERIVED.has(k)) delete prop[k]; // exactly the saved shape (a field the load had dropped stays dropped)
+  if (prop.fire) fireProps.add(prop);
+  else fireProps.delete(prop);
+  for (const [x, y] of prop.tiles) {
+    const t = peekTile(x, y, prop.layer || 0);
+    if (t) t.prop = prop;
+  }
+  return prop;
+}
+
+// The brackets from the walls that carry one, over every loaded chunk.
+export function rebuildBrackets() {
+  bracketSet.clear();
+  for (const c of chunks.values()) {
+    for (let i = 0; i < CHUNK * CHUNK; i++) {
+      const t = c.tiles[i];
+      const tx = c.cx * CHUNK + (i % CHUNK);
+      const ty = c.cy * CHUNK + Math.floor(i / CHUNK);
+      if (t.n && t.n.bracket) bracketSet.add({ tx, ty, edge: "n", wall: t.n });
+      if (t.w && t.w.bracket) bracketSet.add({ tx, ty, edge: "w", wall: t.w });
+    }
+  }
+}
+
+// The map put back from a save, after loadMap(json) has set the authored source.
+export function restoreMap(data) {
+  for (const d of data.chunks) installChunk(d);
+  for (const d of data.chunks) for (const p of d.props) installProp(p);
+  rebuildBrackets();
+  pendingSpawns.length = 0;
+  for (const [x, y] of data.pending || []) pendingSpawns.push([x, y]);
+  rebuildRooms();
+  touch();
+}
+
 // ---- eviction, and the dead that sleep with their chunk (docs/23a, B1, B2: a first slice of 03's records) ----
 
 const sleepers = new Map(); // chunk key -> the characters that stood in it when it was dropped (an empty list: grown before, its dead gone elsewhere)
