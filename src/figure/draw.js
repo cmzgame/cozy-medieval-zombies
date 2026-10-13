@@ -348,7 +348,14 @@ function drawFrame(frame, spec, facing, anim, i) {
       } else if (head.shape === "cap") {
         frame.begin();
         frame.addSuper(hc.x, hc.y - 1, B.headRx + 1, B.headRy + 1, SQ, (px, py) => py <= hc.y - 3);
-        if (faceFront || faceSide) {
+        if (faceFront) {
+          // From the front the brim is the dome's own lower edge across the forehead, a little toward where the figure
+          // looks. It was a short bar at the point forward of the head, which for a figure facing the camera lands at
+          // the eyes: a dark monobrow between them (Michael's playtest, 2026-10-13).
+          const edge = hc.y - 3;
+          const lean = F.fx * 1.5;
+          frame.addCapsule(hc.x - (B.headRx - 1.5) + lean, edge, hc.x + (B.headRx - 1.5) + lean, edge, 1.1);
+        } else if (faceSide) {
           const brim = P([0, B.headRx - 1, J.head[2] + 2]);
           frame.addCapsule(brim.x - 3, brim.y, brim.x + 3, brim.y, 1.2);
         }

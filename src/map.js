@@ -342,6 +342,7 @@ export function dropItem(x, y, entry, layer = 0) {
   delete e.x;
   delete e.y;
   delete e.rot;
+  if (e.uid == null) e.uid = nextId("e"); // an item on the floor is named by its uid in a guest's command: the logs of a felled tree were literals with none
   t.items.push(e);
   return e;
 }

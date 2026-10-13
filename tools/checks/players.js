@@ -115,6 +115,17 @@ export async function run(game) {
       const blank = bag.items.filter((e) => e.uid == null).map((e) => e.id);
       row("what is in a body's bag has instance ids (a guest can name it)", bag.items.length > 0 && blank.length === 0, blank.length ? `no uid: ${blank.join(", ")}` : `${bag.items.length} items, every one with a uid`);
     }
+    // 8. A guest's snapshot as the host cleans it: the aim point stays a point, an array the bow's code unpacks (the
+    // cleaner once turned it into an object and the host crashed on a joiner's first arrow, 2026-10-13), the aim a vector,
+    // and what is not either is dropped.
+    {
+      const { cleanSnap } = await import("/src/net.js");
+      const c = cleanSnap({ axis: { x: 1, y: 0 }, aim: { x: 3, y: 4 }, aimAt: [20.5, 16.25], keys: { t: true } });
+      const [ax, ay] = Array.isArray(c.aimAt) ? c.aimAt : [null, null]; // unpacked as archery.aimFrom does
+      const bad = cleanSnap({ aimAt: { x: 1, y: 2 }, aim: [1, 2] });
+      const nan = cleanSnap({ aimAt: [NaN, 3] });
+      row("a joiner's aim point crosses the host's cleaning as a point, its aim as a vector", ax === 20.5 && ay === 16.25 && c.aim && c.aim.x === 3 && c.aim.y === 4 && bad.aimAt === null && bad.aim === null && nan.aimAt === null, `aimAt ${JSON.stringify(c.aimAt)}, aim ${JSON.stringify(c.aim)}; an object or a NaN point: ${JSON.stringify(bad.aimAt)}, ${JSON.stringify(nan.aimAt)}`);
+    }
   } finally {
     if (other) G.game.removePlayer(other.id);
     for (const [z, gx, gy, state, aggro, lastSeen, target] of dead) { z.gx = gx; z.gy = gy; z.state = state; z.aggro = aggro; z.lastSeen = lastSeen; z.target = target; z.path = []; }

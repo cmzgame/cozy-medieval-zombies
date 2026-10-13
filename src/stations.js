@@ -209,6 +209,14 @@ export function update(dt) {
   }
 }
 
+// The jobs in every station that has one, for the frame to a guest (net.js): the queue's time left changes every
+// step and is no reason to resend a chunk; a job's start and its landing touch the chunk as before.
+export function frameQueues() {
+  const out = [];
+  for (const prop of active) if (prop.queue && prop.queue.length) out.push([prop.id, prop.queue.map((q) => ({ recipe: q.recipe, left: q.left, count: q.count, by: q.by }))]);
+  return out;
+}
+
 // Progress of the first job on a station, 0 to 1, or null when idle.
 export function progress(prop) {
   const q = prop.queue && prop.queue[0];

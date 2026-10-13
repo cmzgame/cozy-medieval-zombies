@@ -187,7 +187,9 @@ export function createRemoteInventoryActions(getPlayer, getOpen, send) {
     if (!bag) return null;
     if (bag === inventory.bagOf(getPlayer())) return { mine: true };
     const open = getOpen();
-    return open && bag === open.bag ? open.address : null;
+    // The bag the panel drew is this frame's or the last one's: a chunk update replaces the container's bag, and a click in
+    // the frame between found no address, so no menu and no drop (Michael's playtest: "no take option", 2026-10-13).
+    return open && (bag === open.bag || (open.prev && bag === open.prev)) ? open.address : null;
   };
   const sendFrom = (op, entry, from, more) => {
     const f = fromAddress(from, addressOf);

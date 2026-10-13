@@ -94,6 +94,7 @@ let urlLag = null; // `?lag=` for a join opened later from the Join screen
 // player it made there); null for a guest, whose world is the host's, and for a test world.
 let inWorld = false;
 let currentWorld = null;
+let reopenTries = 0; // a world left open is opened again when played; a refresh can leave its old room on the relay a moment
 // In a world or not: the step and the frame run only in one, and the interface (the bars, the log, the
 // belt) shows only in one; the title sits over black otherwise (docs/31/09).
 function setInWorld(v) {
@@ -217,7 +218,7 @@ function enterNewWorld(name, identity, { keep = true } = {}) {
   });
   afterWorldSet();
   setInWorld(true);
-  currentWorld = keep ? { worldId: save.newWorldId(), name: name || "A world", code: null, created: Date.now(), owners: { [myHash()]: S.player.id }, dormant: {} } : null;
+  currentWorld = keep ? { worldId: save.newWorldId(), name: name || "A world", code: null, created: Date.now(), open: false, owners: { [myHash()]: S.player.id }, dormant: {} } : null;
   started = keep;
   screens.hide();
   return keep ? saveWorld() : Promise.resolve(false);
@@ -228,7 +229,8 @@ async function playWorld(worldId) {
   const snap = await save.readWorld(worldId);
   if (!snap || snap.mapName !== MAP_NAME) return false;
   await restoreWorld(snap);
-  currentWorld = { worldId, name: snap.name || "A world", code: snap.code || null, created: snap.created || snap.savedAt, owners: { ...(snap.owners || {}) }, dormant: { ...(snap.dormant || {}) } };
+  currentWorld = { worldId, name: snap.name || "A world", code: snap.code || null, created: snap.created || snap.savedAt, open: !!snap.open, owners: { ...(snap.owners || {}) }, dormant: { ...(snap.dormant || {}) } };
+  reopenTries = 0;
   const mineId = currentWorld.owners[myHash()] || snap.myPlayerId;
   let mine = S.players.find((p) => p.id === mineId) || null;
   if (!mine && currentWorld.dormant[myHash()]) {
@@ -248,6 +250,8 @@ async function playWorld(worldId) {
     screens.hide();
     showMessage(`${clock.getLabel()}. Welcome back.`, 3);
   }
+  // A world left open to friends is open again when it is played (Michael, 2026-10-13: it had to be switched on every time).
+  if (currentWorld.open) setOpen(true);
   return true;
 }
 
@@ -269,7 +273,7 @@ function respawn(identity) {
 // A save that fails says so on screen (Michael, 2026-10-13: never silently).
 async function saveWorld(extra = {}) {
   if (!inWorld || !currentWorld || net.isGuest()) return false;
-  const r = await save.writeWorld(save.snapshot(MAP_NAME, { worldId: currentWorld.worldId, name: currentWorld.name, code: currentWorld.code, created: currentWorld.created, owners: currentWorld.owners, dormant: currentWorld.dormant || {}, myPlayerId: S.player.id, ...extra }));
+  const r = await save.writeWorld(save.snapshot(MAP_NAME, { worldId: currentWorld.worldId, name: currentWorld.name, code: currentWorld.code, created: currentWorld.created, open: !!currentWorld.open, owners: currentWorld.owners, dormant: currentWorld.dormant || {}, myPlayerId: S.player.id, ...extra }));
   if (r.ok) lastAutosave = loop.simTime();
   else showMessage(`The world could not be saved: ${r.error}.`, 6);
   return r.ok;
@@ -306,11 +310,15 @@ function setOpen(on) {
     if (net.isHost()) return;
     const code = (currentWorld && currentWorld.code) || net.makeCode();
     if (!net.open({ host: code, lag: urlLag })) return;
-    if (currentWorld) currentWorld.code = code;
+    if (currentWorld) {
+      currentWorld.code = code;
+      currentWorld.open = true; // remembered: the world is open again the next time it is played (saveWorld)
+    }
     saveWorld();
     showMessage(`Open to friends: the code is ${code}.`, 5);
   } else if (net.isHost()) {
     net.close();
+    if (currentWorld) currentWorld.open = false;
     saveWorld();
     showMessage("Closed to friends.", 3);
   }
@@ -504,6 +512,7 @@ function updateInventoryUi() {
     const c = interact.containerAt(S.player, openBag.address);
     if (!c) openBag = null;
     else {
+      if (c.bag !== openBag.bag) openBag.prev = openBag.bag; // the panel may still hold the last frame's object for a click (inventory-actions addressOf)
       openBag.bag = c.bag;
       openBag.corpse = c.corpse;
     }
@@ -603,6 +612,7 @@ function armGuest(on) {
     if (src && addr) net.sendUse({ uid: cur.entry.uid, src, target: addr });
   } : null);
   placement.setSender(on ? (cmd) => net.sendPlace(cmd) : null);
+  interact.setStampSink(on ? (id, kind) => net.sendPoke(id, kind) : null); // a click's sway or the well's bucket, told to the host for everyone's screen
   stationPanel.setSender(on ? (cmd) => net.sendCraft(cmd) : null);
 }
 
@@ -674,6 +684,16 @@ function stepGame(dt) {
     }
   }
   const clickSpent = clicked && placement.tryConfirm(S.player); // on a guest the confirm is a command (placement.setSender)
+  // A guest's left click makes a gatherable sway and the well's bucket play on its own screen as the host's player's does
+  // (player-controller.js, which only a world's step runs): the stamp tells the host, which tells everyone (interact.setStampSink).
+  if (guest && clicked && !clickSpent) {
+    const m = input.getMouse();
+    const launcher = archery.launcherOf(S.player);
+    if (m && !(launcher && launcher.button === "primary") && !archery.drawState(S.player)) {
+      interact.pokeAt(m.x, m.y, S.player);
+      interact.playAt(m.x, m.y, S.player);
+    }
+  }
   handleMouse();
   // E, B, and T as events in my snapshot (interact.keyEvents): the world performs them for my player in its
   // step, here or on the host (game.step), so a guest's climb, boards, and torch are the host's doing.
@@ -1318,6 +1338,12 @@ async function boot() {
       };
       const note = notes[why] || `The wire to "${code}" is gone.`;
       if (role === "host") {
+        // Opened again by itself after a refresh, the old room may still be on the relay: ask again a few times with the same code.
+        if (why === "taken" && currentWorld && currentWorld.open && reopenTries < 4) {
+          reopenTries++;
+          setTimeout(() => { if (inWorld && currentWorld && currentWorld.open && !net.onTheWire()) setOpen(true); }, 3000);
+          return;
+        }
         if (why === "taken" && currentWorld) currentWorld.code = null; // the next opening draws a new code
         return showMessage(note, 5);
       }

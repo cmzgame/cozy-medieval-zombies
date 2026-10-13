@@ -7,6 +7,7 @@
 // the item's width and height.
 
 import { getItem, makeEntry } from "./items.js";
+import { nextId } from "./world.js";
 
 // [w, h] in cells for an item id at a rotation.
 export function sizeOfId(id, rot = false) {
@@ -94,6 +95,7 @@ export function insert(bag, entry) {
   const spot = findSpot(bag, entry.id);
   if (!spot) return false;
   Object.assign(entry, spot);
+  if (entry.uid == null) entry.uid = nextId("e"); // every item in a bag has an instance id (docs/31/08 habit 2)
   bag.items.push(entry);
   return true;
 }

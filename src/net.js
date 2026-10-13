@@ -19,6 +19,8 @@ import * as light from "./light.js";
 import * as world from "./world.js";
 import * as rules from "./rules.js";
 import * as archery from "./archery.js";
+import * as burning from "./fire.js";
+import * as stations from "./stations.js";
 import * as interact from "./interact.js";
 import { VERSION as SAVE_VERSION } from "./save.js";
 import { idHash } from "./identities.js";
@@ -309,10 +311,13 @@ function send(msg) {
 // (a NaN aim or a far aim point would ride into the player's record and the save), the key events only the
 // ones that exist.
 const KEY_EVENTS = ["eTap", "eHold", "ePressed", "bTap", "bHold", "t"];
-function cleanSnap(raw) {
+export function cleanSnap(raw) {
   const s = raw && typeof raw === "object" ? raw : {};
   const num = (v, lim) => (typeof v === "number" && Number.isFinite(v) ? Math.max(-lim, Math.min(lim, v)) : 0);
-  const vec = (v, lim) => (v && typeof v === "object" ? { x: num(v.x, lim), y: num(v.y, lim) } : null);
+  const vec = (v, lim) => (v && typeof v === "object" && !Array.isArray(v) ? { x: num(v.x, lim), y: num(v.y, lim) } : null);
+  // The aim point is a grid point, [gx, gy], an array (archery.aimPoint, which the bow's code unpacks): kept as one.
+  // Cleaned as an object it became {x: 0, y: 0} and crashed the host the first time a joiner drew a bow (found 2026-10-13).
+  const point = (v, lim) => (Array.isArray(v) && v.length === 2 && v.every((n) => typeof n === "number" && Number.isFinite(n)) ? [num(v[0], lim), num(v[1], lim)] : null);
   const axis = vec(s.axis, 1) || { x: 0, y: 0 };
   let keys = null;
   if (s.keys && typeof s.keys === "object") for (const k of KEY_EVENTS) if (s.keys[k] === true) (keys = keys || {})[k] = true;
@@ -320,7 +325,7 @@ function cleanSnap(raw) {
     axis: { x: Math.sign(axis.x), y: Math.sign(axis.y) },
     sprint: !!s.sprint,
     aim: vec(s.aim, 4096),
-    aimAt: vec(s.aimAt, 100000),
+    aimAt: point(s.aimAt, 100000),
     space: !!s.space,
     clicked: !!s.clicked,
     clickSpent: false,
@@ -439,6 +444,11 @@ export function hostStep(mySnap, me) {
           game.state.acting = null;
         }
       }
+    } else if (msg.type === "poke") {
+      // A guest's click on a gatherable or the well: stamped here, for everyone's screen (interact.stampFromGuest).
+      const g = guests.get(msg.from);
+      const p = g && game.state.players.find((q) => q.id === g.playerId);
+      if (p) interact.stampFromGuest(p, msg.id, msg.kind ? 1 : 0);
     } else if (msg.type === "sync") {
       // A guest's hashes at a tick (the sync check).
       if (guests.has(msg.from) && msg.parts && typeof msg.parts === "object") {
@@ -489,7 +499,7 @@ function allCharacters() {
 // What a guest needs of a character each step: where it is and what it is doing.
 // A player's record is whole (their client draws their bag and their bars).
 function slim(c) {
-  const r = { id: c.id, gx: c.gx, gy: c.gy, facing: c.facing, anim: c.anim, hp: c.hp, dead: c.dead, state: c.state, corpse: c.corpse, line: c.line, blocking: c.blocking, carryingId: c.carrying ? c.carrying.id : null };
+  const r = { id: c.id, gx: c.gx, gy: c.gy, facing: c.facing, anim: c.anim, hp: c.hp, dead: c.dead, state: c.state, corpse: c.corpse, line: c.line, blocking: c.blocking, burning: !!c.burning, carryingId: c.carrying ? c.carrying.id : null };
   if (c.searched) {
     r.searched = true;
     r.loot = c.loot; // a body opened: its grid, for a guest with it open
@@ -507,6 +517,8 @@ function record(c) {
     if (lastCarried.get(c.id) === r.carryingId) delete r.carried;
     else lastCarried.set(c.id, r.carryingId);
     if (c.kind === "player") for (const g of guests.values()) if (g.playerId === c.id) r.ack = g.ack; // the last input of theirs this record reflects
+    // The action itself holds functions and does not travel; its label and place do, for the bar a guest shows (interact.promptFor).
+    if (c.kind === "player") r.actionView = c.action && c.action.action ? { label: c.action.action.label, mx: c.action.action.mx, my: c.action.action.my } : null;
     return r;
   }
   return slim(c);
@@ -534,7 +546,8 @@ export function hostAfterStep() {
     zombies: S.zombies.map(record),
     villagers: S.villagers.map(record),
     corpses: S.corpses.map(record),
-    pokes: interact.takePokes(), // the sways stamped this step (interact.js): a guest sees a field wobble when anyone walks through it
+    pokes: interact.takePokes(), // the sways and the well's bucket stamped this step (interact.js): a guest sees a field wobble when anyone walks through it
+    queues: stations.frameQueues(), // the jobs in the stations, with their time left: the bar a guest's recipes panel shows
     carriers: light.carriers().filter((c) => c.owner),
     rules: { ...rules.rules }, // the world's rules are the host's (docs/31/07, question 13)
     arrows: archery.arrowsInFlight().filter((a) => !a.done).map((a) => ({ gx: a.gx, gy: a.gy, z: a.z, frame: a.frame, projectile: a.projectile })),
@@ -641,9 +654,14 @@ function applyFrame(f) {
     light.forgetAll();
     hooks.chunksChanged && hooks.chunksChanged(f.chunks);
   }
-  if (f.pokes) for (const [id, at] of f.pokes) {
+  if (f.pokes) for (const [id, at, kind] of f.pokes) {
     const pr = id ? map.propById(id) : null;
-    if (pr && typeof at === "number" && !(pr.pokedAt >= at)) pr.pokedAt = at;
+    const field = kind ? "playedAt" : "pokedAt";
+    if (pr && typeof at === "number" && !(pr[field] >= at)) pr[field] = at;
+  }
+  if (f.queues) for (const [id, q] of f.queues) {
+    const pr = id ? map.propById(id) : null;
+    if (pr && Array.isArray(q)) pr.queue = q;
   }
   const byId = new Map();
   for (const c of allCharacters()) byId.set(c.id, c);
@@ -665,6 +683,9 @@ function applyFrame(f) {
         const keep = c.sprite;
         const { targetId, carryingId, carried, ...rest } = data;
         Object.assign(c, rest);
+        // A two-handed thing is one object in both hands (restoreCharacter does this on a character's first appearance):
+        // came through JSON as two, the watcher drew a bow or a halberd in each hand (found 2026-10-13).
+        if (c.hands && c.hands.main && c.hands.off && c.hands.main !== c.hands.off && c.hands.main.uid != null && c.hands.main.uid === c.hands.off.uid) c.hands.off = c.hands.main;
         // Kept as it is while the same prop stays in hand: rebuilt every frame it would lose the turns the ghost has
         // been given and register a fresh copy each time (the carried prop is the guest's to turn, the host's at the put-down).
         c.carrying = c.carrying && c.carrying.id === carryingId ? c.carrying : propById(carryingId) || (carried && carried.id === carryingId ? map.reviveProp(carried, false) : null);
@@ -706,7 +727,12 @@ function applyFrame(f) {
   S.others = [...S.players, ...S.zombies, ...S.villagers];
   S.progress = S.player ? S.player.actionProgress : null;
   light.setCarriers(f.carriers);
-  light.setBurners([]);
+  // The burning is a visual the host's step makes (fire.js): the flame particles and the body as a light come
+  // from the burning flag, which the frame carries, so a guest runs the same update on its replica (found 2026-10-13:
+  // only the host saw anyone on fire).
+  const everyone = [...S.players, ...S.zombies, ...S.villagers, ...S.corpses];
+  burning.update(1 / 60, everyone);
+  light.setBurners(burning.lights(everyone));
   light.update();
 }
 
@@ -726,6 +752,10 @@ export function sendItem(cmd) {
 }
 
 // A craft (ui/station-panel.js Make): the station by id, the recipe, the count; the host runs the verb.
+export function sendPoke(id, kind) {
+  if (role === "guest" && typeof id === "string") send({ type: "poke", id, kind: kind ? 1 : 0 });
+}
+
 export function sendCraft(cmd) {
   if (role === "guest" && cmd && cmd.propId) send({ type: "craft", ...cmd });
 }

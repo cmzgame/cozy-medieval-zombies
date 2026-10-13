@@ -64,6 +64,32 @@ export async function run(game) {
     const after = G.save.listWorlds().find((w) => w.worldId === first.worldId);
     row("the world's row names the new character", !!after && after.myCharacter === "Bram" && !after.dead, after ? `${after.name} as ${after.myCharacter}${after.dead ? " (dead)" : ""}` : "no row");
     await wait(10);
+    // 6. A world left open to friends is open again when it is played (Michael, 2026-10-13); one closed stays closed.
+    // The two-tab loopback stands in for the relay, so the check never goes out to the network.
+    const prevRelay = G.net.status().relay;
+    G.net.setRelay("none");
+    try {
+      await W.play(first.worldId);
+      step(2);
+      W.setOpen(true);
+      const code = G.net.status().code;
+      const wasOpen = G.net.status().role === "host" && !!W.current.open;
+      await W.save();
+      await W.leave();
+      const closedOnLeave = G.net.status().role === null;
+      await W.play(first.worldId);
+      await wait(20);
+      const again = G.net.status();
+      row("a world left open is open again when it is played, under the same code", wasOpen && closedOnLeave && again.role === "host" && again.code === code && !!W.current.open, `open ${wasOpen}, closed on leave ${closedOnLeave}, played again: ${again.role} ${again.code} (was ${code})`);
+      W.setOpen(false);
+      await W.save();
+      await W.leave();
+      await W.play(first.worldId);
+      row("a world closed to friends stays closed when it is played", G.net.status().role === null && !W.current.open, `role ${G.net.status().role}, flag ${W.current.open}`);
+      await W.leave();
+    } finally {
+      if (prevRelay) G.net.setRelay(prevRelay);
+    }
   } finally {
     G.loop.setPaused(false);
   }

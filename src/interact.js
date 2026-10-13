@@ -855,6 +855,11 @@ export function promptFor(player, progress) {
     const a = player.action.action;
     return { label: a.label, mx: a.mx, my: a.my, progress };
   }
+  // On a guest the action runs on the host and arrives as a description (net.js record): its bar is the host's progress.
+  if (player.actionView) {
+    const a = player.actionView;
+    return { label: a.label, mx: a.mx, my: a.my, progress };
+  }
   const a = nearestSimpleAction(player);
   if (!a) return null;
   return { label: `E: ${a.label}`, mx: a.mx, my: a.my, progress: null };
@@ -937,6 +942,8 @@ export function updateInteract(player, dt, keys) {
   if (keys.eHold) {
     const o = nearestOpening(player);
     if (o && map.climbable(o.wall)) startClimb(player, o);
+    // A hold on a window that cannot be climbed said nothing (Michael's playtest, 2026-10-13): say why.
+    else if (o && o.wall.kind === "window") showMessage(o.wall.shutter === "closed" ? "The shutters are closed." : "You cannot climb through that.");
   } else if (keys.eTap && !player.action) {
     const a = nearestSimpleAction(player);
     if (a) startAction(player, a);
@@ -1168,9 +1175,29 @@ const stamped = [];
 export function takePokes() {
   return stamped.splice(0);
 }
-function stamp(prop, now) {
-  prop.pokedAt = now;
-  if (stamped.length < 400) stamped.push([prop.id, now]);
+// `field` is pokedAt (a sway, kind 0) or playedAt (the well's bucket, kind 1). A guest's own click also tells the host
+// (the sink net.js sets), so everyone sees it; the host's list goes out in the frame to every guest.
+let stampSink = null;
+export function setStampSink(fn) {
+  stampSink = fn;
+}
+function stamp(prop, now, field = "pokedAt") {
+  prop[field] = now;
+  const kind = field === "playedAt" ? 1 : 0;
+  if (stamped.length < 400) stamped.push([prop.id, now, kind]);
+  if (stampSink) stampSink(prop.id, kind);
+}
+
+// A guest's click on a thing, performed here for its player: the same reach and rest the host's own click meets.
+export function stampFromGuest(player, id, kind) {
+  const prop = typeof id === "string" ? map.propById(id) : null;
+  if (!prop || !inReach(prop, player)) return false;
+  if (kind) return play(prop);
+  const def = getDef(prop.sprite);
+  if (!prop.interactable || def.sway === false || def.clickAnim) return false;
+  const now = loop.simTime() * 1000;
+  if (!prop.pokedAt || now - prop.pokedAt >= POKE_COOLDOWN_MS) stamp(prop, now);
+  return true;
 }
 
 export function pokeAt(sx, sy, player) {
@@ -1326,7 +1353,7 @@ export function play(prop) {
   const now = loop.simTime() * 1000; // sim milliseconds (docs/23a, C2)
   const total = anim.ms.reduce((a, b) => a + b, 0);
   if (prop.playedAt && now - prop.playedAt < total) return false;
-  prop.playedAt = now;
+  stamp(prop, now, "playedAt");
   return true;
 }
 
