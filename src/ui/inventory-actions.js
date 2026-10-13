@@ -9,6 +9,7 @@ import * as inventory from "../inventory.js";
 import * as grid from "../grid.js";
 import * as map from "../map.js";
 import * as interact from "../interact.js";
+import * as tuning from "../tuning.js";
 import { showMessage } from "./prompt.js";
 
 function slotGet(player, id) {
@@ -163,4 +164,165 @@ export function createInventoryActions(getPlayer) {
       return interact.slotMenu(getPlayer(), slotId);
     },
   };
+}
+
+// ---- the panel over the wire (docs/31/05, item 9; docs/31/04) ----
+// A guest's panel is a view on its replica: every drag, drop, double-click, and menu entry goes to
+// the host as a command by the entry's uid, the slot's id, and the bag's address (interact.containerAt),
+// and the frame brings the result back (the source is `src` on the wire: `from` is the sender's stamp). The reads (what fits where, the menus' labels and enabled
+// flags) are the local handlers' on the replica, so the panel looks the same; only the mutators send.
+// `getOpen` gives the container open beside the bag as { bag, address }, or null.
+// The "Use" entry stays local: it only begins the Use mode (use.js); its apply is the Use mode's own command.
+
+function fromAddress(from, addressOf) {
+  if (from.kind === "slot") return { kind: "slot", id: from.id };
+  const bag = addressOf(from.bag);
+  return bag ? { kind: "bag", bag } : null;
+}
+
+export function createRemoteInventoryActions(getPlayer, getOpen, send) {
+  const local = createInventoryActions(getPlayer);
+  const addressOf = (bag) => {
+    if (!bag) return null;
+    if (bag === inventory.bagOf(getPlayer())) return { mine: true };
+    const open = getOpen();
+    return open && bag === open.bag ? open.address : null;
+  };
+  const sendFrom = (op, entry, from, more) => {
+    const f = fromAddress(from, addressOf);
+    if (f) send({ op, uid: entry.uid, src: f, ...more });
+  };
+  const remoteMenu = (entries, more) => entries.map((en) => (en.label === "Use" ? en : { ...en, onSelect: () => send({ op: "menu", label: en.label, ...more }) }));
+  return {
+    ...local,
+    placeInSlot(entry, from, slotId) {
+      sendFrom("slot", entry, from, { slot: slotId });
+    },
+    placeInGrid(entry, from, bag, x, y, rot) {
+      const to = addressOf(bag);
+      if (to) sendFrom("grid", entry, from, { bag: to, x, y, rot: !!rot });
+    },
+    moveInGrid(entry, fromBag, toBag, x, y, rot) {
+      const to = addressOf(toBag);
+      if (to) sendFrom("grid", entry, { kind: "bag", bag: fromBag }, { bag: to, x, y, rot: !!rot });
+    },
+    dropToFloor(entry, from) {
+      sendFrom("floor", entry, from, {});
+    },
+    quickMove(entry, bag, toBag) {
+      const to = addressOf(toBag);
+      if (to) sendFrom("quick", entry, { kind: "bag", bag }, { bag: to });
+    },
+    rotate(entry, bag) {
+      sendFrom("rotate", entry, { kind: "bag", bag }, {});
+    },
+    tidy(bag) {
+      const a = addressOf(bag);
+      if (a) send({ op: "tidy", bag: a });
+    },
+    itemMenu(entry, bag, otherBag) {
+      const from = addressOf(bag);
+      if (!from) return [];
+      return remoteMenu(local.itemMenu(entry, bag, otherBag), { uid: entry.uid, src: { kind: "bag", bag: from }, other: addressOf(otherBag) });
+    },
+    use(entry, bag) {
+      sendFrom("dbl", entry, { kind: "bag", bag }, {});
+      return true;
+    },
+    useSlot(slotId) {
+      const m = local.slotMenu(slotId);
+      if (!m.length) return false;
+      send({ op: "menu", label: m[0].label, src: { kind: "slot", id: slotId } });
+      return true;
+    },
+    slotMenu(slotId) {
+      return remoteMenu(local.slotMenu(slotId), { src: { kind: "slot", id: slotId } });
+    },
+  };
+}
+
+// The host's side: a guest's command run on this world as that player, through the same handlers its
+// own panel uses. Every object is found again by its address and uid, so a command on a stale view
+// (the frame that moved the thing was still in flight) finds nothing and does nothing. A container
+// not the player's must be within the panel's closing distance, the same rule that shuts it. Returns
+// true when something ran. Messages said on the way reach the guest through the acting player (net.js).
+export function performItemCommand(player, c) {
+  if (!player || !c) return false;
+  const h = createInventoryActions(() => player);
+  const touched = new Set();
+  const containerOf = (a) => {
+    const r = interact.containerAt(player, a);
+    if (!r) return null;
+    if (!a.mine) {
+      if (interact.distToTiles(player, r.tiles) > Math.max(a.closeDist || 0, tuning.world.containerCloseDist)) return null;
+      touched.add(r.tiles[0]);
+    }
+    return r;
+  };
+  const fromOf = (f) => {
+    if (!f) return null;
+    if (f.kind === "slot") return typeof f.id === "string" ? { kind: "slot", id: f.id } : null;
+    const r = containerOf(f.bag);
+    return r ? { kind: "bag", bag: r.bag } : null;
+  };
+  const entryIn = (from, uid) => {
+    if (uid == null) return null;
+    if (from.kind === "slot") {
+      const e = slotGet(player, from.id);
+      return e && e.uid === uid ? e : null;
+    }
+    return from.bag.items.find((e) => e.uid === uid) || null;
+  };
+  let ran = false;
+  if (c.op === "tidy") {
+    const to = containerOf(c.bag);
+    if (to) grid.tidy(to.bag);
+    if (to) for (const [tx, ty] of touched) map.markDirty(tx, ty);
+    return !!to;
+  }
+  const from = fromOf(c.src); // `src`, since the wire stamps `from` with the sender (net.js send)
+  const entry = from ? entryIn(from, c.uid) : null;
+  if (c.op === "slot" && entry && typeof c.slot === "string") {
+    h.placeInSlot(entry, from, c.slot);
+    ran = true;
+  } else if (c.op === "grid" && entry) {
+    const to = containerOf(c.bag);
+    if (to) {
+      const x = Math.round(c.x) || 0;
+      const y = Math.round(c.y) || 0;
+      if (from.kind === "bag") grid.moveEntry(from.bag, to.bag, entry, x, y, !!c.rot);
+      else h.placeInGrid(entry, from, to.bag, x, y, !!c.rot);
+      ran = true;
+    }
+  } else if (c.op === "floor" && entry) {
+    h.dropToFloor(entry, from);
+    ran = true;
+  } else if (c.op === "quick" && entry && from.kind === "bag") {
+    const to = containerOf(c.bag);
+    if (to && to.bag !== from.bag) {
+      const intoMine = to.bag === inventory.bagOf(player);
+      if (!h.canStore(entry) || !grid.transfer(from.bag, to.bag, entry)) h.noRoom(intoMine);
+      ran = true;
+    }
+  } else if (c.op === "rotate" && entry && from.kind === "bag") {
+    if (grid.fits(from.bag, entry.id, entry.x, entry.y, !entry.rot, entry)) entry.rot = !entry.rot;
+    ran = true;
+  } else if (c.op === "dbl" && entry && from.kind === "bag") {
+    h.use(entry, from.bag);
+    ran = true;
+  } else if (c.op === "menu" && from && typeof c.label === "string") {
+    let entries = [];
+    if (from.kind === "slot") entries = h.slotMenu(from.id);
+    else if (entry) {
+      const other = c.other ? containerOf(c.other) : null;
+      entries = h.itemMenu(entry, from.bag, other ? other.bag : null);
+    }
+    const en = entries.find((q) => q.label === c.label);
+    if (en && en.enabled && en.label !== "Use") {
+      en.onSelect();
+      ran = true;
+    }
+  }
+  if (ran) for (const [tx, ty] of touched) map.markDirty(tx, ty); // a container's grid travels with its chunk
+  return ran;
 }

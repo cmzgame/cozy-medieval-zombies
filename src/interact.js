@@ -118,6 +118,35 @@ export function performByLabel(player, target, label) {
   return true;
 }
 
+// A container by its address (docs/31/05, item 9): the shape `containerOpened` sends a guest
+// (main.js): a prop by id (`name` "output" for a station's own bag), a floor bag by its entry's uid
+// on its tile, a body by id; `{ mine: true }` is the player's own bag. Resolved on a guest every
+// frame, since a chunk delta installs a prop anew, and on the host for a guest's command.
+// Returns { bag, corpse, tiles } or null.
+export function containerAt(player, a) {
+  if (!a) return null;
+  if (a.mine) {
+    const bag = bagOf(player);
+    return bag ? { bag, corpse: null, tiles: [[Math.round(player.gx), Math.round(player.gy)]] } : null;
+  }
+  if (a.propId) {
+    const pr = map.propById(a.propId);
+    if (!pr) return null;
+    const bag = a.name === "output" ? stations.outputOf(pr) : pr.bag || null;
+    return bag ? { bag, corpse: null, tiles: pr.tiles } : null;
+  }
+  if (a.entryUid && a.tile) {
+    const e = map.itemsAt(a.tile[0], a.tile[1]).find((q) => q.uid === a.entryUid);
+    return e && e.bag ? { bag: e.bag, corpse: null, tiles: [a.tile] } : null;
+  }
+  if (a.characterId) {
+    const c = allCharacters().find((q) => q.id === a.characterId);
+    const bag = c ? lootOf(c) : null;
+    return bag ? { bag, corpse: c, tiles: [[Math.round(c.gx), Math.round(c.gy)]] } : null;
+  }
+  return null;
+}
+
 function nameOf(entry) {
   return getItem(entry.id).name;
 }

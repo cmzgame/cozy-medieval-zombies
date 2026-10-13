@@ -160,6 +160,19 @@ export function hostStep(mySnap, me) {
           game.state.acting = null;
         }
       }
+    } else if (msg.type === "item") {
+      // The panel's drags, drops, and menus from a guest (docs/31/05, item 9): run here as the guest's
+      // player through the same handlers its own panel uses (main.js hands in inventory-actions.js's executor).
+      const g = guests.get(msg.from);
+      const p = g && game.state.players.find((q) => q.id === g.playerId);
+      if (p && hooks.item) {
+        game.state.acting = p;
+        try {
+          hooks.item(p, msg);
+        } finally {
+          game.state.acting = null;
+        }
+      }
     } else if (msg.type === "say") {
       // The first command over the wire (docs/31/03, chat): a guest's line, said by their player here.
       const g = guests.get(msg.from);
@@ -375,6 +388,11 @@ export function sendSay(text) {
 // A verb on the world, by its address and label (interact.js): the host performs it as my player.
 export function sendAct(target, label) {
   if (role === "guest" && target && label) send({ type: "act", target, label });
+}
+
+// The panel's command (ui/inventory-actions.js, createRemoteInventoryActions): an op by uid, slot, and bag address.
+export function sendItem(cmd) {
+  if (role === "guest" && cmd && cmd.op) send({ type: "item", ...cmd });
 }
 
 function guestOf(playerId) {

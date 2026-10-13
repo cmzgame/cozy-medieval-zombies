@@ -58,7 +58,7 @@ import * as combat from "./combat.js";
 import * as buildPalette from "./ui/build-palette.js";
 import * as shell from "./boot.js";
 import { createDevApi } from "./dev.js";
-import { createInventoryActions } from "./ui/inventory-actions.js";
+import { createInventoryActions, createRemoteInventoryActions, performItemCommand } from "./ui/inventory-actions.js";
 import * as rng from "./rng.js";
 import * as rules from "./rules.js";
 import * as tuning from "./tuning.js";
@@ -287,6 +287,15 @@ function updateInventoryUi() {
     const r = inventory.beltKey(S.player, i);
     if (r === "nobelt") showMessage("No belt, or no such slot.");
     else if (r === "handsfull") showMessage("Your hands are full.");
+  }
+  if (openBag && openBag.address) {
+    // On a guest the replica's objects are new with every frame: the grid is found again by its address.
+    const c = interact.containerAt(S.player, openBag.address);
+    if (!c) openBag = null;
+    else {
+      openBag.bag = c.bag;
+      openBag.corpse = c.corpse;
+    }
   }
   if (openBag) {
     let d = Infinity;
@@ -778,7 +787,12 @@ async function boot() {
       initSwingTimer();
       initSpeech();
       menu.initContextMenu();
-      handlers = createInventoryActions(() => S.player);
+      // A guest's panel sends commands (docs/31/05, item 9); the open container is found by its address each frame.
+      handlers = new URLSearchParams(window.location.search).get("join")
+        ? createRemoteInventoryActions(() => S.player, () => openBag, (cmd) => net.sendItem(cmd))
+        : createInventoryActions(() => S.player);
+      // A host's own drag into a chest marks its chunk, so a guest sees the chest change.
+      handlers.changed = () => { if (!net.isGuest() && openBag && openBag.tiles && openBag.tiles[0]) map.markDirty(openBag.tiles[0][0], openBag.tiles[0][1]); };
       panel.initInventoryPanel(handlers);
       placement.init({ startAction: interact.startAction });
       buildPalette.initBuildPalette({
@@ -948,23 +962,16 @@ async function boot() {
     },
     joined: (id) => showMessage(`Joined as ${id}.`, 3),
     message: (text, seconds = 3) => showMessage(text, seconds),
-    // A container my player opened on the host: the grid is on my replica's prop, entry, or body.
+    // A container my player opened on the host: the grid is on my replica's prop, entry, or body, found by
+    // its address (interact.containerAt; a station's output is its own bag, docs/30 section 6), again every frame.
     opened: (w) => {
-      let bag = null;
-      let corpse = null;
-      if (w.propId) {
-        const pr = map.propById(w.propId);
-        bag = pr ? (w.name === "output" ? stations.outputOf(pr) : pr.bag || null) : null; // a station's output is its own bag, not a container's (docs/30, section 6)
-      }
-      else if (w.entryUid && w.tile) bag = map.itemsAt(w.tile[0], w.tile[1]).find((e) => e.uid === w.entryUid)?.bag || null;
-      else if (w.characterId) {
-        corpse = [...S.corpses, ...S.zombies].find((c) => c.id === w.characterId) || null;
-        bag = corpse ? corpse.loot : null;
-      }
-      if (!bag) return;
-      openBag = { bag, tiles: w.tiles, name: w.name, corpse, closeDist: w.closeDist || 0 };
+      const c = interact.containerAt(S.player, w);
+      if (!c) return;
+      openBag = { bag: c.bag, tiles: w.tiles, name: w.name, corpse: c.corpse, closeDist: w.closeDist || 0, address: w };
       panel.setBagOpen(true);
     },
+    // A guest's panel command, run here as its player (ui/inventory-actions.js).
+    item: (p, cmd) => performItemCommand(p, cmd),
     chunksChanged: (chunks) => {
       for (const d of chunks) ground.invalidate([[d.cx * map.CHUNK + 8, d.cy * map.CHUNK + 8], [d.cx * map.CHUNK, d.cy * map.CHUNK], [d.cx * map.CHUNK + 15, d.cy * map.CHUNK + 15]]);
     },
