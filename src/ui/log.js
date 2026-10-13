@@ -12,11 +12,35 @@ import * as settings from "../settings.js";
 const KEEP = 200;
 let root = null;
 let pinned = true; // following the newest line until the user scrolls up
+let input = null;
+let onSay = null; // main.js: a line typed is said by your player (docs/31/03: the log is the chat)
 
-export function initLog() {
+export function initLog(handlers = {}) {
+  onSay = handlers.onSay || null;
   root = document.createElement("div");
   root.id = "log";
   document.getElementById("ui").appendChild(root);
+  // The chat: a line typed here is said by your player, a bubble over your head and a line in every
+  // log that could see you (docs/31/03). Enter sends; Escape leaves the box; keys in it never reach the game.
+  input = document.createElement("input");
+  input.id = "log-input";
+  input.type = "text";
+  input.maxLength = 200;
+  input.placeholder = "Say something…";
+  input.autocomplete = "off";
+  input.spellcheck = false;
+  document.getElementById("ui").appendChild(input);
+  input.addEventListener("keydown", (e) => {
+    e.stopPropagation();
+    if (e.code === "Enter") {
+      const text = input.value.trim();
+      input.value = "";
+      if (text && onSay) onSay(text);
+      input.blur();
+    } else if (e.code === "Escape") input.blur();
+  });
+  input.addEventListener("keyup", (e) => e.stopPropagation());
+  input.addEventListener("mousedown", (e) => e.stopPropagation());
   root.addEventListener("scroll", () => {
     pinned = root.scrollTop + root.clientHeight >= root.scrollHeight - 4;
   });

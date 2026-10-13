@@ -1350,3 +1350,14 @@ html, body {
   font: inherit;
   cursor: pointer;
 }
+
+/* Names over heads (ui/names.js, docs/31/03) and the log's chat line (ui/log.js). */
+#names { position: absolute; inset: 0; pointer-events: none; }
+.name-tag { position: absolute; transform: translate(-50%, -100%); font: 11px var(--font-ui, sans-serif); color: #f4ecd9; text-shadow: 0 1px 0 #1a1420, 1px 0 0 #1a1420, -1px 0 0 #1a1420, 0 -1px 0 #1a1420; white-space: nowrap; pointer-events: none; }
+#log-input { position: absolute; left: 12px; bottom: 6px; width: 340px; height: 20px; padding: 0 6px; font: 12px var(--font-ui, sans-serif); color: #f4ecd9; background: rgba(10, 6, 14, 0.75); border: 1px solid #5a4a3a; border-radius: 3px; outline: none; }
+#log-input:focus { border-color: #c9a24a; }
+#log { bottom: 30px; }
+.swatch { width: 22px; height: 22px; border: 2px solid #3a2e28; border-radius: 4px; padding: 0; cursor: pointer; }
+.swatch.on { border-color: #c9a24a; box-shadow: 0 0 0 1px #c9a24a; }
+.code { font-size: 1.3em; letter-spacing: 1px; color: #c9a24a; }
+#you-name, #join-code { font: 13px var(--font-ui, sans-serif); padding: 2px 6px; background: rgba(10, 6, 14, 0.6); color: #f4ecd9; border: 1px solid #5a4a3a; border-radius: 3px; }

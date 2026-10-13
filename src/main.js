@@ -30,12 +30,13 @@ import * as burning from "./fire.js";
 import * as infection from "./infection.js";
 import * as bleed from "./bleed.js";
 import * as buttons from "./buttons.js";
-import { refreshCorpse, createCharacter, wardrobeInto } from "./entities/character.js";
+import { refreshCorpse, createCharacter, wardrobeInto, say } from "./entities/character.js";
 import * as menu from "./ui/context-menu.js";
 import * as panel from "./ui/inventory-panel.js";
 import * as kit from "./ui/kit.js";
 import * as cursor from "./ui/cursor.js";
 import * as log from "./ui/log.js";
+import { initNames, updateNames } from "./ui/names.js";
 import * as use from "./use.js";
 import * as interactions from "./interactions.js";
 import * as world from "./world.js";
@@ -445,6 +446,11 @@ function groundLine() {
 // the camera and a resize while paused, and its cost is not the step's. What it
 // ticks (a bubble's life, the message's fade) ticks on sim time, so it freezes
 // with the sim.
+// The look from the You screen (docs/31/03): the chosen colours over the defaults, the hair style with them.
+function myLook() {
+  return { ...figure.DEFAULT_LOOK, ...(settings.get("look") || {}), hairStyle: settings.get("hairStyle") || "short" };
+}
+
 function renderUi() {
   const now = loop.simTime();
   const dt = now - uiSimTime;
@@ -455,6 +461,7 @@ function renderUi() {
   updateZombieBars(S.zombies, visible, S.player);
   updateSwingTimer(S.player);
   updateSpeech(S.others, visible, S.player, dt);
+  updateNames(S.players, visible, S.player);
   updateMessage(dt);
 }
 
@@ -632,7 +639,8 @@ async function boot() {
       // The world itself (game.js): the same calls headless under Node (tools/world.js).
       game.create({
         json,
-        look: { ...figure.DEFAULT_LOOK, hairStyle: settings.get("hairStyle") || "short" },
+        look: myLook(),
+        name: settings.get("playerName") || null,
         devChest: !!settings.get("devChest"),
         combatTesting,
       });
@@ -685,7 +693,14 @@ async function boot() {
     { name: "ui", label: "Setting the table", weight: 1, async run() {
       kit.apply(); // the stone, the well, and the button as CSS, before any panel is built (docs/23, step 4)
       cursor.init();
-      log.initLog(); // before anything can show a message
+      log.initLog({
+        // The log is the chat (docs/31/03): a line typed is said by my player; a guest's is said on the host.
+        onSay: (text) => {
+          if (net.isGuest()) net.sendSay(text);
+          else say(S.player, text);
+        },
+      });
+      initNames(); // before anything can show a message
       use.init();
       stationPanel.initStationPanel(() => S.player);
       initHud();
@@ -715,6 +730,29 @@ async function boot() {
         },
         onReload: () => window.location.reload(),
         onContinue: () => continueSave(),
+        // The You screen (docs/31/03): the name and the look, kept in the browser, on my player at once.
+        you: {
+          name: () => settings.get("playerName") || "",
+          setName: (n) => { settings.set("playerName", n); S.player.name = n || null; net.setIdentity({ name: n || null }); },
+          look: () => settings.get("look") || {},
+          setLook: (partial) => {
+            settings.set("look", { ...(settings.get("look") || {}), ...partial });
+            Object.assign(S.player.look, partial);
+            net.setIdentity({ look: myLook() });
+            refreshFigure();
+          },
+        },
+        // Host and Join (net.js): the screens over the wire's roles.
+        wire: {
+          status: () => net.status(),
+          host: () => { if (net.open({ host: net.makeCode() })) showMessage(`Hosting: your code is ${net.status().code}.`, 5); },
+          join: (code) => {
+            if (!net.open({ join: code })) return;
+            screens.hide();
+            started = true;
+            showMessage(`Joining ${code}…`, 4);
+          },
+        },
         onSave: () => {
           const ok = save.write(save.snapshot(MAP_NAME));
           showMessage(ok ? "Saved." : "The save could not be written.");
@@ -807,6 +845,7 @@ async function boot() {
   // The wire (net.js, docs/31/04): `?host=<code>` opens this world to guests on this origin; `?join=<code>`
   // joins one (`&lag=100` adds a delay each way). A guest skips the title: its world arrives from the host.
   const url = new URLSearchParams(window.location.search);
+  net.setIdentity({ name: settings.get("playerName") || null, look: myLook() });
   net.init({ host: url.get("host"), join: url.get("join"), lag: url.get("lag") }, {
     restore: async (snap, playerId) => {
       await restoreWorld(snap);

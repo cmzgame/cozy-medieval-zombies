@@ -20,6 +20,9 @@ export const DEFAULTS = {
   showHitShapes: false, // draw the dead's body samples, green when the next swing reaches them (docs/14)
   freeBuilding: false, // on: building costs nothing (docs/13), for testing structures
   survival: true, // on since docs/30 step 2 (hunger, thirst, tiredness drain); off: the body is a workbench
+  playerName: "", // who you are to the others (docs/31/03: the identity screen); empty means your player's id
+  look: {}, // the look's colours chosen on the You screen: skin, hair, eyes (hex); the rest DEFAULT_LOOK's
+  nameTags: true, // another player's name over their head while in sight (docs/31/03)
   hairStyle: "short", // the player's hair, picked on the settings screen's Hair row; no choices row, the row is built live
   paintedLayers: {}, // slot -> painted layer name to try on, from the settings screen (docs/12)
   panelPos: {}, // "bag" | "character" | "container" -> { x, y } in UI pixels where its header was dragged to (docs/23 step 4; Michael, 2026-10-12)
@@ -46,6 +49,7 @@ export const CHOICES = {
   survival: [[true, "On (hunger, thirst, tiredness)"], [false, "Off (no needs)"]],
   cursor: [["default", "Default"], ["human", "A hand"], ["severed", "A severed hand"], ["zombie", "A zombie hand"]],
   devChest: [[true, "On (by the spawn; reload the page)"], [false, "Off"]],
+  nameTags: [[true, "Shown"], [false, "Hidden"]],
 };
 
 const settings = { ...DEFAULTS };
