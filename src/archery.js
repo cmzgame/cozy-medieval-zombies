@@ -68,7 +68,7 @@ export function peakHeight(s, p = tunables) {
 const flying = [];
 
 export function arrowsInFlight() {
-  return flying;
+  return replica || flying;
 }
 
 // Where a release would land, without flying anything: for the marker and the
@@ -286,15 +286,20 @@ function bodyAt(gx, gy) {
 
 // ---- the landing marker (docs/20): where the current draw would land ----
 
-let marker = null;
-
-// { land: [gx, gy], full: [gx, gy], from: [gx, gy] } or null.
-export function setMarker(m) {
-  marker = m;
+// { land: [gx, gy], full: [gx, gy], from: [gx, gy] } or null, on the player whose draw it is
+// (docs/31/05, item 12): a client draws its own player's.
+export function setMarker(player, m) {
+  player.marker = m;
 }
 
-export function getMarker() {
-  return marker;
+export function getMarker(player) {
+  return player ? player.marker || null : null;
+}
+
+// On a guest, what flies is what the host says flies (net.js): a list drawn in place of the world's.
+let replica = null;
+export function setReplicaArrows(list) {
+  replica = list;
 }
 
 // ---- the projectiles' pictures, generated like everything else ----
@@ -391,24 +396,21 @@ export function generateSpear() {
 // speed, and shows where the arrow would land. Sprinting, opening a panel, or a
 // pause cancels the draw. A release before `minDraw` is a dry release.
 
-let draw = null; // { t, c, source }: a draw in progress
-let recover = 0; // seconds until the next draw may begin
-let aimOverride = null; // [gx, gy]: scripts and tests aim here instead of the cursor
+// The draw in progress ({ t, c, source }), the recovery after a shot, the scripts' aim override,
+// and the marker live on the player (docs/31/05, item 12): two players draw two bows.
 
-// A world put back from a save (docs/31/05, item 24): nothing in flight, no draw, no marker.
+// A world put back from a save (docs/31/05, item 24): nothing in flight.
 export function reset() {
   flying.length = 0;
-  draw = null;
-  recover = 0;
-  aimOverride = null;
-  marker = null;
+  replica = null;
 }
 
-export function setAimOverride(p) {
-  aimOverride = p;
+export function setAimOverride(player, p) {
+  player.aimOverride = p;
 }
 
-export function drawState() {
+export function drawState(player) {
+  const draw = player && player.draw;
   return draw ? { t: draw.t, c: draw.c, source: draw.source } : null;
 }
 
@@ -435,14 +437,18 @@ export function bowOf(player) {
 // The ground point the cursor means, read at chest height: a cursor on a body
 // is not over its feet on the ground plane, so the point is the one whose chest
 // the cursor is over (`aimLift`), and a cursor on a zombie targets its feet.
-export function aimPoint(mouse) {
-  if (aimOverride) return aimOverride;
+// `ctx` is the input: `aimAt` a grid point from a client whose cursor is not here (net.js), else
+// `mouse` in this client's world pixels; a script's override on the player wins.
+export function aimPoint(player, ctx) {
+  if (player && player.aimOverride) return player.aimOverride;
+  if (ctx && ctx.aimAt) return ctx.aimAt;
+  const mouse = ctx && ctx.mouse ? ctx.mouse : ctx;
   const g = iso.toGrid(mouse.x, mouse.y + tunables.aimLift);
   return [g.gx, g.gy];
 }
 
-function aimFrom(player, mouse) {
-  const [cx, cy] = aimPoint(mouse);
+function aimFrom(player, ctx) {
+  const [cx, cy] = aimPoint(player, ctx);
   let dx = cx - player.gx;
   let dy = cy - player.gy;
   let L = Math.hypot(dx, dy);
@@ -466,30 +472,31 @@ function setPose(player, frame) {
 }
 
 export function beginDraw(player, bow, source = "mouse") {
-  if (draw || recover > 0 || !bow || player.dead || player.climb || player.carrying) return false;
+  if (player.draw || (player.recover || 0) > 0 || !bow || player.dead || player.climb || player.carrying) return false;
   if (bow.ammo && countAll(player, bow.ammo) <= 0) {
     showMessage("No arrows.");
     return false;
   }
   player.auto = null;
   player.drawing = true;
-  draw = { t: 0, c: 0, source };
+  player.draw = { t: 0, c: 0, source };
   return true;
 }
 
 export function cancelDraw(player) {
-  draw = null;
+  player.draw = null;
   player.drawing = false;
-  setMarker(null);
+  setMarker(player, null);
 }
 
 // Let go: dry below the minimum, otherwise one arrow leaves the bag and flies,
 // or the thrown item leaves the hand and flies (the hand is then empty).
-export function releaseDraw(player, mouse) {
+export function releaseDraw(player, ctx) {
+  const draw = player.draw;
   if (!draw) return null;
   const c = draw.c;
   const L = launcherOf(player);
-  const aim = aimFrom(player, mouse);
+  const aim = aimFrom(player, ctx);
   cancelDraw(player);
   if (c < tunables.minDraw || !L) return null;
   let item = null;
@@ -503,7 +510,7 @@ export function releaseDraw(player, mouse) {
     release(player.hands, L.entry);
   }
   const a = shoot(player, aim.dir, aim.distance, c, { damage: (L.damage ?? tunables.damage) * guardedMult(player), knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, staggerChance: L.staggerChance, interrupts: !!L.interrupts, item });
-  recover = tunables.recoverTime;
+  player.recover = tunables.recoverTime;
   setPose(player, 3);
   emit("arrowShot", { player, arrow: a, c });
   // The string wears by the shot (docs/30, 5.2: a bow's `shots`); at the last one the bow is gone from the hand.
@@ -522,17 +529,18 @@ export function releaseDraw(player, mouse) {
 // Every step. `ctx`: { pressed, down, mouse, blocked }.
 export function updateDraw(player, dt, ctx) {
   const bow = launcherOf(player);
-  if (recover > 0) {
-    recover -= dt;
+  if ((player.recover || 0) > 0) {
+    player.recover -= dt;
     setPose(player, 3);
     return;
   }
-  const had = !!draw;
-  if (!draw) {
+  const had = !!player.draw;
+  if (!player.draw) {
     if (!(ctx.pressed && bow)) return;
     if (!beginDraw(player, bow)) return;
-    draw.pauses = loop.pauseCount();
+    player.draw.pauses = loop.pauseCount();
   }
+  const draw = player.draw;
   // A draw held through a pause (the menu, the pause screen) is dropped, so
   // letting go afterwards does not loose an arrow. Counted in pauses of the
   // loop, not in wall-clock time, so a slow frame or a test cannot drop it (docs/23a, C2).
@@ -546,15 +554,16 @@ export function updateDraw(player, dt, ctx) {
   const braced = ctx.brace && bow.kind === "bow";
   draw.t += dt * (braced ? (bow.braceDrawTime ? bow.drawTime / bow.braceDrawTime : tunables.braceDrawRate) : 1);
   draw.c = Math.min(1, draw.t / bow.drawTime);
-  const aim = aimFrom(player, ctx.mouse);
-  // The guide (docs/20): where this draw would land, and the line out to the full draw's. A setting.
-  if (settings.get("aimGuide")) {
+  const aim = aimFrom(player, ctx);
+  // The guide (docs/20): where this draw would land, and the line out to the full draw's. A setting
+  // of the drawer's client; on a host it is computed for a guest too and travels with their record.
+  if (settings.get("aimGuide") || ctx.aimAt) {
     const p = preview(player, aim.dir, aim.distance, draw.c, bow.range);
-    setMarker({ from: [player.gx, player.gy], full: p.full, land: p.land });
+    setMarker(player, { from: [player.gx, player.gy], full: p.full, land: p.land });
   } else {
-    setMarker(null);
+    setMarker(player, null);
   }
   setPose(player, draw.c < 0.35 ? 0 : draw.c < 0.8 ? 1 : 2);
   const down = draw.source === "script" ? true : ctx.down;
-  if (!down) releaseDraw(player, ctx.mouse);
+  if (!down) releaseDraw(player, ctx);
 }

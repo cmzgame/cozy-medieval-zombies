@@ -18,6 +18,7 @@ import * as loop from "./loop.js";
 import * as light from "./light.js";
 import * as world from "./world.js";
 import * as rules from "./rules.js";
+import * as archery from "./archery.js";
 import { updatePlayer } from "./entities/player.js";
 import { serializeCharacter, restoreCharacter, dress, dressCorpse } from "./entities/character.js";
 import { createPlayer } from "./entities/player.js";
@@ -140,6 +141,10 @@ export function hostStep(mySnap, me) {
       const g = guests.get(msg.from);
       if (!g) continue;
       g.queue.push(msg); // one input per step, in order; the guest replays what is not yet acknowledged
+      if (g.queue.length > 1 && (msg.snap.clicked || msg.snap.altPressed || msg.snap.space)) {
+        // A press is one shot: when the queue runs ahead it must not be lost to the hold rule below.
+        g.queue[g.queue.length - 1].snap = { ...msg.snap };
+      }
     } else if (msg.type === "say") {
       // The first command over the wire (docs/31/03, chat): a guest's line, said by their player here.
       const g = guests.get(msg.from);
@@ -160,7 +165,7 @@ export function hostStep(mySnap, me) {
     if (next) {
       g.last = next.snap;
       g.ack = next.seq;
-    } else if (g.last) g.last = { ...g.last, space: false };
+    } else if (g.last) g.last = { ...g.last, space: false, clicked: false, altPressed: false }; // a press is one step
     if (g.last) snapshots.set(g.playerId, g.last);
   }
   return snapshots;
@@ -209,6 +214,7 @@ export function hostAfterStep() {
     corpses: S.corpses.map(record),
     carriers: light.carriers().filter((c) => c.owner),
     rules: { ...rules.rules }, // the world's rules are the host's (docs/31/07, question 13)
+    arrows: archery.arrowsInFlight().filter((a) => !a.done).map((a) => ({ gx: a.gx, gy: a.gy, z: a.z, frame: a.frame, projectile: a.projectile })),
   };
   send(game.toSafe(frame));
 }
@@ -238,7 +244,9 @@ export function guestStep(mySnap) {
   }
   if (joined && game.state.player) {
     const s = mySnap.idle ? mySnap : testSnapshot || mySnap; // a screen up: nothing pressed, whatever a check says
-    const snap = { axis: s.axis, sprint: !!s.sprint, aim: s.aim || null, space: !!s.space };
+    // The fight (docs/31/06, tier 2): the clicks and the buttons go as they are, the aim as a vector and
+    // a ground point; the host resolves the swing, the draw, and the shove against its own dead.
+    const snap = { axis: s.axis, sprint: !!s.sprint, aim: s.aim || null, aimAt: s.aimAt || null, space: !!s.space, clicked: !!s.clicked, clickSpent: false, leftDown: !!s.leftDown, altPressed: !!s.altPressed, altDown: !!s.altDown, offDown: !!s.offDown, blocked: !!s.blocked };
     seq++;
     pending.push({ seq, snap });
     send({ type: "input", seq, snap });
@@ -260,6 +268,7 @@ function applyFrame(f) {
   const S = game.state;
   if (S.player) predictedPos = [S.player.gx, S.player.gy];
   if (f.rules) rules.set(f.rules);
+  archery.setReplicaArrows(f.arrows || []);
   clock.setElapsed(f.clock);
   loop.setSimTime(f.simTime);
   world.setTimeScale(f.timeScale);

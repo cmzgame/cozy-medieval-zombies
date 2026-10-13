@@ -140,7 +140,7 @@ function handleMouse() {
   // draw spends it instead. The right button held is the off hand's stance (docs/21).
   const tap = buttons.off.tap;
   if (tap) {
-    if (archery.drawState()) {
+    if (archery.drawState(S.player)) {
       archery.cancelDraw(S.player);
       buttons.spendTap();
     } else if (use.cancel()) {
@@ -326,7 +326,7 @@ function refreshFigure(force = false) {
 }
 function refreshFigureOf(p, force = false) {
   // The swing's keyframe set follows the weapon in the main hand (docs/14); a spear's throw has its own.
-  const style = combat.styleOf(p, p === S.player && !!archery.drawState());
+  const style = combat.styleOf(p, !!archery.drawState(p));
   const painted = p === S.player ? settings.get("paintedLayers") || {} : {};
   // What the sheet depends on, as ids: the cheap test every step; the spec and its key only when it changed (docs/23a, B7).
   const quick = JSON.stringify([p.look, p.worn, p.hands, style, painted]);
@@ -437,6 +437,7 @@ function stepGame(dt) {
     axis: input.moveAxis(),
     sprint: input.isDown("ShiftLeft") || input.isDown("ShiftRight"),
     aim: { x: mouse.x - o.x, y: mouse.y - o.y }, // the cursor relative to the chest, a vector a host can read (net.js)
+    aimAt: archery.aimPoint(S.player, mouse), // the ground point the cursor means, for a bow drawn on a host (net.js)
     clicked,
     clickSpent,
     mouse: input.getMouse(),
@@ -569,7 +570,7 @@ function render() {
     entities: [S.player, ...S.zombies, ...S.villagers, ...S.corpses],
     arrows: archery.arrowsInFlight(),
     fire: burning.all(),
-    marker: archery.getMarker(),
+    marker: archery.getMarker(S.player),
     playerRoom,
     player: S.player,
     camera: camera.cam,
@@ -861,6 +862,10 @@ async function boot() {
         const d = iso.normalize(zombie.gx - p.gx, zombie.gy - p.gy);
         burning.spark(p.gx + d.x * 0.45, p.gy + d.y * 0.45, 22);
       });
+      // A blow that landed kicks the camera of the client whose player struck (docs/31/05, item 13).
+      events.on("kicked", ({ player: p, x, y, seconds }) => {
+        if (p === S.player) camera.kick(x, y, seconds);
+      });
       events.on("guardBroken", ({ player: p = S.player }) => {
         p.blockFlash = 0.35;
         p.flashBroken = true;
@@ -883,7 +888,10 @@ async function boot() {
       events.on("craftDone", ({ out, tile }) => {
         if (Math.hypot(tile[0] - S.player.gx, tile[1] - S.player.gy) <= 12) log.push(`Made ${out.prop ? out.prop.replace(/_/g, " ") : `${out.count > 1 ? `${out.count} ` : ""}${items.getItem(out.id).name.toLowerCase()}`}.`, "result");
       });
-      events.on("weaponBroke", ({ item }) => showMessage(`Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3));
+      events.on("weaponBroke", ({ item, who }) => {
+        if (who && who !== S.player.id) return; // a guest's weapon wears out on the host (its swing resolves there): the word is theirs, not this screen's
+        showMessage(`Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3);
+      });
       events.on("containerOpened", ({ bag, tiles: where, name, corpse, closeDist }) => {
         openBag = { bag, tiles: where, name, corpse: corpse || null, closeDist: closeDist || 0 };
         panel.setBagOpen(true);
