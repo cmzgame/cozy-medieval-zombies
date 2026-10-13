@@ -50,4 +50,5 @@ Milestones 1 to 11 are built (2026-10-09 to 2026-10-12): a chunked map with real
 | [26-art-owed.md](docs/26-art-owed.md) | The item art still owed, each as a world picture and an inventory icon. |
 | [27-art-integration.md](docs/27-art-integration.md) | How the design agent's work comes in: the delivery checklist, the shared worktree, the audit. |
 | [28-painting-for-the-slicer.md](docs/28-painting-for-the-slicer.md) | The rules the design agent paints by, and what the slicer does with a file. |
+| [29-world/README.md](docs/29-world/README.md) | The 1.0 map, ideated: a valley with a river, the castle, the village, the farms, the forest places; art and engine asks; a cut list and the questions. Nothing ruled yet. |
 | [art/README.md](docs/art/README.md) | The design agent's own docs: a style bible and a page per area of art. |
