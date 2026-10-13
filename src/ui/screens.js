@@ -17,6 +17,8 @@ const CONTROLS = [
   ["C", "Your character"],
   ["1 to 4", "Swap a belt slot with your hand"],
   ["T", "Torch in or out of hand"],
+  ["Enter", "Chat: type a line, Enter says it"],
+  ["/", "Chat: a command (nothing answers yet)"],
   ["Left-click", "Swing what you hold; fists with nothing"],
   ["Space", "Shove: pushes the dead back, no damage"],
   ["N", "Build menu: walls, doors, windows"],

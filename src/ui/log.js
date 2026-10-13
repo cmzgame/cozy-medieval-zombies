@@ -14,9 +14,19 @@ let root = null;
 let pinned = true; // following the newest line until the user scrolls up
 let input = null;
 let onSay = null; // main.js: a line typed is said by your player (docs/31/03: the log is the chat)
+let onCommand = null; // a line beginning with a slash, the slash stripped; nothing behind it yet
+
+// The chat box focused with the cursor ready, from a key (Enter; a slash types the slash first; Michael, 2026-10-13).
+export function focusChat(prefix = "") {
+  if (!input) return;
+  input.value = prefix;
+  input.focus();
+  input.setSelectionRange(prefix.length, prefix.length);
+}
 
 export function initLog(handlers = {}) {
   onSay = handlers.onSay || null;
+  onCommand = handlers.onCommand || null;
   root = document.createElement("div");
   root.id = "log";
   document.getElementById("ui").appendChild(root);
@@ -35,7 +45,12 @@ export function initLog(handlers = {}) {
     if (e.code === "Enter") {
       const text = input.value.trim();
       input.value = "";
-      if (text && onSay) onSay(text);
+      // A line beginning with a slash is a command, not a thing said (Michael, 2026-10-13: the hook
+      // for commands, nothing behind it yet); anything else is said.
+      if (text.startsWith("/")) {
+        if (onCommand) onCommand(text.slice(1).trim());
+        else push("Commands are not here yet.", "info");
+      } else if (text && onSay) onSay(text);
       input.blur();
     } else if (e.code === "Escape") input.blur();
   });

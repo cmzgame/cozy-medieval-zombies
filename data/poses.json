@@ -1,9 +1,16 @@
 {
+  "note": "The keyframes of the figure's animations as data (docs/14, docs/32). A swing style is { fps, activeFrame, frames: [{ pitch, out, lean, bob, offPitch, offOut, wrist }] } (wrist: degrees the held thing is cocked up from the forearm, so a blade stays level as the arm drops); the walk is { frames: [{ stride, lift, arms, bob, lean, headD }] } with a pair per leg and arm [left, right], bob positive down. Edit and press Reload poses in tools/layers.html, or __game.figure.setPoses(json); __game.setLook({}) from the console.",
+  "walk": { "frames": [
+    {"stride": [4, -4], "lift": [0, 0], "arms": [-26, 26], "bob": 0, "lean": 0.5},
+    {"stride": [0, 0], "lift": [0, 3], "arms": [0, 0], "bob": -1, "lean": 0.5},
+    {"stride": [-4, 4], "lift": [0, 0], "arms": [26, -26], "bob": 0, "lean": 0.5},
+    {"stride": [0, 0], "lift": [3, 0], "arms": [0, 0], "bob": -1, "lean": 0.5}
+  ] },
   "one_handed": { "fps": 12, "activeFrame": 1, "frames": [
-    {"pitch": -110, "out": 4, "lean": 0, "bob": 0},
-    {"pitch": 75, "out": -2, "lean": 2, "bob": 0},
-    {"pitch": 105, "out": -6, "lean": 2.5, "bob": 1},
-    {"pitch": 30, "out": 0, "lean": 1, "bob": 0}
+    {"pitch": 150, "out": 2, "lean": -0.5, "bob": 0},
+    {"pitch": 90, "out": -1, "lean": 1.5, "bob": 1, "wrist": 10},
+    {"pitch": 35, "out": -5, "lean": 2, "bob": 1, "wrist": 45},
+    {"pitch": 55, "out": 0, "lean": 0.5, "bob": 0, "wrist": 30}
   ] },
   "zombie": { "fps": 12, "activeFrame": 1, "frames": [
     {"pitch": 40, "offPitch": 40, "lean": 0},

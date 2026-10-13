@@ -71,7 +71,12 @@ export async function loadAll(progress = () => {}) {
   if (!manifest) throw new Error("No manifest loaded");
   const paths = Object.keys(manifest.files);
   const ids = paths.filter((p) => /^data\/sprites\/[^/]+\.json$/.test(p)).map((p) => p.slice("data/sprites/".length, -5));
-  const pngs = paths.filter((p) => p.endsWith(".png"));
+  // Every picture the game draws is under data/art and named by a definition or an item; the design
+  // agent's character delivery (data/art/character: the slicer's inputs and previews, installed as layer
+  // files) is data the game never draws, so it is not fetched at boot. Found 2026-10-13 on GitHub Pages,
+  // which serves nothing under a folder named with a leading underscore (Jekyll's rule; .nojekyll turns
+  // that off too): the boot asked for _superseded/hair_plaits.png and failed whole.
+  const pngs = paths.filter((p) => p.endsWith(".png") && !p.startsWith("data/art/character/"));
   const total = ids.length + pngs.length;
   let n = 0;
   await inBatches(ids, (id) => loadSprite(id), 8, () => progress(++n / total));
