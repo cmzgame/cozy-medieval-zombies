@@ -30,6 +30,10 @@ export const DEFAULTS = {
   cursor: "default", // the system's own, or one of the three hands (ui/cursor.js; Michael, 2026-10-12)
   logSize: null, // { w, h } in UI pixels the text log was resized to (ui/log.js)
   devChest: true, // the chest of every item placed by the spawn (read at load; docs/30 step 0: the map file stays clean)
+  identities: [], // [{ id, name, look }]: the identities kept in this browser (identities.js; docs/31/09)
+  lastIdentity: "", // the one picked last, offered first on the next creation
+  clientId: "", // the browser id a world remembers a character's owner by (docs/31/09)
+  joined: [], // friends' worlds this browser has joined or tried to: [{ code, name, hostName, myCharacter, lastAt }]
 };
 
 // What the settings screen offers, in order.

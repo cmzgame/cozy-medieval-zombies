@@ -53,7 +53,9 @@ export function createDevApi(ctx) {
     render: { night },
     get player() { return ctx.player; },
     game: ctx.game, // the world's state and step (game.js); hashText for the determinism check
-    save: ctx.save, // the slot (save.js): snapshot, write, read, clear
+    save: ctx.save, // the worlds store (save.js): snapshot, listWorlds, readWorld, writeWorld, deleteWorld
+    worlds: ctx.worlds, // the client's worlds flow (main.js; docs/31/09): create(name, identityId), play(worldId), leave(), respawn(identityId), here(), setOpen(on), save()
+    identities: ctx.identities, // identities.js: list, add, update, remove, clientId
     restoreWorld: ctx.restoreWorld, // the world put back from a snapshot, the client refreshed (main.js)
     addPlayer: ctx.addPlayer, // a second player at (gx, gy), standing: __game.addPlayer(x, y) (docs/31/03)
     net: ctx.net, // the wire (net.js): status(), setTestSnapshot(s) on a guest

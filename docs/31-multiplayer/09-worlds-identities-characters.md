@@ -42,7 +42,7 @@
 
 - `settings.identities`: `[{ id, name, look }]`. The current `playerName` and `look` become the first identity on the first boot after this lands, named from `playerName` or "Survivor".
 - `settings.clientId`: the browser id, drawn once.
-- A world's save gains `worldId`, `name`, `code` (or null), `created`, and `characters: { [clientId]: playerId }`, the host's memory of whose character is whose. The host's own entry is in it too, so a world opened in another browser from an exported save behaves the same.
+- A world's save gains `worldId`, `name`, `code` (or null), `created`, and `owners: { [clientId]: playerId }` (built as `owners`, since `characters` is the save's own list of them), the host's memory of whose character is whose, and `myPlayerId` for the index's row. The host's own entry is in it too, so a world opened in another browser from an exported save behaves the same.
 - The store: one record per world, `cmz.world.<worldId>`, and an index `cmz.worlds` of `{ worldId, name, mapName, day, savedAt, code, myCharacter }` for the list without reading every save. The existing single slot per map becomes a world named "The valley" with no code on first boot. At about 700 KB a save and five to ten megabytes of browser storage, around eight worlds fit; the browser's larger store (IndexedDB) when that bites, not before.
 - `settings.joined`: the friends' worlds, `[{ code, name, hostName, myCharacter, lastAt }]`.
 
@@ -60,6 +60,8 @@
 - The title's Play, New game, Continue, Host a game, Join a game: all on the Worlds screen, against a named world.
 
 ## The order
+
+*Step 1 built 2026-10-13 (`02`, the sixteenth move): `check("worlds")` 8 of 8. As built: `?nosave` boots a test world for the checks, with the store and the identities in memory for the page; a guest from the Worlds screen stands in a never-saved world until the host's arrives; `?host=` and `?join=` on the URL are the checks' now.*
 
 1. Alone: identities, the worlds store and index, the migration of the one slot, the Worlds and Identities screens, the pause menu's first lines, no world behind the title, the dead screen's New character. `check("worlds")`: a world made, left, listed, re-entered as the same character; a second world with a second identity; a death and a new character in the same world; the identity edited and neither character changed.
 2. The wire: the browser id and the version on the join, `who`, the characters map and the reconnect, the host saving on join and leave, a world's code kept.

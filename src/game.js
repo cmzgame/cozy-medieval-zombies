@@ -51,6 +51,12 @@ export function setPlayer(p) {
   state.players = p ? [p] : [];
 }
 
+// Me among the players, the list kept: a world played again as the character this browser made there,
+// or a new character after a death with the body still listed (docs/31/09).
+export function pickPlayer(p) {
+  if (p && state.players.includes(p)) state.player = p;
+}
+
 // The world from a map file: the generator seeded, the map loaded and the
 // spawn's ring grown first (reading never grows), the dev chest if asked, the
 // player with their look and the starter kit, the authored dead and villagers,

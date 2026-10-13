@@ -59,6 +59,7 @@ import * as buildPalette from "./ui/build-palette.js";
 import * as shell from "./boot.js";
 import { createDevApi } from "./dev.js";
 import { createInventoryActions, createRemoteInventoryActions, performItemCommand, performUseCommand } from "./ui/inventory-actions.js";
+import * as identities from "./identities.js"; // identities, the browser id, friends' worlds (docs/31/09)
 import * as rng from "./rng.js";
 import * as rules from "./rules.js";
 import * as tuning from "./tuning.js";
@@ -86,47 +87,168 @@ try {
 // game.js's; this file is the client: the view, the keys, the panels (docs/31/05, item 17).
 const S = game.state;
 let uiSimTime = 0; // the sim time the interface was last ticked to (docs/23a, F)
-let started = false; // Play or Continue pressed: the autosave runs only after, and never while dead (save.js)
+let started = false; // in a world of this browser's: the autosave runs (save.js); never for a guest
 let urlLag = null; // `?lag=` for a join opened later from the Join screen
-
-// What the title shows: the slot's save, and whether the character screen comes first.
-function titleData() {
-  const slot = save.read(MAP_NAME);
-  return { save: slot, saveLabel: slot ? save.label(slot) : "", needsCharacter: !hasIdentity() || !!(slot && slot.dead) };
-}
+// The world chosen (docs/31/09): nothing runs until one is. `currentWorld` is this browser's own
+// (its id, its name, its code once it has one, when it was made, and `owners`: a browser id to the
+// player it made there); null for a guest, whose world is the host's, and for a test world.
+let inWorld = false;
+let currentWorld = null;
+const URLQ = new URLSearchParams(typeof location !== "undefined" ? location.search : "");
+const TEST_WORLD = URLQ.has("nosave"); // the checks want a fresh world at boot, as the game always had (CLAUDE.md)
+let editing = null; // the identity being edited on the identity screen: { id?, name, look }
 let lastAutosave = 0; // sim seconds at the last autosave
 const AUTOSAVE = 60; // seconds of game time between autosaves (the parent's cadence)
 let mapJson = null; // the map file, kept for a restore
 let looksJson = null; // the character screen's palettes (data/looks.json)
 
-// ---- the identity (docs/12, the creation screen; docs/31/03): who I am, kept in the browser ----
-// The look the player is baked from: DEFAULT_LOOK under the chosen colours and style
-// (settings.look; hairStyle mirrored in settings.hairStyle for what reads it).
-function myLook() {
-  const chosen = settings.get("look") || {};
-  return { ...figure.DEFAULT_LOOK, ...chosen, hairStyle: chosen.hairStyle || settings.get("hairStyle") || "short" };
+// The look a character is baked from: DEFAULT_LOOK under an identity's colours and style.
+function lookOf(identity) {
+  const chosen = (identity && identity.look) || {};
+  return { ...figure.DEFAULT_LOOK, ...chosen, hairStyle: chosen.hairStyle || "short" };
 }
 
-// Anything chosen yet: the first Play opens the character screen until then.
-function hasIdentity() {
-  return !!(settings.get("identityChosen") || settings.get("playerName") || Object.keys(settings.get("look") || {}).length);
+// The identity a test world's player wears: the last kept, else what the browser had before identities.
+function testIdentity() {
+  return identities.last() || { name: settings.get("playerName") || null, look: { ...(settings.get("look") || {}), hairStyle: settings.get("hairStyle") || "short" } };
 }
 
-// The identity's shape is { name, look } (docs/31/03), `look` exactly what game.create and
-// game.addPlayer take; a change goes to the settings, onto the player at once, and to the wire.
-function applyIdentity({ name, look } = {}) {
-  if (name !== undefined) settings.set("playerName", name || "");
-  if (look) {
-    const next = { ...(settings.get("look") || {}), ...look };
-    settings.set("look", next);
-    if (look.hairStyle) settings.set("hairStyle", look.hairStyle);
+// After a world is set (made or restored): the player's sheet, the camera, the first sight.
+function afterWorldSet() {
+  figureKey = "";
+  figureQuick = "";
+  refreshFigure(true);
+  camera.snapTo(S.player.gx, S.player.gy);
+  camera.applyOrigin(V.w, V.h);
+  tiles = camera.viewportTiles(V.w, V.h);
+  visKey = null;
+  openBag = null;
+  corpseWatch = null;
+  panel.closeAll();
+  stationPanel.close();
+  placement.cancel();
+  use.cancel();
+  buildPalette.close();
+  applySquareSurface();
+  light.update();
+  if (!glError) ground.invalidateAll();
+  for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
+  visible = visibility.computeVisible(Math.round(S.player.gx), Math.round(S.player.gy), tiles);
+  lastAutosave = loop.simTime();
+}
+
+// A new world of this browser's, with a character made from an identity (docs/31/09).
+function enterNewWorld(name, identity, { keep = true } = {}) {
+  game.create({
+    json: mapJson,
+    look: lookOf(identity),
+    name: (identity && identity.name) || null,
+    devChest: !!settings.get("devChest"),
+    combatTesting: !!settings.get("combatTesting"),
+  });
+  afterWorldSet();
+  inWorld = true;
+  currentWorld = keep ? { worldId: save.newWorldId(), name: name || "A world", code: null, created: Date.now(), owners: { [identities.clientId()]: S.player.id } } : null;
+  started = keep;
+  if (keep) saveWorld();
+  screens.hide();
+}
+
+// A world of this browser's, put back, as the character this browser made there.
+async function playWorld(worldId) {
+  const snap = save.readWorld(worldId);
+  if (!snap || snap.mapName !== MAP_NAME) return false;
+  await restoreWorld(snap);
+  currentWorld = { worldId, name: snap.name || "A world", code: snap.code || null, created: snap.created || snap.savedAt, owners: { ...(snap.owners || {}) } };
+  const mineId = currentWorld.owners[identities.clientId()] || snap.myPlayerId;
+  const mine = S.players.find((p) => p.id === mineId) || S.players[0];
+  if (mine) {
+    game.pickPlayer(mine);
+    camera.snapTo(mine.gx, mine.gy);
   }
-  if (S.player) {
-    S.player.name = settings.get("playerName") || null;
-    S.player.look = myLook();
-    refreshFigure();
+  inWorld = true;
+  started = true;
+  if (S.player.dead) screens.show("dead", { when: clock.getLabel(), who: S.player.name || S.player.id });
+  else {
+    screens.hide();
+    showMessage(`${clock.getLabel()}. Welcome back.`, 3);
   }
-  if (typeof net.setIdentity === "function") net.setIdentity({ name: settings.get("playerName") || null, look: myLook() }); // the wire's copy (docs/31/03), once the wire has one
+  return true;
+}
+
+// A new character in this world, from an identity: the body of the last one stays where it fell.
+function respawn(identity) {
+  if (!inWorld || !identity) return false;
+  const spawn = S.info ? S.info.spawn : [S.player.gx, S.player.gy];
+  const at = map.nearestWalkable(spawn[0] + 1, spawn[1] + 1, (x, y) => S.players.some((p) => Math.round(p.gx) === x && Math.round(p.gy) === y)) || spawn;
+  const p = game.addPlayer(at[0], at[1], { look: lookOf(identity), name: identity.name || null });
+  game.pickPlayer(p);
+  refreshFigureOf(p, true);
+  camera.snapTo(p.gx, p.gy);
+  if (currentWorld) currentWorld.owners[identities.clientId()] = p.id;
+  saveWorld();
+  screens.hide();
+  return true;
+}
+
+// The world's save, with its own fields (save.js writeWorld); never for a guest or a test world.
+function saveWorld(extra = {}) {
+  if (!inWorld || !currentWorld || net.isGuest()) return false;
+  const ok = save.writeWorld(save.snapshot(MAP_NAME, { worldId: currentWorld.worldId, name: currentWorld.name, code: currentWorld.code, created: currentWorld.created, owners: currentWorld.owners, myPlayerId: S.player.id, ...extra }));
+  if (ok) lastAutosave = loop.simTime();
+  return ok;
+}
+
+// Out of the world: saved if it is this browser's, the wire closed, the title back.
+function leaveWorld() {
+  if (inWorld) saveWorld();
+  if (net.onTheWire()) net.close();
+  inWorld = false;
+  started = false;
+  currentWorld = null;
+  panel.closeAll();
+  stationPanel.close();
+  placement.cancel();
+  use.cancel();
+  buildPalette.close();
+  screens.show("title");
+}
+
+// A stand-in world for a guest while the host's is on its way: never saved, replaced by the welcome.
+function standInWorld(identity) {
+  if (inWorld) return;
+  enterNewWorld("", identity, { keep: false });
+}
+
+// Hosting as a switch (docs/31/09): on, this world on the relay under its code, kept with it; off, closed.
+function setOpen(on) {
+  if (!inWorld || net.isGuest()) return;
+  if (on) {
+    if (net.isHost()) return;
+    const code = (currentWorld && currentWorld.code) || net.makeCode();
+    if (!net.open({ host: code, lag: urlLag })) return;
+    if (currentWorld) currentWorld.code = code;
+    saveWorld();
+    showMessage(`Open to friends: the code is ${code}.`, 5);
+  } else if (net.isHost()) {
+    net.close();
+    saveWorld();
+    showMessage("Closed to friends.", 3);
+  }
+}
+
+// Where this client is, for the pause menu and the host screen.
+function here() {
+  const st = net.status();
+  return {
+    inWorld,
+    name: currentWorld ? currentWorld.name : st.role === "guest" ? st.code : "",
+    myCharacter: inWorld && S.player ? S.player.name || S.player.id : "",
+    role: st.role,
+    code: currentWorld ? currentWorld.code : st.code,
+    guests: st.guests ? st.guests.length : 0,
+    hostName: null,
+  };
 }
 let tiles = [];
 let visible = new Set();
@@ -205,6 +327,7 @@ function setPaused(v) {
 }
 
 function handleEscape() {
+  if (!inWorld) { screens.back(); return; } // no world: the title and its screens only
   if (menu.tookEscape()) return;
   if (use.cancel()) return; // Use mode is the top thing that can close
   if (stationPanel.close()) return;
@@ -368,6 +491,7 @@ function refreshFigureOf(p, force = false) {
 // cleared in a finally, so a throw cannot re-apply a press on the next step (docs/23a, A1).
 function update(dt) {
   const t0 = performance.now();
+  if (!inWorld) return; // no world chosen yet (docs/31/09)
   try {
     stepGame(dt);
   } finally {
@@ -553,14 +677,6 @@ async function restoreWorld(snap) {
   lastAutosave = loop.simTime();
 }
 
-async function continueSave() {
-  const snap = save.read(MAP_NAME); // the slot is per map (save.js)
-  if (!snap || snap.dead) return;
-  await restoreWorld(snap);
-  screens.hide();
-  showMessage(`${clock.getLabel()}. Welcome back.`, 3);
-}
-
 // The step while a screen is up on the wire: the camera and the world, my player idle, no keys.
 function stepWithScreenUp(dt, guest) {
   const player = S.player;
@@ -587,6 +703,7 @@ function stepWithScreenUp(dt, guest) {
 
 function render() {
   const r0 = performance.now();
+  if (!inWorld || !S.player) return; // the title over nothing (docs/31/09)
   if (started && !S.player.dead && loop.simTime() - lastAutosave >= AUTOSAVE) events.emit("autosaveTick");
   const scene = {
     w: V.w,
@@ -643,6 +760,8 @@ async function optionalJson(path) {
 async function boot() {
   input.init(canvas);
   settings.load();
+  save.migrate(MAP_NAME, "The valley"); // the one slot per map before docs/31/09 becomes a world
+  identities.migrate(); // the one name and look kept before identities become the first identity
   view.init(canvas, ui);
   applyDebugCorner();
   settings.onChange((key) => {
@@ -725,17 +844,6 @@ async function boot() {
     } },
     { name: "world", label: "Growing the world", weight: 1, async run() {
       // The world itself (game.js): the same calls headless under Node (tools/world.js).
-      game.create({
-        json,
-        look: myLook(),
-        name: settings.get("playerName") || null, // the identity's name on the player (docs/31/03)
-        devChest: !!settings.get("devChest"),
-        combatTesting,
-      });
-      refreshFigure();
-      camera.snapTo(S.player.gx, S.player.gy);
-      camera.applyOrigin(V.w, V.h);
-      tiles = camera.viewportTiles(V.w, V.h);
       // The square and its paths, cobble or dirt by the setting (docs/15, for
       // comparing): the map's features with `group: "square"`.
       squareTiles = [];
@@ -744,16 +852,30 @@ async function boot() {
         const [fx, fy, fw, fh] = f.rect;
         for (let y = fy; y < fy + fh; y++) for (let x = fx; x < fx + fw; x++) squareTiles.push([x, y]);
       }
-      applySquareSurface();
       settings.onChange((key) => {
         if (key === "squareSurface") applySquareSurface();
       });
-      // The light's sources, its cache for the chunks around the spawn, and the
-      // first sight, so the first frame is warm and the village behind the title
-      // is seen as the player sees it rather than all fog.
-      light.update();
-      for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
-      visible = visibility.computeVisible(Math.round(S.player.gx), Math.round(S.player.gy), tiles);
+      // No world until one is chosen on the Worlds screen (docs/31/09). The checks want a fresh world
+      // at boot as the game always had: `?nosave` makes one, never saved (the same calls in the same
+      // order as tools/world.js, so both worlds hash the same).
+      if (TEST_WORLD) {
+        game.create({
+          json,
+          look: lookOf(testIdentity()),
+          name: testIdentity().name || null,
+          devChest: !!settings.get("devChest"),
+          combatTesting,
+        });
+        refreshFigure();
+        camera.snapTo(S.player.gx, S.player.gy);
+        camera.applyOrigin(V.w, V.h);
+        tiles = camera.viewportTiles(V.w, V.h);
+        applySquareSurface();
+        light.update();
+        for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
+        visible = visibility.computeVisible(Math.round(S.player.gx), Math.round(S.player.gy), tiles);
+        inWorld = true;
+      }
     } },
     // The ground's pictures for the view and a ring around it (docs/15), two per frame.
     { name: "ground", label: "Baking the ground", weight: 6, async run(progress) {
@@ -825,58 +947,80 @@ async function boot() {
           else placement.beginBuild(what);
         },
       });
-      // Any screen up means the game is paused; the title is up at boot.
+      // Any screen up means the game is paused when played alone; the title is up at boot.
+      const kitWorn = { chest: { id: "tunic" }, legs: { id: "breeches" }, feet: { id: "boots" }, waist: { id: "belt" }, back: { id: "small_sack" } };
+      const bake = (look, worn, painted) => figure.generateFigure(figure.characterSpec(figure.characterInputs({ kind: "player", look, worn, hands: { main: null, off: null } }, undefined, painted, null)));
       screens.initScreens({
-        onChange: (name) => {
-          setPaused(!!name);
-          if (name === null && !started) {
-            started = true; // Play or Continue: from here the world autosaves (a new game over an old save: the old one is gone once the first autosave lands)
-            lastAutosave = loop.simTime();
-          }
-        },
+        onChange: (name) => setPaused(!!name),
         onReload: () => window.location.reload(),
-        onContinue: () => continueSave(),
-        // Host and Join (net.js): the screens over the wire's roles (the other session's).
+        // The wire (net.js): hosting as a switch on this world, a join as a character for a friend's (docs/31/09).
         wire: {
           status: () => net.status(),
-          host: () => { if (net.open({ host: net.makeCode() })) showMessage(`Hosting: your code is ${net.status().code}.`, 5); },
-          // A guest with nothing chosen yet goes through the character screen first (`ready` is its Done):
-          // the join carries the identity, so there is no later moment for it (docs/31/03).
-          join: (code, ready = false) => {
-            if (!ready && !hasIdentity()) { screens.show("character", { then: "join", code }); return; }
+          setOpen,
+          join: (code, identityId) => {
+            const identity = identities.get(identityId);
+            if (!identity || !code) return;
+            net.setIdentity({ name: identity.name || null, look: lookOf(identity) });
+            identities.rememberJoined({ code, myCharacter: identity.name || null });
+            standInWorld(identity);
             if (!net.open({ join: code, lag: urlLag })) return;
+            started = false; // a guest's world is the host's to save
             screens.hide();
-            started = true;
             showMessage(`Joining ${code}…`, 4);
           },
         },
         onSave: () => {
-          const ok = save.write(save.snapshot(MAP_NAME));
-          showMessage(ok ? "Saved." : "The save could not be written.");
-          lastAutosave = loop.simTime();
+          const ok = saveWorld();
+          showMessage(ok ? "Saved." : "The world could not be saved.");
+        },
+        // The worlds flow (docs/31/09): this browser's worlds and the friends' worlds it has joined.
+        worlds: {
+          list: () => save.listWorlds().map((r) => ({ ...r, playable: r.mapName === MAP_NAME })),
+          friends: () => identities.joined(),
+          play: (worldId) => { playWorld(worldId); },
+          remove: (worldId) => save.deleteWorld(worldId),
+          forget: (code) => identities.forgetJoined(code),
+          create: (name, identityId) => { const identity = identities.get(identityId); if (identity) enterNewWorld(name, identity); },
+          respawn: (identityId) => respawn(identities.get(identityId)),
+          defaultName: () => `${MAP_NAME === "valley" ? "The valley" : MAP_NAME}, ${new Date().toLocaleDateString(undefined, { day: "numeric", month: "short" })}`,
+          here,
+          leave: leaveWorld,
+        },
+        // Identities (identities.js): the list, and the one being edited on the identity screen.
+        identities: {
+          list: () => identities.list(),
+          last: () => identities.last(),
+          setLast: (id) => identities.setLast(id),
+          editing: () => editing,
+          beginNew: () => { editing = { id: null, name: "", look: { hairStyle: "short" } }; },
+          beginEdit: (id) => { const i = identities.get(id); editing = i ? { id: i.id, name: i.name, look: { ...i.look } } : null; },
+          commit: () => {
+            if (!editing) return null;
+            const saved = editing.id ? identities.update(editing.id, { name: editing.name, look: editing.look }) : identities.add({ name: editing.name, look: editing.look });
+            editing = null;
+            return saved;
+          },
+          cancel: () => { editing = null; },
+          remove: (id) => identities.remove(id),
         },
         hair: {
           styles: () => figure.hairStyles(),
-          current: () => S.player.look.hairStyle,
-          set: (name) => applyIdentity({ look: { hairStyle: name } }),
+          current: () => (editing ? lookOf(editing).hairStyle : "short"),
+          set: (name) => { if (editing) editing.look = { ...editing.look, hairStyle: name }; },
           reload: async () => { await loadPaintedHair(); refreshFigure(); },
         },
-        // The character screen (docs/12, the creation screen; docs/31/03, the identity): the name and
-        // the look, kept in the browser, put on the player at once, and handed to the wire.
+        // The identity editor's api (docs/12, the creation screen as built; docs/31/09): the identity in hand.
         you: {
-          name: () => settings.get("playerName") || "",
-          setName: (n) => applyIdentity({ name: n }),
-          look: () => myLook(),
-          setLook: (partial) => applyIdentity({ look: partial }),
-          confirm: () => settings.set("identityChosen", true), // Done: whatever is shown is who this is
+          name: () => (editing ? editing.name : ""),
+          setName: (n) => { if (editing) editing.name = String(n || "").slice(0, 24); },
+          look: () => lookOf(editing),
+          setLook: (partial) => { if (editing) editing.look = { ...editing.look, ...partial }; },
           styles: () => figure.hairStyles(),
           palette: () => looksJson || { skins: { living: [figure.DEFAULT_LOOK.skin], dead: [] }, hair: [figure.DEFAULT_LOOK.hair], eyes: [figure.DEFAULT_LOOK.eyes] },
-          // The figure in what the player wears (the kit's five before the world exists), the hands empty, baked by the game's own code.
-          sheet: () => {
-            const worn = S.player ? S.player.worn : { chest: { id: "tunic" }, legs: { id: "breeches" }, feet: { id: "boots" }, waist: { id: "belt" }, back: { id: "small_sack" } };
-            const spec = figure.characterSpec(figure.characterInputs({ kind: "player", look: myLook(), worn, hands: { main: null, off: null } }, undefined, settings.get("paintedLayers") || {}, null));
-            return figure.generateFigure(spec);
-          },
+          // The figure in the kit's clothes, the hands empty, baked by the game's own code.
+          sheet: () => bake(lookOf(editing), kitWorn, {}),
+          // This world's character as it is, for the pause menu's Character screen.
+          characterSheet: () => (inWorld && S.player ? bake(S.player.look, S.player.worn, settings.get("paintedLayers") || {}) : null),
         },
         // Painted layers to try on, per slot, regardless of what is worn (docs/12).
         layers: {
@@ -921,10 +1065,10 @@ async function boot() {
       events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, damage));
       events.on("gameOver", ({ player: p }) => {
         if (p !== S.player) return; // another player's death is theirs to see
-        // The world says so (game.js); the client shows it, and the slot keeps the world with the
-        // survivor dead, so Continue refuses it until the next survivor exists (docs/31/05, item 34).
-        if (started) save.write(save.snapshot(MAP_NAME, { dead: true }));
-        screens.show("dead", { when: clock.getLabel() });
+        // The world says so (game.js); the client shows it, and the world is saved with the survivor
+        // dead: the next survivor is a new character in it (docs/31/09; docs/31/05, item 34).
+        saveWorld();
+        screens.show("dead", { when: clock.getLabel(), who: p.name || p.id });
       });
       // Sleep and fire say what happened (docs/30 step 2): the world's events, shown here.
       events.on("sleepStart", () => showMessage("You lie down. The night goes on without you."));
@@ -983,18 +1127,21 @@ async function boot() {
 
   // The wire (net.js, docs/31/04): `?host=<code>` opens this world to guests on this origin; `?join=<code>`
   // joins one (`&lag=100` adds a delay each way). A guest skips the title: its world arrives from the host.
-  const url = new URLSearchParams(window.location.search);
+  const url = URLQ;
   urlLag = url.get("lag");
   net.setRelay(url.get("relay")); // `?relay=wss://...` for a relay (server/relay.js), `?relay=none` for the two-tab loopback
-  const joinCode = url.get("join");
-  net.setIdentity({ name: settings.get("playerName") || null, look: myLook() }); // the identity on the wire from boot; applyIdentity keeps it current
-  net.init({ host: url.get("host"), join: joinCode && hasIdentity() ? joinCode : null, lag: urlLag }, {
+  const joinCode = TEST_WORLD ? url.get("join") : null; // `?host=` and `?join=` are the checks' (a test world); the game's own flow is the Worlds screen
+  net.setIdentity({ name: testIdentity().name || null, look: lookOf(testIdentity()) }); // the wire's identity until a join picks one
+  net.init({ host: TEST_WORLD ? url.get("host") : null, join: joinCode, lag: urlLag }, {
     restore: async (snap, playerId) => {
       await restoreWorld(snap);
       S.player = S.players.find((p) => p.id === playerId) || S.player;
       game.state.player = S.player;
       refreshFigure(true);
       camera.snapTo(S.player.gx, S.player.gy);
+      inWorld = true;
+      currentWorld = null; // the host's world, never saved here
+      started = false;
     },
     joined: (id) => showMessage(`Joined as ${id}.`, 3),
     message: (text, seconds = 3) => showMessage(text, seconds),
@@ -1024,9 +1171,15 @@ async function boot() {
         hostLeft: "The host closed the world.",
       };
       const note = notes[why] || `The wire to "${code}" is gone.`;
-      if (role === "host") return showMessage(note, 5);
+      if (role === "host") {
+        if (why === "taken" && currentWorld) currentWorld.code = null; // the next opening draws a new code
+        return showMessage(note, 5);
+      }
+      // A guest's wire gone: out of the stand-in or the replica, the title with the reason.
+      inWorld = false;
       started = false;
-      screens.show("title", { ...titleData(), note });
+      currentWorld = null;
+      screens.show("title", { note });
     },
     chunksChanged: (chunks) => {
       for (const d of chunks) ground.invalidate([[d.cx * map.CHUNK + 8, d.cy * map.CHUNK + 8], [d.cx * map.CHUNK, d.cy * map.CHUNK], [d.cx * map.CHUNK + 15, d.cy * map.CHUNK + 15]]);
@@ -1036,17 +1189,13 @@ async function boot() {
   loop.start({ update, render, crash: shell.crash });
   // The slot's save shows on the title as Continue (save.js); a dead one as a line and New game.
   if (net.isGuest()) {
-    started = true;
+    started = false;
     showMessage("Joining the host's world…", 4);
-  } else {
-    screens.show("title", titleData()); // the first game and the next survivor start at the character screen
-    if (joinCode) screens.show("character", { then: "join", code: joinCode }); // `?join=` with nothing chosen yet: the character first, Back to the title
-  }
+  } else screens.show("title"); // nothing runs behind it (docs/31/09): Worlds is where a world is chosen
   // Autosave: every AUTOSAVE seconds of game time, and when the tab is hidden or left (the parent's rule).
   const autosave = () => {
-    if (!started || S.player.dead || net.isGuest()) return; // a guest's world is the host's to save
-    save.write(save.snapshot(MAP_NAME));
-    lastAutosave = loop.simTime();
+    if (!inWorld || !started || !currentWorld || net.isGuest()) return; // a guest's world is the host's to save; a test world is nobody's
+    saveWorld();
   };
   events.on("autosaveTick", autosave);
   document.addEventListener("visibilitychange", () => { if (document.hidden) autosave(); });
@@ -1067,6 +1216,9 @@ async function boot() {
     restoreWorld,
     // A second player into this world, for the checks and for the plan (docs/31/03): standing, controlled by nobody.
     net,
+    // The worlds flow (docs/31/09), for check("worlds"): a world made, left, listed, played again; a new character after a death.
+    worlds: { create: (name, identityId) => enterNewWorld(name, identities.get(identityId)), play: playWorld, leave: leaveWorld, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), get current() { return currentWorld; }, get inWorld() { return inWorld; } },
+    identities,
     addPlayer: (gx, gy, opts) => {
       const p = game.addPlayer(gx, gy, opts);
       refreshFigureOf(p, true);
