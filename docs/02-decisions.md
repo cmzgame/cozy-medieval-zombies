@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-12 — The HUD rearranged: the bars top-left with a portrait, the time top centre, the moodles down the right, the log true bottom-left and resizable, the swing bars a two-slot belt wide (Michael)
+
+Michael, on seeing the log: it is DOM, so it is **resizable** (by its corner, the size remembered in `settings.logSize`) and sits **true bottom-left**; **health, stamina, and the hands move to the top left**, with mana to join them someday, and **a small portrait beside the bars** as WoW has: the player's own baked sheet cropped at the head, hat and all, at 2x, redrawn when the sheet is rebuilt. **The time goes very top centre** (the floating message under it). **The moodles go down the far right edge** in a vertical stack as Zomboid does, **all four always showing, green when nothing is wrong** ("Not bleeding", "Not bitten", "Fed", "Watered"), their tips opening leftward. **The swing timer bars are always a two-slot belt's width** (104 px) whatever belt is worn: "they're pretty wide as is". The debug corner moves under the HUD.
+
 ### 2026-10-12 — Water is unwalkable by everything (Michael, sharpening the river ruling)
 
 "Any cell that is 100 percent blue water (no partial shore) is just unwalkable by any entity: you, NPC, zombie, animal." So in `30` law 8: a wholly-water tile stops everyone, the bank's blend is ground, the ford and the weir's crest are a shallow kind with stones showing (never blue water) and slow for all; boats someday; for now water is a source of water and later of fish, and it segments the map.

@@ -7,6 +7,8 @@
 // anyone's state). Bottom-left above the HUD, the last lines showing, the wheel
 // scrolls it; two hundred lines kept. DOM in the UI layer, never the canvas.
 
+import * as settings from "../settings.js";
+
 const KEEP = 200;
 let root = null;
 let pinned = true; // following the newest line until the user scrolls up
@@ -19,6 +21,22 @@ export function initLog() {
     pinned = root.scrollTop + root.clientHeight >= root.scrollHeight - 4;
   });
   root.addEventListener("mousedown", (e) => e.stopPropagation());
+  // Resizable by its corner (CSS `resize`), the size remembered (Michael, 2026-10-12).
+  const size = settings.get("logSize");
+  if (size && size.w && size.h) {
+    root.style.width = `${size.w}px`;
+    root.style.height = `${size.h}px`;
+  }
+  let timer = 0;
+  new ResizeObserver(() => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const w = Math.round(root.offsetWidth);
+      const h = Math.round(root.offsetHeight);
+      const cur = settings.get("logSize");
+      if (!cur || cur.w !== w || cur.h !== h) settings.set("logSize", { w, h });
+    }, 250);
+  }).observe(root);
 }
 
 // `kind`: info (the game), result (an action's outcome), say (a character's

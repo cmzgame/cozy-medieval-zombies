@@ -78,12 +78,17 @@ export const MOODLES = [
 ];
 
 // [{ id, glyph, stage, name, text }] for every moodle currently showing.
+// Every moodle, always (Michael, 2026-10-12: all showing, green when nothing is
+// wrong); stage 0 is "fine" with the moodle's own name.
+const FINE = { bleed: ["Not bleeding", "No open wound."], infection: ["Not bitten", "Nothing in your blood."], hunger: ["Fed", "You are not hungry."], thirst: ["Watered", "You are not thirsty."] };
 export function activeMoodles(player) {
   const out = [];
   for (const m of MOODLES) {
     const stage = Math.min(m.stages.length, m.stageOf(player));
-    if (stage <= 0) continue;
-    out.push({ id: m.id, glyph: m.glyph, stage, ...m.stages[stage - 1] });
+    if (stage <= 0) {
+      const [name, text] = FINE[m.id] || [m.id, ""];
+      out.push({ id: m.id, glyph: m.glyph, stage: 0, name, text });
+    } else out.push({ id: m.id, glyph: m.glyph, stage, ...m.stages[stage - 1] });
   }
   return out;
 }

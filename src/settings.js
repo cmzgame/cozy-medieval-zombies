@@ -24,6 +24,7 @@ export const DEFAULTS = {
   paintedLayers: {}, // slot -> painted layer name to try on, from the settings screen (docs/12)
   panelPos: {}, // "bag" | "character" | "container" -> { x, y } in UI pixels where its header was dragged to (docs/23 step 4; Michael, 2026-10-12)
   cursor: "default", // the system's own, or one of the three hands (ui/cursor.js; Michael, 2026-10-12)
+  logSize: null, // { w, h } in UI pixels the text log was resized to (ui/log.js)
 };
 
 // What the settings screen offers, in order.

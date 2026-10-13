@@ -24,7 +24,7 @@ export function updateMoodles(player) {
   for (const m of active) {
     let entry = shown.get(m.id);
     if (entry && entry.stage === m.stage) continue;
-    const worse = !entry || m.stage > entry.stage;
+    const worse = !!entry && m.stage > entry.stage; // a new icon at "fine" does not pop
     if (!entry) {
       const el = document.createElement("div");
       el.innerHTML = `<svg viewBox="0 0 16 16" width="20" height="20">${m.glyph}</svg><div class="moodle-tip"><b></b><span></span></div>`;
@@ -34,7 +34,7 @@ export function updateMoodles(player) {
       added = true;
     }
     entry.stage = m.stage;
-    entry.el.className = `moodle stage-${m.stage}`;
+    entry.el.className = `moodle stage-${m.stage}`; // stage-0 is the green "fine"
     entry.el.dataset.id = m.id;
     entry.el.querySelector("b").textContent = m.name;
     entry.el.querySelector("span").textContent = m.text;

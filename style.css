@@ -80,7 +80,7 @@ html, body {
 
 #debug {
   position: absolute;
-  top: 4px;
+  top: 84px; /* under the HUD */
   left: 6px;
   font: 12px/1.4 Consolas, monospace;
   color: #9a9;
@@ -193,21 +193,49 @@ html, body {
 }
 
 /* ---- HUD: the moodles, the bars, the hands, the clock, straight on the map bottom-left ---- */
+/* Top-left: the portrait beside the bars and the hands (Michael, 2026-10-12, as WoW has it). */
 #hud {
   position: absolute;
   left: 12px;
-  bottom: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  top: 10px;
   font-size: 13px;
   text-shadow: 0 1px 0 #000;
 }
 
-.hud-clock {
-  color: #cfc4d8;
-  font-size: 12px;
-  letter-spacing: 0.02em;
+.hud-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.hud-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* The player's head from their own sheet at 2x, in a cutout. */
+.hud-portrait {
+  box-sizing: content-box;
+  image-rendering: pixelated;
+  border: var(--kit-well-w, 5px) solid transparent;
+  border-image-source: var(--kit-well);
+  border-image-slice: var(--kit-well-slice, 5) fill;
+  border-image-width: var(--kit-well-w, 5px);
+  border-image-repeat: repeat;
+}
+
+/* The time, top centre. */
+#clock {
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  transform: translateX(-50%);
+  color: #e8e0d0;
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  text-shadow: 0 1px 0 #000, 0 0 3px #000;
+  pointer-events: none;
 }
 
 .hud-health,
@@ -272,11 +300,18 @@ html, body {
   color: #cfc4d8;
 }
 
-.hud-moodles {
+/* The moodles down the right edge, all of them always, green when fine (Michael, 2026-10-12, as Zomboid). */
+#moodles {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
+  flex-direction: column;
   gap: 6px;
-  min-height: 0;
 }
+
+.moodle.stage-0 { background: #7fbf5f; }
 
 .moodle {
   position: relative;
@@ -315,8 +350,8 @@ html, body {
 .moodle-tip {
   display: none;
   position: absolute;
-  left: 36px;
-  bottom: 0;
+  right: 36px; /* opens to the left of the stack */
+  top: 0;
   white-space: nowrap;
   background: var(--panel);
   border: 1px solid var(--panel-edge);
@@ -373,7 +408,7 @@ html, body {
 #message {
   position: absolute;
   left: 50%;
-  top: 16px;
+  top: 28px; /* under the clock */
   transform: translateX(-50%);
   background: rgba(20, 14, 26, 0.85);
   border: 1px solid var(--panel-edge);
@@ -387,10 +422,16 @@ html, body {
 #log {
   position: absolute;
   left: 12px;
-  bottom: 136px;
+  bottom: 10px;
   width: 340px;
-  max-height: 118px;
+  height: 118px;
+  min-width: 160px;
+  min-height: 40px;
+  max-width: 80vw;
+  max-height: 60vh;
+  box-sizing: border-box;
   overflow-y: auto;
+  resize: both; /* dragged by its corner; the size is remembered (ui/log.js) */
   padding: 3px 6px;
   background: rgba(10, 6, 14, 0.45);
   border-radius: 4px;
@@ -520,7 +561,7 @@ html, body {
 
 .swing-bar {
   position: relative;
-  width: 160px;
+  width: 104px; /* a two-slot belt's width, whatever belt is worn (Michael, 2026-10-12) */
   height: 14px;
   box-sizing: border-box;
   background: var(--bar-bg);
