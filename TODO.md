@@ -123,6 +123,22 @@ In order; each step ends with this Status updated, its rulings in `02`, and a co
 - [ ] Step 8: chickens and deer; leather and the tannery.
 - [ ] After: fishing.
 
+## Better animations (see `docs/32-better-animations.md`) — specified 2026-10-13, nothing built
+
+Poses the game lacks, as data on the final rig; more frames only where named. In order, each re-baselining the sheet and frame hashes once; the rules and the default numbers are in `32`.
+
+- [ ] 1. The held-out pose (`present`): the book, a torch held to something, drinking and eating.
+- [ ] 2. The halberd's two attacks: `attack_alt` on the sheet, the `thrust` style, the alt block naming it.
+- [ ] 3. The cast: the staff raised high, the book held out; the bow's draw mechanics on a `cast` block; the spell itself is `24`.
+- [ ] 4. The braced draw as its own style (`bow_braced`), the draw thresholds as data beside the bow's own speeds.
+- [ ] 5. The spear's throw checked by Michael's eye; numbers only if it reads wrong.
+- [ ] 6. Arrows that land upright: a planted frame, a steep arc plants with a tunable chance on the sim's generator.
+- [ ] 7. Sleep: the lying pose on the bed, the sim moving the sleeper there and back.
+- [ ] 8. Sit: a `sit` verb on chairs, benches, and pews (`seat: true`), a one-frame pose, stood up by any move.
+- [ ] 9. The death for every model: six frames, the atlas measured before and after.
+- [ ] 10. The walk, a quick pass on the numbers with Michael watching, then into the poses data.
+- [x] 11. The arrow and the spear redrawn as dev art (2026-10-13, with the spec): struck if drawn art lands first.
+
 ## Conversations to have before code
 
 In order. Each ends with a line in `docs/02-decisions.md`.

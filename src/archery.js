@@ -309,7 +309,12 @@ const hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), pa
 // Sixteen frames, 22.5 degrees apart, 0 up and clockwise (the held art's angles):
 // a shaft, a head at the tip, fletching at the tail if it has any, a dark outline,
 // in hard pixels. The frame's centre is the projectile's middle.
-function makeProjectile(name, { size, len, thick, shaft, head, headLen, fletch }) {
+// The picture of a projectile at sixteen angles, drawn pixel by pixel along its
+// line (docs/20; redrawn 2026-10-13, docs/32 item 11: a two-tone shaft, a head
+// that tapers to its point over a darker socket, swept fletching and a nock on
+// an arrow, a lashing and a broad stone point on a spear). `shaft`, `head` are
+// the base tones; the light and dark of each are derived; `cord` is the lashing.
+function makeProjectile(name, { size, len, thick, shaft, head, headLen, fletch, cord = null }) {
   const AS = size;
   const N = HELD_ANGLES;
   const canvas = document.createElement("canvas");
@@ -317,9 +322,15 @@ function makeProjectile(name, { size, len, thick, shaft, head, headLen, fletch }
   canvas.height = AS;
   const ctx = canvas.getContext("2d");
   const frames = {};
+  const tone = (c, f) => c.map((v) => Math.max(0, Math.min(255, Math.round(v * f))));
   const SHAFT = hex(shaft);
+  const SHAFT_LIGHT = tone(SHAFT, 1.22);
+  const SHAFT_DARK = tone(SHAFT, 0.72);
   const HEAD = hex(head);
+  const HEAD_DARK = tone(HEAD, 0.7);
   const FLETCH = fletch ? hex(fletch) : null;
+  const FLETCH_DARK = FLETCH ? tone(FLETCH, 0.78) : null;
+  const CORD = cord ? hex(cord) : null;
   const OUT = hex("#2b2522");
   for (let k = 0; k < N; k++) {
     const a = (k * 2 * Math.PI) / N;
@@ -336,22 +347,59 @@ function makeProjectile(name, { size, len, thick, shaft, head, headLen, fletch }
     };
     const cx = AS / 2;
     const cy = AS / 2;
+    const tHead = len / 2 - headLen; // where the head begins
+    const tNock = -len / 2; // the tail end
+    // The shaft: the base tone with the light along one edge (the light is from the
+    // upper left, so the side whose normal points up and left is lit) and, on a thick
+    // shaft, the second row in the dark tone; a darker ring at the head's socket.
+    const litSide = (nx - ny) < 0 ? 1 : -1;
     for (let i = 0; i <= len * 3; i++) {
       const t = i / 3 - len / 2;
-      const col = t > len / 2 - headLen ? HEAD : SHAFT;
-      put(cx + dx * t, cy + dy * t, col);
-      if (thick > 1) put(cx + dx * t + nx * 0.9, cy + dy * t + ny * 0.9, col);
-    }
-    // The barbs of the head.
-    const tb = len / 2 - headLen;
-    put(cx + dx * tb + nx, cy + dy * tb + ny, HEAD);
-    put(cx + dx * tb - nx, cy + dy * tb - ny, HEAD);
-    if (thick > 1) put(cx + dx * tb + nx * 2, cy + dy * tb + ny * 2, HEAD);
-    if (FLETCH) {
-      for (let t = -len / 2; t <= -len / 2 + 3; t += 1) {
-        put(cx + dx * t + nx, cy + dy * t + ny, FLETCH);
-        put(cx + dx * t - nx, cy + dy * t - ny, FLETCH);
+      if (t > tHead) continue;
+      const socket = t > tHead - 1.5;
+      const base = socket ? SHAFT_DARK : SHAFT;
+      put(cx + dx * t, cy + dy * t, base);
+      if (thick > 1) {
+        put(cx + dx * t + nx * 0.9 * litSide, cy + dy * t + ny * 0.9 * litSide, socket ? SHAFT_DARK : SHAFT_LIGHT);
+      } else if (!socket && i % 3 === 0 && t > tNock + 4 && t < tHead - 2) {
+        // A one-pixel shaft gets its light as a dotted highlight along the lit edge, so it reads as round without doubling.
+        put(cx + dx * t + nx * 0.6 * litSide, cy + dy * t + ny * 0.6 * litSide, SHAFT_LIGHT);
       }
+    }
+    // The lashing behind the head on a spear: two turns of cord across the shaft.
+    if (CORD) {
+      for (const t of [tHead - 2.5, tHead - 3.5]) {
+        for (let s = -1.2; s <= 1.2; s += 0.4) put(cx + dx * t + nx * s, cy + dy * t + ny * s, CORD);
+      }
+    }
+    // The head: a point that tapers from its widest at the socket to the tip; the far
+    // side in the dark tone so it reads as a blade with two faces.
+    const wide = thick > 1 ? 2 : 1;
+    for (let i = 0; i <= headLen * 3; i++) {
+      const t = tHead + i / 3;
+      const w = wide * (1 - i / (headLen * 3)); // the half width here
+      put(cx + dx * t, cy + dy * t, HEAD);
+      for (let s = 0.5; s <= w + 0.01; s += 0.5) {
+        put(cx + dx * t + nx * s * litSide, cy + dy * t + ny * s * litSide, HEAD);
+        put(cx + dx * t - nx * s * litSide, cy + dy * t - ny * s * litSide, HEAD_DARK);
+      }
+    }
+    // The barbs at the socket, a pixel past the widest.
+    put(cx + dx * tHead + nx * (wide + 0.9), cy + dy * tHead + ny * (wide + 0.9), HEAD);
+    put(cx + dx * tHead - nx * (wide + 0.9), cy + dy * tHead - ny * (wide + 0.9), HEAD_DARK);
+    if (FLETCH) {
+      // Fletching swept back from the shaft: two vanes that stand a pixel off the shaft and lean toward the nock.
+      for (let j = 0; j < 4; j++) {
+        const t = tNock + 0.5 + j;
+        const s = j < 3 ? 1 + (j === 0 ? 0 : 0.5) : 1; // the vane's lift off the shaft along its length
+        put(cx + dx * t + nx * s, cy + dy * t + ny * s, j === 3 ? FLETCH_DARK : FLETCH);
+        put(cx + dx * t - nx * s, cy + dy * t - ny * s, j === 3 ? FLETCH_DARK : FLETCH);
+        if (j === 1) {
+          put(cx + dx * t + nx * 2, cy + dy * t + ny * 2, FLETCH);
+          put(cx + dx * t - nx * 2, cy + dy * t - ny * 2, FLETCH_DARK);
+        }
+      }
+      put(cx + dx * tNock, cy + dy * tNock, SHAFT_DARK); // the nock
     }
     const img = ctx.createImageData(AS, AS);
     const d = img.data;
@@ -384,7 +432,7 @@ export function generateArrow() {
 
 // A wooden pole with a stone point (Michael): longer and thicker than an arrow, no fletching.
 export function generateSpear() {
-  return makeProjectile("spear", { size: 32, len: 26, thick: 2, shaft: "#8a6a3a", head: "#b4b0a8", headLen: 5, fletch: null });
+  return makeProjectile("spear", { size: 32, len: 26, thick: 2, shaft: "#8a6a3a", head: "#b4b0a8", headLen: 6, fletch: null, cord: "#d8c8a0" });
 }
 
 // ---- the draw (docs/20, step 2) ----
