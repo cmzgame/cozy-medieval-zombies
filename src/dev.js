@@ -71,18 +71,18 @@ export function createDevApi(ctx) {
       shootAt: (gx, gy, c = 1) => archery.shoot(P(), [gx - P().gx, gy - P().gy], Math.hypot(gx - P().gx, gy - P().gy), c),
       markAt: (gx, gy, c = 1) => {
         const p = archery.preview(P(), [gx - P().gx, gy - P().gy], Math.hypot(gx - P().gx, gy - P().gy), c);
-        archery.setMarker({ from: [P().gx, P().gy], full: p.full, land: p.land });
+        archery.setMarker(P(), { from: [P().gx, P().gy], full: p.full, land: p.land });
         return p;
       },
-      clearMarker: () => archery.setMarker(null),
+      clearMarker: () => archery.setMarker(P(), null),
       // The draw, for scripts: aim somewhere, press, step the game, release.
       bow: () => archery.bowOf(P()),
-      setAim: (gx, gy) => archery.setAimOverride(gx == null ? null : [gx, gy]),
+      setAim: (gx, gy) => archery.setAimOverride(P(), gx == null ? null : [gx, gy]),
       launcher: () => archery.launcherOf(P()),
       press: () => archery.beginDraw(P(), archery.launcherOf(P()), "script"),
-      release: () => archery.releaseDraw(P(), input.getMouse()),
+      release: () => archery.releaseDraw(P(), { mouse: input.getMouse() }),
       cancel: () => archery.cancelDraw(P()),
-      drawing: archery.drawState,
+      drawing: () => archery.drawState(P()),
     },
     say: (text, seconds) => say(P(), text, seconds), // a bubble over the player, to test the system (docs/19)
     get tiles() { return ctx.tiles; },

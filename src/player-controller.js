@@ -22,22 +22,26 @@ export function controlPlayer(player, zombies, dt, s) {
   const bowHeld = !!launcher && launcher.button === "primary";
   // A left click swings; on a mushroom, a rock, or a tree (its visible pixels) that thing sways too.
   // With a bow in hand the left button is the draw, not a swing or a poke (docs/20).
-  if (s.clicked && !s.clickSpent && !bowHeld && !archery.drawState()) {
-    interact.pokeAt(s.mouse.x, s.mouse.y, player);
-    interact.playAt(s.mouse.x, s.mouse.y, player); // the well's bucket, for fun
-    interact.clickCharacterAt(s.mouse.x, s.mouse.y, player); // a villager answers (docs/19)
+  if (s.clicked && !s.clickSpent && !bowHeld && !archery.drawState(player)) {
+    if (s.mouse) {
+      // The pokes are by the cursor's pixels: a client not here has no cursor in this view (docs/31/05, item 16).
+      interact.pokeAt(s.mouse.x, s.mouse.y, player);
+      interact.playAt(s.mouse.x, s.mouse.y, player); // the well's bucket, for fun
+      interact.clickCharacterAt(s.mouse.x, s.mouse.y, player); // a villager answers (docs/19)
+    }
     combat.swingFromLeft(player, zombies); // one weapon swings; two take turns (docs/21)
   }
   // The bow draws on the left button, a throw on the middle one (or Q); the right button held braces a bow (docs/21).
   const onAlt = !!launcher && launcher.button === "alt";
   // The main hand's other melee mode on the middle button (docs/21): the halberd's thrust.
-  if (!onAlt && s.altPressed && !archery.drawState() && combat.altWeaponOf(player)) combat.tryAttack(player, zombies, "main", "alt");
+  if (!onAlt && s.altPressed && !archery.drawState(player) && combat.altWeaponOf(player)) combat.tryAttack(player, zombies, "main", "alt");
   const bracing = s.offDown && !!launcher && launcher.kind === "bow";
   archery.updateDraw(player, dt, {
     pressed: onAlt ? s.altPressed : s.clicked && !s.clickSpent,
     down: onAlt ? s.altDown : s.leftDown,
     brace: bracing,
     mouse: s.mouse,
+    aimAt: s.aimAt || null, // a grid point from a client whose cursor is not here (net.js)
     blocked: s.blocked,
   });
   // One place decides the walking speed: braced slowest, a draw next (docs/21).

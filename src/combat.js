@@ -17,7 +17,6 @@ import { setBleedData } from "./bleed.js";
 import { lineOfSight } from "./visibility.js";
 import * as items from "./items.js";
 import * as loop from "./loop.js";
-import * as camera from "./camera.js";
 import { emit } from "./events.js";
 import { playAnimation } from "./sprites.js";
 import { aimOrigin } from "./entities/player.js";
@@ -67,8 +66,8 @@ export function setCombatData(data) {
   Object.assign(FINISHER, data.finisher || {});
 }
 
-let time = 0; // combat's own clock, for the combo window
-const fx = { wedge: null, kick: null };
+// The combo window reads the sim's clock (loop.simTime), not a clock of this module's advanced per
+// player (docs/31/05, item 13); the kick is an event the owning client answers with its camera.
 
 // What the main-hand item does as a weapon, else fists.
 export function weaponOf(player) {
@@ -245,8 +244,7 @@ function kick(player) {
   const n = Math.hypot(player.aim.sx, player.aim.sy) || 1;
   const x = (player.aim.sx / n) * KICK_PX;
   const y = (player.aim.sy / n) * KICK_PX;
-  fx.kick = { x, y, ttl: KICK_TIME };
-  camera.kick(x, y, KICK_TIME);
+  emit("kicked", { player, x, y, seconds: KICK_TIME });
 }
 
 // The left click. The swing resolves now, on the click: the cooldown is the
@@ -305,7 +303,6 @@ export function tryAttack(player, zombies, hand = "main", mode = null) {
     if (hand === "off") player.exposedFor = DUAL.window; // the price of the second weapon
   }
   playAnimation(player.anim, "attack", true);
-  fx.wedge = { ttl: WEDGE_TIME, points: wedgePolygon(player, weapon) };
   emit("meleeSwing", { player, weapon });
 
   const dir = gridAim(player);
@@ -317,8 +314,9 @@ export function tryAttack(player, zombies, hand = "main", mode = null) {
     // The third hit within the window always floors it; fists never do.
     let combo = false;
     if (!finisher) {
-      z.hits = (z.hits || []).filter((t) => time - t <= COMBO.window);
-      z.hits.push(time);
+      const now = loop.simTime();
+      z.hits = (z.hits || []).filter((t) => now - t <= COMBO.window);
+      z.hits.push(now);
       if (COMBO.enabled && z.hits.length >= COMBO.hits && weapon.knockdown !== 0) {
         combo = true;
         z.hits = [];
@@ -363,7 +361,6 @@ export function tryShove(player, zombies) {
   player.stamina = Math.max(0, player.stamina - SHOVE.stamina);
   if (player.stamina <= 0) player.winded = true;
   playAnimation(player.anim, "attack", true);
-  fx.wedge = { ttl: WEDGE_TIME, points: wedgePolygon(player, SHOVE) };
   const dir = gridAim(player);
   const hit = [];
   for (const z of targetsIn(player, SHOVE, zombies, (z) => !isDown(z))) {
@@ -396,26 +393,17 @@ export function markTargets(player, zombies, on) {
 
 // Each logic step: cooldowns and the effects' timers.
 export function updateCombat(player, zombies, dt) {
-  time += dt;
   player.attackCooldown = Math.max(0, (player.attackCooldown || 0) - dt);
   player.offCooldown = Math.max(0, (player.offCooldown || 0) - dt);
   player.blockFlash = Math.max(0, (player.blockFlash || 0) - dt);
   player.swingLock = Math.max(0, (player.swingLock || 0) - dt);
   player.exposedFor = Math.max(0, (player.exposedFor || 0) - dt);
   player.shoveCooldown = Math.max(0, (player.shoveCooldown || 0) - dt);
-  if (fx.wedge) {
-    fx.wedge.ttl -= dt;
-    if (fx.wedge.ttl <= 0) fx.wedge = null;
-  }
-  if (fx.kick) {
-    fx.kick.ttl -= dt;
-    if (fx.kick.ttl <= 0) fx.kick = null;
-  }
 }
 
-// What the feedback layer shows right now: the wedge, the kick, the freeze.
+// What the feedback layer shows right now: the freeze (the wedge and the kick were never drawn).
 export function effects() {
-  return { wedge: fx.wedge, kick: fx.kick, hitStop: loop.getFreeze() };
+  return { hitStop: loop.getFreeze() };
 }
 
 // What the renderer draws for the hit shapes: with the Show hit shapes setting

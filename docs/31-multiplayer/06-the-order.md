@@ -30,7 +30,7 @@ The cheap feel test of `05-someday` is runnable at the end of this tier: two tab
 
 ## Tier 2 — Fighting (medium)
 
-**Built so far (2026-10-13, `02`):** on the wire the world never pauses (a screen is the client's own, its player stands still), and hit-stop is refused there.
+**Built so far (2026-10-13, `02`):** on the wire the world never pauses (a screen is the client's own, its player stands still), and hit-stop is refused there; the draw and the combat clock on the player; a guest's swing, shove, and bow resolved on the host from its clicks, its aim vector, and a ground point; the arrows in flight in every frame. **Tier 2 is whole but for the bounded rewind, which the loopback cannot show the need of.**
 
 What: items 12, 13, 18 (the draw and the combat clock on the player, hit-stop local, events with victims), the swing, shove, guard, draw and release as commands with the bounded rewind (`04`), the bow's launch and landing as events. Two friends against one zombie and it does not jump about.
 

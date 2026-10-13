@@ -57,6 +57,10 @@ export function createPlayer(gx, gy, { id = null } = {}) {
     offMemory: null, // what a two-hander pushed out of the off hand, to come back (inventory.js)
     bleed: null, // { stacks, left } while bleeding (bleed.js)
     infection: null, // { since } once infected (infection.js)
+    draw: null, // { t, c, source }: a bow or a throw drawn (archery.js; docs/31/05 item 12: on the player, so two can draw)
+    recover: 0, // seconds after a shot before the next draw
+    aimOverride: null, // [gx, gy]: scripts and tests aim here instead of the cursor
+    marker: null, // { from, full, land }: where the draw would land, for this player's own client
   };
 }
 
