@@ -18,7 +18,7 @@ Written 2026-10-12. The punch list across all art, then the working notes that m
 - **Rocks:** four faceted rocks; wild generator places them; what mining gives is open (`02` question 27).
 - **Fireball sheet:** stored, unused until the spell exists (`24`).
 - **Far-side leaves and shutters:** imported, never seen in play.
-- **Staff 22.5 / 45 / 67.5 / 90 degree files:** used, with the flip table in `07` (the repo README's flip rule needs the 180 to 270 correction).
+- **Staff 22.5 / 45 / 67.5 / 90 degree files:** used, with the flip table in `07` (the repo README's 180 to 270 rule was corrected 2026-10-12).
 
 ## Not drawn yet
 

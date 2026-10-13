@@ -1,0 +1,218 @@
+{
+ "hair_crop": [
+  "1978 game pixels read over 8 facings.",
+  "Given to parts: head 1978.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "hair_mohawk": [
+  "1039 game pixels read over 8 facings.",
+  "Given to parts: head 1039.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "hair_tight": [
+  "1373 game pixels read over 8 facings.",
+  "Given to parts: head 1373.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "hair_long": [
+  "3368 game pixels read over 8 facings.",
+  "Given to parts: head 3368.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "hair_pigtails": [
+  "2634 game pixels read over 8 facings.",
+  "Given to parts: head 2634.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "hair_bob": [
+  "2848 game pixels read over 8 facings.",
+  "Given to parts: head 2848.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "beard_moustache": [
+  "160 game pixels read over 8 facings.",
+  "Given to parts: head 160.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "beard_gnome": [
+  "835 game pixels read over 8 facings.",
+  "Given to parts: head 835.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "beard_cropped": [
+  "346 game pixels read over 8 facings.",
+  "Given to parts: head 346.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "head_onion": [
+  "3832 game pixels read over 8 facings.",
+  "Given to parts: head 3832.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "head_onion_flop": [
+  "3824 game pixels read over 8 facings.",
+  "Given to parts: head 3824.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "head_onion_squat": [
+  "3740 game pixels read over 8 facings.",
+  "Given to parts: head 3740.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "head_straw_hat": [
+  "2510 game pixels read over 8 facings.",
+  "Given to parts: head 2510.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "head_coif": [
+  "3012 game pixels read over 8 facings.",
+  "Given to parts: head 3012.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "head_greathelm": [
+  "4000 game pixels read over 8 facings.",
+  "Given to parts: head 4000.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "chest_tunic": [
+  "1709 game pixels read over 8 facings.",
+  "Given to parts: torso 1074, armL 290, armR 345.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "chest_tunic_long": [
+  "1709 game pixels read over 8 facings.",
+  "Given to parts: torso 1074, armL 290, armR 345.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "chest_tunic_cross": [
+  "1709 game pixels read over 8 facings.",
+  "Given to parts: torso 1074, armL 290, armR 345.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "chest_jerkin": [
+  "1816 game pixels read over 8 facings.",
+  "Given to parts: torso 1074, armL 339, armR 403.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "chest_dress": [
+  "2132 game pixels read over 8 facings.",
+  "Given to parts: torso 1074, armL 485, armR 573.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "chest_surcoat": [
+  "2448 game pixels read over 8 facings.",
+  "Given to parts: torso 1074, armL 645, armR 729.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "legs_breeches": [
+  "636 game pixels read over 8 facings.",
+  "Given to parts: legL 318, legR 318.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "legs_hose": [
+  "948 game pixels read over 8 facings.",
+  "Given to parts: legL 474, legR 474.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "legs_patched": [
+  "948 game pixels read over 8 facings.",
+  "Given to parts: legL 474, legR 474.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "legs_chausses": [
+  "948 game pixels read over 8 facings.",
+  "Given to parts: legL 474, legR 474.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "feet_boots": [
+  "1174 game pixels read over 8 facings.",
+  "Given to parts: footL 586, footR 588.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "feet_turnshoes": [
+  "758 game pixels read over 8 facings.",
+  "Given to parts: footL 378, footR 380.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "feet_wraps": [
+  "522 game pixels read over 8 facings.",
+  "Given to parts: footL 261, footR 261.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "feet_greaves": [
+  "1274 game pixels read over 8 facings.",
+  "Given to parts: footL 636, footR 638.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "hands_gloves": [
+  "436 game pixels read over 8 facings.",
+  "Given to parts: handL 207, handR 229.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "hands_gauntlets": [
+  "639 game pixels read over 8 facings.",
+  "Given to parts: handL 308, handR 331.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "hands_wraps": [
+  "464 game pixels read over 8 facings.",
+  "Given to parts: handL 221, handR 243.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "waist_belt": [
+  "132 game pixels read over 8 facings.",
+  "Given to parts: torso 132.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "waist_pouch_belt": [
+  "184 game pixels read over 8 facings.",
+  "Given to parts: torso 184.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "waist_rope": [
+  "78 game pixels read over 8 facings.",
+  "Given to parts: torso 78.",
+  "Nothing dropped.",
+  "ragged 0"
+ ],
+ "waist_sword_belt": [
+  "135 game pixels read over 8 facings.",
+  "Given to parts: torso 135.",
+  "Nothing dropped.",
+  "ragged 0"
+ ]
+}

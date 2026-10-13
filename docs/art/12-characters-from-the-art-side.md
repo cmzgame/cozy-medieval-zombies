@@ -1,6 +1,10 @@
 # Art 12: Characters, from the art side
 
-**Status: not started by me.** Michael (2026-10-12): the character models are the one set of art I have not done, "which we might do later". This page is what I know about the constraints, what the existing docs already decide, how I would approach it, and what I need before drawing. It does **not** replace the brief. **The authoritative document is `25-character-art-brief.md`; read it first.** Written 2026-10-12.
+**Status (2026-10-12, late): the body is the rig's (Michael's ruling, `02` "We have a body"); my four body rounds in `data/art/character/` are superseded and should be deleted along with `tools/art-gen/character/body.py` and `deliver.py`. What I paint now is parts on the template through the slicer, per `28-painting-for-the-slicer.md`: round 1 of those is in `data/art/character/layers/` (36 layers: six hairs, three beards, six head pieces including the onion hat and the great helm, six chests including the knight's surcoat, four legs, four feet, three hands, four belts), every one checked through the slicer with nothing dropped; see `README_layers.md` there for the item specs and three engine notes.**
+
+## The body, round 4 (2026-10-12)
+
+Drawn per part per facing on the template's anchors, composited far to near with 4-neighbour outlines like `figure.js`, in five canonical tones (outline, skin base, skin shadow, eye white, pupil) that the game swaps: a living tone, an eye colour, or the dead's tone and red eyes, so a villager or the player turns in place with nothing redrawn. Michael's round-1 review: the generated head and eyes were better (the big eyes were an overcorrection, now withdrawn), the shoulders too forward and the arms too long and too straight; the feet and hands were keepers. Round 4 is the generated body's proportion, head, eyes and arms (the arms reconstructed from the rig's capsule on the template's joints and drawn under the torso as the generator orders them, pupil dyeable), the torso to the generated hip line, with the new legs, feet and hands, and two rules from Michael's round-2 review: nothing pokes above the shoulder line, and a far arm shows at least two pixels of skin before its outline meets the torso's; 6-wide quiet legs, feet that flare with a shaded sole, an 8-deep profile with 4-wide arms, and the slanted hem on the three-quarter views. Per-part layers include the pixels hidden at rest, for the rig. The skin ramp (eight living, three dead) in `character_body.json` is approved. Details in `../../data/art/character/README_body.md`.
 
 ## What already exists (do not duplicate)
 
@@ -18,7 +22,11 @@
 2. **Eight facings** (`s, sw, w, nw, n, ne, e, se`). Five may be delivered (`s, sw, w, nw, n`) and three mirrored, **except anything asymmetric** (a pouch on one hip, a satchel, a side-swept fringe).
 3. **The rig animates; the artist does not.** Parts are painted once per facing in the rest pose, relative to each part's anchor, and the rig carries their pixels through every animation. So garments are *stiff*: a sleeve turns with the arm, a boot with the leg, nothing flaps on its own (no cloaks or loose skirts in this pipeline).
 4. **Two tones plus the dark outline** per garment, hair and skin; **colour is data** (the engine dyes by replacing the tones), so one canonical colourway is drawn.
-5. **One outline per body part, never per garment** ("no Michelin rolls"); the face is never shaded; eyes two wide and three tall with the pupil low; no mouth line unless a beard needs one.
+5. **One outline per body part, never per garment** ("no Michelin rolls"); the face is never shaded; **eyes are big (whites 4 x 6, coloured pupil at least 2 x 4, ruled 2026-10-12, below); no mouth, no nose**.
+
+## Eyes: the one face rule that changed (Michael, 2026-10-12)
+
+The face is two big eyes and nothing else; hair and facial hair attach to it. Generated today: **whites 3 x 5, coloured pupil 2 x 3**. Ruled: **whites 4 x 6 (1 px more at the top and at the outer side), pupil at least 2 x 4 (at least 1 px more at the top)**, so the player's eye colour has room to show. Full text and the checks (head fit, hairline clearance, which facings) are in `25-character-art-brief.md`, deliverable 1. My reading of "1 px top and side" is +1 wide and +1 tall per eye, outer side only; if Michael meant both sides, the whites are 5 wide and the gap between the eyes closes to 1 px, which I would not recommend at this head width. Also, `figure.js` still draws the old eyes, so the generated body will not match the drawn one until its face block is updated.
 
 ## The scale numbers I use for items (and which the body must keep)
 

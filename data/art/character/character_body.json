@@ -1,0 +1,1436 @@
+{
+ "note": "The drawn body (docs/25, deliverable 1), round 4, 2026-10-12 (rounds 1 to 3 reviewed by Michael the same day). Same layout as character_template_4x.png: 48 x 72 frames, four across and two down, facings in `order`. Every pixel is one of five canonical tones; the game dyes by swapping them (see README_body.md).",
+ "frame": [
+  48,
+  72
+ ],
+ "feetAnchor": [
+  24,
+  66
+ ],
+ "layout": {
+  "columns": 4,
+  "rows": 2,
+  "cell": [
+   192,
+   288
+  ],
+  "order": [
+   "s",
+   "sw",
+   "w",
+   "nw",
+   "n",
+   "ne",
+   "e",
+   "se"
+  ]
+ },
+ "scale_of_4x_files": 4,
+ "tones": {
+  "outline": "#1a1420",
+  "skin_base": "#f0c8a0",
+  "skin_shadow": "#caa886",
+  "eye_white": "#f5f5f0",
+  "pupil": "#3c6ea0"
+ },
+ "symmetric": true,
+ "mirrors": {
+  "e": "w",
+  "se": "sw",
+  "ne": "nw"
+ },
+ "parts": [
+  {
+   "name": "torso",
+   "anchor": "neck",
+   "segmentEnd": "hip"
+  },
+  {
+   "name": "legL",
+   "anchor": "hipL",
+   "segmentEnd": "footL"
+  },
+  {
+   "name": "legR",
+   "anchor": "hipR",
+   "segmentEnd": "footR"
+  },
+  {
+   "name": "armL",
+   "anchor": "shoulderL",
+   "segmentEnd": "handL"
+  },
+  {
+   "name": "armR",
+   "anchor": "shoulderR",
+   "segmentEnd": "handR"
+  },
+  {
+   "name": "head",
+   "anchor": "head",
+   "segmentEnd": null
+  }
+ ],
+ "facings": {
+  "s": {
+   "draw_order": [
+    "legR",
+    "legL",
+    "armR",
+    "armL",
+    "torso",
+    "head"
+   ],
+   "parts": {
+    "torso": {
+     "anchor_px": [
+      24,
+      36
+     ],
+     "grid_origin_px": [
+      19,
+      35
+     ],
+     "grid_size": [
+      11,
+      20
+     ],
+     "origin_minus_anchor": [
+      -5,
+      -1
+     ]
+    },
+    "legL": {
+     "anchor_px": [
+      28,
+      49
+     ],
+     "grid_origin_px": [
+      25,
+      56
+     ],
+     "grid_size": [
+      7,
+      14
+     ],
+     "origin_minus_anchor": [
+      -3,
+      7
+     ]
+    },
+    "legR": {
+     "anchor_px": [
+      21,
+      49
+     ],
+     "grid_origin_px": [
+      17,
+      56
+     ],
+     "grid_size": [
+      7,
+      14
+     ],
+     "origin_minus_anchor": [
+      -4,
+      7
+     ]
+    },
+    "armL": {
+     "anchor_px": [
+      32,
+      38
+     ],
+     "grid_origin_px": [
+      29,
+      36
+     ],
+     "grid_size": [
+      8,
+      19
+     ],
+     "origin_minus_anchor": [
+      -3,
+      -2
+     ]
+    },
+    "armR": {
+     "anchor_px": [
+      16,
+      38
+     ],
+     "grid_origin_px": [
+      12,
+      36
+     ],
+     "grid_size": [
+      7,
+      19
+     ],
+     "origin_minus_anchor": [
+      -4,
+      -2
+     ]
+    },
+    "head": {
+     "anchor_px": [
+      24,
+      28
+     ],
+     "grid_origin_px": [
+      16,
+      19
+     ],
+     "grid_size": [
+      16,
+      18
+     ],
+     "origin_minus_anchor": [
+      -8,
+      -9
+     ]
+    }
+   },
+   "joints": {
+    "head": [
+     24,
+     28
+    ],
+    "neck": [
+     24,
+     36
+    ],
+    "hip": [
+     24,
+     51
+    ],
+    "shoulderL": [
+     32,
+     38
+    ],
+    "shoulderR": [
+     16,
+     38
+    ],
+    "handL": [
+     34,
+     52
+    ],
+    "handR": [
+     15,
+     52
+    ],
+    "hipL": [
+     28,
+     49
+    ],
+    "hipR": [
+     21,
+     49
+    ],
+    "footL": [
+     28,
+     66
+    ],
+    "footR": [
+     21,
+     66
+    ]
+   },
+   "face": "two eyes"
+  },
+  "sw": {
+   "draw_order": [
+    "armR",
+    "legR",
+    "torso",
+    "legL",
+    "armL",
+    "head"
+   ],
+   "parts": {
+    "torso": {
+     "anchor_px": [
+      24,
+      36
+     ],
+     "grid_origin_px": [
+      19,
+      35
+     ],
+     "grid_size": [
+      11,
+      23
+     ],
+     "origin_minus_anchor": [
+      -5,
+      -1
+     ]
+    },
+    "legL": {
+     "anchor_px": [
+      26,
+      50
+     ],
+     "grid_origin_px": [
+      21,
+      55
+     ],
+     "grid_size": [
+      8,
+      15
+     ],
+     "origin_minus_anchor": [
+      -5,
+      5
+     ]
+    },
+    "legR": {
+     "anchor_px": [
+      22,
+      48
+     ],
+     "grid_origin_px": [
+      17,
+      53
+     ],
+     "grid_size": [
+      8,
+      15
+     ],
+     "origin_minus_anchor": [
+      -5,
+      5
+     ]
+    },
+    "armL": {
+     "anchor_px": [
+      30,
+      41
+     ],
+     "grid_origin_px": [
+      27,
+      38
+     ],
+     "grid_size": [
+      7,
+      20
+     ],
+     "origin_minus_anchor": [
+      -3,
+      -3
+     ]
+    },
+    "armR": {
+     "anchor_px": [
+      18,
+      35
+     ],
+     "grid_origin_px": [
+      13,
+      36
+     ],
+     "grid_size": [
+      7,
+      16
+     ],
+     "origin_minus_anchor": [
+      -5,
+      1
+     ]
+    },
+    "head": {
+     "anchor_px": [
+      24,
+      28
+     ],
+     "grid_origin_px": [
+      16,
+      19
+     ],
+     "grid_size": [
+      16,
+      18
+     ],
+     "origin_minus_anchor": [
+      -8,
+      -9
+     ]
+    }
+   },
+   "joints": {
+    "head": [
+     24,
+     28
+    ],
+    "neck": [
+     24,
+     36
+    ],
+    "hip": [
+     24,
+     51
+    ],
+    "shoulderL": [
+     30,
+     41
+    ],
+    "shoulderR": [
+     18,
+     35
+    ],
+    "handL": [
+     31,
+     55
+    ],
+    "handR": [
+     17,
+     49
+    ],
+    "hipL": [
+     26,
+     50
+    ],
+    "hipR": [
+     22,
+     48
+    ],
+    "footL": [
+     26,
+     67
+    ],
+    "footR": [
+     22,
+     65
+    ]
+   },
+   "face": "two eyes, shifted 1 px left"
+  },
+  "w": {
+   "draw_order": [
+    "armR",
+    "legR",
+    "torso",
+    "legL",
+    "armL",
+    "head"
+   ],
+   "parts": {
+    "torso": {
+     "anchor_px": [
+      24,
+      36
+     ],
+     "grid_origin_px": [
+      20,
+      35
+     ],
+     "grid_size": [
+      8,
+      20
+     ],
+     "origin_minus_anchor": [
+      -4,
+      -1
+     ]
+    },
+    "legL": {
+     "anchor_px": [
+      24,
+      51
+     ],
+     "grid_origin_px": [
+      19,
+      56
+     ],
+     "grid_size": [
+      8,
+      14
+     ],
+     "origin_minus_anchor": [
+      -5,
+      5
+     ]
+    },
+    "legR": {
+     "anchor_px": [
+      24,
+      47
+     ],
+     "grid_origin_px": [
+      20,
+      52
+     ],
+     "grid_size": [
+      7,
+      14
+     ],
+     "origin_minus_anchor": [
+      -4,
+      5
+     ]
+    },
+    "armL": {
+     "anchor_px": [
+      24,
+      42
+     ],
+     "grid_origin_px": [
+      21,
+      39
+     ],
+     "grid_size": [
+      6,
+      21
+     ],
+     "origin_minus_anchor": [
+      -3,
+      -3
+     ]
+    },
+    "armR": {
+     "anchor_px": [
+      24,
+      34
+     ],
+     "grid_origin_px": [
+      21,
+      31
+     ],
+     "grid_size": [
+      6,
+      19
+     ],
+     "origin_minus_anchor": [
+      -3,
+      -3
+     ]
+    },
+    "head": {
+     "anchor_px": [
+      24,
+      28
+     ],
+     "grid_origin_px": [
+      16,
+      19
+     ],
+     "grid_size": [
+      16,
+      18
+     ],
+     "origin_minus_anchor": [
+      -8,
+      -9
+     ]
+    }
+   },
+   "joints": {
+    "head": [
+     24,
+     28
+    ],
+    "neck": [
+     24,
+     36
+    ],
+    "hip": [
+     24,
+     51
+    ],
+    "shoulderL": [
+     24,
+     42
+    ],
+    "shoulderR": [
+     24,
+     34
+    ],
+    "handL": [
+     24,
+     57
+    ],
+    "handR": [
+     24,
+     47
+    ],
+    "hipL": [
+     24,
+     51
+    ],
+    "hipR": [
+     24,
+     47
+    ],
+    "footL": [
+     24,
+     68
+    ],
+    "footR": [
+     24,
+     64
+    ]
+   },
+   "face": "one eye, front"
+  },
+  "nw": {
+   "draw_order": [
+    "armR",
+    "legR",
+    "torso",
+    "legL",
+    "armL",
+    "head"
+   ],
+   "parts": {
+    "torso": {
+     "anchor_px": [
+      24,
+      36
+     ],
+     "grid_origin_px": [
+      18,
+      35
+     ],
+     "grid_size": [
+      11,
+      23
+     ],
+     "origin_minus_anchor": [
+      -6,
+      -1
+     ]
+    },
+    "legL": {
+     "anchor_px": [
+      22,
+      50
+     ],
+     "grid_origin_px": [
+      19,
+      55
+     ],
+     "grid_size": [
+      8,
+      15
+     ],
+     "origin_minus_anchor": [
+      -3,
+      5
+     ]
+    },
+    "legR": {
+     "anchor_px": [
+      26,
+      48
+     ],
+     "grid_origin_px": [
+      23,
+      53
+     ],
+     "grid_size": [
+      8,
+      15
+     ],
+     "origin_minus_anchor": [
+      -3,
+      5
+     ]
+    },
+    "armL": {
+     "anchor_px": [
+      18,
+      41
+     ],
+     "grid_origin_px": [
+      14,
+      38
+     ],
+     "grid_size": [
+      7,
+      20
+     ],
+     "origin_minus_anchor": [
+      -4,
+      -3
+     ]
+    },
+    "armR": {
+     "anchor_px": [
+      30,
+      35
+     ],
+     "grid_origin_px": [
+      28,
+      36
+     ],
+     "grid_size": [
+      7,
+      16
+     ],
+     "origin_minus_anchor": [
+      -2,
+      1
+     ]
+    },
+    "head": {
+     "anchor_px": [
+      24,
+      28
+     ],
+     "grid_origin_px": [
+      16,
+      19
+     ],
+     "grid_size": [
+      16,
+      18
+     ],
+     "origin_minus_anchor": [
+      -8,
+      -9
+     ]
+    }
+   },
+   "joints": {
+    "head": [
+     24,
+     28
+    ],
+    "neck": [
+     24,
+     36
+    ],
+    "hip": [
+     24,
+     51
+    ],
+    "shoulderL": [
+     18,
+     41
+    ],
+    "shoulderR": [
+     30,
+     35
+    ],
+    "handL": [
+     17,
+     55
+    ],
+    "handR": [
+     31,
+     49
+    ],
+    "hipL": [
+     22,
+     50
+    ],
+    "hipR": [
+     26,
+     48
+    ],
+    "footL": [
+     22,
+     67
+    ],
+    "footR": [
+     26,
+     65
+    ]
+   },
+   "face": "none"
+  },
+  "n": {
+   "draw_order": [
+    "legL",
+    "legR",
+    "torso",
+    "armL",
+    "armR",
+    "head"
+   ],
+   "parts": {
+    "torso": {
+     "anchor_px": [
+      24,
+      36
+     ],
+     "grid_origin_px": [
+      19,
+      35
+     ],
+     "grid_size": [
+      11,
+      20
+     ],
+     "origin_minus_anchor": [
+      -5,
+      -1
+     ]
+    },
+    "legL": {
+     "anchor_px": [
+      21,
+      49
+     ],
+     "grid_origin_px": [
+      17,
+      56
+     ],
+     "grid_size": [
+      7,
+      14
+     ],
+     "origin_minus_anchor": [
+      -4,
+      7
+     ]
+    },
+    "legR": {
+     "anchor_px": [
+      28,
+      49
+     ],
+     "grid_origin_px": [
+      25,
+      56
+     ],
+     "grid_size": [
+      7,
+      14
+     ],
+     "origin_minus_anchor": [
+      -3,
+      7
+     ]
+    },
+    "armL": {
+     "anchor_px": [
+      16,
+      38
+     ],
+     "grid_origin_px": [
+      12,
+      36
+     ],
+     "grid_size": [
+      7,
+      19
+     ],
+     "origin_minus_anchor": [
+      -4,
+      -2
+     ]
+    },
+    "armR": {
+     "anchor_px": [
+      32,
+      38
+     ],
+     "grid_origin_px": [
+      29,
+      36
+     ],
+     "grid_size": [
+      8,
+      19
+     ],
+     "origin_minus_anchor": [
+      -3,
+      -2
+     ]
+    },
+    "head": {
+     "anchor_px": [
+      24,
+      28
+     ],
+     "grid_origin_px": [
+      16,
+      19
+     ],
+     "grid_size": [
+      16,
+      18
+     ],
+     "origin_minus_anchor": [
+      -8,
+      -9
+     ]
+    }
+   },
+   "joints": {
+    "head": [
+     24,
+     28
+    ],
+    "neck": [
+     24,
+     36
+    ],
+    "hip": [
+     24,
+     51
+    ],
+    "shoulderL": [
+     16,
+     38
+    ],
+    "shoulderR": [
+     32,
+     38
+    ],
+    "handL": [
+     15,
+     52
+    ],
+    "handR": [
+     34,
+     52
+    ],
+    "hipL": [
+     21,
+     49
+    ],
+    "hipR": [
+     28,
+     49
+    ],
+    "footL": [
+     21,
+     66
+    ],
+    "footR": [
+     28,
+     66
+    ]
+   },
+   "face": "none"
+  },
+  "ne": {
+   "draw_order": [
+    "armL",
+    "legL",
+    "torso",
+    "legR",
+    "armR",
+    "head"
+   ],
+   "parts": {
+    "torso": {
+     "anchor_px": [
+      24,
+      36
+     ],
+     "grid_origin_px": [
+      19,
+      35
+     ],
+     "grid_size": [
+      11,
+      23
+     ],
+     "origin_minus_anchor": [
+      -5,
+      -1
+     ]
+    },
+    "legL": {
+     "anchor_px": [
+      22,
+      48
+     ],
+     "grid_origin_px": [
+      17,
+      53
+     ],
+     "grid_size": [
+      8,
+      15
+     ],
+     "origin_minus_anchor": [
+      -5,
+      5
+     ]
+    },
+    "legR": {
+     "anchor_px": [
+      26,
+      50
+     ],
+     "grid_origin_px": [
+      21,
+      55
+     ],
+     "grid_size": [
+      8,
+      15
+     ],
+     "origin_minus_anchor": [
+      -5,
+      5
+     ]
+    },
+    "armL": {
+     "anchor_px": [
+      18,
+      35
+     ],
+     "grid_origin_px": [
+      13,
+      36
+     ],
+     "grid_size": [
+      7,
+      16
+     ],
+     "origin_minus_anchor": [
+      -5,
+      1
+     ]
+    },
+    "armR": {
+     "anchor_px": [
+      30,
+      41
+     ],
+     "grid_origin_px": [
+      27,
+      38
+     ],
+     "grid_size": [
+      7,
+      20
+     ],
+     "origin_minus_anchor": [
+      -3,
+      -3
+     ]
+    },
+    "head": {
+     "anchor_px": [
+      24,
+      28
+     ],
+     "grid_origin_px": [
+      16,
+      19
+     ],
+     "grid_size": [
+      16,
+      18
+     ],
+     "origin_minus_anchor": [
+      -8,
+      -9
+     ]
+    }
+   },
+   "joints": {
+    "head": [
+     24,
+     28
+    ],
+    "neck": [
+     24,
+     36
+    ],
+    "hip": [
+     24,
+     51
+    ],
+    "shoulderL": [
+     18,
+     35
+    ],
+    "shoulderR": [
+     30,
+     41
+    ],
+    "handL": [
+     17,
+     49
+    ],
+    "handR": [
+     31,
+     55
+    ],
+    "hipL": [
+     22,
+     48
+    ],
+    "hipR": [
+     26,
+     50
+    ],
+    "footL": [
+     22,
+     65
+    ],
+    "footR": [
+     26,
+     67
+    ]
+   },
+   "face": "none"
+  },
+  "e": {
+   "draw_order": [
+    "armL",
+    "legL",
+    "torso",
+    "legR",
+    "armR",
+    "head"
+   ],
+   "parts": {
+    "torso": {
+     "anchor_px": [
+      24,
+      36
+     ],
+     "grid_origin_px": [
+      20,
+      35
+     ],
+     "grid_size": [
+      8,
+      20
+     ],
+     "origin_minus_anchor": [
+      -4,
+      -1
+     ]
+    },
+    "legL": {
+     "anchor_px": [
+      24,
+      47
+     ],
+     "grid_origin_px": [
+      21,
+      52
+     ],
+     "grid_size": [
+      7,
+      14
+     ],
+     "origin_minus_anchor": [
+      -3,
+      5
+     ]
+    },
+    "legR": {
+     "anchor_px": [
+      24,
+      51
+     ],
+     "grid_origin_px": [
+      21,
+      56
+     ],
+     "grid_size": [
+      8,
+      14
+     ],
+     "origin_minus_anchor": [
+      -3,
+      5
+     ]
+    },
+    "armL": {
+     "anchor_px": [
+      24,
+      34
+     ],
+     "grid_origin_px": [
+      21,
+      31
+     ],
+     "grid_size": [
+      6,
+      19
+     ],
+     "origin_minus_anchor": [
+      -3,
+      -3
+     ]
+    },
+    "armR": {
+     "anchor_px": [
+      24,
+      42
+     ],
+     "grid_origin_px": [
+      21,
+      39
+     ],
+     "grid_size": [
+      6,
+      21
+     ],
+     "origin_minus_anchor": [
+      -3,
+      -3
+     ]
+    },
+    "head": {
+     "anchor_px": [
+      24,
+      28
+     ],
+     "grid_origin_px": [
+      16,
+      19
+     ],
+     "grid_size": [
+      16,
+      18
+     ],
+     "origin_minus_anchor": [
+      -8,
+      -9
+     ]
+    }
+   },
+   "joints": {
+    "head": [
+     24,
+     28
+    ],
+    "neck": [
+     24,
+     36
+    ],
+    "hip": [
+     24,
+     51
+    ],
+    "shoulderL": [
+     24,
+     34
+    ],
+    "shoulderR": [
+     24,
+     42
+    ],
+    "handL": [
+     24,
+     47
+    ],
+    "handR": [
+     24,
+     57
+    ],
+    "hipL": [
+     24,
+     47
+    ],
+    "hipR": [
+     24,
+     51
+    ],
+    "footL": [
+     24,
+     64
+    ],
+    "footR": [
+     24,
+     68
+    ]
+   },
+   "face": "one eye, front"
+  },
+  "se": {
+   "draw_order": [
+    "armL",
+    "legL",
+    "torso",
+    "legR",
+    "armR",
+    "head"
+   ],
+   "parts": {
+    "torso": {
+     "anchor_px": [
+      24,
+      36
+     ],
+     "grid_origin_px": [
+      18,
+      35
+     ],
+     "grid_size": [
+      11,
+      23
+     ],
+     "origin_minus_anchor": [
+      -6,
+      -1
+     ]
+    },
+    "legL": {
+     "anchor_px": [
+      26,
+      48
+     ],
+     "grid_origin_px": [
+      23,
+      53
+     ],
+     "grid_size": [
+      8,
+      15
+     ],
+     "origin_minus_anchor": [
+      -3,
+      5
+     ]
+    },
+    "legR": {
+     "anchor_px": [
+      22,
+      50
+     ],
+     "grid_origin_px": [
+      19,
+      55
+     ],
+     "grid_size": [
+      8,
+      15
+     ],
+     "origin_minus_anchor": [
+      -3,
+      5
+     ]
+    },
+    "armL": {
+     "anchor_px": [
+      30,
+      35
+     ],
+     "grid_origin_px": [
+      28,
+      36
+     ],
+     "grid_size": [
+      7,
+      16
+     ],
+     "origin_minus_anchor": [
+      -2,
+      1
+     ]
+    },
+    "armR": {
+     "anchor_px": [
+      18,
+      41
+     ],
+     "grid_origin_px": [
+      14,
+      38
+     ],
+     "grid_size": [
+      7,
+      20
+     ],
+     "origin_minus_anchor": [
+      -4,
+      -3
+     ]
+    },
+    "head": {
+     "anchor_px": [
+      24,
+      28
+     ],
+     "grid_origin_px": [
+      16,
+      19
+     ],
+     "grid_size": [
+      16,
+      18
+     ],
+     "origin_minus_anchor": [
+      -8,
+      -9
+     ]
+    }
+   },
+   "joints": {
+    "head": [
+     24,
+     28
+    ],
+    "neck": [
+     24,
+     36
+    ],
+    "hip": [
+     24,
+     51
+    ],
+    "shoulderL": [
+     30,
+     35
+    ],
+    "shoulderR": [
+     18,
+     41
+    ],
+    "handL": [
+     31,
+     49
+    ],
+    "handR": [
+     17,
+     55
+    ],
+    "hipL": [
+     26,
+     48
+    ],
+    "hipR": [
+     22,
+     50
+    ],
+    "footL": [
+     26,
+     65
+    ],
+    "footR": [
+     22,
+     67
+    ]
+   },
+   "face": "two eyes, shifted 1 px right"
+  }
+ },
+ "skin_ramp": {
+  "status": "approved by Michael, 2026-10-12 (the outline reads on the darkest tones)",
+  "living_base": [
+   "#f8dcc0",
+   "#f0c8a0",
+   "#e8b88c",
+   "#d9a070",
+   "#c4875a",
+   "#a86a48",
+   "#8c5a40",
+   "#6b4432"
+  ],
+  "dead_base": [
+   "#8f9c72",
+   "#908c8a",
+   "#7f879c"
+  ],
+  "shadow_rule": "base * 0.84 per channel (the engine's tone())",
+  "dead_eyes": {
+   "pupil": "#963030",
+   "white": "#c8c8aa"
+  }
+ }
+}

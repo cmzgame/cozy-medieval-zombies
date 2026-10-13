@@ -1,0 +1,33 @@
+import { chromium } from "playwright";
+import http from "http"; import fs from "fs"; import path from "path";
+const names = process.argv.slice(2);
+const root = path.resolve("repo");
+const srv = http.createServer((q, r) => { const p = path.join(root, decodeURIComponent(q.url.split("?")[0])); fs.readFile(p, (e, d) => { if (e) { r.writeHead(404); r.end(); return; } r.writeHead(200, { "content-type": p.endsWith(".js") ? "text/javascript" : p.endsWith(".json") ? "application/json" : "text/html" }); r.end(d); }); });
+await new Promise(r => srv.listen(0, r)); const port = srv.address().port;
+const br = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
+const pg = await br.newPage(); pg.on("pageerror", e => console.log("[err]", e.message));
+await pg.goto(`http://localhost:${port}/tools/template.html`); await pg.waitForFunction(() => window.__template, null, { timeout: 15000 });
+const layers = names.map(n => JSON.parse(fs.readFileSync(`out/sliced/${n}.json`)));
+const out = await pg.evaluate(async (layers) => {
+  const figure = await import("/src/figure.js");
+  const F = ["s","sw","w","nw","n","ne","e","se"];
+  const c = document.createElement("canvas"); c.width = 48 * 12; c.height = 72 * layers.length; const x = c.getContext("2d");
+  layers.forEach((json, row) => {
+    figure.registerLayer(json.slot, json.name, json);
+    const look = { ...figure.DEFAULT_LOOK, hairStyle: json.slot === "hair" ? json.name : "short" }; look.under = look.skin;
+    const outfit = { head: null, chest: null, legs: null, hands: null, feet: null, waist: null, back: null };
+    if (json.slot === "head") outfit.head = { shape: "cap", colours: ["#555"], painted: json.name };
+    if (json.slot === "chest") outfit.chest = { shape: "tunic", colours: json.name === "chest_surcoat" ? ["#8e9099", "#62646e"] : json.name === "chest_tunic_cross" ? ["#e8e4d8", "#c2bdb0"] : json.name === "chest_jerkin" ? ["#7a4e2c", "#5c3a20"] : json.name === "chest_dress" ? ["#6d5a86", "#52446a"] : ["#c9b98e", "#a8966f"] };
+    if (json.slot === "legs") outfit.legs = { shape: "breeches", colours: [json.name === "legs_chausses" ? "#8e9099" : json.name === "legs_hose" ? "#4a4a3a" : json.name === "legs_patched" ? "#6e5a3c" : "#5a4030"] };
+    if (json.slot === "feet") outfit.feet = { shape: "boots", colours: [json.name === "feet_greaves" ? "#a0a2ac" : json.name === "feet_wraps" ? "#b8a78a" : json.name === "feet_turnshoes" ? "#6b4a2a" : "#4a3522"] };
+    if (json.slot === "hands") outfit.hands = { shape: "gloves", colours: [json.name === "hands_gauntlets" ? "#9a9ca6" : json.name === "hands_wraps" ? "#c9b98e" : "#6b4a2a"] };
+    if (json.slot === "waist") outfit.waist = { shape: "belt", colours: [json.name === "waist_rope" ? "#b8a67c" : "#6b4a2a"] };
+    const spec = { variant: "player", look, outfit, wound: null, holding: { main: false, off: false }, painted: { [json.slot]: figure.getLayer(json.slot, json.name) } };
+    const sheet = figure.generateFigure(spec);
+    const frames = [...F.map(f => `idle_${f}_0`), "walk_sw_1", "walk_sw_3", "attack_sw_1", "attack_sw_2"];
+    frames.forEach((n, i) => { const fr = sheet.frames[n]; if (fr) x.drawImage(sheet.image, fr[0], fr[1], fr[2], fr[3], i * 48, row * 72, 48, 72); });
+  });
+  return c.toDataURL();
+}, layers);
+fs.writeFileSync(process.env.OUT || "out/previews/worn_heads.png", Buffer.from(out.split(",")[1], "base64"));
+await br.close(); srv.close(); console.log("ok");

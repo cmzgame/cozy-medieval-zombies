@@ -54,7 +54,7 @@ The five drawn files cover 0 to 90 degrees, tilting clockwise (the orb goes from
 | 180 to 270 | the drawn file at `angle - 180`, **flipped horizontally and vertically** | `x = w - 1 - x`, `y = h - 1 - y` |
 | 270 to 360 | the drawn file at `360 - angle`, **flipped horizontally** | `x = w - 1 - x` |
 
-**Correction to the repo README:** its "Staff angles" section says "angles from 180 to 360: flip horizontally". That is right only for 270 to 360. For 180 to 270 (orb pointing down-left) it needs *both* flips. The table above is correct. Flips move the light to the wrong side on the mirrored angles; nobody notices at 1x.
+**Note:** the repo README's flip rule originally said "180 to 360: flip horizontally", right only for 270 to 360. It was corrected on 2026-10-12 and now matches this table; the loader (`assets.heldSheetFromImage`) is the engine's own implementation of it. Flips move the light to the wrong side on the mirrored angles; nobody notices at 1x.
 
 The knife and axe are different: small, near-symmetrical, and rotated by the engine into 16 angles about their grip (`held.mode: "rotate"`), which is acceptable at 5 and 9 px wide. Held-art modes in the engine are `fixed` (the book), `rotate` (knife, axe) and `angles` (the staff).
 
