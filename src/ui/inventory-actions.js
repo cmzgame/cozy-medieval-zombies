@@ -82,8 +82,11 @@ export function createInventoryActions(getPlayer) {
       if (occupant === entry) return;
       // One hand dragged onto the other swaps the two (Michael, 2026-10-12), instead of sending the
       // one in the way to the bag, when each is allowed in the other's hand.
-      if (kind === "hand" && from.kind === "hand" && occupant) {
-        const fromKey = inventory.parseSlot(from.id).key;
+      // (A drag's `from` is { kind: "slot", id }; the hand is the slot id's kind. Until 2026-10-13 this
+      // asked for from.kind === "hand", which never held, so the occupant was always stowed: Michael.)
+      const fromSlot = from.kind === "slot" ? inventory.parseSlot(from.id) : null;
+      if (kind === "hand" && fromSlot && fromSlot.kind === "hand" && occupant) {
+        const fromKey = fromSlot.key;
         const allowed = (e, k) => { const h = items.getItem(e.id).hands; return h === "either" || h === k; };
         if (fromKey !== key && allowed(entry, key) && allowed(occupant, fromKey)) {
           player.hands[fromKey] = occupant;
