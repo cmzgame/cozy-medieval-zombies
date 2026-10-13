@@ -1,18 +1,21 @@
-# The relay on Fly (docs/31/04; docs/31/07, question 20). `fly launch --copy-config --no-deploy`
-# keeps this file as it is; the app's name is its address: wss://cmz-relay.fly.dev.
-app = "cmz-relay"
-primary_region = "ord"
+# fly.toml app configuration file generated for cmz-relay on 2026-10-13T12:33:07-05:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'cmz-relay'
+primary_region = 'ord'
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = 'Dockerfile'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = "stop"
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "256mb"
+  size = 'shared-cpu-1x'
+  memory = '256mb'

@@ -106,7 +106,7 @@ export function close() {
 // relay forwards, stamping `from` with the connection's own id. With a relay address known
 // (RELAY_URL, or `?relay=` on the URL; `?relay=none` forces the loopback) Host and Join use it.
 
-export const RELAY_URL = null; // the relay the site carries, e.g. "wss://cmz-relay.example.app" (docs/31/07, question 20)
+export const RELAY_URL = "wss://cmz-relay.fly.dev"; // the relay the site carries: server/relay.js on Fly, Michael's cozy-medieval organisation, deployed 2026-10-13 (docs/31/07, question 20); ?relay=none for the two-tab loopback
 let relayUrl = RELAY_URL;
 let transport = null; // { kind: "loopback" | "relay", ready, send(msg), close() }
 
