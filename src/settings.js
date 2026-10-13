@@ -20,7 +20,9 @@ export const DEFAULTS = {
   showHitShapes: false, // draw the dead's body samples, green when the next swing reaches them (docs/14)
   freeBuilding: false, // on: building costs nothing (docs/13), for testing structures
   survival: true, // on since docs/30 step 2 (hunger, thirst, tiredness drain); off: the body is a workbench
-  hairStyle: "short", // the player's hair, picked on the settings screen's Hair row; no choices row, the row is built live
+  hairStyle: "short", // the player's hair (the character screen writes it, and `look.hairStyle` with it; kept for what reads it)
+  playerName: "", // who you are to the others (docs/31/03: the identity; the character screen); empty means your player's id
+  look: {}, // the look chosen on the character screen: skin, hair, eyes (hex), hairStyle; the rest DEFAULT_LOOK's. With playerName, the identity a guest sends on a join
   paintedLayers: {}, // slot -> painted layer name to try on, from the settings screen (docs/12)
   panelPos: {}, // "bag" | "character" | "container" -> { x, y } in UI pixels where its header was dragged to (docs/23 step 4; Michael, 2026-10-12)
   cursor: "default", // the system's own, or one of the three hands (ui/cursor.js; Michael, 2026-10-12)

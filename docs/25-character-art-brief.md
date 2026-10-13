@@ -36,6 +36,8 @@ Six shapes, one head, any colour. **Three traditionally male:** a short crop; a 
 
 ### 3. Facial hair (a new slot)
 
+**Post 1.0 (Michael's ruling, 2026-10-13): facial hair is not in the game until after 1.0, and may never work with the way the characters are drawn, which is fine. The three beards delivered stay in `data/art/character/layers` and are not installed.** The section below is kept for the record.
+
 Three shapes, any colour (the hair palette), all ruled by Michael: **a moustache**, and it should read as a cop moustache or a porn moustache (a thick, full handlebar-less bar across the upper lip, drooping a little at the corners, unmistakable at this size); **a big bushy beard** in the manner of the vanilla WoW gnome in his reference (wide, full, rounded, reaching the chest, bigger than the chin, the moustache part of it); and **a tight, short, cropped professional beard**: close to the jaw, with enough texture in its outline that it reads as hair and not as a painted chin, but close enough that you could go to work in it. **No stubble**, now or as a fourth. Facial hair is a layer on the head, drawn below the eye line, over the top of the torso where the beard falls past the chin. **Q2 decides what a hat that covers the face does to it.**
 
 ### 4. Head slot: the onion hat, and the world it implies

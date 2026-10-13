@@ -89,6 +89,37 @@ let started = false; // Play or Continue pressed: the autosave runs only after, 
 let lastAutosave = 0; // sim seconds at the last autosave
 const AUTOSAVE = 60; // seconds of game time between autosaves (the parent's cadence)
 let mapJson = null; // the map file, kept for a restore
+let looksJson = null; // the character screen's palettes (data/looks.json)
+
+// ---- the identity (docs/12, the creation screen; docs/31/03): who I am, kept in the browser ----
+// The look the player is baked from: DEFAULT_LOOK under the chosen colours and style
+// (settings.look; hairStyle mirrored in settings.hairStyle for what reads it).
+function myLook() {
+  const chosen = settings.get("look") || {};
+  return { ...figure.DEFAULT_LOOK, ...chosen, hairStyle: chosen.hairStyle || settings.get("hairStyle") || "short" };
+}
+
+// Anything chosen yet: the first Play opens the character screen until then.
+function hasIdentity() {
+  return !!(settings.get("playerName") || Object.keys(settings.get("look") || {}).length);
+}
+
+// The identity's shape is { name, look } (docs/31/03), `look` exactly what game.create and
+// game.addPlayer take; a change goes to the settings, onto the player at once, and to the wire.
+function applyIdentity({ name, look } = {}) {
+  if (name !== undefined) settings.set("playerName", name || "");
+  if (look) {
+    const next = { ...(settings.get("look") || {}), ...look };
+    settings.set("look", next);
+    if (look.hairStyle) settings.set("hairStyle", look.hairStyle);
+  }
+  if (S.player) {
+    S.player.name = settings.get("playerName") || null;
+    S.player.look = myLook();
+    refreshFigure();
+  }
+  if (typeof net.setIdentity === "function") net.setIdentity({ name: settings.get("playerName") || null, look: myLook() }); // the wire's copy (docs/31/03), once the wire has one
+}
 let tiles = [];
 let visible = new Set();
 let playerRoom = 0;
@@ -575,6 +606,7 @@ async function boot() {
       ]);
       interactions.load(interactionsJson); // anything on anything (docs/30, law 2)
       stations.loadRecipes(await optionalJson("data/recipes.json")); // the stations' recipes (docs/30, section 6)
+      looksJson = await optionalJson("data/looks.json"); // the character screen's palettes (docs/12)
       tuning.load(await optionalJson("data/tuning.json")); // the entities' numbers (docs/23a, D9)
       items.loadItems(itemsJson);
       placement.setBuildData(buildJson);
@@ -632,10 +664,11 @@ async function boot() {
       // The world itself (game.js): the same calls headless under Node (tools/world.js).
       game.create({
         json,
-        look: { ...figure.DEFAULT_LOOK, hairStyle: settings.get("hairStyle") || "short" },
+        look: myLook(),
         devChest: !!settings.get("devChest"),
         combatTesting,
       });
+      S.player.name = settings.get("playerName") || null; // the identity's name on the player (docs/31/03)
       refreshFigure();
       camera.snapTo(S.player.gx, S.player.gy);
       camera.applyOrigin(V.w, V.h);
@@ -723,8 +756,24 @@ async function boot() {
         hair: {
           styles: () => figure.hairStyles(),
           current: () => S.player.look.hairStyle,
-          set: (name) => { S.player.look.hairStyle = name; settings.set("hairStyle", name); refreshFigure(); },
+          set: (name) => applyIdentity({ look: { hairStyle: name } }),
           reload: async () => { await loadPaintedHair(); refreshFigure(); },
+        },
+        // The character screen (docs/12, the creation screen; docs/31/03, the identity): the name and
+        // the look, kept in the browser, put on the player at once, and handed to the wire.
+        you: {
+          name: () => settings.get("playerName") || "",
+          setName: (n) => applyIdentity({ name: n }),
+          look: () => myLook(),
+          setLook: (partial) => applyIdentity({ look: partial }),
+          styles: () => figure.hairStyles(),
+          palette: () => looksJson || { skins: { living: [figure.DEFAULT_LOOK.skin], dead: [] }, hair: [figure.DEFAULT_LOOK.hair], eyes: [figure.DEFAULT_LOOK.eyes] },
+          // The figure in what the player wears (the kit's five before the world exists), the hands empty, baked by the game's own code.
+          sheet: () => {
+            const worn = S.player ? S.player.worn : { chest: { id: "tunic" }, legs: { id: "breeches" }, feet: { id: "boots" }, waist: { id: "belt" }, back: { id: "small_sack" } };
+            const spec = figure.characterSpec(figure.characterInputs({ kind: "player", look: myLook(), worn, hands: { main: null, off: null } }, undefined, settings.get("paintedLayers") || {}, null));
+            return figure.generateFigure(spec);
+          },
         },
         // Painted layers to try on, per slot, regardless of what is worn (docs/12).
         layers: {
@@ -828,7 +877,7 @@ async function boot() {
   if (net.isGuest()) {
     started = true;
     showMessage("Joining the host's world…", 4);
-  } else screens.show("title", { save: slot, saveLabel: slot ? save.label(slot) : "" });
+  } else screens.show("title", { save: slot, saveLabel: slot ? save.label(slot) : "", needsCharacter: !hasIdentity() || !!(slot && slot.dead) }); // the first game and the next survivor start at the character screen
   // Autosave: every AUTOSAVE seconds of game time, and when the tab is hidden or left (the parent's rule).
   const autosave = () => {
     if (!started || S.player.dead || net.isGuest()) return; // a guest's world is the host's to save

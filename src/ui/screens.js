@@ -40,7 +40,10 @@ let layersApi = null; // { slots(), names(slot), current(slot), set(slot, name) 
 let onReload = () => window.location.reload();
 let onContinue = () => {};
 let onSave = () => {};
+let youApi = null; // the character screen's api from main.js (docs/12, the creation screen; docs/31/03, the identity)
 let data = {};
+let previewTimer = null; // the character screen's turning figure
+let previewFacing = 0;
 
 export function initScreens(handlers = {}) {
   onChange = handlers.onChange || onChange;
@@ -49,11 +52,19 @@ export function initScreens(handlers = {}) {
   onReload = handlers.onReload || onReload;
   onContinue = handlers.onContinue || onContinue;
   onSave = handlers.onSave || onSave;
+  youApi = handlers.you || null;
   root = document.getElementById("screens");
   root.hidden = true;
   root.addEventListener("click", (e) => {
     const btn = e.target.closest("button[data-go]");
     if (btn) return go(btn.dataset.go);
+    // The character screen's swatches and rows: each sets one field of the look and redraws (youApi).
+    const lookBtn = e.target.closest("button[data-look-key]");
+    if (lookBtn && youApi) {
+      youApi.setLook({ [lookBtn.dataset.lookKey]: lookBtn.dataset.lookValue });
+      render();
+      return;
+    }
     const choice = e.target.closest("button[data-key]");
     if (choice) {
       settings.set(choice.dataset.key, JSON.parse(choice.dataset.value));
@@ -73,6 +84,10 @@ export function initScreens(handlers = {}) {
       hairApi.reload().then(render);
     }
   });
+  root.addEventListener("input", (e) => {
+    const name = e.target.closest("input[data-name]");
+    if (name && youApi) youApi.setName(name.value);
+  });
   settings.onChange(() => {
     if (current === "settings") render();
   });
@@ -82,10 +97,17 @@ export function currentScreen() {
   return current;
 }
 
+// The screens that return to where they were opened from (Escape, Back, Done).
+const SUB = new Set(["settings", "controls", "character"]);
+
 export function show(name, extra = {}) {
+  const titleData = current === "title" ? data : null;
   data = extra;
-  if (name === "settings" || name === "controls") {
-    if (current && current !== "settings" && current !== "controls") from = current;
+  if (SUB.has(name)) {
+    if (current && !SUB.has(current)) {
+      from = current;
+      if (titleData) data = { ...titleData, ...extra }; // the title's save and its needs survive a detour
+    }
   } else from = null;
   current = name;
   root.hidden = false;
@@ -94,6 +116,7 @@ export function show(name, extra = {}) {
 }
 
 export function hide() {
+  stopPreview();
   current = null;
   from = null;
   root.hidden = true;
@@ -103,15 +126,23 @@ export function hide() {
 // Escape. Returns true if a screen took it.
 export function back() {
   if (!current) return false;
-  if (current === "settings" || current === "controls") show(from || "pause");
+  if (SUB.has(current)) show(from || "pause", data);
   else if (current === "pause") hide();
   // The title stays until Play; the dead screen until the title.
   return true;
 }
 
 function go(where) {
-  if (where === "play" || where === "resume") hide();
-  else if (where === "back") back();
+  if (where === "play") {
+    // The first game, and the next survivor after a death, start at the character screen (docs/12; docs/31/05 item 34).
+    if (data.needsCharacter && youApi) show("character", { then: "play" });
+    else hide();
+  } else if (where === "resume") hide();
+  else if (where === "done") {
+    // The character screen's Done: into the game it was opened for, else back where it came from.
+    if (data.then === "play") hide();
+    else back();
+  } else if (where === "back") back();
   else if (where === "reload") onReload();
   else if (where === "continue") onContinue();
   else if (where === "save") onSave();
@@ -138,6 +169,67 @@ function hairRow() {
   return `<div class="setting"><span>Hair</span><span class="choices">${choices}<button id="hair-reload" title="Pick up styles saved from tools/hair.html">Reload</button></span></div>`;
 }
 
+// ---- the character screen (docs/12, the creation screen; docs/31/03, the identity) ----
+// A name, the skin from the approved ramp (the three dead tones allowed for fun), the
+// hair style with bald first, the hair and eye colours; the figure turning beside them,
+// baked by the game's own figure code in what the player wears. What it writes is the
+// identity { name, look } that the title's Play uses and a join sends (main.js).
+
+function swatchRow(label, key, colours, cur) {
+  const btns = colours.map((c) => `<button class="swatch${c === cur ? " on" : ""}" data-look-key="${key}" data-look-value="${c}" style="--swatch:${c}" title="${c}"></button>`).join("");
+  return `<div class="you-row"><span>${label}</span><span class="swatches">${btns}</span></div>`;
+}
+
+function characterHtml() {
+  const look = youApi.look();
+  const pal = youApi.palette();
+  const styles = youApi.styles().map((s) => `<button data-look-key="hairStyle" data-look-value="${s}" class="${s === look.hairStyle ? "on" : ""}">${s}</button>`).join("");
+  return `
+    <div class="screen screen-wide you">
+      <h1>Your character</h1>
+      <div class="sub">${data.then === "play" ? "Who walks into the valley" : "Kept in this browser; a join carries it"}</div>
+      <div class="you-body">
+        <canvas class="you-preview" width="144" height="216"></canvas>
+        <div class="you-rows">
+          <div class="you-row"><span>Name</span><input type="text" maxlength="24" data-name value="${(youApi.name() || "").replace(/"/g, "&quot;")}" placeholder="a name, or none"></div>
+          ${swatchRow("Skin", "skin", pal.skins.living, look.skin)}
+          ${swatchRow("The dead's", "skin", pal.skins.dead, look.skin)}
+          <div class="you-row"><span>Hair</span><span class="choices">${styles}</span></div>
+          ${swatchRow("Hair colour", "hair", pal.hair, look.hair)}
+          ${swatchRow("Eyes", "eyes", pal.eyes, look.eyes)}
+        </div>
+      </div>
+      <div class="screen-buttons row">${button("done", data.then === "play" ? "Into the valley" : "Done")}${data.then === "play" ? button("back", "Back") : ""}<button id="hair-reload" title="Pick up styles saved from tools/hair.html">Reload hair</button></div>
+    </div>`;
+}
+
+// The figure drawn at three times, turning through the eight facings.
+function startPreview() {
+  stopPreview();
+  const canvas = root.querySelector(".you-preview");
+  if (!canvas || !youApi) return;
+  let sheet = null;
+  try { sheet = youApi.sheet(); } catch (err) { console.warn("The character preview could not bake:", err.message); return; }
+  const facings = sheet.facings && sheet.facings.length ? sheet.facings : ["s"];
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+  const draw = () => {
+    const facing = facings[previewFacing % facings.length];
+    const f = sheet.frames[`idle_${facing}_0`] || Object.values(sheet.frames)[0];
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!f) return;
+    const s = 3;
+    ctx.drawImage(sheet.image, f[0], f[1], f[2], f[3], Math.round((canvas.width - f[2] * s) / 2), canvas.height - f[3] * s, f[2] * s, f[3] * s);
+  };
+  draw();
+  previewTimer = setInterval(() => { previewFacing++; draw(); }, 650);
+}
+
+function stopPreview() {
+  if (previewTimer) clearInterval(previewTimer);
+  previewTimer = null;
+}
+
 // Painted layers per slot, to try on over whatever is worn; "worn" means the item's own art.
 function layerRows() {
   if (!layersApi) return "";
@@ -152,21 +244,25 @@ function layerRows() {
 
 function render() {
   root.className = current || "";
+  stopPreview();
   if (current === "title") {
     root.innerHTML = `
       <div class="screen">
         <h1>Cozy Medieval Zombies</h1>
         <div class="sub">A village of the dead. Keep the shutters closed.</div>
         ${data.save && data.save.dead ? `<div class="sub">Your last survivor died. Play starts the village over.</div>` : ""}
-        <div class="screen-buttons">${data.save && !data.save.dead ? button("continue", `Continue, ${data.saveLabel}`) : ""}${button("play", data.save ? "New game" : "Play")}${button("settings", "Settings")}${button("controls", "Controls")}</div>
+        <div class="screen-buttons">${data.save && !data.save.dead ? button("continue", `Continue, ${data.saveLabel}`) : ""}${button("play", data.save ? "New game" : "Play")}${youApi ? button("character", "Character") : ""}${button("settings", "Settings")}${button("controls", "Controls")}</div>
       </div>`;
   } else if (current === "pause") {
     root.innerHTML = `
       <div class="screen">
         <h1>Paused</h1>
         <div class="sub">Esc to resume</div>
-        <div class="screen-buttons">${button("resume", "Resume")}${button("save", "Save game")}${button("settings", "Settings")}${button("controls", "Controls")}${button("title", "Title screen")}</div>
+        <div class="screen-buttons">${button("resume", "Resume")}${button("save", "Save game")}${youApi ? button("character", "Character") : ""}${button("settings", "Settings")}${button("controls", "Controls")}${button("title", "Title screen")}</div>
       </div>`;
+  } else if (current === "character" && youApi) {
+    root.innerHTML = characterHtml();
+    startPreview();
   } else if (current === "settings") {
     root.innerHTML = `
       <div class="screen screen-wide">
@@ -188,7 +284,7 @@ function render() {
         ${settingRow("showSwingTargets", "Swing targets")}
         ${settingRow("multiHit", "Multi-hit")}
         ${settingRow("showHitShapes", "Show hit shapes")}
-        ${hairRow()}
+        ${youApi ? "" : hairRow()}
         ${layerRows()}
         <div class="screen-buttons row"><button data-key="__reset" hidden></button>${button("back", "Back")}<button id="settings-reset">Defaults</button></div>
       </div>`;

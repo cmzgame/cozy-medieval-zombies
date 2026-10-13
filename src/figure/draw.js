@@ -58,8 +58,11 @@ export function layerNames(slot) {
 export function registerHair(name, data) {
   registerLayer("hair", name, data);
 }
+// Bald first, then the generated shapes a painted style has not replaced (the painted
+// `long` stands in for the generated one), then every painted style (docs/12).
 export function hairStyles() {
-  return ["short", "long", "bald", ...layerNames("hair")];
+  const painted = layerNames("hair").sort(); // the files load in any order; the row is the same every boot
+  return ["bald", ...["short", "long"].filter((s) => !painted.includes(s)), ...painted];
 }
 export function hairIsPainted(name) {
   return !!getLayer("hair", name);

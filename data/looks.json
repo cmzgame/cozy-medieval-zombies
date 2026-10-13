@@ -1,0 +1,9 @@
+{
+ "note": "The character screen's palettes (docs/12, the creation screen; docs/31/03, the identity). The skin ramp is the design agent's, approved by Michael 2026-10-12 (data/art/character/character_body.json): eight living tones pale to deep, three dead ones (grey-green, grey, bruised blue) allowed in the creator for fun (Michael, 2026-10-13). The shadow is the engine's own rule (tone * 0.84). Hair and eye colours are first picks, Michael's to change here; a painted hair with no dye option (purple) keeps its own colours.",
+ "skins": {
+  "living": ["#f8dcc0", "#f0c8a0", "#e8b88c", "#d9a070", "#c4875a", "#a86a48", "#8c5a40", "#6b4432"],
+  "dead": ["#8f9c72", "#908c8a", "#7f879c"]
+ },
+ "hair": ["#1e1a1e", "#3a2a1c", "#5a3a20", "#7a4a28", "#8a3c24", "#b04a2a", "#c8702e", "#c9a24e", "#e2cf8a", "#8a8478", "#b5b0a8", "#e8e4dc"],
+ "eyes": ["#1c1a22", "#5a3a22", "#7a6a30", "#3f7a3a", "#3c6ea0", "#6e7a88", "#b07a2a", "#6a4a8a"]
+}

@@ -80,7 +80,7 @@ Furniture carried over the head keeps its own drawing (`02-decisions.md`, carryi
 
 ## Customisation
 
-Parameters on the body, all of them palette or shape choices in the generator: skin tone, hair shape (short, long, bald), hair colour, eye colour. Stored on the player as `look`, settable from the console with `__game.setLook({ skin, hair, hairStyle, eyes })`. The **creation screen** is the first item after this milestone.
+Parameters on the body, all of them palette or shape choices in the generator: skin tone, hair shape (short, long, bald), hair colour, eye colour. Stored on the player as `look`, settable from the console with `__game.setLook({ skin, hair, hairStyle, eyes })`. The **creation screen** is the first item after this milestone. *(Built 2026-10-13 as the character screen, `ui/screens.js`: the name, the approved skin ramp with the dead's three tones, bald first in the hair row, the hair and eye colours from `data/looks.json`, the figure turning beside the rows; it is also the identity a join sends, `docs/31/03`; `02`.)*
 
 ## Painted hair, and the editor
 

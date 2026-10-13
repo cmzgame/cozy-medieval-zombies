@@ -1120,6 +1120,98 @@ html, body {
   font-size: 14px;
 }
 
+/* ---- the character screen (docs/12; docs/31/03): the figure turning beside the rows ---- */
+.you {
+  max-width: 640px;
+}
+
+.you-body {
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.you-preview {
+  flex: 0 0 auto;
+  width: 144px;
+  height: 216px;
+  image-rendering: pixelated;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--panel-edge);
+  border-radius: 4px;
+}
+
+.you-rows {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.you-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid #2e2636;
+  font-size: 14px;
+}
+
+.you-row > span:first-child {
+  flex: 0 0 90px;
+  color: #a098ac;
+}
+
+.you-row .choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.you-row .choices button {
+  font-size: 12px;
+  padding: 1px 6px;
+}
+
+.you-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: inherit;
+  font-size: 14px;
+  padding: 3px 6px;
+  color: var(--text);
+  background: var(--well-fill);
+  border: 1px solid var(--panel-edge);
+  border-radius: 3px;
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.screen button.swatch {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 2px solid #2b2522;
+  border-image: none;
+  border-radius: 3px;
+  background: var(--swatch);
+}
+
+.screen button.swatch:hover {
+  border-color: #c9b98e;
+}
+
+.screen button.swatch.on {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold);
+}
+
 .setting .choices {
   display: flex;
   gap: 4px;
