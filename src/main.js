@@ -593,7 +593,7 @@ function render() {
     h: V.h,
     tiles,
     visible,
-    entities: [S.player, ...S.zombies, ...S.villagers, ...S.corpses],
+    entities: [...S.players, ...S.zombies, ...S.villagers, ...S.corpses], // every player, not mine alone (Michael's first real join, 2026-10-13: the other player was a name with no body)
     arrows: archery.arrowsInFlight(),
     fire: burning.all(),
     marker: archery.getMarker(S.player),

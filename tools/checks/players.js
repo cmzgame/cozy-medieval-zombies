@@ -47,6 +47,18 @@ export async function run(game) {
     other.gy = at[1];
     step(3);
     row("the other player is seen beside me on open ground and not through my cottage's wall", seenOpen && !seenIndoors, `open ground ${seenOpen}, indoors from outside ${seenIndoors}, ${G.drawn} drawables`);
+    // 2b. And drawn: the frame with them beside me has more drawables than the frame with them far away
+    // (Michael's first real join, 2026-10-13: the other player was a name with no body, since the scene
+    // listed my player alone).
+    const drawnWith = G.drawn;
+    other.gx = at[0] + 60;
+    other.gy = at[1];
+    step(3);
+    const drawnWithout = G.drawn;
+    other.gx = at[0];
+    other.gy = at[1];
+    step(3);
+    row("the other player's body is drawn, not only seen", drawnWith > drawnWithout, `${drawnWith} drawables with them beside me, ${drawnWithout} with them far off`);
     // 3. The dead hunt whichever they see nearest: a zombie beside the other player targets them, not me.
     const z = G.zombies.find((q) => !q.dead && !q.corpse);
     if (z) {
