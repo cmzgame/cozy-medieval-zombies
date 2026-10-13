@@ -152,7 +152,10 @@ function record(c) {
 // After the world's step: the frame to every guest.
 export function hostAfterStep() {
   tick++;
-  if (role !== "host" || !guests.size) return;
+  if (role !== "host" || !guests.size) {
+    map.takeTouched(); // nobody to tell: the touched set is drained, not kept for ever (a grown chunk names itself to it in every game)
+    return;
+  }
   const S = game.state;
   const touched = map.takeTouched();
   const frame = {
