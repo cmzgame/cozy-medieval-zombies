@@ -214,15 +214,10 @@ html, body {
   gap: 4px;
 }
 
-/* The player's head from their own sheet at 2x, in a cutout. */
+/* The player's head from their own sheet at 2x, floating, no frame (Michael, 2026-10-12). */
 .hud-portrait {
-  box-sizing: content-box;
   image-rendering: pixelated;
-  border: var(--kit-well-w, 5px) solid transparent;
-  border-image-source: var(--kit-well);
-  border-image-slice: var(--kit-well-slice, 5) fill;
-  border-image-width: var(--kit-well-w, 5px);
-  border-image-repeat: repeat;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.6));
 }
 
 /* The time, top centre. */
@@ -315,15 +310,19 @@ html, body {
 
 .moodle {
   position: relative;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 2px solid rgba(0, 0, 0, 0.45);
-  border-radius: 6px;
+  border-radius: 5px;
   color: #2a1c10;
-  margin-bottom: 4px;
+}
+
+.moodle svg {
+  width: 17px;
+  height: 17px;
 }
 
 .moodle.stage-1 { background: #e0c070; }

@@ -14,7 +14,10 @@ import { frameName } from "../sprites.js";
 import { FEET_X } from "../figure/rig.js";
 import { initMoodles, updateMoodles } from "./moodles.js";
 
-const HEAD = { x: FEET_X - 12, y: 4, w: 24, h: 24 }; // the head's box in a frame, hat room above
+// The head's box in a frame: the rig's head centre is 38 above the feet (feet at
+// row 66, so row 28), 9.5 tall each way, the neck at 30 above; rows 12 to 40
+// take a hat above it and the chin and a sliver of shoulder below.
+const HEAD = { x: FEET_X - 13, y: 12, w: 26, h: 28 };
 const SCALE = 2;
 
 let root = null;
