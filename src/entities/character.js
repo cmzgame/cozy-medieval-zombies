@@ -13,6 +13,7 @@ import * as grid from "../grid.js";
 import { dropItem, serializeProp } from "../map.js";
 import { createWorn, createBag } from "../inventory.js";
 import { createAnimation } from "../sprites.js";
+import { nextId } from "../world.js";
 
 export function createCharacter(kind, gx, gy, { id = null, name = null, speed = 1, radius = 0.3, hp = 100, maxHp = hp } = {}) {
   return {
@@ -144,6 +145,10 @@ export function lootOf(ch) {
   for (const e of [ch.hands.main, ch.hands.off]) if (e && !entries.includes(e)) entries.push(e);
   for (const e of Object.values(ch.worn)) if (e) entries.push(e);
   if (ch.pockets) entries.push(...ch.pockets.items);
+  // The dead's and the villagers' garments and weapons are made as literals, with no instance id; they become
+  // items in a bag here, and an item with no uid cannot be named in a guest's command (the drag sends the uid, the
+  // host finds nothing and does nothing: a joiner could not take a body's clothes, found 2026-10-13).
+  for (const e of entries) if (e.uid == null) e.uid = nextId("e");
   ch.hands.main = null;
   ch.hands.off = null;
   if (ch.pockets) ch.pockets.items = [];

@@ -103,6 +103,18 @@ export async function run(game) {
     const owners = G.light.carriers().filter((c) => c.owner).map((c) => c.owner).sort();
     row("two torches are two carried lights, each with its owner", owners.length === 2 && owners.includes(me.id) && owners.includes(other.id), owners.join(", "));
     other.hands.main = null;
+    // 7. A body's items can be named in a guest's command (found 2026-10-13: the dead's garments were literals with no
+    // uid, so a joiner's drag out of a body sent nothing the host could find). A zombie made apart from the world.
+    {
+      const { createZombie } = await import("/src/entities/zombie.js");
+      const { lootOf } = await import("/src/entities/character.js");
+      const body = createZombie(0, 0);
+      body.worn.chest = { id: "tunic", count: 1 }; // as the world dresses the dead: a literal with no uid
+      body.worn.legs = { id: "breeches", count: 1 };
+      const bag = lootOf(body);
+      const blank = bag.items.filter((e) => e.uid == null).map((e) => e.id);
+      row("what is in a body's bag has instance ids (a guest can name it)", bag.items.length > 0 && blank.length === 0, blank.length ? `no uid: ${blank.join(", ")}` : `${bag.items.length} items, every one with a uid`);
+    }
   } finally {
     if (other) G.game.removePlayer(other.id);
     for (const [z, gx, gy, state, aggro, lastSeen, target] of dead) { z.gx = gx; z.gy = gy; z.state = state; z.aggro = aggro; z.lastSeen = lastSeen; z.target = target; z.path = []; }
