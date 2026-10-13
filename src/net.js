@@ -96,6 +96,15 @@ export function isGuest() {
   return role === "guest";
 }
 
+// On the wire, as a host or a guest: the world never pauses (Michael, 2026-10-13: Zomboid's way).
+export function onTheWire() {
+  return role !== null;
+}
+
+export function hasGuests() {
+  return role === "host" && guests.size > 0;
+}
+
 export function status() {
   return { role, code, lag, selfId, guests: [...guests.values()].map((g) => g.playerId), myPlayerId, joined, framesSeen, lastFrameAt, tick };
 }
@@ -228,7 +237,7 @@ export function guestStep(mySnap) {
     }
   }
   if (joined && game.state.player) {
-    const s = testSnapshot || mySnap;
+    const s = mySnap.idle ? mySnap : testSnapshot || mySnap; // a screen up: nothing pressed, whatever a check says
     const snap = { axis: s.axis, sprint: !!s.sprint, aim: s.aim || null, space: !!s.space };
     seq++;
     pending.push({ seq, snap });

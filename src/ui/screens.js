@@ -264,8 +264,8 @@ function render() {
   } else if (current === "pause") {
     root.innerHTML = `
       <div class="screen">
-        <h1>Paused</h1>
-        <div class="sub">Esc to resume</div>
+        <h1>${wireApi && wireApi.status().role ? "Menu" : "Paused"}</h1>
+        <div class="sub">${wireApi && wireApi.status().role ? "The world goes on while you are here; your character stands still." : "Esc to resume"}</div>
         <div class="screen-buttons">${button("resume", "Resume")}${button("save", "Save game")}${youApi ? button("character", "Character") : ""}${button("settings", "Settings")}${button("controls", "Controls")}${button("title", "Title screen")}</div>
         ${wireApi ? `<div class="screen-buttons">${button("host", "Host this game")}</div>` : ""}
       </div>`;
