@@ -26,6 +26,10 @@ const ROUND_BODY_RADIUS = 0.2; // a body's radius against round props; 0.3 again
 const chunks = new Map(); // "cx,cy" -> { cx, cy, tiles, floorCache, floorDirty }
 let source = null; // authored tiles: (x, y) => tile | null
 let defaultFloor = "floor_grass";
+// What a read beyond the grown chunks sees (docs/31/05 item 8): plain floor, no
+// walls, no prop, outdoors. Frozen, so a write to it throws instead of changing
+// nothing. Reading never grows a chunk; only ensureAround and the mutators do.
+let blank = Object.freeze({ floor: defaultFloor, n: null, w: null, prop: null, room: 0, items: null });
 const rooms = new Map(); // room id -> { id, size, openings: [{ tx, ty, edge }] }
 let roomsDirty = true;
 // Every prop whose sprite definition declares `fire`, so light can list its
@@ -57,6 +61,7 @@ export function reset({ floor = "floor_grass", authored = null, wildRule = null,
   rooms.clear();
   source = authored;
   defaultFloor = floor;
+  blank = Object.freeze({ floor: defaultFloor, n: null, w: null, prop: null, room: 0, items: null });
   wild = wildRule;
   bounds = mapBounds;
   pendingSpawns.length = 0;
@@ -126,7 +131,7 @@ export function brackets() {
 }
 
 export function addBracket(tx, ty, edge, side, torch = false) {
-  const wall = tileAt(tx, ty)[edge];
+  const wall = growTile(tx, ty)[edge];
   if (!wall) return null;
   wall.bracket = { side, torch };
   const b = { tx, ty, edge, wall };
@@ -324,8 +329,8 @@ export function itemsAt(x, y, layer = 0) {
 }
 
 export function dropItem(x, y, entry, layer = 0) {
+  const t = growTile(x, y, layer);
   markDirty(x, y);
-  const t = tileAt(x, y, layer);
   if (!t.items) t.items = [];
   // The entry itself goes on the floor, less its grid position, so a bag
   // keeps everything in it and a belt its slots (docs/11).
@@ -361,7 +366,7 @@ export function placeProp(prop, tx, ty) {
   prop.tile = [tx, ty];
   prop.tiles = [];
   for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) prop.tiles.push([tx + dx, ty + dy]);
-  for (const [x, y] of prop.tiles) tileAt(x, y).prop = prop;
+  for (const [x, y] of prop.tiles) growTile(x, y).prop = prop;
   if (prop.fire) fireProps.add(prop);
   touch(tx, ty);
   groundChanged(prop.tiles, prop);
@@ -390,7 +395,7 @@ function groundChanged(tiles, prop = null) {
 
 // The only way a floor changes after load, so the ground hears of it.
 export function setFloor(x, y, id, layer = 0) {
-  const t = tileAt(x, y, layer);
+  const t = growTile(x, y, layer);
   if (t.floor === id) return;
   t.floor = id;
   touch(x, y);
@@ -452,11 +457,12 @@ export function canBuildWall(tx, ty, edge, kind = "wall") {
 // Build a wall, door, or window on an edge, as an authored one would be, and
 // tell sight, light, and the rooms.
 export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT) {
-  if (tileAt(tx, ty)[edge]) return false;
+  const t = growTile(tx, ty);
+  if (t[edge]) return false;
   const wall = createWall(kind, sprite);
   wall.built = true; // made by the player: the removal tool may take it down (docs/13)
   wall.at = [tx, ty];
-  tileAt(tx, ty)[edge] = wall;
+  t[edge] = wall;
   touch(tx, ty);
   rebuildRoomsAround(tx, ty, edge);
   return true;
@@ -465,7 +471,7 @@ export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT) {
 // Take a wall, door, or window off an edge, and whatever hangs on it (its
 // boards go with it, a torch bracket is forgotten).
 export function destroyWall(tx, ty, edge) {
-  const t = tileAt(tx, ty);
+  const t = growTile(tx, ty);
   const wall = t[edge];
   if (!wall) return false;
   for (const b of [...bracketSet]) if (b.wall === wall) bracketSet.delete(b);
@@ -767,12 +773,31 @@ export function loadedChunks() {
   return chunks.values();
 }
 
-// The tile at integer (x, y). Creates the chunk if needed.
+// The tile at integer (x, y) for reading. A read never grows a chunk: beyond
+// the grown ring it sees the blank tile (plain floor, outdoors), the same on
+// every machine whatever the window shows, so the world is the simulation's
+// alone (docs/31/05, item 8; docs/02, 2026-10-13). Growth is ensureAround's
+// (the ring round each player) and the mutators' (growTile).
 export function tileAt(x, y, layer = 0) {
+  const cx = Math.floor(x / CHUNK);
+  const cy = Math.floor(y / CHUNK);
+  const c = getChunk(cx, cy, false, layer);
+  if (!c) return blank;
+  return c.tiles[(y - cy * CHUNK) * CHUNK + (x - cx * CHUNK)];
+}
+
+// The tile at integer (x, y) for writing: grows the chunk if it is not loaded.
+// The mutators' lookup; nothing that only reads should call it.
+export function growTile(x, y, layer = 0) {
   const cx = Math.floor(x / CHUNK);
   const cy = Math.floor(y / CHUNK);
   const c = getChunk(cx, cy, true, layer);
   return c.tiles[(y - cy * CHUNK) * CHUNK + (x - cx * CHUNK)];
+}
+
+// The blank tile a read beyond the grown ring returns (for a check to recognise).
+export function blankTile() {
+  return blank;
 }
 
 // The tile at (x, y) only if its chunk is loaded.

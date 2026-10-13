@@ -344,9 +344,11 @@ function stepGame(dt) {
   map.burnFires(dt);
   camera.follow(player, dt);
   camera.applyOrigin(V.w, V.h);
-  // Grow the world three chunks ahead of the player, so wild forest and its
-  // dead appear outside the view even at the widest zoom (docs/02, the view).
-  map.ensureAround(player.gx, player.gy, 3);
+  // Grow the world four chunks ahead of the player, so wild forest and its dead
+  // appear outside the view even at the widest zoom (docs/02, the view), and the
+  // ground can bake every viewed chunk with its neighbours grown: this ring is
+  // the only growth there is, since reading never grows (docs/31/05, item 8).
+  map.ensureAround(player.gx, player.gy, 4);
   for (const [x, y] of map.takePendingSpawns()) zombies.push(createZombie(x, y));
   // Chunks far behind are dropped and the characters in them sleep with their
   // chunk, back when it grows again (docs/23a, B1, B2). Villagers hold a chunk.
@@ -675,6 +677,7 @@ async function boot() {
       rng.seed(json.seed ?? 1); // the sim's one generator, seeded from the map (docs/23a, C1)
       world.reset(json.idCounter || 0); // the world's time scale and id counter (docs/30 step 2; docs/31/08)
       info = map.loadMap(json);
+      map.ensureAround(info.spawn[0], info.spawn[1], 4); // reading never grows (docs/31/05, item 8): the ring first
       // The dev chest by the spawn, a setting rather than a thing in the map (docs/30 step 0).
       if (settings.get("devChest")) {
         const at = map.nearestWalkable(info.spawn[0] + 1, info.spawn[1] + 2, (x, y) => !!map.tileAt(x, y).prop || (x === info.spawn[0] && y === info.spawn[1]));

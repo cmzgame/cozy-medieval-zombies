@@ -782,8 +782,11 @@ export function kindMap(cx, cy) {
   return k;
 }
 
-// Bake a chunk and upload its texture now. Returns the texture record.
+// Bake a chunk and upload its texture now. Returns the texture record, or null
+// for a chunk the map has not grown: a bake reads tiles, a read never grows
+// (docs/31/05, item 8), and a picture of blank tiles would be wrong and cached.
 export function bakeNow(cx, cy) {
+  if (!grown(cx, cy)) return null;
   const t0 = performance.now();
   const key = map.chunkKey(cx, cy);
   const img = bakeImage(cx, cy);
@@ -799,12 +802,25 @@ export function bakeNow(cx, cy) {
 
 // The picture to draw for a chunk in view: its texture, or, if it has none
 // yet, one baked now, so nothing ever draws as a hole. A bake here is a hitch
-// the ring ahead should have prevented, so it is counted.
+// the ring ahead should have prevented, so it is counted. A chunk the map has
+// not grown has no picture (null): the simulation's ring round each player
+// grows it, and the ring is wider than any view, so in play this is never seen.
 export function drawRecord(cx, cy) {
   const rec = textureFor(cx, cy);
   if (rec) return rec;
+  if (!grown(cx, cy)) return null;
   stat.syncBakes++;
   return bakeNow(cx, cy);
+}
+
+// A chunk can be baked once the map has grown it and its eight neighbours: a
+// bake reads REACH_MAX tiles into them (shadows, canopies, the blends), and a
+// read never grows (docs/31/05, item 8). The simulation's ring round each
+// player (main.js, ensureAround) is wider than any view by at least one chunk,
+// so in play a viewed chunk is always bakeable.
+function grown(cx, cy) {
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (!map.getChunk(cx + dx, cy + dy, false)) return false;
+  return true;
 }
 
 // The chunk's texture record, or null if it has none yet. A dirty chunk
@@ -832,7 +848,7 @@ export function chunksOf(tiles) {
 // Before the first frame: every chunk the view touches and a ring of one
 // around them, so nothing is baked while the player watches.
 export function prebake(tiles) {
-  for (const [cx, cy] of prebakeTargets(tiles)) if (!textureFor(cx, cy)) bakeNow(cx, cy);
+  for (const [cx, cy] of prebakeTargets(tiles)) if (!textureFor(cx, cy) && grown(cx, cy)) bakeNow(cx, cy);
 }
 
 // The chunks the view touches and a ring around them: what boot bakes in slices
@@ -875,6 +891,7 @@ export function update(camGx, camGy, tiles) {
   for (const c of ring) {
     const e = chunks.get(map.chunkKey(c[0], c[1]));
     if (e && !e.dirty) continue;
+    if (!grown(c[0], c[1])) continue; // not grown yet: the sim grows it, then it is baked (docs/31/05, item 8)
     if (!best || dist(c) < dist(best)) best = c;
   }
   if (best) bakeNow(best[0], best[1]);
