@@ -14,10 +14,11 @@ import { frameName } from "../sprites.js";
 import { FEET_X } from "../figure/rig.js";
 import { initMoodles, updateMoodles } from "./moodles.js";
 
-// The head's box in a frame: the rig's head centre is 38 above the feet (feet at
-// row 66, so row 28), 9.5 tall each way, the neck at 30 above; rows 12 to 40
-// take a hat above it and the chin and a sliver of shoulder below.
-const HEAD = { x: FEET_X - 13, y: 12, w: 26, h: 28 };
+// The box cut from a frame: the rig's head centre is 38 above the feet (feet at
+// row 66, so row 28), 9.5 tall each way, the neck at 30 above; rows 12 to 52
+// take a hat above it, the shoulders, and the chest to the belt, so the tunic
+// shows beside the bars (Michael, 2026-10-13: more of them vertically).
+const HEAD = { x: FEET_X - 13, y: 12, w: 26, h: 40 };
 const SCALE = 2;
 
 let root = null;
