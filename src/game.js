@@ -296,7 +296,7 @@ export function begin(dt) {
       map.sleep(key, sleeping);
     }
   }
-  for (const ch of map.takeWoken()) (ch.dead ? S.corpses : S.zombies).push(ch);
+  for (const ch of map.takeWoken()) (ch.corpse ? S.corpses : S.zombies).push(ch); // one asleep mid-fall finishes it
 }
 
 function nearChunk(p, cx, cy, radius) {
@@ -339,9 +339,12 @@ export function step(dt, snapshot) {
     S.villagers = S.villagers.filter((v) => !v.dead);
   }
   // The fallen leave the thinking list (docs/23a, B1): a corpse is drawn and looted, never iterated by the AI.
-  if (S.zombies.some((z) => z.dead)) {
-    S.corpses.push(...S.zombies.filter((z) => z.dead));
-    S.zombies = S.zombies.filter((z) => !z.dead);
+  // Not before the fall has played and the body is baked (`corpse`, updateZombie's dead branch): moved out
+  // the step it died, a zombie stood hunched on its first frame for ever, never a body to search, its
+  // swing-target outline never cleared (Michael, 2026-10-13).
+  if (S.zombies.some((z) => z.corpse)) {
+    S.corpses.push(...S.zombies.filter((z) => z.corpse));
+    S.zombies = S.zombies.filter((z) => !z.corpse);
   }
   if (player.hp <= 0 && !player.dead) {
     // Death (Michael, 2026-10-10 night): the world says so; the client shows the
