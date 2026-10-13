@@ -21,7 +21,7 @@ import { createPlayer, damagePlayer, eat, drink, aimOrigin } from "./entities/pl
 import { createZombie } from "./entities/zombie.js";
 import { createVillager, damageVillager } from "./entities/villager.js";
 import { initHud, updateHud } from "./ui/hud.js";
-import { initPrompt, updatePrompt, showMessage, updateMessage } from "./ui/prompt.js";
+import { initPrompt, updatePrompt, showMessage, updateMessage, setMessageSink } from "./ui/prompt.js";
 import { initZombieBars, updateZombieBars } from "./ui/zombie-bars.js";
 import { initSwingTimer, updateSwingTimer } from "./ui/swing-timer.js";
 import { initSpeech, updateSpeech } from "./ui/speech.js";
@@ -163,9 +163,12 @@ function openActionsMenu(m) {
     actions = actions.filter((a) => a.kind !== "walk" && !/^Walk/.test(a.label || ""));
     for (const a of interact.actionsForProp(poked, S.player)) if (!actions.some((b) => b.label === a.label)) actions.push(a);
   }
-  const entries = actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => interact.runAction(S.player, a) }));
+  // A guest's choice goes to the host by its address and label (net.js, docs/31/05 item 10); the host walks
+  // the guest's player there and performs it. Building stays this client's own until it is a command too.
+  const guest = net.isGuest();
+  const entries = actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => (guest ? net.sendAct(a.target, a.label) : interact.runAction(S.player, a)) }));
   // Build is in every menu, in case the key is forgotten (Michael, 2026-10-12).
-  entries.push({ label: "Build", enabled: !S.player.carrying && !panel.isOpen(), onSelect: toggleBuild });
+  entries.push({ label: "Build", enabled: !guest && !S.player.carrying && !panel.isOpen(), onSelect: toggleBuild });
   const u = view.toUi(m.x, m.y);
   menu.openContextMenu(u.x, u.y, entries);
 }
@@ -425,9 +428,13 @@ function stepGame(dt) {
     }
   }
   const clickSpent = !guest && clicked && placement.tryConfirm(S.player);
-  if (!guest) {
-    handleMouse();
-    interact.updateInteract(S.player, dt);
+  handleMouse();
+  if (!guest) interact.updateInteract(S.player, dt);
+  else if (input.wasPressed("KeyE") && !panel.isOpen() && !menu.isMenuOpen()) {
+    // A guest's E: the nearest simple action, read off the replica, sent as a command (the hold to climb and
+    // the board and torch keys wait for their verbs).
+    const a = interact.nearestSimpleAction(S.player);
+    if (a && a.target) net.sendAct(a.target, a.label);
   }
   // The world: the player from the mouse and the keys as a snapshot (docs/23a, D1;
   // never the input module), the dead, the villagers, the light (game.js).
@@ -892,9 +899,21 @@ async function boot() {
         if (who && who !== S.player.id) return; // a guest's weapon wears out on the host (its swing resolves there): the word is theirs, not this screen's
         showMessage(`Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3);
       });
-      events.on("containerOpened", ({ bag, tiles: where, name, corpse, closeDist }) => {
+      events.on("containerOpened", ({ bag, tiles: where, name, corpse, closeDist, prop, entry, tile, character }) => {
+        // Opened by a guest's player (the acting player, game.js): told to the guest, not shown here.
+        const by = game.state.acting;
+        if (by && by !== S.player) {
+          net.openedFor(by.id, { propId: prop ? prop.id : null, entryUid: entry ? entry.uid : null, tile: tile || null, characterId: character ? character.id : null, tiles: where, name, closeDist: closeDist || 0 });
+          return;
+        }
         openBag = { bag, tiles: where, name, corpse: corpse || null, closeDist: closeDist || 0 };
         panel.setBagOpen(true);
+      });
+      // A message said while a guest's player acts goes to the guest's screen, not this one (docs/31/04).
+      setMessageSink((text, seconds) => {
+        const by = game.state.acting;
+        if (!by || by === S.player || !net.isHost()) return false;
+        return net.messageTo(by.id, text, seconds);
       });
       // After the menu's own listener, so a menu closed by Escape is seen first.
       window.addEventListener("keydown", (e) => {
@@ -928,7 +947,21 @@ async function boot() {
       camera.snapTo(S.player.gx, S.player.gy);
     },
     joined: (id) => showMessage(`Joined as ${id}.`, 3),
-    message: (text) => showMessage(text, 3),
+    message: (text, seconds = 3) => showMessage(text, seconds),
+    // A container my player opened on the host: the grid is on my replica's prop, entry, or body.
+    opened: (w) => {
+      let bag = null;
+      let corpse = null;
+      if (w.propId) bag = map.propById(w.propId)?.bag || null;
+      else if (w.entryUid && w.tile) bag = map.itemsAt(w.tile[0], w.tile[1]).find((e) => e.uid === w.entryUid)?.bag || null;
+      else if (w.characterId) {
+        corpse = [...S.corpses, ...S.zombies].find((c) => c.id === w.characterId) || null;
+        bag = corpse ? corpse.loot : null;
+      }
+      if (!bag) return;
+      openBag = { bag, tiles: w.tiles, name: w.name, corpse, closeDist: w.closeDist || 0 };
+      panel.setBagOpen(true);
+    },
     chunksChanged: (chunks) => {
       for (const d of chunks) ground.invalidate([[d.cx * map.CHUNK + 8, d.cy * map.CHUNK + 8], [d.cx * map.CHUNK, d.cy * map.CHUNK], [d.cx * map.CHUNK + 15, d.cy * map.CHUNK + 15]]);
     },

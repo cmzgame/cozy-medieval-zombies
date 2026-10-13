@@ -50,7 +50,15 @@ export function updatePrompt(target, progress = null) {
   root.hidden = false;
 }
 
+// A sink that takes a message for a player whose screen is elsewhere (main.js routes by the acting
+// player; docs/31/04: a message event addressed to a player). Returns true when it took it.
+let sink = null;
+export function setMessageSink(fn) {
+  sink = fn;
+}
+
 export function showMessage(text, seconds = 2) {
+  if (sink && sink(text, seconds)) return;
   if (messageEl) {
     // Headless (tools/world.js) there is no screen: the line still reaches the log, which also has none.
     messageEl.textContent = text;
