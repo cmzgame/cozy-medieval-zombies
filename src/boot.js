@@ -6,7 +6,7 @@
 
 // A page without the loading screen (the tools import assets.js, which imports
 // this) gets a shell that draws nothing: every element below may be null.
-const root = document.getElementById("loading");
+const root = typeof document === "undefined" ? null : document.getElementById("loading"); // no document at all under Node (tools/world.js)
 const q = (sel) => (root ? root.querySelector(sel) : null);
 const fill = q(".fill");
 const line = q(".line");
@@ -22,7 +22,7 @@ export const timings = {};
 export function nextFrame() {
   // Hidden, there is no bar to paint and the browser throttles timers to one a
   // second (16 outfits took 7.9 s that way): no wait at all.
-  if (document.hidden) return Promise.resolve();
+  if (typeof document === "undefined" || document.hidden) return Promise.resolve();
   return new Promise((resolve) => {
     const timer = setTimeout(resolve, 40);
     requestAnimationFrame(() => {

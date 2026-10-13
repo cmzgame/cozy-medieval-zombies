@@ -51,14 +51,17 @@ export function updatePrompt(target, progress = null) {
 }
 
 export function showMessage(text, seconds = 2) {
-  messageEl.textContent = text;
-  messageEl.hidden = false;
-  messageTimer = seconds;
+  if (messageEl) {
+    // Headless (tools/world.js) there is no screen: the line still reaches the log, which also has none.
+    messageEl.textContent = text;
+    messageEl.hidden = false;
+    messageTimer = seconds;
+  }
   log.push(text, "info"); // every message is also a line in the log (Michael, 2026-10-12)
 }
 
 export function updateMessage(dt) {
-  if (messageEl.hidden) return;
+  if (!messageEl || messageEl.hidden) return;
   messageTimer -= dt;
   if (messageTimer <= 0) messageEl.hidden = true;
 }

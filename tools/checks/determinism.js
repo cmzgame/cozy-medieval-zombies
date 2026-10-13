@@ -16,15 +16,11 @@ export async function run(game, { steps = 600 } = {}) {
   const G = game;
   G.loop.setPaused(true);
   for (let i = 0; i < steps; i++) G.loop.advance(1 / 60);
-  const f = (n) => n.toFixed(3);
-  const parts = [
-    `clock ${f(G.clock.getElapsed())}`,
-    `player ${f(G.player.gx)},${f(G.player.gy)} hp ${G.player.hp}`,
-    ...G.zombies.map((z) => `${z.id} ${f(z.gx)},${f(z.gy)} ${z.state} ${z.wardrobe} hp ${z.hp}`),
-    ...G.villagers.map((v) => `${v.id} ${f(v.gx)},${f(v.gy)} ${v.state}`),
-    ...G.corpses.map((z) => `${z.id} ${f(z.gx)},${f(z.gy)} corpse`),
-  ];
-  const hash = hashOf(parts.join("\n"));
+  // The world's own text (game.js hashText), so `node tools/world.js` and this
+  // check compare by the same number.
+  const text = G.game.hashText();
+  const parts = text.split("\n");
+  const hash = hashOf(text);
   const key = "cmz.determinism";
   let previous = null;
   try {

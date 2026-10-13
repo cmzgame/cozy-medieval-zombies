@@ -10,7 +10,7 @@ The one thing that should come **before** the net and **after** the pass's needs
 
 ## Tier 0 — The world apart, and the viewer (small to medium)
 
-**Built so far:** item 8 (2026-10-13, `02`: reading never grows; `check("growth")`; the hash equal across zooms and window sizes); item 17 (2026-10-13, `02`: `src/game.js`, the world's state and the step order out of `main.js`, the hash and the frame unchanged); items 21, 1, 3 in part by the big pass's step 2 (the time scale as a world field, prop ids, entry uids).
+**Built so far:** item 8 (2026-10-13, `02`: reading never grows; `check("growth")`; the hash equal across zooms and window sizes); item 17 (2026-10-13, `02`: `src/game.js`, the world's state and the step order out of `main.js`, the hash and the frame unchanged); item 23 in part (2026-10-13, `02`: `node tools/world.js` boots the world with no window and prints the pane's hash); items 21, 1, 3 in part by the big pass's step 2 (the time scale as a world field, prop ids, entry uids).
 
 What: items 8 (growth by players only), 17 (the singletons sorted into world and client), 21 and 22 (time scale, the timer), 23 (`src/world/` headless; `node tools/world.js` boots and steps a world with no window), 24 (`serialize`/`restore`), and a **one-way viewer**: a second tab that receives snapshots through a `BroadcastChannel` and draws the host's world from its own camera, no player of its own. `05-someday`'s tier 0: "small, and it proves the pipe and the interpolation".
 

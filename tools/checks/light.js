@@ -1,3 +1,5 @@
+// Run on the proving ground, http://localhost:8010/?map=square (the campfire and the cobbles it
+// looks for are the square's; on the valley its rows fail by design).
 // The light cache versioned per chunk (docs/23a, B4): at midnight, a wall
 // built between a source and a lit tile darkens the tile on the next step and
 // its removal lights it again (the cache noticed the change), while a wall

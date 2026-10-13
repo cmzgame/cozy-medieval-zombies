@@ -497,6 +497,28 @@ export function generateFigure(spec, only = null) {
   };
 }
 
+// The sheet generateFigure would make, less the picture (docs/31/05, item 23):
+// the frames' names and places, the anchor, the animations with their active
+// frames. What a headless world needs of a figure, and nothing it draws.
+export function describeFigure(spec, only = null) {
+  const anims = animsFor(spec);
+  if (only) {
+    const name = `${only.anim}_${only.facing}_${only.frame}`;
+    return { image: null, frames: { [name]: [0, 0, FW, FH] }, anchor: [FEET_X, FEET_Y], animations: { [only.anim]: anims[only.anim] }, facings: [only.facing], mirror: {}, one: name };
+  }
+  const frames = {};
+  FACINGS.forEach((facing, row) => {
+    let colIdx = 0;
+    for (const anim of Object.keys(anims)) {
+      for (let i = 0; i < anims[anim].frames; i++) {
+        frames[`${anim}_${facing}_${i}`] = [colIdx * FW, row * FH, FW, FH];
+        colIdx++;
+      }
+    }
+  });
+  return { image: null, frames, anchor: [FEET_X, FEET_Y], animations: anims, facings: [...FACINGS], mirror: {} };
+}
+
 // One frame of a figure on a sheet of its own (docs/19): a corpse holds the last
 // frame of its fall in the facing it died in, and needs no sheet of a hundred
 // and seventy-six frames, so a body can be redrawn as it is stripped.

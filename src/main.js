@@ -461,40 +461,6 @@ function render() {
 
 
 
-// The starter kit (docs/11): worn tunic, breeches, boots, a rope belt with two
-// slots, a burlap sack with water, a little food, and one plank; the torch in
-// a hand. No hood: the head slot starts empty (Michael, 2026-10-10).
-function giveStarterKit() {
-  const entry = (id, props = {}) => ({ id, count: 1, ...props });
-  for (const id of ["tunic", "breeches", "boots", "belt", "small_sack"]) {
-    const e = entry(id);
-    S.player.worn[items.getItem(id).wear] = e;
-  }
-  const bag = inventory.bagOf(S.player);
-  inventory.addItem(bag, "waterskin", 1, { fill: 100 });
-  inventory.addItem(bag, "bread", 1);
-  inventory.addItem(bag, "apple", 2);
-  inventory.addItem(bag, "plank", 1);
-  items.hold(S.player.hands, entry("torch"));
-}
-
-// Forty of the dead standing about the open ground of the square, the same places every
-// time (a small generator, not Math.random), at least five tiles from where you start.
-function addTestingDead(spawn) {
-  let seed = 90210;
-  const rand = () => ((seed = (Math.imul(seed, 1103515245) + 12345) >>> 0) / 4294967296);
-  const placed = [];
-  for (let tries = 0; tries < 4000 && placed.length < 40; tries++) {
-    const x = 1 + Math.floor(rand() * 30);
-    const y = 1 + Math.floor(rand() * 30);
-    if (!map.isWalkableTile(x, y) || map.tileAt(x, y).room > 0) continue;
-    if (Math.hypot(x - spawn[0], y - spawn[1]) < 5) continue;
-    if (placed.some(([px, py]) => Math.hypot(px - x, py - y) < 2)) continue;
-    placed.push([x, y]);
-    S.zombies.push(createZombie(x, y));
-  }
-}
-
 // A file that may be missing: null instead of a failed boot (combat.json and
 // poses.json have built-in numbers behind them).
 async function optionalJson(path) {
@@ -592,31 +558,17 @@ async function boot() {
       for (const def of items.allItems()) if (def.shield) assets.registerSheet("held_shield_guard", figure.generateHeld("shield_guard", def.held.colours)); // the raised guard (docs/21)
     } },
     { name: "world", label: "Growing the world", weight: 1, async run() {
-      rng.seed(json.seed ?? 1); // the sim's one generator, seeded from the map (docs/23a, C1)
-      world.reset(json.idCounter || 0); // the world's time scale and id counter (docs/30 step 2; docs/31/08)
-      S.info = map.loadMap(json);
-      const info = S.info;
-      map.ensureAround(info.spawn[0], info.spawn[1], 4); // reading never grows (docs/31/05, item 8): the ring first
-      // The dev chest by the spawn, a setting rather than a thing in the map (docs/30 step 0).
-      if (settings.get("devChest")) {
-        const at = map.nearestWalkable(info.spawn[0] + 1, info.spawn[1] + 2, (x, y) => !!map.tileAt(x, y).prop || (x === info.spawn[0] && y === info.spawn[1]));
-        if (at) map.placeProp(map.createProp({ sprite: "dev_chest", tile: at }), at[0], at[1]);
-      }
-      game.setPlayer(createPlayer(info.spawn[0], info.spawn[1]));
-      S.player.look = { ...figure.DEFAULT_LOOK, hairStyle: settings.get("hairStyle") || "short" };
-      giveStarterKit();
+      // The world itself (game.js): the same calls headless under Node (tools/world.js).
+      game.create({
+        json,
+        look: { ...figure.DEFAULT_LOOK, hairStyle: settings.get("hairStyle") || "short" },
+        devChest: !!settings.get("devChest"),
+        combatTesting,
+      });
       refreshFigure();
-      S.zombies = info.zombies.map(([x, y]) => createZombie(x, y));
-      S.villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i }));
-      interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses]);
-      archery.setTargets(() => S.zombies); // what an arrow can hit when it lands (docs/20)
       camera.snapTo(S.player.gx, S.player.gy);
       camera.applyOrigin(V.w, V.h);
-      map.ensureAround(S.player.gx, S.player.gy, 4);
-      for (const [x, y] of map.takePendingSpawns()) S.zombies.push(createZombie(x, y));
       tiles = camera.viewportTiles(V.w, V.h);
-      map.rebuildRooms();
-      if (combatTesting) addTestingDead(info.spawn);
       // The square and its paths, cobble or dirt by the setting (docs/15, for
       // comparing): the map's features with `group: "square"`.
       squareTiles = [];
@@ -772,6 +724,7 @@ async function boot() {
     get visible() { return visible; },
     get playerRoom() { return playerRoom; },
     get info() { return S.info; },
+    game,
     get openBag() { return openBag; },
     get handlers() { return handlers; },
     get timing() { return timing; },

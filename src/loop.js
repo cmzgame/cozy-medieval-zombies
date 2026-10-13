@@ -27,9 +27,15 @@ let pauses = 0; // times the loop was paused: a draw held through a pause is dro
 
 let hooks = { update: () => {}, render: () => {}, crash: null };
 
-export function start(h) {
+// The hooks alone, for a world driven by advance() with no frames: the headless
+// runner (tools/world.js) and the authority of docs/31/04, which steps on a timer.
+export function init(h) {
   hooks = { ...hooks, ...h };
   running = true;
+}
+
+export function start(h) {
+  init(h);
   last = performance.now();
   requestAnimationFrame(frame);
 }
