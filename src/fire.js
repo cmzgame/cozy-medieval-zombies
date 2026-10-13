@@ -28,6 +28,10 @@ export const tunables = {
 
 let particles = [];
 
+export function reset() {
+  particles = [];
+}
+
 function rnd(a, b) {
   return a + Math.random() * (b - a);
 }

@@ -279,6 +279,13 @@ export function forgetChunk(key) {
   cache.delete(key);
   sigCache.delete(key);
 }
+
+// A world restored from a save has new chunks under the old keys: forget them all (docs/31/05, item 24).
+export function forgetAll() {
+  cache.clear();
+  sigCache.clear();
+  srcVersion++;
+}
 map.onEvict(forgetChunk);
 
 // Flicker (docs/08, Phase 3): a source's weight this instant, 1 - amp .. 1,

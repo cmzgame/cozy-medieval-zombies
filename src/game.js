@@ -24,9 +24,13 @@ import * as inventory from "./inventory.js";
 import * as rules from "./rules.js";
 import * as tuning from "./tuning.js";
 import * as stations from "./stations.js"; // the stations' queues run in the world's time (docs/30, section 6)
-import { updatePlayer } from "./entities/player.js";
+import * as rng from "./rng.js";
+import * as world from "./world.js";
+import * as loop from "./loop.js";
+import { serializeCharacter, restoreCharacter, dress, dressCorpse } from "./entities/character.js";
+import { createPlayer, updatePlayer } from "./entities/player.js";
 import { createZombie, updateZombie } from "./entities/zombie.js";
-import { updateVillager, turnVillager } from "./entities/villager.js";
+import { createVillager, updateVillager, turnVillager } from "./entities/villager.js";
 import { controlPlayer } from "./player-controller.js";
 
 export const state = {
@@ -44,6 +48,199 @@ export const state = {
 export function setPlayer(p) {
   state.player = p;
   state.players = p ? [p] : [];
+}
+
+// The world from a map file: the generator seeded, the map loaded and the
+// spawn's ring grown first (reading never grows), the dev chest if asked, the
+// player with their look and the starter kit, the authored dead and villagers,
+// the ring round the player and its wild dead, the rooms, the testing dead if
+// asked. The same calls in the same order in the browser's boot (main.js, the
+// world stage) and headless (tools/world.js), so both worlds hash the same.
+// What the client does after (the camera, sight, the ground, the player's
+// sheet) touches nothing the hash sees.
+export function create({ json, look = null, devChest = false, combatTesting = false }) {
+  const S = state;
+  rng.seed(json.seed ?? 1); // the sim's one generator, seeded from the map (docs/23a, C1)
+  world.reset(json.idCounter || 0); // the world's time scale and id counter (docs/30 step 2; docs/31/08)
+  S.info = map.loadMap(json);
+  const info = S.info;
+  map.ensureAround(info.spawn[0], info.spawn[1], 4); // reading never grows (docs/31/05, item 8): the ring first
+  // The dev chest by the spawn, a setting rather than a thing in the map (docs/30 step 0).
+  if (devChest) {
+    const at = map.nearestWalkable(info.spawn[0] + 1, info.spawn[1] + 2, (x, y) => !!map.tileAt(x, y).prop || (x === info.spawn[0] && y === info.spawn[1]));
+    if (at) map.placeProp(map.createProp({ sprite: "dev_chest", tile: at }), at[0], at[1]);
+  }
+  setPlayer(createPlayer(info.spawn[0], info.spawn[1]));
+  if (look) S.player.look = { ...S.player.look, ...look };
+  giveStarterKit(S.player);
+  S.zombies = info.zombies.map(([x, y]) => createZombie(x, y));
+  S.corpses = [];
+  S.villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i }));
+  interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses]);
+  archery.setTargets(() => S.zombies); // what an arrow can hit when it lands (docs/20)
+  map.ensureAround(S.player.gx, S.player.gy, 4);
+  for (const [x, y] of map.takePendingSpawns()) S.zombies.push(createZombie(x, y));
+  map.rebuildRooms();
+  if (combatTesting) addTestingDead(info.spawn);
+  return S;
+}
+
+// The starter kit (docs/11): worn tunic, breeches, boots, a rope belt with two
+// slots, a burlap sack with water, a little food, and one plank; the torch in
+// a hand. No hood: the head slot starts empty (Michael, 2026-10-10).
+function giveStarterKit(player) {
+  const entry = (id, props = {}) => items.makeEntry(id, 1, props); // every entry through the maker (docs/31/08, habit 2)
+  for (const id of ["tunic", "breeches", "boots", "belt", "small_sack"]) {
+    const e = entry(id);
+    player.worn[items.getItem(id).wear] = e;
+  }
+  const bag = inventory.bagOf(player);
+  inventory.addItem(bag, "waterskin", 1, { fill: 100 });
+  inventory.addItem(bag, "bread", 1);
+  inventory.addItem(bag, "apple", 2);
+  inventory.addItem(bag, "plank", 1);
+  items.hold(player.hands, entry("torch"));
+}
+
+// Forty of the dead standing about the open ground of the square, the same places every
+// time (a small generator, not Math.random), at least five tiles from where you start.
+function addTestingDead(spawn) {
+  let seed = 90210;
+  const rand = () => ((seed = (Math.imul(seed, 1103515245) + 12345) >>> 0) / 4294967296);
+  const placed = [];
+  for (let tries = 0; tries < 4000 && placed.length < 40; tries++) {
+    const x = 1 + Math.floor(rand() * 30);
+    const y = 1 + Math.floor(rand() * 30);
+    if (!map.isWalkableTile(x, y) || map.tileAt(x, y).room > 0) continue;
+    if (Math.hypot(x - spawn[0], y - spawn[1]) < 5) continue;
+    if (placed.some(([px, py]) => Math.hypot(px - x, py - y) < 2)) continue;
+    placed.push([x, y]);
+    state.zombies.push(createZombie(x, y));
+  }
+}
+
+// ---- the world as data, and back (docs/31/05, item 24: the save, and the join's snapshot) ----
+
+// A deep copy JSON can carry (docs/31/05, item 24): the save shares nothing with
+// the live world (a path array stepped on after the snapshot would change the
+// snapshot), and Infinity and NaN, which JSON turns to null, go as tokens (a
+// plain wall's hp, a zombie's time since it saw anyone).
+export function toSafe(v) {
+  if (typeof v === "number") return Number.isFinite(v) ? v : { $n: v > 0 ? "inf" : v < 0 ? "-inf" : "nan" };
+  if (v === null || typeof v !== "object") return typeof v === "function" ? undefined : v;
+  if (Array.isArray(v)) return v.map(toSafe);
+  const out = {};
+  for (const [k, x] of Object.entries(v)) {
+    const y = toSafe(x);
+    if (y !== undefined) out[k] = y;
+  }
+  return out;
+}
+
+export function fromSafe(v) {
+  if (v === null || typeof v !== "object") return v;
+  if (Array.isArray(v)) return v.map(fromSafe);
+  const keys = Object.keys(v);
+  if (keys.length === 1 && keys[0] === "$n") return v.$n === "inf" ? Infinity : v.$n === "-inf" ? -Infinity : NaN;
+  const out = {};
+  for (const k of keys) out[k] = fromSafe(v[k]);
+  return out;
+}
+
+export function serialize() {
+  const S = state;
+  return toSafe({
+    clock: clock.getElapsed(),
+    simTime: loop.simTime(),
+    rng: rng.getState(),
+    world: { timeScale: world.world.timeScale, idCounter: world.idCounter() },
+    map: { ...map.serializeMap(), sleepers: map.sleeperEntries().map(([k, list]) => [k, list.map(serializeCharacter)]) },
+    characters: {
+      players: S.players.map(serializeCharacter),
+      zombies: S.zombies.map(serializeCharacter),
+      corpses: S.corpses.map(serializeCharacter),
+      villagers: S.villagers.map(serializeCharacter),
+    },
+  });
+}
+
+// The world put back: the map file loaded afresh for its authored source, the
+// saved chunks installed over it, every character made by its own creator and
+// given its saved fields, the links made by id, the counters, the clock, and the
+// generator put back last (the creators roll). What the client must do after:
+// its camera, sight, the ground's pictures, the player's sheet, the light.
+export function restore(saved, json) {
+  const S = state;
+  const save = fromSafe(saved); // the tokens back to numbers, and nothing shared with the caller's object
+  rng.seed(json.seed ?? 1);
+  world.reset(json.idCounter || 0);
+  S.info = map.loadMap(json);
+  map.restoreMap(save.map);
+  const makers = { player: createPlayer, zombie: createZombie, villager: createVillager };
+  const all = [];
+  const bring = (list) => (list || []).map((d) => {
+    const ch = restoreCharacter(d, makers);
+    all.push(ch);
+    return ch;
+  });
+  const players = bring(save.characters.players);
+  setPlayer(players[0] || null);
+  S.players = players;
+  S.zombies = bring(save.characters.zombies);
+  S.corpses = bring(save.characters.corpses);
+  S.villagers = bring(save.characters.villagers);
+  S.others = [];
+  S.progress = null;
+  map.setSleepers((save.map.sleepers || []).map(([k, list]) => [k, bring(list)]));
+  const byId = new Map(all.map((c) => [c.id, c]));
+  for (const c of all) {
+    c.target = c._targetId ? byId.get(c._targetId) || null : null;
+    c.carrying = c._carryingId ? map.propById(c._carryingId) : null;
+    delete c._targetId;
+    delete c._carryingId;
+    if (c.kind !== "player") {
+      if (c.corpse) dressCorpse(c);
+      else dress(c);
+    }
+  }
+  interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses]);
+  archery.setTargets(() => S.zombies);
+  archery.reset();
+  burning.reset();
+  stations.resetActive(map.allProps());
+  world.reset(save.world.idCounter);
+  world.setTimeScale(save.world.timeScale);
+  clock.setElapsed(save.clock);
+  loop.setSimTime(save.simTime);
+  rng.setState(save.rng);
+  light.forgetAll();
+  return S;
+}
+
+// The world as a text, for a hash: the clock, every player, every one of the
+// dead, villager, and corpse, at three decimals (tools/checks/determinism.js
+// reads the same, so a headless world and the pane's agree by the same number).
+export function hashText() {
+  const S = state;
+  const f = (n) => n.toFixed(3);
+  return [
+    `clock ${f(clock.getElapsed())}`,
+    ...S.players.map((p) => `player ${f(p.gx)},${f(p.gy)} hp ${p.hp}`),
+    ...S.zombies.map((z) => `${z.id} ${f(z.gx)},${f(z.gy)} ${z.state} ${z.wardrobe} hp ${z.hp}`),
+    ...S.villagers.map((v) => `${v.id} ${f(v.gx)},${f(v.gy)} ${v.state}`),
+    ...S.corpses.map((z) => `${z.id} ${f(z.gx)},${f(z.gy)} corpse`),
+  ].join("\n");
+}
+
+export function hashOf(text) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+
+// An input snapshot with nothing pressed: what a player who is not there sends.
+export function idleSnapshot() {
+  return { clicked: false, clickSpent: false, mouse: { x: 0, y: 0, inside: false }, leftDown: false, altPressed: false, altDown: false, offDown: false, space: false, blocked: false };
 }
 
 // Inside the box of tiles around any player where the dead and villagers think

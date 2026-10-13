@@ -40,6 +40,7 @@ import * as use from "./use.js";
 import * as interactions from "./interactions.js";
 import * as world from "./world.js";
 import * as game from "./game.js";
+import * as save from "./save.js";
 import * as verbs from "./verbs.js";
 import * as stations from "./stations.js";
 import * as stationPanel from "./ui/station-panel.js";
@@ -83,6 +84,10 @@ try {
 // game.js's; this file is the client: the view, the keys, the panels (docs/31/05, item 17).
 const S = game.state;
 let uiSimTime = 0; // the sim time the interface was last ticked to (docs/23a, F)
+let started = false; // Play or Continue pressed: the autosave runs only after, and never while dead (save.js)
+let lastAutosave = 0; // sim seconds at the last autosave
+const AUTOSAVE = 60; // seconds of game time between autosaves (the parent's cadence)
+let mapJson = null; // the map file, kept for a restore
 let tiles = [];
 let visible = new Set();
 let playerRoom = 0;
@@ -422,8 +427,45 @@ function renderUi() {
   updateMessage(dt);
 }
 
+// The world put back from a save (game.restore), then everything the client
+// holds about it made afresh: the player's sheet, the camera, sight, the ground's
+// pictures, the light's cache, the panels and the modes closed.
+async function restoreWorld(snap) {
+  game.restore(snap, mapJson);
+  figureKey = "";
+  figureQuick = "";
+  refreshFigure(true);
+  camera.snapTo(S.player.gx, S.player.gy);
+  camera.applyOrigin(V.w, V.h);
+  tiles = camera.viewportTiles(V.w, V.h);
+  visKey = null;
+  openBag = null;
+  corpseWatch = null;
+  panel.closeAll();
+  placement.cancel();
+  use.cancel();
+  buildPalette.close();
+  light.update();
+  if (!glError) await ground.reload();
+  visible = visibility.computeVisible(Math.round(S.player.gx), Math.round(S.player.gy), tiles);
+  lastAutosave = loop.simTime();
+}
+
+async function continueSave() {
+  const snap = save.read();
+  if (!snap || snap.dead) return;
+  if (snap.mapName !== MAP_NAME) {
+    showMessage(`That save is of ${snap.mapName}; this is ${MAP_NAME}.`, 4);
+    return;
+  }
+  await restoreWorld(snap);
+  screens.hide();
+  showMessage(`${clock.getLabel()}. Welcome back.`, 3);
+}
+
 function render() {
   const r0 = performance.now();
+  if (started && !S.player.dead && loop.simTime() - lastAutosave >= AUTOSAVE) events.emit("autosaveTick");
   const scene = {
     w: V.w,
     h: V.h,
@@ -460,40 +502,6 @@ function render() {
 }
 
 
-
-// The starter kit (docs/11): worn tunic, breeches, boots, a rope belt with two
-// slots, a burlap sack with water, a little food, and one plank; the torch in
-// a hand. No hood: the head slot starts empty (Michael, 2026-10-10).
-function giveStarterKit() {
-  const entry = (id, props = {}) => ({ id, count: 1, ...props });
-  for (const id of ["tunic", "breeches", "boots", "belt", "small_sack"]) {
-    const e = entry(id);
-    S.player.worn[items.getItem(id).wear] = e;
-  }
-  const bag = inventory.bagOf(S.player);
-  inventory.addItem(bag, "waterskin", 1, { fill: 100 });
-  inventory.addItem(bag, "bread", 1);
-  inventory.addItem(bag, "apple", 2);
-  inventory.addItem(bag, "plank", 1);
-  items.hold(S.player.hands, entry("torch"));
-}
-
-// Forty of the dead standing about the open ground of the square, the same places every
-// time (a small generator, not Math.random), at least five tiles from where you start.
-function addTestingDead(spawn) {
-  let seed = 90210;
-  const rand = () => ((seed = (Math.imul(seed, 1103515245) + 12345) >>> 0) / 4294967296);
-  const placed = [];
-  for (let tries = 0; tries < 4000 && placed.length < 40; tries++) {
-    const x = 1 + Math.floor(rand() * 30);
-    const y = 1 + Math.floor(rand() * 30);
-    if (!map.isWalkableTile(x, y) || map.tileAt(x, y).room > 0) continue;
-    if (Math.hypot(x - spawn[0], y - spawn[1]) < 5) continue;
-    if (placed.some(([px, py]) => Math.hypot(px - x, py - y) < 2)) continue;
-    placed.push([x, y]);
-    S.zombies.push(createZombie(x, y));
-  }
-}
 
 // A file that may be missing: null instead of a failed boot (combat.json and
 // poses.json have built-in numbers behind them).
@@ -553,6 +561,7 @@ async function boot() {
     { name: "layers", label: "Reading the painted layers", weight: 1, run: () => loadPaintedHair() },
     { name: "map", label: "Reading the map", weight: 1, async run() {
       json = await assets.loadJson(MAP_FILE);
+      mapJson = json; // kept for a restore (save.js)
       if (combatTesting) {
         json.scatter = [];
         if (json.wild) json.wild = { ...json.wild, density: [0, 0] };
@@ -592,31 +601,17 @@ async function boot() {
       for (const def of items.allItems()) if (def.shield) assets.registerSheet("held_shield_guard", figure.generateHeld("shield_guard", def.held.colours)); // the raised guard (docs/21)
     } },
     { name: "world", label: "Growing the world", weight: 1, async run() {
-      rng.seed(json.seed ?? 1); // the sim's one generator, seeded from the map (docs/23a, C1)
-      world.reset(json.idCounter || 0); // the world's time scale and id counter (docs/30 step 2; docs/31/08)
-      S.info = map.loadMap(json);
-      const info = S.info;
-      map.ensureAround(info.spawn[0], info.spawn[1], 4); // reading never grows (docs/31/05, item 8): the ring first
-      // The dev chest by the spawn, a setting rather than a thing in the map (docs/30 step 0).
-      if (settings.get("devChest")) {
-        const at = map.nearestWalkable(info.spawn[0] + 1, info.spawn[1] + 2, (x, y) => !!map.tileAt(x, y).prop || (x === info.spawn[0] && y === info.spawn[1]));
-        if (at) map.placeProp(map.createProp({ sprite: "dev_chest", tile: at }), at[0], at[1]);
-      }
-      game.setPlayer(createPlayer(info.spawn[0], info.spawn[1]));
-      S.player.look = { ...figure.DEFAULT_LOOK, hairStyle: settings.get("hairStyle") || "short" };
-      giveStarterKit();
+      // The world itself (game.js): the same calls headless under Node (tools/world.js).
+      game.create({
+        json,
+        look: { ...figure.DEFAULT_LOOK, hairStyle: settings.get("hairStyle") || "short" },
+        devChest: !!settings.get("devChest"),
+        combatTesting,
+      });
       refreshFigure();
-      S.zombies = info.zombies.map(([x, y]) => createZombie(x, y));
-      S.villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i }));
-      interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses]);
-      archery.setTargets(() => S.zombies); // what an arrow can hit when it lands (docs/20)
       camera.snapTo(S.player.gx, S.player.gy);
       camera.applyOrigin(V.w, V.h);
-      map.ensureAround(S.player.gx, S.player.gy, 4);
-      for (const [x, y] of map.takePendingSpawns()) S.zombies.push(createZombie(x, y));
       tiles = camera.viewportTiles(V.w, V.h);
-      map.rebuildRooms();
-      if (combatTesting) addTestingDead(info.spawn);
       // The square and its paths, cobble or dirt by the setting (docs/15, for
       // comparing): the map's features with `group: "square"`.
       squareTiles = [];
@@ -683,8 +678,21 @@ async function boot() {
       });
       // Any screen up means the game is paused; the title is up at boot.
       screens.initScreens({
-        onChange: (name) => setPaused(!!name),
+        onChange: (name) => {
+          setPaused(!!name);
+          if (name === null && !started) {
+            started = true; // Play or Continue: from here the world autosaves
+            lastAutosave = loop.simTime();
+            if (!save.read()?.dead) { /* a new game over an old save: the old one is gone once the first autosave lands */ }
+          }
+        },
         onReload: () => window.location.reload(),
+        onContinue: () => continueSave(),
+        onSave: () => {
+          const ok = save.write(save.snapshot(MAP_NAME));
+          showMessage(ok ? "Saved." : "The save could not be written.");
+          lastAutosave = loop.simTime();
+        },
         hair: {
           styles: () => figure.hairStyles(),
           current: () => S.player.look.hairStyle,
@@ -724,7 +732,12 @@ async function boot() {
         S.player.flashBroken = true;
       });
       events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, damage));
-      events.on("gameOver", () => screens.show("dead", { when: clock.getLabel() })); // the world says so (game.js); the client shows it
+      events.on("gameOver", () => {
+        // The world says so (game.js); the client shows it, and the slot keeps the world with the
+        // survivor dead, so Continue refuses it until the next survivor exists (docs/31/05, item 34).
+        if (started) save.write(save.snapshot(MAP_NAME, { dead: true }));
+        screens.show("dead", { when: clock.getLabel() });
+      });
       // Sleep and fire say what happened (docs/30 step 2): the world's events, shown here.
       events.on("sleepStart", () => showMessage("You lie down. The night goes on without you."));
       events.on("sleepEnd", ({ hours }) => showMessage(`${clock.getLabel()}. You slept ${hours} hours.`, 4));
@@ -760,7 +773,18 @@ async function boot() {
   ]);
 
   loop.start({ update, render, crash: shell.crash });
-  screens.show("title");
+  // The slot's save shows on the title as Continue (save.js); a dead one as a line and New game.
+  const slot = save.read();
+  screens.show("title", { save: slot, saveLabel: slot ? save.label(slot) : "" });
+  // Autosave: every AUTOSAVE seconds of game time, and when the tab is hidden or left (the parent's rule).
+  const autosave = () => {
+    if (!started || S.player.dead) return;
+    save.write(save.snapshot(MAP_NAME));
+    lastAutosave = loop.simTime();
+  };
+  events.on("autosaveTick", autosave);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) autosave(); });
+  window.addEventListener("pagehide", autosave);
   await shell.finish(); // the screen goes once the first frame is under it
 
   window.__game = createDevApi({
@@ -772,6 +796,9 @@ async function boot() {
     get visible() { return visible; },
     get playerRoom() { return playerRoom; },
     get info() { return S.info; },
+    game,
+    save,
+    restoreWorld,
     get openBag() { return openBag; },
     get handlers() { return handlers; },
     get timing() { return timing; },

@@ -23,6 +23,12 @@ const OUTPUT = [3, 2]; // the output bag's grid
 let rows = [];
 const active = new Set(); // stations with something in their queue
 
+// After a restore (docs/31/05, item 24): every prop with a queue is active again.
+export function resetActive(props) {
+  active.clear();
+  for (const p of props) if (p.queue && p.queue.length) active.add(p);
+}
+
 export function loadRecipes(json) {
   rows = (json && (json.rows || json)) || [];
 }

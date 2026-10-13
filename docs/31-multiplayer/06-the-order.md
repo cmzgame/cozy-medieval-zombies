@@ -10,11 +10,11 @@ The one thing that should come **before** the net and **after** the pass's needs
 
 ## Tier 0 — The world apart, and the viewer (small to medium)
 
-**Built so far:** item 8 (2026-10-13, `02`: reading never grows; `check("growth")`; the hash equal across zooms and window sizes); item 17 (2026-10-13, `02`: `src/game.js`, the world's state and the step order out of `main.js`, the hash and the frame unchanged); items 21, 1, 3 in part by the big pass's step 2 (the time scale as a world field, prop ids, entry uids).
+**Built so far:** item 8 (2026-10-13, `02`: reading never grows; `check("growth")`; the hash equal across zooms and window sizes); item 17 (2026-10-13, `02`: `src/game.js`, the world's state and the step order out of `main.js`, the hash and the frame unchanged); item 23 in part (2026-10-13, `02`: `node tools/world.js` boots the world with no window and prints the pane's hash); item 24 (2026-10-13, `02`: the save, per module, as a deep JSON-safe copy; the slot with Continue, Save game, the autosave, the dead save; the round-trip proved headless and in the pane); items 21, 1, 3 in part by the big pass's step 2 (the time scale as a world field, prop ids, entry uids).
 
 What: items 8 (growth by players only), 17 (the singletons sorted into world and client), 21 and 22 (time scale, the timer), 23 (`src/world/` headless; `node tools/world.js` boots and steps a world with no window), 24 (`serialize`/`restore`), and a **one-way viewer**: a second tab that receives snapshots through a `BroadcastChannel` and draws the host's world from its own camera, no player of its own. `05-someday`'s tier 0: "small, and it proves the pipe and the interpolation".
 
-Check: `node tools/world.js` hashes the same as the pane's `world.hash()` after the same scripted minute (the proof that growth no longer depends on the window); a save round-trips deep-equal (the parent's acceptance); the viewer's picture matches the host's at the same camera (`check("frame")` over the loopback).
+Check: `node tools/world.js` hashes the same as the pane's `world.hash()` after the same scripted minute (the proof that growth no longer depends on the window); a save round-trips deep-equal (the parent's acceptance); the viewer's picture matches the host's at the same camera (`check("frame")` over the loopback). **Done 2026-10-13 but the viewer:** the hash agrees (`48ba67d2` before the id change, `308b389f` after); the save round-trips in Node and in the pane.
 
 Why first: it is the save system plus the split `23a` D1 asked for; nothing in it is multiplayer-only, and single player gets saves, a headless check, and a loop that survives a hidden tab.
 

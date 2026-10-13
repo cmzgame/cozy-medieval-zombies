@@ -22,7 +22,25 @@ export function url(path) {
   return entry ? `${path}?v=${entry.stamp}` : path;
 }
 
+// Headless (docs/31/05, item 23; tools/world.js): the world booted with no window,
+// so JSON comes from a reader the runner sets (the disk under Node) and a sheet is
+// its frames, anchors, and animations with no picture: what the simulation reads
+// (a bite fires on the active frame, a corpse waits for the fall's end) and
+// nothing the renderer would.
+let jsonReader = null;
+let headless = false;
+export function setJsonReader(fn) {
+  jsonReader = fn;
+}
+export function setHeadless(on) {
+  headless = !!on;
+}
+export function isHeadless() {
+  return headless;
+}
+
 export async function loadJson(path) {
+  if (jsonReader) return jsonReader(path);
   const res = await fetch(url(path));
   if (!res.ok) throw new Error(`Failed to load ${path} (${res.status})`);
   return res.json();
@@ -57,7 +75,7 @@ export async function loadAll(progress = () => {}) {
   const total = ids.length + pngs.length;
   let n = 0;
   await inBatches(ids, (id) => loadSprite(id), 8, () => progress(++n / total));
-  await inBatches(pngs, (p) => loadImage(p), 12, () => progress(++n / total));
+  if (!headless) await inBatches(pngs, (p) => loadImage(p), 12, () => progress(++n / total));
 }
 
 // Every sheet registered so far, for packing the atlas at boot.
@@ -95,7 +113,12 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
   if (sheets.has(key)) return sheets.get(key);
   const def = await loadSpriteDef(id);
   let sheet;
-  if (def.drawings) {
+  if (headless) {
+    // No picture: the definition's own frames and animations, or the figure's table.
+    sheet = def.placeholder && def.placeholder.kind === "character"
+      ? figure.describeFigure(def.placeholder.variant === "zombie" ? figure.zombieSpec(0) : figure.playerSpec(def.placeholder.look || {}, {}, () => null))
+      : { image: null, frames: def.frames || {}, anchor: def.anchor || [0, 0], bounds: def.bounds || null, animations: def.animations || {}, facings: def.facings || [], mirror: def.mirror || {} };
+  } else if (def.drawings) {
     sheet = await sheetFromDrawings(def);
   } else if (def.images) {
     sheet = await sheetFromImages(def);
@@ -216,7 +239,7 @@ export function sheetFor(inputs, only = null) {
   let e = figureSheets.get(key);
   if (!e) {
     e = { id: `figure_${figureSeq++}`, inputs: structuredClone(inputs), only };
-    registerSheet(e.id, figure.generateFigure(spec, only), { generated: "figure" });
+    registerSheet(e.id, headless ? figure.describeFigure(spec, only) : figure.generateFigure(spec, only), { generated: "figure" });
     figureSheets.set(key, e);
   }
   return e.id;

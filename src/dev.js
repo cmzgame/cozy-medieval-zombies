@@ -52,6 +52,9 @@ export function createDevApi(ctx) {
     iso, input, loop, assets, events, map, camera, ground, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette, combat, gl, rng, rules, tuning, world, verbs, stations,
     render: { night },
     get player() { return ctx.player; },
+    game: ctx.game, // the world's state and step (game.js); hashText for the determinism check
+    save: ctx.save, // the slot (save.js): snapshot, write, read, clear
+    restoreWorld: ctx.restoreWorld, // the world put back from a snapshot, the client refreshed (main.js)
     get zombies() { return ctx.zombies; },
     get corpses() { return ctx.corpses; },
     get villagers() { return ctx.villagers; },

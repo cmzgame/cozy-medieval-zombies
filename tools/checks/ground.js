@@ -1,3 +1,5 @@
+// Run on the proving ground, http://localhost:8010/?map=square (the campfire and the cobbles it
+// looks for are the square's; on the valley its rows fail by design).
 // The ground's acceptance list as a script (docs/15-ground.md, "Accept when").
 // Run it in the game's page, from the console:
 //   const r = await __game.check("ground"); console.table(r.rows)

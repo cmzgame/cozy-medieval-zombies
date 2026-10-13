@@ -8,6 +8,7 @@
 // through a wall. Noise is deliberately not a factor yet (docs/02).
 
 import * as rng from "../rng.js";
+import { nextId } from "../world.js";
 import { rules } from "../rules.js";
 import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
@@ -31,11 +32,12 @@ export { idleTime, roomOf, faceToward, repath, followPath, separate, pickTargetA
 // weapon that `interrupts` (the heavy ones). Filled from data/combat.json.
 export const STAGGER_RULES = { chance: 0.5, immunity: 0.6 };
 
-let nextId = 1;
 
 export function createZombie(gx, gy, { id = null, hp = T.hp, aggro = false } = {}) {
+  // The id from the world's counter (docs/31/08, habit 1), so a save carries it and a
+  // zombie made after a restore never takes a saved one's name (docs/31/05, item 24).
   const z = {
-    ...createCharacter("zombie", gx, gy, { id: id || `z${nextId++}`, speed: T.speed, radius: T.radius, hp, maxHp: T.hp }),
+    ...createCharacter("zombie", gx, gy, { id: id || nextId("z"), speed: T.speed, radius: T.radius, hp, maxHp: T.hp }),
     state: aggro ? "chase" : "idle",
     aggro,
     lastSeen: null, // [gx, gy] where the player was last seen

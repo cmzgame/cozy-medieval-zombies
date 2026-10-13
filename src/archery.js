@@ -395,6 +395,15 @@ let draw = null; // { t, c, source }: a draw in progress
 let recover = 0; // seconds until the next draw may begin
 let aimOverride = null; // [gx, gy]: scripts and tests aim here instead of the cursor
 
+// A world put back from a save (docs/31/05, item 24): nothing in flight, no draw, no marker.
+export function reset() {
+  flying.length = 0;
+  draw = null;
+  recover = 0;
+  aimOverride = null;
+  marker = null;
+}
+
 export function setAimOverride(p) {
   aimOverride = p;
 }

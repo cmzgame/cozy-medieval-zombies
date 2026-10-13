@@ -51,4 +51,16 @@ export function pick(list) {
   return list[int(list.length)];
 }
 
+// The four words, for a save (docs/31/05, item 24): put back, the sequence goes on where it was.
+export function getState() {
+  return [a, b, c, d];
+}
+
+export function setState(s) {
+  a = s[0] | 0;
+  b = s[1] | 0;
+  c = s[2] | 0;
+  d = s[3] | 0;
+}
+
 seed(1);
