@@ -1,0 +1,13 @@
+import { chromium } from "playwright";
+import http from "http"; import fs from "fs"; import path from "path";
+const root = path.resolve("repo");
+const srv = http.createServer((q, r) => { const p = path.join(root, decodeURIComponent(q.url.split("?")[0])); fs.readFile(p, (e, d) => { if (e) { r.writeHead(404); r.end(); return; } r.writeHead(200, { "content-type": p.endsWith(".js") ? "text/javascript" : p.endsWith(".json") ? "application/json" : "text/html" }); r.end(d); }); });
+await new Promise(r => srv.listen(8765, r));
+const br = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" }).catch(async e => { console.log("exe fallback", e.message.slice(0,80)); return chromium.launch(); });
+const pg = await br.newPage(); pg.on("console", m => console.log("[page]", m.text())); pg.on("pageerror", e => console.log("[err]", e.message));
+await pg.goto("http://localhost:8765/tools/template.html"); await pg.waitForFunction(() => window.__template, null, { timeout: 15000 });
+const out = await pg.evaluate(() => { const t = window.__template; const c = t.canvases; return { json: t.data, body: c.body.toDataURL(), guides: c.guides.toDataURL(), parts: c.parts.toDataURL(), combined: c.combined.toDataURL() }; });
+fs.mkdirSync("out", { recursive: true });
+for (const k of ["body", "guides", "parts", "combined"]) fs.writeFileSync(`out/character_template_${k}_4x.png`, Buffer.from(out[k].split(",")[1], "base64"));
+fs.writeFileSync("out/character_template.json", JSON.stringify(out.json, null, 1));
+await br.close(); srv.close(); console.log("ok");

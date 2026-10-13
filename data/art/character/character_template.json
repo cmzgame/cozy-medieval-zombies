@@ -1,0 +1,1336 @@
+{
+ "note": "The character template (docs/25). Coordinates are 1x game pixels from the top-left of one 48 x 72 frame; the PNGs are at 4x, four cells across and two down, facings in the order below, row by row. `anchor` is the pixel a part's drawing is relative to; `segment` runs from the anchor to the other end of the part in the rest pose (a part is carried through every animation by turning and scaling along its segment).",
+ "scale": 4,
+ "frame": [
+  48,
+  72
+ ],
+ "feetAnchor": [
+  24,
+  66
+ ],
+ "layout": {
+  "columns": 4,
+  "rows": 2,
+  "cell": [
+   192,
+   288
+  ],
+  "order": [
+   "s",
+   "sw",
+   "w",
+   "nw",
+   "n",
+   "ne",
+   "e",
+   "se"
+  ]
+ },
+ "parts": [
+  {
+   "name": "torso",
+   "anchor": "neck",
+   "segmentEnd": "hip"
+  },
+  {
+   "name": "legL",
+   "anchor": "hipL",
+   "segmentEnd": "footL"
+  },
+  {
+   "name": "legR",
+   "anchor": "hipR",
+   "segmentEnd": "footR"
+  },
+  {
+   "name": "armL",
+   "anchor": "shoulderL",
+   "segmentEnd": "handL"
+  },
+  {
+   "name": "armR",
+   "anchor": "shoulderR",
+   "segmentEnd": "handR"
+  },
+  {
+   "name": "head",
+   "anchor": "head",
+   "segmentEnd": null
+  }
+ ],
+ "facings": {
+  "s": {
+   "torso": {
+    "anchor": [
+     24,
+     36
+    ],
+    "pixel": [
+     24,
+     36
+    ],
+    "segment": [
+     [
+      24,
+      36
+     ],
+     [
+      24,
+      51
+     ]
+    ]
+   },
+   "legL": {
+    "anchor": [
+     28,
+     49
+    ],
+    "pixel": [
+     28,
+     49
+    ],
+    "segment": [
+     [
+      28,
+      49
+     ],
+     [
+      28,
+      66
+     ]
+    ]
+   },
+   "legR": {
+    "anchor": [
+     21,
+     49
+    ],
+    "pixel": [
+     21,
+     49
+    ],
+    "segment": [
+     [
+      21,
+      49
+     ],
+     [
+      21,
+      66
+     ]
+    ]
+   },
+   "armL": {
+    "anchor": [
+     32,
+     38
+    ],
+    "pixel": [
+     32,
+     38
+    ],
+    "segment": [
+     [
+      32,
+      38
+     ],
+     [
+      34,
+      52
+     ]
+    ]
+   },
+   "armR": {
+    "anchor": [
+     16,
+     38
+    ],
+    "pixel": [
+     16,
+     38
+    ],
+    "segment": [
+     [
+      16,
+      38
+     ],
+     [
+      15,
+      52
+     ]
+    ]
+   },
+   "head": {
+    "anchor": [
+     24,
+     28
+    ],
+    "pixel": [
+     24,
+     28
+    ],
+    "segment": null
+   },
+   "joints": {
+    "head": [
+     24,
+     28
+    ],
+    "neck": [
+     24,
+     36
+    ],
+    "hip": [
+     24,
+     51
+    ],
+    "shoulderL": [
+     32,
+     38
+    ],
+    "shoulderR": [
+     16,
+     38
+    ],
+    "handL": [
+     34,
+     52
+    ],
+    "handR": [
+     15,
+     52
+    ],
+    "hipL": [
+     28,
+     49
+    ],
+    "hipR": [
+     21,
+     49
+    ],
+    "footL": [
+     28,
+     66
+    ],
+    "footR": [
+     21,
+     66
+    ]
+   }
+  },
+  "sw": {
+   "torso": {
+    "anchor": [
+     24,
+     36
+    ],
+    "pixel": [
+     24,
+     36
+    ],
+    "segment": [
+     [
+      24,
+      36
+     ],
+     [
+      24,
+      51
+     ]
+    ]
+   },
+   "legL": {
+    "anchor": [
+     26,
+     50
+    ],
+    "pixel": [
+     26,
+     50
+    ],
+    "segment": [
+     [
+      26,
+      50
+     ],
+     [
+      26,
+      67
+     ]
+    ]
+   },
+   "legR": {
+    "anchor": [
+     22,
+     48
+    ],
+    "pixel": [
+     22,
+     48
+    ],
+    "segment": [
+     [
+      22,
+      48
+     ],
+     [
+      22,
+      65
+     ]
+    ]
+   },
+   "armL": {
+    "anchor": [
+     30,
+     41
+    ],
+    "pixel": [
+     30,
+     41
+    ],
+    "segment": [
+     [
+      30,
+      41
+     ],
+     [
+      31,
+      55
+     ]
+    ]
+   },
+   "armR": {
+    "anchor": [
+     18,
+     35
+    ],
+    "pixel": [
+     18,
+     35
+    ],
+    "segment": [
+     [
+      18,
+      35
+     ],
+     [
+      17,
+      49
+     ]
+    ]
+   },
+   "head": {
+    "anchor": [
+     24,
+     28
+    ],
+    "pixel": [
+     24,
+     28
+    ],
+    "segment": null
+   },
+   "joints": {
+    "head": [
+     24,
+     28
+    ],
+    "neck": [
+     24,
+     36
+    ],
+    "hip": [
+     24,
+     51
+    ],
+    "shoulderL": [
+     30,
+     41
+    ],
+    "shoulderR": [
+     18,
+     35
+    ],
+    "handL": [
+     31,
+     55
+    ],
+    "handR": [
+     17,
+     49
+    ],
+    "hipL": [
+     26,
+     50
+    ],
+    "hipR": [
+     22,
+     48
+    ],
+    "footL": [
+     26,
+     67
+    ],
+    "footR": [
+     22,
+     65
+    ]
+   }
+  },
+  "w": {
+   "torso": {
+    "anchor": [
+     24,
+     36
+    ],
+    "pixel": [
+     24,
+     36
+    ],
+    "segment": [
+     [
+      24,
+      36
+     ],
+     [
+      24,
+      51
+     ]
+    ]
+   },
+   "legL": {
+    "anchor": [
+     24,
+     51
+    ],
+    "pixel": [
+     24,
+     51
+    ],
+    "segment": [
+     [
+      24,
+      51
+     ],
+     [
+      24,
+      68
+     ]
+    ]
+   },
+   "legR": {
+    "anchor": [
+     24,
+     47
+    ],
+    "pixel": [
+     24,
+     47
+    ],
+    "segment": [
+     [
+      24,
+      47
+     ],
+     [
+      24,
+      64
+     ]
+    ]
+   },
+   "armL": {
+    "anchor": [
+     24,
+     42
+    ],
+    "pixel": [
+     24,
+     42
+    ],
+    "segment": [
+     [
+      24,
+      42
+     ],
+     [
+      24,
+      57
+     ]
+    ]
+   },
+   "armR": {
+    "anchor": [
+     24,
+     34
+    ],
+    "pixel": [
+     24,
+     34
+    ],
+    "segment": [
+     [
+      24,
+      34
+     ],
+     [
+      24,
+      47
+     ]
+    ]
+   },
+   "head": {
+    "anchor": [
+     24,
+     28
+    ],
+    "pixel": [
+     24,
+     28
+    ],
+    "segment": null
+   },
+   "joints": {
+    "head": [
+     24,
+     28
+    ],
+    "neck": [
+     24,
+     36
+    ],
+    "hip": [
+     24,
+     51
+    ],
+    "shoulderL": [
+     24,
+     42
+    ],
+    "shoulderR": [
+     24,
+     34
+    ],
+    "handL": [
+     24,
+     57
+    ],
+    "handR": [
+     24,
+     47
+    ],
+    "hipL": [
+     24,
+     51
+    ],
+    "hipR": [
+     24,
+     47
+    ],
+    "footL": [
+     24,
+     68
+    ],
+    "footR": [
+     24,
+     64
+    ]
+   }
+  },
+  "nw": {
+   "torso": {
+    "anchor": [
+     24,
+     36
+    ],
+    "pixel": [
+     24,
+     36
+    ],
+    "segment": [
+     [
+      24,
+      36
+     ],
+     [
+      24,
+      51
+     ]
+    ]
+   },
+   "legL": {
+    "anchor": [
+     22,
+     50
+    ],
+    "pixel": [
+     22,
+     50
+    ],
+    "segment": [
+     [
+      22,
+      50
+     ],
+     [
+      22,
+      67
+     ]
+    ]
+   },
+   "legR": {
+    "anchor": [
+     26,
+     48
+    ],
+    "pixel": [
+     26,
+     48
+    ],
+    "segment": [
+     [
+      26,
+      48
+     ],
+     [
+      26,
+      65
+     ]
+    ]
+   },
+   "armL": {
+    "anchor": [
+     18,
+     41
+    ],
+    "pixel": [
+     18,
+     41
+    ],
+    "segment": [
+     [
+      18,
+      41
+     ],
+     [
+      17,
+      55
+     ]
+    ]
+   },
+   "armR": {
+    "anchor": [
+     30,
+     35
+    ],
+    "pixel": [
+     30,
+     35
+    ],
+    "segment": [
+     [
+      30,
+      35
+     ],
+     [
+      31,
+      49
+     ]
+    ]
+   },
+   "head": {
+    "anchor": [
+     24,
+     28
+    ],
+    "pixel": [
+     24,
+     28
+    ],
+    "segment": null
+   },
+   "joints": {
+    "head": [
+     24,
+     28
+    ],
+    "neck": [
+     24,
+     36
+    ],
+    "hip": [
+     24,
+     51
+    ],
+    "shoulderL": [
+     18,
+     41
+    ],
+    "shoulderR": [
+     30,
+     35
+    ],
+    "handL": [
+     17,
+     55
+    ],
+    "handR": [
+     31,
+     49
+    ],
+    "hipL": [
+     22,
+     50
+    ],
+    "hipR": [
+     26,
+     48
+    ],
+    "footL": [
+     22,
+     67
+    ],
+    "footR": [
+     26,
+     65
+    ]
+   }
+  },
+  "n": {
+   "torso": {
+    "anchor": [
+     24,
+     36
+    ],
+    "pixel": [
+     24,
+     36
+    ],
+    "segment": [
+     [
+      24,
+      36
+     ],
+     [
+      24,
+      51
+     ]
+    ]
+   },
+   "legL": {
+    "anchor": [
+     21,
+     49
+    ],
+    "pixel": [
+     21,
+     49
+    ],
+    "segment": [
+     [
+      21,
+      49
+     ],
+     [
+      21,
+      66
+     ]
+    ]
+   },
+   "legR": {
+    "anchor": [
+     28,
+     49
+    ],
+    "pixel": [
+     28,
+     49
+    ],
+    "segment": [
+     [
+      28,
+      49
+     ],
+     [
+      28,
+      66
+     ]
+    ]
+   },
+   "armL": {
+    "anchor": [
+     16,
+     38
+    ],
+    "pixel": [
+     16,
+     38
+    ],
+    "segment": [
+     [
+      16,
+      38
+     ],
+     [
+      15,
+      52
+     ]
+    ]
+   },
+   "armR": {
+    "anchor": [
+     32,
+     38
+    ],
+    "pixel": [
+     32,
+     38
+    ],
+    "segment": [
+     [
+      32,
+      38
+     ],
+     [
+      34,
+      52
+     ]
+    ]
+   },
+   "head": {
+    "anchor": [
+     24,
+     28
+    ],
+    "pixel": [
+     24,
+     28
+    ],
+    "segment": null
+   },
+   "joints": {
+    "head": [
+     24,
+     28
+    ],
+    "neck": [
+     24,
+     36
+    ],
+    "hip": [
+     24,
+     51
+    ],
+    "shoulderL": [
+     16,
+     38
+    ],
+    "shoulderR": [
+     32,
+     38
+    ],
+    "handL": [
+     15,
+     52
+    ],
+    "handR": [
+     34,
+     52
+    ],
+    "hipL": [
+     21,
+     49
+    ],
+    "hipR": [
+     28,
+     49
+    ],
+    "footL": [
+     21,
+     66
+    ],
+    "footR": [
+     28,
+     66
+    ]
+   }
+  },
+  "ne": {
+   "torso": {
+    "anchor": [
+     24,
+     36
+    ],
+    "pixel": [
+     24,
+     36
+    ],
+    "segment": [
+     [
+      24,
+      36
+     ],
+     [
+      24,
+      51
+     ]
+    ]
+   },
+   "legL": {
+    "anchor": [
+     22,
+     48
+    ],
+    "pixel": [
+     22,
+     48
+    ],
+    "segment": [
+     [
+      22,
+      48
+     ],
+     [
+      22,
+      65
+     ]
+    ]
+   },
+   "legR": {
+    "anchor": [
+     26,
+     50
+    ],
+    "pixel": [
+     26,
+     50
+    ],
+    "segment": [
+     [
+      26,
+      50
+     ],
+     [
+      26,
+      67
+     ]
+    ]
+   },
+   "armL": {
+    "anchor": [
+     18,
+     35
+    ],
+    "pixel": [
+     18,
+     35
+    ],
+    "segment": [
+     [
+      18,
+      35
+     ],
+     [
+      17,
+      49
+     ]
+    ]
+   },
+   "armR": {
+    "anchor": [
+     30,
+     41
+    ],
+    "pixel": [
+     30,
+     41
+    ],
+    "segment": [
+     [
+      30,
+      41
+     ],
+     [
+      31,
+      55
+     ]
+    ]
+   },
+   "head": {
+    "anchor": [
+     24,
+     28
+    ],
+    "pixel": [
+     24,
+     28
+    ],
+    "segment": null
+   },
+   "joints": {
+    "head": [
+     24,
+     28
+    ],
+    "neck": [
+     24,
+     36
+    ],
+    "hip": [
+     24,
+     51
+    ],
+    "shoulderL": [
+     18,
+     35
+    ],
+    "shoulderR": [
+     30,
+     41
+    ],
+    "handL": [
+     17,
+     49
+    ],
+    "handR": [
+     31,
+     55
+    ],
+    "hipL": [
+     22,
+     48
+    ],
+    "hipR": [
+     26,
+     50
+    ],
+    "footL": [
+     22,
+     65
+    ],
+    "footR": [
+     26,
+     67
+    ]
+   }
+  },
+  "e": {
+   "torso": {
+    "anchor": [
+     24,
+     36
+    ],
+    "pixel": [
+     24,
+     36
+    ],
+    "segment": [
+     [
+      24,
+      36
+     ],
+     [
+      24,
+      51
+     ]
+    ]
+   },
+   "legL": {
+    "anchor": [
+     24,
+     47
+    ],
+    "pixel": [
+     24,
+     47
+    ],
+    "segment": [
+     [
+      24,
+      47
+     ],
+     [
+      24,
+      64
+     ]
+    ]
+   },
+   "legR": {
+    "anchor": [
+     24,
+     51
+    ],
+    "pixel": [
+     24,
+     51
+    ],
+    "segment": [
+     [
+      24,
+      51
+     ],
+     [
+      24,
+      68
+     ]
+    ]
+   },
+   "armL": {
+    "anchor": [
+     24,
+     34
+    ],
+    "pixel": [
+     24,
+     34
+    ],
+    "segment": [
+     [
+      24,
+      34
+     ],
+     [
+      24,
+      47
+     ]
+    ]
+   },
+   "armR": {
+    "anchor": [
+     24,
+     42
+    ],
+    "pixel": [
+     24,
+     42
+    ],
+    "segment": [
+     [
+      24,
+      42
+     ],
+     [
+      24,
+      57
+     ]
+    ]
+   },
+   "head": {
+    "anchor": [
+     24,
+     28
+    ],
+    "pixel": [
+     24,
+     28
+    ],
+    "segment": null
+   },
+   "joints": {
+    "head": [
+     24,
+     28
+    ],
+    "neck": [
+     24,
+     36
+    ],
+    "hip": [
+     24,
+     51
+    ],
+    "shoulderL": [
+     24,
+     34
+    ],
+    "shoulderR": [
+     24,
+     42
+    ],
+    "handL": [
+     24,
+     47
+    ],
+    "handR": [
+     24,
+     57
+    ],
+    "hipL": [
+     24,
+     47
+    ],
+    "hipR": [
+     24,
+     51
+    ],
+    "footL": [
+     24,
+     64
+    ],
+    "footR": [
+     24,
+     68
+    ]
+   }
+  },
+  "se": {
+   "torso": {
+    "anchor": [
+     24,
+     36
+    ],
+    "pixel": [
+     24,
+     36
+    ],
+    "segment": [
+     [
+      24,
+      36
+     ],
+     [
+      24,
+      51
+     ]
+    ]
+   },
+   "legL": {
+    "anchor": [
+     26,
+     48
+    ],
+    "pixel": [
+     26,
+     48
+    ],
+    "segment": [
+     [
+      26,
+      48
+     ],
+     [
+      26,
+      65
+     ]
+    ]
+   },
+   "legR": {
+    "anchor": [
+     22,
+     50
+    ],
+    "pixel": [
+     22,
+     50
+    ],
+    "segment": [
+     [
+      22,
+      50
+     ],
+     [
+      22,
+      67
+     ]
+    ]
+   },
+   "armL": {
+    "anchor": [
+     30,
+     35
+    ],
+    "pixel": [
+     30,
+     35
+    ],
+    "segment": [
+     [
+      30,
+      35
+     ],
+     [
+      31,
+      49
+     ]
+    ]
+   },
+   "armR": {
+    "anchor": [
+     18,
+     41
+    ],
+    "pixel": [
+     18,
+     41
+    ],
+    "segment": [
+     [
+      18,
+      41
+     ],
+     [
+      17,
+      55
+     ]
+    ]
+   },
+   "head": {
+    "anchor": [
+     24,
+     28
+    ],
+    "pixel": [
+     24,
+     28
+    ],
+    "segment": null
+   },
+   "joints": {
+    "head": [
+     24,
+     28
+    ],
+    "neck": [
+     24,
+     36
+    ],
+    "hip": [
+     24,
+     51
+    ],
+    "shoulderL": [
+     30,
+     35
+    ],
+    "shoulderR": [
+     18,
+     41
+    ],
+    "handL": [
+     31,
+     49
+    ],
+    "handR": [
+     17,
+     55
+    ],
+    "hipL": [
+     26,
+     48
+    ],
+    "hipR": [
+     22,
+     50
+    ],
+    "footL": [
+     26,
+     65
+    ],
+    "footR": [
+     22,
+     67
+    ]
+   }
+  }
+ }
+}

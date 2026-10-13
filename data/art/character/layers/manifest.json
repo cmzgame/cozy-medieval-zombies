@@ -1,0 +1,257 @@
+[
+ {
+  "file": "hair_crop.png",
+  "slot": "hair",
+  "options": {
+   "dye": true
+  },
+  "note": "the short crop (replaces generated `short`)"
+ },
+ {
+  "file": "hair_mohawk.png",
+  "slot": "hair",
+  "options": {
+   "dye": true
+  },
+  "note": "a medium mohawk, the sides shaved"
+ },
+ {
+  "file": "hair_tight.png",
+  "slot": "hair",
+  "options": {
+   "dye": true
+  },
+  "note": "high and tight: short on top, shaved sides and back"
+ },
+ {
+  "file": "hair_long.png",
+  "slot": "hair",
+  "options": {
+   "dye": true
+  },
+  "note": "long and loose to the shoulders (replaces generated `long`)"
+ },
+ {
+  "file": "hair_pigtails.png",
+  "slot": "hair",
+  "options": {
+   "dye": true
+  },
+  "note": "a middle parting and two tied pigtails"
+ },
+ {
+  "file": "hair_bob.png",
+  "slot": "hair",
+  "options": {
+   "dye": true
+  },
+  "note": "a bob to the jaw"
+ },
+ {
+  "file": "beard_moustache.png",
+  "slot": "beard",
+  "options": {
+   "dye": true
+  },
+  "note": "the cop moustache"
+ },
+ {
+  "file": "beard_gnome.png",
+  "slot": "beard",
+  "options": {
+   "dye": true
+  },
+  "note": "the big bushy gnome beard"
+ },
+ {
+  "file": "beard_cropped.png",
+  "slot": "beard",
+  "options": {
+   "dye": true
+  },
+  "note": "the tight cropped beard"
+ },
+ {
+  "file": "head_onion.png",
+  "slot": "head",
+  "options": {},
+  "note": "the onion hat, hero version: item shape hood, colours [#5f8a3a, #46682a]"
+ },
+ {
+  "file": "head_onion_flop.png",
+  "slot": "head",
+  "options": {},
+  "note": "the onion hat with a taller nub that flops"
+ },
+ {
+  "file": "head_onion_squat.png",
+  "slot": "head",
+  "options": {},
+  "note": "the onion hat, short squat nub, a wider slit"
+ },
+ {
+  "file": "head_straw_hat.png",
+  "slot": "head",
+  "options": {},
+  "note": "a straw hat with a wide brim; dark hair painted under the brim"
+ },
+ {
+  "file": "head_coif.png",
+  "slot": "head",
+  "options": {},
+  "note": "a cloth coif tied under the chin (replaces generated `cap`)"
+ },
+ {
+  "file": "head_greathelm.png",
+  "slot": "head",
+  "options": {},
+  "note": "the knight's great helm (replaces generated `helm`)"
+ },
+ {
+  "file": "chest_tunic.png",
+  "slot": "chest",
+  "options": {
+   "length": "shirt",
+   "hideBelt": false
+  },
+  "note": "the tunic, shirt length: item shape tunic, colours [#c9b98e, #a8966f]"
+ },
+ {
+  "file": "chest_tunic_long.png",
+  "slot": "chest",
+  "options": {
+   "length": "long",
+   "hideBelt": false
+  },
+  "note": "the same painting with length long (the starting outfit)"
+ },
+ {
+  "file": "chest_tunic_cross.png",
+  "slot": "chest",
+  "options": {
+   "length": "long",
+   "hideBelt": false
+  },
+  "note": "a white long tunic with a black cross: item colours [#e8e4d8, #c2bdb0]"
+ },
+ {
+  "file": "chest_jerkin.png",
+  "slot": "chest",
+  "options": {
+   "length": "shirt",
+   "hideBelt": false
+  },
+  "note": "a leather jerkin over a cloth shirt: item colours [#7a4e2c, #5c3a20] (the shirt sleeves are painted)"
+ },
+ {
+  "file": "chest_dress.png",
+  "slot": "chest",
+  "options": {
+   "length": "long",
+   "hideBelt": true,
+   "covers": [
+    "legs"
+   ]
+  },
+  "note": "a long dress: item colours [#6d5a86, #52446a], length long, covers legs"
+ },
+ {
+  "file": "chest_surcoat.png",
+  "slot": "chest",
+  "options": {
+   "length": "long",
+   "hideBelt": false
+  },
+  "note": "the knight's surcoat over mail with pauldrons: item colours mail grey [#8e9099, #62646e] so the far arm's sleeve is mail; length long"
+ },
+ {
+  "file": "legs_breeches.png",
+  "slot": "legs",
+  "options": {},
+  "note": "breeches to the shin: item colours [#5a4030, #43301f] (the starting outfit)"
+ },
+ {
+  "file": "legs_hose.png",
+  "slot": "legs",
+  "options": {},
+  "note": "hose to the ankle: item colours [#4a4a3a, #36362a]"
+ },
+ {
+  "file": "legs_patched.png",
+  "slot": "legs",
+  "options": {},
+  "note": "patched trousers: item colours [#6e5a3c, #54432c]"
+ },
+ {
+  "file": "legs_chausses.png",
+  "slot": "legs",
+  "options": {},
+  "note": "the knight's mail chausses: item colours [#8e9099, #62646e]"
+ },
+ {
+  "file": "feet_boots.png",
+  "slot": "feet",
+  "options": {},
+  "note": "boots with a cuff: item colours [#4a3522, #36261a] (the starting outfit)"
+ },
+ {
+  "file": "feet_turnshoes.png",
+  "slot": "feet",
+  "options": {},
+  "note": "low turnshoes: item colours [#6b4a2a, #4e3419]"
+ },
+ {
+  "file": "feet_wraps.png",
+  "slot": "feet",
+  "options": {},
+  "note": "cloth wraps to the ankle, bare toes: item colours [#b8a78a, #948366]"
+ },
+ {
+  "file": "feet_greaves.png",
+  "slot": "feet",
+  "options": {},
+  "note": "the knight's plate greaves and sabatons: item colours [#a0a2ac, #6e707a]"
+ },
+ {
+  "file": "hands_gloves.png",
+  "slot": "hands",
+  "options": {},
+  "note": "leather gloves: item colours [#6b4a2a, #4e3419]"
+ },
+ {
+  "file": "hands_gauntlets.png",
+  "slot": "hands",
+  "options": {},
+  "note": "plate gauntlets with a flared cuff: item colours [#9a9ca6, #6a6c76]"
+ },
+ {
+  "file": "hands_wraps.png",
+  "slot": "hands",
+  "options": {},
+  "note": "cloth hand wraps: item colours [#c9b98e, #a8966f]"
+ },
+ {
+  "file": "waist_belt.png",
+  "slot": "waist",
+  "options": {},
+  "note": "the plain belt with a buckle: item colours [#6b4a2a, #4a3219] (the starting outfit)"
+ },
+ {
+  "file": "waist_pouch_belt.png",
+  "slot": "waist",
+  "options": {},
+  "note": "a belt with a pouch on the figure's left hip (asymmetric: all eight painted)"
+ },
+ {
+  "file": "waist_rope.png",
+  "slot": "waist",
+  "options": {},
+  "note": "a tied cord: item colours [#b8a67c, #8f7f5c]"
+ },
+ {
+  "file": "waist_sword_belt.png",
+  "slot": "waist",
+  "options": {},
+  "note": "the knight's sword belt: item colours [#7a4e2a, #553418]"
+ }
+]
