@@ -47,12 +47,12 @@ The concrete list, grouped by the free rule each serves, each item with where it
 
 ## G. The client (medium)
 
-26. **A `client` object** (`me`, the replica, the transport, the predictor, the interpolator) in `main.js`'s place; boot unchanged up to the world stage, which becomes "connect or create".
+26. **First form built 2026-10-13 (`02`): `src/net.js` holds the roles and the transport; `main.js`'s step branches on them.** The client object proper is still owed. Was: **A `client` object** (`me`, the replica, the transport, the predictor, the interpolator) in `main.js`'s place; boot unchanged up to the world stage, which becomes "connect or create".
 27. **Prediction and reconciliation** for my own walking: `updatePlayer`'s movement run locally against the replica, inputs kept by tick, replayed on correction. Medium; one new file. The rest of my player's state is shown as received.
 28. **Interpolation** for others: a snapshot ring per character, drawn one snapshot behind. Small; `render/entities.js` reads an interpolated position.
 29. **Sheets per player** (`player_<id>`, redrawn in place from the identity and the worn list), `assets.sheetFor` untouched for the rest. Small; the second atlas page when a group of friends asks for it (`gl.js`, a second texture and draw call, `23`'s own note).
 30. **The identity screen** (the creation screen of `02`'s pin with a name), stored as a setting, sent on join, editable from the pause menu. Medium; new UI on the kit. Wanted by single player anyway.
-31. **The join screen**: host (a code shown) or join (a code typed), the transport chosen by it; the title's Play is "host, alone". Small.
+31. **First form built 2026-10-13 (`02`): the URL's `?host` and `?join`, the join a load.** The screen is owed. Was: **The join screen**: host (a code shown) or join (a code typed), the transport chosen by it; the title's Play is "host, alone". Small.
 32. **The log as the chat**: a text input at the log's foot, Enter sends `say`. Small.
 33. **The dead screen per player**: New survivor, the spectate rule of `03`. Small once the survivor logic (item 34) exists.
 

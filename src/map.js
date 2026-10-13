@@ -618,6 +618,16 @@ export function breachTarget(room, gx, gy) {
 // a chunk) and the chunk is marked dirty, so it is never evicted (docs/23a, B2,
 // B4); with none, every loaded chunk's version is bumped.
 export let worldVersion = 0;
+const touched = new Set(); // chunk keys changed since the wire last asked (docs/31/04: a chunk delta per change)
+export function takeTouched() {
+  const out = [];
+  for (const k of touched) {
+    const c = chunks.get(k);
+    if (c) out.push([c.cx, c.cy]);
+  }
+  touched.clear();
+  return out;
+}
 export function touch(x = null, y = null) {
   worldVersion++;
   if (x === null) {
@@ -644,7 +654,10 @@ function touchWall(wall) {
 export function markDirty(x, y) {
   const [cx, cy] = chunkCoord(Math.round(x), Math.round(y));
   const c = getChunk(cx, cy, false);
-  if (c) c.dirty = true;
+  if (c) {
+    c.dirty = true;
+    touched.add(chunkKey(cx, cy, c.layer));
+  }
 }
 
 export function chunkCount() {

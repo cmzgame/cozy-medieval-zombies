@@ -41,7 +41,7 @@ It never calls `showMessage`; it emits a `message` event addressed to a player. 
 
 **Sight, light, fog, the ground, the sheets** are the client's own, built from the replica as they are built from the world today (`02` section 1: all deterministic from the data). Chunks the replica has not been told about are drawn as the authored file and the seed give them, which is exactly right for wild chunks and almost right for authored ones (a chair a friend moved three screens away is where the file put it until that chunk enters your region; nobody can see the difference, by the active-region law).
 
-**The loopback.** When the authority is in the same page, the transport is a pair of queues with no serialisation [or with, behind a flag, so the loopback proves the wire format every evening: JSON in and out costs nothing measurable at these sizes]. The two-tab test (`05`'s cheap test) is the same client with a `BroadcastChannel` transport and an artificial delay, which `main.js:803` already half has.
+**The loopback.** *(Built 2026-10-13 as `src/net.js` over a BroadcastChannel between two tabs, with the join as a load and a frame per step; `02`.)* When the authority is in the same page, the transport is a pair of queues with no serialisation [or with, behind a flag, so the loopback proves the wire format every evening: JSON in and out costs nothing measurable at these sizes]. The two-tab test (`05`'s cheap test) is the same client with a `BroadcastChannel` transport and an artificial delay, which `main.js:803` already half has.
 
 ## The transport
 

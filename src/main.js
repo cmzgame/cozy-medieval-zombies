@@ -17,7 +17,7 @@ import * as light from "./light.js";
 import * as gl from "./gl.js";
 import * as ground from "./ground.js";
 import { renderScene, night } from "./render.js";
-import { createPlayer, damagePlayer, eat, drink } from "./entities/player.js";
+import { createPlayer, damagePlayer, eat, drink, aimOrigin } from "./entities/player.js";
 import { createZombie } from "./entities/zombie.js";
 import { createVillager, damageVillager } from "./entities/villager.js";
 import { initHud, updateHud } from "./ui/hud.js";
@@ -41,6 +41,7 @@ import * as interactions from "./interactions.js";
 import * as world from "./world.js";
 import * as game from "./game.js";
 import * as save from "./save.js";
+import * as net from "./net.js";
 import * as verbs from "./verbs.js";
 import * as stations from "./stations.js";
 import * as stationPanel from "./ui/station-panel.js";
@@ -327,8 +328,11 @@ function update(dt) {
 }
 
 function stepGame(dt) {
+  // A guest's world is the host's (net.js): nothing here steps it; the keys, the camera, sight,
+  // and the ground are still this client's own.
+  const guest = net.isGuest();
   // The world first: the rules, the clock, the fires, the chunks round each player (game.js).
-  game.begin(dt);
+  if (!guest) game.begin(dt);
   if (input.wasPressed("KeyV")) drawAll = !drawAll;
   if (input.wasPressed("KeyN")) toggleBuild();
   if (input.wasPressed("KeyX")) toggleRemove();
@@ -357,7 +361,7 @@ function stepGame(dt) {
   if (!glError) ground.update(camera.cam.gx, camera.cam.gy, tiles);
   // Placement first: its ghost follows the cursor and a left click that
   // places is spent before anything else can use it (docs/13).
-  placement.update(S.player);
+  if (!guest) placement.update(S.player);
   if (buildPalette.isOpen()) {
     if (S.player.carrying || panel.isOpen()) buildPalette.close();
     else buildPalette.render(S.player);
@@ -370,7 +374,7 @@ function stepGame(dt) {
   const under = interact.characterAt(input.getMouse().x, input.getMouse().y);
   cursor.setOverDead(!!under && under.kind === "zombie" && !under.dead);
   // Use mode (use.js): the label names what is under the cursor, and a left click on the world is the target, spent here.
-  if (use.isActive()) {
+  if (!guest && use.isActive()) {
     const target = useTargetAt(input.getMouse().x, input.getMouse().y);
     use.hover(target);
     if (clicked && !panel.isOpen()) {
@@ -378,14 +382,19 @@ function stepGame(dt) {
       clicked = false;
     }
   }
-  const clickSpent = clicked && placement.tryConfirm(S.player);
-  handleMouse();
-  interact.updateInteract(S.player, dt);
+  const clickSpent = !guest && clicked && placement.tryConfirm(S.player);
+  if (!guest) {
+    handleMouse();
+    interact.updateInteract(S.player, dt);
+  }
   // The world: the player from the mouse and the keys as a snapshot (docs/23a, D1;
   // never the input module), the dead, the villagers, the light (game.js).
-  game.step(dt, new Map([[S.player.id, {
+  const mouse = input.getMouse();
+  const o = aimOrigin(S.player);
+  const mySnap = {
     axis: input.moveAxis(),
     sprint: input.isDown("ShiftLeft") || input.isDown("ShiftRight"),
+    aim: { x: mouse.x - o.x, y: mouse.y - o.y }, // the cursor relative to the chest, a vector a host can read (net.js)
     clicked,
     clickSpent,
     mouse: input.getMouse(),
@@ -395,7 +404,12 @@ function stepGame(dt) {
     offDown: buttons.off.down,
     space: input.wasPressed("Space"),
     blocked: panel.isOpen() || menu.isMenuOpen(),
-  }]]));
+  };
+  if (guest) net.guestStep(mySnap);
+  else {
+    game.step(dt, net.hostStep(mySnap, S.player));
+    net.hostAfterStep();
+  }
   const px = Math.round(S.player.gx);
   const py = Math.round(S.player.gy);
   playerRoom = map.roomAt(px, py); // refinds rooms if a wall changed
@@ -464,7 +478,7 @@ async function restoreWorld(snap) {
   use.cancel();
   buildPalette.close();
   light.update();
-  if (!glError) await ground.reload();
+  if (!glError) ground.invalidateAll();
   visible = visibility.computeVisible(Math.round(S.player.gx), Math.round(S.player.gy), tiles);
   lastAutosave = loop.simTime();
 }
@@ -790,13 +804,34 @@ async function boot() {
     } },
   ]);
 
+  // The wire (net.js, docs/31/04): `?host=<code>` opens this world to guests on this origin; `?join=<code>`
+  // joins one (`&lag=100` adds a delay each way). A guest skips the title: its world arrives from the host.
+  const url = new URLSearchParams(window.location.search);
+  net.init({ host: url.get("host"), join: url.get("join"), lag: url.get("lag") }, {
+    restore: async (snap, playerId) => {
+      await restoreWorld(snap);
+      S.player = S.players.find((p) => p.id === playerId) || S.player;
+      game.state.player = S.player;
+      refreshFigure(true);
+      camera.snapTo(S.player.gx, S.player.gy);
+    },
+    joined: (id) => showMessage(`Joined as ${id}.`, 3),
+    message: (text) => showMessage(text, 3),
+    chunksChanged: (chunks) => {
+      for (const d of chunks) ground.invalidate([[d.cx * map.CHUNK + 8, d.cy * map.CHUNK + 8], [d.cx * map.CHUNK, d.cy * map.CHUNK], [d.cx * map.CHUNK + 15, d.cy * map.CHUNK + 15]]);
+    },
+  });
+  window.addEventListener("pagehide", () => net.leave());
   loop.start({ update, render, crash: shell.crash });
   // The slot's save shows on the title as Continue (save.js); a dead one as a line and New game.
   const slot = save.read(MAP_NAME);
-  screens.show("title", { save: slot, saveLabel: slot ? save.label(slot) : "" });
+  if (net.isGuest()) {
+    started = true;
+    showMessage("Joining the host's world…", 4);
+  } else screens.show("title", { save: slot, saveLabel: slot ? save.label(slot) : "" });
   // Autosave: every AUTOSAVE seconds of game time, and when the tab is hidden or left (the parent's rule).
   const autosave = () => {
-    if (!started || S.player.dead) return;
+    if (!started || S.player.dead || net.isGuest()) return; // a guest's world is the host's to save
     save.write(save.snapshot(MAP_NAME));
     lastAutosave = loop.simTime();
   };
@@ -818,6 +853,7 @@ async function boot() {
     save,
     restoreWorld,
     // A second player into this world, for the checks and for the plan (docs/31/03): standing, controlled by nobody.
+    net,
     addPlayer: (gx, gy, opts) => {
       const p = game.addPlayer(gx, gy, opts);
       refreshFigureOf(p, true);
