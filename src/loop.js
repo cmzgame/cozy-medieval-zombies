@@ -50,8 +50,15 @@ export function isPaused() {
 }
 
 // Hold game time for `seconds` (hit-stop, docs/14). Rendering goes on; the
-// longest request wins, they do not add.
+// longest request wins, they do not add. On the wire no one's blow holds the
+// world (docs/31/05, item 13): the hold is refused, the kick stays.
+let freezeAllowed = true;
+export function setFreezeAllowed(on) {
+  freezeAllowed = !!on;
+}
+
 export function freeze(seconds) {
+  if (!freezeAllowed) return;
   freezeLeft = Math.max(freezeLeft, seconds);
 }
 

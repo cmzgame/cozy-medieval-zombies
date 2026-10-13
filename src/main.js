@@ -186,8 +186,11 @@ function useTargetAt(sx, sy) {
 // screen; with nothing open it opens the pause menu (Michael, 2026-10-10, as
 // Zomboid does). Handled on the key event, not in the step, because the step
 // does not run while paused.
+// A screen pauses the world only in a game played alone. On the wire, as a host or a guest,
+// the world never pauses (Michael, 2026-10-13, Zomboid's way): the menu is this client's own,
+// over a running world, and its player stands still while it is up (the idle snapshot below).
 function setPaused(v) {
-  loop.setPaused(v);
+  loop.setPaused(v && !net.onTheWire());
   if (!v) input.endStep(); // keys pressed while paused do not fire on resume
 }
 
@@ -363,8 +366,15 @@ function stepGame(dt) {
   // A guest's world is the host's (net.js): nothing here steps it; the keys, the camera, sight,
   // and the ground are still this client's own.
   const guest = net.isGuest();
+  // A screen up on the wire: the world runs on, but nothing pressed reaches it or this client's modes.
+  const screenUp = !!screens.currentScreen();
+  loop.setFreezeAllowed(!net.onTheWire());
   // The world first: the rules, the clock, the fires, the chunks round each player (game.js).
   if (!guest) game.begin(dt);
+  if (screenUp) {
+    stepWithScreenUp(dt, guest);
+    return;
+  }
   if (input.wasPressed("KeyV")) drawAll = !drawAll;
   if (input.wasPressed("KeyN")) toggleBuild();
   if (input.wasPressed("KeyX")) toggleRemove();
@@ -522,6 +532,30 @@ async function continueSave() {
   await restoreWorld(snap);
   screens.hide();
   showMessage(`${clock.getLabel()}. Welcome back.`, 3);
+}
+
+// The step while a screen is up on the wire: the camera and the world, my player idle, no keys.
+function stepWithScreenUp(dt, guest) {
+  const player = S.player;
+  camera.follow(player, dt);
+  camera.applyOrigin(V.w, V.h);
+  if (!glError) ground.update(camera.cam.gx, camera.cam.gy, tiles);
+  const mySnap = { ...game.idleSnapshot(), idle: true };
+  if (guest) net.guestStep(mySnap);
+  else {
+    game.step(dt, net.hostStep(mySnap, player));
+    net.hostAfterStep();
+  }
+  const px = Math.round(player.gx);
+  const py = Math.round(player.gy);
+  playerRoom = map.roomAt(px, py);
+  const key = `${px},${py}|${Math.round(camera.cam.gx)},${Math.round(camera.cam.gy)}|${map.worldVersion}|${V.w}x${V.h}`;
+  if (key !== visKey) {
+    tiles = camera.viewportTiles(V.w, V.h);
+    visible = visibility.computeVisible(px, py, tiles);
+    visKey = key;
+  }
+  refreshFigure();
 }
 
 function render() {
