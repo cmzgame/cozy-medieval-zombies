@@ -61,6 +61,10 @@ export function initInventoryPanel(h) {
   hotbar.hidden = true;
   document.getElementById("ui").appendChild(hotbar);
 
+  root.addEventListener("pointerdown", (e) => {
+    const wrap = e.target.closest(".inv-body, .doll-wrap");
+    if (wrap) focus(wrap === body ? "bag" : "character");
+  }, true);
   for (const el of [root, hotbar]) {
     el.addEventListener("pointerdown", onPointerDown);
     el.addEventListener("dblclick", (e) => {
@@ -136,13 +140,22 @@ function refreshVisibility() {
   if (!open && !character) cancelDrag();
 }
 
+// Where the two overlap, the one last opened or touched is on top (Michael, 2026-10-12).
+function focus(which) {
+  if (!body || !dollEl) return;
+  body.style.zIndex = which === "bag" ? "2" : "1";
+  dollEl.style.zIndex = which === "bag" ? "1" : "2";
+}
+
 export function setBagOpen(v) {
   open = !!v;
+  if (open) focus("bag");
   refreshVisibility();
 }
 
 export function setCharacterOpen(v) {
   character = !!v;
+  if (character) focus("character");
   refreshVisibility();
 }
 
@@ -216,7 +229,7 @@ function itemHtml(entry, index, which) {
 // that closes the panel (Michael, 2026-10-12); dragging it moves the panel.
 function headerHtml(title, buttons = "", close = null) {
   const x = close ? `<button class="kit-button inv-close" data-close="${close}" title="Close">×</button>` : "";
-  return `<div class="inv-header kit-plate"><span class="inv-title">${title}</span><span class="inv-tools">${buttons}${x}</span></div>`;
+  return `<div class="inv-header kit-header"><span class="inv-title">${title}</span><span class="inv-tools">${buttons}${x}</span></div>`;
 }
 
 function columnHtml(which, bag, title) {
@@ -318,7 +331,7 @@ function applyPositions() {
     const wrap = wrapOf(which);
     if (!wrap || wrap.hidden) continue;
     if (pos[which]) place(wrap, pos[which].x, pos[which].y);
-    else wrap.removeAttribute("style");
+    else for (const k of ["left", "top", "right", "transform"]) wrap.style.removeProperty(k); // home, as the stylesheet puts it
   }
 }
 

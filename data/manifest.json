@@ -1,5 +1,5 @@
 {
-  "version": "98ebde25",
+  "version": "fc4f1de9",
   "files": {
     "data/build.json": {"size": 392, "stamp": "d20c5483"},
     "data/combat.json": {"size": 2154, "stamp": "22f3d3c3"},
@@ -361,7 +361,7 @@
     "data/sprites/tree_yellow_l.json": {"size": 293, "stamp": "bc81a543"},
     "data/sprites/tree_yellow_m.json": {"size": 290, "stamp": "71469207"},
     "data/sprites/tree_yellow_old.json": {"size": 292, "stamp": "e3d6629b"},
-    "data/sprites/ui_kit.json": {"size": 497, "stamp": "7a91224f"},
+    "data/sprites/ui_kit.json": {"size": 529, "stamp": "db333582"},
     "data/sprites/wall_boards.json": {"size": 1650, "stamp": "42ce3cfb"},
     "data/sprites/wall_log.json": {"size": 1492, "stamp": "34f9a1b7"},
     "data/sprites/wall_parts_log.json": {"size": 1634, "stamp": "46fded74"},

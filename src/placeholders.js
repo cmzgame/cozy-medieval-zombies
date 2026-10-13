@@ -1291,7 +1291,9 @@ export function generateUiKit(ph) {
   const mortar = shade(stone, 0.58);
   const cutDark = shade(cut, 0.5);
   const cutLight = shade(stone, 1.3);
-  const { canvas, ctx } = makeCanvas(32 + 15 + 9 + 38 + 18 * 3 + 9, 38);
+  const moss = ph.moss || "#6b7a46";
+  const F = 64; // the frame tile: the band 8 wide, the brick field 48 square
+  const { canvas, ctx } = makeCanvas(F + 15 + 9 + 38 + 18 * 3 + 9 + 9, F);
   const frames = {};
   let x0 = 0;
   const px = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x0 + x, y, w, h); };
@@ -1306,24 +1308,35 @@ export function generateUiKit(ph) {
     px(1, n - 1 - b, n - 2, b, z); px(n - 1 - b, 1, b, n - 2, z);
   };
 
-  // The frame: 32 square, the band 8 wide (slice 8), the brick field 16 square.
-  chrome(32, 2, stone, light, dark, false);
-  px(7, 7, 18, 1, dark); px(7, 24, 18, 1, dark); px(7, 7, 1, 18, dark); px(24, 7, 1, 18, dark); // the groove round the field
-  for (let y = 8; y < 24; y += 8) {
-    const off = ((y - 8) / 8) % 2 ? 8 : 0;
-    for (let x = off - 16; x < 24; x += 16) {
+  // The frame: the band 8 wide (slice 8), the brick field 48 square (the
+  // centre slice), bricks 16 by 8 in staggered rows: the period divides the
+  // field, so it repeats without a seam, and a crack and two patches of moss
+  // on fixed bricks come round only every 48 pixels (Michael, 2026-10-12:
+  // occasional cracks, a mild mossy look).
+  const f0 = 8, f1 = F - 8;
+  chrome(F, 2, stone, light, dark, false);
+  px(f0 - 1, f0 - 1, f1 - f0 + 2, 1, dark); px(f0 - 1, f1, f1 - f0 + 2, 1, dark); px(f0 - 1, f0 - 1, 1, f1 - f0 + 2, dark); px(f1, f0 - 1, 1, f1 - f0 + 2, dark); // the groove round the field
+  for (let y = f0; y < f1; y += 8) {
+    const off = ((y - f0) / 8) % 2 ? 8 : 0;
+    for (let x = off - 16; x < f1; x += 16) {
       // One brick: stone, a light top and left, mortar at the bottom and the right, clipped to the field.
-      const bx = Math.max(8, x), bw = Math.min(24, x + 16) - bx;
+      const bx = Math.max(f0, x), bw = Math.min(f1, x + 16) - bx;
       if (bw <= 0) continue;
       px(bx, y, bw, 8, stone);
-      if (x >= 8) px(x, y, 1, 7, light);
+      if (x >= f0) px(x, y, 1, 7, light);
       px(bx, y, bw, 1, light);
       px(bx, y + 7, bw, 1, mortar);
-      if (x + 15 < 24) px(x + 15, y, 1, 8, mortar);
+      if (x + 15 < f1) px(x + 15, y, 1, 8, mortar);
     }
   }
-  frames.frame = [x0, 0, 32, 32];
-  x0 += 32;
+  // A crack across the second brick of the third row: a one-pixel dark line that steps.
+  for (const [cx, cy] of [[26, 25], [27, 26], [28, 26], [29, 27], [30, 28], [31, 28], [32, 29], [33, 30], [34, 30]]) px(cx, cy, 1, 1, mortar);
+  // Moss in the mortar at two corners, a few pixels each, two tones.
+  const mossDark = shade(moss, 0.75);
+  for (const [mx, my, c] of [[15, 14, moss], [16, 14, moss], [14, 15, moss], [15, 15, mossDark], [16, 15, moss], [15, 16, mossDark],
+    [39, 46, moss], [40, 46, mossDark], [41, 46, moss], [38, 47, moss], [39, 47, mossDark], [40, 47, moss], [41, 47, moss], [40, 48, mossDark], [42, 47, mossDark]]) px(mx, my, 1, 1, c);
+  frames.frame = [x0, 0, F, F];
+  x0 += F;
 
   // The well, a cutout 15 square (slice 5): the outline, two of dark, two of light.
   chrome(15, 2, cut, cutLight, cutDark, true);
@@ -1346,6 +1359,13 @@ export function generateUiKit(ph) {
   // strip, and the belt's bar (Michael, 2026-10-12: flat and simple there).
   chrome(9, 1, stone, light, dark, false);
   frames.plate = [x0, 0, 9, 9];
+  x0 += 9;
+
+  // The header, flat and dark like a slot's fill with a one-pixel darker edge,
+  // no bevel (slice 3; Michael, 2026-10-12: the same dark grey as the slots).
+  px(0, 0, 9, 9, cutDark);
+  px(1, 1, 7, 7, cut);
+  frames.header = [x0, 0, 9, 9];
   x0 += 9;
 
   // The button, 18 square (slice 6), three states.

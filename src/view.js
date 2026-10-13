@@ -79,10 +79,12 @@ function zoomFromSetting() {
 }
 
 // A UI scale that reads on this window: about 85 percent of what the probe
-// size would scale to, in quarter steps, never below 1.
+// size would scale to, in quarter steps, never below 1 and never above 2
+// (Michael, 2026-10-12: the interface is capped at 2x, auto or chosen).
+export const UI_SCALE_MAX = 2;
 function autoUiScale(ww, wh) {
   const fit = Math.min(ww / BASE_W, wh / BASE_H);
-  return Math.max(1, Math.round(fit * 0.85 * 4) / 4);
+  return Math.min(UI_SCALE_MAX, Math.max(1, Math.round(fit * 0.85 * 4) / 4));
 }
 
 export function zoomIndex() {
@@ -133,7 +135,7 @@ export function resize() {
   input.setScale(s);
 
   const us = settings.get("uiScale");
-  const u = us === "auto" ? autoUiScale(ww, wh) : us;
+  const u = us === "auto" ? autoUiScale(ww, wh) : Math.min(UI_SCALE_MAX, Number(us) || 1);
   const uw = Math.ceil(ww / u);
   const uh = Math.ceil(wh / u);
   ui.style.left = "0px";

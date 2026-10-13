@@ -27,7 +27,7 @@ export const DEFAULTS = {
 
 // What the settings screen offers, in order.
 export const CHOICES = {
-  uiScale: [["auto", "Auto"], [1, "1×"], [1.25, "1.25×"], [1.5, "1.5×"], [1.75, "1.75×"], [2, "2×"], [2.5, "2.5×"], [3, "3×"]],
+  uiScale: [["auto", "Auto"], [1, "1×"], [1.25, "1.25×"], [1.5, "1.5×"], [1.75, "1.75×"], [2, "2×"]], // capped at 2 (Michael, 2026-10-12)
   worldScale: [["auto", "Auto"], [1.1, "Wide"], [1.8, "Middle"], [2.7, "Close"]],
   debugCorner: [[true, "Shown"], [false, "Hidden"]],
   zombieAggro: [[false, "Off (they ignore you)"], [true, "On (they hunt you)"]],

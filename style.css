@@ -98,7 +98,7 @@ html, body {
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
 }
 
-/* The flat plate: a panel's header strip and the belt's bar (Michael, 2026-10-12: simple there). */
+/* The flat plate: the belt's bar (Michael, 2026-10-12: simple there). */
 .kit-plate,
 #hotbar {
   box-sizing: border-box;
@@ -106,6 +106,17 @@ html, body {
   border-image-source: var(--kit-plate);
   border-image-slice: var(--kit-plate-slice, 3) fill;
   border-image-width: var(--kit-plate-w, 3px);
+  border-image-repeat: repeat;
+  image-rendering: pixelated;
+}
+
+/* The header: flat and dark like a slot's fill, no bevel (Michael, 2026-10-12). */
+.kit-header {
+  box-sizing: border-box;
+  border: var(--kit-header-w, 3px) solid transparent;
+  border-image-source: var(--kit-header);
+  border-image-slice: var(--kit-header-slice, 3) fill;
+  border-image-width: var(--kit-header-w, 3px);
   border-image-repeat: repeat;
   image-rendering: pixelated;
 }
@@ -573,8 +584,8 @@ html, body {
   padding: 2px 4px 4px;
 }
 
-/* The header: the title on the flat plate, the buttons and the X on the right; drag it to move the
-   panel (Michael, 2026-10-12). */
+/* The header: the title on the dark header strip, the buttons and the X on the right; drag it to move
+   the panel (Michael, 2026-10-12). */
 .inv-header {
   display: flex;
   justify-content: space-between;
