@@ -28,7 +28,6 @@ import { createVillager } from "./entities/villager.js";
 import { say } from "./entities/character.js";
 
 let role = null; // "host" | "guest" | null (alone)
-let channel = null;
 let code = null;
 let lag = 0; // ms added to every message, both ways
 let selfId = null; // this tab's name on the channel
@@ -84,10 +83,11 @@ export function makeCode() {
 const JOIN_WAIT_MS = 10000;
 let firstJoinAt = 0;
 
-// Leave the wire: the channel closed, the role given up; the world here stays as it is.
+// Leave the wire: the transport closed, the role given up; the world here stays as it is.
 export function close() {
-  if (channel) channel.close();
-  channel = null;
+  const t = transport;
+  transport = null;
+  if (t) t.close();
   role = null;
   code = null;
   joined = false;
@@ -99,21 +99,109 @@ export function close() {
   pendingOpened.length = 0;
 }
 
+// ---- the transports (docs/31/04; ruled 2026-10-13, docs/02) ----
+// Two carry the same messages. The loopback is a BroadcastChannel between tabs of one browser,
+// the two-tab test. The relay is a WebSocket to server/relay.js, which is how friends anywhere
+// join from the GitHub Pages site: the host registers its code there, guests name it, and the
+// relay forwards, stamping `from` with the connection's own id. With a relay address known
+// (RELAY_URL, or `?relay=` on the URL; `?relay=none` forces the loopback) Host and Join use it.
+
+export const RELAY_URL = null; // the relay the site carries, e.g. "wss://cmz-relay.example.app" (docs/31/07, question 20)
+let relayUrl = RELAY_URL;
+let transport = null; // { kind: "loopback" | "relay", ready, send(msg), close() }
+
+export function setRelay(url) {
+  if (url === "none" || url === "loopback") relayUrl = null;
+  else if (url) relayUrl = url;
+}
+
+// A message in from either transport: the relay's own words answered here, the rest to the inbox.
+function receive(msg) {
+  if (!msg || typeof msg !== "object") return;
+  if (msg.type === "relay") {
+    selfId = msg.id; // the relay names me; the host keys its guests by these
+    return;
+  }
+  if (msg.type === "error") return dropped(msg.reason === "nohost" || msg.reason === "taken" ? msg.reason : "relay");
+  if (msg.type === "hostLeft") return dropped("hostLeft");
+  if (msg.to && msg.to !== selfId) return; // the loopback is one channel for everyone; the relay routes
+  if (lag) setTimeout(() => inbox.push(msg), lag);
+  else inbox.push(msg);
+}
+
+// The wire gone from under a role: closed here, the client told why (hooks.failed(code, why, role)).
+// `why`: "timeout" (no welcome), "nohost" (the relay knows no such code), "taken" (a host's code in use),
+// "relay" (the relay unreachable or gone), "dropped" (a joined guest's connection lost), "hostLeft".
+function dropped(why) {
+  const wasRole = role;
+  const wasCode = code;
+  const wasJoined = joined;
+  close();
+  if (wasRole && hooks.failed) hooks.failed(wasCode, wasRole === "guest" && wasJoined && why === "relay" ? "dropped" : why, wasRole);
+}
+
+function openLoopback(wantCode) {
+  if (typeof BroadcastChannel === "undefined") return false;
+  const ch = new BroadcastChannel(`cmz-wire-${wantCode}`);
+  ch.onmessage = (e) => receive(e.data);
+  transport = { kind: "loopback", ready: true, send: (m) => ch.postMessage(m), close: () => ch.close() };
+  return true;
+}
+
+function openRelay(wantRole, wantCode) {
+  if (typeof WebSocket === "undefined") return false;
+  let ws;
+  try {
+    ws = new WebSocket(relayUrl);
+  } catch {
+    return false;
+  }
+  const queue = []; // sent before the socket opened: the guest's first join, usually
+  let done = false;
+  const t = {
+    kind: "relay",
+    ready: false,
+    send: (m) => {
+      if (t.ready) ws.send(JSON.stringify(m));
+      else queue.push(m);
+    },
+    close: () => {
+      done = true;
+      try { ws.close(); } catch { /* already gone */ }
+    },
+  };
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ type: wantRole, code: wantCode })); // the first word: who I am, which world
+    t.ready = true;
+    for (const m of queue.splice(0)) ws.send(JSON.stringify(m));
+  };
+  ws.onmessage = (e) => {
+    let m;
+    try { m = JSON.parse(e.data); } catch { return; }
+    receive(m);
+  };
+  const gone = () => {
+    if (done) return;
+    done = true;
+    if (transport === t) dropped("relay");
+  };
+  ws.onerror = gone;
+  ws.onclose = gone;
+  transport = t;
+  return true;
+}
+
 // Open this tab's world to guests (host) or join another's (guest), once.
 export function open({ host = null, join = null, lag: l = 0 } = {}) {
   if (role || (!host && !join)) return false;
-  if (typeof BroadcastChannel === "undefined") return false;
-  role = host ? "host" : "guest";
-  code = host || join;
+  const wantRole = host ? "host" : "guest";
+  const wantCode = String(host || join).trim().toLowerCase();
+  if (!wantCode) return false;
+  selfId = `${wantRole}-${Math.random().toString(36).slice(2, 8)}`; // the loopback's; the relay renames me
+  if (!(relayUrl ? openRelay(wantRole, wantCode) : openLoopback(wantCode))) return false;
+  role = wantRole;
+  code = wantCode;
   lag = Math.max(0, Number(l) || 0);
-  selfId = `${role}-${Math.random().toString(36).slice(2, 8)}`;
-  channel = new BroadcastChannel(`cmz-wire-${code}`);
-  channel.onmessage = (e) => {
-    const msg = e.data;
-    if (!msg || msg.to && msg.to !== selfId) return;
-    if (lag) setTimeout(() => inbox.push(msg), lag);
-    else inbox.push(msg);
-  };
   return true;
 }
 
@@ -135,7 +223,7 @@ export function hasGuests() {
 }
 
 export function status() {
-  return { role, code, lag, selfId, guests: [...guests.values()].map((g) => g.playerId), myPlayerId, joined, framesSeen, lastFrameAt, tick, waiting: role === "guest" && !joined };
+  return { role, code, lag, selfId, guests: [...guests.values()].map((g) => g.playerId), myPlayerId, joined, framesSeen, lastFrameAt, tick, waiting: role === "guest" && !joined, transport: transport ? transport.kind : null, relay: relayUrl };
 }
 
 export function setTestSnapshot(s) {
@@ -143,8 +231,8 @@ export function setTestSnapshot(s) {
 }
 
 function send(msg) {
-  if (!channel) return;
-  channel.postMessage({ ...msg, from: selfId });
+  if (!transport) return;
+  transport.send({ ...msg, from: selfId });
 }
 
 // ---- the host ----
@@ -293,7 +381,7 @@ export function guestStep(mySnap) {
   }
   if (!joined && (!joinSentAt || now - joinSentAt > 2000)) {
     joinSentAt = now;
-    if (!firstJoinAt) firstJoinAt = now;
+    if (!firstJoinAt && transport && transport.ready) firstJoinAt = now; // the wait starts once the relay has answered the socket (a sleeping tier wakes slowly)
     send({ type: "join", name: identity.name, look: identity.look });
   }
   for (const msg of inbox.splice(0)) {
@@ -451,5 +539,5 @@ export function openedFor(playerId, what) {
 }
 
 export function leave() {
-  if (role === "guest" && channel) send({ type: "leave" });
+  if (role === "guest" && transport) send({ type: "leave" });
 }

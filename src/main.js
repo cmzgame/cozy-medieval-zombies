@@ -965,6 +965,7 @@ async function boot() {
   // joins one (`&lag=100` adds a delay each way). A guest skips the title: its world arrives from the host.
   const url = new URLSearchParams(window.location.search);
   urlLag = url.get("lag");
+  net.setRelay(url.get("relay")); // `?relay=wss://...` for a relay (server/relay.js), `?relay=none` for the two-tab loopback
   const joinCode = url.get("join");
   net.setIdentity({ name: settings.get("playerName") || null, look: myLook() }); // the identity on the wire from boot; applyIdentity keeps it current
   net.init({ host: url.get("host"), join: joinCode && hasIdentity() ? joinCode : null, lag: urlLag }, {
@@ -987,10 +988,22 @@ async function boot() {
     },
     // A guest's panel command, run here as its player (ui/inventory-actions.js).
     item: (p, cmd) => performItemCommand(p, cmd),
-    // No host answered the code (net.js JOIN_WAIT_MS): back at the title, told why, the world here untouched.
-    failed: (code) => {
+    // The wire gone (net.js dropped): a guest back at the title, told why, the world here untouched; a host told and playing on alone.
+    failed: (code, why, role) => {
+      const st = net.status();
+      const where = st.relay ? `the relay at ${st.relay}` : "another tab of this browser";
+      const notes = {
+        timeout: st.relay ? `No host answered "${code}". The host may have closed the world, or the code is not quite right.` : `No host answered "${code}". Without a relay the host and its guests must be tabs of one browser.`,
+        nohost: `No world is open under "${code}". Check the code with the host.`,
+        taken: `The code "${code}" is in use on the relay; open the world again for a new one.`,
+        relay: `${where[0].toUpperCase()}${where.slice(1)} could not be reached.`,
+        dropped: "The connection to the host dropped.",
+        hostLeft: "The host closed the world.",
+      };
+      const note = notes[why] || `The wire to "${code}" is gone.`;
+      if (role === "host") return showMessage(note, 5);
       started = false;
-      screens.show("title", { ...titleData(), note: `No host answered "${code}". For now the host and its guests must be tabs of one browser; the relay that reaches friends anywhere is the next move.` });
+      screens.show("title", { ...titleData(), note });
     },
     chunksChanged: (chunks) => {
       for (const d of chunks) ground.invalidate([[d.cx * map.CHUNK + 8, d.cy * map.CHUNK + 8], [d.cx * map.CHUNK, d.cy * map.CHUNK], [d.cx * map.CHUNK + 15, d.cy * map.CHUNK + 15]]);

@@ -289,7 +289,7 @@ function render() {
     root.innerHTML = `
       <div class="screen">
         <h1>Host a game</h1>
-        ${open ? `<div class="sub">Your code: <input id="host-code" class="code" type="text" readonly value="${st.code}" spellcheck="false"> <button id="host-copy" class="kit-button">Copy</button></div><div class="sub">${st.guests.length ? `With you: ${st.guests.join(", ")}` : "Waiting for friends. The world runs while this screen is up only if you go back to it."}</div>` : `<div class="sub">Opens this world to friends. For now a friend must join from another tab of this same browser; the relay that reaches friends anywhere is the next move (docs/31/04).</div>`}
+        ${open ? `<div class="sub">Your code: <input id="host-code" class="code" type="text" readonly value="${st.code}" spellcheck="false"> <button id="host-copy" class="kit-button">Copy</button></div><div class="sub">${st.guests.length ? `With you: ${st.guests.join(", ")}` : "Waiting for friends. The world runs while this screen is up only if you go back to it."}</div>` : `<div class="sub">${st && st.relay ? `Opens this world to friends anywhere, through the relay at ${st.relay}: they type the code on Join a game.` : "Opens this world to friends. With no relay set, a friend must join from another tab of this same browser (docs/31/04)."}</div>`}
         <div class="screen-buttons">${open ? "" : button("host-open", "Open this world")}${button("back", open ? "Back to the game" : "Back")}</div>
       </div>`;
   } else if (current === "join" && wireApi) {
