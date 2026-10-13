@@ -442,6 +442,7 @@ async function restoreWorld(snap) {
   openBag = null;
   corpseWatch = null;
   panel.closeAll();
+  stationPanel.close();
   placement.cancel();
   use.cancel();
   buildPalette.close();
@@ -452,12 +453,8 @@ async function restoreWorld(snap) {
 }
 
 async function continueSave() {
-  const snap = save.read();
+  const snap = save.read(MAP_NAME); // the slot is per map (save.js)
   if (!snap || snap.dead) return;
-  if (snap.mapName !== MAP_NAME) {
-    showMessage(`That save is of ${snap.mapName}; this is ${MAP_NAME}.`, 4);
-    return;
-  }
   await restoreWorld(snap);
   screens.hide();
   showMessage(`${clock.getLabel()}. Welcome back.`, 3);
@@ -681,9 +678,8 @@ async function boot() {
         onChange: (name) => {
           setPaused(!!name);
           if (name === null && !started) {
-            started = true; // Play or Continue: from here the world autosaves
+            started = true; // Play or Continue: from here the world autosaves (a new game over an old save: the old one is gone once the first autosave lands)
             lastAutosave = loop.simTime();
-            if (!save.read()?.dead) { /* a new game over an old save: the old one is gone once the first autosave lands */ }
           }
         },
         onReload: () => window.location.reload(),
@@ -774,7 +770,7 @@ async function boot() {
 
   loop.start({ update, render, crash: shell.crash });
   // The slot's save shows on the title as Continue (save.js); a dead one as a line and New game.
-  const slot = save.read();
+  const slot = save.read(MAP_NAME);
   screens.show("title", { save: slot, saveLabel: slot ? save.label(slot) : "" });
   // Autosave: every AUTOSAVE seconds of game time, and when the tab is hidden or left (the parent's rule).
   const autosave = () => {
