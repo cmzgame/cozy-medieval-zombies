@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-12 — The cursor: the design agent's three hands as a CSS cursor, four choices in Settings, the system's own the default (Michael)
+
+The delivery (`data/art/cursors`, three pointing hands at 1x, 2x, 3x with one shared fingertip hotspot, and the agent's README beside them) offered two ways in. **The engine-drawn way is refused:** a cursor is UI, and UI is never drawn into the canvas; it would also trail the mouse a frame and vanish over the panels. **The CSS cursor is built** (`src/ui/cursor.js`): the 2x file at its own pixels (30 by 40, a system cursor's size) on the whole page, so it is one hand over the map and the panels alike, crisp and without lag; the hotspot is the fingertip, shared, so a swap never moves the click. **Four choices on the settings screen** (Michael: "the 3 variations along with default for the normal one, which should be the default choice lol"): Default (the system's), A hand, A severed hand, A zombie hand; the default is Default. With the hand, the zombie hand shows over one of the dead (`characterAt`, already run for the menu). The severed hand as a low-health cursor is a later gameplay call, as the README says.
+
 ### 2026-10-12 — Walking through a field makes it wobble (Michael)
 
 "Some but not all of those interactable objects can be pathed through, crops are the big one": any character, the player, the dead, or a villager, walking through an interactable that can be walked entirely through sets it swaying as a click would, which is what makes a field read as a field: the movement interacts with it. Trees and rocks are excluded by the same test, `solid` on the prop (`interact.brushThrough`, called for everyone each step). One round finishes before the next starts (the sway's own 560 ms is the gap), so the sway is never restarted mid-way; walking on keeps it going, standing still in it does not. A definition's `"sway": false` or `clickAnim` holds here too.

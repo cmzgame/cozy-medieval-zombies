@@ -1,0 +1,32 @@
+{
+ "cursor_human": {
+  "size": [
+   15,
+   20
+  ],
+  "hotspot_px": [
+   4,
+   0
+  ]
+ },
+ "cursor_severed": {
+  "size": [
+   15,
+   22
+  ],
+  "hotspot_px": [
+   4,
+   0
+  ]
+ },
+ "cursor_zombie": {
+  "size": [
+   15,
+   22
+  ],
+  "hotspot_px": [
+   4,
+   0
+  ]
+ }
+}

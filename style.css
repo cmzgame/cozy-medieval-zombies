@@ -34,6 +34,12 @@
   display: none !important;
 }
 
+/* The cursor (ui/cursor.js; the design agent's hands, data/art/cursors): one hand over everything,
+   the 2x files at their own pixels, the hotspot the fingertip (9, 1 in the 2x file). */
+html.cursor-human, html.cursor-human * { cursor: url("data/art/cursors/cursor_human@2x.png") 9 1, auto !important; }
+html.cursor-severed, html.cursor-severed * { cursor: url("data/art/cursors/cursor_severed@2x.png") 9 1, auto !important; }
+html.cursor-zombie, html.cursor-zombie * { cursor: url("data/art/cursors/cursor_zombie@2x.png") 9 1, auto !important; }
+
 html, body {
   margin: 0;
   padding: 0;

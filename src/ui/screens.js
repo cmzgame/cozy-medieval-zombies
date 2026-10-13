@@ -171,6 +171,7 @@ function render() {
         ${settingRow("zombiesAttackVillagers", "Zombies attack villagers")}
         ${settingRow("survival", "Survival")}
         ${settingRow("freeBuilding", "Free building")}
+        ${settingRow("cursor", "Cursor")}
         ${settingRow("debugCorner", "Debug corner")}
         ${settingRow("squareSurface", "Square and paths")}
         ${settingRow("aimGuide", "Bow aim guide")}

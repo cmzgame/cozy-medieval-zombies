@@ -34,6 +34,7 @@ import { refreshCorpse, createCharacter, wardrobeInto } from "./entities/charact
 import * as menu from "./ui/context-menu.js";
 import * as panel from "./ui/inventory-panel.js";
 import * as kit from "./ui/kit.js";
+import * as cursor from "./ui/cursor.js";
 import * as interact from "./interact.js";
 import * as items from "./items.js";
 import * as inventory from "./inventory.js";
@@ -351,6 +352,9 @@ function stepGame(dt) {
   // after the player has turned to the cursor this step.
   buttons.update(dt);
   const clicked = input.mouseLeftPressed() && !menu.tookClick();
+  // With the hand cursor, the zombie hand over one of the dead (ui/cursor.js).
+  const under = interact.characterAt(input.getMouse().x, input.getMouse().y);
+  cursor.setOverDead(!!under && under.kind === "zombie" && !under.dead);
   const clickSpent = clicked && placement.tryConfirm(player);
   handleMouse();
   interact.updateInteract(player, dt);
@@ -696,6 +700,7 @@ async function boot() {
     } },
     { name: "ui", label: "Setting the table", weight: 1, async run() {
       kit.apply(); // the stone, the well, and the button as CSS, before any panel is built (docs/23, step 4)
+      cursor.init();
       initHud();
       initPrompt();
       initZombieBars();
