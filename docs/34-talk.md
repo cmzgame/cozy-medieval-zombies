@@ -60,6 +60,16 @@ The seven villagers of the valley (`tools/mapgen/valley.py`, the `villager` call
 
 `python -I tools/validate-data.py` checks every talk file: every `goto` names a node, `start` exists, every condition name is known and its value the right type, every talk id in `villagerAlive` and `villagerDead` exists, no unknown key anywhere, and a bark line is at most [70 characters] so the bubble stays a bubble.
 
+## The guide: one villager who explains the rules (Michael, 2026-10-13)
+
+One chosen villager always stands somewhere safe from the dead in the village, so there is always someone to ask how the game works. Talk to them, and the choices are the questions a new player has: how do I farm, how do I get water, how do I keep a fire, and so on, each answered plainly in their voice.
+
+- **Who and where:** [the Innkeeper, in the inn's taproom: the village's refuge (`29/04`), its windows boarded from inside, its doors starting shut, two lit hearths, about 60 tiles north of the spawn up the lane]. The map file marks them (`guide: true` on the villager in `valley.py`, kept on the villager like `talk`). [The Reeve, twelve tiles from the spawn, is the alternative if the walk is too far for a first question.]
+- **Safe, and kept safe by a check, not by luck:** the generator refuses to write the map if any of the dead is placed inside the guide's building or within [12 tiles] of the guide; the guide's wander stays inside their room (villagers already keep to their own side of the walls, `movement.roomOf`). [The dead never pick the guide as a target even with Zombies attack villagers on, so the one who explains the rules cannot be lost to a setting.]
+- **The topics are the game's systems as they are built:** [water (the wells and any water, the waterskin, drinking and filling); food and cooking (eating, any lit fire that cooks, the oven); fire (fuel, feeding, the hours); sleep (a bed indoors, and with friends, everyone in bed); shelter (doors and shutters on `E`, boards on `B`, the dead breaking in); fighting (the three buttons, the weapons, wear by kills); making things (the stations, their recipes, the ingredients reached in the bag and nearby containers); healing (bleeding and bandages); building and carrying (`N`, `X`, furniture on your head); the bag, the belt, and the character screen]. Farming, the map, and each system to come join the list when they are built. **[A rule with it: every new system adds its question to the guide's file in the same commit, as every change carries the guest's side.]** An answer is a few short lines, then back to the questions; a topic may have a follow-up or two.
+- **It is still talk:** it teaches, it gates nothing, and everything it says is also learnable by playing (the Controls screen, the menus, the prompts). The guide's file is written whole by the implementer from the game as built, checked against the code, and Michael tunes the voice.
+- **Their bark points the way:** poked, the guide says something like "Ask me anything, if you're stuck." [in the fallback group].
+
 ## How it works
 
 ### The module (`src/talk.js`, no DOM, runs headless)
@@ -94,13 +104,13 @@ Loads `data/talk/` at boot (the manifest lists it, `tools/manifest.py`), and off
 
 1.0's villagers are pre-authored and fixed (Michael, 2026-10-13): the richest have several topics, a lot to say, and several paths; the player picks from a few set options at each turn, OSRS style; there for the player to explore, never required.
 
-The engine is small; the writing is the work. The implementer writes **one whole file, the Innkeeper's** (barks for the dead near, night, poked, and ambient; a conversation with four or five topics: who they are, the inn, the valley, how to keep a fire, and one about the dead that shows only when `deadInWorld`), and **stub files for the other six** (their map `line` as the fallback bark, one ambient group, a two-node conversation in their voice), so every path is exercised. Michael, or a writing session he starts, fills the rest. The voice, from `00`: short plain lines; cute and gloomy together, never resolved; deaths said plainly; people referred to as they and them; humour allowed, the OSRS kind; no line that tells the player they must do something.
+The engine is small; the writing is the work. The implementer writes **one whole file, the Innkeeper's, who is the guide** (barks for the dead near, night, poked, and ambient; a conversation with the guide's questions, above, plus who they are, the inn, the valley, and one about the dead that shows only when `deadInWorld`), and **stub files for the other six** (their map `line` as the fallback bark, one ambient group, a two-node conversation in their voice), so every path is exercised. Michael, or a writing session he starts, fills the rest. The voice, from `00`: short plain lines; cute and gloomy together, never resolved; deaths said plainly; people referred to as they and them; humour allowed, the OSRS kind; no line that tells the player they must do something.
 
 ## Build order
 
 Each step verified in the browser pane through `window.__game` with `loop.setPaused(true)` and `loop.advance(1/60)` before the next; `?nosave` on the URL; `node --check` on every touched module.
 
-1. **The data and the module.** `data/talk/` with the Innkeeper's file and the six stubs, the talk ids in `valley.py` (rerun it: `python -I tools/mapgen/valley.py`) and on the villagers, `src/talk.js`, the validator's rows, the manifest. Verify headless: every node of every file reachable, every condition evaluated against a world from `node tools/world.js`.
+1. **The data and the module.** `data/talk/` with the Innkeeper's file and the six stubs, the talk ids and the guide's mark in `valley.py` with the generator's safety refusal (rerun it: `python -I tools/mapgen/valley.py`) and on the villagers, the guide skipped by the dead's targeting, `src/talk.js`, the validator's rows, the manifest. Verify headless: every node of every file reachable, every condition evaluated against a world from `node tools/world.js`.
 2. **Barks.** The poke's bark, the ambient barks, the turns. Verify: poke the Innkeeper by day and by night (`]` moves the clock) and with a zombie placed near; stand near and wait out the cooldown; the determinism hash on a fresh boot unchanged.
 3. **The guest's poke by id.** Two tabs: the guest left-clicks a villager, the host's villager barks, both logs show the line.
 4. **Conversations.** The menu entry and `E`, the host's `perform`, `talkingWith`, the panel, the endings, the guest's `talk` message and `sendTalkEnd`. Two tabs: each player talks to the same villager at once; the villager stands while either panel is open and wanders when both close; `check("sync")` passes throughout.
@@ -109,6 +119,7 @@ Each step verified in the browser pane through `window.__game` with `loop.setPau
 ## Acceptance (`await __game.check("talk")`, plus the two-tab rows by hand)
 
 1. Every talk file validates; every node is reachable from `start`.
+1. The guide: exactly one villager is marked; none of the dead stands inside their building or within the radius at boot; with Zombies attack villagers on, the dead nearby do not target them; every topic of the guide's file names a system that exists in the code.
 2. A poke by day, by night, and with the dead near each gives a line from the matching group, in turn.
 3. An ambient bark comes only with a player within the radius and not twice inside the cooldown; never from a villager who is hurt, talking, or dead.
 4. Talk to a villager: they stop and face the talker; options whose `when` fails are not shown; Goodbye, Escape, and walking away each end it and the villager wanders again.
