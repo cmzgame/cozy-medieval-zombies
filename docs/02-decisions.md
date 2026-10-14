@@ -6,7 +6,7 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ### 2026-10-13 — The guide: one villager, safe in the village, who explains the rules (Michael)
 
-Michael: one chosen villager must spawn somewhere safe from the dead in the village, so you can talk to them, and they explain the rules: how do I farm, how do I get water, and so on. **In `34`:** [the Innkeeper, in the inn's taproom, the village's refuge], marked `guide: true` in the map file; the generator refuses a map with any of the dead inside the guide's building or within [12 tiles]; [the dead never target the guide]; the questions are the systems as built, farming and the map joining when they are, and [every new system adds its question to the guide in the same commit]. Still talk: it gates nothing, and all of it is learnable by playing.
+Michael: one chosen villager must spawn somewhere safe from the dead in the village, so you can talk to them, and they explain the rules: how do I farm, how do I get water, and so on. **In `34`:** [the Innkeeper, in the inn's taproom, the village's refuge], marked `guide: true` in the map file; **immune to the dead whatever the settings** (Michael, the same evening, in place of a guaranteed safe spawn: never targeted, bitten, or turned), so where they stand is a matter of being found, not of safety; the questions are the systems as built, farming and the map joining when they are, and [every new system adds its question to the guide in the same commit]. Still talk: it gates nothing, and all of it is learnable by playing.
 
 ### 2026-10-13 — The map and talk scoped (`33`, `34`); scripted sequences noted in `05` (Michael)
 
