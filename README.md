@@ -54,4 +54,6 @@ Milestones 1 to 11 are built (2026-10-09 to 2026-10-12): a chunked map with real
 | [30-the-big-pass-spec.md](docs/30-the-big-pass-spec.md) | The big pass specified: the needs, every verb, the stations, farming, durability, the map built place by place. Steps 0 to 3 built; held at step 4. |
 | [31-multiplayer/README.md](docs/31-multiplayer/README.md) | Multiplayer, built and live: one authority, the wire and the relay, the rules every change follows (`08`), worlds, identities, and characters (`09`). |
 | [32-better-animations.md](docs/32-better-animations.md) | The poses the game lacks, as data on the final rig; the walk and the one-handed swing done. |
+| [33-the-map.md](docs/33-the-map.md) | The map on `M`, scoped: what anyone has seen, kept by the world; every player live; drawn at the screen's angle. |
+| [34-talk.md](docs/34-talk.md) | Talk, scoped: villagers' barks and conversations, which read the world and never write it. |
 | [art/README.md](docs/art/README.md) | The design agent's own docs: a style bible and a page per area of art. |
