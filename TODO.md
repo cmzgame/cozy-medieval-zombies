@@ -100,9 +100,9 @@ Every other section is built for a guest as well (the rule at the top). What the
 
 ## Scopes owed (from "What this game is", `02`, 2026-10-13)
 
-- [ ] The map on `M`: the valley's land and its authored buildings, every player's position live; never the dead or villagers.
-- [ ] Talk: dialogue trees as exposition, reading the world and never writing it, nothing gated.
-- [ ] Scripted sequences (moving, speaking, acting entities): a feasibility look, a stretch goal.
+- [ ] The map on `M` (choices ruled, `02`, "The map's choices"): what anyone has seen, kept by the world; built walls shown; every player live; never the dead or villagers; running behind it; low fidelity and accurate; drawn at the screen's angle.
+- [ ] Talk: dialogue trees as exposition and the villagers' barks (the "Hey!" of a poke is the "nothing interesting happens" of people), reading the world and never writing it, nothing gated.
+- [ ] Scripted sequences (moving, speaking, acting entities): a feasibility look, a stretch goal; the dead's arrival on day one as its first case.
 - [ ] Before any boss or skills scope: one session played as meant (combat, aggro, the valley, the dead round the spawn).
 
 ## Art still owed (see `docs/26-art-owed.md`) — listed 2026-10-12
