@@ -2,6 +2,8 @@
 
 Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc a task links to. Keep the **Status** block current at the end of every session.
 
+**Multiplayer is live (Michael, 2026-10-13): every box below is ticked only when it works for a guest too.** A feature that works for the host alone is not done; the guest's side is never a later task. The checklist is the first rule in `CLAUDE.md`, the habits are `docs/31-multiplayer/08`.
+
 ## Status
 
 - **Where work stopped, 2026-10-13, night (the newest line; the bullet below it still stands).** The multiplayer branch's relay moves are merged (the three screen fixes, `server/relay.js`, the Fly deploy; the site's default wire is `wss://cmz-relay.fly.dev`, `?relay=none` for the two-tab loopback) and four faults found in review are fixed here (a guest could send the host `hostLeft`; the timeout's reason lost; the URL's code unescaped in `innerHTML`; Done on defaults not remembered), `02`. **Michael: `fly deploy` once more** for the relay's ten-second handshake limit. **Then the worlds model (`docs/31/09`) merged** (worlds, identities, characters per world, IndexedDB, dormancy at sixty seconds, rejoin by browser id, longer codes, the relay's open lookups), with seven faults fixed on the way in (`02`); `fly deploy` again for the relay's address, limit, and admitted-guests fixes; the HUD still shows over the black title. Still holding: step 4 of the big pass, the animations after the swing (`32`), the multiplayer agent's tier 3 remainder.

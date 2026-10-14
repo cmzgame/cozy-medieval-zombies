@@ -1,6 +1,17 @@
-# 31.08 — For the implementer of the big pass: six habits that keep multiplayer possible
+# 31.08 — The rules every change follows, now that multiplayer is live
 
-One block, copy-ready, no tables. It adds to `CLAUDE.md`'s tiebreaker and `05-someday.md`'s free rules; it changes nothing in `30`'s content or order. Each habit is an item marked (now) in `31/05`, free while the code is written and a rewrite later. Michael may paste it into the implementer's instructions as it stands.
+**Since 2026-10-13 (Michael): multiplayer is live, and every addition and every change is built for it in the same commit.** Friends play over the relay. Nothing is built for the host alone with the guest's side owed for later; letting it lag a week means a pile of catch-up work, and that is what this rule exists to prevent. The six habits below were written before anything was built, to keep the door open; they are now the floor, and the checklist on top of them is what "done" means:
+
+1. It runs in the world's step on the authority (the host), never in a DOM handler or a client-only module.
+2. A guest can do it through the same path the host's player uses: a verb in `verbs.js`, a handler in `ui/inventory-actions.js` (a guest's call becomes a command by uid, slot, and bag address), a key event in the player's snapshot (`interact.keyEvents`), `placement.performPlacement`, or a `net.send*` command. Every target is an id, an address, or an entry's uid.
+3. What it changes reaches a guest: in the save, which is the welcome (`game.serialize`, `restore`), and in the frame (a player's light or heavy record, the delta of the dead with its roster, the pokes, the touched chunks, the stations' queues). The replica draws it as the host does. Whatever the host remembers of what it sent is forgotten when the thing leaves the world and at every welcome (`forgetSent`).
+4. World state it adds is in the sync check (`game.syncParts`), or the reason it is left out is written beside the exclusion.
+5. Per-player state lives on the player, never in a module-level variable; time comes from `loop.simTime()`, chance from `rng`.
+6. It is tried with a guest in two tabs (`?nosave&relay=none`, `__game.net.open({ join })`, both tabs stepped in turn) and `check("sync")` passes; the bytes it adds to a frame are read from `net.status().wire`, never guessed.
+
+A spec names the guest's side of every feature as it names the host's. A review refuses a change that has only the host's.
+
+The original six habits, as they were handed to the big pass's implementer, follow. One block, copy-ready, no tables. It adds to `CLAUDE.md`'s tiebreaker and `05-someday.md`'s free rules; it changes nothing in `30`'s content or order. Each habit is an item marked (now) in `31/05`, free while the code is written and a rewrite later. Michael may paste it into the implementer's instructions as it stands.
 
 ---
 
