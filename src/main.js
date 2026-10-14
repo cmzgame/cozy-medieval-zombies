@@ -17,17 +17,18 @@ import * as light from "./light.js";
 import * as gl from "./gl.js";
 import * as ground from "./ground.js";
 import { renderScene, night } from "./render.js";
-import { createPlayer, damagePlayer, aimOrigin } from "./entities/player.js";
+import { createPlayer, aimOrigin } from "./entities/player.js";
+import * as host from "./host.js"; // the authority's half of the game, shared with the server world (item 5's first step)
+import { lookOf } from "./host.js";
 import { createZombie } from "./entities/zombie.js";
-import { createVillager, damageVillager } from "./entities/villager.js";
+import { createVillager } from "./entities/villager.js";
 import { initHud, updateHud } from "./ui/hud.js";
-import { initPrompt, updatePrompt, showMessage, updateMessage, setMessageSink } from "./ui/prompt.js";
+import { initPrompt, updatePrompt, showMessage, updateMessage } from "./ui/prompt.js";
 import { initZombieBars, updateZombieBars } from "./ui/zombie-bars.js";
 import { initSwingTimer, updateSwingTimer } from "./ui/swing-timer.js";
 import { initSpeech, updateSpeech } from "./ui/speech.js";
 import * as archery from "./archery.js";
 import * as burning from "./fire.js";
-import * as infection from "./infection.js";
 import * as bleed from "./bleed.js";
 import * as buttons from "./buttons.js";
 import { refreshCorpse, createCharacter, wardrobeInto, say } from "./entities/character.js";
@@ -43,7 +44,6 @@ import * as world from "./world.js";
 import * as game from "./game.js";
 import * as save from "./save.js";
 import * as net from "./net.js";
-import * as verbs from "./verbs.js";
 import * as stations from "./stations.js";
 import * as stationPanel from "./ui/station-panel.js";
 import * as interact from "./interact.js";
@@ -58,7 +58,7 @@ import * as combat from "./combat.js";
 import * as buildPalette from "./ui/build-palette.js";
 import * as shell from "./boot.js";
 import { createDevApi } from "./dev.js";
-import { createInventoryActions, createRemoteInventoryActions, performItemCommand, performUseCommand } from "./ui/inventory-actions.js";
+import { createInventoryActions, createRemoteInventoryActions } from "./ui/inventory-actions.js";
 import * as identities from "./identities.js"; // identities, the browser id, friends' worlds (docs/31/09)
 import * as rng from "./rng.js";
 import * as rules from "./rules.js";
@@ -110,12 +110,6 @@ const AUTOSAVE = 60; // seconds of game time between autosaves (the parent's cad
 let mapJson = null; // the map file, kept for a restore
 let looksJson = null; // the character screen's palettes (data/looks.json)
 
-// The look a character is baked from: DEFAULT_LOOK under an identity's colours and style.
-function lookOf(identity) {
-  const chosen = (identity && identity.look) || {};
-  return { ...figure.DEFAULT_LOOK, ...chosen, hairStyle: chosen.hairStyle || "short" };
-}
-
 // The identity a test world's player wears: `&as=<name>` on the URL, else the last kept, else what the
 // browser had before identities.
 function testIdentity() {
@@ -131,57 +125,7 @@ const testStore = { owners: {}, dormant: {} };
 function ownersStore() {
   return currentWorld || testStore;
 }
-const MAX_OWNERS = 16; // the browsers a world remembers a character for
 const myHash = () => identities.idHash(identities.clientId());
-
-// A join on the host (net.js hooks.joinFor): the character this browser made here, back from dormancy
-// if it went; never the host's own; a dead one or an unknown browser asks for an identity (`who`).
-function joinFor(hash, identity) {
-  const store = ownersStore();
-  const myId = S.player ? S.player.id : null;
-  let owned = hash ? store.owners[hash] : null;
-  if (owned && owned === myId) owned = null;
-  if (owned) {
-    let p = S.players.find((q) => q.id === owned) || null;
-    if (!p && store.dormant[hash]) {
-      p = game.putPlayer(store.dormant[hash]);
-      delete store.dormant[hash];
-      if (p) refreshFigureOf(p, true);
-    }
-    if (p && !p.dead) return { player: p };
-    if (!identity) return { who: { dead: !!(p && p.dead) } };
-  }
-  if (!identity) return { who: {} };
-  // A world holds so many browsers' characters: anyone with the code could otherwise make characters
-  // without end, each kept in the save (the review of the worlds move, 2026-10-13).
-  if (hash && !store.owners[hash] && Object.keys(store.owners).length >= MAX_OWNERS) return { full: true };
-  const spawn = S.info ? S.info.spawn : [S.player.gx, S.player.gy];
-  const at = map.nearestWalkable(spawn[0] + 1, spawn[1] + 1, (x, y) => S.players.some((p) => Math.round(p.gx) === x && Math.round(p.gy) === y)) || spawn;
-  const p = game.addPlayer(at[0], at[1], { look: identity.look, name: identity.name });
-  if (hash) store.owners[hash] = p.id;
-  return { player: p };
-}
-
-// A guest's identity as the host accepts it: a short name, a listed hair style, hex colours, nothing else.
-function clampIdentity(raw) {
-  const styles = new Set(figure.hairStyles());
-  const hex = (v) => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
-  const L = (raw && raw.look) || {};
-  const look = {};
-  if (styles.has(L.hairStyle)) look.hairStyle = L.hairStyle;
-  for (const k of ["skin", "hair", "eyes"]) if (hex(L[k])) look[k] = L[k];
-  const name = typeof raw.name === "string" ? raw.name.replace(/[\u0000-\u001f]/g, "").trim().slice(0, 24) : "";
-  return { name: name || null, look: lookOf({ look }) };
-}
-
-// A guest's character after the grace (net.js hooks.dormant): out of the simulation, its record kept.
-function dormantNow(playerId) {
-  const store = ownersStore();
-  const hash = Object.keys(store.owners).find((h) => store.owners[h] === playerId) || null;
-  const rec = game.takePlayer(playerId);
-  if (rec && hash) store.dormant[hash] = game.toSafe(rec);
-  saveWorld();
-}
 
 // Stepping away (item 3, `02` 2026-10-13): in a world with friends in it, a player with no input for five minutes of
 // real time leaves the world, safe, through the dormant path (its record kept under its browser's hash, so a save
@@ -191,40 +135,6 @@ const AWAY_AFTER_MS = 5 * 60 * 1000;
 let awayAfterMs = AWAY_AFTER_MS; // a check shortens it (__game.away.after)
 let lastInputAt = performance.now();
 let away = false; // this client's own player is stepped away
-
-// On the host, for any player: out of the world, kept by its owner's hash. False when refused.
-function awayNow(playerId) {
-  const p = S.players.find((q) => q.id === playerId);
-  if (!p || p.dead || p.sleeping || p.climb) return false;
-  const store = ownersStore();
-  let hash = Object.keys(store.owners).find((h) => store.owners[h] === playerId) || null;
-  if (!hash && p === S.player) {
-    hash = myHash(); // a test world's host has no owners entry until now
-    store.owners[hash] = p.id;
-  }
-  if (!hash) return false;
-  if (p.action) p.action = null;
-  p.auto = null; // a walk there under way (player.cancelAutoWalk)
-  const name = p.name || p.id;
-  dormantNow(playerId);
-  log.push(`${name} stepped away.`);
-  net.logAll(`${name} stepped away.`);
-  return true;
-}
-
-// On the host: the character of that browser back where it stood. Null when there is none.
-function backNow(hash) {
-  const store = ownersStore();
-  if (!hash || !store.dormant[hash]) return null;
-  const p = game.putPlayer(store.dormant[hash]);
-  delete store.dormant[hash];
-  if (!p) return null;
-  refreshFigureOf(p, true);
-  const name = p.name || p.id;
-  log.push(`${name} is back.`);
-  net.logAll(`${name} is back.`);
-  return p;
-}
 
 const sharedWorld = () => (net.isHost() && net.hasGuests()) || (net.isGuest() && net.status().joined);
 
@@ -244,7 +154,7 @@ function stepAway() {
   const me = S.player;
   if (net.isGuest()) {
     if (!net.stepAway()) return false;
-  } else if (!awayNow(me.id)) return false;
+  } else if (!host.awayNow(me.id, myHash())) return false;
   away = true;
   closeModes();
   screens.show("away");
@@ -258,7 +168,7 @@ function comeBack() {
   lastInputAt = performance.now();
   if (net.isGuest()) net.comeBack();
   else {
-    const p = backNow(myHash());
+    const p = host.backNow(myHash());
     if (p) game.pickPlayer(p);
   }
   if (screens.currentScreen() === "away") screens.hide();
@@ -397,7 +307,7 @@ async function saveWorld(extra = {}) {
 // Out of the world: the guests' characters dormant at once, saved if it is this browser's, the wire
 // closed, the title back.
 async function leaveWorld() {
-  if (inWorld && net.isHost()) for (const id of net.guestPlayerIds()) dormantNow(id);
+  if (inWorld && net.isHost()) for (const id of net.guestPlayerIds()) host.dormantNow(id);
   if (inWorld) await saveWorld();
   if (net.isGuest()) net.leave(); // the host begins the grace at once, not at the socket's drop
   if (net.onTheWire()) net.close();
@@ -1277,40 +1187,27 @@ async function boot() {
           },
         },
       });
+      // The world's events, as this screen shows them: the world applies them (game.js: a bite's damage, the wound,
+      // the infection, a villager's damage; combat.js: the shield's flash) and the host answers them for the
+      // players they are for (host.js); this client only reads the world (item 5's first step, 2026-10-14).
       // A bite names its victim (docs/31/05, item 18): the wound is theirs; the words are mine alone.
-      events.on("playerHit", ({ zombie, damage, victim }) => {
-        const p = victim || S.player;
-        const taken = combat.exposedTo(p, zombie, combat.guardAgainst(p, zombie, damage));
-        damagePlayer(p, taken);
-        // A bite that landed may infect (a marker only for now, docs/02 question 29b).
-        const opened = bleed.onBite(p, taken); // and a wound that bleeds (docs/02 question 29b)
-        const infected = infection.onBite(p, taken);
+      events.on("bitten", ({ player: p, opened, infected }) => {
         if (p !== S.player) return;
         if (infected) showMessage("The bite broke the skin.");
         else if (opened && bleed.stacks(p) === 1) showMessage("You are bleeding. A bandage will stop it.");
       });
-      // A blow met by the shield: sparks where they meet and a flash of the shield; a broken guard flashes red (docs/21).
+      // A blow met by the shield: sparks where they meet (docs/21); the flash is the player's own state (combat.js).
       events.on("blocked", ({ zombie, player: p = S.player }) => {
-        p.blockFlash = 0.14;
-        p.flashBroken = false;
         const d = iso.normalize(zombie.gx - p.gx, zombie.gy - p.gy);
         burning.spark(p.gx + d.x * 0.45, p.gy + d.y * 0.45, 22);
       });
       // A blow that landed kicks the camera of the client whose player struck (docs/31/05, item 13).
       events.on("kicked", ({ player: p, x, y, seconds }) => {
         if (p === S.player) camera.kick(x, y, seconds);
-        else if (net.isHost()) net.kickTo(p.id, x, y, seconds); // a guest's landed blow resolves here: its camera is on its screen (item 4)
       });
-      events.on("guardBroken", ({ player: p = S.player }) => {
-        p.blockFlash = 0.35;
-        p.flashBroken = true;
-      });
-      events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, damage));
       events.on("gameOver", ({ player: p }) => {
         if (p !== S.player) return; // another player's death is theirs to see
-        // The world says so (game.js); the client shows it, and the world is saved with the survivor
-        // dead: the next survivor is a new character in it (docs/31/09; docs/31/05, item 34).
-        saveWorld();
+        // The world says so (game.js) and the host saves it (host.js); the client shows it.
         screens.show("dead", { when: clock.getLabel(), who: p.name || p.id });
       });
       // Sleep and fire say what happened (docs/30 step 2): the world's events, shown here.
@@ -1320,47 +1217,26 @@ async function boot() {
       events.on("fireOut", ({ tile }) => {
         if (Math.hypot(tile[0] - S.player.gx, tile[1] - S.player.gy) <= 8) showMessage("A fire has gone out.");
       });
-      // A craft done and a weapon worn out (docs/30, sections 5.2 and 6).
+      // A craft done and a weapon worn out (docs/30, sections 5.2 and 6): the line and the word for my own player
+      // (a guest's reach it through the host, host.js).
       events.on("craftDone", ({ out, tile }) => {
         const line = `Made ${out.prop ? out.prop.replace(/_/g, " ") : `${out.count > 1 ? `${out.count} ` : ""}${items.getItem(out.id).name.toLowerCase()}`}.`;
         if (Math.hypot(tile[0] - S.player.gx, tile[1] - S.player.gy) <= 12) log.push(line, "result");
-        // And every guest whose player stands near (the stations step outside any acting player).
-        if (net.isHost()) for (const id of net.guestPlayerIds()) {
-          const p = S.players.find((q) => q.id === id);
-          if (p && Math.hypot(tile[0] - p.gx, tile[1] - p.gy) <= 12) net.logTo(id, line, "result");
-        }
       });
       events.on("weaponBroke", ({ item, who }) => {
-        const text = `Your ${items.getItem(item).name.toLowerCase()} is spent.`;
-        // A guest's weapon wears out on the host (its swing resolves there): the word goes to the guest's screen (item 4).
-        if (who && who !== S.player.id) {
-          if (net.isHost()) net.messageTo(who, text, 3);
-          return;
-        }
-        showMessage(text, 3);
+        if (!who || who === S.player.id) showMessage(`Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3);
       });
-      events.on("containerOpened", ({ bag, tiles: where, name, corpse, closeDist, prop, entry, tile, character, station }) => {
-        // Opened by a guest's player (the acting player, game.js): told to the guest, not shown here.
+      events.on("containerOpened", ({ bag, tiles: where, name, corpse, closeDist }) => {
+        // Opened by a guest's player (the acting player, game.js): the host tells the guest (host.js), not this screen.
         const by = game.state.acting;
-        if (by && by !== S.player) {
-          net.openedFor(by.id, { propId: prop ? prop.id : null, entryUid: entry ? entry.uid : null, tile: tile || null, characterId: character ? character.id : null, tiles: where, name, closeDist: closeDist || 0, station: !!station });
-          return;
-        }
+        if (by && by !== S.player) return;
         openBag = { bag, tiles: where, name, corpse: corpse || null, closeDist: closeDist || 0 };
         panel.setBagOpen(true);
       });
-      // A message said while a guest's player acts goes to the guest's screen, not this one (docs/31/04).
-      setMessageSink((text, seconds) => {
-        const by = game.state.acting;
-        if (!by || by === S.player || !net.isHost()) return false;
-        return net.messageTo(by.id, text, seconds);
-      });
-      // And a log line (the Use mode's result, use.js) the same way.
-      log.setSink((text, kind) => {
-        const by = game.state.acting;
-        if (!by || by === S.player || !net.isHost()) return false;
-        return net.logTo(by.id, text, kind);
-      });
+      // The host's answers to the world's events, and the routing of a message or a log line said while a guest's
+      // player acts (host.js): once, here, as this page may host.
+      host.init({ store: ownersStore, save: () => saveWorld(), self: () => S.player, arrived: (p) => refreshFigureOf(p, true) });
+      host.install();
       // After the menu's own listener, so a menu closed by Escape is seen first.
       window.addEventListener("keydown", (e) => {
         if (e.code === "Escape") handleEscape();
@@ -1400,16 +1276,8 @@ async function boot() {
       // The bookmark learns the world's name, its host, and my character there (docs/31/09).
       identities.rememberJoined({ code: net.status().code, name: world ? world.name : null, hostName: world ? world.host : null, myCharacter: S.player.name || S.player.id });
     },
-    // What a welcome says about this world (the guest's bookmark).
-    worldInfo: () => ({ name: currentWorld ? currentWorld.name : "a world", host: S.player ? S.player.name || S.player.id : null }),
-    // The host's side of a join (docs/31/09): whose character, a guest's identity as accepted, the saves.
-    joinFor,
-    clampIdentity,
-    guestJoined: () => { saveWorld(); },
-    guestLeft: () => { saveWorld(); },
-    dormant: dormantNow,
-    away: awayNow, // a guest's step away, and its return (item 3)
-    back: backNow,
+    // The host's side (host.js): the joins and whose character, the saves, dormancy, stepping away, a guest's commands.
+    ...host.netHooks(),
     stay: stayed,
     // The host knows no living character of mine here: the creation steps, then joinAs.
     who: (dead) => { screens.creationFor({ for: "join", code: net.status().code, dead }); },
@@ -1428,20 +1296,6 @@ async function boot() {
       }
       openBag = { bag: c.bag, tiles: w.tiles, name: w.name, corpse: c.corpse, closeDist: w.closeDist || 0, address: w };
       panel.setBagOpen(true);
-    },
-    // A guest's panel command, and its Use, run here as its player (ui/inventory-actions.js).
-    item: (p, cmd) => performItemCommand(p, cmd),
-    use: (p, cmd) => performUseCommand(p, cmd, (id) => [...S.players, ...S.zombies, ...S.villagers, ...S.corpses].find((c) => c.id === id) || null),
-    // A guest's placement: a carried prop put down, a wall built, a built thing removed (placement.js).
-    place: (p, cmd) => placement.performPlacement(p, cmd),
-    // A guest's Make: the craft verb as the guest's player; the verb checks the reach and says its refusals.
-    craft: (p, cmd) => {
-      const propId = typeof cmd.propId === "string" ? cmd.propId : null;
-      const recipe = typeof cmd.recipe === "string" ? cmd.recipe : null;
-      const count = Math.max(1, Math.min(10, Math.round(Number(cmd.count)) || 1));
-      if (!propId || !recipe) return;
-      const r = verbs.run("craft", world.world, p, { prop: propId }, { recipe, count }); // the world object (world.js), as the panel passes it
-      if (!r.ok) showMessage(r.reason || "Cannot.");
     },
     // A log line said for my player on the host (the Use mode's result).
     log: (text, kind) => log.push(text, kind),
@@ -1534,7 +1388,7 @@ async function boot() {
     // The worlds flow (docs/31/09), for check("worlds"): a world made, left, listed, played again; a new character after a death.
     // Stepping away (item 3), for the checks: the idle time shortened, the state, and the two moves by hand.
     away: { after: (ms) => { awayAfterMs = ms == null ? AWAY_AFTER_MS : ms; lastInputAt = performance.now(); }, get now() { return away; }, step: stepAway, back: comeBack, check: checkAway },
-    worlds: { create: (name, identityId) => enterNewWorld(name, identities.get(identityId)), play: playWorld, leave: leaveWorld, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor, dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
+    worlds: { create: (name, identityId) => enterNewWorld(name, identities.get(identityId)), play: playWorld, leave: leaveWorld, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor: host.joinFor, dormantNow: host.dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
     identities,
     addPlayer: (gx, gy, opts) => {
       const p = game.addPlayer(gx, gy, opts);

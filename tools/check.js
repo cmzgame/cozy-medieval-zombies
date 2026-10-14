@@ -5,6 +5,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -94,6 +95,14 @@ check("pathfind: a path round a wall, none through it", () => {
   const none = pathfind.findPath([2, 2], [9, 2], (x, y, nx, ny) => nx !== 5 && ny >= 0 && nx >= 0, 200);
   assert(!none || none.length === 0, "a path was found where none exists");
   return `${path.length} tiles round the wall`;
+});
+
+check("a bite lands with no page behind the world (the host's rules in the world; item 5's first step)", () => {
+  const out = execFileSync(process.execPath, [path.join(root, "tools/world.js"), "valley", "600", "--bite"], { encoding: "utf8" });
+  const m = out.match(/bite: hp ([\d.]+) to ([\d.]+)/);
+  assert(m, `no bite line in: ${out.slice(-200)}`);
+  assert(Number(m[2]) < Number(m[1]), `health ${m[1]} to ${m[2]}: no bite landed`);
+  return `health ${m[1]} to ${m[2]} in 600 steps`;
 });
 
 let failed = 0;

@@ -18,6 +18,8 @@ import * as events from "./events.js";
 import * as archery from "./archery.js";
 import * as burning from "./fire.js";
 import * as bleed from "./bleed.js";
+import * as infection from "./infection.js";
+import * as combat from "./combat.js";
 import * as interact from "./interact.js";
 import * as items from "./items.js";
 import * as inventory from "./inventory.js";
@@ -28,9 +30,9 @@ import * as rng from "./rng.js";
 import * as world from "./world.js";
 import * as loop from "./loop.js";
 import { serializeCharacter, restoreCharacter, dress, dressCorpse } from "./entities/character.js";
-import { createPlayer, updatePlayer, setSleepScaleRule } from "./entities/player.js";
+import { createPlayer, updatePlayer, setSleepScaleRule, damagePlayer } from "./entities/player.js";
 import { createZombie, updateZombie } from "./entities/zombie.js";
-import { createVillager, updateVillager, turnVillager } from "./entities/villager.js";
+import { createVillager, updateVillager, turnVillager, damageVillager } from "./entities/villager.js";
 import { controlPlayer } from "./player-controller.js";
 
 export const state = {
@@ -258,6 +260,22 @@ export function timeScaleNow() {
   return everyoneAsleep() ? tuning.player.sleepTimeScale : 1;
 }
 setSleepScaleRule(timeScaleNow);
+
+// The dead's bites and blows are the world's rules (item 5's first step, 2026-10-14, `02`): a bite's damage through
+// the guard and the exposure, the wound that bleeds, the infection (docs/02 question 29b); a villager's damage.
+// They were applied by main.js's event handlers, so a world with no page behind it (tools/world.js, a server world)
+// never applied a bite, unseen until the server plan. Here, once, where the world is, in the same order and inside
+// the same step as before, so the hashes stand; the client listens for `bitten` to say the words to its own player.
+events.on("playerHit", ({ zombie, damage, victim }) => {
+  const p = victim || state.player;
+  if (!p) return;
+  const taken = combat.exposedTo(p, zombie, combat.guardAgainst(p, zombie, damage));
+  damagePlayer(p, taken);
+  const opened = bleed.onBite(p, taken);
+  const infected = infection.onBite(p, taken);
+  events.emit("bitten", { player: p, zombie, taken, opened, infected });
+});
+events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, damage));
 
 // The whole world in parts, each hashed, for the sync check (docs/31/04, "a replica check"; tier 3's gate):
 // what the wire promises a replica has. The map chunk by chunk (floors, walls, props with their bags and
