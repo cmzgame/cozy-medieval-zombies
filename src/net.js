@@ -812,6 +812,10 @@ export function guestStep(mySnap) {
       syncReports = !!msg.on;
     } else if (msg.type === "message") {
       hooks.message(msg.text, msg.seconds);
+    } else if (msg.type === "fx" && msg.from) {
+      // A visual the host's world made, drawn here too (fxAll). Bounded: the host is trusted, the numbers are not.
+      const num = (v, lim) => (typeof v === "number" && Number.isFinite(v) ? Math.max(-lim, Math.min(lim, v)) : 0);
+      if (hooks.fx && typeof msg.kind === "string") hooks.fx(msg.kind, num(msg.x, 1e5), num(msg.y, 1e5), Math.max(0, num(msg.z, 256)));
     } else if (msg.type === "kick" && msg.from) {
       // My own landed blow, resolved on the host: the camera's kick, here (item 4). Bounded: the host is trusted, the numbers are not.
       const num = (v, lim) => (typeof v === "number" && Number.isFinite(v) ? Math.max(-lim, Math.min(lim, v)) : 0);
@@ -1170,6 +1174,12 @@ export function idleNow() {
   run = null;
   runCount = 0;
   send({ type: "input", seq, snap });
+}
+
+// A visual for every guest's screen (a blocked blow's sparks; the coder agent's review of steps 1 and 2): the host
+// draws its own, and a server world has no screen of its own to draw on.
+export function fxAll(kind, x, y, z) {
+  if (role === "host" && guests.size) send({ type: "fx", kind, x, y, z }); // a point on the ground and a height in pixels above it
 }
 
 // A line in every guest's log (a player stepped away or came back).

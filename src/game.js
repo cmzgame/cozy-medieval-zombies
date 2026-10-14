@@ -294,7 +294,11 @@ export function syncParts() {
   const chunks = (m.chunks || []).slice().sort((a, b) => (a.cx - b.cx) || (a.cy - b.cy)).map((c) => ({ ...c, props: (c.props || []).map((p) => { const { pokedAt, playedAt, ...q } = p; return q.fire && typeof q.fire.fuel === "number" ? { ...q, fire: { ...q.fire, fuel: Math.floor(q.fire.fuel) } } : q; }) }));
   const entryText = (e) => (e ? `${e.id}#${e.uid}x${e.count ?? 1}${e.fill != null ? `f${f(e.fill)}` : ""}${e.bag ? `[${(e.bag.items || []).map(entryText).join(",")}]` : ""}` : "-");
   const at = (c) => (c.netTo ? c.netTo : [c.gx, c.gy]); // a replica's smoothing target is the host's truth (net.js)
-  const playerText = (p) => [`${p.id} ${f(at(p)[0])},${f(at(p)[1])} hp ${f(p.hp)} ${p.dead ? "dead" : "alive"}`, `hands ${entryText(p.hands.main)} ${entryText(p.hands.off)}`, `worn ${Object.keys(p.worn).sort().map((k) => `${k}:${entryText(p.worn[k])}`).join(" ")}`, `carrying ${p.carrying ? p.carrying.id : "-"}`].join(" | ");
+  // Health as the wire carries it, to two decimals (net.js r2): a bleeding player's drains in fractions every step, so
+  // three decimals differed between the host and every replica though nothing was wrong (found testing item 5's third
+  // step, the first bleeding guest a sync check met; the rule a fire's fuel already follows: compare what the wire promises).
+  const hp2 = (n) => (typeof n === "number" ? (Math.round(n * 100) / 100).toFixed(2) : String(n));
+  const playerText = (p) => [`${p.id} ${f(at(p)[0])},${f(at(p)[1])} hp ${hp2(p.hp)} ${p.dead ? "dead" : "alive"}`, `hands ${entryText(p.hands.main)} ${entryText(p.hands.off)}`, `worn ${Object.keys(p.worn).sort().map((k) => `${k}:${entryText(p.worn[k])}`).join(" ")}`, `carrying ${p.carrying ? p.carrying.id : "-"}`].join(" | ");
   const parts = {
     map: hashOf(JSON.stringify(chunks)),
     registry: hashOf([...map.allProps()].map((p) => p.id).sort().join(",")),
@@ -302,7 +306,7 @@ export function syncParts() {
     players: hashOf(S.players.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map(playerText).join("\n")),
     // The dead as the frames carry them (the wire sends them as a delta, so a missed update shows here): where, state, hp,
     // facing, the frame of the animation, burning.
-    dead: hashOf([...S.zombies, ...S.villagers, ...S.corpses].slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((z) => `${z.id} ${f(at(z)[0])},${f(at(z)[1])} ${z.state || "-"} hp ${f(z.hp)} ${z.dead ? "dead" : ""}${z.corpse ? "corpse" : ""} ${z.facing} ${z.anim ? `${z.anim.name}:${z.anim.frame}` : "-"}${z.burning ? " fire" : ""}`).join("\n")),
+    dead: hashOf([...S.zombies, ...S.villagers, ...S.corpses].slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((z) => `${z.id} ${f(at(z)[0])},${f(at(z)[1])} ${z.state || "-"} hp ${hp2(z.hp)} ${z.dead ? "dead" : ""}${z.corpse ? "corpse" : ""} ${z.facing} ${z.anim ? `${z.anim.name}:${z.anim.frame}` : "-"}${z.burning ? " fire" : ""}`).join("\n")),
     clock: hashOf(`${f(clock.getElapsed())} ${f(loop.simTime())} ${world.world.timeScale}`),
     rules: hashOf(Object.keys(rules.rules).sort().map((k) => `${k}=${rules.rules[k] ? 1 : 0}`).join(" ")), // world state since the second step of item 5
   };

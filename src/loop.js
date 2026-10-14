@@ -181,6 +181,12 @@ export function setBackgroundDriver(fn) {
   };
 }
 
+// A world with no page drives itself (item 5's third step: the server's world process, on a plain Node timer):
+// each call steps the world by the real time since the last, without drawing; held, it answers the wire instead.
+export function drive(now) {
+  if (running) run(now, false);
+}
+
 // The steps the Worker has driven since the page loaded (for the checks).
 export function backgroundSteps() {
   return workerSteps;
