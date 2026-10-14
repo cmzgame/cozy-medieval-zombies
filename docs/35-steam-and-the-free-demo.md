@@ -15,7 +15,7 @@ The game is a web game, and that is its marketing advantage, not its weakness. *
 ## The free web demo, forever
 
 - **Where:** the GitHub Pages site the friends already use, at a plain link [and the same build on itch.io, where browser games are found]. One link on the Steam page, in every post, in every video description.
-- **What:** the horde demo of `36`: one homestead, everything provided, the weapons to try, the dead coming in a trickle and then a flood until you fall; then a card that says the open valley is coming, with the wishlist link.
+- **What:** the horde demo of `36`: one homestead, supplies for a few days, the weapons to try, the dead coming in a trickle and then a flood until you fall; then a card that says the open valley is coming, with the wishlist link.
 - **Co-op from a link:** Open to friends gives a code; a friend opens the same link and joins. Two people playing together within a minute of hearing of the game is the rarest thing on offer here, and the demo should say so on its title.
 - **The same demo on Steam:** a Steam demo is a separate free app attached to the game's page; it is the same scenario in the wrapper, and it is what Next Fest shows.
 - **What it costs to keep:** the site is free; the relay (`server/relay.js` on Fly, one small machine that stops when idle) costs little at friends' scale. **If the demo is found, the relay is the bill:** each pair of players streams the world through it (about 120 KB/s to a guest with 22 of the dead near, `31`). Watch Fly's usage when the demo goes out; the cheap answers are a binary frame format, sending each guest only what is near them (`31/04`, interest, not built), and later Steam's own networking for the Steam build.
@@ -49,11 +49,11 @@ The game is a web game, and that is its marketing advantage, not its weakness. *
 
 ## The art, and why it moves up
 
-The capsule art is the most important picture on a Steam page, the first thing anyone sees. So the artist's first commission is **a style frame and the capsule**, one job: it settles the art direction questions open since `02` (the start greener than `06`, the shift toward the gloom), it is the store page's face, and it can come long before the full art pass. A demo can go out in the current art; the store page should not.
+The capsule art is the most important picture on a Steam page, the first thing anyone sees. So the artist's first commission is **a style frame and the capsule**, one job: it settles the art direction questions open since `02` (the start greener than `06`, the shift toward the gloom), it is the store page's face, and it can come long before the full art pass. **Neither the demo nor the store page goes out in placeholder art: nothing goes into the demo without its final art** (Michael, 2026-10-13), and the demo is built and tested before it is released.
 
 ## The order (no dates; each step when the one before is true)
 
-1. **The horde demo** (`36`), in the browser, on the site. It doubles as the stress test of the engine and the wire under many of the dead.
+1. **The horde demo** (`36`), built and tested in the browser (not yet: Michael), doubling as the stress test of the engine and the wire under many of the dead; released only with final art for everything in it.
 2. **A style frame and the capsule** from a human artist.
 3. **The working name.** "Cozy Medieval Zombies" is the working title; a store page wants the real one.
 4. **The wrapper and the coming-soon page,** the demo attached, the web demo linked.

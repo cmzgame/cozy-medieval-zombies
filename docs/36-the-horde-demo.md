@@ -1,6 +1,6 @@
 # 36 — The horde demo: one homestead, the dead without end
 
-**Status: scoped 2026-10-13 with Michael (`02`, "The horde demo"; the business side is `35`). Scoped for implementation by another model. Not built.** Read `CLAUDE.md` ("Implementing from a spec", and the multiplayer rule first among the rules), `35`, then this whole doc, then the files it names. The doc decides; a default in brackets is Michael's to overrule, not the implementer's.
+**Status: scoped 2026-10-13 with Michael (`02`, "The horde demo"; the business side is `35`). Scoped for implementation by another model. Not built, and not to be built yet (Michael).** **Two rules on its release (Michael, 2026-10-13):** it is built, tested, and given real art before it goes to the public as a demo or beside a Steam page; and **nothing goes into the demo that does not have its final art.** It is a proof of concept with finite supplies, not the endless mode, which is wanted later as a permanent game mode (`05`). Read `CLAUDE.md` ("Implementing from a spec", and the multiplayer rule first among the rules), `35`, then this whole doc, then the files it names. The doc decides; a default in brackets is Michael's to overrule, not the implementer's.
 
 ## What it is
 
@@ -20,7 +20,7 @@ Everything a tuner would change is a number in this file:
 - **`rules`:** overrides on the world's rules for this scenario, winning over the browser's settings: [zombieAggro on, survival on, zombiesAttackVillagers on, freeBuilding off, devChest off, combatTesting off; multiHit as the player's setting]. Plus scenario-only switches: [`sleep: false` (beds refuse: "Not tonight."), `tiredness: false`, `save: false`].
 - **`kit`:** what the player starts with (the starter kit, plus [a bandage and a waterskin]); what the chests and the rack hold is in the map.
 - **`schedule`:** the horde's curve: when it begins, the trickle, the nights, the growth, the ceiling (below).
-- **`loot`:** the dead's pockets for the scenario (a table in `data/loot.json`, [`horde_body`]).
+- **`loot`:** the dead's pockets for the scenario [the ordinary `body` table: a little, not a supply line].
 - **`end`:** the end card's lines and its links.
 
 ## The set: `data/maps/homestead.json`
@@ -48,9 +48,10 @@ Written by the generator like the valley (`tools/mapgen/homestead.py` on `mapgen
 - **The growth:** after the trickle begins, the cap grows by [2] and the interval shrinks by [3 percent] for every minute of game time, without end.
 - **The ceiling:** the cap never passes a measured number of the dead alive at once [`maxAlive`, start at 150 and set it from the profile: the largest count at which a step plus render stays under 8 ms at the widest zoom on Michael's machine]. Past the ceiling the horde keeps growing by **pace**: the fallen are replaced at once, and from [the fourth night] each new one has [10 percent] more health a night (`hp` on the zombie at creation; the standard zombie's health in `data/tuning.json` is untouched). "Until the game crashes" is not the end state; the ceiling is.
 
-### Keeping an endless run playable
+### Supplies for a few days, and no more (Michael)
 
-- **Supply:** the dead's pockets are the main supply (`horde_body`: [arrows, sticks, planks, cloth, bandages, apples, bread, a rare iron bar]), so fighting feeds fighting; weapons wear by kills (`30` 5.2) and the workbench remakes the simple ones (arrows, sticks, the bow, the shield, from `data/recipes.json`). [At each dawn the woodpile chest and the plank chest are topped up to their starting counts: the dawn's delivery, a scenario rule.]
+- **Finite:** what the homestead holds (the chests, the rack, the woodpile, the trees in the clearing, the dead's ordinary pockets) is enough for [about three days and nights] of careful play, and nothing is replenished. Weapons wear by kills (`30` 5.2) and the workbench remakes the simple ones from what is left (arrows, sticks, the bow, the shield, `data/recipes.json`) until the wood runs out.
+- **The test of the tuning:** a run should not be expected to last longer than that. **If players routinely outlast the supplies, the scenario (or the game) is not hard enough**, and the curve or the supplies change, not the rule.
 - **Bodies:** corpses pile up. [Past 60 corpses, the oldest searched or empty one is removed at each step it is out of every player's sight.] Removal goes through the lists the wire already deltas (the roster carries it to a guest).
 
 ## The score and the end
@@ -82,7 +83,7 @@ Each step verified in the browser pane through `window.__game` with `loop.setPau
 1. **The scenario layer.** `data/scenarios/`, a world's own map and scenario in its record and its save, the rules' override layer (`rules.js`: the scenario's values win over the settings, which are never written: the shared-settings quirk of `CLAUDE.md`), the scenario-only switches (sleep, tiredness, save). Verify on the valley that nothing changes with no scenario.
 2. **The set.** `wall_invisible`, `homestead.py`, the map with its spawns and no wild dead. Verify: walk the clearing; the boundary stops you; the forest beyond is seen; no room is made by the boundary (`check("rooms")`).
 3. **The horde.** The spawner (out of sight, out of range), the curve, the night factor, the lull, the ceiling. Verify by stepping through a whole day and night with the clock moved (`]`), reading the counts against the schedule.
-4. **The run kept playable.** `horde_body`, the dawn's delivery, the corpse cap, health by night.
+4. **The run's limits.** The supplies counted against [three days], the corpse cap, health by night.
 5. **The score and the end.** The HUD line, the end card, Play again, a fallen friend's return at dawn.
 6. **The entry.** `?demo`, its title, Play, Play with a friend, Join a friend.
 7. **Measure.** The ceiling from the profile; a guest's bytes at the ceiling in two tabs on the relay as well as the loopback; `check("sync")` passing mid-wave.
@@ -95,12 +96,16 @@ Each step verified in the browser pane through `window.__game` with `loop.setPau
 3. No body ever appears within the minimum distance of a player or in any player's line of sight (checked at every spawn of a scripted day and night).
 4. Nothing crosses the boundary: a player walked into it stops; a zombie pathing to a tile beyond fails; no dead come from the wild.
 5. At night the cap and the pace follow the night factor; at dawn the lull holds; the cap grows by the schedule and stops at the ceiling.
-6. A body's pockets roll from `horde_body`; the chests are topped up at dawn; corpses past the cap are removed only out of sight.
+6. A body's pockets roll from the ordinary table; nothing is replenished; corpses past the cap are removed only out of sight; [a scripted careful player runs out of arrows and planks within about three days].
 7. Beds refuse, tiredness does not drain, and nothing is saved in the horde world; the browser's settings are unchanged after a run.
 8. The HUD line and the end card's numbers match the counts kept; Play again starts a fresh run.
 9. Two tabs: a guest fights the same dead; a fallen guest returns at dawn while the host stands; the run ends when both have fallen and both see the card; `check("sync")` passes mid-wave with the `scenario` part.
 10. Reported: the ceiling chosen and the step and render cost there; a guest's bytes a second at the ceiling, and whether co-op ships.
 
+## Before it is released (Michael)
+
+Built, tested (the acceptance below, and played), and every piece in it in its final art: the homestead's buildings and furniture, the weapons and their held pictures, the items' icons, the dead's wardrobes, the boundary's forest. Whatever lacks final art by then is left out of the demo, not shown as a placeholder.
+
 ## Not in this scope
 
-Leaderboards (Steam's, later), other scenarios, the Horde in the full game's Worlds screen, farming in the plot before `30` step 4, saving a run, difficulty choices, the wrapper and Steam (`35`).
+The endless mode with supply to keep up (`05`), leaderboards (with it), other scenarios, the Horde in the full game's Worlds screen, farming in the plot before `30` step 4, saving a run, difficulty choices, the wrapper and Steam (`35`).
