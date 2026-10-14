@@ -855,7 +855,7 @@ function render() {
     `${clock.getLabel()} ${clock.getPhase()}  bright ${clock.getBrightness().toFixed(2)}  light@player ${light.lightAt(S.player.gx, S.player.gy).toFixed(2)}  hands ${hand(S.player.hands.main)}/${hand(S.player.hands.off)}  guard ${combat.shieldOf(S.player) ? (S.player.blocking ? "UP" : "ready") : "no shield"}\n` +
     `chunk ${cx},${cy}  room ${playerRoom}${playerRoom > 0 ? (map.roomSealed(map.getRoom(playerRoom)) ? " sealed" : " open") : ""}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
-    `ground ${groundLine()}\n` +
+    `ground ${groundLine()}${net.onTheWire() ? `  wire out ${(net.wireRates().out / 1024).toFixed(1)} KB/s in ${(net.wireRates().in / 1024).toFixed(1)} KB/s` : ""}\n` +
     `villagers ${S.villagers.length}  zombies ${S.zombies.length}  corpses ${S.corpses.length}  chunks ${map.chunkCount()}  near ${S.zombies.filter(game.nearPlayer).length}  ${S.zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
     `Tab: bag   C: character   1-4: belt   N: build   X: remove   Z: zoom   right-click: actions   Esc: close or pause   E: nearest   T: torch   Enter: chat   B: boards   V: ${drawAll ? "all" : "fog"}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
 }

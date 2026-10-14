@@ -93,7 +93,7 @@ export function makeCode() {
 // The wire's protocol (the coder agent's review, 2026-10-13: a build version has nothing to compare, the
 // wire and the save do): bumped by hand when a message or the save changes shape; the host refuses a
 // guest on another with a word for whose is newer.
-export const PROTOCOL = 1;
+export const PROTOCOL = 2; // 2 (2026-10-13): the dead as a delta with a roster, numbers rounded
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -145,6 +145,8 @@ export function close() {
   guests.clear();
   away.clear();
   lastCarried.clear();
+  lastSent.clear();
+  for (const k of Object.keys(lastRoster)) lastRoster[k] = "";
   pending.length = 0;
   pendingOpened.length = 0;
 }
@@ -159,6 +161,29 @@ export function close() {
 export const RELAY_URL = "wss://cmz-relay.fly.dev"; // the relay the site carries: server/relay.js on Fly, Michael's cozy-medieval organisation, deployed 2026-10-13 (docs/31/07, question 20); ?relay=none for the two-tab loopback
 let relayUrl = RELAY_URL;
 let transport = null; // { kind: "loopback" | "relay", ready, send(msg), close() }
+// What the socket carries, counted (the review, 2026-10-13: the numbers must be real): bytes out and in,
+// and the rates over the last whole second, in status() and the debug corner.
+const wireBytes = { out: 0, in: 0, since: 0, outRate: 0, inRate: 0, lastOut: 0, lastIn: 0 };
+function countBytes(dir, n) {
+  wireBytes[dir] += n;
+  const now = performance.now();
+  if (!wireBytes.since) wireBytes.since = now;
+  if (now - wireBytes.since >= 1000) {
+    wireBytes.outRate = Math.round((wireBytes.out - wireBytes.lastOut) * 1000 / (now - wireBytes.since));
+    wireBytes.inRate = Math.round((wireBytes.in - wireBytes.lastIn) * 1000 / (now - wireBytes.since));
+    wireBytes.lastOut = wireBytes.out;
+    wireBytes.lastIn = wireBytes.in;
+    wireBytes.since = now;
+  }
+}
+export function wireRates() {
+  return { out: wireBytes.outRate, in: wireBytes.inRate, outTotal: wireBytes.out, inTotal: wireBytes.in };
+}
+// The dead, the villagers, and the corpses as a delta (the review's plan, 2026-10-13): a record goes out only
+// when it differs from the last sent, and each list's roster of ids goes out when its membership changes; a
+// character the host has not sent before goes whole (record). The welcome is the baseline a guest starts from.
+const lastSent = new Map(); // character id -> the slim record's text last sent
+const lastRoster = { zombies: "", villagers: "", corpses: "" };
 
 export function setRelay(url) {
   if (url === "none" || url === "loopback") relayUrl = null;
@@ -195,8 +220,8 @@ function dropped(why) {
 function openLoopback(wantCode) {
   if (typeof BroadcastChannel === "undefined") return false;
   const ch = new BroadcastChannel(`cmz-wire-${wantCode}`);
-  ch.onmessage = (e) => receive(e.data);
-  transport = { kind: "loopback", ready: true, send: (m) => ch.postMessage(m), close: () => ch.close() };
+  ch.onmessage = (e) => { countBytes("in", JSON.stringify(e.data).length); receive(e.data); }; // the loopback carries objects; counted as the relay would carry them
+  transport = { kind: "loopback", ready: true, send: (m) => { countBytes("out", JSON.stringify(m).length); ch.postMessage(m); }, close: () => ch.close() };
   return true;
 }
 
@@ -214,8 +239,11 @@ function openRelay(wantRole, wantCode) {
     kind: "relay",
     ready: false,
     send: (m) => {
-      if (t.ready) ws.send(JSON.stringify(m));
-      else queue.push(m);
+      if (t.ready) {
+        const text = JSON.stringify(m);
+        countBytes("out", text.length);
+        ws.send(text);
+      } else queue.push(m);
     },
     close: () => {
       done = true;
@@ -229,6 +257,7 @@ function openRelay(wantRole, wantCode) {
   };
   ws.onmessage = (e) => {
     let m;
+    countBytes("in", typeof e.data === "string" ? e.data.length : 0);
     try { m = JSON.parse(e.data); } catch { return; }
     receive(m);
   };
@@ -295,7 +324,7 @@ export async function isOpen(code) {
 }
 
 export function status() {
-  return { role, code, lag, selfId, guests: [...guests.values()].map((g) => g.playerId), myPlayerId, joined, framesSeen, lastFrameAt, tick, waiting: role === "guest" && !joined, transport: transport ? transport.kind : null, relay: relayUrl, protocol: PROTOCOL };
+  return { role, code, lag, selfId, guests: [...guests.values()].map((g) => g.playerId), myPlayerId, joined, framesSeen, lastFrameAt, tick, waiting: role === "guest" && !joined, transport: transport ? transport.kind : null, relay: relayUrl, protocol: PROTOCOL, wire: wireRates() };
 }
 
 export function setTestSnapshot(s) {
@@ -498,8 +527,13 @@ function allCharacters() {
 
 // What a guest needs of a character each step: where it is and what it is doing.
 // A player's record is whole (their client draws their bag and their bars).
+// Numbers rounded (the review, 2026-10-13: a position like 16.450000000000006 is eighteen characters where
+// five would do): positions to three decimals, which the sync check hashes at, hp to two.
+const r3 = (n) => Math.round(n * 1000) / 1000;
+const r2 = (n) => Math.round(n * 100) / 100;
+
 function slim(c) {
-  const r = { id: c.id, gx: c.gx, gy: c.gy, facing: c.facing, anim: c.anim, hp: c.hp, dead: c.dead, state: c.state, corpse: c.corpse, line: c.line, blocking: c.blocking, burning: !!c.burning, carryingId: c.carrying ? c.carrying.id : null };
+  const r = { id: c.id, gx: r3(c.gx), gy: r3(c.gy), facing: c.facing, anim: c.anim, hp: r2(c.hp), dead: c.dead, state: c.state, corpse: c.corpse, line: c.line, blocking: c.blocking, burning: !!c.burning, carryingId: c.carrying ? c.carrying.id : null };
   if (c.searched) {
     r.searched = true;
     r.loot = c.loot; // a body opened: its grid, for a guest with it open
@@ -512,6 +546,9 @@ function record(c) {
   if (c.kind === "player" || !known.has(c.id)) {
     known.add(c.id);
     const r = { full: true, ...serializeCharacter(c), line: c.line }; // the save drops a bubble; a frame carries it (the chat)
+    r.gx = r3(r.gx);
+    r.gy = r3(r.gy);
+    r.hp = r2(r.hp);
     // The prop in hand rides once, when it changes (the review, 2026-10-13: a stocked chest every frame is its whole
     // bag every frame); a guest keeps its copy while the id stays, and a welcome's save carries it whole.
     if (lastCarried.get(c.id) === r.carryingId) delete r.carried;
@@ -530,11 +567,40 @@ export function hostAfterStep() {
   if (role !== "host" || !guests.size) {
     map.takeTouched(); // nobody to tell: the touched set is drained, not kept for ever (a grown chunk names itself to it in every game)
     interact.takePokes();
+    if (lastSent.size) {
+      lastSent.clear(); // the next guest's welcome is its baseline, and every roster goes out again
+      for (const k of Object.keys(lastRoster)) lastRoster[k] = "";
+    }
     return;
   }
   const S = game.state;
   for (const id of lastCarried.keys()) if (!S.players.some((q) => q.id === id)) lastCarried.delete(id); // a player gone dormant and back is sent its prop in hand afresh
   const touched = map.takeTouched();
+  // The delta: a record only when it differs from the last sent; the roster of a list when its membership changed.
+  const delta = (list) => {
+    const out = [];
+    for (const c of list) {
+      const r = record(c);
+      if (r.full) {
+        out.push(r);
+        lastSent.set(c.id, JSON.stringify(slim(c)));
+        continue;
+      }
+      const text = JSON.stringify(r);
+      if (lastSent.get(c.id) === text) continue;
+      lastSent.set(c.id, text);
+      out.push(r);
+    }
+    return out;
+  };
+  let roster = null;
+  for (const name of ["zombies", "villagers", "corpses"]) {
+    const ids = S[name].map((c) => c.id);
+    const text = ids.join(",");
+    if (text === lastRoster[name]) continue;
+    lastRoster[name] = text;
+    (roster = roster || {})[name] = ids;
+  }
   const frame = {
     type: "frame",
     tick,
@@ -543,9 +609,10 @@ export function hostAfterStep() {
     timeScale: world.world.timeScale,
     chunks: touched.map(([cx, cy]) => map.getChunk(cx, cy, false)).filter(Boolean).map(map.serializeChunk),
     players: S.players.map(record),
-    zombies: S.zombies.map(record),
-    villagers: S.villagers.map(record),
-    corpses: S.corpses.map(record),
+    zombies: delta(S.zombies),
+    villagers: delta(S.villagers),
+    corpses: delta(S.corpses),
+    roster,
     pokes: interact.takePokes(), // the sways and the well's bucket stamped this step (interact.js): a guest sees a field wobble when anyone walks through it
     queues: stations.frameQueues(), // the jobs in the stations, with their time left: the bar a guest's recipes panel shows
     carriers: light.carriers().filter((c) => c.owner),
@@ -707,9 +774,16 @@ function applyFrame(f) {
     return c;
   }).filter(Boolean);
   S.players = bring(f.players);
-  S.zombies = bring(f.zombies);
-  S.villagers = bring(f.villagers);
-  S.corpses = bring(f.corpses);
+  // The dead, the villagers, and the corpses come as a delta (hostAfterStep): the records present are applied to the
+  // characters here, a list's membership changes only when the frame carries its roster, and a roster's ids are
+  // characters this frame or an earlier one brought (a newcomer arrives whole in the same frame as its roster).
+  bring(f.zombies || []);
+  bring(f.villagers || []);
+  bring(f.corpses || []);
+  if (f.roster) for (const name of ["zombies", "villagers", "corpses"]) {
+    const ids = f.roster[name];
+    if (Array.isArray(ids)) S[name] = ids.map((id) => byId.get(id)).filter(Boolean);
+  }
   S.player = S.players.find((p) => p.id === myPlayerId) || S.player;
   // Reconciliation: the host's record of me stands at its tick; my inputs it has not yet applied
   // go over it again, so what I see is the host's truth plus what I have done since.
