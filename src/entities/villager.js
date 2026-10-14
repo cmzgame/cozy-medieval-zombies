@@ -1,10 +1,11 @@
 // Villagers (docs/19, step 3): living figures on the character model that
 // wander near where the map put them and, when poked, stop, turn to you, and
-// say their line. Nothing else yet: the dead ignore them, a swing passes
+// say their line. The dead hunt them only behind a setting (`zombiesAttackVillagers`,
+// docs/19), and one bitten to death turns (`turnVillager`); a swing passes
 // through them, they have no needs. `hp`, `maxHp`, `dead`, `radius`, `worn`, and
-// `look` are on them so that fleeing, dying, and turning (docs/04) need no
-// reshaping. They walk with the dead's own walking code (zombie.js exports it),
-// on a tether to `home`.
+// `look` are on them so that fleeing and following (docs/04) need no reshaping.
+// They walk with the walking they share with the dead (movement.js), on a tether
+// to `home`.
 
 import { createCharacter, wardrobeInto, dress, say } from "./character.js";
 import { getSheet } from "../assets.js";

@@ -34,9 +34,9 @@ export const tunables = {
   drawTime: 0.9, // seconds to a full draw (a bow's own `drawTime` overrides it)
   minDraw: 0.15, // a release before this fraction of a draw is a dry release: nothing flies
   minDistance: 1, // tiles: a cursor closer than this still shoots this far
-  drawSpeed: 0.45,
+  drawSpeed: 0.45, // walking speed while a bow is drawn (Minecraft slows you to a crawl)
   braceMove: 0.2, // walking speed with the right button held and a bow in hand (docs/21)
-  braceDrawRate: 1.5, // the draw fills this many times faster when braced: 0.9 s becomes 0.6 // walking speed while a bow is drawn (Minecraft slows you to a crawl)
+  braceDrawRate: 1.5, // the draw fills this many times faster when braced: 0.9 s becomes 0.6
   recoverTime: 0.22, // seconds after a shot before the next draw can begin
   hitRadius: 0.5, // tiles around the landing point that count as a hit (a body's radius 0.3 and a little)
   damage: 38, // at a full draw; scaled by 0.4 + 0.6 c (a bow's own `damage` overrides it)

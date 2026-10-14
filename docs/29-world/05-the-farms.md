@@ -1,5 +1,7 @@
 # 29.05 — The farms
 
+**Status, 2026-10-13: not built;** `30`'s step 4, held by Michael. The farms' ground is reserved in the valley (Hollow Farm's shifted to (36, 230) to clear the cottages, Long Acre and the mill at (64, 24)). `30` decides farming itself (section 8: the hoe, soil, growth in days, dryness, the bucket in place of the watering can named below, seeds, the scythe) and its guest side; animals are no longer none (two, chickens and deer, `30` step 8).
+
 Farming is load-bearing (`00`, pillar 3: "if it is not fun the game probably is not either"), so the farms are where the map spends its warmth. Two real farms and a croft, each a different size and a different crop, and every field already planted at mixed stages so the first harvest is waiting when the player arrives.
 
 ## Hollow Farm (south-west, the big one)

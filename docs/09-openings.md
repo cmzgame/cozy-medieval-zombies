@@ -1,5 +1,7 @@
 # 09 — Milestone 3: openings, and the dead get in
 
+**Status, 2026-10-13: built** (accepted 2026-10-10). The code is the truth (`src/map.js`, `src/interact.js`, `src/entities/zombie.js`); the numbers below hold; since this was written: each side's boards are a list of each board's own hit points (`wall.boards.near`, `wall.boards.far`), and a map authors them as `boards: { in, out }`; boarding and pulling are in every opening's right-click menu as well as on `B`, a plank spent from the bag; the walls and the board overlays are drawn art (`17`, `18`); **sealed** is derived and shown in the debug corner but gates nothing, since sleep needs only a bed indoors and nothing interrupts it (`30`, 3.3); a guest's `E` and `B` are events in its snapshot that the host performs, and its menu entries are commands by the edge's address (`31`).
+
 Ruled 2026-10-10 (`02-decisions.md`, "Openings"). Until now a closed door stops the dead for good. After this milestone your walls are something you prepare, not something you hide behind: you shut the door, board the window, light the hearth, and listen to them hit the boards until dawn. If a board gives, one climbs through the window into the lit room. The melee port comes next, because once they can get in you need something to swing.
 
 ## What is already true

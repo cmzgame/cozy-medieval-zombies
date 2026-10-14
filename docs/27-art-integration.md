@@ -20,18 +20,18 @@ The design agent ("Claude Design", also called the art agent) works in a separat
 
 ## B. The agent's docs, in the repo
 
-The agent's tool cannot write under `.claude/`, and the stale `master` checkout is not the project. So it has **its own worktree outside `.claude/`**: `C:/Users/micha/Dev/cozy-medieval-zombies-art`, on the branch **`art-docs`**, made from `main`. It writes `docs/art/` there and commits to `art-docs`.
+The agent's tool cannot write under `.claude/`, and the stale `master` checkout is not the project. So it has **its own worktree outside `.claude/`**: `C:/Users/micha/Dev/cozy-medieval-zombies-art`, on the branch **`art-docs`**, made from `main`. It writes `docs/art/` there and commits to `art-docs`. A delivery of art can come the same way (the character layers did: committed on `art-docs` on Michael's ask, 2026-10-12, then merged), and is still checked as in A before anything reads it.
 
 - **Bring its work in:** in the main worktree, `git merge art-docs`, then push. It is docs, so conflicts are not expected.
 - **Keep it current:** `git -C C:/Users/micha/Dev/cozy-medieval-zombies-art merge main`, **but only when its working tree is clean**: if it has uncommitted edits the merge aborts. Ask the agent to commit to `art-docs` first (it was mid-edit on three files when this was first tried). `main` cannot be checked out there (it is checked out in the main worktree).
 - **Audit what it writes against the code before trusting an engine fact.** Its numbers about its own art (sizes, counts, palettes) are the authority and were checked against the PNG headers and matched. Its statements about **the engine** are inferences, and some have been wrong in ways worth knowing: it said the game zooms by whole numbers (the levels are 1.1, 1.8, 2.7: still never scaled by the art); it recommended drawing the cursor into the canvas on top of the UI (the UI is DOM above the canvas, so it would be hidden); it described the first, Canvas 2D night layer (the game now lights in a shader with an unlit flag). **Annotate a correction in place with a dated note ("Engine correction (date, Claude Code)")**, never silently, and where an art doc and an engine doc disagree, the engine doc is right about the engine and the art doc about the art (the art agent's own rule, `docs/art/README.md`).
-- **The agent's open decisions for Michael** are listed in `docs/art/11-open-items-and-lessons.md` (cursors engine-drawn or CSS, stack limits for the book and staff, the knife and axe icon size, the character palettes and outline colour, the willow, and committing its generators). Surface them; do not pick.
+- **The agent's open decisions for Michael** are listed in `docs/art/11-open-items-and-lessons.md` (cursors engine-drawn or CSS, stack limits for the book and staff, the knife and axe icon size, the character palettes and outline colour, the willow, and committing its generators). Surface them; do not pick. **Since decided (2026-10-13):** the cursor is CSS (`ui/cursor.js`, `02`, 2026-10-12); the skin ramp is approved and the hair and eye colours are first picks in `data/looks.json`; the character painting scripts are committed under `tools/art-gen/character/`. The page itself still lists them as open.
 
 ## C. Things that arrive later and need a ruling first
 
-- **The generators** (Python, numpy and PIL, deterministic) exist only in the agent's session workspace and in its delivery zips. The agent recommends committing them under `tools/art-gen/`. Michael decides whether they go in the repo, and **whether and when anything in them is run**: reading a script is fine, running one is a decision for him, not an automatic step.
-- **The characters** (`25`): the body first. The engine pieces it needs come first: the slicer (PNG to layer files), the `beard` and `waist` slots, the covers rules, hair dyeing. Until then a delivery can be stored and checked but not landed.
-- **The cursors, the stubs, the willow:** drawn, in Michael's downloads, not in the repo (`docs/art/11`). Each needs a ruling (a DOM cursor or CSS; stubs only if translucent walls draw complaints; the willow needs a definition and a shadow width) before import.
+- **The generators** (Python, numpy and PIL, deterministic): the character painting scripts are in the repo under `tools/art-gen/character/` (with the delivery, 2026-10-12); the rest (trees, ground, village, items, cursors) exist only in the agent's session workspace and its delivery zips. Michael decides whether those go in the repo, and **whether and when anything in them is run**: reading a script is fine, running one is a decision for him, not an automatic step.
+- **The characters** (`25`): the engine pieces are built (the slicer, the `beard` and `waist` slots, the covers rules, hair dyeing; `23` step 3a), the body is the rig's and is never drawn, and the six hairs are installed. What is left is landing the garments, hats, and the knight as items (`02`, 2026-10-13), which is engine and data work, not a ruling.
+- **The stubs and the willow:** drawn, in Michael's downloads, not in the repo (`docs/art/11`). Each needs a ruling (stubs only if translucent walls draw complaints; the willow needs a definition and a shadow width) before import. The cursors came in on 2026-10-12 as a CSS cursor (`ui/cursor.js`).
 
 ## What the agent will flag on its own (so it is not a surprise)
 
@@ -39,4 +39,17 @@ A missing or wrongly sized icon; orientation names that clash (the first village
 
 ## Where each thing is written
 
-The commission for the next art: `25` (characters) and `26` (items). What the agent knows about its own art: `docs/art/`. What came in and when: `02-decisions.md`, newest on top. What is still owed and what is next: `TODO.md`, Status block. The rule about pairs: `CLAUDE.md` and the memory `item-art-both-versions`.
+The commission for the next art: `26` (items, and the icons and portraits the character garments still owe); `25` (characters) was sent and delivered, and its status says what is left; `28` is how a character part is painted. What the agent knows about its own art: `docs/art/`. What came in and when: `02-decisions.md`, newest on top. What is still owed and what is next: `TODO.md`, Status block. The rule about pairs: `CLAUDE.md` and the memory `item-art-both-versions`.
+
+## D. Corrections owed to `docs/art` (the docs pass of 2026-10-13)
+
+The agent's own docs are its to edit (section B), so these go to it as a message, not as edits here. Each is a line of `docs/art` that the game no longer bears out; Michael may paste the list as it stands.
+
+- `README.md`: the engine docs run to `32`, not `25`; `data/art/items` holds 13 pictures (the previews moved to `docs/art/previews/`); `data/art/cursors` (9) and `data/art/character` are missing from its table; the cursors and the character scripts are in the repo (`src/ui/cursor.js`, `tools/art-gen/character/`).
+- `02-trees.md`: trees are `interactable` gatherables (`data/sprites/tree_oak_l.json`); only the outline is excused (`CLAUDE.md`).
+- `03-ground-and-decals.md`: water cannot be walked on since `30` step 0 (`walk: false`), and shallow water is slow (`walk: 0.5`); the wild-rock rule is the proving ground's (`data/maps/square.json`), and the valley places its rocks by hand.
+- `05-village-buildings.md`: the valley's buildings now have interior partition doors (`tools/mapgen/valley.py`), so a door's far-side leaves can be seen.
+- `07-items-and-icons.md`: the list of items without drawn pairs lacks the eighteen of `30` step 3 (six tools, twelve materials and foods; `26` lists them).
+- `08-cursors.md`: the cursors are in, as CSS cursors (`02`, the cursor entry; `src/ui/cursor.js`), not engine-drawn; the zombie hand shows over the dead; the dead's skin ramp is approved (`data/looks.json`, `skins.dead`).
+- `11-open-items-and-lessons.md`: decisions 1 (CSS cursors) and 4 (the ramp approved, garment outlines `#1a1420`, `src/figure/rig.js`) are made; the cursors and the character generators are committed; a drawn UI skin is not wanted (`02` keeps the generated kit); round 1 of the character parts is in `data/art/character/layers/`.
+- `12-characters-from-the-art-side.md`: `body.py` and `deliver.py` were deleted (commit 546997c) and `README_body.md` went with the body rounds; the eyes stay the generated 3 by 5 (`25`, deliverable 1), not 4 by 6; the slicer (`tools/slice.html`) and the creation screen (`src/ui/screens.js`) are built; the skin ramp and the outline colour are decided.

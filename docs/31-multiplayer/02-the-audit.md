@@ -1,5 +1,7 @@
 # 31.02 — The audit: what is built, read against the free rules
 
+**Status, 2026-10-13: history.** A reading of the code at `ac2f63f`, before any of the plan was built; its file:line and its counts are that commit's, and nearly every finding has since been fixed (`05` marks each item with its move). Do not read it as the state of the code. In particular: growth by reading (section 4) is gone; props, entries, and characters have ids from the world's counter (5); the singletons of section 2 are on the player or the client's own, the renderer's writes on shared objects (`behindProp`, `swingTarget`, the speech line's aging) excepted; a save exists (11, `src/save.js`); a screen pauses only a world played alone and hit-stop is refused on the wire (9); the loop is still on `requestAnimationFrame` (9).
+
 Three surveys of `src/` on 2026-10-13 (the singletons, the world-mutation surface, the client's coupling), condensed. Lines are of the code at `ac2f63f`; they drift, the names do not. The frame is `05-someday.md`'s free rules, with two the surveys found missing from that list (ids on things that do not move; growth driven by the view).
 
 ## 1. What is ready

@@ -1,5 +1,7 @@
 # 29.07 — The start, and where you live
 
+**Status, 2026-10-13: option A is ruled and built** (`30`, step 0): the end cottage at (98, 212), a living room and a bedroom through a partition, a hearth, a table and two chairs, a bed, two chests and a shelf, a plot of potatoes and cabbages at mixed stages, its own well, a barrel and a woodpile, a fence with two gates; the spawn in the bedroom at (104, 216). Not built from below: the pumpkin by the door, the herb bed, the privy, the lean-to, and the chest's fixed contents (the chests open with the chest's loot). The developer chest is a setting placed by the spawn (`devChest`, on while in development). The next survivor arrives beside the spawn for now (`31/09`'s New character), not at B, C, or the inn.
+
 `00`'s pillar: the home matters; you furnish it, light it, barricade it, sleep in it, and grow food beside it. `02` (2026-10-08): death turns you and the next survivor arrives elsewhere with a basic kit. So the home is a place on the map, chosen before the story exists, and the start is a situation the map sets up without a line of dialogue.
 
 ## Three homes to choose from

@@ -1,5 +1,7 @@
 # Milestone 7: placement
 
+**Status, 2026-10-13: built and accepted.** The code is the truth; since this was written: on a guest the ghost is drawn from the replica and a click goes to the host as a command, which performs the put-down, the build, or the removal for the guest's player with its own reach (`placement.performPlacement`, `setSender`, `syncCarried`; `02`, 2026-10-13); the prop a character carries is in its record (`carried`), so a save and a join keep it; `canCarry`, `canPutDown`, and `putDownTarget` live in `placement.js` and `interact.js` re-exports them; the ghost is drawn in `render/props.js` (`emitGhost`) and the build grid in `render/scene.js`; crafting makes props now, a prop recipe landing on a free tile beside its station (`stations.js`, `30` step 3), though nothing is yet placed from the bag.
+
 One tool for putting things in the world: carried furniture, and built walls, doors, and windows. A ghost of the thing follows the cursor, R turns it, the ghost is green where it may go and red where it may not, and a left click puts it there. It replaces "press E and hope" for furniture (Michael, 2026-10-10 pin 3) and opens building, which `05-someday.md` kept at zero cost through walls-as-edge-state and rooms-by-flood-fill.
 
 Scoped 2026-10-11 for implementation by another model. Everything a decision needs is decided here; where Michael may want to overrule, the line says "default". Read `02-decisions.md` under 2026-10-11 for the rulings this adds.

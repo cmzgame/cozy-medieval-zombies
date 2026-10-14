@@ -21,8 +21,8 @@ export const DEFAULTS = {
   freeBuilding: false, // on: building costs nothing (docs/13), for testing structures
   survival: true, // on since docs/30 step 2 (hunger, thirst, tiredness drain); off: the body is a workbench
   hairStyle: "short", // the player's hair (the character screen writes it, and `look.hairStyle` with it; kept for what reads it)
-  playerName: "", // who you are to the others (docs/31/03: the identity; the character screen); empty means your player's id
-  look: {}, // the look chosen on the character screen: skin, hair, eyes (hex), hairStyle; the rest DEFAULT_LOOK's. With playerName, the identity a guest sends on a join
+  playerName: "", // the identity before docs/31/09: read once to migrate into identities.js, and by the ?nosave test world's identity
+  look: {}, // the look before docs/31/09 (skin, hair, eyes, hairStyle): migrated with playerName; identities.js keeps them now
   nameTags: true, // another player's name over their head while in sight (docs/31/03)
   paintedLayers: {}, // slot -> painted layer name to try on, from the settings screen (docs/12)
   panelPos: {}, // "bag" | "character" | "container" -> { x, y } in UI pixels where its header was dragged to (docs/23 step 4; Michael, 2026-10-12)

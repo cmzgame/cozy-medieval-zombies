@@ -1,5 +1,7 @@
 # 29.02 — Water and roads
 
+**Status, 2026-10-13: built in steps 0 and 1 of `30`:** the river, five wide with a dirt bank of one (no shingle or mud kind yet); the stone bridge on the high street at row 158, laid stone until `floor_bridge_stone` is drawn, with no parapet; the ford at (132, 206), `floor_water_shallow` seven tiles by three; the duck pond on the green; the roads' skeleton (the high and west roads, the bridge road, the square, the nobles' street, the south lane, the lane, the drove). **Water stops every walker** (`30`, law 8, which sharpens item 2 below), shallow water is half speed for all, and drinking and filling work at any water beside you (`check("water")`). The brook, the footbridge, the weir, the millpond, the farm pond, the mere, the moat, the castle's bridges, gravel, and the road furniture and wear are not built.
+
 ## Water
 
 The brief: at least one river with a bridge and at least one pond. The plan has one river, one brook, four crossings of four different kinds, four still waters, and a moat. Each is a different feel, and the kinds of crossing are the point: if water stops the dead (the first engine ask), every crossing is a place with a character.

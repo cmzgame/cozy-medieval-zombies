@@ -11,7 +11,7 @@
 
 A spec names the guest's side of every feature as it names the host's. A review refuses a change that has only the host's.
 
-The original six habits, as they were handed to the big pass's implementer, follow. One block, copy-ready, no tables. It adds to `CLAUDE.md`'s tiebreaker and `05-someday.md`'s free rules; it changes nothing in `30`'s content or order. Each habit is an item marked (now) in `31/05`, free while the code is written and a rewrite later. Michael may paste it into the implementer's instructions as it stands.
+The original six habits, as they were handed to the big pass's implementer, follow. One block, copy-ready, no tables; the tiebreaker and the pause it names are as of 2026-10-12 (the tiebreaker is replaced by the rule above, and pause was built as the loop's own, never on the wire). It adds to `CLAUDE.md`'s tiebreaker and `05-someday.md`'s free rules; it changes nothing in `30`'s content or order. Each habit is an item marked (now) in `31/05`, free while the code is written and a rewrite later. Michael may paste it into the implementer's instructions as it stands.
 
 ---
 

@@ -1,6 +1,6 @@
 # 16 — Art brief for Claude Design: the village
 
-**Delivered and in the game (2026-10-11).** Everything asked for here came back in `village_art` and is built into the game by `17`. Kept as the record of what was asked and why.
+**Delivered and in the game (2026-10-11).** Everything asked for here came back in `village_art` and is built into the game by `17`. Kept as the record of what was asked and why. **Status, 2026-10-13:** nothing from this brief is owed (the log walls, boards, and far-side leaves came after it, by `18`); the settings screen's **Wall height** row of Part 4 is gone, the walls being 80 px by their definitions; `render.js`, named in the notes, is a hub over `render/` (the posts in `render/walls.js`).
 
 **Corrected 2026-10-11:** the first version had the wall directions swapped in its requests. The engine is the truth: a north wall runs from a tile's top corner down to its right corner (`\`, a room's back-right wall), a west wall from its left corner up to its top corner (`/`, the back-left wall). Claude Design caught the mismatch.
 

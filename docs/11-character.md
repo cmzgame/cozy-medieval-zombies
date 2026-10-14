@@ -1,5 +1,7 @@
 # 11 — Milestone 5: the character
 
+**Status, 2026-10-13: built.** The code is the truth; since this was written: Tab and C open two independent panels, the bag and the character screen, each dragged by its header and remembered (`23`, step 4); a guest's drags, drops, and menu entries run on the host as commands by uid, slot, and bag address (`ui/inventory-actions.js`); the character's name and look come from an identity chosen when the character is made (`docs/31/09`).
+
 **Update, 2026-10-12 (`19-characters.md`):** the doll, the hands, and the grid are no longer only the player's. Every character (the player, the dead, villagers) has `worn` and `hands`, and the dead and villagers also carry `pockets`, a small grid of their own that needs no bag or belt; the player's grid is still the bag on their back and their hotbar the belt. **A dead zombie is a container**: its body's grid holds what it wore, held, and carried, and taking things from it strips the body.
 
 Michael, 2026-10-10: before combat, the worn screen and a hotbar, and this is more interesting to him right now than fighting, since nothing here can kill you and that makes testing easy. Ruled in `02-decisions.md`.

@@ -1,5 +1,7 @@
 # 31.01 — The breadcrumbs: what the docs already say about more than one player
 
+**Status, 2026-10-13: history.** The trail as it stood before any of the plan was built; every thread here has since been taken up, and `05` and `06` say how. Since this was written: the tiebreaker (entry 1) is replaced by the rule that every change is built for multiplayer in the same commit (`02`'s top entry, `08`); the save (13) is built as the worlds store (`09`); the creation screen (12) is the identity editor of `09`; death (11) now offers a new character in the same world (`09`), with the body's turning still owed; sleep's veto (6) is ruled, everyone in bed (`02`); the singletons of `23a` D8 (5) are on the player.
+
 Collected 2026-10-13 from every doc. Each entry says where it is, what it says, and what it commits the game to. Nothing here is new; it is the trail this folder follows.
 
 ## The rulings that bind

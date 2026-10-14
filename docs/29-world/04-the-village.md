@@ -1,5 +1,7 @@
 # 29.04 — The village
 
+**Status, 2026-10-13: built in step 1 of `30`** from this plan, through the generator: 20 places, 25 buildings, 43 rooms, 40 of the dead, 7 villagers (`30`, "Step 1 as built"). Not built from this page: the mill (step 4), the tannery (cut until the animals bring it back), the rising (the graveyard's eight stand), signs, carpets, wall props, decals, and every low wall and hedge, which are `wall_fence` until drawn; the furniture and stations without art are labelled boxes.
+
 Working name: none yet; Michael names it. On the west bank, about 64 by 80 tiles, from the graveyard at the top to the cottages at the bottom, the river on its east. Every building has at least two rooms unless it is a shed, and most have a yard, because a village of square one-room boxes was the one thing the brief forbade.
 
 ## The plan

@@ -1,5 +1,7 @@
 # 29.01 — The map at a glance
 
+**Status, 2026-10-13: 256 by 256 is ruled and built** (`data/maps/valley.json`, from `tools/mapgen/valley.py`). Where this overview and `04`'s plan disagree the build follows `04`: the high street and the stone bridge are at row 158, not 126 (`02`, 2026-10-12, step 0); the river runs from about (120, 0) to (140, 256) as drawn here; the spawn is your cottage's bedroom at (104, 216). Only the river, the roads' skeleton, your cottage, and the village are built; the rest of the picture is forest and reserves until `30`'s steps 4 to 7. Chunks now grow only in the ring round each player and through the world's mutators, never on a read (`02`, 2026-10-13).
+
 ## Size
 
 **Proposed: authored bounds 256 by 256 tiles, 16 by 16 chunks, 65,536 tiles.** The cut is 192 by 192 (12 chunks). The reasons for the bigger one:

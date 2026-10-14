@@ -1,5 +1,7 @@
 # 29.10 — Engine asks, for the other agent
 
+**Status, 2026-10-13:** tier 1 (items 1 to 5) is built (`30`, step 0: `walk` and `drink` on a floor definition, `seeThrough` and `climb` on a wall's, `partitions`, `wall` per side, `fence` features; a see-through wall bounds no room), as are item 17 (drinking and filling at any water, step 0), item 11's fuel per fire (`fire.fuel` and `fire.hoursPerUnit` on the definition, step 2; the hearth's cap for the hall is not), the openings authored `open`, `broken`, or boarded (step 1), and the generator (`tools/mapgen/`). Item 18 is `30` itself, its stations and recipes built (step 3). Cut (`02`, 2026-10-12): items 9 and 10, and 8 (a) the carpet autotile. A box's name is drawn on it (`placeholder.label`), but item 12's prompt on a prop is not built. The rest waits for `30`'s steps 4 to 8 (its section 12 lists them by step), each built for a guest in the same commit (`31/08`). The vocabulary below is the map format before step 0.
+
 What the plan needs from the code, ranked by how much of the map depends on it, with what it is for, a guess at its size (small, medium, large; no times, `no-time-estimates`), and where it touches by the modules' documented names (`CLAUDE.md`'s code map; this plan was written from the docs, not the code, so the touch points are the docs' and the other agent will know better). First, what needs nothing.
 
 ## Works today with no change

@@ -1,5 +1,7 @@
 # 08 — Milestone 2b: the WebGL renderer, portals, and light per pixel
 
+**Status, 2026-10-13: built** (all three phases on 2026-10-09; the Canvas 2D renderer deleted). The code is the truth (`src/gl.js`, `src/render.js` a hub over `src/render/`); since this was written: one atlas and one draw call, and the ground one baked quad per chunk (the notes under Phase 2); the world's scale is the zoom, three levels the GPU applies (1.1, 1.8, 2.7; `src/view.js`), not an integer display scale in CSS; the light, ambient, and fog textures cover as many chunks as the window needs rather than five by five (`render/area.js`); the see-through holes are cut in tree canopies only (2026-10-11); the debug views are on `L` (light, ambient, fog); the fog texture is the local player's sight, each client drawing its own (`31`).
+
 Ruled 2026-10-09 (`02-decisions.md`, "The renderer goes to WebGL"). The night layer in Canvas 2D reached "good for now" after a day of exceptions, and the things Michael still wanted (a pool climbing a wall, his own pool on the wall beside him, a tree lit at the trunk and dark at the crown) are light per pixel, which Canvas 2D cannot do. The outside spec Michael brought back recommended PixiJS; he chose raw WebGL2, since with me writing it a library buys little and we own the pipeline. The pause on gameplay is accepted: openings and combat will be written against what this produces.
 
 ## What stays

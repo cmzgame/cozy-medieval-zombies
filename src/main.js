@@ -1360,7 +1360,7 @@ async function boot() {
   });
   window.addEventListener("pagehide", () => net.leave());
   loop.start({ update, render, crash: shell.crash });
-  // The slot's save shows on the title as Continue (save.js); a dead one as a line and New game.
+  // A guest waits for the host's welcome; a host or a lone world starts from the Worlds screen (docs/31/09).
   if (net.isGuest()) {
     started = false;
     showMessage("Joining the host's world…", 4);

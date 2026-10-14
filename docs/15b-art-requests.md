@@ -1,6 +1,6 @@
 # 15b — Art requests for Claude Design
 
-**Both delivered (2026-10-11):** the decals as `decals_v2` (with four rocks added, a new concept still to be discussed) and the trees as `trees_v2`, drawn at final size; both are in the game.
+**Both delivered (2026-10-11):** the decals as `decals_v2` (with four rocks added, a new concept still to be discussed) and the trees as `trees_v2`, drawn at final size; both are in the game. **Status, 2026-10-13:** the rocks are in too, redrawn as stone clusters and placed as gatherables (`data/sprites/rock_*.json`, `02`, 2026-10-11); nothing from this doc is owed.
 
 Two requests Michael pastes into Claude Design (2026-10-11), written from what the game actually needs. Everything between the fences is meant to be pasted as it is. When the art comes back, the files drop into `data/art/trees/` and `data/art/ground/` under the same names and Claude updates the definitions (the trees lose their `scale`, the anchors are re-measured, and the leaf and mushroom counts in `data/ground.json` are retuned for the bigger pieces).
 

@@ -4,6 +4,8 @@ Both parents stay as they are. This game borrows by **copying files**, never by 
 
 Written 2026-10-08 from a full read of both repos' docs.
 
+**Status, 2026-10-13: a record of that first read, kept as written.** The modules copied carry an origin header (`iso.js`, `loop.js`, `events.js`, `input.js`, `sprites.js`, `render-util.js`, `grid.js`, `inventory.js`, `items.js`, `moodles.js`, `pathfind.js`, `placeholders.js`, `combat.js`, `light.js`, `clock.js`, `assets.js`, `interact.js`, the player and zombie files, five of `ui/`, and `serve.py`); `sfx.js` was never copied (the game has no sound yet), and `save.js` was written fresh as the worlds store (`31/09`), not the parent's one slot. A ruling below binds only where `02` re-made it.
+
 ## From `cozy-zombie-game` (`C:\Users\micha\Dev\cozy-zombie-game`)
 
 ### Code that looks copyable

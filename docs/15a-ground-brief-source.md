@@ -1,5 +1,7 @@
 # Ground rendering brief: textured grass, blended dirt edges, decals
 
+**Status, 2026-10-13: an input, kept verbatim.** This is the ground kit's brief as Michael received it from Claude Design. `15` decided how it was built (one CPU bake per chunk, not the shader pass below) and is the record of what the game does. The kit's PNGs are in `data/art/ground/`, the decals since redrawn (`15b`); `ground.py`, the two mockups, and the kit's folder were never copied in.
+
 **For:** the coding agent working on the WebGL renderer
 **Assets:** this folder (`ground_kit`). Every file named below is in it.
 **Reference images:** `ground_before.png` is the current flat checker. `ground_after.png` is the target look. Both are static mockups at 1:1 art scale, rendered with the real tree sprites and without the game's dynamic lighting.
