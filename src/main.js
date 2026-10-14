@@ -1310,6 +1310,8 @@ async function boot() {
         timeout: st.relay ? `No host answered "${code}". The host may have closed the world, or the code is not quite right.` : `No host answered "${code}". Without a relay the host and its guests must be tabs of one browser.`,
         nohost: `No world is open under "${code}". Check the code with the host.`,
         taken: `The code "${code}" is in use on the relay; open the world again for a new one.`,
+        busy: "The server is running as many worlds as it holds. Try again in a minute.",
+        broken: `The world "${code}" failed to start on the server a few times; it is resting before it tries again.`,
         relay: `${where[0].toUpperCase()}${where.slice(1)} could not be reached.`,
         dropped: "The connection to the host dropped.",
         hostLeft: "The host closed the world.",

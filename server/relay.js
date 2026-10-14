@@ -16,9 +16,24 @@
 // that gives TLS (a hosting tier's own front door, or a tunnel from a machine), and put that
 // address in src/net.js RELAY_URL or on the URL as ?relay=wss://... (docs/31/07, question 20).
 // A plain GET answers with the room count, which is also how a hosting tier's health check sees it.
+//
+// Server worlds (item 5's fourth step, 2026-10-14, `02`): with DATA_DIR set, the relay is also the keeper of the
+// worlds that live on the server, one folder each under DATA_DIR/worlds/<worldId>/ (meta.json with the code's
+// SHA-256, never the code; save.json.gz and its copies, which the world's own process writes). A guest naming a
+// server world's code starts that world's process (server/world.js, one per world, a heap limit each, at most
+// CMZ_MAX_RUNNING at once) and waits until it registers; the world holds itself when it empties and exits after a
+// spell, so an asleep world costs nothing. The code of a server world is reserved: only the relay's own child, with
+// the secret the relay handed it, may register as its host, even while the world sleeps. A world is found by its
+// code's hash, so no path is ever built from what a client sends. On SIGTERM or SIGINT (a deploy, Fly stopping the
+// idle machine) every world is asked to save and stop before the relay goes. CMZ_DEBUG=1 adds /debug/worlds and
+// /debug/stop, answered to the machine itself alone.
 
 import http from "node:http";
 import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { fork } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const PORT = Number(process.env.PORT || process.argv[2] || 8012);
 const GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
@@ -53,6 +68,131 @@ const DEAD_AFTER_MS = 90000;
 
 const rooms = new Map(); // code -> { host: Conn, guests: Map<id, Conn> }
 let nextId = 1;
+
+// ---- the server worlds ----
+
+const DATA_DIR = process.env.DATA_DIR || null;
+const WORLDS = DATA_DIR ? path.join(DATA_DIR, "worlds") : null;
+const WORLD_JS = path.join(path.dirname(fileURLToPath(import.meta.url)), "world.js");
+const MAX_RUNNING = Math.max(1, Number(process.env.CMZ_MAX_RUNNING || 3)); // the 512 MB machine: the relay, three worlds, and room for one upload's check (step 5)
+const WORLD_HEAP_MB = Number(process.env.CMZ_WORLD_HEAP_MB || 192); // a well-explored world's heap is under a hundred
+const WORLD_ID = /^w[a-z0-9]{6,40}$/; // made by the server alone; a folder named otherwise is not a world
+const META_MAX = 64 * 1024; // a meta.json larger than this is not ours: not parsed
+const CRASHES_BEFORE_REST = 3;
+const CRASH_WINDOW_MS = 10 * 60 * 1000;
+const STOP_WAIT_MS = 20000; // a deploy's grace for every world to save (fly.toml's kill_timeout covers it)
+const DEBUG = process.env.CMZ_DEBUG === "1";
+
+const serverWorlds = new Map(); // the code's sha256 -> { worldId, dir, name }
+const running = new Map(); // worldId -> { child, code, secret, pending: Set<Conn>, startedAt, debugPort }
+const crashes = new Map(); // worldId -> the times it exited badly, lately
+let scannedAt = 0;
+let nextDebugPort = 8100;
+let stoppingAll = false;
+
+const hashCode = (code) => crypto.createHash("sha256").update(code).digest("hex");
+
+// Equal strings in constant time, so a wrong secret says nothing by how long it took to refuse.
+function sameSecret(a, b) {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  const x = Buffer.from(a);
+  const y = Buffer.from(b);
+  return x.length === y.length && crypto.timingSafeEqual(x, y);
+}
+
+// The worlds on the volume, by their codes' hashes. Read at boot and again (at most every five seconds) when a code
+// is not found, so a world made while the relay runs is found.
+function scanWorlds(force = false) {
+  if (!WORLDS) return;
+  const now = Date.now();
+  if (!force && now - scannedAt < 5000) return;
+  scannedAt = now;
+  let names = [];
+  try {
+    names = fs.readdirSync(WORLDS);
+  } catch {
+    return;
+  }
+  serverWorlds.clear();
+  for (const id of names) {
+    if (!WORLD_ID.test(id)) continue;
+    const metaFile = path.join(WORLDS, id, "meta.json");
+    try {
+      if (fs.statSync(metaFile).size > META_MAX) continue;
+      const meta = JSON.parse(fs.readFileSync(metaFile, "utf8"));
+      if (!meta || meta.worldId !== id || typeof meta.codeHash !== "string" || !/^[0-9a-f]{64}$/.test(meta.codeHash)) continue;
+      serverWorlds.set(meta.codeHash, { worldId: id, dir: path.join(WORLDS, id), name: String(meta.name || "").slice(0, 60) });
+    } catch {
+      // not a world: no meta, or not ours
+    }
+  }
+}
+
+function serverWorldFor(code) {
+  if (!WORLDS || !code) return null;
+  const h = hashCode(code);
+  if (!serverWorlds.has(h)) scanWorlds();
+  return serverWorlds.get(h) || null;
+}
+
+function recentCrashes(worldId) {
+  const list = (crashes.get(worldId) || []).filter((t) => Date.now() - t < CRASH_WINDOW_MS);
+  crashes.set(worldId, list);
+  return list.length;
+}
+
+// A server world's process, started for the code a guest named, with a secret only it is told.
+function startWorld(w, code) {
+  const secret = crypto.randomBytes(24).toString("hex");
+  const env = { ...process.env, CMZ_CODE: code, CMZ_HOST_SECRET: secret, CMZ_RELAY: `ws://127.0.0.1:${PORT}` };
+  delete env.CMZ_DEBUG_PORT;
+  let debugPort = null;
+  if (DEBUG) {
+    debugPort = nextDebugPort++;
+    env.CMZ_DEBUG_PORT = String(debugPort);
+  }
+  const child = fork(WORLD_JS, ["--dir", w.dir], { env, execArgv: [`--max-old-space-size=${WORLD_HEAP_MB}`], stdio: ["ignore", "inherit", "inherit", "ipc"] });
+  const r = { child, code, secret, pending: new Set(), startedAt: Date.now(), debugPort, worldId: w.worldId };
+  running.set(w.worldId, r);
+  child.on("error", (err) => log(`world ${w.worldId}: ${err.message}`));
+  child.on("exit", (exitCode, signal) => {
+    running.delete(w.worldId);
+    for (const g of r.pending) {
+      g.sendJson({ type: "error", reason: "nohost" });
+      g.close(1011);
+    }
+    r.pending.clear();
+    if (exitCode !== 0) crashes.set(w.worldId, [...(crashes.get(w.worldId) || []), Date.now()]);
+    log(`world ${w.worldId} exited (${exitCode ?? signal})`);
+    if (stoppingAll && running.size === 0) finishStop();
+  });
+  log(`world ${w.worldId} starting${debugPort ? ` (debug on ${debugPort})` : ""}`);
+  return r;
+}
+
+// Every world asked to save and stop, then the relay goes: a deploy, or Fly stopping the idle machine.
+function stopAll(why) {
+  if (stoppingAll) return;
+  stoppingAll = true;
+  log(`stopping (${why}): ${running.size} world${running.size === 1 ? "" : "s"} to save`);
+  if (!running.size) return finishStop();
+  for (const r of running.values()) {
+    try {
+      r.child.send({ type: "stop", why });
+    } catch {
+      // already gone
+    }
+  }
+  setTimeout(() => {
+    for (const r of running.values()) r.child.kill("SIGKILL");
+    finishStop();
+  }, STOP_WAIT_MS).unref();
+}
+
+function finishStop() {
+  log("stopped");
+  process.exit(0);
+}
 
 // ---- framing ----
 
@@ -182,18 +322,55 @@ function onMessage(conn, text) {
     const code = typeof msg.code === "string" ? msg.code.trim().toLowerCase().slice(0, 32) : "";
     if (!code) return conn.close(1008);
     if (msg.type === "host") {
+      // A server world's code is the relay's own child's to host, with the secret it was handed; anyone else's
+      // registration for it is refused, even while the world sleeps (the coder agent's review of step 3).
+      const w = serverWorldFor(code);
+      const r = w ? running.get(w.worldId) : null;
+      if (w && (!r || !sameSecret(msg.secret, r.secret))) {
+        overLimit(conn.address);
+        log(`refused a host for server world ${w.worldId}`);
+        return conn.sendJson({ type: "error", reason: "taken" }), conn.close(1008);
+      }
       if (rooms.has(code)) {
         overLimit(conn.address);
         return conn.sendJson({ type: "error", reason: "taken" }), conn.close(1008);
       }
       conn.role = "host";
       conn.code = code;
-      rooms.set(code, { host: conn, guests: new Map() });
+      const room = { host: conn, guests: new Map() };
+      rooms.set(code, room);
       conn.sendJson({ type: "relay", role: "host", id: conn.id, code });
-      log(`host ${conn.id} opened ${code}`);
+      if (r) {
+        // The guests who woke it, waiting since: in the room now (their joins, resent every two seconds, reach it).
+        for (const g of r.pending) {
+          g.pending = false;
+          room.guests.set(g.id, g);
+          if (g.queuedJoin) conn.sendText(JSON.stringify({ ...g.queuedJoin, from: g.id, to: undefined }));
+          g.queuedJoin = null;
+        }
+        r.pending.clear();
+        log(`server world ${w.worldId} is up (${room.guests.size} waiting)`);
+      } else log(`host ${conn.id} opened ${code}`);
     } else if (msg.type === "guest") {
       const room = rooms.get(code);
       if (!room) {
+        // A server world asleep: its process started, and this guest waits for it (as do any others meanwhile).
+        const w = serverWorldFor(code);
+        if (w) {
+          let r = running.get(w.worldId);
+          if (!r) {
+            if (stoppingAll || running.size >= MAX_RUNNING) return conn.sendJson({ type: "error", reason: "busy" }), conn.close(1008);
+            if (recentCrashes(w.worldId) >= CRASHES_BEFORE_REST) return conn.sendJson({ type: "error", reason: "broken" }), conn.close(1008);
+            r = startWorld(w, code);
+          }
+          conn.role = "guest";
+          conn.code = code;
+          conn.pending = r;
+          r.pending.add(conn);
+          conn.sendJson({ type: "relay", role: "guest", id: conn.id, code });
+          log(`guest ${conn.id} waits for server world ${w.worldId}`);
+          return;
+        }
         if (overLimit(conn.address)) return conn.close(1008); // scanned: no word at all
         return conn.sendJson({ type: "error", reason: "nohost" }), conn.close(1008);
       }
@@ -203,6 +380,12 @@ function onMessage(conn, text) {
       conn.sendJson({ type: "relay", role: "guest", id: conn.id, code });
       log(`guest ${conn.id} joined ${code} (${room.guests.size} in the room)`);
     } else conn.close(1008);
+    return;
+  }
+  if (conn.pending) {
+    // Waiting for a server world to start: its last join is kept and passed on the moment the world is up (the guest
+    // would send it again in two seconds; this saves the wait).
+    if (msg.type === "join") conn.queuedJoin = msg;
     return;
   }
   const room = rooms.get(conn.code);
@@ -228,6 +411,12 @@ function onMessage(conn, text) {
 
 function leave(conn) {
   if (!conn.role) return;
+  if (conn.pending) {
+    conn.pending.pending.delete(conn);
+    conn.pending = null;
+    conn.role = null;
+    return;
+  }
   const room = rooms.get(conn.code);
   if (!room) return;
   if (conn.role === "host") {
@@ -261,8 +450,26 @@ const server = http.createServer((req, res) => {
     }
     const code = (url.searchParams.get("code") || "").trim().toLowerCase().slice(0, 32);
     const room = rooms.get(code);
+    const w = serverWorldFor(code); // a server world is open whether or not it is awake: a join wakes it
     res.writeHead(200, { "content-type": "application/json", "access-control-allow-origin": "*", "cache-control": "no-store" });
-    return res.end(JSON.stringify({ open: !!room, guests: room ? room.guests.size : 0 }));
+    return res.end(JSON.stringify({ open: !!room || !!w, guests: room ? room.guests.size : 0, ...(w ? { server: true, awake: running.has(w.worldId) } : {}) }));
+  }
+  // The keeper's state and a stop, for the checks, answered to this machine alone and only with CMZ_DEBUG=1.
+  if (DEBUG && url.pathname.startsWith("/debug/")) {
+    const local = !req.headers["fly-client-ip"] && ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress);
+    if (!local) {
+      res.writeHead(404);
+      return res.end();
+    }
+    res.writeHead(200, { "content-type": "application/json" });
+    if (url.pathname === "/debug/worlds") {
+      return res.end(JSON.stringify({ known: serverWorlds.size, running: [...running.values()].map((r) => ({ worldId: r.worldId, debugPort: r.debugPort, waiting: r.pending.size, guests: rooms.get(r.code) ? rooms.get(r.code).guests.size : 0, upSeconds: Math.round((Date.now() - r.startedAt) / 1000) })), crashes: Object.fromEntries([...crashes].map(([k, v]) => [k, v.length])) }));
+    }
+    if (url.pathname === "/debug/stop") {
+      res.end(JSON.stringify({ stopping: true }));
+      return stopAll("a debug stop");
+    }
+    return res.end("{}");
   }
   res.writeHead(200, { "content-type": "text/plain; charset=utf-8", "access-control-allow-origin": "*" });
   let guests = 0;
@@ -300,4 +507,6 @@ setInterval(() => {
   }
 }, PING_EVERY_MS).unref();
 
-server.listen(PORT, () => log(`cmz relay listening on ${PORT}`));
+scanWorlds(true);
+for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, () => stopAll(sig));
+server.listen(PORT, () => log(`cmz relay listening on ${PORT}${WORLDS ? `, keeping ${serverWorlds.size} server world${serverWorlds.size === 1 ? "" : "s"} in ${WORLDS}` : ""}`));
