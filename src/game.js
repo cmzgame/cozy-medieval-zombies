@@ -164,6 +164,7 @@ export function serialize() {
     simTime: loop.simTime(),
     rng: rng.getState(),
     world: { timeScale: world.world.timeScale, idCounter: world.idCounter() },
+    rules: { ...rules.rules }, // the world's own rules ride in its save (item 5's second step; a server world reads only these)
     map: { ...map.serializeMap(), sleepers: map.sleeperEntries().map(([k, list]) => [k, list.map(serializeCharacter)]) },
     characters: {
       players: S.players.map(serializeCharacter),
@@ -188,6 +189,7 @@ export function carriedOf(c) {
 export function restore(saved, json) {
   const S = state;
   const save = fromSafe(saved); // the tokens back to numbers, and nothing shared with the caller's object
+  if (save.rules) rules.set(save.rules); // the world's rules as saved (a browser's own world reads its settings again next step)
   rng.seed(json.seed ?? 1);
   world.reset(json.idCounter || 0);
   S.info = map.loadMap(json);
@@ -302,6 +304,7 @@ export function syncParts() {
     // facing, the frame of the animation, burning.
     dead: hashOf([...S.zombies, ...S.villagers, ...S.corpses].slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((z) => `${z.id} ${f(at(z)[0])},${f(at(z)[1])} ${z.state || "-"} hp ${f(z.hp)} ${z.dead ? "dead" : ""}${z.corpse ? "corpse" : ""} ${z.facing} ${z.anim ? `${z.anim.name}:${z.anim.frame}` : "-"}${z.burning ? " fire" : ""}`).join("\n")),
     clock: hashOf(`${f(clock.getElapsed())} ${f(loop.simTime())} ${world.world.timeScale}`),
+    rules: hashOf(Object.keys(rules.rules).sort().map((k) => `${k}=${rules.rules[k] ? 1 : 0}`).join(" ")), // world state since the second step of item 5
   };
   parts.counts = `${chunks.length} chunks, ${[...map.allProps()].length} props, ${[...map.fires()].length} fires, ${S.players.length} players, ${S.zombies.length} dead, ${S.villagers.length} villagers, ${S.corpses.length} corpses`;
   return parts;

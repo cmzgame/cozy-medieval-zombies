@@ -25,7 +25,7 @@ export async function run(game) {
       const mine = rep.ring.get(g.tick);
       row(`${playerId}'s tick is in the host's ring`, !!mine, mine ? `tick ${g.tick}` : `tick ${g.tick} not kept (the ring holds ${[...rep.ring.keys()].join(", ") || "nothing"}): step the host less far ahead`);
       if (!mine) continue;
-      for (const part of ["map", "registry", "fires", "players", "dead", "clock"]) {
+      for (const part of ["map", "registry", "fires", "players", "dead", "clock", "rules"]) {
         row(`${playerId}: the ${part} agrees at tick ${g.tick}`, mine[part] === g.parts[part], mine[part] === g.parts[part] ? `${mine[part]} (host ${mine.counts})` : `host ${mine[part]} vs guest ${g.parts[part]}; host ${mine.counts}; guest ${g.parts.counts}`);
       }
     }

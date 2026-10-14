@@ -105,6 +105,20 @@ check("a bite lands with no page behind the world (the host's rules in the world
   return `health ${m[1]} to ${m[2]} in 600 steps`;
 });
 
+const save = await import("../src/save.js");
+const rulesMod = await import("../src/rules.js");
+check("the save's version is 2 and a version-1 save is upgraded with the rules (item 5's second step)", () => {
+  assert(save.VERSION === 2, `VERSION ${save.VERSION}`);
+  const up = save.upgrade({ version: 1, map: {}, characters: {} });
+  assert(up && up.version === 2 && up.rules, "a version-1 save was not upgraded");
+  for (const k of Object.keys(rulesMod.rules)) assert(up.rules[k] === rulesMod.DEFAULTS[k], `${k} not the default`);
+  assert(save.upgrade({ version: 3, map: {}, characters: {} }) === null, "a newer save was not refused");
+  assert(save.upgrade({ map: {} }) === null, "a save with no version was not refused");
+  const kept = save.upgrade({ version: 2, map: {}, characters: {}, rules: { survival: true } });
+  assert(kept.rules.survival === true, "a version-2 save's rules were touched");
+  return `multiHit ${up.rules.multiHit}, survival ${up.rules.survival}; a newer or unversioned save refused`;
+});
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;

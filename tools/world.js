@@ -118,6 +118,7 @@ for (let i = 0; i < steps; i++) {
     const raw = JSON.stringify(game.serialize()); // as the slot would hold it: through text
     snapBytes = raw.length;
     snap = JSON.parse(raw);
+    if (!snap.rules || typeof snap.rules.zombieAggro !== "boolean") { console.log("the save carries no rules"); process.exit(1); }
   }
   loop.advance(1 / 60);
 }
