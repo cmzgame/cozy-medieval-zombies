@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Background probe</title>
+<style>
+  body { font: 14px/1.45 system-ui, sans-serif; margin: 16px; max-width: 900px; background: #1d1b19; color: #eee; }
+  h1 { font-size: 18px; margin: 0 0 8px; }
+  p { margin: 6px 0; color: #ccc; }
+  label { margin-right: 16px; }
+  button { font: inherit; padding: 4px 10px; margin-right: 8px; }
+  .row { margin: 10px 0; }
+  table { border-collapse: collapse; margin-top: 10px; font-variant-numeric: tabular-nums; }
+  td, th { border: 1px solid #444; padding: 2px 8px; text-align: right; }
+  th { background: #2b2825; }
+  td.l, th.l { text-align: left; }
+  .bad { color: #ff8a7a; }
+  .ok { color: #9be39b; }
+  #status { color: #f3d27a; }
+  textarea { width: 100%; height: 120px; background: #111; color: #ddd; font: 12px monospace; }
+</style>
+</head>
+<body>
+<h1>Background probe</h1>
+<p>Item 3's step 0 (<code>docs/02</code>, 2026-10-13): does a hidden tab keep a Worker's timer, and a WebSocket to the relay, running? The game's world will step from the Worker's ticks while a hosting tab is hidden.</p>
+<p>How: tick the two boxes to match your browser's settings, press Start, then leave the tab <b>behind another tab</b> for six minutes or more, then <b>minimised</b> for six, then <b>covered by another window</b> for six. Come back and press Copy results. Each row is ten seconds.</p>
+<div class="row">
+  <label><input type="checkbox" id="energy"> Energy Saver is on</label>
+  <label><input type="checkbox" id="memory"> Memory Saver is on</label>
+</div>
+<div class="row">
+  <button id="start">Start</button><button id="copy" disabled>Copy results</button>
+  <span id="status">Not started.</span>
+</div>
+<p>Healthy while hidden: <b>worker</b> about 60 a second with its <b>longest gap</b> under 100 ms, and <b>relay</b> 1 a second. Drawing frames (<b>raf</b>) go to 0 when hidden in every browser; that is the problem the Worker solves.</p>
+<table>
+  <thead><tr><th class="l">time</th><th class="l">tab</th><th>raf /s</th><th>interval /s</th><th>chained /s</th><th>worker /s</th><th>longest gap ms</th><th>relay /s</th><th class="l">socket</th></tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+<textarea id="out" readonly placeholder="Results appear here when you press Copy results."></textarea>
+<script>
+const params = new URLSearchParams(location.search);
+const RELAY = params.get("relay") || "wss://cmz-relay.fly.dev";
+const WINDOW_MS = 10000;
+const runs = [];
+let t0 = 0;
+let c = null;
+let lastTick = 0;
+let maxGap = 0;
+let hostWs = null;
+let guestWs = null;
+let guestId = null;
+let wsState = "closed";
+let sent = 0;
+
+function fresh() {
+  return { raf: 0, interval: 0, chained: 0, worker: 0, relay: 0, hidden: false, visible: false };
+}
+
+function connect() {
+  const code = "probe-" + Math.random().toString(36).slice(2, 8);
+  hostWs = new WebSocket(RELAY);
+  hostWs.onopen = () => hostWs.send(JSON.stringify({ type: "host", code }));
+  hostWs.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === "relay") {
+      guestWs = new WebSocket(RELAY);
+      guestWs.onopen = () => guestWs.send(JSON.stringify({ type: "guest", code }));
+      guestWs.onmessage = (g) => {
+        const m = JSON.parse(g.data);
+        if (m.type === "relay") guestWs.send(JSON.stringify({ type: "hello" }));
+        else if (m.type === "probe" && c) c.relay++;
+      };
+      guestWs.onclose = () => { wsState = "guest socket closed"; };
+    } else if (msg.type === "hello" && msg.from) {
+      guestId = msg.from;
+      wsState = "open";
+    }
+  };
+  hostWs.onclose = () => { wsState = "host socket closed"; };
+  hostWs.onerror = () => { wsState = "error"; };
+}
+
+function start() {
+  document.getElementById("start").disabled = true;
+  document.getElementById("copy").disabled = false;
+  t0 = performance.now();
+  c = fresh();
+  lastTick = performance.now();
+  // The Worker's timer, as the game's loop would use it: an empty tick every 16 ms.
+  const src = "setInterval(() => postMessage(0), 16);";
+  const worker = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+  worker.onmessage = () => {
+    const now = performance.now();
+    c.worker++;
+    maxGap = Math.max(maxGap, now - lastTick);
+    lastTick = now;
+    if (document.hidden) c.hidden = true; else c.visible = true;
+    // Once a second, driven by the Worker's ticks as the game's would be: a message through the relay.
+    if (guestId && hostWs.readyState === 1 && now - t0 >= (sent + 1) * 1000) {
+      sent++;
+      hostWs.send(JSON.stringify({ type: "probe", to: guestId, n: sent }));
+    }
+  };
+  setInterval(() => { c.interval++; }, 16);
+  (function chained() { c.chained++; setTimeout(chained, 16); })();
+  (function raf() { c.raf++; requestAnimationFrame(raf); })();
+  // The window is closed by whichever clock still runs: the Worker's tick or the main interval.
+  setInterval(close, 250);
+  worker.addEventListener("message", close);
+  connect();
+  document.getElementById("status").textContent = "Running. Hide the tab now; come back after the three states.";
+}
+
+let windowStart = 0;
+function close() {
+  const now = performance.now();
+  if (!windowStart) windowStart = now;
+  if (now - windowStart < WINDOW_MS) return;
+  const s = (now - windowStart) / 1000;
+  const run = {
+    at: Math.round((now - t0) / 1000),
+    tab: c.hidden && c.visible ? "both" : c.hidden ? "hidden" : "visible",
+    raf: +(c.raf / s).toFixed(1),
+    interval: +(c.interval / s).toFixed(1),
+    chained: +(c.chained / s).toFixed(1),
+    worker: +(c.worker / s).toFixed(1),
+    gap: Math.round(maxGap),
+    relay: +(c.relay / s).toFixed(1),
+    socket: wsState,
+  };
+  runs.push(run);
+  addRow(run);
+  c = fresh();
+  maxGap = 0;
+  windowStart = now;
+}
+
+function addRow(r) {
+  const tr = document.createElement("tr");
+  const cell = (v, cls) => `<td class="${cls || ""}">${v}</td>`;
+  const m = Math.floor(r.at / 60), sec = String(r.at % 60).padStart(2, "0");
+  tr.innerHTML = cell(`${m}:${sec}`, "l") + cell(r.tab, "l") + cell(r.raf) + cell(r.interval) + cell(r.chained) +
+    cell(r.worker, r.worker >= 55 ? "ok" : "bad") + cell(r.gap, r.gap < 100 ? "ok" : "bad") +
+    cell(r.relay, r.relay >= 0.9 ? "ok" : "bad") + cell(r.socket, "l");
+  document.getElementById("rows").appendChild(tr);
+}
+
+function copy() {
+  const head = [
+    `browser: ${navigator.userAgent}`,
+    `energy saver: ${document.getElementById("energy").checked ? "on" : "off"}; memory saver: ${document.getElementById("memory").checked ? "on" : "off"}`,
+    `relay: ${RELAY}`,
+    "time tab raf interval chained worker gap relay socket",
+  ];
+  const lines = runs.map((r) => `${r.at}s ${r.tab} ${r.raf} ${r.interval} ${r.chained} ${r.worker} ${r.gap}ms ${r.relay} ${r.socket}`);
+  const text = head.concat(lines).join("\n");
+  const out = document.getElementById("out");
+  out.value = text;
+  out.select();
+  if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+  document.getElementById("status").textContent = "Copied. Paste it into the chat.";
+}
+
+document.getElementById("start").onclick = start;
+document.getElementById("copy").onclick = copy;
+</script>
+</body>
+</html>

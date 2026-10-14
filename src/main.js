@@ -183,6 +183,119 @@ function dormantNow(playerId) {
   saveWorld();
 }
 
+// Stepping away (item 3, `02` 2026-10-13): in a world with friends in it, a player with no input for five minutes of
+// real time leaves the world, safe, through the dormant path (its record kept under its browser's hash, so a save
+// and a reload keep it), and comes back where it stood on its next key, click, or mouse movement. Never a sleeper
+// (Michael: waiting in bed for friends is deliberate), never the dead, never mid-climb, never in a solo world.
+const AWAY_AFTER_MS = 5 * 60 * 1000;
+let awayAfterMs = AWAY_AFTER_MS; // a check shortens it (__game.away.after)
+let lastInputAt = performance.now();
+let away = false; // this client's own player is stepped away
+
+// On the host, for any player: out of the world, kept by its owner's hash. False when refused.
+function awayNow(playerId) {
+  const p = S.players.find((q) => q.id === playerId);
+  if (!p || p.dead || p.sleeping || p.climb) return false;
+  const store = ownersStore();
+  let hash = Object.keys(store.owners).find((h) => store.owners[h] === playerId) || null;
+  if (!hash && p === S.player) {
+    hash = myHash(); // a test world's host has no owners entry until now
+    store.owners[hash] = p.id;
+  }
+  if (!hash) return false;
+  if (p.action) p.action = null;
+  p.auto = null; // a walk there under way (player.cancelAutoWalk)
+  const name = p.name || p.id;
+  dormantNow(playerId);
+  log.push(`${name} stepped away.`);
+  net.logAll(`${name} stepped away.`);
+  return true;
+}
+
+// On the host: the character of that browser back where it stood. Null when there is none.
+function backNow(hash) {
+  const store = ownersStore();
+  if (!hash || !store.dormant[hash]) return null;
+  const p = game.putPlayer(store.dormant[hash]);
+  delete store.dormant[hash];
+  if (!p) return null;
+  refreshFigureOf(p, true);
+  const name = p.name || p.id;
+  log.push(`${name} is back.`);
+  net.logAll(`${name} is back.`);
+  return p;
+}
+
+const sharedWorld = () => (net.isHost() && net.hasGuests()) || (net.isGuest() && net.status().joined);
+
+// This client's own: the idle clock, read every step. Any input resets it; asleep, dead, or alone it does not run.
+function checkAway() {
+  const me = S.player;
+  if (away || !inWorld) return;
+  if (!sharedWorld() || !me || me.dead || me.sleeping || me.climb) {
+    lastInputAt = performance.now();
+    return;
+  }
+  if (performance.now() - lastInputAt >= awayAfterMs) stepAway();
+}
+
+function stepAway() {
+  if (away) return false;
+  const me = S.player;
+  if (net.isGuest()) {
+    if (!net.stepAway()) return false;
+  } else if (!awayNow(me.id)) return false;
+  away = true;
+  closeModes();
+  screens.show("away");
+  return true;
+}
+
+function comeBack() {
+  if (!away) return false;
+  away = false;
+  lastInputAt = performance.now();
+  if (net.isGuest()) net.comeBack();
+  else {
+    const p = backNow(myHash());
+    if (p) game.pickPlayer(p);
+  }
+  if (screens.currentScreen() === "away") screens.hide();
+  return true;
+}
+
+// The host refused a guest's step away (net.js `stay`): in again, nothing lost.
+function stayed() {
+  away = false;
+  lastInputAt = performance.now();
+  if (screens.currentScreen() === "away") screens.hide();
+}
+
+// The panels and the modes that act through my player, shut (a step away; the character is not in the world).
+function closeModes() {
+  panel.closeAll();
+  stationPanel.close();
+  placement.cancel();
+  use.cancel();
+  buildPalette.close();
+  menu.closeContextMenu();
+  openBag = null;
+  corpseWatch = null;
+}
+
+// Any input of this client's: the idle clock starts over, and a step away ends. While away, a key or a click is
+// spent on coming back and goes no further (the coder agent: input blocked but for "back").
+function anyInput(e) {
+  lastInputAt = performance.now();
+  if (!away) return;
+  if (e.type === "keydown" || e.type === "pointerdown" || e.type === "mousedown") {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  comeBack();
+}
+for (const type of ["keydown", "pointerdown", "mousedown", "pointermove", "wheel"]) window.addEventListener(type, anyInput, { capture: true, passive: false });
+
 // After a world is set (made or restored): the player's sheet, the camera, the first sight.
 function afterWorldSet() {
   figureKey = "";
@@ -621,6 +734,7 @@ function stepGame(dt) {
   // and the ground are still this client's own.
   const guest = net.isGuest();
   armGuest(guest);
+  checkAway();
   // A screen up on the wire: the world runs on, but nothing pressed reaches it or this client's modes.
   const screenUp = !!screens.currentScreen();
   loop.setFreezeAllowed(!net.onTheWire());
@@ -1112,6 +1226,7 @@ async function boot() {
           defaultName: () => `${MAP_NAME === "valley" ? "The valley" : MAP_NAME}, ${new Date().toLocaleDateString(undefined, { day: "numeric", month: "short" })}`,
           here,
           leave: leaveWorld,
+          comeBack, // the step-away screen's button and its Escape
         },
         // Identities (identities.js): the list, and the one being edited on the identity screen.
         identities: {
@@ -1287,6 +1402,9 @@ async function boot() {
     guestJoined: () => { saveWorld(); },
     guestLeft: () => { saveWorld(); },
     dormant: dormantNow,
+    away: awayNow, // a guest's step away, and its return (item 3)
+    back: backNow,
+    stay: stayed,
     // The host knows no living character of mine here: the creation steps, then joinAs.
     who: (dead) => { screens.creationFor({ for: "join", code: net.status().code, dead }); },
     joined: (id) => showMessage(`Joined as ${id}.`, 3),
@@ -1359,7 +1477,12 @@ async function boot() {
     },
   });
   window.addEventListener("pagehide", () => net.leave());
-  loop.start({ update, render, crash: shell.crash });
+  // pump: a hidden host's world open to friends with nobody in it yet answers the wire (a join) without stepping.
+  loop.start({ update, render, crash: shell.crash, pump: () => { if (inWorld && net.isHost()) net.hostStep({ ...game.idleSnapshot(), idle: true }, S.player); } });
+  // A world with friends in it is stepped by a Worker's timer when the browser stops drawing this tab (item 3, `02`):
+  // the host's for everyone, a guest's so its own clock, its sends, and the frames it is owed keep up. A solo world
+  // is not: hidden, it stops, as single player always has.
+  loop.setBackgroundDriver(() => (!inWorld ? null : net.isGuest() || (net.isHost() && net.hasGuests()) ? "step" : net.isHost() ? "pump" : null));
   // A guest waits for the host's welcome; a host or a lone world starts from the Worlds screen (docs/31/09).
   if (net.isGuest()) {
     started = false;
@@ -1375,8 +1498,10 @@ async function boot() {
   // A hosting window with friends in it must stay in front (a covered one is slowed to a crawl by the browser,
   // and its world with it): the tab's title says so while it is hidden, where the tab strip and the taskbar show it.
   const plainTitle = document.title;
+  // With friends in the world, a hidden host's world runs on (loop.js's second driver), so the title only says so.
   document.addEventListener("visibilitychange", () => {
-    document.title = document.hidden && net.isHost() && net.hasGuests() ? "Friends are waiting: keep this window in front" : plainTitle;
+    document.title = document.hidden && net.isHost() && net.hasGuests() ? "Hosting: friends are playing" : plainTitle;
+    if (document.hidden && net.isGuest()) net.idleNow(); // the host hears at once that nothing is held
   });
   window.addEventListener("pagehide", autosave);
   await shell.finish(); // the screen goes once the first frame is under it
@@ -1396,6 +1521,8 @@ async function boot() {
     // A second player into this world, for the checks and for the plan (docs/31/03): standing, controlled by nobody.
     net,
     // The worlds flow (docs/31/09), for check("worlds"): a world made, left, listed, played again; a new character after a death.
+    // Stepping away (item 3), for the checks: the idle time shortened, the state, and the two moves by hand.
+    away: { after: (ms) => { awayAfterMs = ms == null ? AWAY_AFTER_MS : ms; lastInputAt = performance.now(); }, get now() { return away; }, step: stepAway, back: comeBack, check: checkAway },
     worlds: { create: (name, identityId) => enterNewWorld(name, identities.get(identityId)), play: playWorld, leave: leaveWorld, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor, dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
     identities,
     addPlayer: (gx, gy, opts) => {
