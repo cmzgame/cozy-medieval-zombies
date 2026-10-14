@@ -40,7 +40,7 @@ Three steps, each worth having on its own.
 
 1. **Presence and lines.** Right-click, "Talk". One floating line from a small script keyed to the day and to what has happened. This is the medieval game's radio: "the bells at the chapel stopped yesterday", "stay in tonight, they are restless". NPCs forecast events the way Zomboid's emergency broadcast does, which recovers the best thing the modern setting had.
 2. **Routines.** Each NPC has a day: the innkeeper behind the bar until dusk, the priest to the bell tower at dawn. Routines are routes with time gates. They give the village a rhythm, which is most of what Stardew's charm is, and they create emergent rules for free: the dawn bell is a noise event with an NPC cause, so if the priest dies the bell stops, and the village notices.
-3. **Things.** An NPC's bag opens like a container. "The innkeeper shares what he has" is take-only at first. Barter, if ever, is give-and-take through the same panel. No quests, no dialogue trees. The sibling's "progress without prose" holds.
+3. **Things.** An NPC's bag opens like a container. "The innkeeper shares what he has" is take-only at first. Barter, if ever, is give-and-take through the same panel. No quests, no dialogue trees. The sibling's "progress without prose" holds. **Re-ruled 2026-10-13 (`02`, "What this game is"): dialogue trees are in, as exposition and personality; talk reads the world and changes with it but never writes it, and nothing is gated by it. A scope is owed.**
 
 ## Limits, as Michael set them
 

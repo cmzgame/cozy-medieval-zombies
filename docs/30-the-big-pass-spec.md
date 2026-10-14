@@ -113,7 +113,7 @@ One panel for all of them, on the kit: the recipe list on the left (greyed when 
 | Cider press | no | the orchard | apples to cider |
 | Smoking rack | its own, logs | the hunter | raw meat to smoked (with animals) |
 
-Recipes in `data/recipes.json`: `{ station, out: {id, count}, in: [{id or tag, count}], seconds, fire: true|false }`. All known from the start (law 1; Michael's ruling).
+Recipes in `data/recipes.json`: `{ station, out: {id, count}, in: [{id or tag, count}], seconds, fire: true|false }`. All known from the start (law 1; Michael's ruling). **Restated 2026-10-13 (`02`, "What this game is"):** every recipe you need to play effectively is known from the start; a skill may unlock more, as flavour, never power, until something in the game (a hard boss) asks for more.
 
 ## 7. Fire and fuel (law 4)
 
