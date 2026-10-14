@@ -4,6 +4,12 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-13 — The wire, part three of four: frames at twenty a second, paced by the world's time over its scale
+
+**Built.** The host sends a frame on every third step at the world's normal speed, twenty a second, and on every hundred and eightieth while the world runs at sixty times with everyone asleep, which is the same fifty milliseconds as a player experiences them: a sleeper's hundred steps a browser frame coalesce into one frame instead of flooding the relay, as the review warned. The frames fall on ticks that are multiples of the cadence, so the sync check's thirtieth tick is always a frame tick. The guests' inputs come every step still and the host applies one a step, its bound untouched; the chunks touched and the pokes gather until the frame. The cadence is deterministic, paced by the loop's own steps and the world's own time scale rather than the wall clock, so the scripted two-tab tests, which step the tabs in bursts with no real time passing, stay whole.
+
+**Measured, two tabs on the loopback:** twenty frames per sixty steps quiet and walking, 79,766 bytes a second quiet and 81,947 walking (the start of this work was about 950,000); with the world's time scale set to sixty, one frame per hundred and eighty steps, so a night's sleep costs the wire what a quiet minute does; the guest's correction stayed at zero at the new cadence; `check("sync")` 8 of 8 after a walk and a door. The fourth part smooths the replica between frames.
+
 ### 2026-10-13 — The wire, part two of four: a player's record in light and heavy parts; the rules, the carriers, and the queues when they change
 
 **Built.** A player's record goes in two parts. The heavy part (the bag, the worn, the hands, the prop in hand, the look, the name, and the fields that never change) goes whole only when its shape changes, on a pick-up, a drop, a wear, or a lift; the light part (position to three decimals, facing, animation, hp, the needs and the combat clocks to two decimals, the action's view, the speech line) goes each frame, and only when it differs from the last sent; with nothing moved, the acknowledgement alone goes, so a guest's reconciliation still runs. A guest's HUD reads the needs and the clocks off the light record. The rules, the torch carriers, and the stations' queues go only when they change. On the guest a light record is applied in place, and the prop in hand stays while its id does. The protocol number stays 2: both parts land in one review.

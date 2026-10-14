@@ -573,7 +573,19 @@ function record(c) {
   return slim(c);
 }
 
-// After the world's step: the frame to every guest.
+// Frames paced by the world's own time over its time scale (the wire's third part, 2026-10-13, `02`): one every
+// three steps at normal speed, twenty a second; one every hundred and eighty while the world runs at sixty times
+// with everyone asleep, which is the same fifty milliseconds as a player experiences them. A sleeper's hundred
+// steps a browser frame coalesce into one frame instead of flooding the relay; the cadence is deterministic and
+// the scripted two-tab tests stay whole, which a wall clock would not keep. The frames fall on ticks that are
+// multiples of the cadence, so the sync check's thirtieth tick is always a frame tick. The guests' inputs come
+// every step still, and the host applies one a step; the touched chunks and the pokes gather until the frame.
+export const FRAME_EVERY = 3;
+export function frameEvery() {
+  return FRAME_EVERY * Math.max(1, Math.round(world.world.timeScale || 1));
+}
+
+// After the world's step: the frame to every guest, when one is due.
 export function hostAfterStep() {
   tick++;
   if (role !== "host" || !guests.size) {
@@ -588,6 +600,7 @@ export function hostAfterStep() {
     }
     return;
   }
+  if (tick % frameEvery() !== 0) return; // not this step: the chunks touched and the pokes keep until the frame
   const S = game.state;
   for (const id of lastCarried.keys()) if (!S.players.some((q) => q.id === id)) lastCarried.delete(id); // a player gone dormant and back is sent its prop in hand afresh
   const touched = map.takeTouched();
