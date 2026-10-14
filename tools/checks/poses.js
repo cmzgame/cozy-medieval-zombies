@@ -53,8 +53,13 @@ export async function run(game) {
     // 4. The halberd's bearer has the thrust; a sword's bearer does not.
     hold("sword");
     const swordAlt = !!sheet().animations.attack_alt;
+    const swordWidth = sheet().image ? sheet().image.width : 0;
     hold("halberd");
     const alt = sheet().animations.attack_alt;
+    const halberdWidth = sheet().image ? sheet().image.width : 0;
+    // The sheet keeps room for the thrust, so picking the halberd up never outgrows its atlas slot (a grown sheet once
+    // painted over the newest body's frame: a standing player where a zombie died; Michael's playtest, 2026-10-14).
+    row("picking up the halberd keeps the player's sheet the same size", swordWidth > 0 && swordWidth === halberdWidth, `${swordWidth} px with a sword, ${halberdWidth} px with the halberd`);
     const style = G.figure.poseStyles().includes("thrust");
     row("the thrust is on the halberd bearer's sheet alone", !!alt && alt.frames === 4 && alt.activeFrame === 1 && !swordAlt && style, alt ? `${alt.frames} frames at ${alt.fps} fps, active ${alt.activeFrame}; a sword's sheet ${swordAlt ? "has it" : "has none"}` : "none on the halberd's sheet");
     // 5. The middle button's attack plays the thrust and the left's the swing, each back to the idle.

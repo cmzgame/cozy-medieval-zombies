@@ -480,8 +480,11 @@ export function generateFigure(spec, only = null) {
   const anims = animsFor(spec);
   const animNames = Object.keys(anims);
   const totalFrames = animNames.reduce((n, a) => n + anims[a].frames, 0);
+  // A player's sheet keeps room for a second attack's four frames whether its weapon has one or not (docs/32), so
+  // picking up the halberd never makes the sheet outgrow its place in the atlas (gl.redrawSheet; 2026-10-14).
+  const reserve = !spec.noCarry && !anims.attack_alt ? 4 : 0;
   const canvas = document.createElement("canvas");
-  canvas.width = FW * totalFrames;
+  canvas.width = FW * (totalFrames + reserve);
   canvas.height = FH * FACINGS.length;
   const ctx = canvas.getContext("2d");
   const frames = {};

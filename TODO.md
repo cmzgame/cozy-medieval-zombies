@@ -161,8 +161,8 @@ In order; each step ends with this Status updated, its rulings in `02`, and a co
 
 Poses the game lacks, as data on the final rig; more frames only where named. In order, each re-baselining the sheet and frame hashes once; the rules and the default numbers are in `32`.
 
-- [x] 1. The held-out pose (`present`): the book, a torch held to something, drinking and eating. (Built 2026-10-14, waiting for Michael's eye: the book presented in the idle and the walk, the pose for eating, a sip, and a drink at water; the torch's case waits for the Use on a fire. `check("poses")`.)
-- [x] 2. The halberd's two attacks: `attack_alt` on the sheet, the `thrust` style, the alt block naming it. (Built 2026-10-14, waiting for Michael's eye: the thrust on the middle button or Q, both hands on the shaft, the wrist keeping it level at the draw and the recovery.)
+- [x] 1. The held-out pose (`present`): the book, a torch held to something, drinking and eating. (Built and accepted 2026-10-14 (Michael: as is; eating and drinking fine): the book presented in the idle and the walk, the pose for eating, a sip, and a drink at water; the torch's case waits for the Use on a fire. `check("poses")`.)
+- [x] 2. The halberd's two attacks: `attack_alt` on the sheet, the `thrust` style, the alt block naming it. (Built and accepted 2026-10-14 (Michael: "quite good, especially the middle mouse stab"): the thrust on the middle button or Q, both hands on the shaft, the wrist keeping it level at the draw and the recovery.)
 - [ ] 3. The cast: the staff raised high, the book held out; the bow's draw mechanics on a `cast` block; the spell itself is `24`.
 - [ ] 4. The braced draw as its own style (`bow_braced`), the draw thresholds as data beside the bow's own speeds.
 - [ ] 5. The spear's throw checked by Michael's eye; numbers only if it reads wrong.

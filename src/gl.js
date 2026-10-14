@@ -67,7 +67,7 @@ function place(sheet) {
     return null;
   }
   atlasCtx.drawImage(img, shelfX, shelfY);
-  p = { ax: shelfX, ay: shelfY };
+  p = { ax: shelfX, ay: shelfY, w, h }; // the slot's size: a redraw never paints outside it
   placed.set(sheet, p);
   shelfX += w + 1;
   shelfH = Math.max(shelfH, h);
@@ -92,10 +92,21 @@ export function atlasInfo() {
 }
 
 // Redraw a sheet whose image changed (the player's clothes) at its place.
+// A sheet that grew past its slot (the player's: a weapon with a second attack adds frames, docs/32) gets a new slot;
+// redrawn in the old one it painted over its neighbours on the shelf, the newest body's frame among them, which then
+// showed a standing player where a zombie had died (Michael's playtest, 2026-10-14). The old slot is left empty: a
+// sheet grows to the widest it is ever drawn at and stays there, so this costs one slot per growth.
 export function redrawSheet(sheet) {
-  const p = placed.get(sheet);
+  let p = placed.get(sheet);
   if (!p) return;
-  atlasCtx.clearRect(p.ax, p.ay, sheet.image.width, sheet.image.height);
+  if (sheet.image.width > p.w || sheet.image.height > p.h) {
+    atlasCtx.clearRect(p.ax, p.ay, p.w, p.h);
+    placed.delete(sheet);
+    place(sheet); // packs and draws it at a new slot
+    atlasDirty = true;
+    return;
+  }
+  atlasCtx.clearRect(p.ax, p.ay, p.w, p.h);
   atlasCtx.drawImage(sheet.image, p.ax, p.ay);
   atlasDirty = true;
 }
