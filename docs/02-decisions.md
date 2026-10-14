@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-13 — Two things left open on purpose (Michael)
+
+**The dead's arrival** (tied to the first sleep, the first nightfall, or a clock): TBD, since the game has no first-day concept yet. **"Every new system adds its question to the guide in the same commit"** (`34`): not made a rule yet, since the guide is a while off; it stays a default in `34`.
+
 ### 2026-10-13 — The demo is a proof of concept: supplies for a few days, final art only, not built yet (Michael)
 
 On `36`: endless supply is **not** for the demo. The homestead holds enough for a few days of careful play and nothing is replenished; if players routinely last longer, the scenario or the game is not hard enough. An **Endless** mode with supply to keep up (and a leaderboard with it) is wanted later as a permanent game mode (`05`). The demo is not to be built yet; when it is, it is built, tested, and in real art before it goes public or beside a Steam page, and **nothing goes into the demo without its final art**. Docs: 05, 35, 36, TODO.
