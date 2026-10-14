@@ -90,7 +90,7 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 
 Every other section is built for a guest as well (the rule at the top). What the multiplayer branch still has, in its order, and what the docs pass found:
 
-- [ ] A guest's own swing played at once, not a frame late (the branch's item 2, in progress).
+- [x] A guest's own swing played at once, not a frame late (the branch's item 2; merged and reviewed 2026-10-13, with the sleeping guest's inputs sent as runs).
 - [ ] The host's world while its tab is covered: the title's notice is there; the real answer is a Node authority (item 3).
 - [ ] The camera kick and the "is spent" word for a guest's own weapon (`main.js` drops the word for a guest); the world's rules read-only in a guest's Settings (item 4).
 - [ ] Tier 4, a Node authority (optional; item 5).

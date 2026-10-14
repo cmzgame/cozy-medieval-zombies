@@ -25,6 +25,7 @@ import * as interact from "./interact.js";
 import { VERSION as SAVE_VERSION } from "./save.js";
 import { idHash } from "./identities.js";
 import { updatePlayer } from "./entities/player.js";
+import { controlPlayer } from "./player-controller.js";
 import { serializeCharacter, restoreCharacter, dress, dressCorpse } from "./entities/character.js";
 import { createPlayer } from "./entities/player.js";
 import { createZombie } from "./entities/zombie.js";
@@ -100,6 +101,8 @@ export const PROTOCOL = 2; // 2 (2026-10-13): the dead as a delta with a roster,
 const GRACE_S = 60;
 const MAX_PENDING = 180; // a guest's unacknowledged inputs kept for the replay: three seconds
 const MAX_BACKLOG = 10; // a guest's inputs the host will hold: a sixth of a second, so the internet's own jitter is not corrected
+// (times the world's time scale: at sixty times a sixth of a second is six hundred steps)
+const MAX_RUN = 600; // the most steps one run of a guest's inputs may stand for (180 at sixty times, the frame's cadence)
 const away = new Map(); // playerId -> the sim time its guest went
 const lastCarried = new Map(); // character id -> the carried prop's id last sent in a full record (null for none)
 // The sync check (docs/31/04; tools/checks/sync.js): with reports on, the host marks every tenth frame as the
@@ -158,6 +161,9 @@ export function close() {
   for (const k of Object.keys(lastExtras)) lastExtras[k] = "";
   pending.length = 0;
   pendingOpened.length = 0;
+  myBase = null;
+  run = null;
+  runCount = 0;
 }
 
 // ---- the transports (docs/31/04; ruled 2026-10-13, docs/02) ----
@@ -198,6 +204,10 @@ const lastRoster = { zombies: "", villagers: "", corpses: "" };
 // shape changes, on a pick-up, a drop, a wear; the light fields (position, facing, animation, hp, the needs
 // to two decimals, the combat clocks, the action's view) go each frame, and only when they differ from the
 // last sent. A guest's HUD reads the needs and the clocks off the same light record.
+// A player's numbers that go whole in the light record: the position, and the clocks that gate a swing, so a guest's
+// predicted swing is refused or allowed on the same step as the host's (rounded, a cooldown of 0.0167 would go as 0.02 and
+// the guest would hold a click the host took).
+const EXACT = new Set(["gx", "gy", "attackCooldown", "offCooldown", "swingLock"]);
 const HEAVY = new Set(["worn", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
 const lastHeavy = new Map(); // player id -> the heavy part's text last sent
 const lastLight = new Map(); // player id -> the light record's text last sent
@@ -462,14 +472,22 @@ export function hostStep(mySnap, me) {
       const g = guests.get(msg.from);
       if (!g) continue;
       msg.snap = cleanSnap(msg.snap); // the host trusts no payload (reviewing the keys move, 2026-10-13)
-      g.queue.push(msg); // one input per step, in order; the guest replays what is not yet acknowledged
+      // A run (the guest's inputs while the world runs fast, below in guestStep): `steps` identical inputs ending at
+      // `seq`, one entry a step again here so the acknowledgement and the guest's replay stay one to one. A run
+      // carries no press; any that came are dropped, as a run never has one.
+      const steps = Math.max(1, Math.min(MAX_RUN, msg.steps | 0));
+      if (steps === 1) g.queue.push(msg); // one input per step, in order; the guest replays what is not yet acknowledged
+      else {
+        const snap = { ...msg.snap, clicked: false, altPressed: false, space: false, keys: null };
+        for (let i = steps - 1; i >= 0; i--) g.queue.push({ seq: (msg.seq | 0) - i, snap });
+      }
       // The queue is bounded. The host takes one input a step and a guest sends one a step, so a queue
       // that ever ran ahead (the host's window throttled while covered, a hitch) would stay that far
       // behind for ever, the guest's body replaying old walking and swings long after it stopped
       // (Michael's first real join, 2026-10-13). Past the bound the oldest are let go, their one-shot
       // presses carried onto the next so a swing or a space is never lost; the guest's own prediction is
       // corrected by the frame, as for any other misprediction.
-      while (g.queue.length > MAX_BACKLOG) {
+      while (g.queue.length > MAX_BACKLOG * Math.max(1, Math.round(world.world.timeScale || 1))) { // a sixth of a second of the world's steps
         const gone = g.queue.shift();
         const keep = g.queue[0];
         for (const f of ["clicked", "altPressed", "space"]) if (gone.snap[f] && !keep.snap[f]) keep.snap = { ...keep.snap, [f]: true };
@@ -649,7 +667,7 @@ export function hostAfterStep() {
     for (const [k, v] of Object.entries(full)) {
       if (k === "full" || k === "ack" || k === "actionView" || k === "line") continue;
       if (HEAVY.has(k)) heavy[k] = v;
-      else light[k] = typeof v === "number" && k !== "gx" && k !== "gy" ? r2(v) : v;
+      else light[k] = typeof v === "number" && !EXACT.has(k) ? r2(v) : v;
     }
     const heavyText = JSON.stringify(heavy);
     if (lastHeavy.get(c.id) !== heavyText) {
@@ -782,16 +800,60 @@ export function guestStep(mySnap) {
     const s = mySnap.idle ? mySnap : testSnapshot || mySnap; // a screen up: nothing pressed, whatever a check says
     // The fight (docs/31/06, tier 2): the clicks and the buttons go as they are, the aim as a vector and
     // a ground point; the host resolves the swing, the draw, and the shove against its own dead.
-    const snap = { axis: s.axis, sprint: !!s.sprint, aim: s.aim || null, aimAt: s.aimAt || null, space: !!s.space, clicked: !!s.clicked, clickSpent: false, leftDown: !!s.leftDown, altPressed: !!s.altPressed, altDown: !!s.altDown, offDown: !!s.offDown, blocked: !!s.blocked, keys: s.keys || null };
+    const snap = { axis: s.axis, sprint: !!s.sprint, aim: s.aim || null, aimAt: s.aimAt || null, space: !!s.space, clicked: !!s.clicked && !s.clickSpent, clickSpent: false, leftDown: !!s.leftDown, altPressed: !!s.altPressed, altDown: !!s.altDown, offDown: !!s.offDown, blocked: !!s.blocked, keys: s.keys || null };
     seq++;
     pending.push({ seq, snap });
     if (pending.length > MAX_PENDING) pending.shift(); // a host that has acknowledged nothing for seconds: the replay is bounded
-    send({ type: "input", seq, snap });
+    sendInput(snap);
     // Prediction (docs/31/04): my own walking runs here at once against the replica's walls; the host's
     // word arrives a wire later and the inputs it has not yet applied are replayed over it (applyFrame).
-    updatePlayer(game.state.player, 1 / 60, snap);
+    predict(game.state.player, snap);
   }
 }
+
+// A guest's inputs on the wire. At the world's normal pace each step's input goes at once, as it always has. While the
+// world runs faster (everyone asleep, sixty steps a browser frame) the same input step after step is held as a run and
+// sent on the frames' own cadence, a running count of one over the scale reaching three, so twenty messages a real second
+// stand for the 3,600 steps; the host expands a run into one input a step. Found by the real-time sleep test the coder
+// agent asked for (2026-10-13): a sleeping guest sent an input every step, about a megabyte a second upstream. An input
+// that differs, or that carries a press or a key event, goes at once, the run before it first.
+let run = null; // { snap, text, seq, steps }: the identical inputs held since the last send
+let runCount = 0;
+
+function flushRun() {
+  if (run && run.steps) send({ type: "input", seq: run.seq, snap: run.snap, steps: run.steps });
+  if (run) run.steps = 0;
+  runCount = 0;
+}
+
+function sendInput(snap) {
+  const scale = Math.max(1, world.world.timeScale || 1);
+  const press = snap.clicked || snap.altPressed || snap.space || !!snap.keys;
+  const text = press ? null : JSON.stringify(snap);
+  if (scale > 1 && !press && run && run.text === text) {
+    run.seq = seq;
+    run.steps++;
+    runCount += 1 / scale;
+    if (runCount >= FRAME_EVERY - 1e-9) flushRun();
+    return;
+  }
+  flushRun();
+  send({ type: "input", seq, snap });
+  run = press ? null : { snap, text, seq, steps: 0 };
+}
+
+// One step of my own player as the host will run it, cosmetic where the host decides (the second of the five items
+// for a friend on their own computer, 2026-10-13): the walking, then the controller in its predict mode, the swing
+// started and the guard raised at once and the hit left to the host, in the host's own order (game.step).
+function predict(me, snap) {
+  updatePlayer(me, 1 / 60, snap);
+  controlPlayer(me, game.state.zombies, 1 / 60, snap, true);
+}
+
+// The host's last word on my player, kept so the replay always starts from it: a frame whose record of me is the
+// acknowledgement alone (nothing changed on the host since the last record) means the last record stands, and
+// replaying the unacknowledged inputs over my predicted player instead would apply them twice.
+let myBase = null;
 
 export function correction() {
   return lastCorrection;
@@ -922,8 +984,17 @@ function applyFrame(f) {
     const predictedX = predictedPos ? predictedPos[0] : me.gx;
     const predictedY = predictedPos ? predictedPos[1] : me.gy;
     const ack = mine.ack || 0;
+    const { id: _id, ack: _ack, light: _light, full: _full, ...said } = mine;
+    if (Object.keys(said).length) {
+      // The fields the host sent of me, kept as they arrived (a copy: the replay mutates the animation in place).
+      const fields = {};
+      for (const k of Object.keys(said)) if (!HEAVY.has(k) && k !== "line" && k !== "actionView" && k !== "carryingId") fields[k] = me[k];
+      myBase = JSON.parse(JSON.stringify(fields));
+    } else if (myBase) {
+      Object.assign(me, JSON.parse(JSON.stringify(myBase))); // the acknowledgement alone: the last record stands
+    }
     while (pending.length && pending[0].seq <= ack) pending.shift();
-    for (const p of pending) updatePlayer(me, 1 / 60, p.snap);
+    for (const p of pending) predict(me, p.snap);
     lastCorrection = Math.hypot(me.gx - predictedX, me.gy - predictedY);
   }
   predictedPos = null;
