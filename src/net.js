@@ -203,6 +203,17 @@ const lastHeavy = new Map(); // player id -> the heavy part's text last sent
 const lastLight = new Map(); // player id -> the light record's text last sent
 const lastExtras = { rules: "", carriers: "", queues: "" }; // sent when they change, not every frame
 
+// What the host remembers of what it sent, forgotten: the next frame carries every record, roster, and extra again.
+// Called when a guest joins (the welcome is that guest's baseline, and a record that changed and changed back
+// between the last frame and the welcome would otherwise never be corrected for it) and with nobody to tell.
+function forgetSent() {
+  lastSent.clear();
+  lastHeavy.clear();
+  lastLight.clear();
+  for (const k of Object.keys(lastRoster)) lastRoster[k] = "";
+  for (const k of Object.keys(lastExtras)) lastExtras[k] = "";
+}
+
 export function setRelay(url) {
   if (url === "none" || url === "loopback") relayUrl = null;
   else if (url) relayUrl = url;
@@ -443,6 +454,8 @@ export function hostStep(mySnap, me) {
       guests.set(msg.from, { playerId: p.id, hash, queue: [], last: null, ack: 0, joinedAt: tick });
       for (const c of allCharacters()) known.add(c.id);
       send({ type: "welcome", to: msg.from, playerId: p.id, save: game.serialize(), world: hooks.worldInfo ? hooks.worldInfo() : null });
+      forgetSent(); // the newcomer's baseline is this save: whatever the others were sent is sent again, whole
+
       hooks.message(`${p.name || p.id} joined.`);
       if (hooks.guestJoined) hooks.guestJoined(p);
     } else if (msg.type === "input") {
@@ -550,8 +563,13 @@ function allCharacters() {
 const r3 = (n) => Math.round(n * 1000) / 1000;
 const r2 = (n) => Math.round(n * 100) / 100;
 
+// An animation's timer ticks every step and the guest draws by the frame number alone, so it goes rounded and is
+// left out of the change test below: a character standing still near the living was "changed" in every frame.
+const roundAnim = (a) => (a && typeof a.elapsed === "number" ? { ...a, elapsed: r2(a.elapsed) } : a);
+const sameAnimKey = (r) => JSON.stringify(r.anim && typeof r.anim === "object" ? { ...r, anim: { name: r.anim.name, frame: r.anim.frame, done: r.anim.done } } : r);
+
 function slim(c) {
-  const r = { id: c.id, gx: r3(c.gx), gy: r3(c.gy), facing: c.facing, anim: c.anim, hp: r2(c.hp), dead: c.dead, state: c.state, corpse: c.corpse, line: c.line, blocking: c.blocking, burning: !!c.burning, carryingId: c.carrying ? c.carrying.id : null };
+  const r = { id: c.id, gx: r3(c.gx), gy: r3(c.gy), facing: c.facing, anim: roundAnim(c.anim), hp: r2(c.hp), dead: c.dead, state: c.state, corpse: c.corpse, line: c.line, blocking: c.blocking, burning: !!c.burning, carryingId: c.carrying ? c.carrying.id : null };
   if (c.searched) {
     r.searched = true;
     r.loot = c.loot; // a body opened: its grid, for a guest with it open
@@ -598,13 +616,7 @@ export function hostAfterStep() {
   if (role !== "host" || !guests.size) {
     map.takeTouched(); // nobody to tell: the touched set is drained, not kept for ever (a grown chunk names itself to it in every game)
     interact.takePokes();
-    if (lastSent.size || lastHeavy.size) {
-      lastSent.clear(); // the next guest's welcome is its baseline, and every roster goes out again
-      lastHeavy.clear();
-      lastLight.clear();
-      for (const k of Object.keys(lastRoster)) lastRoster[k] = "";
-      for (const k of Object.keys(lastExtras)) lastExtras[k] = "";
-    }
+    if (lastSent.size || lastHeavy.size) forgetSent(); // the next guest's welcome is its baseline, and every roster goes out again
     return;
   }
   frameCount += 1 / Math.max(1, world.world.timeScale || 1);
@@ -615,6 +627,20 @@ export function hostAfterStep() {
   const S = game.state;
   for (const id of lastCarried.keys()) if (!S.players.some((q) => q.id === id)) lastCarried.delete(id); // a player gone dormant and back is sent its prop in hand afresh
   const touched = map.takeTouched();
+  // A character no longer in any list is forgotten: its id leaves `known` and what was last sent of it. A far chunk put
+  // to sleep takes its dead out of the world and wakes them again later with the same id and the same record; remembered,
+  // the record looked unchanged and was never sent, the roster named an id the guest had dropped, and the zombie stood
+  // on the host and nowhere on the guest's screen (found reviewing the wire's delta, 2026-10-13).
+  {
+    const present = new Set();
+    for (const list of [S.players, S.zombies, S.villagers, S.corpses]) for (const c of list) present.add(c.id);
+    for (const id of lastSent.keys()) if (!present.has(id)) lastSent.delete(id);
+    for (const id of known) if (!present.has(id)) known.delete(id);
+    // And a player's last heavy and light parts: one gone dormant and back came back with an unchanged heavy part, so only a
+    // light record went out, to guests that had dropped it, which never saw it again.
+    for (const id of lastHeavy.keys()) if (!present.has(id)) lastHeavy.delete(id);
+    for (const id of lastLight.keys()) if (!present.has(id)) lastLight.delete(id);
+  }
   // A player: the whole record when its heavy part changed (or never sent), else the light part when it differs.
   const playerRecord = (c) => {
     const full = record(c); // marks the id known, carries the prop in hand once, the ack and the action's view
@@ -650,10 +676,10 @@ export function hostAfterStep() {
       const r = record(c);
       if (r.full) {
         out.push(r);
-        lastSent.set(c.id, JSON.stringify(slim(c)));
+        lastSent.set(c.id, sameAnimKey(slim(c)));
         continue;
       }
-      const text = JSON.stringify(r);
+      const text = sameAnimKey(r);
       if (lastSent.get(c.id) === text) continue;
       lastSent.set(c.id, text);
       out.push(r);
