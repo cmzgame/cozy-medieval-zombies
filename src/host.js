@@ -20,6 +20,8 @@ import * as log from "./ui/log.js";
 import * as world from "./world.js";
 import * as verbs from "./verbs.js";
 import * as placement from "./placement.js";
+import * as bleed from "./bleed.js";
+import * as iso from "./iso.js";
 import { performItemCommand, performUseCommand } from "./ui/inventory-actions.js";
 import { showMessage, setMessageSink } from "./ui/prompt.js";
 
@@ -176,6 +178,19 @@ export function install() {
   // A landed blow kicks the camera of the client whose player struck (docs/31/05, item 13): a guest's on its screen.
   events.on("kicked", ({ player: p, x, y, seconds }) => {
     if (p !== self() && net.isHost()) net.kickTo(p.id, x, y, seconds);
+  });
+  // A bite's words go to the screen of the player bitten (the coder agent's review of steps 1 and 2): the host's own
+  // say them in main.js; a guest's, and every player's on a server world, are told here.
+  events.on("bitten", ({ player: p, opened, infected }) => {
+    if (!p || p === self() || !net.isHost()) return;
+    if (infected) net.messageTo(p.id, "The bite broke the skin.", 2);
+    else if (opened && bleed.stacks(p) === 1) net.messageTo(p.id, "You are bleeding. A bandage will stop it.", 2);
+  });
+  // A blocked blow's sparks, on every guest's screen too (the review of steps 1 and 2): where the blow met the shield.
+  events.on("blocked", ({ zombie, player: p }) => {
+    if (!p || !zombie || !net.isHost()) return;
+    const d = iso.normalize(zombie.gx - p.gx, zombie.gy - p.gy);
+    net.fxAll("spark", p.gx + d.x * 0.45, p.gy + d.y * 0.45, 22); // 22 pixels up, as the host draws its own (main.js)
   });
   // A weapon worn out: the word goes to the screen of the player whose it was (item 4).
   events.on("weaponBroke", ({ item, who }) => {

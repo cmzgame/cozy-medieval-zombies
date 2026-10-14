@@ -32,55 +32,17 @@ const flags = new Set(process.argv.slice(2).filter((a) => a.startsWith("--")));
 const mapName = args[0] || "valley";
 const steps = Number(args[1] || 600);
 
-const assets = await import("../src/assets.js");
-assets.setHeadless(true);
-assets.setJsonReader(async (p) => read(p));
-
+// The data stage, shared with the server's world process (server/boot.js): this runner's hash is the proof that
+// it is the browser's boot.
+const { bootData } = await import("../server/boot.js");
 // net.js is imported for its parse alone: it has no window at module scope, and a stray brace in it once
 // passed node --check (which parses a .js as a script) and broke the browser's boot.
 await import("../src/net.js");
 const settings = await import("../src/settings.js");
-const [items, placement, combat, figure, interactions, stations, tuning, map, game, loop] = await Promise.all([
-  import("../src/items.js"),
-  import("../src/placement.js"),
-  import("../src/combat.js"),
-  import("../src/figure.js"),
-  import("../src/interactions.js"),
-  import("../src/stations.js"),
-  import("../src/tuning.js"),
-  import("../src/map.js"),
-  import("../src/game.js"),
-  import("../src/loop.js"),
-]);
+const [map, game, loop] = await Promise.all([import("../src/map.js"), import("../src/game.js"), import("../src/loop.js")]);
 
 const t0 = performance.now();
-
-// The data stage, as main.js runs it.
-const [itemsJson, buildJson, combatJson, posesJson, lootJson, wardrobesJson, interactionsJson] = [
-  read("data/items.json"), read("data/build.json"), optional("data/combat.json"), optional("data/poses.json"),
-  read("data/loot.json"), read("data/wardrobes.json"), optional("data/interactions.json"),
-];
-interactions.load(interactionsJson);
-stations.loadRecipes(optional("data/recipes.json"));
-tuning.load(optional("data/tuning.json"));
-items.loadItems(itemsJson);
-placement.setBuildData(buildJson);
-if (combatJson) combat.setCombatData(combatJson);
-if (posesJson) figure.setPoses(posesJson);
-items.loadLoot(lootJson);
-figure.setArtResolver((id) => items.getItem(id).art || null);
-figure.setWardrobes(wardrobesJson);
-
-// The art stage: every sprite definition, no picture.
-assets.setManifest(read("data/manifest.json"));
-await assets.loadAll();
-
-// The layers stage: every painted style's name, so a wardrobe that names one resolves.
-const folders = [["hair", "data/hair"], ...["head", "chest", "legs", "hands", "feet", "body", "beard", "waist"].map((s) => [s, `data/layers/${s}`])];
-for (const [slot, folder] of folders) {
-  const index = optional(`${folder}/index.json`) || { styles: [] };
-  for (const name of index.styles || []) figure.registerLayer(slot, name, read(`${folder}/${name}.json`));
-}
+await bootData(root);
 
 // The world stage: the same calls as the browser's.
 const json = read(`data/maps/${mapName}.json`);

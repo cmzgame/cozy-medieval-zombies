@@ -1284,6 +1284,7 @@ async function boot() {
     joined: (id) => showMessage(`Joined as ${id}.`, 3),
     message: (text, seconds = 3) => showMessage(text, seconds),
     kick: (x, y, seconds) => camera.kick(x, y, seconds), // my own landed blow, told by the host (item 4)
+    fx: (kind, x, y, z) => { if (kind === "spark") burning.spark(x, y, z); }, // a visual the host's world made (a blocked blow's sparks, z its height)
     // A container my player opened on the host: the grid is on my replica's prop, entry, or body, found by
     // its address (interact.containerAt; a station's output is its own bag, docs/30 section 6), again every frame.
     opened: (w) => {
