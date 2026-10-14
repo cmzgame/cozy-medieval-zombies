@@ -7,7 +7,9 @@
 //   ... step both tabs in turn for a few rounds (sixty frames or more each), with some play in it ...
 //   await __game.check("sync")          // the guests' latest reports against the host's own at those ticks
 // A hidden pane runs no frames, so the rounds are the script's. The reports stay on until
-// setSyncReports(false).
+// setSyncReports(false). A walking guest's own player is its prediction, ahead of the host's record by the
+// inputs not yet applied: let the guest stand still and the frames catch up before the check (the coder
+// agent's caution, 2026-10-13).
 
 export async function run(game) {
   const G = game;

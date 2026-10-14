@@ -261,12 +261,12 @@ export function nextSwingWeapon(player) {
 // The left button (docs/21): with one weapon, a swing; with a weapon in each hand, the main hand
 // swings when it is ready, and the off hand when the main is still recovering, so clicking faster
 // than a swing's recovery goes back and forth.
-export function swingFromLeft(player, zombies) {
-  if (!offWeaponOf(player)) return tryAttack(player, zombies);
+export function swingFromLeft(player, zombies, predict = false) {
+  if (!offWeaponOf(player)) return tryAttack(player, zombies, "main", null, predict);
   const mainReady = (player.attackCooldown || 0) <= 0;
   const offReady = (player.offCooldown || 0) <= 0;
-  if (mainReady) return tryAttack(player, zombies, "main"); // the main hand first, always: a torch in the off hand is never used at a pace the main weapon keeps
-  if (offReady) return tryAttack(player, zombies, "off");
+  if (mainReady) return tryAttack(player, zombies, "main", null, predict); // the main hand first, always: a torch in the off hand is never used at a pace the main weapon keeps
+  if (offReady) return tryAttack(player, zombies, "off", null, predict);
   return null;
 }
 
@@ -285,7 +285,12 @@ export function exposedTo(player, zombie, damage) {
   return Math.round(damage * mult);
 }
 
-export function tryAttack(player, zombies, hand = "main", mode = null) {
+// `predict`: a guest's own swing played at once (docs/31/04: the animation is cosmetic, the hit is the authority's).
+// The swing starts as it would on the host (the gate, the stamina, the hand's clock, the swing lock, the exposure,
+// the animation, all the player's own fields, so the host's record agrees when it comes) and stops there: no
+// targets, no damage, no roll of the sim's generator, no hit-stop, no kick, no wear. Run on the guest's step and
+// again in the replay over each frame (net.js), so it must touch nothing but the player.
+export function tryAttack(player, zombies, hand = "main", mode = null, predict = false) {
   const cd = hand === "off" ? "offCooldown" : "attackCooldown";
   if (!canAct(player) || (player[cd] || 0) > 0) return null;
   if ((player.swingLock || 0) > 0 && offWeaponOf(player)) return null; // the other hand must wait its turn
@@ -303,6 +308,7 @@ export function tryAttack(player, zombies, hand = "main", mode = null) {
     if (hand === "off") player.exposedFor = DUAL.window; // the price of the second weapon
   }
   playAnimation(player.anim, "attack", true);
+  if (predict) return [];
   emit("meleeSwing", { player, weapon });
 
   const dir = gridAim(player);
