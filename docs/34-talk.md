@@ -56,7 +56,7 @@ The seven villagers of the valley (`tools/mapgen/valley.py`, the `villager` call
   - `hurt`: the villager is below full health.
   - `holding`: an item id or tag in the talker's hands (barks: the poker; conversations: the talker).
   - `hungry`, `thirsty`, `tired`, `bleeding`: the talker's moodle past its second stage.
-  - [Nothing remembers what was said. Every conversation starts at `start`; there is no "we've met" in 1.0, since memory is state. Michael may overrule for first-meeting lines, which would be a per-character set kept on the player, in the save and the sync check.]
+  - **Nothing remembers what was said, in 1.0** (Michael, 2026-10-13). Every conversation starts at `start`. Memory is wanted later ("oh, you again"), as a per-character record of what was heard, kept on the player, in the save and the sync check; **keep it cheap to add:** node ids are stable names, never indexes or generated, and a node is addressed as `<talk id>/<node id>`, so a later `heard` condition and set can name them without touching a file's shape.
 
 `python -I tools/validate-data.py` checks every talk file: every `goto` names a node, `start` exists, every condition name is known and its value the right type, every talk id in `villagerAlive` and `villagerDead` exists, no unknown key anywhere, and a bark line is at most [70 characters] so the bubble stays a bubble.
 
@@ -92,6 +92,8 @@ Loads `data/talk/` at boot (the manifest lists it, `tools/manifest.py`), and off
 
 ## The words
 
+1.0's villagers are pre-authored and fixed (Michael, 2026-10-13): the richest have several topics, a lot to say, and several paths; the player picks from a few set options at each turn, OSRS style; there for the player to explore, never required.
+
 The engine is small; the writing is the work. The implementer writes **one whole file, the Innkeeper's** (barks for the dead near, night, poked, and ambient; a conversation with four or five topics: who they are, the inn, the valley, how to keep a fire, and one about the dead that shows only when `deadInWorld`), and **stub files for the other six** (their map `line` as the fallback bark, one ambient group, a two-node conversation in their voice), so every path is exercised. Michael, or a writing session he starts, fills the rest. The voice, from `00`: short plain lines; cute and gloomy together, never resolved; deaths said plainly; people referred to as they and them; humour allowed, the OSRS kind; no line that tells the player they must do something.
 
 ## Build order
@@ -116,4 +118,4 @@ Each step verified in the browser pane through `window.__game` with `loop.setPau
 
 ## Not in this scope
 
-Memory of what was said, quests, anything a conversation gives or sets, barter, villager routines and following (`04`), scripted scenes (`05`), voiced lines, the dead speaking (they groan, `19`), player-to-villager lines typed into the chat.
+Memory of what was said (wanted after 1.0, `05`), quests, anything a conversation gives or sets, barter, villager routines and following (`04`), scripted scenes (`05`), voiced lines, the dead speaking (they groan, `19`), player-to-villager lines typed into the chat.
