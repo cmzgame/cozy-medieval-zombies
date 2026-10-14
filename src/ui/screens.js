@@ -164,6 +164,7 @@ export function back() {
   if (!current) return false;
   if (SUB.has(current)) show(from || "pause", data);
   else if (current === "pause") hide();
+  else if (current === "away") { if (worldsApi && worldsApi.comeBack) worldsApi.comeBack(); }
   else if (FLOW.has(current)) stepBack();
   // The title stays; the dead screen stays until a choice is made.
   return true;
@@ -240,6 +241,7 @@ function go(where, ds = {}) {
   else if (where === "identity-cancel") { if (identitiesApi) identitiesApi.cancel(); show(creation ? "create" : "identities"); }
   // The dead screen: a new character in this same world.
   else if (where === "respawn") beginCreation({ for: "respawn" });
+  else if (where === "comeback") { if (worldsApi && worldsApi.comeBack) worldsApi.comeBack(); }
   // Hosting as a switch.
   else if (where === "open-on") { if (wireApi) wireApi.setOpen(true); render(); }
   else if (where === "open-off") { if (wireApi) wireApi.setOpen(false); render(); }
@@ -596,6 +598,14 @@ function render() {
       settings.reset();
       render();
     });
+  } else if (current === "away") {
+    // Stepped away (item 3, `02` 2026-10-13): five minutes with no input in a world with friends in it.
+    root.innerHTML = `
+      <div class="screen">
+        <h1>You stepped away</h1>
+        <div class="sub">Five minutes with nothing pressed. Your character is out of the world and safe where it stood; your friends play on. Press any key or click to come back.</div>
+        <div class="screen-buttons">${button("comeback", "Come back")}</div>
+      </div>`;
   } else if (current === "dead") {
     root.innerHTML = `
       <div class="screen">

@@ -319,7 +319,9 @@ export function removePlayer(id) {
   const gone = S.players.find((p) => p.id === id);
   if (gone && gone.sleeping && !S.players.some((q) => q !== gone && q.sleeping)) world.setTimeScale(1);
   S.players = S.players.filter((p) => p.id !== id);
-  if (S.player && S.player.id === id) S.player = S.players[0] || null;
+  // The client's own player is never handed to someone else: on a host that was a guest's character, its camera,
+  // and its input driving them (the coder agent's review of item 3). Out of the list it stays this client's, held
+  // where it stood, until it is put back (a step away) or replaced (a new character).
 }
 
 // A player gone dormant (docs/31/09; Michael, 2026-10-13, Zomboid's way): out of the simulation,

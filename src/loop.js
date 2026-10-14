@@ -75,9 +75,8 @@ function frame(now) {
   if (!running) return;
   // Rescheduled first, so a throw below cannot leave the loop unscheduled (docs/23a, A1).
   requestAnimationFrame(frame);
-  let dt = (now - last) / 1000;
-  last = now;
-  if (dt > MAX_FRAME) dt = MAX_FRAME;
+  lastFrameAt = now;
+  const dt = Math.min(MAX_FRAME, (now - last) / 1000);
 
   fpsTimer += dt;
   frames++;
@@ -87,6 +86,16 @@ function frame(now) {
     fpsTimer = 0;
   }
 
+  run(now, true);
+}
+
+// The steps a stretch of real time is worth, then the drawing when there is a frame to draw. Shared by the
+// browser's frames and the Worker's ticks, so `last` and the accumulator carry from one driver to the other
+// and a switch neither doubles nor drops a step.
+function run(now, draw) {
+  let dt = (now - last) / 1000;
+  last = now;
+  if (dt > MAX_FRAME) dt = MAX_FRAME;
   try {
     if (freezeLeft > 0) freezeLeft = Math.max(0, freezeLeft - dt);
     else if (!paused) {
@@ -100,8 +109,9 @@ function frame(now) {
         n++;
       }
       if (n >= maxSteps) accumulator = 0;
+      if (!draw) workerSteps += n;
     }
-    hooks.render();
+    if (draw) hooks.render();
   } catch (err) {
     // One exception ends the game, loudly: the sim stops where it threw and the
     // crash screen says why (src/boot.js), instead of a frozen canvas and a
@@ -110,6 +120,52 @@ function frame(now) {
     console.error(err);
     if (hooks.crash) hooks.crash(err);
   }
+}
+
+// The second driver (item 3 of the five for a friend on their own computer, `02` 2026-10-13): a browser draws no
+// frames for a hidden tab, so a host's world stopped for everyone whenever its tab was behind another, minimised, or
+// covered. A Worker's timer is not stopped the same way: it ticks every 16 ms, and once the browser's frames have
+// stopped for a tenth of a second (not the visibility flag, which a covered window or an embedded pane may not set)
+// and the client says so, each tick steps the world by the real time since the last, without drawing. A frame drawn
+// again takes back over at once. The client's answer (`setBackgroundDriver`): "step" (a world with friends in it),
+// "pump" (a world open to friends with nobody in it yet: the wire is answered, so a friend's join is heard, but the
+// world does not move and its clock does not run), or nothing (a solo world: hidden, it stops, as single player
+// always has).
+const STALL_MS = 100;
+let lastFrameAt = 0;
+let worker = null;
+let wanted = () => false;
+let workerSteps = 0;
+
+export function setBackgroundDriver(fn) {
+  wanted = fn || (() => false);
+  if (worker || typeof Worker === "undefined" || typeof Blob === "undefined") return;
+  const src = "setInterval(() => postMessage(0), 16);";
+  worker = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+  worker.onmessage = () => {
+    if (!running) return;
+    const now = performance.now();
+    if (now - lastFrameAt < STALL_MS) return;
+    const want = wanted();
+    if (want === "step") run(now, false);
+    else {
+      last = now; // no stretch of real time is owed when stepping starts
+      if (want === "pump" && hooks.pump) {
+        try {
+          hooks.pump();
+        } catch (err) {
+          running = false;
+          console.error(err);
+          if (hooks.crash) hooks.crash(err);
+        }
+      }
+    }
+  };
+}
+
+// The steps the Worker has driven since the page loaded (for the checks).
+export function backgroundSteps() {
+  return workerSteps;
 }
 
 export function isRunning() {

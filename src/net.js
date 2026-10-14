@@ -102,6 +102,7 @@ const GRACE_S = 60;
 const MAX_PENDING = 180; // a guest's unacknowledged inputs kept for the replay: three seconds
 const MAX_BACKLOG = 10; // a guest's inputs the host will hold: a sixth of a second, so the internet's own jitter is not corrected
 // (times the world's time scale: at sixty times a sixth of a second is six hundred steps)
+const SILENT_STEPS = 30; // a guest's held keys lapse after this many steps with no input from it: half a second
 const MAX_RUN = 600; // the most steps one run of a guest's inputs may stand for (180 at sixty times, the frame's cadence)
 const away = new Map(); // playerId -> the sim time its guest went
 const lastCarried = new Map(); // character id -> the carried prop's id last sent in a full record (null for none)
@@ -164,6 +165,7 @@ export function close() {
   myBase = null;
   run = null;
   runCount = 0;
+  steppedAway = false;
 }
 
 // ---- the transports (docs/31/04; ruled 2026-10-13, docs/02) ----
@@ -415,6 +417,30 @@ export function hostStep(mySnap, me) {
   if (me) snapshots.set(me.id, mySnap);
   if (role !== "host") return snapshots;
   for (const msg of inbox.splice(0)) {
+    // A guest stepped away (item 3, `02` 2026-10-13) has no character in the world: its inputs and commands are
+    // refused until it comes back; its leave, its line, and its sync report are heard.
+    const sender = msg.from ? guests.get(msg.from) : null;
+    if (sender && sender.steppedAway && !["back", "leave", "say", "sync"].includes(msg.type)) continue;
+    if (msg.type === "away") {
+      // Five minutes with no input on the guest's own client: its character out of the world, kept by its browser's
+      // hash (main.js, the dormant path); a sleeper, the dead, or a climb mid-way is refused and told to stay.
+      if (sender && hooks.away && hooks.away(sender.playerId)) {
+        sender.steppedAway = true;
+        sender.queue = [];
+        sender.last = null;
+      } else if (sender) send({ type: "stay", to: msg.from });
+      continue;
+    }
+    if (msg.type === "back") {
+      if (sender && sender.steppedAway) {
+        const p = hooks.back ? hooks.back(sender.hash) : null;
+        if (p) {
+          sender.playerId = p.id;
+          sender.steppedAway = false;
+        }
+      }
+      continue;
+    }
     if (msg.type === "join") {
       if (guests.has(msg.from)) continue;
       // Another protocol or save shape: refused with a word for whose is newer.
@@ -563,8 +589,16 @@ export function hostStep(mySnap, me) {
     if (next) {
       g.last = next.snap;
       g.ack = next.seq;
-    } else if (g.last) g.last = { ...g.last, space: false, clicked: false, altPressed: false, keys: null }; // a press, and a key event, is one step
-    if (g.last) snapshots.set(g.playerId, g.last);
+      g.silent = 0;
+    } else if (g.last) {
+      g.last = { ...g.last, space: false, clicked: false, altPressed: false, keys: null }; // a press, and a key event, is one step
+      // A guest silent for half a second (its tab hidden mid-walk, its browser frozen, its line down): the held keys
+      // lapse, so its character stops rather than walking on with the last input for ever (the coder agent's review of
+      // item 3's plan). A sixth of a second's jitter is held as before.
+      g.silent = (g.silent || 0) + 1;
+      if (g.silent > SILENT_STEPS * Math.max(1, Math.round(world.world.timeScale || 1))) g.last = { ...g.last, axis: { x: 0, y: 0 }, sprint: false, leftDown: false, altDown: false, offDown: false };
+    }
+    if (g.last && !g.steppedAway) snapshots.set(g.playerId, g.last);
   }
   return snapshots;
 }
@@ -786,6 +820,10 @@ export function guestStep(mySnap) {
       return;
     } else if (msg.type === "opened") {
       pendingOpened.push(msg.what); // after the frame that carries the grid (frames queue behind it)
+    } else if (msg.type === "stay" && msg.from) {
+      // The host refused my step away (asleep, dead, or climbing there): back in, nothing lost.
+      steppedAway = false;
+      if (hooks.stay) hooks.stay();
     }
   }
   // The host's frames stopped coming: its window is most likely covered or in the background, where a
@@ -796,7 +834,7 @@ export function guestStep(mySnap) {
   }
   if (pendingOpened.length && hooks.opened) for (const w of pendingOpened.splice(0)) hooks.opened(w);
   if (joined) smoothStep();
-  if (joined && game.state.player) {
+  if (joined && game.state.player && !steppedAway) {
     const s = mySnap.idle ? mySnap : testSnapshot || mySnap; // a screen up: nothing pressed, whatever a check says
     // The fight (docs/31/06, tier 2): the clicks and the buttons go as they are, the aim as a vector and
     // a ground point; the host resolves the swing, the draw, and the shove against its own dead.
@@ -1076,4 +1114,48 @@ export function openedFor(playerId, what) {
 
 export function leave() {
   if (role === "guest" && transport) send({ type: "leave" });
+}
+
+// Stepping away (item 3, `02` 2026-10-13): a guest's own client measures its idle time and asks; the host takes the
+// character out of the world and puts it back. Nothing is sent or predicted while away; the replay starts afresh.
+let steppedAway = false;
+export function stepAway() {
+  if (role !== "guest" || !joined || steppedAway) return false;
+  steppedAway = true;
+  pending.length = 0;
+  run = null;
+  runCount = 0;
+  send({ type: "away" });
+  return true;
+}
+export function comeBack() {
+  if (role !== "guest" || !steppedAway) return false;
+  steppedAway = false;
+  pending.length = 0;
+  run = null;
+  runCount = 0;
+  send({ type: "back" });
+  return true;
+}
+export function isSteppedAway() {
+  return steppedAway;
+}
+
+// One input with nothing held, sent at once: a guest's tab hidden mid-walk tells the host it stopped, before the
+// host's own half-second lapse (the coder agent's review of item 3's plan). Kept in the replay like any input.
+export function idleNow() {
+  const me = game.state.player;
+  if (role !== "guest" || !joined || steppedAway || !me) return;
+  const snap = { ...game.idleSnapshot(), aim: null, aimAt: null, keys: null };
+  seq++;
+  pending.push({ seq, snap });
+  if (pending.length > MAX_PENDING) pending.shift();
+  run = null;
+  runCount = 0;
+  send({ type: "input", seq, snap });
+}
+
+// A line in every guest's log (a player stepped away or came back).
+export function logAll(text, kind = "info") {
+  if (role === "host" && guests.size) send({ type: "log", text, kind });
 }

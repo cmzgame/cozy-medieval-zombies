@@ -59,6 +59,7 @@ export function createDevApi(ctx) {
     restoreWorld: ctx.restoreWorld, // the world put back from a snapshot, the client refreshed (main.js)
     addPlayer: ctx.addPlayer, // a second player at (gx, gy), standing: __game.addPlayer(x, y) (docs/31/03)
     net: ctx.net, // the wire (net.js): status(), setTestSnapshot(s) on a guest
+    away: ctx.away, // stepping away (main.js, item 3): after(ms) shortens the idle time, now, step(), back()
     get zombies() { return ctx.zombies; },
     get corpses() { return ctx.corpses; },
     get villagers() { return ctx.villagers; },
