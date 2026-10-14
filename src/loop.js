@@ -49,6 +49,17 @@ export function isPaused() {
   return paused;
 }
 
+// Held (the coder agent's review of item 3): a world whose host has stepped away with no guest in it stops as a solo
+// world does, yet still answers the wire (`hooks.pump`) so a friend's join starts it again. Apart from the pause, which
+// a screen and a scripted test own; `advance` still steps a held world, for the checks.
+let held = false;
+export function setHeld(on) {
+  held = !!on;
+}
+export function isHeld() {
+  return held;
+}
+
 // Hold game time for `seconds` (hit-stop, docs/14). Rendering goes on; the
 // longest request wins, they do not add. On the wire no one's blow holds the
 // world (docs/31/05, item 13): the hold is refused, the kick stays.
@@ -98,7 +109,7 @@ function run(now, draw) {
   if (dt > MAX_FRAME) dt = MAX_FRAME;
   try {
     if (freezeLeft > 0) freezeLeft = Math.max(0, freezeLeft - dt);
-    else if (!paused) {
+    else if (!paused && !held) {
       // The world's time scale says how many fixed steps a real second is worth.
       accumulator += dt * world.timeScale;
       let n = 0;
@@ -110,7 +121,7 @@ function run(now, draw) {
       }
       if (n >= maxSteps) accumulator = 0;
       if (!draw) workerSteps += n;
-    }
+    } else if (held && !paused && hooks.pump) hooks.pump(); // held: the wire is still answered, so a friend's join is heard
     if (draw) hooks.render();
   } catch (err) {
     // One exception ends the game, loudly: the sim stops where it threw and the
@@ -140,13 +151,20 @@ let workerSteps = 0;
 export function setBackgroundDriver(fn) {
   wanted = fn || (() => false);
   if (worker || typeof Worker === "undefined" || typeof Blob === "undefined") return;
-  const src = "setInterval(() => postMessage(0), 16);";
+  // The tick's pace is the page's to set: sixty a second while a world wants driving, one a second while nothing does
+  // (a solo world: the ticks would only be ignored, and a laptop's battery pays for them; the coder agent's note).
+  const src = "let iv = setInterval(() => postMessage(0), 16); onmessage = (e) => { clearInterval(iv); iv = setInterval(() => postMessage(0), e.data); };";
   worker = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+  let fast = true;
   worker.onmessage = () => {
     if (!running) return;
     const now = performance.now();
-    if (now - lastFrameAt < STALL_MS) return;
     const want = wanted();
+    if (!!want !== fast) {
+      fast = !!want;
+      worker.postMessage(fast ? 16 : 1000);
+    }
+    if (now - lastFrameAt < STALL_MS) return;
     if (want === "step") run(now, false);
     else {
       last = now; // no stretch of real time is owed when stepping starts

@@ -248,6 +248,7 @@ function stepAway() {
   away = true;
   closeModes();
   screens.show("away");
+  applyPause();
   return true;
 }
 
@@ -261,6 +262,7 @@ function comeBack() {
     if (p) game.pickPlayer(p);
   }
   if (screens.currentScreen() === "away") screens.hide();
+  applyPause();
   return true;
 }
 
@@ -527,6 +529,13 @@ function setPaused(v) {
   loop.setPaused(v && !net.onTheWire());
   if (!v) input.endStep(); // keys pressed while paused do not fire on resume
 }
+// And the world is held while its host has stepped away with no guest in it (the coder agent's review of item 3):
+// nobody is in the world, so it stops as a solo world does; a friend's join is still heard (loop.js answers the wire
+// while held) and starts it again, and the host's own input brings the host back.
+const worldHeld = () => away && inWorld && net.isHost() && !net.hasGuests();
+function applyPause() {
+  loop.setHeld(worldHeld());
+}
 
 function handleEscape() {
   if (!inWorld) { screens.back(); return; } // no world: the title and its screens only
@@ -735,6 +744,7 @@ function stepGame(dt) {
   const guest = net.isGuest();
   armGuest(guest);
   checkAway();
+  applyPause(); // the last guest gone while this host is away: held from the next step
   // A screen up on the wire: the world runs on, but nothing pressed reaches it or this client's modes.
   const screenUp = !!screens.currentScreen();
   loop.setFreezeAllowed(!net.onTheWire());
@@ -1478,7 +1488,11 @@ async function boot() {
   });
   window.addEventListener("pagehide", () => net.leave());
   // pump: a hidden host's world open to friends with nobody in it yet answers the wire (a join) without stepping.
-  loop.start({ update, render, crash: shell.crash, pump: () => { if (inWorld && net.isHost()) net.hostStep({ ...game.idleSnapshot(), idle: true }, S.player); } });
+  // pump: a world that is not stepping (hidden and open with nobody in, or held) still answers the wire, so a join is heard.
+  loop.start({ update, render, crash: shell.crash, pump: () => {
+    if (inWorld && net.isHost()) net.hostStep({ ...game.idleSnapshot(), idle: true }, S.player);
+    applyPause();
+  } });
   // A world with friends in it is stepped by a Worker's timer when the browser stops drawing this tab (item 3, `02`):
   // the host's for everyone, a guest's so its own clock, its sends, and the frames it is owed keep up. A solo world
   // is not: hidden, it stops, as single player always has.
