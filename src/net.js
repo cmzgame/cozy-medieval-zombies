@@ -146,7 +146,10 @@ export function close() {
   away.clear();
   lastCarried.clear();
   lastSent.clear();
+  lastHeavy.clear();
+  lastLight.clear();
   for (const k of Object.keys(lastRoster)) lastRoster[k] = "";
+  for (const k of Object.keys(lastExtras)) lastExtras[k] = "";
   pending.length = 0;
   pendingOpened.length = 0;
 }
@@ -184,6 +187,15 @@ export function wireRates() {
 // character the host has not sent before goes whole (record). The welcome is the baseline a guest starts from.
 const lastSent = new Map(); // character id -> the slim record's text last sent
 const lastRoster = { zombies: "", villagers: "", corpses: "" };
+// A player's record in two parts (the review's third point, 2026-10-13): the heavy fields (the bag, the worn,
+// the hands, the prop in hand, the look and the name and the rest that never change) go whole only when their
+// shape changes, on a pick-up, a drop, a wear; the light fields (position, facing, animation, hp, the needs
+// to two decimals, the combat clocks, the action's view) go each frame, and only when they differ from the
+// last sent. A guest's HUD reads the needs and the clocks off the same light record.
+const HEAVY = new Set(["worn", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
+const lastHeavy = new Map(); // player id -> the heavy part's text last sent
+const lastLight = new Map(); // player id -> the light record's text last sent
+const lastExtras = { rules: "", carriers: "", queues: "" }; // sent when they change, not every frame
 
 export function setRelay(url) {
   if (url === "none" || url === "loopback") relayUrl = null;
@@ -567,15 +579,46 @@ export function hostAfterStep() {
   if (role !== "host" || !guests.size) {
     map.takeTouched(); // nobody to tell: the touched set is drained, not kept for ever (a grown chunk names itself to it in every game)
     interact.takePokes();
-    if (lastSent.size) {
+    if (lastSent.size || lastHeavy.size) {
       lastSent.clear(); // the next guest's welcome is its baseline, and every roster goes out again
+      lastHeavy.clear();
+      lastLight.clear();
       for (const k of Object.keys(lastRoster)) lastRoster[k] = "";
+      for (const k of Object.keys(lastExtras)) lastExtras[k] = "";
     }
     return;
   }
   const S = game.state;
   for (const id of lastCarried.keys()) if (!S.players.some((q) => q.id === id)) lastCarried.delete(id); // a player gone dormant and back is sent its prop in hand afresh
   const touched = map.takeTouched();
+  // A player: the whole record when its heavy part changed (or never sent), else the light part when it differs.
+  const playerRecord = (c) => {
+    const full = record(c); // marks the id known, carries the prop in hand once, the ack and the action's view
+    const heavy = {};
+    const light = {};
+    for (const [k, v] of Object.entries(full)) {
+      if (k === "full" || k === "ack" || k === "actionView" || k === "line") continue;
+      if (HEAVY.has(k)) heavy[k] = v;
+      else light[k] = typeof v === "number" && k !== "gx" && k !== "gy" ? r2(v) : v;
+    }
+    const heavyText = JSON.stringify(heavy);
+    if (lastHeavy.get(c.id) !== heavyText) {
+      lastHeavy.set(c.id, heavyText);
+      lastLight.set(c.id, JSON.stringify(light));
+      return full;
+    }
+    const r = { light: true, ...light, line: full.line, ack: full.ack, actionView: full.actionView };
+    const lightText = JSON.stringify(light);
+    if (lastLight.get(c.id) === lightText && !r.line) return { light: true, id: c.id, ack: full.ack }; // nothing moved: the ack alone, so the guest's reconciliation runs
+    lastLight.set(c.id, lightText);
+    return r;
+  };
+  const whenChanged = (name, value) => {
+    const text = JSON.stringify(value);
+    if (lastExtras[name] === text) return undefined;
+    lastExtras[name] = text;
+    return value;
+  };
   // The delta: a record only when it differs from the last sent; the roster of a list when its membership changed.
   const delta = (list) => {
     const out = [];
@@ -608,15 +651,15 @@ export function hostAfterStep() {
     simTime: loop.simTime(),
     timeScale: world.world.timeScale,
     chunks: touched.map(([cx, cy]) => map.getChunk(cx, cy, false)).filter(Boolean).map(map.serializeChunk),
-    players: S.players.map(record),
+    players: S.players.map(playerRecord),
     zombies: delta(S.zombies),
     villagers: delta(S.villagers),
     corpses: delta(S.corpses),
     roster,
     pokes: interact.takePokes(), // the sways and the well's bucket stamped this step (interact.js): a guest sees a field wobble when anyone walks through it
-    queues: stations.frameQueues(), // the jobs in the stations, with their time left: the bar a guest's recipes panel shows
-    carriers: light.carriers().filter((c) => c.owner),
-    rules: { ...rules.rules }, // the world's rules are the host's (docs/31/07, question 13)
+    queues: whenChanged("queues", stations.frameQueues()), // the jobs in the stations, with their time left: the bar a guest's recipes panel shows
+    carriers: whenChanged("carriers", light.carriers().filter((c) => c.owner)),
+    rules: whenChanged("rules", { ...rules.rules }), // the world's rules are the host's (docs/31/07, question 13)
     arrows: archery.arrowsInFlight().filter((a) => !a.done).map((a) => ({ gx: a.gx, gy: a.gy, z: a.z, frame: a.frame, projectile: a.projectile })),
   };
   send(game.toSafe(frame));
@@ -709,7 +752,7 @@ let predictedPos = null; // where my prediction had me before this frame's recor
 function applyFrame(f) {
   const S = game.state;
   if (S.player) predictedPos = [S.player.gx, S.player.gy];
-  if (f.rules) rules.set(f.rules);
+  if (f.rules) rules.set(f.rules); // sent when they change
   archery.setReplicaArrows(f.arrows || []);
   clock.setElapsed(f.clock);
   loop.setSimTime(f.simTime);
@@ -760,7 +803,7 @@ function applyFrame(f) {
         else if (c.corpse) dressCorpse(c);
       }
     } else if (c) {
-      const { carryingId, loot, worn, ...rest } = r;
+      const { carryingId, loot, worn, light: isLight, ...rest } = r;
       Object.assign(c, rest);
       if (loot) {
         // A body's grid is the body (docs/19): the same objects in the grid and on it, made one again by uid.
@@ -768,7 +811,7 @@ function applyFrame(f) {
         const byUid = new Map(c.loot.items.filter((e) => e.uid != null).map((e) => [e.uid, e]));
         if (worn) for (const slot of Object.keys(worn)) c.worn[slot] = worn[slot] ? byUid.get(worn[slot].uid) || worn[slot] : null;
       }
-      c.carrying = propById(carryingId);
+      if (carryingId !== undefined) c.carrying = c.carrying && c.carrying.id === carryingId ? c.carrying : propById(carryingId); // a light record names the prop in hand; the copy stays while its id does
       if (c.corpse && c.kind === "zombie" && !c.corpseKey) dressCorpse(c);
     }
     return c;
@@ -800,7 +843,7 @@ function applyFrame(f) {
   predictedPos = null;
   S.others = [...S.players, ...S.zombies, ...S.villagers];
   S.progress = S.player ? S.player.actionProgress : null;
-  light.setCarriers(f.carriers);
+  if (f.carriers) light.setCarriers(f.carriers); // sent when they change
   // The burning is a visual the host's step makes (fire.js): the flame particles and the body as a light come
   // from the burning flag, which the frame carries, so a guest runs the same update on its replica (found 2026-10-13:
   // only the host saw anyone on fire).

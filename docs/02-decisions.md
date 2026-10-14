@@ -4,6 +4,12 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-13 — The wire, part two of four: a player's record in light and heavy parts; the rules, the carriers, and the queues when they change
+
+**Built.** A player's record goes in two parts. The heavy part (the bag, the worn, the hands, the prop in hand, the look, the name, and the fields that never change) goes whole only when its shape changes, on a pick-up, a drop, a wear, or a lift; the light part (position to three decimals, facing, animation, hp, the needs and the combat clocks to two decimals, the action's view, the speech line) goes each frame, and only when it differs from the last sent; with nothing moved, the acknowledgement alone goes, so a guest's reconciliation still runs. A guest's HUD reads the needs and the clocks off the light record. The rules, the torch carriers, and the stations' queues go only when they change. On the guest a light record is applied in place, and the prop in hand stays while its id does. The protocol number stays 2: both parts land in one review.
+
+**Measured, two tabs on the loopback, a quiet world of fifty-five dead:** a quiet frame 3,992 bytes (was 6,255 after part one, 15,770 before), walking and unequipping a torch 3,978 on average with one frame of 5,224 where the heavy part went; the torch reached the guest's bag; the guest's correction stayed at zero; `check("sync")` 8 of 8 after a walk, the torch, and the door. What is left in a quiet frame is the dead that move near the players, about a hundred bytes each; the third part divides it all by three.
+
 ### 2026-10-13 — The wire made to fit a home connection, part one of four: the numbers rounded, the dead as a delta with a roster, the bytes counted (docs/31/06, the owed polish; the coder agent's review of the plan built in)
 
 **The measurement that ordered the work.** A frame from the host weighed about sixteen kilobytes, quiet or walking, sixty times a second: roughly a megabyte a second to each guest through the relay, which no home download nor Fly's metered egress should be asked for. Most of it was the fifty-five dead at a hundred bytes each every frame and the players' whole records with their bags every frame. (The host's own upload was overstated in the plan: through the relay the host sends one copy and the relay fans it out, so the weight is each guest's download and the relay's egress.)
