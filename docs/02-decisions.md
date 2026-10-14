@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-14 — The demo sells the game: a demo, not a tutorial (Michael)
+
+Zomboid's tutorial can end in a death with nothing after it because the finished game is a click away; this demo must leave the player wanting the open valley. Michael agreed five rules, written into `36`: (1) **the first run reaches the first night**, where the game looks best (a new player sees nightfall, a careful one dawn); (2) **preparation buys time, never escape** (Michael's correction: the demo still kills everyone, since one you could survive forever is a free game; early deaths read as the player's mistake, each escalation stage answerable for a while, the end certain); (3) **the edge promises the world instead of hiding it**: a bramble thicket the player cannot cross and the dead push through, roads out blocked by a fallen tree and a wrecked cart, signposts naming the valley's places, no invisible wall a player can walk into (the outer boundary only the dead reach); (4) **the end card sells the full game**: the run and the best run, a few lines on what the full game is (pictures once there is final art of it), and **a Wishlist on Steam button**, the card's largest, to the store page (Michael: or the art money may be wasted), also on the demo's title; (5) **the depth shows along the way**: the set laid out so a first day touches boarding, the bench, the hearth, the well, the bag, and wear. Docs: 36.
+
 ### 2026-10-14 — The demo re-ruled, the name and the project's own accounts first, and the two open notes of the long arc (Michael)
 
 On the review of `33` to `36` (the docs merged as 62160f0). **The long arc's two open notes, ruled:** (a) the quiet first day touching the clock law is fine: it is a tutorial, an arc that happens once and briefly at the start, and could later be skipped through dialogue. (b) One player's choice raising the danger for an absent friend is fine: the clock did not force it, the friend did; it is theirs to boast of or apologise for, and the game washes its hands of it.
