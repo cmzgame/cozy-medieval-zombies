@@ -138,7 +138,7 @@ export function currentScreen() {
 // The screens that return to where they were opened from (Escape, Back, Done).
 const SUB = new Set(["settings", "controls", "character", "host"]);
 // The screens that are steps of a flow: Back is explicit (go("back") knows the step before).
-const FLOW = new Set(["worlds", "identities", "identity", "newworld", "join", "create"]);
+const FLOW = new Set(["worlds", "identities", "identity", "newworld", "join", "create", "creatorkey", "ownerkey"]);
 
 export function show(name, extra = {}) {
   data = extra;
@@ -174,7 +174,7 @@ export function back() {
 // a world's name and the join code to Worlds, the creation to where it began, the editor to its caller.
 function stepBack() {
   if (current === "worlds" || current === "identities") show(worldsApi && worldsApi.here().inWorld ? "pause" : "title");
-  else if (current === "newworld" || current === "join") show("worlds");
+  else if (current === "newworld" || current === "join" || current === "creatorkey" || current === "ownerkey") show("worlds");
   else if (current === "create") {
     if (creation && creation.step > 1) { creation.step--; render(); return; }
     const c = creation;
@@ -204,6 +204,21 @@ function go(where, ds = {}) {
   else if (where === "play") { if (worldsApi) worldsApi.play(ds.world); }
   else if (where === "delete") { if (worldsApi && window.confirm("Delete this world and every character in it?")) Promise.resolve(worldsApi.remove(ds.world)).then(() => { if (current === "worlds") render(); }); }
   else if (where === "forget") { if (worldsApi) { worldsApi.forget(ds.code); render(); } }
+  else if (where === "move-up") startMoveUp(ds.world);
+  else if (where === "server-play") { if (worldsApi && worldsApi.playServer) worldsApi.playServer(ds.world); }
+  else if (where === "bring-home") { if (window.confirm("Bring this world home to this browser? Friends will join it here again, only while you play.")) startBringHome(ds.world); }
+  else if (where === "creatorkey-save") {
+    const field = root.querySelector("#creator-key");
+    const key = field ? field.value.trim() : "";
+    if (!key || !worldsApi) return;
+    worldsApi.setCreatorKey(key);
+    startMoveUp(data.world);
+  }
+  else if (where === "ownerkey-copy") {
+    const field = root.querySelector("#owner-key");
+    if (field) { field.select(); if (navigator.clipboard) navigator.clipboard.writeText(field.value).catch(() => {}); }
+  }
+  else if (where === "ownerkey-done") show("worlds", {});
   else if (where === "rejoin") startRejoin(ds.code, ds.name || "");
   else if (where === "wait-cancel") { stopWait(); show("worlds"); }
   // A new world: its name, then a character for it.
@@ -417,11 +432,41 @@ function layerRows() {
 function worldRows() {
   const rows = worldsApi ? worldsApi.list() : [];
   if (!rows.length) return `<div class="sub">No worlds yet. New world makes one.</div>`;
+  const h = worldsApi && worldsApi.here ? worldsApi.here() : {};
+  const canMove = !!(worldsApi && worldsApi.canMove && worldsApi.canMove());
+  const id = (w) => ` data-world="${esc(w.worldId)}"`;
+  // What a row offers by where the world lives (item 5's fifth step): here, on the server, or on its way home.
+  const buttonsFor = (w) => {
+    const inPlay = h.inWorld && h.worldId === w.worldId;
+    if (w.home === "server") return button("server-play", "Play", id(w)) + (canMove ? button("bring-home", "Bring it home", id(w)) : "");
+    if (w.home === "arriving") return canMove ? button("bring-home", "Finish bringing it home", id(w)) : "";
+    return (w.playable ? button("play", w.dead ? "New character" : "Play", id(w)) : "") + (canMove && w.playable && !inPlay ? button("move-up", "Move to the server", id(w)) : "") + button("delete", "Delete", id(w));
+  };
+  const where = (w) => (w.home === "server" ? ` · on the server, code <code>${esc(w.serverCode || "")}</code>` : w.home === "arriving" ? " · on its way home" : w.code ? ` · code <code>${esc(w.code)}</code>` : "");
   return `<div class="rows">${rows.map((w) => `
     <div class="row-item">
-      <div class="row-main"><b>${esc(w.name)}</b><span class="row-sub">${esc(w.label)}${w.myCharacter ? ` · ${w.dead ? `${esc(w.myCharacter)} died` : `as ${esc(w.myCharacter)}`}` : " · no survivor"}${w.code ? ` · code <code>${esc(w.code)}</code>` : ""}${w.playable ? "" : ` · on another map (${esc(w.mapName)})`}</span></div>
-      <div class="row-buttons">${w.playable ? button("play", w.dead ? "New character" : "Play", ` data-world="${esc(w.worldId)}"`) : ""}${button("delete", "Delete", ` data-world="${esc(w.worldId)}"`)}</div>
+      <div class="row-main"><b>${esc(w.name)}</b><span class="row-sub">${esc(w.label)}${w.myCharacter ? ` · ${w.dead ? `${esc(w.myCharacter)} died` : `as ${esc(w.myCharacter)}`}` : " · no survivor"}${where(w)}${w.playable ? "" : ` · on another map (${esc(w.mapName)})`}</span></div>
+      <div class="row-buttons">${buttonsFor(w)}</div>
     </div>`).join("")}</div>`;
+}
+
+// Moving a world to the server: the creator key first if this browser has none, then a word of what it means.
+function startMoveUp(worldId) {
+  if (!worldsApi || !worldsApi.moveUp) return;
+  if (!worldsApi.creatorKey()) return show("creatorkey", { world: worldId });
+  if (!window.confirm("Move this world to the server? Your friends can play it while you are away. It plays only there until you bring it home.")) return;
+  show("worlds", { note: "Moving the world to the server…" });
+  worldsApi.moveUp(worldId).then((r) => {
+    if (r.ok) return show("ownerkey", r);
+    if (r.need === "creatorKey") return show("creatorkey", { world: worldId, note: r.error || "" });
+    show("worlds", { note: r.error || "The world did not move." });
+  });
+}
+
+function startBringHome(worldId) {
+  if (!worldsApi || !worldsApi.bringHome) return;
+  show("worlds", { note: "Bringing the world home…" });
+  worldsApi.bringHome(worldId).then((r) => show("worlds", { note: r.ok ? `${r.name} is home: it plays in this browser again.` : r.error || "The world did not come home." }));
 }
 
 function friendRows() {
@@ -477,6 +522,31 @@ function render() {
       </div>`;
     pollOpen();
     dotTimer = setInterval(pollOpen, 10000);
+  } else if (current === "creatorkey") {
+    // The creator key (item 5's fifth step): a secret Michael hands out; it lets this browser move a world to the server.
+    root.innerHTML = `
+      <div class="screen">
+        <h1>The server's key</h1>
+        <div class="sub">Moving a world to the server needs the key the server's keeper gave you. This browser keeps it.</div>
+        ${data.note ? `<div class="sub note">${esc(data.note)}</div>` : ""}
+        <div class="setting"><span>Key</span><span class="choices"><input id="creator-key" type="password" maxlength="200" autocomplete="off" spellcheck="false"></span></div>
+        <div class="screen-buttons row">${button("creatorkey-save", "Move the world")}${button("worlds", "Back")}</div>
+      </div>`;
+    const field = root.querySelector("#creator-key");
+    field.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.code === "Enter") go("creatorkey-save"); });
+    field.addEventListener("keyup", (e) => e.stopPropagation());
+    field.focus();
+  } else if (current === "ownerkey") {
+    // The owner key, shown once (item 5's fifth step): it proves the world is yours, here and on any other device.
+    root.innerHTML = `
+      <div class="screen">
+        <h1>${esc(data.name || "The world")} is on the server</h1>
+        <div class="sub">Friends join it with the code <code>${esc(data.code || "")}</code>, whenever they like.</div>
+        <div class="sub">This is your owner key. This browser keeps it; write it down too. It is shown only now, and it is what proves the world is yours on any other device, and what brings it home.</div>
+        <div class="setting"><span>Owner key</span><span class="choices"><input id="owner-key" type="text" readonly value="${esc(data.ownerKey || "")}" spellcheck="false"></span></div>
+        <div class="screen-buttons row">${button("ownerkey-copy", "Copy")}${button("ownerkey-done", "Done")}</div>
+      </div>`;
+    root.querySelector("#owner-key").select();
   } else if (current === "waiting") {
     root.innerHTML = `
       <div class="screen">

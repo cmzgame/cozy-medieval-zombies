@@ -34,6 +34,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fork } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import zlib from "node:zlib";
 
 const PORT = Number(process.env.PORT || process.argv[2] || 8012);
 const GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
@@ -82,6 +83,246 @@ const CRASHES_BEFORE_REST = 3;
 const CRASH_WINDOW_MS = 10 * 60 * 1000;
 const STOP_WAIT_MS = 20000; // a deploy's grace for every world to save (fly.toml's kill_timeout covers it)
 const DEBUG = process.env.CMZ_DEBUG === "1";
+
+// ---- moving a world: up from a browser, and home again (item 5's fifth step) ----
+// Two locks (docs/02, the plan): making a server world needs the creator key, a Fly secret only Michael hands out
+// (CREATOR_KEY; unset, the server takes no worlds); a world's own powers need its owner key, minted at the upload and
+// shown once, of which the disk keeps only the SHA-256. Uploads come from the game's own site and from localhost alone
+// (CORS), are capped compressed before a byte is parsed and capped again unpacked (a zip bomb stops at the cap), and are
+// restored by a world process before they are accepted; the check counts against the running cap.
+const CREATOR_KEY = process.env.CREATOR_KEY || null;
+const SITE_ORIGIN = process.env.CMZ_SITE_ORIGIN || "https://michaeldippold.github.io";
+const MAX_UPLOAD = 4 * 1024 * 1024; // compressed: a well-explored world is about 200 KB
+const MAX_UNPACKED = 64 * 1024 * 1024; // the same save unpacked is about 4.5 MB
+const MAX_SMALL_BODY = 4096; // the return home's words
+const MAX_STORED = Math.max(1, Number(process.env.CMZ_MAX_WORLDS || 5));
+const LEAVING_MS = 10 * 60 * 1000; // a world on its way home waits this long for the browser's word that it arrived
+const TRASH_KEEP_MS = 7 * 24 * 3600 * 1000;
+const TRASH = DATA_DIR ? path.join(DATA_DIR, "trash") : null;
+const STAGING = DATA_DIR ? path.join(DATA_DIR, "staging") : null;
+const UPLOADS_PER_HOUR = Math.max(1, Number(process.env.CMZ_UPLOADS_PER_HOUR || 10)); // per address, every try counted, a refused one too (a guessed creator key costs a try)
+const uploads = new Map(); // address -> { count, since }
+
+const sha256 = (s) => crypto.createHash("sha256").update(s).digest("hex");
+
+function originAllowed(origin) {
+  if (!origin) return false;
+  return origin === SITE_ORIGIN || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+}
+
+function uploadLimited(address) {
+  const now = Date.now();
+  let u = uploads.get(address);
+  if (!u || now - u.since > 3600000) {
+    u = { count: 0, since: now };
+    uploads.set(address, u);
+  }
+  u.count++;
+  return u.count > UPLOADS_PER_HOUR;
+}
+
+// A request's body, refused past `cap` before it is all read.
+function readBody(req, cap) {
+  return new Promise((resolve, reject) => {
+    const declared = Number(req.headers["content-length"] || 0);
+    if (declared > cap) return reject(Object.assign(new Error("too large"), { status: 413 }));
+    const parts = [];
+    let total = 0;
+    req.on("data", (c) => {
+      total += c.length;
+      if (total > cap) {
+        req.destroy();
+        reject(Object.assign(new Error("too large"), { status: 413 }));
+      } else parts.push(c);
+    });
+    req.on("end", () => resolve(Buffer.concat(parts)));
+    req.on("error", reject);
+  });
+}
+
+function storedCount() {
+  scanWorlds(true);
+  return serverWorlds.size;
+}
+
+function readMeta(dir) {
+  return JSON.parse(fs.readFileSync(path.join(dir, "meta.json"), "utf8"));
+}
+
+function writeMeta(dir, meta) {
+  const file = path.join(dir, "meta.json");
+  fs.writeFileSync(`${file}.tmp`, JSON.stringify(meta, null, 1));
+  fs.renameSync(`${file}.tmp`, file);
+}
+
+// The world a code names and the owner key proves, or a reason it is not.
+function ownedWorld(code, key) {
+  const w = typeof code === "string" ? serverWorldFor(code.trim().toLowerCase().slice(0, 32)) : null;
+  if (!w) return { status: 404, error: "no such world" };
+  let meta;
+  try {
+    meta = readMeta(w.dir);
+  } catch {
+    return { status: 404, error: "no such world" };
+  }
+  if (typeof key !== "string" || !meta.ownerKeyHash || !sameSecret(sha256(key), meta.ownerKeyHash)) return { status: 403, error: "not the owner key" };
+  return { w, meta };
+}
+
+// A world's process asked to save and stop, and waited for.
+function stopWorld(worldId, why) {
+  const r = running.get(worldId);
+  if (!r) return Promise.resolve();
+  return new Promise((resolve) => {
+    r.child.once("exit", () => resolve());
+    try {
+      r.child.send({ type: "stop", why });
+    } catch {
+      resolve();
+    }
+    setTimeout(() => { r.child.kill("SIGKILL"); resolve(); }, STOP_WAIT_MS).unref();
+  });
+}
+
+// A save checked by booting it: the world process restores it and writes it again (`--make-only`), counted against the
+// running cap while it does.
+function restoreTest(dir) {
+  return new Promise((resolve) => {
+    const id = `check-${path.basename(dir)}`;
+    const child = fork(WORLD_JS, ["--dir", dir, "--make-only"], { execArgv: [`--max-old-space-size=${WORLD_HEAP_MB}`], stdio: ["ignore", "inherit", "inherit", "ipc"] });
+    running.set(id, { child, code: null, secret: null, pending: new Set(), startedAt: Date.now(), debugPort: null, worldId: id, checking: true });
+    const done = (ok) => {
+      running.delete(id);
+      resolve(ok);
+    };
+    child.on("exit", (exitCode) => done(exitCode === 0));
+    child.on("error", () => done(false));
+    setTimeout(() => { child.kill("SIGKILL"); }, 60000).unref();
+  });
+}
+
+async function handleWorlds(req, res, url, address) {
+  const origin = req.headers.origin || "";
+  const head = { "content-type": "application/json", "cache-control": "no-store", vary: "origin" };
+  if (originAllowed(origin)) Object.assign(head, { "access-control-allow-origin": origin, "access-control-allow-headers": "content-type, x-creator-key, x-owner-key", "access-control-allow-methods": "POST, OPTIONS", "access-control-max-age": "600" });
+  const answer = (status, body) => {
+    res.writeHead(status, head);
+    res.end(JSON.stringify(body));
+  };
+  if (req.method === "OPTIONS") return answer(originAllowed(origin) ? 204 : 403, {});
+  if (req.method !== "POST") return answer(405, { error: "post only" });
+  // From the game's own site and localhost alone (a browser elsewhere is refused; a script sends no Origin and is
+  // refused too, since the creator key is meant to be typed into the game).
+  if (!originAllowed(origin)) return answer(403, { error: "not from the game's site" });
+  if (!WORLDS) return answer(503, { error: "this relay keeps no worlds" });
+  try {
+    if (url.pathname === "/worlds") {
+      // ---- the upload: a browser world becomes a server world ----
+      if (!CREATOR_KEY) return answer(503, { error: "this server takes no worlds" });
+      if (uploadLimited(address)) return answer(429, { error: "slow down" });
+      if (!sameSecret(String(req.headers["x-creator-key"] || ""), CREATOR_KEY)) return answer(403, { error: "not the creator key" });
+      if (storedCount() >= MAX_STORED) return answer(409, { error: "the server holds as many worlds as it may" });
+      if (running.size >= MAX_RUNNING) return answer(503, { error: "busy" });
+      const body = await readBody(req, MAX_UPLOAD);
+      let up;
+      try {
+        up = JSON.parse(zlib.gunzipSync(body, { maxOutputLength: MAX_UNPACKED }).toString("utf8"));
+      } catch (err) {
+        return answer(err && err.code === "ERR_BUFFER_TOO_LARGE" ? 413 : 400, { error: err && err.code === "ERR_BUFFER_TOO_LARGE" ? "too large unpacked" : "not a gzipped world" });
+      }
+      const snap = up && up.snap;
+      if (!snap || typeof snap !== "object" || !Number.isInteger(snap.version) || !snap.map || typeof snap.map !== "object" || !snap.characters || typeof snap.characters !== "object") return answer(422, { error: "not a world" });
+      // The ids and the keys are the server's own, from the crypto source; nothing the browser sent names a path.
+      const worldId = `w${crypto.randomBytes(8).toString("hex")}`;
+      const code = mintCode();
+      const ownerKey = crypto.randomBytes(24).toString("base64url");
+      const ownerHash = `k${sha256(ownerKey).slice(0, 32)}`;
+      // The owner's character, filed under the browser's id in the upload, refiled under the owner key's hash, so it
+      // follows the key to any device (Michael, 2026-10-14).
+      const owners = snap.owners && typeof snap.owners === "object" ? { ...snap.owners } : {};
+      const dormant = snap.dormant && typeof snap.dormant === "object" ? { ...snap.dormant } : {};
+      const ownerPlayerId = typeof up.ownerPlayerId === "string" ? up.ownerPlayerId : null;
+      const was = ownerPlayerId ? Object.keys(owners).find((h) => owners[h] === ownerPlayerId) : null;
+      if (was) {
+        owners[ownerHash] = owners[was];
+        delete owners[was];
+        if (dormant[was]) {
+          dormant[ownerHash] = dormant[was];
+          delete dormant[was];
+        }
+      }
+      const name = String(snap.name || "A world").replace(/[\u0000-\u001f]/g, "").slice(0, 60);
+      const stored = { ...snap, worldId, name, code: null, open: false, owners, dormant, myPlayerId: null, server: true };
+      const stage = path.join(STAGING, worldId);
+      fs.mkdirSync(stage, { recursive: true });
+      fs.writeFileSync(path.join(stage, "save.json.gz"), zlib.gzipSync(JSON.stringify(stored)));
+      const ok = await restoreTest(stage);
+      if (!ok) {
+        fs.rmSync(stage, { recursive: true, force: true });
+        return answer(422, { error: "the save would not restore" });
+      }
+      writeMeta(stage, { worldId, name, codeHash: hashCode(code), ownerKeyHash: sha256(ownerKey), created: new Date().toISOString(), from: "upload" });
+      fs.mkdirSync(WORLDS, { recursive: true });
+      fs.renameSync(stage, path.join(WORLDS, worldId));
+      scanWorlds(true);
+      log(`world ${worldId} moved up (${Math.round(body.length / 1024)} KB)`);
+      return answer(201, { worldId, code, ownerKey, ownerHash, name });
+    }
+    if (url.pathname === "/worlds/home" || url.pathname === "/worlds/home/confirm") {
+      const body = await readBody(req, MAX_SMALL_BODY);
+      let msg;
+      try {
+        msg = JSON.parse(body.toString("utf8"));
+      } catch {
+        return answer(400, { error: "not JSON" });
+      }
+      const found = ownedWorld(msg && msg.code, String(req.headers["x-owner-key"] || ""));
+      if (!found.w) {
+        overLimit(address);
+        return answer(found.status, { error: found.error });
+      }
+      const { w, meta } = found;
+      if (url.pathname === "/worlds/home") {
+        // ---- home, the first phase: the world stopped and saved, its save sent, and the world held as leaving ----
+        await stopWorld(w.worldId, "going home");
+        const token = crypto.randomBytes(16).toString("hex");
+        writeMeta(w.dir, { ...meta, leaving: { tokenHash: sha256(token), until: Date.now() + LEAVING_MS } });
+        const save = fs.readFileSync(path.join(w.dir, "save.json.gz"));
+        log(`world ${w.worldId} is on its way home`);
+        return answer(200, { token, ownerHash: `k${meta.ownerKeyHash.slice(0, 32)}`, save: save.toString("base64") });
+      }
+      // ---- home, the second phase: the browser has it; only now does the server let go (to the trash, seven days) ----
+      if (!meta.leaving || typeof msg.token !== "string" || !sameSecret(sha256(msg.token), meta.leaving.tokenHash)) return answer(409, { error: "not on its way home" });
+      fs.mkdirSync(TRASH, { recursive: true });
+      fs.renameSync(w.dir, path.join(TRASH, `${w.worldId}-${Date.now()}`));
+      scanWorlds(true);
+      for (const t of fs.readdirSync(TRASH)) {
+        try {
+          if (Date.now() - fs.statSync(path.join(TRASH, t)).mtimeMs > TRASH_KEEP_MS) fs.rmSync(path.join(TRASH, t), { recursive: true, force: true });
+        } catch {
+          // gone already
+        }
+      }
+      log(`world ${w.worldId} went home`);
+      return answer(200, { ok: true });
+    }
+    return answer(404, { error: "no such path" });
+  } catch (err) {
+    return answer(err && err.status ? err.status : 500, { error: err && err.status === 413 ? "too large" : "the server could not do that" });
+  }
+}
+
+// A join code in the game's own shape (src/net.js makeCode; server/worlds.js the same), from the crypto source.
+const CODE_WORDS = ["oak", "elm", "ash", "yew", "fir", "hazel", "rowan", "thorn", "moss", "fern", "birch", "alder", "willow", "holly", "pine", "maple"];
+const CODE_CHARS = "abcdefghjkmnpqrstuvwxyz23456789";
+function mintCode() {
+  const a = CODE_WORDS[crypto.randomInt(CODE_WORDS.length)];
+  let b = CODE_WORDS[crypto.randomInt(CODE_WORDS.length)];
+  if (b === a) b = CODE_WORDS[(CODE_WORDS.indexOf(a) + 1) % CODE_WORDS.length];
+  let tail = "";
+  for (let i = 0; i < 4; i++) tail += CODE_CHARS[crypto.randomInt(CODE_CHARS.length)];
+  return `${a}-${b}-${tail}`;
+}
 
 const serverWorlds = new Map(); // the code's sha256 -> { worldId, dir, name }
 const running = new Map(); // worldId -> { child, code, secret, pending: Set<Conn>, startedAt, debugPort }
@@ -133,6 +374,17 @@ function serverWorldFor(code) {
   const h = hashCode(code);
   if (!serverWorlds.has(h)) scanWorlds();
   return serverWorlds.get(h) || null;
+}
+
+// A world on its way home (the first phase answered, the browser's word not yet back) takes no joins, until the
+// wait runs out and it is the server's again.
+function leavingNow(w) {
+  try {
+    const meta = readMeta(w.dir);
+    return !!(meta.leaving && meta.leaving.until > Date.now());
+  } catch {
+    return false;
+  }
 }
 
 function recentCrashes(worldId) {
@@ -357,6 +609,7 @@ function onMessage(conn, text) {
         // A server world asleep: its process started, and this guest waits for it (as do any others meanwhile).
         const w = serverWorldFor(code);
         if (w) {
+          if (leavingNow(w)) return conn.sendJson({ type: "error", reason: "moving" }), conn.close(1008);
           let r = running.get(w.worldId);
           if (!r) {
             if (stoppingAll || running.size >= MAX_RUNNING) return conn.sendJson({ type: "error", reason: "busy" }), conn.close(1008);
@@ -454,6 +707,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { "content-type": "application/json", "access-control-allow-origin": "*", "cache-control": "no-store" });
     return res.end(JSON.stringify({ open: !!room || !!w, guests: room ? room.guests.size : 0, ...(w ? { server: true, awake: running.has(w.worldId) } : {}) }));
   }
+  if (url.pathname === "/worlds" || url.pathname.startsWith("/worlds/")) return void handleWorlds(req, res, url, address);
   // The keeper's state and a stop, for the checks, answered to this machine alone and only with CMZ_DEBUG=1.
   if (DEBUG && url.pathname.startsWith("/debug/")) {
     const local = !req.headers["fly-client-ip"] && ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress);

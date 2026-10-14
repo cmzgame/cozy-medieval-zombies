@@ -65,6 +65,14 @@ export function setHooks(h) {
 
 // The identity a join carries, or null for a join that asks the host first whether it knows this
 // browser (docs/31/09: a character the browser made in that world comes back without one).
+// A server world's owner key, said with the join (item 5's fifth step): the world files its owner's character under
+// the key's hash rather than this browser's id, so the owner plays the same character from any device that holds
+// the key. Set only for a join of a world this browser owns on the server; a browser host never reads it.
+let ownerKey = null;
+export function setOwnerKey(k) {
+  ownerKey = typeof k === "string" && k ? k : null;
+}
+
 export function setIdentity(id) {
   identity = id ? { name: null, look: null, ...id } : null;
   joinSentAt = 0; // the next step sends the join again, with what was set
@@ -250,7 +258,7 @@ function receive(msg) {
     selfId = msg.id; // the relay names me; the host keys its guests by these
     return;
   }
-  if (!msg.from && msg.type === "error") return dropped(["nohost", "taken", "busy", "broken"].includes(msg.reason) ? msg.reason : "relay");
+  if (!msg.from && msg.type === "error") return dropped(["nohost", "taken", "busy", "broken", "moving"].includes(msg.reason) ? msg.reason : "relay");
   if (!msg.from && msg.type === "hostLeft") return dropped("hostLeft");
   if (msg.to && msg.to !== selfId) return; // the loopback is one channel for everyone; the relay routes
   if (lag) setTimeout(() => inbox.push(msg), lag);
@@ -361,6 +369,12 @@ export function guestPlayerIds() {
 
 // The relay's answer to "is this world open?" (server/relay.js /open): { open, guests }, or null with no
 // relay or no answer. Rejoin polls this and joins once (the review, 2026-10-13), and the green dot reads it.
+// The relay's own address for its HTTP endpoints (the open query, and a server world's upload and return home):
+// ws becomes http, wss https; null on the loopback.
+export function relayHttp() {
+  return relayUrl ? relayUrl.replace(/^ws/, "http").replace(/\/+$/, "") : null;
+}
+
 export async function isOpen(code) {
   if (!relayUrl || typeof fetch === "undefined") return null;
   try {
@@ -460,7 +474,13 @@ export function hostStep(mySnap, me) {
         send({ type: "bye", to: msg.from, reason: "version", newer: protocol > PROTOCOL || version > SAVE_VERSION ? "guest" : "host" });
         continue;
       }
-      const hash = typeof msg.clientId === "string" && msg.clientId ? idHash(msg.clientId) : null;
+      let hash = typeof msg.clientId === "string" && msg.clientId ? idHash(msg.clientId) : null;
+      // A server world's owner, by its key: the hash its character is filed under on every device (hooks.ownerHash,
+      // the world process alone; a wrong key is no key, and the join goes on by the browser's id).
+      if (hooks.ownerHash && typeof msg.ownerKey === "string") {
+        const oh = hooks.ownerHash(msg.ownerKey);
+        if (oh) hash = oh;
+      }
       // A world remembers characters by the browser's id, so a join with none is refused (it would make a
       // character nobody could come back to, one for every join, for ever).
       if (!hash && hooks.joinFor) {
@@ -809,7 +829,7 @@ export function guestStep(mySnap) {
     joinSentAt = now;
     if (!firstJoinAt && transport && transport.ready) firstJoinAt = now; // the wait starts once the relay has answered the socket (a sleeping tier wakes slowly)
     // The browser's id and the protocol always; the identity when one was chosen (the host asks with `who` otherwise).
-    send({ type: "join", clientId, protocol: PROTOCOL, version: SAVE_VERSION, name: identity ? identity.name : null, look: identity ? identity.look : null });
+    send({ type: "join", clientId, protocol: PROTOCOL, version: SAVE_VERSION, name: identity ? identity.name : null, look: identity ? identity.look : null, ...(ownerKey ? { ownerKey } : {}) });
   }
   for (const msg of inbox.splice(0)) {
     // A packed welcome is unpacking: everything after it waits, in order, for the world it follows (the frames are
