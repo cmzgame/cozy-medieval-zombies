@@ -135,6 +135,8 @@ export function guardAgainst(player, zombie, damage) {
     // The guard is broken: the blow lands whole and the arm is spent.
     player.stamina = 0;
     player.winded = true;
+    player.blockFlash = 0.35; // the shield's flash, red: the player's own state (every client draws it from the record)
+    player.flashBroken = true;
     emit("guardBroken", { player, zombie });
     return damage;
   }
@@ -142,6 +144,8 @@ export function guardAgainst(player, zombie, damage) {
   if (front) staggerZombie(zombie, sh.stagger, iso.normalize(zombie.gx - player.gx, zombie.gy - player.gy), sh.push ?? 0.25);
   loop.freeze(HIT_STOP * 0.6);
   kick(player);
+  player.blockFlash = 0.14; // the shield's flash
+  player.flashBroken = false;
   emit("blocked", { player, zombie });
   return front ? 0 : Math.round(damage * (sh.sideThrough ?? 0.5));
 }

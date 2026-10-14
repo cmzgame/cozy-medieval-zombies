@@ -21,8 +21,29 @@
 
 import * as game from "./game.js";
 import * as clock from "./clock.js";
+import * as rules from "./rules.js";
 
-export const VERSION = 1;
+// The save's version, on the join too (net.js: a page and a host of different versions refuse each other).
+// 2 (2026-10-14, item 5's second step): the world's rules ride in the save.
+export const VERSION = 2;
+
+// From each version to the next, in order, so a save of any older version is read (the browser's store, the old
+// slot, and the server's files run the same table when they load one; a newer version than this page's is refused).
+const MIGRATIONS = {
+  1: (s) => ({ ...s, version: 2, rules: { ...rules.DEFAULTS } }), // the rules were the hosting browser's settings: the defaults stand in
+};
+
+// A snapshot brought to this version, a copy; null for one with no version, or a newer one than this page knows.
+export function upgrade(snap) {
+  if (!snap || typeof snap !== "object" || !Number.isInteger(snap.version)) return null;
+  let s = snap;
+  while (s.version < VERSION) {
+    const step = MIGRATIONS[s.version];
+    if (!step) return null;
+    s = step(s);
+  }
+  return s.version === VERSION ? s : null;
+}
 const INDEX_KEY = "cmz.worlds";
 const OLD_KEY = "cmz.save"; // the one slot per map before docs/31/09
 const DB_NAME = "cmz";
@@ -155,8 +176,8 @@ export async function writeWorld(snap) {
 // A world's save, or null when there is none or it is not this version.
 export async function readWorld(worldId) {
   try {
-    const s = await records.get(worldId);
-    if (!s || s.version !== VERSION || !s.map || !s.characters) return null;
+    const s = upgrade(await records.get(worldId));
+    if (!s || !s.map || !s.characters) return null;
     return s;
   } catch {
     return null;
@@ -186,8 +207,8 @@ export async function migrate(mapName, worldName = "The valley") {
     const key = `${OLD_KEY}.${mapName}`;
     const raw = localStorage.getItem(key);
     if (!raw) return null;
-    const old = JSON.parse(raw);
-    if (!old || old.version !== VERSION || !old.map || !old.characters) {
+    const old = upgrade(JSON.parse(raw));
+    if (!old || !old.map || !old.characters) {
       localStorage.removeItem(key);
       return null;
     }
