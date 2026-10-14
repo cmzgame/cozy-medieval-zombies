@@ -91,7 +91,7 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 Every other section is built for a guest as well (the rule at the top). What the multiplayer branch still has, in its order, and what the docs pass found:
 
 - [x] A guest's own swing played at once, not a frame late (the branch's item 2; merged and reviewed 2026-10-13, with the sleeping guest's inputs sent as runs).
-- [ ] The host's world while its tab is covered: the title's notice is there; the real answer is a Node authority (item 3).
+- [ ] The host's world while its tab is covered (item 3; ruled 2026-10-13, `02`): a world with friends never stops while its host's tab is open (a Worker's timer drives the loop while hidden; a probe in Michael's browser first), a solo world still pauses when hidden, and in a shared world a player with no input for five minutes steps away, safe, until the next input. The plan is with the coder agent for review before code.
 - [ ] The camera kick and the "is spent" word for a guest's own weapon (`main.js` drops the word for a guest); the world's rules read-only in a guest's Settings (item 4).
 - [ ] Tier 4, a Node authority (optional; item 5).
 - [ ] **The belt keys on a guest** (found 2026-10-13, docs pass): 1 to 4 eat, drink, or swap with a hand on the guest's own replica (`src/main.js`, the belt keys loop) and nothing goes to the host, so the host's record puts it back. Owed as a command or a key event in the snapshot, as E, B, and T are.
