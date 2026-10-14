@@ -321,11 +321,14 @@ function button(go, label, extra = "") {
 }
 
 function settingRow(key, label) {
-  const cur = settings.get(key);
+  // A world rule on a guest is the host's (docs/31/07, question 13; item 4): shown as the host set it, not to be changed here.
+  const hostRules = worldsApi && worldsApi.here ? worldsApi.here().rules : null;
+  const hosts = !!hostRules && key in hostRules;
+  const cur = hosts ? hostRules[key] : settings.get(key);
   const choices = settings.CHOICES[key]
-    .map(([v, text]) => `<button data-key="${key}" data-value='${JSON.stringify(v)}' class="${v === cur ? "on" : ""}">${text}</button>`)
+    .map(([v, text]) => `<button data-key="${key}" data-value='${JSON.stringify(v)}' class="${v === cur ? "on" : ""}"${hosts ? " disabled" : ""}>${text}</button>`)
     .join("");
-  return `<div class="setting"><span>${label}</span><span class="choices">${choices}</span></div>`;
+  return `<div class="setting${hosts ? " hosts" : ""}"${hosts ? ` title="The host's world rule"` : ""}><span>${label}${hosts ? " <small>(the host's)</small>" : ""}</span><span class="choices">${choices}</span></div>`;
 }
 
 // Hair styles, generated and painted (docs/12), with a reload for ones just saved from the editor.

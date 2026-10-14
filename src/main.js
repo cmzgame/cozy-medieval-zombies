@@ -17,7 +17,7 @@ import * as light from "./light.js";
 import * as gl from "./gl.js";
 import * as ground from "./ground.js";
 import { renderScene, night } from "./render.js";
-import { createPlayer, damagePlayer, eat, drink, aimOrigin } from "./entities/player.js";
+import { createPlayer, damagePlayer, aimOrigin } from "./entities/player.js";
 import { createZombie } from "./entities/zombie.js";
 import { createVillager, damageVillager } from "./entities/villager.js";
 import { initHud, updateHud } from "./ui/hud.js";
@@ -248,6 +248,7 @@ function stepAway() {
   away = true;
   closeModes();
   screens.show("away");
+  applyPause();
   return true;
 }
 
@@ -261,6 +262,7 @@ function comeBack() {
     if (p) game.pickPlayer(p);
   }
   if (screens.currentScreen() === "away") screens.hide();
+  applyPause();
   return true;
 }
 
@@ -448,6 +450,7 @@ function here() {
     code: currentWorld ? currentWorld.code : st.code,
     guests: st.guests ? st.guests.length : 0,
     hostName: null,
+    rules: st.role === "guest" ? { ...rules.rules } : null, // a guest's world rules are the host's, shown read-only (item 4)
   };
 }
 let tiles = [];
@@ -527,6 +530,13 @@ function setPaused(v) {
   loop.setPaused(v && !net.onTheWire());
   if (!v) input.endStep(); // keys pressed while paused do not fire on resume
 }
+// And the world is held while its host has stepped away with no guest in it (the coder agent's review of item 3):
+// nobody is in the world, so it stops as a solo world does; a friend's join is still heard (loop.js answers the wire
+// while held) and starts it again, and the host's own input brings the host back.
+const worldHeld = () => away && inWorld && net.isHost() && !net.hasGuests();
+function applyPause() {
+  loop.setHeld(worldHeld());
+}
 
 function handleEscape() {
   if (!inWorld) { screens.back(); return; } // no world: the title and its screens only
@@ -600,26 +610,8 @@ function updateInventoryUi() {
   }
   if (input.wasPressed("KeyC")) panel.toggleCharacter();
   if (openBag && (!panel.isBagOpen() || panel.takeContainerClose())) openBag = null; // the bag or the container closed by its X
-  // Belt keys: a consumable on the slot is used; anything else swaps with
-  // its hand (docs/11; the belt as utility slots, Michael 2026-10-10 late).
-  for (let i = 0; i < 4; i++) {
-    if (!input.wasPressed(`Digit${i + 1}`)) continue;
-    const belt = inventory.beltOf(S.player);
-    const e = belt && belt[i];
-    const def = e && items.getItem(e.id);
-    if (def && !def.hands && (def.kind === "food" || def.capacity)) {
-      if (def.kind === "food") {
-        eat(S.player, def);
-        e.count -= 1;
-        if (e.count <= 0) belt[i] = null;
-      } else if ((e.fill ?? 0) > 0) drink(S.player, e);
-      else showMessage("It is empty.");
-      continue;
-    }
-    const r = inventory.beltKey(S.player, i);
-    if (r === "nobelt") showMessage("No belt, or no such slot.");
-    else if (r === "handsfull") showMessage("Your hands are full.");
-  }
+  // The belt keys (1 to 4) are key events in my snapshot, performed by the world's step for my player, here or on the
+  // host (interact.beltEvents, updateInteract; item 4: on a guest they changed only its own replica).
   if (openBag && openBag.address) {
     // On a guest the replica's objects are new with every frame: the grid is found again by its address.
     const c = interact.containerAt(S.player, openBag.address);
@@ -737,6 +729,7 @@ function stepGame(dt) {
   const guest = net.isGuest();
   armGuest(guest);
   checkAway();
+  applyPause(); // the last guest gone while this host is away: held from the next step
   // A screen up on the wire: the world runs on, but nothing pressed reaches it or this client's modes.
   const screenUp = !!screens.currentScreen();
   loop.setFreezeAllowed(!net.onTheWire());
@@ -808,12 +801,17 @@ function stepGame(dt) {
     if (m && !(launcher && launcher.button === "primary") && !archery.drawState(S.player)) {
       interact.pokeAt(m.x, m.y, S.player);
       interact.playAt(m.x, m.y, S.player);
+      // A villager under the cursor answers on the host, by its id (item 4: the host has no cursor of mine).
+      const c = interact.characterAt(m.x, m.y);
+      if (c && c.kind === "villager") net.sendPokeVillager(c.id);
     }
   }
   handleMouse();
   // E, B, and T as events in my snapshot (interact.keyEvents): the world performs them for my player in its
   // step, here or on the host (game.step), so a guest's climb, boards, and torch are the host's doing.
-  const keys = panel.isOpen() || menu.isMenuOpen() ? (interact.keyEvents(dt), null) : interact.keyEvents(dt);
+  const keyEv = panel.isOpen() || menu.isMenuOpen() ? (interact.keyEvents(dt), null) : interact.keyEvents(dt);
+  const beltEv = interact.beltEvents(); // the belt keys work with the bag open, as they always have
+  const keys = keyEv || beltEv ? { ...(keyEv || {}), ...(beltEv || {}) } : null;
   // The world: the player from the mouse and the keys as a snapshot (docs/23a, D1;
   // never the input module), the dead, the villagers, the light (game.js).
   const mouse = input.getMouse();
@@ -1301,6 +1299,7 @@ async function boot() {
       // A blow that landed kicks the camera of the client whose player struck (docs/31/05, item 13).
       events.on("kicked", ({ player: p, x, y, seconds }) => {
         if (p === S.player) camera.kick(x, y, seconds);
+        else if (net.isHost()) net.kickTo(p.id, x, y, seconds); // a guest's landed blow resolves here: its camera is on its screen (item 4)
       });
       events.on("guardBroken", ({ player: p = S.player }) => {
         p.blockFlash = 0.35;
@@ -1332,8 +1331,13 @@ async function boot() {
         }
       });
       events.on("weaponBroke", ({ item, who }) => {
-        if (who && who !== S.player.id) return; // a guest's weapon wears out on the host (its swing resolves there): the word is theirs, not this screen's
-        showMessage(`Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3);
+        const text = `Your ${items.getItem(item).name.toLowerCase()} is spent.`;
+        // A guest's weapon wears out on the host (its swing resolves there): the word goes to the guest's screen (item 4).
+        if (who && who !== S.player.id) {
+          if (net.isHost()) net.messageTo(who, text, 3);
+          return;
+        }
+        showMessage(text, 3);
       });
       events.on("containerOpened", ({ bag, tiles: where, name, corpse, closeDist, prop, entry, tile, character, station }) => {
         // Opened by a guest's player (the acting player, game.js): told to the guest, not shown here.
@@ -1411,6 +1415,7 @@ async function boot() {
     who: (dead) => { screens.creationFor({ for: "join", code: net.status().code, dead }); },
     joined: (id) => showMessage(`Joined as ${id}.`, 3),
     message: (text, seconds = 3) => showMessage(text, seconds),
+    kick: (x, y, seconds) => camera.kick(x, y, seconds), // my own landed blow, told by the host (item 4)
     // A container my player opened on the host: the grid is on my replica's prop, entry, or body, found by
     // its address (interact.containerAt; a station's output is its own bag, docs/30 section 6), again every frame.
     opened: (w) => {
@@ -1480,7 +1485,11 @@ async function boot() {
   });
   window.addEventListener("pagehide", () => net.leave());
   // pump: a hidden host's world open to friends with nobody in it yet answers the wire (a join) without stepping.
-  loop.start({ update, render, crash: shell.crash, pump: () => { if (inWorld && net.isHost()) net.hostStep({ ...game.idleSnapshot(), idle: true }, S.player); } });
+  // pump: a world that is not stepping (hidden and open with nobody in, or held) still answers the wire, so a join is heard.
+  loop.start({ update, render, crash: shell.crash, pump: () => {
+    if (inWorld && net.isHost()) net.hostStep({ ...game.idleSnapshot(), idle: true }, S.player);
+    applyPause();
+  } });
   // A world with friends in it is stepped by a Worker's timer when the browser stops drawing this tab (item 3, `02`):
   // the host's for everyone, a guest's so its own clock, its sends, and the frames it is owed keep up. A solo world
   // is not: hidden, it stops, as single player always has.

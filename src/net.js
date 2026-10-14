@@ -380,7 +380,7 @@ function send(msg) {
 // What the host will take of a guest's snapshot: the shape the step reads, nothing else, every number finite
 // (a NaN aim or a far aim point would ride into the player's record and the save), the key events only the
 // ones that exist.
-const KEY_EVENTS = ["eTap", "eHold", "ePressed", "bTap", "bHold", "t"];
+const KEY_EVENTS = ["eTap", "eHold", "ePressed", "bTap", "bHold", "t", "belt1", "belt2", "belt3", "belt4"];
 export function cleanSnap(raw) {
   const s = raw && typeof raw === "object" ? raw : {};
   const num = (v, lim) => (typeof v === "number" && Number.isFinite(v) ? Math.max(-lim, Math.min(lim, v)) : 0);
@@ -420,7 +420,7 @@ export function hostStep(mySnap, me) {
     // A guest stepped away (item 3, `02` 2026-10-13) has no character in the world: its inputs and commands are
     // refused until it comes back; its leave, its line, and its sync report are heard.
     const sender = msg.from ? guests.get(msg.from) : null;
-    if (sender && sender.steppedAway && !["back", "leave", "say", "sync"].includes(msg.type)) continue;
+    if (sender && sender.steppedAway && !["back", "leave", "say", "sync"].includes(msg.type)) continue; // pokeVillager and kick included
     if (msg.type === "away") {
       // Five minutes with no input on the guest's own client: its character out of the world, kept by its browser's
       // hash (main.js, the dormant path); a sleeper, the dead, or a climb mid-way is refused and told to stay.
@@ -553,6 +553,11 @@ export function hostStep(mySnap, me) {
       const g = guests.get(msg.from);
       const p = g && game.state.players.find((q) => q.id === g.playerId);
       if (p) interact.stampFromGuest(p, msg.id, msg.kind ? 1 : 0);
+    } else if (msg.type === "pokeVillager") {
+      // A guest's left click on a villager, by its id (item 4): answered here, within the click's reach.
+      const g = guests.get(msg.from);
+      const p = g && game.state.players.find((q) => q.id === g.playerId);
+      if (p && typeof msg.id === "string") interact.pokeVillagerFromGuest(p, msg.id);
     } else if (msg.type === "sync") {
       // A guest's hashes at a tick (the sync check).
       if (guests.has(msg.from) && msg.parts && typeof msg.parts === "object") {
@@ -807,6 +812,10 @@ export function guestStep(mySnap) {
       syncReports = !!msg.on;
     } else if (msg.type === "message") {
       hooks.message(msg.text, msg.seconds);
+    } else if (msg.type === "kick" && msg.from) {
+      // My own landed blow, resolved on the host: the camera's kick, here (item 4). Bounded: the host is trusted, the numbers are not.
+      const num = (v, lim) => (typeof v === "number" && Number.isFinite(v) ? Math.max(-lim, Math.min(lim, v)) : 0);
+      if (hooks.kick) hooks.kick(num(msg.x, 16), num(msg.y, 16), num(msg.seconds, 1));
     } else if (msg.type === "log") {
       if (hooks.log) hooks.log(msg.text, msg.kind);
     } else if (msg.type === "who" && !joined) {
@@ -1066,6 +1075,14 @@ export function sendItem(cmd) {
 // A craft (ui/station-panel.js Make): the station by id, the recipe, the count; the host runs the verb.
 export function sendPoke(id, kind) {
   if (role === "guest" && typeof id === "string") send({ type: "poke", id, kind: kind ? 1 : 0 });
+}
+export function sendPokeVillager(id) {
+  if (role === "guest" && joined && typeof id === "string") send({ type: "pokeVillager", id });
+}
+// The camera's kick for a guest's own landed blow (item 4), to that guest alone.
+export function kickTo(playerId, x, y, seconds) {
+  const to = guestOf(playerId);
+  if (to) send({ type: "kick", to, x, y, seconds });
 }
 
 export function sendCraft(cmd) {

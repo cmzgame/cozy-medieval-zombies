@@ -1486,3 +1486,7 @@ html, body {
 #host-code, #join-code { font: 15px ui-monospace, Consolas, "Courier New", monospace; letter-spacing: 2px; padding: 2px 6px; background: rgba(10, 6, 14, 0.6); color: #f4ecd9; border: 1px solid #5a4a3a; border-radius: 3px; }
 #host-code { width: 11ch; text-align: center; color: #c9a24a; cursor: text; }
 .screen .sub.note { color: #e8b86a; }
+
+/* A world rule on a guest is the host's (item 4): shown, not changed. */
+.setting.hosts .choices button:disabled { opacity: 0.6; cursor: default; }
+.setting.hosts .choices button.on:disabled { opacity: 0.9; }

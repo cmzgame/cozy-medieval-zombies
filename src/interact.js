@@ -19,6 +19,7 @@ import { getSheet, idleFrame } from "./assets.js";
 import { resolveFacing, frameName } from "./sprites.js";
 import { getItem, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
 import { stacks as bleedStacks, clear as clearBleed } from "./bleed.js";
+import { beltKey } from "./inventory.js";
 import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, restoreOffHand, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
 import { getDef } from "./assets.js";
 import { canPutDown, putDownTarget, canCarry, propRect } from "./placement.js";
@@ -918,6 +919,14 @@ export function wearFrom(player, entry, fromBag) {
 // state is this client's), a press of E, a press of T. They ride in the player's snapshot (main.js), so
 // a guest's go to the host in its input and the host performs them for the guest's player (game.step;
 // docs/31/05 item 10, tier 3). Nothing pressed gives an empty object, which the snapshot leaves out.
+// The belt keys, 1 to 4, as key events in the player's snapshot (item 4): performed by the world's step for the
+// player whose client pressed them (updateInteract), here or on the host.
+export function beltEvents() {
+  let ev = null;
+  for (let i = 1; i <= 4; i++) if (input.wasPressed(`Digit${i}`)) (ev = ev || {})[`belt${i}`] = true;
+  return ev;
+}
+
 export function keyEvents(dt) {
   const ev = {};
   track(keyE, dt, () => { ev.eHold = true; }, () => { ev.eTap = true; });
@@ -932,6 +941,9 @@ export function keyEvents(dt) {
 // player's own client's (keyEvents), handed in by the step with its snapshot.
 export function updateInteract(player, dt, keys) {
   if (!keys) return;
+  // The belt (docs/11; the belt as utility slots, Michael 2026-10-10 late): a consumable on the slot is used; anything
+  // else swaps with its hand. Moved from main.js into the world's step (item 4), so a guest's press reaches its body.
+  for (let i = 0; i < 4; i++) if (keys[`belt${i + 1}`]) beltPress(player, i);
   if (player.climb) return;
   if (player.carrying) {
     // Only E, and only to put it down.
@@ -973,6 +985,24 @@ export function updateInteract(player, dt, keys) {
       else equipFrom(player, found.entry);
     }
   }
+}
+
+function beltPress(player, i) {
+  const belt = beltOf(player);
+  const e = belt && belt[i];
+  const def = e && getItem(e.id);
+  if (def && !def.hands && (def.kind === "food" || def.capacity)) {
+    if (def.kind === "food") {
+      eat(player, def);
+      e.count -= 1;
+      if (e.count <= 0) belt[i] = null;
+    } else if ((e.fill ?? 0) > 0) drink(player, e);
+    else showMessage("It is empty.");
+    return;
+  }
+  const r = beltKey(player, i);
+  if (r === "nobelt") showMessage("No belt, or no such slot.");
+  else if (r === "handsfull") showMessage("Your hands are full.");
 }
 
 // ---- the item menus, for the panel ----
@@ -1281,6 +1311,14 @@ function characterPixelAt(c, sx, sy, p) {
 }
 
 // A left click on a villager within reach pokes it. Returns the character under the cursor.
+// A guest's click on a villager, by its id (item 4): the host has no cursor of the guest's, so the guest names it.
+export function pokeVillagerFromGuest(player, id) {
+  const c = allCharacters().find((q) => q.id === id && q.kind === "villager");
+  if (!c || c.dead || Math.hypot(player.gx - c.gx, player.gy - c.gy) > CLICK_REACH) return false;
+  pokeVillager(c, player);
+  return true;
+}
+
 export function clickCharacterAt(sx, sy, player) {
   const c = characterAt(sx, sy);
   if (c && c.kind === "villager" && Math.hypot(player.gx - c.gx, player.gy - c.gy) <= CLICK_REACH) pokeVillager(c, player);
