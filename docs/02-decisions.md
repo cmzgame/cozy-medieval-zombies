@@ -4,6 +4,12 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-13 — The wire's pacing by a running count, and the sync check's frames marked (the coder agent's two notes)
+
+Two notes came after the third part was built, and both were right. **A running count** paces the frames now: each step adds one over the world's time scale and a frame goes when the count reaches three, the remainder carried, never more than a frame's worth; a rule that tested the tick against three times the scale would have sent a late or a double frame when the speed switched mid-count, as someone lay down or woke. **The sync check's frames are marked** by the host: every tenth frame carries `sync`, the host hashes its world after sending it, and a guest hashes its replica after applying it, so the two sides hash the same tick wherever the frames fall; the old rule hashed only on ticks divisible by thirty on both sides, which a speed switch could push every frame off, and the check would then have silently reported nothing. The wire's close clears the count and the marks.
+
+**Verified in two tabs on the loopback:** twenty frames per sixty steps three ticks apart; the world's scale switched to sixty for seven steps and back mid-count, the frames before and after still three ticks apart with no double and no gap; the marked frames thirty ticks apart; `check("sync")` 8 of 8 at tick 193, which is not a multiple of thirty. Alone the hash is d9a6eb31 in the pane and headless.
+
 ### 2026-10-13 — The wire, part four of four: the replica smoothed between frames
 
 **Built.** A frame comes every third step, so a remote character would jump three steps' worth at once; instead the position a frame brings becomes the character's target, and its own position walks there over the frame's three steps, one frame behind the truth, in the character's own coordinates, so the hit tests, the name over its head, and its bubble follow the same point (the review's wish). My own player is predicted, never smoothed; a character new to the replica appears where the frame says. The sync check hashes the targets, which are the host's truth, so a replica mid-walk still agrees. The wire's close also clears the sync memory, so a stale report from an earlier wire on the same page never meets the check.

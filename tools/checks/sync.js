@@ -3,7 +3,7 @@
 // registry, the fires, the players whole, the dead as the frames carry them, the clock. A mutation
 // that bypassed a touch or a record shows up as a part that differs. Two tabs on the loopback, the
 // guest joined (CLAUDE.md), then on the host:
-//   __game.net.setSyncReports(true)     // the guest hashes after every thirtieth frame and reports
+//   __game.net.setSyncReports(true)     // the host marks every tenth frame; both sides hash it and the guest reports
 //   ... step both tabs in turn for a few rounds (sixty frames or more each), with some play in it ...
 //   await __game.check("sync")          // the guests' latest reports against the host's own at those ticks
 // A hidden pane runs no frames, so the rounds are the script's. The reports stay on until

@@ -102,10 +102,12 @@ const MAX_PENDING = 180; // a guest's unacknowledged inputs kept for the replay:
 const MAX_BACKLOG = 10; // a guest's inputs the host will hold: a sixth of a second, so the internet's own jitter is not corrected
 const away = new Map(); // playerId -> the sim time its guest went
 const lastCarried = new Map(); // character id -> the carried prop's id last sent in a full record (null for none)
-// The sync check (docs/31/04; tools/checks/sync.js): with reports on, a guest hashes its world after every
-// thirtieth frame and sends the parts with the frame's tick; the host hashes its own at the same ticks
-// and keeps the last few, so the check compares like with like.
-const SYNC_EVERY = 30;
+// The sync check (docs/31/04; tools/checks/sync.js): with reports on, the host marks every tenth frame as the
+// one to hash (`sync` on the frame), hashes its own world after sending it and keeps the last few by tick; a
+// guest hashes its replica after applying a marked frame and sends the parts with that tick. The marks follow
+// the frames wherever they fall, so a speed switch mid-count cannot push the hashes apart (the coder agent's
+// second note, 2026-10-13).
+const SYNC_EVERY_FRAMES = 10;
 let syncReports = false;
 const syncRing = new Map(); // tick -> parts (the host's own)
 const guestSync = new Map(); // guest key -> { tick, parts }
@@ -150,6 +152,8 @@ export function close() {
   lastLight.clear();
   syncRing.clear(); // a stale report from an earlier wire on this page must not meet the check
   guestSync.clear();
+  frameCount = 0;
+  framesSent = 0;
   for (const k of Object.keys(lastRoster)) lastRoster[k] = "";
   for (const k of Object.keys(lastExtras)) lastExtras[k] = "";
   pending.length = 0;
@@ -575,17 +579,18 @@ function record(c) {
   return slim(c);
 }
 
-// Frames paced by the world's own time over its time scale (the wire's third part, 2026-10-13, `02`): one every
-// three steps at normal speed, twenty a second; one every hundred and eighty while the world runs at sixty times
-// with everyone asleep, which is the same fifty milliseconds as a player experiences them. A sleeper's hundred
-// steps a browser frame coalesce into one frame instead of flooding the relay; the cadence is deterministic and
-// the scripted two-tab tests stay whole, which a wall clock would not keep. The frames fall on ticks that are
-// multiples of the cadence, so the sync check's thirtieth tick is always a frame tick. The guests' inputs come
-// every step still, and the host applies one a step; the touched chunks and the pokes gather until the frame.
+// Frames paced by the world's own time over its time scale (the wire's third part, 2026-10-13, `02`): a running
+// count adds one over the scale each step and a frame goes when it reaches three (the coder agent's first note:
+// a count that only tests the tick against three times the scale sends a late or a double frame when the speed
+// switches mid-count). One frame every three steps at normal speed, twenty a second; one every hundred and
+// eightieth while the world runs at sixty times with everyone asleep, the same fifty milliseconds as a player
+// experiences them, so a sleeper's hundred steps a browser frame coalesce into one frame instead of flooding
+// the relay. The cadence is deterministic and the scripted two-tab tests stay whole, which a wall clock would
+// not keep. The guests' inputs come every step still, and the host applies one a step; the touched chunks and
+// the pokes gather until the frame.
 export const FRAME_EVERY = 3;
-export function frameEvery() {
-  return FRAME_EVERY * Math.max(1, Math.round(world.world.timeScale || 1));
-}
+let frameCount = 0; // steps over the scale since the last frame
+let framesSent = 0;
 
 // After the world's step: the frame to every guest, when one is due.
 export function hostAfterStep() {
@@ -602,7 +607,11 @@ export function hostAfterStep() {
     }
     return;
   }
-  if (tick % frameEvery() !== 0) return; // not this step: the chunks touched and the pokes keep until the frame
+  frameCount += 1 / Math.max(1, world.world.timeScale || 1);
+  if (frameCount < FRAME_EVERY - 1e-9) return; // not this step: the chunks touched and the pokes keep until the frame
+  frameCount = Math.min(frameCount - FRAME_EVERY, FRAME_EVERY); // the remainder carries, never more than a frame's worth
+  framesSent++;
+  const hashThis = syncReports && framesSent % SYNC_EVERY_FRAMES === 0;
   const S = game.state;
   for (const id of lastCarried.keys()) if (!S.players.some((q) => q.id === id)) lastCarried.delete(id); // a player gone dormant and back is sent its prop in hand afresh
   const touched = map.takeTouched();
@@ -675,10 +684,11 @@ export function hostAfterStep() {
     queues: whenChanged("queues", stations.frameQueues()), // the jobs in the stations, with their time left: the bar a guest's recipes panel shows
     carriers: whenChanged("carriers", light.carriers().filter((c) => c.owner)),
     rules: whenChanged("rules", { ...rules.rules }), // the world's rules are the host's (docs/31/07, question 13)
+    sync: hashThis || undefined, // this frame both sides hash (the sync check)
     arrows: archery.arrowsInFlight().filter((a) => !a.done).map((a) => ({ gx: a.gx, gy: a.gy, z: a.z, frame: a.frame, projectile: a.projectile })),
   };
   send(game.toSafe(frame));
-  if (syncReports && tick % SYNC_EVERY === 0) {
+  if (hashThis) {
     syncRing.set(tick, game.syncParts());
     for (const k of syncRing.keys()) if (syncRing.size > 8) syncRing.delete(k); else break;
   }
@@ -714,7 +724,7 @@ export function guestStep(mySnap) {
       framesSeen++;
       lastFrameAt = now;
       stallTold = false; // frames are coming again: the next quiet spell is told afresh
-      if (syncReports && (msg.tick | 0) % SYNC_EVERY === 0) send({ type: "sync", tick: msg.tick | 0, parts: game.syncParts() });
+      if (syncReports && msg.sync) send({ type: "sync", tick: msg.tick | 0, parts: game.syncParts() });
     } else if (msg.type === "syncOn" && msg.from) {
       syncReports = !!msg.on;
     } else if (msg.type === "message") {
