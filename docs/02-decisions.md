@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-13 — A sleeping player never steps away (Michael, on item 3's plan)
+
+Item 3's plan steps a player away from a shared world after five minutes of real time with no input (the multiplayer branch's rulings). A player in bed sends no input, and waiting in bed for friends who are still up can pass five minutes; stepped away, they would leave the bed and the count of sleepers, and come back to a world whose night had moved on without them. **Ruled:** a sleeping player is never stepped away. Lying down is a choice already made, and a bite in bed is the danger the design keeps (`30` section 3.3). Also asked of item 3 in review: a guest whose tab hides mid-walk must stop on the host (today the host reuses its last input), and the host's own player out of the world while its client stays open must leave the client's "me" its own (today `removePlayer` hands it to the next player in the list).
+
 ### 2026-10-13 — When the world stops, and when a player steps away (Michael, for item 3: the host's world while its tab is not in front)
 
 **Why the host's world stops today:** the loop steps the world from the browser's drawing frames, and every browser stops drawing a hidden tab, so a host who switches tabs or minimises freezes the world for everyone (measured in the pane's background tab: no drawing frames, while a Worker's timer ran at 62 a second). The plan for item 3 drives the host's loop from a Worker's timer while its tab is hidden; Michael asked why the game should ever stop while the tab is still open, and whether a generous idle guard would do instead. **Ruled:**
