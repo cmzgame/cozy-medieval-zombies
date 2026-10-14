@@ -148,6 +148,8 @@ export function close() {
   lastSent.clear();
   lastHeavy.clear();
   lastLight.clear();
+  syncRing.clear(); // a stale report from an earlier wire on this page must not meet the check
+  guestSync.clear();
   for (const k of Object.keys(lastRoster)) lastRoster[k] = "";
   for (const k of Object.keys(lastExtras)) lastExtras[k] = "";
   pending.length = 0;
@@ -739,6 +741,7 @@ export function guestStep(mySnap) {
     hooks.message("The host's game has gone quiet. Its window may be covered or in the background.", 6);
   }
   if (pendingOpened.length && hooks.opened) for (const w of pendingOpened.splice(0)) hooks.opened(w);
+  if (joined) smoothStep();
   if (joined && game.state.player) {
     const s = mySnap.idle ? mySnap : testSnapshot || mySnap; // a screen up: nothing pressed, whatever a check says
     // The fight (docs/31/06, tier 2): the clicks and the buttons go as they are, the aim as a vector and
@@ -761,6 +764,34 @@ export function correction() {
 const makers = { player: createPlayer, zombie: createZombie, villager: createVillager };
 
 let predictedPos = null; // where my prediction had me before this frame's record replaced it
+
+// Smoothing on the replica (the wire's fourth part, 2026-10-13, `02`): a frame comes every third step, so a
+// remote character would jump three steps' worth at once; instead the frame's position becomes its target and
+// its own position walks there over the frame's steps, one frame behind the truth, in the character's own gx
+// and gy so the hit tests, the name over its head, and its bubble follow the same point. My own player is
+// predicted, never smoothed. The sync check hashes the targets, which are the host's truth.
+function aimAt(c, gx, gy) {
+  if (typeof gx !== "number" || typeof gy !== "number") return;
+  const fromX = c.gx;
+  const fromY = c.gy;
+  c.netFrom = [fromX, fromY];
+  c.netTo = [gx, gy];
+  c.netT = 0;
+  c.gx = fromX;
+  c.gy = fromY;
+}
+
+function smoothStep() {
+  const S = game.state;
+  const steps = FRAME_EVERY;
+  for (const c of [...S.players, ...S.zombies, ...S.villagers, ...S.corpses]) {
+    if (!c.netTo || c === S.player) continue;
+    c.netT = Math.min(steps, (c.netT || 0) + 1);
+    const t = c.netT / steps;
+    c.gx = c.netFrom[0] + (c.netTo[0] - c.netFrom[0]) * t;
+    c.gy = c.netFrom[1] + (c.netTo[1] - c.netFrom[1]) * t;
+  }
+}
 
 function applyFrame(f) {
   const S = game.state;
@@ -805,7 +836,10 @@ function applyFrame(f) {
       } else {
         const keep = c.sprite;
         const { targetId, carryingId, carried, ...rest } = data;
+        const wasX = c.gx;
+        const wasY = c.gy;
         Object.assign(c, rest);
+        if (r.id !== myPlayerId && typeof rest.gx === "number") { const toX = c.gx; const toY = c.gy; c.gx = wasX; c.gy = wasY; aimAt(c, toX, toY); }
         // A two-handed thing is one object in both hands (restoreCharacter does this on a character's first appearance):
         // came through JSON as two, the watcher drew a bow or a halberd in each hand (found 2026-10-13).
         if (c.hands && c.hands.main && c.hands.off && c.hands.main !== c.hands.off && c.hands.main.uid != null && c.hands.main.uid === c.hands.off.uid) c.hands.off = c.hands.main;
@@ -817,7 +851,10 @@ function applyFrame(f) {
       }
     } else if (c) {
       const { carryingId, loot, worn, light: isLight, ...rest } = r;
+      const wasX = c.gx;
+      const wasY = c.gy;
       Object.assign(c, rest);
+      if (r.id !== myPlayerId && typeof rest.gx === "number") { const toX = c.gx; const toY = c.gy; c.gx = wasX; c.gy = wasY; aimAt(c, toX, toY); }
       if (loot) {
         // A body's grid is the body (docs/19): the same objects in the grid and on it, made one again by uid.
         c.loot = c.loot && c.loot.items ? Object.assign(c.loot, loot) : loot;

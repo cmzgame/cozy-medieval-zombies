@@ -4,6 +4,14 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-13 — The wire, part four of four: the replica smoothed between frames
+
+**Built.** A frame comes every third step, so a remote character would jump three steps' worth at once; instead the position a frame brings becomes the character's target, and its own position walks there over the frame's three steps, one frame behind the truth, in the character's own coordinates, so the hit tests, the name over its head, and its bubble follow the same point (the review's wish). My own player is predicted, never smoothed; a character new to the replica appears where the frame says. The sync check hashes the targets, which are the host's truth, so a replica mid-walk still agrees. The wire's close also clears the sync memory, so a stale report from an earlier wire on the same page never meets the check.
+
+**Measured, two tabs on the loopback, the host walking on open ground:** between two frames the guest's copy of the host's player moved in three equal steps, 106.061 to 106.096 to 106.132 to 106.167, the frame's target, then on to the next target the same way; `check("sync")` agreed in every part at every reported tick.
+
+**The wire's four parts together:** a quiet frame from 15,770 bytes sixty times a second to about 4,000 twenty times a second, roughly 80 kilobytes a second to each guest where it was 950, a sleeper's steps coalesced, the replica smooth. The first of the five items left for a friend on their own computer is done; the guest's own swing played at once is next.
+
 ### 2026-10-13 — The wire, part three of four: frames at twenty a second, paced by the world's time over its scale
 
 **Built.** The host sends a frame on every third step at the world's normal speed, twenty a second, and on every hundred and eightieth while the world runs at sixty times with everyone asleep, which is the same fifty milliseconds as a player experiences them: a sleeper's hundred steps a browser frame coalesce into one frame instead of flooding the relay, as the review warned. The frames fall on ticks that are multiples of the cadence, so the sync check's thirtieth tick is always a frame tick. The guests' inputs come every step still and the host applies one a step, its bound untouched; the chunks touched and the pokes gather until the frame. The cadence is deterministic, paced by the loop's own steps and the world's own time scale rather than the wall clock, so the scripted two-tab tests, which step the tabs in bursts with no real time passing, stay whole.
