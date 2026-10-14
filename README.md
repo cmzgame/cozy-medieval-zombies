@@ -56,4 +56,6 @@ Milestones 1 to 11 are built (2026-10-09 to 2026-10-12): a chunked map with real
 | [32-better-animations.md](docs/32-better-animations.md) | The poses the game lacks, as data on the final rig; the walk and the one-handed swing done. |
 | [33-the-map.md](docs/33-the-map.md) | The map on `M`, scoped: what anyone has seen, kept by the world; every player live; drawn at the screen's angle. |
 | [34-talk.md](docs/34-talk.md) | Talk, scoped: villagers' barks and conversations, which read the world and never write it. |
+| [35-steam-and-the-free-demo.md](docs/35-steam-and-the-free-demo.md) | The business and marketing plan: the free web demo forever, the desktop wrapper, Steam, the art. |
+| [36-the-horde-demo.md](docs/36-the-horde-demo.md) | The horde demo, scoped: one homestead, everything provided, the dead without end. |
 | [art/README.md](docs/art/README.md) | The design agent's own docs: a style bible and a page per area of art. |
