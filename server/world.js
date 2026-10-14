@@ -5,13 +5,18 @@
 // stands, the wire still answers so a join wakes it); after a spell empty and saved, it exits, so an empty world
 // costs nothing. One process per world, so a crash takes down one world.
 //
-//   node server/world.js --dir <folder> --code <join code> --relay ws://localhost:8013 [--new] [--name <name>]
+// The relay starts it (server/relay.js, the fourth step) with the world's folder, the code a guest named, and a
+// secret in CMZ_HOST_SECRET that proves to the relay this is its own child (a server world's code is reserved:
+// anyone else's host registration for it is refused). By hand, for the checks:
+//
+//   node server/world.js --dir <folder> --code <join code> --relay ws://localhost:8012 [--new] [--name <name>]
 //                        [--empty-exit <seconds>] [--debug-port <port>]
+//   node server/world.js --dir <folder> --new --make-only [--name <name>]      a fresh world's save, then exit
 //
 // The folder holds the world's files: save.json.gz (the browser's snapshot shape, gzipped: a well-explored
-// world's 4.4 MB is 190 KB), rolling/ (a copy at most every ten minutes, the last three kept), and daily/ (one a
-// day, seven kept). `--new` makes a fresh world from the map when there is no save (for the checks; a world comes
-// to the server from a browser in step 5). `--debug-port` answers /status, /sync/on, /sync, and /stop on 127.0.0.1 alone,
+// world's 4.6 MB is about 200 KB), rolling/ (a copy at most every ten minutes, the last three kept), daily/ (one a
+// day, seven kept), and crash-<time>.json.gz when the process threw (the state it had, beside the last good save,
+// which a crash never overwrites). `--debug-port` answers /status, /sync/on, /sync, and /stop on 127.0.0.1 alone,
 // and only when given (the coder agent's hardening: the debug endpoint behind a flag).
 
 import fs from "node:fs";
@@ -31,11 +36,12 @@ const arg = (name, fallback = null) => {
 };
 const flag = (name) => argv.includes(`--${name}`);
 const dir = arg("dir");
-const code = arg("code");
-const relayUrl = arg("relay", "ws://localhost:8080");
-const EMPTY_EXIT_S = Number(arg("empty-exit", 600)); // ten minutes empty and saved, then gone
+const code = arg("code") || process.env.CMZ_CODE || null; // the relay passes it in the environment, out of the process list
+const relayUrl = arg("relay", process.env.CMZ_RELAY || "ws://localhost:8080");
+const EMPTY_EXIT_S = Number(arg("empty-exit", process.env.CMZ_EMPTY_EXIT || 600)); // ten minutes empty and saved, then gone
 const debugPort = arg("debug-port") || process.env.CMZ_DEBUG_PORT || null;
-if (!dir || !code) {
+const makeOnly = flag("make-only");
+if (!dir || (!code && !makeOnly)) {
   console.error("usage: node server/world.js --dir <folder> --code <join code> --relay <ws url> [--new]");
   process.exit(64);
 }
@@ -96,11 +102,18 @@ for (const p of game.state.players.slice()) {
 say(`${snap ? "restored" : "made"} ${store.name} (${mapName}): ${game.state.players.length} in the world, ${Object.keys(store.dormant).length} dormant (${sleepers} put to sleep at boot); rules ${JSON.stringify(rules.rules)}`);
 
 // ---- saving ----
+// A save stops the world while it is made (a well-explored valley took about 100 ms on the coder agent's machine: the
+// snapshot 60, the text 25, the gzip 17; expect two to three times that on Fly). So while anyone plays it saves every
+// few game minutes, and always at a join, a leave, a dormancy, a death, when the world empties, and on the way down.
+// Owed for later, here and in the browser host's autosave: each chunk's serialised form cached until map.touch marks
+// it, so a save costs what changed.
+const SAVE_EVERY_GAME_S = 300;
 const ROLLING_EVERY_MS = 10 * 60 * 1000;
 const ROLLING_KEEP = 3;
 const DAILY_KEEP = 7;
 let lastSaveSim = loop.simTime();
 let lastRollingAt = 0;
+const saveTimes = { last: 0, max: 0, count: 0, lastKB: 0, lastAt: null };
 
 function writeAtomic(file, data) {
   const tmp = `${file}.tmp`;
@@ -108,9 +121,14 @@ function writeAtomic(file, data) {
   fs.renameSync(tmp, file);
 }
 
-function saveNow(why) {
+function packed() {
   const s = save.snapshot(mapName, { worldId, name: store.name, owners: store.owners, dormant: store.dormant, myPlayerId: null, server: true });
-  const gz = zlib.gzipSync(JSON.stringify(s));
+  return zlib.gzipSync(JSON.stringify(s));
+}
+
+function saveNow(why) {
+  const t0 = performance.now();
+  const gz = packed();
   writeAtomic(SAVE, gz);
   lastSaveSim = loop.simTime();
   const now = Date.now();
@@ -128,7 +146,18 @@ function saveNow(why) {
     const days = fs.readdirSync(path.join(dir, "daily")).filter((f) => f.endsWith(".json.gz")).sort();
     for (const f of days.slice(0, Math.max(0, days.length - DAILY_KEEP))) fs.rmSync(path.join(dir, "daily", f));
   }
-  say(`saved (${why}): ${Math.round(gz.length / 1024)} KB`);
+  const ms = performance.now() - t0;
+  saveTimes.last = Math.round(ms);
+  saveTimes.max = Math.max(saveTimes.max, saveTimes.last);
+  saveTimes.count++;
+  saveTimes.lastKB = Math.round(gz.length / 1024);
+  saveTimes.lastAt = new Date(now).toISOString();
+  say(`saved (${why}): ${saveTimes.lastKB} KB in ${saveTimes.last} ms`);
+}
+
+if (makeOnly) {
+  saveNow("made");
+  process.exit(0);
 }
 
 // ---- the host ----
@@ -153,9 +182,34 @@ function shutdown(why, exitCode = 0) {
   setTimeout(() => process.exit(exitCode), 50);
 }
 
+// A crash never overwrites the good save (the coder agent's review of step 3): the state the process had goes to its
+// own file beside save.json.gz, which stays the last good one, and the process exits for the relay to see. The world
+// as it was at the last save is what the next join boots; the crash file is for a person to read.
+function crashed(why, err) {
+  if (stopping) return;
+  stopping = true;
+  say(`the world threw (${why}): ${err && err.stack ? err.stack : err}`);
+  try {
+    const file = path.join(dir, `crash-${Date.now()}.json.gz`);
+    fs.writeFileSync(file, packed());
+    say(`the state at the crash is in ${path.basename(file)}; save.json.gz is the last good save`);
+    const kept = fs.readdirSync(dir).filter((f) => /^crash-\d+\.json\.gz$/.test(f)).sort();
+    for (const f of kept.slice(0, Math.max(0, kept.length - 5))) fs.rmSync(path.join(dir, f)); // the newest five are enough to read
+  } catch (e) {
+    say(`the state at the crash could not be written: ${e && e.message}`);
+  }
+  try { net.close(); } catch { /* going */ }
+  setTimeout(() => process.exit(1), 50);
+}
+process.on("uncaughtException", (err) => crashed("uncaughtException", err));
+process.on("unhandledRejection", (err) => crashed("unhandledRejection", err));
+
 net.setRelay(relayUrl);
+net.setHostSecret(process.env.CMZ_HOST_SECRET || null);
 net.init({ host: code }, {
   ...host.netHooks(),
+  // The welcome gzipped (the review of step 3): a well-explored world is 4.6 MB raw to every joiner, about 200 KB packed.
+  packWelcome: (whole) => zlib.gzipSync(JSON.stringify(whole)).toString("base64"),
   message: (text) => say(text),
   failed: (_code, why) => shutdown(`the relay: ${why}`, 2),
 });
@@ -169,17 +223,14 @@ loop.init({
     game.step(dt, net.hostStep(idle, null));
     net.hostAfterStep();
     loop.setHeld(held());
-    if (loop.simTime() - lastSaveSim >= 60) saveNow("a game minute");
+    if (loop.simTime() - lastSaveSim >= SAVE_EVERY_GAME_S) saveNow("five game minutes");
   },
   render: () => {},
   pump: () => {
     net.hostStep(idle, null); // held: a join is heard, nothing moves
     loop.setHeld(held());
   },
-  crash: (err) => {
-    say(`the world threw: ${err && err.stack ? err.stack : err}`);
-    shutdown("a crash", 1);
-  },
+  crash: (err) => crashed("the step", err),
 });
 loop.setHeld(held());
 let emptySince = Date.now();
@@ -194,6 +245,11 @@ setInterval(() => {
 }, 16);
 
 for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, () => shutdown(sig));
+// The relay asks its children to stop over the fork's channel: a signal reaches no handler on Windows, and the channel
+// is the same everywhere.
+process.on("message", (m) => {
+  if (m && m.type === "stop") shutdown(`the relay asked (${m.why || "stopping"})`);
+});
 
 // ---- the debug endpoint, on 127.0.0.1 alone and only when asked for ----
 if (debugPort) {
@@ -205,7 +261,7 @@ if (debugPort) {
     };
     if (req.url === "/status") {
       const st = net.status();
-      return send({ world: store.name, code: st.code, guests: st.guests, held: loop.isHeld(), tick: st.tick, simTime: loop.simTime(), players: game.state.players.map((p) => p.id), dormant: Object.keys(store.dormant).length, chunks: map.chunkCount(), rssMB: Math.round(process.memoryUsage().rss / 1048576) });
+      return send({ world: store.name, code: st.code, guests: st.guests, held: loop.isHeld(), tick: st.tick, simTime: loop.simTime(), players: game.state.players.map((p) => p.id), dormant: Object.keys(store.dormant).length, chunks: map.chunkCount(), rssMB: Math.round(process.memoryUsage().rss / 1048576), heapMB: Math.round(process.memoryUsage().heapUsed / 1048576), save: saveTimes, wire: st.wire });
     }
     if (req.url === "/sync/on") {
       net.setSyncReports(true);
@@ -213,6 +269,7 @@ if (debugPort) {
     }
     if (req.url === "/sync") return send(await sync.run({ net }));
     if (req.url === "/stop") { send({ stopping: true }); return shutdown("a debug stop (the path a deploy's SIGTERM takes)"); }
+    if (req.url === "/throw") { send({ throwing: true }); setTimeout(() => { throw new Error("a debug throw (the crash path)"); }, 10); return; }
     res.writeHead(404);
     res.end();
   }).listen(Number(debugPort), "127.0.0.1", () => say(`debug on 127.0.0.1:${debugPort}`));

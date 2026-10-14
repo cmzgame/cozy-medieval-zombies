@@ -94,7 +94,7 @@ export function makeCode() {
 // The wire's protocol (the coder agent's review, 2026-10-13: a build version has nothing to compare, the
 // wire and the save do): bumped by hand when a message or the save changes shape; the host refuses a
 // guest on another with a word for whose is newer.
-export const PROTOCOL = 2; // 2 (2026-10-13): the dead as a delta with a roster, numbers rounded
+export const PROTOCOL = 3; // 2 (2026-10-13): the dead as a delta with a roster, numbers rounded; 3 (2026-10-14, item 5's fourth step): the welcome may come gzipped (`z`)
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -166,6 +166,8 @@ export function close() {
   run = null;
   runCount = 0;
   steppedAway = false;
+  welcoming = false;
+  held.length = 0;
 }
 
 // ---- the transports (docs/31/04; ruled 2026-10-13, docs/02) ----
@@ -226,6 +228,14 @@ function forgetSent() {
   for (const k of Object.keys(lastExtras)) lastExtras[k] = "";
 }
 
+// A server world's host proves to the relay it is the relay's own child (item 5's fourth step; the coder agent's
+// review of step 3: a server world's code is reserved, even while the world sleeps): the secret the relay handed
+// it, said once with the first word. A browser host has none and needs none.
+let hostSecret = null;
+export function setHostSecret(s) {
+  hostSecret = typeof s === "string" && s ? s : null;
+}
+
 export function setRelay(url) {
   if (url === "none" || url === "loopback") relayUrl = null;
   else if (url) relayUrl = url;
@@ -240,7 +250,7 @@ function receive(msg) {
     selfId = msg.id; // the relay names me; the host keys its guests by these
     return;
   }
-  if (!msg.from && msg.type === "error") return dropped(msg.reason === "nohost" || msg.reason === "taken" ? msg.reason : "relay");
+  if (!msg.from && msg.type === "error") return dropped(["nohost", "taken", "busy", "broken"].includes(msg.reason) ? msg.reason : "relay");
   if (!msg.from && msg.type === "hostLeft") return dropped("hostLeft");
   if (msg.to && msg.to !== selfId) return; // the loopback is one channel for everyone; the relay routes
   if (lag) setTimeout(() => inbox.push(msg), lag);
@@ -292,7 +302,7 @@ function openRelay(wantRole, wantCode) {
     },
   };
   ws.onopen = () => {
-    ws.send(JSON.stringify({ type: wantRole, code: wantCode })); // the first word: who I am, which world
+    ws.send(JSON.stringify({ type: wantRole, code: wantCode, ...(wantRole === "host" && hostSecret ? { secret: hostSecret } : {}) })); // the first word: who I am, which world
     t.ready = true;
     for (const m of queue.splice(0)) ws.send(JSON.stringify(m));
   };
@@ -489,7 +499,13 @@ export function hostStep(mySnap, me) {
       away.delete(p.id);
       guests.set(msg.from, { playerId: p.id, hash, queue: [], last: null, ack: 0, joinedAt: tick });
       for (const c of allCharacters()) known.add(c.id);
-      send({ type: "welcome", to: msg.from, playerId: p.id, save: game.serialize(), world: hooks.worldInfo ? hooks.worldInfo() : null });
+      // The welcome is the whole world. A host that can pack it (a server world: zlib, hooks.packWelcome) sends it gzipped,
+      // which a guest unpacks with the browser's own DecompressionStream: a well-explored world is 4.6 MB raw, about
+      // 200 KB packed (the coder agent's review of step 3). A browser host, which has no packer that answers at once,
+      // sends it as it was.
+      const whole = game.serialize();
+      const z = hooks.packWelcome ? hooks.packWelcome(whole) : null;
+      send({ type: "welcome", to: msg.from, playerId: p.id, ...(z ? { z } : { save: whole }), world: hooks.worldInfo ? hooks.worldInfo() : null });
       forgetSent(); // the newcomer's baseline is this save: whatever the others were sent is sent again, whole
 
       hooks.message(`${p.name || p.id} joined.`);
@@ -783,25 +799,44 @@ export function hostAfterStep() {
 export function guestStep(mySnap) {
   if (role !== "guest") return;
   const now = performance.now();
-  if (!joined && firstJoinAt && now - firstJoinAt > JOIN_WAIT_MS) {
+  if (!joined && !welcoming && firstJoinAt && now - firstJoinAt > JOIN_WAIT_MS) {
     const c = code;
     close();
     if (hooks.failed) hooks.failed(c, "timeout", "guest");
     return;
   }
-  if (!joined && (!joinSentAt || now - joinSentAt > 2000)) {
+  if (!joined && !welcoming && (!joinSentAt || now - joinSentAt > 2000)) {
     joinSentAt = now;
     if (!firstJoinAt && transport && transport.ready) firstJoinAt = now; // the wait starts once the relay has answered the socket (a sleeping tier wakes slowly)
     // The browser's id and the protocol always; the identity when one was chosen (the host asks with `who` otherwise).
     send({ type: "join", clientId, protocol: PROTOCOL, version: SAVE_VERSION, name: identity ? identity.name : null, look: identity ? identity.look : null });
   }
   for (const msg of inbox.splice(0)) {
+    // A packed welcome is unpacking: everything after it waits, in order, for the world it follows (the frames are
+    // deltas against it).
+    if (welcoming) {
+      held.push(msg);
+      continue;
+    }
     if (msg.type === "welcome") {
       if (joined) continue;
-      myPlayerId = msg.playerId;
-      joined = true;
-      hooks.restore(msg.save, myPlayerId, msg.world || null); // main.js: game.restore, then the client's own refresh
-      hooks.joined(myPlayerId);
+      if (typeof msg.z === "string") {
+        welcoming = true;
+        const wire = transport;
+        unpack(msg.z).then((save) => {
+          if (transport !== wire) return; // the wire closed or was replaced meanwhile
+          welcomed(msg, save);
+          welcoming = false;
+          inbox.unshift(...held.splice(0));
+        }, (err) => {
+          console.warn("The world's welcome would not unpack:", err && err.message);
+          welcoming = false;
+          held.length = 0;
+          dropped("relay");
+        });
+        continue;
+      }
+      welcomed(msg, msg.save);
     } else if (msg.type === "frame" && joined) {
       applyFrame(game.fromSafe(msg));
       framesSeen++;
@@ -905,6 +940,25 @@ function predict(me, snap) {
 // acknowledgement alone (nothing changed on the host since the last record) means the last record stands, and
 // replaying the unacknowledged inputs over my predicted player instead would apply them twice.
 let myBase = null;
+
+function welcomed(msg, save) {
+  myPlayerId = msg.playerId;
+  joined = true;
+  hooks.restore(save, myPlayerId, msg.world || null); // main.js: game.restore, then the client's own refresh
+  hooks.joined(myPlayerId);
+}
+
+let welcoming = false; // a packed welcome is unpacking (guestStep holds what follows it)
+const held = [];
+
+// A gzipped welcome back to the world it packed: base64 to bytes, the browser's DecompressionStream, JSON.
+async function unpack(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+  return JSON.parse(await new Response(stream).text());
+}
 
 export function correction() {
   return lastCorrection;
