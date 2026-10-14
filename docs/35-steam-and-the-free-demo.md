@@ -1,10 +1,10 @@
 # 35 — Desktop, Steam, and the free demo: the business and marketing plan
 
-**Status: written 2026-10-13 with Michael. A plan, not a spec; nothing built.** The demo it leans on is scoped for implementation in `36`. Facts about Steam below are as Claude knew them on this date and move over time: check Steamworks' own documentation before acting on any number.
+**Status: written 2026-10-13 with Michael; amended 2026-10-14 (`02`, "The demo re-ruled"): the game's name and the project's own accounts come first, and the demo is single player. A plan, not a spec; nothing built.** The demo it leans on is scoped for implementation in `36`. Facts about Steam below are as Claude knew them on this date and move over time: check Steamworks' own documentation before acting on any number.
 
 ## The idea in one paragraph
 
-The game is a web game, and that is its marketing advantage, not its weakness. **The free web demo lives forever at a link:** click, and you are playing in seconds, with nothing to install, no account, no store, and a friend can join with a code from the same link. No engine game can offer less friction than that. The paid game is the same code in a desktop wrapper on Steam, where the store page, wishlists, demos, festivals, and Early Access find it an audience and the sales fund a human artist. Nothing about the technology forces the game to be free; "browser game" describes the delivery, not the quality.
+The game is a web game, and that is its marketing advantage, not its weakness. **The free web demo lives forever at a link:** click, and you are playing in seconds, with nothing to install, no account, no store. No engine game can offer less friction than that. The paid game is the same code in a desktop wrapper on Steam, where the store page, wishlists, demos, festivals, and Early Access find it an audience and the sales fund a human artist. Nothing about the technology forces the game to be free; "browser game" describes the delivery, not the quality.
 
 ## Why "a web game" is not a problem
 
@@ -14,11 +14,17 @@ The game is a web game, and that is its marketing advantage, not its weakness. *
 
 ## The free web demo, forever
 
-- **Where:** the GitHub Pages site the friends already use, at a plain link [and the same build on itch.io, where browser games are found]. One link on the Steam page, in every post, in every video description.
-- **What:** the horde demo of `36`: one homestead, supplies for a few days, the weapons to try, the dead coming in a trickle and then a flood until you fall; then a card that says the open valley is coming, with the wishlist link.
-- **Co-op from a link:** Open to friends gives a code; a friend opens the same link and joins. Two people playing together within a minute of hearing of the game is the rarest thing on offer here, and the demo should say so on its title.
+- **Where:** the game's own site (below, "The project's own accounts"), at a plain link [and the same build on itch.io, where browser games are found]. **Not the GitHub Pages site the friends use today:** that site serves `main`, the whole game, from a public repository (below). One link on the Steam page, in every post, in every video description.
+- **What:** the horde demo of `36`: one homestead, supplies for a few days, the weapons to try, the dead coming out of the forest in a trickle and then a flood until you fall, built to kill you; then a card that says the open valley is coming, with the wishlist link.
+- **Single player** (Michael, 2026-10-14: it is a demo). Co-op is the full game's, and its pages say so; the demo's title has no hosting.
 - **The same demo on Steam:** a Steam demo is a separate free app attached to the game's page; it is the same scenario in the wrapper, and it is what Next Fest shows.
-- **What it costs to keep:** the site is free; the relay (`server/relay.js` on Fly, one small machine that stops when idle) costs little at friends' scale. **If the demo is found, the relay is the bill:** each pair of players streams the world through it (about 120 KB/s to a guest with 22 of the dead near, `31`). Watch Fly's usage when the demo goes out; the cheap answers are a binary frame format, sending each guest only what is near them (`31/04`, interest, not built), and later Steam's own networking for the Steam build.
+- **What it costs to keep:** a static site, and nothing else: the demo is single player, so it never touches the relay. The relay (`server/relay.js` on Fly) is the full game's, and its bill grows with the full game's co-op (about 120 KB/s to a guest with 22 of the dead near, `31`); the cheap answers when that matters are a binary frame format, sending each guest only what is near them (`31/04`, interest, not built), and later Steam's own networking for the Steam build.
+
+## The name, and the project's own accounts (Michael, 2026-10-14)
+
+- **The name comes first.** "Cozy Medieval Zombies" is a working title. Nothing public (the site, the logo, the end card's link, a store page, an account's handle) is made until the game has its name.
+- **Then an infrastructure day**, the way Michael set up his Plaintext project: the game gets its own identity, apart from his personal ones. A business email at the game's domain; its own GitHub account or organisation, where **the repository is private** (today it is public: the whole game, its source, and every piece of art are free at the Pages link, which must end before a game is sold and before an artist's paid work lands in the repository); its own hosting for **the game's site**, which carries the information about the game and the demo, secure and with a design of its own; and whatever else a studio needs (the store's developer account, the relay's account). The only ties to Michael are his card on the official accounts and the domain, bought on his own account.
+- **What moves:** the repository (and with it the agents' remotes, the worktrees, and the design agent's `art-docs` branch, `27`); the relay's Fly app to the new account; the friends' Pages site, which stops serving the full game. The full game for friends moves somewhere private [a password on the site, or the desktop build once it exists]. Nothing in the code changes but the relay's address (`net.js` `RELAY_URL`) and the site's links.
 
 ## The desktop wrapper
 
@@ -53,17 +59,17 @@ The capsule art is the most important picture on a Steam page, the first thing a
 
 ## The order (no dates; each step when the one before is true)
 
+0. **The name**, then **the infrastructure day** (above): the private repository, the business email, the game's site.
 1. **The horde demo** (`36`), built and tested in the browser (not yet: Michael), doubling as the stress test of the engine and the wire under many of the dead; released only with final art for everything in it.
 2. **A style frame and the capsule** from a human artist.
-3. **The working name.** "Cozy Medieval Zombies" is the working title; a store page wants the real one.
-4. **The wrapper and the coming-soon page,** the demo attached, the web demo linked.
-5. **Steam lobbies and invites, cloud saves, Next Fest.**
-6. **Early Access,** when the valley's loop holds (`30` step 4 at least: farming is the cosy half).
-7. **Consoles or Godot** only if success and measurement ask for them (`02`, and the conversation of 2026-10-13: the docs are a near-complete spec, so a rebuild would cost far less than the first build).
+3. **The wrapper and the coming-soon page,** the demo attached, the web demo linked.
+4. **Steam lobbies and invites, cloud saves, Next Fest.**
+5. **Early Access,** when the valley's loop holds (`30` step 4 at least: farming is the cosy half).
+6. **Consoles or Godot** only if success and measurement ask for them (`02`, and the conversation of 2026-10-13: the docs are a near-complete spec, so a rebuild would cost far less than the first build).
 
 ## Open, for Michael
 
-- The real name.
+- The real name (first, before anything public).
 - Whether the demo goes on itch.io as well as the site.
 - Early Access, or a full release later.
 - The price, near launch.

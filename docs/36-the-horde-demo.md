@@ -1,16 +1,18 @@
 # 36 — The horde demo: one homestead, the dead without end
 
-**Status: scoped 2026-10-13 with Michael (`02`, "The horde demo"; the business side is `35`). Scoped for implementation by another model. Not built, and not to be built yet (Michael).** **Two rules on its release (Michael, 2026-10-13):** it is built, tested, and given real art before it goes to the public as a demo or beside a Steam page; and **nothing goes into the demo that does not have its final art.** It is a proof of concept with finite supplies, not the endless mode, which is wanted later as a permanent game mode (`05`). Read `CLAUDE.md` ("Implementing from a spec", and the multiplayer rule first among the rules), `35`, then this whole doc, then the files it names. The doc decides; a default in brackets is Michael's to overrule, not the implementer's.
+**Status: scoped 2026-10-13 with Michael (`02`, "The horde demo"; the business side is `35`), re-scoped 2026-10-14 on his reading (`02`, "The demo re-ruled"): it is built to kill the player, single player only, the dead walking in from off screen out of a dense forest. Scoped for implementation by another model. Not built, and not to be built yet (Michael).** **Two rules on its release (Michael, 2026-10-13):** it is built, tested, and given real art before it goes to the public as a demo or beside a Steam page; and **nothing goes into the demo that does not have its final art.** It is a proof of concept with finite supplies, not the endless mode, which is wanted later as a permanent game mode (`05`). Read `CLAUDE.md` ("Implementing from a spec", and the multiplayer rule first among the rules), `35`, then this whole doc, then the files it names. The doc decides; a default in brackets is Michael's to overrule, not the implementer's.
 
 ## What it is
 
-A free demo that lives at a link (`35`): small enough to show the systems in an hour, big enough to be worth that hour. **One homestead** in a clearing: a cottage, a workshop, a well, a plot, a woodpile, trees to fell, everything you need already there, the weapons laid out to try (the bow, the spear and shield with their three attacks, the sword, the mace, the halberd). A calm morning to look round and get ready. Then the dead come, a few at first, then more, then more and more, without end, until you fall. Then a card: how long you held, how many you put down, and that the open valley is coming.
+A free demo that lives at a link (`35`): small enough to show the systems in an hour, big enough to be worth that hour. **One homestead** in a clearing, wrapped in dense forest: a cottage, a workshop, a well, a plot, a woodpile, trees to fell, everything you need already there, the weapons laid out to try (the bow, the spear and shield with their three attacks, the sword, the mace, the halberd). A quiet start to look round and get ready. Then the dead come out of the trees, a few at first, then more, then more and more, without end, until you fall. Then a card: how long you held, how many you put down, and that the open valley is coming.
 
-It is the long arc of `00` in miniature (normal until it is not), and the real game's register in an hour: cosy by day, a siege by night.
+**The goal is to kill the player** (Michael, 2026-10-14). Zomboid's tutorial ends in a horde nobody survives; here you get to play the real game for as long as you can hack it, and you still die. The escalation forces it: when one way of killing you has reached its limit, the next begins (more of the dead, then tougher ones, then faster ones, and so on), so no build order outlasts it forever. A first run should end early; the third or the fifth is the one where a player thinks "wait, can I actually survive this with the right build order?" and spends the first day preparing for the night. That replay is the demo's hook.
 
 ## The rules of the scenario, and the clock law
 
-The demo is **a scenario with its own rules**, not a world of the game. The clock law (`00`, Laws: never harder on a clock) governs the game's worlds; an endless horde that grows with time is the scenario's whole point, and it is allowed here because nothing in it persists and nobody plays it alone against an absent friend's clock. The end card says plainly that the full game is an open valley where danger is the danger you choose, so the demo never misrepresents it.
+The demo is **a scenario with its own rules**, not a world of the game. The clock law (`00`, Laws: never harder on a clock) governs the game's worlds; a horde that grows with time is this scenario's whole point, and it is allowed here because nothing in it persists and nobody plays it against an absent friend's clock. The end card says plainly that the full game is an open valley where danger is the danger you choose, so the demo never misrepresents it. **Day and night are the same to the horde** (Michael, 2026-10-14: the old "cosy by day, siege by night" is withdrawn; the game's spooky part comes from exploring new regions, not from the hour). The clock still turns, the light still falls, and the escalation runs straight through both.
+
+**Single player only** (Michael, 2026-10-14). The demo's title offers no hosting and no joining. The scenario layer itself (a world's own map and scenario, the spawner, the score) is still built for the authority's step, in the save, and in the sync check, as every change is (`31/08`): a scenario world must be hostable later (the Endless mode of `05` will want friends), and the demo simply does not offer it.
 
 ## The scenario as data: `data/scenarios/horde.json`
 
@@ -19,93 +21,91 @@ Everything a tuner would change is a number in this file:
 - **`map`:** `"homestead"` (below).
 - **`rules`:** overrides on the world's rules for this scenario, winning over the browser's settings: [zombieAggro on, survival on, zombiesAttackVillagers on, freeBuilding off, devChest off, combatTesting off; multiHit as the player's setting]. Plus scenario-only switches: [`sleep: false` (beds refuse: "Not tonight."), `tiredness: false`, `save: false`].
 - **`kit`:** what the player starts with (the starter kit, plus [a bandage and a waterskin]); what the chests and the rack hold is in the map.
-- **`schedule`:** the horde's curve: when it begins, the trickle, the nights, the growth, the ceiling (below).
+- **`schedule`:** the horde's curve: the quiet start, the first spawn, the growth, the ceiling, and the stages past it (below). **Every time in this file is in seconds of simulation** (`loop.simTime()`, which is real seconds at the world's normal speed), never the clock's hours: a game day is 720 real seconds, so an in-game minute is half a real second, and a number written in clock minutes would be off by a factor of a hundred and twenty.
 - **`loot`:** the dead's pockets for the scenario [the ordinary `body` table: a little, not a supply line].
 - **`end`:** the end card's lines and its links.
 
 ## The set: `data/maps/homestead.json`
 
-Written by the generator like the valley (`tools/mapgen/homestead.py` on `mapgen.py`'s vocabulary; `python -I tools/mapgen/homestead.py`), [about 48 by 48 tiles inside its boundary]:
+Written by the generator like the valley (`tools/mapgen/homestead.py` on `mapgen.py`'s vocabulary; `python -I tools/mapgen/homestead.py`). **No bigger than it must be** (Michael, 2026-10-14: you are not meant to explore). Three rings, from the middle out:
 
-- **The clearing** [about 30 by 30] in the middle: **the cottage** (two rooms through a partition, a bed, a lit hearth, a table and chairs, a chest of food and drink, two windows and a door: something to board and hold), **the workshop** (the workbench, a weapon rack or chest with the bow and [40] arrows, the spear, the shield, the sword, the mace, the halberd, a hatchet, a chest of planks, sticks, and cloth), **the well**, **a fenced plot** with crops at their last stage (food once farming lands, `30` step 4; scenery until then), **a woodpile chest** of logs, **a campfire**, [a cart and a few barrels for cover and loot].
-- **A forest strip** [six to eight tiles deep] all round the clearing, scattered trees by the generator's rule: cover for the dead to come through, and the place they appear.
-- **The boundary:** an invisible wall round the whole set that no body crosses, the player and the dead alike. A new wall kind, [`wall_invisible`], with `seeThrough: true` (so it bounds no room and the forest beyond is seen) and nothing drawn; laid with the generator's `fence` feature, no gates. Beyond it the wild grows for the view only, with **no dead** (`wild.zombiesPerChunk: 0` in the map), so nothing ever arrives from the endless forest.
-- **No villagers** [except the guide of `34`, once talk is built: immune to the dead, in the cottage, explaining the controls before the horde; until then, a notice board beside the door with the few lines a new player needs].
+- **The clearing** [about 24 by 24] in the middle: **the cottage** (two rooms through a partition, a bed, a lit hearth, a table and chairs, a chest of food and drink, two windows and a door: something to board and hold), **the workshop** (the workbench, a weapon rack or chest with the bow and [40] arrows, the spear, the shield, the sword, the mace, the halberd, a hatchet, a chest of planks, sticks, and cloth), **the well**, **a fenced plot** with crops at their last stage (food once farming lands, `30` step 4; scenery until then), **a woodpile chest** of logs, **a campfire**, [a cart and a few barrels for cover and loot].
+- **The player's room to move:** [about six tiles] of the forest round the clearing that the player may walk into, and then **the player's boundary**: an invisible line round it that stops the living and lets the dead through. A new wall kind, [`wall_invisible`, with `seeThrough: true` so it bounds no room and the forest beyond is seen, nothing drawn, and a new field `blocks: "players"`], laid with the generator's `fence` feature, no gates; the one new rule in code is a check in the walking that lets a character who is not a player pass an edge whose wall `blocks` only players (and the dead's pathfinding treats it as open).
+- **The dense forest** beyond it, out to the spawn ring: trees thick enough that the dead come out of them rather than across open ground (trees are trunk-only obstacles, so the dead still walk through, deflected), and **the outer boundary** round everything, the same invisible kind blocking everyone, with nothing beyond it to reach.
+- **No wild dead:** the map's `zombiesPerChunk` (the number of the dead a grown wild chunk is given, as a `[min, max]` range: `map.js`, the wild) is `[0, 0]`, so the wild that grows beyond the outer boundary for the view is empty. The spawner below is the only source of the dead.
+- **No villagers.** [A guide (`34`), once talk is built, standing beside the player's spawn, immune to the dead, explaining the controls; until then, a notice board beside the cottage door with the few lines a new player needs.]
 
 ## The horde
 
-### Who spawns, where
+### Who spawns, where (Michael, 2026-10-14)
 
-- **Spawn points** are tiles in the forest strip (the generator writes them into the map as [`spawns`]).
-- **A body appears only where no player can see it:** at a spawn point more than [14 tiles] from every living player and out of every living player's line of sight (`visibility.lineOfSight` from each player's tile). "Nothing materialises in view" (`CLAUDE.md`) is kept by construction. If no spawn point qualifies this step, nobody spawns this step.
-- They are ordinary dead (`createZombie`), dressed from the zombie wardrobes, hunting whoever they see, breaching openings as they do in the valley (`09`).
+- **Off screen, walking to the middle.** A body appears in the dense forest at a spawn point **farther from the player than the widest zoom shows** [the spawn distance: the reach of the widest zoom (`view.js`) from the player's tile to the corner of a 2560 by 1440 window, plus four tiles; computed from `view.js` once and written into the scenario, not read from the client's window, so it is the same on any machine], and walks toward the middle of the clearing at once: they are coming for you; nobody has to go and find them. On arrival they hunt as the dead always do (sight, sound, light, breaching openings as in the valley, `09`).
+- **Spawn points** are tiles in the dense forest (the generator writes them into the map as [`spawns`]), spread all round. The set is sized so that from anywhere the player can stand, some spawn points are past the spawn distance: [the outer boundary's half-width at least the player's boundary's half-width plus the spawn distance]. "Nothing materialises in view" (`CLAUDE.md`) is kept by that distance, not by line of sight: trees do not block sight in this engine (`visibility.js`: only walls and opaque props do), so a line-of-sight rule in a forest would find almost nowhere to spawn.
+- They are ordinary dead (`createZombie`), dressed from the zombie wardrobes.
 
-### The curve (all in `schedule`)
+### The curve (all in `schedule`, in seconds of simulation)
 
-- **The calm:** the scenario starts at [08:00] on day one with none of the dead anywhere. The day is 720 seconds of real time (`clock.js`), so the morning is a few real minutes to look round and arm.
-- **The trickle:** from [11:00], one at a time, [one every 30 seconds of game time], at most [4] alive.
-- **The nights:** from [dusk, 19:00] to [dawn, 06:00] the spawn interval and the cap are multiplied by the night factor [interval 0.4x, cap 2.5x]; at dawn a lull [no spawns for 60 seconds of game time].
-- **The growth:** after the trickle begins, the cap grows by [2] and the interval shrinks by [3 percent] for every minute of game time, without end.
-- **The ceiling:** the cap never passes a measured number of the dead alive at once [`maxAlive`, start at 150 and set it from the profile: the largest count at which a step plus render stays under 8 ms at the widest zoom on Michael's machine]. Past the ceiling the horde keeps growing by **pace**: the fallen are replaced at once, and from [the fourth night] each new one has [10 percent] more health a night (`hp` on the zombie at creation; the standard zombie's health in `data/tuning.json` is untouched). "Until the game crashes" is not the end state; the ceiling is.
+Starts slow, escalates steadily, day and night alike, and is meant to end the run.
+
+- **The quiet start:** the scenario starts at [08:00] on day one with none of the dead anywhere, for [90 seconds]: time to look round and pick up a weapon.
+- **The first trickle:** then one at a time, [one every 20 seconds], at most [3] alive.
+- **The growth:** every [60 seconds] the cap rises by [1] and the interval shrinks by [5 percent], without end. No lull at dawn, no night factor.
+- **The ceiling:** the cap never passes a measured number of the dead alive at once [`maxAlive`, start at 150 and set it from the profile: the largest count at which a step plus render stays under 8 ms at the widest zoom on Michael's machine]. "Until the game crashes" is not the end state; the ceiling is.
+- **The stages past the ceiling** (Michael: "we force a way, and a follow-up way, and then another"): each begins when the one before has reached its limit, so the pressure never plateaus. [1. Replacement: the fallen are replaced at once. 2. Tougher: each new body has 10 percent more health per stage step (`hp` on the zombie at creation; the standard zombie's health in `data/tuning.json` is untouched), every 120 seconds, up to double. 3. Faster: each new body walks 5 percent faster per step, every 120 seconds, up to one and a half times. 4. Harder on walls: the dead's damage to boards, doors, and shutters (`09`) up by 10 percent per step.] Each stage's numbers are in `schedule`; the order and the stages are Michael's to change.
+- **The tuning target:** [a careful first run ends during the first night; a well-planned run reaches the second or third day]. Read it from scripted and played runs, and move the curve, not the rule.
 
 ### Supplies for a few days, and no more (Michael)
 
-- **Finite:** what the homestead holds (the chests, the rack, the woodpile, the trees in the clearing, the dead's ordinary pockets) is enough for [about three days and nights] of careful play, and nothing is replenished. Weapons wear by kills (`30` 5.2) and the workbench remakes the simple ones from what is left (arrows, sticks, the bow, the shield, `data/recipes.json`) until the wood runs out.
-- **The test of the tuning:** a run should not be expected to last longer than that. **If players routinely outlast the supplies, the scenario (or the game) is not hard enough**, and the curve or the supplies change, not the rule.
-- **Bodies:** corpses pile up. [Past 60 corpses, the oldest searched or empty one is removed at each step it is out of every player's sight.] Removal goes through the lists the wire already deltas (the roster carries it to a guest).
+- **Finite:** what the homestead holds (the chests, the rack, the woodpile, the trees in the clearing and the forest, the dead's ordinary pockets) is enough for [about three days and nights] of careful play, and nothing is replenished. Weapons wear by kills (`30` 5.2) and the workbench remakes the simple ones from what is left (arrows, sticks, the bow, the shield, `data/recipes.json`) until the wood runs out.
+- **The test of the tuning:** a run should not be expected to last longer than that; the curve is meant to end it sooner. **If players routinely outlast the supplies, the scenario (or the game) is not hard enough**, and the curve or the supplies change, not the rule.
+- **Bodies:** corpses pile up. [Past 60 corpses, the oldest searched or empty one is removed at each step it is out of the player's sight.] Removal goes through the lists the wire already deltas.
 
 ## The score and the end
 
-- **Kept as the run goes:** the time held (days and nights), the dead put down (by everyone, and by each player), [the longest night].
-- **The HUD:** one line under the clock: "Night 2 · 37 put down" (on the kit, `ui/hud.js`).
-- **The end:** when every living player has fallen, the end card (`ui/screens.js`, the dead screen's place for this scenario): "You held the homestead for 3 nights. 214 dead." (deaths said plainly, `00`), the per-player counts in co-op, **Play again**, and the lines from `end`: the open valley is coming, [the wishlist link once the store page exists; until then the site's link]. [No retry from the same point; no saving.]
-- **A fallen player in co-op** [comes back at the cottage at the next dawn while anyone still stands], with the starter kit; the run ends only when nobody stands.
+- **Kept as the run goes:** the time held (days and nights), the dead put down, [the longest stretch without a hit].
+- **The HUD:** one line under the clock: "Day 2 · 37 put down" (on the kit, `ui/hud.js`).
+- **The end:** when the player falls, the end card (`ui/screens.js`, the dead screen's place for this scenario): "You held the homestead until the second night. 214 dead." (deaths said plainly, `00`), **Play again**, and the lines from `end`: the open valley is coming, [the wishlist link once the store page exists; until then the game's own site, `35`]. [No retry from the same point; no saving.]
 
 ## How it is entered
 
-- **The demo's link opens the scenario:** [`?demo` on the URL] boots straight to a title of its own: **Play**, **Play with a friend** (Open to friends at once, the code shown), **Join a friend** (the code typed), Settings, Controls. No Worlds screen, no identities beyond the character screen's one page for a name and a look [or a random look with Play pressed at once].
+- **The demo's link opens the scenario:** [`?demo` on the URL, on the demo's own site, `35`] boots straight to a title of its own: **Play**, Settings, Controls. No Worlds screen, no identities, no hosting or joining; the character screen's one page for a name and a look [or a random look with Play pressed at once].
 - **The full game is untouched:** the scenario is a world type (`scenario: "horde"` in the world's record), the map chosen per world rather than by the page's `?map=` (today `MAP_NAME` in `main.js` is read once from the URL and decides which saved worlds are playable): give a world its own map and scenario, so the demo needs no special build and the full game's Worlds screen could list "Horde" later [not in this scope].
-- **Escape pauses alone** as in any lone world; on the wire it never pauses (`02`).
+- **Escape pauses**, as in any lone world.
 
-## The guest's side (`31/08`)
+## The art it needs (for the final-art rule)
 
-1. The spawner, the curve, the supply, the corpse cap, the score, and the end all run in the host's step (`game.begin` or `game.step`), on the sim's clock and `rng`.
-2. A guest plays by the same paths as in any world; the only new command is none: Play again on a guest asks the host [the host decides; a guest's card offers Leave].
-3. What it adds reaches a guest: the dead by the existing delta and roster; the scenario's state (the phase, the clock of the curve, the score) in the save (the welcome) and in the frame as a new field [`scenario`, sent when it changes]; the end as that state.
-4. The sync check gains a `scenario` part.
-5. No module-level state for one player: per-player counts live on the player.
-6. Tried in two tabs; and **the wire is measured at the ceiling**: a guest's bytes a second with the cap's worth of the dead near (`net.status().wire`). **Co-op ships in the demo only if a guest stays under [200 KB/s] there;** if not, the ceiling for a world with guests is lowered to what fits, and the wire's next savings (a binary frame, interest regions, `31/04`) are noted as owed in `TODO.md`.
+Everything the demo shows, and nothing else, so the commission is small: the ground (grass, dirt, the tilled plot, a path, the wood and [stone] floors; no water but the well's), the trees of the forest and a stump, the wood building set (walls in both orientations, a door and a shuttered window open and shut, the board overlays, corner posts, the caps; no stone walls), the furniture and stations named above, the well with its bucket, the provided weapons and items (each a world picture, an icon, and a held picture where held, `26`), the player's body with [three or four] hairs and the starting clothes only (no clothing choices), the dead's skin and [three or four] outfits, the UI kit, the moodle icons, the cursors, the fire, the end card and the logo (which wants the game's name first, `35`). No animals, no villagers but the guide, nothing from the valley beyond this.
 
 ## Build order
 
 Each step verified in the browser pane through `window.__game` with `loop.setPaused(true)` and `loop.advance(1/60)` before the next; `?nosave` on the URL; `node --check` on every touched module; the determinism hash of the valley unchanged throughout.
 
-1. **The scenario layer.** `data/scenarios/`, a world's own map and scenario in its record and its save, the rules' override layer (`rules.js`: the scenario's values win over the settings, which are never written: the shared-settings quirk of `CLAUDE.md`), the scenario-only switches (sleep, tiredness, save). Verify on the valley that nothing changes with no scenario.
-2. **The set.** `wall_invisible`, `homestead.py`, the map with its spawns and no wild dead. Verify: walk the clearing; the boundary stops you; the forest beyond is seen; no room is made by the boundary (`check("rooms")`).
-3. **The horde.** The spawner (out of sight, out of range), the curve, the night factor, the lull, the ceiling. Verify by stepping through a whole day and night with the clock moved (`]`), reading the counts against the schedule.
-4. **The run's limits.** The supplies counted against [three days], the corpse cap, health by night.
-5. **The score and the end.** The HUD line, the end card, Play again, a fallen friend's return at dawn.
-6. **The entry.** `?demo`, its title, Play, Play with a friend, Join a friend.
-7. **Measure.** The ceiling from the profile; a guest's bytes at the ceiling in two tabs on the relay as well as the loopback; `check("sync")` passing mid-wave.
+1. **The scenario layer.** `data/scenarios/`, a world's own map and scenario in its record and its save, the rules' override layer (`rules.js`: the scenario's values win over the settings, which are never written: the shared-settings quirk of `CLAUDE.md`), the scenario-only switches (sleep, tiredness, save), the scenario's state in the save and a `scenario` part in the sync check. Verify on the valley that nothing changes with no scenario.
+2. **The set.** `wall_invisible` with `blocks`, the walking's one check, `homestead.py`, the map with its spawns and no wild dead. Verify: walk the clearing and into the room to move; the player's boundary stops you; a zombie placed beyond it walks through to you; the outer boundary stops it; the forest beyond is seen; no room is made by either boundary (`check("rooms")`).
+3. **The horde.** The spawner (past the spawn distance, walking to the middle), the curve, the ceiling, the stages. Verify by stepping through a scripted day and night, reading the counts against the schedule, and that no body appears within the spawn distance.
+4. **The run's limits.** The supplies counted against [three days], the corpse cap.
+5. **The score and the end.** The HUD line, the end card, Play again.
+6. **The entry.** `?demo`, its title, Play.
+7. **Measure.** The ceiling from the profile; the step and render cost there.
 8. **The check and the docs.** `tools/checks/horde.js`, `CLAUDE.md` (the code map, the URL, the check), `README` (the demo's link), `TODO.md`, and the rulings the build forced in `02`.
 
-## Acceptance (`await __game.check("horde")`, plus the two-tab and measured rows by hand)
+## Acceptance (`await __game.check("horde")`, plus the measured rows by hand)
 
 1. With no scenario the valley boots as before: the determinism hash and every existing check unchanged.
-2. The horde world starts at 08:00 with none of the dead; the first spawns after 11:00.
-3. No body ever appears within the minimum distance of a player or in any player's line of sight (checked at every spawn of a scripted day and night).
-4. Nothing crosses the boundary: a player walked into it stops; a zombie pathing to a tile beyond fails; no dead come from the wild.
-5. At night the cap and the pace follow the night factor; at dawn the lull holds; the cap grows by the schedule and stops at the ceiling.
+2. The horde world starts at 08:00 with none of the dead; the first spawns after the quiet start.
+3. No body ever appears within the spawn distance of the player (checked at every spawn of a scripted day and night, with the player at the clearing's middle and at each side of the player's boundary); each walks toward the middle on appearing.
+4. The player's boundary stops the player and passes the dead; the outer boundary stops everyone; no dead come from the wild.
+5. The cap and the pace follow the schedule by day and by night alike, and stop at the ceiling; past it, each stage begins when the one before reaches its limit.
 6. A body's pockets roll from the ordinary table; nothing is replenished; corpses past the cap are removed only out of sight; [a scripted careful player runs out of arrows and planks within about three days].
 7. Beds refuse, tiredness does not drain, and nothing is saved in the horde world; the browser's settings are unchanged after a run.
 8. The HUD line and the end card's numbers match the counts kept; Play again starts a fresh run.
-9. Two tabs: a guest fights the same dead; a fallen guest returns at dawn while the host stands; the run ends when both have fallen and both see the card; `check("sync")` passes mid-wave with the `scenario` part.
-10. Reported: the ceiling chosen and the step and render cost there; a guest's bytes a second at the ceiling, and whether co-op ships.
+9. The demo's title has no hosting or joining.
+10. Reported: the ceiling chosen and the step and render cost there; the time a scripted idle player and a scripted careful player last.
 
 ## Before it is released (Michael)
 
-Built, tested (the acceptance below, and played), and every piece in it in its final art: the homestead's buildings and furniture, the weapons and their held pictures, the items' icons, the dead's wardrobes, the boundary's forest. Whatever lacks final art by then is left out of the demo, not shown as a placeholder.
+Built, tested (the acceptance above, and played), and every piece in it in its final art (the list above). Whatever lacks final art by then is left out of the demo, not shown as a placeholder.
 
 ## Not in this scope
 
-The endless mode with supply to keep up (`05`), leaderboards (with it), other scenarios, the Horde in the full game's Worlds screen, farming in the plot before `30` step 4, saving a run, difficulty choices, the wrapper and Steam (`35`).
+The endless mode with supply to keep up (`05`), leaderboards (with it), co-op in the demo, other scenarios, the Horde in the full game's Worlds screen, farming in the plot before `30` step 4, saving a run, difficulty choices, the wrapper and Steam (`35`).

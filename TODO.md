@@ -98,12 +98,17 @@ Every other section is built for a guest as well (the rule at the top). What the
 - [ ] **A guest's left click on a villager** (found 2026-10-13, docs pass): the click pokes by the cursor's pixels (`player-controller.js`, `interact.clickCharacterAt`), which the host has no cursor for, and `net.sendPoke` carries only a gatherable's or the well's stamp; the menu's Poke does reach the host. Owed: the villager's id in the poke.
 - [ ] Combat testing's forty dead are placed in tiles 1 to 30 (`game.js`, `addTestingDead`), the proving ground's open ground; on the valley they stand two hundred tiles from the spawn. Place them round the spawn (not a multiplayer item; found the same pass).
 
+## Before anything public (Michael, 2026-10-14; `docs/35`)
+
+- [ ] **The game's name.** Nothing public is made until it has one (the site, the logo, the end card, a store page, a handle).
+- [ ] **The infrastructure day:** a business email at the game's domain; the game's own GitHub account or organisation with **the repository private** (today it is public, and the Pages site serves the whole game); the relay's Fly app moved to the new account; the game's own site for the demo and the information about the game, secure and with a design; the friends' full game moved somewhere private. The remotes, the worktrees, and the design agent's `art-docs` branch move with the repository (`27`).
+
 ## Scopes owed (from "What this game is", `02`, 2026-10-13)
 
 - [ ] The map on `M`, scoped in `docs/33-the-map.md` (choices ruled, `02`, "The map's choices"): what anyone has seen, kept by the world; built walls shown; every player live; never the dead or villagers; running behind it; low fidelity and accurate; drawn at the screen's angle.
 - [ ] Talk, scoped in `docs/34-talk.md` (with the owed fix for a guest's left click on a villager): dialogue trees as exposition and the villagers' barks (the "Hey!" of a poke is the "nothing interesting happens" of people), reading the world and never writing it, nothing gated.
 - [x] Scripted sequences: noted in `05-someday.md` (Michael, 2026-10-13: notes only for now, no scope); the dead's arrival on day one as its first case.
-- [ ] **The horde demo, scoped in `docs/36-the-horde-demo.md`** (not to be built yet, Michael): one homestead, supplies for a few days, the weapons to try, a calm morning, then the dead without end; `?demo`; co-op if the wire holds at the ceiling. Released only once built, tested, and in final art: nothing in it without its final art. The business plan around it is `docs/35`; the Endless mode with a leaderboard is `05`.
+- [ ] **The horde demo, scoped in `docs/36-the-horde-demo.md`** (not to be built yet, Michael; re-ruled 2026-10-14): one homestead wrapped in dense forest, supplies for a few days, the weapons to try, a quiet start, then the dead walking in from off screen and escalating day and night until the player falls (it is built to kill); single player only; `?demo`. Released only once built, tested, and in final art: nothing in it without its final art. The business plan around it is `docs/35`; the Endless mode with a leaderboard is `05`.
 - [ ] Before any boss or skills scope: one session played as meant (combat, aggro, the valley, the dead round the spawn).
 
 ## Art still owed (see `docs/26-art-owed.md`) — listed 2026-10-12
