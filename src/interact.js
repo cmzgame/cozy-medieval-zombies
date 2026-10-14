@@ -709,11 +709,15 @@ export function nearestSimpleAction(player) {
   }
   let best = null;
   let bestD = Infinity;
+  // A loose thing lying on a tile is picked up before a container on the same tile is opened (Michael's playtest,
+  // 2026-10-14: with a sack on the ground and an item dropped beside it, E always opened the sack, already open, so
+  // the item could only be taken from the menu). A tie in distance goes to the pick-up.
+  const rank = (a) => (a.kind === "item" ? 0 : 1);
   const consider = (actions) => {
     for (const a of actions) {
       if (!a.simple || a.enabled === false) continue;
       const d = distToTiles(player, a.tiles);
-      if (d <= a.range && d < bestD) {
+      if (d <= a.range && (d < bestD - 1e-9 || (d <= bestD + 1e-9 && best && rank(a) < rank(best)))) {
         best = a;
         bestD = d;
       }

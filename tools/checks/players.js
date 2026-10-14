@@ -126,6 +126,27 @@ export async function run(game) {
       const nan = cleanSnap({ aimAt: [NaN, 3] });
       row("a joiner's aim point crosses the host's cleaning as a point, its aim as a vector", ax === 20.5 && ay === 16.25 && c.aim && c.aim.x === 3 && c.aim.y === 4 && bad.aimAt === null && bad.aim === null && nan.aimAt === null, `aimAt ${JSON.stringify(c.aimAt)}, aim ${JSON.stringify(c.aim)}; an object or a NaN point: ${JSON.stringify(bad.aimAt)}, ${JSON.stringify(nan.aimAt)}`);
     }
+    // 9. In a world of one's own the panel's grid moves act here, not on the wire (Michael's playtest, 2026-10-14: the
+    // switch between the local and the remote handlers sent every move between bags to a host that was not there).
+    {
+      const inv = await import("/src/inventory.js");
+      const bag = inv.bagOf(me);
+      const e = bag && bag.items[bag.items.length - 1];
+      let moved = false;
+      let detail = "no item in the bag to move";
+      if (e) {
+        const was = [e.x, e.y, !!e.rot];
+        let spot = null;
+        for (let y = bag.rows - 1; y >= 0 && !spot; y--) for (let x = bag.cols - 1; x >= 0 && !spot; x--) if ((x !== e.x || y !== e.y) && G.grid.fits(bag, e.id, x, y, false, e)) spot = [x, y];
+        if (spot) {
+          G.handlers.moveInGrid(e, bag, bag, spot[0], spot[1], false);
+          moved = e.x === spot[0] && e.y === spot[1];
+          detail = `${e.id} from ${was[0]},${was[1]} to ${e.x},${e.y}`;
+          G.handlers.moveInGrid(e, bag, bag, was[0], was[1], was[2]);
+        } else detail = "no free cell to move to";
+      }
+      row("alone, a drag between grids moves the item here (the panel's handlers are the local ones)", moved, detail);
+    }
   } finally {
     if (other) G.game.removePlayer(other.id);
     for (const [z, gx, gy, state, aggro, lastSeen, target] of dead) { z.gx = gx; z.gy = gy; z.state = state; z.aggro = aggro; z.lastSeen = lastSeen; z.target = target; z.path = []; }

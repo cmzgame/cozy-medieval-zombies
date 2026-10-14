@@ -1076,7 +1076,9 @@ async function boot() {
       for (const k of new Set([...Object.keys(localHandlers), ...Object.keys(remoteHandlers)])) {
         const lv = localHandlers[k];
         const rv = remoteHandlers[k];
-        handlers[k] = typeof lv === "function" || typeof rv === "function" ? (...a) => ((net.isGuest() && typeof rv === "function") || typeof lv !== "function" ? rv : lv)(...a) : lv;
+        // On a guest the remote one, else the local one; never the remote one in a world of one's own or a host's, where it
+        // would only send to a host that is not there (2026-10-14: every move between bags did nothing).
+        handlers[k] = typeof lv === "function" || typeof rv === "function" ? (...a) => { const f = net.isGuest() && typeof rv === "function" ? rv : lv; return typeof f === "function" ? f(...a) : undefined; } : lv;
       }
       // A host's own drag into a chest marks its chunk, so a guest sees the chest change.
       handlers.changed = () => { if (!net.isGuest() && openBag && openBag.tiles && openBag.tiles[0]) map.markDirty(openBag.tiles[0][0], openBag.tiles[0][1]); };

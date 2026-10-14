@@ -144,6 +144,22 @@ export function createInventoryActions(getPlayer) {
     noRoom(intoBag) {
       showMessage(intoBag ? "No room in your bag." : "No room in there.");
     },
+    // The grid's own moves, here as well as on the wire's side (Michael's playtest, 2026-10-14: nothing could be dragged
+    // between bags or within one). The panel once did these itself when a handler was missing; main.js's switch between
+    // the local and the remote handlers took a missing local one to mean "the remote one", which only sends to a host,
+    // so in a world of one's own every move between grids, the shift-click, Tidy, and Rotate did nothing.
+    moveInGrid(entry, fromBag, toBag, x, y, rot) {
+      grid.moveEntry(fromBag, toBag, entry, x, y, rot);
+    },
+    quickMove(entry, bag, toBag) {
+      if (!grid.transfer(bag, toBag, entry)) showMessage(toBag === inventory.bagOf(getPlayer()) ? "No room in your bag." : "No room in there.");
+    },
+    rotate(entry, bag) {
+      if (grid.fits(bag, entry.id, entry.x, entry.y, !entry.rot, entry)) entry.rot = !entry.rot;
+    },
+    tidy(bag) {
+      grid.tidy(bag);
+    },
     itemMenu(entry, bag, otherBag) {
       return interact.itemMenu(getPlayer(), entry, bag, otherBag);
     },
