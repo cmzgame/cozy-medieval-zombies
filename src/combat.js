@@ -86,6 +86,14 @@ export function styleOf(player, throwing = false) {
   return (throwing && def.thrown && def.thrown.style) || (def.weapon && def.weapon.style) || (def.bow && def.bow.style) || (def.thrown && def.thrown.style) || null;
 }
 
+// The style of the main hand's other attack, when its `alt` names one (docs/32, item 2: the halberd's thrust):
+// the figure's `attack_alt` animation is drawn from it, and only a sheet that has it plays it.
+export function altStyleOf(player) {
+  const e = player.hands.main;
+  const def = e && items.getItem(e.id);
+  return (def && def.weapon && def.weapon.alt && def.weapon.alt.style) || null;
+}
+
 export function altWeaponOf(player) {
   const e = player.hands.main;
   const def = e && items.getItem(e.id);
@@ -307,7 +315,7 @@ export function tryAttack(player, zombies, hand = "main", mode = null, predict =
     player.swingLock = weapon.swing * DUAL.lockout; // so two swings never land on the same frame
     if (hand === "off") player.exposedFor = DUAL.window; // the price of the second weapon
   }
-  playAnimation(player.anim, "attack", true);
+  playAnimation(player.anim, mode === "alt" && altStyleOf(player) ? "attack_alt" : "attack", true); // the thrust has its own (docs/32)
   if (predict) return [];
   emit("meleeSwing", { player, weapon });
 

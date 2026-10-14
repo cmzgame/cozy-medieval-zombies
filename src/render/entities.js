@@ -188,7 +188,8 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
     const x = Math.round(p.x);
     const y = Math.round(p.y);
     const r = resolveFacing(sheet, e.facing);
-    const name = frameName(sheet, e.anim.name, r.facing, e.anim.frame);
+    let name = frameName(sheet, e.anim.name, r.facing, e.anim.frame);
+    if (!sheet.frames[name]) name = frameName(sheet, "idle", r.facing, 0); // a sheet one rebake behind the animation (docs/32)
     const f = sheet.frames[name];
     const rect = f ? { x: x - sheet.anchor[0], y: y - sheet.anchor[1], w: f[2], h: f[3] } : null;
     // Held items sit at the hand joints the figure's sheet reports (docs/12):
@@ -222,7 +223,7 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
         let hs = null;
         try { hs = getSheet(`held_${entry.id}`); } catch { continue; }
         const j = joints[slot];
-        const along = e.anim.name === "attack" && slot === "main" && def.held.swing !== false;
+        const along = (e.anim.name === "attack" || e.anim.name === "attack_alt") && slot === "main" && def.held.swing !== false;
         const k = along ? j.angSwing : j.ang;
         held.push({ sheet: hs, k, x: x + j.x, y: y + j.y, near: j.near, tip: def.fire ? hs.tips[k] : null });
       }

@@ -679,7 +679,9 @@ function refreshFigureOf(p, force = false) {
   if (!force && quick === keys.quick) return; // `force`: the rig's numbers changed from the console (dev.js setLook), which no key sees
   keys.quick = quick;
   figureKeys.set(p.id, keys);
-  const spec = figure.characterSpec(figure.characterInputs(p, undefined, painted, style));
+  const mainDef = p.hands && p.hands.main ? items.getItem(p.hands.main.id) : null;
+  const extra = { altStyle: combat.altStyleOf(p), heldPose: (mainDef && mainDef.held && mainDef.held.pose) || null }; // docs/32, items 1 and 2
+  const spec = figure.characterSpec(figure.characterInputs(p, undefined, painted, style, extra));
   const key = figure.specKey(spec);
   if (!force && key === keys.key) return;
   keys.key = key;

@@ -72,7 +72,9 @@ function applyCovers(outfit, painted) {
 // the look, the outfit (each worn entry's garment art, dyed), what is in the
 // hands, the dead's wardrobe index and wound, and the painted-layer overrides.
 // `assets.sheetFor` keeps these to rebake a sheet when the painted layers reload.
-export function characterInputs(ch, artOf = artResolver, overrides = {}, style = null) {
+// `extra`: what the hands ask of the drawing beyond the style (docs/32): `altStyle`, the main weapon's other attack;
+// `heldPose`, a held thing's own pose for the main arm ("present": the book).
+export function characterInputs(ch, artOf = artResolver, overrides = {}, style = null, extra = {}) {
   const outfit = {};
   for (const slot of OUTFIT_SLOTS) {
     const e = ch.worn && ch.worn[slot];
@@ -83,12 +85,13 @@ export function characterInputs(ch, artOf = artResolver, overrides = {}, style =
     variant: zombie ? "zombie" : "player",
     look: ch.look,
     outfit,
-    holding: zombie ? null : { main: !!(ch.hands && ch.hands.main), off: !!(ch.hands && ch.hands.off) },
+    holding: zombie ? null : { main: !!(ch.hands && ch.hands.main), off: !!(ch.hands && ch.hands.off), mainPose: (ch.hands && ch.hands.main && extra.heldPose) || null },
     wardrobe: ch.wardrobe || 0,
     wound: ch.wound || null,
     noCarry: ch.kind !== "player",
     overrides,
     style,
+    altStyle: zombie ? null : extra.altStyle || null,
   };
 }
 
@@ -125,7 +128,7 @@ export function characterSpec(inp) {
   painted.beard = getLayer("beard", overrides.beard || fullLook.beard || null); // facial hair (docs/25), a look like the hair
   const outfit = { ...inp.outfit };
   applyCovers(outfit, painted);
-  return { variant: "player", look: fullLook, outfit, wound: null, holding: inp.holding, painted, style: inp.style, noCarry: !!inp.noCarry };
+  return { variant: "player", look: fullLook, outfit, wound: null, holding: inp.holding, painted, style: inp.style, altStyle: inp.altStyle || null, noCarry: !!inp.noCarry };
 }
 
 // The player's spec from their look and what they wear; `worn` is the slot map
@@ -145,5 +148,5 @@ export function zombieSpec(k) {
 // A key that changes when the drawing would.
 export function specKey(spec) {
   const names = spec.painted ? Object.fromEntries(Object.entries(spec.painted).map(([k, v]) => [k, v ? v.name : null])) : null;
-  return JSON.stringify([spec.variant, spec.look, spec.outfit, spec.wound, spec.holding, names, layersVersion, spec.style || null, !!spec.noCarry]);
+  return JSON.stringify([spec.variant, spec.look, spec.outfit, spec.wound, spec.holding, names, layersVersion, spec.style || null, !!spec.noCarry, spec.altStyle || null]);
 }

@@ -1,5 +1,5 @@
 {
-  "note": "The keyframes of the figure's animations as data (docs/14, docs/32). A swing style is { fps, activeFrame, frames: [{ pitch, out, lean, bob, offPitch, offOut, wrist }] } (wrist: degrees the held thing is cocked up from the forearm, so a blade stays level as the arm drops); the walk is { frames: [{ stride, lift, arms, bob, lean, headD }] } with a pair per leg and arm [left, right], bob positive down. Edit and press Reload poses in tools/layers.html, or __game.figure.setPoses(json); __game.setLook({}) from the console.",
+  "note": "The keyframes of the figure's animations as data (docs/14, docs/32). A swing style is { fps, activeFrame, frames: [{ pitch, out, lean, bob, offPitch, offOut, wrist }] } (wrist: degrees the held thing is cocked up from the forearm, so a blade stays level as the arm drops); the walk is { frames: [{ stride, lift, arms, bob, lean, headD }] } with a pair per leg and arm [left, right], bob positive down; present is one pose { pitch, out, headD } for the main arm held out (docs/32 item 1); thrust is the halberd's other attack, attack_alt (item 2). Edit and press Reload poses in tools/layers.html, or __game.figure.setPoses(json); __game.setLook({}) from the console.",
   "walk": { "frames": [
     {"stride": [4, -4], "lift": [0, 0], "arms": [-26, 26], "bob": 0, "lean": 0.5},
     {"stride": [0, 0], "lift": [0, 3], "arms": [0, 0], "bob": -1, "lean": 0.5},
@@ -11,6 +11,13 @@
     {"pitch": 90, "out": -1, "lean": 1.5, "bob": 1, "wrist": 10},
     {"pitch": 35, "out": -5, "lean": 2, "bob": 1, "wrist": 45},
     {"pitch": 55, "out": 0, "lean": 0.5, "bob": 0, "wrist": 30}
+  ] },
+  "present": {"pitch": 90, "out": 2, "headD": 1},
+  "thrust": { "fps": 12, "activeFrame": 1, "frames": [
+    {"pitch": 45, "out": 1, "offPitch": 30, "offOut": 1, "lean": -1, "wrist": 45},
+    {"pitch": 95, "out": 0, "offPitch": 80, "offOut": 0.5, "lean": 3, "bob": 1},
+    {"pitch": 90, "out": 0, "offPitch": 78, "offOut": 0.5, "lean": 2, "bob": 1},
+    {"pitch": 65, "out": 1, "offPitch": 55, "offOut": 1, "lean": 0.5, "wrist": 25}
   ] },
   "zombie": { "fps": 12, "activeFrame": 1, "frames": [
     {"pitch": 40, "offPitch": 40, "lean": 0},

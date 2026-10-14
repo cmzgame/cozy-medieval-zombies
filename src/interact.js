@@ -544,6 +544,7 @@ function waterActions(source, player) {
       mx: source.mx,
       my: source.my,
       duration: DRINK_TIME,
+      present: true, // the held-out pose for the bar (docs/32, item 1)
       onStart: source.onStart || null,
       perform() {
         player.thirst = player.maxThirst;
@@ -752,6 +753,7 @@ export function startAction(player, action) {
     return true;
   }
   player.action = { action, elapsed: 0 };
+  if (action.present) player.presentFor = action.duration;
   return true;
 }
 
@@ -762,6 +764,7 @@ export function updateAction(player, dt) {
   if (!a) return null;
   if (player.moving || distToTiles(player, a.action.tiles) > a.action.range + 0.2) {
     player.action = null;
+    if (a.action.present) player.presentFor = 0;
     return null;
   }
   a.elapsed += dt;

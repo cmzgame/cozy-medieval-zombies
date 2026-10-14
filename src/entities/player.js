@@ -96,6 +96,7 @@ export function aimOrigin(player) {
 // ---- needs ----
 
 export function eat(player, def) {
+  player.presentFor = T.presentTime; // the held-out pose while it goes down (docs/32, item 1)
   player.hunger = Math.min(player.maxHunger, player.hunger + (def.hunger || 0));
   player.thirst = Math.min(player.maxThirst, player.thirst + (def.thirst || 0));
   player.hp = Math.min(player.maxHp, player.hp + (def.heal || 0));
@@ -105,6 +106,7 @@ export function eat(player, def) {
 export function drink(player, entry) {
   const amount = Math.min(entry.fill ?? 0, T.drinkSip, player.maxThirst - player.thirst + 1);
   if (amount <= 0) return false;
+  player.presentFor = T.presentTime; // the held-out pose while it goes down (docs/32, item 1)
   entry.fill -= amount;
   player.thirst = Math.min(player.maxThirst, player.thirst + amount);
   return true;
@@ -343,7 +345,11 @@ export function updatePlayer(player, dt, snap = IDLE) {
     player.facing = iso.facingFromScreenVector(ax, ay);
   }
 
-  const oneShot = player.anim.name === "attack" || player.anim.name === "hurt";
-  if (!oneShot || player.anim.done) playAnimation(player.anim, (player.carrying ? "carry_" : "") + (walking ? "walk" : "idle"));
+  // A one-shot plays out; one the sheet lacks (a sheet not yet rebaked for the weapon) ends at once rather than hold.
+  const oneShot = (player.anim.name === "attack" || player.anim.name === "attack_alt" || player.anim.name === "hurt") && !!(sheet && sheet.animations[player.anim.name]);
+  // The held-out pose (docs/32, item 1): eating, drinking, or a drink at water, for its time, standing; walking ends it.
+  if (player.presentFor > 0) player.presentFor = walking ? 0 : Math.max(0, player.presentFor - dt);
+  const presenting = player.presentFor > 0 && !player.carrying && !!(sheet && sheet.animations.present);
+  if (!oneShot || player.anim.done) playAnimation(player.anim, presenting ? "present" : (player.carrying ? "carry_" : "") + (walking ? "walk" : "idle"));
   advanceAnimation(player.anim, sheet, dt);
 }

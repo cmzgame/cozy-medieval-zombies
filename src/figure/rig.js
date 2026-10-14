@@ -20,6 +20,9 @@ export const ANIMS = {
   die: { fps: 8, loop: false, frames: 4 },
   carry_idle: { fps: 2, loop: true, frames: 2 },
   carry_walk: { fps: 8, loop: true, frames: 4 },
+  // The held-out pose (docs/32, item 1): one frame, the player's alone (the noCarry pattern), played while
+  // eating or drinking; a book in the main hand takes its arm for the idle and the walk as well.
+  present: { fps: 1, loop: true, frames: 1 },
 };
 
 // ---- the attack keyframes, as data (docs/14) ----
@@ -72,6 +75,20 @@ const DEFAULT_POSES = {
       { pitch: 30, out: 0, lean: 1, bob: 0 },
     ],
   },
+  // The held-out pose (docs/32, item 1): the main arm forward at chest height, the thing presented in front.
+  present: { pitch: 90, out: 2, headD: 1 },
+  // The halberd's thrust (docs/32, item 2), the second attack animation `attack_alt` of a weapon whose `alt`
+  // names it: a draw back, the lunge (the active frame), held, and back. Both hands on the shaft (`offPitch`).
+  thrust: {
+    fps: 12,
+    activeFrame: 1,
+    frames: [
+      { pitch: 20, out: 1, offPitch: 10, offOut: 1, lean: -1 },
+      { pitch: 95, out: 0, offPitch: 80, offOut: 0.5, lean: 3, bob: 1 },
+      { pitch: 90, out: 0, offPitch: 78, offOut: 0.5, lean: 2, bob: 1 },
+      { pitch: 60, out: 1, offPitch: 50, offOut: 1, lean: 0.5 },
+    ],
+  },
   zombie: {
     fps: 12,
     activeFrame: 1,
@@ -106,11 +123,15 @@ export function animsFor(spec) {
   const st = POSES[styleFor(spec)];
   let out = ANIMS;
   if (st && st.frames && st.frames.length) out = { ...ANIMS, attack: { ...ANIMS.attack, fps: st.fps ?? ANIMS.attack.fps, activeFrame: st.activeFrame ?? ANIMS.attack.activeFrame, frames: st.frames.length } };
+  // The main hand's other attack (docs/32, item 2): only on the sheet of a figure whose weapon's `alt` names a style,
+  // so the atlas pays for the halberd's bearer alone.
+  const alt = spec.altStyle && POSES[spec.altStyle];
+  if (alt && alt.frames && alt.frames.length) out = { ...out, attack_alt: { fps: alt.fps ?? ANIMS.attack.fps, loop: false, frames: alt.frames.length, activeFrame: alt.activeFrame ?? ANIMS.attack.activeFrame } };
   // Only the player carries furniture: for everyone else the six carry frames are
   // left off, which makes the sheet 27 percent narrower and so five fit across the
   // atlas where three did (docs/19: the atlas is the budget).
   if (spec.noCarry) {
-    const { carry_idle, carry_walk, ...rest } = out;
+    const { carry_idle, carry_walk, present, ...rest } = out; // the held-out pose is the player's alone too (docs/32)
     out = rest;
   }
   return out;
@@ -203,7 +224,8 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
         p.headD = f.headD ?? 0;
       }
       break;
-    case "attack": {
+    case "attack":
+    case "attack_alt": {
       const f = (POSES[style || (zombie ? "zombie" : "one_handed")] || DEFAULT_POSES.one_handed).frames[i];
       if (f) {
         p.offOwn = f.offPitch != null; // the style moves the off arm itself (the bow's string hand): holding does not override it
@@ -212,9 +234,14 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
         p.lean = f.lean ?? 0;
         p.bob = f.bob ?? 0;
         p.wrist = f.wrist ?? 0;
+        p.headD = f.headD ?? 0;
       }
       break;
     }
+    case "present":
+      presentArm(p);
+      p.headD = (POSES.present || DEFAULT_POSES.present).headD ?? 0;
+      break;
     case "hurt":
       p.lean = -2;
       p.flash = i === 0;
@@ -249,11 +276,24 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
     p.armPitch[0] = HOLD_PITCH;
     p.armOut[0] = HOLD_OUT;
   }
-  if (holding.main && !fixed && anim !== "attack") {
-    p.armPitch[1] = HOLD_PITCH;
-    p.armOut[1] = HOLD_OUT;
+  const swinging = anim === "attack" || anim === "attack_alt";
+  if (holding.main && !fixed && !swinging && anim !== "present") {
+    // A thing held out by its nature (the book: `held.pose: "present"`, docs/32 item 1) is presented in the idle
+    // and the walk; anything else is held forward at the hold's pitch.
+    if (holding.mainPose === "present") presentArm(p);
+    else {
+      p.armPitch[1] = HOLD_PITCH;
+      p.armOut[1] = HOLD_OUT;
+    }
   }
   return p;
+}
+
+// The main arm held out in front at chest height (docs/32, item 1), from the poses data.
+function presentArm(p) {
+  const f = POSES.present || DEFAULT_POSES.present;
+  p.armPitch[1] = f.pitch ?? 90;
+  p.armOut[1] = f.out ?? 2;
 }
 
 // The joints of a pose in body coordinates (l, d, h).

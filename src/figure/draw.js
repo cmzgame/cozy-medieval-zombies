@@ -76,7 +76,7 @@ const RAISED_ARM = 40; // degrees of pitch from which an arm (holding, swinging)
 
 function drawFrame(frame, spec, facing, anim, i) {
   const F = facingVectors(facing);
-  const p = pose(spec.variant, anim, i, spec.holding, styleFor(spec));
+  const p = pose(spec.variant, anim, i, spec.holding, anim === "attack_alt" ? spec.altStyle : styleFor(spec));
   const J = joints(p);
   const look = spec.look;
   const outfit = spec.outfit || {};
