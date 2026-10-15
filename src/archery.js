@@ -327,7 +327,9 @@ export function fireballSheet(img) {
     const row = (k + 12) % 16;
     for (let f = 0; f < 3; f++) frames[`fireball_${k}_${f}`] = [f * C, row * C, C, C];
   }
-  return { image: img, frames, anchor: [32, 32], animations: {}, facings: [], mirror: {}, flicker: 3 };
+  // Drawn at twice its painted size (Michael, 2026-10-14: "a fire bowling ball, not a fire baseball"): a whole-number
+  // scale keeps its pixels square and crisp, only twice as big as the world's; a bigger painted sheet would end that.
+  return { image: img, frames, anchor: [32, 32], animations: {}, facings: [], mirror: {}, flicker: 3, scale: 2 };
 }
 
 // ---- the projectiles' pictures, generated like everything else ----
