@@ -1156,7 +1156,7 @@ function applyFrame(f) {
   // only the host saw anyone on fire).
   const everyone = [...S.players, ...S.zombies, ...S.villagers, ...S.corpses];
   burning.update(1 / 60, everyone);
-  light.setBurners(burning.lights(everyone));
+  light.setBurners([...burning.lights(everyone), ...archery.projectileLights()]); // and a fireball in flight (docs/24)
   light.update();
 }
 
