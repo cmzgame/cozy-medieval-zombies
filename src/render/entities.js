@@ -53,7 +53,14 @@ export function arrowDrawables(arrows, visible, out) {
       emit() {
         // A projectile drawn to flicker (the fireball: three frames a direction) loops them by the wall clock, as flames do.
         const fl = sheet.flicker ? `_${Math.floor(performance.now() / 90) % sheet.flicker}` : "";
-        frameQuad(sheet, `${a.projectile || "arrow"}_${a.frame}${fl}`, x, y - Math.round(a.z), { world, heights: 0, flags: sheet.flicker ? gl.FLAG_STANDING | gl.FLAG_NOFOG | gl.FLAG_UNLIT : gl.FLAG_STANDING | gl.FLAG_NOFOG });
+        const name = `${a.projectile || "arrow"}_${a.frame}${fl}`;
+        const flags = sheet.flicker ? gl.FLAG_STANDING | gl.FLAG_NOFOG | gl.FLAG_UNLIT : gl.FLAG_STANDING | gl.FLAG_NOFOG;
+        const k = sheet.scale | 0;
+        if (k > 1) {
+          // A projectile drawn larger than painted (the fireball, a whole-number scale so its pixels stay square).
+          const f = sheet.frames[name];
+          if (f) gl.quad(x - sheet.anchor[0] * k, y - Math.round(a.z) - sheet.anchor[1] * k, f[2] * k, f[3] * k, gl.frameUV(sheet, name), { world, heights: 0, flags });
+        } else frameQuad(sheet, name, x, y - Math.round(a.z), { world, heights: 0, flags });
       },
     });
   }
