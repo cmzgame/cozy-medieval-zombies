@@ -89,8 +89,13 @@ export function set(key, value) {
   for (const fn of listeners) fn(key, value);
 }
 
-export function reset() {
-  for (const k of Object.keys(DEFAULTS)) set(k, DEFAULTS[k]);
+// The Settings screen's Defaults: what that screen shows, and nothing else. The same blob keeps this browser's
+// identities, its id, the friends' worlds it joined, the creator key, and the owner keys of its server worlds, and the
+// panels' places; Defaults once reset them all, which lost a browser its characters in friends' worlds and its server
+// worlds' keys (the wiki census's bugs, 2026-10-15).
+export const SCREEN_KEYS = [...Object.keys(CHOICES), "paintedLayers"];
+export function reset(keys = SCREEN_KEYS) {
+  for (const k of keys) set(k, DEFAULTS[k]);
 }
 
 // Called with (key, value) after any change.
