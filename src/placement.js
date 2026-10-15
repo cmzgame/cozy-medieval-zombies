@@ -10,6 +10,7 @@
 // This module reads the world (map, iso, input, inventory) and writes only the
 // carried prop and, on confirm, the map and the player's stores. It does not
 // import interact.js (interact imports it); the timed action is started
+import { emit } from "./events.js";
 // through the runner main.js hands in with init().
 
 import * as iso from "./iso.js";
@@ -392,12 +393,15 @@ function destroy(t) {
   if (t.type === "prop") {
     const prop = t.prop;
     // What it held falls where it stood: a container's bag and a station's output.
-    for (const bag of [prop.bag, prop.output]) {
-      if (!bag) continue;
+    const bags = [prop.bag, prop.output].filter(Boolean);
+    for (const bag of bags) {
       for (const e of [...bag.items]) map.dropItem(prop.tile[0], prop.tile[1], e);
       bag.items.length = 0;
     }
     map.removeProp(prop);
+    // A panel open on it closes (the wiki sync, 2026-10-15: the host's stayed open on the emptied bag, and a thing
+    // put in it went with the prop; a guest's finds its container again by id and closes by itself).
+    if (bags.length) emit("containerGone", { bags });
   } else {
     map.destroyWall(t.tx, t.ty, t.edge);
   }

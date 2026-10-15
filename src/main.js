@@ -1510,6 +1510,9 @@ async function boot() {
       events.on("weaponBroke", ({ item, who }) => {
         if (!who || who === S.player.id) showMessage(`Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3);
       });
+      events.on("containerGone", ({ bags }) => {
+        if (openBag && bags.includes(openBag.bag)) openBag = null; // its panel closes with it (placement.js destroy)
+      });
       events.on("containerOpened", ({ bag, tiles: where, name, corpse, closeDist }) => {
         // Opened by a guest's player (the acting player, game.js): the host tells the guest (host.js), not this screen.
         const by = game.state.acting;

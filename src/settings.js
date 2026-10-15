@@ -10,7 +10,7 @@ export const DEFAULTS = {
   worldScale: "auto", // the zoom: "auto" or one of view.ZOOM_LEVELS
   debugCorner: true, // the text in the top-left corner
   zombieAggro: true, // on by default since 2026-10-15 (Michael: a sandbox setting, the dead hunt unless you turn them off); off they wander and ignore you (2026-10-10). A browser that saved its settings keeps its own
-  zombiesAttackVillagers: false, // on: the dead hunt villagers too, always preferring the player when both are in sight (docs/19)
+  zombiesAttackVillagers: false, // on: the dead hunt villagers, whatever aggro says; with aggro on, the player first when both are in sight (two knobs on purpose, Michael 2026-10-15; docs/19)
   squareSurface: "cobble", // the square and its two paths: "cobble" or "dirt", to compare (docs/15, for now)
   combatTesting: false, // on (read at load): no trees, a hundred more of the dead in a ring round the spawn (docs/21; 2026-10-15)
   swingTimer: true, // a bar over your head while a swing recovers (World of Warcraft's swing timer; docs/21)
