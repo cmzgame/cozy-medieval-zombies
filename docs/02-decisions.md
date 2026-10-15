@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-14 — A wiki, scoped (Michael): its own repo, generated from the game's data, the census first
+
+Michael wants a real wiki, OSRS style, not the docs with a reader: everything about the game, updatable by Claude (he makes targeted changes), in its own repository and Pages site, a new folder under `Dev` allowed. **Scoped as `37`, not started.** The calls in it (defaults he may overrule): the wiki says what the game is on `main` and the docs keep why and what is planned; a small generator of our own (Node, no dependencies but a vendored markdown parser) over an off-the-shelf docs site, real MediaWiki, or GitHub's repo wiki; the generated half of every page from a snapshot of the game's `data/` (items, recipes, loot, props, tuning, the map's places and villagers), and **every number in prose a reference to the data**; fixed page kinds in the OSRS manner, with a With friends section where multiplayer changes a rule; Claude writes locally and pushes, Michael edits through GitHub's editor; the build fails on a broken reference; **the census of what is in the game is the first deliverable** (an automatic inventory, six reading passes by area, the discrepancies between docs and code for Michael, spot checks in the pane). Docs: 37, CLAUDE.md, README, TODO.
+
 ### 2026-10-13 — Two things left open on purpose (Michael)
 
 **The dead's arrival** (tied to the first sleep, the first nightfall, or a clock): TBD, since the game has no first-day concept yet. **"Every new system adds its question to the guide in the same commit"** (`34`): not made a rule yet, since the guide is a while off; it stays a default in `34`.
