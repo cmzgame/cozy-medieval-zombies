@@ -18,7 +18,7 @@ Started 2026-10-08 as the marriage of two prototypes, both kept as they are:
 4. **New game, new gospel.** The parents' decision logs are inputs, not rules. Nothing from a parent binds here until it is re-decided in `docs/02-decisions.md`. When a parent did something well, say so and decide again anyway.
 5. Before ending a session, update the Status block in `TODO.md` and tick completed boxes.
 6. **Multiplayer is live** (2026-10-13). Every addition and every change works for a guest in the same commit as for the host; the checklist is the first of the rules below. Never leave the guest's side as catch-up for later.
-7. **The wiki is part of shipping** (Michael, 2026-10-14). No work is called done until the wiki (`C:/Users/micha/Dev/cmz-wiki`, published at michaeldippold.github.io/cmz-wiki) is synced for it, in the same session as the push; the rule is below, the method is the wiki repository's own `CLAUDE.md`.
+7. **The wiki is part of shipping** (Michael, 2026-10-14). No work is called done until the wiki (`C:/Users/micha/Dev/cmz-wiki`, published at cmzgame.github.io/cmz-wiki) is synced for it, in the same session as the push; the rule is below, the method is the wiki repository's own `CLAUDE.md`.
 
 ## Docs
 

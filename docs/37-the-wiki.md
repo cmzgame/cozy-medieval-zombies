@@ -25,7 +25,7 @@ The OSRS wiki is the model (Michael: among the best game wikis ever made, and th
 
 ## Where it lives, and how Claude keeps it
 
-- **Its own repository**, `michaeldippold/cmz-wiki`, in `C:\Users\micha\Dev\cmz-wiki`, published by GitHub Pages at `michaeldippold.github.io/cmz-wiki` (a custom domain later). **Public, as the game's repo is; when the game's code goes private, the wiki goes with it** (Michael).
+- **Its own repository**, `cmzgame/cmz-wiki` since 2026-10-15 (the studio's organisation; `michaeldippold/cmz-wiki` before), in `C:\Users\micha\Dev\cmz-wiki`, published by GitHub Pages at `michaeldippold.github.io/cmz-wiki` (a custom domain later). **Public, as the game's repo is; when the game's code goes private, the wiki goes with it** (Michael).
 - **Claude writes it locally and pushes** with the `gh` login this machine already has: no wiki software to sign into, no bot passwords, no API keys.
 - **Michael's targeted changes:** every page has "Edit this page", which opens its markdown in GitHub's web editor; a commit there rebuilds the site (a GitHub Action). Or he edits locally like any file. The generated sections are not editable there (they come from the data); a comment in each page's source says so.
 - **Keeping the wiki current is part of shipping** (Michael: "not worth building if it's going to immediately fall behind"). Once the wiki exists, the game's `CLAUDE.md` gains a rule beside the multiplayer one: **a feature is not pushed to `main` until the wiki is checked and updated for it** (the sync run, its report read, the pages it names corrected, a Changes entry written), by whichever agent pushes it; Michael keeps it up as well. The last step of the build below writes that rule.

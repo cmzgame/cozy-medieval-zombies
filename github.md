@@ -23,10 +23,11 @@ Michael directs several agents at once, and until now they talked through him: h
 
 ### The repositories
 
-- **The game:** `michaeldippold/cozy-medieval-zombies`, checked out at `C:/Users/micha/Dev/cozy-medieval-zombies` (the main checkout; sessions work in worktrees under `.claude/worktrees/`, which the desktop app makes, one per session). Public.
-- **The wiki:** `michaeldippold/cmz-wiki`, at `C:/Users/micha/Dev/cmz-wiki`; how it is kept is its own `CLAUDE.md`. Public; goes private when the game does.
+- **The organisation:** `cmzgame` (the studio, since 2026-10-15; its email `cmzgamestudio@gmail.com`; Michael's `michaeldippold` its owner). Both repositories live in it and its sites are `cmzgame.github.io/...`.
+- **The game:** `cmzgame/cozy-medieval-zombies` (`michaeldippold/cozy-medieval-zombies` until 2026-10-15), checked out at `C:/Users/micha/Dev/cozy-medieval-zombies` (the main checkout; sessions work in worktrees under `.claude/worktrees/`, which the desktop app makes, one per session). Public.
+- **The wiki:** `cmzgame/cmz-wiki` (`michaeldippold/cmz-wiki` until 2026-10-15), at `C:/Users/micha/Dev/cmz-wiki`, published at `cmzgame.github.io/cmz-wiki`; how it is kept is its own `CLAUDE.md`. Public; goes private when the game does.
 - **The design agent's worktree:** `C:/Users/micha/Dev/cozy-medieval-zombies-art` on the branch `art-docs` (its tool cannot write under `.claude/`; `docs/27`).
-- **On the infrastructure day** (`TODO.md`, "Before anything public"), both repositories move to the game's own GitHub organisation, private, and the agents' account (section 4) becomes a member of it.
+- **Public for now:** GitHub Pages serves a free organisation's public repositories only; both go private when the studio takes a paid plan or hosts its sites elsewhere (`TODO.md`, "Before anything public").
 
 ### What `main` is
 
@@ -35,7 +36,7 @@ Michael directs several agents at once, and until now they talked through him: h
 ### The environments
 
 - **Local:** `python serve.py 8010` serves the game with no build step (the app's preview calls it `medieval`; `medieval-second` on 8011); `node server/relay.js 8012` a local relay (`relay`); `node C:/Users/micha/Dev/cmz-wiki/serve.js` the built wiki on 8020 (`wiki`). Two-tab multiplayer tests use `?nosave&relay=none` (`CLAUDE.md`, testing).
-- **Production:** the site on GitHub Pages; the relay and the server worlds on Fly (`wss://cmz-relay.fly.dev`, region `ord`, one 512 MB shared machine that stops when idle and wakes on a join); the wiki on its own Pages site (`michaeldippold.github.io/cmz-wiki`).
+- **Production:** the site on GitHub Pages; the relay and the server worlds on Fly (`wss://cmz-relay.fly.dev`, region `ord`, one 512 MB shared machine that stops when idle and wakes on a join); the wiki on its own Pages site (`cmzgame.github.io/cmz-wiki`).
 
 ### Storage
 
@@ -59,8 +60,8 @@ The project's commands (details in `CLAUDE.md`, "Testing"): `node --check <file>
 
 **Two GitHub accounts, one per side of a review, and no other.** GitHub never lets a pull request's author approve it, so the two roles use two accounts and every approval counts:
 
-- **Michael's account, `michaeldippold`:** Michael himself in the browser, and **Primary** in its sessions. Primary's approval of a Secondary's pull request is a real GitHub approval.
-- **The agents' account** (a new account for this game alone, named on the setup day, for example `cmz-studio-bot`; written `<bot>` below): **every Secondary** in its sessions. A Secondary's pull request is authored by `<bot>`, so Primary can approve it; Primary's own pull request is authored by `michaeldippold`, so a Secondary (as `<bot>`) can approve it.
+- **Michael's account, `michaeldippold`** (the owner of the organisation `cmzgame`): Michael himself in the browser, and **Primary** in its sessions. Primary's approval of a Secondary's pull request is a real GitHub approval.
+- **The agents' account** (a new account for this game alone, a member of `cmzgame` with Write, never an owner; its name is chosen at its signup, for example `cmzgame-bot`, with the email `cmzgamestudio+bot@gmail.com`; written `<bot>` below): **every Secondary** in its sessions. A Secondary's pull request is authored by `<bot>`, so Primary can approve it; Primary's own pull request is authored by `michaeldippold`, so a Secondary (as `<bot>`) can approve it.
 - **No other account touches these repositories.** In particular `writeplaintext`, which is logged in to `gh` on this machine for other work, is never used for this game (Michael, 2026-10-15: the businesses may part ways, and neither belongs in the other's history).
 
 **How a session acts as its account:** both accounts are logged in to `gh` once (`gh auth login`, section 12), with `michaeldippold` active. **Primary** uses `gh` as it is. **A Secondary** runs every `gh` command with the bot's token in the environment for that one command, never printed or written anywhere: `GH_TOKEN="$(gh auth token --user <bot>)" gh pr create …` in Git Bash (`$env:GH_TOKEN = gh auth token --user <bot>; gh …; Remove-Item Env:GH_TOKEN` in PowerShell). **Never** run `gh auth switch`: it changes the account for every session on the machine. Check before writing: `gh api user --jq .login` (with the token for a Secondary) must print your role's account.
@@ -102,7 +103,7 @@ When Michael says "work your queue", or at the start of any session once the rol
 1. `git fetch origin`; read `TODO.md`'s Status block and the newest entries at the top of `docs/02-decisions.md`.
 2. **Primary:** `gh pr list --label needs-review` (pull requests waiting for review), then `gh issue list --label for:primary`, then the open deploy runs (`gh run list --workflow deploy.yml --limit 5`).
 3. **A Secondary:** your own open pull requests first (`gh pr list --author <bot>`: a review may be waiting with changes requested), then `gh issue list --label for:secondary --label ready` filtered to your focus (add `--label area:…`), oldest first. The wiki Secondary also `gh pr list --label needs-wiki`.
-4. Anything you cannot decide goes to Michael: a comment with the question and the options (a recommendation first), the label `needs-michael`, and on to the next thing. Michael's queue: [open items needing Michael](https://github.com/michaeldippold/cozy-medieval-zombies/issues?q=is%3Aopen+label%3Aneeds-michael).
+4. Anything you cannot decide goes to Michael: a comment with the question and the options (a recommendation first), the label `needs-michael`, and on to the next thing. Michael's queue: [open items needing Michael](https://github.com/cmzgame/cozy-medieval-zombies/issues?q=is%3Aopen+label%3Aneeds-michael).
 
 Nothing notifies a session; every session starts by reading its queue. That is the whole of "no pasting".
 
@@ -187,12 +188,23 @@ When the review is approved (and Michael's word given where needed), the checks 
 
 ## 12. Setting it up, in order
 
-1. **Michael:** create the agents' account for this game alone (its own email, ideally the game's, so it moves with the game on the infrastructure day), and add it as a collaborator with **Write** on both repositories.
-2. **Michael, at the machine:** `gh auth login` as `michaeldippold` and again as the bot (both stay logged in; `michaeldippold` active); [optionally sign the bot in to Git Credential Manager too]. Leave `writeplaintext` alone or log it out of `gh` (`gh auth logout --user writeplaintext`); this game never uses it.
-3. **A Secondary (infrastructure):** create the labels and milestones; add `.github/pull_request_template.md`, two issue templates (a task, a reproduced bug), and `.github/workflows/ci.yml`; add `pull_request` to the wiki's workflow; open them as pull requests for Primary.
-4. **Michael:** branch protection on both repositories (section 10).
-5. **A Secondary (planning):** turn `TODO.md`'s open work into issues under their milestones, each with `for:primary` or `for:secondary` and `ready` where it is scoped.
-6. **Everyone:** from then on, the role question, then "work your queue".
+**The move to the studio's organisation (Michael, 2026-10-15; option A):** the account `cmzgame` Michael made becomes the organisation (an organisation is no one's login; Michael's account is its owner, so he keeps full access, which a repository owned by a personal account cannot give a collaborator), the agents' account is the one new account, and both repositories transfer into it. What a move breaks, planned for: the Pages addresses change and the old ones do not redirect (the sites become `cmzgame.github.io/cozy-medieval-zombies` and `cmzgame.github.io/cmz-wiki`); a browser's worlds, identities, browser id, and keys stay with the old address (Michael: only test worlds there, nothing to carry); the relay accepts a world moved up from either address (deployed first, `server/relay.js` `CMZ_SITE_ORIGIN`); the wiki's Verify stamp names Michael's account rather than the repository's owner, which becomes the organisation; every link naming `michaeldippold/` is changed. Fly is untouched (its deploy token belongs to the app). In order, Primary's steps done between Michael's clicks:
+
+1. **Primary:** the relay change deployed; a branch in each repository with the new names, merged after its transfer; the stale long-lived branches deleted (Michael: yes, if stale).
+2. **Michael:** other sessions told to stop pushing until the move is done.
+3. **Michael:** signed in as `cmzgame`, Settings, Organizations, "Turn cmzgame into an organization", with `michaeldippold` as its owner; the organisation's email `cmzgamestudio@gmail.com`.
+4. **Michael:** the agents' account made (its own login; email `cmzgamestudio+bot@gmail.com`) and invited to `cmzgame` as a member (Write on both repositories through a team or per repository; never an owner).
+5. **Michael:** `michaeldippold/cmz-wiki`, Settings, Transfer ownership, to `cmzgame`; on the new repository, Settings, Pages, the source GitHub Actions. **Primary:** the local remote pointed at it, the wiki's branch pushed, the site built at its new address. **Michael:** Verify pressed on one page, to prove the stamp is still his.
+6. **Michael:** `michaeldippold/cozy-medieval-zombies` transferred the same way; on the new repository the secret `FLY_API_TOKEN` and the variable `PAGES_FROM_ACTIONS` (`true`) checked (re-added if a transfer dropped them), Pages's source GitHub Actions. **Primary:** the main checkout's remote pointed at it (every worktree shares it, the art one too), the game's branch merged and pushed, the deploy watched, and a smoke test on the new site (it loads, a server world shows as open, a join, Move to the server answered).
+7. **Michael:** friends given the new address; [optionally a small repository under `michaeldippold` with the old name whose page redirects to the new address, made only after step 6, since it takes the name GitHub would otherwise redirect].
+
+**Then the process:**
+
+8. **Michael, at the machine:** `gh auth login` as `michaeldippold` and again as the bot (both stay logged in; `michaeldippold` active); [optionally sign the bot in to Git Credential Manager too]. Leave `writeplaintext` alone or log it out of `gh` (`gh auth logout --user writeplaintext`); this game never uses it.
+9. **A Secondary (infrastructure):** create the labels and milestones; add `.github/pull_request_template.md`, two issue templates (a task, a reproduced bug), and `.github/workflows/ci.yml`; add `pull_request` to the wiki's workflow; open them as pull requests for Primary.
+10. **Michael:** branch protection on both repositories (section 10).
+11. **A Secondary (planning):** turn `TODO.md`'s open work into issues under their milestones, each with `for:primary` or `for:secondary` and `ready` where it is scoped.
+12. **Everyone:** from then on, the role question, then "work your queue".
 
 ## 13. Decided (Michael, 2026-10-15)
 
@@ -201,3 +213,4 @@ When the review is approved (and Michael's word given where needed), the checks 
 3. **Roles:** Primary (one, reviews and merges, codes too) and Secondary (many, a focus each), confirmed with Michael at the start of every session before anything is changed.
 4. **`docs/bugs.md`:** the holding place for unverified bugs, gone through now and then; a reproduced bug becomes an issue.
 5. **The wiki Secondary's syncs:** pushed to the wiki's `main` directly; larger wiki changes by pull request.
+6. **The studio's organisation** (later the same day): the account `cmzgame` turned into the organisation, Michael's account its owner, the agents' account the one new account; both repositories moved into it, public while Pages needs it (section 12).

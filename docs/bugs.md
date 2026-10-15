@@ -4,13 +4,13 @@
 
 ## The wiki census's entries
 
-**Where these come from:** the **wiki-writing agent**, not a coding agent. They were found while building the wiki (`docs/37`, the repository `michaeldippold/cmz-wiki`): a census that read the whole game, code first and docs second, at game commit **`9205ad7`** (2026-10-14), then traced every claim on every wiki page back to the code. **Nothing here was played in the game**: each item was read in the code, and the ones marked *needs repro* were inferred and should be tried before they are fixed. Line numbers are as of `9205ad7` and may have moved.
+**Where these come from:** the **wiki-writing agent**, not a coding agent. They were found while building the wiki (`docs/37`, the repository `cmzgame/cmz-wiki`): a census that read the whole game, code first and docs second, at game commit **`9205ad7`** (2026-10-14), then traced every claim on every wiki page back to the code. **Nothing here was played in the game**: each item was read in the code, and the ones marked *needs repro* were inferred and should be tried before they are fixed. Line numbers are as of `9205ad7` and may have moved.
 
 **For the coding agents and the technical lead:** this is a work list, not a ruling. Before fixing an item, confirm it on current `main` (and in the pane where it is behaviour). When an item is fixed, move it to **Fixed** at the bottom with the commit; when it is judged intended or not worth fixing, move it to **Closed** with a word why. A fix is built for a guest as every change is (`CLAUDE.md`, the multiplayer rule), and the wiki is updated for it.
 
 **How the list grows:** each time the wiki is synced with the game, new findings are added here by the wiki agent, marked with the commit they were read at. The wiki agent never edits an item a coding agent has moved or annotated.
 
-**Not here:** the places where the game's docs disagree with its code (mostly stale docs, for Michael to rule on): `census/discrepancies.md` in the wiki repository, [on GitHub](https://github.com/michaeldippold/cmz-wiki/blob/main/census/discrepancies.md).
+**Not here:** the places where the game's docs disagree with its code (mostly stale docs, for Michael to rule on): `census/discrepancies.md` in the wiki repository, [on GitHub](https://github.com/cmzgame/cmz-wiki/blob/main/census/discrepancies.md).
 
 ## Open: likely bugs
 
