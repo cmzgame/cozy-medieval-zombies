@@ -10,6 +10,8 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 
 ## Status
 
+- **2026-10-15: the open work lives in the issues** (#7, `github.md` section 12, step 11). Every open box below links its issue; GitHub holds the detail, this file the overview. A box with no link says why in its own words (later work in `05`, Michael's own steps, or a check that is his to call).
+
 - **Where work stopped, 2026-10-15, the very end (READ THIS FIRST).** Shipped through the process the same night: the bowstring to the chin (#8), the cast's pose with the staff held like a pole (#9), the fireball bursting on the first body it touches, a wider hit where it lands, never through a wall, at 5.25 (#12). **Michael's next, in no order:** the infrastructure day (the priority above); the menus and the site (#16, a scope first, his rulings); burning made real (#14); the elbow's next poses (`docs/32`, "Where we left off"). Open in the queue: #3, #7, #10, #13, #14, #15, #16.
 
 - **Where work stopped, 2026-10-15, last (READ THIS FIRST).** **The process in `github.md` is in force.** Both repositories live in the organisation `cmzgame` (`cmzgame.github.io/cozy-medieval-zombies`, `cmzgame.github.io/cmz-wiki`; the old addresses 404); Michael's `michaeldippold` owns it and is Primary's account, `cmzgame-bot` is every Secondary's. Work is an issue, code a pull request from the template, CI (`checks`) green, a review from the other account, Primary's merge; the game's `main` is protected. The bug list is clear (`docs/bugs.md`: everything Fixed or Closed). Open: the planning Secondary turning this file's open work into issues (`github.md` section 12, step 11); cmzgame/cozy-medieval-zombies#3 (the wiki's publishing build without `--check`). Next for the game: Michael's pick (the elbow's first poses, the cast and the braced draw, the big pass's step 4).
@@ -124,15 +126,15 @@ Every other section is built for a guest as well (the rule at the top). What the
 
 ## Settings, rebuilt (Michael, 2026-10-15)
 
-- [ ] The Settings screen as a bigger thing with tabs and organisation (there will be many settings; the sandbox ones like Zombie aggro among them). Not scoped.
+- [ ] The Settings screen as a bigger thing with tabs and organisation: in the menus' overhaul, #16.
 
 ## Owed by Michael (clicks, tries, and answers; collected 2026-10-15)
 
 Everything marked "before the merge", "before the deploy", or "Michael's to do" across the docs, in one place. Done items leave this list.
 
 - [x] **(Done 2026-10-15: the organisation `cmzgame`, the bot `cmzgame-bot`, both repositories moved, CI, templates, branch protection.) The GitHub setup** (`github.md`, section 12): create the agents' account for this game alone and add it with Write to both repositories; `gh auth login` as yourself and as the bot (yours active); then branch protection on both `main`s (section 10). Until then Primary merges by `git` and pull requests are opened as far as the accounts allow.
-- [ ] **The background probe and a real session on Pages** (item 3, the host's world while its tab is covered; owed since 2026-10-13): the probe run in your own browser (with a WebSocket open to the relay, noting whether Chrome's Energy Saver and Memory Saver are on), then a session with a friend on the Pages site.
-- [ ] **The answers still open in `24`** (the book's role, the cost, lock-on, an area burst, pickup) (the census's surprises in `docs/bugs.md` were all ruled on 2026-10-15).
+- [ ] **The background probe and a real session on Pages** (item 3, owed since 2026-10-13): #49.
+- [ ] **The answers still open in `24`:** the fireball's cost and area, #50; the throwables' pickup, #51.
 - Done, for the record: the Fly deploy token (2026-10-15), Pages from Actions with `PAGES_FROM_ACTIONS` (2026-10-15), the first deploy watched (2026-10-15), the wiki rule in `CLAUDE.md` (2026-10-15).
 
 ## Unverified bugs (see `docs/bugs.md`)
@@ -141,16 +143,16 @@ The holding place for bugs suspected but not reproduced (the wiki census's entri
 
 ## Scopes owed (from "What this game is", `02`, 2026-10-13)
 
-- [ ] The map on `M`, scoped in `docs/33-the-map.md` (choices ruled, `02`, "The map's choices"): what anyone has seen, kept by the world; built walls shown; every player live; never the dead or villagers; running behind it; low fidelity and accurate; drawn at the screen's angle.
-- [ ] Talk, scoped in `docs/34-talk.md` (with the owed fix for a guest's left click on a villager): dialogue trees as exposition and the villagers' barks (the "Hey!" of a poke is the "nothing interesting happens" of people), reading the world and never writing it, nothing gated.
+- [ ] The map on `M` (`docs/33`): the chart, #35; the panel, #36.
+- [ ] Talk (`docs/34`): the data, the module, and the guide, #37; barks, #38; conversations, #39. (Its step 3, a guest's poke by the villager's id, is built: 2026-10-14, the Multiplayer section.)
 - [x] Scripted sequences: noted in `05-someday.md` (Michael, 2026-10-13: notes only for now, no scope); the dead's arrival on day one as its first case.
-- [ ] **The horde demo, scoped in `docs/36-the-horde-demo.md`** (not to be built yet, Michael; re-ruled 2026-10-14): one homestead wrapped in dense forest, supplies for a few days, the weapons to try, a quiet start, then the dead walking in from off screen and escalating day and night until the player falls (it is built to kill); single player only; `?demo`. Released only once built, tested, and in final art: nothing in it without its final art. The business plan around it is `docs/35`; the Endless mode with a leaderboard is `05`.
-- [ ] **The wiki, scoped in `docs/37-the-wiki.md`, started 2026-10-14** in `C:/Users/micha/Dev/cmz-wiki` (the census, the generator, 157 pages, the Verify stamps, Sources on every page; the CLAUDE.md rule in force since 2026-10-15; owed: the art exporter, spot checks in the pane): its own repo [`cmz-wiki`] on GitHub Pages, OSRS-style page kinds, the generated half from the game's data, the census of what is in the game as its first deliverable.
+- [ ] **The horde demo** (`docs/36`; not to be built yet, Michael): the scenario layer, #40; the set, #41; the horde and the run's limits, #42; the score, the end, and the entry, #43.
+- [ ] **The wiki** (`docs/37`; started 2026-10-14, the rule in `CLAUDE.md` since 2026-10-15): the art exporter, #44; the spot checks in the pane, #45.
 - [ ] Before any boss or skills scope: one session played as meant (combat, aggro, the valley, the dead round the spawn).
 
 ## Art still owed (see `docs/26-art-owed.md`) — listed 2026-10-12
 
-- [ ] The starting bag's and the dev chest's hand items, as pairs (a world picture and an icon, and the 38 by 38 slot portrait for anything held or worn, `26`): torch, hatchet, sword, mace, stick, plank, log, spear, halberd (with hand-drawn angles), bow, shield and its raised guard, arrow (with its flight and landed pictures); icons only for the bandage and the food and drink; icons for the clothing and bags to come back with the characters (`25`).
+- [ ] The art owed in `26`: the hand items, #46; the tools, #47; the icons and the garments' portraits, #48.
 
 ## The characters redone (see `docs/25-character-art-brief.md`) — brief complete 2026-10-12, with Claude Design
 
@@ -162,7 +164,7 @@ The holding place for bugs suspected but not reproduced (the wiki census's entri
 ## Throwing knives and axes, and fire magic (see `docs/24-throwables-and-fire-magic.md`) — specced 2026-10-12; the fireball built 2026-10-14
 
 - [x] The fireball (Michael, 2026-10-14, his rules in `02`): a staff and the Book of Fire held together cast it on the left button, the bow's draw with no arc, the fireball sheet in flight and gone on arrival, lit as it flies; either alone refuses. Owed when Michael wants them: a cost (only the draw and the recovery today), the cast's own pose (`32` item 3), the landing burst, the choice of spell.
-- [ ] Michael answers the rest of Q1 to Q5 in `24` (the book's role, the cost, lock-on, an area burst, pickup); then stacks and the left-button throw, then the spell kind and the fireball, then magnetism and the book.
+- [ ] The rest of `24`: the fireball's cost and area, #50; then the throwing knives and axes, #51.
 
 ## The engine upgrade (see `docs/23-engine-upgrade.md` and the review `docs/23a-review.md`) — ruled 2026-10-12, built the same day, every step
 
@@ -186,13 +188,13 @@ In order; each step ends with this Status updated, its rulings in `02`, and a co
 - [x] Ahead of step 3 (2026-10-12): Build in every right-click menu; Use on every item (OSRS style: outlined in place, a label on the cursor, the next click the target); `interactions.js` with the default "Nothing interesting happens"; the text log bottom-left with every message and every spoken line.
 - [x] Step 3 (2026-10-13): the stations (`src/stations.js`: the workbench, the anvil and forge, any lit fire that cooks, the oven) with `data/recipes.json` (27 rows), ingredients reached across the bag, the belt, and every container within reach, the queue on the prop in the world's time, the output bag, prop recipes placed beside the station, the `craft` verb; the one panel (`src/ui/station-panel.js`) on the kit; durability by kills with the bar and "is spent"; the tools as items (pickaxe, hoe, scythe, shovel, knife, hammer) and the new materials and foods; a Use row's `action` naming a verb. `check("craft")` 9 of 9, `check("wear")` 4 of 4. As-built notes in `30`, step 3. **For a guest (2026-10-13, `31`):** the verbs, the Use mode, placement, and the station panel run as commands on the host; owed on the multiplayer branch, the "is spent" word for a guest's own weapon (the host keeps it, `main.js` `weaponBroke`).
 - [x] While step 4 held (2026-10-13): **the character screen** (`ui/screens.js`: the name, the design agent's approved skin ramp with the dead's three tones for fun, bald first, six painted hairs installed in `data/hair`, the hair and eye colours in `data/looks.json`, the turning preview; the identity `{ name, look }` the wire reads; the first Play and the next survivor start there); the delivery merged from `art-docs` without the dead body shapes; **facial hair is post 1.0**. **Owed from the delivery:** the garments, the onion hats, and the knight as items (`data/art/character/layers/README_layers.md`, "Items"), the dress with `covers`.
-- [ ] **Owed from `30`'s rules, found by the wiki census (2026-10-15):** chopping a tree needs a hatchet and leaves a stump (a stump chopped gives a log); lighting a fire needs a torch or a flint, and feeding alone does not light it.
-- [ ] Step 4: the farms, the mill, farming (till, plant, grow, water, harvest, seeds), the bucket, the scythe; `check("farm")`.
-- [ ] Step 5: the castle and the bridge road.
-- [ ] Step 6: the forest places, one a session.
-- [ ] Step 7: dressing and the edges.
-- [ ] Step 8: chickens and deer; leather and the tannery.
-- [ ] After: fishing.
+- [ ] **Owed from `30`'s rules** (the wiki census, 2026-10-15): chopping with a hatchet and a stump, #18; lighting a fire with a torch or a flint, #19.
+- [ ] Step 4 (held, Michael): farming, #20; the farms and the mill, #21; the bucket, #22; the scythe and the mill's flour, #23.
+- [ ] Step 5: the castle and the bridge road, #24.
+- [ ] Step 6: the forest places, one a session, #25.
+- [ ] Step 7: dressing and the edges, #26.
+- [ ] Step 8: chickens and deer; leather and the tannery, #27.
+- [ ] After: fishing, #28.
 
 ## Better animations (see `docs/32-better-animations.md`) — specified 2026-10-13; the walk, the one-handed swing, the held-out pose, and the halberd's thrust done
 
@@ -200,13 +202,13 @@ Poses the game lacks, as data on the final rig; more frames only where named. In
 
 - [x] 1. The held-out pose (`present`): the book, a torch held to something, drinking and eating. (Built and accepted 2026-10-14 (Michael: as is; eating and drinking fine): the book presented in the idle and the walk, the pose for eating, a sip, and a drink at water; the torch's case waits for the Use on a fire. `check("poses")`.)
 - [x] 2. The halberd's two attacks: `attack_alt` on the sheet, the `thrust` style, the alt block naming it. (Built and accepted 2026-10-14 (Michael: "quite good, especially the middle mouse stab"): the thrust on the middle button or Q, both hands on the shaft, the wrist keeping it level at the draw and the recovery.)
-- [ ] 3. The cast: the staff raised high, the book held out; the bow's draw mechanics on a `cast` block; the spell itself is `24`.
-- [ ] 4. The braced draw as its own style (`bow_braced`), the draw thresholds as data beside the bow's own speeds.
-- [ ] 5. The spear's throw checked by Michael's eye; numbers only if it reads wrong.
-- [ ] 6. Arrows that land upright: a planted frame, a steep arc plants with a tunable chance on the sim's generator.
-- [ ] 7. Sleep: the lying pose on the bed, the sim moving the sleeper there and back.
-- [ ] 8. Sit: a `sit` verb on chairs, benches, and pews (`seat: true`), a one-frame pose, stood up by any move.
-- [ ] 9. The death for every model: six frames, the atlas measured before and after.
+- [x] 3. The cast: the staff raised, the book held out, the bow's draw mechanics on the cast styles. (Built and accepted 2026-10-15, #6 and #9 (`02`, `32`'s status): `cast_staff` and `cast_book`, the staff held up like a pole, the draw's thresholds as data; the spell itself was built before it, `24`.)
+- [ ] 4. The braced draw as its own style, or not (Michael's call): #29.
+- [ ] 5. The spear's throw checked by Michael's eye: #30.
+- [ ] 6. Arrows that land upright: #31.
+- [ ] 7. Sleep, lying on the bed: #32.
+- [ ] 8. Sit: #33.
+- [ ] 9. The death for every model, six frames: #34.
 - [x] 10. The walk, a quick pass (first cut 2026-10-13: the walk as data in `poses.json`, low at contact and up at passing with the knee lifted; the one-handed swing passed over at the same time, a readable coil instead of the overhead wind-up; `__game.reloadPoses()` to tune; Michael's eye owed).
 - [x] 11. The arrow and the spear redrawn as dev art (2026-10-13, with the spec): struck if drawn art lands first.
 
@@ -299,7 +301,7 @@ Each step checkable on its own. Michael looks after step 3.
 - [x] Check 10, Michael's eye (2026-10-11): "Ground looks amazing... Done!" Milestone 9 accepted.
 - [x] The redrawn decals from Claude Design swapped in (2026-10-11); the four rocks wait for a design conversation.
 - [x] The redrawn trees from Claude Design (2026-10-11): drawn at final size, `scale` dropped, anchors re-measured; crisp.
-- [ ] Pinned: the floor stamp in build mode (`docs/15`, "Pinned"), writing authored floors and the no-scatter ring into the map file.
+- [ ] Pinned: the floor stamp in build mode (still wanted now the map is generated? Michael's call): #52.
 
 ## Milestone 7 — Placement (see `docs/13-placement.md`)
 
@@ -317,9 +319,9 @@ Each step checkable on its own. Michael looks after step 3.
 - [x] Weapons in `items.json`: stick, sword, mace; stats on hatchet and torch; held shapes; loot (2026-10-11). `__game.give("sword")` puts any item in the bag for testing.
 - [x] `combat.js`: the wedge, swings on the click, cooldowns, stamina; `damageZombie` with hurt, stagger, knockback, down, finisher, death; left click and Space; `zombieDied` (2026-10-11).
 - [x] Feedback: the wedge drawn, hit-stop, screen kick, and the Show hit shapes setting (2026-10-11).
-- [ ] The painted held slot in the editor, `data/held/`, `generateHeldFromPixels`. Not started; since 2026-10-12 drawn weapons also come in from the design agent through `def.held.image` or `angles` (`26`), so it is no longer the only way a weapon gets drawn.
+- [ ] The painted held slot in the editor (moot or not, Michael's call): #53.
 - [x] Acceptance, played (2026-10-11): checks 1 to 9 pass by script and Michael's mouse pass accepted the feel ("basically call this good"); check 10 waits on the painted held slot.
-- [ ] More one-handed weapons, drawn and with stats (combat changes are paused, `02`, 2026-10-12).
+- [ ] More one-handed weapons, drawn and with stats (combat changes paused, `02`, 2026-10-12): #54.
 - [x] Decide dual wielding, the shield, and the bow and arrow (`docs/02`, questions 23 to 25): all three ruled and built 2026-10-12 (`docs/20`, `21`).
 
 ## Milestone 6 — The figure (see `docs/12-figure.md`)
@@ -331,7 +333,7 @@ Each step checkable on its own. Michael looks after step 3.
 - [x] Carry poses; the furniture box lifts to the carry hands.
 - [x] Ten zombie outfits, green skins, a wound, the shamble.
 - [x] Look parameters (skin, hair, hairStyle, eyes) on the player, set from the console. The creation screen came 2026-10-13 (the character screen, `ui/screens.js`; the big pass, above).
-- [ ] Acceptance: checks 1 to 7 of `docs/12` seen in the browser on 2026-10-10 (the hatchet swing by forcing the attack frame; melee itself is not built). Check 8, the spec sheet, when the numbers have settled in play.
+- [ ] Acceptance: checks 1 to 7 of `docs/12` seen in the browser on 2026-10-10; check 8, the spec sheet, #55.
 
 ## Milestone 5 — The character (see `docs/11-character.md`)
 
