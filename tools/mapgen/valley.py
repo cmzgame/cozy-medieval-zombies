@@ -198,7 +198,7 @@ def build():
     g.prop("noticeboard", (sq[0] + 11, sq[1] + 7), note="by the inn's door; the quest board of 1.1")
     g.prop("stocks", (sq[0] + 11, sq[1] + 11))
     for x, y in [(sq[0], sq[1] + 11), (sq[0] + 11, sq[1] + 2), (sq[0], sq[1] + 2)]:
-        g.prop("torch_post", (x, y))
+        g.prop("torch_post", (x, y), torch=True)  # the square's lamps, lit (they stood empty until 2026-10-15: the wiki census's bugs)
 
     # ---- the green: the pond with its dirt bank, benches, the maypole, a woodpile ----
     pond = P(15, 53)

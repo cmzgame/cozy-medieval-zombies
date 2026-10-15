@@ -5379,21 +5379,24 @@
    "tile": [
     84,
     163
-   ]
+   ],
+   "torch": true
   },
   {
    "sprite": "torch_post",
    "tile": [
     95,
     154
-   ]
+   ],
+   "torch": true
   },
   {
    "sprite": "torch_post",
    "tile": [
     84,
     154
-   ]
+   ],
+   "torch": true
   },
   {
    "sprite": "maypole",
