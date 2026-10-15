@@ -233,7 +233,7 @@ export function update(dt) {
     // A shot that bursts on contact (the fireball, Michael 2026-10-15: "it's a fireball, not an arrow"): the first of the
     // dead within its contact radius, short of where a wall would stop it, takes the hit and the flight ends there.
     if (a.contact > 0 && a.t < end) {
-      const body = bodyAt(a.gx, a.gy, a.contact);
+      const body = bodyAt(a.gx, a.gy, a.contact, { z: a.z, ahead: a });
       if (body) {
         flying.splice(i, 1);
         land(a, body);
@@ -259,7 +259,7 @@ function land(a, met = null) {
   // landing point, if one is there (docs/20: hits are checked at landing only).
   let hit = null;
   if (met) hit = met; // met on the way (a contact burst)
-  else if (a.stopD == null) hit = bodyAt(gx, gy, a.landRadius ?? tunables.hitRadius);
+  else if (a.stopD == null) hit = bodyAt(gx, gy, a.landRadius ?? tunables.hitRadius, a.landRadius != null ? { z: a.z } : null);
   let keep = true;
   const broken = a.breakChance > 0 && rng.chance(a.breakChance);
   if (hit) {
@@ -289,19 +289,44 @@ export function setTargets(fn) {
   targets = fn;
 }
 
-// The nearest living zombie within `r` of a point (the landing point, or a contact shot's place), or null.
-function bodyAt(gx, gy, r = tunables.hitRadius) {
+// The nearest living zombie within `r` of a point (the landing point, or a contact shot's place), or null. With `o`
+// (a fireball's reach, wider than a body: the review of #12 found it burned the dead through a closed door): only a
+// body with no wall between it and the point at the shot's height `o.z` counts, and with `o.ahead` (the shot) only one
+// ahead of where it was loosed, so nothing behind the caster is hit on the way out. An arrow's own 0.5 needs neither.
+function bodyAt(gx, gy, r = tunables.hitRadius, o = null) {
   let best = null;
   let bestD = r;
   for (const z of targets()) {
     if (z.dead) continue;
     const d = Math.hypot(z.gx - gx, z.gy - gy);
+    if (d > bestD) continue;
+    if (o && o.ahead && (z.gx - o.ahead.x0) * o.ahead.dx + (z.gy - o.ahead.y0) * o.ahead.dy <= 0) continue;
+    if (o && !clearBetween(gx, gy, z.gx, z.gy, o.z ?? tunables.z0)) continue;
     if (d <= bestD) {
       best = z;
       bestD = d;
     }
   }
   return best;
+}
+
+// No wall or closed door stands between two points at height `z` (a fireball's reach, bodyAt): the edges crossed on the
+// way, tile by tile, as a flight's own path is checked (edgeStops).
+function clearBetween(ax, ay, bx, by, z) {
+  const len = Math.hypot(bx - ax, by - ay);
+  const n = Math.max(1, Math.ceil(len / 0.1));
+  let tx = Math.round(ax);
+  let ty = Math.round(ay);
+  for (let i = 1; i <= n; i++) {
+    const nx = Math.round(ax + ((bx - ax) * i) / n);
+    const ny = Math.round(ay + ((by - ay) * i) / n);
+    if (nx !== tx || ny !== ty) {
+      if (edgeStops(tx, ty, nx, ny, z)) return false;
+      tx = nx;
+      ty = ny;
+    }
+  }
+  return true;
 }
 
 // ---- the landing marker (docs/20): where the current draw would land ----
