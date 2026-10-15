@@ -90,7 +90,7 @@ export function preview(from, dir, distance, c = 1, range = tunables.range) {
 // Fire one. The landing point, the path, and the flight time are fixed here.
 // `from` is anyone with gx and gy (the archer). Returns the arrow.
 export function shoot(from, dir, distance, c = 1, o = {}) {
-  const { shooter = from, damage = tunables.damage, knockback = tunables.knockback, range = tunables.range, speed = tunables.speed, arcMin = tunables.arcMin, arcMax = tunables.arcMax, z0 = tunables.z0, projectile = "arrow", breakChance = 0, staggerChance = undefined, interrupts = false, item = null, flat = false, vanish = false } = o;
+  const { shooter = from, damage = tunables.damage, knockback = tunables.knockback, range = tunables.range, speed = tunables.speed, arcMin = tunables.arcMin, arcMax = tunables.arcMax, z0 = tunables.z0, projectile = "arrow", breakChance = 0, staggerChance = undefined, interrupts = false, item = null, flat = false, vanish = false, contact = 0, landRadius = null } = o;
   const p = preview(from, dir, distance, c, range);
   const T = Math.max(1 / 120, p.landing / speed);
   const a = {
@@ -102,6 +102,8 @@ export function shoot(from, dir, distance, c = 1, o = {}) {
     interrupts,
     flat, // a spell's flight (docs/24): no arc, the same height all the way, so it cannot be lobbed over a wall
     vanish, // a spell leaves nothing: no item lands or lodges (Michael, 2026-10-14)
+    contact, // tiles: above 0, it bursts on the first of the dead within this of it as it flies (the fireball; #11)
+    landRadius, // tiles: its own hit radius where it lands, or null for tunables.hitRadius (the fireball's wider; #11)
     speed,
     z0,
     shooter,
@@ -228,6 +230,16 @@ export function update(dt) {
     a.t += dt;
     pose(a);
     const end = a.stopD != null ? (a.T * a.stopD) / a.s : a.T;
+    // A shot that bursts on contact (the fireball, Michael 2026-10-15: "it's a fireball, not an arrow"): the first of the
+    // dead within its contact radius, short of where a wall would stop it, takes the hit and the flight ends there.
+    if (a.contact > 0 && a.t < end) {
+      const body = bodyAt(a.gx, a.gy, a.contact, { z: a.z, ahead: a });
+      if (body) {
+        flying.splice(i, 1);
+        land(a, body);
+        continue;
+      }
+    }
     if (a.t >= end) {
       flying.splice(i, 1);
       land(a);
@@ -237,16 +249,17 @@ export function update(dt) {
 
 // Down: the arrow sticks where it fell, as an ordinary floor item that E picks
 // up (docs/20), remembering its exact place and which way it points.
-function land(a) {
+function land(a, met = null) {
   a.done = true;
-  const d = a.stopD != null ? a.stopD : a.s;
+  const d = met ? Math.min(a.s, a.speed * a.t) : a.stopD != null ? a.stopD : a.s;
   const gx = a.x0 + a.dx * d;
   const gy = a.y0 + a.dy * d;
   const ground = angleIndex([(a.dx - a.dy) * iso.HW, (a.dx + a.dy) * iso.HH]);
   // A shot that came down on its own (not stopped short) hurts the body at the
   // landing point, if one is there (docs/20: hits are checked at landing only).
   let hit = null;
-  if (a.stopD == null) hit = bodyAt(gx, gy);
+  if (met) hit = met; // met on the way (a contact burst)
+  else if (a.stopD == null) hit = bodyAt(gx, gy, a.landRadius ?? tunables.hitRadius, a.landRadius != null ? { z: a.z } : null);
   let keep = true;
   const broken = a.breakChance > 0 && rng.chance(a.breakChance);
   if (hit) {
@@ -276,19 +289,44 @@ export function setTargets(fn) {
   targets = fn;
 }
 
-// The nearest living zombie within `hitRadius` of the landing point, or null.
-function bodyAt(gx, gy) {
+// The nearest living zombie within `r` of a point (the landing point, or a contact shot's place), or null. With `o`
+// (a fireball's reach, wider than a body: the review of #12 found it burned the dead through a closed door): only a
+// body with no wall between it and the point at the shot's height `o.z` counts, and with `o.ahead` (the shot) only one
+// ahead of where it was loosed, so nothing behind the caster is hit on the way out. An arrow's own 0.5 needs neither.
+function bodyAt(gx, gy, r = tunables.hitRadius, o = null) {
   let best = null;
-  let bestD = tunables.hitRadius;
+  let bestD = r;
   for (const z of targets()) {
     if (z.dead) continue;
     const d = Math.hypot(z.gx - gx, z.gy - gy);
+    if (d > bestD) continue;
+    if (o && o.ahead && (z.gx - o.ahead.x0) * o.ahead.dx + (z.gy - o.ahead.y0) * o.ahead.dy <= 0) continue;
+    if (o && !clearBetween(gx, gy, z.gx, z.gy, o.z ?? tunables.z0)) continue;
     if (d <= bestD) {
       best = z;
       bestD = d;
     }
   }
   return best;
+}
+
+// No wall or closed door stands between two points at height `z` (a fireball's reach, bodyAt): the edges crossed on the
+// way, tile by tile, as a flight's own path is checked (edgeStops).
+function clearBetween(ax, ay, bx, by, z) {
+  const len = Math.hypot(bx - ax, by - ay);
+  const n = Math.max(1, Math.ceil(len / 0.1));
+  let tx = Math.round(ax);
+  let ty = Math.round(ay);
+  for (let i = 1; i <= n; i++) {
+    const nx = Math.round(ax + ((bx - ax) * i) / n);
+    const ny = Math.round(ay + ((by - ay) * i) / n);
+    if (nx !== tx || ny !== ty) {
+      if (edgeStops(tx, ty, nx, ny, z)) return false;
+      tx = nx;
+      ty = ny;
+    }
+  }
+  return true;
 }
 
 // ---- the landing marker (docs/20): where the current draw would land ----
@@ -612,7 +650,7 @@ export function releaseDraw(player, ctx) {
     item = { ...L.entry };
     release(player.hands, L.entry);
   }
-  const a = shoot(player, aim.dir, aim.distance, c, { damage: (L.damage ?? tunables.damage) * guardedMult(player), knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, staggerChance: L.staggerChance, interrupts: !!L.interrupts, item, flat: !!L.flat, vanish: !!L.vanish });
+  const a = shoot(player, aim.dir, aim.distance, c, { damage: (L.damage ?? tunables.damage) * guardedMult(player), knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, staggerChance: L.staggerChance, interrupts: !!L.interrupts, item, flat: !!L.flat, vanish: !!L.vanish, contact: L.contact || 0, landRadius: L.landRadius ?? null });
   player.recover = tunables.recoverTime;
   setPose(player, 3); // the release: the arrow loosed, the throw let go, the spell cast forward (docs/32, item 3)
   emit("arrowShot", { player, arrow: a, c });
