@@ -41,6 +41,10 @@ await import("../src/net.js");
 const settings = await import("../src/settings.js");
 const [map, game, loop] = await Promise.all([import("../src/map.js"), import("../src/game.js"), import("../src/loop.js")]);
 
+// The hash's protocol is a world with the dead's aggro off, as the pane Michael tests in has it (the setting's default is
+// on since 2026-10-15; a browser that saved its settings keeps its own, and his are off). `--bite` turns it on below.
+settings.set("zombieAggro", false);
+
 const t0 = performance.now();
 await bootData(root);
 

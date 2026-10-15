@@ -115,21 +115,22 @@ export function drink(player, entry) {
 // Hunger, thirst, and tiredness drain (docs/30, section 3); hunger and thirst
 // kill at zero, tiredness never does. The Survival setting turns all of it off
 // (Michael, 2026-10-10 late): off, nothing drains and the needs stay full, so
-// the moodles never show. Health comes back slowly while fed and watered and
+// the moodles never show; health still regenerates (2026-10-15). Health comes back slowly while fed and watered and
 // nothing bleeds, faster asleep, not at all when falling asleep on your feet.
 function updateNeeds(player, dt) {
   if (!rules.survival) {
+    // Off, the needs stay full, and health still comes back as a fed body's does (Michael, 2026-10-15: it stopped too).
     player.hunger = player.maxHunger ?? T.hungerMax;
     player.thirst = player.maxThirst ?? T.thirstMax;
     player.tired = player.maxTired ?? T.tiredMax;
-    return;
+  } else {
+    player.hunger = Math.max(0, player.hunger - (T.hungerMax / T.hungerDrainSeconds) * dt);
+    player.thirst = Math.max(0, player.thirst - (T.thirstMax / T.thirstDrainSeconds) * dt);
+    if (player.sleeping) player.tired = Math.min(player.maxTired, player.tired + (T.tiredMax / T.sleepRestoreSeconds) * dt);
+    else player.tired = Math.max(0, player.tired - (T.tiredMax / T.tiredDrainSeconds) * dt);
+    if (player.hunger <= 0) player.hp = Math.max(0, player.hp - T.starveDamage * dt);
+    if (player.thirst <= 0) player.hp = Math.max(0, player.hp - T.dehydrateDamage * dt);
   }
-  player.hunger = Math.max(0, player.hunger - (T.hungerMax / T.hungerDrainSeconds) * dt);
-  player.thirst = Math.max(0, player.thirst - (T.thirstMax / T.thirstDrainSeconds) * dt);
-  if (player.sleeping) player.tired = Math.min(player.maxTired, player.tired + (T.tiredMax / T.sleepRestoreSeconds) * dt);
-  else player.tired = Math.max(0, player.tired - (T.tiredMax / T.tiredDrainSeconds) * dt);
-  if (player.hunger <= 0) player.hp = Math.max(0, player.hp - T.starveDamage * dt);
-  if (player.thirst <= 0) player.hp = Math.max(0, player.hp - T.dehydrateDamage * dt);
   // Regeneration (docs/30, 3.4).
   const fed = hungerStage(player) < 2 && thirstStage(player) < 2;
   if (player.hp > 0 && player.hp < player.maxHp && fed && bleedStacks(player) === 0 && tiredStage(player) < 4) {

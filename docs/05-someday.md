@@ -4,6 +4,8 @@ Things Michael wants kept possible but not scheduled. Nothing here is a plan. Th
 
 Started 2026-10-08.
 
+- **The big cart** (Michael, 2026-10-15): an immovable wagon that several horses pull, a big container you cannot lift, which the wheelbarrow had been mixed up with; the wheelbarrow is a container carried like a barrel (another wooden container's art, with or without more storage, as a crate is).
+
 - **Quests and RPG-like elements.** Part of the original medieval wish. Never say never, but the game has to be playable, fun, and content-rich first. NPCs with lines, routines, and bags are the groundwork; a quest is a line plus a check plus a reward, and all three exist by then.
 - **NPC relationships and trade.** A vendor you keep alive sells cheaper, "yadda yadda", miles down the road. Bags on NPCs are the groundwork.
 - **Roofs.** Drawn and hidden when inside. Not for the probe, no real art yet. Nothing in the renderer may assume buildings are open to the sky forever.

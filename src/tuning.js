@@ -53,11 +53,22 @@ export const player = {
   sprintRecoverAt: 20, // stamina needed to sprint again once winded
   aimY: 22, // aim originates from the chest, this many pixels above the feet
   // Slow needs (docs/10): the cozy parent's drains, to be retuned with farming.
-  // Hunger empties in ten real minutes, thirst in seven; at zero they take health.
+  // Hunger empties in eighteen real minutes, thirst in twelve; at zero they take health. The same as data/tuning.json,
+  // which wins (the wiki census, 2026-10-15: the code's defaults had gone stale behind the data).
   hungerMax: 100,
   thirstMax: 100,
-  hungerDrainSeconds: 600, // seconds from full to empty
-  thirstDrainSeconds: 420,
+  hungerDrainSeconds: 1080, // seconds from full to empty
+  thirstDrainSeconds: 720,
+  // Tiredness and sleep (docs/30 step 2), regeneration, and the needs' hold on stamina.
+  tiredMax: 100,
+  tiredDrainSeconds: 900,
+  sleepRestoreSeconds: 240,
+  sleepTimeScale: 60,
+  wakeHour: 6,
+  healthRegenPerMinute: 1,
+  sleepRegenPerMinute: 4,
+  needsStaminaRegenMult: 0.5,
+  tiredStaminaRegenMult: 0.75,
   starveDamage: 1.5, // hp per second at zero
   dehydrateDamage: 2,
   drinkSip: 50, // per drink from a waterskin

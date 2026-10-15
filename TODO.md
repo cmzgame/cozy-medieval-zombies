@@ -107,12 +107,16 @@ Every other section is built for a guest as well (the rule at the top). What the
 - [ ] **Later, not part of the core's Done** (Michael, 2026-10-15; each described in `05-someday.md`): spectating through the dead player's own body; lighter frames on busy nights (an animation sent once as a name and a start, an interest radius per guest); the bounded rewind for a guest's swing and arrow.
 - [x] **The belt keys on a guest** (found 2026-10-13, docs pass; built 2026-10-14, `02`: key events in the snapshot): 1 to 4 eat, drink, or swap with a hand on the guest's own replica (`src/main.js`, the belt keys loop) and nothing goes to the host, so the host's record puts it back. Owed as a command or a key event in the snapshot, as E, B, and T are.
 - [x] **A guest's left click on a villager** (found 2026-10-13, docs pass; built 2026-10-14, `02`: the villager's id in a poke): the click pokes by the cursor's pixels (`player-controller.js`, `interact.clickCharacterAt`), which the host has no cursor for, and `net.sendPoke` carries only a gatherable's or the well's stamp; the menu's Poke does reach the host. Owed: the villager's id in the poke.
-- [ ] Combat testing's forty dead are placed in tiles 1 to 30 (`game.js`, `addTestingDead`), the proving ground's open ground; on the valley they stand two hundred tiles from the spawn. Place them round the spawn (not a multiplayer item; found the same pass).
+- [x] (2026-10-15: a hundred round the valley's spawn, `bugs.md`.) Combat testing's forty dead are placed in tiles 1 to 30 (`game.js`, `addTestingDead`), the proving ground's open ground; on the valley they stand two hundred tiles from the spawn. Place them round the spawn (not a multiplayer item; found the same pass).
 
 ## Before anything public (Michael, 2026-10-14; `docs/35`)
 
 - [ ] **The game's name.** Nothing public is made until it has one (the site, the logo, the end card, a store page, a handle).
 - [ ] **The infrastructure day:** a business email at the game's domain; the game's own GitHub account or organisation with **the repository private** (today it is public, and the Pages site serves the whole game); the relay's Fly app moved to the new account; the game's own site for the demo and the information about the game, secure and with a design; the friends' full game moved somewhere private. The remotes, the worktrees, and the design agent's `art-docs` branch move with the repository (`27`).
+
+## Settings, rebuilt (Michael, 2026-10-15)
+
+- [ ] The Settings screen as a bigger thing with tabs and organisation (there will be many settings; the sandbox ones like Zombie aggro among them). Not scoped.
 
 ## Bugs from the wiki census (see `docs/bugs.md`)
 
@@ -165,6 +169,7 @@ In order; each step ends with this Status updated, its rulings in `02`, and a co
 - [x] Ahead of step 3 (2026-10-12): Build in every right-click menu; Use on every item (OSRS style: outlined in place, a label on the cursor, the next click the target); `interactions.js` with the default "Nothing interesting happens"; the text log bottom-left with every message and every spoken line.
 - [x] Step 3 (2026-10-13): the stations (`src/stations.js`: the workbench, the anvil and forge, any lit fire that cooks, the oven) with `data/recipes.json` (27 rows), ingredients reached across the bag, the belt, and every container within reach, the queue on the prop in the world's time, the output bag, prop recipes placed beside the station, the `craft` verb; the one panel (`src/ui/station-panel.js`) on the kit; durability by kills with the bar and "is spent"; the tools as items (pickaxe, hoe, scythe, shovel, knife, hammer) and the new materials and foods; a Use row's `action` naming a verb. `check("craft")` 9 of 9, `check("wear")` 4 of 4. As-built notes in `30`, step 3. **For a guest (2026-10-13, `31`):** the verbs, the Use mode, placement, and the station panel run as commands on the host; owed on the multiplayer branch, the "is spent" word for a guest's own weapon (the host keeps it, `main.js` `weaponBroke`).
 - [x] While step 4 held (2026-10-13): **the character screen** (`ui/screens.js`: the name, the design agent's approved skin ramp with the dead's three tones for fun, bald first, six painted hairs installed in `data/hair`, the hair and eye colours in `data/looks.json`, the turning preview; the identity `{ name, look }` the wire reads; the first Play and the next survivor start there); the delivery merged from `art-docs` without the dead body shapes; **facial hair is post 1.0**. **Owed from the delivery:** the garments, the onion hats, and the knight as items (`data/art/character/layers/README_layers.md`, "Items"), the dress with `covers`.
+- [ ] **Owed from `30`'s rules, found by the wiki census (2026-10-15):** chopping a tree needs a hatchet and leaves a stump (a stump chopped gives a log); lighting a fire needs a torch or a flint, and feeding alone does not light it.
 - [ ] Step 4: the farms, the mill, farming (till, plant, grow, water, harvest, seeds), the bucket, the scythe; `check("farm")`.
 - [ ] Step 5: the castle and the bridge road.
 - [ ] Step 6: the forest places, one a session.

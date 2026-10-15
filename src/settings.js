@@ -9,10 +9,10 @@ export const DEFAULTS = {
   uiScale: "auto", // "auto" or a number: how big the interface is drawn
   worldScale: "auto", // the zoom: "auto" or one of view.ZOOM_LEVELS
   debugCorner: true, // the text in the top-left corner
-  zombieAggro: false, // off: the dead wander and ignore you, there to be looked at (Michael, 2026-10-10)
+  zombieAggro: true, // on by default since 2026-10-15 (Michael: a sandbox setting, the dead hunt unless you turn them off); off they wander and ignore you (2026-10-10). A browser that saved its settings keeps its own
   zombiesAttackVillagers: false, // on: the dead hunt villagers too, always preferring the player when both are in sight (docs/19)
   squareSurface: "cobble", // the square and its two paths: "cobble" or "dirt", to compare (docs/15, for now)
-  combatTesting: false, // on (read at load): no trees, forty more of the dead standing about the square (docs/21)
+  combatTesting: false, // on (read at load): no trees, a hundred more of the dead in a ring round the spawn (docs/21; 2026-10-15)
   swingTimer: true, // a bar over your head while a swing recovers (World of Warcraft's swing timer; docs/21)
   aimGuide: true, // the bow's landing marker and dotted line while you draw (docs/20); Michael wants the weapon to feel right without it, so it is a setting, on for now
   showSwingTargets: false, // outline the zombies the next swing would hit (docs/14), for testing and for play
@@ -47,7 +47,7 @@ export const CHOICES = {
   squareSurface: [["cobble", "Cobble"], ["dirt", "Dirt"]],
   aimGuide: [[true, "On (landing marker and dotted line)"], [false, "Off"]],
   swingTimer: [[true, "On (a bar over your head)"], [false, "Off"]],
-  combatTesting: [[false, "Off"], [true, "On (no trees, forty more dead; reload the page)"]],
+  combatTesting: [[false, "Off"], [true, "On (no trees, a hundred more dead round the spawn; reload the page)"]],
   showSwingTargets: [[false, "Off"], [true, "On (green outline on what you would hit)"]],
   multiHit: [[false, "Off (nearest only: the intended way)"], [true, "On (everything in the wedge: the easy button)"]],
   showHitShapes: [[false, "Off"], [true, "On (body samples)"]],

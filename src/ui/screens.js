@@ -35,7 +35,7 @@ const CONTROLS = [
   ["Right-click held", "The off hand's stance: block with a shield, brace a bow"],
   ["Space", "Shove: pushes the dead back, no damage"],
   ["N", "Build menu: walls, doors, windows"],
-  ["X", "Remove: highlights what you placed or built, click to destroy it"],
+  ["X", "Remove: highlights what you built or made, click to destroy it"],
   ["R", "Turn what you are placing"],
   ["B", "Board up the nearest opening; hold to pull a board"],
   ["Esc", "Close what is open, else pause"],

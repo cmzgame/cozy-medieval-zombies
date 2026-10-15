@@ -355,7 +355,7 @@ async function leaveWorld() {
   placement.cancel();
   use.cancel();
   buildPalette.close();
-  screens.show("title");
+  screens.show("worlds"); // the Worlds screen, as docs/31/09 says (the title was shown until 2026-10-15; Back goes there)
 }
 
 // ---- a world moved to the server, and brought home (item 5's fifth step, 2026-10-14) ----
@@ -1204,6 +1204,7 @@ async function boot() {
       items.loadItems(itemsJson);
       placement.setBuildData(buildJson);
       if (combatJson) combat.setCombatData(combatJson); // the fists' and the shove's numbers (docs/14); the weapons' are on their items
+      if (combatJson) archery.setBowData(combatJson.bow); // the bow's and the flight's (2026-10-15)
       if (posesJson) figure.setPoses(posesJson); // the swing's keyframes, as data Michael can edit (docs/14)
       items.loadLoot(lootJson);
       figure.setArtResolver((id) => items.getItem(id).art || null);

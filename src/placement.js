@@ -314,9 +314,11 @@ function wallFace(tx, ty, edge, wall) {
 }
 
 // What the removal tool would take at a screen point: the front-most thing
-// the player placed (a prop that can be carried) or built (a wall, door, or
-// window with `built` set), or null. Authored walls and rooted things are not
-// candidates, so they never highlight.
+// players made: a prop made at a station (`made`) or a wall, door, or window
+// they built (`built`), or null. The village's own things (its furniture, even
+// carried somewhere else) and authored walls never highlight (Michael,
+// 2026-10-15, the wiki census: X took the village's chests and beds, and could
+// never take a crafted workbench).
 export function removalTarget(sx, sy) {
   let best = null;
   const consider = (t, depth) => {
@@ -330,7 +332,7 @@ export function removalTarget(sx, sy) {
   for (let dy = -3; dy <= 1; dy++) {
     for (let dx = -3; dx <= 1; dx++) {
       const prop = map.tileAt(cx + dx, cy + dy).prop;
-      if (!prop || seen.has(prop) || !canCarry(prop)) continue;
+      if (!prop || seen.has(prop) || !prop.made) continue;
       const onTile = dx === 0 && dy === 0;
       if (!onTile && !pointInRect(sx, sy, propRect(prop, cx + dx, cy + dy))) continue;
       seen.add(prop);
@@ -389,9 +391,11 @@ function targetName(t) {
 function destroy(t) {
   if (t.type === "prop") {
     const prop = t.prop;
-    if (prop.bag) {
-      for (const e of [...prop.bag.items]) map.dropItem(prop.tile[0], prop.tile[1], e);
-      prop.bag.items.length = 0;
+    // What it held falls where it stood: a container's bag and a station's output.
+    for (const bag of [prop.bag, prop.output]) {
+      if (!bag) continue;
+      for (const e of [...bag.items]) map.dropItem(prop.tile[0], prop.tile[1], e);
+      bag.items.length = 0;
     }
     map.removeProp(prop);
   } else {
@@ -533,7 +537,7 @@ export function performPlacement(player, cmd) {
     let t = null;
     if (a.type === "prop") {
       const prop = typeof a.id === "string" ? map.propById(a.id) : null;
-      if (prop && canCarry(prop) && map.tileAt(prop.tile[0], prop.tile[1]).prop === prop) t = { type: "prop", prop };
+      if (prop && prop.made && map.tileAt(prop.tile[0], prop.tile[1]).prop === prop) t = { type: "prop", prop };
     } else if (a.type === "wall" && (a.edge === "n" || a.edge === "w")) {
       const tx = Math.round(Number(a.tx));
       const ty = Math.round(Number(a.ty));

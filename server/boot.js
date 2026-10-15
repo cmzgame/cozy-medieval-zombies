@@ -36,6 +36,7 @@ export async function bootData(root) {
   items.loadItems(itemsJson);
   placement.setBuildData(buildJson);
   if (combatJson) combat.setCombatData(combatJson);
+  if (combatJson) (await import("../src/archery.js")).setBowData(combatJson.bow); // the bow's and the flight's (2026-10-15)
   if (posesJson) figure.setPoses(posesJson);
   items.loadLoot(lootJson);
   figure.setArtResolver((id) => items.getItem(id).art || null);

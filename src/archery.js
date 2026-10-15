@@ -23,7 +23,11 @@ import { showMessage } from "./ui/prompt.js";
 import * as loop from "./loop.js";
 import * as rng from "./rng.js";
 
-// Everything is tunable from the console: __game.archery.tunables.
+// Everything is tunable from the console: __game.archery.tunables. The numbers are data since 2026-10-15
+// (`data/combat.json` `bow`, setBowData; the wiki census: combat numbers are data); these are the same as defaults.
+export function setBowData(data) {
+  if (data) for (const k of Object.keys(tunables)) if (typeof data[k] === "number") tunables[k] = data[k];
+}
 export const tunables = {
   range: 22, // tiles: the farthest a full draw can land (about the wide view's width)
   speed: 16, // tiles per second along the ground, constant

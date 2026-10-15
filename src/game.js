@@ -116,15 +116,22 @@ function giveStarterKit(player) {
 
 // Forty of the dead standing about the open ground of the square, the same places every
 // time (a small generator, not Math.random), at least five tiles from where you start.
+// Combat testing's crowd (Michael, 2026-10-15: the game is too easy, the dead must get a kill on a new player
+// sometimes; start testing for that): a hundred of the dead in a ring round the spawn, ten to thirty-six tiles out,
+// on open ground outside any room, in the ring the world grew first. They were forty in tiles 1 to 30 before, the
+// proving ground's open ground, two hundred tiles from the valley's spawn. Aggro stays the setting's (his is off).
+const TESTING_DEAD = 100;
+const TESTING_RING = [10, 36];
 function addTestingDead(spawn) {
   let seed = 90210;
   const rand = () => ((seed = (Math.imul(seed, 1103515245) + 12345) >>> 0) / 4294967296);
   const placed = [];
-  for (let tries = 0; tries < 4000 && placed.length < 40; tries++) {
-    const x = 1 + Math.floor(rand() * 30);
-    const y = 1 + Math.floor(rand() * 30);
+  for (let tries = 0; tries < 20000 && placed.length < TESTING_DEAD; tries++) {
+    const a = rand() * Math.PI * 2;
+    const r = TESTING_RING[0] + rand() * (TESTING_RING[1] - TESTING_RING[0]);
+    const x = Math.round(spawn[0] + Math.cos(a) * r);
+    const y = Math.round(spawn[1] + Math.sin(a) * r);
     if (!map.isWalkableTile(x, y) || map.tileAt(x, y).room > 0) continue;
-    if (Math.hypot(x - spawn[0], y - spawn[1]) < 5) continue;
     if (placed.some(([px, py]) => Math.hypot(px - x, py - y) < 2)) continue;
     placed.push([x, y]);
     state.zombies.push(createZombie(x, y));

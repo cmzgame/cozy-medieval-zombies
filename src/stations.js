@@ -181,6 +181,7 @@ function deliver(prop, r) {
     const at = map.nearestWalkable(prop.tile[0], prop.tile[1] + 1, (x, y) => !!map.tileAt(x, y).prop || map.tileAt(x, y).items);
     if (at) {
       const made = map.createProp({ sprite: o.prop, tile: at, footprint: o.footprint || [1, 1] });
+      made.made = true; // players made it, so X may take it away again (placement.removalTarget; 2026-10-15)
       // A container made here starts empty (the wiki census's bugs, 2026-10-15: a crafted chest rolled the chest's
       // loot on its first search): its bag made now, already searched, so nothing is ever rolled into it.
       if (made.container) {

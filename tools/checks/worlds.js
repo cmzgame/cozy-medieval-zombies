@@ -4,7 +4,7 @@
 // in the same world, the body left. From the console, on a tab with `?nosave` (the worlds
 // store is in memory there, so Michael's own worlds are never touched):
 //   await __game.check("worlds")
-// It leaves the pane at the title with the worlds it made in the page's store.
+// It leaves the pane on the Worlds screen with the worlds it made in the page's store.
 
 export async function run(game) {
   const G = game;
@@ -17,9 +17,9 @@ export async function run(game) {
   const I = G.identities;
   try {
     G.loop.setPaused(true);
-    // 0. Out of the test world: nothing runs, the title is up.
+    // 0. Out of the test world: nothing runs, the Worlds screen is up (docs/31/09; the title until 2026-10-15).
     await W.leave();
-    row("out of a world nothing runs and the title is up", !W.inWorld && G.screens.currentScreen() === "title", `inWorld ${W.inWorld}, screen ${G.screens.currentScreen()}`);
+    row("out of a world nothing runs and the Worlds screen is up", !W.inWorld && G.screens.currentScreen() === "worlds", `inWorld ${W.inWorld}, screen ${G.screens.currentScreen()}`);
     // 1. Two identities; a world from the first.
     const a = I.add({ name: "Ada", look: { hairStyle: "short" } });
     const b = I.add({ name: "Bram", look: { hairStyle: "bald" } });

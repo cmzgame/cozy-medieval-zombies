@@ -26,7 +26,11 @@ import { rules } from "./rules.js";
 import { detach } from "./inventory.js"; // a worn-out weapon leaves the hand (docs/30, 5.2)
 
 // Tunables (docs/14).
-export const POINT_BLANK = 0.55; // tiles: this close is always hit
+// The blow's own numbers (the wiki census, 2026-10-15: combat numbers are data): `data/combat.json` `blow` fills
+// these, the code keeping the same defaults. pointBlank: tiles this close are always hit; knockdownChance: the share
+// of hits that floor the dead for a weapon with no `knockdown` of its own (high, for the combat pass, Michael);
+// tiredDamage: a swing at zero stamina still lands, at this share; hitStop, hitStopKill: the freeze on a hit and a kill.
+export const BLOW = { pointBlank: 0.55, knockdownChance: 0.3, tiredDamage: 0.5, hitStop: 0.045, hitStopKill: 0.09 };
 export const BODY_SLACK = 0.8; // tiles of extra reach for a zombie drawn below the player
 export const BODY_TOP = 48; // px: a figure's height, for scaling the slack
 // A figure's drawn body with its arms is about this wide on each side of its middle.
@@ -34,18 +38,14 @@ export const BODY_HALF_W = 10;
 // Heights of the samples up a body, feet to chest. The head is left out: counting
 // it lets a swing straight up-screen catch a zombie standing fully beside you.
 export const BODY_SAMPLES = [2, 10, 18, 26, 34];
-export const KNOCKDOWN_CHANCE = 0.3;
 // The combo and the finisher, from data/combat.json (setCombatData): `enabled` false switches the
 // third-hit rule off for testing without removing it (Michael, 2026-10-12), `mult` is what a blow
 // on a downed zombie is multiplied by.
 export const COMBO = { enabled: true, hits: 3, window: 2 }; // the third hit on one zombie within `window` seconds floors it
 export const FINISHER = { mult: 2 };
-export const HIT_STOP = 0.045;
-export const HIT_STOP_KILL = 0.09;
 export const KICK_PX = 3;
 export const KICK_TIME = 0.08;
 export const WEDGE_TIME = 0.12;
-const TIRED_DAMAGE = 0.5; // a swing at zero stamina still lands, at half
 
 export const FISTS = { damage: 6, range: 0.9, arc: 100, swing: 0.4, knockback: 0.17, stamina: 3, knockdown: 0, style: "one_handed" };
 // Dual wielding (docs/21): the off hand's swing, and what it costs. Filled from data/combat.json.
@@ -64,6 +64,7 @@ export function setCombatData(data) {
   setInfectionData(data.infection);
   setBleedData(data.bleed);
   Object.assign(FINISHER, data.finisher || {});
+  Object.assign(BLOW, data.blow || {});
 }
 
 // The combo window reads the sim's clock (loop.simTime), not a clock of this module's advanced per
@@ -146,7 +147,7 @@ export function guardAgainst(player, zombie, damage) {
   }
   player.stamina -= sh.stamina;
   if (front) staggerZombie(zombie, sh.stagger, iso.normalize(zombie.gx - player.gx, zombie.gy - player.gy), sh.push ?? 0.25);
-  loop.freeze(HIT_STOP * 0.6);
+  loop.freeze(BLOW.hitStop * 0.6);
   kick(player);
   player.blockFlash = 0.14; // the shield's flash
   player.flashBroken = false;
@@ -204,7 +205,7 @@ function screenAngleBetween(ax, ay, bx, by) {
 // zombie's body, so a sprite inside the drawn wedge is hit. Point blank always hits.
 export function inWedge(player, weapon, z) {
   const feet = Math.hypot(z.gx - player.gx, z.gy - player.gy);
-  if (feet <= POINT_BLANK) return true;
+  if (feet <= BLOW.pointBlank) return true;
   const pf = iso.toScreen(player.gx, player.gy);
   const zs = iso.toScreen(z.gx, z.gy);
   const slack = Math.max(0, Math.min(1, (zs.y - pf.y) / BODY_TOP)) * BODY_SLACK;
@@ -344,15 +345,15 @@ export function tryAttack(player, zombies, hand = "main", mode = null, predict =
         z.hits = [];
       }
     }
-    const chance = weapon.knockdown ?? KNOCKDOWN_CHANCE;
+    const chance = weapon.knockdown ?? BLOW.knockdownChance;
     const knockdown = !finisher && (combo || rng.chance(chance));
-    const amount = Math.round(weapon.damage * (tired ? TIRED_DAMAGE : 1) * (finisher ? FINISHER.mult : 1) * guardedMult(player) * (hand === "off" ? DUAL.offDamage : 1));
+    const amount = Math.round(weapon.damage * (tired ? BLOW.tiredDamage : 1) * (finisher ? FINISHER.mult : 1) * guardedMult(player) * (hand === "off" ? DUAL.offDamage : 1));
     const push = !finisher && pushes(weapon) ? weapon.knockback : 0;
     const r = damageZombie(z, amount, { dir: [dir.x, dir.y], knockback: push, knockdown, stagger: weapon.stagger, staggerChance: weapon.staggerChance, interrupts: weapon.interrupts, from: [player.gx, player.gy] });
     if (r.killed) killed = true;
   }
   if (hit.length) {
-    loop.freeze(killed ? HIT_STOP_KILL : HIT_STOP);
+    loop.freeze(killed ? BLOW.hitStopKill : BLOW.hitStop);
     kick(player);
     emit("meleeHit", { count: hit.length, killed });
     wearWeapon(player, hand === "off" ? "off" : "main", hit.length); // a landed hit costs the weapon its wear (docs/30, 5.2); a miss nothing
@@ -391,7 +392,7 @@ export function tryShove(player, zombies) {
   }
   emit("shove", { count: hit.length });
   if (hit.length) {
-    loop.freeze(HIT_STOP * 0.6);
+    loop.freeze(BLOW.hitStop * 0.6);
     kick(player);
   }
   return hit;

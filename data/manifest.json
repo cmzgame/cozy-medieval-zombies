@@ -1,11 +1,11 @@
 {
-  "version": "379c0ba9",
+  "version": "de52c7de",
   "files": {
     "data/build.json": {"size": 392, "stamp": "d20c5483"},
-    "data/combat.json": {"size": 2154, "stamp": "22f3d3c3"},
+    "data/combat.json": {"size": 3319, "stamp": "cd5008cd"},
     "data/ground.json": {"size": 3543, "stamp": "b0e42d19"},
     "data/interactions.json": {"size": 775, "stamp": "b1224ad3"},
-    "data/items.json": {"size": 15249, "stamp": "71acd7c9"},
+    "data/items.json": {"size": 15325, "stamp": "6266de0f"},
     "data/looks.json": {"size": 936, "stamp": "8e217882"},
     "data/loot.json": {"size": 1915, "stamp": "360a6eb0"},
     "data/poses.json": {"size": 3096, "stamp": "bf100f27"},
@@ -513,7 +513,7 @@
     "data/sprites/wall_stone.json": {"size": 1518, "stamp": "bc3c6e36"},
     "data/sprites/wall_wood.json": {"size": 1505, "stamp": "73249b4b"},
     "data/sprites/well.json": {"size": 564, "stamp": "40111556"},
-    "data/sprites/wheelbarrow.json": {"size": 288, "stamp": "613c573a"},
+    "data/sprites/wheelbarrow.json": {"size": 382, "stamp": "845fd015"},
     "data/sprites/woodpile.json": {"size": 235, "stamp": "5a71cf08"},
     "data/sprites/workbench.json": {"size": 230, "stamp": "18575652"},
     "data/sprites/zombie.json": {"size": 61, "stamp": "b212732f"}
