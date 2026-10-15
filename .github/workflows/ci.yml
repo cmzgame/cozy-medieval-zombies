@@ -1,0 +1,47 @@
+name: CI
+
+# The headless proofs on every pull request and every push to a branch other than main (github.md, section 10):
+# what the author records before review and the reviewer reads. Branch protection on main requires this job. The
+# browser's checks (check("sync") and the rest under tools/checks/) stay the author's and the reviewer's, in the pane.
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Every module parses (node --check)
+        run: |
+          fail=0
+          for f in $(git ls-files 'src/*.js' 'server/*.js' 'tools/*.js'); do
+            node --check "$f" || { echo "::error file=$f::does not parse"; fail=1; }
+          done
+          exit $fail
+      - name: The headless checks (node tools/check.js)
+        run: node tools/check.js
+      - name: The world's hashes (compare with the pull request's claim)
+        run: |
+          node tools/world.js
+          node tools/world.js valley 600 --devchest
+          node tools/world.js valley 600 --players=2
+      - name: The save, round trip
+        run: node tools/world.js valley 600 --roundtrip
+      - name: The data (python -I tools/validate-data.py)
+        run: python -I tools/validate-data.py
