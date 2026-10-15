@@ -1,4 +1,5 @@
-<!-- github.md, section 8.5. Every heading answered; "none" is an answer. Sign the last line with your role. -->
+<!-- github.md, section 8.5. Every heading answered; "none" is an answer. Sign the last line with your role.
+A template cannot set labels: add needs-review and for:primary (for:secondary on Primary's own), and the milestone. -->
 
 ## What and why
 
