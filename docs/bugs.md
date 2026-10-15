@@ -1,4 +1,8 @@
-# Bugs found by the wiki census
+# Unverified bugs: the holding place
+
+**What this file is** (Michael, 2026-10-15; `github.md`, section 6): the place for bugs **suspected but not yet reproduced**. Anyone who suspects one adds a line under Open, on the latest `main`, after checking Fixed, Closed, and Became issues so nothing comes back. The file is gone through now and then: **a bug that reproduces becomes a GitHub issue** (label `bug`, the steps to see it, a link to its line here), and its line moves to **Became issues** with the issue's number; a line that will not reproduce, or is intended, moves to **Closed** with a word why. Only reproduced bugs are worked, as issues. The entries below the next paragraph came from the wiki census.
+
+## The wiki census's entries
 
 **Where these come from:** the **wiki-writing agent**, not a coding agent. They were found while building the wiki (`docs/37`, the repository `michaeldippold/cmz-wiki`): a census that read the whole game, code first and docs second, at game commit **`9205ad7`** (2026-10-14), then traced every claim on every wiki page back to the code. **Nothing here was played in the game**: each item was read in the code, and the ones marked *needs repro* were inferred and should be tried before they are fixed. Line numbers are as of `9205ad7` and may have moved.
 
@@ -32,6 +36,10 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 - [ ] **The needs' code defaults are stale** (600 and 420 seconds in `src/tuning.js`) behind the data's 1080 and 720; harmless while the data is present.
 - [ ] **Leave world goes to the title**, not to the Worlds screen as docs/31/09 says.
 - [ ] **Combat testing's forty dead stand two hundred tiles from the valley's spawn** (already owed in `TODO.md`).
+
+## Became issues
+
+(Move lines here with the issue's number once reproduced.)
 
 ## Fixed
 

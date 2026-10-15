@@ -1,5 +1,7 @@
 # Cozy Medieval Zombies
 
+> **Before anything else, in every session: ask Michael "Am I Primary or Secondary, and what is my focus?"** and change nothing (no file, branch, commit, issue, label, or pull request) until he answers; reading is fine. **Primary** is the one technical lead: it reviews, approves, and merges into `main`, and codes too. **Secondary** (any number) works on branches with a focus and never merges into `main`. Then read `github.md` (the roles in full, the infrastructure, the two GitHub accounts, and the workflow from an issue to a merged pull request), and go on below.
+
 A cute isometric medieval village, in the Habbo / early-2000s pixel style, overrun by the dead. One continuous map with real line of sight. Plain HTML, CSS, and JavaScript with ES modules. Raw WebGL2 for the world (`src/gl.js`, since 2026-10-09; Canvas 2D generates the dev art and uploads it as textures), DOM for UI. No build step, no engine, no framework, no rendering library.
 
 Started 2026-10-08 as the marriage of two prototypes, both kept as they are:
@@ -9,7 +11,7 @@ Started 2026-10-08 as the marriage of two prototypes, both kept as they are:
 
 ## Start here every session
 
-0. **`github.md` (proposed 2026-10-15, not yet in force):** the infrastructure (the repositories, what a merge to `main` deploys, storage, the tools on the machine, the two GitHub identities) and the workflow from an issue to a reviewed, merged pull request, for the game and the wiki alike. Once Michael approves it, it is read first.
+0. **Your role first** (the box at the top), then **`github.md`**: who does what, the two GitHub accounts, branches, pull requests, review, merge, deploy, for the game and the wiki alike.
 1. Read `TODO.md`. The **Status** block says where work stopped.
 2. Read the doc linked from the current milestone before writing code.
 3. The tiebreaker for any design question is `docs/00-vision.md`. Log every ruling in `docs/02-decisions.md`.
@@ -64,7 +66,7 @@ Michael scopes with one model and builds with a cheaper one. When a milestone do
 3. Edits files with small Python patch scripts written to the scratchpad and run with `python -I script.py "$PWD"`; long heredocs break the Bash tool. Runs `node --check` on every touched module.
 4. Changes nothing in the rig's numbers (`BODY`, the poses) or the drawing rules in `src/figure/` beyond what the doc asks; does not touch `data/hair`, `data/layers`, or their index files, which are Michael's art, nor `data/art` and its READMEs, which are the design agent's deliveries (`docs/26`, `27`). A body number is tried from the console before it is ruled: `__game.figure.BODY.hip = 17; __game.setLook({})` rebakes the player at once (commit them as they appear, never edit or delete them).
 5. Runs the doc's acceptance list as a script and reports each result plainly, failures included.
-6. Ticks `TODO.md`, updates its Status line, commits with a plain message in the existing style (no attribution lines), pushes to `origin main`, and syncs the wiki for what changed before calling it done (the rule above; once for a batch of pushes in one session).
+6. Ticks `TODO.md`, updates its Status line, commits with a plain message in the existing style (no attribution lines), syncs the wiki for what changed (the rule above), pushes its branch, and opens a pull request for Primary (`github.md`, section 8); only Primary merges into `main`.
 7. Logs any ruling the build forces in `docs/02-decisions.md` under the day's date, and says so in the final message.
 
 The game Michael plays is served from this worktree by the app's preview server (`.claude/launch.json`, `medieval`); after editing `serve.py` the server must be restarted for the change to take.
