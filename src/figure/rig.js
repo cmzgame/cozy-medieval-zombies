@@ -156,6 +156,7 @@ export const BODY = {
   legR: 3.3, // limb radii
   armR: 2.9,
   armLen: 14,
+  elbow: 0.5, // the elbow's place along the arm from the shoulder (Michael, 2026-10-15: elbows, never knees); a bend of 0 keeps the arm one straight line
   handR: 2.7,
   footRx: 4,
   footRy: 2.4,
@@ -182,6 +183,7 @@ function restPose() {
     lying: false,
     flash: false,
     wrist: 0, // degrees the held thing is cocked up from the forearm in a swing (docs/32): the blade stays level as the arm drops
+    bend: [0, 0], // [left, right] degrees the forearm turns from the upper arm's line at the elbow, the way the arm pitches (forward and up); 0 straight
   };
 }
 
@@ -221,6 +223,7 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
         p.stride = [...f.stride];
         p.lift = [...f.lift];
         p.armPitch = [...f.arms];
+        if (f.bends) p.bend = [...f.bends];
         p.bob = f.bob ?? 0;
         p.lean = f.lean ?? 0;
         p.headD = f.headD ?? 0;
@@ -237,6 +240,7 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
         p.bob = f.bob ?? 0;
         p.wrist = f.wrist ?? 0;
         p.headD = f.headD ?? 0;
+        p.bend = [f.offBend ?? 0, f.bend ?? 0];
       }
       break;
     }
@@ -277,6 +281,7 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
   if (holding.off && !fixed && !p.offOwn) {
     p.armPitch[0] = HOLD_PITCH;
     p.armOut[0] = HOLD_OUT;
+    p.bend[0] = 0;
   }
   const swinging = anim === "attack" || anim === "attack_alt";
   if (holding.main && !fixed && !swinging && anim !== "present") {
@@ -286,6 +291,7 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
     else {
       p.armPitch[1] = HOLD_PITCH;
       p.armOut[1] = HOLD_OUT;
+      p.bend[1] = 0;
     }
   }
   return p;
@@ -299,9 +305,11 @@ function heldPoseArms(p, name, withOff) {
   const f = POSES[name] || DEFAULT_POSES[name];
   p.armPitch[1] = f.pitch ?? 90;
   p.armOut[1] = f.out ?? 2;
+  p.bend[1] = f.bend ?? 0;
   if (withOff && f.offPitch != null) {
     p.armPitch[0] = f.offPitch;
     p.armOut[0] = f.offOut ?? p.armOut[0];
+    p.bend[0] = f.offBend ?? 0;
   }
 }
 
@@ -321,6 +329,8 @@ export function joints(p) {
     j.shoulderR = [B.shoulderL, 13, 4];
     j.handL = [-B.shoulderL - 4, 22, 2];
     j.handR = [B.shoulderL + 4, 20, 2];
+    j.elbowL = mid(j.shoulderL, j.handL, B.elbow);
+    j.elbowR = mid(j.shoulderR, j.handR, B.elbow);
     j.neck = [0, 15, 4];
     j.head = [0, 22, 5];
     j.hip = [0, 0, 3];
@@ -337,11 +347,31 @@ export function joints(p) {
   j.shoulderR = [B.shoulderL, lean, shH];
   j.neck = [0, lean, B.neck * c - p.bob];
   j.head = [0, lean + p.headD, B.head * c - p.bob];
-  const arm = (sh, pitch, out, side) => {
+  // The arm: the upper arm along the pitch to the elbow, the forearm on from it turned by the bend (the same plane,
+  // forward and up). The lateral `out` is shared along the arm by length. A straight arm (bend 0) computes the hand
+  // as it always has, so a figure that bends nothing is the same pixels it was (Michael, 2026-10-15).
+  const bend = p.bend || [0, 0];
+  const arm = (sh, pitch, out, side, bendDeg) => {
     const a = (pitch * Math.PI) / 180;
-    return [sh[0] + out * side, sh[1] + Math.sin(a) * B.armLen, sh[2] - Math.cos(a) * B.armLen];
+    const up = B.armLen * B.elbow;
+    const elbow = [sh[0] + out * side * B.elbow, sh[1] + Math.sin(a) * up, sh[2] - Math.cos(a) * up];
+    if (!bendDeg) return { hand: [sh[0] + out * side, sh[1] + Math.sin(a) * B.armLen, sh[2] - Math.cos(a) * B.armLen], elbow };
+    const f = a + (bendDeg * Math.PI) / 180;
+    const fore = B.armLen - up;
+    return { hand: [sh[0] + out * side, elbow[1] + Math.sin(f) * fore, elbow[2] - Math.cos(f) * fore], elbow };
   };
-  j.handL = arm(j.shoulderL, p.armPitch[0], p.armOut[0], -1);
-  j.handR = arm(j.shoulderR, p.armPitch[1], p.armOut[1], 1);
+  const L = arm(j.shoulderL, p.armPitch[0], p.armOut[0], -1, bend[0]);
+  const R = arm(j.shoulderR, p.armPitch[1], p.armOut[1], 1, bend[1]);
+  j.handL = L.hand;
+  j.handR = R.hand;
+  j.elbowL = L.elbow;
+  j.elbowR = R.elbow;
+  j.bentL = !!bend[0];
+  j.bentR = !!bend[1];
   return j;
+}
+
+// The point a fraction `t` of the way from a to b.
+function mid(a, b, t) {
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }

@@ -254,10 +254,13 @@ function drawFrame(frame, spec, facing, anim, i) {
   }
 
   // Arms: one outlined shape from shoulder to hand; the sleeve and the glove
-  // are colour on it.
-  const arm = (sh, hand, side, part, rsh, rhand) => {
+  // are colour on it. A bent arm (an elbow's bend, 2026-10-15) is the same shape in two halves, the upper arm and
+  // the forearm, joined round at the elbow: the sleeve covers the upper arm, and a painted arm is split at the
+  // elbow's place along its rest segment, each half carried with its own segment. A straight arm draws as it always has.
+  const arm = (sh, hand, side, part, rsh, rhand, elbow = null) => {
     const a = P(sh);
     const b = P(hand);
+    const e = elbow ? P(elbow) : null;
     const armName = part === PART.armL ? "armL" : "armR";
     const handName = part === PART.armL ? "handL" : "handR";
     const depth = (a.depth + b.depth) / 2 + 0.002 * side;
@@ -267,24 +270,43 @@ function drawFrame(frame, spec, facing, anim, i) {
       const chest = outfit.chest;
       const gloves = outfit.hands;
       frame.begin();
-      frame.addCapsule(a.x, a.y, b.x, b.y, B.armR);
+      if (e) {
+        frame.addCapsule(a.x, a.y, e.x, e.y, B.armR);
+        frame.addCapsule(e.x, e.y, b.x, b.y, B.armR);
+      } else frame.addCapsule(a.x, a.y, b.x, b.y, B.armR);
       frame.addEllipse(b.x, b.y, B.handR, B.handR);
       frame.outline(part);
       frame.fill(skin, part);
       if (chest) {
-        const u = along(a, b, 0.5);
+        const u = e || along(a, b, 0.5);
         frame.capsule(a.x, a.y, u.x, u.y, B.armR, paint(col(chest)), { outline: false, part });
       }
       if (gloves) frame.ellipse(b.x, b.y, B.handR, B.handR, paint(col(gloves)), { outline: false, part });
       const rest = (slot) => { const R = layerRest(slot); return [P(part === PART.armL ? R.shoulderL : R.shoulderR), P(part === PART.armL ? R.handL : R.handR)]; };
-      let r = rest("body"); stamp(layerPx("body", armName), r[0], r[1], a, b, new Set([part]));
-      r = rest("chest"); stamp(layerPx("chest", armName), r[0], r[1], a, b, null, part);
+      // A painted arm on a bent arm: the pixels nearer the shoulder than the elbow's place go with the upper arm, the
+      // rest with the forearm (the rest pose's arm is straight, so the split is a line across it).
+      const stampArm = (pixels, r0, r1, allowed, tag) => {
+        if (!e || !pixels || !pixels.length) return stamp(pixels, r0, r1, a, b, allowed, tag);
+        const e0 = along(r0, r1, B.elbow);
+        const vx = r1.x - r0.x, vy = r1.y - r0.y;
+        const l2 = vx * vx + vy * vy || 1;
+        const upper = [], lower = [];
+        for (const px of pixels) {
+          const t = (px[0] * vx + px[1] * vy) / l2;
+          if (t < B.elbow) upper.push(px);
+          else lower.push([px[0] - (e0.x - r0.x), px[1] - (e0.y - r0.y), px[2]]);
+        }
+        stamp(upper, r0, e0, a, e, allowed, tag);
+        stamp(lower, e0, r1, e, b, allowed, tag);
+      };
+      let r = rest("body"); stampArm(layerPx("body", armName), r[0], r[1], new Set([part]));
+      r = rest("chest"); stampArm(layerPx("chest", armName), r[0], r[1], null, part);
       r = rest("hands"); stamp(layerPx("hands", handName), r[1], below(r[1]), b, below(b), null, part);
     });
-    return { a, b };
+    return { a: e || a, b }; // the held thing follows the forearm: from the elbow when the arm is bent
   };
-  const armL = arm(J.shoulderL, J.handL, -1, PART.armL, restJ.shoulderL, restJ.handL);
-  const armR = arm(J.shoulderR, J.handR, 1, PART.armR, restJ.shoulderR, restJ.handR);
+  const armL = arm(J.shoulderL, J.handL, -1, PART.armL, restJ.shoulderL, restJ.handL, J.bentL ? J.elbowL : null);
+  const armR = arm(J.shoulderR, J.handR, 1, PART.armR, restJ.shoulderR, restJ.handR, J.bentR ? J.elbowR : null);
 
   // Head: a rounded square, not an egg. Hair is a helmet of its own worn over
   // it (Michael, 2026-10-10), and any hat replaces it.

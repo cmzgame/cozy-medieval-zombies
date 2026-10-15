@@ -34,7 +34,7 @@
     <label><input id="showParts" type="checkbox" checked> show the parts tint in the preview</label>
   </div>
   <canvas id="preview"></canvas>
-  <div class="note">Parts tint: <span style="color:#6a9aff">torso</span>, <span style="color:#6adf80">legs</span>, <span style="color:#ffb060">arms</span>, <span style="color:#d080ff">head</span>. Anchors: torso at the neck (segment neck to hip), each leg at its hip (hip to foot), each arm at its shoulder (shoulder to hand), the head at its centre. The hand and foot are accent areas at the ends of the arm and leg segments. The body drawn here is the generator's placeholder with no undergarment (the goobers are asexual, docs/25 Q1); the artist's body replaces it.</div>
+  <div class="note">Parts tint: <span style="color:#6a9aff">torso</span>, <span style="color:#6adf80">legs</span>, <span style="color:#ffb060">arms</span>, <span style="color:#d080ff">head</span>. Anchors: torso at the neck (segment neck to hip), each leg at its hip (hip to foot), each arm at its shoulder (shoulder to hand; the <span style="color:#40e0ff">blue mark</span> across it is the elbow, where the game bends the arm: paint the arm straight, the split is the game's), the head at its centre. The hand and foot are accent areas at the ends of the arm and leg segments. The body drawn here is the generator's placeholder with no undergarment (the goobers are asexual, docs/25 Q1); the artist's body replaces it.</div>
   <pre id="json"></pre>
 </main>
 <script type="module">
@@ -108,6 +108,16 @@
         ctx.strokeStyle = "#ff2030"; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(cx - 6, cy); ctx.lineTo(cx + 6, cy); ctx.moveTo(cx, cy - 6); ctx.lineTo(cx, cy + 6); ctx.stroke();
         ctx.fillStyle = "#ffffff"; ctx.font = "10px monospace"; ctx.fillText(p.name, cx + 8, cy - 4);
+      }
+      // the elbows (2026-10-15): where an arm bends, a mark across each arm's segment at BODY.elbow of its length.
+      // A painted arm is still painted straight; the game splits it here when the arm bends.
+      for (const [sa, hb] of [["shoulderL", "handL"], ["shoulderR", "handR"]]) {
+        const a = jointPx(J[sa]);
+        const b = jointPx(J[hb]);
+        const t = figure.BODY.elbow;
+        const ex = o.x + (a.x + (b.x - a.x) * t + 0.5) * S, ey = o.y + (a.y + (b.y - a.y) * t + 0.5) * S;
+        ctx.strokeStyle = "#40e0ff"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(ex - 7, ey); ctx.lineTo(ex + 7, ey); ctx.stroke();
       }
       // the feet anchor (24, 66) and the facing's name
       const fx = o.x + (AX + 0.5) * S, fy = o.y + (AY + 0.5) * S;
