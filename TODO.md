@@ -4,7 +4,13 @@ Working checklist. A new session reads `CLAUDE.md`, then this file, then the doc
 
 **Multiplayer is live (Michael, 2026-10-13): every box below is ticked only when it works for a guest too.** A feature that works for the host alone is not done; the guest's side is never a later task. The checklist is the first rule in `CLAUDE.md`, the habits are `docs/31-multiplayer/08`.
 
+## PRIORITY: finish the infrastructure day (Michael, 2026-10-15)
+
+**Started by accident the night of 2026-10-15 and to be finished soon.** Done: the studio's email (`cmzgamestudio@gmail.com`), the GitHub organisation `cmzgame` with both repositories in it, the agents' account `cmzgame-bot`. Left: the game's name; a domain and a business email at it; the game's own site (the demo and the information about the game, secure and designed); the relay's Fly app moved to the studio's account; the friends' full game somewhere private (the repositories private, which a paid plan or another host for the sites allows). **This is done by Primary and Michael together, in the session, never through issues, pull request text, or anything else in the public repository** (Michael: we do it "just to not expose anything"): accounts, keys, domains, and hosting are spoken of here only as the steps, never with their secrets.
+
 ## Status
+
+- **Where work stopped, 2026-10-15, the very end (READ THIS FIRST).** Shipped through the process the same night: the bowstring to the chin (#8), the cast's pose with the staff held like a pole (#9), the fireball bursting on the first body it touches, a wider hit where it lands, never through a wall, at 5.25 (#12). **Michael's next, in no order:** the infrastructure day (the priority above); the menus and the site (#16, a scope first, his rulings); burning made real (#14); the elbow's next poses (`docs/32`, "Where we left off"). Open in the queue: #3, #7, #10, #13, #14, #15, #16.
 
 - **Where work stopped, 2026-10-15, last (READ THIS FIRST).** **The process in `github.md` is in force.** Both repositories live in the organisation `cmzgame` (`cmzgame.github.io/cozy-medieval-zombies`, `cmzgame.github.io/cmz-wiki`; the old addresses 404); Michael's `michaeldippold` owns it and is Primary's account, `cmzgame-bot` is every Secondary's. Work is an issue, code a pull request from the template, CI (`checks`) green, a review from the other account, Primary's merge; the game's `main` is protected. The bug list is clear (`docs/bugs.md`: everything Fixed or Closed). Open: the planning Secondary turning this file's open work into issues (`github.md` section 12, step 11); cmzgame/cozy-medieval-zombies#3 (the wiki's publishing build without `--check`). Next for the game: Michael's pick (the elbow's first poses, the cast and the braced draw, the big pass's step 4).
 
@@ -114,7 +120,7 @@ Every other section is built for a guest as well (the rule at the top). What the
 ## Before anything public (Michael, 2026-10-14; `docs/35`)
 
 - [ ] **The game's name.** Nothing public is made until it has one (the site, the logo, the end card, a store page, a handle).
-- [ ] **The infrastructure day:** a business email at the game's domain; the game's own GitHub account or organisation with **the repository private** (today it is public, and the Pages site serves the whole game); the relay's Fly app moved to the new account; the game's own site for the demo and the information about the game, secure and with a design; the friends' full game moved somewhere private. The remotes, the worktrees, and the design agent's `art-docs` branch move with the repository (`27`).
+- [ ] **The infrastructure day** (the priority at the top of this file; started 2026-10-15: the studio's email and the GitHub organisation `cmzgame` are done): a business email at the game's domain; the game's own GitHub account or organisation (done, `cmzgame`) with **the repository private** (today it is public, and the Pages site serves the whole game); the relay's Fly app moved to the new account; the game's own site for the demo and the information about the game, secure and with a design; the friends' full game moved somewhere private. The remotes, the worktrees, and the design agent's `art-docs` branch move with the repository (`27`).
 
 ## Settings, rebuilt (Michael, 2026-10-15)
 
