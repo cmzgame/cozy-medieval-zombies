@@ -10,6 +10,8 @@
 
 ## Open: likely bugs
 
+- [ ] **On a Windows checkout the data validator and the manifest disagree about line endings** (added 2026-10-15 by a Secondary, reproduced, at `826e53c`): with `core.autocrlf` on, `python -I tools/validate-data.py` hashes the files as they are on disk (CRLF) and reports 12 manifest entries as changed (`interactions.json`, `poses.json`, `valley.json`, the cursors' files, two layer indexes, and more), because those entries were stamped from the repository's LF copies while others (`items.json`) were stamped from CRLF copies. `tools/manifest.py` and the validator should hash the bytes as git stores them (CRLF to LF for text), or the repository should carry a `.gitattributes` with `* text=auto eol=lf`, so the stamps agree on every machine and on the deployed site.
+
 
 ## Open: surprises for Michael to rule on
 
