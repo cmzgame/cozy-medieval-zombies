@@ -350,7 +350,8 @@ process.on("message", (m) => {
     if (hash === OWNER_HASH) return reply({ refused: "the owner cannot be removed" });
     const p = game.state.players.find((q) => q.id === m.playerId) || null;
     const rec = store.dormant[hash] || null;
-    const name = (p && p.name) || (rec && rec.name) || m.playerId;
+    const body = game.state.corpses.find((c) => c.id === m.playerId && c.kind === "player") || null; // a fallen player is a body (main's 57ccdfa)
+    const name = (p && p.name) || (rec && rec.name) || (body && body.name) || m.playerId;
     net.letGo(m.playerId, "removed");
     if (p) host.dormantNow(m.playerId);
     say(`the owner removed ${name}`);

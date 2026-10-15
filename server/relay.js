@@ -233,6 +233,8 @@ function playersOf(save) {
   const byId = new Map();
   for (const c of (save.characters && save.characters.players) || []) byId.set(c.id, c);
   for (const r of Object.values(save.dormant || {})) if (r && r.id) byId.set(r.id, r);
+  // A fallen player is a body among the corpses (main's 57ccdfa, 2026-10-14): named and marked dead from it.
+  for (const b of (save.characters && save.characters.corpses) || []) if (b && b.kind === "player" && b.id) byId.set(b.id, { ...b, dead: true });
   return Object.entries(save.owners || {}).map(([hash, id]) => ({ playerId: id, name: (byId.get(id) && byId.get(id).name) || id, owner: hash === OWNER_HASH, dead: !!(byId.get(id) && byId.get(id).dead) }));
 }
 

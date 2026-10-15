@@ -143,7 +143,9 @@ function writeIndex(list) {
 function rowFor(snap) {
   const players = (snap.characters && snap.characters.players) || [];
   // Mine standing, or dormant (a world brought home from the server has every character dormant until its player returns).
-  const mine = players.find((p) => p.id === snap.myPlayerId) || Object.values(snap.dormant || {}).find((r) => r && r.id === snap.myPlayerId) || null;
+  const bodies = (snap.characters && snap.characters.corpses) || [];
+  // Mine standing, dormant, or fallen (a dead player is a body among the corpses since 2026-10-14).
+  const mine = players.find((p) => p.id === snap.myPlayerId) || Object.values(snap.dormant || {}).find((r) => r && r.id === snap.myPlayerId) || bodies.find((b) => b && b.id === snap.myPlayerId && b.kind === "player") || null;
   return {
     worldId: snap.worldId,
     name: snap.name || "A world",

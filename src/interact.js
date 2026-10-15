@@ -742,7 +742,7 @@ export function nearestSimpleAction(player) {
   for (const b of map.bracketsNear(player.gx, player.gy, INTERACT_RANGE)) consider(tag(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player), onBracket(b.bracket)));
   // A body lying within reach (a corpse is a container, docs/19).
   for (const c of allCharacters()) {
-    if (c.kind !== "zombie" || !c.dead || !c.corpse || Math.abs(c.gx - player.gx) > 3 || Math.abs(c.gy - player.gy) > 3) continue;
+    if ((c.kind !== "zombie" && c.kind !== "player") || !c.dead || !c.corpse || Math.abs(c.gx - player.gx) > 3 || Math.abs(c.gy - player.gy) > 3) continue;
     consider(tag(characterActions(c, player), onCharacter(c)));
   }
   return best;
@@ -1355,7 +1355,7 @@ function searchBodyAction(c) {
 // (fire.js, docs/05 "Burning"), from anywhere on screen.
 function characterActions(c, player) {
   const out = [];
-  if (c.kind === "zombie" && c.dead && c.corpse) out.push(searchBodyAction(c));
+  if ((c.kind === "zombie" || c.kind === "player") && c.dead && c.corpse) out.push(searchBodyAction(c)); // a player's body too (2026-10-14)
   if (c.kind === "villager") {
     out.push(act({
       kind: "poke",

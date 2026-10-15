@@ -64,6 +64,7 @@ export function joinFor(hash, identity) {
       delete st.dormant[hash];
       if (p) cfg.arrived(p);
     }
+    if (!p) p = S.corpses.find((c) => c.id === owned && c.kind === "player") || null; // fallen: a body now (2026-10-14)
     if (p && !p.dead) return { player: p };
     if (!identity) return { who: { dead: !!(p && p.dead) } };
   }

@@ -30,7 +30,9 @@ import * as rng from "./rng.js";
 import * as world from "./world.js";
 import * as loop from "./loop.js";
 import { serializeCharacter, restoreCharacter, dress, dressCorpse } from "./entities/character.js";
-import { createPlayer, updatePlayer, setSleepScaleRule, damagePlayer } from "./entities/player.js";
+import { createPlayer, updatePlayer, updateFallen, setSleepScaleRule, damagePlayer } from "./entities/player.js";
+import { canPutDown } from "./placement.js";
+import { playAnimation } from "./sprites.js";
 import { createZombie, updateZombie } from "./entities/zombie.js";
 import { createVillager, updateVillager, turnVillager, damageVillager } from "./entities/villager.js";
 import { controlPlayer } from "./player-controller.js";
@@ -217,10 +219,8 @@ export function restore(saved, json) {
     delete c._targetId;
     delete c._carryingId;
     delete c._carried;
-    if (c.kind !== "player") {
-      if (c.corpse) dressCorpse(c);
-      else dress(c);
-    }
+    if (c.corpse) dressCorpse(c); // a player's body too (2026-10-14)
+    else if (c.kind !== "player") dress(c);
   }
   interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses]);
   archery.setTargets(() => S.zombies);
@@ -262,6 +262,29 @@ export function timeScaleNow() {
   return everyoneAsleep() ? tuning.player.sleepTimeScale : 1;
 }
 setSleepScaleRule(timeScaleNow);
+
+// A player falls (Michael, 2026-10-14): whatever they were doing stops, what they carried on their head is set down
+// beside them where there is room (else it stays with the body and comes back with a search of nothing: it is kept in
+// the save), and the fall plays. The body is made once the fall is over (step).
+function fall(p) {
+  p.sleeping = null;
+  p.action = null;
+  p.auto = null;
+  p.blocking = false;
+  p.climb = null;
+  archery.cancelDraw(p);
+  if (p.carrying) {
+    const x0 = Math.round(p.gx);
+    const y0 = Math.round(p.gy);
+    let spot = null;
+    for (let r = 0; r <= 2 && !spot; r++) for (let dy = -r; dy <= r && !spot; dy++) for (let dx = -r; dx <= r && !spot; dx++) if (canPutDown(p, x0 + dx, y0 + dy)) spot = [x0 + dx, y0 + dy];
+    if (spot) {
+      map.placeProp(p.carrying, spot[0], spot[1]);
+      p.carrying = null;
+    }
+  }
+  playAnimation(p.anim, "die", true);
+}
 
 // The dead's bites and blows are the world's rules (item 5's first step, 2026-10-14, `02`): a bite's damage through
 // the guard and the exposure, the wound that bleeds, the infection (docs/02 question 29b); a villager's damage.
@@ -454,6 +477,13 @@ export function step(dt, snapshots = null) {
   for (const p of S.players) {
     const snap = snapOf(p);
     S.acting = p;
+    if (p.dead) {
+      // The fall, then a body (Michael, 2026-10-14: a player dead and come back as someone new found their old self
+      // standing, not to be searched). Baked to one frame like the dead's once the fall is over (dressCorpse).
+      updateFallen(p, dt);
+      if (p.anim.done && !p.corpse) dressCorpse(p);
+      continue;
+    }
     updatePlayer(p, dt, snap || undefined);
     bleed.update(p, dt);
     // The mouse and the keys, as a snapshot, to the player's controller (docs/23a, D1; never the input module).
@@ -501,11 +531,18 @@ export function step(dt, snapshots = null) {
     S.corpses.push(...S.zombies.filter((z) => z.corpse));
     S.zombies = S.zombies.filter((z) => !z.corpse);
   }
+  // A fallen player's body joins the fallen the same way: drawn, searched, saved, and sent as one of the dead's bodies.
+  // The client whose player it was keeps its own reference (S.player) for the dead screen; a new character replaces it.
+  if (S.players.some((p) => p.corpse)) {
+    S.corpses.push(...S.players.filter((p) => p.corpse));
+    S.players = S.players.filter((p) => !p.corpse);
+  }
   for (const p of S.players) {
     if (p.hp <= 0 && !p.dead) {
       // Death (Michael, 2026-10-10 night): the world says so; the client whose player it is shows the
       // dead screen, and the way back to the title is a fresh load.
       p.dead = true;
+      fall(p);
       events.emit("gameOver", { player: p });
     }
   }

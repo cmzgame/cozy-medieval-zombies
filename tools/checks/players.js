@@ -147,8 +147,26 @@ export async function run(game) {
       }
       row("alone, a drag between grids moves the item here (the panel's handlers are the local ones)", moved, detail);
     }
+    // 10. A player who dies falls and becomes a body like the dead's, searchable for what they carried (Michael,
+    // 2026-10-14: a player dead and come back as someone new found their old self standing, not to be searched).
+    {
+      other.hands.main = G.items.makeEntry("sword", 1);
+      other.hp = 0;
+      step(60);
+      const asBody = S.corpses.includes(other) && !S.players.includes(other) && other.corpse && other.dead;
+      const interact = await import("/src/interact.js");
+      const meAt = [me.gx, me.gy];
+      me.gx = other.gx + 0.8;
+      me.gy = other.gy;
+      step(1);
+      const a = interact.nearestSimpleAction(me);
+      me.gx = meAt[0];
+      me.gy = meAt[1];
+      row("a player who dies falls and lies as a body to search", asBody && !!a && /body/i.test(a.label), `${asBody ? "a body among the corpses" : "not a body"}; E beside it: ${a ? a.label : "nothing"}`);
+    }
   } finally {
     if (other) G.game.removePlayer(other.id);
+    if (other) S.corpses = S.corpses.filter((c) => c !== other); // its body, from row 10
     for (const [z, gx, gy, state, aggro, lastSeen, target] of dead) { z.gx = gx; z.gy = gy; z.state = state; z.aggro = aggro; z.lastSeen = lastSeen; z.target = target; z.path = []; }
     me.gx = meAt[0]; me.gy = meAt[1]; me.hp = meAt[2];
     G.clock.setHour(hour0);
