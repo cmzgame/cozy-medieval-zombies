@@ -1,6 +1,6 @@
 # 37 — The wiki: everything about the game, in one place, true to the code
 
-**Status: scoped 2026-10-14 with Michael, his six answers folded in the same day ("Answered", at the end). Not started** (his word: a scope and a plan first). This doc is the plan for a real wiki of the game, OSRS-wiki style, in its own repository and its own GitHub Pages site, written and kept up by Claude with Michael making targeted changes. Defaults in brackets are Michael's to overrule.
+**Status: scoped 2026-10-14 with Michael, his six answers folded in the same day ("Answered", at the end). Started the same day at his word: the repository is `C:/Users/micha/Dev/cmz-wiki` (github.com/michaeldippold/cmz-wiki), and steps 1 to 5 of the build order are done in a first form** (the census with its six fact sheets, 96 discrepancies, and a findings list; the generator; the data templates; every item, station, place, and villager with a page; 127 written pages). **Owed:** the art exporter (the wiki shows drawn icons and the placeholder blocks for now), the spot checks in the pane (the census was read, not played), and step 7's line in `CLAUDE.md`. The site publishes once Pages is set to GitHub Actions in the repository's settings. This doc is the plan for a real wiki of the game, OSRS-wiki style, in its own repository and its own GitHub Pages site, written and kept up by Claude with Michael making targeted changes. Defaults in brackets are Michael's to overrule.
 
 ## What it is, and what it is not
 

@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-14 — The wiki started (Michael: "why not just get started now")
+
+Built in its own repository (`C:/Users/micha/Dev/cmz-wiki`, github.com/michaeldippold/cmz-wiki) as `37` planned: `sync.js` snapshots the game's `origin/main` read-only by `git archive`; the census (`census/census.js`, the automatic inventory, the code's named constants for pages to reference; six fact sheets read from the code; `census/discrepancies.md`, 96 docs-versus-code differences; `census/findings.md`, what a player would notice, several of them bugs); a generator with no dependencies (its own markdown renderer, wiki links with red links, templates from the data, categories, what links here, special pages, search, the valley's map drawn from the map file at the screen's angle); 156 pages, 127 written by six writers from the fact sheets under `WRITING.md`'s rules. The game's `.claude/launch.json` gains `wiki` (port 8020) for the preview. Docs: 02, 37, TODO; .claude/launch.json.
+
 ### 2026-10-14 — The wiki's six answers (Michael)
 
 `cmz-wiki` at `michaeldippold.github.io/cmz-wiki`; public, going private with the game's code; mostly text and a little art, clear organisation first; planned things shown, each note a marker the sync lists until the feature replaces it; plain like the OSRS wiki; and **keeping the wiki current is part of shipping**: once it exists, no feature is pushed to `main` until its wiki pages are checked and updated, a rule the build writes into `CLAUDE.md` ("this thing is not worth building if it's going to immediately fall behind"). Folded into `37`.
