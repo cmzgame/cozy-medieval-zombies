@@ -1562,6 +1562,7 @@ async function boot() {
         broken: `The world "${code}" failed to start on the server a few times; it is resting before it tries again.`,
         moving: "That world is on its way home to its owner's browser.",
         removed: "The world's owner removed you from it.",
+        updated: "The game was updated. Reload the page (the new version can take a few minutes to reach your browser).",
         relay: `${where[0].toUpperCase()}${where.slice(1)} could not be reached.`,
         dropped: "The connection to the host dropped.",
         hostLeft: "The host closed the world.",

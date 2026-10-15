@@ -1,0 +1,57 @@
+# Every push to main deploys the relay and its server worlds to Fly (item 5, ruled 2026-10-14, docs/02: the protocol
+# refuses a version mismatch, so the server follows the site). The app's name lives here and in fly.toml alone; the
+# deploy token is the repository secret FLY_API_TOKEN (a Fly deploy token for that one app).
+#
+# The build id: both deploys stamp the same commit, the server through the image (Dockerfile, CMZ_BUILD_ID) and the site
+# through src/build.js, and a server world refuses a page of another build with "The game was updated". The site's job
+# runs only once the repository variable PAGES_FROM_ACTIONS is "true" and Pages is set to deploy from GitHub Actions
+# (Settings, Pages, Source); until then Pages deploys from the branch as before, unstamped, and the server compares
+# nothing and leans on the protocol number alone.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  relay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Deploy the relay and the server worlds to Fly
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "::warning::FLY_API_TOKEN is not set: the relay was not deployed."
+            exit 0
+          fi
+          flyctl deploy --remote-only --build-arg BUILD_ID=${{ github.sha }}
+
+  pages:
+    if: vars.PAGES_FROM_ACTIONS == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stamp the build
+        run: printf 'export const BUILD_ID = "%s";\n' "${{ github.sha }}" > src/build.js
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4

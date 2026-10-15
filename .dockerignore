@@ -1,2 +1,14 @@
+# The server image carries server/, src/, and data's JSON (item 5's seventh step): no art, no fonts, no docs, no
+# screenshots, no tools. A world under Node reads JSON alone (server/boot.js; assets.setHeadless).
 *
-!server/relay.js
+!server/
+!src/
+!data/
+!package.json
+data/**/*.png
+data/**/*.webp
+data/**/*.jpg
+data/**/*.gif
+data/**/*.ttf
+data/**/*.md
+data/**/*.txt

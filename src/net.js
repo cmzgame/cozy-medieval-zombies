@@ -23,6 +23,7 @@ import * as burning from "./fire.js";
 import * as stations from "./stations.js";
 import * as interact from "./interact.js";
 import { VERSION as SAVE_VERSION } from "./save.js";
+import { BUILD_ID } from "./build.js";
 import { idHash } from "./identities.js";
 import { updatePlayer } from "./entities/player.js";
 import { controlPlayer } from "./player-controller.js";
@@ -479,6 +480,13 @@ export function hostStep(mySnap, me) {
         send({ type: "bye", to: msg.from, reason: "version", newer: protocol > PROTOCOL || version > SAVE_VERSION ? "guest" : "host" });
         continue;
       }
+      // A server world and a page of another build refuse each other (item 5's seventh step): the deploys of the site and
+      // the server finish minutes apart, and a change to the game's logic seldom moves PROTOCOL. Only when both are stamped.
+      const mine = hooks.buildId ? hooks.buildId() : null;
+      if (mine && mine !== "dev" && typeof msg.build === "string" && msg.build !== "dev" && msg.build !== mine) {
+        send({ type: "bye", to: msg.from, reason: "updated" });
+        continue;
+      }
       let hash = typeof msg.clientId === "string" && msg.clientId ? idHash(msg.clientId) : null;
       // A server world's owner, by its key: the hash its character is filed under on every device (hooks.ownerHash,
       // the world process alone; a wrong key is no key, and the join goes on by the browser's id).
@@ -839,7 +847,7 @@ export function guestStep(mySnap) {
     joinSentAt = now;
     if (!firstJoinAt && transport && transport.ready) firstJoinAt = now; // the wait starts once the relay has answered the socket (a sleeping tier wakes slowly)
     // The browser's id and the protocol always; the identity when one was chosen (the host asks with `who` otherwise).
-    send({ type: "join", clientId, protocol: PROTOCOL, version: SAVE_VERSION, name: identity ? identity.name : null, look: identity ? identity.look : null, ...(ownerKey ? { ownerKey } : {}) });
+    send({ type: "join", clientId, protocol: PROTOCOL, version: SAVE_VERSION, build: BUILD_ID, name: identity ? identity.name : null, look: identity ? identity.look : null, ...(ownerKey ? { ownerKey } : {}) });
   }
   for (const msg of inbox.splice(0)) {
     // A packed welcome is unpacking: everything after it waits, in order, for the world it follows (the frames are
@@ -974,7 +982,7 @@ let myBase = null;
 // What a host's goodbye means for the client's words (main.js's notes).
 function byeWhy(msg) {
   if (msg.reason === "version") return msg.newer === "guest" ? "versionHost" : "versionGuest";
-  return ["replaced", "full", "refused", "removed"].includes(msg.reason) ? msg.reason : "hostLeft";
+  return ["replaced", "full", "refused", "removed", "updated"].includes(msg.reason) ? msg.reason : "hostLeft";
 }
 
 function welcomed(msg, save) {

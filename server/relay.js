@@ -899,7 +899,7 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, { "content-type": "text/plain; charset=utf-8", "access-control-allow-origin": "*" });
   let guests = 0;
   for (const r of rooms.values()) guests += r.guests.size;
-  res.end(`cmz relay: ${rooms.size} world${rooms.size === 1 ? "" : "s"} open, ${guests} guest${guests === 1 ? "" : "s"}\n`);
+  res.end(`cmz relay: ${rooms.size} world${rooms.size === 1 ? "" : "s"} open, ${guests} guest${guests === 1 ? "" : "s"}; build ${(process.env.CMZ_BUILD_ID || "dev").slice(0, 12)}\n`);
 });
 
 server.on("upgrade", (req, socket) => {
