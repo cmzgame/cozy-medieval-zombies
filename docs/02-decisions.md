@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-15 — Primary's pull requests are reviewed by agents it starts (Michael)
+
+Asked whether the reviewing agents Primary started tonight were a one-night allowance: **a standing permission.** Primary may start a Secondary agent to review its own pull request (a fresh agent with no part in the change, a signed review, Primary answering it in new commits); for a change he is particularly worried about, Michael opens a Secondary session himself to keep direct tabs. Michael: with GitHub he should not have to carry messages back and forth as reviews. Written into `github.md` section 8, step 6, which outlives the bot's flag; the box's rule 4 points there.
+
 ### 2026-10-15 — The process while the bot is flagged (Michael)
 
 GitHub's spam protection flagged `cmzgame-bot` after it filed 38 issues in a few minutes (#7's planning), hiding everything it wrote, its approvals included; a reinstatement ticket is filed and may take a week. Michael asked for a stopgap rather than a week without work, and took Primary's proposal over his own of merging locally with no pull requests: **pull requests and CI stay; the required approval drops to 0; every session works as `michaeldippold`, told apart by its signature; a review is a signed comment opening with Approved or Changes requested; only Primary merges, on such a comment from a session with no part in the change and green checks, the reverts and hotfixes of `github.md` 8.8 excepted; nothing is created in bursts.** Kept because the pull request is the record and CI is the gate a local merge would lose. The rules are the box at the top of `github.md`; they end when the bot is reinstated (approvals back to 1, the bot's #18 to #55 and #56 reviewed, not refiled).
