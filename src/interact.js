@@ -573,7 +573,7 @@ function waterActions(source, player) {
 }
 
 function wellActions(prop, player) {
-  return waterActions({ tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] - 0.6, name: "well", onStart: () => play(prop) }, player); // the bucket goes down for the water
+  return waterActions({ tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] - 0.6, name: prop.sprite.replace(/_/g, " "), onStart: () => play(prop) }, player); // the bucket goes down for the water; named for what it is (a trough, a font: the wiki census's bugs, 2026-10-15)
 }
 
 // A water tile's actions, from its bank.
