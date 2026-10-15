@@ -24,7 +24,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      # Pinned to a commit, the release tag 1.6 (the same commit master was on 2026-10-15): this step runs beside the
+      # deploy token, so it never changes under us (the coder agent's review of step 7). Move it by hand.
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # 1.6
       - name: Deploy the relay and the server worlds to Fly
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
