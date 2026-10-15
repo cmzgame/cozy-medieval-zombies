@@ -93,6 +93,7 @@ export function burnFires(dt) {
     // A guest's copy of the fuel refreshes when the chunk is sent: at every whole unit burned, so a guest's
     // hours left are never more than a unit behind (the sync check compares fuel to the unit; docs/31/04).
     if (Math.floor(before) !== Math.floor(f.fuel)) markDirty(p.tile[0], p.tile[1]);
+    else unsaved(p.tile[0], p.tile[1], false); // the fuel between units: the save's copy only (the wire waits for the unit)
     if (f.fuel <= 0) {
       f.fuel = 0;
       f.lit = false;
@@ -179,11 +180,16 @@ export function holderHas(target) {
 }
 
 export function setHolder(target, has) {
-  if (target.kind === "bracket") target.bracket.wall.bracket.torch = has;
-  else {
+  if (target.kind === "bracket") {
+    target.bracket.wall.bracket.torch = has;
+    touchWall(target.bracket.wall);
+  } else {
     target.prop.fire.has = has;
     target.prop.fire.lit = has;
+    touch(target.prop.tile[0], target.prop.tile[1]);
   }
+  // It touched nothing before 2026-10-15: a guest saw a torch mounted or taken only once its chunk went for another
+  // reason (found auditing the changes for the save's cache, `02`).
 }
 
 // Burners within `r` tiles of (gx, gy), nearest first.
@@ -561,6 +567,7 @@ export function damageOpening(wall, side, amount) {
     }
   }
   if (broke) touchWall(wall);
+  else if (amount) unsavedWall(wall); // its health, which the wire does not send short of a break, is saved
   return broke;
 }
 
@@ -637,7 +644,10 @@ export function takeTouched() {
 export function touch(x = null, y = null) {
   worldVersion++;
   if (x === null) {
-    for (const c of chunks.values()) c.lightVersion++;
+    for (const c of chunks.values()) {
+      c.lightVersion++;
+      c.saved = null;
+    }
     return;
   }
   const [cx, cy] = chunkCoord(Math.round(x), Math.round(y));
@@ -664,6 +674,56 @@ export function markDirty(x, y) {
     c.dirty = true;
     touched.add(chunkKey(cx, cy, c.layer));
   }
+  unsaved(x, y);
+}
+
+// ---- the save's copy of each chunk (2026-10-15, `02`: a save that costs what changed) ----
+// game.serialize keeps each chunk's saved form on the chunk (`saved`) and makes it again only once the chunk has
+// changed. Every change that marks a chunk for the wire (markDirty, touch) drops it, for the chunk and its eight
+// neighbours, since a prop is saved with the chunk of its anchor tile and a change may name another tile of its
+// footprint. The few changes the wire never sends drop it here too, the anchor's chunk alone (`near` false): a
+// fire's fuel burning, a station's job counting down, a sway's stamp, a door or a board losing health short of
+// breaking, a container's bag made on first use. A change that forgets both is caught: the server's rolling copy
+// and its last save, and the browser's every tenth autosave, make the whole save afresh and say which chunk the
+// copy had wrong (game.verifySaveCache).
+export function unsaved(x, y, near = true) {
+  const [cx, cy] = chunkCoord(Math.round(x), Math.round(y));
+  if (!near) {
+    const c = getChunk(cx, cy, false);
+    if (c) c.saved = null;
+    return;
+  }
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const c = getChunk(cx + dx, cy + dy, false);
+      if (c) c.saved = null;
+    }
+  }
+}
+
+// A wall's change that the wire does not send (its health): the save's copy of its tile's chunks is dropped.
+function unsavedWall(wall) {
+  if (wall.at) unsaved(wall.at[0], wall.at[1]);
+  else for (const c of chunks.values()) c.saved = null;
+}
+
+// Every loaded chunk's saved form, in serializeMap's order: the copy kept on the chunk, or `make(chunk)`'s, kept.
+export const saveCacheCount = { made: 0, kept: 0 };
+export function savedChunks(make) {
+  const out = [];
+  for (const c of chunks.values()) {
+    if (!c.saved) {
+      c.saved = make(c);
+      saveCacheCount.made++;
+    } else saveCacheCount.kept++;
+    out.push(c.saved);
+  }
+  return out;
+}
+
+// Every loaded chunk, for the cache's check (game.verifySaveCache).
+export function eachChunk(fn) {
+  for (const c of chunks.values()) fn(c);
 }
 
 export function chunkCount() {
@@ -717,8 +777,13 @@ export function serializeChunk(c) {
 export function serializeMap() {
   return {
     chunks: [...chunks.values()].map(serializeChunk),
-    pending: pendingSpawns.map(([x, y]) => [x, y]),
+    pending: serializePending(),
   };
+}
+
+// The spawns owed, alone: the save's cache asks for this part without the chunks (game.js).
+export function serializePending() {
+  return pendingSpawns.map(([x, y]) => [x, y]);
 }
 
 // The sleepers' lists by chunk key, for the caller to serialise and to put back.
@@ -765,7 +830,7 @@ export function installChunk(d) {
   for (const [floor, n] of d.floors) for (let j = 0; j < n; j++) tiles[i++] = createTile(floor);
   for (const [lx, ly, edge, w] of d.walls) tiles[ly * CHUNK + lx][edge] = { ...w, at: [cx * CHUNK + lx, cy * CHUNK + ly] };
   for (const [lx, ly, list] of d.items) tiles[ly * CHUNK + lx].items = list;
-  const c = { cx, cy, layer, tiles, floorCache: null, floorDirty: true, wild: !!d.wild, dirty: !!d.dirty, lightVersion: 0 };
+  const c = { cx, cy, layer, tiles, floorCache: null, floorDirty: true, wild: !!d.wild, dirty: !!d.dirty, lightVersion: 0, saved: null };
   chunks.set(k, c);
   lastChunk = null;
   roomsDirty = true;
@@ -780,6 +845,7 @@ export function installChunk(d) {
 export function reviveProp(data, onMap = true) {
   const prop = createProp({ id: data.id, sprite: data.sprite, tile: data.tile, footprint: data.footprint, facing: data.facing, offset: data.offset, solid: data.solid, radius: data.radius });
   Object.assign(prop, data, { tiles: prop.tiles, kind: "prop" });
+  if (prop.fire && !Number.isFinite(prop.fire.fuel)) prop.fire.fuel = 0; // a save from before 2026-10-15 may hold the word (createProp)
   for (const k of Object.keys(prop)) if (!(k in data) && !PROP_DERIVED.has(k)) delete prop[k]; // exactly the saved shape (a field the load had dropped stays dropped)
   // A carried prop stands on no tile, so it is no light at its old one and not in the registry (as removeProp leaves it).
   if (prop.fire && onMap) fireProps.add(prop);
@@ -926,7 +992,7 @@ export function getChunk(cx, cy, create = true, layer = 0) {
     }
   }
   // `wild` and `dirty` decide eviction (docs/23a, B2); `lightVersion` is the light cache's key (B4).
-  c = { cx, cy, layer, tiles, floorCache: null, floorDirty: true, wild: anyWild, dirty: false, lightVersion: 0 };
+  c = { cx, cy, layer, tiles, floorCache: null, floorDirty: true, wild: anyWild, dirty: false, lightVersion: 0, saved: null };
   chunks.set(k, c);
   touched.add(k); // grown: a guest learns of it like any change (net.js; the guest cannot grow it itself, its settings could shape it differently)
   lastChunk = c;
@@ -1530,7 +1596,11 @@ export function createProp(def, offset = [0, 0]) {
       holds, // "torch": a post, lit while it holds one
       has,
       lit: holds ? has : def.lit ?? f.lit ?? !f.burns,
-      fuel: def.fuel ?? f.fuel ?? 0,
+      // The units in it now: the map's number, else none. The definition's `fire.fuel` names the item it burns (below),
+      // and was read here as the count until 2026-10-15: an authored burner with no number of its own held the word
+      // "log", and feeding it made the fuel not a number, a fire that never went out and marked its chunk every step
+      // (found proving the save's cache, `02`).
+      fuel: Number.isFinite(def.fuel) ? def.fuel : 0,
       maxFuel: f.maxFuel ?? 4,
       fuelItem: f.fuel || "log", // the item (or tag) it burns (docs/30 section 7)
       hoursPerUnit: f.hoursPerUnit ?? 2,

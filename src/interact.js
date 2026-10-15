@@ -316,6 +316,7 @@ export function propBag(prop) {
     const [cols, rows] = containerGrid(prop.container.loot);
     prop.bag = createBag(cols, rows, prop.sprite.replace(/_/g, " "));
     prop.searched = false;
+    map.unsaved(prop.tile[0], prop.tile[1], false); // made on first use, by whichever path asks first
   }
   return prop.bag;
 }
@@ -1220,6 +1221,7 @@ export function setStampSink(fn) {
 }
 function stamp(prop, now, field = "pokedAt") {
   prop[field] = now;
+  map.unsaved(prop.tile[0], prop.tile[1], false); // the stamp is saved; the wire sends it in the frame's pokes, not the chunk
   const kind = field === "playedAt" ? 1 : 0;
   if (stamped.length < 400) stamped.push([prop.id, now, kind]);
   if (stampSink) stampSink(prop.id, kind);

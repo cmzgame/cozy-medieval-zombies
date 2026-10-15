@@ -541,9 +541,9 @@ export function hostStep(mySnap, me) {
       // which a guest unpacks with the browser's own DecompressionStream: a well-explored world is 4.6 MB raw, about
       // 200 KB packed (the coder agent's review of step 3). A browser host, which has no packer that answers at once,
       // sends it as it was.
-      const whole = game.serialize();
-      const z = hooks.packWelcome ? hooks.packWelcome(whole) : null;
-      send({ type: "welcome", to: msg.from, playerId: p.id, ...(z ? { z } : { save: whole }), world: hooks.worldInfo ? hooks.worldInfo() : null });
+      // The packer is handed the save as text, from the save's cache (game.serializeText, 2026-10-15).
+      const z = hooks.packWelcome ? hooks.packWelcome(game.serializeText()) : null;
+      send({ type: "welcome", to: msg.from, playerId: p.id, ...(z ? { z } : { save: game.serialize() }), world: hooks.worldInfo ? hooks.worldInfo() : null });
       forgetSent(); // the newcomer's baseline is this save: whatever the others were sent is sent again, whole
 
       hooks.message(`${p.name || p.id} joined.`);

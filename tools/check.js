@@ -105,6 +105,19 @@ check("a bite lands with no page behind the world (the host's rules in the world
   return `health ${m[1]} to ${m[2]} in 600 steps`;
 });
 
+check("a save from its cache is the world made afresh, character for character (2026-10-15, a save that costs what changed)", () => {
+  let out;
+  try {
+    out = execFileSync(process.execPath, [path.join(root, "tools/savecache.js")], { encoding: "utf8" });
+  } catch (err) {
+    throw new Error(((err.stdout || "") + (err.stderr || "")).trim().split(/\r?\n/).slice(-3).join(" ") || err.message);
+  }
+  const m = out.match(/savecache: (\d+) kinds of change, (\d+) comparisons/);
+  const t = out.match(/afresh ([\d.]+) ms, cached text ([\d.]+) ms/);
+  assert(m && t, `no result line in: ${out.slice(-200)}`);
+  return `${m[1]} kinds of change, a change with no mark caught; afresh ${t[1]} ms, cached ${t[2]} ms`;
+});
+
 const save = await import("../src/save.js");
 const rulesMod = await import("../src/rules.js");
 check("the save's version is 2 and a version-1 save is upgraded with the rules (item 5's second step)", () => {
