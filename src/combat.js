@@ -105,6 +105,10 @@ export function altWeaponOf(player) {
 export function offWeaponOf(player) {
   const e = player.hands.off;
   if (!e || e === player.hands.main) return null;
+  // A spear is never dual wielded (docs/21, `noDual`): a torch beside it is a light and never takes the off hand's
+  // turn (the wiki census's bugs, 2026-10-15; a torch beside a sword still may, which docs/21 rules).
+  const mainDef = player.hands.main && items.getItem(player.hands.main.id);
+  if (mainDef && mainDef.noDual) return null;
   const def = items.getItem(e.id);
   return def && def.weapon && !def.shield ? def.weapon : null;
 }
