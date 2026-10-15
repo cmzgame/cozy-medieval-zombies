@@ -10,9 +10,9 @@
 import * as iso from "./iso.js";
 import * as map from "./map.js";
 import { emit } from "./events.js";
-import { HELD_ANGLES, angleIndex } from "./figure.js";
+import { HELD_ANGLES, angleIndex, poseAt } from "./figure.js";
 import * as settings from "./settings.js";
-import { guardedMult } from "./combat.js";
+import { guardedMult, styleOf } from "./combat.js";
 import { getItem } from "./items.js";
 import { getSheet, idleFrame } from "./assets.js";
 import { damageZombie } from "./entities/zombie.js";
@@ -614,7 +614,7 @@ export function releaseDraw(player, ctx) {
   }
   const a = shoot(player, aim.dir, aim.distance, c, { damage: (L.damage ?? tunables.damage) * guardedMult(player), knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, staggerChance: L.staggerChance, interrupts: !!L.interrupts, item, flat: !!L.flat, vanish: !!L.vanish });
   player.recover = tunables.recoverTime;
-  setPose(player, L.kind === "spell" ? 1 : 3); // a cast thrusts forward (the cast's own pose is docs/32, item 3)
+  setPose(player, 3); // the release: the arrow loosed, the throw let go, the spell cast forward (docs/32, item 3)
   emit("arrowShot", { player, arrow: a, c });
   // The string wears by the shot (docs/30, 5.2: a bow's `shots`); at the last one the bow is gone from the hand.
   const bowEntry = player.hands.main;
@@ -666,7 +666,8 @@ export function updateDraw(player, dt, ctx) {
   } else {
     setMarker(player, null);
   }
-  setPose(player, bow.kind === "spell" ? 0 : draw.c < 0.35 ? 0 : draw.c < 0.8 ? 1 : 2); // a spell is held raised until the cast's own pose (docs/32, item 3)
+  const at = poseAt(styleOf(player, true)); // the style's own rhythm (the bow's 0.35 and 0.8 by default; the cast's in poses.json)
+  setPose(player, draw.c < at[0] ? 0 : draw.c < at[1] ? 1 : 2);
   const down = draw.source === "script" ? true : ctx.down;
   if (!down) releaseDraw(player, ctx);
 }

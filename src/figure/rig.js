@@ -113,6 +113,13 @@ export function poseStyles() {
   return Object.keys(POSES);
 }
 
+// Where a held draw's frames change (docs/32: the thresholds are data): `at` on a style is the draw's fractions at which
+// frames 1 and 2 begin, so each draw has its own rhythm (the cast's, 2026-10-15). The bow's literals are the default.
+export function poseAt(style) {
+  const st = style && POSES[style];
+  return st && Array.isArray(st.at) && st.at.length === 2 ? st.at : [0.35, 0.8];
+}
+
 // The style a figure's attack uses: the spec's, else the dead's own or the one-handed swing.
 export function styleFor(spec) {
   const fallback = spec.variant === "zombie" ? "zombie" : "one_handed";

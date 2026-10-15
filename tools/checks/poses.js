@@ -87,6 +87,18 @@ export async function run(game) {
     const j = sheet().joints && sheet().joints.idle_s_0;
     const ja = sheet().joints && sheet().joints.attack_s_2;
     row("the bow is held at rest with both hands and drawn upright by the facing", G.items.getItem("bow").held.pose === "bow_rest" && rest.armPitch[0] !== plain.armPitch[0] && rest.armOut[0] < 0 && !!bowSheet.byFacing && !!j && !!ja && j.main.angFace === 8 && ja.main.angFace === 8, `off arm ${rest.armPitch[0]} out ${rest.armOut[0]} (a plain hold ${plain.armPitch[0]}); the sheet ${bowSheet.byFacing ? "by facing" : "turned with the arm"}; toward the camera frame ${j && j.main.angFace} at rest and ${ja && ja.main.angFace} drawn`);
+    // 8. The cast (docs/32 item 3, #6): its style by which hand holds the staff, none for either alone, and its own
+    // rhythm as data (`at`), the bow's left at the default.
+    const mk = (id) => G.items.makeEntry(id, 1);
+    p.hands.main = mk("staff_of_fire"); p.hands.off = mk("book_of_fire");
+    const staffMain = combat.styleOf(p);
+    p.hands.main = mk("book_of_fire"); p.hands.off = mk("staff_of_fire");
+    const bookMain = combat.styleOf(p);
+    p.hands.off = null;
+    const bookAlone = combat.styleOf(p);
+    const castAt = G.figure.poseAt("cast_staff");
+    const bowAt = G.figure.poseAt("bow");
+    row("the cast's pose follows the staff's hand, with its own rhythm", staffMain === "cast_staff" && bookMain === "cast_book" && bookAlone !== "cast_book" && bookAlone !== "cast_staff" && castAt[0] === 0.3 && castAt[1] === 0.7 && bowAt[0] === 0.35 && bowAt[1] === 0.8, `staff in the main hand ${staffMain}, book in the main hand ${bookMain}, the book alone ${bookAlone}; the cast at ${castAt.join(", ")}, the bow at ${bowAt.join(", ")}`);
   } finally {
     p.hands.main = hands0.main;
     p.hands.off = hands0.off;

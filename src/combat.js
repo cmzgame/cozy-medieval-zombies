@@ -84,6 +84,11 @@ export function weaponOf(player) {
 export function styleOf(player, throwing = false) {
   const def = player.hands.main && items.getItem(player.hands.main.id);
   if (!def) return null;
+  // A staff and a spellbook held together cast (docs/24): the pose follows the main hand's (`castStyle`: the staff
+  // raised, or the book held out with the staff raised in the other hand; docs/32 item 3, 2026-10-15).
+  const offE = player.hands.off;
+  const off = offE && offE !== player.hands.main ? items.getItem(offE.id) : null;
+  if (def.castStyle && off && ((def.staff && off.book && off.book.spell) || (def.book && def.book.spell && off.staff))) return def.castStyle;
   return (throwing && def.thrown && def.thrown.style) || (def.weapon && def.weapon.style) || (def.bow && def.bow.style) || (def.thrown && def.thrown.style) || null;
 }
 
