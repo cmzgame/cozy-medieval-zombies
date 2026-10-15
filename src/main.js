@@ -106,7 +106,9 @@ const URLQ = new URLSearchParams(typeof location !== "undefined" ? location.sear
 const TEST_WORLD = URLQ.has("nosave"); // the checks want a fresh world at boot, as the game always had (CLAUDE.md)
 let editing = null; // the identity being edited on the identity screen: { id?, name, look }
 let lastAutosave = 0; // sim seconds at the last autosave
-const AUTOSAVE = 60; // seconds of game time between autosaves (the parent's cadence)
+let lastAutosaveAt = 0; // the wall clock's at the last (this client's, never the world's)
+const AUTOSAVE = 60; // seconds of game time between autosaves (the parent's cadence), and at least as many real ones:
+// while everyone sleeps the world runs sixty times over and game time alone saved once a real second (the wiki census's bugs, 2026-10-15)
 let mapJson = null; // the map file, kept for a restore
 let looksJson = null; // the character screen's palettes (data/looks.json)
 
@@ -330,7 +332,10 @@ async function saveWorld(extra = {}) {
     if (wrong.length) console.warn(`The save's cache missed ${wrong.length} chunk(s), saved right now (a change marked nothing; see map.unsaved):`, wrong);
   }
   const r = await save.writeWorld(save.snapshot(MAP_NAME, { worldId: currentWorld.worldId, name: currentWorld.name, code: currentWorld.code, created: currentWorld.created, open: !!currentWorld.open, owners: currentWorld.owners, dormant: currentWorld.dormant || {}, myPlayerId: S.player.id, ...extra }));
-  if (r.ok) lastAutosave = loop.simTime();
+  if (r.ok) {
+    lastAutosave = loop.simTime();
+    lastAutosaveAt = performance.now();
+  }
   else showMessage(`The world could not be saved: ${r.error}.`, 6);
   return r.ok;
 }
@@ -1096,7 +1101,12 @@ function stepWithScreenUp(dt, guest) {
 function render() {
   const r0 = performance.now();
   if (!inWorld || !S.player) return; // the title over nothing (docs/31/09)
-  if (started && !S.player.dead && loop.simTime() - lastAutosave >= AUTOSAVE) events.emit("autosaveTick");
+  if (started && !S.player.dead && loop.simTime() - lastAutosave >= AUTOSAVE && performance.now() - lastAutosaveAt >= AUTOSAVE * 1000) {
+    // Stamped when asked, so a save still being written (or a world that saves nothing, a guest's) is asked once a minute, not every frame.
+    lastAutosave = loop.simTime();
+    lastAutosaveAt = performance.now();
+    events.emit("autosaveTick");
+  }
   const scene = {
     w: V.w,
     h: V.h,
