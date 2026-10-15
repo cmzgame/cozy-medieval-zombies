@@ -77,6 +77,8 @@ const DEFAULT_POSES = {
   },
   // The held-out pose (docs/32, item 1): the main arm forward at chest height, the thing presented in front.
   present: { pitch: 90, out: 2, headD: 1 },
+  // The bow at rest (Michael, 2026-10-14): both hands low in front, the bow upright, the other hand at the string.
+  bow_rest: { pitch: 35, out: -2, offPitch: 35, offOut: -5 },
   // The halberd's thrust (docs/32, item 2), the second attack animation `attack_alt` of a weapon whose `alt`
   // names it: a draw back, the lunge (the active frame), held, and back. Both hands on the shaft (`offPitch`).
   thrust: {
@@ -239,7 +241,7 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
       break;
     }
     case "present":
-      presentArm(p);
+      heldPoseArms(p, "present", false);
       p.headD = (POSES.present || DEFAULT_POSES.present).headD ?? 0;
       break;
     case "hurt":
@@ -278,9 +280,9 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
   }
   const swinging = anim === "attack" || anim === "attack_alt";
   if (holding.main && !fixed && !swinging && anim !== "present") {
-    // A thing held out by its nature (the book: `held.pose: "present"`, docs/32 item 1) is presented in the idle
-    // and the walk; anything else is held forward at the hold's pitch.
-    if (holding.mainPose === "present") presentArm(p);
+    // A thing with a pose of its own (`held.pose`, a pose in the data: the book's "present", docs/32 item 1; the bow's
+    // "bow_rest", 2026-10-14) holds the arms so in the idle and the walk; anything else is held forward at the hold's pitch.
+    if (holding.mainPose && (POSES[holding.mainPose] || DEFAULT_POSES[holding.mainPose])) heldPoseArms(p, holding.mainPose, true);
     else {
       p.armPitch[1] = HOLD_PITCH;
       p.armOut[1] = HOLD_OUT;
@@ -289,11 +291,18 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
   return p;
 }
 
-// The main arm held out in front at chest height (docs/32, item 1), from the poses data.
-function presentArm(p) {
-  const f = POSES.present || DEFAULT_POSES.present;
+// A held pose from the poses data: the main arm at its `pitch` and `out` (the book held out at chest height, docs/32
+// item 1), and the off arm too when the pose names `offPitch` (the bow at rest, the other hand at the string;
+// Michael, 2026-10-14: the off hand hung by the side). `withOff` is false for the one-frame `present` animation,
+// which leaves the off arm to what the hands hold.
+function heldPoseArms(p, name, withOff) {
+  const f = POSES[name] || DEFAULT_POSES[name];
   p.armPitch[1] = f.pitch ?? 90;
   p.armOut[1] = f.out ?? 2;
+  if (withOff && f.offPitch != null) {
+    p.armPitch[0] = f.offPitch;
+    p.armOut[0] = f.offOut ?? p.armOut[0];
+  }
 }
 
 // The joints of a pose in body coordinates (l, d, h).

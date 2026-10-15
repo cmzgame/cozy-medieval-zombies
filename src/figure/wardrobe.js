@@ -73,7 +73,7 @@ function applyCovers(outfit, painted) {
 // hands, the dead's wardrobe index and wound, and the painted-layer overrides.
 // `assets.sheetFor` keeps these to rebake a sheet when the painted layers reload.
 // `extra`: what the hands ask of the drawing beyond the style (docs/32): `altStyle`, the main weapon's other attack;
-// `heldPose`, a held thing's own pose for the main arm ("present": the book).
+// `heldPose`, a held thing's own pose from the poses data ("present": the book; "bow_rest": the bow, both arms).
 export function characterInputs(ch, artOf = artResolver, overrides = {}, style = null, extra = {}) {
   const outfit = {};
   for (const slot of OUTFIT_SLOTS) {

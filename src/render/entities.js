@@ -233,7 +233,7 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
         try { hs = getSheet(`held_${entry.id}`); } catch { continue; }
         const j = joints[slot];
         const along = (e.anim.name === "attack" || e.anim.name === "attack_alt") && slot === "main" && def.held.swing !== false;
-        const k = along ? j.angSwing : j.ang;
+        const k = hs.byFacing ? (j.angFace ?? j.ang) : along ? j.angSwing : j.ang; // a bow is upright by the facing (held.js)
         held.push({ sheet: hs, k, x: x + j.x, y: y + j.y, near: j.near, tip: def.fire ? hs.tips[k] : null });
       }
     }

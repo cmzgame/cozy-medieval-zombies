@@ -78,6 +78,15 @@ export async function run(game) {
     p.anim.done = false;
     const stale = step(2);
     row("an animation the sheet lacks ends at once", stale[1] !== "attack_alt", stale.join(", "));
+    // 7. The bow (Michael, 2026-10-14): held at rest with both hands in front, the off one at the string, not hanging;
+    // drawn upright by the facing, so the frame toward the camera is the same stave whatever the forearm does.
+    hold("bow");
+    const rest = G.figure.pose("player", "idle", 0, { main: true, off: true, mainPose: "bow_rest" });
+    const plain = G.figure.pose("player", "idle", 0, { main: true, off: true });
+    const bowSheet = assets.getSheet("held_bow");
+    const j = sheet().joints && sheet().joints.idle_s_0;
+    const ja = sheet().joints && sheet().joints.attack_s_2;
+    row("the bow is held at rest with both hands and drawn upright by the facing", G.items.getItem("bow").held.pose === "bow_rest" && rest.armPitch[0] !== plain.armPitch[0] && rest.armOut[0] < 0 && !!bowSheet.byFacing && !!j && !!ja && j.main.angFace === 8 && ja.main.angFace === 8, `off arm ${rest.armPitch[0]} out ${rest.armOut[0]} (a plain hold ${plain.armPitch[0]}); the sheet ${bowSheet.byFacing ? "by facing" : "turned with the arm"}; toward the camera frame ${j && j.main.angFace} at rest and ${ja && ja.main.angFace} drawn`);
   } finally {
     p.hands.main = hands0.main;
     p.hands.off = hands0.off;

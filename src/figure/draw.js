@@ -448,6 +448,7 @@ function drawFrame(frame, spec, facing, anim, i) {
     near: arm.b.depth >= 0,
     ang: angleIndex(restAxis(side)),
     angSwing: angleIndex(swingAxis([arm.b.x - arm.a.x, arm.b.y - arm.a.y])),
+    angFace: angleIndex([F.fx, F.fy * ISO]), // the facing on screen, for a thing drawn by it (the bow, held.js)
   });
   const jp = (pt) => {
     const q = P(pt);

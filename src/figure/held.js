@@ -99,7 +99,34 @@ const HELD_SHAPES = {
 // Where the hand holds a held picture in its upright drawing; the default is the 32 px frame's.
 const HELD_GRIPS = { halberd: { x: 24, y: 64 } };
 
+// Things drawn by the way the holder faces, not turned with the forearm (Michael, 2026-10-14: the bow lay flat when
+// its archer faced the camera). A bow's limbs are upright in the world, so they are upright on screen whichever way
+// it points; only its belly turns, toward the side the archer faces, and seen end on (to or from the camera) it is a
+// near-straight stave. Frame k is the facing at k * 22.5 degrees from up, clockwise, as the angles are counted; the
+// hand holds the riser at the frame's middle. `hx` is the facing's sideways part on screen, -1 to 1.
+const HELD_BY_FACING = {
+  bow: (f, c, hx) => {
+    const g = 16;
+    let b = 4.5 * hx; // the belly's bow toward the facing side, in pixels
+    if (Math.abs(b) < 1.5) b = b < 0 ? -1.5 : 1.5; // end on, a hint of the curve so it still reads as a bow
+    const half = 13; // tall enough that a tip shows past the shoulder when the body is in front of it
+    const top = g - half;
+    const bottom = g + half;
+    const xAt = (t) => g + b * (1 - t * t) - b * 0.15; // the riser forward, the tips back toward the archer
+    // The string, tip to tip on the archer's side, first so the limbs cover it where they meet.
+    const sx = Math.round(xAt(1));
+    for (let y = top + 1; y <= bottom - 1; y++) f.px(sx, y, c(1, "#d8d0b8"));
+    const steps = 8;
+    for (let i = 0; i < steps; i++) {
+      const t0 = -1 + (2 * i) / steps;
+      const t1 = -1 + (2 * (i + 1)) / steps;
+      f.capsule(xAt(t0), g + t0 * half, xAt(t1), g + t1 * half, 1.15, c(0, "#7a5a3a"));
+    }
+  },
+};
+
 export function generateHeld(shape, colours = [], size = HELD_SIZE) {
+  if (HELD_BY_FACING[shape]) return generateHeldByFacing(shape, colours, size);
   const draw = HELD_SHAPES[shape] || HELD_SHAPES.plank;
   const S = size;
   const N = HELD_ANGLES;
@@ -148,6 +175,44 @@ export function generateHeld(shape, colours = [], size = HELD_SIZE) {
     tips.push([Math.round(Math.sin(a) * len), Math.round(-Math.cos(a) * len)]);
   }
   return { image: canvas, frames, anchor: [S / 2, S / 2], animations: {}, facings: [], mirror: {}, tips };
+}
+
+// A thing drawn by the holder's facing (HELD_BY_FACING): sixteen fresh drawings, none turned. The sheet says
+// `byFacing`, and the renderer then picks the frame by the facing (the joints' `angFace`), never by the forearm.
+function generateHeldByFacing(shape, colours, size) {
+  const S = size;
+  const N = HELD_ANGLES;
+  const c = (i, fb) => hexToRgb(colours[i] || fb);
+  const canvas = document.createElement("canvas");
+  canvas.width = S * N;
+  canvas.height = S;
+  const ctx = canvas.getContext("2d");
+  const frames = {};
+  for (let k = 0; k < N; k++) {
+    const hx = Math.sin((k * (360 / N) * Math.PI) / 180);
+    const src = new Frame();
+    HELD_BY_FACING[shape](src, c, Math.abs(hx) < 1e-9 ? 0 : hx);
+    src.shade();
+    const img = ctx.createImageData(S, S);
+    const d = img.data;
+    for (let y = 0; y < S; y++) {
+      for (let x = 0; x < S; x++) {
+        if (x >= FW || y >= FH) continue;
+        const i = y * FW + x;
+        if (!src.kind[i]) continue;
+        const o = (y * S + x) * 4;
+        d[o] = src.rgb[i * 3];
+        d[o + 1] = src.rgb[i * 3 + 1];
+        d[o + 2] = src.rgb[i * 3 + 2];
+        d[o + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, k * S, 0);
+    frames[`held_${k}`] = [k * S, 0, S, S];
+  }
+  const tips = [];
+  for (let k = 0; k < N; k++) tips.push([0, -10]);
+  return { image: canvas, frames, anchor: [S / 2, S / 2], animations: {}, facings: [], mirror: {}, tips, byFacing: true };
 }
 
 // Which of the eight held angles a forearm direction (screen dx, dy) wants,

@@ -1,5 +1,5 @@
 {
-  "note": "The keyframes of the figure's animations as data (docs/14, docs/32). A swing style is { fps, activeFrame, frames: [{ pitch, out, lean, bob, offPitch, offOut, wrist }] } (wrist: degrees the held thing is cocked up from the forearm, so a blade stays level as the arm drops); the walk is { frames: [{ stride, lift, arms, bob, lean, headD }] } with a pair per leg and arm [left, right], bob positive down; present is one pose { pitch, out, headD } for the main arm held out (docs/32 item 1); thrust is the halberd's other attack, attack_alt (item 2). Edit and press Reload poses in tools/layers.html, or __game.figure.setPoses(json); __game.setLook({}) from the console.",
+  "note": "The keyframes of the figure's animations as data (docs/14, docs/32). A swing style is { fps, activeFrame, frames: [{ pitch, out, lean, bob, offPitch, offOut, wrist }] } (wrist: degrees the held thing is cocked up from the forearm, so a blade stays level as the arm drops); the walk is { frames: [{ stride, lift, arms, bob, lean, headD }] } with a pair per leg and arm [left, right], bob positive down; present is one pose { pitch, out, headD } for the main arm held out (docs/32 item 1); thrust is the halberd's other attack, attack_alt (item 2); bow_rest is the bow's held pose in the idle and the walk (an item's held.pose names a pose here; with offPitch it holds the off arm too), both hands low in front, the other at the string (Michael, 2026-10-14). Edit and press Reload poses in tools/layers.html, or __game.figure.setPoses(json); __game.setLook({}) from the console.",
   "walk": { "frames": [
     {"stride": [4, -4], "lift": [0, 0], "arms": [-26, 26], "bob": 0, "lean": 0.5},
     {"stride": [0, 0], "lift": [0, 3], "arms": [0, 0], "bob": -1, "lean": 0.5},
@@ -26,11 +26,12 @@
     {"pitch": 60, "offPitch": 55, "lean": 1}
   ] },
   "bow": { "fps": 12, "activeFrame": 3, "frames": [
-    {"pitch": 95, "offPitch": 85, "offOut": 2, "lean": 0.5},
-    {"pitch": 98, "offPitch": 62, "offOut": 4, "lean": 1},
-    {"pitch": 100, "offPitch": 38, "offOut": 6, "lean": 1.5},
-    {"pitch": 96, "offPitch": 75, "offOut": 3, "lean": 0.5}
+    {"pitch": 90, "out": -3, "offPitch": 82, "offOut": -6, "lean": 0.5},
+    {"pitch": 92, "out": -3, "offPitch": 70, "offOut": -6.5, "lean": 1},
+    {"pitch": 95, "out": -3, "offPitch": 55, "offOut": -7, "lean": 1.5},
+    {"pitch": 94, "out": -3, "offPitch": 45, "offOut": 1, "lean": 0.5}
   ] },
+  "bow_rest": {"pitch": 35, "out": -2, "offPitch": 35, "offOut": -5},
   "throw": { "fps": 12, "activeFrame": 3, "frames": [
     {"pitch": -50, "out": 3, "lean": -0.5},
     {"pitch": -95, "out": 4, "lean": -1},
