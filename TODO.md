@@ -114,12 +114,17 @@ Every other section is built for a guest as well (the rule at the top). What the
 - [ ] **The game's name.** Nothing public is made until it has one (the site, the logo, the end card, a store page, a handle).
 - [ ] **The infrastructure day:** a business email at the game's domain; the game's own GitHub account or organisation with **the repository private** (today it is public, and the Pages site serves the whole game); the relay's Fly app moved to the new account; the game's own site for the demo and the information about the game, secure and with a design; the friends' full game moved somewhere private. The remotes, the worktrees, and the design agent's `art-docs` branch move with the repository (`27`).
 
+## Bugs from the wiki census (see `docs/bugs.md`)
+
+Found by the wiki-writing agent while reading the whole game for the wiki (2026-10-14, at `9205ad7`), not by a coding agent, and not played: 17 likely bugs (two to reproduce first) and 15 surprises for Michael to rule on. Confirm each on current `main` before fixing; move it to Fixed or Closed in that file.
+
 ## Scopes owed (from "What this game is", `02`, 2026-10-13)
 
 - [ ] The map on `M`, scoped in `docs/33-the-map.md` (choices ruled, `02`, "The map's choices"): what anyone has seen, kept by the world; built walls shown; every player live; never the dead or villagers; running behind it; low fidelity and accurate; drawn at the screen's angle.
 - [ ] Talk, scoped in `docs/34-talk.md` (with the owed fix for a guest's left click on a villager): dialogue trees as exposition and the villagers' barks (the "Hey!" of a poke is the "nothing interesting happens" of people), reading the world and never writing it, nothing gated.
 - [x] Scripted sequences: noted in `05-someday.md` (Michael, 2026-10-13: notes only for now, no scope); the dead's arrival on day one as its first case.
 - [ ] **The horde demo, scoped in `docs/36-the-horde-demo.md`** (not to be built yet, Michael; re-ruled 2026-10-14): one homestead wrapped in dense forest, supplies for a few days, the weapons to try, a quiet start, then the dead walking in from off screen and escalating day and night until the player falls (it is built to kill); single player only; `?demo`. Released only once built, tested, and in final art: nothing in it without its final art. The business plan around it is `docs/35`; the Endless mode with a leaderboard is `05`.
+- [ ] **The wiki, scoped in `docs/37-the-wiki.md`, started 2026-10-14** in `C:/Users/micha/Dev/cmz-wiki` (the census, the generator, 156 pages; read `census/findings.md` there for what a player would notice; owed: the art exporter, spot checks, the CLAUDE.md rule): its own repo [`cmz-wiki`] on GitHub Pages, OSRS-style page kinds, the generated half from the game's data, the census of what is in the game as its first deliverable.
 - [ ] Before any boss or skills scope: one session played as meant (combat, aggro, the valley, the dead round the spawn).
 
 ## Art still owed (see `docs/26-art-owed.md`) — listed 2026-10-12
