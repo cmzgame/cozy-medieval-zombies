@@ -253,6 +253,7 @@ function enterNewWorld(name, identity, { keep = true } = {}) {
 async function playWorld(worldId) {
   const snap = await save.readWorld(worldId);
   if (!snap || snap.mapName !== MAP_NAME) return false;
+  if (snap.home === "server" || snap.arriving) return false; // its one home is the server, or it is on its way here (item 5)
   await restoreWorld(snap);
   currentWorld = { worldId, name: snap.name || "A world", code: snap.code || null, created: snap.created || snap.savedAt, open: !!snap.open, owners: { ...(snap.owners || {}) }, dormant: { ...(snap.dormant || {}) } };
   reopenTries = 0;
@@ -270,7 +271,7 @@ async function playWorld(worldId) {
   }
   setInWorld(true);
   started = true;
-  if (S.player.dead) screens.show("dead", { when: clock.getLabel(), who: S.player.name || S.player.id });
+  if (!S.player || S.player.dead) screens.show("dead", { when: clock.getLabel(), who: S.player ? S.player.name || S.player.id : "Your survivor" }); // none of mine in it: a new character, as after a death
   else {
     screens.hide();
     showMessage(`${clock.getLabel()}. Welcome back.`, 3);
@@ -322,6 +323,119 @@ async function leaveWorld() {
   screens.show("title");
 }
 
+// ---- a world moved to the server, and brought home (item 5's fifth step, 2026-10-14) ----
+// A world has one home at a time: moved up, the copy here is marked and not playable (its row joins the server world);
+// brought home, the server lets go only once this browser says it has the world (two phases), so a broken connection
+// never loses it or forks it.
+
+async function gzipText(text) {
+  const stream = new Blob([text]).stream().pipeThrough(new CompressionStream("gzip"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+async function gunzipBase64(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+  return JSON.parse(await new Response(stream).text());
+}
+
+async function postJson(url, headers, body) {
+  let res;
+  try {
+    res = await fetch(url, { method: "POST", headers, body });
+  } catch {
+    return { status: 0, json: { error: "The server could not be reached." } };
+  }
+  const json = await res.json().catch(() => ({}));
+  return { status: res.status, json };
+}
+
+async function moveUp(worldId) {
+  const base = net.relayHttp();
+  if (!base) return { ok: false, error: "There is no server on this page (the loopback)." };
+  const key = identities.creatorKey();
+  if (!key) return { ok: false, need: "creatorKey" };
+  if (inWorld && currentWorld && currentWorld.worldId === worldId) return { ok: false, error: "Leave the world before you move it." };
+  const snap = await save.readWorld(worldId);
+  if (!snap) return { ok: false, error: "That world would not read." };
+  if (snap.home === "server") return { ok: false, error: "It is on the server already." };
+  const ownerPlayerId = snap.myPlayerId || (snap.owners || {})[myHash()] || null;
+  const body = await gzipText(JSON.stringify({ snap, ownerPlayerId }));
+  const r = await postJson(`${base}/worlds`, { "content-type": "application/gzip", "x-creator-key": key }, body);
+  if (r.status !== 201) {
+    const wrongKey = r.status === 403 && /creator/.test(r.json.error || "");
+    if (wrongKey) identities.setCreatorKey("");
+    return { ok: false, need: wrongKey ? "creatorKey" : null, error: r.json.error ? `The server said: ${r.json.error}.` : `The server said ${r.status}.` };
+  }
+  identities.rememberOwned({ code: r.json.code, serverWorldId: r.json.worldId, name: snap.name, ownerKey: r.json.ownerKey, localWorldId: worldId });
+  await save.writeWorld({ ...snap, home: "server", serverCode: r.json.code, open: false });
+  return { ok: true, code: r.json.code, ownerKey: r.json.ownerKey, name: snap.name || "A world" };
+}
+
+// The world's second phase home: the server told this browser has it, the server's copy let go, the row here playable.
+async function confirmHome(worldId, owned, snap) {
+  const base = net.relayHttp();
+  const r = await postJson(`${base}/worlds/home/confirm`, { "content-type": "application/json", "x-owner-key": owned.ownerKey }, JSON.stringify({ code: owned.code, token: snap.arriving.token }));
+  if (r.status !== 200) return { ok: false, error: `Nearly home: the server has not let go yet (${r.json.error || r.status}). Try Finish again.` };
+  const done = { ...snap };
+  delete done.arriving;
+  await save.writeWorld(done);
+  identities.forgetOwned(owned.code);
+  return { ok: true, name: done.name || "A world" };
+}
+
+async function bringHome(worldId) {
+  const base = net.relayHttp();
+  const owned = identities.ownedFor(worldId);
+  if (!base || !owned) return { ok: false, error: "This browser holds no owner key for that world." };
+  if (net.isGuest() && net.status().code === owned.code) return { ok: false, error: "Leave the world before you bring it home." };
+  const local = await save.readWorld(worldId);
+  if (local && local.arriving && local.arriving.token) return confirmHome(worldId, owned, local); // the second phase, again
+  const r = await postJson(`${base}/worlds/home`, { "content-type": "application/json", "x-owner-key": owned.ownerKey }, JSON.stringify({ code: owned.code }));
+  if (r.status !== 200 || !r.json.save) return { ok: false, error: r.json.error ? `The server said: ${r.json.error}.` : `The server said ${r.status}.` };
+  const srv = save.upgrade(await gunzipBase64(r.json.save));
+  if (!srv) return { ok: false, error: "The world came back in a shape this page does not know." };
+  // The owner's character, filed under the owner key's hash on the server, back under this browser's id.
+  const owners = { ...(srv.owners || {}) };
+  const dormant = { ...(srv.dormant || {}) };
+  const mine = owners[r.json.ownerHash] || null;
+  if (mine) {
+    owners[myHash()] = mine;
+    delete owners[r.json.ownerHash];
+  }
+  if (dormant[r.json.ownerHash]) {
+    dormant[myHash()] = dormant[r.json.ownerHash];
+    delete dormant[r.json.ownerHash];
+  }
+  const snap = { ...srv, worldId, name: (local && local.name) || srv.name || "A world", code: null, open: false, owners, dormant, myPlayerId: mine, arriving: { code: owned.code, token: r.json.token } };
+  delete snap.home;
+  delete snap.serverCode;
+  delete snap.server;
+  const w = await save.writeWorld(snap);
+  if (!w.ok) return { ok: false, error: `The world could not be kept here (${w.error}); the server still has it.` };
+  return confirmHome(worldId, owned, snap);
+}
+
+// A join of a friend's world, or of a world of mine on the server (with its owner key, so my character comes back).
+function joinWorld(code, ownerKey = null) {
+  if (!code) return;
+  net.setIdentity(null);
+  net.setOwnerKey(ownerKey);
+  if (!ownerKey) identities.rememberJoined({ code });
+  standInWorld(identities.last() || testIdentity());
+  if (!net.open({ join: code, lag: urlLag })) return;
+  started = false; // a guest's world is the host's to save
+  screens.hide();
+  showMessage(`Joining ${code}…`, 4);
+}
+
+function playServer(worldId) {
+  const owned = identities.ownedFor(worldId);
+  if (owned) joinWorld(owned.code, owned.ownerKey);
+}
+
 // A stand-in world for a guest while the host's is on its way: never saved, replaced by the welcome.
 function standInWorld(identity) {
   if (inWorld) return;
@@ -358,6 +472,7 @@ function here() {
     myCharacter: inWorld && S.player ? S.player.name || S.player.id : "",
     role: st.role,
     code: currentWorld ? currentWorld.code : st.code,
+    worldId: currentWorld ? currentWorld.worldId : null,
     guests: st.guests ? st.guests.length : 0,
     hostName: null,
     rules: st.role === "guest" ? { ...rules.rules } : null, // a guest's world rules are the host's, shown read-only (item 4)
@@ -804,7 +919,10 @@ async function restoreWorld(snap) {
   figureKey = "";
   figureQuick = "";
   refreshFigure(true);
-  camera.snapTo(S.player.gx, S.player.gy);
+  // A world may come back with nobody standing in it (a server world brought home: every character dormant until its
+  // player returns, item 5); the camera and the first sight start at the spawn, and playWorld puts my character back.
+  const at = S.player || { gx: S.info && S.info.spawn ? S.info.spawn[0] : 0, gy: S.info && S.info.spawn ? S.info.spawn[1] : 0 };
+  camera.snapTo(at.gx, at.gy);
   camera.applyOrigin(V.w, V.h);
   tiles = camera.viewportTiles(V.w, V.h);
   visKey = null;
@@ -817,7 +935,7 @@ async function restoreWorld(snap) {
   buildPalette.close();
   light.update();
   if (!glError) ground.invalidateAll();
-  visible = visibility.computeVisible(Math.round(S.player.gx), Math.round(S.player.gy), tiles);
+  visible = visibility.computeVisible(Math.round(at.gx), Math.round(at.gy), tiles);
   lastAutosave = loop.simTime();
 }
 
@@ -1103,16 +1221,7 @@ async function boot() {
           setOpen,
           // A join goes out with the browser's id and no identity: the host hands back the character this
           // browser made there, or asks (`who`) for an identity, which the creation steps give (joinAs).
-          join: (code) => {
-            if (!code) return;
-            net.setIdentity(null);
-            identities.rememberJoined({ code });
-            standInWorld(identities.last() || testIdentity());
-            if (!net.open({ join: code, lag: urlLag })) return;
-            started = false; // a guest's world is the host's to save
-            screens.hide();
-            showMessage(`Joining ${code}…`, 4);
-          },
+          join: (code) => joinWorld(code),
           joinAs: (identityId) => {
             const identity = identities.get(identityId);
             if (!identity || !net.isGuest()) return;
@@ -1139,6 +1248,13 @@ async function boot() {
           here,
           leave: leaveWorld,
           comeBack, // the step-away screen's button and its Escape
+          // A world moved to the server and home again (item 5's fifth step).
+          canMove: () => !!net.relayHttp(),
+          creatorKey: () => identities.creatorKey(),
+          setCreatorKey: (k) => identities.setCreatorKey(k),
+          moveUp,
+          bringHome,
+          playServer,
         },
         // Identities (identities.js): the list, and the one being edited on the identity screen.
         identities: {
@@ -1276,7 +1392,8 @@ async function boot() {
       currentWorld = null; // the host's world, never saved here
       started = false;
       // The bookmark learns the world's name, its host, and my character there (docs/31/09).
-      identities.rememberJoined({ code: net.status().code, name: world ? world.name : null, hostName: world ? world.host : null, myCharacter: S.player.name || S.player.id });
+      // (A world of mine on the server has its own row among my worlds, item 5: not a friend's world too.)
+      if (!identities.owned().some((o) => o.code === net.status().code)) identities.rememberJoined({ code: net.status().code, name: world ? world.name : null, hostName: world ? world.host : null, myCharacter: S.player.name || S.player.id });
     },
     // The host's side (host.js): the joins and whose character, the saves, dormancy, stepping away, a guest's commands.
     ...host.netHooks(),
@@ -1312,6 +1429,7 @@ async function boot() {
         taken: `The code "${code}" is in use on the relay; open the world again for a new one.`,
         busy: "The server is running as many worlds as it holds. Try again in a minute.",
         broken: `The world "${code}" failed to start on the server a few times; it is resting before it tries again.`,
+        moving: "That world is on its way home to its owner's browser.",
         relay: `${where[0].toUpperCase()}${where.slice(1)} could not be reached.`,
         dropped: "The connection to the host dropped.",
         hostLeft: "The host closed the world.",
@@ -1393,7 +1511,7 @@ async function boot() {
     // The worlds flow (docs/31/09), for check("worlds"): a world made, left, listed, played again; a new character after a death.
     // Stepping away (item 3), for the checks: the idle time shortened, the state, and the two moves by hand.
     away: { after: (ms) => { awayAfterMs = ms == null ? AWAY_AFTER_MS : ms; lastInputAt = performance.now(); }, get now() { return away; }, step: stepAway, back: comeBack, check: checkAway },
-    worlds: { create: (name, identityId) => enterNewWorld(name, identities.get(identityId)), play: playWorld, leave: leaveWorld, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor: host.joinFor, dormantNow: host.dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
+    worlds: { moveUp, bringHome, playServer, create: (name, identityId) => enterNewWorld(name, identities.get(identityId)), play: playWorld, leave: leaveWorld, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor: host.joinFor, dormantNow: host.dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
     identities,
     addPlayer: (gx, gy, opts) => {
       const p = game.addPlayer(gx, gy, opts);

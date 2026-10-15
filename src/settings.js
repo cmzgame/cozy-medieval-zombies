@@ -33,6 +33,8 @@ export const DEFAULTS = {
   lastIdentity: "", // the one picked last, offered first on the next creation
   clientId: "", // the browser id a world remembers a character's owner by (docs/31/09)
   joined: [], // friends' worlds this browser has joined or tried to: [{ code, name, hostName, myCharacter, lastAt }]
+  creatorKey: "", // the server's creator key, typed once, which lets this browser move a world to the server (item 5)
+  owned: [], // the server worlds this browser owns: [{ code, serverWorldId, name, ownerKey, localWorldId, at }] (item 5)
 };
 
 // What the settings screen offers, in order.

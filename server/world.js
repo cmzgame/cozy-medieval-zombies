@@ -23,6 +23,7 @@ import fs from "node:fs";
 import path from "node:path";
 import http from "node:http";
 import zlib from "node:zlib";
+import crypto from "node:crypto";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { bootData } from "./boot.js";
 
@@ -113,6 +114,35 @@ const ROLLING_KEEP = 3;
 const DAILY_KEEP = 7;
 let lastSaveSim = loop.simTime();
 let lastRollingAt = 0;
+let stepsSinceSave = 0;
+
+// Saves asked for in one tick come to one (the coder agent's review of step 4: a leave and the world's emptying, a
+// dormancy and the exit, saved in pairs). `reuse`: a join's, which may take the welcome's snapshot; `ifStepped`: one that
+// is pointless when the world has not stepped since the last (the emptying of a world already saved).
+let saveQueued = null;
+let saveReuse = false;
+let saveIfStepped = true;
+let lastWelcome = null;
+function requestSave(why, { reuse = false, ifStepped = false } = {}) {
+  if (stopping) return;
+  if (saveQueued) {
+    saveReuse = saveReuse && reuse;
+    saveIfStepped = saveIfStepped && ifStepped;
+    return;
+  }
+  saveQueued = why;
+  saveReuse = reuse;
+  saveIfStepped = ifStepped;
+  setImmediate(() => {
+    const w = saveQueued;
+    const whole = saveReuse ? lastWelcome : null;
+    const skip = saveIfStepped && stepsSinceSave === 0;
+    saveQueued = null;
+    lastWelcome = null;
+    if (stopping || skip) return;
+    saveNow(w, whole);
+  });
+}
 const saveTimes = { last: 0, max: 0, count: 0, lastKB: 0, lastAt: null };
 
 function writeAtomic(file, data) {
@@ -121,14 +151,18 @@ function writeAtomic(file, data) {
   fs.renameSync(tmp, file);
 }
 
-function packed() {
-  const s = save.snapshot(mapName, { worldId, name: store.name, owners: store.owners, dormant: store.dormant, myPlayerId: null, server: true });
+function packed(whole = null) {
+  const extra = { worldId, name: store.name, owners: store.owners, dormant: store.dormant, myPlayerId: null, server: true };
+  // save.snapshot's own shape, from a snapshot made this tick when there is one (a join's welcome: the coder agent's
+  // review of step 4, a join cost two whole serialisations).
+  const s = whole ? { version: save.VERSION, savedAt: Date.now(), mapName, ...extra, ...whole } : save.snapshot(mapName, extra);
   return zlib.gzipSync(JSON.stringify(s));
 }
 
-function saveNow(why) {
+function saveNow(why, whole = null) {
   const t0 = performance.now();
-  const gz = packed();
+  const gz = packed(whole);
+  stepsSinceSave = 0;
   writeAtomic(SAVE, gz);
   lastSaveSim = loop.simTime();
   const now = Date.now();
@@ -161,7 +195,7 @@ if (makeOnly) {
 }
 
 // ---- the host ----
-host.init({ store: () => store, save: () => saveNow("an event"), self: () => null, arrived: () => {} });
+host.init({ store: () => store, save: () => requestSave("an event"), self: () => null, arrived: () => {} });
 host.install();
 
 let stopping = false;
@@ -170,9 +204,11 @@ function shutdown(why, exitCode = 0) {
   stopping = true;
   // Everyone still in the world goes dormant, kept by their hash, so a rejoin finds them where they stood (the
   // grace counts game time, which stands while the world is held, so it would never run out on its own).
+  const standing = game.state.players.length;
   for (const p of game.state.players.slice()) host.dormantNow(p.id);
   try {
-    saveNow(why);
+    if (standing || stepsSinceSave > 0 || !saveTimes.count) saveNow(why);
+    else say(`nothing changed since the last save (${why})`);
   } catch (err) {
     say(`the last save failed: ${err.message}`);
     exitCode = exitCode || 1;
@@ -204,12 +240,33 @@ function crashed(why, err) {
 process.on("uncaughtException", (err) => crashed("uncaughtException", err));
 process.on("unhandledRejection", (err) => crashed("unhandledRejection", err));
 
+// The owner (item 5's fifth step): a join that says the key whose SHA-256 meta.json keeps is the owner's, filed under
+// "k" and that hash on every device; read at each join, so a key issued anew (step 6) counts at once. Compared in
+// constant time; the key is never written down or logged.
+function ownerHash(key) {
+  try {
+    const meta = JSON.parse(fs.readFileSync(path.join(dir, "meta.json"), "utf8"));
+    if (!meta || typeof meta.ownerKeyHash !== "string") return null;
+    const h = crypto.createHash("sha256").update(String(key)).digest("hex");
+    const a = Buffer.from(h);
+    const b = Buffer.from(meta.ownerKeyHash);
+    return a.length === b.length && crypto.timingSafeEqual(a, b) ? `k${h.slice(0, 32)}` : null;
+  } catch {
+    return null;
+  }
+}
+
 net.setRelay(relayUrl);
 net.setHostSecret(process.env.CMZ_HOST_SECRET || null);
 net.init({ host: code }, {
   ...host.netHooks(),
+  guestJoined: () => requestSave("a join", { reuse: true }),
+  ownerHash,
   // The welcome gzipped (the review of step 3): a well-explored world is 4.6 MB raw to every joiner, about 200 KB packed.
-  packWelcome: (whole) => zlib.gzipSync(JSON.stringify(whole)).toString("base64"),
+  packWelcome: (whole) => {
+    lastWelcome = whole; // the join's save, this same tick, takes it rather than serialising the world again
+    return zlib.gzipSync(JSON.stringify(whole)).toString("base64");
+  },
   message: (text) => say(text),
   failed: (_code, why) => shutdown(`the relay: ${why}`, 2),
 });
@@ -223,7 +280,8 @@ loop.init({
     game.step(dt, net.hostStep(idle, null));
     net.hostAfterStep();
     loop.setHeld(held());
-    if (loop.simTime() - lastSaveSim >= SAVE_EVERY_GAME_S) saveNow("five game minutes");
+    stepsSinceSave++;
+    if (loop.simTime() - lastSaveSim >= SAVE_EVERY_GAME_S) requestSave("five game minutes");
   },
   render: () => {},
   pump: () => {
@@ -240,7 +298,7 @@ setInterval(() => {
   if (net.hasGuests()) emptySince = 0;
   else if (!emptySince) {
     emptySince = Date.now();
-    saveNow("the world emptied");
+    requestSave("the world emptied", { ifStepped: true });
   } else if (Date.now() - emptySince >= EMPTY_EXIT_S * 1000) shutdown("empty");
 }, 16);
 

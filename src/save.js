@@ -142,7 +142,8 @@ function writeIndex(list) {
 // The index's row for a save: my character's name and whether they are dead come from the save itself.
 function rowFor(snap) {
   const players = (snap.characters && snap.characters.players) || [];
-  const mine = players.find((p) => p.id === snap.myPlayerId) || null;
+  // Mine standing, or dormant (a world brought home from the server has every character dormant until its player returns).
+  const mine = players.find((p) => p.id === snap.myPlayerId) || Object.values(snap.dormant || {}).find((r) => r && r.id === snap.myPlayerId) || null;
   return {
     worldId: snap.worldId,
     name: snap.name || "A world",
@@ -153,6 +154,10 @@ function rowFor(snap) {
     code: snap.code || null,
     myCharacter: mine ? mine.name || mine.id : null,
     dead: !!(mine && mine.dead),
+    // Moved to the server (item 5's fifth step): the copy here is a marker, not playable, so the world can never fork
+    // into two; its row joins the server world. `arriving`: on its way home, not yet confirmed to the server.
+    home: snap.home === "server" ? "server" : snap.arriving ? "arriving" : "browser",
+    serverCode: snap.home === "server" ? snap.serverCode || null : null,
   };
 }
 

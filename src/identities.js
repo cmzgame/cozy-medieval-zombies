@@ -116,6 +116,33 @@ export function forgetJoined(code) {
   write("joined", joined().filter((r) => r.code !== code));
 }
 
+// ---- the server's keys (item 5's fifth step) ----
+
+// The creator key, typed once into this browser (a secret Michael hands out), which lets it move a world to the server.
+export function creatorKey() {
+  return read("creatorKey") || null;
+}
+export function setCreatorKey(k) {
+  write("creatorKey", typeof k === "string" ? k.trim() : "");
+}
+
+// The server worlds this browser owns, each with its owner key: what proves the owner, on any device that holds it.
+export function owned() {
+  return (read("owned") || []).slice();
+}
+export function rememberOwned({ code, serverWorldId = null, name = null, ownerKey, localWorldId = null }) {
+  if (!code || !ownerKey) return;
+  const rows = owned().filter((r) => r.code !== code);
+  rows.unshift({ code, serverWorldId, name, ownerKey, localWorldId, at: Date.now() });
+  write("owned", rows.slice(0, 20));
+}
+export function forgetOwned(code) {
+  write("owned", owned().filter((r) => r.code !== code));
+}
+export function ownedFor(localWorldId) {
+  return owned().find((r) => r.localWorldId === localWorldId) || null;
+}
+
 // The first boot after identities exist: the one name and look the browser kept become the first identity.
 export function migrate() {
   if (list().length) return;
