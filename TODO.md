@@ -98,6 +98,10 @@ Every other section is built for a guest as well (the rule at the top). What the
 - [ ] **A guest's left click on a villager** (found 2026-10-13, docs pass): the click pokes by the cursor's pixels (`player-controller.js`, `interact.clickCharacterAt`), which the host has no cursor for, and `net.sendPoke` carries only a gatherable's or the well's stamp; the menu's Poke does reach the host. Owed: the villager's id in the poke.
 - [ ] Combat testing's forty dead are placed in tiles 1 to 30 (`game.js`, `addTestingDead`), the proving ground's open ground; on the valley they stand two hundred tiles from the spawn. Place them round the spawn (not a multiplayer item; found the same pass).
 
+## Bugs from the wiki census (see `docs/bugs.md`)
+
+Found by the wiki-writing agent while reading the whole game for the wiki (2026-10-14, at `9205ad7`), not by a coding agent, and not played: 17 likely bugs (two to reproduce first) and 15 surprises for Michael to rule on. Confirm each on current `main` before fixing; move it to Fixed or Closed in that file.
+
 ## Scopes owed (from "What this game is", `02`, 2026-10-13)
 
 - [ ] The map on `M`, scoped in `docs/33-the-map.md` (choices ruled, `02`, "The map's choices"): what anyone has seen, kept by the world; built walls shown; every player live; never the dead or villagers; running behind it; low fidelity and accurate; drawn at the screen's angle.

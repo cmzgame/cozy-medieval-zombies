@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-14 — Bugs found by the wiki census go to `docs/bugs.md` (Michael)
+
+Michael: a robust place to hand the coding agents what the wiki work finds, easy to point an agent at, in the repository so the technical lead sees it at review. **`docs/bugs.md`**: open likely bugs (with *needs repro* on the inferred ones), surprises for Michael to rule on, and Fixed and Closed sections the coding agents move items to with the commit or a reason. Its head says plainly that these come from the **wiki-writing agent's census** (read in the code at a stated commit, not played), not from a coding agent, and that each is confirmed on current `main` before it is fixed. The wiki agent adds new findings at each sync and never edits an item a coding agent has moved or annotated. The docs-versus-code differences stay in the wiki repository (`census/discrepancies.md`), being mostly stale docs for Michael. Docs: bugs, 02, CLAUDE.md, TODO.
+
 ### 2026-10-14 — The wiki started (Michael: "why not just get started now")
 
 Built in its own repository (`C:/Users/micha/Dev/cmz-wiki`, github.com/michaeldippold/cmz-wiki) as `37` planned: `sync.js` snapshots the game's `origin/main` read-only by `git archive`; the census (`census/census.js`, the automatic inventory, the code's named constants for pages to reference; six fact sheets read from the code; `census/discrepancies.md`, 96 docs-versus-code differences; `census/findings.md`, what a player would notice, several of them bugs); a generator with no dependencies (its own markdown renderer, wiki links with red links, templates from the data, categories, what links here, special pages, search, the valley's map drawn from the map file at the screen's angle); 156 pages, 127 written by six writers from the fact sheets under `WRITING.md`'s rules. The game's `.claude/launch.json` gains `wiki` (port 8020) for the preview. Docs: 02, 37, TODO; .claude/launch.json.
