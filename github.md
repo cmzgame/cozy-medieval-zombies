@@ -2,6 +2,17 @@
 
 **For any agent: START HERE, and before you change anything, ask Michael which role you hold.**
 
+> **TEMPORARY, while the agents' account is flagged (since 2026-10-15; Michael's ruling the same day).** GitHub's spam protection hid `cmzgame-bot` and everything it wrote, so no pull request can get the approval section 8 asks for. Until it is reinstated:
+>
+> 1. **Branch protection on the game's `main` asks for no approval** (0, set by Primary 2026-10-15). Everything else stands: a pull request, the CI's `checks` green, the branch up to date, no force-push, no deletion.
+> 2. **Every session uses `michaeldippold`'s `gh` as it is**, Secondaries too; nobody uses the bot's token. The signature (`— Primary`, `— Secondary (focus)`) is the only thing that tells the roles apart, so it is never left off.
+> 3. **A review is a signed comment**, not an approval: `gh pr review <n> --comment --body "…  — Primary"` (or a plain `gh pr comment`), opening with **Approved** or **Changes requested**. GitHub refuses `--approve` on a pull request its own account opened, so nobody tries it.
+> 4. **Only Primary merges**, and only a pull request with a signed review comment that opens with Approved, from someone other than its author (a Secondary for Primary's own, Primary for a Secondary's), and green checks. A Secondary never merges, though the account now lets it. Michael's admin bypass stays for emergency reverts alone.
+> 5. **The queue stays on GitHub.** New issues are opened from `michaeldippold`, signed. Issues #18 to #55 and pull request #56 are the bot's, hidden, not lost: **never file them again**. `docs/bugs.md` keeps its role (section 6).
+> 6. **Create slowly** (the lesson of the flag, and Michael's account must never earn one): a few issues, comments, or pull requests at a time, never a scripted burst.
+>
+> **When the bot is reinstated** (`curl -s -o /dev/null -w "%{http_code}" https://api.github.com/users/cmzgame-bot` prints 200, not 404): Primary sets the approvals back to 1, the Secondaries go back to the bot's token, Primary reviews #18 to #55 and merges #56, and this box is deleted; rule 6 stays, moved into section 4.
+
 ## 0. Your role: Primary or Secondary (ask first, every session)
 
 Every session that works on either repository, the game or the wiki, **asks Michael at its start: "Am I Primary or Secondary, and what is my focus?"**, and changes nothing (no file, branch, commit, issue, label, or pull request) until he answers. Reading is fine before the answer. The answer holds for the whole session; if Michael changes it, the session follows.
@@ -175,7 +186,7 @@ When the review is approved (and Michael's word given where needed), the checks 
 
 **CI on every pull request** (built 2026-10-15, #1): `.github/workflows/ci.yml` in the game, its job `checks`, on pull requests and pushes to branches: `node --check` on every `.js` under `src/`, `server/`, and `tools/`; `node tools/check.js`; `node tools/world.js` and `--roundtrip` (the hash printed for the reviewer to compare with the pull request's claim); `python -I tools/validate-data.py`. The wiki builds with `--check` on every pull request in a workflow of its own, `check.yml`, which publishes nothing (a `pull_request` trigger on `pages.yml` would have needed conditions to keep pull requests from its Verify and deploy jobs); `pages.yml` still builds and publishes on a push to `main`. The browser-only checks (`check("sync")` and the rest) stay the author's and the reviewer's in the pane: CI cannot open the game's window.
 
-**Branch protection on the game's `main`** (Michael, Settings → Branches): require a pull request, **require one approving review** (now possible, since the two roles are two accounts), require the CI checks to pass, require the branch to be up to date, block force-pushes and deletion. Michael keeps the admin's bypass for emergencies (a revert when no reviewer is free). On the wiki's `main`: block force-pushes and deletion only, so the wiki Secondary's syncs still push (section 9).
+**Branch protection on the game's `main`** (Michael, Settings → Branches; **the approval is 0 while the bot is flagged**, the box at the top): require a pull request, **require one approving review** (now possible, since the two roles are two accounts), require the CI checks to pass, require the branch to be up to date, block force-pushes and deletion. Michael keeps the admin's bypass for emergencies (a revert when no reviewer is free). On the wiki's `main`: block force-pushes and deletion only, so the wiki Secondary's syncs still push (section 9).
 
 ## 11. What changed in the other process notes
 
