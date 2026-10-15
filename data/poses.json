@@ -1,5 +1,5 @@
 {
-  "note": "The keyframes of the figure's animations as data (docs/14, docs/32). A swing style is { fps, activeFrame, frames: [{ pitch, out, lean, bob, offPitch, offOut, wrist }] } (wrist: degrees the held thing is cocked up from the forearm, so a blade stays level as the arm drops); the walk is { frames: [{ stride, lift, arms, bob, lean, headD }] } with a pair per leg and arm [left, right], bob positive down; present is one pose { pitch, out, headD } for the main arm held out (docs/32 item 1); thrust is the halberd's other attack, attack_alt (item 2); the bow's draw bends the string hand's elbow back to the chin by full draw (offBend; Michael, 2026-10-15, #5); bow_rest is the bow's held pose in the idle and the walk (an item's held.pose names a pose here; with offPitch it holds the off arm too), both hands low in front, the other at the string (Michael, 2026-10-14). The elbow (2026-10-15): bend and offBend on a frame or a held pose, bends [left, right] on a walk frame, degrees the forearm turns from the upper arm forward and up; 0 or absent is straight. Edit and press Reload poses in tools/layers.html, or __game.figure.setPoses(json); __game.setLook({}) from the console.",
+  "note": "The keyframes of the figure's animations as data (docs/14, docs/32). A swing style is { fps, activeFrame, frames: [{ pitch, out, lean, bob, offPitch, offOut, wrist }] } (wrist: degrees the held thing is cocked up from the forearm, so a blade stays level as the arm drops); the walk is { frames: [{ stride, lift, arms, bob, lean, headD }] } with a pair per leg and arm [left, right], bob positive down; present is one pose { pitch, out, headD } for the main arm held out (docs/32 item 1); thrust is the halberd's other attack, attack_alt (item 2); the bow's draw bends the string hand's elbow back to the chin by full draw (offBend; Michael, 2026-10-15, #5); cast_staff and cast_book are the spell's draw and release by which hand holds the staff (heldTilt and heldOut, offHeldTilt and offHeldOut: how a held thing stands for the frame, degrees forward and outward off vertical, the staff upright like a pole with its top a little behind; Michael, 2026-10-15) (docs/32 item 3, #6; at: the draw fractions where frames 1 and 2 begin, a style's own rhythm, the bow's 0.35 and 0.8 by default); bow_rest is the bow's held pose in the idle and the walk (an item's held.pose names a pose here; with offPitch it holds the off arm too), both hands low in front, the other at the string (Michael, 2026-10-14). The elbow (2026-10-15): bend and offBend on a frame or a held pose, bends [left, right] on a walk frame, degrees the forearm turns from the upper arm forward and up; 0 or absent is straight. Edit and press Reload poses in tools/layers.html, or __game.figure.setPoses(json); __game.setLook({}) from the console.",
   "walk": { "frames": [
     {"stride": [4, -4], "lift": [0, 0], "arms": [-26, 26], "bob": 0, "lean": 0.5},
     {"stride": [0, 0], "lift": [0, 3], "arms": [0, 0], "bob": -1, "lean": 0.5},
@@ -32,6 +32,18 @@
     {"pitch": 94, "out": -3, "offPitch": 70, "offOut": 0, "offBend": 60, "lean": 0.5}
   ] },
   "bow_rest": {"pitch": 35, "out": -2, "offPitch": 35, "offOut": -5},
+  "cast_staff": { "fps": 12, "activeFrame": 3, "at": [0.3, 0.7], "frames": [
+    {"pitch": 80, "out": 1, "heldTilt": -5, "heldOut": 6, "offPitch": 60, "offOut": -3, "offBend": 70, "lean": 0},
+    {"pitch": 110, "out": 1.5, "heldTilt": -10, "heldOut": 6, "offPitch": 60, "offOut": -3, "offBend": 70, "headD": -0.5},
+    {"pitch": 135, "out": 1.5, "heldTilt": -15, "heldOut": 6, "offPitch": 60, "offOut": -3, "offBend": 70, "headD": -1, "lean": -0.5},
+    {"pitch": 145, "out": 1, "heldTilt": -15, "heldOut": 4, "offPitch": 65, "offOut": -3, "offBend": 60, "lean": 1.5, "bob": 1}
+  ] },
+  "cast_book": { "fps": 12, "activeFrame": 3, "at": [0.3, 0.7], "frames": [
+    {"pitch": 65, "out": -2, "bend": 60, "offPitch": 80, "offOut": 1, "offHeldTilt": -5, "offHeldOut": 6},
+    {"pitch": 65, "out": -2, "bend": 60, "offPitch": 110, "offOut": 1.5, "offHeldTilt": -10, "offHeldOut": 6, "headD": -0.5},
+    {"pitch": 65, "out": -2, "bend": 60, "offPitch": 135, "offOut": 1.5, "offHeldTilt": -15, "offHeldOut": 6, "headD": -1, "lean": -0.5},
+    {"pitch": 80, "out": -2, "bend": 40, "offPitch": 145, "offOut": 1, "offHeldTilt": -15, "offHeldOut": 4, "lean": 1.5, "bob": 1}
+  ] },
   "throw": { "fps": 12, "activeFrame": 3, "frames": [
     {"pitch": -50, "out": 3, "lean": -0.5},
     {"pitch": -95, "out": 4, "lean": -1},

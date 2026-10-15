@@ -113,6 +113,13 @@ export function poseStyles() {
   return Object.keys(POSES);
 }
 
+// Where a held draw's frames change (docs/32: the thresholds are data): `at` on a style is the draw's fractions at which
+// frames 1 and 2 begin, so each draw has its own rhythm (the cast's, 2026-10-15). The bow's literals are the default.
+export function poseAt(style) {
+  const st = style && POSES[style];
+  return st && Array.isArray(st.at) && st.at.length === 2 ? st.at : [0.35, 0.8];
+}
+
 // The style a figure's attack uses: the spec's, else the dead's own or the one-handed swing.
 export function styleFor(spec) {
   const fallback = spec.variant === "zombie" ? "zombie" : "one_handed";
@@ -184,6 +191,8 @@ function restPose() {
     flash: false,
     wrist: 0, // degrees the held thing is cocked up from the forearm in a swing (docs/32): the blade stays level as the arm drops
     bend: [0, 0], // [left, right] degrees the forearm turns from the upper arm's line at the elbow, the way the arm pitches (forward and up); 0 straight
+    heldTilt: [null, null], // [left, right] degrees a held thing at rest leans forward off vertical (negative: back); null the default (held.js HELD_TILT)
+    heldOut: [null, null], // and outward on the hand's side; null the default (HELD_LEAN_OUT). A style sets them (the staff held up like a pole, 2026-10-15)
   };
 }
 
@@ -239,6 +248,8 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
         p.lean = f.lean ?? 0;
         p.bob = f.bob ?? 0;
         p.wrist = f.wrist ?? 0;
+        p.heldTilt = [f.offHeldTilt ?? null, f.heldTilt ?? null];
+        p.heldOut = [f.offHeldOut ?? null, f.heldOut ?? null];
         p.headD = f.headD ?? 0;
         p.bend = [f.offBend ?? 0, f.bend ?? 0];
       }
