@@ -118,9 +118,18 @@ Every other section is built for a guest as well (the rule at the top). What the
 
 - [ ] The Settings screen as a bigger thing with tabs and organisation (there will be many settings; the sandbox ones like Zombie aggro among them). Not scoped.
 
-## Bugs from the wiki census (see `docs/bugs.md`)
+## Owed by Michael (clicks, tries, and answers; collected 2026-10-15)
 
-Found by the wiki-writing agent while reading the whole game for the wiki (2026-10-14, at `9205ad7`), not by a coding agent, and not played: 17 likely bugs (two to reproduce first) and 15 surprises for Michael to rule on. Confirm each on current `main` before fixing; move it to Fixed or Closed in that file.
+Everything marked "before the merge", "before the deploy", or "Michael's to do" across the docs, in one place. Done items leave this list.
+
+- [ ] **The GitHub setup** (`github.md`, section 12): create the agents' account for this game alone and add it with Write to both repositories; `gh auth login` as yourself and as the bot (yours active); then branch protection on both `main`s (section 10). Until then Primary merges by `git` and pull requests are opened as far as the accounts allow.
+- [ ] **The background probe and a real session on Pages** (item 3, the host's world while its tab is covered; owed since 2026-10-13): the probe run in your own browser (with a WebSocket open to the relay, noting whether Chrome's Energy Saver and Memory Saver are on), then a session with a friend on the Pages site.
+- [ ] **The answers still open in `24`** (the book's role, the cost, lock-on, an area burst, pickup) (the census's surprises in `docs/bugs.md` were all ruled on 2026-10-15).
+- Done, for the record: the Fly deploy token (2026-10-15), Pages from Actions with `PAGES_FROM_ACTIONS` (2026-10-15), the first deploy watched (2026-10-15), the wiki rule in `CLAUDE.md` (2026-10-15).
+
+## Unverified bugs (see `docs/bugs.md`)
+
+The holding place for bugs suspected but not reproduced (the wiki census's entries among them, read in the code at `9205ad7`, not played). Gone through now and then: a bug that reproduces becomes a GitHub issue and leaves the file (`github.md`, section 6).
 
 ## Scopes owed (from "What this game is", `02`, 2026-10-13)
 
@@ -128,7 +137,7 @@ Found by the wiki-writing agent while reading the whole game for the wiki (2026-
 - [ ] Talk, scoped in `docs/34-talk.md` (with the owed fix for a guest's left click on a villager): dialogue trees as exposition and the villagers' barks (the "Hey!" of a poke is the "nothing interesting happens" of people), reading the world and never writing it, nothing gated.
 - [x] Scripted sequences: noted in `05-someday.md` (Michael, 2026-10-13: notes only for now, no scope); the dead's arrival on day one as its first case.
 - [ ] **The horde demo, scoped in `docs/36-the-horde-demo.md`** (not to be built yet, Michael; re-ruled 2026-10-14): one homestead wrapped in dense forest, supplies for a few days, the weapons to try, a quiet start, then the dead walking in from off screen and escalating day and night until the player falls (it is built to kill); single player only; `?demo`. Released only once built, tested, and in final art: nothing in it without its final art. The business plan around it is `docs/35`; the Endless mode with a leaderboard is `05`.
-- [ ] **The wiki, scoped in `docs/37-the-wiki.md`, started 2026-10-14** in `C:/Users/micha/Dev/cmz-wiki` (the census, the generator, 156 pages; read `census/findings.md` there for what a player would notice; owed: the art exporter, spot checks, the CLAUDE.md rule): its own repo [`cmz-wiki`] on GitHub Pages, OSRS-style page kinds, the generated half from the game's data, the census of what is in the game as its first deliverable.
+- [ ] **The wiki, scoped in `docs/37-the-wiki.md`, started 2026-10-14** in `C:/Users/micha/Dev/cmz-wiki` (the census, the generator, 157 pages, the Verify stamps, Sources on every page; the CLAUDE.md rule in force since 2026-10-15; owed: the art exporter, spot checks in the pane): its own repo [`cmz-wiki`] on GitHub Pages, OSRS-style page kinds, the generated half from the game's data, the census of what is in the game as its first deliverable.
 - [ ] Before any boss or skills scope: one session played as meant (combat, aggro, the valley, the dead round the spawn).
 
 ## Art still owed (see `docs/26-art-owed.md`) — listed 2026-10-12
