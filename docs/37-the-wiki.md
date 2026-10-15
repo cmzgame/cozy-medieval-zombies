@@ -1,6 +1,6 @@
 # 37 — The wiki: everything about the game, in one place, true to the code
 
-**Status: scoped 2026-10-14 with Michael. Not started** (his word: a scope and a plan first). This doc is the plan for a real wiki of the game, OSRS-wiki style, in its own repository and its own GitHub Pages site, written and kept up by Claude with Michael making targeted changes. Defaults in brackets are Michael's to overrule.
+**Status: scoped 2026-10-14 with Michael, his six answers folded in the same day ("Answered", at the end). Not started** (his word: a scope and a plan first). This doc is the plan for a real wiki of the game, OSRS-wiki style, in its own repository and its own GitHub Pages site, written and kept up by Claude with Michael making targeted changes. Defaults in brackets are Michael's to overrule.
 
 ## What it is, and what it is not
 
@@ -25,10 +25,10 @@ The OSRS wiki is the model (Michael: among the best game wikis ever made, and th
 
 ## Where it lives, and how Claude keeps it
 
-- **Its own repository** [`michaeldippold/cmz-wiki`], in [`C:\Users\micha\Dev\cmz-wiki`], published by GitHub Pages [at `michaeldippold.github.io/cmz-wiki`, a custom domain later]. The game's repo is public, so a public wiki repo costs nothing (Pages on a private repo needs a paid plan).
+- **Its own repository**, `michaeldippold/cmz-wiki`, in `C:\Users\micha\Dev\cmz-wiki`, published by GitHub Pages at `michaeldippold.github.io/cmz-wiki` (a custom domain later). **Public, as the game's repo is; when the game's code goes private, the wiki goes with it** (Michael).
 - **Claude writes it locally and pushes** with the `gh` login this machine already has: no wiki software to sign into, no bot passwords, no API keys.
 - **Michael's targeted changes:** every page has "Edit this page", which opens its markdown in GitHub's web editor; a commit there rebuilds the site (a GitHub Action). Or he edits locally like any file. The generated sections are not editable there (they come from the data); a comment in each page's source says so.
-- **The game's repo learns one rule [later, Michael's to carve]:** when a feature is merged, the wiki is synced. Not yet a rule, like the guide's.
+- **Keeping the wiki current is part of shipping** (Michael: "not worth building if it's going to immediately fall behind"). Once the wiki exists, the game's `CLAUDE.md` gains a rule beside the multiplayer one: **a feature is not pushed to `main` until the wiki is checked and updated for it** (the sync run, its report read, the pages it names corrected, a Changes entry written), by whichever agent pushes it; Michael keeps it up as well. The last step of the build below writes that rule.
 
 ## The engine: a small generator of its own [recommended]
 
@@ -48,7 +48,7 @@ Four ways, and the recommendation:
   - **Props** (`data/sprites/`, 137 definitions): stations with their recipe lists, fires with fuel and hours a unit, containers with their grid and loot, gatherables with what they give, furniture with footprint, carrying, and whether it blocks; one page per notable kind, and generated list pages for the rest.
   - **The dead and villagers:** the dead's numbers from `data/tuning.json` and `data/combat.json`, their wardrobes (`data/wardrobes.json`) as a gallery; each villager from the map file (where they live, what they say: a transcript, and later the talk files of `34`).
   - **Places** (the sets of `data/maps/valley.json`, 20 places, 25 buildings): what stands there, its rooms, its stations and containers, how many of the dead are placed there, and **a picture of it drawn from the map file**: the generator renders the valley to a PNG with Node's own zlib (no canvas needed), each tile a colour, at the screen's angle (`33`), and crops each place from it. The whole valley's map comes free.
-- **Images.** The design agent's drawn art is copied from `data/art/`. The generated placeholder art exists only once the game boots, so a small exporter in the game's tools [a page beside `tools/sprites.html`, run in the browser pane] writes every sheet's first frame and the figures to PNGs for the sync. The wiki shows the game's art as it is today, placeholders included, and changes with it.
+- **Pictures, sparingly; organisation first** (Michael): most pages are text, and what matters most is that every page is clearly organised: the infobox, the headed sections in their fixed order, rules between them, tables where tables help, the navbox at the foot. Pictures where they earn their place: the design agent's drawn art copied from `data/art/` (item icons in infoboxes), the valley's map and the place crops drawn from the map file, and [a few placeholder sprites where a picture says more than a sentence, exported by a small page beside `tools/sprites.html` run in the browser pane]. A page never waits for a picture.
 - **Written by hand (Claude's first draft, Michael's corrections):** the lead of every page, every mechanic page, guides, trivia.
 
 ## Page kinds, each with a fixed shape
@@ -72,7 +72,7 @@ Four ways, and the recommendation:
 - **The code and the data are the truth.** Where a doc and the code disagree, the wiki follows the code and the disagreement goes on an internal page, **Discrepancies**, for Michael and the coding agent; the wiki never "fixes" a design question by choosing silently.
 - **The build fails loudly** when a marker names a key or an id that no longer exists, so a renamed item or a removed recipe cannot leave a wrong page standing.
 - **The sync reports** every id in the data with no page (new items, new props: the to-write list), and every page whose markers changed values since the last sync (what to reread).
-- **Built, planned, and development are kept apart.** A page describes what is on `main`. Planned things live on one **Planned** page and in small marked notes linking to their docs (the map of `33`, farming in `30` step 4). Development tools (the dev chest, Combat testing, the console's `__game`, the debug keys) live in a marked **Development** section.
+- **Built, planned, and development are kept apart.** A page describes what is on `main`. Planned things live on one **Planned** page and in small marked notes linking to their docs (the map of `33`, farming in `30` step 4). **A planned note is a marker** (`{{planned doc=30 step=4}}`), so every sync lists every planned note still standing and none is forgotten when its feature lands: building the feature replaces the note with the real section (Michael: fine to show, as long as it is fixed when built). Development tools (the dev chest, Combat testing, the console's `__game`, the debug keys) live in a marked **Development** section.
 - **Changes** come from a curated changelog in the wiki repo: at each sync Claude adds an entry per change with the pages it touched (from `02` and the commits), and each page shows its own. A site-wide **Updates** page lists each sync.
 
 ## The census: finding out what is in the game
@@ -110,18 +110,18 @@ About a hundred and fifty pages, most of them generated with a short written lea
 4. **The generated pages and the images:** every item, prop kind, station, villager; the art exporter in the game's tools; the valley's map picture.
 5. **The written pages:** the mechanics, the places, the guides, the front pages; each lead.
 6. **Search, Changes, Updates, Planned, Development.**
-7. **The workflow written down:** how a sync goes, in the wiki repo's README and a line in the game's `CLAUDE.md` naming where the wiki lives.
+7. **The workflow written down:** how a sync goes, in the wiki repo's README; and in the game's `CLAUDE.md`, where the wiki lives and **the rule that a feature is not pushed to `main` until its wiki pages are checked and updated** (Michael, 2026-10-14).
 
 **Done when:** every item and every station has a page; the build reports no broken markers and no number typed in prose; every page has its game version in its footer; Michael can open a page, press Edit, change a sentence, and see the site rebuilt.
 
-## Open, for Michael
+## Answered (Michael, 2026-10-14)
 
-- The name and the address [`cmz-wiki` on GitHub Pages for now].
-- Public from the start, or private until there is a demo (private Pages needs a paid GitHub plan; the game's repo is already public).
-- Placeholder art on a public wiki: shown as it is [yes, it is the game as it is], or text-only pages until the art is final (the demo's rule is final art only, `36`).
-- How much of what is planned to show: [one Planned page and small notes], or nothing until built.
-- The voice: encyclopaedic and plain like the OSRS wiki [default], with the game's own warmth in the leads.
-- Whether the wiki sync becomes a rule in the game's `CLAUDE.md` once the wiki exists.
+1. **Name and address:** `cmz-wiki`, at `michaeldippold.github.io/cmz-wiki`.
+2. **Public** for now, repo and site; private when the game's code goes private.
+3. **Mostly text, a little art;** clear organisation (sections, breaks, a fixed order) matters more than pictures.
+4. **Planned things shown,** on the Planned page and in marked notes, each a marker the sync lists so it is replaced when the feature is built.
+5. **Plain, like the OSRS wiki.**
+6. **The wiki sync is part of shipping:** once the wiki exists, no feature is pushed to `main` until its wiki pages are checked and updated, written into the game's `CLAUDE.md` by the build's last step.
 
 ## Sources
 

@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-14 — The wiki's six answers (Michael)
+
+`cmz-wiki` at `michaeldippold.github.io/cmz-wiki`; public, going private with the game's code; mostly text and a little art, clear organisation first; planned things shown, each note a marker the sync lists until the feature replaces it; plain like the OSRS wiki; and **keeping the wiki current is part of shipping**: once it exists, no feature is pushed to `main` until its wiki pages are checked and updated, a rule the build writes into `CLAUDE.md` ("this thing is not worth building if it's going to immediately fall behind"). Folded into `37`.
+
 ### 2026-10-14 — A wiki, scoped (Michael): its own repo, generated from the game's data, the census first
 
 Michael wants a real wiki, OSRS style, not the docs with a reader: everything about the game, updatable by Claude (he makes targeted changes), in its own repository and Pages site, a new folder under `Dev` allowed. **Scoped as `37`, not started.** The calls in it (defaults he may overrule): the wiki says what the game is on `main` and the docs keep why and what is planned; a small generator of our own (Node, no dependencies but a vendored markdown parser) over an off-the-shelf docs site, real MediaWiki, or GitHub's repo wiki; the generated half of every page from a snapshot of the game's `data/` (items, recipes, loot, props, tuning, the map's places and villagers), and **every number in prose a reference to the data**; fixed page kinds in the OSRS manner, with a With friends section where multiplayer changes a rule; Claude writes locally and pushes, Michael edits through GitHub's editor; the build fails on a broken reference; **the census of what is in the game is the first deliverable** (an automatic inventory, six reading passes by area, the discrepancies between docs and code for Michael, spot checks in the pane). Docs: 37, CLAUDE.md, README, TODO.
