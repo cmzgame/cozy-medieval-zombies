@@ -96,7 +96,9 @@ const DEBUG = process.env.CMZ_DEBUG === "1";
 // player removed and barred (/worlds/remove, /worlds/unbar), and home (/worlds/home and /worlds/home/confirm); a lost
 // owner key is replaced with the creator key (/worlds/rekey).
 const CREATOR_KEY = process.env.CREATOR_KEY || null;
-const SITE_ORIGIN = process.env.CMZ_SITE_ORIGIN || "https://michaeldippold.github.io";
+// The site's addresses a browser may move a world up from (CORS), a comma-separated list. The studio's organisation is
+// `cmzgame` since 2026-10-15; the old address stays allowed while the repositories move (github.md, section 12).
+const SITE_ORIGINS = (process.env.CMZ_SITE_ORIGIN || "https://cmzgame.github.io,https://michaeldippold.github.io").split(",").map((s) => s.trim()).filter(Boolean);
 const MAX_UPLOAD = 4 * 1024 * 1024; // compressed: a well-explored world is about 200 KB
 const MAX_UNPACKED = 64 * 1024 * 1024; // the same save unpacked is about 4.5 MB
 const MAX_SMALL_BODY = 4096; // the return home's words
@@ -114,7 +116,7 @@ const sha256 = (s) => crypto.createHash("sha256").update(s).digest("hex");
 
 function originAllowed(origin) {
   if (!origin) return false;
-  return origin === SITE_ORIGIN || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  return SITE_ORIGINS.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
 }
 
 function uploadLimited(address) {
