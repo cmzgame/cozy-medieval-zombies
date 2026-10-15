@@ -10,7 +10,6 @@
 
 ## Open: likely bugs
 
-- [ ] **Switching Open to friends off does not make the guests dormant.** `setOpen` calls `net.close()`, which clears the guests without `dormantNow` (`src/net.js:149-180`); only Leave world does (`src/main.js:336`). The guests' characters stay standing in the world and are saved as active players.
 - [ ] **Every wheelbarrow rolls the dev kit.** Searching any wheelbarrow, the joiner's or one crafted from planks and an iron bar, gives the whole developer kit, two Developer Bags included (the wheelbarrow's container uses the `dev_kit` loot table).
 - [ ] **A crafted chest or shelf rolls chest loot** on its first search: four planks make a chest that may hold weapons, bread, planks, and logs. A crafted container should start empty.
 - [ ] **The forge, anvil, cooking, and oven recipes cannot be made in play.** Nothing in the valley gives potato, cabbage, garlic, grain, flour, iron ore, iron bars, or charcoal; only the console or the dev chest (which holds no charcoal) do. (Possibly expected until farming, mining, and charcoal arrive, but then the stations are unusable meanwhile.)
@@ -50,6 +49,7 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 
 (Move items here with the commit that fixed them.)
 
+- [x] **Switching Open to friends off does not make the guests dormant.** `setOpen` calls `net.close()`, which clears the guests without `dormantNow` (`src/net.js:149-180`); only Leave world does (`src/main.js:336`). The guests' characters stay standing in the world and are saved as active players. **Fixed (2026-10-15, the commit that moves this line):** `setOpen(false)` makes every guest's character dormant before the wire closes, as Leave world does. Tried in two tabs: closed, the guest's character left the world and was kept for its owner; opened again, the guest rejoined as the same character.
 - [x] **Settings → Defaults wipes far more than settings.** The settings blob also holds the identities, the browser id, friends' worlds bookmarks, the creator key, and the owner keys, and Defaults resets the whole blob; after a reload the browser would lose its characters in friends' worlds and its server worlds' keys. *Read, not tried.* (`src/settings.js` `DEFAULTS`; the Settings screen's Defaults in `src/ui/screens.js`.) **Fixed (2026-10-15, the commit that moves this line):** Defaults resets only what the Settings screen shows (`settings.SCREEN_KEYS`: its choices and the painted layers it tries on); the identities, the browser id, the friends' worlds, the creator and owner keys, and the panels' places are kept. Tried under Node with a stand-in store.
 - [x] **Taking or mounting a torch never reaches guests.** `map.setHolder` (`src/map.js:181-187`) calls no `map.touch` (a door does, `src/interact.js:469`), so the change is not in the touched chunks; a guest's post or bracket keeps its old state until something else changes on that tile. **Fixed (2026-10-15, `8f5d996`, the multiplayer agent's save cache):** `map.setHolder` touches the post's tile or the bracket's wall; tried in two tabs with a torch mounted and a holder emptied on the host.
 

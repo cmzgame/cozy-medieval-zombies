@@ -573,6 +573,9 @@ function setOpen(on) {
     saveWorld();
     showMessage(`Open to friends: the code is ${code}.`, 5);
   } else if (net.isHost()) {
+    // The guests' characters go dormant first, as on Leave world: closed, they are out of the world and kept for their
+    // owners, never left standing and saved as players (the wiki census's bugs, 2026-10-15).
+    for (const id of net.guestPlayerIds()) host.dormantNow(id);
     net.close();
     if (currentWorld) currentWorld.open = false;
     saveWorld();
