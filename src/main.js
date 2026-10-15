@@ -622,13 +622,17 @@ const timing = { step: 0, stepMax: 0, vis: 0, maxResetAt: 0 };
 // Right-click builds a menu of what is under the cursor; Walk here is in it
 // (docs/10). Left click is kept free for selecting and placing things later
 // (Michael, 2026-10-10).
+let drawCancelled = false; // a right tap during a draw, for this step's snapshot
 function handleMouse() {
   // A right tap is the actions menu, opened where it was pressed; the end of a
   // draw spends it instead. The right button held is the off hand's stance (docs/21).
   const tap = buttons.off.tap;
   if (tap) {
     if (archery.drawState(S.player)) {
-      archery.cancelDraw(S.player);
+      // The draw ends in the world's step, as an event in my snapshot (`drawCancel`), here or on the host: a guest's
+      // tap once ended only its own copy, and the host loosed the arrow on the left button's release (the wiki
+      // census's bugs, 2026-10-15).
+      drawCancelled = true;
       buttons.spendTap();
     } else if (use.cancel()) {
       // A right click in Use mode puts the thing down (use.js).
@@ -971,7 +975,8 @@ function stepGame(dt) {
   // step, here or on the host (game.step), so a guest's climb, boards, and torch are the host's doing.
   const keyEv = panel.isOpen() || menu.isMenuOpen() ? (interact.keyEvents(dt), null) : interact.keyEvents(dt);
   const beltEv = interact.beltEvents(); // the belt keys work with the bag open, as they always have
-  const keys = keyEv || beltEv ? { ...(keyEv || {}), ...(beltEv || {}) } : null;
+  const keys = keyEv || beltEv || drawCancelled ? { ...(keyEv || {}), ...(beltEv || {}), ...(drawCancelled ? { drawCancel: true } : {}) } : null;
+  drawCancelled = false;
   // The world: the player from the mouse and the keys as a snapshot (docs/23a, D1;
   // never the input module), the dead, the villagers, the light (game.js).
   const mouse = input.getMouse();
