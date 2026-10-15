@@ -30,7 +30,9 @@ const CONTROLS = [
   ["T", "Torch in or out of hand"],
   ["Enter", "Chat: type a line, Enter says it"],
   ["/", "Chat: a command (nothing answers yet)"],
-  ["Left-click", "Swing what you hold; fists with nothing"],
+  ["Left-click", "Swing what you hold; fists with nothing. Hold to draw a bow or cast"],
+  ["Q / middle-click", "The main hand's other mode: the halberd's thrust, a spear's throw"],
+  ["Right-click held", "The off hand's stance: block with a shield, brace a bow"],
   ["Space", "Shove: pushes the dead back, no damage"],
   ["N", "Build menu: walls, doors, windows"],
   ["X", "Remove: highlights what you placed or built, click to destroy it"],
@@ -39,7 +41,6 @@ const CONTROLS = [
   ["Esc", "Close what is open, else pause"],
   ["R / wheel", "Rotate the item you are dragging"],
   ["V", "Fog off (debug)"],
-  ["K", "Near walls: stubs or translucent"],
   ["[ ]", "The hour back or forward (debug)"],
   ["L", "Light debug views"],
 ];
@@ -656,7 +657,7 @@ function render() {
   } else if (current === "pause") {
     const here = worldsApi ? worldsApi.here() : { name: "", myCharacter: "", role: null };
     const where = here.role === "guest"
-      ? `In ${esc(here.hostName || here.name || here.code)}'s world as ${esc(here.myCharacter || "")}.`
+      ? `${here.hostName ? `In ${esc(here.hostName)}'s world, ${esc(here.name || here.code)},` : `In ${esc(here.name || here.code)},`} as ${esc(here.myCharacter || "")}.`
       : `${esc(here.name)}, as ${esc(here.myCharacter || "")}.${here.role === "host" ? ` Open to friends, code ${esc(here.code)}: ${here.guests} with you.` : ""}`;
     root.innerHTML = `
       <div class="screen">
@@ -757,6 +758,7 @@ function render() {
         ${settingRow("survival", "Survival")}
         ${settingRow("freeBuilding", "Free building")}
         ${settingRow("cursor", "Cursor")}
+        ${settingRow("nameTags", "Names over heads")}
         ${settingRow("debugCorner", "Debug corner")}
         ${settingRow("squareSurface", "Square and paths")}
         ${settingRow("aimGuide", "Bow aim guide")}

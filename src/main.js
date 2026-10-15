@@ -584,18 +584,20 @@ function setOpen(on) {
 }
 
 // Where this client is, for the pause menu and the host screen.
+let joinedWorld = null; // a guest's: { name, host } from the welcome
 function here() {
   const st = net.status();
+  const guest = st.role === "guest";
   return {
     inWorld,
-    name: currentWorld ? currentWorld.name : st.role === "guest" ? st.code : "",
+    name: currentWorld ? currentWorld.name : guest ? (joinedWorld && joinedWorld.name) || st.code : "",
     myCharacter: inWorld && S.player ? S.player.name || S.player.id : "",
     role: st.role,
     code: currentWorld ? currentWorld.code : st.code,
     worldId: currentWorld ? currentWorld.worldId : null,
     ownedCode: st.role === "guest" && identities.owned().some((o) => o.code === st.code) ? st.code : null, // a server world of mine I am in
     guests: st.guests ? st.guests.length : 0,
-    hostName: null,
+    hostName: guest && joinedWorld ? joinedWorld.host || null : null, // a server world has no host player: its name alone
     rules: st.role === "guest" ? { ...rules.rules } : null, // a guest's world rules are the host's, shown read-only (item 4)
   };
 }
@@ -1535,6 +1537,7 @@ async function boot() {
       camera.snapTo(S.player.gx, S.player.gy);
       setInWorld(true);
       currentWorld = null; // the host's world, never saved here
+      joinedWorld = world || null; // its name and its host's, for the pause menu (the wiki census's bugs, 2026-10-15)
       started = false;
       // The bookmark learns the world's name, its host, and my character there (docs/31/09).
       // (A world of mine on the server has its own row among my worlds, item 5: not a friend's world too.)
