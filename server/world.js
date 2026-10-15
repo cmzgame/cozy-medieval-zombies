@@ -118,11 +118,15 @@ for (const p of game.state.players.slice()) {
 say(`${snap ? "restored" : "made"} ${store.name} (${mapName}): ${game.state.players.length} in the world, ${Object.keys(store.dormant).length} dormant (${sleepers} put to sleep at boot); rules ${JSON.stringify(rules.rules)}`);
 
 // ---- saving ----
-// A save stops the world while it is made (a well-explored valley took about 100 ms on the coder agent's machine: the
-// snapshot 60, the text 25, the gzip 17; expect two to three times that on Fly). So while anyone plays it saves every
-// few game minutes, and always at a join, a leave, a dormancy, a death, when the world empties, and on the way down.
-// Owed for later, here and in the browser host's autosave: each chunk's serialised form cached until map.touch marks
-// it, so a save costs what changed.
+// A save stops the world while its text is made. Since 2026-10-15 (`02`, a save that costs what changed) that text
+// comes from the save's cache, each chunk's kept until it changes (game.serializeText): an explored valley's save
+// took 50 ms here and takes 5, its gzip (9 more) runs on Node's worker pool off the world's thread, and the file is
+// written when the packing is done. Saves finish in the order they were made: one that finishes after a newer one
+// was written is dropped, so the last save on the way down (packed at once) is never overwritten by an older one.
+// While anyone plays it saves every few game minutes, and always at a join, a leave, a dormancy, a death, when the
+// world empties, and on the way down. The rolling copy and the last save make the whole save afresh first and
+// compare it with the cache (game.verifySaveCache): a chunk the cache had wrong is said in the log, loudly, and saved
+// right; it names a change that marks nothing, for map.unsaved's list.
 const SAVE_EVERY_GAME_S = 300;
 const ROLLING_EVERY_MS = 10 * 60 * 1000;
 const ROLLING_KEEP = 3;
@@ -132,33 +136,31 @@ let lastRollingAt = 0;
 let stepsSinceSave = 0;
 
 // Saves asked for in one tick come to one (the coder agent's review of step 4: a leave and the world's emptying, a
-// dormancy and the exit, saved in pairs). `reuse`: a join's, which may take the welcome's snapshot; `ifStepped`: one that
-// is pointless when the world has not stepped since the last (the emptying of a world already saved).
+// dormancy and the exit, saved in pairs). `ifStepped`: one that is pointless when the world has not stepped since the
+// last (the emptying of a world already saved). A join's save no longer borrows the welcome's snapshot: with the
+// save's cache the second text of a tick costs a fraction of a millisecond.
 let saveQueued = null;
-let saveReuse = false;
 let saveIfStepped = true;
-let lastWelcome = null;
-function requestSave(why, { reuse = false, ifStepped = false } = {}) {
+function requestSave(why, { ifStepped = false } = {}) {
   if (stopping) return;
   if (saveQueued) {
-    saveReuse = saveReuse && reuse;
     saveIfStepped = saveIfStepped && ifStepped;
     return;
   }
   saveQueued = why;
-  saveReuse = reuse;
   saveIfStepped = ifStepped;
   setImmediate(() => {
     const w = saveQueued;
-    const whole = saveReuse ? lastWelcome : null;
     const skip = saveIfStepped && stepsSinceSave === 0;
     saveQueued = null;
-    lastWelcome = null;
     if (stopping || skip) return;
-    saveNow(w, whole);
+    saveNow(w);
   });
 }
-const saveTimes = { last: 0, max: 0, count: 0, lastKB: 0, lastAt: null };
+// `last` and `max`: the world's pause, the text alone; `packMs`: the gzip and the writes after it, off the step.
+const saveTimes = { last: 0, max: 0, packMs: 0, count: 0, lastKB: 0, lastAt: null, cacheMissed: 0 };
+let saveSeq = 0; // each save's number as it is made
+let writtenSeq = 0; // the newest save written: an older one finishing later is dropped
 
 function writeAtomic(file, data) {
   const tmp = `${file}.tmp`;
@@ -166,24 +168,54 @@ function writeAtomic(file, data) {
   fs.renameSync(tmp, file);
 }
 
-function packed(whole = null) {
+// save.snapshot's shape as text, with the world's own fields.
+function savedText(fresh = false) {
   const extra = { worldId, name: store.name, owners: store.owners, dormant: store.dormant, myPlayerId: null, server: true };
-  // save.snapshot's own shape, from a snapshot made this tick when there is one (a join's welcome: the coder agent's
-  // review of step 4, a join cost two whole serialisations).
-  const s = whole ? { version: save.VERSION, savedAt: Date.now(), mapName, ...extra, ...whole } : save.snapshot(mapName, extra);
-  return zlib.gzipSync(JSON.stringify(s));
+  return save.snapshotText(mapName, extra, { fresh });
 }
 
-function saveNow(why, whole = null) {
+// The cache proved (the rolling copy and the last save): a chunk it had wrong is said here and saved right.
+function verifyCache() {
+  const wrong = game.verifySaveCache();
+  if (!wrong.length) return;
+  saveTimes.cacheMissed += wrong.length;
+  const w = wrong[0];
+  say(`THE SAVE'S CACHE MISSED ${wrong.length} chunk${wrong.length === 1 ? "" : "s"} (saved right now; a change marked nothing, see map.unsaved): the first ${w.cx},${w.cy}, kept ${JSON.stringify(w.kept)}, now ${JSON.stringify(w.now)}`);
+}
+
+// `sync`: packed and written before it returns (the last save on the way down, a made world); otherwise the gzip runs
+// off the world's thread and the file is written when it is done.
+function saveNow(why, { sync = false, verify = false } = {}) {
   const t0 = performance.now();
-  const gz = packed(whole);
-  stepsSinceSave = 0;
-  writeAtomic(SAVE, gz);
-  lastSaveSim = loop.simTime();
   const now = Date.now();
   // The rolling copies guard against a bad save of our own making, which a snapshot taken after it would keep.
-  if (now - lastRollingAt >= ROLLING_EVERY_MS) {
-    lastRollingAt = now;
+  const rolling = now - lastRollingAt >= ROLLING_EVERY_MS;
+  if (rolling) lastRollingAt = now;
+  if (verify || rolling) verifyCache();
+  const text = savedText();
+  stepsSinceSave = 0;
+  lastSaveSim = loop.simTime();
+  const paused = performance.now() - t0;
+  const seq = ++saveSeq;
+  const finish = (gz) => {
+    if (seq <= writtenSeq) return; // a newer save is already on disk
+    writtenSeq = seq;
+    writeSaved(why, gz, now, rolling, paused, t0);
+  };
+  if (sync) return finish(zlib.gzipSync(text));
+  zlib.gzip(text, (err, gz) => {
+    if (err) return say(`the save (${why}) could not be packed: ${err.message}`);
+    try {
+      finish(gz);
+    } catch (e) {
+      say(`the save (${why}) could not be written: ${e.message}`);
+    }
+  });
+}
+
+function writeSaved(why, gz, now, rolling, paused, t0) {
+  writeAtomic(SAVE, gz);
+  if (rolling) {
     writeAtomic(path.join(dir, "rolling", `${now}.json.gz`), gz);
     const kept = fs.readdirSync(path.join(dir, "rolling")).filter((f) => f.endsWith(".json.gz")).sort();
     for (const f of kept.slice(0, Math.max(0, kept.length - ROLLING_KEEP))) fs.rmSync(path.join(dir, "rolling", f));
@@ -195,17 +227,17 @@ function saveNow(why, whole = null) {
     const days = fs.readdirSync(path.join(dir, "daily")).filter((f) => f.endsWith(".json.gz")).sort();
     for (const f of days.slice(0, Math.max(0, days.length - DAILY_KEEP))) fs.rmSync(path.join(dir, "daily", f));
   }
-  const ms = performance.now() - t0;
-  saveTimes.last = Math.round(ms);
+  saveTimes.last = Math.round(paused * 10) / 10;
   saveTimes.max = Math.max(saveTimes.max, saveTimes.last);
+  saveTimes.packMs = Math.round(performance.now() - t0 - paused);
   saveTimes.count++;
   saveTimes.lastKB = Math.round(gz.length / 1024);
   saveTimes.lastAt = new Date(now).toISOString();
-  say(`saved (${why}): ${saveTimes.lastKB} KB in ${saveTimes.last} ms`);
+  say(`saved (${why}): ${saveTimes.lastKB} KB, the world paused ${saveTimes.last} ms, packed and written in ${saveTimes.packMs} more`);
 }
 
 if (makeOnly) {
-  saveNow("made");
+  saveNow("made", { sync: true });
   process.exit(0);
 }
 
@@ -222,7 +254,7 @@ function shutdown(why, exitCode = 0) {
   const standing = game.state.players.length;
   for (const p of game.state.players.slice()) host.dormantNow(p.id);
   try {
-    if (standing || stepsSinceSave > 0 || !saveTimes.count) saveNow(why);
+    if (standing || stepsSinceSave > 0 || !saveTimes.count) saveNow(why, { sync: true, verify: true });
     else say(`nothing changed since the last save (${why})`);
   } catch (err) {
     say(`the last save failed: ${err.message}`);
@@ -242,7 +274,7 @@ function crashed(why, err) {
   say(`the world threw (${why}): ${err && err.stack ? err.stack : err}`);
   try {
     const file = path.join(dir, `crash-${Date.now()}.json.gz`);
-    fs.writeFileSync(file, packed());
+    fs.writeFileSync(file, zlib.gzipSync(savedText(true))); // afresh: the cache is not trusted at a crash
     say(`the state at the crash is in ${path.basename(file)}; save.json.gz is the last good save`);
     const kept = fs.readdirSync(dir).filter((f) => /^crash-\d+\.json\.gz$/.test(f)).sort();
     for (const f of kept.slice(0, Math.max(0, kept.length - 5))) fs.rmSync(path.join(dir, f)); // the newest five are enough to read
@@ -278,15 +310,12 @@ net.setRelay(relayUrl);
 net.setHostSecret(process.env.CMZ_HOST_SECRET || null);
 net.init({ host: code }, {
   ...host.netHooks(),
-  guestJoined: () => requestSave("a join", { reuse: true }),
+  guestJoined: () => requestSave("a join"),
   ownerHash,
   isBarred,
   buildId: () => process.env.CMZ_BUILD_ID || "dev", // the image's stamp (Dockerfile): a page of another build is refused
   // The welcome gzipped (the review of step 3): a well-explored world is 4.6 MB raw to every joiner, about 200 KB packed.
-  packWelcome: (whole) => {
-    lastWelcome = whole; // the join's save, this same tick, takes it rather than serialising the world again
-    return zlib.gzipSync(JSON.stringify(whole)).toString("base64");
-  },
+  packWelcome: (text) => zlib.gzipSync(text).toString("base64"), // the save's text, from its cache (game.serializeText)
   message: (text) => say(text),
   failed: (_code, why) => shutdown(`the relay: ${why}`, 2),
 });

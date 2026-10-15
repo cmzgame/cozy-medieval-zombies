@@ -115,6 +115,15 @@ export function snapshot(mapName, extra = {}) {
   return { version: VERSION, savedAt: Date.now(), mapName, ...extra, ...game.serialize() };
 }
 
+// The same snapshot as JSON text, the same characters as JSON.stringify(snapshot(...)): the world's part from the
+// save's cache (game.serializeText), so the server writes and packs a save without making the unchanged chunks again.
+// `fresh` makes every chunk afresh (a crash's state: whatever the cache holds is not trusted then).
+export function snapshotText(mapName, extra = {}, { fresh = false } = {}) {
+  const head = JSON.stringify({ version: VERSION, savedAt: Date.now(), mapName, ...extra });
+  const body = fresh ? JSON.stringify(game.serialize({ fresh: true })) : game.serializeText();
+  return `${head.slice(0, -1)},${body.slice(1)}`;
+}
+
 export function newWorldId() {
   return `w${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }

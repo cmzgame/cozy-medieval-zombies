@@ -166,7 +166,10 @@ export function start(player, prop, r, count = 1) {
 
 // The output bag of a station, made on first use: a container of its own.
 export function outputOf(prop) {
-  if (!prop.output) prop.output = createBag(OUTPUT[0], OUTPUT[1], "output");
+  if (!prop.output) {
+    prop.output = createBag(OUTPUT[0], OUTPUT[1], "output");
+    map.unsaved(prop.tile[0], prop.tile[1], false); // made on first use: the save's copy of its chunk is dropped
+  }
   return prop.output;
 }
 
@@ -199,6 +202,7 @@ export function update(dt) {
     if (!r) { prop.queue.shift(); continue; }
     if (r.fire && !(prop.fire && prop.fire.lit)) continue;
     q.left -= dt;
+    map.unsaved(prop.tile[0], prop.tile[1], false); // the job's time left is saved; the wire sends it in the frame's queues
     if (q.left > 0) continue;
     deliver(prop, r);
     emit("craftDone", { id: prop.id, tile: prop.tile, recipe: r.id, out: r.out, by: q.by });

@@ -103,7 +103,10 @@ export function makeCode() {
 // The wire's protocol (the coder agent's review, 2026-10-13: a build version has nothing to compare, the
 // wire and the save do): bumped by hand when a message or the save changes shape; the host refuses a
 // guest on another with a word for whose is newer.
-export const PROTOCOL = 3; // 2 (2026-10-13): the dead as a delta with a roster, numbers rounded; 3 (2026-10-14, item 5's fourth step): the welcome may come gzipped (`z`)
+// 2 (2026-10-13): the dead as a delta with a roster, numbers rounded; 3 (2026-10-14, item 5's fourth step): the welcome may
+// come gzipped (`z`); 4 (2026-10-15): a browser host packs its welcome in the background, so the welcome carries the tick
+// of its snapshot and a guest keeps the frames that come before it (an older guest dropped them).
+export const PROTOCOL = 4;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -177,6 +180,8 @@ export function close() {
   steppedAway = false;
   welcoming = false;
   held.length = 0;
+  early.length = 0;
+  welcomesPacking.clear();
 }
 
 // ---- the transports (docs/31/04; ruled 2026-10-13, docs/02) ----
@@ -395,7 +400,7 @@ export async function isOpen(code) {
 }
 
 export function status() {
-  return { role, code, lag, selfId, guests: [...guests.values()].map((g) => g.playerId), myPlayerId, joined, framesSeen, lastFrameAt, tick, waiting: role === "guest" && !joined, transport: transport ? transport.kind : null, relay: relayUrl, protocol: PROTOCOL, wire: wireRates() };
+  return { role, code, lag, selfId, guests: [...guests.values()].map((g) => g.playerId), myPlayerId, joined, framesSeen, lastFrameAt, tick, waiting: role === "guest" && !joined, transport: transport ? transport.kind : null, relay: relayUrl, protocol: PROTOCOL, wire: wireRates(), welcome: lastWelcome, welcomesPacking: welcomesPacking.size };
 }
 
 export function setTestSnapshot(s) {
@@ -537,13 +542,18 @@ export function hostStep(mySnap, me) {
       away.delete(p.id);
       guests.set(msg.from, { playerId: p.id, hash, queue: [], last: null, ack: 0, joinedAt: tick });
       for (const c of allCharacters()) known.add(c.id);
-      // The welcome is the whole world. A host that can pack it (a server world: zlib, hooks.packWelcome) sends it gzipped,
-      // which a guest unpacks with the browser's own DecompressionStream: a well-explored world is 4.6 MB raw, about
-      // 200 KB packed (the coder agent's review of step 3). A browser host, which has no packer that answers at once,
-      // sends it as it was.
-      const whole = game.serialize();
-      const z = hooks.packWelcome ? hooks.packWelcome(whole) : null;
-      send({ type: "welcome", to: msg.from, playerId: p.id, ...(z ? { z } : { save: whole }), world: hooks.worldInfo ? hooks.worldInfo() : null });
+      // The welcome is the whole world, gzipped: a well-explored world is 4.6 MB raw, about 200 KB packed (the coder agent's
+      // review of step 3), and the relay refuses a message over 16 MB. A guest unpacks it with the browser's own
+      // DecompressionStream. A server world packs at once (zlib, hooks.packWelcome); a browser host packs in the background
+      // with CompressionStream (2026-10-15, `02`), the world stepping on meanwhile: the welcome carries the tick of its
+      // snapshot, and the guest keeps the frames that reach it first and applies those after that tick (guestStep). The
+      // text is the save's, from its cache (game.serializeText).
+      const base = { type: "welcome", to: msg.from, playerId: p.id, tick, world: hooks.worldInfo ? hooks.worldInfo() : null };
+      const text = game.serializeText();
+      const z = hooks.packWelcome ? hooks.packWelcome(text) : null;
+      if (z) send({ ...base, z });
+      else if (typeof CompressionStream === "function") welcomeLater(base, text);
+      else send({ ...base, save: JSON.parse(text) });
       forgetSent(); // the newcomer's baseline is this save: whatever the others were sent is sent again, whole
 
       hooks.message(`${p.name || p.id} joined.`);
@@ -722,6 +732,38 @@ let frameCount = 0; // steps over the scale since the last frame
 let framesSent = 0;
 
 // After the world's step: the frame to every guest, when one is due.
+// A browser host's welcome, packed off the step (CompressionStream) and sent when it is done, to the same connection on
+// the same wire; whole if the packing fails (the guest applies the frames after its tick either way). The text is
+// the snapshot at the join's tick, so the world may step on while it packs.
+const welcomesPacking = new Set(); // the connections whose welcome is packing (status)
+function welcomeLater(base, text) {
+  const wire = transport;
+  const to = base.to;
+  const t0 = performance.now();
+  welcomesPacking.add(to);
+  packText(text).then((z) => {
+    welcomesPacking.delete(to);
+    if (transport !== wire || !guests.has(to)) return; // gone meanwhile, or the wire closed
+    lastWelcome = { rawKB: Math.round(text.length / 1024), packedKB: Math.round(z.length / 1024), ms: Math.round(performance.now() - t0) };
+    send({ ...base, z });
+  }, (err) => {
+    welcomesPacking.delete(to);
+    console.warn("The welcome could not be packed; sent whole:", err && err.message);
+    if (transport === wire && guests.has(to)) send({ ...base, save: JSON.parse(text) });
+  });
+}
+let lastWelcome = null; // the last packed welcome's sizes and time (status)
+
+// Text to gzip to base64, off the step: the browser's CompressionStream, the bytes to base64 in slices (one call over
+// megabytes overflows the stack).
+async function packText(text) {
+  const stream = new Blob([text]).stream().pipeThrough(new CompressionStream("gzip"));
+  const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
 export function hostAfterStep() {
   tick++;
   if (role !== "host" || !guests.size) {
@@ -849,7 +891,9 @@ export function guestStep(mySnap) {
     // The browser's id and the protocol always; the identity when one was chosen (the host asks with `who` otherwise).
     send({ type: "join", clientId, protocol: PROTOCOL, version: SAVE_VERSION, build: BUILD_ID, name: identity ? identity.name : null, look: identity ? identity.look : null, ...(ownerKey ? { ownerKey } : {}) });
   }
-  for (const msg of inbox.splice(0)) {
+  const queue = inbox.splice(0);
+  while (queue.length) {
+    const msg = queue.shift();
     // A packed welcome is unpacking: everything after it waits, in order, for the world it follows (the frames are
     // deltas against it).
     if (welcoming) {
@@ -863,18 +907,24 @@ export function guestStep(mySnap) {
         const wire = transport;
         unpack(msg.z).then((save) => {
           if (transport !== wire) return; // the wire closed or was replaced meanwhile
-          welcomed(msg, save);
+          const kept = welcomed(msg, save);
           welcoming = false;
-          inbox.unshift(...held.splice(0));
+          inbox.unshift(...kept, ...held.splice(0));
         }, (err) => {
           console.warn("The world's welcome would not unpack:", err && err.message);
           welcoming = false;
           held.length = 0;
+          early.length = 0;
           dropped("relay");
         });
         continue;
       }
-      welcomed(msg, msg.save);
+      queue.unshift(...welcomed(msg, msg.save));
+    } else if (msg.type === "frame" && !joined) {
+      // Before my welcome: a browser host packs it in the background and steps on meanwhile, so the frames after its
+      // snapshot may reach me first (protocol 4). Kept, the newest EARLY_MAX, for welcomed to sort.
+      early.push(msg);
+      if (early.length > EARLY_MAX) early.shift();
     } else if (msg.type === "frame" && joined) {
       applyFrame(game.fromSafe(msg));
       framesSeen++;
@@ -985,12 +1035,21 @@ function byeWhy(msg) {
   return ["replaced", "full", "refused", "removed", "updated"].includes(msg.reason) ? msg.reason : "hostLeft";
 }
 
+// The world from my welcome. Returns the frames that reached me before it and come after its snapshot's tick, in order,
+// for the caller to apply first; the older ones were already in the save.
 function welcomed(msg, save) {
   myPlayerId = msg.playerId;
   joined = true;
   hooks.restore(save, myPlayerId, msg.world || null); // main.js: game.restore, then the client's own refresh
   hooks.joined(myPlayerId);
+  const at = typeof msg.tick === "number" ? msg.tick : Infinity;
+  const kept = early.filter((f) => typeof f.tick === "number" && f.tick > at);
+  if (early.length >= EARLY_MAX && kept.length === early.length) console.warn("Frames before the welcome overflowed: the world may be out of step until its next change");
+  early.length = 0;
+  return kept;
 }
+const early = []; // frames that reached me before my welcome (welcomed keeps those after its tick)
+const EARLY_MAX = 600; // thirty seconds of frames at twenty a second
 
 let welcoming = false; // a packed welcome is unpacking (guestStep holds what follows it)
 const held = [];

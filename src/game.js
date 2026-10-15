@@ -159,15 +159,26 @@ export function fromSafe(v) {
   return out;
 }
 
-export function serialize() {
+// The world as one plain object: what a save holds and what a joining guest receives.
+//
+// A save that costs what changed (2026-10-15, `02`): the chunks are nine tenths of a save (the props on them, the
+// trees most of all), so each chunk's safe form is kept on the chunk (map.savedChunks) and made again only once the
+// chunk has changed (map.unsaved says when). The objects in `map.chunks` are those kept copies, shared from one save to
+// the next: nothing may change them (a store clones them, restore copies them through fromSafe). `{ fresh: true }`
+// makes every chunk afresh and keeps nothing, which is how the cache is proved (verifySaveCache, the checks).
+const CHUNKS_SLOT = "\u0001cmz-chunks\u0001"; // stands in for the chunks while the rest is turned to text
+function savedChunk(c) {
+  return { obj: toSafe(map.serializeChunk(c)), text: null };
+}
+function worldWithout(chunks) {
   const S = state;
-  return toSafe({
+  const out = toSafe({
     clock: clock.getElapsed(),
     simTime: loop.simTime(),
     rng: rng.getState(),
     world: { timeScale: world.world.timeScale, idCounter: world.idCounter() },
     rules: { ...rules.rules }, // the world's own rules ride in its save (item 5's second step; a server world reads only these)
-    map: { ...map.serializeMap(), sleepers: map.sleeperEntries().map(([k, list]) => [k, list.map(serializeCharacter)]) },
+    map: { chunks: null, pending: map.serializePending(), sleepers: map.sleeperEntries().map(([k, list]) => [k, list.map(serializeCharacter)]) },
     characters: {
       players: S.players.map(serializeCharacter),
       zombies: S.zombies.map(serializeCharacter),
@@ -175,6 +186,47 @@ export function serialize() {
       villagers: S.villagers.map(serializeCharacter),
     },
   });
+  out.map.chunks = chunks;
+  return out;
+}
+export function serialize({ fresh = false } = {}) {
+  if (fresh) return worldWithout(map.serializeMap().chunks.map(toSafe));
+  return worldWithout(map.savedChunks(savedChunk).map((s) => s.obj));
+}
+
+// The same world as JSON text, the chunks' text kept with their objects: what the server writes and packs, without
+// turning the unchanged chunks to text again. JSON.stringify(serialize()) and this are the same characters.
+export function serializeText() {
+  const kept = map.savedChunks(savedChunk);
+  const parts = new Array(kept.length);
+  for (let i = 0; i < kept.length; i++) {
+    const s = kept[i];
+    if (s.text === null) s.text = JSON.stringify(s.obj);
+    parts[i] = s.text;
+  }
+  const text = JSON.stringify(worldWithout(CHUNKS_SLOT));
+  const at = text.indexOf(JSON.stringify(CHUNKS_SLOT));
+  return `${text.slice(0, at)}[${parts.join(",")}]${text.slice(at + JSON.stringify(CHUNKS_SLOT).length)}`;
+}
+
+// The cache proved against the world: every chunk's kept copy compared with the chunk made afresh. A chunk the copy
+// had wrong is a change that marked nothing (map.unsaved's list is missing it): its copy is replaced, and its key and
+// first difference are returned for the caller to say out loud. Costs a whole save; the server runs it with its
+// rolling copy and its last save, the browser with every tenth autosave, the checks always.
+export function verifySaveCache() {
+  const wrong = [];
+  map.eachChunk((c) => {
+    if (!c.saved) return;
+    const now = savedChunk(c);
+    const was = c.saved.text === null ? JSON.stringify(c.saved.obj) : c.saved.text;
+    const is = JSON.stringify(now.obj);
+    if (was === is) return;
+    let i = 0;
+    while (i < was.length && was[i] === is[i]) i++;
+    wrong.push({ cx: c.cx, cy: c.cy, layer: c.layer, kept: was.slice(Math.max(0, i - 60), i + 60), now: is.slice(Math.max(0, i - 60), i + 60) });
+    c.saved = now;
+  });
+  return wrong;
 }
 
 // The world put back: the map file loaded afresh for its authored source, the

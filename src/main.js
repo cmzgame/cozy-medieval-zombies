@@ -322,8 +322,13 @@ let deadShown = false; // a guest's dead screen, raised once a death
 
 // The world's save, with its own fields (save.js writeWorld); never for a guest or a test world.
 // A save that fails says so on screen (Michael, 2026-10-13: never silently).
+let savesMade = 0; // every tenth save proves the save's cache first (game.verifySaveCache, 2026-10-15)
 async function saveWorld(extra = {}) {
   if (!inWorld || !currentWorld || net.isGuest()) return false;
+  if (++savesMade % 10 === 0) {
+    const wrong = game.verifySaveCache();
+    if (wrong.length) console.warn(`The save's cache missed ${wrong.length} chunk(s), saved right now (a change marked nothing; see map.unsaved):`, wrong);
+  }
   const r = await save.writeWorld(save.snapshot(MAP_NAME, { worldId: currentWorld.worldId, name: currentWorld.name, code: currentWorld.code, created: currentWorld.created, open: !!currentWorld.open, owners: currentWorld.owners, dormant: currentWorld.dormant || {}, myPlayerId: S.player.id, ...extra }));
   if (r.ok) lastAutosave = loop.simTime();
   else showMessage(`The world could not be saved: ${r.error}.`, 6);
