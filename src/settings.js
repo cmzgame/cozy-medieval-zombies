@@ -43,7 +43,7 @@ export const CHOICES = {
   worldScale: [["auto", "Auto"], [1.1, "Wide"], [1.8, "Middle"], [2.7, "Close"]],
   debugCorner: [[true, "Shown"], [false, "Hidden"]],
   zombieAggro: [[false, "Off (they ignore you)"], [true, "On (they hunt you)"]],
-  zombiesAttackVillagers: [[false, "Off (villagers are safe)"], [true, "On (they hunt villagers too, you first)"]],
+  zombiesAttackVillagers: [[false, "Off (villagers are safe)"], [true, "On (they hunt villagers, whatever aggro says; with aggro on, you first)"]], // two knobs on purpose (Michael, 2026-10-15)
   squareSurface: [["cobble", "Cobble"], ["dirt", "Dirt"]],
   aimGuide: [[true, "On (landing marker and dotted line)"], [false, "Off"]],
   swingTimer: [[true, "On (a bar over your head)"], [false, "Off"]],

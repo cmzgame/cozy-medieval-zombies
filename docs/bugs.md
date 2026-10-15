@@ -10,8 +10,6 @@
 
 ## Open: likely bugs
 
-- [ ] **The forge, anvil, cooking, and oven recipes cannot be made in play.** Nothing in the valley gives potato, cabbage, garlic, grain, flour, iron ore, iron bars, or charcoal; only the console or the dev chest (which holds no charcoal) do. (Possibly expected until farming, mining, and charcoal arrive, but then the stations are unusable meanwhile.)
-- [ ] **The dead hunt villagers with Zombie aggro off.** With "Zombies attack villagers" on and aggro off, the dead ignore the player and still hunt and kill villagers: `nearestPrey` (`src/entities/zombie.js:268-289`) never reads `zombieAggro`, though the setting reads "they hunt villagers too, you first" (`src/settings.js:46`).
 
 ## Open: surprises for Michael to rule on
 
@@ -56,3 +54,6 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 ## Closed
 
 (Move items here when judged intended or not worth fixing, with a word why.)
+
+- [x] **The forge, anvil, cooking, and oven recipes cannot be made in play.** Nothing in the valley gives potato, cabbage, garlic, grain, flour, iron ore, iron bars, or charcoal; only the console or the dev chest (which holds no charcoal) do. (Possibly expected until farming, mining, and charcoal arrive, but then the stations are unusable meanwhile.) **Closed (Michael, 2026-10-15): expected.** The stations wait for farming, mining, and charcoal (docs/30); in-progress things lying about unusable for a while are fine.
+- [x] **The dead hunt villagers with Zombie aggro off.** With "Zombies attack villagers" on and aggro off, the dead ignore the player and still hunt and kill villagers: `nearestPrey` (`src/entities/zombie.js:268-289`) never reads `zombieAggro`, though the setting reads "they hunt villagers too, you first" (`src/settings.js:46`). **Closed (Michael, 2026-10-15): intended,** two knobs on purpose (aggro off with this on lets the dead go after villagers while ignoring you). The setting's label now says so: "On (they hunt villagers, whatever aggro says; with aggro on, you first)".
