@@ -259,7 +259,7 @@ function land(a, met = null) {
   // landing point, if one is there (docs/20: hits are checked at landing only).
   let hit = null;
   if (met) hit = met; // met on the way (a contact burst)
-  else if (a.stopD == null) hit = bodyAt(gx, gy, a.landRadius ?? tunables.hitRadius, a.landRadius != null ? { z: a.z } : null);
+  else if (a.stopD == null) hit = bodyAt(gx, gy, a.landRadius ?? tunables.hitRadius, { z: a.z }); // never through a wall (#13)
   let keep = true;
   const broken = a.breakChance > 0 && rng.chance(a.breakChance);
   if (hit) {
@@ -290,9 +290,10 @@ export function setTargets(fn) {
 }
 
 // The nearest living zombie within `r` of a point (the landing point, or a contact shot's place), or null. With `o`
-// (a fireball's reach, wider than a body: the review of #12 found it burned the dead through a closed door): only a
-// body with no wall between it and the point at the shot's height `o.z` counts, and with `o.ahead` (the shot) only one
-// ahead of where it was loosed, so nothing behind the caster is hit on the way out. An arrow's own 0.5 needs neither.
+// (every landing, and a fireball's contact: the review of #12 found the fireball burned the dead through a closed door,
+// and #13 an arrow landing just short of a wall hit one past it): only a body with no wall between it and the point at
+// the shot's height `o.z` counts, and with `o.ahead` (the shot) only one ahead of where it was loosed, so nothing behind
+// the caster is hit on the way out. A landing (an arrow, a spear, the fireball's) needs no ahead test.
 function bodyAt(gx, gy, r = tunables.hitRadius, o = null) {
   let best = null;
   let bestD = r;
@@ -310,7 +311,7 @@ function bodyAt(gx, gy, r = tunables.hitRadius, o = null) {
   return best;
 }
 
-// No wall or closed door stands between two points at height `z` (a fireball's reach, bodyAt): the edges crossed on the
+// No wall or closed door stands between two points at height `z` (a landing's or a fireball's reach, bodyAt): the edges crossed on the
 // way, tile by tile, as a flight's own path is checked (edgeStops).
 function clearBetween(ax, ay, bx, by, z) {
   const len = Math.hypot(bx - ax, by - ay);
