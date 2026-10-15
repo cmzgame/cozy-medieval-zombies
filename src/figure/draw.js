@@ -453,9 +453,9 @@ function drawFrame(frame, spec, facing, anim, i) {
   // A style may stand the held thing otherwise for its frames (`heldTilt`, `heldOut` per arm in the poses data: the cast's
   // staff upright like a pole, its top a little behind; 2026-10-15); otherwise the rest tilt as always.
   const restAxis = (side) => {
-    const i = side < 0 ? 0 : 1;
-    const tilt = (p.heldTilt && p.heldTilt[i] != null ? p.heldTilt[i] : HELD_TILT) * Math.PI / 180;
-    const out = (p.heldOut && p.heldOut[i] != null ? p.heldOut[i] : HELD_LEAN_OUT) * Math.PI / 180;
+    const arm = side < 0 ? 0 : 1; // [left, right], as the pose's arrays are
+    const tilt = (p.heldTilt && p.heldTilt[arm] != null ? p.heldTilt[arm] : HELD_TILT) * Math.PI / 180;
+    const out = (p.heldOut && p.heldOut[arm] != null ? p.heldOut[arm] : HELD_LEAN_OUT) * Math.PI / 180;
     const st = Math.sin(tilt);
     const so = Math.sin(out);
     return [F.fx * st + side * F.rx * so, -Math.cos(tilt) + (F.fy * st + side * F.ry * so) * ISO];

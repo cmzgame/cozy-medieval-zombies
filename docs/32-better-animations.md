@@ -31,6 +31,15 @@ The halberd swings with the one-handed style and its thrust (the `alt` block on 
 
 The spell is `docs/24` (not built); the pose is this item and lands first. **The mechanics are the bow's**: the left button held on a staff or a book is a draw (`archery.launcherOf` returns a launcher for an item with a `cast` block as it does for `bow` and `thrown`; `cast: { drawTime, style, projectile: "fireball" }` on the item; the projectile exists as a stored sheet, `data/art/items/fireball.png`), the release the cast; until `24` the release does nothing but the pose and a log line ("The staff hums." default). **Two styles**: `cast_staff` with the staff raised high (frames 0 to 2 the arm rising from `pitch 60` to `pitch 160, out 2`, the head up `headD -1`; frame 3 the release, the arm thrust forward `pitch 100, lean 2`) and `cast_book` with the book held out (frames 0 to 2 the present pose of item 1 with the off hand coming up to the book, `offPitch 80, offOut 1`; frame 3 the release, both arms forward). The staff's `held.mode: "angles"` art already has the five angles the raised arm needs. Player-only animations. A guest casts as it draws a bow: the draw lives on the player and the release is resolved on the host (tier 2 of `31`), so the launcher kind needs no path of its own.
 
+### Where we left off (2026-10-15)
+
+Built that night with the elbow (`02`): the bowstring to the chin (the plain draw and the braced share it; Michael: "great in both ways", so item 4's own style may not be needed) and the cast (item 3). **The elbow's next poses, talked through with Michael and not yet scoped, each a small item tried from the console first:**
+
+- **Both hands on the halberd's shaft,** for its swing and its thrust (the off hand's elbow bent to meet the shaft).
+- **A one-handed swing from the elbow and the forearm,** the shoulder and the upper arm moving little (Michael: the best one-handed swing), **or a dramatic swing up and down**; try both.
+- **Eating and drinking with the hand to the face** (the held-out pose's arm bent back to the mouth).
+- **The cast's book held close** is done (the staff hand's `cast_staff`).
+
 ### 4. The braced draw as its own style
 
 **Note, 2026-10-14 (`02`, "The bow held upright"):** the plain draw's numbers were redone before this item, so `bow_braced` starts from the new `bow` frames (both hands toward the chest's middle), not from the ones quoted below; the bow is now drawn upright by the facing, never turned with the arm.
