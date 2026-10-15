@@ -9,6 +9,7 @@ Started 2026-10-08 as the marriage of two prototypes, both kept as they are:
 
 ## Start here every session
 
+0. **`github.md` (proposed 2026-10-15, not yet in force):** the infrastructure (the repositories, what a merge to `main` deploys, storage, the tools on the machine, the two GitHub identities) and the workflow from an issue to a reviewed, merged pull request, for the game and the wiki alike. Once Michael approves it, it is read first.
 1. Read `TODO.md`. The **Status** block says where work stopped.
 2. Read the doc linked from the current milestone before writing code.
 3. The tiebreaker for any design question is `docs/00-vision.md`. Log every ruling in `docs/02-decisions.md`.
