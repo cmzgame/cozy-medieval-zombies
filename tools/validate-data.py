@@ -133,7 +133,10 @@ for dirpath, _, names in os.walk("data"):
         if rel == "data/manifest.json":
             continue
         with open(rel, "rb") as f:
-            on_disk[rel] = hashlib.sha1(f.read()).hexdigest()[:8]
+            b = f.read()
+        if rel.lower().endswith((".json", ".txt", ".md", ".css", ".js", ".html", ".svg", ".csv")):
+            b = b.replace(b"\r\n", b"\n")  # stamped as git stores it, LF (tools/manifest.py, 2026-10-15)
+        on_disk[rel] = hashlib.sha1(b).hexdigest()[:8]
 for rel, stamp in on_disk.items():
     entry = manifest["files"].get(rel)
     if not entry:

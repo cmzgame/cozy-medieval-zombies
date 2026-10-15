@@ -12,6 +12,17 @@ import sys
 
 OUT = os.path.join("data", "manifest.json")
 
+# A text file is stamped as git stores it, its line endings LF (2026-10-15, found by a Secondary: a Windows checkout
+# with core.autocrlf gives the same file CRLF, so two machines stamped it two ways and the validator failed). A
+# picture's bytes are its bytes.
+TEXT = (".json", ".txt", ".md", ".css", ".js", ".html", ".svg", ".csv")
+
+
+def content(full):
+    with open(full, "rb") as f:
+        b = f.read()
+    return b.replace(b"\r\n", b"\n") if full.lower().endswith(TEXT) else b
+
 
 def build(root):
     files = {}
@@ -23,9 +34,8 @@ def build(root):
             rel = os.path.relpath(full, root).replace(os.sep, "/")
             if rel == OUT.replace(os.sep, "/"):
                 continue
-            with open(full, "rb") as f:
-                digest = hashlib.sha1(f.read()).hexdigest()[:8]
-            files[rel] = {"size": os.path.getsize(full), "stamp": digest}
+            b = content(full)
+            files[rel] = {"size": len(b), "stamp": hashlib.sha1(b).hexdigest()[:8]}
     version = hashlib.sha1("\n".join(f"{p}:{v['stamp']}" for p, v in files.items()).encode()).hexdigest()[:8]
     return {"version": version, "files": files}
 
