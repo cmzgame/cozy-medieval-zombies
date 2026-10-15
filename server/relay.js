@@ -87,16 +87,23 @@ const DEBUG = process.env.CMZ_DEBUG === "1";
 // ---- moving a world: up from a browser, and home again (item 5's fifth step) ----
 // Two locks (docs/02, the plan): making a server world needs the creator key, a Fly secret only Michael hands out
 // (CREATOR_KEY; unset, the server takes no worlds); a world's own powers need its owner key, minted at the upload and
-// shown once, of which the disk keeps only the SHA-256. Uploads come from the game's own site and from localhost alone
-// (CORS), are capped compressed before a byte is parsed and capped again unpacked (a zip bomb stops at the cap), and are
-// restored by a world process before they are accepted; the check counts against the running cap.
+// shown once, of which the disk keeps only the SHA-256. The keys are the locks. CORS answers only the game's own site
+// and localhost, which keeps other sites' pages from using these through a visitor's browser (a script can send any
+// Origin, so it is no lock). An upload is capped compressed before a byte is parsed and capped again unpacked (a zip
+// bomb stops at the cap), names one of the server's own maps, and is restored by a world process before it is
+// accepted; the check counts against the running cap. The owner's powers (item 5's sixth step) are endpoints the owner
+// key opens: the world's players and rules (/worlds/owner), a new code (/worlds/rotate), the rules (/worlds/rules), a
+// player removed and barred (/worlds/remove, /worlds/unbar), and home (/worlds/home and /worlds/home/confirm); a lost
+// owner key is replaced with the creator key (/worlds/rekey).
 const CREATOR_KEY = process.env.CREATOR_KEY || null;
 const SITE_ORIGIN = process.env.CMZ_SITE_ORIGIN || "https://michaeldippold.github.io";
 const MAX_UPLOAD = 4 * 1024 * 1024; // compressed: a well-explored world is about 200 KB
 const MAX_UNPACKED = 64 * 1024 * 1024; // the same save unpacked is about 4.5 MB
 const MAX_SMALL_BODY = 4096; // the return home's words
 const MAX_STORED = Math.max(1, Number(process.env.CMZ_MAX_WORLDS || 5));
-const LEAVING_MS = 10 * 60 * 1000; // a world on its way home waits this long for the browser's word that it arrived
+const LEAVING_MS = Number(process.env.CMZ_LEAVING_MS || 10 * 60 * 1000); // a world on its way home waits this long for the browser's word that it arrived
+const OWNER_HASH = "owner"; // where a server world files its owner's character: the owner key proves who may take it (server/world.js)
+const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const TRASH_KEEP_MS = 7 * 24 * 3600 * 1000;
 const TRASH = DATA_DIR ? path.join(DATA_DIR, "trash") : null;
 const STAGING = DATA_DIR ? path.join(DATA_DIR, "staging") : null;
@@ -169,6 +176,13 @@ function ownedWorld(code, key) {
   return { w, meta };
 }
 
+// A world's map name, checked against the server's own maps (the coder agent's review of step 5: an upload naming
+// "../../server/../data/maps/valley" was taken, and every wake read it again): a plain name, and the file there.
+const MAP_NAME = /^[a-z][a-z0-9_-]{0,31}$/;
+function mapOk(name) {
+  return typeof name === "string" && MAP_NAME.test(name) && fs.existsSync(path.join(ROOT, "data", "maps", `${name}.json`));
+}
+
 // A world's process asked to save and stop, and waited for.
 function stopWorld(worldId, why) {
   const r = running.get(worldId);
@@ -182,6 +196,54 @@ function stopWorld(worldId, why) {
     }
     setTimeout(() => { r.child.kill("SIGKILL"); resolve(); }, STOP_WAIT_MS).unref();
   });
+}
+
+// A word to a running world over the fork's channel, and its answer (or null when it has none to give in time).
+let askId = 1;
+function askWorld(worldId, msg) {
+  const r = running.get(worldId);
+  if (!r) return Promise.resolve(null);
+  const id = askId++;
+  return new Promise((resolve) => {
+    const onMsg = (m) => {
+      if (m && m.type === "reply" && m.id === id) {
+        r.child.off("message", onMsg);
+        resolve(m);
+      }
+    };
+    r.child.on("message", onMsg);
+    try {
+      r.child.send({ ...msg, id });
+    } catch {
+      r.child.off("message", onMsg);
+      resolve(null);
+    }
+    setTimeout(() => { r.child.off("message", onMsg); resolve(null); }, 5000).unref();
+  });
+}
+
+// A world's save as the disk has it (the players and whose they are, for the owner's screen and a removal while asleep).
+function readSave(dir) {
+  return JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(dir, "save.json.gz")), { maxOutputLength: MAX_UNPACKED }).toString("utf8"));
+}
+
+// The players a world knows, by name, for its owner: everyone filed in its owners, standing or dormant; the owner's
+// own character first and marked.
+function playersOf(save) {
+  const byId = new Map();
+  for (const c of (save.characters && save.characters.players) || []) byId.set(c.id, c);
+  for (const r of Object.values(save.dormant || {})) if (r && r.id) byId.set(r.id, r);
+  // A fallen player is a body among the corpses (main's 57ccdfa, 2026-10-14): named and marked dead from it.
+  for (const b of (save.characters && save.characters.corpses) || []) if (b && b.kind === "player" && b.id) byId.set(b.id, { ...b, dead: true });
+  return Object.entries(save.owners || {}).map(([hash, id]) => ({ playerId: id, name: (byId.get(id) && byId.get(id).name) || id, owner: hash === OWNER_HASH, dead: !!(byId.get(id) && byId.get(id).dead) }));
+}
+
+// The rules an owner may set: the five, each true or false (src/rules.js), nothing else.
+const RULE_KEYS = ["zombieAggro", "zombiesAttackVillagers", "multiHit", "survival", "freeBuilding"];
+function cleanRules(raw) {
+  const out = {};
+  if (raw && typeof raw === "object") for (const k of RULE_KEYS) if (typeof raw[k] === "boolean") out[k] = raw[k];
+  return out;
 }
 
 // A save checked by booting it: the world process restores it and writes it again (`--make-only`), counted against the
@@ -211,8 +273,9 @@ async function handleWorlds(req, res, url, address) {
   };
   if (req.method === "OPTIONS") return answer(originAllowed(origin) ? 204 : 403, {});
   if (req.method !== "POST") return answer(405, { error: "post only" });
-  // From the game's own site and localhost alone (a browser elsewhere is refused; a script sends no Origin and is
-  // refused too, since the creator key is meant to be typed into the game).
+  // The Origin check keeps other sites' pages from using these through a visitor's browser; it is not a lock, since a
+  // script can send any Origin it likes. The locks are the keys: the creator key to make a world, the owner key for a
+  // world's own powers (the coder agent's review of step 5).
   if (!originAllowed(origin)) return answer(403, { error: "not from the game's site" });
   if (!WORLDS) return answer(503, { error: "this relay keeps no worlds" });
   try {
@@ -232,22 +295,24 @@ async function handleWorlds(req, res, url, address) {
       }
       const snap = up && up.snap;
       if (!snap || typeof snap !== "object" || !Number.isInteger(snap.version) || !snap.map || typeof snap.map !== "object" || !snap.characters || typeof snap.characters !== "object") return answer(422, { error: "not a world" });
+      if (!mapOk(snap.mapName)) return answer(422, { error: "not one of the server's maps" });
       // The ids and the keys are the server's own, from the crypto source; nothing the browser sent names a path.
       const worldId = `w${crypto.randomBytes(8).toString("hex")}`;
       const code = mintCode();
       const ownerKey = crypto.randomBytes(24).toString("base64url");
-      const ownerHash = `k${sha256(ownerKey).slice(0, 32)}`;
-      // The owner's character, filed under the browser's id in the upload, refiled under the owner key's hash, so it
-      // follows the key to any device (Michael, 2026-10-14).
+      // The owner's character, filed under the browser's id in the upload, refiled under the owner's own entry, so it
+      // follows the owner key to any device (Michael, 2026-10-14) and stays put when a new key is issued.
       const owners = snap.owners && typeof snap.owners === "object" ? { ...snap.owners } : {};
       const dormant = snap.dormant && typeof snap.dormant === "object" ? { ...snap.dormant } : {};
+      delete owners[OWNER_HASH];
+      delete dormant[OWNER_HASH];
       const ownerPlayerId = typeof up.ownerPlayerId === "string" ? up.ownerPlayerId : null;
       const was = ownerPlayerId ? Object.keys(owners).find((h) => owners[h] === ownerPlayerId) : null;
       if (was) {
-        owners[ownerHash] = owners[was];
+        owners[OWNER_HASH] = owners[was];
         delete owners[was];
         if (dormant[was]) {
-          dormant[ownerHash] = dormant[was];
+          dormant[OWNER_HASH] = dormant[was];
           delete dormant[was];
         }
       }
@@ -261,38 +326,138 @@ async function handleWorlds(req, res, url, address) {
         fs.rmSync(stage, { recursive: true, force: true });
         return answer(422, { error: "the save would not restore" });
       }
-      writeMeta(stage, { worldId, name, codeHash: hashCode(code), ownerKeyHash: sha256(ownerKey), created: new Date().toISOString(), from: "upload" });
+      writeMeta(stage, { worldId, name, codeHash: hashCode(code), ownerKeyHash: sha256(ownerKey), created: new Date().toISOString(), from: "upload", rules: cleanRules(snap.rules), barred: [] });
       fs.mkdirSync(WORLDS, { recursive: true });
       fs.renameSync(stage, path.join(WORLDS, worldId));
       scanWorlds(true);
       log(`world ${worldId} moved up (${Math.round(body.length / 1024)} KB)`);
-      return answer(201, { worldId, code, ownerKey, ownerHash, name });
+      return answer(201, { worldId, code, ownerKey, ownerHash: OWNER_HASH, name });
     }
-    if (url.pathname === "/worlds/home" || url.pathname === "/worlds/home/confirm") {
-      const body = await readBody(req, MAX_SMALL_BODY);
-      let msg;
+
+    const body = await readBody(req, MAX_SMALL_BODY);
+    let msg;
+    try {
+      msg = JSON.parse(body.toString("utf8"));
+    } catch {
+      return answer(400, { error: "not JSON" });
+    }
+    if (!msg || typeof msg !== "object") return answer(400, { error: "not JSON" });
+
+    if (url.pathname === "/worlds/rekey") {
+      // ---- a lost owner key (the coder agent's review of the plan): the creator key issues a new one, and the old one
+      // stops working; the owner's character stays where it is filed ----
+      if (!CREATOR_KEY) return answer(503, { error: "this server takes no worlds" });
+      if (uploadLimited(address)) return answer(429, { error: "slow down" });
+      if (!sameSecret(String(req.headers["x-creator-key"] || ""), CREATOR_KEY)) return answer(403, { error: "not the creator key" });
+      const w = typeof msg.code === "string" ? serverWorldFor(msg.code.trim().toLowerCase().slice(0, 32)) : null;
+      if (!w) return answer(404, { error: "no such world" });
+      const meta = readMeta(w.dir);
+      const ownerKey = crypto.randomBytes(24).toString("base64url");
+      writeMeta(w.dir, { ...meta, ownerKeyHash: sha256(ownerKey) });
+      log(`world ${w.worldId} has a new owner key`);
+      return answer(200, { ownerKey, name: meta.name || "A world" });
+    }
+
+    const found = ownedWorld(msg.code, String(req.headers["x-owner-key"] || ""));
+    if (!found.w) {
+      overLimit(address);
+      return answer(found.status, { error: found.error });
+    }
+    const { w, meta } = found;
+    const awake = running.has(w.worldId) && !running.get(w.worldId).checking;
+
+    if (url.pathname === "/worlds/owner") {
+      // ---- the owner's screen: the world, its players, the barred, its rules ----
+      let players = [];
       try {
-        msg = JSON.parse(body.toString("utf8"));
+        players = playersOf(readSave(w.dir));
       } catch {
-        return answer(400, { error: "not JSON" });
+        // no save to read: no players to show
       }
-      const found = ownedWorld(msg && msg.code, String(req.headers["x-owner-key"] || ""));
-      if (!found.w) {
-        overLimit(address);
-        return answer(found.status, { error: found.error });
+      return answer(200, { name: meta.name || "A world", awake, players, barred: (meta.barred || []).map((b) => ({ hash: b.hash, name: b.name })), rules: cleanRules(meta.rules) });
+    }
+
+    if (url.pathname === "/worlds/rotate") {
+      // ---- a new join code: the old one stops working at once; whoever is in stays ----
+      const code = mintCode();
+      const old = running.get(w.worldId) ? running.get(w.worldId).code : null;
+      writeMeta(w.dir, { ...meta, codeHash: hashCode(code) });
+      scanWorlds(true);
+      const r = running.get(w.worldId);
+      if (r && old && rooms.has(old)) {
+        const room = rooms.get(old);
+        rooms.delete(old);
+        rooms.set(code, room);
+        room.host.code = code;
+        for (const g of room.guests.values()) g.code = code;
+        for (const g of r.pending) g.code = code;
+        r.code = code;
+        await askWorld(w.worldId, { type: "code", code });
+      } else if (r) r.code = code;
+      log(`world ${w.worldId} has a new code`);
+      return answer(200, { code });
+    }
+
+    if (url.pathname === "/worlds/rules") {
+      // ---- the world's rules, the owner's to set ----
+      const rules = { ...cleanRules(meta.rules), ...cleanRules(msg.rules) };
+      writeMeta(w.dir, { ...meta, rules });
+      if (awake) await askWorld(w.worldId, { type: "rules", rules });
+      return answer(200, { rules });
+    }
+
+    if (url.pathname === "/worlds/remove") {
+      // ---- a player removed: out of the world now, and that browser barred until the owner lets it back. A bar by
+      // browser id is undone by clearing the browser's storage, so the owner's screen offers a new code with it ----
+      const playerId = typeof msg.playerId === "string" ? msg.playerId : null;
+      if (!playerId) return answer(400, { error: "no player" });
+      let hash = null;
+      let name = playerId;
+      if (awake) {
+        const got = await askWorld(w.worldId, { type: "remove", playerId });
+        if (got && got.refused) return answer(409, { error: got.refused });
+        if (got) {
+          hash = got.hash;
+          name = got.name || name;
+        }
       }
-      const { w, meta } = found;
-      if (url.pathname === "/worlds/home") {
-        // ---- home, the first phase: the world stopped and saved, its save sent, and the world held as leaving ----
-        await stopWorld(w.worldId, "going home");
-        const token = crypto.randomBytes(16).toString("hex");
-        writeMeta(w.dir, { ...meta, leaving: { tokenHash: sha256(token), until: Date.now() + LEAVING_MS } });
-        const save = fs.readFileSync(path.join(w.dir, "save.json.gz"));
-        log(`world ${w.worldId} is on its way home`);
-        return answer(200, { token, ownerHash: `k${meta.ownerKeyHash.slice(0, 32)}`, save: save.toString("base64") });
+      if (!hash) {
+        const save = readSave(w.dir);
+        hash = Object.keys(save.owners || {}).find((h) => save.owners[h] === playerId) || null;
+        const p = playersOf(save).find((q) => q.playerId === playerId);
+        if (p) name = p.name;
       }
-      // ---- home, the second phase: the browser has it; only now does the server let go (to the trash, seven days) ----
-      if (!meta.leaving || typeof msg.token !== "string" || !sameSecret(sha256(msg.token), meta.leaving.tokenHash)) return answer(409, { error: "not on its way home" });
+      if (!hash) return answer(404, { error: "no such player in that world" });
+      if (hash === OWNER_HASH) return answer(409, { error: "the owner cannot be removed" });
+      const barred = (meta.barred || []).filter((b) => b.hash !== hash);
+      barred.push({ hash, name: String(name).slice(0, 40), at: new Date().toISOString() });
+      writeMeta(w.dir, { ...meta, barred: barred.slice(-64) });
+      log(`world ${w.worldId}: a player removed`);
+      return answer(200, { removed: true, name });
+    }
+
+    if (url.pathname === "/worlds/unbar") {
+      const hash = typeof msg.hash === "string" ? msg.hash : null;
+      writeMeta(w.dir, { ...meta, barred: (meta.barred || []).filter((b) => b.hash !== hash) });
+      return answer(200, { ok: true });
+    }
+
+    if (url.pathname === "/worlds/home") {
+      // ---- home, the first phase: the world stopped and saved, its save sent, and the world held as leaving ----
+      await stopWorld(w.worldId, "going home");
+      const token = crypto.randomBytes(16).toString("hex");
+      writeMeta(w.dir, { ...readMeta(w.dir), leaving: { tokenHash: sha256(token), until: Date.now() + LEAVING_MS } });
+      const save = fs.readFileSync(path.join(w.dir, "save.json.gz"));
+      log(`world ${w.worldId} is on its way home`);
+      return answer(200, { token, ownerHash: OWNER_HASH, save: save.toString("base64") });
+    }
+
+    if (url.pathname === "/worlds/home/confirm") {
+      // ---- home, the second phase: the browser has it; only now does the server let go (to the trash, seven days).
+      // Not after the wait ran out: the world was joinable again, and play since would be lost (the review of step 5).
+      const leaving = meta.leaving;
+      if (!leaving || typeof msg.token !== "string" || !sameSecret(sha256(msg.token), leaving.tokenHash)) return answer(409, { error: "not on its way home" });
+      if (!(leaving.until > Date.now())) return answer(409, { error: "the wait ran out" });
       fs.mkdirSync(TRASH, { recursive: true });
       fs.renameSync(w.dir, path.join(TRASH, `${w.worldId}-${Date.now()}`));
       scanWorlds(true);
@@ -381,7 +546,13 @@ function serverWorldFor(code) {
 function leavingNow(w) {
   try {
     const meta = readMeta(w.dir);
-    return !!(meta.leaving && meta.leaving.until > Date.now());
+    if (!meta.leaving) return false;
+    if (meta.leaving.until > Date.now()) return true;
+    // The wait ran out: the world is the server's again, and a join is taken; the old token is dropped, so a confirm
+    // that comes late cannot let go of a world friends have played since (the coder agent's review of step 5).
+    const { leaving, ...rest } = meta;
+    writeMeta(w.dir, rest);
+    return false;
   } catch {
     return false;
   }

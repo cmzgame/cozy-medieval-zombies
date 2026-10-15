@@ -323,7 +323,12 @@ function openRelay(wantRole, wantCode) {
   const gone = () => {
     if (done) return;
     done = true;
-    if (transport === t) dropped("relay");
+    if (transport !== t) return;
+    // The relay closes a guest's socket right after passing on the host's goodbye, and the close can come before the
+    // next step reads the inbox: the goodbye's own reason, when one is waiting, not "the line dropped" (found testing
+    // item 5's sixth step: a device replaced by the owner's other device was told its line dropped).
+    const bye = inbox.find((m) => m && m.type === "bye" && m.from);
+    dropped(bye ? byeWhy(bye) : "relay");
   };
   ws.onerror = gone;
   ws.onclose = gone;
@@ -480,6 +485,11 @@ export function hostStep(mySnap, me) {
       if (hooks.ownerHash && typeof msg.ownerKey === "string") {
         const oh = hooks.ownerHash(msg.ownerKey);
         if (oh) hash = oh;
+      }
+      // A browser the owner removed from a server world stays out until the owner lets it back (item 5's sixth step).
+      if (hooks.isBarred && hooks.isBarred(hash)) {
+        send({ type: "bye", to: msg.from, reason: "removed" });
+        continue;
       }
       // A world remembers characters by the browser's id, so a join with none is refused (it would make a
       // character nobody could come back to, one for every join, for ever).
@@ -884,7 +894,7 @@ export function guestStep(mySnap) {
       if (hooks.who) hooks.who(!!msg.dead);
     } else if (msg.type === "bye") {
       // The host let go: replaced by a newer join from this browser, or another protocol.
-      dropped(msg.reason === "version" ? (msg.newer === "guest" ? "versionHost" : "versionGuest") : ["replaced", "full", "refused"].includes(msg.reason) ? msg.reason : "hostLeft");
+      dropped(byeWhy(msg));
       return;
     } else if (msg.type === "opened") {
       pendingOpened.push(msg.what); // after the frame that carries the grid (frames queue behind it)
@@ -960,6 +970,12 @@ function predict(me, snap) {
 // acknowledgement alone (nothing changed on the host since the last record) means the last record stands, and
 // replaying the unacknowledged inputs over my predicted player instead would apply them twice.
 let myBase = null;
+
+// What a host's goodbye means for the client's words (main.js's notes).
+function byeWhy(msg) {
+  if (msg.reason === "version") return msg.newer === "guest" ? "versionHost" : "versionGuest";
+  return ["replaced", "full", "refused", "removed"].includes(msg.reason) ? msg.reason : "hostLeft";
+}
 
 function welcomed(msg, save) {
   myPlayerId = msg.playerId;
@@ -1255,6 +1271,25 @@ export function idleNow() {
 // draws its own, and a server world has no screen of its own to draw on.
 export function fxAll(kind, x, y, z) {
   if (role === "host" && guests.size) send({ type: "fx", kind, x, y, z }); // a point on the ground and a height in pixels above it
+}
+
+// A guest let go by the host, with the reason it is told (a server world's owner removing a player; item 5's sixth step).
+export function letGo(playerId, reason) {
+  for (const [key, g] of guests) {
+    if (g.playerId !== playerId) continue;
+    send({ type: "bye", to: key, reason });
+    guests.delete(key);
+  }
+}
+
+// A guest's own record of the code, renamed when its owner changed it (the relay moved the room; this wire stays).
+export function renameGuestCode(c) {
+  if (role === "guest" && typeof c === "string" && c) code = c;
+}
+
+// The world's code renamed under it (a server world's owner changed it; the relay moved the room).
+export function renameCode(c) {
+  if (role === "host" && typeof c === "string" && c) code = c;
 }
 
 // A line in every guest's log (a player stepped away or came back).

@@ -73,13 +73,28 @@ if (fs.existsSync(SAVE)) {
   }
 }
 const mapName = (snap && snap.mapName) || "valley";
+// A plain name of one of the server's own maps, never a path (the coder agent's review of step 5).
+if (!/^[a-z][a-z0-9_-]{0,31}$/.test(mapName) || !fs.existsSync(path.join(root, "data", "maps", `${mapName}.json`))) {
+  say("the save names no map this server has");
+  process.exit(3);
+}
 const mapJson = boot.map(mapName);
+// The world's meta (the relay's: the hashes of its code and owner key, the owner's rules, the barred browsers), read
+// again when it matters, since the relay writes it while the world runs.
+function readMeta() {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(dir, "meta.json"), "utf8"));
+  } catch {
+    return {};
+  }
+}
 // Whose character is whose (host.js's store): a browser id's hash, or the owner key's, to the player it made;
 // the dormant records by the same hashes; the world's name for the welcome's bookmark.
 const store = { name: (snap && snap.name) || arg("name", "A server world"), owners: { ...((snap && snap.owners) || {}) }, dormant: { ...((snap && snap.dormant) || {}) } };
 const worldId = (snap && snap.worldId) || path.basename(dir);
-// The world's own rules, which the settings never touch (item 5's second step): as saved, else the defaults.
-const worldRules = { ...rules.DEFAULTS, ...((snap && snap.rules) || {}) };
+// The world's own rules, which the settings never touch (item 5's second step): the owner's, as the meta keeps them
+// (item 5's sixth step), over the save's, over the defaults.
+const worldRules = { ...rules.DEFAULTS, ...((snap && snap.rules) || {}), ...(readMeta().rules || {}) };
 rules.setSource(() => worldRules);
 rules.refresh(); // read now: a world held from boot never steps, and its first save would carry the module's starting values (found testing)
 
@@ -240,20 +255,23 @@ function crashed(why, err) {
 process.on("uncaughtException", (err) => crashed("uncaughtException", err));
 process.on("unhandledRejection", (err) => crashed("unhandledRejection", err));
 
-// The owner (item 5's fifth step): a join that says the key whose SHA-256 meta.json keeps is the owner's, filed under
-// "k" and that hash on every device; read at each join, so a key issued anew (step 6) counts at once. Compared in
-// constant time; the key is never written down or logged.
+// The owner (item 5's fifth and sixth steps): a join that says the key whose SHA-256 meta.json keeps is the owner's,
+// and takes the character filed under "owner" on every device. The key proves who may; it names nothing, so a new key
+// issued with the creator key (a lost one) finds the same character. Read at each join, so a new key counts at once;
+// compared in constant time; the key is never written down or logged.
+const OWNER_HASH = "owner";
 function ownerHash(key) {
-  try {
-    const meta = JSON.parse(fs.readFileSync(path.join(dir, "meta.json"), "utf8"));
-    if (!meta || typeof meta.ownerKeyHash !== "string") return null;
-    const h = crypto.createHash("sha256").update(String(key)).digest("hex");
-    const a = Buffer.from(h);
-    const b = Buffer.from(meta.ownerKeyHash);
-    return a.length === b.length && crypto.timingSafeEqual(a, b) ? `k${h.slice(0, 32)}` : null;
-  } catch {
-    return null;
-  }
+  const meta = readMeta();
+  if (typeof meta.ownerKeyHash !== "string") return null;
+  const h = crypto.createHash("sha256").update(String(key)).digest("hex");
+  const a = Buffer.from(h);
+  const b = Buffer.from(meta.ownerKeyHash);
+  return a.length === b.length && crypto.timingSafeEqual(a, b) ? OWNER_HASH : null;
+}
+
+// A browser the owner removed is barred until the owner lets it back (the meta's list, read at each join).
+function isBarred(hash) {
+  return !!hash && (readMeta().barred || []).some((b) => b && b.hash === hash);
 }
 
 net.setRelay(relayUrl);
@@ -262,6 +280,7 @@ net.init({ host: code }, {
   ...host.netHooks(),
   guestJoined: () => requestSave("a join", { reuse: true }),
   ownerHash,
+  isBarred,
   // The welcome gzipped (the review of step 3): a well-explored world is 4.6 MB raw to every joiner, about 200 KB packed.
   packWelcome: (whole) => {
     lastWelcome = whole; // the join's save, this same tick, takes it rather than serialising the world again
@@ -306,7 +325,38 @@ for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, () => shutdown(sig));
 // The relay asks its children to stop over the fork's channel: a signal reaches no handler on Windows, and the channel
 // is the same everywhere.
 process.on("message", (m) => {
-  if (m && m.type === "stop") shutdown(`the relay asked (${m.why || "stopping"})`);
+  if (!m) return;
+  if (m.type === "stop") return shutdown(`the relay asked (${m.why || "stopping"})`);
+  const reply = (body) => process.send && process.send({ type: "reply", id: m.id, ...body });
+  if (m.type === "code" && typeof m.code === "string") {
+    // The owner changed the code (item 5's sixth step): the relay has moved the room; the world only knows the new name.
+    net.renameCode(m.code);
+    say("the owner changed the code");
+    return reply({ ok: true });
+  }
+  if (m.type === "rules" && m.rules && typeof m.rules === "object") {
+    // The owner's rules: the world reads them from the next step, and every guest's frame carries them.
+    for (const k of Object.keys(rules.rules)) if (typeof m.rules[k] === "boolean") worldRules[k] = m.rules[k];
+    rules.refresh();
+    requestSave("the owner's rules");
+    say(`the owner set the rules: ${JSON.stringify(rules.rules)}`);
+    return reply({ ok: true, rules: { ...rules.rules } });
+  }
+  if (m.type === "remove" && typeof m.playerId === "string") {
+    // A player removed by the owner: told so and let go from the wire, its character dormant under its hash (the
+    // relay bars that hash). Never the owner.
+    const hash = Object.keys(store.owners).find((h) => store.owners[h] === m.playerId) || null;
+    if (!hash) return reply({ refused: "no such player in that world" });
+    if (hash === OWNER_HASH) return reply({ refused: "the owner cannot be removed" });
+    const p = game.state.players.find((q) => q.id === m.playerId) || null;
+    const rec = store.dormant[hash] || null;
+    const body = game.state.corpses.find((c) => c.id === m.playerId && c.kind === "player") || null; // a fallen player is a body (main's 57ccdfa)
+    const name = (p && p.name) || (rec && rec.name) || (body && body.name) || m.playerId;
+    net.letGo(m.playerId, "removed");
+    if (p) host.dormantNow(m.playerId);
+    say(`the owner removed ${name}`);
+    return reply({ ok: true, hash, name });
+  }
 });
 
 // ---- the debug endpoint, on 127.0.0.1 alone and only when asked for ----

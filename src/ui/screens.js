@@ -138,7 +138,7 @@ export function currentScreen() {
 // The screens that return to where they were opened from (Escape, Back, Done).
 const SUB = new Set(["settings", "controls", "character", "host"]);
 // The screens that are steps of a flow: Back is explicit (go("back") knows the step before).
-const FLOW = new Set(["worlds", "identities", "identity", "newworld", "join", "create", "creatorkey", "ownerkey"]);
+const FLOW = new Set(["worlds", "identities", "identity", "newworld", "join", "create", "creatorkey", "ownerkey", "owner", "addowned"]);
 
 export function show(name, extra = {}) {
   data = extra;
@@ -174,7 +174,8 @@ export function back() {
 // a world's name and the join code to Worlds, the creation to where it began, the editor to its caller.
 function stepBack() {
   if (current === "worlds" || current === "identities") show(worldsApi && worldsApi.here().inWorld ? "pause" : "title");
-  else if (current === "newworld" || current === "join" || current === "creatorkey" || current === "ownerkey") show("worlds");
+  else if (current === "newworld" || current === "join" || current === "creatorkey" || current === "ownerkey" || current === "addowned") show("worlds");
+  else if (current === "owner") show(data.from === "pause" ? "pause" : "worlds", {});
   else if (current === "create") {
     if (creation && creation.step > 1) { creation.step--; render(); return; }
     const c = creation;
@@ -205,6 +206,40 @@ function go(where, ds = {}) {
   else if (where === "delete") { if (worldsApi && window.confirm("Delete this world and every character in it?")) Promise.resolve(worldsApi.remove(ds.world)).then(() => { if (current === "worlds") render(); }); }
   else if (where === "forget") { if (worldsApi) { worldsApi.forget(ds.code); render(); } }
   else if (where === "move-up") startMoveUp(ds.world);
+  // The owner's powers (item 5's sixth step).
+  else if (where === "owner") show("owner", { code: ds.code, from: current });
+  else if (where === "owner-back") show(data.from === "pause" ? "pause" : "worlds", {});
+  else if (where === "owned-play") { if (worldsApi && worldsApi.playOwned) worldsApi.playOwned(ds.code); }
+  else if (where === "owner-rotate") {
+    if (!window.confirm("Change the code? The old one stops working at once; whoever is in stays. Give the new one to the friends you want.")) return;
+    worldsApi.rotateCode(data.code).then((r) => show("owner", { code: r.ok ? r.code : data.code, from: data.from, note: r.ok ? `The new code is ${r.code}.` : r.error }));
+  }
+  else if (where === "owner-rule") {
+    const rules = { ...((data.info && data.info.rules) || {}), [ds.rule]: ds.value === "true" };
+    worldsApi.setRules(data.code, rules).then((r) => show("owner", { code: data.code, from: data.from, note: r.ok ? "The rules are set; everyone in the world plays by them now." : r.error }));
+  }
+  else if (where === "owner-remove" || where === "owner-remove-rotate") {
+    const rotate = where === "owner-remove-rotate";
+    if (!window.confirm(`Remove ${ds.name || "this player"}${rotate ? " and change the code" : ""}?`)) return;
+    worldsApi.removePlayer(data.code, ds.player).then(async (r) => {
+      if (!r.ok) return show("owner", { code: data.code, from: data.from, note: r.error });
+      if (!rotate) return show("owner", { code: data.code, from: data.from, note: `${r.name} is out.` });
+      const c = await worldsApi.rotateCode(data.code);
+      show("owner", { code: c.ok ? c.code : data.code, from: data.from, note: c.ok ? `${r.name} is out, and the new code is ${c.code}.` : `${r.name} is out; the code did not change: ${c.error}` });
+    });
+  }
+  else if (where === "owner-unbar") worldsApi.unbar(data.code, ds.hash).then((r) => show("owner", { code: data.code, from: data.from, note: r.ok ? "Let back in." : r.error }));
+  else if (where === "addowned") show("addowned", {});
+  else if (where === "addowned-save") {
+    const code = (root.querySelector("#owned-code") || {}).value || "";
+    const key = (root.querySelector("#owned-key") || {}).value || "";
+    worldsApi.addOwned(code, key).then((r) => (r.ok ? show("worlds", { note: `${r.name} is among your worlds on the server.` }) : show("addowned", { code, note: r.error })));
+  }
+  else if (where === "addowned-rekey") {
+    const code = (root.querySelector("#owned-code") || {}).value || "";
+    const creator = (root.querySelector("#owned-creator") || {}).value || "";
+    worldsApi.rekey(code, creator).then((r) => (r.ok ? show("ownerkey", r) : show("addowned", { code, note: r.error })));
+  }
   else if (where === "server-play") { if (worldsApi && worldsApi.playServer) worldsApi.playServer(ds.world); }
   else if (where === "bring-home") { if (window.confirm("Bring this world home to this browser? Friends will join it here again, only while you play.")) startBringHome(ds.world); }
   else if (where === "creatorkey-save") {
@@ -438,7 +473,7 @@ function worldRows() {
   // What a row offers by where the world lives (item 5's fifth step): here, on the server, or on its way home.
   const buttonsFor = (w) => {
     const inPlay = h.inWorld && h.worldId === w.worldId;
-    if (w.home === "server") return button("server-play", "Play", id(w)) + (canMove ? button("bring-home", "Bring it home", id(w)) : "");
+    if (w.home === "server") return button("server-play", "Play", id(w)) + (canMove ? button("owner", "Owner", ` data-code="${esc(w.serverCode || "")}"`) + button("bring-home", "Bring it home", id(w)) : "");
     if (w.home === "arriving") return canMove ? button("bring-home", "Finish bringing it home", id(w)) : "";
     return (w.playable ? button("play", w.dead ? "New character" : "Play", id(w)) : "") + (canMove && w.playable && !inPlay ? button("move-up", "Move to the server", id(w)) : "") + button("delete", "Delete", id(w));
   };
@@ -467,6 +502,17 @@ function startBringHome(worldId) {
   if (!worldsApi || !worldsApi.bringHome) return;
   show("worlds", { note: "Bringing the world home…" });
   worldsApi.bringHome(worldId).then((r) => show("worlds", { note: r.ok ? `${r.name} is home: it plays in this browser again.` : r.error || "The world did not come home." }));
+}
+
+// My worlds on the server with no copy in this browser (moved up on another device, or added here by their key).
+function ownedRows() {
+  const rows = worldsApi && worldsApi.ownedElsewhere ? worldsApi.ownedElsewhere() : [];
+  if (!rows.length) return "";
+  return `<h2>My worlds on the server</h2><div class="rows">${rows.map((o) => `
+    <div class="row-item">
+      <div class="row-main"><b>${esc(o.name || o.code)}</b><span class="row-sub">code <code>${esc(o.code)}</code> · yours by its owner key</span></div>
+      <div class="row-buttons">${button("owned-play", "Play", ` data-code="${esc(o.code)}"`)}${button("owner", "Owner", ` data-code="${esc(o.code)}"`)}</div>
+    </div>`).join("")}</div>`;
 }
 
 function friendRows() {
@@ -517,8 +563,9 @@ function render() {
         ${data.note ? `<div class="sub note">${esc(data.note)}</div>` : ""}
         <h2>My worlds</h2>
         ${worldRows()}
+        ${ownedRows()}
         ${friendRows()}
-        <div class="screen-buttons row">${button("newworld", "New world")}${button("join", "Join a game")}${button("back", "Back")}</div>
+        <div class="screen-buttons row">${button("newworld", "New world")}${button("join", "Join a game")}${worldsApi && worldsApi.canMove && worldsApi.canMove() ? button("addowned", "A world of mine on the server") : ""}${button("back", "Back")}</div>
       </div>`;
     pollOpen();
     dotTimer = setInterval(pollOpen, 10000);
@@ -616,8 +663,64 @@ function render() {
         <h1>${here.role ? "Menu" : "Paused"}</h1>
         <div class="sub">${where}</div>
         <div class="sub">${here.role ? "The world goes on while you are here; your character stands still." : "Esc to resume"}</div>
-        <div class="screen-buttons">${button("resume", "Resume")}${here.role === "guest" ? "" : button("save", "Save world")}${here.role === "guest" ? "" : button("host", here.role === "host" ? "Open to friends: on" : "Open to friends: off")}${button("character", "Character")}${button("settings", "Settings")}${button("controls", "Controls")}${button("leave", "Leave world")}</div>
+        <div class="screen-buttons">${button("resume", "Resume")}${here.role === "guest" ? "" : button("save", "Save world")}${here.role === "guest" ? "" : button("host", here.role === "host" ? "Open to friends: on" : "Open to friends: off")}${here.ownedCode ? button("owner", "Owner", ` data-code="${esc(here.ownedCode)}"`) : ""}${button("character", "Character")}${button("settings", "Settings")}${button("controls", "Controls")}${button("leave", "Leave world")}</div>
       </div>`;
+  } else if (current === "owner") {
+    // The owner's screen (item 5's sixth step): the world's code, its rules, its players, the barred. Asked of the
+    // server each time it opens, so another device's changes show.
+    const info = data.info;
+    if (!info) {
+      root.innerHTML = `<div class="screen"><h1>Owner</h1><div class="sub">Asking the server…</div><div class="screen-buttons row">${button("owner-back", "Back")}</div></div>`;
+      const code = data.code;
+      if (worldsApi && worldsApi.ownerInfo) worldsApi.ownerInfo(code).then((r) => { if (current === "owner" && data.code === code) show("owner", { ...data, info: r }); });
+      return;
+    }
+    if (!info.ok) {
+      root.innerHTML = `<div class="screen"><h1>Owner</h1><div class="sub note">${esc(info.error || "The server would not answer.")}</div><div class="screen-buttons row">${button("owner-back", "Back")}</div></div>`;
+      return;
+    }
+    const ruleNames = { zombieAggro: "Zombie aggro", zombiesAttackVillagers: "Zombies attack villagers", survival: "Survival", freeBuilding: "Free building", multiHit: "Multi-hit" };
+    const rulesRows = Object.keys(ruleNames).map((k) => `<div class="setting"><span>${ruleNames[k]}</span><span class="choices">${[true, false].map((v) => `<button class="${info.rules && info.rules[k] === v ? "on" : ""}" data-go="owner-rule" data-rule="${k}" data-value="${v}">${v ? "On" : "Off"}</button>`).join("")}</span></div>`).join("");
+    const others = (info.players || []).filter((p) => !p.owner);
+    const playersRows = others.length ? `<div class="rows">${others.map((p) => `
+      <div class="row-item"><div class="row-main"><b>${esc(p.name)}</b><span class="row-sub">${p.dead ? "died" : "in this world"}</span></div>
+      <div class="row-buttons">${button("owner-remove", "Remove", ` data-player="${esc(p.playerId)}" data-name="${esc(p.name)}"`)}${button("owner-remove-rotate", "Remove and change the code", ` data-player="${esc(p.playerId)}" data-name="${esc(p.name)}"`)}</div></div>`).join("")}</div>` : `<div class="sub">Nobody else has played here yet.</div>`;
+    const barredRows = (info.barred || []).length ? `<h2>Kept out</h2><div class="rows">${info.barred.map((b) => `
+      <div class="row-item"><div class="row-main"><b>${esc(b.name || "someone")}</b><span class="row-sub">removed by you</span></div>
+      <div class="row-buttons">${button("owner-unbar", "Let back in", ` data-hash="${esc(b.hash)}"`)}</div></div>`).join("")}</div>` : "";
+    root.innerHTML = `
+      <div class="screen screen-wide">
+        <h1>${esc(info.name || "Your world")}</h1>
+        ${data.note ? `<div class="sub note">${esc(data.note)}</div>` : ""}
+        <div class="sub">Friends join with the code <code>${esc(data.code)}</code>. ${info.awake ? "The world is running now." : "The world is asleep; a join wakes it."}</div>
+        <div class="screen-buttons row">${button("owner-rotate", "Change the code")}</div>
+        <h2>The world's rules</h2>
+        ${rulesRows}
+        <h2>Players</h2>
+        <div class="sub">Removing a player takes them out now and keeps that browser out. Someone who clears their browser could come back with the code, so change the code too if you mean it.</div>
+        ${playersRows}
+        ${barredRows}
+        <div class="screen-buttons row">${button("owner-back", "Back")}</div>
+      </div>`;
+  } else if (current === "addowned") {
+    // A world of mine on the server, on this device (item 5's sixth step): its code and owner key; or, with the
+    // creator key, a new owner key for a lost one.
+    root.innerHTML = `
+      <div class="screen">
+        <h1>A world of mine on the server</h1>
+        <div class="sub">The world's code and its owner key, as they were shown when it moved to the server.</div>
+        ${data.note ? `<div class="sub note">${esc(data.note)}</div>` : ""}
+        <div class="setting"><span>Code</span><span class="choices"><input id="owned-code" type="text" maxlength="32" autocomplete="off" spellcheck="false" value="${esc(data.code || "")}"></span></div>
+        <div class="setting"><span>Owner key</span><span class="choices"><input id="owned-key" type="password" maxlength="200" autocomplete="off" spellcheck="false"></span></div>
+        <div class="screen-buttons row">${button("addowned-save", "Add it")}</div>
+        <div class="sub">Lost the owner key? The server's keeper can issue a new one with the creator key; the old one stops working.</div>
+        <div class="setting"><span>Creator key</span><span class="choices"><input id="owned-creator" type="password" maxlength="200" autocomplete="off" spellcheck="false"></span></div>
+        <div class="screen-buttons row">${button("addowned-rekey", "A new owner key")}${button("worlds", "Back")}</div>
+      </div>`;
+    for (const f of root.querySelectorAll("input")) {
+      f.addEventListener("keydown", (e) => e.stopPropagation());
+      f.addEventListener("keyup", (e) => e.stopPropagation());
+    }
   } else if (current === "host" && wireApi) {
     // Hosting as a switch (docs/31/09): on, the world is on the relay under its code; off, it is yours alone.
     const st = wireApi.status();
