@@ -672,7 +672,7 @@ function slim(c) {
 }
 
 function record(c) {
-  if (c.kind === "player" || !known.has(c.id)) {
+  if ((c.kind === "player" && !c.corpse) || !known.has(c.id)) { // a player's body goes as the dead's bodies do (2026-10-14)
     known.add(c.id);
     const r = { full: true, ...serializeCharacter(c), line: c.line }; // the save drops a bubble; a frame carries it (the chat)
     r.gx = r3(r.gx);
@@ -1054,7 +1054,8 @@ function applyFrame(f) {
         c.carrying = game.carriedOf(c);
         delete c._carryingId;
         delete c._carried;
-        if (c.kind !== "player") (c.corpse ? dressCorpse(c) : dress(c));
+        if (c.corpse) dressCorpse(c); // a player's body too (2026-10-14)
+        else if (c.kind !== "player") dress(c);
         byId.set(c.id, c);
       } else {
         const keep = c.sprite;
@@ -1069,8 +1070,8 @@ function applyFrame(f) {
         // Kept as it is while the same prop stays in hand: rebuilt every frame it would lose the turns the ghost has
         // been given and register a fresh copy each time (the carried prop is the guest's to turn, the host's at the put-down).
         c.carrying = c.carrying && c.carrying.id === carryingId ? c.carrying : propById(carryingId) || (carried && carried.id === carryingId ? map.reviveProp(carried, false) : null);
-        if (c.kind === "player") c.sprite = keep || c.sprite;
-        else if (c.corpse) dressCorpse(c);
+        if (c.corpse) dressCorpse(c);
+        else if (c.kind === "player") c.sprite = keep || c.sprite;
       }
     } else if (c) {
       const { carryingId, loot, worn, light: isLight, ...rest } = r;
@@ -1085,7 +1086,7 @@ function applyFrame(f) {
         if (worn) for (const slot of Object.keys(worn)) c.worn[slot] = worn[slot] ? byUid.get(worn[slot].uid) || worn[slot] : null;
       }
       if (carryingId !== undefined) c.carrying = c.carrying && c.carrying.id === carryingId ? c.carrying : propById(carryingId); // a light record names the prop in hand; the copy stays while its id does
-      if (c.corpse && c.kind === "zombie" && !c.corpseKey) dressCorpse(c);
+      if (c.corpse && !c.corpseKey) dressCorpse(c); // the dead's and a player's body (2026-10-14)
     }
     return c;
   }).filter(Boolean);

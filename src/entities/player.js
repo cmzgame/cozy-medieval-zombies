@@ -283,8 +283,20 @@ function moveToward(player, dt, dx, dy, mult = 1) {
 // for a player whose client is not here: they stand, facing as they were).
 const IDLE = { axis: { x: 0, y: 0 }, sprint: false, mouse: null };
 
+// A player who has died (game.js): the fall plays out and holds, nothing else moves them; the world then makes them a
+// body like the dead's, lying where they fell and searchable for what they carried (Michael, 2026-10-14).
+export function updateFallen(player, dt) {
+  advanceAnimation(player.anim, getSheet(player.sprite), dt);
+}
+
 export function updatePlayer(player, dt, snap = IDLE) {
   const sheet = getSheet(player.sprite);
+  // The fallen move no more: a guest's prediction of its own player runs this after its death too, and walked its
+  // body back to the idle, a frame its baked body has not got (2026-10-14).
+  if (player.dead) {
+    advanceAnimation(player.anim, sheet, dt);
+    return;
+  }
 
   if (player.climb) {
     updateClimb(player, dt);

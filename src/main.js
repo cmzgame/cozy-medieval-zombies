@@ -264,7 +264,13 @@ async function playWorld(worldId) {
     delete currentWorld.dormant[myHash()];
     if (mine) refreshFigureOf(mine, true);
   }
-  mine = mine || S.players[0];
+  // Mine fallen: its body (a corpse since 2026-10-14) is this screen's player for the dead screen, never someone else's.
+  const myBody = !mine ? S.corpses.find((c) => c.id === mineId && c.kind === "player") || null : null;
+  if (myBody) {
+    S.player = myBody;
+    camera.snapTo(myBody.gx, myBody.gy);
+  }
+  mine = mine || (myBody ? null : S.players[0]);
   if (mine) {
     game.pickPlayer(mine);
     camera.snapTo(mine.gx, mine.gy);
@@ -283,7 +289,24 @@ async function playWorld(worldId) {
 
 // A new character in this world, from an identity: the body of the last one stays where it fell.
 function respawn(identity) {
-  if (!inWorld || !identity) return false;
+  if (!identity) return false;
+  // A guest's next survivor is the host's to make (2026-10-14): the join again, with the identity chosen; the host
+  // finds this browser's character fallen (a body now) and makes a new one where its world spawns them.
+  if (net.isGuest()) {
+    const code = net.status().code;
+    if (!code) return false;
+    net.leave();
+    net.close();
+    deadShown = false;
+    standInWorld(identity);
+    net.setIdentity(identity);
+    if (!net.open({ join: code, lag: urlLag })) return false;
+    started = false;
+    screens.hide();
+    showMessage(`Joining ${code}…`, 4);
+    return true;
+  }
+  if (!inWorld) return false;
   const spawn = S.info ? S.info.spawn : [S.player.gx, S.player.gy];
   const at = map.nearestWalkable(spawn[0] + 1, spawn[1] + 1, (x, y) => S.players.some((p) => Math.round(p.gx) === x && Math.round(p.gy) === y)) || spawn;
   const p = game.addPlayer(at[0], at[1], { look: lookOf(identity), name: identity.name || null });
@@ -294,6 +317,8 @@ function respawn(identity) {
   screens.hide();
   return saveWorld();
 }
+
+let deadShown = false; // a guest's dead screen, raised once a death
 
 // The world's save, with its own fields (save.js writeWorld); never for a guest or a test world.
 // A save that fails says so on screen (Michael, 2026-10-13: never silently).
@@ -753,6 +778,13 @@ function stepGame(dt) {
   // and the ground are still this client's own.
   const guest = net.isGuest();
   armGuest(guest);
+  // A guest's own death: the host's world says so in the record, and this screen shows it, once (2026-10-14: a guest
+  // who died never saw the dead screen, which only the host's own death raised).
+  if (guest && S.player && !S.player.dead) deadShown = false; // alive again (a new character, another world)
+  if (guest && S.player && S.player.dead && !deadShown && net.status().joined) {
+    deadShown = true;
+    screens.show("dead", { when: clock.getLabel(), who: S.player.name || S.player.id });
+  }
   checkAway();
   applyPause(); // the last guest gone while this host is away: held from the next step
   // A screen up on the wire: the world runs on, but nothing pressed reaches it or this client's modes.
