@@ -258,18 +258,6 @@ export function castRay(gx, gy, dx, dy, range) {
   return { gx: x, gy: y };
 }
 
-// The outline of the carried pool: ray endpoints around the carrier.
-export const POOL_RAYS = 28;
-export function poolRays() {
-  if (!carrier) return [];
-  const pts = [];
-  for (let i = 0; i < POOL_RAYS; i++) {
-    const a = (i / POOL_RAYS) * Math.PI * 2;
-    pts.push(castRay(carrier.gx, carrier.gy, Math.cos(a), Math.sin(a), carrier.radius));
-  }
-  return pts;
-}
-
 // ---- the static map, per chunk ----
 
 const cache = new Map(); // chunk key -> { sig, contrib, layers, any }

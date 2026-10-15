@@ -12,7 +12,6 @@
 
 - [ ] **The forge, anvil, cooking, and oven recipes cannot be made in play.** Nothing in the valley gives potato, cabbage, garlic, grain, flour, iron ore, iron bars, or charcoal; only the console or the dev chest (which holds no charcoal) do. (Possibly expected until farming, mining, and charcoal arrive, but then the stations are unusable meanwhile.)
 - [ ] **The dead hunt villagers with Zombie aggro off.** With "Zombies attack villagers" on and aggro off, the dead ignore the player and still hunt and kill villagers: `nearestPrey` (`src/entities/zombie.js:268-289`) never reads `zombieAggro`, though the setting reads "they hunt villagers too, you first" (`src/settings.js:46`).
-- [ ] **`light.poolRays()` names an undefined variable** and would throw if called; nothing calls it today (dead code or a trap).
 - [ ] *Needs repro:* **a guest's right tap may not cancel its bow draw on the host.** The tap cancels the replica's draw in `src/main.js:615`, but nothing in `net.js` sends the cancel, so the host may still loose on the left release.
 - [ ] *Needs repro:* **the Square surface setting changes the map on the client**, so a guest's square floor may differ from the host's until the chunk is resent.
 
@@ -40,6 +39,7 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 
 (Move items here with the commit that fixed them.)
 
+- [x] **`light.poolRays()` names an undefined variable** and would throw if called; nothing calls it today (dead code or a trap). **Fixed (2026-10-15, the commit that moves this line):** removed, with its `POOL_RAYS`; nothing called it (the carried lights became a list, `carried`, and the debug outline it drew went with the old single carrier).
 - [x] **Autosave runs every 60 seconds of sim time**, which is about once a real second while everyone sleeps at sixty times speed. **Fixed (2026-10-15, the commit that moves this line):** an autosave needs a minute of game time and a minute of real time since the last, so a night slept through saves once a real minute (once an hour of game time), not every second; and it is stamped when asked, so a save still being written, or a world that saves nothing (a guest's, a test world), is asked once a minute rather than every frame (that second part was found fixing the first). Read, not tried: the check runs in the frame's draw, and the pane was hidden.
 - [x] **The Controls screen lists K**, which nothing reads (no `KeyK` in `src/`), and leaves out Q and the middle button (the main hand's other mode) and holding the right button (block, brace) (`src/ui/screens.js:20-45`). **Fixed (2026-10-15, the commit that moves this line):** K is gone; the list names Q or the middle button (the main hand's other mode) and the right button held (block, brace), and that a held left click draws a bow or casts.
 - [x] **Names over heads cannot be hidden**: the `nameTags` setting exists (`src/settings.js:26`) with no row on the Settings screen. **Fixed (the same commit):** the Settings screen has the row, Names over heads, Shown or Hidden.
