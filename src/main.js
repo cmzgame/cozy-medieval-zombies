@@ -1199,6 +1199,12 @@ async function boot() {
     { name: "figures", label: "Dressing everyone", weight: 6, async run(progress) {
       assets.registerSheet("arrow", archery.generateArrow()); // the bow's arrow, flying and landed (docs/20)
       assets.registerSheet("spear", archery.generateSpear()); // the thrown spear
+      // The fireball (docs/24; the design agent's sheet). A failed load leaves the spell flying unseen, never the boot stopped.
+      try {
+        assets.registerSheet("fireball", archery.fireballSheet(await assets.loadImage("data/art/items/fireball.png")));
+      } catch (err) {
+        console.warn("the fireball's picture did not load:", err && err.message);
+      }
       assets.registerSheet("burn", burning.generateSheet()); // flames, embers, and smoke on a burning figure (docs/05)
       const nZ = figure.wardrobeCount("zombie");
       const nV = figure.wardrobeCount("village");

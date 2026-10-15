@@ -86,7 +86,7 @@ export function preview(from, dir, distance, c = 1, range = tunables.range) {
 // Fire one. The landing point, the path, and the flight time are fixed here.
 // `from` is anyone with gx and gy (the archer). Returns the arrow.
 export function shoot(from, dir, distance, c = 1, o = {}) {
-  const { shooter = from, damage = tunables.damage, knockback = tunables.knockback, range = tunables.range, speed = tunables.speed, arcMin = tunables.arcMin, arcMax = tunables.arcMax, z0 = tunables.z0, projectile = "arrow", breakChance = 0, staggerChance = undefined, interrupts = false, item = null } = o;
+  const { shooter = from, damage = tunables.damage, knockback = tunables.knockback, range = tunables.range, speed = tunables.speed, arcMin = tunables.arcMin, arcMax = tunables.arcMax, z0 = tunables.z0, projectile = "arrow", breakChance = 0, staggerChance = undefined, interrupts = false, item = null, flat = false, vanish = false } = o;
   const p = preview(from, dir, distance, c, range);
   const T = Math.max(1 / 120, p.landing / speed);
   const a = {
@@ -96,6 +96,8 @@ export function shoot(from, dir, distance, c = 1, o = {}) {
     breakChance, // of a thrown item: rolled as it comes down; a broken one is gone
     staggerChance, // of the hit it lands (undefined: the default); a heavy throw interrupts a bite
     interrupts,
+    flat, // a spell's flight (docs/24): no arc, the same height all the way, so it cannot be lobbed over a wall
+    vanish, // a spell leaves nothing: no item lands or lodges (Michael, 2026-10-14)
     speed,
     z0,
     shooter,
@@ -109,7 +111,7 @@ export function shoot(from, dir, distance, c = 1, o = {}) {
     dy: p.dir[1],
     s: p.landing, // tiles to the landing point
     T, // seconds of flight
-    H: peakHeight(p.landing, { range, arcMin, arcMax }),
+    H: flat ? 0 : peakHeight(p.landing, { range, arcMin, arcMax }),
     c,
     t: 0,
     gx: from.gx,
@@ -138,7 +140,7 @@ export function shoot(from, dir, distance, c = 1, o = {}) {
 // its own height. Above them it flies over. The first such point is where it
 // comes down: at the foot of what stopped it.
 
-const heightAt = (a, u) => a.z0 * (1 - u) + 4 * a.H * u * (1 - u);
+const heightAt = (a, u) => (a.flat ? a.z0 : a.z0 * (1 - u) + 4 * a.H * u * (1 - u));
 
 function wallStops(wall, z) {
   if (!wall || z >= tunables.wallHeight) return false;
@@ -207,10 +209,10 @@ function pose(a) {
   a.gx = a.x0 + a.dx * a.s * u;
   a.gy = a.y0 + a.dy * a.s * u;
   const z0 = a.z0;
-  a.z = Math.max(0, z0 * (1 - u) + 4 * a.H * u * (1 - u));
+  a.z = a.flat ? z0 : Math.max(0, z0 * (1 - u) + 4 * a.H * u * (1 - u));
   // The picture's direction on screen, height included: along the ground it
   // goes (dx - dy) * HW and (dx + dy) * HH per tile, and up by dz/dt.
-  const vz = (-z0 + 4 * a.H * (1 - 2 * u)) / a.T;
+  const vz = a.flat ? 0 : (-z0 + 4 * a.H * (1 - 2 * u)) / a.T;
   const sx = (a.dx - a.dy) * iso.HW * a.speed;
   const sy = (a.dx + a.dy) * iso.HH * a.speed - vz;
   a.frame = angleIndex([sx, sy]);
@@ -248,13 +250,14 @@ function land(a) {
     // The arrow stays in the body (Michael): it comes out in the loot when the dead one is
     // killed and searched, so getting it back means finishing the job. They stack up in there.
     const id = a.item ? a.item.id : "arrow";
-    if (!broken) {
+    if (!broken && !a.vanish) { // a spell lodges nothing
       hit.lodged = hit.lodged || {};
       hit.lodged[id] = (hit.lodged[id] || 0) + 1;
     }
     keep = false;
   }
   if (broken) keep = false; // a spear that broke is gone: nothing lies there, nothing lodges
+  if (a.vanish) keep = false; // a spell is gone the moment it arrives (Michael, 2026-10-14): nothing lies there
   // What lands is the thrown item itself (a spear keeps whatever it carries) or a fresh arrow.
   if (keep) map.dropItem(Math.round(gx), Math.round(gy), { ...(a.item || { id: "arrow", count: 1 }), at: [gx, gy], angle: ground });
   emit("arrowLanded", { arrow: a, gx, gy, hit, kept: keep, broken, stoppedBy: a.stopWhy });
@@ -300,6 +303,31 @@ export function getMarker(player) {
 let replica = null;
 export function setReplicaArrows(list) {
   replica = list;
+}
+
+// A spell in flight lights the ground under it (docs/24): a moving light, as a burning body is one. From the arrows in
+// flight, so a guest makes it from the frame's list as the host does from its own.
+const GLOWS = { fireball: { radius: 4, flicker: 0.25 } };
+export function projectileLights() {
+  const out = [];
+  for (const a of arrowsInFlight()) {
+    const g = !a.done && GLOWS[a.projectile];
+    if (g) out.push({ gx: a.gx, gy: a.gy, radius: g.radius, flicker: g.flicker });
+  }
+  return out;
+}
+
+// The fireball's picture (data/art/items/fireball.png, the design agent's: 64 px cells, a row per direction with row k
+// flying at k * 22.5 degrees from east, clockwise, and three flicker frames across). Its frames are named by the held
+// angles the flight already computes (0 up, clockwise: `fireball_${k}_${f}`), so east, angle 4, is row 0.
+export function fireballSheet(img) {
+  const C = 64;
+  const frames = {};
+  for (let k = 0; k < 16; k++) {
+    const row = (k + 12) % 16;
+    for (let f = 0; f < 3; f++) frames[`fireball_${k}_${f}`] = [f * C, row * C, C, C];
+  }
+  return { image: img, frames, anchor: [32, 32], animations: {}, facings: [], mirror: {}, flicker: 3 };
 }
 
 // ---- the projectiles' pictures, generated like everything else ----
@@ -466,6 +494,8 @@ export function drawState(player) {
 // arrows come from the bag) or a thrown item (a spear: the item itself is the
 // projectile and leaves the hand). Each carries the numbers of its shot.
 export function launcherOf(player) {
+  const spell = spellOf(player);
+  if (spell) return spell;
   const e = player.hands && player.hands.main;
   const def = e && getItem(e.id);
   if (!def) return null;
@@ -474,6 +504,21 @@ export function launcherOf(player) {
   if (def.bow) return { ...common, ...def.bow, kind: "bow", button: "primary", ammo: "arrow", projectile: "arrow" };
   if (def.thrown) return { ...common, ...def.thrown, kind: "thrown", button: "alt", ammo: null, projectile: def.thrown.projectile || def.id };
   return null;
+}
+
+// A spell (Michael, 2026-10-14; docs/24): a staff (any, for now) and a spellbook held together cast the book's spell on
+// the left button, drawn and released as the bow is, with no arc and nothing spent but the time. The book decides the
+// spell (`book.spell` in data/items.json: only the Book of Fire's fireball so far). Either one alone refuses to cast,
+// and the left button does nothing else meanwhile (no punch). Null when neither is held.
+export function spellOf(player) {
+  const hands = player.hands || {};
+  const defs = [hands.main, hands.off].filter(Boolean).map((e) => ({ e, def: getItem(e.id) }));
+  const staff = defs.find((x) => x.def && x.def.staff);
+  const book = defs.find((x) => x.def && x.def.book && x.def.book.spell);
+  if (!staff && !book) return null;
+  if (!staff || !book) return { kind: "spell", button: "primary", refuse: book ? "A spell needs a staff in the other hand." : "A staff needs a spellbook in the other hand to cast." };
+  const s = book.def.book.spell;
+  return { entry: hands.main, range: tunables.range, speed: tunables.speed, z0: tunables.z0, drawTime: tunables.drawTime, ...s, kind: "spell", button: "primary", ammo: null, projectile: s.projectile, arcMin: 0, arcMax: 0, flat: true, vanish: true };
 }
 
 // The bow in the main hand, or null (kept for scripts).
@@ -521,6 +566,10 @@ function setPose(player, frame) {
 
 export function beginDraw(player, bow, source = "mouse") {
   if (player.draw || (player.recover || 0) > 0 || !bow || player.dead || player.climb || player.carrying) return false;
+  if (bow.refuse) {
+    showMessage(bow.refuse);
+    return false;
+  }
   if (bow.ammo && countAll(player, bow.ammo) <= 0) {
     showMessage("No arrows.");
     return false;
@@ -553,13 +602,13 @@ export function releaseDraw(player, ctx) {
       showMessage("No arrows.");
       return null;
     }
-  } else {
+  } else if (L.kind !== "spell") {
     item = { ...L.entry };
     release(player.hands, L.entry);
   }
-  const a = shoot(player, aim.dir, aim.distance, c, { damage: (L.damage ?? tunables.damage) * guardedMult(player), knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, staggerChance: L.staggerChance, interrupts: !!L.interrupts, item });
+  const a = shoot(player, aim.dir, aim.distance, c, { damage: (L.damage ?? tunables.damage) * guardedMult(player), knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, staggerChance: L.staggerChance, interrupts: !!L.interrupts, item, flat: !!L.flat, vanish: !!L.vanish });
   player.recover = tunables.recoverTime;
-  setPose(player, 3);
+  setPose(player, L.kind === "spell" ? 1 : 3); // a cast thrusts forward (the cast's own pose is docs/32, item 3)
   emit("arrowShot", { player, arrow: a, c });
   // The string wears by the shot (docs/30, 5.2: a bow's `shots`); at the last one the bow is gone from the hand.
   const bowEntry = player.hands.main;
@@ -611,7 +660,7 @@ export function updateDraw(player, dt, ctx) {
   } else {
     setMarker(player, null);
   }
-  setPose(player, draw.c < 0.35 ? 0 : draw.c < 0.8 ? 1 : 2);
+  setPose(player, bow.kind === "spell" ? 0 : draw.c < 0.35 ? 0 : draw.c < 0.8 ? 1 : 2); // a spell is held raised until the cast's own pose (docs/32, item 3)
   const down = draw.source === "script" ? true : ctx.down;
   if (!down) releaseDraw(player, ctx);
 }

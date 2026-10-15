@@ -126,9 +126,10 @@ Every other section is built for a guest as well (the rule at the top). What the
 - [x] The slicer and the `beard` and `waist` layer slots (2026-10-12; `tools/slice.html`, `docs/28` for the agent). **The body is final (`02`), so the brief's body section is moot: the agent paints what goes on the rig.** **The agent waits until the graphics part of the engine rework is done (Michael, 2026-10-12): step 3 whole, then it gets `docs/28` and a slot to try.**
 - [x] The covers rules and hair dyeing (2026-10-12, `23` 3a). The brief went to the design agent, on `docs/28`, once the graphics part of the rework was done (2026-10-12); its skin ramp and six hairs are in, its garments, onion hats, and knight owed as items (the big pass, below).
 
-## Throwing knives and axes, and fire magic (see `docs/24-throwables-and-fire-magic.md`) — specced 2026-10-12, nothing built
+## Throwing knives and axes, and fire magic (see `docs/24-throwables-and-fire-magic.md`) — specced 2026-10-12; the fireball built 2026-10-14
 
-- [ ] Michael answers Q1 to Q5 in `24` (the book's role, the cost, lock-on, an area burst, pickup); then stacks and the left-button throw, then the spell kind and the fireball, then magnetism and the book.
+- [x] The fireball (Michael, 2026-10-14, his rules in `02`): a staff and the Book of Fire held together cast it on the left button, the bow's draw with no arc, the fireball sheet in flight and gone on arrival, lit as it flies; either alone refuses. Owed when Michael wants them: a cost (only the draw and the recovery today), the cast's own pose (`32` item 3), the landing burst, the choice of spell.
+- [ ] Michael answers the rest of Q1 to Q5 in `24` (the book's role, the cost, lock-on, an area burst, pickup); then stacks and the left-button throw, then the spell kind and the fireball, then magnetism and the book.
 
 ## The engine upgrade (see `docs/23-engine-upgrade.md` and the review `docs/23a-review.md`) — ruled 2026-10-12, built the same day, every step
 

@@ -51,7 +51,9 @@ export function arrowDrawables(arrows, visible, out) {
       key: key + 3,
       kind: "arrow",
       emit() {
-        frameQuad(sheet, `${a.projectile || "arrow"}_${a.frame}`, x, y - Math.round(a.z), { world, heights: 0, flags: gl.FLAG_STANDING | gl.FLAG_NOFOG });
+        // A projectile drawn to flicker (the fireball: three frames a direction) loops them by the wall clock, as flames do.
+        const fl = sheet.flicker ? `_${Math.floor(performance.now() / 90) % sheet.flicker}` : "";
+        frameQuad(sheet, `${a.projectile || "arrow"}_${a.frame}${fl}`, x, y - Math.round(a.z), { world, heights: 0, flags: sheet.flicker ? gl.FLAG_STANDING | gl.FLAG_NOFOG | gl.FLAG_UNLIT : gl.FLAG_STANDING | gl.FLAG_NOFOG });
       },
     });
   }

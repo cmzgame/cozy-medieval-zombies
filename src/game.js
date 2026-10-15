@@ -562,6 +562,6 @@ export function step(dt, snapshots = null) {
     if (fire) carried.push({ owner: p.id, gx: p.gx, gy: p.gy, radius: fire.radius * strength, flicker: fire.flicker || null, strength });
   }
   light.setCarriers(carried);
-  light.setBurners(burning.lights(everyone));
+  light.setBurners([...burning.lights(everyone), ...archery.projectileLights()]); // and a fireball in flight (docs/24)
   light.update();
 }
