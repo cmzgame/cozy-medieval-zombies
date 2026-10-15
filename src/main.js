@@ -375,9 +375,18 @@ async function moveUp(worldId) {
 }
 
 // The world's second phase home: the server told this browser has it, the server's copy let go, the row here playable.
-async function confirmHome(worldId, owned, snap) {
+// A confirm the server turns away (its wait ran out, so the world was the server's again and may have been played since;
+// the coder agent's review of step 5) is a fresh start: the copy here goes back to being a marker and the world is asked
+// for again, once. A confirm that does not reach the server is tried again by Finish.
+async function confirmHome(worldId, owned, snap, again = true) {
   const base = net.relayHttp();
   const r = await postJson(`${base}/worlds/home/confirm`, { "content-type": "application/json", "x-owner-key": owned.ownerKey }, JSON.stringify({ code: owned.code, token: snap.arriving.token }));
+  if (r.status === 409) {
+    const marker = { ...snap, home: "server", serverCode: owned.code };
+    delete marker.arriving;
+    await save.writeWorld(marker);
+    return again ? bringHome(worldId, false) : { ok: false, error: "The server would not let the world go. Try Bring it home again." };
+  }
   if (r.status !== 200) return { ok: false, error: `Nearly home: the server has not let go yet (${r.json.error || r.status}). Try Finish again.` };
   const done = { ...snap };
   delete done.arriving;
@@ -386,7 +395,7 @@ async function confirmHome(worldId, owned, snap) {
   return { ok: true, name: done.name || "A world" };
 }
 
-async function bringHome(worldId) {
+async function bringHome(worldId, again = true) {
   const base = net.relayHttp();
   const owned = identities.ownedFor(worldId);
   if (!base || !owned) return { ok: false, error: "This browser holds no owner key for that world." };
@@ -415,7 +424,85 @@ async function bringHome(worldId) {
   delete snap.server;
   const w = await save.writeWorld(snap);
   if (!w.ok) return { ok: false, error: `The world could not be kept here (${w.error}); the server still has it.` };
-  return confirmHome(worldId, owned, snap);
+  return confirmHome(worldId, owned, snap, again);
+}
+
+// ---- the owner's powers over a server world (item 5's sixth step) ----
+// The owner key opens them, from this browser or any other that holds it; the server checks it each time.
+
+function ownedByCode(code) {
+  return identities.owned().find((o) => o.code === code) || null;
+}
+
+async function ownerCall(path, owned, body = {}) {
+  const base = net.relayHttp();
+  if (!base || !owned) return { status: 0, json: { error: "There is no server on this page, or no owner key for that world." } };
+  return postJson(`${base}${path}`, { "content-type": "application/json", "x-owner-key": owned.ownerKey }, JSON.stringify({ code: owned.code, ...body }));
+}
+
+// The world, its players, the barred, and its rules, as the server has them.
+async function ownerInfo(code) {
+  const r = await ownerCall("/worlds/owner", ownedByCode(code));
+  return r.status === 200 ? { ok: true, ...r.json, code } : { ok: false, error: r.json.error || `The server said ${r.status}.` };
+}
+
+// A new join code: this browser's record of it and the marker of a moved world follow.
+async function rotateCode(code) {
+  const owned = ownedByCode(code);
+  const r = await ownerCall("/worlds/rotate", owned);
+  if (r.status !== 200) return { ok: false, error: r.json.error || `The server said ${r.status}.` };
+  identities.forgetOwned(code);
+  identities.rememberOwned({ ...owned, code: r.json.code });
+  if (owned.localWorldId) {
+    const local = await save.readWorld(owned.localWorldId);
+    if (local && local.home === "server") await save.writeWorld({ ...local, serverCode: r.json.code });
+  }
+  if (net.isGuest() && net.status().code === code) net.renameGuestCode(r.json.code);
+  return { ok: true, code: r.json.code };
+}
+
+async function setRules(code, rulesNow) {
+  const r = await ownerCall("/worlds/rules", ownedByCode(code), { rules: rulesNow });
+  return r.status === 200 ? { ok: true, rules: r.json.rules } : { ok: false, error: r.json.error || `The server said ${r.status}.` };
+}
+
+async function removePlayer(code, playerId) {
+  const r = await ownerCall("/worlds/remove", ownedByCode(code), { playerId });
+  return r.status === 200 ? { ok: true, name: r.json.name } : { ok: false, error: r.json.error || `The server said ${r.status}.` };
+}
+
+async function unbar(code, hash) {
+  const r = await ownerCall("/worlds/unbar", ownedByCode(code), { hash });
+  return r.status === 200 ? { ok: true } : { ok: false, error: r.json.error || `The server said ${r.status}.` };
+}
+
+// A world of mine on the server, on another device: its code and owner key, checked with the server before they are kept.
+async function addOwned(code, ownerKey) {
+  const c = String(code || "").trim().toLowerCase();
+  const key = String(ownerKey || "").trim();
+  if (!c || !key) return { ok: false, error: "Both the code and the owner key." };
+  const r = await ownerCall("/worlds/owner", { code: c, ownerKey: key });
+  if (r.status !== 200) return { ok: false, error: r.status === 403 ? "That is not the owner key for that world." : r.json.error || `The server said ${r.status}.` };
+  identities.rememberOwned({ code: c, name: r.json.name, ownerKey: key, localWorldId: null });
+  return { ok: true, name: r.json.name };
+}
+
+// A lost owner key: the creator key has the server issue a new one (and the old one stops working).
+async function rekey(code, creatorKey) {
+  const base = net.relayHttp();
+  const c = String(code || "").trim().toLowerCase();
+  if (!base) return { ok: false, error: "There is no server on this page." };
+  const r = await postJson(`${base}/worlds/rekey`, { "content-type": "application/json", "x-creator-key": String(creatorKey || "").trim() }, JSON.stringify({ code: c }));
+  if (r.status !== 200) return { ok: false, error: r.json.error || `The server said ${r.status}.` };
+  const was = ownedByCode(c);
+  identities.rememberOwned({ ...(was || {}), code: c, name: r.json.name, ownerKey: r.json.ownerKey, localWorldId: was ? was.localWorldId : null });
+  return { ok: true, code: c, ownerKey: r.json.ownerKey, name: r.json.name };
+}
+
+// The server worlds this browser owns with no copy here (added on this device, or moved up from another).
+function ownedElsewhere() {
+  const here = new Set(save.listWorlds().map((w) => w.worldId));
+  return identities.owned().filter((o) => !o.localWorldId || !here.has(o.localWorldId));
 }
 
 // A join of a friend's world, or of a world of mine on the server (with its owner key, so my character comes back).
@@ -473,6 +560,7 @@ function here() {
     role: st.role,
     code: currentWorld ? currentWorld.code : st.code,
     worldId: currentWorld ? currentWorld.worldId : null,
+    ownedCode: st.role === "guest" && identities.owned().some((o) => o.code === st.code) ? st.code : null, // a server world of mine I am in
     guests: st.guests ? st.guests.length : 0,
     hostName: null,
     rules: st.role === "guest" ? { ...rules.rules } : null, // a guest's world rules are the host's, shown read-only (item 4)
@@ -1255,6 +1343,17 @@ async function boot() {
           moveUp,
           bringHome,
           playServer,
+          // The owner's powers (item 5's sixth step).
+          ownedElsewhere,
+          ownedFor: (worldId) => identities.ownedFor(worldId),
+          playOwned: (code) => { const o = ownedByCode(code); if (o) joinWorld(o.code, o.ownerKey); },
+          ownerInfo,
+          rotateCode,
+          setRules,
+          removePlayer,
+          unbar,
+          addOwned,
+          rekey,
         },
         // Identities (identities.js): the list, and the one being edited on the identity screen.
         identities: {
@@ -1430,6 +1529,7 @@ async function boot() {
         busy: "The server is running as many worlds as it holds. Try again in a minute.",
         broken: `The world "${code}" failed to start on the server a few times; it is resting before it tries again.`,
         moving: "That world is on its way home to its owner's browser.",
+        removed: "The world's owner removed you from it.",
         relay: `${where[0].toUpperCase()}${where.slice(1)} could not be reached.`,
         dropped: "The connection to the host dropped.",
         hostLeft: "The host closed the world.",
@@ -1511,7 +1611,7 @@ async function boot() {
     // The worlds flow (docs/31/09), for check("worlds"): a world made, left, listed, played again; a new character after a death.
     // Stepping away (item 3), for the checks: the idle time shortened, the state, and the two moves by hand.
     away: { after: (ms) => { awayAfterMs = ms == null ? AWAY_AFTER_MS : ms; lastInputAt = performance.now(); }, get now() { return away; }, step: stepAway, back: comeBack, check: checkAway },
-    worlds: { moveUp, bringHome, playServer, create: (name, identityId) => enterNewWorld(name, identities.get(identityId)), play: playWorld, leave: leaveWorld, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor: host.joinFor, dormantNow: host.dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
+    worlds: { moveUp, bringHome, playServer, ownerInfo, rotateCode, setRules, removePlayer, unbar, addOwned, rekey, create: (name, identityId) => enterNewWorld(name, identities.get(identityId)), play: playWorld, leave: leaveWorld, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor: host.joinFor, dormantNow: host.dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
     identities,
     addPlayer: (gx, gy, opts) => {
       const p = game.addPlayer(gx, gy, opts);
