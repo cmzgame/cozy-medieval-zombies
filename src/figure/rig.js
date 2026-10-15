@@ -191,6 +191,8 @@ function restPose() {
     flash: false,
     wrist: 0, // degrees the held thing is cocked up from the forearm in a swing (docs/32): the blade stays level as the arm drops
     bend: [0, 0], // [left, right] degrees the forearm turns from the upper arm's line at the elbow, the way the arm pitches (forward and up); 0 straight
+    heldTilt: [null, null], // [left, right] degrees a held thing at rest leans forward off vertical (negative: back); null the default (held.js HELD_TILT)
+    heldOut: [null, null], // and outward on the hand's side; null the default (HELD_LEAN_OUT). A style sets them (the staff held up like a pole, 2026-10-15)
   };
 }
 
@@ -246,6 +248,8 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
         p.lean = f.lean ?? 0;
         p.bob = f.bob ?? 0;
         p.wrist = f.wrist ?? 0;
+        p.heldTilt = [f.offHeldTilt ?? null, f.heldTilt ?? null];
+        p.heldOut = [f.offHeldOut ?? null, f.heldOut ?? null];
         p.headD = f.headD ?? 0;
         p.bend = [f.offBend ?? 0, f.bend ?? 0];
       }

@@ -450,9 +450,16 @@ function drawFrame(frame, spec, facing, anim, i) {
   // forearm direction and whether the hand is in front of the body.
   // A held item at rest tilts forward from the hand and a little outward on
   // the hand's own side; in a swing it points along the forearm.
-  const st = Math.sin((HELD_TILT * Math.PI) / 180);
-  const so = Math.sin((HELD_LEAN_OUT * Math.PI) / 180);
-  const restAxis = (side) => [F.fx * st + side * F.rx * so, -Math.cos((HELD_TILT * Math.PI) / 180) + (F.fy * st + side * F.ry * so) * ISO];
+  // A style may stand the held thing otherwise for its frames (`heldTilt`, `heldOut` per arm in the poses data: the cast's
+  // staff upright like a pole, its top a little behind; 2026-10-15); otherwise the rest tilt as always.
+  const restAxis = (side) => {
+    const i = side < 0 ? 0 : 1;
+    const tilt = (p.heldTilt && p.heldTilt[i] != null ? p.heldTilt[i] : HELD_TILT) * Math.PI / 180;
+    const out = (p.heldOut && p.heldOut[i] != null ? p.heldOut[i] : HELD_LEAN_OUT) * Math.PI / 180;
+    const st = Math.sin(tilt);
+    const so = Math.sin(out);
+    return [F.fx * st + side * F.rx * so, -Math.cos(tilt) + (F.fy * st + side * F.ry * so) * ISO];
+  };
   // In a swing the thing points along the forearm, cocked up by the pose's wrist (docs/32: the blade stays
   // level as the arm drops at the follow-through instead of dipping with it): the forearm's screen
   // direction is turned toward "up" by that many degrees, whichever side it hangs on.
