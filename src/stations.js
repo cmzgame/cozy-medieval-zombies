@@ -11,7 +11,7 @@
 
 import * as map from "./map.js";
 import { getDef } from "./assets.js";
-import { getItem } from "./items.js";
+import { getItem, containerGrid } from "./items.js";
 import * as grid from "./grid.js";
 import { bagOf, beltOf, createBag, countAll, takeAll } from "./inventory.js";
 import * as verbs from "./verbs.js";
@@ -181,6 +181,13 @@ function deliver(prop, r) {
     const at = map.nearestWalkable(prop.tile[0], prop.tile[1] + 1, (x, y) => !!map.tileAt(x, y).prop || map.tileAt(x, y).items);
     if (at) {
       const made = map.createProp({ sprite: o.prop, tile: at, footprint: o.footprint || [1, 1] });
+      // A container made here starts empty (the wiki census's bugs, 2026-10-15: a crafted chest rolled the chest's
+      // loot on its first search): its bag made now, already searched, so nothing is ever rolled into it.
+      if (made.container) {
+        const [cols, rows] = containerGrid(made.container.loot);
+        made.bag = createBag(cols, rows, made.sprite.replace(/_/g, " "));
+        made.searched = true;
+      }
       map.placeProp(made, at[0], at[1]);
     }
     return;
