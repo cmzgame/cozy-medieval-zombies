@@ -1024,6 +1024,9 @@ function stepGame(dt) {
 
 let squareTiles = [];
 function applySquareSurface() {
+  // The host's world, the host's floors: a guest's setting must never lay its own on its copy (the wiki census's bugs,
+  // 2026-10-15); the host's choice reaches it in the touched chunks like any floor.
+  if (net.isGuest()) return;
   const floor = settings.get("squareSurface") === "dirt" ? "floor_dirt" : "floor_cobble";
   for (const [x, y] of squareTiles) map.setFloor(x, y, floor);
 }
