@@ -2,12 +2,28 @@
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
+# The relay and the server worlds (item 5, 2026-10-14, docs/02). The app's name lives here and in
+# .github/workflows/deploy.yml alone, the secrets (CREATOR_KEY) in Fly, so the move to the game's own accounts on the
+# infrastructure day changes those two files and the secrets. Deployed by the workflow on every push to main.
 
 app = 'cmz-relay'
 primary_region = 'ord'
+# A deploy or Fly stopping the idle machine: every world is asked to save and stop before the relay goes (server/relay.js
+# stopAll waits up to twenty seconds); the grace covers it.
+kill_signal = 'SIGTERM'
+kill_timeout = '30s'
 
 [build]
   dockerfile = 'Dockerfile'
+
+[env]
+  DATA_DIR = '/data'
+
+# The server worlds' files (one folder each under /data/worlds), 1 GB, snapshotted daily by Fly and kept seven days, a
+# second layer behind each world's own rolling and daily copies.
+[mounts]
+  source = 'cmz_data'
+  destination = '/data'
 
 [http_service]
   internal_port = 8080
@@ -16,6 +32,7 @@ primary_region = 'ord'
   auto_start_machines = true
   min_machines_running = 0
 
+# 512 MB: the relay, three running worlds (about 100 MB each, a heap limit each), and one upload's restore check.
 [[vm]]
   size = 'shared-cpu-1x'
-  memory = '256mb'
+  memory = '512mb'

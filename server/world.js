@@ -281,6 +281,7 @@ net.init({ host: code }, {
   guestJoined: () => requestSave("a join", { reuse: true }),
   ownerHash,
   isBarred,
+  buildId: () => process.env.CMZ_BUILD_ID || "dev", // the image's stamp (Dockerfile): a page of another build is refused
   // The welcome gzipped (the review of step 3): a well-explored world is 4.6 MB raw to every joiner, about 200 KB packed.
   packWelcome: (whole) => {
     lastWelcome = whole; // the join's save, this same tick, takes it rather than serialising the world again
