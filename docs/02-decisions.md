@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-15 — The wiki's rule: synced in the same session as the push (Michael)
+
+The wiki rule as first written (no push to `main` before the wiki is synced) could not be kept literally: `sync.js` reads `origin/main`, so the wiki can only follow a push, and a push to `main` deploys the game at once. **Ruled:** a feature, a fix, or a change to a number is not called done until the wiki is synced for it **in the same session as its push**; a batch of pushes in one session (the census's bugs, say) is synced once, at the batch's end, and nothing in the batch is reported done before that sync is pushed. Written in `CLAUDE.md` (start-here item 7, the rule, and step 6 of implementing from a spec) and in the wiki repository's `CLAUDE.md` and `README.md`.
+
 ### 2026-10-15 — The wiki is part of shipping, written into `CLAUDE.md` (Michael)
 
 Step 7 of `37`, at Michael's go: `CLAUDE.md` gains start-here item 7 and a rule beside the multiplayer one. No feature, fix, or change to a number goes to `main` until the wiki is synced for it (snapshot, census, the touched pages corrected or written by its `WRITING.md`, `build --check` clean, an Updates entry, a push); whoever pushes the change owns its wiki update, or names it as owed to the wiki agent in the commit message when the change has no player-visible effect; a bug fixed from `docs/bugs.md` moves to Fixed and its wiki pages are corrected at the same sync. The method lives in the wiki repository's own `CLAUDE.md`. "Implementing from a spec" step 6 now syncs the wiki before the push. Docs: CLAUDE.md, 02, 37.
