@@ -131,6 +131,11 @@ export function worldStage(label, fraction) {
   if (worldOn) show(label, fraction);
 }
 
+// The Cancel goes once there is nothing left to cancel (a guest's welcome has come).
+export function worldNoCancel() {
+  if (cancelBtn) cancelBtn.hidden = true;
+}
+
 export function worldShowing() {
   return worldOn;
 }
