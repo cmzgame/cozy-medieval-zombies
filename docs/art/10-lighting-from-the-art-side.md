@@ -2,14 +2,7 @@
 
 **This is not the lighting spec.** The lighting system is the engine's and is written up in `07-lighting.md` (the design), `08-renderer.md` (the shader) and `src/light.js` and `src/render.js` (the code). I did not build it. This page covers only what the *art* must and must not do so that system works, what I have observed about how it treats my art, and what I have **not** verified. Where I am inferring, I say so. Written 2026-10-12.
 
-**Engine note (2026-10-12, Claude Code), what is true now:** `07` describes the first, Canvas 2D night layer; since `08` (the WebGL renderer) light is **a fragment-shader multiply: every vertex carries the world point its light is read from**, and nothing is lit in screen space. The practical consequences for the art: a thing is **unlit** by being drawn with the `FLAG_UNLIT` flag (flames, embers, the burning-character particles, the landing marker, the held torch's flame all are), which is exactly the "emissive items are drawn after the night layer" hypothesis below: **the fireball, the staff's orb glow, and a jack-o'-lantern's glow frames are to be drawn `FLAG_UNLIT`; the engine side is a one-line flag per drawable, and it is only a decision of which sprites get it** (today the staff's orb is lit like the rest of the staff, the glow frames are unlit). The "every standing drawable paints its own darkness over its own shape" description below is the old renderer's; the silhouette still decides which pixels are drawn, so hard alpha still matters.
-
-## What I know about the system (from `07` and `17`, not from reading the code)
-
-- **Light is one function**, `lightAt(gx, gy)`, 0 to 1, per position. Everything reads it; sight reads it too ("light feeds sight").
-- **The night is a layer**, drawn in two stages: the floor first (clock, per-room ambient, fire pools with shadows, the player's weak night-vision pool, the carried torch's pool), then **every standing drawable paints its own darkness over its own shape, in the scene's sort order**. So the *silhouette of my sprite is the shape the darkness is painted through*.
-- **A wall face takes the light of the tile it looks onto**; the **top of a wall or post always takes the sky**; a translucent near wall takes a mix; a prop or character takes the light at its feet; **a flame erases itself from the layer in its turn**, so it never dims.
-- The tint is dusky purple (starting `rgb(36, 22, 56)` at 0.96 darkness), full night brightness 0.22, a day cap of 0.92 or 1.0 to be tuned by eye. Night is dusky, never black.
+**Status, 2026-10-16:** light is the WebGL renderer's fragment-shader multiply (`08`, `src/light.js`, `src/render.js`): every vertex carries the world point its light is read from, and a thing is unlit by being drawn with the `FLAG_UNLIT` flag (every flame, ember, and glow frame, the fireball, the held torch's flame), which is how an emissive sprite is exempt from the night. The seven rules below are what the art must do for it; the table is the engine's diagnosis of the wall-top complaints of 2026-10-11 and 12. The agent's description of the old Canvas 2D night layer, the engine note of 2026-10-12, the hypotheses the renderer answered, the fix the engine declined, and the proposal are `../history/art-08-10-cut.md`.
 
 ## What this asks of the art (the rules, and why each exists)
 
@@ -36,20 +29,10 @@
 | A band across the back-left wall | **light, not overlap**: the torch pool climbs a wall 70 px (`night.climb`) and fades, and inside a lit room the hearth lights to full, so the face is flat bright until the climb runs out and the art's darker top band begins | a knob (`night.softLight`, off) |
 | The dark cap | the designer read it as a fog overlay; it is the sky light, and the gradient over it is the player's night-vision pool | no change |
 
-**My recommended fix that the engine did not take:** draw every near-wall piece opaque into an offscreen buffer, then composite it once at the wall's alpha. It would end all stacking. The engine's reason for declining (in `17`) is sound: one composite has one place in the draw order, and near-wall pieces interleave with things in front of and behind them (lanterns outside a door, chairs and the player inside). Open leaves, shutters and boards that lie over a ghost wall can still stack. **If stacking is ever the next complaint, the real fix is stubs** (`09-stubs.md`), which have no translucency at all.
-
-## Things I believe will matter and have **not** verified
-
-Mark these as hypotheses. Check against `light.js` and a night screenshot before acting.
+## Open
 
 - **Multiply darkens my darkest colours to near-black.** At full night brightness 0.22 the outline `#2b2522` becomes roughly `#090808`, and the gloom ramps (compressed value range, `#0e141e` to `#6e8a98`) lose their separation first. Under that multiply the *gloom zone* will be hard to read unless its light values are lifted or the night tint lets some blue through. Worth a night preview of the blue and purple trees before a gloom zone is built.
-- **Emissive items must be drawn after the night layer**, like flames. The staff's orb, the fireball's core and tail, and the jack-o'-lantern's glow frames are all drawn bright on purpose; if the engine draws them through the normal night layer they will go dark at night and look dead. `24` says the fireball is "a moving light", which lights the *ground* but does not by itself keep the sprite bright.
-- **The held torch's flame** is an engine-generated frame today, not drawn art (`12-figure`); drawn flames should follow the flame rule above.
 - **Colour and light are decoupled in my palettes.** I picked colours for full day. Nothing I drew has been looked at at night except in the engine's own screenshots. A pass that previews every set at night, dusk, and a hearth-lit room would catch palette problems the art cannot see.
-
-## A proposal (not built, not asked for)
-
-If the engine ever wants stronger lighting on sprites without 3D, the cheapest art-side addition is a **per-sprite emissive mask** (a second PNG of the same size marking which pixels glow: the orb, the fireball core, windows lit from inside, pumpkin cuts) and optionally a **rim mask** for the lit edge. The art pipeline can generate both from the same shape code at almost no cost, since every generator already knows which pixels are "fire". It is only worth doing if the night layer cannot already treat flames and glows as exempt.
 
 ## Related docs
 

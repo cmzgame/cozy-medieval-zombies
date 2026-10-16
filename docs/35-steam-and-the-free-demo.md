@@ -1,6 +1,6 @@
 # 35 — Desktop, Steam, and the free demo: the business and marketing plan
 
-**Status: written 2026-10-13 with Michael; amended 2026-10-14 (`02`, "The demo re-ruled"): the game's name and the project's own accounts come first, and the demo is single player. A plan, not a spec; nothing built.** The demo it leans on is scoped for implementation in `36`. Facts about Steam below are as Claude knew them on this date and move over time: check Steamworks' own documentation before acting on any number.
+**Status, 2026-10-16: a plan, not a spec; nothing of it built but the loop's edge (below). Written 2026-10-13 with Michael, amended 2026-10-14 (`02`, "The demo re-ruled, the name and the project's own accounts first"): the game's name and the project's own accounts come first, and the demo is single player; the organisation `cmzgame` holds both repositories since 2026-10-15 (`github.md`), the rest of the infrastructure day owed. The demo it leans on is scoped for implementation in `36`. Facts about Steam below are as Claude knew them on 2026-10-13 and move over time: check Steamworks' own documentation before acting on any number. The "Open, for Michael" items at the end become one tracking issue.**
 
 ## The idea in one paragraph
 
@@ -22,9 +22,9 @@ The game is a web game, and that is its marketing advantage, not its weakness. *
 
 ## The name, and the project's own accounts (Michael, 2026-10-14)
 
-- **The name comes first.** "Cozy Medieval Zombies" is a working title. Nothing public (the site, the logo, the end card's link, a store page, an account's handle) is made until the game has its name.
-- **Then an infrastructure day**, the way Michael set up his Plaintext project: the game gets its own identity, apart from his personal ones. A business email at the game's domain; its own GitHub account or organisation, where **the repository is private** (today it is public: the whole game, its source, and every piece of art are free at the Pages link, which must end before a game is sold and before an artist's paid work lands in the repository); its own hosting for **the game's site**, which carries the information about the game and the demo, secure and with a design of its own; and whatever else a studio needs (the store's developer account, the relay's account). The only ties to Michael are his card on the official accounts and the domain, bought on his own account.
-- **What moves:** the repository (and with it the agents' remotes, the worktrees, and the design agent's `art-docs` branch, `27`); the relay's Fly app to the new account; the friends' Pages site, which stops serving the full game. The full game for friends moves somewhere private [a password on the site, or the desktop build once it exists]. Nothing in the code changes but the relay's address (`net.js` `RELAY_URL`) and the site's links.
+The ruling is `02` 2026-10-14, "The demo re-ruled, the name and the project's own accounts first": the name first ("Cozy Medieval Zombies" is a working title, and nothing public, from the site and the logo to a store page and an account's handle, is made until the game has its name), then an infrastructure day that gives the game an identity of its own, apart from Michael's personal ones, the studio's accounts the only ties to him. The repository goes private with it: today the whole game, its source, and every piece of art are free at the Pages link, which must end before a game is sold and before an artist's paid work lands in the repository.
+
+- **What moves** (the organisation `cmzgame` holds both repositories since 2026-10-15, `github.md`; the rest is owed): the relay's Fly app to the studio's account; the friends' Pages site, which stops serving the full game. The full game for friends moves somewhere private [a password on the site, or the desktop build once it exists]. Nothing in the code changes but the relay's address (`net.js` `RELAY_URL`) and the site's links.
 
 ## The desktop wrapper
 
@@ -36,7 +36,7 @@ The game is a web game, and that is its marketing advantage, not its weakness. *
 
 - **Loading.** ES modules do not load from `file://`: the app serves its files through a custom protocol or a small built-in server in place of `serve.py`. The editors' save endpoints are developer tools and do not ship.
 - **Saves** (`src/save.js`). IndexedDB works inside Electron and lives in the app's own folder, so "I cleared my browser data" stops losing worlds from day one. Real files and Steam Cloud come later by swapping the storage inside `save.js`.
-- **The host while minimised** (`src/loop.js`). Electron can turn off the throttling of a background window's timers, but a minimised window may still stop animation frames, so the simulation must step on a timer (or a Worker, `31` tier 4) while the window is hidden. Small and contained; the browser build gains from it too.
+- **The host while minimised** (`src/loop.js`): **built in the browser already** (`loop.setBackgroundDriver`, `02` 2026-10-13): a Worker's timer steps a world with friends in it while the tab draws no frames, and a world open to friends with nobody in it keeps answering the wire; a solo world still stops when hidden, as single player always has. Electron can turn off the throttling of a background window's timers, and a minimised window that stops animation frames is the same case, so the wrapper inherits it.
 - **Friends through Steam** (`src/net.js`). Steam lobbies and "Join game" from the friends list in place of codes: the change players will feel most. JavaScript bindings for Steamworks exist (steamworks.js, for one: achievements, cloud saves, lobbies); their networking is the least proven part, so [the relay stays the data path and Steam does the finding and inviting]. `net.js` has two transports already; this would be the third.
 - **The window:** fullscreen, a resolution choice, the Steam overlay (fiddly in Electron historically; the bindings offer a way).
 
