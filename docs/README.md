@@ -46,7 +46,7 @@ One line per doc, with its kind (`CLAUDE.md`, "What a doc is"): a **rule** (bind
 - `34-talk.md` — barks and conversations (milestone Talk; #37 to #39; Michael's two decisions #90, #91).
 - `36-the-horde-demo.md` — one homestead, the dead without end (milestone The horde demo; #40 to #43; held until final art).
 - `35-steam-and-the-free-demo.md` — the business and marketing plan, kept vague by ruling; its decisions are #94.
-- `38-the-menus-and-the-site.md` — a game menu, not a modal over a game: the screens surveyed, Michael's rulings, the build order (milestone The menus and the site; #16).
+- `38-the-menus-and-the-site.md` — a game menu, not a modal over a game: the screens surveyed, Michael's rulings, the build order (milestone The menus and the site; #16, #107 to #112).
 
 ## Records: `history/`
 
