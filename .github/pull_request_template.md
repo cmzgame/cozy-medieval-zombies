@@ -1,5 +1,5 @@
 <!-- github.md, section 8.5. Every heading answered; "none" is an answer. Sign the last line with your role.
-A template cannot set labels: add needs-review and for:primary (for:secondary on Primary's own), and the milestone. -->
+A template cannot set labels: add needs-review and the milestone; no for: label on a pull request (github.md 8.5). -->
 
 ## What and why
 
@@ -13,10 +13,8 @@ screenshots or a short clip for anything visible. -->
 
 ## The guest's side
 
-<!-- CLAUDE.md's multiplayer rule, each point: (1) runs in the world's step on the host; (2) a guest does it through
-the same path; (3) what it changes reaches a guest (the save, the frame); (4) world state in the sync check; (5)
-per-player state on the player, time from loop.simTime, chance from rng; (6) tried in two tabs, check("sync"),
-the bytes it adds to a frame. Or: no world change. -->
+<!-- The six points of CLAUDE.md's multiplayer rule ("The two rules of shipping"), each answered by its number.
+Or: no world change. -->
 
 ## The wiki
 
