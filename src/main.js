@@ -723,7 +723,7 @@ function toggleBuild() {
     return;
   }
   if (S.player.carrying) return showMessage("Your hands are full.");
-  if (panel.isOpen()) return;
+  if (panel.isOpen()) return showMessage("Close your bag to build."); // the palette and the bag take turns on the screen (02, 2026-10-15)
   buildPalette.openPalette(S.player);
 }
 
@@ -734,7 +734,7 @@ function toggleRemove() {
     return;
   }
   if (S.player.carrying) return showMessage("Your hands are full.");
-  if (panel.isOpen()) return;
+  if (panel.isOpen()) return showMessage("Close your bag to build.");
   buildPalette.close();
   placement.beginRemove();
 }
