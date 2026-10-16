@@ -8,6 +8,9 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- The guide stands beside the spawn on every map, with a reason to be there, written like anyone (2026-10-16, The needs-michael queue)
+- Darkness shortens sight: the dead fade to hidden past a soft edge unless in light; a torch gives it back (2026-10-16, The needs-michael queue)
+- A shed, hut, or forest cabin is one room; the two-rooms rule is for houses (2026-10-16, The needs-michael queue)
 - A hand-authored world with procedural filling of the spaces it leaves empty: a direction, not a wall (2026-10-16, The four lines of 00-vision.md, ruled)
 - One continuous map with real line of sight; chunks, rooms by flood fill, never authored (2026-10-08, The project exists)
 - Fire and resources are the economy; nothing shuts off on a timer; farming is load-bearing (2026-10-08, The project exists)
@@ -49,6 +52,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
+- Combat stays paused until Michael's play session; then the spin cap, knockdown, and push per hit (2026-10-16, The needs-michael queue)
 - The knockdown chance 0.3 is high and stands until the combat pass re-rules it (2026-10-16, The sweep, after wave 3)
 - The swing resolves on the click, the animation is cosmetic, the cooldown is the rate limit (2026-10-11, Placement and melee scoped)
 - Left click swings, Space shoves; a swing at zero stamina lands at half damage (2026-10-11, Placement and melee scoped)
@@ -80,6 +84,8 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The character, the figure, and art
 
+- The weeping willow is cut; the art generators are kept as an archive in tools/art-gen (2026-10-16, The needs-michael queue)
+- Throwables and consumables stack; one-offs like the Book and Staff of Fire never do (2026-10-16, The needs-michael queue)
 - A waterskin carried, belt or bag, sips by itself at Thirsty, the emptiest first, never mid-fight (2026-10-16, Auto-drinking)
 - Cute wins over grim; the dead are drawn like everyone else (2026-10-08, The project exists)
 - Dev art carries the identity: spooky medieval, never permanently night; occlusion is a hole, not a fade (2026-10-09, Milestone 1 passed, and the vibe pass)
@@ -98,6 +104,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
+- Talk's panel is entirely click-based, with topics, wiki links, Continue, and That's all for now; E starts it (2026-10-16, The needs-michael queue)
 - Never draw UI into the canvas; the interface has its own scale, like a web page (2026-10-10, night, The view, the screens, and a law)
 - The world fills the window; nothing is laid out against 960×540 (2026-10-10, night, The view, the screens, and a law)
 - If the game is good, people will sit for a loading screen (2026-10-10, night, The view, the screens, and a law)
@@ -127,6 +134,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Multiplayer
 
+- At most 4 players in a browser-hosted world and 8 in a server world, both in data (2026-10-16, The needs-michael queue)
 - Every addition and every change is built for multiplayer in the same commit (2026-10-13, Multiplayer is live)
 - On the wire the world never pauses; a screen is this client's own; hit-stop is refused on the wire (2026-10-13, On the wire the world never pauses)
 - The relay server is the transport; the Pages site is the client friends open (2026-10-13, Ruled: the relay server is the transport)
@@ -144,6 +152,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Process and the studio
 
+- needs-playtest marks work that waits on Michael's play, not on a decision (2026-10-16, The needs-michael queue)
 - 00-vision's "What it is not" gains no new laws; a limit the game needs is a ruling here with its reason (2026-10-16, The four lines of 00-vision.md, ruled)
 - A new project, not a rewrite of either parent; new game, new gospel (2026-10-08, The project exists)
 - The engine upgrade before more features; small verified moves; nothing in `data/` reformatted (2026-10-12, The engine upgrade is the next task)
@@ -178,6 +187,19 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-16 — The needs-michael queue: the guide, talk's panel, a player cap, the art agent's leftovers, sheds, darkness, the combat pass, the engine (Michael)
+
+Michael went through the `needs-michael` issues the sweep filed, one at a time, with Primary. His words are quoted on each issue.
+
+- **The guide (#90):** "a Guide beside the spawn on every map, given a reason to be there and written like anyone else." A villager who stands beside the player's spawn on every map, as a rule (the map generator places them), with a reason to be there and a name and voice like any villager; immune to the dead as ruled 2026-10-13 (`34`).
+- **Talk's panel (#91):** "entirely click based for now": the villager's default message, topics to explore each with a wiki link (opened in a new tab, or copied), Continue… when they have more to say, replies as buttons, and "That's all for now" as well as the X; no key binds inside the panel, so the world's keys never go dead mid-conversation. The voice: "warm and slightly cheeky - the OSRS formula", and welcoming, since it may be a new player's first conversation. **Starting one:** "E: talk to villager, as well as right click as a backup option." (`34`.)
+- **A cap on the players in a world (#93):** "4 players in a browser-hosted world, 8 in a server world, both in data", for what each can carry (a browser host uploads every guest's frames from a home connection); a join over it refused with a clear word. Separate from the sixteen browsers a world remembers. To build.
+- **The design agent's open items (#95):** the Book of Fire and the Staff of Fire never stack; the rule, quoted: "The stackable are usually throwables or consumables: throwing knives and axes, arrows, perhaps potions, perhaps foods, etc. We can make case by case rulings but one-ofs like these but book and staff, definitely no stack." The throwing knife's and axe's icons stay. The weeping willow is cut ("If I want another tree model I'll bring it up at that point"). The art generators are kept as an archive under `tools/art-gen/`, never run without Michael; a "spiff up the tools" pass is for much later (#106).
+- **Sheds (#92, question 5):** "A shed, hut, or forest cabin is one room; the two-rooms rule is for houses." (`30` section 15.) The map's other four questions (the names, which crops first, how many villagers, the gloom's door) are **tabled** to the "finish the valley" session, on the game's final shape, now its own open question (#123, blocked on Michael), with the game's name and the business decisions (#94).
+- **Darkness and sight (#88, question 30):** "darkness shortens sight, the dead fading to hidden past a soft edge unless they stand in light; a torch gives sight back; numbers in data." Daytime unchanged; each player sees by its own light. (`07`.) To build.
+- **The combat pass (#89):** "keep combat paused until I've played a proper session; rule the three feel pieces then" (the spin-click cap, knockdown 0.3, a push per hit), and fold infection's effects and cures and health potions into the game's shape (#123). A new label, `needs-playtest`, marks work that waits on Michael's play rather than a decision (`github.md` 6).
+- **The engine's second helping (#100):** "B8 now as a ready chore, D1 after the menus steps land, close D2 and D4": the pathfinder's buffers (#124) now; `main.js` back to wiring after #109 to #112; the `actions/` module and the `map/` folder closed until something hurts.
 
 ### 2026-10-16 — The menus and the site: Michael's answers to `38`'s questions (#16; Michael)
 
