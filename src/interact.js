@@ -912,7 +912,7 @@ export function wearFrom(player, entry, fromBag) {
       player.worn[def.wear] = old;
       if (fromBag) grid.insert(fromBag, entry);
       else stow(player, entry);
-      showMessage("No room to take the old one off.");
+      showMessage("No room in your bag to unequip the old one.");
       return false;
     }
   }
