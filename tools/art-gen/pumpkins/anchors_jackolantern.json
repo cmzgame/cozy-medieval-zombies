@@ -1,0 +1,42 @@
+{
+ "jackolantern_left": {
+  "size": [
+   32,
+   29
+  ],
+  "ground_anchor_px": [
+   16.0,
+   23.0
+  ],
+  "light_origin_px": [
+   16.0,
+   15.0
+  ],
+  "glow_frames": [
+   "jackolantern_left_glow_0.png",
+   "jackolantern_left_glow_1.png",
+   "jackolantern_left_glow_2.png"
+  ],
+  "note": "glow frames are the same size as the body; draw at the same position, unlit"
+ },
+ "jackolantern_right": {
+  "size": [
+   32,
+   29
+  ],
+  "ground_anchor_px": [
+   16.0,
+   23.0
+  ],
+  "light_origin_px": [
+   16.0,
+   15.0
+  ],
+  "glow_frames": [
+   "jackolantern_right_glow_0.png",
+   "jackolantern_right_glow_1.png",
+   "jackolantern_right_glow_2.png"
+  ],
+  "note": "glow frames are the same size as the body; draw at the same position, unlit"
+ }
+}

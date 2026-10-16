@@ -1,0 +1,18 @@
+{
+ "well_0..2": {
+  "anchor_px": [
+   37.0,
+   77.0
+  ],
+  "size": [
+   74,
+   104
+  ],
+  "frames": [
+   "well_0: bucket up, crank down",
+   "well_1: bucket lowering (top just inside the shaft), crank turned sideways",
+   "well_2: bucket in the water, rope only, crank up"
+  ],
+  "note": "all three share one canvas and anchor so they swap in place; well.png (the original) is not identical any more, use well_0 as the rest frame"
+ }
+}
