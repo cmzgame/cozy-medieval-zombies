@@ -150,11 +150,10 @@ html, body {
   image-rendering: pixelated;
 }
 
-/* The timber button in three states; `.on` is a pressed choice. */
+/* The timber button in three states. */
 .kit-button,
 .screen button,
-.inv-header button,
-.setting .choices button {
+.inv-header button {
   box-sizing: border-box;
   font: inherit;
   color: var(--text);
@@ -172,16 +171,13 @@ html, body {
 
 .kit-button:hover,
 .screen button:hover,
-.inv-header button:hover,
-.setting .choices button:hover {
+.inv-header button:hover {
   border-image-source: var(--kit-button_hover);
 }
 
 .kit-button:active,
 .screen button:active,
-.inv-header button:active,
-.setting .choices button:active,
-.setting .choices button.on {
+.inv-header button:active {
   border-image-source: var(--kit-button_down);
 }
 
@@ -1194,18 +1190,6 @@ html, body {
   color: #a098ac;
 }
 
-.you-row .choices {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  justify-content: flex-end;
-}
-
-.you-row .choices button {
-  font-size: 12px;
-  padding: 1px 6px;
-}
-
 .you-row input {
   flex: 1 1 auto;
   min-width: 0;
@@ -1251,10 +1235,105 @@ html, body {
   justify-content: flex-end;
 }
 
-.setting .choices button {
-  font-size: 12px;
-  padding: 0 6px;
+/* ---- the settings (docs/38, #108): tabs, and each row a switch or a dropdown ---- */
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin: 0 0 8px;
+  border-bottom: 1px solid #2e2636;
 }
+
+.screen button.tab {
+  border: 0;
+  border-image: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--muted);
+  font-size: 15px;
+  padding: 4px 12px 5px;
+}
+
+.screen button.tab:hover { color: var(--text); }
+
+.screen button.tab.on {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+.setting-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.setting-label .help {
+  color: var(--dim);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.setting .control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.switch-state {
+  min-width: 3.5em;
+  text-align: right;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* A switch: a dark track, a timber-coloured knob; on, the track green and the knob at the right. */
+.screen button.switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  padding: 0;
+  border: 2px solid var(--ink);
+  border-image: none;
+  border-radius: 11px;
+  background: var(--bar-bg);
+  box-shadow: inset 0 0 0 1px var(--bar-edge);
+}
+
+.screen button.switch .knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #b08a5a;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.35);
+  transition: left 0.12s;
+}
+
+.screen button.switch.on { background: #3f7a36; box-shadow: inset 0 0 0 1px var(--green); }
+.screen button.switch.on .knob { left: 20px; background: var(--text); }
+.screen button.switch:hover { border-image: none; box-shadow: inset 0 0 0 1px var(--gold); }
+.screen button.switch:disabled, .screen button.switch:disabled:hover { border-image: none; box-shadow: none; } /* a guest's view of the host's rule */
+
+/* A dropdown: the chosen answer alone, in the screens' dark well. */
+.screen select {
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bar-bg);
+  border: 1px solid var(--panel-edge);
+  border-radius: 3px;
+  padding: 3px 6px;
+  width: 10em;
+  cursor: pointer;
+}
+
+.screen select:hover { border-color: var(--gold); }
+.screen select option { background: #1e1826; color: var(--text); }
+.setting code.relay { font: 12px ui-monospace, Consolas, "Courier New", monospace; color: #c9a24a; }
 
 .controls {
   text-align: left;
@@ -1488,5 +1567,4 @@ html, body {
 .screen .sub.note { color: #e8b86a; }
 
 /* A world rule on a guest is the host's (item 4): shown, not changed. */
-.setting.hosts .choices button:disabled { opacity: 0.6; cursor: default; }
-.setting.hosts .choices button.on:disabled { opacity: 0.9; }
+.setting.hosts .control :disabled { opacity: 0.6; cursor: default; }
