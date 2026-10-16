@@ -40,7 +40,7 @@ export async function run(game) {
   const wasPaused = G.loop.isPaused();
   G.loop.setPaused(true);
   const survivalWas = G.settings.get("survival");
-  G.settings.set("survival", false); // no regeneration between the mess and the save: hp 71 stays 71 in any pane
+  G.settings.set("survival", false); // the needs stay full in any pane; health still regenerates (2026-10-15), so the mess's hp is read at the save
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const p = G.player;
   try {
@@ -87,6 +87,7 @@ export async function run(game) {
     step(120);
 
     // 1. Serialised, restored, serialised again: the same text but for nothing.
+    const hpSaved = p.hp; // 71 healed by the steps above (health regenerates with survival off), as the save takes it
     const a = G.save.snapshot("check");
     const textA = JSON.stringify(a);
     await G.restoreWorld(JSON.parse(textA));
@@ -96,7 +97,7 @@ export async function run(game) {
     row("a save put back and taken again is the same save", !diff, diff || `${(textA.length / 1024).toFixed(0)} KB, ${a.map.chunks.length} chunks, ${a.characters.zombies.length} dead`);
     const doorBack = door && (map.peekTile(door.at[0], door.at[1]).n || map.peekTile(door.at[0], door.at[1]).w);
     row("what was in hand is in hand again", !lifted || (G.player.carrying && G.player.carrying.id === lifted.id), lifted ? `${lifted.sprite} ${lifted.id}: ${G.player.carrying ? G.player.carrying.id : "nothing"} in hand, on the map ${!!map.propById(lifted.id)}` : "nothing carryable near the spawn");
-    row("the mess survived", G.player.hp === 71 && (!door || (doorBack && doorBack.open === door.open)) && (!hearth || (map.propById(hearth.id).fire.lit && map.propById(hearth.id).fire.fuel > 0)), `hp ${G.player.hp}, the door ${door ? (doorBack && doorBack.open === door.open ? "as left" : "changed") : "none"}, hearth ${hearth ? `lit with ${map.propById(hearth.id).fire.fuel.toFixed(2)} fuel` : "none"}`);
+    row("the mess survived", hpSaved >= 71 && G.player.hp === hpSaved && (!door || (doorBack && doorBack.open === door.open)) && (!hearth || (map.propById(hearth.id).fire.lit && map.propById(hearth.id).fire.fuel > 0)), `hp ${G.player.hp} back of ${hpSaved} saved (71 set), the door ${door ? (doorBack && doorBack.open === door.open ? "as left" : "changed") : "none"}, hearth ${hearth ? `lit with ${map.propById(hearth.id).fire.fuel.toFixed(2)} fuel` : "none"}`);
     const dropped = map.itemsAt(sx, sy).find((e) => e.id === "plank");
     row("the dropped plank lies where it fell", !plank || !!dropped, dropped ? `uid ${dropped.uid}` : "missing");
     const hurt = z && G.zombies.find((q) => q.id === z.id);
