@@ -33,14 +33,14 @@ export function initStationPanel(playerGetter) {
   root.addEventListener("mousedown", (e) => e.stopPropagation());
   // Typing in the count is typing, never the world's keys (the review of #64: with panels no longer stopping E, B,
   // and T, a B typed there toggled the boards; the digits fired the belt and WASD walked before that). As the chat box
-  // does (log.js); Escape or Enter leaves the field.
+  // does (log.js); Escape or Enter leaves the field. A release is let through, so a key held into the field is not
+  // left down in input.js (the review of #64).
   const typing = (e) => e.target && e.target.matches && e.target.matches("input, textarea");
   root.addEventListener("keydown", (e) => {
     if (!typing(e)) return;
     e.stopPropagation();
     if (e.code === "Escape" || e.code === "Enter") e.target.blur();
   });
-  root.addEventListener("keyup", (e) => { if (typing(e)) e.stopPropagation(); });
   root.addEventListener("click", (e) => {
     if (!open) return;
     if (e.target.closest("[data-close]")) return close();
