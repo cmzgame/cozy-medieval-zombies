@@ -126,7 +126,7 @@ export function createInventoryActions(getPlayer) {
     // Drop from a slot into a grid at a cell.
     placeInGrid(entry, from, bag, x, y, rot) {
       const player = getPlayer();
-      if (!inventory.canStoreIn(entry)) return showMessage("Empty it first, or wear it.");
+      if (!inventory.canStoreIn(entry)) return showMessage("Empty it first, or equip it.");
       detachFrom(player, entry, from);
       // Taking the bag off the back while dropping into its own grid cannot work.
       if (!bag.items && !bag.cols) return restoreTo(player, entry, from);
@@ -170,7 +170,7 @@ export function createInventoryActions(getPlayer) {
       if (def.wear) return interact.wearFrom(getPlayer(), entry, bag);
       return false;
     },
-    // Double-click on a slot: its first menu entry (Equip, Unequip, Take off).
+    // Double-click on a slot: its first menu entry (Equip or Unequip).
     useSlot(slotId) {
       const m = interact.slotMenu(getPlayer(), slotId);
       if (!m.length) return false;

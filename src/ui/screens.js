@@ -22,7 +22,7 @@ const CONTROLS = [
   ["Shift", "Sprint"],
   ["E", "Nearest action; hold to climb through a window"],
   ["Right-click", "Everything you can do to what is under the cursor"],
-  ["Double-click", "Equip, wear, or take off a thing; else move it across"],
+  ["Double-click", "Equip or unequip a thing; else move it across"],
   ["Z / wheel", "Zoom: wide, middle, close"],
   ["Tab", "Your bag"],
   ["C", "Your character"],

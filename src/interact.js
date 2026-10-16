@@ -231,7 +231,7 @@ function pickUpAction(entry, tx, ty, player, simple) {
     kind: "item",
     simple: simple && storable,
     enabled: storable,
-    label: storable ? `Pick up ${def.name}${fill}${count}` : `Pick up ${def.name} (empty it first, or wear it)`,
+    label: storable ? `Pick up ${def.name}${fill}${count}` : `Pick up ${def.name} (empty it first, or equip it)`,
     tiles,
     mx: tx,
     my: ty,
@@ -1033,7 +1033,8 @@ export function itemMenu(player, entry, bag, otherBag) {
     }
   }
   if (def.wear) {
-    out.push({ label: def.bag ? `Wear (${def.bag[0]}×${def.bag[1]})` : "Wear", enabled: true, onSelect: () => wearFrom(player, entry, bag) });
+    // One verb for putting anything on, one for taking it off (Michael, 2026-10-15): Equip and Unequip, never Wear or Take off.
+    out.push({ label: def.bag ? `Equip (${def.bag[0]}×${def.bag[1]})` : "Equip", enabled: true, onSelect: () => wearFrom(player, entry, bag) });
   }
   if (def.bandage) {
     // Closes a bleeding wound at once (docs/02 question 29b).
@@ -1110,7 +1111,7 @@ export function slotMenu(player, slotId) {
     const entry = player.worn[key];
     if (!entry) return out;
     out.push({
-      label: "Take off",
+      label: "Unequip",
       enabled: true,
       onSelect: () => {
         player.worn[key] = null;
