@@ -4,7 +4,7 @@ One line per doc, with its kind (`CLAUDE.md`, "What a doc is"): a **rule** (bind
 
 ## Rules
 
-- `00-vision.md` — **rule.** The idea, the tone, the pillars, the laws, what this game is. The tiebreaker for every design question. Four lines were redrafted by the sweep for Michael to edit (quoted in the review on #83).
+- `00-vision.md` — **rule.** The idea, the tone, the pillars, the laws, what this game is. The tiebreaker for every design question. Its four single-player lines were redrafted by the sweep and ruled by Michael on 2026-10-16 (#113).
 - `02-decisions.md` — **rule.** Every ruling with its reason, newest first, a topic index of the standing rulings at its top; an overturned ruling is struck where it sits naming what overturned it; the open questions at its end are only the open ones. The build records are `history/02-build-log.md`.
 
 ## References: the game as it is
