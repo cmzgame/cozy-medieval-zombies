@@ -197,6 +197,10 @@ export function install() {
   events.on("weaponBroke", ({ item, who }) => {
     if (who && who !== (self() ? self().id : null) && net.isHost()) net.messageTo(who, `Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3);
   });
+  // An auto-drink (docs/02 question 22): the word to the screen of the player who drank, a guest's here.
+  events.on("drank", ({ who, auto }) => {
+    if (auto && who && who !== (self() ? self().id : null) && net.isHost()) net.messageTo(who, "You drink from your waterskin.", 2);
+  });
   // A craft done: a line in the log of every guest whose player stands near (the stations step outside any acting player).
   events.on("craftDone", ({ out, tile }) => {
     if (!net.isHost()) return;

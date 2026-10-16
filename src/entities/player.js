@@ -17,6 +17,8 @@ import { setTimeScale, nextId } from "../world.js";
 import * as clock from "../clock.js";
 import * as loop from "../loop.js";
 import { emit } from "../events.js";
+import { bagOf, beltOf, waterContainers } from "../inventory.js";
+import { getItem } from "../items.js";
 
 
 export function createPlayer(gx, gy, { id = null } = {}) {
@@ -110,6 +112,25 @@ export function drink(player, entry) {
   entry.fill -= amount;
   player.thirst = Math.min(player.maxThirst, player.thirst + amount);
   return true;
+}
+
+// Auto-drinking (Michael, 2026-10-16; docs/02 question 22): from the moodle's stage T.autoDrinkStage ("Thirsty"), a
+// sip from any waterskin the player carries, belt or bag, the emptiest that has water first, so one skin is finished
+// before the next is started. Never mid-fight: not during a swing, a draw or a cast, a guard, a climb, sleep, or
+// another drink's held-out pose. The authority's step alone calls it (game.js), never a guest's prediction, so a
+// guest's sip is not taken twice. Returns the entry drunk from, or null.
+export function autoDrink(player) {
+  if (!rules.survival || player.dead || player.sleeping || player.climb) return null;
+  if (thirstStage(player) < T.autoDrinkStage) return null;
+  if (player.presentFor > 0 || player.blocking || player.drawing || (player.swingLock || 0) > 0) return null;
+  const a = player.anim;
+  if (a && (a.name === "attack" || a.name === "attack_alt") && !a.done) return null;
+  const skins = [];
+  for (const e of beltOf(player) || []) if (e && getItem(e.id).capacity) skins.push(e);
+  skins.push(...waterContainers(bagOf(player)));
+  const wet = skins.filter((e) => (e.fill ?? 0) > 0).sort((p, q) => p.fill - q.fill);
+  for (const e of wet) if (drink(player, e)) return e;
+  return null;
 }
 
 // Hunger, thirst, and tiredness drain (docs/30, section 3); hunger and thirst
