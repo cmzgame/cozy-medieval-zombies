@@ -1549,12 +1549,24 @@ html, body {
   white-space: pre-wrap;
 }
 
-#loading .error button {
+#loading .error button,
+#loading .cancel {
   margin-top: 10px;
   padding: 6px 18px;
   font: inherit;
   cursor: pointer;
 }
+
+/* The joining screen's way back (#107). */
+#loading .cancel {
+  margin-top: 16px;
+  color: #cfc7d8;
+  background: #1a1420;
+  border: 2px solid #6a5a70;
+  border-radius: 4px;
+}
+
+#loading .cancel:hover { border-color: #c9a84a; }
 
 /* Names over heads (ui/names.js, docs/31/03) and the log's chat line (ui/log.js). */
 #names { position: absolute; inset: 0; pointer-events: none; }
