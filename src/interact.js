@@ -1155,7 +1155,7 @@ const POKE_COOLDOWN_MS = 600;
 // A click sways a thing, or plays its animation, only within the player's reach,
 // the same as placing and building (Michael, 2026-10-12: trees wiggled from
 // across the map). A far right-click still finds it for its menu.
-export const CLICK_REACH = 2.6;
+export const CLICK_REACH = 2.6; // burn.js's DIP_REACH is the same number, kept there to keep this module out of combat's imports
 const inReach = (prop, player) => !!player && distToTiles(player, prop.tiles) <= CLICK_REACH;
 const pokePixels = new Map(); // sheet -> { w, h, a: Uint8Array of alpha }
 

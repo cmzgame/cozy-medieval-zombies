@@ -164,8 +164,8 @@ export function setCarriers(list) {
 }
 
 // The burning bodies (fire.js): moving lights evaluated at query time like the
-// torch, so nothing re-bakes as they walk. Not flames the dead notice: the
-// fire is a visual test (docs/05).
+// torch, so nothing re-bakes as they walk. Not flames the dead notice: burning is
+// real since #14 (burn.js), but the dead noticing it is not built (docs/05).
 export function setBurners(list) {
   burners = list;
 }
