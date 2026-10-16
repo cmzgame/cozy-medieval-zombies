@@ -40,7 +40,7 @@ Every fire kind is a definition, not a case. A sprite definition declares `fire:
 
 - **Zombie sight of the player**: the parent's scaled range, with `lightAt(player)`.
 - **Zombie sight of fire.** New, one rule: on each sight check, if `nightFactor > 0`, a zombie looks for the nearest lit source within `FLAME_RANGE × nightFactor` tiles (twelve at full night) with a clear line, and treats it as a sighting at that tile. A carried torch is a sighting of the player. The memory rule does the rest: walk there, search ten seconds, give up, notice it again. A campfire gathers a slow crowd that mills about it; closed shutters hide a hearth; a torch in a forest brings them from four screens' width. The same number was to be the per-chunk lure of the records `03` planned, which were never built (`history/03-world-model-plan.md`, "Alarm, lure, trickle").
-- **The player's sight.** At night the fog is light: a tile in line of sight but unlit is dark, and the night-vision pool shows the few tiles around you. The dead in the dark are dim shapes, drawn, never hidden. Which tiles count as "visible" for the fog does not change; the night layer is a second darkening on top of it.
+- **The player's sight.** At night the fog is light: a tile in line of sight but unlit is dark, and the night-vision pool shows the few tiles around you. The dead in the dark are dim shapes (today; ruled to change, #88: hidden past a soft edge unless in light), drawn, never hidden. Which tiles count as "visible" for the fog does not change; the night layer is a second darkening on top of it.
 - **The debug corner** shows the clock label and `light@player`.
 
 ## The look

@@ -78,6 +78,6 @@ A flat comet, no spin. `fireball.png` is a **sheet of 64 x 64 cells, 16 rows by 
 
 - **Redraw the sword and halberd at the five angles** if long weapons should match the staff's quality in hand (offered, not asked).
 - **World/icon pairs for the twelve existing items** (list above). And the eighteen of `30` step 3 (`26`).
-- **Stack limits for the book and staff** are undecided (not in the brief; left out of `items.json` rather than invented).
+- **Stack limits for the book and staff:** they never stack (Michael, 2026-10-16, `02`: throwables and consumables usually stack, one-offs never).
 - **The spin frames for the thrown knife and axe** (4 to 8 rotations along the flight, `24` section 1) are not drawn; they would be generated from the one picture.
 - The **fireball impact burst** reuses the engine's particles (`fire.js`); no art.

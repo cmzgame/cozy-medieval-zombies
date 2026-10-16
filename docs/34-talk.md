@@ -18,7 +18,7 @@ The ruling and its reasons are `02`: nothing is gated by talk, and talk changes 
 
 ## Who talks
 
-The seven villagers of the valley (`tools/mapgen/valley.py`, the `villager` calls; `data/maps/valley.json`): the Innkeeper, the Guest, the Child, the Priest, the Reeve, the Apprentice, the Neighbour; and the guide, placed beside the spawn (below). Each gains a **talk id** in the map file (`talk`, [default: the name lowercased]) naming its file in `data/talk/`; `createVillager` keeps it on the villager as `talk`, and the save keeps it (`serializeCharacter` keeps every field it does not drop). The id, not the name, ties a villager to their words, so names can be given later (`29/11` Q4) without touching the data. A villager whose talk id has no file barks their map `line` as today and has no conversation. The proving ground's villagers (`?map=square`) need nothing.
+The seven villagers of the valley (`tools/mapgen/valley.py`, the `villager` calls; `data/maps/valley.json`): the Innkeeper, the Guest, the Child, the Priest, the Reeve, the Apprentice, the Neighbour; and the guide, placed beside the spawn (below). Each gains a **talk id** in the map file (`talk`, [default: the name lowercased]) naming its file in `data/talk/`; `createVillager` keeps it on the villager as `talk`, and the save keeps it (`serializeCharacter` keeps every field it does not drop). The id, not the name, ties a villager to their words, so names can be given later (`29/11` Q4) without touching the data. A villager whose talk id has no file barks their map `line` as today and has no conversation. The proving ground's villagers (`?map=square`, a hand-written test map the generator does not make) need nothing, and it has no guide: "every map" means every map `mapgen.py` makes.
 
 ## The data: `data/talk/<id>.json`
 
@@ -37,8 +37,7 @@ The seven villagers of the valley (`tools/mapgen/valley.py`, the `villager` call
       "options": [
         { "text": "What happened here?", "goto": "what" },
         { "text": "How do I keep a fire going?", "goto": "fire" },
-        { "text": "Ask about the chapel.", "goto": "chapel", "when": { "villagerAlive": "priest" } },
-        { "text": "Goodbye.", "end": true }
+        { "text": "Ask about the chapel.", "goto": "chapel", "when": { "villagerAlive": "priest" } }
       ]
     }
   }
@@ -46,7 +45,7 @@ The seven villagers of the valley (`tools/mapgen/valley.py`, the `villager` call
 ```
 
 - **`barks`:** groups in order; the first group whose `when` matches is used, and within it the lines take turns (below). A group with no `when` is the fallback, and a file without one falls back to the villager's map `line`.
-- **`nodes`:** each has `say` (one or more lines from the villager, shown one at a time) and `options` (the player's choices, each a `text` and a `goto` or `end`, each with an optional `when`), or `end: true` to close after its lines. A node's `say` may itself be a list of `{ "when", "lines" }` variants, the first matching used, so one node changes with the world without a branch for every case.
+- **`nodes`:** each has `say` (one or more lines from the villager, shown one at a time, a **Continue…** button between them) and `options` (the player's choices, each a `text` and a `goto` or `end`, each with an optional `when` and an optional **`wiki`**: the title of the wiki page the topic opens or copies, checked by the validator against the wiki's page list when it can be read), or `end: true` to close after its lines. **"That's all for now" is the panel's own button**, always shown with the options, so no file writes a goodbye (Michael, 2026-10-16, #91). A node's `say` may itself be a list of `{ "when", "lines" }` variants, the first matching used, so one node changes with the world without a branch for every case.
 - **`when`** is an object of conditions, all of which must hold. The vocabulary is fixed in code and small, and every condition reads only what both the host and a guest's replica have:
   - `time`: `"day"`, `"night"`, `"dawn"`, `"dusk"` (`clock.js`).
   - `deadNear`: true or false, any of the dead within [8 tiles] of the villager.
@@ -119,7 +118,7 @@ Each step verified in the browser pane through `window.__game` with `loop.setPau
 ## Acceptance (`await __game.check("talk")`, plus the two-tab rows by hand)
 
 1. Every talk file validates; every node is reachable from `start`.
-1. The guide: exactly one villager is marked; with Zombies attack villagers on and one of the dead placed beside them, the dead never target or hurt them while another villager in reach is hunted; every topic of the guide's file names a system that exists in the code.
+1. The guide: exactly one villager is marked, and on every map the generator makes it stands within [3 tiles] of the spawn; with Zombies attack villagers on and one of the dead placed beside them, the dead never target or hurt them while another villager in reach is hunted; every topic of the guide's file names a system that exists in the code.
 2. A poke by day, by night, and with the dead near each gives a line from the matching group, in turn.
 3. An ambient bark comes only with a player within the radius and not twice inside the cooldown; never from a villager who is hurt, talking, or dead.
 4. Talk to a villager (E, or the right-click menu): they stop and face the talker; options whose `when` fails are not shown; every step is a click (Continue…, a topic, a reply), and `E`, `Space`, and 1 to 9 still act in the world with the panel open; each topic's wiki link opens in a new tab; "That's all for now", the X, Escape, and walking away each end it and the villager wanders again.
