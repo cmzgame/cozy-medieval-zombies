@@ -1,6 +1,6 @@
 # Art 02: Trees
 
-**Status: in the game.** 36 harvest and gloom trees in `data/art/trees/`, definitions in `data/sprites/tree_*.json`. A weeping willow exists but was never imported. Written 2026-10-12.
+**Status: in the game.** 36 harvest and gloom trees in `data/art/trees/`, definitions in `data/sprites/tree_*.json`. A weeping willow was drawn but is cut (Michael, 2026-10-16, `02`: "If I want another tree model I'll bring it up at that point"). Written 2026-10-12.
 
 ## What is there
 
@@ -54,11 +54,11 @@ Generator: `trees.py` (v1, the base `Canvas` class, ramps) and `trees_v2.py` (th
 - Hard pixels, no scaling. The old `scale: 1.5` was removed from every definition on 2026-10-11.
 - Leaf litter under a tree takes the tree's colour (brown under green and gloom), a rule in `data/ground.json`, not in the art. The decal colours are sampled from these canopies, see `03`.
 
-## The weeping willow (on file, not in the repo)
+## The weeping willow (cut, 2026-10-16; the record of what was drawn)
 
 `willow.py` draws a large weeping willow, **205 x 191 px**, in four colours (green, orange, blue, purple), plus a blue variant with a pair of glowing eyes in the hanging curtain (`tree_willow_L_blue_eyes.png`, a one-off for the gloomy register). Construction, back to front: a darker back curtain of hanging fronds, a dark hollow under the dome, a gnarled trunk with roots, the lit dome using the same lobe shading as the oaks, then a front curtain that parts in the middle to show the trunk and the hollow. Fronds are 3 px strands side by side with ragged tips, outlined as a group.
 
-It was delivered to Michael as `willow.zip` and is **not in `data/art/trees/`**. If it is wanted: import the L-size PNGs, give them a definition with the same trunk-base anchoring (centre of the trunk, 6 px pad), and decide the ground shadow width (the willow is wider than it is tall, so `0.42` is probably too small). The eyes variant belongs to the gloom zone and should not appear in the harvest forest.
+It was delivered to Michael as `willow.zip` and is **not in `data/art/trees/`**. Michael cut it on 2026-10-16; had it been wanted, the plan was: import the L-size PNGs, give them a definition with the same trunk-base anchoring (centre of the trunk, 6 px pad), and decide the ground shadow width (the willow is wider than it is tall, so `0.42` is probably too small). The eyes variant belongs to the gloom zone and should not appear in the harvest forest.
 
 ## Open items
 

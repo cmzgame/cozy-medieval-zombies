@@ -204,11 +204,11 @@ Each step's acceptance is a check under `tools/checks/` where the sim can prove 
 
 ## 15. Open: the one open-questions list
 
-The questions only Michael can answer, from `29/11` (its answered ones are in `docs/history/29-world-ideation.md`, with `02`'s rulings beside them) and from this pass; each is `needs-michael` for the sweep's wave 4, where it becomes an issue. The plan's defaults are in brackets, as `29/11` had them.
+**The names, the crops, how many villagers, and the gloom's door are tabled** (Michael, 2026-10-16) to the "finish the valley" session, since they depend on the game's overall shape, its own open question (#123, blocked on Michael). The questions only Michael can answer, from `29/11` (its answered ones are in `docs/history/29-world-ideation.md`, with `02`'s rulings beside them) and from this pass; each is `needs-michael` for the sweep's wave 4, where it becomes an issue. The plan's defaults are in brackets, as `29/11` had them.
 
 - **Names** (`29/11` Q4): the village, the river, the castle, the farms, the mere, the villagers. [Michael's; the docs and the valley carry role names until then.]
 - **Which new crops first** (Q10). [Turnip, wheat, beans, hops; flax, onion, carrot after; the four herbs with the cure.]
 - **How many villagers** (Q8): `04` says six to ten; `29/08` places fourteen with six core; the village of step 1 placed seven, with lines. [Fourteen placed, six given lines and jobs first; the atlas allows it.]
 - **The gloom's door: east, by the old road past the woodcutters?** (Q12). It decides which edge of the map the zone system opens first; nothing built depends on it yet. [East.]
-- **Does "every building has rooms" hold for sheds, huts, and the forest cabins?** (Q15). The village of step 1 followed the default. [No: a shed is a room; the rule is for houses.]
+- ~~**Does "every building has rooms" hold for sheds, huts, and the forest cabins?** (Q15).~~ **Ruled by Michael, 2026-10-16 (#92):** "A shed, hut, or forest cabin is one room; the two-rooms rule is for houses."
 - The rates and the regeneration numbers (sections 3 and 7) are defaults to feel out in play.

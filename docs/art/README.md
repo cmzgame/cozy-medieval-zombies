@@ -39,7 +39,7 @@ Everything the art agent knows about the game's art, from the first trees to the
 | `data/art/cursors/` | the three pointing hands at 1x, 2x, and 3x, `cursors.json` (a CSS cursor, `src/ui/cursor.js`) | 9 |
 | `data/art/character/` | the template, the body's JSON, round 1 of the painted layers in `layers/` (36 in its manifest, plus four previews) | 36 layers |
 
-**Not in the repo:** the stubs, the willow, the dirt kit, and the village, tree, ground, decal, crop, pumpkin, cursor, and item generators (one copy each, in Michael's download zips). The character generators are in (`tools/art-gen/character/`). See `../history/art-11-open-items.md`; bringing them in is an `art` issue.
+**Not in the repo:** the stubs, the willow, the dirt kit, and the village, tree, ground, decal, crop, pumpkin, cursor, and item generators (one copy each, in Michael's download zips). The character generators are in (`tools/art-gen/character/`). See `../history/art-11-open-items.md`. The generators are to be kept as an archive under `tools/art-gen/`, never run without Michael, once he names the folder of the zips (#95; Michael, 2026-10-16); the willow is cut.
 
 ## Conventions in one box
 
