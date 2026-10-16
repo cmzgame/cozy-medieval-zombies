@@ -36,7 +36,7 @@ The parent's lesson is the starting point: `cozy-zombie-game/docs/22-melee.md`, 
 - The player aims at the mouse: `player.aim` is a unit screen vector from the chest (`aimOrigin`, `AIM_Y` 22 px); facing follows the aim.
 - Hands hold entries (docs/11); `player.hands.main` is the weapon hand. Items: `hatchet` (`hands: main`), `torch` (`either`), `plank`, `log`; held art per item in sixteen angles from `generateHeld`.
 - The dead (`src/entities/zombie.js`): `hp` 100, bite 8 on a cooldown, states idle, wander, chase, search, attack, breach, climb; `playerHit` event; `z.dead` is read by the renderer but nothing sets it yet. No damage function exists.
-- Zombie aggro and survival are settings, off by default (docs/02); combat is tested with aggro on.
+- Zombie aggro and survival are settings, both on by default since 2026-10-13 and 2026-10-15 (`src/settings.js`, docs/02); Michael's own browser keeps aggro off between combat tests.
 - The sheet's `animations` carry `activeFrame`; `sprites.isActiveFrame` reads it.
 - Left click: free, except that placement (docs/13) takes it while a mode is active. Space is free.
 

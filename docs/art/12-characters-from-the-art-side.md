@@ -1,6 +1,6 @@
 # Art 12: Characters, from the art side
 
-**Status (2026-10-12, late): the body is the rig's (Michael's ruling, `02` "We have a body"); my four body rounds in `data/art/character/` are superseded and should be deleted along with `tools/art-gen/character/body.py` and `deliver.py`. What I paint now is parts on the template through the slicer, per `28-painting-for-the-slicer.md`: round 1 of those is in `data/art/character/layers/` (36 layers: six hairs, three beards, six head pieces including the onion hat and the great helm, six chests including the knight's surcoat, four legs, four feet, three hands, four belts), every one checked through the slicer with nothing dropped; see `README_layers.md` there for the item specs and three engine notes.**
+**Status (2026-10-12, late): the body is the rig's (Michael's ruling, `02` "We have a body"); my four body rounds in `data/art/character/` were superseded and deleted with `body.py` and `deliver.py` (546997c). What I paint now is parts on the template through the slicer, per `28-painting-for-the-slicer.md`: round 1 of those is in `data/art/character/layers/` (36 layers: six hairs, three beards, six head pieces including the onion hat and the great helm, six chests including the knight's surcoat, four legs, four feet, three hands, four belts), every one checked through the slicer with nothing dropped; see `README_layers.md` there for the item specs and three engine notes.**
 
 ## The body, round 4 (2026-10-12)
 
@@ -22,7 +22,7 @@ Drawn per part per facing on the template's anchors, composited far to near with
 2. **Eight facings** (`s, sw, w, nw, n, ne, e, se`). Five may be delivered (`s, sw, w, nw, n`) and three mirrored, **except anything asymmetric** (a pouch on one hip, a satchel, a side-swept fringe).
 3. **The rig animates; the artist does not.** Parts are painted once per facing in the rest pose, relative to each part's anchor, and the rig carries their pixels through every animation. So garments are *stiff*: a sleeve turns with the arm, a boot with the leg, nothing flaps on its own (no cloaks or loose skirts in this pipeline).
 4. **Two tones plus the dark outline** per garment, hair and skin; **colour is data** (the engine dyes by replacing the tones), so one canonical colourway is drawn.
-5. **One outline per body part, never per garment** ("no Michelin rolls"); the face is never shaded; **eyes are big (whites 4 x 6, coloured pupil at least 2 x 4, ruled 2026-10-12, below); no mouth, no nose**.
+5. **One outline per body part, never per garment** ("no Michelin rolls"); the face is never shaded; **eyes are big (the generated whites 3 x 5 with a dyeable pupil stay, ruled 2026-10-12, `25` deliverable 1; the 4 x 6 below was the first ruling); no mouth, no nose**.
 
 ## Eyes: the one face rule that changed (Michael, 2026-10-12)
 
@@ -51,7 +51,7 @@ Everything in the village was procedural (`iso3d`) because walls and furniture a
 
 ## What I need before drawing
 
-1. **The slicer exists** (`23` pillar 3), or I agree an interim: I deliver the template-sized PNGs and the engine reads them. Per `25` it is not built.
+1. **The slicer exists** (`23` pillar 3): built as `tools/slice.html` (`28`).
 2. **Michael signs off the skin ramp** (eight living tones, three dead tones) and the **hair (about 12) and cloth (about 16) palettes**. The cursor's green and the pink/purple/green fantasy hair colours are placeholders until then.
 3. **A ruling on how a hat that covers the face treats facial hair** is already given (`25` Q2: it pokes out); and **"a dress hides the leg garment and shows the shoes"** (Q5). Both affect the order in which parts are drawn.
 4. **Michael's picks from the three options per category** in `25` (he may strike or add; the brief says so).

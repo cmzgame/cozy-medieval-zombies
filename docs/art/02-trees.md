@@ -20,7 +20,7 @@ In the game the sizes are renamed by how big they *feel* (`15b`): oak S is "the 
 
 ## The ramps
 
-Five tones each: outline, shadow, base, light, glint. The canopy edge uses the outline tone (a dark version of the tree's own colour), not `#2b2522`, because trees are decoration, not interactables.
+Five tones each: outline, shadow, base, light, glint. The canopy edge uses the outline tone (a dark version of the tree's own colour), not `#2b2522`: trees are gatherables (`interactable: true`, chopped for wood) but the engine excuses them from the outline, since they stand out plenty (`CLAUDE.md`).
 
 | Colour | outline | shadow | base | light | glint |
 |---|---|---|---|---|---|

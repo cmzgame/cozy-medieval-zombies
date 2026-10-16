@@ -1,6 +1,6 @@
 # 37 — The wiki: everything about the game, in one place, true to the code
 
-**Status: scoped 2026-10-14 with Michael, his six answers folded in the same day ("Answered", at the end). Started the same day at his word: the repository is `C:/Users/micha/Dev/cmz-wiki` (github.com/michaeldippold/cmz-wiki), and steps 1 to 5 of the build order are done in a first form** (the census with its six fact sheets, 96 discrepancies, and a findings list; the generator; the data templates; every item, station, place, and villager with a page; 127 written pages). **Owed:** the art exporter (the wiki shows drawn icons and the placeholder blocks for now) and the spot checks in the pane (the census was read, not played). Step 7's rule is in `CLAUDE.md` (2026-10-15). The site publishes once Pages is set to GitHub Actions in the repository's settings. This doc is the plan for a real wiki of the game, OSRS-wiki style, in its own repository and its own GitHub Pages site, written and kept up by Claude with Michael making targeted changes. Defaults in brackets are Michael's to overrule.
+**Status: scoped 2026-10-14 with Michael, his six answers folded in the same day ("Answered", at the end). Started the same day at his word: the repository is `C:/Users/micha/Dev/cmz-wiki` (github.com/cmzgame/cmz-wiki since 2026-10-15), and steps 1 to 5 of the build order are done in a first form** (the census with its six fact sheets, 96 discrepancies, and a findings list; the generator; the data templates; every item, station, place, and villager with a page; 127 written pages). **Owed:** the art exporter (the wiki shows drawn icons and the placeholder blocks for now) and the spot checks in the pane (the census was read, not played). Step 7's rule is in `CLAUDE.md` (2026-10-15). The site publishes once Pages is set to GitHub Actions in the repository's settings. This doc is the plan for a real wiki of the game, OSRS-wiki style, in its own repository and its own GitHub Pages site, written and kept up by Claude with Michael making targeted changes. Defaults in brackets are Michael's to overrule.
 
 ## What it is, and what it is not
 
@@ -25,10 +25,10 @@ The OSRS wiki is the model (Michael: among the best game wikis ever made, and th
 
 ## Where it lives, and how Claude keeps it
 
-- **Its own repository**, `cmzgame/cmz-wiki` since 2026-10-15 (the studio's organisation; `michaeldippold/cmz-wiki` before), in `C:\Users\micha\Dev\cmz-wiki`, published by GitHub Pages at `michaeldippold.github.io/cmz-wiki` (a custom domain later). **Public, as the game's repo is; when the game's code goes private, the wiki goes with it** (Michael).
+- **Its own repository**, `cmzgame/cmz-wiki` since 2026-10-15 (the studio's organisation; `michaeldippold/cmz-wiki` before), in `C:\Users\micha\Dev\cmz-wiki`, published by GitHub Pages at `cmzgame.github.io/cmz-wiki` (a custom domain later). **Public, as the game's repo is; when the game's code goes private, the wiki goes with it** (Michael).
 - **Claude writes it locally and pushes** with the `gh` login this machine already has: no wiki software to sign into, no bot passwords, no API keys.
 - **Michael's targeted changes:** every page has "Edit this page", which opens its markdown in GitHub's web editor; a commit there rebuilds the site (a GitHub Action). Or he edits locally like any file. The generated sections are not editable there (they come from the data); a comment in each page's source says so.
-- **Keeping the wiki current is part of shipping** (Michael: "not worth building if it's going to immediately fall behind"). Once the wiki exists, the game's `CLAUDE.md` gains a rule beside the multiplayer one: **a feature is not pushed to `main` until the wiki is checked and updated for it** (the sync run, its report read, the pages it names corrected, a Changes entry written), by whichever agent pushes it; Michael keeps it up as well. The last step of the build below writes that rule.
+- **Keeping the wiki current is part of shipping** (Michael: "not worth building if it's going to immediately fall behind"). Once the wiki exists, the game's `CLAUDE.md` gains a rule beside the multiplayer one: **a feature is not done until the wiki is checked and updated for it, in the same session as its merge to `main`** (re-ruled 2026-10-15: the sync reads `origin/main`, so it follows the merge; the sync run, the pages it names corrected, an Updates entry written), by whichever agent pushes it; Michael keeps it up as well. The last step of the build below writes that rule.
 
 ## The engine: a small generator of its own [recommended]
 
@@ -110,18 +110,18 @@ About a hundred and fifty pages, most of them generated with a short written lea
 4. **The generated pages and the images:** every item, prop kind, station, villager; the art exporter in the game's tools; the valley's map picture.
 5. **The written pages:** the mechanics, the places, the guides, the front pages; each lead.
 6. **Search, Changes, Updates, Planned, Development.**
-7. **The workflow written down:** how a sync goes, in the wiki repo's README; and in the game's `CLAUDE.md`, where the wiki lives and **the rule that a feature is not pushed to `main` until its wiki pages are checked and updated** (Michael, 2026-10-14).
+7. **The workflow written down:** how a sync goes, in the wiki repo's README; and in the game's `CLAUDE.md`, where the wiki lives and **the rule that a feature is not done until its wiki pages are checked and updated, in the same session as its merge** (Michael, 2026-10-14; re-ruled to follow the merge 2026-10-15).
 
 **Done when:** every item and every station has a page; the build reports no broken markers and no number typed in prose; every page has its game version in its footer; Michael can open a page, press Edit, change a sentence, and see the site rebuilt.
 
 ## Answered (Michael, 2026-10-14)
 
-1. **Name and address:** `cmz-wiki`, at `michaeldippold.github.io/cmz-wiki`.
+1. **Name and address:** `cmz-wiki`, at `michaeldippold.github.io/cmz-wiki` (`cmzgame.github.io/cmz-wiki` since the move of 2026-10-15).
 2. **Public** for now, repo and site; private when the game's code goes private.
 3. **Mostly text, a little art;** clear organisation (sections, breaks, a fixed order) matters more than pictures.
 4. **Planned things shown,** on the Planned page and in marked notes, each a marker the sync lists so it is replaced when the feature is built.
 5. **Plain, like the OSRS wiki.**
-6. **The wiki sync is part of shipping:** once the wiki exists, no feature is pushed to `main` until its wiki pages are checked and updated, written into the game's `CLAUDE.md` by the build's last step.
+6. **The wiki sync is part of shipping:** once the wiki exists, no feature is done until its wiki pages are checked and updated, in the same session as its merge (re-ruled 2026-10-15), written into the game's `CLAUDE.md` by the build's last step.
 
 ## Sources
 

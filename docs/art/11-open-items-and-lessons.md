@@ -6,7 +6,7 @@ Written 2026-10-12. The punch list across all art, then the working notes that m
 
 | Thing | Where it is | To land it |
 |---|---|---|
-| **Pointing-hand cursors** (human, severed, zombie) | `cursors.zip` (Michael's downloads) | import, rule A (engine-drawn) or B (CSS), `08` |
+| **Pointing-hand cursors** (human, severed, zombie) | in the repo since 2026-10-12: `data/art/cursors/`, a CSS cursor (`src/ui/cursor.js`, `08`) | done |
 | **Cutaway stubs** (66 PNGs) | `stubs_v1.zip` | only if translucent walls get complaints, `09` |
 | **Weeping willow** (205 x 191, four colours + glowing-eyes variant) | `willow.zip` | needs a definition and a shadow width, `02` |
 | Ground-kit **dirt** (128 x 64) and **edge noise** | `ground_kit.zip` | the engine generates its own; only if drawn dirt is wanted, `03` |
@@ -36,10 +36,10 @@ Written 2026-10-12. The punch list across all art, then the working notes that m
 
 ## Decisions waiting on Michael
 
-1. Cursor delivery: engine-drawn or CSS; when does it swap to the severed and zombie hands? (`08`)
-2. Stack limits for the book and staff. (`07`)
-3. Item icon sizes: leave the knife and axe small, or redesign larger? (`07`)
-4. Characters: skin ramp, palettes, which of the three options per category, outline colour. (`12`, `25`)
+1. ~~Cursor delivery: engine-drawn or CSS; when does it swap to the severed and zombie hands? (`08`)~~ Decided 2026-10-12 (`02`): CSS, a settings choice, the zombie hand over the dead.
+2. Stack limits for the book and staff. (`07`) Open.
+3. Item icon sizes: leave the knife and axe small, or redesign larger? (`07`) Open.
+4. ~~Characters: skin ramp, palettes, which of the three options per category, outline colour. (`12`, `25`)~~ Decided 2026-10-13 (`02`, `27` D): the ramp approved (`data/looks.json`), the garment outline `#1a1420`.
 5. Whether to import the willow and for which zone. (`02`)
 6. Whether the generators move into the repo (below).
 

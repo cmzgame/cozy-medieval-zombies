@@ -75,7 +75,7 @@ The rest:
 
 ## What it touches
 
-`src/archery.js` (the draw state, the arc, the arrows in flight, the hit walk, the pickup), `main.js` (the left button held and released when the bow is in hand; the arrows' update), `render.js` (arrow and shadow drawables in the depth sort by the ground point; the guide), `combat.js` (`damageZombie` reused; `markTargets` unchanged), `figure.js` and `data/poses.json` (the bow style, the held shapes), `items.json` (`bow` with `{ drawTime, range, rangeMin, speed, arcMin, arcMax, damage, knockback, breakChance, style: "bow" }`, `arrow`), `settings.js` (Aim guide, Arrows), `entities/player.js` (the half-speed draw, the `both` hands rule), `map.js` (`wallBetween` gains a height, or the caller reads the opening's stack).
+`src/archery.js` (the draw state, the arc, the arrows in flight, the hit walk, the pickup), `main.js` (the left button held and released when the bow is in hand; the arrows' update), `render.js` (arrow and shadow drawables in the depth sort by the ground point; the guide), `combat.js` (`damageZombie` reused; `markTargets` unchanged), `figure.js` and `data/poses.json` (the bow style, the held shapes), `data/combat.json` (`bow`: the flight numbers, range, arc, speed, hit radius, since 2026-10-15) and `items.json` (the bow's `bow` block: `drawTime`, `braceDrawTime`, `style`, `damage`, `knockback`; `arrow`), `settings.js` (Aim guide, Arrows), `entities/player.js` (the half-speed draw, the `both` hands rule), `map.js` (`wallBetween` gains a height, or the caller reads the opening's stack).
 
 ## Rough build order
 
