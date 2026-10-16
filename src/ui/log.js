@@ -54,7 +54,8 @@ export function initLog(handlers = {}) {
       input.blur();
     } else if (e.code === "Escape") input.blur();
   });
-  input.addEventListener("keyup", (e) => e.stopPropagation());
+  // A release is let through (the review of #64): input.js only forgets the key on it, so a key held while the box
+  // took the focus is not left down, walking the player on.
   input.addEventListener("mousedown", (e) => e.stopPropagation());
   root.addEventListener("scroll", () => {
     pinned = root.scrollTop + root.clientHeight >= root.scrollHeight - 4;
