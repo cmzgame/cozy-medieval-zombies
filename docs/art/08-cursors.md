@@ -1,6 +1,6 @@
 # Art 08: The pointing-hand cursors
 
-**Status: drawn, delivered, and in the game since 2026-10-12 as a CSS cursor** (`data/art/cursors/`, `src/ui/cursor.js`, `style.css`; four choices in Settings, the system's the default; the engine-drawn option below was refused, `02` 2026-10-12). Written 2026-10-12.
+**Status, 2026-10-16: in the game since 2026-10-12 as a CSS cursor** (`data/art/cursors/`, `src/ui/cursor.js`, `style.css`; four choices in Settings, the system's the default, the zombie hand over one of the dead; the engine-drawn way was refused, `02` 2026-10-12, "The cursor"). Drawn 2026-10-12. The two implementation options as they were offered, the engine's correction of them, and the open items since done are `../history/art-08-10-cut.md`.
 
 ## What there is
 
@@ -16,29 +16,13 @@ Each also ships as `@2x` and `@3x` (nearest-neighbour scaled) plus `cursors.json
 
 **Revisions Michael asked for** after the first pass (and which are in the final art): narrower overall, a shorter finger with a rounded top, a more prominent thumb area, and a tapered wrist on all three (regular wrist for the human, short wrist with a bone for the damaged human and the zombie). The first procedural version looked like capsules and was thrown away for hand-pixelling (`cursors_v1.py` is the backup).
 
-Skin tones: human `#f8dfc2` `#f0ceaa` `#d4ac86` `#b08a68` (+ nail `#fdf3e8` `#e3cbb3`); zombie `#a8bb80` `#8ea26a` `#71864f` `#56683c` (+ nail `#cfc48c` `#a99f68`); blood `#b23a42` `#78202a` `#a3222a`; bone `#efe6cc` `#c9b993`. **The zombie green is the cursor's own; the dead's skin ramp is still to be decided** (`25`), so these should be re-derived from that ramp when it exists.
+Skin tones: human `#f8dfc2` `#f0ceaa` `#d4ac86` `#b08a68` (+ nail `#fdf3e8` `#e3cbb3`); zombie `#a8bb80` `#8ea26a` `#71864f` `#56683c` (+ nail `#cfc48c` `#a99f68`); blood `#b23a42` `#78202a` `#a3222a`; bone `#efe6cc` `#c9b993`. **The zombie green is the cursor's own; the dead's skin ramp is still to be decided** (`25`), so these should be re-derived from that ramp when it exists. (The dead's ramp has been in `data/looks.json` since 2026-10-13; the re-derivation is an open item below.)
 
 ## The hotspot
 
 The one pixel that counts as the mouse position, from the image's top-left. `(4, 0)` is the top row of the fingertip. At scale `s`, use `(4*s + s/2, s/2)` to put the click in the middle of the scaled fingertip pixel, which is `(9, 1)` at 2x and `(13, 1)` at 3x. Hit tests use the pointer's own position; the hotspot offset is only for *drawing*.
 
-## Implementation options
-
-**Engine correction (2026-10-12, Claude Code):** the UI (the bag, menus, the HUD, screens) is **DOM over the canvas**, so a cursor drawn into the canvas, however late, is **beneath** every panel and menu and would vanish behind them. Option A must therefore be a **DOM image that follows the pointer in the top-most layer** (`pointer-events: none`, `image-rendering: pixelated`, positioned by `pointermove`, scaled by a whole-number factor from the UI scale, hidden when the pointer leaves the window), which keeps the pixel look over both the world and the UI; Option B (CSS) needs none of this. The "never draw UI into the canvas" rule is not what blocks the canvas version: the stacking order is.
-
-### A. Draw it in the engine (recommended)
-
-Keeps the cursor at the world's pixel scale at every zoom and snaps to the pixel grid like every other sprite.
-
-1. `canvas.style.cursor = 'none'` while the pointer is over the game canvas.
-2. Track the pointer from `pointermove` (CSS pixels relative to the canvas; multiply by `devicePixelRatio` if the backing store is scaled).
-3. Draw it **last**, on top of the world and UI, in screen space, with no lighting, fog or night tint: `x = round(mouseX - hotspotX * zoom)`, `y = round(mouseY - hotspotY * zoom)`, nearest filtering, using the 1x PNG.
-4. Swap the texture to change state.
-5. **Restore the system cursor** (`canvas.style.cursor = ''`) when the pointer leaves the canvas, an HTML overlay or menu has focus, or the game is paused.
-6. Trade-off: an engine-drawn cursor trails the real mouse by about a frame. Keep updating its position every frame.
-7. **Project note:** CLAUDE.md's rule is "never draw UI into the canvas". A cursor is not UI in that sense (it is a pointer sprite), but it is worth ruling on and logging in `02-decisions.md` before building.
-
-### B. CSS cursor
+## As built: CSS, `cursor.js`
 
 ```css
 canvas { cursor: url("cursor_human@2x.png") 9 1, auto; }
@@ -48,10 +32,9 @@ The two numbers are the hotspot in that image's own pixels (`4 0` for 1x, `9 1` 
 
 ## Which one when
 
-`cursor_human` by default. When to show the severed or zombie hand is a gameplay decision: the severed hand as a low-health or "dark phase" cursor, the zombie hand when hovering over the dead or after the festival turns. Nothing is ruled.
+The system's cursor is the default choice; with a hand chosen, `cursor_human` over the world and the panels alike, and the zombie hand over one of the dead (`02` 2026-10-12). The severed hand as a low-health or "dark phase" cursor is a later gameplay call.
 
 ## Open items
 
-- **Import them** and decide A or B.
 - **Other cursor states** (a grab hand for carrying furniture, a crosshair for the bow, an open hand for taking) are not drawn; `style.css` currently uses `pointer`, `default` and `grab` for those. The same hand in other poses would be the natural family.
-- **Larger sizes:** at 15 x 20 the cursor is small on a 1.1x zoom; scale by the world zoom (option A does).
+- **The zombie cursor's green re-derived from the dead's skin ramp** (`data/looks.json`), so the hand matches the dead the player sees.
