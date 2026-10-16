@@ -45,7 +45,10 @@ const CONTROLS = [
   ["L", "Light debug views"],
 ];
 
-let root = null;
+let root = null; // where the current screen is drawn: the site's page out of a world, #screens in one (#111)
+let screensEl = null; // the game's own screens, over the world
+let siteEl = null; // the game's site (index.html #site): everything out of a world is a page of it, never a box (docs/38)
+let sitePage = null;
 let current = null;
 let from = null; // the screen a sub-screen returns to
 let onChange = () => {};
@@ -77,9 +80,20 @@ export function initScreens(handlers = {}) {
   wireApi = handlers.wire || null;
   worldsApi = handlers.worlds || null;
   identitiesApi = handlers.identities || null;
-  root = document.getElementById("screens");
-  root.hidden = true;
-  root.addEventListener("click", (e) => {
+  screensEl = document.getElementById("screens");
+  siteEl = document.getElementById("site");
+  sitePage = document.getElementById("site-page");
+  root = screensEl;
+  screensEl.hidden = true;
+  // The same handlers on both: a screen is drawn in one or the other, and the site's menu is its own buttons (data-go).
+  for (const el of [screensEl, siteEl].filter(Boolean)) listen(el);
+  settings.onChange(() => {
+    if (current === "settings") render();
+  });
+}
+
+function listen(el) {
+  el.addEventListener("click", (e) => {
     const btn = e.target.closest("button[data-go]");
     if (btn) return go(btn.dataset.go, btn.dataset);
     // The identity editor's swatches and rows: each sets one field of the look and redraws (youApi).
@@ -122,11 +136,11 @@ export function initScreens(handlers = {}) {
   });
   // A dropdown's keys are its own (the arrows pick an answer; input.js would cancel them, and a letter would walk the
   // player); Escape still reaches the screens, and a release is let through so no key is left down (#65, #80).
-  root.addEventListener("keydown", (e) => {
+  el.addEventListener("keydown", (e) => {
     if (e.target && e.target.tagName === "SELECT" && e.code !== "Escape") e.stopPropagation();
   });
   // The dropdowns (#108): a setting, the hair or a painted layer to try, the identity editor's hair style.
-  root.addEventListener("change", (e) => {
+  el.addEventListener("change", (e) => {
     const sel = e.target.closest("select");
     if (!sel) return;
     if (sel.dataset.key) settings.set(sel.dataset.key, JSON.parse(sel.value));
@@ -136,13 +150,35 @@ export function initScreens(handlers = {}) {
     else return;
     render();
   });
-  root.addEventListener("input", (e) => {
+  el.addEventListener("input", (e) => {
     const name = e.target.closest("input[data-name]");
     if (name && youApi) youApi.setName(name.value);
   });
-  settings.onChange(() => {
-    if (current === "settings") render();
-  });
+}
+
+// Out of a world, or in one: the site or the game's own screens (docs/38, #111).
+function outOfWorld() {
+  const h = worldsApi && worldsApi.here ? worldsApi.here() : null;
+  return !(h && h.inWorld) || !!(h && h.joining); // a join still waiting for its welcome is not in a world yet
+}
+
+// Where the current screen goes: out of a world the site's page, the site showing and the game's screens hidden; in
+// one, #screens over the world and the site hidden.
+// The stage goes while the site shows: its canvas would hold a narrow window (a phone's) at its own width, and the
+// site is a page that follows the window.
+function place() {
+  const site = outOfWorld() && !!sitePage;
+  root = site ? sitePage : screensEl;
+  if (siteEl) siteEl.hidden = !site;
+  screensEl.hidden = site;
+  showStage(!site);
+}
+
+function showStage(on) {
+  const stage = document.getElementById("stage");
+  if (!stage || stage.hidden === !on) return;
+  stage.hidden = !on;
+  if (on) window.dispatchEvent(new Event("resize")); // view.js measures the window again, now the canvas is back
 }
 
 export function currentScreen() {
@@ -160,7 +196,7 @@ export function show(name, extra = {}) {
     if (current && !SUB.has(current)) from = current;
   } else if (!FLOW.has(name)) from = null;
   current = name;
-  root.hidden = false;
+  place();
   render();
   onChange(current);
 }
@@ -169,14 +205,17 @@ export function hide() {
   stopPreview();
   current = null;
   from = null;
-  root.hidden = true;
+  screensEl.hidden = true;
+  if (siteEl) siteEl.hidden = true; // into a world: the site goes with the screens
+  showStage(true);
   onChange(null);
 }
 
 // Escape. Returns true if a screen took it.
 export function back() {
   if (!current) return false;
-  if (SUB.has(current)) show(from || "pause", data);
+  if (SUB.has(current)) show(from || (outOfWorld() ? "title" : "pause"), data);
+  else if (current === "about") show("title");
   else if (current === "pause") hide();
   else if (current === "away") { if (worldsApi && worldsApi.comeBack) worldsApi.comeBack(); }
   else if (FLOW.has(current)) stepBack();
@@ -580,13 +619,57 @@ function identityRows(pickable) {
     </div>`).join("")}</div>`;
 }
 
+// ---- the site's own pages (docs/38, #111): Home and About; the rest are the screens drawn in its page ----
+
+// The menu's button for the page showing is lit: the flows under Play light Play.
+const MENU_OF = { title: "title", about: "about", controls: "controls", settings: "settings", identities: "identities", identity: "identities" };
+function markMenu() {
+  if (!siteEl) return;
+  const lit = MENU_OF[current] || (current ? "worlds" : null);
+  for (const b of siteEl.querySelectorAll(".site-nav button[data-go]")) b.classList.toggle("on", b.dataset.go === lit);
+}
+
+function homeHtml() {
+  return `
+    <div class="screen home">
+      <p class="lead">A cute village, seen whole, overrun by the dead.</p>
+      ${data.note ? `<div class="sub note">${esc(data.note)}</div>` : ""}
+      <button class="kit-button cta" data-go="worlds">Play in your browser</button>
+      <p class="small">Free, alone or with friends in one world. Nothing to install.</p>
+      <p class="small">New here? <a href="https://cmzgame.github.io/cmz-wiki/" target="_blank" rel="noopener">The wiki</a> has the rules of the place.</p>
+    </div>`;
+}
+
+function aboutHtml() {
+  return `
+    <div class="screen about">
+      <h1>About the game</h1>
+      <p>A cute isometric pixel village, medieval and low-fantasy: cottages, an inn, a chapel, a well, a smithy. The dead have risen. You move through the village as one continuous place; the world keeps looking cute, and the dead keep coming.</p>
+      <h2>One continuous place</h2>
+      <p>Buildings are made of the same tiles as the street. There is no cut between inside and outside: you look out of a window, and they look in.</p>
+      <h2>Sight is the game</h2>
+      <p>What you can see is what can see you. Darkness hides, fire reveals, and a lit window is an invitation. So is the torch in your hand.</p>
+      <h2>The home matters</h2>
+      <p>Furnish it, light it, barricade it, sleep in it, and grow food beside it. Wood, water, and seed are what you go out for.</p>
+      <h2>Friends in one world</h2>
+      <p>Open your world to friends with a code, and they join it from their own browser.</p>
+      <p class="small">The game is being made now, and changes often. <a href="https://cmzgame.github.io/cmz-wiki/" target="_blank" rel="noopener">The wiki</a> keeps up with it.</p>
+      <div class="screen-buttons row"><button class="kit-button cta" data-go="worlds">Play</button></div>
+    </div>`;
+}
+
 function render() {
   if (!root) return;
   root.className = current || "";
+  markMenu();
   stopPreview();
   if (dotTimer) { clearInterval(dotTimer); dotTimer = null; }
   if (current !== "waiting") stopWait();
-  if (current === "title") {
+  if (current === "title" && root === sitePage) {
+    root.innerHTML = homeHtml();
+  } else if (current === "about") {
+    root.innerHTML = aboutHtml();
+  } else if (current === "title") {
     root.innerHTML = `
       <div class="screen">
         <h1>Cozy Medieval Zombies</h1>

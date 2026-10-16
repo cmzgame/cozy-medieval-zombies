@@ -266,12 +266,18 @@ async function settleWorld() {
 
 // A guest's join under the screen, with Cancel: the stand-in world stays underneath until the welcome (docs/31/09),
 // so main.js is not restructured; the screen covers it (#107).
+// A fresh join waits for its welcome in the stand-in world: the screens treat it as out of a world, so the host's
+// "who" (choose an identity) is a page of the site and never a box over a valley that is not the friend's (#111).
+// A respawn's rejoin is not one: that player is still in the world.
+let awaitingWelcome = false;
+
 function showJoining(code) {
   shell.worldBegin(`Joining ${code}`, { cancel: cancelJoin });
   shell.worldStage("Asking the host", 0.2);
 }
 
 function cancelJoin() {
+  awaitingWelcome = false;
   if (net.isGuest()) net.leave();
   if (net.onTheWire()) net.close();
   setInWorld(false);
@@ -429,6 +435,7 @@ async function leaveWorld() {
     if (net.onTheWire()) net.close();
     setInWorld(false);
     started = false;
+    awaitingWelcome = false;
     currentWorld = null;
     panel.closeAll();
     stationPanel.close();
@@ -631,6 +638,7 @@ function joinWorld(code, ownerKey = null) {
   if (!ownerKey) identities.rememberJoined({ code });
   standInWorld(identities.last() || testIdentity());
   if (!net.open({ join: code, lag: urlLag })) return;
+  awaitingWelcome = true;
   started = false; // a guest's world is the host's to save
   screens.hide();
   showJoining(code); // the loading screen over the stand-in until the welcome (#107)
@@ -678,6 +686,7 @@ function here() {
   const guest = st.role === "guest";
   return {
     inWorld,
+    joining: awaitingWelcome, // in the stand-in, waiting for the host's world (#111)
     name: currentWorld ? currentWorld.name : guest ? (joinedWorld && joinedWorld.name) || st.code : "",
     myCharacter: inWorld && S.player ? S.player.name || S.player.id : "",
     role: st.role,
@@ -1641,6 +1650,7 @@ async function boot() {
   net.init({ host: TEST_WORLD ? url.get("host") : null, join: joinCode, lag: urlLag }, {
     restore: async (snap, playerId, world) => {
       shell.worldStage("Receiving the world", 0.4);
+      awaitingWelcome = false;
       await restoreWorld(snap);
       S.player = S.players.find((p) => p.id === playerId) || S.player;
       game.state.player = S.player;
@@ -1715,6 +1725,7 @@ async function boot() {
         return showMessage(note, 5);
       }
       // A guest's wire gone: out of the stand-in or the replica, the title with the reason.
+      awaitingWelcome = false;
       shell.worldHide();
       setInWorld(false);
       started = false;
@@ -1759,7 +1770,7 @@ async function boot() {
   window.addEventListener("pagehide", autosave);
   await shell.finish(); // the screen goes once the first frame is under it
   // A test join from the URL (`?join=`) still waiting for its welcome: the joining screen over the stand-in (#107).
-  if (net.isGuest() && !joinedWorld) showJoining(net.status().code);
+  if (net.isGuest() && !joinedWorld) { awaitingWelcome = true; showJoining(net.status().code); }
 
   window.__game = createDevApi({
     get player() { return S.player; },

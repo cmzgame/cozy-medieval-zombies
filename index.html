@@ -31,6 +31,32 @@
     </div>
     <div id="debug"></div>
   </div>
+  <!-- The game's site (docs/38, #111): everything out of a world is a full-width page, never a box over one.
+       src/ui/screens.js renders the out-of-world screens into #site-page; the game's own screens stay in #screens. -->
+  <div id="site" hidden>
+    <div class="site-bg"></div>
+    <header class="site-head">
+      <div class="wordmark" role="img" aria-label="Cozy Medieval Zombies">
+        <img class="wm-tree wm-tree-l" src="data/art/trees/tree_oak_L_orange.png" alt="">
+        <img class="wm-tree wm-tree-l2" src="data/art/trees/tree_spire_M_red.png" alt="">
+        <img class="wm-tree wm-tree-r" src="data/art/trees/tree_oak_L_yellow.png" alt="">
+        <img class="wm-tree wm-tree-r2" src="data/art/trees/tree_oak_M_red.png" alt="">
+        <span class="wm-line wm-small">Cozy Medieval</span>
+        <span class="wm-line wm-big">Zombies</span>
+      </div>
+      <nav class="site-nav">
+        <button class="kit-button" data-go="title">Home</button>
+        <button class="kit-button" data-go="about">About</button>
+        <button class="kit-button" data-go="controls">Controls</button>
+        <button class="kit-button play" data-go="worlds">Play</button>
+        <button class="kit-button" data-go="identities">Identities</button>
+        <button class="kit-button" data-go="settings">Settings</button>
+        <a class="kit-button" href="https://cmzgame.github.io/cmz-wiki/" target="_blank" rel="noopener">Wiki</a>
+      </nav>
+    </header>
+    <main id="site-page"></main>
+    <footer class="site-foot">A village of the dead. Keep the shutters closed. · <a href="https://cmzgame.github.io/cmz-wiki/" target="_blank" rel="noopener">The wiki</a></footer>
+  </div>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>

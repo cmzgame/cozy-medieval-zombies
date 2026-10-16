@@ -1582,3 +1582,186 @@ html, body {
 
 /* A world rule on a guest is the host's (item 4): shown, not changed. */
 .setting.hosts .control :disabled { opacity: 0.6; cursor: default; }
+
+/* ---- the game's site (docs/38, #111): out of a world, a full-width page, never a box over one ----
+   Michael's references (2026-10-16, docs/02): terraria.org's wordmark of game-like art, its textured menu with
+   PLAY the callout, a blurred picture of the game behind, boxes styled from the game; Old School RuneScape's Play
+   button that could not be clearer. Full width; no news or merch boxes. The boxes are the kit's stone frame, the
+   menu the kit's stone with timber buttons: the game's own UI art (kit.js sets it on :root). */
+#site {
+  position: fixed;
+  inset: 0;
+  z-index: 20; /* over the stage; under the loading screen (50) */
+  overflow-y: auto;
+  overflow-x: hidden;
+  color: var(--text);
+  font-family: var(--font-ui);
+  background: #1b1712;
+}
+
+#site .site-bg {
+  position: fixed;
+  inset: -24px; /* the blur's soft edge kept off the window */
+  z-index: 0;
+  background: #1f1b14 url("docs/images/site/staging_day_wide.png") center / cover no-repeat;
+  filter: blur(5px) brightness(0.72) saturate(1.05);
+  image-rendering: pixelated;
+}
+
+#site .site-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 30%, rgba(10, 6, 14, 0) 30%, rgba(10, 6, 14, 0.55) 100%);
+}
+
+#site > header, #site > main, #site > footer { position: relative; z-index: 1; }
+
+.site-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18px 16px 4px;
+}
+
+/* The wordmark, a placeholder until a drawn one comes: the letters stone with moss on top, the first line timber,
+   a pixel outline from stacked drop-shadows (the letters are clipped to their fill, so text-shadow would paint over
+   it), and the game's own autumn trees behind. */
+.wordmark {
+  position: relative;
+  text-align: center;
+  line-height: 0.86;
+  padding: 26px 150px 18px;
+  user-select: none;
+  filter: drop-shadow(3px 0 0 #1c1410) drop-shadow(-3px 0 0 #1c1410) drop-shadow(0 3px 0 #1c1410) drop-shadow(0 -3px 0 #1c1410) drop-shadow(0 7px 0 rgba(0, 0, 0, 0.45));
+}
+
+.wm-line {
+  position: relative;
+  z-index: 1;
+  display: block;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.wm-small {
+  font-size: clamp(24px, 4.6vw, 50px);
+  background-image: linear-gradient(#e2a35a 0 30%, #b9783a 30% 62%, #8a5527 62% 100%);
+}
+
+.wm-big {
+  font-size: clamp(58px, 12vw, 132px);
+  background-image: linear-gradient(#78a64c 0 13%, #5d8a3a 13% 19%, #ddd6c8 19% 48%, #b5ac9b 48% 74%, #8f8677 74% 100%);
+}
+
+.wm-tree {
+  position: absolute;
+  bottom: 0;
+  z-index: 0;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+.wm-tree-l { left: 0; width: 154px; }
+.wm-tree-l2 { left: 104px; bottom: 6px; width: 90px; }
+.wm-tree-r { right: 0; width: 154px; }
+.wm-tree-r2 { right: 98px; bottom: 4px; width: 110px; }
+
+/* The menu: a bar of the kit's stone, timber buttons on it, Play the big gold callout in the middle. */
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  margin-top: 6px;
+  padding: 6px 12px;
+  border: var(--kit-frame-w, 6px) solid transparent;
+  border-image-source: var(--kit-frame);
+  border-image-slice: var(--kit-frame-slice, 6) fill;
+  border-image-width: var(--kit-frame-w, 6px);
+  border-image-repeat: repeat;
+  image-rendering: pixelated;
+  background-color: #3a3530; /* until the kit is set */
+}
+
+.site-nav .kit-button {
+  font-size: 16px;
+  padding: 4px 14px;
+  color: var(--text);
+  text-decoration: none;
+  display: inline-block;
+}
+
+.site-nav .kit-button.on { color: var(--gold); border-image-source: var(--kit-button_down); }
+
+.site-nav .play {
+  font-size: 26px;
+  padding: 8px 30px;
+  margin: 0 8px;
+  color: var(--gold);
+  letter-spacing: 2px;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6), 0 0 10px rgba(232, 200, 96, 0.35);
+}
+
+/* The page: every screen out of a world is a stone box on it, wide enough to read, scrolling with the page. */
+#site-page {
+  display: flex;
+  justify-content: center;
+  padding: 18px 16px 30px;
+}
+
+#site-page .screen {
+  width: 100%;
+  max-width: 760px;
+  max-height: none;
+  overflow: visible;
+  background: rgba(22, 17, 26, 0.9);
+  border: var(--kit-frame-w, 6px) solid transparent;
+  border-radius: 0;
+  border-image-source: var(--kit-frame);
+  border-image-slice: var(--kit-frame-slice, 6);
+  border-image-width: var(--kit-frame-w, 6px);
+  border-image-repeat: repeat;
+  image-rendering: pixelated;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+#site-page .screen-wide { max-width: 760px; }
+#site-page .screen p { font-size: 15px; line-height: 1.5; color: #e6dfd0; margin: 0 0 10px; }
+#site-page .screen a, .site-foot a { color: var(--gold); }
+#site-page .about { text-align: left; }
+#site-page .about h2 { margin-top: 14px; color: var(--gold); }
+#site-page .home { max-width: 620px; padding-top: 26px; }
+#site-page .home .lead { font-size: 22px; color: var(--text); margin-bottom: 18px; }
+#site-page .small { font-size: 13px; color: var(--muted); }
+#site-page .cta {
+  font-size: 26px;
+  padding: 10px 34px;
+  margin: 4px 0 14px;
+  color: var(--gold);
+  letter-spacing: 1px;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+.site-foot {
+  padding: 0 16px 24px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+@media (max-width: 760px) {
+  .wordmark { padding: 22px 84px 12px; }
+  .wm-tree-l2, .wm-tree-r2 { display: none; }
+  .wm-tree-l, .wm-tree-r { width: 96px; }
+  .site-nav .play { order: -1; flex-basis: 100%; margin: 0 0 4px; }
+}
+
+@media (max-width: 480px) {
+  .wordmark { padding: 14px 8px 10px; }
+  .wm-tree { display: none; }
+}
