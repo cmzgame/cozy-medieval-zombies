@@ -31,7 +31,7 @@ import * as rng from "./rng.js";
 import * as world from "./world.js";
 import * as loop from "./loop.js";
 import { serializeCharacter, restoreCharacter, dress, dressCorpse } from "./entities/character.js";
-import { createPlayer, updatePlayer, updateFallen, setSleepScaleRule, damagePlayer } from "./entities/player.js";
+import { createPlayer, updatePlayer, updateFallen, setSleepScaleRule, damagePlayer, autoDrink } from "./entities/player.js";
 import { canPutDown } from "./placement.js";
 import { playAnimation } from "./sprites.js";
 import { createZombie, updateZombie } from "./entities/zombie.js";
@@ -545,6 +545,9 @@ export function step(dt, snapshots = null) {
       continue;
     }
     updatePlayer(p, dt, snap || undefined);
+    // Auto-drinking (docs/02 question 22, ruled 2026-10-16): here, in the world's step, never in updatePlayer, which a
+    // guest's prediction runs too. The word goes to whoever drank (main.js for this screen, host.js for a guest's).
+    if (autoDrink(p)) events.emit("drank", { who: p.id, auto: true });
     bleed.update(p, dt);
     // The mouse and the keys, as a snapshot, to the player's controller (docs/23a, D1; never the input module).
     // Only a player whose client is here is controlled: the draw and the combat clock are still
