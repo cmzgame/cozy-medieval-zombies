@@ -234,28 +234,101 @@ function afterWorldSet() {
   lastAutosave = loop.simTime();
 }
 
-// A new world of this browser's, with a character made from an identity (docs/31/09).
-function enterNewWorld(name, identity, { keep = true } = {}) {
-  game.create({
-    json: mapJson,
-    look: lookOf(identity),
-    name: (identity && identity.name) || null,
-    devChest: !!settings.get("devChest"),
-    combatTesting: !!settings.get("combatTesting"),
-  });
-  afterWorldSet();
-  setInWorld(true);
-  currentWorld = keep ? { worldId: save.newWorldId(), name: name || "A world", code: null, created: Date.now(), open: false, owners: { [myHash()]: S.player.id }, dormant: {} } : null;
-  started = keep;
-  screens.hide();
-  return keep ? saveWorld() : Promise.resolve(false);
+// ---- the loading screen into and out of a world (docs/38, #107; boot.js's screen) ----
+// Entering a world marks every ground chunk dirty, and the step would re-bake the whole view in one frame (about a
+// second, measured 2026-10-16). Behind the screen the view and its ring are baked two a frame instead, as boot does,
+// a lone world held still meanwhile, and the screen closes on frames that keep to the budget.
+async function settleWorld() {
+  const solo = !net.onTheWire();
+  if (solo) loop.setPaused(true);
+  try {
+    if (!glError) {
+      tiles = camera.viewportTiles(V.w, V.h);
+      const targets = ground.prebakeTargets(tiles).filter(([cx, cy]) => ground.needsBake(cx, cy));
+      for (let i = 0; i < targets.length; i++) {
+        ground.bakeNow(targets[i][0], targets[i][1]);
+        shell.worldStage("The ground round you", (i + 1) / targets.length);
+        if (i % 2 === 1) await shell.nextFrame();
+      }
+    }
+    shell.worldStage("Waking the valley", 1);
+    // The first frames drawn behind the screen (the figures' sheets, the light): two in a row under 34 ms, or thirty tried.
+    let calm = 0;
+    for (let n = 0; n < 30 && calm < 2 && !document.hidden; n++) {
+      const t = performance.now();
+      await shell.nextFrame();
+      calm = performance.now() - t < 34 ? calm + 1 : 0;
+    }
+  } finally {
+    if (solo) setPaused(!!screens.currentScreen());
+  }
+}
+
+// A guest's join under the screen, with Cancel: the stand-in world stays underneath until the welcome (docs/31/09),
+// so main.js is not restructured; the screen covers it (#107).
+function showJoining(code) {
+  shell.worldBegin(`Joining ${code}`, { cancel: cancelJoin });
+  shell.worldStage("Asking the host", 0.2);
+}
+
+function cancelJoin() {
+  if (net.isGuest()) net.leave();
+  if (net.onTheWire()) net.close();
+  setInWorld(false);
+  started = false;
+  currentWorld = null;
+  shell.worldHide();
+  screens.show("worlds");
+}
+
+// A new world of this browser's, with a character made from an identity (docs/31/09). Kept, it is made behind the
+// loading screen; a guest's stand-in (keep false) is made at once, under the joining screen.
+async function enterNewWorld(name, identity, { keep = true } = {}) {
+  if (keep) {
+    shell.worldBegin(`Making ${name || "a world"}`);
+    shell.worldStage("Waking the valley", 0);
+    await shell.nextFrame();
+  }
+  try {
+    game.create({
+      json: mapJson,
+      look: lookOf(identity),
+      name: (identity && identity.name) || null,
+      devChest: !!settings.get("devChest"),
+      combatTesting: !!settings.get("combatTesting"),
+    });
+    afterWorldSet();
+    setInWorld(true);
+    currentWorld = keep ? { worldId: save.newWorldId(), name: name || "A world", code: null, created: Date.now(), open: false, owners: { [myHash()]: S.player.id }, dormant: {} } : null;
+    started = keep;
+    screens.hide();
+    if (!keep) return false;
+    const saved = saveWorld();
+    await settleWorld();
+    return await saved;
+  } finally {
+    if (keep) await shell.worldEnd();
+  }
 }
 
 // A world of this browser's, put back, as the character this browser made there.
 async function playWorld(worldId) {
+  const row = save.listWorlds().find((r) => r.worldId === worldId);
+  shell.worldBegin(`Reading ${(row && row.name) || "the world"}`); // the loading screen (#107)
+  try {
+    return await playWorldBehindScreen(worldId);
+  } finally {
+    await shell.worldEnd();
+  }
+}
+
+async function playWorldBehindScreen(worldId) {
+  shell.worldStage("Reading the world", 0);
   const snap = await save.readWorld(worldId);
   if (!snap || snap.mapName !== MAP_NAME) return false;
   if (snap.home === "server" || snap.arriving) return false; // its one home is the server, or it is on its way here (item 5)
+  shell.worldStage("Putting the world back", 0.2);
+  await shell.nextFrame();
   await restoreWorld(snap);
   currentWorld = { worldId, name: snap.name || "A world", code: snap.code || null, created: snap.created || snap.savedAt, open: !!snap.open, owners: { ...(snap.owners || {}) }, dormant: { ...(snap.dormant || {}) } };
   reopenTries = 0;
@@ -284,6 +357,8 @@ async function playWorld(worldId) {
     screens.hide();
     showMessage(`${clock.getLabel()}. Welcome back.`, 3);
   }
+  camera.applyOrigin(V.w, V.h);
+  await settleWorld(); // before the wire opens, so a lone world is held still while its ground bakes
   // A world left open to friends is open again when it is played (Michael, 2026-10-13: it had to be switched on every time).
   if (currentWorld.open) setOpen(true);
   return true;
@@ -305,7 +380,7 @@ function respawn(identity) {
     if (!net.open({ join: code, lag: urlLag })) return false;
     started = false;
     screens.hide();
-    showMessage(`Joining ${code}…`, 4);
+    showJoining(code); // the loading screen until the welcome (#107)
     return true;
   }
   if (!inWorld) return false;
@@ -341,21 +416,29 @@ async function saveWorld(extra = {}) {
 }
 
 // Out of the world: the guests' characters dormant at once, saved if it is this browser's, the wire
-// closed, the title back.
+// closed, the title back. Behind the loading screen, which stays until the save is written (#107).
 async function leaveWorld() {
-  if (inWorld && net.isHost()) for (const id of net.guestPlayerIds()) host.dormantNow(id);
-  if (inWorld) await saveWorld();
-  if (net.isGuest()) net.leave(); // the host begins the grace at once, not at the socket's drop
-  if (net.onTheWire()) net.close();
-  setInWorld(false);
-  started = false;
-  currentWorld = null;
-  panel.closeAll();
-  stationPanel.close();
-  placement.cancel();
-  use.cancel();
-  buildPalette.close();
-  screens.show("worlds"); // the Worlds screen, as docs/31/09 says (the title was shown until 2026-10-15; Back goes there)
+  const mine = inWorld && currentWorld && !net.isGuest();
+  const name = (currentWorld && currentWorld.name) || (joinedWorld && joinedWorld.name) || "the world";
+  shell.worldBegin(mine ? `Saving ${name}` : `Leaving ${name}`);
+  shell.worldStage(mine ? "Saving the world" : "Leaving the world", 0.5);
+  try {
+    if (inWorld && net.isHost()) for (const id of net.guestPlayerIds()) host.dormantNow(id);
+    if (inWorld) await saveWorld();
+    if (net.isGuest()) net.leave(); // the host begins the grace at once, not at the socket's drop
+    if (net.onTheWire()) net.close();
+    setInWorld(false);
+    started = false;
+    currentWorld = null;
+    panel.closeAll();
+    stationPanel.close();
+    placement.cancel();
+    use.cancel();
+    buildPalette.close();
+    screens.show("worlds"); // the Worlds screen, as docs/31/09 says (the title was shown until 2026-10-15; Back goes there)
+  } finally {
+    await shell.worldEnd();
+  }
 }
 
 // ---- a world moved to the server, and brought home (item 5's fifth step, 2026-10-14) ----
@@ -550,7 +633,7 @@ function joinWorld(code, ownerKey = null) {
   if (!net.open({ join: code, lag: urlLag })) return;
   started = false; // a guest's world is the host's to save
   screens.hide();
-  showMessage(`Joining ${code}…`, 4);
+  showJoining(code); // the loading screen over the stand-in until the welcome (#107)
 }
 
 function playServer(worldId) {
@@ -1387,7 +1470,8 @@ async function boot() {
             net.setIdentity({ name: identity.name || null, look: lookOf(identity) });
             identities.rememberJoined({ code: net.status().code, myCharacter: identity.name || null });
             screens.hide();
-            showMessage(`Joining ${net.status().code} as ${identity.name || "a survivor"}…`, 4);
+            showJoining(net.status().code); // back under the loading screen (#107)
+            shell.worldStage(`Joining as ${identity.name || "a survivor"}`, 0.3);
           },
           isOpen: (code) => net.isOpen(code),
         },
@@ -1556,6 +1640,7 @@ async function boot() {
   net.setIdentity({ name: testIdentity().name || null, look: lookOf(testIdentity()) }); // the wire's identity until a join picks one
   net.init({ host: TEST_WORLD ? url.get("host") : null, join: joinCode, lag: urlLag }, {
     restore: async (snap, playerId, world) => {
+      shell.worldStage("Receiving the world", 0.4);
       await restoreWorld(snap);
       S.player = S.players.find((p) => p.id === playerId) || S.player;
       game.state.player = S.player;
@@ -1568,12 +1653,15 @@ async function boot() {
       // The bookmark learns the world's name, its host, and my character there (docs/31/09).
       // (A world of mine on the server has its own row among my worlds, item 5: not a friend's world too.)
       if (!identities.owned().some((o) => o.code === net.status().code)) identities.rememberJoined({ code: net.status().code, name: world ? world.name : null, hostName: world ? world.host : null, myCharacter: S.player.name || S.player.id });
+      // The host's world is here: its ground baked behind the screen, then the screen goes (#107).
+      await settleWorld();
+      await shell.worldEnd();
     },
     // The host's side (host.js): the joins and whose character, the saves, dormancy, stepping away, a guest's commands.
     ...host.netHooks(),
     stay: stayed,
-    // The host knows no living character of mine here: the creation steps, then joinAs.
-    who: (dead) => { screens.creationFor({ for: "join", code: net.status().code, dead }); },
+    // The host knows no living character of mine here: the creation steps, then joinAs (which brings the screen back).
+    who: (dead) => { shell.worldHide(); screens.creationFor({ for: "join", code: net.status().code, dead }); },
     joined: (id) => showMessage(`Joined as ${id}.`, 3),
     message: (text, seconds = 3) => showMessage(text, seconds),
     kick: (x, y, seconds) => camera.kick(x, y, seconds), // my own landed blow, told by the host (item 4)
@@ -1627,6 +1715,7 @@ async function boot() {
         return showMessage(note, 5);
       }
       // A guest's wire gone: out of the stand-in or the replica, the title with the reason.
+      shell.worldHide();
       setInWorld(false);
       started = false;
       currentWorld = null;
@@ -1669,6 +1758,8 @@ async function boot() {
   });
   window.addEventListener("pagehide", autosave);
   await shell.finish(); // the screen goes once the first frame is under it
+  // A test join from the URL (`?join=`) still waiting for its welcome: the joining screen over the stand-in (#107).
+  if (net.isGuest() && !joinedWorld) showJoining(net.status().code);
 
   window.__game = createDevApi({
     get player() { return S.player; },
