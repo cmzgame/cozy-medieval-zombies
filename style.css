@@ -1101,7 +1101,9 @@ html, body {
 }
 
 /* No world chosen (docs/31/09): the title over black, none of the world's interface showing. */
-#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #moodles, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #build-palette, #ui.no-world .debug-corner, #ui.no-world #debug { display: none !important; }
+#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #build-palette, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
+/* #debug is #ui's sibling in index.html, not its child, so it is reached with ~; the chat box (#log-input) is #log's
+   sibling, so it is named on its own (#16). */
 .screen h2 { font-size: 1.05em; margin: 10px 0 4px; color: #e8dcc0; }
 .rows { display: flex; flex-direction: column; gap: 6px; max-height: 46vh; overflow-y: auto; margin: 4px 0 8px; }
 .row-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 10px; background: rgba(10, 6, 14, 0.45); border: 1px solid #5a4a3a; border-radius: 4px; }
