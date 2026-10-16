@@ -3,7 +3,7 @@
 // interface is in them (the interface is DOM, never the canvas). In the game's page:
 //   http://localhost:8011/?map=staging&nosave&relay=none   (the pane sized first, e.g. 1920 by 1080)
 //   const r = await (await import("/tools/shots.js")).run(window.__game); console.log(r)
-// and, for the site's background (WebP, a tenth of the weight; copy the two to data/art/site/):
+// and, for the site's background (WebP, a tenth of the weight; copy the two to data/site/):
 //   await (await import("/tools/shots.js")).run(window.__game, (await import("/tools/shots.js")).SITE)
 // A run refuses unless the canvas is 1920 by 1080, the size the shots are named for (size the pane first).
 // Each shot stands the player at a place, sets the hour and the zoom, lets the frame
