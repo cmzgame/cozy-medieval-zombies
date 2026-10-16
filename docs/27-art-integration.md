@@ -33,12 +33,12 @@ The agent's tool cannot write under `.claude/`, and the stale `master` checkout 
 
 **Where each thing is written:**
 
-The commission for the next art: `26` (items, and the icons and portraits the character garments still owe); the characters brief (now `history/art-requests/history/art-requests/25-character-art-brief.md`) was sent and delivered, and `28`, how a character part is painted, carries its contract and says what is left. What the agent knows about its own art: `docs/art/`. What came in and when: `02-decisions.md`, newest on top. What is still owed and what is next: `TODO.md`, Status block. The rule about pairs: `CLAUDE.md` and the memory `item-art-both-versions`.
+The commission for the next art: `26` (items, and the icons and portraits the character garments still owe); the characters brief (now `history/art-requests/25-character-art-brief.md`) was sent and delivered, and `28`, how a character part is painted, carries its contract and says what is left. What the agent knows about its own art: `docs/art/`. What came in and when: `02-decisions.md`, newest on top. What is still owed and what is next: `TODO.md`, Status block. The rule about pairs: `CLAUDE.md` and the memory `item-art-both-versions`.
 
 ## C. Things that arrive later and need a ruling first
 
 - **The generators** (Python, numpy and PIL, deterministic): the character painting scripts are in the repo under `tools/art-gen/character/`; the rest (trees, ground, village, items, cursors) exist only in the agent's delivery zips, and whether they go in, and whether anything in them is ever run, is Michael's decision, never an automatic step (reading one is fine).
-- **The characters** (`history/art-requests/history/art-requests/25-character-art-brief.md`; the painting rules and the contract, `28`): the engine pieces are built (the slicer, the `beard` and `waist` slots, the covers rules, hair dyeing; `23` step 3a), the body is the rig's and is never drawn, and the six hairs are installed; what is left is landing the garments, hats, and the knight as items (`02`, 2026-10-13), engine and data work, not a ruling.
+- **The characters** (`history/art-requests/25-character-art-brief.md`; the painting rules and the contract, `28`): the engine pieces are built (the slicer, the `beard` and `waist` slots, the covers rules, hair dyeing; `23` step 3a), the body is the rig's and is never drawn, and the six hairs are installed; what is left is landing the garments, hats, and the knight as items (`02`, 2026-10-13), engine and data work, not a ruling.
 - **The stubs and the willow:** drawn, in Michael's downloads, not in the repo (`docs/art/11`); each needs a ruling (stubs only if translucent walls draw complaints; the willow a definition and a shadow width) before import.
 
 ## D. Corrections owed to `docs/art` (the docs pass of 2026-10-13)

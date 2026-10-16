@@ -1,6 +1,6 @@
 # 28 — Painting for the slicer: the rules for the design agent
 
-**Status, 2026-10-16: the one artist-facing page, written 2026-10-12 with the slicer (`tools/slice.html`, `23` step 3a), the night the body was ruled final (`02`, "We have a body"); the contract the characters brief fixed is folded in below, and the brief itself, with what it asked for and what came back, is `history/art-requests/history/art-requests/25-character-art-brief.md`. Hand this page to the design agent whole: it says what the engine does with a painting, so the painting is made the way the engine can take it.**
+**Status, 2026-10-16: the one artist-facing page, written 2026-10-12 with the slicer (`tools/slice.html`, `23` step 3a), the night the body was ruled final (`02`, "We have a body"); the contract the characters brief fixed is folded in below, and the brief itself, with what it asked for and what came back, is `history/art-requests/25-character-art-brief.md`. Hand this page to the design agent whole: it says what the engine does with a painting, so the painting is made the way the engine can take it.**
 
 ## What the engine is, in four sentences
 
