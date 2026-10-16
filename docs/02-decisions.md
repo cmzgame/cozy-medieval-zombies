@@ -83,7 +83,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The character, the figure, and art
 
-- The weeping willow is cut; the art generators are to be archived in tools/art-gen, never run (2026-10-16, The needs-michael queue)
+- The weeping willow is cut; the art generators are to be archived in tools/art-gen, never run without Michael (2026-10-16, The needs-michael queue)
 - Throwables and consumables usually stack, case by case; one-offs like the Book and Staff of Fire never do (2026-10-16, The needs-michael queue)
 - A waterskin carried, belt or bag, sips by itself at Thirsty, the emptiest first, never mid-fight (2026-10-16, Auto-drinking)
 - Cute wins over grim; the dead are drawn like everyone else (2026-10-08, The project exists)
