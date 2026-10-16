@@ -1,4 +1,4 @@
-// Line of sight over the edge-wall map. See docs/03-world-model.md, "Visibility".
+// Line of sight over the edge-wall map. See docs/history/03-world-model-plan.md, "Rendering with a camera" (the Visibility bullet; moved by the sweep, 2026-10-16).
 //
 // A ray from one tile centre to another is walked edge by edge (Amanatides and
 // Woo grid traversal). It is blocked by an opaque wall on any edge it crosses and
