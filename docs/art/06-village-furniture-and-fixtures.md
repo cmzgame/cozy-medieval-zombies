@@ -1,6 +1,6 @@
 # Art 06: Furniture, fixtures, pumpkins
 
-**Status: in the game** (2026-10-11). Files in `data/art/village/`. Plumbing is `17-village-art-plumbing.md`. Written 2026-10-12.
+**Status: in the game** (2026-10-11). Files in `data/art/village/`. Plumbing is `history/17-village-art-build.md`. Written 2026-10-12.
 
 All furniture is **outlined all the way round** (`#2b2522`) because the player uses it. Long sides run along world Y (`/` on screen); one drawing covers both orientations by mirroring, except where noted. Anchors are the tile's top vertex at ground level of the footprint's top tile (`anchors_furniture.json`).
 

@@ -1,3 +1,9 @@
+# Art 11: Open items, loose ends, and how to work with the art agent (as of 2026-10-12)
+
+**What this is:** `docs/art/11-open-items-and-lessons.md` whole, the design agent's punch list, its decisions waiting on Michael, its note on the generators, and its working notes; moved here by the sweep, 2026-10-16, and never edited after. The live text: `docs/art/README.md` (where the art is, what is not in the repository) and `docs/art/01-style-bible.md` (the rules); the art still owed is `docs/26`; how a delivery comes in is `docs/27`; the open decisions (the stack limits, the icon sizes, the willow, the generators) and the single-copy art are `art` issues.
+
+---
+
 # Art 11: Open items, loose ends, and how to work with the art agent
 
 Written 2026-10-12. The punch list across all art, then the working notes that make the next delivery smoother.

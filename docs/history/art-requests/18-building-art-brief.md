@@ -1,3 +1,5 @@
+> **A record, moved whole by the sweep, 2026-10-16.** The brief for the building pieces (the log wall set, the board overlays, the placement previews; 2026-10-11), delivered the same day in `village_art(1)`. It came from `docs/18-building-art-brief.md`, unchanged below this banner, and nothing stays at that path; the live text is `docs/sprite-definitions.md` and `docs/art/05`; the placement previews were never copied into the repo.
+
 # 18 — Art brief for Claude Design: building pieces
 
 **Delivered and in the game (2026-10-11).** The log walls, the board overlays, and the far-side leaves came back in `village_art(1)` and are built (`17`, steps 2 and 3). Kept as the record. **Status, 2026-10-13:** nothing from this brief is owed; the placement previews were not copied into the repo.

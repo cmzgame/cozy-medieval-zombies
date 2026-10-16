@@ -1,10 +1,22 @@
 # 28 — Painting for the slicer: the rules for the design agent
 
-**Status: written 2026-10-12 with the slicer (`tools/slice.html`, `23` step 3a), the night the body was ruled final (`02`, "We have a body"). This is the page to hand the design agent, whole. It says what the engine does with a painting, so the painting is made the way the engine can take it. The brief for what to draw is `25`; this is how to draw it so it goes in.**
+**Status, 2026-10-16: the one artist-facing page, written 2026-10-12 with the slicer (`tools/slice.html`, `23` step 3a), the night the body was ruled final (`02`, "We have a body"); the contract the characters brief fixed is folded in below, and the brief itself, with what it asked for and what came back, is `history/art-requests/25-character-art-brief.md`. Hand this page to the design agent whole: it says what the engine does with a painting, so the painting is made the way the engine can take it.**
 
 ## What the engine is, in four sentences
 
 The character is not a set of sprites. It is a small **rig**: a body described in numbers, posed by joints, projected into eight facings, and rasterised at boot into every frame of every animation. What you paint are **parts** of a garment (or of hair, a hat, a beard, a belt), pinned to the rig's joints in the rest pose, and the rig carries your pixels through every walk, swing, and fall by turning and scaling them along the limb they belong to. You never draw a frame, a pose, or a second angle of the same part: one drawing per part per facing, in the rest pose, and the game animates it.
+
+## The contract: what the engine fixes
+
+What the characters brief (`25`, 2026-10-12) fixed, as it stands:
+
+- **Frame:** 48 by 72 world pixels, feet anchor at (24, 66). The body is about 26 wide and 55 tall with hair; the head about two fifths of the height, the shoulders no wider than the head. Room above the head is for a raised weapon or a hat's nub; nothing is drawn below the feet line.
+- **Eight facings:** `s, sw, w, nw, n, ne, e, se`, all drawn by the game. An artist may deliver five (`s, sw, w, nw, n`) and the game mirrors the other three, except for anything asymmetric (a pouch on one hip, a satchel strap, a side-swept fringe), which needs all eight or it will flip sides.
+- **The rig animates; the artist does not draw animation.** A part is painted in the rest pose, once per facing, relative to its anchor, and the rig carries it through every animation, so a garment is stiff: nothing flaps or sways on its own. The parts: head (neck to crown), torso (hips to shoulders), left and right arm (shoulder to hand, one outlined shape with no drawn elbow; **since 2026-10-15 the game bends an arm at its elbow, the middle of the segment, the template's blue mark**, carrying the half nearer the shoulder with the upper arm and the rest with the forearm, so an arm is still painted straight, once), left and right leg (hip to foot) with the feet. The template is `tools/template.html`, "Download all five".
+- **The body is the rig's, never drawn** (Michael, 2026-10-12; `02`, "The body stays the rig's"): the skin is a ramp of eight tones for the living and three for the dead (`data/looks.json`), chosen, not painted; **the eyes are the generated ones, whites 3 by 5 with a 2 by 3 dyeable pupil; no mouth and no nose, ever: the face is the eyes alone**, and a beard sits on the face without a mouth line.
+- **Colour is data, not art:** every garment and hair is drawn in two tones plus the outline, a base and a shadow, and the game dyes by replacing the tones (`19`, the dyed entry), so one drawing in a canonical colour gives every colour in the palette; the artist draws shapes, never colourways.
+- **The outline colour is by kind:** a character part's outline, where it stands off the body, is the figure's own `#1a1420` (`src/figure/rig.js`); props and items carry `#2b2522` (`docs/art/01`, `sprite-definitions.md`). Both are right; a painted garment uses the first, and one dark outline per body part, never per garment ("no Michelin rolls").
+- **The dead** use the same body and the same garments: a skin tone from the dead's ramp, a wound layer, and a drab dye; nothing is drawn twice for them.
 
 ## The template, and the file you deliver
 

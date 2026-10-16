@@ -1,5 +1,7 @@
 # 29.06 — The forest
 
+**Status, 2026-10-16: not built; `30`'s step 6, the forest places, one a session** (the woodcutters, the witch, the quarry, the charcoal burners, the iron workings, the hunter's lodge, the bandit camp, then the hooks, the barrow first). Nothing of this page is in the valley: the forest round the village is the scatter alone, and no clearing, place, or path below is placed. Michael's rulings that touch it (`02`, 2026-10-12): the willow's eyes are cut (the plain willow stands at the mere), fishing is later with the waters placed as if yes, deer come with the animals (step 8). The engine's side is `30`, section 12, under step 6 (mining, the dead placed down and rising, containers on trees and stacks, authored decals); the art is `09`, requests 2.3 and 3.2. Multiplayer is live (`31/08`): each place is data, and a stack that gives, a clamp that smokes, or a watcher that turns is built for a guest in the same commit.
+
 ## The forest as a place
 
 Michael's first rulings on the forest still stand (`02`, 2026-10-09): more forest than plains, big trees that overlap, density that wanders from thicket to one tree in six, trunks that block and canopies that do not, and a wood you can lose the dead in. This plan does not change the scatter; it gives the scatter a shape and puts things in it.
@@ -24,7 +26,7 @@ A clearing with three **tents** (2 by 2 props, each a container: a bedroll, stol
 
 ### The quarry (north-east, up the track from the weir)
 
-A **cliff face** on three sides (a new wall material, `wall_cliff`: a rock face, 128 px tall, opaque, no openings, built as edges like any wall, so the quarry is a room with no roof and one way in), a floor of bare rock and rubble (a new earth kind, `rubble`, or `ground_rock`), **cut stone** stacked in blocks (containers: the stone item of `13`'s pinned stone wall), **mineable rocks** in quantity (the four drawn rocks; mining is `02` question 27's open half: the pickaxe hits a rock, the rock gives stone and goes, or stays), a crane (a tall prop: a post with a jib and a rope), a quarryman's hut (one room: a pickaxe, a hammer, wedges, a bed), a flooded pit (a 4 by 4 water in the rock), a wheelbarrow (the immovable crate of `22`, here it is movable in spirit only). **Earns its place:** stone, the material stone walls wait for; the only cliffs on the map.
+A **cliff face** on three sides (a new wall material, `wall_cliff`: a rock face, 128 px tall, opaque, no openings, built as edges like any wall, so the quarry is a room with no roof and one way in), a floor of bare rock and rubble (a new earth kind, `rubble`, or `ground_rock`), **cut stone** stacked in blocks (containers: the stone item of `13`'s pinned stone wall), **mineable rocks** in quantity (the four drawn rocks; mining is `02` question 27's open half: the pickaxe hits a rock, the rock gives stone and goes, or stays), a crane (a tall prop: a post with a jib and a rope), a quarryman's hut (one room: a pickaxe, a hammer, wedges, a bed), a flooded pit (a 4 by 4 water in the rock), a wheelbarrow (carried on the head like a barrel since 2026-10-15, `data/sprites/wheelbarrow.json`). **Earns its place:** stone, the material stone walls wait for; the only cliffs on the map.
 
 ### The hermitage (north-east, between the quarry and the castle)
 
