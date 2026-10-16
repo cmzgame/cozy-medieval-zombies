@@ -1,6 +1,6 @@
 # 38 — The menus and the site: a game menu, not a modal over a game
 
-**Status, 2026-10-16: scoped, and partly ruled (#16). Not built.** Michael answered the nine questions the same day (`02`, "The menus and the site"): **ruled** Q1 (a still placeholder picture), Q4 (the loading screen), Q5 (Settings in tabs, and the world's rules into each world now), Q6 (switches and dropdowns), Q7 (a Testing tab), Q9 (two websites: the game's, all one with the game for now, and the wiki); **Q2 ruled in part** (out of a world, a full-page website in the game's art, never a box; terraria.org the model) **with the look itself, Q3, and Q8 open**, to be settled with Michael's screenshots. Each question below carries its answer. The two fixes found while scoping are pull request #80. Read `CLAUDE.md` first.
+**Status, 2026-10-16: scoped, and partly ruled (#16). Not built.** Michael answered the nine questions the same day (`02`, "The menus and the site"): **ruled** Q1 (a still placeholder picture), Q4 (the loading screen), Q5 (Settings in tabs, and the world's rules into each world now), Q6 (switches and dropdowns), Q7 (a Testing tab), Q9 (two websites: the game's, all one with the game for now, and the wiki); **Q2 ruled** the same evening from Michael's two references (terraria.org and Old School RuneScape's front page): out of a world is the game's website, art infused but usable first; Worlds, Identities, creation, and Settings are its pages; PLAY crosses into the game, which fills the window, and Exit game saves and comes back. **Q3 and Q8 follow from it as defaults** (below), Michael's to overrule. Each question below carries its answer. The two fixes found while scoping are pull request #80. Read `CLAUDE.md` first.
 
 ## What it is
 
@@ -66,13 +66,13 @@ Screenshots from the pane at 1024 by 768 (`images/38-the-menus-and-the-site/`). 
 - (b) **Full-screen pages** out of a world: the name as a wordmark at the top over the backdrop, a column of timber buttons down one side (Worlds, Identities, Settings, Controls, Wiki), and the chosen page's content in a dark panel beside it, the way Zomboid and Minecraft lay out their menus. In a world, the screens stay boxes over the dimmed world, as today.
 - (c) Put the out-of-world pages on the stone kit.
 
-**Ruled 2026-10-16, in part:** out of a world, a full-page website, and the box goes; game art, and UI art that looks like the game's without being literal game assets; terraria.org probably the model. The look, and how far it reaches into the screens in a world, are open until Michael's screenshots. Recommended was (b): the difference in layout is itself the line between in a world and out of one: a page that fills the window means no world, a box over a dimmed world means a world is running. It keeps the dark panel and the timber buttons, so the stone ruling holds for everything it was about; only the out-of-world screens change shape.
+**Ruled 2026-10-16, in part:** out of a world, a full-page website, and the box goes; game art, and UI art that looks like the game's without being literal game assets; terraria.org probably the model. **The look, ruled the same evening from Michael's two references** (terraria.org and Old School RuneScape's front page; `02` has the whole of it): a wordmark of art that could be the game's; a textured menu with PLAY the big callout and WIKI on it; slightly blurred real screenshots of the game behind, perhaps from a map made to stage them; content boxes styled from the game (its stone), never a generic dark theme; full width, never a strip on black; no news or merch boxes. PLAY loads the game filling the window; Exit game saves and goes back to the site. Recommended was (b): the difference in layout is itself the line between in a world and out of one: a page that fills the window means no world, a box over a dimmed world means a world is running. It keeps the dark panel and the timber buttons, so the stone ruling holds for everything it was about; only the out-of-world screens change shape.
 
 **Q3. How is "in a world" marked?**
 - (a) As now: the world at half dim behind any screen.
 - (b) A world behind a screen always shows dimmed and never fully covered; a full-screen page never appears over a world; the debug corner sits under the screens; the pause menu names the world and the character at its top, as now, in larger type.
 
-**Open, with Q2.** Recommended: (b). Problem 6 is fixed here, and the rule is simple enough for every later screen to keep.
+**Default, from Q2's answer:** in a world the game's own screens (pause, dead, character, the game's Settings) stay over the world drawn, and Leave world becomes Exit game, which saves and goes back to the site. Recommended was (b). Problem 6 is fixed here, and the rule is simple enough for every later screen to keep.
 
 **Q4. A screen for entering and leaving a world?**
 - (a) None; the world appears.
@@ -105,7 +105,7 @@ Screenshots from the pane at 1024 by 768 (`images/38-the-menus-and-the-site/`). 
 - The server's screens: one plain sentence each on what the key is and who has it; [unchanged in what they do].
 - The identity editor: "Reload hair" moves to the Testing tab.
 - Controls: grouped (Moving, Fighting, Building, Your things, Talking, Testing), the duplicate R written once as "R: turn what you place or drag".
-- **Open, with Q2.** Recommended: all of the above, as one issue; nothing in it changes what a screen does.
+- **Default, from Q2's answer:** all of the above, as the site's pages in the new look. Recommended: all of the above, as one issue; nothing in it changes what a screen does.
 
 **Q9. The wiki, and "the site".**
 - The wiki (`cmzgame.github.io/cmz-wiki`) opens in a new tab from a Wiki button on the title's column and a line at the foot of Controls. [Not in the pause menu.]
@@ -120,9 +120,9 @@ Each step is a pull request, verified in the pane through `window.__game` with `
 2. **Entering and leaving** (Q4, ruled): the loading screen for a world, a guest's join covered until the welcome, leaving saved behind "Saving …". Tried with a guest in two tabs (`?nosave&relay=none`), `check("sync")` passing.
 3. **Settings as switches and dropdowns in tabs** (Q5, Q6, Q7, ruled): the registry in `settings.js`, Display and Testing tabs generated from it, a line of explanation per row.
 4. **The world's rules in the world** (Q5, ruled): the Sandbox step of New world, the host's rules from the pause menu, the simulation reading the world's own (`rules.setSource`), the save checked for whether its version moves (`needs-michael` if it does). Tried with a guest: the rules shown as the host's and locked; `check("sync")`.
-5. **The backdrop** (Q1, ruled): the generated placeholder picture as a sprite definition, Michael's painting its replacement.
-6. **The game's site** (Q2, Q9; waits for the look): the full-page website out of a world, a splash page, about the game, Play prominent, the wiki prominent; the title, Worlds, Identities, the identity editor, New world, Join, and creation as its pages.
-7. **In a world, and the screens explained** (Q3, Q8; wait for the look).
+5. **The staging map and the screenshots** (Q1, Q2): a small map made only for pictures (an isolated cabin, the well, the autumn trees, flowers; `tools/mapgen/`), screenshots of it taken in the pane with no interface, kept as the site's background art; until the wordmark and the boxes are drawn, generated placeholders through the sprite interface stand in.
+6. **The site** (Q2, Q9): full width; the wordmark; the textured menu with PLAY its callout, WIKI, and the rest; the blurred background; boxes styled from the game's stone; the splash and About pages; Worlds, Identities, the identity editor, creation, and Settings as its pages (Q8's content). The site paints at once while the game's art loads behind it.
+7. **The crossing** (Q3): PLAY into a world through the loading screen, the game filling the window; Exit game on the pause menu and the dead screen, saving and back to the site; the game's own screens over the world drawn; Fullscreen in Settings.
 
 ## The guest's side
 
