@@ -14,7 +14,7 @@ A cute isometric medieval village, in the Habbo / early-2000s pixel style, overr
 
 ## Docs
 
-`docs/00` the vision and the laws · `docs/02` the rulings and their reasons · `docs/README.md` the index of everything else · `docs/testing.md` the instruments and the pane's quirks · the code: `src/CLAUDE.md`, `server/CLAUDE.md`, `tools/CLAUDE.md` (loaded when you work there; the engine's own rules are at the top of `src/CLAUDE.md`).
+`docs/00` the vision and the laws · `docs/02` the rulings and their reasons · `docs/README.md` the index of everything else · `docs/testing.md` the instruments and the pane's quirks · `docs/sprite-definitions.md` the sprite loader's field reference · the code: `src/CLAUDE.md`, `server/CLAUDE.md`, `tools/CLAUDE.md` (loaded when you work there; the engine's own rules are at the top of `src/CLAUDE.md`).
 
 ## The laws of the design
 
