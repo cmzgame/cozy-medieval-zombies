@@ -1603,9 +1603,9 @@ html, body {
   position: fixed;
   inset: -24px; /* the blur's soft edge kept off the window */
   z-index: 0;
-  /* The staging shot at half size (data/art/site, tools/shots.js SITE): blurred, it loses nothing, and it weighs a tenth
+  /* The staging shot at half size (data/site, tools/shots.js SITE): blurred, it loses nothing, and it weighs a tenth
      of the sharp PNG, which stays in docs/images/site. The path is plain: the site paints before the manifest's stamps. */
-  background: #1f1b14 url("data/art/site/staging_day_wide.webp") center / cover no-repeat;
+  background: #1f1b14 url("data/site/staging_day_wide.webp") center / cover no-repeat;
   filter: blur(5px) brightness(0.72) saturate(1.05);
 }
 
