@@ -1,12 +1,12 @@
 # 29.04 — The village
 
-**Status, 2026-10-13: built in step 1 of `30`** from this plan, through the generator: 20 places, 25 buildings, 43 rooms, 40 of the dead, 7 villagers (`30`, "Step 1 as built"). Not built from this page: the mill (step 4), the tannery (cut until the animals bring it back), the rising (the graveyard's eight stand), signs, carpets, wall props, decals, and every low wall and hedge, which are `wall_fence` until drawn; the furniture and stations without art are labelled boxes.
+**Status, 2026-10-16: built in step 1 of `30`** from this plan, through the generator (`tools/mapgen/valley.py`): twenty sets, 25 buildings, 43 rooms on the day it was built and 45 with every chunk grown on 2026-10-16 (`map.roomCount()`), 40 of the dead, 7 villagers (the record of the build is `docs/history/30-as-built.md`, step 1). This page stays as the record the generator was written from; where its counts and the build differ, the build is right, and the note over the table at the end says how. Not built from this page: the mill (step 4), the tannery (cut until the animals bring it back), the rising (the graveyard's eight stand), signs, carpets, wall props, decals, and every low wall and hedge, which are `wall_fence` until drawn; the furniture and stations without art are labelled boxes. Your cottage (`07`'s option A, built in step 0) is the section after the cottages.
 
 Working name: none yet; Michael names it. On the west bank, about 64 by 80 tiles, from the graveyard at the top to the cottages at the bottom, the river on its east. Every building has at least two rooms unless it is a shed, and most have a yard, because a village of square one-room boxes was the one thing the brief forbade.
 
 ## The plan
 
-One character is two by two tiles; the top-left is world (56, 84). `=` cobble, `-` dirt, `~` the river, `+` the bridge, `W` the well, `,` the green, `o` the duck pond, `g` the graveyard, `C` the chapel, `p` the priest's house, `M` the manor, `N` the merchant's house, `I` the inn, `S` the smithy, `J` the joiner, `V` the weaver, `K` the baker, `t` the toll house, `c` cottages, `P` the player's cottage (option A in `07`). The mill is north of this plan, on the river at (108, 54).
+One character is two by two tiles; the top-left is world (56, 84). `=` cobble, `-` dirt, `~` the river, `+` the bridge, `W` the well, `,` the green, `o` the duck pond, `g` the graveyard, `C` the chapel, `p` the priest's house, `M` the manor, `N` the merchant's house, `I` the inn, `S` the smithy, `J` the joiner, `V` the weaver, `K` the baker, `t` the toll house, `c` cottages, `P` the player's cottage (`07`'s option A, folded in below as "Your cottage"). The mill is north of this plan, on the river at (108, 54).
 
 ```
      0       16      32      48
@@ -97,6 +97,12 @@ Eight, in three plans so they do not repeat, each with a garden strip (a 3 by 4 
 
 The **toll house** by the bridge is a one-room cottage with a barrier across the road (a `wall_fence` gate: the first gate the dead find shut), a lantern, and a strongbox of pennies. The toll keeper is dead on the bridge.
 
+## Your cottage
+
+Built in step 0 of `30` (`02`, 2026-10-12: the end cottage is the home): the last cottage before the south lane leaves the village for Hollow Farm, on the plan's `P` block at (98, 212): a living room and a bedroom through a partition, a hearth, a table and two chairs, a bed, two chests and a shelf, a plot of potatoes and cabbages at mixed stages, its own well (the only cottage with one; the reason it is yours), a barrel and a woodpile, a fence with two gates on the lane; the spawn is the bedroom at (104, 216), 08:00 on day one. It is Stardew's start (a small house, a plot, a village a minute away) and Zomboid's (a door to board, a window to shutter, the dead a street away), thirty tiles from the square, forty from the farm, sixty from the bridge. Not built: the pumpkin by the door, the herb bed, the privy, the lean-to (the first place for a workbench), and the home chest's fixed kit (the hatchet, three planks, a bandage, seeds of the garden's two crops; the chests open with the chest's loot). The developer chest is a setting placed by the spawn (`devChest`, on while in development), not a thing on the map.
+
+The two homes the plan offered instead stay as the places a player discovers they could move to: **the toll house by the bridge** (one room, a barrier across the road, the castle in view: the most Zomboid start, whose first fight at the bridge's knot would come before the first harvest) and **the croft across the ford** (`05`: the safest base, the reward of understanding the river, and the shepherd lives there). The next survivor after a death arrives beside the spawn for now (`31/09`, New character), not at either or at the inn (`30`, 3.5). The lane's neighbours are built as the plan had them: one cottage with its door kicked in, one shut with a neighbour inside who will not open ("Go away."), and the reeve's house at the green's corner with the old reeve alive. The page this came from, with the first ten minutes the map should offer, is `docs/history/29-world-ideation.md`.
+
 ## Dressing the village
 
 - The dead: a dozen on the streets and the square, a knot of six at the bridge's village end against the toll gate, the graveyard's eight rising, the smith at his anvil, the baker, the traders at their stalls, the merchant and his wife, the toll keeper. In the clothes of their trades (aprons, the baker's cap, the merchant's finery: wardrobes).
@@ -106,6 +112,8 @@ The **toll house** by the bridge is a one-room cottage with a barrier across the
 - Authored decals: cobble worn to dirt in front of the smithy and the inn; straw outside the stable; a trail of dropped apples from an overturned basket at the stalls; cart ruts on the high street beyond the cobble's end.
 
 ## A count
+
+The plan's count, as written before the build. As built (step 1; `docs/history/30-as-built.md`): twenty sets, 25 buildings, 43 rooms on the day (45 with every chunk grown on 2026-10-16, `map.roomCount()`), 295 props, with the mill (step 4) and the tannery (cut) not among them; the inn, the manor, and the merchant's house were generated with fewer rooms than the rows below give them, and the generator's buildings are its rects (the inn, the merchant's house, the joiner, the smithy, and the chandler's house are two each; the crypt and the priest's house stand alone), so neither column below matches the build. The stations placed are the workbench, the anvil and forge, the oven, the loom, and the dye vats, as labelled boxes; the millstones wait for the mill.
 
 | | Buildings | Rooms | Stations | Containers (about) |
 |---|---|---|---|---|

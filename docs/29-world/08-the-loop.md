@@ -1,28 +1,8 @@
 # 29.08 — The loop: what there is to do, and where
 
-The brief: the 1.0 map must be fairly dense with stuff to do, because quests, story, and distant travel come after it. Density here means three things on every screen: **something to gather, something to open, and something to look at**; and across the map, **every resource the big pass (`22`) and the combat docs name has a place it comes from**, so the loop closes without a vendor.
+**Status, 2026-10-16: the two tables and the cast are the live part of this page.** "Where every resource comes from" is what `30`, section 1, cites as the proof the loop closes without a vendor. "Where the dead are" is what step 1 placed in the village (forty authored: the square, the streets, the toll gate's knot, the castle end, the graveyard's eight, the trades, the nobles, the cottages); the rest wait for their places. "Who is alive" names fourteen villagers, of whom seven are placed with their lines and seven wait for the mill, the mere, the croft, the camp, and the lodge. The argument for density (the rule of three per screen), the fishing option (ruled later; `02`, 2026-10-12), and the counts of the whole are in `docs/history/29-world-ideation.md`.
 
-## The rule of three, per screen
-
-At the wide zoom a screen is roughly a 30 by 30 block of tiles. The plan's places are laid so that no such block inside the bounds is empty of all three:
-
-| Block | Gather | Open | Look at |
-|---|---|---|---|
-| the village square | the well; the stalls' apples | the stalls, the inn | the dead traders, the market cross, the notice board |
-| the green and your lane | your garden, the woodpiles, the pond's reeds | the cottages, the reeve's house | the pond, the willow, the stocks, the maypole |
-| the chapel end | the graveyard's herbs? no: the yew's sticks; the crypt | the crypt's coffins, the vestry | the rising, the lychgate, the bell tower |
-| the trades | the joiner's stacks, the baker's loaves | every workshop | the signs, the forge, the loom |
-| the nobles | the manor's beehives (later), the fish pond | the storehouse, the strongbox | carpets, tapestries, the knot garden |
-| the bridge | the river (water) | the toll house, the cart on the bridge | the castle over the water, the knot of the dead |
-| the castle's bailey | the well, the herb garden | the kitchens, the barracks | the walls, the banners, the maze |
-| the keep | the feast | the chests, the racks, the study | the hall, the dragon skull, the scorched floor |
-| Hollow Farm's yard | the orchard, the fields, the hen house | the barn, the farmhouse, the granary | the pumpkin field, the dovecote, the pond |
-| Long Acre | the rye, the flax | the barn, the mill | the wheel, the weir, the brook |
-| the mere | herbs, mushrooms, berries | the witch's jars, the boat | the willow with eyes, the shrine |
-| each forest place | sticks, mushrooms, brambles, a hollow tree | its huts and stacks | its one strange thing |
-| the forest between | sticks, mushrooms, logs by felling | a hollow tree one giant in five | the trees, the light, the dead among them |
-
-The forest between places is the one kind of block that leans on the scatter alone, and the scatter already fills it (sticks, mushrooms, rocks, leaves); the hollow-tree container and the bramble are the two additions that make a walk through it pay.
+The brief: the 1.0 map must be fairly dense with stuff to do, because quests, story, and distant travel come after it. Density here means three things on every screen: **something to gather, something to open, and something to look at**; and across the map, **every resource the big pass (`30`) and the combat docs name has a place it comes from**, so the loop closes without a vendor.
 
 ## Where every resource comes from
 
@@ -57,12 +37,12 @@ Every item or material the docs name, and the places on this map that supply it.
 | clothes and dyes | **the weaver and the dye vats**; the lady's chest; the merchant's storehouse; every corpse |
 | candles and lamp oil | the chandler's lean-to; the chapel; the merchant |
 | coin | the treasury; the toll house; the strongboxes; the tinker's cart |
-| books | the ledger (the solar), the book of hours (the castle chapel), the hermit's prayers, the witch's receipts (a recipe book, if recipes are learned: `22` Q2) |
+| books | the ledger (the solar), the book of hours (the castle chapel), the hermit's prayers, the witch's receipts (a recipe book, as flavour: every recipe is known from the start, `30` section 6) |
 | keys | the dead steward (the hall), the jailer (the dungeon), the reeve |
 | beds to sleep in | yours; **the inn's three rooms**; the manor's; the barracks; the croft |
 | stations | the smith's anvil (the village smithy, the castle's); the workbench (the joiner); the loom and the dye vats (the weaver); the ovens (the baker, the castle, the inn); the millstones (the mill); the cauldron (the witch); the cooking hearths (the inn, the castle, Hollow's kitchen); the cider press (the orchard); the smoking rack (the hunter) |
 
-The table is the map's proof that `22`'s loop closes: every station has a home, every material has a source, and the good things are behind the dead.
+The table is the map's proof that `30`'s loop closes: every station has a home, every material has a source, and the good things are behind the dead.
 
 ## Where the dead are
 
@@ -91,6 +71,8 @@ The dead's distribution is the map's difficulty curve: the west bank is a dozen 
 
 `04` says a handful, six to ten; the atlas today holds about seventeen more distinct outfits (`19`). The plan places fourteen named villagers and marks the six that matter first. All of them idle and wander on a tether today; "follow", "stay", and routines are `04`'s next pass, and each one's job below is written for that pass.
 
+Built: seven of the fourteen are placed, with their lines (`tools/mapgen/valley.py`): the innkeeper, the guest, the child, the priest, the reeve, the apprentice, and the neighbour. The miller, the witch, the shepherd, the two woodcutters, the hunter, and the prisoner wait for their places (`30`, steps 4 and 6).
+
 | Villager | Where | Core | Job for the routines pass; a first line |
 |---|---|---|---|
 | **the innkeeper** | the inn's taproom | yes | behind the bar by day, bars the door at dusk; "Shut that behind you." |
@@ -108,25 +90,3 @@ The dead's distribution is the map's difficulty curve: the west bank is a dozen 
 | the bandits' prisoner | the cage | | freed when following exists; "Thank you. Now what." |
 
 Fourteen is more than `04`'s handful; the six core ones are the handful, and the rest are the places' reasons to be alive. A villager who dies turns in their clothes (`19`), so each of them is also a future zombie with a story.
-
-## Fishing, an option
-
-Not in any doc. The river, the brook, the mere, the millpond, and two ponds are on the map; a **fishing rod** (a tool, held in both hands), a cast at any water tile beside you (a timed action with the bar), a catch rolled from a table per water (trout in the river, pike in the mere, carp in the manor's pond), a **fish** item that cooks and a **bones** item that fertilises. The cosiest loop Stardew has that this game lacks, and the sibling never had. Cheap on the engine (an action, a table, two items, held art); it is proposed, not planned, and sits in `11`'s questions.
-
-## Counting the whole
-
-| | Count |
-|---|---|
-| authored tiles | 65,536 (256 by 256) |
-| buildings with rooms | about 46 (the castle 12, the village 23, the farms 8, the forest 9, minus the cut list) |
-| rooms | about 110 |
-| stations | 12 kinds, 18 placed |
-| fields and plots | 17, about 1,400 tiles of farm soil |
-| containers | about 260 (the castle 70, the village 110, the farms 40, the forest 40) |
-| named villagers | 14 (6 core) |
-| the authored dead | about 120 |
-| crossings | 6 (the stone bridge, the footbridge, the ford, the weir, the drawbridge, the postern) |
-| still waters | 5 and a moat |
-| roads | 9 named, about 900 tiles of road |
-| new crops | 7 (turnip, wheat, beans, hops, flax, onion, carrot) and 4 herbs |
-| new trees | 3 (apple, the dead tree, the willow in from the shelf) |
