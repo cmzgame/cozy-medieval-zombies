@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- A hand-authored world with procedural filling of the spaces it leaves empty: a direction, not a wall (2026-10-16, The four lines of 00-vision.md, ruled)
 - One continuous map with real line of sight; chunks, rooms by flood fill, never authored (2026-10-08, The project exists)
 - Fire and resources are the economy; nothing shuts off on a timer; farming is load-bearing (2026-10-08, The project exists)
 - Villagers are killable, carry no weapons, never fight for the player; they flee, follow, and stay (2026-10-08, The project exists)
@@ -134,6 +135,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Process and the studio
 
+- 00-vision's "What it is not" gains no new laws; a limit the game needs is a ruling here with its reason (2026-10-16, The four lines of 00-vision.md, ruled)
 - A new project, not a rewrite of either parent; new game, new gospel (2026-10-08, The project exists)
 - The engine upgrade before more features; small verified moves; nothing in `data/` reformatted (2026-10-12, The engine upgrade is the next task)
 - A split of a drawing module is proved by the sheets and the frame hashing the same (2026-10-12, Step 2 of `23` done)
@@ -167,6 +169,15 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-16 — The four lines of `00-vision.md`, ruled; and no more laws about what the game is not (Michael)
+
+The sweep redrafted the four lines of `00` that read single-player or against the generated map (flagged 2026-10-13; the drafts in #83). Michael's rulings on them, in his words where it matters:
+
+1. **"Not Zomboid with cute art" stands.** "It is in fact not Zomboid with cute art, and that is intentional." He wants a place on the wiki for the Zomboid things the game swears off, to add to as he plays ("thank god this is not a thing in my game"): a delineator, not a rule here.
+2. **"Not an RPG" goes.** "The more laws we write about what the game is and isn't, the more boxed in we get." He plans RPG-lite features, so the line was wrong as well as boxing. **The meta-ruling:** `00`'s "What it is not" gains no new lines; a limit the game needs is a ruling here with its reason, never a law of identity.
+3. **"Not a random world" becomes a direction:** a hand-authored world with procedural filling of the spaces it leaves empty (forests and the like). "This is another thing I do not want to get boxed in on": the infinite grown wilderness is cool today, and where the game lands between authored and grown stays open.
+4. **Real time, as drafted:** a solo world pauses only from the pause menu; a world with friends never pauses.
 
 ### 2026-10-16 — The sweep, after wave 3: what the trims forced (Primary; Michael's calls where named)
 
