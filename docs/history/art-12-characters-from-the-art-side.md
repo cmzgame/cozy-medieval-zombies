@@ -1,3 +1,9 @@
+# Art 12: Characters, from the art side (as of 2026-10-12)
+
+**What this is:** `docs/art/12-characters-from-the-art-side.md` whole, the design agent's record of the body rounds (superseded and deleted, 546997c), the eyes (settled: the generated 3 by 5 stay, `25` deliverable 1), and what it needed before painting (the slicer, since built as `tools/slice.html`); moved here by the sweep, 2026-10-16, and never edited after. The live text: `docs/28-painting-for-the-slicer.md` (how a part is painted and sliced), `docs/12-figure.md` (the rig), `docs/19-characters.md`, and `data/art/character/layers/README_layers.md`.
+
+---
+
 # Art 12: Characters, from the art side
 
 **Status (2026-10-12, late): the body is the rig's (Michael's ruling, `02` "We have a body"); my four body rounds in `data/art/character/` were superseded and deleted with `body.py` and `deliver.py` (546997c). What I paint now is parts on the template through the slicer, per `28-painting-for-the-slicer.md`: round 1 of those is in `data/art/character/layers/` (36 layers: six hairs, three beards, six head pieces including the onion hat and the great helm, six chests including the knight's surcoat, four legs, four feet, three hands, four belts), every one checked through the slicer with nothing dropped; see `README_layers.md` there for the item specs and three engine notes.**

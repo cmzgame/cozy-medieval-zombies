@@ -2,6 +2,8 @@
 
 Everything the art agent knows about the game's art, from the first trees to the inventory icons, plus the things it has not drawn yet and the systems it does not own. Written 2026-10-12 so no one has to ask the art agent what it did, why, or what is missing.
 
+**Since the sweep (2026-10-16):** this page and `01` are the live art reference; `02` to `10` are the record of each delivery, corrected where the game moved on; `11` and `12` are in `docs/history/`.
+
 **Who this is for:** the coding agent (what each file is, what the engine can assume, what to import) and Michael (what exists, what is on the back burner, what is waiting on a decision).
 
 **Companion docs:** `../25-character-art-brief.md` (the character commission) and `../26-art-owed.md` (the item art backlog).
@@ -19,11 +21,11 @@ Everything the art agent knows about the game's art, from the first trees to the
 | 05 | [village-buildings](05-village-buildings.md) | walls, posts, doors, shutters, boards, floors |
 | 06 | [village-furniture-and-fixtures](06-village-furniture-and-fixtures.md) | well, bed, table, chairs, fireplace, pumpkins |
 | 07 | [items-and-icons](07-items-and-icons.md) | knife, axe, staff, book, fireball, inventory icons |
-| 08 | [cursors](08-cursors.md) | the three pointing hands and how to implement them |
+| 08 | [cursors](08-cursors.md) | the three pointing hands, as built (a CSS cursor) |
 | 09 | [stubs](09-stubs.md) | the cutaway walls kept in the back pocket |
 | 10 | [lighting-from-the-art-side](10-lighting-from-the-art-side.md) | what the art must do for the lighting system, and what went wrong |
-| 11 | [open-items-and-lessons](11-open-items-and-lessons.md) | the punch list, the generators, how to ask for art |
-| 12 | [characters-from-the-art-side](12-characters-from-the-art-side.md) | before drawing the character models |
+| 11 | [open-items-and-lessons](../history/art-11-open-items.md) | a record (2026-10-12): the punch list, the generators, how to ask for art; its open decisions and single-copy art are `art` issues |
+| 12 | [characters-from-the-art-side](../history/art-12-characters-from-the-art-side.md) | a record (2026-10-12): the body rounds, the eyes, what the agent needed; the live page is `../28` |
 
 ## Where the art is
 
@@ -37,7 +39,7 @@ Everything the art agent knows about the game's art, from the first trees to the
 | `data/art/cursors/` | the three pointing hands at 1x, 2x, and 3x, `cursors.json` (a CSS cursor, `src/ui/cursor.js`) | 9 |
 | `data/art/character/` | the template, the body's JSON, round 1 of the painted layers in `layers/` (36 in its manifest, plus four previews) | 36 layers |
 
-**Not in the repo:** the stubs, the willow, the dirt kit, and the village, tree, ground, decal, crop, pumpkin, cursor, and item generators (one copy each, in Michael's download zips). The character generators are in (`tools/art-gen/character/`). See `11`.
+**Not in the repo:** the stubs, the willow, the dirt kit, and the village, tree, ground, decal, crop, pumpkin, cursor, and item generators (one copy each, in Michael's download zips). The character generators are in (`tools/art-gen/character/`). See `../history/art-11-open-items.md`; bringing them in is an `art` issue.
 
 ## Conventions in one box
 

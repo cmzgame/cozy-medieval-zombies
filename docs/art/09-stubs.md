@@ -1,6 +1,6 @@
 # Art 09: Cutaway wall stubs (kept in the back pocket)
 
-**Status: drawn and previewed, not imported, deliberately on the backburner.** Delivered as `stubs_v1.zip`; not in the repo. Michael (2026-10-12): the stubs look "fantastic" but the full walls stay for now. Idea logged in `05-someday.md`. Written 2026-10-12.
+**Status: drawn and previewed, not imported, deliberately on the backburner.** Delivered as `stubs_v1.zip`; not in the repo. Michael (2026-10-12): the stubs look "fantastic" but the full walls stay for now. Idea logged in `05-someday.md`. Written 2026-10-12. **The one copy of the 66 PNGs, `anchors_stubs.json`, the previews, and `stubs.py` is that zip in Michael's downloads; nothing of it is in the repository or anywhere else (an `art` issue).**
 
 ## Why they exist
 

@@ -21,7 +21,7 @@ The bag is Tetris-like: 19 px per cell in the art, shown at **exactly 2x** (38 p
 - **Stacking items leave the lower-right corner clear** for the count.
 - **The grid is not baked in.** The bag-mock preview draws a grid so the footprint is visible; the PNGs contain only the item on transparency.
 - **The book's icon is the closed book** (14 x 13, flame on the cover) centred in the 19 x 19 canvas. Open at 19 px it read as a page-coloured smear; closed it reads as a book.
-- **Existing items** (plank, stick, sword, spear, halberd, hatchet, mace, torch, shield, bow, arrow, bandage) still use colour-fill icons from the engine. They have no drawn world/icon pairs yet.
+- **Existing items** (plank, stick, sword, spear, halberd, hatchet, mace, torch, shield, bow, arrow, bandage) still use colour-fill icons from the engine. They have no drawn world/icon pairs yet. Nor do the eighteen of `30` step 3 (six tools, twelve materials and foods; `26` lists them all).
 
 ## World sprites and grips
 
@@ -41,7 +41,7 @@ The bag is Tetris-like: 19 px per cell in the art, shown at **exactly 2x** (38 p
 
 Palette: steel `#eef0f4` `#c6cad2` `#9ea2ac` `#6e7280`; wood `#9a6a42` `#7a5132` `#57381f`; leather wrap `#7a5638` `#5a3c25` `#3e2818`; brass `#e2c06a` `#c39a44` `#8a6a2a`; iron `#8a8c96` `#5e6068` `#3e3f46`; orb `#fff1d6` (glint) `#ff8a5c` `#d8322e` `#a8202a` `#6e1420` with `#ffb347` ember. Orb colours carry no halo: its light is the engine's.
 
-**Scale:** hands sit about 14 px above the feet and 9 to 10 px out from the body (`12-characters-from-the-art-side.md`); the grip pixel goes there. A 55 px figure beside the items is in the repo preview image (`preview_items_3x.png`).
+**Scale:** hands sit about 14 px above the feet and 9 to 10 px out from the body (`../history/art-12-characters-from-the-art-side.md`; the rig's numbers are `../12-figure.md`); the grip pixel goes there. A 55 px figure beside the items is in the repo preview image (`preview_items_3x.png`).
 
 ## Staff angles: the flip table
 
@@ -77,7 +77,7 @@ A flat comet, no spin. `fireball.png` is a **sheet of 64 x 64 cells, 16 rows by 
 ## Open items
 
 - **Redraw the sword and halberd at the five angles** if long weapons should match the staff's quality in hand (offered, not asked).
-- **World/icon pairs for the twelve existing items** (list above).
+- **World/icon pairs for the twelve existing items** (list above). And the eighteen of `30` step 3 (`26`).
 - **Stack limits for the book and staff** are undecided (not in the brief; left out of `items.json` rather than invented).
 - **The spin frames for the thrown knife and axe** (4 to 8 rotations along the flight, `24` section 1) are not drawn; they would be generated from the one picture.
 - The **fireball impact burst** reuses the engine's particles (`fire.js`); no art.
