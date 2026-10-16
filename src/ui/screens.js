@@ -17,35 +17,50 @@ function esc(text) {
   return String(text ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 }
 
+// The keys, grouped (docs/38 Q8, #111): one place for each, the testing keys apart, R written once.
 const CONTROLS = [
-  ["W A S D / arrows", "Walk"],
-  ["Shift", "Sprint"],
-  ["E", "Nearest action; hold to climb through a window"],
-  ["Right-click", "Everything you can do to what is under the cursor"],
-  ["Double-click", "Equip or unequip a thing; else move it across"],
-  ["Z / wheel", "Zoom: wide, middle, close"],
-  ["Tab", "Your bag"],
-  ["C", "Your character"],
-  ["1 to 4", "Swap a belt slot with your hand"],
-  ["T", "Torch in or out of hand"],
-  ["Enter", "Chat: type a line, Enter says it"],
-  ["/", "Chat: a command (nothing answers yet)"],
-  ["Left-click", "Swing what you hold; fists with nothing. Hold to draw a bow or cast"],
-  ["Q / middle-click", "The main hand's other mode: the halberd's thrust, a spear's throw"],
-  ["Right-click held", "The off hand's stance: block with a shield, brace a bow"],
-  ["Space", "Shove: pushes the dead back, no damage"],
-  ["N", "Build menu: walls, doors, windows"],
-  ["X", "Remove: highlights what you built or made, click to destroy it"],
-  ["R", "Turn what you are placing"],
-  ["B", "Board up the nearest opening; hold to pull a board"],
-  ["Esc", "Close what is open, else pause"],
-  ["R / wheel", "Rotate the item you are dragging"],
-  ["V", "Fog off (debug)"],
-  ["[ ]", "The hour back or forward (debug)"],
-  ["L", "Light debug views"],
+  ["Moving and doing", [
+    ["W A S D / arrows", "Walk"],
+    ["Shift", "Sprint"],
+    ["Z / wheel", "Zoom: wide, middle, close"],
+    ["E", "Nearest action; hold to climb through a window"],
+    ["Right-click", "Everything you can do to what is under the cursor"],
+    ["Esc", "Close what is open, else pause"],
+  ]],
+  ["Fighting", [
+    ["Left-click", "Swing what you hold; fists with nothing. Hold to draw a bow or cast"],
+    ["Q / middle-click", "The main hand's other mode: the halberd's thrust, a spear's throw"],
+    ["Right-click held", "The off hand's stance: block with a shield, brace a bow"],
+    ["Space", "Shove: pushes the dead back, no damage"],
+  ]],
+  ["Your things", [
+    ["Tab", "Your bag"],
+    ["C", "Your character"],
+    ["1 to 4", "Swap a belt slot with your hand"],
+    ["Double-click", "Equip or unequip a thing; else move it across"],
+    ["T", "Torch in or out of hand"],
+  ]],
+  ["Building", [
+    ["N", "Build menu: walls, doors, windows"],
+    ["X", "Remove: highlights what you built or made, click to destroy it"],
+    ["R / wheel", "Turn what you are placing, or the item you are dragging"],
+    ["B", "Board up the nearest opening; hold to pull a board"],
+  ]],
+  ["Talking", [
+    ["Enter", "Chat: type a line, Enter says it"],
+    ["/", "Chat: a command (nothing answers yet)"],
+  ]],
+  ["Testing", [
+    ["V", "Fog off"],
+    ["[ ]", "The hour back or forward"],
+    ["L", "Light debug views"],
+  ]],
 ];
 
-let root = null;
+let root = null; // where the current screen is drawn: the site's page out of a world, #screens in one (#111)
+let screensEl = null; // the game's own screens, over the world
+let siteEl = null; // the game's site (index.html #site): everything out of a world is a page of it, never a box (docs/38)
+let sitePage = null;
 let current = null;
 let from = null; // the screen a sub-screen returns to
 let onChange = () => {};
@@ -77,10 +92,27 @@ export function initScreens(handlers = {}) {
   wireApi = handlers.wire || null;
   worldsApi = handlers.worlds || null;
   identitiesApi = handlers.identities || null;
-  root = document.getElementById("screens");
-  root.hidden = true;
-  root.addEventListener("click", (e) => {
+  screensEl = document.getElementById("screens");
+  siteEl = document.getElementById("site");
+  sitePage = document.getElementById("site-page");
+  root = screensEl;
+  screensEl.hidden = true;
+  // The same handlers on both: a screen is drawn in one or the other, and the site's menu is its own buttons (data-go).
+  for (const el of [screensEl, siteEl].filter(Boolean)) listen(el);
+  settings.onChange(() => {
+    if (current === "settings") render();
+  });
+}
+
+function listen(el) {
+  el.addEventListener("click", (e) => {
     const btn = e.target.closest("button[data-go]");
+    // The site's menu leaves what a page was doing: a character's creation, an identity half edited. Settings and
+    // Controls come back to where they were opened from, so those two keep it (the review of #120).
+    if (btn && btn.closest(".site-nav") && !SUB.has(btn.dataset.go)) {
+      if (current === "identity" && identitiesApi) identitiesApi.cancel();
+      creation = null;
+    }
     if (btn) return go(btn.dataset.go, btn.dataset);
     // The identity editor's swatches and rows: each sets one field of the look and redraws (youApi).
     const lookBtn = e.target.closest("button[data-look-key]");
@@ -122,11 +154,11 @@ export function initScreens(handlers = {}) {
   });
   // A dropdown's keys are its own (the arrows pick an answer; input.js would cancel them, and a letter would walk the
   // player); Escape still reaches the screens, and a release is let through so no key is left down (#65, #80).
-  root.addEventListener("keydown", (e) => {
+  el.addEventListener("keydown", (e) => {
     if (e.target && e.target.tagName === "SELECT" && e.code !== "Escape") e.stopPropagation();
   });
   // The dropdowns (#108): a setting, the hair or a painted layer to try, the identity editor's hair style.
-  root.addEventListener("change", (e) => {
+  el.addEventListener("change", (e) => {
     const sel = e.target.closest("select");
     if (!sel) return;
     if (sel.dataset.key) settings.set(sel.dataset.key, JSON.parse(sel.value));
@@ -136,13 +168,35 @@ export function initScreens(handlers = {}) {
     else return;
     render();
   });
-  root.addEventListener("input", (e) => {
+  el.addEventListener("input", (e) => {
     const name = e.target.closest("input[data-name]");
     if (name && youApi) youApi.setName(name.value);
   });
-  settings.onChange(() => {
-    if (current === "settings") render();
-  });
+}
+
+// Out of a world, or in one: the site or the game's own screens (docs/38, #111).
+function outOfWorld() {
+  const h = worldsApi && worldsApi.here ? worldsApi.here() : null;
+  return !(h && h.inWorld) || !!(h && h.joining); // a join still waiting for its welcome is not in a world yet
+}
+
+// Where the current screen goes: out of a world the site's page, the site showing and the game's screens hidden; in
+// one, #screens over the world and the site hidden.
+// The stage goes while the site shows: its canvas would hold a narrow window (a phone's) at its own width, and the
+// site is a page that follows the window.
+function place() {
+  const site = outOfWorld() && !!sitePage;
+  root = site ? sitePage : screensEl;
+  if (siteEl) siteEl.hidden = !site;
+  screensEl.hidden = site;
+  showStage(!site);
+}
+
+function showStage(on) {
+  const stage = document.getElementById("stage");
+  if (!stage || stage.hidden === !on) return;
+  stage.hidden = !on;
+  if (on) window.dispatchEvent(new Event("resize")); // view.js measures the window again, now the canvas is back
 }
 
 export function currentScreen() {
@@ -160,7 +214,7 @@ export function show(name, extra = {}) {
     if (current && !SUB.has(current)) from = current;
   } else if (!FLOW.has(name)) from = null;
   current = name;
-  root.hidden = false;
+  place();
   render();
   onChange(current);
 }
@@ -169,14 +223,17 @@ export function hide() {
   stopPreview();
   current = null;
   from = null;
-  root.hidden = true;
+  screensEl.hidden = true;
+  if (siteEl) siteEl.hidden = true; // into a world: the site goes with the screens
+  showStage(true);
   onChange(null);
 }
 
 // Escape. Returns true if a screen took it.
 export function back() {
   if (!current) return false;
-  if (SUB.has(current)) show(from || "pause", data);
+  if (SUB.has(current)) show(from || (outOfWorld() ? "title" : "pause"), data);
+  else if (current === "about") show("title");
   else if (current === "pause") hide();
   else if (current === "away") { if (worldsApi && worldsApi.comeBack) worldsApi.comeBack(); }
   else if (FLOW.has(current)) stepBack();
@@ -380,8 +437,30 @@ function pollOpen() {
   });
 }
 
-function button(go, label, extra = "") {
-  return `<button class="kit-button" data-go="${go}"${extra}>${label}</button>`;
+function button(go, label, extra = "", cls = "") {
+  return `<button class="kit-button${cls ? ` ${cls}` : ""}" data-go="${go}"${extra}>${label}</button>`;
+}
+
+// When a world was last played, for its card: the time today, else the day and the month.
+function lastPlayed(at) {
+  if (!at) return "";
+  const d = new Date(at);
+  const today = new Date().toDateString() === d.toDateString();
+  return today ? `played today, ${d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}` : `played ${d.toLocaleDateString(undefined, { day: "numeric", month: "short" })}`;
+}
+
+// A world as a card (docs/38, Q8): its name and where it lives, the survivor and whether they live, its day and hour,
+// when last played, its code; the main thing to do big, the rest small. The buttons are the rows' as they were.
+function card({ name, badge = "", who = "", meta = [], main = "", rest = "" }) {
+  return `
+    <div class="world-card">
+      <div class="wc-text">
+        <div class="wc-name"><b>${name}</b>${badge ? `<span class="wc-badge">${badge}</span>` : ""}</div>
+        ${who ? `<div class="wc-who">${who}</div>` : ""}
+        <div class="wc-meta">${meta.filter(Boolean).join(" · ")}</div>
+      </div>
+      <div class="wc-actions">${main}<div class="wc-rest">${rest}</div></div>
+    </div>`;
 }
 
 // A switch: its state is the answer showing, and a click asks for the other one (`data-value`, read by the click
@@ -509,19 +588,28 @@ function worldRows() {
   const h = worldsApi && worldsApi.here ? worldsApi.here() : {};
   const canMove = !!(worldsApi && worldsApi.canMove && worldsApi.canMove());
   const id = (w) => ` data-world="${esc(w.worldId)}"`;
-  // What a row offers by where the world lives (item 5's fifth step): here, on the server, or on its way home.
-  const buttonsFor = (w) => {
-    const inPlay = h.inWorld && h.worldId === w.worldId;
-    if (w.home === "server") return button("server-play", "Play", id(w)) + (canMove ? button("owner", "Owner", ` data-code="${esc(w.serverCode || "")}"`) + button("bring-home", "Bring it home", id(w)) : "");
-    if (w.home === "arriving") return canMove ? button("bring-home", "Finish bringing it home", id(w)) : "";
-    return (w.playable ? button("play", w.dead ? "New character" : "Play", id(w)) : "") + (canMove && w.playable && !inPlay ? button("move-up", "Move to the server", id(w)) : "") + button("delete", "Delete", id(w));
+  // What a card offers by where the world lives (item 5's fifth step): here, on the server, or on its way home.
+  // The main thing big (Play, New character, Bring it home), the rest small (#111, docs/38 Q8).
+  const mainFor = (w) => {
+    if (w.home === "server") return button("server-play", "Play", id(w), "big");
+    if (w.home === "arriving") return canMove ? button("bring-home", "Finish bringing it home", id(w), "big") : "";
+    return w.playable ? button("play", w.dead ? "New character" : "Play", id(w), "big") : "";
   };
-  const where = (w) => (w.home === "server" ? ` · on the server, code <code>${esc(w.serverCode || "")}</code>` : w.home === "arriving" ? " · on its way home" : w.code ? ` · code <code>${esc(w.code)}</code>` : "");
-  return `<div class="rows">${rows.map((w) => `
-    <div class="row-item">
-      <div class="row-main"><b>${esc(w.name)}</b><span class="row-sub">${esc(w.label)}${w.myCharacter ? ` · ${w.dead ? `${esc(w.myCharacter)} died` : `as ${esc(w.myCharacter)}`}` : " · no survivor"}${where(w)}${w.playable ? "" : ` · on another map (${esc(w.mapName)})`}</span></div>
-      <div class="row-buttons">${buttonsFor(w)}</div>
-    </div>`).join("")}</div>`;
+  const restFor = (w) => {
+    const inPlay = h.inWorld && h.worldId === w.worldId;
+    if (w.home === "server") return canMove ? button("owner", "Owner", ` data-code="${esc(w.serverCode || "")}"`, "small") + button("bring-home", "Bring it home", id(w), "small") : "";
+    if (w.home === "arriving") return "";
+    return (canMove && w.playable && !inPlay ? button("move-up", "Move to the server", id(w), "small") : "") + button("delete", "Delete", id(w), "small");
+  };
+  const code = (w) => (w.home === "server" ? w.serverCode : w.code);
+  return `<div class="cards">${rows.map((w) => card({
+    name: esc(w.name),
+    badge: w.home === "server" ? "on the server" : w.home === "arriving" ? "on its way home" : "",
+    who: w.myCharacter ? (w.dead ? `${esc(w.myCharacter)} died` : `as ${esc(w.myCharacter)}`) : "no survivor yet",
+    meta: [esc(w.label), lastPlayed(w.savedAt), code(w) ? `code <code>${esc(code(w))}</code>` : "", w.playable ? "" : `on another map (${esc(w.mapName)})`],
+    main: mainFor(w),
+    rest: restFor(w),
+  })).join("")}</div>`;
 }
 
 // Moving a world to the server: the creator key first if this browser has none, then a word of what it means.
@@ -547,11 +635,13 @@ function startBringHome(worldId) {
 function ownedRows() {
   const rows = worldsApi && worldsApi.ownedElsewhere ? worldsApi.ownedElsewhere() : [];
   if (!rows.length) return "";
-  return `<h2>My worlds on the server</h2><div class="rows">${rows.map((o) => `
-    <div class="row-item">
-      <div class="row-main"><b>${esc(o.name || o.code)}</b><span class="row-sub">code <code>${esc(o.code)}</code> · yours by its owner key</span></div>
-      <div class="row-buttons">${button("owned-play", "Play", ` data-code="${esc(o.code)}"`)}${button("owner", "Owner", ` data-code="${esc(o.code)}"`)}</div>
-    </div>`).join("")}</div>`;
+  return `<h2>My worlds on the server</h2><div class="cards">${rows.map((o) => card({
+    name: esc(o.name || o.code),
+    badge: "on the server",
+    meta: [`code <code>${esc(o.code)}</code>`, "yours by its owner key"],
+    main: button("owned-play", "Play", ` data-code="${esc(o.code)}"`, "big"),
+    rest: button("owner", "Owner", ` data-code="${esc(o.code)}"`, "small"),
+  })).join("")}</div>`;
 }
 
 function friendRows() {
@@ -562,11 +652,13 @@ function friendRows() {
     if (!o) return `<span class="dot" title="not asked yet"></span>`;
     return `<span class="dot ${o.open ? "on" : "off"}" title="${o.open ? `open now, ${o.guests} in` : "not open now"}"></span>`;
   };
-  return `<h2>Friends' worlds</h2><div class="rows">${rows.map((r) => `
-    <div class="row-item">
-      <div class="row-main"><b>${dot(r.code)}${esc(r.name || r.code)}</b><span class="row-sub">${r.hostName ? `${esc(r.hostName)}'s · ` : ""}code <code>${esc(r.code)}</code>${r.myCharacter ? ` · as ${esc(r.myCharacter)}` : ""}</span></div>
-      <div class="row-buttons">${button("rejoin", "Rejoin", ` data-code="${esc(r.code)}" data-name="${esc(r.name || "")}"`)}${button("forget", "Forget", ` data-code="${esc(r.code)}"`)}</div>
-    </div>`).join("")}</div>`;
+  return `<h2>Friends' worlds</h2><div class="cards">${rows.map((r) => card({
+    name: `${dot(r.code)}${esc(r.name || r.code)}`,
+    who: r.myCharacter ? `as ${esc(r.myCharacter)}` : "",
+    meta: [r.hostName ? `${esc(r.hostName)}'s world` : "", `code <code>${esc(r.code)}</code>`, r.lastAt ? lastPlayed(r.lastAt) : ""],
+    main: button("rejoin", "Rejoin", ` data-code="${esc(r.code)}" data-name="${esc(r.name || "")}"`, "big"),
+    rest: button("forget", "Forget", ` data-code="${esc(r.code)}"`, "small"),
+  })).join("")}</div>`;
 }
 
 function identityRows(pickable) {
@@ -580,13 +672,61 @@ function identityRows(pickable) {
     </div>`).join("")}</div>`;
 }
 
+// ---- the site's own pages (docs/38, #111): Home and About; the rest are the screens drawn in its page ----
+
+// The menu's button for the page showing is lit: the flows under Play light Play.
+const MENU_OF = { title: "title", about: "about", controls: "controls", settings: "settings", identities: "identities", identity: "identities" };
+function markMenu() {
+  if (!siteEl) return;
+  // The identity editor reached from a character's creation is part of Play's flow, not the Identities page (the review of #120).
+  const lit = current === "identity" && creation ? "worlds" : MENU_OF[current] || (current ? "worlds" : null);
+  for (const b of siteEl.querySelectorAll(".site-nav button[data-go]")) b.classList.toggle("on", b.dataset.go === lit);
+}
+
+function homeHtml() {
+  return `
+    <div class="screen home">
+      <p class="lead">A cute village, seen whole, overrun by the dead.</p>
+      ${data.note ? `<div class="sub note">${esc(data.note)}</div>` : ""}
+      <button class="kit-button cta" data-go="worlds">Play in your browser</button>
+      <p class="small">Free, alone or with friends in one world. Nothing to install.</p>
+      <p class="small">New here? <a href="https://cmzgame.github.io/cmz-wiki/" target="_blank" rel="noopener">The wiki</a> has the rules of the place.</p>
+    </div>`;
+}
+
+function aboutHtml() {
+  return `
+    <div class="screen about">
+      <h1>About the game</h1>
+      <p>A cute isometric pixel village, medieval and low-fantasy: cottages, an inn, a chapel, a well, a smithy. The dead have risen. You move through the village as one continuous place; the world keeps looking cute, and the dead keep coming.</p>
+      <h2>One continuous place</h2>
+      <p>Buildings are made of the same tiles as the street. There is no cut between inside and outside: you look out of a window, and they look in.</p>
+      <h2>Sight is the game</h2>
+      <p>What you can see is what can see you. Darkness hides, fire reveals, and a lit window is an invitation. So is the torch in your hand.</p>
+      <h2>The home matters</h2>
+      <p>Furnish it, light it, barricade it, sleep in it, and grow food beside it. Wood, water, and seed are what you go out for.</p>
+      <h2>Friends in one world</h2>
+      <p>Open your world to friends with a code, and they join it from their own browser.</p>
+      <p class="small">The game is being made now, and changes often. <a href="https://cmzgame.github.io/cmz-wiki/" target="_blank" rel="noopener">The wiki</a> keeps up with it.</p>
+      <div class="screen-buttons row"><button class="kit-button cta" data-go="worlds">Play</button></div>
+    </div>`;
+}
+
 function render() {
   if (!root) return;
-  root.className = current || "";
+  // #screens takes the screen's name as its class (style.css: #screens.title); the site's page an attribute, so a
+  // screen called "controls" never gives the page the .controls grid.
+  if (root === screensEl) root.className = current || "";
+  else root.dataset.page = current || "";
+  markMenu();
   stopPreview();
   if (dotTimer) { clearInterval(dotTimer); dotTimer = null; }
   if (current !== "waiting") stopWait();
-  if (current === "title") {
+  if (current === "title" && root === sitePage) {
+    root.innerHTML = homeHtml();
+  } else if (current === "about") {
+    root.innerHTML = aboutHtml();
+  } else if (current === "title") {
     root.innerHTML = `
       <div class="screen">
         <h1>Cozy Medieval Zombies</h1>
@@ -818,7 +958,8 @@ function render() {
     root.innerHTML = `
       <div class="screen screen-wide">
         <h1>Controls</h1>
-        <div class="controls">${CONTROLS.map(([k, what]) => `<b>${k}</b><span>${what}</span>`).join("")}</div>
+        ${CONTROLS.map(([group, keys]) => `<h2>${group}</h2><div class="controls">${keys.map(([k, what]) => `<b>${k}</b><span>${what}</span>`).join("")}</div>`).join("")}
+        <div class="sub">More on how things work in <a href="https://cmzgame.github.io/cmz-wiki/" target="_blank" rel="noopener">the wiki</a>.</div>
         <div class="screen-buttons row">${button("back", "Back")}</div>
       </div>`;
   } else {

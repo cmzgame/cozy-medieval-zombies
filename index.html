@@ -31,6 +31,61 @@
     </div>
     <div id="debug"></div>
   </div>
+  <!-- The game's site (docs/38, #111): everything out of a world is a full-width page, never a box over one.
+       src/ui/screens.js renders the out-of-world screens into #site-page; the game's own screens stay in #screens. -->
+  <div id="site">
+    <div class="site-bg"></div>
+    <header class="site-head">
+      <div class="wordmark" role="img" aria-label="Cozy Medieval Zombies">
+        <img class="wm-tree wm-tree-l" src="data/art/trees/tree_oak_L_orange.png" alt="">
+        <img class="wm-tree wm-tree-l2" src="data/art/trees/tree_spire_M_red.png" alt="">
+        <img class="wm-tree wm-tree-r" src="data/art/trees/tree_oak_L_yellow.png" alt="">
+        <img class="wm-tree wm-tree-r2" src="data/art/trees/tree_oak_M_red.png" alt="">
+        <span class="wm-line wm-small">Cozy Medieval</span>
+        <span class="wm-line wm-big">Zombies</span>
+      </div>
+      <nav class="site-nav">
+        <button class="kit-button" data-go="title">Home</button>
+        <button class="kit-button" data-go="about">About</button>
+        <button class="kit-button" data-go="controls">Controls</button>
+        <button class="kit-button play" data-go="worlds">Play</button>
+        <button class="kit-button" data-go="identities">Identities</button>
+        <button class="kit-button" data-go="settings">Settings</button>
+        <a class="kit-button" href="https://cmzgame.github.io/cmz-wiki/" target="_blank" rel="noopener">Wiki</a>
+      </nav>
+    </header>
+    <main id="site-page">
+      <!-- Home as it paints before the game has loaded (the same as screens.js homeHtml, which replaces it after boot). -->
+      <div class="screen home">
+        <p class="lead">A cute village, seen whole, overrun by the dead.</p>
+        <button class="kit-button cta" data-go="worlds">Play in your browser</button>
+        <p class="small">Free, alone or with friends in one world. Nothing to install.</p>
+        <p class="small">New here? <a href="https://cmzgame.github.io/cmz-wiki/" target="_blank" rel="noopener">The wiki</a> has the rules of the place.</p>
+      </div>
+    </main>
+    <footer class="site-foot">A village of the dead. Keep the shutters closed. · <a href="https://cmzgame.github.io/cmz-wiki/" target="_blank" rel="noopener">The wiki</a></footer>
+  </div>
+  <script>
+    // The site at once (docs/38, #111): its page paints while the game loads behind it, and the loading screen comes
+    // only when Play is pressed before the game is ready. The checks' test worlds (?nosave, ?join, ?host) and ?boot
+    // keep the loading screen at the first paint, as before. The stage waits hidden until a world is entered.
+    if (/[?&](nosave|join|host|boot)\b/.test(location.search)) document.getElementById("site").hidden = true;
+    else {
+      document.getElementById("loading").hidden = true;
+      document.getElementById("stage").hidden = true;
+    }
+    // Until the game is ready, a click on one of the site's buttons has no screen behind it yet: the page asked for is
+    // kept (main.js opens it when boot is done) and the loading screen shows the stages left. Caught here, not in
+    // main.js, because a click can come before the modules have run at all.
+    document.getElementById("site").addEventListener("click", function (e) {
+      if (window.__siteReady) return;
+      var b = e.target.closest("button[data-go]");
+      if (!b) return;
+      e.stopImmediatePropagation();
+      window.__wantPage = b.dataset.go;
+      document.getElementById("loading").hidden = false;
+    }, true);
+  </script>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>
