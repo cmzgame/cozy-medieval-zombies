@@ -1,3 +1,5 @@
+> **A record, moved whole by the sweep, 2026-10-16.** The ground kit's brief as Michael received it from Claude Design (2026-10-11): the textured grass, the blended dirt edges, the decals, and a shader pass the game did not take. It came from `docs/15a-ground-brief-source.md`, unchanged below this banner, and nothing stays at that path; the live text is `docs/15-ground.md`, which decided how it was built (one CPU bake per chunk) and describes the ground as it is; the kit's PNGs are in `data/art/ground/`.
+
 # Ground rendering brief: textured grass, blended dirt edges, decals
 
 **Status, 2026-10-13: an input, kept verbatim.** This is the ground kit's brief as Michael received it from Claude Design. `15` decided how it was built (one CPU bake per chunk, not the shader pass below) and is the record of what the game does. The kit's PNGs are in `data/art/ground/`, the decals since redrawn (`15b`); `ground.py`, the two mockups, and the kit's folder were never copied in.

@@ -1,3 +1,5 @@
+> **A record, moved whole by the sweep, 2026-10-16.** The two requests Michael pasted into Claude Design on 2026-10-11 (the trees redrawn at their final size; the decals bigger, with the rocks that came with them), both delivered the same day. It came from `docs/15b-art-requests.md`, unchanged below this banner, and nothing stays at that path; the live text is `docs/15-ground.md` and `docs/art/02` and `03` for the art that came back.
+
 # 15b — Art requests for Claude Design
 
 **Both delivered (2026-10-11):** the decals as `decals_v2` (with four rocks added, a new concept still to be discussed) and the trees as `trees_v2`, drawn at final size; both are in the game. **Status, 2026-10-13:** the rocks are in too, redrawn as stone clusters and placed as gatherables (`data/sprites/rock_*.json`, `02`, 2026-10-11); nothing from this doc is owed.
