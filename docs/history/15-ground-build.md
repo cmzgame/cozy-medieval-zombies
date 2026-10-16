@@ -173,4 +173,6 @@ Nothing here waits on these; the generated stand-ins carry the build.
 
 ## Paragraphs the sweep corrected in place in the live doc, as they stood
 
+New module `src/ground.js`. Public: `init(data)` (loads `ground.json` and its images), `prebake(tiles)` (bake, synchronously, every chunk touching these tiles plus a one-chunk ring; called once at boot before the first frame), `update(cameraGx, cameraGy, tiles)` (one bake per frame from the queue, nearest first; eviction), `textureFor(cx, cy)` (the baked texture or `null`), `invalidate(tiles)` (mark dirty every chunk holding a tile within `REACH_MAX` = 4 of any of these), `stats()` for the debug corner, `savePng(cx, cy)` (POSTs the chunk's canvas to `/__screenshot/ground_<cx>_<cy>.png` for Michael).
+
 Then `gl.uploadGround(cx, cy, canvas)` creates or replaces the chunk's texture (RGBA, `NEAREST`, `CLAMP_TO_EDGE`, no mipmaps), and the chunk's `floorDirty` is cleared. The canvas can be dropped after upload; a re-bake makes a new one.

@@ -16,7 +16,7 @@ The design agent ("Claude Design", also called the art agent) works in a separat
    - **A projectile or an effect** (the fireball sheet: 16 rows of 3 frames, 64 px cells, anchor (32, 32)) is a registered sheet; the row is chosen from the screen-space velocity.
 5. **Check it in the game, not in the abstract:** the held strip at all sixteen angles (a debug overlay of the sheet), the item in the hand at close zoom, the icon in the bag at 2x, both facing the camera and away; for world art, the placement previews the agent ships are the acceptance test (the game should match them). Restore the zoom and any setting the check touched.
 6. **Measure the atlas** (`__game.gl.atlasInfo()`) before and after a large delivery and say so in the log (`23`, "Performance").
-7. **Log it:** a `docs/02-decisions.md` entry (what arrived, what is in the game, what is flagged), the Status block in `TODO.md`, the owed list in `26` (strike what arrived), and a correction in place (a dated note) wherever the delivery's own README says something the engine contradicts. Commit with a plain message and push.
+7. **Log it:** a `docs/02-decisions.md` entry (what arrived, what is in the game, what is flagged), the Status block in `TODO.md`, the owed art's issues (`26` points at them; close or update what arrived), and a correction in place (a dated note) wherever the delivery's own README says something the engine contradicts. Commit with a plain message and push.
 
 **What the agent will flag on its own** (so it is not a surprise):
 

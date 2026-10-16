@@ -23,13 +23,13 @@ For comparison: an arrow is 38 at 22 tiles, the spear 114 at 6.5, the hatchet sw
 
 **Art:** knife (a short blade, dark handle) and axe (a head and a short haft) as held shapes (`HELD_SHAPES`, 32 px), as projectile sheets (`generateKnife`, `generateAxe` in `archery.js`, like `generateSpear`), and as 1 x 1 grid icons by colour (already how items without art show).
 
-**Size of the work:** small to medium. The stack handling in `releaseDraw`, the `button` rule, two item entries, two generated sheets, the spin in `arrowDrawables`, the pickup sweep.
+**Size of the work:** small to medium. The stack handling in `releaseDraw`, the `button` rule, two item entries, two generated sheets, the spin in `arrowDrawables` (`render/entities.js`), the pickup sweep.
 
 ## 2. Fire magic: the staff and the book
 
 Built as the status says. Of the summary's design, what still stands to be decided is the burst's reach and the cost:
 
-- **The landing: a burst.** Flame, ember, and smoke particles at the landing point (`fire.js` has them), and ~~optionally the dead one hit is set on fire as a visual only~~ **since #14 (2026-10-15) the body a fireball hits is always set alight, a real burn** (`burn.js`, the spell's `ignite`). The particles are made in the host's step, so a guest sees the burst only if the frame carries the landing (a point and a kind, as the pokes carry a sway): the flames of a burning body were missed that way until the playtest of 2026-10-13 (`02`); the burning flag already rides to guests.
+- **The landing: a burst.** Flame, ember, and smoke particles at the landing point (`fire.js` has them), and **since #14 (2026-10-15) the body a fireball hits is always set alight, a real burn** (`burn.js`, the spell's `ignite`). The particles are made in the host's step, so a guest sees the burst only if the frame carries the landing (a point and a kind, as the pokes carry a sway): the flames of a burning body were missed that way until the playtest of 2026-10-13 (`02`); the burning flag already rides to guests.
 
 **Cost and limits.** A spell without a cost is the bow without arrows. Options: **a cooldown only** (2.5 s, shown on a swing-style bar, the third in the stack of bars); **stamina** as a stand-in (a cast costs 40, the orange bar); **mana** (a new blue bar, the colour is reserved; regenerating slowly, restored by a potion or a rest). Recommendation: a cooldown and a stamina cost to start (no new bar), mana when there is a second spell, because a bar is only worth building for a system.
 

@@ -18,6 +18,8 @@ Ruled by Michael on 2026-10-12 (`02-decisions.md`, question 29 and the log entry
 
 *The numbers are data:* `data/items.json` (each weapon's block), `data/combat.json` (fists, shove, combo, finisher, stagger, dual, bleed, infection). A snapshot of the weapons (damage, swing seconds, reach, arc, stamina): stick 14 / 0.5 / 1.2 / 90 / 4; plank 16 / 0.55 / 1.2 / 100 / 5; torch 8 / 0.5 / 1.1 / 90 / 3; hatchet 30 / 0.55 / 1.2 / 80 / 6; sword 34 / 0.5 / 1.35 / 100 / 6; mace 38 / 0.65 / 1.2 / 80 / 8 (knockdown 0.6, always staggers); spear stab 30 / 0.6 / 1.9 / 40 / 6; halberd sweep 30 / 0.95 / 2.2 / 80 / 12 and thrust 40 / 1.3 / 2.9 / 12 / 15; spear throw 114 at 6.5 tiles; bow 38 at 22 tiles.
 
+*The swing timer:* the two gold bars are the setting `Swing timer` (on by default, `settings.js`); the exposure bar is danger, not rhythm, and always shows; not covered by the bars: the bow's draw and recovery, the thrown spear, the shove. The HUD as built, bars and labels, is `10`.
+
 ## The convention
 
 | Input | Role |

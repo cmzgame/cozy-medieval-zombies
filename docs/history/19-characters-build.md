@@ -125,6 +125,18 @@ As the first scope said, now on the base above:
 
 ## Paragraphs the sweep corrected in place in the live doc, as they stood
 
+Michael (2026-10-12): the three kinds of people in the game should share one code shape, because each can, in principle, (1) say a line in a speech bubble, (2) wear items that decide what their figure wears, lootable from the body on death, (3) take a left click and a right-click menu, and (4) hold an inventory, as the modern parent's dead did ("E: loot" on a corpse like a chest). Not every kind uses every feature: the player never speaks and is never looted; a living zombie offers no menu; a villager's inventory exists but is not shown. **Unifying the code is what makes the next feature cheap**, and the villager stub is the first proof.
+
+`createCharacter(kind, gx, gy, { id, name, look, speed, radius, hp })` returns the shared shape, and each kind's creator adds its own:
+
 `createPlayer` and `createZombie` keep their names and signatures and call `createCharacter` first; nothing that reads them changes. `main.js` keeps its three lists (`player`, `zombies`, `villagers`) and gains `characters()` = `[player, ...zombies, ...villagers]` for the systems that take everyone (speech, the hit test, `others`).
+
+1. One character model, three kinds, each kind's creator adding its own fields; the three lists stay.
+2. Everyone is dressed from items; the dyed entry carries colour; wardrobes are data; sheets are shared by outfit key and bounded by the atlas.
+3. Everyone has the player's model, a doll plus an inventory; the dead and villagers carry pockets instead of needing a bag. A corpse opens like a chest, is one baked frame, and redraws as it is stripped; the player is never lootable; a dead villager's loot is built but not offered until `04`'s killable step.
+4. The dead groan "Braaains" now and then; the player never speaks; speech is one system for any character.
+5. A living zombie offers no menu; a villager offers Poke; the swing passes through the living.
+6. Villagers wander on a 4-tile tether in their room; poke within click reach with the wiggle's cooldown; four in the square.
+7. The turned keep their clothes (`04`, point 4); the player cannot hurt a villager (`04`, point 3).
 
 `VILLAGER_SPEED` 1.4, `WANDER_RADIUS` 4, `TALK_TIME` 2, the idle range (1.5 to 4 s), `HEAD_CLEARANCE` 76 (+4 for the tail), `GROAN_TEXT`, `GROAN_MIN` 20, `GROAN_MAX` 60, the wardrobes with their `look` and the `body` loot table (data), the pockets' size per wardrobe, the atlas's fill warnings (85 percent, full).

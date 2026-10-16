@@ -1,6 +1,6 @@
 # 24 — Throwables and fire magic: the answered questions and the summary's design of the spell
 
-The record of `docs/24-throwables-and-fire-magic.md` as the sweep found it on 2026-10-16: the status stack (2026-10-12 to 15, newest last), the summary's design of the staff, the book, and the fireball as written before the build (the flat flight, the comet, the lock-on options, the art, the size), the five questions for Michael with the two since answered (Q1: the book chooses the spell and both are needed; Q3: no lock-on, a skill shot), and the build order. Moved here whole, in the doc's own order and words, by the sweep on 2026-10-16; the live text is `docs/24-throwables-and-fire-magic.md`, which keeps the status, section 1 (the throw, not built), the burst, the cost, and the three open questions. Never edited after.
+The record of `docs/24-throwables-and-fire-magic.md` as the sweep found it on 2026-10-16: the status stack (2026-10-12 to 15, newest last), the summary's design of the staff, the book, and the fireball as written before the build (the flat flight, the comet, the lock-on options, the art, the size), the five questions for Michael with the two since answered (Q1: the book chooses the spell and both are needed; Q3: no lock-on, a skill shot), and the build order. Moved here whole, in the doc's own order and words, by the sweep on 2026-10-16; the live text is `docs/24-throwables-and-fire-magic.md`, which keeps the status, section 1 (the throw, not built), the burst, the cost, and the three open questions. Never edited after. The last section holds, as they stood, the paragraphs the sweep corrected in place in the live doc.
 
 ## The status stack (as it stood)
 
@@ -44,3 +44,7 @@ The record of `docs/24-throwables-and-fire-magic.md` as the sweep found it on 20
 1. **Stacks and the left-button throw**: `releaseDraw` for a stack, the `button` rule, the knife and axe items, their sheets, the spin, the pickup sweep. Verified: a stack of 100 loses one per throw, lands, picks up.
 2. **The spell kind and the fireball**: the launcher kind, the flat flight and the comet, the light, the burst, the cost; the staff item and its held art. Verified: a cast kills in two on a still dead one, is stopped by a trunk and a wall, passes an open door.
 3. **Magnetism**, if chosen; **the book**, once its role (Q1) is settled, with the palm-up hold pose.
+
+## Paragraphs the sweep corrected in place in the live doc, as they stood
+
+**Size of the work:** small to medium. The stack handling in `releaseDraw`, the `button` rule, two item entries, two generated sheets, the spin in `arrowDrawables`, the pickup sweep.

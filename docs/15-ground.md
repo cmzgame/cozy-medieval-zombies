@@ -28,7 +28,8 @@ Everything tunable is in `data/ground.json`, which is the truth: the floors' kin
 
 ## The bake
 
-New module `src/ground.js`. Public: `init(data)` (loads `ground.json` and its images), `prebake(tiles)` (bake, synchronously, every chunk touching these tiles plus a one-chunk ring; called once at boot before the first frame), `update(cameraGx, cameraGy, tiles)` (one bake per frame from the queue, nearest first; eviction), `textureFor(cx, cy)` (the baked texture or `null`), `invalidate(tiles)` (mark dirty every chunk holding a tile within `REACH_MAX` = 4 of any of these), `stats()` for the debug corner, `savePng(cx, cy)` (POSTs the chunk's canvas to `/__screenshot/ground_<cx>_<cy>.png` for Michael).
+The module is `src/ground.js`. Public: `init(mapJson)` (loads `ground.json` and its images, with the map's JSON for its own `ground` block), `prebake(tiles)` (bake, synchronously, every chunk touching these tiles plus a one-chunk ring; called once at boot before the first frame), `update(camGx, camGy, tiles)` (one bake per frame from the queue, nearest first; eviction), `textureFor(cx, cy)` (the baked texture or `null`), `invalidate(tiles, prop = null)` (mark dirty every chunk holding a tile within `REACH_MAX` = 4 of any of these), `stats()` for the debug corner, `savePng(cx, cy)` (POSTs the chunk's canvas to `/__screenshot/ground_<cx>_<cy>.png` for Michael); and for the checks and the tools, `bakeNow`, `bakeImage`, `drawRecord`, `kindMap`, `kindNames`, `kindOf`, `decalsFor`, `hashChunk`, `chunksOf`, `prebakeTargets`, `sheetIds`, `reload`, and `invalidateAll`.
+
 
 ### Geometry
 
@@ -54,7 +55,7 @@ For chunk `(cx, cy)`: `x0 = cx·16`, `y0 = cy·16`. The canvas is **1024×512**,
    - `layer: "standing"` is parsed and treated as `flat` (ruling 6).
 6. **The ownership clip** (part of the per-pixel pass, applied last).
 
-Then `gl.uploadGround(cx, cy, canvas)` creates or replaces the chunk's texture (RGBA, `NEAREST`, `CLAMP_TO_EDGE`, no mipmaps). The canvas can be dropped after upload; a re-bake makes a new one.
+Then `gl.uploadGround(key, image)` (the chunk's key; `ground.js:801`, `gl.js:396`) creates or replaces the chunk's texture (RGBA, `NEAREST`, `CLAMP_TO_EDGE`, no mipmaps). The canvas can be dropped after upload; a re-bake makes a new one.
 
 ### Budget
 
