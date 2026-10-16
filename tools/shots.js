@@ -3,6 +3,9 @@
 // interface is in them (the interface is DOM, never the canvas). In the game's page:
 //   http://localhost:8011/?map=staging&nosave&relay=none   (the pane sized first, e.g. 1920 by 1080)
 //   const r = await (await import("/tools/shots.js")).run(window.__game); console.log(r)
+// and, for the site's background (WebP, a tenth of the weight; copy the two to data/art/site/):
+//   await (await import("/tools/shots.js")).run(window.__game, (await import("/tools/shots.js")).SITE)
+// A run refuses unless the canvas is 1920 by 1080, the size the shots are named for (size the pane first).
 // Each shot stands the player at a place, sets the hour and the zoom, lets the frame
 // settle, and POSTs the canvas to serve.py's /__screenshot/<name>.png (saved under
 // screenshots/, which git ignores; the chosen ones are copied to docs/images/site/).
@@ -22,17 +25,39 @@ export const SHOTS = [
   { name: "staging_night_door", at: [19, 21], hour: 23.6, zoom: 1.8 },
 ];
 
+export const SIZE = [1920, 1080];
+
+// The two wide shots as WebP, the site's background (docs/38, #111): blurred by CSS and shown behind everything, so
+// a picture at half the size (960 by 540, scaled to cover the window) reads the same and weighs a tenth of the PNG.
+export const SITE = [
+  { name: "staging_day_wide", at: [22, 27], hour: 10.5, zoom: 1.1, ext: "webp", half: true },
+  { name: "staging_dusk_wide", at: [22, 27], hour: 22.6, zoom: 1.1, ext: "webp", half: true },
+];
+
 const tick = () => new Promise((r) => setTimeout(r, 0)); // a breath for the page; never a frame, which a hidden pane never gives
 
-async function post(canvas, name) {
-  const blob = await new Promise((r) => canvas.toBlob(r, "image/png")); // the bitmap is copied when this is called
-  const res = await fetch(`/__screenshot/${name}.png`, { method: "POST", body: blob });
-  return { name, ok: res.ok, bytes: blob.size, size: `${canvas.width}x${canvas.height}` };
+async function post(canvas, name, ext = "png", half = false) {
+  let from = canvas;
+  if (half) {
+    // Drawn straight after the frame, in the same task, so the canvas still holds it.
+    from = document.createElement("canvas");
+    from.width = canvas.width >> 1;
+    from.height = canvas.height >> 1;
+    const g = from.getContext("2d");
+    g.imageSmoothingQuality = "high";
+    g.drawImage(canvas, 0, 0, from.width, from.height);
+  }
+  const blob = await new Promise((r) => (ext === "webp" ? from.toBlob(r, "image/webp", 0.8) : from.toBlob(r, "image/png"))); // the bitmap is copied when this is called
+  const res = await fetch(`/__screenshot/${name}.${ext}`, { method: "POST", body: blob });
+  return { name: `${name}.${ext}`, ok: res.ok, bytes: blob.size, size: `${from.width}x${from.height}` };
 }
 
 export async function run(game, shots = SHOTS) {
   const G = game;
   const canvas = document.getElementById("game");
+  if (canvas.width !== SIZE[0] || canvas.height !== SIZE[1]) {
+    throw new Error(`The canvas is ${canvas.width} by ${canvas.height}; the shots are named for ${SIZE[0]} by ${SIZE[1]}. Size the pane first (resize_window), reload, and run again.`);
+  }
   const wasPaused = G.loop.isPaused();
   const hour0 = G.clock.getHour();
   const zoomSetting0 = settings.get("worldScale");
@@ -50,7 +75,7 @@ export async function run(game, shots = SHOTS) {
       for (let i = 0; i < 40; i++) G.loop.advance(1 / 60);
       await tick();
       G.loop.advance(1 / 60); // drawn, then copied in the same task, before the browser clears the buffer
-      out.push(await post(canvas, s.name));
+      out.push(await post(canvas, s.name, s.ext, s.half));
     }
   } finally {
     G.teleport(at0[0], at0[1]);

@@ -1,5 +1,5 @@
 {
-  "version": "ed7df654",
+  "version": "c86f8e57",
   "files": {
     "data/build.json": {"size": 366, "stamp": "d4f4a6d2"},
     "data/combat.json": {"size": 3819, "stamp": "f069df33"},
@@ -214,6 +214,8 @@
     "data/art/items/throwing_axe_world.png": {"size": 274, "stamp": "3e86c372"},
     "data/art/items/throwing_knife_icon.png": {"size": 197, "stamp": "a0826310"},
     "data/art/items/throwing_knife_world.png": {"size": 190, "stamp": "5a300ac5"},
+    "data/art/site/staging_day_wide.webp": {"size": 103152, "stamp": "d59a0e45"},
+    "data/art/site/staging_dusk_wide.webp": {"size": 60390, "stamp": "234b2082"},
     "data/art/trees/tree_oak_L_blue.png": {"size": 4142, "stamp": "3da33b61"},
     "data/art/trees/tree_oak_L_green.png": {"size": 4239, "stamp": "f446f1f8"},
     "data/art/trees/tree_oak_L_orange.png": {"size": 4270, "stamp": "f245b84a"},

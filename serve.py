@@ -134,19 +134,20 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
             self.send_response(204)
             self.end_headers()
             return
-        # Dev only: POST /__screenshot/<name>.png saves the body under screenshots/.
+        # Dev only: POST /__screenshot/<name>.png (or .webp, tools/shots.js, #111) saves the body under screenshots/.
         if not self.path.startswith("/__screenshot/"):
             self.send_error(404)
             return
         name = os.path.basename(self.path.split("?")[0])
-        if not re.fullmatch(r"[A-Za-z0-9_-]{1,80}\.png", name):
-            self.send_error(400, "a plain name ending in .png")
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,80}\.(png|webp)", name):
+            self.send_error(400, "a plain name ending in .png or .webp")
             return
         body = self._body()
         if body is None:
             return
-        if not body.startswith(PNG_MAGIC):
-            self.send_error(400, "not a PNG")
+        is_webp = body[:4] == b"RIFF" and body[8:12] == b"WEBP"
+        if not (body.startswith(PNG_MAGIC) if name.endswith(".png") else is_webp):
+            self.send_error(400, "not a " + ("PNG" if name.endswith(".png") else "WebP"))
             return
         os.makedirs("screenshots", exist_ok=True)
         with open(os.path.join("screenshots", name), "wb") as f:

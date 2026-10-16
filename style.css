@@ -1341,7 +1341,7 @@ html, body {
   text-align: left;
   font-size: 13px;
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 10.5em 1fr; /* the same key column in every group, so the descriptions line up across them */
   gap: 5px 16px;
   margin-top: 8px;
 }
@@ -1603,9 +1603,10 @@ html, body {
   position: fixed;
   inset: -24px; /* the blur's soft edge kept off the window */
   z-index: 0;
-  background: #1f1b14 url("docs/images/site/staging_day_wide.png") center / cover no-repeat;
+  /* The staging shot at half size (data/art/site, tools/shots.js SITE): blurred, it loses nothing, and it weighs a tenth
+     of the sharp PNG, which stays in docs/images/site. The path is plain: the site paints before the manifest's stamps. */
+  background: #1f1b14 url("data/art/site/staging_day_wide.webp") center / cover no-repeat;
   filter: blur(5px) brightness(0.72) saturate(1.05);
-  image-rendering: pixelated;
 }
 
 #site .site-bg::after {
@@ -1730,7 +1731,10 @@ html, body {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
 
+#site-page .screen, #site-page .screen-wide { min-width: 0; }
 #site-page .screen-wide { max-width: 760px; }
+#site-page .screen-buttons.row { flex-wrap: wrap; }
+#site-page .setting { flex-wrap: wrap; gap: 6px 16px; }
 #site-page .screen p { font-size: 15px; line-height: 1.5; color: #e6dfd0; margin: 0 0 10px; }
 #site-page .screen a, .site-foot a { color: var(--gold); }
 #site-page .about { text-align: left; }
@@ -1769,8 +1773,8 @@ html, body {
 .wc-rest { display: flex; gap: 6px; }
 .screen .kit-button.big { font-size: 20px; padding: 6px 26px; color: var(--gold); }
 .screen .kit-button.small { font-size: 12px; padding: 1px 8px; }
-#site-page[data-page="controls"] .screen h2 { text-align: left; margin: 14px 0 2px; color: var(--gold); }
-#site-page[data-page="controls"] .controls { grid-template-columns: 10em 1fr; margin-top: 4px; }
+#site-page[data-page="controls"] .screen h2, #screens.controls .screen h2 { text-align: left; margin: 14px 0 2px; color: var(--gold); }
+.controls { margin-top: 4px; }
 
 @media (max-width: 520px) {
   .world-card { flex-direction: column; align-items: stretch; }
@@ -1800,4 +1804,10 @@ html:not(.kit-ready) #site-page .screen { border: 3px solid #6a6258; }
 @media (max-width: 480px) {
   .wordmark { padding: 14px 8px 10px; }
   .wm-tree { display: none; }
+  #site-page { padding: 12px 10px 24px; }
+  #site-page .screen { padding: 16px 14px 18px; }
+  #site-page .you-body { flex-direction: column; align-items: center; }
+  #site-page .you-rows { width: 100%; }
+  #site-page .you-row { flex-wrap: wrap; }
+  #site-page .controls { grid-template-columns: 7.5em 1fr; }
 }

@@ -69,7 +69,7 @@
     // The site at once (docs/38, #111): its page paints while the game loads behind it, and the loading screen comes
     // only when Play is pressed before the game is ready. The checks' test worlds (?nosave, ?join, ?host) and ?boot
     // keep the loading screen at the first paint, as before. The stage waits hidden until a world is entered.
-    if (/[?&](nosave|join|host|boot)/.test(location.search)) document.getElementById("site").hidden = true;
+    if (/[?&](nosave|join|host|boot)\b/.test(location.search)) document.getElementById("site").hidden = true;
     else {
       document.getElementById("loading").hidden = true;
       document.getElementById("stage").hidden = true;

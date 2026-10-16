@@ -107,6 +107,12 @@ export function initScreens(handlers = {}) {
 function listen(el) {
   el.addEventListener("click", (e) => {
     const btn = e.target.closest("button[data-go]");
+    // The site's menu leaves what a page was doing: a character's creation, an identity half edited. Settings and
+    // Controls come back to where they were opened from, so those two keep it (the review of #120).
+    if (btn && btn.closest(".site-nav") && !SUB.has(btn.dataset.go)) {
+      if (current === "identity" && identitiesApi) identitiesApi.cancel();
+      creation = null;
+    }
     if (btn) return go(btn.dataset.go, btn.dataset);
     // The identity editor's swatches and rows: each sets one field of the look and redraws (youApi).
     const lookBtn = e.target.closest("button[data-look-key]");
@@ -672,7 +678,8 @@ function identityRows(pickable) {
 const MENU_OF = { title: "title", about: "about", controls: "controls", settings: "settings", identities: "identities", identity: "identities" };
 function markMenu() {
   if (!siteEl) return;
-  const lit = MENU_OF[current] || (current ? "worlds" : null);
+  // The identity editor reached from a character's creation is part of Play's flow, not the Identities page (the review of #120).
+  const lit = current === "identity" && creation ? "worlds" : MENU_OF[current] || (current ? "worlds" : null);
   for (const b of siteEl.querySelectorAll(".site-nav button[data-go]")) b.classList.toggle("on", b.dataset.go === lit);
 }
 

@@ -24,7 +24,7 @@ Issues #18 to #55 were filed by the bot and are hidden while it is flagged; they
 - **The map (docs/33):** the chart #35; the panel #36.
 - **Talk (docs/34):** the data, the module, and the guide #37; barks #38; conversations #39. Michael's two decisions (the guide's who and where; the panel's keys) are filed in wave 4.
 - **The horde demo (docs/36;** not yet, Michael): the scenario layer #40; the set #41; the horde and the run's limits #42; the score, the end, and the entry #43.
-- **The menus and the site:** #16 (`needs-michael`; the Settings screen with tabs rides with it).
+- **The menus and the site** (`docs/38`, scoped and ruled; #16): built and merged are the two fixes #80, the world loading screen #115, Settings in tabs #114, and the staging map and shots #118; the game's site #111 is built in #120, in review (`needs-michael`); next are the world's rules into each world #109 and the crossing, Exit game #112 (blocked on #111).
 - **Art owed (docs/26):** the hand items #46; the tools #47; the icons and the garments' portraits #48. For the wiki: the art exporter #44; the spot checks in the pane #45.
 - **Items:** Take All on every lootable panel #10.
 - **The rest of `24`:** the fireball's cost and area #50; the throwing knives and axes #51.
