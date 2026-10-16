@@ -581,8 +581,9 @@ function render() {
         <div class="screen-buttons row">${button("creatorkey-save", "Move the world")}${button("worlds", "Back")}</div>
       </div>`;
     const field = root.querySelector("#creator-key");
+    // Typing stops the keydown; a release is let through, as in the chat box (#65): input.js only forgets the key
+    // on it, so a key held when a field takes the focus is not left down after the screen closes (#16). The same below.
     field.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.code === "Enter") go("creatorkey-save"); });
-    field.addEventListener("keyup", (e) => e.stopPropagation());
     field.focus();
   } else if (current === "ownerkey") {
     // The owner key, shown once (item 5's fifth step): it proves the world is yours, here and on any other device.
@@ -613,7 +614,6 @@ function render() {
       </div>`;
     const field = root.querySelector("#world-name");
     field.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.code === "Enter") go("newworld-next"); });
-    field.addEventListener("keyup", (e) => e.stopPropagation());
     field.focus();
     field.select();
   } else if (current === "join") {
@@ -627,7 +627,6 @@ function render() {
       </div>`;
     const codeEl = root.querySelector("#join-code");
     codeEl.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.code === "Enter") go("join-next"); });
-    codeEl.addEventListener("keyup", (e) => e.stopPropagation());
     codeEl.focus();
   } else if (current === "create" && creation) {
     const c = creation;
@@ -718,10 +717,7 @@ function render() {
         <div class="setting"><span>Creator key</span><span class="choices"><input id="owned-creator" type="password" maxlength="200" autocomplete="off" spellcheck="false"></span></div>
         <div class="screen-buttons row">${button("addowned-rekey", "A new owner key")}${button("worlds", "Back")}</div>
       </div>`;
-    for (const f of root.querySelectorAll("input")) {
-      f.addEventListener("keydown", (e) => e.stopPropagation());
-      f.addEventListener("keyup", (e) => e.stopPropagation());
-    }
+    for (const f of root.querySelectorAll("input")) f.addEventListener("keydown", (e) => e.stopPropagation());
   } else if (current === "host" && wireApi) {
     // Hosting as a switch (docs/31/09): on, the world is on the relay under its code; off, it is yours alone.
     const st = wireApi.status();
