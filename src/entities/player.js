@@ -17,7 +17,7 @@ import { setTimeScale, nextId } from "../world.js";
 import * as clock from "../clock.js";
 import * as loop from "../loop.js";
 import { emit } from "../events.js";
-import { bagOf, beltOf } from "../inventory.js";
+import { bagOf, beltOf, waterContainers } from "../inventory.js";
 import { getItem } from "../items.js";
 
 
@@ -127,8 +127,7 @@ export function autoDrink(player) {
   if (a && (a.name === "attack" || a.name === "attack_alt") && !a.done) return null;
   const skins = [];
   for (const e of beltOf(player) || []) if (e && getItem(e.id).capacity) skins.push(e);
-  const bag = bagOf(player);
-  if (bag) for (const e of bag.items) if (getItem(e.id).capacity) skins.push(e);
+  skins.push(...waterContainers(bagOf(player)));
   const wet = skins.filter((e) => (e.fill ?? 0) > 0).sort((p, q) => p.fill - q.fill);
   for (const e of wet) if (drink(player, e)) return e;
   return null;
