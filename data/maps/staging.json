@@ -1,0 +1,699 @@
+{
+ "name": "The staging clearing",
+ "floor": "floor_grass",
+ "bounds": [
+  0,
+  0,
+  48,
+  48
+ ],
+ "features": [
+  {
+   "kind": "road",
+   "rect": [
+    18,
+    20,
+    2,
+    6
+   ],
+   "sprite": "floor_dirt",
+   "group": "path"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    19,
+    24,
+    1,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "path"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    20,
+    25,
+    2,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "path"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    22,
+    26,
+    1,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "path"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    23,
+    27,
+    1,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "path"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    23,
+    27,
+    2,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "path"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    25,
+    28,
+    2,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "path"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    27,
+    29,
+    2,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "path"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    28,
+    25,
+    8,
+    7
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    29,
+    26,
+    6,
+    5
+   ],
+   "sprite": "floor_water",
+   "note": "the pond"
+  }
+ ],
+ "sets": [
+  {
+   "name": "the cabin",
+   "rect": [
+    17,
+    14,
+    10,
+    8
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      7,
+      5
+     ],
+     "wall": "wall_log",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "s",
+       "at": 2,
+       "kind": "door",
+       "open": true
+      },
+      {
+       "side": "s",
+       "at": 5,
+       "kind": "window",
+       "open": true
+      },
+      {
+       "side": "e",
+       "at": 2,
+       "kind": "window",
+       "open": true
+      },
+      {
+       "side": "n",
+       "at": 3,
+       "kind": "window"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "fireplace",
+       "tile": [
+        0,
+        1
+       ],
+       "footprint": [
+        1,
+        2
+       ],
+       "lit": true,
+       "fuel": 8
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        2,
+        2
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        2,
+        3
+       ],
+       "facing": "n"
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        5,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
+  },
+  {
+   "name": "the patch",
+   "rect": [
+    10,
+    23,
+    8,
+    7
+   ],
+   "padding": 0,
+   "buildings": [],
+   "floorRects": [
+    {
+     "rect": [
+      0,
+      0,
+      4,
+      5
+     ],
+     "sprite": "floor_farm"
+    },
+    {
+     "rect": [
+      5,
+      0,
+      2,
+      5
+     ],
+     "sprite": "floor_farm"
+    }
+   ],
+   "fences": [],
+   "props": [
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      0,
+      0
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      1,
+      0
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      2,
+      0
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      3,
+      0
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      0,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      1,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      2,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      3,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      0,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      1,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      2,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      3,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      0,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      1,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      2,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      3,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      0,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      1,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      2,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      3,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      5,
+      0
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      6,
+      0
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      5,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      6,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      5,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      6,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      5,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      6,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      5,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      6,
+      4
+     ],
+     "solid": false
+    }
+   ]
+  }
+ ],
+ "reserve": [
+  [
+   9,
+   13,
+   29,
+   22
+  ]
+ ],
+ "biomes": {
+  "autumn": {
+   "kinds": {
+    "tree_orange_m": 1.2,
+    "tree_orange_l": 1.2,
+    "tree_orange_old": 0.6,
+    "tree_red_m": 1,
+    "tree_red_l": 1,
+    "tree_red_old": 0.5,
+    "tree_yellow_m": 1,
+    "tree_yellow_l": 1,
+    "tree_yellow_old": 0.5,
+    "tree_oak_m": 0.6,
+    "tree_oak_l": 0.6,
+    "tree_oak_old": 0.3,
+    "tree_spire_orange_m": 0.4,
+    "tree_spire_red_m": 0.4,
+    "tree_spire_yellow_m": 0.4,
+    "tree_spire_green_m": 0.3
+   },
+   "scale": 7
+  }
+ },
+ "scatter": [
+  {
+   "rect": [
+    0,
+    0,
+    48,
+    48
+   ],
+   "density": [
+    0.22,
+    0.36
+   ],
+   "biome": "autumn",
+   "seed": 5
+  }
+ ],
+ "wild": {
+  "biome": "autumn",
+  "density": [
+   0.2,
+   0.32
+  ],
+  "seed": 7,
+  "zombiesPerChunk": [
+   0,
+   0
+  ]
+ },
+ "spawn": [
+  23,
+  27
+ ],
+ "zombies": [],
+ "props": [
+  {
+   "sprite": "well",
+   "tile": [
+    21,
+    25
+   ]
+  },
+  {
+   "sprite": "pumpkin",
+   "tile": [
+    18,
+    21
+   ],
+   "facing": "left"
+  },
+  {
+   "sprite": "pumpkin",
+   "tile": [
+    21,
+    21
+   ],
+   "facing": "right"
+  },
+  {
+   "sprite": "rock_1",
+   "tile": [
+    28,
+    32
+   ]
+  },
+  {
+   "sprite": "rock_3",
+   "tile": [
+    36,
+    27
+   ]
+  },
+  {
+   "sprite": "pumpkin_plain_0",
+   "tile": [
+    15,
+    29
+   ]
+  },
+  {
+   "sprite": "pumpkin_plain_1",
+   "tile": [
+    10,
+    29
+   ]
+  },
+  {
+   "sprite": "rock_0",
+   "tile": [
+    13,
+    17
+   ]
+  },
+  {
+   "sprite": "rock_2",
+   "tile": [
+    31,
+    19
+   ]
+  },
+  {
+   "sprite": "rock_0",
+   "tile": [
+    25,
+    34
+   ]
+  },
+  {
+   "sprite": "mushroom_0",
+   "tile": [
+    14,
+    19
+   ],
+   "solid": false
+  },
+  {
+   "sprite": "mushroom_1",
+   "tile": [
+    15,
+    20
+   ],
+   "solid": false
+  },
+  {
+   "sprite": "mushroom_2",
+   "tile": [
+    30,
+    21
+   ],
+   "solid": false
+  },
+  {
+   "sprite": "mushroom_3",
+   "tile": [
+    32,
+    22
+   ],
+   "solid": false
+  },
+  {
+   "sprite": "mushroom_4",
+   "tile": [
+    24,
+    35
+   ],
+   "solid": false
+  },
+  {
+   "sprite": "mushroom_0",
+   "tile": [
+    12,
+    31
+   ],
+   "solid": false
+  },
+  {
+   "sprite": "mushroom_1",
+   "tile": [
+    34,
+    33
+   ],
+   "solid": false
+  }
+ ],
+ "forage": {
+  "kinds": {
+   "mushroom_0": 1,
+   "mushroom_1": 1,
+   "mushroom_2": 1,
+   "mushroom_3": 1,
+   "mushroom_4": 1
+  },
+  "chance": 0.03,
+  "near": 2,
+  "seed": 9
+ },
+ "villagers": []
+}

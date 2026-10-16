@@ -1,5 +1,5 @@
 {
-  "version": "744cd6df",
+  "version": "ed7df654",
   "files": {
     "data/build.json": {"size": 366, "stamp": "d4f4a6d2"},
     "data/combat.json": {"size": 3819, "stamp": "f069df33"},
@@ -10,7 +10,7 @@
     "data/loot.json": {"size": 1919, "stamp": "3e251af7"},
     "data/poses.json": {"size": 4867, "stamp": "53e6f192"},
     "data/recipes.json": {"size": 6494, "stamp": "ddf6aac7"},
-    "data/tuning.json": {"size": 1953, "stamp": "a170c13b"},
+    "data/tuning.json": {"size": 1978, "stamp": "3d1c4302"},
     "data/wardrobes.json": {"size": 8477, "stamp": "3320934b"},
     "data/art/character/character_body.json": {"size": 17235, "stamp": "2b1fcf24"},
     "data/art/character/character_template.json": {"size": 13333, "stamp": "9a0c05f7"},
@@ -379,6 +379,7 @@
     "data/layers/legs/index.json": {"size": 19, "stamp": "e924073b"},
     "data/layers/waist/index.json": {"size": 19, "stamp": "e924073b"},
     "data/maps/square.json": {"size": 12941, "stamp": "3d38cb10"},
+    "data/maps/staging.json": {"size": 8579, "stamp": "4d8afeff"},
     "data/maps/valley.json": {"size": 70545, "stamp": "b2dec23c"},
     "data/sprites/altar.json": {"size": 197, "stamp": "1f7da4c7"},
     "data/sprites/anvil.json": {"size": 218, "stamp": "e3be27c4"},
