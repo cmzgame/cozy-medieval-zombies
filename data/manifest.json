@@ -1,5 +1,5 @@
 {
-  "version": "be045dd5",
+  "version": "ed7df654",
   "files": {
     "data/build.json": {"size": 366, "stamp": "d4f4a6d2"},
     "data/combat.json": {"size": 3819, "stamp": "f069df33"},
@@ -379,6 +379,7 @@
     "data/layers/legs/index.json": {"size": 19, "stamp": "e924073b"},
     "data/layers/waist/index.json": {"size": 19, "stamp": "e924073b"},
     "data/maps/square.json": {"size": 12941, "stamp": "3d38cb10"},
+    "data/maps/staging.json": {"size": 8579, "stamp": "4d8afeff"},
     "data/maps/valley.json": {"size": 70545, "stamp": "b2dec23c"},
     "data/sprites/altar.json": {"size": 197, "stamp": "1f7da4c7"},
     "data/sprites/anvil.json": {"size": 218, "stamp": "e3be27c4"},
