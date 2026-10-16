@@ -41,3 +41,9 @@ Started 2026-10-08.
   - **The cheap test before committing:** two tabs on one machine with an artificial 80 to 120 ms delay between them, once tiers 1 and 2 exist; that is the real answer to whether it feels good, at a fraction of the whole.
   - **The standing rule (Michael, 2026-10-12, also in `CLAUDE.md`):** when a single-player choice forks and one path favours a future second player while the other bakes in the single perspective, all else equal take the multiplayer-friendly path. Single player is finished first; this only breaks ties.
   - **Keep it possible, for free, from now on:** no new `Math.random` or `performance.now` inside the simulation when a seeded or stepped value will do; every world change goes through the map's mutators or an event, never by poking tiles; keep ids on everything that moves; pass "the player" as an argument rather than reaching for a global; no feature that freezes or pauses the whole sim (hit-stop is the one that does today; its screen shake can stay local); keep each player's UI state (bag, belt, hands, camera) separate from the world's.
+
+## From `02`'s open questions (2026-10-16)
+
+- **Day counter as a score** (`02` question 10, since 2026-10-08): per survivor, alongside survivors, on the death card; the dead screen shows the day and hour and the Worlds row the day already, so what is left is a best run kept and shown.
+- **Noise** (`02` question 18, since 2026-10-09): whether anything carries to the dead by sound; Michael doubts it fits the cosy idea, and with no guns little is loud; decide when something in the game is loud, and the bow stays quiet by design.
+- **Gathering's remainder** (`02` question 27, since 2026-10-11): whether picked things regrow, and whether rocks block sight; what each gathering gives and its tool are `30` section 4.
