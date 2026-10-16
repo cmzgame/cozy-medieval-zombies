@@ -58,7 +58,7 @@ The body is the figure bare: skin, hair, eyes, and no undergarment (`02`, 2026-1
 | head | hair and the top of the head | a shape: hood point, cap, helm with visor slits |
 | waist | a strip at the hips | a buckle pixel |
 | back | nothing | a box or sack on the back, behind the body when facing south, in front when facing north |
-| beard | the face, under the hair where they meet | facial hair: a painted layer chosen like the hair, dyed from the look |
+| beard | the face, under the hair where they meet | the slot exists (`wardrobe.js`) and nothing fills it: facial hair is after 1.0 (`02`, 2026-10-13), and `data/layers/beard/` lists no style until then |
 
 A garment definition in `data/items.json` is `art: { shape, colours }`: the shape names a rule (tunic, breeches, boots, gloves, hood, cap, helm, belt, sack, rucksack), the colours give its tones. Two tunics differ by colour alone; a tabard is a tunic shape with a second colour over the torso.
 

@@ -62,6 +62,8 @@ The night layer works in screen space and is painted in two stages, so the rules
 
 ## Lines rewritten in place, as they stood
 
+- **Zombie sight of the player**: the parent's scaled range, with `lightAt(player)`.
+
 - **Full day may never be quite full.** The vision says Halloween never ends here. Try a day cap of 0.92 and see whether the dusky look holds without reading as a bug. Michael decides by eye.
 - **Pools are smooth, shadows are soft.** The parent drew the two-cell-per-tile map through the iso transform with image smoothing on, which breaks the letter of "never scale in `drawImage`". That rule exists for pixel art; the erase layer is a gradient, not a sprite, and the parent's look depends on the smoothing. Ruled 2026-10-09: allowed for the light erase layer only. The alternative, chunky per-cell diamonds in the Minecraft manner, is one function away and stays on the backburner in case the first pass does not please.
 

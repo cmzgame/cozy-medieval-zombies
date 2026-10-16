@@ -100,9 +100,11 @@ Pause with `loop.setPaused(true)` and step with `loop.advance(1/60)`. The cursor
 7. A built wall blocks sight, light, and movement at once (the debug corner's room and sealed readouts agree; light inside a built room dims).
 8. Frame rate unchanged with the ghost showing.
 
-## The removal line and the tunables, as they stood
+## The removal line, the free-building line, and the tunables, as they stood
 
 - **What can be removed** (since 2026-10-15, Michael: what players made, never the village's own things): a prop made at a station (`made`, set when a station delivers it) and a wall, door, or window with `built` set. *Before:* a prop that could be carried (`canCarry`: the bed, table, chest, barrel, jack-o'-lantern), the village's included, and never a crafted workbench. *And* (everything the player builds; authored walls are not). Trees, the well, the hearth, the campfire, torch posts, and the cottage's own walls never highlight, so the tool is quiet over a forest.
+
+The setting `freeBuilding` (settings screen, default off, kept in the browser): while on, every build costs nothing, the palette shows "free", and nothing is taken from the bag. Build time still applies. It is for testing structures; turn it off to test the costs.
 
 `PLACE_REACH` 2.6 tiles, `BUILD_REACH` 2.6, `REMOVE_REACH` 2.6 (all raised a full tile on 2026-10-11), the costs and seconds in `data/build.json`, the ghost tints in `render.js`.
 

@@ -19,7 +19,7 @@ The removal tool (Michael, 2026-10-11: "delete anything placed or built, highlig
 
 ## Free building
 
-The setting `freeBuilding` (settings screen, default off, kept in the browser): while on, every build costs nothing, the palette shows "free", and nothing is taken from the bag. Build time still applies. It is for testing structures; turn it off to test the costs.
+The world rule `freeBuilding` (`rules.js`, default off; a host's rules bind its guests, and the settings screen's row is what a browser's own worlds take as their rule): while on, every build costs nothing, the palette shows "free", and nothing is taken from the bag. Build time still applies. It is for testing structures; turn it off to test the costs.
 
 ## Accepted, and what is left for later
 
