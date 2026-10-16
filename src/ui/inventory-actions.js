@@ -170,11 +170,13 @@ export function createInventoryActions(getPlayer) {
       if (def.wear) return interact.wearFrom(getPlayer(), entry, bag);
       return false;
     },
-    // Double-click on a slot: its first menu entry (Equip or Unequip).
+    // Double-click on a slot: its Equip or Unequip (Use comes first in the menu, and a double-click that began the
+    // Use mode never took anything off; the review of #66).
     useSlot(slotId) {
       const m = interact.slotMenu(getPlayer(), slotId);
-      if (!m.length) return false;
-      m[0].onSelect();
+      const a = m.find((q) => q.label === "Unequip" || q.label.startsWith("Equip"));
+      if (!a || a.enabled === false) return false;
+      a.onSelect();
       return true;
     },
     slotMenu(slotId) {
@@ -254,8 +256,9 @@ export function createRemoteInventoryActions(getPlayer, getOpen, send) {
     },
     useSlot(slotId) {
       const m = local.slotMenu(slotId);
-      if (!m.length) return false;
-      send({ op: "menu", label: m[0].label, src: { kind: "slot", id: slotId } });
+      const a = m.find((q) => q.label === "Unequip" || q.label.startsWith("Equip")); // as the host's own (above)
+      if (!a || a.enabled === false) return false;
+      send({ op: "menu", label: a.label, src: { kind: "slot", id: slotId } });
       return true;
     },
     slotMenu(slotId) {

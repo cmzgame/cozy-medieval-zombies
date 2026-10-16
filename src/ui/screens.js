@@ -458,7 +458,7 @@ function layerRows() {
     const names = layersApi.names(slot);
     if (!names.length) return "";
     const cur = layersApi.current(slot);
-    const choices = [`<button data-layer-slot="${slot}" data-layer-name="" class="${cur ? "" : "on"}">worn</button>`, ...names.map((n) => `<button data-layer-slot="${slot}" data-layer-name="${n}" class="${n === cur ? "on" : ""}">${n}</button>`)].join("");
+    const choices = [`<button data-layer-slot="${slot}" data-layer-name="" class="${cur ? "" : "on"}">item</button>`, ...names.map((n) => `<button data-layer-slot="${slot}" data-layer-name="${n}" class="${n === cur ? "on" : ""}">${n}</button>`)].join("");
     return `<div class="setting"><span>Layer: ${slot}</span><span class="choices">${choices}</span></div>`;
   }).join("");
 }

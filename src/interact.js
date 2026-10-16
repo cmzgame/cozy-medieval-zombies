@@ -163,13 +163,13 @@ export function takeIn(player, entry) {
 
 // ---- action builders ----
 
-// Wear something lying on the floor: what was in that slot stows, or for a
-// bag drops where you stand.
+// Equip something lying on the floor (the action's kind is still `wear`, the code's word): what was in that slot
+// stows, or for a bag drops where you stand.
 function wearAction(entry, tx, ty, player) {
   const def = getItem(entry.id);
   const worn = player.worn[def.wear];
   const name = def.name.toLowerCase();
-  const swap = worn ? (def.wear === "back" ? `Swap bags (drop your ${nameOf(worn).toLowerCase()})` : `Wear ${name} (swap)`) : `Wear ${name}`;
+  const swap = worn ? (def.wear === "back" ? `Swap bags (drop your ${nameOf(worn).toLowerCase()})` : `Equip ${name} (swap)`) : `Equip ${name}`;
   return act({
     kind: "wear",
     label: swap,
