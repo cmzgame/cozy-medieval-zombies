@@ -4,6 +4,17 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-15 — Burning made real (#14; Michael's rules, the build's rulings)
+
+Michael said go on #14 with its defaults (0.8 a second for 10 seconds, a torch's blow one in four, the whole stack of arrows dipped at once) and asked that the test toggle go: **the character menu's Set on fire and Put out are gone**, for the dead, the villagers, and the player alike (`__game.burn.ignite(z)` is the tests' way in). The build's own rulings, Michael's to overrule:
+
+- **The torch's chance is on its weapon block** (`"ignite": 0.25` in `data/items.json`), not a `burn.torchChance` in `data/combat.json` as the issue had it: any weapon can carry an `ignite` chance (a flaming sword, a brand) with no code, and the fireball's spell and the fire arrow's shot carry `ignite` the same way. `burn` in `data/combat.json` holds the rest: `dps`, `duration`, and `cap`.
+- **The cap counts across refreshes:** one burn, from the first spark until it goes out, takes no more than `cap` (10) however often a new source refreshes its timer, which is Michael's "never more than 10 over the whole burn" taken literally. A body that goes out and is lit again starts a new burn.
+- **The spark comes before the blow's damage:** a killing blow that also sets alight leaves a corpse that burns on (the issue's corpse rule, reached from the blow as well as from the burn).
+- **A burn is not a blow:** it takes health and nothing else (no push, no stagger, the dead one's path kept; `burnZombie`), so a burning dead one keeps walking at you.
+- **`fire` in `data/interactions.json` names any prop whose fire burns** (a campfire, a fireplace, a hearth, the forge, the oven), so one row covers every fire; the `dip` verb refuses an unlit one ("The fire is out."). A row with a verb now says its `message` when the verb succeeds ("You dip the arrows in the fire.").
+- **A fire arrow is a projectile of its own** (`fire_arrow`: the arrow with a burning head, a small moving light like the fireball's), so a guest sees it burn in flight from the frame's projectile name. It lands or lodges as a plain arrow, hit or miss.
+
 ### 2026-10-15 — Primary's pull requests are reviewed by agents it starts (Michael)
 
 Asked whether the reviewing agents Primary started tonight were a one-night allowance: **a standing permission.** Primary may start a Secondary agent to review its own pull request (a fresh agent with no part in the change, a signed review, Primary answering it in new commits); for a change he is particularly worried about, Michael opens a Secondary session himself to keep direct tabs. Michael: with GitHub he should not have to carry messages back and forth as reviews. Written into `github.md` section 8, step 6, which outlives the bot's flag; the box's rule 4 points there.

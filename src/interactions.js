@@ -33,7 +33,7 @@ function itemMatches(what, entry) {
 function targetMatches(what, target) {
   switch (target.kind) {
     case "item": return itemMatches(what, target.entry);
-    case "prop": return what === target.prop.sprite;
+    case "prop": return what === target.prop.sprite || (what === "fire" && !!(target.prop.fire && target.prop.fire.burns)); // "fire": any that burns (#14)
     case "character": return what === "character" || what === target.ch.kind;
     case "tile": return what === "tile" || what === target.floor;
     default: return false;

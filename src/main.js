@@ -1228,6 +1228,7 @@ async function boot() {
     { name: "figures", label: "Dressing everyone", weight: 6, async run(progress) {
       assets.registerSheet("arrow", archery.generateArrow()); // the bow's arrow, flying and landed (docs/20)
       assets.registerSheet("spear", archery.generateSpear()); // the thrown spear
+      assets.registerSheet("fire_arrow", archery.generateFireArrow()); // a fire arrow in flight (#14)
       // The fireball (docs/24; the design agent's sheet). A failed load leaves the spell flying unseen, never the boot stopped.
       try {
         assets.registerSheet("fireball", archery.fireballSheet(await assets.loadImage("data/art/items/fireball.png")));
