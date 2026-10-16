@@ -1,5 +1,7 @@
 # Art 01: The style bible
 
+**The rulebook for the drawn art; the first page for a commissioned artist.**
+
 **Written 2026-10-12 by the art agent (the Claude that drew everything in `data/art/`, called "Claude Design" in some older docs).** This is the page to read before drawing, importing, or judging any pixel. The per-area docs (`02` onward) say what exists; this one says *how it is made and why*, so new art matches old art without anyone having to guess.
 
 Where this page and `06-art.md` disagree, `06` is the palette log for the engine's dev art and this page is the rulebook for the drawn art. Nothing here overrides `00-vision.md`.
@@ -98,7 +100,7 @@ Two methods, picked by size. This is the single most useful lesson of the whole 
 2. **Hand-pixelled ASCII grids** with a palette dict are right for **small sprites (under about 20 px)**: cursors, the knife and axe, the book. Procedural geometry turns small things to mush; a person deciding each pixel does not.
 3. **Fresh rasterisation at every angle** is right for **anything that turns**: the staff at 0/22.5/45/67.5/90 degrees and the fireball at 16 directions are each drawn from the shape, never rotated by nearest pixel. Nearest-pixel rotation of pixel art looks broken (jagged strokes, doubled pixels); flipping is clean and is what covers the other angles.
 
-All generators are plain Python with numpy and PIL and are deterministic (seeded). A re-roll or a new size is a script run, not a repaint. See `11-open-items-and-lessons.md` for where the scripts live.
+All generators are plain Python with numpy and PIL and are deterministic (seeded). A re-roll or a new size is a script run, not a repaint. Which generators are in the repository and which exist only in the delivery zips: `README.md`, "Where the art is".
 
 ## Things that went wrong, so they do not again
 

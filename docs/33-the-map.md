@@ -8,15 +8,9 @@ Press `M` and see the valley: the land, the water, the roads, the buildings, and
 
 It shows only what has been seen, **by anyone in the world**, and the world keeps it: a friend logging in finds the map you filled in, a new character after a death sees all of it, and nothing is wiped. It never shows the dead or villagers. It shows player-built walls. The world keeps running while it is open, alone as with friends: browsing the map is a risk.
 
-## The rules (Michael's, `02`)
+## The rules
 
-1. **What has been seen, by anyone, kept by the world.** The record of what has been seen is world state: in the save, on the wire, in the sync check.
-2. **Built walls are shown** (they carry `wall.built`, `map.js` `buildWall`). [Drawn a shade lighter than an authored wall of the same kind.]
-3. **Every player in the world is shown live, with their name.** Never the dead, never villagers. [A dormant or dead player is not shown.]
-4. **The world runs behind it.** Opening the map never pauses, in single player too (Escape still pauses alone, as now).
-5. **Low fidelity, accurate.** A tile is one colour; a wall is a line on the tile's edge; markers sit exactly where the player stands.
-6. **The screen's angle.** The map is drawn in the game's own projection (`iso.toScreen`: `x = (gx - gy) * w/2`, `y = (gx + gy) * h/2`), so the world's north (`-y`, the `n` wall slot) is up and to the right, as on screen.
-7. **Someday, wanted:** pins and notes, a marker where a character died. Zoom and pan are in this scope (below).
+Michael's seven are `02` 2026-10-13, "The map's choices, and the long arc", with their reasons; this spec adds to them only its defaults: a built wall [drawn a shade lighter than an authored wall of the same kind]; [a dormant or dead player is not shown]; and the projection it draws in (`iso.toScreen`: `x = (gx - gy) * w/2`, `y = (gx + gy) * h/2`, so the world's north, `-y`, the `n` wall slot, is up and to the right, as on screen). Zoom and pan are in this scope (below); pins, notes, and a death marker are someday, wanted.
 
 ## How it works
 
