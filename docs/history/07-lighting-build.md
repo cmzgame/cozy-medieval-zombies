@@ -62,7 +62,7 @@ The night layer works in screen space and is painted in two stages, so the rules
 
 ## Lines rewritten in place, as they stood
 
-- **Zombie sight of the player**: the parent's scaled range, with `lightAt(player)`.
+- **Zombie sight of fire.** New, one rule: on each sight check, if `nightFactor > 0`, a zombie looks for the nearest lit source within `FLAME_RANGE × nightFactor` tiles (twelve at full night) with a clear line, and treats it as a sighting at that tile. A carried torch is a sighting of the player. The memory rule does the rest: walk there, search ten seconds, give up, notice it again. A campfire gathers a slow crowd that mills about it; closed shutters hide a hearth; a torch in a forest brings them from four screens' width. The same number becomes the per-chunk lure in `03-world-model.md` when records exist.
 
 - **Full day may never be quite full.** The vision says Halloween never ends here. Try a day cap of 0.92 and see whether the dusky look holds without reading as a bug. Michael decides by eye.
 - **Pools are smooth, shadows are soft.** The parent drew the two-cell-per-tile map through the iso transform with image smoothing on, which breaks the letter of "never scale in `drawImage`". That rule exists for pixel art; the erase layer is a gradient, not a sprite, and the parent's look depends on the smoothing. Ruled 2026-10-09: allowed for the light erase layer only. The alternative, chunky per-cell diamonds in the Minecraft manner, is one function away and stays on the backburner in case the first pass does not please.
