@@ -237,8 +237,9 @@ function afterWorldSet() {
 // ---- the loading screen into and out of a world (docs/38, #107; boot.js's screen) ----
 // Entering a world marks every ground chunk dirty, and the step would re-bake the whole view in one frame (about a
 // second, measured 2026-10-16). Behind the screen the view and its ring are baked two a frame instead, as boot does,
-// a lone world held still meanwhile, and the screen closes on frames that keep to the budget.
-async function settleWorld() {
+// a lone world held still meanwhile, and the screen closes on frames that keep to the budget. `from` is where the bar
+// stands when the bake begins, so it never runs backwards (the review of #115).
+async function settleWorld(from = 0) {
   const solo = !net.onTheWire();
   if (solo) loop.setPaused(true);
   try {
@@ -247,12 +248,14 @@ async function settleWorld() {
       const targets = ground.prebakeTargets(tiles).filter(([cx, cy]) => ground.needsBake(cx, cy));
       for (let i = 0; i < targets.length; i++) {
         ground.bakeNow(targets[i][0], targets[i][1]);
-        shell.worldStage("The ground round you", (i + 1) / targets.length);
+        shell.worldStage("The ground round you", from + (1 - from) * (i + 1) / targets.length);
         if (i % 2 === 1) await shell.nextFrame();
       }
     }
     shell.worldStage("Waking the valley", 1);
     // The first frames drawn behind the screen (the figures' sheets, the light): two in a row under 34 ms, or thirty tried.
+    // A tab that is shown but given no frames (a background tab of the pane) waits on nextFrame's 40 ms timer, so it
+    // never counts a calm frame and runs all thirty, about a second and a quarter: bounded.
     let calm = 0;
     for (let n = 0; n < 30 && calm < 2 && !document.hidden; n++) {
       const t = performance.now();
@@ -309,8 +312,8 @@ async function enterNewWorld(name, identity, { keep = true } = {}) {
     started = keep;
     screens.hide();
     if (!keep) return false;
-    const saved = saveWorld();
-    await settleWorld();
+    const saved = saveWorld().catch(() => false); // never rejects today; caught so a change there cannot go unhandled
+    await settleWorld(0.1);
     return await saved;
   } finally {
     if (keep) await shell.worldEnd();
@@ -364,7 +367,7 @@ async function playWorldBehindScreen(worldId) {
     showMessage(`${clock.getLabel()}. Welcome back.`, 3);
   }
   camera.applyOrigin(V.w, V.h);
-  await settleWorld(); // before the wire opens, so a lone world is held still while its ground bakes
+  await settleWorld(0.3); // before the wire opens, so a lone world is held still while its ground bakes
   // A world left open to friends is open again when it is played (Michael, 2026-10-13: it had to be switched on every time).
   if (currentWorld.open) setOpen(true);
   return true;
@@ -1607,6 +1610,9 @@ async function boot() {
       events.on("weaponBroke", ({ item, who }) => {
         if (!who || who === S.player.id) showMessage(`Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3);
       });
+      events.on("drank", ({ who, auto }) => {
+        if (auto && who === S.player.id) showMessage("You drink from your waterskin.", 2); // a guest's, host.js
+      });
       events.on("containerGone", ({ bags }) => {
         if (openBag && bags.includes(openBag.bag)) openBag = null; // its panel closes with it (placement.js destroy)
       });
@@ -1650,6 +1656,7 @@ async function boot() {
   net.init({ host: TEST_WORLD ? url.get("host") : null, join: joinCode, lag: urlLag }, {
     restore: async (snap, playerId, world) => {
       shell.worldStage("Receiving the world", 0.4);
+      shell.worldNoCancel(); // the world is here: Leave is the way out now (the review of #115)
       awaitingWelcome = false;
       await restoreWorld(snap);
       S.player = S.players.find((p) => p.id === playerId) || S.player;
@@ -1664,7 +1671,7 @@ async function boot() {
       // (A world of mine on the server has its own row among my worlds, item 5: not a friend's world too.)
       if (!identities.owned().some((o) => o.code === net.status().code)) identities.rememberJoined({ code: net.status().code, name: world ? world.name : null, hostName: world ? world.host : null, myCharacter: S.player.name || S.player.id });
       // The host's world is here: its ground baked behind the screen, then the screen goes (#107).
-      await settleWorld();
+      await settleWorld(0.5);
       await shell.worldEnd();
     },
     // The host's side (host.js): the joins and whose character, the saves, dormancy, stepping away, a guest's commands.

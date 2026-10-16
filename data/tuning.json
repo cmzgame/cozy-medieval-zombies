@@ -49,6 +49,7 @@
     "starveDamage": 1.5,
     "dehydrateDamage": 2,
     "drinkSip": 50,
+    "autoDrinkStage": 2,
     "presentTime": 0.6,
     "climbTime": 0.9,
     "tiredMax": 100,
