@@ -517,6 +517,15 @@ export function poly(points, color, { world, heights = 0, flags = 0 } = {}) {
   }
 }
 
+// The canvas to black, with nothing drawn: with no world in, a canvas left alone keeps the last frame of the
+// world just left behind the menus (#16).
+export function blank() {
+  if (!gl || lost) return;
+  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+  gl.clearColor(0, 0, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+}
+
 // Draw everything pushed since begin() with these uniforms.
 export function end(u) {
   if (lost) return; // nothing to draw to; the batch is dropped

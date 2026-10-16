@@ -98,6 +98,58 @@ export async function finish() {
   root.hidden = true;
 }
 
+// ---- the same screen for entering and leaving a world (docs/38, #107) ----
+// `worldBegin(title)` shows it with the title under the name ("Reading Ashford", "Joining oak-abc") and, given a
+// `cancel`, a Cancel button; `worldStage(label, fraction)` moves the bar and the line; `worldEnd()` hides it once it
+// has been up half a second, so it never flickers. A hidden tab shows nothing and waits for nothing.
+const sub = q(".sub");
+const subText = sub ? sub.textContent : "";
+let worldShownAt = 0;
+let worldOn = false;
+let cancelBtn = null;
+
+export function worldBegin(title, { cancel = null } = {}) {
+  if (!root) return;
+  worldOn = true;
+  worldShownAt = performance.now();
+  if (sub) sub.textContent = title;
+  if (errorBox) errorBox.hidden = true;
+  if (!cancelBtn) {
+    cancelBtn = document.createElement("button");
+    cancelBtn.type = "button";
+    cancelBtn.className = "cancel";
+    cancelBtn.textContent = "Cancel";
+    q(".box").appendChild(cancelBtn);
+  }
+  cancelBtn.hidden = !cancel;
+  cancelBtn.onclick = cancel;
+  show(title, 0);
+  root.hidden = false;
+}
+
+export function worldStage(label, fraction) {
+  if (worldOn) show(label, fraction);
+}
+
+export function worldShowing() {
+  return worldOn;
+}
+
+// Hidden at once: a screen of the game's own takes its place (the host asking which identity to join as).
+export function worldHide() {
+  if (!root || !worldOn) return;
+  worldOn = false;
+  root.hidden = true;
+  if (sub) sub.textContent = subText;
+}
+
+export async function worldEnd() {
+  if (!root || !worldOn) return;
+  const left = 500 - (performance.now() - worldShownAt);
+  if (left > 0 && !document.hidden) await new Promise((r) => setTimeout(r, left));
+  worldHide();
+}
+
 // The game stopped (an exception in the loop, 23a A1): the screen comes back with the message.
 export function crash(err) {
   if (!root) return;

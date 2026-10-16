@@ -830,6 +830,12 @@ function grown(cx, cy) {
   return true;
 }
 
+// Whether a chunk has no picture yet or a dirty one: what the loading screen into a world bakes (#107).
+export function needsBake(cx, cy) {
+  const e = chunks.get(map.chunkKey(cx, cy));
+  return !e || e.dirty;
+}
+
 // The chunk's texture record, or null if it has none yet. A dirty chunk
 // keeps drawing its old picture until it is re-baked.
 export function textureFor(cx, cy) {
