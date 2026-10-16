@@ -1194,7 +1194,7 @@ function stepWithScreenUp(dt, guest) {
 
 function render() {
   const r0 = performance.now();
-  if (!inWorld || !S.player) return; // the title over nothing (docs/31/09)
+  if (!inWorld || !S.player) { gl.blank(); return; } // the title over black, never the world left (docs/31/09, #16)
   if (started && !S.player.dead && loop.simTime() - lastAutosave >= AUTOSAVE && performance.now() - lastAutosaveAt >= AUTOSAVE * 1000) {
     // Stamped when asked, so a save still being written (or a world that saves nothing, a guest's) is asked once a minute, not every frame.
     lastAutosave = loop.simTime();

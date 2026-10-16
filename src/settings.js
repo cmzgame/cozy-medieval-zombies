@@ -37,26 +37,40 @@ export const DEFAULTS = {
   owned: [], // the server worlds this browser owns: [{ code, serverWorldId, name, ownerKey, localWorldId, at }] (item 5)
 };
 
-// What the settings screen offers, in order.
-export const CHOICES = {
-  uiScale: [["auto", "Auto"], [1, "1×"], [1.25, "1.25×"], [1.5, "1.5×"], [1.75, "1.75×"], [2, "2×"]], // capped at 2 (Michael, 2026-10-12)
-  worldScale: [["auto", "Auto"], [1.1, "Wide"], [1.8, "Middle"], [2.7, "Close"]],
-  debugCorner: [[true, "Shown"], [false, "Hidden"]],
-  zombieAggro: [[false, "Off (they ignore you)"], [true, "On (they hunt you)"]],
-  zombiesAttackVillagers: [[false, "Off (villagers are safe)"], [true, "On (they hunt villagers, whatever aggro says; with aggro on, you first)"]], // two knobs on purpose (Michael, 2026-10-15)
-  squareSurface: [["cobble", "Cobble"], ["dirt", "Dirt"]],
-  aimGuide: [[true, "On (landing marker and dotted line)"], [false, "Off"]],
-  swingTimer: [[true, "On (a bar over your head)"], [false, "Off"]],
-  combatTesting: [[false, "Off"], [true, "On (no trees, a hundred more dead round the spawn; reload the page)"]],
-  showSwingTargets: [[false, "Off"], [true, "On (green outline on what you would hit)"]],
-  multiHit: [[false, "Off (nearest only: the intended way)"], [true, "On (everything in the wedge: the easy button)"]],
-  showHitShapes: [[false, "Off"], [true, "On (body samples)"]],
-  freeBuilding: [[false, "Off (costs apply)"], [true, "On (no costs)"]],
-  survival: [[true, "On (hunger, thirst, tiredness)"], [false, "Off (no needs)"]],
-  cursor: [["default", "Default"], ["human", "A hand"], ["severed", "A severed hand"], ["zombie", "A zombie hand"]],
-  devChest: [[true, "On (by the spawn; reload the page)"], [false, "Off"]],
-  nameTags: [[true, "Shown"], [false, "Hidden"]],
-};
+// What the settings screen offers: one entry per row, in order, and the screen is generated from it (docs/10's pin;
+// docs/38, #108). `group` is its tab; `help` the line under its label; `choices` the answers, [value, text]. A row
+// whose two answers are true and false is a switch, any other a dropdown (Michael, 2026-10-16: switches for booleans
+// and dropdowns for multiple choice, as Zomboid does, so the chosen answer is the only one shown).
+export const GROUPS = [["display", "Display"], ["rules", "World rules"], ["testing", "Testing"]];
+const ON_OFF = [[true, "On"], [false, "Off"]];
+const SHOWN = [[true, "Shown"], [false, "Hidden"]];
+export const REGISTRY = [
+  { key: "uiScale", group: "display", label: "Interface size", help: "How big the menus, the bag, and the bars are drawn. Auto fits the window.", choices: [["auto", "Auto"], [1, "1×"], [1.25, "1.25×"], [1.5, "1.5×"], [1.75, "1.75×"], [2, "2×"]] }, // capped at 2 (Michael, 2026-10-12)
+  { key: "worldScale", group: "display", label: "Zoom", help: "How close the camera sits. Z or the wheel changes it while you play.", choices: [["auto", "Auto"], [1.1, "Wide"], [1.8, "Middle"], [2.7, "Close"]] },
+  { key: "cursor", group: "display", label: "Cursor", help: "The pointer: the system's own, or one of three hands.", choices: [["default", "Default"], ["human", "A hand"], ["severed", "A severed hand"], ["zombie", "A zombie hand"]] },
+  { key: "nameTags", group: "display", label: "Names over heads", help: "Another player's name over their head while you can see them.", choices: SHOWN },
+  { key: "swingTimer", group: "display", label: "Swing timer", help: "A bar at the bottom of the screen while a swing recovers.", choices: ON_OFF },
+  { key: "aimGuide", group: "display", label: "Bow aim guide", help: "The landing marker and the dotted line while you draw a bow.", choices: ON_OFF },
+  { key: "zombieAggro", group: "rules", label: "Zombie aggro", help: "On, the dead hunt you. Off, they wander and ignore you.", choices: ON_OFF },
+  { key: "zombiesAttackVillagers", group: "rules", label: "Zombies attack villagers", help: "On, the dead hunt villagers whatever aggro says; with aggro on, you first.", choices: ON_OFF }, // two knobs on purpose (Michael, 2026-10-15)
+  { key: "survival", group: "rules", label: "Survival", help: "Hunger, thirst, and tiredness. Off, the body has no needs.", choices: ON_OFF },
+  { key: "freeBuilding", group: "rules", label: "Free building", help: "Building costs nothing, for trying out structures.", choices: ON_OFF },
+  { key: "multiHit", group: "rules", label: "Multi-hit", help: "A blow reaches everything in its wedge: the easy button. Off, only the nearest: the intended way.", choices: ON_OFF },
+  { key: "debugCorner", group: "testing", label: "Debug corner", help: "The numbers and the keys in the top-left corner.", choices: SHOWN },
+  { key: "showSwingTargets", group: "testing", label: "Swing targets", help: "A green outline on what your next swing would hit.", choices: ON_OFF },
+  { key: "showHitShapes", group: "testing", label: "Hit shapes", help: "The dead's body samples, green when the next swing reaches them.", choices: ON_OFF },
+  { key: "combatTesting", group: "testing", label: "Combat testing", help: "No trees, and a hundred more of the dead round the spawn. Read when a world is made: reload the page.", choices: ON_OFF },
+  { key: "devChest", group: "testing", label: "Dev chest", help: "A chest of every item by the spawn. Read when a world is made: reload the page.", choices: ON_OFF },
+  { key: "squareSurface", group: "testing", label: "Square and paths", help: "The village square's surface, to compare the two.", choices: [["cobble", "Cobble"], ["dirt", "Dirt"]] },
+];
+
+// A switch or a dropdown: the row's answers are exactly true and false, or anything else.
+export function isSwitch(entry) {
+  return entry.choices.length === 2 && entry.choices.every(([v]) => typeof v === "boolean");
+}
+
+// Each row's answers by key, for what reads them that way.
+export const CHOICES = Object.fromEntries(REGISTRY.map((e) => [e.key, e.choices]));
 
 const settings = { ...DEFAULTS };
 const listeners = new Set();
