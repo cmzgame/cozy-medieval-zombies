@@ -134,6 +134,11 @@ export function isBagOpen() {
   return open;
 }
 
+// An item is being dragged (the wheel turns it, so the world's zoom waits).
+export function isDragging() {
+  return !!drag;
+}
+
 export function isCharacter() {
   return character;
 }
