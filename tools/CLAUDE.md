@@ -1,0 +1,10 @@
+# `tools/`: the checks, the headless world, the editors, the generator
+
+Read with the root `CLAUDE.md`; how to use these from the pane is `docs/testing.md`.
+
+- `check.js`: the headless checks CI runs (`node tools/check.js`). `world.js`: the whole world under Node from the same files, printing the determinism hash (the pane's number; the world reads no window): `--devchest` for a pane with the chest on, `--roundtrip` proves the save (a world restored from its own save hashes as one never saved), `--bite` proves a bite lands with no page behind the world, `--players=2`. `savecache.js`: every kind of change on a chunk, the cached save against the world made afresh. `profile.js`: `(await import("/tools/profile.js")).run(__game)`, the profile every engine move records.
+- `checks/`: the pane's instruments, one file per `await __game.check("<name>")`: ground, determinism, rooms, light, eviction, sheets, layers, frame, sway, water, sleep, craft, wear, poses, burn, growth, players, wire, worlds, save, sync (the list is the folder).
+- `validate-data.py`: `python -I tools/validate-data.py`, the data's checks.
+- `mapgen/`: the vocabulary (`mapgen.py`) and the valley's description (`valley.py`); `python -I tools/mapgen/valley.py` writes `data/maps/valley.json` (`docs/30` step 0; the map is generated, never typed).
+- `layers.html` the layer editor, `hair.html` the older hair-only one (`docs/12`), `template.html` the character template exporter, `slice.html` the slicer that turns a painted template into layer files (`docs/28`), `sprites.html` the sprite browser and editor (any drawn sheet's pixels and anchors; a generated sprite saved as drawn; the game reloads a save at once), `fonts.html` the font sampler. All at http://localhost:8010/tools/<name>.
+- `art-gen/character/`: the design agent's character painting scripts, read and never run without Michael (`docs/27`).
