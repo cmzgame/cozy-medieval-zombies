@@ -14,7 +14,7 @@
 
 (Measured from the PNGs in the repo; sizes vary by a couple of pixels per colour because each tree is its own seeded roll and is tightly cropped.)
 
-In the game the sizes are renamed by how big they *feel* (`15b`): oak S is "the medium tree", M "the large", L "the giant". The old generated giants (186 to 196 px) are replaced by the L trees.
+In the game the sizes are renamed by how big they *feel* (`15b`): a tree's S file is the definition `tree_<colour>_m` (the medium tree), its M file `_l` (the large), its L file `_old` (the giant; `data/sprites/`, the spires `tree_spire_<colour>_<size>`). The old generated giants (186 to 196 px) are replaced by the L trees.
 
 **Colours:** green, yellow, orange, red (the harvest set, all placed) and blue, purple (the gloom set, **defined and on file but not placed**: blue and purple canopies beside orange ones looked like Halloween candy, so the gloomy register waits for a zone of its own, `06`).
 

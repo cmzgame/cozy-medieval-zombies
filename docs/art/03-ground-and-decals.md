@@ -67,7 +67,7 @@ Generator: `decals.py`. Each piece is drawn on a small canvas, each piece "owns"
 
 ## Rocks (new concept, in use)
 
-Four large faceted rocks, 47 to 55 px wide, in warm dusky greys, **outlined** (they are interactables, minable later). The wild generator places a 60% chance of one per 40 x 40 tile patch in place of a tree, plus three placed by hand in the village. They are not decals and not part of the leaf/mushroom rules. What they give when mined is undecided (`02` question 27).
+Four large faceted rocks, 47 to 55 px wide, in warm dusky greys, **outlined** (they are interactables, minable later). The wild of both maps places one in 60% of 40 by 40 tile patches in place of a tree (`map.js` `wildRockAt`; the valley's and the proving ground's `rocks` blocks are the same), plus three placed by hand in the proving ground's village (`?map=square`); the valley places none by hand. They are not decals and not part of the leaf/mushroom rules. What they give when mined is undecided (`02` question 27).
 
 ## Farm soil and water
 

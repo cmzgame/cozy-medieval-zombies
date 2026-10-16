@@ -1,6 +1,6 @@
 # 29.02 — Water and roads
 
-**Status, 2026-10-13: built in steps 0 and 1 of `30`:** the river, five wide with a dirt bank of one (no shingle or mud kind yet); the stone bridge on the high street at row 158, laid stone until `floor_bridge_stone` is drawn, with no parapet; the ford at (132, 206), `floor_water_shallow` seven tiles by three; the duck pond on the green; the roads' skeleton (the high and west roads, the bridge road, the square, the nobles' street, the south lane, the lane, the drove). **Water stops every walker** (`30`, law 8, which sharpens item 2 below), shallow water is half speed for all, and drinking and filling work at any water beside you (`check("water")`). The brook, the footbridge, the weir, the millpond, the farm pond, the mere, the moat, the castle's bridges, gravel, and the road furniture and wear are not built.
+**Status, 2026-10-16: built in steps 0 and 1 of `30`:** the river, five wide with a dirt bank of one (no shingle or mud kind yet); the stone bridge on the high street at row 158, laid stone until `floor_bridge_stone` is drawn, with no parapet; the ford at (132, 206), `floor_water_shallow` seven tiles by three; the duck pond on the green; the roads' skeleton (the high and west roads, the bridge road, the square, the nobles' street, the south lane, the lane, the drove). **Water stops every walker** (`30`, law 8), shallow water is half speed for all, and drinking and filling work at any water beside you (`check("water")`). Not built: the brook, the footbridge, the weir, the millpond, the farm pond, the mere, the moat, the castle's bridges, gravel, and the road furniture and wear. The art this page wants is one list, `09` request 3.1; the engine's side is `30`, law 8 and section 12.
 
 ## Water
 
@@ -13,7 +13,7 @@ Enters at the top edge at about x 120, runs south slightly east of centre, bulge
 What it does for the game, in order of how much engine work each needs:
 
 1. **A look.** Nothing needed: water is drawn today and walked on.
-2. **A barrier.** Water impassable to walkers (the player, the dead, villagers) except at crossings. This is the ask that makes the river a design element and not a texture; without it the bridge is decoration and the castle's moat is a paddling pool. `10-engine-asks`, item 1.
+2. **A barrier.** Built: water stops every walker (the player, the dead, villagers) except at crossings (`30`, law 8; `check("water")`). It is what makes the river a design element and not a texture: the bridge is the one way over, and the castle's moat will be a moat.
 3. **A resource.** Drink and fill waterskins at the bank, as at the well (`10`'s well rule extended to any water tile beside you). Small, and it makes the river the farms' water.
 4. **Fishing.** Not in any doc; a cosy loop Stardew has and the sibling did not. A rod, a line cast at the bank, a wait, a fish item that cooks. Proposed in `08` as an option, not planned.
 
@@ -42,7 +42,7 @@ From the mere in the north-west, east along the top of Long Acre, into the river
 
 ### The art water needs
 
-In `09-art-asks`: shingle and mud world textures (128 by 64, seamless), `water_shallow` (the ford: pale, broken, stones showing), `water_dark` (the mere), a weir lip, the two bridge floors, the parapet wall set, reeds and lilies as decals, a stranded log, a rowing boat pulled up on the bank (a prop, a container), the mill wheel (a tall animated prop against the mill's wall).
+`09-art-asks`, request 3.1 (water, banks, and crossings), is the one list; the mill wheel is in its request 1.5.
 
 ## Roads
 

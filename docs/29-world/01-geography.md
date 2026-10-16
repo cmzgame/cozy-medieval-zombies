@@ -1,17 +1,6 @@
 # 29.01 — The map at a glance
 
-**Status, 2026-10-13: 256 by 256 is ruled and built** (`data/maps/valley.json`, from `tools/mapgen/valley.py`). Where this overview and `04`'s plan disagree the build follows `04`: the high street and the stone bridge are at row 158, not 126 (`02`, 2026-10-12, step 0); the river runs from about (120, 0) to (140, 256) as drawn here; the spawn is your cottage's bedroom at (104, 216). Only the river, the roads' skeleton, your cottage, and the village are built; the rest of the picture is forest and reserves until `30`'s steps 4 to 7. Chunks now grow only in the ring round each player and through the world's mutators, never on a read (`02`, 2026-10-13).
-
-## Size
-
-**Proposed: authored bounds 256 by 256 tiles, 16 by 16 chunks, 65,536 tiles.** The cut is 192 by 192 (12 chunks). The reasons for the bigger one:
-
-- The forest has to be a place, not a frame. With the village, the castle, and the two farms taking a 120 by 150 block in the middle, a 256 map leaves a belt of 40 to 60 tiles of forest on every side, which is one to two screens at the wide zoom: enough to get lost in, lose the dead in (`02`, 2026-10-09: "forests should be a place you can lose them"), and hide the small places in.
-- Walking is cheap. The player walks 3 tiles a second and sprints at 5.25 (`data/tuning.json`); the village square to the castle gate is about 55 tiles, eighteen seconds; the square to Hollow Farm's yard about 70 tiles; corner to corner of the whole map about 85 seconds at a walk. Stardew's farm alone is 80 by 65.
-- The engine already pays for it. Chunks grow on demand and evict beyond eight (`23`, step 2); the ground bakes per chunk; the dead beyond 40 tiles stand still; 256 by 256 of authored tiles is 16 chunk files of run-length rows, a few hundred kilobytes. What grows with size is the authoring, not the frame.
-- Beyond the bounds the wild goes on forever as now, so the map's edges are soft: the forest simply continues, and the old road east leaves the bounds and keeps going as a wild road until a later zone catches it.
-
-If 256 feels too far between places in play, the plan shrinks by pulling the forest belts in; the places and their neighbours do not change.
+**Status, 2026-10-16: 256 by 256 is ruled and built** (`02`, 2026-10-12; `data/maps/valley.json`, from `tools/mapgen/valley.py`). Where this overview and `04`'s plan disagree the build follows `04`: the high street and the stone bridge are at row 158, not 126; the river runs from about (120, 0) to (140, 256) as drawn here; the spawn is your cottage's bedroom at (104, 216). Built: the river, the bridge, the ford, the roads' skeleton, your cottage, and the village; the rest of the picture is forest and reserves until `30`'s steps 4 to 7 (the castle and the farms reserved; the croft, the brook, the mere, the moat, and the forest places not placed). Beyond the bounds the wild goes on as it always has, so the edges are soft. Chunks grow only in the ring round each player and through the world's mutators, never on a read (`02`, 2026-10-13). The argument that chose 256 over 192 is in `docs/history/29-world-ideation.md`.
 
 ## The regions
 
@@ -27,7 +16,7 @@ Nine regions, each a different thing to do and a different danger:
 | **The north woods** | top edge | the mere and the witch, the bandit camp, the quarry, the hermitage ruin | thin, plus the bandits' dead |
 | **The east woods** | right edge | the woodcutters, the charcoal burners, the hunter, the iron workings, the old road east | thin, the mine mouth a trickle later |
 | **The west woods** | left edge | the standing stones, the barrow, the old west way | thin and strange |
-| **The river** | top to bottom, slightly east of centre | the water, the weir, the bridge, the ford, the banks | the dead cannot cross except where you can (`10-engine-asks`) |
+| **The river** | top to bottom, slightly east of centre | the water, the weir, the bridge, the ford, the banks | the dead cannot cross except where you can (`30`, law 8: water stops every walker; built) |
 
 ## The overview picture
 
@@ -105,10 +94,10 @@ The picture is a sketch drawn from a list of rectangles and lines; a road that c
 
 ## Why the places sit where they sit
 
-- **The river splits the map into a safe-ish west and a dangerous east.** The village, both farms, the mill, and the witch are west of the water; the castle, the croft, the woodcutters, and the mine are east. If water stops the dead (`10-engine-asks`, the first ask), every crossing becomes a gate you can hold: the stone bridge at the village, the footbridge over the brook, the ford on the drove, the weir's crest at the mill. The dead east of the river stay east until they find a crossing, and the castle's garrison is a reservoir you drain on purpose, not a flood that comes to you.
+- **The river splits the map into a safe-ish west and a dangerous east.** The village, both farms, the mill, and the witch are west of the water; the castle, the croft, the woodcutters, and the mine are east. Water stops the dead (`30`, law 8; built in step 0), so every crossing is a gate you can hold: the stone bridge at the village, the footbridge over the brook, the ford on the drove, the weir's crest at the mill. The dead east of the river stay east until they find a crossing, and the castle's garrison is a reservoir you drain on purpose, not a flood that comes to you.
 - **The castle is the big reward and the big risk**, and it is in sight of the village across the water: from the square's east end you see its towers over the bridge, and at night, if anything in it is lit, you see that too (lit windows lure, `03`; portals glow, `08`). It is an invitation you can read from your doorstep.
 - **The two farms frame the village north and south**, so the farming loop is a short walk either way and the roads between are the daily commute the dead will wander onto. Long Acre is the grain farm because the mill is beside it; Hollow Farm is the big mixed one because the south has room and the orchard wants the water meadow by the pond.
-- **The small forest places ring the whole**, each a screen or two past the last field, so going out is always a decision (`00`, pillar: "going out is a decision") and each trip has one destination. The quarry, the mine, the charcoal burners, and the woodcutters are the raw materials of the big pass (`22`: stone, iron, charcoal, logs); the witch, the hunter, and the hermitage are the odd ones; the stones, the barrow, and the old road are the hooks.
+- **The small forest places ring the whole**, each a screen or two past the last field, so going out is always a decision (`00`, pillar: "going out is a decision") and each trip has one destination. The quarry, the mine, the charcoal burners, and the woodcutters are the raw materials of the big pass (`30`: stone, iron, charcoal, logs); the witch, the hunter, and the hermitage are the odd ones; the stones, the barrow, and the old road are the hooks.
 - **Every road leaves the map somewhere**: west past the stones, south past the croft, east past the woodcutters, north up the river. In 1.0 they leave into the wild and keep going as forest tracks; in 1.1 one of them (east, by the plan) becomes the road to the gloom. Nothing in the middle has to change for that.
 
 ## Distances, for the feel
