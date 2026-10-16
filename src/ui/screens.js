@@ -65,6 +65,7 @@ const CREATION_STEPS = 2; // the identity, then the placeholder for the skills t
 let waitTimer = null; // Rejoin's wait for the host to open the world: polls the relay, joins once
 let openState = new Map(); // code -> { open, guests } from the relay, for the friends' rows' dot
 let dotTimer = null;
+let settingsTab = "display"; // the Settings screen's open tab (settings.GROUPS; #108), this page's alone
 
 export function initScreens(handlers = {}) {
   onChange = handlers.onChange || onChange;
@@ -95,19 +96,15 @@ export function initScreens(handlers = {}) {
       render();
       return;
     }
+    // A switch: its data-value is the answer it asks for.
     const choice = e.target.closest("button[data-key]");
     if (choice) {
       settings.set(choice.dataset.key, JSON.parse(choice.dataset.value));
       render();
     }
-    const hair = e.target.closest("button[data-hair]");
-    if (hair && hairApi) {
-      hairApi.set(hair.dataset.hair);
-      render();
-    }
-    const layer = e.target.closest("button[data-layer-slot]");
-    if (layer && layersApi) {
-      layersApi.set(layer.dataset.layerSlot, layer.dataset.layerName || null);
+    const tab = e.target.closest("button[data-tab]");
+    if (tab) {
+      settingsTab = tab.dataset.tab;
       render();
     }
     if (e.target.closest("#hair-reload") && hairApi) {
@@ -122,6 +119,22 @@ export function initScreens(handlers = {}) {
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(done, () => { field && field.select(); });
       else if (field) { field.select(); try { document.execCommand("copy"); done(); } catch { /* selected, at least */ } }
     }
+  });
+  // A dropdown's keys are its own (the arrows pick an answer; input.js would cancel them, and a letter would walk the
+  // player); Escape still reaches the screens, and a release is let through so no key is left down (#65, #80).
+  root.addEventListener("keydown", (e) => {
+    if (e.target && e.target.tagName === "SELECT" && e.code !== "Escape") e.stopPropagation();
+  });
+  // The dropdowns (#108): a setting, the hair or a painted layer to try, the identity editor's hair style.
+  root.addEventListener("change", (e) => {
+    const sel = e.target.closest("select");
+    if (!sel) return;
+    if (sel.dataset.key) settings.set(sel.dataset.key, JSON.parse(sel.value));
+    else if ("hair" in sel.dataset && hairApi) hairApi.set(JSON.parse(sel.value));
+    else if (sel.dataset.layerSlot && layersApi) layersApi.set(sel.dataset.layerSlot, JSON.parse(sel.value) || null);
+    else if (sel.dataset.lookKey && youApi) youApi.setLook({ [sel.dataset.lookKey]: JSON.parse(sel.value) });
+    else return;
+    render();
   });
   root.addEventListener("input", (e) => {
     const name = e.target.closest("input[data-name]");
@@ -371,23 +384,39 @@ function button(go, label, extra = "") {
   return `<button class="kit-button" data-go="${go}"${extra}>${label}</button>`;
 }
 
-function settingRow(key, label) {
+// A switch: its state is the answer showing, and a click asks for the other one (`data-value`, read by the click
+// handler as a choice's value). `attrs` names what it sets.
+function switchHtml(on, attrs, disabled = false) {
+  return `<button class="switch${on ? " on" : ""}" role="switch" aria-checked="${on}" ${attrs}${disabled ? " disabled" : ""}><span class="knob"></span></button>`;
+}
+
+// A dropdown of [value, text] pairs, the value carried as JSON.
+function selectHtml(choices, cur, attrs, disabled = false) {
+  const opts = choices.map(([v, text]) => `<option value='${esc(JSON.stringify(v))}'${v === cur ? " selected" : ""}>${esc(text)}</option>`).join("");
+  return `<select ${attrs}${disabled ? " disabled" : ""}>${opts}</select>`;
+}
+
+// One row of the registry (settings.REGISTRY): the label and its line of explanation, then a switch for a true or
+// false answer and a dropdown for any other, so the chosen answer is the only one shown (docs/38, #108).
+function settingRow(entry) {
+  const { key, label, help, choices } = entry;
   // A world rule on a guest is the host's (docs/31/07, question 13; item 4): shown as the host set it, not to be changed here.
   const hostRules = worldsApi && worldsApi.here ? worldsApi.here().rules : null;
   const hosts = !!hostRules && key in hostRules;
   const cur = hosts ? hostRules[key] : settings.get(key);
-  const choices = settings.CHOICES[key]
-    .map(([v, text]) => `<button data-key="${key}" data-value='${JSON.stringify(v)}' class="${v === cur ? "on" : ""}"${hosts ? " disabled" : ""}>${text}</button>`)
-    .join("");
-  return `<div class="setting${hosts ? " hosts" : ""}"${hosts ? ` title="The host's world rule"` : ""}><span>${label}${hosts ? " <small>(the host's)</small>" : ""}</span><span class="choices">${choices}</span></div>`;
+  let control;
+  if (settings.isSwitch(entry)) {
+    const text = (choices.find(([v]) => v === !!cur) || [null, ""])[1];
+    control = `<span class="switch-state">${esc(text)}</span>${switchHtml(!!cur, `data-key="${key}" data-value='${JSON.stringify(!cur)}'`, hosts)}`;
+  } else control = selectHtml(choices, cur, `data-key="${key}"`, hosts);
+  return `<div class="setting${hosts ? " hosts" : ""}"${hosts ? ` title="The host's world rule"` : ""}><span class="setting-label">${esc(label)}${hosts ? " <small>(the host's)</small>" : ""}<small class="help">${esc(help || "")}</small></span><span class="control">${control}</span></div>`;
 }
 
-// Hair styles, generated and painted (docs/12), with a reload for ones just saved from the editor.
+// Hair styles, generated and painted (docs/12).
 function hairRow() {
   if (!hairApi) return "";
-  const cur = hairApi.current();
-  const choices = hairApi.styles().map((s) => `<button data-hair="${s}" class="${s === cur ? "on" : ""}">${s}</button>`).join("");
-  return `<div class="setting"><span>Hair</span><span class="choices">${choices}<button id="hair-reload" title="Pick up styles saved from tools/hair.html">Reload</button></span></div>`;
+  const styles = hairApi.styles().map((s) => [s, s]);
+  return `<div class="setting"><span class="setting-label">Hair<small class="help">The hair to try on the figure.</small></span><span class="control">${selectHtml(styles, hairApi.current(), "data-hair")}</span></div>`;
 }
 
 // ---- the identity editor (docs/12, the creation screen as built; docs/31/09, an identity) ----
@@ -403,7 +432,7 @@ function swatchRow(label, key, colours, cur) {
 function identityHtml() {
   const look = youApi.look();
   const pal = youApi.palette();
-  const styles = youApi.styles().map((s) => `<button data-look-key="hairStyle" data-look-value="${s}" class="${s === look.hairStyle ? "on" : ""}">${s}</button>`).join("");
+  const styles = selectHtml(youApi.styles().map((s) => [s, s]), look.hairStyle, `data-look-key="hairStyle"`); // a dropdown, as every multiple choice (#108)
   return `
     <div class="screen screen-wide you">
       <h1>${identitiesApi && identitiesApi.editing() && identitiesApi.editing().id ? "Edit identity" : "New identity"}</h1>
@@ -414,12 +443,12 @@ function identityHtml() {
           <div class="you-row"><span>Name</span><input type="text" maxlength="24" data-name value="${esc(youApi.name() || "")}" placeholder="a name"></div>
           ${swatchRow("Skin", "skin", pal.skins.living, look.skin)}
           ${swatchRow("The dead's", "skin", pal.skins.dead, look.skin)}
-          <div class="you-row"><span>Hair</span><span class="choices">${styles}</span></div>
+          <div class="you-row"><span>Hair</span><span class="control">${styles}</span></div>
           ${swatchRow("Hair colour", "hair", pal.hair, look.hair)}
           ${swatchRow("Eyes", "eyes", pal.eyes, look.eyes)}
         </div>
       </div>
-      <div class="screen-buttons row">${button("identity-save", "Save")}${button("identity-cancel", "Cancel")}<button id="hair-reload" title="Pick up styles saved from tools/hair.html">Reload hair</button></div>
+      <div class="screen-buttons row">${button("identity-save", "Save")}${button("identity-cancel", "Cancel")}</div>
     </div>`;
 }
 
@@ -451,16 +480,25 @@ function stopPreview() {
   previewTimer = null;
 }
 
-// Painted layers per slot, to try on over whatever is worn; "worn" means the item's own art.
+// Painted layers per slot, to try on over whatever is worn; "item" means the item's own art.
 function layerRows() {
   if (!layersApi) return "";
   return layersApi.slots().map((slot) => {
     const names = layersApi.names(slot);
     if (!names.length) return "";
-    const cur = layersApi.current(slot);
-    const choices = [`<button data-layer-slot="${slot}" data-layer-name="" class="${cur ? "" : "on"}">item</button>`, ...names.map((n) => `<button data-layer-slot="${slot}" data-layer-name="${n}" class="${n === cur ? "on" : ""}">${n}</button>`)].join("");
-    return `<div class="setting"><span>Layer: ${slot}</span><span class="choices">${choices}</span></div>`;
+    const choices = [["", "item"], ...names.map((n) => [n, n])];
+    return `<div class="setting"><span class="setting-label">Layer: ${esc(slot)}<small class="help">A painted layer to try over what is worn there.</small></span><span class="control">${selectHtml(choices, layersApi.current(slot) || "", `data-layer-slot="${esc(slot)}"`)}</span></div>`;
   }).join("");
+}
+
+// The Testing tab's rows past the registry's: the hair and the painted layers to try, the hair just painted picked
+// up, and the relay this page talks through (it was on the Join screen; docs/38, #108).
+function testingExtras() {
+  const st = wireApi ? wireApi.status() : null;
+  const relay = st && st.relay ? esc(st.relay) : "none: only this browser's own tabs";
+  return `${youApi ? "" : hairRow()}${layerRows()}
+    <div class="setting"><span class="setting-label">Painted hair<small class="help">Pick up hair styles just saved from tools/hair.html.</small></span><span class="control"><button id="hair-reload" class="kit-button">Reload hair</button></span></div>
+    <div class="setting"><span class="setting-label">Relay<small class="help">Where Open to friends and Join go.</small></span><span class="control"><code class="relay">${relay}</code></span></div>`;
 }
 
 // ---- the lists ----
@@ -617,11 +655,11 @@ function render() {
     field.focus();
     field.select();
   } else if (current === "join") {
-    const st = wireApi ? wireApi.status() : null;
+    // The relay's address is on Settings' Testing tab now (#108): a player needs the code, not the plumbing.
     root.innerHTML = `
       <div class="screen">
         <h1>Join a game</h1>
-        <div class="sub">${st && st.relay ? `Through the relay at ${esc(st.relay)}. ` : ""}Type the host's code; then a character for their world.</div>
+        <div class="sub">Type the code your friend gave you; then a character for their world.</div>
         <div class="setting"><span>Code</span><span class="choices"><input id="join-code" type="text" maxlength="24" placeholder="oak-abc" value="${esc(data.code || "")}" autocomplete="off" spellcheck="false"></span></div>
         <div class="screen-buttons row">${button("join-next", "Next")}${button("back", "Back")}</div>
       </div>`;
@@ -679,8 +717,11 @@ function render() {
       root.innerHTML = `<div class="screen"><h1>Owner</h1><div class="sub note">${esc(info.error || "The server would not answer.")}</div><div class="screen-buttons row">${button("owner-back", "Back")}</div></div>`;
       return;
     }
-    const ruleNames = { zombieAggro: "Zombie aggro", zombiesAttackVillagers: "Zombies attack villagers", survival: "Survival", freeBuilding: "Free building", multiHit: "Multi-hit" };
-    const rulesRows = Object.keys(ruleNames).map((k) => `<div class="setting"><span>${ruleNames[k]}</span><span class="choices">${[true, false].map((v) => `<button class="${info.rules && info.rules[k] === v ? "on" : ""}" data-go="owner-rule" data-rule="${k}" data-value="${v}">${v ? "On" : "Off"}</button>`).join("")}</span></div>`).join("");
+    // The world's rules as switches, labelled and explained from the settings' registry (#108).
+    const rulesRows = settings.REGISTRY.filter((e) => e.group === "rules").map((e) => {
+      const on = !!(info.rules && info.rules[e.key]);
+      return `<div class="setting"><span class="setting-label">${esc(e.label)}<small class="help">${esc(e.help)}</small></span><span class="control"><span class="switch-state">${on ? "On" : "Off"}</span>${switchHtml(on, `data-go="owner-rule" data-rule="${e.key}" data-value="${!on}"`)}</span></div>`;
+    }).join("");
     const others = (info.players || []).filter((p) => !p.owner);
     const playersRows = others.length ? `<div class="rows">${others.map((p) => `
       <div class="row-item"><div class="row-main"><b>${esc(p.name)}</b><span class="row-sub">${p.dead ? "died" : "in this world"}</span></div>
@@ -747,26 +788,12 @@ function render() {
       <div class="screen screen-wide">
         <h1>Settings</h1>
         <div class="sub">Kept in this browser</div>
-        ${settingRow("uiScale", "Interface size")}
-        ${settingRow("worldScale", "Zoom")}
-        ${settingRow("zombieAggro", "Zombie aggro")}
-        ${settingRow("zombiesAttackVillagers", "Zombies attack villagers")}
-        ${settingRow("survival", "Survival")}
-        ${settingRow("freeBuilding", "Free building")}
-        ${settingRow("cursor", "Cursor")}
-        ${settingRow("nameTags", "Names over heads")}
-        ${settingRow("debugCorner", "Debug corner")}
-        ${settingRow("squareSurface", "Square and paths")}
-        ${settingRow("aimGuide", "Bow aim guide")}
-        ${settingRow("swingTimer", "Swing timer")}
-        ${settingRow("combatTesting", "Combat testing")}
-        ${settingRow("devChest", "Dev chest")}
-        ${settingRow("showSwingTargets", "Swing targets")}
-        ${settingRow("multiHit", "Multi-hit")}
-        ${settingRow("showHitShapes", "Show hit shapes")}
-        ${youApi ? "" : hairRow()}
-        ${layerRows()}
-        <div class="screen-buttons row"><button data-key="__reset" hidden></button>${button("back", "Back")}<button id="settings-reset">Defaults</button></div>
+        <div class="tabs" role="tablist">${settings.GROUPS.map(([g, name]) => `<button class="tab${g === settingsTab ? " on" : ""}" role="tab" aria-selected="${g === settingsTab}" data-tab="${g}">${name}</button>`).join("")}</div>
+        <div class="tab-body">
+          ${settings.REGISTRY.filter((e) => e.group === settingsTab).map(settingRow).join("")}
+          ${settingsTab === "testing" ? testingExtras() : ""}
+        </div>
+        <div class="screen-buttons row">${button("back", "Back")}<button id="settings-reset">Defaults</button></div>
       </div>`;
     root.querySelector("#settings-reset").addEventListener("click", () => {
       settings.reset();
