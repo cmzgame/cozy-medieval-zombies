@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- A hand-authored world with procedural filling of the spaces it leaves empty: a direction, not a wall (2026-10-16, The four lines of 00-vision.md, ruled)
 - One continuous map with real line of sight; chunks, rooms by flood fill, never authored (2026-10-08, The project exists)
 - Fire and resources are the economy; nothing shuts off on a timer; farming is load-bearing (2026-10-08, The project exists)
 - Villagers are killable, carry no weapons, never fight for the player; they flee, follow, and stay (2026-10-08, The project exists)
@@ -134,6 +135,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Process and the studio
 
+- 00-vision's "What it is not" gains no new laws; a limit the game needs is a ruling here with its reason (2026-10-16, The four lines of 00-vision.md, ruled)
 - A new project, not a rewrite of either parent; new game, new gospel (2026-10-08, The project exists)
 - The engine upgrade before more features; small verified moves; nothing in `data/` reformatted (2026-10-12, The engine upgrade is the next task)
 - A split of a drawing module is proved by the sheets and the frame hashing the same (2026-10-12, Step 2 of `23` done)
