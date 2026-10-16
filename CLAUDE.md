@@ -40,7 +40,7 @@ A cute isometric medieval village, in the Habbo / early-2000s pixel style, overr
 
 ## What a doc is (the sweep, 2026-10-16)
 
-A doc is a **rule** (this file and `docs/02`), a **reference** (it describes the game as it is; rewritten in place, never appended; its status block at the top replaced, never stacked), or a **record** (`docs/history/`, kept whole and never edited again). A build gets a `docs/02` entry only if it forced a ruling, and then the ruling alone; the record of a build is its pull request and the spec's status block. An overturned ruling is struck where it sits, naming what overturned it. Open work is a GitHub issue, never a doc section. Each rule has one home; everything else points to it.
+A doc is a **rule** (this file and `docs/02`), a **reference** (it describes the game as it is; rewritten in place, never appended; its status block at the top replaced, never stacked), or a **record** (`docs/history/`, kept whole and never edited again). A build gets a `docs/02` entry only if it forced a ruling, and then the ruling alone; the record of a build is its pull request, the spec's status block, and `docs/history/02-build-log.md`. An overturned ruling is struck where it sits, naming what overturned it. Open work is a GitHub issue, never a doc section. Each rule has one home; everything else points to it.
 
 ## Implementing from a spec
 
