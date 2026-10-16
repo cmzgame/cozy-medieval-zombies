@@ -1371,17 +1371,6 @@ function characterActions(c, player) {
       },
     }));
   }
-  out.push(act({
-    kind: "burn",
-    label: c.burning ? "Put out" : "Set on fire",
-    tiles: [[Math.round(c.gx), Math.round(c.gy)]],
-    range: Infinity,
-    simple: false,
-    perform() {
-      c.burning = !c.burning;
-      return true;
-    },
-  }));
   return out;
 }
 

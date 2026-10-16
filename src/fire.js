@@ -1,8 +1,9 @@
-// Characters on fire (docs/05, "Burning", 2026-10-12): a visual test only, no
-// effect on anything. A burning figure sheds small flame sprites that rise and
-// die, embers above them, a little smoke, and it is a moving light (light.js
+// Characters on fire, drawn (docs/05, "Burning", 2026-10-12): the picture of a
+// burning body. A burning figure sheds small flame sprites that rise and die,
+// embers above them, a little smoke, and it is a moving light (light.js
 // carriers). The flames ride the figure; embers and smoke are left where they
-// were born. Set and cleared from the character's menu (interact.js).
+// were born. The burn itself (who burns, for how long, the damage) is burn.js
+// (#14); this module only reads `burning`, on the host and on a guest's replica.
 
 function makeCanvas(w, h) {
   const c = document.createElement("canvas");

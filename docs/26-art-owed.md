@@ -19,6 +19,7 @@ Slot sizes are columns x rows as they are in `data/items.json` now; the icon can
 - **Spear**, 1 x 4, 28 x 8 (a wooden pole with a stone point; the thrown projectile is the same picture drawn smaller, see below). **Halberd**, 1 x 5, 69 x 24 (a 128 px frame, the hand 61 px from the tip; it needs hand-drawn angles as the staff has, since it is the longest). **Bow**, 2 x 3, 22 wide by 10, held in both hands at the main hand's angle. **Shield**, 2 x 2, 18 x 18, and **the raised guard** (a larger version, 20 x 20, shown before the chest when the right button is held: the pair is the held shield and the raised shield, plus the one icon).
 - **Bandage**, 1 x 1 (stacks to 5): no held art needed (it is applied from the bag), an icon only; and the first item that is not a hand item.
 - **Arrow**, 1 x 2 (stacks to 20): an icon, and the arrow in flight and on the ground, 16 directions (today generated: a thin shaft with a head and fletching, about 26 long).
+- **Fire arrow** (#14, 2026-10-15), 1 x 2 (stacks to 20): **the pair is owed**: an icon and the world picture (a stack on the ground), from one design with the arrow's; and the arrow in flight with its head burning, 16 directions (today generated: the arrow's sheet with a dark wrapped head and a tongue of orange and yellow flame, `archery.generateFireArrow`). It never lies on the ground as itself once shot: it lands and lodges as a plain arrow.
 
 **Food and drink (icon only, the bag shows them; no held art):** bread, apple (stacks to 5), cheese, waterskin (1 x 2, shows a fill level as a coloured bar over its icon).
 
@@ -26,7 +27,7 @@ Slot sizes are columns x rows as they are in `data/items.json` now; the icon can
 
 **Clothing and bags** are covered by the characters brief (`25`): tunic, breeches, boots, belt (and the good belt), gloves, cap and the hood (the onion hat), the small sack, the rucksack, and the developer bag. **The garments came in on 2026-10-12 as painted layers with no icon and no portrait** (`data/art/character/layers/`, `README_layers.md`), so each still owes both, drawn from the same design as its layer; the bags did not come (no `back` slot for painted layers). Flagged as the pair rule asks.
 
-**Effects and projectiles that are generated today:** the spear in flight, the arrow in flight, the burning-character flames, embers and smoke (`fire.js`), the landing marker (a ring and a dotted line, a UI-like overlay, probably stays code). These are placeholders; real versions are wanted but are the least urgent.
+**Effects and projectiles that are generated today:** the spear in flight, the arrow in flight, the fire arrow in flight, the burning-character flames, embers and smoke (`fire.js`), the landing marker (a ring and a dotted line, a UI-like overlay, probably stays code). These are placeholders; real versions are wanted but are the least urgent.
 
 ## Already delivered and in the game (for the record)
 

@@ -16,6 +16,7 @@ import { guardedMult, styleOf } from "./combat.js";
 import { getItem } from "./items.js";
 import { getSheet, idleFrame } from "./assets.js";
 import { damageZombie } from "./entities/zombie.js";
+import * as burn from "./burn.js";
 import { DOOR_TOP, WINDOW_SILL, WINDOW_TOP } from "./placeholders.js";
 import { countAll, takeAll, detach } from "./inventory.js";
 import { release, wearPerShot } from "./items.js";
@@ -90,7 +91,7 @@ export function preview(from, dir, distance, c = 1, range = tunables.range) {
 // Fire one. The landing point, the path, and the flight time are fixed here.
 // `from` is anyone with gx and gy (the archer). Returns the arrow.
 export function shoot(from, dir, distance, c = 1, o = {}) {
-  const { shooter = from, damage = tunables.damage, knockback = tunables.knockback, range = tunables.range, speed = tunables.speed, arcMin = tunables.arcMin, arcMax = tunables.arcMax, z0 = tunables.z0, projectile = "arrow", breakChance = 0, staggerChance = undefined, interrupts = false, item = null, flat = false, vanish = false, contact = 0, landRadius = null } = o;
+  const { shooter = from, damage = tunables.damage, knockback = tunables.knockback, range = tunables.range, speed = tunables.speed, arcMin = tunables.arcMin, arcMax = tunables.arcMax, z0 = tunables.z0, projectile = "arrow", breakChance = 0, staggerChance = undefined, interrupts = false, item = null, flat = false, vanish = false, contact = 0, landRadius = null, ignite = false } = o;
   const p = preview(from, dir, distance, c, range);
   const T = Math.max(1 / 120, p.landing / speed);
   const a = {
@@ -104,6 +105,7 @@ export function shoot(from, dir, distance, c = 1, o = {}) {
     vanish, // a spell leaves nothing: no item lands or lodges (Michael, 2026-10-14)
     contact, // tiles: above 0, it bursts on the first of the dead within this of it as it flies (the fireball; #11)
     landRadius, // tiles: its own hit radius where it lands, or null for tunables.hitRadius (the fireball's wider; #11)
+    ignite, // the body it hits is set alight (the fireball, a fire arrow; #14)
     speed,
     z0,
     shooter,
@@ -263,6 +265,7 @@ function land(a, met = null) {
   let keep = true;
   const broken = a.breakChance > 0 && rng.chance(a.breakChance);
   if (hit) {
+    if (a.ignite) burn.ignite(hit); // before the damage, so a body it kills burns on as a corpse (#14)
     damageZombie(hit, Math.round(a.damage * (0.4 + 0.6 * a.c)), { dir: [a.dx, a.dy], knockback: a.knockback, staggerChance: a.staggerChance, interrupts: a.interrupts, from: [a.x0, a.y0] });
     // The arrow stays in the body (Michael): it comes out in the loot when the dead one is
     // killed and searched, so getting it back means finishing the job. They stack up in there.
@@ -350,7 +353,7 @@ export function setReplicaArrows(list) {
 
 // A spell in flight lights the ground under it (docs/24): a moving light, as a burning body is one. From the arrows in
 // flight, so a guest makes it from the frame's list as the host does from its own.
-const GLOWS = { fireball: { radius: 4, flicker: 0.25 } };
+const GLOWS = { fireball: { radius: 4, flicker: 0.25 }, fire_arrow: { radius: 2, flicker: 0.3 } };
 export function projectileLights() {
   const out = [];
   for (const a of arrowsInFlight()) {
@@ -387,7 +390,7 @@ const hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), pa
 // that tapers to its point over a darker socket, swept fletching and a nock on
 // an arrow, a lashing and a broad stone point on a spear). `shaft`, `head` are
 // the base tones; the light and dark of each are derived; `cord` is the lashing.
-function makeProjectile(name, { size, len, thick, shaft, head, headLen, fletch, cord = null }) {
+function makeProjectile(name, { size, len, thick, shaft, head, headLen, fletch, cord = null, flame = false }) {
   const AS = size;
   const N = HELD_ANGLES;
   const canvas = document.createElement("canvas");
@@ -457,6 +460,17 @@ function makeProjectile(name, { size, len, thick, shaft, head, headLen, fletch, 
         put(cx + dx * t - nx * s * litSide, cy + dy * t - ny * s * litSide, HEAD_DARK);
       }
     }
+    // A burning head (the fire arrow): a tongue of flame round the wrapped head and past its tip, yellow at the
+    // heart and orange outside, drawn over the head so the head shows as the dark rag inside it.
+    if (flame) {
+      const FLAME = hex("#f08a24");
+      const HEART = hex("#ffd75a");
+      for (let i = 0; i <= 12; i++) {
+        const t = tHead - 1 + i / 2;
+        const w = i < 4 ? 1.5 : i < 9 ? 1.5 - (i - 4) * 0.25 : 0.5;
+        for (let s = -w; s <= w + 0.01; s += 0.5) put(cx + dx * t + nx * s, cy + dy * t + ny * s, Math.abs(s) < 0.6 && i > 2 && i < 10 ? HEART : FLAME);
+      }
+    }
     // The barbs at the socket, a pixel past the widest.
     put(cx + dx * tHead + nx * (wide + 0.9), cy + dy * tHead + ny * (wide + 0.9), HEAD);
     put(cx + dx * tHead - nx * (wide + 0.9), cy + dy * tHead - ny * (wide + 0.9), HEAD_DARK);
@@ -503,6 +517,11 @@ export function generateArrow() {
   return makeProjectile("arrow", { size: 24, len: 16, thick: 1, shaft: "#8a6a3a", head: "#c4cad2", headLen: 3, fletch: "#e4dcc4" });
 }
 
+// A fire arrow in flight (#14): the arrow with its head wrapped and burning. It lands, or lodges, as a plain arrow.
+export function generateFireArrow() {
+  return makeProjectile("fire_arrow", { size: 24, len: 16, thick: 1, shaft: "#8a6a3a", head: "#5a4a3a", headLen: 3, fletch: "#e4dcc4", flame: true });
+}
+
 // A wooden pole with a stone point (Michael): longer and thicker than an arrow, no fletching.
 export function generateSpear() {
   return makeProjectile("spear", { size: 32, len: 26, thick: 2, shaft: "#8a6a3a", head: "#b4b0a8", headLen: 6, fletch: null, cord: "#d8c8a0" });
@@ -546,7 +565,11 @@ export function launcherOf(player) {
   if (!def) return null;
   const common = { entry: e, range: tunables.range, speed: tunables.speed, arcMin: tunables.arcMin, arcMax: tunables.arcMax, z0: tunables.z0, drawTime: tunables.drawTime };
   // `button` is the button that draws it (docs/21): the bow on the left, a throw on the middle.
-  if (def.bow) return { ...common, ...def.bow, kind: "bow", button: "primary", ammo: "arrow", projectile: "arrow" };
+  // Fire arrows before plain ones when both are carried (#14): each burns what it hits, and lands as a plain arrow.
+  if (def.bow) {
+    const fire = countAll(player, "fire_arrow") > 0;
+    return { ...common, ...def.bow, kind: "bow", button: "primary", ammo: fire ? "fire_arrow" : "arrow", projectile: fire ? "fire_arrow" : "arrow", ignite: fire };
+  }
   if (def.thrown) return { ...common, ...def.thrown, kind: "thrown", button: "alt", ammo: null, projectile: def.thrown.projectile || def.id };
   return null;
 }
@@ -651,7 +674,7 @@ export function releaseDraw(player, ctx) {
     item = { ...L.entry };
     release(player.hands, L.entry);
   }
-  const a = shoot(player, aim.dir, aim.distance, c, { damage: (L.damage ?? tunables.damage) * guardedMult(player), knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, staggerChance: L.staggerChance, interrupts: !!L.interrupts, item, flat: !!L.flat, vanish: !!L.vanish, contact: L.contact || 0, landRadius: L.landRadius ?? null });
+  const a = shoot(player, aim.dir, aim.distance, c, { damage: (L.damage ?? tunables.damage) * guardedMult(player), knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, staggerChance: L.staggerChance, interrupts: !!L.interrupts, item, flat: !!L.flat, vanish: !!L.vanish, contact: L.contact || 0, landRadius: L.landRadius ?? null, ignite: !!L.ignite });
   player.recover = tunables.recoverTime;
   setPose(player, 3); // the release: the arrow loosed, the throw let go, the spell cast forward (docs/32, item 3)
   emit("arrowShot", { player, arrow: a, c });
