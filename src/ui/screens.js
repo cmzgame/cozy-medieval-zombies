@@ -11,6 +11,7 @@
 // where skills will go), and it belongs to that world.
 
 import * as settings from "../settings.js";
+import * as rules from "../rules.js";
 
 // A code, a name, or an address can come off the URL or a friend: never into innerHTML as it is.
 function esc(text) {
@@ -286,8 +287,8 @@ function go(where, ds = {}) {
     worldsApi.rotateCode(data.code).then((r) => show("owner", { code: r.ok ? r.code : data.code, from: data.from, note: r.ok ? `The new code is ${r.code}.` : r.error }));
   }
   else if (where === "owner-rule") {
-    const rules = { ...((data.info && data.info.rules) || {}), [ds.rule]: ds.value === "true" };
-    worldsApi.setRules(data.code, rules).then((r) => show("owner", { code: data.code, from: data.from, note: r.ok ? "The rules are set; everyone in the world plays by them now." : r.error }));
+    const nextRules = { ...((data.info && data.info.rules) || {}), [ds.rule]: ds.value === "true" };
+    worldsApi.setRules(data.code, nextRules).then((r) => show("owner", { code: data.code, from: data.from, note: r.ok ? "The rules are set; everyone in the world plays by them now." : r.error }));
   }
   else if (where === "owner-remove" || where === "owner-remove-rotate") {
     const rotate = where === "owner-remove-rotate";
@@ -891,7 +892,7 @@ function render() {
     // The world's rules as switches, labelled and explained from the settings' registry (#108).
     const rulesRows = settings.REGISTRY.filter((e) => e.group === "rules").map((e) => {
       // A rule the server has no word on (a world made on the server by hand) plays by its default (the review of #114).
-      const on = info.rules && e.key in info.rules ? !!info.rules[e.key] : !!settings.DEFAULTS[e.key];
+      const on = info.rules && e.key in info.rules ? !!info.rules[e.key] : !!rules.DEFAULTS[e.key];
       return worldRuleRow(e, on, `data-go="owner-rule" data-rule="${e.key}" data-value="${!on}"`);
     }).join("");
     const others = (info.players || []).filter((p) => !p.owner);

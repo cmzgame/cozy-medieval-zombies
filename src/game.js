@@ -493,7 +493,7 @@ function beltFire(belt) {
 // own frame work reads the map.
 export function begin(dt) {
   const S = state;
-  rules.refresh(); // the sim's rules, from the settings, once a step (docs/23a, C3)
+  rules.refresh(); // a server world's rules, from its source, once a step; a browser's world keeps its own (docs/23a, C3; docs/38, #109)
   clock.update(dt);
   map.burnFires(dt);
   stations.update(dt); // every station's queue, in the world's time (docs/30, section 6)
