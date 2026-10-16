@@ -17,32 +17,44 @@ function esc(text) {
   return String(text ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 }
 
+// The keys, grouped (docs/38 Q8, #111): one place for each, the testing keys apart, R written once.
 const CONTROLS = [
-  ["W A S D / arrows", "Walk"],
-  ["Shift", "Sprint"],
-  ["E", "Nearest action; hold to climb through a window"],
-  ["Right-click", "Everything you can do to what is under the cursor"],
-  ["Double-click", "Equip or unequip a thing; else move it across"],
-  ["Z / wheel", "Zoom: wide, middle, close"],
-  ["Tab", "Your bag"],
-  ["C", "Your character"],
-  ["1 to 4", "Swap a belt slot with your hand"],
-  ["T", "Torch in or out of hand"],
-  ["Enter", "Chat: type a line, Enter says it"],
-  ["/", "Chat: a command (nothing answers yet)"],
-  ["Left-click", "Swing what you hold; fists with nothing. Hold to draw a bow or cast"],
-  ["Q / middle-click", "The main hand's other mode: the halberd's thrust, a spear's throw"],
-  ["Right-click held", "The off hand's stance: block with a shield, brace a bow"],
-  ["Space", "Shove: pushes the dead back, no damage"],
-  ["N", "Build menu: walls, doors, windows"],
-  ["X", "Remove: highlights what you built or made, click to destroy it"],
-  ["R", "Turn what you are placing"],
-  ["B", "Board up the nearest opening; hold to pull a board"],
-  ["Esc", "Close what is open, else pause"],
-  ["R / wheel", "Rotate the item you are dragging"],
-  ["V", "Fog off (debug)"],
-  ["[ ]", "The hour back or forward (debug)"],
-  ["L", "Light debug views"],
+  ["Moving and doing", [
+    ["W A S D / arrows", "Walk"],
+    ["Shift", "Sprint"],
+    ["Z / wheel", "Zoom: wide, middle, close"],
+    ["E", "Nearest action; hold to climb through a window"],
+    ["Right-click", "Everything you can do to what is under the cursor"],
+    ["Esc", "Close what is open, else pause"],
+  ]],
+  ["Fighting", [
+    ["Left-click", "Swing what you hold; fists with nothing. Hold to draw a bow or cast"],
+    ["Q / middle-click", "The main hand's other mode: the halberd's thrust, a spear's throw"],
+    ["Right-click held", "The off hand's stance: block with a shield, brace a bow"],
+    ["Space", "Shove: pushes the dead back, no damage"],
+  ]],
+  ["Your things", [
+    ["Tab", "Your bag"],
+    ["C", "Your character"],
+    ["1 to 4", "Swap a belt slot with your hand"],
+    ["Double-click", "Equip or unequip a thing; else move it across"],
+    ["T", "Torch in or out of hand"],
+  ]],
+  ["Building", [
+    ["N", "Build menu: walls, doors, windows"],
+    ["X", "Remove: highlights what you built or made, click to destroy it"],
+    ["R / wheel", "Turn what you are placing, or the item you are dragging"],
+    ["B", "Board up the nearest opening; hold to pull a board"],
+  ]],
+  ["Talking", [
+    ["Enter", "Chat: type a line, Enter says it"],
+    ["/", "Chat: a command (nothing answers yet)"],
+  ]],
+  ["Testing", [
+    ["V", "Fog off"],
+    ["[ ]", "The hour back or forward"],
+    ["L", "Light debug views"],
+  ]],
 ];
 
 let root = null; // where the current screen is drawn: the site's page out of a world, #screens in one (#111)
@@ -419,8 +431,30 @@ function pollOpen() {
   });
 }
 
-function button(go, label, extra = "") {
-  return `<button class="kit-button" data-go="${go}"${extra}>${label}</button>`;
+function button(go, label, extra = "", cls = "") {
+  return `<button class="kit-button${cls ? ` ${cls}` : ""}" data-go="${go}"${extra}>${label}</button>`;
+}
+
+// When a world was last played, for its card: the time today, else the day and the month.
+function lastPlayed(at) {
+  if (!at) return "";
+  const d = new Date(at);
+  const today = new Date().toDateString() === d.toDateString();
+  return today ? `played today, ${d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}` : `played ${d.toLocaleDateString(undefined, { day: "numeric", month: "short" })}`;
+}
+
+// A world as a card (docs/38, Q8): its name and where it lives, the survivor and whether they live, its day and hour,
+// when last played, its code; the main thing to do big, the rest small. The buttons are the rows' as they were.
+function card({ name, badge = "", who = "", meta = [], main = "", rest = "" }) {
+  return `
+    <div class="world-card">
+      <div class="wc-text">
+        <div class="wc-name"><b>${name}</b>${badge ? `<span class="wc-badge">${badge}</span>` : ""}</div>
+        ${who ? `<div class="wc-who">${who}</div>` : ""}
+        <div class="wc-meta">${meta.filter(Boolean).join(" · ")}</div>
+      </div>
+      <div class="wc-actions">${main}<div class="wc-rest">${rest}</div></div>
+    </div>`;
 }
 
 // A switch: its state is the answer showing, and a click asks for the other one (`data-value`, read by the click
@@ -548,19 +582,28 @@ function worldRows() {
   const h = worldsApi && worldsApi.here ? worldsApi.here() : {};
   const canMove = !!(worldsApi && worldsApi.canMove && worldsApi.canMove());
   const id = (w) => ` data-world="${esc(w.worldId)}"`;
-  // What a row offers by where the world lives (item 5's fifth step): here, on the server, or on its way home.
-  const buttonsFor = (w) => {
-    const inPlay = h.inWorld && h.worldId === w.worldId;
-    if (w.home === "server") return button("server-play", "Play", id(w)) + (canMove ? button("owner", "Owner", ` data-code="${esc(w.serverCode || "")}"`) + button("bring-home", "Bring it home", id(w)) : "");
-    if (w.home === "arriving") return canMove ? button("bring-home", "Finish bringing it home", id(w)) : "";
-    return (w.playable ? button("play", w.dead ? "New character" : "Play", id(w)) : "") + (canMove && w.playable && !inPlay ? button("move-up", "Move to the server", id(w)) : "") + button("delete", "Delete", id(w));
+  // What a card offers by where the world lives (item 5's fifth step): here, on the server, or on its way home.
+  // The main thing big (Play, New character, Bring it home), the rest small (#111, docs/38 Q8).
+  const mainFor = (w) => {
+    if (w.home === "server") return button("server-play", "Play", id(w), "big");
+    if (w.home === "arriving") return canMove ? button("bring-home", "Finish bringing it home", id(w), "big") : "";
+    return w.playable ? button("play", w.dead ? "New character" : "Play", id(w), "big") : "";
   };
-  const where = (w) => (w.home === "server" ? ` · on the server, code <code>${esc(w.serverCode || "")}</code>` : w.home === "arriving" ? " · on its way home" : w.code ? ` · code <code>${esc(w.code)}</code>` : "");
-  return `<div class="rows">${rows.map((w) => `
-    <div class="row-item">
-      <div class="row-main"><b>${esc(w.name)}</b><span class="row-sub">${esc(w.label)}${w.myCharacter ? ` · ${w.dead ? `${esc(w.myCharacter)} died` : `as ${esc(w.myCharacter)}`}` : " · no survivor"}${where(w)}${w.playable ? "" : ` · on another map (${esc(w.mapName)})`}</span></div>
-      <div class="row-buttons">${buttonsFor(w)}</div>
-    </div>`).join("")}</div>`;
+  const restFor = (w) => {
+    const inPlay = h.inWorld && h.worldId === w.worldId;
+    if (w.home === "server") return canMove ? button("owner", "Owner", ` data-code="${esc(w.serverCode || "")}"`, "small") + button("bring-home", "Bring it home", id(w), "small") : "";
+    if (w.home === "arriving") return "";
+    return (canMove && w.playable && !inPlay ? button("move-up", "Move to the server", id(w), "small") : "") + button("delete", "Delete", id(w), "small");
+  };
+  const code = (w) => (w.home === "server" ? w.serverCode : w.code);
+  return `<div class="cards">${rows.map((w) => card({
+    name: esc(w.name),
+    badge: w.home === "server" ? "on the server" : w.home === "arriving" ? "on its way home" : "",
+    who: w.myCharacter ? (w.dead ? `${esc(w.myCharacter)} died` : `as ${esc(w.myCharacter)}`) : "no survivor yet",
+    meta: [esc(w.label), lastPlayed(w.savedAt), code(w) ? `code <code>${esc(code(w))}</code>` : "", w.playable ? "" : `on another map (${esc(w.mapName)})`],
+    main: mainFor(w),
+    rest: restFor(w),
+  })).join("")}</div>`;
 }
 
 // Moving a world to the server: the creator key first if this browser has none, then a word of what it means.
@@ -586,11 +629,13 @@ function startBringHome(worldId) {
 function ownedRows() {
   const rows = worldsApi && worldsApi.ownedElsewhere ? worldsApi.ownedElsewhere() : [];
   if (!rows.length) return "";
-  return `<h2>My worlds on the server</h2><div class="rows">${rows.map((o) => `
-    <div class="row-item">
-      <div class="row-main"><b>${esc(o.name || o.code)}</b><span class="row-sub">code <code>${esc(o.code)}</code> · yours by its owner key</span></div>
-      <div class="row-buttons">${button("owned-play", "Play", ` data-code="${esc(o.code)}"`)}${button("owner", "Owner", ` data-code="${esc(o.code)}"`)}</div>
-    </div>`).join("")}</div>`;
+  return `<h2>My worlds on the server</h2><div class="cards">${rows.map((o) => card({
+    name: esc(o.name || o.code),
+    badge: "on the server",
+    meta: [`code <code>${esc(o.code)}</code>`, "yours by its owner key"],
+    main: button("owned-play", "Play", ` data-code="${esc(o.code)}"`, "big"),
+    rest: button("owner", "Owner", ` data-code="${esc(o.code)}"`, "small"),
+  })).join("")}</div>`;
 }
 
 function friendRows() {
@@ -601,11 +646,13 @@ function friendRows() {
     if (!o) return `<span class="dot" title="not asked yet"></span>`;
     return `<span class="dot ${o.open ? "on" : "off"}" title="${o.open ? `open now, ${o.guests} in` : "not open now"}"></span>`;
   };
-  return `<h2>Friends' worlds</h2><div class="rows">${rows.map((r) => `
-    <div class="row-item">
-      <div class="row-main"><b>${dot(r.code)}${esc(r.name || r.code)}</b><span class="row-sub">${r.hostName ? `${esc(r.hostName)}'s · ` : ""}code <code>${esc(r.code)}</code>${r.myCharacter ? ` · as ${esc(r.myCharacter)}` : ""}</span></div>
-      <div class="row-buttons">${button("rejoin", "Rejoin", ` data-code="${esc(r.code)}" data-name="${esc(r.name || "")}"`)}${button("forget", "Forget", ` data-code="${esc(r.code)}"`)}</div>
-    </div>`).join("")}</div>`;
+  return `<h2>Friends' worlds</h2><div class="cards">${rows.map((r) => card({
+    name: `${dot(r.code)}${esc(r.name || r.code)}`,
+    who: r.myCharacter ? `as ${esc(r.myCharacter)}` : "",
+    meta: [r.hostName ? `${esc(r.hostName)}'s world` : "", `code <code>${esc(r.code)}</code>`, r.lastAt ? lastPlayed(r.lastAt) : ""],
+    main: button("rejoin", "Rejoin", ` data-code="${esc(r.code)}" data-name="${esc(r.name || "")}"`, "big"),
+    rest: button("forget", "Forget", ` data-code="${esc(r.code)}"`, "small"),
+  })).join("")}</div>`;
 }
 
 function identityRows(pickable) {
@@ -660,7 +707,10 @@ function aboutHtml() {
 
 function render() {
   if (!root) return;
-  root.className = current || "";
+  // #screens takes the screen's name as its class (style.css: #screens.title); the site's page an attribute, so a
+  // screen called "controls" never gives the page the .controls grid.
+  if (root === screensEl) root.className = current || "";
+  else root.dataset.page = current || "";
   markMenu();
   stopPreview();
   if (dotTimer) { clearInterval(dotTimer); dotTimer = null; }
@@ -901,7 +951,8 @@ function render() {
     root.innerHTML = `
       <div class="screen screen-wide">
         <h1>Controls</h1>
-        <div class="controls">${CONTROLS.map(([k, what]) => `<b>${k}</b><span>${what}</span>`).join("")}</div>
+        ${CONTROLS.map(([group, keys]) => `<h2>${group}</h2><div class="controls">${keys.map(([k, what]) => `<b>${k}</b><span>${what}</span>`).join("")}</div>`).join("")}
+        <div class="sub">More on how things work in <a href="https://cmzgame.github.io/cmz-wiki/" target="_blank" rel="noopener">the wiki</a>.</div>
         <div class="screen-buttons row">${button("back", "Back")}</div>
       </div>`;
   } else {

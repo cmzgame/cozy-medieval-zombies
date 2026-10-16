@@ -1747,6 +1747,42 @@ html, body {
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
 }
 
+/* The Worlds page's cards (docs/38 Q8): the name and its mark, the survivor, the day and the code; Play big, the rest small. */
+.cards { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 12px; text-align: left; }
+.world-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 12px;
+  background: rgba(10, 6, 14, 0.5);
+  border: 1px solid #5a4a3a;
+  border-radius: 3px;
+}
+.wc-text { min-width: 0; }
+.wc-name { font-size: 17px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.wc-badge { font-size: 11px; color: #1b1712; background: #c9a24a; border-radius: 2px; padding: 1px 6px; }
+.wc-who { font-size: 13px; color: var(--text); margin-top: 3px; }
+.wc-meta { font-size: 12px; color: #c8bca4; margin-top: 2px; }
+.wc-meta code { font: 0.95em ui-monospace, Consolas, "Courier New", monospace; color: #c9a24a; letter-spacing: 1px; }
+.wc-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.wc-rest { display: flex; gap: 6px; }
+.screen .kit-button.big { font-size: 20px; padding: 6px 26px; color: var(--gold); }
+.screen .kit-button.small { font-size: 12px; padding: 1px 8px; }
+#site-page[data-page="controls"] .screen h2 { text-align: left; margin: 14px 0 2px; color: var(--gold); }
+#site-page[data-page="controls"] .controls { grid-template-columns: 10em 1fr; margin-top: 4px; }
+
+@media (max-width: 520px) {
+  .world-card { flex-direction: column; align-items: stretch; }
+  .wc-actions { align-items: stretch; }
+  .wc-rest { justify-content: flex-end; }
+}
+
+/* Before the kit is made (the site paints while the game loads, #111): plain timber and stone that read the same. */
+html:not(.kit-ready) #site .kit-button { background: #7a5230; border: 2px solid #3e2a18; border-radius: 2px; }
+html:not(.kit-ready) #site .site-nav { border: 3px solid #5f5850; }
+html:not(.kit-ready) #site-page .screen { border: 3px solid #6a6258; }
+
 .site-foot {
   padding: 0 16px 24px;
   text-align: center;

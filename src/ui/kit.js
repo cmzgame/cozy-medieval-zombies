@@ -26,6 +26,7 @@ function rgb(data, w, x, y) {
 export function apply() {
   root = root || document.documentElement; // on :root, so the site (outside #ui, #111) has the kit too
   if (!root) return;
+  root.classList.add("kit-ready"); // the site paints before the kit exists (#111); style.css has a stand-in until now
   const sheet = assets.getSheet("ui_kit");
   const slices = assets.getDef("ui_kit").slices || {};
   for (const [name, [x, y, w, h]] of Object.entries(sheet.frames)) {

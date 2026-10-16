@@ -57,6 +57,7 @@ function show(label, fraction) {
 
 function fail(stage, err) {
   if (!root) return;
+  root.hidden = false; // the site may be up in front of a boot still running (#111): a failure always shows
   errorMsg.textContent = `Failed while ${stage.label.toLowerCase()} (stage "${stage.name}"): ${err.message}`;
   errorBox.hidden = false;
   line.textContent = "";
@@ -96,6 +97,7 @@ export async function finish() {
     await new Promise((resolve) => root.addEventListener("click", resolve, { once: true }));
   }
   root.hidden = true;
+  if (sub && !worldOn) sub.textContent = subText;
 }
 
 // ---- the same screen for entering and leaving a world (docs/38, #107) ----

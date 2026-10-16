@@ -1751,7 +1751,8 @@ async function boot() {
   if (net.isGuest()) {
     started = false;
     showMessage("Joining the host's world…", 4);
-  } else screens.show("title"); // nothing runs behind it (docs/31/09): Worlds is where a world is chosen
+  } else screens.show(window.__wantPage || "title"); // nothing runs behind it (docs/31/09): Worlds is where a world is chosen; a page asked for while loading opens now (index.html, #111)
+  window.__siteReady = true; // the site's buttons are the screens' from here
   // Autosave: every AUTOSAVE seconds of game time, and when the tab is hidden or left (the parent's rule).
   const autosave = () => {
     if (!inWorld || !started || !currentWorld || net.isGuest()) return; // a guest's world is the host's to save; a test world is nobody's
