@@ -48,6 +48,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
+- The knockdown chance 0.3 is high and stands until the combat pass re-rules it (2026-10-16, The sweep, after wave 3)
 - The swing resolves on the click, the animation is cosmetic, the cooldown is the rate limit (2026-10-11, Placement and melee scoped)
 - Left click swings, Space shoves; a swing at zero stamina lands at half damage (2026-10-11, Placement and melee scoped)
 - Every number on a weapon is tunable per item; knockback and the shove's push are a third (2026-10-11, Melee tunables, the shove, and multi-hit; 2026-10-11, Melee's first play notes)
