@@ -34,8 +34,8 @@ Everything the art agent knows about the game's art, from the first trees to the
 | `data/art/crops/` | five crops, three stages, two directions | 30 |
 | `data/art/village/` | walls, posts, leaves, shutters, boards, floors, furniture, pumpkins | 110 |
 | `data/art/items/` | world and icon art, staff angles, fireball (the previews are in `docs/art/previews/`) | 13 |
-| `data/art/cursors/` | the three pointing hands at 1x and 2x, `cursors.json` (a CSS cursor, `src/ui/cursor.js`) | 9 |
-| `data/art/character/` | the template, the body's JSON, round 1 of the painted layers in `layers/` | 40 layers |
+| `data/art/cursors/` | the three pointing hands at 1x, 2x, and 3x, `cursors.json` (a CSS cursor, `src/ui/cursor.js`) | 9 |
+| `data/art/character/` | the template, the body's JSON, round 1 of the painted layers in `layers/` (36 in its manifest, plus four previews) | 36 layers |
 
 **Not in the repo:** the stubs, the willow, the dirt kit, and the village, tree, ground, decal, crop, pumpkin, cursor, and item generators (one copy each, in Michael's download zips). The character generators are in (`tools/art-gen/character/`). See `11`.
 

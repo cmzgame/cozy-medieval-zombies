@@ -22,7 +22,7 @@ Drawn per part per facing on the template's anchors, composited far to near with
 2. **Eight facings** (`s, sw, w, nw, n, ne, e, se`). Five may be delivered (`s, sw, w, nw, n`) and three mirrored, **except anything asymmetric** (a pouch on one hip, a satchel, a side-swept fringe).
 3. **The rig animates; the artist does not.** Parts are painted once per facing in the rest pose, relative to each part's anchor, and the rig carries their pixels through every animation. So garments are *stiff*: a sleeve turns with the arm, a boot with the leg, nothing flaps on its own (no cloaks or loose skirts in this pipeline).
 4. **Two tones plus the dark outline** per garment, hair and skin; **colour is data** (the engine dyes by replacing the tones), so one canonical colourway is drawn.
-5. **One outline per body part, never per garment** ("no Michelin rolls"); the face is never shaded; **eyes are big (the generated whites 3 x 5 with a dyeable pupil stay, ruled 2026-10-13, `25` deliverable 1; the 4 x 6 below was the first ruling); no mouth, no nose**.
+5. **One outline per body part, never per garment** ("no Michelin rolls"); the face is never shaded; **eyes are big (the generated whites 3 x 5 with a dyeable pupil stay, ruled 2026-10-12, `25` deliverable 1; the 4 x 6 below was the first ruling); no mouth, no nose**.
 
 ## Eyes: the one face rule that changed (Michael, 2026-10-12)
 
