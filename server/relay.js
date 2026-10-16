@@ -240,11 +240,20 @@ function playersOf(save) {
   return Object.entries(save.owners || {}).map(([hash, id]) => ({ playerId: id, name: (byId.get(id) && byId.get(id).name) || id, owner: hash === OWNER_HASH, dead: !!(byId.get(id) && byId.get(id).dead) }));
 }
 
-// The rules an owner may set: the five, each true or false (src/rules.js), nothing else.
+// The rules an owner may set: the five, each true or false (src/rules.js), nothing else. A world's meta also holds the
+// two it was made with (Trees, Starting population: a world moved up from a browser carries them), shown to its owner
+// and never changed by one (`withFixed`).
 const RULE_KEYS = ["zombieAggro", "zombiesAttackVillagers", "multiHit", "survival", "freeBuilding"];
-function cleanRules(raw) {
+const POPULATIONS = ["low", "standard", "high"];
+function cleanRules(raw, withFixed = false) {
   const out = {};
-  if (raw && typeof raw === "object") for (const k of RULE_KEYS) if (typeof raw[k] === "boolean") out[k] = raw[k];
+  if (raw && typeof raw === "object") {
+    for (const k of RULE_KEYS) if (typeof raw[k] === "boolean") out[k] = raw[k];
+    if (withFixed) {
+      if (typeof raw.trees === "boolean") out.trees = raw.trees;
+      if (POPULATIONS.includes(raw.population)) out.population = raw.population;
+    }
+  }
   return out;
 }
 
@@ -328,7 +337,7 @@ async function handleWorlds(req, res, url, address) {
         fs.rmSync(stage, { recursive: true, force: true });
         return answer(422, { error: "the save would not restore" });
       }
-      writeMeta(stage, { worldId, name, codeHash: hashCode(code), ownerKeyHash: sha256(ownerKey), created: new Date().toISOString(), from: "upload", rules: cleanRules(snap.rules), barred: [] });
+      writeMeta(stage, { worldId, name, codeHash: hashCode(code), ownerKeyHash: sha256(ownerKey), created: new Date().toISOString(), from: "upload", rules: cleanRules(snap.rules, true), barred: [] });
       fs.mkdirSync(WORLDS, { recursive: true });
       fs.renameSync(stage, path.join(WORLDS, worldId));
       scanWorlds(true);
@@ -376,7 +385,7 @@ async function handleWorlds(req, res, url, address) {
       } catch {
         // no save to read: no players to show
       }
-      return answer(200, { name: meta.name || "A world", awake, players, barred: (meta.barred || []).map((b) => ({ hash: b.hash, name: b.name })), rules: cleanRules(meta.rules) });
+      return answer(200, { name: meta.name || "A world", awake, players, barred: (meta.barred || []).map((b) => ({ hash: b.hash, name: b.name })), rules: cleanRules(meta.rules, true) });
     }
 
     if (url.pathname === "/worlds/rotate") {
@@ -402,7 +411,7 @@ async function handleWorlds(req, res, url, address) {
 
     if (url.pathname === "/worlds/rules") {
       // ---- the world's rules, the owner's to set ----
-      const rules = { ...cleanRules(meta.rules), ...cleanRules(msg.rules) };
+      const rules = { ...cleanRules(meta.rules, true), ...cleanRules(msg.rules) };
       writeMeta(w.dir, { ...meta, rules });
       if (awake) await askWorld(w.worldId, { type: "rules", rules });
       return answer(200, { rules });

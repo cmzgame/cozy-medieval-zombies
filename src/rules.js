@@ -16,14 +16,29 @@ export const DEFAULTS = {
   multiHit: !!settings.DEFAULTS.multiHit, // a swing hits everyone in its wedge, or the nearest
   survival: !!settings.DEFAULTS.survival, // hunger and thirst drain
   freeBuilding: !!settings.DEFAULTS.freeBuilding, // building costs nothing
+  trees: settings.DEFAULTS.trees !== false, // the world has trees (#130): off, none are placed when it is made or a chunk is grown
+  population: settings.DEFAULTS.population, // "low", "standard", or "high": how many of the dead it starts with (#130)
 };
 
+// The rules that are one of a few words, not a switch.
+export const ENUMS = { population: ["low", "standard", "high"] };
+
+// The rules chosen when a world is made and never changed after (#130): they shape what is placed, and a change
+// would reach only the chunks not yet grown. A server world's owner cannot set them either.
+export const FIXED = ["trees", "population"];
+
 export const rules = { ...DEFAULTS };
+
+// A value as its rule keeps it: a switch true or false, a word one of its words (else the default).
+export function coerce(key, v) {
+  if (ENUMS[key]) return ENUMS[key].includes(v) ? v : DEFAULTS[key];
+  return !!v;
+}
 
 // A guest's rules are the host's (docs/31/03, docs/31/07 question 13): set whole from a frame, or from a save
 // as it is restored (the rules ride in the save since its version 2, so a world carries its own).
 export function set(obj) {
-  for (const key of Object.keys(rules)) if (key in obj) rules[key] = !!obj[key];
+  for (const key of Object.keys(rules)) if (key in obj) rules[key] = coerce(key, obj[key]);
 }
 
 // A new world's rules: the defaults, over them what its Sandbox step chose (game.create).
@@ -41,5 +56,5 @@ export function setSource(fn) {
 export function refresh() {
   if (!source) return;
   const from = source();
-  for (const key of Object.keys(rules)) rules[key] = !!from[key];
+  for (const key of Object.keys(rules)) rules[key] = coerce(key, from[key]);
 }

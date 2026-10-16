@@ -166,6 +166,7 @@ function listen(el) {
     else if ("hair" in sel.dataset && hairApi) hairApi.set(JSON.parse(sel.value));
     else if (sel.dataset.layerSlot && layersApi) layersApi.set(sel.dataset.layerSlot, JSON.parse(sel.value) || null);
     else if (sel.dataset.lookKey && youApi) youApi.setLook({ [sel.dataset.lookKey]: JSON.parse(sel.value) });
+    else if (sel.dataset.sandbox) sandboxSet(sel.dataset.sandbox, JSON.parse(sel.value));
     else return;
     render();
   });
@@ -331,13 +332,7 @@ function go(where, ds = {}) {
   // A new world: its name, then a character for it.
   else if (where === "newworld") show("newworld", { name: worldsApi ? worldsApi.defaultName() : "" });
   // A switch of the Sandbox: kept in the page's data with the name typed so far, and drawn again.
-  else if (where === "sandbox") {
-    const field = root.querySelector("#world-name");
-    const now = sandboxNow();
-    if (ds.rule === "devChest") now.devChest = ds.value === "true";
-    else now.rules[ds.rule] = ds.value === "true";
-    show("newworld", { name: field ? field.value : data.name, rules: now.rules, devChest: now.devChest, touched: true });
-  }
+  else if (where === "sandbox") sandboxSet(ds.rule, ds.value === "true")
   else if (where === "newworld-next") {
     const field = root.querySelector("#world-name");
     const name = (field && field.value.trim()) || (worldsApi ? worldsApi.defaultName() : "A world");
@@ -382,6 +377,16 @@ function go(where, ds = {}) {
   else if (where === "open-on") { if (wireApi) wireApi.setOpen(true); render(); }
   else if (where === "open-off") { if (wireApi) wireApi.setOpen(false); render(); }
   else show(where);
+}
+
+// One Sandbox choice made (a switch, or a word from a dropdown): kept in the page's data with the name typed so far,
+// and the page drawn again.
+function sandboxSet(key, value) {
+  const field = root.querySelector("#world-name");
+  const now = sandboxNow();
+  if (key === "devChest") now.devChest = !!value;
+  else now.rules[key] = value;
+  show("newworld", { name: field ? field.value : data.name, rules: now.rules, devChest: now.devChest, touched: true });
 }
 
 // The Sandbox step as it stands: the last choices the browser remembers, over them what this page has changed.
@@ -512,8 +517,12 @@ function settingRow(entry) {
 // One of a world's rules (or the dev chest) as a switch with its label and line, for the Sandbox step, the pause
 // menu's World rules, and the owner's screen (docs/38, #109). `attrs` says what a click does; `locked` is a guest's view
 // of the host's rule, shown and not to be changed.
-function worldRuleRow(entry, on, attrs, locked = false) {
-  return `<div class="setting${locked ? " hosts" : ""}"><span class="setting-label">${esc(entry.label)}${locked ? " <small>(the host's)</small>" : ""}<small class="help">${esc(entry.help || "")}</small></span><span class="control"><span class="switch-state">${on ? "On" : "Off"}</span>${switchHtml(on, attrs, locked)}</span></div>`;
+function worldRuleRow(entry, value, attrs, locked = false, why = "the host's") {
+  // A switch for a true or false rule, a dropdown for one of a few words (the Starting population; #130).
+  const control = typeof value === "boolean"
+    ? `<span class="switch-state">${value ? "On" : "Off"}</span>${switchHtml(value, attrs.switch, locked)}`
+    : selectHtml(entry.choices, value, attrs.select || "", locked);
+  return `<div class="setting${locked ? " hosts" : ""}"><span class="setting-label">${esc(entry.label)}${locked ? ` <small>(${esc(why)})</small>` : ""}<small class="help">${esc(entry.help || "")}</small></span><span class="control">${control}</span></div>`;
 }
 
 // Hair styles, generated and painted (docs/12).
@@ -810,8 +819,8 @@ function render() {
   } else if (current === "newworld") {
     const now = sandboxNow();
     const sandboxRows = settings.REGISTRY.filter((e) => settings.WORLD_GROUPS.includes(e.group)).map((e) => {
-      const on = e.key === "devChest" ? !!now.devChest : !!now.rules[e.key];
-      return worldRuleRow(e, on, `data-go="sandbox" data-rule="${e.key}" data-value="${!on}"`);
+      const value = e.key === "devChest" ? !!now.devChest : rules.coerce(e.key, now.rules[e.key]);
+      return worldRuleRow(e, value, { switch: `data-go="sandbox" data-rule="${e.key}" data-value="${!value}"`, select: `data-sandbox="${e.key}"` });
     }).join("");
     root.innerHTML = `
       <div class="screen">
@@ -892,8 +901,8 @@ function render() {
     // The world's rules as switches, labelled and explained from the settings' registry (#108).
     const rulesRows = settings.REGISTRY.filter((e) => e.group === "rules").map((e) => {
       // A rule the server has no word on (a world made on the server by hand) plays by its default (the review of #114).
-      const on = info.rules && e.key in info.rules ? !!info.rules[e.key] : !!rules.DEFAULTS[e.key];
-      return worldRuleRow(e, on, `data-go="owner-rule" data-rule="${e.key}" data-value="${!on}"`);
+      const value = rules.coerce(e.key, info.rules && e.key in info.rules ? info.rules[e.key] : rules.DEFAULTS[e.key]);
+      return worldRuleRow(e, value, { switch: `data-go="owner-rule" data-rule="${e.key}" data-value="${!value}"` }, !!e.fixed, "set when the world was made");
     }).join("");
     const others = (info.players || []).filter((p) => !p.owner);
     const playersRows = others.length ? `<div class="rows">${others.map((p) => `
@@ -950,8 +959,8 @@ function render() {
     const h = worldsApi ? worldsApi.here() : { rules: {} };
     const mine = !!h.canSetRules;
     const rows = settings.REGISTRY.filter((e) => e.group === "rules").map((e) => {
-      const on = !!(h.rules && h.rules[e.key]);
-      return worldRuleRow(e, on, `data-go="world-rule" data-rule="${e.key}" data-value="${!on}"`, !mine);
+      const value = rules.coerce(e.key, h.rules ? h.rules[e.key] : rules.DEFAULTS[e.key]);
+      return worldRuleRow(e, value, { switch: `data-go="world-rule" data-rule="${e.key}" data-value="${!value}"` }, !mine || !!e.fixed, e.fixed ? "set when the world was made" : "the host's");
     }).join("");
     const why = mine ? "How this world plays. A change is made at once, for everyone in it." : h.ownedCode ? "How this world plays. They are yours to change from the Owner screen." : "How this world plays. They are the host's to change.";
     root.innerHTML = `
