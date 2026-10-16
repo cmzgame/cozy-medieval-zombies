@@ -1,6 +1,6 @@
 # 26 — Art still owed: the items in the starting bag and the dev chest
 
-**Status: a backlog, written 2026-10-12 while the characters brief was with the design agent; checked against `data/items.json` on 2026-10-13 (50 items, 4 with drawn art). Nothing here is commissioned yet. The rule for every item (Michael, 2026-10-12): it arrives as a pair, an in-world picture and an inventory icon drawn from the same design, so one change changes both; the first delivery to lack either is flagged.**
+**Status: a backlog, written 2026-10-12 while the characters brief was with the design agent; checked against `data/items.json` on 2026-10-16 (51 items, 4 with drawn art). Nothing here is commissioned yet. The rule for every item (Michael, 2026-10-12): it arrives as a pair, an in-world picture and an inventory icon drawn from the same design, so one change changes both; the first delivery to lack either is flagged.**
 
 ## How an item's art works in the game today (so a request is the right shape)
 
@@ -31,7 +31,7 @@ Slot sizes are columns x rows as they are in `data/items.json` now; the icon can
 
 ## Already delivered and in the game (for the record)
 
-Round 2 (2026-10-12): the **book of fire**, **staff of fire**, **throwing knife**, and **throwing axe**, each as a pair, in `data/art/items/` and in the game as art-only holdables. The **fireball** sheet (16 directions x 3 frames, 64 px cells) is stored and not yet used (`24`).
+Round 2 (2026-10-12): the **book of fire**, **staff of fire**, **throwing knife**, and **throwing axe**, each as a pair, in `data/art/items/` and in the game as art-only holdables. The **fireball** sheet (16 directions x 3 frames, 64 px cells) is the fireball the staff and the book cast since 2026-10-14 (`24`, #12).
 
 ## Notes for whoever briefs the next round
 

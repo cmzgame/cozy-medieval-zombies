@@ -92,7 +92,7 @@ The world fills the window at an integer pixel scale and the interface scales on
 
 - **Title**, at boot, over the drawn village: Play, Settings, Controls.
 - **Pause**, on Escape with nothing else open: Resume, Settings, Controls, Title screen.
-- **Settings** (`src/settings.js`, kept in the browser): interface size (auto or 1× to 3×), world pixel scale (auto, the largest that fits, or a fixed 1× to 3×), zombie aggro (off by default while the game is a workbench: the dead wander and ignore you), survival (off by default: no hunger, thirst, or other need), the debug corner. Defaults button. More as Michael asks.
+- **Settings** (`src/settings.js`, kept in the browser): interface size (auto or 1× to 3×), world pixel scale (auto, the largest that fits, or a fixed 1× to 3×), zombie aggro (on by default since 2026-10-15; off, the dead wander and ignore you), survival (on by default since 2026-10-13; off, no hunger, thirst, or other need), the debug corner. Defaults button. More as Michael asks.
 - **Controls**: the key list.
 - **Dead**, when the player's health reaches zero: the day and hour, and one button back to the title, which reloads the page.
 - The pause menu also carries a disabled **Save game**, a placeholder for the save milestone.

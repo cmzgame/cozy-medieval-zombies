@@ -43,7 +43,7 @@ The commission for the next art: `26` (items, and the icons and portraits the ch
 
 ## D. Corrections owed to `docs/art` (the docs pass of 2026-10-13)
 
-The agent's own docs are its to edit (section B), so these go to it as a message, not as edits here. Each is a line of `docs/art` that the game no longer bears out; Michael may paste the list as it stands.
+The agent's own docs are its to edit (section B), so these were to go to it as a message. **Applied by the sweep on 2026-10-16** (the agent had no branch or workspace left and the list had waited three days); kept here as the record of what was wrong. Each was a line of `docs/art` that the game no longer bore out.
 
 - `README.md`: the engine docs run to `32`, not `25`; `data/art/items` holds 13 pictures (the previews moved to `docs/art/previews/`); `data/art/cursors` (9) and `data/art/character` are missing from its table; the cursors and the character scripts are in the repo (`src/ui/cursor.js`, `tools/art-gen/character/`).
 - `02-trees.md`: trees are `interactable` gatherables (`data/sprites/tree_oak_l.json`); only the outline is excused (`CLAUDE.md`).

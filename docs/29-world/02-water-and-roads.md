@@ -27,7 +27,7 @@ From the mere in the north-west, east along the top of Long Acre, into the river
 |---|---|---|---|
 | **The stone bridge** | the village's high street to the castle approach, y 126 to 128 | three tiles wide, sixteen long; a laid floor (new `floor_bridge_stone`, flagstones with a crown) over the water with a parapet (a low wall material, `wall_parapet`, sight passes) on both sides; a lamp post at each end | the map's set piece: the one way between the village and the castle, a cart overturned on it as a barricade (an event prop), the dead piled at the castle end |
 | **The footbridge** | the brook, on the lane to the mere | one tile wide, four long; `floor_bridge_plank` with no rail | the humble one |
-| **The ford** | the drove, south of Hollow Farm, where the river widens | a `water_shallow` kind, walkable at half speed, wet feet; eight tiles across | the cheap crossing with a cost: slow in the open, and the dead can use it too |
+| **The ford** | the drove, south of Hollow Farm, where the river widens | a `water_shallow` kind, walkable at half speed, wet feet; seven by three as built (`valley.py`) | the cheap crossing with a cost: slow in the open, and the dead can use it too |
 | **The weir** | the mill, y 60 | the weir's crest as a one-tile line of shallow water across the river; a stone lip the water pours over | the shortcut to the quarry; a goober on a weir at night is a goober about to be bitten |
 | **The drawbridge** | the castle gate, over the moat | three tiles of `floor_bridge_plank` with chains to the gatehouse (edge props); down in 1.0, raised as decoration never | the castle's threshold |
 | **The postern footbridge** | the castle's east wall, over the moat | one tile wide | the back door |

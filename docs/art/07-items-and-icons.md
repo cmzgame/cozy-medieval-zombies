@@ -1,6 +1,6 @@
 # Art 07: Held items, inventory icons, the fireball
 
-**Status: in the game as art-only holdables** (round 2, 2026-10-12): the book, staff, throwing knife and throwing axe are holdable and show drawn icons; they do nothing yet. The fireball sheet is stored and unused. Files in `data/art/items/` (the repo's own `README.md` there is the short version of this page). Design questions about what these items *do* are in `24-throwables-and-fire-magic.md`. Written 2026-10-12.
+**Status: in the game as art-only holdables** (round 2, 2026-10-12): the book, staff, throwing knife and throwing axe are holdable and show drawn icons; the staff and the book together cast the fireball since 2026-10-14 (`24`, #12) and the fireball sheet flies; the knife and the axe do nothing yet (no throw). The lists below of items without drawn pairs lack the eighteen of `30` step 3 (six tools, twelve materials and foods; `26` lists them). Files in `data/art/items/` (the repo's own `README.md` there is the short version of this page). Design questions about what these items *do* are in `24-throwables-and-fire-magic.md`. Written 2026-10-12.
 
 ## The rule that governs everything here
 

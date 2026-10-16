@@ -1,6 +1,6 @@
 # Art 08: The pointing-hand cursors
 
-**Status: drawn and delivered to Michael (`cursors.zip`); not found in the repo** (no cursor images in `data/art/`, and `style.css` still uses the system cursors) as of 2026-10-12. Written 2026-10-12.
+**Status: drawn, delivered, and in the game since 2026-10-12 as a CSS cursor** (`data/art/cursors/`, `src/ui/cursor.js`, `style.css`; four choices in Settings, the system's the default; the engine-drawn option below was refused, `02` 2026-10-12). Written 2026-10-12.
 
 ## What there is
 

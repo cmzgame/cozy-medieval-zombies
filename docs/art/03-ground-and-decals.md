@@ -71,7 +71,7 @@ Four large faceted rocks, 47 to 55 px wide, in warm dusky greys, **outlined** (t
 
 ## Farm soil and water
 
-See `04-farm-and-crops.md`. Water is the seamless 128 x 64 texture (dusky teal `#293f4c`-`#304957` with pale ripple dashes `#4a6b7c`/`#6f8e9c` and darker troughs), wrapping in both directions in world pixels. Water is **only a look**: it can be walked on (Michael keeps the pond as it is).
+See `04-farm-and-crops.md`. Water is the seamless 128 x 64 texture (dusky teal `#293f4c`-`#304957` with pale ripple dashes `#4a6b7c`/`#6f8e9c` and darker troughs), wrapping in both directions in world pixels. Water **stops a body** since 2026-10-12 (`floor_water.json` `walk: false`; shallow water `walk: 0.5`; any water drinks and fills, `docs/30` law 8).
 
 ## What the engine does *to* this art (so do not draw it in)
 

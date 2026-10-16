@@ -1,13 +1,12 @@
 name: CI
 
-# The headless proofs on every pull request and every push to a branch other than main (github.md, section 10):
-# what the author records before review and the reviewer reads. Branch protection on main requires this job. The
-# browser's checks (check("sync") and the rest under tools/checks/) stay the author's and the reviewer's, in the pane.
+# The headless proofs on every pull request, rerun on every push to its branch (github.md, section 10): what the
+# author records before review and the reviewer reads. Branch protection on main requires this job. The browser's
+# checks (check("sync") and the rest under tools/checks/) stay the author's and the reviewer's, in the pane. Only the
+# pull_request trigger: with a push trigger too, every push ran the job twice under two concurrency groups.
 
 on:
   pull_request:
-  push:
-    branches-ignore: [main]
 
 permissions:
   contents: read
