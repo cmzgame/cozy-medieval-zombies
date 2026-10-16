@@ -82,7 +82,8 @@ verbs.define("dip", {
     if (!prop.fire.lit) return "The fire is out.";
     if (nearest(player, prop.tiles || [prop.tile]) > DIP_REACH) return "Too far from the fire.";
     const e = carried(player, target.entry);
-    if (!e || e.id !== (args.from || "arrow")) return "You have no arrows.";
+    if (!e) return "Take the arrows out first."; // used from an open chest or a body: only arrows you carry are dipped
+    if (e.id !== (args.from || "arrow")) return "You have no arrows.";
     return true;
   },
   perform(world, player, target, args) {
