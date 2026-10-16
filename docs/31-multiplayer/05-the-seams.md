@@ -46,7 +46,7 @@
 | 33 | The dead screen is the dead player's own: New character or Leave world | `ui/screens.js` | built; spectating waits (`05-someday.md`) |
 | **H** | **The world's rules that were single-player** | | |
 | 34 | A new character in the same world from any identity, at the spawn; the body lies where it fell, searchable | `host.js`, `ui/screens.js` | **open in part**: the body rising as one of the dead, the respawn by turn (`30` 3.5) |
-| 35 | The host's rules bind the guest: they go in the welcome and in a frame whenever they change; a guest's Settings shows them as the host set them | `net.js`, `rules.js`, `ui/screens.js` | built |
+| 35 | The host's rules bind the guest: they go in the welcome and in a frame whenever they change; a guest's pause menu (World rules) shows them as the host set them | `net.js`, `rules.js`, `ui/screens.js` | built |
 | 36 | The records milestone takes the list of players as its centre: the union of regions, eviction by the nearest, alarm and lure per chunk | `03-world-model.md` | **open**: not built |
 | **I** | **The server** | | |
 | 37 | The relay, its own handshake with no dependency, on Fly; a server world as the authority, sharing `host.js` with a browser host | `server/relay.js`, `server/world.js`, `src/host.js` | built |

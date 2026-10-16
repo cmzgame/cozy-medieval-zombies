@@ -41,7 +41,11 @@ export const DEFAULTS = {
 // docs/38, #108). `group` is its tab; `help` the line under its label; `choices` the answers, [value, text]. A row
 // whose two answers are true and false is a switch, any other a dropdown (Michael, 2026-10-16: switches for booleans
 // and dropdowns for multiple choice, as Zomboid does, so the chosen answer is the only one shown).
-export const GROUPS = [["display", "Display"], ["rules", "World rules"], ["testing", "Testing"]];
+// The tabs are the player's own. The groups "rules" and "sandbox" are not tabs: they are the world's, chosen at the
+// Sandbox step of New world and changed by its host from the pause menu (docs/38, #109); their keys here are only the
+// last choices, offered again at the next Sandbox step.
+export const GROUPS = [["display", "Display"], ["testing", "Testing"]];
+export const WORLD_GROUPS = ["rules", "sandbox"];
 const ON_OFF = [[true, "On"], [false, "Off"]];
 const SHOWN = [[true, "Shown"], [false, "Hidden"]];
 export const REGISTRY = [
@@ -60,7 +64,7 @@ export const REGISTRY = [
   { key: "showSwingTargets", group: "testing", label: "Swing targets", help: "A green outline on what your next swing would hit.", choices: ON_OFF },
   { key: "showHitShapes", group: "testing", label: "Hit shapes", help: "The dead's body samples, green when the next swing reaches them.", choices: ON_OFF },
   { key: "combatTesting", group: "testing", label: "Combat testing", help: "No trees, and a hundred more of the dead round the spawn. Read when a world is made: reload the page.", choices: ON_OFF },
-  { key: "devChest", group: "testing", label: "Dev chest", help: "A chest of every item by the spawn. Read when a world is made: reload the page.", choices: ON_OFF },
+  { key: "devChest", group: "sandbox", label: "Dev chest", help: "A chest of every item by the spawn, made with the world.", choices: ON_OFF },
   { key: "squareSurface", group: "testing", label: "Square and paths", help: "The village square's surface, to compare the two.", choices: [["cobble", "Cobble"], ["dirt", "Dirt"]] },
 ];
 
@@ -107,7 +111,7 @@ export function set(key, value) {
 // identities, its id, the friends' worlds it joined, the creator key, and the owner keys of its server worlds, and the
 // panels' places; Defaults once reset them all, which lost a browser its characters in friends' worlds and its server
 // worlds' keys (the wiki census's bugs, 2026-10-15).
-export const SCREEN_KEYS = [...Object.keys(CHOICES), "paintedLayers"];
+export const SCREEN_KEYS = [...REGISTRY.filter((e) => !WORLD_GROUPS.includes(e.group)).map((e) => e.key), "paintedLayers"];
 export function reset(keys = SCREEN_KEYS) {
   for (const k of keys) set(k, DEFAULTS[k]);
 }

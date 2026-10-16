@@ -13,13 +13,13 @@ export async function run(game) {
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const wasPaused = G.loop.isPaused();
   const p = G.player;
-  const saved = { main: p.hands.main, off: p.hands.off, gx: p.gx, gy: p.gy, aim: { ...p.aim }, aggro: G.settings.get("zombieAggro"), multi: G.settings.get("multiHit") };
+  const saved = { main: p.hands.main, off: p.hands.off, gx: p.gx, gy: p.gy, aim: { ...p.aim }, aggro: G.rules.rules.zombieAggro, multi: G.rules.rules.multiHit };
   G.loop.setPaused(true);
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const added = [];
   try {
-    G.settings.set("zombieAggro", false);
-    G.settings.set("multiHit", false);
+    G.rules.set({ zombieAggro: false });
+    G.rules.set({ multiHit: false });
     const stickDef = G.items.getItem("stick");
     const per = G.items.wearPerHit(stickDef);
     const hpk = G.items.hitsPerKill(stickDef);
@@ -85,8 +85,8 @@ export async function run(game) {
     p.hands.off = saved.off;
     Object.assign(p.aim, saved.aim);
     G.teleport(saved.gx, saved.gy);
-    G.settings.set("zombieAggro", saved.aggro);
-    G.settings.set("multiHit", saved.multi);
+    G.rules.set({ zombieAggro: saved.aggro });
+    G.rules.set({ multiHit: saved.multi });
     G.loop.setPaused(wasPaused);
   }
   const failed = rows.filter((r) => r.result === "FAIL").length;
