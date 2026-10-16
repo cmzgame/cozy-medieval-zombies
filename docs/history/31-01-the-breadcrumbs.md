@@ -1,3 +1,6 @@
+> **Record.** `docs/31-multiplayer/01-the-breadcrumbs.md` as it stood, moved here whole by the sweep, 2026-10-16 (#70, #78); never edited again.
+> The live text is `docs/31-multiplayer/` (`03`, `04`, `05`, `08`, `09`: the game with friends as built) and the rulings `docs/02-decisions.md`; the rest of this folder's record is `31-multiplayer-record.md` beside this file.
+
 # 31.01 — The breadcrumbs: what the docs already say about more than one player
 
 **Status, 2026-10-13: history.** The trail as it stood before any of the plan was built; every thread here has since been taken up, and `05` and `06` say how. Since this was written: the tiebreaker (entry 1) is replaced by the rule that every change is built for multiplayer in the same commit (`02`'s top entry, `08`); the save (13) is built as the worlds store (`09`); the creation screen (12) is the identity editor of `09`; death (11) now offers a new character in the same world (`09`), with the body's turning still owed; sleep's veto (6) is ruled, everyone in bed (`02`); the singletons of `23a` D8 (5) are on the player.

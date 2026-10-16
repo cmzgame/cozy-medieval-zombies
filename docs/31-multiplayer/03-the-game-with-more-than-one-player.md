@@ -1,117 +1,99 @@
 # 31.03 — The game with more than one player in it
 
-**Status, 2026-10-13: built for the most part, through tier 3; the code is the truth.** Where the build differs from the rules below: **sleep** is (a), but a sleeper is never woken by damage or by anyone (they rise rested in the morning), a sleeper alone in bed while a friend is awake sleeps at ordinary speed, and the message is "Time will pass faster once everyone in the world is asleep." rather than naming who is up (`02`, the sleep rule); **pause**: a world on the wire never pauses, with guests or not, so a world open to friends with nobody in it runs too, and only a world played off the wire pauses (`02`); **the creation screen** is replaced by `09`: an identity is a stamp a character is made from, and a character's name and look are fixed after creation; **death** offers a new character in the same world at the spawn from any identity, the body left where it fell, with no turning into a zombie yet and no spectating (later, with tier 4; `09`); **saves** are the worlds store in IndexedDB (`09`), not exported as a file yet; **reconnecting**: a guest away stands sixty seconds of game time, then goes dormant, out of the world and never hunted, until the rejoin (`09`); **combat**: a guest's clicks, buttons, aim, and a ground point ride in its input snapshot and resolve at the host's tick with no rewind; **the bow**: the arrows in flight go by position in every frame; **interest**: every guest is told the whole world; **the dev console**: nothing in `dev.js` limits a guest's `__game` yet (`07`, question 14).
+**Status, 2026-10-16: play with friends as built, system by system; the wiki's "Playing with friends" and every "With friends" section cite this page.** The multiplayer core has been Done since 2026-10-15 (`02`). Everything below runs over the relay (`server/relay.js`, `wss://cmz-relay.fly.dev`) in a world hosted by one browser or by a server world (`server/world.js`); the wire is `04`, the model of worlds, identities, and characters is `09`, and the rulings are `02`'s Multiplayer heading. Not built, and said so where it lands: a dead player turning into one of the dead, spectating, the bounded rewind for a guest's swing, an interest region (every guest is told the whole world), a cap on the players in a world, and any limit on a guest's `__game` (the open ones become issues in wave 4 of #70). The plan this page was rewritten from, with its options and its brackets, is `docs/history/31-multiplayer-record.md` (`03` as it stood).
 
-What "the robust, fairly maximalist version" means, system by system, so the architecture in `04` has a target and the questions in `07` have a context. Defaults in brackets are proposals for Michael, written in the style of the other specs: his to overrule, not an implementer's.
+## What a world with friends is
 
-## What maximalist means here
+Several friends in one persistent valley, each with their own character, their own view, their own needs, and their own death, joining and leaving while the others play, with everything in the world shared: the dead, the fires, the crops, the stations, the walls they build, the chests they fill. The single-player game is the same game with one person in it; nothing is "the multiplayer version" of a feature, and every change is built for a guest in the same commit (`CLAUDE.md`, the two rules of shipping). A friend joins by a code and an identity (`09`). There is no versus, no teams, no shared screen, no voice (the text log is the chat), no accounts, no matchmaking. Nothing caps the players in a world; a world remembers the characters of sixteen browsers (`MAX_OWNERS`, `src/host.js`), which is a different number.
 
-Not a mode bolted on, not a second player who shares one screen. **Several friends in one persistent valley**, each with their own character, their own view, their own needs, their own death, able to join and leave while the others play, with everything in the world shared: the dead, the fires, the crops, the stations, the walls they build, the chests they fill. The single-player game is the same game with one person in it; nothing is "the multiplayer version" of a feature. The ceiling is set by the atlas and the screen's worth of dead, not by the design: [a design target of **four** players, a hard ceiling of **eight**].
+## Characters and identities
 
-What it is not: no versus, no teams, no shared screen, no voice (the browser could, later; the text log is the chat), no mods, no matchmaking, no accounts. A friend joins by a link or a code and a name.
+- Every player is a character on the one model (`19`): kind `player`, an id from the world's counter (`P<n>`, never the literal `"player"`), a name, a look, what is worn and held, needs, and combat fields. The dead and the villagers are the same whatever the count of players.
+- A character is made from an identity, a name and a look kept in the browser, and keeps them for life (`09`); the character screen edits identities, not characters.
+- Each player has a figure sheet of their own (`player_<id>`), baked by every client from that player's look and worn list when the player is first seen, so N players cost N sheets whatever they wear. Four fit in the atlas's free rows; the second atlas page (`23`) waits for a group that needs it.
+- Another player's name floats over their head while they are in your sight, placed as the speech bubble is; your own is not shown; the setting "Names over heads" hides them (`ui/names.js`). The portrait in the HUD is your own.
 
-## The rule for each system
+## Sight, light, and the view
 
-### Characters and the creation screen
+- Each client sees from its own player: the sight cast from your own tile, the fog, the hole in the canopies, the translucent near walls, the night pool, the zoom, the camera, the swing-target outlines, the ghost, and the aim marker are yours alone, and none of it travels. There is no shared sight: a friend in the inn does not let you see into the inn.
+- Another player is drawn when in your sight like any character, never through walls; the renderer's exemption for the one always drawn is "is me", not "is a player".
+- Light is shared because it is world state: every fire, every mounted torch, every carried torch, every lit window lights the ground and lures the dead for everyone. The carried lights are a list with an owner each (`light.setCarriers`); a friend's torch lights your way and gives you both away.
 
-- **Every player is a character on the one model** (`19`), kind `player`, with their own `id` (never the literal `"player"`), `name`, `look`, `worn`, `hands`, needs, and combat fields. The dead and villagers do not change.
-- **The creation screen** (pinned in `02`, 2026-10-10: look, hair, facial hair, the painted layers) becomes **the identity screen**: a name and a look, kept in the browser like a setting, shown before Play in single player and before Join in multiplayer, editable later from the pause menu [changes to the look apply at once, as the console's `setLook` does; a name change too]. It is the one screen that travels: the identity is sent on join, and every client bakes that player's sheet from it. Goobers (`00`): no body choices.
-- **A player's figure sheet** has a fixed id per player slot (`player_<id>`), redrawn in place as the player's own is today (`main.js:283-297`), never through the shared outfit cache, so N players cost N sheets whatever they wear. The second atlas page (`23` Q2d) is due when the first group dresses differently; four players fit in today's free rows.
-- **A name over the head** [shown always for players within sight, as the speech bubble is placed; a setting to hide them], and the portrait in the HUD is one's own.
+## The dead
 
-### Sight, light, and the view
+- One zombie has one target, one position, and one health, decided by the host. The dead hunt the nearest player in sight, players preferred, and with the setting on a villager when no player is in sight (`entities/zombie.js`); memory, search, and give-up are as in single player.
+- A carried flame is a sighting of its carrier: a zombie drawn to a torch walks to where the player holding it stands.
+- The dead think in the box round every player (`game.nearPlayer` over the players list), and chunks grow only round players (`map.ensureAround` per player), never from what a client's window shows. When the records milestone (`03-world-model.md`) is built, the active region is the union of every player's region (`05`, item 36).
+- Bites and damage are the host's; a bite names its victim.
 
-- **Each client sees from its own player.** `visible` is cast from one's own tile; the fog is one's own; the occlusion hole in the canopies is one's own; the translucent near walls are one's own room; the night pool, the zoom, the camera, the swing-target outlines, the ghost, and the aim marker are one's own. None of it is shared and none of it travels. **No shared sight** [no "party vision": a friend in the inn does not let you see into the inn; it keeps pillar 2, sight is the game, and it keeps the fog one function].
-- **Another player is drawn when in your sight** like any character, never through walls (the always-drawn exemption at `render/entities.js:184` becomes "is me").
-- **Light is shared** because it is world state: every fire, every mounted torch, every carried torch, every lit window lures the dead and lights the ground for everyone. The carried lights are a list, one per player (`light.carriers()` already sums a list). A friend's torch lights your way and gives you both away.
+## Needs, moodles, health
 
-### The dead
+Each player has their own hunger, thirst, tiredness, health, stamina, bleeding, and infection, ticked by the host and drawn on their own client. Nothing is shared and nothing travels but the player's record.
 
-- **The dead hunt the nearest visible living thing, players preferred** (`19`'s rule extended): at each sight check, the nearest player in sight, else, with the setting, the nearest villager. Memory, search, and give-up unchanged. One zombie has one target, one position, one health, decided by the authority: the Zomboid flip cannot happen.
-- **A carried flame belongs to someone**: a source carries its owner's id, and a zombie drawn to it walks to that player (`zombie.js:389` today sends it to "the player").
-- **The thinking box is the union of every player's box** (`activeTiles` round each player; a zombie thinks if any player is near). With the records milestone (`03-world-model.md`), the active region is the union of every player's region, chunks evict by distance to the nearest player, and alarm and lure are per chunk as designed, with no player in them.
-- **Spawns** are hash-keyed by position already; growth is triggered by players' positions only, never by what a client's window happens to show (`05` here, growth).
-- **Bites and damage** are the authority's; a `playerHit` names its victim.
+## Sleep
 
-### Needs, moodles, health
+Sleep is possible and optional with friends. The world's time scale is computed each step from who is asleep (`game.timeScaleNow`): the sleep speed (`sleepTimeScale` in `data/tuning.json`, sixty) only while every living player in the world is in bed, ordinary time otherwise. A dormant player is out of the list and a dead one is skipped, so neither blocks nor forces the skip. A sleeper alone in bed while a friend is awake sleeps at ordinary speed, rested and regenerating at the sleeping rate, and is told "Time will pass faster once everyone in the world is asleep." (the last one into bed hears "The night goes on without you."). A sleeper is never woken by anyone else's doing, not by damage either: they get up when rested and it is morning, or when the bed is gone from under them. A sleeping player never steps away (below). Ruled 2026-10-13 (`02`, "Sleep in a world with friends").
 
-- **Each player has their own** hunger, thirst, tiredness, health, stamina, bleed, infection; their own moodle column and bars; drawn on their own client only. Nothing to share, nothing to decide. The authority ticks them; the client shows what the authority says.
+## Pause, menus, and real time
 
-### Sleep
+- On the wire the world never pauses, as a host or a guest, with guests or not (`02`, 2026-10-13). Escape opens the pause menu over a running world; the bag, a container, a body, a station, the character screen, and the map are panels over a running world, and you can still fight through them (`02`, 2026-10-15, "Only the pause menu stops the game"). Only a world played off the wire pauses.
+- A world with friends in it never stops while its host's tab is open, hidden, minimised, or covered: the host's loop steps from a Worker's timer when the browser's frames stop (`loop.setBackgroundDriver`). A solo world stops while its tab is hidden, as single player always has. A hosted world with no guest in it whose host has stepped away is held: nothing moves, the wire still answers, and a friend's join starts it again.
+- In a world with friends in it, a player with no input for five minutes of real time steps away: the character leaves the world, safe, as a guest's does after sixty seconds disconnected, and comes back where it stood on the next key, click, or mouse movement. Each client measures its own idle time; stepping away and back are commands the host performs. Never in a solo world, and never a sleeper (`02`, 2026-10-13).
+- Hit-stop is refused on the wire (`loop.setFreezeAllowed`): the host never freezes, and a friend fighting across the square does not stutter your world. A client's own hold on its interpolation for the hit-stop's length is later work (`05-someday.md`).
 
-`30` law 6: the clock and the simulation run at sixty times speed, only in a bed indoors, never interrupted. With more than one player the rule needs a veto, and the note in `30` 3.3 says "a second player's presence would veto". Options:
+## Death and the next character
 
-- (a) **Everyone or nobody**: the world fast-forwards when every connected player is in a bed; a player standing up is the veto; the message says who is awake ("Wren is still up"). Valheim's rule.
-- (b) **A majority**: more than half in bed, the rest dragged through a night at sixty times speed, awake.
-- (c) **Each player sleeps alone**: the sleeper is skipped forward in their own needs while the world runs at normal speed for everyone, which is not law 6's fast-forward and breaks "nothing is poked".
+- Death keeps the world running. Control stops, the fall plays, and the body lies where it fell, a body like the dead's, searchable by anyone with E or the menu (`02`, 2026-10-14): your next character can get your things back, and so can your friends.
+- The dead screen is your own: "<name> died", then New character (a new survivor in this same world, from any identity, at the spawn; `09`) or Leave world. With everyone dead the world runs on until someone takes a new character.
+- Not built: the body rising as one of the dead in your clothes (the parent's image, still wanted), the respawn by turn at the inn, the toll house, or the croft (`30` 3.5), and spectating (a dead player seeing what their body sees until they choose; `05-someday.md`).
 
-[**(a).** It is the only rule that keeps law 6 as written (the world simulates at that speed; nothing is poked) and keeps the single-player case the same rule with one voter. A sleeper who is bitten is woken by the damage as now, which with (a) means the fast-forward stops for all until they lie down again or die.] The time scale is **a property of the world** set by the authority from the rule, not of the loop (`05` here).
+## Chat and speech
 
-### Pause, menus, and real time
+The text log is the chat: Enter opens the box at the log's foot, and a line typed there is said by your character, a speech bubble over your head within sight of others and a "Name: line" in every log that could see it, as a villager's line is. A guest's line goes to the host as a `say` command. Out of sight it is not heard; there is no global channel. A message (`showMessage`) is for one player and never travels except as the host's word to the guest it is for (`net.messageTo`). No emotes, no pings.
 
-- **With more than one player connected the world never pauses.** Escape opens the local menu over a running world; the bag and the character screen are local panels over a running world (they are already DOM over the world); a hidden tab stops that client's rendering and nothing else. The single-player law ("the game runs in real time while its window is visible, Esc pauses") holds unchanged when one player is alone: a listen server with no guests pauses as today [and a dedicated server with one player in it does not: the world is the server's, and the player who walks away has walked away].
-- **Hit-stop is local.** The 45 or 90 ms freeze becomes a hold on the client's own interpolation and its own camera kick; the authority never freezes (`05` here). A friend fighting across the square does not stutter your world.
+## Containers and items
 
-### Death and the next survivor
+- Everything is shared, nothing is owned: any player opens any chest, loots any body, takes from any pile, including a friend's dropped bag. Trade is "drop it" or "put it in the chest"; there is no trade window.
+- A guest's bag and panels are a view on its replica. Every drag, drop, double-click, and menu entry a guest makes is a command by uid, slot, and bag address, run on the host by the same handlers the host's own clicks use (`ui/inventory-actions.js`); the host tells the guest what it opened (`opened`). A container open on two screens shows both the same grid, live, from the frame.
+- The grid's rules are the client's preview and the host's law: a drag that was legal when it started and is not when it arrives is refused with the panel's own word. Stacks merge on the host only.
+- A body's grid is the body (`19`): two players stripping one corpse see it undress by both their hands.
 
-- **Death keeps the world running** (`02` 2026-10-08's ruling, the parent's `18`): control stops, the fall plays, the body rises as a zombie in your clothes carrying what you carried (`turnVillager` is that code), and the death card offers **New survivor**: a fresh character at the inn, the toll house, or the croft by turn (`30` 3.5), with the kit, keeping your name and look [and the survivor count on your card]. Your friends see your former self get up, which is the game's tone in one image, and they can loot your body for your things, which is the second player's version of "that is the point" from the parent's doc.
-- **A dead player spectates until they choose** [a free camera over what their friends can see? no: **their own body's sight**, which is a corpse on the floor: they see the room they died in, as a body would, until New survivor. Simple, a little cruel, and no new sight rule].
-- **A dead world**: with everyone dead, the world runs on until someone takes a new survivor; the dead screen is per player.
+## Building, placement, carrying
 
-### Chat and speech
+- The ghost, the build palette, and the removal highlight are each client's own. Placing a prop, building and destroying a wall, and removing a prop are commands (`place`), performed on the host by `placement.performPlacement` with the reach and the cost checked there; two players building on one edge: the first command wins, the second is refused.
+- A carried prop is off the map and on the player (`player.carrying`); it travels in the player's record, so others see the chair on their head.
+- The Free building rule is the world's (`rules`), the host's.
 
-- **The text log is the chat** (`02`'s note): a line typed in it is a `say` by your character, which is a speech bubble over your head within sight of others and a `Name: line` in every log that could see it, as a villager's line is today. Out of sight, not heard [no global chat; a message system (`showMessage`) is per player and never travels]. One new input: typing into the log.
-- **Emotes, pings** are not in 1.0; a pointed-at tile ("look here") is one event away if play wants it.
+## Stations, fires, farming
 
-### Containers and items
+- A station's queue is state on the prop, ticked by the host, sent in the frame when it changes, drawn by any client with the panel open; two players may queue at one station. A craft is a `craft` command.
+- A fire's fuel is a number on the prop; feeding it is a command; a lit fire lights the room for everyone. A guest's copy of the fuel refreshes at every whole unit burned, when the chunk travels.
+- A crop's planted hour is on the tile, and the tile travels with its chunk; two players water one plot, and the second pour finds it wet.
+- Durability is on the entry; kills are the host's. Interactions (`interactions.json`) resolve on the host with the same rows; "Nothing interesting happens" goes to the one who tried. A Use from a guest's bag is a `use` command.
 
-- **Everything is shared, nothing is owned** (Zomboid's rule). Any player opens any chest, loots any body, takes from any pile, including a friend's dropped bag. Trade is "drop it" or "put it in the chest". No player-to-player drag (no trade window) [in 1.0; the interface could show a friend's offered item later as a container panel].
-- **A container open on two screens at once** shows both players the same grid, live: a move is a command the authority performs and both replicas see. **The grid's placement rules stay the client's preview and the authority's law**: a drag that was legal when it started and is not when it arrives is refused with the panel's own label ("no room"), the parent's rule for a full grid. Stacks merge on the authority only.
-- **The one container rule** (`02`, 2026-10-10) is validated on the authority, as every rule is.
-- **A body's grid is the body** (`19`); two players stripping one corpse see it undress by both their hands.
+## Combat
 
-### Building, placement, carrying
+- A guest's clicks, buttons, aim (as a vector and a ground point), and key events ride in its input snapshot every step, numbered for the host's acknowledgement; the host holds at most ten of a guest's inputs (`MAX_BACKLOG`) and applies one a step. The swing resolves on the host at the host's tick, with no rewind: the bounded rewind (a hit judged where things were when the guest saw them, up to 150 ms back) is later work (`05-someday.md`).
+- A guest's own swing plays at once (the animation is cosmetic, `14`); the hit comes from the host a round trip later, with the camera kick (`net.kickTo`) and the "spent" word sent to the striking client.
+- The block and the brace are stances in the snapshot; the host applies the block to the bites it resolves. The exposure, the swing timer, and the combo clock are the player's fields, on the sim's clock, drawn by their own client.
+- Players do not hurt players, and nothing shot or cast hits a villager or a player (`02`, 2026-10-15, "No friendly fire"): a swing finds the dead only, an arrow and the fireball likewise.
+- Stagger, knockback, down, and the finisher are the host's and arrive as the character's state.
 
-- **The ghost is per player**, the build palette per player, the removal highlight per player; the placement and the removal are commands (`placeProp`, `buildWall`, `destroyWall`, `removeProp` with a reach and a cost checked on the authority).
-- **Two players building on one edge**: the first command wins, the second is refused with the ghost's red ("something is there").
-- **A carried prop is off the map and on a player** (`player.carrying`); it travels as part of that player's state so others see the chair on their head.
-- **The Free building rule** is the world's (`rules`), not a client's.
+## The bow, the spear, the fireball
 
-### Stations, recipes, fires, farming (the big pass, `30`)
+The draw is a stance on the player, started and released from the snapshot; a guest draws and looses on the host at the ground point it sends. A projectile is launched by the host, and the arrows in flight travel by position in every frame; the host alone decides the landing, the lodging, and the floor item. The fireball is cast the same way and bursts only ahead of where it was cast.
 
-- **A station's queue is state on the prop**, ticked by the authority, drawn by any client with the panel open; two players may queue at one station and both see the queue; the output slot is a container. **A craft in progress is a row with a start tick and a duration**, not a bar on a client.
-- **A fire's fuel** is a number on the prop (`map.js:1241-1256`); Feed is a command; a lit fire lights the room for everyone.
-- **A crop's planted hour** is on the tile (`30` 8); growth on the clock; two players water one plot, the second pour finds it wet.
-- **The bucket** is a carried prop like any.
-- **Durability** is on the entry (`wear`); kills are the authority's.
-- **Interactions** (`interactions.json`) resolve on the authority with the same rows; "Nothing interesting happens" is a message to the one who tried.
+## The world with nobody in it
 
-### Combat
+- A browser host's world lives while the host's page does: close the tab and the world stops, saved. A host leaving makes every guest's character dormant before the save.
+- A server world (`server/world.js`, ruled 2026-10-14) is on while anyone is in it and held when it empties: nothing moves, the clock stands, the wire still answers so a join wakes it; after ten minutes empty and saved it exits. Everyone in a server world is a guest, the owner included. The clock law survives a server: a fire you left lit is lit when you return, and nothing runs out while nobody plays.
 
-- **The swing is a command**: "swing the main hand at this world-space aim at tick T". The swing resolves on the click (`14`'s rule), so it is one message, not a held state; the authority resolves the wedge against its own dead at its own tick [with a short rewind to the sender's tick, bounded at 150 ms, so a client who saw a zombie in reach and clicked is not refused by the dead having shuffled a tenth of a tile: the "lag compensation" of `05`'s tier 4, cheap here because the dead are slow]. The client shows the swing at once (the animation is cosmetic by the same rule) and the hit when the authority says so, a round trip later: `05`'s stated cost.
-- **The block and the brace** are stances: "guard up" and "guard down" commands; the authority applies the block to the bites it resolves.
-- **The exposure, the swing timer, the combo clock** are the player's fields, ticked by the authority, drawn by their own client.
-- **Players do not hurt players**: the swing passes through the living (`19`), the wedge finds the dead only; a thrown spear lands beside a friend, never in them; a friend's arrow likewise [no friendly fire in 1.0, by the villagers' precedent; a setting later if anyone wants the fantasy].
-- **Stagger, knockback, down, finisher** are the authority's and arrive as entity state.
+## Saves, the host, and joining
 
-### The bow and the spear
-
-- **The draw is a stance on the player** (start, hold, release as commands; `archery.draw` becomes `player.draw`), the aim read from the command's world point.
-- **A projectile is launched by the authority** with its launch parameters (`arrowShot` already carries them), and **every client flies it the same way** (the arc is deterministic from the launch; `20`); the authority alone decides the landing (`arrowLanded`): the hit, the lodging, the floor item. The visual trail needs no messages between shot and landing.
-
-### The world with nobody in it
-
-- **A listen server** lives while the host's page does; close the tab and the world stops, saved (below).
-- **A dedicated server** lives while the process does. Does the valley run with nobody in it? [No: the world is simulated only where a player is (`03-world-model.md`'s law), and with no player it is simulated nowhere. The clock stops with the last player's leaving and resumes with the first's arrival. A fire you left lit is lit when you return; a crop planted at noon catches up by its planted hour when the chunk wakes, as `30` 8 already designs. This is also the only rule under which the single-player law "nothing shuts off on a timer, things run out because you used them" survives a server.]
-
-### Saves, the host, and joining
-
-- **The save is the authority's** (`04`): a listen server's lives in the host's browser (`localStorage`, one slot, the parent's shape) and can be exported as a file so a friend can host the same valley next time; a dedicated server's lives on its disk, saved on a timer and on the last leave.
-- **Joining is loading**: a new client receives the same serialisation a save is, cut to its interest region, then events.
-- **Reconnecting** keeps your character where it stood (the authority holds it, standing still, for a grace period [two minutes], then the dead may have it).
-- **Settings**: the world's rules are the host's (`rules`, `combatTesting`, `squareSurface`, the data files); a guest's settings screen shows them read-only; the viewer's settings stay the guest's.
-- **The dev console** (`window.__game`) exists on the authority only; a guest's `__game` is the replica's, read-only on the world [and the host alone may use `give`, `teleport`, the clock keys].
-
-## What this design keeps from single player, exactly
-
-Everything a single player does is a command to an authority that happens to be in the same page with zero latency. One code path (the loopback transport, `04`), so single player exercises the whole of it every evening, which is how the multiplayer code stays true while nobody is testing it with a friend.
+- The world is the host's. A browser host's lives in that browser's worlds store (`src/save.js`, IndexedDB); hosting saves it first, a guest joining or leaving saves it again, and the autosave runs as before. A server world's lives on the server's disk. There is no save export.
+- A guest never saves a world; it keeps a bookmark (the code, the world's name, its character there) to Rejoin from (`09`).
+- Joining is loading: the welcome is the whole save (`game.serialize`), gzipped, then frames. There is no interest region; every guest is told the whole world.
+- Reconnecting: your character stands where it was for sixty seconds of game time (`GRACE_S`), then goes dormant, out of the world and never hunted, until you rejoin, when it is back where it stood (`09`).
+- The host's rules bind the guests: the world's rules travel in every frame and set the guest's, and a guest's Settings shows them as the host set them, not to be changed there (`ui/screens.js`). The viewer's settings (the zoom, names over heads) stay the guest's own.
+- Versions: the join carries the wire's protocol (`net.PROTOCOL`, 4) and the save's version, each bumped by hand; a host refuses a guest on another with a sentence saying whose is newer, and a server world refuses a page of another build ("The game was updated").
+- The dev console: the host's `__game` is the world; a guest's is its replica's, and nothing limits it yet (open; a `needs-michael` issue in wave 4 of #70).
