@@ -5,7 +5,7 @@ One line per doc, with its kind (`CLAUDE.md`, "What a doc is"): a **rule** (bind
 ## Rules
 
 - `00-vision.md` — **rule.** The idea, the tone, the pillars, the laws, what this game is (2026-10-13). The tiebreaker for every design question. Four lines read single-player and are Michael's to reword.
-- `02-decisions.md` — **rule.** Every ruling with its reason, newest first; the open questions at its end. The sweep's wave 2 strikes the overturned ones where they sit and moves the build records out.
+- `02-decisions.md` — **rule.** Every ruling with its reason, newest first, with a topic index at its top; an overturned ruling is struck where it sits naming what overturned it; the open questions at its end are only the open ones. The build records are `history/02-build-log.md`.
 
 ## References
 
@@ -37,4 +37,4 @@ Not built: `33-the-map.md`, `34-talk.md` (two decisions are Michael's: the guide
 
 ## Records
 
-`01-parents.md` (what the two parents offered), `22-the-big-pass.md` (superseded by `30`), `23a-review.md` (the code review behind the engine upgrade; three open items become an issue), `31-multiplayer/01-the-breadcrumbs.md`, `02-the-audit.md`, `06-the-order.md` (the build diary), `07-questions-for-michael.md` (two still open, to issues), `37-the-wiki.md` (the wiki's plan; the reference is `cmz-wiki/CLAUDE.md`, `README.md`, `WRITING.md`), `35-steam-and-the-free-demo.md` (the business plan, kept vague by ruling), `art/02` to `12` (the deliveries). `history/` holds what the sweep archives: `history/todo-2026-10-08-to-15.md` (the old `TODO.md` whole) and `history/github-2026-10-15.md` (the old `github.md` whole: why the process exists, its setup, what it decided) first.
+`01-parents.md` (what the two parents offered), `22-the-big-pass.md` (superseded by `30`), `23a-review.md` (the code review behind the engine upgrade; three open items become an issue), `31-multiplayer/01-the-breadcrumbs.md`, `02-the-audit.md`, `06-the-order.md` (the build diary), `07-questions-for-michael.md` (two still open, to issues), `37-the-wiki.md` (the wiki's plan; the reference is `cmz-wiki/CLAUDE.md`, `README.md`, `WRITING.md`), `35-steam-and-the-free-demo.md` (the business plan, kept vague by ruling), `art/02` to `12` (the deliveries). `history/` holds what the sweep archives: `history/todo-2026-10-08-to-15.md` (the old `TODO.md` whole), `history/github-2026-10-15.md` (the old `github.md` whole: why the process exists, its setup, what it decided), and `history/02-build-log.md` (the build, merge, fix, and measurement entries of `02`, moved whole with their dated headings, and the answered open questions).
