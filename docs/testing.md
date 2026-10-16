@@ -10,7 +10,7 @@ A reference (the sweep, 2026-10-16; the text was `CLAUDE.md`'s testing section u
 
 **Headless:** `node tools/check.js` (the suite), `node tools/world.js` (the whole world under Node, the same determinism hash as the pane's; `--devchest`, `--roundtrip`, `--bite`, `--players=2`), `node tools/savecache.js`, `python -I tools/validate-data.py`. `?boot` on the URL shows the boot's timings.
 
-**Stepping:** `loop.setPaused(true)` then `loop.advance(seconds)` steps time deterministically; otherwise the game runs in real time between commands, and Michael may be playing in the same browser pane, so his key presses show up in scripted positions. Never drive the live game with large single steps. `V` toggles the fog off. A body number is tried from the console before it is ruled: `__game.figure.BODY.hip = 17; __game.setLook({})` rebakes the player at once.
+**Stepping:** `loop.setPaused(true)` then `loop.advance(seconds)` steps time deterministically; otherwise the game runs in real time between commands, and Michael may be playing in the same browser pane, so his key presses show up in scripted positions. Never drive the live game with large single steps. `V` toggles the fog off. A body number is tried from the console before it is ruled: `__game.figure.BODY.hip = 17; __game.setLook({})` rebakes the player at once; the numbers are committed as they appear, never edited or deleted after (`docs/12`, `32`).
 
 **Editing from a session:** small Python patch scripts written to the scratchpad and run with `python -I script.py "$PWD"` beat long heredocs in the Bash tool; a backslash in a normal Python string on Windows breaks (`\U`), so use forward slashes or raw strings.
 
