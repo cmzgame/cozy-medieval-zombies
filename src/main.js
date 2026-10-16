@@ -723,7 +723,7 @@ function toggleBuild() {
     return;
   }
   if (S.player.carrying) return showMessage("Your hands are full.");
-  if (panel.isOpen()) return;
+  if (panel.isOpen()) return showMessage("Close your bag to build."); // the palette and the bag take turns on the screen (02, 2026-10-15)
   buildPalette.openPalette(S.player);
 }
 
@@ -734,7 +734,7 @@ function toggleRemove() {
     return;
   }
   if (S.player.carrying) return showMessage("Your hands are full.");
-  if (panel.isOpen()) return;
+  if (panel.isOpen()) return showMessage("Close your bag to build.");
   buildPalette.close();
   placement.beginRemove();
 }
@@ -910,13 +910,14 @@ function stepGame(dt) {
   if (input.wasPressed("KeyN")) toggleBuild();
   if (input.wasPressed("KeyX")) toggleRemove();
   // The wheel zooms in integer steps, 1× to 3× (docs/02, 2026-10-10 night):
-  // down zooms out. The panel's own wheel use (rotating a drag) wins.
+  // down zooms out. The panel's own wheel use (rotating a drag) wins; an open panel alone does not stop it (2026-10-15).
+  // (The wheel only reaches the world from the canvas: over a panel it never arrives.)
   // Zoom snaps between three levels: Z cycles them, the wheel steps one way
   // or the other, one step per ZOOM_PACE seconds so a rough wheel's burst is
   // one step (Michael, 2026-10-10 late).
   if (input.wasPressed("KeyZ")) view.zoomStep(1, true);
   const wheel = input.takeWheel();
-  if (wheel && !panel.isOpen()) {
+  if (wheel && !panel.isDragging()) {
     const now = performance.now();
     if (now - lastZoomAt >= ZOOM_PACE * 1000) {
       lastZoomAt = now;
@@ -947,11 +948,12 @@ function stepGame(dt) {
   // With the hand cursor, the zombie hand over one of the dead (ui/cursor.js).
   const under = interact.characterAt(input.getMouse().x, input.getMouse().y);
   cursor.setOverDead(!!under && under.kind === "zombie" && !under.dead);
-  // Use mode (use.js): the label names what is under the cursor, and a left click on the world is the target, spent here.
+  // Use mode (use.js): the label names what is under the cursor, and a left click on the world is the target, spent here,
+  // the bag open or not (a Use begun from the bag is aimed with the bag still open).
   if (use.isActive()) {
     const target = useTargetAt(input.getMouse().x, input.getMouse().y);
     use.hover(target);
-    if (clicked && !panel.isOpen()) {
+    if (clicked) {
       use.apply(target, S.player);
       clicked = false;
     }
@@ -972,9 +974,10 @@ function stepGame(dt) {
   }
   handleMouse();
   // E, B, and T as events in my snapshot (interact.keyEvents): the world performs them for my player in its
-  // step, here or on the host (game.step), so a guest's climb, boards, and torch are the host's doing.
-  const keyEv = panel.isOpen() || menu.isMenuOpen() ? (interact.keyEvents(dt), null) : interact.keyEvents(dt);
-  const beltEv = interact.beltEvents(); // the belt keys work with the bag open, as they always have
+  // step, here or on the host (game.step), so a guest's climb, boards, and torch are the host's doing. They work with
+  // any panel or menu open (Michael, 2026-10-15: only the pause menu stops the game), as the belt keys always have.
+  const keyEv = interact.keyEvents(dt);
+  const beltEv = interact.beltEvents();
   const keys = keyEv || beltEv || drawCancelled ? { ...(keyEv || {}), ...(beltEv || {}), ...(drawCancelled ? { drawCancel: true } : {}) } : null;
   drawCancelled = false;
   // The world: the player from the mouse and the keys as a snapshot (docs/23a, D1;
@@ -995,7 +998,7 @@ function stepGame(dt) {
     altDown: buttons.alt.down,
     offDown: buttons.off.down,
     space: input.wasPressed("Space"),
-    blocked: panel.isOpen() || menu.isMenuOpen(),
+    blocked: menu.isMenuOpen(), // a draw ends while choosing from a menu; an open bag, a container, a station, or the character screen stops nothing (Michael, 2026-10-15)
   };
   if (guest) net.guestStep(mySnap);
   else {
@@ -1228,6 +1231,7 @@ async function boot() {
     { name: "figures", label: "Dressing everyone", weight: 6, async run(progress) {
       assets.registerSheet("arrow", archery.generateArrow()); // the bow's arrow, flying and landed (docs/20)
       assets.registerSheet("spear", archery.generateSpear()); // the thrown spear
+      assets.registerSheet("fire_arrow", archery.generateFireArrow()); // a fire arrow in flight (#14)
       // The fireball (docs/24; the design agent's sheet). A failed load leaves the spell flying unseen, never the boot stopped.
       try {
         assets.registerSheet("fireball", archery.fireballSheet(await assets.loadImage("data/art/items/fireball.png")));

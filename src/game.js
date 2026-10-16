@@ -18,6 +18,7 @@ import * as events from "./events.js";
 import * as archery from "./archery.js";
 import * as burning from "./fire.js";
 import * as bleed from "./bleed.js";
+import * as burn from "./burn.js"; // burning as a status (#14): the step's, beside the visual fire.js
 import * as infection from "./infection.js";
 import * as combat from "./combat.js";
 import * as interact from "./interact.js";
@@ -559,7 +560,8 @@ export function step(dt, snapshots = null) {
   archery.update(dt);
   S.others = [...S.players, ...S.zombies, ...S.villagers]; // the living, who block and are hunted
   const everyone = [...S.others, ...S.corpses]; // and the fallen, who burn and are drawn
-  burning.update(dt, everyone); // the burning, a visual (docs/05)
+  burn.update(everyone, dt); // the burn's timer and its damage, the world's (#14)
+  burning.update(dt, everyone); // and its flames, a visual (docs/05)
   for (const p of S.players) {
     S.acting = p;
     p.actionProgress = interact.updateAction(p, dt);

@@ -21,6 +21,7 @@ import { say } from "./entities/character.js";
 import { showMessage } from "./ui/prompt.js";
 import * as archery from "./archery.js";
 import * as burning from "./fire.js";
+import * as burn from "./burn.js";
 import * as infection from "./infection.js";
 import * as bleed from "./bleed.js";
 import * as menu from "./ui/context-menu.js";
@@ -48,7 +49,8 @@ export function createDevApi(ctx) {
   return {
     bleed: { apply: () => bleed.apply(P()), clear: () => bleed.clear(P()), stacks: () => bleed.stacks(P()), config: bleed.BLEED },
     infection: { infect: () => infection.infect(P()), cure: () => infection.cure(P()), progress: () => infection.progress(P()), config: infection.INFECTION }, // the infection marker (docs/02 question 29b)
-    burning, // the fire test (docs/05): burning.tunables, burning.all()
+    burning, // the flames (docs/05): burning.tunables, burning.all()
+    burn, // burning as a status (#14): burn.ignite(z) in place of the old menu toggle, burn.BURN
     iso, input, loop, assets, events, map, camera, ground, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette, combat, gl, rng, rules, tuning, world, verbs, stations,
     render: { night },
     get player() { return ctx.player; },

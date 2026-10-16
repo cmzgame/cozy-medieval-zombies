@@ -14,6 +14,7 @@
 import * as iso from "./iso.js";
 import { setInfectionData } from "./infection.js";
 import { setBleedData } from "./bleed.js";
+import * as burn from "./burn.js";
 import { lineOfSight } from "./visibility.js";
 import * as items from "./items.js";
 import * as loop from "./loop.js";
@@ -63,6 +64,7 @@ export function setCombatData(data) {
   Object.assign(STAGGER_RULES, data.stagger || {});
   setInfectionData(data.infection);
   setBleedData(data.bleed);
+  burn.setBurnData(data.burn);
   Object.assign(FINISHER, data.finisher || {});
   Object.assign(BLOW, data.blow || {});
 }
@@ -354,6 +356,9 @@ export function tryAttack(player, zombies, hand = "main", mode = null, predict =
     const knockdown = !finisher && (combo || rng.chance(chance));
     const amount = Math.round(weapon.damage * (tired ? BLOW.tiredDamage : 1) * (finisher ? FINISHER.mult : 1) * guardedMult(player) * (hand === "off" ? DUAL.offDamage : 1));
     const push = !finisher && pushes(weapon) ? weapon.knockback : 0;
+    // A weapon with an `ignite` chance (the torch, #14) may set the dead one alight: rolled only for such a weapon, so
+    // no other blow spends a roll, and before the damage, so a killing blow's body burns on as a corpse.
+    if (weapon.ignite && rng.chance(weapon.ignite)) burn.ignite(z);
     const r = damageZombie(z, amount, { dir: [dir.x, dir.y], knockback: push, knockdown, stagger: weapon.stagger, staggerChance: weapon.staggerChance, interrupts: weapon.interrupts, from: [player.gx, player.gy] });
     if (r.killed) killed = true;
   }

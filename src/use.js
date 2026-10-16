@@ -99,6 +99,7 @@ export function applyWith(entry, target, player) {
     // A row's `action` names a verb in the table (docs/31/08, habit 4; `verb` is only its label): run it with the entry and the target.
     const r = verbs.run(row.action, world, player, { ...target, entry: entry.uid, item: entry.id }, row.args || {});
     if (!r.ok) log.push(r.reason || interactions.NOTHING, "result");
+    else if (row.message) log.push(row.message, "result"); // its line on success (the fire arrows' dip, #14)
   } else if (row.message) log.push(row.message, "result");
   else log.push(interactions.NOTHING, "result");
 }

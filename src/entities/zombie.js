@@ -111,14 +111,7 @@ export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown
   z.lastGoal = null;
   if (knockback > 0 && !wasDown) z.knock = { x: dir[0] * knockback, y: dir[1] * knockback, left: T.knockTime };
   if (z.hp <= 0) {
-    // Dead: the fall plays once and holds, the body stays, nothing thinks again.
-    z.dead = true;
-    z.state = "dead";
-    z.breach = null;
-    z.stagger = 0;
-    z.gettingUp = false;
-    playAnimation(z.anim, "die", true);
-    emit("zombieDied", { zombie: z });
+    kill(z);
     return { killed: true, downed: false };
   }
   // The dead then know where the blow came from, when they are hunting at all.
@@ -150,6 +143,30 @@ export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown
   z.staggerImmune = z.stagger + STAGGER_RULES.immunity;
   playAnimation(z.anim, "hurt", true);
   return { killed: false, downed: false, staggered: true };
+}
+
+// Dead: the fall plays once and holds, the body stays, nothing thinks again.
+function kill(z) {
+  z.dead = true;
+  z.state = "dead";
+  z.breach = null;
+  z.stagger = 0;
+  z.gettingUp = false;
+  playAnimation(z.anim, "die", true);
+  emit("zombieDied", { zombie: z });
+}
+
+// A burn's share of a step (burn.js, #14): health and nothing else. Not a blow: no push, no stagger, no knowing
+// where it came from, and the path kept (damageZombie clears it, which every step would stop the dead in their
+// tracks). Returns whether it killed.
+export function burnZombie(z, amount) {
+  if (z.dead) return false;
+  z.hp = Math.max(0, z.hp - amount);
+  if (z.hp > 0) return false;
+  endClimb(z);
+  z.path = [];
+  kill(z);
+  return true;
 }
 
 // Pushed, stopped, or on the floor: nothing else happens until it is over.
