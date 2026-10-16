@@ -10,11 +10,7 @@ A free demo that lives at a link (`35`): small enough to show the systems in an 
 
 **It is a demo, not a tutorial: it sells the game** (Michael, 2026-10-14). Zomboid's tutorial can end in a death with nothing after it because the finished game is a click away; this one must leave the player wanting the open valley it hints at. Five rules follow, each written into the sections below:
 
-1. **The first run reaches the first night.** The night is where the game looks best (the light falling, the hearth, a torch against the dark, the dead at the shutters), so a new player sees nightfall and a careful one sees dawn before the end comes.
-2. **Preparation buys time, never escape.** Early in a run, death should read as the player's own mistake, something a board, an arrow, or a better weapon would have answered, so the next run starts with a plan; late in a run the escalation is the game's certain end, and honest about it. Each stage of the escalation is one that preparing answers for a while.
-3. **The edge promises the world instead of hiding it.** The player is stopped by things they can see (a bramble thicket, a road blocked by a fallen tree, a wrecked cart), with signposts naming places beyond, so the valley feels real and just out of reach. No invisible wall the player can walk into.
-4. **The end card sells the full game:** the score and the player's best run, then what the full game is, then a link to the Steam page where wishlisting is one click.
-5. **The depth shows along the way:** the set is laid out so a first day naturally touches the systems (boarding, the bench, the hearth, the well, the bag, wear on a weapon), since the systems are the sell.
+The five are `02` 2026-10-14, "The demo sells the game", with their reasons, and each section below cites its number: (1) the first run reaches the first night; (2) preparation buys time, never escape; (3) the edge promises the world instead of hiding it; (4) the end card sells the full game; (5) the depth shows along the way.
 
 ## The rules of the scenario, and the clock law
 
