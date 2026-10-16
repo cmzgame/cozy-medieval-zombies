@@ -1,6 +1,6 @@
 # Art 05: Walls, posts, openings, boards, floors
 
-**Status: in the game and played** ("looks and works great", Michael, 2026-10-11). Files in `data/art/village/`. The plumbing is `17-village-art-plumbing.md`; the briefs that asked for this are `16` and `18`. This page is the art side. Written 2026-10-12.
+**Status: in the game and played** ("looks and works great", Michael, 2026-10-11). Files in `data/art/village/`. The plumbing is `history/17-village-art-build.md`; the briefs that asked for this are `16` and `18`. This page is the art side. Written 2026-10-12.
 
 ## Pieces
 

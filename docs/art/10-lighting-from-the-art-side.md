@@ -36,4 +36,4 @@
 
 ## Related docs
 
-`07-lighting.md` (design), `08-renderer.md` (the shader), `15-ground.md` (the ground bake and tint), `17-village-art-plumbing.md` (the wall fixes above), `24-throwables-and-fire-magic.md` (the fireball as a light).
+`07-lighting.md` (design), `08-renderer.md` (the shader), `15-ground.md` (the ground bake and tint), `history/17-village-art-build.md` (the wall fixes above), `24-throwables-and-fire-magic.md` (the fireball as a light).

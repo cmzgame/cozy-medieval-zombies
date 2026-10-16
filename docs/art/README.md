@@ -6,7 +6,7 @@ Everything the art agent knows about the game's art, from the first trees to the
 
 **Who this is for:** the coding agent (what each file is, what the engine can assume, what to import) and Michael (what exists, what is on the back burner, what is waiting on a decision).
 
-**Companion docs:** `../25-character-art-brief.md` (the character commission) and `../26-art-owed.md` (the item art backlog).
+**Companion docs:** `../history/art-requests/25-character-art-brief.md` (the character commission, delivered; the live painting rules are `../28-painting-for-the-slicer.md`) and `../26-art-owed.md` (the item art backlog).
 
 **What this is not:** the engine docs. Those are `docs/00` to `docs/37`. These pages link to them instead of repeating them. Where an engine doc and an art doc disagree, the engine doc is right about the engine and the art doc is right about the art; any conflict is called out in the text.
 
