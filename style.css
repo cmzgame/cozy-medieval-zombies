@@ -72,6 +72,7 @@ html, body {
   top: 0;
   pointer-events: none;
   overflow: hidden;
+  z-index: 2; /* over the debug corner (#debug, 1), which is outside it: the screens and panels cover it, not the other way (docs/38, #112) */
 }
 
 #ui > * {
@@ -80,6 +81,7 @@ html, body {
 
 #debug {
   position: absolute;
+  z-index: 1;
   top: 84px; /* under the HUD */
   left: 6px;
   font: 12px/1.4 Consolas, monospace;

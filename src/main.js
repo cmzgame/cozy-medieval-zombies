@@ -424,9 +424,15 @@ async function saveWorld(extra = {}) {
   return r.ok;
 }
 
-// Out of the world: the guests' characters dormant at once, saved if it is this browser's, the wire
-// closed, the title back. Behind the loading screen, which stays until the save is written (#107).
-async function leaveWorld() {
+// ---- THE CROSSING (docs/38, #112) ----
+// The line between the game's site and a world is crossed in a few named places, so a game client can later be cut
+// along it (the Chromium wrap for Steam, `35`): in, by `playWorld`, `enterNewWorld`, and a guest's join (`joinWorld`,
+// its welcome in `net.init`'s `restore`), each behind the loading screen, and `screens.hide()` takes the site away and
+// brings the stage; out, by `exitGame`, which saves and brings the site back. Nothing else shows or hides either side.
+
+// Exit game: the guests' characters dormant at once, saved if it is this browser's, the wire closed, the site back.
+// Behind the loading screen, which stays until the save is written (#107).
+async function exitGame() {
   const mine = inWorld && currentWorld && !net.isGuest();
   const name = (currentWorld && currentWorld.name) || (joinedWorld && joinedWorld.name) || "the world";
   shell.worldBegin(mine ? `Saving ${name}` : `Leaving ${name}`);
@@ -672,7 +678,7 @@ function setOpen(on) {
     saveWorld();
     showMessage(`Open to friends: the code is ${code}.`, 5);
   } else if (net.isHost()) {
-    // The guests' characters go dormant first, as on Leave world: closed, they are out of the world and kept for their
+    // The guests' characters go dormant first, as on Exit game: closed, they are out of the world and kept for their
     // owners, never left standing and saved as players (the wiki census's bugs, 2026-10-15).
     for (const id of net.guestPlayerIds()) host.dormantNow(id);
     net.close();
@@ -1501,7 +1507,8 @@ async function boot() {
           respawn: (identityId) => respawn(identities.get(identityId)),
           defaultName: () => `${MAP_NAME === "valley" ? "The valley" : MAP_NAME}, ${new Date().toLocaleDateString(undefined, { day: "numeric", month: "short" })}`,
           here,
-          leave: leaveWorld,
+          leave: exitGame, // the old name, kept for the checks
+          exitGame,
           comeBack, // the step-away screen's button and its Escape
           // A world moved to the server and home again (item 5's fifth step).
           canMove: () => !!net.relayHttp(),
@@ -1797,7 +1804,7 @@ async function boot() {
     // The worlds flow (docs/31/09), for check("worlds"): a world made, left, listed, played again; a new character after a death.
     // Stepping away (item 3), for the checks: the idle time shortened, the state, and the two moves by hand.
     away: { after: (ms) => { awayAfterMs = ms == null ? AWAY_AFTER_MS : ms; lastInputAt = performance.now(); }, get now() { return away; }, step: stepAway, back: comeBack, check: checkAway },
-    worlds: { moveUp, bringHome, playServer, ownerInfo, rotateCode, setRules, removePlayer, unbar, addOwned, rekey, create: (name, identityId) => enterNewWorld(name, identities.get(identityId)), play: playWorld, leave: leaveWorld, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor: host.joinFor, dormantNow: host.dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
+    worlds: { moveUp, bringHome, playServer, ownerInfo, rotateCode, setRules, removePlayer, unbar, addOwned, rekey, create: (name, identityId) => enterNewWorld(name, identities.get(identityId)), play: playWorld, leave: exitGame, exitGame, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor: host.joinFor, dormantNow: host.dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
     identities,
     addPlayer: (gx, gy, opts) => {
       const p = game.addPlayer(gx, gy, opts);
