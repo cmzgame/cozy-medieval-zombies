@@ -163,13 +163,13 @@ export function takeIn(player, entry) {
 
 // ---- action builders ----
 
-// Wear something lying on the floor: what was in that slot stows, or for a
-// bag drops where you stand.
+// Equip something lying on the floor (the action's kind is still `wear`, the code's word): what was in that slot
+// stows, or for a bag drops where you stand.
 function wearAction(entry, tx, ty, player) {
   const def = getItem(entry.id);
   const worn = player.worn[def.wear];
   const name = def.name.toLowerCase();
-  const swap = worn ? (def.wear === "back" ? `Swap bags (drop your ${nameOf(worn).toLowerCase()})` : `Wear ${name} (swap)`) : `Wear ${name}`;
+  const swap = worn ? (def.wear === "back" ? `Swap bags (drop your ${nameOf(worn).toLowerCase()})` : `Equip ${name} (swap)`) : `Equip ${name}`;
   return act({
     kind: "wear",
     label: swap,
@@ -231,7 +231,7 @@ function pickUpAction(entry, tx, ty, player, simple) {
     kind: "item",
     simple: simple && storable,
     enabled: storable,
-    label: storable ? `Pick up ${def.name}${fill}${count}` : `Pick up ${def.name} (empty it first, or wear it)`,
+    label: storable ? `Pick up ${def.name}${fill}${count}` : `Pick up ${def.name} (empty it first, or equip it)`,
     tiles,
     mx: tx,
     my: ty,
@@ -1033,7 +1033,8 @@ export function itemMenu(player, entry, bag, otherBag) {
     }
   }
   if (def.wear) {
-    out.push({ label: def.bag ? `Wear (${def.bag[0]}×${def.bag[1]})` : "Wear", enabled: true, onSelect: () => wearFrom(player, entry, bag) });
+    // One verb for putting anything on, one for taking it off (Michael, 2026-10-15): Equip and Unequip, never Wear or Take off.
+    out.push({ label: def.bag ? `Equip (${def.bag[0]}×${def.bag[1]})` : "Equip", enabled: true, onSelect: () => wearFrom(player, entry, bag) });
   }
   if (def.bandage) {
     // Closes a bleeding wound at once (docs/02 question 29b).
@@ -1110,7 +1111,7 @@ export function slotMenu(player, slotId) {
     const entry = player.worn[key];
     if (!entry) return out;
     out.push({
-      label: "Take off",
+      label: "Unequip",
       enabled: true,
       onSelect: () => {
         player.worn[key] = null;

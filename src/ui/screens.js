@@ -22,7 +22,7 @@ const CONTROLS = [
   ["Shift", "Sprint"],
   ["E", "Nearest action; hold to climb through a window"],
   ["Right-click", "Everything you can do to what is under the cursor"],
-  ["Double-click", "Equip, wear, or take off a thing; else move it across"],
+  ["Double-click", "Equip or unequip a thing; else move it across"],
   ["Z / wheel", "Zoom: wide, middle, close"],
   ["Tab", "Your bag"],
   ["C", "Your character"],
@@ -458,7 +458,7 @@ function layerRows() {
     const names = layersApi.names(slot);
     if (!names.length) return "";
     const cur = layersApi.current(slot);
-    const choices = [`<button data-layer-slot="${slot}" data-layer-name="" class="${cur ? "" : "on"}">worn</button>`, ...names.map((n) => `<button data-layer-slot="${slot}" data-layer-name="${n}" class="${n === cur ? "on" : ""}">${n}</button>`)].join("");
+    const choices = [`<button data-layer-slot="${slot}" data-layer-name="" class="${cur ? "" : "on"}">item</button>`, ...names.map((n) => `<button data-layer-slot="${slot}" data-layer-name="${n}" class="${n === cur ? "on" : ""}">${n}</button>`)].join("");
     return `<div class="setting"><span>Layer: ${slot}</span><span class="choices">${choices}</span></div>`;
   }).join("");
 }

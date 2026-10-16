@@ -4,6 +4,10 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-15 — Equip, Unequip, and Durability: no more "wear" (Michael)
+
+Found through the wiki: "wear" meant two things, putting a garment on (the menu's **Wear**) and how used up a weapon or tool is (durability by kills), and two of the wiki's pages each claimed the word. **Ruling:** the word goes from everything a player reads. **Putting anything on is Equip, taking it off is Unequip**, for garments and bags as for hand items (the garment menu said Wear and Take off; it now says Equip, "Equip (6×4)" for a bag, and Unequip; the pick-up refusal and its message say "equip it"; the controls screen says "Equip or unequip a thing"). **The mechanic is Durability** (it never had a word on screen: the bar on the icon, and "Your stick is spent."). The code's own names stay (`wear` on an item definition, `entry.wear`, the `worn` slots): `entry.wear` is in every save, and a rename would be a migration for nothing a player sees. The same day the wiki's chat page became **Chat log** (Michael), so "Log" is the item alone; the game's docs say chat log too.
+
 ### 2026-10-15 — Only the pause menu stops the game (Michael)
 
 Michael, casting with the staff and book while his bag was open: nothing happened on a left click or E. An open panel was dropping the world's left click, the E, B, and T keys, and the zoom wheel, and ending a bow's draw. **Ruling:** "bag should definitely be allowed to be open and you can still fight, if your bag is small enough some players may just leave it open," and the same for other bags, things to loot, work stations, and the map: **the only thing that stops you playing and makes you safe is the pause menu.** It finishes what the guard's fix began on 2026-10-12 (`21`: the shield holds with the bag open, "the world goes on while you look in it").
