@@ -280,14 +280,10 @@ function showJoining(code) {
 }
 
 function cancelJoin() {
-  awaitingWelcome = false;
   if (net.isGuest()) net.leave();
   if (net.onTheWire()) net.close();
-  setInWorld(false);
-  started = false;
-  currentWorld = null;
   shell.worldHide();
-  screens.show("worlds");
+  toSite("worlds");
 }
 
 // A new world of this browser's, with a character made from an identity (docs/31/09). Kept, it is made behind the
@@ -426,9 +422,26 @@ async function saveWorld(extra = {}) {
 
 // ---- THE CROSSING (docs/38, #112) ----
 // The line between the game's site and a world is crossed in a few named places, so a game client can later be cut
-// along it (the Chromium wrap for Steam, `35`): in, by `playWorld`, `enterNewWorld`, and a guest's join (`joinWorld`,
-// its welcome in `net.init`'s `restore`), each behind the loading screen, and `screens.hide()` takes the site away and
-// brings the stage; out, by `exitGame`, which saves and brings the site back. Nothing else shows or hides either side.
+// along it (the Chromium wrap for Steam, `35`). In: `playWorld`, `enterNewWorld`, and a guest's join (`joinWorld`, its
+// welcome in `net.init`'s `restore`), each behind the loading screen; `screens.hide()` takes the site away and brings
+// the stage. Out: `toSite` below, the one place the world side is shut and the site shown, called by `exitGame` (which
+// saves first), by a cancelled join, and by a dropped guest's hook. Nothing else shows or hides either side.
+
+// Back to the site: the world side shut (not in a world, nothing open on the panels, the bag, a station, a placement,
+// the Use mode, or the build palette), then the page shown. The caller has closed the wire and ended or hidden any
+// loading screen of its own.
+function toSite(page, data = {}) {
+  awaitingWelcome = false;
+  setInWorld(false);
+  started = false;
+  currentWorld = null;
+  panel.closeAll();
+  stationPanel.close();
+  placement.cancel();
+  use.cancel();
+  buildPalette.close();
+  screens.show(page, data);
+}
 
 // Exit game: the guests' characters dormant at once, saved if it is this browser's, the wire closed, the site back.
 // Behind the loading screen, which stays until the save is written (#107).
@@ -442,16 +455,7 @@ async function exitGame() {
     if (inWorld) await saveWorld();
     if (net.isGuest()) net.leave(); // the host begins the grace at once, not at the socket's drop
     if (net.onTheWire()) net.close();
-    setInWorld(false);
-    started = false;
-    awaitingWelcome = false;
-    currentWorld = null;
-    panel.closeAll();
-    stationPanel.close();
-    placement.cancel();
-    use.cancel();
-    buildPalette.close();
-    screens.show("worlds"); // the Worlds screen, as docs/31/09 says (the title was shown until 2026-10-15; Back goes there)
+    toSite("worlds"); // the Worlds page, as docs/31/09 says (the title was shown until 2026-10-15; Back goes there)
   } finally {
     await shell.worldEnd();
   }
@@ -1738,13 +1742,9 @@ async function boot() {
         if (why === "taken" && currentWorld) currentWorld.code = null; // the next opening draws a new code
         return showMessage(note, 5);
       }
-      // A guest's wire gone: out of the stand-in or the replica, the title with the reason.
-      awaitingWelcome = false;
+      // A guest's wire gone: out of the stand-in or the replica, the site's Home with the reason.
       shell.worldHide();
-      setInWorld(false);
-      started = false;
-      currentWorld = null;
-      screens.show("title", { note });
+      toSite("title", { note });
     },
     chunksChanged: (chunks) => {
       for (const d of chunks) ground.invalidate([[d.cx * map.CHUNK + 8, d.cy * map.CHUNK + 8], [d.cx * map.CHUNK, d.cy * map.CHUNK], [d.cx * map.CHUNK + 15, d.cy * map.CHUNK + 15]]);

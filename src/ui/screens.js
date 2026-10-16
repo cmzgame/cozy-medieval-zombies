@@ -122,6 +122,7 @@ function listen(el) {
       if (current === "identity" && identitiesApi) identitiesApi.cancel();
       creation = null;
     }
+    if (btn && btn.closest(".site-nav")) btn.blur(); // a menu button that keeps the focus would take the next Enter itself (so Enter plays on Home)
     if (btn) return go(btn.dataset.go, btn.dataset);
     // The identity editor's swatches and rows: each sets one field of the look and redraws (youApi).
     const lookBtn = e.target.closest("button[data-look-key]");
@@ -279,7 +280,7 @@ function go(where, ds = {}) {
   else if (where === "exit") {
     if (!worldsApi) return;
     const h = worldsApi.here();
-    if (h.role === "host" && h.guests > 0 && !window.confirm(`Exiting closes the world to the ${h.guests} with you. Exit?`)) return;
+    if (h.role === "host" && h.guests > 0 && !window.confirm(`Exiting closes the world to ${h.guests === 1 ? "the friend" : `the ${h.guests}`} with you. Exit?`)) return;
     worldsApi.exitGame();
   }
   // The browser's own fullscreen, never forced: asked for here, by a click (the browser keeps Esc to leave it).
