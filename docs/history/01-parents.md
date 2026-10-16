@@ -1,3 +1,7 @@
+# 01 — What the parents offer (a record)
+
+`docs/01-parents.md` whole, the first read of both parents' docs on 2026-10-08 with its status of 2026-10-13; moved here whole by the sweep, 2026-10-16. Nothing live remains at its old path: the parents law is `CLAUDE.md`, and the modules copied carry their origin headers (`grep -rl "Ported from\|Copied from" src`). Never edited after.
+
 # 01 — What the parents offer
 
 Both parents stay as they are. This game borrows by **copying files**, never by linking, and by **considering their rulings**, never by inheriting them. New game, new gospel: nothing below is binding until it is re-made in `02-decisions.md`. A copied module keeps a header comment naming its origin file so later fixes can be compared.
