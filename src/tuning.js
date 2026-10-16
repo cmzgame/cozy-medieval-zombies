@@ -72,6 +72,7 @@ export const player = {
   starveDamage: 1.5, // hp per second at zero
   dehydrateDamage: 2,
   drinkSip: 50, // per drink from a waterskin
+  autoDrinkStage: 2, // the thirst moodle's stage a carried waterskin sips by itself at ("Thirsty"; docs/02, 2026-10-16)
   presentTime: 0.6, // seconds the held-out pose shows for a bite or a sip (docs/32, item 1)
   // Climbing through a window: slow and committed on purpose, a window is a
   // desperate exit, not a shortcut.

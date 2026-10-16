@@ -1598,6 +1598,9 @@ async function boot() {
       events.on("weaponBroke", ({ item, who }) => {
         if (!who || who === S.player.id) showMessage(`Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3);
       });
+      events.on("drank", ({ who, auto }) => {
+        if (auto && who === S.player.id) showMessage("You drink from your waterskin.", 2); // a guest's, host.js
+      });
       events.on("containerGone", ({ bags }) => {
         if (openBag && bags.includes(openBag.bag)) openBag = null; // its panel closes with it (placement.js destroy)
       });
