@@ -29,7 +29,7 @@ Built (the status block is live, the body is the plan): `03-world-model.md` (its
 
 Partly built: `24-throwables-and-fire-magic.md` (the fireball built; the throw not), `30-the-big-pass-spec.md` (steps 0 to 3 built; step 4, farming, pickable as it stands; 5 to 9 need a scope each), `32-better-animations.md` (items 1 to 3, 10, 11 built; "Where we left off" is the pointer), `29-world/` (the valley's village, river, roads, and your cottage built by `tools/mapgen/valley.py`; `03` the castle, `05` the farms, `06` the forest are the map half of `30`'s steps 4 to 7; `09` is the live art backlog; `10` and `11` fold into `30` in wave 3c).
 
-Not built: `33-the-map.md`, `34-talk.md` (two decisions are Michael's: the guide's who and where; the talk panel's keys), `36-the-horde-demo.md` (held by Michael until final art). Each is a milestone on GitHub.
+Not built: `33-the-map.md`, `34-talk.md` (two decisions are Michael's: the guide's who and where; the talk panel's keys), `36-the-horde-demo.md` (held by Michael until final art), `38-the-menus-and-the-site.md` (a scope with nine questions for Michael; #16). Each is a milestone on GitHub.
 
 ## Briefs (delivered; records in wave 3b)
 
