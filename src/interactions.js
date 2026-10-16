@@ -5,8 +5,9 @@
 // pass's step 3; until then a row can carry a `message`, which is printed.
 //
 // A row: { "use": <item id or tag>, "on": <what>, "verb": "Chop", "message": "...", ... }
-// `on` is an item id or tag (an item in a bag or slot), a prop's sprite id, one of
-// "character" | "zombie" | "villager", a floor sprite id, or "tile".
+// `on` is an item id or tag (an item in a bag or slot), a prop's sprite id, "fire" (any prop
+// whose fire burns; #14), one of "character" | "zombie" | "villager", a floor sprite id, or
+// "tile". The first matching row wins: a row for one fire in particular goes above "fire".
 // A target: { kind: "item", entry } | { kind: "prop", prop } | { kind: "character", ch } | { kind: "tile", x, y, floor }.
 
 import { getItem } from "./items.js";

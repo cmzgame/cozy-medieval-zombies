@@ -189,6 +189,19 @@ export async function run(game) {
       flyOut();
       row("a fire arrow's hit sets alight and lodges a plain arrow", z4.burning && (z4.lodged || {}).arrow === (lodgedBefore.arrow || 0) + 1 && !(z4.lodged || {}).fire_arrow, `burning ${z4.burning}, lodged ${JSON.stringify(z4.lodged || {})}, projectile ${a.projectile}`);
       z4.burning = false;
+      // The bow's own draw and release (the review of #62): a fire arrow leaves the bag, flies as one, and burns.
+      const z5 = bring(p.gx + 6, p.gy);
+      z5.hp = 100;
+      const before = G.inventory.countAll(p, "fire_arrow");
+      archery.setAimOverride(p, [z5.gx, z5.gy]);
+      archery.beginDraw(p, archery.launcherOf(p), "script");
+      p.draw.t = 99;
+      p.draw.c = 1;
+      const shot = archery.releaseDraw(p, { mouse: { x: 0, y: 0 } });
+      archery.setAimOverride(p, null);
+      flyOut();
+      row("the bow's release spends a fire arrow, which burns what it hits", shot && shot.projectile === "fire_arrow" && shot.ignite === true && G.inventory.countAll(p, "fire_arrow") === before - 1 && z5.burning, shot ? `${shot.projectile}, ignite ${shot.ignite}, fire arrows ${before} to ${G.inventory.countAll(p, "fire_arrow")}, burning ${z5.burning}` : "no shot");
+      z5.burning = false;
       // Spend the fire arrows: the launcher goes back to plain ones.
       G.inventory.takeAll(p, "fire_arrow", 99);
       const L2 = archery.launcherOf(p);

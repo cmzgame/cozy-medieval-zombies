@@ -73,7 +73,8 @@ function nearest(player, tiles) {
 const DIP_REACH = 2.6; // tiles, the click's reach (interact.CLICK_REACH)
 
 // The whole stack at once, in its place (Michael's default): a fire arrow is an arrow's size and stack, so it stays
-// where the arrows were. A target is the prop itself (a Use on the host) or its id (a script).
+// where the arrows were. A target is the prop itself (a Use on the host) or its id (a script). Only arrows you carry
+// are dipped (the hands, the belt, the bag): a stack in an open chest is taken out first (the review of #62).
 verbs.define("dip", {
   validate(world, player, target, args) {
     const prop = typeof target.prop === "string" ? map.propById(target.prop) : target.prop;

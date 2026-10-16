@@ -1,10 +1,10 @@
 {
-  "version": "40ab7380",
+  "version": "744cd6df",
   "files": {
     "data/build.json": {"size": 366, "stamp": "d4f4a6d2"},
     "data/combat.json": {"size": 3819, "stamp": "f069df33"},
     "data/ground.json": {"size": 3493, "stamp": "991f8b65"},
-    "data/interactions.json": {"size": 934, "stamp": "d584be73"},
+    "data/interactions.json": {"size": 1188, "stamp": "c2e6a90b"},
     "data/items.json": {"size": 15816, "stamp": "add0fc18"},
     "data/looks.json": {"size": 947, "stamp": "d1084ea0"},
     "data/loot.json": {"size": 1919, "stamp": "3e251af7"},
