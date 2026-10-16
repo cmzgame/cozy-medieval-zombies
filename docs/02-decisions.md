@@ -8,6 +8,9 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- The guide stands beside the spawn on every map, with a reason to be there, written like anyone (2026-10-16, The needs-michael queue)
+- Darkness shortens sight: the dead fade to hidden past a soft edge unless in light; a torch gives it back (2026-10-16, The needs-michael queue)
+- A shed, hut, or forest cabin is one room; the two-rooms rule is for houses (2026-10-16, The needs-michael queue)
 - A hand-authored world with procedural filling of the spaces it leaves empty: a direction, not a wall (2026-10-16, The four lines of 00-vision.md, ruled)
 - One continuous map with real line of sight; chunks, rooms by flood fill, never authored (2026-10-08, The project exists)
 - Fire and resources are the economy; nothing shuts off on a timer; farming is load-bearing (2026-10-08, The project exists)
@@ -18,7 +21,6 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - Shutters on every window: tap E opens, hold E climbs; closed shutters block sight; doors start closed; fittings one wood (2026-10-09, Milestone 1 passed, and the vibe pass)
 - Torches never burn out; they mount in brackets and on posts, never on the ground (2026-10-09, afternoon, Torches, fire, hands, and the clock)
 - At night the dead see fire from far away; fires are data; a lit hearth lights its whole room (2026-10-09, afternoon, Torches, fire, hands, and the clock)
-- The fog becomes light: an unlit tile in sight is dark, the dead in it dim, never hidden (2026-10-09, afternoon, Torches, fire, hands, and the clock)
 - Raw WebGL2 for the world, Canvas 2D for the dev art; portals are emitters with a transmission scalar (2026-10-09, night, The renderer goes to WebGL)
 - Openings are boards only, read from the attacker's side; everything spent, nothing repaired; nothing breaks a wall (2026-10-10, Openings)
 - The dead climb open windows, slower than you, and attack the room's nearest opening (2026-10-10, Openings)
@@ -49,6 +51,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
+- Combat stays paused until Michael's play session; then the spin cap, knockdown, and push per hit (2026-10-16, The needs-michael queue)
 - The knockdown chance 0.3 is high and stands until the combat pass re-rules it (2026-10-16, The sweep, after wave 3)
 - The swing resolves on the click, the animation is cosmetic, the cooldown is the rate limit (2026-10-11, Placement and melee scoped)
 - Left click swings, Space shoves; a swing at zero stamina lands at half damage (2026-10-11, Placement and melee scoped)
@@ -80,6 +83,8 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The character, the figure, and art
 
+- The weeping willow is cut; the art generators are to be archived in tools/art-gen, never run without Michael (2026-10-16, The needs-michael queue)
+- Throwables and consumables usually stack, case by case; one-offs like the Book and Staff of Fire never do (2026-10-16, The needs-michael queue)
 - A waterskin carried, belt or bag, sips by itself at Thirsty, the emptiest first, never mid-fight (2026-10-16, Auto-drinking)
 - Cute wins over grim; the dead are drawn like everyone else (2026-10-08, The project exists)
 - Dev art carries the identity: spooky medieval, never permanently night; occlusion is a hole, not a fade (2026-10-09, Milestone 1 passed, and the vibe pass)
@@ -98,6 +103,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
+- Talk's panel is entirely click-based, with topics, wiki links, Continue, and That's all for now; E starts it (2026-10-16, The needs-michael queue)
 - Never draw UI into the canvas; the interface has its own scale, like a web page (2026-10-10, night, The view, the screens, and a law)
 - The world fills the window; nothing is laid out against 960×540 (2026-10-10, night, The view, the screens, and a law)
 - If the game is good, people will sit for a loading screen (2026-10-10, night, The view, the screens, and a law)
@@ -127,6 +133,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Multiplayer
 
+- At most 4 players in a browser-hosted world and 8 in a server world, both in data (2026-10-16, The needs-michael queue)
 - Every addition and every change is built for multiplayer in the same commit (2026-10-13, Multiplayer is live)
 - On the wire the world never pauses; a screen is this client's own; hit-stop is refused on the wire (2026-10-13, On the wire the world never pauses)
 - The relay server is the transport; the Pages site is the client friends open (2026-10-13, Ruled: the relay server is the transport)
@@ -144,6 +151,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Process and the studio
 
+- needs-playtest marks work that waits on Michael's play, not on a decision (2026-10-16, The needs-michael queue)
 - 00-vision's "What it is not" gains no new laws; a limit the game needs is a ruling here with its reason (2026-10-16, The four lines of 00-vision.md, ruled)
 - A new project, not a rewrite of either parent; new game, new gospel (2026-10-08, The project exists)
 - The engine upgrade before more features; small verified moves; nothing in `data/` reformatted (2026-10-12, The engine upgrade is the next task)
@@ -178,6 +186,19 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-16 — The needs-michael queue: the guide, talk's panel, a player cap, the art agent's leftovers, sheds, darkness, the combat pass, the engine (Michael)
+
+Michael went through the `needs-michael` issues the sweep filed, one at a time, with Primary. His words are quoted on each issue.
+
+- **The guide (#90):** "a Guide beside the spawn on every map, given a reason to be there and written like anyone else." A villager who stands beside the player's spawn on every map, as a rule (the map generator places them), with a reason to be there and a name and voice like any villager; immune to the dead as ruled 2026-10-13 (`34`).
+- **Talk's panel (#91):** "entirely click based for now": the villager's default message, topics to explore each with a wiki link (opened in a new tab, or copied), Continue… when they have more to say, replies as buttons, and "That's all for now" as well as the X; no key binds inside the panel, so the world's keys never go dead mid-conversation. The voice: "warm and slightly cheeky - the OSRS formula", and welcoming, since it may be a new player's first conversation. **Starting one:** "E: talk to villager, as well as right click as a backup option." (`34`.)
+- **A cap on the players in a world (#93):** "4 players in a browser-hosted world, 8 in a server world, both in data"; a join over it refused with a clear word. Separate from the sixteen browsers a world remembers. To build.
+- **The design agent's open items (#95):** the Book of Fire and the Staff of Fire never stack; the rule, quoted: "The stackable are usually throwables or consumables: throwing knives and axes, arrows, perhaps potions, perhaps foods, etc. We can make case by case rulings but one-ofs like these but book and staff, definitely no stack." The throwing knife's and axe's icons stay. The weeping willow is cut ("If I want another tree model I'll bring it up at that point"). The art generators are to be kept as an archive under `tools/art-gen/`, never run without Michael, once he names the folder their zips are in (#95 stays open for that copy); a "spiff up the tools" pass is for much later (#106).
+- **Sheds (#92, question 5):** "A shed, hut, or forest cabin is one room; the two-rooms rule is for houses." (`30` section 15.) The map's other four questions (the names, which crops first, how many villagers, the gloom's door) are **tabled** to the "finish the valley" session, on the game's final shape, now its own open question (#123, blocked on Michael), with the game's name and the business decisions (#94).
+- **Darkness and sight (#88, question 30):** "darkness shortens sight, the dead fading to hidden past a soft edge unless they stand in light; a torch gives sight back; numbers in data." Daytime unchanged; each player sees by its own light. (`07`.) To build.
+- **The combat pass (#89):** "keep combat paused until I've played a proper session; rule the three feel pieces then" (the spin-click cap, knockdown 0.3, a push per hit), and fold infection's effects and cures and health potions into the game's shape (#123). A new label, `needs-playtest`, marks work that waits on Michael's play rather than a decision (`github.md` 6).
+- **The engine's second helping (#100):** "B8 now as a ready chore, D1 after the menus steps land, close D2 and D4": the pathfinder's buffers (#124) now; `main.js` back to wiring after #109 to #112; the `actions/` module and the `map/` folder closed until something hurts.
 
 ### 2026-10-16 — The menus and the site: Michael's answers to `38`'s questions (#16; Michael)
 
@@ -1017,7 +1038,7 @@ The conversation that opens Milestone 2. Its design is `07-lighting.md`.
 - **Fires are data.** Each fire kind declares its light, whether it burns wood, whether it cooks, and where it may be placed. A **campfire** burns wood, goes out, cooks (a hanging pot, no model needed), lights a medium pool, and is built on any outdoor walkable tile with no prop. A **hearth** burns wood, goes out, cooks, lights its whole room and spills a pool through its openings, sits indoors against a wall, is rare in authored houses, and is buildable later. A mounted or held **torch** lights a small pool, burns nothing, cooks nothing. The **jack-o'-lantern** is a tiny source with no fuel. A **furnace** comes later with the smithy, burns, and forges rather than cooks. Michael: people who truly want the grounds lit can maintain a ring of campfires.
 - **A lit hearth lights its whole room.** The cozy parent's room-light rule, with the hearth as the switch. A great hall may want a cap by room size; decide when one exists.
 - **The clock comes first.** Lighting has nothing to do without a night, so Milestone 2 starts with the parent's clock: a twelve-minute day, brightness from full to about 0.22 at night, never black, a debug key to skip an hour. The night tint is our dusky purple, not the parent's blue, and whether full day is ever quite full is decided by eye, since Halloween never ends here. Sleep, routines, and the trickle hang off the same clock later.
-- **The fog becomes light.** At night an unlit tile in your line of sight is dark, and the dead standing in it are drawn dim, never hidden; the parent found that not drawing them read as spawning. The player's night-vision pool is small and weak: going dark is possible but blind.
+- **The fog becomes light.** At night an unlit tile in your line of sight is dark, and ~~the dead standing in it are drawn dim, never hidden; the parent found that not drawing them read as spawning~~ (superseded 2026-10-16: The needs-michael queue, darkness shortens sight, #88). The player's night-vision pool is small and weak: going dark is possible but blind.
 - **Milestone 2 accepted, "good for now."** Michael, end of 2026-10-09, after four rounds of play and fixes on the night layer: not perfect, "this is why people use game engines", and good enough to build on. ~~Noted for later: switching the near walls back to low stubs (still on the `C` key) removes the translucent-wall mixing that caused most of the day's lighting oddities, since a stub has no face for the room to show through.~~ (superseded 2026-10-11: Final rulings on the plan, and pumpkins join the gatherables: stubs retire as a setting) Nothing more is tuned on the night layer until something else needs it.
 - **What takes which light.** Michael, from play on 2026-10-09, after a shed's hidden back wall kept the dark of the room behind it and a canopy over a lit room lit up: exterior walls light like the ground and trees, seen or not; the top of a chunky wall is never shaded by the room; and everything standing on a tile takes the light of its own tile. Michael asked whether per-cell light would fix it; it would not, this is about which thing takes which light, and per-cell stays on the backburner for the look of the pools only. Written up in `07-lighting.md`, "How things are lit".
 - **Logs are free until you can cut a tree.** Michael: pretend you always have logs on you; `E` feeds a burner as if from the inventory, and consumption rates are not worth testing until trees fall and logs go in a bag. No woodpile prop. The burn rate still runs so a fire still goes out.
@@ -1086,4 +1107,3 @@ Only the open ones live here. The answered ones, as they were written, are in `d
 18. **Noise.** Whether anything the player does carries to the dead by sound. Michael (2026-10-09) doubts it fits the cosy idea, and with no guns little is loud; a bow is quiet by design. Lean: leave it out until something in the game is loud, then decide whether that thing should carry. To `05-someday.md`.
 27. **Gathering's remainder.** The law (the wobble and the outline), the actions and their tools (`30` section 4), crops, pumpkins, mushrooms, and rocks are ruled and built. Still open: whether picked things regrow, and whether rocks block sight. To `05-someday.md`.
 29b. **The spin-click cap.** Of "fights cost too little" (2026-10-12), (a) stagger by weight and (c) bleed with the infection marker are built; (b), a turn-rate cap while a swing recovers, or a stamina or recovery cost for turning past about 90 degrees between swings, is not, and Michael paused combat changes. To a `needs-michael` issue (wave 4).
-30. **Darkness and the player's sight** (Michael, 2026-10-15: darkness should shorten it; to discuss with the lighting work). Night tints the picture, but every on-screen tile with a clear line is seen and the dead in an unlit tile are drawn dim, never hidden; "light feeds sight" (2026-10-08) and "the fog becomes light" (2026-10-09) pull against each other. To settle: how far a player sees with no light, whether the dead past it are hidden or only dim, what a torch and a lit room give back, and a guest's sight as its own light. To a `needs-michael` issue (wave 4).

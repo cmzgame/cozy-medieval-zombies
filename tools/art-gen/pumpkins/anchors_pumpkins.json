@@ -1,0 +1,22 @@
+{
+ "pumpkin_0": {
+  "size": [
+   32,
+   29
+  ],
+  "ground_anchor_px": [
+   16.0,
+   23.0
+  ]
+ },
+ "pumpkin_1": {
+  "size": [
+   26,
+   25
+  ],
+  "ground_anchor_px": [
+   13.0,
+   20.6
+  ]
+ }
+}
