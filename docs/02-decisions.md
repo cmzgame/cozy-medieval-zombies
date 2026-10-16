@@ -4,6 +4,12 @@ Rulings with reasons, newest first, within a day as well as between days. If a r
 
 ## Decisions
 
+### 2026-10-15 — Only the pause menu stops the game (Michael)
+
+Michael, casting with the staff and book while his bag was open: nothing happened on a left click or E. An open panel was dropping the world's left click, the E, B, and T keys, and the zoom wheel, and ending a bow's draw. **Ruling:** "bag should definitely be allowed to be open and you can still fight, if your bag is small enough some players may just leave it open," and the same for other bags, things to loot, work stations, and the map: **the only thing that stops you playing and makes you safe is the pause menu.** It finishes what the guard's fix began on 2026-10-12 (`21`: the shield holds with the bag open, "the world goes on while you look in it").
+
+Built: with any panel open, a left click on the world swings, casts, draws, or places (a click on a panel never reaches the world: the canvas alone takes the mouse), the Use mode's click on the world lands (a Use begun from the bag no longer needs the bag shut), E, B, and T work, and the wheel zooms except while an item is being dragged (the wheel turns it). Kept: a right-click menu still takes the click that closes it and ends a draw (a menu is a choice in hand, not a screen); the build palette and the bag still take turns on the screen (N and X say "Close your bag to build." while the bag is up, and opening the bag closes the palette), which is layout, not safety, and Michael's to change.
+
 ### 2026-10-15 — Burning made real (#14; Michael's rules, the build's rulings)
 
 Michael said go on #14 with its defaults (0.8 a second for 10 seconds, a torch's blow one in four, the whole stack of arrows dipped at once) and asked that the test toggle go: **the character menu's Set on fire and Put out are gone**, for the dead, the villagers, and the player alike (`__game.burn.ignite(z)` is the tests' way in). The build's own rulings, Michael's to overrule:

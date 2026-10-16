@@ -79,6 +79,8 @@ What I would watch in play: the stamina bar is now the guard's whole clock; a zo
 
 ## The shield that would not rise with the bag open (Michael, 2026-10-12)
 
+*Since 2026-10-15 (`02`, "Only the pause menu stops the game") no panel stops anything: the left click, E, B, T, and the wheel work with the bag open too, not only the guard.*
+
 **The real cause, found on his second report ("spawn, take a hatchet and the shield from the chest, equip both, hold right, the shield does not move"):** the guard was gated on the bag and the menu being closed (`!panel.isOpen() && !menu.isMenuOpen()` in `main.js`), and weapons are swapped with the bag open, so every test made while flipping through weapons had the bag open and the guard refused, and a test with it closed worked ("I have seen it work"). **Fix:** the gate is gone. The guard holds with the bag open (the world goes on while you look in it) and with a menu open (a press outside a menu closes it and raises the guard in the same press). Verified with the bag open and with a menu open. Michael's pane had no bow involved; the bow bug below was a real one found while looking, and stays fixed.
 
 ### The bow pushing the shield out (found first, a real bug, fixed)
