@@ -1653,8 +1653,9 @@ function setFootprint(s) {
 }
 
 // Make sure every chunk within `radius` chunks of (x, y) exists, so wild
-// forest and its dead are grown well outside the viewport, never in it.
-export function ensureAround(x, y, radius = 3) {
+// forest and its dead are grown well outside the viewport, never in it. The
+// simulation's ring round each player is four chunks (docs/02, 2026-10-13).
+export function ensureAround(x, y, radius = 4) {
   const [cx, cy] = chunkCoord(Math.round(x), Math.round(y));
   for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) getChunk(cx + dx, cy + dy);
 }
