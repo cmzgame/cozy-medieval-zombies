@@ -349,7 +349,7 @@ function go(where, ds = {}) {
   // A new world: its name, then a character for it.
   else if (where === "newworld") show("newworld", { name: worldsApi ? worldsApi.defaultName() : "" });
   // A switch of the Sandbox: kept in the page's data with the name typed so far, and drawn again.
-  else if (where === "sandbox") sandboxSet(ds.rule, ds.value === "true")
+  else if (where === "sandbox") sandboxSet(ds.rule, ds.value === "true");
   else if (where === "newworld-next") {
     const field = root.querySelector("#world-name");
     const name = (field && field.value.trim()) || (worldsApi ? worldsApi.defaultName() : "A world");

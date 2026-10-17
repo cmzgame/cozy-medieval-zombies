@@ -71,8 +71,8 @@ await bootData(root);
 
 // The world stage: the same calls as the browser's.
 const json = read(`data/maps/${mapName}.json`);
-// The world's options as the pane has them, so the hashes compare: the dev chest and the
-// testing dead each make props and so move every id after them (docs/31/05, item 4).
+// The world's options as the pane has them, so the hashes compare: the dev chest makes props and so
+// moves every id after it (docs/31/05, item 4).
 game.create({ json, devChest: flags.has("--devchest"), rules: { zombieAggro: false, ...ruleArgs } });
 const playersFlag = [...flags].find((f) => f.startsWith("--players="));
 const nPlayers = playersFlag ? Number(playersFlag.split("=")[1]) : 1;

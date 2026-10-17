@@ -1392,7 +1392,9 @@ async function boot() {
           look: lookOf(testIdentity()),
           name: testIdentity().name || null,
           devChest: !!settings.get("devChest"),
-          rules: sandboxChoices().rules, // the test world plays by the last choices, as the pane always had it
+          // The test world plays by the last choices, as the pane always had it, except for the two a world is made with
+          // (Trees, Starting population): a world Michael made with no dead or no trees must not leave every test page so.
+          rules: { ...sandboxChoices().rules, ...Object.fromEntries(rules.FIXED.map((k) => [k, rules.DEFAULTS[k]])) },
         });
         refreshFigure();
         camera.snapTo(S.player.gx, S.player.gy);
