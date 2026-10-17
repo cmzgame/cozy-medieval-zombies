@@ -974,7 +974,7 @@ function refreshFigureOf(p, force = false) {
   const style = combat.styleOf(p, !!archery.drawState(p));
   const painted = p === S.player ? settings.get("paintedLayers") || {} : {};
   // What the sheet depends on, as ids: the cheap test every step; the spec and its key only when it changed (docs/23a, B7).
-  const quick = JSON.stringify([p.look, p.worn, p.hands, style, painted]);
+  const quick = JSON.stringify([p.look, p.worn, p.hands, style, painted, p.hidden]);
   const keys = figureKeys.get(p.id) || { key: "", quick: "" };
   if (!force && quick === keys.quick) return; // `force`: the rig's numbers changed from the console (dev.js setLook), which no key sees
   keys.quick = quick;

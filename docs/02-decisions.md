@@ -126,6 +126,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
+- An eye on each worn slot hides that item's art and keeps every use; the choice stays with the slot across re-equips, by default (2026-10-18, Hiding a worn item's art: an eye on each worn slot)
 - The aim guide is off by default, for the bow, a throw, and the cast (2026-10-16, The aim guide is off by default)
 - Talk's panel is entirely click-based, with topics, wiki links, Continue, and That's all for now; E starts it (2026-10-16, The needs-michael queue)
 - Never draw UI into the canvas; the interface has its own scale, like a web page (2026-10-10, night, The view, the screens, and a law)
@@ -220,6 +221,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-18 — Hiding a worn item's art: an eye on each worn slot (#159; Primary's defaults for Michael's belt wish, Michael's to overrule)
+
+Michael (2026-10-17): a belt display setting, "if you think belt looks dumb on you and want the benefit without it covering part of your chest". Built as **the wearer's choice, seen by everyone** (WoW's show-helm), not a Display setting: an **eye on each worn slot whose item is drawn on the figure** (head, chest, hands, legs, feet, waist, back), kept as the character's `hidden` list in the save and the player's record; hidden, the item's art is left out of the figure's sheet (so its `covers` rule no longer applies either) and **the item keeps every use** (the belt's slots, a bag's size). Only a slot with something worn can be hidden. The eye is drawn in CSS, so it needs no art.
 
 ### 2026-10-18 — A hurt villager heals at the player's rate (Michael, in chat, #236)
 
