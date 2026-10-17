@@ -220,6 +220,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-10-18 — The chart: a wall is charted from either side, and a change within reach looks again (#234's review; the reviewer's design, Michael's to overrule)
+
+`docs/33` said a cell holds the two walls its own tile owns. **A cell may now hold walls its tile has not been seen for**: a wall is charted when a tile on either side of it has been seen, so a building seen only from outside has all four faces on the map (its north and west faces belong to tiles inside it), and a cell can be wall-only (surface 0). **A player looks again when anything changes within `ceil(chartRadius / 16)` chunks of them**, not only when they change tile, so a door opened in front of someone standing still shows what is behind it. The first reveal in uncharted land is 1.4 to 3.8 ms against the spec's bracketed 1 ms, accepted without a cache; whole chunks on the wire cost about 14 KB/s to every guest from one walking player, with changed cells only left as a follow-up.
+
 ### 2026-10-18 — The mohawk revised: (a) soft (Michael's pick; an art fix)
 
 Michael on the mohawk: "The front 3/4 and back 3/4 views look a little wonky in terms of how much mohawk you can see and the side on view makes the hair a little pointier than I wanted. Front on and back on are perfect." Of the art agent's two revisions he picked the first: "a soft is great!" The three-quarter facings now carry the fin along the head's centreline with its far end out of sight behind the skull, the side profile is slightly rounded, and the front and back are pixel for pixel as they were. The generator (`hair_mohawk()` in `tools/art-gen/character/heads.py`) is the source and reproduces the layer.
