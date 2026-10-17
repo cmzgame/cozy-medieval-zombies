@@ -889,7 +889,7 @@ function render() {
         <div class="sub">You can change these later from the pause menu.</div>
         ${liveRows}
         <h2>Chosen once, when the world is made</h2>
-        <div class="sub">These are baked into the world and cannot be changed afterwards; the pause menu shows them locked.</div>
+        <div class="sub">These are chosen now and cannot be changed afterwards.</div>
         ${onceRows}
         <div class="screen-buttons row">${button("newworld-next", "Next")}${button("back", "Back")}</div>
       </div>`;

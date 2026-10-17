@@ -18,8 +18,8 @@ import * as events from "./events.js";
 import * as archery from "./archery.js";
 import * as burning from "./fire.js";
 import * as bleed from "./bleed.js";
-import * as burn from "./burn.js";
-import * as kit from "./kit.js"; // the starting kit as data and the world's additions (#136) // burning as a status (#14): the step's, beside the visual fire.js
+import * as burn from "./burn.js"; // burning as a status (#14): the step's, beside the visual fire.js
+import * as kit from "./kit.js"; // the starting kit as data and the world's additions (#136)
 import * as infection from "./infection.js";
 import * as combat from "./combat.js";
 import * as interact from "./interact.js";

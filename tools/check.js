@@ -139,7 +139,21 @@ const { bootData } = await import("../server/boot.js");
 await import("../src/net.js");
 const mapMod = await import("../src/map.js");
 const gameMod = await import("../src/game.js");
+const kitModule = await import("../src/kit.js");
+const worldMod = await import("../src/world.js");
 await bootData(root);
+// The starting kit (#136) against the real grid, not the validator's area count: the default kit fits the sack and the Developer Bag
+// by placement, and asking leaves the id counter where it was (the world's count is part of its hash).
+check("kit: the default kit fits the sack and the dev bag by placement, and asking moves no id", () => {
+  const kitMod = kitModule;
+  const before = worldMod.idCounter();
+  const sack = kitMod.problem("");
+  const dev = kitMod.problem("", true);
+  assert(sack === "" && dev === "", `the default kit does not fit: sack "${sack}", dev bag "${dev}"`);
+  assert(worldMod.idCounter() === before, "kit.problem moved the id counter");
+  assert(kitMod.problem("apple 1e1") !== "" && kitMod.problem("apple 0x10") !== "", "a count of 1e1 or 0x10 was taken");
+  return "sack and dev bag fit; no id taken";
+});
 for (const file of fs.readdirSync(path.join(root, "data", "maps")).filter((f) => f.endsWith(".json"))) {
   check(`maps: no prop stands on a door's tiles (${file})`, () => {
     const json = read(`data/maps/${file}`);
