@@ -124,6 +124,24 @@ for sid in sorted(sprites):
     if not (p.get("days", 0) > 0 and p.get("seconds", 0) > 0 and len(p.get("count", [])) == 2 and 1 <= p["count"][0] <= p["count"][1]):
         fail(f"sprites.{sid}.pick: days and seconds above 0 and a count [lo, hi]")
 
+# Chopping (#195): a tool lists the verb `chop`, the stump and the tuning's names exist, and every placed container's own `loot` names a table.
+if not any("chop" in i.get("verbs", []) for i in items):
+    fail("chopping: no item lists the verb 'chop'")
+tuning_world = load("data/tuning.json")["world"]
+if tuning_world["stumpSprite"] not in sprites:
+    fail(f"tuning.world.stumpSprite: no sprite {tuning_world['stumpSprite']!r}")
+loot_tables = load("data/loot.json")
+for path in sorted(glob.glob("data/maps/*.json")):
+    m = load(path)
+    placed = list(m.get("props", []))
+    for s in m.get("sets", []):
+        placed += s.get("props", [])
+        for b in s.get("buildings", []):
+            placed += b.get("props", [])
+    for p in placed:
+        if "loot" in p and p["loot"] not in loot_tables:
+            fail(f"{path}: the {p['sprite']} at {p['tile']} names a loot table {p['loot']!r} that does not exist")
+
 # Every picture named exists.
 referenced = set()
 

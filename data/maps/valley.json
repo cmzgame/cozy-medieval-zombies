@@ -1227,7 +1227,8 @@
        "tile": [
         3,
         4
-       ]
+       ],
+       "loot": "home_chest"
       },
       {
        "sprite": "bed",
@@ -3379,7 +3380,8 @@
        "tile": [
         0,
         4
-       ]
+       ],
+       "loot": "joiner_chest"
       }
      ],
      "brackets": [

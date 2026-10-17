@@ -108,6 +108,8 @@ export const world = {
   torchSpentRadius: 12, // tiles within which a player is told a mounted torch burnt out (host.js, main.js; #167)
   daylightTiles: 30, // tiles of a room one open shutter or open door lights fully by day (light.js `openness`; Michael, #150): one open window for a small room, more for a large one
   fruitCheckSeconds: 30, // clock seconds between looks at the bare fruit trees (a day is 720): a tree bears again on the first boundary after its day (fruit.js, #190)
+  chopSeconds: 3, // a tree or a stump chopped with a hatchet (src/chop.js; was a constant in interact.js, #195)
+  stumpSprite: "stump", // what a felled tree leaves (a tree is a prop with a `canopy`)
   pickReach: 1.6, // tiles from a fruit tree's trunk a picker may stand (#190)
   fenceHp: 90, // the hit points of a fence: the dead strike it down, one alone slowly, a crowd faster (Michael, 2026-10-17, #147; 2026-10-18, #174); a gate has `fenceGateFactor` of it
   fenceGateFactor: 0.5, // a gate goes first

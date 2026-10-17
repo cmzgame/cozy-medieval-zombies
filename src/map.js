@@ -1871,7 +1871,7 @@ export function createProp(def, offset = [0, 0]) {
     fire: null,
     // docs/10: a container has a bag made on first search from its loot
     // table; a tree has wood to chop; the well has water.
-    container: sdef.container ? { ...sdef.container } : null,
+    container: sdef.container ? { ...sdef.container, ...(typeof def.loot === "string" ? { loot: def.loot } : {}) } : null, // a placed container may name its own loot table (the map's `loot`, #195)
     bag: null,
     searched: false,
     wood: sdef.wood || 0,
