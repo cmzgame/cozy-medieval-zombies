@@ -59,6 +59,11 @@ export function allItems() {
   return [...items.values()];
 }
 
+// The tool whose `verbs` list a verb (the first), or null: what a refusal names ("You need a smith's hammer.").
+export function toolFor(verb) {
+  return allItems().find((i) => i.kind === "tool" && (i.verbs || []).includes(verb)) || null;
+}
+
 export function hasItemDef(id) {
   return items.has(id);
 }

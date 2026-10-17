@@ -28,6 +28,7 @@ export async function run(game) {
   try {
     G.loop.setPaused(true);
     farming.reset();
+    for (const id of ["shovel", "knife"]) G.inventory.stow(me, G.items.makeEntry(id, 1)); // the tool rule (#215): a root is dug, a head cut; carried is enough (the bag is put back in the finally)
 
     // The data.
     const kinds = Object.keys(crops);

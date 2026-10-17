@@ -21,6 +21,7 @@ import * as items from "./items.js";
 import { idleFrame, getDef, getSheet } from "./assets.js";
 import { showMessage } from "./ui/prompt.js";
 import { rules } from "./rules.js";
+import * as tuning from "./tuning.js";
 
 // Reach was raised by a full tile on 2026-10-11 (Michael: easier).
 export const PLACE_REACH = 2.6; // tiles from the player to a carried prop's anchor tile
@@ -140,8 +141,17 @@ export function costText(what) {
   return parts.length ? parts.join(", ") : "free";
 }
 
-// The first thing the player lacks for a build, as "Need 3 planks", or "".
+// The tool rule for building (#215): the refusal for a missing tool, or null. Free building waives it as it waives the cost.
+export function toolProblem(player, verb) {
+  if (rules.freeBuilding) return null;
+  return inventory.toolProblem(player, verb);
+}
+
+// The first thing the player lacks for a build, as "You need a smith's hammer." or "Need 3 planks", or "".
 export function shortfall(player, what) {
+  const tool = buildData[what] && buildData[what].tool;
+  const noTool = tool ? toolProblem(player, tool) : null;
+  if (noTool) return noTool;
   for (const [id, n] of Object.entries(costOf(what))) {
     if (inventory.countAll(player, id) < n) return `Need ${n} ${noun(id, n)}`;
   }
@@ -380,8 +390,9 @@ function removeGhost(player) {
   if (!m.inside) return null;
   const target = removalTarget(m.x, m.y);
   if (!target) return null;
-  const ok = targetReach(player, target) <= REMOVE_REACH;
-  return { kind: "remove", target, ok, reason: ok ? "" : "Too far" };
+  const noTool = toolProblem(player, tuning.world.boardTool);
+  const ok = !noTool && targetReach(player, target) <= REMOVE_REACH;
+  return { kind: "remove", target, ok, reason: noTool || (ok ? "" : "Too far") };
 }
 
 function targetName(t) {
@@ -551,6 +562,11 @@ export function performPlacement(player, cmd) {
       if (wall && wall.built) t = { type: "wall", tx, ty, edge: a.edge, wall };
     }
     if (!t) return false;
+    const noTool = toolProblem(player, tuning.world.boardTool);
+    if (noTool) {
+      showMessage(noTool);
+      return true;
+    }
     if (targetReach(player, t) > REMOVE_REACH) {
       showMessage("Too far");
       return true;

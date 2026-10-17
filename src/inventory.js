@@ -3,7 +3,7 @@
 // worn on the back, the hotbar is the belt worn at the waist, and an entry is
 // in exactly one place. Placement rules live in grid.js.
 
-import { getItem, release, canHold, hold, handFor } from "./items.js";
+import { getItem, toolFor, release, canHold, hold, handFor } from "./items.js";
 import * as grid from "./grid.js";
 
 export const WORN_SLOTS = ["head", "chest", "hands", "legs", "feet", "waist", "back"];
@@ -79,6 +79,32 @@ export function removeItem(bag, id, count = 1) {
 // Entries that hold water: [{ id, count, fill }].
 export function waterContainers(bag) {
   return bag ? bag.items.filter((it) => getItem(it.id).capacity) : [];
+}
+
+// Every entry that holds water the player carries: the bag's and the belt's (a skin on the belt is filled and drunk from too).
+export function skinsOf(player) {
+  return [...waterContainers(bagOf(player)), ...(beltOf(player) || []).filter((e) => e && getItem(e.id).capacity)];
+}
+
+// The tool rule (Michael, 2026-10-18, #214, #215): an action that would realistically need a tool needs the tool carried, in a hand,
+// on the belt, or in the bag (whether it must also be in a hand is open question 32). The tool is found by its data, an item whose
+// `verbs` list the verb, never by an id.
+export function carriedTool(player, verb) {
+  for (const slot of ["main", "off"]) {
+    const e = player.hands && player.hands[slot];
+    if (e && (getItem(e.id).verbs || []).includes(verb)) return e;
+  }
+  for (const e of beltOf(player) || []) if (e && (getItem(e.id).verbs || []).includes(verb)) return e;
+  const bag = bagOf(player);
+  if (bag) for (const e of bag.items) if ((getItem(e.id).verbs || []).includes(verb)) return e;
+  return null;
+}
+
+// The refusal for a missing tool, or null: "You need a smith's hammer." names the item the verb belongs to.
+export function toolProblem(player, verb) {
+  if (carriedTool(player, verb)) return null;
+  const t = toolFor(verb);
+  return `You need a ${t ? t.name.toLowerCase() : "tool"}.`;
 }
 
 // ---- across the player's places ----

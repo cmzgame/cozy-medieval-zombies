@@ -151,6 +151,7 @@ if (apple.sprite !== "tree_apple" || apple.regrowAt !== undefined) fail(`the app
   const stow = (id, n, props = {}) => inventory.addItem(inventory.bagOf(me), id, n, props);
   stow("potato_seed", 3);
   stow("waterskin", 1, { fill: 100 });
+  stow("shovel", 1); // a potato is dug (the tool rule, #215)
   const run = (verb, target) => { const r = verbs.run(verb, game.state, me, target); if (!r.ok) fail(`${verb}: ${r.reason}`); };
   run("till", { tile: [fx, fy] }); did("a tile tilled");
   run("plant", { tile: [fx, fy], crop: "potato" }); did("a seed planted");

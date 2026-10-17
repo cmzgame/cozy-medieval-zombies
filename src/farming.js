@@ -231,6 +231,8 @@ verbs.define("harvest", {
     { const why = reachProblem(player, prop.tile[0], prop.tile[1]); if (why) return why; }
     settle(prop, boundaryAt(clock.getElapsed()));
     if (stageOf(prop) < 2) return "It is not ready yet.";
+    const tool = cropDef(prop.crop.kind).tool; // the tool rule (#215): rye with a scythe, roots dug with a shovel, the heads cut with a knife; carried is enough
+    if (tool) { const why = inventory.toolProblem(player, tool); if (why) return why; }
     return true;
   },
   perform(world, player, target) {

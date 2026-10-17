@@ -5,7 +5,8 @@
     "cost": {
       "log": 1
     },
-    "seconds": 3
+    "seconds": 3,
+    "tool": "notch"
   },
   "door": {
     "label": "Door",
@@ -13,7 +14,8 @@
     "cost": {
       "plank": 3
     },
-    "seconds": 4
+    "seconds": 4,
+    "tool": "build"
   },
   "window": {
     "label": "Window",
@@ -21,6 +23,7 @@
     "cost": {
       "plank": 2
     },
-    "seconds": 3
+    "seconds": 3,
+    "tool": "build"
   }
 }

@@ -13,7 +13,7 @@ import * as map from "./map.js";
 import { getDef } from "./assets.js";
 import { getItem, containerGrid } from "./items.js";
 import * as grid from "./grid.js";
-import { bagOf, beltOf, createBag, countAll, takeAll } from "./inventory.js";
+import { bagOf, beltOf, createBag, countAll, takeAll, toolProblem } from "./inventory.js";
 import * as verbs from "./verbs.js";
 import { emit } from "./events.js";
 
@@ -147,6 +147,7 @@ export function canMake(player, prop, r, count = 1) {
   if (stationOf(prop) !== r.station) return "Not at this station.";
   if (distToTiles(player, prop.tiles) > REACH) return "Too far from it.";
   if (r.fire && !(prop.fire && prop.fire.lit)) return "The fire is out.";
+  if (r.uses) { const why = toolProblem(player, r.uses); if (why) return why; } // a carried tool by its verb (#215)
   if (r.tool && !toolInHand(player, r.tool)) return `Needs a ${getItem(r.tool).name.toLowerCase()} in hand.`;
   const short = shortfall(player, prop, r, count);
   if (short.length) return `Short of ${short.map((s) => `${s.need - s.have} ${nameOfWant(s.want)}`).join(", ")}.`;
