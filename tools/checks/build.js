@@ -1,11 +1,12 @@
-// Doors, windows, and shutters built onto walls, and the enclosure rule (Michael, 2026-10-17, #147): a door or a window is
+// Doors, windows, and shutters built onto walls (Michael, 2026-10-17, #147): a door or a window is
 // built over a plain wall (the edge's kind and state set, the material kept, the wall remembered and put back by the removal
 // tool), or over a broken door or window as a new one, never a repair; a window is not built over a fence, a gate (a door)
-// is; and a door of an unbreakable material is refused where it would be a room's only way in. From the console, on a tab
+// is; a door or a window always has hit points, whatever the wall is made of; the removal tool keeps what was the player's.
+// From the console, on a tab
 // with `?nosave`:
 //   await __game.check("build")
 // It builds on open ground through placement.performPlacement (the host's and a guest's one path) with free building on
-// (restored), takes everything down, and puts the wall material it flags unbreakable back.
+// (restored) and takes everything down.
 
 export async function run(game) {
   const G = game;
@@ -17,7 +18,6 @@ export async function run(game) {
   const meAt = [me.gx, me.gy];
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const made = [];
-  let stone = null;
   try {
     G.loop.setPaused(true);
     G.rules.set({ freeBuilding: true });
@@ -89,27 +89,36 @@ export async function run(game) {
     G.map.buildWall(...edgeAt(4), "wall", "wall_fence");
     row("a gate (a door) may be built over a fence, a window may not", G.map.canBuildWall(edgeAt(4)[0], edgeAt(4)[1], "n", "door") && !G.map.canBuildWall(edgeAt(4)[0], edgeAt(4)[1], "n", "window"), "fence edge");
 
-    // The enclosure rule, with the stone wall's material flagged unbreakable for the test.
-    stone = G.assets.getDef("wall_stone");
-    const unbreakable0 = stone.wall.unbreakable;
-    stone.wall.unbreakable = true;
-    let one = null;
-    let two = null;
-    for (let id = 1; id < 300 && !(one && two); id++) {
-      const r = G.map.getRoom(id);
-      if (!r) continue;
-      const doors = r.openings.filter((op) => { const wl = G.map.tileAt(op.tx, op.ty)[op.edge]; return wl && wl.kind === "door"; });
-      if (doors.length === 1 && !one) one = doors[0];
-      else if (doors.length === 2 && !two) two = doors[0];
-    }
-    const alone = one ? G.map.enclosureProblem(one.tx, one.ty, one.edge, "door", "wall_stone") : null;
-    const withOther = two ? G.map.enclosureProblem(two.tx, two.ty, two.edge, "door", "wall_stone") : null;
-    row("an unbreakable door is refused where it would be a room's only way in", typeof alone === "string" && alone.length > 0, String(alone));
-    row("and allowed where another door can be broken", withOther === "", String(withOther));
-    row("a door of the build's own wood is never refused", one && G.map.enclosureProblem(one.tx, one.ty, one.edge, "door", "wall_log") === "", "wall_log");
-    stone.wall.unbreakable = unbreakable0;
+    // Whatever the wall is made of, the door built in it breaks (stone stands only to the dead as a wall; every entrance is breakable).
+    const stoneAt = edgeAt(5);
+    G.map.destroyWall(...stoneAt);
+    G.map.buildWall(...stoneAt, "wall", "wall_stone");
+    build("door", stoneAt);
+    const sd = wallAt(stoneAt);
+    row("a door built in a stone wall has hit points, so the dead can break it", sd && sd.kind === "door" && sd.sprite === "wall_stone" && Number.isFinite(sd.hp) && sd.hp > 0, sd ? `${sd.kind} of ${sd.sprite}, hp ${sd.hp}` : "nothing");
+    // The removal tool keeps what was the player's: a built wall with a door in it is a built wall again.
+    const own = edgeAt(3);
+    G.map.destroyWall(...own);
+    G.map.buildWall(...own, "wall", "wall_log"); // built by the player (`built`)
+    build("door", own);
+    G.teleport(own[0], own[1] + 1);
+    G.placement.performPlacement(me, { kind: "remove", target: { type: "wall", tx: own[0], ty: own[1], edge: "n" } });
+    const ownBack = wallAt(own);
+    row("the player's own wall with a door removed is still the player's own (it can be removed)", ownBack && ownBack.kind === "wall" && ownBack.built === true, ownBack ? `${ownBack.kind}, built ${ownBack.built}` : "a hole");
+    // A broken door stamped into a wall, built anew, still stands in that wall.
+    const again = edgeAt(2);
+    const old = wallAt(again);
+    old.broken = true;
+    old.open = true;
+    old.hp = 0;
+    build("door", again);
+    const renewed = wallAt(again);
+    row("a new door built over a broken stamped one remembers the wall under it", renewed && renewed.kind === "door" && !renewed.broken && renewed.under === "wall_log", renewed ? `${renewed.kind}, under ${renewed.under}` : "nothing");
+    G.teleport(again[0], again[1] + 1);
+    G.placement.performPlacement(me, { kind: "remove", target: { type: "wall", tx: again[0], ty: again[1], edge: "n" } });
+    const filled = wallAt(again);
+    row("and removing it puts the wall back, never a hole", filled && filled.kind === "wall", filled ? filled.kind : "a hole");
   } finally {
-    if (stone && stone.wall.unbreakable === true) delete stone.wall.unbreakable;
     for (const [x, y, e] of made) if (G.map.tileAt(x, y)[e]) G.map.destroyWall(x, y, e);
     G.teleport(meAt[0], meAt[1]);
     G.rules.set({ freeBuilding: free0 });

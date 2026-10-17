@@ -519,11 +519,17 @@ export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT) {
   if (existing) {
     // Stamped over a wall (or a broken opening): the new one is of the same material, so a door in a wood wall is a wood door,
     // and it remembers the wall it replaced, which the removal tool puts back (never a hole where a wall stood).
-    if (!unbreakable(existing.sprite)) sprite = existing.sprite; // an unbreakable wall's door is of the build's own wood: whatever closes an entrance the dead can break
+    sprite = existing.sprite;
     for (const b of [...bracketSet]) if (b.wall === existing) bracketSet.delete(b);
   }
   const wall = createWall(kind, sprite);
-  if (existing && existing.kind === "wall") wall.under = existing.sprite;
+  if (existing && existing.kind === "wall") {
+    wall.under = existing.sprite;
+    if (existing.built) wall.underBuilt = true; // the player's own wall comes back the player's own
+  } else if (existing && existing.under) {
+    wall.under = existing.under; // a new door over a broken stamped one still stands in the wall it was stamped into
+    if (existing.underBuilt) wall.underBuilt = true;
+  }
   wall.built = true; // made by the player: the removal tool may take it down (docs/13)
   wall.at = [tx, ty];
   t[edge] = wall;
@@ -544,42 +550,11 @@ export function destroyWall(tx, ty, edge, restoreUnder = false) {
     // The removal tool takes a built door or window out of the wall it was stamped into, and the wall is back.
     t[edge] = createWall("wall", wall.under);
     t[edge].at = [tx, ty];
+    if (wall.underBuilt) t[edge].built = true;
   }
   touch(tx, ty);
   rebuildRoomsAround(tx, ty, edge);
   return true;
-}
-
-// A wall material whose definition says `wall.unbreakable` (the built stone walls of #104, not yet in the game): a door or a
-// window of it has no hit points. The enclosure rule below keeps such an entrance from being the only one.
-function unbreakable(sprite) {
-  try {
-    const d = getDef(sprite);
-    return !!(d && d.wall && d.wall.unbreakable);
-  } catch {
-    return false;
-  }
-}
-
-// Whether building a `kind` of this material on the edge would leave an enclosure whose every way in the dead could neither
-// use nor break (Michael, 2026-10-17: "every entrance that you can use MUST be usable by zombies, and if something gates it
-// it must be breakable by zombies. This stops a fortress."): the door being built is of an unbreakable material and the room
-// on either side has no other door whose leaf can be broken. A built wall is not an entrance (a room with no door at all is
-// a cell, which is allowed: "You just can't leave"); a door, a gate, boards are fine. Returns the reason, or "".
-export function enclosureProblem(tx, ty, edge, kind, sprite) {
-  if (kind !== "door" || !unbreakable(sprite)) return "";
-  for (const [x, y] of edgeTiles(tx, ty, edge)) {
-    const id = tileAt(x, y).room;
-    const room = id > 0 ? getRoom(id) : null;
-    if (!room) continue;
-    const breakable = room.openings.some((op) => {
-      if (op.tx === tx && op.ty === ty && op.edge === edge) return false;
-      const w = tileAt(op.tx, op.ty)[op.edge];
-      return !!w && w.kind === "door" && !unbreakable(w.sprite);
-    });
-    if (!breakable) return "Every way in must be one the dead can break";
-  }
-  return "";
 }
 
 export function createWall(kind, sprite) {
@@ -589,7 +564,7 @@ export function createWall(kind, sprite) {
     open: false,
     shutter: kind === "window" ? "closed" : null,
     boards: { near: [], far: [] }, // hit points per board, outermost last
-    hp: kind === "wall" || unbreakable(sprite) ? Infinity : kind === "door" ? DOOR_HP : SHUTTER_HP,
+    hp: kind === "wall" ? Infinity : kind === "door" ? DOOR_HP : SHUTTER_HP, // a door and a window always break, whatever they are made of: every entrance is one the dead can break
     broken: false,
   };
 }

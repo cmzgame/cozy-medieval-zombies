@@ -189,8 +189,6 @@ function buildBlock(player, what, tx, ty, edge) {
   const existing = map.tileAt(tx, ty)[edge];
   if (existing && !map.canStampOver(existing, what)) return "Already a wall";
   if (!map.canBuildWall(tx, ty, edge, what)) return "No room";
-  const why = map.enclosureProblem(tx, ty, edge, what, existing ? existing.sprite : buildData[what].sprite);
-  if (why) return why;
   if (distToEdge(player.gx, player.gy, tx, ty, edge) < EDGE_CLEARANCE) return "Step back";
   return shortfall(player, what);
 }
