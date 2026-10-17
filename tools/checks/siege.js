@@ -129,6 +129,34 @@ export async function run(game) {
     step(60 * 8);
     row("one out of sight holds the siege until its dawn, then loses interest and wanders", held && z.siege === null && !z.aggro && ["idle", "wander"].includes(z.state), `state ${z.state}, aggro ${z.aggro}`);
 
+    // An open window is a place to be bitten from (#167; the window law, Michael 2026-10-16: a window is never a safe spot, never a way in):
+    // a player standing at the cell's open window is within reach of one waiting outside, one a step back is not.
+    const bites = [];
+    const offBite = G.events.on("bitten", (e) => bites.push(e));
+    const hp0 = me.hp;
+    const probe = (py) => {
+      bites.length = 0;
+      G.teleport(cell[0], py);
+      z.gx = cell[0];
+      z.gy = cell[1] - 1.85;
+      z.path = [];
+      z.breach = null;
+      z.siege = null;
+      z.state = "chase";
+      z.aggro = true;
+      z.noWay = 0;
+      z.attackCooldown = 0;
+      z.lastSeen = [cell[0], py];
+      step(60 * 3);
+      return bites.length;
+    };
+    const atWindow = probe(cell[1] - 1.2);
+    const stepBack = probe(cell[1] + 0.3);
+    offBite();
+    me.hp = hp0;
+    row("a player at an open window is bitten from outside, one a step back is not (a window is never a safe spot, and never a way in)", atWindow > 0 && stepBack === 0, `${atWindow} bites at the window, ${stepBack} a step back`);
+    G.teleport(cell[0], cell[1]);
+
     // ---- a house with two doors: they go to the one they saw the player use ----
     for (const [x, y, e] of made.splice(0)) if (G.map.tileAt(x, y)[e]) G.map.destroyWall(x, y, e);
     G.map.removeProp(bed);
@@ -154,6 +182,43 @@ export async function run(game) {
       if (z.breach) target = z.breach;
     }
     row("with two doors, they go first to the one they saw the player use, though the other is nearer", !!target && target.tx === southDoor.tx && target.ty === southDoor.ty && target.edge === southDoor.edge, target ? `breaching ${target.tx},${target.ty}${target.edge}, the south door is ${southDoor.tx},${southDoor.ty}${southDoor.edge}` : "no breach");
+
+    // ---- two doors close together: the remembered one is the one the player went through (#167) ----
+    for (const [x, y, e] of made.splice(0)) if (G.map.tileAt(x, y)[e]) G.map.destroyWall(x, y, e);
+    const h3 = [cx - 9, cy - 4];
+    const s3 = house(h3[0], h3[1], { s: "door" });
+    // A second door beside the first on the same south wall: both within 1.6 tiles of the player once they are inside.
+    const other = [h3[0] - 1, h3[1] + 2, "n"];
+    const goneTo = [h3[0] + 1, h3[1] + 2, "n"];
+    for (const d of [other, goneTo]) {
+      G.map.destroyWall(...d);
+      G.map.buildWall(...d, "door", "wall_log");
+      G.map.tileAt(d[0], d[1])[d[2]].open = true; // open, so it is sight through (a shut door blocks it)
+      G.map.touch(d[0], d[1]);
+      made.push(d);
+    }
+    G.map.destroyWall(...s3.s.slice(0, 3)); // the helper's own centre door goes: the two beside it are the test
+    G.clock.setHour(0);
+    G.teleport(h3[0] + 1, h3[1] + 4); // in the open, in line with the right-hand door
+    step(2);
+    z.gx = h3[0] + 1.2;
+    z.gy = h3[1] + 8;
+    z.path = [];
+    z.breach = null;
+    z.siege = null;
+    z.seenRoom = -1;
+    z.lastOut = null;
+    z.state = "idle";
+    z.aggro = true;
+    z.noWay = 0;
+    step(30); // it sees them outside
+    G.teleport(h3[0] + 1, h3[1] + 1); // and now inside, by the right-hand door
+    let remembered = null;
+    for (let i = 0; i < 60 * 4 && !remembered; i++) {
+      step(1);
+      if (z.siege && z.siege.openings.length) remembered = z.siege.openings[0];
+    }
+    row("with two doors close together, it remembers the one the player went through", !!remembered && remembered.tx === goneTo[0] && remembered.ty === goneTo[1] && remembered.edge === goneTo[2], remembered ? `remembered ${remembered.tx},${remembered.ty}${remembered.edge}, went through ${goneTo[0]},${goneTo[1]}${goneTo[2]}, the other is ${other[0]},${other[1]}${other[2]}` : "none remembered");
   } finally {
     for (const r of restore.reverse()) r();
     G.teleport(meAt[0], meAt[1]);

@@ -57,6 +57,7 @@ export function createZombie(gx, gy, { id = null, hp = T.hp, aggro = false } = {
     breach: null, // { wall, tx, ty, edge, stand, side, into } while breaking in
     press: null, // { wall, tx, ty, edge, stand } while it presses a fence or gate across its way (map.pressFence; not saved)
     siege: null, // { at: [x, y] a tile in the house, openings: [{ tx, ty, edge }], dawn: clock elapsed, idx, switchAt, pid } while it holds a siege (#147)
+    lastOut: null, // [x, y] where the player was last seen in the open (noteSighting: the door on the line from there is the way in)
     seenRoom: -1, // the room the player was in at its last sighting (0 outside, -1 never seen): a change from outside to a room is a player going in
     noWay: 0, // seconds left in which no way in is looked for again (T.noWayTime): none was found, so it searches instead
     sincePlayer: Infinity, // seconds since the player was last seen
@@ -426,6 +427,7 @@ function noteSighting(z, p) {
   // A siege is the night's ("They stay at night", "the siege bites at night"): from dusk to the dawn it ends at; by day a sighting
   // is the ordinary chase, and a watcher is not given another siege to the next morning.
   const night = ["dusk", "night"].includes(clock.getPhase());
+  if (room <= 0) z.lastOut = [p.gx, p.gy]; // where the player was last seen in the open: the way in is the door on the line from there
   if (room <= 0 || room === here || !night) {
     z.siege = null;
     z.seenRoom = room;
@@ -436,7 +438,10 @@ function noteSighting(z, p) {
   s.at = [Math.round(p.gx), Math.round(p.gy)];
   s.pid = p.id;
   if (z.seenRoom === 0) { // its last sighting had the player out in the open, this one has them in: they went in by a door near them
-    const door = openingsNear(p.gx, p.gy, 1.6).find((o) => o.wall.kind === "door");
+    // The door the line from where it last saw them outside to where it sees them now crosses, which is the one they went through
+    // when two doors stand close; failing that (a sighting through a window), the door nearest them.
+    const crossed = z.lastOut ? openingOnLine(z.lastOut[0], z.lastOut[1], p.gx, p.gy) : null;
+    const door = crossed && crossed.wall.kind === "door" ? crossed : openingsNear(p.gx, p.gy, 1.6).find((o) => o.wall.kind === "door");
     if (door) rememberOpening(s, door);
   }
   const win = openingOnLine(z.gx, z.gy, p.gx, p.gy);
@@ -768,9 +773,16 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         z.repathTimer = 0;
         break;
       }
-      if (!z.seesNow && z.sincePlayer > 20 && !(z.siege && siegeOn(z, players))) { // a held siege knows where the player is without seeing them
+      if (!z.seesNow && z.sincePlayer > T.pressGiveUp && !(z.siege && siegeOn(z, players))) { // a held siege knows where the player is without seeing them
         z.press = null;
         startSearch(z);
+        break;
+      }
+      // A fence is no wall to a bite (Michael, 2026-10-17: "otherwise exploitable"): a player in reach across it is bitten, by the
+      // chase's own bite (contact, sight, the cooldown); the dead one goes back to pressing when the player is out of reach.
+      if (tgt && z.seesNow && distTo(z, tgt) <= T.contact) {
+        z.state = "chase";
+        z.repathTimer = 0;
         break;
       }
       const [mx, my] = edgeMid(f.tx, f.ty, f.edge);

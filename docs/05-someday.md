@@ -6,6 +6,7 @@ Started 2026-10-08.
 
 One line per idea: what, who, when, and the one sentence on what must not be foreclosed. An idea that was built or ruled leaves this page for `history/05-someday-done.md`; the longer scopes behind some lines are `history/05-someday-scopes.md`. The tracking issue for all of them is wave 4 of the sweep (#70).
 
+- **Burning, what is not built** (`02`, 2026-10-15, burning made real, #14; the wiki's Burning page points here): the dead **noticing** fire (they are drawn to a flame at night, not to a burning body), a **way out** for a burning body (water, rolling, time; a burn ends by its timer today), and **a player burning** (only the dead burn). Spreading fire is its own line, below. Nothing built may foreclose them.
 - **The big cart** (Michael, 2026-10-15): an immovable wagon that several horses pull, a big container you cannot lift, which the wheelbarrow had been mixed up with; the wheelbarrow is a container carried like a barrel (another wooden container's art, with or without more storage, as a crate is).
 - **Quests and RPG-like elements.** Part of the original medieval wish. Never say never, but the game has to be playable, fun, and content-rich first. NPCs with lines, routines, and bags are the groundwork; a quest is a line plus a check plus a reward, and all three exist by then.
 - **NPC relationships and trade.** A vendor you keep alive sells cheaper, "yadda yadda", miles down the road. Bags on NPCs are the groundwork.

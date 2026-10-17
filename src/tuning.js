@@ -29,6 +29,7 @@ export const zombie = {
   getUpTime: 0.6, // seconds to rise, the fall played backwards
   knockTime: 0.15, // a push is spread over this long, not a teleport
   breachReach: 1.1, // tiles from the edge midpoint to hit it
+  pressGiveUp: 20, // seconds a dead one pressing a fence goes on pressing without seeing the player before it gives up and searches (a held siege never gives up; #147, #167)
   noWayTime: 8, // seconds the dead leave a goal alone (and search) after finding no way in, no door they can reach (#134)
   siegeEndHour: 6, // the dead that know a player is inside wait until the clock next reads this hour, the dawn, and lose interest (#147)
   siegeSwitch: 25, // seconds before one of them tries another opening it knows
@@ -98,6 +99,7 @@ export const world = {
   playerCapServer: 8, // and a server world (raised in one line when the lighter frames of docs/31/05 land)
   torchHeldLife: 1440, // game seconds of burning a torch lasts held in a hand (two game days of continuous light; Michael, 2026-10-17, #156)
   torchWallLife: 2880, // and on the belt, in a bracket, or on a post, the slower "wall" rate
+  torchSpentRadius: 12, // tiles within which a player is told a mounted torch burnt out (host.js, main.js; #167)
   daylightTiles: 30, // tiles of a room one open shutter or open door lights fully by day (light.js `openness`; Michael, #150): one open window for a small room, more for a large one
   fenceHp: 90, // the wear a fence stands before a crowd of the dead bursts it (Michael, 2026-10-17, #147); a gate has `fenceGateFactor` of it
   fenceGateFactor: 0.5, // a gate goes first

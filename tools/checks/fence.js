@@ -112,6 +112,39 @@ export async function run(game) {
     biter.press = null;
     row("a dead one bites a player over a fence", G.map.isFence(southWall) && bites.length > 0, `${bites.length} bites in four seconds across the south fence`);
 
+    // ---- a dead one that is pressing the fence bites too (#167): the press state has the chase's bite ----
+    for (const z of dead) { z.gx = cx + 80; z.gy = cy + 80; z.aggro = false; z.state = "idle"; z.path = []; z.press = null; } // the others away: only this one is at the yard
+    G.map.buildWall(north[0], north[1], north[2], "wall", "wall_fence"); // the yard closed again, so it has no way in but the fence
+    const pressBites = [];
+    const offPress = G.events.on("bitten", (e) => pressBites.push(e));
+    const hpP = me.hp;
+    G.teleport(cx, cy);
+    const presser = dead[1];
+    presser.gx = cx;
+    presser.gy = cy + 4;
+    presser.path = [];
+    presser.breach = null;
+    presser.press = null;
+    presser.state = "chase";
+    presser.aggro = true;
+    presser.noWay = 0;
+    presser.attackCooldown = 0;
+    presser.lastSeen = [cx, cy];
+    let pressing = false;
+    for (let i = 0; i < 60 * 20 && !pressing; i++) { step(1); pressing = presser.state === "press"; }
+    G.teleport(cx, cy + 1.2); // steps up to the fence it is pressing
+    pressBites.length = 0;
+    step(60 * 4);
+    offPress();
+    me.hp = hpP;
+    G.teleport(cx, cy);
+    presser.aggro = false;
+    presser.state = "idle";
+    presser.press = null;
+    presser.gx = cx + 80;
+    presser.gy = cy + 80;
+    row("a dead one pressing the fence bites a player who steps up to it", pressing && pressBites.length > 0, `${pressing ? "was pressing" : "never pressed"}, ${pressBites.length} bites in four seconds`);
+
     // ---- a house in a fenced yard is no safe spot, and a gate goes first ----
     for (const [x, y, e] of ring) if (G.map.tileAt(x, y)[e]) G.map.destroyWall(x, y, e);
     const yard = [];
