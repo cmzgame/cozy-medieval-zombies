@@ -2211,7 +2211,17 @@ export function loadMap(json, options = {}) {
     if (prop.furrowsPending) prop.facing = furrowsOf(get(prop.tile[0], prop.tile[1]).floor) || prop.facing;
     delete prop.furrowsPending;
   }
-  return { props, spawn: json.spawn || [0, 0], zombies: json.zombies || [], villagers: json.villagers || [], name: json.name || "map" };
+  // The named sets, for the map panel (docs/33): a name and the box round the footprint; the panel draws the name once any tile in the box is charted.
+  const places = [];
+  for (const s of json.sets || []) {
+    if (!s.name) continue;
+    const fp = setFootprint(s);
+    if (!fp.length) continue;
+    let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
+    for (const [x, y] of fp) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    places.push({ name: s.name, box: [x0, y0, x1 - x0 + 1, y1 - y0 + 1] });
+  }
+  return { props, spawn: json.spawn || [0, 0], zombies: json.zombies || [], villagers: json.villagers || [], places, name: json.name || "map" };
 }
 
 // The direction a floor's furrows run ("x" or "y"), or null for a floor without.

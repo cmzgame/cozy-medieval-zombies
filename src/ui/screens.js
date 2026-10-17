@@ -27,6 +27,7 @@ const CONTROLS = [
     ["Z / wheel", "Zoom: wide, middle, close"],
     ["E", "Nearest action"],
     ["Right-click", "Everything you can do to what is under the cursor"],
+    ["M", "The map: what anyone in the world has seen; the wheel zooms, drag to move it"],
     ["Esc", "Close what is open, else pause"],
   ]],
   ["Fighting", [
