@@ -1250,7 +1250,7 @@ function render() {
     entities: [...S.players, ...S.zombies, ...S.villagers, ...S.corpses], // every player, not mine alone (Michael's first real join, 2026-10-13: the other player was a name with no body)
     arrows: archery.arrowsInFlight(),
     fire: burning.all(),
-    marker: archery.getMarker(S.player),
+    marker: settings.get("aimGuide") ? archery.getMarker(S.player) : null, // the viewer's own Aim guide (docs/20, 02 2026-10-16)
     playerRoom,
     player: S.player,
     camera: camera.cam,
