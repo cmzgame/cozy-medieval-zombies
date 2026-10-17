@@ -1627,7 +1627,7 @@ html, body {
   padding: 18px 16px 4px;
 }
 
-/* The wordmark, a placeholder until a drawn one comes: the letters stone with moss on top, the first line timber,
+/* The wordmark, a placeholder until a drawn one comes: the big line zombie green in the stone's bands, the first line timber,
    a pixel outline from stacked drop-shadows (the letters are clipped to their fill, so text-shadow would paint over
    it), and the game's own autumn trees behind. */
 .wordmark {
@@ -1657,7 +1657,7 @@ html, body {
 
 .wm-big {
   font-size: clamp(58px, 12vw, 132px);
-  background-image: linear-gradient(#78a64c 0 13%, #5d8a3a 13% 19%, #ddd6c8 19% 48%, #b5ac9b 48% 74%, #8f8677 74% 100%);
+  background-image: linear-gradient(#86c95f 0 13%, #3f7a2c 13% 19%, #63aa48 19% 48%, #4c8e38 48% 74%, #386f2a 74% 100%); /* zombie green, the stone's banding (Michael, 2026-10-17) */
 }
 
 .wm-tree {
