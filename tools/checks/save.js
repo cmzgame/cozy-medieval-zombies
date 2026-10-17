@@ -39,8 +39,8 @@ export async function run(game) {
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const wasPaused = G.loop.isPaused();
   G.loop.setPaused(true);
-  const survivalWas = G.settings.get("survival");
-  G.settings.set("survival", false); // the needs stay full in any pane; health still regenerates (2026-10-15), so the mess's hp is read at the save
+  const survivalWas = G.rules.rules.survival;
+  G.rules.set({ survival: false }); // the needs stay full in any pane; health still regenerates (2026-10-15), so the mess's hp is read at the save
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const p = G.player;
   try {
@@ -126,7 +126,7 @@ export async function run(game) {
       map.placeProp(held, held.tile[0], held.tile[1]);
       G.player.carrying = null;
     }
-    G.settings.set("survival", survivalWas);
+    G.rules.set({ survival: survivalWas });
     G.loop.setPaused(wasPaused);
   }
   for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);

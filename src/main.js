@@ -286,9 +286,35 @@ function cancelJoin() {
   toSite("worlds");
 }
 
+// The Sandbox step's choices (docs/38, #109): the world's five rules and whether the dev chest is made with it. The
+// settings keep only the last choices, offered first at the next step; a world's rules are its own from then on.
+const RULE_KEYS = Object.keys(rules.DEFAULTS);
+function sandboxChoices() {
+  return { rules: Object.fromEntries(RULE_KEYS.map((k) => [k, !!settings.get(k)])), devChest: !!settings.get("devChest") };
+}
+
+// The host changes the world's rules from the pause menu (#109): between two steps, on the authority. They ride in the
+// next frame to every guest (net.js sends `rules` when they change) and in the save, and a guest's own client never
+// sets them (a server world's owner has the owner screen). Returns whether it was done.
+function setWorldRules(next) {
+  if (!inWorld || net.isGuest()) return false;
+  rules.set(next);
+  if (currentWorld) saveWorld();
+  return true;
+}
+
 // A new world of this browser's, with a character made from an identity (docs/31/09). Kept, it is made behind the
-// loading screen; a guest's stand-in (keep false) is made at once, under the joining screen.
-async function enterNewWorld(name, identity, { keep = true } = {}) {
+// loading screen; a guest's stand-in (keep false) is made at once, under the joining screen. `rules` and `devChest`
+// are what its Sandbox step chose; a stand-in takes the defaults and the host's world replaces it at the welcome.
+async function enterNewWorld(name, identity, { keep = true, rules: chosenRules = null, devChest = null } = {}) {
+  const sandbox = sandboxChoices();
+  if (keep) {
+    const rulesNow = { ...sandbox.rules, ...(chosenRules || {}) };
+    chosenRules = rulesNow;
+    if (devChest === null) devChest = sandbox.devChest;
+    for (const k of RULE_KEYS) settings.set(k, !!rulesNow[k]); // remembered, as the next Sandbox step's first choices
+    settings.set("devChest", !!devChest);
+  }
   if (keep) {
     shell.worldBegin(`Making ${name || "a world"}`);
     shell.worldStage("Waking the valley", 0);
@@ -299,8 +325,9 @@ async function enterNewWorld(name, identity, { keep = true } = {}) {
       json: mapJson,
       look: lookOf(identity),
       name: (identity && identity.name) || null,
-      devChest: !!settings.get("devChest"),
+      devChest: keep ? !!devChest : false,
       combatTesting: !!settings.get("combatTesting"),
+      rules: keep ? chosenRules : null,
     });
     afterWorldSet();
     setInWorld(true);
@@ -708,7 +735,8 @@ function here() {
     ownedCode: st.role === "guest" && identities.owned().some((o) => o.code === st.code) ? st.code : null, // a server world of mine I am in
     guests: st.guests ? st.guests.length : 0,
     hostName: guest && joinedWorld ? joinedWorld.host || null : null, // a server world has no host player: its name alone
-    rules: st.role === "guest" ? { ...rules.rules } : null, // a guest's world rules are the host's, shown read-only (item 4)
+    rules: { ...rules.rules }, // the world's rules; a guest's are the host's, shown read-only (item 4)
+    canSetRules: inWorld && !guest, // the host's, and a solo player's (a server world's owner has the owner screen)
   };
 }
 let tiles = [];
@@ -1392,6 +1420,7 @@ async function boot() {
           name: testIdentity().name || null,
           devChest: !!settings.get("devChest"),
           combatTesting,
+          rules: sandboxChoices().rules, // the test world plays by the last choices, as the pane always had it
         });
         refreshFigure();
         camera.snapTo(S.player.gx, S.player.gy);
@@ -1507,7 +1536,9 @@ async function boot() {
           play: (worldId) => { playWorld(worldId); },
           remove: (worldId) => save.deleteWorld(worldId), // a promise: the screen re-renders when it settles
           forget: (code) => identities.forgetJoined(code),
-          create: (name, identityId) => { const identity = identities.get(identityId); if (identity) enterNewWorld(name, identity); },
+          create: (name, identityId, options = {}) => { const identity = identities.get(identityId); if (identity) enterNewWorld(name, identity, options); },
+          sandbox: sandboxChoices, // the Sandbox step's first choices (#109)
+          setWorldRules, // the host's, from the pause menu
           respawn: (identityId) => respawn(identities.get(identityId)),
           defaultName: () => `${MAP_NAME === "valley" ? "The valley" : MAP_NAME}, ${new Date().toLocaleDateString(undefined, { day: "numeric", month: "short" })}`,
           here,
@@ -1804,7 +1835,7 @@ async function boot() {
     // The worlds flow (docs/31/09), for check("worlds"): a world made, left, listed, played again; a new character after a death.
     // Stepping away (item 3), for the checks: the idle time shortened, the state, and the two moves by hand.
     away: { after: (ms) => { awayAfterMs = ms == null ? AWAY_AFTER_MS : ms; lastInputAt = performance.now(); }, get now() { return away; }, step: stepAway, back: comeBack, check: checkAway },
-    worlds: { moveUp, bringHome, playServer, ownerInfo, rotateCode, setRules, removePlayer, unbar, addOwned, rekey, create: (name, identityId) => enterNewWorld(name, identities.get(identityId)), play: playWorld, leave: exitGame, exitGame, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor: host.joinFor, dormantNow: host.dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
+    worlds: { moveUp, bringHome, playServer, ownerInfo, rotateCode, setRules, removePlayer, unbar, addOwned, rekey, create: (name, identityId, options = {}) => enterNewWorld(name, identities.get(identityId), options), setWorldRules, sandbox: sandboxChoices, play: playWorld, leave: exitGame, exitGame, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor: host.joinFor, dormantNow: host.dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
     identities,
     addPlayer: (gx, gy, opts) => {
       const p = game.addPlayer(gx, gy, opts);
