@@ -8,6 +8,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- A villager who teaches a skill is immune to the dead, like the guide; everyone else can die (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
+- Food heals a little, a stopgap; only potions heal big; cooked and combined food more (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
+- The dead strike what they break, an attack on a cooldown as on a player (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
+- Magic and potions are taught by a friendly wizard in the valley (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
 - A torch burns down while lit (fastest in hand, slower on a belt, bracket, or post; a kill costs more), is doused and lit with a tinderbox, and starts unlit; belt and hand never stack; the village's lights are lanterns that never go out (2026-10-17, Torches burn down; the tinderbox; the village's lights become lanterns)
 - Only bodies burn; anything with fire (a torch, a tinderbox, a fireball) lights what is made to be lit; nothing spreads; the fireball keeps some damage, less than now, and becomes a flare (2026-10-17, Only characters burn; fire lights what is made to be lit; the fireball as a flare)
 - A sealed room is safe, and a cell: nothing digs, no wall breaks, you cannot leave (2026-10-17, The siege: a sealed room is a cell, the dead wait for dawn, a crowd bursts a fence)
@@ -28,7 +32,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - A hand-authored world with procedural filling of the spaces it leaves empty: a direction, not a wall (2026-10-16, The four lines of 00-vision.md, ruled)
 - One continuous map with real line of sight; chunks, rooms by flood fill, never authored (2026-10-08, The project exists)
 - Fire and resources are the economy; nothing shuts off on a timer; farming is load-bearing (2026-10-08, The project exists)
-- Villagers are killable, carry no weapons, never fight for the player; they flee, follow, and stay (2026-10-08, The project exists)
+- Villagers are killable, carry no weapons, never fight for the player; they flee, follow, and stay (2026-10-08, The project exists; teachers and the guide excepted from killable, 2026-10-18)
 - Medieval, low fantasy, no guns; dark medieval fantasy, not strictly medieval (2026-10-08, The project exists; 2026-10-09, Milestone 1 passed, and the vibe pass)
 - Trees block only their trunk; the dead know only where they last saw you; a bite needs line of sight (2026-10-09, Milestone 1 passed, and the vibe pass; the search narrowed by the siege, 2026-10-17, The siege: a sealed room is a cell, the dead wait for dawn, a crowd bursts a fence)
 - Authored structure, scattered filler: sets with padding rings, features, scatter by rule, the wild beyond; harvest first (2026-10-09, Milestone 1 passed, and the vibe pass)
@@ -168,6 +172,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Process and the studio
 
+- The valley and skillscape are the focus; combat testing pauses (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
 - The roadmap: valley, combat, demo, playing together and telemetry, an outside playtest, Midnight Mass in dev art, the name, art and sound, the Steam page, the regions and release (2026-10-17, The roadmap, and sound)
 - Sound off costs something; a visual twin where it makes sense; every sound playable on its wiki page, its license allowing (2026-10-17, The roadmap, and sound)
 - Every world is an expendable test until Michael says otherwise; a change may break old saves with no migration (2026-10-17, Every world is an expendable test)
@@ -207,6 +212,19 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-18 — The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break (Michael)
+
+Michael's notes after a play and a night's thinking, with Primary in chat:
+
+- **The valley first:** "I do want to start focusing valley and full production and stop combat testing for a while... valley + skillscape should be the main focus of our time as its the first step in the overall plan." Bugs are still closed as they come.
+- **Food heals, a little; only potions heal big:** "I DO want food to heal. It should be a stopgap while you wait for natural heal or grab a potion. The only big heals allowed are from potions." Combined foods earn their trouble: "do foods produced from combining other foods have some kind of benefit beyond just being more filling?" *Primary's defaults, Michael's to overrule:* cooked and combined food heals more than raw and fills more, the numbers in data; eating from the belt ("being able to eat from your belt perhaps?").
+- **Every station and chain mapped,** and from it the count of skill-helper villagers the valley needs.
+- **A villager who teaches a skill is immune to the dead**, like the guide; everyone else can die: "I am not sure its fun if the zombies kill the only NPC who can teach you how to do woodworking." (Ruled on Primary's question: "any villager who teaches a skill is immune to the dead, like the guide; everyone else can die.") It extends 2026-10-08's "villagers are killable" (noted where it sits).
+- **Magic and potions are learned from a villager, the wizard:** "your stereotypical friendly wizard, big bushy white beard (a chance to bring facial hair back perhaps) and blue wizard robes and hat. Or similar. It pushes against the vibe clash between valley and regions." He may give the Staff of Fire, the Book of Fire, or one of them (open).
+- **The dead strike what they break:** damage to a gate, door, or shutter becomes "an actual attack, with a damage number, and an animation, just like when they attack you... on a short cooldown", so a crowd is more strikes rather than a vibration that bursts; and the wall's shake "simmer[ed] down".
+- **The skill feel test** is part of the valley's: "do I feel helpless on low skills, and super overpowered in terms of production on high skills?"
+- **Bag art first:** the items still on placeholder art ("apple" and "log") get flat bag icons, the cheap win.
 
 ### 2026-10-17 — A belt torch sees a bit further than none (Michael, #158)
 
@@ -1183,7 +1201,7 @@ The conversation that opens Milestone 2. Its design is `07-lighting.md`.
   - **Rooms by flood fill, never authored.** Same reason as block storage: it keeps building and the dev tool possible.
 - **Fire and resources are the economy; nothing shuts off on a timer.** Michael, 2026-10-08, on what separates this from Zomboid while the chunked world moves toward it: the setting, and the absence of Zomboid's infrastructure arc (water shutoff, power cut, broadcasts going dead). "Fire is everything, and every natural resource is so important." Things run out because you used them: wood for the hearth, water from the well, seed in the ground. Added to `00-vision.md` as a pillar. My lean on the first consequence: the hearth burns firewood and goes out without it, which is the cozy parent's parked "candle burn time" made central rather than fiddly.
 - **Farming is in, and it is load-bearing.** Michael: simpler than Zomboid's, closer to Stardew; big for him and for cozy games in general; "if it doesn't work the game probably won't." Cooking comes with it, in some simple fashion. Both are now in the vision and the milestone sketch. The cozy parent's take (planters with three growth stages that need water; cooking as one step with no recipes) is an input.
-- **NPCs are in, killable, and not crippled for the browser's sake.** Michael, 2026-10-08. They carry no weapons and never fight for the player; that is the compromise and it holds. They **flee** from the dead they see until they cannot, then die and turn, so a single wanderer in your base does not kill a man standing still. The player can tell one to **follow** or to **stay** on a tile, which is how you bring a villager home and keep him. Beyond the active region they are frozen notes like the dead. See `04-npcs.md`.
+- **NPCs are in, killable (narrowed 2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break: a villager who teaches a skill is immune, as the guide is), and not crippled for the browser's sake.** Michael, 2026-10-08. They carry no weapons and never fight for the player; that is the compromise and it holds. They **flee** from the dead they see until they cannot, then die and turn, so a single wanderer in your base does not kill a man standing still. The player can tell one to **follow** or to **stay** on a tile, which is how you bring a villager home and keep him. Beyond the active region they are frozen notes like the dead. See `04-npcs.md`.
 - **Quests: never say never, but not for a good long while.** The game has to be playable, fun, and content-rich first. RPG-like elements were part of the original medieval wish and are not forgotten. Logged in `05-someday.md`.
 - **~~Probe viewport 960×540~~ (superseded 2026-10-10, night: The view, the screens, and a law: the world fills the window), no roofs.** Michael accepted both. Nothing may be written in a way that forecloses roofs; they sit in `05-someday.md`.
 - **Single storey first.** Michael agreed on 2026-10-08. Tile data carries a layer index from day one so upper floors can be added without a format change; how they render is decided after the probe.
