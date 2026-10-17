@@ -31,6 +31,8 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 
 (Move items here with the commit that fixed them.)
 
+- [x] **Chopping a tree needs no tool and leaves no stump** (the census's line in Closed below, "not built yet"): built in #195: a hatchet in hand, a stump left, the stump chopped for a log.
+
 ## Closed
 
 (Move items here when judged intended or not worth fixing, with a word why.)
