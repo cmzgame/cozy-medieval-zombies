@@ -12,6 +12,7 @@ import * as view from "../view.js";
 import { tileKey } from "../visibility.js";
 import * as sight from "../sight.js";
 import * as loop from "../loop.js";
+import { sight as sightTuning } from "../tuning.js";
 
 // World px above the feet where the tail's tip lands: just over the top of the
 // figure's frame (FH 72, feet 66 from its top), so at any zoom the tail meets
@@ -72,12 +73,14 @@ export function updateSpeech(characters, visible, player, dt) {
     if (!shown) {
       // A groan from one lost in the dark, in line of sight but unseen: no bubble where it stands, and a line in the log with no
       // position instead (Michael, #150: the dark hides information, never physics), once for each, and not in a rush.
-      if (ch.kind === "zombie" && visible.has(tileKey(Math.round(ch.gx), Math.round(ch.gy)))) {
+      // Only for one the dark hides (not seen by the viewer's own sight): a dead one behind a tree's canopy in daylight is hidden by the
+      // canopy, which is not the dark, and says nothing (#158).
+      if (ch.kind === "zombie" && visible.has(tileKey(Math.round(ch.gx), Math.round(ch.gy))) && !sight.seen(player, ch)) {
         withLine.add(ch.id);
         const prev = lastLeft.get(ch.id);
         lastLeft.set(ch.id, line.left);
         const now = loop.simTime();
-        if ((prev === undefined || line.left > prev + 0.05) && now - lastHeardAt > 3) {
+        if ((prev === undefined || line.left > prev + 0.05) && now - lastHeardAt > sightTuning.groanGap) {
           lastHeardAt = now;
           log.push("Something groans in the dark.", "say");
         }

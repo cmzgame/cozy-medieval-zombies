@@ -20,7 +20,7 @@ Minecraft's bow. A clear draw and release; the best arcing in any game, not real
 - **Release commits the shot.** The landing point, the flight path, and the flight time are all fixed at that moment, from the cursor and the draw as they are then.
 - **The aim guide: the UI shows where the current draw will land** (Michael's plan): a small marker on the ground at the landing point for the current draw, running out along the line as the draw grows, with a faint ground line to the full-draw point. Setting `Aim guide: On / Off`, **default Off** since 2026-10-16 (`02`); it covers the bow, a throw, and the cast alike.
 - **Facing and movement:** the figure turns to the aim while drawing; walking while drawn is slowed (`drawSpeed` 0.45 for the free draw, `braceMove` 0.2 braced, in `data/combat.json`; Minecraft slows you to a crawl), sprinting cancels the draw. No stamina for drawing.
-- **Two hands.** The bow is a `both` item: equipping it takes both hands, so the torch goes to the belt or the bag (a belt torch lights at half, `11`). Light against reach is the night's trade, the same one the shield will pose (question 24).
+- **Two hands.** The bow is a `both` item: equipping it takes both hands, so the torch goes to the belt or the bag (a belt torch lights at 0.6, a little over half, `11`). Light against reach is the night's trade, the same one the shield will pose (question 24).
 
 The numbers below are the `bow` block of `data/combat.json` (`range` 22, `speed` 16, `arcMin` 8, `arcMax` 150, `z0` 30, `hitRadius` 0.5, `aimLift` 22, `wallHeight` 80, `trunkHeight` 40, `propHeight` 50, and the rest; the names are `archery.js`'s tunables), where a change is made (#72); the bow's own `drawTime` 1.4, `braceDrawTime` 0.6, `damage` 38, and `knockback` 0.2 are its item block, and a `thrown` block or a spell's block overrides them for what it launches.
 
@@ -54,7 +54,7 @@ The rest:
 1. **Aiming (revised by Michael's plan, which replaces the first answer, direction-only):** the cursor sets the direction **and** the full-draw landing point (capped at the maximum range); the draw time sets how far along that line the arrow lands, quickly at first and slowing near full; the shot is fixed at release. *Claude's note:* this is the hybrid recommended before the first answer, and it answers the precision worry (a held full draw is always exact).
 2. **Arrows are picked up with E**, like everything else (not by walking over them).
 3. **A hit tells the dead where you are**, as a melee blow does when they hunt at all.
-4. **The bow takes both hands**; the torch goes to the belt or the bag while it is held (a belt torch still glows at half).
+4. **The bow takes both hands**; the torch goes to the belt or the bag while it is held (a belt torch still glows, at 0.6).
 5. **No stamina to draw or hold; the player walks at half speed while drawn**; sprinting cancels the draw.
 6. **Arrows that hit the dead stay in them** and come out in their loot when they are killed and searched (revised by Michael, 2026-10-12, replacing the break chance); arrows that miss, or hit a wall or a tree, always survive and drop where they land.
 7. **The arc is automatic by distance, with no lob key** (the plan: the arc is visual, its peak height scales with the shot's distance). No deliberate long high lobs, accepted.
