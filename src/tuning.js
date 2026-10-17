@@ -96,6 +96,8 @@ export const world = {
   twoTorches: 1.35, // a torch in each hand: this much of one torch's light, and seen from this much further
   playerCapBrowser: 4, // the players a world hosted in a browser holds at once, the host's own among them (Michael, #93)
   playerCapServer: 8, // and a server world (raised in one line when the lighter frames of docs/31/05 land)
+  torchHeldLife: 1440, // game seconds of burning a torch lasts held in a hand (two game days of continuous light; Michael, 2026-10-17, #156)
+  torchWallLife: 2880, // and on the belt, in a bracket, or on a post, the slower "wall" rate
   daylightTiles: 30, // tiles of a room one open shutter or open door lights fully by day (light.js `openness`; Michael, #150): one open window for a small room, more for a large one
 };
 

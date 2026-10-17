@@ -10,8 +10,10 @@
 // floor; beyond them a chunk is wild, grown from the map's `wild` rule.
 
 import { getDef } from "./assets.js";
+import { douse } from "./items.js";
 import { nextId } from "./world.js";
 import { emit } from "./events.js";
+import { world as W } from "./tuning.js";
 
 export const CHUNK = 16;
 // Every prop by its id (docs/31/08, habit 1): anything kept across a step
@@ -144,6 +146,43 @@ export function brackets() {
   return bracketSet;
 }
 
+// The torches players mounted burn down at the wall rate while lit (Michael, 2026-10-17, #156): a spent one is gone from its
+// holder. The village's own (no `wear`) never do, until they are lanterns.
+// A guest's copy of the wear refreshes when the chunk is sent: at every hundredth burned, as a fire's fuel does at every unit
+// (the sync check compares wear to the hundredth); between, the save's copy alone is dropped (docs/31/04).
+const hundredth = (w) => Math.floor(w * 100);
+export function burnHolders(dt) {
+  const k = dt / W.torchWallLife;
+  for (const b of bracketSet) {
+    const br = b.wall.bracket;
+    if (!br.torch || br.lit !== true || br.wear === undefined) continue;
+    const before = hundredth(br.wear);
+    br.wear += k;
+    if (br.wear >= 1) {
+      br.torch = false;
+      delete br.wear;
+      delete br.lit;
+      touchWall(b.wall);
+      emit("torchSpent", { x: b.tx, y: b.ty });
+    } else if (b.wall.at && before !== hundredth(br.wear)) markDirty(b.wall.at[0], b.wall.at[1]);
+    else unsavedWall(b.wall, false);
+  }
+  for (const p of fireProps) {
+    const f = p.fire;
+    if (!f.holds || !f.has || !f.lit || f.wear === undefined) continue;
+    const before = hundredth(f.wear);
+    f.wear += k;
+    if (f.wear >= 1) {
+      f.has = false;
+      f.lit = false;
+      delete f.wear;
+      touch(p.tile[0], p.tile[1]);
+      emit("torchSpent", { x: p.tile[0], y: p.tile[1] });
+    } else if (before !== hundredth(f.wear)) markDirty(p.tile[0], p.tile[1]);
+    else unsaved(p.tile[0], p.tile[1], false);
+  }
+}
+
 export function addBracket(tx, ty, edge, side, torch = false) {
   const wall = growTile(tx, ty)[edge];
   if (!wall) return null;
@@ -188,13 +227,32 @@ export function holderHas(target) {
   return target.kind === "bracket" ? target.bracket.wall.bracket.torch : target.prop.fire.has;
 }
 
-export function setHolder(target, has) {
+// What the torch it holds has left: { wear, lit }. An authored one (the village's, until it is a lantern) has no wear and is
+// lit for good; one a player mounted keeps its own (#156).
+export function holderState(target) {
+  const h = target.kind === "bracket" ? target.bracket.wall.bracket : target.prop.fire;
+  return { wear: h.wear, lit: h.wear === undefined ? true : target.kind === "bracket" ? h.lit !== false : !!h.lit };
+}
+
+// `entry` is the torch being mounted: its wear and whether it is lit go with it, and come back out with it.
+export function setHolder(target, has, entry = null) {
   if (target.kind === "bracket") {
-    target.bracket.wall.bracket.torch = has;
+    const b = target.bracket.wall.bracket;
+    b.torch = has;
+    if (has && entry) {
+      b.wear = entry.wear || 0;
+      b.lit = !!entry.lit;
+    } else {
+      delete b.wear;
+      delete b.lit;
+    }
     touchWall(target.bracket.wall);
   } else {
-    target.prop.fire.has = has;
-    target.prop.fire.lit = has;
+    const f = target.prop.fire;
+    f.has = has;
+    f.lit = has && (entry ? !!entry.lit : true);
+    if (has && entry) f.wear = entry.wear || 0;
+    else delete f.wear;
     touch(target.prop.tile[0], target.prop.tile[1]);
   }
   // It touched nothing before 2026-10-15: a guest saw a torch mounted or taken only once its chunk went for another
@@ -366,7 +424,7 @@ export function dropItem(x, y, entry, layer = 0) {
   if (!t.items) t.items = [];
   // The entry itself goes on the floor, less its grid position, so a bag
   // keeps everything in it and a belt its slots (docs/11).
-  const e = { ...entry };
+  const e = douse({ ...entry }); // a torch on the floor is out
   delete e.x;
   delete e.y;
   delete e.rot;
@@ -752,8 +810,8 @@ export function unsaved(x, y, near = true) {
 }
 
 // A wall's change that the wire does not send (its health): the save's copy of its tile's chunks is dropped.
-function unsavedWall(wall) {
-  if (wall.at) unsaved(wall.at[0], wall.at[1]);
+function unsavedWall(wall, near = true) {
+  if (wall.at) unsaved(wall.at[0], wall.at[1], near);
   else for (const c of chunks.values()) c.saved = null;
 }
 

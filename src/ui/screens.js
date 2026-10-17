@@ -39,7 +39,7 @@ const CONTROLS = [
     ["C", "Your character"],
     ["1 to 4", "Swap a belt slot with your hand"],
     ["Double-click", "Equip or unequip a thing; else move it across"],
-    ["T", "Torch in or out of hand"],
+    ["T", "Light or douse the torch in hand (a tinderbox lights it)"],
   ]],
   ["Building", [
     ["N", "Build menu: walls, doors, windows"],
