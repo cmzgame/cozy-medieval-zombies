@@ -98,6 +98,16 @@ export function refresh(prop, now = clock.getElapsed()) {
 // Targets are addresses: a tile `{ tile: [x, y] }` (or the Use mode's `{ x, y }`), a prop by id; an item by `entry` (a uid) when the Use mode
 // names one. Each re-validates when it fires, and every reach and hand check is the host's.
 
+// Water a crop's soil: its growth so far is settled, and the soil is wet `wetDays` from now (the skin's watering and the bucket's pour).
+export function soak(prop, now = clock.getElapsed()) {
+  settle(prop, now);
+  const c = prop.crop;
+  c.grown = growth(prop, now);
+  c.at = now;
+  c.wetUntil = now + get().soil.wetDays * DAY;
+  map.touch(prop.tile[0], prop.tile[1]);
+}
+
 // What stops a player reaching a tile, or null: too far, or a wall between (a shut door or shutter too: sight is what a wall stops, a fence and
 // an open window pass it, and a sealed room stays a cell, #147; the reviewer of #194 farmed through a house wall). Every farming verb asks.
 export function reachProblem(player, x, y) {
@@ -213,15 +223,9 @@ verbs.define("water", {
   },
   perform(world, player, target) {
     const prop = cropProp(target);
-    const now = clock.getElapsed();
-    settle(prop, now);
-    const c = prop.crop;
-    c.grown = growth(prop, now);
-    c.at = now;
-    c.wetUntil = now + get().soil.wetDays * DAY;
+    soak(prop);
     const skin = skinFor(player, target.entry);
     skin.fill -= get().soil.fillCost;
-    map.touch(prop.tile[0], prop.tile[1]);
     return { message: "The water soaks in." };
   },
 });
