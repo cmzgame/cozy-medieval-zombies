@@ -46,7 +46,15 @@ export async function run(game) {
     const safe = createVillager(cx - 2, cy, { id: "vt_immune", name: "Teacher", immune: true });
     const prey = createVillager(cx + 2, cy, { id: "vt_prey", name: "Redshirt" });
     S.villagers.push(safe, prey);
-    restore.push(() => { S.villagers.splice(S.villagers.indexOf(safe), 1); S.villagers.splice(S.villagers.indexOf(prey), 1); });
+    // What the test made is taken away by identity: a villager the dead killed has already left the list (it turned), and the zombie it
+    // became, with anything else the run added to the dead, goes too.
+    const dead0 = new Set(S.zombies);
+    const takeVillager = (v) => { const i = S.villagers.indexOf(v); if (i >= 0) S.villagers.splice(i, 1); };
+    restore.push(() => {
+      takeVillager(safe);
+      takeVillager(prey);
+      for (let i = S.zombies.length - 1; i >= 0; i--) if (!dead0.has(S.zombies[i])) S.zombies.splice(i, 1);
+    });
     z.gx = cx;
     z.gy = cy + 3;
     z.path = [];
@@ -55,15 +63,19 @@ export async function run(game) {
     z.target = null;
     z.siege = null;
     z.noWay = 0;
-    step(60 * 25);
+    let everTargeted = false; // sampled every step: the dead never so much as target the immune one
+    for (let i = 0; i < 60 * 25; i++) {
+      step(1);
+      if (z.target === safe) everTargeted = true;
+    }
     row("the dead hunt and hurt an at-risk villager", prey.hp < prey.maxHp, `Redshirt ${prey.hp.toFixed(0)} of ${prey.maxHp}${prey.dead ? ", dead" : ""}`);
-    row("and never an immune one: it is neither targeted nor harmed", safe.hp === safe.maxHp && !safe.dead && !(z.target && z.target === safe), `Teacher ${safe.hp} of ${safe.maxHp}`);
+    row("and never an immune one: it is neither targeted (at any step) nor harmed", safe.hp === safe.maxHp && !safe.dead && !everTargeted, `Teacher ${safe.hp} of ${safe.maxHp}`);
     G.events.emit("villagerHit", { zombie: z, villager: safe, damage: 50 });
     row("a blow that reaches an immune villager does nothing", safe.hp === safe.maxHp, `Teacher ${safe.hp}`);
     G.rules.set({ zombiesAttackVillagers: false });
     const spare = createVillager(cx + 1, cy + 1, { id: "vt_spare", name: "Spare" }); // the first redshirt is dead by now
     S.villagers.push(spare);
-    restore.push(() => S.villagers.splice(S.villagers.indexOf(spare), 1));
+    restore.push(() => takeVillager(spare));
     z.state = "idle";
     z.target = null;
     z.gx = cx;
