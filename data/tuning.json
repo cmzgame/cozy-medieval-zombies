@@ -78,5 +78,6 @@
     "playerCapBrowser": 4,
     "playerCapServer": 8
   },
-  "population": { "none": 0, "low": 0.4, "standard": 1, "high": 2.5 }
+  "population": { "none": 0, "low": 0.4, "standard": 1, "high": 2.5 },
+  "sight": { "darkRadius": 1.5, "edge": 2, "litNone": 0.3, "litFull": 0.45 }
 }

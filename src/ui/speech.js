@@ -10,6 +10,7 @@ import * as iso from "../iso.js";
 import * as log from "./log.js";
 import * as view from "../view.js";
 import { tileKey } from "../visibility.js";
+import * as sight from "../sight.js";
 
 // World px above the feet where the tail's tip lands: just over the top of the
 // figure's frame (FH 72, feet 66 from its top), so at any zoom the tail meets
@@ -62,7 +63,8 @@ export function updateSpeech(characters, visible, player, dt) {
     }
     const shown =
       ch === player ||
-      (visible.has(tileKey(Math.round(ch.gx), Math.round(ch.gy))) && !(ch.behindProp && Math.hypot(ch.gx - player.gx, ch.gy - player.gy) > NEAR));
+      (visible.has(tileKey(Math.round(ch.gx), Math.round(ch.gy))) && !(ch.behindProp && Math.hypot(ch.gx - player.gx, ch.gy - player.gy) > NEAR) &&
+        !(ch.kind === "zombie" && !sight.seen(player, ch))); // a groan from the dark shows no bubble where it stands (#88)
     if (!shown) continue;
     seen.add(ch.id);
     const entry = bubbleFor(ch.id);
