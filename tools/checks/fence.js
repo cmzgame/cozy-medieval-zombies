@@ -49,7 +49,7 @@ export async function run(game) {
     G.teleport(cx, cy);
     const dead = G.zombies.filter((q) => !q.dead && !q.corpse).slice(0, 4);
     for (const o of G.zombies) if (!dead.includes(o) && !o.dead && Math.hypot(o.gx - cx, o.gy - cy) < 60) { const keep = { gx: o.gx, gy: o.gy, aggro: o.aggro }; restore.push(() => Object.assign(o, keep, { path: [] })); o.aggro = false; o.gx = cx + 90; o.gy = cy + 90; }
-    for (const z of dead) { const keep = { gx: z.gx, gy: z.gy, state: z.state, aggro: z.aggro }; restore.push(() => Object.assign(z, keep, { path: [], breach: null, noWay: 0 })); }
+    for (const z of dead) { const keep = { gx: z.gx, gy: z.gy, state: z.state, aggro: z.aggro }; restore.push(() => Object.assign(z, keep, { path: [], breach: null, press: null, siege: null, seenRoom: -1, lastSeen: null, target: null, noWay: 0 })); }
     const north = [cx, cy - 1, "n"]; // the middle of the north side: the edge the dead press
     const place = (z, ox) => { z.gx = cx + ox; z.gy = cy - 2.05; z.path = []; z.breach = null; z.state = "chase"; z.aggro = true; z.noWay = 0; z.lastSeen = [cx, cy]; };
 
@@ -78,13 +78,13 @@ export async function run(game) {
     const build = (list, sprite) => { for (const [x, y, e] of list) G.map.buildWall(x, y, e, "wall", sprite); };
     restore.push(() => { for (const [x, y, e] of [...yard, ...homeWalls]) if (G.map.tileAt(x, y)[e]) G.map.destroyWall(x, y, e); });
     const standing = () => yard.filter(([x, y, e]) => G.map.isFence(G.map.tileAt(x, y)[e])).length;
-    const setUp = (gate) => {
+    const setUp = (gate, win = true) => {
       for (const [x, y, e] of [...yard, ...homeWalls]) if (G.map.tileAt(x, y)[e]) G.map.destroyWall(x, y, e);
       build(yard, "wall_fence");
       build(homeWalls, "wall_log");
       G.map.destroyWall(cx, cy - 1, "n");
       G.map.buildWall(cx, cy - 1, "n", "window", "wall_log"); // the house's window, open: the dead see the player through it
-      G.map.tileAt(cx, cy - 1).n.shutter = "open";
+      G.map.tileAt(cx, cy - 1).n.shutter = win ? "open" : "closed";
       G.map.destroyWall(cx, cy + 2, "n");
       G.map.buildWall(cx, cy + 2, "n", "door", "wall_log"); // and a door on the south side, shut: the way they want, inside the yard
       if (gate) { G.map.destroyWall(cx, cy - 3, "n"); G.map.buildWall(cx, cy - 3, "n", "door", "wall_fence"); } // a gate in the yard's north side
@@ -111,6 +111,27 @@ export async function run(game) {
     let t3 = 0;
     while (t3 < 60 * 90 && G.map.tileAt(cx, cy - 3).n === gate) { step(1); t3++; }
     row("a gate goes first: two of the dead seek it and burst it while the fence beside it stands", G.map.tileAt(cx, cy - 3).n !== gate && standing() === before2 - 1 && bursts.length === 1 && bursts[0].tx === cx && bursts[0].ty === cy - 3, `after ${(t3 / 60).toFixed(0)} s, ${standing()} of ${before2} edges stand, burst at ${bursts[0] ? `${bursts[0].tx},${bursts[0].ty}${bursts[0].edge}` : "none"}`);
+    // The siege presses too: the dead that know a player is in the house, out of sight of it (the window shut), whose way to its
+    // door is across the fence.
+    setUp(false, false);
+    G.clock.setHour(0);
+    const sieged = dead.slice(0, 4);
+    sieged.forEach((z, i) => {
+      z.gx = cx + (i - 1.5) * 0.9;
+      z.gy = cy - 6.5;
+      z.path = [];
+      z.breach = null;
+      z.press = null;
+      z.state = "siege";
+      z.aggro = true;
+      z.noWay = 0;
+      z.lastSeen = [cx, cy];
+      z.siege = { at: [cx, cy], openings: [], dawn: G.clock.getElapsed() + 600, idx: i, switchAt: G.clock.getElapsed() + 25, pid: me.id };
+    });
+    const before3 = standing();
+    let t4 = 0;
+    while (t4 < 60 * 150 && bursts.length === 0) { step(1); t4++; }
+    row("the siege presses too: the dead that know the player is in the house burst the fence across their way", bursts.length > 0 && standing() === before3 - 1, `after ${(t4 / 60).toFixed(0)} s, states ${sieged.map((z) => z.state).join(",")}`);
   } finally {
     offBurst();
     offShake();

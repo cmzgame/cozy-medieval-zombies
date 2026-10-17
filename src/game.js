@@ -31,10 +31,10 @@ import * as rng from "./rng.js";
 import * as world from "./world.js";
 import * as loop from "./loop.js";
 import { serializeCharacter, restoreCharacter, dress, dressCorpse } from "./entities/character.js";
-import { createPlayer, updatePlayer, updateFallen, setSleepScaleRule, damagePlayer, autoDrink } from "./entities/player.js";
+import { createPlayer, updatePlayer, updateFallen, setSleepScaleRule, setSiegeQuery, damagePlayer, autoDrink } from "./entities/player.js";
 import { canPutDown } from "./placement.js";
 import { playAnimation } from "./sprites.js";
-import { createZombie, updateZombie } from "./entities/zombie.js";
+import { createZombie, updateZombie, siegeHeldOn } from "./entities/zombie.js";
 import { createVillager, updateVillager, turnVillager, damageVillager } from "./entities/villager.js";
 import { controlPlayer } from "./player-controller.js";
 
@@ -330,6 +330,7 @@ export function timeScaleNow() {
   return everyoneAsleep() ? tuning.player.sleepTimeScale : 1;
 }
 setSleepScaleRule(timeScaleNow);
+setSiegeQuery((player) => siegeHeldOn(state.zombies, player));
 
 // A player falls (Michael, 2026-10-14): whatever they were doing stops, what they carried on their head is set down
 // beside them where there is room (else it stays with the body and comes back with a search of nothing: it is kept in
