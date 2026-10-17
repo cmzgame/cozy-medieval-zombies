@@ -1,0 +1,1 @@
+{"placeholder": {"kind": "box", "color": "#6a9a6a", "height": 14, "inset": 20, "label": "Flax"}, "carry": false, "interactable": true, "crop": {"kind": "flax", "stage": 1}, "note": "flax, stage 1 (#212): a dev box until drawn (docs/29-world/09 has the crop art asks); one farm tile's plants, ripe at stage 2"}
