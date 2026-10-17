@@ -1835,7 +1835,7 @@ async function boot() {
     // The worlds flow (docs/31/09), for check("worlds"): a world made, left, listed, played again; a new character after a death.
     // Stepping away (item 3), for the checks: the idle time shortened, the state, and the two moves by hand.
     away: { after: (ms) => { awayAfterMs = ms == null ? AWAY_AFTER_MS : ms; lastInputAt = performance.now(); }, get now() { return away; }, step: stepAway, back: comeBack, check: checkAway },
-    worlds: { moveUp, bringHome, playServer, ownerInfo, rotateCode, setRules, removePlayer, unbar, addOwned, rekey, create: (name, identityId, options = {}) => enterNewWorld(name, identities.get(identityId), options), setWorldRules, sandbox: sandboxChoices, play: playWorld, leave: exitGame, exitGame, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor: host.joinFor, full: host.full, dormantNow: host.dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
+    worlds: { moveUp, bringHome, playServer, ownerInfo, rotateCode, setRules, removePlayer, unbar, addOwned, rekey, create: (name, identityId, options = {}) => enterNewWorld(name, identities.get(identityId), options), setWorldRules, sandbox: sandboxChoices, play: playWorld, leave: exitGame, exitGame, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor: host.joinFor, full: host.full, awayNow: host.awayNow, backNow: host.backNow, dormantNow: host.dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
     identities,
     addPlayer: (gx, gy, opts) => {
       const p = game.addPlayer(gx, gy, opts);

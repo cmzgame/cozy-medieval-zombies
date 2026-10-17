@@ -4,6 +4,12 @@ The build, merge, fix, and measurement entries of `docs/02-decisions.md`, moved 
 
 ## Builds, merges, fixes, and measurements
 
+### 2026-10-16 — A cap on the players in a world (#93, Michael)
+
+(the build's record; the ruling stays in `docs/02-decisions.md`: "4 players in a browser-hosted world, 8 in a server world, both in data")
+
+**Built (#93):** `playerCapBrowser: 4` and `playerCapServer: 8` in `data/tuning.json`'s `world` section; `host.init({ cap })` is given the number by `main.js` (a browser's world) and `server/world.js`; `host.joinFor` refuses over the cap with `full` before a character is made, a hash filed, or a dormant record taken out of the save, the dormant branch and the new-character branch both. The word is "This world is full." on the site's Home, for a first join and a Rejoin. `host.full()` is the one count (the friends-row dot, #139, uses it): the characters standing in the world, the guests still connected who have stepped away (`net.awayGuestHashes`), and a browser world's host always. The review caught that a stepped-away player's `back` and the host's respawn went over the cap with no join; they hold their place now, so no check is needed there. `tools/checks/cap.js` proves it (the fill, the refusal, nothing half made, a rejoin at the cap, a dormant guest refused with its record kept, the host's step away and back); the guest's step away was tried in two tabs.
+
 ### 2026-10-15 — The bowstring to the chin and the cast's pose; a playtest that killed Michael (Michael)
 
 (the build's record; the ruling stays in `docs/02-decisions.md` under the same heading)

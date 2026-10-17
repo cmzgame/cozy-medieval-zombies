@@ -31,8 +31,7 @@ export const MAX_OWNERS = 16; // the browsers a world remembers a character for
 
 // The players a world holds at once (Michael, #93: "4 players in a browser-hosted world, 8 in a server world, both in
 // data"): `cap` is read from `data/tuning.json` by whoever runs the world (main.js a browser's, server/world.js a
-// server's). It counts the characters in the world, the host's own among them; a character resting in the save does not
-// take a place until its player comes back. MAX_OWNERS above is a different number: the browsers a world remembers.
+// server's). See `full` for what counts. MAX_OWNERS above is a different number: the browsers a world remembers.
 let cfg = {
   cap: () => Infinity,
   store: () => ({ owners: {}, dormant: {} }),
@@ -48,10 +47,19 @@ export function init(c) {
 const self = () => cfg.self();
 const store = () => cfg.store();
 
-// Whether the world holds as many players as it may: a new character, or one coming back from the save, would take
-// the place of none that is there already.
+// Whether the world holds as many players as it may: a new character, or one coming back from the save after its
+// player left, would take the place of none that is there already. The places held are the characters standing in the
+// world, the guests still connected who have stepped away (idling at the keyboard is not leaving; their `back` needs no
+// check, since they never gave the place up), and, in a browser's world, the host's own, whether it stands in the world,
+// is stepped away, or is on the dead screen (`self()` stays set, so a guest cannot take the host's place and the host's
+// respawn or comeBack never goes over). A character resting in the save whose player is gone holds none. The friends'
+// dot (#139) counts with this one function.
 export function full() {
-  return S.players.length >= cfg.cap();
+  const me = self();
+  let held = S.players.filter((p) => !me || p.id !== me.id).length;
+  if (me) held += 1;
+  held += net.awayGuestHashes().length;
+  return held >= cfg.cap();
 }
 
 // The look a character is baked from: DEFAULT_LOOK under an identity's colours and style.
