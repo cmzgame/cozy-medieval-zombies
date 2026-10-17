@@ -21,6 +21,7 @@ import * as bleed from "./bleed.js";
 import * as burn from "./burn.js"; // burning as a status (#14): the step's, beside the visual fire.js
 import * as fruit from "./fruit.js"; // bare fruit trees bear again (#190)
 import * as farming from "./farming.js"; // crops grow on the clock (#194)
+import * as chart from "./chart.js"; // what the world has seen of itself (docs/33, #203)
 import * as kit from "./kit.js"; // the starting kit as data and the world's additions (#136)
 import * as infection from "./infection.js";
 import * as combat from "./combat.js";
@@ -84,6 +85,8 @@ export function create({ json, look = null, name = null, devChest = false, rules
   S.info = map.loadMap(json, mapOptions());
   fruit.reset();
   farming.reset();
+  map.setTouchHook(chart.noteTouched);
+  chart.reset(); // a new world has seen nothing
   const info = S.info;
   map.ensureAround(info.spawn[0], info.spawn[1], 4); // reading never grows (docs/31/05, item 8): the ring first
   // The dev chest by the spawn, a setting rather than a thing in the map (docs/30 step 0).
@@ -210,6 +213,7 @@ function worldWithout(chunks) {
     rng: rng.getState(),
     world: { timeScale: world.world.timeScale, idCounter: world.idCounter() },
     rules: { ...rules.rules }, // the world's own rules ride in its save (item 5's second step; a server world reads only these)
+    chart: chart.serialize(), // what the world has seen: the world's, not any player's, and it outlives the chunks it was seen in
     map: { chunks: null, pending: map.serializePending(), sleepers: map.sleeperEntries().map(([k, list]) => [k, list.map(serializeCharacter)]) },
     characters: {
       players: S.players.map(serializeCharacter),
@@ -281,6 +285,8 @@ export function restore(saved, json) {
   world.reset(json.idCounter || 0);
   S.info = map.loadMap(json, mapOptions());
   map.restoreMap(save.map);
+  map.setTouchHook(chart.noteTouched);
+  chart.restore(save.chart);
   fruit.reset();
   const makers = { player: createPlayer, zombie: createZombie, villager: createVillager };
   const all = [];
@@ -412,6 +418,7 @@ export function syncParts() {
   const playerText = (p) => [`${p.id} ${f(at(p)[0])},${f(at(p)[1])} hp ${hp2(p.hp)} ${p.dead ? "dead" : "alive"}`, `hands ${entryText(p.hands.main)} ${entryText(p.hands.off)}`, `worn ${Object.keys(p.worn).sort().map((k) => `${k}:${entryText(p.worn[k])}`).join(" ")}`, `belt ${(inventory.beltOf(p) || []).map(entryText).join(" ")}`, `carrying ${p.carrying ? p.carrying.id : "-"}`].join(" | ");
   const parts = {
     map: hashOf(JSON.stringify(chunks, (k, v) => (k === "wear" && typeof v === "number" ? Math.floor(v * 100) / 100 : k === "hp" && typeof v === "number" ? undefined : k === "boards" && v && Array.isArray(v.near) ? { near: v.near.length, far: v.far.length } : v))), // a mounted torch's wear to the hundredth: what the wire sends (map.burnHolders); a wall's health not at all (the wire sends a break, not the blows: strikeFence, damageOpening), a board's health (a bare number in `wall.boards`) not either, only how many boards stand, so a broken one still shows
+    chart: hashOf(chart.hashText()), // what the world has seen, the charted chunks sorted (docs/33)
     registry: hashOf([...map.allProps()].map((p) => p.id).sort().join(",")),
     fires: hashOf(`${[...map.fires()].map((p) => `${p.id}:${p.fire && p.fire.lit ? "lit" : "out"}`).sort().join(",")}`),
     players: hashOf(S.players.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map(playerText).join("\n")),
@@ -558,6 +565,7 @@ export function begin(dt) {
     // the only growth there is, since reading never grows (docs/31/05, item 8).
     map.ensureAround(p.gx, p.gy, 4);
   }
+  chart.step(S.players); // the chart reveals what each player now sees, and reads the touched places again (docs/33)
   for (const [x, y] of map.takePendingSpawns()) S.zombies.push(createZombie(x, y));
   // Chunks far behind are dropped and the characters in them sleep with their
   // chunk, back when it grows again (docs/23a, B1, B2). Villagers hold a chunk,

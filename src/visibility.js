@@ -91,7 +91,7 @@ export function tileKey(x, y) {
 const CORNER = 0.42;
 const CORNERS = [[-CORNER, -CORNER], [CORNER, -CORNER], [-CORNER, CORNER], [CORNER, CORNER]];
 
-function tileVisible(ox, oy, tx, ty) {
+export function tileVisible(ox, oy, tx, ty) {
   if (lineOfSight(ox, oy, tx, ty)) return true;
   for (const [dx, dy] of CORNERS) {
     if (lineOfSight(ox, oy, tx + dx, ty + dy)) return true;

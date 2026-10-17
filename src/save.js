@@ -25,12 +25,14 @@ import * as rules from "./rules.js";
 
 // The save's version, on the join too (net.js: a page and a host of different versions refuse each other).
 // 2 (2026-10-14, item 5's second step): the world's rules ride in the save.
-export const VERSION = 2;
+// 3 (2026-10-18, #203): the world's chart (what has been seen) rides in the save.
+export const VERSION = 3;
 
 // From each version to the next, in order, so a save of any older version is read (the browser's store, the old
 // slot, and the server's files run the same table when they load one; a newer version than this page's is refused).
 const MIGRATIONS = {
   1: (s) => ({ ...s, version: 2, rules: { ...rules.DEFAULTS } }), // the rules were the hosting browser's settings: the defaults stand in
+  2: (s) => ({ ...s, version: 3, chart: { chunks: [] } }), // nothing seen yet: the chart fills as players move
 };
 
 // A snapshot brought to this version, a copy; null for one with no version, or a newer one than this page knows.
