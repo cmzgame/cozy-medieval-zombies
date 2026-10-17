@@ -79,6 +79,10 @@
     "barkRadius": 6,
     "barkCooldown": 60,
     "barkDeadRadius": 8,
+    "talkReach": 2.6,
+    "talkWalkAway": 1,
+    "talkIdleSeconds": 1,
+    "talkDeadRadius": 5,
     "barkMaxLength": 70
   },
   "world": {
@@ -97,6 +101,7 @@
     "daylightTiles": 30,
     "boardTool": "build",
     "splitTool": "split",
+    "chartRadius": 24,
     "fruitCheckSeconds": 30,
     "pickReach": 1.6,
     "chopSeconds": 3,

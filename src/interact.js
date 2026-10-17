@@ -27,7 +27,7 @@ import * as placement from "./placement.js";
 import * as grid from "./grid.js";
 import { autoWalk, eat, drink, isFull } from "./entities/player.js";
 import { showMessage } from "./ui/prompt.js";
-import { pokeVillager } from "./entities/villager.js";
+import { pokeVillager, startTalk, endTalk } from "./entities/villager.js";
 import { lootOf } from "./entities/character.js";
 import { emit } from "./events.js";
 import * as loop from "./loop.js";
@@ -920,8 +920,9 @@ export function nearestSimpleAction(player) {
   for (const b of map.bracketsNear(player.gx, player.gy, INTERACT_RANGE)) consider(tag(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player), onBracket(b.bracket)));
   // A body lying within reach (a corpse is a container, docs/19).
   for (const c of allCharacters()) {
-    if ((c.kind !== "zombie" && c.kind !== "player") || !c.dead || !c.corpse || Math.abs(c.gx - player.gx) > 3 || Math.abs(c.gy - player.gy) > 3) continue;
-    consider(tag(characterActions(c, player), onCharacter(c)));
+    if (Math.abs(c.gx - player.gx) > 3 || Math.abs(c.gy - player.gy) > 3) continue;
+    if ((c.kind === "zombie" || c.kind === "player") && c.dead && c.corpse) consider(tag(characterActions(c, player), onCharacter(c)));
+    else if (c.kind === "villager" && !c.dead) consider(tag(characterActions(c, player), onCharacter(c))); // E talks to the nearest villager (docs/34)
   }
   return best;
 }
@@ -1536,6 +1537,12 @@ export function pokeVillagerFromGuest(player, id) {
   return true;
 }
 
+// A guest's panel closed: the host drops it from the villager's talkers (net.js `talkEnd`).
+export function endTalkFromGuest(player, id) {
+  const c = allCharacters().find((q) => q.id === id && q.kind === "villager");
+  return !!c && endTalk(c, player.id);
+}
+
 export function clickCharacterAt(sx, sy, player) {
   const c = characterAt(sx, sy, player);
   if (c && c.kind === "villager" && canReach(player, [[c.gx, c.gy]], CLICK_REACH)) pokeVillager(c, player);
@@ -1570,6 +1577,20 @@ function characterActions(c, player) {
   const out = [];
   if ((c.kind === "zombie" || c.kind === "player") && c.dead && c.corpse) out.push(searchBodyAction(c)); // a player's body too (2026-10-14)
   if (c.kind === "villager") {
+    // Talk (docs/34): a simple action, so E does it when the villager is the nearest thing within reach (the prompt names it, and a door nearer wins);
+    // it runs on the host as the talking player, who is told to open the panel (`talkStarted`).
+    if (lineOfSight(player.gx, player.gy, c.gx, c.gy)) out.push(act({ // a wall in the way: not offered, rather than offered and refused (#230)
+      kind: "talk",
+      label: `Talk to ${c.name}`,
+      tiles: [[Math.round(c.gx), Math.round(c.gy)]],
+      range: CLICK_REACH,
+      simple: true,
+      enabled: !c.dead,
+      perform() {
+        startTalk(c, player);
+        return true;
+      },
+    }));
     out.push(act({
       kind: "poke",
       label: `Poke ${c.name}`,
