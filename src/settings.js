@@ -28,6 +28,8 @@ export const DEFAULTS = {
   panelPos: {}, // "bag" | "character" | "container" -> { x, y } in UI pixels where its header was dragged to (docs/23 step 4; Michael, 2026-10-12)
   cursor: "default", // the system's own, or one of the three hands (ui/cursor.js; Michael, 2026-10-12)
   logSize: null, // { w, h } in UI pixels the text log was resized to (ui/log.js)
+  extraKit: "", // items added to the starting kit, one `item_id count` a line (#136): chosen at a new world's Sandbox step
+  devBag: false, // start wearing the Developer Bag in place of the sack (#136): chosen at a new world's Sandbox step
   devChest: true, // the chest of every item placed by the spawn: chosen at a new world's Sandbox step (docs/38), this is the next world's first choice; docs/30 step 0: the map file stays clean
   identities: [], // [{ id, name, look }]: the identities kept in this browser (identities.js; docs/31/09)
   lastIdentity: "", // the one picked last, offered first on the next creation
@@ -66,6 +68,8 @@ export const REGISTRY = [
   { key: "showSwingTargets", group: "testing", label: "Swing targets", help: "A green outline on what your next swing would hit.", choices: ON_OFF },
   { key: "showHitShapes", group: "testing", label: "Hit shapes", help: "The dead's body samples, green when the next swing reaches them.", choices: ON_OFF },
   { key: "devChest", group: "sandbox", label: "Dev chest", help: "A chest of every item by the spawn, made with the world.", choices: ON_OFF },
+  { key: "devBag", group: "sandbox", fixed: true, label: "Dev bag", help: "Everyone starts wearing the Developer Bag, a big bag, in place of the sack. Chosen when the world is made.", choices: ON_OFF },
+  { key: "extraKit", group: "sandbox", fixed: true, text: true, label: "Extra starting items", help: "On top of the usual kit, for testing: one item a line, `sword` or `arrow 20`. Chosen when the world is made.", choices: [] },
 ];
 
 // A switch or a dropdown: the row's answers are exactly true and false, or anything else.

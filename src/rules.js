@@ -18,6 +18,8 @@ export const DEFAULTS = {
   freeBuilding: !!settings.DEFAULTS.freeBuilding, // building costs nothing
   trees: settings.DEFAULTS.trees !== false, // the world has trees (#130): off, none are placed when it is made or a chunk is grown
   population: settings.DEFAULTS.population, // "none", "low", "standard", or "high": how many of the dead it starts with (#130)
+  extraKit: settings.DEFAULTS.extraKit, // text, one `item_id count` a line: items every new character starts with beyond the default kit (#136; kit.js)
+  devBag: !!settings.DEFAULTS.devBag, // every new character starts wearing the Developer Bag in place of the sack (#136)
 };
 
 // The rules that are one of a few words, not a switch.
@@ -25,12 +27,16 @@ export const ENUMS = { population: ["none", "low", "standard", "high"] };
 
 // The rules chosen when a world is made and never changed after (#130): they shape what is placed, and a change
 // would reach only the chunks not yet grown. A server world's owner cannot set them either.
-export const FIXED = ["trees", "population"];
+export const FIXED = ["trees", "population", "extraKit", "devBag"];
+
+// The rules that are text, not a switch or a word (#136).
+export const TEXTS = ["extraKit"];
 
 export const rules = { ...DEFAULTS };
 
 // A value as its rule keeps it: a switch true or false, a word one of its words (else the default).
 export function coerce(key, v) {
+  if (TEXTS.includes(key)) return typeof v === "string" ? v.slice(0, 600) : DEFAULTS[key]; // a text, as long as a list of items can reasonably be
   if (ENUMS[key]) return ENUMS[key].includes(v) ? v : DEFAULTS[key];
   return !!v;
 }
