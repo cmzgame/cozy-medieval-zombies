@@ -136,7 +136,7 @@ A **prop you carry** on your head like furniture (both hands full, no fighting),
 
 ## 10. Tools and their verbs
 
-Hatchet: chop a tree, chop a stump (a log); both built (#195). Pickaxe: mine a rock (stone blocks; the rock goes), mine an ore rock (ore). Hoe: till. Scythe: harvest grain rows, cut hay. Shovel: dig a grave (a grave's goods), dig the buried chest, dig up a plot. Knife: butcher and skin (with animals), cut flax to fibre. Hammer: the smith's and the workbench's recipes ask for it in hand; building stone walls asks for it. All are weapons with 5 kills and poor damage. The fishing rod is built (#190). Each tool's verb is a row in the verb table with its target as an address (a prop's id, a tile), re-validated when it fires so two players cannot fell one tree or mine one rock twice; what it removes or gives goes through the map's mutators, so a guest sees the stump, the gone rock, and the dug plot in the touched chunks.
+Hatchet: chop a tree, chop a stump (a log); both built (#195). Pickaxe: mine a rock (stone blocks; the rock goes), mine an ore rock (ore); both built (#196: `src/mining.js`). Hoe: till. Scythe: harvest grain rows, cut hay. Shovel: dig a grave (a grave's goods), dig the buried chest, dig up a plot. Knife: butcher and skin (with animals), cut flax to fibre. Hammer: the smith's and the workbench's recipes ask for it in hand; building stone walls asks for it. All are weapons with 5 kills and poor damage. The fishing rod is built (#190). Each tool's verb is a row in the verb table with its target as an address (a prop's id, a tile), re-validated when it fires so two players cannot fell one tree or mine one rock twice; what it removes or gives goes through the map's mutators, so a guest sees the stump, the gone rock, and the dug plot in the touched chunks.
 
 ## 11. The map, built place by place (the Where, from `29`, with this pass slotted in)
 
@@ -164,7 +164,7 @@ From `29/10` (archived whole in `docs/history/29-world-ideation.md`, with its "w
 - Step 3: `interactions.json` and its resolver (the menu's verbs from the hands; the drag in the bag); the station panel on the kit; recipes with a queue and an output slot; durability fields and the bar; tools as items with verbs.
 - Step 4: soil by hoe (`setFloor`), crop props with a planted hour and growth on the clock, dryness per soil tile, the bucket as a carried prop with fill and pour, the scythe's row harvest, stacks as containers that give.
 - Step 5: the castle's wall heights verified through the cap redraw, the hit tests, and the arrow's scan; larger prop footprints (2 by 2, 3 by 1, 2 by 3; a general slice) or the two-piece fallback; wall-hung props beyond the bracket (banners, shelves, racks, signs); rugs as flat props; the hearth-radius cap for the hall; props with a prompt label.
-- Step 6: mining (a rock gives and goes); the dead placed down and rising; containers on trees and stacks; authored decals.
+- Step 6: mining (a rock gives and goes; built, #196); the dead placed down and rising; containers on trees and stacks; authored decals.
 - Step 8: an animal entity (a drawn sheet with facings, wander, flee, hit, loot); nests as containers that refill daily.
 - Cut (`29/11`, taken): locked doors and keys, paired openings, carpet as an autotile, coin, the maze, the second smithy's fire, the willow's eyes.
 

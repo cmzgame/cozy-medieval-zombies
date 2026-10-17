@@ -2030,13 +2030,14 @@ export function loadMap(json, options = {}) {
   const fence = (f, offset) => {
     const [x0, y0, w, h] = [f.rect[0] + offset[0], f.rect[1] + offset[1], f.rect[2], f.rect[3]];
     const mat = f.wall || "wall_fence";
+    const sides = f.sides || ["n", "s", "w", "e"]; // a feature may run on some sides only (a quarry's cliff on three, #196)
     for (let x = x0; x < x0 + w; x++) {
-      if (!get(x, y0).n) get(x, y0).n = createWall("wall", mat);
-      if (!get(x, y0 + h).n) get(x, y0 + h).n = createWall("wall", mat);
+      if (sides.includes("n") && !get(x, y0).n) get(x, y0).n = createWall("wall", mat);
+      if (sides.includes("s") && !get(x, y0 + h).n) get(x, y0 + h).n = createWall("wall", mat);
     }
     for (let y = y0; y < y0 + h; y++) {
-      if (!get(x0, y).w) get(x0, y).w = createWall("wall", mat);
-      if (!get(x0 + w, y).w) get(x0 + w, y).w = createWall("wall", mat);
+      if (sides.includes("w") && !get(x0, y).w) get(x0, y).w = createWall("wall", mat);
+      if (sides.includes("e") && !get(x0 + w, y).w) get(x0 + w, y).w = createWall("wall", mat);
     }
     for (const g of f.gates || []) {
       const wall = createWall("door", mat);
