@@ -106,9 +106,11 @@ export function makeCode() {
 // guest on another with a word for whose is newer.
 // 2 (2026-10-13): the dead as a delta with a roster, numbers rounded; 3 (2026-10-14, item 5's fourth step): the welcome may
 // come gzipped (`z`); 4 (2026-10-15): a browser host packs its welcome in the background, so the welcome carries the tick
-// of its snapshot and a guest keeps the frames that come before it (an older guest dropped them).
-// 5 (2026-10-18, #203): the frame carries the chart's changed chunks (`chart`) and the save the whole chart.
-export const PROTOCOL = 5;
+// of its snapshot and a guest keeps the frames that come before it (an older guest dropped them); 5 (2026-10-18, #221): a prop goes as its identity and
+// the fields that differ from what its sprite makes it (`map.serializeProp`), so a chunk, a frame, and a save are about half the size; an older guest
+// would read a prop with its defaults missing.
+// 6 (2026-10-18, #203): the frame carries the chart's changed chunks (`chart`, only when there are any) and the save the whole chart.
+export const PROTOCOL = 6;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -861,7 +863,7 @@ export function hostAfterStep() {
     simTime: loop.simTime(),
     timeScale: world.world.timeScale,
     chunks: touched.map(([cx, cy]) => map.getChunk(cx, cy, false)).filter(Boolean).map(map.serializeChunk),
-    chart: chartChanged, // the chart chunks written since the last frame, whole (docs/33): nothing while no one sees anything new
+    ...(chartChanged.length ? { chart: chartChanged } : {}), // the chart chunks written since the last frame, whole (docs/33): the field only when there are any
     players: S.players.map(playerRecord),
     zombies: delta(S.zombies),
     villagers: delta(S.villagers),

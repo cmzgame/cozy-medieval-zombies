@@ -1002,9 +1002,23 @@ export function allProps() {
 
 const PROP_DERIVED = new Set(["kind", "tiles"]); // made again by createProp from the sprite and the footprint
 
+// A prop as saved and as sent: its identity (id, sprite, tile) and every field that differs from what its sprite makes it (#221: a crop was about
+// 270 bytes, most of them `fire: null`, `container: null`, `bag: null`, `wood: 0`...; a dense farm chunk was 52 KB and each harvest sent it whole).
+// A field the prop has lost since it was made (a deleted key) is named in `gone`, so the load drops it too. `reviveProp` makes the base again and
+// lays this over it; a save from before still loads (every field was there).
+const IDENTITY = new Set(["id", "sprite", "tile"]);
 export function serializeProp(p) {
+  const base = propBase({ id: p.id, sprite: p.sprite, tile: p.tile });
+  const keepFacing = !!getDef(p.sprite).furrows; // a crop's rows are always named: the load must not derive them again from the soil
   const out = {};
-  for (const [k, v] of Object.entries(p)) if (!PROP_DERIVED.has(k) && typeof v !== "function") out[k] = v;
+  for (const [k, v] of Object.entries(p)) {
+    if (PROP_DERIVED.has(k) || typeof v === "function" || v === undefined) continue;
+    if (!IDENTITY.has(k) && !(k === "facing" && keepFacing) && !(k === "furrowsPending" && v) && k in base && JSON.stringify(v) === JSON.stringify(base[k])) continue;
+    out[k] = v;
+  }
+  // `furrowsPending` is settled away once the rows are named; a load with the facing named never sets it, so it needs no word.
+  const gone = Object.keys(base).filter((k) => !(k in p) && !PROP_DERIVED.has(k) && !(k === "furrowsPending" && out.facing !== undefined));
+  if (gone.length) out.gone = gone;
   return out;
 }
 
@@ -1103,9 +1117,11 @@ export function installChunk(d) {
 // record (entities/character.js `carried`), since a lifted prop is on no chunk to be found by id.
 export function reviveProp(data, onMap = true) {
   const prop = createProp({ id: data.id, sprite: data.sprite, tile: data.tile, footprint: data.footprint, facing: data.facing, offset: data.offset, solid: data.solid, radius: data.radius });
-  Object.assign(prop, data, { tiles: prop.tiles, kind: "prop" });
+  const { gone, ...rest } = data;
+  Object.assign(prop, rest, { tiles: prop.tiles, kind: "prop" });
   if (prop.fire && !Number.isFinite(prop.fire.fuel)) prop.fire.fuel = 0; // a save from before 2026-10-15 may hold the word (createProp)
-  for (const k of Object.keys(prop)) if (!(k in data) && !PROP_DERIVED.has(k)) delete prop[k]; // exactly the saved shape (a field the load had dropped stays dropped)
+  if (!("furrowsPending" in rest) && rest.facing !== undefined) delete prop.furrowsPending; // named rows: the host settled it away (serializeProp keeps a true one)
+  for (const k of gone || []) delete prop[k]; // a field the prop had lost stays lost; every other field not saved is its default (serializeProp, #221)
   // A carried prop stands on no tile, so it is no light at its old one and not in the registry (as removeProp leaves it).
   if (prop.fire && onMap) fireProps.add(prop);
   else fireProps.delete(prop);
@@ -1863,6 +1879,15 @@ export function roomCount() {
 // and data/maps/square.json. The result is sliced into chunks on first load.
 
 export function createProp(def, offset = [0, 0]) {
+  const prop = propBase(def, offset);
+  if (prop.fire) fireProps.add(prop);
+  propsById.set(prop.id, prop);
+  return prop;
+}
+
+// What a prop is made as, from its sprite definition and what the map says of it, registered nowhere (createProp registers it): also what
+// `serializeProp` compares against, so a field at its default is left out of the save and the frame (#221).
+function propBase(def, offset = [0, 0]) {
   const [w, h] = def.footprint || [1, 1];
   const ox = def.tile[0] + offset[0];
   const oy = def.tile[1] + offset[1];
@@ -1927,9 +1952,7 @@ export function createProp(def, offset = [0, 0]) {
       hoursPerUnit: f.hoursPerUnit ?? 2,
       flicker: f.flicker || null, // { amp, speed }: applied when the light map is composed on the GPU (docs/08)
     };
-    fireProps.add(prop);
   }
-  propsById.set(prop.id, prop);
   return prop;
 }
 
