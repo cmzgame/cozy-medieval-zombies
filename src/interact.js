@@ -34,6 +34,9 @@ import * as loop from "./loop.js";
 import * as use from "./use.js"; // the Use entry on item menus (docs/30, law 2)
 import * as verbs from "./verbs.js"; // the verb table (docs/31/08, habit 4)
 import * as farming from "./farming.js"; // till, plant, water, harvest (#194)
+import { lineOfSight } from "./visibility.js";
+import * as chop from "./chop.js"; // a hatchet fells a tree and leaves a stump (#195)
+import * as tuning from "./tuning.js"; // the chop's seconds (world.chopSeconds)
 import * as fishing from "./fishing.js"; // a rod in hand casts at the water beside you (#190)
 import * as fruit from "./fruit.js"; // fruit trees: picked by hand, bare until they bear again (#190)
 import * as clock from "./clock.js";
@@ -47,7 +50,6 @@ export const INTERACT_RANGE = 1.15; // tiles
 export const SEARCH_TIME = 1.0;
 export const BOARD_TIME = 2.0;
 export const PULL_TIME = 1.5;
-export const CHOP_TIME = 3.0;
 export const DRINK_TIME = 1.5;
 export const FILL_TIME = 2.0;
 export const HOLD_TIME = 0.35; // seconds of a key that count as a hold
@@ -556,6 +558,7 @@ function farmTileActions(tx, ty, player) {
   const soil = farming.get().soil;
   const t = map.peekTile(tx, ty);
   if (!t || t.prop) return out;
+  if (!lineOfSight(player.gx, player.gy, tx, ty)) return out; // a wall in the way: not offered, rather than offered and refused (the verbs refuse it too)
   const base = { tiles: [[tx, ty]], mx: tx, my: ty };
   const run = (verb, args = {}) => () => {
     const r = verbs.run(verb, world, player, { tile: [tx, ty], ...args });
@@ -603,20 +606,25 @@ function pickActions(prop, player) {
 }
 
 // Trees: chop down, logs on the ground, the tree gone (docs/02: felling is clearing the tile's prop).
-function treeActions(prop) {
+// A hatchet in a hand fells it (a stump is left) or chops the stump up (#195); without one the entry says so, as "Board up (need a plank)"
+// does. The timed action runs the `chop` verb (chop.js), so a guest's choice of the label does the same on the host.
+function treeActions(prop, player) {
+  const stump = chop.isStump(prop);
+  const axe = chop.heldAxe(player);
+  const n = `${prop.wood} log${prop.wood > 1 ? "s" : ""}`;
+  const name = stump ? "Chop up the stump" : "Chop down";
   return [act({
     kind: "tree",
-    label: `Chop down (${prop.wood} log${prop.wood > 1 ? "s" : ""})`,
+    label: axe ? `${name} (${n})` : `${name} (need a hatchet)`,
+    enabled: !!axe,
     tiles: prop.tiles,
     mx: prop.tile[0],
     my: prop.tile[1],
-    duration: CHOP_TIME,
+    duration: tuning.world.chopSeconds,
     perform() {
-      const [tx, ty] = prop.tile;
-      map.removeProp(prop);
-      for (let i = 0; i < prop.wood; i++) map.dropItem(tx, ty, { id: "log", count: 1 });
-      showMessage(`${prop.wood} logs on the ground.`);
-      return true;
+      const r = verbs.run("chop", world, player, { prop: prop.id });
+      if (!r.ok && r.reason) showMessage(r.reason);
+      return r.ok;
     },
   })];
 }
@@ -720,7 +728,7 @@ function propActions(prop, player) {
   if (prop.container) out.push(...containerActions(prop));
   if (prop.fire && prop.fire.burns) out.push(...fireActions(prop, player));
   if (prop.fire && prop.fire.holds) out.push(...holderActions({ kind: "post", prop }, player));
-  if (prop.wood) out.push(...pickActions(prop, player), ...treeActions(prop));
+  if (prop.wood) out.push(...pickActions(prop, player), ...treeActions(prop, player));
   if (prop.crop) out.push(...cropActions(prop, player));
   if (prop.water) out.push(...wellActions(prop, player));
   if (getDef(prop.sprite).sleep) out.push(...sleepAction(prop, player));
@@ -796,7 +804,8 @@ export function actionsAt(sx, sy, player) {
   }
   for (const entry of map.itemsAt(tx, ty)) out.push(...tag(itemActions(entry, tx, ty, player), onItem(entry, tx, ty)));
   if (map.peekTile(tx, ty) && map.drinkableAt(tx, ty)) out.push(...tag(waterTileActions(tx, ty, player), onTile(tx, ty))); // the river, a pond (docs/30, law 8)
-  out.push(...tag(farmTileActions(tx, ty, player), onTile(tx, ty))); // Till the soil with a hoe, Plant with a seed (#194)
+  const farmActs = tag(farmTileActions(tx, ty, player), onTile(tx, ty)); // Till the soil with a hoe, Plant with a seed (#194)
+  out.push(...farmActs);
   // Props: on their tile, or under their sprite in the tiles around (a tall tree).
   const seen = new Set();
   for (let dy = -3; dy <= 1; dy++) {
@@ -815,7 +824,7 @@ export function actionsAt(sx, sy, player) {
   const under = characterAt(sx, sy, player);
   if (under) out.push(...tag(characterActions(under, player), onCharacter(under)));
   else if (playerAt(sx, sy, player)) out.push(...tag(characterActions(player, player), onCharacter(player)));
-  if (!out.length && map.isWalkableTile(tx, ty)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty)));
+  if (out.length === farmActs.length && map.isWalkableTile(tx, ty)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty))); // nothing else here (Till and Plant do not stand in for it)
   return out;
 }
 

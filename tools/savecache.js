@@ -162,6 +162,24 @@ if (apple.sprite !== "tree_apple" || apple.regrowAt !== undefined) fail(`the app
   run("harvest", { prop: crop.id }); did("a crop harvested");
   me.hands.main = null;
 }
+// Chopping (#195): a tree felled to a stump, and the stump chopped up: a prop removed and another placed on its tile, and one removed, with logs.
+{
+  const me = game.state.player;
+  const verbs = await import("../src/verbs.js");
+  const items = await import("../src/items.js");
+  me.hands.main = items.makeEntry("hatchet", 1);
+  me.gx = apple.tile[0] + 1;
+  me.gy = apple.tile[1] + 0.2;
+  const r1 = verbs.run("chop", game.state, me, { prop: apple.id });
+  if (!r1.ok) fail(`chop: ${r1.reason}`);
+  did("a tree felled to a stump");
+  const stump = map.tileAt(apple.tile[0], apple.tile[1]).prop;
+  if (!stump || stump.sprite !== "stump") fail("no stump was left");
+  const r2 = verbs.run("chop", game.state, me, { prop: stump.id });
+  if (!r2.ok) fail(`chop: ${r2.reason}`);
+  did("a stump chopped up");
+  me.hands.main = null;
+}
 // A torch burning down in a bracket: its wear changes every step and only the save's copy of the chunk hears (map.burnHolders).
 const mount = [...map.brackets()].find((b) => !b.wall.bracket.torch) || [...map.brackets()][0];
 if (!mount) fail("the valley has no bracket for a mounted torch");

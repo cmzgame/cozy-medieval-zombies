@@ -55,7 +55,7 @@ export async function run(game) {
     row("without a hoe in hand the soil cannot be tilled, and the menu offers nothing", !run1("till", { tile: [x, y] }).ok && !labels({ kind: "tile", tile: [x, y] }).includes("Till the soil") && !menu(x, y).includes("Till the soil"), String(run1("till", { tile: [x, y] }).reason));
     const hoe = mk("hoe");
     me.hands.main = hoe;
-    row("with the hoe in hand the tile's menu (the right-click one, and the address a guest sends) offers Till the soil", menu(x, y).includes("Till the soil") && labels({ kind: "tile", tile: [x, y] }).includes("Till the soil"), menu(x, y).join(", "));
+    row("with the hoe in hand the tile's menu (the right-click one, and the address a guest sends) offers Till the soil, and Walk here stays beside it", menu(x, y).includes("Till the soil") && menu(x, y).includes("Walk here") && labels({ kind: "tile", tile: [x, y] }).includes("Till the soil"), menu(x, y).join(", "));
     const tilled = run1("till", { tile: [x, y] });
     const floor = G.map.peekTile(x, y).floor;
     row("tilling turns bare grass to soil, its furrows along the way the player faces (east of the player: along x)", tilled.ok && floor === "floor_farm", `${floor}`);
@@ -206,6 +206,7 @@ export async function run(game) {
       harvest: G.verbs.run("harvest", G.world, me, { prop: beyond.id }),
     };
     row("a wall between the player and the tile stops till, plant, water, and harvest alike", Object.values(through).every((r) => !r.ok && /wall/.test(r.reason)) && !!G.map.propById(beyond.id), JSON.stringify(Object.fromEntries(Object.entries(through).map(([k, r]) => [k, r.reason]))));
+    row("and the right-click menu does not offer Plant or Till across it (offered and refused is worse)", !menu(wx, wy - 1).includes("Plant potato") && !menu(wx + 1, wy - 1).includes("Plant potato"), menu(wx, wy - 1).join(", "));
     G.map.destroyWall(wx, wy, "n");
     G.map.destroyWall(wx + 1, wy, "n");
     row("and with the wall gone the same reach works", G.verbs.run("harvest", G.world, me, { prop: beyond.id }).ok, "harvested once the wall is down");

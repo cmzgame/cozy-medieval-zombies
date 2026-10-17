@@ -93,6 +93,8 @@
     "daylightTiles": 30,
     "fruitCheckSeconds": 30,
     "pickReach": 1.6,
+    "chopSeconds": 3,
+    "stumpSprite": "stump",
     "fenceHp": 90,
     "fenceGateFactor": 0.5
   },
