@@ -65,7 +65,7 @@ export async function run(game) {
     const bed = G.map.createProp({ sprite: "bed", tile: [cell[0] - 1, cell[1] + 1], footprint: [2, 1] });
     G.map.placeProp(bed, cell[0] - 1, cell[1] + 1);
     restore.push(() => G.map.removeProp(bed));
-    G.teleport(cell[0] + 1, cell[1] + 1);
+    G.teleport(cell[0], cell[1]); // straight south of the window: in sight of one straight north of it
     G.map.touch(cell[0], cell[1]);
     step(2);
     z.gx = cell[0];
