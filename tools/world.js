@@ -115,7 +115,8 @@ if (bitten) console.log(`bite: hp ${bitten.hp0} to ${game.state.player.hp} after
 const text = game.hashText();
 const S = game.state;
 const treeCount = map.allProps().filter((p) => String(p.sprite).startsWith("tree_")).length;
-console.log(`${mapName}: ${S.players.length} player${S.players.length === 1 ? "" : "s"}, ${S.zombies.length} dead, ${S.villagers.length} villagers, ${treeCount} trees, ${map.chunkCount()} chunks, ${map.roomCount()} rooms`);
+const forageCount = map.allProps().filter((p) => String(p.sprite).startsWith("mushroom")).length;
+console.log(`${mapName}: ${S.players.length} player${S.players.length === 1 ? "" : "s"}, ${S.zombies.length} dead, ${S.villagers.length} villagers, ${treeCount} trees, ${forageCount} mushrooms, ${map.chunkCount()} chunks, ${map.roomCount()} rooms`);
 if (Object.keys(ruleArgs).length) console.log(`rules ${JSON.stringify(ruleArgs)}`);
 console.log(`booted in ${booted.toFixed(0)} ms, ${steps} steps in ${stepped.toFixed(0)} ms (${(stepped / steps).toFixed(2)} ms a step)`);
 console.log(`hash ${game.hashOf(text)} over ${text.split("\n").length - 2} entities after ${steps} steps`);

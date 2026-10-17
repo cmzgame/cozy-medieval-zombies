@@ -43,6 +43,7 @@ let bounds = null; // [x, y, w, h] of the authored map
 const pendingSpawns = []; // [x, y] tiles where a wild chunk wants a zombie
 let popFactor = 1; // the world's Starting population as a factor (tuning.population): scales the dead a wild chunk brings
 let noTrees = false; // the world's Trees rule is off: no tree is placed, scatter or wild (rocks, forage, and anything else stay)
+const ghostTrees = new Set(); // with Trees off, the tiles of the authored scatter where a tree would have stood: forage is placed against these, as against the trees of a world that has them
 
 // Whether a kind is a tree: its definition has a canopy (the engine's one idea of a tree), else its id says so.
 function isTreeKind(kind) {
@@ -289,21 +290,32 @@ function wildRockAt(x, y) {
 // The wild rule's tree at a tile, or null, without making the tile: the same
 // rolls wildTile makes, so anything can ask where the trees are before their
 // chunks exist.
-function wildTreeAt(x, y) {
+function wildPickAt(x, y) {
   if (!wild || wildRockAt(x, y) || hash2(x, y, wild.seed ?? 1) >= densityAt(wild, wild.biome, x, y)) return null;
-  const kind = weightedPick(wild.biome.kinds, hash2(x, y, (wild.seed ?? 1) + 1));
-  return noTrees && isTreeKind(kind) ? null : kind; // Trees off: the same tiles, minus the trees
+  return weightedPick(wild.biome.kinds, hash2(x, y, (wild.seed ?? 1) + 1));
+}
+
+// What the wild rule stands at a tile: its pick, unless Trees are off and the pick is a tree.
+function wildTreeAt(x, y) {
+  const kind = wildPickAt(x, y);
+  return kind && noTrees && isTreeKind(kind) ? null : kind; // Trees off: the same tiles, minus the trees
 }
 
 // Whether a tree stands at a tile: the authored map inside the bounds, the
 // wild rule beyond them. Pure, so it answers the same in any order.
+// With Trees off it answers for where a tree *would* stand (the scatter's picks, the wild's rolls), so the mushrooms that
+// grow beside trees are the same as in a world of the same seed that has them (#142).
 function treeAt(x, y) {
   if (inBounds(x, y)) {
     const t = source && source(x, y);
-    return !!(t && t.prop && getDef(t.prop.sprite).canopy);
+    return !!(t && t.prop && getDef(t.prop.sprite).canopy) || ghostTrees.has(ghostKey(x, y));
   }
-  const k = wildTreeAt(x, y);
+  const k = wildPickAt(x, y);
   return !!(k && getDef(k).canopy);
+}
+
+function ghostKey(x, y) {
+  return (x + 32768) * 65536 + (y + 32768);
 }
 
 function treeNear(x, y, r) {
@@ -317,6 +329,7 @@ function forageProp(x, y) {
   if (!forage) return null;
   const s = forage.seed ?? 41;
   if (hash2(x, y, s) >= forage.chance) return null;
+  if (noTrees && treeAt(x, y)) return null; // where a tree would have stood there is no mushroom, as in a world that has the tree
   if (!treeNear(x, y, forage.near ?? 2)) return null;
   const kind = weightedPick(forage.kinds, hash2(x, y, s + 1));
   const u = (hash2(x, y, s + 2) - 0.5) * 0.6;
@@ -1747,11 +1760,13 @@ export function ensureAround(x, y, radius = 4) {
 //   is scatter all the way down.
 // `options` are the world's own rules (rules.js), read when it is made or restored, never once per page (#130):
 // `trees` false makes no tree, inside the bounds or beyond them, and nothing else changes (rocks, forage, the ground,
-// and any scatter that is not trees stay, in the same places); `population` is the factor the dead a wild chunk brings
+// and any scatter that is not trees stay, in the same places; the forage is placed against where the trees would have
+// stood, so a world of the same seed has the same mushrooms with or without them, #142); `population` is the factor the dead a wild chunk brings
 // are scaled by (the authored dead are scaled by game.create).
 export function loadMap(json, options = {}) {
   const treesOn = options.trees !== false;
   noTrees = !treesOn;
+  ghostTrees.clear();
   popFactor = Number.isFinite(options.population) ? options.population : 1;
   fireProps.clear(); // props are created below, before reset() runs
   propsById.clear();
@@ -1913,7 +1928,7 @@ export function loadMap(json, options = {}) {
         const t = authored.get(key(x, y));
         if (t && (t.floor !== baseFloor || t.prop || t.n || t.w)) continue;
         const sprite = weightedPick(biome.kinds, hash2(x, y, seed + 1));
-        if (noTrees && isTreeKind(sprite)) continue; // Trees off: the pick is made as ever, a tree is simply not placed
+        if (noTrees && isTreeKind(sprite)) { ghostTrees.add(ghostKey(x, y)); continue; } // Trees off: the pick is made as ever, a tree is simply not placed (forage still counts it)
         placeProp({ sprite, tile: [x, y], footprint, solid: sc.solid !== false, opaque: !!sc.opaque }, [0, 0]);
       }
     }
