@@ -28,7 +28,7 @@ export async function run(game) {
     // The data.
     const hatchet = G.items.getItem("hatchet");
     const stumpDef = G.assets.getDef("stump");
-    row("the hatchet lists the verb chop; the stump is a gatherable (interactable, outlined box, one log) that says it is felled", hatchet.verbs.includes("chop") && stumpDef.interactable === true && stumpDef.wood === 1 && stumpDef.felled === true && stumpDef.placeholder.outline !== false, JSON.stringify({ verbs: hatchet.verbs, wood: stumpDef.wood }));
+    row("the hatchet lists the verb chop; the stump is a gatherable (interactable, an outlined dev box, a collision radius like a trunk's, one log) that says it is felled", hatchet.verbs.includes("chop") && stumpDef.interactable === true && stumpDef.wood === 1 && stumpDef.felled === true && stumpDef.collide.radius > 0 && stumpDef.collide.radius < 0.5 && stumpDef.placeholder.outline === true, JSON.stringify({ verbs: hatchet.verbs, wood: stumpDef.wood }));
     row("the chop's seconds and the stump's sprite are data", G.tuning.world.chopSeconds > 0 && G.tuning.world.stumpSprite === "stump", `${G.tuning.world.chopSeconds} s, ${G.tuning.world.stumpSprite}`);
 
     // The chests: a fresh world's cottage chest and the joiner's each hold a hatchet, made from their own tables.

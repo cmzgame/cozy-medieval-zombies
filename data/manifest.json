@@ -1,5 +1,5 @@
 {
-  "version": "c7c1e49e",
+  "version": "7fba36a8",
   "files": {
     "data/build.json": {"size": 366, "stamp": "d4f4a6d2"},
     "data/combat.json": {"size": 4109, "stamp": "4efa7ba3"},
@@ -471,7 +471,7 @@
     "data/sprites/stall.json": {"size": 229, "stamp": "610034bc"},
     "data/sprites/stocks.json": {"size": 200, "stamp": "493fdf7a"},
     "data/sprites/strongbox.json": {"size": 237, "stamp": "47b4c727"},
-    "data/sprites/stump.json": {"size": 345, "stamp": "ff5469ce"},
+    "data/sprites/stump.json": {"size": 391, "stamp": "b3a77ae1"},
     "data/sprites/table.json": {"size": 399, "stamp": "f82ad8f5"},
     "data/sprites/torch_post.json": {"size": 168, "stamp": "c0fb7413"},
     "data/sprites/tree_apple.json": {"size": 465, "stamp": "9344d7b9"},
