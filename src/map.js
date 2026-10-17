@@ -191,8 +191,7 @@ export function burnHolders(dt) {
 export function kindleNear(x, y, r = 1, clear = null) {
   let n = 0;
   for (const p of fireProps) {
-    if (p.fire.lit || Math.hypot(p.tile[0] - x, p.tile[1] - y) > r) continue;
-    if (!(p.sprite === "campfire" || p.fire.holds)) continue; // a campfire or a torch's post: not a hearth, an oven, or a forge
+    if (!lightableProp(p) || p.fire.lit || Math.hypot(p.tile[0] - x, p.tile[1] - y) > r) continue;
     if (clear && !clear(p.tile[0], p.tile[1])) continue;
     if (lightProp(p)) n++;
   }
@@ -284,12 +283,18 @@ export function setHolder(target, has, entry = null) {
 }
 
 // Light what is made to be lit (Michael, 2026-10-17, #156: "fire lights what is made to be lit"): an unlit campfire with fuel in
-// it, a torch on a post, or a torch in a bracket that is out. Nothing else burns and nothing spreads. The authority's, from
+// it, a torch on a post, or a torch in a bracket that is out (`lightableProp`). Nothing else burns and nothing spreads. The authority's, from
 // the `light` verb (burn.js); each returns whether it lit, and touches the chunk so the wire and the save have it.
-export function lightProp(prop) {
+// The one rule for what a fire can be lit as (the verb and a fireball's landing both ask it): a campfire with fuel in it, or a holder
+// (a post) with a torch in it. Not a hearth, an oven, or a forge: Michael named "a campfire or a torch".
+export function lightableProp(prop) {
   const f = prop && prop.fire;
-  if (!f || f.lit) return false;
-  if (!((f.burns && f.fuel > 0) || (f.holds && f.has))) return false;
+  return !!f && ((prop.sprite === "campfire" && f.burns && f.fuel > 0) || (!!f.holds && f.has));
+}
+
+export function lightProp(prop) {
+  if (!lightableProp(prop) || prop.fire.lit) return false;
+  const f = prop.fire;
   f.lit = true;
   touch(prop.tile[0], prop.tile[1]);
   emit("fireLit", { id: prop.id, tile: prop.tile });
