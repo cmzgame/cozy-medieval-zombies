@@ -38,11 +38,11 @@ export function wardrobeWorn(w) {
   return worn;
 }
 
-// A garment's art with its entry's own dye on it.
+// A garment's art with its entry's own dye on it, marked `dyed` so a painted layer knows to take it (draw.js, dyeHead).
 function dyed(art, entry) {
   if (!art) return null;
-  if (entry.colours) return { ...art, colours: entry.colours };
-  if (entry.colour) return { ...art, colours: [entry.colour, ...(art.colours || []).slice(1)] };
+  if (entry.colours) return { ...art, colours: entry.colours, dyed: true };
+  if (entry.colour) return { ...art, colours: [entry.colour, ...(art.colours || []).slice(1)], dyed: true };
   return art;
 }
 
@@ -110,6 +110,11 @@ export function characterSpec(inp) {
       const i = (k * 5 + n * 3) % (pool.length + 1);
       if (i < pool.length) painted[slot] = getLayer(slot, pool[i]);
     });
+    // What they wear draws as it would on anyone (2026-10-18, the onion hat): an item's own painted layer wins over the pool.
+    for (const slot of OUTFIT_SLOTS) {
+      const art = inp.outfit[slot];
+      if (LAYER_SLOTS[slot] && art && art.painted && getLayer(slot, art.painted)) painted[slot] = getLayer(slot, art.painted);
+    }
     const look = { ...inp.look };
     if (painted.hair) look.hairStyle = painted.hair.name;
     const outfit = { ...inp.outfit };
