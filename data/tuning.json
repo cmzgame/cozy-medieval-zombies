@@ -26,6 +26,7 @@
     "noWayTime": 8,
     "siegeEndHour": 6,
     "siegeSwitch": 25,
+    "siegeSleepRadius": 14,
     "searchRadius": 3,
     "wanderIdleMin": 1.5,
     "wanderIdleMax": 4.0,

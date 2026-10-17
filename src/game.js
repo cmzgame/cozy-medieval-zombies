@@ -330,7 +330,7 @@ export function timeScaleNow() {
   return everyoneAsleep() ? tuning.player.sleepTimeScale : 1;
 }
 setSleepScaleRule(timeScaleNow);
-setSiegeQuery((room) => siegeHeldOn(state.zombies, room));
+setSiegeQuery((player) => siegeHeldOn(state.zombies, player));
 
 // A player falls (Michael, 2026-10-14): whatever they were doing stops, what they carried on their head is set down
 // beside them where there is room (else it stays with the body and comes back with a search of nothing: it is kept in
