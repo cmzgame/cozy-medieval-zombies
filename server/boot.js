@@ -33,6 +33,7 @@ export async function bootData(root) {
   interactions.load(interactionsJson);
   stations.loadRecipes(optional("data/recipes.json"));
   tuning.load(optional("data/tuning.json"));
+  (await import("../src/kit.js")).load(read("data/kit.json")); // the starting kit (#136)
   items.loadItems(itemsJson);
   placement.setBuildData(buildJson);
   if (combatJson) combat.setCombatData(combatJson);

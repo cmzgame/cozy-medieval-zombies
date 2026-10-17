@@ -1,0 +1,12 @@
+{
+ "note": "The starting kit (#136; docs/11): what a new character is made with, in order (the order is the entries' ids, so it is kept: the world's hash reads it). `worn` goes on the doll, each into its own slot (the sack is the bag on the back); `items` are put where they first fit in the sack, or held when `hold` names a hand; `fill` is a drink's water. A world may add to it, or start wearing the Developer Bag in place of the sack, when it is made (rules `extraKit`, `devBag`; the Sandbox step). The validator checks each id exists and that the whole fits the starting bag.",
+ "worn": ["tunic", "breeches", "boots", "belt", "small_sack"],
+ "items": [
+  {"item": "waterskin", "fill": 100},
+  {"item": "bread"},
+  {"item": "apple", "count": 2},
+  {"item": "plank"},
+  {"item": "torch", "hold": "main"},
+  {"item": "tinderbox"}
+ ]
+}

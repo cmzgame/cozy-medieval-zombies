@@ -18,7 +18,8 @@ import * as events from "./events.js";
 import * as archery from "./archery.js";
 import * as burning from "./fire.js";
 import * as bleed from "./bleed.js";
-import * as burn from "./burn.js"; // burning as a status (#14): the step's, beside the visual fire.js
+import * as burn from "./burn.js";
+import * as kit from "./kit.js"; // the starting kit as data and the world's additions (#136) // burning as a status (#14): the step's, beside the visual fire.js
 import * as infection from "./infection.js";
 import * as combat from "./combat.js";
 import * as interact from "./interact.js";
@@ -101,22 +102,10 @@ export function create({ json, look = null, name = null, devChest = false, rules
   return S;
 }
 
-// The starter kit (docs/11): worn tunic, breeches, boots, a rope belt with two
-// slots, a burlap sack with water, a little food, and one plank; the torch in
-// a hand. No hood: the head slot starts empty (Michael, 2026-10-10).
+// The starter kit (docs/11; #136): `data/kit.json`, with what the world's rules add (`extraKit`, `devBag`), made by kit.js.
+// No hood: the head slot starts empty (Michael, 2026-10-10); the torch begins unlit, the tinderbox beside it (Michael, 2026-10-17).
 function giveStarterKit(player) {
-  const entry = (id, props = {}) => items.makeEntry(id, 1, props); // every entry through the maker (docs/31/08, habit 2)
-  for (const id of ["tunic", "breeches", "boots", "belt", "small_sack"]) {
-    const e = entry(id);
-    player.worn[items.getItem(id).wear] = e;
-  }
-  const bag = inventory.bagOf(player);
-  inventory.addItem(bag, "waterskin", 1, { fill: 100 });
-  inventory.addItem(bag, "bread", 1);
-  inventory.addItem(bag, "apple", 2);
-  inventory.addItem(bag, "plank", 1);
-  items.hold(player.hands, entry("torch")); // unlit: the tinderbox beside it in the bag lights it on T (Michael, 2026-10-17, #156; #136 makes the kit data)
-  inventory.addItem(bag, "tinderbox", 1);
+  kit.give(player, { extra: rules.rules.extraKit, devBag: rules.rules.devBag });
 }
 
 // The map's rules as the world reads them when it loads the map (docs/38 and `02`, #130): trees or none, and the
