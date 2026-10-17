@@ -656,7 +656,7 @@ export function step(dt, snapshots = null) {
   // asks for current rooms; the one-file step had the client's roomAt do this).
   map.roomsIfDirty();
   // The light each player carries (docs/02): a torch in hand at full, two at more,
-  // else one on the belt at half. The strength also scales how far the dead
+  // else one on the belt at `beltLight` (0.6, a little over half). The strength also scales how far the dead
   // see the flame (zombie.js). One carried light per player, with its owner (docs/31/05, item 15).
   const carried = [];
   for (const p of S.players) {

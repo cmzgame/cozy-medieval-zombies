@@ -367,7 +367,7 @@ function nearestFlame(z) {
   let bestD = Infinity;
   for (const s of light.allSources()) {
     const d = Math.hypot(s.gx - z.gx, s.gy - z.gy);
-    // A torch on the belt is a weaker flame (docs/02): seen from half as far.
+    // A torch on the belt is a weaker flame (docs/02): seen from `beltLight` (0.6) as far.
     if (d > range * (s.strength ?? 1) || d >= bestD) continue;
     if (!lineOfSight(z.gx, z.gy, s.gx, s.gy)) continue;
     best = s;
