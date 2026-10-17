@@ -98,7 +98,11 @@ export const world = {
   playerCapServer: 8, // and a server world (raised in one line when the lighter frames of docs/31/05 land)
 };
 
-const sections = { zombie, player, villager, world };
+// How many of the dead a world starts with, by its Starting population rule (docs/38 and `02`, #130): the factor that
+// scales the dead the map places (its places' authored dead, and the wild's dead per chunk). Standard is the map's own.
+export const population = { none: 0, low: 0.4, standard: 1, high: 2.5 };
+
+const sections = { zombie, player, villager, world, population };
 
 // Lay a file's numbers over the defaults; a missing file or section changes nothing.
 export function load(json) {

@@ -10,6 +10,10 @@
 //                                    id moves every id after it, so the hashes compare only alike)
 //   node tools/world.js valley 600 --players=2
 //                                    more players, standing five tiles apart: the dead hunt whoever is nearest
+//   node tools/world.js valley 600 --rule trees=false --rule population=high
+//                                    the world made with those rules (any of rules.js's: zombieAggro, trees,
+//                                    population, ...; `--rule=trees=false` also works): the line below shows the
+//                                    trees and the dead it came to. It replaced --combat (#130).
 //   node tools/world.js valley 600 --bite
 //                                    the dead hunting and one beside the player: its bite lands with no page
 //                                    behind the world (the host's rules are the world's; item 5's first step)
@@ -27,8 +31,25 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const read = (p) => JSON.parse(fs.readFileSync(path.join(root, p), "utf8"));
 const optional = (p) => (fs.existsSync(path.join(root, p)) ? read(p) : null);
 
-const args = process.argv.slice(2).filter((a) => !a.startsWith("--"));
-const flags = new Set(process.argv.slice(2).filter((a) => a.startsWith("--")));
+// `--rule key=value` (or `--rule=key=value`), as many as you like: a world's own rules, set when it is made.
+const ruleArgs = {};
+const argv = [];
+{
+  const raw = process.argv.slice(2);
+  const addRule = (pair) => {
+    const eq = pair.indexOf("=");
+    if (eq < 1) { console.log(`--rule wants key=value, got "${pair}"`); process.exit(1); }
+    const v = pair.slice(eq + 1);
+    ruleArgs[pair.slice(0, eq)] = v === "true" ? true : v === "false" ? false : v;
+  };
+  for (let i = 0; i < raw.length; i++) {
+    if (raw[i] === "--rule" && raw[i + 1] !== undefined) addRule(raw[++i]);
+    else if (raw[i].startsWith("--rule=")) addRule(raw[i].slice(7));
+    else argv.push(raw[i]);
+  }
+}
+const args = argv.filter((a) => !a.startsWith("--"));
+const flags = new Set(argv.filter((a) => a.startsWith("--")));
 const mapName = args[0] || "valley";
 const steps = Number(args[1] || 600);
 
@@ -50,9 +71,9 @@ await bootData(root);
 
 // The world stage: the same calls as the browser's.
 const json = read(`data/maps/${mapName}.json`);
-// The world's options as the pane has them, so the hashes compare: the dev chest and the
-// testing dead each make props and so move every id after them (docs/31/05, item 4).
-game.create({ json, devChest: flags.has("--devchest"), combatTesting: flags.has("--combat"), rules: { zombieAggro: false } });
+// The world's options as the pane has them, so the hashes compare: the dev chest makes props and so
+// moves every id after it (docs/31/05, item 4).
+game.create({ json, devChest: flags.has("--devchest"), rules: { zombieAggro: false, ...ruleArgs } });
 const playersFlag = [...flags].find((f) => f.startsWith("--players="));
 const nPlayers = playersFlag ? Number(playersFlag.split("=")[1]) : 1;
 for (let i = 1; i < nPlayers; i++) game.addPlayer(game.state.player.gx + 5 * i, game.state.player.gy, {});
@@ -93,7 +114,9 @@ const stepped = performance.now() - t1;
 if (bitten) console.log(`bite: hp ${bitten.hp0} to ${game.state.player.hp} after ${steps} steps`);
 const text = game.hashText();
 const S = game.state;
-console.log(`${mapName}: ${S.players.length} player${S.players.length === 1 ? "" : "s"}, ${S.zombies.length} dead, ${S.villagers.length} villagers, ${map.chunkCount()} chunks, ${map.roomCount()} rooms`);
+const treeCount = map.allProps().filter((p) => String(p.sprite).startsWith("tree_")).length;
+console.log(`${mapName}: ${S.players.length} player${S.players.length === 1 ? "" : "s"}, ${S.zombies.length} dead, ${S.villagers.length} villagers, ${treeCount} trees, ${map.chunkCount()} chunks, ${map.roomCount()} rooms`);
+if (Object.keys(ruleArgs).length) console.log(`rules ${JSON.stringify(ruleArgs)}`);
 console.log(`booted in ${booted.toFixed(0)} ms, ${steps} steps in ${stepped.toFixed(0)} ms (${(stepped / steps).toFixed(2)} ms a step)`);
 console.log(`hash ${game.hashOf(text)} over ${text.split("\n").length - 2} entities after ${steps} steps`);
 

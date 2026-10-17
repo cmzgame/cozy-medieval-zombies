@@ -11,14 +11,14 @@ export const DEFAULTS = {
   debugCorner: true, // the text in the top-left corner
   zombieAggro: true, // on by default since 2026-10-15 (Michael: a sandbox setting, the dead hunt unless you turn them off); off they wander and ignore you (2026-10-10). A browser that saved its settings keeps its own
   zombiesAttackVillagers: false, // on: the dead hunt villagers, whatever aggro says; with aggro on, the player first when both are in sight (two knobs on purpose, Michael 2026-10-15; docs/19)
-  squareSurface: "cobble", // the square and its two paths: "cobble" or "dirt", to compare (docs/15, for now)
-  combatTesting: false, // on (read at load): no trees, a hundred more of the dead in a ring round the spawn (docs/21; 2026-10-15)
   swingTimer: true, // a bar at the bottom centre of the screen while a swing recovers (World of Warcraft's swing timer; docs/21)
   aimGuide: true, // the bow's landing marker and dotted line while you draw (docs/20); Michael wants the weapon to feel right without it, so it is a setting, on for now
   showSwingTargets: false, // outline the zombies the next swing would hit (docs/14), for testing and for play
   multiHit: false, // on: a blow reaches everything in its wedge; off: only the nearest. Off is the intended way to play (Michael, 2026-10-12): multi-hit is the easy button (docs/14)
   showHitShapes: false, // draw the dead's body samples, green when the next swing reaches them (docs/14)
   freeBuilding: false, // on: building costs nothing (docs/13), for testing structures
+  trees: true, // the world has trees: the last choice at a Sandbox step (a world's own rule since #130; it replaced Combat testing's tree strip)
+  population: "standard", // how many of the dead a world starts with, "none", "low", "standard" or "high": the last choice at a Sandbox step (#130)
   survival: true, // on since docs/30 step 2 (hunger, thirst, tiredness drain); off: the body is a workbench
   hairStyle: "short", // the player's hair (the character screen writes it, and `look.hairStyle` with it; kept for what reads it)
   playerName: "", // the identity before docs/31/09: read once to migrate into identities.js, and by the ?nosave test world's identity
@@ -60,12 +60,12 @@ export const REGISTRY = [
   { key: "survival", group: "rules", label: "Survival", help: "Hunger, thirst, and tiredness. Off, the body has no needs.", choices: ON_OFF },
   { key: "freeBuilding", group: "rules", label: "Free building", help: "Building costs nothing, for trying out structures.", choices: ON_OFF },
   { key: "multiHit", group: "rules", label: "Multi-hit", help: "A blow reaches everything in its wedge: the easy button. Off, only the nearest: the intended way.", choices: ON_OFF },
+  { key: "trees", group: "rules", fixed: true, label: "Trees", help: "Trees in the forests and the wild. Off, none are made, anywhere. Chosen when the world is made.", choices: ON_OFF },
+  { key: "population", group: "rules", fixed: true, label: "Starting population", help: "How many of the dead the world starts with, in its places and in each new stretch of wild. It never grows with time. Chosen when the world is made.", choices: [["none", "None"], ["low", "Low"], ["standard", "Standard"], ["high", "High"]] },
   { key: "debugCorner", group: "testing", label: "Debug corner", help: "The numbers and the keys in the top-left corner.", choices: SHOWN },
   { key: "showSwingTargets", group: "testing", label: "Swing targets", help: "A green outline on what your next swing would hit.", choices: ON_OFF },
   { key: "showHitShapes", group: "testing", label: "Hit shapes", help: "The dead's body samples, green when the next swing reaches them.", choices: ON_OFF },
-  { key: "combatTesting", group: "testing", label: "Combat testing", help: "No trees, and a hundred more of the dead round the spawn. Read when a world is made: reload the page.", choices: ON_OFF },
   { key: "devChest", group: "sandbox", label: "Dev chest", help: "A chest of every item by the spawn, made with the world.", choices: ON_OFF },
-  { key: "squareSurface", group: "testing", label: "Square and paths", help: "The village square's surface, to compare the two.", choices: [["cobble", "Cobble"], ["dirt", "Dirt"]] },
 ];
 
 // A switch or a dropdown: the row's answers are exactly true and false, or anything else.
