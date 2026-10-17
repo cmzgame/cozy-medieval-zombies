@@ -2,7 +2,8 @@
 // in the art pipeline must change no pixel). From the console, on a fresh
 // boot: await __game.check("sheets"); then after the change, reload and run it
 // again: `same` says whether every sheet hashed as it did, and `changed` names
-// the ones that did not. The hashes are kept in sessionStorage.
+// the ones that did not. The hashes are kept in sessionStorage, and they do not depend
+// on when the check runs (each sheet is read from a CPU copy, below; #233).
 
 function hashPixels(data) {
   let h = 2166136261;
@@ -20,14 +21,15 @@ export async function run(game) {
   const hashes = {};
   for (const sheet of G.assets.allSheets()) {
     const img = sheet.image;
-    let ctx = img.getContext && img.getContext("2d");
-    if (!ctx) {
-      const c = document.createElement("canvas");
-      c.width = img.width;
-      c.height = img.height;
-      ctx = c.getContext("2d", { willReadFrequently: true });
-      ctx.drawImage(img, 0, 0);
-    }
+    // Always from a copy on a canvas that lives on the CPU: a sheet's own canvas, read directly, hands back different low bits for its semi-transparent pixels once the
+    // renderer has used it as a texture source (the canvas moves to the GPU, whose readback un-premultiplies differently), so a hash taken at boot and one taken a few
+    // seconds into play differed by one in a blue or green channel on the edges of shadows (#233: campfire, flame, hearth, lantern_post, torch_post, tree_apple,
+    // tree_apple_bare, wall_fence, dev_chest). The copy hashes the same whenever it is taken.
+    const c = document.createElement("canvas");
+    c.width = img.width;
+    c.height = img.height;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
     hashes[sheet.id] = `${img.width}x${img.height}:${hashPixels(ctx.getImageData(0, 0, img.width, img.height).data)}`;
   }
   const key = "cmz.sheets";
