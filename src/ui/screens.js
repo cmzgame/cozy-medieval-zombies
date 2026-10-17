@@ -100,6 +100,15 @@ export function initScreens(handlers = {}) {
   screensEl.hidden = true;
   // The same handlers on both: a screen is drawn in one or the other, and the site's menu is its own buttons (data-go).
   for (const el of [screensEl, siteEl].filter(Boolean)) listen(el);
+  // Enter plays, on the site's Home (docs/38, #112: "PLAY (or Enter)"), unless a button or a field has the focus and
+  // takes the key itself. The page re-draws when the browser enters or leaves fullscreen.
+  window.addEventListener("keydown", (e) => {
+    if (e.code !== "Enter" || e.repeat || !siteEl || siteEl.hidden || current !== "title") return;
+    const t = document.activeElement;
+    if (t && t !== document.body && t.matches && t.matches("button, a, input, select, textarea")) return;
+    go("worlds");
+  });
+  document.addEventListener("fullscreenchange", () => { if (current === "settings") render(); });
   settings.onChange(() => {
     if (current === "settings") render();
   });
@@ -114,6 +123,7 @@ function listen(el) {
       if (current === "identity" && identitiesApi) identitiesApi.cancel();
       creation = null;
     }
+    if (btn && btn.closest(".site-nav")) btn.blur(); // a menu button that keeps the focus would take the next Enter itself (so Enter plays on Home)
     if (btn) return go(btn.dataset.go, btn.dataset);
     // The identity editor's swatches and rows: each sets one field of the look and redraws (youApi).
     const lookBtn = e.target.closest("button[data-look-key]");
@@ -267,11 +277,18 @@ function go(where, ds = {}) {
   else if (where === "back") back();
   else if (where === "reload") onReload();
   else if (where === "save") onSave();
-  else if (where === "leave") {
+  // Exit game (docs/38, #112): the crossing out. It saves, and the site is back.
+  else if (where === "exit") {
     if (!worldsApi) return;
     const h = worldsApi.here();
-    if (h.role === "host" && h.guests > 0 && !window.confirm(`Leaving closes the world to the ${h.guests} with you. Leave?`)) return;
-    worldsApi.leave();
+    if (h.role === "host" && h.guests > 0 && !window.confirm(`Exiting closes the world to ${h.guests === 1 ? "the friend" : `the ${h.guests}`} with you. Exit?`)) return;
+    worldsApi.exitGame();
+  }
+  // The browser's own fullscreen, never forced: asked for here, by a click (the browser keeps Esc to leave it).
+  else if (where === "fullscreen") {
+    const done = () => { if (current === "settings") render(); };
+    if (document.fullscreenElement) Promise.resolve(document.exitFullscreen()).then(done, done);
+    else if (document.documentElement.requestFullscreen) Promise.resolve(document.documentElement.requestFullscreen()).then(done, done);
   }
   // The Worlds screen's rows.
   else if (where === "play") { if (worldsApi) worldsApi.play(ds.world); }
@@ -514,6 +531,15 @@ function settingRow(entry) {
 // of the host's rule, shown and not to be changed.
 function worldRuleRow(entry, on, attrs, locked = false) {
   return `<div class="setting${locked ? " hosts" : ""}"><span class="setting-label">${esc(entry.label)}${locked ? " <small>(the host's)</small>" : ""}<small class="help">${esc(entry.help || "")}</small></span><span class="control"><span class="switch-state">${on ? "On" : "Off"}</span>${switchHtml(on, attrs, locked)}</span></div>`;
+}
+
+// The browser's fullscreen as a switch (docs/38, #112): the game fills the window already; this asks the browser for
+// the whole screen. It is not a stored setting: the browser decides when it ends (Esc leaves it first, and only then
+// pauses), so the row shows what the page is in now and a click asks for the other.
+function fullscreenRow() {
+  const can = !!(document.fullscreenEnabled && document.documentElement.requestFullscreen);
+  const on = !!document.fullscreenElement;
+  return `<div class="setting"><span class="setting-label">Fullscreen<small class="help">${can ? "The game fills the whole screen. Esc leaves fullscreen first; a second Esc pauses." : "This browser does not allow fullscreen here."}</small></span><span class="control"><span class="switch-state">${on ? "On" : "Off"}</span>${switchHtml(on, `data-go="fullscreen"`, !can)}</span></div>`;
 }
 
 // Hair styles, generated and painted (docs/12).
@@ -873,7 +899,7 @@ function render() {
         <h1>${here.role ? "Menu" : "Paused"}</h1>
         <div class="sub">${where}</div>
         <div class="sub">${here.role ? "The world goes on while you are here; your character stands still." : "Esc to resume"}</div>
-        <div class="screen-buttons">${button("resume", "Resume")}${here.role === "guest" ? "" : button("save", "Save world")}${here.role === "guest" ? "" : button("host", here.role === "host" ? "Open to friends: on" : "Open to friends: off")}${here.ownedCode ? button("owner", "Owner", ` data-code="${esc(here.ownedCode)}"`) : ""}${button("rules", "World rules")}${button("character", "Character")}${button("settings", "Settings")}${button("controls", "Controls")}${button("leave", "Leave world")}</div>
+        <div class="screen-buttons">${button("resume", "Resume")}${here.role === "guest" ? "" : button("save", "Save world")}${here.role === "guest" ? "" : button("host", here.role === "host" ? "Open to friends: on" : "Open to friends: off")}${here.ownedCode ? button("owner", "Owner", ` data-code="${esc(here.ownedCode)}"`) : ""}${button("rules", "World rules")}${button("character", "Character")}${button("settings", "Settings")}${button("controls", "Controls")}${button("exit", "Exit game")}</div>
       </div>`;
   } else if (current === "owner") {
     // The owner's screen (item 5's sixth step): the world's code, its rules, its players, the barred. Asked of the
@@ -980,6 +1006,7 @@ function render() {
         <div class="tabs" role="tablist">${settings.GROUPS.map(([g, name]) => `<button class="tab${g === settingsTab ? " on" : ""}" role="tab" aria-selected="${g === settingsTab}" data-tab="${g}">${name}</button>`).join("")}</div>
         <div class="tab-body">
           ${settings.REGISTRY.filter((e) => e.group === settingsTab).map(settingRow).join("")}
+          ${settingsTab === "display" ? fullscreenRow() : ""}
           ${settingsTab === "testing" ? testingExtras() : ""}
         </div>
         <div class="screen-buttons row">${button("back", "Back")}<button id="settings-reset">Defaults</button></div>
@@ -1001,7 +1028,7 @@ function render() {
       <div class="screen">
         <h1>${esc(data.who || "You")} died</h1>
         <div class="sub">${esc(data.when || "")}. The body stays where it fell.</div>
-        <div class="screen-buttons">${button("respawn", "New character")}${button("leave", "Leave world")}</div>
+        <div class="screen-buttons">${button("respawn", "New character")}${button("exit", "Exit game")}</div>
       </div>`;
   } else if (current === "controls") {
     root.innerHTML = `
