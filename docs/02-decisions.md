@@ -166,6 +166,8 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Process and the studio
 
+- The roadmap: valley, combat, demo, playing together and telemetry, an outside playtest, Midnight Mass in dev art, the name, art and sound, the Steam page, the regions and release (2026-10-17, The roadmap, and sound)
+- Sound off costs something; a visual twin where it makes sense; every sound playable on its wiki page, its license allowing (2026-10-17, The roadmap, and sound)
 - Every world is an expendable test until Michael says otherwise; a change may break old saves with no migration (2026-10-17, Every world is an expendable test)
 - needs-playtest marks work that waits on Michael's play, not on a decision (2026-10-16, The needs-michael queue)
 - 00-vision's "What it is not" gains no new laws; a limit the game needs is a ruling here with its reason (2026-10-16, The four lines of 00-vision.md, ruled)
@@ -203,6 +205,15 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-17 — The roadmap, and sound (Michael)
+
+**The order of the work**, Michael's, with Primary's changes: two he adopted (strangers play before any money; the Steam page as soon as there is real art), one he clarified (step 1's finish line, below), and his own "4.5" made the plan, which he took with "write the roadmap": (1) the valley and skilling; (2) zombies and combat, until every weapon to be had in the valley feels good against the standard dead; (3) the demo; (4) playing together and telemetry, before the outside playtest (his evening with his brother over a server world first: "I need to prove that client to server to client works with another person, and better yet he has sketchier internet than me"); (5) the first outside playtest, on dev art; (6) Midnight Mass in dev art, the vertical slice, and a second playtest; (7) the name, before money ("I must stop here and pick a final name before I throw money at assets"); (8) art and sound, the paid phase ("I am happy to rule out directional sound now, but the zombies should make some noise, plus interface, fire, actions, walking, et al."); (9) the Steam page and wishlists; (10) the regions and release. `TODO.md` holds it, and a GitHub milestone per step. *Primary's readings, Michael's to overrule:* the demo built at step 3 is a dev-art build for playtests, and the public demo keeps 2026-10-13's final art (step 9's Next Fest); an invited playtest is not "public" in 2026-10-14's sense, so the playtests may come before the name.
+
+- **Step 1's finish line** is a feel, not a feature list: "I can load a session and play skillscape for a good while vibing with production and stocking up and making things neat and building... The experience of doing this part should FEEL fulfilling to do and no big hiccups or resource stoppages, or dead ends. It doesn't need to have final dev art or be perfect or perfectly balanced it just needs to feel like playing a game, not testing a game." *Primary's test of it:* an hour of play with no dead end; what breaks the hour goes on a list.
+- **Free placeholder sounds come in step 2,** for feel and immersion; paid sound is step 8.
+- **Sound and sight:** a sound that carries information may have a visual twin where it makes sense, but "I don't want to require that the player can always see or hear it in every case. There SHOULD be a penalty for playing with sound off." Michael: "when I play WoW or OSRS I am very often watching a youtube or a show or a movie and I play with the sound turned fully off... So feel free to push back on me on sound in the future. Be the sound on advocate between us."
+- **Every sound on the wiki:** "anything in the game that makes a sound should have the sound as a playable file on that wiki page... So long as it does not break any license rules." A sound whose license does not let the wiki host it stays off the wiki, not out of the game.
 
 ### 2026-10-17 — Torches burn down; the tinderbox; the village's lights become lanterns (Michael)
 
