@@ -13,7 +13,7 @@ import { rules } from "../rules.js";
 import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, fenceAhead, pressFence, canStepAcross, wallBetween, edgeBetween, edgeMid, isFence, floorSpeedAt, openingsNear, edgeTiles } from "../map.js";
+import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, fenceAhead, strikeFence, canStepAcross, wallBetween, edgeBetween, edgeMid, isFence, floorSpeedAt, openingsNear, edgeTiles } from "../map.js";
 import { lineOfSight, openingOnLine } from "../visibility.js";
 import * as light from "../light.js";
 import * as clock from "../clock.js";
@@ -55,7 +55,7 @@ export function createZombie(gx, gy, { id = null, hp = T.hp, aggro = false } = {
     attackHit: false,
     pathFailed: false,
     breach: null, // { wall, tx, ty, edge, stand, side, into } while breaking in
-    press: null, // { wall, tx, ty, edge, stand } while it presses a fence or gate across its way (map.pressFence; not saved)
+    press: null, // { wall, tx, ty, edge, stand } while it strikes a fence or gate across its way (map.strikeFence; not saved)
     siege: null, // { at: [x, y] a tile in the house, openings: [{ tx, ty, edge }], dawn: clock elapsed, idx, switchAt, pid } while it holds a siege (#147)
     lastOut: null, // [x, y] where the player was last seen in the open (noteSighting: the door on the line from there is the way in)
     seenRoom: -1, // the room the player was in at its last sighting (0 outside, -1 never seen): a change from outside to a room is a player going in
@@ -285,6 +285,15 @@ function startBreach(z, target) {
   z.lastGoal = null;
   z.pathFailed = false;
   z.repathTimer = 0;
+}
+
+// How far a bite reaches: `contact`, and a little more across a fence the dead one is striking from its reach (a fence's thickness and
+// where its strikers stand: Michael, 2026-10-17, "they should be allowed to bite over fences, otherwise exploitable"; #174).
+function biteReach(z) {
+  const f = z.press;
+  if (!f || tileAt(f.tx, f.ty)[f.edge] !== f.wall) return T.contact;
+  const [mx, my] = edgeMid(f.tx, f.ty, f.edge);
+  return Math.hypot(mx - z.gx, my - z.gy) <= T.fenceReach ? T.contact + T.fenceBiteExtra : T.contact;
 }
 
 function distTo(z, e) {
@@ -597,7 +606,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
     case "chase": {
       // A bite needs reach and a clear line: no biting through a wall.
       const d = distTo(z, tgt);
-      if (d <= T.contact && z.seesNow) {
+      if (d <= biteReach(z) && z.seesNow) {
         z.path = [];
         faceToward(z, tgt.gx - z.gx, tgt.gy - z.gy);
         if (z.attackCooldown <= 0) {
@@ -616,11 +625,14 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       if (!isWalkableTile(goal[0], goal[1])) goal = nearestWalkable(goal[0], goal[1]) || goal;
       const repathTimer0 = z.repathTimer;
       const arrived = moveToward(z, dt, goal, others);
-      // Pressed against a fence (or a shut gate) with the player in sight beyond it and no way round: one does nothing,
-      // several together wear it until it bursts (map.stepFences, Michael, 2026-10-17, #147).
+      // Against a fence (or a shut gate) with the player in sight beyond it and no way round: it strikes it (the `press` state,
+      // Michael, 2026-10-18, #174: an attack with a damage number and the bite's cooldown, as on a player; a crowd is more strikers).
       if (z.pathFailed && z.seesNow) {
         const f = fenceAhead(z.gx, z.gy, tgt.gx, tgt.gy);
-        if (f) pressFence(f.wall, f.tx, f.ty, f.edge);
+        if (f) {
+          startPress(z, { wall: f.wall, tx: f.tx, ty: f.ty, edge: f.edge, stand: tileOf(z) });
+          break;
+        }
       }
       // No way there and the goal is in a room: go for the room's nearest
       // opening and break in (docs/09). Only when the dead are not in that
@@ -729,6 +741,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       if (isActiveFrame(z.anim, sheet) && !z.attackHit) {
         z.attackHit = true;
         damageOpening(b.wall, b.side, T.breachDamage);
+        emit("wallStruck", { tx: b.tx, ty: b.ty, edge: b.edge }); // one small jolt for each strike (#174)
       }
       if (z.anim.done) {
         z.attackCooldown = T.cooldown;
@@ -764,7 +777,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       break;
     }
     case "press": {
-      // At a fence across its way: stand against it, a crowd wears it (map.stepFences). It goes on when it is gone, and gives
+      // At a fence across its way: strike it (the `pressHit` state; map.strikeFence). It goes on when it is gone, and gives
       // up when it has not seen the player for a while.
       const f = z.press;
       if (!f || tileAt(f.tx, f.ty)[f.edge] !== f.wall || !z.aggro) {
@@ -783,13 +796,13 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       }
       // A fence is no wall to a bite (Michael, 2026-10-17: "otherwise exploitable"): a player in reach across it is bitten, by the
       // chase's own bite (contact, sight, the cooldown); the dead one goes back to pressing when the player is out of reach.
-      if (tgt && z.seesNow && distTo(z, tgt) <= T.contact) {
+      if (tgt && z.seesNow && distTo(z, tgt) <= biteReach(z)) {
         z.state = "chase";
         z.repathTimer = 0;
         break;
       }
       const [mx, my] = edgeMid(f.tx, f.ty, f.edge);
-      if (Math.hypot(mx - z.gx, my - z.gy) > 0.7) {
+      if (Math.hypot(mx - z.gx, my - z.gy) > T.fenceReach) {
         const repathTimer0 = z.repathTimer;
         moveToward(z, dt, f.stand, others);
         if (z.pathFailed && z.repathTimer > repathTimer0) {
@@ -799,9 +812,35 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         }
         break;
       }
+      // At it: face it and strike, on the attack animation and the bite's cooldown, standing still between strikes (no nudging at it: it
+      // does not vibrate against the fence).
       faceToward(z, mx - z.gx, my - z.gy);
-      moveToward(z, dt, [Math.round(z.lastSeen ? z.lastSeen[0] : mx), Math.round(z.lastSeen ? z.lastSeen[1] : my)], others); // nudge at the way through
-      pressFence(f.wall, f.tx, f.ty, f.edge);
+      if (z.attackCooldown <= 0) {
+        z.state = "pressHit";
+        z.attackHit = false;
+        playAnimation(z.anim, "attack", true);
+      } else {
+        playAnimation(z.anim, "idle");
+        separate(z, dt, others);
+      }
+      break;
+    }
+    case "pressHit": {
+      const f = z.press;
+      if (!f || tileAt(f.tx, f.ty)[f.edge] !== f.wall) { // gone while it swung (another's strike broke it)
+        z.press = null;
+        z.state = "chase";
+        z.repathTimer = 0;
+        break;
+      }
+      if (isActiveFrame(z.anim, sheet) && !z.attackHit) {
+        z.attackHit = true;
+        strikeFence(f.wall, f.tx, f.ty, f.edge, T.fenceStrike);
+      }
+      if (z.anim.done) {
+        z.attackCooldown = T.cooldown;
+        z.state = "press";
+      }
       break;
     }
     case "siege": {
@@ -875,7 +914,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
     case "attack": {
       if (isActiveFrame(z.anim, sheet) && !z.attackHit) {
         z.attackHit = true;
-        if (distTo(z, tgt) <= T.contact + 0.2 && lineOfSight(z.gx, z.gy, tgt.gx, tgt.gy)) {
+        if (distTo(z, tgt) <= biteReach(z) + 0.2 && lineOfSight(z.gx, z.gy, tgt.gx, tgt.gy)) {
           if (tgt.kind === "player") emit("playerHit", { zombie: z, damage: T.damage, victim: tgt });
           else emit("villagerHit", { zombie: z, villager: tgt, damage: T.damage });
         }

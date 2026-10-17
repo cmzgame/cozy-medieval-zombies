@@ -21,6 +21,8 @@ export const zombie = {
   radius: 0.3, // the body, in tiles
   searchTime: 10, // seconds spent looking around the last sighting
   breachDamage: 5, // per hit into an opening's stack (docs/09)
+  fenceReach: 0.9, // tiles from a fence's middle within which a dead one strikes it (a margin over where the bodies stand: 0.7 to 0.8; #174)
+  fenceBiteExtra: 0.5, // tiles a bite reaches further across a fence its dead one is striking (#174; the strikers stand up to `fenceReach` from it)
   fenceStrike: 1, // hit points one strike takes from a fence or gate (world.fenceHp 90, a gate half; #174): a strike every attack and cooldown
   groanText: "Braaaains", // what the dead say now and then (docs/19)
   groanMin: 20, // seconds between groans

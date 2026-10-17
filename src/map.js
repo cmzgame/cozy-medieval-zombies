@@ -1975,7 +1975,6 @@ export function loadMap(json, options = {}) {
   noTrees = !treesOn;
   ghostTrees.clear();
   popFactor = Number.isFinite(options.population) ? options.population : 1;
-  fencePress.clear();
   fireProps.clear(); // props are created below, before reset() runs
   propsById.clear();
   bracketSet.clear();

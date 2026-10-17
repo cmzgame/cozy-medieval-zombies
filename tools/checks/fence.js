@@ -1,8 +1,9 @@
-// A crowd bursts a fence (Michael, 2026-10-17, #147): one of the dead pressing a fence does nothing; several together wear it
-// until it bursts into splinters (the event every client draws) and is gone; a gate goes first; a fence under pressure
-// shakes. From the console, on a tab with `?nosave`:
+// The dead strike a fence down (Michael, 2026-10-17, #147; 2026-10-18, #174): one of the dead at a fence STRIKES it, on the attack
+// animation and the bite's cooldown, each strike taking hit points and giving one small jolt (the event every client draws); a crowd is
+// more strikers, and at nothing left it bursts into splinters and is gone; a gate goes first; the seconds for three, five, and eight
+// real dead, bunched and spread, are measured here against Michael's bar (a problem to solve urgently, by running or arming). From the console, on a tab with `?nosave`:
 //   await __game.check("fence")
-// It builds a ring of fence round the player on open ground (so the dead have no way round), presses one dead, then four,
+// It builds a ring of fence round the player on open ground (so the dead have no way round), sends one dead, then four, then crowds,
 // and takes the ring down again. It turns zombie aggro on and restores it, and puts the dead it moved back.
 
 export async function run(game) {
@@ -17,9 +18,9 @@ export async function run(game) {
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const restore = [];
   const bursts = [];
-  const shakes = [];
+  const shakes = []; // the strikes, one jolt each (`wallStruck`)
   const offBurst = G.events.on("fenceBurst", (e) => bursts.push(e));
-  const offShake = G.events.on("fenceShake", (e) => shakes.push(e));
+  const offShake = G.events.on("wallStruck", (e) => shakes.push(e));
   try {
     G.loop.setPaused(true);
     G.rules.set({ zombieAggro: true });
@@ -47,43 +48,57 @@ export async function run(game) {
     restore.push(() => { for (const [x, y, e] of ring) if (G.map.tileAt(x, y)[e]) G.map.destroyWall(x, y, e); });
     row("a yard of fence stands round the player", ring.every(([x, y, e]) => G.map.isFence(G.map.tileAt(x, y)[e])), `${ring.length} edges at ${cx},${cy}`);
     G.teleport(cx, cy);
-    const dead = G.zombies.filter((q) => !q.dead && !q.corpse).slice(0, 4);
+    const dead = G.zombies.filter((q) => !q.dead && !q.corpse).slice(0, 8);
     for (const o of G.zombies) if (!dead.includes(o) && !o.dead && Math.hypot(o.gx - cx, o.gy - cy) < 60) { const keep = { gx: o.gx, gy: o.gy, aggro: o.aggro }; restore.push(() => Object.assign(o, keep, { path: [] })); o.aggro = false; o.gx = cx + 90; o.gy = cy + 90; }
     for (const z of dead) { const keep = { gx: z.gx, gy: z.gy, state: z.state, aggro: z.aggro }; restore.push(() => Object.assign(z, keep, { path: [], breach: null, press: null, siege: null, seenRoom: -1, lastSeen: null, target: null, noWay: 0 })); }
     const north = [cx, cy - 1, "n"]; // the middle of the north side: the edge the dead press
     const place = (z, ox) => { z.gx = cx + ox; z.gy = cy - 2.05; z.path = []; z.breach = null; z.state = "chase"; z.aggro = true; z.noWay = 0; z.lastSeen = [cx, cy]; };
 
-    // One alone: it presses and nothing happens.
+    // One alone: it strikes, and the fence wears down, slowly.
     place(dead[0], 0);
     for (const z of dead.slice(1)) { z.gx = cx + 80; z.gy = cy + 80; z.aggro = false; z.state = "idle"; }
     step(60 * 40);
-    row("one of the dead pressing a fence does nothing", G.map.isFence(G.map.tileAt(...north.slice(0, 2))[north[2]]) && bursts.length === 0, `forty seconds, ${bursts.length} bursts, ${shakes.length} shakes, at ${dead[0].gx.toFixed(2)},${dead[0].gy.toFixed(2)} state ${dead[0].state}`);
+    const northWall = G.map.tileAt(...north.slice(0, 2))[north[2]];
+    row("one of the dead strikes a fence and wears it down slowly: after forty seconds it stands, damaged, a jolt for each strike", G.map.isFence(northWall) && bursts.length === 0 && northWall.hp < G.tuning.world.fenceHp && shakes.length > 5, `forty seconds, ${bursts.length} bursts, ${shakes.length} strikes, the fence at ${northWall.hp.toFixed(0)} of ${G.tuning.world.fenceHp}, state ${dead[0].state}`);
 
-    // Four together: it shakes, then bursts.
+    // Four together: each strike jolts, then it bursts.
     [-0.45, -0.15, 0.15, 0.45].forEach((ox, i) => place(dead[i], ox));
+    const strikes0 = shakes.length;
     step(60 * 3);
-    row("a crowd pressing it makes it shake (the host's event for every client)", shakes.length > 0 && shakes.some((s) => s.tx === north[0] && s.ty === north[1] && s.edge === "n"), `${shakes.length} shakes`);
+    row("each strike is a jolt (the host's event for every client)", shakes.length > strikes0 && shakes.some((s) => s.tx === north[0] && s.ty === north[1] && s.edge === "n"), `${shakes.length - strikes0} strikes in three seconds`);
     let t = 0;
     while (t < 60 * 90 && G.map.isFence(G.map.tileAt(...north.slice(0, 2))[north[2]])) { step(1); t++; }
-    row("and bursts it: gone, the event says where", !G.map.tileAt(...north.slice(0, 2))[north[2]] && bursts.length === 1, `after ${(t / 60).toFixed(1)} s, burst at ${bursts[0] ? `${bursts[0].x},${bursts[0].y}` : "none"}`);
-    const yardLeft = ring.filter(([x, y, e]) => G.map.tileAt(x, y)[e]).length;
+    row("and it bursts: gone, the event says where", !G.map.tileAt(...north.slice(0, 2))[north[2]] && bursts.length === 1, `after ${(t / 60).toFixed(1)} s, burst at ${bursts[0] ? `${bursts[0].x},${bursts[0].y}` : "none"}`);
     row("walls are never the fence's: the rest of the yard stands", ring.filter(([x, y, e]) => G.map.tileAt(x, y)[e]).length === ring.length - 1, `${ring.filter(([x, y, e]) => G.map.tileAt(x, y)[e]).length} of ${ring.length - 1} edges left`);
 
-    // ---- how long a crowd takes (Michael, 2026-10-17: a few of the dead must not bring a fence down in seconds; a problem to solve
-    // by running or arming, not about to die): the seconds for three, five, and eight, a fence section pressed as the dead press it ----
-    for (const z of dead) { z.gx = cx + 80; z.gy = cy + 80; z.aggro = false; z.state = "idle"; z.path = []; }
-    const timed = {};
-    const timeOf = (n) => {
-      const [x, y, e] = [cx, cy + 2, "n"]; // the yard's south side, still standing
+    // ---- how long a crowd takes, with real bodies (Michael, 2026-10-17: a few of the dead must not bring a fence down in seconds, a
+    // problem to solve urgently by running or arming, not about to die; 2026-10-18: strikes on a cooldown, as on a player) ----
+    G.map.buildWall(north[0], north[1], north[2], "wall", "wall_fence");
+    const away = () => { for (const z of dead) { z.gx = cx + 80; z.gy = cy + 80; z.aggro = false; z.state = "idle"; z.path = []; z.press = null; z.breach = null; } };
+    // `n` dead set down `gap` tiles apart in a row `dist` tiles south of the south side, in chase, until a section bursts (or `limit` seconds).
+    const crowd = (n, gap, dist, limit = 300) => {
+      away();
+      const [x, y, e] = [cx, cy + 2, "n"];
       const wall = G.map.tileAt(x, y)[e];
+      for (const [rx, ry, re] of ring) { const w = G.map.tileAt(rx, ry)[re]; if (w) w.hp = G.tuning.world.fenceHp; } // every section new
+      bursts.length = 0;
+      dead.slice(0, n).forEach((z, i) => { z.gx = cx + (i - (n - 1) / 2) * gap; z.gy = cy + 2.5 + dist; z.path = []; z.breach = null; z.press = null; z.siege = null; z.repathTimer = 0; z.pathFailed = false; z.state = "chase"; z.aggro = true; z.noWay = 0; z.attackCooldown = 0; z.lastSeen = [cx, cy]; z.seesNow = true; z.sightTimer = 0; });
       let s = 0;
-      while (G.map.tileAt(x, y)[e] === wall && s < 60 * 400) { for (let i = 0; i < n; i++) G.map.pressFence(wall, x, y, e); step(1); s++; }
-      G.map.buildWall(x, y, e, "wall", "wall_fence");
-      return s / 60;
+      while (!bursts.length && s < 60 * limit) { step(1); s++; }
+      const seconds = bursts.length ? s / 60 : null;
+      const edge = bursts[0] ? [bursts[0].tx, bursts[0].ty, bursts[0].edge] : null;
+      away();
+      if (edge && !G.map.tileAt(edge[0], edge[1])[edge[2]]) G.map.buildWall(edge[0], edge[1], edge[2], "wall", "wall_fence"); // the section that went comes back, new
+      const left = G.map.tileAt(x, y)[e];
+      if (left) left.hp = G.tuning.world.fenceHp;
+      return seconds;
     };
-    for (const n of [3, 5, 8]) timed[n] = timeOf(n);
-    row("three of the dead take at least half a minute to bring a fence section down, five twenty seconds, eight ten", timed[3] >= 30 && timed[5] >= 20 && timed[8] >= 10, `3: ${timed[3].toFixed(0)} s, 5: ${timed[5].toFixed(0)} s, 8: ${timed[8].toFixed(0)} s`);
-    bursts.length = 0;
+    const timed = {};
+    for (const n of [3, 5, 8]) timed[n] = crowd(n, 0.25, 3);
+    const f0 = (v) => (v === null ? "never" : `${v.toFixed(0)} s`);
+    row("three of the dead take long enough to run or arm (half a minute at the least) to bring a fence section down; eight are urgent, not instant (ten seconds at the least)", timed[3] !== null && timed[3] >= 30 && timed[5] !== null && timed[8] !== null && timed[8] >= 10 && timed[8] < timed[3], `real bodies, bunched: 3: ${f0(timed[3])}, 5: ${f0(timed[5])}, 8: ${f0(timed[8])}`);
+    const spread = crowd(8, 1.2, 4, 240);
+    row("a crowd that arrives spread out still brings a section down (the second body does not sit on a threshold)", spread !== null, `8 dead 1.2 tiles apart: ${f0(spread)}`);
 
     // ---- biting over a fence stays (Michael, 2026-10-17: "they should be allowed to bite over fences, otherwise exploitable"):
     // a fence is no wall to a bite, only to a body ----
@@ -176,7 +191,7 @@ export async function run(game) {
     for (const z of dead) z.gx = cx + 90;
     // A yard with no gate: they cross the fence nearest their way.
     setUp(false);
-    startDead(dead);
+    startDead(dead.slice(0, 4));
     const before = standing();
     let t2 = 0;
     while (t2 < 60 * 400 && bursts.length === 0) { step(1); t2++; }
