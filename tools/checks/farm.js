@@ -167,6 +167,79 @@ export async function run(game) {
     G.game.begin(0);
     const live = G.map.allProps().filter((p) => p.crop && p.crop.at !== undefined && p.id !== crop.id && (!crop2 || p.id !== crop2.id) && (!used || p.id !== used.id));
     row("the map's authored crops are settled live at their authored stage on the first step", live.length > 0 && live.every((p) => farming.stageOf(p) === Number(p.sprite.slice(-1))), `${live.length} settled; ${home.length} authored crops in view`);
+
+    // The bucket (#199; Michael, 2026-10-18: it goes in the bag): an item holding water in its entry's fill, filled at water, poured on a
+    // plot to water the 3 by 3 round it.
+    const bdef = G.items.getItem("bucket");
+    row("the bucket is an ordinary item (bag, belt, or hand) that holds water (a vessel, capacity in data), made at the workbench from planks, and a waterskin is not one", bdef.hands === "either" && bdef.vessel.capacity > 0 && G.stations.recipe("bucket").station === "workbench" && G.stations.recipe("bucket").out.id === "bucket" && !G.items.getItem("waterskin").vessel && !bdef.capacity, JSON.stringify(G.stations.recipe("bucket").in));
+    const pond = [86, 192];
+    G.map.ensureAround(pond[0], pond[1], 3);
+    me.hands.main = null;
+    me.hands.off = null;
+    G.teleport(pond[0] - 1.0, pond[1] + 0.2);
+    const bucket = G.items.makeEntry("bucket", 1);
+    G.inventory.stow(me, bucket);
+    row("a new bucket is empty", (bucket.fill ?? 0) === 0, `fill ${bucket.fill}`);
+    const atPond = G.interact.actionsForTarget({ kind: "tile", tile: pond }, me);
+    row("carried in the bag, it offers Fill the bucket at the pond (and the waterskin's own entries are unchanged)", atPond.some((a) => a.label === "Fill the bucket" && a.enabled) && atPond.some((a) => a.label === "Drink from the water"), atPond.map((a) => a.label).join(", "));
+    row("an empty bucket cannot pour, and nothing growing needs a pour", !G.verbs.run("pour", G.world, me, { tile: pond }).ok && /empty/.test(G.verbs.run("pour", G.world, me, { tile: pond }).reason), String(G.verbs.run("pour", G.world, me, { tile: pond }).reason));
+    const filledBy = G.interact.performByLabel(me, { kind: "tile", tile: pond }, "Fill the bucket");
+    for (let i = 0; i < 100 && me.action; i++) G.interact.updateAction(me, 0.1);
+    row("a guest's command (the label on the water's address) fills it to the capacity", filledBy === true && bucket.fill === bdef.vessel.capacity, `fill ${bucket.fill}`);
+    row("a full bucket will not fill again", !G.verbs.run("fill", G.world, me, { tile: pond }).ok && /full/.test(G.verbs.run("fill", G.world, me, { tile: pond }).reason), String(G.verbs.run("fill", G.world, me, { tile: pond }).reason));
+    G.teleport(pond[0] - 8, pond[1] - 8);
+    row("too far from the water it is refused", (() => { bucket.fill = 0; const r = G.verbs.run("fill", G.world, me, { tile: pond }); bucket.fill = bdef.vessel.capacity; return !r.ok && /far/.test(r.reason); })(), "refused");
+    // The Use mode: the bucket on the water fills it too.
+    G.teleport(pond[0] - 1.0, pond[1] + 0.2);
+    bucket.fill = 0;
+    G.use.applyWith(bucket, { kind: "tile", x: pond[0], y: pond[1], floor: G.map.peekTile(pond[0], pond[1]).floor }, me);
+    row("by the Use mode the bucket on water fills", bucket.fill === bdef.vessel.capacity, `fill ${bucket.fill}; "${await lastLine()}"`);
+
+    // A plot of nine, all dry, and a tenth crop beyond the pour's 3 by 3.
+    let plot = null;
+    G.map.ensureAround(me.gx, me.gy, 3);
+    for (let dy = -14; dy <= 14 && !plot; dy++) for (let dx = -14; dx <= 14 && !plot; dx++) {
+      const px = Math.round(me.gx) + dx;
+      const py = Math.round(me.gy) + dy;
+      let ok = true;
+      for (let ay = -1; ay <= 4 && ok; ay++) for (let ax = -1; ax <= 4 && ok; ax++) { const t = G.map.peekTile(px + ax, py + ay); ok = !!t && t.floor === "floor_grass" && !t.prop && !t.n && !t.w && G.map.isWalkableTile(px + ax, py + ay); }
+      if (ok) plot = [px, py];
+    }
+    if (!plot) throw new Error("no bare grass for a plot of nine");
+    const crops9 = [];
+    for (let ay = 0; ay < 3; ay++) for (let ax = 0; ax < 3; ax++) {
+      G.map.setFloor(plot[0] + ax, plot[1] + ay, "floor_farm");
+      const c = G.map.createProp({ sprite: "crop_potato_0", tile: [plot[0] + ax, plot[1] + ay], solid: false });
+      const now = G.clock.getElapsed();
+      c.crop = { kind: "potato", grown: 0, at: now, wetUntil: now - 1 }; // dry
+      G.map.placeProp(c, plot[0] + ax, plot[1] + ay);
+      crops9.push(c);
+    }
+    G.map.setFloor(plot[0] + 3, plot[1], "floor_farm");
+    const far = G.map.createProp({ sprite: "crop_potato_0", tile: [plot[0] + 3, plot[1]], solid: false });
+    far.crop = { kind: "potato", grown: 0, at: G.clock.getElapsed(), wetUntil: G.clock.getElapsed() - 1 };
+    G.map.placeProp(far, plot[0] + 3, plot[1]);
+    restore.push(() => { for (const c of [...crops9, far]) { const t = G.map.propById(c.id); if (t) G.map.removeProp(t); } for (let ay = 0; ay < 3; ay++) for (let ax = 0; ax < 4; ax++) G.map.setFloor(plot[0] + ax, plot[1] + ay, "floor_grass"); });
+    G.teleport(plot[0] + 1.2, plot[1] + 2.4);
+    const onCrop = G.interact.actionsForTarget({ kind: "prop", id: crops9[4].id }, me);
+    row("carried at a plot, a crop's menu offers Pour the bucket (and Water with a skin as before)", onCrop.some((a) => a.label === "Pour the bucket" && a.enabled) && onCrop.some((a) => a.label.startsWith("Water")), onCrop.map((a) => a.label).join(", "));
+    G.teleport(plot[0] + 1.2, plot[1] + 1.8); // within the action's own reach, so the bar starts at once
+    const stageDry = farming.stageOf(crops9[4], G.clock.getElapsed() + 5 * DAY);
+    const poured = G.interact.performByLabel(me, { kind: "prop", id: crops9[4].id }, "Pour the bucket");
+    for (let i = 0; i < 100 && me.action; i++) G.interact.updateAction(me, 0.1);
+    const now2 = G.clock.getElapsed();
+    row("a guest's command pours it: all nine tiles are watered, and the tenth beyond the 3 by 3 is not", poured === true && crops9.every((c) => farming.isWet(c, now2)) && !farming.isWet(far, now2), `${crops9.filter((c) => farming.isWet(c, now2)).length} of 9 wet; the far one wet ${farming.isWet(far, now2)}`);
+    row("the bucket is empty after one pour (one pour a fill)", bucket.fill === 0, `fill ${bucket.fill}`);
+    row("a crop that was dry, watered by the pour, grows again: stage 1 after its first wet days where a dry one stays at stage 0", stageDry === 0 && farming.stageOf(crops9[4], now2 + 2.1 * DAY) === 1, `dry ${stageDry}, watered ${farming.stageOf(crops9[4], now2 + 2.1 * DAY)}`);
+    // The Use mode: the bucket on a crop pours.
+    bucket.fill = bdef.vessel.capacity;
+    for (const c of crops9) c.crop.wetUntil = G.clock.getElapsed() - 1;
+    G.use.applyWith(bucket, { kind: "prop", prop: crops9[4] }, me);
+    row("by the Use mode the bucket on a crop pours: nine watered, the bucket empty", crops9.every((c) => farming.isWet(c)) && bucket.fill === 0, `${crops9.filter((c) => farming.isWet(c)).length} of 9; fill ${bucket.fill}`);
+    // The water is the entry's: it travels with the inventory and the save.
+    bucket.fill = 70;
+    const kept = JSON.parse(JSON.stringify(bucket));
+    row("its water is a fill on the entry (in the bag's record, so the frame and the save carry it), and it can sit on the belt or in a hand and still be found", kept.fill === 70 && (() => { me.hands.main = bucket; bag.items.splice(bag.items.indexOf(bucket), 1); const found = G.verbs.run("pour", G.world, me, { tile: [plot[0] + 1, plot[1] + 1] }); me.hands.main = null; return found.ok === true; })(), `fill ${kept.fill}`);
   } finally {
     for (const r of restore.reverse()) r();
     G.world.setTimeScale(1);

@@ -184,6 +184,21 @@
    "seconds": 6
   },
   {
+   "id": "bucket",
+   "station": "workbench",
+   "out": {
+    "id": "bucket",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 3
+    }
+   ],
+   "seconds": 6
+  },
+  {
    "id": "table",
    "station": "workbench",
    "out": {

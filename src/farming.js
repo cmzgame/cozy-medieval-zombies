@@ -95,7 +95,17 @@ export function refresh(prop, now = clock.getElapsed()) {
 // Targets are addresses: a tile `{ tile: [x, y] }` (or the Use mode's `{ x, y }`), a prop by id; an item by `entry` (a uid) when the Use mode
 // names one. Each re-validates when it fires, and every reach and hand check is the host's.
 
-const reach = (player, x, y) => Math.hypot(player.gx - x, player.gy - y) <= W.pickReach;
+// Water a crop's soil: its growth so far is settled, and the soil is wet `wetDays` from now (the skin's watering and the bucket's pour).
+export function soak(prop, now = clock.getElapsed()) {
+  settle(prop, now);
+  const c = prop.crop;
+  c.grown = growth(prop, now);
+  c.at = now;
+  c.wetUntil = now + get().soil.wetDays * DAY;
+  map.touch(prop.tile[0], prop.tile[1]);
+}
+
+export const reach = (player, x, y) => Math.hypot(player.gx - x, player.gy - y) <= W.pickReach;
 const tileOf = (t) => (Array.isArray(t.tile) ? [Math.round(t.tile[0]), Math.round(t.tile[1])] : [Math.round(t.x), Math.round(t.y)]);
 
 // The tool a player holds that lists a verb ("till"), or null.
@@ -203,15 +213,9 @@ verbs.define("water", {
   },
   perform(world, player, target) {
     const prop = cropProp(target);
-    const now = clock.getElapsed();
-    settle(prop, now);
-    const c = prop.crop;
-    c.grown = growth(prop, now);
-    c.at = now;
-    c.wetUntil = now + get().soil.wetDays * DAY;
+    soak(prop);
     const skin = skinFor(player, target.entry);
     skin.fill -= get().soil.fillCost;
-    map.touch(prop.tile[0], prop.tile[1]);
     return { message: "The water soaks in." };
   },
 });

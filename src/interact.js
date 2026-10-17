@@ -34,6 +34,7 @@ import * as loop from "./loop.js";
 import * as use from "./use.js"; // the Use entry on item menus (docs/30, law 2)
 import * as verbs from "./verbs.js"; // the verb table (docs/31/08, habit 4)
 import * as farming from "./farming.js"; // till, plant, water, harvest (#194)
+import * as bucket from "./bucket.js"; // the bucket item: fill at water, pour on a plot (#199)
 import * as fishing from "./fishing.js"; // a rod in hand casts at the water beside you (#190)
 import * as fruit from "./fruit.js"; // fruit trees: picked by hand, bare until they bear again (#190)
 import * as clock from "./clock.js";
@@ -85,7 +86,7 @@ export function actionsForTarget(t, player) {
     const out = [];
     if (player.carrying) out.push(putDownAction(player, tx, ty));
     else if (map.peekTile(tx, ty) && map.drinkableAt(tx, ty)) out.push(...waterTileActions(tx, ty, player));
-    if (!player.carrying) out.push(...farmTileActions(tx, ty, player));
+    if (!player.carrying) out.push(...farmTileActions(tx, ty, player), ...bucket.tileActions(tx, ty, player, act, world));
     if (map.isWalkableTile(tx, ty)) out.push(walkAction([tx, ty]));
     return tag(out, t);
   }
@@ -721,8 +722,8 @@ function propActions(prop, player) {
   if (prop.fire && prop.fire.burns) out.push(...fireActions(prop, player));
   if (prop.fire && prop.fire.holds) out.push(...holderActions({ kind: "post", prop }, player));
   if (prop.wood) out.push(...pickActions(prop, player), ...treeActions(prop));
-  if (prop.crop) out.push(...cropActions(prop, player));
-  if (prop.water) out.push(...wellActions(prop, player));
+  if (prop.crop) out.push(...cropActions(prop, player), ...bucket.tileActions(prop.tile[0], prop.tile[1], player, act, world).filter((a) => a.kind === "pour"));
+  if (prop.water) out.push(...wellActions(prop, player), ...bucket.tileActions(prop.tile[0], prop.tile[1], player, act, world));
   if (getDef(prop.sprite).sleep) out.push(...sleepAction(prop, player));
   if (stations.stationOf(prop)) out.push(...stationActions(prop, player));
   if (canCarry(prop)) out.push(carryAction(prop, player));
@@ -796,6 +797,7 @@ export function actionsAt(sx, sy, player) {
   }
   for (const entry of map.itemsAt(tx, ty)) out.push(...tag(itemActions(entry, tx, ty, player), onItem(entry, tx, ty)));
   if (map.peekTile(tx, ty) && map.drinkableAt(tx, ty)) out.push(...tag(waterTileActions(tx, ty, player), onTile(tx, ty))); // the river, a pond (docs/30, law 8)
+  if (map.peekTile(tx, ty) && !map.peekTile(tx, ty).prop) out.push(...tag(bucket.tileActions(tx, ty, player, act, world), onTile(tx, ty))); // a bucket: fill at water, pour on tilled soil beside a crop (#199)
   // Props: on their tile, or under their sprite in the tiles around (a tall tree).
   const seen = new Set();
   for (let dy = -3; dy <= 1; dy++) {
