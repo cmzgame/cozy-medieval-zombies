@@ -113,7 +113,7 @@ One panel for all of them, on the kit: the recipe list on the left (greyed when 
 
 Built in step 3: the workbench, the anvil and forge, the cooking hearth (any lit fire that cooks), and the oven. Not built, their rows above the plan: the loom and the dye vats (placed in the weaver's as labelled boxes with no recipes; cloth and wool wait for step 7's dressing or the animals), the millstones (step 4, with the mill), the cauldron (step 6, with the witch), the cider press (with the orchard), and the smoking rack (step 8, with the animals).
 
-Recipes in `data/recipes.json`: `{ station, out: {id, count}, in: [{id or tag, count}], seconds, fire: true|false }`. **Learned and earned** (`02`, 2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break, overturning "all known from the start"): a recipe comes from a villager who teaches it, from a skill, or as a region's reward; which are known at the start is the build's to settle with the production-chain map.
+Recipes in `data/recipes.json`: `{ station, out: {id, count}, in: [{id or tag, count}], seconds, fire: true|false }`. **Learned and earned** (`02`, 2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break, overturning "all known from the start"): a recipe comes from a villager who teaches it or as a region's reward (*Primary's additions, Michael's to overrule:* or from a skill; which are known at the start is settled with the production-chain map).
 
 ## 7. Fire and fuel (law 4)
 
