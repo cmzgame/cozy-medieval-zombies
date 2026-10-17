@@ -115,7 +115,8 @@ function giveStarterKit(player) {
   inventory.addItem(bag, "bread", 1);
   inventory.addItem(bag, "apple", 2);
   inventory.addItem(bag, "plank", 1);
-  items.hold(player.hands, entry("torch"));
+  items.hold(player.hands, entry("torch")); // unlit: the tinderbox beside it in the bag lights it on T (Michael, 2026-10-17, #156; #136 makes the kit data)
+  inventory.addItem(bag, "tinderbox", 1);
 }
 
 // The map's rules as the world reads them when it loads the map (docs/38 and `02`, #130): trees or none, and the
@@ -383,15 +384,15 @@ export function syncParts() {
   const m = map.serializeMap();
   // A fire's fuel to the unit: a replica refreshes it at each whole unit burned (map.burnFires), not each step.
   const chunks = (m.chunks || []).slice().sort((a, b) => (a.cx - b.cx) || (a.cy - b.cy)).map((c) => ({ ...c, props: (c.props || []).map((p) => { const { pokedAt, playedAt, ...q } = p; return q.fire && typeof q.fire.fuel === "number" ? { ...q, fire: { ...q.fire, fuel: Math.floor(q.fire.fuel) } } : q; }) }));
-  const entryText = (e) => (e ? `${e.id}#${e.uid}x${e.count ?? 1}${e.fill != null ? `f${f(e.fill)}` : ""}${e.bag ? `[${(e.bag.items || []).map(entryText).join(",")}]` : ""}` : "-");
+  const entryText = (e) => (e ? `${e.id}#${e.uid}x${e.count ?? 1}${e.lit ? "L" : ""}${e.fill != null ? `f${f(e.fill)}` : ""}${e.bag ? `[${(e.bag.items || []).map(entryText).join(",")}]` : ""}` : "-");
   const at = (c) => (c.netTo ? c.netTo : [c.gx, c.gy]); // a replica's smoothing target is the host's truth (net.js)
   // Health as the wire carries it, to two decimals (net.js r2): a bleeding player's drains in fractions every step, so
   // three decimals differed between the host and every replica though nothing was wrong (found testing item 5's third
   // step, the first bleeding guest a sync check met; the rule a fire's fuel already follows: compare what the wire promises).
   const hp2 = (n) => (typeof n === "number" ? (Math.round(n * 100) / 100).toFixed(2) : String(n));
-  const playerText = (p) => [`${p.id} ${f(at(p)[0])},${f(at(p)[1])} hp ${hp2(p.hp)} ${p.dead ? "dead" : "alive"}`, `hands ${entryText(p.hands.main)} ${entryText(p.hands.off)}`, `worn ${Object.keys(p.worn).sort().map((k) => `${k}:${entryText(p.worn[k])}`).join(" ")}`, `carrying ${p.carrying ? p.carrying.id : "-"}`].join(" | ");
+  const playerText = (p) => [`${p.id} ${f(at(p)[0])},${f(at(p)[1])} hp ${hp2(p.hp)} ${p.dead ? "dead" : "alive"}`, `hands ${entryText(p.hands.main)} ${entryText(p.hands.off)}`, `worn ${Object.keys(p.worn).sort().map((k) => `${k}:${entryText(p.worn[k])}`).join(" ")}`, `belt ${(inventory.beltOf(p) || []).map(entryText).join(" ")}`, `carrying ${p.carrying ? p.carrying.id : "-"}`].join(" | ");
   const parts = {
-    map: hashOf(JSON.stringify(chunks)),
+    map: hashOf(JSON.stringify(chunks, (k, v) => (k === "wear" && typeof v === "number" ? Math.floor(v * 100) / 100 : v))), // a mounted torch's wear to the hundredth: what the wire sends (map.burnHolders)
     registry: hashOf([...map.allProps()].map((p) => p.id).sort().join(",")),
     fires: hashOf(`${[...map.fires()].map((p) => `${p.id}:${p.fire && p.fire.lit ? "lit" : "out"}`).sort().join(",")}`),
     players: hashOf(S.players.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map(playerText).join("\n")),
@@ -486,9 +487,36 @@ function beltFire(belt) {
   if (!belt) return null;
   for (const e of belt) {
     const def = e && items.getItem(e.id);
-    if (def && def.fire) return def.fire;
+    if (def && def.fire && items.isLit(e)) return def.fire;
   }
   return null;
+}
+
+// A torch burns down while it is lit (Michael, 2026-10-17, #156): fastest in a hand, at the slower wall rate on the belt (a
+// lit one beside another that is held burns for nothing), and spent it is gone, with the weapon's own word. The meter is the
+// torch's `wear`, which a kill also bites; a lit one in the bag does not burn (it gives no light there either).
+function burnTorches(dt) {
+  const W = tuning.world;
+  const drain = (p, e, k) => {
+    const def = e && items.getItem(e.id);
+    if (!def || !def.fire || !def.fire.burnsDown || !e.lit) return;
+    e.wear = Math.min(1, (e.wear || 0) + k);
+    if (e.wear >= 1) {
+      inventory.detach(p, e);
+      events.emit("weaponBroke", { who: p.id, item: e.id, uid: e.uid });
+    }
+  };
+  for (const p of state.players) {
+    if (p.dead) continue;
+    const seen = new Set();
+    for (const slot of ["main", "off"]) {
+      const e = p.hands[slot];
+      if (!e || seen.has(e)) continue;
+      seen.add(e);
+      drain(p, e, dt / W.torchHeldLife);
+    }
+    for (const e of [...(inventory.beltOf(p) || [])]) if (e) drain(p, e, dt / W.torchWallLife);
+  }
 }
 
 // The world's first part of a step: the rules, the clock, the fires, and the
@@ -499,6 +527,8 @@ export function begin(dt) {
   rules.refresh(); // a server world's rules, from its source, once a step; a browser's world keeps its own (docs/23a, C3; docs/38, #109)
   clock.update(dt);
   map.burnFires(dt);
+  map.burnHolders(dt); // the torches mounted on brackets and posts burn down at the wall rate (map.js)
+  burnTorches(dt);
   stations.update(dt); // every station's queue, in the world's time (docs/30, section 6)
   for (const p of S.players) {
     // Grow the world four chunks ahead of the player, so wild forest and its dead
@@ -631,7 +661,7 @@ export function step(dt, snapshots = null) {
   const carried = [];
   for (const p of S.players) {
     const held = items.heldFire(p.hands);
-    const twoHanded = held && p.hands.main && p.hands.off && p.hands.main !== p.hands.off && items.getItem(p.hands.main.id).fire && items.getItem(p.hands.off.id).fire;
+    const twoHanded = held && p.hands.main && p.hands.off && p.hands.main !== p.hands.off && items.isLit(p.hands.main) && items.isLit(p.hands.off);
     const belted = held ? null : beltFire(inventory.beltOf(p));
     const fire = held || belted;
     const strength = held ? (twoHanded ? tuning.world.twoTorches : 1) : tuning.world.beltLight;
