@@ -366,7 +366,8 @@ process.on("message", (m) => {
   }
   if (m.type === "rules" && m.rules && typeof m.rules === "object") {
     // The owner's rules: the world reads them from the next step, and every guest's frame carries them.
-    for (const k of Object.keys(rules.rules)) if (typeof m.rules[k] === "boolean") worldRules[k] = m.rules[k];
+    // Not Trees nor the Starting population: they are chosen when a world is made and shape what is placed (#130).
+    for (const k of Object.keys(rules.rules)) if (!rules.FIXED.includes(k) && typeof m.rules[k] === "boolean") worldRules[k] = m.rules[k];
     rules.refresh();
     requestSave("the owner's rules");
     say(`the owner set the rules: ${JSON.stringify(rules.rules)}`);

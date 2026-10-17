@@ -41,6 +41,14 @@ const fireProps = new Set();
 let wild = null; // { biome: { kinds, scale }, density: [min, max], seed, zombiesPerChunk }
 let bounds = null; // [x, y, w, h] of the authored map
 const pendingSpawns = []; // [x, y] tiles where a wild chunk wants a zombie
+let popFactor = 1; // the world's Starting population as a factor (tuning.population): scales the dead a wild chunk brings
+let noTrees = false; // the world's Trees rule is off: no tree is placed, scatter or wild (rocks, forage, and anything else stay)
+
+// Whether a kind is a tree: its definition has a canopy (the engine's one idea of a tree), else its id says so.
+function isTreeKind(kind) {
+  const d = getDef(kind);
+  return d ? !!d.canopy : String(kind).startsWith("tree_");
+}
 // Which biome a tile is in, for the ground (docs/15): the scatter rules' rects
 // inside the bounds, the wild rule's biome beyond them.
 let biomeRects = []; // [{ rect: [x, y, w, h], biome }]
@@ -283,7 +291,8 @@ function wildRockAt(x, y) {
 // chunks exist.
 function wildTreeAt(x, y) {
   if (!wild || wildRockAt(x, y) || hash2(x, y, wild.seed ?? 1) >= densityAt(wild, wild.biome, x, y)) return null;
-  return weightedPick(wild.biome.kinds, hash2(x, y, (wild.seed ?? 1) + 1));
+  const kind = weightedPick(wild.biome.kinds, hash2(x, y, (wild.seed ?? 1) + 1));
+  return noTrees && isTreeKind(kind) ? null : kind; // Trees off: the same tiles, minus the trees
 }
 
 // Whether a tree stands at a tile: the authored map inside the bounds, the
@@ -1009,7 +1018,10 @@ export function getChunk(cx, cy, create = true, layer = 0) {
   if (sleepers.has(k)) woken.push(k); // grown before: its dead sleep on record, not rolled again (B2)
   else if (anyWild && wild && wild.zombiesPerChunk) {
     const [lo, hi] = wild.zombiesPerChunk;
-    const n = lo + Math.floor(hash2(cx, cy, (wild.seed ?? 1) + 3) * (hi - lo + 1));
+    const n0 = lo + Math.floor(hash2(cx, cy, (wild.seed ?? 1) + 3) * (hi - lo + 1));
+    // The Starting population rule: the count scaled, its fraction settled by the chunk's own hash, so a factor of one
+    // is exactly the map's number and any other is the same in any order and on every machine.
+    const n = Math.floor(n0 * popFactor + hash2(cx, cy, (wild.seed ?? 1) + 6));
     for (let i = 0; i < n; i++) {
       const lx = Math.floor(hash2(cx * 31 + i, cy, (wild.seed ?? 1) + 4) * CHUNK);
       const ly = Math.floor(hash2(cx, cy * 31 + i, (wild.seed ?? 1) + 5) * CHUNK);
@@ -1375,6 +1387,40 @@ export function moveCircle(gx, gy, r, dx, dy) {
   return { gx: nx, gy: ny };
 }
 
+// A free open tile within two steps of (x, y) by the authored map alone, never across a wall or a door, or null: where
+// an extra of the dead the map places by hand stands (the Starting population rule, #130). It reads the authored tiles,
+// not the chunks, which are not all grown when the world is made.
+export function authoredNear(x, y, taken) {
+  const at = (tx, ty) => (source ? source(tx, ty) : null);
+  const open = (tx, ty) => {
+    const t = at(tx, ty);
+    return !t || (!(t.prop && t.prop.solid) && floorRule(t.floor).walk !== false);
+  };
+  const clear = (ax, ay, bx, by) => {
+    const [ex, ey, slot] = edgeBetween(ax, ay, bx, by);
+    const t = at(ex, ey);
+    return !(t && t[slot]);
+  };
+  const seen = new Set([`${x},${y}`]);
+  let frontier = [[x, y]];
+  for (let ring = 1; ring <= 2; ring++) {
+    const next = [];
+    for (const [fx, fy] of frontier) {
+      for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
+        const tx = fx + dx;
+        const ty = fy + dy;
+        const k = `${tx},${ty}`;
+        if (seen.has(k) || !open(tx, ty) || !clear(fx, fy, tx, ty)) continue;
+        seen.add(k);
+        next.push([tx, ty]);
+        if (!taken.has(k)) return [tx, ty];
+      }
+    }
+    frontier = next;
+  }
+  return null;
+}
+
 // Nearest walkable tile to (x, y), in expanding rings.
 export function nearestWalkable(x, y, occupied = () => false, maxRing = 12) {
   for (let ring = 0; ring <= maxRing; ring++) {
@@ -1677,7 +1723,14 @@ export function ensureAround(x, y, radius = 4) {
 //   roads now, rivers and bridges later. A road may run right up to a set.
 // - **Scatter** fills what is left by rule, and the **wild** beyond the bounds
 //   is scatter all the way down.
-export function loadMap(json) {
+// `options` are the world's own rules (rules.js), read when it is made or restored, never once per page (#130):
+// `trees` false makes no tree, inside the bounds or beyond them, and nothing else changes (rocks, forage, the ground,
+// and any scatter that is not trees stay, in the same places); `population` is the factor the dead a wild chunk brings
+// are scaled by (the authored dead are scaled by game.create).
+export function loadMap(json, options = {}) {
+  const treesOn = options.trees !== false;
+  noTrees = !treesOn;
+  popFactor = Number.isFinite(options.population) ? options.population : 1;
   fireProps.clear(); // props are created below, before reset() runs
   propsById.clear();
   bracketSet.clear();
@@ -1837,7 +1890,9 @@ export function loadMap(json) {
         if (hash2(x, y, seed) >= densityAt(sc, biome, x, y)) continue;
         const t = authored.get(key(x, y));
         if (t && (t.floor !== baseFloor || t.prop || t.n || t.w)) continue;
-        placeProp({ sprite: weightedPick(biome.kinds, hash2(x, y, seed + 1)), tile: [x, y], footprint, solid: sc.solid !== false, opaque: !!sc.opaque }, [0, 0]);
+        const sprite = weightedPick(biome.kinds, hash2(x, y, seed + 1));
+        if (noTrees && isTreeKind(sprite)) continue; // Trees off: the pick is made as ever, a tree is simply not placed
+        placeProp({ sprite, tile: [x, y], footprint, solid: sc.solid !== false, opaque: !!sc.opaque }, [0, 0]);
       }
     }
   }

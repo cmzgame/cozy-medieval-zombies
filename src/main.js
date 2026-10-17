@@ -226,7 +226,6 @@ function afterWorldSet() {
   placement.cancel();
   use.cancel();
   buildPalette.close();
-  applySquareSurface();
   light.update();
   if (!glError) ground.invalidateAll();
   for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
@@ -286,11 +285,12 @@ function cancelJoin() {
   toSite("worlds");
 }
 
-// The Sandbox step's choices (docs/38, #109): the world's five rules and whether the dev chest is made with it. The
-// settings keep only the last choices, offered first at the next step; a world's rules are its own from then on.
+// The Sandbox step's choices (docs/38, #109, #130): the world's rules (five switches, Trees, and the Starting
+// population) and whether the dev chest is made with it. The settings keep only the last choices, offered first at the
+// next step; a world's rules are its own from then on.
 const RULE_KEYS = Object.keys(rules.DEFAULTS);
 function sandboxChoices() {
-  return { rules: Object.fromEntries(RULE_KEYS.map((k) => [k, !!settings.get(k)])), devChest: !!settings.get("devChest") };
+  return { rules: Object.fromEntries(RULE_KEYS.map((k) => [k, rules.coerce(k, settings.get(k))])), devChest: !!settings.get("devChest") };
 }
 
 // The host changes the world's rules from the pause menu (#109): between two steps, on the authority. They ride in the
@@ -298,7 +298,8 @@ function sandboxChoices() {
 // sets them (a server world's owner has the owner screen). Returns whether it was done.
 function setWorldRules(next) {
   if (!inWorld || net.isGuest()) return false;
-  rules.set(next);
+  // Trees and the Starting population are chosen when the world is made and shape what is placed: never changed after.
+  rules.set(Object.fromEntries(Object.entries(next).filter(([k]) => !rules.FIXED.includes(k))));
   if (currentWorld) saveWorld();
   return true;
 }
@@ -312,7 +313,7 @@ async function enterNewWorld(name, identity, { keep = true, rules: chosenRules =
     const rulesNow = { ...sandbox.rules, ...(chosenRules || {}) };
     chosenRules = rulesNow;
     if (devChest === null) devChest = sandbox.devChest;
-    for (const k of RULE_KEYS) settings.set(k, !!rulesNow[k]); // remembered, as the next Sandbox step's first choices
+    for (const k of RULE_KEYS) settings.set(k, rules.coerce(k, rulesNow[k])); // remembered, as the next Sandbox step's first choices
     settings.set("devChest", !!devChest);
   }
   if (keep) {
@@ -326,7 +327,6 @@ async function enterNewWorld(name, identity, { keep = true, rules: chosenRules =
       look: lookOf(identity),
       name: (identity && identity.name) || null,
       devChest: keep ? !!devChest : false,
-      combatTesting: !!settings.get("combatTesting"),
       rules: keep ? chosenRules : null,
     });
     afterWorldSet();
@@ -1158,15 +1158,6 @@ function stepGame(dt) {
   refreshFigure();
 }
 
-let squareTiles = [];
-function applySquareSurface() {
-  // The host's world, the host's floors: a guest's setting must never lay its own on its copy (the wiki census's bugs,
-  // 2026-10-15); the host's choice reaches it in the touched chunks like any floor.
-  if (net.isGuest()) return;
-  const floor = settings.get("squareSurface") === "dirt" ? "floor_dirt" : "floor_cobble";
-  for (const [x, y] of squareTiles) map.setFloor(x, y, floor);
-}
-
 function groundLine() {
   const s = ground.stats();
   return `${s.baked} baked, last ${s.lastMs.toFixed(1)}ms, max ${s.maxMs.toFixed(1)}ms, ${s.textures} textures, ${s.syncBakes} at draw`;
@@ -1314,9 +1305,6 @@ async function boot() {
   settings.onChange((key) => {
     if (key === "debugCorner") applyDebugCorner();
   });
-  // Combat testing (docs/21, read at load): no trees, anywhere, so nothing stands between a
-  // blow or a shot and its target; the dead are added once the rooms are known.
-  const combatTesting = !!settings.get("combatTesting");
   let json = null;
 
   await shell.run([
@@ -1351,11 +1339,7 @@ async function boot() {
     { name: "layers", label: "Reading the painted layers", weight: 1, run: () => loadPaintedHair() },
     { name: "map", label: "Reading the map", weight: 1, async run() {
       json = await assets.loadJson(MAP_FILE);
-      mapJson = json; // kept for a restore (save.js)
-      if (combatTesting) {
-        json.scatter = [];
-        if (json.wild) json.wild = { ...json.wild, density: [0, 0] };
-      }
+      mapJson = json; // kept for a restore (save.js); the map is read whole, and each world's own rules (trees, population) shape what it makes of it (#130)
       // Everything is loaded already; this adds the two-tile variants, and a name the manifest lacks fails here with its id.
       await assets.loadMapSprites(json);
       for (const k of placement.buildKinds()) await assets.loadSprite(k.sprite); // what can be built must be drawable
@@ -1399,17 +1383,6 @@ async function boot() {
     } },
     { name: "world", label: "Growing the world", weight: 1, async run() {
       // The world itself (game.js): the same calls headless under Node (tools/world.js).
-      // The square and its paths, cobble or dirt by the setting (docs/15, for
-      // comparing): the map's features with `group: "square"`.
-      squareTiles = [];
-      for (const f of json.features || []) {
-        if (f.group !== "square") continue;
-        const [fx, fy, fw, fh] = f.rect;
-        for (let y = fy; y < fy + fh; y++) for (let x = fx; x < fx + fw; x++) squareTiles.push([x, y]);
-      }
-      settings.onChange((key) => {
-        if (key === "squareSurface") applySquareSurface();
-      });
       // No world until one is chosen on the Worlds screen (docs/31/09). The checks want a fresh world
       // at boot as the game always had: `?nosave` makes one, never saved (the same calls in the same
       // order as tools/world.js, so both worlds hash the same).
@@ -1419,14 +1392,14 @@ async function boot() {
           look: lookOf(testIdentity()),
           name: testIdentity().name || null,
           devChest: !!settings.get("devChest"),
-          combatTesting,
-          rules: sandboxChoices().rules, // the test world plays by the last choices, as the pane always had it
+          // The test world plays by the last choices, as the pane always had it, except for the two a world is made with
+          // (Trees, Starting population): a world Michael made with no dead or no trees must not leave every test page so.
+          rules: { ...sandboxChoices().rules, ...Object.fromEntries(rules.FIXED.map((k) => [k, rules.DEFAULTS[k]])) },
         });
         refreshFigure();
         camera.snapTo(S.player.gx, S.player.gy);
         camera.applyOrigin(V.w, V.h);
         tiles = camera.viewportTiles(V.w, V.h);
-        applySquareSurface();
         light.update();
         for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
         visible = visibility.computeVisible(Math.round(S.player.gx), Math.round(S.player.gy), tiles);

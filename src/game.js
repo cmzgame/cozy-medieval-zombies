@@ -70,7 +70,7 @@ export function pickPlayer(p) {
 // world stage) and headless (tools/world.js), so both worlds hash the same.
 // What the client does after (the camera, sight, the ground, the player's
 // sheet) touches nothing the hash sees.
-export function create({ json, look = null, name = null, devChest = false, combatTesting = false, rules: chosen = null }) {
+export function create({ json, look = null, name = null, devChest = false, rules: chosen = null }) {
   const S = state;
   // The world's own rules (docs/38, #109): the defaults, over them what its Sandbox step chose; a server world's
   // source, when it has one, wins on the refresh below.
@@ -78,7 +78,7 @@ export function create({ json, look = null, name = null, devChest = false, comba
   rules.refresh();
   rng.seed(json.seed ?? 1); // the sim's one generator, seeded from the map (docs/23a, C1)
   world.reset(json.idCounter || 0); // the world's time scale and id counter (docs/30 step 2; docs/31/08)
-  S.info = map.loadMap(json);
+  S.info = map.loadMap(json, mapOptions());
   const info = S.info;
   map.ensureAround(info.spawn[0], info.spawn[1], 4); // reading never grows (docs/31/05, item 8): the ring first
   // The dev chest by the spawn, a setting rather than a thing in the map (docs/30 step 0).
@@ -90,7 +90,7 @@ export function create({ json, look = null, name = null, devChest = false, comba
   if (look) S.player.look = { ...S.player.look, ...look };
   if (name) S.player.name = name;
   giveStarterKit(S.player);
-  S.zombies = info.zombies.map(([x, y]) => createZombie(x, y));
+  S.zombies = placeAuthoredDead(info.zombies).map(([x, y]) => createZombie(x, y));
   S.corpses = [];
   S.villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i }));
   interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses]);
@@ -98,7 +98,6 @@ export function create({ json, look = null, name = null, devChest = false, comba
   map.ensureAround(S.player.gx, S.player.gy, 4);
   for (const [x, y] of map.takePendingSpawns()) S.zombies.push(createZombie(x, y));
   map.rebuildRooms();
-  if (combatTesting) addTestingDead(info.spawn);
   return S;
 }
 
@@ -119,28 +118,32 @@ function giveStarterKit(player) {
   items.hold(player.hands, entry("torch"));
 }
 
-// Forty of the dead standing about the open ground of the square, the same places every
-// time (a small generator, not Math.random), at least five tiles from where you start.
-// Combat testing's crowd (Michael, 2026-10-15: the game is too easy, the dead must get a kill on a new player
-// sometimes; start testing for that): a hundred of the dead in a ring round the spawn, ten to thirty-six tiles out,
-// on open ground outside any room, in the ring the world grew first. They were forty in tiles 1 to 30 before, the
-// proving ground's open ground, two hundred tiles from the valley's spawn. Aggro stays the setting's (his is off).
-const TESTING_DEAD = 100;
-const TESTING_RING = [10, 36];
-function addTestingDead(spawn) {
-  let seed = 90210;
-  const rand = () => ((seed = (Math.imul(seed, 1103515245) + 12345) >>> 0) / 4294967296);
-  const placed = [];
-  for (let tries = 0; tries < 20000 && placed.length < TESTING_DEAD; tries++) {
-    const a = rand() * Math.PI * 2;
-    const r = TESTING_RING[0] + rand() * (TESTING_RING[1] - TESTING_RING[0]);
-    const x = Math.round(spawn[0] + Math.cos(a) * r);
-    const y = Math.round(spawn[1] + Math.sin(a) * r);
-    if (!map.isWalkableTile(x, y) || map.tileAt(x, y).room > 0) continue;
-    if (placed.some(([px, py]) => Math.hypot(px - x, py - y) < 2)) continue;
-    placed.push([x, y]);
-    state.zombies.push(createZombie(x, y));
+// The map's rules as the world reads them when it loads the map (docs/38 and `02`, #130): trees or none, and the
+// factor the Starting population scales the dead by.
+function mapOptions() {
+  return { trees: rules.rules.trees, population: tuning.population[rules.rules.population] ?? 1 };
+}
+
+// The dead the map places by hand, scaled by the Starting population rule: each stands as many times as the factor
+// says, the fraction settled by its own tile, so a factor of one is the map's list exactly and any other is the same
+// everywhere. An extra stands on the nearest free open tile (map.authoredNear), never behind a wall. Never grows with
+// time: it is read once, when the world is made.
+function placeAuthoredDead(list) {
+  const factor = tuning.population[rules.rules.population] ?? 1;
+  const taken = new Set(list.map(([x, y]) => `${x},${y}`));
+  const out = [];
+  for (const [x, y] of list) {
+    const copies = Math.floor(factor + map.hash2(x, y, 7001));
+    if (copies <= 0) continue;
+    out.push([x, y]);
+    for (let i = 1; i < copies; i++) {
+      const at = map.authoredNear(x, y, taken);
+      if (!at) break;
+      taken.add(`${at[0]},${at[1]}`);
+      out.push(at);
+    }
   }
+  return out;
 }
 
 // ---- the world as data, and back (docs/31/05, item 24: the save, and the join's snapshot) ----
@@ -259,7 +262,7 @@ export function restore(saved, json) {
   rules.refresh();
   rng.seed(json.seed ?? 1);
   world.reset(json.idCounter || 0);
-  S.info = map.loadMap(json);
+  S.info = map.loadMap(json, mapOptions());
   map.restoreMap(save.map);
   const makers = { player: createPlayer, zombie: createZombie, villager: createVillager };
   const all = [];
@@ -395,7 +398,7 @@ export function syncParts() {
     // facing, the frame of the animation, burning.
     dead: hashOf([...S.zombies, ...S.villagers, ...S.corpses].slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((z) => `${z.id} ${f(at(z)[0])},${f(at(z)[1])} ${z.state || "-"} hp ${hp2(z.hp)} ${z.dead ? "dead" : ""}${z.corpse ? "corpse" : ""} ${z.facing} ${z.anim ? `${z.anim.name}:${z.anim.frame}` : "-"}${z.burning ? " fire" : ""}`).join("\n")),
     clock: hashOf(`${f(clock.getElapsed())} ${f(loop.simTime())} ${world.world.timeScale}`),
-    rules: hashOf(Object.keys(rules.rules).sort().map((k) => `${k}=${rules.rules[k] ? 1 : 0}`).join(" ")), // world state since the second step of item 5
+    rules: hashOf(Object.keys(rules.rules).sort().map((k) => `${k}=${typeof rules.rules[k] === "boolean" ? (rules.rules[k] ? 1 : 0) : rules.rules[k]}`).join(" ")), // world state since the second step of item 5
   };
   parts.counts = `${chunks.length} chunks, ${[...map.allProps()].length} props, ${[...map.fires()].length} fires, ${S.players.length} players, ${S.zombies.length} dead, ${S.villagers.length} villagers, ${S.corpses.length} corpses`;
   return parts;
