@@ -674,6 +674,14 @@ function openingsAtScreen(sx, sy) {
   return out;
 }
 
+// A bracket under a canvas point (Use mode's target, #170): the nearest to the ground point under the cursor, as the right-click menu
+// finds it, or null. A torch in it, a lantern, or nothing: the light verb says which ("There is no torch there.", "A lantern is always lit.").
+export function bracketAt(sx, sy) {
+  const g = iso.toGrid(sx, sy);
+  const near = map.bracketsNear(g.gx, g.gy, 0.8); // any bracket: a Use on a lantern or an empty one gets its own word, not the grass's
+  return near.length ? near[0].bracket : null;
+}
+
 // Every action for whatever is under a canvas point.
 export function actionsAt(sx, sy, player) {
   const g = iso.toGrid(sx, sy);
