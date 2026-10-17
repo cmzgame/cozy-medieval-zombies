@@ -9,7 +9,6 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 ### The world and the map
 
 - An item's name is specific unless the thing is truly one of a kind; identical materials keep plain names (2026-10-18, The Onion-head Hat; real-world references on one page; specific names; a lore issue)
-- References to real things outside the lore are data, `data/references.json`, shown on one wiki page; the first is the Onion-head Hat, after Cake's Comfort Eagle (2026-10-18, The Onion-head Hat; real-world references on one page; specific names; a lore issue)
 - An action that would realistically need a tool needs the tool carried; in a hand too is open; the bag's size is the puzzle, the Developer Bag perhaps excepted (2026-10-18, An action that needs a tool needs the tool with you)
 - A villager who teaches a skill is immune to the dead, like the guide, by a flag on each villager; some villagers stay at risk (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
 - Food heals a little, a stopgap; only potions heal big; cooked and combined food more, by default (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
@@ -176,6 +175,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Process and the studio
 
+- References to real things outside the lore are data, `data/references.json`, shown on one wiki page; the first is the Onion-head Hat, after Cake's Comfort Eagle (2026-10-18, The Onion-head Hat; real-world references on one page; specific names; a lore issue)
 - The hidden issues the valley needs are filed again with new scopes; the originals are read and closed when the bot is back (2026-10-18, The hidden issues the valley needs are filed again)
 - Recipes are learned and earned (from villagers and the regions; skills by default), not all known from the start (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
 - The valley and skillscape are the focus; combat testing pauses (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
@@ -221,8 +221,8 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### 2026-10-18 — The Onion-head Hat; real-world references on one page; specific names; a lore issue (Michael)
 
-- **The Onion-head Hat:** "I have been calling my favorite hat in the game 'onion hat' and in game I think it's called 'hood' or something. Rename it to Onion-head Hat and mark it as a reference to the song Comfort Eagle by Cake." (The one that "covers most of your face like Kenny from South Park and has a little vertical thing at the top": the `hood` item, whose shape is the delivered art's onion hat, `data/art/character/layers/README_layers.md`.) Its name is now **Onion-head Hat**; its id stays `hood`.
-- **Real-world references are tracked on one page:** "a wiki page that tracks references in the game to real life things outside of the game lore... Putting them all on a single page makes showing a lawyer simple someday before we launch." They are data, `data/references.json` (one entry a thing: what carries it, what it refers to, when, and from whom), checked by the validator against the item's name, and the wiki's Real-world references page is generated from it.
+- **The Onion-head Hat:** "I have been calling my favorite hat in the game 'onion hat' and in game I think it's called 'hood' or something. Rename it to Onion-head Hat and mark it as a reference to the song Comfort Eagle by Cake." (The one that "covers most of your face like Kenny from south park and has a little vertical thing at the top": the `hood` item, whose shape is the delivered art's onion hat, `data/art/character/layers/README_layers.md`.) Its name is now **Onion-head Hat**; its id stays `hood`.
+- **Real-world references are tracked on one page:** "a wiki page that tracks references in the game to real life things outside of the game lore... Putting them all on a single page makes showing a lawyer simple someday before we launch." *Primary's reading:* they are data, `data/references.json` (one entry a thing: what carries it, what it refers to, when, and from whom), checked by the validator against the item's name, and the wiki's Real-world references page is generated from it.
 - **Specific names:** "nothing should be called 'hat' or 'hood', unless we truly only intend for there to be one of that thing... Make item names more specific if possible and warranted, even if your suggestions don't keep long term it's a good pattern to get into. Stuff like 'log' can stay as is of course because they are all identical, not all hats are." *Primary's renames under it, Michael's to overrule* (names only; the ids stay): Wool cap, Linen tunic, Work gloves, Wool breeches, Hobnail boots, Leather belt (the good belt), Arming sword, Flanged mace, Wooden shield, Hunting bow, Belt knife, Smith's hammer.
 - **A lore and story issue**, which "will probably lead to a sweep of renaming things to fit them into the world lore": #217.
 
