@@ -123,7 +123,8 @@ export const sight = {
   litFull: 0.45, // and at or above which it is: between the two it fades in (the night's ambient is 0.22; a torch's pool falls off from 1)
   seenAt: 0.5, // how much of a dead one is seen (`seenAlpha`) before it counts as seen at all: told of, a health bar, a bubble (#158)
   drawCutoff: 0.02, // below this a faded dead one is not drawn at all (render/entities.js; #158)
-  groanGap: 3, // sim seconds between two lines "Something groans in the dark." in the log (ui/speech.js; #158)
+  groanGap: 20, // sim seconds between two lines "Something groans in the dark." in the log (ui/speech.js; #158, #177: 3 gave a line every few seconds with dozens of the dead about)
+  groanRadius: 6, // tiles: a dead one in the dark farther than this from the listener is not heard at all (a builder's default, #177)
 };
 
 const sections = { zombie, player, villager, world, population, sight };

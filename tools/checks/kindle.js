@@ -182,6 +182,7 @@ export async function run(game) {
     const bracket = [...G.map.brackets()].find((b) => !b.wall.bracket.torch && !b.wall.bracket.lantern);
     if (bracket) {
       const target = { kind: "bracket", bracket, mx: bracket.tx, my: bracket.ty };
+      row("a Use on an empty bracket is labelled the empty bracket", bracket.wall.bracket.torch === false && (await import("/src/interactions.js")).nameOfTarget({ kind: "bracket", bracket }) === "the empty bracket", (await import("/src/interactions.js")).nameOfTarget({ kind: "bracket", bracket }));
       G.map.setHolder(target, true, mk("torch", { lit: false, wear: 0.2 }));
       restore.push(() => G.map.setHolder(target, false));
       G.teleport(bracket.tx + (bracket.edge === "w" ? 1.2 : 0), bracket.ty + (bracket.edge === "n" ? 1.2 : 0));
@@ -206,7 +207,8 @@ export async function run(game) {
       // The Use label names what hangs there (#177).
       const names = await import("/src/interactions.js");
       const lanternB = [...G.map.brackets()].find((b) => b.wall.bracket.lantern);
-      row("a Use on a bracket is labelled for what is there: the torch, the lantern, the empty bracket", names.nameOfTarget({ kind: "bracket", bracket }) === "the torch in the bracket" && (!lanternB || names.nameOfTarget({ kind: "bracket", bracket: lanternB }) === "the lantern"), `${names.nameOfTarget({ kind: "bracket", bracket })}${lanternB ? `, ${names.nameOfTarget({ kind: "bracket", bracket: lanternB })}` : ""}`);
+      row("a Use on a bracket with a torch in it is labelled the torch in the bracket", names.nameOfTarget({ kind: "bracket", bracket }) === "the torch in the bracket", names.nameOfTarget({ kind: "bracket", bracket }));
+      row("and on a lantern bracket, the lantern (a map with none fails here)", !!lanternB && names.nameOfTarget({ kind: "bracket", bracket: lanternB }) === "the lantern", lanternB ? names.nameOfTarget({ kind: "bracket", bracket: lanternB }) : "no lantern bracket in the loaded map");
       use(box, { kind: "bracket", bracket: viaCursor(bracket) });
       row("a tinderbox used on a mounted torch that is out lights it (Use targets a bracket)", bracket.wall.bracket.lit === true, `lit ${bracket.wall.bracket.lit}`);
       const taper2 = mk("torch", { lit: false, wear: 0 });
@@ -225,9 +227,10 @@ export async function run(game) {
       const far = run({ bracket: addr, entry: box.uid });
       row("too far away is refused, and the torch stays out", !far.ok && /far/.test(far.reason) && bracket.wall.bracket.lit === false, String(far.reason));
     } else row("an empty bracket for the menu test", false, "none in the loaded map");
-    const lantern = [...G.map.brackets()].find((b) => b.wall.bracket.lantern);
+    // A lantern with room on both sides of its wall: it is stood beside (its own side, as close as `nearSide` says) and across from.
+    const lantern = [...G.map.brackets()].find((b) => b.wall.bracket.lantern && [nearSide(b, 0.8), nearSide(b, -0.8)].every(([px, py]) => G.map.isWalkableTile(Math.round(px), Math.round(py))));
     if (lantern) {
-      G.teleport(lantern.tx + (lantern.edge === "w" ? 1.2 : 0), lantern.ty + (lantern.edge === "n" ? 1.2 : 0));
+      G.teleport(...nearSide(lantern, 0.8));
       const l = run({ bracket: { tx: lantern.tx, ty: lantern.ty, edge: lantern.edge }, entry: box.uid });
       row("a lantern is always lit: nothing to light", !l.ok && /lantern/.test(l.reason), String(l.reason));
       // By Use, through the cursor: a lantern and an empty bracket are targets too, each with its own word (not "Nothing interesting happens").
@@ -248,8 +251,8 @@ export async function run(game) {
       row("a guest's Use of the tinderbox on the lantern, by address, says it is always lit and changes nothing", byGuest === true && /always lit/.test(await lastLine()) && JSON.stringify(lantern.wall.bracket) === lanternRecord, `ran ${byGuest}; "${await lastLine()}"`);
       // Not through a wall (the one rule): from the far side of the lantern's wall, if there is room on both sides.
       // A lantern with room on both sides of its wall, found as the torch bracket is below; none is a failure, not a skipped row.
-      const walledL = [...G.map.brackets()].find((b) => b.wall.bracket.lantern && [nearSide(b, 0.8), nearSide(b, -0.8)].every(([px, py]) => G.map.isWalkableTile(Math.round(px), Math.round(py))));
-      if (walledL) {
+      const walledL = lantern;
+      {
         const taperF = mk("torch", { lit: false, wear: 0 });
         me.hands.main = taperF;
         const [fx, fy] = nearSide(walledL, -0.8);
@@ -257,8 +260,8 @@ export async function run(game) {
         const behindL = run({ bracket: { tx: walledL.tx, ty: walledL.ty, edge: walledL.edge }, entry: taperF.uid });
         row("but not through the wall from its far side", !behindL.ok && /wall/.test(behindL.reason) && taperF.lit !== true, String(behindL.reason));
         me.hands.main = null;
-      } else row("a lantern bracket with room on both sides for the far-side row", false, "none in the loaded map");
-    } else row("a lantern bracket for the always-lit row", false, "none in the loaded map (the lanterns are #164's)");
+      }
+    } else row("a lantern bracket with room on both sides of its wall for the lantern rows", false, "none in the loaded map");
 
 
     // Not through a wall: a torch in a bracket from the far side of its wall, a campfire on the other side of one.
