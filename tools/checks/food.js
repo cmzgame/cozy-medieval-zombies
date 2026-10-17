@@ -43,6 +43,7 @@ export async function run(game) {
     row("a heal is capped at full health", me.hp === me.maxHp, `health ${me.hp} of ${me.maxHp}`);
 
     // From the belt: the slot's Eat entry, and a double-click.
+    me.hunger = 0; // the belt rows eat stew twice, so there is room for it
     if (belt) {
       const slot = belt.findIndex((e) => !e);
       if (slot >= 0) {
@@ -55,6 +56,46 @@ export async function run(game) {
         actions.useSlot(id);
         row("and the last one empties the slot", belt[slot] === null && me.hp === 40 + 2 * heal("stew"), `slot ${belt[slot] ? "still full" : "empty"}, health ${me.hp}`);
       } else row("a free belt slot for the belt rows", false, "none");
+      // Appetite bounds food (Michael, 2026-10-18, #186): a full belly eats nothing, by the menu, the double-click, and the key alike.
+      const word = () => (document.getElementById("message") || {}).textContent || "";
+      const was = G.rules.rules.survival;
+      G.rules.rules.survival = true;
+      const full = async (what, fn, keep) => {
+        me.hp = 40;
+        me.hunger = me.maxHunger - 2; // above the line, and below the exact top it drains from
+        const msg = document.getElementById("message");
+        if (msg) { msg.textContent = ""; msg.hidden = true; }
+        fn();
+        row(`a full belly eats nothing: ${what}`, me.hp === 40 && keep() && /full/i.test(word()), `health ${me.hp}, "${word()}"`);
+      };
+      try {
+        const slot2 = belt.findIndex((e) => !e);
+        belt[slot2] = G.items.makeEntry("stew", 2);
+        await full("the belt slot's menu", () => G.interact.slotMenu(me, `belt:${slot2}`).find((m) => m.label === "Eat").onSelect(), () => belt[slot2].count === 2);
+        await full("the double-click on it", () => actions.useSlot(`belt:${slot2}`), () => belt[slot2].count === 2);
+        await full("the bag's menu", () => {
+          const ent = G.items.makeEntry("bread", 1);
+          G.inventory.stow(me, ent);
+          G.interact.itemMenu(me, ent, bag, null).find((m) => m.label === "Eat").onSelect();
+          G.inventory.detach(me, ent);
+        }, () => true);
+        belt[slot2] = G.items.makeEntry("stew", 2);
+        const press = (await import("/src/interact.js")).updateInteract;
+        await full("the belt key", () => press(me, 1 / 60, { [`belt${slot2 + 1}`]: true }), () => belt[slot2].count === 2);
+        // Just under the line it eats, and tops hunger at the full mark.
+        me.hp = 40;
+        me.hunger = G.tuning.player.fullAt - 1;
+        G.interact.slotMenu(me, `belt:${slot2}`).find((m) => m.label === "Eat").onSelect();
+        row("one point under the full line it eats, and never past the top", me.hp === 40 + heal("stew") && me.hunger === me.maxHunger && belt[slot2].count === 1, `health ${me.hp}, hunger ${me.hunger}`);
+        // With Survival off the needs stay full for good, so there is no appetite to bound.
+        G.rules.rules.survival = false;
+        me.hp = 40;
+        me.hunger = me.maxHunger - 2;
+        G.interact.slotMenu(me, `belt:${slot2}`).find((m) => m.label === "Eat").onSelect();
+        row("with Survival off the needs are always full, and food is still eaten", me.hp === 40 + heal("stew"), `health ${me.hp}`);
+      } finally {
+        G.rules.rules.survival = was;
+      }
     } else row("the player has a belt", false, "no belt");
   } finally {
     me.hp = state0.hp;
