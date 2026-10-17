@@ -674,11 +674,11 @@ function openingsAtScreen(sx, sy) {
   return out;
 }
 
-// A mounted torch in a bracket under a canvas point (Use mode's target, #170): the nearest bracket holding a torch to the ground point
-// under the cursor, as the right-click menu finds it, or null.
+// A bracket under a canvas point (Use mode's target, #170): the nearest to the ground point under the cursor, as the right-click menu
+// finds it, or null. A torch in it, a lantern, or nothing: the light verb says which ("There is no torch there.", "A lantern is always lit.").
 export function bracketAt(sx, sy) {
   const g = iso.toGrid(sx, sy);
-  const near = map.bracketsNear(g.gx, g.gy, 0.8).filter((b) => b.bracket.wall.bracket.torch);
+  const near = map.bracketsNear(g.gx, g.gy, 0.8); // any bracket: a Use on a lantern or an empty one gets its own word, not the grass's
   return near.length ? near[0].bracket : null;
 }
 

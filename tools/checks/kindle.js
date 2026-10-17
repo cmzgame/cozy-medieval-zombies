@@ -19,6 +19,9 @@ export async function run(game) {
   const restore = [];
   const mk = (id, props = {}) => G.items.makeEntry(id, 1, props);
   const run = (target) => G.verbs.run("light", G.world, me, target);
+  // The bracket Use mode finds under the cursor at a bracket's own point (what main.js's useTargetAt asks), so the Use rows go through it.
+  const viaCursor = (b) => { const p = G.iso.toScreen(...G.map.bracketPos(b)); return G.interact.bracketAt(p.x, p.y); };
+  const lastLine = async () => (await import("/src/ui/log.js")).lines().slice(-1)[0] || "";
   // A point `d` tiles from a bracket's wall edge, on the bracket's side (negative: the far side).
   const nearSide = (b, d) => {
     const e0 = b.edge === "n" ? b.ty - 0.5 : b.tx - 0.5;
@@ -177,17 +180,18 @@ export async function run(game) {
       row("a lit one offers no Light", !menu(), "the menu entry is gone");
       // By Use (#170): Use can target a bracket, and a lit torch in one is a flame like a post's.
       bracket.wall.bracket.lit = false;
-      use(box, { kind: "bracket", bracket });
+      row("Use mode finds the bracket under the cursor", viaCursor(bracket) === bracket, `${viaCursor(bracket) ? "found" : "none"}`);
+      use(box, { kind: "bracket", bracket: viaCursor(bracket) });
       row("a tinderbox used on a mounted torch that is out lights it (Use targets a bracket)", bracket.wall.bracket.lit === true, `lit ${bracket.wall.bracket.lit}`);
       const taper2 = mk("torch", { lit: false, wear: 0 });
       me.hands.main = taper2;
-      use(taper2, { kind: "bracket", bracket });
+      use(taper2, { kind: "bracket", bracket: viaCursor(bracket) });
       row("an unlit torch in the hand used on the lit torch in a bracket is lit from it", taper2.lit === true, `lit ${taper2.lit}`);
       bracket.wall.bracket.lit = false;
       const taper3 = mk("torch", { lit: false, wear: 0 });
       me.hands.main = taper3;
       const refused3 = run({ bracket: addr, entry: taper3.uid });
-      row("and not from one that is out", !refused3.ok && taper3.lit !== true, String(refused3.reason));
+      row("and not from one that is out (no flame)", !refused3.ok && taper3.lit !== true && /no flame/.test(refused3.reason), String(refused3.reason));
       me.hands.main = null;
       bracket.wall.bracket.lit = true;
       G.teleport(bracket.tx + (bracket.edge === "w" ? 6 : 0), bracket.ty + (bracket.edge === "n" ? 6 : 0));
@@ -200,6 +204,10 @@ export async function run(game) {
       G.teleport(lantern.tx + (lantern.edge === "w" ? 1.2 : 0), lantern.ty + (lantern.edge === "n" ? 1.2 : 0));
       const l = run({ bracket: { tx: lantern.tx, ty: lantern.ty, edge: lantern.edge }, entry: box.uid });
       row("a lantern is always lit: nothing to light", !l.ok && /lantern/.test(l.reason), String(l.reason));
+      // By Use, through the cursor: a lantern and an empty bracket are targets too, each with its own word (not "Nothing interesting happens").
+      const onLantern = viaCursor(lantern);
+      use(box, { kind: "bracket", bracket: onLantern });
+      row("Use on a lantern is a target of its own: it says it is always lit", onLantern === lantern && /always lit/.test(await lastLine()), `found ${onLantern === lantern}; "${await lastLine()}"`);
     } else row("a lantern bracket for the always-lit row", false, "none in the loaded map (the lanterns are #164's)");
 
     // Not through a wall: a torch in a bracket from the far side of its wall, a campfire on the other side of one.
@@ -223,6 +231,14 @@ export async function run(game) {
       G.teleport(sx, sy);
       const beside = run({ bracket: addr, entry: box.uid });
       row("and is lit from its own side, as close as that", beside.ok && walled.wall.bracket.lit === true, `lit ${walled.wall.bracket.lit}`);
+      // An unlit torch held to the lit torch from the far side of the wall is not lit from it.
+      const taper4 = mk("torch", { lit: false, wear: 0 });
+      me.hands.main = taper4;
+      G.teleport(bx, by);
+      const wallFlame = run({ bracket: addr, entry: taper4.uid });
+      row("an unlit torch held to a lit bracket torch from the far side of its wall is not lit", !wallFlame.ok && /wall/.test(wallFlame.reason) && taper4.lit !== true, String(wallFlame.reason));
+      me.hands.main = null;
+      G.teleport(sx, sy);
       // A campfire on one side of the same wall, the player on the other.
       const [tx0, ty0] = walled.edge === "n" ? [walled.tx, walled.ty + (walled.wall.bracket.side > 0 ? 0 : -1)] : [walled.tx + (walled.wall.bracket.side > 0 ? 0 : -1), walled.ty];
       if (!G.map.tileAt(tx0, ty0).prop) {
