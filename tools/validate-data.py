@@ -244,6 +244,26 @@ for row in load("data/recipes.json")["rows"]:
 if not any(row["station"] == "loom" for row in load("data/recipes.json")["rows"]):
     fail("recipes: the loom has no rows")
 
+# The farms and the mill (#201): every recipe's station is some sprite's `station` (or the cooking fire), the millstones grind grain, every crop's seed is in
+# both granaries' fixed tables (a seed source for every crop, never refilled), and no crop is a dead end (its harvest is an ingredient, by id or tag).
+station_names = {load(f"data/sprites/{sid}.json").get("station") for sid in sprites} - {None}
+recipe_rows = load("data/recipes.json")["rows"]
+for row in recipe_rows:
+    if row["station"] not in station_names and row["station"] != "cooking":
+        fail(f"recipes.{row['id']}: no sprite is a station called {row['station']!r}")
+if not any(r["station"] == "millstones" and r["in"][0].get("id") == "grain" and r["out"].get("id") == "flour" and not r.get("fire") for r in recipe_rows):
+    fail("recipes: the millstones have no grain-to-flour row without a fire")
+for table in ("granary_hollow", "granary_mill"):
+    held = {e["item"] for e in loot_tables[table].get("fixed", [])}
+    for kind, c in crops["crops"].items():
+        if c["seed"] not in held:
+            fail(f"loot.{table}: no {c['seed']!r}, the seed of {kind}")
+item_tags = {i["id"]: set(i.get("tags", [])) for i in items}
+for kind, c in crops["crops"].items():
+    h = c["harvest"]["item"]
+    if not any(w.get("id") == h or (w.get("tag") and w["tag"] in item_tags[h]) for r in recipe_rows for w in r["in"]):
+        fail(f"crops.{kind}: its harvest {h!r} is an ingredient of no recipe (a dead-end crop)")
+
 # Real-world references (Michael, 2026-10-18): each names a thing that exists, carries the thing's name as the game has it (so a rename
 # is caught here), and says what it refers to and when.
 for n, r in enumerate(load("data/references.json")["references"]):
