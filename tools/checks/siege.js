@@ -147,6 +147,9 @@ export async function run(game) {
       z.noWay = 0;
       z.attackCooldown = 0;
       z.lastSeen = [cell[0], py];
+      z.seesNow = true; // as when it already has them in sight, so the first step is not spent looking
+      z.sightTimer = 0;
+      me.hp = hp0;
       step(60 * 3);
       return bites.length;
     };
@@ -197,8 +200,12 @@ export async function run(game) {
       G.map.touch(d[0], d[1]);
       made.push(d);
     }
-    G.map.destroyWall(...s3.s.slice(0, 3)); // the helper's own centre door goes: the two beside it are the test
+    G.map.destroyWall(...s3.s.slice(0, 3)); // the helper's own centre door goes, and the wall is whole again: the two doors beside it are the test
+    G.map.buildWall(...s3.s.slice(0, 3), "wall", "wall_log");
     G.clock.setHour(0);
+    const hand0 = me.hands.main;
+    restore.push(() => { me.hands.main = hand0; });
+    me.hands.main = G.items.makeEntry("torch", 1, { lit: true, wear: 0 }); // a light on them: the dead see a player in the dark only so far (T.sight scaled by the light)
     G.teleport(h3[0] + 1, h3[1] + 4); // in the open, in line with the right-hand door
     step(2);
     z.gx = h3[0] + 1.2;

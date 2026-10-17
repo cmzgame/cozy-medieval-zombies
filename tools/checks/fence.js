@@ -169,7 +169,9 @@ export async function run(game) {
       bursts.length = 0;
       step(2);
     };
-    const startDead = (list) => list.forEach((z, i) => { z.gx = cx + (i % 2 ? 0.6 : -0.6) + (i > 1 ? 0.8 : 0); z.gy = cy - 6.5 - (i > 1 ? 1 : 0); z.path = []; z.breach = null; z.press = null; z.state = "chase"; z.aggro = true; z.noWay = 0; z.lastSeen = [cx, cy]; });
+    // The dead start together, in line with the window and the one edge they press (not left to chance: one pressing out of the
+    // player's sight gives up after `pressGiveUp`).
+    const startDead = (list) => list.forEach((z, i) => { z.gx = cx + (i - 1.5) * 0.25; z.gy = cy - 6.5 - (i > 1 ? 1 : 0); z.path = []; z.breach = null; z.press = null; z.state = "chase"; z.aggro = true; z.noWay = 0; z.lastSeen = [cx, cy]; });
     for (const z of dead) z.gx = cx + 90;
     // A yard with no gate: they cross the fence nearest their way.
     setUp(false);
