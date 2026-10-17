@@ -1,0 +1,1 @@
+{"placeholder": {"kind": "box", "color": "#7a5a3a", "height": 14, "inset": 6, "label": "Ore cart"}, "carry": false, "container": {"loot": "ore_cart"}, "note": "the iron workings' ore cart, a container, a dev box (docs/29-world/06; #196) until drawn"}

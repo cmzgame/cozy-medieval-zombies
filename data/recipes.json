@@ -279,6 +279,22 @@
    "seconds": 16
   },
   {
+   "id": "charcoal",
+   "station": "clamp",
+   "out": {
+    "id": "charcoal",
+    "count": 3
+   },
+   "in": [
+    {
+     "id": "log",
+     "count": 4
+    }
+   ],
+   "seconds": 360,
+   "fire": true
+  },
+  {
    "id": "iron_bar",
    "station": "forge",
    "out": {

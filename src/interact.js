@@ -37,6 +37,7 @@ import * as farming from "./farming.js"; // till, plant, water, harvest (#194)
 import * as bucket from "./bucket.js"; // the bucket item: fill at water, pour on a plot (#199)
 import { lineOfSight } from "./visibility.js";
 import * as chop from "./chop.js"; // a hatchet fells a tree and leaves a stump (#195)
+import * as mining from "./mining.js"; // a pickaxe mines a rock or an ore rock (#196)
 import * as tuning from "./tuning.js"; // the chop's seconds (world.chopSeconds)
 import * as fishing from "./fishing.js"; // a rod in hand casts at the water beside you (#190)
 import * as fruit from "./fruit.js"; // fruit trees: picked by hand, bare until they bear again (#190)
@@ -606,6 +607,34 @@ function pickActions(prop, player) {
   })];
 }
 
+// A rock or an ore rock is mined with a pickaxe in hand (#196); without one the entry says so; a spent ore rock says when the ore returns.
+// The timed action runs the `mine` verb, so a guest's choice of the same label does the same on the host.
+function mineActions(prop, player) {
+  const m = mining.mineOf(prop);
+  const base = { tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] };
+  if (!m) {
+    const back = fruit.ripeAt(prop);
+    const returns = getDef(prop.sprite).ripens;
+    if (back === null || !returns || !getDef(returns).mine) return []; // only a mined-out rock (a picked apple tree has its own words)
+    const days = Math.max(1, Math.ceil((back - clock.getElapsed()) / clock.DAY_LENGTH));
+    return [act({ ...base, kind: "mine", label: `Mined out (more in about ${days} day${days > 1 ? "s" : ""})`, enabled: false })];
+  }
+  const name = getItem(m.item).name.toLowerCase();
+  const axe = mining.heldPick(player);
+  return [act({
+    ...base,
+    kind: "mine",
+    label: axe ? `Mine ${name}` : `Mine ${name} (need a pickaxe)`,
+    enabled: !!axe,
+    duration: m.seconds,
+    perform() {
+      const r = verbs.run("mine", world, player, { prop: prop.id });
+      if (!r.ok && r.reason) showMessage(r.reason);
+      return r.ok;
+    },
+  })];
+}
+
 // Trees: chop down, logs on the ground, the tree gone (docs/02: felling is clearing the tile's prop).
 // A hatchet in a hand fells it (a stump is left) or chops the stump up (#195); without one the entry says so, as "Board up (need a plank)"
 // does. The timed action runs the `chop` verb (chop.js), so a guest's choice of the label does the same on the host.
@@ -731,6 +760,7 @@ function propActions(prop, player) {
   if (prop.fire && prop.fire.holds) out.push(...holderActions({ kind: "post", prop }, player));
   if (prop.wood) out.push(...pickActions(prop, player), ...treeActions(prop, player));
   if (prop.crop) out.push(...cropActions(prop, player), ...bucket.tileActions(prop.tile[0], prop.tile[1], player, act, world).filter((a) => a.kind === "pour"));
+  out.push(...mineActions(prop, player));
   if (prop.water) out.push(...wellActions(prop, player), ...bucket.tileActions(prop.tile[0], prop.tile[1], player, act, world));
   if (getDef(prop.sprite).sleep) out.push(...sleepAction(prop, player));
   if (stations.stationOf(prop)) out.push(...stationActions(prop, player));
