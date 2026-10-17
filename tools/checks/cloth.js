@@ -13,6 +13,8 @@ export async function run(game) {
   const saved = { gx: p.gx, gy: p.gy };
   const bag = G.inventory.bagOf(p);
   const bag0 = bag.items.slice();
+  const belt = G.inventory.beltOf(p);
+  const belt0 = belt ? belt.slice() : null;
   const hands0 = { main: p.hands.main, off: p.hands.off };
   const wasPaused = G.loop.isPaused();
   G.loop.setPaused(true);
@@ -25,7 +27,7 @@ export async function run(game) {
   try {
     // The data.
     const crops = farming.get().crops;
-    row("flax is a sixth crop, on rye's days, with its seed and its fibre, and three stage sprites", !!crops.flax && JSON.stringify(crops.flax.stages) === JSON.stringify(crops.rye.stages) && G.items.getItem(crops.flax.seed).tags.includes("seed") && G.items.getItem("flax") && [0, 1, 2].every((s) => G.assets.getDef(`crop_flax_${s}`).crop.kind === "flax"), JSON.stringify(crops.flax));
+    row("flax is a sixth crop, on rye's days, with its seed and its fibre, and three outlined stage sprites (the gatherables law)", !!crops.flax && JSON.stringify(crops.flax.stages) === JSON.stringify(crops.rye.stages) && G.items.getItem(crops.flax.seed).tags.includes("seed") && G.items.getItem("flax") && [0, 1, 2].every((s) => G.assets.getDef(`crop_flax_${s}`).crop.kind === "flax" && G.assets.getDef(`crop_flax_${s}`).placeholder.outline === true), JSON.stringify(crops.flax));
     row("cloth and a rag are tagged cloth (a garment already was), so every recipe that asks for the tag takes any of them", ["cloth", "rag", "cap", "tunic"].every((id) => G.items.getItem(id).tags.includes("cloth")) && G.stations.recipe("torch").in.some((i) => i.tag === "cloth"), "torch asks the tag");
     const loomRows = G.stations.recipesFor("loom").map((r) => r.id);
     row("the loom has rows: cloth from flax, bandages and clothes from cloth", ["cloth", "bandage", "weave_cap", "weave_breeches", "weave_tunic"].every((id) => loomRows.includes(id)) && G.stations.recipe("cloth").in[0].id === "flax" && G.stations.recipe("bandage").in[0].id === "cloth", loomRows.join(", "));
@@ -49,6 +51,8 @@ export async function run(game) {
     const [x, y] = at;
     p.hands.main = null;
     p.hands.off = null;
+    bag.items = bag.items.filter((e) => e.id !== "knife"); // a player who already carries one (the dev kit) would make the no-knife rows fail
+    if (belt) for (let i = 0; i < belt.length; i++) if (belt[i] && belt[i].id === "knife") belt[i] = null;
     G.teleport(x + 0.1, y + 0.9);
     map.setFloor(x, y, "floor_farm");
     restore.push(() => { const t = map.peekTile(x, y); if (t && t.prop) map.removeProp(t.prop); map.setFloor(x, y, "floor_grass"); });
@@ -111,16 +115,32 @@ export async function run(game) {
     standBy(bench, 1.9);
     const noKnife = craft(bench, "tear_tunic");
     row("tearing a garment wants a knife on you: without one it is refused, the tunic stays", !noKnife.ok && /knife/.test(noKnife.reason) && benchChest.bag.items.some((e) => e.id === "tunic"), String(noKnife.reason));
+    const inChest = G.grid.add(benchChest.bag, "knife", 1);
+    const chestKnife = craft(bench, "tear_tunic");
+    row("a knife in a chest within reach does not count: it has to be on you", inChest > 0 && !chestKnife.ok && /knife/.test(chestKnife.reason), String(chestKnife.reason));
+    benchChest.bag.items = benchChest.bag.items.filter((e) => e.id !== "knife");
+    const slot = belt ? belt.findIndex((e) => !e) : -1;
+    if (slot >= 0) {
+      belt[slot] = G.items.makeEntry("knife", 1);
+      const onBelt = craft(bench, "tear_tunic");
+      finish(bench, "tear_tunic");
+      const beltRag = take(bench);
+      row("a knife on the belt does count, and the tunic tears into two rags", onBelt.ok && beltRag.rag === 2 && !benchChest.bag.items.some((e) => e.id === "tunic"), `${onBelt.ok ? "" : onBelt.reason + "; "}output ${JSON.stringify(beltRag)}`);
+      belt[slot] = null;
+      G.grid.add(benchChest.bag, "tunic", 1);
+    } else row("a knife on the belt does count", false, "no free belt slot to try it on");
     G.inventory.stow(p, G.items.makeEntry("knife", 1)); // in the bag, not in a hand: carried is enough
     const tear = craft(bench, "tear_tunic");
     finish(bench, "tear_tunic");
     const gotRag = take(bench);
     row("with a knife in the bag the tunic tears into two rags", tear.ok && gotRag.rag === 2 && !benchChest.bag.items.some((e) => e.id === "tunic"), `${tear.ok ? "" : tear.reason + "; "}output ${JSON.stringify(gotRag)}`);
+    // A recipe that asks for the `cloth` tag takes a rag before a garment, wherever each sits (the #216 review).
+    G.grid.add(benchChest.bag, "tunic", 1);
     G.grid.add(benchChest.bag, "rag", 1);
     const torch = craft(bench, "torch");
     finish(bench, "torch");
     const gotTorch = take(bench);
-    row("a torch is made from a stick and a rag, as from a garment or a cloth", torch.ok && gotTorch.torch === 1, `${torch.ok ? "" : torch.reason + "; "}output ${JSON.stringify(gotTorch)}`);
+    row("a torch is made from a stick and the rag, and the tunic beside it stays (a garment is taken last for a tag)", torch.ok && gotTorch.torch === 1 && benchChest.bag.items.some((e) => e.id === "tunic") && !benchChest.bag.items.some((e) => e.id === "rag"), `${torch.ok ? "" : torch.reason + "; "}output ${JSON.stringify(gotTorch)}; the chest holds ${benchChest.bag.items.map((e) => e.id).join(", ")}`);
     void out;
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message });
@@ -128,6 +148,7 @@ export async function run(game) {
     for (const r of restore.reverse()) r();
     for (const q of made) { const t = map.propById(q.id); if (t) { t.queue = []; if (t.output) t.output.items = []; map.removeProp(t); } }
     bag.items.splice(0, bag.items.length, ...bag0);
+    if (belt) for (let i = 0; i < belt.length; i++) belt[i] = belt0[i];
     p.hands.main = hands0.main;
     p.hands.off = hands0.off;
     G.teleport(saved.gx, saved.gy);
