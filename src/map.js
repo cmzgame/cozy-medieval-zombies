@@ -1884,6 +1884,8 @@ export function createProp(def, offset = [0, 0]) {
     facing: facingFor(sdef, def, w, h),
     furrowsPending: !!sdef.furrows && !def.facing,
   };
+  // A crop the map authored by stage (its definition's `crop: { kind, stage }`): farming.js settles it live the first time it is looked at.
+  if (sdef.crop) prop.crop = { kind: sdef.crop.kind, stage: sdef.crop.stage };
   // Fire is data on the sprite definition (docs/07-lighting.md): a light
   // radius, whether it lights its whole room, burns wood, cooks. Live state
   // (lit, fuel) sits on the prop.
@@ -2194,7 +2196,7 @@ export function loadMap(json, options = {}) {
 }
 
 // The direction a floor's furrows run ("x" or "y"), or null for a floor without.
-function furrowsOf(floor) {
+export function furrowsOf(floor) {
   try {
     return getDef(floor).furrows || null;
   } catch {
