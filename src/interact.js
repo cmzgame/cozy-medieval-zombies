@@ -1152,7 +1152,15 @@ export function slotMenu(player, slotId) {
     const belt = beltOf(player);
     const entry = belt && belt[Number(key)];
     if (!entry) return out;
-    out.push({ label: "Equip", enabled: true, onSelect: () => equipFrom(player, entry) });
+    const bdef = getItem(entry.id);
+    // A food on the belt is eaten from it, and a skin drunk from it (Michael, 2026-10-18, #179: "being able to eat from your belt"): the
+    // slot's first entry, so a double-click does it; a hand item is equipped as before.
+    if (bdef.kind === "food") {
+      out.push({ label: "Eat", enabled: true, onSelect: () => { eat(player, bdef); entry.count -= 1; if (entry.count <= 0) belt[Number(key)] = null; } });
+    } else if (bdef.capacity) {
+      const pct = Math.round(entry.fill ?? 0);
+      out.push({ label: `Drink (${pct}%)`, enabled: pct > 0, onSelect: () => drink(player, entry) });
+    } else out.push({ label: "Equip", enabled: true, onSelect: () => equipFrom(player, entry) });
     out.push({
       label: "Put in bag",
       enabled: !!bagOf(player),

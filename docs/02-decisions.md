@@ -216,6 +216,8 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### 2026-10-18 — The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break (Michael)
 
+
+*Built as #179, the builder's numbers (Primary's defaults, Michael's to tune; `heal` in `data/items.json`):* raw 1 to 2 (potato 1, cabbage 1, garlic 1, apple 2, pumpkin 2), cooked 4 to 6 (roast potato 4, cheese 4, bread 5, porridge 6), stew 10; a food on the belt is eaten from its slot menu or a double-click, a guest's through the same menu command.
 Michael's notes after a play and a night's thinking, with Primary in chat:
 
 - **The valley first:** "I do want to start focusing valley and full production and stop combat testing for a while... valley + skillscape should be the main focus of our time as its the first step in the overall plan." Bugs are still closed as they come.
