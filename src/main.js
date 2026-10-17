@@ -43,6 +43,7 @@ import * as interactions from "./interactions.js";
 import * as startingKit from "./kit.js"; // the starting kit (#136)
 import * as farming from "./farming.js"; // till, plant, water, harvest (#194)
 import * as fishing from "./fishing.js"; // fishing: the rod, the cast, the catch (#190)
+import { canReach } from "./reach.js"; // one reach test, distance and a clear line (#208)
 import * as talk from "./talk.js"; // what villagers say: the barks and the conversations' data (docs/34, #198)
 import * as world from "./world.js";
 import * as game from "./game.js";
@@ -919,9 +920,7 @@ function updateInventoryUi() {
     }
   }
   if (openBag) {
-    let d = Infinity;
-    for (const [tx, ty] of openBag.tiles) d = Math.min(d, Math.hypot(S.player.gx - tx, S.player.gy - ty));
-    if (d > (openBag.closeDist || tuning.world.containerCloseDist)) openBag = null; // a station's output reaches as far as its panel
+    if (!canReach(S.player, openBag.tiles, openBag.closeDist || tuning.world.containerCloseDist)) openBag = null; // a station's output reaches as far as its panel; a wall between shuts it too (#208)
   }
   if (openBag && openBag.corpse) corpseWatch = openBag.corpse;
   if (corpseWatch) {

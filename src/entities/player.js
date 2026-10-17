@@ -19,6 +19,7 @@ import * as loop from "../loop.js";
 import { emit } from "../events.js";
 import { bagOf, beltOf, waterContainers } from "../inventory.js";
 import { getItem } from "../items.js";
+import { canReach, reachProblem } from "../reach.js"; // one reach test, distance and a clear line (#208)
 
 
 export function createPlayer(gx, gy, { id = null } = {}) {
@@ -223,7 +224,7 @@ verbs.define("sleep", {
     if (!getDef(bed.sprite).sleep) return "You cannot sleep on that.";
     if (player.sleeping) return "You are asleep.";
     if (player.carrying) return "Your hands are full.";
-    if (distToTiles(player, bed.tiles) > 1.6) return "Too far from the bed.";
+    { const why = reachProblem(player, bed.tiles, 1.6); if (why) return why === "Too far away." ? "Too far from the bed." : why; }
     if (roomAt(bed.tile[0], bed.tile[1]) === 0) return "Not out here.";
     if (siegeOn(player)) return "The dead that know you are in here are still about.";
     const h = clock.getHour();
@@ -263,7 +264,7 @@ function distToTiles(player, tiles) {
 // Returns true while still walking.
 function followAuto(player, dt) {
   const a = player.auto;
-  if (a.range > 0 && distToTiles(player, a.tiles) <= a.range) return finishAuto(player);
+  if (a.range > 0 && canReach(player, a.tiles, a.range)) return finishAuto(player);
   while (a.path.length) {
     const [tx, ty] = a.path[0];
     const dx = tx - player.gx;
@@ -292,7 +293,7 @@ function finishAuto(player) {
   player.auto = null;
   if (!a?.onArrive) return false;
   const arrived = a.range > 0
-    ? distToTiles(player, a.tiles) <= a.range
+    ? canReach(player, a.tiles, a.range)
     : Math.hypot(player.gx - a.goalTile[0], player.gy - a.goalTile[1]) <= 0.35;
   a.onArrive(arrived);
   return false;

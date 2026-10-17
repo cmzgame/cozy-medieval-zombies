@@ -12,6 +12,7 @@ export async function run(game) {
   const map = G.map;
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
+  const { lineOfSight } = await import("/src/visibility.js");
   const wasPaused = G.loop.isPaused();
   const p = G.player;
   const saved = { gx: p.gx, gy: p.gy };
@@ -33,7 +34,17 @@ export async function run(game) {
     return at;
   };
   const chestBeside = (prop, items) => {
-    const at = map.nearestWalkable(prop.tile[0] - 1, prop.tile[1] + 1, (x, y) => !!map.tileAt(x, y).prop || (x === Math.round(p.gx) && y === Math.round(p.gy)));
+    // A tile beside the player with a clear line to them (a chest the other side of a wall feeds no craft, #208), the nearest to the station.
+    let at = null;
+    let best = Infinity;
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+      const x = Math.round(p.gx) + dx;
+      const y = Math.round(p.gy) + dy;
+      if ((dx === 0 && dy === 0) || !map.isWalkableTile(x, y) || map.tileAt(x, y).prop || !lineOfSight(p.gx, p.gy, x, y)) continue;
+      const d = Math.hypot(x - prop.tile[0], y - prop.tile[1]);
+      if (d < best) { best = d; at = [x, y]; }
+    }
+    if (!at) at = map.nearestWalkable(prop.tile[0] - 1, prop.tile[1] + 1, (x, y) => !!map.tileAt(x, y).prop || (x === Math.round(p.gx) && y === Math.round(p.gy)));
     const chest = map.createProp({ sprite: "chest", tile: at });
     map.placeProp(chest, at[0], at[1]);
     made.push(chest);

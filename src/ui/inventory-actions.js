@@ -12,6 +12,7 @@ import * as interact from "../interact.js";
 import * as tuning from "../tuning.js";
 import * as use from "../use.js";
 import { showMessage } from "./prompt.js";
+import { canReach } from "../reach.js"; // distance and a clear line (#208)
 
 function slotGet(player, id) {
   const { kind, key, index } = inventory.parseSlot(id);
@@ -281,7 +282,7 @@ function resolvers(player) {
     const r = interact.containerAt(player, a);
     if (!r) return null;
     if (!a.mine) {
-      if (interact.distToTiles(player, r.tiles) > Math.max(a.closeDist || 0, tuning.world.containerCloseDist)) return null;
+      if (!canReach(player, r.tiles, Math.max(a.closeDist || 0, tuning.world.containerCloseDist))) return null; // distance and a clear line (#208)
       touched.add(r.tiles[0]);
     }
     return r;
