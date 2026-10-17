@@ -356,7 +356,7 @@ def build():
     wea.building([1, 1, 8, 6], "wall_wood", "floor_wood",
                  openings=[door("s", 2), window("s", 6), window("n", 2)],
                  partitions=[part_w(5, 0, 6, door_at=2)],
-                 props=[one("loom", 1, 1, footprint=[2, 2]), one("spinningwheel", 4, 1), one("shelf", 0, 0), one("cupboard", 4, 5), along_x("bed", 6, 0), one("chest", 7, 5), hearth_w(5, 3)],
+                 props=[one("loom", 1, 1, footprint=[2, 2]), one("spinningwheel", 4, 1), one("shelf", 0, 0), one("cupboard", 4, 5), along_x("bed", 6, 0), one("chest", 7, 5, loot="weaver_chest"), hearth_w(5, 3)],
                  brackets=[{"side": "n", "at": 6, "facing": "in", "lantern": True}])
     for i in range(3):
         wea.prop("dyevat", (10 + i, 3))

@@ -191,6 +191,29 @@ for kind, c in crops["crops"].items():
         elif load(f"data/sprites/{sid}.json").get("crop") != {"kind": kind, "stage": stage}:
             fail(f"sprites.{sid}: its `crop` should be {{kind: {kind}, stage: {stage}}}")
 
+# Recipes (#212): every item a recipe takes, makes, wields (`tool`), or must carry (`carry`) exists (an ingredient may be a tag instead), a prop
+# it makes has a sprite, and cloth is made, so the loom has rows.
+tags = {t for i in items for t in i.get("tags", [])}
+for row in load("data/recipes.json")["rows"]:
+    rid = row["id"]
+    for want in row["in"]:
+        if "tag" in want:
+            if want["tag"] not in tags:
+                fail(f"recipes.{rid}: no item has the tag {want['tag']!r}")
+        else:
+            check_id(f"recipes.{rid}.in", want.get("id"))
+    out = row["out"]
+    if "prop" in out:
+        if out["prop"] not in sprites:
+            fail(f"recipes.{rid}: no sprite {out['prop']!r} to make")
+    else:
+        check_id(f"recipes.{rid}.out", out.get("id"))
+    for key in ("tool", "carry"):
+        if row.get(key):
+            check_id(f"recipes.{rid}.{key}", row[key])
+if not any(row["station"] == "loom" for row in load("data/recipes.json")["rows"]):
+    fail("recipes: the loom has no rows")
+
 # Every picture named exists.
 referenced = set()
 

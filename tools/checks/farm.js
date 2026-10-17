@@ -31,7 +31,7 @@ export async function run(game) {
 
     // The data.
     const kinds = Object.keys(crops);
-    row("five crops in data, each with a seed item tagged seed, a harvest item, and three stages", kinds.length === 5 && kinds.every((k) => G.items.getItem(crops[k].seed).tags.includes("seed") && G.items.getItem(crops[k].harvest.item) && [0, 1, 2].every((s) => G.assets.getDef(`crop_${k}_${s}`).crop.kind === k)), kinds.join(", "));
+    row("six crops in data, each with a seed item tagged seed, a harvest item, and three stages", kinds.length === 6 && kinds.every((k) => G.items.getItem(crops[k].seed).tags.includes("seed") && G.items.getItem(crops[k].harvest.item) && [0, 1, 2].every((s) => G.assets.getDef(`crop_${k}_${s}`).crop.kind === k)), kinds.join(", "));
     row("the hoe lists the verb till, and the workbench makes it from a stick and a plank", G.items.getItem("hoe").verbs.includes("till") && G.stations.recipe("hoe").station === "workbench", JSON.stringify(G.stations.recipe("hoe").in));
 
     // A patch of bare grass: two tiles side by side with nothing on or round them.

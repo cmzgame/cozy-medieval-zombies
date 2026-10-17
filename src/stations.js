@@ -148,6 +148,7 @@ export function canMake(player, prop, r, count = 1) {
   if (distToTiles(player, prop.tiles) > REACH) return "Too far from it.";
   if (r.fire && !(prop.fire && prop.fire.lit)) return "The fire is out.";
   if (r.tool && !toolInHand(player, r.tool)) return `Needs a ${getItem(r.tool).name.toLowerCase()} in hand.`;
+  if (r.carry && countAll(player, r.carry) <= 0) return `Needs a ${getItem(r.carry).name.toLowerCase()} on you.`; // carried anywhere: the tool rule's `carried, not equipped` (2026-10-18)
   const short = shortfall(player, prop, r, count);
   if (short.length) return `Short of ${short.map((s) => `${s.need - s.have} ${nameOfWant(s.want)}`).join(", ")}.`;
   return true;
