@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- An action that would realistically need a tool needs the tool carried; in a hand too is open; the bag's size is the puzzle, the Developer Bag perhaps excepted (2026-10-18, An action that needs a tool needs the tool with you)
 - A villager who teaches a skill is immune to the dead, like the guide, by a flag on each villager; some villagers stay at risk (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
 - Food heals a little, a stopgap; only potions heal big; cooked and combined food more, by default (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
 - The dead strike what they break, an attack on a cooldown as on a player, Michael's leaning and the default; the shake toned down (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
@@ -215,6 +216,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-18 — An action that needs a tool needs the tool with you (Michael)
+
+"Any action that should realistically require a tool should require you to have the tool in your inventory, if not also equipped, tbd. That is the OSRS inventory puzzle part of the game which Zomboid does not have, because it uses weight to balance inventory size. You shouldn't be able to carry every tool for every activity AND all of your combat gear, except maybe in the dev bag." **A general rule:** an action that would realistically need a tool needs that tool in the inventory (*Primary's reading:* the bag, the belt, or a hand); whether it must also be in a hand is open (open question 32). The bag's size, not weight, is what makes the choice: what you carry for a trip is a puzzle, and the Developer Bag may be the exception. *Primary's reading:* the stricter rules already built stand until the hand question is ruled (chopping needs the hatchet in a hand, #195; fishing the rod, #190; tilling the hoe, #194); the audit of every action against this rule is its own issue.
 
 ### 2026-10-18 — Cloth: flax, the loom, rags from a garment with a knife on you (#212; the spec's, with Primary's and the builder's defaults, Michael's to overrule)
 
@@ -1246,3 +1251,4 @@ Only the open ones live here. The answered ones, as they were written, are in `d
 27. **Gathering's remainder.** The law (the wobble and the outline), the actions and their tools (`30` section 4), crops, pumpkins, mushrooms, and rocks are ruled and built. Still open: whether picked things regrow, and whether rocks block sight. To `05-someday.md`.
 29b. **The spin-click cap.** Of "fights cost too little" (2026-10-12), (a) stagger by weight and (c) bleed with the infection marker are built; (b), a turn-rate cap while a swing recovers, or a stamina or recovery cost for turning past about 90 degrees between swings, is not, and Michael paused combat changes. To a `needs-michael` issue (wave 4).
 31. **Water and thirst** (Michael, 2026-10-18, with the bucket: "if wells are infinite the thirst mechanic may become pointless"). Today any water tile and any well fills a skin for nothing, and a carried skin sips by itself (2026-10-16), so thirst asks only that a skin be carried. What thirst is for, and whether water should cost something, is open (*Primary's examples:* clean and foul water, boiling at a fire, wells that run low and refill, the last weighed against "never harder on a clock").
+32. **A tool carried, or in hand?** (Michael, 2026-10-18: "in your inventory, if not also equipped, tbd"). Built so far: the hatchet, the rod, and the hoe must be in a hand. Open: whether every tool action asks for a hand, or only for the tool somewhere on you.
