@@ -12,6 +12,7 @@
 
 import * as settings from "../settings.js";
 import * as rules from "../rules.js";
+import * as kit from "../kit.js";
 
 // A code, a name, or an address can come off the URL or a friend: never into innerHTML as it is.
 function esc(text) {
@@ -166,7 +167,7 @@ function listen(el) {
   // A dropdown's keys are its own (the arrows pick an answer; input.js would cancel them, and a letter would walk the
   // player); Escape still reaches the screens, and a release is let through so no key is left down (#65, #80).
   el.addEventListener("keydown", (e) => {
-    if (e.target && e.target.tagName === "SELECT" && e.code !== "Escape") e.stopPropagation();
+    if (e.target && (e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA") && e.code !== "Escape") e.stopPropagation();
   });
   // The dropdowns (#108): a setting, the hair or a painted layer to try, the identity editor's hair style.
   el.addEventListener("change", (e) => {
@@ -181,6 +182,12 @@ function listen(el) {
     render();
   });
   el.addEventListener("input", (e) => {
+    const text = e.target.closest("textarea[data-sandbox-text]");
+    if (text) { // a typed Sandbox choice (the extra kit): kept in the page's data with no redraw, so the typing stays where it is
+      data.rules = { ...sandboxNow().rules, [text.dataset.sandboxText]: text.value };
+      showKitProblem();
+      return;
+    }
     const name = e.target.closest("input[data-name]");
     if (name && youApi) youApi.setName(name.value);
   });
@@ -354,6 +361,7 @@ function go(where, ds = {}) {
     const field = root.querySelector("#world-name");
     const name = (field && field.value.trim()) || (worldsApi ? worldsApi.defaultName() : "A world");
     const now = sandboxNow();
+    if (kitProblem(now.rules)) { showKitProblem(); return; } // a kit that does not fit is refused, with its word, before the world is made
     beginCreation({ for: "new", name, rules: now.rules, devChest: now.devChest });
   }
   // The host's World rules, from the pause menu: a switch changes the world at once.
@@ -404,6 +412,21 @@ function sandboxSet(key, value) {
   if (key === "devChest") now.devChest = !!value;
   else now.rules[key] = value;
   show("newworld", { name: field ? field.value : data.name, rules: now.rules, devChest: now.devChest, touched: true });
+}
+
+// Why the extra starting items cannot be the kit (kit.js), or "": an unknown item, a bad count, or no room in the starting bag.
+function kitProblem(r) {
+  try {
+    return kit.problem(r.extraKit || "", !!r.devBag);
+  } catch {
+    return ""; // the kit's data is not loaded (a screen drawn before the data stage): nothing to refuse
+  }
+}
+
+// The word under the extra-items box, drawn as it is typed and when Next is refused.
+function showKitProblem() {
+  const el = root.querySelector("#kit-problem");
+  if (el) el.textContent = kitProblem(sandboxNow().rules);
 }
 
 // The Sandbox step as it stands: the last choices the browser remembers, over them what this page has changed.
@@ -536,9 +559,12 @@ function settingRow(entry) {
 // of the host's rule, shown and not to be changed.
 function worldRuleRow(entry, value, attrs, locked = false, why = "the host's") {
   // A switch for a true or false rule, a dropdown for one of a few words (the Starting population; #130).
-  const control = typeof value === "boolean"
+  const control = entry.text
+    ? `<textarea class="kit-text" data-sandbox-text="${esc(entry.key)}" rows="3" maxlength="600" spellcheck="false" autocomplete="off" placeholder="sword&#10;arrow 20"${locked ? " disabled" : ""}>${esc(value)}</textarea>`
+    : typeof value === "boolean"
     ? `<span class="switch-state">${value ? "On" : "Off"}</span>${switchHtml(value, attrs.switch, locked)}`
     : selectHtml(entry.choices, value, attrs.select || "", locked);
+  if (entry.text) return `<div class="setting${locked ? " hosts" : ""}"><span class="setting-label">${esc(entry.label)}<small class="help">${esc(entry.help || "")}</small><small class="help note" id="kit-problem"></small></span><span class="control">${control}</span></div>`;
   return `<div class="setting${locked ? " hosts" : ""}"><span class="setting-label">${esc(entry.label)}${locked ? ` <small>(${esc(why)})</small>` : ""}<small class="help">${esc(entry.help || "")}</small></span><span class="control">${control}</span></div>`;
 }
 
@@ -870,6 +896,7 @@ function render() {
     const field = root.querySelector("#world-name");
     field.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.code === "Enter") go("newworld-next"); });
     if (!data.touched) { field.focus(); field.select(); } // a switch drawn again leaves the typing where it was
+    showKitProblem(); // a kit that was typed, and a switch since: its word is drawn again with the page
   } else if (current === "join") {
     // The relay's address is on Settings' Testing tab now (#108): a player needs the code, not the plumbing.
     root.innerHTML = `
