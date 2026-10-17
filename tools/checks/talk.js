@@ -21,7 +21,10 @@ export async function run(game) {
   const meAt = [me.gx, me.gy];
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const restore = [];
+  // With a screen up (the title on a fresh tab) the step skips the talk panel's update and the keys: the check puts the screen away and brings it back.
+  const screen0 = G.screens.currentScreen();
   try {
+    if (screen0) G.screens.hide();
     G.loop.setPaused(true);
     const ids = talk.ids();
     const want = ["guide", "innkeeper", "guest", "child", "priest", "reeve", "apprentice", "neighbour"];
@@ -372,6 +375,7 @@ export async function run(game) {
     for (const r of restore.reverse()) r();
     G.teleport(meAt[0], meAt[1]);
     G.loop.setPaused(wasPaused);
+    if (screen0 && !G.screens.currentScreen()) G.screens.show(screen0);
   }
   for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);
   return { rows, passed: rows.filter((r) => r.result === "pass").length, total: rows.length };

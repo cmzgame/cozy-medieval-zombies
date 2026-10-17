@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- A villager the dead have hurt heals slowly at the player's rate and still talks and barks; only a dead one is silent (2026-10-18, A hurt villager heals at the player's rate; 2026-10-18, A wounded villager still talks and barks)
 - An item's name is specific unless the thing is truly one of a kind; identical materials keep plain names (2026-10-18, The Onion-head Hat; real-world references on one page; specific names; a lore issue)
 - An action that would realistically need a tool needs the tool carried; in a hand too is open; the bag's size is the puzzle, the Developer Bag perhaps excepted (2026-10-18, An action that needs a tool needs the tool with you)
 - A villager who teaches a skill is immune to the dead, like the guide, by a flag on each villager; some villagers stay at risk (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
@@ -219,6 +220,14 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-18 — A hurt villager heals at the player's rate (Michael, in chat, #236)
+
+On a villager the dead have hurt: **"slow refill like players, and they keep any dialogue that is programmed."** Built as `villager.regenPerMinute` (1, the player's `healthRegenPerMinute`: villagers have no needs, so they are always fed and watered) in the world's step on the authority, **never above their maximum and not for `villager.regenPause` (10) seconds after a hit** (so health does not climb while the dead are still biting); a dead one does not heal. The pause is the builder's reading, Michael's to overrule.
+
+### 2026-10-18 — The map panel: Space stays the shove (#204; the builder's reading, Michael's to overrule)
+
+`docs/33` named `Space` as the way back to your marker while the map is open. **Space is the shove** (`docs/21`), and the map does not stop the world (Michael, 2026-10-15: with a panel open the player can still fight), so **Space is not bound in the map**: **the Centre button and a double-click on the map follow you again**, and zooming or panning off-centre stops following until one of them. A place's name is drawn once any tile of its footprint's box is charted and a name that would sit on another's is left out, so the smallest zoom shows the larger places first.
 
 ### 2026-10-18 — A wounded villager still talks and barks (Michael, in chat, #230)
 
