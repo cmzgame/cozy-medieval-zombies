@@ -186,7 +186,8 @@ function distToEdge(px, py, tx, ty, edge) {
 // Why a thing cannot be built there, or "" if it can. Reach is separate so a
 // build already under way is not cancelled by a small drift.
 function buildBlock(player, what, tx, ty, edge) {
-  if (map.tileAt(tx, ty)[edge]) return "Already a wall";
+  const existing = map.tileAt(tx, ty)[edge];
+  if (existing && !map.canStampOver(existing, what)) return "Already a wall";
   if (!map.canBuildWall(tx, ty, edge, what)) return "No room";
   if (distToEdge(player.gx, player.gy, tx, ty, edge) < EDGE_CLEARANCE) return "Step back";
   return shortfall(player, what);
@@ -404,7 +405,7 @@ function destroy(t) {
     // put in it went with the prop; a guest's finds its container again by id and closes by itself).
     if (bags.length) emit("containerGone", { bags });
   } else {
-    map.destroyWall(t.tx, t.ty, t.edge);
+    map.destroyWall(t.tx, t.ty, t.edge, true); // a door or a window stamped into a wall leaves the wall again
   }
 }
 

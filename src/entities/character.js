@@ -58,7 +58,7 @@ export function createCharacter(kind, gx, gy, { id = null, name = null, speed = 
 // same entries the body wears, so after the copy they are made one again by uid.
 
 const CH_BY_ID = new Set(["target", "carrying"]);
-const CH_DROPPED = new Set(["sprite", "breach", "auto", "action", "line", "behindProp"]);
+const CH_DROPPED = new Set(["sprite", "breach", "press", "auto", "action", "line", "behindProp"]);
 
 export function serializeCharacter(ch) {
   const out = {};

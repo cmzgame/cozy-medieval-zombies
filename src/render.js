@@ -11,3 +11,4 @@
 // textures, walls, props, entities); this file re-exports what the game imports from it.
 
 export { renderScene, night } from "./render/scene.js";
+export { shakeFence } from "./render/walls.js";
