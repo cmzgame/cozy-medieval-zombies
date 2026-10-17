@@ -419,10 +419,10 @@ def build():
         g.zombie(x, y)
 
     # ---- the living (29/08's cast; names are Michael's to give, placeholders until then) ----
-    g.villager((inn.x + 6, inn.y + 3), "Innkeeper", 0, "Shut that behind you.")
+    g.villager((inn.x + 6, inn.y + 3), "Innkeeper", 0, "Shut that behind you.", immune=True)  # the steady ones: they will teach, so they cannot die (#180)
     g.villager((inn.x + 3, inn.y + 12), "Guest", 1, "I only stopped for the night.")
     g.villager((inn.x + 4, inn.y + 6), "Child", 5)
-    g.villager((chapel.x + 9, chapel.y + 2), "Priest", 2, "The bell stopped on the third day.")
+    g.villager((chapel.x + 9, chapel.y + 2), "Priest", 2, "The bell stopped on the third day.", immune=True)
     g.villager((reeve.x + 2, reeve.y + 3), "Reeve", 3, "I have the keys and no one to give them to.")
     g.villager((mer.x + 4, mer.y + 16), "Apprentice", 4, "It is all here. Every bale. Nobody to buy it.")
     g.villager((P(12, 65)[0] + 2, P(12, 65)[1] + 3), "Neighbour", 1, "Go away.")

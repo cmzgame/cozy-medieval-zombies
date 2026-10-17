@@ -5572,7 +5572,8 @@
    ],
    "name": "Innkeeper",
    "wardrobe": 0,
-   "line": "Shut that behind you."
+   "line": "Shut that behind you.",
+   "immune": true
   },
   {
    "tile": [
@@ -5598,7 +5599,8 @@
    ],
    "name": "Priest",
    "wardrobe": 2,
-   "line": "The bell stopped on the third day."
+   "line": "The bell stopped on the third day.",
+   "immune": true
   },
   {
    "tile": [

@@ -23,12 +23,13 @@ let nextId = 1;
 
 // `line` is what they say when poked ("Hey!" unless the map gives one);
 // `wardrobe` indexes the village wardrobes in data/wardrobes.json.
-export function createVillager(gx, gy, { id = null, name = null, line = null, wardrobe = 0 } = {}) {
+export function createVillager(gx, gy, { id = null, name = null, line = null, wardrobe = 0, immune = false } = {}) {
   const v = {
     ...createCharacter("villager", gx, gy, { id: id || `v${nextId++}`, name, speed: T.speed, radius: T.radius, hp: 100 }),
     home: [gx, gy],
     state: "idle", // idle | wander | talk
     greeting: line || "Hey!",
+    immune: !!immune, // the dead neither target nor harm it, whatever the world's rules (#180: a teacher, like the guide; the rest can die)
     path: [],
     repathTimer: 0,
     idleTimer: idleTime(),
@@ -98,7 +99,7 @@ export function updateVillager(v, dt, others) {
 // flinch, and at zero health they are dead, to be turned by `turnVillager`.
 // Returns whether it killed.
 export function damageVillager(v, amount) {
-  if (v.dead) return false;
+  if (v.dead || v.immune) return false; // an immune villager takes no harm from anything
   v.hp = Math.max(0, v.hp - amount);
   v.path = [];
   v.lastGoal = null;
