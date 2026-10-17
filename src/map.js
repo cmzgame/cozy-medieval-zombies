@@ -599,12 +599,19 @@ export function roomSealed(room) {
 // attacker's side, which is whichever side of the edge is not in the room. Only doors: nobody climbs through a window
 // (Michael, 2026-10-16), so the dead who want what is in a room go for its nearest door (open or shut, boarded or not:
 // they break what is in the way) and never batter a window, which leads nowhere for them. Returns { wall, tx, ty,
-// edge, stand, side }, or null when the room has no door a body can stand at.
-export function breachTarget(room, gx, gy) {
+// edge, stand, side, into, d }, or null when the room has no door a body can stand at. `want`, a room id, is the room
+// the attacker is trying to reach from inside this one: a door that leads into it is the one chosen, before the nearest.
+export function breachTarget(room, gx, gy, want = 0) {
+  return breachTargets(room, gx, gy, want)[0] || null;
+}
+
+// Every door of the room that can be stood at, the one `breachTarget` would pick first and then the rest, nearest first
+// (the dead pick the first of them that they can walk to, zombie.js `wayIn`).
+export function breachTargets(room, gx, gy, want = 0) {
   // Breaking in from outside, or out from inside: the attacker stands on
   // whichever side of the opening they are on and goes through to the other.
   const inside = tileAt(Math.round(gx), Math.round(gy)).room === room.id;
-  let best = null;
+  const out = [];
   for (const op of room.openings) {
     const w = tileAt(op.tx, op.ty)[op.edge];
     if (!w || w.kind !== "door") continue;
@@ -617,10 +624,11 @@ export function breachTarget(room, gx, gy) {
     const into = inside ? outTile : roomTile;
     const side = stand === nearTile ? 1 : -1;
     if (!isWalkableTile(stand[0], stand[1])) continue;
-    const d = Math.hypot(gx - stand[0], gy - stand[1]);
-    if (!best || d < best.d) best = { wall: w, tx: op.tx, ty: op.ty, edge: op.edge, stand, side, d, into };
+    const toward = want > 0 && tileAt(into[0], into[1]).room === want;
+    const d = Math.hypot(gx - stand[0], gy - stand[1]) - (toward ? 1000 : 0);
+    out.push({ wall: w, tx: op.tx, ty: op.ty, edge: op.edge, stand, side, d, into });
   }
-  return best;
+  return out.sort((a, b) => a.d - b.d);
 }
 
 // Bumped whenever the world changes, so sight is recomputed. With a tile given,

@@ -13,7 +13,7 @@ import { rules } from "../rules.js";
 import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, damageOpening, wayOpen, floorSpeedAt } from "../map.js";
+import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, floorSpeedAt } from "../map.js";
 import { lineOfSight } from "../visibility.js";
 import * as light from "../light.js";
 import * as clock from "../clock.js";
@@ -21,7 +21,7 @@ import { getSheet } from "../assets.js";
 import { createAnimation, playAnimation, advanceAnimation, isActiveFrame } from "../sprites.js";
 import { emit } from "../events.js";
 import { zombie as T } from "../tuning.js";
-import { idleTime, roomOf, faceToward, tileOf, repath, followPath, separate, pickTargetAround } from "./movement.js";
+import { idleTime, roomOf, faceToward, tileOf, repath, followPath, separate, pickTargetAround, canReach } from "./movement.js";
 // The walking is movement.js's, shared with the villagers (docs/23a, D7); still exported here for the files that import it from the dead.
 export { idleTime, roomOf, faceToward, repath, followPath, separate, pickTargetAround };
 
@@ -206,6 +206,27 @@ function updateHurt(z, dt, sheet) {
 function goalRoom(z) {
   if (!z.lastSeen) return 0;
   return tileAt(Math.round(z.lastSeen[0]), Math.round(z.lastSeen[1])).room;
+}
+
+// The way in to a room the dead want (nobody climbs through a window, so only a door): the nearest door of it they can
+// walk to and stand beside. When none can be walked to, because each opens from another shut room (a hall, a porch,
+// a house within a house), it is the door into that room they go for first, and so on a few rooms deep. `want` is the
+// room they are after, kept on the target so the breach is not dropped for leading into a room that is not it.
+function wayIn(z, room, want, seen = new Set([room.id]), depth = 0) {
+  const doors = breachTargets(room, z.gx, z.gy);
+  const direct = doors.find((c) => canReach(z, c.stand));
+  if (direct) return direct;
+  if (depth >= 3) return null;
+  let best = null;
+  for (const c of doors) {
+    const from = tileAt(c.stand[0], c.stand[1]).room;
+    if (from <= 0 || seen.has(from)) continue;
+    seen.add(from);
+    const outer = getRoom(from);
+    const t = outer ? wayIn(z, outer, want, seen, depth + 1) : null;
+    if (t && (!best || t.d < best.d)) best = t;
+  }
+  return best;
 }
 
 // Where the dead stand to hit an opening: the tile beside it on their side.
@@ -474,10 +495,15 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         const here = tileAt(Math.round(z.gx), Math.round(z.gy)).room;
         // Shut in a room with the goal elsewhere: break out of this one
         // first. Outside with the goal in a room: break into that one.
-        let room = null;
-        if (here > 0 && here !== roomId) room = getRoom(here);
-        else if (roomId > 0 && here !== roomId) room = getRoom(roomId);
-        const target = room ? breachTarget(room, z.gx, z.gy) : null;
+        let target = null;
+        if (here > 0 && here !== roomId) {
+          const room = getRoom(here);
+          target = room ? breachTarget(room, z.gx, z.gy, roomId) : null; // out by the door that leads toward the goal's room
+        } else if (roomId > 0 && here !== roomId) {
+          const room = getRoom(roomId);
+          target = room ? wayIn(z, room, roomId) : null;
+          if (target) target.want = roomId;
+        }
         if (target) {
           startBreach(z, target);
           break;
@@ -499,7 +525,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       // in the room it leads into, or anywhere but the room it leads out of.
       const roomId = goalRoom(z);
       const here = tileAt(Math.round(z.gx), Math.round(z.gy)).room;
-      const stillWanted = here > 0 ? roomId !== here : roomId === tileAt(b.into[0], b.into[1]).room;
+      const stillWanted = here > 0 ? roomId !== here : roomId === (b.want || tileAt(b.into[0], b.into[1]).room);
       if (!z.aggro || !stillWanted) {
         z.breach = null;
         z.state = z.aggro ? "chase" : "idle";
