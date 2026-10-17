@@ -1,0 +1,42 @@
+{
+ "name": "Priest",
+ "note": "A stub (#198): their map line as the fallback bark, one ambient group, a two-node conversation. Michael, or a writing session, fills the rest.",
+ "barks": [
+  {
+   "ambient": true,
+   "when": {
+    "time": "dusk"
+   },
+   "lines": [
+    "I should ring it. I cannot find the rope."
+   ]
+  },
+  {
+   "lines": [
+    "The bell stopped on the third day."
+   ]
+  }
+ ],
+ "start": "hello",
+ "nodes": {
+  "hello": {
+   "say": [
+    "Peace, to you. Such as there is.",
+    "The doors are open, though few come."
+   ],
+   "options": [
+    {
+     "text": "Where is everyone?",
+     "goto": "topic"
+    }
+   ]
+  },
+  "topic": {
+   "say": [
+    "Some are in the ground. Some are not.",
+    "I say the words for both. It seems only fair."
+   ],
+   "end": true
+  }
+ }
+}

@@ -61,8 +61,7 @@ export function updateSpeech(characters, visible, player, dt) {
   for (const ch of characters) {
     const line = ch.line;
     if (!line) continue;
-    line.left -= dt;
-    if (line.left <= 0 || ch.dead) {
+    if (ch.dead) { // aged and cleared by the world's step on the authority (game.js ageSpeech, #154); a guest's replica gets the end in the record
       ch.line = null;
       continue;
     }

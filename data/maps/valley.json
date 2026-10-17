@@ -11728,7 +11728,7 @@
    212
   ],
   [
-   100,
+   86,
    212
   ],
   [
@@ -12285,6 +12285,18 @@
   "seed": 41
  },
  "villagers": [
+  {
+   "tile": [
+    102,
+    218
+   ],
+   "name": "Wyn",
+   "wardrobe": 6,
+   "line": "Ask me anything, if you are stuck.",
+   "immune": true,
+   "talk": "guide",
+   "guide": true
+  },
   {
    "tile": [
     104,

@@ -7,7 +7,7 @@ Only drawn art, so nothing shows as a labelled dev box: a log cabin with a lit
 hearth, the well, a pond with its bank, a pumpkin patch with jack-o'-lanterns,
 a cabbage row, mushrooms, rocks, and the autumn trees thick round the clearing.
 The game has no flowers or fallen leaves yet; when it does, they belong here.
-No dead and no villagers: the pictures are the place.
+No dead, and one villager, the guide every map's generator places beside its spawn (docs/34): the pictures are the place.
 
 Run from the repo root: python -I tools/mapgen/staging.py
 Then open the page with ?map=staging&nosave and take the shots with
@@ -80,6 +80,9 @@ def build():
         g.prop(sprite, tile)
     for i, tile in enumerate([(14, 19), (15, 20), (30, 21), (32, 22), (24, 35), (12, 31), (34, 33)]):
         g.prop(f"mushroom_{i % 5}", tile, solid=False)
+
+    # The guide (docs/34; every map the generator makes has one beside its spawn): the cabin's neighbour, at the path's bend.
+    g.guide((24, 29), "Wyn", 6, "Ask me anything, if you are stuck.")
 
     # The clearing is kept open; the trees stand thick all round it, and the wild beyond is the same wood, empty.
     g.reserve([9, 13, 29, 22])

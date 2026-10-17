@@ -75,7 +75,11 @@
     "wanderRadius": 4,
     "talkTime": 2,
     "pokeCooldownMs": 600,
-    "hurtTime": 0.35
+    "hurtTime": 0.35,
+    "barkRadius": 6,
+    "barkCooldown": 60,
+    "barkDeadRadius": 8,
+    "barkMaxLength": 70
   },
   "world": {
     "activeTiles": 40,

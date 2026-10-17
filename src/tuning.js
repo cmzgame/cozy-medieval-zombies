@@ -91,6 +91,10 @@ export const villager = {
   talkTime: 2, // seconds a poked villager stands and faces you, at least
   pokeCooldownMs: 600, // a second poke inside this does nothing
   hurtTime: 0.35, // seconds a bitten villager flinches
+  barkRadius: 6, // tiles: a villager says an ambient bark only with a living player this near (docs/34, #198)
+  barkCooldown: 60, // seconds of game time between a villager's ambient barks
+  barkDeadRadius: 8, // tiles: the talk condition `deadNear` means one of the dead within this of the villager
+  barkMaxLength: 70, // characters: a bark line is at most this long, so a bubble stays a bubble (the validator's)
 };
 
 export const world = {

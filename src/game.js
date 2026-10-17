@@ -38,7 +38,7 @@ import { createPlayer, updatePlayer, updateFallen, setSleepScaleRule, setSiegeQu
 import { canPutDown } from "./placement.js";
 import { playAnimation } from "./sprites.js";
 import { createZombie, updateZombie, siegeHeldOn } from "./entities/zombie.js";
-import { createVillager, updateVillager, turnVillager, damageVillager } from "./entities/villager.js";
+import { createVillager, updateVillager, turnVillager, damageVillager, setTalkWorld, talkIdOf } from "./entities/villager.js";
 import { controlPlayer } from "./player-controller.js";
 
 export const state = {
@@ -97,13 +97,36 @@ export function create({ json, look = null, name = null, devChest = false, rules
   giveStarterKit(S.player);
   S.zombies = placeAuthoredDead(info.zombies).map(([x, y]) => createZombie(x, y));
   S.corpses = [];
-  S.villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i, immune: !!v.immune }));
+  S.villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i, immune: !!v.immune, talk: talkIdOf(v), guide: !!v.guide }));
   interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses]);
+  wireTalk();
   archery.setTargets(() => S.zombies); // what an arrow can hit when it lands (docs/20)
   map.ensureAround(S.player.gx, S.player.gy, 4);
   for (const [x, y] of map.takePendingSpawns()) S.zombies.push(createZombie(x, y));
   map.rebuildRooms();
   return S;
+}
+
+// A speech line's life, counted down in the world's step on the authority and cleared when it runs out (#154): a browser host and a server world
+// agree (a server never runs ui/speech.js), a villager's bark and a groan do not freeze and are not resent for ever, and a guest's replica sees the
+// line end when the record without it arrives. A paused world keeps its bubbles because it does not step.
+function ageSpeech(dt) {
+  const S = state;
+  for (const list of [S.players, S.zombies, S.villagers, S.corpses]) {
+    for (const c of list) {
+      const l = c.line;
+      if (!l) continue;
+      l.left -= dt;
+      if (l.left <= 0 || c.dead) c.line = null;
+    }
+  }
+}
+
+// What the talk conditions read (docs/34): the dead, the living villagers, and the talk ids the map placed (a villager gone from the
+// list is dead). The lists are the world's own, read when a bark asks.
+function wireTalk() {
+  const S = state;
+  setTalkWorld(() => ({ zombies: S.zombies, villagers: S.villagers, roster: new Set(((S.info && S.info.villagers) || []).map(talkIdOf).filter(Boolean)) }));
 }
 
 // The starter kit (docs/11; #136): `data/kit.json`, with what the world's rules add (`extraKit`, `devBag`), made by kit.js.
@@ -286,6 +309,7 @@ export function restore(saved, json) {
     else if (c.kind !== "player") dress(c);
   }
   interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses]);
+  wireTalk();
   archery.setTargets(() => S.zombies);
   archery.reset();
   burning.reset();
@@ -568,6 +592,7 @@ function nearChunk(p, cx, cy, radius) {
 // not here). The step is the same for every player, in the players' order.
 export function step(dt, snapshots = null) {
   const S = state;
+  ageSpeech(dt);
   const snapOf = (p) => (snapshots instanceof Map ? snapshots.get(p.id) : snapshots && snapshots[p.id]) || null;
   for (const p of S.players) {
     const snap = snapOf(p);
@@ -617,7 +642,7 @@ export function step(dt, snapshots = null) {
   }
   for (const v of S.villagers) {
     if (!nearPlayer(v)) continue;
-    updateVillager(v, dt, S.others);
+    updateVillager(v, dt, S.others, S.players);
     interact.brushThrough(v);
   }
   // Villagers bitten through get up as the dead, in what they wore (docs/19).
