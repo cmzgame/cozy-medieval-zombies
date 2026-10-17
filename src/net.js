@@ -805,7 +805,8 @@ export function hostAfterStep() {
       else light[k] = typeof v === "number" && !EXACT.has(k) ? r2(v) : v;
     }
     // A lit torch's wear rises every step (#156): compared to two decimals, so the heavy part goes whole when it changes by a
-    // hundredth, not every frame the torch burns.
+    // hundredth, not every frame the torch burns. The rounding covers every `wear` key, a weapon's per-hit wear too (a guest's
+    // durability bar may lag by under a hundredth; harmless).
     const heavyText = JSON.stringify(heavy, (k, v) => (k === "wear" && typeof v === "number" ? Math.round(v * 100) / 100 : v));
     if (lastHeavy.get(c.id) !== heavyText) {
       lastHeavy.set(c.id, heavyText);

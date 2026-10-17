@@ -218,6 +218,15 @@ export function install() {
   events.on("weaponBroke", ({ item, who }) => {
     if (who && who !== (self() ? self().id : null) && net.isHost()) net.messageTo(who, `Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3);
   });
+  // A torch mounted on a bracket or a post burnt out: a line in the log of every guest whose player stands near (nobody's
+  // item, so no weaponBroke).
+  events.on("torchSpent", ({ x, y }) => {
+    if (!net.isHost()) return;
+    for (const id of net.guestPlayerIds()) {
+      const p = S.players.find((q) => q.id === id);
+      if (p && Math.hypot(x - p.gx, y - p.gy) <= 12) net.logTo(id, "A torch burns out.", "result");
+    }
+  });
   // An auto-drink (docs/02 question 22): the word to the screen of the player who drank, a guest's here.
   events.on("drank", ({ who, auto }) => {
     if (auto && who && who !== (self() ? self().id : null) && net.isHost()) net.messageTo(who, "You drink from your waterskin.", 2);

@@ -416,7 +416,7 @@ function holderActions(target, player) {
       my,
       perform() {
         const st = map.holderState(target);
-        const entry = makeEntry("torch", 1, { wear: st.wear || 0, lit: st.lit }); // the torch as it is: burnt as far as it has, lit or out
+        const entry = makeEntry("torch", 1, { wear: st.wear || 0, lit: false }); // as burnt as it is, and out: a torch leaving a holder is doused (#156)
         if (!takeIn(player, entry)) return false;
         map.setHolder(target, false);
         return true;

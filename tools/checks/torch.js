@@ -92,14 +92,65 @@ export async function run(game) {
       step(60 * 6);
       const st1 = G.map.holderState(target);
       row("and burns at the wall rate in its bracket (half the held rate)", st1.wear > 0.5 + (6 / W.torchWallLife) * 0.7 && st1.wear < 0.5 + (6 / W.torchWallLife) * 1.3, `wear ${st1.wear.toFixed(3)} after 6 s (a wall rate of ${(6 / W.torchWallLife).toFixed(3)})`);
+      // The save's copy of the chunk is never wrong while it burns (the wire's half is `check("sync")` with a guest).
+      step(60 * 3);
+      G.game.serialize();
+      step(37);
+      const wrong = G.game.verifySaveCache();
+      row("and the save's cache is never wrong while it burns", wrong.length === 0, wrong.length ? JSON.stringify(wrong[0]).slice(0, 200) : "the cached save is the world made afresh");
+      // Taking it out of the holder puts it out, wherever it lands.
+      const out = G.interact.actionsForTarget({ kind: "bracket", tx: bracket.tx, ty: bracket.ty, edge: bracket.edge }, me).find((a) => /Take the torch/.test(a.label));
+      const had = new Set([me.hands.main, me.hands.off]);
+      row("a lit torch can be taken out of a bracket", !!out && out.perform() !== false, out ? out.label : "no such action");
+      const found = G.inventory.findItem(me, "torch");
+      const taken = [me.hands.main, me.hands.off].find((e) => e && e.id === "torch" && !had.has(e)) || (found && found.entry);
+      row("and it comes out doused, with its wear", !!taken && !taken.lit && taken.wear > 0.5, taken ? `lit ${taken.lit}, wear ${taken.wear}` : "no torch on the player");
+      if (taken) G.inventory.detach(me, taken);
       bracket.wall.bracket.wear = 0.999;
+      G.map.setHolder(target, true, mk({ lit: true, wear: 0.999 }));
       step(60 * 3);
       row("a spent mounted torch is gone from its bracket", !G.map.holderHas(target), `holds a torch: ${G.map.holderHas(target)}`);
     } else row("an empty bracket for the mounting test", false, "none in the loaded map");
     if (authored) {
       step(60 * 10);
       row("the village's own mounted torches never go out", authored.wall.bracket.torch === true && authored.wall.bracket.wear === undefined, "an authored bracket, 10 s on");
+    } else row("a village bracket with its torch for the never-out test", false, "none in the loaded map");
+
+    // A post holds a torch the same way.
+    let at = null;
+    for (let r = 2; r < 9 && !at; r++) for (const [dx, dy] of [[r, 0], [-r, 0], [0, r], [0, -r]]) {
+      const x = Math.round(me.gx) + dx;
+      const y = Math.round(me.gy) + dy;
+      G.map.ensureAround(x, y, 2);
+      if (G.map.isWalkableTile(x, y) && !G.map.tileAt(x, y).prop && !G.map.tileAt(x, y).n && !G.map.tileAt(x, y).w) { at = [x, y]; break; }
     }
+    if (at) {
+      const post = G.map.createProp({ sprite: "torch_post", tile: at });
+      G.map.placeProp(post, at[0], at[1]);
+      restore.push(() => G.map.removeProp(post));
+      const pt = { kind: "post", prop: post };
+      G.map.setHolder(pt, true, mk({ lit: true, wear: 0.4 }));
+      const p0 = G.map.holderState(pt);
+      step(60 * 6);
+      const p1 = G.map.holderState(pt);
+      row("a torch on a post keeps its wear and burns at the wall rate", p0.wear === 0.4 && p1.wear > 0.4 + (6 / W.torchWallLife) * 0.7 && p1.wear < 0.4 + (6 / W.torchWallLife) * 1.3, `${p0.wear} to ${p1.wear.toFixed(3)} after 6 s`);
+      post.fire.wear = 0.999;
+      step(60 * 3);
+      row("and a spent one is gone from the post", !G.map.holderHas(pt), `holds a torch: ${G.map.holderHas(pt)}`);
+    } else row("open ground for a post", false, "none near the player");
+
+    // A torch put away or dropped is out.
+    const lit1 = mk({ lit: true, wear: 0.1 });
+    me.hands.main = lit1;
+    G.inventory.detach(me, lit1);
+    G.inventory.stow(me, lit1);
+    row("a lit torch put in the bag is out", lit1.lit === false, `lit ${lit1.lit}`);
+    G.inventory.detach(me, lit1);
+    const lit2 = mk({ lit: true, wear: 0.1 });
+    const floor = G.map.dropItem(Math.round(me.gx), Math.round(me.gy), lit2);
+    G.map.takeItem(Math.round(me.gx), Math.round(me.gy), floor);
+    row("a lit torch dropped on the ground is out", floor.lit === false, `lit ${floor.lit}`);
+
   } finally {
     off();
     W.torchHeldLife = life0.held;

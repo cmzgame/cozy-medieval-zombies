@@ -10,6 +10,7 @@
 // floor; beyond them a chunk is wild, grown from the map's `wild` rule.
 
 import { getDef } from "./assets.js";
+import { douse } from "./items.js";
 import { nextId } from "./world.js";
 import { emit } from "./events.js";
 import { world as W } from "./tuning.js";
@@ -147,15 +148,15 @@ export function brackets() {
 
 // The torches players mounted burn down at the wall rate while lit (Michael, 2026-10-17, #156): a spent one is gone from its
 // holder. The village's own (no `wear`) never do, until they are lanterns.
-let holderAcc = 0;
+// A guest's copy of the wear refreshes when the chunk is sent: at every hundredth burned, as a fire's fuel does at every unit
+// (the sync check compares wear to the hundredth); between, the save's copy alone is dropped (docs/31/04).
+const hundredth = (w) => Math.floor(w * 100);
 export function burnHolders(dt) {
   const k = dt / W.torchWallLife;
-  holderAcc += dt;
-  const save = holderAcc >= 5; // the save's copy of a chunk notes the wear now and then, not every step
-  if (save) holderAcc = 0;
   for (const b of bracketSet) {
     const br = b.wall.bracket;
     if (!br.torch || br.lit !== true || br.wear === undefined) continue;
+    const before = hundredth(br.wear);
     br.wear += k;
     if (br.wear >= 1) {
       br.torch = false;
@@ -163,11 +164,13 @@ export function burnHolders(dt) {
       delete br.lit;
       touchWall(b.wall);
       emit("torchSpent", { x: b.tx, y: b.ty });
-    } else if (save) unsavedWall(b.wall);
+    } else if (b.wall.at && before !== hundredth(br.wear)) markDirty(b.wall.at[0], b.wall.at[1]);
+    else unsavedWall(b.wall, false);
   }
   for (const p of fireProps) {
     const f = p.fire;
     if (!f.holds || !f.has || !f.lit || f.wear === undefined) continue;
+    const before = hundredth(f.wear);
     f.wear += k;
     if (f.wear >= 1) {
       f.has = false;
@@ -175,7 +178,8 @@ export function burnHolders(dt) {
       delete f.wear;
       touch(p.tile[0], p.tile[1]);
       emit("torchSpent", { x: p.tile[0], y: p.tile[1] });
-    } else if (save) unsaved(p.tile[0], p.tile[1]);
+    } else if (before !== hundredth(f.wear)) markDirty(p.tile[0], p.tile[1]);
+    else unsaved(p.tile[0], p.tile[1], false);
   }
 }
 
@@ -420,7 +424,7 @@ export function dropItem(x, y, entry, layer = 0) {
   if (!t.items) t.items = [];
   // The entry itself goes on the floor, less its grid position, so a bag
   // keeps everything in it and a belt its slots (docs/11).
-  const e = { ...entry };
+  const e = douse({ ...entry }); // a torch on the floor is out
   delete e.x;
   delete e.y;
   delete e.rot;
@@ -806,8 +810,8 @@ export function unsaved(x, y, near = true) {
 }
 
 // A wall's change that the wire does not send (its health): the save's copy of its tile's chunks is dropped.
-function unsavedWall(wall) {
-  if (wall.at) unsaved(wall.at[0], wall.at[1]);
+function unsavedWall(wall, near = true) {
+  if (wall.at) unsaved(wall.at[0], wall.at[1], near);
   else for (const c of chunks.values()) c.saved = null;
 }
 

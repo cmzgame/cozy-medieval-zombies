@@ -115,7 +115,7 @@ function giveStarterKit(player) {
   inventory.addItem(bag, "bread", 1);
   inventory.addItem(bag, "apple", 2);
   inventory.addItem(bag, "plank", 1);
-  items.hold(player.hands, entry("torch", { lit: true })); // a new torch starts unlit; this one is lit, the tinderbox beside it in the bag (Michael, #156; #136 makes the kit data)
+  items.hold(player.hands, entry("torch")); // unlit: the tinderbox beside it in the bag lights it on T (Michael, 2026-10-17, #156; #136 makes the kit data)
   inventory.addItem(bag, "tinderbox", 1);
 }
 
@@ -383,15 +383,15 @@ export function syncParts() {
   const m = map.serializeMap();
   // A fire's fuel to the unit: a replica refreshes it at each whole unit burned (map.burnFires), not each step.
   const chunks = (m.chunks || []).slice().sort((a, b) => (a.cx - b.cx) || (a.cy - b.cy)).map((c) => ({ ...c, props: (c.props || []).map((p) => { const { pokedAt, playedAt, ...q } = p; return q.fire && typeof q.fire.fuel === "number" ? { ...q, fire: { ...q.fire, fuel: Math.floor(q.fire.fuel) } } : q; }) }));
-  const entryText = (e) => (e ? `${e.id}#${e.uid}x${e.count ?? 1}${e.fill != null ? `f${f(e.fill)}` : ""}${e.bag ? `[${(e.bag.items || []).map(entryText).join(",")}]` : ""}` : "-");
+  const entryText = (e) => (e ? `${e.id}#${e.uid}x${e.count ?? 1}${e.lit ? "L" : ""}${e.fill != null ? `f${f(e.fill)}` : ""}${e.bag ? `[${(e.bag.items || []).map(entryText).join(",")}]` : ""}` : "-");
   const at = (c) => (c.netTo ? c.netTo : [c.gx, c.gy]); // a replica's smoothing target is the host's truth (net.js)
   // Health as the wire carries it, to two decimals (net.js r2): a bleeding player's drains in fractions every step, so
   // three decimals differed between the host and every replica though nothing was wrong (found testing item 5's third
   // step, the first bleeding guest a sync check met; the rule a fire's fuel already follows: compare what the wire promises).
   const hp2 = (n) => (typeof n === "number" ? (Math.round(n * 100) / 100).toFixed(2) : String(n));
-  const playerText = (p) => [`${p.id} ${f(at(p)[0])},${f(at(p)[1])} hp ${hp2(p.hp)} ${p.dead ? "dead" : "alive"}`, `hands ${entryText(p.hands.main)} ${entryText(p.hands.off)}`, `worn ${Object.keys(p.worn).sort().map((k) => `${k}:${entryText(p.worn[k])}`).join(" ")}`, `carrying ${p.carrying ? p.carrying.id : "-"}`].join(" | ");
+  const playerText = (p) => [`${p.id} ${f(at(p)[0])},${f(at(p)[1])} hp ${hp2(p.hp)} ${p.dead ? "dead" : "alive"}`, `hands ${entryText(p.hands.main)} ${entryText(p.hands.off)}`, `worn ${Object.keys(p.worn).sort().map((k) => `${k}:${entryText(p.worn[k])}`).join(" ")}`, `belt ${(inventory.beltOf(p) || []).map(entryText).join(" ")}`, `carrying ${p.carrying ? p.carrying.id : "-"}`].join(" | ");
   const parts = {
-    map: hashOf(JSON.stringify(chunks)),
+    map: hashOf(JSON.stringify(chunks, (k, v) => (k === "wear" && typeof v === "number" ? Math.floor(v * 100) / 100 : v))), // a mounted torch's wear to the hundredth: what the wire sends (map.burnHolders)
     registry: hashOf([...map.allProps()].map((p) => p.id).sort().join(",")),
     fires: hashOf(`${[...map.fires()].map((p) => `${p.id}:${p.fire && p.fire.lit ? "lit" : "out"}`).sort().join(",")}`),
     players: hashOf(S.players.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map(playerText).join("\n")),
