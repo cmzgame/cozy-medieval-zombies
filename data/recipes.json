@@ -361,6 +361,21 @@
    "seconds": 6
   },
   {
+   "id": "bucket",
+   "station": "workbench",
+   "out": {
+    "id": "bucket",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 3
+    }
+   ],
+   "seconds": 6
+  },
+  {
    "id": "table",
    "station": "workbench",
    "out": {
@@ -439,6 +454,22 @@
     }
    ],
    "seconds": 16
+  },
+  {
+   "id": "charcoal",
+   "station": "clamp",
+   "out": {
+    "id": "charcoal",
+    "count": 3
+   },
+   "in": [
+    {
+     "id": "log",
+     "count": 4
+    }
+   ],
+   "seconds": 360,
+   "fire": true
   },
   {
    "id": "iron_bar",

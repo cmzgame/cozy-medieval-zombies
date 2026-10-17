@@ -150,6 +150,36 @@ for path in sorted(glob.glob("data/maps/*.json")):
         if name not in fishing["waters"]:
             fail(f"{path}: the water {name!r} has no table in data/fishing.json")
 
+# The bucket (#199): an item with a `vessel` has a capacity above 0 and can be held.
+for i in items:
+    if "vessel" in i and not (i["vessel"].get("capacity", 0) > 0 and i.get("hands")):
+        fail(f"items.{i['id']}: a vessel needs a capacity above 0 and `hands`")
+
+# Mining (#196): a `mine` block names an item that exists, a count, seconds, and either `gone` or a spent kind that exists, says it ripens back,
+# and agrees with the whole one on everything but the picture (restaging swaps only the sprite and its day).
+for sid in sorted(sprites):
+    d = load(f"data/sprites/{sid}.json")
+    m = d.get("mine")
+    if not m:
+        continue
+    check_id(f"sprites.{sid}.mine", m.get("item"))
+    if not (len(m.get("count", [])) == 2 and 1 <= m["count"][0] <= m["count"][1] and m.get("seconds", 0) > 0):
+        fail(f"sprites.{sid}.mine: a count [lo, hi] from 1 and seconds above 0")
+    if not (m.get("gone") or m.get("spent")):
+        fail(f"sprites.{sid}.mine: it either goes (`gone`) or stands spent (`spent` and `days`)")
+    if m.get("spent"):
+        if m["spent"] not in sprites:
+            fail(f"sprites.{sid}.mine: no spent kind {m['spent']!r}")
+            continue
+        sp = load(f"data/sprites/{m['spent']}.json")
+        if sp.get("ripens") != sid:
+            fail(f"sprites.{m['spent']}: `ripens` should name {sid!r}, not {sp.get('ripens')!r}")
+        if not m.get("days", 0) > 0:
+            fail(f"sprites.{sid}.mine: a spent rock needs `days` above 0")
+        for field in ("collide", "interactable", "carry", "solid", "footprint"):
+            if d.get(field) != sp.get(field):
+                fail(f"sprites.{sid} and {m['spent']} disagree on {field!r}")
+
 # Chopping (#195): a tool lists the verb `chop`, the stump and the tuning's names exist, and every placed container's own `loot` names a table.
 if not any("chop" in i.get("verbs", []) for i in items):
     fail("chopping: no item lists the verb 'chop'")
@@ -245,6 +275,13 @@ for n, r in enumerate(load("data/references.json")["references"]):
     w = r.get("work") or {}
     if not (w.get("title") and w.get("by") and w.get("kind") and r.get("how") and r.get("since") and r.get("from")):
         fail(f"{where}: needs work.title, work.by, work.kind, how, since, and from")
+
+# The gatherables law (CLAUDE.md, Michael 2026-10-11): an interactable thing on a dev box has the dark outline all the way round (`placeholder.outline: true`).
+for sid in sorted(sprites):
+    d = load(f"data/sprites/{sid}.json")
+    ph = d.get("placeholder")
+    if d.get("interactable") and ph and ph.get("kind") == "box" and ph.get("outline") is not True:
+        fail(f"sprites.{sid}: an interactable dev box without `outline: true` (a gatherable is outlined all the way round)")
 
 # Every picture named exists.
 referenced = set()

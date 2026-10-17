@@ -1,0 +1,1 @@
+{"placeholder": {"kind": "box", "color": "#9a9a94", "height": 20, "inset": 4, "label": "Cut stone"}, "carry": false, "container": {"loot": "stone_stack"}, "note": "cut stone in blocks, a container that gives stone, a dev box (docs/29-world/06; #196) until drawn"}

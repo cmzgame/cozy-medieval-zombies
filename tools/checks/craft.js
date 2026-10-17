@@ -39,7 +39,9 @@ export async function run(game) {
     return chest;
   };
   let bench = null;
+  const aggro0 = G.rules.rules.zombieAggro; // the dead stay off for the run: a long craft or a loaded farm otherwise lets them kill the player (the checks run in sequence)
   try {
+    G.rules.set({ zombieAggro: false });
     bench = find("workbench");
     const oven = find("oven");
     if (!bench) throw new Error("no workbench in the loaded chunks");
@@ -153,6 +155,7 @@ export async function run(game) {
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message });
   } finally {
+    G.rules.set({ zombieAggro: aggro0 });
     for (const pr of made) map.removeProp(pr);
     if (bench) { bench.queue = []; if (bench.output) bench.output.items = []; }
     G.teleport(saved.gx, saved.gy);

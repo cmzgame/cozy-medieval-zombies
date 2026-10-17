@@ -19,7 +19,9 @@ export async function run(game) {
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const farming = await import("/src/farming.js");
   const restore = [];
+  const aggro0 = G.rules.rules.zombieAggro; // the dead stay off for the run: a long craft or a loaded farm otherwise lets them kill the player (the checks run in sequence)
   try {
+    G.rules.set({ zombieAggro: false });
     const crops = farming.get().crops;
     const kinds = Object.keys(crops);
     const json = await (await fetch("/data/maps/valley.json")).json();
@@ -94,6 +96,7 @@ export async function run(game) {
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message });
   } finally {
+    G.rules.set({ zombieAggro: aggro0 });
     for (const r of restore.reverse()) r();
     bag.items.splice(0, bag.items.length, ...bag0);
     p.hands.main = hands0.main;

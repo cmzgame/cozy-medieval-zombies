@@ -365,11 +365,12 @@ def build():
     smi = g.place("the smithy", [P(21, 50)[0], P(21, 50)[1], 12, 12])
     smi.building([1, 1, 6, 5], "wall_wood", "floor_stone",
                  openings=[door("s", 1, open=True), door("s", 4, open=True), window("n", 3)],
-                 props=[one("forge", 1, 0, footprint=[2, 1]), one("anvil", 2, 2), one("barrel", 4, 2), one("grindstone", 3, 4), one("shelf", 0, 0), one("chest", 0, 4)],
+                 props=[one("forge", 1, 0, footprint=[2, 1]), one("anvil", 2, 2), one("barrel", 4, 2), one("grindstone", 3, 4), one("shelf", 0, 0), one("chest", 0, 4, loot="smithy_chest")],
                  brackets=[{"side": "n", "at": 5, "facing": "in", "lantern": True}])
     smi.building([7, 1, 4, 5], "wall_wood", "floor_wood", openings=[door("w", 2), window("e", 1)],
                  props=[along_y("bed", 3, 0), one("chest", 3, 4), one("cupboard", 0, 4)])
     smi.prop("woodpile", (1, 8))
+    smi.prop("charcoal_clamp", (9, 8), footprint=[2, 2])  # one in the smithy's yard, so the smith's loop needs no walk to the woods (#197)
     smi.prop("cart", (6, 7), footprint=[2, 3])
 
     # ---- the toll house by the bridge ----
@@ -520,7 +521,56 @@ def build():
         brackets=[{"side": "n", "at": 3, "facing": "in", "lantern": True}],
     )
 
-    # ---- reserves: the castle (step 5) takes no forest yet; the farms' ground is kept clear of it ----
+    # ---- the iron workings (29/06; #196): east woods, a low cliff with the mine's mouth, ore rocks, a tramway, the miners' hut ----
+    iw = g.place("the iron workings", [214, 140, 30, 16])
+    iw.fence([0, 0, 28, 5], wall="wall_stone", sides=["n", "w", "e"])  # the low cliff, wall_stone until wall_cliff is drawn
+    iw.prop("mine_mouth", (13, 0), footprint=[2, 1])
+    iw.prop("spoil_heap", (9, 1), footprint=[2, 1])
+    iw.prop("spoil_heap", (17, 1), footprint=[2, 1])
+    iw.prop("winch", (11, 2))
+    iw.floor_rect([13, 1, 2, 9], "floor_wood")  # the tramway of planks
+    iw.prop("ore_cart", (14, 4), footprint=[1, 2])
+    for x, y in ((4, 3), (21, 3), (7, 8), (22, 8), (26, 6), (3, 11)):
+        iw.prop("ore_rock", (x, y))
+    miners = g.place("the miners' hut", [232, 148, 10, 8])
+    miners.building([1, 1, 8, 5], "wall_wood", "floor_wood",
+                    openings=[door("w", 2), window("n", 4)],
+                    props=[along_x("bed", 0, 0), along_x("bed", 4, 0), one("chest", 7, 0, loot="miners_chest"), one("barrel", 7, 3), along_x("table", 3, 3)],
+                    brackets=[{"side": "n", "at": 2, "facing": "in", "lantern": True}])
+
+    # ---- the quarry (29/06; #196): north-east, a pit cut into the rock on three sides, cut stone, mineable rocks, a crane, the quarryman's hut ----
+    qy = g.place("the quarry", [184, 36, 36, 24])
+    qy.fence([0, 0, 34, 22], wall="wall_stone", sides=["n", "w", "e"])  # the cliff faces, wall_stone until wall_cliff is drawn; open to the south
+    qy.floor_rect([1, 1, 33, 21], "floor_dirt")
+    for x in (5, 7, 9, 11):
+        qy.prop("stone_stack", (x, 2))
+    qy.prop("crane", (27, 3))
+    for i, (x, y) in enumerate(((4, 8), (9, 9), (14, 6), (19, 8), (23, 6), (29, 9), (17, 14), (30, 15))):
+        qy.prop(f"rock_{i % 4}", (x, y))
+    qy.floor_rect([24, 13, 5, 5], "floor_dirt")
+    qy.floor_rect([25, 14, 3, 3], "floor_water", group="pond")  # the flooded pit
+    qy.prop("wheelbarrow", (15, 11))
+    quarryman = g.place("the quarryman's hut", [186, 50, 10, 8])
+    quarryman.building([1, 1, 8, 5], "wall_wood", "floor_wood",
+                       openings=[door("e", 2), window("n", 4)],
+                       props=[along_x("bed", 0, 0), one("chest", 7, 0, loot="quarry_chest"), one("barrel", 7, 3), along_x("table", 2, 3)],
+                       brackets=[{"side": "n", "at": 2, "facing": "in", "lantern": True}])
+
+    # ---- the charcoal burners (29/06; #197): east woods, south of the iron workings: a black clearing, three clamps, a turf hut, sacks of charcoal ----
+    cb = g.place("the charcoal burners", [212, 168, 24, 14])
+    cb.floor_rect([1, 1, 22, 12], "floor_dirt")
+    for x in (3, 9, 15):
+        cb.prop("charcoal_clamp", (x, 3), footprint=[2, 2])
+    cb.prop("charcoal_sack", (4, 8))
+    cb.prop("charcoal_sack", (6, 8))
+    cb.prop("wheelbarrow", (11, 8))
+    hut = g.place("the burners' hut", [234, 168, 8, 8])
+    hut.building([1, 1, 6, 5], "wall_wood", "floor_wood",
+                 openings=[door("w", 2), window("n", 3)],
+                 props=[along_x("bed", 0, 0), one("barrel", 5, 0), one("chest", 5, 3, loot="charcoal_sacks")],
+                 brackets=[{"side": "n", "at": 1, "facing": "in", "lantern": True}])
+
+    # ---- reserves: the castle (step 5) and the farms (step 4) take no forest yet ----
     g.reserve([VX, VY, 64, 144])      # the village block, 29/04's plan
     g.reserve([136, 126, 66, 64])     # the castle's compound (29/03 at (140, 130)) with its moat
     g.reserve([36, 230, 64, 26])      # Hollow Farm's ground south of the lane (29/05), shifted clear of the cottages
@@ -545,6 +595,9 @@ def build():
     dead += [P(5, 24), P(9, 63), P(3, 50)]                                                                             # the cottages
     dead += [(70, 238), (79, 239), (62, 238), (86, 238), (90, 232)]                                                # Hollow Farm's yard: the family
     dead += [(72, 56), (88, 56), (84, 49), (90, 42)]                                                                  # Long Acre: two in the rye, one in the yard, one in the barn
+    dead += [(216, 150), (225, 152), (229, 160), (219, 156), (238, 151)]                                                # the iron workings
+    dead += [(190, 45), (200, 40), (210, 44), (193, 52), (203, 50)]                                                     # the quarry
+    dead += [(220, 172), (226, 175), (214, 178)]                                                                        # the charcoal burners
     for x, y in dead:
         g.zombie(x, y)
 
