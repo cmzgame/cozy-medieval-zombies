@@ -15,6 +15,7 @@ export async function run(game) {
   const bag = G.inventory.bagOf(me);
   const bag0 = bag.items.slice();
   const clock0 = G.clock.getElapsed();
+  const body0 = { hp: me.hp, bleed: me.bleed, hunger: me.hunger, thirst: me.thirst }; // the growth section's sleep steps let the dead bite: put the player back, so a second run starts well
   const wasPaused = G.loop.isPaused();
   const DAY = G.clock.DAY_LENGTH;
   const restore = [];
@@ -263,8 +264,8 @@ export async function run(game) {
     me.hands.main = G.items.makeEntry("sword", 1);
     me.attackCooldown = 0;
     me.stamina = me.maxStamina ?? 100;
-    G.combat.tryAttack(me, G.zombies, "main");
-    row("a swing with a sword cuts nothing", !!G.map.propById(unripe.id), "the ripe one stands");
+    const swordSwing = G.combat.tryAttack(me, G.zombies, "main");
+    row("a swing with a sword cuts nothing (and the swing happened)", Array.isArray(swordSwing) && !!G.map.propById(unripe.id), "the ripe one stands");
     me.hands.main = G.items.makeEntry("scythe", 1);
     me.attackCooldown = 0;
     me.stamina = me.maxStamina ?? 100;
@@ -278,6 +279,21 @@ export async function run(game) {
     me.stamina = me.maxStamina ?? 100;
     G.combat.tryAttack(me, G.zombies, "off");
     row("a scythe in the off hand harvests when that hand swings", !G.map.propById(off.id), "gone");
+    // Through a wall (a sealed room is a cell, #147): the three tiles ahead are the same clear-line rule as the hand's.
+    const behind = [sow("rye", 2, fx + 1, fy - 1), sow("rye", 2, fx + 1, fy), sow("rye", 2, fx + 1, fy + 1)];
+    for (const dy of [-1, 0, 1]) G.map.buildWall(fx + 1, fy + dy, "w", "wall");
+    restore.push(() => { for (const dy of [-1, 0, 1]) G.map.destroyWall(fx + 1, fy + dy, "w"); });
+    me.hands.main = G.items.makeEntry("scythe", 1);
+    me.hands.off = null;
+    me.attackCooldown = 0;
+    me.stamina = me.maxStamina ?? 100;
+    G.combat.tryAttack(me, G.zombies, "main");
+    row("a scythe swing across a wall cuts nothing", behind.every((c) => !!G.map.propById(c.id)), "the three stand");
+    for (const dy of [-1, 0, 1]) G.map.destroyWall(fx + 1, fy + dy, "w");
+    me.attackCooldown = 0;
+    me.stamina = me.maxStamina ?? 100;
+    G.combat.tryAttack(me, G.zombies, "main");
+    row("and the same swing with the wall gone cuts them", behind.every((c) => !G.map.propById(c.id)), "gone");
     me.hands.main = null;
     me.hands.off = null;
   } finally {
@@ -288,6 +304,7 @@ export async function run(game) {
     bag.items.splice(0, bag.items.length, ...bag0);
     me.hands.main = hands0.main;
     me.hands.off = hands0.off;
+    Object.assign(me, body0);
     me.action = null;
     G.teleport(meAt[0], meAt[1]);
     G.loop.setPaused(wasPaused);

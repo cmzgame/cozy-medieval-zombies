@@ -248,7 +248,7 @@ verbs.define("harvest", {
       parts.push(`${items.getItem(id).name.toLowerCase()} x${count}`);
     }
     map.removeProp(prop); // the tile stays soil
-    return { message: `You harvest ${parts.join(" and ")}${fell ? `; ${fell} fall${fell > 1 ? "" : "s"} at your feet` : ""}.`, harvested: n, gave: [[def.harvest.item, n], [def.seed, def.seeds]] };
+    return { message: `You harvest ${parts.join(" and ")}${fell ? `; ${fell} fall${fell > 1 ? "" : "s"} at your feet` : ""}.`, harvested: n, fell, gave: [[def.harvest.item, n], [def.seed, def.seeds]] };
   },
 });
 
@@ -270,15 +270,17 @@ export function scytheSwing(player) {
   }
   const got = new Map();
   let cut = 0;
+  let fell = 0; // what a full bag could not hold, on the ground at the player's feet (the hand harvest says so too)
   for (const [x, y] of tiles.values()) {
     const prop = map.peekTile(x, y)?.prop;
     if (!prop || !prop.crop || !cropDef(prop.crop.kind).grain) continue;
     const r = verbs.run("harvest", null, player, { prop: prop.id });
     if (!r.ok) continue;
     cut++;
+    fell += r.fell || 0;
     for (const [id, n] of r.gave) got.set(id, (got.get(id) || 0) + n);
   }
-  if (cut) showMessage(`You scythe ${cut} row${cut > 1 ? "s" : ""}: ${[...got].map(([id, n]) => `${items.getItem(id).name.toLowerCase()} x${n}`).join(", ")}.`);
+  if (cut) showMessage(`You scythe ${cut} row${cut > 1 ? "s" : ""}: ${[...got].map(([id, n]) => `${items.getItem(id).name.toLowerCase()} x${n}`).join(", ")}${fell ? `; ${fell} fall${fell > 1 ? "" : "s"} at your feet` : ""}.`);
   return cut;
 }
 
