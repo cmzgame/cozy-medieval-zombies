@@ -20,6 +20,14 @@
   {"use": "waterskin", "on": "crop", "verb": "Water", "action": "water"},
   {"use": "waterskin", "on": "floor_farm", "verb": "Water", "action": "water"},
   {"use": "waterskin", "on": "floor_farm_y", "verb": "Water", "action": "water"},
+  {"use": "bucket", "on": "floor_water", "verb": "Fill", "action": "fill"},
+  {"use": "bucket", "on": "floor_water_shallow", "verb": "Fill", "action": "fill"},
+  {"use": "bucket", "on": "well", "verb": "Fill", "action": "fill"},
+  {"use": "bucket", "on": "trough", "verb": "Fill", "action": "fill"},
+  {"use": "bucket", "on": "font", "verb": "Fill", "action": "fill"},
+  {"use": "bucket", "on": "crop", "verb": "Pour", "action": "pour"},
+  {"use": "bucket", "on": "floor_farm", "verb": "Pour", "action": "pour"},
+  {"use": "bucket", "on": "floor_farm_y", "verb": "Pour", "action": "pour"},
   {"use": "waterskin", "on": "well", "verb": "Fill", "message": "The well's own menu fills it; this is just a note that the rule works."}
  ]
 }
