@@ -417,7 +417,9 @@ function holderActions(target, player) {
   const what = target.kind === "bracket" ? "bracket" : "post";
   const mx = target.kind === "bracket" ? target.mx : target.prop.tile[0];
   const my = target.kind === "bracket" ? target.my - 0.4 : target.prop.tile[1] - 0.9;
-  const tiles = target.kind === "bracket" ? [[target.bracket.tx, target.bracket.ty]] : target.prop.tiles;
+  // A bracket is reached from its own side of the wall: the near tile of the edge for side +1, the far one for -1 (burn.js's bracketPos says the same).
+  const bk = target.kind === "bracket" ? target.bracket : null;
+  const tiles = bk ? [bk.wall.bracket.side > 0 ? [bk.tx, bk.ty] : bk.edge === "n" ? [bk.tx, bk.ty - 1] : [bk.tx - 1, bk.ty]] : target.prop.tiles;
   const has = map.holderHas(target);
   if (has) {
     // Out: a flame lights it (the `light` verb, burn.js; a tinderbox, or a lit torch in a hand or on the belt).
@@ -969,6 +971,7 @@ export function approachTile(action, player) {
         const y = ty + dy;
         if (!map.isWalkableTile(x, y)) continue;
         if (Math.hypot(dx, dy) > action.range) continue;
+        if (!lineOfSight(x, y, tx, ty)) continue; // a tile with a clear line to it, so a player behind a wall walks round (#208)
         const d = Math.hypot(player.gx - x, player.gy - y);
         if (d < bestD) {
           bestD = d;

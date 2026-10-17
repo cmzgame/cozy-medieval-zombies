@@ -21,6 +21,8 @@
 - **`check("growth")`'s "a mutator grows its chunk" row fails on a second run in the same page** (found 2026-10-18): the far chunk the first run grew stays grown, so the row's premise (it was ungrown) is gone. The check should pick a chunk it has not grown or restore the map.
 - **A guest who leaves mid-action shows its messages on the host's screen** (found reviewing #193 on `main` at its merge of #192; read from the code, not reproduced). `src/net.js` ~642: on `leave` the guest is dropped from `guests`, but its character stays for the grace and a timed action it began (a cast, a pick, a chop) still completes; `net.messageTo` then returns false (no guest), so the host's message and log sinks (`src/host.js` ~264-272) fall through and show "You catch a perch." on the host's own screen and log. Likely fix: the sinks swallow a message for a player whose guest is gone (or cancel its timed action on leave).
 
+- **`check("build")` fails 9 of 11 on `main`** (found reviewing #227, on `main` at `0e765f7`, fresh tab): "the player's own wall with a door removed is still the player's own" and "a new door built over a broken stamped one remembers the wall under it". Not reproduced as a play bug; the check or the build's remembering may be what is wrong.
+
 ## Open: surprises for Michael to rule on
 
 Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling (`docs/02`) before anyone changes code.
@@ -33,6 +35,7 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 ## Fixed
 
 (Move items here with the commit that fixed them.)
+
 - [x] **Chopping was the one tool action with no clear-line check** (found reviewing #210): fixed in #208: one reach test, `src/reach.js`, distance and a clear line, for every player action (the chop, the menu's actions, a craft's station and ingredients, the panels, a poke, the bed, the fire); `check("reach")`.
 
 - [x] **Chopping a tree needs no tool and leaves no stump** (the census's line in Closed below, "not built yet"): built in #195: a hatchet in hand, a stump left, the stump chopped for a log.

@@ -66,8 +66,46 @@ export async function run(game) {
     // A menu action: the chest's Search or Open, run by its label as a guest's command is, from the near side of a wall.
     const a = labelOf();
     G.interact.performByLabel(me, { kind: "prop", id: chest.id }, a.label);
-    row("a chest one tile beyond a wall does not open: the action does not start from here", !me.action && opened === 0, me.action || opened ? "started" : `no action; auto ${me.auto ? "walking round" : "none"}`);
+    const startedAtOnce = !!me.action || opened > 0;
+    const walking = !!me.auto;
+    for (let i = 0; i < 900 && opened === 0 && (me.auto || me.action); i++) step();
+    row("a chest one tile beyond a wall does not open from here, and the player walks round the wall and opens it", !startedAtOnce && walking && opened > 0, `${startedAtOnce ? "started at once" : walking ? "walking round" : "no walk"}; opened ${opened}; now at ${me.gx.toFixed(1)},${me.gy.toFixed(1)}`);
     cancel();
+
+    // A bracket on the far side of its wall (side -1) is reached from its own side only.
+    const torch = G.items.makeEntry("torch", 1);
+    G.inventory.stow(me, torch);
+    const bracket = map.addBracket(x + 1, y - 1, "w", -1, false);
+    restore.push(() => { map.brackets().delete(bracket); delete bracket.wall.bracket; });
+    const bTarget = { kind: "bracket", tx: bracket.tx, ty: bracket.ty, edge: bracket.edge };
+    const holds = () => map.holderHas({ kind: "bracket", bracket });
+    const mountTiles = G.interact.actionsForTarget(bTarget, me).find((q) => /^Mount the torch/.test(q.label));
+    stand(-1);
+    G.interact.performByLabel(me, bTarget, "Mount the torch");
+    const mountedOwnSide = holds();
+    if (mountedOwnSide) map.setHolder({ kind: "bracket", bracket }, false);
+    G.teleport(x + 2.1, y - 1);
+    me.auto = null;
+    step();
+    G.interact.performByLabel(me, bTarget, "Mount the torch");
+    const mountedBehind = holds();
+    row("a bracket facing out of the wall (side -1) is reached from its own side and not through its wall", !!mountTiles && mountedOwnSide && !mountedBehind, `own side ${mountedOwnSide}, from behind the wall ${mountedBehind}`);
+    if (mountedBehind) map.setHolder({ kind: "bracket", bracket }, false);
+    cancel();
+
+    // Remove on a made prop and putting down a carried one need a clear line as well (a wall in the way is refused; Primary's ruling on #227).
+    const mine = place("chest", [x + 1, y + 1]);
+    mine.made = true; // players made it, so X may take it away (stations.js)
+    stand(0);
+    G.placement.performPlacement(me, { kind: "remove", target: { type: "prop", id: mine.id } });
+    const stoodThrough = !!map.propById(mine.id);
+    const carried = map.createProp({ sprite: "chest", tile: [x + 2, y + 1], made: true });
+    made.push(carried);
+    me.carrying = carried;
+    G.placement.performPlacement(me, { kind: "prop", tx: x + 2, ty: y + 1, turns: 0 });
+    const heldThrough = me.carrying === carried;
+    row("Remove on a made prop and putting down a carried prop are refused through a wall", stoodThrough && heldThrough, `the chest stood: ${stoodThrough}; still carried: ${heldThrough}`);
+    me.carrying = null;
 
     // A craft: the station behind the wall refuses, and its neighbour's chest is no source.
     stand(2);
@@ -105,6 +143,13 @@ export async function run(game) {
     row("over a fence the tree is chopped", chopF.ok || !/wall/.test(String(chopF.reason)), String(chopF.reason || "ok"));
     stand(-1);
     row("over a fence the villager is poked", G.interact.pokeVillagerFromGuest(me, vil.id) === true, "poked");
+    stand(0);
+    me.carrying = carried;
+    G.placement.performPlacement(me, { kind: "prop", tx: x + 2, ty: y + 1, turns: 0 });
+    const putOver = !me.carrying;
+    G.placement.performPlacement(me, { kind: "remove", target: { type: "prop", id: mine.id } });
+    row("over a fence a prop is put down and a made prop is removed", putOver && !map.propById(mine.id), `put down ${putOver}; the other chest gone ${!map.propById(mine.id)}`);
+    me.carrying = null;
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message + (e.stack ? " " + e.stack.split("\n")[1] : "") });
   } finally {
