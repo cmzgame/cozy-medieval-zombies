@@ -24,7 +24,7 @@ Issues #18 to #55 were filed by the bot and are hidden while it is flagged; they
 - **The map (docs/33):** the chart #35; the panel #36.
 - **Talk (docs/34):** the data, the module, and the guide #37; barks #38; conversations #39. Michael's two decisions (the guide's who and where; the panel's keys) are filed in wave 4.
 - **The horde demo (docs/36;** not yet, Michael): the scenario layer #40; the set #41; the horde and the run's limits #42; the score, the end, and the entry #43.
-- **The menus and the site** (`docs/38`, scoped and ruled; #16): merged are the two fixes #80, the world loading screen #115, Settings in tabs #114, the staging map and shots #118, and the game's site #111 (#120); the world's rules into each world #109, the crossing (Exit game) #112, and retiring combat testing and the square's surface for per-world Trees and Starting population rules #130 are built and in review.
+- **The menus and the site** (`docs/38`, scoped and ruled; #16): merged are the two fixes #80, the world loading screen #115, Settings in tabs #114, the staging map and shots #118, the game's site #111 (#120), the world's rules into each world #109 (#128), and the crossing, Exit game #112 (#129); retiring combat testing and the square's surface for per-world Trees and Starting population rules #130 is built and in review; the player cap #93 and `main.js` back to wiring #100 follow.
 - **Art owed (docs/26):** the hand items #46; the tools #47; the icons and the garments' portraits #48. For the wiki: the art exporter #44; the spot checks in the pane #45.
 - **Items:** Take All on every lootable panel #10.
 - **The rest of `24`:** the fireball's cost and area #50; the throwing knives and axes #51.

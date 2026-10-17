@@ -35,9 +35,9 @@
 
 **Identities.** The list, with New, Edit, Delete. The editor is the character screen as built (the name, the skin, the hair, the colours, the turning preview), renamed for what it edits. Deleting an identity touches no character.
 
-**The pause menu.** Its first lines say where you are: the world's name and your character's name; on the wire, "Open to friends, code hazel-rowan-xxxx: 1 with you." for a host, or "In Michael's world, The valley, as Whipitgood." for a guest. Resume, Save world (a host or a player alone), Open to friends (the switch, on or off; not on a guest), Owner (on a server world you own), Character (this world's character: its name, its look, later its skills, shown, not edited), Settings, Controls, Leave world (saves if it is yours, then the Worlds screen).
+**The pause menu.** Its first lines say where you are: the world's name and your character's name; on the wire, "Open to friends, code hazel-rowan-xxxx: 1 with you." for a host, or "In Michael's world, The valley, as Whipitgood." for a guest. Resume, Save world (a host or a player alone), Open to friends (the switch, on or off; not on a guest), Owner (on a server world you own), Character (this world's character: its name, its look, later its skills, shown, not edited), Settings, Controls, Exit game (saves if it is yours, then the Worlds screen).
 
-**The dead screen.** "Whipitgood died." Then New character (choose an identity, a new survivor in this same world; the body stays) or Leave world. The next survivor of `05` item 34, done here.
+**The dead screen.** "Whipitgood died." Then New character (choose an identity, a new survivor in this same world; the body stays) or Exit game. The next survivor of `05` item 34, done here.
 
 ## The data
 

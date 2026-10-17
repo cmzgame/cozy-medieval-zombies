@@ -44,7 +44,7 @@ Sleep is possible and optional with friends. The world's time scale is computed 
 ## Death and the next character
 
 - Death keeps the world running. Control stops, the fall plays, and the body lies where it fell, a body like the dead's, searchable by anyone with E or the menu (`02`, 2026-10-14): your next character can get your things back, and so can your friends.
-- The dead screen is your own: "<name> died", then New character (a new survivor in this same world, from any identity, at the spawn; `09`) or Leave world. With everyone dead the world runs on until someone takes a new character.
+- The dead screen is your own: "<name> died", then New character (a new survivor in this same world, from any identity, at the spawn; `09`) or Exit game. With everyone dead the world runs on until someone takes a new character.
 - Not built: the body rising as one of the dead in your clothes (the parent's image, still wanted), the respawn by turn at the inn, the toll house, or the croft (`30` 3.5), and spectating (a dead player seeing what their body sees until they choose; `05-someday.md`).
 
 ## Chat and speech
