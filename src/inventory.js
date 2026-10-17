@@ -258,3 +258,35 @@ export function beltKey(player, index) {
   }
   return "nothing";
 }
+
+// The entry with this uid wherever the player carries it: the hands, the belt, the bag (the verbs' reach: a stack in an open chest is
+// not carried).
+export function carriedEntry(player, uid) {
+  if (uid == null) return null;
+  for (const slot of ["main", "off"]) {
+    const e = player.hands && player.hands[slot];
+    if (e && e.uid === uid) return e;
+  }
+  for (const e of beltOf(player) || []) if (e && e.uid === uid) return e;
+  const bag = bagOf(player);
+  return (bag && bag.items.find((e) => e.uid === uid)) || null;
+}
+
+// The flame the player has, or null (#156; Michael, 2026-10-17: a fire is lit with a tinderbox or a lit torch): the entry named by
+// `uid` if it is one, else a tinderbox carried, else a lit torch in a hand or on the belt. The light verb (burn.js) and a fire's own
+// menu (interact.js) both ask this, so they cannot drift apart.
+export function flameOf(player, uid) {
+  if (uid != null) {
+    const e = carriedEntry(player, uid);
+    return e && (e.id === "tinderbox" || (e.id === "torch" && e.lit)) ? e : null;
+  }
+  const box = findItem(player, "tinderbox");
+  if (box) return box.entry;
+  for (const slot of ["main", "off"]) {
+    const e = player.hands && player.hands[slot];
+    if (e && e.id === "torch" && e.lit) return e;
+  }
+  return (beltOf(player) || []).find((e) => e && e.id === "torch" && e.lit) || null;
+}
+
+export const NO_FLAME = "You need a tinderbox or a lit torch to light it.";
