@@ -28,7 +28,7 @@ export async function run(game) {
     // The data.
     const hatchet = G.items.getItem("hatchet");
     const stumpDef = G.assets.getDef("stump");
-    row("the hatchet lists the verb chop; the stump is a gatherable (interactable, outlined box, one log) that says it is felled", hatchet.verbs.includes("chop") && stumpDef.interactable === true && stumpDef.wood === 1 && stumpDef.felled === true && stumpDef.placeholder.outline !== false, JSON.stringify({ verbs: hatchet.verbs, wood: stumpDef.wood }));
+    row("the hatchet lists the verb chop; the stump is a gatherable (interactable, an outlined dev box, a collision radius like a trunk's, one log) that says it is felled", hatchet.verbs.includes("chop") && stumpDef.interactable === true && stumpDef.wood === 1 && stumpDef.felled === true && stumpDef.collide.radius > 0 && stumpDef.collide.radius < 0.5 && stumpDef.placeholder.outline === true, JSON.stringify({ verbs: hatchet.verbs, wood: stumpDef.wood }));
     row("the chop's seconds and the stump's sprite are data", G.tuning.world.chopSeconds > 0 && G.tuning.world.stumpSprite === "stump", `${G.tuning.world.chopSeconds} s, ${G.tuning.world.stumpSprite}`);
 
     // The chests: a fresh world's cottage chest and the joiner's each hold a hatchet, made from their own tables.
@@ -39,7 +39,8 @@ export async function run(game) {
     const holds = (p) => G.items.rollLoot(p.container.loot).some((e) => e.id === "hatchet"); // the table it names, not the chest opened (opening would change the world)
     row("your cottage's chest holds a hatchet (a placed container names its own loot table)", !!home && holds(home), home ? JSON.stringify(G.items.rollLoot(home.container.loot).map((e) => e.id)) : "no chest names home_chest");
     row("and the joiner's chest a second", !!joiner && holds(joiner), joiner ? JSON.stringify(G.items.rollLoot(joiner.container.loot).map((e) => e.id)) : "no chest names joiner_chest");
-    row("the cottage's other chest and every untouched one keep the definition's table", G.map.allProps().filter((p) => p.sprite === "chest" && p.container && !["home_chest", "joiner_chest"].includes(p.container.loot)).every((p) => p.container.loot === "chest"), "the rest roll `chest`");
+    const named = ["home_chest", "joiner_chest", "smithy_chest", "miners_chest", "quarry_chest", "charcoal_sacks"]; // the placed chests that name a table of their own (#195, #196, #197)
+    row("every other chest keeps the definition's table", G.map.allProps().filter((p) => p.sprite === "chest" && p.container && !named.includes(p.container.loot)).every((p) => p.container.loot === "chest"), "the rest roll `chest`");
 
     // A tree beside the player.
     const tree = G.map.allProps().filter((p) => p.wood && G.assets.getDef(p.sprite).canopy && Math.hypot(p.tile[0] - meAt[0], p.tile[1] - meAt[1]) < 25).sort((a, b) => Math.hypot(a.tile[0] - meAt[0], a.tile[1] - meAt[1]) - Math.hypot(b.tile[0] - meAt[0], b.tile[1] - meAt[1]))[0];

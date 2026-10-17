@@ -85,6 +85,18 @@ export async function run(game) {
     row("past its day it is an ore rock again (iron never runs out)", orePiece.sprite === "ore_rock" && orePiece.regrowAt === undefined, `${orePiece.sprite} ${orePiece.regrowAt}`);
     G.clock.setElapsed(t0);
 
+    // Through a wall (a sealed room is a cell, #147): the same clear line the farming verbs need.
+    G.map.buildWall(x, y + 1, "n", "wall");
+    G.map.buildWall(x + 1, y + 1, "n", "wall");
+    G.map.buildWall(x + 2, y + 1, "n", "wall");
+    restore.push(() => { for (const ax of [0, 1, 2]) G.map.destroyWall(x + ax, y + 1, "n"); });
+    const behind = place("rock_2", x + 1);
+    me.hands.main = G.items.makeEntry("pickaxe", 1);
+    G.teleport(x + 1.0, y + 1.5);
+    row("a wall between the player and the rock stops the pickaxe", !run1(behind.id).ok && /wall/.test(run1(behind.id).reason) && !!G.map.propById(behind.id), String(run1(behind.id).reason));
+    for (const ax of [0, 1, 2]) G.map.destroyWall(x + ax, y + 1, "n");
+    G.teleport(x + 1.0, y + 0.5);
+
     // A guest's way: the label on the rock's address, run on the authority as the player.
     const rock2 = place("rock_1", x);
     G.teleport(x + 0.9, y + 0.6);

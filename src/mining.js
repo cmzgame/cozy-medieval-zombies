@@ -15,6 +15,7 @@ import * as inventory from "./inventory.js";
 import { getDef } from "./assets.js";
 import { showMessage } from "./ui/prompt.js";
 import { world as W } from "./tuning.js";
+import { lineOfSight } from "./visibility.js";
 
 // The tool a player holds that mines, or null: whatever item in a hand lists the verb.
 export function heldPick(player) {
@@ -35,6 +36,7 @@ verbs.define("mine", {
     if (!mineOf(prop)) return prop.regrowAt !== undefined ? "It is mined out; the ore will come back." : "There is nothing to mine.";
     if (!heldPick(player)) return "You need a pickaxe in hand.";
     if (Math.hypot(player.gx - prop.tile[0], player.gy - prop.tile[1]) > W.pickReach) return "Too far away.";
+    if (!lineOfSight(player.gx, player.gy, prop.tile[0], prop.tile[1])) return "There is a wall in the way."; // a sealed room is a cell (#147)
     return true;
   },
   perform(world, player, target) {
