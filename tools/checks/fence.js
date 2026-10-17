@@ -169,8 +169,9 @@ export async function run(game) {
       bursts.length = 0;
       step(2);
     };
-    // The dead start together, in line with the window and the one edge they press (not left to chance: one pressing out of the
-    // player's sight gives up after `pressGiveUp`).
+    // The dead start together, in line with the window and the one edge they press, so a crowd is on one section (a crowd that arrives
+    // spread out settles on several and may never burst one: its own issue). They know the player is in the house (their last sighting is
+    // inside it), so none gives up pressing unseen (#171).
     const startDead = (list) => list.forEach((z, i) => { z.gx = cx + (i - 1.5) * 0.25; z.gy = cy - 6.5 - (i > 1 ? 1 : 0); z.path = []; z.breach = null; z.press = null; z.state = "chase"; z.aggro = true; z.noWay = 0; z.lastSeen = [cx, cy]; });
     for (const z of dead) z.gx = cx + 90;
     // A yard with no gate: they cross the fence nearest their way.
@@ -210,6 +211,16 @@ export async function run(game) {
     let t4 = 0;
     while (t4 < 60 * 170 && bursts.length === 0) { step(1); t4++; }
     row("the siege presses too: the dead that know the player is in the house burst the fence across their way", bursts.length > 0 && standing() === before3 - 1, `after ${(t4 / 60).toFixed(0)} s, states ${sieged.map((z) => z.state).join(",")}`);
+
+    // ---- by day a fenced house is no safe spot either (#171): a dead one that knows the player is in a room keeps pressing unseen ----
+    setUp(false, false); // the window shut: it cannot see the player
+    G.clock.setHour(12);
+    dead.forEach((z) => { z.gx = cx + 80; z.gy = cy + 80; z.aggro = false; z.state = "idle"; z.path = []; z.press = null; z.siege = null; });
+    startDead([dead[0]]);
+    dead[0].siege = null;
+    let held = 0;
+    for (let i = 0; i < 60 * 50; i++) { step(1); if (dead[0].state === "press") held++; }
+    row("a dead one that knows the player is in a room keeps pressing the fence unseen, past pressGiveUp (day: no siege)", held > 60 * (G.tuning.zombie.pressGiveUp + 10), `${(held / 60).toFixed(0)} s of 50 in the press state (it gives up after ${G.tuning.zombie.pressGiveUp} s for one last seen in the open)`);
   } finally {
     offBurst();
     offShake();

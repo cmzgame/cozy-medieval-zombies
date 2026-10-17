@@ -773,7 +773,10 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         z.repathTimer = 0;
         break;
       }
-      if (!z.seesNow && z.sincePlayer > T.pressGiveUp && !(z.siege && siegeOn(z, players))) { // a held siege knows where the player is without seeing them
+      // Not while it knows the player is in a room (where it last saw them is inside one, `goalRoom`), as breaching a door never gives up
+      // unseen: a fenced house is no safe spot by day or night (Michael, 2026-10-17: "a fenced yard is no safe spot"; #171). A held
+      // siege knows it too. Only for a player it last saw out in the open does the press give up, after `pressGiveUp` unseen.
+      if (!z.seesNow && z.sincePlayer > T.pressGiveUp && !(z.siege && siegeOn(z, players)) && !(goalRoom(z) > 0)) {
         z.press = null;
         startSearch(z);
         break;

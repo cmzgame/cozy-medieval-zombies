@@ -206,26 +206,28 @@ export async function run(game) {
     const hand0 = me.hands.main;
     restore.push(() => { me.hands.main = hand0; });
     me.hands.main = G.items.makeEntry("torch", 1, { lit: true, wear: 0 }); // a light on them: the dead see a player in the dark only so far (T.sight scaled by the light)
-    G.teleport(h3[0] + 1, h3[1] + 4); // in the open, in line with the right-hand door
-    step(2);
-    z.gx = h3[0] + 1.2;
-    z.gy = h3[1] + 8;
+    // The dead one stands where it last saw the player in the open, off to the right (h3x + 3, h3y + 3); the player goes in by the
+    // right-hand door and stands nearer the left one (1.1 tiles from its middle, 1.6 from the right's), so the nearest door is the
+    // wrong one and only the line from that sighting crosses the right one (#171's review).
+    z.gx = h3[0] + 3;
+    z.gy = h3[1] + 3;
     z.path = [];
     z.breach = null;
     z.siege = null;
-    z.seenRoom = -1;
-    z.lastOut = null;
+    z.seenRoom = 0; // its last sighting had them out in the open
+    z.lastOut = [h3[0] + 3, h3[1] + 3];
+    z.lastSeen = [h3[0] + 3, h3[1] + 3];
     z.state = "idle";
     z.aggro = true;
     z.noWay = 0;
-    step(30); // it sees them outside
-    G.teleport(h3[0] + 1, h3[1] + 1); // and now inside, by the right-hand door
+    z.sightTimer = 0;
+    G.teleport(h3[0] - 0.3, h3[1] + 0.6); // and now inside
     let remembered = null;
     for (let i = 0; i < 60 * 4 && !remembered; i++) {
       step(1);
       if (z.siege && z.siege.openings.length) remembered = z.siege.openings[0];
     }
-    row("with two doors close together, it remembers the one the player went through", !!remembered && remembered.tx === goneTo[0] && remembered.ty === goneTo[1] && remembered.edge === goneTo[2], remembered ? `remembered ${remembered.tx},${remembered.ty}${remembered.edge}, went through ${goneTo[0]},${goneTo[1]}${goneTo[2]}, the other is ${other[0]},${other[1]}${other[2]}` : "none remembered");
+    row("with two doors close together, it remembers the one on the line from where it last saw them, not the one nearest them", !!remembered && remembered.tx === goneTo[0] && remembered.ty === goneTo[1] && remembered.edge === goneTo[2], remembered ? `remembered ${remembered.tx},${remembered.ty}${remembered.edge}, went through ${goneTo[0]},${goneTo[1]}${goneTo[2]}, the other is ${other[0]},${other[1]}${other[2]}` : "none remembered");
   } finally {
     for (const r of restore.reverse()) r();
     G.teleport(meAt[0], meAt[1]);
