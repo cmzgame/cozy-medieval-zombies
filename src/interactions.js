@@ -34,7 +34,7 @@ function itemMatches(what, entry) {
 function targetMatches(what, target) {
   switch (target.kind) {
     case "item": return itemMatches(what, target.entry);
-    case "prop": return what === target.prop.sprite || (what === "fire" && !!(target.prop.fire && target.prop.fire.burns)); // "fire": any that burns (#14)
+    case "prop": return what === target.prop.sprite || (what === "fire" && !!(target.prop.fire && target.prop.fire.burns)) || (what === "crop" && !!target.prop.crop); // "fire": any that burns (#14); "crop": any crop (#194)
     case "bracket": return what === "bracket"; // a torch in a wall bracket (#170): the light verb's rows
     case "character": return what === "character" || what === target.ch.kind;
     case "tile": return what === "tile" || what === target.floor;

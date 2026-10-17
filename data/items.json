@@ -56,6 +56,11 @@
   {"id": "pumpkin", "name": "Pumpkin", "kind": "food", "tags": ["food", "raw"], "hunger": 12, "heal": 2, "stack": 5, "size": [1, 1], "color": "#d0702a", "short": "Pumpkin"},
   {"id": "grain", "name": "Grain", "kind": "material", "tags": ["food", "raw"], "stack": 20, "size": [1, 1], "color": "#c8a848", "short": "Grain", "note": "rye or wheat; flour at the mill (step 4), porridge at a hearth"},
   {"id": "flour", "name": "Flour", "kind": "material", "tags": ["food"], "stack": 20, "size": [1, 1], "color": "#efe8da", "short": "Flour", "note": "bread at an oven"},
+  {"id": "potato_seed", "name": "Potato seed", "kind": "material", "tags": ["seed"], "stack": 20, "size": [1, 1], "color": "#b09060", "short": "Seed", "note": "planted on tilled soil (data/crops.json; #194); a harvest gives two back"},
+  {"id": "cabbage_seed", "name": "Cabbage seed", "kind": "material", "tags": ["seed"], "stack": 20, "size": [1, 1], "color": "#8ab060", "short": "Seed", "note": "planted on tilled soil (data/crops.json; #194); a harvest gives two back"},
+  {"id": "garlic_seed", "name": "Garlic seed", "kind": "material", "tags": ["seed"], "stack": 20, "size": [1, 1], "color": "#e8e0d0", "short": "Seed", "note": "planted on tilled soil (data/crops.json; #194); a harvest gives two back"},
+  {"id": "pumpkin_seed", "name": "Pumpkin seed", "kind": "material", "tags": ["seed"], "stack": 20, "size": [1, 1], "color": "#d0702a", "short": "Seed", "note": "planted on tilled soil (data/crops.json; #194); a harvest gives two back"},
+  {"id": "rye_seed", "name": "Rye seed", "kind": "material", "tags": ["seed"], "stack": 20, "size": [1, 1], "color": "#c8a848", "short": "Seed", "note": "planted on tilled soil (data/crops.json; #194); a harvest gives two back"},
   {"id": "roast_potato", "name": "Roast potato", "kind": "food", "tags": ["food", "cooked"], "hunger": 20, "heal": 4, "stack": 10, "size": [1, 1], "color": "#c8a060", "short": "Roast"},
   {"id": "stew", "name": "Stew", "kind": "food", "tags": ["food", "cooked"], "hunger": 50, "heal": 10, "thirst": 10, "stack": 3, "size": [1, 1], "color": "#a06838", "short": "Stew"},
   {"id": "porridge", "name": "Porridge", "kind": "food", "tags": ["food", "cooked"], "hunger": 30, "heal": 6, "stack": 5, "size": [1, 1], "color": "#d8c8a0", "short": "Porridge"}

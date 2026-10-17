@@ -34,6 +34,7 @@ export async function bootData(root) {
   stations.loadRecipes(optional("data/recipes.json"));
   tuning.load(optional("data/tuning.json"));
   (await import("../src/kit.js")).load(read("data/kit.json")); // the starting kit (#136)
+  (await import("../src/farming.js")).load(optional("data/crops.json")); // the crops (#194)
   (await import("../src/fishing.js")).load(optional("data/fishing.json")); // the waters' tables and the cast (#190)
   items.loadItems(itemsJson);
   placement.setBuildData(buildJson);

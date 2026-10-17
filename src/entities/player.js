@@ -244,6 +244,7 @@ export function autoWalk(player, goalTile, { tiles = [goalTile], range = 0, onAr
   const from = [Math.round(player.gx), Math.round(player.gy)];
   const path = findPath(from, goalTile, canStep, 2500);
   if (!path) return false;
+  if (!path.length) path.push([goalTile[0], goalTile[1]]); // already on the goal's tile but not at its middle: step to it, or an action a hand's breadth out of reach is refused though it is a step away (#194: a crop)
   player.auto = { path, tiles, range, onArrive, goalTile };
   player.action = null;
   return true;

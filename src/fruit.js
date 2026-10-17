@@ -14,6 +14,7 @@ import * as inventory from "./inventory.js";
 import { getDef } from "./assets.js";
 import { showMessage } from "./ui/prompt.js";
 import { world as W } from "./tuning.js";
+import { lineOfSight } from "./visibility.js";
 
 // The pick block of a prop's sprite, or null (a bare tree, a rock, a house).
 export function pickOf(prop) {
@@ -32,6 +33,7 @@ verbs.define("pick", {
     if (!prop) return "There is nothing there.";
     if (!pickOf(prop)) return ripeAt(prop) !== null ? "It is bare; the fruit will come back." : "There is nothing to pick.";
     if (Math.hypot(player.gx - prop.tile[0], player.gy - prop.tile[1]) > W.pickReach) return "Too far away.";
+    if (!lineOfSight(player.gx, player.gy, prop.tile[0], prop.tile[1])) return "There is a wall in the way."; // a sealed room is a cell (#147)
     return true;
   },
   perform(world, player, target) {

@@ -13,6 +13,13 @@
   {"use": "torch", "on": "lantern_post", "verb": "Light", "action": "light", "message": "You light the torch."},
   {"use": "torch", "on": "fire", "verb": "Light", "action": "light", "message": "You light the torch."},
   {"use": "arrow", "on": "fire", "verb": "Dip", "action": "dip", "args": {"from": "arrow", "to": "fire_arrow"}, "message": "You dip the arrows in the fire."},
+  {"use": "hoe", "on": "floor_grass", "verb": "Till", "action": "till"},
+  {"use": "hoe", "on": "floor_dirt", "verb": "Till", "action": "till"},
+  {"use": "seed", "on": "floor_farm", "verb": "Plant", "action": "plant"},
+  {"use": "seed", "on": "floor_farm_y", "verb": "Plant", "action": "plant"},
+  {"use": "waterskin", "on": "crop", "verb": "Water", "action": "water"},
+  {"use": "waterskin", "on": "floor_farm", "verb": "Water", "action": "water"},
+  {"use": "waterskin", "on": "floor_farm_y", "verb": "Water", "action": "water"},
   {"use": "waterskin", "on": "well", "verb": "Fill", "message": "The well's own menu fills it; this is just a note that the rule works."}
  ]
 }

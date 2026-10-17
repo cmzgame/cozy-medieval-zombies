@@ -25,5 +25,9 @@
  "furrows": true,
  "interactable": true,
  "carry": false,
- "note": "garlic, ready to harvest (Claude Design, 2026-10-11): one farm tile's plants in rows along world x or y; the facing follows the soil's furrows"
+ "note": "garlic, ready to harvest (Claude Design, 2026-10-11): one farm tile's plants in rows along world x or y; the facing follows the soil's furrows",
+ "crop": {
+  "kind": "garlic",
+  "stage": 2
+ }
 }

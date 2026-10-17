@@ -1,0 +1,90 @@
+{
+ "note": "Farming (docs/30 section 8; #194). `soil`: `wetDays` how many game days watered soil stays wet (a dry crop pauses and never dies), `fillCost` the waterskin's fill a watering takes, `seconds` the timed actions; `crops`: per crop the days of each growing stage (`stages`: stage 0 to 1, stage 1 to ready), what a harvest gives (`harvest`, a count range) and the seeds back (`seeds`), and its seed item. Growth is derived from the planted hour and the wet hours, never stepped (src/farming.js).",
+ "soil": {
+  "wetDays": 2,
+  "fillCost": 10,
+  "seconds": {
+   "till": 2,
+   "plant": 1,
+   "water": 1,
+   "harvest": 1.5
+  }
+ },
+ "crops": {
+  "potato": {
+   "stages": [
+    2,
+    2
+   ],
+   "harvest": {
+    "item": "potato",
+    "count": [
+     3,
+     4
+    ]
+   },
+   "seed": "potato_seed",
+   "seeds": 2
+  },
+  "cabbage": {
+   "stages": [
+    2,
+    3
+   ],
+   "harvest": {
+    "item": "cabbage",
+    "count": [
+     2,
+     3
+    ]
+   },
+   "seed": "cabbage_seed",
+   "seeds": 2
+  },
+  "garlic": {
+   "stages": [
+    3,
+    3
+   ],
+   "harvest": {
+    "item": "garlic",
+    "count": [
+     3,
+     4
+    ]
+   },
+   "seed": "garlic_seed",
+   "seeds": 2
+  },
+  "pumpkin": {
+   "stages": [
+    3,
+    4
+   ],
+   "harvest": {
+    "item": "pumpkin",
+    "count": [
+     1,
+     2
+    ]
+   },
+   "seed": "pumpkin_seed",
+   "seeds": 2
+  },
+  "rye": {
+   "stages": [
+    3,
+    3
+   ],
+   "harvest": {
+    "item": "grain",
+    "count": [
+     3,
+     4
+    ]
+   },
+   "seed": "rye_seed",
+   "seeds": 2
+  }
+ }
+}
