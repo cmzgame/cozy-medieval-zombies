@@ -42,6 +42,7 @@ import * as rules from "./rules.js";
 import * as tuning from "./tuning.js";
 import * as world from "./world.js"; // the time scale and the id counter (docs/30 step 2)
 import * as verbs from "./verbs.js"; // the verb table (docs/31/08, habit 4)
+import * as startingKit from "./kit.js"; // the starting kit (#136): `__game.kit`
 import * as use from "./use.js"; // Use mode: `use.applyWith` is the host's side of a Use, a guest's too (docs/30 law 2)
 import * as stations from "./stations.js"; // the stations and their recipes (docs/30, section 6)
 
@@ -52,7 +53,7 @@ export function createDevApi(ctx) {
     infection: { infect: () => infection.infect(P()), cure: () => infection.cure(P()), progress: () => infection.progress(P()), config: infection.INFECTION }, // the infection marker (docs/02 question 29b)
     burning, // the flames (docs/05): burning.tunables, burning.all()
     burn, // burning as a status (#14): burn.ignite(z) in place of the old menu toggle, burn.BURN
-    iso, input, loop, assets, events, map, camera, ground, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette, combat, gl, rng, rules, tuning, world, verbs, use, stations,
+    iso, input, loop, assets, events, map, camera, ground, visibility, interact, clock, light, items, inventory, grid, panel, menu, view, settings, screens, figure, placement, buildPalette, combat, gl, rng, rules, tuning, world, verbs, use, stations, kit: startingKit,
     render: { night },
     get player() { return ctx.player; },
     game: ctx.game, // the world's state and step (game.js); hashText for the determinism check
