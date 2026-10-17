@@ -24,6 +24,7 @@ import * as bleed from "./bleed.js";
 import * as iso from "./iso.js";
 import { performItemCommand, performUseCommand } from "./ui/inventory-actions.js";
 import { showMessage, setMessageSink } from "./ui/prompt.js";
+import * as tuning from "./tuning.js";
 
 const S = game.state;
 
@@ -232,7 +233,7 @@ export function install() {
     if (!net.isHost()) return;
     for (const id of net.guestPlayerIds()) {
       const p = S.players.find((q) => q.id === id);
-      if (p && Math.hypot(x - p.gx, y - p.gy) <= 12) net.logTo(id, "A torch burns out.", "result");
+      if (p && Math.hypot(x - p.gx, y - p.gy) <= tuning.world.torchSpentRadius) net.logTo(id, "A torch burns out.", "result");
     }
   });
   // An auto-drink (docs/02 question 22): the word to the screen of the player who drank, a guest's here.

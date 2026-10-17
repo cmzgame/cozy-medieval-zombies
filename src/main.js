@@ -1629,7 +1629,7 @@ async function boot() {
         if (Math.hypot(tile[0] - S.player.gx, tile[1] - S.player.gy) <= 12) log.push(line, "result");
       });
       events.on("torchSpent", ({ x, y }) => {
-        if (Math.hypot(x - S.player.gx, y - S.player.gy) <= 12) log.push("A torch burns out.", "result"); // a guest's, host.js
+        if (Math.hypot(x - S.player.gx, y - S.player.gy) <= tuning.world.torchSpentRadius) log.push("A torch burns out.", "result"); // a guest's, host.js
       });
       events.on("weaponBroke", ({ item, who }) => {
         if (!who || who === S.player.id) showMessage(`Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3);
