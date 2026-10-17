@@ -20,7 +20,8 @@ export async function run(game) {
   const restore = [];
   const count = (id) => G.inventory.countAll(me, id);
   const mk = (id, props = {}) => G.items.makeEntry(id, 1, props);
-  const labels = (target) => G.interact.actionsForTarget(target, me).map((a) => a.label);
+  const labels = (target) => G.interact.actionsForTarget(target, me).map((a) => a.label); // the host's rebuild of a command by its address
+  const menu = (x, y) => { const s = G.iso.toScreen(x, y); return G.interact.actionsAt(s.x, s.y, me).map((a) => a.label); }; // the menu a player (and a guest) opens, at a tile's canvas point
   const lastLine = async () => (await import("/src/ui/log.js")).lines().slice(-1)[0] || "";
   const setNow = (t) => { G.clock.setElapsed(t); };
   const crops = farming.get().crops;
@@ -51,10 +52,10 @@ export async function run(game) {
 
     // Till.
     const run1 = (verb, target) => G.verbs.run(verb, G.world, me, target);
-    row("without a hoe in hand the soil cannot be tilled, and the menu offers nothing", !run1("till", { tile: [x, y] }).ok && !labels({ kind: "tile", tile: [x, y] }).includes("Till the soil"), String(run1("till", { tile: [x, y] }).reason));
+    row("without a hoe in hand the soil cannot be tilled, and the menu offers nothing", !run1("till", { tile: [x, y] }).ok && !labels({ kind: "tile", tile: [x, y] }).includes("Till the soil") && !menu(x, y).includes("Till the soil"), String(run1("till", { tile: [x, y] }).reason));
     const hoe = mk("hoe");
     me.hands.main = hoe;
-    row("with the hoe in hand the tile's menu offers Till the soil", labels({ kind: "tile", tile: [x, y] }).includes("Till the soil"), labels({ kind: "tile", tile: [x, y] }).join(", "));
+    row("with the hoe in hand the tile's menu (the right-click one, and the address a guest sends) offers Till the soil, and Walk here stays beside it", menu(x, y).includes("Till the soil") && menu(x, y).includes("Walk here") && labels({ kind: "tile", tile: [x, y] }).includes("Till the soil"), menu(x, y).join(", "));
     const tilled = run1("till", { tile: [x, y] });
     const floor = G.map.peekTile(x, y).floor;
     row("tilling turns bare grass to soil, its furrows along the way the player faces (east of the player: along x)", tilled.ok && floor === "floor_farm", `${floor}`);
@@ -67,7 +68,7 @@ export async function run(game) {
     const seed = G.items.makeEntry("potato_seed", 3);
     G.inventory.stow(me, seed);
     me.hands.main = null;
-    row("a seed carried is offered at tilled soil only", labels({ kind: "tile", tile: [x, y] }).includes("Plant potato") && !labels({ kind: "tile", tile: [x + 5, y + 5] }).includes("Plant potato"), labels({ kind: "tile", tile: [x, y] }).join(", "));
+    row("a seed carried is offered at tilled soil only (in the right-click menu and by address)", menu(x, y).includes("Plant potato") && labels({ kind: "tile", tile: [x, y] }).includes("Plant potato") && !menu(x + 5, y + 5).includes("Plant potato"), labels({ kind: "tile", tile: [x, y] }).join(", "));
     const planted = run1("plant", { tile: [x, y], crop: "potato" });
     const crop = G.map.peekTile(x, y).prop;
     row("planting takes one seed and puts the crop at stage 0, its rows along the furrows", planted.ok && count("potato_seed") === 2 && crop && crop.sprite === "crop_potato_0" && crop.facing === "x" && crop.crop.kind === "potato" && crop.solid === false, `${crop && crop.sprite}, facing ${crop && crop.facing}, ${count("potato_seed")} seeds left`);
@@ -99,7 +100,7 @@ export async function run(game) {
     // A saved crop (an evicted chunk keeps it as it was) is at the right stage the moment it loads.
     const copy = { ...JSON.parse(JSON.stringify(G.map.serializeProp(crop))), id: "p_farm_check" };
     const revived = G.map.reviveProp(copy, false);
-    row("a crop saved and loaded again reads the same stage at any later time (the derived numbers are in the record)", [0.1, 1, 2.5, 9].every((d) => farming.stageOf(revived, t1 + d * DAY) === farming.stageOf(crop, t1 + d * DAY)), "the record carries kind, grown, at, wetUntil");
+    row("a crop's record through JSON (what a save and a frame carry) reads the same stage at any later time (the derived numbers are in the record)", [0.1, 1, 2.5, 9].every((d) => farming.stageOf(revived, t1 + d * DAY) === farming.stageOf(crop, t1 + d * DAY)), "the record carries kind, grown, at, wetUntil");
 
     // Growth through fast time: the clock's gain is the crop's, so a slept night grows it.
     const before = farming.growth(crop);
@@ -126,7 +127,7 @@ export async function run(game) {
     for (let i = 0; i < 100 && me.action; i++) G.interact.updateAction(me, 0.1);
     const [lo, hi] = crops.potato.harvest.count;
     const gotFood = count("potato") - foodBefore;
-    row("a guest's command (the label on the crop's id) harvests: the food in range and two seeds back, the crop gone, the tile still soil", did === true && gotFood >= lo && gotFood <= hi && count("potato_seed") - seedsBefore === crops.potato.seeds && !G.map.peekTile(x, y).prop && G.map.peekTile(x, y).floor === "floor_farm", `+${gotFood} potatoes, +${count("potato_seed") - seedsBefore} seeds, floor ${G.map.peekTile(x, y).floor}`);
+    row("the menu's label on the crop's id (a guest's command, run here on the host as the player) harvests: the food in range and two seeds back, the crop gone, the tile still soil", did === true && gotFood >= lo && gotFood <= hi && count("potato_seed") - seedsBefore === crops.potato.seeds && !G.map.peekTile(x, y).prop && G.map.peekTile(x, y).floor === "floor_farm", `+${gotFood} potatoes, +${count("potato_seed") - seedsBefore} seeds, floor ${G.map.peekTile(x, y).floor}`);
 
     // The menu by label on the tile (a guest's way) and the Use mode.
     me.hands.main = mk("hoe");
@@ -134,7 +135,7 @@ export async function run(game) {
     G.map.setFloor(x + 1, y, "floor_grass");
     const viaLabel = G.interact.performByLabel(me, { kind: "tile", tile: [x + 1, y] }, "Till the soil");
     for (let i = 0; i < 100 && me.action; i++) G.interact.updateAction(me, 0.1);
-    row("a guest's Till the soil, by the tile's address, tills", viaLabel === true && /^floor_farm/.test(G.map.peekTile(x + 1, y).floor), G.map.peekTile(x + 1, y).floor);
+    row("Till the soil by the tile's address (a guest's command, run here on the host as the player) tills", viaLabel === true && /^floor_farm/.test(G.map.peekTile(x + 1, y).floor), G.map.peekTile(x + 1, y).floor);
     me.hands.main = null;
     const viaPlant = G.interact.performByLabel(me, { kind: "tile", tile: [x + 1, y] }, "Plant potato");
     for (let i = 0; i < 100 && me.action; i++) G.interact.updateAction(me, 0.1);
@@ -160,18 +161,62 @@ export async function run(game) {
       row("and the skin on the crop waters it", skin.fill === f0 - farming.get().soil.fillCost, `fill ${f0} to ${skin.fill}`);
     }
 
-    // The map's own crops are live: the home plot at its authored stages, settled, ready ones harvestable.
-    const home = G.map.allProps().filter((p) => p.crop && p.crop.kind && (p.sprite === "crop_potato_2" || p.sprite === "crop_cabbage_2" || p.sprite === "crop_potato_1" || p.sprite === "crop_cabbage_1"));
-    G.map.ensureAround(me.gx, me.gy, 3);
+    // The map's own crops are live: a crop the map authored by stage (its definition's `crop: { kind, stage }`) is settled at that stage on the
+    // first pass, whatever the sprite says (three made here, at stages 0, 1, and 2, and unsettled as the loader leaves them).
+    const findGrass = (w, h) => {
+      G.map.ensureAround(me.gx, me.gy, 3);
+      for (let dy = -14; dy <= 14; dy++) for (let dx = -14; dx <= 14; dx++) {
+        const px = Math.round(meAt[0]) + dx;
+        const py = Math.round(meAt[1]) + dy;
+        let ok = true;
+        for (let ay = 0; ay < h && ok; ay++) for (let ax = 0; ax < w && ok; ax++) { const t = G.map.peekTile(px + ax, py + ay); ok = !!t && t.floor === "floor_grass" && !t.prop && !t.n && !t.w && !(G.map.peekTile(px + ax, py + ay + 1) || {}).n && G.map.isWalkableTile(px + ax, py + ay); }
+        if (ok) return [px, py];
+      }
+      throw new Error("no bare grass");
+    };
+    const [ax0, ay0] = findGrass(3, 1);
+    const authored = [0, 1, 2].map((st) => { const c = G.map.createProp({ sprite: `crop_cabbage_${st}`, tile: [ax0 + st, ay0] }); G.map.setFloor(ax0 + st, ay0, "floor_farm"); G.map.placeProp(c, ax0 + st, ay0); restore.push(() => { const t = G.map.propById(c.id); if (t) G.map.removeProp(t); G.map.setFloor(ax0 + st, ay0, "floor_grass"); }); return [c, st]; });
+    const unsettled = authored.every(([c]) => c.crop && c.crop.at === undefined && c.crop.stage !== undefined);
     farming.reset();
     G.game.begin(0);
-    const live = G.map.allProps().filter((p) => p.crop && p.crop.at !== undefined && p.id !== crop.id && (!crop2 || p.id !== crop2.id) && (!used || p.id !== used.id));
-    row("the map's authored crops are settled live at their authored stage on the first step", live.length > 0 && live.every((p) => farming.stageOf(p) === Number(p.sprite.slice(-1))), `${live.length} settled; ${home.length} authored crops in view`);
+    row("the map's authored crops are settled live at their authored stage on the first pass (unsettled before it, wet and at that stage's growth after)", unsettled && authored.every(([c, st]) => c.crop.at !== undefined && c.crop.stage === undefined && farming.stageOf(c) === st && farming.isWet(c) && c.sprite === `crop_cabbage_${st}`), authored.map(([c]) => `${c.sprite}:${farming.stageOf(c)}`).join(", "));
+
+    // Through a wall (the reviewer of #194 tilled, planted, and harvested from inside a house): a closed wall between the player and the tile
+    // stops every verb; a sealed room is a cell (#147).
+    const [gx0, gy0] = findGrass(2, 3); // two columns, three rows: the soil row beyond, the wall's row, the player's row
+    const wx = gx0;
+    const wy = gy0 + 1;
+    G.map.setFloor(wx, wy - 1, "floor_farm");
+    const beyond = G.map.createProp({ sprite: "crop_potato_2", tile: [wx + 1, wy - 1], solid: false });
+    beyond.crop = { kind: "potato", grown: 99 * DAY, at: G.clock.getElapsed(), wetUntil: G.clock.getElapsed() + 9 * DAY };
+    G.map.placeProp(beyond, wx + 1, wy - 1);
+    G.map.setFloor(wx + 1, wy - 1, "floor_farm");
+    G.map.buildWall(wx, wy, "n", "wall");
+    G.map.buildWall(wx + 1, wy, "n", "wall");
+    restore.push(() => { G.map.destroyWall(wx, wy, "n"); G.map.destroyWall(wx + 1, wy, "n"); const t = G.map.propById(beyond.id); if (t) G.map.removeProp(t); G.map.setFloor(wx, wy - 1, "floor_grass"); G.map.setFloor(wx + 1, wy - 1, "floor_grass"); });
+    me.hands.main = mk("hoe");
+    G.teleport(wx + 0.3, wy + 0.4); // a step from the tile beyond the wall: near enough, a wall in the way
+    const seed2 = G.items.makeEntry("potato_seed", 2);
+    G.inventory.stow(me, seed2);
+    G.inventory.stow(me, G.items.makeEntry("waterskin", 1, { fill: 100 }));
+    const through = {
+      till: G.verbs.run("till", G.world, me, { tile: [wx, wy - 1] }),
+      plant: G.verbs.run("plant", G.world, me, { tile: [wx, wy - 1], crop: "potato" }),
+      water: G.verbs.run("water", G.world, me, { prop: beyond.id }),
+      harvest: G.verbs.run("harvest", G.world, me, { prop: beyond.id }),
+    };
+    row("a wall between the player and the tile stops till, plant, water, and harvest alike", Object.values(through).every((r) => !r.ok && /wall/.test(r.reason)) && !!G.map.propById(beyond.id), JSON.stringify(Object.fromEntries(Object.entries(through).map(([k, r]) => [k, r.reason]))));
+    row("and the right-click menu does not offer Plant or Till across it (offered and refused is worse)", !menu(wx, wy - 1).includes("Plant potato") && !menu(wx + 1, wy - 1).includes("Plant potato"), menu(wx, wy - 1).join(", "));
+    G.map.destroyWall(wx, wy, "n");
+    G.map.destroyWall(wx + 1, wy, "n");
+    row("and with the wall gone the same reach works", G.verbs.run("harvest", G.world, me, { prop: beyond.id }).ok, "harvested once the wall is down");
+    me.hands.main = null;
 
     // The bucket (#199; Michael, 2026-10-18: it goes in the bag): an item holding water in its entry's fill, filled at water, poured on a
     // plot to water the 3 by 3 round it.
     const bdef = G.items.getItem("bucket");
     row("the bucket is an ordinary item (bag, belt, or hand) that holds water (a vessel, capacity in data), made at the workbench from planks, and a waterskin is not one", bdef.hands === "either" && bdef.vessel.capacity > 0 && G.stations.recipe("bucket").station === "workbench" && G.stations.recipe("bucket").out.id === "bucket" && !G.items.getItem("waterskin").vessel && !bdef.capacity, JSON.stringify(G.stations.recipe("bucket").in));
+    row("the first bucket is in your cottage's chest (a placed container's own table)", G.items.rollLoot("home_chest").some((e) => e.id === "bucket"), "home_chest");
     const pond = [86, 192];
     G.map.ensureAround(pond[0], pond[1], 3);
     me.hands.main = null;

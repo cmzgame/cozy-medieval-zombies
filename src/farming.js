@@ -18,6 +18,7 @@ import * as items from "./items.js";
 import * as inventory from "./inventory.js";
 import { showMessage } from "./ui/prompt.js";
 import { world as W } from "./tuning.js";
+import { lineOfSight } from "./visibility.js";
 
 let data = null;
 const DAY = clock.DAY_LENGTH;
@@ -105,7 +106,14 @@ export function soak(prop, now = clock.getElapsed()) {
   map.touch(prop.tile[0], prop.tile[1]);
 }
 
-export const reach = (player, x, y) => Math.hypot(player.gx - x, player.gy - y) <= W.pickReach;
+// What stops a player reaching a tile, or null: too far, or a wall between (a shut door or shutter too: sight is what a wall stops, a fence and
+// an open window pass it, and a sealed room stays a cell, #147; the reviewer of #194 farmed through a house wall). Every farming verb asks.
+export function reachProblem(player, x, y) {
+  if (Math.hypot(player.gx - x, player.gy - y) > W.pickReach) return "Too far away.";
+  if (!lineOfSight(player.gx, player.gy, x, y)) return "There is a wall in the way.";
+  return null;
+}
+export const reach = (player, x, y) => reachProblem(player, x, y) === null;
 const tileOf = (t) => (Array.isArray(t.tile) ? [Math.round(t.tile[0]), Math.round(t.tile[1])] : [Math.round(t.x), Math.round(t.y)]);
 
 // The tool a player holds that lists a verb ("till"), or null.
@@ -151,7 +159,7 @@ verbs.define("till", {
   validate(world, player, target) {
     const [x, y] = tileOf(target);
     if (!heldWith(player, "till")) return "You need a hoe in hand.";
-    if (!reach(player, x, y)) return "Too far away.";
+    { const why = reachProblem(player, x, y); if (why) return why; }
     const t = map.peekTile(x, y);
     if (t && map.furrowsOf(t.floor)) return "It is already tilled.";
     if (!isTillable(x, y)) return "Nothing grows there: it wants bare grass or dirt.";
@@ -172,7 +180,7 @@ verbs.define("plant", {
     const kind = target.crop || (target.item ? cropOfSeed(target.item) : null);
     if (!kind || !cropDef(kind)) return "That is not a seed.";
     if (!hasSeed(player, kind, target.entry)) return "You have no seed for it.";
-    if (!reach(player, x, y)) return "Too far away.";
+    { const why = reachProblem(player, x, y); if (why) return why; }
     if (!isSoil(x, y)) return "Seed wants tilled soil.";
     if (map.peekTile(x, y).prop) return "Something is already there.";
     return true;
@@ -207,7 +215,7 @@ verbs.define("water", {
   validate(world, player, target) {
     const prop = cropProp(target);
     if (!prop || !prop.crop) return "Nothing is planted there.";
-    if (!reach(player, prop.tile[0], prop.tile[1])) return "Too far away.";
+    { const why = reachProblem(player, prop.tile[0], prop.tile[1]); if (why) return why; }
     if (!skinFor(player, target.entry)) return "You need a waterskin with water in it.";
     return true;
   },
@@ -224,8 +232,8 @@ verbs.define("harvest", {
   validate(world, player, target) {
     const prop = cropProp(target);
     if (!prop || !prop.crop) return "There is nothing to harvest.";
-    if (!reach(player, prop.tile[0], prop.tile[1])) return "Too far away.";
-    settle(prop);
+    { const why = reachProblem(player, prop.tile[0], prop.tile[1]); if (why) return why; }
+    settle(prop, boundaryAt(clock.getElapsed()));
     if (stageOf(prop) < 2) return "It is not ready yet.";
     return true;
   },
@@ -235,21 +243,25 @@ verbs.define("harvest", {
     const [lo, hi] = def.harvest.count;
     const n = lo + rng.int(hi - lo + 1);
     const parts = [];
+    let fell = 0;
     for (const [id, count] of [[def.harvest.item, n], [def.seed, def.seeds]]) {
       const placed = Math.min(count, inventory.addItem(inventory.bagOf(player), id, count));
-      if (placed < count) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(id, count - placed));
+      if (placed < count) { map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(id, count - placed)); fell += count - placed; }
       parts.push(`${items.getItem(id).name.toLowerCase()} x${count}`);
     }
     map.removeProp(prop); // the tile stays soil
-    return { message: `You harvest ${parts.join(" and ")}.`, harvested: n };
+    return { message: `You harvest ${parts.join(" and ")}${fell ? `; ${fell} fall${fell > 1 ? "" : "s"} at your feet` : ""}.`, harvested: n };
   },
 });
 
 // The crops' pictures follow their stages, once a `fruitCheckSeconds` of the clock (the same boundary rule as fruit.js: a world restored
 // from a save turns the same crops at the same boundary as one that ran on), and an authored crop is settled live.
 let bucket = -1;
-export function reset() {
-  bucket = -1;
+// The start of the pass's bucket that holds `now`: what a crop is settled at, so a restored world settles it as one that ran on did.
+const boundaryAt = (now) => Math.floor(now / W.fruitCheckSeconds) * W.fruitCheckSeconds;
+// A new world looks at once (-1); a restored one, whose crops were looked at up to the save, waits for its next boundary as the running one did.
+export function reset(restored = false) {
+  bucket = restored ? Math.floor(clock.getElapsed() / W.fruitCheckSeconds) : -1;
 }
 
 export function step() {

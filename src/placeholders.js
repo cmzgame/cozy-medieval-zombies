@@ -514,6 +514,14 @@ export function generateBox(ph, tileCount = 1) {
   ctx.lineWidth = 1;
   poly(ctx, top);
   ctx.stroke();
+  // An opt-in silhouette (`outline: true`: a gatherable's dark line all the way round, the law in CLAUDE.md; a stump, #195): the box's outer
+  // hexagon, the top's back edges and the two faces' outer edges. Boxes without it are drawn as before.
+  if (ph.outline === true) {
+    ctx.strokeStyle = shade(color, 0.4);
+    ctx.lineWidth = 1.5;
+    poly(ctx, [[cx - hw, cy - h], [cx, cy - hh - h], [cx + hw, cy - h], [cx + hw, cy], [cx, cy + hh], [cx - hw, cy]]);
+    ctx.stroke();
+  }
   // A labelled box says what it is (Michael, 2026-10-12: "make sure I have a
   // way to tell what every random box is"): the name on the top face, and on
   // the front face too when the box is tall enough. Only the first tile of a

@@ -155,6 +155,24 @@ for i in items:
     if "vessel" in i and not (i["vessel"].get("capacity", 0) > 0 and i.get("hands")):
         fail(f"items.{i['id']}: a vessel needs a capacity above 0 and `hands`")
 
+# Chopping (#195): a tool lists the verb `chop`, the stump and the tuning's names exist, and every placed container's own `loot` names a table.
+if not any("chop" in i.get("verbs", []) for i in items):
+    fail("chopping: no item lists the verb 'chop'")
+tuning_world = load("data/tuning.json")["world"]
+if tuning_world["stumpSprite"] not in sprites:
+    fail(f"tuning.world.stumpSprite: no sprite {tuning_world['stumpSprite']!r}")
+loot_tables = load("data/loot.json")
+for path in sorted(glob.glob("data/maps/*.json")):
+    m = load(path)
+    placed = list(m.get("props", []))
+    for s in m.get("sets", []):
+        placed += s.get("props", [])
+        for b in s.get("buildings", []):
+            placed += b.get("props", [])
+    for p in placed:
+        if "loot" in p and p["loot"] not in loot_tables:
+            fail(f"{path}: the {p['sprite']} at {p['tile']} names a loot table {p['loot']!r} that does not exist")
+
 # Farming (#194): every crop's seed and harvest items exist (the seed tagged `seed`), its stage days and counts make sense, its three
 # stage sprites exist and say which crop and stage they are, and the soil's numbers are positive.
 crops = load("data/crops.json")

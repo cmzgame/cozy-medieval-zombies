@@ -12,6 +12,7 @@ export async function run(game) {
   const meAt = [me.gx, me.gy];
   const bag = G.inventory.bagOf(me);
   const bag0 = bag.items.slice();
+  const hands0 = { main: me.hands.main, off: me.hands.off };
   const clock0 = G.clock.getElapsed();
   const wasPaused = G.loop.isPaused();
   const fruit = await import("/src/fruit.js");
@@ -76,9 +77,10 @@ export async function run(game) {
 
     // Chopping a bare tree: logs, the tree gone, the fruit lost.
     const logsAt = () => G.map.itemsAt(tx, ty).filter((e) => e.id === "log").reduce((n, e) => n + e.count, 0);
+    me.hands.main = G.items.makeEntry("hatchet", 1); // chopping needs a hatchet in hand (#195)
     const chop = actions().find((a) => a.label.startsWith("Chop down"));
     chop.perform();
-    row("chopping it is any tree's: logs on the ground and the tree gone", logsAt() >= def.wood && !treeAt(tx, ty), `${logsAt()} logs, prop ${treeAt(tx, ty) ? treeAt(tx, ty).sprite : "gone"}`);
+    row("chopping it is any tree's: logs on the ground and a stump in its place, the fruit lost", logsAt() >= def.wood && !!treeAt(tx, ty) && treeAt(tx, ty).sprite === "stump", `${logsAt()} logs, prop ${treeAt(tx, ty) ? treeAt(tx, ty).sprite : "gone"}`);
     restore.push(() => {
       const p = G.map.createProp({ sprite: "tree_apple", tile: [tx, ty] });
       G.map.placeProp(p, tx, ty);
@@ -89,6 +91,8 @@ export async function run(game) {
     G.clock.setElapsed(clock0);
     fruit.reset();
     bag.items.splice(0, bag.items.length, ...bag0);
+    me.hands.main = hands0.main;
+    me.hands.off = hands0.off;
     G.teleport(meAt[0], meAt[1]);
     G.loop.setPaused(wasPaused);
   }
