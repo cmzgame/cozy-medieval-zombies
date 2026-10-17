@@ -99,6 +99,11 @@ export const world = {
   torchHeldLife: 1440, // game seconds of burning a torch lasts held in a hand (two game days of continuous light; Michael, 2026-10-17, #156)
   torchWallLife: 2880, // and on the belt, in a bracket, or on a post, the slower "wall" rate
   daylightTiles: 30, // tiles of a room one open shutter or open door lights fully by day (light.js `openness`; Michael, #150): one open window for a small room, more for a large one
+  fenceHp: 90, // the wear a fence stands before a crowd of the dead bursts it (Michael, 2026-10-17, #147); a gate has `fenceGateFactor` of it
+  fenceGateFactor: 0.5, // a gate goes first
+  fenceCrowd: 2, // the dead pressing one fence together before it wears at all: one does nothing
+  fenceDps: 1, // wear a second at that many, and the same again for each one more
+  fenceRecover: 0.5, // wear a second that a fence recovers while fewer than that press it
 };
 
 // How many of the dead a world starts with, by its Starting population rule (docs/38 and `02`, #130): the factor that

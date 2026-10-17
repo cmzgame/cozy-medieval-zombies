@@ -159,6 +159,9 @@ export function fireDrawables(particles, visible, out) {
     let color;
     if (p.kind === "flame") {
       name = `flame_${Math.min(3, Math.floor(u * 4))}`;
+    } else if (p.kind === "splinter") {
+      name = `splinter_${(Math.floor(p.t * 14) + p.f) % 4}`; // tumbling as it falls
+      color = [1, 1, 1, u < 0.7 ? 1 : 1 - (u - 0.7) / 0.3];
     } else if (p.kind === "ember" || p.kind === "spark") {
       name = "ember";
       color = [1, 1, 1, u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4];

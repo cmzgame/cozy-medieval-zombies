@@ -3,6 +3,7 @@
 // Cut from src/render.js on 2026-10-12 (docs/23a, D5): a move, no rule changed; the frame check proves the pixels.
 
 import * as iso from "../iso.js";
+import * as loop from "../loop.js";
 import { getSheet, getDef, idleFrame } from "../assets.js";
 import { shade } from "../render-util.js";
 import * as map from "../map.js";
@@ -370,12 +371,32 @@ export function wallDrawables(tiles, visible, playerRoom, out) {
 }
 
 // `ghostTint` draws the wall as the placement ghost (docs/13): tinted, unlit, and unfogged.
+// A fence the dead are pressing shakes (Michael, 2026-10-17, #147): the host says so every quarter second while it is
+// pressed (`fenceShake`, an fx for a guest), and for that long it jitters a pixel or two across, in sim time.
+const shakes = new Map(); // "tx,ty,edge" -> sim ms until
+const SHAKE_MS = 400;
+export function shakeFence(tx, ty, edge) {
+  shakes.set(`${tx},${ty},${edge}`, loop.simTime() * 1000 + SHAKE_MS);
+}
+function shakeOffset(tx, ty, edge) {
+  if (!shakes.size) return 0;
+  const k = `${tx},${ty},${edge}`;
+  const until = shakes.get(k);
+  if (until === undefined) return 0;
+  const now = loop.simTime() * 1000;
+  if (now >= until) {
+    shakes.delete(k);
+    return 0;
+  }
+  return Math.round(Math.sin(now / 22) * 1.6 * ((until - now) / SHAKE_MS + 0.4));
+}
+
 export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts = null) {
   const sheet = getSheet(wall.sprite);
   const variant = wallVariant(wall);
   const depth = edge === "n" ? tx + ty - 0.5 : tx - 0.5 + ty;
   const p = iso.toScreen(tx, ty);
-  const x = Math.round(p.x);
+  const x = Math.round(p.x) + shakeOffset(tx, ty, edge);
   const y = Math.round(p.y);
   const h = sheet.wallHeight || 72;
   const T = sheet.thickness || WALL_T;
