@@ -38,11 +38,11 @@ export function wardrobeWorn(w) {
   return worn;
 }
 
-// A garment's art with its entry's own dye on it.
+// A garment's art with its entry's own dye on it, marked `dyed` so a painted layer knows to take it (draw.js, dyeHead).
 function dyed(art, entry) {
   if (!art) return null;
-  if (entry.colours) return { ...art, colours: entry.colours };
-  if (entry.colour) return { ...art, colours: [entry.colour, ...(art.colours || []).slice(1)] };
+  if (entry.colours) return { ...art, colours: entry.colours, dyed: true };
+  if (entry.colour) return { ...art, colours: [entry.colour, ...(art.colours || []).slice(1)], dyed: true };
   return art;
 }
 

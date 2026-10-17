@@ -48,6 +48,16 @@ export function registerLayer(slot, name, data) {
   layers.set(`${slot}/${name}`, { ...data, name, slot, parts, options: data.options || {}, variant: data.variant || "player" });
   layersVersion++;
 }
+// Whether a layer is painted in two tones plus the outline over every part and facing (the dye's contract, docs/28),
+// worked out once per registered layer.
+const twoTone = new WeakMap();
+function isTwoTone(L, tonesOf) {
+  if (!twoTone.has(L)) {
+    const all = Object.values(L.parts || {}).flatMap((part) => Object.values(part).flat());
+    twoTone.set(L, tonesOf(all).length <= 2);
+  }
+  return twoTone.get(L);
+}
 export function getLayer(slot, name) {
   return (name && layers.get(`${slot}/${name}`)) || null;
 }
@@ -130,16 +140,15 @@ function drawFrame(frame, spec, facing, anim, i) {
     if (!pixels || !L || !L.options || !L.options.dye) return pixels;
     return dyeTo(pixels, (slot === "beard" && look.beardColour) || look.hair);
   };
-  // A painted head item is dyed like hair when its entry is (2026-10-18, the onion hat): the worn item's first colour,
-  // when it is not the layer's own lightest tone, becomes the light tone and its shade the dark (a villager's or one of
-  // the dead's dyed hood); an item worn in its own colours keeps the paint, and so does a layer the item does not name
-  // (a try-on from the settings, the dead's pool).
+  // A painted head item is dyed like hair when its entry is (2026-10-18, the onion hat): the entry's colour becomes the
+  // light tone and its shade the dark (a villager's or one of the dead's dyed hood). Only a dyed entry (`dyed`, from
+  // wardrobe.js), only the layer the item names (not a try-on from the settings nor the dead's pool), and only a layer
+  // painted in two tones plus the outline, as hair is: a hat of more tones keeps its paint, dyed or not.
   const dyeHead = (pixels) => {
     const head = outfit.head;
-    const want = head && painted.head && head.painted === painted.head.name && head.colours && head.colours[0];
-    if (!pixels || !want) return pixels;
-    const tones = tonesOf(pixels);
-    return !tones.length || tones[0] === hexOf(hexToRgb(want)) ? pixels : dyeTo(pixels, want);
+    const L = painted.head;
+    if (!pixels || !head || !head.dyed || !L || head.painted !== L.name || !head.colours || !head.colours[0]) return pixels;
+    return isTwoTone(L, tonesOf) ? dyeTo(pixels, head.colours[0]) : pixels;
   };
   const layerRest = (slot) => restOf(painted[slot] ? painted[slot].variant : spec.variant);
   // Carry pixels painted relative to the rest segment a0 -> b0 onto this

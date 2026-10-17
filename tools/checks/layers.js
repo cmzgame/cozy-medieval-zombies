@@ -1,7 +1,7 @@
 // The painted layers' rules (docs/25, docs/23 step 3a): a layer that covers
 // the legs hides the leg garment and leaves the feet; a hair layer with the
 // dye option takes the wearer's hair colour in two tones, the outline kept.
-// From the console: await __game.check("layers"). It registers two throwaway
+// From the console: await __game.check("layers"). It registers throwaway
 // layers and bakes figures off to the side; the game's own sheets are untouched.
 
 export async function run(game) {
@@ -70,5 +70,13 @@ export async function run(game) {
   const zSpec = F.characterSpec(F.characterInputs({ kind: "zombie", look: F.DEFAULT_LOOK, worn: { head: { id: "hood", count: 1, colour: "#705848" } }, wardrobe: 0 }, artOf));
   const zSet = coloursOf(F.generateFigure(zSpec));
   rows.push({ check: "one of the dead in a hood draws the onion in its own dye", result: zSpec.painted.head && zSpec.painted.head.name === "onion" && zSet.has("#705848") && !zSet.has("#5f8a3a") ? "pass" : "FAIL", detail: `${zSpec.painted.head && zSpec.painted.head.name} ${zSet.has("#705848")}` });
+  // A painted hat of three tones (a straw hat's kind) is not hair: it keeps every tone, worn in its own colour or dyed.
+  const three = ["#d0c080", "#907040", "#503018"];
+  F.registerLayer("head", "zz_three", { parts: { head: { s: three.map((c, i) => [i, -12, c]) } }, options: {} });
+  const artThree = (id) => (id === "zz_hat" ? { shape: "hood", colours: ["#888888"], painted: "zz_three" } : artOf(id)); // an item colour none of its tones is, as a delivered hat's may be
+  for (const [label, entry] of [["worn undyed", { id: "zz_hat", count: 1 }], ["dyed", { id: "zz_hat", count: 1, colour: "#3355aa" }]]) {
+    const set = coloursOf(F.generateFigure(F.playerSpec(look, { head: entry }, artThree)));
+    rows.push({ check: `a three-tone painted hat ${label} keeps all three tones`, result: three.every((c) => set.has(c)) && !set.has("#3355aa") ? "pass" : "FAIL", detail: three.map((c) => set.has(c)).join(" ") });
+  }
   return { rows, fails: rows.filter((r) => r.result === "FAIL").length };
 }
