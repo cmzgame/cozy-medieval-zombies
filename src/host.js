@@ -53,7 +53,7 @@ const store = () => cfg.store();
 // check, since they never gave the place up), and, in a browser's world, the host's own, whether it stands in the world,
 // is stepped away, or is on the dead screen (`self()` stays set, so a guest cannot take the host's place and the host's
 // respawn or comeBack never goes over). A character resting in the save whose player is gone holds none. The friends'
-// dot (#139) counts with this one function.
+// dot (#139) will count with this one function.
 export function full() {
   const me = self();
   let held = S.players.filter((p) => !me || p.id !== me.id).length;

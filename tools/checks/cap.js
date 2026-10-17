@@ -4,19 +4,27 @@
 // calls for a join) in this tab's world, with made-up browser hashes, and the host's own step away and back (a guest's
 // step away is `net.awayGuestHashes`, tried in two tabs). From the console, on a tab with `?nosave`:
 //   await __game.check("cap")
-// It adds players to the world and removes them again, and puts the store's owners and dormant records back.
+// It adds players to the world and removes them again, and puts the store's owners and dormant records back. It refuses
+// to run in a kept world (one chosen on the Worlds screen): it steps the host away and files made-up hashes in the
+// world's own store, which is for a `?nosave` test world only.
 
 export async function run(game) {
   const G = game;
   const S = G.game.state;
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
+  if (G.worlds.current) {
+    row("this tab is a `?nosave` test world, not a kept one", false, `the world "${G.worlds.current.name}" is kept: run check("cap") on a fresh ?nosave tab`);
+    for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);
+    return { rows, passed: 0, total: rows.length };
+  }
   const store = G.worlds.store || { owners: {}, dormant: {} };
   const owners0 = { ...store.owners };
   const dormant0 = { ...store.dormant };
   const players0 = S.players.map((p) => p.id);
   const corpses0 = S.corpses.length;
   const me0 = G.player;
+  let hostHash = null;
   const ident = (name) => ({ name, look: {} });
   const added = () => S.players.filter((p) => !players0.includes(p.id));
   try {
@@ -57,14 +65,20 @@ export async function run(game) {
     row("once a place is free the dormant one comes back to its own character", !!home.player && home.player.id === sleeperId && !store.dormant[sleeperHash], home.player ? home.player.id : JSON.stringify(home));
     // The host keeps its own place while it steps away, so a guest cannot take it and its coming back never goes over.
     const hostId = G.player.id;
-    const stepped = G.worlds.awayNow(hostId, "cap-test-host");
+    hostHash = Object.keys(store.owners).find((h) => store.owners[h] === hostId) || "cap-test-host"; // the hash awayNow really files it under
+    const stepped = G.worlds.awayNow(hostId, hostHash);
     row("the host steps away, out of the world, and the world is still full", stepped && !S.players.some((p) => p.id === hostId) && S.players.length === cap - 1 && G.worlds.full(), `${S.players.length} standing of ${cap}`);
     const taker2 = G.worlds.joinFor("cap-test-taker2", ident("Taker2"));
     row("a guest cannot take the host's place while it is away", taker2.full === true && S.players.length === cap - 1, JSON.stringify({ full: taker2.full }));
-    const hostBack = G.worlds.backNow("cap-test-host");
+    const hostBack = G.worlds.backNow(hostHash);
     if (hostBack) G.game.pickPlayer(hostBack);
     row("the host comes back to its own place, and the world is not over", !!hostBack && S.players.length === cap, `${S.players.length} of ${cap}`);
   } finally {
+    // The host back in the world, wherever the run stopped (a step away leaves its record in the store).
+    if (hostHash && !S.players.some((p) => p.id === me0.id) && store.dormant[hostHash]) {
+      const back = G.worlds.backNow(hostHash);
+      if (back) G.game.pickPlayer(back);
+    }
     for (const p of added()) G.game.removePlayer(p.id);
     if (me0 && G.player !== me0 && S.players.some((p) => p.id === me0.id)) G.game.pickPlayer(S.players.find((p) => p.id === me0.id));
     for (const k of Object.keys(store.owners)) if (!(k in owners0)) delete store.owners[k];
