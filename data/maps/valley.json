@@ -6039,7 +6039,7 @@
    212
   ],
   [
-   100,
+   86,
    212
   ],
   [
@@ -6494,11 +6494,11 @@
  "villagers": [
   {
    "tile": [
-    104,
+    102,
     218
    ],
    "name": "Wyn",
-   "wardrobe": 3,
+   "wardrobe": 6,
    "line": "Ask me anything, if you are stuck.",
    "immune": true,
    "talk": "guide",

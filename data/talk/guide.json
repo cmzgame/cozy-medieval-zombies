@@ -8,7 +8,7 @@
    },
    "ambient": true,
    "lines": [
-    "They are close. The door is still open.",
+    "They are close. Is your door shut?",
     "I would be indoors, if I were you."
    ]
   },
@@ -19,7 +19,7 @@
    "ambient": true,
    "lines": [
     "Dark out. A fire and a shut door help.",
-    "Nights are long. The kettle is shorter."
+    "Nights are long. Mornings help."
    ]
   },
   {
@@ -108,7 +108,7 @@
     {
      "text": "How do I keep them out?",
      "goto": "shelter",
-     "wiki": "Building"
+     "wiki": "Openings"
     },
     {
      "text": "How do I fight?",
@@ -144,6 +144,19 @@
      "text": "Is there fishing?",
      "goto": "fish",
      "wiki": "Fishing"
+    },
+    {
+     "text": "Where does iron come from?",
+     "goto": "mine",
+     "wiki": "Mining"
+    },
+    {
+     "text": "Can I water a field faster?",
+     "goto": "bucket"
+    },
+    {
+     "text": "How do I get cloth?",
+     "goto": "cloth"
     },
     {
      "text": "What are all these keys?",
@@ -188,7 +201,7 @@
   "dead": {
    "say": [
     "It began quietly. Then the bell stopped, and they were in the street.",
-    "The ones who are left stay indoors. Some of us ask for company."
+    "The ones who are left stay indoors. Some of us stay in and wait."
    ],
    "options": [
     {
@@ -237,7 +250,7 @@
   },
   "fire": {
    "say": [
-    "A fire burns its fuel down over the hours and goes out. Logs feed it.",
+    "A fire burns its fuel down over the hours and goes out. Logs feed a hearth, a campfire, or the oven; the forge wants charcoal.",
     "A station with a fire only works while it is lit, and waits for you if it goes out.",
     "T lights the torch in your hand. A tinderbox does the lighting."
    ],
@@ -273,7 +286,7 @@
    "say": [
     "Doors and shutters open and close on E. Closed shutters block sight.",
     "B boards up the nearest opening, and holding it pulls a board off.",
-    "Windows have shutters, not glass, and nobody climbs through one. They will batter shutters and boards, though, and come round to a door.",
+    "Windows have shutters, not glass. Nobody climbs through one, but they do batter shutters and boards, and then go round to a door.",
     "A sealed room is safe. It is also a cell, so mind your water and food."
    ],
    "options": [
@@ -332,7 +345,7 @@
   "heal": {
    "say": [
     "Bites bleed, and bleeding drains health. A bandage stops it at once.",
-    "Health comes back slowly while you are fed and watered, a little faster asleep.",
+    "Health comes back slowly while you are fed and watered, and about four times as fast asleep.",
     "Food heals a bit as well. It is a stopgap, not a cure."
    ],
    "options": [
@@ -350,7 +363,7 @@
    "say": [
     "Tab opens your bag, a grid where things take the room they take.",
     "C is your character: what you wear and hold. Double-click equips or unequips.",
-    "1 to 4 swap a belt slot with your hand, which is where food and torches like to live."
+    "1 to 4 work a belt slot: swap it with your hand, or eat the food or drink the skin on it. A rope belt has two slots, a leather one four."
    ],
    "options": [
     {
@@ -367,7 +380,7 @@
    "say": [
     "N opens the build menu: walls, doors, windows. X shows what you can remove.",
     "R turns what you are placing. Furniture can be carried on your head and set down.",
-    "Anything you build can be knocked down by the dead, so build with a plan."
+    "Walls hold. A door, a board, or a fence, they can batter down."
    ],
    "options": [
     {
@@ -384,7 +397,8 @@
    "say": [
     "A hoe in a hand turns bare grass or dirt to soil. Seed goes in soil, and water keeps it growing.",
     "Watered soil stays wet for two days. A dry crop only pauses. It never dies.",
-    "Harvest when it is ripe and a few seeds come back. The soil stays."
+    "Harvest when it is ripe and a few seeds come back. The soil stays.",
+    "A scythe takes a whole row of rye at a swing."
    ],
    "options": [
     {
@@ -397,10 +411,68 @@
     }
    ]
   },
+  "mine": {
+   "say": [
+    "A pickaxe in your hand mines a rock for stone and an ore rock for iron ore. The ore rocks come back after a few days.",
+    "A forge smelts two ore to a bar, and the forge wants charcoal. A clamp makes that from logs, slowly.",
+    "Bars and a stick, a hammer in hand, make tools at the anvil."
+   ],
+   "options": [
+    {
+     "text": "How do fires work?",
+     "goto": "fire"
+    },
+    {
+     "text": "How do I make things?",
+     "goto": "make"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "bucket": {
+   "say": [
+    "A bucket in your bag, on your belt, or in a hand fills at any water and pours over a three by three of crops.",
+    "One pour a fill, and a wall stops the water. It is only for fields: you cannot drink from it."
+   ],
+   "options": [
+    {
+     "text": "How does farming go?",
+     "goto": "farm"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "cloth": {
+   "say": [
+    "Flax grows like any crop. The loom turns two flax into linen cloth, and cloth into bandages, a cap, breeches, or a tunic.",
+    "A knife on you tears an old garment into rags at a workbench, and a rag will do where a recipe wants cloth.",
+    "The weaver's chest has flax seed and a knife in it, if nobody has been."
+   ],
+   "options": [
+    {
+     "text": "How does farming go?",
+     "goto": "farm"
+    },
+    {
+     "text": "I am bleeding.",
+     "goto": "heal"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
   "fish": {
    "say": [
     "A rod in your hand, a cast at water beside you, and then you wait.",
-    "What bites depends on the water: the river, the pond, the mere each have their own.",
+    "What bites depends on the water: the river and the ponds each have their own.",
     "Anything you catch cooks at a lit fire."
    ],
    "options": [

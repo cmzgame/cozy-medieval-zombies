@@ -44,7 +44,7 @@ export function createVillager(gx, gy, { id = null, name = null, line = null, wa
     immune: !!immune, // the dead neither target nor harm it, whatever the world's rules (#180: a teacher, like the guide; the rest can die)
     talk: talkId, // the name of its file in data/talk (docs/34); none, or a file that is not there, and it says its map line
     guide: !!guide, // the one beside the spawn who explains the rules (docs/34, #90); immune comes with it from the map
-    barkTurn: 0, // which of a group's lines comes next (bookkeeping nothing reads; no rng, so a bark never shifts the generator)
+    barkTurns: {}, // group index -> which of its lines comes next (bookkeeping nothing reads; no rng, so a bark never shifts the generator)
     barkAt: null, // sim seconds of its last ambient bark
     path: [],
     repathTimer: 0,

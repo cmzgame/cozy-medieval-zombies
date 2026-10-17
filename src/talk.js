@@ -123,17 +123,19 @@ export function matches(when, ctx) {
 
 // The line a villager says now, or null when their file has none for this moment (the caller falls back to the map's `line`). The first
 // group whose `when` holds is used; an `ambient` call (nobody poked) only hears groups marked `"ambient": true`. Within a group the lines
-// take turns by the villager's own counter, which is bookkeeping nothing reads (`barkTurn`, saved with it): no `rng`, so the determinism
+// take turns by the villager's own counter for that group, which is bookkeeping nothing reads (`barkTurns`, saved with it): no `rng`, so the determinism
 // hash is not shifted by what is said.
 export function barkFor(villager, ctx, { ambient = false } = {}) {
   const file = get(villager && villager.talk);
   if (!file || !Array.isArray(file.barks)) return null;
-  for (const g of file.barks) {
+  for (let i = 0; i < file.barks.length; i++) {
+    const g = file.barks[i];
     if (ambient && g.ambient !== true) continue;
     if (!matches(g.when, ctx)) continue;
     if (!g.lines || !g.lines.length) continue;
-    const turn = villager.barkTurn || 0;
-    villager.barkTurn = turn + 1;
+    const turns = villager.barkTurns || (villager.barkTurns = {}); // a counter for each group, so a group's lines never skip another's
+    const turn = turns[i] || 0;
+    turns[i] = turn + 1;
     return g.lines[turn % g.lines.length];
   }
   return null;

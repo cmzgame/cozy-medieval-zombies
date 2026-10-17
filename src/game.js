@@ -107,6 +107,21 @@ export function create({ json, look = null, name = null, devChest = false, rules
   return S;
 }
 
+// A speech line's life, counted down in the world's step on the authority and cleared when it runs out (#154): a browser host and a server world
+// agree (a server never runs ui/speech.js), a villager's bark and a groan do not freeze and are not resent for ever, and a guest's replica sees the
+// line end when the record without it arrives. A paused world keeps its bubbles because it does not step.
+function ageSpeech(dt) {
+  const S = state;
+  for (const list of [S.players, S.zombies, S.villagers, S.corpses]) {
+    for (const c of list) {
+      const l = c.line;
+      if (!l) continue;
+      l.left -= dt;
+      if (l.left <= 0 || c.dead) c.line = null;
+    }
+  }
+}
+
 // What the talk conditions read (docs/34): the dead, the living villagers, and the talk ids the map placed (a villager gone from the
 // list is dead). The lists are the world's own, read when a bark asks.
 function wireTalk() {
@@ -577,6 +592,7 @@ function nearChunk(p, cx, cy, radius) {
 // not here). The step is the same for every player, in the players' order.
 export function step(dt, snapshots = null) {
   const S = state;
+  ageSpeech(dt);
   const snapOf = (p) => (snapshots instanceof Map ? snapshots.get(p.id) : snapshots && snapshots[p.id]) || null;
   for (const p of S.players) {
     const snap = snapOf(p);

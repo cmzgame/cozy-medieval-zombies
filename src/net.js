@@ -690,7 +690,7 @@ const roundAnim = (a) => (a && typeof a.elapsed === "number" ? { ...a, elapsed: 
 const sameAnimKey = (r) => JSON.stringify(r.anim && typeof r.anim === "object" ? { ...r, anim: { name: r.anim.name, frame: r.anim.frame, done: r.anim.done } } : r);
 
 function slim(c) {
-  const r = { id: c.id, gx: r3(c.gx), gy: r3(c.gy), facing: c.facing, anim: roundAnim(c.anim), hp: r2(c.hp), dead: c.dead, state: c.state, corpse: c.corpse, line: c.line, blocking: c.blocking, burning: !!c.burning, carryingId: c.carrying ? c.carrying.id : null };
+  const r = { id: c.id, gx: r3(c.gx), gy: r3(c.gy), facing: c.facing, anim: roundAnim(c.anim), hp: r2(c.hp), dead: c.dead, state: c.state, corpse: c.corpse, line: c.line ? { text: c.line.text, left: Math.ceil(c.line.left * 2) / 2 } : null, blocking: c.blocking, burning: !!c.burning, carryingId: c.carrying ? c.carrying.id : null };
   if (c.searched) {
     r.searched = true;
     r.loot = c.loot; // a body opened: its grid, for a guest with it open

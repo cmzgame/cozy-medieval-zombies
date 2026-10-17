@@ -82,7 +82,7 @@ def build():
         g.prop(f"mushroom_{i % 5}", tile, solid=False)
 
     # The guide (docs/34; every map the generator makes has one beside its spawn): the cabin's neighbour, at the path's bend.
-    g.guide((24, 29), "Wyn", 3, "Ask me anything, if you are stuck.")
+    g.guide((24, 29), "Wyn", 6, "Ask me anything, if you are stuck.")
 
     # The clearing is kept open; the trees stand thick all round it, and the wild beyond is the same wood, empty.
     g.reserve([9, 13, 29, 22])

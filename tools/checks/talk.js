@@ -66,9 +66,9 @@ export async function run(game) {
     row("the guide's questions each carry a wiki link, and a topic exists for every system a new player meets", topics >= 12, `${topics} topics with a link`);
 
     // Pokes: by day, by night, at dawn, and with the dead near, each a line from the matching group, in turn.
-    const saved = { barkTurn: g.barkTurn, barkAt: g.barkAt, line: g.line, state: g.state, pokedAt: g.pokedAt, hp: g.hp, talkTimer: g.talkTimer };
+    const saved = { barkTurns: g.barkTurns, barkAt: g.barkAt, line: g.line, state: g.state, pokedAt: g.pokedAt, hp: g.hp, talkTimer: g.talkTimer };
     restore.push(() => Object.assign(g, saved));
-    // The valley's lane dead stand six tiles from the guide's yard (a real `deadNear`), so the quiet scenarios take them off the board and the check puts them back.
+    // Any of the dead within eight tiles of the guide are taken off the board for the quiet scenarios, and the check puts them back.
     const nearby = S.zombies.filter((q) => Math.hypot(q.gx - g.gx, q.gy - g.gy) <= 8);
     for (const q of nearby) S.zombies.splice(S.zombies.indexOf(q), 1);
     restore.push(() => { for (const q of nearby) if (!S.zombies.includes(q)) S.zombies.push(q); });
@@ -77,27 +77,31 @@ export async function run(game) {
     const poke = () => { g.pokedAt = -1e9; g.state = "idle"; pokeVillager(g, me); return g.line && g.line.text; };
     const guideFile = talk.get("guide");
     const group = (pred) => guideFile.barks.find(pred);
-    row("the valley's lane dead are within eight tiles of the guide to begin with, so their `deadNear` bark is true at the start", nearby.length >= 1, `${nearby.length} within 8 tiles`);
+    row("the welcome lands: no dead stand within the `deadNear` radius of the spawn or of the guide at the start", nearby.length === 0 && !S.zombies.some((q) => Math.hypot(q.gx - S.info.spawn[0], q.gy - S.info.spawn[1]) <= 8), `${nearby.length} near the guide`);
     G.clock.setHour(12);
-    g.barkTurn = 0;
+    g.barkTurns = {};
+    const welcome = poke();
+    row("so the first poke at the start of a world is the guide's pointer bark, not a warning", welcome === group((b) => !b.when).lines[0], welcome);
+    G.clock.setHour(12);
+    g.barkTurns = {};
     const day1 = poke();
     const day2 = poke();
     const fallback = group((b) => !b.when);
     row("a poke by day is the fallback group, its lines in turn", day1 === fallback.lines[0] && day2 === fallback.lines[1], `${day1} / ${day2}`);
     G.clock.setHour(23);
-    g.barkTurn = 0;
+    g.barkTurns = {};
     const n1 = poke();
     const n2 = poke();
     const nightGroup = group((b) => b.when && b.when.time === "night");
     row("a poke by night is the night group", n1 === nightGroup.lines[0] && n2 === nightGroup.lines[1], `${n1} / ${n2}`);
     G.clock.setHour(6.5);
-    g.barkTurn = 0;
+    g.barkTurns = {};
     const dawn = poke();
     row("a poke at dawn is the dawn group", dawn === group((b) => b.when && b.when.time === "dawn").lines[0], dawn);
     G.clock.setHour(12);
     S.zombies.push(z);
     restore.push(() => { const i = S.zombies.indexOf(z); if (i >= 0) S.zombies.splice(i, 1); });
-    g.barkTurn = 0;
+    g.barkTurns = {};
     const dead1 = poke();
     row("a poke with one of the dead near is the dead-near group, first in its order", dead1 === group((b) => b.when && b.when.deadNear).lines[0], dead1);
     S.zombies.splice(S.zombies.indexOf(z), 1);
@@ -106,11 +110,31 @@ export async function run(game) {
     // A villager with no file says their map line.
     const mute = S.villagers.find((v) => v.name === "Child");
     const prevTalk = mute.talk;
+    const muteWas = { state: mute.state, line: mute.line, pokedAt: mute.pokedAt, facing: mute.facing, path: mute.path, talkTimer: mute.talkTimer, barkTurns: mute.barkTurns };
     mute.talk = "nobody";
     mute.pokedAt = -1e9;
     pokeVillager(mute, me);
     row("a villager whose talk id has no file says their map line (or the greeting)", mute.line && mute.line.text === mute.greeting, mute.line && mute.line.text);
     mute.talk = prevTalk;
+    Object.assign(mute, muteWas);
+
+    // Each group takes its own turns, and a group not marked ambient is for pokes alone: a probe file with one of each.
+    const original = Object.fromEntries(talk.ids().map((id) => [id, talk.get(id)]));
+    talk.load({ ...original, probe: { barks: [{ lines: ["a1", "a2"] }, { ambient: true, lines: ["b1", "b2"] }] } });
+    restore.push(() => talk.load(original));
+    const pv = { talk: "probe", barkTurns: {} };
+    const pctx = talk.contextFor(g, null, world);
+    const seq = [talk.barkFor(pv, pctx), talk.barkFor(pv, pctx, { ambient: true }), talk.barkFor(pv, pctx), talk.barkFor(pv, pctx, { ambient: true }), talk.barkFor(pv, pctx)];
+    talk.load(original);
+    row("a poke hears every group and an unprompted bark only the ambient ones, each group taking its own turns", seq.join(",") === "a1,b1,a2,b2,a1", seq.join(","));
+
+    // A line ages in the world's step on the authority (#154): said, it ends on its own, with nobody near to say another.
+    G.teleport(g.gx + 30, g.gy);
+    g.line = { text: "Hello.", left: 2.04 };
+    step(30);
+    const midLeft = g.line && g.line.left;
+    step(120);
+    row("a speech line counts down in the world's step and is gone after its time (a server world never runs the interface)", midLeft > 1 && midLeft < 2.04 && g.line === null, `left ${midLeft && midLeft.toFixed(2)} after half a second, then ${g.line === null ? "gone" : "still up"}`);
 
     // Ambient barks: radius, cooldown, and never from the hurt, the talking, or the dead.
     const tick = () => { for (let i = 0; i < 2; i++) updateVillager(g, 1 / 60, S.others, S.players); }; // the villager's own update, not the world's step: a dead one would be turned
@@ -122,15 +146,15 @@ export async function run(game) {
     tick();
     const first = g.line && g.line.text;
     row("with a living player within the radius the guide says an ambient bark", !!first && g.barkAt !== null && guideFile.barks.filter((b) => b.ambient).some((b) => b.lines.includes(first)), String(first));
-    const turn1 = g.barkTurn;
+    const turn1 = JSON.stringify(g.barkTurns);
     g.line = null;
     g.state = "idle";
     g.barkAt = G.loop.simTime() - 30;
     tick();
-    row("not twice inside the cooldown", g.line === null && g.barkTurn === turn1, `30 s after the last: ${g.line ? g.line.text : "silent"}`);
+    row("not twice inside the cooldown", g.line === null && JSON.stringify(g.barkTurns) === turn1, `30 s after the last: ${g.line ? g.line.text : "silent"}`);
     g.barkAt = G.loop.simTime() - 61;
     tick();
-    row("but again once it has passed", !!g.line && g.barkTurn === turn1 + 1, g.line ? g.line.text : "silent");
+    row("but again once it has passed", !!g.line && JSON.stringify(g.barkTurns) !== turn1, g.line ? g.line.text : "silent");
     resetBark();
     G.teleport(g.gx + 8, g.gy);
     tick();

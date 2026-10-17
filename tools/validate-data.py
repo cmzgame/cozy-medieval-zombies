@@ -325,6 +325,8 @@ for tid, f in talk_files.items():
     talk_keys(tid, f, {"name", "note", "barks", "start", "nodes"})
     for i, g in enumerate(f.get("barks", [])):
         talk_keys(f"{tid}.barks[{i}]", g, {"when", "lines", "ambient"})
+        if "ambient" in g and not isinstance(g["ambient"], bool):
+            fail(f"talk.{tid}.barks[{i}]: `ambient` is true or false")
         talk_when(f"{tid}.barks[{i}]", g.get("when"))
         talk_lines(f"{tid}.barks[{i}]", g.get("lines"), bark_max)
     nodes = f.get("nodes", {})
@@ -369,6 +371,15 @@ for tid, f in talk_files.items():
             fail(f"talk.{tid}/{nid}: not reachable from `{f.get('start')}`")
 for mp in sorted(glob.glob("data/maps/*.json")):
     mj = load(mp)
+    guides = [v for v in mj.get("villagers", []) if v.get("guide")]
+    # Every map the generator makes has exactly one guide within 3 tiles of its spawn (docs/34; MapGen.write insists, and a hand-edited map is caught here);
+    # the hand-written proving ground (`square`) has none.
+    if os.path.basename(mp) != "square.json":
+        sx, sy = mj.get("spawn", [0, 0])
+        if len(guides) != 1:
+            fail(f"{mp}: {len(guides)} guides (a generated map has exactly one)")
+        elif ((guides[0]["tile"][0] - sx) ** 2 + (guides[0]["tile"][1] - sy) ** 2) ** 0.5 > 3:
+            fail(f"{mp}: the guide stands more than 3 tiles from the spawn {mj.get('spawn')}")
     for v in mj.get("villagers", []):
         if v.get("guide"):
             tid = v.get("talk") or str(v.get("name", "")).lower()
