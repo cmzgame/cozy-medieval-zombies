@@ -205,6 +205,26 @@ for (const file of fs.readdirSync(path.join(root, "data", "maps")).filter((f) =>
   });
 }
 
+// Trees off leaves the mushrooms where they were (#142): the forage is placed against where the trees would have stood, so a
+// world of the same seed has the same ones with or without trees, inside the bounds and in the wild beyond.
+check("trees off: the mushrooms stand where they stand with trees (the valley, inside the bounds and beyond)", () => {
+  const json = read("data/maps/valley.json");
+  const spots = [[104, 216], [60, 150], [-40, 120], [300, 100], [128, 300]]; // the spawn, the village, the wild beyond each side
+  const grab = (trees) => {
+    gameMod.create({ json, rules: { zombieAggro: false, trees } });
+    for (const [x, y] of spots) mapMod.ensureAround(x, y, 5);
+    const found = mapMod.allProps().filter((p) => String(p.sprite).startsWith("mushroom")).map((p) => `${p.sprite}@${p.tile[0]},${p.tile[1]}`).sort();
+    const trunks = mapMod.allProps().filter((p) => String(p.sprite).startsWith("tree_")).length;
+    return { found, trunks };
+  };
+  const on = grab(true);
+  const off = grab(false);
+  assert(on.trunks > 0 && off.trunks === 0, `trees ${on.trunks} on, ${off.trunks} off`);
+  assert(on.found.length > 0, "no mushrooms at all");
+  assert(on.found.length === off.found.length && on.found.every((k, i) => k === off.found[i]), `${on.found.length} mushrooms with trees, ${off.found.length} without`);
+  return `${on.found.length} mushrooms in the same places, ${on.trunks} trees on and none off`;
+});
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;
