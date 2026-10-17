@@ -62,7 +62,7 @@ export const REGISTRY = [
   { key: "survival", group: "rules", label: "Survival", help: "Hunger, thirst, and tiredness. Off, the body has no needs.", choices: ON_OFF },
   { key: "freeBuilding", group: "rules", label: "Free building", help: "Building costs nothing, for trying out structures.", choices: ON_OFF },
   { key: "multiHit", group: "rules", label: "Multi-hit", help: "A blow reaches everything in its wedge: the easy button. Off, only the nearest: the intended way.", choices: ON_OFF },
-  { key: "trees", group: "rules", fixed: true, label: "Trees", help: "Trees in the forests and the wild. Off, none are made, anywhere. Chosen when the world is made.", choices: ON_OFF },
+  { key: "trees", group: "rules", fixed: true, label: "Trees", help: "Every tree: the forests, the wild, and the orchards (so no apples from trees). Off, none are made, anywhere. Chosen when the world is made.", choices: ON_OFF },
   { key: "population", group: "rules", fixed: true, label: "Starting population", help: "How many of the dead the world starts with, in its places and in each new stretch of wild. It never grows with time. Chosen when the world is made.", choices: [["none", "None"], ["low", "Low"], ["standard", "Standard"], ["high", "High"]] },
   { key: "debugCorner", group: "testing", label: "Debug corner", help: "The numbers and the keys in the top-left corner.", choices: SHOWN },
   { key: "showSwingTargets", group: "testing", label: "Swing targets", help: "A green outline on what your next swing would hit.", choices: ON_OFF },
