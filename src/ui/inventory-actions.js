@@ -373,7 +373,10 @@ export function performUseCommand(player, c, findCharacter) {
   if (!entry) return false;
   const t = c.target;
   let target = null;
-  if (t.kind === "item") {
+  if (t.kind === "item" && typeof t.slot === "string") {
+    const e = slotGet(player, t.slot); // an item in a hand, on the belt, or worn: the slot is its address
+    if (e && e.uid === t.uid) target = { kind: "item", entry: e, slot: t.slot };
+  } else if (t.kind === "item") {
     const r = containerOf(t.bag);
     const e = r && r.bag.items.find((q) => q.uid === t.uid);
     if (e) target = { kind: "item", entry: e };

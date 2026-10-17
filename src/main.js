@@ -1002,7 +1002,7 @@ function armGuest(on) {
     const bagAddr = (bag, kept) => kept || remoteHandlers.addressOf(bag);
     const src = cur.from.kind === "slot" ? { kind: "slot", id: cur.from.id } : (a => a && { kind: "bag", bag: a })(bagAddr(cur.from.bag, cur.from.address));
     let addr = null;
-    if (target.kind === "item") { const b = remoteHandlers.addressOf(target.bag); if (b) addr = { kind: "item", uid: target.entry.uid, bag: b }; }
+    if (target.kind === "item") { if (typeof target.slot === "string") addr = { kind: "item", uid: target.entry.uid, slot: target.slot }; else { const b = remoteHandlers.addressOf(target.bag); if (b) addr = { kind: "item", uid: target.entry.uid, bag: b }; } }
     else if (target.kind === "prop") addr = { kind: "prop", id: target.prop.id };
     else if (target.kind === "character") addr = { kind: "character", id: target.ch.id };
     else if (target.kind === "tile") addr = { kind: "tile", x: target.x, y: target.y };

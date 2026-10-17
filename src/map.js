@@ -191,26 +191,16 @@ export function burnHolders(dt) {
 export function kindleNear(x, y, r = 1, clear = null) {
   let n = 0;
   for (const p of fireProps) {
-    const f = p.fire;
-    if (f.lit || Math.hypot(p.tile[0] - x, p.tile[1] - y) > r) continue;
-    const campfire = p.sprite === "campfire" && f.burns && f.fuel > 0;
-    if (!(campfire || (f.holds && f.has))) continue;
+    if (!lightableProp(p) || p.fire.lit || Math.hypot(p.tile[0] - x, p.tile[1] - y) > r) continue;
     if (clear && !clear(p.tile[0], p.tile[1])) continue;
-    f.lit = true;
-    touch(p.tile[0], p.tile[1]);
-    emit("fireLit", { id: p.id, tile: p.tile });
-    n++;
+    if (lightProp(p)) n++;
   }
   for (const b of bracketSet) {
-    const br = b.wall.bracket;
-    if (!br.torch || br.lit !== false) continue;
+    if (!b.wall.bracket.torch || b.wall.bracket.lit !== false) continue;
     const [bx, by] = bracketPos(b);
     if (Math.hypot(bx - x, by - y) > r) continue;
     if (clear && !clear(bx, by)) continue;
-    br.lit = true;
-    touchWall(b.wall);
-    emit("fireLit", { tile: [b.tx, b.ty] });
-    n++;
+    if (lightBracket(b)) n++;
   }
   return n;
 }
@@ -290,6 +280,34 @@ export function setHolder(target, has, entry = null) {
   }
   // It touched nothing before 2026-10-15: a guest saw a torch mounted or taken only once its chunk went for another
   // reason (found auditing the changes for the save's cache, `02`).
+}
+
+// Light what is made to be lit (Michael, 2026-10-17, #156: "fire lights what is made to be lit"): an unlit campfire with fuel in
+// it, a torch on a post, or a torch in a bracket that is out (`lightableProp`). Nothing else burns and nothing spreads. The authority's, from
+// the `light` verb (burn.js); each returns whether it lit, and touches the chunk so the wire and the save have it.
+// The one rule for what a fire can be lit as (the verb and a fireball's landing both ask it): a campfire with fuel in it, or a holder
+// (a post) with a torch in it. Not a hearth, an oven, or a forge: Michael named "a campfire or a torch".
+export function lightableProp(prop) {
+  const f = prop && prop.fire;
+  return !!f && ((prop.sprite === "campfire" && f.burns && f.fuel > 0) || (!!f.holds && f.has));
+}
+
+export function lightProp(prop) {
+  if (!lightableProp(prop) || prop.fire.lit) return false;
+  const f = prop.fire;
+  f.lit = true;
+  touch(prop.tile[0], prop.tile[1]);
+  emit("fireLit", { id: prop.id, tile: prop.tile });
+  return true;
+}
+
+export function lightBracket(b) {
+  const br = b && b.wall.bracket;
+  if (!br || !br.torch || br.lit !== false) return false;
+  br.lit = true;
+  touchWall(b.wall);
+  emit("fireLit", { tile: [b.tx, b.ty] });
+  return true;
 }
 
 // Burners within `r` tiles of (gx, gy), nearest first.
