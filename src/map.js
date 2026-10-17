@@ -475,11 +475,22 @@ export function edgeMid(tx, ty, edge) {
   return edge === "n" ? [tx, ty - 0.5] : [tx - 0.5, ty];
 }
 
-// Whether a wall of this kind may be built on the edge: nothing there yet, no
-// solid prop whose footprint spans it, and a door needs both its tiles to be
-// walkable so it can be walked through.
+// Whether a door or a window may be built onto what stands on an edge (Michael, 2026-10-17, #147: "make all walls solid as
+// built, and then you can build a window or door directly over top and it stamps it into place and creates the opening"):
+// over a plain wall (a door, being a gate, over a fence or bars too; a window not), or over a broken door or window of its own kind,
+// as a new one and never a repair ("everything spent, nothing repaired"). An edge with nothing on it takes any kind.
+export function canStampOver(existing, kind) {
+  if (!existing) return true;
+  if (kind !== "door" && kind !== "window") return false;
+  if (existing.kind === "wall") return kind === "door" || !wallRule(existing.sprite).seeThrough; // a window is no use in a fence or bars
+  return existing.kind === kind && !!existing.broken;
+}
+
+// Whether a wall of this kind may be built on the edge: nothing there yet (or a plain wall or a broken opening a door or a
+// window may stand in, `canStampOver`), no solid prop whose footprint spans it, and a door needs both its tiles to be
+// walkable and clear so it can be walked through and stood at.
 export function canBuildWall(tx, ty, edge, kind = "wall") {
-  if (tileAt(tx, ty)[edge]) return false;
+  if (!canStampOver(tileAt(tx, ty)[edge], kind)) return false;
   const [a, b] = edgeTiles(tx, ty, edge);
   const pa = tileAt(a[0], a[1]).prop;
   const pb = tileAt(b[0], b[1]).prop;
@@ -503,8 +514,16 @@ export function besideDoor(x, y) {
 // tell sight, light, and the rooms.
 export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT) {
   const t = growTile(tx, ty);
-  if (t[edge]) return false;
+  const existing = t[edge];
+  if (existing && !canStampOver(existing, kind)) return false;
+  if (existing) {
+    // Stamped over a wall (or a broken opening): the new one is of the same material, so a door in a wood wall is a wood door,
+    // and it remembers the wall it replaced, which the removal tool puts back (never a hole where a wall stood).
+    if (!unbreakable(existing.sprite)) sprite = existing.sprite; // an unbreakable wall's door is of the build's own wood: whatever closes an entrance the dead can break
+    for (const b of [...bracketSet]) if (b.wall === existing) bracketSet.delete(b);
+  }
   const wall = createWall(kind, sprite);
+  if (existing && existing.kind === "wall") wall.under = existing.sprite;
   wall.built = true; // made by the player: the removal tool may take it down (docs/13)
   wall.at = [tx, ty];
   t[edge] = wall;
@@ -515,15 +534,52 @@ export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT) {
 
 // Take a wall, door, or window off an edge, and whatever hangs on it (its
 // boards go with it, a torch bracket is forgotten).
-export function destroyWall(tx, ty, edge) {
+export function destroyWall(tx, ty, edge, restoreUnder = false) {
   const t = growTile(tx, ty);
   const wall = t[edge];
   if (!wall) return false;
   for (const b of [...bracketSet]) if (b.wall === wall) bracketSet.delete(b);
   t[edge] = null;
+  if (restoreUnder && wall.under) {
+    // The removal tool takes a built door or window out of the wall it was stamped into, and the wall is back.
+    t[edge] = createWall("wall", wall.under);
+    t[edge].at = [tx, ty];
+  }
   touch(tx, ty);
   rebuildRoomsAround(tx, ty, edge);
   return true;
+}
+
+// A wall material whose definition says `wall.unbreakable` (the built stone walls of #104, not yet in the game): a door or a
+// window of it has no hit points. The enclosure rule below keeps such an entrance from being the only one.
+function unbreakable(sprite) {
+  try {
+    const d = getDef(sprite);
+    return !!(d && d.wall && d.wall.unbreakable);
+  } catch {
+    return false;
+  }
+}
+
+// Whether building a `kind` of this material on the edge would leave an enclosure whose every way in the dead could neither
+// use nor break (Michael, 2026-10-17: "every entrance that you can use MUST be usable by zombies, and if something gates it
+// it must be breakable by zombies. This stops a fortress."): the door being built is of an unbreakable material and the room
+// on either side has no other door whose leaf can be broken. A built wall is not an entrance (a room with no door at all is
+// a cell, which is allowed: "You just can't leave"); a door, a gate, boards are fine. Returns the reason, or "".
+export function enclosureProblem(tx, ty, edge, kind, sprite) {
+  if (kind !== "door" || !unbreakable(sprite)) return "";
+  for (const [x, y] of edgeTiles(tx, ty, edge)) {
+    const id = tileAt(x, y).room;
+    const room = id > 0 ? getRoom(id) : null;
+    if (!room) continue;
+    const breakable = room.openings.some((op) => {
+      if (op.tx === tx && op.ty === ty && op.edge === edge) return false;
+      const w = tileAt(op.tx, op.ty)[op.edge];
+      return !!w && w.kind === "door" && !unbreakable(w.sprite);
+    });
+    if (!breakable) return "Every way in must be one the dead can break";
+  }
+  return "";
 }
 
 export function createWall(kind, sprite) {
@@ -533,7 +589,7 @@ export function createWall(kind, sprite) {
     open: false,
     shutter: kind === "window" ? "closed" : null,
     boards: { near: [], far: [] }, // hit points per board, outermost last
-    hp: kind === "door" ? DOOR_HP : kind === "window" ? SHUTTER_HP : Infinity,
+    hp: kind === "wall" || unbreakable(sprite) ? Infinity : kind === "door" ? DOOR_HP : SHUTTER_HP,
     broken: false,
   };
 }
