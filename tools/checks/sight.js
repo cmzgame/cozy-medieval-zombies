@@ -13,6 +13,7 @@ export async function run(game) {
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const sight = await import("/src/sight.js");
   const T = G.tuning.sight;
+  const T00 = { darkRadius: T.darkRadius, edge: T.edge }; // the swing row shortens the eye's reach: put back in the finally
   const wasPaused = G.loop.isPaused();
   const hour0 = G.clock.getHour();
   const me = G.player;
@@ -141,7 +142,13 @@ export async function run(game) {
         G.map.touch(win.op.tx, win.op.ty);
         step(4);
         const open = sight.seenAlpha(me, z);
+        const ambientOpen = G.light.roomAmbient(G.map.tileAt(inside[0], inside[1]).room);
+        win.wall.shutter = "closed";
+        G.map.touch(win.op.tx, win.op.ty);
+        step(4);
+        const ambientShut = G.light.roomAmbient(G.map.tileAt(inside[0], inside[1]).room);
         row("a shuttered room is dark by day: a dead one in it, 7 tiles off, is hidden; with the shutters open it is seen", near(shut, 0) && near(open, 1), `noon, room of ${room.r.size} tiles: ${shut.toFixed(2)} shuttered, ${open.toFixed(2)} open`);
+        row("and its real light: an open room reaches the cap (`unlitRoomCap`, window-lit), a shuttered one stays at the night's", ambientOpen >= G.light.tunables.unlitRoomCap - 0.03 && ambientShut < 0.3, `ambient ${ambientOpen.toFixed(2)} open (cap ${G.light.tunables.unlitRoomCap}), ${ambientShut.toFixed(2)} shuttered`);
       } finally {
         win.wall.shutter = shutter0;
         win.wall.hp = hp0;
@@ -181,6 +188,8 @@ export async function run(game) {
     row("a burning one is its own light", near(sight.seenAlpha(me, z), 1), "seen whole at nine tiles");
     z.burning = false;
   } finally {
+    T.darkRadius = T00.darkRadius;
+    T.edge = T00.edge;
     if (other) G.game.removePlayer(other.id);
     Object.assign(z, z0);
     z.path = [];

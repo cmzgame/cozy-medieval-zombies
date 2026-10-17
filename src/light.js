@@ -125,7 +125,9 @@ export function darknessOf(ambient) {
 // the room fully by day (Michael, 2026-10-17, #150: "opening windows fully ... should basically light the same room fully"):
 // one open window a small room, more a large one in proportion to its size; a shuttered one admits only its leak, so a
 // shuttered room stays dark by day ("a downside"), and the sight of the dead in it with it (sight.js).
-export function openness(room) {
+// Returned as the two shares: `open`, the part the open ones light (0..1, in proportion to the room's size), and `leak`, the
+// part the shut ones let through.
+export function daylightShares(room) {
   let open = 0;
   let leak = 0;
   for (const op of room.openings) {
@@ -136,7 +138,12 @@ export function openness(room) {
     else leak += t;
   }
   const size = Math.max(1, room.size || 1);
-  return Math.min(1, (open * W.daylightTiles) / size + leak * tunables.openingDaylight);
+  return { open: Math.min(1, (open * W.daylightTiles) / size), leak: Math.min(1, leak * tunables.openingDaylight) };
+}
+
+export function openness(room) {
+  const s = daylightShares(room);
+  return Math.min(1, s.open + s.leak);
 }
 
 // A lit hearth lights its whole room. Without one, the room keeps a share of
@@ -148,7 +155,10 @@ export function roomAmbient(id) {
   if (!room) return outdoorAmbient();
   const floor = clock.NIGHT_BRIGHTNESS;
   const day = 1 - clock.nightFactor();
-  return floor + (tunables.unlitRoomCap - floor) * day * openness(room) * tunables.roomBounce;
+  // The open ones' share lights the room to the cap by day (an open room is lit fully, Michael, #150); the shut ones' leak keeps
+  // only `roomBounce` of its flat light (the portals pool the rest), so a shuttered room stays dark.
+  const s = daylightShares(room);
+  return floor + (tunables.unlitRoomCap - floor) * day * Math.min(1, s.open + s.leak * tunables.roomBounce);
 }
 
 export function ambientAt(x, y, layer = 0) {
