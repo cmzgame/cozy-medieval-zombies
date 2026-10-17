@@ -32,6 +32,8 @@ export async function run(game) {
     row("a sword onto the head slot is refused (it is not worn there)", send(sword, "worn:head") === false && !me.worn.head && bag.items.includes(sword), `head ${me.worn.head ? me.worn.head.id : "empty"}`);
     row("a cap onto the head slot is allowed", send(cap, "worn:head") === true && me.worn.head === cap, `head ${me.worn.head ? me.worn.head.id : "empty"}`);
     row("a slot name that means nothing is refused", send(sword, "nowhere:0") === false && bag.items.includes(sword), "nowhere:0");
+    row("a belt slot with a negative or non-number index is refused (the item stays in the bag)", send(sword, "belt:-1") === false && send(sword, "belt:x") === false && bag.items.includes(sword), "belt:-1, belt:x");
+    row("a hand that is not main or off is refused, even for an either-hand item", send(sword, "hand:foo") === false && bag.items.includes(sword) && me.hands.foo === undefined, "hand:foo");
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message });
   } finally {

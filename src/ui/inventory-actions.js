@@ -67,12 +67,12 @@ export function createInventoryActions(getPlayer) {
       if (kind === "belt") {
         // Hand items, one at a time, or consumables as a stack.
         const belt = inventory.beltOf(player);
-        if (!belt || index >= belt.length) return false;
+        if (!belt || !Number.isInteger(index) || index < 0 || index >= belt.length) return false; // a guest's command can name any index
         if (def.hands) return entry.count === 1;
         return def.kind === "food" || !!def.capacity || def.belt === true; // a food, a skin, or a thing that says it rides the belt (the tinderbox)
       }
       // A hand takes what fits it; an occupant swaps out if it can be stowed.
-      if (kind === "hand") return !!def.hands && entry.count === 1 && (def.hands === "both" || def.hands === "either" || def.hands === key);
+      if (kind === "hand") return (key === "main" || key === "off") && !!def.hands && entry.count === 1 && (def.hands === "both" || def.hands === "either" || def.hands === key);
       return false;
     },
     // Drop onto a worn or belt slot. An occupant goes to the bag or belt if
