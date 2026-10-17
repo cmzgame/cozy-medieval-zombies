@@ -172,6 +172,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Process and the studio
 
+- The hidden issues the valley needs are filed again with new scopes; the originals are read and closed when the bot is back (2026-10-18, The hidden issues the valley needs are filed again)
 - Recipes are learned and earned (from villagers and the regions; skills by default), not all known from the start (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
 - The valley and skillscape are the focus; combat testing pauses (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
 - The roadmap: valley, combat, demo, playing together and telemetry, an outside playtest, Midnight Mass in dev art, the name, art and sound, the Steam page, the regions and release (2026-10-17, The roadmap, and sound)
@@ -213,6 +214,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-18 — The hidden issues the valley needs are filed again (Michael)
+
+"Let's reconstruct bot issues that need for 1.0 as best we can with new scopes. If and when they get unblocked we can check them against what we built in case they have good ideas and if not, just archive them. It sucks but we can't wait forever on these items with our new valley top priority mandate." The bot's hidden issues (#18 to #55, 2026-10-15) that the valley and skilling step needs are filed again from `michaeldippold`, each scoped against the game as it is now and naming the hidden number it stands for; the rest stay hidden for their own steps. When the bot is reinstated (#71), each refiled one's original is read against what was built, anything good in it is carried over, and the original is closed. It overturns, for these issues only, 2026-10-15's "never file them again" (`github.md`'s box, rule 5, and the entry of that day, noted where they sit). Kept because the valley is the top priority and the flag has no date.
 
 ### 2026-10-18 — The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break (Michael)
 
@@ -398,7 +403,7 @@ Asked whether the reviewing agents Primary started tonight were a one-night allo
 
 ### 2026-10-15 — The process while the bot is flagged (Michael)
 
-GitHub's spam protection flagged `cmzgame-bot` after it filed 38 issues in a few minutes (#7's planning), hiding everything it wrote, its approvals included; a reinstatement ticket is filed and may take a week. Michael asked for a stopgap rather than a week without work, and took Primary's proposal over his own of merging locally with no pull requests: **pull requests and CI stay; the required approval drops to 0; every session works as `michaeldippold`, told apart by its signature; a review is a signed comment opening with Approved or Changes requested; only Primary merges, on such a comment from a session with no part in the change and green checks, the reverts and hotfixes of `github.md` 8.8 excepted; nothing is created in bursts.** Kept because the pull request is the record and CI is the gate a local merge would lose. The rules are the box at the top of `github.md`; they end when the bot is reinstated (approvals back to 1, the bot's #18 to #55 and #56 reviewed, not refiled).
+GitHub's spam protection flagged `cmzgame-bot` after it filed 38 issues in a few minutes (#7's planning), hiding everything it wrote, its approvals included; a reinstatement ticket is filed and may take a week. Michael asked for a stopgap rather than a week without work, and took Primary's proposal over his own of merging locally with no pull requests: **pull requests and CI stay; the required approval drops to 0; every session works as `michaeldippold`, told apart by its signature; a review is a signed comment opening with Approved or Changes requested; only Primary merges, on such a comment from a session with no part in the change and green checks, the reverts and hotfixes of `github.md` 8.8 excepted; nothing is created in bursts.** Kept because the pull request is the record and CI is the gate a local merge would lose. The rules are the box at the top of `github.md`; they end when the bot is reinstated (approvals back to 1, the bot's #18 to #55 and #56 reviewed, ~~not refiled~~ (superseded 2026-10-18, The hidden issues the valley needs are filed again: the ones the valley needs are filed again)).
 
 ### 2026-10-15 — No friendly fire; the fireball's burst only ahead; the rules screen to the menus (Michael)
 
