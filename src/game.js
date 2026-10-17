@@ -70,8 +70,12 @@ export function pickPlayer(p) {
 // world stage) and headless (tools/world.js), so both worlds hash the same.
 // What the client does after (the camera, sight, the ground, the player's
 // sheet) touches nothing the hash sees.
-export function create({ json, look = null, name = null, devChest = false, combatTesting = false }) {
+export function create({ json, look = null, name = null, devChest = false, combatTesting = false, rules: chosen = null }) {
   const S = state;
+  // The world's own rules (docs/38, #109): the defaults, over them what its Sandbox step chose; a server world's
+  // source, when it has one, wins on the refresh below.
+  rules.setWhole(chosen || {});
+  rules.refresh();
   rng.seed(json.seed ?? 1); // the sim's one generator, seeded from the map (docs/23a, C1)
   world.reset(json.idCounter || 0); // the world's time scale and id counter (docs/30 step 2; docs/31/08)
   S.info = map.loadMap(json);
@@ -251,7 +255,8 @@ export function carriedOf(c) {
 export function restore(saved, json) {
   const S = state;
   const save = fromSafe(saved); // the tokens back to numbers, and nothing shared with the caller's object
-  if (save.rules) rules.set(save.rules); // the world's rules as saved (a browser's own world reads its settings again next step)
+  rules.setWhole(save.rules || {}); // the world's rules as saved (the defaults for any it lacks); a server world's source wins on the refresh
+  rules.refresh();
   rng.seed(json.seed ?? 1);
   world.reset(json.idCounter || 0);
   S.info = map.loadMap(json);
@@ -488,7 +493,7 @@ function beltFire(belt) {
 // own frame work reads the map.
 export function begin(dt) {
   const S = state;
-  rules.refresh(); // the sim's rules, from the settings, once a step (docs/23a, C3)
+  rules.refresh(); // a server world's rules, from its source, once a step; a browser's world keeps its own (docs/23a, C3; docs/38, #109)
   clock.update(dt);
   map.burnFires(dt);
   stations.update(dt); // every station's queue, in the world's time (docs/30, section 6)

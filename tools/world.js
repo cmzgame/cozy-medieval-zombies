@@ -38,12 +38,12 @@ const { bootData } = await import("../server/boot.js");
 // net.js is imported for its parse alone: it has no window at module scope, and a stray brace in it once
 // passed node --check (which parses a .js as a script) and broke the browser's boot.
 await import("../src/net.js");
-const settings = await import("../src/settings.js");
+const rules = await import("../src/rules.js");
 const [map, game, loop] = await Promise.all([import("../src/map.js"), import("../src/game.js"), import("../src/loop.js")]);
 
-// The hash's protocol is a world with the dead's aggro off, as the pane Michael tests in has it (the setting's default is
-// on since 2026-10-15; a browser that saved its settings keeps its own, and his are off). `--bite` turns it on below.
-settings.set("zombieAggro", false);
+// The hash's protocol is a world with the dead's aggro off, as the pane Michael tests in has it (the default is on since
+// 2026-10-15; a browser that saved its settings keeps its own, and his are off). The world's rules are its own
+// (docs/38, #109): this one is made with them below. `--bite` turns aggro on after.
 
 const t0 = performance.now();
 await bootData(root);
@@ -52,15 +52,15 @@ await bootData(root);
 const json = read(`data/maps/${mapName}.json`);
 // The world's options as the pane has them, so the hashes compare: the dev chest and the
 // testing dead each make props and so move every id after them (docs/31/05, item 4).
-game.create({ json, devChest: flags.has("--devchest"), combatTesting: flags.has("--combat") });
+game.create({ json, devChest: flags.has("--devchest"), combatTesting: flags.has("--combat"), rules: { zombieAggro: false } });
 const playersFlag = [...flags].find((f) => f.startsWith("--players="));
 const nPlayers = playersFlag ? Number(playersFlag.split("=")[1]) : 1;
 for (let i = 1; i < nPlayers; i++) game.addPlayer(game.state.player.gx + 5 * i, game.state.player.gy, {});
 const booted = performance.now() - t0;
 let bitten = null;
 if (flags.has("--bite")) {
-  // The dead hunt (the rule the world reads each step from the settings), and the nearest stands beside the player.
-  settings.set("zombieAggro", true);
+  // The dead hunt (the world's own rule), and the nearest stands beside the player.
+  rules.set({ zombieAggro: true });
   const p = game.state.player;
   const z = game.state.zombies.slice().sort((a, b) => Math.hypot(a.gx - p.gx, a.gy - p.gy) - Math.hypot(b.gx - p.gx, b.gy - p.gy))[0];
   z.gx = p.gx + 0.6;

@@ -12,7 +12,7 @@ export async function run(game) {
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const wasPaused = G.loop.isPaused();
   const p = G.player;
-  const saved = { main: p.hands.main, off: p.hands.off, gx: p.gx, gy: p.gy, aim: { ...p.aim }, aggro: G.settings.get("zombieAggro"), multi: G.settings.get("multiHit") };
+  const saved = { main: p.hands.main, off: p.hands.off, gx: p.gx, gy: p.gy, aim: { ...p.aim }, aggro: G.rules.rules.zombieAggro, multi: G.rules.rules.multiHit };
   G.loop.setPaused(true);
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const { createZombie } = await import("/src/entities/zombie.js");
@@ -37,8 +37,8 @@ export async function run(game) {
   };
   const flyOut = () => { for (let i = 0; i < 600 && archery.arrowsInFlight().length; i++) step(); };
   try {
-    G.settings.set("zombieAggro", false);
-    G.settings.set("multiHit", false);
+    G.rules.set({ zombieAggro: false });
+    G.rules.set({ multiHit: false });
     const open = G.map.nearestWalkable(Math.round(p.gx) + 4, Math.round(p.gy), (x, y) => {
       for (let dx = -1; dx <= 8; dx++) for (let dy = -2; dy <= 2; dy++) {
         const t = G.map.peekTile(x + dx, y + dy);
@@ -221,8 +221,8 @@ export async function run(game) {
     p.hands.off = saved.off;
     G.teleport(saved.gx, saved.gy);
     p.aim = saved.aim;
-    G.settings.set("zombieAggro", saved.aggro);
-    G.settings.set("multiHit", saved.multi);
+    G.rules.set({ zombieAggro: saved.aggro });
+    G.rules.set({ multiHit: saved.multi });
     G.loop.setPaused(wasPaused);
   }
   console.table(rows);

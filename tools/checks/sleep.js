@@ -14,7 +14,7 @@ export async function run(game) {
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const wasPaused = G.loop.isPaused();
   const p = G.player;
-  const saved = { gx: p.gx, gy: p.gy, hp: p.hp, hunger: p.hunger, thirst: p.thirst, tired: p.tired, elapsed: G.clock.getElapsed(), survival: G.settings.get("survival") };
+  const saved = { gx: p.gx, gy: p.gy, hp: p.hp, hunger: p.hunger, thirst: p.thirst, tired: p.tired, elapsed: G.clock.getElapsed(), survival: G.rules.rules.survival };
   G.loop.setPaused(true);
   const step = () => G.loop.advance(1 / 60);
   // The bed nearest the spawn, and a burner in the same room.
@@ -34,7 +34,7 @@ export async function run(game) {
   const fireSaved = fire ? { lit: fire.fire.lit, fuel: fire.fire.fuel } : null;
   let other = null;
   try {
-    G.settings.set("survival", true);
+    G.rules.set({ survival: true });
     step();
     // 1. Outdoors the verb refuses.
     const outside = map.nearestWalkable(bed.tile[0], bed.tile[1] + 8, (x, y) => map.roomAt(x, y) !== 0);
@@ -94,7 +94,7 @@ export async function run(game) {
     Object.assign(p, { hp: saved.hp, hunger: saved.hunger, thirst: saved.thirst, tired: saved.tired });
     G.clock.setElapsed(saved.elapsed);
     if (fire && fireSaved) Object.assign(fire.fire, fireSaved);
-    G.settings.set("survival", saved.survival);
+    G.rules.set({ survival: saved.survival });
     G.loop.setPaused(wasPaused);
   }
   const failed = rows.filter((r) => r.result === "FAIL").length;

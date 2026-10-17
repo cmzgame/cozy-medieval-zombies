@@ -11,6 +11,7 @@
 // where skills will go), and it belongs to that world.
 
 import * as settings from "../settings.js";
+import * as rules from "../rules.js";
 
 // A code, a name, or an address can come off the URL or a friend: never into innerHTML as it is.
 function esc(text) {
@@ -204,7 +205,7 @@ export function currentScreen() {
 }
 
 // The screens that return to where they were opened from (Escape, Back, Done).
-const SUB = new Set(["settings", "controls", "character", "host"]);
+const SUB = new Set(["settings", "controls", "character", "host", "rules"]);
 // The screens that are steps of a flow: Back is explicit (go("back") knows the step before).
 const FLOW = new Set(["worlds", "identities", "identity", "newworld", "join", "create", "creatorkey", "ownerkey", "owner", "addowned"]);
 
@@ -251,7 +252,7 @@ function stepBack() {
     if (creation && creation.step > 1) { creation.step--; render(); return; }
     const c = creation;
     creation = null;
-    if (c && c.for === "new") show("newworld", { name: c.name });
+    if (c && c.for === "new") show("newworld", { name: c.name, rules: c.rules, devChest: c.devChest, touched: true });
     else if (c && c.for === "join") show("join", { code: c.code });
     else if (c && c.for === "respawn") show("dead", data);
     else show("worlds");
@@ -286,8 +287,8 @@ function go(where, ds = {}) {
     worldsApi.rotateCode(data.code).then((r) => show("owner", { code: r.ok ? r.code : data.code, from: data.from, note: r.ok ? `The new code is ${r.code}.` : r.error }));
   }
   else if (where === "owner-rule") {
-    const rules = { ...((data.info && data.info.rules) || {}), [ds.rule]: ds.value === "true" };
-    worldsApi.setRules(data.code, rules).then((r) => show("owner", { code: data.code, from: data.from, note: r.ok ? "The rules are set; everyone in the world plays by them now." : r.error }));
+    const nextRules = { ...((data.info && data.info.rules) || {}), [ds.rule]: ds.value === "true" };
+    worldsApi.setRules(data.code, nextRules).then((r) => show("owner", { code: data.code, from: data.from, note: r.ok ? "The rules are set; everyone in the world plays by them now." : r.error }));
   }
   else if (where === "owner-remove" || where === "owner-remove-rotate") {
     const rotate = where === "owner-remove-rotate";
@@ -329,10 +330,24 @@ function go(where, ds = {}) {
   else if (where === "wait-cancel") { stopWait(); show("worlds"); }
   // A new world: its name, then a character for it.
   else if (where === "newworld") show("newworld", { name: worldsApi ? worldsApi.defaultName() : "" });
+  // A switch of the Sandbox: kept in the page's data with the name typed so far, and drawn again.
+  else if (where === "sandbox") {
+    const field = root.querySelector("#world-name");
+    const now = sandboxNow();
+    if (ds.rule === "devChest") now.devChest = ds.value === "true";
+    else now.rules[ds.rule] = ds.value === "true";
+    show("newworld", { name: field ? field.value : data.name, rules: now.rules, devChest: now.devChest, touched: true });
+  }
   else if (where === "newworld-next") {
     const field = root.querySelector("#world-name");
     const name = (field && field.value.trim()) || (worldsApi ? worldsApi.defaultName() : "A world");
-    beginCreation({ for: "new", name });
+    const now = sandboxNow();
+    beginCreation({ for: "new", name, rules: now.rules, devChest: now.devChest });
+  }
+  // The host's World rules, from the pause menu: a switch changes the world at once.
+  else if (where === "world-rule") {
+    if (worldsApi && worldsApi.setWorldRules) worldsApi.setWorldRules({ [ds.rule]: ds.value === "true" });
+    render();
   }
   // Joining: the code, then a character for the friend's world.
   else if (where === "join") show("join", {});
@@ -369,6 +384,12 @@ function go(where, ds = {}) {
   else show(where);
 }
 
+// The Sandbox step as it stands: the last choices the browser remembers, over them what this page has changed.
+function sandboxNow() {
+  const first = worldsApi && worldsApi.sandbox ? worldsApi.sandbox() : { rules: {}, devChest: false };
+  return { rules: { ...first.rules, ...(data.rules || {}) }, devChest: data.devChest ?? first.devChest };
+}
+
 function beginCreation(c) {
   const lastId = identitiesApi && identitiesApi.last() ? identitiesApi.last().id : null;
   creation = { step: 1, identityId: lastId, ...c };
@@ -385,7 +406,7 @@ function finishCreation() {
   creation = null;
   if (!c || !c.identityId) return;
   if (identitiesApi) identitiesApi.setLast(c.identityId);
-  if (c.for === "new" && worldsApi) worldsApi.create(c.name, c.identityId);
+  if (c.for === "new" && worldsApi) worldsApi.create(c.name, c.identityId, { rules: c.rules, devChest: c.devChest });
   else if (c.for === "join" && wireApi) wireApi.joinAs(c.identityId);
   else if (c.for === "respawn" && worldsApi) worldsApi.respawn(c.identityId);
 }
@@ -479,16 +500,20 @@ function selectHtml(choices, cur, attrs, disabled = false) {
 // false answer and a dropdown for any other, so the chosen answer is the only one shown (docs/38, #108).
 function settingRow(entry) {
   const { key, label, help, choices } = entry;
-  // A world rule on a guest is the host's (docs/31/07, question 13; item 4): shown as the host set it, not to be changed here.
-  const hostRules = worldsApi && worldsApi.here ? worldsApi.here().rules : null;
-  const hosts = !!hostRules && key in hostRules;
-  const cur = hosts ? hostRules[key] : settings.get(key);
+  const cur = settings.get(key);
   let control;
   if (settings.isSwitch(entry)) {
     const text = (choices.find(([v]) => v === !!cur) || [null, ""])[1];
-    control = `<span class="switch-state">${esc(text)}</span>${switchHtml(!!cur, `data-key="${key}" data-value='${JSON.stringify(!cur)}'`, hosts)}`;
-  } else control = selectHtml(choices, cur, `data-key="${key}"`, hosts);
-  return `<div class="setting${hosts ? " hosts" : ""}"${hosts ? ` title="The host's world rule"` : ""}><span class="setting-label">${esc(label)}${hosts ? " <small>(the host's)</small>" : ""}<small class="help">${esc(help || "")}</small></span><span class="control">${control}</span></div>`;
+    control = `<span class="switch-state">${esc(text)}</span>${switchHtml(!!cur, `data-key="${key}" data-value='${JSON.stringify(!cur)}'`)}`;
+  } else control = selectHtml(choices, cur, `data-key="${key}"`);
+  return `<div class="setting"><span class="setting-label">${esc(label)}<small class="help">${esc(help || "")}</small></span><span class="control">${control}</span></div>`;
+}
+
+// One of a world's rules (or the dev chest) as a switch with its label and line, for the Sandbox step, the pause
+// menu's World rules, and the owner's screen (docs/38, #109). `attrs` says what a click does; `locked` is a guest's view
+// of the host's rule, shown and not to be changed.
+function worldRuleRow(entry, on, attrs, locked = false) {
+  return `<div class="setting${locked ? " hosts" : ""}"><span class="setting-label">${esc(entry.label)}${locked ? " <small>(the host's)</small>" : ""}<small class="help">${esc(entry.help || "")}</small></span><span class="control"><span class="switch-state">${on ? "On" : "Off"}</span>${switchHtml(on, attrs, locked)}</span></div>`;
 }
 
 // Hair styles, generated and painted (docs/12).
@@ -783,17 +808,24 @@ function render() {
         <div class="screen-buttons row">${button("wait-cancel", "Cancel")}</div>
       </div>`;
   } else if (current === "newworld") {
+    const now = sandboxNow();
+    const sandboxRows = settings.REGISTRY.filter((e) => settings.WORLD_GROUPS.includes(e.group)).map((e) => {
+      const on = e.key === "devChest" ? !!now.devChest : !!now.rules[e.key];
+      return worldRuleRow(e, on, `data-go="sandbox" data-rule="${e.key}" data-value="${!on}"`);
+    }).join("");
     root.innerHTML = `
       <div class="screen">
         <h1>New world</h1>
-        <div class="sub">A name for it; then a character for it.</div>
-        <div class="setting"><span>Name</span><span class="choices"><input id="world-name" type="text" maxlength="40" value="${esc(data.name || "")}" autocomplete="off" spellcheck="false"></span></div>
+        <div class="sub">A name for it, how it plays, then a character for it.</div>
+        <div class="setting"><span class="setting-label">Name</span><span class="control"><input id="world-name" type="text" maxlength="40" value="${esc(data.name || "")}" autocomplete="off" spellcheck="false"></span></div>
+        <h2>Sandbox</h2>
+        <div class="sub">How this world plays. You can change the rules later from the pause menu.</div>
+        ${sandboxRows}
         <div class="screen-buttons row">${button("newworld-next", "Next")}${button("back", "Back")}</div>
       </div>`;
     const field = root.querySelector("#world-name");
     field.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.code === "Enter") go("newworld-next"); });
-    field.focus();
-    field.select();
+    if (!data.touched) { field.focus(); field.select(); } // a switch drawn again leaves the typing where it was
   } else if (current === "join") {
     // The relay's address is on Settings' Testing tab now (#108): a player needs the code, not the plumbing.
     root.innerHTML = `
@@ -841,7 +873,7 @@ function render() {
         <h1>${here.role ? "Menu" : "Paused"}</h1>
         <div class="sub">${where}</div>
         <div class="sub">${here.role ? "The world goes on while you are here; your character stands still." : "Esc to resume"}</div>
-        <div class="screen-buttons">${button("resume", "Resume")}${here.role === "guest" ? "" : button("save", "Save world")}${here.role === "guest" ? "" : button("host", here.role === "host" ? "Open to friends: on" : "Open to friends: off")}${here.ownedCode ? button("owner", "Owner", ` data-code="${esc(here.ownedCode)}"`) : ""}${button("character", "Character")}${button("settings", "Settings")}${button("controls", "Controls")}${button("leave", "Leave world")}</div>
+        <div class="screen-buttons">${button("resume", "Resume")}${here.role === "guest" ? "" : button("save", "Save world")}${here.role === "guest" ? "" : button("host", here.role === "host" ? "Open to friends: on" : "Open to friends: off")}${here.ownedCode ? button("owner", "Owner", ` data-code="${esc(here.ownedCode)}"`) : ""}${button("rules", "World rules")}${button("character", "Character")}${button("settings", "Settings")}${button("controls", "Controls")}${button("leave", "Leave world")}</div>
       </div>`;
   } else if (current === "owner") {
     // The owner's screen (item 5's sixth step): the world's code, its rules, its players, the barred. Asked of the
@@ -859,8 +891,9 @@ function render() {
     }
     // The world's rules as switches, labelled and explained from the settings' registry (#108).
     const rulesRows = settings.REGISTRY.filter((e) => e.group === "rules").map((e) => {
-      const on = !!(info.rules && info.rules[e.key]);
-      return `<div class="setting"><span class="setting-label">${esc(e.label)}<small class="help">${esc(e.help)}</small></span><span class="control"><span class="switch-state">${on ? "On" : "Off"}</span>${switchHtml(on, `data-go="owner-rule" data-rule="${e.key}" data-value="${!on}"`)}</span></div>`;
+      // A rule the server has no word on (a world made on the server by hand) plays by its default (the review of #114).
+      const on = info.rules && e.key in info.rules ? !!info.rules[e.key] : !!rules.DEFAULTS[e.key];
+      return worldRuleRow(e, on, `data-go="owner-rule" data-rule="${e.key}" data-value="${!on}"`);
     }).join("");
     const others = (info.players || []).filter((p) => !p.owner);
     const playersRows = others.length ? `<div class="rows">${others.map((p) => `
@@ -911,6 +944,22 @@ function render() {
         ${here.code ? `<div class="sub">The world's code: <input id="host-code" class="code" type="text" readonly value="${esc(here.code)}" spellcheck="false"> <button id="host-copy" class="kit-button">Copy</button></div>` : `<div class="sub">The world gets its code the first time it opens, and keeps it.</div>`}
         <div class="sub">${on ? `${st.guests.length ? `With you: ${st.guests.map(esc).join(", ")}` : "Open. Waiting for friends."}` : "Closed."}</div>
         <div class="screen-buttons">${on ? button("open-off", "Close to friends") : button("open-on", "Open to friends")}${button("back", "Back")}</div>
+      </div>`;
+  } else if (current === "rules") {
+    // The world's rules (docs/38, #109): the host's to change, here, at once; a guest sees the host's, locked.
+    const h = worldsApi ? worldsApi.here() : { rules: {} };
+    const mine = !!h.canSetRules;
+    const rows = settings.REGISTRY.filter((e) => e.group === "rules").map((e) => {
+      const on = !!(h.rules && h.rules[e.key]);
+      return worldRuleRow(e, on, `data-go="world-rule" data-rule="${e.key}" data-value="${!on}"`, !mine);
+    }).join("");
+    const why = mine ? "How this world plays. A change is made at once, for everyone in it." : h.ownedCode ? "How this world plays. They are yours to change from the Owner screen." : "How this world plays. They are the host's to change.";
+    root.innerHTML = `
+      <div class="screen screen-wide">
+        <h1>World rules</h1>
+        <div class="sub">${why}</div>
+        ${rows}
+        <div class="screen-buttons row">${button("back", "Back")}</div>
       </div>`;
   } else if (current === "character") {
     // This world's character: what it was given, shown, not edited (docs/31/09; a new face is a new character).

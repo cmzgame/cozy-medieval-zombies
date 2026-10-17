@@ -15,7 +15,7 @@ export async function run(game) {
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const wasPaused = G.loop.isPaused();
-  const aggro0 = G.settings.get("zombieAggro");
+  const aggro0 = G.rules.rules.zombieAggro;
   const hour0 = G.clock.getHour();
   const me = G.player;
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
@@ -25,7 +25,7 @@ export async function run(game) {
   const dead = G.zombies.slice(0, 2).map((z) => [z, z.gx, z.gy, z.state, z.aggro, z.lastSeen, z.target]);
   try {
     G.loop.setPaused(true);
-    G.settings.set("zombieAggro", true);
+    G.rules.set({ zombieAggro: true });
     G.clock.setHour(12);
     // 1. A second player, eight tiles away on open ground, in the world's lists, with their own id and sheet.
     const at = G.map.nearestWalkable(Math.round(me.gx) + 8, Math.round(me.gy), (x, y) => G.map.roomAt(x, y) !== 0) || [me.gx + 8, me.gy];
@@ -170,7 +170,7 @@ export async function run(game) {
     for (const [z, gx, gy, state, aggro, lastSeen, target] of dead) { z.gx = gx; z.gy = gy; z.state = state; z.aggro = aggro; z.lastSeen = lastSeen; z.target = target; z.path = []; }
     me.gx = meAt[0]; me.gy = meAt[1]; me.hp = meAt[2];
     G.clock.setHour(hour0);
-    G.settings.set("zombieAggro", aggro0);
+    G.rules.set({ zombieAggro: aggro0 });
     step(1);
     G.loop.setPaused(wasPaused);
   }
