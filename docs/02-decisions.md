@@ -220,6 +220,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-10-18 — A hurt villager heals at the player's rate (Michael, in chat, #236)
+
+On a villager the dead have hurt: **"slow refill like players, and they keep any dialogue that is programmed."** Built as `villager.regenPerMinute` (1, the player's `healthRegenPerMinute`: villagers have no needs, so they are always fed and watered) in the world's step on the authority, **never above their maximum and not for `villager.regenPause` (10) seconds after a hit** (so health does not climb while the dead are still biting); a dead one does not heal. The pause is the builder's reading, Michael's to overrule.
+
 ### 2026-10-18 — The mohawk revised: (a) soft (Michael's pick; an art fix)
 
 Michael on the mohawk: "The front 3/4 and back 3/4 views look a little wonky in terms of how much mohawk you can see and the side on view makes the hair a little pointier than I wanted. Front on and back on are perfect." Of the art agent's two revisions he picked the first: "a soft is great!" The three-quarter facings now carry the fin along the head's centreline with its far end out of sight behind the skull, the side profile is slightly rounded, and the front and back are pixel for pixel as they were. The generator (`hair_mohawk()` in `tools/art-gen/character/heads.py`) is the source and reproduces the layer.
