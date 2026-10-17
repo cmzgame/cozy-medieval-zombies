@@ -62,6 +62,7 @@ import * as figure from "./figure.js";
 import * as placement from "./placement.js";
 import * as combat from "./combat.js";
 import * as buildPalette from "./ui/build-palette.js";
+import * as mapPanel from "./ui/map-panel.js";
 import * as shell from "./boot.js";
 import { createDevApi } from "./dev.js";
 import { createInventoryActions, createRemoteInventoryActions } from "./ui/inventory-actions.js";
@@ -199,6 +200,8 @@ function closeModes() {
   placement.cancel();
   use.cancel();
   buildPalette.close();
+  mapPanel.close();
+  mapPanel.forgetDrawn();
   menu.closeContextMenu();
   openBag = null;
   corpseWatch = null;
@@ -234,6 +237,8 @@ function afterWorldSet() {
   placement.cancel();
   use.cancel();
   buildPalette.close();
+  mapPanel.close();
+  mapPanel.forgetDrawn();
   light.update();
   if (!glError) ground.invalidateAll();
   for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
@@ -476,6 +481,8 @@ function toSite(page, data = {}) {
   placement.cancel();
   use.cancel();
   buildPalette.close();
+  mapPanel.close();
+  mapPanel.forgetDrawn();
   screens.show(page, data);
 }
 
@@ -856,6 +863,7 @@ function handleEscape() {
     openBag = null;
     return;
   }
+  if (mapPanel.close()) return; // the map sits under every other panel, so Escape closes those first, and it before the pause menu (docs/33)
   screens.show("pause");
 }
 
@@ -1053,6 +1061,7 @@ function stepGame(dt) {
   if (input.wasPressed("Enter") || input.wasPressed("NumpadEnter")) log.focusChat("");
   if (input.wasPressed("Slash")) log.focusChat("/");
   if (input.wasPressed("KeyN")) toggleBuild();
+  if (input.wasPressed("KeyM")) mapPanel.toggle(S.player); // the map: a client view, the world keeps running (docs/33)
   if (input.wasPressed("KeyX")) toggleRemove();
   // The wheel zooms in integer steps, 1× to 3× (docs/02, 2026-10-10 night):
   // down zooms out. The panel's own wheel use (rotating a drag) wins; an open panel alone does not stop it (2026-10-15).
@@ -1191,6 +1200,7 @@ function renderUi() {
   updateSwingTimer(S.player);
   updateSpeech(S.others, visible, S.player, dt);
   updateNames(S.players, visible, S.player);
+  mapPanel.update({ player: S.player, players: S.players, places: (S.info && S.info.places) || [] });
   updateMessage(dt);
 }
 
@@ -1217,6 +1227,8 @@ async function restoreWorld(snap) {
   placement.cancel();
   use.cancel();
   buildPalette.close();
+  mapPanel.close();
+  mapPanel.forgetDrawn();
   light.update();
   if (!glError) ground.invalidateAll();
   visible = visibility.computeVisible(Math.round(at.gx), Math.round(at.gy), tiles);
@@ -1492,6 +1504,7 @@ async function boot() {
       handlers.changed = () => { if (!net.isGuest() && openBag && openBag.tiles && openBag.tiles[0]) map.markDirty(openBag.tiles[0][0], openBag.tiles[0][1]); };
       panel.initInventoryPanel(handlers);
       placement.init({ startAction: interact.startAction });
+      mapPanel.initMapPanel();
       buildPalette.initBuildPalette({
         onPick: (what) => {
           buildPalette.close();

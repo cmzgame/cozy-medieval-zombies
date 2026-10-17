@@ -225,6 +225,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 On a villager the dead have hurt: **"slow refill like players, and they keep any dialogue that is programmed."** Built as `villager.regenPerMinute` (1, the player's `healthRegenPerMinute`: villagers have no needs, so they are always fed and watered) in the world's step on the authority, **never above their maximum and not for `villager.regenPause` (10) seconds after a hit** (so health does not climb while the dead are still biting); a dead one does not heal. The pause is the builder's reading, Michael's to overrule.
 
+### 2026-10-18 — The map panel: Space stays the shove (#204; the builder's reading, Michael's to overrule)
+
+`docs/33` named `Space` as the way back to your marker while the map is open. **Space is the shove** (`docs/21`), and the map does not stop the world (Michael, 2026-10-15: with a panel open the player can still fight), so **Space is not bound in the map**: **the Centre button and a double-click on the map follow you again**, and zooming or panning off-centre stops following until one of them. A place's name is drawn once any tile of its footprint's box is charted and a name that would sit on another's is left out, so the smallest zoom shows the larger places first.
+
 ### 2026-10-18 — A wounded villager still talks and barks (Michael, in chat, #230)
 
 On "a villager the dead have hurt can never be talked to again": **"Yes and yes, slow refill like players, and they keep any dialogue that is programmed."** So **only a dead villager is refused**: Talk is offered and starts for a wounded one, and the ambient bark and the poke's bark are not withheld for low health (`startTalk`, `ambientBark`, the menu's entry); a villager struck (staggered by a blow) still ends a conversation they are in, as one turned or dead does. The health refill is #236.
