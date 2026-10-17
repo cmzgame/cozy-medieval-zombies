@@ -1,0 +1,50 @@
+{
+ "note": "Fishing (docs/30 step 9, question 19; #190). `cast`: `reach` tiles from the water (the player stands beside it), a wait of `waitMin` to `waitMax` game seconds. `waters`: a table per named water body (the map names its waters: a floor feature's `group`), `miss` the chance nothing bites, `catch` the weighted items; `default` the table for water the map does not name. No skill yet (the skills are open, docs/30).",
+ "cast": {
+  "reach": 2.0,
+  "waitMin": 4,
+  "waitMax": 10
+ },
+ "default": "river",
+ "waters": {
+  "river": {
+   "miss": 0.3,
+   "catch": [
+    {
+     "item": "perch",
+     "weight": 5
+    },
+    {
+     "item": "trout",
+     "weight": 3
+    }
+   ]
+  },
+  "pond": {
+   "miss": 0.25,
+   "catch": [
+    {
+     "item": "carp",
+     "weight": 4
+    },
+    {
+     "item": "perch",
+     "weight": 2
+    }
+   ]
+  },
+  "mere": {
+   "miss": 0.35,
+   "catch": [
+    {
+     "item": "trout",
+     "weight": 3
+    },
+    {
+     "item": "carp",
+     "weight": 2
+    }
+   ]
+  }
+ }
+}
