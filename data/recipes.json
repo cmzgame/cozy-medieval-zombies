@@ -1,5 +1,5 @@
 {
- "note": "docs/30 section 6: a recipe is a row; `in` names item ids or tags with counts; `fire` needs the station's fire lit; `tool` needs that item in a hand; `out.prop` places a prop beside the station instead of an item in its output. Seconds are sim seconds (a game hour is 30).",
+ "note": "docs/30 section 6: a recipe is a row; `in` names item ids or tags with counts; `fire` needs the station's fire lit; `tool` needs that item in a hand; `out.prop` places a prop beside the station instead of an item in its output. Seconds are sim seconds (a game hour is 30). `carry` needs that item on you, in a hand, on the belt, or in the bag (a tool that is not wielded, Michael's tool rule, 2026-10-18).",
  "rows": [
   {
    "id": "torch",
@@ -19,6 +19,183 @@
     }
    ],
    "seconds": 4
+  },
+  {
+   "id": "tear_cap",
+   "station": "workbench",
+   "out": {
+    "id": "rag",
+    "count": 2
+   },
+   "in": [
+    {
+     "id": "cap",
+     "count": 1
+    }
+   ],
+   "seconds": 2,
+   "carry": "knife",
+   "label": "Rags from the linen cap"
+  },
+  {
+   "id": "tear_hood",
+   "station": "workbench",
+   "out": {
+    "id": "rag",
+    "count": 2
+   },
+   "in": [
+    {
+     "id": "hood",
+     "count": 1
+    }
+   ],
+   "seconds": 2,
+   "carry": "knife",
+   "label": "Rags from the onion-head hat"
+  },
+  {
+   "id": "tear_tunic",
+   "station": "workbench",
+   "out": {
+    "id": "rag",
+    "count": 2
+   },
+   "in": [
+    {
+     "id": "tunic",
+     "count": 1
+    }
+   ],
+   "seconds": 2,
+   "carry": "knife",
+   "label": "Rags from the linen tunic"
+  },
+  {
+   "id": "tear_gloves",
+   "station": "workbench",
+   "out": {
+    "id": "rag",
+    "count": 2
+   },
+   "in": [
+    {
+     "id": "gloves",
+     "count": 1
+    }
+   ],
+   "seconds": 2,
+   "carry": "knife",
+   "label": "Rags from the work gloves"
+  },
+  {
+   "id": "tear_breeches",
+   "station": "workbench",
+   "out": {
+    "id": "rag",
+    "count": 2
+   },
+   "in": [
+    {
+     "id": "breeches",
+     "count": 1
+    }
+   ],
+   "seconds": 2,
+   "carry": "knife",
+   "label": "Rags from the linen breeches"
+  },
+  {
+   "id": "tear_boots",
+   "station": "workbench",
+   "out": {
+    "id": "rag",
+    "count": 2
+   },
+   "in": [
+    {
+     "id": "boots",
+     "count": 1
+    }
+   ],
+   "seconds": 2,
+   "carry": "knife",
+   "label": "Rags from the hobnail boots"
+  },
+  {
+   "id": "cloth",
+   "station": "loom",
+   "out": {
+    "id": "cloth",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "flax",
+     "count": 2
+    }
+   ],
+   "seconds": 8
+  },
+  {
+   "id": "bandage",
+   "station": "loom",
+   "out": {
+    "id": "bandage",
+    "count": 2
+   },
+   "in": [
+    {
+     "id": "cloth",
+     "count": 1
+    }
+   ],
+   "seconds": 4
+  },
+  {
+   "id": "weave_cap",
+   "station": "loom",
+   "out": {
+    "id": "cap",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "cloth",
+     "count": 1
+    }
+   ],
+   "seconds": 6
+  },
+  {
+   "id": "weave_breeches",
+   "station": "loom",
+   "out": {
+    "id": "breeches",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "cloth",
+     "count": 2
+    }
+   ],
+   "seconds": 10
+  },
+  {
+   "id": "weave_tunic",
+   "station": "loom",
+   "out": {
+    "id": "tunic",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "cloth",
+     "count": 3
+    }
+   ],
+   "seconds": 14
   },
   {
    "id": "handle",
@@ -184,6 +361,21 @@
    "seconds": 6
   },
   {
+   "id": "bucket",
+   "station": "workbench",
+   "out": {
+    "id": "bucket",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 3
+    }
+   ],
+   "seconds": 6
+  },
+  {
    "id": "table",
    "station": "workbench",
    "out": {
@@ -262,6 +454,22 @@
     }
    ],
    "seconds": 16
+  },
+  {
+   "id": "charcoal",
+   "station": "clamp",
+   "out": {
+    "id": "charcoal",
+    "count": 3
+   },
+   "in": [
+    {
+     "id": "log",
+     "count": 4
+    }
+   ],
+   "seconds": 360,
+   "fire": true
   },
   {
    "id": "iron_bar",

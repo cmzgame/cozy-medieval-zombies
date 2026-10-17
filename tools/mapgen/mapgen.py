@@ -201,8 +201,11 @@ class Place:
             f["group"] = group  # a named water (data/fishing.json has a table for each name)
         self.s["floorRects"].append(f)
 
-    def fence(self, rect, gates=(), wall="wall_fence"):
-        self.s["fences"].append({"rect": _norm_rect(rect), "wall": wall, "gates": [dict(g) for g in gates]})
+    def fence(self, rect, gates=(), wall="wall_fence", sides=None):
+        f = {"rect": _norm_rect(rect), "wall": wall, "gates": [dict(g) for g in gates]}
+        if sides:
+            f["sides"] = list(sides)  # run on these sides only ("n", "s", "w", "e")
+        self.s["fences"].append(f)
 
     def prop(self, sprite, tile, **extra):
         p = {"sprite": sprite, "tile": [int(tile[0]), int(tile[1])]}

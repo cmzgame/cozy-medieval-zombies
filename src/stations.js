@@ -109,16 +109,20 @@ function take(player, prop, want, count) {
   let remaining = count;
   if (want.id) remaining -= takeAll(player, want.id, remaining);
   if (remaining > 0 && want.or) remaining -= takeAll(player, want.or, remaining);
-  for (const bag of sources(player, prop)) {
+  // Every match across the sources, in source order, and for a tag a garment last: a recipe that asks for `cloth` takes a rag or a cloth
+  // before it burns a tunic (the #216 review: rags exist so the first torches do not cost a whole garment).
+  const found = [];
+  for (const bag of sources(player, prop)) for (const e of [...bag.items]) if (matches(e, want)) found.push([bag, e]);
+  if (want.tag) {
+    const garment = ([, e]) => (getItem(e.id).kind === "clothing" ? 1 : 0);
+    found.sort((a, b) => garment(a) - garment(b)); // stable: the order inside each kind stays the source order
+  }
+  for (const [bag, e] of found) {
     if (remaining <= 0) break;
-    for (const e of [...bag.items]) {
-      if (remaining <= 0) break;
-      if (!matches(e, want)) continue;
-      const t = Math.min(remaining, e.count);
-      e.count -= t;
-      remaining -= t;
-      if (e.count <= 0) grid.remove(bag, e);
-    }
+    const t = Math.min(remaining, e.count);
+    e.count -= t;
+    remaining -= t;
+    if (e.count <= 0) grid.remove(bag, e);
   }
   return count - remaining;
 }
@@ -148,6 +152,7 @@ export function canMake(player, prop, r, count = 1) {
   if (distToTiles(player, prop.tiles) > REACH) return "Too far from it.";
   if (r.fire && !(prop.fire && prop.fire.lit)) return "The fire is out.";
   if (r.tool && !toolInHand(player, r.tool)) return `Needs a ${getItem(r.tool).name.toLowerCase()} in hand.`;
+  if (r.carry && countAll(player, r.carry) <= 0) return `Needs a ${getItem(r.carry).name.toLowerCase()} on you.`; // carried anywhere: the tool rule's `carried, not equipped` (2026-10-18)
   const short = shortfall(player, prop, r, count);
   if (short.length) return `Short of ${short.map((s) => `${s.need - s.have} ${nameOfWant(s.want)}`).join(", ")}.`;
   return true;
