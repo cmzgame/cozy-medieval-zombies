@@ -29,8 +29,8 @@ searched: false
 behindProp: false
 ```
 
-- **Player** adds what it has now: `aim, stamina, maxStamina, sprinting, winded, moving, climb, hunger, thirst, auto, action`.
-- **Zombie** adds its states and combat fields as now (`state, aggro, lastSeen, seesNow, searchTimer, path, repathTimer, sightTimer, lastGoal, idleTimer, attackCooldown, attackHit, pathFailed, breach, climb, sincePlayer, stuckTime, hits, stagger, knock, downTimer, upTimer, gettingUp`) and `groanTimer`.
+- **Player** adds what it has now: `aim, stamina, maxStamina, sprinting, winded, moving, hunger, thirst, auto, action`.
+- **Zombie** adds its states and combat fields as now (`state, aggro, lastSeen, seesNow, searchTimer, path, repathTimer, sightTimer, lastGoal, idleTimer, attackCooldown, attackHit, pathFailed, breach, sincePlayer, stuckTime, hits, stagger, knock, downTimer, upTimer, gettingUp`) and `groanTimer`.
 - **Villager** adds `home, state (idle | wander | talk), path, repathTimer, idleTimer, stuckTime, pathFailed, lastGoal, talkTimer, pokedAt, say`.
 
 `createPlayer` and `createZombie` keep their names and signatures and call `createCharacter` first; nothing that reads them changes. The lists are the world's, in `game.js`: `S.players`, `S.zombies`, `S.villagers`, and `S.corpses` (the fallen, never iterated by the AI, separation, speech, or the bars); `S.others` (the living) and `everyone` (with the corpses) are built once a step for the systems that take everyone (speech, the hit test, separation, the burn).

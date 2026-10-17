@@ -12,7 +12,7 @@ Plain HTML, CSS, and JavaScript with ES modules. Raw WebGL2 for the world, Canva
 python serve.py 8010
 ```
 
-Then open http://localhost:8010 (`?map=square` for the old proving ground). ES modules do not load from `file://`. WASD to walk, Shift to sprint, the mouse to aim and swing; `E` opens, closes, and climbs; Tab is the bag, `C` the character screen; the rest is on the wiki's Controls page.
+Then open http://localhost:8010 (`?map=square` for the old proving ground). ES modules do not load from `file://`. WASD to walk, Shift to sprint, the mouse to aim and swing; `E` opens and closes; Tab is the bag, `C` the character screen; the rest is on the wiki's Controls page.
 
 ## The repository
 

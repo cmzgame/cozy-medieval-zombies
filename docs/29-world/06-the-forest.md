@@ -30,7 +30,7 @@ A **cliff face** on three sides (a new wall material, `wall_cliff`: a rock face,
 
 ### The hermitage (north-east, between the quarry and the castle)
 
-A **ruined chapel**: stone walls fallen to stubs on two sides (the stubs art the agent drew and shelved, `docs/art/09`, as a `wall_ruin` material: low, sight passes, blocks bodies, not climbable or climbable at a window's cost), the other two walls standing with an empty window arch, a **cracked altar**, ivy decals on the walls (edge props), a **hermit's cell** behind it still roofed (a one-room stone hut: a bed, a cross, a book of prayers: a book item, a candle), a spring, a **cross on the path**. The hermit is dead in the cell with the door barred. **Earns its place:** the quiet; a book; the first ruin, which is the look the whole gloom zone will wear later, shown once.
+A **ruined chapel**: stone walls fallen to stubs on two sides (the stubs art the agent drew and shelved, `docs/art/09`, as a `wall_ruin` material: low, sight passes, blocks bodies), the other two walls standing with an empty window arch, a **cracked altar**, ivy decals on the walls (edge props), a **hermit's cell** behind it still roofed (a one-room stone hut: a bed, a cross, a book of prayers: a book item, a candle), a spring, a **cross on the path**. The hermit is dead in the cell with the door barred. **Earns its place:** the quiet; a book; the first ruin, which is the look the whole gloom zone will wear later, shown once.
 
 ### The woodcutters' camp (east, on the forest road)
 

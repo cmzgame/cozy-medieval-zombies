@@ -52,7 +52,7 @@ As ruled (`02`): the next survivor arrives elsewhere with the kit. Where: the in
 
 The whole vocabulary. "Exists" means built before this pass; everything else is this pass. The verbs appear in the right-click menu of the thing, or on `E` for the nearest; the hands decide which appear (law 2). **Built by step 3:** drink and fill at water, sleep in a bed, feed a fire, craft, cook (any lit fire that cooks), bake, and smith; combine is the Use mode, an item used on an item (the drag in the bag is not built). **Since, by #14 (2026-10-15):** dip, a stack of arrows used on any lit fire for fire arrows (`src/burn.js`, a row in `interactions.json` with `action: dip`). Everything else in the list is step 4 onward. Every verb is reached by a guest the way the host's player reaches it (the menu entry or `E` as a command by address, a Use row by the entry's uid), and performed in the host's step.
 
-**Moving and the home (exist):** walk, sprint, climb through a window, open and close doors and shutters, board a window or a door, pull a board, carry furniture on your head and set it down, build walls, doors, and windows from the palette, remove what you built, light and feed a hearth, light a torch, mount it, take it.
+**Moving and the home (exist):** walk, sprint, open and close doors and shutters, board a window or a door, pull a board, carry furniture on your head and set it down, build walls, doors, and windows from the palette, remove what you built, light and feed a hearth, light a torch, mount it, take it.
 
 **Looking and talking (exist):** the menu on anything, `E` the nearest action, open a container, loot a body, talk to a villager (a line), poke a thing (it wobbles).
 
@@ -159,7 +159,7 @@ The order from `29/11` with the pass's pieces placed where they first matter. Ea
 
 From `29/10` (archived whole in `docs/history/29-world-ideation.md`, with its "works today" list, its authoring note, and its performance notes) with the cuts applied and this pass's needs added; sizes without times. First the list by step; then the open asks as `29/10` wrote them, under its own numbers, so a citation of "`29/10` item 7" still resolves here. Done of `29/10`: tier 1 (items 1 to 5, step 0), 11's fuel per fire (step 2), 12's label (drawn on every box, `placeholder.label`), 17 (drinking at water, step 0), and 18 (this pass's stations and recipes, step 3); its three verification notes for the taller walls are under step 5 in section 11.
 
-- Tier 1 (step 0): water impassable and shallow slow; see-through walls; unclimbable openings; partitions and per-side materials; fences as features; the generator. Small to medium each.
+- Tier 1 (step 0): water impassable and shallow slow; see-through walls; partitions and per-side materials; fences as features; the generator. Small to medium each.
 - Step 2: the tiredness need and the sleep fast-forward (a loop speed multiplier, built as the world's time scale; the `down` pose on a bed, not built, `32` item 7; the wake rule); health regeneration; water drinking; fire fuel data and the feed action with hours.
 - Step 3: `interactions.json` and its resolver (the menu's verbs from the hands; the drag in the bag); the station panel on the kit; recipes with a queue and an output slot; durability fields and the bar; tools as items with verbs.
 - Step 4: soil by hoe (`setFloor`), crop props with a planted hour and growth on the clock, dryness per soil tile, the bucket as a carried prop with fill and pour, the scythe's row harvest, stacks as containers that give.
