@@ -220,7 +220,8 @@ function blockHtml(entry, attrs, cell = CELL, w = 1, h = 1, extraCls = "", slot 
   if (use.isSelected(entry)) cls.push("selected"); // the thing being used (use.js)
   let inner = "";
   if (entry.fill != null) {
-    const pct = Math.max(0, Math.min(100, entry.fill));
+    const cap = (def.vessel && def.vessel.capacity) || 100; // a waterskin and the like fill to 100; a vessel says its own
+    const pct = Math.max(0, Math.min(100, (entry.fill / cap) * 100));
     inner += `<div class="inv-level" style="${h >= w ? `height:${pct}%;width:100%` : `width:${pct}%;height:100%`}"></div>`;
   }
   const pic = slot ? portraitOf(def) : def.icon;

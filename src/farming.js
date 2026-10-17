@@ -17,6 +17,8 @@ import * as rng from "./rng.js";
 import * as items from "./items.js";
 import * as inventory from "./inventory.js";
 import { showMessage } from "./ui/prompt.js";
+import { on } from "./events.js";
+import * as iso from "./iso.js";
 import { world as W } from "./tuning.js";
 import { lineOfSight } from "./visibility.js";
 
@@ -95,6 +97,16 @@ export function refresh(prop, now = clock.getElapsed()) {
 // ---- the verbs ----
 // Targets are addresses: a tile `{ tile: [x, y] }` (or the Use mode's `{ x, y }`), a prop by id; an item by `entry` (a uid) when the Use mode
 // names one. Each re-validates when it fires, and every reach and hand check is the host's.
+
+// Water a crop's soil: its growth so far is settled, and the soil is wet `wetDays` from now (the skin's watering and the bucket's pour).
+export function soak(prop, now = clock.getElapsed()) {
+  settle(prop, now);
+  const c = prop.crop;
+  c.grown = growth(prop, now);
+  c.at = now;
+  c.wetUntil = now + get().soil.wetDays * DAY;
+  map.touch(prop.tile[0], prop.tile[1]);
+}
 
 // What stops a player reaching a tile, or null: too far, or a wall between (a shut door or shutter too: sight is what a wall stops, a fence and
 // an open window pass it, and a sealed room stays a cell, #147; the reviewer of #194 farmed through a house wall). Every farming verb asks.
@@ -211,15 +223,9 @@ verbs.define("water", {
   },
   perform(world, player, target) {
     const prop = cropProp(target);
-    const now = clock.getElapsed();
-    settle(prop, now);
-    const c = prop.crop;
-    c.grown = growth(prop, now);
-    c.at = now;
-    c.wetUntil = now + get().soil.wetDays * DAY;
+    soak(prop);
     const skin = skinFor(player, target.entry);
     skin.fill -= get().soil.fillCost;
-    map.touch(prop.tile[0], prop.tile[1]);
     return { message: "The water soaks in." };
   },
 });
@@ -248,8 +254,45 @@ verbs.define("harvest", {
       parts.push(`${items.getItem(id).name.toLowerCase()} x${count}`);
     }
     map.removeProp(prop); // the tile stays soil
-    return { message: `You harvest ${parts.join(" and ")}${fell ? `; ${fell} fall${fell > 1 ? "" : "s"} at your feet` : ""}.`, harvested: n };
+    return { message: `You harvest ${parts.join(" and ")}${fell ? `; ${fell} fall${fell > 1 ? "" : "s"} at your feet` : ""}.`, harvested: n, fell, gave: [[def.harvest.item, n], [def.seed, def.seeds]] };
   },
+});
+
+// The scythe (#200; docs/30 section 8 and 10, step 4's third default): a swing with a tool whose item `verbs` list `harvest`, in the hand that
+// swung, harvests every ready grain crop on the three tiles ahead of the player (the tile in front and the two beside it), each by the
+// `harvest` verb as a hand does (re-validated on the host: reach, ready), the grain and the seeds into the bag, the tiles staying soil. A
+// swing at nothing, or at a crop not ready, still swings. It runs on the authority only: a guest's own swing is predicted without the
+// event (combat.tryAttack), and the host's step makes this one.
+export function scytheSwing(player) {
+  const g = iso.screenDirToGrid(player.aim.sx, player.aim.sy);
+  const dir = iso.normalize(g.gx, g.gy);
+  const px = player.gx + dir.x;
+  const py = player.gy + dir.y;
+  const tiles = new Map();
+  for (const k of [-1, 0, 1]) {
+    const x = Math.round(px - dir.y * k);
+    const y = Math.round(py + dir.x * k);
+    tiles.set(`${x},${y}`, [x, y]);
+  }
+  const got = new Map();
+  let cut = 0;
+  let fell = 0; // what a full bag could not hold, on the ground at the player's feet (the hand harvest says so too)
+  for (const [x, y] of tiles.values()) {
+    const prop = map.peekTile(x, y)?.prop;
+    if (!prop || !prop.crop || !cropDef(prop.crop.kind).grain) continue;
+    const r = verbs.run("harvest", null, player, { prop: prop.id });
+    if (!r.ok) continue;
+    cut++;
+    fell += r.fell || 0;
+    for (const [id, n] of r.gave) got.set(id, (got.get(id) || 0) + n);
+  }
+  if (cut) showMessage(`You scythe ${cut} row${cut > 1 ? "s" : ""}: ${[...got].map(([id, n]) => `${items.getItem(id).name.toLowerCase()} x${n}`).join(", ")}${fell ? `; ${fell} fall${fell > 1 ? "" : "s"} at your feet` : ""}.`);
+  return cut;
+}
+
+on("meleeSwing", ({ player, hand }) => {
+  const e = player.hands && player.hands[hand === "off" ? "off" : "main"];
+  if (e && (items.getItem(e.id).verbs || []).includes("harvest")) scytheSwing(player);
 });
 
 // The crops' pictures follow their stages, once a `fruitCheckSeconds` of the clock (the same boundary rule as fruit.js: a world restored

@@ -111,11 +111,12 @@ export function close() {
 }
 
 function title(station) {
-  return { workbench: "Workbench", anvil: "Anvil", forge: "Forge", oven: "Oven", cooking: "Cooking", loom: "Loom", dyevat: "Dye vat" }[station] || station;
+  return { workbench: "Workbench", anvil: "Anvil", forge: "Forge", oven: "Oven", cooking: "Cooking", loom: "Loom", dyevat: "Dye vat", millstones: "Millstones" }[station] || station;
 }
 
 // What a recipe makes, named: an item by its definition, a prop by its sprite.
 function nameOfOut(r) {
+  if (r.label) return r.label; // a recipe may name itself in data (six rows make "Rag")
   if (r.out.prop) { const s = r.out.prop.replace(/_/g, " "); return s[0].toUpperCase() + s.slice(1); }
   return getItem(r.out.id).name;
 }

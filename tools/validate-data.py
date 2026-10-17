@@ -150,6 +150,11 @@ for path in sorted(glob.glob("data/maps/*.json")):
         if name not in fishing["waters"]:
             fail(f"{path}: the water {name!r} has no table in data/fishing.json")
 
+# The bucket (#199): an item with a `vessel` has a capacity above 0 and can be held.
+for i in items:
+    if "vessel" in i and not (i["vessel"].get("capacity", 0) > 0 and i.get("hands")):
+        fail(f"items.{i['id']}: a vessel needs a capacity above 0 and `hands`")
+
 # Mining (#196): a `mine` block names an item that exists, a count, seconds, and either `gone` or a spent kind that exists, says it ripens back,
 # and agrees with the whole one on everything but the picture (restaging swaps only the sprite and its day).
 for sid in sorted(sprites):
@@ -215,6 +220,49 @@ for kind, c in crops["crops"].items():
             fail(f"crops.{kind}: no sprite {sid}")
         elif load(f"data/sprites/{sid}.json").get("crop") != {"kind": kind, "stage": stage}:
             fail(f"sprites.{sid}: its `crop` should be {{kind: {kind}, stage: {stage}}}")
+
+# Recipes (#212): every item a recipe takes, makes, wields (`tool`), (and the verb it `uses` names a tool, below) exists (an ingredient may be a tag instead), a prop
+# it makes has a sprite, and cloth is made, so the loom has rows.
+tags = {t for i in items for t in i.get("tags", [])}
+for row in load("data/recipes.json")["rows"]:
+    rid = row["id"]
+    for want in row["in"]:
+        if "tag" in want:
+            if want["tag"] not in tags:
+                fail(f"recipes.{rid}: no item has the tag {want['tag']!r}")
+        else:
+            check_id(f"recipes.{rid}.in", want.get("id"))
+    out = row["out"]
+    if "prop" in out:
+        if out["prop"] not in sprites:
+            fail(f"recipes.{rid}: no sprite {out['prop']!r} to make")
+    else:
+        check_id(f"recipes.{rid}.out", out.get("id"))
+    for key in ("tool",):
+        if row.get(key):
+            check_id(f"recipes.{rid}.{key}", row[key])
+if not any(row["station"] == "loom" for row in load("data/recipes.json")["rows"]):
+    fail("recipes: the loom has no rows")
+
+# The farms and the mill (#201): every recipe's station is some sprite's `station` (or the cooking fire), the millstones grind grain, every crop's seed is in
+# both granaries' fixed tables (a seed source for every crop, never refilled), and no crop is a dead end (its harvest is an ingredient, by id or tag).
+station_names = {load(f"data/sprites/{sid}.json").get("station") for sid in sprites} - {None}
+recipe_rows = load("data/recipes.json")["rows"]
+for row in recipe_rows:
+    if row["station"] not in station_names and row["station"] != "cooking":
+        fail(f"recipes.{row['id']}: no sprite is a station called {row['station']!r}")
+if not any(r["station"] == "millstones" and r["in"][0].get("id") == "grain" and r["out"].get("id") == "flour" and not r.get("fire") for r in recipe_rows):
+    fail("recipes: the millstones have no grain-to-flour row without a fire")
+for table in ("granary_hollow", "granary_mill"):
+    held = {e["item"] for e in loot_tables[table].get("fixed", [])}
+    for kind, c in crops["crops"].items():
+        if c["seed"] not in held:
+            fail(f"loot.{table}: no {c['seed']!r}, the seed of {kind}")
+item_tags = {i["id"]: set(i.get("tags", [])) for i in items}
+for kind, c in crops["crops"].items():
+    h = c["harvest"]["item"]
+    if not any(w.get("id") == h or (w.get("tag") and w["tag"] in item_tags[h]) for r in recipe_rows for w in r["in"]):
+        fail(f"crops.{kind}: its harvest {h!r} is an ingredient of no recipe (a dead-end crop)")
 
 # Real-world references (Michael, 2026-10-18): each names a thing that exists, carries the thing's name as the game has it (so a rename
 # is caught here), and says what it refers to and when.

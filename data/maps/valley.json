@@ -1169,6 +1169,126 @@
     }
    ],
    "note": "the graveyard's wall (a low stone wall when drawn); the lychgate on the street"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    89,
+    226,
+    2,
+    13
+   ],
+   "sprite": "floor_dirt",
+   "group": "south lane"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    56,
+    237,
+    44,
+    4
+   ],
+   "sprite": "floor_dirt",
+   "group": "Hollow Farm's yard"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    57,
+    243,
+    8,
+    6
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    58,
+    244,
+    6,
+    4
+   ],
+   "sprite": "floor_water",
+   "group": "pond",
+   "note": "the farm pond (29/05)"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    53,
+    62,
+    2,
+    97
+   ],
+   "sprite": "floor_dirt",
+   "group": "the north lane"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    54,
+    61,
+    51,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "the north lane"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    80,
+    18,
+    1,
+    45
+   ],
+   "sprite": "floor_dirt",
+   "group": "the lane to the mere"
+  },
+  {
+   "kind": "bank",
+   "rect": [
+    58,
+    26,
+    58,
+    4
+   ],
+   "sprite": "floor_dirt"
+  },
+  {
+   "kind": "water",
+   "rect": [
+    58,
+    27,
+    58,
+    2
+   ],
+   "sprite": "floor_water",
+   "group": "brook"
+  },
+  {
+   "kind": "bridge",
+   "rect": [
+    80,
+    26,
+    1,
+    4
+   ],
+   "sprite": "floor_wood",
+   "note": "the plank footbridge (29/02); floor_bridge_plank when drawn"
+  },
+  {
+   "kind": "road",
+   "rect": [
+    66,
+    49,
+    31,
+    2
+   ],
+   "sprite": "floor_dirt",
+   "group": "Long Acre's yard"
   }
  ],
  "sets": [
@@ -3673,7 +3793,8 @@
        "tile": [
         7,
         5
-       ]
+       ],
+       "loot": "weaver_chest"
       },
       {
        "sprite": "fireplace",
@@ -5273,6 +5394,5575 @@
    ]
   },
   {
+   "name": "Hollow Farm's great barn",
+   "rect": [
+    56,
+    228,
+    16,
+    10
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      14,
+      8
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "s",
+       "at": 6,
+       "kind": "door"
+      },
+      {
+       "side": "s",
+       "at": 7,
+       "kind": "door"
+      },
+      {
+       "side": "n",
+       "at": 3,
+       "kind": "window"
+      },
+      {
+       "side": "n",
+       "at": 10,
+       "kind": "window"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "shelf",
+       "tile": [
+        0,
+        0
+       ],
+       "loot": "barn_rack"
+      },
+      {
+       "sprite": "shelf",
+       "tile": [
+        2,
+        0
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        5,
+        0
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        6,
+        0
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        12,
+        0
+       ]
+      },
+      {
+       "sprite": "haystack",
+       "tile": [
+        11,
+        0
+       ],
+       "loot": "wild"
+      },
+      {
+       "sprite": "haystack",
+       "tile": [
+        11,
+        2
+       ],
+       "loot": "wild"
+      },
+      {
+       "sprite": "haystack",
+       "tile": [
+        13,
+        2
+       ],
+       "loot": "wild"
+      },
+      {
+       "sprite": "cart",
+       "tile": [
+        1,
+        3
+       ],
+       "footprint": [
+        2,
+        3
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 7,
+       "facing": "in",
+       "lantern": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
+  },
+  {
+   "name": "Hollow Farm's farmhouse",
+   "rect": [
+    74,
+    228,
+    14,
+    10
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      12,
+      8
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "s",
+       "at": 2,
+       "kind": "door"
+      },
+      {
+       "side": "n",
+       "at": 2,
+       "kind": "window"
+      },
+      {
+       "side": "n",
+       "at": 9,
+       "kind": "window"
+      },
+      {
+       "side": "e",
+       "at": 3,
+       "kind": "window"
+      },
+      {
+       "side": "s",
+       "at": 8,
+       "kind": "window"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        6,
+        0
+       ],
+       "len": 8,
+       "openings": [
+        {
+         "at": 3,
+         "kind": "door"
+        }
+       ]
+      },
+      {
+       "edge": "n",
+       "at": [
+        7,
+        4
+       ],
+       "len": 5,
+       "openings": [
+        {
+         "at": 2,
+         "kind": "door"
+        }
+       ]
+      }
+     ],
+     "props": [
+      {
+       "sprite": "fireplace",
+       "tile": [
+        0,
+        1
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        1,
+        4
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        1,
+        3
+       ],
+       "facing": "s"
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        2,
+        3
+       ],
+       "facing": "s"
+      },
+      {
+       "sprite": "cupboard",
+       "tile": [
+        4,
+        0
+       ]
+      },
+      {
+       "sprite": "shelf",
+       "tile": [
+        3,
+        7
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        5,
+        7
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        7,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        11,
+        0
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        11,
+        3
+       ]
+      },
+      {
+       "sprite": "shelf",
+       "tile": [
+        7,
+        7
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        9,
+        7
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        11,
+        7
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 5,
+       "facing": "in",
+       "lantern": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
+  },
+  {
+   "name": "Hollow Farm's granary",
+   "rect": [
+    92,
+    228,
+    8,
+    8
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      6,
+      6
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "s",
+       "at": 2,
+       "kind": "door"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "chest",
+       "tile": [
+        0,
+        0
+       ],
+       "loot": "granary_hollow"
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        1,
+        0
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        5,
+        0
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        5,
+        1
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 3,
+       "facing": "in",
+       "lantern": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
+  },
+  {
+   "name": "Hollow Farm's pumpkin field",
+   "rect": [
+    67,
+    241,
+    20,
+    14
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [
+    {
+     "rect": [
+      1,
+      1,
+      18,
+      12
+     ],
+     "sprite": "floor_farm"
+    }
+   ],
+   "fences": [
+    {
+     "rect": [
+      0,
+      0,
+      20,
+      14
+     ],
+     "wall": "wall_fence",
+     "gates": [
+      {
+       "side": "n",
+       "at": 9
+      },
+      {
+       "side": "e",
+       "at": 7
+      }
+     ]
+    }
+   ],
+   "props": [
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      1,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      2,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      3,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      4,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      5,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      6,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      7,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      8,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      9,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      10,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      11,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      12,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      13,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      14,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      15,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      16,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      17,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      18,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      1,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      2,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      3,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      4,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      5,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      6,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      7,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      8,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      9,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      10,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      11,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      12,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      13,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      14,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      15,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      16,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      17,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      18,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      1,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      2,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      3,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      4,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      5,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      6,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      7,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      8,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      9,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      10,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      11,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      12,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      13,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      14,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      15,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      16,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      17,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      18,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      1,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      2,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      3,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      4,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      5,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      6,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      7,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      8,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      9,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      10,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      11,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      12,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      13,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      14,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      15,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      16,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      17,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      18,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      1,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      2,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      3,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      4,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      5,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      6,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      7,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      8,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      9,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      10,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      11,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      12,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      13,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      14,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      15,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      16,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      17,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      18,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      1,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      2,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      3,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      4,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      5,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      6,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      7,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      8,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      10,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      11,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      12,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      13,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      14,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      15,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      16,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      17,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      18,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      1,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      2,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      3,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      4,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      5,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      6,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      7,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      8,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      9,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      10,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      11,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      12,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      13,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      14,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      15,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      16,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      17,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      18,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      1,
+      8
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      2,
+      8
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      3,
+      8
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      4,
+      8
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      5,
+      8
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      6,
+      8
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      7,
+      8
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      8,
+      8
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      9,
+      8
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      10,
+      8
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      11,
+      8
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      12,
+      8
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      13,
+      8
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      14,
+      8
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      15,
+      8
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      16,
+      8
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      17,
+      8
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      18,
+      8
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      1,
+      9
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      2,
+      9
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      3,
+      9
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      4,
+      9
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      5,
+      9
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      6,
+      9
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      7,
+      9
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      8,
+      9
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      9,
+      9
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      10,
+      9
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      11,
+      9
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      12,
+      9
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      13,
+      9
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      14,
+      9
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      15,
+      9
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      16,
+      9
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      17,
+      9
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      18,
+      9
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      1,
+      10
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      2,
+      10
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      3,
+      10
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      4,
+      10
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      5,
+      10
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      6,
+      10
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      7,
+      10
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      8,
+      10
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      9,
+      10
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      10,
+      10
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      11,
+      10
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      12,
+      10
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      13,
+      10
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      14,
+      10
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      15,
+      10
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      16,
+      10
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      17,
+      10
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      18,
+      10
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      1,
+      11
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      2,
+      11
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      3,
+      11
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      4,
+      11
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      5,
+      11
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      6,
+      11
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      7,
+      11
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      8,
+      11
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      9,
+      11
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      10,
+      11
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      11,
+      11
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      12,
+      11
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      13,
+      11
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      14,
+      11
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      15,
+      11
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      16,
+      11
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      17,
+      11
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      18,
+      11
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      1,
+      12
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      2,
+      12
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      3,
+      12
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      4,
+      12
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      5,
+      12
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      6,
+      12
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      7,
+      12
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      8,
+      12
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      9,
+      12
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      10,
+      12
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      11,
+      12
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      12,
+      12
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      13,
+      12
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      14,
+      12
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      15,
+      12
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_2",
+     "tile": [
+      16,
+      12
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_1",
+     "tile": [
+      17,
+      12
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_pumpkin_0",
+     "tile": [
+      18,
+      12
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "scarecrow",
+     "tile": [
+      9,
+      6
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Hollow Farm's potatoes",
+   "rect": [
+    89,
+    241,
+    10,
+    7
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [
+    {
+     "rect": [
+      1,
+      1,
+      8,
+      5
+     ],
+     "sprite": "floor_farm"
+    }
+   ],
+   "fences": [
+    {
+     "rect": [
+      0,
+      0,
+      10,
+      7
+     ],
+     "wall": "wall_fence",
+     "gates": [
+      {
+       "side": "n",
+       "at": 4
+      },
+      {
+       "side": "w",
+       "at": 3
+      }
+     ]
+    }
+   ],
+   "props": [
+    {
+     "sprite": "crop_potato_0",
+     "tile": [
+      1,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      2,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      3,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      4,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_0",
+     "tile": [
+      5,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      6,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      7,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      8,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      1,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_0",
+     "tile": [
+      2,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      3,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      4,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      5,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_0",
+     "tile": [
+      6,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      7,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      8,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      1,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      2,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_0",
+     "tile": [
+      3,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      4,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      5,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      6,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_0",
+     "tile": [
+      7,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      8,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      1,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      2,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      3,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_0",
+     "tile": [
+      4,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      5,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      6,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      7,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_0",
+     "tile": [
+      8,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_0",
+     "tile": [
+      1,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      2,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      3,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      4,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_0",
+     "tile": [
+      5,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      6,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_2",
+     "tile": [
+      7,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_potato_1",
+     "tile": [
+      8,
+      5
+     ],
+     "solid": false
+    }
+   ]
+  },
+  {
+   "name": "Hollow Farm's cabbages",
+   "rect": [
+    89,
+    249,
+    10,
+    6
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [
+    {
+     "rect": [
+      1,
+      1,
+      8,
+      4
+     ],
+     "sprite": "floor_farm"
+    }
+   ],
+   "fences": [
+    {
+     "rect": [
+      0,
+      0,
+      10,
+      6
+     ],
+     "wall": "wall_fence",
+     "gates": [
+      {
+       "side": "w",
+       "at": 2
+      }
+     ]
+    }
+   ],
+   "props": [
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      1,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_0",
+     "tile": [
+      2,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      3,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      4,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      5,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_0",
+     "tile": [
+      6,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      7,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      8,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      1,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      2,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_0",
+     "tile": [
+      3,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      4,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      5,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      6,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_0",
+     "tile": [
+      7,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      8,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      1,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      2,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      3,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_0",
+     "tile": [
+      4,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      5,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      6,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      7,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_0",
+     "tile": [
+      8,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_0",
+     "tile": [
+      1,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      2,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      3,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      4,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_0",
+     "tile": [
+      5,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      6,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      7,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_1",
+     "tile": [
+      8,
+      4
+     ],
+     "solid": false
+    }
+   ]
+  },
+  {
+   "name": "Hollow Farm's garlic",
+   "rect": [
+    57,
+    250,
+    10,
+    5
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [
+    {
+     "rect": [
+      1,
+      1,
+      8,
+      3
+     ],
+     "sprite": "floor_farm"
+    }
+   ],
+   "fences": [
+    {
+     "rect": [
+      0,
+      0,
+      10,
+      5
+     ],
+     "wall": "wall_fence",
+     "gates": [
+      {
+       "side": "n",
+       "at": 5
+      }
+     ]
+    }
+   ],
+   "props": [
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      1,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      2,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_1",
+     "tile": [
+      3,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_0",
+     "tile": [
+      4,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      5,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      6,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_1",
+     "tile": [
+      7,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_0",
+     "tile": [
+      8,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_0",
+     "tile": [
+      1,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      2,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      3,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_1",
+     "tile": [
+      4,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_0",
+     "tile": [
+      5,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      6,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      7,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_1",
+     "tile": [
+      8,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_1",
+     "tile": [
+      1,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_0",
+     "tile": [
+      2,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      3,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      4,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_1",
+     "tile": [
+      5,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_0",
+     "tile": [
+      6,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      7,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      8,
+      3
+     ],
+     "solid": false
+    }
+   ]
+  },
+  {
+   "name": "Long Acre's farmhouse",
+   "rect": [
+    66,
+    39,
+    12,
+    9
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      10,
+      7
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "s",
+       "at": 3,
+       "kind": "door"
+      },
+      {
+       "side": "n",
+       "at": 2,
+       "kind": "window"
+      },
+      {
+       "side": "n",
+       "at": 7,
+       "kind": "window"
+      },
+      {
+       "side": "w",
+       "at": 3,
+       "kind": "window"
+      }
+     ],
+     "partitions": [
+      {
+       "edge": "w",
+       "at": [
+        5,
+        0
+       ],
+       "len": 7,
+       "openings": [
+        {
+         "at": 3,
+         "kind": "door"
+        }
+       ]
+      }
+     ],
+     "props": [
+      {
+       "sprite": "fireplace",
+       "tile": [
+        0,
+        1
+       ],
+       "footprint": [
+        1,
+        2
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        1,
+        4
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chair",
+       "tile": [
+        1,
+        3
+       ],
+       "facing": "s"
+      },
+      {
+       "sprite": "cupboard",
+       "tile": [
+        3,
+        0
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        0,
+        6
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        6,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        9,
+        0
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        9,
+        5
+       ]
+      },
+      {
+       "sprite": "shelf",
+       "tile": [
+        6,
+        6
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 4,
+       "facing": "in",
+       "lantern": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": [
+    {
+     "sprite": "woodpile",
+     "tile": [
+      11,
+      7
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Long Acre's barn",
+   "rect": [
+    83,
+    38,
+    14,
+    10
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      12,
+      8
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_stone",
+     "openings": [
+      {
+       "side": "s",
+       "at": 5,
+       "kind": "door"
+      },
+      {
+       "side": "s",
+       "at": 6,
+       "kind": "door"
+      },
+      {
+       "side": "n",
+       "at": 5,
+       "kind": "window"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "barrel",
+       "tile": [
+        0,
+        0
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        1,
+        0
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        2,
+        0
+       ]
+      },
+      {
+       "sprite": "haystack",
+       "tile": [
+        10,
+        0
+       ],
+       "loot": "wild"
+      },
+      {
+       "sprite": "haystack",
+       "tile": [
+        10,
+        2
+       ],
+       "loot": "wild"
+      },
+      {
+       "sprite": "cart",
+       "tile": [
+        1,
+        3
+       ],
+       "footprint": [
+        2,
+        3
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 8,
+       "facing": "in",
+       "lantern": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
+  },
+  {
+   "name": "Long Acre's west rye",
+   "rect": [
+    66,
+    52,
+    13,
+    9
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [
+    {
+     "rect": [
+      1,
+      1,
+      11,
+      7
+     ],
+     "sprite": "floor_farm_y"
+    }
+   ],
+   "fences": [
+    {
+     "rect": [
+      0,
+      0,
+      13,
+      9
+     ],
+     "wall": "wall_fence",
+     "gates": [
+      {
+       "side": "n",
+       "at": 6
+      },
+      {
+       "side": "s",
+       "at": 6
+      },
+      {
+       "side": "e",
+       "at": 4
+      }
+     ]
+    }
+   ],
+   "props": [
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      1,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      2,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      3,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      4,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      5,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      6,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      7,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      8,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      9,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      10,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      11,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      1,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      2,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      3,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      4,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      5,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      6,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      7,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      8,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      9,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      10,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      11,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      1,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      2,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      3,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      4,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      5,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      6,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      7,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      8,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      9,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      10,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      11,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      1,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      2,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      3,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      4,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      5,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      6,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      7,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      8,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      9,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      10,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      11,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      1,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      2,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      3,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      4,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      5,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      6,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      7,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      8,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      9,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      10,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      11,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      1,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      2,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      3,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      4,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      5,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      6,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      7,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      8,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      9,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      10,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      11,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      1,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      2,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      3,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      4,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      5,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      6,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      7,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      8,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      9,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      10,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      11,
+      7
+     ],
+     "solid": false
+    }
+   ]
+  },
+  {
+   "name": "Long Acre's east rye",
+   "rect": [
+    82,
+    52,
+    13,
+    9
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [
+    {
+     "rect": [
+      1,
+      1,
+      11,
+      7
+     ],
+     "sprite": "floor_farm_y"
+    }
+   ],
+   "fences": [
+    {
+     "rect": [
+      0,
+      0,
+      13,
+      9
+     ],
+     "wall": "wall_fence",
+     "gates": [
+      {
+       "side": "n",
+       "at": 6
+      },
+      {
+       "side": "s",
+       "at": 6
+      },
+      {
+       "side": "w",
+       "at": 4
+      }
+     ]
+    }
+   ],
+   "props": [
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      1,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      2,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      3,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      4,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      5,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      6,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      7,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      8,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      9,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      10,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      11,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      1,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      2,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      3,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      4,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      5,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      6,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      7,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      8,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      9,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      10,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      11,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      1,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      2,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      3,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      4,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      5,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      6,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      7,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      8,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      9,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      10,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      11,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      1,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      2,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      3,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      4,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      5,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      6,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      7,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      8,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      9,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      10,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      11,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      1,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      2,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      3,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      4,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      5,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      6,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      7,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      8,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      9,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      10,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      11,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      1,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      2,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      3,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      4,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      5,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      6,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      7,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      8,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      9,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      10,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      11,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      1,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      2,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      3,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      4,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      5,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      6,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      7,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_0",
+     "tile": [
+      8,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      9,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_2",
+     "tile": [
+      10,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_rye_1",
+     "tile": [
+      11,
+      7
+     ],
+     "solid": false
+    }
+   ]
+  },
+  {
+   "name": "Long Acre's flax",
+   "rect": [
+    67,
+    30,
+    8,
+    9
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [
+    {
+     "rect": [
+      1,
+      1,
+      6,
+      7
+     ],
+     "sprite": "floor_farm_y"
+    }
+   ],
+   "fences": [
+    {
+     "rect": [
+      0,
+      0,
+      8,
+      9
+     ],
+     "wall": "wall_fence",
+     "gates": [
+      {
+       "side": "s",
+       "at": 3
+      }
+     ]
+    }
+   ],
+   "props": [
+    {
+     "sprite": "crop_flax_1",
+     "tile": [
+      1,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_0",
+     "tile": [
+      2,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      3,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      4,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_1",
+     "tile": [
+      5,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_0",
+     "tile": [
+      6,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      1,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_1",
+     "tile": [
+      2,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_0",
+     "tile": [
+      3,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      4,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      5,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_1",
+     "tile": [
+      6,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      1,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      2,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_1",
+     "tile": [
+      3,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_0",
+     "tile": [
+      4,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      5,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      6,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_0",
+     "tile": [
+      1,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      2,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      3,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_1",
+     "tile": [
+      4,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_0",
+     "tile": [
+      5,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      6,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_1",
+     "tile": [
+      1,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_0",
+     "tile": [
+      2,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      3,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      4,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_1",
+     "tile": [
+      5,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_0",
+     "tile": [
+      6,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      1,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_1",
+     "tile": [
+      2,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_0",
+     "tile": [
+      3,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      4,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      5,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_1",
+     "tile": [
+      6,
+      6
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      1,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      2,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_1",
+     "tile": [
+      3,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_0",
+     "tile": [
+      4,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      5,
+      7
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_flax_2",
+     "tile": [
+      6,
+      7
+     ],
+     "solid": false
+    }
+   ]
+  },
+  {
+   "name": "Long Acre's kitchen garden",
+   "rect": [
+    83,
+    30,
+    10,
+    7
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [
+    {
+     "rect": [
+      1,
+      1,
+      8,
+      5
+     ],
+     "sprite": "floor_farm"
+    }
+   ],
+   "fences": [
+    {
+     "rect": [
+      0,
+      0,
+      10,
+      7
+     ],
+     "wall": "wall_fence",
+     "gates": [
+      {
+       "side": "s",
+       "at": 4
+      }
+     ]
+    }
+   ],
+   "props": [
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      1,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_1",
+     "tile": [
+      2,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_0",
+     "tile": [
+      3,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      4,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      5,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_1",
+     "tile": [
+      6,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_0",
+     "tile": [
+      7,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      8,
+      1
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      1,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      2,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_1",
+     "tile": [
+      3,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_0",
+     "tile": [
+      4,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      5,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      6,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_1",
+     "tile": [
+      7,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_0",
+     "tile": [
+      8,
+      2
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_0",
+     "tile": [
+      1,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      2,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      3,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_1",
+     "tile": [
+      4,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_0",
+     "tile": [
+      5,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      6,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      7,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_1",
+     "tile": [
+      8,
+      3
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_1",
+     "tile": [
+      1,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_0",
+     "tile": [
+      2,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      3,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      4,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_1",
+     "tile": [
+      5,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_0",
+     "tile": [
+      6,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      7,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      8,
+      4
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      1,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_1",
+     "tile": [
+      2,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_0",
+     "tile": [
+      3,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      4,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_2",
+     "tile": [
+      5,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_1",
+     "tile": [
+      6,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_cabbage_0",
+     "tile": [
+      7,
+      5
+     ],
+     "solid": false
+    },
+    {
+     "sprite": "crop_garlic_2",
+     "tile": [
+      8,
+      5
+     ],
+     "solid": false
+    }
+   ]
+  },
+  {
+   "name": "the mill",
+   "rect": [
+    98,
+    54,
+    12,
+    9
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      9,
+      6
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_stone",
+     "openings": [
+      {
+       "side": "s",
+       "at": 2,
+       "kind": "door"
+      },
+      {
+       "side": "n",
+       "at": 3,
+       "kind": "window"
+      },
+      {
+       "side": "w",
+       "at": 2,
+       "kind": "window"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "millstones",
+       "tile": [
+        1,
+        1
+       ],
+       "footprint": [
+        2,
+        2
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        5,
+        0
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        6,
+        0
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        8,
+        0
+       ]
+      },
+      {
+       "sprite": "shelf",
+       "tile": [
+        8,
+        4
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        4,
+        4
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 6,
+       "facing": "in",
+       "lantern": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": [
+    {
+     "sprite": "millwheel",
+     "tile": [
+      10,
+      2
+     ],
+     "footprint": [
+      1,
+      3
+     ]
+    }
+   ]
+  },
+  {
+   "name": "the mill's granary",
+   "rect": [
+    98,
+    43,
+    8,
+    8
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      6,
+      6
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "s",
+       "at": 2,
+       "kind": "door"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "chest",
+       "tile": [
+        0,
+        0
+       ],
+       "loot": "granary_mill"
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        1,
+        0
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        5,
+        0
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        5,
+        1
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 3,
+       "facing": "in",
+       "lantern": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
+  },
+  {
    "name": "the iron workings",
    "rect": [
     214,
@@ -6158,6 +11848,42 @@
    184
   ],
   [
+   70,
+   238
+  ],
+  [
+   79,
+   239
+  ],
+  [
+   62,
+   238
+  ],
+  [
+   86,
+   238
+  ],
+  [
+   90,
+   232
+  ],
+  [
+   72,
+   56
+  ],
+  [
+   88,
+   56
+  ],
+  [
+   84,
+   49
+  ],
+  [
+   90,
+   42
+  ],
+  [
    216,
    150
   ],
@@ -6476,6 +12202,74 @@
     97,
     94
    ]
+  },
+  {
+   "sprite": "well",
+   "tile": [
+    84,
+    239
+   ],
+   "note": "Hollow Farm's well (29/05)"
+  },
+  {
+   "sprite": "woodpile",
+   "tile": [
+    60,
+    238
+   ]
+  },
+  {
+   "sprite": "woodpile",
+   "tile": [
+    61,
+    238
+   ]
+  },
+  {
+   "sprite": "cart",
+   "tile": [
+    66,
+    238
+   ],
+   "footprint": [
+    2,
+    3
+   ]
+  },
+  {
+   "sprite": "trough",
+   "tile": [
+    59,
+    241
+   ],
+   "footprint": [
+    2,
+    1
+   ]
+  },
+  {
+   "sprite": "well",
+   "tile": [
+    78,
+    50
+   ],
+   "note": "Long Acre's well (29/05)"
+  },
+  {
+   "sprite": "haystack",
+   "tile": [
+    90,
+    50
+   ],
+   "loot": "wild"
+  },
+  {
+   "sprite": "haystack",
+   "tile": [
+    93,
+    50
+   ],
+   "loot": "wild"
   }
  ],
  "forage": {
@@ -6554,6 +12348,15 @@
    "name": "Neighbour",
    "wardrobe": 1,
    "line": "Go away."
+  },
+  {
+   "tile": [
+    103,
+    58
+   ],
+   "name": "Miller",
+   "wardrobe": 4,
+   "line": "Grain is grain. Bring it, I will grind it."
   }
  ]
 }

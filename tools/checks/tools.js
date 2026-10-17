@@ -44,6 +44,8 @@ export async function run(game) {
     row("the hammer carries build, the hatchet notch and split, the knife cut, the shovel dig, the scythe harvest", verbOf("hammer").includes("build") && ["notch", "split", "chop"].every((v) => verbOf("hatchet").includes(v)) && verbOf("knife").includes("cut") && verbOf("shovel").includes("dig") && verbOf("scythe").includes("harvest"), "verbs in items.json");
     const rawRecipes = G.stations.recipesFor("workbench").filter((r) => r.uses);
     row("the workbench's rows name a verb some tool lists (a hammer for furniture, a knife for the bow, the arrows and the rod, a hatchet for sticks)", rawRecipes.length >= 14 && rawRecipes.every((r) => !!G.items.toolFor(r.uses)), rawRecipes.map((r) => `${r.id}:${r.uses}`).join(", "));
+    const tears = G.stations.recipesFor("workbench").filter((r) => r.id.startsWith("tear_"));
+    row("the bucket's row asks for a hammer and the six tear rows for a knife, by verb (the older `carry` is folded into `uses`)", G.stations.recipe("bucket").uses === "build" && tears.length === 6 && tears.every((r) => r.uses === "cut" && !r.carry), `${tears.length} tear rows`);
     const cr = farming.get().crops;
     row("each crop's harvest names a tool verb: rye harvest, potato and garlic dig, cabbage and pumpkin cut", cr.rye.tool === "harvest" && cr.potato.tool === "dig" && cr.garlic.tool === "dig" && cr.cabbage.tool === "cut" && cr.pumpkin.tool === "cut", Object.entries(cr).map(([k, c]) => `${k}:${c.tool || "hand"}`).join(", "));
     const where = [];

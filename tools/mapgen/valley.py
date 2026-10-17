@@ -356,7 +356,7 @@ def build():
     wea.building([1, 1, 8, 6], "wall_wood", "floor_wood",
                  openings=[door("s", 2), window("s", 6), window("n", 2)],
                  partitions=[part_w(5, 0, 6, door_at=2)],
-                 props=[one("loom", 1, 1, footprint=[2, 2]), one("spinningwheel", 4, 1), one("shelf", 0, 0), one("cupboard", 4, 5), along_x("bed", 6, 0), one("chest", 7, 5), hearth_w(5, 3)],
+                 props=[one("loom", 1, 1, footprint=[2, 2]), one("spinningwheel", 4, 1), one("shelf", 0, 0), one("cupboard", 4, 5), along_x("bed", 6, 0), one("chest", 7, 5, loot="weaver_chest"), hearth_w(5, 3)],
                  brackets=[{"side": "n", "at": 6, "facing": "in", "lantern": True}])
     for i in range(3):
         wea.prop("dyevat", (10 + i, 3))
@@ -403,6 +403,123 @@ def build():
             orchard.prop("tree_apple", (x, 2 + 3 * j))
     orchard.prop("barrel", (1, 16))
     orchard.prop("barrel", (3, 16))
+
+    # ================= step 4: the farms and the mill (29/05, 29/02; #201) =================
+    # ---- Hollow Farm (29/05), compact: it lives in the reserve south of the lane, the orchard its west end. The south lane runs on into its yard. ----
+    g.road([(90, 226), (90, 238)], 2, "floor_dirt", group="south lane")
+    g.floor_rect([56, 237, 44, 4], "floor_dirt", kind="road", group="Hollow Farm's yard")
+    # The great barn: the biggest wooden building at the farm, a double door on the yard; the tool rack holds a hoe.
+    barn = g.place("Hollow Farm's great barn", [56, 228, 16, 10])
+    barn.building(
+        [1, 1, 14, 8], "wall_wood", "floor_wood",
+        openings=[door("s", 6), door("s", 7), window("n", 3), window("n", 10)],
+        props=[
+            one("shelf", 0, 0, loot="barn_rack"), one("shelf", 2, 0), one("barrel", 5, 0), one("barrel", 6, 0), one("barrel", 12, 0),
+            one("haystack", 11, 0, loot="wild"), one("haystack", 11, 2, loot="wild"), one("haystack", 13, 2, loot="wild"), one("cart", 1, 3, footprint=[2, 3]),
+        ],
+        brackets=[{"side": "n", "at": 7, "facing": "in", "lantern": True}],
+    )
+    # The farmhouse: a kitchen with the big hearth, a bedroom, a store; the family turned, in the yard.
+    fh = g.place("Hollow Farm's farmhouse", [74, 228, 14, 10])
+    fh.building(
+        [1, 1, 12, 8], "wall_wood", "floor_wood",
+        openings=[door("s", 2), window("n", 2), window("n", 9), window("e", 3), window("s", 8)],
+        partitions=[part_w(6, 0, 8, door_at=3), part_n(7, 4, 5, door_at=2)],
+        props=[
+            hearth_w(0, 1), along_x("table", 1, 4), chair(1, 3, "s"), chair(2, 3, "s"), one("cupboard", 4, 0), one("shelf", 3, 7), one("barrel", 5, 7),
+            along_x("bed", 7, 0), one("chest", 11, 0), one("chest", 11, 3),
+            one("shelf", 7, 7), one("barrel", 9, 7), one("chest", 11, 7),
+        ],
+        brackets=[{"side": "n", "at": 5, "facing": "in", "lantern": True}],
+    )
+    # The granary: seed of every crop, in sacks on a shelf; never refilled (the fields are the renewable source).
+    gran = g.place("Hollow Farm's granary", [92, 228, 8, 8])
+    gran.building(
+        [1, 1, 6, 6], "wall_wood", "floor_wood",
+        openings=[door("s", 2)],
+        props=[one("chest", 0, 0, loot="granary_hollow"), one("barrel", 1, 0), one("barrel", 5, 0), one("barrel", 5, 1)],
+        brackets=[{"side": "n", "at": 3, "facing": "in", "lantern": True}],
+    )
+    # The yard: the well, a woodpile, a cart, the barrels by the barn.
+    g.prop("well", (84, 239), note="Hollow Farm's well (29/05)")
+    g.prop("woodpile", (60, 238))
+    g.prop("woodpile", (61, 238))
+    g.prop("cart", (66, 238), footprint=[2, 3])
+    # The farm pond below the orchard (29/02): a dirt bank and still water, where the beasts drank; the trough where the lane meets it.
+    g.floor_rect([57, 243, 8, 6], "floor_dirt", kind="bank")
+    g.floor_rect([58, 244, 6, 4], "floor_water", kind="water", group="pond", note="the farm pond (29/05)")
+    g.prop("trough", (59, 241), footprint=[2, 1])
+    # The pumpkin field: the biggest on the map, pumpkins at every stage, a scarecrow in the middle, inside a fence with a gate on the yard.
+    pump = g.place("Hollow Farm's pumpkin field", [67, 241, 20, 14])
+    pump.crops([1, 1, 18, 12], ["pumpkin"], stages=(0, 1, 2, 2), seed=2, skip={(9, 6)})
+    pump.prop("scarecrow", (9, 6))
+    pump.fence([0, 0, 20, 14], gates=[{"side": "n", "at": 9}, {"side": "e", "at": 7}])
+    # Potatoes, cabbages, garlic: smaller plots, each fenced with a gate.
+    pot = g.place("Hollow Farm's potatoes", [89, 241, 10, 7])
+    pot.crops([1, 1, 8, 5], ["potato"], stages=(0, 1, 2, 2), seed=4)
+    pot.fence([0, 0, 10, 7], gates=[{"side": "n", "at": 4}, {"side": "w", "at": 3}])
+    cab = g.place("Hollow Farm's cabbages", [89, 249, 10, 6])
+    cab.crops([1, 1, 8, 4], ["cabbage"], stages=(0, 1, 2, 2), seed=1)
+    cab.fence([0, 0, 10, 6], gates=[{"side": "w", "at": 2}])
+    gar = g.place("Hollow Farm's garlic", [57, 250, 10, 5])
+    gar.crops([1, 1, 8, 3], ["garlic"], stages=(0, 1, 2, 2), seed=3)
+    gar.fence([0, 0, 10, 5], gates=[{"side": "n", "at": 5}])
+
+    # ---- Long Acre (29/05) and the mill (29/02): the north lane leaves the west road and runs to the mill; a lane to the mere branches off it and crosses the brook on a plank footbridge ----
+    g.road([(54, 62), (54, HIGH_Y)], 2, "floor_dirt", group="the north lane")  # drawn top to bottom so a straight run merges into one rect
+    g.road([(54, 62), (104, 62)], 2, "floor_dirt", group="the north lane")
+    g.road([(80, 18), (80, 62)], 1, "floor_dirt", group="the lane to the mere")
+    g.river([(58, 28), (115, 28)], width=2, bank=1, group="brook")
+    g.floor_rect([80, 26, 1, 4], "floor_wood", kind="bridge", note="the plank footbridge (29/02); floor_bridge_plank when drawn")
+    la = g.place("Long Acre's farmhouse", [66, 39, 12, 9])
+    la.building(
+        [1, 1, 10, 7], "wall_wood", "floor_wood",
+        openings=[door("s", 3), window("n", 2), window("n", 7), window("w", 3)],
+        partitions=[part_w(5, 0, 7, door_at=3)],
+        props=[hearth_w(0, 1), along_x("table", 1, 4), chair(1, 3, "s"), one("cupboard", 3, 0), one("barrel", 0, 6), along_x("bed", 6, 0), one("chest", 9, 0), one("chest", 9, 5), one("shelf", 6, 6)],
+        brackets=[{"side": "n", "at": 4, "facing": "in", "lantern": True}],
+    )
+    la.prop("woodpile", (11, 7))
+    lb = g.place("Long Acre's barn", [83, 38, 14, 10])
+    lb.building(
+        [1, 1, 12, 8], "wall_wood", "floor_stone",
+        openings=[door("s", 5), door("s", 6), window("n", 5)],
+        props=[one("barrel", 0, 0), one("barrel", 1, 0), one("barrel", 2, 0), one("haystack", 10, 0, loot="wild"), one("haystack", 10, 2, loot="wild"), one("cart", 1, 3, footprint=[2, 3])],
+        brackets=[{"side": "n", "at": 8, "facing": "in", "lantern": True}],
+    )
+    g.floor_rect([66, 49, 31, 2], "floor_dirt", kind="road", group="Long Acre's yard")
+    g.prop("well", (78, 50), note="Long Acre's well (29/05)")
+    g.prop("haystack", (90, 50), loot="wild")
+    g.prop("haystack", (93, 50), loot="wild")
+    # The rye fields (furrows along y, so the drawn floor_farm_y is used at scale), a flax strip for the loom, a kitchen garden.
+    ra = g.place("Long Acre's west rye", [66, 52, 13, 9])
+    ra.crops([1, 1, 11, 7], ["rye"], stages=(0, 1, 2, 2), seed=2, floor="floor_farm_y")
+    ra.fence([0, 0, 13, 9], gates=[{"side": "n", "at": 6}, {"side": "s", "at": 6}, {"side": "e", "at": 4}])
+    rb = g.place("Long Acre's east rye", [82, 52, 13, 9])
+    rb.crops([1, 1, 11, 7], ["rye"], stages=(0, 1, 2, 2), seed=5, floor="floor_farm_y")
+    rb.fence([0, 0, 13, 9], gates=[{"side": "n", "at": 6}, {"side": "s", "at": 6}, {"side": "w", "at": 4}])
+    fx = g.place("Long Acre's flax", [67, 30, 8, 9])
+    fx.crops([1, 1, 6, 7], ["flax"], stages=(0, 1, 2, 2), seed=1, floor="floor_farm_y")
+    fx.fence([0, 0, 8, 9], gates=[{"side": "s", "at": 3}])
+    kg = g.place("Long Acre's kitchen garden", [83, 30, 10, 7])
+    kg.crops([1, 1, 8, 5], ["cabbage", "garlic"], stages=(0, 1, 2, 2), seed=2)
+    kg.fence([0, 0, 10, 7], gates=[{"side": "s", "at": 4}])
+    # The mill on the river's west bank, its wheel against the river wall; the mill's granary beside it.
+    mill = g.place("the mill", [98, 54, 12, 9])
+    mill.building(
+        [1, 1, 9, 6], "wall_wood", "floor_stone",
+        openings=[door("s", 2), window("n", 3), window("w", 2)],
+        props=[one("millstones", 1, 1, footprint=[2, 2]), one("barrel", 5, 0), one("barrel", 6, 0), one("chest", 8, 0), one("shelf", 8, 4), one("barrel", 4, 4)],
+        brackets=[{"side": "n", "at": 6, "facing": "in", "lantern": True}],
+    )
+    mill.prop("millwheel", (10, 2), footprint=[1, 3])
+    mgran = g.place("the mill's granary", [98, 43, 8, 8])
+    mgran.building(
+        [1, 1, 6, 6], "wall_wood", "floor_wood",
+        openings=[door("s", 2)],
+        props=[one("chest", 0, 0, loot="granary_mill"), one("barrel", 1, 0), one("barrel", 5, 0), one("barrel", 5, 1)],
+        brackets=[{"side": "n", "at": 3, "facing": "in", "lantern": True}],
+    )
 
     # ---- the iron workings (29/06; #196): east woods, a low cliff with the mine's mouth, ore rocks, a tramway, the miners' hut ----
     iw = g.place("the iron workings", [214, 140, 30, 16])
@@ -476,6 +593,8 @@ def build():
     dead += [(smi.x + 2, smi.y + 7), (bak.x + 3, bak.y + 0), (joi.x + 9, joi.y + 3), (wea.x + 9, wea.y + 8)]           # the trades, at their work
     dead += [(mer.x + 4, mer.y + 4), (mer.x + 2, mer.y + 15), (man.x + 8, man.y + 18)]                                 # the nobles
     dead += [P(5, 24), P(9, 63), P(3, 50)]                                                                             # the cottages
+    dead += [(70, 238), (79, 239), (62, 238), (86, 238), (90, 232)]                                                # Hollow Farm's yard: the family
+    dead += [(72, 56), (88, 56), (84, 49), (90, 42)]                                                                  # Long Acre: two in the rye, one in the yard, one in the barn
     dead += [(216, 150), (225, 152), (229, 160), (219, 156), (238, 151)]                                                # the iron workings
     dead += [(190, 45), (200, 40), (210, 44), (193, 52), (203, 50)]                                                     # the quarry
     dead += [(220, 172), (226, 175), (214, 178)]                                                                        # the charcoal burners
@@ -490,6 +609,7 @@ def build():
     g.villager((reeve.x + 2, reeve.y + 3), "Reeve", 3, "I have the keys and no one to give them to.")
     g.villager((mer.x + 4, mer.y + 16), "Apprentice", 4, "It is all here. Every bale. Nobody to buy it.")
     g.villager((P(12, 65)[0] + 2, P(12, 65)[1] + 3), "Neighbour", 1, "Go away.")
+    g.villager((mill.x + 5, mill.y + 4), "Miller", 4, "Grain is grain. Bring it, I will grind it.")  # not immune: he teaches nothing yet (29/08)
 
     return g
 

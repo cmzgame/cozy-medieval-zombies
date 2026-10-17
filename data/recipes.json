@@ -21,6 +21,183 @@
    "seconds": 4
   },
   {
+   "id": "tear_cap",
+   "station": "workbench",
+   "out": {
+    "id": "rag",
+    "count": 2
+   },
+   "in": [
+    {
+     "id": "cap",
+     "count": 1
+    }
+   ],
+   "seconds": 2,
+   "label": "Rags from the linen cap",
+   "uses": "cut"
+  },
+  {
+   "id": "tear_hood",
+   "station": "workbench",
+   "out": {
+    "id": "rag",
+    "count": 2
+   },
+   "in": [
+    {
+     "id": "hood",
+     "count": 1
+    }
+   ],
+   "seconds": 2,
+   "label": "Rags from the onion-head hat",
+   "uses": "cut"
+  },
+  {
+   "id": "tear_tunic",
+   "station": "workbench",
+   "out": {
+    "id": "rag",
+    "count": 2
+   },
+   "in": [
+    {
+     "id": "tunic",
+     "count": 1
+    }
+   ],
+   "seconds": 2,
+   "label": "Rags from the linen tunic",
+   "uses": "cut"
+  },
+  {
+   "id": "tear_gloves",
+   "station": "workbench",
+   "out": {
+    "id": "rag",
+    "count": 2
+   },
+   "in": [
+    {
+     "id": "gloves",
+     "count": 1
+    }
+   ],
+   "seconds": 2,
+   "label": "Rags from the work gloves",
+   "uses": "cut"
+  },
+  {
+   "id": "tear_breeches",
+   "station": "workbench",
+   "out": {
+    "id": "rag",
+    "count": 2
+   },
+   "in": [
+    {
+     "id": "breeches",
+     "count": 1
+    }
+   ],
+   "seconds": 2,
+   "label": "Rags from the linen breeches",
+   "uses": "cut"
+  },
+  {
+   "id": "tear_boots",
+   "station": "workbench",
+   "out": {
+    "id": "rag",
+    "count": 2
+   },
+   "in": [
+    {
+     "id": "boots",
+     "count": 1
+    }
+   ],
+   "seconds": 2,
+   "label": "Rags from the hobnail boots",
+   "uses": "cut"
+  },
+  {
+   "id": "cloth",
+   "station": "loom",
+   "out": {
+    "id": "cloth",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "flax",
+     "count": 2
+    }
+   ],
+   "seconds": 8
+  },
+  {
+   "id": "bandage",
+   "station": "loom",
+   "out": {
+    "id": "bandage",
+    "count": 2
+   },
+   "in": [
+    {
+     "id": "cloth",
+     "count": 1
+    }
+   ],
+   "seconds": 4
+  },
+  {
+   "id": "weave_cap",
+   "station": "loom",
+   "out": {
+    "id": "cap",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "cloth",
+     "count": 1
+    }
+   ],
+   "seconds": 6
+  },
+  {
+   "id": "weave_breeches",
+   "station": "loom",
+   "out": {
+    "id": "breeches",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "cloth",
+     "count": 2
+    }
+   ],
+   "seconds": 10
+  },
+  {
+   "id": "weave_tunic",
+   "station": "loom",
+   "out": {
+    "id": "tunic",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "cloth",
+     "count": 3
+    }
+   ],
+   "seconds": 14
+  },
+  {
    "id": "handle",
    "station": "workbench",
    "out": {
@@ -188,6 +365,22 @@
     {
      "id": "plank",
      "count": 2
+    }
+   ],
+   "seconds": 6,
+   "uses": "build"
+  },
+  {
+   "id": "bucket",
+   "station": "workbench",
+   "out": {
+    "id": "bucket",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 3
     }
    ],
    "seconds": 6,
@@ -586,6 +779,41 @@
     }
    ],
    "seconds": 10,
+   "fire": true
+  },
+  {
+   "id": "flour",
+   "station": "millstones",
+   "out": {
+    "id": "flour",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "grain",
+     "count": 2
+    }
+   ],
+   "seconds": 8
+  },
+  {
+   "id": "pumpkin_pie",
+   "station": "oven",
+   "out": {
+    "id": "pumpkin_pie",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "pumpkin",
+     "count": 1
+    },
+    {
+     "id": "flour",
+     "count": 1
+    }
+   ],
+   "seconds": 12,
    "fire": true
   }
  ]
