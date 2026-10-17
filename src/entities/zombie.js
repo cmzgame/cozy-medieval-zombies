@@ -13,7 +13,7 @@ import { rules } from "../rules.js";
 import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, floorSpeedAt } from "../map.js";
+import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, fenceAhead, pressFence, floorSpeedAt } from "../map.js";
 import { lineOfSight } from "../visibility.js";
 import * as light from "../light.js";
 import * as clock from "../clock.js";
@@ -493,6 +493,12 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       if (!isWalkableTile(goal[0], goal[1])) goal = nearestWalkable(goal[0], goal[1]) || goal;
       const repathTimer0 = z.repathTimer;
       const arrived = moveToward(z, dt, goal, others);
+      // Pressed against a fence (or a shut gate) with the player in sight beyond it and no way round: one does nothing,
+      // several together wear it until it bursts (map.stepFences, Michael, 2026-10-17, #147).
+      if (z.pathFailed && z.seesNow) {
+        const f = fenceAhead(z.gx, z.gy, tgt.gx, tgt.gy);
+        if (f) pressFence(f.wall, f.tx, f.ty, f.edge);
+      }
       // No way there and the goal is in a room: go for the room's nearest
       // opening and break in (docs/09). Only when the dead are not in that
       // room already, and only on the step a path has just failed (not through the backoff after it: choosing a way

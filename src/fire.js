@@ -78,6 +78,17 @@ export function spark(gx, gy, z, n = 9) {
   }
 }
 
+// A fence bursting into a cloud of splinters with a puff of dust (Michael, 2026-10-17, #147): "slightly comical", so many bits
+// thrown up and out and tumbling as they fall, and gone. A visual every client draws (the host sends `splinters`).
+export function splinters(gx, gy, z = 12, n = 18) {
+  for (let i = 0; i < n; i++) {
+    particles.push({ kind: "splinter", gx, gy, ox: rnd(-10, 10), z: z + rnd(-4, 8), vz: rnd(50, 150), vx: rnd(-80, 80), g: 300, f: Math.floor(rnd(0, 4)), t: 0, life: rnd(0.55, 0.95) });
+  }
+  for (let i = 0; i < 3; i++) {
+    particles.push({ kind: "smoke", gx, gy, ox: rnd(-8, 8), z: z + rnd(0, 6), vz: rnd(14, 30), vx: rnd(-14, 14), t: 0, life: rnd(0.5, 0.9) });
+  }
+}
+
 export function all() {
   return particles;
 }
@@ -102,7 +113,7 @@ function px(ctx, x, y, c) {
 export function generateSheet() {
   const W = 10;
   const H = 12;
-  const { canvas, ctx } = makeCanvas(W * 4 + 8 + 16, H);
+  const { canvas, ctx } = makeCanvas(W * 4 + 8 + 16 + 20, H);
   const frames = {};
   const anchors = {};
   const OUT = "#3a1a10";
@@ -168,5 +179,18 @@ export function generateSheet() {
   anchors.smoke_0 = [3, 4];
   frames.smoke_1 = [sx + 7, 2, 9, 8];
   anchors.smoke_1 = [4, 4];
+  // Splinters: four little sticks at four angles, light wood with a dark edge, tumbling as they fall.
+  const spx = W * 4 + 8 + 16;
+  const LIGHT = "#c49a5a";
+  const DARK = "#6e4f2c";
+  const stick = (i, pts) => {
+    for (const [x, y, c] of pts) px(ctx, spx + i * 5 + x, 2 + y, c);
+    frames[`splinter_${i}`] = [spx + i * 5, 0, 5, 8];
+    anchors[`splinter_${i}`] = [2, 4];
+  };
+  stick(0, [[2, 0, LIGHT], [2, 1, LIGHT], [2, 2, LIGHT], [2, 3, DARK]]);
+  stick(1, [[0, 3, DARK], [1, 2, LIGHT], [2, 1, LIGHT], [3, 0, LIGHT]]);
+  stick(2, [[0, 2, DARK], [1, 2, LIGHT], [2, 2, LIGHT], [3, 2, LIGHT]]);
+  stick(3, [[0, 0, LIGHT], [1, 1, LIGHT], [2, 2, LIGHT], [3, 3, DARK]]);
   return { image: canvas, frames, frameAnchors: anchors, anchor: [0, 0], animations: { idle: { fps: 0, loop: false, frames: 1 } }, facings: [], mirror: {} };
 }

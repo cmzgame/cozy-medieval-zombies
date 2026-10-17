@@ -93,6 +93,11 @@ export const world = {
   twoTorches: 1.35, // a torch in each hand: this much of one torch's light, and seen from this much further
   playerCapBrowser: 4, // the players a world hosted in a browser holds at once, the host's own among them (Michael, #93)
   playerCapServer: 8, // and a server world (raised in one line when the lighter frames of docs/31/05 land)
+  fenceHp: 60, // the wear a fence stands before a crowd of the dead bursts it (Michael, 2026-10-17, #147); a gate has `fenceGateFactor` of it
+  fenceGateFactor: 0.5, // a gate goes first
+  fenceCrowd: 2, // the dead pressing one fence together before it wears at all: one does nothing
+  fenceDps: 4, // wear a second at that many, and the same again for each one more
+  fenceRecover: 3, // wear a second that a fence recovers while fewer than that press it
 };
 
 // How many of the dead a world starts with, by its Starting population rule (docs/38 and `02`, #130): the factor that

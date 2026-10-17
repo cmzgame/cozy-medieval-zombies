@@ -587,6 +587,7 @@ export function step(dt, snapshots = null) {
     updateZombie(z, dt, S.players, S.others, S.villagers);
     interact.brushThrough(z);
   }
+  map.stepFences(dt); // the dead pressed on fences this step: the wear, and a burst (map.js)
   for (const v of S.villagers) {
     if (!nearPlayer(v)) continue;
     updateVillager(v, dt, S.others);

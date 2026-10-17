@@ -12,6 +12,7 @@
 import { getDef } from "./assets.js";
 import { nextId } from "./world.js";
 import { emit } from "./events.js";
+import { world as W } from "./tuning.js";
 
 export const CHUNK = 16;
 // Every prop by its id (docs/31/08, habit 1): anything kept across a step
@@ -511,6 +512,78 @@ export function destroyWall(tx, ty, edge) {
   touch(tx, ty);
   rebuildRoomsAround(tx, ty, edge);
   return true;
+}
+
+// ---- fences (Michael, 2026-10-17, #147): a crowd of the dead bursts one ----
+// One of the dead pressing a fence does nothing; `fenceCrowd` or more pressing together wear it, `fenceDps` a second and
+// the same again for each one more, and a gate (a door in a fence) gives at `fenceGateFactor` of the wear. A fence nobody
+// presses enough recovers. At the limit it is gone (`destroyWall`: the save and the wire carry it like any change) and
+// `fenceBurst` says where, for the splinters every client draws; while it is pressed, `fenceShake` every quarter second.
+// Walls never break (2026-10-10 stands): only what `wall.fence` says. The wear is the authority's and is not saved.
+const fencePress = new Map(); // wall -> { tx, ty, edge, n (pressing this step), wear, shake }
+
+export function isFence(wall) {
+  return !!wall && wallRule(wall.sprite).fence === true;
+}
+
+// The closed fence (or gate) a body at (gx, gy) is pressed against on the way to (tx, ty): within reach of the edge's middle
+// and on the goal's side, the most so of the four edges round its tile; null when there is none.
+export function fenceAhead(gx, gy, tx, ty, reach = 0.8) {
+  const x = Math.round(gx);
+  const y = Math.round(gy);
+  const dx = tx - gx;
+  const dy = ty - gy;
+  const len = Math.hypot(dx, dy) || 1;
+  let best = null;
+  for (const [ex, ey, edge, mx, my] of [[x, y, "n", x, y - 0.5], [x, y, "w", x - 0.5, y], [x, y + 1, "n", x, y + 0.5], [x + 1, y, "w", x + 0.5, y]]) {
+    const wall = tileAt(ex, ey)[edge];
+    if (!isFence(wall) || (wall.kind === "door" && wall.open)) continue;
+    if (Math.hypot(mx - gx, my - gy) > reach) continue;
+    const dot = ((mx - gx) * dx + (my - gy) * dy) / len;
+    if (dot <= 0.05) continue;
+    if (!best || dot > best.dot) best = { wall, tx: ex, ty: ey, edge, dot };
+  }
+  return best;
+}
+
+// One of the dead presses on it this step (zombie.js).
+export function pressFence(wall, tx, ty, edge) {
+  let r = fencePress.get(wall);
+  if (!r) {
+    r = { tx, ty, edge, n: 0, wear: 0, shake: 0 };
+    fencePress.set(wall, r);
+  }
+  r.n++;
+}
+
+// The world's step, after the dead have moved: the wear, the shaking, the bursting.
+export function stepFences(dt) {
+  for (const [wall, r] of fencePress) {
+    if (tileAt(r.tx, r.ty)[r.edge] !== wall) {
+      fencePress.delete(wall);
+      continue;
+    }
+    const limit = W.fenceHp * (wall.kind === "door" ? W.fenceGateFactor : 1);
+    if (r.n >= W.fenceCrowd) {
+      r.wear += W.fenceDps * (r.n - W.fenceCrowd + 1) * dt;
+      r.shake -= dt;
+      if (r.shake <= 0) {
+        r.shake = 0.25;
+        emit("fenceShake", { tx: r.tx, ty: r.ty, edge: r.edge });
+      }
+    } else {
+      r.wear = Math.max(0, r.wear - W.fenceRecover * dt);
+    }
+    r.n = 0;
+    if (r.wear >= limit) {
+      const [mx, my] = edgeMid(r.tx, r.ty, r.edge);
+      fencePress.delete(wall);
+      destroyWall(r.tx, r.ty, r.edge);
+      emit("fenceBurst", { x: mx, y: my, tx: r.tx, ty: r.ty, edge: r.edge });
+    } else if (r.wear <= 0) {
+      fencePress.delete(wall);
+    }
+  }
 }
 
 export function createWall(kind, sprite) {
@@ -1211,7 +1284,7 @@ export function wallRule(sprite) {
   let def = null;
   try { def = getDef(sprite); } catch { def = null; }
   const w = (def && def.wall) || {};
-  r = { seeThrough: !!w.seeThrough };
+  r = { seeThrough: !!w.seeThrough, fence: !!w.fence };
   wallRules.set(sprite, r);
   return r;
 }
@@ -1753,6 +1826,7 @@ export function loadMap(json, options = {}) {
   const treesOn = options.trees !== false;
   noTrees = !treesOn;
   popFactor = Number.isFinite(options.population) ? options.population : 1;
+  fencePress.clear();
   fireProps.clear(); // props are created below, before reset() runs
   propsById.clear();
   bracketSet.clear();
