@@ -74,17 +74,17 @@ class MapGen:
             out.append(self.floor_rect(r, sprite, kind=kind, group=group))
         return out
 
-    def river(self, points, width, bank=1):
+    def river(self, points, width, bank=1, group="river"):
         """Water along a polyline with a dirt bank either side (the ground blends
         water inside dirt, docs/15); the water is wholly water, so nothing walks it."""
         out = []
         if bank:
             out += self.road(points, width + 2 * bank, "floor_dirt", kind="bank")
-        out += self.road(points, width, "floor_water", kind="water")
+        out += self.road(points, width, "floor_water", kind="water", group=group)
         return out
 
-    def shallow(self, rect, note=None):
-        return self.floor_rect(rect, "floor_water_shallow", kind="water", note=note)
+    def shallow(self, rect, note=None, group="river"):
+        return self.floor_rect(rect, "floor_water_shallow", kind="water", group=group, note=note)
 
     def fence(self, rect, gates=(), wall="wall_fence", note=None):
         f = {"kind": "fence", "rect": _norm_rect(rect), "wall": wall, "gates": [dict(g) for g in gates]}
@@ -178,8 +178,11 @@ class Place:
         self.s["buildings"].append(b)
         return b
 
-    def floor_rect(self, rect, sprite):
-        self.s["floorRects"].append({"rect": _norm_rect(rect), "sprite": sprite})
+    def floor_rect(self, rect, sprite, group=None):
+        f = {"rect": _norm_rect(rect), "sprite": sprite}
+        if group:
+            f["group"] = group  # a named water (data/fishing.json has a table for each name)
+        self.s["floorRects"].append(f)
 
     def fence(self, rect, gates=(), wall="wall_fence"):
         self.s["fences"].append({"rect": _norm_rect(rect), "wall": wall, "gates": [dict(g) for g in gates]})

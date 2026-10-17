@@ -35,6 +35,7 @@ import * as use from "./use.js"; // the Use entry on item menus (docs/30, law 2)
 import * as verbs from "./verbs.js"; // the verb table (docs/31/08, habit 4)
 import * as chop from "./chop.js"; // a hatchet fells a tree and leaves a stump (#195)
 import * as tuning from "./tuning.js"; // the chop's seconds (world.chopSeconds)
+import * as fishing from "./fishing.js"; // a rod in hand casts at the water beside you (#190)
 import * as fruit from "./fruit.js"; // fruit trees: picked by hand, bare until they bear again (#190)
 import * as clock from "./clock.js";
 import { world } from "./world.js";
@@ -620,9 +621,29 @@ function wellActions(prop, player) {
   return waterActions({ tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] - 0.6, name: prop.sprite.replace(/_/g, " "), onStart: () => play(prop) }, player); // the bucket goes down for the water; named for what it is (a trough, a font: the wiki census's bugs, 2026-10-15)
 }
 
-// A water tile's actions, from its bank.
+// A water tile's actions, from its bank; with a fishing rod in hand, the cast. The wait is rolled as the cast starts (on the authority: a
+// guest's menu entry is its label and the water's address, `performByLabel`), and the bar shows it; walking away ends it.
 function waterTileActions(tx, ty, player) {
-  return waterActions({ tiles: [[tx, ty]], mx: tx, my: ty, name: "water" }, player);
+  const out = waterActions({ tiles: [[tx, ty]], mx: tx, my: ty, name: "water" }, player);
+  if (fishing.rodIn(player)) {
+    const cast = act({
+      kind: "fish",
+      label: "Cast the line",
+      tiles: [[tx, ty]],
+      mx: tx,
+      my: ty,
+      range: fishing.get().cast.reach,
+      duration: fishing.get().cast.waitMax,
+      onStart() { cast.duration = fishing.waitSeconds(); },
+      perform() {
+        const r = verbs.run("fish", world, player, { tile: [tx, ty] });
+        if (!r.ok && r.reason) showMessage(r.reason);
+        return r.ok;
+      },
+    });
+    out.push(cast);
+  }
+  return out;
 }
 
 function walkAction(tile) {

@@ -456,7 +456,8 @@
     5,
     10
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -466,7 +467,8 @@
     5,
     17
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -476,7 +478,8 @@
     5,
     10
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -486,7 +489,8 @@
     5,
     2
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -496,7 +500,8 @@
     5,
     3
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -506,7 +511,8 @@
     5,
     4
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -516,7 +522,8 @@
     5,
     3
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -526,7 +533,8 @@
     5,
     4
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -536,7 +544,8 @@
     5,
     3
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -546,7 +555,8 @@
     5,
     2
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -556,7 +566,8 @@
     5,
     3
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -566,7 +577,8 @@
     5,
     3
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -576,7 +588,8 @@
     5,
     5
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -586,7 +599,8 @@
     5,
     3
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -596,7 +610,8 @@
     5,
     5
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -606,7 +621,8 @@
     5,
     3
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -616,7 +632,8 @@
     5,
     3
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -626,7 +643,8 @@
     5,
     4
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -636,7 +654,8 @@
     5,
     8
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -646,7 +665,8 @@
     5,
     7
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -656,7 +676,8 @@
     5,
     8
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -666,7 +687,8 @@
     5,
     4
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -676,7 +698,8 @@
     5,
     16
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -686,7 +709,8 @@
     5,
     29
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -696,7 +720,8 @@
     5,
     16
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -706,7 +731,8 @@
     5,
     2
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -716,7 +742,8 @@
     5,
     3
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -726,7 +753,8 @@
     5,
     4
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -736,7 +764,8 @@
     5,
     3
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -746,7 +775,8 @@
     5,
     4
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -756,7 +786,8 @@
     5,
     3
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -766,7 +797,8 @@
     5,
     2
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -776,7 +808,8 @@
     5,
     2
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -786,7 +819,8 @@
     5,
     4
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -796,7 +830,8 @@
     5,
     4
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -806,7 +841,8 @@
     5,
     3
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -816,7 +852,8 @@
     5,
     4
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -826,7 +863,8 @@
     5,
     4
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -836,7 +874,8 @@
     5,
     2
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -846,7 +885,8 @@
     5,
     6
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -856,7 +896,8 @@
     5,
     11
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -866,7 +907,8 @@
     5,
     11
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -876,7 +918,8 @@
     5,
     11
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "water",
@@ -886,7 +929,8 @@
     5,
     6
    ],
-   "sprite": "floor_water"
+   "sprite": "floor_water",
+   "group": "river"
   },
   {
    "kind": "bridge",
@@ -908,6 +952,7 @@
     3
    ],
    "sprite": "floor_water_shallow",
+   "group": "river",
    "note": "the ford (29/02): the drove crosses here; the water and its banks, nothing wider"
   },
   {
@@ -1105,6 +1150,7 @@
     6
    ],
    "sprite": "floor_water",
+   "group": "pond",
    "note": "the duck pond (29/04)"
   },
   {
@@ -2774,7 +2820,8 @@
       2,
       2
      ],
-     "sprite": "floor_water"
+     "sprite": "floor_water",
+     "group": "pond"
     }
    ],
    "fences": [
