@@ -868,6 +868,7 @@ export function hostAfterStep() {
     rules: whenChanged("rules", { ...rules.rules }), // the world's rules are the host's (docs/31/07, question 13)
     sync: hashThis || undefined, // this frame both sides hash (the sync check)
     arrows: archery.arrowsInFlight().filter((a) => !a.done).map((a) => ({ gx: a.gx, gy: a.gy, z: a.z, frame: a.frame, projectile: a.projectile })),
+    flares: archery.flaresNow().map((f) => ({ gx: f.gx, gy: f.gy, t: f.t })), // where a fireball came down, for the light (archery.projectileLights)
   };
   send(game.toSafe(frame));
   if (hashThis) {
@@ -1115,6 +1116,7 @@ function applyFrame(f) {
   if (S.player) predictedPos = [S.player.gx, S.player.gy];
   if (f.rules) rules.set(f.rules); // sent when they change
   archery.setReplicaArrows(f.arrows || []);
+  archery.setReplicaFlares(f.flares || []);
   clock.setElapsed(f.clock);
   loop.setSimTime(f.simTime);
   world.setTimeScale(f.timeScale);

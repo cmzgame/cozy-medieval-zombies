@@ -183,6 +183,34 @@ export function burnHolders(dt) {
   }
 }
 
+// A flame landing at a point lights what is made to be lit within `r` tiles (Michael, 2026-10-17, #156: "fire lights what is made to
+// be lit"): an unlit campfire with fuel in it, a torch mounted on a post or in a bracket that is out. Nothing else burns and nothing
+// spreads. The authority's, from a fireball's landing (archery.js). Returns how many it lit.
+export function kindleNear(x, y, r = 1) {
+  let n = 0;
+  for (const p of fireProps) {
+    const f = p.fire;
+    if (f.lit || Math.hypot(p.tile[0] - x, p.tile[1] - y) > r) continue;
+    if ((f.burns && f.fuel > 0) || (f.holds && f.has)) {
+      f.lit = true;
+      touch(p.tile[0], p.tile[1]);
+      emit("fireLit", { id: p.id, tile: p.tile });
+      n++;
+    }
+  }
+  for (const b of bracketSet) {
+    const br = b.wall.bracket;
+    if (!br.torch || br.lit !== false) continue;
+    const [bx, by] = bracketPos(b);
+    if (Math.hypot(bx - x, by - y) > r) continue;
+    br.lit = true;
+    touchWall(b.wall);
+    emit("fireLit", { tile: [b.tx, b.ty] });
+    n++;
+  }
+  return n;
+}
+
 export function addBracket(tx, ty, edge, side, torch = false, lantern = false) {
   const wall = growTile(tx, ty)[edge];
   if (!wall) return null;

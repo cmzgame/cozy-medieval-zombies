@@ -70,6 +70,9 @@ export function createDevApi(ctx) {
     archery: {
       tunables: archery.tunables,
       flying: archery.arrowsInFlight,
+      flares: archery.flaresNow,
+      projectileLights: archery.projectileLights,
+      shootWith: (dir, distance, c = 1, o = {}) => archery.shoot(P(), dir, distance, c, o),
       preview: archery.preview,
       setMarker: archery.setMarker,
       shoot: (dir, distance, c = 1) => archery.shoot(P(), dir, distance, c),

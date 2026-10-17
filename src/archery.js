@@ -54,6 +54,10 @@ export const tunables = {
   shadowRx: 7, // px: the shadow's size on the ground, shrinking as the arrow rises
   shadowRy: 3.5,
   shadowAlpha: 0.55, // how dark it is at the ground, fading as the arrow rises
+  fireballGlow: 6, // tiles: the light a fireball throws as it flies (4 before the flare, #156; Michael, 2026-10-17)
+  flareRadius: 7, // tiles: the light a fireball leaves where it lands, at its brightest
+  flareSeconds: 3, // sim seconds it lasts, shrinking to nothing: light only, it burns nothing
+  kindleRadius: 1, // tiles: a fireball landing this near an unlit campfire (with fuel) or mounted torch lights it
 };
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
@@ -227,6 +231,10 @@ function pose(a) {
 }
 
 export function update(dt) {
+  for (let i = flares.length - 1; i >= 0; i--) {
+    flares[i].t += dt;
+    if (flares[i].t >= tunables.flareSeconds) flares.splice(i, 1);
+  }
   for (let i = flying.length - 1; i >= 0; i--) {
     const a = flying[i];
     a.t += dt;
@@ -278,6 +286,10 @@ function land(a, met = null) {
   }
   if (broken) keep = false; // a spear that broke is gone: nothing lies there, nothing lodges
   if (a.vanish) keep = false; // a spell is gone the moment it arrives (Michael, 2026-10-14): nothing lies there
+  if (a.projectile === "fireball") {
+    flares.push({ gx, gy, t: 0 }); // a short light where it landed (#156)
+    map.kindleNear(gx, gy, tunables.kindleRadius); // and it lights what is made to be lit there: a campfire, a mounted torch (nothing else burns)
+  }
   // What lands is the thrown item itself (a spear keeps whatever it carries) or a fresh arrow.
   if (keep) map.dropItem(Math.round(gx), Math.round(gy), { ...(a.item || { id: "arrow", count: 1 }), at: [gx, gy], angle: ground });
   emit("arrowLanded", { arrow: a, gx, gy, hit, kept: keep, broken, stoppedBy: a.stopWhy });
@@ -353,14 +365,29 @@ export function setReplicaArrows(list) {
 
 // A spell in flight lights the ground under it (docs/24): a moving light, as a burning body is one. From the arrows in
 // flight, so a guest makes it from the frame's list as the host does from its own.
-const GLOWS = { fireball: { radius: 4, flicker: 0.25 }, fire_arrow: { radius: 2, flicker: 0.3 } };
+const GLOWS = { fireball: { radius: () => tunables.fireballGlow, flicker: 0.25 }, fire_arrow: { radius: () => 2, flicker: 0.3 } };
 export function projectileLights() {
   const out = [];
   for (const a of arrowsInFlight()) {
     const g = !a.done && GLOWS[a.projectile];
-    if (g) out.push({ gx: a.gx, gy: a.gy, radius: g.radius, flicker: g.flicker });
+    if (g) out.push({ gx: a.gx, gy: a.gy, radius: g.radius(), flicker: g.flicker });
+  }
+  // Where a fireball came down: a flare, light only (#156), shrinking over `flareSeconds`. The authority's list, and the frame's on a guest.
+  for (const f of flaresNow()) {
+    const u = Math.min(1, f.t / tunables.flareSeconds);
+    out.push({ gx: f.gx, gy: f.gy, radius: tunables.flareRadius * (1 - u * u), flicker: 0.2 });
   }
   return out;
+}
+
+// The flares in the world: { gx, gy, t }, aged by `update`. On a guest, the host's (net.js).
+const flares = [];
+let replicaFlares = null;
+export function flaresNow() {
+  return replicaFlares || flares;
+}
+export function setReplicaFlares(list) {
+  replicaFlares = list;
 }
 
 // The fireball's picture (data/art/items/fireball.png, the design agent's: 64 px cells, a row per direction with row k
@@ -542,7 +569,9 @@ export function generateSpear() {
 // A world put back from a save (docs/31/05, item 24): nothing in flight.
 export function reset() {
   flying.length = 0;
+  flares.length = 0;
   replica = null;
+  replicaFlares = null;
 }
 
 export function setAimOverride(player, p) {
