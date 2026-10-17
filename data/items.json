@@ -62,5 +62,6 @@
   {"id": "rye_seed", "name": "Rye seed", "kind": "material", "tags": ["seed"], "stack": 20, "size": [1, 1], "color": "#c8a848", "short": "Seed", "note": "planted on tilled soil (data/crops.json; #194); a harvest gives two back"},
   {"id": "roast_potato", "name": "Roast potato", "kind": "food", "tags": ["food", "cooked"], "hunger": 20, "heal": 4, "stack": 10, "size": [1, 1], "color": "#c8a060", "short": "Roast"},
   {"id": "stew", "name": "Stew", "kind": "food", "tags": ["food", "cooked"], "hunger": 50, "heal": 10, "thirst": 10, "stack": 3, "size": [1, 1], "color": "#a06838", "short": "Stew"},
+  {"id": "pumpkin_pie", "name": "Pumpkin pie", "kind": "food", "tags": ["food", "cooked"], "hunger": 45, "heal": 8, "stack": 3, "size": [1, 1], "color": "#c8782a", "short": "Pie", "note": "baked at an oven from a pumpkin and flour (#201): the pumpkin feeds a recipe, so no crop is a dead end"},
   {"id": "porridge", "name": "Porridge", "kind": "food", "tags": ["food", "cooked"], "hunger": 30, "heal": 6, "stack": 5, "size": [1, 1], "color": "#d8c8a0", "short": "Porridge"}
 ]

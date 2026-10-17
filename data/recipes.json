@@ -557,6 +557,41 @@
    ],
    "seconds": 10,
    "fire": true
+  },
+  {
+   "id": "flour",
+   "station": "millstones",
+   "out": {
+    "id": "flour",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "grain",
+     "count": 2
+    }
+   ],
+   "seconds": 8
+  },
+  {
+   "id": "pumpkin_pie",
+   "station": "oven",
+   "out": {
+    "id": "pumpkin_pie",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "pumpkin",
+     "count": 1
+    },
+    {
+     "id": "flour",
+     "count": 1
+    }
+   ],
+   "seconds": 12,
+   "fire": true
   }
  ]
 }
