@@ -106,10 +106,11 @@ def cottage_a(g, x, y, name, door_side="s", broken=False, torch=True, apple=Fals
         [1, 1, 6, 4], "wall_wood", "floor_wood",
         openings=openings,
         partitions=[part_w(3, 0, 4, door_at=2)],
+        # With the north door the table lies across row 3, so the chest takes the corner at (0, 0): (0, 3) was boxed in by the hearth, the table, and two walls (#227).
         # The living room keeps a way from its door to the partition door at row 2 (the dead must be able to stand there,
         # #134): the table lies across row 1 from the south door's side, and across row 3 from the north door's.
         props=([hearth_w(0, 1), along_x("table", 1, 1), chair(1, 2, "n"), one("chest", 0, 3)] if door_side == "s"
-               else [hearth_w(0, 1), along_x("table", 1, 3), chair(1, 2, "s"), one("chest", 0, 3)]) + [along_x("bed", 3, 0), one("chest", 5, 3)],
+               else [hearth_w(0, 1), along_x("table", 1, 3), chair(1, 2, "s"), one("chest", 0, 0)]) + [along_x("bed", 3, 0), one("chest", 5, 3)],
         brackets=[{"side": "w", "at": 0, "facing": "in", **({"lantern": True} if torch else {"torch": False})}],
     )
     s.prop("woodpile", (7, 4))
@@ -392,7 +393,7 @@ def build():
     reeve.building([1, 1, 6, 4], {"n": "wall_stone", "w": "wall_stone", "s": "wall_wood", "e": "wall_wood"}, "floor_wood",
                    openings=[door("n", 1), window("n", 4), window("e", 1)],
                    partitions=[part_w(3, 0, 4, door_at=2)],
-                   props=[hearth_w(0, 1), along_x("table", 1, 3), chair(1, 2, "s"), one("desk", 0, 3), along_x("bed", 3, 0), one("chest", 5, 3), one("bookcase", 3, 3)],
+                   props=[hearth_w(0, 1), along_x("table", 1, 3), chair(1, 2, "s"), one("desk", 0, 0), along_x("bed", 3, 0), one("chest", 5, 3), one("bookcase", 3, 3)],
                    brackets=[{"side": "n", "at": 5, "facing": "in", "lantern": True}])
 
     # ---- Hollow Farm's orchard (29/05, "the orchard"; #190): apple trees in staggered rows on grass, a barrel or two. The rest of the farm is step 4's. ----

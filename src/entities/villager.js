@@ -15,6 +15,7 @@ import { createZombie } from "./zombie.js";
 import { pickTargetAround, repath, followPath, separate, faceToward, roomOf, idleTime } from "./movement.js";
 import * as loop from "../loop.js";
 import * as talk from "../talk.js";
+import { lineOfSight } from "../visibility.js";
 import { villager as T } from "../tuning.js";
 
 const DEAD_SKIN = "#9fbf88"; // what a turned villager's skin goes // as a wiggle's (interact.js): spam does not restart the line
@@ -46,6 +47,7 @@ export function createVillager(gx, gy, { id = null, name = null, line = null, wa
     guide: !!guide, // the one beside the spawn who explains the rules (docs/34, #90); immune comes with it from the map
     barkTurns: {}, // group index -> which of its lines comes next (bookkeeping nothing reads; no rng, so a bark never shifts the generator)
     barkAt: null, // sim seconds of its last ambient bark
+    talkingWith: [], // the ids of the players in conversation with it, sorted (docs/34): it stands and faces whoever spoke last while any is here
     path: [],
     repathTimer: 0,
     idleTimer: idleTime(),
@@ -62,6 +64,7 @@ export function createVillager(gx, gy, { id = null, name = null, line = null, wa
 
 export function updateVillager(v, dt, others, players = []) {
   const sheet = getSheet(v.sprite);
+  if (v.talkingWith.length) keepTalkers(v, players);
   if ((v.state === "idle" || v.state === "wander") && !v.dead) ambientBark(v, players);
   switch (v.state) {
     case "idle": {
@@ -101,6 +104,7 @@ export function updateVillager(v, dt, others, players = []) {
     case "talk": {
       playAnimation(v.anim, "idle");
       separate(v, dt, others);
+      if (v.talkingWith.length) break; // in conversation: it stands until the last talker has gone
       v.talkTimer -= dt;
       if (v.talkTimer <= 0) {
         v.state = "idle";
@@ -153,11 +157,65 @@ export function turnVillager(v) {
   return z;
 }
 
-// An unprompted remark (docs/34): from a villager idle or wandering (never one hurt, talking, or dead), with a living player within
+// Who is still talking to them (docs/34, "Ending one"): a talker who walked off (past reach and a tile), is gone, dead, or lost the clear line is dropped, and
+// one who is struck (staggered), turned, or dead ends it for everyone; the villager goes back to idle when none is left. The authority's, in the step, so a lost
+// message cannot hold a villager for ever.
+function keepTalkers(v, players) {
+  if (v.state !== "talk" || v.dead) { v.talkingWith = []; return; }
+  const keep = v.talkingWith.filter((id) => {
+    const p = players.find((q) => q.id === id);
+    return p && !p.dead && Math.hypot(p.gx - v.gx, p.gy - v.gy) <= T.talkReach + T.talkWalkAway && lineOfSight(p.gx, p.gy, v.gx, v.gy); // reach, and a clear line (a wall ends it)
+  });
+  if (keep.length !== v.talkingWith.length) v.talkingWith = keep;
+  if (!keep.length) {
+    v.state = "idle";
+    v.idleTimer = T.talkIdleSeconds; // a fixed pause, never a roll: a conversation must not shift the sim's generator
+  }
+}
+
+// The context for the talker's own lines (docs/34): built on whichever side is asking, from that side's world (the replica, for a guest).
+export function talkContext(v, player) {
+  return talk.contextFor(v, player, talkWorld());
+}
+
+// Start a conversation (the menu's Talk to, and E): refused only for the dead (a wounded villager still talks, Michael, 2026-10-18); with the dead within `talkDeadRadius` the villager barks instead of
+// talking; else it stops, faces the talker, and takes them into `talkingWith`, and `talkStarted` tells the talker's screen to open the panel. Returns
+// whether a conversation began. Runs on the authority, as the player.
+export function startTalk(v, player) {
+  if (v.dead) return false;
+  if (!lineOfSight(player.gx, player.gy, v.gx, v.gy)) return false; // the same test `keepTalkers` ends a conversation on: never through a wall
+  const w = talkWorld();
+  const deadClose = !!w && (w.zombies || []).some((z) => !z.dead && Math.hypot(z.gx - v.gx, z.gy - v.gy) <= T.talkDeadRadius);
+  if (!talk.has(v.talk) || deadClose) {
+    pokeVillager(v, player); // no file, or the dead are close: a bark, not a conversation
+    return false;
+  }
+  v.path = [];
+  v.lastGoal = null;
+  v.state = "talk";
+  faceToward(v, player.gx - v.gx, player.gy - v.gy);
+  if (!v.talkingWith.includes(player.id)) v.talkingWith = [...v.talkingWith, player.id].sort();
+  emit("talkStarted", { villager: v, by: player });
+  return true;
+}
+
+// A talker leaves (the panel closed): the host's own player directly, a guest by `net.sendTalkEnd`.
+export function endTalk(v, playerId) {
+  if (!v || !v.talkingWith.includes(playerId)) return false;
+  v.talkingWith = v.talkingWith.filter((id) => id !== playerId);
+  if (!v.talkingWith.length && v.state === "talk") {
+    v.state = "idle";
+    v.idleTimer = T.talkIdleSeconds;
+    v.talkTimer = 0;
+  }
+  return true;
+}
+
+// An unprompted remark (docs/34): from a villager idle or wandering (never one talking or dead; a wounded one still speaks, Michael, 2026-10-18), with a living player within
 // `T.barkRadius`, not twice inside `T.barkCooldown` seconds of game time, from an `ambient` group of their file that holds; an idle
 // villager turns toward the nearest player as they say it. On the authority only (the host's step); the bubble rides in the record.
 function ambientBark(v, players) {
-  if (!talk.has(v.talk) || v.hp < (v.maxHp ?? 100)) return;
+  if (!talk.has(v.talk) || v.dead) return;
   const now = loop.simTime();
   if (v.barkAt !== null && now - v.barkAt < T.barkCooldown) return;
   let near = null;

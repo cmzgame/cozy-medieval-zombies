@@ -254,6 +254,10 @@ export function install() {
     const by = S.acting;
     if (by && by !== self() && net.isHost()) net.openedFor(by.id, { propId: prop ? prop.id : null, entryUid: entry ? entry.uid : null, tile: tile || null, characterId: character ? character.id : null, tiles: where, name, closeDist: closeDist || 0, station: !!station });
   });
+  // A conversation a guest's player began (villager.js startTalk): told to the guest, whose panel opens on its replica.
+  events.on("talkStarted", ({ villager, by }) => {
+    if (by && by !== self() && net.isHost()) net.talkFor(by.id, { villagerId: villager.id });
+  });
   // A death: the world is saved with the survivor dead; the next survivor is a new character in it (docs/31/09;
   // docs/31/05, item 34). The authority saves for any player's death (a guest's too, which the browser host had not).
   events.on("gameOver", () => {

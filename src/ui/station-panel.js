@@ -9,6 +9,7 @@ import * as stations from "../stations.js";
 import * as verbs from "../verbs.js";
 import { world } from "../world.js";
 import { getItem, toolFor } from "../items.js";
+import { canReach } from "../reach.js";
 import { emit } from "../events.js";
 import { showMessage } from "./prompt.js";
 import * as map from "../map.js";
@@ -163,8 +164,6 @@ export function update(player) {
   if (!open) return;
   const prop = map.propById(open.propId);
   if (!prop) return close();
-  let d = Infinity;
-  for (const [tx, ty] of prop.tiles) d = Math.min(d, Math.hypot(player.gx - tx, player.gy - ty));
-  if (d > stations.REACH + 1) return close();
+  if (!canReach(player, prop.tiles, stations.REACH + 1)) return close(); // walked away, or a wall between (#208)
   render(player);
 }

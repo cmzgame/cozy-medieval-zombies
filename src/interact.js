@@ -27,7 +27,7 @@ import * as placement from "./placement.js";
 import * as grid from "./grid.js";
 import { autoWalk, eat, drink, isFull } from "./entities/player.js";
 import { showMessage } from "./ui/prompt.js";
-import { pokeVillager } from "./entities/villager.js";
+import { pokeVillager, startTalk, endTalk } from "./entities/villager.js";
 import { lootOf } from "./entities/character.js";
 import { emit } from "./events.js";
 import * as loop from "./loop.js";
@@ -36,6 +36,7 @@ import * as verbs from "./verbs.js"; // the verb table (docs/31/08, habit 4)
 import * as farming from "./farming.js"; // till, plant, water, harvest (#194)
 import * as bucket from "./bucket.js"; // the bucket item: fill at water, pour on a plot (#199)
 import { lineOfSight } from "./visibility.js";
+import { canReach, reachProblem } from "./reach.js"; // one reach test: distance and a clear line (#208)
 import * as chop from "./chop.js"; // a hatchet fells a tree and leaves a stump (#195)
 import * as mining from "./mining.js"; // a pickaxe mines a rock or an ore rock (#196)
 import * as tuning from "./tuning.js"; // the chop's seconds (world.chopSeconds)
@@ -416,7 +417,9 @@ function holderActions(target, player) {
   const what = target.kind === "bracket" ? "bracket" : "post";
   const mx = target.kind === "bracket" ? target.mx : target.prop.tile[0];
   const my = target.kind === "bracket" ? target.my - 0.4 : target.prop.tile[1] - 0.9;
-  const tiles = target.kind === "bracket" ? [[target.bracket.tx, target.bracket.ty]] : target.prop.tiles;
+  // A bracket is reached from its own side of the wall: the near tile of the edge for side +1, the far one for -1 (burn.js's bracketPos says the same).
+  const bk = target.kind === "bracket" ? target.bracket : null;
+  const tiles = bk ? [bk.wall.bracket.side > 0 ? [bk.tx, bk.ty] : bk.edge === "n" ? [bk.tx, bk.ty - 1] : [bk.tx - 1, bk.ty]] : target.prop.tiles;
   const has = map.holderHas(target);
   if (has) {
     // Out: a flame lights it (the `light` verb, burn.js; a tinderbox, or a lit torch in a hand or on the belt).
@@ -892,7 +895,7 @@ export function nearestSimpleAction(player) {
     for (const a of actions) {
       if (!a.simple || a.enabled === false) continue;
       const d = distToTiles(player, a.tiles);
-      if (d <= a.range && (d < bestD - 1e-9 || (d <= bestD + 1e-9 && best && rank(a) < rank(best)))) {
+      if (d <= a.range && canReach(player, a.tiles, a.range) && (d < bestD - 1e-9 || (d <= bestD + 1e-9 && best && rank(a) < rank(best)))) {
         best = a;
         bestD = d;
       }
@@ -917,8 +920,9 @@ export function nearestSimpleAction(player) {
   for (const b of map.bracketsNear(player.gx, player.gy, INTERACT_RANGE)) consider(tag(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player), onBracket(b.bracket)));
   // A body lying within reach (a corpse is a container, docs/19).
   for (const c of allCharacters()) {
-    if ((c.kind !== "zombie" && c.kind !== "player") || !c.dead || !c.corpse || Math.abs(c.gx - player.gx) > 3 || Math.abs(c.gy - player.gy) > 3) continue;
-    consider(tag(characterActions(c, player), onCharacter(c)));
+    if (Math.abs(c.gx - player.gx) > 3 || Math.abs(c.gy - player.gy) > 3) continue;
+    if ((c.kind === "zombie" || c.kind === "player") && c.dead && c.corpse) consider(tag(characterActions(c, player), onCharacter(c)));
+    else if (c.kind === "villager" && !c.dead) consider(tag(characterActions(c, player), onCharacter(c))); // E talks to the nearest villager (docs/34)
   }
   return best;
 }
@@ -942,7 +946,7 @@ export function startAction(player, action) {
 export function updateAction(player, dt) {
   const a = player.action;
   if (!a) return null;
-  if (player.moving || distToTiles(player, a.action.tiles) > a.action.range + 0.2) {
+  if (player.moving || distToTiles(player, a.action.tiles) > a.action.range + 0.2 || !canReach(player, a.action.tiles, a.action.range + 0.2)) { // drifting out of range, or behind a wall, cancels it
     player.action = null;
     if (a.action.present) player.presentFor = 0;
     return null;
@@ -968,6 +972,7 @@ export function approachTile(action, player) {
         const y = ty + dy;
         if (!map.isWalkableTile(x, y)) continue;
         if (Math.hypot(dx, dy) > action.range) continue;
+        if (!lineOfSight(x, y, tx, ty)) continue; // a tile with a clear line to it, so a player behind a wall walks round (#208)
         const d = Math.hypot(player.gx - x, player.gy - y);
         if (d < bestD) {
           bestD = d;
@@ -982,7 +987,7 @@ export function approachTile(action, player) {
 // Do an action now if in range, else walk over and do it on arrival.
 export function runAction(player, action) {
   if (action.enabled === false) return;
-  if (distToTiles(player, action.tiles) <= action.range) {
+  if (canReach(player, action.tiles, action.range)) {
     startAction(player, action);
     return;
   }
@@ -1357,7 +1362,7 @@ const POKE_COOLDOWN_MS = 600;
 // the same as placing and building (Michael, 2026-10-12: trees wiggled from
 // across the map). A far right-click still finds it for its menu.
 export const CLICK_REACH = 2.6; // burn.js's DIP_REACH is the same number, kept there to keep this module out of combat's imports
-const inReach = (prop, player) => !!player && distToTiles(player, prop.tiles) <= CLICK_REACH;
+const inReach = (prop, player) => !!player && canReach(player, prop.tiles, CLICK_REACH);
 const pokePixels = new Map(); // sheet -> { w, h, a: Uint8Array of alpha }
 
 function alphaOf(sheet) {
@@ -1527,14 +1532,20 @@ function characterPixelAt(c, sx, sy, p) {
 // A guest's click on a villager, by its id (item 4): the host has no cursor of the guest's, so the guest names it.
 export function pokeVillagerFromGuest(player, id) {
   const c = allCharacters().find((q) => q.id === id && q.kind === "villager");
-  if (!c || c.dead || Math.hypot(player.gx - c.gx, player.gy - c.gy) > CLICK_REACH) return false;
+  if (!c || c.dead || reachProblem(player, [[c.gx, c.gy]], CLICK_REACH)) return false;
   pokeVillager(c, player);
   return true;
 }
 
+// A guest's panel closed: the host drops it from the villager's talkers (net.js `talkEnd`).
+export function endTalkFromGuest(player, id) {
+  const c = allCharacters().find((q) => q.id === id && q.kind === "villager");
+  return !!c && endTalk(c, player.id);
+}
+
 export function clickCharacterAt(sx, sy, player) {
   const c = characterAt(sx, sy, player);
-  if (c && c.kind === "villager" && Math.hypot(player.gx - c.gx, player.gy - c.gy) <= CLICK_REACH) pokeVillager(c, player);
+  if (c && c.kind === "villager" && canReach(player, [[c.gx, c.gy]], CLICK_REACH)) pokeVillager(c, player);
   return c;
 }
 
@@ -1566,6 +1577,20 @@ function characterActions(c, player) {
   const out = [];
   if ((c.kind === "zombie" || c.kind === "player") && c.dead && c.corpse) out.push(searchBodyAction(c)); // a player's body too (2026-10-14)
   if (c.kind === "villager") {
+    // Talk (docs/34): a simple action, so E does it when the villager is the nearest thing within reach (the prompt names it, and a door nearer wins);
+    // it runs on the host as the talking player, who is told to open the panel (`talkStarted`).
+    if (lineOfSight(player.gx, player.gy, c.gx, c.gy)) out.push(act({ // a wall in the way: not offered, rather than offered and refused (#230)
+      kind: "talk",
+      label: `Talk to ${c.name}`,
+      tiles: [[Math.round(c.gx), Math.round(c.gy)]],
+      range: CLICK_REACH,
+      simple: true,
+      enabled: !c.dead,
+      perform() {
+        startTalk(c, player);
+        return true;
+      },
+    }));
     out.push(act({
       kind: "poke",
       label: `Poke ${c.name}`,
