@@ -58,7 +58,7 @@ Hold E does nothing: nobody climbs through a window (Michael, 2026-10-16, #134),
 
 ## What this must not foreclose
 
-- **Placing a new door or shutters** is building (question 14), not repair: a broken opening is a plain opening that building could fill again someday.
+- **Placing a new door or shutters** is building (question 14), not repair, and is built now (`13`, #147): a door or a window stamped over a wall, or a new one over a broken opening of its own kind.
 - **Glass and curtains**, if ever: one more leaf kind with its own transmission and hit points.
 - **Building**: an opening is edge state, placed the same way a wall is.
 - **Noise**: a breach is an event with a position; nothing else is needed to make it loud later.
