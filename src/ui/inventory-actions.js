@@ -317,6 +317,11 @@ export function performItemCommand(player, c) {
   const from = fromOf(c.src); // `src`, since the wire stamps `from` with the sender (net.js send)
   const entry = from ? entryIn(from, c.uid) : null;
   if (c.op === "slot" && entry && typeof c.slot === "string") {
+    // The same rule the host's own drag meets (the panel asks canPlace before it drops): a guest may not put an item where the host's player could not (#224).
+    if (!h.canPlace(entry, c.slot)) {
+      showMessage("That does not go there.");
+      return false;
+    }
     h.placeInSlot(entry, from, c.slot);
     ran = true;
   } else if (c.op === "grid" && entry) {
