@@ -1,9 +1,9 @@
-// The chart (docs/33, #203; part 2's panel rows are `check("map")`'s). From the console, on a tab with `?nosave`:
+// The chart and its panel (docs/33, #203 and #204). From the console, on a tab with `?nosave`:
 //   await __game.check("chart")
 // It reads what the world has charted of itself: the spawn's surroundings and nothing past the radius; a tile behind a shut wall is not charted and is
 // once a door in it is open; a wall built (with the built flag) and taken down, a tilled tile, and a felled tree change their cells; a wild chunk dropped by
 // eviction keeps its chart; serialize, restore, serialize is the same; the chart is the world's, not a player's; and the reveal's cost in open land. The
-// chart, the player, and the map it builds on are put back (the chart from its own save).
+// chart, the player, and the map it builds on are put back (the chart from its own save). The panel's rows (7 to 9 of docs/33's acceptance, and the rest) open the map by M and read what it drew.
 
 export async function run(game) {
   const G = game;
@@ -153,8 +153,158 @@ export async function run(game) {
     const b = JSON.stringify(chart.serialize());
     const someone = G.addPlayer(x + 1, y + 1);
     made.push({ id: someone.id, player: true });
+    const leaveWorld = () => { G.game.removePlayer(someone.id); made.splice(made.findIndex((q) => q.id === someone.id), 1); }; // gone again after the row, so no one stands on the panel rows' markers
     step();
     row("serialize, restore, serialize gives the same chart, and a character made afterwards has the whole of it (it is the world's)", a === b && chart.cellAt(probe[0], probe[1]) === seen && a.length > 100, `${a.length} bytes of chart`);
+    leaveWorld();
+
+
+    // ---- The panel (docs/33, #204): M, the world running, the markers, zoom and pan, Escape, the names ----
+    const mp = await import("/src/ui/map-panel.js");
+    const input = await import("/src/input.js");
+    const key = (code, type = "keydown") => window.dispatchEvent(new KeyboardEvent(type, { code }));
+    const tap = (code) => { key(code); step(1); key(code, "keyup"); };
+    const frame = () => mp.update({ player: me, players: S.players, places: (S.info && S.info.places) || [] });
+    const cv = () => document.querySelector("#map-panel canvas");
+    const pix = (px, py) => Array.from(cv().getContext("2d").getImageData(Math.round(px), Math.round(py), 1, 1).data);
+    const isMarker = ([r, g, b]) => (r > 230 && g > 180 && b > 60) || (r > 235 && g > 235 && b > 235); // the gold, or the white
+    const expect = (g, vs) => ({ x: vs.width / 2 + (g.gx - g.gy) * vs.h - (vs.gx - vs.gy) * vs.h, y: vs.height / 2 + ((g.gx + g.gy) * vs.h) / 2 - ((vs.gx + vs.gy) * vs.h) / 2 });
+    const ownMarker = () => mp.markers().find((m) => m.self);
+    G.teleport(x + 0.1, y + 0.1);
+    chart.reveal(me.gx, me.gy);
+    step();
+    restore.push(() => { mp.close(); mp.forgetDrawn(); key("KeyD", "keyup"); });
+    const t0 = G.loop.simTime();
+    const p0 = [me.gx, me.gy];
+    tap("KeyM");
+    const wasOpen = mp.isOpen();
+    mp.zoomBy(-5);
+    mp.zoomBy(1); // the middle step, whatever it was left at
+    key("KeyD");
+    step(30);
+    key("KeyD", "keyup");
+    row("7. with the map open the world runs and the keys walk (the sim's clock advances, the player moves)", wasOpen && G.loop.simTime() > t0 + 0.3 && Math.hypot(me.gx - p0[0], me.gy - p0[1]) > 0.5, `open ${wasOpen}; clock +${(G.loop.simTime() - t0).toFixed(2)} s; walked ${Math.hypot(me.gx - p0[0], me.gy - p0[1]).toFixed(2)} tiles`);
+    frame();
+    let vs = mp.viewState();
+    let m = ownMarker();
+    let e = m && expect(me, vs);
+    const first = m && Math.hypot(m.x - e.x, m.y - e.y) <= 1 && isMarker(pix(m.x, m.y));
+    // Pan (a drag) and zoom (the wheel about a point), then the marker again against the projection.
+    const box = cv().getBoundingClientRect();
+    const at0 = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+    cv().dispatchEvent(new MouseEvent("mousedown", { button: 0, clientX: at0.x, clientY: at0.y, bubbles: true }));
+    window.dispatchEvent(new MouseEvent("mousemove", { buttons: 1, clientX: at0.x + 60, clientY: at0.y - 30, bubbles: true }));
+    window.dispatchEvent(new MouseEvent("mouseup", { button: 0, bubbles: true }));
+    frame();
+    const panned = mp.viewState();
+    const dragged = !panned.following && Math.hypot(panned.gx - me.gx, panned.gy - me.gy) > 1;
+    const cursor = { x: Math.round(at0.x + 80), y: Math.round(at0.y + 40) }; // a wheel event carries whole pixels
+    const k = box.width / cv().width;
+    const underBefore = mp.unproject((cursor.x - box.left) / k, (cursor.y - box.top) / k);
+    cv().dispatchEvent(new WheelEvent("wheel", { deltaY: -100, clientX: cursor.x, clientY: cursor.y, bubbles: true, cancelable: true }));
+    frame();
+    const zoomed = mp.viewState();
+    const underAfter = mp.unproject((cursor.x - box.left) / k, (cursor.y - box.top) / k);
+    row("zoom steps on the wheel about the pointer (the grid point under it stays), and a drag pans and stops following", zoomed.h === 2 * panned.h && Math.hypot(underBefore.gx - underAfter.gx, underBefore.gy - underAfter.gy) < 0.05 && dragged, `h ${panned.h} to ${zoomed.h}; the point under the pointer moved ${Math.hypot(underBefore.gx - underAfter.gx, underBefore.gy - underAfter.gy).toFixed(3)} tiles; dragged ${dragged}`);
+    vs = mp.viewState();
+    m = ownMarker();
+    e = m && expect(me, vs);
+    const second = m && Math.hypot(m.x - e.x, m.y - e.y) <= 1 && (m.x < 0 || m.y < 0 || m.x > vs.width || m.y > vs.height || isMarker(pix(m.x, m.y)));
+    row("8. a marker is at the projection of the player's position at the zoom and pan, within a pixel, centred and after a pan and a zoom", !!first && !!second, m && e ? `centred ${first}; panned and zoomed ${m.x.toFixed(1)},${m.y.toFixed(1)} against ${e.x.toFixed(1)},${e.y.toFixed(1)}` : "no marker drawn for the player");
+    // 9. No marker for the dead or for villagers; a dead player's is gone.
+    const zed = S.zombies[0];
+    const vil = S.villagers[0];
+    const zAt = zed ? [zed.gx, zed.gy] : null;
+    const vAt = vil ? [vil.gx, vil.gy] : null;
+    mp.centreOn(me.gx, me.gy);
+    if (zed) { zed.gx = me.gx + 2; zed.gy = me.gy + 1; restore.push(() => { zed.gx = zAt[0]; zed.gy = zAt[1]; }); }
+    if (vil) { vil.gx = me.gx + 1; vil.gy = me.gy + 3; restore.push(() => { vil.gx = vAt[0]; vil.gy = vAt[1]; }); }
+    const other = G.addPlayer(x + 3, y + 2);
+    made.push({ id: other.id, player: true });
+    other.name = "Visitor";
+    frame();
+    vs = mp.viewState();
+    const bare = (g) => { const p = expect(g, vs); return !isMarker(pix(p.x, p.y)); };
+    const livingIds = S.players.filter((p) => !p.dead).map((p) => p.id).sort().join(",");
+    const drawnIds = mp.markers().map((q) => q.id).sort().join(",");
+    other.dead = true;
+    frame();
+    const afterDeath = mp.markers().map((q) => q.id).join(",");
+    other.dead = false;
+    row("9. a marker for every living player and none for any of the dead or any villager; a dead player's is not drawn", drawnIds === livingIds && (!zed || bare(zed)) && (!vil || bare(vil)) && !afterDeath.includes(other.id), `drawn ${drawnIds}; a zombie's spot ${zed ? (bare(zed) ? "bare" : "MARKED") : "none"}, a villager's ${vil ? (bare(vil) ? "bare" : "MARKED") : "none"}; after a death ${afterDeath}`);
+    // Centre brings the view back to the player, and the world's mouse does not take a click on the panel.
+    document.querySelector("#map-panel .mp-centre").click();
+    mp.update({ player: me, players: S.players, places: [] });
+    const homed = mp.viewState();
+    cv().dispatchEvent(new MouseEvent("mousedown", { button: 0, clientX: at0.x, clientY: at0.y, bubbles: true }));
+    const worldClicked = input.mouseLeftDown();
+    window.dispatchEvent(new MouseEvent("mouseup", { button: 0, bubbles: true }));
+    row("Centre follows the player again, and a click on the panel is the panel's, not the world's", homed.following && Math.hypot(homed.gx - me.gx, homed.gy - me.gy) < 0.01 && !worldClicked, `following ${homed.following}; the world saw a click: ${worldClicked}`);
+    // A place's name: drawn once any tile of it is charted and not before.
+    const place = (S.info.places || []).slice().sort((a, b) => Math.hypot(a.box[0] - me.gx, a.box[1] - me.gy) - Math.hypot(b.box[0] - me.gx, b.box[1] - me.gy))[0];
+    if (place) {
+      const [bx, by, bw, bh] = place.box;
+      map.ensureAround(bx + bw / 2, by + bh / 2, 1);
+      chart.restore({ chunks: [] });
+      mp.forgetDrawn();
+      mp.centreOn(bx + bw / 2, by + bh / 2);
+      frame();
+      const before = mp.labels().includes(place.name);
+      chart.chartTile(bx + 1, by + 1);
+      mp.forgetDrawn();
+      mp.centreOn(bx + bw / 2, by + bh / 2);
+      frame();
+      row("a place's name is drawn once any tile of it is charted, and not before", !before && mp.labels().includes(place.name), `${place.name}: before ${before}, after ${mp.labels().includes(place.name)}`);
+    } else row("a place's name is drawn once any tile of it is charted", false, "the map names no place");
+    // The compass: a white arrow in the top right corner pointing up and to the right (map north).
+    frame();
+    const cs = cv().getContext("2d");
+    const cw = cv().width;
+    const white = (x0, y0, w0, h0) => { const d = cs.getImageData(x0, y0, w0, h0).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 235 && d[i + 1] > 235 && d[i + 2] > 235) n++; return n; };
+    const upRight = white(cw - 34, 26, 20, 14); // above and right of the arrow's middle
+    const downLeft = white(cw - 54, 40, 20, 14); // below and left of it
+    row("the compass is drawn, its arrow pointing up and to the right", upRight > 0 && downLeft > 0 && white(cw - 70, 8, 70, 66) > 20, `${upRight} white pixels up and right of its middle, ${downLeft} below and left, ${white(cw - 70, 8, 70, 66)} in the corner`);
+    // Escape shuts the map before the pause menu comes up.
+    key("Escape");
+    key("Escape", "keyup");
+    row("Escape closes the map, and the pause menu does not come up behind it", !mp.isOpen() && !G.screens.currentScreen(), `open ${mp.isOpen()}; screen ${G.screens.currentScreen() || "none"}`);
+    tap("KeyM");
+    const reopened = mp.isOpen();
+    tap("KeyM");
+    row("M opens it and M shuts it", reopened && !mp.isOpen(), `reopened ${reopened}; after the second tap ${mp.isOpen()}`);
+    // The review of #235: the map is under the other panels, Escape closes the top one first, a drag cannot lose the map, and a drag released outside the window stops.
+    tap("KeyM");
+    const zMap = Number(getComputedStyle(document.getElementById("map-panel")).zIndex);
+    const zBag = Number(getComputedStyle(document.getElementById("inventory")).zIndex);
+    tap("Tab");
+    const bagUp = G.panel.isOpen();
+    key("Escape");
+    key("Escape", "keyup");
+    const afterFirst = [G.panel.isOpen(), mp.isOpen()];
+    key("Escape");
+    key("Escape", "keyup");
+    row("the map sits under the bag (z-index), and Escape closes the bag first and then the map, the pause menu last", zMap < zBag && bagUp && afterFirst[0] === false && afterFirst[1] === true && !mp.isOpen() && !G.screens.currentScreen(), `z ${zMap} against ${zBag}; after the first Escape bag ${afterFirst[0]}, map ${afterFirst[1]}; after the second map ${mp.isOpen()}`);
+    tap("KeyM");
+    chart.restore({ chunks: [] });
+    chart.reveal(me.gx, me.gy);
+    mp.centreOn(me.gx, me.gy);
+    frame();
+    const box2 = cv().getBoundingClientRect();
+    const c2 = { x: box2.left + box2.width / 2, y: box2.top + box2.height / 2 };
+    cv().dispatchEvent(new MouseEvent("mousedown", { button: 0, buttons: 1, clientX: c2.x, clientY: c2.y, bubbles: true }));
+    window.dispatchEvent(new MouseEvent("mousemove", { buttons: 1, clientX: c2.x - 6000, clientY: c2.y + 3000, bubbles: true }));
+    window.dispatchEvent(new MouseEvent("mouseup", { button: 0, bubbles: true }));
+    const farView = mp.viewState();
+    const charted = chart.chartedChunks();
+    const lo = [Math.min(...charted.map((c) => c.cx)) * 16 - 8, Math.min(...charted.map((c) => c.cy)) * 16 - 8];
+    const hi = [Math.max(...charted.map((c) => c.cx)) * 16 + 16 + 8, Math.max(...charted.map((c) => c.cy)) * 16 + 16 + 8];
+    const held = mp.viewState();
+    cv().dispatchEvent(new MouseEvent("mousedown", { button: 0, buttons: 1, clientX: c2.x, clientY: c2.y, bubbles: true }));
+    window.dispatchEvent(new MouseEvent("mousemove", { buttons: 0, clientX: c2.x + 200, clientY: c2.y, bubbles: true })); // released outside: the next move has no button down
+    const stopped = mp.viewState();
+    row("a drag cannot take the middle of the panel past the charted land, and one released outside the window stops", farView.gx >= lo[0] && farView.gx <= hi[0] && farView.gy >= lo[1] && farView.gy <= hi[1] && stopped.gx === held.gx && stopped.gy === held.gy, `the middle at ${farView.gx.toFixed(0)},${farView.gy.toFixed(0)} within ${lo}..${hi}; a move with no button panned ${stopped.gx !== held.gx || stopped.gy !== held.gy}`);
+    window.dispatchEvent(new MouseEvent("mouseup", { button: 0, bubbles: true }));
+    mp.close();
 
     // 11. The reveal's cost in open, uncharted land (the profile's number).
     chart.restore({ chunks: [] });

@@ -1,5 +1,5 @@
 {
-  "version": "cdf4f96b",
+  "version": "9a6d87f7",
   "files": {
     "data/build.json": {"size": 429, "stamp": "12352f35"},
     "data/combat.json": {"size": 4109, "stamp": "4efa7ba3"},
@@ -14,7 +14,7 @@
     "data/poses.json": {"size": 4867, "stamp": "53e6f192"},
     "data/recipes.json": {"size": 11193, "stamp": "894574e2"},
     "data/references.json": {"size": 899, "stamp": "81bd77a4"},
-    "data/tuning.json": {"size": 2892, "stamp": "09a4e385"},
+    "data/tuning.json": {"size": 3035, "stamp": "a8a8f4da"},
     "data/wardrobes.json": {"size": 9067, "stamp": "ce830859"},
     "data/art/character/character_body.json": {"size": 17235, "stamp": "2b1fcf24"},
     "data/art/character/character_template.json": {"size": 13333, "stamp": "9a0c05f7"},
@@ -388,7 +388,7 @@
     "data/layers/waist/index.json": {"size": 19, "stamp": "e924073b"},
     "data/maps/square.json": {"size": 12943, "stamp": "4e98b5aa"},
     "data/maps/staging.json": {"size": 8764, "stamp": "c7a30606"},
-    "data/maps/valley.json": {"size": 157002, "stamp": "279eef2d"},
+    "data/maps/valley.json": {"size": 157002, "stamp": "87135a48"},
     "data/site/staging_day_wide.webp": {"size": 103152, "stamp": "d59a0e45"},
     "data/site/staging_dusk_wide.webp": {"size": 60390, "stamp": "234b2082"},
     "data/sprites/altar.json": {"size": 197, "stamp": "1f7da4c7"},
@@ -550,7 +550,7 @@
     "data/talk/apprentice.json": {"size": 806, "stamp": "b1a25f39"},
     "data/talk/child.json": {"size": 721, "stamp": "30c61c33"},
     "data/talk/guest.json": {"size": 759, "stamp": "6d941b5e"},
-    "data/talk/guide.json": {"size": 13018, "stamp": "9de7d31e"},
+    "data/talk/guide.json": {"size": 13642, "stamp": "5475aacc"},
     "data/talk/innkeeper.json": {"size": 1044, "stamp": "dbcf0009"},
     "data/talk/neighbour.json": {"size": 715, "stamp": "1f20ffd6"},
     "data/talk/priest.json": {"size": 785, "stamp": "ebccec7f"},

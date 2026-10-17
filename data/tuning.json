@@ -76,9 +76,15 @@
     "talkTime": 2,
     "pokeCooldownMs": 600,
     "hurtTime": 0.35,
+    "regenPerMinute": 1,
+    "regenPause": 10,
     "barkRadius": 6,
     "barkCooldown": 60,
     "barkDeadRadius": 8,
+    "talkReach": 2.6,
+    "talkWalkAway": 1,
+    "talkIdleSeconds": 1,
+    "talkDeadRadius": 5,
     "barkMaxLength": 70
   },
   "world": {

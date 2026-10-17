@@ -91,9 +91,15 @@ export const villager = {
   talkTime: 2, // seconds a poked villager stands and faces you, at least
   pokeCooldownMs: 600, // a second poke inside this does nothing
   hurtTime: 0.35, // seconds a bitten villager flinches
+  regenPerMinute: 1, // health a hurt villager gets back a minute: the player's rate (`healthRegenPerMinute`, docs/30 3.4); they have no needs, so always fed and watered (Michael, 2026-10-18, #236)
+  regenPause: 10, // seconds after a hit before it starts again, so health does not climb while the dead are still biting
   barkRadius: 6, // tiles: a villager says an ambient bark only with a living player this near (docs/34, #198)
   barkCooldown: 60, // seconds of game time between a villager's ambient barks
   barkDeadRadius: 8, // tiles: the talk condition `deadNear` means one of the dead within this of the villager
+  talkReach: 2.6, // tiles: a conversation starts within this of the villager (the click's reach), and ends past it and talkWalkAway
+  talkWalkAway: 1, // tiles beyond talkReach a talker may drift before the conversation ends
+  talkIdleSeconds: 1, // seconds a villager stands after a conversation before it wanders (fixed, not rolled: talk never touches the generator)
+  talkDeadRadius: 5, // tiles: with the dead this close a villager barks instead of talking (docs/34)
   barkMaxLength: 70, // characters: a bark line is at most this long, so a bubble stays a bubble (the validator's)
 };
 
