@@ -182,9 +182,6 @@ export function detach(player, entry) {
   return false;
 }
 
-// The one container rule (docs/02, 2026-10-10 late): a container, which is
-// any item with a grid or belt slots, goes inside another container only
-// while it is empty. Wear it or drop it once it holds something.
 // The worn slots whose item is drawn on the figure (`figure/wardrobe.js` OUTFIT_SLOTS): the ones an eye toggle can hide.
 export const HIDEABLE = ["head", "chest", "hands", "legs", "feet", "waist", "back"];
 
@@ -199,6 +196,9 @@ export function toggleHidden(player, slot) {
   return !was;
 }
 
+// The one container rule (docs/02, 2026-10-10 late): a container, which is
+// any item with a grid or belt slots, goes inside another container only
+// while it is empty. Wear it or drop it once it holds something.
 export function isContainer(entry) {
   const d = getItem(entry.id);
   return !!(d.bag || d.beltSlots);

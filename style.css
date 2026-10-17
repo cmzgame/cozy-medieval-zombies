@@ -1166,7 +1166,7 @@ html, body {
 }
 
 /* No world chosen (docs/31/09): the title over black, none of the world's interface showing. */
-#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #talk, #ui.no-world #build-palette, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
+#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #talk, #ui.no-world #build-palette, #ui.no-world #map-panel, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
 /* #debug is #ui's sibling in index.html, not its child, so it is reached with ~; the chat box (#log-input) is #log's
    sibling, so it is named on its own (#16). */
 .screen h2 { font-size: 1.05em; margin: 10px 0 4px; color: #e8dcc0; }
@@ -1543,6 +1543,55 @@ html, body {
   pointer-events: none;
   text-shadow: 0 1px 1px #000;
 }
+
+/* ---- docs/33: the map on M ---- */
+#map-panel {
+  position: absolute;
+  left: 10%;
+  top: 8%;
+  width: 80%;
+  height: 80%;
+  z-index: 6; /* under the bag, the stations, the build palette, and the belt (7), the menu (9), and the screens (10): a panel opened with the map up is seen (#235) */
+  display: flex;
+  flex-direction: column;
+}
+
+#map-panel[hidden] { display: none; }
+
+.mp-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 6px;
+  flex: 0 0 auto;
+}
+
+.mp-title { flex: 1; font-size: 15px; letter-spacing: 1px; text-transform: uppercase; }
+
+.mp-centre, .mp-x {
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: #2a2330;
+  border: 1px solid #6a5a78;
+  padding: 1px 8px;
+  cursor: pointer;
+}
+
+.mp-centre:hover, .mp-x:hover { background: #3a3044; }
+
+.mp-body { position: relative; flex: 1 1 auto; min-height: 0; margin-top: 4px; }
+
+.mp-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  cursor: grab;
+}
+
+.mp-canvas:active { cursor: grabbing; }
 
 /* ---- docs/13: the build palette ---- */
 #build-palette {

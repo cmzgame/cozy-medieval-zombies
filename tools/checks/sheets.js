@@ -2,15 +2,21 @@
 // in the art pipeline must change no pixel). From the console, on a fresh
 // boot: await __game.check("sheets"); then after the change, reload and run it
 // again: `same` says whether every sheet hashed as it did, and `changed` names
-// the ones that did not. The hashes are kept in sessionStorage.
+// the ones that did not. The hashes are kept in sessionStorage, and they do not depend
+// on when the check runs or on what has read a sheet's canvas before it (they are of the
+// stored, premultiplied colours, below; #233).
 
+// The stored colours, not the read-back ones: a canvas keeps each colour already multiplied by its alpha (premultiplied), and `getImageData` divides it out again, rounding
+// as it goes; the same stored byte reads back with a different low bit in a semi-transparent pixel depending on how the canvas was last read (a direct read can move the canvas
+// between CPU and GPU storage, and the two un-premultiply differently). Multiplying back by alpha gives the stored byte again either way.
 function hashPixels(data) {
   let h = 2166136261;
   for (let i = 0; i < data.length; i += 4) {
-    h = Math.imul(h ^ data[i], 16777619);
-    h = Math.imul(h ^ data[i + 1], 16777619);
-    h = Math.imul(h ^ data[i + 2], 16777619);
-    h = Math.imul(h ^ data[i + 3], 16777619);
+    const a = data[i + 3];
+    h = Math.imul(h ^ Math.round((data[i] * a) / 255), 16777619);
+    h = Math.imul(h ^ Math.round((data[i + 1] * a) / 255), 16777619);
+    h = Math.imul(h ^ Math.round((data[i + 2] * a) / 255), 16777619);
+    h = Math.imul(h ^ a, 16777619);
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
@@ -18,17 +24,15 @@ function hashPixels(data) {
 export async function run(game) {
   const G = game;
   const hashes = {};
-  for (const sheet of G.assets.allSheets()) {
+  for (const [sheetKey, sheet] of G.assets.allSheetEntries()) { // by the key a sheet is registered under, not its `id`: a prop's one-tile and many-tile sheets share an id (#245)
     const img = sheet.image;
-    let ctx = img.getContext && img.getContext("2d");
-    if (!ctx) {
-      const c = document.createElement("canvas");
-      c.width = img.width;
-      c.height = img.height;
-      ctx = c.getContext("2d", { willReadFrequently: true });
-      ctx.drawImage(img, 0, 0);
-    }
-    hashes[sheet.id] = `${img.width}x${img.height}:${hashPixels(ctx.getImageData(0, 0, img.width, img.height).data)}`;
+    // From a copy on a canvas that lives on the CPU, so this read leaves the sheet's own canvas alone (a direct read is what moves it between CPU and GPU storage; see hashPixels).
+    const c = document.createElement("canvas");
+    c.width = img.width;
+    c.height = img.height;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
+    hashes[sheetKey] = `${img.width}x${img.height}:${hashPixels(ctx.getImageData(0, 0, img.width, img.height).data)}`;
   }
   const key = "cmz.sheets";
   let previous = null;
