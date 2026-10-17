@@ -110,8 +110,9 @@ export function makeCode() {
 // of its snapshot and a guest keeps the frames that come before it (an older guest dropped them); 5 (2026-10-18, #221): a prop goes as its identity and
 // the fields that differ from what its sprite makes it (`map.serializeProp`), so a chunk, a frame, and a save are about half the size; an older guest
 // would read a prop with its defaults missing.
-// 6 (2026-10-18, #203): the frame carries the chart's changed chunks (`chart`, only when there are any) and the save the whole chart.
-export const PROTOCOL = 6;
+// 6 (2026-10-18, #203): the frame carries the chart's changed chunks (`chart`, only when there are any) and the save the whole chart; 7 (2026-10-18, #237): the frame's `chart`
+// is the changed cells, [cx, cy, [index, cell, ...]] per chunk, not whole chunks.
+export const PROTOCOL = 7;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -232,7 +233,7 @@ const lastRoster = { zombies: "", villagers: "", corpses: "" };
 // predicted swing is refused or allowed on the same step as the host's (rounded, a cooldown of 0.0167 would go as 0.02 and
 // the guest would hold a click the host took).
 const EXACT = new Set(["gx", "gy", "attackCooldown", "offCooldown", "swingLock"]);
-const HEAVY = new Set(["worn", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
+const HEAVY = new Set(["worn", "hidden", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
 const lastHeavy = new Map(); // player id -> the heavy part's text last sent
 const lastLight = new Map(); // player id -> the light record's text last sent
 const lastExtras = { rules: "", carriers: "", queues: "" }; // sent when they change, not every frame
@@ -870,7 +871,7 @@ export function hostAfterStep() {
     simTime: loop.simTime(),
     timeScale: world.world.timeScale,
     chunks: touched.map(([cx, cy]) => map.getChunk(cx, cy, false)).filter(Boolean).map(map.serializeChunk),
-    ...(chartChanged.length ? { chart: chartChanged } : {}), // the chart chunks written since the last frame, whole (docs/33): the field only when there are any
+    ...(chartChanged.length ? { chart: chartChanged } : {}), // the chart cells written since the last frame, [cx, cy, [index, cell, ...]] per chunk (#237; whole chunks only in the welcome): the field only when there are any
     players: S.players.map(playerRecord),
     zombies: delta(S.zombies),
     villagers: delta(S.villagers),

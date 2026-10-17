@@ -20,7 +20,10 @@ export async function run(game) {
   const key = (code, type = "keydown") => window.dispatchEvent(new KeyboardEvent(type, { code }));
   const W = 960;
   const H = 540;
+  // With a screen up (the title on a fresh tab) the keys do not reach the world: the check puts it away and brings it back.
+  const screen0 = G.screens.currentScreen();
   try {
+    if (screen0) G.screens.hide();
     G.loop.setPaused(true);
     G.rules.rules.zombieAggro = false;
     // A stretch of open ground to walk across the screen on (D walks along gx up, gy down): twelve tiles of bare walkable grass with a tile of room each side.
@@ -118,6 +121,7 @@ export async function run(game) {
     G.rules.rules.zombieAggro = aggro0;
     G.teleport(meAt[0], meAt[1]);
     G.loop.setPaused(wasPaused);
+    if (screen0 && !G.screens.currentScreen()) G.screens.show(screen0);
   }
   for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);
   return { rows, passed: rows.filter((r) => r.result === "pass").length, total: rows.length };

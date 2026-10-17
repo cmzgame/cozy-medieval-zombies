@@ -78,7 +78,7 @@ export function characterInputs(ch, artOf = artResolver, overrides = {}, style =
   const outfit = {};
   for (const slot of OUTFIT_SLOTS) {
     const e = ch.worn && ch.worn[slot];
-    outfit[slot] = e ? dyed(artOf(e.id) || null, e) : null;
+    outfit[slot] = e && !(ch.hidden && ch.hidden.includes(slot)) ? dyed(artOf(e.id) || null, e) : null; // a slot the wearer hides draws nothing (#159)
   }
   const zombie = ch.kind === "zombie";
   return {

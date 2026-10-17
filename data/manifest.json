@@ -1,5 +1,5 @@
 {
-  "version": "14e72f6b",
+  "version": "9a6d87f7",
   "files": {
     "data/build.json": {"size": 429, "stamp": "12352f35"},
     "data/combat.json": {"size": 4109, "stamp": "4efa7ba3"},
@@ -14,7 +14,7 @@
     "data/poses.json": {"size": 4867, "stamp": "53e6f192"},
     "data/recipes.json": {"size": 11193, "stamp": "894574e2"},
     "data/references.json": {"size": 899, "stamp": "81bd77a4"},
-    "data/tuning.json": {"size": 2988, "stamp": "2bad9aad"},
+    "data/tuning.json": {"size": 3035, "stamp": "a8a8f4da"},
     "data/wardrobes.json": {"size": 9067, "stamp": "ce830859"},
     "data/art/character/character_body.json": {"size": 17235, "stamp": "2b1fcf24"},
     "data/art/character/character_template.json": {"size": 13333, "stamp": "9a0c05f7"},
@@ -550,7 +550,7 @@
     "data/talk/apprentice.json": {"size": 806, "stamp": "b1a25f39"},
     "data/talk/child.json": {"size": 721, "stamp": "30c61c33"},
     "data/talk/guest.json": {"size": 759, "stamp": "6d941b5e"},
-    "data/talk/guide.json": {"size": 13018, "stamp": "9de7d31e"},
+    "data/talk/guide.json": {"size": 13642, "stamp": "5475aacc"},
     "data/talk/innkeeper.json": {"size": 1044, "stamp": "dbcf0009"},
     "data/talk/neighbour.json": {"size": 715, "stamp": "1f20ffd6"},
     "data/talk/priest.json": {"size": 785, "stamp": "ebccec7f"},

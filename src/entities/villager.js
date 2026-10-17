@@ -57,13 +57,22 @@ export function createVillager(gx, gy, { id = null, name = null, line = null, wa
     talkTimer: 0,
     pokedAt: 0, // sim milliseconds of the last poke that spoke
     hurtTimer: 0,
+    regenAt: 0, // sim seconds before which a hurt villager does not heal (a hit sets it)
   };
   wardrobeInto(v, "village", wardrobe);
   return v;
 }
 
+// A hurt villager heals slowly, at the player's rate (Michael, 2026-10-18, #236: "slow refill like players"): in the world's step on the authority, never above their
+// max, not while hurt (flinching) or inside `regenPause` of the last hit, never once dead. Time scales with the step like everything else.
+function regen(v, dt) {
+  if (v.dead || v.hp <= 0 || v.hp >= (v.maxHp ?? 100) || v.state === "hurt" || loop.simTime() < v.regenAt) return;
+  v.hp = Math.min(v.maxHp ?? 100, v.hp + (T.regenPerMinute / 60) * dt);
+}
+
 export function updateVillager(v, dt, others, players = []) {
   const sheet = getSheet(v.sprite);
+  regen(v, dt);
   if (v.talkingWith.length) keepTalkers(v, players);
   if ((v.state === "idle" || v.state === "wander") && !v.dead) ambientBark(v, players);
   switch (v.state) {
@@ -122,6 +131,7 @@ export function updateVillager(v, dt, others, players = []) {
 export function damageVillager(v, amount) {
   if (v.dead || v.immune) return false; // an immune villager takes no harm from anything
   v.hp = Math.max(0, v.hp - amount);
+  v.regenAt = loop.simTime() + T.regenPause;
   v.path = [];
   v.lastGoal = null;
   if (v.hp <= 0) {

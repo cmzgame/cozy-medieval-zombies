@@ -182,6 +182,20 @@ export function detach(player, entry) {
   return false;
 }
 
+// The worn slots whose item is drawn on the figure (`figure/wardrobe.js` OUTFIT_SLOTS): the ones an eye toggle can hide.
+export const HIDEABLE = ["head", "chest", "hands", "legs", "feet", "waist", "back"];
+
+// Hide or show what is worn in a slot on the figure (#159: WoW's show-helm). The item stays worn and keeps every use: the belt's slots and a belt torch's light,
+// a bag's size. Only a slot with something worn can be hidden; showing is always allowed. Returns whether the slot is now hidden, or null when nothing was done.
+export function toggleHidden(player, slot) {
+  if (!player || !HIDEABLE.includes(slot)) return null;
+  const list = Array.isArray(player.hidden) ? player.hidden : [];
+  const was = list.includes(slot);
+  if (!was && !(player.worn && player.worn[slot])) return null;
+  player.hidden = was ? list.filter((s) => s !== slot) : [...list, slot].sort();
+  return !was;
+}
+
 // The one container rule (docs/02, 2026-10-10 late): a container, which is
 // any item with a grid or belt slots, goes inside another container only
 // while it is empty. Wear it or drop it once it holds something.
