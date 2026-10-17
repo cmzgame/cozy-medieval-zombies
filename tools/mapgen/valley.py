@@ -183,7 +183,7 @@ def build():
         [1, 1, 7, 5], "wall_wood", "floor_wood",
         openings=[door("s", 1), window("s", 5), window("n", 2), window("e", 2)],
         partitions=[part_w(4, 0, 5, door_at=3)],
-        props=[hearth_w(0, 1), along_x("table", 1, 2), chair(1, 1, "s"), chair(1, 3, "n"), one("chest", 3, 4),
+        props=[hearth_w(0, 1), along_x("table", 1, 2), chair(1, 1, "s"), chair(1, 3, "n"), one("chest", 3, 4, loot="home_chest"),
                along_x("bed", 5, 0), one("chest", 6, 4), one("shelf", 4, 4)],
         brackets=[{"side": "w", "at": 0, "facing": "in", "lantern": True}],
     )
@@ -341,7 +341,7 @@ def build():
     joi = g.place("the joiner", [P(7, 49)[0], P(7, 49)[1], 10, 14])
     joi.building([1, 1, 8, 5], "wall_wood", "floor_wood",
                  openings=[door("e", 2), window("n", 2), window("n", 5)],
-                 props=[one("workbench", 1, 1, footprint=[2, 1]), along_x("table", 4, 1), one("shelf", 7, 0), one("shelf", 0, 0), one("barrel", 7, 4), one("chest", 0, 4)],
+                 props=[one("workbench", 1, 1, footprint=[2, 1]), along_x("table", 4, 1), one("shelf", 7, 0), one("shelf", 0, 0), one("barrel", 7, 4), one("chest", 0, 4, loot="joiner_chest")],
                  brackets=[{"side": "n", "at": 4, "facing": "in", "lantern": True}])
     joi.building([1, 6, 8, 5], "wall_wood", "floor_wood",
                  openings=[door("n", 3), window("w", 2), window("e", 3)],

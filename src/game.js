@@ -259,7 +259,6 @@ export function restore(saved, json) {
   S.info = map.loadMap(json, mapOptions());
   map.restoreMap(save.map);
   fruit.reset();
-  farming.reset();
   const makers = { player: createPlayer, zombie: createZombie, villager: createVillager };
   const all = [];
   const bring = (list) => (list || []).map((d) => {
@@ -294,6 +293,7 @@ export function restore(saved, json) {
   world.reset(save.world.idCounter);
   world.setTimeScale(save.world.timeScale);
   clock.setElapsed(save.clock);
+  farming.reset(true); // after the clock: a restored world's crops wait for the next boundary, as the running one's did
   loop.setSimTime(save.simTime);
   rng.setState(save.rng);
   light.forgetAll();
