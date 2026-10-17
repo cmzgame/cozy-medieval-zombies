@@ -469,7 +469,7 @@ def build():
     dead = []
     dead += [(sq[0] + 3, sq[1] + 3), (sq[0] + 9, sq[1] + 9), (sq[0] + 8, sq[1] + 4), (sq[0] + 2, sq[1] + 10)]          # the square
     dead += [P(17, 12), P(17, 26), P(16, 30)]                                                                         # the nobles' street
-    dead += [P(17, 52), P(17, 58), P(10, 64), P(22, 64), P(12, 40)]                                                     # the lanes
+    dead += [P(17, 52), P(17, 58), P(10, 64), (86, 212), P(12, 40)]                                                     # the lanes
     dead += [(114, HIGH_Y + 2), (115, HIGH_Y - 2), (113, HIGH_Y + 3), (117, HIGH_Y - 3), (112, HIGH_Y), (116, HIGH_Y + 1)]  # the toll gate's knot
     dead += [(135, HIGH_Y + 1), (136, HIGH_Y - 2), (137, HIGH_Y + 2), (138, HIGH_Y)]                                  # the castle end
     dead += [(gy[0] + 3, gy[1] + 4), (gy[0] + 7, gy[1] + 10), (gy[0] + 5, gy[1] + 7), (gy[0] + 24, gy[1] + 9), (gy[0] + 28, gy[1] + 12), (gy[0] + 13, gy[1] + 12), (gy[0] + 20, gy[1] + 12), (gy[0] + 10, gy[1] + 1)]  # the graveyard, rising
@@ -483,6 +483,9 @@ def build():
         g.zombie(x, y)
 
     # ---- the living (29/08's cast; names are Michael's to give, placeholders until then) ----
+    # The guide stands just outside your cottage's door, in view on stepping out and under three tiles from the spawn: the neighbour from the farm
+    # lane, who came here when the bell stopped and has not gone home (docs/34; the name is a placeholder for Michael's, and the wardrobe her own).
+    g.guide((102, 218), "Wyn", 6, "Ask me anything, if you are stuck.")
     g.villager((inn.x + 6, inn.y + 3), "Innkeeper", 0, "Shut that behind you.", immune=True)  # the steady ones: they will teach, so they cannot die (#180)
     g.villager((inn.x + 3, inn.y + 12), "Guest", 1, "I only stopped for the night.")
     g.villager((inn.x + 4, inn.y + 6), "Child", 5)

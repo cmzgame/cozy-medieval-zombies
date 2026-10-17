@@ -256,6 +256,138 @@ for n, r in enumerate(load("data/references.json")["references"]):
     if not (w.get("title") and w.get("by") and w.get("kind") and r.get("how") and r.get("since") and r.get("from")):
         fail(f"{where}: needs work.title, work.by, work.kind, how, since, and from")
 
+
+# Talk (docs/34, #198): every file under data/talk is well formed, and it can only read the world, never write it: no key the loader does not know,
+# every condition in the fixed vocabulary (src/talk.js CONDITIONS, mirrored here) with a value of its kind, every `goto` names a node, `start` exists,
+# every node is reachable from it, a villagerAlive/villagerDead names a talk id, a bark line fits a bubble (tuning.villager.barkMaxLength), a map's guide
+# has its file, and a `wiki` title is a page of the wiki when the wiki can be read (CMZ_WIKI, else C:/Users/micha/Dev/cmz-wiki).
+TALK_CONDITIONS = {"time": "phase", "deadNear": "bool", "deadInWorld": "bool", "villagerAlive": "id", "villagerDead": "id", "indoors": "bool", "hurt": "bool",
+                   "holding": "item", "hungry": "bool", "thirsty": "bool", "tired": "bool", "bleeding": "bool"}
+talk_files = {os.path.basename(p)[:-5]: load(p) for p in sorted(glob.glob("data/talk/*.json"))}
+bark_max = load("data/tuning.json")["villager"]["barkMaxLength"]
+wiki_dir = os.environ.get("CMZ_WIKI") or "C:/Users/micha/Dev/cmz-wiki"
+wiki_titles = None
+if os.path.isdir(os.path.join(wiki_dir, "pages")):
+    import re
+    wiki_titles = set()
+    for p in glob.glob(os.path.join(wiki_dir, "pages", "**", "*.md"), recursive=True):
+        with open(p, encoding="utf-8") as f:
+            head = f.read(600)
+        m = re.search(r"^title:\s*(.+)$", head, re.M)
+        if m:
+            wiki_titles.add(m.group(1).strip().lower())
+        a = re.search(r"^aliases:\s*\[(.*)\]", head, re.M)
+        if a:
+            wiki_titles.update(x.strip().lower() for x in a.group(1).split(",") if x.strip())
+else:
+    notes.append("talk: the wiki is not at " + wiki_dir + ", so a topic's `wiki` link is not checked against its pages")
+item_ids = {i["id"] for i in items}
+item_tag_set = {t for i in items for t in i.get("tags", [])}
+
+
+def talk_keys(where, obj, allowed):
+    for k in obj:
+        if k not in allowed:
+            fail(f"talk.{where}: unknown key {k!r} (talk data has no field that could write)")
+
+
+def talk_when(where, when):
+    if when is None:
+        return
+    if not isinstance(when, dict):
+        fail(f"talk.{where}: `when` is an object of conditions")
+        return
+    for k, v in when.items():
+        kind = TALK_CONDITIONS.get(k)
+        if kind is None:
+            fail(f"talk.{where}: unknown condition {k!r}")
+        elif kind == "bool" and not isinstance(v, bool):
+            fail(f"talk.{where}: {k} is true or false")
+        elif kind == "phase" and v not in ("day", "night", "dawn", "dusk"):
+            fail(f"talk.{where}: {k} is day, night, dawn, or dusk, not {v!r}")
+        elif kind == "id" and v not in talk_files:
+            fail(f"talk.{where}: {k} names {v!r}, which has no file in data/talk")
+        elif kind == "item" and not (v in item_ids or v in item_tag_set):
+            fail(f"talk.{where}: {k} names {v!r}, which is no item or tag")
+
+
+def talk_lines(where, lines, limit=None):
+    if not isinstance(lines, list) or not lines or not all(isinstance(l, str) and l for l in lines):
+        fail(f"talk.{where}: `lines` is a list of one or more lines")
+        return
+    if limit:
+        for l in lines:
+            if len(l) > limit:
+                fail(f"talk.{where}: a bark of {len(l)} characters, over {limit}: {l!r}")
+
+
+for tid, f in talk_files.items():
+    talk_keys(tid, f, {"name", "note", "barks", "start", "nodes"})
+    for i, g in enumerate(f.get("barks", [])):
+        talk_keys(f"{tid}.barks[{i}]", g, {"when", "lines", "ambient"})
+        if "ambient" in g and not isinstance(g["ambient"], bool):
+            fail(f"talk.{tid}.barks[{i}]: `ambient` is true or false")
+        talk_when(f"{tid}.barks[{i}]", g.get("when"))
+        talk_lines(f"{tid}.barks[{i}]", g.get("lines"), bark_max)
+    nodes = f.get("nodes", {})
+    if f.get("start") not in nodes:
+        fail(f"talk.{tid}: `start` names {f.get('start')!r}, which is not a node")
+    for nid, n in nodes.items():
+        where = f"{tid}/{nid}"
+        talk_keys(where, n, {"say", "options", "end"})
+        say = n.get("say", [])
+        if say and isinstance(say[0], dict):
+            for j, v in enumerate(say):
+                talk_keys(f"{where}.say[{j}]", v, {"when", "lines"})
+                talk_when(f"{where}.say[{j}]", v.get("when"))
+                talk_lines(f"{where}.say[{j}]", v.get("lines"))
+        elif say:
+            talk_lines(where + ".say", say)
+        if not say and not n.get("options"):
+            fail(f"talk.{where}: a node with no lines and no options")
+        if not n.get("options") and not n.get("end"):
+            fail(f"talk.{where}: no options and not `end`: the panel would have nowhere to go but its own button")
+        for j, o in enumerate(n.get("options", [])):
+            talk_keys(f"{where}.options[{j}]", o, {"text", "goto", "end", "when", "wiki"})
+            if not o.get("text"):
+                fail(f"talk.{where}.options[{j}]: no text")
+            if bool(o.get("goto")) == bool(o.get("end")):
+                fail(f"talk.{where}.options[{j}]: exactly one of `goto` and `end`")
+            if o.get("goto") and o["goto"] not in nodes:
+                fail(f"talk.{where}.options[{j}]: `goto` names {o['goto']!r}, which is not a node")
+            talk_when(f"{where}.options[{j}]", o.get("when"))
+            if o.get("wiki") and wiki_titles is not None and o["wiki"].lower() not in wiki_titles:
+                fail(f"talk.{where}.options[{j}]: no wiki page titled {o['wiki']!r}")
+    # every node reachable from start
+    seen, todo = set(), [f.get("start")]
+    while todo:
+        k = todo.pop()
+        if k in seen or k not in nodes:
+            continue
+        seen.add(k)
+        todo += [o["goto"] for o in nodes[k].get("options", []) if o.get("goto")]
+    for nid in nodes:
+        if nid not in seen:
+            fail(f"talk.{tid}/{nid}: not reachable from `{f.get('start')}`")
+for mp in sorted(glob.glob("data/maps/*.json")):
+    mj = load(mp)
+    guides = [v for v in mj.get("villagers", []) if v.get("guide")]
+    # Every map the generator makes has exactly one guide within 3 tiles of its spawn (docs/34; MapGen.write insists, and a hand-edited map is caught here);
+    # the hand-written proving ground (`square`) has none.
+    if os.path.basename(mp) != "square.json":
+        sx, sy = mj.get("spawn", [0, 0])
+        if len(guides) != 1:
+            fail(f"{mp}: {len(guides)} guides (a generated map has exactly one)")
+        elif ((guides[0]["tile"][0] - sx) ** 2 + (guides[0]["tile"][1] - sy) ** 2) ** 0.5 > 3:
+            fail(f"{mp}: the guide stands more than 3 tiles from the spawn {mj.get('spawn')}")
+    for v in mj.get("villagers", []):
+        if v.get("guide"):
+            tid = v.get("talk") or str(v.get("name", "")).lower()
+            if tid not in talk_files:
+                fail(f"{mp}: the guide {v.get('name')!r} has no talk file {tid!r}")
+            if not v.get("immune"):
+                fail(f"{mp}: the guide {v.get('name')!r} is not immune to the dead")
+
 # The gatherables law (CLAUDE.md, Michael 2026-10-11): an interactable thing on a dev box has the dark outline all the way round (`placeholder.outline: true`).
 for sid in sorted(sprites):
     d = load(f"data/sprites/{sid}.json")

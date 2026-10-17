@@ -1,0 +1,42 @@
+{
+ "name": "Neighbour",
+ "note": "A stub (#198): their map line as the fallback bark, one ambient group, a two-node conversation. Michael, or a writing session, fills the rest.",
+ "barks": [
+  {
+   "ambient": true,
+   "when": {
+    "time": "night"
+   },
+   "lines": [
+    "I can hear you. Go away."
+   ]
+  },
+  {
+   "lines": [
+    "Go away."
+   ]
+  }
+ ],
+ "start": "hello",
+ "nodes": {
+  "hello": {
+   "say": [
+    "Go away. I mean it kindly.",
+    "The door stays shut."
+   ],
+   "options": [
+    {
+     "text": "Are you alright in there?",
+     "goto": "topic"
+    }
+   ]
+  },
+  "topic": {
+   "say": [
+    "I have bread and a candle. I am fine.",
+    "Do not open the door. Please."
+   ],
+   "end": true
+  }
+ }
+}

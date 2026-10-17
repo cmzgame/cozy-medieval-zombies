@@ -36,6 +36,10 @@ export async function bootData(root) {
   (await import("../src/kit.js")).load(read("data/kit.json")); // the starting kit (#136)
   (await import("../src/farming.js")).load(optional("data/crops.json")); // the crops (#194)
   (await import("../src/fishing.js")).load(optional("data/fishing.json")); // the waters' tables and the cast (#190)
+  const talkFiles = {}; // what villagers say (docs/34, #198): every file under data/talk, by its name
+  const talkDir = path.join(root, "data/talk");
+  if (fs.existsSync(talkDir)) for (const f of fs.readdirSync(talkDir)) if (f.endsWith(".json")) talkFiles[f.slice(0, -5)] = read(`data/talk/${f}`);
+  (await import("../src/talk.js")).load(talkFiles);
   items.loadItems(itemsJson);
   placement.setBuildData(buildJson);
   if (combatJson) combat.setCombatData(combatJson);

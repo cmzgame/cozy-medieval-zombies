@@ -14,22 +14,38 @@ import { emit } from "../events.js";
 import { createZombie } from "./zombie.js";
 import { pickTargetAround, repath, followPath, separate, faceToward, roomOf, idleTime } from "./movement.js";
 import * as loop from "../loop.js";
+import * as talk from "../talk.js";
 import { villager as T } from "../tuning.js";
 
 const DEAD_SKIN = "#9fbf88"; // what a turned villager's skin goes // as a wiggle's (interact.js): spam does not restart the line
 
 let nextId = 1;
 
+// What the talk conditions read (docs/34): the dead, the living villagers, and the talk ids the map placed, handed in by game.js each time a
+// world is made or restored (as interact's characters are). A wire to the world's lists, not state of a player.
+let talkWorld = () => null;
+export function setTalkWorld(fn) {
+  talkWorld = fn;
+}
+
+// A villager's talk id (docs/34): the map's `talk`, else the name lowercased; null for a nameless one.
+export function talkIdOf(spec) {
+  return spec.talk || (spec.name ? String(spec.name).toLowerCase() : null);
+}
 
 // `line` is what they say when poked ("Hey!" unless the map gives one);
 // `wardrobe` indexes the village wardrobes in data/wardrobes.json.
-export function createVillager(gx, gy, { id = null, name = null, line = null, wardrobe = 0, immune = false } = {}) {
+export function createVillager(gx, gy, { id = null, name = null, line = null, wardrobe = 0, immune = false, talk: talkId = null, guide = false } = {}) {
   const v = {
     ...createCharacter("villager", gx, gy, { id: id || `v${nextId++}`, name, speed: T.speed, radius: T.radius, hp: 100 }),
     home: [gx, gy],
     state: "idle", // idle | wander | talk
     greeting: line || "Hey!",
     immune: !!immune, // the dead neither target nor harm it, whatever the world's rules (#180: a teacher, like the guide; the rest can die)
+    talk: talkId, // the name of its file in data/talk (docs/34); none, or a file that is not there, and it says its map line
+    guide: !!guide, // the one beside the spawn who explains the rules (docs/34, #90); immune comes with it from the map
+    barkTurns: {}, // group index -> which of its lines comes next (bookkeeping nothing reads; no rng, so a bark never shifts the generator)
+    barkAt: null, // sim seconds of its last ambient bark
     path: [],
     repathTimer: 0,
     idleTimer: idleTime(),
@@ -44,8 +60,9 @@ export function createVillager(gx, gy, { id = null, name = null, line = null, wa
   return v;
 }
 
-export function updateVillager(v, dt, others) {
+export function updateVillager(v, dt, others, players = []) {
   const sheet = getSheet(v.sprite);
+  if ((v.state === "idle" || v.state === "wander") && !v.dead) ambientBark(v, players);
   switch (v.state) {
     case "idle": {
       playAnimation(v.anim, "idle");
@@ -136,7 +153,29 @@ export function turnVillager(v) {
   return z;
 }
 
-// A poke: stop where they stand, turn to the player, say the line. Returns
+// An unprompted remark (docs/34): from a villager idle or wandering (never one hurt, talking, or dead), with a living player within
+// `T.barkRadius`, not twice inside `T.barkCooldown` seconds of game time, from an `ambient` group of their file that holds; an idle
+// villager turns toward the nearest player as they say it. On the authority only (the host's step); the bubble rides in the record.
+function ambientBark(v, players) {
+  if (!talk.has(v.talk) || v.hp < (v.maxHp ?? 100)) return;
+  const now = loop.simTime();
+  if (v.barkAt !== null && now - v.barkAt < T.barkCooldown) return;
+  let near = null;
+  let best = T.barkRadius;
+  for (const p of players) {
+    if (p.dead) continue;
+    const d = Math.hypot(p.gx - v.gx, p.gy - v.gy);
+    if (d <= best) { near = p; best = d; }
+  }
+  if (!near) return;
+  const text = talk.barkFor(v, talk.contextFor(v, null, talkWorld()), { ambient: true });
+  if (!text) return;
+  v.barkAt = now;
+  if (v.state === "idle") faceToward(v, near.gx - v.gx, near.gy - v.gy);
+  say(v, text);
+}
+
+// A poke: stop where they stand, turn to the player, say the line (from their talk file for this moment, else their map line). Returns
 // whether it spoke (a second poke inside the cooldown does nothing).
 export function pokeVillager(v, player) {
   const now = loop.simTime() * 1000; // sim milliseconds (docs/23a, C2)
@@ -146,7 +185,8 @@ export function pokeVillager(v, player) {
   v.lastGoal = null;
   v.state = "talk";
   faceToward(v, player.gx - v.gx, player.gy - v.gy);
-  say(v, v.greeting);
+  const bark = talk.has(v.talk) ? talk.barkFor(v, talk.contextFor(v, player, talkWorld())) : null;
+  say(v, bark || v.greeting);
   v.talkTimer = Math.max(T.talkTime, v.line.left);
   return true;
 }

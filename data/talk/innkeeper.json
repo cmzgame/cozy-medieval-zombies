@@ -1,0 +1,59 @@
+{
+ "name": "Innkeeper",
+ "note": "A stub (#198): their map line as the fallback bark, one ambient group, a two-node conversation. Michael, or a writing session, fills the rest.",
+ "barks": [
+  {
+   "when": {
+    "deadNear": true
+   },
+   "ambient": true,
+   "lines": [
+    "Inside! Now!",
+    "Shut that door behind you."
+   ]
+  },
+  {
+   "ambient": true,
+   "when": {
+    "time": "night"
+   },
+   "lines": [
+    "Bar's shut. Mind the door."
+   ]
+  },
+  {
+   "lines": [
+    "Shut that behind you."
+   ]
+  }
+ ],
+ "start": "hello",
+ "nodes": {
+  "hello": {
+   "say": [
+    "You look like you have walked a long way.",
+    "Sit by the fire a while."
+   ],
+   "options": [
+    {
+     "text": "What happened here?",
+     "goto": "topic"
+    },
+    {
+     "text": "Ask about the chapel.",
+     "goto": "topic",
+     "when": {
+      "villagerAlive": "priest"
+     }
+    }
+   ]
+  },
+  "topic": {
+   "say": [
+    "Someone shouted in the square. Then everyone did.",
+    "I locked up. It is the one thing I know how to do."
+   ],
+   "end": true
+  }
+ }
+}
