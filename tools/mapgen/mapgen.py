@@ -12,6 +12,9 @@ helper returns what it added so a place can be built up in pieces.
 import json
 
 
+GUIDE_REACH = 3  # tiles from the spawn: the guide is found at once (docs/34, #90)
+
+
 def _norm_rect(r):
     x, y, w, h = r
     return [int(x), int(y), int(w), int(h)]
@@ -125,7 +128,7 @@ class MapGen:
     def zombie(self, x, y):
         self.json["zombies"].append([int(x), int(y)])
 
-    def villager(self, tile, name, wardrobe, line=None, immune=False):
+    def villager(self, tile, name, wardrobe, line=None, immune=False, talk=None, guide=False):
         # `immune`: the dead neither target nor harm this villager, whatever the world's rules (Michael, 2026-10-18, #180: a villager who
         # teaches a skill is immune, like the guide; the rest can die, and some are there to be at risk).
         v = {"tile": [int(tile[0]), int(tile[1])], "name": name, "wardrobe": wardrobe}
@@ -133,7 +136,17 @@ class MapGen:
             v["line"] = line
         if immune:
             v["immune"] = True
+        # `talk` names the villager's file in data/talk (docs/34; the name lowercased when it is not given); `guide` marks the one beside the spawn.
+        if talk:
+            v["talk"] = talk
+        if guide:
+            v["guide"] = True
         self.json["villagers"].append(v)
+
+    def guide(self, tile, name, wardrobe, line=None, talk="guide"):
+        """The guide (docs/34; Michael, 2026-10-16, #90): a villager beside the spawn on every map this generator makes, immune to the dead
+        (a per-villager flag, #180), with a name and a voice like any other. `write` refuses a map without exactly one within GUIDE_REACH tiles."""
+        self.villager(tile, name, wardrobe, line=line, immune=True, talk=talk, guide=True)
 
     def prop(self, sprite, tile, **extra):
         p = {"sprite": sprite, "tile": [int(tile[0]), int(tile[1])]}
@@ -142,6 +155,10 @@ class MapGen:
         return p
 
     def write(self, path):
+        guides = [v for v in self.json["villagers"] if v.get("guide")]
+        sx, sy = self.json["spawn"]
+        if len(guides) != 1 or ((guides[0]["tile"][0] - sx) ** 2 + (guides[0]["tile"][1] - sy) ** 2) ** 0.5 > GUIDE_REACH:
+            raise ValueError(f"{self.json['name']}: a map needs exactly one guide within {GUIDE_REACH} tiles of its spawn {self.json['spawn']} (docs/34), has {[v['tile'] for v in guides]}")
         j = dict(self.json)
         for k in ("wild", "forage"):
             if j[k] is None:

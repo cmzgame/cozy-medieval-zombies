@@ -1,0 +1,42 @@
+{
+ "name": "Reeve",
+ "note": "A stub (#198): their map line as the fallback bark, one ambient group, a two-node conversation. Michael, or a writing session, fills the rest.",
+ "barks": [
+  {
+   "ambient": true,
+   "when": {
+    "time": "day"
+   },
+   "lines": [
+    "There ought to be a meeting about this."
+   ]
+  },
+  {
+   "lines": [
+    "I have the keys and no one to give them to."
+   ]
+  }
+ ],
+ "start": "hello",
+ "nodes": {
+  "hello": {
+   "say": [
+    "I keep the keys, the roll, and the accounts.",
+    "The roll is shorter every day."
+   ],
+   "options": [
+    {
+     "text": "Who has the roll?",
+     "goto": "topic"
+    }
+   ]
+  },
+  "topic": {
+   "say": [
+    "I do. It has forty names and a great many crossings out.",
+    "I do not cross out the ones who might come back."
+   ],
+   "end": true
+  }
+ }
+}

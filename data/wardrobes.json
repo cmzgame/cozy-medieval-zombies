@@ -556,6 +556,45 @@
     2
    ],
    "loot": null
+  },
+  {
+   "look": {
+    "skin": "#d8a878",
+    "hair": "#c8c4bc",
+    "hairStyle": "long",
+    "eyes": "#1c1a22",
+    "under": "#e9dfc8"
+   },
+   "worn": {
+    "chest": {
+     "item": "tunic",
+     "colour": "#4f7a6a"
+    },
+    "legs": {
+     "item": "breeches",
+     "colour": "#6a5a40"
+    },
+    "feet": {
+     "item": "boots",
+     "colour": "#3a2a1c"
+    },
+    "head": {
+     "item": "hood",
+     "colour": "#8a6a3a"
+    },
+    "waist": {
+     "item": "belt",
+     "colours": [
+      "#5e4028",
+      "#8a7a60"
+     ]
+    }
+   },
+   "pockets": [
+    3,
+    2
+   ],
+   "loot": null
   }
  ]
 }
