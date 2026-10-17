@@ -184,6 +184,10 @@ export function createInventoryActions(getPlayer) {
     slotMenu(slotId) {
       return interact.slotMenu(getPlayer(), slotId);
     },
+    // The eye on a worn slot: hide its art on the figure or show it again (#159); the item keeps every use.
+    toggleHidden(slot) {
+      return inventory.toggleHidden(getPlayer(), slot);
+    },
   };
 }
 
@@ -266,6 +270,9 @@ export function createRemoteInventoryActions(getPlayer, getOpen, send) {
     slotMenu(slotId) {
       return remoteMenu(local.slotMenu(slotId), { src: { kind: "slot", id: slotId } });
     },
+    toggleHidden(slot) {
+      send({ op: "hide", slot });
+    },
   };
 }
 
@@ -309,6 +316,7 @@ export function performItemCommand(player, c) {
   const h = createInventoryActions(() => player);
   const { touched, containerOf, fromOf, entryIn } = resolvers(player);
   let ran = false;
+  if (c.op === "hide") return typeof c.slot === "string" && inventory.toggleHidden(player, c.slot) !== null; // a guest's eye: the same toggle, on the host
   if (c.op === "tidy") {
     const to = containerOf(c.bag);
     if (to) grid.tidy(to.bag);

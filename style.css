@@ -1448,6 +1448,40 @@ html, body {
   justify-content: center;
 }
 
+/* The eye on a worn slot (#159): open when the item is drawn on the figure, struck through when hidden. Pure CSS, no art needed. */
+.slot-eye {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 13px;
+  height: 9px;
+  padding: 0;
+  border: 1px solid #1a1420;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, #1a1420 0 22%, #e8e0d0 24% 100%);
+  cursor: pointer;
+  z-index: 2;
+  opacity: 0.85;
+}
+
+.slot-eye:hover { opacity: 1; }
+
+.slot-eye.off {
+  background: #6a5a78;
+  opacity: 0.9;
+}
+
+.slot-eye.off::after {
+  content: "";
+  position: absolute;
+  left: -2px;
+  top: 3px;
+  width: 15px;
+  height: 2px;
+  background: #e87070;
+  transform: rotate(-30deg);
+}
+
 .doll-hand .slot-label {
   color: var(--gold);
 }

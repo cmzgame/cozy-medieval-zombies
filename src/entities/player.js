@@ -28,6 +28,7 @@ export function createPlayer(gx, gy, { id = null } = {}) {
     ...createCharacter("player", gx, gy, { id: id || nextId("P"), speed: T.speed, radius: T.radius, hp: T.hp }),
     // The shared player sheet until a client bakes this one's own (main.js refreshFigure names it player_<id>; docs/31/05, item 5).
     sprite: "player",
+    hidden: [], // worn slots whose art is left out of the figure (an eye toggle on the character screen, #159); the item keeps every use
     aim: { sx: 0, sy: 1 },
     stamina: T.stamina,
     maxStamina: T.stamina,

@@ -232,7 +232,7 @@ const lastRoster = { zombies: "", villagers: "", corpses: "" };
 // predicted swing is refused or allowed on the same step as the host's (rounded, a cooldown of 0.0167 would go as 0.02 and
 // the guest would hold a click the host took).
 const EXACT = new Set(["gx", "gy", "attackCooldown", "offCooldown", "swingLock"]);
-const HEAVY = new Set(["worn", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
+const HEAVY = new Set(["worn", "hidden", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
 const lastHeavy = new Map(); // player id -> the heavy part's text last sent
 const lastLight = new Map(); // player id -> the light record's text last sent
 const lastExtras = { rules: "", carriers: "", queues: "" }; // sent when they change, not every frame

@@ -220,6 +220,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-10-18 — Hiding a worn item's art: an eye on each worn slot (#159; Primary's defaults for Michael's belt wish, Michael's to overrule)
+
+Michael (2026-10-17): a belt display setting, "if you think belt looks dumb on you and want the benefit without it covering part of your chest". Built as **the wearer's choice, seen by everyone** (WoW's show-helm), not a Display setting: an **eye on each worn slot whose item is drawn on the figure** (head, chest, hands, legs, feet, waist, back), kept as the character's `hidden` list in the save and the player's record; hidden, the item's art is left out of the figure's sheet (so its `covers` rule no longer applies either) and **the item keeps every use** (the belt's slots, a bag's size). Only a slot with something worn can be hidden. The eye is drawn in CSS, so it needs no art.
+
 ### 2026-10-18 — A wounded villager still talks and barks (Michael, in chat, #230)
 
 On "a villager the dead have hurt can never be talked to again": **"Yes and yes, slow refill like players, and they keep any dialogue that is programmed."** So **only a dead villager is refused**: Talk is offered and starts for a wounded one, and the ambient bark and the poke's bark are not withheld for low health (`startTalk`, `ambientBark`, the menu's entry); a villager struck (staggered by a blow) still ends a conversation they are in, as one turned or dead does. The health refill is #236.

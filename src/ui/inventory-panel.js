@@ -15,7 +15,7 @@ import * as menu from "./context-menu.js";
 import * as view from "../view.js";
 import * as settings from "../settings.js";
 import * as use from "../use.js";
-import { parseSlot } from "../inventory.js";
+import { parseSlot, HIDEABLE } from "../inventory.js";
 
 let CELL = view.BASE_CELL; // the bag's cell in UI pixels, read from the view at every render
 const HOT_CELL = view.BASE_CELL; // the belt is HUD and keeps the base size
@@ -73,6 +73,7 @@ export function initInventoryPanel(h) {
   for (const el of [root, hotbar]) {
     el.addEventListener("pointerdown", onPointerDown);
     el.addEventListener("dblclick", (e) => {
+      if (e.target.closest("[data-eye]")) return; // two quick clicks on the eye are two toggles, not a take-off
       const hit = entryFromEvent(e);
       if (!hit) return;
       // Double-click uses the thing (Michael, 2026-10-10 night): equip or wear
@@ -89,7 +90,7 @@ export function initInventoryPanel(h) {
     });
     el.addEventListener("contextmenu", (e) => {
       e.preventDefault();
-      if (drag?.started) return;
+      if (drag?.started || e.target.closest("[data-eye]")) return;
       const hit = entryFromEvent(e);
       if (hit) openItemMenu(hit, e);
     });
@@ -101,6 +102,13 @@ export function initInventoryPanel(h) {
       if (close.dataset.close === "bag") setBagOpen(false);
       else if (close.dataset.close === "container") containerClosed = true;
       else setCharacterOpen(false);
+      return;
+    }
+    const eye = e.target.closest("button[data-eye]");
+    if (eye) {
+      handlers.toggleHidden?.(eye.dataset.eye);
+      handlers.changed?.();
+      lastSignature = "";
       return;
     }
     const btn = e.target.closest("button[data-tidy]");
@@ -269,14 +277,19 @@ function columnHtml(which, bag, title) {
 
 // A character slot is one cell square inside its cutout edge (Michael,
 // 2026-10-12: Minecraft's size or a hair bigger; two cells was far too big).
+let hiddenNow = []; // the character's hidden slots, set each render
 function slotHtml(id, entry, label, extra = "") {
   const px = CELL;
   const inner = entry ? blockHtml(entry, `data-slot="${id}"`, px, 1, 1, "in-slot", true) : `<span class="slot-label">${label}</span>`;
   const box = `calc(${px}px + 2 * var(--kit-well-w, 5px))`; // the content plus the well's border
-  return `<div class="doll-slot kit-well${extra}${entry ? "" : " empty"}" data-slot="${id}" title="${label}" style="width:${box};height:${box}">${inner}</div>`;
+  // A worn slot whose item is drawn on the figure has an eye: click to hide its art (the item keeps every use) or show it (#159).
+  const key = id.startsWith("worn:") ? id.slice(5) : null;
+  const eye = entry && key && HIDEABLE.includes(key) ? `<button class="slot-eye${hiddenNow.includes(key) ? " off" : ""}" data-eye="${key}" title="${hiddenNow.includes(key) ? "Show on your figure" : "Hide on your figure"}"></button>` : "";
+  return `<div class="doll-slot kit-well${extra}${entry ? "" : " empty"}" data-slot="${id}" title="${label}" style="width:${box};height:${box}">${inner}${eye}</div>`;
 }
 
 function dollHtml(player) {
+  hiddenNow = player.hidden || [];
   const area = (name, html) => html.replace('class="doll-slot', `style="grid-area:${name}" class="doll-slot`);
   const hand = (key, label) => area(key, slotHtml(`hand:${key}`, player.hands[key], label, " doll-hand"));
   const worn = (k) => area(k === "hands" ? "gloves" : k, slotHtml(`worn:${k}`, player.worn[k], SLOT_NAMES[k]));
@@ -314,7 +327,7 @@ export function renderInventoryPanel(player, inv, container, belt) {
   if (!open && !character) return;
   if (drag && drag.from.kind === "bag" && drag.from.bag !== inv && drag.from.bag !== container) cancelDrag();
   CELL = view.panelCell();
-  const sig = JSON.stringify([open, character, CELL, use.isActive() && use.current_()?.entry, inv?.items, inv?.cols, inv?.rows, container?.container, container?.items, container?.cols, container?.rows, player.worn, player.hands]);
+  const sig = JSON.stringify([open, character, CELL, use.isActive() && use.current_()?.entry, inv?.items, inv?.cols, inv?.rows, container?.container, container?.items, container?.cols, container?.rows, player.worn, player.hands, player.hidden]);
   if (sig === lastSignature) return;
   const hadContainer = lastSignature !== "" && /"container"/.test(lastSignature);
   lastSignature = sig;
@@ -463,7 +476,7 @@ function overPanel(clientX, clientY) {
 // ---- drag and drop ----
 
 function onPointerDown(e) {
-  if (e.button !== 0 || drag || move) return;
+  if (e.button !== 0 || drag || move || e.target.closest("[data-eye]")) return; // the eye on a worn slot is a button, not the item under it
   // A press on a header (not on its buttons) picks the panel up.
   const head = e.target.closest(".inv-header");
   if (head && !e.target.closest("button")) {
