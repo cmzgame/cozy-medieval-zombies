@@ -1651,11 +1651,13 @@ html, body {
 }
 
 .wm-small {
+  filter: drop-shadow(1px 0px 0 #14100c) drop-shadow(-1px 0px 0 #14100c) drop-shadow(0px 1px 0 #14100c) drop-shadow(0px -1px 0 #14100c) drop-shadow(2px 0px 0 #14100c) drop-shadow(-2px 0px 0 #14100c) drop-shadow(0px 2px 0 #14100c) drop-shadow(0px -2px 0 #14100c) drop-shadow(4px 0px 0 #14100c) drop-shadow(-4px 0px 0 #14100c) drop-shadow(0px 4px 0 #14100c) drop-shadow(0px -4px 0 #14100c); /* a thick dark backing that fills the holes (Michael, 2026-10-17) */
   font-size: clamp(24px, 4.6vw, 50px);
   background-image: linear-gradient(#e2a35a 0 30%, #b9783a 30% 62%, #8a5527 62% 100%);
 }
 
 .wm-big {
+  filter: drop-shadow(1px 0px 0 #14100c) drop-shadow(-1px 0px 0 #14100c) drop-shadow(0px 1px 0 #14100c) drop-shadow(0px -1px 0 #14100c) drop-shadow(2px 0px 0 #14100c) drop-shadow(-2px 0px 0 #14100c) drop-shadow(0px 2px 0 #14100c) drop-shadow(0px -2px 0 #14100c) drop-shadow(4px 0px 0 #14100c) drop-shadow(-4px 0px 0 #14100c) drop-shadow(0px 4px 0 #14100c) drop-shadow(0px -4px 0 #14100c) drop-shadow(8px 0px 0 #14100c) drop-shadow(-8px 0px 0 #14100c) drop-shadow(0px 8px 0 #14100c) drop-shadow(0px -8px 0 #14100c);
   font-size: clamp(58px, 12vw, 132px);
   background-image: linear-gradient(#86c95f 0 13%, #3f7a2c 13% 19%, #63aa48 19% 48%, #4c8e38 48% 74%, #386f2a 74% 100%); /* zombie green, the stone's banding (Michael, 2026-10-17) */
 }
