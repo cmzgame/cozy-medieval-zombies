@@ -48,5 +48,27 @@ export async function run(game) {
   F.registerLayer("hair", "zz_plain", { parts: { head: { s: [[0, -6, "#c0c0c0"]] } }, options: {} });
   const plain = F.generateFigure(F.playerSpec({ ...look, hair: "#ff0000", hairStyle: "zz_plain" }, {}, artOf));
   rows.push({ check: "a layer without the option keeps its painted colour", result: pxAt(plain, "idle_s_0", hx, hy) === "#c0c0c0" ? "pass" : "FAIL", detail: pxAt(plain, "idle_s_0", hx, hy) });
+  // The onion hat (2026-10-18): the hood's painted layer, its greens on the player, dyed like hair on a dyed hood, and
+  // worn by the dead too. Colours are read over every facing's idle frame.
+  const coloursOf = (sheet) => {
+    const seen = new Set();
+    const ctx = sheet.image.getContext("2d");
+    for (const f of ["s", "sw", "w", "nw", "n", "ne", "e", "se"].map((d) => sheet.frames[`idle_${d}_0`])) {
+      const d = ctx.getImageData(f[0], f[1], f[2], f[3]).data;
+      for (let i = 0; i < d.length; i += 4) if (d[i + 3]) seen.add("#" + [d[i], d[i + 1], d[i + 2]].map((v) => v.toString(16).padStart(2, "0")).join(""));
+    }
+    return seen;
+  };
+  const hoodArt = artOf("hood") || {};
+  const hasOnion = !!F.getLayer("head", "onion");
+  rows.push({ check: "the hood names the painted onion and it is loaded", result: hoodArt.painted === "onion" && hasOnion ? "pass" : "FAIL", detail: `painted ${hoodArt.painted}, loaded ${hasOnion}` });
+  const ownSpec = F.playerSpec(look, { head: { id: "hood", count: 1 } }, artOf);
+  const own = coloursOf(F.generateFigure(ownSpec));
+  rows.push({ check: "worn in its own colours the hat keeps its two greens", result: ownSpec.painted.head && ownSpec.painted.head.name === "onion" && own.has("#5f8a3a") && own.has("#46682a") ? "pass" : "FAIL", detail: `${own.has("#5f8a3a")} ${own.has("#46682a")}` });
+  const dyedSet = coloursOf(F.generateFigure(F.playerSpec(look, { head: { id: "hood", count: 1, colour: "#b08a3e" } }, artOf)));
+  rows.push({ check: "a dyed hood is dyed like hair: the entry's colour, no green left", result: dyedSet.has("#b08a3e") && !dyedSet.has("#5f8a3a") && !dyedSet.has("#46682a") ? "pass" : "FAIL", detail: `${dyedSet.has("#b08a3e")} ${dyedSet.has("#5f8a3a")} ${dyedSet.has("#46682a")}` });
+  const zSpec = F.characterSpec(F.characterInputs({ kind: "zombie", look: F.DEFAULT_LOOK, worn: { head: { id: "hood", count: 1, colour: "#705848" } }, wardrobe: 0 }, artOf));
+  const zSet = coloursOf(F.generateFigure(zSpec));
+  rows.push({ check: "one of the dead in a hood draws the onion in its own dye", result: zSpec.painted.head && zSpec.painted.head.name === "onion" && zSet.has("#705848") && !zSet.has("#5f8a3a") ? "pass" : "FAIL", detail: `${zSpec.painted.head && zSpec.painted.head.name} ${zSet.has("#705848")}` });
   return { rows, fails: rows.filter((r) => r.result === "FAIL").length };
 }

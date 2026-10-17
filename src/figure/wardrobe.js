@@ -110,6 +110,11 @@ export function characterSpec(inp) {
       const i = (k * 5 + n * 3) % (pool.length + 1);
       if (i < pool.length) painted[slot] = getLayer(slot, pool[i]);
     });
+    // What they wear draws as it would on anyone (2026-10-18, the onion hat): an item's own painted layer wins over the pool.
+    for (const slot of OUTFIT_SLOTS) {
+      const art = inp.outfit[slot];
+      if (LAYER_SLOTS[slot] && art && art.painted && getLayer(slot, art.painted)) painted[slot] = getLayer(slot, art.painted);
+    }
     const look = { ...inp.look };
     if (painted.hair) look.hairStyle = painted.hair.name;
     const outfit = { ...inp.outfit };
