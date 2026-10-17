@@ -43,7 +43,7 @@
 | 30 | Identities kept in the browser, the character screen their editor, a character stamped from one at creation and fixed after | `identities.js`, `ui/screens.js` | built (`09`) |
 | 31 | Join a game on the Worlds screen; hosting is the pause menu's "Open to friends" switch | `ui/screens.js` | built (`09`) |
 | 32 | The log's foot is the chat; a guest's line goes to the host as a `say` | `ui/log.js`, `net.js` (`sendSay`) | built |
-| 33 | The dead screen is the dead player's own: New character or Leave world | `ui/screens.js` | built; spectating waits (`05-someday.md`) |
+| 33 | The dead screen is the dead player's own: New character or Exit game | `ui/screens.js` | built; spectating waits (`05-someday.md`) |
 | **H** | **The world's rules that were single-player** | | |
 | 34 | A new character in the same world from any identity, at the spawn; the body lies where it fell, searchable | `host.js`, `ui/screens.js` | **open in part**: the body rising as one of the dead, the respawn by turn (`30` 3.5) |
 | 35 | The host's rules bind the guest: they go in the welcome and in a frame whenever they change; a guest's pause menu (World rules) shows them as the host set them | `net.js`, `rules.js`, `ui/screens.js` | built |
