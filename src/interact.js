@@ -1575,14 +1575,13 @@ function characterActions(c, player) {
   if (c.kind === "villager") {
     // Talk (docs/34): a simple action, so E does it when the villager is the nearest thing within reach (the prompt names it, and a door nearer wins);
     // it runs on the host as the talking player, who is told to open the panel (`talkStarted`).
-    const hurt = c.hp < (c.maxHp ?? 100) || c.state === "hurt";
     if (lineOfSight(player.gx, player.gy, c.gx, c.gy)) out.push(act({ // a wall in the way: not offered, rather than offered and refused (#230)
       kind: "talk",
-      label: hurt ? `Talk to ${c.name} (hurt)` : `Talk to ${c.name}`,
+      label: `Talk to ${c.name}`,
       tiles: [[Math.round(c.gx), Math.round(c.gy)]],
       range: CLICK_REACH,
       simple: true,
-      enabled: !c.dead && !hurt,
+      enabled: !c.dead,
       perform() {
         startTalk(c, player);
         return true;

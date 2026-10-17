@@ -158,7 +158,7 @@ export function turnVillager(v) {
 }
 
 // Who is still talking to them (docs/34, "Ending one"): a talker who walked off (past reach and a tile), is gone, dead, or lost the clear line is dropped, and
-// one who is hurt, turned, or dead ends it for everyone; the villager goes back to idle when none is left. The authority's, in the step, so a lost
+// one who is struck (staggered), turned, or dead ends it for everyone; the villager goes back to idle when none is left. The authority's, in the step, so a lost
 // message cannot hold a villager for ever.
 function keepTalkers(v, players) {
   if (v.state !== "talk" || v.dead) { v.talkingWith = []; return; }
@@ -178,11 +178,11 @@ export function talkContext(v, player) {
   return talk.contextFor(v, player, talkWorld());
 }
 
-// Start a conversation (the menu's Talk to, and E): refused for the dead, the hurt; with the dead within `talkDeadRadius` the villager barks instead of
+// Start a conversation (the menu's Talk to, and E): refused only for the dead (a wounded villager still talks, Michael, 2026-10-18); with the dead within `talkDeadRadius` the villager barks instead of
 // talking; else it stops, faces the talker, and takes them into `talkingWith`, and `talkStarted` tells the talker's screen to open the panel. Returns
 // whether a conversation began. Runs on the authority, as the player.
 export function startTalk(v, player) {
-  if (v.dead || v.hp < (v.maxHp ?? 100) || v.state === "hurt") return false;
+  if (v.dead) return false;
   if (!lineOfSight(player.gx, player.gy, v.gx, v.gy)) return false; // the same test `keepTalkers` ends a conversation on: never through a wall
   const w = talkWorld();
   const deadClose = !!w && (w.zombies || []).some((z) => !z.dead && Math.hypot(z.gx - v.gx, z.gy - v.gy) <= T.talkDeadRadius);
@@ -211,11 +211,11 @@ export function endTalk(v, playerId) {
   return true;
 }
 
-// An unprompted remark (docs/34): from a villager idle or wandering (never one hurt, talking, or dead), with a living player within
+// An unprompted remark (docs/34): from a villager idle or wandering (never one talking or dead; a wounded one still speaks, Michael, 2026-10-18), with a living player within
 // `T.barkRadius`, not twice inside `T.barkCooldown` seconds of game time, from an `ambient` group of their file that holds; an idle
 // villager turns toward the nearest player as they say it. On the authority only (the host's step); the bubble rides in the record.
 function ambientBark(v, players) {
-  if (!talk.has(v.talk) || v.hp < (v.maxHp ?? 100)) return;
+  if (!talk.has(v.talk) || v.dead) return;
   const now = loop.simTime();
   if (v.barkAt !== null && now - v.barkAt < T.barkCooldown) return;
   let near = null;

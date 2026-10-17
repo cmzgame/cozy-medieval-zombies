@@ -2,7 +2,7 @@
 //   await __game.check("talk")
 // It reads every file under data/talk through the module (every node reachable, every condition evaluated in day, night, dawn, and dusk),
 // finds the guide beside the spawn (the valley's and the staging map's), pokes them by day, by night, at dawn, and with the dead near, proves
-// the ambient bark's radius and cooldown and that it never comes from a villager who is hurt, talking, or dead, and that a bark leaves the
+// the ambient bark's radius and cooldown and that it never comes from a villager who is talking or dead (a wounded one still barks), and that a bark leaves the
 // sim's generator where it was. It puts every field it touches back.
 
 export async function run(game) {
@@ -138,7 +138,7 @@ export async function run(game) {
     step(120);
     row("a speech line counts down in the world's step and is gone after its time (a server world never runs the interface)", midLeft > 1 && midLeft < 2.04 && g.line === null, `left ${midLeft && midLeft.toFixed(2)} after half a second, then ${g.line === null ? "gone" : "still up"}`);
 
-    // Ambient barks: radius, cooldown, and never from the hurt, the talking, or the dead.
+    // Ambient barks: radius, cooldown, and never from the talking or the dead; a wounded villager still barks (Michael, 2026-10-18).
     const tick = () => { for (let i = 0; i < 2; i++) updateVillager(g, 1 / 60, S.others, S.players); }; // the villager's own update, not the world's step: a dead one would be turned
     const near = () => { G.teleport(g.gx + 2, g.gy); };
     const resetBark = () => { g.line = null; g.barkAt = null; g.state = "idle"; g.hp = 100; g.dead = false; };
@@ -162,7 +162,7 @@ export async function run(game) {
     tick();
     row("not with the player past the radius", g.line === null, g.line ? g.line.text : "silent at 8 tiles");
     near();
-    for (const [label, apply] of [["hurt", () => { g.hp = 50; }], ["talking", () => { g.state = "talk"; g.talkTimer = 99; }], ["dead", () => { g.dead = true; }]]) {
+    for (const [label, apply] of [["talking", () => { g.state = "talk"; g.talkTimer = 99; }], ["dead", () => { g.dead = true; }]]) {
       resetBark();
       apply();
       tick();
@@ -248,7 +248,7 @@ export async function run(game) {
     click("[data-close]");
     const after = worldText();
     row("talk writes nothing: every question of the guide asked through the panel, and the world's text is the same but for the villager's own state", seen.size >= 14 && before === after, `${seen.size} distinct lines seen; ${before === after ? "identical" : "DIFFERS at " + firstDiff(JSON.parse(before), JSON.parse(after))}`);
-    // The endings: walking away, the villager hurt, Escape.
+    // The endings: walking away, the villager struck, Escape.
     G.interact.performByLabel(me, { kind: "character", id: g.id }, entry.label);
     G.teleport(g.gx + 8, g.gy);
     step(3);
@@ -263,7 +263,7 @@ export async function run(game) {
     g.hurtTimer = 0.3;
     step(2);
     tp.update(me);
-    row("the villager hurt ends it", !g.talkingWith.length && !shown(), `${g.state}`);
+    row("the villager struck ends it", !g.talkingWith.length && !shown(), `${g.state}`);
     g.hp = 100;
     g.state = "idle";
     G.teleport(g.gx + 1.2, g.gy);
@@ -271,6 +271,17 @@ export async function run(game) {
     G.interact.performByLabel(me, { kind: "character", id: g.id }, entry.label);
     window.dispatchEvent(new KeyboardEvent("keydown", { code: "Escape" }));
     row("Escape closes it, ahead of the pause menu", !shown() && !g.talkingWith.length, `panel ${shown() ? "open" : "shut"}`);
+    // A wounded villager still talks (Michael, 2026-10-18): Talk is offered, enabled, and opens the panel.
+    g.hp = 50;
+    g.state = "idle";
+    G.teleport(g.gx + 1.2, g.gy);
+    step();
+    const woundedEntry = talkLabel(g);
+    G.interact.performByLabel(me, { kind: "character", id: g.id }, woundedEntry ? woundedEntry.label : "Talk to Wyn");
+    row("a wounded villager still talks: Talk is offered and enabled, and the panel opens", !!woundedEntry && woundedEntry.enabled !== false && !/hurt/.test(woundedEntry.label) && g.talkingWith.includes(me.id) && shown(), woundedEntry ? woundedEntry.label : "no Talk entry");
+    click("[data-close]");
+    g.hp = 100;
+    g.state = "idle";
     // The dead close by: a bark, not a conversation.
     const z2 = createZombie(g.gx + 3, g.gy);
     S.zombies.push(z2);
