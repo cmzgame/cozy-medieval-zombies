@@ -116,6 +116,7 @@ function title(station) {
 
 // What a recipe makes, named: an item by its definition, a prop by its sprite.
 function nameOfOut(r) {
+  if (r.label) return r.label; // a recipe may name itself in data (six rows make "Rag")
   if (r.out.prop) { const s = r.out.prop.replace(/_/g, " "); return s[0].toUpperCase() + s.slice(1); }
   return getItem(r.out.id).name;
 }
@@ -140,7 +141,7 @@ function render(player) {
       const need = w.count * open.count;
       return `<div class="st-in${n < need ? " short" : ""}">${stations.nameOfWant(w)} <span>${n} / ${need}</span></div>`;
     }).join("");
-    const extra = [r.fire ? "needs the fire lit" : "", r.tool ? `needs a ${getItem(r.tool).name.toLowerCase()} in hand` : ""].filter(Boolean).join(", ");
+    const extra = [r.fire ? "needs the fire lit" : "", r.tool ? `needs a ${getItem(r.tool).name.toLowerCase()} in hand` : "", r.carry ? `needs a ${getItem(r.carry).name.toLowerCase()} on you` : ""].filter(Boolean).join(", ");
     const can = stations.canMake(player, prop, r, open.count);
     detail = `<div class="st-detail kit-well">${ins}${extra ? `<div class="st-note">${extra}</div>` : ""}<div class="st-make"><label>×<input type="number" min="1" max="10" value="${open.count}" data-count></label><button class="kit-button" data-make ${can === true ? "" : "disabled"} title="${can === true ? `${r.seconds} s` : can}">Make</button></div></div>`;
   }
