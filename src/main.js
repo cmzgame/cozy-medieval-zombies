@@ -803,6 +803,8 @@ function useTargetAt(sx, sy) {
   if (ch) return { kind: "character", ch };
   const prop = interact.interactableAt(sx, sy, () => true);
   if (prop) return { kind: "prop", prop };
+  const bracket = interact.bracketAt(sx, sy); // a torch mounted on a wall (#170)
+  if (bracket) return { kind: "bracket", bracket };
   const g = iso.toGrid(sx, sy);
   const t = map.peekTile(Math.round(g.gx), Math.round(g.gy));
   return { kind: "tile", x: Math.round(g.gx), y: Math.round(g.gy), floor: t ? t.floor : null };
@@ -1004,6 +1006,7 @@ function armGuest(on) {
     let addr = null;
     if (target.kind === "item") { if (typeof target.slot === "string") addr = { kind: "item", uid: target.entry.uid, slot: target.slot }; else { const b = remoteHandlers.addressOf(target.bag); if (b) addr = { kind: "item", uid: target.entry.uid, bag: b }; } }
     else if (target.kind === "prop") addr = { kind: "prop", id: target.prop.id };
+    else if (target.kind === "bracket") addr = { kind: "bracket", tx: target.bracket.tx, ty: target.bracket.ty, edge: target.bracket.edge };
     else if (target.kind === "character") addr = { kind: "character", id: target.ch.id };
     else if (target.kind === "tile") addr = { kind: "tile", x: target.x, y: target.y };
     if (src && addr) net.sendUse({ uid: cur.entry.uid, src, target: addr });

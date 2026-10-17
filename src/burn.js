@@ -120,19 +120,32 @@ function lightTarget(player, target, flame) {
   return { light: () => map.lightProp(prop), prop };
 }
 
+// The fire a target is, when it burns: a campfire or any burner that is lit, a torch on a post that is lit, or a lit torch in a bracket
+// (a bracket torch is a fire source like a post's, #170). { prop } or { at: [x, y] }, or null.
+function burningFire(target) {
+  if (target.bracket) {
+    const b = [...map.brackets()].find((q) => q.tx === target.bracket.tx && q.ty === target.bracket.ty && q.edge === target.bracket.edge);
+    if (!b || !b.wall.bracket.torch || !map.holderState({ kind: "bracket", bracket: b }).lit) return null;
+    return { at: map.bracketPos(b) };
+  }
+  const prop = typeof target.prop === "string" ? map.propById(target.prop) : target.prop;
+  const f = prop && prop.fire;
+  if (!f || !f.lit || !(f.burns || (f.holds && f.has))) return null; // not burning: the ordinary refusal ("no flame")
+  return { prop };
+}
+
 // An unlit torch in a hand or on the belt used on a burning fire is lit from it (the builder's reading of Michael's "anything with
 // fire lights what is made to be lit": a burning fire is a flame). Returns null when this is not that case, else { reason } or
-// { light(), prop, message }.
+// { light(), fire, message }.
 function torchFromFire(player, target) {
-  if (target.entry == null || target.onEntry != null || target.bracket) return null;
+  if (target.entry == null || target.onEntry != null) return null;
   const e = carried(player, target.entry);
-  const prop = typeof target.prop === "string" ? map.propById(target.prop) : target.prop;
-  if (!e || e.id !== "torch" || e.lit || !prop || !prop.fire) return null;
-  const f = prop.fire;
-  if (!f.lit || !(f.burns || (f.holds && f.has))) return null; // not burning: the ordinary refusal ("no flame")
+  if (!e || e.id !== "torch" || e.lit) return null;
+  const fire = burningFire(target);
+  if (!fire) return null;
   const held = player.hands.main === e || player.hands.off === e || (beltOf(player) || []).includes(e);
   if (!held) return { reason: "Only a torch in a hand or on the belt can be lit that way." };
-  return { light: () => { e.lit = true; return true; }, prop, message: "You light the torch at the fire." };
+  return { light: () => { e.lit = true; return true; }, fire, message: "You light the torch at the fire." };
 }
 
 // Where a player stands against a prop: the nearest of its tiles (as `dip` measures), and whether a wall is between (sight: a fence
@@ -153,7 +166,7 @@ function reaches(player, prop, at) {
 verbs.define("light", {
   validate(world, player, target) {
     const k = torchFromFire(player, target);
-    if (k) return k.reason || reaches(player, k.prop);
+    if (k) return k.reason || (k.fire.prop ? reaches(player, k.fire.prop) : reaches(player, { tile: k.fire.at, tiles: [k.fire.at] }, k.fire.at));
     const flame = flameOf(player, target.entry);
     if (!flame) return target.entry != null ? "That gives no flame (a tinderbox, or a lit torch)." : "You have no flame (a tinderbox, or a lit torch).";
     const t = lightTarget(player, target, flame);
