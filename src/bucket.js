@@ -11,6 +11,7 @@ import * as items from "./items.js";
 import * as inventory from "./inventory.js";
 import { showMessage } from "./ui/prompt.js";
 import * as farming from "./farming.js";
+import { lineOfSight } from "./visibility.js";
 
 const vesselOf = (entry) => (entry && items.getItem(entry.id).vessel) || null;
 export const capacityOf = (entry) => (vesselOf(entry) ? vesselOf(entry).capacity : 0);
@@ -29,13 +30,15 @@ export function bucketsOf(player) {
   return out;
 }
 
-// The bucket a verb uses: the one named (the Use mode), else the first that can take the water or give it.
+// The bucket a verb uses: the one named (the Use mode, a guest's command by uid), else the first that can serve (hands, belt, bag). Either way it
+// must be able to: a full one cannot take water and an empty one cannot pour, named or not.
+const serves = (e, want) => !!e && !!vesselOf(e) && (want === "fill" ? levelOf(e) < capacityOf(e) : levelOf(e) > 0);
 function pick(player, uid, want) {
   if (uid != null) {
     const e = inventory.carriedEntry(player, uid);
-    return e && vesselOf(e) ? e : null;
+    return serves(e, want) ? e : null;
   }
-  return bucketsOf(player).find((e) => (want === "fill" ? levelOf(e) < capacityOf(e) : levelOf(e) > 0)) || null;
+  return bucketsOf(player).find((e) => serves(e, want)) || null;
 }
 
 // Whether a tile gives water: a water tile, or a prop that is a source (the well, a trough, a font).
@@ -44,13 +47,13 @@ export function isSource(x, y) {
   return !!t && (map.drinkableAt(x, y) || !!(t.prop && t.prop.water));
 }
 
-// The crops in the 3 by 3 round a tile.
+// The crops in the 3 by 3 round a tile that the water can reach from it: a wall between the target and a crop keeps that crop dry (#147, #206's rule).
 export function cropsAround(x, y) {
   const out = [];
   for (let dy = -1; dy <= 1; dy++) {
     for (let dx = -1; dx <= 1; dx++) {
       const p = map.peekTile(x + dx, y + dy)?.prop;
-      if (p && p.crop && !out.includes(p)) out.push(p);
+      if (p && p.crop && !out.includes(p) && (!dx && !dy || lineOfSight(x, y, x + dx, y + dy))) out.push(p);
     }
   }
   return out;
@@ -69,7 +72,8 @@ verbs.define("fill", {
     const [x, y] = tileOf(target);
     if (!bucketsOf(player).length) return "You have no bucket.";
     if (!isSource(x, y)) return "There is no water there.";
-    if (!farming.reach(player, x, y)) return "Too far away.";
+    const why = farming.reachProblem(player, x, y);
+    if (why) return why;
     if (!pick(player, target.entry, "fill")) return "Your bucket is already full.";
     return true;
   },
@@ -84,9 +88,10 @@ verbs.define("pour", {
   validate(world, player, target) {
     const [x, y] = tileOf(target);
     if (!bucketsOf(player).length) return "You have no bucket.";
-    if (!farming.reach(player, x, y)) return "Too far away.";
+    const why = farming.reachProblem(player, x, y);
+    if (why) return why;
     if (!pick(player, target.entry, "pour")) return "The bucket is empty.";
-    if (!cropsAround(x, y).length) return "Nothing there needs water.";
+    if (!cropsAround(x, y).some((c) => !farming.isWet(c))) return "Nothing there needs water.";
     return true;
   },
   perform(world, player, target) {
@@ -103,6 +108,7 @@ verbs.define("pour", {
 export function tileActions(x, y, player, act, world) {
   const out = [];
   if (!bucketsOf(player).length) return out;
+  if (!lineOfSight(player.gx, player.gy, x, y)) return out; // never offered through a wall (a sealed room is a cell, #147)
   const seconds = farming.get().soil.seconds;
   const run = (verb) => () => {
     const r = verbs.run(verb, world, player, { tile: [x, y] });
@@ -111,7 +117,10 @@ export function tileActions(x, y, player, act, world) {
     return r.ok;
   };
   const base = { tiles: [[x, y]], mx: x, my: y };
-  if (isSource(x, y)) out.push(act({ ...base, kind: "fill", label: "Fill the bucket", enabled: !!pick(player, null, "fill"), duration: seconds.fill, perform: run("fill") }));
-  if (farming.isSoil(x, y) || cropsAround(x, y).length) out.push(act({ ...base, kind: "pour", label: "Pour the bucket", enabled: !!pick(player, null, "pour"), duration: seconds.pour, perform: run("pour") }));
+  const canFill = !!pick(player, null, "fill");
+  const canPour = !!pick(player, null, "pour");
+  if (isSource(x, y)) out.push(act({ ...base, kind: "fill", label: canFill ? "Fill the bucket" : "Fill the bucket (full)", enabled: canFill, duration: seconds.fill, perform: run("fill") }));
+  // Offered where something in the 3 by 3 needs water: tilled soil with nothing growing, or a plot already wet, has nothing to pour on.
+  if (cropsAround(x, y).some((c) => !farming.isWet(c))) out.push(act({ ...base, kind: "pour", label: canPour ? "Pour the bucket" : "Pour the bucket (empty)", enabled: canPour, duration: seconds.pour, perform: run("pour") }));
   return out;
 }

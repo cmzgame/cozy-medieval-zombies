@@ -281,10 +281,38 @@ export async function run(game) {
     for (const c of crops9) c.crop.wetUntil = G.clock.getElapsed() - 1;
     G.use.applyWith(bucket, { kind: "prop", prop: crops9[4] }, me);
     row("by the Use mode the bucket on a crop pours: nine watered, the bucket empty", crops9.every((c) => farming.isWet(c)) && bucket.fill === 0, `${crops9.filter((c) => farming.isWet(c)).length} of 9; fill ${bucket.fill}`);
+    // The Use mode and a guest's command by uid ask the same questions of the named bucket (the #211 review): an empty one cannot pour, a full one cannot fill.
+    for (const c of crops9) c.crop.wetUntil = G.clock.getElapsed() - 1;
+    bucket.fill = 0;
+    G.use.applyWith(bucket, { kind: "prop", prop: crops9[4] }, me);
+    const emptyLine = await lastLine();
+    const byUid = G.verbs.run("pour", G.world, me, { prop: crops9[4].id, entry: bucket.uid });
+    row("the Use mode and a command by uid refuse an empty bucket on a crop, and the crops stay dry", crops9.every((c) => !farming.isWet(c)) && /empty/.test(emptyLine) && !byUid.ok && /empty/.test(byUid.reason), `"${emptyLine}"; ${byUid.reason}`);
+    bucket.fill = bdef.vessel.capacity;
+    G.teleport(pond[0] - 1.0, pond[1] + 0.2);
+    const fullBy = G.verbs.run("fill", G.world, me, { tile: pond, entry: bucket.uid });
+    row("and a command by uid refuses to fill a full bucket", !fullBy.ok && /full/.test(fullBy.reason), String(fullBy.reason));
+    // A wall inside the 3 by 3 keeps the far side dry, and nothing is offered through it.
+    G.teleport(plot[0] + 1.2, plot[1] + 1.9);
+    for (const ax of [0, 1, 2]) G.map.buildWall(plot[0] + ax, plot[1] + 1, "n", "wall");
+    restore.push(() => { for (const ax of [0, 1, 2]) G.map.destroyWall(plot[0] + ax, plot[1] + 1, "n"); });
+    const pouredWall = G.verbs.run("pour", G.world, me, { tile: [plot[0] + 1, plot[1] + 1] });
+    row("a pour on the near side waters the plants it can reach and not the row across a wall", pouredWall.ok && pouredWall.watered === 6 && crops9.filter((c) => c.tile[1] === plot[1]).every((c) => !farming.isWet(c)) && crops9.filter((c) => c.tile[1] > plot[1]).every((c) => farming.isWet(c)), `watered ${pouredWall.watered}: ${pouredWall.message || pouredWall.reason}`);
+    bucket.fill = bdef.vessel.capacity;
+    G.teleport(plot[0] + 1.2, plot[1] + 0.2); // in the row across the wall, close enough that only the wall refuses
+    const behind = G.interact.actionsForTarget({ kind: "prop", id: crops9[4].id }, me);
+    const refused = G.verbs.run("pour", G.world, me, { tile: [plot[0] + 1, plot[1] + 1] });
+    row("from behind the wall the crop's menu offers no Pour, and the verb says there is a wall in the way", !behind.some((a) => a.label.startsWith("Pour")) && !refused.ok && /wall/.test(refused.reason), `${behind.map((a) => a.label).join(", ")}; ${refused.reason}`);
+    for (const ax of [0, 1, 2]) G.map.destroyWall(plot[0] + ax, plot[1] + 1, "n");
+    for (const c of crops9) c.crop.wetUntil = G.clock.getElapsed() - 1;
+    G.teleport(plot[0] + 1.2, plot[1] + 1.8);
+    bucket.fill = 0;
+    const emptyMenu = G.interact.actionsForTarget({ kind: "prop", id: crops9[4].id }, me).find((a) => a.label.startsWith("Pour"));
+    row("an empty bucket's Pour says so in its label, disabled", !!emptyMenu && emptyMenu.label === "Pour the bucket (empty)" && !emptyMenu.enabled, emptyMenu ? emptyMenu.label : "none");
     // The water is the entry's: it travels with the inventory and the save.
     bucket.fill = 70;
     const kept = JSON.parse(JSON.stringify(bucket));
-    row("its water is a fill on the entry (in the bag's record, so the frame and the save carry it), and it can sit on the belt or in a hand and still be found", kept.fill === 70 && (() => { me.hands.main = bucket; bag.items.splice(bag.items.indexOf(bucket), 1); const found = G.verbs.run("pour", G.world, me, { tile: [plot[0] + 1, plot[1] + 1] }); me.hands.main = null; return found.ok === true; })(), `fill ${kept.fill}`);
+    row("its water is a fill on the entry (it survives a JSON round trip, as the save and the frame's record make), and held in a hand it still pours (the belt is proved by the guest's two-tab run)", kept.fill === 70 && (() => { me.hands.main = bucket; bag.items.splice(bag.items.indexOf(bucket), 1); const found = G.verbs.run("pour", G.world, me, { tile: [plot[0] + 1, plot[1] + 1] }); me.hands.main = null; return found.ok === true; })(), `fill ${kept.fill}`);
   } finally {
     for (const r of restore.reverse()) r();
     G.world.setTimeScale(1);
