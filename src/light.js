@@ -59,6 +59,11 @@ export function update() {
   }
   const torchFire = getItem("torch").fire;
   for (const b of map.brackets()) {
+    if (b.wall.bracket.lantern) {
+      const [lx, ly] = map.bracketPos(b);
+      curSources.push({ gx: lx, gy: ly, radius: W.lanternRadius, intensity: 1, kind: "lantern", flicker: null }); // steady, never out
+      continue;
+    }
     if (!b.wall.bracket.torch) continue;
     const [gx, gy] = map.bracketPos(b);
     curSources.push({ gx, gy, radius: torchFire.radius, intensity: 1, kind: "torch", flicker: torchFire.flicker });

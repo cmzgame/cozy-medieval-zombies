@@ -437,7 +437,13 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
         const opts = { world: [tx, ty], flags };
         gl.poly([[bx - 2, by - 3], [bx + 2, by - 3], [bx + 2, by + 4], [bx - 2, by + 4]], gl.rgb(METAL, alpha), opts);
         gl.poly([[bx - 4, by - 1], [bx + 4, by - 1], [bx + 4, by + 1], [bx - 4, by + 1]], gl.rgb(METAL, alpha), opts);
-        if (br.torch) {
+        if (br.lantern) {
+          // The lantern (#156): an iron cage with a lit pane hanging at the bracket, steady and unlit-drawn like a flame.
+          gl.poly([[bx - 4, by - 17], [bx + 4, by - 17], [bx + 4, by - 15], [bx - 4, by - 15]], gl.rgb(METAL, alpha), opts);
+          gl.poly([[bx - 4, by - 15], [bx - 3, by - 15], [bx - 3, by - 4], [bx - 4, by - 4]], gl.rgb(METAL, alpha), opts);
+          gl.poly([[bx + 3, by - 15], [bx + 4, by - 15], [bx + 4, by - 4], [bx + 3, by - 4]], gl.rgb(METAL, alpha), opts);
+          gl.poly([[bx - 3, by - 15], [bx + 3, by - 15], [bx + 3, by - 4], [bx - 3, by - 4]], gl.rgb("#e6b45a", alpha), { world: [tx, ty], flags: flags | gl.FLAG_UNLIT });
+        } else if (br.torch) {
           gl.poly([[bx - 1, by - 14], [bx + 2, by - 14], [bx + 2, by - 1], [bx - 1, by - 1]], gl.rgb(WOOD, alpha), opts);
           gl.poly([[bx - 2, by - 17], [bx + 3, by - 17], [bx + 3, by - 12], [bx - 2, by - 12]], gl.rgb("#3a2a22", alpha), opts);
           if (vis) frameQuad(getSheet("flame"), `flame_${flameFrame(tx + ty)}`, bx, by - 15, { world: [tx, ty], flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });

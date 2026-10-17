@@ -178,6 +178,7 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
       case "hearth": sheet = placeholders.generateHearth(ph); break;
       case "campfire": sheet = placeholders.generateCampfire(ph); break;
       case "torch_post": sheet = placeholders.generateTorchPost(ph); break;
+      case "lantern_post": sheet = placeholders.generateLanternPost(ph); break;
       case "flame": sheet = placeholders.generateFlame(); break;
       case "ground": sheet = placeholders.generateGround(ph); break; // docs/15: dirt, cobble
       case "noise": sheet = placeholders.generateNoise(ph); break; // docs/15: the edges' noise

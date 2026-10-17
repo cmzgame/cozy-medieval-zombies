@@ -110,7 +110,7 @@ def cottage_a(g, x, y, name, door_side="s", broken=False, torch=True):
         # #134): the table lies across row 1 from the south door's side, and across row 3 from the north door's.
         props=([hearth_w(0, 1), along_x("table", 1, 1), chair(1, 2, "n"), one("chest", 0, 3)] if door_side == "s"
                else [hearth_w(0, 1), along_x("table", 1, 3), chair(1, 2, "s"), one("chest", 0, 3)]) + [along_x("bed", 3, 0), one("chest", 5, 3)],
-        brackets=[{"side": "w", "at": 0, "facing": "in", "torch": torch}],
+        brackets=[{"side": "w", "at": 0, "facing": "in", **({"lantern": True} if torch else {"torch": False})}],
     )
     s.prop("woodpile", (7, 4))
     return s
@@ -125,7 +125,7 @@ def cottage_b(g, x, y, name):
         openings=[door("s", 1), window("w", 1), window("e", 4)],
         partitions=[part_n(0, 4, 6, door_at=2, wall="wall_fence")],
         props=[hearth_n(1, 0), along_x("bed", 3, 0), one("chest", 5, 1), along_y("table", 0, 1), chair(1, 2, "w"), one("barrel", 0, 5), one("barrel", 2, 5), one("haystack", 5, 5)],
-        brackets=[{"side": "n", "at": 4, "facing": "in", "torch": True}],
+        brackets=[{"side": "n", "at": 4, "facing": "in", "lantern": True}],
     )
     return s
 
@@ -138,7 +138,7 @@ def cottage_c(g, x, y, name, trade):
         openings=[door("s", 1), window("n", 1), window("n", 4)],
         partitions=[part_w(3, 0, 4, door_at=2)],
         props=[hearth_w(0, 1), along_x("table", 1, 1), chair(1, 2, "n"), along_x("bed", 3, 0), one("chest", 5, 3)],
-        brackets=[{"side": "w", "at": 0, "facing": "in", "torch": True}],
+        brackets=[{"side": "w", "at": 0, "facing": "in", "lantern": True}],
     )
     # The lean-to shares the main room's east wall; its door is on its own west side (laid after, so it wins the edge).
     s.building(
@@ -183,7 +183,7 @@ def build():
         partitions=[part_w(4, 0, 5, door_at=3)],
         props=[hearth_w(0, 1), along_x("table", 1, 2), chair(1, 1, "s"), chair(1, 3, "n"), one("chest", 3, 4),
                along_x("bed", 5, 0), one("chest", 6, 4), one("shelf", 4, 4)],
-        brackets=[{"side": "w", "at": 0, "facing": "in", "torch": True}],
+        brackets=[{"side": "w", "at": 0, "facing": "in", "lantern": True}],
     )
     home.crops([9, 1, 6, 6], ["potato", "cabbage"], stages=(1, 2, 2), seed=3)
     home.prop("well", (9, 9))
@@ -201,7 +201,7 @@ def build():
     g.prop("noticeboard", (sq[0] + 11, sq[1] + 7), note="by the inn's door; the quest board of 1.1")
     g.prop("stocks", (sq[0] + 11, sq[1] + 11))
     for x, y in [(sq[0], sq[1] + 11), (sq[0] + 11, sq[1] + 2), (sq[0], sq[1] + 2)]:
-        g.prop("torch_post", (x, y), torch=True)  # the square's lamps, lit (they stood empty until 2026-10-15: the wiki census's bugs)
+        g.prop("lantern_post", (x, y))  # the square's lamps: lanterns, steady and never out (they were torches until #156)
 
     # ---- the green: the pond with its dirt bank, benches, the maypole, a woodpile ----
     pond = P(15, 53)
@@ -227,7 +227,7 @@ def build():
             # the kitchen
             hearth_n(9, 0, lit=True), along_x("table", 9, 3), one("shelf", 11, 2), one("barrel", 11, 4), one("cupboard", 8, 6), one("barrel", 11, 9),
         ],
-        brackets=[{"side": "n", "at": 5, "facing": "in", "torch": True}, {"side": "w", "at": 4, "facing": "out", "torch": True}],
+        brackets=[{"side": "n", "at": 5, "facing": "in", "lantern": True}, {"side": "w", "at": 4, "facing": "out", "lantern": True}],
     )
     # The guest wing: three rooms off the taproom's south wall, each with a door into it.
     inn.building(
@@ -235,7 +235,7 @@ def build():
         openings=[door("n", 1), door("n", 5), door("n", 9), window("s", 2), window("s", 6), window("s", 10)],
         partitions=[part_w(4, 0, 5), part_w(8, 0, 5)],
         props=[along_x("bed", 0, 2), one("chest", 3, 0), along_x("bed", 4, 2), one("chest", 7, 0), along_x("bed", 8, 2), one("chest", 11, 0)],
-        brackets=[{"side": "s", "at": 0, "facing": "in", "torch": True}, {"side": "s", "at": 8, "facing": "in", "torch": True}],
+        brackets=[{"side": "s", "at": 0, "facing": "in", "lantern": True}, {"side": "s", "at": 8, "facing": "in", "lantern": True}],
     )
     inn.fence([0, 17, 18, 12], gates=[{"side": "w", "at": 6}])
     inn.prop("well", (3, 20))
@@ -280,7 +280,7 @@ def build():
                     openings=[door("s", 1, boards={"in": 2}), window("e", 2)],
                     partitions=[part_w(3, 0, 6, door_at=3)],
                     props=[hearth_w(0, 1), along_x("table", 1, 4), chair(2, 5, "n"), one("bookcase", 2, 0), along_y("bed", 5, 0), one("chest", 5, 5)],
-                    brackets=[{"side": "n", "at": 4, "facing": "in", "torch": True}])
+                    brackets=[{"side": "n", "at": 4, "facing": "in", "lantern": True}])
 
     # ---- the manor: a stone house in a walled garden, east of the nobles' street ----
     man = g.place("the manor", [P(19, 16)[0], P(19, 16)[1], 16, 34])
@@ -296,7 +296,7 @@ def build():
             # the solar and bedroom (east)
             along_x("bed", 8, 1), one("chest", 11, 0), one("bookcase", 7, 0), one("desk", 10, 4), chair(10, 5, "n"), one("strongbox", 11, 9), one("cupboard", 8, 9),
         ],
-        brackets=[{"side": "n", "at": 6, "facing": "in", "torch": True}, {"side": "e", "at": 5, "facing": "in", "torch": True}],
+        brackets=[{"side": "n", "at": 6, "facing": "in", "lantern": True}, {"side": "e", "at": 5, "facing": "in", "lantern": True}],
     )
     man.fence([0, 12, 16, 22], gates=[{"side": "w", "at": 6}, {"side": "e", "at": 14}], wall="wall_fence")
     man.floor_rect([2, 14, 12, 8], "floor_grass")
@@ -319,12 +319,12 @@ def build():
             one("desk", 6, 1), chair(6, 2, "n"), one("strongbox", 9, 0), one("bookcase", 9, 3),
             along_x("bed", 6, 7), one("chest", 9, 9), one("cupboard", 9, 6),
         ],
-        brackets=[{"side": "n", "at": 7, "facing": "in", "torch": True}, {"side": "w", "at": 5, "facing": "in", "torch": True}],
+        brackets=[{"side": "n", "at": 7, "facing": "in", "lantern": True}, {"side": "w", "at": 5, "facing": "in", "lantern": True}],
     )
     mer.fence([0, 12, 12, 12], gates=[{"side": "e", "at": 5}])
     mer.building([1, 13, 8, 6], "wall_wood", "floor_wood", openings=[door("e", 2)],
                  props=[one("shelf", 0, 0), one("shelf", 2, 0), one("shelf", 4, 0), one("chest", 7, 0), one("barrel", 0, 5), one("barrel", 1, 5), one("chest", 7, 5), one("cupboard", 4, 5)],
-                 brackets=[{"side": "n", "at": 6, "facing": "in", "torch": True}])
+                 brackets=[{"side": "n", "at": 6, "facing": "in", "lantern": True}])
     mer.prop("cart", (10, 20), footprint=[2, 3])
 
     # ---- the trades round the square ----
@@ -334,13 +334,13 @@ def build():
                  openings=[door("n", 2), window("n", 3)],
                  partitions=[part_w(4, 0, 4, door_at=2)],
                  props=[one("oven", 0, 0, footprint=[2, 1], lit=True, fuel=2), along_x("table", 1, 2), one("shelf", 3, 0), one("barrel", 0, 3), along_y("bed", 5, 0), one("chest", 4, 3)],
-                 brackets=[{"side": "n", "at": 5, "facing": "in", "torch": True}])
+                 brackets=[{"side": "n", "at": 5, "facing": "in", "lantern": True}])
     # The joiner, south-west of the square: the workshop, the home behind, the lumber yard.
     joi = g.place("the joiner", [P(7, 49)[0], P(7, 49)[1], 10, 14])
     joi.building([1, 1, 8, 5], "wall_wood", "floor_wood",
                  openings=[door("e", 2), window("n", 2), window("n", 5)],
                  props=[one("workbench", 1, 1, footprint=[2, 1]), along_x("table", 4, 1), one("shelf", 7, 0), one("shelf", 0, 0), one("barrel", 7, 4), one("chest", 0, 4)],
-                 brackets=[{"side": "n", "at": 4, "facing": "in", "torch": True}])
+                 brackets=[{"side": "n", "at": 4, "facing": "in", "lantern": True}])
     joi.building([1, 6, 8, 5], "wall_wood", "floor_wood",
                  openings=[door("n", 3), window("w", 2), window("e", 3)],
                  partitions=[part_w(4, 0, 5, door_at=2)],
@@ -355,7 +355,7 @@ def build():
                  openings=[door("s", 2), window("s", 6), window("n", 2)],
                  partitions=[part_w(5, 0, 6, door_at=2)],
                  props=[one("loom", 1, 1, footprint=[2, 2]), one("spinningwheel", 4, 1), one("shelf", 0, 0), one("cupboard", 4, 5), along_x("bed", 6, 0), one("chest", 7, 5), hearth_w(5, 3)],
-                 brackets=[{"side": "n", "at": 6, "facing": "in", "torch": True}])
+                 brackets=[{"side": "n", "at": 6, "facing": "in", "lantern": True}])
     for i in range(3):
         wea.prop("dyevat", (10 + i, 3))
     wea.prop("woodpile", (12, 7))
@@ -364,7 +364,7 @@ def build():
     smi.building([1, 1, 6, 5], "wall_wood", "floor_stone",
                  openings=[door("s", 1, open=True), door("s", 4, open=True), window("n", 3)],
                  props=[one("forge", 1, 0, footprint=[2, 1]), one("anvil", 2, 2), one("barrel", 4, 2), one("grindstone", 3, 4), one("shelf", 0, 0), one("chest", 0, 4)],
-                 brackets=[{"side": "n", "at": 5, "facing": "in", "torch": True}])
+                 brackets=[{"side": "n", "at": 5, "facing": "in", "lantern": True}])
     smi.building([7, 1, 4, 5], "wall_wood", "floor_wood", openings=[door("w", 2), window("e", 1)],
                  props=[along_y("bed", 3, 0), one("chest", 3, 4), one("cupboard", 0, 4)])
     smi.prop("woodpile", (1, 8))
@@ -374,7 +374,7 @@ def build():
     toll = g.place("the toll house", [P(28, 45)[0], P(28, 45)[1], 6, 8])
     toll.building([1, 1, 4, 4], "wall_wood", "floor_wood", openings=[door("w", 1), window("n", 2)],
                   props=[one("strongbox", 3, 0), along_y("bed", 0, 2), one("chest", 3, 3), one("shelf", 2, 0)],
-                  brackets=[{"side": "w", "at": 3, "facing": "out", "torch": True}])
+                  brackets=[{"side": "w", "at": 3, "facing": "out", "lantern": True}])
 
     # ---- the cottages: two plans by the nobles' street, two by the green, four on the lane ----
     cottage_a(g, *P(1, 23), "a cottage by the merchant's")
@@ -390,7 +390,7 @@ def build():
                    openings=[door("n", 1), window("n", 4), window("e", 1)],
                    partitions=[part_w(3, 0, 4, door_at=2)],
                    props=[hearth_w(0, 1), along_x("table", 1, 3), chair(1, 2, "s"), one("desk", 0, 3), along_x("bed", 3, 0), one("chest", 5, 3), one("bookcase", 3, 3)],
-                   brackets=[{"side": "n", "at": 5, "facing": "in", "torch": True}])
+                   brackets=[{"side": "n", "at": 5, "facing": "in", "lantern": True}])
 
     # ---- reserves: the castle (step 5) and the farms (step 4) take no forest yet ----
     g.reserve([VX, VY, 64, 144])      # the village block, 29/04's plan
