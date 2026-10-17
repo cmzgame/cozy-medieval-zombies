@@ -1,5 +1,5 @@
 {
-  "version": "784e0ac6",
+  "version": "c076de2e",
   "files": {
     "data/build.json": {"size": 366, "stamp": "d4f4a6d2"},
     "data/combat.json": {"size": 3819, "stamp": "f069df33"},
@@ -383,6 +383,8 @@
     "data/maps/valley.json": {"size": 70133, "stamp": "6ac0c06f"},
     "data/site/staging_day_wide.webp": {"size": 103152, "stamp": "d59a0e45"},
     "data/site/staging_dusk_wide.webp": {"size": 60390, "stamp": "234b2082"},
+    "data/site/wordmark_big.svg": {"size": 4078, "stamp": "8f055d7d"},
+    "data/site/wordmark_small.svg": {"size": 6415, "stamp": "bfe1a7fb"},
     "data/sprites/altar.json": {"size": 197, "stamp": "1f7da4c7"},
     "data/sprites/anvil.json": {"size": 218, "stamp": "e3be27c4"},
     "data/sprites/barrel.json": {"size": 158, "stamp": "6c265964"},
