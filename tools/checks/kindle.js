@@ -63,6 +63,15 @@ export async function run(game) {
     const nothing = run({ prop: dry.id, entry: box.uid });
     row("one with nothing to burn is refused, and stays out", !nothing.ok && !dry.fire.lit && /nothing to burn/.test(nothing.reason), String(nothing.reason));
 
+    // A lantern post is a flame too (#175): an unlit torch held to it is lit; the post stays lit.
+    const lpost = prop("lantern_post", cx + 3, cy - 2);
+    const taperP = mk("torch", { lit: false, wear: 0 });
+    me.hands.main = taperP;
+    G.teleport(cx + 1.8, cy - 2);
+    use(taperP, { kind: "prop", prop: lpost });
+    row("an unlit torch held to a lantern post is lit from it (and the post is lit still)", taperP.lit === true && lpost.fire.lit === true, `torch lit ${taperP.lit}, post lit ${lpost.fire.lit}`);
+    me.hands.main = null;
+
     // Not a hearth, an oven, or a forge: only a campfire or a torch.
     const hearth = prop("fireplace", cx + 1, cy - 2, { fuel: 2, lit: false });
     use(box, { kind: "prop", prop: hearth });
@@ -208,6 +217,22 @@ export async function run(game) {
       const onLantern = viaCursor(lantern);
       use(box, { kind: "bracket", bracket: onLantern });
       row("Use on a lantern is a target of its own: it says it is always lit", onLantern === lantern && /always lit/.test(await lastLine()), `found ${onLantern === lantern}; "${await lastLine()}"`);
+      // A lantern is a flame (Michael, 2026-10-17, #175: "Sure why not."): an unlit torch held to it is lit from it; it stays lit and unchanged.
+      const taperL = mk("torch", { lit: false, wear: 0 });
+      me.hands.main = taperL;
+      use(taperL, { kind: "bracket", bracket: viaCursor(lantern) });
+      row("an unlit torch held to a lantern bracket is lit from it (and the lantern is as it was)", taperL.lit === true && lantern.wall.bracket.lantern === true && /at the lantern/.test(await lastLine()), `torch lit ${taperL.lit}; "${await lastLine()}"`);
+      me.hands.main = null;
+      // Not through a wall (the one rule): from the far side of the lantern's wall, if there is room on both sides.
+      const [nsx, nsy] = nearSide(lantern, -0.8);
+      if (G.map.isWalkableTile(Math.round(nsx), Math.round(nsy))) {
+        const taperF = mk("torch", { lit: false, wear: 0 });
+        me.hands.main = taperF;
+        G.teleport(nsx, nsy);
+        const behindL = run({ bracket: { tx: lantern.tx, ty: lantern.ty, edge: lantern.edge }, entry: taperF.uid });
+        row("but not through the wall from its far side", !behindL.ok && /wall/.test(behindL.reason) && taperF.lit !== true, String(behindL.reason));
+        me.hands.main = null;
+      }
     } else row("a lantern bracket for the always-lit row", false, "none in the loaded map (the lanterns are #164's)");
 
     // Not through a wall: a torch in a bracket from the far side of its wall, a campfire on the other side of one.
