@@ -28,7 +28,7 @@ export const DEFAULTS = {
   panelPos: {}, // "bag" | "character" | "container" -> { x, y } in UI pixels where its header was dragged to (docs/23 step 4; Michael, 2026-10-12)
   cursor: "default", // the system's own, or one of the three hands (ui/cursor.js; Michael, 2026-10-12)
   logSize: null, // { w, h } in UI pixels the text log was resized to (ui/log.js)
-  devChest: true, // the chest of every item placed by the spawn (read at load; docs/30 step 0: the map file stays clean)
+  devChest: true, // the chest of every item placed by the spawn: chosen at a new world's Sandbox step (docs/38), this is the next world's first choice; docs/30 step 0: the map file stays clean
   identities: [], // [{ id, name, look }]: the identities kept in this browser (identities.js; docs/31/09)
   lastIdentity: "", // the one picked last, offered first on the next creation
   clientId: "", // the browser id a world remembers a character's owner by (docs/31/09)

@@ -995,9 +995,9 @@ function render() {
     const mine = !!h.canSetRules;
     const rows = settings.REGISTRY.filter((e) => e.group === "rules").map((e) => {
       const value = rules.coerce(e.key, h.rules ? h.rules[e.key] : rules.DEFAULTS[e.key]);
-      return worldRuleRow(e, value, { switch: `data-go="world-rule" data-rule="${e.key}" data-value="${!value}"` }, !mine || !!e.fixed, e.fixed ? "set when the world was made" : "the host's");
+      return worldRuleRow(e, value, { switch: `data-go="world-rule" data-rule="${e.key}" data-value="${!value}"` }, !mine || !!e.fixed, e.fixed ? "set when the world was made" : (h.hostName ? "the host's" : "the world's owner's"));
     }).join("");
-    const why = mine ? "How this world plays. A change is made at once, for everyone in it." : h.ownedCode ? "How this world plays. They are yours to change from the Owner screen." : "How this world plays. They are the host's to change.";
+    const why = mine ? "How this world plays. A change is made at once, for everyone in it." : h.ownedCode ? "How this world plays. They are yours to change from the Owner screen." : `How this world plays. They are ${h.hostName ? "the host's" : "the world's owner's"} to change.`;
     root.innerHTML = `
       <div class="screen screen-wide">
         <h1>World rules</h1>
