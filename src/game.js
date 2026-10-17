@@ -94,7 +94,6 @@ export function create({ json, look = null, name = null, devChest = false, rules
   S.corpses = [];
   S.villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i }));
   interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses]);
-  interact.setViewer(() => S.player);
   archery.setTargets(() => S.zombies); // what an arrow can hit when it lands (docs/20)
   map.ensureAround(S.player.gx, S.player.gy, 4);
   for (const [x, y] of map.takePendingSpawns()) S.zombies.push(createZombie(x, y));
@@ -292,7 +291,6 @@ export function restore(saved, json) {
     else if (c.kind !== "player") dress(c);
   }
   interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses]);
-  interact.setViewer(() => S.player);
   archery.setTargets(() => S.zombies);
   archery.reset();
   burning.reset();

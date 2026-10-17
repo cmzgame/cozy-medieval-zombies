@@ -21,7 +21,7 @@ export function seenAlpha(viewer, z) {
   const d = Math.hypot(z.gx - viewer.gx, z.gy - viewer.gy);
   // The radius seen whole: the short one of the dark, or the viewer's own carried light's, a torch giving sight back to its radius.
   let reach = T.darkRadius;
-  for (const c of light.carriers()) if (Math.hypot(c.gx - viewer.gx, c.gy - viewer.gy) < 0.7 && c.radius > reach) reach = c.radius;
+  for (const c of light.carriers()) if (c.owner === viewer.id && c.radius > reach) reach = c.radius; // by owner, not by where it stands: a guest's own player is ahead of or behind the host's record of it
   const near = 1 - clamp01((d - reach) / T.edge);
   return Math.max(lit, near);
 }

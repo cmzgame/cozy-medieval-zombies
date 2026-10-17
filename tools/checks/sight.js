@@ -48,16 +48,36 @@ export async function run(game) {
 
     // The dark hides information, never physics (Michael, #150): one lost in it cannot be pointed at (no hover hand, no click, no
     // right-click: `characterAt`), one seen can; and a hit still lands on it (a swing or a shot is the world's, not the eye's).
-    const pointAt = (d) => { z.gx = me.gx + d; z.gy = me.gy; step(2); const p = G.iso.toScreen(z.gx, z.gy); return G.interact.characterAt(p.x, p.y - 20); };
+    const pointAt = (d) => { z.gx = me.gx + d; z.gy = me.gy; step(2); const p = G.iso.toScreen(z.gx, z.gy); return G.interact.characterAt(p.x, p.y - 20, me); };
     const seenOne = pointAt(1);
     const hiddenOne = pointAt(6);
     row("a dead one seen in the dark can be pointed at, and one lost in it cannot", seenOne === z && hiddenOne === null, `at 1 tile ${seenOne === z ? "found" : "missed"}, at 6 ${hiddenOne === null ? "nothing there" : "found"}`);
     z.gx = me.gx + 6;
     z.gy = me.gy;
+    // A real swing, east, with a stick, at one standing in its wedge that nobody sees (the eye's short radius made shorter than the
+    // arm's for the test): it still lands. The dark hides information, never physics.
+    const stick = G.items.makeEntry("stick", 1);
+    const heldBefore = { main: me.hands.main, off: me.hands.off };
+    const T0 = { darkRadius: T.darkRadius, edge: T.edge };
+    T.darkRadius = 0.2;
+    T.edge = 0.3;
+    me.hands.main = stick;
+    me.hands.off = null;
+    me.aim.sx = 1;
+    me.aim.sy = 0;
+    z.gx = me.gx + 1.0;
+    z.gy = me.gy;
+    step(2);
+    const hiddenAtSwing = !sight.seen(me, z);
     const hp0 = z.hp;
-    const dmg = (await import("/src/entities/zombie.js")).damageZombie(z, 10, { dir: [1, 0] });
-    row("a blow still lands on one lost in the dark", z.hp === hp0 - 10 && !dmg.killed, `hp ${hp0} to ${z.hp}`);
+    G.combat.tryAttack(me, G.zombies, "main");
+    step(40);
+    T.darkRadius = T0.darkRadius;
+    T.edge = T0.edge;
+    row("a swing still lands on one lost in the dark", hiddenAtSwing && z.hp < hp0, `hp ${hp0} to ${z.hp}; hidden at the swing ${hiddenAtSwing}`);
     z.hp = hp0;
+    me.hands.main = heldBefore.main;
+    me.hands.off = heldBefore.off;
 
     me.hands.main = hands0.main || me.hands.main;
     const torch = hands0.main && hands0.main.id === "torch" ? hands0.main : hands0.off && hands0.off.id === "torch" ? hands0.off : null;
