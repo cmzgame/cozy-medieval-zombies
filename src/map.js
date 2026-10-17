@@ -12,6 +12,7 @@
 import { getDef } from "./assets.js";
 import { nextId } from "./world.js";
 import { emit } from "./events.js";
+import { world as W } from "./tuning.js";
 
 export const CHUNK = 16;
 // Every prop by its id (docs/31/08, habit 1): anything kept across a step
@@ -144,6 +145,40 @@ export function brackets() {
   return bracketSet;
 }
 
+// The torches players mounted burn down at the wall rate while lit (Michael, 2026-10-17, #156): a spent one is gone from its
+// holder. The village's own (no `wear`) never do, until they are lanterns.
+let holderAcc = 0;
+export function burnHolders(dt) {
+  const k = dt / W.torchWallLife;
+  holderAcc += dt;
+  const save = holderAcc >= 5; // the save's copy of a chunk notes the wear now and then, not every step
+  if (save) holderAcc = 0;
+  for (const b of bracketSet) {
+    const br = b.wall.bracket;
+    if (!br.torch || br.lit !== true || br.wear === undefined) continue;
+    br.wear += k;
+    if (br.wear >= 1) {
+      br.torch = false;
+      delete br.wear;
+      delete br.lit;
+      touchWall(b.wall);
+      emit("torchSpent", { x: b.tx, y: b.ty });
+    } else if (save) unsavedWall(b.wall);
+  }
+  for (const p of fireProps) {
+    const f = p.fire;
+    if (!f.holds || !f.has || !f.lit || f.wear === undefined) continue;
+    f.wear += k;
+    if (f.wear >= 1) {
+      f.has = false;
+      f.lit = false;
+      delete f.wear;
+      touch(p.tile[0], p.tile[1]);
+      emit("torchSpent", { x: p.tile[0], y: p.tile[1] });
+    } else if (save) unsaved(p.tile[0], p.tile[1]);
+  }
+}
+
 export function addBracket(tx, ty, edge, side, torch = false) {
   const wall = growTile(tx, ty)[edge];
   if (!wall) return null;
@@ -188,13 +223,32 @@ export function holderHas(target) {
   return target.kind === "bracket" ? target.bracket.wall.bracket.torch : target.prop.fire.has;
 }
 
-export function setHolder(target, has) {
+// What the torch it holds has left: { wear, lit }. An authored one (the village's, until it is a lantern) has no wear and is
+// lit for good; one a player mounted keeps its own (#156).
+export function holderState(target) {
+  const h = target.kind === "bracket" ? target.bracket.wall.bracket : target.prop.fire;
+  return { wear: h.wear, lit: h.wear === undefined ? true : target.kind === "bracket" ? h.lit !== false : !!h.lit };
+}
+
+// `entry` is the torch being mounted: its wear and whether it is lit go with it, and come back out with it.
+export function setHolder(target, has, entry = null) {
   if (target.kind === "bracket") {
-    target.bracket.wall.bracket.torch = has;
+    const b = target.bracket.wall.bracket;
+    b.torch = has;
+    if (has && entry) {
+      b.wear = entry.wear || 0;
+      b.lit = !!entry.lit;
+    } else {
+      delete b.wear;
+      delete b.lit;
+    }
     touchWall(target.bracket.wall);
   } else {
-    target.prop.fire.has = has;
-    target.prop.fire.lit = has;
+    const f = target.prop.fire;
+    f.has = has;
+    f.lit = has && (entry ? !!entry.lit : true);
+    if (has && entry) f.wear = entry.wear || 0;
+    else delete f.wear;
     touch(target.prop.tile[0], target.prop.tile[1]);
   }
   // It touched nothing before 2026-10-15: a guest saw a torch mounted or taken only once its chunk went for another

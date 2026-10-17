@@ -101,7 +101,7 @@ export async function run(game) {
     const far = alphaAt(9);
     const spotFor = G.map.nearestWalkable(Math.round(me.gx + 10), Math.round(me.gy)) || [me.gx + 10, me.gy];
     other = G.addPlayer(spotFor[0], spotFor[1]);
-    other.hands.main = torch ? { ...torch } : { id: "torch", count: 1 };
+    other.hands.main = torch ? { ...torch } : { id: "torch", count: 1, lit: true };
     step(6);
     const lit = sight.seenAlpha(me, z);
     other.hands.main = null;

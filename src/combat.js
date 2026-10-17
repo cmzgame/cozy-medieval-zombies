@@ -357,7 +357,10 @@ export function tryAttack(player, zombies, hand = "main", mode = null, predict =
     const push = !finisher && pushes(weapon) ? weapon.knockback : 0;
     // A weapon with an `ignite` chance (the torch, #14) may set the dead one alight: rolled only for such a weapon, so
     // no other blow spends a roll, and before the damage, so a killing blow's body burns on as a corpse.
-    if (weapon.ignite && rng.chance(weapon.ignite)) burn.ignite(z);
+    // An unlit torch (doused, or new, #156) sets nothing alight and spends no roll.
+    const swung = player.hands[hand];
+    const dousedTorch = !!(swung && items.getItem(swung.id).fire && !items.isLit(swung));
+    if (weapon.ignite && !dousedTorch && rng.chance(weapon.ignite)) burn.ignite(z);
     const r = damageZombie(z, amount, { dir: [dir.x, dir.y], knockback: push, knockdown, stagger: weapon.stagger, staggerChance: weapon.staggerChance, interrupts: weapon.interrupts, from: [player.gx, player.gy] });
     if (r.killed) killed = true;
   }

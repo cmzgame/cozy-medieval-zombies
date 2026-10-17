@@ -115,7 +115,8 @@ function giveStarterKit(player) {
   inventory.addItem(bag, "bread", 1);
   inventory.addItem(bag, "apple", 2);
   inventory.addItem(bag, "plank", 1);
-  items.hold(player.hands, entry("torch"));
+  items.hold(player.hands, entry("torch", { lit: true })); // a new torch starts unlit; this one is lit, the tinderbox beside it in the bag (Michael, #156; #136 makes the kit data)
+  inventory.addItem(bag, "tinderbox", 1);
 }
 
 // The map's rules as the world reads them when it loads the map (docs/38 and `02`, #130): trees or none, and the
@@ -485,9 +486,36 @@ function beltFire(belt) {
   if (!belt) return null;
   for (const e of belt) {
     const def = e && items.getItem(e.id);
-    if (def && def.fire) return def.fire;
+    if (def && def.fire && items.isLit(e)) return def.fire;
   }
   return null;
+}
+
+// A torch burns down while it is lit (Michael, 2026-10-17, #156): fastest in a hand, at the slower wall rate on the belt (a
+// lit one beside another that is held burns for nothing), and spent it is gone, with the weapon's own word. The meter is the
+// torch's `wear`, which a kill also bites; a lit one in the bag does not burn (it gives no light there either).
+function burnTorches(dt) {
+  const W = tuning.world;
+  const drain = (p, e, k) => {
+    const def = e && items.getItem(e.id);
+    if (!def || !def.fire || !def.fire.burnsDown || !e.lit) return;
+    e.wear = Math.min(1, (e.wear || 0) + k);
+    if (e.wear >= 1) {
+      inventory.detach(p, e);
+      events.emit("weaponBroke", { who: p.id, item: e.id, uid: e.uid });
+    }
+  };
+  for (const p of state.players) {
+    if (p.dead) continue;
+    const seen = new Set();
+    for (const slot of ["main", "off"]) {
+      const e = p.hands[slot];
+      if (!e || seen.has(e)) continue;
+      seen.add(e);
+      drain(p, e, dt / W.torchHeldLife);
+    }
+    for (const e of [...(inventory.beltOf(p) || [])]) if (e) drain(p, e, dt / W.torchWallLife);
+  }
 }
 
 // The world's first part of a step: the rules, the clock, the fires, and the
@@ -498,6 +526,8 @@ export function begin(dt) {
   rules.refresh(); // a server world's rules, from its source, once a step; a browser's world keeps its own (docs/23a, C3; docs/38, #109)
   clock.update(dt);
   map.burnFires(dt);
+  map.burnHolders(dt); // the torches mounted on brackets and posts burn down at the wall rate (map.js)
+  burnTorches(dt);
   stations.update(dt); // every station's queue, in the world's time (docs/30, section 6)
   for (const p of S.players) {
     // Grow the world four chunks ahead of the player, so wild forest and its dead
@@ -629,7 +659,7 @@ export function step(dt, snapshots = null) {
   const carried = [];
   for (const p of S.players) {
     const held = items.heldFire(p.hands);
-    const twoHanded = held && p.hands.main && p.hands.off && p.hands.main !== p.hands.off && items.getItem(p.hands.main.id).fire && items.getItem(p.hands.off.id).fire;
+    const twoHanded = held && p.hands.main && p.hands.off && p.hands.main !== p.hands.off && items.isLit(p.hands.main) && items.isLit(p.hands.off);
     const belted = held ? null : beltFire(inventory.beltOf(p));
     const fire = held || belted;
     const strength = held ? (twoHanded ? tuning.world.twoTorches : 1) : tuning.world.beltLight;

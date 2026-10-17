@@ -183,12 +183,18 @@ export function heldEntry(hands, id) {
   return null;
 }
 
+// Whether an entry is giving light: a fire item that burns down (a torch) only while it is lit (Michael, 2026-10-17, #156:
+// a new one starts unlit, and T lights it with a tinderbox); any other fire item always.
+export function isLit(entry) {
+  const it = entry && items.get(entry.id);
+  return !!(it && it.fire && (!it.fire.burnsDown || entry.lit));
+}
+
 // The fire of a held item, if any: the light you carry.
 export function heldFire(hands) {
   for (const slot of ["main", "off"]) {
     const e = hands[slot];
-    const it = e && items.get(e.id);
-    if (it && it.fire) return it.fire;
+    if (e && isLit(e)) return items.get(e.id).fire;
   }
   return null;
 }

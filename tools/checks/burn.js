@@ -100,7 +100,7 @@ export async function run(game) {
     // 5. The torch: its chance over many landed blows (the dead one kept alive and put out each time, the torch kept whole).
     const torch = G.items.getItem("torch");
     const chance = torch.weapon.ignite;
-    p.hands.main = G.items.makeEntry("torch", 1);
+    p.hands.main = G.items.makeEntry("torch", 1, { lit: true });
     const z2 = bring(p.gx + 0.9, p.gy);
     let landed = 0;
     let lit = 0;

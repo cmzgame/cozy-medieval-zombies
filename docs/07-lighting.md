@@ -23,8 +23,8 @@ Every fire kind is a definition, not a case. A sprite definition declares `fire:
 
 | Fire | Radius | Burns | Cooks | Placed |
 |---|---|---|---|---|
-| Torch, held | 3 | no | no | either hand; on the belt at half, unseen |
-| Torch, mounted | 3 | no | no | a bracket on a wall edge, or a torch post |
+| Torch, held | 3 | **itself, while lit**: it burns down (below) | no | either hand; lit with a tinderbox (`T`); on the belt at half, unseen |
+| Torch, mounted | 3 | itself, while lit, at the wall rate; **the village's own, never** (until they are lanterns, #156) | no | a bracket on a wall edge, or a torch post |
 | Campfire | 4 | logs, two hours each, holds four | yes | outdoors |
 | Hearth, fireplace | its whole room, plus a pool of 3 through its openings | logs, three hours each, holds four | yes | indoors against a wall |
 | Oven | 2 | logs, two hours each, holds three | yes | a station (`30`) |
@@ -32,6 +32,7 @@ Every fire kind is a definition, not a case. A sprite definition declares `fire:
 | Jack-o'-lantern | 1.5 | no | no | decoration; always lit |
 | Fire arrow | a small light in flight | no | no | an arrow dipped at any lit fire; it burns what it hits (`02`, 2026-10-15) |
 
+- **A torch burns down while it is lit** (Michael, 2026-10-17, #156; `02`: "it drains the whole time it's lit. If it doesn't deplete though then you never need to make more and never need to bring a tinderbox"): the torch's own `wear` (the meter a kill bites, 0 to 1) rises with the time it is lit, **fastest in a hand** (`world.torchHeldLife`, 1440 game seconds, two game days of continuous light) and at the slower **wall** rate on the belt, in a bracket, or on a post (`torchWallLife`, 2880); a kill costs a fifth of a torch, far more than any second of burning. Spent, it is gone from its place with the weapon's word ("Your torch is spent."). A lit torch in the bag does not burn and gives no light. It overturns 2026-10-09's "torches never burn out" (struck where it sits). **A new torch starts unlit** (made, found, or bought); **a tinderbox** (a 1 by 1 item that never wears out) **lights it**: `T` lights the torch in a hand, else on the belt, when a tinderbox is carried, douses a lit one, and with no tinderbox says "You need a tinderbox to light it."; with no torch there it takes the one from the bag into a hand, unlit. The starting kit's torch is lit and a tinderbox is in the bag (said in the PR: Michael's to overrule; #136 makes the kit data). An unlit torch gives no light, draws no flame, and sets nothing alight. A torch mounted keeps its wear and whether it is lit, and comes out as it went in. Belt and hand never stack (one carried light per player, the held torch winning; a lit belt torch beside a held one burns for nothing).
 - **Burning.** A burner holds `maxFuel` units of its `fuel` and burns one per `hoursPerUnit` in-game hours (a game hour is thirty real seconds); a full night from dusk to dawn costs the hearth about three logs. At zero it goes out: no ambient, no pool, no flame drawn. Nothing shuts off on a timer; a fire goes out because it burned what you gave it.
 - **Lighting and feeding.** A fire's menu offers Light (with a log, or a charcoal, in reach) or Feed, saying how full it is; the fuel comes from the bag or from anything in reach, and `E` takes it as the nearest simple action while you have fuel and the fire has room. Lighting needs no flame source: torches are always lit, so fire is never scarce, wood is.
 - **Flames are drawn** emissive, unlit and unfogged, over the fire: a few frames of flicker per fire kind, and the light flickers with them (`fire.flicker` on the definition; `08`).
