@@ -14,6 +14,7 @@
 import * as clock from "./clock.js";
 import * as map from "./map.js";
 import { getItem } from "./items.js";
+import { world as W } from "./tuning.js";
 
 export const RES = 2; // light cells per tile, so shadow edges are soft
 const N = map.CHUNK * RES + 2; // cells across a chunk's map, one beyond each side
@@ -120,15 +121,22 @@ export function darknessOf(ambient) {
   return clamp01((1 - ambient) / (1 - floor));
 }
 
-// 0..1: how much daylight a room's open shutters and open doors admit.
+// 0..1: how much daylight a room's open shutters and open doors admit. An open one lights `world.daylightTiles` tiles of
+// the room fully by day (Michael, 2026-10-17, #150: "opening windows fully ... should basically light the same room fully"):
+// one open window a small room, more a large one in proportion to its size; a shuttered one admits only its leak, so a
+// shuttered room stays dark by day ("a downside"), and the sight of the dead in it with it (sight.js).
 export function openness(room) {
-  let o = 0;
+  let open = 0;
+  let leak = 0;
   for (const op of room.openings) {
     const w = map.tileAt(op.tx, op.ty)[op.edge];
     if (!w) continue;
-    o += tunables.openingDaylight * map.transmission(w);
+    const t = map.transmission(w);
+    if (t >= 0.5) open += t;
+    else leak += t;
   }
-  return Math.min(1, o);
+  const size = Math.max(1, room.size || 1);
+  return Math.min(1, (open * W.daylightTiles) / size + leak * tunables.openingDaylight);
 }
 
 // A lit hearth lights its whole room. Without one, the room keeps a share of

@@ -93,6 +93,7 @@ export const world = {
   twoTorches: 1.35, // a torch in each hand: this much of one torch's light, and seen from this much further
   playerCapBrowser: 4, // the players a world hosted in a browser holds at once, the host's own among them (Michael, #93)
   playerCapServer: 8, // and a server world (raised in one line when the lighter frames of docs/31/05 land)
+  daylightTiles: 30, // tiles of a room one open shutter or open door lights fully by day (light.js `openness`; Michael, #150): one open window for a small room, more for a large one
 };
 
 // How many of the dead a world starts with, by its Starting population rule (docs/38 and `02`, #130): the factor that
