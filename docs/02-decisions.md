@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Only characters burn; anything with fire (a torch, a tinderbox, a fireball) lights what is made to be lit; nothing spreads; the fireball keeps some damage and becomes a flare (2026-10-17, Only characters burn; fire lights what is made to be lit; the fireball as a flare)
 - A sealed room is safe, and a cell: nothing digs, no wall breaks, you cannot leave (2026-10-17, The siege: a sealed room is a cell, the dead wait for dawn, a crowd bursts a fence)
 - The dead that know you are inside wait until the next dawn, for now; no sleep while they do (2026-10-17, The siege: a sealed room is a cell, the dead wait for dawn, a crowd bursts a fence)
 - A crowd bursts a fence into splinters (2026-10-17, The siege: a sealed room is a cell, the dead wait for dawn, a crowd bursts a fence)
@@ -201,6 +202,13 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-17 — Only characters burn; fire lights what is made to be lit; the fireball as a flare (Michael)
+
+From his play with the staff: "a fireball lights the way a bit as it travels. We could up that a bit and give it a second life as a utility flare for lighting areas up quickly. Especially if it lands on something it can set on fire. That feels awesome." He then warned against "unexplainable one-off rules", since only characters burn. Primary's synthesis, which he took ("Your light vs burn synthesis is perfect. Now it can do both without spillover."):
+
+- **Only characters burn** (as ruled with burning, #14). **Anything with fire lights what is made to be lit:** a torch, a tinderbox, and a fireball all turn a campfire, a brazier, or a torch post lit (the Light interaction), never burning or destroying it. Nothing spreads (spreading fire is for `05`, if ever).
+- **The fireball as a flare:** more light in flight, and a short-lived light where it lands, light only, no fire. It keeps damage: "it should still do SOME damage, not just the side effects, just not the powerhouse it is now. We can also tune with mana." The numbers with armour and difficulty (#133).
 
 ### 2026-10-17 — Every world is an expendable test (Michael)
 
