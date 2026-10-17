@@ -10,6 +10,9 @@
     "contact": 0.7,
     "damage": 8,
     "cooldown": 1.2,
+    "fenceStrike": 1,
+    "fenceReach": 0.9,
+    "fenceBiteExtra": 0.5,
     "hp": 100,
     "repath": 0.3,
     "radius": 0.3,
@@ -87,10 +90,7 @@
     "torchSpentRadius": 12,
     "daylightTiles": 30,
     "fenceHp": 90,
-    "fenceGateFactor": 0.5,
-    "fenceCrowd": 2,
-    "fenceDps": 1,
-    "fenceRecover": 0.5
+    "fenceGateFactor": 0.5
   },
   "population": { "none": 0, "low": 0.4, "standard": 1, "high": 2.5 },
   "sight": { "darkRadius": 1.5, "edge": 2, "litNone": 0.3, "litFull": 0.45, "seenAt": 0.5, "drawCutoff": 0.02, "groanGap": 3 }

@@ -12,7 +12,8 @@ export async function run(game) {
   const me = G.player;
   const bag = G.inventory.bagOf(me);
   const belt = G.inventory.beltOf(me);
-  const state0 = { hp: me.hp, hunger: me.hunger, thirst: me.thirst };
+  const state0 = { hp: me.hp, hunger: me.hunger, thirst: me.thirst, survival: G.rules.rules.survival };
+  G.rules.rules.survival = true; // a world without Survival is always full and eats nothing: the rows below set it where they mean it
   const bag0 = bag.items.slice();
   const belt0 = belt ? [...belt] : null;
   const defs = G.items.allItems().filter((d) => d.kind === "food");
@@ -86,18 +87,21 @@ export async function run(game) {
         me.hp = 40;
         me.hunger = G.tuning.player.fullAt - 1;
         G.interact.slotMenu(me, `belt:${slot2}`).find((m) => m.label === "Eat").onSelect();
-        row("one point under the full line it eats, and never past the top", me.hp === 40 + heal("stew") && me.hunger === me.maxHunger && belt[slot2].count === 1, `health ${me.hp}, hunger ${me.hunger}`);
-        // With Survival off the needs stay full for good, so there is no appetite to bound.
+        const room = me.maxHunger - (G.tuning.player.fullAt - 1);
+        const scaled = 40 + heal("stew") * (room / G.items.getItem("stew").hunger);
+        row("one point under the full line it eats, heals only for the appetite it fills, and hunger never passes the top", Math.abs(me.hp - scaled) < 1e-9 && me.hunger === me.maxHunger && belt[slot2].count === 1, `health ${me.hp} (wanted ${scaled}), hunger ${me.hunger}`);
+        // With Survival off the needs stay full for good, so a body is always full: no big heal by the back door (health still regenerates).
         G.rules.rules.survival = false;
         me.hp = 40;
-        me.hunger = me.maxHunger - 2;
+        me.hunger = 0;
         G.interact.slotMenu(me, `belt:${slot2}`).find((m) => m.label === "Eat").onSelect();
-        row("with Survival off the needs are always full, and food is still eaten", me.hp === 40 + heal("stew"), `health ${me.hp}`);
+        row("with Survival off a body is always full: food is refused", me.hp === 40 && belt[slot2].count === 1, `health ${me.hp}`);
       } finally {
         G.rules.rules.survival = was;
       }
     } else row("the player has a belt", false, "no belt");
   } finally {
+    G.rules.rules.survival = state0.survival;
     me.hp = state0.hp;
     me.hunger = state0.hunger;
     me.thirst = state0.thirst;

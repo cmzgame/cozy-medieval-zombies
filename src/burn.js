@@ -120,16 +120,19 @@ function lightTarget(player, target, flame) {
   return { light: () => map.lightProp(prop), prop };
 }
 
-// The fire a target is, when it burns: a campfire or any burner that is lit, a torch on a post that is lit, or a lit torch in a bracket
-// (a bracket torch is a fire source like a post's, #170). { prop } or { at: [x, y] }, or null.
+// The fire a target is, when it burns: a campfire or any burner that is lit, a torch on a post that is lit, a lit torch in a bracket
+// (a bracket torch is a fire source like a post's, #170), or a lantern (always lit, #175). { prop } or { at: [x, y] }, or null.
 function burningFire(target) {
   if (target.bracket) {
     const b = [...map.brackets()].find((q) => q.tx === target.bracket.tx && q.ty === target.bracket.ty && q.edge === target.bracket.edge);
-    if (!b || !b.wall.bracket.torch || !map.holderState({ kind: "bracket", bracket: b }).lit) return null;
+    if (!b) return null;
+    if (b.wall.bracket.lantern) return { at: map.bracketPos(b), lantern: true }; // a lantern is a flame: always lit (Michael, 2026-10-17, #175)
+    if (!b.wall.bracket.torch || !map.holderState({ kind: "bracket", bracket: b }).lit) return null;
     return { at: map.bracketPos(b) };
   }
   const prop = typeof target.prop === "string" ? map.propById(target.prop) : target.prop;
   const f = prop && prop.fire;
+  if (prop && prop.sprite === "lantern_post" && f && f.lit) return { prop, lantern: true }; // a lantern post, likewise
   if (!f || !f.lit || !(f.burns || (f.holds && f.has))) return null; // not burning: the ordinary refusal ("no flame")
   return { prop };
 }
@@ -145,7 +148,7 @@ function torchFromFire(player, target) {
   if (!fire) return null;
   const held = player.hands.main === e || player.hands.off === e || (beltOf(player) || []).includes(e);
   if (!held) return { reason: "Only a torch in a hand or on the belt can be lit that way." };
-  return { light: () => { e.lit = true; return true; }, fire, message: "You light the torch at the fire." };
+  return { light: () => { e.lit = true; return true; }, fire, message: fire.lantern ? "You light the torch at the lantern." : "You light the torch at the fire." };
 }
 
 // Where a player stands against a prop: the nearest of its tiles (as `dip` measures), and whether a wall is between (sight: a fence
