@@ -1636,7 +1636,7 @@ html, body {
   padding: 18px 16px 4px;
 }
 
-/* The wordmark, a placeholder until a drawn one comes: the big line zombie green in the stone's bands, the first line timber,
+/* The wordmark, a placeholder until a drawn one comes: the big line flat zombie green, the first line timber,
    a pixel outline from stacked drop-shadows (the letters are clipped to their fill, so text-shadow would paint over
    it), and the game's own autumn trees behind. */
 .wordmark {
@@ -1661,15 +1661,16 @@ html, body {
 }
 
 .wm-small {
-  filter: drop-shadow(1px 0px 0 #14100c) drop-shadow(-1px 0px 0 #14100c) drop-shadow(0px 1px 0 #14100c) drop-shadow(0px -1px 0 #14100c) drop-shadow(2px 0px 0 #14100c) drop-shadow(-2px 0px 0 #14100c) drop-shadow(0px 2px 0 #14100c) drop-shadow(0px -2px 0 #14100c) drop-shadow(4px 0px 0 #14100c) drop-shadow(-4px 0px 0 #14100c) drop-shadow(0px 4px 0 #14100c) drop-shadow(0px -4px 0 #14100c); /* a thick dark backing that fills the holes (Michael, 2026-10-17) */
+  filter: drop-shadow(1px 0px 0 #1c1410) drop-shadow(-1px 0px 0 #1c1410) drop-shadow(0px 1px 0 #1c1410) drop-shadow(0px -1px 0 #1c1410) drop-shadow(2px 0px 0 #1c1410) drop-shadow(-2px 0px 0 #1c1410) drop-shadow(0px 2px 0 #1c1410) drop-shadow(0px -2px 0 #1c1410); /* a thick dark backing that fills the holes (Michael, 2026-10-17) */
   font-size: clamp(24px, 4.6vw, 50px);
   background-image: linear-gradient(#e2a35a 0 30%, #b9783a 30% 62%, #8a5527 62% 100%);
 }
 
 .wm-big {
-  filter: drop-shadow(1px 0px 0 #14100c) drop-shadow(-1px 0px 0 #14100c) drop-shadow(0px 1px 0 #14100c) drop-shadow(0px -1px 0 #14100c) drop-shadow(2px 0px 0 #14100c) drop-shadow(-2px 0px 0 #14100c) drop-shadow(0px 2px 0 #14100c) drop-shadow(0px -2px 0 #14100c) drop-shadow(4px 0px 0 #14100c) drop-shadow(-4px 0px 0 #14100c) drop-shadow(0px 4px 0 #14100c) drop-shadow(0px -4px 0 #14100c) drop-shadow(8px 0px 0 #14100c) drop-shadow(-8px 0px 0 #14100c) drop-shadow(0px 8px 0 #14100c) drop-shadow(0px -8px 0 #14100c);
+  margin-top: 0.12em; /* room for its backing below the small line */
+  filter: drop-shadow(1px 0px 0 #1c1410) drop-shadow(-1px 0px 0 #1c1410) drop-shadow(0px 1px 0 #1c1410) drop-shadow(0px -1px 0 #1c1410) drop-shadow(2px 0px 0 #1c1410) drop-shadow(-2px 0px 0 #1c1410) drop-shadow(0px 2px 0 #1c1410) drop-shadow(0px -2px 0 #1c1410) drop-shadow(4px 0px 0 #1c1410) drop-shadow(-4px 0px 0 #1c1410) drop-shadow(0px 4px 0 #1c1410) drop-shadow(0px -4px 0 #1c1410);
   font-size: clamp(58px, 12vw, 132px);
-  background-image: linear-gradient(#86c95f 0 13%, #3f7a2c 13% 19%, #63aa48 19% 48%, #4c8e38 48% 74%, #386f2a 74% 100%); /* zombie green, the stone's banding (Michael, 2026-10-17) */
+  background-image: linear-gradient(#5aa043, #5aa043); /* zombie green, flat (Michael, 2026-10-17) */
 }
 
 .wm-tree {
