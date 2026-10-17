@@ -150,6 +150,17 @@ export async function run(game) {
     const floor = G.map.dropItem(Math.round(me.gx), Math.round(me.gy), lit2);
     G.map.takeItem(Math.round(me.gx), Math.round(me.gy), floor);
     row("a lit torch dropped on the ground is out", floor.lit === false, `lit ${floor.lit}`);
+    // What an entry carries goes out with it (#162): a belt dropped, and a body made.
+    const mkBelt = () => { const b = G.items.makeEntry("belt", 1, {}); G.inventory.ensureSlots(b)[0] = mk({ lit: true, wear: 0.1 }); return b; };
+    const belt1 = mkBelt();
+    const droppedBelt = G.map.dropItem(Math.round(me.gx), Math.round(me.gy), belt1);
+    G.map.takeItem(Math.round(me.gx), Math.round(me.gy), droppedBelt);
+    row("a lit torch in the slots of a belt that is dropped is out", droppedBelt.slots[0] && droppedBelt.slots[0].lit === false, `lit ${droppedBelt.slots[0] && droppedBelt.slots[0].lit}`);
+    const belt2 = mkBelt();
+    const z0 = G.zombies.find((z) => !z.dead && !z.corpse) || G.zombies[0];
+    const body = { ...z0, worn: { ...z0.worn, waist: belt2 }, hands: { main: null, off: null }, corpse: false }; // a copy: the fall is over for this one only
+    G.dressCorpse(body);
+    row("a lit torch on a belt on a body that falls is out, and stays out when looted", belt2.slots[0].lit === false, `lit ${belt2.slots[0].lit}`);
 
   } finally {
     off();

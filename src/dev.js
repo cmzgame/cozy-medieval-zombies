@@ -17,7 +17,7 @@ import * as gl from "./gl.js";
 import * as ground from "./ground.js";
 import { night } from "./render.js";
 import { autoWalk } from "./entities/player.js";
-import { say } from "./entities/character.js";
+import { say, dressCorpse } from "./entities/character.js";
 import { showMessage } from "./ui/prompt.js";
 import * as archery from "./archery.js";
 import * as burning from "./fire.js";
@@ -92,6 +92,7 @@ export function createDevApi(ctx) {
       cancel: () => archery.cancelDraw(P()),
       drawing: () => archery.drawState(P()),
     },
+    dressCorpse, // a body made (the fall over): its torches go out (#162)
     say: (text, seconds) => say(P(), text, seconds), // a bubble over the player, to test the system (docs/19)
     get tiles() { return ctx.tiles; },
     get visible() { return ctx.visible; },
