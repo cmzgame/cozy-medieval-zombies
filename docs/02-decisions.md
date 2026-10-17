@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- A sealed room is safe, and a cell; the dead that know you are inside wait until dawn; a crowd bursts a fence into splinters; doors, windows, and shutters are built onto walls (2026-10-17, The siege: a sealed room is a cell, the dead wait for dawn, a crowd bursts a fence)
 - Nobody climbs through a window, player or dead; a window is never a safe spot from the dead (2026-10-16, Nobody climbs through a window; region, never biome)
 - "Region" is the word for a place beyond the valley, never "biome" (2026-10-16, Nobody climbs through a window; region, never biome)
 - The guide stands beside the spawn on every map, with a reason to be there, written like anyone (2026-10-16, The needs-michael queue)
@@ -27,7 +28,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - Torches never burn out; they mount in brackets and on posts, never on the ground (2026-10-09, afternoon, Torches, fire, hands, and the clock)
 - At night the dead see fire from far away; fires are data; a lit hearth lights its whole room (2026-10-09, afternoon, Torches, fire, hands, and the clock)
 - Raw WebGL2 for the world, Canvas 2D for the dev art; portals are emitters with a transmission scalar (2026-10-09, night, The renderer goes to WebGL)
-- Openings are boards only, read from the attacker's side; everything spent, nothing repaired; nothing breaks a wall (2026-10-10, Openings)
+- Openings are boards only, read from the attacker's side; everything spent, nothing repaired; nothing breaks a wall, save a fence to a crowd (2026-10-10, Openings; 2026-10-17, The siege: a sealed room is a cell, the dead wait for dawn, a crowd bursts a fence)
 - The dead attack the room's nearest opening, never a window as their way in (2026-10-10, Openings; narrowed 2026-10-16, Nobody climbs through a window; region, never biome)
 - Water is unwalkable by everything; shallow crossings are slow for all (2026-10-12, Water is unwalkable by everything)
 - The 1.0 map is a 256 by 256 valley, generated from a description per place, never typed (2026-10-12, The 1.0 map's first rulings; 2026-10-12, Step 0 of `30` built)
@@ -194,6 +195,16 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-17 — The siege: a sealed room is a cell, the dead wait for dawn, a crowd bursts a fence (Michael)
+
+From the talk on what keeps a house from being a fortress without making the dead architects (7 Days to Die's diggers were the warning: "They just massively overcorrected"). Primary proposed memory and patience instead of new powers; Michael ruled:
+
+- **A sealed room is safe, and it is a cell** (a law): "If you can stock your base with enough food and water you should be allowed to hold up in there forever. Destroy the door and wall yourself completely in but with windows. You just can't leave." Nothing digs, nothing breaks a wall; the cost of a sealed room is that you cannot leave it.
+- **The siege lasts until the next dawn:** the dead that know you are inside stay, through the night. "This also gives you extra reason to light up the area around your house, straight out of zomboid and minecraft... This also makes night inherently more dangerous which we wanted to do without just straight up buffing zombies. They can see in but you struggle to see out if they keep busting open your shutters." (It keeps the clock law: no more dead come; the siege is the ones that saw you, and it ends.)
+- **A crowd breaks a fence, and the fence bursts into splinters:** "explode into a cloud of splinters with a tiny animation? Slightly comical but I do not want to animate or draw a pushed over fence. And it makes it visually dead clear that it's gone and you need to remake it." One of the dead cannot; a crowd pushing can. Walls still never break.
+- **Doors, windows, and shutters are buildable onto walls,** so what the dead spend can be built again (a new one, never a repair: "everything spent, nothing repaired" stands). Michael's thought, left to the build: "it might even be easier to make all walls solid as built, and then you can build a window or door directly over top and it stamps it into place and creates the opening." Walls here are already edge state with a kind (a door or a window is a wall with a kind and a state), so a stamp is the natural fit.
+- *Primary's, in the shape Michael took:* the dead go to the opening they saw you use (a door they break, a window they batter to see in); a fence shakes as a crowd presses, so there is warning. *Open:* whether a siege stops sleep. The build: #147.
 
 ### 2026-10-17 — Play alone or play with friends; telemetry from every world (Michael)
 
@@ -1036,7 +1047,7 @@ The milestone after the renderer: the dead get in. Design in `09-openings.md`. *
 - **Everything is spent, nothing is repaired.** Michael: if the dead break your door, you do not have a door anymore; the boards they break are gone; pulling your own board is gone too. No repair; the opening stays an opening. Open question 6 is closed by this: spent. Wood is what you go out for: planks for the walls and logs for the fires.
 - **One shambler takes a while.** A bare door should cost one zombie tens of seconds and a fully boarded one more than a minute; a Romero shambler does not kick a door down in a few seconds. Numbers tuned by eye in `09-openings.md`.
 - ~~**The dead climb through open windows**, slower than you and unable to bite while they do. Michael was about to ask for this; it is this milestone.~~ (superseded 2026-10-16: Nobody climbs through a window; region, never biome, #134)
-- **The dead attack the room's nearest opening.** When the way to what they want is shut, they go to the nearest opening of the room it is in on their own side, and hit the stack until it gives (narrowed 2026-10-16, Nobody climbs through a window; region, never biome: never a window as their way in; #134). Nothing ever breaks a wall. Noise stays out (question 18).
+- **The dead attack the room's nearest opening.** When the way to what they want is shut, they go to the nearest opening of the room it is in on their own side, and hit the stack until it gives (narrowed 2026-10-16, Nobody climbs through a window; region, never biome: never a window as their way in; #134). Nothing ever breaks a wall (narrowed 2026-10-17, The siege: a sealed room is a cell, the dead wait for dawn, a crowd bursts a fence: a crowd bursts a fence). Noise stays out (question 18).
 - **Sealed is derived** from a room's openings each step: every door closed and whole, every window shuttered or boarded and whole. It gates sleep later and costs nothing now.
 
 ### 2026-10-09, night — The renderer goes to WebGL (Michael)
