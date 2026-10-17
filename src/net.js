@@ -177,6 +177,7 @@ export function close() {
   for (const k of Object.keys(lastExtras)) lastExtras[k] = "";
   pending.length = 0;
   pendingOpened.length = 0;
+  pendingTalk.length = 0;
   myBase = null;
   run = null;
   runCount = 0;
@@ -969,7 +970,7 @@ export function guestStep(mySnap) {
     } else if (msg.type === "opened") {
       pendingOpened.push(msg.what); // after the frame that carries the grid (frames queue behind it)
     } else if (msg.type === "talk") {
-      pendingTalk.push(msg.what); // after the frame that carries the villager's state: the panel's lines come from my own replica
+      pendingTalk.push({ what: msg.what, after: framesSeen }); // held until a frame has been applied after this message: the one that carries the villager's `talking` state, which the panel's lines are computed from on my own replica (frames go every third step, so the message is usually first)
     } else if (msg.type === "stay" && msg.from) {
       // The host refused my step away (asleep or dead there): back in, nothing lost.
       steppedAway = false;
@@ -983,7 +984,10 @@ export function guestStep(mySnap) {
     hooks.message("The host's game has gone quiet. Its window may be covered or in the background.", 6);
   }
   if (pendingOpened.length && hooks.opened) for (const w of pendingOpened.splice(0)) hooks.opened(w);
-  if (pendingTalk.length && hooks.talk) for (const w of pendingTalk.splice(0)) hooks.talk(w);
+  if (pendingTalk.length && hooks.talk) {
+    const ready = pendingTalk.filter((t) => framesSeen > t.after);
+    for (const t of ready) { pendingTalk.splice(pendingTalk.indexOf(t), 1); hooks.talk(t.what); }
+  }
   if (joined) smoothStep();
   if (joined && game.state.player && !steppedAway) {
     const s = mySnap.idle ? mySnap : testSnapshot || mySnap; // a screen up: nothing pressed, whatever a check says

@@ -183,6 +183,7 @@ export function talkContext(v, player) {
 // whether a conversation began. Runs on the authority, as the player.
 export function startTalk(v, player) {
   if (v.dead || v.hp < (v.maxHp ?? 100) || v.state === "hurt") return false;
+  if (!lineOfSight(player.gx, player.gy, v.gx, v.gy)) return false; // the same test `keepTalkers` ends a conversation on: never through a wall
   const w = talkWorld();
   const deadClose = !!w && (w.zombies || []).some((z) => !z.dead && Math.hypot(z.gx - v.gx, z.gy - v.gy) <= T.talkDeadRadius);
   if (!talk.has(v.talk) || deadClose) {

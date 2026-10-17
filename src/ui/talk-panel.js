@@ -14,10 +14,11 @@ const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 let root = null;
-let open = null; // { vid, talkId, nodeId, node, i, said }
+let open = null; // { vid, talkId, nodeId, node, i, said, held, since }
 let lastHtml = "";
 let getPlayer = () => null;
 let getVillagers = () => [];
+const HOLD_WAIT_MS = 3000; // a guest's replica may not yet show the villager holding me when the panel opens (the frame comes a step or two after the message)
 let ender = null; // on a guest: tells the host the panel closed (net.sendTalkEnd)
 
 export function setEnder(fn) {
@@ -64,8 +65,8 @@ const villagerOf = () => (open ? getVillagers().find((v) => v.id === open.vid) |
 export function openFor(v, player) {
   const file = talk.get(v.talk);
   if (!file || !root) return false;
-  if (open) closeQuietly();
-  open = { vid: v.id, talkId: v.talk, nodeId: null, node: null, i: 0, said: "" };
+  if (open) { if (open.vid !== v.id) close(); else closeQuietly(); } // another villager's talk ends the first one on the host, so no one is left held (#230)
+  open = { vid: v.id, talkId: v.talk, nodeId: null, node: null, i: 0, said: "", held: false, since: performance.now() };
   root.hidden = false;
   enter(file.start, player);
   return true;
@@ -103,10 +104,10 @@ function render() {
   const last = open.i >= n.say.length - 1;
   const line = n.say[open.i] ?? "";
   let body;
-  if (!last) body = `<div class="tk-say">${esc(line)}</div><div class="tk-options"><button class="kit-button" data-continue>Continue…</button></div>`;
+  if (!last) body = `<div class="tk-say">${esc(line)}</div><div class="tk-options"><button class="kit-button" data-continue>Continue…</button></div><button class="kit-button tk-bye" data-bye>That's all for now</button>`;
   else {
     const opts = n.options.map((o, k) => `<div class="tk-opt"><button class="kit-button" data-opt="${k}">${esc(o.text)}</button>${o.wiki ? `<a class="tk-wiki" data-wiki href="${WIKI}${slug(o.wiki)}.html" target="_blank" rel="noopener" title="${esc(o.wiki)} on the wiki">${esc(o.wiki)}</a>` : ""}</div>`).join("");
-    body = `<div class="tk-say">${esc(line)}</div><div class="tk-options">${opts}<button class="kit-button tk-bye" data-bye>That's all for now</button></div>`;
+    body = `<div class="tk-say">${esc(line)}</div><div class="tk-options">${opts}</div><button class="kit-button tk-bye" data-bye>That's all for now</button>`;
   }
   const html = `<div class="inv-header kit-header"><span class="inv-title">${esc(v.name || "Villager")}</span><span class="inv-tools"><button class="kit-button inv-close" data-close title="Close">×</button></span></div><div class="tk-body kit-well">${body}</div>`;
   if (html !== lastHtml) {
@@ -119,7 +120,11 @@ function render() {
 export function update(player) {
   if (!open) return;
   const v = villagerOf();
-  if (!v || v.dead || v.state !== "talk" || !player || player.dead || !(v.talkingWith || []).includes(player.id)) return void closeQuietly();
+  if (!v || v.dead || !player || player.dead) return void closeQuietly();
+  const holds = v.state === "talk" && (v.talkingWith || []).includes(player.id);
+  if (holds) open.held = true;
+  else if (open.held || v.state === "hurt") return void closeQuietly(); // the host let me go (I walked away, or the villager was hurt or turned): nothing to tell it
+  else if (performance.now() - open.since > HOLD_WAIT_MS) return void close(); // the host never held me (a lost message): say I have left, so it does not
   render();
 }
 
