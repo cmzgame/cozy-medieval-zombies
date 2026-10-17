@@ -69,7 +69,7 @@ export function createInventoryActions(getPlayer) {
         const belt = inventory.beltOf(player);
         if (!belt || index >= belt.length) return false;
         if (def.hands) return entry.count === 1;
-        return def.kind === "food" || !!def.capacity;
+        return def.kind === "food" || !!def.capacity || def.belt === true; // a food, a skin, or a thing that says it rides the belt (the tinderbox)
       }
       // A hand takes what fits it; an occupant swaps out if it can be stowed.
       if (kind === "hand") return !!def.hands && entry.count === 1 && (def.hands === "both" || def.hands === "either" || def.hands === key);

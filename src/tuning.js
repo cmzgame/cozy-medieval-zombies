@@ -111,6 +111,8 @@ export const world = {
   craftDoneRadius: 12, // and within which a craft done is told (main.js, host.js; #177)
   torchSpentRadius: 12, // tiles within which a player is told a mounted torch burnt out (host.js, main.js; #167)
   daylightTiles: 30, // tiles of a room one open shutter or open door lights fully by day (light.js `openness`; Michael, #150): one open window for a small room, more for a large one
+  boardTool: "build", // the verb a hammer carries: boarding up, pulling a board, and Remove need it (#215; Free building waives it)
+  splitTool: "split", // the verb a hatchet carries: a log split into planks, a plank into sticks (#215)
   fruitCheckSeconds: 30, // clock seconds between looks at the bare fruit trees (a day is 720): a tree bears again on the first boundary after its day (fruit.js, #190)
   chopSeconds: 3, // a tree or a stump chopped with a hatchet (src/chop.js; was a constant in interact.js, #195)
   stumpSprite: "stump", // what a felled tree leaves (a tree is a prop with a `canopy`)

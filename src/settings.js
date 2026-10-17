@@ -60,7 +60,7 @@ export const REGISTRY = [
   { key: "zombieAggro", group: "rules", label: "Zombie aggro", help: "On, the dead hunt you. Off, they wander and ignore you.", choices: ON_OFF },
   { key: "zombiesAttackVillagers", group: "rules", label: "Zombies attack villagers", help: "On, the dead hunt villagers whatever aggro says; with aggro on, you first.", choices: ON_OFF }, // two knobs on purpose (Michael, 2026-10-15)
   { key: "survival", group: "rules", label: "Survival", help: "Hunger, thirst, and tiredness. Off, the body has no needs.", choices: ON_OFF },
-  { key: "freeBuilding", group: "rules", label: "Free building", help: "Building costs nothing, for trying out structures.", choices: ON_OFF },
+  { key: "freeBuilding", group: "rules", label: "Free building", help: "Building costs nothing, and the hammer and hatchet are not asked for, for trying out structures. Boards still want planks and a hammer.", choices: ON_OFF },
   { key: "multiHit", group: "rules", label: "Multi-hit", help: "A blow reaches everything in its wedge: the easy button. Off, only the nearest: the intended way.", choices: ON_OFF },
   { key: "trees", group: "rules", fixed: true, label: "Trees", help: "Every tree: the forests, the wild, and the orchards (so no apples from trees). Off, none are made, anywhere. Chosen when the world is made.", choices: ON_OFF },
   { key: "population", group: "rules", fixed: true, label: "Starting population", help: "How many of the dead the world starts with, in its places and in each new stretch of wild. It never grows with time. Chosen when the world is made.", choices: [["none", "None"], ["low", "Low"], ["standard", "Standard"], ["high", "High"]] },

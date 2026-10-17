@@ -16,6 +16,10 @@ export async function run(game) {
   const p = G.player;
   const saved = { gx: p.gx, gy: p.gy };
   G.loop.setPaused(true);
+  const bag = G.inventory.bagOf(p);
+  const bag0 = bag.items.slice();
+  const counts0 = bag0.map((e) => [e, e.count]); // the check's crafting uses up the kit's plank: its count goes back, not a 0-count entry
+  for (const id of ["hammer", "knife"]) G.inventory.stow(p, G.items.makeEntry(id, 1)); // the tool rule (#215): the workbench's rows want a carried hammer or knife
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const find = (station) => {
     for (const c of map.loadedChunks()) for (const t of c.tiles) if (t.prop && t.prop.tile && G.stations.stationOf(t.prop) === station && map.peekTile(t.prop.tile[0], t.prop.tile[1]) === t) return t.prop;
@@ -158,6 +162,8 @@ export async function run(game) {
     G.rules.set({ zombieAggro: aggro0 });
     for (const pr of made) map.removeProp(pr);
     if (bench) { bench.queue = []; if (bench.output) bench.output.items = []; }
+    bag.items.splice(0, bag.items.length, ...bag0);
+    for (const [e, n] of counts0) e.count = n;
     G.teleport(saved.gx, saved.gy);
     G.loop.setPaused(wasPaused);
   }

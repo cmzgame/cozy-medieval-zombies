@@ -22,10 +22,11 @@ The removal tool (Michael, 2026-10-11: "delete anything placed or built, highlig
 - **What it does:** a prop is removed from the map and a container spills what it held onto its tile; a wall is taken off its edge with its boards and bracket, and sight, light, rooms, and pathing update at once. Nothing is refunded.
 - **Finding the target:** a prop by its tile or its drawn rectangle; a wall by its drawn face on screen, or by the ground edge the building tool would pick, a little behind a face hit. The front-most (highest tile sum) wins.
 - Hands full means no removal, like building.
+- **Tools** (the tool rule, #214, #215): Remove needs a smith's hammer carried (hand, belt, or bag), as does building a door or a window; a log wall needs a hatchet (`data/build.json` `tool`, a tool verb: `build`, `notch`). The shortfall line names it ("You need a smith's hammer.").
 
 ## Free building
 
-The world rule `freeBuilding` (`rules.js`, default off; a host's rules bind its guests, and the settings screen's row is what a browser's own worlds take as their rule): while on, every build costs nothing, the palette shows "free", and nothing is taken from the bag. Build time still applies. It is for testing structures; turn it off to test the costs.
+The world rule `freeBuilding` (`rules.js`, default off; a host's rules bind its guests, and the settings screen's row is what a browser's own worlds take as their rule): while on, every build costs nothing, the palette shows "free", and nothing is taken from the bag. Build time still applies. It is for testing structures; turn it off to test the costs. **It waives the build tools too** (the hammer for a door, a window, and Remove; the hatchet for a log wall; #215), **but not boarding up or pulling a board**: Michael's 2026-10-11 ruling left boards out of it ("planks for boards are untouched"), and they stay a hammer's work.
 
 ## Accepted, and what is left for later
 

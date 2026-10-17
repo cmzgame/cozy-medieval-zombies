@@ -95,6 +95,8 @@
     "craftDoneRadius": 12,
     "torchSpentRadius": 12,
     "daylightTiles": 30,
+    "boardTool": "build",
+    "splitTool": "split",
     "fruitCheckSeconds": 30,
     "pickReach": 1.6,
     "chopSeconds": 3,

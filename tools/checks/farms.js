@@ -13,9 +13,11 @@ export async function run(game) {
   const saved = { gx: p.gx, gy: p.gy };
   const bag = G.inventory.bagOf(p);
   const bag0 = bag.items.slice();
+  const counts0 = bag0.map((e) => [e, e.count]);
   const hands0 = { main: p.hands.main, off: p.hands.off };
   const wasPaused = G.loop.isPaused();
   G.loop.setPaused(true);
+  for (const id of ["shovel", "knife", "scythe"]) G.inventory.stow(p, G.items.makeEntry(id, 1)); // the tool rule (#215): the harvests below are dug, cut, and scythed
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const farming = await import("/src/farming.js");
   const restore = [];
@@ -99,6 +101,7 @@ export async function run(game) {
     G.rules.set({ zombieAggro: aggro0 });
     for (const r of restore.reverse()) r();
     bag.items.splice(0, bag.items.length, ...bag0);
+    for (const [e, n] of counts0) e.count = n;
     p.hands.main = hands0.main;
     p.hands.off = hands0.off;
     G.teleport(saved.gx, saved.gy);

@@ -221,7 +221,7 @@ for kind, c in crops["crops"].items():
         elif load(f"data/sprites/{sid}.json").get("crop") != {"kind": kind, "stage": stage}:
             fail(f"sprites.{sid}: its `crop` should be {{kind: {kind}, stage: {stage}}}")
 
-# Recipes (#212): every item a recipe takes, makes, wields (`tool`), or must carry (`carry`) exists (an ingredient may be a tag instead), a prop
+# Recipes (#212): every item a recipe takes, makes, wields (`tool`), (and the verb it `uses` names a tool, below) exists (an ingredient may be a tag instead), a prop
 # it makes has a sprite, and cloth is made, so the loom has rows.
 tags = {t for i in items for t in i.get("tags", [])}
 for row in load("data/recipes.json")["rows"]:
@@ -238,7 +238,7 @@ for row in load("data/recipes.json")["rows"]:
             fail(f"recipes.{rid}: no sprite {out['prop']!r} to make")
     else:
         check_id(f"recipes.{rid}.out", out.get("id"))
-    for key in ("tool", "carry"):
+    for key in ("tool",):
         if row.get(key):
             check_id(f"recipes.{rid}.{key}", row[key])
 if not any(row["station"] == "loom" for row in load("data/recipes.json")["rows"]):
@@ -414,6 +414,25 @@ for sid in sorted(sprites):
     ph = d.get("placeholder")
     if d.get("interactable") and ph and ph.get("kind") == "box" and ph.get("outline") is not True:
         fail(f"sprites.{sid}: an interactable dev box without `outline: true` (a gatherable is outlined all the way round)")
+
+# The tool rule (#214, #215): every verb a recipe `uses`, a crop's `tool`, a build kind's `tool`, and the tuning's boardTool and splitTool is the verb of some tool
+# item, so a refusal can name it and a carried one is found by its data.
+tool_verbs = {v for i in items if i.get("kind") == "tool" for v in i.get("verbs", [])}
+wanted = {}
+for row in load("data/recipes.json")["rows"]:
+    if row.get("uses"):
+        wanted[f"recipes.{row['id']}.uses"] = row["uses"]
+for kind, c in load("data/crops.json")["crops"].items():
+    if c.get("tool"):
+        wanted[f"crops.{kind}.tool"] = c["tool"]
+for kind, b in load("data/build.json").items():
+    if isinstance(b, dict) and b.get("tool"):
+        wanted[f"build.{kind}.tool"] = b["tool"]
+for key in ("boardTool", "splitTool"):
+    wanted[f"tuning.world.{key}"] = load("data/tuning.json")["world"][key]
+for where, verb in wanted.items():
+    if verb not in tool_verbs:
+        fail(f"{where}: no tool item lists the verb {verb!r}")
 
 # Every picture named exists.
 referenced = set()
