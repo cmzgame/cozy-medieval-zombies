@@ -195,7 +195,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### 2026-10-16 — The aim guide is off by default (Michael, after a play)
 
-After playing the staff and the Book of Fire with the guide on: "I am also playing at the moment with no trees, with infinite mana, and with the ranged guide (bow, thrown, magic) turned ON, which I do not think should be the default or it makes it a b[i]t too easy. You should have to learn by trial and error how long to hold down left click." **The aim guide (the landing marker and its line, for the bow, a throw, and the cast alike) is off by default;** it stays a setting of each player's own. A browser that saved its settings keeps its own choice, as with every default changed before. It replaces the default on that `20` gave it when the bow was built.
+After playing the staff and the Book of Fire with the guide on: "I am also playing at the moment with no trees, with infinite mana, and with the ranged guide (bow, thrown, magic) turned ON, which I do not think should be the default or it makes it a b[i]t too easy. You should have to learn by trial and error how long to hold down left click." **The aim guide (the landing marker and its line, for the bow, a throw, and the cast alike) is off by default;** it stays a setting of each player's own. A browser that saved its settings keeps its own choice, as with every default changed before. It replaces the default on of 2026-10-12 (Arrows that hit stay in the body; the bow's guide is a setting). **Built with it:** the setting had done nothing since 2026-10-13, because the simulation drew the marker whenever a player's snapshot carried an aim, which it always does; the setting now gates only what each player's own screen draws, so it is truly each player's own.
 
 ### 2026-10-16 — Nobody climbs through a window; region, never biome (Michael, in the shape conversation on #123)
 
@@ -744,7 +744,7 @@ Same draw, same ground line and shadow, same landing-only hits and obstacles as 
 
 ### 2026-10-12 — Arrows that hit stay in the body; the bow's guide is a setting (Michael)
 
-After playing the bow ("feels very natural and the skill is real"): an arrow that hits one of the dead is **lodged in it** and drops out in its loot when it is killed and searched (no break chance; the old rule, half of them breaking, is struck); the **landing marker and dotted line are the `Bow aim guide` setting**, on for now, because Michael wants the weapon to feel right without it and does not want it on by default in the game, if ever; a landed arrow **sticking in the ground fletching-up** is for the art pass.
+After playing the bow ("feels very natural and the skill is real"): an arrow that hits one of the dead is **lodged in it** and drops out in its loot when it is killed and searched (no break chance; the old rule, half of them breaking, is struck); the **landing marker and dotted line are the `Bow aim guide` setting**, ~~on for now~~ (superseded 2026-10-16: The aim guide is off by default), because Michael wants the weapon to feel right without it and does not want it on by default in the game, if ever; a landed arrow **sticking in the ground fletching-up** is for the art pass.
 
 ### 2026-10-12 — Michael's verdict on characters: the stubs are right; villagers who rise as the dead are a keeper
 
