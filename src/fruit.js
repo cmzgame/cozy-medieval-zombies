@@ -44,7 +44,7 @@ verbs.define("pick", {
     if (placed < n) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(p.item, n - placed));
     map.restage(prop, p.bare, clock.getElapsed() + p.days * clock.DAY_LENGTH);
     const name = items.getItem(p.item).name.toLowerCase();
-    showMessage(`You pick ${n} ${name}${n > 1 ? "s" : ""}.`);
+    showMessage(placed < n ? `You pick ${n} ${name}${n > 1 ? "s" : ""}; ${n - placed} fall${n - placed > 1 ? "" : "s"} at your feet.` : `You pick ${n} ${name}${n > 1 ? "s" : ""}.`);
     return { picked: n };
   },
 });

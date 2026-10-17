@@ -33,7 +33,7 @@ export async function run(game) {
     const stand = [tx + 1.0, ty + 0.2];
     G.teleport(stand[0], stand[1]);
     const def = G.assets.getDef("tree_apple");
-    row("it is a gatherable: outlined and interactable, with wood to chop, and a pick block in data", def.interactable === true && def.wood > 0 && def.pick && def.pick.count && def.pick.days > 0, JSON.stringify(def.pick));
+    row("it is a gatherable: interactable, with wood to chop, and a pick block in data", def.interactable === true && def.wood > 0 && def.pick && def.pick.count && def.pick.days > 0, JSON.stringify(def.pick));
 
     const label = `Pick ${G.items.getItem("apple").name.toLowerCase()}s`;
     const actions = () => G.interact.actionsForProp(tree, me);
@@ -50,7 +50,9 @@ export async function run(game) {
     row("a second pick finds it bare and gets nothing", !again.ok && apples() === before + got, String(again.reason));
     const bareMenu = actions();
     row("a bare tree says when it will bear, and offers no pick", bareMenu.some((a) => /^Bare \(fruit in about 3 days\)/.test(a.label) && a.enabled === false) && !bareMenu.some((a) => a.label === label), bareMenu.map((a) => a.label).join(", "));
-    row("its chunk is marked, so a guest has the bare tree (touched, saved with the prop)", JSON.stringify(G.map.serializeProp(tree)).includes("regrowAt"), "regrowAt is in the prop's record");
+    const [ccx, ccy] = G.map.chunkCoord(tx, ty);
+    const chunk = G.map.getChunk(ccx, ccy, false);
+    row("its chunk is marked for the wire and its saved copy dropped, so a guest and the save have the bare tree", chunk.dirty === true && chunk.saved === null && JSON.stringify(G.map.serializeProp(tree)).includes("regrowAt"), `dirty ${chunk.dirty}, saved copy ${chunk.saved === null ? "dropped" : "kept"}, regrowAt in the record`);
     const copy = { ...JSON.parse(JSON.stringify(G.map.serializeProp(tree))), id: "p_apples_check" }; // another id: reviving under the tree's own would take it out of the registry
     const revived = G.map.reviveProp(copy, false);
     row("the saved prop comes back bare with its day", revived.sprite === "tree_apple_bare" && revived.regrowAt === tree.regrowAt, `${revived.sprite} ${revived.regrowAt}`);

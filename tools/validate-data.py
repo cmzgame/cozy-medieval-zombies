@@ -103,6 +103,27 @@ for bag_def in (back, item_defs.get("dev_bag")):
     if bag_def and bag_def.get("bag") and need > bag_def["bag"][0] * bag_def["bag"][1]:
         fail(f"kit.items: the kit needs {need} cells and the {bag_def['id']} holds {bag_def['bag'][0] * bag_def['bag'][1]}")
 
+# Fruit trees (#190): a `pick` block names an item and a bare kind that exist; the bare kind says it ripens back to the laden one; and the two
+# kinds agree on everything but the picture, since restaging a prop swaps only its sprite and its day (map.restage).
+for sid in sorted(sprites):
+    d = load(f"data/sprites/{sid}.json")
+    p = d.get("pick")
+    if not p:
+        continue
+    check_id(f"sprites.{sid}.pick", p.get("item"))
+    bare_id = p.get("bare")
+    if bare_id not in sprites:
+        fail(f"sprites.{sid}.pick: no bare kind {bare_id!r}")
+        continue
+    bare = load(f"data/sprites/{bare_id}.json")
+    if bare.get("ripens") != sid:
+        fail(f"sprites.{bare_id}: `ripens` should name {sid!r}, not {bare.get('ripens')!r}")
+    for field in ("wood", "interactable", "collide", "container", "solid", "footprint", "canopy", "leaves"):
+        if d.get(field) != bare.get(field):
+            fail(f"sprites.{sid} and {bare_id} disagree on {field!r}: {d.get(field)!r} against {bare.get(field)!r}")
+    if not (p.get("days", 0) > 0 and p.get("seconds", 0) > 0 and len(p.get("count", [])) == 2 and 1 <= p["count"][0] <= p["count"][1]):
+        fail(f"sprites.{sid}.pick: days and seconds above 0 and a count [lo, hi]")
+
 # Every picture named exists.
 referenced = set()
 
