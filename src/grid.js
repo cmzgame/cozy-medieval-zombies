@@ -6,7 +6,7 @@
 // per-instance state such as `fill`. (x, y) is the top-left cell; `rot` swaps
 // the item's width and height.
 
-import { getItem, makeEntry } from "./items.js";
+import { getItem, makeEntry, douse } from "./items.js";
 import { nextId } from "./world.js";
 
 // [w, h] in cells for an item id at a rotation.
@@ -96,6 +96,7 @@ export function insert(bag, entry) {
   if (!spot) return false;
   Object.assign(entry, spot);
   if (entry.uid == null) entry.uid = nextId("e"); // every item in a bag has an instance id (docs/31/08 habit 2)
+  douse(entry); // a torch put away is out
   bag.items.push(entry);
   return true;
 }
@@ -126,6 +127,7 @@ export function moveEntry(from, to, entry, x, y, rot) {
   if (!fits(to, entry.id, x, y, rot, entry)) return null;
   if (from !== to) {
     remove(from, entry);
+    douse(entry);
     to.items.push(entry);
   }
   entry.x = x;
@@ -147,6 +149,7 @@ export function transfer(from, to, entry) {
   if (!spot) return false;
   remove(from, entry);
   Object.assign(entry, spot);
+  douse(entry);
   to.items.push(entry);
   return true;
 }

@@ -17,7 +17,7 @@ import * as input from "./input.js";
 import * as map from "./map.js";
 import { getSheet, idleFrame } from "./assets.js";
 import { resolveFacing, frameName } from "./sprites.js";
-import { getItem, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
+import { getItem, makeEntry, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
 import { stacks as bleedStacks, clear as clearBleed } from "./bleed.js";
 import { beltKey } from "./inventory.js";
 import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, restoreOffHand, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
@@ -416,7 +416,8 @@ function holderActions(target, player) {
       mx,
       my,
       perform() {
-        const entry = { id: "torch", count: 1 };
+        const st = map.holderState(target);
+        const entry = makeEntry("torch", 1, { wear: st.wear || 0, lit: false }); // as burnt as it is, and out: a torch leaving a holder is doused (#156)
         if (!takeIn(player, entry)) return false;
         map.setHolder(target, false);
         return true;
@@ -436,7 +437,7 @@ function holderActions(target, player) {
       const found = findItem(player, "torch");
       if (!found) return false;
       detach(player, found.entry);
-      map.setHolder(target, true);
+      map.setHolder(target, true, found.entry);
       return true;
     },
   })];
@@ -966,14 +967,29 @@ export function updateInteract(player, dt, keys) {
       else if (a) showMessage("You need a plank.");
     }
   }
-  if (keys.t) {
-    if (holding(player.hands, "torch")) unequip(player, heldEntry(player.hands, "torch"));
+  if (keys.t) toggleTorch(player);
+}
+
+// T (Michael, 2026-10-17, #156): the torch in a hand, else on the belt, is lit with a tinderbox carried and doused when it
+// is lit; with no tinderbox it says why; with none in hand or on the belt, the one in the bag is taken into a hand (unlit).
+function toggleTorch(player) {
+  const belt = beltOf(player) || [];
+  const e = heldEntry(player.hands, "torch") || belt.find((q) => q && q.id === "torch");
+  if (e) {
+    if (e.lit) {
+      e.lit = false;
+      showMessage("You douse the torch.");
+    } else if (countAll(player, "tinderbox") <= 0) showMessage("You need a tinderbox to light it.");
     else {
-      const found = findItem(player, "torch");
-      if (!found) showMessage("No torch on you.");
-      else equipFrom(player, found.entry);
+      e.lit = true;
+      showMessage("You light the torch.");
     }
+    return;
   }
+  const found = findItem(player, "torch");
+  if (!found) return showMessage("No torch on you.");
+  equipFrom(player, found.entry);
+  showMessage("You take the torch in hand. T lights it.");
 }
 
 function beltPress(player, i) {

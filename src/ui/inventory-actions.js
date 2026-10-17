@@ -134,6 +134,7 @@ export function createInventoryActions(getPlayer) {
       entry.x = x;
       entry.y = y;
       entry.rot = !!rot;
+      items.douse(entry);
       bag.items.push(entry);
     },
     dropToFloor(entry, from) {

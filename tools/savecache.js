@@ -126,6 +126,13 @@ for (let cy = -2; cy < H + 2; cy++) for (let cx = -2; cx < W + 2; cx++) map.getC
 did("the wild grown again");
 map.touch(); did("the whole world touched");
 map.removeProp(bench); did("a prop removed");
+// A torch burning down in a bracket: its wear changes every step and only the save's copy of the chunk hears (map.burnHolders).
+const mount = [...map.brackets()].find((b) => !b.wall.bracket.torch) || [...map.brackets()][0];
+if (!mount) fail("the valley has no bracket for a mounted torch");
+const mountTarget = { kind: "bracket", bracket: mount, mx: mount.tx, my: mount.ty };
+map.setHolder(mountTarget, true, { wear: 0.2, lit: true }); did("a torch mounted, lit");
+did("a mounted torch burning down", 200);
+map.setHolder(mountTarget, false); did("the torch taken out");
 
 // The save as the server writes it: the snapshot's text, the same characters as the object's.
 const extra = { worldId: "w", name: "n", owners: {}, dormant: {}, myPlayerId: null, server: true };
