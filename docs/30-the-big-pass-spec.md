@@ -132,7 +132,7 @@ Recipes in `data/recipes.json`: `{ station, out: {id, count}, in: [{id or tag, c
 
 ## 9. The bucket
 
-**An item** (Michael, `02` 2026-10-18, The bucket goes in the bag, overturning "a prop you carry on your head"): in the bag, on the belt, or in a hand; filled at a well or any water tile (its menu, or the Use mode), poured on a plot (waters 3 by 3); its water is a fill on the entry, as the waterskin's is. Art: an item's pair (a bag icon and a world picture) by the pair rule, a placeholder until drawn. The waterskin waters one tile for the small case. **For a guest:** fill and pour are verbs by the entry's uid and the target tile, performed in the host's step; the fill lives on the entry, so it travels with the inventory in the frame and the save.
+**An item** (Michael, `02` 2026-10-18, The bucket goes in the bag, overturning "a prop you carry on your head"): in the bag, on the belt, or in a hand; filled at a well or any water tile (its menu, or the Use mode), poured on a plot (waters 3 by 3); its water is a fill on the entry, as the waterskin's is. Art: an item's pair (a bag icon and a world picture) and, since it can be held, its 38 by 38 portrait, by the pair rule, a placeholder until drawn. The waterskin waters one tile for the small case. **For a guest:** fill and pour are verbs by the entry's uid and the target tile, performed in the host's step; the fill lives on the entry, so it travels with the inventory in the frame and the save.
 
 ## 10. Tools and their verbs
 
@@ -196,7 +196,7 @@ After the pass:
 
 ## 13. Art, and the rule that nothing waits for it
 
-`29/09` is the request list, unchanged in content, with these additions: the bucket (an item: its bag icon and world picture), the tools as trios (hoe, scythe, pickaxe, shovel, knife, hammer; the hatchet exists), the station output slot (none: UI), the chicken and the deer as eight-facing sheets with walk and idle (and the deer's flee), a nest, an egg, raw and smoked meat, leather and the jerkin, the cooked foods' icons. Every piece has a placeholder from boot: furniture and stations as the box generator with the definition's footprint and a label; items as coloured blocks; crops as the five that exist; animals as the villagers' sheet recoloured until drawn (a chicken as a small box that walks is fine for a week). The art lands through `27`'s checklist in `09`'s tiers, and the build order above follows the tiers, so the village is drawn before the castle is needed.
+`29/09` is the request list, unchanged in content, with these additions: the bucket (an item: its bag icon, world picture, and held portrait), the tools as trios (hoe, scythe, pickaxe, shovel, knife, hammer; the hatchet exists), the station output slot (none: UI), the chicken and the deer as eight-facing sheets with walk and idle (and the deer's flee), a nest, an egg, raw and smoked meat, leather and the jerkin, the cooked foods' icons. Every piece has a placeholder from boot: furniture and stations as the box generator with the definition's footprint and a label; items as coloured blocks; crops as the five that exist; animals as the villagers' sheet recoloured until drawn (a chicken as a small box that walks is fine for a week). The art lands through `27`'s checklist in `09`'s tiers, and the build order above follows the tiers, so the village is drawn before the castle is needed.
 
 ## 14. Verify, per step
 
