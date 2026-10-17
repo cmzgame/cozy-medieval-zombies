@@ -371,10 +371,10 @@ export function wallDrawables(tiles, visible, playerRoom, out) {
 }
 
 // `ghostTint` draws the wall as the placement ghost (docs/13): tinted, unlit, and unfogged.
-// A fence the dead are pressing shakes (Michael, 2026-10-17, #147): the host says so every quarter second while it is
-// pressed (`fenceShake`, an fx for a guest), and for that long it jitters a pixel or two across, in sim time.
+// A wall the dead strike gives one small jolt for each strike (Michael, 2026-10-18, #174: "simmer it down"): the host says so for each
+// strike (`wallStruck`, an fx for a guest), and for a tenth of a second it moves a pixel and settles, in sim time.
 const shakes = new Map(); // "tx,ty,edge" -> sim ms until
-const SHAKE_MS = 400;
+const SHAKE_MS = 110;
 export function shakeFence(tx, ty, edge) {
   shakes.set(`${tx},${ty},${edge}`, loop.simTime() * 1000 + SHAKE_MS);
 }
@@ -388,7 +388,7 @@ function shakeOffset(tx, ty, edge) {
     shakes.delete(k);
     return 0;
   }
-  return Math.round(Math.sin(now / 22) * 1.6 * ((until - now) / SHAKE_MS + 0.4));
+  return Math.round(((until - now) / SHAKE_MS) * 1.4); // a pixel, once, settling
 }
 
 export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts = null) {
