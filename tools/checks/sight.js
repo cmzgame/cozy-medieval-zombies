@@ -82,9 +82,24 @@ export async function run(game) {
     z.behindProp = false;
     z.line = null;
     G.clock.setHour(0);
-    step(60 * 4); // past the groans' gap in the log (`groanGap`, sim seconds)
+    step(60 * (T.groanGap + 1)); // past the groans' gap in the log (`groanGap`, sim seconds)
     speech.updateSpeech([z], saySomething(T.darkRadius + T.edge + 1), me, 1 / 60);
     row("but one the dark hides, in line of sight, does", groaned(), `last line: ${logMod.lines().slice(-1)[0]}`);
+    z.line = null;
+    // Beyond the groan's radius, nothing, however long since the last (#177); a second one within it right away waits for the gap.
+    logMod.push("(the groan radius)", "info");
+    step(60 * (T.groanGap + 5));
+    speech.updateSpeech([z], saySomething(T.groanRadius + 1), me, 1 / 60);
+    row("one in the dark farther than the groan's radius is not heard", !groaned(), `at ${T.groanRadius + 1} tiles; last line: ${logMod.lines().slice(-1)[0]}`);
+    z.line = null;
+    logMod.push("(the groan gap)", "info");
+    speech.updateSpeech([z], saySomething(T.darkRadius + T.edge + 1), me, 1 / 60);
+    const first = groaned();
+    z.line = null;
+    logMod.push("(the groan gap, again)", "info");
+    step(60 * 3);
+    speech.updateSpeech([z], saySomething(T.darkRadius + T.edge + 1), me, 1 / 60);
+    row("and the next within the gap waits: one line, then quiet for groanGap seconds", first && !groaned(), `first ${first}, three seconds later ${groaned()}`);
     z.line = null;
 
     // The dark hides information, never physics (Michael, #150): one lost in it cannot be pointed at (no hover hand, no click, no
