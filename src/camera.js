@@ -2,13 +2,29 @@
 // iso.js is unchanged from the parent; the camera just moves its origin.
 
 import * as iso from "./iso.js";
+import * as interp from "./interp.js";
 
 export const cam = { gx: 0, gy: 0 };
+const before = { gx: 0, gy: 0 }; // where it stood before the last step, for the draw between steps (interp.js)
 const FOLLOW = 10; // per second
 
 export function snapTo(gx, gy) {
   cam.gx = gx;
   cam.gy = gy;
+  before.gx = gx;
+  before.gy = gy;
+}
+
+// At the start of every sim step: where it stands now is where it stood before the step.
+export function mark() {
+  before.gx = cam.gx;
+  before.gy = cam.gy;
+}
+
+// The camera's position `alpha` of the way from where it stood to where the step left it (a jump is not blended).
+export function blended(alpha) {
+  const b = interp.blend([before.gx, before.gy], [cam.gx, cam.gy], alpha);
+  return { gx: b[0], gy: b[1] };
 }
 
 // A screen jolt (docs/14): `x`, `y` pixels, fading to nothing over `seconds`.
@@ -25,11 +41,15 @@ export function follow(target, dt) {
 }
 
 // Put the camera position at the canvas centre. Rounded so pixels stay crisp.
-export function applyOrigin(w, h) {
+export function applyOrigin(w, h, at = cam) {
   const f = jolt.ttl > 0 ? jolt.ttl / jolt.total : 0;
-  const ox = Math.round(w / 2 - (cam.gx - cam.gy) * iso.HW + jolt.x * f);
-  const oy = Math.round(h / 2 - (cam.gx + cam.gy) * iso.HH + jolt.y * f);
-  iso.setOrigin(ox, oy);
+  const o = originOf(at.gx, at.gy, w, h, jolt.x * f, jolt.y * f);
+  iso.setOrigin(o.x, o.y);
+}
+
+// The whole-pixel origin for a camera position (pure: the checks use it).
+export function originOf(gx, gy, w, h, jx = 0, jy = 0) {
+  return { x: Math.round(w / 2 - (gx - gy) * iso.HW + jx), y: Math.round(h / 2 - (gx + gy) * iso.HH + jy) };
 }
 
 // Every tile whose diamond or tall sprite could touch the canvas. The grid

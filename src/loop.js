@@ -22,6 +22,7 @@ let frames = 0;
 let fps = 0;
 let fpsTimer = 0;
 let freezeLeft = 0;
+let drawAlpha = 1;
 let simSeconds = 0; // game time stepped so far: the sim's own clock, never the wall's (docs/23a, C2)
 let pauses = 0; // times the loop was paused: a draw held through a pause is dropped (archery.js)
 
@@ -78,6 +79,11 @@ export function getFreeze() {
   return freezeLeft;
 }
 
+// How far between the last step and the next the draw is, 0 to 1 (`interp.js`): the leftover time over a step. 1 when nothing is stepping (paused, held, a hit-stop).
+export function alpha() {
+  return drawAlpha;
+}
+
 export function getFps() {
   return fps;
 }
@@ -108,6 +114,7 @@ function run(now, draw) {
   last = now;
   if (dt > MAX_FRAME) dt = MAX_FRAME;
   try {
+    drawAlpha = 1;
     if (freezeLeft > 0) freezeLeft = Math.max(0, freezeLeft - dt);
     else if (!paused && !held) {
       // The world's time scale says how many fixed steps a real second is worth.
@@ -120,6 +127,7 @@ function run(now, draw) {
         n++;
       }
       if (n >= maxSteps) accumulator = 0;
+      drawAlpha = Math.min(1, Math.max(0, accumulator / STEP));
       if (!draw) workerSteps += n;
     } else if (held && !paused && hooks.pump) hooks.pump(); // held: the wire is still answered, so a friend's join is heard
     if (draw) hooks.render();

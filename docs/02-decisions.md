@@ -220,6 +220,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-10-18 — Movement feel: the draw is blended between steps (#161; the builder's reading, Michael's to overrule)
+
+Measured first (`check("feel")`): diagonals are already normalised (3.00 tiles a second along the screen), input is instant velocity (the arcade feel; the first step already moves), the camera trails a walking player by 0.30 tiles (19 px, a time constant of a tenth of a second), and the drawn x of the player is within half a pixel of steady. **The fault was the missing blend:** the loop steps at a fixed 60 a second and the draw used the last step as it stood, so on a 144, 120, or 75 Hz display some frames scrolled nothing and the next three pixels (a spread of 1.0 to 1.2 px against 0.2 to 0.4 with the blend), and one late frame at 60 Hz was a hitch (spread 0.76 against 0.43 with 2 ms of jitter). **Fix:** the characters and the camera are drawn `loop.alpha()` of the way from where the previous step left them to where the last one did (`interp.js`), a draw a step behind at most (about 8 ms more latency on average); the camera's whole-pixel origin and the sprites' whole-pixel positions are kept (pixel-perfect). **Left alone:** the camera's trail (0.3 tiles) and the instant-velocity input, which are feel, Michael's to say whether he wants either changed.
+
 ### 2026-10-18 — A wounded villager still talks and barks (Michael, in chat, #230)
 
 On "a villager the dead have hurt can never be talked to again": **"Yes and yes, slow refill like players, and they keep any dialogue that is programmed."** So **only a dead villager is refused**: Talk is offered and starts for a wounded one, and the ambient bark and the poke's bark are not withheld for low health (`startTalk`, `ambientBark`, the menu's entry); a villager struck (staggered by a blow) still ends a conversation they are in, as one turned or dead does. The health refill is #236.

@@ -11,6 +11,7 @@ import * as assets from "./assets.js";
 import * as events from "./events.js";
 import * as map from "./map.js";
 import * as camera from "./camera.js";
+import * as interp from "./interp.js";
 import * as visibility from "./visibility.js";
 import * as clock from "./clock.js";
 import * as light from "./light.js";
@@ -989,6 +990,8 @@ function refreshFigureOf(p, force = false) {
 function update(dt) {
   const t0 = performance.now();
   if (!inWorld) return; // no world chosen yet (docs/31/09)
+  interp.mark([...S.players, ...S.zombies, ...S.villagers]); // where everything stood before this step, for the draw between steps (#161)
+  camera.mark();
   try {
     stepGame(dt);
   } finally {
@@ -1275,9 +1278,20 @@ function render() {
     // The tile grid shows only while building or removing (docs/15).
     grid: placement.state.kind === "build" || placement.state.kind === "remove",
   };
-  if (!glError) drawn = renderScene(scene);
-  timing.render = performance.now() - r0;
-  renderUi();
+  // Drawn between steps (interp.js): everything that moves `alpha` of the way from where the last step found it to where it left it, and the camera likewise;
+  // the step's own positions go back as soon as the picture is made, so nothing in the simulation or the interface ever reads a blended one.
+  const alpha = loop.alpha();
+  interp.apply(alpha);
+  try {
+    scene.camera = camera.blended(alpha);
+    camera.applyOrigin(V.w, V.h, scene.camera);
+    if (!glError) drawn = renderScene(scene);
+    timing.render = performance.now() - r0;
+    renderUi(); // the names, the bubbles, and the bars over the bodies are placed from the same blended positions and origin
+  } finally {
+    interp.restore();
+    camera.applyOrigin(V.w, V.h); // the step's origin back, which the next step's mouse picking reads
+  }
   const [cx, cy] = map.chunkCoord(Math.round(S.player.gx), Math.round(S.player.gy));
   const hand = (e) => (e ? e.id : "-");
   debugEl.textContent =
