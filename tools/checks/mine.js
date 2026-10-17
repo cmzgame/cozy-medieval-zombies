@@ -32,7 +32,7 @@ export async function run(game) {
     row("the pickaxe lists the verb mine; the four rocks give stone and go; there is a stone item", G.items.getItem("pickaxe").verbs.includes("mine") && rockDefs.every((d) => d.mine && d.mine.item === "stone" && d.mine.gone === true && d.interactable === true) && !!G.items.getItem("stone"), JSON.stringify(rockDefs[0].mine));
     const ore = G.assets.getDef("ore_rock");
     const spent = G.assets.getDef("ore_rock_spent");
-    row("the ore rock gives iron ore and stands spent for days, and the spent kind says it ripens back (a gatherable both ways)", ore.mine.item === "iron_ore" && ore.mine.spent === "ore_rock_spent" && ore.mine.days > 0 && spent.ripens === "ore_rock" && ore.interactable === true && spent.interactable === true, JSON.stringify(ore.mine));
+    row("the ore rock gives iron ore and stands spent for days, and the spent kind says it ripens back (a gatherable both ways: interactable and outlined)", ore.mine.item === "iron_ore" && ore.mine.spent === "ore_rock_spent" && ore.mine.days > 0 && spent.ripens === "ore_rock" && ore.interactable === true && spent.interactable === true && ore.placeholder.outline === true && spent.placeholder.outline === true, JSON.stringify(ore.mine) + "; outlined both ways (the gatherables law)");
 
     // Two tiles of bare ground beside the player.
     let at = null;
@@ -79,7 +79,7 @@ export async function run(game) {
     row("a day short it is still spent", orePiece.sprite === "ore_rock_spent", orePiece.sprite);
     const copy = { ...JSON.parse(JSON.stringify(G.map.serializeProp(orePiece))), id: "p_mine_check" };
     const revived = G.map.reviveProp(copy, false);
-    row("saved and loaded again (an evicted chunk) it keeps its day", revived.sprite === "ore_rock_spent" && revived.regrowAt === day, `${revived.sprite} ${revived.regrowAt}`);
+    row("a save's copy of the prop, revived, keeps its day", revived.sprite === "ore_rock_spent" && revived.regrowAt === day, `${revived.sprite} ${revived.regrowAt}`);
     G.clock.setElapsed(day + 31);
     G.game.begin(0);
     row("past its day it is an ore rock again (iron never runs out)", orePiece.sprite === "ore_rock" && orePiece.regrowAt === undefined, `${orePiece.sprite} ${orePiece.regrowAt}`);

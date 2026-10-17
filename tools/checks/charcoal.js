@@ -75,6 +75,26 @@ export async function run(game) {
       const fuel0 = { lit: forge.fire.lit, fuel: forge.fire.fuel };
       row("charcoal is the forge's fuel (it takes a piece as it takes nothing else)", forge.fire.fuelItem === "charcoal" && G.map.feedFire(forge) === true && forge.fire.fuel > fuel0.fuel, `fuel ${fuel0.fuel} to ${forge.fire.fuel}`);
       Object.assign(forge.fire, fuel0);
+      // The smelt itself: the forge lit (a piece of charcoal burning), two ore in a chest beside it, an iron bar in its output after the recipe's seconds.
+      const at = map.nearestWalkable(forge.tile[0], forge.tile[1] + 1, (x, y) => !!map.tileAt(x, y).prop);
+      G.teleport(at[0], at[1]);
+      step();
+      const cat = map.nearestWalkable(forge.tile[0] - 1, forge.tile[1] + 1, (x, y) => !!map.tileAt(x, y).prop || (x === Math.round(p.gx) && y === Math.round(p.gy)));
+      const chest = map.createProp({ sprite: "chest", tile: cat });
+      map.placeProp(chest, cat[0], cat[1]);
+      made.push(chest);
+      chest.bag = G.inventory.createBag(4, 3, "chest");
+      chest.searched = true;
+      G.grid.add(chest.bag, "iron_ore", 2);
+      forge.fire.lit = true;
+      forge.fire.fuel = 2;
+      const made1 = G.verbs.run("craft", G.world.world, p, { prop: forge.id }, { recipe: "iron_bar", count: 1 });
+      step(Math.ceil(G.stations.recipe("iron_bar").seconds * 60) + 4);
+      const bars = G.stations.outputOf(forge).items.filter((e) => e.id === "iron_bar").reduce((n, e) => n + e.count, 0);
+      row("with the forge lit, two ore in a chest beside it smelt to an iron bar", made1.ok && bars === 1 && !chest.bag.items.some((e) => e.id === "iron_ore"), `${made1.ok ? "" : made1.reason + "; "}${bars} bar in the output`);
+      G.stations.outputOf(forge).items = [];
+      forge.queue = [];
+      Object.assign(forge.fire, fuel0);
     } else row("the forge", false, "no forge in the loaded chunks");
     clamp.queue = [];
     out.items = [];

@@ -33,7 +33,7 @@ verbs.define("mine", {
   validate(world, player, target) {
     const prop = typeof target.prop === "string" ? map.propById(target.prop) : target.prop;
     if (!prop) return "There is nothing there.";
-    if (!mineOf(prop)) return prop.regrowAt !== undefined ? "It is mined out; the ore will come back." : "There is nothing to mine.";
+    if (!mineOf(prop)) { const back = getDef(prop.sprite).ripens; return back && getDef(back).mine ? "It is mined out; the ore will come back." : "There is nothing to mine."; } // a spent ore rock, not a bare apple tree
     if (!heldPick(player)) return "You need a pickaxe in hand.";
     if (Math.hypot(player.gx - prop.tile[0], player.gy - prop.tile[1]) > W.pickReach) return "Too far away.";
     if (!lineOfSight(player.gx, player.gy, prop.tile[0], prop.tile[1])) return "There is a wall in the way."; // a sealed room is a cell (#147)
