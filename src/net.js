@@ -109,8 +109,9 @@ export function makeCode() {
 // of its snapshot and a guest keeps the frames that come before it (an older guest dropped them); 5 (2026-10-18, #221): a prop goes as its identity and
 // the fields that differ from what its sprite makes it (`map.serializeProp`), so a chunk, a frame, and a save are about half the size; an older guest
 // would read a prop with its defaults missing.
-// 6 (2026-10-18, #203): the frame carries the chart's changed chunks (`chart`, only when there are any) and the save the whole chart.
-export const PROTOCOL = 6;
+// 6 (2026-10-18, #203): the frame carries the chart's changed chunks (`chart`, only when there are any) and the save the whole chart; 7 (2026-10-18, #237): the frame's `chart`
+// is the changed cells, [cx, cy, [index, cell, ...]] per chunk, not whole chunks.
+export const PROTOCOL = 7;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
