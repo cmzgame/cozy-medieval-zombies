@@ -20,6 +20,7 @@ Slicer options are what to set before Slice (the sliced JSONs already have them)
 | `beard_gnome.png` | beard | dye | the big bushy gnome beard, to the chest |
 | `beard_cropped.png` | beard | dye | tight along the jaw and cheeks, tufts in the edge |
 | `head_onion.png` | head | | **the onion hat**, the hero: shape `hood`, colours `#5f8a3a #46682a`; a slit for the eyes, a tall nub, a fold round the brow |
+| `head_onion_b_brow.png` | head | | **the onion hat in the game** (Michael picked it, 2026-10-18: "b brow is perfect!"): the hero redrawn with the opening cut round where the game draws the eyes in every facing and the fold raised above the brow; every facing painted, not mirrored. Sliced to `data/layers/head/onion.json`, worn by the item `hood` (`art.painted: "onion"`, colours `#5f8a3a #46682a`); its generator is `tools/art-gen/character/onion2.py` (`python onion2.py <repo> <out> b`) |
 | `head_onion_flop.png` | head | | the onion hat with a taller nub that flops over |
 | `head_onion_squat.png` | head | | the onion hat with a short squat nub and a wider slit |
 | `head_straw_hat.png` | head | | a straw hat: wide brim, domed crown, a band; dark hair painted under the brim at the sides and back (a painted head item replaces the hair) |

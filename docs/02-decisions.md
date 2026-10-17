@@ -104,6 +104,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The character, the figure, and art
 
+- A painted head item in two tones is dyed like hair by its entry's dye, undyed or of more tones it keeps the paint; the dead draw an item's painted layer too (2026-10-18, The Onion-head Hat's art: the brow; a dyed hood is dyed like hair, and the dead wear it too)
 - The weeping willow is cut; the art generators are to be archived in tools/art-gen, never run without Michael (2026-10-16, The needs-michael queue)
 - Throwables and consumables usually stack, case by case; one-offs like the Book and Staff of Fire never do (2026-10-16, The needs-michael queue)
 - A waterskin carried, belt or bag, sips by itself at Thirsty, the emptiest first, never mid-fight (2026-10-16, Auto-drinking)
@@ -218,6 +219,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-18 — The Onion-head Hat's art: the brow; a dyed hood is dyed like hair, and the dead wear it too (Michael's pick; Primary's defaults, Michael's to overrule)
+
+Michael picked the art agent's candidate **(b) brow** of three: "b brow is perfect!" (the opening cut round where the game draws the eyes in every facing, the fold raised above the brow; `data/art/character/layers/head_onion_b_brow.png`, its generator `tools/art-gen/character/onion2.py`). It is the painted head layer `onion` (`data/layers/head/onion.json`), worn by the item `hood` (`art.painted`, colours `#5f8a3a #46682a`). *Primary's defaults, Michael's to overrule:* **a dyed hood is dyed like hair**: a painted head item worn with an entry's dye (the villagers' three hoods, `#6b7a3a`, `#b08a3e`, `#8a6a3a`; the dead's two) takes the dye's colour for the light tone and its shade for the dark, by the hair's own rule (`SHADE_DYE`), the outline kept; worn in its own colours (the player's) it keeps the painted greens; a layer the item does not name (a try-on, the dead's pool) is never dyed, nor a layer of more than two tones (the outline aside), so a delivered straw hat or great helm keeps its paint (the review of #229). **The dead wear what they wear**: an item's painted layer draws on one of the dead as on anyone, in that one's dye, and wins over the dead's painted pool for its slot. The hat's bag icon and its 38 by 38 portrait are still owed (#182).
 
 ### 2026-10-18 — Talk, part 1: the guide's name and place, and what the first bark is (#198; the spec's, with the builder's defaults, Michael's to overrule)
 

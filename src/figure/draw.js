@@ -48,6 +48,16 @@ export function registerLayer(slot, name, data) {
   layers.set(`${slot}/${name}`, { ...data, name, slot, parts, options: data.options || {}, variant: data.variant || "player" });
   layersVersion++;
 }
+// Whether a layer is painted in two tones plus the outline over every part and facing (the dye's contract, docs/28),
+// worked out once per registered layer.
+const twoTone = new WeakMap();
+function isTwoTone(L, tonesOf) {
+  if (!twoTone.has(L)) {
+    const all = Object.values(L.parts || {}).flatMap((part) => Object.values(part).flat());
+    twoTone.set(L, tonesOf(all).length <= 2);
+  }
+  return twoTone.get(L);
+}
 export function getLayer(slot, name) {
   return (name && layers.get(`${slot}/${name}`)) || null;
 }
@@ -117,17 +127,28 @@ function drawFrame(frame, spec, facing, anim, i) {
   // other its darker tone, and the outline colour stays. A layer without the
   // option keeps the colours it was painted in (Michael's purple).
   const hexOf = (rgb) => "#" + rgb.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
+  const lum = (h) => { const [r, g, b] = hexToRgb(h); return 0.3 * r + 0.59 * g + 0.11 * b; };
+  const tonesOf = (pixels) => [...new Set(pixels.map((p) => p[2]))].filter((c) => c !== hexOf(OUTLINE)).sort((a, b) => lum(b) - lum(a)); // lightest first
+  const dyeTo = (pixels, hex) => {
+    const base = hexOf(hexToRgb(hex));
+    const dark = hexOf(tone(hexToRgb(hex), -SHADE_DYE));
+    const map = new Map(tonesOf(pixels).map((c, i) => [c, i === 0 ? base : dark]));
+    return pixels.map(([x, y, c]) => [x, y, map.get(c) || c]);
+  };
   const dye = (slot, pixels) => {
     const L = painted[slot];
     if (!pixels || !L || !L.options || !L.options.dye) return pixels;
-    const hex = (slot === "beard" && look.beardColour) || look.hair;
-    const outline = hexOf(OUTLINE);
-    const lum = (h) => { const [r, g, b] = hexToRgb(h); return 0.3 * r + 0.59 * g + 0.11 * b; };
-    const cols = [...new Set(pixels.map((p) => p[2]))].filter((c) => c !== outline).sort((a, b) => lum(b) - lum(a));
-    const base = hexOf(hexToRgb(hex));
-    const dark = hexOf(tone(hexToRgb(hex), -SHADE_DYE));
-    const map = new Map(cols.map((c, i) => [c, i === 0 ? base : dark]));
-    return pixels.map(([x, y, c]) => [x, y, map.get(c) || c]);
+    return dyeTo(pixels, (slot === "beard" && look.beardColour) || look.hair);
+  };
+  // A painted head item is dyed like hair when its entry is (2026-10-18, the onion hat): the entry's colour becomes the
+  // light tone and its shade the dark (a villager's or one of the dead's dyed hood). Only a dyed entry (`dyed`, from
+  // wardrobe.js), only the layer the item names (not a try-on from the settings nor the dead's pool), and only a layer
+  // painted in two tones plus the outline, as hair is: a hat of more tones keeps its paint, dyed or not.
+  const dyeHead = (pixels) => {
+    const head = outfit.head;
+    const L = painted.head;
+    if (!pixels || !head || !head.dyed || !L || head.painted !== L.name || !head.colours || !head.colours[0]) return pixels;
+    return isTwoTone(L, tonesOf) ? dyeTo(pixels, head.colours[0]) : pixels;
   };
   const layerRest = (slot) => restOf(painted[slot] ? painted[slot].variant : spec.variant);
   // Carry pixels painted relative to the rest segment a0 -> b0 onto this
@@ -423,7 +444,7 @@ function drawFrame(frame, spec, facing, anim, i) {
       }
     }
     if (paintedHair) { const r = P(layerRest("hair").head); stamp(dye("hair", layerPx("hair", "head")), r, below(r), hc, below(hc)); }
-    if (paintedHead) { const r = P(layerRest("head").head); stamp(layerPx("head", "head"), r, below(r), hc, below(hc)); }
+    if (paintedHead) { const r = P(layerRest("head").head); stamp(dyeHead(layerPx("head", "head")), r, below(r), hc, below(hc)); }
     if (painted.beard) { const r = P(layerRest("beard").head); stamp(dye("beard", layerPx("beard", "head")), r, below(r), hc, below(hc)); }
     if (spec.wound && !helm) {
       const w = P([spec.wound[0], spec.wound[1], J.head[2] + spec.wound[2]]);
