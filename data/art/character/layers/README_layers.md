@@ -11,7 +11,7 @@ Slicer options are what to set before Slice (the sliced JSONs already have them)
 | File | Slot | Slicer options | What it is, and the item it goes on |
 |---|---|---|---|
 | `hair_crop.png` | hair | dye | the generic short crop, two tones (replaces the generated `short`); no flip at the back on the three-quarter view, and from the side the hair arches over the ear |
-| `hair_mohawk.png` | hair | dye | a medium mohawk: the sides shaved (bare head), a jagged fin six pixels over the skull, down the forehead in front and to the nape behind |
+| `hair_mohawk.png` | hair | dye | a medium mohawk: the sides shaved (bare head), a jagged fin six pixels over the skull, down the forehead in front and to the nape behind. Revised 2026-10-18 (Michael's pick, "(a) soft", `docs/02`): the three-quarter facings re-cut, the side rounded, all eight painted; front and back unchanged; `preview_hair.png` predates it |
 | `hair_tight.png` | hair | dye | high and tight: a short flat top brushed up at the front, shaved to the temples and above the ear, tapering at the back |
 | `hair_long.png` | hair | dye | long and loose to the shoulders (replaces the generated `long`); from the side only the near side and the mane down the back hang, nothing in front of the face |
 | `hair_pigtails.png` | hair | dye | a middle parting and two pigtails tied at the sides of the head, hanging past the shoulders and flicking out at the tips; from the side the near one hangs from behind the ear |

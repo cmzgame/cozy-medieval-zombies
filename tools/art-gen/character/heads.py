@@ -99,24 +99,37 @@ def hair_crop():
 
 def hair_mohawk():
     """a medium mohawk: the sides shaved (nothing painted), a fin along the midline rising six pixels
-    over the skull, down the forehead in front and down the nape behind, a jagged crest"""
+    over the skull, down the forehead in front and down the nape behind, a jagged crest.
+    Revised 2026-10-18, Michael's pick "(a) soft" (from the art agent's mohawk2.py): front (s) and back (n) as
+    they were; the three-quarter facings re-cut so the fin follows the head's centreline over the top and its far
+    end goes out of sight behind the skull (it sat beside the head before); the side profile slightly rounded,
+    the shoulders filled and the side's two tufts kept. Every facing is painted, not mirrored: se's front run sits
+    on its own eyes' gap (the game's eyes centre half a pixel right of the head, so a pixel mirror of sw lands a
+    column left of them), and each facing takes the engine's light, the dark tone on the right-hand share."""
     L = Layer()
     shapes = {
         "s":  {**run(23, 25, 13, 22), 24: (12, 22)},
         "n":  {**run(23, 25, 13, 29), 24: (12, 29)},
-        "w":  {15: (20, 23), 16: (18, 23), 17: (16, 22), 18: (15, 19), 19: (14, 19), 20: (13, 19), 21: (12, 19),
+        "w":  {15: (20, 23), 16: (17, 23), 17: (15, 22), 18: (14, 19), 19: (13, 19), 20: (13, 19), 21: (12, 19),
                22: (12, 19), 23: (11, 19), 24: (12, 19), 25: (11, 19), 26: (12, 19), 27: (12, 19), 28: (13, 19),
-               29: (14, 19), 30: (15, 20), 31: (16, 21), 32: (18, 26), 33: (21, 26)},
-        "sw": {22: (18, 22), 23: (15, 22), 24: (13, 22), 25: (12, 19), 26: (11, 19), 27: (12, 19), 28: (13, 19),
-               29: (15, 20), 30: (17, 21), 31: (19, 25), 32: (21, 26)},
-        "nw": {21: (17, 18), 22: (15, 18), 23: (13, 18), 24: (12, 18), 25: (11, 28), 26: (11, 28), 27: (12, 28),
-               28: (14, 19), 29: (16, 20)},
+               29: (13, 19), 30: (14, 20), 31: (15, 21), 32: (17, 26), 33: (20, 26)},
+        "e":  {14: (20, 26), 15: (17, 26), 16: (15, 21), 17: (14, 20), 18: (13, 19), 19: (13, 19), 20: (12, 19),
+               21: (12, 19), 22: (11, 19), 23: (12, 19), 24: (11, 19), 25: (12, 19), 26: (12, 19), 27: (13, 19),
+               28: (13, 19), 29: (14, 19), 30: (15, 22), 31: (17, 23), 32: (20, 23)},
+        "sw": {22: (17, 22), 23: (14, 22), 24: (13, 22), 25: (12, 19), 26: (12, 19), 27: (12, 18), 28: (13, 17),
+               29: (14, 17), 30: (16, 18)},
+        "se": {18: (16, 17), 19: (14, 17), 20: (13, 17), 21: (12, 18), 22: (12, 19), 23: (12, 19), 24: (13, 22),
+               25: (14, 22), 26: (17, 22)},
+        "nw": {20: (16, 17), 21: (14, 17), 22: (13, 17), 23: (12, 18), 24: (12, 19), 25: (12, 28), 26: (13, 28),
+               27: (14, 28)},
+        "ne": {20: (14, 28), 21: (13, 28), 22: (12, 28), 23: (12, 19), 24: (12, 18), 25: (13, 17), 26: (14, 17),
+               27: (16, 17)},
     }
     for f, d in shapes.items():
         m = spans(d)
         shade_two(L, f, m, HAIR_L, HAIR_D)
         L.paint(f, ring(m), OUTLINE)
-    finish_mirrors(L); return L
+    return L
 
 def hair_tight():
     """high and tight: a flat short top one pixel over the skull, the sides and back shaved up to the
