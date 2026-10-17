@@ -83,6 +83,15 @@ export function restoreCharacter(data, makers) {
   else ch = makers.villager(data.gx, data.gy, { id: data.id, name: data.name, line: data.greeting || null, wardrobe: data.wardrobe || 0 });
   const { targetId, carryingId, carried, worn, hands, pockets, loot, ...rest } = data;
   Object.assign(ch, rest);
+  // A save from before nobody climbed through a window (2026-10-16) may hold a climb in progress, { from, to, t }: the
+  // body is landed at whichever end is nearer (the lengths were 0.9 s for a player, 1.6 s for the dead) and the climb dropped.
+  if (ch.climb) {
+    const c = ch.climb;
+    const at = c.t / (data.kind === "player" ? 0.9 : 1.6) < 0.5 ? c.from : c.to;
+    ch.gx = at[0];
+    ch.gy = at[1];
+  }
+  delete ch.climb;
   ch.worn = worn || createWorn();
   ch.pockets = pockets || null;
   ch.loot = loot || null;

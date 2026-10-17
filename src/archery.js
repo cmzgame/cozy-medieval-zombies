@@ -633,7 +633,7 @@ function setPose(player, frame) {
 }
 
 export function beginDraw(player, bow, source = "mouse") {
-  if (player.draw || (player.recover || 0) > 0 || !bow || player.dead || player.climb || player.carrying) return false;
+  if (player.draw || (player.recover || 0) > 0 || !bow || player.dead || player.carrying) return false;
   if (bow.refuse) {
     showMessage(bow.refuse);
     return false;
@@ -710,7 +710,7 @@ export function updateDraw(player, dt, ctx) {
   // letting go afterwards does not loose an arrow. Counted in pauses of the
   // loop, not in wall-clock time, so a slow frame or a test cannot drop it (docs/23a, C2).
   const paused = had && draw.source === "mouse" && draw.pauses !== loop.pauseCount();
-  if (!bow || player.dead || player.climb || player.sprinting || ctx.blocked || paused) {
+  if (!bow || player.dead || player.sprinting || ctx.blocked || paused) {
     cancelDraw(player);
     return;
   }

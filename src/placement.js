@@ -93,7 +93,7 @@ export function propRect(prop, tx, ty) {
 // ---- carrying: where a prop may stand ----
 
 // Whether the carried prop could stand with its anchor at (tx, ty): every
-// footprint tile clear, walkable, not under the player, and no wall running
+// footprint tile clear, walkable, not beside a door, not under the player, and no wall running
 // between two tiles of the same prop (a bed does not straddle a wall).
 export function canPutDown(player, tx, ty) {
   const prop = player.carrying;
@@ -105,6 +105,7 @@ export function canPutDown(player, tx, ty) {
       const y = ty + dy;
       const t = map.tileAt(x, y);
       if (t.prop || !map.isWalkableTile(x, y)) return false;
+      if (map.besideDoor(x, y)) return false; // a door's two tiles stay clear: the dead go for it and need to stand there (#134)
       if (Math.hypot(player.gx - x, player.gy - y) < 0.7) return false;
       if (dx > 0 && map.wallBetween(x - 1, y, x, y)) return false;
       if (dy > 0 && map.wallBetween(x, y - 1, x, y)) return false;

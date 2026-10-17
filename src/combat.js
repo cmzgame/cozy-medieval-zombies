@@ -192,11 +192,10 @@ function pushes(weapon) {
   return rng.chance(weapon.knockbackChance ?? 1);
 }
 
-// What the player cannot swing through: carrying furniture, a climb, a timed
-// action under way, or being dead.
+// What the player cannot swing through: carrying furniture, a timed action under way, or being dead.
 // `ignoreAction` is for the outline, which is shown while a timed action runs.
 function canAct(player, ignoreAction = false) {
-  return !player.carrying && !player.climb && (ignoreAction || !player.action) && !player.dead && player.hp > 0;
+  return !player.carrying && (ignoreAction || !player.action) && !player.dead && player.hp > 0;
 }
 
 function screenAngleBetween(ax, ay, bx, by) {

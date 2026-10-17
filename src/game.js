@@ -339,7 +339,6 @@ function fall(p) {
   p.action = null;
   p.auto = null;
   p.blocking = false;
-  p.climb = null;
   archery.cancelDraw(p);
   if (p.carrying) {
     const x0 = Math.round(p.gx);

@@ -122,11 +122,11 @@ export function dormantNow(playerId) {
 }
 
 // Stepping away (item 3, `02` 2026-10-13): for any player, out of the world, kept by its owner's hash; false when
-// refused (asleep, dead, or climbing). `ownHash` files a character the store has no owner for yet (a test world's
+// refused (asleep or dead). `ownHash` files a character the store has no owner for yet (a test world's
 // own host) under that hash.
 export function awayNow(playerId, ownHash = null) {
   const p = S.players.find((q) => q.id === playerId);
-  if (!p || p.dead || p.sleeping || p.climb) return false;
+  if (!p || p.dead || p.sleeping) return false;
   const st = store();
   let hash = Object.keys(st.owners).find((h) => st.owners[h] === playerId) || null;
   if (!hash && ownHash) {

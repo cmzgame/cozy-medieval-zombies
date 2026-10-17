@@ -25,7 +25,7 @@ import { getDef } from "./assets.js";
 import { canPutDown, putDownTarget, canCarry, propRect } from "./placement.js";
 import * as placement from "./placement.js";
 import * as grid from "./grid.js";
-import { startClimb, autoWalk, eat, drink } from "./entities/player.js";
+import { autoWalk, eat, drink } from "./entities/player.js";
 import { showMessage } from "./ui/prompt.js";
 import { pokeVillager } from "./entities/villager.js";
 import { lootOf } from "./entities/character.js";
@@ -259,7 +259,7 @@ function pickUpAction(entry, tx, ty, player, simple) {
 
 // ---- carrying furniture (docs/02, 2026-10-10 late) ----
 // A prop whose sprite says `carry` can be lifted with both hands empty. While
-// carrying you can only walk: no sprint, no actions, no bag, no climb. Put it
+// carrying you can only walk: no sprint, no actions, no bag. Put it
 // down on any clear tiles in reach, or with E on the tile you face.
 
 function propName(prop) {
@@ -440,7 +440,7 @@ function holderActions(target, player) {
   })];
 }
 
-// Doors and windows: open and close, climb, board and pull (docs/09).
+// Doors and windows: open and close, board and pull (docs/09). Nobody climbs through a window (Michael, 2026-10-16).
 function openingActions(o, player) {
   const w = o.wall;
   const name = w.kind === "door" ? "door" : "shutters";
@@ -468,17 +468,6 @@ function openingActions(o, player) {
         if (w.kind === "door") w.open = !w.open;
         else w.shutter = w.shutter === "open" ? "closed" : "open";
         map.touch(o.tx, o.ty); // the wall's own tile, so the save and the wire carry it (docs/31/05, item 6; it touched nothing before)
-        return true;
-      },
-    }));
-  }
-  if (map.climbable(w)) {
-    out.push(act({
-      ...base,
-      kind: "climb",
-      label: "Climb through",
-      perform() {
-        startClimb(player, o);
         return true;
       },
     }));
@@ -833,7 +822,7 @@ const keyB = keyTracker("KeyB");
 function track(k, dt, onHold, onTap) {
   if (input.isDown(k.code) || input.wasPressed(k.code)) {
     k.held += dt;
-    if (!k.consumed && k.held >= HOLD_TIME) {
+    if (onHold && !k.consumed && k.held >= HOLD_TIME) {
       k.consumed = true;
       onHold();
     }
@@ -851,7 +840,6 @@ function nearestOpening(player) {
 // What the prompt should say, and where, or null: a running action with its
 // bar, else the nearest simple action with E.
 export function promptFor(player, progress) {
-  if (player.climb) return null;
   // Placement first: its ghost carries its own prompt (docs/13).
   const pp = !player.action ? placement.prompt() : null;
   if (pp) return pp;
@@ -934,14 +922,14 @@ export function beltEvents() {
 
 export function keyEvents(dt) {
   const ev = {};
-  track(keyE, dt, () => { ev.eHold = true; }, () => { ev.eTap = true; });
+  track(keyE, dt, null, () => { ev.eTap = true; }); // no hold of E: a long press is a tap on its release
   track(keyB, dt, () => { ev.bHold = true; }, () => { ev.bTap = true; });
   if (input.wasPressed("KeyE")) ev.ePressed = true;
   if (input.wasPressed("KeyT")) ev.t = true;
   return Object.keys(ev).length ? ev : null;
 }
 
-// What the keys do to a player: E's tap the nearest simple action, its hold the climb; B's tap a board
+// What the keys do to a player: E the nearest simple action, on its release however long it was held; B's tap a board
 // on the nearest opening, its hold a board pulled; T the torch in or out of hand. The events are the
 // player's own client's (keyEvents), handed in by the step with its snapshot.
 export function updateInteract(player, dt, keys) {
@@ -949,7 +937,6 @@ export function updateInteract(player, dt, keys) {
   // The belt (docs/11; the belt as utility slots, Michael 2026-10-10 late): a consumable on the slot is used; anything
   // else swaps with its hand. Moved from main.js into the world's step (item 4), so a guest's press reaches its body.
   for (let i = 0; i < 4; i++) if (keys[`belt${i + 1}`]) beltPress(player, i);
-  if (player.climb) return;
   if (player.carrying) {
     // Only E, and only to put it down.
     if (keys.ePressed) {
@@ -959,12 +946,7 @@ export function updateInteract(player, dt, keys) {
     }
     return;
   }
-  if (keys.eHold) {
-    const o = nearestOpening(player);
-    if (o && map.climbable(o.wall)) startClimb(player, o);
-    // A hold on a window that cannot be climbed said nothing (Michael's playtest, 2026-10-13): say why.
-    else if (o && o.wall.kind === "window") showMessage(o.wall.shutter === "closed" ? "The shutters are closed." : "You cannot climb through that.");
-  } else if (keys.eTap && !player.action) {
+  if (keys.eTap && !player.action) {
     const a = nearestSimpleAction(player);
     if (a) startAction(player, a);
   }

@@ -13,7 +13,7 @@ import { rules } from "../rules.js";
 import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, damageOpening, wayOpen, climbable, floorSpeedAt } from "../map.js";
+import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, floorSpeedAt } from "../map.js";
 import { lineOfSight } from "../visibility.js";
 import * as light from "../light.js";
 import * as clock from "../clock.js";
@@ -21,7 +21,7 @@ import { getSheet } from "../assets.js";
 import { createAnimation, playAnimation, advanceAnimation, isActiveFrame } from "../sprites.js";
 import { emit } from "../events.js";
 import { zombie as T } from "../tuning.js";
-import { idleTime, roomOf, faceToward, tileOf, repath, followPath, separate, pickTargetAround } from "./movement.js";
+import { idleTime, roomOf, faceToward, tileOf, repath, followPath, separate, pickTargetAround, canReach } from "./movement.js";
 // The walking is movement.js's, shared with the villagers (docs/23a, D7); still exported here for the files that import it from the dead.
 export { idleTime, roomOf, faceToward, repath, followPath, separate, pickTargetAround };
 
@@ -54,7 +54,7 @@ export function createZombie(gx, gy, { id = null, hp = T.hp, aggro = false } = {
     attackHit: false,
     pathFailed: false,
     breach: null, // { wall, tx, ty, edge, stand, side, into } while breaking in
-    climb: null, // { from, to, t } while climbing through a window
+    noWay: 0, // seconds left in which no way in is looked for again (T.noWayTime): none was found, so it searches instead
     sincePlayer: Infinity, // seconds since the player was last seen
     stuckTime: 0,
     hits: [], // when the player's blows landed, for the third-hit rule (combat.js)
@@ -88,16 +88,6 @@ export function isDown(z) {
   return z.state === "down";
 }
 
-// A climb cut short leaves the body at whichever end of it is nearer.
-function endClimb(z) {
-  if (!z.climb) return;
-  const c = z.climb;
-  const at = c.t / T.climb < 0.5 ? c.from : c.to;
-  z.gx = at[0];
-  z.gy = at[1];
-  z.climb = null;
-}
-
 // Hurt a zombie (docs/14). `dir` is the grid unit vector the blow travels
 // along, `knockback` tiles of push, `knockdown` floors it, `stagger` seconds it
 // is stopped, `from` where the blow came from (the dead then know where). A
@@ -106,7 +96,6 @@ export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown
   if (z.dead) return { killed: false, downed: false };
   const wasDown = isDown(z);
   z.hp = Math.max(0, z.hp - amount);
-  endClimb(z);
   z.path = [];
   z.lastGoal = null;
   if (knockback > 0 && !wasDown) z.knock = { x: dir[0] * knockback, y: dir[1] * knockback, left: T.knockTime };
@@ -163,7 +152,6 @@ export function burnZombie(z, amount) {
   if (z.dead) return false;
   z.hp = Math.max(0, z.hp - amount);
   if (z.hp > 0) return false;
-  endClimb(z);
   z.path = [];
   kill(z);
   return true;
@@ -221,6 +209,30 @@ function goalRoom(z) {
   return tileAt(Math.round(z.lastSeen[0]), Math.round(z.lastSeen[1])).room;
 }
 
+// The way in to a room the dead want: the nearest opening of it they can walk to and stand beside. A door is the way in
+// (nobody climbs through a window), and a window still shut or boarded is battered open for sight, never to pass
+// (Michael, #134): so the nearest of the doors and those windows, and once a window is open only the doors are left, or,
+// with no door they can reach, nothing, and they search. When no door can be walked to, because each opens from another
+// shut room (a hall, a porch, a house within a house), it is the door into that room they go for first, and so on a few
+// rooms deep (doors only, the windows of the rooms between would get them nothing). `want` is the room they are after,
+// kept on the target so the breach is not dropped for leading into a room that is not it.
+function wayIn(z, room, want, seen = new Set([room.id]), depth = 0) {
+  const doors = breachTargets(room, z.gx, z.gy, 0, depth === 0);
+  const direct = doors.find((c) => canReach(z, c.stand));
+  if (direct) return direct;
+  if (depth >= 3) return null;
+  let best = null;
+  for (const c of doors) {
+    const from = tileAt(c.stand[0], c.stand[1]).room;
+    if (c.wall.kind !== "door" || from <= 0 || seen.has(from)) continue;
+    seen.add(from);
+    const outer = getRoom(from);
+    const t = outer ? wayIn(z, outer, want, seen, depth + 1) : null;
+    if (t && (!best || t.d < best.d)) best = t;
+  }
+  return best;
+}
+
 // Where the dead stand to hit an opening: the tile beside it on their side.
 function startBreach(z, target) {
   z.breach = target;
@@ -229,13 +241,6 @@ function startBreach(z, target) {
   z.lastGoal = null;
   z.pathFailed = false;
   z.repathTimer = 0;
-}
-
-function startClimb(z, from, to) {
-  z.climb = { from: [from[0], from[1]], to: [to[0], to[1]], t: 0 };
-  z.path = [];
-  z.breach = null;
-  z.state = "chase";
 }
 
 function distTo(z, e) {
@@ -386,24 +391,8 @@ export function updateZombie(z, dt, players, others, villagers = null) {
     z.groanTimer = T.groanMin + rng.float() * (T.groanMax - T.groanMin);
   }
   if (updateHurt(z, dt, sheet)) return;
-  // Climbing: slow, committed, no bite until it is through (docs/09).
-  if (z.climb) {
-    const c = z.climb;
-    c.t += dt;
-    const k = Math.min(1, c.t / T.climb);
-    const ease = k * k * (3 - 2 * k);
-    z.gx = c.from[0] + (c.to[0] - c.from[0]) * ease;
-    z.gy = c.from[1] + (c.to[1] - c.from[1]) * ease;
-    faceToward(z, c.to[0] - c.from[0], c.to[1] - c.from[1]);
-    playAnimation(z.anim, "walk");
-    if (k >= 1) {
-      z.climb = null;
-      z.repathTimer = 0;
-    }
-    advanceAnimation(z.anim, sheet, dt);
-    return;
-  }
   z.attackCooldown = Math.max(0, z.attackCooldown - dt);
+  if (z.noWay > 0) z.noWay -= dt;
   z.repathTimer -= dt;
   z.sightTimer -= dt;
   z.sincePlayer += dt;
@@ -502,21 +491,36 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       // A sighting on a solid tile (a campfire, a lantern on a post) is
       // walked to from beside it.
       if (!isWalkableTile(goal[0], goal[1])) goal = nearestWalkable(goal[0], goal[1]) || goal;
+      const repathTimer0 = z.repathTimer;
       const arrived = moveToward(z, dt, goal, others);
       // No way there and the goal is in a room: go for the room's nearest
       // opening and break in (docs/09). Only when the dead are not in that
-      // room already.
-      if (z.pathFailed) {
+      // room already, and only on the step a path has just failed (not through the backoff after it: choosing a way
+      // in searches paths), and not again for T.noWayTime after finding none.
+      if (z.pathFailed && z.repathTimer > repathTimer0 && !(z.noWay > 0)) {
         const roomId = goalRoom(z);
         const here = tileAt(Math.round(z.gx), Math.round(z.gy)).room;
         // Shut in a room with the goal elsewhere: break out of this one
         // first. Outside with the goal in a room: break into that one.
-        let room = null;
-        if (here > 0 && here !== roomId) room = getRoom(here);
-        else if (roomId > 0 && here !== roomId) room = getRoom(roomId);
-        const target = room ? breachTarget(room, z.gx, z.gy) : null;
+        let target = null;
+        if (here > 0 && here !== roomId) {
+          const room = getRoom(here);
+          target = room ? breachTarget(room, z.gx, z.gy, roomId) : null; // out by the door that leads toward the goal's room
+          if (!target && roomId > 0 && getRoom(roomId)) target = wayIn(z, getRoom(roomId), roomId); // every door of this room is already open: out by it, then in
+        } else if (roomId > 0 && here !== roomId) {
+          const room = getRoom(roomId);
+          target = room ? wayIn(z, room, roomId) : null;
+          if (target) target.want = roomId;
+        }
         if (target) {
           startBreach(z, target);
+          break;
+        }
+        // Nothing to break into by: no door it can reach (and no window left to batter). Search round the sighting, and
+        // leave the goal alone for a while rather than press at a wall.
+        if ((here > 0 || roomId > 0) && here !== roomId) {
+          z.noWay = T.noWayTime;
+          startSearch(z);
           break;
         }
       }
@@ -536,7 +540,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       // in the room it leads into, or anywhere but the room it leads out of.
       const roomId = goalRoom(z);
       const here = tileAt(Math.round(z.gx), Math.round(z.gy)).room;
-      const stillWanted = here > 0 ? roomId !== here : roomId === tileAt(b.into[0], b.into[1]).room;
+      const stillWanted = here > 0 ? roomId !== here : roomId === (b.want || tileAt(b.into[0], b.into[1]).room);
       if (!z.aggro || !stillWanted) {
         z.breach = null;
         z.state = z.aggro ? "chase" : "idle";
@@ -551,19 +555,17 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         if (z.pathFailed) {
           // Cannot even reach the opening: give the search a go instead.
           z.breach = null;
+          z.noWay = T.noWayTime;
           startSearch(z);
         }
         break;
       }
       faceToward(z, mx - z.gx, my - z.gy);
-      // The way is open: through the door, or up and over the sill.
-      if (wayOpen(b.wall) || climbable(b.wall)) {
-        if (b.wall.kind === "window") startClimb(z, [z.gx, z.gy], b.into);
-        else {
-          z.breach = null;
-          z.state = "chase";
-          z.repathTimer = 0;
-        }
+      // The way is open: through the doorway, or the window battered open to see through (a window is never the way).
+      if (b.wall.kind === "door" ? wayOpen(b.wall) : !needsBreaking(b.wall)) {
+        z.breach = null;
+        z.state = "chase";
+        z.repathTimer = 0;
         break;
       }
       if (z.attackCooldown <= 0) {
@@ -594,7 +596,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
     case "search": {
       // Look around the last sighting: short walks nearby, then give up.
       z.searchTimer -= dt;
-      if (z.seesNow) {
+      if (z.seesNow && !(z.noWay > 0)) {
         z.state = "chase";
         z.repathTimer = 0;
         break;

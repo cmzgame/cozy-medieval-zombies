@@ -30,6 +30,11 @@ export function faceToward(e, dx, dy) {
   e.facing = iso.facingFromScreenVector(s.sx, s.sy);
 }
 
+// Whether a body can walk from where it stands to a tile (a path exists as things are now: doors shut or boarded stop it).
+export function canReach(e, tile) {
+  return findPath(tileOf(e), tile, canStep) !== null;
+}
+
 export function repath(e, goalTile) {
   const path = findPath(tileOf(e), goalTile, canStep);
   e.path = path || [];

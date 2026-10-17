@@ -178,7 +178,7 @@ export function outputOf(prop) {
 function deliver(prop, r) {
   const o = r.out;
   if (o.prop) {
-    const at = map.nearestWalkable(prop.tile[0], prop.tile[1] + 1, (x, y) => !!map.tileAt(x, y).prop || map.tileAt(x, y).items);
+    const at = map.nearestWalkable(prop.tile[0], prop.tile[1] + 1, (x, y) => !!map.tileAt(x, y).prop || map.tileAt(x, y).items || map.besideDoor(x, y)); // never on a door's tiles (#134)
     if (at) {
       const made = map.createProp({ sprite: o.prop, tile: at, footprint: o.footprint || [1, 1] });
       made.made = true; // players made it, so X may take it away again (placement.removalTarget; 2026-10-15)

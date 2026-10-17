@@ -106,7 +106,10 @@ def cottage_a(g, x, y, name, door_side="s", broken=False, torch=True):
         [1, 1, 6, 4], "wall_wood", "floor_wood",
         openings=openings,
         partitions=[part_w(3, 0, 4, door_at=2)],
-        props=[hearth_w(0, 1), along_x("table", 1, 1), chair(2, 2, "n"), one("chest", 2, 3), along_x("bed", 3, 0), one("chest", 5, 3)],
+        # The living room keeps a way from its door to the partition door at row 2 (the dead must be able to stand there,
+        # #134): the table lies across row 1 from the south door's side, and across row 3 from the north door's.
+        props=([hearth_w(0, 1), along_x("table", 1, 1), chair(1, 2, "n"), one("chest", 0, 3)] if door_side == "s"
+               else [hearth_w(0, 1), along_x("table", 1, 3), chair(1, 2, "s"), one("chest", 0, 3)]) + [along_x("bed", 3, 0), one("chest", 5, 3)],
         brackets=[{"side": "w", "at": 0, "facing": "in", "torch": torch}],
     )
     s.prop("woodpile", (7, 4))
@@ -121,7 +124,7 @@ def cottage_b(g, x, y, name):
         [1, 1, 6, 6], "wall_wood", "floor_wood",
         openings=[door("s", 1), window("w", 1), window("e", 4)],
         partitions=[part_n(0, 4, 6, door_at=2, wall="wall_fence")],
-        props=[hearth_n(1, 0), along_x("bed", 3, 0), one("chest", 5, 1), along_y("table", 0, 1), chair(1, 2, "w"), one("barrel", 0, 5), one("barrel", 1, 5), one("haystack", 5, 5)],
+        props=[hearth_n(1, 0), along_x("bed", 3, 0), one("chest", 5, 1), along_y("table", 0, 1), chair(1, 2, "w"), one("barrel", 0, 5), one("barrel", 2, 5), one("haystack", 5, 5)],
         brackets=[{"side": "n", "at": 4, "facing": "in", "torch": True}],
     )
     return s
@@ -133,7 +136,7 @@ def cottage_c(g, x, y, name, trade):
     s.building(
         [1, 1, 6, 4], "wall_wood", "floor_wood",
         openings=[door("s", 1), window("n", 1), window("n", 4)],
-        partitions=[part_w(3, 0, 4, door_at=1)],
+        partitions=[part_w(3, 0, 4, door_at=2)],
         props=[hearth_w(0, 1), along_x("table", 1, 1), chair(1, 2, "n"), along_x("bed", 3, 0), one("chest", 5, 3)],
         brackets=[{"side": "w", "at": 0, "facing": "in", "torch": True}],
     )
@@ -222,7 +225,7 @@ def build():
             along_y("table", 5, 4), chair(4, 4, "e"), chair(6, 5, "w"),
             hearth_w(0, 8, lit=True),
             # the kitchen
-            hearth_n(9, 0, lit=True), along_x("table", 8, 3), one("shelf", 11, 2), one("barrel", 11, 4), one("cupboard", 8, 6), one("barrel", 11, 8),
+            hearth_n(9, 0, lit=True), along_x("table", 9, 3), one("shelf", 11, 2), one("barrel", 11, 4), one("cupboard", 8, 6), one("barrel", 11, 9),
         ],
         brackets=[{"side": "n", "at": 5, "facing": "in", "torch": True}, {"side": "w", "at": 4, "facing": "out", "torch": True}],
     )
@@ -257,12 +260,15 @@ def build():
         brackets=[{"side": "n", "at": 2, "facing": "in", "torch": False}, {"side": "n", "at": 7, "facing": "in", "torch": False}],
     )
     # Headstones in rows either side of the chapel, and the crypt in the north-east corner.
+    pr = P(21, 2)  # the priest's house stands among the stones' rows; no stone stands in it (one did, in its walkway)
     for x in range(gy[0] + 2, gy[0] + 9, 2):
         for y in range(gy[1] + 2, gy[1] + 12, 3):
-            g.prop("headstone", (x, y))
+            if not (pr[0] <= x < pr[0] + 8 and pr[1] <= y < pr[1] + 8):
+                g.prop("headstone", (x, y))
     for x in range(gy[0] + 23, gy[0] + 30, 2):
         for y in range(gy[1] + 7, gy[1] + 12, 3):
-            g.prop("headstone", (x, y))
+            if not (pr[0] <= x < pr[0] + 8 and pr[1] <= y < pr[1] + 8):
+                g.prop("headstone", (x, y))
     crypt = g.place("the crypt", [gy[0] + 25, gy[1] + 1, 6, 6])
     crypt.building([1, 1, 4, 4], "wall_stone", "floor_stone", openings=[door("w", 2)],
                    props=[along_y("coffin", 0, 0), along_y("coffin", 3, 0), one("chest", 3, 3)],
@@ -273,7 +279,7 @@ def build():
     priest.building([1, 1, 6, 6], "wall_wood", "floor_wood",
                     openings=[door("s", 1, boards={"in": 2}), window("e", 2)],
                     partitions=[part_w(3, 0, 6, door_at=3)],
-                    props=[hearth_w(0, 1), along_x("table", 1, 3), chair(1, 4, "n"), one("bookcase", 2, 0), along_y("bed", 5, 0), one("chest", 5, 5)],
+                    props=[hearth_w(0, 1), along_x("table", 1, 4), chair(2, 5, "n"), one("bookcase", 2, 0), along_y("bed", 5, 0), one("chest", 5, 5)],
                     brackets=[{"side": "n", "at": 4, "facing": "in", "torch": True}])
 
     # ---- the manor: a stone house in a walled garden, east of the nobles' street ----
@@ -325,7 +331,7 @@ def build():
     # The baker, the square's north-west corner: the oven in the shop wall, a room behind.
     bak = g.place("the baker", [P(9, 46)[0], P(9, 46)[1], 8, 6])
     bak.building([1, 1, 6, 4], "wall_wood", "floor_wood",
-                 openings=[door("n", 1), window("n", 3)],
+                 openings=[door("n", 2), window("n", 3)],
                  partitions=[part_w(4, 0, 4, door_at=2)],
                  props=[one("oven", 0, 0, footprint=[2, 1], lit=True, fuel=2), along_x("table", 1, 2), one("shelf", 3, 0), one("barrel", 0, 3), along_y("bed", 5, 0), one("chest", 4, 3)],
                  brackets=[{"side": "n", "at": 5, "facing": "in", "torch": True}])
@@ -347,7 +353,7 @@ def build():
     wea = g.place("the weaver", [P(5, 32)[0], P(5, 32)[1], 14, 10])
     wea.building([1, 1, 8, 6], "wall_wood", "floor_wood",
                  openings=[door("s", 2), window("s", 6), window("n", 2)],
-                 partitions=[part_w(5, 0, 6, door_at=3)],
+                 partitions=[part_w(5, 0, 6, door_at=2)],
                  props=[one("loom", 1, 1, footprint=[2, 2]), one("spinningwheel", 4, 1), one("shelf", 0, 0), one("cupboard", 4, 5), along_x("bed", 6, 0), one("chest", 7, 5), hearth_w(5, 3)],
                  brackets=[{"side": "n", "at": 6, "facing": "in", "torch": True}])
     for i in range(3):
@@ -357,7 +363,7 @@ def build():
     smi = g.place("the smithy", [P(21, 50)[0], P(21, 50)[1], 12, 12])
     smi.building([1, 1, 6, 5], "wall_wood", "floor_stone",
                  openings=[door("s", 1, open=True), door("s", 4, open=True), window("n", 3)],
-                 props=[one("forge", 1, 0, footprint=[2, 1]), one("anvil", 2, 2), one("barrel", 4, 2), one("grindstone", 4, 4), one("shelf", 0, 0), one("chest", 0, 4)],
+                 props=[one("forge", 1, 0, footprint=[2, 1]), one("anvil", 2, 2), one("barrel", 4, 2), one("grindstone", 3, 4), one("shelf", 0, 0), one("chest", 0, 4)],
                  brackets=[{"side": "n", "at": 5, "facing": "in", "torch": True}])
     smi.building([7, 1, 4, 5], "wall_wood", "floor_wood", openings=[door("w", 2), window("e", 1)],
                  props=[along_y("bed", 3, 0), one("chest", 3, 4), one("cupboard", 0, 4)])
@@ -383,7 +389,7 @@ def build():
     reeve.building([1, 1, 6, 4], {"n": "wall_stone", "w": "wall_stone", "s": "wall_wood", "e": "wall_wood"}, "floor_wood",
                    openings=[door("n", 1), window("n", 4), window("e", 1)],
                    partitions=[part_w(3, 0, 4, door_at=2)],
-                   props=[hearth_w(0, 1), along_x("table", 1, 1), chair(2, 2, "n"), one("desk", 2, 3), along_x("bed", 3, 0), one("chest", 5, 3), one("bookcase", 3, 3)],
+                   props=[hearth_w(0, 1), along_x("table", 1, 3), chair(1, 2, "s"), one("desk", 0, 3), along_x("bed", 3, 0), one("chest", 5, 3), one("bookcase", 3, 3)],
                    brackets=[{"side": "n", "at": 5, "facing": "in", "torch": True}])
 
     # ---- reserves: the castle (step 5) and the farms (step 4) take no forest yet ----
