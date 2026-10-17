@@ -215,8 +215,8 @@ export function install() {
     const d = iso.normalize(zombie.gx - p.gx, zombie.gy - p.gy);
     net.fxAll("spark", p.gx + d.x * 0.45, p.gy + d.y * 0.45, 22); // 22 pixels up, as the host draws its own (main.js)
   });
-  // A fence the dead are bursting shakes, and bursts into splinters, on every guest's screen too (Michael, 2026-10-17, #147):
-  // the world's events, drawn by the host's own client (main.js) and sent to each guest's (fx).
+  // A wall the dead strike gives one small jolt for each strike, and a fence that gives bursts into splinters, on every guest's screen too
+  // (Michael, 2026-10-17, #147; 2026-10-18, #174): the world's events, drawn by the host's own client (main.js) and sent to each guest's (fx).
   events.on("wallStruck", ({ tx, ty, edge }) => {
     if (net.isHost()) net.fxAll("shake", tx, ty, edge === "w" ? 1 : 0);
   });

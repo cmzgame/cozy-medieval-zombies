@@ -381,7 +381,7 @@ export function syncParts() {
   const hp2 = (n) => (typeof n === "number" ? (Math.round(n * 100) / 100).toFixed(2) : String(n));
   const playerText = (p) => [`${p.id} ${f(at(p)[0])},${f(at(p)[1])} hp ${hp2(p.hp)} ${p.dead ? "dead" : "alive"}`, `hands ${entryText(p.hands.main)} ${entryText(p.hands.off)}`, `worn ${Object.keys(p.worn).sort().map((k) => `${k}:${entryText(p.worn[k])}`).join(" ")}`, `belt ${(inventory.beltOf(p) || []).map(entryText).join(" ")}`, `carrying ${p.carrying ? p.carrying.id : "-"}`].join(" | ");
   const parts = {
-    map: hashOf(JSON.stringify(chunks, (k, v) => (k === "wear" && typeof v === "number" ? Math.floor(v * 100) / 100 : v))), // a mounted torch's wear to the hundredth: what the wire sends (map.burnHolders)
+    map: hashOf(JSON.stringify(chunks, (k, v) => (k === "wear" && typeof v === "number" ? Math.floor(v * 100) / 100 : k === "hp" && typeof v === "number" ? undefined : v))), // a mounted torch's wear to the hundredth: what the wire sends (map.burnHolders); a wall's health not at all (the wire sends a break, not the blows: strikeFence, damageOpening)
     registry: hashOf([...map.allProps()].map((p) => p.id).sort().join(",")),
     fires: hashOf(`${[...map.fires()].map((p) => `${p.id}:${p.fire && p.fire.lit ? "lit" : "out"}`).sort().join(",")}`),
     players: hashOf(S.players.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map(playerText).join("\n")),

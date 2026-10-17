@@ -703,8 +703,9 @@ function fenceLimit(wall) {
   return W.fenceHp * (wall.kind === "door" ? W.fenceGateFactor : 1);
 }
 
-// One strike on a fence or gate by one of the dead (zombie.js, the `pressHit` state at its active frame). The wire is told each strike
-// (markDirty: the wall's health is in its chunk, so a guest's copy keeps up and the sync check agrees), and at nothing left it bursts.
+// One strike on a fence or gate by one of the dead (zombie.js, the `pressHit` state at its active frame). Short of a break the health is
+// the save's alone (`unsavedWall`, as a door's is: the wire sends no chunk for it; every client gets the jolt as an fx), and at nothing
+// left it bursts (the destroyed wall rides the chunk).
 export function strikeFence(wall, tx, ty, edge, amount) {
   if (tileAt(tx, ty)[edge] !== wall) return false;
   if (!Number.isFinite(wall.hp)) wall.hp = fenceLimit(wall); // a fence made before fences had hit points
@@ -716,7 +717,7 @@ export function strikeFence(wall, tx, ty, edge, amount) {
     emit("fenceBurst", { x: mx, y: my, tx, ty, edge });
     return true;
   }
-  markDirty(tx, ty);
+  unsavedWall(wall); // its health, short of a break, is the save's alone, as a door's is: the wire sends the break and the jolt
   return false;
 }
 

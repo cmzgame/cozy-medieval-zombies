@@ -13,7 +13,7 @@ import { rules } from "../rules.js";
 import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, fenceAhead, strikeFence, canStepAcross, wallBetween, edgeBetween, edgeMid, isFence, floorSpeedAt, openingsNear, edgeTiles } from "../map.js";
+import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, fenceAhead, strikeFence, canStepAcross, wallBetween, edgeBetween, edgeMid, isFence, floorSpeedAt, openingsNear, edgeTiles, sideOf } from "../map.js";
 import { lineOfSight, openingOnLine } from "../visibility.js";
 import * as light from "../light.js";
 import * as clock from "../clock.js";
@@ -289,9 +289,10 @@ function startBreach(z, target) {
 
 // How far a bite reaches: `contact`, and a little more across a fence the dead one is striking from its reach (a fence's thickness and
 // where its strikers stand: Michael, 2026-10-17, "they should be allowed to bite over fences, otherwise exploitable"; #174).
-function biteReach(z) {
+function biteReach(z, e) {
   const f = z.press;
-  if (!f || tileAt(f.tx, f.ty)[f.edge] !== f.wall) return T.contact;
+  if (!f || !e || tileAt(f.tx, f.ty)[f.edge] !== f.wall) return T.contact;
+  if (sideOf(f.tx, f.ty, f.edge, z.gx, z.gy) === sideOf(f.tx, f.ty, f.edge, e.gx, e.gy)) return T.contact; // only across the fence, never on one's own side of it
   const [mx, my] = edgeMid(f.tx, f.ty, f.edge);
   return Math.hypot(mx - z.gx, my - z.gy) <= T.fenceReach ? T.contact + T.fenceBiteExtra : T.contact;
 }
@@ -606,7 +607,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
     case "chase": {
       // A bite needs reach and a clear line: no biting through a wall.
       const d = distTo(z, tgt);
-      if (d <= biteReach(z) && z.seesNow) {
+      if (d <= biteReach(z, tgt) && z.seesNow) {
         z.path = [];
         faceToward(z, tgt.gx - z.gx, tgt.gy - z.gy);
         if (z.attackCooldown <= 0) {
@@ -796,7 +797,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       }
       // A fence is no wall to a bite (Michael, 2026-10-17: "otherwise exploitable"): a player in reach across it is bitten, by the
       // chase's own bite (contact, sight, the cooldown); the dead one goes back to pressing when the player is out of reach.
-      if (tgt && z.seesNow && distTo(z, tgt) <= biteReach(z)) {
+      if (tgt && z.seesNow && distTo(z, tgt) <= biteReach(z, tgt)) {
         z.state = "chase";
         z.repathTimer = 0;
         break;
@@ -914,7 +915,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
     case "attack": {
       if (isActiveFrame(z.anim, sheet) && !z.attackHit) {
         z.attackHit = true;
-        if (distTo(z, tgt) <= biteReach(z) + 0.2 && lineOfSight(z.gx, z.gy, tgt.gx, tgt.gy)) {
+        if (distTo(z, tgt) <= biteReach(z, tgt) + 0.2 && lineOfSight(z.gx, z.gy, tgt.gx, tgt.gy)) {
           if (tgt.kind === "player") emit("playerHit", { zombie: z, damage: T.damage, victim: tgt });
           else emit("villagerHit", { zombie: z, villager: tgt, damage: T.damage });
         }

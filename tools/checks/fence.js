@@ -94,9 +94,9 @@ export async function run(game) {
       return seconds;
     };
     const timed = {};
-    for (const n of [3, 5, 8]) timed[n] = crowd(n, 0.25, 3);
+    for (const n of [1, 3, 5, 8]) timed[n] = crowd(n, 0.25, 3, 400);
     const f0 = (v) => (v === null ? "never" : `${v.toFixed(0)} s`);
-    row("three of the dead take long enough to run or arm (half a minute at the least) to bring a fence section down; eight are urgent, not instant (ten seconds at the least)", timed[3] !== null && timed[3] >= 30 && timed[5] !== null && timed[8] !== null && timed[8] >= 10 && timed[8] < timed[3], `real bodies, bunched: 3: ${f0(timed[3])}, 5: ${f0(timed[5])}, 8: ${f0(timed[8])}`);
+    row("three of the dead take long enough to run or arm (half a minute at the least) to bring a fence section down; eight are urgent, not instant (ten seconds at the least)", timed[1] !== null && timed[1] >= 90 && timed[3] !== null && timed[3] >= 30 && timed[5] !== null && timed[8] !== null && timed[8] >= 10 && timed[8] < timed[3], `real bodies, bunched: 1: ${f0(timed[1])}, 3: ${f0(timed[3])}, 5: ${f0(timed[5])}, 8: ${f0(timed[8])}`);
     const spread = crowd(8, 1.2, 4, 240);
     row("a crowd that arrives spread out still brings a section down (the second body does not sit on a threshold)", spread !== null, `8 dead 1.2 tiles apart: ${f0(spread)}`);
 
