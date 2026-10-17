@@ -1640,7 +1640,7 @@ async function boot() {
       });
       // The host's answers to the world's events, and the routing of a message or a log line said while a guest's
       // player acts (host.js): once, here, as this page may host.
-      host.init({ store: ownersStore, save: () => saveWorld(), self: () => S.player, arrived: (p) => refreshFigureOf(p, true) });
+      host.init({ cap: () => tuning.world.playerCapBrowser, store: ownersStore, save: () => saveWorld(), self: () => S.player, arrived: (p) => refreshFigureOf(p, true) });
       host.install();
       // After the menu's own listener, so a menu closed by Escape is seen first.
       window.addEventListener("keydown", (e) => {
@@ -1730,7 +1730,7 @@ async function boot() {
         dropped: "The connection to the host dropped.",
         hostLeft: "The host closed the world.",
         replaced: "This world was joined again from another tab or window; this one let go.",
-        full: "That world has as many survivors as it holds.",
+        full: "This world is full.",
         refused: "The host would not take that join.",
         versionGuest: "The host is on a newer build. Refresh and rejoin.",
         versionHost: "You are on a newer build than the host; they should refresh.",
@@ -1808,7 +1808,7 @@ async function boot() {
     // The worlds flow (docs/31/09), for check("worlds"): a world made, left, listed, played again; a new character after a death.
     // Stepping away (item 3), for the checks: the idle time shortened, the state, and the two moves by hand.
     away: { after: (ms) => { awayAfterMs = ms == null ? AWAY_AFTER_MS : ms; lastInputAt = performance.now(); }, get now() { return away; }, step: stepAway, back: comeBack, check: checkAway },
-    worlds: { moveUp, bringHome, playServer, ownerInfo, rotateCode, setRules, removePlayer, unbar, addOwned, rekey, create: (name, identityId, options = {}) => enterNewWorld(name, identities.get(identityId), options), setWorldRules, sandbox: sandboxChoices, play: playWorld, leave: exitGame, exitGame, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor: host.joinFor, dormantNow: host.dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
+    worlds: { moveUp, bringHome, playServer, ownerInfo, rotateCode, setRules, removePlayer, unbar, addOwned, rekey, create: (name, identityId, options = {}) => enterNewWorld(name, identities.get(identityId), options), setWorldRules, sandbox: sandboxChoices, play: playWorld, leave: exitGame, exitGame, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor: host.joinFor, full: host.full, awayNow: host.awayNow, backNow: host.backNow, dormantNow: host.dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
     identities,
     addPlayer: (gx, gy, opts) => {
       const p = game.addPlayer(gx, gy, opts);

@@ -29,7 +29,11 @@ const S = game.state;
 
 export const MAX_OWNERS = 16; // the browsers a world remembers a character for
 
+// The players a world holds at once (Michael, #93: "4 players in a browser-hosted world, 8 in a server world, both in
+// data"): `cap` is read from `data/tuning.json` by whoever runs the world (main.js a browser's, server/world.js a
+// server's). See `full` for what counts. MAX_OWNERS above is a different number: the browsers a world remembers.
 let cfg = {
+  cap: () => Infinity,
   store: () => ({ owners: {}, dormant: {} }),
   save: () => Promise.resolve(false),
   self: () => null,
@@ -42,6 +46,21 @@ export function init(c) {
 
 const self = () => cfg.self();
 const store = () => cfg.store();
+
+// Whether the world holds as many players as it may: a new character, or one coming back from the save after its
+// player left, would take the place of none that is there already. The places held are the characters standing in the
+// world, the guests still connected who have stepped away (idling at the keyboard is not leaving; their `back` needs no
+// check, since they never gave the place up), and, in a browser's world, the host's own, whether it stands in the world,
+// is stepped away, or is on the dead screen (`self()` stays set, so a guest cannot take the host's place and the host's
+// respawn or comeBack never goes over). A character resting in the save whose player is gone holds none. The friends'
+// dot (#139) will count with this one function.
+export function full() {
+  const me = self();
+  let held = S.players.filter((p) => !me || p.id !== me.id).length;
+  if (me) held += 1;
+  held += net.awayGuestHashes().length;
+  return held >= cfg.cap();
+}
 
 // The look a character is baked from: DEFAULT_LOOK under an identity's colours and style.
 export function lookOf(identity) {
@@ -60,6 +79,7 @@ export function joinFor(hash, identity) {
   if (owned) {
     let p = S.players.find((q) => q.id === owned) || null;
     if (!p && st.dormant[hash]) {
+      if (full()) return { full: true }; // refused before anything is taken out of the save: never half in
       p = game.putPlayer(st.dormant[hash]);
       delete st.dormant[hash];
       if (p) cfg.arrived(p);
@@ -72,6 +92,7 @@ export function joinFor(hash, identity) {
   // A world holds so many browsers' characters: anyone with the code could otherwise make characters
   // without end, each kept in the save (the review of the worlds move, 2026-10-13).
   if (hash && !st.owners[hash] && Object.keys(st.owners).length >= MAX_OWNERS) return { full: true };
+  if (full()) return { full: true }; // the world's players at once (above), before a character is made or a hash filed
   const spawn = S.info ? S.info.spawn : me ? [me.gx, me.gy] : [0, 0];
   const at = map.nearestWalkable(spawn[0] + 1, spawn[1] + 1, (x, y) => S.players.some((p) => Math.round(p.gx) === x && Math.round(p.gy) === y)) || spawn;
   const p = game.addPlayer(at[0], at[1], { look: identity.look, name: identity.name });
