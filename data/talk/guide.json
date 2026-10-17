@@ -166,6 +166,11 @@
      "wiki": "The mill"
     },
     {
+     "text": "Is there a map?",
+     "goto": "map",
+     "wiki": "Controls"
+    },
+    {
      "text": "What are all these keys?",
      "goto": "keys",
      "wiki": "Controls"
@@ -529,6 +534,24 @@
     {
      "text": "What is Tab, C, and the belt?",
      "goto": "bag"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "map": {
+   "say": [
+    "M opens it. It fills in as you look: anything anyone in the valley has seen, yours or a friend's, and it keeps it.",
+    "North is up and to the right, whichever way you are facing. Your marker is gold; a friend's is white.",
+    "It shows where people are and never the dead. A clear map is not a clear road."
+   ],
+   "options": [
+    {
+     "text": "What are all these keys?",
+     "goto": "keys",
+     "wiki": "Controls"
     },
     {
      "text": "Something else.",
