@@ -206,7 +206,7 @@ def build():
     # ---- the green: the pond with its dirt bank, benches, the maypole, a woodpile ----
     pond = P(15, 53)
     g.floor_rect([pond[0] - 1, pond[1] - 1, 8, 8], "floor_dirt", kind="bank")
-    g.floor_rect([pond[0], pond[1], 6, 6], "floor_water", kind="water", note="the duck pond (29/04)")
+    g.floor_rect([pond[0], pond[1], 6, 6], "floor_water", kind="water", group="pond", note="the duck pond (29/04)")
     g.prop("maypole", P(13, 51))
     g.prop("bench", (pond[0] - 2, pond[1] + 2), facing="e")
     g.prop("bench", (pond[0] + 7, pond[1] + 3), facing="w")
@@ -305,7 +305,7 @@ def build():
     for i in range(3):
         man.prop("beehive", (3 + i * 3, 24))
     man.floor_rect([9, 26, 4, 4], "floor_dirt")
-    man.floor_rect([10, 27, 2, 2], "floor_water")
+    man.floor_rect([10, 27, 2, 2], "floor_water", group="pond")
     man.prop("trough", (2, 30), footprint=[2, 1])
 
     # ---- the merchant's house, west of the nobles' street: the house, the yard, the storehouse ----

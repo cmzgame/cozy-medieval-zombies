@@ -103,6 +103,32 @@ for bag_def in (back, item_defs.get("dev_bag")):
     if bag_def and bag_def.get("bag") and need > bag_def["bag"][0] * bag_def["bag"][1]:
         fail(f"kit.items: the kit needs {need} cells and the {bag_def['id']} holds {bag_def['bag'][0] * bag_def['bag'][1]}")
 
+# Fishing (#190): every item a table can catch exists, the weights and the wait make sense, the default names a table, a rod item lists the
+# verb, and every named water in the maps has a table of its own.
+fishing = load("data/fishing.json")
+if not any("fish" in i.get("verbs", []) for i in items):
+    fail("fishing: no item lists the verb 'fish'")
+if fishing["default"] not in fishing["waters"]:
+    fail(f"fishing: the default {fishing['default']!r} has no table")
+c = fishing["cast"]
+if not (0 < c["waitMin"] <= c["waitMax"] and c["reach"] > 0):
+    fail("fishing: the cast needs 0 < waitMin <= waitMax and a reach")
+for water, t in fishing["waters"].items():
+    if not (0 <= t["miss"] < 1 and t["catch"]):
+        fail(f"fishing.{water}: a miss chance in 0..1 and something to catch")
+    for e in t["catch"]:
+        check_id(f"fishing.{water}", e["item"])
+        if not e["weight"] > 0:
+            fail(f"fishing.{water}: {e['item']} has no weight")
+for path in sorted(glob.glob("data/maps/*.json")):
+    m = load(path)
+    named = {f["group"] for f in m.get("features", []) if f.get("group") and str(f.get("sprite", "")).startswith("floor_water")}
+    for s in m.get("sets", []):
+        named |= {f["group"] for f in s.get("floorRects", []) if f.get("group") and str(f.get("sprite", "")).startswith("floor_water")}
+    for name in sorted(named):
+        if name not in fishing["waters"]:
+            fail(f"{path}: the water {name!r} has no table in data/fishing.json")
+
 # Every picture named exists.
 referenced = set()
 

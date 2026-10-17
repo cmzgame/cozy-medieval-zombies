@@ -41,6 +41,7 @@ import { initNames, updateNames } from "./ui/names.js";
 import * as use from "./use.js";
 import * as interactions from "./interactions.js";
 import * as startingKit from "./kit.js"; // the starting kit (#136)
+import * as fishing from "./fishing.js"; // fishing: the rod, the cast, the catch (#190)
 import * as world from "./world.js";
 import * as game from "./game.js";
 import * as save from "./save.js";
@@ -1330,6 +1331,7 @@ async function boot() {
       looksJson = await optionalJson("data/looks.json"); // the character screen's palettes (docs/12)
       tuning.load(await optionalJson("data/tuning.json")); // the entities' numbers (docs/23a, D9)
       startingKit.load(await assets.loadJson("data/kit.json")); // the starting kit (#136)
+      fishing.load(await optionalJson("data/fishing.json")); // the waters' tables and the cast (#190)
       items.loadItems(itemsJson);
       placement.setBuildData(buildJson);
       if (combatJson) combat.setCombatData(combatJson); // the fists' and the shove's numbers (docs/14); the weapons' are on their items
