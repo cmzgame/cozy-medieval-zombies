@@ -181,6 +181,10 @@ export async function run(game) {
       // By Use (#170): Use can target a bracket, and a lit torch in one is a flame like a post's.
       bracket.wall.bracket.lit = false;
       row("Use mode finds the bracket under the cursor", viaCursor(bracket) === bracket, `${viaCursor(bracket) ? "found" : "none"}`);
+      // The Use label names what hangs there (#177).
+      const names = await import("/src/interactions.js");
+      const lanternB = [...G.map.brackets()].find((b) => b.wall.bracket.lantern);
+      row("a Use on a bracket is labelled for what is there: the torch, the lantern, the empty bracket", names.nameOfTarget({ kind: "bracket", bracket }) === "the torch in the bracket" && (!lanternB || names.nameOfTarget({ kind: "bracket", bracket: lanternB }) === "the lantern"), `${names.nameOfTarget({ kind: "bracket", bracket })}${lanternB ? `, ${names.nameOfTarget({ kind: "bracket", bracket: lanternB })}` : ""}`);
       use(box, { kind: "bracket", bracket: viaCursor(bracket) });
       row("a tinderbox used on a mounted torch that is out lights it (Use targets a bracket)", bracket.wall.bracket.lit === true, `lit ${bracket.wall.bracket.lit}`);
       const taper2 = mk("torch", { lit: false, wear: 0 });
