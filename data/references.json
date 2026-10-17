@@ -1,0 +1,20 @@
+{
+ "note": "References in the game to real things outside its own lore (Michael, 2026-10-18): one entry per thing, so every one is on a single page (the wiki's Real-world references) for whoever needs to see them all, a lawyer before launch among them. `thing` names what in the game carries it (an item id here; other kinds join as they come); `name` is its name in the game, kept equal to the item's by the validator; `work` is what it refers to; `how` says what the nod is, in a line; `since` and `from` say when it was made explicit and by whom.",
+ "references": [
+  {
+   "thing": {
+    "item": "hood"
+   },
+   "name": "Onion-head Hat",
+   "work": {
+    "title": "Comfort Eagle",
+    "by": "Cake",
+    "kind": "song",
+    "year": 2001
+   },
+   "how": "The hat's name, after a line of the song; Michael had been calling it his onion hat.",
+   "since": "2026-10-18",
+   "from": "Michael"
+  }
+ ]
+}

@@ -191,6 +191,18 @@ for kind, c in crops["crops"].items():
         elif load(f"data/sprites/{sid}.json").get("crop") != {"kind": kind, "stage": stage}:
             fail(f"sprites.{sid}: its `crop` should be {{kind: {kind}, stage: {stage}}}")
 
+# Real-world references (Michael, 2026-10-18): each names a thing that exists, carries the thing's name as the game has it (so a rename
+# is caught here), and says what it refers to and when.
+for n, r in enumerate(load("data/references.json")["references"]):
+    where = f"references[{n}]"
+    item = (r.get("thing") or {}).get("item")
+    check_id(f"{where}.thing.item", item)
+    if item in item_defs and item_defs[item]["name"] != r.get("name"):
+        fail(f"{where}: the name {r.get('name')!r} is not the item's, {item_defs[item]['name']!r}")
+    w = r.get("work") or {}
+    if not (w.get("title") and w.get("by") and w.get("kind") and r.get("how") and r.get("since") and r.get("from")):
+        fail(f"{where}: needs work.title, work.by, work.kind, how, since, and from")
+
 # Every picture named exists.
 referenced = set()
 
