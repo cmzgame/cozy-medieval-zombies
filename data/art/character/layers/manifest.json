@@ -78,6 +78,12 @@
   "note": "the onion hat, hero version: item shape hood, colours [#5f8a3a, #46682a]"
  },
  {
+  "file": "head_onion_b_brow.png",
+  "slot": "head",
+  "options": {},
+  "note": "the onion hat in the game (Michael's pick, 2026-10-18): layer data/layers/head/onion.json, item hood, colours [#5f8a3a, #46682a]"
+ },
+ {
   "file": "head_onion_flop.png",
   "slot": "head",
   "options": {},
