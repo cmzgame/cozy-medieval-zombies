@@ -18,12 +18,14 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - Medieval, low fantasy, no guns; dark medieval fantasy, not strictly medieval (2026-10-08, The project exists; 2026-10-09, Milestone 1 passed, and the vibe pass)
 - Trees block only their trunk; the dead know only where they last saw you; a bite needs line of sight (2026-10-09, Milestone 1 passed, and the vibe pass)
 - Authored structure, scattered filler: sets with padding rings, features, scatter by rule, the wild beyond; harvest first (2026-10-09, Milestone 1 passed, and the vibe pass)
-- Shutters on every window: tap E opens, hold E climbs; closed shutters block sight; doors start closed; fittings one wood (2026-10-09, Milestone 1 passed, and the vibe pass)
+- Nobody climbs through a window, player or dead; a window is never a safe spot from the dead (2026-10-16, Nobody climbs through a window)
+- "Region" is the word for a place beyond the valley, never "biome" (2026-10-16, Nobody climbs through a window)
+- Shutters on every window: tap E opens and closes; closed shutters block sight; doors start closed; fittings one wood (2026-10-09, Milestone 1 passed, and the vibe pass)
 - Torches never burn out; they mount in brackets and on posts, never on the ground (2026-10-09, afternoon, Torches, fire, hands, and the clock)
 - At night the dead see fire from far away; fires are data; a lit hearth lights its whole room (2026-10-09, afternoon, Torches, fire, hands, and the clock)
 - Raw WebGL2 for the world, Canvas 2D for the dev art; portals are emitters with a transmission scalar (2026-10-09, night, The renderer goes to WebGL)
 - Openings are boards only, read from the attacker's side; everything spent, nothing repaired; nothing breaks a wall (2026-10-10, Openings)
-- The dead climb open windows, slower than you, and attack the room's nearest opening (2026-10-10, Openings)
+- The dead attack the room's nearest opening (2026-10-10, Openings)
 - Water is unwalkable by everything; shallow crossings are slow for all (2026-10-12, Water is unwalkable by everything)
 - The 1.0 map is a 256 by 256 valley, generated from a description per place, never typed (2026-10-12, The 1.0 map's first rulings; 2026-10-12, Step 0 of `30` built)
 - Floors and walls carry their rules as data; a see-through wall bounds no room (2026-10-12, Step 0 of `30` built)
@@ -186,6 +188,13 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-16 — Nobody climbs through a window; "region", never "biome" (Michael, in the shape conversation on #123)
+
+Two rulings Michael made outright in the conversation on the game's final shape; the rest of that conversation is a draft on #123, not ruled.
+
+- **Nobody climbs through a window**, neither a player nor the dead: "Let's make this a law, we are going to remove this mechanic and everyone's ability to trigger it. It's not fun, and this is not zomboid, you are not clearing entire new blocks every day." A window is for sight and light: shutters, boards, a window broken open to sight. **A window is never a safe spot:** "We need to make sure that a window looking out onto a zombie isn't a safespot and they can actually hassle your door and burst in." It overturns the climb of 2026-10-09 and 2026-10-10 (struck where they sit). The one planned exception is a region's vampires bursting through unboarded windows at night (#123), the reason to board up a walled house. It also clears the way for the valley starting free of the dead, if the cozy test says so (#123). To build: #134; until then the code still climbs.
+- **"Region" is the word** for a place beyond the valley, entered by a ticket and ended by a boss: "Let's also make sure we scrub the word 'biome' as it's not really what these are and keep region as that word." The ground's own per-area look, which the code calls a biome, takes another name. The scrub: #135.
 
 ### 2026-10-16 — The needs-michael queue: the guide, talk's panel, a player cap, the art agent's leftovers, sheds, darkness, the combat pass, the engine (Michael)
 
@@ -1011,7 +1020,7 @@ The milestone after the renderer: the dead get in. Design in `09-openings.md`. *
 - **An opening is a stack, read from the attacker's side**: that side's boards, then the leaf, then the far side's boards. A zombie outside a door boarded on both sides breaks the outside boards, then the door, then the inside boards, and then it is an opening again. Nothing can be walked or pathed through while a board stands on either side. One rule, no special cases.
 - **Everything is spent, nothing is repaired.** Michael: if the dead break your door, you do not have a door anymore; the boards they break are gone; pulling your own board is gone too. No repair; the opening stays an opening. Open question 6 is closed by this: spent. Wood is what you go out for: planks for the walls and logs for the fires.
 - **One shambler takes a while.** A bare door should cost one zombie tens of seconds and a fully boarded one more than a minute; a Romero shambler does not kick a door down in a few seconds. Numbers tuned by eye in `09-openings.md`.
-- **The dead climb through open windows**, slower than you and unable to bite while they do. Michael was about to ask for this; it is this milestone.
+- ~~**The dead climb through open windows**, slower than you and unable to bite while they do. Michael was about to ask for this; it is this milestone.~~ (superseded 2026-10-16: Nobody climbs through a window, #134)
 - **The dead attack the room's nearest opening.** When the way to what they want is shut, they go to the nearest opening of the room it is in on their own side, and hit the stack until it gives. Nothing ever breaks a wall. Noise stays out (question 18).
 - **Sealed is derived** from a room's openings each step: every door closed and whole, every window shuttered or boarded and whole. It gates sleep later and costs nothing now.
 
@@ -1067,7 +1076,7 @@ The conversation that opens Milestone 2. Its design is `07-lighting.md`.
 - **Dark medieval fantasy, not strictly medieval.** Michael: skeletons with sword and shield, plague doctors, scarecrow men would fit; medieval must not be a ceiling that shuts down ideas, and the dark-fantasy vibe suits the RPG leanings. Tone rule updated in `00-vision.md`. Nothing fantastical is scheduled.
 - **It is a Place.** Michael, after testing zombie memory: better than either parent, it feels like playing Zomboid, the contrast with the art is noticeable and fun, and the cottage and shed read as grounds he hangs out at rather than a test space. The probe's purpose is served.
 - **Corner posts.** Where walls meet at a corner, end, or junction, a post of the wall's thickness fills the notch the thickness leaves. Stone wins over wood where they meet. A straight run gets no posts.
-- **Every window has wooden shutters, worked the Zomboid way.** Tap E to open or close, hold E to climb through once open. Checked against Zomboid's own description: a quick press does one thing, a hold does the other. Closed shutters block sight. Climbing takes 0.9 s and cannot be interrupted: a window is a desperate exit, not a shortcut. Shutters start closed. This replaces the probe's glass: there is no pane in this village (`06-art.md`), so the sibling's curtains and broken glass do not carry; boards may.
+- **Every window has wooden shutters, worked the Zomboid way.** Tap E to open or close, ~~hold E to climb through once open. Checked against Zomboid's own description: a quick press does one thing, a hold does the other~~ (superseded 2026-10-16: Nobody climbs through a window, #134). Closed shutters block sight. ~~Climbing takes 0.9 s and cannot be interrupted: a window is a desperate exit, not a shortcut.~~ Shutters start closed. This replaces the probe's glass: there is no pane in this village (`06-art.md`), so the sibling's curtains and broken glass do not carry; boards may.
 - **The dead know only where they last saw you.** Michael drew the case: he ran a route around a house with solid walls and the dead cut the corner straight to him, as if they had his coordinates. They did: chase was pathing to the player's live tile. Now a zombie remembers the last place it saw you, walks there, searches around it for ten seconds, and gives up. No biting through walls either: a bite needs line of sight. **Noise is deliberately not a factor yet**; Michael is unsure it fits the cosy idea and with no guns there is nothing loud. Open question 18.
 - **The stamina bar is the first UI**, because Michael sprints everywhere. Sprint lasts about six seconds instead of two and a half.
 - **The fog is lighter.** It shades what you cannot see clearly but never distracts from what is there. 0.74 alpha was near black; now 0.46 in a dusky purple. (Lowered again to 0.36 later the same day, above.)
