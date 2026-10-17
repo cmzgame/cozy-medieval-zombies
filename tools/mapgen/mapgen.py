@@ -213,13 +213,16 @@ class Place:
         self.s["props"].append(p)
         return p
 
-    def crops(self, rect, kinds, stages=(0, 1, 2), seed=1):
+    def crops(self, rect, kinds, stages=(0, 1, 2), seed=1, floor="floor_farm", skip=()):
         """A plot: farm soil with a crop on every tile at mixed stages, by a
-        hash so it is the same every build."""
+        hash so it is the same every build. `floor` is the soil (`floor_farm_y`
+        for furrows along y); `skip` tiles (relative to the set) stay bare soil."""
         x0, y0, w, h = rect
-        self.floor_rect(rect, "floor_farm")
+        self.floor_rect(rect, floor)
         for dy in range(h):
             for dx in range(w):
+                if (x0 + dx, y0 + dy) in skip:
+                    continue
                 k = kinds[(dx + dy * 7 + seed) % len(kinds)]
                 st = stages[(dx * 3 + dy + seed) % len(stages)]
                 self.prop(f"crop_{k}_{st}", (x0 + dx, y0 + dy), solid=False)  # walked through, and it wobbles (CLAUDE.md's law)

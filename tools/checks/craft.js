@@ -39,7 +39,9 @@ export async function run(game) {
     return chest;
   };
   let bench = null;
+  const aggro0 = G.rules.rules.zombieAggro; // the dead stay off for the run: a long craft or a loaded farm otherwise lets them kill the player (the checks run in sequence)
   try {
+    G.rules.set({ zombieAggro: false });
     bench = find("workbench");
     const oven = find("oven");
     if (!bench) throw new Error("no workbench in the loaded chunks");
@@ -95,9 +97,65 @@ export async function run(game) {
       oven.queue = [];
       o2.items = [];
     } else row("the oven", false, "no oven in the loaded chunks");
+    // 5. The millstones (#201): grain to flour with no fire, on a station of the check's own on bare grass; the flour then bakes.
+    let spot = null;
+    map.ensureAround(p.gx, p.gy, 3);
+    for (let dy = -14; dy <= 14 && !spot; dy++) for (let dx = -14; dx <= 14 && !spot; dx++) {
+      const x = Math.round(p.gx) + dx;
+      const y = Math.round(p.gy) + dy;
+      let ok = true;
+      for (let ay = -1; ay <= 5 && ok; ay++) for (let ax = -1; ax <= 5 && ok; ax++) { const t = map.peekTile(x + ax, y + ay); ok = !!t && t.floor === "floor_grass" && !t.prop && !t.n && !t.w && map.isWalkableTile(x + ax, y + ay); }
+      if (ok) spot = [x, y];
+    }
+    if (!spot) throw new Error("no bare grass for the millstones");
+    const stones = map.createProp({ sprite: "millstones", tile: spot, footprint: [2, 2] });
+    map.placeProp(stones, spot[0], spot[1]);
+    made.push(stones);
+    G.teleport(spot[0] + 0.5, spot[1] + 2.6);
+    step();
+    const grind = G.stations.recipe("flour");
+    row("the millstones are a station of their own, with a row for grain to flour and no fire", G.stations.stationOf(stones) === "millstones" && grind && !grind.fire && G.stations.recipesFor("millstones").length === 1, "millstones: " + G.stations.recipesFor("millstones").map((r) => r.id).join(", "));
+    const sacks = map.createProp({ sprite: "chest", tile: [spot[0] + 2, spot[1] + 2] });
+    map.placeProp(sacks, spot[0] + 2, spot[1] + 2);
+    made.push(sacks);
+    sacks.bag = G.inventory.createBag(4, 3, "chest");
+    sacks.searched = true;
+    G.grid.add(sacks.bag, "grain", 4);
+    const r6 = G.verbs.run("craft", G.world.world, p, { prop: stones.id }, { recipe: "flour", count: 2 });
+    step(Math.ceil(grind.seconds * 60 * 2) + 4);
+    const o3 = G.stations.outputOf(stones);
+    const flour = o3.items.filter((e) => e.id === "flour").reduce((n, e) => n + e.count, 0);
+    row("four grain become two flour at the millstones, unlit", r6.ok && flour === 2 && !sacks.bag.items.some((e) => e.id === "grain"), `${r6.ok ? "" : r6.reason + "; "}output ${o3.items.map((e) => `${e.id} x${e.count}`).join(", ") || "nothing"}`);
+    // The flour then bakes: the two pieces ground go in a chest beside an oven of the check's own, lit, and a loaf comes out (grain to flour to bread).
+    const oven2 = map.createProp({ sprite: "oven", tile: [spot[0] + 4, spot[1]], footprint: [2, 1] });
+    map.placeProp(oven2, spot[0] + 4, spot[1]);
+    made.push(oven2);
+    oven2.fire.lit = true;
+    oven2.fire.fuel = 2;
+    const bakeChest = map.createProp({ sprite: "chest", tile: [spot[0] + 4, spot[1] + 1] });
+    map.placeProp(bakeChest, spot[0] + 4, spot[1] + 1);
+    made.push(bakeChest);
+    bakeChest.bag = G.inventory.createBag(4, 3, "chest");
+    bakeChest.searched = true;
+    G.grid.add(bakeChest.bag, "flour", flour);
+    G.teleport(spot[0] + 4.5, spot[1] + 1.9);
+    step();
+    const baked = G.verbs.run("craft", G.world.world, p, { prop: oven2.id }, { recipe: "bread", count: 1 });
+    step(Math.ceil(G.stations.recipe("bread").seconds * 60) + 4);
+    const loaf = G.stations.outputOf(oven2).items.filter((e) => e.id === "bread").reduce((n, e) => n + e.count, 0);
+    row("and the flour it made bakes to a loaf at a lit oven (grain to flour to bread)", baked.ok && loaf === 1, `${baked.ok ? "" : baked.reason + "; "}${loaf} loaf`);
+    oven2.queue = [];
+    G.stations.outputOf(oven2).items = [];
+    o3.items = [];
+    stones.queue = [];
+    G.teleport(spot[0] + 0.5, spot[1] + 2.6);
+    step();
+    const none = G.verbs.run("craft", G.world.world, p, { prop: stones.id }, { recipe: "bread", count: 1 });
+    row("the millstones refuse a recipe of another station", !none.ok && /Not at this station/.test(none.reason), none.reason || "took it");
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message });
   } finally {
+    G.rules.set({ zombieAggro: aggro0 });
     for (const pr of made) map.removeProp(pr);
     if (bench) { bench.queue = []; if (bench.output) bench.output.items = []; }
     G.teleport(saved.gx, saved.gy);

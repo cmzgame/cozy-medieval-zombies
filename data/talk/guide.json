@@ -152,11 +152,18 @@
     },
     {
      "text": "Can I water a field faster?",
-     "goto": "bucket"
+     "goto": "bucket",
+     "wiki": "Bucket"
     },
     {
      "text": "How do I get cloth?",
-     "goto": "cloth"
+     "goto": "cloth",
+     "wiki": "Loom"
+    },
+    {
+     "text": "Where does flour come from?",
+     "goto": "mill",
+     "wiki": "The mill"
     },
     {
      "text": "What are all these keys?",
@@ -398,7 +405,8 @@
     "A hoe in a hand turns bare grass or dirt to soil. Seed goes in soil, and water keeps it growing.",
     "Watered soil stays wet for two days. A dry crop only pauses. It never dies.",
     "Harvest when it is ripe and a few seeds come back. The soil stays.",
-    "A scythe takes a whole row of rye at a swing."
+    "A scythe takes the ripe rye on the three tiles ahead at a swing.",
+    "The granaries at Hollow Farm and the mill keep seed of every crop."
    ],
    "options": [
     {
@@ -462,6 +470,27 @@
     {
      "text": "I am bleeding.",
      "goto": "heal"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "mill": {
+   "say": [
+    "Grain goes to the millstones at the mill, by Long Acre. Two grain grind to one flour, and no fire is needed.",
+    "Flour bakes into bread at an oven. A pumpkin makes a pie there too.",
+    "Seed for every crop is in the granaries, at Hollow Farm and beside the mill."
+   ],
+   "options": [
+    {
+     "text": "How does farming go?",
+     "goto": "farm"
+    },
+    {
+     "text": "How do I make things?",
+     "goto": "make"
     },
     {
      "text": "Something else.",

@@ -45,6 +45,19 @@
      "weight": 2
     }
    ]
+  },
+  "brook": {
+   "miss": 0.35,
+   "catch": [
+    {
+     "item": "trout",
+     "weight": 4
+    },
+    {
+     "item": "perch",
+     "weight": 1
+    }
+   ]
   }
  }
 }

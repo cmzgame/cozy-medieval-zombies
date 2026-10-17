@@ -111,7 +111,7 @@ export function close() {
 }
 
 function title(station) {
-  return { workbench: "Workbench", anvil: "Anvil", forge: "Forge", oven: "Oven", cooking: "Cooking", loom: "Loom", dyevat: "Dye vat" }[station] || station;
+  return { workbench: "Workbench", anvil: "Anvil", forge: "Forge", oven: "Oven", cooking: "Cooking", loom: "Loom", dyevat: "Dye vat", millstones: "Millstones" }[station] || station;
 }
 
 // What a recipe makes, named: an item by its definition, a prop by its sprite.
