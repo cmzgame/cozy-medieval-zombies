@@ -21,7 +21,6 @@ export const zombie = {
   radius: 0.3, // the body, in tiles
   searchTime: 10, // seconds spent looking around the last sighting
   breachDamage: 5, // per hit into an opening's stack (docs/09)
-  climb: 1.6, // seconds through a window, against the player's 0.9
   groanText: "Braaaains", // what the dead say now and then (docs/19)
   groanMin: 20, // seconds between groans
   groanMax: 60,
@@ -74,9 +73,6 @@ export const player = {
   drinkSip: 50, // per drink from a waterskin
   autoDrinkStage: 2, // the thirst moodle's stage a carried waterskin sips by itself at ("Thirsty"; docs/02, 2026-10-16)
   presentTime: 0.6, // seconds the held-out pose shows for a bite or a sip (docs/32, item 1)
-  // Climbing through a window: slow and committed on purpose, a window is a
-  // desperate exit, not a shortcut.
-  climbTime: 0.9,
 };
 
 export const villager = {

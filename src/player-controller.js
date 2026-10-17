@@ -17,11 +17,11 @@ import * as interact from "./interact.js";
 export function controlPlayer(player, zombies, dt, s, predict = false) {
   // The right button held with a shield in the off hand raises the guard (docs/21): you can
   // still swing, stab, or throw from behind it, for much less damage (the shield's `attackMult`).
-  // It is not held through carrying or a climb. It does hold with the bag open (the world goes on
+  // It is not held through carrying. It does hold with the bag open (the world goes on
   // while you look in it, and the bag is where weapons are swapped) and a menu open (a press
   // outside the menu closes it).
   const shield = combat.shieldOf(player);
-  player.blocking = !!shield && s.offDown && !player.carrying && !player.climb && !player.dead;
+  player.blocking = !!shield && s.offDown && !player.carrying && !player.dead;
   const launcher = archery.launcherOf(player);
   const bowHeld = !!launcher && launcher.button === "primary";
   // A left click swings; on a mushroom, a rock, or a tree (its visible pixels) that thing sways too.

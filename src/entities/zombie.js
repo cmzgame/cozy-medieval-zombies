@@ -13,7 +13,7 @@ import { rules } from "../rules.js";
 import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, damageOpening, wayOpen, climbable, floorSpeedAt } from "../map.js";
+import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, damageOpening, wayOpen, floorSpeedAt } from "../map.js";
 import { lineOfSight } from "../visibility.js";
 import * as light from "../light.js";
 import * as clock from "../clock.js";
@@ -54,7 +54,6 @@ export function createZombie(gx, gy, { id = null, hp = T.hp, aggro = false } = {
     attackHit: false,
     pathFailed: false,
     breach: null, // { wall, tx, ty, edge, stand, side, into } while breaking in
-    climb: null, // { from, to, t } while climbing through a window
     sincePlayer: Infinity, // seconds since the player was last seen
     stuckTime: 0,
     hits: [], // when the player's blows landed, for the third-hit rule (combat.js)
@@ -88,16 +87,6 @@ export function isDown(z) {
   return z.state === "down";
 }
 
-// A climb cut short leaves the body at whichever end of it is nearer.
-function endClimb(z) {
-  if (!z.climb) return;
-  const c = z.climb;
-  const at = c.t / T.climb < 0.5 ? c.from : c.to;
-  z.gx = at[0];
-  z.gy = at[1];
-  z.climb = null;
-}
-
 // Hurt a zombie (docs/14). `dir` is the grid unit vector the blow travels
 // along, `knockback` tiles of push, `knockdown` floors it, `stagger` seconds it
 // is stopped, `from` where the blow came from (the dead then know where). A
@@ -106,7 +95,6 @@ export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown
   if (z.dead) return { killed: false, downed: false };
   const wasDown = isDown(z);
   z.hp = Math.max(0, z.hp - amount);
-  endClimb(z);
   z.path = [];
   z.lastGoal = null;
   if (knockback > 0 && !wasDown) z.knock = { x: dir[0] * knockback, y: dir[1] * knockback, left: T.knockTime };
@@ -163,7 +151,6 @@ export function burnZombie(z, amount) {
   if (z.dead) return false;
   z.hp = Math.max(0, z.hp - amount);
   if (z.hp > 0) return false;
-  endClimb(z);
   z.path = [];
   kill(z);
   return true;
@@ -229,13 +216,6 @@ function startBreach(z, target) {
   z.lastGoal = null;
   z.pathFailed = false;
   z.repathTimer = 0;
-}
-
-function startClimb(z, from, to) {
-  z.climb = { from: [from[0], from[1]], to: [to[0], to[1]], t: 0 };
-  z.path = [];
-  z.breach = null;
-  z.state = "chase";
 }
 
 function distTo(z, e) {
@@ -386,23 +366,6 @@ export function updateZombie(z, dt, players, others, villagers = null) {
     z.groanTimer = T.groanMin + rng.float() * (T.groanMax - T.groanMin);
   }
   if (updateHurt(z, dt, sheet)) return;
-  // Climbing: slow, committed, no bite until it is through (docs/09).
-  if (z.climb) {
-    const c = z.climb;
-    c.t += dt;
-    const k = Math.min(1, c.t / T.climb);
-    const ease = k * k * (3 - 2 * k);
-    z.gx = c.from[0] + (c.to[0] - c.from[0]) * ease;
-    z.gy = c.from[1] + (c.to[1] - c.from[1]) * ease;
-    faceToward(z, c.to[0] - c.from[0], c.to[1] - c.from[1]);
-    playAnimation(z.anim, "walk");
-    if (k >= 1) {
-      z.climb = null;
-      z.repathTimer = 0;
-    }
-    advanceAnimation(z.anim, sheet, dt);
-    return;
-  }
   z.attackCooldown = Math.max(0, z.attackCooldown - dt);
   z.repathTimer -= dt;
   z.sightTimer -= dt;
@@ -556,14 +519,11 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         break;
       }
       faceToward(z, mx - z.gx, my - z.gy);
-      // The way is open: through the door, or up and over the sill.
-      if (wayOpen(b.wall) || climbable(b.wall)) {
-        if (b.wall.kind === "window") startClimb(z, [z.gx, z.gy], b.into);
-        else {
-          z.breach = null;
-          z.state = "chase";
-          z.repathTimer = 0;
-        }
+      // The way is open: through the doorway (a window is never the way, `breachTarget` picks doors alone).
+      if (wayOpen(b.wall)) {
+        z.breach = null;
+        z.state = "chase";
+        z.repathTimer = 0;
         break;
       }
       if (z.attackCooldown <= 0) {

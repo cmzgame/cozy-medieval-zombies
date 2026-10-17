@@ -428,7 +428,7 @@ export function biomeAt(x, y) {
 }
 
 // A wall segment on a tile edge. kind: "wall" | "door" | "window". A window has
-// wooden shutters: closed blocks sight, open lets you see and climb through.
+// wooden shutters: closed blocks sight, open lets you see through (nobody climbs through a window).
 //
 // An opening is a stack (docs/09): boards on either side, each with its own
 // health, and the leaf (the door, or the shutters) with health of its own.
@@ -571,17 +571,13 @@ export function damageOpening(wall, side, amount) {
   return broke;
 }
 
-// Can a walking body pass this opening?
+// Can a walking body pass this opening? Only a door, open or broken and unboarded: nobody climbs through a window
+// (Michael, 2026-10-16), so a window is for sight and light alone, whatever state its shutters are in.
 export function wayOpen(wall) {
   if (!wall) return true;
   if (boarded(wall)) return false;
   if (wall.kind === "door") return wall.open || wall.broken;
   return false;
-}
-
-// Can a body climb through this opening (windows only; never through a material whose `climb` is false, an arrow slit)?
-export function climbable(wall) {
-  return !!wall && wall.kind === "window" && !boarded(wall) && (wall.shutter === "open" || wall.broken) && wallRule(wall.sprite).climb;
 }
 
 // Is a room sealed (docs/09): every door shut and whole or boarded, every
@@ -599,9 +595,11 @@ export function roomSealed(room) {
   return true;
 }
 
-// The opening of a room nearest to (gx, gy) that an attacker outside the room
-// can stand beside: the tile on the attacker's side, which is whichever side
-// of the edge is not in the room. Returns { wall, tx, ty, edge, stand, side }.
+// The door of a room nearest to (gx, gy) that an attacker outside the room can stand beside: the tile on the
+// attacker's side, which is whichever side of the edge is not in the room. Only doors: nobody climbs through a window
+// (Michael, 2026-10-16), so the dead who want what is in a room go for its nearest door (open or shut, boarded or not:
+// they break what is in the way) and never batter a window, which leads nowhere for them. Returns { wall, tx, ty,
+// edge, stand, side }, or null when the room has no door a body can stand at.
 export function breachTarget(room, gx, gy) {
   // Breaking in from outside, or out from inside: the attacker stands on
   // whichever side of the opening they are on and goes through to the other.
@@ -609,7 +607,7 @@ export function breachTarget(room, gx, gy) {
   let best = null;
   for (const op of room.openings) {
     const w = tileAt(op.tx, op.ty)[op.edge];
-    if (!w) continue;
+    if (!w || w.kind !== "door") continue;
     const nearTile = [op.tx, op.ty];
     const farTile = op.edge === "n" ? [op.tx, op.ty - 1] : [op.tx - 1, op.ty];
     const nearIn = tileAt(nearTile[0], nearTile[1]).room === room.id;
@@ -1163,8 +1161,7 @@ export function floorRule(id) {
 }
 
 // What a wall material allows (docs/30 step 0): `wall.seeThrough` (a fence, bars,
-// a parapet: sight and light pass, bodies do not, and it bounds no room) and
-// `wall.climb: false` (an arrow slit: nothing climbs through its openings).
+// a parapet: sight and light pass, bodies do not, and it bounds no room).
 const wallRules = new Map();
 export function wallRule(sprite) {
   let r = wallRules.get(sprite);
@@ -1172,7 +1169,7 @@ export function wallRule(sprite) {
   let def = null;
   try { def = getDef(sprite); } catch { def = null; }
   const w = (def && def.wall) || {};
-  r = { seeThrough: !!w.seeThrough, climb: w.climb !== false };
+  r = { seeThrough: !!w.seeThrough };
   wallRules.set(sprite, r);
   return r;
 }

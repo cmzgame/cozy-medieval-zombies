@@ -415,7 +415,7 @@ function send(msg) {
 // What the host will take of a guest's snapshot: the shape the step reads, nothing else, every number finite
 // (a NaN aim or a far aim point would ride into the player's record and the save), the key events only the
 // ones that exist.
-const KEY_EVENTS = ["eTap", "eHold", "ePressed", "bTap", "bHold", "t", "belt1", "belt2", "belt3", "belt4", "drawCancel"]; // drawCancel: a right tap during a draw (2026-10-15)
+const KEY_EVENTS = ["eTap", "ePressed", "bTap", "bHold", "t", "belt1", "belt2", "belt3", "belt4", "drawCancel"]; // drawCancel: a right tap during a draw (2026-10-15)
 export function cleanSnap(raw) {
   const s = raw && typeof raw === "object" ? raw : {};
   const num = (v, lim) => (typeof v === "number" && Number.isFinite(v) ? Math.max(-lim, Math.min(lim, v)) : 0);
@@ -458,7 +458,7 @@ export function hostStep(mySnap, me) {
     if (sender && sender.steppedAway && !["back", "leave", "say", "sync"].includes(msg.type)) continue; // pokeVillager and kick included
     if (msg.type === "away") {
       // Five minutes with no input on the guest's own client: its character out of the world, kept by its browser's
-      // hash (main.js, the dormant path); a sleeper, the dead, or a climb mid-way is refused and told to stay.
+      // hash (main.js, the dormant path); a sleeper or the dead is refused and told to stay.
       if (sender && hooks.away && hooks.away(sender.playerId)) {
         sender.steppedAway = true;
         sender.queue = [];
@@ -957,7 +957,7 @@ export function guestStep(mySnap) {
     } else if (msg.type === "opened") {
       pendingOpened.push(msg.what); // after the frame that carries the grid (frames queue behind it)
     } else if (msg.type === "stay" && msg.from) {
-      // The host refused my step away (asleep, dead, or climbing there): back in, nothing lost.
+      // The host refused my step away (asleep or dead there): back in, nothing lost.
       steppedAway = false;
       if (hooks.stay) hooks.stay();
     }

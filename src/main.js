@@ -132,7 +132,7 @@ const myHash = () => identities.idHash(identities.clientId());
 // Stepping away (item 3, `02` 2026-10-13): in a world with friends in it, a player with no input for five minutes of
 // real time leaves the world, safe, through the dormant path (its record kept under its browser's hash, so a save
 // and a reload keep it), and comes back where it stood on its next key, click, or mouse movement. Never a sleeper
-// (Michael: waiting in bed for friends is deliberate), never the dead, never mid-climb, never in a solo world.
+// (Michael: waiting in bed for friends is deliberate), never the dead, never in a solo world.
 const AWAY_AFTER_MS = 5 * 60 * 1000;
 let awayAfterMs = AWAY_AFTER_MS; // a check shortens it (__game.away.after)
 let lastInputAt = performance.now();
@@ -144,7 +144,7 @@ const sharedWorld = () => (net.isHost() && net.hasGuests()) || (net.isGuest() &&
 function checkAway() {
   const me = S.player;
   if (away || !inWorld) return;
-  if (!sharedWorld() || !me || me.dead || me.sleeping || me.climb) {
+  if (!sharedWorld() || !me || me.dead || me.sleeping) {
     lastInputAt = performance.now();
     return;
   }
@@ -1107,7 +1107,7 @@ function stepGame(dt) {
   }
   handleMouse();
   // E, B, and T as events in my snapshot (interact.keyEvents): the world performs them for my player in its
-  // step, here or on the host (game.step), so a guest's climb, boards, and torch are the host's doing. They work with
+  // step, here or on the host (game.step), so a guest's boards and torch are the host's doing. They work with
   // any panel or menu open (Michael, 2026-10-15: only the pause menu stops the game), as the belt keys always have.
   const keyEv = interact.keyEvents(dt);
   const beltEv = interact.beltEvents();

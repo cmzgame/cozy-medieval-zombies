@@ -33,7 +33,6 @@ export function createPlayer(gx, gy, { id = null } = {}) {
     sprinting: false,
     winded: false,
     moving: false,
-    climb: null, // { from, to, t } while climbing through a window
     hunger: T.hungerMax,
     maxHunger: T.hungerMax,
     thirst: T.thirstMax,
@@ -73,23 +72,6 @@ export function damagePlayer(player, amount) {
 }
 
 
-export function startClimb(player, win) {
-  if (player.carrying) return;
-  player.climb = { from: [player.gx, player.gy], to: [win.to[0], win.to[1]], t: 0 };
-  player.moving = false;
-  player.sprinting = false;
-}
-
-function updateClimb(player, dt) {
-  const c = player.climb;
-  c.t += dt;
-  const k = Math.min(1, c.t / T.climbTime);
-  const ease = k * k * (3 - 2 * k);
-  player.gx = c.from[0] + (c.to[0] - c.from[0]) * ease;
-  player.gy = c.from[1] + (c.to[1] - c.from[1]) * ease;
-  if (k >= 1) player.climb = null;
-}
-
 export function aimOrigin(player) {
   const p = iso.toScreen(player.gx, player.gy);
   return { x: p.x, y: p.y - T.aimY };
@@ -116,11 +98,11 @@ export function drink(player, entry) {
 
 // Auto-drinking (Michael, 2026-10-16; docs/02 question 22): from the moodle's stage T.autoDrinkStage ("Thirsty"), a
 // sip from any waterskin the player carries, belt or bag, the emptiest that has water first, so one skin is finished
-// before the next is started. Never mid-fight: not during a swing, a draw or a cast, a guard, a climb, sleep, or
+// before the next is started. Never mid-fight: not during a swing, a draw or a cast, a guard, sleep, or
 // another drink's held-out pose. The authority's step alone calls it (game.js), never a guest's prediction, so a
 // guest's sip is not taken twice. Returns the entry drunk from, or null.
 export function autoDrink(player) {
-  if (!rules.survival || player.dead || player.sleeping || player.climb) return null;
+  if (!rules.survival || player.dead || player.sleeping) return null;
   if (thirstStage(player) < T.autoDrinkStage) return null;
   if (player.presentFor > 0 || player.blocking || player.drawing || (player.swingLock || 0) > 0) return null;
   const a = player.anim;
@@ -316,13 +298,6 @@ export function updatePlayer(player, dt, snap = IDLE) {
   // The fallen move no more: a guest's prediction of its own player runs this after its death too, and walked its
   // body back to the idle, a frame its baked body has not got (2026-10-14).
   if (player.dead) {
-    advanceAnimation(player.anim, sheet, dt);
-    return;
-  }
-
-  if (player.climb) {
-    updateClimb(player, dt);
-    playAnimation(player.anim, "walk");
     advanceAnimation(player.anim, sheet, dt);
     return;
   }
