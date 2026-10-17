@@ -15,6 +15,7 @@ import { getItem, containerGrid } from "./items.js";
 import * as grid from "./grid.js";
 import { bagOf, beltOf, createBag, countAll, takeAll, toolProblem } from "./inventory.js";
 import * as verbs from "./verbs.js";
+import { canReach, reachProblem, TOO_FAR } from "./reach.js"; // one reach test, distance and a clear line (#208)
 import { emit } from "./events.js";
 
 export const REACH = 2.6; // tiles: the click's reach (interact.js CLICK_REACH); containers this close feed a craft
@@ -55,12 +56,6 @@ export function recipesFor(station) {
   return rows.filter((r) => r.station === station);
 }
 
-function distToTiles(e, tiles) {
-  let best = Infinity;
-  for (const [tx, ty] of tiles) best = Math.min(best, Math.hypot(e.gx - tx, e.gy - ty));
-  return best;
-}
-
 // Every bag a craft may draw on: the player's bag, the station's own output,
 // and any opened container within reach of the player (its bag exists once
 // it has been searched).
@@ -76,7 +71,7 @@ export function sources(player, prop) {
     const p = map.peekTile(px + dx, py + dy)?.prop;
     if (!p || p === prop || seen.has(p) || !p.bag) continue;
     seen.add(p);
-    if (distToTiles(player, p.tiles) <= REACH) out.push(p.bag);
+    if (canReach(player, p.tiles, REACH)) out.push(p.bag); // a chest in the next room feeds nothing through the wall (#208)
   }
   return out;
 }
@@ -149,7 +144,7 @@ function toolInHand(player, id) {
 // Whether a recipe can be started at a station now: true, or the reason not.
 export function canMake(player, prop, r, count = 1) {
   if (stationOf(prop) !== r.station) return "Not at this station.";
-  if (distToTiles(player, prop.tiles) > REACH) return "Too far from it.";
+  { const why = reachProblem(player, prop.tiles, REACH); if (why) return why === TOO_FAR ? "Too far from it." : why; }
   if (r.fire && !(prop.fire && prop.fire.lit)) return "The fire is out.";
   if (r.uses) { const why = toolProblem(player, r.uses); if (why) return why; } // a carried tool by its verb (#215)
   if (r.tool && !toolInHand(player, r.tool)) return `Needs a ${getItem(r.tool).name.toLowerCase()} in hand.`;

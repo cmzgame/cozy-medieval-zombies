@@ -141,6 +141,10 @@ const mapMod = await import("../src/map.js");
 const gameMod = await import("../src/game.js");
 const kitModule = await import("../src/kit.js");
 const worldMod = await import("../src/world.js");
+const chartModule = await import("../src/chart.js");
+const { lineOfSight } = await import("../src/visibility.js");
+const { getDef } = await import("../src/assets.js");
+const stationsMod = await import("../src/stations.js");
 await bootData(root);
 // The sync hash (game.syncParts) and what the wire promises: a board struck short of a break changes nothing a guest sees, so the map
 // part must not move; a board broken is carried (the chunk is touched), so it must (the review of #185, #189).
@@ -176,6 +180,28 @@ check("kit: the default kit fits the sack and the dev bag by placement, and aski
   assert(kitMod.problem("apple 1e1") !== "" && kitMod.problem("apple 0x10") !== "", "a count of 1e1 or 0x10 was taken");
   return "sack and dev bag fit; no id taken";
 });
+// The chart's frame carries only the changed cells (#237): what a host takes after a reveal, applied to an empty replica, makes the same chart; and a second take is empty.
+check("chart: the changed cells a frame carries rebuild the chart on an empty replica", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const chartMod = chartModule;
+  S.player.gx = 104;
+  S.player.gy = 205;
+  chartMod.takeChanged();
+  mapMod.ensureAround(104, 205, 4);
+  gameMod.begin(1 / 60);
+  gameMod.begin(1 / 60);
+  const taken = chartMod.takeChanged();
+  const host = chartMod.hashText();
+  const again = chartMod.takeChanged();
+  chartMod.restore({ chunks: [] });
+  chartMod.apply(JSON.parse(JSON.stringify(taken))); // as it crosses the wire
+  assert(taken.length > 0 && chartMod.hashText() === host, "the replica built from the changed cells is not the host's chart");
+  assert(again.length === 0, "a second take with nothing changed was not empty");
+  const cells = taken.reduce((n, r) => n + r[2].length / 2, 0);
+  return `${taken.length} chunks, ${cells} cells, the replica matches; nothing the second time`;
+});
 for (const file of fs.readdirSync(path.join(root, "data", "maps")).filter((f) => f.endsWith(".json"))) {
   check(`maps: no prop stands on a door's tiles (${file})`, () => {
     const json = read(`data/maps/${file}`);
@@ -200,6 +226,34 @@ for (const file of fs.readdirSync(path.join(root, "data", "maps")).filter((f) =>
     }
     assert(!bad.length, `${bad.length} on a door's tiles: ${bad.slice(0, 4).join("; ")}`);
     return `${doors} doors, every tile beside one clear`;
+  });
+  // Every container, station, and bed can be reached: a walkable tile beside it (within the interact range) with a clear line, or the reach test
+  // (#208) leaves it dead loot (a chest boxed in by a hearth, a table, and two walls was exactly that, #227).
+  check(`maps: every container, station, and bed has a walkable tile in range with a clear line (${file})`, () => {
+    const json = read(`data/maps/${file}`);
+    gameMod.create({ json, rules: { zombieAggro: false } });
+    const [bx, by, bw, bh] = json.bounds;
+    const C = mapMod.CHUNK;
+    for (let cy = Math.floor(by / C); cy <= Math.floor((by + bh) / C); cy++) for (let cx = Math.floor(bx / C); cx <= Math.floor((bx + bw) / C); cx++) mapMod.getChunk(cx, cy, true);
+    const RANGE = 1.15; // interact.js INTERACT_RANGE
+    let n = 0;
+    const dead = [];
+    for (const p of mapMod.allProps()) {
+      const [tx0, ty0] = p.tile;
+      if (tx0 < bx || ty0 < by || tx0 >= bx + bw || ty0 >= by + bh) continue;
+      if (!(p.container || stationsMod.stationOf(p) || getDef(p.sprite).sleep)) continue;
+      n++;
+      let ok = false;
+      for (const [tx, ty] of p.tiles) {
+        for (let dy = -2; dy <= 2 && !ok; dy++) for (let dx = -2; dx <= 2 && !ok; dx++) {
+          if (Math.hypot(dx, dy) > RANGE || !mapMod.isWalkableTile(tx + dx, ty + dy)) continue;
+          if (lineOfSight(tx + dx, ty + dy, tx, ty)) ok = true;
+        }
+      }
+      if (!ok) dead.push(`${p.sprite} at ${tx0},${ty0}`);
+    }
+    assert(!dead.length, `${dead.length} cannot be reached from any tile: ${dead.slice(0, 6).join("; ")}`);
+    return `${n} containers, stations, and beds, each with a tile to stand on`;
   });
   // And both tiles of every door can be walked to: flooded from the spawn with every door and gate open (windows and
   // walls shut), a door whose tile is walled in by furniture is one the dead cannot stand at, and the window beside it is

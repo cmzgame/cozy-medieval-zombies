@@ -91,6 +91,8 @@ export const villager = {
   talkTime: 2, // seconds a poked villager stands and faces you, at least
   pokeCooldownMs: 600, // a second poke inside this does nothing
   hurtTime: 0.35, // seconds a bitten villager flinches
+  regenPerMinute: 1, // health a hurt villager gets back a minute: the player's rate (`healthRegenPerMinute`, docs/30 3.4); they have no needs, so always fed and watered (Michael, 2026-10-18, #236)
+  regenPause: 10, // seconds after a hit before it starts again, so health does not climb while the dead are still biting
   barkRadius: 6, // tiles: a villager says an ambient bark only with a living player this near (docs/34, #198)
   barkCooldown: 60, // seconds of game time between a villager's ambient barks
   barkDeadRadius: 8, // tiles: the talk condition `deadNear` means one of the dead within this of the villager

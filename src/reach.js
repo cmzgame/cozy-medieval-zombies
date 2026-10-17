@@ -1,0 +1,33 @@
+// One reach test for every player action (#208; #206's ruling: over a fence or through an open window is in reach, a wall or a shut door or shutter is
+// not, which keeps a sealed room a cell, #147). Distance, and a clear line of sight from the player to the nearest tile of the thing: every action's check
+// asks here, on the host where it is performed, so a guest's command meets the same test as the host's own click. A leaf module (it imports only
+// visibility), so the verbs, the stations, and the panels can all use it.
+
+import { lineOfSight } from "./visibility.js";
+
+export const TOO_FAR = "Too far away.";
+export const WALL_IN_THE_WAY = "There is a wall in the way.";
+
+// The distance to the nearest of some tiles, and that tile.
+export function nearestTile(player, tiles) {
+  let best = null;
+  let bestD = Infinity;
+  for (const t of tiles) {
+    const d = Math.hypot(player.gx - t[0], player.gy - t[1]);
+    if (d < bestD) { bestD = d; best = t; }
+  }
+  return { tile: best, distance: bestD };
+}
+
+// null, or why not: too far (past `range` tiles to the nearest of the tiles), or a wall (or a shut door or shutter) between.
+export function reachProblem(player, tiles, range) {
+  const { tile, distance } = nearestTile(player, tiles);
+  if (!tile || distance > range) return TOO_FAR;
+  if (!lineOfSight(player.gx, player.gy, tile[0], tile[1])) return WALL_IN_THE_WAY;
+  return null;
+}
+
+// A point: one tile.
+export const pointReachProblem = (player, x, y, range) => reachProblem(player, [[x, y]], range);
+
+export const canReach = (player, tiles, range) => reachProblem(player, tiles, range) === null;

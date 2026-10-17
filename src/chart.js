@@ -6,7 +6,7 @@
 // it has been seen** (#234: a building's north and west faces are owned by tiles inside it, seen from outside only by the tile across the face), so a cell may hold
 // walls with no surface (a wall-only cell, surface 0): the tile itself is still unseen.
 // No DOM; it runs headless. Nothing but `chartTile` writes a cell. The reveal runs on the authority, in the world's step, for every player alike; a guest only
-// receives the chart (the save's welcome, then the changed chunks in each frame) and draws it.
+// receives the chart (the save's welcome, then the changed cells in each frame) and draws it.
 
 import * as map from "./map.js";
 import { defIdsWith, getDef } from "./assets.js";
@@ -17,7 +17,7 @@ const CHUNK = map.CHUNK;
 const N = CHUNK * CHUNK;
 
 const chunks = new Map(); // "cx,cy" -> { cx, cy, cells: Uint16Array(256) }
-const changed = new Set(); // chart chunks written since the frame last took them
+const changed = new Map(); // "cx,cy" -> Set of the cell indexes written since the frame last took them (#237: a frame carries the cells, not the chunks)
 const retouch = new Set(); // chart chunks whose map chunk was touched: their charted cells are read again at the next step
 const touched = []; // [cx, cy] of every map chunk touched since the last step, charted or not: a player near one looks again (a door opened in front of them)
 let palette = null; // [{ id, color }] sorted by id; a cell's surface index is its place + 1
@@ -85,7 +85,9 @@ function setCell(x, y, cell) {
   if (c.cells[i] === cell) return false;
   c.cells[i] = cell;
   c.v++;
-  changed.add(k);
+  let d = changed.get(k);
+  if (!d) { d = new Set(); changed.set(k, d); }
+  d.add(i);
   return true;
 }
 
@@ -212,19 +214,34 @@ export function restore(data) {
   for (const [cx, cy, b64] of (data && data.chunks) || []) chunks.set(key(cx, cy), { cx, cy, cells: decode(b64), v: 1 });
 }
 
-// The chunks written since the last call, whole (the frame's `chart`), and the set cleared.
+// The cells written since the last call (the frame's `chart`), each chunk as [cx, cy, [index, cell, index, cell, ...]], and the set cleared. A whole chunk
+// is the save's and the welcome's (`serialize`); a frame carries only what changed (#237).
 export function takeChanged() {
   const out = [];
-  for (const k of changed) { const c = chunks.get(k); if (c) out.push(chunkRecord(c)); }
+  for (const [k, set] of changed) {
+    const c = chunks.get(k);
+    if (!c) continue;
+    const flat = [];
+    for (const i of [...set].sort((a, b) => a - b)) flat.push(i, c.cells[i]);
+    out.push([c.cx, c.cy, flat]);
+  }
   changed.clear();
   return out;
 }
 
-// A guest's replica takes the changed chunks the host sent. It never charts anything itself.
+// A guest's replica takes the changed cells the host sent (or, a whole chunk as the save writes it: a string). It never charts anything itself.
 export function apply(list) {
-  for (const [cx, cy, b64] of list || []) {
+  for (const [cx, cy, data] of list || []) {
     const k = key(cx, cy);
-    chunks.set(k, { cx, cy, cells: decode(b64), v: (chunks.get(k)?.v ?? 0) + 1 }); // `v` rises, so the panel redraws it
+    const old = chunks.get(k);
+    if (typeof data === "string") { chunks.set(k, { cx, cy, cells: decode(data), v: (old?.v ?? 0) + 1 }); continue; } // `v` rises, so the panel redraws it
+    const c = old || { cx, cy, cells: new Uint16Array(N), v: 0 };
+    for (let j = 0; j + 1 < data.length; j += 2) {
+      const i = data[j] | 0;
+      if (i >= 0 && i < N) c.cells[i] = data[j + 1] & 0xffff;
+    }
+    c.v++;
+    chunks.set(k, c);
   }
 }
 
