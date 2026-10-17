@@ -172,7 +172,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Process and the studio
 
-- Recipes are learned and earned (from villagers, skills, and the regions), not all known from the start (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
+- Recipes are learned and earned (from villagers and the regions; skills by default), not all known from the start (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
 - The valley and skillscape are the focus; combat testing pauses (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
 - The roadmap: valley, combat, demo, playing together and telemetry, an outside playtest, Midnight Mass in dev art, the name, art and sound, the Steam page, the regions and release (2026-10-17, The roadmap, and sound)
 - Sound off costs something; a visual twin where it makes sense; every sound playable on its wiki page, its license allowing (2026-10-17, The roadmap, and sound)
