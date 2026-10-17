@@ -217,7 +217,7 @@ export function install() {
   });
   // A fence the dead are bursting shakes, and bursts into splinters, on every guest's screen too (Michael, 2026-10-17, #147):
   // the world's events, drawn by the host's own client (main.js) and sent to each guest's (fx).
-  events.on("fenceShake", ({ tx, ty, edge }) => {
+  events.on("wallStruck", ({ tx, ty, edge }) => {
     if (net.isHost()) net.fxAll("shake", tx, ty, edge === "w" ? 1 : 0);
   });
   events.on("fenceBurst", ({ x, y }) => {

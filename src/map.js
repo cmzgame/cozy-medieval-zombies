@@ -666,13 +666,13 @@ export function destroyWall(tx, ty, edge, restoreUnder = false) {
   return true;
 }
 
-// ---- fences (Michael, 2026-10-17, #147): a crowd of the dead bursts one ----
-// One of the dead pressing a fence does nothing; `fenceCrowd` or more pressing together wear it, `fenceDps` a second and
-// the same again for each one more, and a gate (a door in a fence) gives at `fenceGateFactor` of the wear. A fence nobody
-// presses enough recovers. At the limit it is gone (`destroyWall`: the save and the wire carry it like any change) and
-// `fenceBurst` says where, for the splinters every client draws; while it is pressed, `fenceShake` every quarter second.
-// Walls never break (2026-10-10 stands): only what `wall.fence` says. The wear is the authority's and is not saved.
-const fencePress = new Map(); // wall -> { tx, ty, edge, n (pressing this step), wear, shake }
+// ---- fences (Michael, 2026-10-17, #147; 2026-10-18, #174): the dead strike one down ----
+// A fence, or a gate (a door in a fence), has hit points like a door: `fenceHp`, a gate `fenceGateFactor` of it (`createWall`). A dead one
+// at it STRIKES it, on the attack animation and the bite's cooldown, each strike taking `zombie.fenceStrike` hit points (`strikeFence`),
+// as on a player; a crowd is simply more strikers. The damage stays (saved with the wall; nothing mends it). At nothing left it is gone
+// (`destroyWall`: the save and the wire carry it like any change) and `fenceBurst` says where, for the splinters every client draws;
+// every strike says `wallStruck`, one small jolt for every client's drawing of it. Walls never break (2026-10-10 stands): only what
+// `wall.fence` says.
 
 export function isFence(wall) {
   return !!wall && wallRule(wall.sprite).fence === true;
@@ -698,44 +698,26 @@ export function fenceAhead(gx, gy, tx, ty, reach = 0.8) {
   return best;
 }
 
-// One of the dead presses on it this step (zombie.js).
-export function pressFence(wall, tx, ty, edge) {
-  let r = fencePress.get(wall);
-  if (!r) {
-    r = { tx, ty, edge, n: 0, wear: 0, shake: 0 };
-    fencePress.set(wall, r);
-  }
-  r.n++;
+// What a fence or gate stands: its hit points when made.
+function fenceLimit(wall) {
+  return W.fenceHp * (wall.kind === "door" ? W.fenceGateFactor : 1);
 }
 
-// The world's step, after the dead have moved: the wear, the shaking, the bursting.
-export function stepFences(dt) {
-  for (const [wall, r] of fencePress) {
-    if (tileAt(r.tx, r.ty)[r.edge] !== wall) {
-      fencePress.delete(wall);
-      continue;
-    }
-    const limit = W.fenceHp * (wall.kind === "door" ? W.fenceGateFactor : 1);
-    if (r.n >= W.fenceCrowd) {
-      r.wear += W.fenceDps * (r.n - W.fenceCrowd + 1) * dt;
-      r.shake -= dt;
-      if (r.shake <= 0) {
-        r.shake = 0.25;
-        emit("fenceShake", { tx: r.tx, ty: r.ty, edge: r.edge });
-      }
-    } else {
-      r.wear = Math.max(0, r.wear - W.fenceRecover * dt);
-    }
-    r.n = 0;
-    if (r.wear >= limit) {
-      const [mx, my] = edgeMid(r.tx, r.ty, r.edge);
-      fencePress.delete(wall);
-      destroyWall(r.tx, r.ty, r.edge);
-      emit("fenceBurst", { x: mx, y: my, tx: r.tx, ty: r.ty, edge: r.edge });
-    } else if (r.wear <= 0) {
-      fencePress.delete(wall);
-    }
+// One strike on a fence or gate by one of the dead (zombie.js, the `pressHit` state at its active frame). The wire is told each strike
+// (markDirty: the wall's health is in its chunk, so a guest's copy keeps up and the sync check agrees), and at nothing left it bursts.
+export function strikeFence(wall, tx, ty, edge, amount) {
+  if (tileAt(tx, ty)[edge] !== wall) return false;
+  if (!Number.isFinite(wall.hp)) wall.hp = fenceLimit(wall); // a fence made before fences had hit points
+  wall.hp -= amount;
+  emit("wallStruck", { tx, ty, edge });
+  if (wall.hp <= 0) {
+    const [mx, my] = edgeMid(tx, ty, edge);
+    destroyWall(tx, ty, edge);
+    emit("fenceBurst", { x: mx, y: my, tx, ty, edge });
+    return true;
   }
+  markDirty(tx, ty);
+  return false;
 }
 
 export function createWall(kind, sprite) {
@@ -745,7 +727,7 @@ export function createWall(kind, sprite) {
     open: false,
     shutter: kind === "window" ? "closed" : null,
     boards: { near: [], far: [] }, // hit points per board, outermost last
-    hp: kind === "wall" ? Infinity : kind === "door" ? DOOR_HP : SHUTTER_HP, // a door and a window always break, whatever they are made of: every entrance is one the dead can break
+    hp: wallRule(sprite).fence === true ? fenceLimit({ kind }) : kind === "wall" ? Infinity : kind === "door" ? DOOR_HP : SHUTTER_HP, // a door and a window always break, whatever they are made of: every entrance is one the dead can break; a fence has hit points too
     broken: false,
   };
 }
