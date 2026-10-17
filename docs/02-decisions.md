@@ -108,6 +108,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
+- The aim guide is off by default, for the bow, a throw, and the cast (2026-10-16, The aim guide is off by default)
 - Talk's panel is entirely click-based, with topics, wiki links, Continue, and That's all for now; E starts it (2026-10-16, The needs-michael queue)
 - Never draw UI into the canvas; the interface has its own scale, like a web page (2026-10-10, night, The view, the screens, and a law)
 - The world fills the window; nothing is laid out against 960×540 (2026-10-10, night, The view, the screens, and a law)
@@ -191,6 +192,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-16 — The aim guide is off by default (Michael, after a play)
+
+After playing the staff and the Book of Fire with the guide on: "I am also playing at the moment with no trees, with infinite mana, and with the ranged guide (bow, thrown, magic) turned ON, which I do not think should be the default or it makes it a b[i]t too easy. You should have to learn by trial and error how long to hold down left click." **The aim guide (the landing marker and its line, for the bow, a throw, and the cast alike) is off by default;** it stays a setting of each player's own. A browser that saved its settings keeps its own choice, as with every default changed before. It replaces the default on that `20` gave it when the bow was built.
 
 ### 2026-10-16 — Nobody climbs through a window; region, never biome (Michael, in the shape conversation on #123)
 
