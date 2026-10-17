@@ -1,1 +1,14 @@
-{"images": {"idle_0": "data/art/village/floor_stone_0.png", "idle_1": "data/art/village/floor_stone_1.png", "idle_2": "data/art/village/floor_stone_2.png", "idle_3": "data/art/village/floor_stone_3.png"}, "anchor": [32, 16], "note": "drawn floors (docs/17); the ground bake picks a frame by hash", "mapColor": "#8a8a88"}
+{
+ "images": {
+  "idle_0": "data/art/village/floor_stone_0.png",
+  "idle_1": "data/art/village/floor_stone_1.png",
+  "idle_2": "data/art/village/floor_stone_2.png",
+  "idle_3": "data/art/village/floor_stone_3.png"
+ },
+ "anchor": [
+  32,
+  16
+ ],
+ "note": "drawn floors (docs/17); the ground bake picks a frame by hash",
+ "mapColor": "#8a8a88"
+}

@@ -2,7 +2,9 @@
 // (a prop's `mapColor` if its definition has one, else the floor's) and the two walls the tile owns, `n` and `w`. It lives beside the map, not in the chunks, so a seen
 // wild chunk dropped by `map.evictFar` keeps its chart. Sparse per chunk, two bytes a cell: the surface index in the low byte (0 is unseen; the palette is every
 // definition with a `mapColor`, sorted by id, so host and guest build the same one from the same data), the `n` wall's kind in the next four bits and the `w` wall's in
-// the top four (a kind is 0 none, 1 wall, 2 door, 3 window, 4 see-through (fence, bars), plus 8 for one a player built).
+// the top four (a kind is 0 none, 1 wall, 2 door, 3 window, 4 see-through (fence, bars), plus 8 for one a player built). **A wall is charted when a tile on either side of
+// it has been seen** (#234: a building's north and west faces are owned by tiles inside it, seen from outside only by the tile across the face), so a cell may hold
+// walls with no surface (a wall-only cell, surface 0): the tile itself is still unseen.
 // No DOM; it runs headless. Nothing but `chartTile` writes a cell. The reveal runs on the authority, in the world's step, for every player alike; a guest only
 // receives the chart (the save's welcome, then the changed chunks in each frame) and draws it.
 
@@ -17,6 +19,7 @@ const N = CHUNK * CHUNK;
 const chunks = new Map(); // "cx,cy" -> { cx, cy, cells: Uint16Array(256) }
 const changed = new Set(); // chart chunks written since the frame last took them
 const retouch = new Set(); // chart chunks whose map chunk was touched: their charted cells are read again at the next step
+const touched = []; // [cx, cy] of every map chunk touched since the last step, charted or not: a player near one looks again (a door opened in front of them)
 let palette = null; // [{ id, color }] sorted by id; a cell's surface index is its place + 1
 let indexOf = null;
 
@@ -41,10 +44,12 @@ export function reset() {
   chunks.clear();
   changed.clear();
   retouch.clear();
+  touched.length = 0;
 }
 
 // What the map map.touch / markDirty has changed: its chart chunk is read again at the next step.
 export function noteTouched(cx, cy) {
+  touched.push([cx, cy]);
   const k = key(cx, cy);
   if (chunks.has(k)) retouch.add(k);
 }
@@ -65,25 +70,54 @@ function surfaceOf(t) {
   return indexOf.get(t.floor) || 0;
 }
 
-// The one function that writes a cell: reads the tile and the two walls it owns, writes the cell, marks the chart chunk changed. Returns whether
-// the cell changed (a tile in a chunk not grown reads as nothing and charts nothing).
-export function chartTile(x, y) {
-  const t = map.peekTile(x, y);
-  if (!t) return false;
-  const surface = surfaceOf(t);
-  if (!surface) return false;
+// Write one cell of the chart (creating its chunk), marking the chunk changed. Returns whether the cell changed.
+function setCell(x, y, cell) {
   const cx = Math.floor(x / CHUNK);
   const cy = Math.floor(y / CHUNK);
   const k = key(cx, cy);
   let c = chunks.get(k);
-  if (!c) { c = { cx, cy, cells: new Uint16Array(N), v: 0 }; chunks.set(k, c); }
+  if (!c) {
+    if (!cell) return false;
+    c = { cx, cy, cells: new Uint16Array(N), v: 0 };
+    chunks.set(k, c);
+  }
   const i = (y - cy * CHUNK) * CHUNK + (x - cx * CHUNK);
-  const cell = surface | (wallKind(t.n) << 8) | (wallKind(t.w) << 12);
   if (c.cells[i] === cell) return false;
   c.cells[i] = cell;
   c.v++;
   changed.add(k);
   return true;
+}
+
+const seen = (x, y) => surfaceOfCell(cellAt(x, y)) !== 0;
+
+// Read one cell from the world as the chart should hold it now: the surface only if the tile has been seen (it is never written for one nobody has),
+// and each of the two walls the tile owns if a tile on either side of it has been seen. A tile in a chunk not grown reads as nothing.
+function refresh(x, y) {
+  const t = map.peekTile(x, y);
+  if (!t) return false;
+  const old = cellAt(x, y);
+  const mine = seen(x, y);
+  const surface = mine ? surfaceOf(t) || surfaceOfCell(old) : 0;
+  const nKnown = mine || seen(x, y - 1);
+  const wKnown = mine || seen(x - 1, y);
+  const cell = surface | ((nKnown ? wallKind(t.n) : 0) << 8) | ((wKnown ? wallKind(t.w) : 0) << 12);
+  return setCell(x, y, cell);
+}
+
+// The one function that writes a seen tile: its surface, the two walls it owns, and the two faces it shares with the tiles south and east of it (their `n` and `w`, which
+// those tiles own). Returns whether anything changed (a tile in a chunk not grown reads as nothing and charts nothing).
+export function chartTile(x, y) {
+  const t = map.peekTile(x, y);
+  if (!t) return false;
+  const surface = surfaceOf(t);
+  if (!surface) return false;
+  let changed2 = false;
+  if (!seen(x, y) || surfaceOfCell(cellAt(x, y)) !== surface) changed2 = setCell(x, y, (cellAt(x, y) & ~255) | surface);
+  changed2 = refresh(x, y) || changed2;
+  changed2 = refresh(x, y + 1) || changed2;
+  changed2 = refresh(x + 1, y) || changed2;
+  return changed2;
 }
 
 export function cellAt(x, y) {
@@ -120,7 +154,13 @@ export function rechart() {
   for (const k of [...retouch]) {
     const c = chunks.get(k);
     if (!c) continue;
-    for (let i = 0; i < N; i++) if (c.cells[i]) chartTile(c.cx * CHUNK + (i % CHUNK), c.cy * CHUNK + Math.floor(i / CHUNK));
+    // Every cell of the chunk and the ring of tiles round it (a wall's cell may lie across the chunk's edge from the tile that was seen).
+    for (let y = c.cy * CHUNK - 1; y <= c.cy * CHUNK + CHUNK; y++) {
+      for (let x = c.cx * CHUNK - 1; x <= c.cx * CHUNK + CHUNK; x++) {
+        const had = cellAt(x, y);
+        if (had || seen(x, y - 1) || seen(x - 1, y)) refresh(x, y);
+      }
+    }
   }
   retouch.clear();
 }
@@ -128,13 +168,19 @@ export function rechart() {
 // The world's step (game.begin): for each player in the world, alive, whose tile has changed since their last reveal, reveal; then read the touched chunks again.
 export function step(players) {
   rechart();
+  const R = Math.ceil(W.chartRadius / CHUNK);
   for (const p of players) {
     if (p.dead || p.corpse) continue; // a dead player reveals nothing (a dormant one is not in the list)
     const k = `${Math.round(p.gx)},${Math.round(p.gy)}`;
-    if (p.chartTile === k) continue;
+    // Look again when the tile changed, or when something changed within reach of them (a door opened, a shutter, a wall taken down), standing still or not.
+    const pcx = Math.floor(Math.round(p.gx) / CHUNK);
+    const pcy = Math.floor(Math.round(p.gy) / CHUNK);
+    const near = touched.some(([cx, cy]) => Math.abs(cx - pcx) <= R && Math.abs(cy - pcy) <= R);
+    if (p.chartTile === k && !near) continue;
     p.chartTile = k;
     reveal(p.gx, p.gy);
   }
+  touched.length = 0;
 }
 
 // ---- what travels: the save, the welcome, the frame, the sync check ----
