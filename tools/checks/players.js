@@ -80,7 +80,7 @@ export async function run(game) {
       row("its bite wounds the other player and not me", other.hp < theirHp && me.hp === myHp, `them ${theirHp} to ${other.hp} in ${(bitten / 60).toFixed(1)} s, me ${me.hp}`);
       // 5. At night, the other player's torch lures a zombie that cannot see either of us to where they stand.
       G.clock.setHour(1);
-      const torch = G.items.makeEntry("torch", 1);
+      const torch = G.items.makeEntry("torch", 1, { lit: true });
       other.hands.main = torch;
       z.gx = other.gx + 9;
       z.gy = other.gy + 1;
@@ -97,8 +97,8 @@ export async function run(game) {
       other.hands.main = null;
     } else row("a zombie to test with", false, "no zombie alive");
     // 6. The carried lights: one per player with a torch, by owner.
-    me.hands.off = me.hands.off || G.items.makeEntry("torch", 1);
-    other.hands.main = G.items.makeEntry("torch", 1);
+    me.hands.off = me.hands.off || G.items.makeEntry("torch", 1, { lit: true });
+    other.hands.main = G.items.makeEntry("torch", 1, { lit: true });
     step(1);
     const owners = G.light.carriers().filter((c) => c.owner).map((c) => c.owner).sort();
     row("two torches are two carried lights, each with its owner", owners.length === 2 && owners.includes(me.id) && owners.includes(other.id), owners.join(", "));
