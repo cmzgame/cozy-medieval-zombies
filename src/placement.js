@@ -22,6 +22,7 @@ import { idleFrame, getDef, getSheet } from "./assets.js";
 import { showMessage } from "./ui/prompt.js";
 import { rules } from "./rules.js";
 import * as tuning from "./tuning.js";
+import { reachProblem, TOO_FAR } from "./reach.js";
 
 // Reach was raised by a full tile on 2026-10-11 (Michael: easier).
 export const PLACE_REACH = 2.6; // tiles from the player to a carried prop's anchor tile
@@ -385,14 +386,29 @@ function targetReach(player, t) {
   return Math.min(...t.prop.tiles.map(([x, y]) => Math.hypot(player.gx - x, player.gy - y)));
 }
 
+// Why a removal is out of reach, or "": a wall you built by distance alone (Michael, 2026-10-18: removing a wall is fine from either side of it);
+// a made prop by distance and a clear line, so a chest or a station cannot be taken down through a wall (#227).
+function removeReachProblem(player, t) {
+  if (t.type === "wall") return targetReach(player, t) > REMOVE_REACH ? "Too far" : "";
+  const why = reachProblem(player, t.prop.tiles, REMOVE_REACH);
+  return why === TOO_FAR ? "Too far" : why || "";
+}
+
+// Why a carried prop cannot be put down at (tx, ty) from here, or "": too far, or a wall (a shut door, a shutter) in the line (#227).
+function putDownReach(player, tx, ty) {
+  const why = reachProblem(player, [[tx, ty]], PLACE_REACH);
+  return why === TOO_FAR ? "Too far" : why || "";
+}
+
 function removeGhost(player) {
   const m = input.getMouse();
   if (!m.inside) return null;
   const target = removalTarget(m.x, m.y);
   if (!target) return null;
   const noTool = toolProblem(player, tuning.world.boardTool);
-  const ok = !noTool && targetReach(player, target) <= REMOVE_REACH;
-  return { kind: "remove", target, ok, reason: noTool || (ok ? "" : "Too far") };
+  const far = removeReachProblem(player, target);
+  const ok = !noTool && !far;
+  return { kind: "remove", target, ok, reason: noTool || far };
 }
 
 function targetName(t) {
@@ -430,7 +446,8 @@ function propGhost(player) {
   const tx = Math.round(g.gx - (w - 1) / 2);
   const ty = Math.round(g.gy - (h - 1) / 2);
   let reason = "";
-  if (Math.hypot(player.gx - tx, player.gy - ty) > PLACE_REACH) reason = "Too far";
+  const away = putDownReach(player, tx, ty);
+  if (away) reason = away;
   else if (!canPutDown(player, tx, ty)) reason = "No room";
   return { kind: "prop", prop, tx, ty, footprint: [w, h], ok: reason === "", reason };
 }
@@ -519,9 +536,10 @@ export function performPlacement(player, cmd) {
     const turns = ((Math.round(Number(cmd.turns)) || 0) % 4 + 4) % 4;
     for (let i = 0; i < turns; i++) turn(prop);
     const untwist = () => { for (let i = 0; i < (4 - turns) % 4; i++) turn(prop); };
-    if (Math.hypot(player.gx - tx, player.gy - ty) > PLACE_REACH) {
+    const away = putDownReach(player, tx, ty);
+    if (away) {
       untwist();
-      showMessage("Too far");
+      showMessage(away);
       return true;
     }
     if (!canPutDown(player, tx, ty)) {
@@ -567,8 +585,9 @@ export function performPlacement(player, cmd) {
       showMessage(noTool);
       return true;
     }
-    if (targetReach(player, t) > REMOVE_REACH) {
-      showMessage("Too far");
+    const far = removeReachProblem(player, t);
+    if (far) {
+      showMessage(far);
       return true;
     }
     destroy(t);

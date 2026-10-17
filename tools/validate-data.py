@@ -434,6 +434,21 @@ for where, verb in wanted.items():
     if verb not in tool_verbs:
         fail(f"{where}: no tool item lists the verb {verb!r}")
 
+# The chart's colours (docs/33, #203): every floor definition has a `mapColor` (#rrggbb), the trees and rocks have one, and the palette (every definition with one)
+# fits a byte (the cell's surface index).
+mapcolors = 0
+for sid in sorted(sprites):
+    d = load(f"data/sprites/{sid}.json")
+    mc = d.get("mapColor")
+    if mc is not None:
+        mapcolors += 1
+        if not (isinstance(mc, str) and len(mc) == 7 and mc[0] == "#" and all(ch in "0123456789abcdefABCDEF" for ch in mc[1:])):
+            fail(f"sprites.{sid}: mapColor {mc!r} is not #rrggbb")
+    elif sid.startswith("floor_") or sid.startswith("tree_") or (sid.startswith("rock_") and sid[5:].isdigit()):
+        fail(f"sprites.{sid}: no `mapColor` (the map needs one for every floor, tree, and rock)")
+if mapcolors > 255:
+    fail(f"the chart's palette has {mapcolors} colours; it holds 255")
+
 # Every picture named exists.
 referenced = set()
 

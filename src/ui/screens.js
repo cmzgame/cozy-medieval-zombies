@@ -25,7 +25,7 @@ const CONTROLS = [
     ["W A S D / arrows", "Walk"],
     ["Shift", "Sprint"],
     ["Z / wheel", "Zoom: wide, middle, close"],
-    ["E", "Nearest action"],
+    ["E", "Nearest action: talk to a villager, open a door, pick up"],
     ["Right-click", "Everything you can do to what is under the cursor"],
     ["Esc", "Close what is open, else pause"],
   ]],

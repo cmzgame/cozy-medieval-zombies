@@ -120,12 +120,12 @@ check("a save from its cache is the world made afresh, character for character (
 
 const save = await import("../src/save.js");
 const rulesMod = await import("../src/rules.js");
-check("the save's version is 2 and a version-1 save is upgraded with the rules (item 5's second step)", () => {
-  assert(save.VERSION === 2, `VERSION ${save.VERSION}`);
+check("the save's version is 3 and a version-1 save is upgraded with the rules and an empty chart (item 5's second step; #203)", () => {
+  assert(save.VERSION === 3, `VERSION ${save.VERSION}`);
   const up = save.upgrade({ version: 1, map: {}, characters: {} });
-  assert(up && up.version === 2 && up.rules, "a version-1 save was not upgraded");
+  assert(up && up.version === 3 && up.rules && up.chart && up.chart.chunks.length === 0, "a version-1 save was not upgraded");
   for (const k of Object.keys(rulesMod.rules)) assert(up.rules[k] === rulesMod.DEFAULTS[k], `${k} not the default`);
-  assert(save.upgrade({ version: 3, map: {}, characters: {} }) === null, "a newer save was not refused");
+  assert(save.upgrade({ version: 4, map: {}, characters: {} }) === null, "a newer save was not refused");
   assert(save.upgrade({ map: {} }) === null, "a save with no version was not refused");
   const kept = save.upgrade({ version: 2, map: {}, characters: {}, rules: { survival: true } });
   assert(kept.rules.survival === true, "a version-2 save's rules were touched");
@@ -141,6 +141,9 @@ const mapMod = await import("../src/map.js");
 const gameMod = await import("../src/game.js");
 const kitModule = await import("../src/kit.js");
 const worldMod = await import("../src/world.js");
+const { lineOfSight } = await import("../src/visibility.js");
+const { getDef } = await import("../src/assets.js");
+const stationsMod = await import("../src/stations.js");
 await bootData(root);
 // The sync hash (game.syncParts) and what the wire promises: a board struck short of a break changes nothing a guest sees, so the map
 // part must not move; a board broken is carried (the chunk is touched), so it must (the review of #185, #189).
@@ -200,6 +203,34 @@ for (const file of fs.readdirSync(path.join(root, "data", "maps")).filter((f) =>
     }
     assert(!bad.length, `${bad.length} on a door's tiles: ${bad.slice(0, 4).join("; ")}`);
     return `${doors} doors, every tile beside one clear`;
+  });
+  // Every container, station, and bed can be reached: a walkable tile beside it (within the interact range) with a clear line, or the reach test
+  // (#208) leaves it dead loot (a chest boxed in by a hearth, a table, and two walls was exactly that, #227).
+  check(`maps: every container, station, and bed has a walkable tile in range with a clear line (${file})`, () => {
+    const json = read(`data/maps/${file}`);
+    gameMod.create({ json, rules: { zombieAggro: false } });
+    const [bx, by, bw, bh] = json.bounds;
+    const C = mapMod.CHUNK;
+    for (let cy = Math.floor(by / C); cy <= Math.floor((by + bh) / C); cy++) for (let cx = Math.floor(bx / C); cx <= Math.floor((bx + bw) / C); cx++) mapMod.getChunk(cx, cy, true);
+    const RANGE = 1.15; // interact.js INTERACT_RANGE
+    let n = 0;
+    const dead = [];
+    for (const p of mapMod.allProps()) {
+      const [tx0, ty0] = p.tile;
+      if (tx0 < bx || ty0 < by || tx0 >= bx + bw || ty0 >= by + bh) continue;
+      if (!(p.container || stationsMod.stationOf(p) || getDef(p.sprite).sleep)) continue;
+      n++;
+      let ok = false;
+      for (const [tx, ty] of p.tiles) {
+        for (let dy = -2; dy <= 2 && !ok; dy++) for (let dx = -2; dx <= 2 && !ok; dx++) {
+          if (Math.hypot(dx, dy) > RANGE || !mapMod.isWalkableTile(tx + dx, ty + dy)) continue;
+          if (lineOfSight(tx + dx, ty + dy, tx, ty)) ok = true;
+        }
+      }
+      if (!ok) dead.push(`${p.sprite} at ${tx0},${ty0}`);
+    }
+    assert(!dead.length, `${dead.length} cannot be reached from any tile: ${dead.slice(0, 6).join("; ")}`);
+    return `${n} containers, stations, and beds, each with a tile to stand on`;
   });
   // And both tiles of every door can be walked to: flooded from the spawn with every door and gate open (windows and
   // walls shut), a door whose tile is walled in by furniture is one the dead cannot stand at, and the window beside it is

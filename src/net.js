@@ -13,6 +13,7 @@
 
 import * as game from "./game.js";
 import * as map from "./map.js";
+import * as chart from "./chart.js";
 import * as clock from "./clock.js";
 import * as loop from "./loop.js";
 import * as light from "./light.js";
@@ -54,6 +55,7 @@ let lastFrameAt = 0;
 let stallTold = false; // the guest has been told the host has gone quiet, once per quiet spell
 let testSnapshot = null; // a check drives the guest's player with this instead of the keyboard
 const pendingOpened = []; // containers the host says my player opened, applied once the frames before them are
+const pendingTalk = []; // conversations the host says my player began, opened on my replica once the frames before them are (docs/34)
 let seq = 0; // the guest's input count, so the host can say which it has applied
 const pending = []; // the guest's inputs not yet acknowledged, replayed over each frame (prediction)
 let lastCorrection = 0; // tiles the last frame moved my predicted player: the misprediction, for the checks
@@ -108,7 +110,8 @@ export function makeCode() {
 // of its snapshot and a guest keeps the frames that come before it (an older guest dropped them); 5 (2026-10-18, #221): a prop goes as its identity and
 // the fields that differ from what its sprite makes it (`map.serializeProp`), so a chunk, a frame, and a save are about half the size; an older guest
 // would read a prop with its defaults missing.
-export const PROTOCOL = 5;
+// 6 (2026-10-18, #203): the frame carries the chart's changed chunks (`chart`, only when there are any) and the save the whole chart.
+export const PROTOCOL = 6;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -176,6 +179,7 @@ export function close() {
   for (const k of Object.keys(lastExtras)) lastExtras[k] = "";
   pending.length = 0;
   pendingOpened.length = 0;
+  pendingTalk.length = 0;
   myBase = null;
   run = null;
   runCount = 0;
@@ -619,6 +623,11 @@ export function hostStep(mySnap, me) {
       const g = guests.get(msg.from);
       const p = g && game.state.players.find((q) => q.id === g.playerId);
       if (p) interact.stampFromGuest(p, msg.id, msg.kind ? 1 : 0);
+    } else if (msg.type === "talkEnd") {
+      // A guest's conversation panel closed: it leaves the villager's talkers (docs/34).
+      const g = guests.get(msg.from);
+      const p = g && game.state.players.find((q) => q.id === g.playerId);
+      if (p && typeof msg.id === "string") interact.endTalkFromGuest(p, msg.id);
     } else if (msg.type === "pokeVillager") {
       // A guest's left click on a villager, by its id (item 4): answered here, within the click's reach.
       const g = guests.get(msg.from);
@@ -692,7 +701,7 @@ const roundAnim = (a) => (a && typeof a.elapsed === "number" ? { ...a, elapsed: 
 const sameAnimKey = (r) => JSON.stringify(r.anim && typeof r.anim === "object" ? { ...r, anim: { name: r.anim.name, frame: r.anim.frame, done: r.anim.done } } : r);
 
 function slim(c) {
-  const r = { id: c.id, gx: r3(c.gx), gy: r3(c.gy), facing: c.facing, anim: roundAnim(c.anim), hp: r2(c.hp), dead: c.dead, state: c.state, corpse: c.corpse, line: c.line ? { text: c.line.text, left: Math.ceil(c.line.left * 2) / 2 } : null, blocking: c.blocking, burning: !!c.burning, carryingId: c.carrying ? c.carrying.id : null };
+  const r = { id: c.id, gx: r3(c.gx), gy: r3(c.gy), facing: c.facing, anim: roundAnim(c.anim), hp: r2(c.hp), dead: c.dead, state: c.state, corpse: c.corpse, line: c.line ? { text: c.line.text, left: Math.ceil(c.line.left * 2) / 2 } : null, blocking: c.blocking, talkingWith: c.talkingWith, burning: !!c.burning, carryingId: c.carrying ? c.carrying.id : null };
   if (c.searched) {
     r.searched = true;
     r.loot = c.loot; // a body opened: its grid, for a guest with it open
@@ -770,6 +779,7 @@ export function hostAfterStep() {
   tick++;
   if (role !== "host" || !guests.size) {
     map.takeTouched(); // nobody to tell: the touched set is drained, not kept for ever (a grown chunk names itself to it in every game)
+    chart.takeChanged(); // and the chart's: the world has it all, and the next guest's welcome is the save
     interact.takePokes();
     if (lastSent.size || lastHeavy.size) forgetSent(); // the next guest's welcome is its baseline, and every roster goes out again
     return;
@@ -782,6 +792,7 @@ export function hostAfterStep() {
   const S = game.state;
   for (const id of lastCarried.keys()) if (!S.players.some((q) => q.id === id)) lastCarried.delete(id); // a player gone dormant and back is sent its prop in hand afresh
   const touched = map.takeTouched();
+  const chartChanged = chart.takeChanged();
   // A character no longer in any list is forgotten: its id leaves `known` and what was last sent of it. A far chunk put
   // to sleep takes its dead out of the world and wakes them again later with the same id and the same record; remembered,
   // the record looked unchanged and was never sent, the roster named an id the guest had dropped, and the zombie stood
@@ -859,6 +870,7 @@ export function hostAfterStep() {
     simTime: loop.simTime(),
     timeScale: world.world.timeScale,
     chunks: touched.map(([cx, cy]) => map.getChunk(cx, cy, false)).filter(Boolean).map(map.serializeChunk),
+    ...(chartChanged.length ? { chart: chartChanged } : {}), // the chart chunks written since the last frame, whole (docs/33): the field only when there are any
     players: S.players.map(playerRecord),
     zombies: delta(S.zombies),
     villagers: delta(S.villagers),
@@ -962,6 +974,8 @@ export function guestStep(mySnap) {
       return;
     } else if (msg.type === "opened") {
       pendingOpened.push(msg.what); // after the frame that carries the grid (frames queue behind it)
+    } else if (msg.type === "talk") {
+      pendingTalk.push({ what: msg.what, after: framesSeen }); // held until a frame has been applied after this message: the one that carries the villager's `talking` state, which the panel's lines are computed from on my own replica (frames go every third step, so the message is usually first)
     } else if (msg.type === "stay" && msg.from) {
       // The host refused my step away (asleep or dead there): back in, nothing lost.
       steppedAway = false;
@@ -975,6 +989,10 @@ export function guestStep(mySnap) {
     hooks.message("The host's game has gone quiet. Its window may be covered or in the background.", 6);
   }
   if (pendingOpened.length && hooks.opened) for (const w of pendingOpened.splice(0)) hooks.opened(w);
+  if (pendingTalk.length && hooks.talk) {
+    const ready = pendingTalk.filter((t) => framesSeen > t.after);
+    for (const t of ready) { pendingTalk.splice(pendingTalk.indexOf(t), 1); hooks.talk(t.what); }
+  }
   if (joined) smoothStep();
   if (joined && game.state.player && !steppedAway) {
     const s = mySnap.idle ? mySnap : testSnapshot || mySnap; // a screen up: nothing pressed, whatever a check says
@@ -1122,6 +1140,7 @@ function applyFrame(f) {
   clock.setElapsed(f.clock);
   loop.setSimTime(f.simTime);
   world.setTimeScale(f.timeScale);
+  if (f.chart && f.chart.length) chart.apply(f.chart); // a guest only receives the chart; the host reveals it for every player
   if (f.chunks.length) {
     for (const d of f.chunks) map.installChunk(d);
     for (const d of f.chunks) for (const p of d.props) map.installProp(p);
@@ -1252,6 +1271,17 @@ export function sendItem(cmd) {
 // A craft (ui/station-panel.js Make): the station by id, the recipe, the count; the host runs the verb.
 export function sendPoke(id, kind) {
   if (role === "guest" && typeof id === "string") send({ type: "poke", id, kind: kind ? 1 : 0 });
+}
+// The guest's panel closed: tell the host, which drops it from the villager's talkers (a lost message is covered by the host's own check, villager.js).
+export function sendTalkEnd(id) {
+  if (role === "guest" && joined && typeof id === "string") send({ type: "talkEnd", id });
+}
+// A conversation a guest's player began: told which villager, since the lines are computed on the guest's own replica and nothing of it crosses the wire.
+export function talkFor(playerId, what) {
+  const to = guestOf(playerId);
+  if (!to) return false;
+  send({ type: "talk", to, what });
+  return true;
 }
 export function sendPokeVillager(id) {
   if (role === "guest" && joined && typeof id === "string") send({ type: "pokeVillager", id });

@@ -104,6 +104,11 @@ export async function loadSpriteDef(id) {
   return pendingDefs.get(id);
 }
 
+// The ids of the loaded definitions that carry a field, sorted (the chart's palette: host and guest build the same from the same data).
+export function defIdsWith(field) {
+  return [...defs.entries()].filter(([, d]) => d && d[field] !== undefined).map(([id]) => id).sort();
+}
+
 export function getDef(id) {
   const d = defs.get(id);
   if (!d) throw new Error(`Sprite definition not loaded: ${id}`);

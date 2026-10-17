@@ -43,6 +43,7 @@ import * as interactions from "./interactions.js";
 import * as startingKit from "./kit.js"; // the starting kit (#136)
 import * as farming from "./farming.js"; // till, plant, water, harvest (#194)
 import * as fishing from "./fishing.js"; // fishing: the rod, the cast, the catch (#190)
+import { canReach } from "./reach.js"; // one reach test, distance and a clear line (#208)
 import * as talk from "./talk.js"; // what villagers say: the barks and the conversations' data (docs/34, #198)
 import * as world from "./world.js";
 import * as game from "./game.js";
@@ -50,6 +51,7 @@ import * as save from "./save.js";
 import * as net from "./net.js";
 import * as stations from "./stations.js";
 import * as stationPanel from "./ui/station-panel.js";
+import * as talkPanel from "./ui/talk-panel.js"; // a villager's conversation, on the kit (docs/34, #202)
 import * as interact from "./interact.js";
 import * as items from "./items.js";
 import * as inventory from "./inventory.js";
@@ -193,6 +195,7 @@ function stayed() {
 function closeModes() {
   panel.closeAll();
   stationPanel.close();
+  talkPanel.close();
   placement.cancel();
   use.cancel();
   buildPalette.close();
@@ -227,6 +230,7 @@ function afterWorldSet() {
   corpseWatch = null;
   panel.closeAll();
   stationPanel.close();
+  talkPanel.close();
   placement.cancel();
   use.cancel();
   buildPalette.close();
@@ -468,6 +472,7 @@ function toSite(page, data = {}) {
   currentWorld = null;
   panel.closeAll();
   stationPanel.close();
+  talkPanel.close();
   placement.cancel();
   use.cancel();
   buildPalette.close();
@@ -839,6 +844,7 @@ function handleEscape() {
   if (menu.tookEscape()) return;
   if (use.cancel()) return; // Use mode is the top thing that can close
   if (stationPanel.close()) return;
+  if (talkPanel.close()) return; // Escape closes a conversation in the panels' order
   if (screens.back()) return;
   if (buildPalette.isOpen()) {
     buildPalette.close();
@@ -919,9 +925,7 @@ function updateInventoryUi() {
     }
   }
   if (openBag) {
-    let d = Infinity;
-    for (const [tx, ty] of openBag.tiles) d = Math.min(d, Math.hypot(S.player.gx - tx, S.player.gy - ty));
-    if (d > (openBag.closeDist || tuning.world.containerCloseDist)) openBag = null; // a station's output reaches as far as its panel
+    if (!canReach(S.player, openBag.tiles, openBag.closeDist || tuning.world.containerCloseDist)) openBag = null; // a station's output reaches as far as its panel; a wall between shuts it too (#208)
   }
   if (openBag && openBag.corpse) corpseWatch = openBag.corpse;
   if (corpseWatch) {
@@ -1018,6 +1022,7 @@ function armGuest(on) {
   placement.setSender(on ? (cmd) => net.sendPlace(cmd) : null);
   interact.setStampSink(on ? (id, kind) => net.sendPoke(id, kind) : null); // a click's sway or the well's bucket, told to the host for everyone's screen
   stationPanel.setSender(on ? (cmd) => net.sendCraft(cmd) : null);
+  talkPanel.setEnder(on ? (id) => net.sendTalkEnd(id) : null); // a guest's panel closing is told to the host
 }
 
 function stepGame(dt) {
@@ -1069,6 +1074,7 @@ function stepGame(dt) {
   if (input.wasPressed("BracketRight")) clock.setHour(clock.getHour() + 1);
   if (input.wasPressed("BracketLeft")) clock.setHour(clock.getHour() - 1);
   stationPanel.update(S.player); // the panel follows the station's queue, which game.begin stepped
+  talkPanel.update(S.player); // and the conversation ends when the villager is hurt or the talker walks off
   camera.follow(S.player, dt);
   camera.applyOrigin(V.w, V.h);
   // The ground: re-bake what changed in view, bake one chunk ahead, evict far ones (docs/15).
@@ -1207,6 +1213,7 @@ async function restoreWorld(snap) {
   corpseWatch = null;
   panel.closeAll();
   stationPanel.close();
+  talkPanel.close();
   placement.cancel();
   use.cancel();
   buildPalette.close();
@@ -1458,6 +1465,7 @@ async function boot() {
       initNames();
       use.init();
       stationPanel.initStationPanel(() => S.player);
+      talkPanel.initTalkPanel(() => S.player, () => S.villagers);
       initHud();
       initPrompt();
       initZombieBars();
@@ -1650,6 +1658,10 @@ async function boot() {
       events.on("drank", ({ who, auto }) => {
         if (auto && who === S.player.id) showMessage("You drink from your waterskin.", 2); // a guest's, host.js
       });
+      events.on("talkStarted", ({ villager, by }) => {
+        if (by !== S.player) return; // a guest's player's conversation is told to the guest (host.js), not this screen
+        talkPanel.openFor(villager, S.player);
+      });
       events.on("containerGone", ({ bags }) => {
         if (openBag && bags.includes(openBag.bag)) openBag = null; // its panel closes with it (placement.js destroy)
       });
@@ -1736,6 +1748,11 @@ async function boot() {
       }
       openBag = { bag: c.bag, tiles: w.tiles, name: w.name, corpse: c.corpse, closeDist: w.closeDist || 0, address: w };
       panel.setBagOpen(true);
+    },
+    // A conversation my player began on the host: the panel on my replica, its lines computed here from my own copy of the villager and the world (docs/34).
+    talk: (w) => {
+      const v = S.villagers.find((q) => q.id === w.villagerId);
+      if (v) talkPanel.openFor(v, S.player);
     },
     // A log line said for my player on the host (the Use mode's result).
     log: (text, kind) => log.push(text, kind),
