@@ -77,5 +77,5 @@
     "beltLight": 0.5,
     "twoTorches": 1.35
   },
-  "population": { "low": 0.4, "standard": 1, "high": 2.5 }
+  "population": { "none": 0, "low": 0.4, "standard": 1, "high": 2.5 }
 }

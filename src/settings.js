@@ -18,7 +18,7 @@ export const DEFAULTS = {
   showHitShapes: false, // draw the dead's body samples, green when the next swing reaches them (docs/14)
   freeBuilding: false, // on: building costs nothing (docs/13), for testing structures
   trees: true, // the world has trees: the last choice at a Sandbox step (a world's own rule since #130; it replaced Combat testing's tree strip)
-  population: "standard", // how many of the dead a world starts with, "low", "standard" or "high": the last choice at a Sandbox step (#130)
+  population: "standard", // how many of the dead a world starts with, "none", "low", "standard" or "high": the last choice at a Sandbox step (#130)
   survival: true, // on since docs/30 step 2 (hunger, thirst, tiredness drain); off: the body is a workbench
   hairStyle: "short", // the player's hair (the character screen writes it, and `look.hairStyle` with it; kept for what reads it)
   playerName: "", // the identity before docs/31/09: read once to migrate into identities.js, and by the ?nosave test world's identity
@@ -61,7 +61,7 @@ export const REGISTRY = [
   { key: "freeBuilding", group: "rules", label: "Free building", help: "Building costs nothing, for trying out structures.", choices: ON_OFF },
   { key: "multiHit", group: "rules", label: "Multi-hit", help: "A blow reaches everything in its wedge: the easy button. Off, only the nearest: the intended way.", choices: ON_OFF },
   { key: "trees", group: "rules", fixed: true, label: "Trees", help: "Trees in the forests and the wild. Off, none are made, anywhere. Chosen when the world is made.", choices: ON_OFF },
-  { key: "population", group: "rules", fixed: true, label: "Starting population", help: "How many of the dead the world starts with, in its places and in each new stretch of wild. It never grows with time. Chosen when the world is made.", choices: [["low", "Low"], ["standard", "Standard"], ["high", "High"]] },
+  { key: "population", group: "rules", fixed: true, label: "Starting population", help: "How many of the dead the world starts with, in its places and in each new stretch of wild. It never grows with time. Chosen when the world is made.", choices: [["none", "None"], ["low", "Low"], ["standard", "Standard"], ["high", "High"]] },
   { key: "debugCorner", group: "testing", label: "Debug corner", help: "The numbers and the keys in the top-left corner.", choices: SHOWN },
   { key: "showSwingTargets", group: "testing", label: "Swing targets", help: "A green outline on what your next swing would hit.", choices: ON_OFF },
   { key: "showHitShapes", group: "testing", label: "Hit shapes", help: "The dead's body samples, green when the next swing reaches them.", choices: ON_OFF },

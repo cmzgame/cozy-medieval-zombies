@@ -17,11 +17,11 @@ export const DEFAULTS = {
   survival: !!settings.DEFAULTS.survival, // hunger and thirst drain
   freeBuilding: !!settings.DEFAULTS.freeBuilding, // building costs nothing
   trees: settings.DEFAULTS.trees !== false, // the world has trees (#130): off, none are placed when it is made or a chunk is grown
-  population: settings.DEFAULTS.population, // "low", "standard", or "high": how many of the dead it starts with (#130)
+  population: settings.DEFAULTS.population, // "none", "low", "standard", or "high": how many of the dead it starts with (#130)
 };
 
 // The rules that are one of a few words, not a switch.
-export const ENUMS = { population: ["low", "standard", "high"] };
+export const ENUMS = { population: ["none", "low", "standard", "high"] };
 
 // The rules chosen when a world is made and never changed after (#130): they shape what is placed, and a change
 // would reach only the chunks not yet grown. A server world's owner cannot set them either.

@@ -244,7 +244,7 @@ function playersOf(save) {
 // two it was made with (Trees, Starting population: a world moved up from a browser carries them), shown to its owner
 // and never changed by one (`withFixed`).
 const RULE_KEYS = ["zombieAggro", "zombiesAttackVillagers", "multiHit", "survival", "freeBuilding"];
-const POPULATIONS = ["low", "standard", "high"];
+const POPULATIONS = ["none", "low", "standard", "high"];
 function cleanRules(raw, withFixed = false) {
   const out = {};
   if (raw && typeof raw === "object") {
