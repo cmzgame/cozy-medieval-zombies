@@ -506,8 +506,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         if (here > 0 && here !== roomId) {
           const room = getRoom(here);
           target = room ? breachTarget(room, z.gx, z.gy, roomId) : null; // out by the door that leads toward the goal's room
-          // That door already open (or broken) is no way out that was not there: the goal's room is the shut one.
-          if (target && wayOpen(target.wall)) target = roomId > 0 && getRoom(roomId) ? wayIn(z, getRoom(roomId), roomId) : null;
+          if (!target && roomId > 0 && getRoom(roomId)) target = wayIn(z, getRoom(roomId), roomId); // every door of this room is already open: out by it, then in
         } else if (roomId > 0 && here !== roomId) {
           const room = getRoom(roomId);
           target = room ? wayIn(z, room, roomId) : null;

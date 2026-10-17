@@ -152,7 +152,9 @@ export async function run(game) {
         const out = [[op.tx, op.ty], op.edge === "n" ? [op.tx, op.ty - 1] : [op.tx - 1, op.ty]].find((t) => G.map.tileAt(t[0], t[1]).room === 0);
         if (!out) continue;
         looked++;
-        if (!G.map.breachTargets(room, out[0], out[1]).length) exceptions.push(`${op.tx},${op.ty}${op.edge}`);
+        // a door to break and stand at, or a door already open to walk in by
+        const walkIn = room.openings.some((o) => { const d = G.map.tileAt(o.tx, o.ty)[o.edge]; return d && d.kind === "door" && G.map.wayOpen(d); });
+        if (!G.map.breachTargets(room, out[0], out[1]).length && !walkIn) exceptions.push(`${op.tx},${op.ty}${op.edge}`);
       }
     }
     row("every window that looks out on open ground has a door to go for (none is a safe spot)", looked > 0 && exceptions.length === 0, `${looked} windows looked at${exceptions.length ? `; no door found from ${exceptions.slice(0, 6).join(", ")}` : ""}`);
@@ -169,6 +171,8 @@ export async function run(game) {
       win.wall.broken = false;
       win.wall.hp = 100;
       G.map.touch(win.op.tx, win.op.ty);
+      for (const d of doors) { d.open = false; d.broken = false; d.hp = 100; } // the door the first trial broke, shut and whole again
+      for (const o of doorOps) G.map.touch(o.op.tx, o.op.ty);
       step(1);
       const room = G.map.getRoom(G.map.tileAt(w.inside[0], w.inside[1]).room);
       for (const c of G.map.breachTargets(room, from[0], from[1])) { // furniture where each door is stood at

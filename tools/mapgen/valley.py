@@ -106,7 +106,10 @@ def cottage_a(g, x, y, name, door_side="s", broken=False, torch=True):
         [1, 1, 6, 4], "wall_wood", "floor_wood",
         openings=openings,
         partitions=[part_w(3, 0, 4, door_at=2)],
-        props=[hearth_w(0, 1), along_x("table", 1, 1), chair(1, 2, "n"), one("chest", 2, 3), along_x("bed", 3, 0), one("chest", 5, 3)],
+        # The living room keeps a way from its door to the partition door at row 2 (the dead must be able to stand there,
+        # #134): the table lies across row 1 from the south door's side, and across row 3 from the north door's.
+        props=([hearth_w(0, 1), along_x("table", 1, 1), chair(1, 2, "n"), one("chest", 0, 3)] if door_side == "s"
+               else [hearth_w(0, 1), along_x("table", 1, 3), chair(1, 2, "s"), one("chest", 0, 3)]) + [along_x("bed", 3, 0), one("chest", 5, 3)],
         brackets=[{"side": "w", "at": 0, "facing": "in", "torch": torch}],
     )
     s.prop("woodpile", (7, 4))
@@ -257,12 +260,15 @@ def build():
         brackets=[{"side": "n", "at": 2, "facing": "in", "torch": False}, {"side": "n", "at": 7, "facing": "in", "torch": False}],
     )
     # Headstones in rows either side of the chapel, and the crypt in the north-east corner.
+    pr = P(21, 2)  # the priest's house stands among the stones' rows; no stone stands in it (one did, in its walkway)
     for x in range(gy[0] + 2, gy[0] + 9, 2):
         for y in range(gy[1] + 2, gy[1] + 12, 3):
-            g.prop("headstone", (x, y))
+            if not (pr[0] <= x < pr[0] + 8 and pr[1] <= y < pr[1] + 8):
+                g.prop("headstone", (x, y))
     for x in range(gy[0] + 23, gy[0] + 30, 2):
         for y in range(gy[1] + 7, gy[1] + 12, 3):
-            g.prop("headstone", (x, y))
+            if not (pr[0] <= x < pr[0] + 8 and pr[1] <= y < pr[1] + 8):
+                g.prop("headstone", (x, y))
     crypt = g.place("the crypt", [gy[0] + 25, gy[1] + 1, 6, 6])
     crypt.building([1, 1, 4, 4], "wall_stone", "floor_stone", openings=[door("w", 2)],
                    props=[along_y("coffin", 0, 0), along_y("coffin", 3, 0), one("chest", 3, 3)],
@@ -383,7 +389,7 @@ def build():
     reeve.building([1, 1, 6, 4], {"n": "wall_stone", "w": "wall_stone", "s": "wall_wood", "e": "wall_wood"}, "floor_wood",
                    openings=[door("n", 1), window("n", 4), window("e", 1)],
                    partitions=[part_w(3, 0, 4, door_at=2)],
-                   props=[hearth_w(0, 1), along_x("table", 1, 1), chair(1, 2, "n"), one("desk", 2, 3), along_x("bed", 3, 0), one("chest", 5, 3), one("bookcase", 3, 3)],
+                   props=[hearth_w(0, 1), along_x("table", 1, 3), chair(1, 2, "s"), one("desk", 0, 3), along_x("bed", 3, 0), one("chest", 5, 3), one("bookcase", 3, 3)],
                    brackets=[{"side": "n", "at": 5, "facing": "in", "torch": True}])
 
     # ---- reserves: the castle (step 5) and the farms (step 4) take no forest yet ----

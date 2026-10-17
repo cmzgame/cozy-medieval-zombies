@@ -644,7 +644,8 @@ export function breachTargets(room, gx, gy, want = 0, windows = false) {
   const out = [];
   for (const op of room.openings) {
     const w = tileAt(op.tx, op.ty)[op.edge];
-    if (!w || (w.kind !== "door" && !(windows && !inside && needsBreaking(w)))) continue;
+    if (!w || !needsBreaking(w)) continue; // an opening that is already a way through is nothing to break (the dead walk through it)
+    if (w.kind !== "door" && !(windows && !inside)) continue;
     const nearTile = [op.tx, op.ty];
     const farTile = op.edge === "n" ? [op.tx, op.ty - 1] : [op.tx - 1, op.ty];
     const nearIn = tileAt(nearTile[0], nearTile[1]).room === room.id;

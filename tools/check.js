@@ -165,6 +165,44 @@ for (const file of fs.readdirSync(path.join(root, "data", "maps")).filter((f) =>
     assert(!bad.length, `${bad.length} on a door's tiles: ${bad.slice(0, 4).join("; ")}`);
     return `${doors} doors, every tile beside one clear`;
   });
+  // And both tiles of every door can be walked to: flooded from the spawn with every door and gate open (windows and
+  // walls shut), a door whose tile is walled in by furniture is one the dead cannot stand at, and the window beside it is
+  // a safe spot again (a chair off the tile but a table and a chest round it did that to six partition doors).
+  check(`maps: both tiles of every door can be walked to from the spawn (${file})`, () => {
+    const json = read(`data/maps/${file}`);
+    const [bx, by, bw, bh] = json.bounds;
+    const seen = new Set();
+    const key = (x, y) => `${x},${y}`;
+    const walk = (x, y) => x >= bx - 2 && y >= by - 2 && x <= bx + bw + 2 && y <= by + bh + 2 && mapMod.isWalkableTile(x, y);
+    let start = [json.spawn[0], json.spawn[1]];
+    if (!walk(start[0], start[1])) start = mapMod.nearestWalkable(start[0], start[1]) || start;
+    const queue = [start];
+    seen.add(key(start[0], start[1]));
+    while (queue.length) {
+      const [x, y] = queue.pop();
+      for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+        if (seen.has(key(nx, ny)) || !walk(nx, ny)) continue;
+        const wall = mapMod.wallBetween(x, y, nx, ny);
+        if (wall && wall.kind !== "door") continue; // a wall, a window, a fence: shut; a door or a gate: open
+        seen.add(key(nx, ny));
+        queue.push([nx, ny]);
+      }
+    }
+    let doors = 0;
+    const cut = [];
+    for (let y = by - 1; y <= by + bh; y++) {
+      for (let x = bx - 1; x <= bx + bw; x++) {
+        for (const edge of ["n", "w"]) {
+          const w = mapMod.tileAt(x, y)[edge];
+          if (!w || w.kind !== "door") continue;
+          doors++;
+          for (const [tx, ty] of mapMod.edgeTiles(x, y, edge)) if (!seen.has(key(tx, ty))) cut.push(`${tx},${ty} by the door at ${x},${y}${edge}`);
+        }
+      }
+    }
+    assert(!cut.length, `${cut.length} door tiles cannot be walked to: ${cut.slice(0, 6).join("; ")}`);
+    return `${doors} doors, every tile beside one reached from ${start[0]},${start[1]} (${seen.size} tiles)`;
+  });
 }
 
 let failed = 0;
