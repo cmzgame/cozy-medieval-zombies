@@ -32,3 +32,7 @@ One line per idea: what, who, when, and the one sentence on what must not be for
 - **Day counter as a score** (`02` question 10, since 2026-10-08): per survivor, alongside survivors, on the death card; the dead screen shows the day and hour and the Worlds row the day already, so what is left is a best run kept and shown.
 - **Noise** (`02` question 18, since 2026-10-09): whether anything carries to the dead by sound; Michael doubts it fits the cosy idea, and with no guns little is loud; decide when something in the game is loud, and the bow stays quiet by design.
 - **Gathering's remainder** (`02` question 27, since 2026-10-11): whether picked things regrow, and whether rocks block sight; what each gathering gives and its tool are `30` section 4.
+
+## From `02` (2026-10-17)
+
+- **Spreading fire** (2026-10-17, `02`, Only characters burn; fire lights what is made to be lit; the fireball as a flare): fire that catches on walls, crops, and fences. Only bodies burn today, and a fireball's landing is light only; spreading fire would make every missed shot at a siege a hazard to one's own house, so it waits.
