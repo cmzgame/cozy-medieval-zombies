@@ -164,6 +164,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Process and the studio
 
+- Every world is an expendable test until Michael says otherwise; a change may break old saves with no migration (2026-10-17, Every world is an expendable test)
 - needs-playtest marks work that waits on Michael's play, not on a decision (2026-10-16, The needs-michael queue)
 - 00-vision's "What it is not" gains no new laws; a limit the game needs is a ruling here with its reason (2026-10-16, The four lines of 00-vision.md, ruled)
 - A new project, not a rewrite of either parent; new game, new gospel (2026-10-08, The project exists)
@@ -200,6 +201,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-17 — Every world is an expendable test (Michael)
+
+On #149, about worlds saved with Trees off before the mushroom fix: "We are still at a point where every single session everywhere is still considered expendable tests. I will let you know if I get to a point where I want a safe world for real." **Every world is an expendable test until Michael says otherwise:** a change may break an old save, in the world's files, the save's shape, or a rule's meaning, and **needs no save marker and no migration** (the save's `VERSION` and `save.upgrade` stay for the day he wants a safe world). A change that breaks old saves says so in its pull request's Risks, in one line.
 
 ### 2026-10-17 — The siege: a sealed room is a cell, the dead wait for dawn, a crowd bursts a fence (Michael)
 
