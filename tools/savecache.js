@@ -83,10 +83,21 @@ const burner = props.find((q) => q.fire && q.fire.burns);
 if (!burner) fail("no burner in the valley");
 map.feedFire(burner); did("a fire fed", 90);
 did("a fire burning between units", 200);
-const holder = props.find((q) => q.fire && q.fire.holds);
-if (holder) { map.setHolder({ kind: "prop", prop: holder }, !holder.fire.has); did("a holder's torch changed"); }
-const bracket = [...map.brackets()][0];
-if (bracket) { map.setHolder({ kind: "bracket", bracket }, !bracket.wall.bracket.torch); did("a bracket's torch changed"); }
+// The valley's posts are lanterns now (#156), so a torch post is made for the change, and an empty bracket is looked for.
+let holder = [...map.allProps()].find((q) => q.fire && q.fire.holds);
+let madePost = null;
+if (!holder) {
+  const hx = Math.round(p.gx) + 3;
+  const hy = Math.round(p.gy);
+  madePost = map.createProp({ sprite: "torch_post", tile: [hx, hy] });
+  map.placeProp(madePost, hx, hy);
+  holder = madePost;
+}
+map.setHolder({ kind: "prop", prop: holder }, !holder.fire.has); did("a holder's torch changed");
+if (madePost) { map.removeProp(madePost); did("the post taken away"); }
+const bracket = [...map.brackets()].find((b) => !b.wall.bracket.lantern);
+if (!bracket) fail("no bracket for a torch in the valley");
+map.setHolder({ kind: "bracket", bracket }, !bracket.wall.bracket.torch); did("a bracket's torch changed");
 // A sway's stamp, a container's bag made on first use, a station's job counting down and landing.
 // The bench moved to a quiet chunk first, then the stamp in another, the player stepped away before the world steps.
 map.removeProp(bench);

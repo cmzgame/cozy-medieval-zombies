@@ -192,11 +192,16 @@ export function isLit(entry) {
 
 // A torch that leaves a hand, the belt, or a holder is out (Michael, 2026-10-17, #156; the torch "drains the whole time it's lit",
 // and a torch dropped is an unlit item lying there, 2026-10-09): every way into a bag, a container, or onto the floor calls this.
+// It douses what the entry carries too (a belt's slots, a bag's items), wherever the entry goes: a lit torch in a belt that is
+// dropped, or on a body, is out (#162).
 export function douse(entry) {
-  if (entry && entry.lit) {
+  if (!entry) return entry;
+  if (entry.lit) {
     const it = items.get(entry.id);
     if (it && it.fire && it.fire.burnsDown) entry.lit = false;
   }
+  if (entry.bag && entry.bag.items) for (const e of entry.bag.items) douse(e);
+  if (Array.isArray(entry.slots)) for (const e of entry.slots) douse(e);
   return entry;
 }
 
