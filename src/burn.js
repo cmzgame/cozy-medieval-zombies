@@ -15,7 +15,7 @@ import * as verbs from "./verbs.js";
 import * as map from "./map.js";
 import { beltOf, carriedEntry as carried, flameOf } from "./inventory.js";
 import { burnZombie } from "./entities/zombie.js";
-import { lineOfSight } from "./visibility.js";
+import { reachProblem } from "./reach.js"; // one reach test, distance and a clear line (#208)
 
 export const BURN = { dps: 0.8, duration: 10, cap: 10 };
 
@@ -53,12 +53,6 @@ export function update(characters, dt) {
 
 // ---- fire arrows: arrows used on a lit fire (data/interactions.json, the `dip` verb) ----
 
-function nearest(player, tiles) {
-  let best = Infinity;
-  for (const [tx, ty] of tiles) best = Math.min(best, Math.hypot(player.gx - tx, player.gy - ty));
-  return best;
-}
-
 const DIP_REACH = 2.6; // tiles, the click's reach (interact.CLICK_REACH)
 
 // The whole stack at once, in its place (Michael's default): a fire arrow is an arrow's size and stack, so it stays
@@ -69,7 +63,7 @@ verbs.define("dip", {
     const prop = typeof target.prop === "string" ? map.propById(target.prop) : target.prop;
     if (!prop || !prop.fire || !prop.fire.burns) return "That is not a fire.";
     if (!prop.fire.lit) return "The fire is out.";
-    if (nearest(player, prop.tiles || [prop.tile]) > DIP_REACH) return "Too far from the fire.";
+    { const why = reachProblem(player, prop.tiles || [prop.tile], DIP_REACH); if (why) return why === "Too far away." ? "Too far from the fire." : why; } // a wall between refuses it, as the light does
     const e = carried(player, target.entry);
     if (!e) return "Take the arrows out first."; // used from an open chest or a body: only arrows you carry are dipped
     if (e.id !== (args.from || "arrow")) return "You have no arrows.";
@@ -156,15 +150,7 @@ function torchFromFire(player, target) {
 // lets a flame be reached, a wall or a shut door does not).
 function reaches(player, prop, at) {
   const tiles = at ? [at] : prop.tiles || [prop.tile];
-  let best = null;
-  let bd = Infinity;
-  for (const [tx, ty] of tiles) {
-    const d = Math.hypot(player.gx - tx, player.gy - ty);
-    if (d < bd) { bd = d; best = [tx, ty]; }
-  }
-  if (bd > DIP_REACH) return "Too far away.";
-  if (!lineOfSight(player.gx, player.gy, best[0], best[1])) return "There is a wall in the way.";
-  return true;
+  return reachProblem(player, tiles, DIP_REACH) || true;
 }
 
 verbs.define("light", {
