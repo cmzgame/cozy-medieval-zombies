@@ -6,24 +6,24 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 ## The roadmap (Michael, 2026-10-17; `docs/02`)
 
-Each step ends with Michael playing it and saying it is done. The pace is set by his play and his rulings, not by the build.
+*Primary's:* each step ends with Michael playing it and saying it is done; the pace is set by his play and his rulings, not by the build.
 
-1. **The valley and skilling** (`01 ·`). Done when Michael can sit down for an hour of production, stocking up, and building and it feels like playing a game, not testing one: no dead end, no resource stoppage, no "now what?". Not final art, not balanced; fulfilling, OSRS-style, a second-monitor semi-idle game. Whatever breaks that hour goes on a short list; the step is done when the list is empty.
-2. **Zombies and combat** (`02 ·`): every weapon you can get without leaving the valley feels good against the standard dead. The difficulty pass (#89, #133), the siege (#147), darkness. **Free CC0 placeholder sounds** come in here (hits, groans, footsteps), for feel and immersion; their licenses must let the wiki host them.
+1. **The valley and skilling** (`01 ·`). Done when Michael can sit down for an hour of production, stocking up, and building and it feels like playing a game, not testing one: no dead end, no resource stoppage, no "now what?". Not final art, not balanced; fulfilling, OSRS-style, a second-monitor semi-idle game. *Primary's test of it:* whatever breaks that hour goes on a short list, and the step is done when the list is empty.
+2. **Zombies and combat** (`02 ·`): every weapon you can get without leaving the valley feels good against the standard dead. The difficulty pass (#89, #133), the siege (#147), darkness. **Free placeholder sounds** come in here (hits, groans, footsteps), for feel and immersion; one the wiki may not host stays off the wiki, not out of the game.
 3. **The demo** (`03 ·`): the horde demo (`docs/36`), also the first build strangers play.
 4. **Playing together, and telemetry** (`04 ·`), before the outside playtest and ideally earlier: Michael's evening with his brother over a server world (possible today: make a world, Move to the server with the creator key, and he joins by its code), then Play with friends for everyone (#143) and telemetry (#144).
-5. **The first outside playtest** (`05 ·`): five to ten people who are not Michael or his brother, on dev art, watched, with telemetry. Nothing is paid for before this.
-6. **Midnight Mass, in dev art** (`06 ·`): the vertical slice: the valley, the Crimson Abbey complete (#123), and the endless demo; then a second outside playtest. If both click, the money is safe to spend.
+5. **The first outside playtest** (`05 ·`): people who are not Michael or his brother, on dev art (*Primary's:* five to ten, watched, with telemetry). Nothing is paid for before this.
+6. **Midnight Mass, in dev art** (`06 ·`): the vertical slice: the valley, the Crimson Abbey complete (#123), and the endless demo; then a second outside playtest. Michael: "If that all clicks, and it playtests well, not just me, that's the sign right?"
 7. **The name** (`07 ·`, #94), before money goes into assets; it triggers its own infrastructure pass (the private half kept off the repository).
 8. **Art and sound** (`08 ·`): the paid phase. No directional sound; the dead make noise; the interface, fire, actions, walking.
 9. **The Steam page** (`09 ·`): a coming-soon page as soon as there is capsule art and a trailer, wishlists for months, the demo at a Steam Next Fest.
 10. **The regions and release** (`10 ·`): the remaining regions, the Electron wrapper, release.
 
-**Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows.
+**Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
 ## Status (2026-10-17)
 
-Merged since the sweep: the menus and the site (#120, #125, #128, #129), per-world Trees and Starting population with None (#131), the player cap (#138), the window law (#140: nobody climbs; the dead batter a window to see in and come round to a door), the aim guide off by default (#141), Trees off keeping the mushrooms (#149), darkness shortening sight (#150: the dark hides information, never physics; a shuttered room dark by day), and the rulings of the shape talk (#137, #145, #148, #153: play alone or with friends, the siege, fire and torches and lanterns, every world an expendable test). The wiki is synced to all of it. The game's shape is draft 2 on #123 (unruled). In review: the siege as #151, #152, #155 (a second round). Next for the Secondary: #156 (torches burn down, the tinderbox, lanterns). The bot account is still flagged (#71).
+Merged since the sweep: the menus and the site (#120, #125, #128, #129), per-world Trees and Starting population with None (#131), the player cap (#138), the window law (#140: nobody climbs; the dead batter a window to see in and come round to a door), the aim guide off by default (#141), Trees off keeping the mushrooms (#149), darkness shortening sight (#150: the dark hides information, never physics; a shuttered room dark by day), and the rulings of the shape talk (#137, #145, #148, #153: play alone or with friends, the siege, fire and torches and lanterns, every world an expendable test). The wiki is synced to all of it. The game's shape is draft 2 on #123 (unruled). In review: the siege as #151, #152, #155 (a second round), and torches that burn down as #157 (#156). Owed: a wiki Verify stamp from Michael to prove #15's last path. The bot account is still flagged (#71).
 
 ## Open work, by milestone
 
@@ -44,4 +44,5 @@ Issues #18 to #55 were filed by the bot and are hidden while it is flagged; they
 - **04 · Playing together, and telemetry:** Play with friends #143; telemetry #144; the Full dot #139; speech lines on a server world #154; the seams #102; a duplication count for the sync check #101.
 - **07 · The name:** the business decisions of `docs/35` #94.
 - **10 · The regions and release:** the game's final shape #123.
+- **Hidden, their milestones unseen until the bot is back (#71):** the background probe #49; the fireball's cost and area #50; the throwing knives and axes #51; the floor stamp in build mode #52; the painted held slot #53; more one-handed weapons #54; `docs/12`'s spec sheet #55. #50, #51, and #54 belong to `02 ·`; moving them is on #71's list. (#18 and #19 may sit on the 1.0 map's milestone rather than farming's.)
 - **No milestone, by design:** the someday list #106 (`docs/05`).
