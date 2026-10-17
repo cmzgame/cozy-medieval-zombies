@@ -2,7 +2,7 @@
 //   await __game.check("talk")
 // It reads every file under data/talk through the module (every node reachable, every condition evaluated in day, night, dawn, and dusk),
 // finds the guide beside the spawn (the valley's and the staging map's), pokes them by day, by night, at dawn, and with the dead near, proves
-// the ambient bark's radius and cooldown and that it never comes from a villager who is hurt, talking, or dead, and that a bark leaves the
+// the ambient bark's radius and cooldown and that it never comes from a villager who is talking or dead (a wounded one still barks), and that a bark leaves the
 // sim's generator where it was. It puts every field it touches back.
 
 export async function run(game) {
@@ -13,6 +13,8 @@ export async function run(game) {
   const talk = await import("/src/talk.js");
   const { pokeVillager, updateVillager } = await import("/src/entities/villager.js");
   const { createZombie } = await import("/src/entities/zombie.js");
+  const logMod = await import("/src/ui/log.js");
+  const tp = await import("/src/ui/talk-panel.js");
   const wasPaused = G.loop.isPaused();
   const hour0 = G.clock.getHour();
   const me = G.player;
@@ -136,7 +138,7 @@ export async function run(game) {
     step(120);
     row("a speech line counts down in the world's step and is gone after its time (a server world never runs the interface)", midLeft > 1 && midLeft < 2.04 && g.line === null, `left ${midLeft && midLeft.toFixed(2)} after half a second, then ${g.line === null ? "gone" : "still up"}`);
 
-    // Ambient barks: radius, cooldown, and never from the hurt, the talking, or the dead.
+    // Ambient barks: radius, cooldown, and never from the talking or the dead; a wounded villager still barks (Michael, 2026-10-18).
     const tick = () => { for (let i = 0; i < 2; i++) updateVillager(g, 1 / 60, S.others, S.players); }; // the villager's own update, not the world's step: a dead one would be turned
     const near = () => { G.teleport(g.gx + 2, g.gy); };
     const resetBark = () => { g.line = null; g.barkAt = null; g.state = "idle"; g.hp = 100; g.dead = false; };
@@ -160,13 +162,210 @@ export async function run(game) {
     tick();
     row("not with the player past the radius", g.line === null, g.line ? g.line.text : "silent at 8 tiles");
     near();
-    for (const [label, apply] of [["hurt", () => { g.hp = 50; }], ["talking", () => { g.state = "talk"; g.talkTimer = 99; }], ["dead", () => { g.dead = true; }]]) {
+    for (const [label, apply] of [["talking", () => { g.state = "talk"; g.talkTimer = 99; }], ["dead", () => { g.dead = true; }]]) {
       resetBark();
       apply();
       tick();
       row(`never from a villager who is ${label}`, g.line === null, g.line ? g.line.text : "silent");
     }
     resetBark();
+
+    // ---- Conversations (docs/34, part 2): the menu's Talk, the panel, its endings, and "talk writes nothing" ----
+    resetBark();
+    G.clock.setHour(12);
+    const panel = () => document.getElementById("talk");
+    const shown = () => !!panel() && !panel().hidden && panel().innerHTML.length > 0;
+    const click = (sel) => { const el = panel() && panel().querySelector(sel); if (el) el.click(); return !!el; };
+    const textOf = () => (panel() ? panel().innerText : "");
+    const freeze = () => { for (const q of nearbyAgain) if (S.zombies.includes(q)) S.zombies.splice(S.zombies.indexOf(q), 1); };
+    const nearbyAgain = S.zombies.filter((q) => Math.hypot(q.gx - g.gx, q.gy - g.gy) <= 9);
+    freeze();
+    restore.push(() => { for (const q of nearbyAgain) if (!S.zombies.includes(q)) S.zombies.push(q); });
+    const talkLabel = (v) => G.interact.actionsForTarget({ kind: "character", id: v.id }, me).find((a) => /^Talk to/.test(a.label));
+    near();
+    step();
+    const entry = talkLabel(g);
+    row("a villager's menu offers Talk to <name>, a simple action (so E does it), beside Poke", !!entry && entry.simple === true && entry.enabled !== false && G.interact.actionsForTarget({ kind: "character", id: g.id }, me).some((a) => /^Poke/.test(a.label)), entry ? entry.label : "none");
+    G.teleport(g.gx + 0.3, g.gy); // in the villager's own tile: nearer than the window and the door beside the yard
+    step();
+    const nearest = G.interact.nearestSimpleAction(me);
+    row("E with a villager the nearest thing in reach is Talk to them, and the prompt names them", !!nearest && /^Talk to Wyn/.test(nearest.label), nearest ? nearest.label : "none");
+    const started = G.interact.performByLabel(me, { kind: "character", id: g.id }, entry.label);
+    for (let i = 0; i < 100 && me.action; i++) G.interact.updateAction(me, 0.1);
+    row("Talk stops the villager and turns them to the talker, who is added to talkingWith; the panel opens on the first line", started === true && g.state === "talk" && g.talkingWith.includes(me.id) && shown() && /Oh, hello|Quick words|Up late/.test(textOf()), `${g.state} with ${g.talkingWith.join(",")}; panel ${shown() ? textOf().slice(0, 50).replace(/\n/g, " ") : "shut"}`);
+    row("the panel is click-only (no field, no key handler): Continue between lines, then buttons", !!panel().querySelector("[data-continue]") && !panel().querySelector("input, textarea") && !panel().onkeydown && !panel().onkeypress, `${panel().querySelectorAll("button").length} buttons`);
+    click("[data-continue]");
+    const topicCount = panel().querySelectorAll("[data-opt]").length;
+    row("after the lines come the topics, each with its wiki link", topicCount >= 10 && panel().querySelectorAll("a.tk-wiki").length >= 10 && /wiki\/water\.html|cmz-wiki\/water/.test(panel().innerHTML), `${topicCount} topics, ${panel().querySelectorAll("a.tk-wiki").length} links; target ${(panel().querySelector("a.tk-wiki") || {}).target}`);
+    row("each line the villager says is in the talker's own log, in their name", /Wyn: /.test(logMod.lines().slice(-1)[0] || "") || logMod.lines().slice(-4).some((l) => /Wyn/.test(l)), logMod.lines().slice(-1)[0]);
+    const optionTexts = () => [...panel().querySelectorAll("[data-opt]")].map((b) => b.textContent);
+    row("an option whose `when` fails is not shown: nothing is said of the dead while none is in the world", S.zombies.length === 0 ? !optionTexts().includes("What happened to everyone?") : true, `${optionTexts().length} options, ${S.zombies.length} dead`);
+    S.zombies.push(createZombie(g.gx + 40, g.gy + 40)); // one of the dead, far: the topic appears
+    restore.push(() => { S.zombies.pop(); });
+    click("[data-bye]");
+    row("That's all for now closes it and the villager wanders again", !shown() && !g.talkingWith.length && g.state === "idle", `${g.state}, panel ${shown() ? "open" : "shut"}`);
+    G.interact.performByLabel(me, { kind: "character", id: g.id }, entry.label);
+    click("[data-continue]");
+    const deadTopic = optionTexts().includes("What happened to everyone?");
+    row("with one of the dead in the world the same topic is offered", deadTopic, optionTexts().join(" | ").slice(0, 100));
+    S.zombies.pop();
+    // Every path of the guide's file, by the panel's own buttons, depth first; the world's text before and after.
+    const strip = (txt) => { const w = JSON.parse(txt); for (const v of w.characters.villagers) { for (const k of ["state", "facing", "talkingWith", "barkTurns", "barkAt", "idleTimer", "path", "anim", "talkTimer", "pokedAt", "stuckTime", "repathTimer", "lastGoal", "pathFailed"]) delete v[k]; } return JSON.stringify(w); };
+    const worldText = () => strip(JSON.stringify(G.game.serialize()));
+    const firstDiff = (a, b, path = "") => {
+      if (a === b) return null;
+      if (a && b && typeof a === "object" && typeof b === "object") {
+        for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) { const d = firstDiff(a[k], b[k], `${path}.${k}`); if (d) return d; }
+        return null;
+      }
+      return `${path}: ${JSON.stringify(a)} -> ${JSON.stringify(b)}`;
+    };
+    const before = worldText();
+    const seen = new Set();
+    const walk = (depth) => {
+      if (depth > 6 || !shown()) return;
+      for (let guard = 0; guard < 8 && panel().querySelector("[data-continue]"); guard++) click("[data-continue]");
+      const key = panel().querySelector(".tk-say") ? panel().querySelector(".tk-say").textContent : "";
+      if (seen.has(key)) return;
+      seen.add(key);
+      const n = panel().querySelectorAll("[data-opt]").length;
+      for (let k = 0; k < n && shown(); k++) {
+        const btn = panel().querySelectorAll("[data-opt]")[k];
+        if (!btn) break;
+        const text = btn.textContent;
+        if (/Something else/.test(text)) continue;
+        click(`[data-opt="${k}"]`);
+        walk(depth + 1);
+        if (!shown()) break;
+        // back to the questions to try the next one
+        for (let guard = 0; guard < 8 && panel().querySelector("[data-continue]"); guard++) click("[data-continue]");
+        const back = [...panel().querySelectorAll("[data-opt]")].findIndex((b) => /Something else/.test(b.textContent));
+        if (back >= 0) click(`[data-opt="${back}"]`);
+        for (let guard = 0; guard < 8 && panel().querySelector("[data-continue]"); guard++) click("[data-continue]");
+      }
+    };
+    walk(0);
+    click("[data-close]");
+    const after = worldText();
+    row("talk writes nothing: every question of the guide asked through the panel, and the world's text is the same but for the villager's own state", seen.size >= 14 && before === after, `${seen.size} distinct lines seen; ${before === after ? "identical" : "DIFFERS at " + firstDiff(JSON.parse(before), JSON.parse(after))}`);
+    // The endings: walking away, the villager struck, Escape.
+    G.interact.performByLabel(me, { kind: "character", id: g.id }, entry.label);
+    G.teleport(g.gx + 8, g.gy);
+    step(3);
+    tp.update(me);
+    step(2);
+    row("walking out of reach (and a tile) ends it: the host drops the talker, the panel closes, and the villager wanders again", !g.talkingWith.length && g.state !== "talk" && !shown(), `${g.state}; talkingWith ${g.talkingWith.join(",") || "none"}`);
+    G.teleport(g.gx + 1.2, g.gy);
+    step();
+    G.interact.performByLabel(me, { kind: "character", id: g.id }, entry.label);
+    g.hp = 60;
+    g.state = "hurt";
+    g.hurtTimer = 0.3;
+    step(2);
+    tp.update(me);
+    row("the villager struck ends it", !g.talkingWith.length && !shown(), `${g.state}`);
+    g.hp = 100;
+    g.state = "idle";
+    G.teleport(g.gx + 1.2, g.gy);
+    step();
+    G.interact.performByLabel(me, { kind: "character", id: g.id }, entry.label);
+    window.dispatchEvent(new KeyboardEvent("keydown", { code: "Escape" }));
+    row("Escape closes it, ahead of the pause menu", !shown() && !g.talkingWith.length, `panel ${shown() ? "open" : "shut"}`);
+    // A wounded villager still talks (Michael, 2026-10-18): Talk is offered, enabled, and opens the panel.
+    g.hp = 50;
+    g.state = "idle";
+    G.teleport(g.gx + 1.2, g.gy);
+    step();
+    const woundedEntry = talkLabel(g);
+    G.interact.performByLabel(me, { kind: "character", id: g.id }, woundedEntry ? woundedEntry.label : "Talk to Wyn");
+    row("a wounded villager still talks: Talk is offered and enabled, and the panel opens", !!woundedEntry && woundedEntry.enabled !== false && !/hurt/.test(woundedEntry.label) && g.talkingWith.includes(me.id) && shown(), woundedEntry ? woundedEntry.label : "no Talk entry");
+    click("[data-close]");
+    g.hp = 100;
+    g.state = "idle";
+    // The dead close by: a bark, not a conversation.
+    const z2 = createZombie(g.gx + 3, g.gy);
+    S.zombies.push(z2);
+    G.interact.performByLabel(me, { kind: "character", id: g.id }, entry.label);
+    row("with the dead within five tiles they bark instead of talking", !g.talkingWith.length && !shown() && !!g.line, g.line ? g.line.text : "silent");
+    S.zombies.splice(S.zombies.indexOf(z2), 1);
+    // A villager whose talk id has no file has no conversation.
+    const child = S.villagers.find((v) => v.name === "Child");
+    const childTalk = child.talk;
+    child.talk = "nobody";
+    G.teleport(child.gx + 1.2, child.gy);
+    step();
+    const noFile = G.interact.performByLabel(me, { kind: "character", id: child.id }, "Talk to Child");
+    row("a villager with no file has no conversation (a bark: their map line)", noFile === true && !child.talkingWith.length && !shown(), "map line");
+    child.talk = childTalk;
+    child.state = "idle";
+    child.line = null;
+
+    // ---- The review of #230: a wall, a second villager, the world running with the panel open, and every villager's file ----
+    const vmod = await import("/src/entities/villager.js");
+    const stand = (v) => { G.teleport(v.gx + 1.2, v.gy); step(); };
+    // A wall between the talker and the villager: Talk is not offered, and startTalk refuses (no panel, no hold).
+    const gx0 = Math.round(g.gx);
+    const gy0 = Math.round(g.gy);
+    G.teleport(gx0 - 1 + 0.1, gy0 + 0.1);
+    G.map.buildWall(gx0, gy0, "w", "wall", "wall_wood");
+    restore.push(() => G.map.destroyWall(gx0, gy0, "w"));
+    const offered = G.interact.actionsForTarget({ kind: "character", id: g.id }, me).some((a) => /^Talk to/.test(a.label));
+    const refused = vmod.startTalk(g, me);
+    row("through a wall Talk is not offered and startTalk refuses it (no hold, no panel)", !offered && refused === false && !g.talkingWith.length && !shown(), `offered ${offered}; startTalk ${refused}; ${g.state}`);
+    G.map.destroyWall(gx0, gy0, "w");
+    // A second villager's talk ends the first one on the host.
+    const second = S.villagers.find((v) => v !== g && talk.has(v.talk) && v.hp >= (v.maxHp ?? 100));
+    const at2 = [second.gx, second.gy];
+    restore.push(() => { second.gx = at2[0]; second.gy = at2[1]; second.state = "idle"; second.talkingWith = []; });
+    second.gx = g.gx + 0.8;
+    second.gy = g.gy + 1.1;
+    G.teleport(g.gx + 1.2, g.gy);
+    step();
+    g.hp = g.maxHp ?? 100;
+    G.interact.performByLabel(me, { kind: "character", id: g.id }, `Talk to ${g.name}`);
+    const firstHeld = g.talkingWith.includes(me.id) && shown();
+    G.interact.performByLabel(me, { kind: "character", id: second.id }, `Talk to ${second.name}`);
+    row("talking to a second villager ends the first conversation on the host, and the panel is the second's", firstHeld && !g.talkingWith.length && g.state !== "talk" && second.talkingWith.includes(me.id) && shown() && textOf().toLowerCase().includes(String(second.name).toLowerCase()), `${g.name}: ${g.state} with ${g.talkingWith.join(",") || "no one"}; ${second.name}: ${second.state} with ${second.talkingWith.join(",")}`);
+    // The world runs with the panel open: only the pause menu stops the game.
+    const t0 = G.loop.simTime();
+    const belt = G.inventory.beltOf(me);
+    const hand0 = me.hands.main;
+    const slot0 = belt[0];
+    const torch = G.items.makeEntry("hammer", 1); // anything that is not a consumable swaps with the hand
+    belt[0] = torch;
+    me.hands.main = G.items.makeEntry("hatchet", 1);
+    restore.push(() => { belt[0] = slot0; me.hands.main = hand0; });
+    window.dispatchEvent(new KeyboardEvent("keydown", { code: "Digit1" }));
+    step(60);
+    window.dispatchEvent(new KeyboardEvent("keyup", { code: "Digit1" }));
+    row("with the panel open the world runs and the belt keys still act (the clock advances, 1 swaps the belt's slot into the hand)", shown() && G.loop.simTime() > t0 + 0.9 && me.hands.main === torch, `clock +${(G.loop.simTime() - t0).toFixed(2)} s; panel ${shown() ? "open" : "shut"}; main hand ${me.hands.main ? me.hands.main.id : "empty"}`);
+    click("[data-close]");
+    // Every villager's file, asked through the panel's own buttons: the world's text is the same afterwards but for the villager's own state.
+    const zs = S.zombies.splice(0);
+    restore.push(() => { S.zombies.push(...zs); });
+    const walked = [];
+    let allSame = true;
+    for (const v of S.villagers) {
+      if (!talk.has(v.talk)) continue;
+      v.hp = v.maxHp ?? 100;
+      v.state = "idle";
+      v.talkingWith = [];
+      for (const [dx, dy] of [[1.2, 0], [-1.2, 0], [0, 1.2], [0, -1.2]]) { // a side of them with a clear line (one may be a wall)
+        if (!G.map.isWalkableTile(Math.round(v.gx + dx), Math.round(v.gy + dy)) || G.map.wallBetween(Math.round(v.gx), Math.round(v.gy), Math.round(v.gx + dx), Math.round(v.gy + dy))) continue;
+        G.teleport(v.gx + dx, v.gy + dy);
+        break;
+      }
+      step();
+      if (!G.interact.performByLabel(me, { kind: "character", id: v.id }, `Talk to ${v.name}`) || !shown()) { walked.push(`${v.name}: no panel`); continue; }
+      const beforeV = worldText();
+      seen.clear();
+      walk(0);
+      click("[data-close]");
+      const same = worldText() === beforeV;
+      if (!same) allSame = false;
+      walked.push(`${v.name} ${seen.size}${same ? "" : " DIFFERS"}`);
+    }
+    row("every villager's file asked through the panel leaves the world's text the same, the generator included", allSame && walked.length >= 8 && !walked.some((w) => /no panel/.test(w)), walked.join(", "));
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message + (e.stack ? " " + e.stack.split("\n")[1] : "") });
   } finally {
