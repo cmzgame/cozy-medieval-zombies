@@ -1,32 +1,47 @@
 # TODO
 
-Where work stands. The open work lives on GitHub (the milestones below); this file is the overview, and its **Status block is rewritten at the end of every session, never appended**. The record of 2026-10-08 to 2026-10-15 (the old Status stack, the play notes, every ticked milestone) is `docs/history/todo-2026-10-08-to-15.md`.
+Where work stands. The open work lives on GitHub, under the roadmap's milestones (numbered `00 ·` to `10 ·`, so the milestones page sorted alphabetically is the roadmap as a chart); this file is the overview, and its **Status block is rewritten at the end of every session, never appended**. The record of 2026-10-08 to 2026-10-15 is `docs/history/todo-2026-10-08-to-15.md`.
 
 **Every box is ticked only when it works for a guest too** (`CLAUDE.md`, the two rules of shipping).
 
-## PRIORITY: finish infrastructure day (Michael, 2026-10-15)
+## The roadmap (Michael, 2026-10-17; `docs/02`)
 
-Two halves. The public half is the sweep, #70. The private half (the game's name; a domain and a business email at it; the game's own site; the relay's Fly app moved to the studio's account; the full game somewhere private; and, found by the sweep, an off-Fly copy of the worlds' saves and a backed-up home for the art generators) is done by Michael and Primary in session and kept as a dated checklist off the repository, by his ruling: accounts, keys, domains, and hosting are never discussed in the public repository.
+Each step ends with Michael playing it and saying it is done. The pace is set by his play and his rulings, not by the build.
 
-## Status (2026-10-16)
+1. **The valley and skilling** (`01 ·`). Done when Michael can sit down for an hour of production, stocking up, and building and it feels like playing a game, not testing one: no dead end, no resource stoppage, no "now what?". Not final art, not balanced; fulfilling, OSRS-style, a second-monitor semi-idle game. Whatever breaks that hour goes on a short list; the step is done when the list is empty.
+2. **Zombies and combat** (`02 ·`): every weapon you can get without leaving the valley feels good against the standard dead. The difficulty pass (#89, #133), the siege (#147), darkness. **Free CC0 placeholder sounds** come in here (hits, groans, footsteps), for feel and immersion; their licenses must let the wiki host them.
+3. **The demo** (`03 ·`): the horde demo (`docs/36`), also the first build strangers play.
+4. **Playing together, and telemetry** (`04 ·`), before the outside playtest and ideally earlier: Michael's evening with his brother over a server world (possible today: make a world, Move to the server with the creator key, and he joins by its code), then Play with friends for everyone (#143) and telemetry (#144).
+5. **The first outside playtest** (`05 ·`): five to ten people who are not Michael or his brother, on dev art, watched, with telemetry. Nothing is paid for before this.
+6. **Midnight Mass, in dev art** (`06 ·`): the vertical slice: the valley, the Crimson Abbey complete (#123), and the endless demo; then a second outside playtest. If both click, the money is safe to spend.
+7. **The name** (`07 ·`, #94), before money goes into assets; it triggers its own infrastructure pass (the private half kept off the repository).
+8. **Art and sound** (`08 ·`): the paid phase. No directional sound; the dead make noise; the interface, fire, actions, walking.
+9. **The Steam page** (`09 ·`): a coming-soon page as soon as there is capsule art and a trailer, wishlists for months, the demo at a Steam Next Fest.
+10. **The regions and release** (`10 ·`): the remaining regions, the Electron wrapper, release.
 
-The sweep (#70; the plan and Michael's six calls are `docs/02`'s top entry) has its waves 0 to 3 merged: `CLAUDE.md` lean with the code map nested (#73), `docs/02` rulings only with a topic index and the build log in `docs/history/` (#74), every spec trimmed to what is true with its history archived (#82 to #86, six parallel Secondary sessions), the wiki's own fixes (cmz-wiki#8: a Sources-drift report, the snapshot without the art, prop pages). `docs/README.md` is the one index and says of every doc whether it is a rule, a reference, a spec, or a record. Wave 4 is filing the issues the sweep found, five at a time (#88 to #96 so far). The bot account is still flagged (#71 is its end). Michael's next, in no order: the private half of infrastructure day (off the repository); the four `00-vision.md` lines the sweep redrafted (quoted in the review on #83, his to edit); the menus and the site (#16, with his own Secondary); the eight `needs-michael` issues of wave 4 (#88 to #95); the elbow's next poses (`docs/32`). Owed: a wiki Verify stamp from Michael to prove #15's last path.
+**Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows.
+
+## Status (2026-10-17)
+
+Merged since the sweep: the menus and the site (#120, #125, #128, #129), per-world Trees and Starting population with None (#131), the player cap (#138), the window law (#140: nobody climbs; the dead batter a window to see in and come round to a door), the aim guide off by default (#141), Trees off keeping the mushrooms (#149), darkness shortening sight (#150: the dark hides information, never physics; a shuttered room dark by day), and the rulings of the shape talk (#137, #145, #148, #153: play alone or with friends, the siege, fire and torches and lanterns, every world an expendable test). The wiki is synced to all of it. The game's shape is draft 2 on #123 (unruled). In review: the siege as #151, #152, #155 (a second round). Next for the Secondary: #156 (torches burn down, the tinderbox, lanterns). The bot account is still flagged (#71).
 
 ## Open work, by milestone
 
-Issues #18 to #55 were filed by the bot and are hidden while it is flagged; they exist and count on their milestones, and their titles are the lines below.
+Issues #18 to #55 were filed by the bot and are hidden while it is flagged; they exist and count on their milestones.
 
-- **Process and infrastructure:** the sweep #70; the bot's reinstatement #71; the wiki's publishing build without `--check` #3; the wiki's loose ends #68; TODO to issues #7 (done by this file; the mapping from its branch is here).
-- **Bugs:** none open. An unverified one goes to `docs/bugs.md`.
-- **Big pass step 4: farming** (`docs/30` sections 8 to 10, `29/05`; held by Michael): farming #20; the farms and the mill #21; the bucket #22; the scythe and the mill's flour #23. Owed from `30`'s rules: chopping a tree needs a hatchet and leaves a stump #18; lighting a fire needs a torch or flint #19.
-- **The big pass, steps 5 to 9** (`docs/30` section 11; each needs a scope first): the castle and the bridge road #24; the forest places, one a session #25; dressing and the edges #26; chickens and deer, leather and the tannery #27; fishing #28.
-- **Better animations** (`docs/32`): the braced draw as its own style, or not #29; the spear's throw checked by Michael's eye #30; arrows that land upright #31; sleep, lying on the bed #32; sit #33; the death for every model #34; the elbow's next poses (`32`, "Where we left off").
-- **The map (docs/33):** the chart #35; the panel #36.
-- **Talk (docs/34):** the data, the module, and the guide #37; barks #38; conversations #39. Michael's two decisions (the guide's who and where; the panel's keys) are filed in wave 4.
-- **The horde demo (docs/36;** not yet, Michael): the scenario layer #40; the set #41; the horde and the run's limits #42; the score, the end, and the entry #43.
-- **The menus and the site** (`docs/38`, scoped and ruled; #16): merged are the two fixes #80, the world loading screen #115, Settings in tabs #114, the staging map and shots #118, the game's site #111 (#120), the world's rules into each world #109 (#128), the crossing, Exit game #112 (#129), and retiring combat testing and the square's surface for per-world Trees and Starting population rules #130 (#131); the player cap #93 is built and in review, and `main.js` back to wiring #100 follows.
-- **Art owed (docs/26):** the hand items #46; the tools #47; the icons and the garments' portraits #48. For the wiki: the art exporter #44; the spot checks in the pane #45.
-- **Items:** Take All on every lootable panel #10.
-- **The rest of `24`:** the fireball's cost and area #50; the throwing knives and axes #51.
-- **Michael's own:** the background probe and a real session on Pages #49; one session played as meant (combat, aggro, the valley, the dead round the spawn) before any boss or skills scope; the floor stamp in build mode, still wanted now the map is generated? #52; the painted held slot in the editor, moot? #53; more one-handed weapons (combat paused) #54; `docs/12`'s check 8, the spec sheet #55; `00-vision.md`'s four single-player lines (the sweep drafts them in wave 3a).
-- **Later by design, no issue** (`docs/05`): spectating, lighter frames, the bounded rewind, and the rest of the someday list; wave 4 files one tracking issue for them.
+- **00 · Process and infrastructure:** the bot's reinstatement #71; the wiki's publishing build without `--check` #3; the wiki's loose ends #68.
+- **00 · Bugs:** a guest's held-out pose when it drinks #122; `check("players")` after `check("save")` #132. An unverified bug goes to `docs/bugs.md`.
+- **01 · The valley and skilling:** the starting kit as data and a world choice #136; torches burn down, the tinderbox, lanterns #156; hiding a worn item's art #159; building's leftovers #104; the NPC pass #103; region, never biome #135; Take All #10; the engine's chores (#124, #100, #99).
+- **01 · The valley: farming (big pass step 4)** (`docs/30` sections 8 to 10): farming #20; the farms and the mill #21; the bucket #22; the scythe and flour #23; a hatchet and a stump #18; lighting a fire #19.
+- **01 · The valley: the 1.0 map, steps 5 to 9** (`docs/30` section 11): the castle and the bridge road #24; the forest places #25; dressing and the edges #26; chickens, deer, the tannery #27; fishing #28; the map's open questions #92.
+- **01 · The valley: talk** (`docs/34`): the data, the module, and the guide #37; barks #38; conversations #39.
+- **01 · The valley: the map on M** (`docs/33`): the chart #35; the panel #36.
+- **01 · The menus and the site** (`docs/38`): #16; Michael's fullscreen check #112.
+- **01 · Art owed (docs/26):** the hand items #46; the tools #47; the icons and portraits #48; the art exporter #44; the spot checks #45; the art asks #105.
+- **02 · Zombies and combat:** the combat pass #89 (after Michael's session); armour and difficulty #133; the siege #147; darkness's loose ends #158.
+- **02 · Better animations** (`docs/32`): #29 to #34 and the elbow's next poses.
+- **03 · The demo** (`docs/36`): the scenario layer #40; the set #41; the horde and the run's limits #42; the score, the end, and the entry #43.
+- **04 · Playing together, and telemetry:** Play with friends #143; telemetry #144; the Full dot #139; speech lines on a server world #154; the seams #102; a duplication count for the sync check #101.
+- **07 · The name:** the business decisions of `docs/35` #94.
+- **10 · The regions and release:** the game's final shape #123.
+- **No milestone, by design:** the someday list #106 (`docs/05`).
