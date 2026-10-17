@@ -1,5 +1,5 @@
 {
-  "version": "fa7b7ecc",
+  "version": "3411ad6a",
   "files": {
     "data/build.json": {"size": 366, "stamp": "d4f4a6d2"},
     "data/combat.json": {"size": 4109, "stamp": "4efa7ba3"},
@@ -360,6 +360,8 @@
     "data/art/village/well_0.png": {"size": 3147, "stamp": "3a647571"},
     "data/art/village/well_1.png": {"size": 3130, "stamp": "ddf1b0e7"},
     "data/art/village/well_2.png": {"size": 2966, "stamp": "42854c92"},
+    "data/fonts/PirataOne-OFL.txt": {"size": 4427, "stamp": "c0f9fc09"},
+    "data/fonts/PirataOne-Regular.ttf": {"size": 56316, "stamp": "663bde04"},
     "data/fonts/PixelifySans-OFL.txt": {"size": 4395, "stamp": "1cdc009e"},
     "data/fonts/PixelifySans.ttf": {"size": 79160, "stamp": "f7e96197"},
     "data/hair/bob.json": {"size": 49989, "stamp": "b18a1f38"},
