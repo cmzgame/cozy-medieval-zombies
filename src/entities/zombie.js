@@ -13,8 +13,8 @@ import { rules } from "../rules.js";
 import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, floorSpeedAt } from "../map.js";
-import { lineOfSight } from "../visibility.js";
+import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, openingsNear, edgeTiles, floorSpeedAt } from "../map.js";
+import { lineOfSight, openingOnLine } from "../visibility.js";
 import * as light from "../light.js";
 import * as clock from "../clock.js";
 import { getSheet } from "../assets.js";
@@ -54,6 +54,8 @@ export function createZombie(gx, gy, { id = null, hp = T.hp, aggro = false } = {
     attackHit: false,
     pathFailed: false,
     breach: null, // { wall, tx, ty, edge, stand, side, into } while breaking in
+    siege: null, // { at: [x, y] a tile in the house, openings: [{ tx, ty, edge }], dawn: clock elapsed, idx, switchAt, pid } while it holds a siege (#147)
+    seenRoom: -1, // the room the player was in at its last sighting (0 outside, -1 never seen): a change from outside to a room is a player going in
     noWay: 0, // seconds left in which no way in is looked for again (T.noWayTime): none was found, so it searches instead
     sincePlayer: Infinity, // seconds since the player was last seen
     stuckTime: 0,
@@ -218,7 +220,10 @@ function goalRoom(z) {
 // kept on the target so the breach is not dropped for leading into a room that is not it.
 function wayIn(z, room, want, seen = new Set([room.id]), depth = 0) {
   const doors = breachTargets(room, z.gx, z.gy, 0, depth === 0);
-  const direct = doors.find((c) => canReach(z, c.stand));
+  // The opening they saw the player use comes first (Michael, #147: "the dead go where they saw you go"), among those they can
+  // walk to, then the nearest.
+  const known = (c) => depth === 0 && !!z.siege && z.siege.openings.some((o) => o.tx === c.tx && o.ty === c.ty && o.edge === c.edge);
+  const direct = doors.find((c) => known(c) && canReach(z, c.stand)) || doors.find((c) => canReach(z, c.stand));
   if (direct) return direct;
   if (depth >= 3) return null;
   let best = null;
@@ -364,7 +369,72 @@ function startSearch(z) {
   z.idleTimer = 0;
 }
 
+// ---- the siege (Michael, 2026-10-17, #147): the dead that know a player is inside wait until the next dawn ----
+
+const hashId = (id) => [...String(id)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+
+function rememberOpening(s, o) {
+  if (s.openings.some((k) => k.tx === o.tx && k.ty === o.ty && k.edge === o.edge)) return;
+  s.openings.push({ tx: o.tx, ty: o.ty, edge: o.edge });
+  if (s.openings.length > 4) s.openings.shift();
+}
+
+// A player in sight: if they are inside a room this one is not in, it knows where they went. It records the door they
+// crossed on the way in (the sighting that finds them in a room after one outside), and any window it sees them
+// through; a player seen out in the open ends it, and the ordinary chase goes on.
+function noteSighting(z, p) {
+  const room = tileAt(Math.round(p.gx), Math.round(p.gy)).room;
+  const here = tileAt(Math.round(z.gx), Math.round(z.gy)).room;
+  // A siege is the night's ("They stay at night", "the siege bites at night"): from dusk to the dawn it ends at; by day a sighting
+  // is the ordinary chase, and a watcher is not given another siege to the next morning.
+  const night = ["dusk", "night"].includes(clock.getPhase());
+  if (room <= 0 || room === here || !night) {
+    z.siege = null;
+    z.seenRoom = room;
+    return;
+  }
+  if (!z.siege) z.siege = { at: [0, 0], openings: [], dawn: clock.getElapsed() + clock.secondsUntilHour(T.siegeEndHour), idx: hashId(z.id), switchAt: clock.getElapsed() + T.siegeSwitch, pid: p.id };
+  const s = z.siege;
+  s.at = [Math.round(p.gx), Math.round(p.gy)];
+  s.pid = p.id;
+  if (z.seenRoom === 0) { // its last sighting had the player out in the open, this one has them in: they went in by a door near them
+    const door = openingsNear(p.gx, p.gy, 1.6).find((o) => o.wall.kind === "door");
+    if (door) rememberOpening(s, door);
+  }
+  const win = openingOnLine(z.gx, z.gy, p.gx, p.gy);
+  if (win && win.wall.kind === "window") rememberOpening(s, win);
+  z.seenRoom = room;
+}
+
+// Whether it still holds a siege: before its dawn, on a player who is still alive.
+export function siegeOn(z, players) {
+  const s = z.siege;
+  if (!s || clock.getElapsed() >= s.dawn) return false;
+  return !players || players.some((p) => p.id === s.pid && !p.dead);
+}
+
+// Whether any of the dead holds a siege on this player, near them (`siegeSleepRadius`): the sleep verb asks (player.js). It is
+// keyed to the player, not the room: a player seen in the hall cannot sleep in the bedroom (Michael: "while the dead that know
+// you are inside are still about").
+export function siegeHeldOn(zombies, player) {
+  for (const z of zombies) {
+    if (z.dead || !z.siege || z.siege.pid !== player.id || !siegeOn(z, null)) continue;
+    if (Math.hypot(z.gx - player.gx, z.gy - player.gy) <= T.siegeSleepRadius) return true;
+  }
+  return false;
+}
+
+function startSiege(z) {
+  z.state = "siege";
+  z.path = [];
+  z.lastGoal = null;
+  z.breach = null;
+  z.repathTimer = 0;
+}
+
 function giveUp(z) {
+  z.siege = null;
+  z.seenRoom = -1;
   z.state = "idle";
   z.aggro = false;
   z.target = null;
@@ -407,6 +477,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       z.aggro = true;
       z.lastSeen = [seen.gx, seen.gy];
       z.sincePlayer = 0;
+      noteSighting(z, seen);
     } else {
       // The player first, always; failing that, with the setting on, the
       // nearest villager in sight, hunted the same way (memory and all).
@@ -433,6 +504,15 @@ export function updateZombie(z, dt, players, others, villagers = null) {
           }
         }
       }
+    }
+  }
+  // The dawn (or the player's death) ends a siege: it loses interest, wherever it has got to, unless it sees one of them.
+  if (z.siege && !siegeOn(z, players)) {
+    z.siege = null;
+    z.seenRoom = -1;
+    if (!z.seesNow) {
+      z.breach = null;
+      giveUp(z);
     }
   }
   // A target that died (a villager, bitten through) is no longer seen.
@@ -602,7 +682,8 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         break;
       }
       if (z.searchTimer <= 0) {
-        giveUp(z);
+        if (siegeOn(z, players)) startSiege(z); // it knows a player is inside: it waits about the house until dawn, not gives up
+        else giveUp(z);
         break;
       }
       if (z.path.length) {
@@ -616,6 +697,68 @@ export function updateZombie(z, dt, players, others, villagers = null) {
           if (target) repath(z, target);
           z.idleTimer = rng.range(0.8, 2.0);
         }
+      }
+      break;
+    }
+    case "siege": {
+      // About the house the player is in, between the openings it knows, until dawn: the dead that saw them go in.
+      const s = z.siege;
+      if (!siegeOn(z, players)) {
+        giveUp(z);
+        break;
+      }
+      if (z.seesNow && !(z.noWay > 0)) {
+        z.state = "chase";
+        z.repathTimer = 0;
+        break;
+      }
+      const roomHere = tileAt(s.at[0], s.at[1]).room;
+      const room = roomHere > 0 ? getRoom(roomHere) : null;
+      const cands = room ? breachTargets(room, z.gx, z.gy, 0, true) : [];
+      if (!cands.length) {
+        // Nothing to break. If they can walk to the player (every opening already a way in, or the house is no room now),
+        // go in after them; if not (a cell with a window and no door), wait at the opening they saw the player by, and keep
+        // the siege.
+        const reach = s.reach && clock.getElapsed() < s.reach.until ? s.reach.ok : null;
+        const ok = reach !== null ? reach : canReach(z, s.at);
+        if (reach === null) s.reach = { ok, until: clock.getElapsed() + T.siegeSwitch };
+        if (ok || !room) {
+          z.lastSeen = [s.at[0], s.at[1]];
+          z.state = "chase";
+          z.repathTimer = 0;
+          break;
+        }
+        const k = s.openings.length ? s.openings[(s.idx >>> 0) % s.openings.length] : null;
+        if (k) {
+          const outTile = edgeTiles(k.tx, k.ty, k.edge).find((t) => tileAt(t[0], t[1]).room !== roomHere);
+          if (outTile && Math.hypot(outTile[0] - z.gx, outTile[1] - z.gy) > 0.8) {
+            moveToward(z, dt, outTile, others);
+            break;
+          }
+        }
+        playAnimation(z.anim, "idle");
+        break;
+      }
+      const known = cands.filter((c) => s.openings.some((k) => k.tx === c.tx && k.ty === c.ty && k.edge === c.edge));
+      const pool = known.length ? known : cands;
+      if (clock.getElapsed() >= s.switchAt) {
+        s.idx = (s.idx >>> 0) + 1;
+        s.switchAt = clock.getElapsed() + T.siegeSwitch;
+      }
+      const c = pool[(s.idx >>> 0) % pool.length];
+      const mx = c.edge === "n" ? c.tx : c.tx - 0.5;
+      const my = c.edge === "n" ? c.ty - 0.5 : c.ty;
+      if (Math.hypot(mx - z.gx, my - z.gy) <= T.breachReach) {
+        z.lastSeen = [s.at[0], s.at[1]];
+        startBreach(z, { ...c, want: roomHere });
+        break;
+      }
+      const repathTimer0 = z.repathTimer;
+      moveToward(z, dt, c.stand, others);
+      if (z.pathFailed && z.repathTimer > repathTimer0) {
+        // Cannot reach that one: try another a moment sooner.
+        s.idx = (s.idx >>> 0) + 1;
+        s.switchAt = clock.getElapsed() + T.siegeSwitch;
       }
       break;
     }
