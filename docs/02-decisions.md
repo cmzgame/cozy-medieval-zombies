@@ -139,12 +139,13 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Multiplayer
 
-- At most 4 players in a browser-hosted world and 8 in a server world, both in data (2026-10-16, The needs-michael queue)
+- Play alone (in the browser, offline) or play with friends (on our server, by code), chosen once; no Open to friends; telemetry from every world (2026-10-17, Play alone or play with friends; telemetry from every world)
+- At most 4 players in a browser-hosted world and 8 in a server world, both in data; the browser's goes with browser hosting in #143 (2026-10-16, The needs-michael queue)
 - Every addition and every change is built for multiplayer in the same commit (2026-10-13, Multiplayer is live)
 - On the wire the world never pauses; a screen is this client's own; hit-stop is refused on the wire (2026-10-13, On the wire the world never pauses)
 - The relay server is the transport; the Pages site is the client friends open (2026-10-13, Ruled: the relay server is the transport)
 - An identity is a name and a look, reusable; a character belongs to its world, full stop (2026-10-13, Ruled: worlds, identities, characters)
-- No world runs until one is chosen; hosting is a switch; an identity is a stamp; creation is multi-step (2026-10-13, Worlds, identities, characters: the four questions answered)
+- No world runs until one is chosen; an identity is a stamp; creation is multi-step (2026-10-13, Worlds, identities, characters: the four questions answered)
 - An offline guest's character goes dormant after sixty seconds; the store is IndexedDB; longer codes (2026-10-13, The coder agent's review of docs/31/09)
 - A guest's panel is a view on its replica; every change is a command by uid, slot, and address (2026-10-13, The twelfth move: a guest's panel as commands)
 - Sleep with friends: time skips only when everyone living is in bed (2026-10-13, Sleep in a world with friends)
@@ -192,6 +193,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-17 — Play alone or play with friends; telemetry from every world (Michael)
+
+Michael, after a play: letting friends join "should be clarified and not a thing you can do from the in-game pause menu, which is part of what sparked this". **Ruled:** "From the main menu, we make it clear. World is local or server and open, if you don't want other players in the server version then don't invite anyone with a code. So there is no more 'open to friends' button." He took Primary's framing, the choice named by what the player wants: **Play alone** (a world in the browser, offline, never joinable; the default, one click to playing) and **Play with friends** (a world on our server, joinable by its code; started or joined from the same screen). **The choice is made once:** "moving games is for when you have 80 hours you don't want to lose and we are pre-pre-alpha", so Move to the server and Bring it home are hidden from players until beta. Hosting from a browser tab retires for players, and the switch of 2026-10-13 with it (struck where it sits). *Primary's defaults in #143, Michael's to overrule:* a quota of server worlds per browser replaces the creator key for making one; the browser host stays as the two-tab test path; a running world's cost is measured before the demo goes public. **Telemetry:** "All versions send telemetry, legal stuff TBD when I am closing in on some kind of a real beta" (#144; built anonymous from the start, so the beta's legal answer is a small change).
 
 ### 2026-10-16 — The aim guide is off by default (Michael, after a play)
 
@@ -488,7 +493,7 @@ The coder agent read `09` and asked for changes; Michael relayed them after the 
 
 ### 2026-10-13 — Worlds, identities, characters: the four questions answered, and five more rulings (docs/31/09)
 
-Michael's answers: a world's name typed with a default offered; a character's look fixed after creation ("sprint into the dead" is the way to a new one); a dead character's bookmark on a friend's world kept, Rejoin leading to New character; spectating later with tier 4. His additions, now in `09`: **character creation is a multi-step process**, step 1 the identity, step 2 a placeholder page for the skills and profession to come, with Back and Next as Zomboid has them, so it is plain the identity is one part of a character; **an identity is a stamp**: edited and saved, it applies to every character made from it afterwards and never backfills one already stamped; **hosting is a switch**, "Open to friends" on or off per world, the code drawn and saved the first time it goes on, no separate kind of save; **friends' worlds show whether they are open right now**, a green dot the relay answers to a plain request for the code, so the confirmation comes before Rejoin is pressed; and yes, many single-player worlds at different hours, revisited freely, which is the My worlds list.
+Michael's answers: a world's name typed with a default offered; a character's look fixed after creation ("sprint into the dead" is the way to a new one); a dead character's bookmark on a friend's world kept, Rejoin leading to New character; spectating later with tier 4. His additions, now in `09`: **character creation is a multi-step process**, step 1 the identity, step 2 a placeholder page for the skills and profession to come, with Back and Next as Zomboid has them, so it is plain the identity is one part of a character; **an identity is a stamp**: edited and saved, it applies to every character made from it afterwards and never backfills one already stamped; ~~**hosting is a switch**, "Open to friends" on or off per world, the code drawn and saved the first time it goes on, no separate kind of save~~ (superseded 2026-10-17: Play alone or play with friends; telemetry from every world, #143); **friends' worlds show whether they are open right now**, a green dot the relay answers to a plain request for the code, so the confirmation comes before Rejoin is pressed; and yes, many single-player worlds at different hours, revisited freely, which is the My worlds list.
 
 ### 2026-10-13 — Ruled: worlds, identities, characters (docs/31/09), Zomboid's model, before the rest of tier 3
 
