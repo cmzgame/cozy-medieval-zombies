@@ -35,6 +35,7 @@ function targetMatches(what, target) {
   switch (target.kind) {
     case "item": return itemMatches(what, target.entry);
     case "prop": return what === target.prop.sprite || (what === "fire" && !!(target.prop.fire && target.prop.fire.burns)); // "fire": any that burns (#14)
+    case "bracket": return what === "bracket"; // a torch in a wall bracket (#170): the light verb's rows
     case "character": return what === "character" || what === target.ch.kind;
     case "tile": return what === "tile" || what === target.floor;
     default: return false;
@@ -54,6 +55,7 @@ export function nameOfTarget(target) {
   switch (target.kind) {
     case "item": { const d = getItem(target.entry.id); return d ? d.name : target.entry.id; }
     case "prop": return target.prop.sprite.replace(/_\d+$/, "").replace(/_/g, " ");
+    case "bracket": return "the torch in the bracket";
     case "character": return target.ch.name || (target.ch.kind === "zombie" ? "one of the dead" : target.ch.kind);
     case "tile": return (target.floor || "the ground").replace(/^floor_/, "").replace(/_/g, " ");
     default: return "";

@@ -175,6 +175,21 @@ export async function run(game) {
       else row("the holder's menu offers Light", false, `box stowed ${where}; menu ${G.interact.actionsForTarget(addr, me).map((a) => a.label).join(", ")}`);
       row("and lights the torch in the bracket with a tinderbox", bracket.wall.bracket.lit === true, `lit ${bracket.wall.bracket.lit}`);
       row("a lit one offers no Light", !menu(), "the menu entry is gone");
+      // By Use (#170): Use can target a bracket, and a lit torch in one is a flame like a post's.
+      bracket.wall.bracket.lit = false;
+      use(box, { kind: "bracket", bracket });
+      row("a tinderbox used on a mounted torch that is out lights it (Use targets a bracket)", bracket.wall.bracket.lit === true, `lit ${bracket.wall.bracket.lit}`);
+      const taper2 = mk("torch", { lit: false, wear: 0 });
+      me.hands.main = taper2;
+      use(taper2, { kind: "bracket", bracket });
+      row("an unlit torch in the hand used on the lit torch in a bracket is lit from it", taper2.lit === true, `lit ${taper2.lit}`);
+      bracket.wall.bracket.lit = false;
+      const taper3 = mk("torch", { lit: false, wear: 0 });
+      me.hands.main = taper3;
+      const refused3 = run({ bracket: addr, entry: taper3.uid });
+      row("and not from one that is out", !refused3.ok && taper3.lit !== true, String(refused3.reason));
+      me.hands.main = null;
+      bracket.wall.bracket.lit = true;
       G.teleport(bracket.tx + (bracket.edge === "w" ? 6 : 0), bracket.ty + (bracket.edge === "n" ? 6 : 0));
       bracket.wall.bracket.lit = false;
       const far = run({ bracket: addr, entry: box.uid });

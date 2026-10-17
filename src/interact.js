@@ -674,6 +674,14 @@ function openingsAtScreen(sx, sy) {
   return out;
 }
 
+// A mounted torch in a bracket under a canvas point (Use mode's target, #170): the nearest bracket holding a torch to the ground point
+// under the cursor, as the right-click menu finds it, or null.
+export function bracketAt(sx, sy) {
+  const g = iso.toGrid(sx, sy);
+  const near = map.bracketsNear(g.gx, g.gy, 0.8).filter((b) => b.bracket.wall.bracket.torch);
+  return near.length ? near[0].bracket : null;
+}
+
 // Every action for whatever is under a canvas point.
 export function actionsAt(sx, sy, player) {
   const g = iso.toGrid(sx, sy);

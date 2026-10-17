@@ -380,6 +380,9 @@ export function performUseCommand(player, c, findCharacter) {
     const r = containerOf(t.bag);
     const e = r && r.bag.items.find((q) => q.uid === t.uid);
     if (e) target = { kind: "item", entry: e };
+  } else if (t.kind === "bracket") {
+    const b = [...map.brackets()].find((q) => q.tx === t.tx && q.ty === t.ty && q.edge === t.edge); // a torch on a wall, by its address (#170)
+    if (b) target = { kind: "bracket", bracket: b };
   } else if (t.kind === "prop") {
     const prop = typeof t.id === "string" ? map.propById(t.id) : null;
     if (prop) target = { kind: "prop", prop };
