@@ -13,7 +13,7 @@ import { rules } from "../rules.js";
 import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, fenceAhead, pressFence, floorSpeedAt } from "../map.js";
+import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, fenceAhead, pressFence, canStepAcross, wallBetween, edgeBetween, edgeMid, isFence, floorSpeedAt } from "../map.js";
 import { lineOfSight } from "../visibility.js";
 import * as light from "../light.js";
 import * as clock from "../clock.js";
@@ -22,6 +22,7 @@ import { createAnimation, playAnimation, advanceAnimation, isActiveFrame } from 
 import { emit } from "../events.js";
 import { zombie as T } from "../tuning.js";
 import { idleTime, roomOf, faceToward, tileOf, repath, followPath, separate, pickTargetAround, canReach } from "./movement.js";
+import { findPath } from "../pathfind.js";
 // The walking is movement.js's, shared with the villagers (docs/23a, D7); still exported here for the files that import it from the dead.
 export { idleTime, roomOf, faceToward, repath, followPath, separate, pickTargetAround };
 
@@ -54,6 +55,7 @@ export function createZombie(gx, gy, { id = null, hp = T.hp, aggro = false } = {
     attackHit: false,
     pathFailed: false,
     breach: null, // { wall, tx, ty, edge, stand, side, into } while breaking in
+    press: null, // { wall, tx, ty, edge, stand } while it presses a fence or gate across its way (map.pressFence; not saved)
     noWay: 0, // seconds left in which no way in is looked for again (T.noWayTime): none was found, so it searches instead
     sincePlayer: Infinity, // seconds since the player was last seen
     stuckTime: 0,
@@ -231,6 +233,42 @@ function wayIn(z, room, want, seen = new Set([room.id]), depth = 0) {
     if (t && (!best || t.d < best.d)) best = t;
   }
   return best;
+}
+
+// The fence across the dead's way to a goal they cannot reach (Michael, 2026-10-17, #147: "a crowd breaks a fence"; and the
+// law that a window looking out on the dead is never a safe spot, so neither is a house in a fenced yard): walk the way as
+// if every closed gate could be crossed, else every closed fence, and the first fence edge on it is the one to press. A gate
+// is sought as the opening when there is one (it goes first: half the hp); the dead do not seek out a gate otherwise, it goes
+// first only where they stand at it. Returns { wall, tx, ty, edge, stand } or null.
+function fenceWay(z, goal) {
+  const start = tileOf(z);
+  for (const mode of ["gate", "fence"]) {
+    const path = findPath(start, goal, canStepAcross(mode), 500);
+    if (!path) continue;
+    let px = start[0];
+    let py = start[1];
+    for (const [nx, ny] of path) {
+      if (Math.abs(nx - px) + Math.abs(ny - py) === 1) {
+        const w = wallBetween(px, py, nx, ny);
+        if (isFence(w) && !wayOpen(w)) {
+          const [ex, ey, edge] = edgeBetween(px, py, nx, ny);
+          return { wall: w, tx: ex, ty: ey, edge, stand: [px, py] };
+        }
+      }
+      px = nx;
+      py = ny;
+    }
+  }
+  return null;
+}
+
+function startPress(z, f) {
+  z.press = f;
+  z.state = "press";
+  z.path = [];
+  z.breach = null;
+  z.lastGoal = null;
+  z.repathTimer = 0;
 }
 
 // Where the dead stand to hit an opening: the tile beside it on their side.
@@ -522,6 +560,20 @@ export function updateZombie(z, dt, players, others, villagers = null) {
           startBreach(z, target);
           break;
         }
+        // No door it can reach, but a fence across the way (a yard round the house): go and press it, a gate first (`fenceWay`).
+        // (To the goal itself, or, with the goal in a house, to the stands of that house's doors, nearest first.)
+        let across = null;
+        const goalHouse = roomId > 0 && here !== roomId ? getRoom(roomId) : null;
+        if (goalHouse) {
+          for (const c of breachTargets(goalHouse, z.gx, z.gy, 0, true).slice(0, 4)) {
+            across = fenceWay(z, c.stand);
+            if (across) break;
+          }
+        } else across = fenceWay(z, goal);
+        if (across) {
+          startPress(z, across);
+          break;
+        }
         // Nothing to break into by: no door it can reach (and no window left to batter). Search round the sighting, and
         // leave the goal alone for a while rather than press at a wall.
         if ((here > 0 || roomId > 0) && here !== roomId) {
@@ -623,6 +675,37 @@ export function updateZombie(z, dt, players, others, villagers = null) {
           z.idleTimer = rng.range(0.8, 2.0);
         }
       }
+      break;
+    }
+    case "press": {
+      // At a fence across its way: stand against it, a crowd wears it (map.stepFences). It goes on when it is gone, and gives
+      // up when it has not seen the player for a while.
+      const f = z.press;
+      if (!f || tileAt(f.tx, f.ty)[f.edge] !== f.wall || !z.aggro) {
+        z.press = null;
+        z.state = z.aggro ? "chase" : "idle";
+        z.repathTimer = 0;
+        break;
+      }
+      if (!z.seesNow && z.sincePlayer > 20) {
+        z.press = null;
+        startSearch(z);
+        break;
+      }
+      const [mx, my] = edgeMid(f.tx, f.ty, f.edge);
+      if (Math.hypot(mx - z.gx, my - z.gy) > 0.7) {
+        const repathTimer0 = z.repathTimer;
+        moveToward(z, dt, f.stand, others);
+        if (z.pathFailed && z.repathTimer > repathTimer0) {
+          z.press = null;
+          z.noWay = T.noWayTime;
+          startSearch(z);
+        }
+        break;
+      }
+      faceToward(z, mx - z.gx, my - z.gy);
+      moveToward(z, dt, [Math.round(z.lastSeen ? z.lastSeen[0] : mx), Math.round(z.lastSeen ? z.lastSeen[1] : my)], others); // nudge at the way through
+      pressFence(f.wall, f.tx, f.ty, f.edge);
       break;
     }
     case "attack": {

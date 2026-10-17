@@ -1317,6 +1317,19 @@ export function drinkableAt(x, y) {
   return floorRule(tileAt(x, y).floor).drink;
 }
 
+// The same move for finding which fence lies across the dead's way to a goal they cannot reach (zombie.js `fenceWay`): in mode
+// "gate" a closed gate (a door in a fence) is crossed, in mode "fence" any closed fence is, and only in a straight step, a
+// diagonal never cutting through one.
+export function canStepAcross(mode) {
+  const through = (w) => isFence(w) && (mode === "fence" || w.kind === "door");
+  return (x0, y0, x1, y1) => {
+    if (x0 !== x1 && y0 !== y1) return canStep(x0, y0, x1, y1);
+    if (!isWalkableTile(x1, y1)) return false;
+    const w = wallBetween(x0, y0, x1, y1);
+    return !blocksMove(w) || through(w);
+  };
+}
+
 // One tile-to-tile move for pathing. Diagonals need both corner tiles free and
 // both L-shaped routes clear of walls, so nothing cuts a wall corner.
 export function canStep(x0, y0, x1, y1) {

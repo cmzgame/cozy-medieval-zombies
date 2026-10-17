@@ -28,8 +28,9 @@ export async function run(game) {
     let c = null;
     for (let y = 120; y < 240 && !c; y += 3) {
       for (let x = 30; x < 230 && !c; x += 3) {
+        G.map.ensureAround(x, y, 2); // reading never grows a chunk: grow it before judging what stands there
         let clear = true;
-        for (let dy = -5; dy <= 4 && clear; dy++) for (let dx = -4; dx <= 4 && clear; dx++) clear = G.map.isWalkableTile(x + dx, y + dy) && G.map.tileAt(x + dx, y + dy).room === 0 && !G.map.tileAt(x + dx, y + dy).n && !G.map.tileAt(x + dx, y + dy).w;
+        for (let dy = -8; dy <= 6 && clear; dy++) for (let dx = -6; dx <= 6 && clear; dx++) clear = G.map.isWalkableTile(x + dx, y + dy) && G.map.tileAt(x + dx, y + dy).room === 0 && !G.map.tileAt(x + dx, y + dy).n && !G.map.tileAt(x + dx, y + dy).w;
         if (clear) c = [x, y];
       }
     }
@@ -65,7 +66,51 @@ export async function run(game) {
     let t = 0;
     while (t < 60 * 30 && G.map.isFence(G.map.tileAt(...north.slice(0, 2))[north[2]])) { step(1); t++; }
     row("and bursts it: gone, the event says where", !G.map.tileAt(...north.slice(0, 2))[north[2]] && bursts.length === 1, `after ${(t / 60).toFixed(1)} s, burst at ${bursts[0] ? `${bursts[0].x},${bursts[0].y}` : "none"}`);
+    const yardLeft = ring.filter(([x, y, e]) => G.map.tileAt(x, y)[e]).length;
     row("walls are never the fence's: the rest of the yard stands", ring.filter(([x, y, e]) => G.map.tileAt(x, y)[e]).length === ring.length - 1, `${ring.filter(([x, y, e]) => G.map.tileAt(x, y)[e]).length} of ${ring.length - 1} edges left`);
+
+    // ---- a house in a fenced yard is no safe spot, and a gate goes first ----
+    for (const [x, y, e] of ring) if (G.map.tileAt(x, y)[e]) G.map.destroyWall(x, y, e);
+    const yard = [];
+    for (let i = -3; i <= 3; i++) { yard.push([cx + i, cy - 3, "n"], [cx + i, cy + 4, "n"], [cx - 3, cy + i, "w"], [cx + 4, cy + i, "w"]); }
+    const homeWalls = [];
+    for (let i = -1; i <= 1; i++) homeWalls.push([cx + i, cy - 1, "n"], [cx + i, cy + 2, "n"], [cx - 1, cy + i, "w"], [cx + 2, cy + i, "w"]);
+    const build = (list, sprite) => { for (const [x, y, e] of list) G.map.buildWall(x, y, e, "wall", sprite); };
+    restore.push(() => { for (const [x, y, e] of [...yard, ...homeWalls]) if (G.map.tileAt(x, y)[e]) G.map.destroyWall(x, y, e); });
+    const standing = () => yard.filter(([x, y, e]) => G.map.isFence(G.map.tileAt(x, y)[e])).length;
+    const setUp = (gate) => {
+      for (const [x, y, e] of [...yard, ...homeWalls]) if (G.map.tileAt(x, y)[e]) G.map.destroyWall(x, y, e);
+      build(yard, "wall_fence");
+      build(homeWalls, "wall_log");
+      G.map.destroyWall(cx, cy - 1, "n");
+      G.map.buildWall(cx, cy - 1, "n", "window", "wall_log"); // the house's window, open: the dead see the player through it
+      G.map.tileAt(cx, cy - 1).n.shutter = "open";
+      G.map.destroyWall(cx, cy + 2, "n");
+      G.map.buildWall(cx, cy + 2, "n", "door", "wall_log"); // and a door on the south side, shut: the way they want, inside the yard
+      if (gate) { G.map.destroyWall(cx, cy - 3, "n"); G.map.buildWall(cx, cy - 3, "n", "door", "wall_fence"); } // a gate in the yard's north side
+      G.map.touch(cx, cy);
+      G.teleport(cx, cy);
+      bursts.length = 0;
+      step(2);
+    };
+    const startDead = (list) => list.forEach((z, i) => { z.gx = cx + (i % 2 ? 0.6 : -0.6) + (i > 1 ? 0.8 : 0); z.gy = cy - 6.5 - (i > 1 ? 1 : 0); z.path = []; z.breach = null; z.press = null; z.state = "chase"; z.aggro = true; z.noWay = 0; z.lastSeen = [cx, cy]; });
+    for (const z of dead) z.gx = cx + 90;
+    // A yard with no gate: they cross the fence nearest their way.
+    setUp(false);
+    startDead(dead);
+    const before = standing();
+    let t2 = 0;
+    while (t2 < 60 * 150 && bursts.length === 0) { step(1); t2++; }
+    row("a house in a fenced yard is no safe spot: the dead press the fence across their way and burst it", bursts.length > 0 && standing() === before - 1, `after ${(t2 / 60).toFixed(0)} s, ${standing()} of ${before} yard edges stand, states ${dead.map((z) => z.state).join(",")}`);
+    // A yard with a gate: they go to the gate, and it goes first, the fence beside it standing.
+    setUp(true);
+    startDead(dead.slice(0, 2));
+    for (const z of dead.slice(2)) { z.gx = cx + 90; z.aggro = false; z.state = "idle"; }
+    const gate = G.map.tileAt(cx, cy - 3).n;
+    const before2 = standing();
+    let t3 = 0;
+    while (t3 < 60 * 90 && G.map.tileAt(cx, cy - 3).n === gate) { step(1); t3++; }
+    row("a gate goes first: two of the dead seek it and burst it while the fence beside it stands", G.map.tileAt(cx, cy - 3).n !== gate && standing() === before2 - 1 && bursts.length === 1 && bursts[0].tx === cx && bursts[0].ty === cy - 3, `after ${(t3 / 60).toFixed(0)} s, ${standing()} of ${before2} edges stand, burst at ${bursts[0] ? `${bursts[0].tx},${bursts[0].ty}${bursts[0].edge}` : "none"}`);
   } finally {
     offBurst();
     offShake();
