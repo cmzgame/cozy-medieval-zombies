@@ -167,6 +167,75 @@ export async function run(game) {
     G.game.begin(0);
     const live = G.map.allProps().filter((p) => p.crop && p.crop.at !== undefined && p.id !== crop.id && (!crop2 || p.id !== crop2.id) && (!used || p.id !== used.id));
     row("the map's authored crops are settled live at their authored stage on the first step", live.length > 0 && live.every((p) => farming.stageOf(p) === Number(p.sprite.slice(-1))), `${live.length} settled; ${home.length} authored crops in view`);
+
+    // The scythe (#200): a swing harvests the ready grain on the three tiles ahead, and nothing else.
+    row("rye is the grain crop (a flag in data), and the scythe lists the verb harvest", crops.rye.grain === true && !crops.potato.grain && G.items.getItem("scythe").verbs.includes("harvest"), "grain: rye");
+    let field = null;
+    G.map.ensureAround(me.gx, me.gy, 3);
+    for (let dy = -14; dy <= 14 && !field; dy++) for (let dx = -14; dx <= 14 && !field; dx++) {
+      const fx = Math.round(me.gx) + dx;
+      const fy = Math.round(me.gy) + dy;
+      let ok = true;
+      for (let ay = -2; ay <= 2 && ok; ay++) for (let ax = -1; ax <= 4 && ok; ax++) { const t = G.map.peekTile(fx + ax, fy + ay); ok = !!t && t.floor === "floor_grass" && !t.prop && !t.n && !t.w && G.map.isWalkableTile(fx + ax, fy + ay); }
+      if (ok) field = [fx, fy];
+    }
+    if (!field) throw new Error("no bare grass for a field");
+    const [fx, fy] = field;
+    const sow = (kind, stage, x, y) => {
+      G.map.setFloor(x, y, "floor_farm");
+      const c = G.map.createProp({ sprite: `crop_${kind}_${stage}`, tile: [x, y], solid: false });
+      const now = G.clock.getElapsed();
+      c.crop = { kind, grown: stage === 2 ? 99 * DAY : 0, at: now, wetUntil: now + 9 * DAY };
+      G.map.placeProp(c, x, y);
+      restore.push(() => { const t = G.map.propById(c.id); if (t) G.map.removeProp(t); G.map.setFloor(x, y, "floor_grass"); });
+      return c;
+    };
+    // The player at (fx, fy) faces +x: the tiles ahead are x+1 with y-1, y, y+1.
+    const ahead = sow("rye", 2, fx + 1, fy);
+    const left = sow("rye", 2, fx + 1, fy - 1);
+    const unripe = sow("rye", 0, fx + 1, fy + 1);
+    const farOne = sow("rye", 2, fx + 3, fy);
+    const potato = sow("potato", 2, fx + 1, fy + 2);
+    me.hands.main = G.items.makeEntry("scythe", 1);
+    me.hands.off = null;
+    me.attackCooldown = 0;
+    me.stamina = me.maxStamina ?? 100;
+    G.teleport(fx, fy);
+    const p0 = G.iso.toScreen(fx, fy);
+    const p1 = G.iso.toScreen(fx + 1, fy);
+    me.aim = { sx: p1.x - p0.x, sy: p1.y - p0.y };
+    const grain0 = count("grain");
+    const seeds0 = count("rye_seed");
+    const swung = G.combat.tryAttack(me, G.zombies, "main");
+    row("a swing with the scythe harvests the two ready rye ahead and leaves the unripe one, the far one, and the potato", Array.isArray(swung) && !G.map.propById(ahead.id) && !G.map.propById(left.id) && !!G.map.propById(unripe.id) && !!G.map.propById(farOne.id) && !!G.map.propById(potato.id), `ahead ${!!G.map.propById(ahead.id)}, left ${!!G.map.propById(left.id)}, unripe ${!!G.map.propById(unripe.id)}, far ${!!G.map.propById(farOne.id)}`);
+    const [ryeLo, ryeHi] = crops.rye.harvest.count;
+    row("the grain and the seeds of the two rows went into the bag, and the tiles stay soil", count("grain") - grain0 >= 2 * ryeLo && count("grain") - grain0 <= 2 * ryeHi && count("rye_seed") - seeds0 === 2 * crops.rye.seeds && G.map.peekTile(fx + 1, fy).floor === "floor_farm" && G.map.peekTile(fx + 1, fy - 1).floor === "floor_farm", `+${count("grain") - grain0} grain, +${count("rye_seed") - seeds0} seeds`);
+    me.attackCooldown = 0;
+    me.stamina = me.maxStamina ?? 100;
+    const again = G.combat.tryAttack(me, G.zombies, "main");
+    row("a second swing over the same tiles cuts nothing more (and still swings)", Array.isArray(again) && !!G.map.propById(unripe.id) && count("rye_seed") - seeds0 === 2 * crops.rye.seeds, "no more");
+    // The unripe one, ripened, falls to the next swing; a sword cuts nothing.
+    unripe.crop.grown = 99 * DAY;
+    me.hands.main = G.items.makeEntry("sword", 1);
+    me.attackCooldown = 0;
+    me.stamina = me.maxStamina ?? 100;
+    G.combat.tryAttack(me, G.zombies, "main");
+    row("a swing with a sword cuts nothing", !!G.map.propById(unripe.id), "the ripe one stands");
+    me.hands.main = G.items.makeEntry("scythe", 1);
+    me.attackCooldown = 0;
+    me.stamina = me.maxStamina ?? 100;
+    G.combat.tryAttack(me, G.zombies, "main");
+    row("and the scythe takes it once it is ripe", !G.map.propById(unripe.id), "gone");
+    // The off hand: a scythe in the off hand harvests too.
+    const off = sow("rye", 2, fx + 1, fy);
+    me.hands.main = null;
+    me.hands.off = G.items.makeEntry("scythe", 1);
+    me.offCooldown = 0;
+    me.stamina = me.maxStamina ?? 100;
+    G.combat.tryAttack(me, G.zombies, "off");
+    row("a scythe in the off hand harvests when that hand swings", !G.map.propById(off.id), "gone");
+    me.hands.main = null;
+    me.hands.off = null;
   } finally {
     for (const r of restore.reverse()) r();
     G.world.setTimeScale(1);
