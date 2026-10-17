@@ -24,6 +24,7 @@ export async function run(game) {
     row("cooked food heals more than the raw it is made of", heal("roast_potato") > heal("potato") && heal("stew") > heal("potato") && heal("stew") > heal("cabbage") && heal("porridge") > heal("potato") && heal("bread") > heal("apple"), `roast potato ${heal("roast_potato")} over potato ${heal("potato")}; stew ${heal("stew")}; porridge ${heal("porridge")}; bread ${heal("bread")} over apple ${heal("apple")}`);
 
     // Eaten from the bag: the heal is applied, and capped at full health.
+    let exact = true;
     for (const d of defs) {
       me.hp = 50;
       me.hunger = Math.max(0, me.maxHunger - 80);
@@ -31,10 +32,10 @@ export async function run(game) {
       G.inventory.stow(me, entry);
       G.interact.itemMenu(me, entry, bag, null).find((m) => m.label === "Eat").onSelect();
       const got = me.hp - 50;
-      if (got !== (d.heal || 0)) row(`${d.id} heals exactly its heal`, false, `${got} of ${d.heal}`);
+      if (got !== (d.heal || 0)) { exact = false; row(`${d.id} heals exactly its heal`, false, `${got} of ${d.heal}`); }
       G.inventory.detach(me, entry);
     }
-    row("each food eaten from the bag heals exactly its number", rows.every((r) => r.result === "pass"), "every food, from 50 health");
+    row("each food eaten from the bag heals exactly its number", exact, "every food, from 50 health");
     me.hp = me.maxHp - 1;
     const bread = G.items.makeEntry("bread", 1);
     G.inventory.stow(me, bread);
@@ -48,7 +49,6 @@ export async function run(game) {
         me.hp = 40;
         belt[slot] = G.items.makeEntry("stew", 2);
         const id = `belt:${slot}`;
-        const first = G.interact.slotMenu(me, id)[1] || G.interact.slotMenu(me, id)[0];
         row("a food on the belt offers Eat from its slot, and not Equip", G.interact.slotMenu(me, id).some((m) => m.label === "Eat") && !G.interact.slotMenu(me, id).some((m) => m.label.startsWith("Equip")), G.interact.slotMenu(me, id).map((m) => m.label).join(", "));
         const did = actions.useSlot(id);
         row("a double-click on it eats one: health up, one fewer on the belt", did === true && me.hp === 40 + heal("stew") && belt[slot] && belt[slot].count === 1, `health ${me.hp}, ${belt[slot] ? belt[slot].count : 0} left`);

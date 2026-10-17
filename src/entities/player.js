@@ -80,6 +80,7 @@ export function aimOrigin(player) {
 // ---- needs ----
 
 export function eat(player, def) {
+  if (player.dead || !(player.hp > 0)) return; // the dead eat nothing
   player.presentFor = T.presentTime; // the held-out pose while it goes down (docs/32, item 1)
   player.hunger = Math.min(player.maxHunger, player.hunger + (def.hunger || 0));
   player.thirst = Math.min(player.maxThirst, player.thirst + (def.thirst || 0));
