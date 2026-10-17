@@ -1085,6 +1085,54 @@ export function generateTorchPost(ph) {
   };
 }
 
+// A lantern post (#156): the torch post's pole with an iron cage and a lit pane, steady. One frame; the `flame` frame is the
+// glow, drawn unlit over it, with no flicker. Anchor is the tile centre.
+export function generateLanternPost(ph) {
+  const h = 46;
+  const fw = TW;
+  const fh = TH + h;
+  const { canvas, ctx } = makeCanvas(fw, fh * 2);
+  const wood = ph.color || "#4a3324";
+  const cx = HW;
+  const cy = h + HH;
+  ctx.fillStyle = "rgba(0,0,0,0.25)";
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, 7, 3.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = wood;
+  ctx.fillRect(cx - 2, cy - h + 12, 5, h - 12);
+  ctx.fillStyle = shade(wood, 1.25);
+  ctx.fillRect(cx - 2, cy - h + 12, 2, h - 12);
+  drawLanternBody(ctx, cx, cy - h + 12);
+  const frameMap = { idle_0: [0, 0, fw, fh], flame_0: [0, fh, fw, fh] };
+  // The glow: a soft warm halo about the pane, on its own frame.
+  const gy = fh + cy - h + 6;
+  drawGlow(ctx, cx + 0.5, gy, 15, 0.5);
+  ctx.fillStyle = "#ffd98a";
+  ctx.fillRect(cx - 3, gy - 5, 7, 9);
+  return {
+    image: canvas,
+    frames: frameMap,
+    anchor: [HW, h + HH],
+    animations: { idle: { fps: 0, loop: true, frames: 1 } },
+    facings: [],
+    mirror: {},
+    bounds: { x: HW - 8, y: 0, w: 16, h: fh },
+  };
+}
+
+// The lantern's iron cage with its pane, hanging from (x, y): the top of the cage there. Shared by the post and the bracket.
+export function drawLanternBody(ctx, x, y) {
+  ctx.fillStyle = METAL;
+  ctx.fillRect(x - 4, y - 2, 9, 3); // the cap
+  ctx.fillRect(x - 1, y - 5, 3, 3); // the ring
+  ctx.fillRect(x - 4, y + 12, 9, 2); // the foot
+  ctx.fillRect(x - 4, y + 1, 1, 11); // the bars
+  ctx.fillRect(x + 4, y + 1, 1, 11);
+  ctx.fillStyle = "#e6b45a";
+  ctx.fillRect(x - 3, y + 1, 7, 11); // the pane
+}
+
 // A torch flame as a sheet of its own, three frames with the base at the
 // anchor, so the WebGL renderer can draw bracket and hand torches from the
 // atlas like every other flame.

@@ -1260,7 +1260,7 @@
        "side": "w",
        "at": 0,
        "facing": "in",
-       "torch": true
+       "lantern": true
       }
      ]
     }
@@ -1895,13 +1895,13 @@
        "side": "n",
        "at": 5,
        "facing": "in",
-       "torch": true
+       "lantern": true
       },
       {
        "side": "w",
        "at": 4,
        "facing": "out",
-       "torch": true
+       "lantern": true
       }
      ]
     },
@@ -2027,13 +2027,13 @@
        "side": "s",
        "at": 0,
        "facing": "in",
-       "torch": true
+       "lantern": true
       },
       {
        "side": "s",
        "at": 8,
        "facing": "in",
-       "torch": true
+       "lantern": true
       }
      ]
     }
@@ -2469,7 +2469,7 @@
        "side": "n",
        "at": 4,
        "facing": "in",
-       "torch": true
+       "lantern": true
       }
      ]
     }
@@ -2736,13 +2736,13 @@
        "side": "n",
        "at": 6,
        "facing": "in",
-       "torch": true
+       "lantern": true
       },
       {
        "side": "e",
        "at": 5,
        "facing": "in",
-       "torch": true
+       "lantern": true
       }
      ]
     }
@@ -3049,13 +3049,13 @@
        "side": "n",
        "at": 7,
        "facing": "in",
-       "torch": true
+       "lantern": true
       },
       {
        "side": "w",
        "at": 5,
        "facing": "in",
-       "torch": true
+       "lantern": true
       }
      ]
     },
@@ -3138,7 +3138,7 @@
        "side": "n",
        "at": 6,
        "facing": "in",
-       "torch": true
+       "lantern": true
       }
      ]
     }
@@ -3285,7 +3285,7 @@
        "side": "n",
        "at": 5,
        "facing": "in",
-       "torch": true
+       "lantern": true
       }
      ]
     }
@@ -3387,7 +3387,7 @@
        "side": "n",
        "at": 4,
        "facing": "in",
-       "torch": true
+       "lantern": true
       }
      ]
     },
@@ -3643,7 +3643,7 @@
        "side": "n",
        "at": 6,
        "facing": "in",
-       "torch": true
+       "lantern": true
       }
      ]
     }
@@ -3772,7 +3772,7 @@
        "side": "n",
        "at": 5,
        "facing": "in",
-       "torch": true
+       "lantern": true
       }
      ]
     },
@@ -3919,7 +3919,7 @@
        "side": "w",
        "at": 3,
        "facing": "out",
-       "torch": true
+       "lantern": true
       }
      ]
     }
@@ -4043,7 +4043,7 @@
        "side": "w",
        "at": 0,
        "facing": "in",
-       "torch": true
+       "lantern": true
       }
      ]
     }
@@ -4189,7 +4189,7 @@
        "side": "n",
        "at": 4,
        "facing": "in",
-       "torch": true
+       "lantern": true
       }
      ]
     }
@@ -4313,7 +4313,7 @@
        "side": "w",
        "at": 0,
        "facing": "in",
-       "torch": true
+       "lantern": true
       }
      ]
     }
@@ -4437,7 +4437,7 @@
        "side": "w",
        "at": 0,
        "facing": "in",
-       "torch": true
+       "lantern": true
       }
      ]
     },
@@ -4599,7 +4599,7 @@
        "side": "w",
        "at": 0,
        "facing": "in",
-       "torch": true
+       "lantern": true
       }
      ]
     }
@@ -4745,7 +4745,7 @@
        "side": "n",
        "at": 4,
        "facing": "in",
-       "torch": true
+       "lantern": true
       }
      ]
     }
@@ -5012,7 +5012,7 @@
        "side": "n",
        "at": 5,
        "facing": "in",
-       "torch": true
+       "lantern": true
       }
      ]
     }
@@ -5375,28 +5375,25 @@
    ]
   },
   {
-   "sprite": "torch_post",
+   "sprite": "lantern_post",
    "tile": [
     84,
     163
-   ],
-   "torch": true
+   ]
   },
   {
-   "sprite": "torch_post",
+   "sprite": "lantern_post",
    "tile": [
     95,
     154
-   ],
-   "torch": true
+   ]
   },
   {
-   "sprite": "torch_post",
+   "sprite": "lantern_post",
    "tile": [
     84,
     154
-   ],
-   "torch": true
+   ]
   },
   {
    "sprite": "maypole",
