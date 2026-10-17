@@ -10,6 +10,7 @@ import * as iso from "../iso.js";
 const CHUNK = 16;
 export const ZOOMS = [2, 4, 8]; // pixels of height of a tile's diamond; its width is twice that
 const ZOOM_PACE = 150; // ms between wheel steps that count
+const FORGET_EVERY = 60; // frames between looks for chunk canvases that were not drawn lately
 const PLACE_REVEAL_EVERY = 30; // frames between looks at whether a place has any tile charted yet
 const BG = "#14111a";
 const SELF = "#f2c14e";
@@ -24,7 +25,7 @@ let ctx = null;
 let open = false;
 let font = "11px sans-serif";
 const view = { zoom: 1, gx: 0, gy: 0, following: true };
-const drawn = new Map(); // "cx,cy" -> { canvas, v, h }
+const drawn = new Map(); // "cx,cy" -> { canvas, v, h, last }; one not drawn for a while is dropped (a whole explored valley at the close zoom would hold tens of MB)
 const revealed = new Set(); // place indexes with a charted tile (the chart never un-charts, so one yes is for good)
 let frames = 0;
 let drag = null;
@@ -65,6 +66,7 @@ export function initMapPanel() {
   });
   window.addEventListener("mousemove", (e) => {
     if (!drag) return;
+    if (!(e.buttons & 1)) { drag = null; return; } // the button was let go outside the window: no mouseup came
     const k = scaleOf();
     panBy((e.clientX - drag.x) / k, (e.clientY - drag.y) / k);
     drag = { x: e.clientX, y: e.clientY };
@@ -131,6 +133,27 @@ function panBy(dx, dy) {
   view.gx += (u + v) / 2;
   view.gy += (v - u) / 2;
   view.following = false;
+  clampToChart();
+}
+
+const PAN_MARGIN = 8; // tiles of the dark the middle of the panel may go past the charted land
+
+// The middle of the panel stays within the charted land and a margin, so a drag cannot lose the map in the dark (Centre also brings it back).
+function clampToChart() {
+  const cs = chart.chartedChunks();
+  if (!cs.length) return;
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const c of cs) {
+    x0 = Math.min(x0, c.cx * CHUNK);
+    y0 = Math.min(y0, c.cy * CHUNK);
+    x1 = Math.max(x1, c.cx * CHUNK + CHUNK);
+    y1 = Math.max(y1, c.cy * CHUNK + CHUNK);
+  }
+  view.gx = Math.max(x0 - PAN_MARGIN, Math.min(x1 + PAN_MARGIN, view.gx));
+  view.gy = Math.max(y0 - PAN_MARGIN, Math.min(y1 + PAN_MARGIN, view.gy));
 }
 
 function onWheel(e) {
@@ -252,6 +275,7 @@ function text(s, x, y, color = "#fff") {
 export function update(state) {
   if (!open || !root) return;
   size();
+  frames++;
   const { player, players = [], places = [] } = state;
   if (view.following && player) { view.gx = player.gx; view.gy = player.gy; }
   const W = canvas.width;
@@ -270,13 +294,14 @@ export function update(state) {
     if (left > W || top > Hh || left + CHUNK * w < 0 || top + CHUNK * h < 0) continue;
     let e = drawn.get(`${c.cx},${c.cy}`);
     if (!e || e.v !== c.v || e.h !== h) e = paintChunk(c, h);
+    e.last = frames;
     ctx.drawImage(e.canvas, left, top);
   }
+  if (frames % FORGET_EVERY === 0) for (const [k, e] of drawn) if (frames - (e.last ?? 0) > FORGET_EVERY) drawn.delete(k);
   ctx.font = font;
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
   // A place's name, once any of its tiles is charted; one that would sit on another's is left out.
-  frames++;
   if (frames % PLACE_REVEAL_EVERY === 1) {
     places.forEach((p, i) => {
       if (revealed.has(i)) return;
@@ -293,7 +318,7 @@ export function update(state) {
     const at = project(p.box[0] + p.box[2] / 2 - 0.5, p.box[1] + p.box[3] / 2 - 0.5);
     const tw = ctx.measureText(p.name).width + 4;
     const r = [at.x - tw / 2, at.y - 7, tw, 14];
-    if (r[0] > W || r[0] + r[2] < 0 || r[1] > Hh || r[1] + r[3] < 0) continue;
+    if (r[0] < 0 || r[0] + r[2] > W || r[1] < 0 || r[1] + r[3] > Hh) continue; // a name cut by the edge of the panel is left out
     if (placed.some((q) => r[0] < q[0] + q[2] && q[0] < r[0] + r[2] && r[1] < q[1] + q[3] && q[1] < r[1] + r[3])) continue;
     placed.push(r);
     shownLabels.push(p.name);

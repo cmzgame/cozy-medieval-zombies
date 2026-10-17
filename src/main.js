@@ -845,7 +845,6 @@ function handleEscape() {
   if (!inWorld) { screens.back(); return; } // no world: the title and its screens only
   if (menu.tookEscape()) return;
   if (use.cancel()) return; // Use mode is the top thing that can close
-  if (mapPanel.close()) return; // the map is a panel over the world: Escape shuts it before the pause menu (docs/33)
   if (stationPanel.close()) return;
   if (screens.back()) return;
   if (buildPalette.isOpen()) {
@@ -858,6 +857,7 @@ function handleEscape() {
     openBag = null;
     return;
   }
+  if (mapPanel.close()) return; // the map sits under every other panel, so Escape closes those first, and it before the pause menu (docs/33)
   screens.show("pause");
 }
 

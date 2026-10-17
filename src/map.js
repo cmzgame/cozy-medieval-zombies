@@ -2239,7 +2239,7 @@ export function loadMap(json, options = {}) {
   for (const s of json.sets || []) {
     if (!s.name) continue;
     const fp = setFootprint(s);
-    if (!fp.length) continue;
+    if (fp.length < 4) continue; // a one-tile set is a thing (a barrel, a well), not a place
     let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
     for (const [x, y] of fp) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
     places.push({ name: s.name, box: [x0, y0, x1 - x0 + 1, y1 - y0 + 1] });

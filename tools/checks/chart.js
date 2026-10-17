@@ -193,7 +193,7 @@ export async function run(game) {
     const box = cv().getBoundingClientRect();
     const at0 = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
     cv().dispatchEvent(new MouseEvent("mousedown", { button: 0, clientX: at0.x, clientY: at0.y, bubbles: true }));
-    window.dispatchEvent(new MouseEvent("mousemove", { clientX: at0.x + 60, clientY: at0.y - 30, bubbles: true }));
+    window.dispatchEvent(new MouseEvent("mousemove", { buttons: 1, clientX: at0.x + 60, clientY: at0.y - 30, bubbles: true }));
     window.dispatchEvent(new MouseEvent("mouseup", { button: 0, bubbles: true }));
     frame();
     const panned = mp.viewState();
@@ -272,6 +272,39 @@ export async function run(game) {
     const reopened = mp.isOpen();
     tap("KeyM");
     row("M opens it and M shuts it", reopened && !mp.isOpen(), `reopened ${reopened}; after the second tap ${mp.isOpen()}`);
+    // The review of #235: the map is under the other panels, Escape closes the top one first, a drag cannot lose the map, and a drag released outside the window stops.
+    tap("KeyM");
+    const zMap = Number(getComputedStyle(document.getElementById("map-panel")).zIndex);
+    const zBag = Number(getComputedStyle(document.getElementById("inventory")).zIndex);
+    tap("Tab");
+    const bagUp = G.panel.isOpen();
+    key("Escape");
+    key("Escape", "keyup");
+    const afterFirst = [G.panel.isOpen(), mp.isOpen()];
+    key("Escape");
+    key("Escape", "keyup");
+    row("the map sits under the bag (z-index), and Escape closes the bag first and then the map, the pause menu last", zMap < zBag && bagUp && afterFirst[0] === false && afterFirst[1] === true && !mp.isOpen() && !G.screens.currentScreen(), `z ${zMap} against ${zBag}; after the first Escape bag ${afterFirst[0]}, map ${afterFirst[1]}; after the second map ${mp.isOpen()}`);
+    tap("KeyM");
+    chart.restore({ chunks: [] });
+    chart.reveal(me.gx, me.gy);
+    mp.centreOn(me.gx, me.gy);
+    frame();
+    const box2 = cv().getBoundingClientRect();
+    const c2 = { x: box2.left + box2.width / 2, y: box2.top + box2.height / 2 };
+    cv().dispatchEvent(new MouseEvent("mousedown", { button: 0, buttons: 1, clientX: c2.x, clientY: c2.y, bubbles: true }));
+    window.dispatchEvent(new MouseEvent("mousemove", { buttons: 1, clientX: c2.x - 6000, clientY: c2.y + 3000, bubbles: true }));
+    window.dispatchEvent(new MouseEvent("mouseup", { button: 0, bubbles: true }));
+    const farView = mp.viewState();
+    const charted = chart.chartedChunks();
+    const lo = [Math.min(...charted.map((c) => c.cx)) * 16 - 8, Math.min(...charted.map((c) => c.cy)) * 16 - 8];
+    const hi = [Math.max(...charted.map((c) => c.cx)) * 16 + 16 + 8, Math.max(...charted.map((c) => c.cy)) * 16 + 16 + 8];
+    const held = mp.viewState();
+    cv().dispatchEvent(new MouseEvent("mousedown", { button: 0, buttons: 1, clientX: c2.x, clientY: c2.y, bubbles: true }));
+    window.dispatchEvent(new MouseEvent("mousemove", { buttons: 0, clientX: c2.x + 200, clientY: c2.y, bubbles: true })); // released outside: the next move has no button down
+    const stopped = mp.viewState();
+    row("a drag cannot take the middle of the panel past the charted land, and one released outside the window stops", farView.gx >= lo[0] && farView.gx <= hi[0] && farView.gy >= lo[1] && farView.gy <= hi[1] && stopped.gx === held.gx && stopped.gy === held.gy, `the middle at ${farView.gx.toFixed(0)},${farView.gy.toFixed(0)} within ${lo}..${hi}; a move with no button panned ${stopped.gx !== held.gx || stopped.gy !== held.gy}`);
+    window.dispatchEvent(new MouseEvent("mouseup", { button: 0, bubbles: true }));
+    mp.close();
 
     // 11. The reveal's cost in open, uncharted land (the profile's number).
     chart.restore({ chunks: [] });
