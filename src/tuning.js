@@ -94,6 +94,8 @@ export const world = {
   containerCloseDist: 2.0, // tiles: an open container closes when you walk away
   beltLight: 0.5, // a lit torch on the belt gives this much of its light (docs/02)
   twoTorches: 1.35, // a torch in each hand: this much of one torch's light, and seen from this much further
+  playerCapBrowser: 4, // the players a world hosted in a browser holds at once, the host's own among them (Michael, #93)
+  playerCapServer: 8, // and a server world (raised in one line when the lighter frames of docs/31/05 land)
 };
 
 const sections = { zombie, player, villager, world };

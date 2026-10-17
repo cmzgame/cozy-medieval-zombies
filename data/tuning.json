@@ -75,6 +75,8 @@
     "evictChunks": 8,
     "containerCloseDist": 2.0,
     "beltLight": 0.5,
-    "twoTorches": 1.35
+    "twoTorches": 1.35,
+    "playerCapBrowser": 4,
+    "playerCapServer": 8
   }
 }

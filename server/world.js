@@ -54,8 +54,8 @@ const say = (text) => console.log(`${new Date().toISOString()} [${path.basename(
 // ---- the world ----
 const boot = await bootData(root);
 const imp = (p) => import(pathToFileURL(path.join(root, p)).href);
-const [game, loop, net, host, rules, save, map] = await Promise.all([
-  imp("src/game.js"), imp("src/loop.js"), imp("src/net.js"), imp("src/host.js"), imp("src/rules.js"), imp("src/save.js"), imp("src/map.js"),
+const [game, loop, net, host, rules, save, map, tuning] = await Promise.all([
+  imp("src/game.js"), imp("src/loop.js"), imp("src/net.js"), imp("src/host.js"), imp("src/rules.js"), imp("src/save.js"), imp("src/map.js"), imp("src/tuning.js"),
 ]);
 
 const SAVE = path.join(dir, "save.json.gz");
@@ -242,7 +242,7 @@ if (makeOnly) {
 }
 
 // ---- the host ----
-host.init({ store: () => store, save: () => requestSave("an event"), self: () => null, arrived: () => {} });
+host.init({ cap: () => tuning.world.playerCapServer, store: () => store, save: () => requestSave("an event"), self: () => null, arrived: () => {} });
 host.install();
 
 let stopping = false;
