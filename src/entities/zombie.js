@@ -768,7 +768,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         z.repathTimer = 0;
         break;
       }
-      if (!z.seesNow && z.sincePlayer > 20) {
+      if (!z.seesNow && z.sincePlayer > 20 && !(z.siege && siegeOn(z, players))) { // a held siege knows where the player is without seeing them
         z.press = null;
         startSearch(z);
         break;
