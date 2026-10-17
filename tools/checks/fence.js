@@ -112,6 +112,39 @@ export async function run(game) {
     biter.press = null;
     row("a dead one bites a player over a fence", G.map.isFence(southWall) && bites.length > 0, `${bites.length} bites in four seconds across the south fence`);
 
+    // ---- a dead one that is pressing the fence bites too (#167): the press state has the chase's bite ----
+    for (const z of dead) { z.gx = cx + 80; z.gy = cy + 80; z.aggro = false; z.state = "idle"; z.path = []; z.press = null; } // the others away: only this one is at the yard
+    G.map.buildWall(north[0], north[1], north[2], "wall", "wall_fence"); // the yard closed again, so it has no way in but the fence
+    const pressBites = [];
+    const offPress = G.events.on("bitten", (e) => pressBites.push(e));
+    const hpP = me.hp;
+    G.teleport(cx, cy);
+    const presser = dead[1];
+    presser.gx = cx;
+    presser.gy = cy + 4;
+    presser.path = [];
+    presser.breach = null;
+    presser.press = null;
+    presser.state = "chase";
+    presser.aggro = true;
+    presser.noWay = 0;
+    presser.attackCooldown = 0;
+    presser.lastSeen = [cx, cy];
+    let pressing = false;
+    for (let i = 0; i < 60 * 20 && !pressing; i++) { step(1); pressing = presser.state === "press"; }
+    G.teleport(cx, cy + 1.2); // steps up to the fence it is pressing
+    pressBites.length = 0;
+    step(60 * 4);
+    offPress();
+    me.hp = hpP;
+    G.teleport(cx, cy);
+    presser.aggro = false;
+    presser.state = "idle";
+    presser.press = null;
+    presser.gx = cx + 80;
+    presser.gy = cy + 80;
+    row("a dead one pressing the fence bites a player who steps up to it", pressing && pressBites.length > 0, `${pressing ? "was pressing" : "never pressed"}, ${pressBites.length} bites in four seconds`);
+
     // ---- a house in a fenced yard is no safe spot, and a gate goes first ----
     for (const [x, y, e] of ring) if (G.map.tileAt(x, y)[e]) G.map.destroyWall(x, y, e);
     const yard = [];
@@ -136,7 +169,10 @@ export async function run(game) {
       bursts.length = 0;
       step(2);
     };
-    const startDead = (list) => list.forEach((z, i) => { z.gx = cx + (i % 2 ? 0.6 : -0.6) + (i > 1 ? 0.8 : 0); z.gy = cy - 6.5 - (i > 1 ? 1 : 0); z.path = []; z.breach = null; z.press = null; z.state = "chase"; z.aggro = true; z.noWay = 0; z.lastSeen = [cx, cy]; });
+    // The dead start together, in line with the window and the one edge they press, so a crowd is on one section (a crowd that arrives
+    // spread out settles on several and may never burst one: its own issue). They know the player is in the house (their last sighting is
+    // inside it), so none gives up pressing unseen (#171).
+    const startDead = (list) => list.forEach((z, i) => { z.gx = cx + (i - 1.5) * 0.25; z.gy = cy - 6.5 - (i > 1 ? 1 : 0); z.path = []; z.breach = null; z.press = null; z.repathTimer = 0; z.pathFailed = false; z.state = "chase"; z.aggro = true; z.noWay = 0; z.lastSeen = [cx, cy]; });
     for (const z of dead) z.gx = cx + 90;
     // A yard with no gate: they cross the fence nearest their way.
     setUp(false);
@@ -175,6 +211,16 @@ export async function run(game) {
     let t4 = 0;
     while (t4 < 60 * 170 && bursts.length === 0) { step(1); t4++; }
     row("the siege presses too: the dead that know the player is in the house burst the fence across their way", bursts.length > 0 && standing() === before3 - 1, `after ${(t4 / 60).toFixed(0)} s, states ${sieged.map((z) => z.state).join(",")}`);
+
+    // ---- by day a fenced house is no safe spot either (#171): a dead one that knows the player is in a room keeps pressing unseen ----
+    setUp(false, false); // the window shut: it cannot see the player
+    G.clock.setHour(12);
+    dead.forEach((z) => { z.gx = cx + 80; z.gy = cy + 80; z.aggro = false; z.state = "idle"; z.path = []; z.press = null; z.siege = null; });
+    startDead([dead[0]]);
+    dead[0].siege = null;
+    let held = 0;
+    for (let i = 0; i < 60 * 50; i++) { step(1); if (dead[0].state === "press") held++; }
+    row("a dead one that knows the player is in a room keeps pressing the fence unseen, past pressGiveUp (day: no siege)", held > 60 * (G.tuning.zombie.pressGiveUp + 10), `${(held / 60).toFixed(0)} s of 50 in the press state (it gives up after ${G.tuning.zombie.pressGiveUp} s for one last seen in the open)`);
   } finally {
     offBurst();
     offShake();
