@@ -27,15 +27,15 @@ Merged since the sweep, all reviewed and synced to the wiki: the menus and the s
 
 ## Open work, by milestone
 
-Issues #18 to #55 were filed by the bot and are hidden while it is flagged; they exist and count on their milestones.
+Issues #18 to #55 were filed by the bot and are hidden while it is flagged. **The ones the valley needs are filed again with new scopes** (Michael, 2026-10-18, `docs/02`), each naming the number it stands for; when the bot is back, each original is read against what was built and closed (#71). The rest stay hidden for their own steps.
 
 - **00 · Process and infrastructure:** the bot's reinstatement #71; the wiki's publishing build without `--check` #3; the wiki's loose ends #68.
 - **00 · Bugs:** a guest's held-out pose when it drinks #122; `check("players")` after `check("save")` #132. An unverified bug goes to `docs/bugs.md`.
-- **01 · The valley and skilling:** the starting kit as data and a world choice #136; torches burn down, the tinderbox, lanterns #156; hiding a worn item's art #159; building's leftovers #104; the NPC pass #103; region, never biome #135; Take All #10; the engine's chores (#124, #100, #99).
-- **01 · The valley: farming (big pass step 4)** (`docs/30` sections 8 to 10): farming #20; the farms and the mill #21; the bucket #22; the scythe and flour #23; a hatchet and a stump #18; lighting a fire #19.
-- **01 · The valley: the 1.0 map, steps 5 to 9** (`docs/30` section 11): the castle and the bridge road #24; the forest places #25; dressing and the edges #26; chickens, deer, the tannery #27; fishing #28; the map's open questions #92.
-- **01 · The valley: talk** (`docs/34`): the data, the module, and the guide #37; barks #38; conversations #39.
-- **01 · The valley: the map on M** (`docs/33`): the chart #35; the panel #36.
+- **01 · The valley and skilling:** a hatchet fells a tree and leaves a stump #195 (was #18); mining, the iron workings and the quarry #196, and charcoal #197 (both from #25); apple trees and fishing #190; the starting kit as data and a world choice #136; torches burn down, the tinderbox, lanterns #156; hiding a worn item's art #159; building's leftovers #104; the NPC pass #103; region, never biome #135; Take All #10; the engine's chores (#124, #100, #99).
+- **01 · The valley: farming (big pass step 4)** (`docs/30` sections 8 to 10): farming #194 (was #20); the bucket #199 (was #22); the farms and the mill, flour with them #201 (was #21 and half of #23); the scythe #200 (was the other half of #23). Lighting a fire (#19) is built (#169).
+- **01 · The valley: the 1.0 map, steps 5 to 9** (`docs/30` section 11): the map's open questions #92; fishing joined apple trees in #190 (was #28). Still hidden for later: the castle and the bridge road #24; the forest places #25 beyond the mine and the charcoal burners; dressing and the edges #26; chickens, deer, the tannery #27.
+- **01 · The valley: talk** (`docs/34`): the data, barks, and the guide #198 (was #37 and #38); conversations and the guide's questions #202 (was #39).
+- **01 · The valley: the map on M** (`docs/33`): the chart #203 (was #35); the panel #204 (was #36).
 - **01 · The menus and the site** (`docs/38`): #16; Michael's fullscreen check #112.
 - **01 · Art owed (docs/26):** the hand items #46; the tools #47; the icons and portraits #48; the art exporter #44; the spot checks #45; the art asks #105.
 - **02 · Zombies and combat:** the combat pass #89 (after Michael's session); armour and difficulty #133; the siege #147; darkness's loose ends #158.
@@ -44,5 +44,5 @@ Issues #18 to #55 were filed by the bot and are hidden while it is flagged; they
 - **04 · Playing together, and telemetry:** Play with friends #143; telemetry #144; the Full dot #139; speech lines on a server world #154; the seams #102; a duplication count for the sync check #101.
 - **07 · The name:** the business decisions of `docs/35` #94.
 - **10 · The regions and release:** the game's final shape #123.
-- **Hidden, their milestones unseen until the bot is back (#71):** the background probe #49; the fireball's cost and area #50; the throwing knives and axes #51; the floor stamp in build mode #52; the painted held slot #53; more one-handed weapons #54; `docs/12`'s spec sheet #55. #50, #51, and #54 belong to `02 ·`; moving them is on #71's list. (#18 and #19 may sit on the 1.0 map's milestone rather than farming's.)
+- **Hidden, their milestones unseen until the bot is back (#71):** the background probe #49; the fireball's cost and area #50; the throwing knives and axes #51; the floor stamp in build mode #52 (moot now the map is generated; to close when the bot is back); the painted held slot #53; more one-handed weapons #54; `docs/12`'s spec sheet #55. #50, #51, and #54 belong to `02 ·`; moving them is on #71's list.
 - **No milestone, by design:** the someday list #106 (`docs/05`).
