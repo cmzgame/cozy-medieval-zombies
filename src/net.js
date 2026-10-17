@@ -105,8 +105,10 @@ export function makeCode() {
 // guest on another with a word for whose is newer.
 // 2 (2026-10-13): the dead as a delta with a roster, numbers rounded; 3 (2026-10-14, item 5's fourth step): the welcome may
 // come gzipped (`z`); 4 (2026-10-15): a browser host packs its welcome in the background, so the welcome carries the tick
-// of its snapshot and a guest keeps the frames that come before it (an older guest dropped them).
-export const PROTOCOL = 4;
+// of its snapshot and a guest keeps the frames that come before it (an older guest dropped them); 5 (2026-10-18, #221): a prop goes as its identity and
+// the fields that differ from what its sprite makes it (`map.serializeProp`), so a chunk, a frame, and a save are about half the size; an older guest
+// would read a prop with its defaults missing.
+export const PROTOCOL = 5;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
