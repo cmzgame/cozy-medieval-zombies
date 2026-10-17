@@ -132,6 +132,41 @@ check("the save's version is 2 and a version-1 save is upgraded with the rules (
   return `multiHit ${up.rules.multiHit}, survival ${up.rules.survival}; a newer or unversioned save refused`;
 });
 
+// The doors of every authored map stand clear (#134): the dead who want a room go for its door and must be able to stand
+// beside it, so no prop stands on either tile of a door (a chair just past a partition door once left a window the only
+// way in, and a window is never one). The generator (tools/mapgen/valley.py) keeps to it; this is the proof.
+const { bootData } = await import("../server/boot.js");
+await import("../src/net.js");
+const mapMod = await import("../src/map.js");
+const gameMod = await import("../src/game.js");
+await bootData(root);
+for (const file of fs.readdirSync(path.join(root, "data", "maps")).filter((f) => f.endsWith(".json"))) {
+  check(`maps: no prop stands on a door's tiles (${file})`, () => {
+    const json = read(`data/maps/${file}`);
+    gameMod.create({ json, rules: { zombieAggro: false } });
+    const [bx, by, bw, bh] = json.bounds;
+    const C = mapMod.CHUNK;
+    for (let cy = Math.floor(by / C); cy <= Math.floor((by + bh) / C); cy++) for (let cx = Math.floor(bx / C); cx <= Math.floor((bx + bw) / C); cx++) mapMod.getChunk(cx, cy, true);
+    let doors = 0;
+    const bad = [];
+    for (let y = by - 1; y <= by + bh; y++) {
+      for (let x = bx - 1; x <= bx + bw; x++) {
+        for (const edge of ["n", "w"]) {
+          const w = mapMod.tileAt(x, y)[edge];
+          if (!w || w.kind !== "door") continue;
+          doors++;
+          for (const [tx, ty] of mapMod.edgeTiles(x, y, edge)) {
+            const prop = mapMod.tileAt(tx, ty).prop;
+            if (prop) bad.push(`${prop.sprite} at ${tx},${ty} by the door at ${x},${y}${edge}`);
+          }
+        }
+      }
+    }
+    assert(!bad.length, `${bad.length} on a door's tiles: ${bad.slice(0, 4).join("; ")}`);
+    return `${doors} doors, every tile beside one clear`;
+  });
+}
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;

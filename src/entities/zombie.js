@@ -13,7 +13,7 @@ import { rules } from "../rules.js";
 import { wardrobeCount } from "../figure.js";
 import { createCharacter, wardrobeInto, dressCorpse, say } from "./character.js";
 import * as iso from "../iso.js";
-import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, floorSpeedAt } from "../map.js";
+import { moveCircle, isWalkableTile, nearestWalkable, tileAt, getRoom, breachTarget, breachTargets, damageOpening, wayOpen, needsBreaking, floorSpeedAt } from "../map.js";
 import { lineOfSight } from "../visibility.js";
 import * as light from "../light.js";
 import * as clock from "../clock.js";
@@ -54,6 +54,7 @@ export function createZombie(gx, gy, { id = null, hp = T.hp, aggro = false } = {
     attackHit: false,
     pathFailed: false,
     breach: null, // { wall, tx, ty, edge, stand, side, into } while breaking in
+    noWay: 0, // seconds left in which no way in is looked for again (T.noWayTime): none was found, so it searches instead
     sincePlayer: Infinity, // seconds since the player was last seen
     stuckTime: 0,
     hits: [], // when the player's blows landed, for the third-hit rule (combat.js)
@@ -208,19 +209,22 @@ function goalRoom(z) {
   return tileAt(Math.round(z.lastSeen[0]), Math.round(z.lastSeen[1])).room;
 }
 
-// The way in to a room the dead want (nobody climbs through a window, so only a door): the nearest door of it they can
-// walk to and stand beside. When none can be walked to, because each opens from another shut room (a hall, a porch,
-// a house within a house), it is the door into that room they go for first, and so on a few rooms deep. `want` is the
-// room they are after, kept on the target so the breach is not dropped for leading into a room that is not it.
+// The way in to a room the dead want: the nearest opening of it they can walk to and stand beside. A door is the way in
+// (nobody climbs through a window), and a window still shut or boarded is battered open for sight, never to pass
+// (Michael, #134): so the nearest of the doors and those windows, and once a window is open only the doors are left, or,
+// with no door they can reach, nothing, and they search. When no door can be walked to, because each opens from another
+// shut room (a hall, a porch, a house within a house), it is the door into that room they go for first, and so on a few
+// rooms deep (doors only, the windows of the rooms between would get them nothing). `want` is the room they are after,
+// kept on the target so the breach is not dropped for leading into a room that is not it.
 function wayIn(z, room, want, seen = new Set([room.id]), depth = 0) {
-  const doors = breachTargets(room, z.gx, z.gy);
+  const doors = breachTargets(room, z.gx, z.gy, 0, depth === 0);
   const direct = doors.find((c) => canReach(z, c.stand));
   if (direct) return direct;
   if (depth >= 3) return null;
   let best = null;
   for (const c of doors) {
     const from = tileAt(c.stand[0], c.stand[1]).room;
-    if (from <= 0 || seen.has(from)) continue;
+    if (c.wall.kind !== "door" || from <= 0 || seen.has(from)) continue;
     seen.add(from);
     const outer = getRoom(from);
     const t = outer ? wayIn(z, outer, want, seen, depth + 1) : null;
@@ -388,6 +392,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
   }
   if (updateHurt(z, dt, sheet)) return;
   z.attackCooldown = Math.max(0, z.attackCooldown - dt);
+  if (z.noWay > 0) z.noWay -= dt;
   z.repathTimer -= dt;
   z.sightTimer -= dt;
   z.sincePlayer += dt;
@@ -486,11 +491,13 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       // A sighting on a solid tile (a campfire, a lantern on a post) is
       // walked to from beside it.
       if (!isWalkableTile(goal[0], goal[1])) goal = nearestWalkable(goal[0], goal[1]) || goal;
+      const repathTimer0 = z.repathTimer;
       const arrived = moveToward(z, dt, goal, others);
       // No way there and the goal is in a room: go for the room's nearest
       // opening and break in (docs/09). Only when the dead are not in that
-      // room already.
-      if (z.pathFailed) {
+      // room already, and only on the step a path has just failed (not through the backoff after it: choosing a way
+      // in searches paths), and not again for T.noWayTime after finding none.
+      if (z.pathFailed && z.repathTimer > repathTimer0 && !(z.noWay > 0)) {
         const roomId = goalRoom(z);
         const here = tileAt(Math.round(z.gx), Math.round(z.gy)).room;
         // Shut in a room with the goal elsewhere: break out of this one
@@ -499,6 +506,8 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         if (here > 0 && here !== roomId) {
           const room = getRoom(here);
           target = room ? breachTarget(room, z.gx, z.gy, roomId) : null; // out by the door that leads toward the goal's room
+          // That door already open (or broken) is no way out that was not there: the goal's room is the shut one.
+          if (target && wayOpen(target.wall)) target = roomId > 0 && getRoom(roomId) ? wayIn(z, getRoom(roomId), roomId) : null;
         } else if (roomId > 0 && here !== roomId) {
           const room = getRoom(roomId);
           target = room ? wayIn(z, room, roomId) : null;
@@ -506,6 +515,13 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         }
         if (target) {
           startBreach(z, target);
+          break;
+        }
+        // Nothing to break into by: no door it can reach (and no window left to batter). Search round the sighting, and
+        // leave the goal alone for a while rather than press at a wall.
+        if ((here > 0 || roomId > 0) && here !== roomId) {
+          z.noWay = T.noWayTime;
+          startSearch(z);
           break;
         }
       }
@@ -540,13 +556,14 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         if (z.pathFailed) {
           // Cannot even reach the opening: give the search a go instead.
           z.breach = null;
+          z.noWay = T.noWayTime;
           startSearch(z);
         }
         break;
       }
       faceToward(z, mx - z.gx, my - z.gy);
-      // The way is open: through the doorway (a window is never the way, `breachTarget` picks doors alone).
-      if (wayOpen(b.wall)) {
+      // The way is open: through the doorway, or the window battered open to see through (a window is never the way).
+      if (b.wall.kind === "door" ? wayOpen(b.wall) : !needsBreaking(b.wall)) {
         z.breach = null;
         z.state = "chase";
         z.repathTimer = 0;
@@ -580,7 +597,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
     case "search": {
       // Look around the last sighting: short walks nearby, then give up.
       z.searchTimer -= dt;
-      if (z.seesNow) {
+      if (z.seesNow && !(z.noWay > 0)) {
         z.state = "chase";
         z.repathTimer = 0;
         break;

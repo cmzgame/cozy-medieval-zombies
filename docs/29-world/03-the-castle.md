@@ -90,7 +90,7 @@ Each entry: what it is, what is in it, and why it earns its place (the cost of b
 
 ### The ring
 
-- **The curtain wall**: `wall_castle`, 48 tiles square outside, with arrow slits every six tiles. The four **corner towers** are six by six outer in `wall_tower`, each with one door onto the bailey and slits on its two outer faces. Nothing climbs a slit, so a tower with its door shut is the safest room on the map, which is the point of towers.
+- **The curtain wall**: `wall_castle`, 48 tiles square outside, with arrow slits every six tiles. The four **corner towers** are six by six outer in `wall_tower`, each with one door onto the bailey and slits on its two outer faces. Nothing passes a slit, as nothing passes any window (#134), so a tower's one way in is its door, and a shut stone door is the safest room on the map, which is the point of towers.
 - **The moat** three wide all round, the **drawbridge** at the west gate, a **postern** with a one-tile footbridge on the east wall onto the forest road.
 
 ### The gatehouse (west wall, rows 21 to 34)

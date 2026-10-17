@@ -29,6 +29,7 @@ export const zombie = {
   getUpTime: 0.6, // seconds to rise, the fall played backwards
   knockTime: 0.15, // a push is spread over this long, not a teleport
   breachReach: 1.1, // tiles from the edge midpoint to hit it
+  noWayTime: 8, // seconds the dead leave a goal alone (and search) after finding no way in, no door they can reach (#134)
   searchRadius: 3, // tiles
   wanderIdleMin: 1.5, // seconds standing before wandering again
   wanderIdleMax: 4.0,

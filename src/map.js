@@ -471,8 +471,19 @@ export function canBuildWall(tx, ty, edge, kind = "wall") {
   const pa = tileAt(a[0], a[1]).prop;
   const pb = tileAt(b[0], b[1]).prop;
   if (pa && pa === pb && pa.solid) return false;
-  if (kind === "door" && (!isWalkableTile(a[0], a[1]) || !isWalkableTile(b[0], b[1]))) return false;
+  if (kind === "door" && (!isWalkableTile(a[0], a[1]) || !isWalkableTile(b[0], b[1]) || pa || pb)) return false; // both its tiles clear: the dead go for a door, and need to stand at it
   return true;
+}
+
+// Whether a tile is one of the two a door stands between (nothing is put down on one, and nothing is generated there:
+// the dead who want a room go for its door and must be able to stand at it, #134).
+export function besideDoor(x, y) {
+  const t = tileAt(x, y);
+  if ((t.n && t.n.kind === "door") || (t.w && t.w.kind === "door")) return true;
+  const s = tileAt(x, y + 1);
+  if (s.n && s.n.kind === "door") return true;
+  const e = tileAt(x + 1, y);
+  return !!(e.w && e.w.kind === "door");
 }
 
 // Build a wall, door, or window on an edge, as an authored one would be, and
@@ -580,6 +591,14 @@ export function damageOpening(wall, side, amount) {
   return broke;
 }
 
+// Whether an opening is still shut against what the dead want of it: a door that is not a way through, or a window whose
+// shutters are closed and whole or that carries boards (they batter one open to see in, never to pass, #134).
+export function needsBreaking(wall) {
+  if (!wall) return false;
+  if (wall.kind === "door") return !wayOpen(wall);
+  return boarded(wall) || (wall.shutter === "closed" && !wall.broken);
+}
+
 // Can a walking body pass this opening? Only a door, open or broken and unboarded: nobody climbs through a window
 // (Michael, 2026-10-16), so a window is for sight and light alone, whatever state its shutters are in.
 export function wayOpen(wall) {
@@ -604,26 +623,28 @@ export function roomSealed(room) {
   return true;
 }
 
-// The door of a room nearest to (gx, gy) that an attacker outside the room can stand beside: the tile on the
-// attacker's side, which is whichever side of the edge is not in the room. Only doors: nobody climbs through a window
-// (Michael, 2026-10-16), so the dead who want what is in a room go for its nearest door (open or shut, boarded or not:
-// they break what is in the way) and never batter a window, which leads nowhere for them. Returns { wall, tx, ty,
-// edge, stand, side, into, d }, or null when the room has no door a body can stand at. `want`, a room id, is the room
-// the attacker is trying to reach from inside this one: a door that leads into it is the one chosen, before the nearest.
-export function breachTarget(room, gx, gy, want = 0) {
-  return breachTargets(room, gx, gy, want)[0] || null;
+// The opening of a room nearest to (gx, gy) that an attacker can stand beside: the tile on the attacker's side, which is
+// whichever side of the edge is not in the room. Doors, and nobody climbs through a window (Michael, 2026-10-16), so the
+// dead who want what is in a room go for its nearest door (open or shut, boarded or not: they break what is in the way).
+// From outside, `windows` adds the windows still shut or boarded: Michael's ruling, "the dead may batter a window's
+// shutters or boards open to see in, never to pass", so one is battered open for sight and a door is still the way in.
+// Returns { wall, tx, ty, edge, stand, side, into, d }, or null when the room has nothing a body can stand at. `want`,
+// a room id, is the room the attacker is trying to reach from inside this one: a door that leads into it is the one
+// chosen, before the nearest.
+export function breachTarget(room, gx, gy, want = 0, windows = false) {
+  return breachTargets(room, gx, gy, want, windows)[0] || null;
 }
 
-// Every door of the room that can be stood at, the one `breachTarget` would pick first and then the rest, nearest first
-// (the dead pick the first of them that they can walk to, zombie.js `wayIn`).
-export function breachTargets(room, gx, gy, want = 0) {
+// Every such opening of the room, the one `breachTarget` would pick first and then the rest, nearest first (the dead
+// pick the first of them that they can walk to, zombie.js `wayIn`).
+export function breachTargets(room, gx, gy, want = 0, windows = false) {
   // Breaking in from outside, or out from inside: the attacker stands on
   // whichever side of the opening they are on and goes through to the other.
   const inside = tileAt(Math.round(gx), Math.round(gy)).room === room.id;
   const out = [];
   for (const op of room.openings) {
     const w = tileAt(op.tx, op.ty)[op.edge];
-    if (!w || w.kind !== "door") continue;
+    if (!w || (w.kind !== "door" && !(windows && !inside && needsBreaking(w)))) continue;
     const nearTile = [op.tx, op.ty];
     const farTile = op.edge === "n" ? [op.tx, op.ty - 1] : [op.tx - 1, op.ty];
     const nearIn = tileAt(nearTile[0], nearTile[1]).room === room.id;
