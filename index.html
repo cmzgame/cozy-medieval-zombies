@@ -75,15 +75,16 @@
       document.getElementById("stage").hidden = true;
     }
     // Until the game is ready, a click on one of the site's buttons has no screen behind it yet: the page asked for is
-    // kept (main.js opens it when boot is done) and the loading screen shows the stages left. Caught here, not in
-    // main.js, because a click can come before the modules have run at all.
+    // kept (main.js opens it when boot is done). Only Play shows the loading screen with the stages left; a page like
+    // Controls or About opens by itself once boot is done, with no loading screen flashed over the site (Michael,
+    // 2026-10-18). Caught here, not in main.js, because a click can come before the modules have run at all.
     document.getElementById("site").addEventListener("click", function (e) {
       if (window.__siteReady) return;
       var b = e.target.closest("button[data-go]");
       if (!b) return;
       e.stopImmediatePropagation();
       window.__wantPage = b.dataset.go;
-      document.getElementById("loading").hidden = false;
+      if (b.dataset.go === "worlds") document.getElementById("loading").hidden = false;
     }, true);
   </script>
   <script type="module" src="src/main.js"></script>
