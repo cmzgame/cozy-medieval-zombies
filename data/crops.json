@@ -87,6 +87,21 @@
    },
    "seed": "rye_seed",
    "seeds": 2
+  },
+  "flax": {
+   "stages": [
+    3,
+    3
+   ],
+   "harvest": {
+    "item": "flax",
+    "count": [
+     3,
+     4
+    ]
+   },
+   "seed": "flax_seed",
+   "seeds": 2
   }
  }
 }
