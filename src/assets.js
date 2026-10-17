@@ -88,6 +88,11 @@ export function allSheets() {
   return [...sheets.values()];
 }
 
+// The same, each with the key it is registered under: a sheet's `id` is its sprite's, shared by a prop's one-tile and many-tile sheets (`table` and `table#2`), the key is not (#245).
+export function allSheetEntries() {
+  return [...sheets.entries()];
+}
+
 const pendingDefs = new Map();
 
 export async function loadSpriteDef(id) {

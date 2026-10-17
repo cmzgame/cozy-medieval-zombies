@@ -24,7 +24,7 @@ function hashPixels(data) {
 export async function run(game) {
   const G = game;
   const hashes = {};
-  for (const sheet of G.assets.allSheets()) {
+  for (const [sheetKey, sheet] of G.assets.allSheetEntries()) { // by the key a sheet is registered under, not its `id`: a prop's one-tile and many-tile sheets share an id (#245)
     const img = sheet.image;
     // From a copy on a canvas that lives on the CPU, so this read leaves the sheet's own canvas alone (a direct read is what moves it between CPU and GPU storage; see hashPixels).
     const c = document.createElement("canvas");
@@ -32,7 +32,7 @@ export async function run(game) {
     c.height = img.height;
     const ctx = c.getContext("2d", { willReadFrequently: true });
     ctx.drawImage(img, 0, 0);
-    hashes[sheet.id] = `${img.width}x${img.height}:${hashPixels(ctx.getImageData(0, 0, img.width, img.height).data)}`;
+    hashes[sheetKey] = `${img.width}x${img.height}:${hashPixels(ctx.getImageData(0, 0, img.width, img.height).data)}`;
   }
   const key = "cmz.sheets";
   let previous = null;
