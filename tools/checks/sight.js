@@ -47,6 +47,40 @@ export async function run(game) {
     row("past it they fade over the soft edge", dark[3] > 0.2 && dark[3] < 0.8 && dark[2] > dark[3] && dark[3] > dark[4], `half way ${dark[3].toFixed(2)}, at the edge's end ${dark[4].toFixed(2)}`);
     row("and are hidden beyond it", near(dark[4], 0) && near(dark[5], 0), `${dark[5].toFixed(2)} at ${T.darkRadius + T.edge + 2}`);
 
+    // A torch on the belt sees a bit further than none (Michael, 2026-10-17, #158): its radius is above the dark radius.
+    const belt = G.inventory.beltOf(me);
+    const slot = belt ? belt.findIndex((e) => !e) : -1;
+    if (slot >= 0) {
+      const bare = alphaAt(T.darkRadius + 1.1);
+      belt[slot] = G.items.makeEntry("torch", 1, { lit: true, wear: 0 });
+      step();
+      const withBelt = alphaAt(T.darkRadius + 1.1);
+      const carriedBelt = G.light.carriers().find((c) => c.owner === me.id);
+      belt[slot] = null;
+      step();
+      row("a lit torch on the belt sees a bit further than none", !!carriedBelt && carriedBelt.radius > T.darkRadius && withBelt >= T.seenAt && bare < T.seenAt, `radius ${carriedBelt && carriedBelt.radius}; at ${T.darkRadius + 1.1} tiles: ${bare.toFixed(2)} bare, ${withBelt.toFixed(2)} with the belt torch (seen from ${T.seenAt})`);
+    } else row("a free belt slot for the belt torch row", false, "none");
+
+    // "Something groans in the dark." is for one the dark hides, not one a canopy hides by day (#158).
+    const speech = await import("/src/ui/speech.js");
+    const logMod = await import("/src/ui/log.js");
+    // The log keeps only so many lines, so a count can stay level as it fills: a line is told by the log's last one.
+    const groaned = () => /groans in the dark/.test(logMod.lines().slice(-1)[0] || "");
+    logMod.push("(the sight check)", "info"); // a last line of its own to start from
+    const saySomething = (at) => { z.gx = me.gx + at; z.gy = me.gy; z.line = { text: "Hnnngh.", left: 2 }; return new Set([G.visibility.tileKey(Math.round(z.gx), Math.round(z.gy))]); };
+    G.clock.setHour(12);
+    step();
+    z.behindProp = true;
+    speech.updateSpeech([z], saySomething(6), me, 1 / 60);
+    row("by day a dead one behind a canopy says nothing in the log", !groaned(), `last line: ${logMod.lines().slice(-1)[0]}`);
+    z.behindProp = false;
+    z.line = null;
+    G.clock.setHour(0);
+    step(60 * 4); // past the groans' gap in the log (`groanGap`, sim seconds)
+    speech.updateSpeech([z], saySomething(T.darkRadius + T.edge + 1), me, 1 / 60);
+    row("but one the dark hides, in line of sight, does", groaned(), `last line: ${logMod.lines().slice(-1)[0]}`);
+    z.line = null;
+
     // The dark hides information, never physics (Michael, #150): one lost in it cannot be pointed at (no hover hand, no click, no
     // right-click: `characterAt`), one seen can; and a hit still lands on it (a swing or a shot is the world's, not the eye's).
     const pointAt = (d) => { z.gx = me.gx + d; z.gy = me.gy; step(2); const p = G.iso.toScreen(z.gx, z.gy); return G.interact.characterAt(p.x, p.y - 20, me); };
@@ -81,16 +115,15 @@ export async function run(game) {
     me.hands.off = heldBefore.off;
 
     me.hands.main = hands0.main || me.hands.main;
-    const torch = hands0.main && hands0.main.id === "torch" ? hands0.main : hands0.off && hands0.off.id === "torch" ? hands0.off : null;
-    if (torch) {
-      me.hands.main = torch;
-      step();
-      const carried = G.light.carriers().find((c) => Math.hypot(c.gx - me.gx, c.gy - me.gy) < 0.7);
-      const R = carried ? carried.radius : 3;
-      const lit = [R, R + T.edge / 2, R + T.edge].map(alphaAt);
-      row("a carried torch gives sight back to its radius", carried && R > T.darkRadius && near(lit[0], 1), `radius ${R}: ${lit[0].toFixed(2)} whole at ${R}`);
-      row("and the soft edge is past that", lit[1] > 0.2 && lit[1] < 0.8 && near(lit[2], 0), `${lit[1].toFixed(2)} half way, ${lit[2].toFixed(2)} at the end`);
-    } else row("a carried torch gives sight back to its radius", false, "the player holds no torch to try");
+    // A lit torch for the rows below (the starting kit's torch begins unlit since #157/#168, so the check lights its own).
+    const torch = G.items.makeEntry("torch", 1, { lit: true, wear: 0 });
+    me.hands.main = torch;
+    step();
+    const carried = G.light.carriers().find((c) => Math.hypot(c.gx - me.gx, c.gy - me.gy) < 0.7);
+    const R = carried ? carried.radius : 3;
+    const lit = [R, R + T.edge / 2, R + T.edge].map(alphaAt);
+    row("a carried torch gives sight back to its radius", carried && R > T.darkRadius && near(lit[0], 1), `radius ${R}: ${lit[0].toFixed(2)} whole at ${R}`);
+    row("and the soft edge is past that", lit[1] > 0.2 && lit[1] < 0.8 && near(lit[2], 0), `${lit[1].toFixed(2)} half way, ${lit[2].toFixed(2)} at the end`);
 
     // Another player's torch: the dead one standing in its light is seen from afar.
     me.hands.main = null;
@@ -101,13 +134,13 @@ export async function run(game) {
     const far = alphaAt(9);
     const spotFor = G.map.nearestWalkable(Math.round(me.gx + 10), Math.round(me.gy)) || [me.gx + 10, me.gy];
     other = G.addPlayer(spotFor[0], spotFor[1]);
-    other.hands.main = torch ? { ...torch } : { id: "torch", count: 1, lit: true };
+    other.hands.main = { ...torch };
     step(6);
-    const lit = sight.seenAlpha(me, z);
+    const byTheirs = sight.seenAlpha(me, z);
     other.hands.main = null;
     step(6);
     const unlit = sight.seenAlpha(me, z);
-    row("a dead one in another's torchlight is seen from afar, and hidden when it goes out", near(far, 0) && lit > 0.9 && near(unlit, 0), `${far.toFixed(2)} dark, ${lit.toFixed(2)} by their torch, ${unlit.toFixed(2)} after`);
+    row("a dead one in another's torchlight is seen from afar, and hidden when it goes out", near(far, 0) && byTheirs > 0.9 && near(unlit, 0), `${far.toFixed(2)} dark, ${byTheirs.toFixed(2)} by their torch, ${unlit.toFixed(2)} after`);
 
     // A shuttered room is dark by day too, and open shutters light it (Michael, #150): a dead one inside an unlit room at noon,
     // seen from beyond the short radius, is hidden with the shutters closed and seen with them open.

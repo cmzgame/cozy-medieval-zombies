@@ -5,7 +5,9 @@
 // standing in light at any distance (a fire, a lit window or room, a lamp post, a torch: the viewer's own carried light
 // is in `light.lightAt` like anyone's, so a torch gives sight back to its pool, and a lit one is seen from afar and sees
 // you in return). Each client asks about its own player and reads its own copy of the light, so a guest's sight is its
-// own; nothing here is in the world's step, and the dead's own sight of a player is `entities/zombie.js`'s.
+// own. Not all of it is the client's alone: since #150 a click on the dead (`interact.clickCharacterAt`, in the host's step)
+// asks `seen` through `characterAt`, with the host's copy of the light and the clicking player's own; the dead's own sight
+// of a player is `entities/zombie.js`'s.
 // Every number is `data/tuning.json`'s `sight`.
 
 import * as light from "./light.js";
@@ -28,5 +30,5 @@ export function seenAlpha(viewer, z) {
 
 // Whether it is seen enough to be told of at all (a health bar, a speech bubble): past the fade's midpoint.
 export function seen(viewer, z) {
-  return seenAlpha(viewer, z) >= 0.5;
+  return seenAlpha(viewer, z) >= T.seenAt;
 }

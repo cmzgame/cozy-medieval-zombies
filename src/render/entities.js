@@ -13,6 +13,7 @@ import * as gl from "../gl.js";
 import { flameFrame, frameQuad } from "./scene.js";
 import { postAt } from "./walls.js";
 import { seenAlpha } from "../sight.js";
+import { sight as sightTuning } from "../tuning.js";
 
 export function projectileSheet(id) {
   try {
@@ -199,7 +200,7 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
     // In the dark the dead fade to hidden past a short radius unless they stand in light (sight.js, #88): premultiplied, so
     // the whole picture, held things and all, goes down together. Not for a debug draw-all, your own player, or a fallen body.
     const fade = me && !drawAll && e.kind === "zombie" && !e.dead ? seenAlpha(me, e) : 1;
-    if (fade < 0.02) continue;
+    if (fade < sightTuning.drawCutoff) continue; // too faint to draw (data/tuning.json sight, #158)
     const dim = fade < 1 ? [fade, fade, fade, fade] : null;
     const sheet = getSheet(e.sprite);
     const p = iso.toScreen(e.gx, e.gy);

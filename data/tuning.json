@@ -76,7 +76,7 @@
     "activeTiles": 40,
     "evictChunks": 8,
     "containerCloseDist": 2.0,
-    "beltLight": 0.5,
+    "beltLight": 0.6,
     "twoTorches": 1.35,
     "playerCapBrowser": 4,
     "playerCapServer": 8,
@@ -90,5 +90,5 @@
     "fenceRecover": 0.5
   },
   "population": { "none": 0, "low": 0.4, "standard": 1, "high": 2.5 },
-  "sight": { "darkRadius": 1.5, "edge": 2, "litNone": 0.3, "litFull": 0.45 }
+  "sight": { "darkRadius": 1.5, "edge": 2, "litNone": 0.3, "litFull": 0.45, "seenAt": 0.5, "drawCutoff": 0.02, "groanGap": 3 }
 }
