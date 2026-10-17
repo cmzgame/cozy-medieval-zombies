@@ -87,11 +87,15 @@
     "playerCapServer": 8,
     "torchHeldLife": 1440,
     "torchWallLife": 2880,
+    "fireOutRadius": 8,
+    "craftDoneRadius": 12,
     "torchSpentRadius": 12,
     "daylightTiles": 30,
+    "fruitCheckSeconds": 30,
+    "pickReach": 1.6,
     "fenceHp": 90,
     "fenceGateFactor": 0.5
   },
   "population": { "none": 0, "low": 0.4, "standard": 1, "high": 2.5 },
-  "sight": { "darkRadius": 1.5, "edge": 2, "litNone": 0.3, "litFull": 0.45, "seenAt": 0.5, "drawCutoff": 0.02, "groanGap": 3 }
+  "sight": { "darkRadius": 1.5, "edge": 2, "litNone": 0.3, "litFull": 0.45, "seenAt": 0.5, "drawCutoff": 0.02, "groanGap": 20, "groanRadius": 6 }
 }

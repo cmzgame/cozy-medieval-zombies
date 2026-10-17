@@ -4104,6 +4104,13 @@
       7,
       4
      ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      7,
+      5
+     ]
     }
    ]
   },
@@ -4373,6 +4380,13 @@
      "tile": [
       7,
       4
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      7,
+      5
      ]
     }
    ]
@@ -4659,6 +4673,13 @@
      "tile": [
       7,
       4
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      7,
+      5
      ]
     }
    ]
@@ -5067,6 +5088,175 @@
    "floorRects": [],
    "fences": [],
    "props": []
+  },
+  {
+   "name": "the orchard",
+   "rect": [
+    38,
+    232,
+    16,
+    18
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [],
+   "fences": [],
+   "props": [
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      2,
+      2
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      5,
+      2
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      8,
+      2
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      11,
+      2
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      3,
+      5
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      6,
+      5
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      9,
+      5
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      12,
+      5
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      2,
+      8
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      5,
+      8
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      8,
+      8
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      11,
+      8
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      3,
+      11
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      6,
+      11
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      9,
+      11
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      12,
+      11
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      2,
+      14
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      5,
+      14
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      8,
+      14
+     ]
+    },
+    {
+     "sprite": "tree_apple",
+     "tile": [
+      11,
+      14
+     ]
+    },
+    {
+     "sprite": "barrel",
+     "tile": [
+      1,
+      16
+     ]
+    },
+    {
+     "sprite": "barrel",
+     "tile": [
+      3,
+      16
+     ]
+    }
+   ]
   }
  ],
  "reserve": [

@@ -91,7 +91,7 @@ export async function run(game) {
     const did = G.interact.performByLabel(me, { kind: "tile", tile: [wx, 105] }, "Cast the line");
     const started = !!me.action;
     for (let i = 0; i < 400 && me.action; i++) G.interact.updateAction(me, 0.1);
-    row("a guest's command (the label on the water's address) starts the same cast and it finishes", did === true && started && !me.action, `ran ${did}, started ${started}`);
+    row("the menu's label on the water's address (a guest's command, run here as the player's own) starts the same cast and it finishes", did === true && started && !me.action, `ran ${did}, started ${started}`);
     row("no rod in hand on the authority, nothing starts", (() => { me.hands.main = null; const r = G.interact.performByLabel(me, { kind: "tile", tile: [wx, 105] }, "Cast the line"); me.hands.main = rod; return r === false; })(), "refused");
   } finally {
     me.action = null;
