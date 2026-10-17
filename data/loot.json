@@ -5,6 +5,7 @@
   "wheelbarrow": {"grid": [10, 6], "rolls": [0, 0], "entries": [], "note": "the wheelbarrow's own grid, one big container carried like a barrel, empty (docs/30 section 9.1; it rolled the dev kit until 2026-10-15, the wiki census's bugs)"},
   "home_chest": {"grid": [4, 3], "rolls": [0, 0], "entries": [], "fixed": [{"item": "hatchet"}, {"item": "bread"}]},
   "joiner_chest": {"grid": [4, 3], "rolls": [0, 0], "entries": [], "fixed": [{"item": "hatchet"}]},
+  "weaver_chest": {"grid": [4, 3], "rolls": [0, 0], "entries": [], "fixed": [{"item": "flax_seed", "count": 6}, {"item": "knife"}]},
   "miners_chest": {"grid": [4, 3], "rolls": [0, 0], "entries": [], "fixed": [{"item": "pickaxe"}, {"item": "iron_ore", "count": 4}]},
   "quarry_chest": {"grid": [4, 3], "rolls": [0, 0], "entries": [], "fixed": [{"item": "pickaxe"}, {"item": "hammer"}]},
   "ore_cart": {"grid": [4, 3], "rolls": [0, 0], "entries": [], "fixed": [{"item": "iron_ore", "count": 6}]},
