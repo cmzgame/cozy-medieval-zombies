@@ -17,6 +17,8 @@ import * as rng from "./rng.js";
 import * as items from "./items.js";
 import * as inventory from "./inventory.js";
 import { showMessage } from "./ui/prompt.js";
+import { on } from "./events.js";
+import * as iso from "./iso.js";
 import { world as W } from "./tuning.js";
 import { lineOfSight } from "./visibility.js";
 
@@ -250,8 +252,45 @@ verbs.define("harvest", {
       parts.push(`${items.getItem(id).name.toLowerCase()} x${count}`);
     }
     map.removeProp(prop); // the tile stays soil
-    return { message: `You harvest ${parts.join(" and ")}${fell ? `; ${fell} fall${fell > 1 ? "" : "s"} at your feet` : ""}.`, harvested: n };
+    return { message: `You harvest ${parts.join(" and ")}${fell ? `; ${fell} fall${fell > 1 ? "" : "s"} at your feet` : ""}.`, harvested: n, fell, gave: [[def.harvest.item, n], [def.seed, def.seeds]] };
   },
+});
+
+// The scythe (#200; docs/30 section 8 and 10, step 4's third default): a swing with a tool whose item `verbs` list `harvest`, in the hand that
+// swung, harvests every ready grain crop on the three tiles ahead of the player (the tile in front and the two beside it), each by the
+// `harvest` verb as a hand does (re-validated on the host: reach, ready), the grain and the seeds into the bag, the tiles staying soil. A
+// swing at nothing, or at a crop not ready, still swings. It runs on the authority only: a guest's own swing is predicted without the
+// event (combat.tryAttack), and the host's step makes this one.
+export function scytheSwing(player) {
+  const g = iso.screenDirToGrid(player.aim.sx, player.aim.sy);
+  const dir = iso.normalize(g.gx, g.gy);
+  const px = player.gx + dir.x;
+  const py = player.gy + dir.y;
+  const tiles = new Map();
+  for (const k of [-1, 0, 1]) {
+    const x = Math.round(px - dir.y * k);
+    const y = Math.round(py + dir.x * k);
+    tiles.set(`${x},${y}`, [x, y]);
+  }
+  const got = new Map();
+  let cut = 0;
+  let fell = 0; // what a full bag could not hold, on the ground at the player's feet (the hand harvest says so too)
+  for (const [x, y] of tiles.values()) {
+    const prop = map.peekTile(x, y)?.prop;
+    if (!prop || !prop.crop || !cropDef(prop.crop.kind).grain) continue;
+    const r = verbs.run("harvest", null, player, { prop: prop.id });
+    if (!r.ok) continue;
+    cut++;
+    fell += r.fell || 0;
+    for (const [id, n] of r.gave) got.set(id, (got.get(id) || 0) + n);
+  }
+  if (cut) showMessage(`You scythe ${cut} row${cut > 1 ? "s" : ""}: ${[...got].map(([id, n]) => `${items.getItem(id).name.toLowerCase()} x${n}`).join(", ")}${fell ? `; ${fell} fall${fell > 1 ? "" : "s"} at your feet` : ""}.`);
+  return cut;
+}
+
+on("meleeSwing", ({ player, hand }) => {
+  const e = player.hands && player.hands[hand === "off" ? "off" : "main"];
+  if (e && (items.getItem(e.id).verbs || []).includes("harvest")) scytheSwing(player);
 });
 
 // The crops' pictures follow their stages, once a `fruitCheckSeconds` of the clock (the same boundary rule as fruit.js: a world restored

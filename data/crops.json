@@ -1,5 +1,5 @@
 {
- "note": "Farming (docs/30 section 8; #194). `soil`: `wetDays` how many game days watered soil stays wet (a dry crop pauses and never dies), `fillCost` the waterskin's fill a watering takes, `seconds` the timed actions; `crops`: per crop the days of each growing stage (`stages`: stage 0 to 1, stage 1 to ready), what a harvest gives (`harvest`, a count range) and the seeds back (`seeds`), and its seed item. Growth is derived from the planted hour and the wet hours, never stepped (src/farming.js).",
+ "note": "Farming (docs/30 section 8; #194). `soil`: `wetDays` how many game days watered soil stays wet (a dry crop pauses and never dies), `fillCost` the waterskin's fill a watering takes, `seconds` the timed actions; `crops`: per crop the days of each growing stage (`stages`: stage 0 to 1, stage 1 to ready), what a harvest gives (`harvest`, a count range) and the seeds back (`seeds`), and its seed item. Growth is derived from the planted hour and the wet hours, never stepped (src/farming.js). `grain`: a crop a scythe takes a row at a swing (src/farming.js `scytheSwing`).",
  "soil": {
   "wetDays": 2,
   "fillCost": 10,
@@ -86,7 +86,8 @@
     ]
    },
    "seed": "rye_seed",
-   "seeds": 2
+   "seeds": 2,
+   "grain": true
   },
   "flax": {
    "stages": [

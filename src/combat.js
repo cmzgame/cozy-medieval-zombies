@@ -332,7 +332,7 @@ export function tryAttack(player, zombies, hand = "main", mode = null, predict =
   }
   playAnimation(player.anim, mode === "alt" && altStyleOf(player) ? "attack_alt" : "attack", true); // the thrust has its own (docs/32)
   if (predict) return [];
-  emit("meleeSwing", { player, weapon });
+  emit("meleeSwing", { player, weapon, hand }); // `hand`: the scythe's row harvest (farming.js) asks what is in it
 
   const dir = gridAim(player);
   const hit = [];
