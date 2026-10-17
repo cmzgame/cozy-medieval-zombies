@@ -12,6 +12,7 @@ import { getItem } from "../items.js";
 import * as gl from "../gl.js";
 import { flameFrame, frameQuad } from "./scene.js";
 import { postAt } from "./walls.js";
+import { seenAlpha } from "../sight.js";
 
 export function projectileSheet(id) {
   try {
@@ -192,6 +193,11 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
   for (const e of entities) {
     const vis = e === me || drawAll || visible.has(tileKey(Math.round(e.gx), Math.round(e.gy))); // another player is seen like anyone, never through a wall (docs/31/03)
     if (!vis) continue; // the dead you cannot see are not drawn, full stop
+    // In the dark the dead fade to hidden past a short radius unless they stand in light (sight.js, #88): premultiplied, so
+    // the whole picture, held things and all, goes down together. Not for a debug draw-all, your own player, or a fallen body.
+    const fade = me && !drawAll && e.kind === "zombie" && !e.dead ? seenAlpha(me, e) : 1;
+    if (fade < 0.02) continue;
+    const dim = fade < 1 ? [fade, fade, fade, fade] : null;
     const sheet = getSheet(e.sprite);
     const p = iso.toScreen(e.gx, e.gy);
     const x = Math.round(p.x);
@@ -249,7 +255,7 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
       occluded: false,
       emit() {
         const world = [e.gx, e.gy];
-        if (e.swingTarget) {
+        if (e.swingTarget && fade >= 0.5) {
           // The next swing would hit this one (docs/14): a one-pixel outline, eight copies of the
           // sprite flat green just behind it, unlit and unfogged so it reads at night.
           for (const [ox, oy] of SWING_OUTLINE_OFFSETS) {
@@ -258,11 +264,11 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
         }
         const drawHeld = (h) => {
           // A shield that just met a blow is flat bright for a moment (docs/21).
-          frameQuad(h.sheet, `held_${h.k}`, h.x, h.y, h.flash ? { world, heights: 40, color: h.flash, flags: gl.FLAG_NOFOG | gl.FLAG_UNLIT | gl.FLAG_SOLID } : { world, heights: 40, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING });
+          frameQuad(h.sheet, `held_${h.k}`, h.x, h.y, h.flash ? { world, heights: 40, color: h.flash, flags: gl.FLAG_NOFOG | gl.FLAG_UNLIT | gl.FLAG_SOLID } : { world, heights: 40, color: dim || undefined, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING });
           if (h.tip) frameQuad(getSheet("flame"), `flame_${flameFrame(1)}`, h.x + h.tip[0], h.y + h.tip[1] - 2, { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
         };
         for (const h of held) if (!h.near) drawHeld(h);
-        frameQuad(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0, color: e.burning ? burnTint() : undefined, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING }, r.flip);
+        frameQuad(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0, color: e.burning ? burnTint() : dim || undefined, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING }, r.flip);
         for (const h of held) if (h.near) drawHeld(h);
         if (carried) {
           // Each footprint slice at its offset from the anchor, lifted over the head.

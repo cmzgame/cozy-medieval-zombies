@@ -1,5 +1,5 @@
 {
-  "version": "18bf00a8",
+  "version": "cc38b5b3",
   "files": {
     "data/build.json": {"size": 366, "stamp": "d4f4a6d2"},
     "data/combat.json": {"size": 3819, "stamp": "f069df33"},
@@ -7,10 +7,10 @@
     "data/interactions.json": {"size": 1188, "stamp": "c2e6a90b"},
     "data/items.json": {"size": 15816, "stamp": "add0fc18"},
     "data/looks.json": {"size": 947, "stamp": "d1084ea0"},
-    "data/loot.json": {"size": 1919, "stamp": "3e251af7"},
+    "data/loot.json": {"size": 1908, "stamp": "dd616cea"},
     "data/poses.json": {"size": 4867, "stamp": "53e6f192"},
     "data/recipes.json": {"size": 6494, "stamp": "ddf6aac7"},
-    "data/tuning.json": {"size": 2128, "stamp": "d106ce1b"},
+    "data/tuning.json": {"size": 2231, "stamp": "5379c42d"},
     "data/wardrobes.json": {"size": 8477, "stamp": "3320934b"},
     "data/art/character/character_body.json": {"size": 17235, "stamp": "2b1fcf24"},
     "data/art/character/character_template.json": {"size": 13333, "stamp": "9a0c05f7"},

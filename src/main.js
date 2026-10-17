@@ -799,7 +799,7 @@ function openActionsMenu(m) {
 
 // What is under the cursor for Use mode (use.js): a character, else a prop by its pixels, else the tile.
 function useTargetAt(sx, sy) {
-  const ch = interact.characterAt(sx, sy);
+  const ch = interact.characterAt(sx, sy, S.player);
   if (ch) return { kind: "character", ch };
   const prop = interact.interactableAt(sx, sy, () => true);
   if (prop) return { kind: "prop", prop };
@@ -1079,7 +1079,7 @@ function stepGame(dt) {
   buttons.update(dt);
   let clicked = input.mouseLeftPressed() && !menu.tookClick();
   // With the hand cursor, the zombie hand over one of the dead (ui/cursor.js).
-  const under = interact.characterAt(input.getMouse().x, input.getMouse().y);
+  const under = interact.characterAt(input.getMouse().x, input.getMouse().y, S.player);
   cursor.setOverDead(!!under && under.kind === "zombie" && !under.dead);
   // Use mode (use.js): the label names what is under the cursor, and a left click on the world is the target, spent here,
   // the bag open or not (a Use begun from the bag is aimed with the bag still open).
@@ -1101,7 +1101,7 @@ function stepGame(dt) {
       interact.pokeAt(m.x, m.y, S.player);
       interact.playAt(m.x, m.y, S.player);
       // A villager under the cursor answers on the host, by its id (item 4: the host has no cursor of mine).
-      const c = interact.characterAt(m.x, m.y);
+      const c = interact.characterAt(m.x, m.y, S.player);
       if (c && c.kind === "villager") net.sendPokeVillager(c.id);
     }
   }
