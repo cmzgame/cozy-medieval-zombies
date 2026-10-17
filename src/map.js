@@ -138,7 +138,7 @@ export function fireHoursLeft(prop) {
 // A bracket is state on a wall edge: `wall.bracket = { side, torch }`, where
 // side is +1 for the near side of the edge (south of a north edge, east of a
 // west edge) and -1 for the far side. A post is a prop whose fire `holds` a
-// torch. Torches never burn out (docs/02, 2026-10-09).
+// torch. A torch burns down while it is lit and a lantern (`bracket.lantern`, a `lantern_post`) never goes out (docs/07, #156).
 
 const bracketSet = new Set(); // { tx, ty, edge, wall }
 
@@ -183,26 +183,30 @@ export function burnHolders(dt) {
   }
 }
 
-// A flame landing at a point lights what is made to be lit within `r` tiles (Michael, 2026-10-17, #156: "fire lights what is made to
-// be lit"): an unlit campfire with fuel in it, a torch mounted on a post or in a bracket that is out. Nothing else burns and nothing
-// spreads. The authority's, from a fireball's landing (archery.js). Returns how many it lit.
-export function kindleNear(x, y, r = 1) {
+// A flame landing at a point lights what is made to be lit within `r` tiles (Michael, 2026-10-17, #156: "a campfire or a torch"): an
+// unlit campfire with fuel in it, a torch on a post, or a torch in a bracket that is out. Not a hearth, an oven, or a forge, and
+// nothing else burns or spreads. `clear(x, y)` says whether the flame reaches that point (no wall between it and the landing: the
+// fireball passes it, as its hit does); the default is that it does. The authority's, from a fireball's landing (archery.js).
+// Returns how many it lit.
+export function kindleNear(x, y, r = 1, clear = null) {
   let n = 0;
   for (const p of fireProps) {
     const f = p.fire;
     if (f.lit || Math.hypot(p.tile[0] - x, p.tile[1] - y) > r) continue;
-    if ((f.burns && f.fuel > 0) || (f.holds && f.has)) {
-      f.lit = true;
-      touch(p.tile[0], p.tile[1]);
-      emit("fireLit", { id: p.id, tile: p.tile });
-      n++;
-    }
+    const campfire = p.sprite === "campfire" && f.burns && f.fuel > 0;
+    if (!(campfire || (f.holds && f.has))) continue;
+    if (clear && !clear(p.tile[0], p.tile[1])) continue;
+    f.lit = true;
+    touch(p.tile[0], p.tile[1]);
+    emit("fireLit", { id: p.id, tile: p.tile });
+    n++;
   }
   for (const b of bracketSet) {
     const br = b.wall.bracket;
     if (!br.torch || br.lit !== false) continue;
     const [bx, by] = bracketPos(b);
     if (Math.hypot(bx - x, by - y) > r) continue;
+    if (clear && !clear(bx, by)) continue;
     br.lit = true;
     touchWall(b.wall);
     emit("fireLit", { tile: [b.tx, b.ty] });
@@ -256,8 +260,8 @@ export function holderHas(target) {
   return target.kind === "bracket" ? target.bracket.wall.bracket.torch : target.prop.fire.has;
 }
 
-// What the torch it holds has left: { wear, lit }. An authored one (the village's, until it is a lantern) has no wear and is
-// lit for good; one a player mounted keeps its own (#156).
+// What the torch it holds has left: { wear, lit }. A torch with no `wear` (an old authored one; the village's lights are lanterns
+// now) counts as lit for good; one a player mounted keeps its own (#156).
 export function holderState(target) {
   const h = target.kind === "bracket" ? target.bracket.wall.bracket : target.prop.fire;
   return { wear: h.wear, lit: h.wear === undefined ? true : target.kind === "bracket" ? h.lit !== false : !!h.lit };

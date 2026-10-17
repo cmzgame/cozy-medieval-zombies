@@ -1,5 +1,5 @@
 // The fireball as a flare (Michael, 2026-10-17, #156): more light in flight, a short light only where it lands (it burns nothing),
-// some damage kept, and it lights what is made to be lit: a campfire with fuel, a mounted torch that is out. From the console, on a
+// some damage kept, and it lights what is made to be lit: a campfire with fuel, a mounted torch that is out (not through a wall, and not a hearth). From the console, on a
 // tab with `?nosave`:
 //   await __game.check("flare")
 // It casts the Book of Fire's spell on open ground (through archery.shoot, as the cast does), with the dead moved out of range
@@ -67,21 +67,52 @@ export async function run(game) {
     for (let i = 0; i < 60 * 3 && G.archery.flying().some((a) => !a.done); i++) step(1);
     step(2);
     row("a fireball landing on a campfire with fuel lights it", fire.fire.lit === true, `lit ${fire.fire.lit}`);
-    G.map.kindleNear(cx + 5, cy + 3, 1);
+    G.teleport(cx, cy + 3);
+    cast(cx + 5, cy + 3);
+    for (let i = 0; i < 60 * 3 && G.archery.flying().some((a) => !a.done); i++) step(1);
+    step(2);
+    G.teleport(cx, cy);
     row("one with no fuel is not lit (nothing to burn)", dry.fire.lit === false, `lit ${dry.fire.lit}`);
 
-    // A torch mounted and out: lit; a lit one, a lantern, and one out of reach are as they were.
-    const bracket = [...G.map.brackets()].find((b) => !b.wall.bracket.torch && !b.wall.bracket.lantern);
+    // Not a hearth or a fireplace (only "a campfire or a torch"), by a real fireball.
+    const hearth = G.map.createProp({ sprite: "fireplace", tile: [cx + 5, cy - 2], fuel: 2, lit: false });
+    G.map.placeProp(hearth, cx + 5, cy - 2);
+    restore.push(() => G.map.removeProp(hearth));
+    G.teleport(cx, cy - 2);
+    cast(cx + 5, cy - 2);
+    for (let i = 0; i < 60 * 3 && G.archery.flying().some((a) => !a.done); i++) step(1);
+    step(2);
+    row("a fireball landing on a fireplace with fuel does not light it", hearth.fire.lit === false && hearth.fire.fuel > 0, `lit ${hearth.fire.lit}, fuel ${hearth.fire.fuel}`);
+    G.teleport(cx, cy);
+
+    // A torch in a bracket that is out, by a real fireball at the wall: lit from its own side, not through the wall from the other.
+    const side = (b, d) => {
+      const [bx, by] = G.map.bracketPos(b);
+      const s = b.wall.bracket.side;
+      return b.edge === "n" ? [bx, by + s * d] : [bx + s * d, by];
+    };
+    const bracket = [...G.map.brackets()].find((b) => {
+      if (b.wall.bracket.torch || b.wall.bracket.lantern) return false;
+      const near = side(b, 2.2);
+      const far = side(b, -2.2);
+      return [near, far].every(([x, y]) => G.map.isWalkableTile(Math.round(x), Math.round(y)) && !G.map.tileAt(Math.round(x), Math.round(y)).prop);
+    });
     if (bracket) {
       const target = { kind: "bracket", bracket, mx: bracket.tx, my: bracket.ty };
       G.map.setHolder(target, true, G.items.makeEntry("torch", 1, { lit: false, wear: 0.2 }));
       restore.push(() => G.map.setHolder(target, false));
       const [bx, by] = G.map.bracketPos(bracket);
-      G.map.kindleNear(bx + 3, by, 1);
-      row("a torch mounted and out is not lit from beyond the kindle radius", bracket.wall.bracket.lit === false, `lit ${bracket.wall.bracket.lit}`);
-      G.map.kindleNear(bx, by, 1);
-      row("a fireball landing at a mounted torch that is out lights it", bracket.wall.bracket.lit === true, `lit ${bracket.wall.bracket.lit}`);
-    } else row("an empty bracket for the mounted-torch test", false, "none in the loaded map");
+      const fireAt = (from) => {
+        G.teleport(from[0], from[1]);
+        cast(bx, by);
+        for (let i = 0; i < 60 * 3 && G.archery.flying().some((a) => !a.done); i++) step(1);
+        step(2);
+      };
+      fireAt(side(bracket, -2.2));
+      row("a fireball at a wall does not light a torch through it (from the far side)", bracket.wall.bracket.lit === false, `lit ${bracket.wall.bracket.lit}`);
+      fireAt(side(bracket, 2.2));
+      row("and lights it from its own side", bracket.wall.bracket.lit === true, `lit ${bracket.wall.bracket.lit}`);
+    } else row("an empty bracket with room on both sides for the wall test", false, "none in the loaded map");
   } finally {
     for (const r of restore.reverse()) r();
     G.teleport(meAt[0], meAt[1]);

@@ -26,7 +26,7 @@ export async function run(game) {
     const [lx, ly] = G.map.bracketPos(target);
     const src = G.light.sources().find((s) => s.kind === "lantern" && Math.abs(s.gx - lx) < 0.01 && Math.abs(s.gy - ly) < 0.01);
     const torchRadius = G.items.getItem("torch").fire.radius;
-    row("a lantern lights a little further than a torch and does not flicker", !!src && src.radius === G.tuning.world.lanternRadius && src.radius > torchRadius && !src.flicker, src ? `radius ${src.radius} against ${torchRadius}, flicker ${JSON.stringify(src.flicker)}` : "no source");
+    row("a lantern lights a little further than a torch and does not flicker", !!src && src.radius === G.assets.getDef("lantern_post").fire.radius && src.radius > torchRadius && !src.flicker, src ? `radius ${src.radius} against ${torchRadius}, flicker ${JSON.stringify(src.flicker)}` : "no source");
     const post = posts[0];
     G.light.update();
     const psrc = G.light.sources().find((s) => s.kind === "lantern_post" && s.gx === post.tile[0] && s.gy === post.tile[1]);

@@ -14,6 +14,7 @@
 import * as clock from "./clock.js";
 import * as map from "./map.js";
 import { getItem } from "./items.js";
+import { getDef } from "./assets.js";
 import { world as W } from "./tuning.js";
 
 export const RES = 2; // light cells per tile, so shadow edges are soft
@@ -61,7 +62,7 @@ export function update() {
   for (const b of map.brackets()) {
     if (b.wall.bracket.lantern) {
       const [lx, ly] = map.bracketPos(b);
-      curSources.push({ gx: lx, gy: ly, radius: W.lanternRadius, intensity: 1, kind: "lantern", flicker: null }); // steady, never out
+      curSources.push({ gx: lx, gy: ly, radius: getDef("lantern_post").fire.radius, intensity: 1, kind: "lantern", flicker: null }); // steady, never out; the one number is the lantern post's `fire.radius` (data/sprites/lantern_post.json)
       continue;
     }
     if (!b.wall.bracket.torch || b.wall.bracket.lit === false) continue; // a mounted torch that is out gives no light

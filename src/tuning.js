@@ -98,7 +98,6 @@ export const world = {
   playerCapServer: 8, // and a server world (raised in one line when the lighter frames of docs/31/05 land)
   torchHeldLife: 1440, // game seconds of burning a torch lasts held in a hand (two game days of continuous light; Michael, 2026-10-17, #156)
   torchWallLife: 2880, // and on the belt, in a bracket, or on a post, the slower "wall" rate
-  lanternRadius: 3.4, // a lantern's light, in tiles: a little brighter than a torch's 3, steady, never out (the village's; Michael, 2026-10-17, #156); the post's own is its sprite definition's
   daylightTiles: 30, // tiles of a room one open shutter or open door lights fully by day (light.js `openness`; Michael, #150): one open window for a small room, more for a large one
   fenceHp: 90, // the wear a fence stands before a crowd of the dead bursts it (Michael, 2026-10-17, #147); a gate has `fenceGateFactor` of it
   fenceGateFactor: 0.5, // a gate goes first
