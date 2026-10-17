@@ -20,6 +20,7 @@ import * as burning from "./fire.js";
 import * as bleed from "./bleed.js";
 import * as burn from "./burn.js"; // burning as a status (#14): the step's, beside the visual fire.js
 import * as fruit from "./fruit.js"; // bare fruit trees bear again (#190)
+import * as farming from "./farming.js"; // crops grow on the clock (#194)
 import * as kit from "./kit.js"; // the starting kit as data and the world's additions (#136)
 import * as infection from "./infection.js";
 import * as combat from "./combat.js";
@@ -82,6 +83,7 @@ export function create({ json, look = null, name = null, devChest = false, rules
   world.reset(json.idCounter || 0); // the world's time scale and id counter (docs/30 step 2; docs/31/08)
   S.info = map.loadMap(json, mapOptions());
   fruit.reset();
+  farming.reset();
   const info = S.info;
   map.ensureAround(info.spawn[0], info.spawn[1], 4); // reading never grows (docs/31/05, item 8): the ring first
   // The dev chest by the spawn, a setting rather than a thing in the map (docs/30 step 0).
@@ -291,6 +293,7 @@ export function restore(saved, json) {
   world.reset(save.world.idCounter);
   world.setTimeScale(save.world.timeScale);
   clock.setElapsed(save.clock);
+  farming.reset(true); // after the clock: a restored world's crops wait for the next boundary, as the running one's did
   loop.setSimTime(save.simTime);
   rng.setState(save.rng);
   light.forgetAll();
@@ -521,6 +524,7 @@ export function begin(dt) {
   map.burnFires(dt);
   map.burnHolders(dt); // the torches mounted on brackets and posts burn down at the wall rate (map.js)
   fruit.step(); // a bare fruit tree bears again on its day (fruit.js)
+  farming.step(); // a crop's picture follows its stage (farming.js, #194)
   burnTorches(dt);
   stations.update(dt); // every station's queue, in the world's time (docs/30, section 6)
   for (const p of S.players) {

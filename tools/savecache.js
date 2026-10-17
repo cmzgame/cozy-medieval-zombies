@@ -14,8 +14,9 @@ import { fileURLToPath } from "node:url";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const { bootData } = await import("../server/boot.js");
-const [map, game, loop, interact, stations, save, clock] = await Promise.all([
+const [map, game, loop, interact, stations, save, clock, verbs, items, inventory, farming] = await Promise.all([
   import("../src/map.js"), import("../src/game.js"), import("../src/loop.js"), import("../src/interact.js"), import("../src/stations.js"), import("../src/save.js"), import("../src/clock.js"),
+  import("../src/verbs.js"), import("../src/items.js"), import("../src/inventory.js"), import("../src/farming.js"),
 ]);
 await bootData(root);
 const json = JSON.parse(fs.readFileSync(path.join(root, "data/maps/valley.json"), "utf8"));
@@ -132,6 +133,35 @@ if (!apple) fail("the valley has no apple tree");
 map.restage(apple, "tree_apple_bare", clock.getElapsed() + 2 * clock.DAY_LENGTH); did("a fruit tree picked bare");
 clock.setElapsed(clock.getElapsed() + 3 * clock.DAY_LENGTH); did("a fruit tree bearing again", 120);
 if (apple.sprite !== "tree_apple" || apple.regrowAt !== undefined) fail(`the apple tree did not bear again (${apple.sprite}, ${apple.regrowAt})`);
+// Farming (#194): a tile tilled, a seed planted, the crop watered, its picture turning with its stage, and the harvest: each through the
+// verbs the menu and a guest use, and each a change on a chunk the save's cache must hear.
+{
+  const me = game.state.player;
+  let fx = null;
+  let fy = null;
+  for (let dy = -12; dy <= 12 && fx === null; dy++) for (let dx = -12; dx <= 12 && fx === null; dx++) {
+    const [x, y] = [Math.round(me.gx) + dx, Math.round(me.gy) + dy];
+    const t = map.peekTile(x, y);
+    if (t && t.floor === "floor_grass" && !t.prop && map.isWalkableTile(x, y) && !t.n && !t.w && quiet(x, y)) { fx = x; fy = y; }
+  }
+  if (fx === null) fail("no bare grass to till near the player");
+  me.hands.main = items.makeEntry("hoe", 1);
+  me.gx = fx + 1;
+  me.gy = fy;
+  const stow = (id, n, props = {}) => inventory.addItem(inventory.bagOf(me), id, n, props);
+  stow("potato_seed", 3);
+  stow("waterskin", 1, { fill: 100 });
+  const run = (verb, target) => { const r = verbs.run(verb, game.state, me, target); if (!r.ok) fail(`${verb}: ${r.reason}`); };
+  run("till", { tile: [fx, fy] }); did("a tile tilled");
+  run("plant", { tile: [fx, fy], crop: "potato" }); did("a seed planted");
+  const crop = map.tileAt(fx, fy).prop;
+  if (!crop || !crop.crop) fail("the seed made no crop");
+  run("water", { prop: crop.id }); did("a crop watered");
+  clock.setElapsed(clock.getElapsed() + 4 * clock.DAY_LENGTH + 120); crop.crop.wetUntil = clock.getElapsed() + 1e6; did("a crop turning with its stage", 120);
+  if (crop.sprite !== "crop_potato_2") fail(`the crop did not turn to its ripe stage (${crop.sprite})`);
+  run("harvest", { prop: crop.id }); did("a crop harvested");
+  me.hands.main = null;
+}
 // Chopping (#195): a tree felled to a stump, and the stump chopped up: a prop removed and another placed on its tile, and one removed, with logs.
 {
   const me = game.state.player;

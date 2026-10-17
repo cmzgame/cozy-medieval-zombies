@@ -168,6 +168,29 @@ for path in sorted(glob.glob("data/maps/*.json")):
         if "loot" in p and p["loot"] not in loot_tables:
             fail(f"{path}: the {p['sprite']} at {p['tile']} names a loot table {p['loot']!r} that does not exist")
 
+# Farming (#194): every crop's seed and harvest items exist (the seed tagged `seed`), its stage days and counts make sense, its three
+# stage sprites exist and say which crop and stage they are, and the soil's numbers are positive.
+crops = load("data/crops.json")
+soil = crops["soil"]
+if not (soil["wetDays"] > 0 and soil["fillCost"] > 0 and all(v > 0 for v in soil["seconds"].values())):
+    fail("crops.soil: wetDays, fillCost and the seconds are all above 0")
+for kind, c in crops["crops"].items():
+    check_id(f"crops.{kind}.seed", c["seed"])
+    check_id(f"crops.{kind}.harvest", c["harvest"]["item"])
+    if c["seed"] in item_defs and "seed" not in item_defs[c["seed"]].get("tags", []):
+        fail(f"crops.{kind}: the seed item {c['seed']!r} lacks the tag 'seed'")
+    if not (len(c["stages"]) == 2 and all(d > 0 for d in c["stages"])):
+        fail(f"crops.{kind}: two stage lengths in days above 0")
+    lo, hi = c["harvest"]["count"]
+    if not (1 <= lo <= hi and c["seeds"] >= 1):
+        fail(f"crops.{kind}: a harvest count [lo, hi] from 1 and at least one seed back")
+    for stage in (0, 1, 2):
+        sid = f"crop_{kind}_{stage}"
+        if sid not in sprites:
+            fail(f"crops.{kind}: no sprite {sid}")
+        elif load(f"data/sprites/{sid}.json").get("crop") != {"kind": kind, "stage": stage}:
+            fail(f"sprites.{sid}: its `crop` should be {{kind: {kind}, stage: {stage}}}")
+
 # Every picture named exists.
 referenced = set()
 

@@ -20,7 +20,7 @@ export async function run(game) {
   const meAt = [me.gx, me.gy];
   const hands0 = { main: me.hands.main, off: me.hands.off };
   const z = G.zombies.find((q) => !q.dead && !q.corpse);
-  const z0 = { gx: z.gx, gy: z.gy, state: z.state, aggro: z.aggro, burning: z.burning };
+  const z0 = { gx: z.gx, gy: z.gy, state: z.state, aggro: z.aggro, burning: z.burning, groanTimer: z.groanTimer };
   let other = null;
   const step = (n = 4) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const alphaAt = (d) => { z.gx = me.gx + d; z.gy = me.gy; step(2); return sight.seenAlpha(me, z); };
@@ -34,6 +34,7 @@ export async function run(game) {
     z.aggro = false;
     z.path = [];
     z.burning = false;
+    z.groanTimer = 1e9; // its own groan must not fire in the long steps of the groan rows: a line it said itself would read as the radius failing (~5% flake)
 
     G.clock.setHour(12);
     row("out of doors by day nothing is hidden: the dead at eight tiles are seen whole", near(alphaAt(8), 1), `${alphaAt(8).toFixed(2)}`);
@@ -242,6 +243,7 @@ export async function run(game) {
     row("a burning one is its own light", near(sight.seenAlpha(me, z), 1), "seen whole at nine tiles");
     z.burning = false;
   } finally {
+    z.groanTimer = z0.groanTimer;
     T.darkRadius = T00.darkRadius;
     T.edge = T00.edge;
     if (other) G.game.removePlayer(other.id);

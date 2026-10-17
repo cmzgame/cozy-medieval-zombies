@@ -33,6 +33,8 @@ import { emit } from "./events.js";
 import * as loop from "./loop.js";
 import * as use from "./use.js"; // the Use entry on item menus (docs/30, law 2)
 import * as verbs from "./verbs.js"; // the verb table (docs/31/08, habit 4)
+import * as farming from "./farming.js"; // till, plant, water, harvest (#194)
+import { lineOfSight } from "./visibility.js";
 import * as chop from "./chop.js"; // a hatchet fells a tree and leaves a stump (#195)
 import * as tuning from "./tuning.js"; // the chop's seconds (world.chopSeconds)
 import * as fishing from "./fishing.js"; // a rod in hand casts at the water beside you (#190)
@@ -85,6 +87,7 @@ export function actionsForTarget(t, player) {
     const out = [];
     if (player.carrying) out.push(putDownAction(player, tx, ty));
     else if (map.peekTile(tx, ty) && map.drinkableAt(tx, ty)) out.push(...waterTileActions(tx, ty, player));
+    if (!player.carrying) out.push(...farmTileActions(tx, ty, player));
     if (map.isWalkableTile(tx, ty)) out.push(walkAction([tx, ty]));
     return tag(out, t);
   }
@@ -526,6 +529,55 @@ function openingActions(o, player) {
   return out;
 }
 
+// What a crop offers (#194): Harvest when it is ready (a simple action, so E does it), else how long it has to go, and Water with a skin.
+// Each runs its verb in the timed action, so a guest's choice of the same label does the same on the host.
+function cropActions(prop, player) {
+  if (!prop.crop) return [];
+  const soil = farming.get().soil;
+  const base = { tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] };
+  const run = (verb, args = {}) => () => {
+    const r = verbs.run(verb, world, player, { prop: prop.id, ...args });
+    if (!r.ok && r.reason) showMessage(r.reason);
+    else if (r.message) showMessage(r.message);
+    return r.ok;
+  };
+  const out = [];
+  if (farming.stageOf(prop) >= 2) out.push(act({ ...base, kind: "harvest", simple: true, label: "Harvest", duration: soil.seconds.harvest, perform: run("harvest") }));
+  else {
+    const days = Math.max(1, Math.ceil(farming.daysLeft(prop)));
+    out.push(act({ ...base, kind: "harvest", label: farming.isWet(prop) ? `Growing (ready in about ${days} day${days > 1 ? "s" : ""})` : `Dry: waiting for water (about ${days} more day${days > 1 ? "s" : ""} of growth)`, enabled: false }));
+  }
+  const skin = farming.skinFor(player, null);
+  out.push(act({ ...base, kind: "water", label: skin ? "Water" : "Water (no water in a skin)", duration: soil.seconds.water, enabled: !!skin, perform: run("water") }));
+  return out;
+}
+
+// A tile's farming (#194): the hoe in a hand tills bare grass or dirt, a seed carried is planted in empty soil.
+function farmTileActions(tx, ty, player) {
+  const out = [];
+  const soil = farming.get().soil;
+  const t = map.peekTile(tx, ty);
+  if (!t || t.prop) return out;
+  if (!lineOfSight(player.gx, player.gy, tx, ty)) return out; // a wall in the way: not offered, rather than offered and refused (the verbs refuse it too)
+  const base = { tiles: [[tx, ty]], mx: tx, my: ty };
+  const run = (verb, args = {}) => () => {
+    const r = verbs.run(verb, world, player, { tile: [tx, ty], ...args });
+    if (!r.ok && r.reason) showMessage(r.reason);
+    else if (r.message) showMessage(r.message);
+    return r.ok;
+  };
+  if (farming.heldWith(player, "till") && !farming.isSoil(tx, ty) && (t.floor === "floor_grass" || t.floor === "floor_dirt")) {
+    out.push(act({ ...base, kind: "till", label: "Till the soil", duration: soil.seconds.till, perform: run("till") }));
+  }
+  if (farming.isSoil(tx, ty)) {
+    for (const kind of Object.keys(farming.get().crops)) {
+      if (!farming.hasSeed(player, kind)) continue;
+      out.push(act({ ...base, kind: "plant", label: `Plant ${kind}`, duration: soil.seconds.plant, perform: run("plant", { crop: kind }) }));
+    }
+  }
+  return out;
+}
+
 // A fruit tree laden is picked by hand (the `pick` verb, fruit.js; #190); bare, it says when it will bear. The timed action runs the verb,
 // so a guest's choice of the same label does the same on the host.
 function pickActions(prop, player) {
@@ -677,6 +729,7 @@ function propActions(prop, player) {
   if (prop.fire && prop.fire.burns) out.push(...fireActions(prop, player));
   if (prop.fire && prop.fire.holds) out.push(...holderActions({ kind: "post", prop }, player));
   if (prop.wood) out.push(...pickActions(prop, player), ...treeActions(prop, player));
+  if (prop.crop) out.push(...cropActions(prop, player));
   if (prop.water) out.push(...wellActions(prop, player));
   if (getDef(prop.sprite).sleep) out.push(...sleepAction(prop, player));
   if (stations.stationOf(prop)) out.push(...stationActions(prop, player));
@@ -751,6 +804,8 @@ export function actionsAt(sx, sy, player) {
   }
   for (const entry of map.itemsAt(tx, ty)) out.push(...tag(itemActions(entry, tx, ty, player), onItem(entry, tx, ty)));
   if (map.peekTile(tx, ty) && map.drinkableAt(tx, ty)) out.push(...tag(waterTileActions(tx, ty, player), onTile(tx, ty))); // the river, a pond (docs/30, law 8)
+  const farmActs = tag(farmTileActions(tx, ty, player), onTile(tx, ty)); // Till the soil with a hoe, Plant with a seed (#194)
+  out.push(...farmActs);
   // Props: on their tile, or under their sprite in the tiles around (a tall tree).
   const seen = new Set();
   for (let dy = -3; dy <= 1; dy++) {
@@ -769,7 +824,7 @@ export function actionsAt(sx, sy, player) {
   const under = characterAt(sx, sy, player);
   if (under) out.push(...tag(characterActions(under, player), onCharacter(under)));
   else if (playerAt(sx, sy, player)) out.push(...tag(characterActions(player, player), onCharacter(player)));
-  if (!out.length && map.isWalkableTile(tx, ty)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty)));
+  if (out.length === farmActs.length && map.isWalkableTile(tx, ty)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty))); // nothing else here (Till and Plant do not stand in for it)
   return out;
 }
 
