@@ -24,6 +24,8 @@
     "knockTime": 0.15,
     "breachReach": 1.1,
     "noWayTime": 8,
+    "siegeEndHour": 6,
+    "siegeSwitch": 25,
     "searchRadius": 3,
     "wanderIdleMin": 1.5,
     "wanderIdleMax": 4.0,

@@ -43,6 +43,14 @@ export function setHour(h) {
   elapsed = day * DAY_LENGTH + (((h % 24) + 24) % 24 / 24) * DAY_LENGTH;
 }
 
+// Seconds from now to the next time the clock reads `h` (0..24): the dawn a siege ends at (the dead, `zombie.siegeEndHour`).
+export function secondsUntilHour(h) {
+  const target = (((h % 24) + 24) % 24 / 24) * DAY_LENGTH;
+  let d = target - (elapsed % DAY_LENGTH);
+  if (d <= 0) d += DAY_LENGTH;
+  return d;
+}
+
 // 0..1 position within the current cycle.
 export function cycleT() {
   return (elapsed % DAY_LENGTH) / DAY_LENGTH;

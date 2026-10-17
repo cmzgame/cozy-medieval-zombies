@@ -5,7 +5,7 @@
 // by an opaque prop in any tile it passes through. Glass passes sight, so a
 // window reveals a wedge of the far side and nothing else.
 
-import { wallBetween, blocksSight, tileAt } from "./map.js";
+import { wallBetween, blocksSight, tileAt, edgeBetween } from "./map.js";
 
 const MAX_STEPS = 400;
 
@@ -42,6 +42,39 @@ export function lineOfSight(ax, ay, bx, by) {
     }
   }
   return true;
+}
+
+// The window or door a line of sight passes through, or null: the first opening that is not a wall on the way (a window with
+// its shutters open, a door open, a broken one: whatever lets the sight through), as { wall, tx, ty, edge }. The dead
+// remember the opening through which they saw a player inside (zombie.js `noteSighting`, #147).
+export function openingOnLine(ax, ay, bx, by) {
+  let ix = Math.round(ax);
+  let iy = Math.round(ay);
+  const tx = Math.round(bx);
+  const ty = Math.round(by);
+  if (ix === tx && iy === ty) return null;
+  const dx = bx - ax;
+  const dy = by - ay;
+  const stepX = Math.sign(dx);
+  const stepY = Math.sign(dy);
+  let tMaxX = dx !== 0 ? ((stepX > 0 ? ix + 0.5 : ix - 0.5) - ax) / dx : Infinity;
+  let tMaxY = dy !== 0 ? ((stepY > 0 ? iy + 0.5 : iy - 0.5) - ay) / dy : Infinity;
+  const tDeltaX = dx !== 0 ? Math.abs(1 / dx) : Infinity;
+  const tDeltaY = dy !== 0 ? Math.abs(1 / dy) : Infinity;
+  let guard = 0;
+  while ((ix !== tx || iy !== ty) && guard++ < MAX_STEPS) {
+    let nx = ix;
+    let ny = iy;
+    if (tMaxX < tMaxY) { nx = ix + stepX; tMaxX += tDeltaX; } else { ny = iy + stepY; tMaxY += tDeltaY; }
+    const wall = wallBetween(ix, iy, nx, ny);
+    if (wall && (wall.kind === "window" || wall.kind === "door")) {
+      const [ex, ey, edge] = edgeBetween(ix, iy, nx, ny);
+      return { wall, tx: ex, ty: ey, edge };
+    }
+    ix = nx;
+    iy = ny;
+  }
+  return null;
 }
 
 // Numeric tile keys, so a visibility set costs no string allocation.

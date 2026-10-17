@@ -166,6 +166,13 @@ export function setSleepScaleRule(fn) {
   scaleNow = fn;
 }
 
+// Whether any of the dead holds a siege on the house with this room (game.js hands it in; the dead that know a player is
+// inside wait about the house until dawn, and the player cannot sleep while they do: Michael, 2026-10-17, #147).
+let siegeOn = () => false;
+export function setSiegeQuery(fn) {
+  siegeOn = fn;
+}
+
 export function startSleep(player, bed) {
   player.sleeping = { bed: bed.id, since: loop.simTime(), hour: clock.getHour() };
   player.moving = false;
@@ -203,6 +210,7 @@ verbs.define("sleep", {
     if (player.carrying) return "Your hands are full.";
     if (distToTiles(player, bed.tiles) > 1.6) return "Too far from the bed.";
     if (roomAt(bed.tile[0], bed.tile[1]) === 0) return "Not out here.";
+    if (siegeOn(roomAt(bed.tile[0], bed.tile[1]))) return "The dead that know you are in here are still about.";
     const h = clock.getHour();
     if (tiredStage(player) === 0 && h >= T.wakeHour && h < 20) return "You are not tired.";
     return true;
