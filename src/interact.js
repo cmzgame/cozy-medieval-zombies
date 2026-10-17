@@ -19,7 +19,7 @@ import { getSheet, idleFrame } from "./assets.js";
 import { resolveFacing, frameName } from "./sprites.js";
 import { getItem, makeEntry, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
 import { stacks as bleedStacks, clear as clearBleed } from "./bleed.js";
-import { beltKey } from "./inventory.js";
+import { beltKey, flameOf, NO_FLAME } from "./inventory.js";
 import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, restoreOffHand, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
 import { getDef } from "./assets.js";
 import { canPutDown, putDownTarget, canCarry, propRect } from "./placement.js";
@@ -359,13 +359,15 @@ function fireActions(prop, player) {
   const full = f.fuel >= f.maxFuel;
   const hours = map.fireHoursLeft(prop);
   const left = f.lit ? `, ${hours < 1 ? "under an hour" : `${Math.round(hours)} h`} left` : "";
+  // Lighting a fire that is out needs a flame carried too (Michael, 2026-10-17, #168): a tinderbox or a lit torch, the light verb's rule.
+  const flame = f.lit ? true : !!flameOf(player);
   let label;
-  if (!f.lit) label = have ? `Light the ${name} (a ${fuelName})` : `Light the ${name} (need a ${fuelName})`;
+  if (!f.lit) label = !have ? `Light the ${name} (need a ${fuelName})` : flame ? `Light the ${name} (a ${fuelName})` : `Light the ${name} (need a tinderbox or a flame)`;
   else if (full) label = `The ${name} is full (${f.maxFuel} ${fuelName}s${left})`;
   else label = have ? `Feed the ${name} (${Math.ceil(f.fuel)} of ${f.maxFuel}${left})` : `Feed the ${name} (need a ${fuelName}${left})`;
   return [act({
     kind: "fire",
-    simple: have > 0 && !full,
+    simple: have > 0 && !full && flame,
     label,
     tiles: prop.tiles,
     mx: prop.tile[0],
@@ -373,6 +375,7 @@ function fireActions(prop, player) {
     enabled: have > 0 && !full,
     perform() {
       if (countAll(player, fuelId) <= 0) return false;
+      if (!prop.fire.lit && !flameOf(player)) { showMessage(NO_FLAME); return false; } // the refusal says why
       if (!map.feedFire(prop)) return false;
       takeAll(player, fuelId, 1);
       return true;

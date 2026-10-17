@@ -13,7 +13,7 @@
 
 import * as verbs from "./verbs.js";
 import * as map from "./map.js";
-import { bagOf, beltOf, findItem } from "./inventory.js";
+import { beltOf, carriedEntry as carried, flameOf } from "./inventory.js";
 import { burnZombie } from "./entities/zombie.js";
 import { lineOfSight } from "./visibility.js";
 
@@ -53,18 +53,6 @@ export function update(characters, dt) {
 
 // ---- fire arrows: arrows used on a lit fire (data/interactions.json, the `dip` verb) ----
 
-// The entry with this uid wherever the player carries it: the hands, the belt, the bag.
-function carried(player, uid) {
-  if (uid == null) return null;
-  for (const slot of ["main", "off"]) {
-    const e = player.hands && player.hands[slot];
-    if (e && e.uid === uid) return e;
-  }
-  for (const e of beltOf(player) || []) if (e && e.uid === uid) return e;
-  const bag = bagOf(player);
-  return (bag && bag.items.find((e) => e.uid === uid)) || null;
-}
-
 function nearest(player, tiles) {
   let best = Infinity;
   for (const [tx, ty] of tiles) best = Math.min(best, Math.hypot(player.gx - tx, player.gy - ty));
@@ -99,22 +87,6 @@ verbs.define("dip", {
 // unlit torch you carry lights it. Never burns anything else. The target is an address: a prop (an id, or the prop on the host), a
 // bracket `{ tx, ty, edge }`, or `onEntry`, an unlit torch's uid; the flame is `entry` (the uid of what was used), else whatever the
 // player has (a tinderbox, a lit torch in a hand or on the belt: the right-click menu on a holder).
-
-// The flame the player has, or null: the entry named by `uid` if it is a flame, else a tinderbox carried, else a lit torch in a hand
-// or on the belt.
-function flameOf(player, uid) {
-  if (uid != null) {
-    const e = carried(player, uid);
-    return e && (e.id === "tinderbox" || (e.id === "torch" && e.lit)) ? e : null;
-  }
-  const box = findItem(player, "tinderbox");
-  if (box) return box.entry;
-  for (const slot of ["main", "off"]) {
-    const e = player.hands && player.hands[slot];
-    if (e && e.id === "torch" && e.lit) return e;
-  }
-  return (beltOf(player) || []).find((e) => e && e.id === "torch" && e.lit) || null;
-}
 
 // What the target is, or why it cannot be lit: { reason } or { light(), at: [x, y] | null }.
 function lightTarget(player, target, flame) {
