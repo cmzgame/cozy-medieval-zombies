@@ -71,7 +71,7 @@ export function growth(prop, now = clock.getElapsed()) {
 // 0, 1, or 2 (ready).
 export function stageOf(prop, now = clock.getElapsed()) {
   const [a, b] = cropDef(prop.crop.kind).stages;
-  const g = growth(prop, now);
+  const g = growth(prop, now) + 1e-6; // a stage reached to the second is reached: the sum of `now + wetDays * DAY - now` can fall a hair short of a whole stage
   return g < a * DAY ? 0 : g < (a + b) * DAY ? 1 : 2;
 }
 

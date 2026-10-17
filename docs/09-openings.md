@@ -25,7 +25,7 @@ The near side of an edge is the tile it belongs to (south of a north edge, east 
 - **The leaf** is the door, or the shutters. It has health. Broken, a door is an opening that is never a door again, and a shutter is a window that is never shut again. Nothing is repaired; if the dead break your door you do not have a door anymore.
 - **Boards** are planks nailed to one side, each with its own health. Any board on either side makes the opening opaque and solid: nothing walks or paths through it, open leaf or broken leaf alike.
 - **Attack order** from a side: that side's boards, then the leaf, then the far side's boards. When nothing solid is left the way is open.
-- **Everything is spent.** A board the dead break is gone. A board you pull is gone. Wood is what you go out for: planks for the walls, logs for the fires.
+- **Everything is spent.** A board the dead break is gone. A board you pull with a hammer gives its plank back (#215, `docs/02`: pulling needs the smith's hammer carried, and so does boarding). Wood is what you go out for: planks for the walls, logs for the fires.
 - **Transmission** from the stack: boards on either side 0; closed whole shutters the leak; a closed door 0; open or broken 1.
 - **Bodies:** a door passes when open or broken and unboarded; a window never passes a body, whatever state its shutters are in.
 - **Sealed**, per room, each step: every door closed and whole or boarded, every window shuttered and whole or boarded. Shown in the debug corner; it gates nothing (sleep is refused by a siege held on the player, below, not by this).
@@ -36,7 +36,7 @@ Planks were free until the inventory (milestone 4, 2026-10-10); a board spends a
 
 | At | Tap E | Tap B | Hold B |
 |---|---|---|---|
-| a closed door | open it ("boarded" if any board on either side) | nail a board on your side | pull one of your boards, gone |
+| a closed door | open it ("boarded" if any board on either side) | nail a board on your side (a smith's hammer carried) | pull one of your boards (the hammer carried; the plank comes back) |
 | an open door | close it | nail a board (over the opening) | pull a board |
 | closed shutters | open them ("boarded" if boarded) | nail a board | pull a board |
 | open shutters | close them | nail a board | pull a board |

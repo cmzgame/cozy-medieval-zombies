@@ -17,6 +17,7 @@ export async function run(game) {
   const bag0 = bag.items.slice();
   const belt = G.inventory.beltOf(me);
   const belt0 = belt ? belt.slice() : null;
+  const counts0 = [...bag0, ...(belt0 || [])].filter(Boolean).map((e) => [e, e.count]); // a stack the check merged into (the kit's apples) goes back to its count
   const hands0 = { main: me.hands.main, off: me.hands.off };
   const free0 = G.rules.rules.freeBuilding;
   const wasPaused = G.loop.isPaused();
@@ -115,9 +116,20 @@ export async function run(game) {
     G.interact.performByLabel(me, doorAddr, pullLabel.label);
     for (let i = 0; i < 100 && me.action; i++) G.interact.updateAction(me, 0.1);
     row("pulling a board with it gives the plank back", w.boards.near.length + w.boards.far.length === 0 && G.inventory.countAll(me, "plank") === planks0, `planks ${G.inventory.countAll(me, "plank")} of ${planks0}`);
+    // Board it again, then take the hammer away: both Board up and Pull a board are greyed with the tool named.
+    G.interact.performByLabel(me, doorAddr, G.interact.actionsForTarget(doorAddr, me).find((a) => /^Board up/.test(a.label)).label);
+    for (let i = 0; i < 100 && me.action; i++) G.interact.updateAction(me, 0.1);
     stripTools();
-    const pullNo = G.interact.actionsForTarget(doorAddr, me).find((a) => /^Pull a board|^Board up/.test(a.label));
-    row("and without a hammer boarding and pulling are both greyed", !!pullNo && !pullNo.enabled, pullNo ? pullNo.label : "none");
+    const noHam = G.interact.actionsForTarget(doorAddr, me).filter((a) => /^Pull a board|^Board up/.test(a.label));
+    row("and without a hammer boarding and pulling are both greyed, naming it", noHam.length === 2 && noHam.every((a) => !a.enabled && /smith's hammer/.test(a.label)), noHam.map((a) => a.label).join(" | "));
+    G.rules.rules.freeBuilding = true;
+    const freeBoard = G.interact.actionsForTarget(doorAddr, me).find((a) => /^Pull a board/.test(a.label));
+    row("Free building does not waive the hammer for boards (Michael, 2026-10-11: boards are untouched)", !!freeBoard && !freeBoard.enabled, freeBoard ? freeBoard.label : "none");
+    G.rules.rules.freeBuilding = false;
+    stowTool("hammer");
+    G.interact.performByLabel(me, doorAddr, G.interact.actionsForTarget(doorAddr, me).find((a) => /^Pull a board/.test(a.label)).label);
+    for (let i = 0; i < 100 && me.action; i++) G.interact.updateAction(me, 0.1);
+    stripTools();
 
     // Remove (X) needs the hammer: a guest's command by the wall's address.
     const rm = (id) => { if (id) stowTool(id); placement.performPlacement(me, { kind: "remove", target: { type: "wall", tx: x + 2, ty: y + 2, edge: "n" } }); };
@@ -196,7 +208,7 @@ export async function run(game) {
     const tree = map.createProp({ sprite: "tree_apple", tile: [x + 4, y] });
     map.placeProp(tree, x + 4, y);
     made.push(tree);
-    row("an apple is picked by hand (the pick verb names no tool)", !G.verbs.get("pick") || !/need a/.test(String(G.verbs.run("pick", G.world, me, { prop: tree.id }).reason || "")), "no tool named");
+    row("an apple is picked by hand (the pick verb names no tool)", !!G.verbs.get("pick") && !/need a/.test(String(G.verbs.run("pick", G.world, me, { prop: tree.id }).reason || "")), "no tool named");
 
     // The belt: a skin on it is filled at water, and the tinderbox may ride it.
     if (belt) {
@@ -206,15 +218,23 @@ export async function run(game) {
       const toFill = G.inventory.skinsOf(me).filter((e) => (e.fill ?? 0) < 100);
       row("a waterskin on the belt is among the skins to fill at a well", toFill.includes(skin), `${toFill.length} to fill`);
       belt[i] = null;
-      const tin = G.items.makeEntry("tinderbox", 1);
-      const ok = G.items.getItem("tinderbox").belt === true;
-      belt[i] = tin;
-      row("the tinderbox has a belt place and a torch is lit with it from the belt", ok && G.inventory.countAll(me, "tinderbox") >= 1, "belt: true");
+      // The tinderbox on the belt (and nowhere else) lights the torch in hand with T.
+      bag.items = bag.items.filter((e) => e.id !== "tinderbox");
+      for (let k = 0; k < belt.length; k++) if (belt[k] && belt[k].id === "tinderbox") belt[k] = null;
+      belt[i] = G.items.makeEntry("tinderbox", 1);
+      const torch = G.items.makeEntry("torch", 1);
+      me.hands.main = torch;
+      G.interact.updateInteract(me, 0.016, { t: true });
+      row("the tinderbox has a belt place, and T lights the torch in hand with it from the belt", G.items.getItem("tinderbox").belt === true && torch.lit === true, `belt: true; torch lit ${torch.lit}`);
+      me.hands.main = null;
       belt[i] = null;
     }
 
     // Where each first tool comes from: the chests' tables.
     const loot = (t, id) => G.items.rollLoot(t).some((e) => e.id === id);
+    const homeBag = G.inventory.createBag(4, 3, "chest");
+    const fitted = G.items.rollLoot("home_chest").map((e) => G.grid.add(homeBag, e.id, e.count || 1, {})).every((n) => n > 0);
+    row("your cottage's chest holds a hatchet, a shovel (the first potatoes dig on day one), bread, and a bucket, all fitting its 4 by 3", loot("home_chest", "shovel") && loot("home_chest", "hatchet") && loot("home_chest", "bucket") && fitted, homeBag.items.map((e) => e.id).join(", "));
     row("a first hammer is in the joiner's chest and the quarryman's, a hatchet in your cottage's and the joiner's, and the smithy's bars make the knife at the anvil (the hammer in hand)", loot("joiner_chest", "hammer") && loot("joiner_chest", "hatchet") && loot("home_chest", "hatchet") && loot("smithy_chest", "iron_bar") && G.stations.recipe("knife").station === "anvil" && G.stations.recipe("knife").tool === "hammer", "tables");
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message + (e.stack ? " " + e.stack.split("\n")[1] : "") });
@@ -224,6 +244,7 @@ export async function run(game) {
     G.rules.rules.freeBuilding = free0;
     bag.items.splice(0, bag.items.length, ...bag0);
     if (belt) for (let i = 0; i < belt.length; i++) belt[i] = belt0[i];
+    for (const [e, n] of counts0) e.count = n;
     me.hands.main = hands0.main;
     me.hands.off = hands0.off;
     me.action = null;

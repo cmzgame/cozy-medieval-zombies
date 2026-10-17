@@ -385,7 +385,7 @@
   },
   "build": {
    "say": [
-    "N opens the build menu: walls, doors, windows. X shows what you can remove.",
+    "N opens the build menu: walls, doors, windows. X shows what you can remove. A door or a window, boarding up, and X all want a smith's hammer on you; a log wall wants a hatchet.",
     "R turns what you are placing. Furniture can be carried on your head and set down.",
     "Walls hold. A door, a board, or a fence, they can batter down."
    ],
@@ -404,7 +404,7 @@
    "say": [
     "A hoe in a hand turns bare grass or dirt to soil. Seed goes in soil, and water keeps it growing.",
     "Watered soil stays wet for two days. A dry crop only pauses. It never dies.",
-    "Harvest when it is ripe and a few seeds come back. The soil stays.",
+    "Harvest when it is ripe, with the tool for it carried: a shovel for potatoes and garlic, a knife for cabbage and pumpkin, a scythe for rye. A few seeds come back and the soil stays.",
     "A scythe takes the ripe rye on the three tiles ahead at a swing.",
     "The granaries at Hollow Farm and the mill keep seed of every crop."
    ],

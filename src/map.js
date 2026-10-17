@@ -765,7 +765,7 @@ export function addBoard(wall, side) {
   return true;
 }
 
-// Pull a board on a side. It is gone.
+// Pull a board on a side. The board is gone from the wall; the caller gives the plank back (#215: pulled with a hammer, it comes back).
 export function pullBoard(wall, side) {
   const b = boardsOn(wall, side);
   if (!b.length) return false;

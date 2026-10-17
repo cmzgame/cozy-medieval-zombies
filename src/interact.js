@@ -505,7 +505,7 @@ function openingActions(o, player) {
     }));
   }
   const planks = countAll(player, "plank");
-  const noHammer = placement.toolProblem(player, tuning.world.boardTool); // the tool rule (#215): boarding and pulling are hammer work
+  const noHammer = toolProblem(player, tuning.world.boardTool); // the tool rule (#215): boarding and pulling are hammer work
   const need = noHammer ? toolName(tuning.world.boardTool) : "";
   if (mine.length < map.BOARDS_PER_SIDE) {
     out.push(act({
@@ -515,7 +515,7 @@ function openingActions(o, player) {
       duration: BOARD_TIME,
       enabled: planks > 0 && !noHammer,
       perform() {
-        if (placement.toolProblem(player, tuning.world.boardTool)) { showMessage(placement.toolProblem(player, tuning.world.boardTool)); return false; }
+        if (toolProblem(player, tuning.world.boardTool)) { showMessage(toolProblem(player, tuning.world.boardTool)); return false; }
         if (countAll(player, "plank") <= 0) return false;
         if (!map.addBoard(w, side)) return false;
         takeAll(player, "plank", 1);
@@ -531,7 +531,7 @@ function openingActions(o, player) {
       duration: PULL_TIME,
       enabled: !noHammer,
       perform() {
-        if (placement.toolProblem(player, tuning.world.boardTool)) { showMessage(placement.toolProblem(player, tuning.world.boardTool)); return false; }
+        if (toolProblem(player, tuning.world.boardTool)) { showMessage(toolProblem(player, tuning.world.boardTool)); return false; }
         if (!map.pullBoard(w, side)) return false;
         const back = addItem(bagOf(player), "plank", 1); // pulled with a hammer, the plank comes back (#215)
         if (back < 1) map.dropItem(Math.round(player.gx), Math.round(player.gy), makeEntry("plank", 1));
@@ -1139,14 +1139,15 @@ export function updateInteract(player, dt, keys) {
     const o = nearestOpening(player);
     if (o) {
       const a = openingActions(o, player).find((x) => x.kind === "pull");
-      if (a) startAction(player, a);
+      if (a && a.enabled === false) showMessage(toolProblem(player, tuning.world.boardTool) || "There is no board to pull.");
+      else if (a) startAction(player, a);
     }
   } else if (keys.bTap) {
     const o = nearestOpening(player);
     if (o) {
       const a = openingActions(o, player).find((x) => x.kind === "board");
       if (a && a.enabled) startAction(player, a);
-      else if (a) showMessage(placement.toolProblem(player, tuning.world.boardTool) || "You need a plank.");
+      else if (a) showMessage(toolProblem(player, tuning.world.boardTool) || "You need a plank.");
     }
   }
   if (keys.t) toggleTorch(player);
