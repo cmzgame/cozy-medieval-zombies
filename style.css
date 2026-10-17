@@ -14,6 +14,15 @@
   font-display: swap;
 }
 
+/* The wordmark's face (Michael, 2026-10-17): Pirata One, under the Open Font License, served from data/fonts;
+   the wordmark waits for it rather than flashing a stand-in. */
+@font-face {
+  font-family: "Pirata One";
+  src: url("data/fonts/PirataOne-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: block;
+}
+
 :root {
   --font-ui: "Pixelify Sans", "Segoe UI", system-ui, sans-serif;
   --text: #efe8da; /* parchment on stone */
@@ -1643,8 +1652,9 @@ html, body {
   position: relative;
   z-index: 1;
   display: block;
-  font-weight: 700;
-  letter-spacing: 2px;
+  font-family: "Pirata One", var(--font-ui);
+  font-weight: 400;
+  letter-spacing: 1px;
   color: transparent;
   -webkit-background-clip: text;
   background-clip: text;
