@@ -59,7 +59,7 @@ export function update() {
   }
   const torchFire = getItem("torch").fire;
   for (const b of map.brackets()) {
-    if (!b.wall.bracket.torch) continue;
+    if (!b.wall.bracket.torch || b.wall.bracket.lit === false) continue; // a mounted torch that is out gives no light
     const [gx, gy] = map.bracketPos(b);
     curSources.push({ gx, gy, radius: torchFire.radius, intensity: 1, kind: "torch", flicker: torchFire.flicker });
   }

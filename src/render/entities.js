@@ -240,7 +240,7 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
         const j = joints[slot];
         const along = (e.anim.name === "attack" || e.anim.name === "attack_alt") && slot === "main" && def.held.swing !== false;
         const k = hs.byFacing ? (j.angFace ?? j.ang) : along ? j.angSwing : j.ang; // a bow is upright by the facing (held.js)
-        held.push({ sheet: hs, k, x: x + j.x, y: y + j.y, near: j.near, tip: def.fire ? hs.tips[k] : null });
+        held.push({ sheet: hs, k, x: x + j.x, y: y + j.y, near: j.near, tip: def.fire && (!def.fire.burnsDown || entry.lit) ? hs.tips[k] : null }); // the flame only on a lit torch
       }
     }
     const carried = e.carrying || null;

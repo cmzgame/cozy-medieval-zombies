@@ -30,6 +30,9 @@ export const zombie = {
   knockTime: 0.15, // a push is spread over this long, not a teleport
   breachReach: 1.1, // tiles from the edge midpoint to hit it
   noWayTime: 8, // seconds the dead leave a goal alone (and search) after finding no way in, no door they can reach (#134)
+  siegeEndHour: 6, // the dead that know a player is inside wait until the clock next reads this hour, the dawn, and lose interest (#147)
+  siegeSwitch: 25, // seconds before one of them tries another opening it knows
+  siegeSleepRadius: 14, // tiles: a player cannot sleep while any dead one holding a siege on them is this near (#147)
   searchRadius: 3, // tiles
   wanderIdleMin: 1.5, // seconds standing before wandering again
   wanderIdleMax: 4.0,
@@ -93,6 +96,8 @@ export const world = {
   twoTorches: 1.35, // a torch in each hand: this much of one torch's light, and seen from this much further
   playerCapBrowser: 4, // the players a world hosted in a browser holds at once, the host's own among them (Michael, #93)
   playerCapServer: 8, // and a server world (raised in one line when the lighter frames of docs/31/05 land)
+  torchHeldLife: 1440, // game seconds of burning a torch lasts held in a hand (two game days of continuous light; Michael, 2026-10-17, #156)
+  torchWallLife: 2880, // and on the belt, in a bracket, or on a post, the slower "wall" rate
   daylightTiles: 30, // tiles of a room one open shutter or open door lights fully by day (light.js `openness`; Michael, #150): one open window for a small room, more for a large one
 };
 

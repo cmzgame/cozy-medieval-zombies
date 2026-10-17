@@ -24,6 +24,9 @@
     "knockTime": 0.15,
     "breachReach": 1.1,
     "noWayTime": 8,
+    "siegeEndHour": 6,
+    "siegeSwitch": 25,
+    "siegeSleepRadius": 14,
     "searchRadius": 3,
     "wanderIdleMin": 1.5,
     "wanderIdleMax": 4.0,
@@ -77,6 +80,8 @@
     "twoTorches": 1.35,
     "playerCapBrowser": 4,
     "playerCapServer": 8,
+    "torchHeldLife": 1440,
+    "torchWallLife": 2880,
     "daylightTiles": 30
   },
   "population": { "none": 0, "low": 0.4, "standard": 1, "high": 2.5 },
