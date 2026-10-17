@@ -14,6 +14,7 @@ export async function run(game) {
   const p = G.player;
   const hands0 = { main: p.hands.main, off: p.hands.off };
   const hunger0 = p.hunger;
+  const survival0 = G.rules.rules.survival;
   const assets = await import("/src/assets.js");
   const combat = await import("/src/combat.js");
   const { eat } = await import("/src/entities/player.js");
@@ -46,6 +47,8 @@ export async function run(game) {
     row("a book in the main hand is presented in the idle and the walk", bookItem && book === presentPitch && walkBook === presentPitch && sword !== presentPitch, `the book's arm ${book} idle and ${walkBook} walking, the present pose ${presentPitch}, a sword's ${sword}`);
     // 3. Eating presents for presentTime, standing, then the idle.
     hold(null);
+    p.hunger = 0; // a full belly eats nothing (#186), so there is room, and the world's Survival must be on for there to be an appetite
+    G.rules.rules.survival = true;
     eat(p, G.items.getItem("bread") || { hunger: 0 });
     const ate = step(60);
     const shown = ate.filter((a) => a === "present").length / 60;
@@ -103,6 +106,7 @@ export async function run(game) {
     p.hands.main = hands0.main;
     p.hands.off = hands0.off;
     p.hunger = hunger0;
+    G.rules.rules.survival = survival0;
     p.presentFor = 0;
     G.loop.advance(1 / 60);
     G.loop.setPaused(wasPaused);
