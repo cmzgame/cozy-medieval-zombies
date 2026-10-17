@@ -720,14 +720,11 @@ export function updateDraw(player, dt, ctx) {
   draw.t += dt * (braced ? (bow.braceDrawTime ? bow.drawTime / bow.braceDrawTime : tunables.braceDrawRate) : 1);
   draw.c = Math.min(1, draw.t / bow.drawTime);
   const aim = aimFrom(player, ctx);
-  // The guide (docs/20): where this draw would land, and the line out to the full draw's. A setting
-  // of the drawer's client; on a host it is computed for a guest too and travels with their record.
-  if (settings.get("aimGuide") || ctx.aimAt) {
-    const p = preview(player, aim.dir, aim.distance, draw.c, bow.range);
-    setMarker(player, { from: [player.gx, player.gy], full: p.full, land: p.land });
-  } else {
-    setMarker(player, null);
-  }
+  // The guide (docs/20): where this draw would land, and the line out to the full draw's. Always
+  // computed (on a host for a guest too, travelling with their record); whether it is drawn is the
+  // viewer's own Aim guide setting, read where the frame is drawn (main.js), never here.
+  const p = preview(player, aim.dir, aim.distance, draw.c, bow.range);
+  setMarker(player, { from: [player.gx, player.gy], full: p.full, land: p.land });
   const at = poseAt(styleOf(player, true)); // the style's own rhythm (the bow's 0.35 and 0.8 by default; the cast's in poses.json)
   setPose(player, draw.c < at[0] ? 0 : draw.c < at[1] ? 1 : 2);
   const down = draw.source === "script" ? true : ctx.down;

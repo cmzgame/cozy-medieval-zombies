@@ -1024,6 +1024,14 @@ function predict(me, snap) {
   controlPlayer(me, game.state.zombies, 1 / 60, snap, true);
 }
 
+// The browser hashes of the guests still connected that have stepped away (host.js `full`: a stepped-away guest keeps its
+// place, since it is idling at its keyboard, not leaving; a guest whose socket has gone does not).
+export function awayGuestHashes() {
+  const out = [];
+  for (const g of guests.values()) if (g.steppedAway && g.hash) out.push(g.hash);
+  return out;
+}
+
 // The host's last word on my player, kept so the replay always starts from it: a frame whose record of me is the
 // acknowledgement alone (nothing changed on the host since the last record) means the last record stands, and
 // replaying the unacknowledged inputs over my predicted player instead would apply them twice.

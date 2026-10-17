@@ -108,6 +108,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
+- The aim guide is off by default, for the bow, a throw, and the cast (2026-10-16, The aim guide is off by default)
 - Talk's panel is entirely click-based, with topics, wiki links, Continue, and That's all for now; E starts it (2026-10-16, The needs-michael queue)
 - Never draw UI into the canvas; the interface has its own scale, like a web page (2026-10-10, night, The view, the screens, and a law)
 - The world fills the window; nothing is laid out against 960×540 (2026-10-10, night, The view, the screens, and a law)
@@ -192,6 +193,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-10-16 — The aim guide is off by default (Michael, after a play)
+
+After playing the staff and the Book of Fire with the guide on: "I am also playing at the moment with no trees, with infinite mana, and with the ranged guide (bow, thrown, magic) turned ON, which I do not think should be the default or it makes it a b[i]t too easy. You should have to learn by trial and error how long to hold down left click." **The aim guide (the landing marker and its line, for the bow, a throw, and the cast alike) is off by default;** it stays a setting of each player's own. A browser that saved its settings keeps its own choice, as with every default changed before. It replaces the default on of 2026-10-12 (Arrows that hit stay in the body; the bow's guide is a setting). **Built with it:** the setting had done nothing since 2026-10-13, because the simulation drew the marker whenever a player's snapshot carried an aim, which it always does; the setting now gates only what each player's own screen draws, so it is truly each player's own.
+
 ### 2026-10-16 — Nobody climbs through a window; region, never biome (Michael, in the shape conversation on #123)
 
 Two rulings Michael made outright in the conversation on the game's final shape; the rest of that conversation is a draft on #123, not ruled.
@@ -205,7 +210,8 @@ Michael went through the `needs-michael` issues the sweep filed, one at a time, 
 
 - **The guide (#90):** "a Guide beside the spawn on every map, given a reason to be there and written like anyone else." A villager who stands beside the player's spawn on every map, as a rule (the map generator places them), with a reason to be there and a name and voice like any villager; immune to the dead as ruled 2026-10-13 (`34`).
 - **Talk's panel (#91):** "entirely click based for now": the villager's default message, topics to explore each with a wiki link (opened in a new tab, or copied), Continue… when they have more to say, replies as buttons, and "That's all for now" as well as the X; no key binds inside the panel, so the world's keys never go dead mid-conversation. The voice: "warm and slightly cheeky - the OSRS formula", and welcoming, since it may be a new player's first conversation. **Starting one:** "E: talk to villager, as well as right click as a backup option." (`34`.)
-- **A cap on the players in a world (#93):** "4 players in a browser-hosted world, 8 in a server world, both in data"; a join over it refused with a clear word. Separate from the sixteen browsers a world remembers. To build.
+- **A cap on the players in a world (#93):** "4 players in a browser-hosted world, 8 in a server world, both in data"; a join over it refused with a clear word ("This world is full."). Separate from the sixteen browsers a world remembers.
+  - *The builder's defaults, for Michael to overrule (#93):* the cap counts the places held at once: the characters standing in the world, a connected guest who has stepped away, and a browser world's host always; a character resting in the save whose player left takes a place when it comes back, as a new one does, and is told the world is full if there is none (`31/03`).
 - **The design agent's open items (#95):** the Book of Fire and the Staff of Fire never stack; the rule, quoted: "The stackable are usually throwables or consumables: throwing knives and axes, arrows, perhaps potions, perhaps foods, etc. We can make case by case rulings but one-ofs like these but book and staff, definitely no stack." The throwing knife's and axe's icons stay. The weeping willow is cut ("If I want another tree model I'll bring it up at that point"). The art generators are to be kept as an archive under `tools/art-gen/`, never run without Michael, once he names the folder their zips are in (#95 stays open for that copy); a "spiff up the tools" pass is for much later (#106).
 - **Sheds (#92, question 5):** "A shed, hut, or forest cabin is one room; the two-rooms rule is for houses." (`30` section 15.) The map's other four questions (the names, which crops first, how many villagers, the gloom's door) are **tabled** to the "finish the valley" session, on the game's final shape, now its own open question (#123, blocked on Michael), with the game's name and the business decisions (#94).
 - **Darkness and sight (#88, question 30):** "darkness shortens sight, the dead fading to hidden past a soft edge unless they stand in light; a torch gives sight back; numbers in data." Daytime unchanged; each player sees by its own light. (`07`.) To build.
@@ -738,7 +744,7 @@ Same draw, same ground line and shadow, same landing-only hits and obstacles as 
 
 ### 2026-10-12 — Arrows that hit stay in the body; the bow's guide is a setting (Michael)
 
-After playing the bow ("feels very natural and the skill is real"): an arrow that hits one of the dead is **lodged in it** and drops out in its loot when it is killed and searched (no break chance; the old rule, half of them breaking, is struck); the **landing marker and dotted line are the `Bow aim guide` setting**, on for now, because Michael wants the weapon to feel right without it and does not want it on by default in the game, if ever; a landed arrow **sticking in the ground fletching-up** is for the art pass.
+After playing the bow ("feels very natural and the skill is real"): an arrow that hits one of the dead is **lodged in it** and drops out in its loot when it is killed and searched (no break chance; the old rule, half of them breaking, is struck); the **landing marker and dotted line are the `Bow aim guide` setting**, ~~on for now~~ (superseded 2026-10-16: The aim guide is off by default), because Michael wants the weapon to feel right without it and does not want it on by default in the game, if ever; a landed arrow **sticking in the ground fletching-up** is for the art pass.
 
 ### 2026-10-12 — Michael's verdict on characters: the stubs are right; villagers who rise as the dead are a keeper
 
