@@ -74,6 +74,25 @@
    "seconds": 8
   },
   {
+   "id": "fishing_rod",
+   "station": "workbench",
+   "out": {
+    "id": "fishing_rod",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "stick",
+     "count": 1
+    },
+    {
+     "tag": "cloth",
+     "count": 1
+    }
+   ],
+   "seconds": 6
+  },
+  {
    "id": "bow",
    "station": "workbench",
    "out": {
@@ -473,6 +492,54 @@
     }
    ],
    "seconds": 8,
+   "fire": true
+  },
+  {
+   "id": "grilled_perch",
+   "station": "cooking",
+   "out": {
+    "id": "grilled_perch",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "perch",
+     "count": 1
+    }
+   ],
+   "seconds": 6,
+   "fire": true
+  },
+  {
+   "id": "grilled_trout",
+   "station": "cooking",
+   "out": {
+    "id": "grilled_trout",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "trout",
+     "count": 1
+    }
+   ],
+   "seconds": 6,
+   "fire": true
+  },
+  {
+   "id": "grilled_carp",
+   "station": "cooking",
+   "out": {
+    "id": "grilled_carp",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "carp",
+     "count": 1
+    }
+   ],
+   "seconds": 6,
    "fire": true
   },
   {

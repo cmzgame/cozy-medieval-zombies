@@ -1448,6 +1448,17 @@ export function drinkableAt(x, y) {
   return floorRule(tileAt(x, y).floor).drink;
 }
 
+// The named bodies of water the map file authored (a water floor rect's `group`: "river", "pond"): which one a water tile is in,
+// or null. Read from the file, never saved (a restored world loads its map again), and asked only when someone casts a line (fishing.js).
+const waterBodies = [];
+export function waterBodyAt(x, y) {
+  for (const b of waterBodies) {
+    const [rx, ry, rw, rh] = b.rect;
+    if (x >= rx && x < rx + rw && y >= ry && y < ry + rh) return b.name;
+  }
+  return null;
+}
+
 // The same move for finding which fence lies across the dead's way to a goal they cannot reach (zombie.js `fenceWay`): in mode
 // "gate" a closed gate (a door in a fence) is crossed, in mode "fence" any closed fence is, and only in a straight step, a
 // diagonal never cutting through one.
@@ -1988,6 +1999,7 @@ export function loadMap(json, options = {}) {
   ghostTrees.clear();
   popFactor = Number.isFinite(options.population) ? options.population : 1;
   fireProps.clear(); // props are created below, before reset() runs
+  waterBodies.length = 0;
   propsById.clear();
   bracketSet.clear();
   const pendingBrackets = []; // [tx, ty, edge, side, torch, lantern], added once the map is live
@@ -2012,6 +2024,7 @@ export function loadMap(json, options = {}) {
   const floorRect = (r, offset) => {
     const [x0, y0, w, h] = r.rect;
     for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) get(x + offset[0], y + offset[1]).floor = r.sprite;
+    if (r.group && String(r.sprite).startsWith("floor_water")) waterBodies.push({ name: r.group, rect: [x0 + offset[0], y0 + offset[1], w, h] }); // a named water (fishing's tables)
   };
   // Features and loose top-level content. A `fence` feature is a run of walls round a
   // rect's perimeter in a see-through material, with gates (docs/30 step 0): it makes no
