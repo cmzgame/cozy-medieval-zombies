@@ -6,6 +6,7 @@
 
 import * as items from "./items.js";
 import * as inventory from "./inventory.js";
+import * as world from "./world.js";
 
 let data = null;
 
@@ -30,7 +31,7 @@ export function parseExtra(text) {
     const [id, n, ...rest] = line.split(/\s+/);
     const def = find(id.toLowerCase());
     if (!def) return { items: out, error: `There is no item called "${id}".` };
-    const count = n === undefined ? 1 : Number(n);
+    const count = n === undefined ? 1 : /^\d{1,3}$/.test(n) ? Number(n) : 0; // digits only: no 1e1, no 0x10
     if (rest.length || !Number.isInteger(count) || count < 1 || count > 99) return { items: out, error: `"${line}": the count is a whole number from 1 to 99.` };
     out.push({ item: def.id, count });
   }
@@ -49,9 +50,14 @@ export function problem(text, devBag = false) {
   const def = items.getItem(backId(devBag));
   const bag = inventory.createBag(def.bag[0], def.bag[1]);
   const place = (item, count, props) => inventory.addItem(bag, item, count, props) >= count;
-  for (const k of get().items) if (!k.hold && !place(k.item, k.count || 1, k.fill != null ? { fill: k.fill } : {})) return "The kit itself does not fit the bag.";
-  for (const e of extra) if (!place(e.item, e.count, {})) return `The starting bag is full: ${def.name.toLowerCase()} (${def.bag[0]} by ${def.bag[1]}) has no room for ${e.count > 1 ? `${e.count} ` : ""}${items.getItem(e.item).name.toLowerCase()}. Take something out of the list.`;
-  return "";
+  const ids = world.idCounter(); // the trial placement makes entries, which take instance ids: this asks, it must not move the world's count
+  try {
+    for (const k of get().items) if (!k.hold && !place(k.item, k.count || 1, k.fill != null ? { fill: k.fill } : {})) return "The kit itself does not fit the bag.";
+    for (const e of extra) if (!place(e.item, e.count, {})) return `The starting bag is full: ${def.name.toLowerCase()} (${def.bag[0]} by ${def.bag[1]}) has no room for ${e.count > 1 ? `${e.count} ` : ""}${items.getItem(e.item).name.toLowerCase()}. Take something out of the list.`;
+    return "";
+  } finally {
+    world.setIdCounter(ids);
+  }
 }
 
 // Dress and equip a new character, in order: what is worn, then each item where it first fits or in a hand, then the world's extras.

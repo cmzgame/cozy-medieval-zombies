@@ -80,7 +80,7 @@ for kind, b in build.items():
         fail(f"build.{kind}: no sprite {b.get('sprite')!r}")
 
 # The starting kit (#136): every id exists, what is worn has a slot, and the whole fits the bag it starts in (by area: the sack, and the
-# Developer Bag a world may start with instead).
+# Developer Bag a world may start with instead; `node tools/check.js` proves the fit by placement on the real grid).
 kit = load("data/kit.json")
 item_defs = {i["id"]: i for i in load("data/items.json")}
 back = None
@@ -99,8 +99,9 @@ for k in kit.get("items", []):
         stack = d.get("stack") or 1
         count = k.get("count", 1)
         need += w * h * -(-count // stack)
-if back and back.get("bag") and need > back["bag"][0] * back["bag"][1]:
-    fail(f"kit.items: the kit needs {need} cells and the {back['id']} holds {back['bag'][0] * back['bag'][1]}")
+for bag_def in (back, item_defs.get("dev_bag")):
+    if bag_def and bag_def.get("bag") and need > bag_def["bag"][0] * bag_def["bag"][1]:
+        fail(f"kit.items: the kit needs {need} cells and the {bag_def['id']} holds {bag_def['bag'][0] * bag_def['bag'][1]}")
 
 # Every picture named exists.
 referenced = set()

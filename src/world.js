@@ -22,6 +22,11 @@ export function idCounter() {
   return counter;
 }
 
+// Put the counter back where it was (kit.problem's trial placement takes ids it must not keep).
+export function setIdCounter(n) {
+  counter = n;
+}
+
 export function setTimeScale(k) {
   if (world.timeScale === k) return;
   world.timeScale = k;
