@@ -104,6 +104,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The character, the figure, and art
 
+- A painted head item in two tones is dyed like hair by its entry's dye, undyed or of more tones it keeps the paint; the dead draw an item's painted layer too (2026-10-18, The Onion-head Hat's art: the brow; a dyed hood is dyed like hair, and the dead wear it too)
 - The weeping willow is cut; the art generators are to be archived in tools/art-gen, never run without Michael (2026-10-16, The needs-michael queue)
 - Throwables and consumables usually stack, case by case; one-offs like the Book and Staff of Fire never do (2026-10-16, The needs-michael queue)
 - A waterskin carried, belt or bag, sips by itself at Thirsty, the emptiest first, never mid-fight (2026-10-16, Auto-drinking)
@@ -219,6 +220,13 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-10-18 — The mohawk revised: (a) soft (Michael's pick; an art fix)
+
+Michael on the mohawk: "The front 3/4 and back 3/4 views look a little wonky in terms of how much mohawk you can see and the side on view makes the hair a little pointier than I wanted. Front on and back on are perfect." Of the art agent's two revisions he picked the first: "a soft is great!" The three-quarter facings now carry the fin along the head's centreline with its far end out of sight behind the skull, the side profile is slightly rounded, and the front and back are pixel for pixel as they were. The generator (`hair_mohawk()` in `tools/art-gen/character/heads.py`) is the source and reproduces the layer.
+
+### 2026-10-18 — The Onion-head Hat's art: the brow; a dyed hood is dyed like hair, and the dead wear it too (Michael's pick; Primary's defaults, Michael's to overrule)
+
+Michael picked the art agent's candidate **(b) brow** of three: "b brow is perfect!" (the opening cut round where the game draws the eyes in every facing, the fold raised above the brow; `data/art/character/layers/head_onion_b_brow.png`, its generator `tools/art-gen/character/onion2.py`). It is the painted head layer `onion` (`data/layers/head/onion.json`), worn by the item `hood` (`art.painted`, colours `#5f8a3a #46682a`). *Primary's defaults, Michael's to overrule:* **a dyed hood is dyed like hair**: a painted head item worn with an entry's dye (the villagers' three hoods, `#6b7a3a`, `#b08a3e`, `#8a6a3a`; the dead's two) takes the dye's colour for the light tone and its shade for the dark, by the hair's own rule (`SHADE_DYE`), the outline kept; worn in its own colours (the player's) it keeps the painted greens; a layer the item does not name (a try-on, the dead's pool) is never dyed, nor a layer of more than two tones (the outline aside), so a delivered straw hat or great helm keeps its paint (the review of #229). **The dead wear what they wear**: an item's painted layer draws on one of the dead as on anyone, in that one's dye, and wins over the dead's painted pool for its slot. The hat's bag icon and its 38 by 38 portrait are still owed (#182).
 ### 2026-10-18 — Talk, part 2: what E talks to, and who is held (#202; the builder's readings, Michael's to overrule)
 
 **`E` talks to the nearest villager within reach** (their tile against a door's or a window's, the nearest wins; the prompt names which), and the menu's Talk to is the same simple action. **A villager hurt cannot be talked to** (their entry says so) **and one with the dead within five tiles barks instead**; **a conversation ends when the villager is hurt, turned, or dead, or the talker walks out of reach and a tile or loses the clear line** (the host's step drops them, so a lost message cannot hold a villager). **A villager stands for a fixed second after the last talker leaves**, not a rolled idle time, so a conversation never shifts the sim's generator (`check("talk")` proves the generator and the world's text are the same after every path of the guide's file).

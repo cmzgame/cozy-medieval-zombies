@@ -20,6 +20,8 @@ export async function run(game) {
   const meAt = [me.gx, me.gy];
   const hands0 = { main: me.hands.main, off: me.hands.off };
   const z = G.zombies.find((q) => !q.dead && !q.corpse);
+  const aggro0 = G.rules.rules.zombieAggro; // the dead near the player (or woken by the far chunks this check grows) must not bite it mid-run: off for the run, back in the finally
+  const body0 = { hp: me.hp, stamina: me.stamina, attackCooldown: me.attackCooldown };
   const z0 = { gx: z.gx, gy: z.gy, state: z.state, aggro: z.aggro, burning: z.burning, groanTimer: z.groanTimer };
   let other = null;
   const step = (n = 4) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
@@ -27,6 +29,8 @@ export async function run(game) {
   const near = (a, b, e = 0.02) => Math.abs(a - b) <= e;
   try {
     G.loop.setPaused(true);
+    G.rules.rules.zombieAggro = false;
+    if (!S.players.includes(me)) throw new Error("the player of this tab is not among the world's players, so its carried light is no one's: nothing here can be read");
     // A tile of open ground with room to the east: the spawn's street.
     const spot = G.map.nearestWalkable(112, 188) || meAt;
     G.teleport(spot[0], spot[1]);
@@ -127,6 +131,8 @@ export async function run(game) {
     step(2);
     const hiddenAtSwing = !sight.seen(me, z);
     const hp0 = z.hp;
+    me.attackCooldown = 0;
+    me.stamina = me.maxStamina ?? 100; // a player worn out or on cooldown from a run before cannot swing: the row is about the dark, not the arm
     G.combat.tryAttack(me, G.zombies, "main");
     step(40);
     T.darkRadius = T0.darkRadius;
@@ -141,7 +147,7 @@ export async function run(game) {
     const torch = G.items.makeEntry("torch", 1, { lit: true, wear: 0 });
     me.hands.main = torch;
     step();
-    const carried = G.light.carriers().find((c) => Math.hypot(c.gx - me.gx, c.gy - me.gy) < 0.7);
+    const carried = G.light.carriers().find((c) => c.owner === me.id); // by owner, as sight.js reads it, not by where it stands
     const R = carried ? carried.radius : 3;
     const lit = [R, R + T.edge / 2, R + T.edge].map(alphaAt);
     row("a carried torch gives sight back to its radius", carried && R > T.darkRadius && near(lit[0], 1), `radius ${R}: ${lit[0].toFixed(2)} whole at ${R}`);
@@ -210,7 +216,10 @@ export async function run(game) {
         G.map.touch(win.op.tx, win.op.ty);
       }
     } else row("a shuttered room is dark by day: a dead one in it is hidden; with the shutters open it is seen", false, "no small room with one window found");
-    // One open window is enough for a small room and not for a large one (`world.daylightTiles`, in proportion to its size).
+    // One open window is enough for a small room and not for a large one (`world.daylightTiles`, in proportion to its size). The inn and the manor are the
+    // large rooms: their chunks are grown here, so the search does not depend on where the check last stood.
+    for (const [bx, by] of [[106, 165], [104, 130]]) G.map.ensureAround(bx, by, 3);
+    G.map.rebuildRooms();
     let big = null;
     for (let id = 1; id < 300 && !big; id++) {
       const r = G.map.getRoom(id);
@@ -243,6 +252,8 @@ export async function run(game) {
     row("a burning one is its own light", near(sight.seenAlpha(me, z), 1), "seen whole at nine tiles");
     z.burning = false;
   } finally {
+    G.rules.rules.zombieAggro = aggro0;
+    Object.assign(me, body0);
     z.groanTimer = z0.groanTimer;
     T.darkRadius = T00.darkRadius;
     T.edge = T00.edge;

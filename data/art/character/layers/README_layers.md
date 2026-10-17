@@ -11,7 +11,7 @@ Slicer options are what to set before Slice (the sliced JSONs already have them)
 | File | Slot | Slicer options | What it is, and the item it goes on |
 |---|---|---|---|
 | `hair_crop.png` | hair | dye | the generic short crop, two tones (replaces the generated `short`); no flip at the back on the three-quarter view, and from the side the hair arches over the ear |
-| `hair_mohawk.png` | hair | dye | a medium mohawk: the sides shaved (bare head), a jagged fin six pixels over the skull, down the forehead in front and to the nape behind |
+| `hair_mohawk.png` | hair | dye | a medium mohawk: the sides shaved (bare head), a jagged fin six pixels over the skull, down the forehead in front and to the nape behind. Revised 2026-10-18 (Michael's pick, "(a) soft", `docs/02`): the three-quarter facings re-cut, the side rounded, all eight painted; front and back unchanged; `preview_hair.png` predates it |
 | `hair_tight.png` | hair | dye | high and tight: a short flat top brushed up at the front, shaved to the temples and above the ear, tapering at the back |
 | `hair_long.png` | hair | dye | long and loose to the shoulders (replaces the generated `long`); from the side only the near side and the mane down the back hang, nothing in front of the face |
 | `hair_pigtails.png` | hair | dye | a middle parting and two pigtails tied at the sides of the head, hanging past the shoulders and flicking out at the tips; from the side the near one hangs from behind the ear |
@@ -20,6 +20,7 @@ Slicer options are what to set before Slice (the sliced JSONs already have them)
 | `beard_gnome.png` | beard | dye | the big bushy gnome beard, to the chest |
 | `beard_cropped.png` | beard | dye | tight along the jaw and cheeks, tufts in the edge |
 | `head_onion.png` | head | | **the onion hat**, the hero: shape `hood`, colours `#5f8a3a #46682a`; a slit for the eyes, a tall nub, a fold round the brow |
+| `head_onion_b_brow.png` | head | | **the onion hat in the game** (Michael picked it, 2026-10-18: "b brow is perfect!"): the hero redrawn with the opening cut round where the game draws the eyes in every facing and the fold raised above the brow; every facing painted, not mirrored. Sliced to `data/layers/head/onion.json`, worn by the item `hood` (`art.painted: "onion"`, colours `#5f8a3a #46682a`); its generator is `tools/art-gen/character/onion2.py` (`python onion2.py <repo> <out> b`) |
 | `head_onion_flop.png` | head | | the onion hat with a taller nub that flops over |
 | `head_onion_squat.png` | head | | the onion hat with a short squat nub and a wider slit |
 | `head_straw_hat.png` | head | | a straw hat: wide brim, domed crown, a band; dark hair painted under the brim at the sides and back (a painted head item replaces the hair) |
