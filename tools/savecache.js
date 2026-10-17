@@ -180,6 +180,30 @@ if (apple.sprite !== "tree_apple" || apple.regrowAt !== undefined) fail(`the app
   did("a stump chopped up");
   me.hands.main = null;
 }
+// Mining (#196): a rock mined (removed, with stone), an ore rock mined (restaged spent with its day) and coming back on it.
+{
+  const me = game.state.player;
+  const verbs = await import("../src/verbs.js");
+  const items = await import("../src/items.js");
+  const [rx, ry] = [apple.tile[0] + 3, apple.tile[1]];
+  const rock = map.createProp({ sprite: "rock_0", tile: [rx, ry] });
+  map.placeProp(rock, rx, ry);
+  const oreRock = map.createProp({ sprite: "ore_rock", tile: [rx + 2, ry] });
+  map.placeProp(oreRock, rx + 2, ry);
+  me.hands.main = items.makeEntry("pickaxe", 1);
+  me.gx = rx + 1;
+  me.gy = ry + 0.4;
+  const m1 = verbs.run("mine", game.state, me, { prop: rock.id });
+  if (!m1.ok) fail(`mine: ${m1.reason}`);
+  did("a rock mined");
+  const m2 = verbs.run("mine", game.state, me, { prop: oreRock.id });
+  if (!m2.ok) fail(`mine: ${m2.reason}`);
+  did("an ore rock mined out");
+  clock.setElapsed(clock.getElapsed() + 4 * clock.DAY_LENGTH); did("an ore rock coming back", 120);
+  if (oreRock.sprite !== "ore_rock") fail(`the ore rock did not come back (${oreRock.sprite})`);
+  map.removeProp(oreRock);
+  me.hands.main = null;
+}
 // A torch burning down in a bracket: its wear changes every step and only the save's copy of the chunk hears (map.burnHolders).
 const mount = [...map.brackets()].find((b) => !b.wall.bracket.torch) || [...map.brackets()][0];
 if (!mount) fail("the valley has no bracket for a mounted torch");

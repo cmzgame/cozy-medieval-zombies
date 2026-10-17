@@ -1,0 +1,1 @@
+{"placeholder": {"kind": "box", "color": "#2a2626", "height": 12, "inset": 12, "label": "Charcoal"}, "container": {"loot": "charcoal_sacks"}, "carry": false, "note": "sacks of charcoal at the burners (docs/29-world/06; #197), a container; a dev box until drawn"}

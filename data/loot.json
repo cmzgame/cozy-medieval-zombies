@@ -5,6 +5,12 @@
   "wheelbarrow": {"grid": [10, 6], "rolls": [0, 0], "entries": [], "note": "the wheelbarrow's own grid, one big container carried like a barrel, empty (docs/30 section 9.1; it rolled the dev kit until 2026-10-15, the wiki census's bugs)"},
   "home_chest": {"grid": [4, 3], "rolls": [0, 0], "entries": [], "fixed": [{"item": "hatchet"}, {"item": "bread"}]},
   "joiner_chest": {"grid": [4, 3], "rolls": [0, 0], "entries": [], "fixed": [{"item": "hatchet"}]},
+  "miners_chest": {"grid": [4, 3], "rolls": [0, 0], "entries": [], "fixed": [{"item": "pickaxe"}, {"item": "iron_ore", "count": 4}]},
+  "quarry_chest": {"grid": [4, 3], "rolls": [0, 0], "entries": [], "fixed": [{"item": "pickaxe"}, {"item": "hammer"}]},
+  "ore_cart": {"grid": [4, 3], "rolls": [0, 0], "entries": [], "fixed": [{"item": "iron_ore", "count": 6}]},
+  "stone_stack": {"grid": [4, 3], "rolls": [0, 0], "entries": [], "fixed": [{"item": "stone", "count": 8}]},
+  "smithy_chest": {"grid": [4, 3], "rolls": [0, 0], "entries": [], "fixed": [{"item": "iron_bar", "count": 3}, {"item": "charcoal", "count": 4}]},
+  "charcoal_sacks": {"grid": [4, 3], "rolls": [0, 0], "entries": [], "fixed": [{"item": "charcoal", "count": 5}]},
   "dev_kit": {"grid": [10, 6], "rolls": [0, 0], "entries": [], "fixed": [{"item": "dev_bag"}, {"item": "dev_bag"}, {"item": "sword"}, {"item": "hatchet"}, {"item": "mace"}, {"item": "halberd"}, {"item": "stick"}, {"item": "spear", "count": 2}, {"item": "shield"}, {"item": "bow"}, {"item": "arrow", "count": 40}, {"item": "torch", "count": 2}, {"item": "tinderbox"}, {"item": "bandage", "count": 5}, {"item": "book_of_fire"}, {"item": "staff_of_fire"}, {"item": "throwing_knife", "count": 100}, {"item": "throwing_axe", "count": 100}], "note": "the dev chest by the well: every weapon, the same each time (docs/21); two Developer Bags first (Michael, 2026-10-13), one spear fewer to make room"},
   "wild": {"grid": [3, 3], "rolls": [1, 1], "entries": [{"item": "stick", "weight": 1}]}
 }
