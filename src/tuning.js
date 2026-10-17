@@ -21,6 +21,9 @@ export const zombie = {
   radius: 0.3, // the body, in tiles
   searchTime: 10, // seconds spent looking around the last sighting
   breachDamage: 5, // per hit into an opening's stack (docs/09)
+  fenceReach: 0.9, // tiles from a fence's middle within which a dead one strikes it (a margin over where the bodies stand: 0.7 to 0.8; #174)
+  fenceBiteExtra: 0.5, // tiles a bite reaches further across a fence its dead one is striking (#174; the strikers stand up to `fenceReach` from it)
+  fenceStrike: 1, // hit points one strike takes from a fence or gate (world.fenceHp 90, a gate half; #174): a strike every attack and cooldown
   groanText: "Braaaains", // what the dead say now and then (docs/19)
   groanMin: 20, // seconds between groans
   groanMax: 60,
@@ -101,11 +104,8 @@ export const world = {
   torchWallLife: 2880, // and on the belt, in a bracket, or on a post, the slower "wall" rate
   torchSpentRadius: 12, // tiles within which a player is told a mounted torch burnt out (host.js, main.js; #167)
   daylightTiles: 30, // tiles of a room one open shutter or open door lights fully by day (light.js `openness`; Michael, #150): one open window for a small room, more for a large one
-  fenceHp: 90, // the wear a fence stands before a crowd of the dead bursts it (Michael, 2026-10-17, #147); a gate has `fenceGateFactor` of it
+  fenceHp: 90, // the hit points of a fence: the dead strike it down, one alone slowly, a crowd faster (Michael, 2026-10-17, #147; 2026-10-18, #174); a gate has `fenceGateFactor` of it
   fenceGateFactor: 0.5, // a gate goes first
-  fenceCrowd: 2, // the dead pressing one fence together before it wears at all: one does nothing
-  fenceDps: 1, // wear a second at that many, and the same again for each one more
-  fenceRecover: 0.5, // wear a second that a fence recovers while fewer than that press it
 };
 
 // How many of the dead a world starts with, by its Starting population rule (docs/38 and `02`, #130): the factor that

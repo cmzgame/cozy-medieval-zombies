@@ -1605,8 +1605,8 @@ async function boot() {
         const d = iso.normalize(zombie.gx - p.gx, zombie.gy - p.gy);
         burning.spark(p.gx + d.x * 0.45, p.gy + d.y * 0.45, 22);
       });
-      // A fence the dead are pressing shakes, and one that gives bursts into splinters (map.stepFences, #147): drawn here.
-      events.on("fenceShake", ({ tx, ty, edge }) => shakeFence(tx, ty, edge));
+      // A wall the dead strike jolts once a strike, and a fence that gives bursts into splinters (map.strikeFence, #147, #174): drawn here.
+      events.on("wallStruck", ({ tx, ty, edge }) => shakeFence(tx, ty, edge));
       events.on("fenceBurst", ({ x, y }) => burning.splinters(x, y, 12));
       // A blow that landed kicks the camera of the client whose player struck (docs/31/05, item 13).
       events.on("kicked", ({ player: p, x, y, seconds }) => {
