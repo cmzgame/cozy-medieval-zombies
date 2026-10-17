@@ -19,6 +19,7 @@ import * as archery from "./archery.js";
 import * as burning from "./fire.js";
 import * as bleed from "./bleed.js";
 import * as burn from "./burn.js"; // burning as a status (#14): the step's, beside the visual fire.js
+import * as fruit from "./fruit.js"; // bare fruit trees bear again (#190)
 import * as kit from "./kit.js"; // the starting kit as data and the world's additions (#136)
 import * as infection from "./infection.js";
 import * as combat from "./combat.js";
@@ -80,6 +81,7 @@ export function create({ json, look = null, name = null, devChest = false, rules
   rng.seed(json.seed ?? 1); // the sim's one generator, seeded from the map (docs/23a, C1)
   world.reset(json.idCounter || 0); // the world's time scale and id counter (docs/30 step 2; docs/31/08)
   S.info = map.loadMap(json, mapOptions());
+  fruit.reset();
   const info = S.info;
   map.ensureAround(info.spawn[0], info.spawn[1], 4); // reading never grows (docs/31/05, item 8): the ring first
   // The dev chest by the spawn, a setting rather than a thing in the map (docs/30 step 0).
@@ -254,6 +256,7 @@ export function restore(saved, json) {
   world.reset(json.idCounter || 0);
   S.info = map.loadMap(json, mapOptions());
   map.restoreMap(save.map);
+  fruit.reset();
   const makers = { player: createPlayer, zombie: createZombie, villager: createVillager };
   const all = [];
   const bring = (list) => (list || []).map((d) => {
@@ -381,7 +384,7 @@ export function syncParts() {
   const hp2 = (n) => (typeof n === "number" ? (Math.round(n * 100) / 100).toFixed(2) : String(n));
   const playerText = (p) => [`${p.id} ${f(at(p)[0])},${f(at(p)[1])} hp ${hp2(p.hp)} ${p.dead ? "dead" : "alive"}`, `hands ${entryText(p.hands.main)} ${entryText(p.hands.off)}`, `worn ${Object.keys(p.worn).sort().map((k) => `${k}:${entryText(p.worn[k])}`).join(" ")}`, `belt ${(inventory.beltOf(p) || []).map(entryText).join(" ")}`, `carrying ${p.carrying ? p.carrying.id : "-"}`].join(" | ");
   const parts = {
-    map: hashOf(JSON.stringify(chunks, (k, v) => (k === "wear" && typeof v === "number" ? Math.floor(v * 100) / 100 : k === "hp" && typeof v === "number" ? undefined : v))), // a mounted torch's wear to the hundredth: what the wire sends (map.burnHolders); a wall's health not at all (the wire sends a break, not the blows: strikeFence, damageOpening)
+    map: hashOf(JSON.stringify(chunks, (k, v) => (k === "wear" && typeof v === "number" ? Math.floor(v * 100) / 100 : k === "hp" && typeof v === "number" ? undefined : k === "boards" && v && Array.isArray(v.near) ? { near: v.near.length, far: v.far.length } : v))), // a mounted torch's wear to the hundredth: what the wire sends (map.burnHolders); a wall's health not at all (the wire sends a break, not the blows: strikeFence, damageOpening), a board's health (a bare number in `wall.boards`) not either, only how many boards stand, so a broken one still shows
     registry: hashOf([...map.allProps()].map((p) => p.id).sort().join(",")),
     fires: hashOf(`${[...map.fires()].map((p) => `${p.id}:${p.fire && p.fire.lit ? "lit" : "out"}`).sort().join(",")}`),
     players: hashOf(S.players.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map(playerText).join("\n")),
@@ -517,6 +520,7 @@ export function begin(dt) {
   clock.update(dt);
   map.burnFires(dt);
   map.burnHolders(dt); // the torches mounted on brackets and posts burn down at the wall rate (map.js)
+  fruit.step(); // a bare fruit tree bears again on its day (fruit.js)
   burnTorches(dt);
   stations.update(dt); // every station's queue, in the world's time (docs/30, section 6)
   for (const p of S.players) {

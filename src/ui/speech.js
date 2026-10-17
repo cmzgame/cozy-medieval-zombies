@@ -75,7 +75,8 @@ export function updateSpeech(characters, visible, player, dt) {
       // position instead (Michael, #150: the dark hides information, never physics), once for each, and not in a rush.
       // Only for one the dark hides (not seen by the viewer's own sight): a dead one behind a tree's canopy in daylight is hidden by the
       // canopy, which is not the dark, and says nothing (#158).
-      if (ch.kind === "zombie" && visible.has(tileKey(Math.round(ch.gx), Math.round(ch.gy))) && !sight.seen(player, ch)) {
+      // Only within `groanRadius` of the listener, and no more than one line in `groanGap` seconds (#177: dozens of the dead gave a line every few seconds).
+      if (ch.kind === "zombie" && visible.has(tileKey(Math.round(ch.gx), Math.round(ch.gy))) && !sight.seen(player, ch) && Math.hypot(ch.gx - player.gx, ch.gy - player.gy) <= sightTuning.groanRadius) {
         withLine.add(ch.id);
         const prev = lastLeft.get(ch.id);
         lastLeft.set(ch.id, line.left);

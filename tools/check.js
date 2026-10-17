@@ -142,6 +142,28 @@ const gameMod = await import("../src/game.js");
 const kitModule = await import("../src/kit.js");
 const worldMod = await import("../src/world.js");
 await bootData(root);
+// The sync hash (game.syncParts) and what the wire promises: a board struck short of a break changes nothing a guest sees, so the map
+// part must not move; a board broken is carried (the chunk is touched), so it must (the review of #185, #189).
+check("sync: a board struck short of a break leaves the map hash, a broken one moves it", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const j = read("data/maps/valley.json");
+  const [bx, by, bw, bh] = j.bounds;
+  const C = mapMod.CHUNK;
+  for (let cy = Math.floor(by / C); cy <= Math.floor((by + bh) / C); cy++) for (let cx = Math.floor(bx / C); cx <= Math.floor((bx + bw) / C); cx++) mapMod.getChunk(cx, cy, true);
+  let door = null;
+  for (let y = by; y < by + bh && !door; y++) for (let x = bx; x < bx + bw && !door; x++) { const w = mapMod.tileAt(x, y).n; if (w && w.kind === "door" && !w.broken) door = w; }
+  assert(door, "no door in the valley");
+  mapMod.addBoard(door, 1);
+  const map0 = gameMod.syncParts().map;
+  mapMod.damageOpening(door, 1, 1);
+  const struck = gameMod.syncParts().map;
+  assert(struck === map0, "a board struck short of a break moved the map hash");
+  let broke = null;
+  for (let i = 0; i < 100 && !broke; i++) broke = mapMod.damageOpening(door, 1, 10);
+  assert(broke === "board", `the board did not break (${broke})`);
+  assert(gameMod.syncParts().map !== map0, "a broken board did not move the map hash");
+  return "struck: same; broken: moved";
+});
 // The starting kit (#136) against the real grid, not the validator's area count: the default kit fits the sack and the Developer Bag
 // by placement, and asking leaves the id counter where it was (the world's count is part of its hash).
 check("kit: the default kit fits the sack and the dev bag by placement, and asking moves no id", () => {
