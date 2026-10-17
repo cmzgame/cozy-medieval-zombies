@@ -37,7 +37,7 @@ Every item or material the docs name, and the places on this map that supply it.
 | clothes and dyes | **the weaver and the dye vats**; the lady's chest; the merchant's storehouse; every corpse |
 | candles and lamp oil | the chandler's lean-to; the chapel; the merchant |
 | coin | the treasury; the toll house; the strongboxes; the tinker's cart |
-| books | the ledger (the solar), the book of hours (the castle chapel), the hermit's prayers, the witch's receipts (a recipe book, as flavour: every recipe is known from the start, `30` section 6) |
+| books | the ledger (the solar), the book of hours (the castle chapel), the hermit's prayers, the witch's receipts (a recipe book, the kind of thing a region may reward now that recipes are learned and earned, `02` 2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break) |
 | keys | the dead steward (the hall), the jailer (the dungeon), the reeve |
 | beds to sleep in | yours; **the inn's three rooms**; the manor's; the barracks; the croft |
 | stations | the smith's anvil (the village smithy, the castle's); the workbench (the joiner); the loom and the dye vats (the weaver); the ovens (the baker, the castle, the inn); the millstones (the mill); the cauldron (the witch); the cooking hearths (the inn, the castle, Hollow's kitchen); the cider press (the orchard); the smoking rack (the hunter) |
