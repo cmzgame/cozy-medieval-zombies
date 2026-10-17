@@ -43,6 +43,7 @@ import * as interactions from "./interactions.js";
 import * as startingKit from "./kit.js"; // the starting kit (#136)
 import * as farming from "./farming.js"; // till, plant, water, harvest (#194)
 import * as fishing from "./fishing.js"; // fishing: the rod, the cast, the catch (#190)
+import * as talk from "./talk.js"; // what villagers say: the barks and the conversations' data (docs/34, #198)
 import * as world from "./world.js";
 import * as game from "./game.js";
 import * as save from "./save.js";
@@ -1312,10 +1313,12 @@ async function boot() {
     if (key === "debugCorner") applyDebugCorner();
   });
   let json = null;
+  let manifestJson = null;
 
   await shell.run([
     { name: "manifest", label: "Reading the manifest", weight: 1, async run() {
-      assets.setManifest(await assets.loadJson("data/manifest.json"));
+      manifestJson = await assets.loadJson("data/manifest.json");
+      assets.setManifest(manifestJson);
     } },
     { name: "data", label: "Reading the data", weight: 2, async run() {
       const [itemsJson, buildJson, combatJson, posesJson, lootJson, wardrobesJson, interactionsJson] = await Promise.all([
@@ -1334,6 +1337,10 @@ async function boot() {
       startingKit.load(await assets.loadJson("data/kit.json")); // the starting kit (#136)
       farming.load(await optionalJson("data/crops.json")); // the crops (#194)
       fishing.load(await optionalJson("data/fishing.json")); // the waters' tables and the cast (#190)
+      const talkPaths = Object.keys(manifestJson.files).filter((p) => /^data\/talk\/[^/]+\.json$/.test(p)); // what villagers say (docs/34, #198)
+      const talkFiles = {};
+      await Promise.all(talkPaths.map(async (p) => { talkFiles[p.slice("data/talk/".length, -".json".length)] = await assets.loadJson(p); }));
+      talk.load(talkFiles);
       items.loadItems(itemsJson);
       placement.setBuildData(buildJson);
       if (combatJson) combat.setCombatData(combatJson); // the fists' and the shove's numbers (docs/14); the weapons' are on their items

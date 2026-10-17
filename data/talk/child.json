@@ -1,0 +1,42 @@
+{
+ "name": "Child",
+ "note": "A stub (#198): their map line as the fallback bark, one ambient group, a two-node conversation. Michael, or a writing session, fills the rest.",
+ "barks": [
+  {
+   "ambient": true,
+   "when": {
+    "time": "day"
+   },
+   "lines": [
+    "Are the hens still out?"
+   ]
+  },
+  {
+   "lines": [
+    "Hi."
+   ]
+  }
+ ],
+ "start": "hello",
+ "nodes": {
+  "hello": {
+   "say": [
+    "Hello! Are you the new one?",
+    "Nobody tells me anything."
+   ],
+   "options": [
+    {
+     "text": "What do you do all day?",
+     "goto": "topic"
+    }
+   ]
+  },
+  "topic": {
+   "say": [
+    "I count the windows. There are forty-one.",
+    "Forty-two, if you count the broken one."
+   ],
+   "end": true
+  }
+ }
+}

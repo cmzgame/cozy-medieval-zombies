@@ -1,0 +1,439 @@
+{
+ "name": "Wyn",
+ "note": "The guide (Michael, 2026-10-16, #90, #91): a neighbour from the farm lane who came to your yard when the bell stopped and has not gone home. Warm, slightly cheeky, welcoming. Every topic is a system as built, checked against the code and the Controls screen; a new system adds its question here in the same commit.",
+ "barks": [
+  {
+   "when": {
+    "deadNear": true
+   },
+   "ambient": true,
+   "lines": [
+    "They are close. The door is still open.",
+    "I would be indoors, if I were you."
+   ]
+  },
+  {
+   "when": {
+    "time": "night"
+   },
+   "ambient": true,
+   "lines": [
+    "Dark out. A fire and a shut door help.",
+    "Nights are long. The kettle is shorter."
+   ]
+  },
+  {
+   "when": {
+    "time": "dawn"
+   },
+   "ambient": true,
+   "lines": [
+    "Made it to morning, then. Well done."
+   ]
+  },
+  {
+   "ambient": true,
+   "lines": [
+    "Ask me anything, if you are stuck.",
+    "Not sure where to start? I might.",
+    "Lovely day for it. Whatever it is."
+   ]
+  }
+ ],
+ "start": "hello",
+ "nodes": {
+  "hello": {
+   "say": [
+    {
+     "when": {
+      "deadNear": true
+     },
+     "lines": [
+      "Quick words, then, the dead are close.",
+      "What do you want to know?"
+     ]
+    },
+    {
+     "when": {
+      "time": "night"
+     },
+     "lines": [
+      "Up late? Same. Ask me what you like.",
+      "Quietly, though."
+     ]
+    },
+    {
+     "lines": [
+      "Oh, hello. You look like you could use a hand.",
+      "I know this valley. Ask what you like."
+     ]
+    }
+   ],
+   "options": [
+    {
+     "text": "Who are you?",
+     "goto": "who"
+    },
+    {
+     "text": "Why are you here?",
+     "goto": "why"
+    },
+    {
+     "text": "What happened to everyone?",
+     "goto": "dead",
+     "when": {
+      "deadInWorld": true
+     }
+    },
+    {
+     "text": "Where do I drink?",
+     "goto": "water",
+     "wiki": "Water"
+    },
+    {
+     "text": "What do I eat?",
+     "goto": "food",
+     "wiki": "Food"
+    },
+    {
+     "text": "How do fires work?",
+     "goto": "fire",
+     "wiki": "Fire"
+    },
+    {
+     "text": "Where do I sleep?",
+     "goto": "sleep",
+     "wiki": "Sleep"
+    },
+    {
+     "text": "How do I keep them out?",
+     "goto": "shelter",
+     "wiki": "Building"
+    },
+    {
+     "text": "How do I fight?",
+     "goto": "fight",
+     "wiki": "Combat"
+    },
+    {
+     "text": "How do I make things?",
+     "goto": "make",
+     "wiki": "Crafting"
+    },
+    {
+     "text": "I am bleeding.",
+     "goto": "heal",
+     "wiki": "Bleeding"
+    },
+    {
+     "text": "What is Tab, C, and the belt?",
+     "goto": "bag",
+     "wiki": "Inventory"
+    },
+    {
+     "text": "Can I build things?",
+     "goto": "build",
+     "wiki": "Building"
+    },
+    {
+     "text": "How does farming go?",
+     "goto": "farm",
+     "wiki": "Farming"
+    },
+    {
+     "text": "Is there fishing?",
+     "goto": "fish",
+     "wiki": "Fishing"
+    },
+    {
+     "text": "What are all these keys?",
+     "goto": "keys",
+     "wiki": "Controls"
+    }
+   ]
+  },
+  "who": {
+   "say": [
+    "Wyn. I live down the farm lane, or I did.",
+    "I keep a few hens. Well. I kept a few hens."
+   ],
+   "options": [
+    {
+     "text": "Why are you here?",
+     "goto": "why"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "why": {
+   "say": [
+    "The bell stopped on the third day, and I came up the lane.",
+    "Your yard had a gate and a well. It seemed polite to stay.",
+    "The dead do not seem to mind me. I do not ask why."
+   ],
+   "options": [
+    {
+     "text": "Who are you?",
+     "goto": "who"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "dead": {
+   "say": [
+    "It began quietly. Then the bell stopped, and they were in the street.",
+    "The ones who are left stay indoors. Some of us ask for company."
+   ],
+   "options": [
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "water": {
+   "say": [
+    "Wells, and any water you can stand beside: the river, the ponds, the trough.",
+    "Fill a waterskin there. Drink from it, or let it sip for you when you get thirsty.",
+    "It is all fine to drink. Nobody has been poorly from it yet."
+   ],
+   "options": [
+    {
+     "text": "And if I am hungry?",
+     "goto": "food"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "food": {
+   "say": [
+    "Bread, cheese, apples, anything in a chest or a barrel.",
+    "A food on your belt eats with its key. You will not eat if you are full.",
+    "Cooked food fills more than raw. Any lit fire that cooks will do, and the oven bakes."
+   ],
+   "options": [
+    {
+     "text": "How do fires work?",
+     "goto": "fire"
+    },
+    {
+     "text": "Where do I drink?",
+     "goto": "water"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "fire": {
+   "say": [
+    "A fire burns its fuel down over the hours and goes out. Logs feed it.",
+    "A station with a fire only works while it is lit, and waits for you if it goes out.",
+    "T lights the torch in your hand. A tinderbox does the lighting."
+   ],
+   "options": [
+    {
+     "text": "How do I make things?",
+     "goto": "make"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "sleep": {
+   "say": [
+    "A bed, indoors. Time runs fast until morning, and nobody wakes you.",
+    "With friends in the world, it runs fast only when everyone is in bed.",
+    "If the dead have been hunting you indoors, you will not get to sleep until they leave."
+   ],
+   "options": [
+    {
+     "text": "How do I keep them out?",
+     "goto": "shelter"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "shelter": {
+   "say": [
+    "Doors and shutters open and close on E. Closed shutters block sight.",
+    "B boards up the nearest opening, and holding it pulls a board off.",
+    "Windows have shutters, not glass, and nobody climbs through one. They will batter shutters and boards, though, and come round to a door.",
+    "A sealed room is safe. It is also a cell, so mind your water and food."
+   ],
+   "options": [
+    {
+     "text": "Can I build things?",
+     "goto": "build"
+    },
+    {
+     "text": "How do I fight?",
+     "goto": "fight"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "fight": {
+   "say": [
+    "Left-click swings what you hold; with nothing, fists. Hold it to draw a bow.",
+    "Hold right-click for the off hand's stance, a shield's block, say. Q or middle-click is the main hand's other mode.",
+    "Space shoves the dead back, no damage. Every weapon wears out by the dead it puts down, and nothing mends it."
+   ],
+   "options": [
+    {
+     "text": "I am bleeding.",
+     "goto": "heal"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "make": {
+   "say": [
+    "Stations: the workbench at the joiner's, the forge and anvil at the smithy, the oven at the baker's, the loom at the weaver's.",
+    "Open one with E. It works from your bag and from every container beside it.",
+    "Planks and sticks first. Iron takes a forge."
+   ],
+   "options": [
+    {
+     "text": "How do fires work?",
+     "goto": "fire"
+    },
+    {
+     "text": "Can I build things?",
+     "goto": "build"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "heal": {
+   "say": [
+    "Bites bleed, and bleeding drains health. A bandage stops it at once.",
+    "Health comes back slowly while you are fed and watered, a little faster asleep.",
+    "Food heals a bit as well. It is a stopgap, not a cure."
+   ],
+   "options": [
+    {
+     "text": "What do I eat?",
+     "goto": "food"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "bag": {
+   "say": [
+    "Tab opens your bag, a grid where things take the room they take.",
+    "C is your character: what you wear and hold. Double-click equips or unequips.",
+    "1 to 4 swap a belt slot with your hand, which is where food and torches like to live."
+   ],
+   "options": [
+    {
+     "text": "What are all these keys?",
+     "goto": "keys"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "build": {
+   "say": [
+    "N opens the build menu: walls, doors, windows. X shows what you can remove.",
+    "R turns what you are placing. Furniture can be carried on your head and set down.",
+    "Anything you build can be knocked down by the dead, so build with a plan."
+   ],
+   "options": [
+    {
+     "text": "How do I keep them out?",
+     "goto": "shelter"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "farm": {
+   "say": [
+    "A hoe in a hand turns bare grass or dirt to soil. Seed goes in soil, and water keeps it growing.",
+    "Watered soil stays wet for two days. A dry crop only pauses. It never dies.",
+    "Harvest when it is ripe and a few seeds come back. The soil stays."
+   ],
+   "options": [
+    {
+     "text": "Where do I drink?",
+     "goto": "water"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "fish": {
+   "say": [
+    "A rod in your hand, a cast at water beside you, and then you wait.",
+    "What bites depends on the water: the river, the pond, the mere each have their own.",
+    "Anything you catch cooks at a lit fire."
+   ],
+   "options": [
+    {
+     "text": "What do I eat?",
+     "goto": "food"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  },
+  "keys": {
+   "say": [
+    "W A S D walk, Shift sprints, Z or the wheel zooms. E does the nearest thing.",
+    "Right-click shows everything you can do to what is under the cursor. Esc closes what is open, else pauses.",
+    "The Controls screen has the rest, if you want them in one place."
+   ],
+   "options": [
+    {
+     "text": "How do I fight?",
+     "goto": "fight"
+    },
+    {
+     "text": "What is Tab, C, and the belt?",
+     "goto": "bag"
+    },
+    {
+     "text": "Something else.",
+     "goto": "hello"
+    }
+   ]
+  }
+ }
+}

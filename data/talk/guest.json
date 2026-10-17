@@ -1,0 +1,42 @@
+{
+ "name": "Guest",
+ "note": "A stub (#198): their map line as the fallback bark, one ambient group, a two-node conversation. Michael, or a writing session, fills the rest.",
+ "barks": [
+  {
+   "ambient": true,
+   "when": {
+    "time": "night"
+   },
+   "lines": [
+    "It is quieter here than the road."
+   ]
+  },
+  {
+   "lines": [
+    "I only stopped for the night."
+   ]
+  }
+ ],
+ "start": "hello",
+ "nodes": {
+  "hello": {
+   "say": [
+    "Sorry. I do not know anyone here.",
+    "I only stopped for the night."
+   ],
+   "options": [
+    {
+     "text": "Where were you going?",
+     "goto": "topic"
+    }
+   ]
+  },
+  "topic": {
+   "say": [
+    "The coast. My sister has a boat.",
+    "I am not sure the road is open any more."
+   ],
+   "end": true
+  }
+ }
+}

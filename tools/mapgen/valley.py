@@ -430,6 +430,9 @@ def build():
         g.zombie(x, y)
 
     # ---- the living (29/08's cast; names are Michael's to give, placeholders until then) ----
+    # The guide stands in your yard by the bedroom window, two tiles from the spawn: the neighbour from the farm lane, who came here when the bell
+    # stopped and has not gone home (docs/34; the name is a placeholder for Michael's).
+    g.guide((104, 218), "Wyn", 3, "Ask me anything, if you are stuck.")
     g.villager((inn.x + 6, inn.y + 3), "Innkeeper", 0, "Shut that behind you.", immune=True)  # the steady ones: they will teach, so they cannot die (#180)
     g.villager((inn.x + 3, inn.y + 12), "Guest", 1, "I only stopped for the night.")
     g.villager((inn.x + 4, inn.y + 6), "Child", 5)

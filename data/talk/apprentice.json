@@ -1,0 +1,42 @@
+{
+ "name": "Apprentice",
+ "note": "A stub (#198): their map line as the fallback bark, one ambient group, a two-node conversation. Michael, or a writing session, fills the rest.",
+ "barks": [
+  {
+   "ambient": true,
+   "when": {
+    "time": "day"
+   },
+   "lines": [
+    "Forty bales of wool. Not one sale."
+   ]
+  },
+  {
+   "lines": [
+    "It is all here. Every bale. Nobody to buy it."
+   ]
+  }
+ ],
+ "start": "hello",
+ "nodes": {
+  "hello": {
+   "say": [
+    "Mind the stock. It is the merchant's.",
+    "I am only the apprentice."
+   ],
+   "options": [
+    {
+     "text": "Where is the merchant?",
+     "goto": "topic"
+    }
+   ]
+  },
+  "topic": {
+   "say": [
+    "Upstairs. Or at the bridge. I have stopped checking.",
+    "He said to count it twice. I am on my ninth."
+   ],
+   "end": true
+  }
+ }
+}

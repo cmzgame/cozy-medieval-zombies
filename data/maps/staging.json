@@ -695,5 +695,18 @@
   "near": 2,
   "seed": 9
  },
- "villagers": []
+ "villagers": [
+  {
+   "tile": [
+    24,
+    29
+   ],
+   "name": "Wyn",
+   "wardrobe": 3,
+   "line": "Ask me anything, if you are stuck.",
+   "immune": true,
+   "talk": "guide",
+   "guide": true
+  }
+ ]
 }

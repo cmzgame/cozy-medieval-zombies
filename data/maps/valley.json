@@ -5807,6 +5807,18 @@
   {
    "tile": [
     104,
+    218
+   ],
+   "name": "Wyn",
+   "wardrobe": 3,
+   "line": "Ask me anything, if you are stuck.",
+   "immune": true,
+   "talk": "guide",
+   "guide": true
+  },
+  {
+   "tile": [
+    104,
     153
    ],
    "name": "Innkeeper",
