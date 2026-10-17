@@ -1,9 +1,9 @@
 {
-  "version": "cebe613f",
+  "version": "9a6b38f6",
   "files": {
     "data/build.json": {"size": 366, "stamp": "d4f4a6d2"},
     "data/combat.json": {"size": 4109, "stamp": "4efa7ba3"},
-    "data/crops.json": {"size": 1835, "stamp": "df2e8ece"},
+    "data/crops.json": {"size": 1780, "stamp": "8b967e12"},
     "data/fishing.json": {"size": 994, "stamp": "1447eb62"},
     "data/ground.json": {"size": 3493, "stamp": "991f8b65"},
     "data/interactions.json": {"size": 2834, "stamp": "f9921ed1"},
