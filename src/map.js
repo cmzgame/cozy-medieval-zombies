@@ -259,6 +259,28 @@ export function setHolder(target, has, entry = null) {
   // reason (found auditing the changes for the save's cache, `02`).
 }
 
+// Light what is made to be lit (Michael, 2026-10-17, #156: "fire lights what is made to be lit"): an unlit campfire with fuel in
+// it, a torch on a post, or a torch in a bracket that is out. Nothing else burns and nothing spreads. The authority's, from
+// the `light` verb (burn.js); each returns whether it lit, and touches the chunk so the wire and the save have it.
+export function lightProp(prop) {
+  const f = prop && prop.fire;
+  if (!f || f.lit) return false;
+  if (!((f.burns && f.fuel > 0) || (f.holds && f.has))) return false;
+  f.lit = true;
+  touch(prop.tile[0], prop.tile[1]);
+  emit("fireLit", { id: prop.id, tile: prop.tile });
+  return true;
+}
+
+export function lightBracket(b) {
+  const br = b && b.wall.bracket;
+  if (!br || !br.torch || br.lit !== false) return false;
+  br.lit = true;
+  touchWall(b.wall);
+  emit("fireLit", { tile: [b.tx, b.ty] });
+  return true;
+}
+
 // Burners within `r` tiles of (gx, gy), nearest first.
 export function burnersNear(gx, gy, r = 1.3) {
   const out = [];

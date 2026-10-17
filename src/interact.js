@@ -407,7 +407,22 @@ function holderActions(target, player) {
   const tiles = target.kind === "bracket" ? [[target.bracket.tx, target.bracket.ty]] : target.prop.tiles;
   const has = map.holderHas(target);
   if (has) {
-    return [act({
+    // Out: a flame lights it (the `light` verb, burn.js; a tinderbox, or a lit torch in a hand or on the belt).
+    const out = map.holderState(target).lit === false ? [act({
+      kind: "holder",
+      simple: false,
+      label: "Light the torch",
+      tiles,
+      mx,
+      my,
+      perform() {
+        const r = verbs.run("light", world, player, target.kind === "bracket" ? { bracket: { tx: target.bracket.tx, ty: target.bracket.ty, edge: target.bracket.edge } } : { prop: target.prop });
+        if (!r.ok) showMessage(r.reason || "You cannot light it.");
+        else showMessage("You light the torch.");
+        return r.ok;
+      },
+    })] : [];
+    return [...out, act({
       kind: "holder",
       simple: true,
       label: "Take the torch",

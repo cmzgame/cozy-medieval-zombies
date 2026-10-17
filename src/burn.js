@@ -13,7 +13,7 @@
 
 import * as verbs from "./verbs.js";
 import * as map from "./map.js";
-import { bagOf, beltOf } from "./inventory.js";
+import { bagOf, beltOf, findItem } from "./inventory.js";
 import { burnZombie } from "./entities/zombie.js";
 
 export const BURN = { dps: 0.8, duration: 10, cap: 10 };
@@ -90,5 +90,75 @@ verbs.define("dip", {
     const e = carried(player, target.entry);
     e.id = args.to || "fire_arrow";
     return { ok: true };
+  },
+});
+
+// ---- the light verb: a flame used on what is made to be lit (data/interactions.json; #156, Michael, 2026-10-17) ----
+// A tinderbox or a lit torch used on an unlit campfire (with fuel), a torch on a post, a torch in a bracket that is out, or an
+// unlit torch you carry lights it. Never burns anything else. The target is an address: a prop (an id, or the prop on the host), a
+// bracket `{ tx, ty, edge }`, or `onEntry`, an unlit torch's uid; the flame is `entry` (the uid of what was used), else whatever the
+// player has (a tinderbox, a lit torch in a hand or on the belt: the right-click menu on a holder).
+
+// The flame the player has, or null: the entry named by `uid` if it is a flame, else a tinderbox carried, else a lit torch in a hand
+// or on the belt.
+function flameOf(player, uid) {
+  if (uid != null) {
+    const e = carried(player, uid);
+    return e && (e.id === "tinderbox" || (e.id === "torch" && e.lit)) ? e : null;
+  }
+  const box = findItem(player, "tinderbox");
+  if (box) return box.entry;
+  for (const slot of ["main", "off"]) {
+    const e = player.hands && player.hands[slot];
+    if (e && e.id === "torch" && e.lit) return e;
+  }
+  return (beltOf(player) || []).find((e) => e && e.id === "torch" && e.lit) || null;
+}
+
+// What the target is, or why it cannot be lit: { reason } or { light(), at: [x, y] | null }.
+function lightTarget(player, target, flame) {
+  if (target.onEntry != null) {
+    const e = carried(player, target.onEntry);
+    const held = e && (player.hands.main === e || player.hands.off === e || (beltOf(player) || []).includes(e)); // a torch in the bag burns nothing and lights nothing: it is lit where it is used
+    if (!e || e.id !== "torch" || !held) return { reason: "Only a torch in a hand or on the belt can be lit that way." };
+    if (e === flame) return { reason: "That is the flame." };
+    if (e.lit) return { reason: "It is already lit." };
+    return { light: () => { e.lit = true; return true; }, at: null };
+  }
+  if (target.bracket) {
+    const b = [...map.brackets()].find((q) => q.tx === target.bracket.tx && q.ty === target.bracket.ty && q.edge === target.bracket.edge);
+    if (!b) return { reason: "There is nothing there to light." };
+    const br = b.wall.bracket;
+    if (br.lantern) return { reason: "A lantern is always lit." };
+    if (!br.torch) return { reason: "There is no torch there." };
+    if (br.lit !== false) return { reason: "It is already lit." };
+    return { light: () => map.lightBracket(b), at: map.bracketPos(b) };
+  }
+  const prop = typeof target.prop === "string" ? map.propById(target.prop) : target.prop;
+  const f = prop && prop.fire;
+  if (!f) return { reason: "That cannot be lit." };
+  if (f.burns) {
+    if (f.lit) return { reason: "It is already burning." };
+    if (!(f.fuel > 0)) return { reason: "It has nothing to burn." };
+  } else if (f.holds) {
+    if (!f.has) return { reason: "There is no torch there." };
+    if (f.lit) return { reason: "It is already lit." };
+  } else return { reason: "That cannot be lit." };
+  return { light: () => map.lightProp(prop), at: prop.tile };
+}
+
+verbs.define("light", {
+  validate(world, player, target) {
+    const flame = flameOf(player, target.entry);
+    if (!flame) return target.entry != null ? "That gives no flame (a tinderbox, or a lit torch)." : "You have no flame (a tinderbox, or a lit torch).";
+    const t = lightTarget(player, target, flame);
+    if (t.reason) return t.reason;
+    if (t.at && Math.hypot(player.gx - t.at[0], player.gy - t.at[1]) > DIP_REACH) return "Too far away.";
+    return true;
+  },
+  perform(world, player, target) {
+    const flame = flameOf(player, target.entry);
+    const t = lightTarget(player, target, flame);
+    return { ok: !!t.light && t.light() };
   },
 });
