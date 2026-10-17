@@ -13,7 +13,7 @@
 
 import * as verbs from "./verbs.js";
 import * as map from "./map.js";
-import { bagOf, beltOf, carriedEntry as carried, flameOf } from "./inventory.js";
+import { beltOf, carriedEntry as carried, flameOf } from "./inventory.js";
 import { burnZombie } from "./entities/zombie.js";
 import { lineOfSight } from "./visibility.js";
 

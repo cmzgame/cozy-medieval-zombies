@@ -78,14 +78,20 @@ export async function run(game) {
       G.inventory.stow(me, fuel);
       restore.push(() => G.inventory.detach(me, fuel));
       const boxes = bag.items.filter((e) => e.id === "tinderbox");
+      const onBelt = (G.inventory.beltOf(me) || []).map((e, k) => (e && e.id === "tinderbox" ? [k, e] : null)).filter(Boolean); // a belt tinderbox is a flame too
       for (const e of boxes) G.inventory.detach(me, e);
+      for (const [, e] of onBelt) G.inventory.detach(me, e);
       const a0 = menuLight(p);
+      const msgEl = document.getElementById("message");
+      if (msgEl) msgEl.textContent = "";
       const said = a0 ? a0.perform() : null;
-      const noFlame = !!a0 && said === false && !p.fire.lit && G.inventory.countAll(me, fuelId) >= 1 && /flame/.test(a0.label);
+      const text = msgEl ? msgEl.textContent : "";
+      const noFlame = !!a0 && said === false && a0.simple === false && !p.fire.lit && G.inventory.countAll(me, fuelId) >= 1 && /flame/.test(a0.label) && /You need a tinderbox or a lit torch to light it/.test(text);
       for (const e of boxes) G.inventory.stow(me, e);
+      for (const [k, e] of onBelt) G.inventory.beltOf(me)[k] = e;
       const a1 = menuLight(p);
       const did = a1 ? a1.perform() : null;
-      row(`a ${kind} cannot be lit from its menu with fuel and no flame, and can with a tinderbox`, noFlame && did === true && p.fire.lit === true, `no flame: ${a0 && a0.label}; with: lit ${p.fire.lit}`);
+      row(`a ${kind} cannot be lit from its menu with fuel and no flame, and can with a tinderbox`, noFlame && did === true && p.fire.lit === true, `no flame: ${a0 && a0.label}, simple ${a0 && a0.simple}, said "${text}"; with: lit ${p.fire.lit}`);
     }
     // A lit torch in a hand is a flame too; a fire that is burning is fed with none.
     const wood = prop("campfire", cx + 3, cy + 3, { fuel: 0, lit: false });
