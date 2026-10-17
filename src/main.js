@@ -16,7 +16,7 @@ import * as clock from "./clock.js";
 import * as light from "./light.js";
 import * as gl from "./gl.js";
 import * as ground from "./ground.js";
-import { renderScene, night } from "./render.js";
+import { renderScene, night, shakeFence } from "./render.js";
 import { createPlayer, aimOrigin } from "./entities/player.js";
 import * as host from "./host.js"; // the authority's half of the game, shared with the server world (item 5's first step)
 import { lookOf } from "./host.js";
@@ -1600,6 +1600,9 @@ async function boot() {
         const d = iso.normalize(zombie.gx - p.gx, zombie.gy - p.gy);
         burning.spark(p.gx + d.x * 0.45, p.gy + d.y * 0.45, 22);
       });
+      // A fence the dead are pressing shakes, and one that gives bursts into splinters (map.stepFences, #147): drawn here.
+      events.on("fenceShake", ({ tx, ty, edge }) => shakeFence(tx, ty, edge));
+      events.on("fenceBurst", ({ x, y }) => burning.splinters(x, y, 12));
       // A blow that landed kicks the camera of the client whose player struck (docs/31/05, item 13).
       events.on("kicked", ({ player: p, x, y, seconds }) => {
         if (p === S.player) camera.kick(x, y, seconds);
@@ -1697,7 +1700,11 @@ async function boot() {
     joined: (id) => showMessage(`Joined as ${id}.`, 3),
     message: (text, seconds = 3) => showMessage(text, seconds),
     kick: (x, y, seconds) => camera.kick(x, y, seconds), // my own landed blow, told by the host (item 4)
-    fx: (kind, x, y, z) => { if (kind === "spark") burning.spark(x, y, z); }, // a visual the host's world made (a blocked blow's sparks, z its height)
+    fx: (kind, x, y, z) => { // a visual the host's world made (a blocked blow's sparks, z its height; a fence's splinters; a fence shaking, its tile and z 1 for a west edge)
+      if (kind === "spark") burning.spark(x, y, z);
+      else if (kind === "splinters") burning.splinters(x, y, z);
+      else if (kind === "shake") shakeFence(Math.round(x), Math.round(y), z ? "w" : "n");
+    },
     // A container my player opened on the host: the grid is on my replica's prop, entry, or body, found by
     // its address (interact.containerAt; a station's output is its own bag, docs/30 section 6), again every frame.
     opened: (w) => {

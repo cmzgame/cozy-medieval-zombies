@@ -3,6 +3,7 @@
 // Cut from src/render.js on 2026-10-12 (docs/23a, D5): a move, no rule changed; the frame check proves the pixels.
 
 import * as iso from "../iso.js";
+import * as loop from "../loop.js";
 import { getSheet, getDef, idleFrame } from "../assets.js";
 import { shade } from "../render-util.js";
 import * as map from "../map.js";
