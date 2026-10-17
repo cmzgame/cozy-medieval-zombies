@@ -50,6 +50,8 @@ function bubbleFor(id) {
 
 // Show every live line, move it with its speaker, and age it by `dt` seconds of
 // game time (a paused game keeps its bubbles). `visible` is the player's fog set.
+const heard = new WeakSet(); // the lines of the unseen dead already told of in the log
+let lastHeardAt = 0;
 export function updateSpeech(characters, visible, player, dt) {
   const seen = new Set();
   const uiW = uiEl.clientWidth;
@@ -65,7 +67,18 @@ export function updateSpeech(characters, visible, player, dt) {
       ch === player ||
       (visible.has(tileKey(Math.round(ch.gx), Math.round(ch.gy))) && !(ch.behindProp && Math.hypot(ch.gx - player.gx, ch.gy - player.gy) > NEAR) &&
         !(ch.kind === "zombie" && !sight.seen(player, ch))); // a groan from the dark shows no bubble where it stands (#88)
-    if (!shown) continue;
+    if (!shown) {
+      // A groan from one lost in the dark, in line of sight but unseen: no bubble where it stands, and a line in the log with no
+      // position instead (Michael, #150: the dark hides information, never physics), once for each, and not in a rush.
+      if (ch.kind === "zombie" && visible.has(tileKey(Math.round(ch.gx), Math.round(ch.gy))) && !heard.has(line)) {
+        heard.add(line);
+        if (performance.now() - lastHeardAt > 3000) {
+          lastHeardAt = performance.now();
+          log.push("Something groans in the dark.", "say");
+        }
+      }
+      continue;
+    }
     seen.add(ch.id);
     const entry = bubbleFor(ch.id);
     if (entry.text !== line.text) {

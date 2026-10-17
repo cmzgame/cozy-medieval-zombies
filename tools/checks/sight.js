@@ -46,6 +46,19 @@ export async function run(game) {
     row("past it they fade over the soft edge", dark[3] > 0.2 && dark[3] < 0.8 && dark[2] > dark[3] && dark[3] > dark[4], `half way ${dark[3].toFixed(2)}, at the edge's end ${dark[4].toFixed(2)}`);
     row("and are hidden beyond it", near(dark[4], 0) && near(dark[5], 0), `${dark[5].toFixed(2)} at ${T.darkRadius + T.edge + 2}`);
 
+    // The dark hides information, never physics (Michael, #150): one lost in it cannot be pointed at (no hover hand, no click, no
+    // right-click: `characterAt`), one seen can; and a hit still lands on it (a swing or a shot is the world's, not the eye's).
+    const pointAt = (d) => { z.gx = me.gx + d; z.gy = me.gy; step(2); const p = G.iso.toScreen(z.gx, z.gy); return G.interact.characterAt(p.x, p.y - 20); };
+    const seenOne = pointAt(1);
+    const hiddenOne = pointAt(6);
+    row("a dead one seen in the dark can be pointed at, and one lost in it cannot", seenOne === z && hiddenOne === null, `at 1 tile ${seenOne === z ? "found" : "missed"}, at 6 ${hiddenOne === null ? "nothing there" : "found"}`);
+    z.gx = me.gx + 6;
+    z.gy = me.gy;
+    const hp0 = z.hp;
+    const dmg = (await import("/src/entities/zombie.js")).damageZombie(z, 10, { dir: [1, 0] });
+    row("a blow still lands on one lost in the dark", z.hp === hp0 - 10 && !dmg.killed, `hp ${hp0} to ${z.hp}`);
+    z.hp = hp0;
+
     me.hands.main = hands0.main || me.hands.main;
     const torch = hands0.main && hands0.main.id === "torch" ? hands0.main : hands0.off && hands0.off.id === "torch" ? hands0.off : null;
     if (torch) {

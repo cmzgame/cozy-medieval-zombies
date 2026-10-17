@@ -35,6 +35,7 @@ import * as use from "./use.js"; // the Use entry on item menus (docs/30, law 2)
 import * as verbs from "./verbs.js"; // the verb table (docs/31/08, habit 4)
 import { world } from "./world.js";
 import * as clock from "./clock.js";
+import * as sight from "./sight.js";
 import { tiredStage } from "./moodles.js";
 import * as stations from "./stations.js"; // what a prop is as a station (docs/30, section 6)
 import * as stationPanel from "./ui/station-panel.js";
@@ -1263,14 +1264,24 @@ export function setCharacters(fn) {
   allCharacters = fn;
 }
 
+// This client's own player, whose sight decides which of the dead are there to point at (sight.js, #88): the dark hides
+// information, never physics, so a dead one lost in the dark has no hover hand and cannot be clicked or right-clicked,
+// while a swing or a shot that meets it still hits it.
+let viewerOf = () => null;
+export function setViewer(fn) {
+  viewerOf = fn;
+}
+
 // The character (never the player) whose body the point falls on: a box a
 // little wider than the figure and as tall as it, standing on its feet, since
 // a figure moves and a pixel test would be fussy. The nearest to the camera
 // wins a tie.
 export function characterAt(sx, sy) {
   let best = null;
+  const viewer = viewerOf();
   for (const c of allCharacters()) {
     if (c.kind === "player") continue;
+    if (viewer && c.kind === "zombie" && !c.dead && !sight.seen(viewer, c)) continue; // lost in the dark: nothing to point at
     const p = iso.toScreen(c.gx, c.gy);
     if (sx < p.x - 40 || sx > p.x + 40 || sy < p.y - 72 || sy > p.y + 8) continue;
     // The frame's own pixels, placed as the renderer places them; a standing one also
