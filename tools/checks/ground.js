@@ -214,6 +214,12 @@ export async function run(game) {
 
   // 6. Lit as before: night darkens the ground, the torch and the campfire light it.
   {
+    // Its own lit torch in the hand (the starting kit's torch begins unlit since #157), the hands put back after.
+    const me = game.player;
+    const hands0 = { main: me.hands.main, off: me.hands.off };
+    me.hands.main = game.items.makeEntry("torch", 1, { lit: true, wear: 0 });
+    me.hands.off = null;
+    try {
     game.teleport(15, 15);
     game.clock.setHour(12);
     step(30);
@@ -227,6 +233,10 @@ export async function run(game) {
     add(6, "Lit as before", ok, `cobble far from light: noon ${noonFar.toFixed(0)}, night ${nightFar.toFixed(0)}; beside the campfire at night ${nightFire.toFixed(0)}; at the torch-bearer's feet ${nightFeet.toFixed(0)}`);
     game.clock.setHour(10);
     step(5);
+    } finally {
+      me.hands.main = hands0.main;
+      me.hands.off = hands0.off;
+    }
   }
 
   // 7. Shadows and leaves follow the trees.

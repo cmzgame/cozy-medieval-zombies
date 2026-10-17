@@ -51,12 +51,18 @@ export async function run(game) {
     const belt = G.inventory.beltOf(me);
     const slot = belt ? belt.findIndex((e) => !e) : -1;
     if (slot >= 0) {
-      const bare = alphaAt(T.darkRadius + 1.1);
-      belt[slot] = G.items.makeEntry("torch", 1, { lit: true, wear: 0 });
-      step();
-      const withBelt = alphaAt(T.darkRadius + 1.1);
-      const carriedBelt = G.light.carriers().find((c) => c.owner === me.id);
-      belt[slot] = null;
+      let bare;
+      let withBelt;
+      let carriedBelt;
+      try {
+        bare = alphaAt(T.darkRadius + 1.1);
+        belt[slot] = G.items.makeEntry("torch", 1, { lit: true, wear: 0 });
+        step();
+        withBelt = alphaAt(T.darkRadius + 1.1);
+        carriedBelt = G.light.carriers().find((c) => c.owner === me.id);
+      } finally {
+        belt[slot] = null; // the real belt, put back whatever happens
+      }
       step();
       row("a lit torch on the belt sees a bit further than none", !!carriedBelt && carriedBelt.radius > T.darkRadius && withBelt >= T.seenAt && bare < T.seenAt, `radius ${carriedBelt && carriedBelt.radius}; at ${T.darkRadius + 1.1} tiles: ${bare.toFixed(2)} bare, ${withBelt.toFixed(2)} with the belt torch (seen from ${T.seenAt})`);
     } else row("a free belt slot for the belt torch row", false, "none");
@@ -115,7 +121,7 @@ export async function run(game) {
     me.hands.off = heldBefore.off;
 
     me.hands.main = hands0.main || me.hands.main;
-    // A lit torch for the rows below (the starting kit's torch begins unlit since #157/#168, so the check lights its own).
+    // A lit torch for the rows below (the starting kit's torch begins unlit since #157, so the check lights its own).
     const torch = G.items.makeEntry("torch", 1, { lit: true, wear: 0 });
     me.hands.main = torch;
     step();
