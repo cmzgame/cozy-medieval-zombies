@@ -17,7 +17,7 @@ export async function run(game) {
   const belt = G.inventory.beltOf(me);
   const belt0 = belt ? belt.slice() : null; // a stowed bucket can land on the belt: put the belt back too
   const clock0 = G.clock.getElapsed();
-  const body0 = { hp: me.hp, bleed: me.bleed, hunger: me.hunger, thirst: me.thirst }; // the growth section's sleep steps let the dead bite: put the player back, so a second run starts well
+  const body0 = { hp: me.hp, bleed: me.bleed, hunger: me.hunger, thirst: me.thirst, infection: me.infection, wound: me.wound, dead: me.dead }; // the growth section's sleep steps let the dead bite: put the player back, so a second run starts well
   const wasPaused = G.loop.isPaused();
   const DAY = G.clock.DAY_LENGTH;
   const restore = [];
@@ -31,6 +31,8 @@ export async function run(game) {
   try {
     G.loop.setPaused(true);
     farming.reset();
+    for (const q of G.map.allProps()) if (q.crop && q.crop.stage !== undefined) farming.settle(q); // the map's authored crops settle at the clock as it is, before the check moves it
+    for (const id of ["shovel", "knife"]) G.inventory.stow(me, G.items.makeEntry(id, 1)); // the tool rule (#215): a root is dug, a head cut; carried is enough (the bag is put back in the finally)
 
     // The data.
     const kinds = Object.keys(crops);

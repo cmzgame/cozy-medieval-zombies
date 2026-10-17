@@ -32,7 +32,7 @@ export async function run(game) {
     const loomRows = G.stations.recipesFor("loom").map((r) => r.id);
     row("the loom has rows: cloth from flax, bandages and clothes from cloth", ["cloth", "bandage", "weave_cap", "weave_breeches", "weave_tunic"].every((id) => loomRows.includes(id)) && G.stations.recipe("cloth").in[0].id === "flax" && G.stations.recipe("bandage").in[0].id === "cloth", loomRows.join(", "));
     const tears = G.stations.recipesFor("workbench").filter((r) => r.id.startsWith("tear_"));
-    row("a garment tears into two rags at the workbench with a knife on you, and no rag or cloth is ever torn", tears.length === 6 && tears.every((r) => r.out.id === "rag" && r.out.count === 2 && r.carry === "knife" && !["rag", "cloth"].includes(r.in[0].id)), tears.map((r) => r.id).join(", "));
+    row("a garment tears into two rags at the workbench with a knife on you, and no rag or cloth is ever torn", tears.length === 6 && tears.every((r) => r.out.id === "rag" && r.out.count === 2 && r.uses === "cut" && !["rag", "cloth"].includes(r.in[0].id)), tears.map((r) => r.id).join(", "));
     G.map.ensureAround(76, 168, 4);
     const chestLoot = map.allProps().filter((q) => q.container).map((q) => q.container.loot);
     row("the weaver's chest holds a handful of flax seed and a knife (a way in on day one), and the weaver has a loom", chestLoot.includes("weaver_chest") && G.items.rollLoot("weaver_chest").some((e) => e.id === "flax_seed" && e.count >= 4) && G.items.rollLoot("weaver_chest").some((e) => e.id === "knife") && map.allProps().some((q) => q.sprite === "loom"), "weaver_chest");

@@ -1,5 +1,5 @@
 {
- "note": "docs/30 section 6: a recipe is a row; `in` names item ids or tags with counts; `fire` needs the station's fire lit; `tool` needs that item in a hand; `out.prop` places a prop beside the station instead of an item in its output. Seconds are sim seconds (a game hour is 30). `carry` needs that item on you, in a hand, on the belt, or in the bag (a tool that is not wielded, Michael's tool rule, 2026-10-18).",
+ "note": "docs/30 section 6: a recipe is a row; `in` names item ids or tags with counts; `fire` needs the station's fire lit; `tool` needs that item in a hand; `out.prop` places a prop beside the station instead of an item in its output. Seconds are sim seconds (a game hour is 30). `uses` names a verb: the recipe needs a carried item whose `verbs` list it (a hand, the belt, or the bag: the tool rule, #214, #215; `tool` is the older in-hand check, the anvil's hammer, until open question 32 is ruled).",
  "rows": [
   {
    "id": "torch",
@@ -34,8 +34,8 @@
     }
    ],
    "seconds": 2,
-   "carry": "knife",
-   "label": "Rags from the linen cap"
+   "label": "Rags from the linen cap",
+   "uses": "cut"
   },
   {
    "id": "tear_hood",
@@ -51,8 +51,8 @@
     }
    ],
    "seconds": 2,
-   "carry": "knife",
-   "label": "Rags from the onion-head hat"
+   "label": "Rags from the onion-head hat",
+   "uses": "cut"
   },
   {
    "id": "tear_tunic",
@@ -68,8 +68,8 @@
     }
    ],
    "seconds": 2,
-   "carry": "knife",
-   "label": "Rags from the linen tunic"
+   "label": "Rags from the linen tunic",
+   "uses": "cut"
   },
   {
    "id": "tear_gloves",
@@ -85,8 +85,8 @@
     }
    ],
    "seconds": 2,
-   "carry": "knife",
-   "label": "Rags from the work gloves"
+   "label": "Rags from the work gloves",
+   "uses": "cut"
   },
   {
    "id": "tear_breeches",
@@ -102,8 +102,8 @@
     }
    ],
    "seconds": 2,
-   "carry": "knife",
-   "label": "Rags from the linen breeches"
+   "label": "Rags from the linen breeches",
+   "uses": "cut"
   },
   {
    "id": "tear_boots",
@@ -119,8 +119,8 @@
     }
    ],
    "seconds": 2,
-   "carry": "knife",
-   "label": "Rags from the hobnail boots"
+   "label": "Rags from the hobnail boots",
+   "uses": "cut"
   },
   {
    "id": "cloth",
@@ -210,7 +210,8 @@
      "count": 1
     }
    ],
-   "seconds": 3
+   "seconds": 3,
+   "uses": "split"
   },
   {
    "id": "hoe",
@@ -229,7 +230,8 @@
      "count": 1
     }
    ],
-   "seconds": 8
+   "seconds": 8,
+   "uses": "build"
   },
   {
    "id": "shovel",
@@ -248,7 +250,8 @@
      "count": 1
     }
    ],
-   "seconds": 8
+   "seconds": 8,
+   "uses": "build"
   },
   {
    "id": "fishing_rod",
@@ -267,7 +270,8 @@
      "count": 1
     }
    ],
-   "seconds": 6
+   "seconds": 6,
+   "uses": "cut"
   },
   {
    "id": "bow",
@@ -286,7 +290,8 @@
      "count": 1
     }
    ],
-   "seconds": 12
+   "seconds": 12,
+   "uses": "cut"
   },
   {
    "id": "arrows",
@@ -301,7 +306,8 @@
      "count": 1
     }
    ],
-   "seconds": 5
+   "seconds": 5,
+   "uses": "cut"
   },
   {
    "id": "shield",
@@ -316,7 +322,8 @@
      "count": 3
     }
    ],
-   "seconds": 12
+   "seconds": 12,
+   "uses": "build"
   },
   {
    "id": "chest",
@@ -330,7 +337,8 @@
      "count": 4
     }
    ],
-   "seconds": 10
+   "seconds": 10,
+   "uses": "build"
   },
   {
    "id": "shelf",
@@ -344,7 +352,8 @@
      "count": 3
     }
    ],
-   "seconds": 8
+   "seconds": 8,
+   "uses": "build"
   },
   {
    "id": "bench",
@@ -358,7 +367,8 @@
      "count": 2
     }
    ],
-   "seconds": 6
+   "seconds": 6,
+   "uses": "build"
   },
   {
    "id": "bucket",
@@ -373,7 +383,8 @@
      "count": 3
     }
    ],
-   "seconds": 6
+   "seconds": 6,
+   "uses": "build"
   },
   {
    "id": "table",
@@ -391,7 +402,8 @@
      "count": 4
     }
    ],
-   "seconds": 10
+   "seconds": 10,
+   "uses": "build"
   },
   {
    "id": "bed",
@@ -413,7 +425,8 @@
      "count": 1
     }
    ],
-   "seconds": 16
+   "seconds": 16,
+   "uses": "build"
   },
   {
    "id": "workbench",
@@ -435,7 +448,8 @@
      "count": 1
     }
    ],
-   "seconds": 14
+   "seconds": 14,
+   "uses": "build"
   },
   {
    "id": "wheelbarrow",
@@ -453,7 +467,8 @@
      "count": 1
     }
    ],
-   "seconds": 16
+   "seconds": 16,
+   "uses": "build"
   },
   {
    "id": "charcoal",
