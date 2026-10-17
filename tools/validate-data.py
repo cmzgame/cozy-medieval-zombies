@@ -150,7 +150,7 @@ for path in sorted(glob.glob("data/maps/*.json")):
         if name not in fishing["waters"]:
             fail(f"{path}: the water {name!r} has no table in data/fishing.json")
 
-# The bucket (#199): an item with a `vessel` has a capacity above 0 and and can be held.
+# The bucket (#199): an item with a `vessel` has a capacity above 0 and can be held.
 for i in items:
     if "vessel" in i and not (i["vessel"].get("capacity", 0) > 0 and i.get("hands")):
         fail(f"items.{i['id']}: a vessel needs a capacity above 0 and `hands`")

@@ -14,6 +14,8 @@ export async function run(game) {
   const hands0 = { main: me.hands.main, off: me.hands.off };
   const bag = G.inventory.bagOf(me);
   const bag0 = bag.items.slice();
+  const belt = G.inventory.beltOf(me);
+  const belt0 = belt ? belt.slice() : null; // a stowed bucket can land on the belt: put the belt back too
   const clock0 = G.clock.getElapsed();
   const wasPaused = G.loop.isPaused();
   const DAY = G.clock.DAY_LENGTH;
@@ -319,6 +321,7 @@ export async function run(game) {
     setNow(clock0);
     farming.reset();
     bag.items.splice(0, bag.items.length, ...bag0);
+    if (belt && belt0) belt.splice(0, belt.length, ...belt0);
     me.hands.main = hands0.main;
     me.hands.off = hands0.off;
     me.action = null;
