@@ -543,7 +543,7 @@ def build():
     dead += [(smi.x + 2, smi.y + 7), (bak.x + 3, bak.y + 0), (joi.x + 9, joi.y + 3), (wea.x + 9, wea.y + 8)]           # the trades, at their work
     dead += [(mer.x + 4, mer.y + 4), (mer.x + 2, mer.y + 15), (man.x + 8, man.y + 18)]                                 # the nobles
     dead += [P(5, 24), P(9, 63), P(3, 50)]                                                                             # the cottages
-    dead += [(70, 241 - 3), (79, 239), (62, 238), (86, 238), (90, 232)]                                                # Hollow Farm's yard: the family
+    dead += [(70, 238), (79, 239), (62, 238), (86, 238), (90, 232)]                                                # Hollow Farm's yard: the family
     dead += [(72, 56), (88, 56), (84, 49), (90, 42)]                                                                  # Long Acre: two in the rye, one in the barn, one in the yard
     for x, y in dead:
         g.zombie(x, y)

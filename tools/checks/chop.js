@@ -33,13 +33,14 @@ export async function run(game) {
 
     // The chests: a fresh world's cottage chest and the joiner's each hold a hatchet, made from their own tables.
     G.map.ensureAround(106, 216, 3);
+    const NAMED = ["home_chest", "joiner_chest", "weaver_chest", "granary_hollow", "granary_mill"]; // the fixed tables the map names on a chest (#195, #212, #201)
     const home = G.map.allProps().find((p) => p.sprite === "chest" && p.container && p.container.loot === "home_chest");
     G.map.ensureAround(76, 190, 4);
     const joiner = G.map.allProps().find((p) => p.sprite === "chest" && p.container && p.container.loot === "joiner_chest");
     const holds = (p) => G.items.rollLoot(p.container.loot).some((e) => e.id === "hatchet"); // the table it names, not the chest opened (opening would change the world)
     row("your cottage's chest holds a hatchet (a placed container names its own loot table)", !!home && holds(home), home ? JSON.stringify(G.items.rollLoot(home.container.loot).map((e) => e.id)) : "no chest names home_chest");
     row("and the joiner's chest a second", !!joiner && holds(joiner), joiner ? JSON.stringify(G.items.rollLoot(joiner.container.loot).map((e) => e.id)) : "no chest names joiner_chest");
-    row("the cottage's other chest and every untouched one keep the definition's table", G.map.allProps().filter((p) => p.sprite === "chest" && p.container && !["home_chest", "joiner_chest"].includes(p.container.loot)).every((p) => p.container.loot === "chest"), "the rest roll `chest`");
+    row("the cottage's other chest and every untouched one keep the definition's table", G.map.allProps().filter((p) => p.sprite === "chest" && p.container && !NAMED.includes(p.container.loot)).every((p) => p.container.loot === "chest"), "the rest roll `chest`");
 
     // A tree beside the player.
     const tree = G.map.allProps().filter((p) => p.wood && G.assets.getDef(p.sprite).canopy && Math.hypot(p.tile[0] - meAt[0], p.tile[1] - meAt[1]) < 25).sort((a, b) => Math.hypot(a.tile[0] - meAt[0], a.tile[1] - meAt[1]) - Math.hypot(b.tile[0] - meAt[0], b.tile[1] - meAt[1]))[0];
