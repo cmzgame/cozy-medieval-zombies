@@ -141,6 +141,7 @@ const mapMod = await import("../src/map.js");
 const gameMod = await import("../src/game.js");
 const kitModule = await import("../src/kit.js");
 const worldMod = await import("../src/world.js");
+const chartModule = await import("../src/chart.js");
 await bootData(root);
 // The sync hash (game.syncParts) and what the wire promises: a board struck short of a break changes nothing a guest sees, so the map
 // part must not move; a board broken is carried (the chunk is touched), so it must (the review of #185, #189).
@@ -175,6 +176,28 @@ check("kit: the default kit fits the sack and the dev bag by placement, and aski
   assert(worldMod.idCounter() === before, "kit.problem moved the id counter");
   assert(kitMod.problem("apple 1e1") !== "" && kitMod.problem("apple 0x10") !== "", "a count of 1e1 or 0x10 was taken");
   return "sack and dev bag fit; no id taken";
+});
+// The chart's frame carries only the changed cells (#237): what a host takes after a reveal, applied to an empty replica, makes the same chart; and a second take is empty.
+check("chart: the changed cells a frame carries rebuild the chart on an empty replica", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const chartMod = chartModule;
+  S.player.gx = 104;
+  S.player.gy = 205;
+  chartMod.takeChanged();
+  mapMod.ensureAround(104, 205, 4);
+  gameMod.begin(1 / 60);
+  gameMod.begin(1 / 60);
+  const taken = chartMod.takeChanged();
+  const host = chartMod.hashText();
+  const again = chartMod.takeChanged();
+  chartMod.restore({ chunks: [] });
+  chartMod.apply(JSON.parse(JSON.stringify(taken))); // as it crosses the wire
+  assert(taken.length > 0 && chartMod.hashText() === host, "the replica built from the changed cells is not the host's chart");
+  assert(again.length === 0, "a second take with nothing changed was not empty");
+  const cells = taken.reduce((n, r) => n + r[2].length / 2, 0);
+  return `${taken.length} chunks, ${cells} cells, the replica matches; nothing the second time`;
 });
 for (const file of fs.readdirSync(path.join(root, "data", "maps")).filter((f) => f.endsWith(".json"))) {
   check(`maps: no prop stands on a door's tiles (${file})`, () => {
