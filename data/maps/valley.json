@@ -3673,7 +3673,8 @@
        "tile": [
         7,
         5
-       ]
+       ],
+       "loot": "weaver_chest"
       },
       {
        "sprite": "fireplace",
@@ -3813,7 +3814,8 @@
        "tile": [
         0,
         4
-       ]
+       ],
+       "loot": "smithy_chest"
       }
      ],
      "brackets": [
@@ -3883,6 +3885,17 @@
      "tile": [
       1,
       8
+     ]
+    },
+    {
+     "sprite": "charcoal_clamp",
+     "tile": [
+      9,
+      8
+     ],
+     "footprint": [
+      2,
+      2
      ]
     },
     {
@@ -5259,6 +5272,629 @@
      ]
     }
    ]
+  },
+  {
+   "name": "the iron workings",
+   "rect": [
+    214,
+    140,
+    30,
+    16
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [
+    {
+     "rect": [
+      13,
+      1,
+      2,
+      9
+     ],
+     "sprite": "floor_wood"
+    }
+   ],
+   "fences": [
+    {
+     "rect": [
+      0,
+      0,
+      28,
+      5
+     ],
+     "wall": "wall_stone",
+     "gates": [],
+     "sides": [
+      "n",
+      "w",
+      "e"
+     ]
+    }
+   ],
+   "props": [
+    {
+     "sprite": "mine_mouth",
+     "tile": [
+      13,
+      0
+     ],
+     "footprint": [
+      2,
+      1
+     ]
+    },
+    {
+     "sprite": "spoil_heap",
+     "tile": [
+      9,
+      1
+     ],
+     "footprint": [
+      2,
+      1
+     ]
+    },
+    {
+     "sprite": "spoil_heap",
+     "tile": [
+      17,
+      1
+     ],
+     "footprint": [
+      2,
+      1
+     ]
+    },
+    {
+     "sprite": "winch",
+     "tile": [
+      11,
+      2
+     ]
+    },
+    {
+     "sprite": "ore_cart",
+     "tile": [
+      14,
+      4
+     ],
+     "footprint": [
+      1,
+      2
+     ]
+    },
+    {
+     "sprite": "ore_rock",
+     "tile": [
+      4,
+      3
+     ]
+    },
+    {
+     "sprite": "ore_rock",
+     "tile": [
+      21,
+      3
+     ]
+    },
+    {
+     "sprite": "ore_rock",
+     "tile": [
+      7,
+      8
+     ]
+    },
+    {
+     "sprite": "ore_rock",
+     "tile": [
+      22,
+      8
+     ]
+    },
+    {
+     "sprite": "ore_rock",
+     "tile": [
+      26,
+      6
+     ]
+    },
+    {
+     "sprite": "ore_rock",
+     "tile": [
+      3,
+      11
+     ]
+    }
+   ]
+  },
+  {
+   "name": "the miners' hut",
+   "rect": [
+    232,
+    148,
+    10,
+    8
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      8,
+      5
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "w",
+       "at": 2,
+       "kind": "door"
+      },
+      {
+       "side": "n",
+       "at": 4,
+       "kind": "window"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "bed",
+       "tile": [
+        0,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "bed",
+       "tile": [
+        4,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        7,
+        0
+       ],
+       "loot": "miners_chest"
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        7,
+        3
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        3,
+        3
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 2,
+       "facing": "in",
+       "lantern": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
+  },
+  {
+   "name": "the quarry",
+   "rect": [
+    184,
+    36,
+    36,
+    24
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [
+    {
+     "rect": [
+      1,
+      1,
+      33,
+      21
+     ],
+     "sprite": "floor_dirt"
+    },
+    {
+     "rect": [
+      24,
+      13,
+      5,
+      5
+     ],
+     "sprite": "floor_dirt"
+    },
+    {
+     "rect": [
+      25,
+      14,
+      3,
+      3
+     ],
+     "sprite": "floor_water",
+     "group": "pond"
+    }
+   ],
+   "fences": [
+    {
+     "rect": [
+      0,
+      0,
+      34,
+      22
+     ],
+     "wall": "wall_stone",
+     "gates": [],
+     "sides": [
+      "n",
+      "w",
+      "e"
+     ]
+    }
+   ],
+   "props": [
+    {
+     "sprite": "stone_stack",
+     "tile": [
+      5,
+      2
+     ]
+    },
+    {
+     "sprite": "stone_stack",
+     "tile": [
+      7,
+      2
+     ]
+    },
+    {
+     "sprite": "stone_stack",
+     "tile": [
+      9,
+      2
+     ]
+    },
+    {
+     "sprite": "stone_stack",
+     "tile": [
+      11,
+      2
+     ]
+    },
+    {
+     "sprite": "crane",
+     "tile": [
+      27,
+      3
+     ]
+    },
+    {
+     "sprite": "rock_0",
+     "tile": [
+      4,
+      8
+     ]
+    },
+    {
+     "sprite": "rock_1",
+     "tile": [
+      9,
+      9
+     ]
+    },
+    {
+     "sprite": "rock_2",
+     "tile": [
+      14,
+      6
+     ]
+    },
+    {
+     "sprite": "rock_3",
+     "tile": [
+      19,
+      8
+     ]
+    },
+    {
+     "sprite": "rock_0",
+     "tile": [
+      23,
+      6
+     ]
+    },
+    {
+     "sprite": "rock_1",
+     "tile": [
+      29,
+      9
+     ]
+    },
+    {
+     "sprite": "rock_2",
+     "tile": [
+      17,
+      14
+     ]
+    },
+    {
+     "sprite": "rock_3",
+     "tile": [
+      30,
+      15
+     ]
+    },
+    {
+     "sprite": "wheelbarrow",
+     "tile": [
+      15,
+      11
+     ]
+    }
+   ]
+  },
+  {
+   "name": "the quarryman's hut",
+   "rect": [
+    186,
+    50,
+    10,
+    8
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      8,
+      5
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "e",
+       "at": 2,
+       "kind": "door"
+      },
+      {
+       "side": "n",
+       "at": 4,
+       "kind": "window"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "bed",
+       "tile": [
+        0,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        7,
+        0
+       ],
+       "loot": "quarry_chest"
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        7,
+        3
+       ]
+      },
+      {
+       "sprite": "table",
+       "tile": [
+        2,
+        3
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 2,
+       "facing": "in",
+       "lantern": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
+  },
+  {
+   "name": "the charcoal burners",
+   "rect": [
+    212,
+    168,
+    24,
+    14
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [
+    {
+     "rect": [
+      1,
+      1,
+      22,
+      12
+     ],
+     "sprite": "floor_dirt"
+    }
+   ],
+   "fences": [],
+   "props": [
+    {
+     "sprite": "charcoal_clamp",
+     "tile": [
+      3,
+      3
+     ],
+     "footprint": [
+      2,
+      2
+     ]
+    },
+    {
+     "sprite": "charcoal_clamp",
+     "tile": [
+      9,
+      3
+     ],
+     "footprint": [
+      2,
+      2
+     ]
+    },
+    {
+     "sprite": "charcoal_clamp",
+     "tile": [
+      15,
+      3
+     ],
+     "footprint": [
+      2,
+      2
+     ]
+    },
+    {
+     "sprite": "charcoal_sack",
+     "tile": [
+      4,
+      8
+     ]
+    },
+    {
+     "sprite": "charcoal_sack",
+     "tile": [
+      6,
+      8
+     ]
+    },
+    {
+     "sprite": "wheelbarrow",
+     "tile": [
+      11,
+      8
+     ]
+    }
+   ]
+  },
+  {
+   "name": "the burners' hut",
+   "rect": [
+    234,
+    168,
+    8,
+    8
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      6,
+      5
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "w",
+       "at": 2,
+       "kind": "door"
+      },
+      {
+       "side": "n",
+       "at": 3,
+       "kind": "window"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "bed",
+       "tile": [
+        0,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        5,
+        0
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        5,
+        3
+       ],
+       "loot": "charcoal_sacks"
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 1,
+       "facing": "in",
+       "lantern": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
   }
  ],
  "reserve": [
@@ -5521,6 +6157,58 @@
   [
    62,
    184
+  ],
+  [
+   216,
+   150
+  ],
+  [
+   225,
+   152
+  ],
+  [
+   229,
+   160
+  ],
+  [
+   219,
+   156
+  ],
+  [
+   238,
+   151
+  ],
+  [
+   190,
+   45
+  ],
+  [
+   200,
+   40
+  ],
+  [
+   210,
+   44
+  ],
+  [
+   193,
+   52
+  ],
+  [
+   203,
+   50
+  ],
+  [
+   220,
+   172
+  ],
+  [
+   226,
+   175
+  ],
+  [
+   214,
+   178
   ]
  ],
  "props": [
