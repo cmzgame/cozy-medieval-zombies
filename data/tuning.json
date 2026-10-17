@@ -101,6 +101,7 @@
     "daylightTiles": 30,
     "boardTool": "build",
     "splitTool": "split",
+    "chartRadius": 24,
     "fruitCheckSeconds": 30,
     "pickReach": 1.6,
     "chopSeconds": 3,

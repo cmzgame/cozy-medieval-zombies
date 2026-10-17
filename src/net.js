@@ -13,6 +13,7 @@
 
 import * as game from "./game.js";
 import * as map from "./map.js";
+import * as chart from "./chart.js";
 import * as clock from "./clock.js";
 import * as loop from "./loop.js";
 import * as light from "./light.js";
@@ -109,7 +110,8 @@ export function makeCode() {
 // of its snapshot and a guest keeps the frames that come before it (an older guest dropped them); 5 (2026-10-18, #221): a prop goes as its identity and
 // the fields that differ from what its sprite makes it (`map.serializeProp`), so a chunk, a frame, and a save are about half the size; an older guest
 // would read a prop with its defaults missing.
-export const PROTOCOL = 5;
+// 6 (2026-10-18, #203): the frame carries the chart's changed chunks (`chart`, only when there are any) and the save the whole chart.
+export const PROTOCOL = 6;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -777,6 +779,7 @@ export function hostAfterStep() {
   tick++;
   if (role !== "host" || !guests.size) {
     map.takeTouched(); // nobody to tell: the touched set is drained, not kept for ever (a grown chunk names itself to it in every game)
+    chart.takeChanged(); // and the chart's: the world has it all, and the next guest's welcome is the save
     interact.takePokes();
     if (lastSent.size || lastHeavy.size) forgetSent(); // the next guest's welcome is its baseline, and every roster goes out again
     return;
@@ -789,6 +792,7 @@ export function hostAfterStep() {
   const S = game.state;
   for (const id of lastCarried.keys()) if (!S.players.some((q) => q.id === id)) lastCarried.delete(id); // a player gone dormant and back is sent its prop in hand afresh
   const touched = map.takeTouched();
+  const chartChanged = chart.takeChanged();
   // A character no longer in any list is forgotten: its id leaves `known` and what was last sent of it. A far chunk put
   // to sleep takes its dead out of the world and wakes them again later with the same id and the same record; remembered,
   // the record looked unchanged and was never sent, the roster named an id the guest had dropped, and the zombie stood
@@ -866,6 +870,7 @@ export function hostAfterStep() {
     simTime: loop.simTime(),
     timeScale: world.world.timeScale,
     chunks: touched.map(([cx, cy]) => map.getChunk(cx, cy, false)).filter(Boolean).map(map.serializeChunk),
+    ...(chartChanged.length ? { chart: chartChanged } : {}), // the chart chunks written since the last frame, whole (docs/33): the field only when there are any
     players: S.players.map(playerRecord),
     zombies: delta(S.zombies),
     villagers: delta(S.villagers),
@@ -1135,6 +1140,7 @@ function applyFrame(f) {
   clock.setElapsed(f.clock);
   loop.setSimTime(f.simTime);
   world.setTimeScale(f.timeScale);
+  if (f.chart && f.chart.length) chart.apply(f.chart); // a guest only receives the chart; the host reveals it for every player
   if (f.chunks.length) {
     for (const d of f.chunks) map.installChunk(d);
     for (const d of f.chunks) for (const p of d.props) map.installProp(p);

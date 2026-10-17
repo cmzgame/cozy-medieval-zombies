@@ -9,5 +9,6 @@
   32,
   16
  ],
- "note": "drawn floors (docs/17); the ground bake picks a frame by hash"
+ "note": "drawn floors (docs/17); the ground bake picks a frame by hash",
+ "mapColor": "#8a6a42"
 }

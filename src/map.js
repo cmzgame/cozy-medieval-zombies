@@ -921,8 +921,13 @@ function touchWall(wall) {
 }
 
 // A chunk changed by play (a floor, a prop, an item, a wall): kept in memory for good.
+let touchHook = null; // the chart's: a chunk changed (docs/33), by touch or markDirty
+export function setTouchHook(fn) {
+  touchHook = fn;
+}
 export function markDirty(x, y) {
   const [cx, cy] = chunkCoord(Math.round(x), Math.round(y));
+  if (touchHook) touchHook(cx, cy);
   const c = getChunk(cx, cy, false);
   if (c) {
     c.dirty = true;
@@ -1918,8 +1923,8 @@ function propBase(def, offset = [0, 0]) {
     interactable: !!sdef.interactable,
     // Which way it faces, for a sprite with facings (docs/17): the map's, else the first.
     facing: facingFor(sdef, def, w, h),
-    furrowsPending: !!sdef.furrows && !def.facing,
   };
+  if (sdef.furrows && !def.facing) prop.furrowsPending = true; // the key only when it is true: 19% of every prop's text said `false` (#232's review)
   // A crop the map authored by stage (its definition's `crop: { kind, stage }`): farming.js settles it live the first time it is looked at.
   if (sdef.crop) prop.crop = { kind: sdef.crop.kind, stage: sdef.crop.stage };
   // Fire is data on the sprite definition (docs/07-lighting.md): a light
