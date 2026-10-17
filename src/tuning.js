@@ -93,6 +93,7 @@ export const world = {
   twoTorches: 1.35, // a torch in each hand: this much of one torch's light, and seen from this much further
   playerCapBrowser: 4, // the players a world hosted in a browser holds at once, the host's own among them (Michael, #93)
   playerCapServer: 8, // and a server world (raised in one line when the lighter frames of docs/31/05 land)
+  daylightTiles: 30, // tiles of a room one open shutter or open door lights fully by day (light.js `openness`; Michael, #150): one open window for a small room, more for a large one
   fenceHp: 60, // the wear a fence stands before a crowd of the dead bursts it (Michael, 2026-10-17, #147); a gate has `fenceGateFactor` of it
   fenceGateFactor: 0.5, // a gate goes first
   fenceCrowd: 2, // the dead pressing one fence together before it wears at all: one does nothing
@@ -104,7 +105,16 @@ export const world = {
 // scales the dead the map places (its places' authored dead, and the wild's dead per chunk). Standard is the map's own.
 export const population = { none: 0, low: 0.4, standard: 1, high: 2.5 };
 
-const sections = { zombie, player, villager, world, population };
+// What a player sees of the dead in the dark (docs/07, #88; sight.js): with no light a short radius, fading to hidden over
+// the soft edge past it, unless the dead one stands in light (the light at its feet between `litNone` and `litFull`).
+export const sight = {
+  darkRadius: 1.5, // tiles seen whole with no light at all (a carried torch's own radius, if larger, is the viewer's instead)
+  edge: 2, // tiles over which the dead fade from seen to hidden past it
+  litNone: 0.3, // the light at a dead one's feet at or below which it is not in light
+  litFull: 0.45, // and at or above which it is: between the two it fades in (the night's ambient is 0.22; a torch's pool falls off from 1)
+};
+
+const sections = { zombie, player, villager, world, population, sight };
 
 // Lay a file's numbers over the defaults; a missing file or section changes nothing.
 export function load(json) {

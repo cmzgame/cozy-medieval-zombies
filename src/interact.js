@@ -35,6 +35,7 @@ import * as use from "./use.js"; // the Use entry on item menus (docs/30, law 2)
 import * as verbs from "./verbs.js"; // the verb table (docs/31/08, habit 4)
 import { world } from "./world.js";
 import * as clock from "./clock.js";
+import * as sight from "./sight.js";
 import { tiredStage } from "./moodles.js";
 import * as stations from "./stations.js"; // what a prop is as a station (docs/30, section 6)
 import * as stationPanel from "./ui/station-panel.js";
@@ -682,7 +683,7 @@ export function actionsAt(sx, sy, player) {
   }
   for (const o of openingsAtScreen(sx, sy)) out.push(...tag(openingActions(o, player), onEdge(o)));
   for (const b of map.bracketsNear(g.gx, g.gy, 0.8)) out.push(...tag(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player), onBracket(b.bracket)));
-  const under = characterAt(sx, sy);
+  const under = characterAt(sx, sy, player);
   if (under) out.push(...tag(characterActions(under, player), onCharacter(under)));
   else if (playerAt(sx, sy, player)) out.push(...tag(characterActions(player, player), onCharacter(player)));
   if (!out.length && map.isWalkableTile(tx, ty)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty)));
@@ -1263,14 +1264,19 @@ export function setCharacters(fn) {
   allCharacters = fn;
 }
 
+
 // The character (never the player) whose body the point falls on: a box a
 // little wider than the figure and as tall as it, standing on its feet, since
 // a figure moves and a pixel test would be fussy. The nearest to the camera
 // wins a tie.
-export function characterAt(sx, sy) {
+// `viewer`, the player pointing, decides which of the dead are there to point at (sight.js, #88): the dark hides
+// information, never physics, so a dead one lost in the dark has no hover hand and cannot be clicked or right-clicked,
+// while a swing or a shot that meets it still hits it. Without a viewer nothing is hidden.
+export function characterAt(sx, sy, viewer = null) {
   let best = null;
   for (const c of allCharacters()) {
     if (c.kind === "player") continue;
+    if (viewer && c.kind === "zombie" && !c.dead && !sight.seen(viewer, c)) continue; // lost in the dark: nothing to point at
     const p = iso.toScreen(c.gx, c.gy);
     if (sx < p.x - 40 || sx > p.x + 40 || sy < p.y - 72 || sy > p.y + 8) continue;
     // The frame's own pixels, placed as the renderer places them; a standing one also
@@ -1309,7 +1315,7 @@ export function pokeVillagerFromGuest(player, id) {
 }
 
 export function clickCharacterAt(sx, sy, player) {
-  const c = characterAt(sx, sy);
+  const c = characterAt(sx, sy, player);
   if (c && c.kind === "villager" && Math.hypot(player.gx - c.gx, player.gy - c.gy) <= CLICK_REACH) pokeVillager(c, player);
   return c;
 }
