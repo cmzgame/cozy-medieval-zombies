@@ -401,6 +401,7 @@ function sleepAction(prop, player) {
 
 // Brackets and posts: take the torch into a hand or the bag, or mount the one you carry.
 function holderActions(target, player) {
+  if (target.kind === "bracket" && target.bracket.wall.bracket.lantern) return []; // a lantern is the village's, not taken or mounted (#156)
   const what = target.kind === "bracket" ? "bracket" : "post";
   const mx = target.kind === "bracket" ? target.mx : target.prop.tile[0];
   const my = target.kind === "bracket" ? target.my - 0.4 : target.prop.tile[1] - 0.9;

@@ -236,7 +236,7 @@
               "side": "n",
               "at": 1,
               "facing": "in",
-              "torch": true
+              "lantern": true
             }
           ]
         }

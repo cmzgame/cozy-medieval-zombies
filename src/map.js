@@ -138,7 +138,7 @@ export function fireHoursLeft(prop) {
 // A bracket is state on a wall edge: `wall.bracket = { side, torch }`, where
 // side is +1 for the near side of the edge (south of a north edge, east of a
 // west edge) and -1 for the far side. A post is a prop whose fire `holds` a
-// torch. Torches never burn out (docs/02, 2026-10-09).
+// torch. A torch burns down while it is lit and a lantern (`bracket.lantern`, a `lantern_post`) never goes out (docs/07, #156).
 
 const bracketSet = new Set(); // { tx, ty, edge, wall }
 
@@ -147,7 +147,7 @@ export function brackets() {
 }
 
 // The torches players mounted burn down at the wall rate while lit (Michael, 2026-10-17, #156): a spent one is gone from its
-// holder. The village's own (no `wear`) never do, until they are lanterns.
+// holder. The village's own lights are lanterns (a bracket's `lantern`, a `lantern_post`), which never burn out.
 // A guest's copy of the wear refreshes when the chunk is sent: at every hundredth burned, as a fire's fuel does at every unit
 // (the sync check compares wear to the hundredth); between, the save's copy alone is dropped (docs/31/04).
 const hundredth = (w) => Math.floor(w * 100);
@@ -183,10 +183,34 @@ export function burnHolders(dt) {
   }
 }
 
-export function addBracket(tx, ty, edge, side, torch = false) {
+// A flame landing at a point lights what is made to be lit within `r` tiles (Michael, 2026-10-17, #156: "a campfire or a torch"): an
+// unlit campfire with fuel in it, a torch on a post, or a torch in a bracket that is out. Not a hearth, an oven, or a forge, and
+// nothing else burns or spreads. `clear(x, y)` says whether the flame reaches that point (no wall between it and the landing: the
+// fireball passes it, as its hit does); the default is that it does. The authority's, from a fireball's landing (archery.js).
+// Returns how many it lit.
+export function kindleNear(x, y, r = 1, clear = null) {
+  let n = 0;
+  for (const p of fireProps) {
+    if (p.fire.lit || Math.hypot(p.tile[0] - x, p.tile[1] - y) > r) continue;
+    if (!(p.sprite === "campfire" || p.fire.holds)) continue; // a campfire or a torch's post: not a hearth, an oven, or a forge
+    if (clear && !clear(p.tile[0], p.tile[1])) continue;
+    if (lightProp(p)) n++;
+  }
+  for (const b of bracketSet) {
+    if (!b.wall.bracket.torch || b.wall.bracket.lit !== false) continue;
+    const [bx, by] = bracketPos(b);
+    if (Math.hypot(bx - x, by - y) > r) continue;
+    if (clear && !clear(bx, by)) continue;
+    if (lightBracket(b)) n++;
+  }
+  return n;
+}
+
+export function addBracket(tx, ty, edge, side, torch = false, lantern = false) {
   const wall = growTile(tx, ty)[edge];
   if (!wall) return null;
-  wall.bracket = { side, torch };
+  // A lantern is the village's own light (#156): steady, never out, not a torch and not taken; a bracket holds one or the other.
+  wall.bracket = lantern ? { side, torch: false, lantern: true } : { side, torch };
   const b = { tx, ty, edge, wall };
   bracketSet.add(b);
   return b;
@@ -227,8 +251,8 @@ export function holderHas(target) {
   return target.kind === "bracket" ? target.bracket.wall.bracket.torch : target.prop.fire.has;
 }
 
-// What the torch it holds has left: { wear, lit }. An authored one (the village's, until it is a lantern) has no wear and is
-// lit for good; one a player mounted keeps its own (#156).
+// What the torch it holds has left: { wear, lit }. A torch with no `wear` (an old authored one; the village's lights are lanterns
+// now) counts as lit for good; one a player mounted keeps its own (#156).
 export function holderState(target) {
   const h = target.kind === "bracket" ? target.bracket.wall.bracket : target.prop.fire;
   return { wear: h.wear, lit: h.wear === undefined ? true : target.kind === "bracket" ? h.lit !== false : !!h.lit };
@@ -1968,7 +1992,7 @@ export function loadMap(json, options = {}) {
   fireProps.clear(); // props are created below, before reset() runs
   propsById.clear();
   bracketSet.clear();
-  const pendingBrackets = []; // [tx, ty, edge, side, torch], added once the map is live
+  const pendingBrackets = []; // [tx, ty, edge, side, torch, lantern], added once the map is live
   const authored = new Map();
   const key = (x, y) => `${x},${y}`;
   const get = (x, y) => {
@@ -2078,16 +2102,16 @@ export function loadMap(json, options = {}) {
       }
     }
     for (const p of b.props || []) placeProp(p, [bx, by]);
-    // Brackets: `{ side, at, facing: "in" | "out", torch }`. The inside of a
+    // Brackets: `{ side, at, facing: "in" | "out", torch | lantern }`. The inside of a
     // north or west wall is the near side of its edge (+1); of a south or east
     // wall, the far side (-1).
     for (const br of b.brackets || []) {
       const inSide = br.side === "n" || br.side === "w" ? 1 : -1;
       const side = br.facing === "out" ? -inSide : inSide;
-      if (br.side === "n") pendingBrackets.push([bx + br.at, by, "n", side, !!br.torch]);
-      else if (br.side === "s") pendingBrackets.push([bx + br.at, by + bh, "n", side, !!br.torch]);
-      else if (br.side === "w") pendingBrackets.push([bx, by + br.at, "w", side, !!br.torch]);
-      else if (br.side === "e") pendingBrackets.push([bx + bw, by + br.at, "w", side, !!br.torch]);
+      if (br.side === "n") pendingBrackets.push([bx + br.at, by, "n", side, !!br.torch, !!br.lantern]);
+      else if (br.side === "s") pendingBrackets.push([bx + br.at, by + bh, "n", side, !!br.torch, !!br.lantern]);
+      else if (br.side === "w") pendingBrackets.push([bx, by + br.at, "w", side, !!br.torch, !!br.lantern]);
+      else if (br.side === "e") pendingBrackets.push([bx + bw, by + br.at, "w", side, !!br.torch, !!br.lantern]);
     }
   }
   const baseFloor = json.floor || "floor_grass";
@@ -2162,7 +2186,7 @@ export function loadMap(json, options = {}) {
   // The brackets last: placing one grows its chunk, and a chunk grown before the forage pass took a blank
   // tile wherever nothing was authored, so the forage's mushroom landed on an authored tile that chunk never
   // saw (fifteen ghosts in the registry, found by the sync check, 2026-10-13).
-  for (const [tx, ty, edge, side, torch] of pendingBrackets) addBracket(tx, ty, edge, side, torch);
+  for (const [tx, ty, edge, side, torch, lantern] of pendingBrackets) addBracket(tx, ty, edge, side, torch, lantern);
   // A crop's rows follow the furrows of the soil it stands in (docs/17), unless
   // the map gave it a facing; the floors are all laid by now.
   for (const prop of props) {

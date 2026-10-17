@@ -8,7 +8,7 @@
 
 import * as figure from "../figure.js";
 import * as assets from "../assets.js";
-import { createHands, rollLoot } from "../items.js";
+import { createHands, rollLoot, douse } from "../items.js";
 import * as grid from "../grid.js";
 import { dropItem, serializeProp } from "../map.js";
 import { createWorn, createBag } from "../inventory.js";
@@ -187,6 +187,7 @@ export function dressCorpse(ch) {
   const worn = presentWorn(ch);
   ch.corpseKey = Object.keys(worn).filter((s) => worn[s]).join(",");
   ch.corpse = true;
+  for (const e of [ch.hands && ch.hands.main, ch.hands && ch.hands.off, ...Object.values(ch.worn || {})]) douse(e); // a body's torches are out, and stay out when looted (#162)
   const inputs = figure.characterInputs({ ...ch, worn, hands: createHands() });
   ch.sprite = assets.sheetFor(inputs, { anim: ch.anim.name, frame: ch.anim.frame, facing: ch.facing });
   return ch;
