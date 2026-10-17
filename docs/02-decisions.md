@@ -8,7 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
-- A sealed room is safe, and a cell; the dead that know you are inside wait until dawn; a crowd bursts a fence into splinters; doors, windows, and shutters are built onto walls (2026-10-17, The siege: a sealed room is a cell, the dead wait for dawn, a crowd bursts a fence)
+- A sealed room is safe, and a cell; the dead that know you are inside wait until dawn; a crowd bursts a fence into splinters; no sleep while a siege lasts; doors, windows, and shutters are built onto walls (2026-10-17, The siege: a sealed room is a cell, the dead wait for dawn, a crowd bursts a fence)
 - Nobody climbs through a window, player or dead; a window is never a safe spot from the dead (2026-10-16, Nobody climbs through a window; region, never biome)
 - "Region" is the word for a place beyond the valley, never "biome" (2026-10-16, Nobody climbs through a window; region, never biome)
 - The guide stands beside the spawn on every map, with a reason to be there, written like anyone (2026-10-16, The needs-michael queue)
@@ -204,7 +204,8 @@ From the talk on what keeps a house from being a fortress without making the dea
 - **The siege lasts until the next dawn:** the dead that know you are inside stay, through the night. "This also gives you extra reason to light up the area around your house, straight out of zomboid and minecraft... This also makes night inherently more dangerous which we wanted to do without just straight up buffing zombies. They can see in but you struggle to see out if they keep busting open your shutters." (It keeps the clock law: no more dead come; the siege is the ones that saw you, and it ends.)
 - **A crowd breaks a fence, and the fence bursts into splinters:** "explode into a cloud of splinters with a tiny animation? Slightly comical but I do not want to animate or draw a pushed over fence. And it makes it visually dead clear that it's gone and you need to remake it." One of the dead cannot; a crowd pushing can. Walls still never break.
 - **Doors, windows, and shutters are buildable onto walls,** so what the dead spend can be built again (a new one, never a repair: "everything spent, nothing repaired" stands). Michael's thought, left to the build: "it might even be easier to make all walls solid as built, and then you can build a window or door directly over top and it stamps it into place and creates the opening." Walls here are already edge state with a kind (a door or a window is a wall with a kind and a state), so a stamp is the natural fit.
-- *Primary's, in the shape Michael took:* the dead go to the opening they saw you use (a door they break, a window they batter to see in); a fence shakes as a crowd presses, so there is warning. *Open:* whether a siege stops sleep. The build: #147.
+- *Primary's, in the shape Michael took:* the dead go to the opening they saw you use (a door they break, a window they batter to see in); a fence shakes as a crowd presses, so there is warning. The build: #147.
+- **A siege stops sleep:** "you cannot sleep while the dead that know you are inside are still about; the siege bites at night."
 
 ### 2026-10-17 — Play alone or play with friends; telemetry from every world (Michael)
 
