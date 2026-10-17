@@ -33,6 +33,13 @@ export async function run(game) {
     const fieldKinds = new Set(json.sets.flatMap((s) => [...cropOf(s)]));
     row("every crop in data is grown in a field somewhere in the valley", kinds.every((k) => fieldKinds.has(k)), `fields: ${[...fieldKinds].join(", ")}; crops: ${kinds.join(", ")}`);
 
+    // The live world, not only the map file: the farms' props stand where the loader put them.
+    for (const [cx, cy] of [[77, 245], [80, 45], [102, 58]]) map.ensureAround(cx, cy, 4);
+    const live = map.allProps();
+    const liveLoot = new Set(live.filter((q) => q.container).map((q) => q.container.loot));
+    const cropCount = (k) => live.filter((q) => q.sprite.startsWith(`crop_${k}_`)).length;
+    row("in the loaded world: the millstones, the scarecrow, the wheel, both granaries' tables, the barn's rack, and plots of every farm crop stand", live.some((q) => q.sprite === "millstones") && live.some((q) => q.sprite === "scarecrow") && live.some((q) => q.sprite === "millwheel") && ["granary_hollow", "granary_mill", "barn_rack"].every((t) => liveLoot.has(t)) && ["pumpkin", "potato", "cabbage", "garlic", "rye", "flax"].every((k) => cropCount(k) >= 20), `${["pumpkin", "potato", "cabbage", "garlic", "rye", "flax"].map((k) => `${k} ${cropCount(k)}`).join(", ")}`);
+
     // Seeds: a source for every crop.
     const seedsIn = (table) => G.items.rollLoot(table).map((e) => e.id);
     const hollow = seedsIn("granary_hollow");

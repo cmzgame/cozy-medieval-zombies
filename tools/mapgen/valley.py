@@ -544,7 +544,7 @@ def build():
     dead += [(mer.x + 4, mer.y + 4), (mer.x + 2, mer.y + 15), (man.x + 8, man.y + 18)]                                 # the nobles
     dead += [P(5, 24), P(9, 63), P(3, 50)]                                                                             # the cottages
     dead += [(70, 238), (79, 239), (62, 238), (86, 238), (90, 232)]                                                # Hollow Farm's yard: the family
-    dead += [(72, 56), (88, 56), (84, 49), (90, 42)]                                                                  # Long Acre: two in the rye, one in the barn, one in the yard
+    dead += [(72, 56), (88, 56), (84, 49), (90, 42)]                                                                  # Long Acre: two in the rye, one in the yard, one in the barn
     for x, y in dead:
         g.zombie(x, y)
 

@@ -58,7 +58,7 @@ The map's dead are authored per place (`10-engine-asks`: a `zombies` count per s
 | the nobles | 2 at the merchant's, 1 at the manor | the merchant and his wife, a servant | the loot's guard |
 | the cottages | 3 across eight | neighbours | a street is not safe |
 | Hollow Farm | 5 in the yard | the family | the big farm's price |
-| Long Acre | 3 | farmhands | thin |
+| Long Acre | 4 | farmhands (the build: two in the rye, one in the barn, one in the yard) | thin |
 | the croft | 0 | | the reward of the ford |
 | the bandit camp | 6 | bandits | they were bad before they were dead |
 | the woodcutters, the burners, the mine | 1, 1, 3 | the burner, miners | |
@@ -71,7 +71,7 @@ The dead's distribution is the map's difficulty curve: the west bank is a dozen 
 
 `04` says a handful, six to ten; the atlas today holds about seventeen more distinct outfits (`19`). The plan places fourteen named villagers and marks the six that matter first. All of them idle and wander on a tether today; "follow", "stay", and routines are `04`'s next pass, and each one's job below is written for that pass.
 
-Built: seven of the fourteen are placed, with their lines (`tools/mapgen/valley.py`): the innkeeper, the guest, the child, the priest, the reeve, the apprentice, and the neighbour. The miller, the witch, the shepherd, the two woodcutters, the hunter, and the prisoner wait for their places (`30`, steps 4 and 6).
+Built: eight of the fourteen are placed, with their lines (`tools/mapgen/valley.py`): the innkeeper, the guest, the child, the priest, the reeve, the apprentice, and the neighbour, and the miller at the mill (#201, not immune: he teaches nothing yet). The witch, the shepherd, the two woodcutters, the hunter, and the prisoner wait for their places (`30`, steps 4 and 6).
 
 | Villager | Where | Core | Job for the routines pass; a first line |
 |---|---|---|---|

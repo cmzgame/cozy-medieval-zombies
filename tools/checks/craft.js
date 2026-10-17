@@ -124,8 +124,30 @@ export async function run(game) {
     const o3 = G.stations.outputOf(stones);
     const flour = o3.items.filter((e) => e.id === "flour").reduce((n, e) => n + e.count, 0);
     row("four grain become two flour at the millstones, unlit", r6.ok && flour === 2 && !sacks.bag.items.some((e) => e.id === "grain"), `${r6.ok ? "" : r6.reason + "; "}output ${o3.items.map((e) => `${e.id} x${e.count}`).join(", ") || "nothing"}`);
+    // The flour then bakes: the two pieces ground go in a chest beside an oven of the check's own, lit, and a loaf comes out (grain to flour to bread).
+    const oven2 = map.createProp({ sprite: "oven", tile: [spot[0] + 4, spot[1]], footprint: [2, 1] });
+    map.placeProp(oven2, spot[0] + 4, spot[1]);
+    made.push(oven2);
+    oven2.fire.lit = true;
+    oven2.fire.fuel = 2;
+    const bakeChest = map.createProp({ sprite: "chest", tile: [spot[0] + 4, spot[1] + 1] });
+    map.placeProp(bakeChest, spot[0] + 4, spot[1] + 1);
+    made.push(bakeChest);
+    bakeChest.bag = G.inventory.createBag(4, 3, "chest");
+    bakeChest.searched = true;
+    G.grid.add(bakeChest.bag, "flour", flour);
+    G.teleport(spot[0] + 4.5, spot[1] + 1.9);
+    step();
+    const baked = G.verbs.run("craft", G.world.world, p, { prop: oven2.id }, { recipe: "bread", count: 1 });
+    step(Math.ceil(G.stations.recipe("bread").seconds * 60) + 4);
+    const loaf = G.stations.outputOf(oven2).items.filter((e) => e.id === "bread").reduce((n, e) => n + e.count, 0);
+    row("and the flour it made bakes to a loaf at a lit oven (grain to flour to bread)", baked.ok && loaf === 1, `${baked.ok ? "" : baked.reason + "; "}${loaf} loaf`);
+    oven2.queue = [];
+    G.stations.outputOf(oven2).items = [];
     o3.items = [];
     stones.queue = [];
+    G.teleport(spot[0] + 0.5, spot[1] + 2.6);
+    step();
     const none = G.verbs.run("craft", G.world.world, p, { prop: stones.id }, { recipe: "bread", count: 1 });
     row("the millstones refuse a recipe of another station", !none.ok && /Not at this station/.test(none.reason), none.reason || "took it");
   } catch (e) {
