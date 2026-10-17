@@ -818,18 +818,27 @@ function render() {
       </div>`;
   } else if (current === "newworld") {
     const now = sandboxNow();
-    const sandboxRows = settings.REGISTRY.filter((e) => settings.WORLD_GROUPS.includes(e.group)).map((e) => {
+    // What changes later (the pause menu's World rules) is set apart from what is chosen once, when the world is made
+    // and baked into it (Trees, Starting population, the dev chest): Michael, #130, "some settings are tweakable on the fly,
+    // some are baked into the world".
+    const row = (e) => {
       const value = e.key === "devChest" ? !!now.devChest : rules.coerce(e.key, now.rules[e.key]);
       return worldRuleRow(e, value, { switch: `data-go="sandbox" data-rule="${e.key}" data-value="${!value}"`, select: `data-sandbox="${e.key}"` });
-    }).join("");
+    };
+    const forWorld = settings.REGISTRY.filter((e) => settings.WORLD_GROUPS.includes(e.group));
+    const liveRows = forWorld.filter((e) => e.group === "rules" && !e.fixed).map(row).join("");
+    const onceRows = forWorld.filter((e) => e.fixed || e.group === "sandbox").map(row).join("");
     root.innerHTML = `
       <div class="screen">
         <h1>New world</h1>
         <div class="sub">A name for it, how it plays, then a character for it.</div>
         <div class="setting"><span class="setting-label">Name</span><span class="control"><input id="world-name" type="text" maxlength="40" value="${esc(data.name || "")}" autocomplete="off" spellcheck="false"></span></div>
-        <h2>Sandbox</h2>
-        <div class="sub">How this world plays. You can change the rules later from the pause menu.</div>
-        ${sandboxRows}
+        <h2>How it plays</h2>
+        <div class="sub">You can change these later from the pause menu.</div>
+        ${liveRows}
+        <h2>Chosen once, when the world is made</h2>
+        <div class="sub">These are baked into the world and cannot be changed afterwards; the pause menu shows them locked.</div>
+        ${onceRows}
         <div class="screen-buttons row">${button("newworld-next", "Next")}${button("back", "Back")}</div>
       </div>`;
     const field = root.querySelector("#world-name");

@@ -42,6 +42,13 @@ let wild = null; // { biome: { kinds, scale }, density: [min, max], seed, zombie
 let bounds = null; // [x, y, w, h] of the authored map
 const pendingSpawns = []; // [x, y] tiles where a wild chunk wants a zombie
 let popFactor = 1; // the world's Starting population as a factor (tuning.population): scales the dead a wild chunk brings
+let noTrees = false; // the world's Trees rule is off: no tree is placed, scatter or wild (rocks, forage, and anything else stay)
+
+// Whether a kind is a tree: its definition has a canopy (the engine's one idea of a tree), else its id says so.
+function isTreeKind(kind) {
+  const d = getDef(kind);
+  return d ? !!d.canopy : String(kind).startsWith("tree_");
+}
 // Which biome a tile is in, for the ground (docs/15): the scatter rules' rects
 // inside the bounds, the wild rule's biome beyond them.
 let biomeRects = []; // [{ rect: [x, y, w, h], biome }]
@@ -284,7 +291,8 @@ function wildRockAt(x, y) {
 // chunks exist.
 function wildTreeAt(x, y) {
   if (!wild || wildRockAt(x, y) || hash2(x, y, wild.seed ?? 1) >= densityAt(wild, wild.biome, x, y)) return null;
-  return weightedPick(wild.biome.kinds, hash2(x, y, (wild.seed ?? 1) + 1));
+  const kind = weightedPick(wild.biome.kinds, hash2(x, y, (wild.seed ?? 1) + 1));
+  return noTrees && isTreeKind(kind) ? null : kind; // Trees off: the same tiles, minus the trees
 }
 
 // Whether a tree stands at a tile: the authored map inside the bounds, the
@@ -1711,10 +1719,12 @@ export function ensureAround(x, y, radius = 4) {
 // - **Scatter** fills what is left by rule, and the **wild** beyond the bounds
 //   is scatter all the way down.
 // `options` are the world's own rules (rules.js), read when it is made or restored, never once per page (#130):
-// `trees` false makes no tree, inside the bounds or beyond them (rocks, forage, and the ground stay); `population` is
-// the factor the dead a wild chunk brings are scaled by (the authored dead are scaled by game.create).
+// `trees` false makes no tree, inside the bounds or beyond them, and nothing else changes (rocks, forage, the ground,
+// and any scatter that is not trees stay, in the same places); `population` is the factor the dead a wild chunk brings
+// are scaled by (the authored dead are scaled by game.create).
 export function loadMap(json, options = {}) {
   const treesOn = options.trees !== false;
+  noTrees = !treesOn;
   popFactor = Number.isFinite(options.population) ? options.population : 1;
   fireProps.clear(); // props are created below, before reset() runs
   propsById.clear();
@@ -1864,7 +1874,7 @@ export function loadMap(json, options = {}) {
   }
   for (const r of json.reserve || []) reserveRect(...r);
   const biomes = json.biomes || {};
-  for (const sc of treesOn ? json.scatter || [] : []) {
+  for (const sc of json.scatter || []) {
     const biome = sc.biome ? biomes[sc.biome] : { kinds: sc.kinds, scale: sc.scale || 8 };
     const [x0, y0, w, h] = sc.rect;
     const footprint = sc.footprint || [1, 1];
@@ -1875,7 +1885,9 @@ export function loadMap(json, options = {}) {
         if (hash2(x, y, seed) >= densityAt(sc, biome, x, y)) continue;
         const t = authored.get(key(x, y));
         if (t && (t.floor !== baseFloor || t.prop || t.n || t.w)) continue;
-        placeProp({ sprite: weightedPick(biome.kinds, hash2(x, y, seed + 1)), tile: [x, y], footprint, solid: sc.solid !== false, opaque: !!sc.opaque }, [0, 0]);
+        const sprite = weightedPick(biome.kinds, hash2(x, y, seed + 1));
+        if (noTrees && isTreeKind(sprite)) continue; // Trees off: the pick is made as ever, a tree is simply not placed
+        placeProp({ sprite, tile: [x, y], footprint, solid: sc.solid !== false, opaque: !!sc.opaque }, [0, 0]);
       }
     }
   }
@@ -1883,7 +1895,6 @@ export function loadMap(json, options = {}) {
   if (json.wild) {
     const biome = json.wild.biome ? biomes[json.wild.biome] : { kinds: json.wild.kinds, scale: json.wild.scale || 8 };
     wildRule = { ...json.wild, biome };
-    if (!treesOn) wildRule.density = [0, 0]; // no trees beyond the bounds either
   }
   reset({
     floor: baseFloor,
