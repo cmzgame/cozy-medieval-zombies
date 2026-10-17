@@ -796,6 +796,7 @@ export function actionsAt(sx, sy, player) {
   }
   for (const entry of map.itemsAt(tx, ty)) out.push(...tag(itemActions(entry, tx, ty, player), onItem(entry, tx, ty)));
   if (map.peekTile(tx, ty) && map.drinkableAt(tx, ty)) out.push(...tag(waterTileActions(tx, ty, player), onTile(tx, ty))); // the river, a pond (docs/30, law 8)
+  out.push(...tag(farmTileActions(tx, ty, player), onTile(tx, ty))); // Till the soil with a hoe, Plant with a seed (#194)
   // Props: on their tile, or under their sprite in the tiles around (a tall tree).
   const seen = new Set();
   for (let dy = -3; dy <= 1; dy++) {
