@@ -370,6 +370,7 @@ def build():
     smi.building([7, 1, 4, 5], "wall_wood", "floor_wood", openings=[door("w", 2), window("e", 1)],
                  props=[along_y("bed", 3, 0), one("chest", 3, 4), one("cupboard", 0, 4)])
     smi.prop("woodpile", (1, 8))
+    smi.prop("charcoal_clamp", (9, 8), footprint=[2, 2])  # one in the smithy's yard, so the smith's loop needs no walk to the woods (#197)
     smi.prop("cart", (6, 7), footprint=[2, 3])
 
     # ---- the toll house by the bridge ----
@@ -438,6 +439,20 @@ def build():
                        props=[along_x("bed", 0, 0), one("chest", 7, 0, loot="quarry_chest"), one("barrel", 7, 3), along_x("table", 2, 3)],
                        brackets=[{"side": "n", "at": 2, "facing": "in", "lantern": True}])
 
+    # ---- the charcoal burners (29/06; #197): east woods, south of the iron workings: a black clearing, three clamps, a turf hut, sacks of charcoal ----
+    cb = g.place("the charcoal burners", [212, 168, 24, 14])
+    cb.floor_rect([1, 1, 22, 12], "floor_dirt")
+    for x in (3, 9, 15):
+        cb.prop("charcoal_clamp", (x, 3), footprint=[2, 2])
+    cb.prop("charcoal_sack", (4, 8))
+    cb.prop("charcoal_sack", (6, 8))
+    cb.prop("wheelbarrow", (11, 8))
+    hut = g.place("the burners' hut", [234, 168, 8, 8])
+    hut.building([1, 1, 6, 5], "wall_wood", "floor_wood",
+                 openings=[door("w", 2), window("n", 3)],
+                 props=[along_x("bed", 0, 0), one("barrel", 5, 0), one("chest", 5, 3, loot="charcoal_sacks")],
+                 brackets=[{"side": "n", "at": 1, "facing": "in", "lantern": True}])
+
     # ---- reserves: the castle (step 5) and the farms (step 4) take no forest yet ----
     g.reserve([VX, VY, 64, 144])      # the village block, 29/04's plan
     g.reserve([136, 126, 66, 64])     # the castle's compound (29/03 at (140, 130)) with its moat
@@ -463,6 +478,7 @@ def build():
     dead += [P(5, 24), P(9, 63), P(3, 50)]                                                                             # the cottages
     dead += [(216, 150), (225, 152), (229, 160), (219, 156), (238, 151)]                                                # the iron workings
     dead += [(190, 45), (200, 40), (210, 44), (193, 52), (203, 50)]                                                     # the quarry
+    dead += [(220, 172), (226, 175), (214, 178)]                                                                        # the charcoal burners
     for x, y in dead:
         g.zombie(x, y)
 

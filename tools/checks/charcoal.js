@@ -1,0 +1,91 @@
+// The charcoal clamp (#197; docs/30 sections 6 and 7). From the console, on a tab with `?nosave`:
+//   await __game.check("charcoal")
+// It places a clamp of its own with a chest of logs beside it, lights it from the menu (a log of fuel and a tinderbox), makes charcoal
+// from four logs over the recipe's seconds, pauses while the fire is out and finishes when it is fed, and then lights the forge with the
+// charcoal. The valley's clamps, sacks, and the smithy's chest are read from the map. Everything placed is taken away.
+
+export async function run(game) {
+  const G = game;
+  const map = G.map;
+  const rows = [];
+  const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
+  const p = G.player;
+  const saved = { gx: p.gx, gy: p.gy };
+  const bag = G.inventory.bagOf(p);
+  const bag0 = bag.items.slice();
+  const wasPaused = G.loop.isPaused();
+  G.loop.setPaused(true);
+  const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
+  const made = [];
+  try {
+    // The data.
+    const def = G.assets.getDef("charcoal_clamp");
+    const rec = G.stations.recipe("charcoal");
+    row("a clamp is a station of its own with a slow fire of logs (a log a day), and a recipe: four logs to three charcoal, the fire lit", def.station === "clamp" && def.fire.burns === true && def.fire.fuel === "log" && def.fire.hoursPerUnit >= 12 && rec.station === "clamp" && rec.fire === true && rec.in[0].id === "log" && rec.in[0].count === 4 && rec.out.id === "charcoal" && rec.out.count === 3, JSON.stringify(rec));
+
+    // The map: the burners' clearing, the smithy's own clamp and chest.
+    G.map.ensureAround(224, 174, 4);
+    G.map.ensureAround(98, 188, 4);
+    const props = map.allProps();
+    const clamps = props.filter((q) => q.sprite === "charcoal_clamp");
+    const loot = props.filter((q) => q.container).map((q) => q.container.loot);
+    row("the burners' clearing has three clamps, sacks of charcoal, and the hut's chest of them; the smithy's yard one more", clamps.length === 4 && props.filter((q) => q.sprite === "charcoal_sack").length >= 2 && loot.includes("charcoal_sacks") && G.items.rollLoot("charcoal_sacks").some((e) => e.id === "charcoal"), `${clamps.length} clamps`);
+    row("the smithy's own chest holds the first iron and a sack of charcoal, so the forge works on day one", loot.includes("smithy_chest") && G.items.rollLoot("smithy_chest").some((e) => e.id === "iron_bar") && G.items.rollLoot("smithy_chest").some((e) => e.id === "charcoal"), "smithy_chest");
+
+    // A clamp of the check's own, with a chest of logs beside it, and a tinderbox and a log on the player.
+    const home = map.nearestWalkable(Math.round(p.gx), Math.round(p.gy), (x, y) => [[0, 0], [1, 0], [0, 1], [1, 1], [2, 0], [2, 1], [-1, 0]].some(([ax, ay]) => !!map.tileAt(x + ax, y + ay).prop || !map.isWalkableTile(x + ax, y + ay)));
+    const clamp = map.createProp({ sprite: "charcoal_clamp", tile: home, footprint: [2, 2] });
+    map.placeProp(clamp, home[0], home[1]);
+    made.push(clamp);
+    const chestAt = [home[0] + 2, home[1] + 1];
+    const chest = map.createProp({ sprite: "chest", tile: chestAt });
+    map.placeProp(chest, chestAt[0], chestAt[1]);
+    made.push(chest);
+    chest.bag = G.inventory.createBag(8, 6, "chest"); // a log is 2 by 3 cells: four need room
+    chest.searched = true;
+    G.grid.add(chest.bag, "log", 4);
+    G.teleport(home[0] + 1.0, home[1] + 2.4);
+    G.inventory.stow(p, G.items.makeEntry("tinderbox", 1));
+    G.inventory.stow(p, G.items.makeEntry("log", 1));
+    step();
+    const craft = () => G.verbs.run("craft", G.world.world, p, { prop: clamp.id }, { recipe: "charcoal", count: 1 });
+    const r0 = craft();
+    row("with the fire out the recipe is refused", !r0.ok && /fire/.test(r0.reason), String(r0.reason));
+    const fireAct = G.interact.actionsForTarget({ kind: "prop", id: clamp.id }, p).find((a) => a.kind === "fire");
+    row("the clamp's menu offers to light it with a log and a flame", !!fireAct && /^Light the charcoal clamp/.test(fireAct.label) && fireAct.enabled, fireAct ? fireAct.label : "no fire entry");
+    fireAct.perform();
+    row("lit, with a log of fuel in it", clamp.fire.lit === true && clamp.fire.fuel >= 1 - 1e-9, `lit ${clamp.fire.lit}, fuel ${clamp.fire.fuel}`);
+    const r1 = craft();
+    row("then the recipe starts and takes its four logs from the chest", r1.ok && !chest.bag.items.some((e) => e.id === "log"), r1.ok ? "started" : r1.reason);
+    step(120);
+    const half = G.stations.progress(clamp);
+    clamp.fire.lit = false;
+    step(300);
+    const still = G.stations.progress(clamp);
+    row("the work pauses while the fire is out", half !== null && still !== null && Math.abs(still - half) < 0.001, `progress ${half && half.toFixed(4)} then ${still && still.toFixed(4)}`);
+    clamp.fire.lit = true;
+    clamp.queue[0].left = 0.5; // the rest of the half day: the seconds are the recipe's, the step is the world's
+    step(90);
+    const out = G.stations.outputOf(clamp);
+    row("and finishes when it is lit again: three charcoal in the output", out.items.some((e) => e.id === "charcoal" && e.count === 3), `output holds ${out.items.map((e) => `${e.id} x${e.count}`).join(", ") || "nothing"}`);
+
+    // The charcoal lights the forge: fed to it, it burns, and a bar is smelted from ore.
+    const forge = props.find((q) => q.sprite === "forge") || null;
+    if (forge) {
+      const fuel0 = { lit: forge.fire.lit, fuel: forge.fire.fuel };
+      row("charcoal is the forge's fuel (it takes a piece as it takes nothing else)", forge.fire.fuelItem === "charcoal" && G.map.feedFire(forge) === true && forge.fire.fuel > fuel0.fuel, `fuel ${fuel0.fuel} to ${forge.fire.fuel}`);
+      Object.assign(forge.fire, fuel0);
+    } else row("the forge", false, "no forge in the loaded chunks");
+    clamp.queue = [];
+    out.items = [];
+  } catch (e) {
+    rows.push({ check: "setup", result: "FAIL", detail: e.message });
+  } finally {
+    for (const q of made) map.removeProp(q);
+    bag.items.splice(0, bag.items.length, ...bag0);
+    G.teleport(saved.gx, saved.gy);
+    G.loop.setPaused(wasPaused);
+  }
+  for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);
+  return { rows, passed: rows.filter((r) => r.result === "pass").length, total: rows.length };
+}

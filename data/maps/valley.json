@@ -3887,6 +3887,17 @@
      ]
     },
     {
+     "sprite": "charcoal_clamp",
+     "tile": [
+      9,
+      8
+     ],
+     "footprint": [
+      2,
+      2
+     ]
+    },
+    {
      "sprite": "cart",
      "tile": [
       6,
@@ -5731,6 +5742,158 @@
    "floorRects": [],
    "fences": [],
    "props": []
+  },
+  {
+   "name": "the charcoal burners",
+   "rect": [
+    212,
+    168,
+    24,
+    14
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [
+    {
+     "rect": [
+      1,
+      1,
+      22,
+      12
+     ],
+     "sprite": "floor_dirt"
+    }
+   ],
+   "fences": [],
+   "props": [
+    {
+     "sprite": "charcoal_clamp",
+     "tile": [
+      3,
+      3
+     ],
+     "footprint": [
+      2,
+      2
+     ]
+    },
+    {
+     "sprite": "charcoal_clamp",
+     "tile": [
+      9,
+      3
+     ],
+     "footprint": [
+      2,
+      2
+     ]
+    },
+    {
+     "sprite": "charcoal_clamp",
+     "tile": [
+      15,
+      3
+     ],
+     "footprint": [
+      2,
+      2
+     ]
+    },
+    {
+     "sprite": "charcoal_sack",
+     "tile": [
+      4,
+      8
+     ]
+    },
+    {
+     "sprite": "charcoal_sack",
+     "tile": [
+      6,
+      8
+     ]
+    },
+    {
+     "sprite": "wheelbarrow",
+     "tile": [
+      11,
+      8
+     ]
+    }
+   ]
+  },
+  {
+   "name": "the burners' hut",
+   "rect": [
+    234,
+    168,
+    8,
+    8
+   ],
+   "padding": 1,
+   "buildings": [
+    {
+     "rect": [
+      1,
+      1,
+      6,
+      5
+     ],
+     "wall": "wall_wood",
+     "floor": "floor_wood",
+     "openings": [
+      {
+       "side": "w",
+       "at": 2,
+       "kind": "door"
+      },
+      {
+       "side": "n",
+       "at": 3,
+       "kind": "window"
+      }
+     ],
+     "props": [
+      {
+       "sprite": "bed",
+       "tile": [
+        0,
+        0
+       ],
+       "footprint": [
+        2,
+        1
+       ]
+      },
+      {
+       "sprite": "barrel",
+       "tile": [
+        5,
+        0
+       ]
+      },
+      {
+       "sprite": "chest",
+       "tile": [
+        5,
+        3
+       ],
+       "loot": "charcoal_sacks"
+      }
+     ],
+     "brackets": [
+      {
+       "side": "n",
+       "at": 1,
+       "facing": "in",
+       "lantern": true
+      }
+     ]
+    }
+   ],
+   "floorRects": [],
+   "fences": [],
+   "props": []
   }
  ],
  "reserve": [
@@ -6033,6 +6196,18 @@
   [
    203,
    50
+  ],
+  [
+   220,
+   172
+  ],
+  [
+   226,
+   175
+  ],
+  [
+   214,
+   178
   ]
  ],
  "props": [
