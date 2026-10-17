@@ -345,7 +345,7 @@ function nearestPrey(z, villagers) {
   let best = null;
   let bestD = Infinity;
   for (const v of villagers) {
-    if (v.dead) continue;
+    if (v.dead || v.immune) continue; // an immune villager is never prey (#180)
     const d = distTo(z, v);
     if (d >= bestD || !canSeeCharacter(z, v, d)) continue;
     best = v;

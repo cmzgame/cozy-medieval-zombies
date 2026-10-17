@@ -125,10 +125,14 @@ class MapGen:
     def zombie(self, x, y):
         self.json["zombies"].append([int(x), int(y)])
 
-    def villager(self, tile, name, wardrobe, line=None):
+    def villager(self, tile, name, wardrobe, line=None, immune=False):
+        # `immune`: the dead neither target nor harm this villager, whatever the world's rules (Michael, 2026-10-18, #180: a villager who
+        # teaches a skill is immune, like the guide; the rest can die, and some are there to be at risk).
         v = {"tile": [int(tile[0]), int(tile[1])], "name": name, "wardrobe": wardrobe}
         if line:
             v["line"] = line
+        if immune:
+            v["immune"] = True
         self.json["villagers"].append(v)
 
     def prop(self, sprite, tile, **extra):

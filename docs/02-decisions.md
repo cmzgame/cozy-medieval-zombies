@@ -216,6 +216,8 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### 2026-10-18 — The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break (Michael)
 
+
+*Built as #180, the builder's reading (Michael's to change by a flag in `valley.py`):* `immune` is a field of each villager row in the map (`g.villager(..., immune=True)`), read by the dead's choice of target and by `damageVillager`; no teaching exists yet, so the valley flags the two steady ones, the Innkeeper and the Priest, and leaves the other five at risk.
 Michael's notes after a play and a night's thinking, with Primary in chat:
 
 - **The valley first:** "I do want to start focusing valley and full production and stop combat testing for a while... valley + skillscape should be the main focus of our time as its the first step in the overall plan." Bugs are still closed as they come.
