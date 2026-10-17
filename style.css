@@ -1627,9 +1627,9 @@ html, body {
   padding: 18px 16px 4px;
 }
 
-/* The wordmark, drawn: each letter a pixel grid (tools/wordmark.py writes the two lines as SVG under data/site/;
-   Michael, 2026-10-17: the Z angular and open, the s open, the e lowercase with a hole), the big line in the dead's
-   greens and the small one in timber, a pixel outline from stacked drop-shadows, and the game's own autumn trees behind. */
+/* The wordmark, a placeholder until a drawn one comes: the letters stone with moss on top, the first line timber,
+   a pixel outline from stacked drop-shadows (the letters are clipped to their fill, so text-shadow would paint over
+   it), and the game's own autumn trees behind. */
 .wordmark {
   position: relative;
   text-align: center;
@@ -1643,19 +1643,21 @@ html, body {
   position: relative;
   z-index: 1;
   display: block;
-  margin: 0 auto;
-  width: auto;
-  max-width: 100%;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
 }
 
-/* Heights in whole multiples of the drawing's rows where the window allows: 13 rows small, 10 rows big. */
 .wm-small {
-  height: clamp(26px, 4.6vw, 52px);
-  margin-bottom: clamp(6px, 1.2vw, 12px);
+  font-size: clamp(24px, 4.6vw, 50px);
+  background-image: linear-gradient(#e2a35a 0 30%, #b9783a 30% 62%, #8a5527 62% 100%);
 }
 
 .wm-big {
-  height: clamp(46px, 8.4vw, 96px);
+  font-size: clamp(58px, 12vw, 132px);
+  background-image: linear-gradient(#78a64c 0 13%, #5d8a3a 13% 19%, #ddd6c8 19% 48%, #b5ac9b 48% 74%, #8f8677 74% 100%);
 }
 
 .wm-tree {
