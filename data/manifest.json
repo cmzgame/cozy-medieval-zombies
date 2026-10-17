@@ -1,9 +1,5 @@
 {
-<<<<<<< HEAD
-  "version": "e5dacd60",
-=======
-  "version": "972b8bc0",
->>>>>>> origin/main
+  "version": "46d87453",
   "files": {
     "data/build.json": {"size": 429, "stamp": "12352f35"},
     "data/combat.json": {"size": 4109, "stamp": "4efa7ba3"},
@@ -23,11 +19,7 @@
     "data/art/character/character_body.json": {"size": 17235, "stamp": "2b1fcf24"},
     "data/art/character/character_template.json": {"size": 13333, "stamp": "9a0c05f7"},
     "data/art/character/preview_skins_3x.png": {"size": 24477, "stamp": "cc97875e"},
-<<<<<<< HEAD
-    "data/art/character/layers/README_layers.md": {"size": 9945, "stamp": "b08dfc17"},
-=======
-    "data/art/character/layers/README_layers.md": {"size": 10249, "stamp": "a97e2ef3"},
->>>>>>> origin/main
+    "data/art/character/layers/README_layers.md": {"size": 10438, "stamp": "7605f3c4"},
     "data/art/character/layers/beard_cropped.png": {"size": 8184, "stamp": "86efd040"},
     "data/art/character/layers/beard_gnome.png": {"size": 8442, "stamp": "f3e612ac"},
     "data/art/character/layers/beard_moustache.png": {"size": 7949, "stamp": "0cc334b4"},
