@@ -921,8 +921,13 @@ function touchWall(wall) {
 }
 
 // A chunk changed by play (a floor, a prop, an item, a wall): kept in memory for good.
+let touchHook = null; // the chart's: a chunk changed (docs/33), by touch or markDirty
+export function setTouchHook(fn) {
+  touchHook = fn;
+}
 export function markDirty(x, y) {
   const [cx, cy] = chunkCoord(Math.round(x), Math.round(y));
+  if (touchHook) touchHook(cx, cy);
   const c = getChunk(cx, cy, false);
   if (c) {
     c.dirty = true;

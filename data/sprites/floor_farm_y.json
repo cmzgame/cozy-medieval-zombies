@@ -1,14 +1,1 @@
-{
- "images": {
-  "idle_0": "data/art/ground/farm_soil_trbl_0.png",
-  "idle_1": "data/art/ground/farm_soil_trbl_1.png",
-  "idle_2": "data/art/ground/farm_soil_trbl_2.png",
-  "idle_3": "data/art/ground/farm_soil_trbl_3.png"
- },
- "anchor": [
-  32,
-  16
- ],
- "furrows": "y",
- "note": "tilled soil, furrows along world y (/ on screen), Claude Design's own drawing of the other direction"
-}
+{"images": {"idle_0": "data/art/ground/farm_soil_trbl_0.png", "idle_1": "data/art/ground/farm_soil_trbl_1.png", "idle_2": "data/art/ground/farm_soil_trbl_2.png", "idle_3": "data/art/ground/farm_soil_trbl_3.png"}, "anchor": [32, 16], "furrows": "y", "note": "tilled soil, furrows along world y (/ on screen), Claude Design's own drawing of the other direction", "mapColor": "#5a4030"}
