@@ -76,6 +76,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
+- Every health number is ten times today's (a player 1,000), an even scale with nothing else changed, as step one of #133; big numbers are welcome, a boss may have 10,000; a bar may show a percent instead (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
+- Gear can drop by chance, a lever never used before; a boss's best drop is not guaranteed every kill; a region is returned to for what only it gives (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
+- Armour stays modest, the least of it a little better than nothing; flat numbers mostly, a percent rarely (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
+- Few strictly-better items does not mean every weapon does the same damage everywhere: resistances make a weapon strong in one place and weak in another (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
 - Combat stays paused until Michael's play session; then the spin cap, knockdown, and push per hit (2026-10-16, The needs-michael queue)
 - The knockdown chance 0.3 is high and stands until the combat pass re-rules it (2026-10-16, The sweep, after wave 3)
 - The swing resolves on the click, the animation is cosmetic, the cooldown is the rate limit (2026-10-11, Placement and melee scoped)
@@ -226,6 +230,24 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-18 — Health is a thousand; drops by chance; armour modest; weapons differ by situation (Michael)
+
+Michael, on Primary's case for a thousand health (100 is cramped: five foods tie at a heal of 1; healing is 1 a minute; #133's resistances need room):
+
+> "Inflated numbers are good and fun! It feels like doing more damage even if we've adjusted friend and foe by the same amount. We could also allow people to swap some bars to % which makes the scale irrelevant. I think the 1000 is an easy win, you are right 100 is super restrictive. And that allows us to scale bosses too, 10,000 health even, with good gear and weapons, enough mana, maybe the final boss has phases some of which give you time for natural regen. Bigger numbers are a playground, and we can always move the decimal back down if we need. So yes, basically."
+
+> "And drop tables important, one way to make gear harder to get: drop % which is never a thing we have touched before. Again, I don't want it to JUST be zombie runescape, but imagine if the bow dropped the first time you killed a boss every time guaranteed, would you ever do it again? It's a balance to be found somewhere in there. I am hoping regions are also not a thing you do in one sitting, step just inside later to get the one special ingredient you need, and otherwise never return."
+
+> "We also talked at some point about making our armor not extreme. The 'green dragonscale' in OSRS, least powerful just better than nothing gear. Wellll part of that was also simply a necessity of 100 health. 1000 lets us play with more literal numbers and the very occasional %."
+
+> "I know we said we didn't want to do a ton of 'stricly better' type stuff because it's boring but that does not also mean that all weapons need to do the same amount of damage and in every situation. That is part of what resistances are for."
+
+- **Health is a thousand.** Every health number in the game goes up ten times together: the player's, the dead's, and the villagers' health; weapon damage, bites, bleeding, burning, and starving; food's heals and the healing rates. Nothing else changes, so the game plays exactly as before, and it is step one of #133, before the difficulty pass tunes in the finer steps. **Big numbers are welcome** ("bigger numbers are a playground"): a boss may have 10,000 health, and a final boss may have phases that give time to heal. **A bar may be shown as a percent** instead, a setting. The decimal can move back if it must.
+- **Gear can drop by chance** (#268): a drop chance is a new lever. A boss's best item doesn't drop on every kill, or nobody would fight it twice, but the balance is to be found ("I don't want it to JUST be zombie runescape").
+- **A region is not done in one sitting:** players step back in later for the one special ingredient they need (#123).
+- **Armour stays modest:** the least of it is just better than nothing, like OSRS's green dragonhide. Mostly flat numbers, with a percent only now and then, which a thousand health makes possible (#133).
+- **Weapons differ by situation:** few strictly-better items, but weapons don't all do the same damage everywhere. Resistances are what makes one weapon strong in one place and weak in another (#133).
 
 ### 2026-10-18 — Food rots: a pace, not world decay (Michael)
 
