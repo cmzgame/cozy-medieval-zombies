@@ -315,10 +315,10 @@ function hotbarHtml(belt) {
   return belt.map((e, i) => `<div class="hot-slot${e ? "" : " empty"}" data-slot="belt:${i}"><span class="hot-key">${i + 1}</span>${e ? blockHtml(e, `data-slot="belt:${i}"`, HOT_CELL, 1, 1, "in-slot", true) : ""}</div>`).join("");
 }
 
-// What a redraw compares: wear (0 to 1) to the whole percent the panel shows, and fill to a whole unit. A lit torch wears
-// every step, and compared exactly it redrew the panels every frame, replacing a button between its press and release
-// so the click never landed (the bag's X, with a lit torch in hand).
-const shownAs = (k, v) => typeof v !== "number" ? v : k === "wear" ? Math.round(v * 100) : k === "fill" ? Math.round(v) : v;
+// What a redraw compares: wear as itemHtml draws it (a bar from the first wear, its percent left, red past 0.8), and fill
+// to a whole unit. A lit torch wears every step, and compared exactly it redrew the panels every frame, replacing a
+// button between its press and release so the click never landed (the bag's X, with a lit torch in hand).
+const shownAs = (k, v) => typeof v !== "number" ? v : k === "wear" ? (v > 0 ? `${Math.round((1 - v) * 100)}${v > 0.8 ? "low" : ""}` : 0) : k === "fill" ? Math.round(v) : v;
 
 // Re-render if anything changed. `inv` is the bag on the back or null;
 // `container` is any open bag or null.
