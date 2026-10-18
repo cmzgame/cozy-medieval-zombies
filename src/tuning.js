@@ -145,7 +145,15 @@ export const sight = {
   groanRadius: 6, // tiles: a dead one in the dark farther than this from the listener is not heard at all (a builder's default, #177)
 };
 
-const sections = { zombie, player, villager, world, population, sight };
+// How movement feels on screen (#161; docs/02, 2026-10-18): the camera's follow, the draw between steps. Feel numbers, Michael's to tune. There is no input
+// acceleration to tune: a held key is instant velocity (the arcade feel), by design and measured (`check("feel")`).
+export const feel = {
+  cameraFollow: 10, // the camera closes this fraction of its distance to the player per second (a time constant of 1/10 s: it trails a walking player by 0.3 tiles, 19 px); higher is snappier, lower floatier
+  blend: true, // draw the movers between sim steps (interp.js): even on a 75, 120, or 144 Hz display and under frame jitter, at up to one step (16.7 ms) of added delay; false draws the last step as it stood
+  blendJump: 1.5, // tiles: a mover that moved farther than this in one step (a teleport, a respawn) is drawn where it landed, not blended
+};
+
+const sections = { zombie, player, villager, world, population, sight, feel };
 
 // Lay a file's numbers over the defaults; a missing file or section changes nothing.
 export function load(json) {

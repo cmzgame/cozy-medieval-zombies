@@ -3,10 +3,10 @@
 
 import * as iso from "./iso.js";
 import * as interp from "./interp.js";
+import { feel } from "./tuning.js";
 
 export const cam = { gx: 0, gy: 0 };
 const before = { gx: 0, gy: 0 }; // where it stood before the last step, for the draw between steps (interp.js)
-const FOLLOW = 10; // per second
 
 export function snapTo(gx, gy) {
   cam.gx = gx;
@@ -35,7 +35,7 @@ export function kick(x, y, seconds) {
 
 export function follow(target, dt) {
   jolt.ttl = Math.max(0, jolt.ttl - dt);
-  const k = Math.min(1, FOLLOW * dt);
+  const k = Math.min(1, feel.cameraFollow * dt); // data/tuning.json feel.cameraFollow
   cam.gx += (target.gx - cam.gx) * k;
   cam.gy += (target.gy - cam.gy) * k;
 }

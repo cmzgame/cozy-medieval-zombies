@@ -71,6 +71,7 @@ import * as identities from "./identities.js"; // identities, the browser id, fr
 import * as rng from "./rng.js";
 import * as rules from "./rules.js";
 import * as tuning from "./tuning.js";
+const feel = tuning.feel; // the feel numbers (data/tuning.json)
 
 const V = view.view; // the world's size in its own pixels, kept current by view.js
 // The map: the valley (docs/29, 30) unless the URL says `?map=square` (the old proving ground, which the checks still use).
@@ -998,7 +999,7 @@ function refreshFigureOf(p, force = false) {
 function update(dt) {
   const t0 = performance.now();
   if (!inWorld) return; // no world chosen yet (docs/31/09)
-  interp.mark([...S.players, ...S.zombies, ...S.villagers]); // where everything stood before this step, for the draw between steps (#161)
+  interp.mark([...S.players, ...S.zombies, ...S.villagers, ...archery.arrowsInFlight()]); // where everything stood before this step, for the draw between steps (#161)
   camera.mark();
   try {
     stepGame(dt);
@@ -1292,7 +1293,7 @@ function render() {
   };
   // Drawn between steps (interp.js): everything that moves `alpha` of the way from where the last step found it to where it left it, and the camera likewise;
   // the step's own positions go back as soon as the picture is made, so nothing in the simulation or the interface ever reads a blended one.
-  const alpha = loop.alpha();
+  const alpha = feel.blend ? loop.alpha() : 1; // data/tuning.json feel.blend: false draws the last step as it stood
   interp.apply(alpha);
   try {
     scene.camera = camera.blended(alpha);
