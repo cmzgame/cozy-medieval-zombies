@@ -38,7 +38,7 @@
 | **G** | **The client** | | |
 | 26 | `net.js` holds the roles and the transport; `main.js`'s step branches on them | `net.js`, `main.js` | **open**: no `client.me`, the client object proper |
 | 27 | A guest predicts its own walking; the host acknowledges by sequence; the guest replays the rest | `net.js` (`pending`) | built |
-| 28 | Smoothing, not a snapshot ring: a frame's position is a remote character's target (`netTo`), walked to over the frame's steps | `net.js` (`smoothStep`) | built, in its own form |
+| 28 | Remote bodies drawn between frames at a fixed delay behind the newest (a few positions kept per body, interpolated by the host's sim time; #248), `netTo` the host's truth | `netsmooth.js`, `net.js` (`smoothStep`) | built, in its own form |
 | 29 | A sheet per player, redrawn in place from the identity and the worn list; the second atlas page not yet | `main.js`, `assets.js` | built; the second page when a group asks |
 | 30 | Identities kept in the browser, the character screen their editor, a character stamped from one at creation and fixed after | `identities.js`, `ui/screens.js` | built (`09`) |
 | 31 | Join a game on the Worlds screen; hosting is the pause menu's "Open to friends" switch | `ui/screens.js` | built (`09`) |
