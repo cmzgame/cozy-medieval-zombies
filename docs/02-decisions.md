@@ -187,6 +187,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Process and the studio
 
+- The first priority is a final scope for The Valley: every dev value real and every valley system in, sounds included (demo sounds; art may lag); the demo is cut from the finished valley (2026-10-18, The Valley's final scope is the first priority; finished means sounds)
 - References to real things outside the lore are data, `data/references.json`, shown on one wiki page; the first is the Onion-head Hat, after Cake's Comfort Eagle (2026-10-18, The Onion-head Hat; real-world references on one page; specific names; a lore issue)
 - The hidden issues the valley needs are filed again with new scopes; the originals are read and closed when the bot is back (2026-10-18, The hidden issues the valley needs are filed again)
 - Recipes are learned and earned (from villagers and the regions; skills by default), not all known from the start (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
@@ -231,6 +232,16 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-18 — The Valley's final scope is the first priority; finished means sounds (Michael)
+
+Michael, at the end of his first playtest session, for the next morning:
+
+> "When I come back in the morning, remind me that our #1 priority need to be making a final scope for The Valley. We've neem bouncing around between should I work on story and setting, or skilling, or fighting. When we ordered things overall we gave ourselves, the answer, The Valley is proof it works, and it gives us way more than we need to construct The Demo then from the final valley pieces. I think if The Valley, all dev stuff flipped to real values, works as a game the rest will. And finished means sounds if not quite art yet, because demo sounds are easier. In fact this could be hurting my interest in playtesting. Also makes it hard to balance survival in any sense if I unintentionally give myself the "deaf" trait."
+
+- **The first priority is a final scope for The Valley** (#271): one list of what the valley needs to be a finished game, which ends the switching between story and setting, skilling, and fighting. It restates the roadmap's order (the valley first) as the work of the next session.
+- **Finished means every dev value real and sounds in.** Demo sounds are enough; art may lag behind. Silence hurts playtesting, and survival can't be balanced while the player is effectively deaf.
+- **The demo is cut from the finished valley's pieces.**
 
 ### 2026-10-18 — Health is a thousand; drops by chance; armour modest; weapons differ by situation (Michael)
 
