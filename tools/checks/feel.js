@@ -39,14 +39,20 @@ export async function run(game) {
     if (!from) throw new Error("no open ground to walk on");
     G.teleport(from[0] + 0.1, from[1] + 0.1);
     for (let i = 0; i < 40; i++) G.loop.advance(1 / 60);
-    const rec = []; // per step: player gx, gy, camera gx, gy
-    key("KeyD");
-    for (let i = 0; i < 300; i++) {
+    const walk = () => { // per step: player gx, gy, camera gx, gy
+      G.teleport(from[0] + 0.1, from[1] + 0.1);
+      for (let i = 0; i < 40; i++) G.loop.advance(1 / 60);
+      const out = [];
+      key("KeyD");
+      for (let i = 0; i < 300; i++) {
+        G.loop.advance(1 / 60);
+        out.push([me.gx, me.gy, camera.cam.gx, camera.cam.gy]);
+      }
+      key("KeyD", "keyup");
       G.loop.advance(1 / 60);
-      rec.push([me.gx, me.gy, camera.cam.gx, camera.cam.gy]);
-    }
-    key("KeyD", "keyup");
-    G.loop.advance(1 / 60);
+      return out;
+    };
+    const rec = walk();
     const stats = (xs) => {
       const m = xs.reduce((a, b) => a + b, 0) / xs.length;
       const sd = Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / xs.length);
@@ -96,6 +102,29 @@ export async function run(game) {
     const lagTiles = Math.hypot(last[0] - last[2], last[1] - last[3]);
     const speed = Math.hypot(rec[299][0] - rec[239][0], rec[299][1] - rec[239][1]) / 1;
     row("the camera trails a walking player by under half a tile (reported), and the player walks at the world's speed along the screen", lagTiles < 0.5 && Math.abs(speed - G.tuning.player.speed) < 0.1, `trailing ${lagTiles.toFixed(2)} tiles (${(lagTiles * 32 * 2).toFixed(0)} px at most); ${speed.toFixed(2)} tiles a second against ${G.tuning.player.speed}`);
+    // The camera's follow is a number in data/tuning.json (feel.cameraFollow): doubled, it trails half as far.
+    const follow0 = G.tuning.feel.cameraFollow;
+    G.tuning.feel.cameraFollow = follow0 * 2;
+    const quick = walk();
+    G.tuning.feel.cameraFollow = follow0;
+    const lagQuick = Math.hypot(quick[299][0] - quick[299][2], quick[299][1] - quick[299][3]);
+    row("the camera's follow is a tuning number (feel.cameraFollow): doubled, it trails about half as far", Math.abs(lagQuick - lagTiles / 2) < 0.04, `${follow0} a second trails ${lagTiles.toFixed(3)} tiles, ${follow0 * 2} trails ${lagQuick.toFixed(3)}`);
+    // A flying thing (an arrow, a thrown item, the fireball) blends its height with its position, and a jump is not blended.
+    const arrow = { gx: 10, gy: 10, z: 20 };
+    interp.mark([arrow]);
+    arrow.gx += 0.27;
+    arrow.z += 6;
+    interp.apply(0.5);
+    const mid2 = [arrow.gx, arrow.z];
+    interp.restore();
+    const back2 = arrow.gx === 10.27 && arrow.z === 26;
+    interp.mark([arrow]);
+    arrow.gx += 5;
+    arrow.z += 6;
+    interp.apply(0.5);
+    const jumpedFlight = arrow.gx === 15.27 && arrow.z === 32;
+    interp.restore();
+    row("an arrow's position and height blend together and come back exactly; a jump is drawn where it landed", Math.abs(mid2[0] - 10.135) < 1e-9 && Math.abs(mid2[1] - 23) < 1e-9 && back2 && jumpedFlight, `halfway ${mid2[0].toFixed(3)}, ${mid2[1]}; restored ${back2}; a 5-tile jump drawn where it landed ${jumpedFlight}`);
     // Blending leaves the simulation alone: apply and restore are exact, and a jump is not blended.
     const gx0 = me.gx;
     const gy0 = me.gy;

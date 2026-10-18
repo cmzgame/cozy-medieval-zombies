@@ -183,6 +183,21 @@ for sid in sorted(sprites):
 # Chopping (#195): a tool lists the verb `chop`, the stump and the tuning's names exist, and every placed container's own `loot` names a table.
 if not any("chop" in i.get("verbs", []) for i in items):
     fail("chopping: no item lists the verb 'chop'")
+# The feel numbers (#161, #244): the ones Michael edits by hand, checked so a typo fails loudly rather than freezing the camera or the blend.
+feel = load("data/tuning.json").get("feel", {})
+if not (isinstance(feel.get("cameraFollow"), (int, float)) and not isinstance(feel.get("cameraFollow"), bool) and feel["cameraFollow"] > 0):
+    fail("tuning.feel.cameraFollow: a number above 0")
+if not isinstance(feel.get("blend"), bool):
+    fail("tuning.feel.blend: true or false")
+if not (isinstance(feel.get("blendJump"), (int, float)) and not isinstance(feel.get("blendJump"), bool) and feel["blendJump"] > 0):
+    fail("tuning.feel.blendJump: a number above 0")
+num = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)
+if not (num(feel.get("netDelaySteps")) and feel["netDelaySteps"] >= 1):
+    fail("tuning.feel.netDelaySteps: a number of at least 1")
+if not (num(feel.get("netSlew")) and 0 < feel["netSlew"] <= 1):
+    fail("tuning.feel.netSlew: a number above 0 and at most 1")
+if not (num(feel.get("netJump")) and feel["netJump"] > 0):
+    fail("tuning.feel.netJump: a number above 0")
 tuning_world = load("data/tuning.json")["world"]
 if tuning_world["stumpSprite"] not in sprites:
     fail(f"tuning.world.stumpSprite: no sprite {tuning_world['stumpSprite']!r}")

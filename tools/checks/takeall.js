@@ -19,7 +19,7 @@ export async function run(game) {
   const belt0 = belt ? belt.slice() : null;
   const meAt = [me.gx, me.gy];
   const wasPaused = G.loop.isPaused();
-  const { performItemCommand } = await import("/src/ui/inventory-actions.js");
+  const { performItemCommand, takeAllFrom, takeAllWord } = await import("/src/ui/inventory-actions.js");
   const { createZombie } = await import("/src/entities/zombie.js");
   const { lootOf, dressCorpse } = await import("/src/entities/character.js");
   const made = [];
@@ -130,6 +130,24 @@ export async function run(game) {
     const total6 = tally(loot);
     const ran6 = takeAll({ characterId: z.id });
     row("Take All on a body takes everything it carried and the body is redrawn without it", ran6 === true && loot.items.length === 0 && had > 0 && tally(bag) === total6 && z.corpseKey !== key0, `${had} things; the corpse's look "${key0}" became "${z.corpseKey}"`);
+
+    // 6b. A bag with things in it stays where it is, and the word says why (not "full"); with no bag on your back, the word says so.
+    bag.items.length = 0;
+    const sack = G.items.makeEntry("small_sack", 1);
+    sack.bag = G.inventory.createBag(4, 3, "sack");
+    G.grid.add(sack.bag, "apple", 1);
+    chest.bag.items.length = 0;
+    G.grid.insert(chest.bag, sack);
+    const rNested = takeAllFrom(me, chest.bag);
+    row("a bag with things in it stays in the chest and the word is not \"full\" (the bag has room)", rNested.nested === 1 && rNested.left === 0 && chest.bag.items.includes(sack) && takeAllWord(rNested) === "A bag with things in it stays: empty it first.", `nested ${rNested.nested}, left ${rNested.left}: "${takeAllWord(rNested)}"`);
+    chest.bag.items.length = 0;
+    const back0 = me.worn.back;
+    me.worn.back = null;
+    put(chest.bag, "plank", 1);
+    const rNone = takeAllFrom(me, chest.bag);
+    me.worn.back = back0;
+    row("with no bag on your back Take All says so and moves nothing", rNone.noBag === true && takeAllWord(rNone) === "You have no bag." && chest.bag.items.length === 1, `"${takeAllWord(rNone)}"`);
+    chest.bag.items.length = 0;
 
     // 7. The player's own bag is refused, and a container out of reach is not taken from.
     put(bag, "log", 1);

@@ -69,6 +69,14 @@
     "needsStaminaRegenMult": 0.5,
     "tiredStaminaRegenMult": 0.75
   },
+  "feel": {
+    "cameraFollow": 10,
+    "blend": true,
+    "blendJump": 1.5,
+    "netDelaySteps": 4,
+    "netSlew": 0.1,
+    "netJump": 1.5
+  },
   "villager": {
     "speed": 1.4,
     "radius": 0.3,
