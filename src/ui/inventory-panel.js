@@ -315,13 +315,18 @@ function hotbarHtml(belt) {
   return belt.map((e, i) => `<div class="hot-slot${e ? "" : " empty"}" data-slot="belt:${i}"><span class="hot-key">${i + 1}</span>${e ? blockHtml(e, `data-slot="belt:${i}"`, HOT_CELL, 1, 1, "in-slot", true) : ""}</div>`).join("");
 }
 
+// What a redraw compares: wear (0 to 1) to the whole percent the panel shows, and fill to a whole unit. A lit torch wears
+// every step, and compared exactly it redrew the panels every frame, replacing a button between its press and release
+// so the click never landed (the bag's X, with a lit torch in hand).
+const shownAs = (k, v) => typeof v !== "number" ? v : k === "wear" ? Math.round(v * 100) : k === "fill" ? Math.round(v) : v;
+
 // Re-render if anything changed. `inv` is the bag on the back or null;
 // `container` is any open bag or null.
 export function renderInventoryPanel(player, inv, container, belt) {
   bags = { inv: inv || null, container: container || null };
   shown.player = player;
   // The hotbar is always shown while a belt is worn.
-  const beltSig = JSON.stringify(belt);
+  const beltSig = JSON.stringify(belt, shownAs);
   if (!belt) hotbar.hidden = true;
   else {
     hotbar.hidden = false;
@@ -333,7 +338,7 @@ export function renderInventoryPanel(player, inv, container, belt) {
   if (!open && !character) return;
   if (drag && drag.from.kind === "bag" && drag.from.bag !== inv && drag.from.bag !== container) cancelDrag();
   CELL = view.panelCell();
-  const sig = JSON.stringify([open, character, CELL, use.isActive() && use.current_()?.entry, inv?.items, inv?.cols, inv?.rows, container?.container, container?.items, container?.cols, container?.rows, player.worn, player.hands, player.hidden]);
+  const sig = JSON.stringify([open, character, CELL, use.isActive() && use.current_()?.entry, inv?.items, inv?.cols, inv?.rows, container?.container, container?.items, container?.cols, container?.rows, player.worn, player.hands, player.hidden], shownAs);
   if (sig === lastSignature) return;
   const hadContainer = lastSignature !== "" && /"container"/.test(lastSignature);
   lastSignature = sig;
