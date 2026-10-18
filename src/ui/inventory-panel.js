@@ -104,6 +104,12 @@ export function initInventoryPanel(h) {
       else setCharacterOpen(false);
       return;
     }
+    if (e.target.closest("button[data-takeall]")) {
+      if (bags.container) handlers.takeAll?.(bags.container);
+      handlers.changed?.();
+      lastSignature = "";
+      return;
+    }
     const eye = e.target.closest("button[data-eye]");
     if (eye) {
       handlers.toggleHidden?.(eye.dataset.eye);
@@ -270,7 +276,7 @@ function columnHtml(which, bag, title) {
   const items = bag.items.map((e, i) => itemHtml(e, i, which)).join("");
   return `
     <div class="inv-column kit-frame">
-      ${headerHtml(title, `<button class="kit-button" data-tidy="${which}" title="Repack">Tidy</button>`, which === "inv" ? "bag" : "container")}
+      ${headerHtml(title, `${which === "container" ? `<button class="kit-button" data-takeall title="Take everything that fits into your bag">Take All</button>` : ""}<button class="kit-button" data-tidy="${which}" title="Repack">Tidy</button>`, which === "inv" ? "bag" : "container")}
       <div class="inv-grid" data-bag="${which}" style="width:${bag.cols * CELL}px;height:${bag.rows * CELL}px;--cell:${CELL}px">${items}<div class="inv-hl" hidden></div></div>
     </div>`;
 }
