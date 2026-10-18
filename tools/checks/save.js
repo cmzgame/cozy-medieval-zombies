@@ -43,6 +43,9 @@ export async function run(game) {
   G.rules.set({ survival: false }); // the needs stay full in any pane; health still regenerates (2026-10-15), so the mess's hp is read at the save
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const p = G.player;
+  // The world as it stood before the mess, put back at the end: the check toggles doors, feeds a fire, hurts a zombie and the player, and moves the clock, then
+  // restores worlds from snapshots, so without this it left every check after it a hurt player and a different village (#132: check("players") failed after it).
+  const clean = JSON.parse(JSON.stringify(G.save.snapshot("check")));
   try {
     // The mess: a door and a shutter near the spawn toggled, a window boarded, the hearth fed,
     // the plank dropped at the feet, a zombie hurt and a villager poked, the clock moved.
@@ -127,6 +130,7 @@ export async function run(game) {
       G.player.carrying = null;
     }
     G.rules.set({ survival: survivalWas });
+    try { await G.restoreWorld(clean); } catch (e) { rows.push({ check: "put back", result: "FAIL", detail: e.message }); }
     G.loop.setPaused(wasPaused);
   }
   for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);
