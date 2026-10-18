@@ -236,6 +236,15 @@ export function install() {
       if (p && Math.hypot(x - p.gx, y - p.gy) <= tuning.world.torchSpentRadius) net.logTo(id, "A torch burns out.", "result");
     }
   });
+  // A fire burnt out (map.burnFires, outside any acting player): the word to the screen of every guest whose player stands within `fireOutRadius`, as the host's own
+  // player is told (main.js; #177). Nothing told a guest before: the docs/bugs.md line, "a guest is never told \"A fire has gone out.\"".
+  events.on("fireOut", ({ tile }) => {
+    if (!net.isHost()) return;
+    for (const id of net.guestPlayerIds()) {
+      const p = S.players.find((q) => q.id === id);
+      if (p && Math.hypot(tile[0] - p.gx, tile[1] - p.gy) <= tuning.world.fireOutRadius) net.messageTo(id, "A fire has gone out.", 2);
+    }
+  });
   // An auto-drink (docs/02 question 22): the word to the screen of the player who drank, a guest's here.
   events.on("drank", ({ who, auto }) => {
     if (auto && who && who !== (self() ? self().id : null) && net.isHost()) net.messageTo(who, "You drink from your waterskin.", 2);
