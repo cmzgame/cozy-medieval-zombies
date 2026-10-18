@@ -192,6 +192,16 @@ check("net: a remote body is drawn evenly between the host's frames whatever the
   assert(m["alternating 2 and 4 steps apart"].old.still > 50, "the old smoothing no longer stops on a late frame: the measurement is not measuring it");
   return lines.join("; ");
 });
+// The dead and the villagers come as a delta, a record only when it changed: a body that stops is drawn where it stopped and one that sets off from a rest moves at once
+// (#249's review: it was drawn up to two steps past its stop for good, and set off after a rest in a lurch).
+check("net: a body that walks, stands, and walks again (a record only when it moved) is drawn on its truth at rest and sets off evenly", () => {
+  const d = netsmoothTool.measureDelta(true);
+  const without = netsmoothTool.measureDelta(false);
+  assert(d.restOffset < 1e-9, `a standing body is drawn ${d.restOffset.toFixed(3)} tiles off the host's truth`);
+  assert(d.start.slice(0, 6).every((x) => x > 0.9 && x < 1.1), `it set off ${d.start.slice(0, 6).map((x) => x.toFixed(2)).join(" ")} (1 is steady)`);
+  assert(without.restOffset > 0.05, "without hold the offset at rest is gone: the measurement is not measuring it");
+  return `at rest 0 off (0.10 without hold); the first steps ${d.start.slice(0, 4).map((x) => x.toFixed(2)).join(" ")}`;
+});
 // The chart's frame carries only the changed cells (#237): what a host takes after a reveal, applied to an empty replica, makes the same chart; and a second take is empty.
 check("chart: the changed cells a frame carries rebuild the chart on an empty replica", () => {
   const json = read("data/maps/valley.json");

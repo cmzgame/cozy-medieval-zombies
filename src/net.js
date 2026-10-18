@@ -1209,6 +1209,8 @@ function applyFrame(f) {
     const ids = f.roster[name];
     if (Array.isArray(ids)) S[name] = ids.map((id) => byId.get(id)).filter(Boolean);
   }
+  // A body the frame did not carry stood where it was (the dead and the villagers come as a delta): pinned there at this frame's time (netsmooth.js).
+  netsmooth.hold([...S.players, ...S.zombies, ...S.villagers, ...S.corpses].filter((c) => c.id !== myPlayerId), frameHostTime);
   S.player = S.players.find((p) => p.id === myPlayerId) || S.player;
   // Reconciliation: the host's record of me stands at its tick; my inputs it has not yet applied
   // go over it again, so what I see is the host's truth plus what I have done since.

@@ -48,6 +48,20 @@ export function frameArrived(h, timeScale = 1) {
   else R += (want - R) * tuning.netSlew;
 }
 
+// Once per frame, after the bodies are aimed: a body the frame did not carry is where it was at this frame's time (the host sends a dead or villager's record only
+// when it changed), so a body that stopped is not drawn on past its stop, and one that sets off after a rest is not drawn along the whole rest. A body with no buffer
+// yet (known from the welcome, or arrived whole) is seeded where it stands.
+export function hold(list, h) {
+  if (typeof h !== "number") return;
+  for (const c of list) {
+    if (!c.netBuf) { if (typeof c.gx === "number") c.netBuf = [{ h, x: c.gx, y: c.gy }]; continue; }
+    const last = c.netBuf[c.netBuf.length - 1];
+    if (!last || last.h >= h) continue;
+    c.netBuf.push({ h, x: last.x, y: last.y });
+    if (c.netBuf.length > KEEP) c.netBuf.shift();
+  }
+}
+
 // Every guest step: the clock moves on, and each body is put where it was at that time.
 export function step(list, timeScale = 1) {
   if (R === null) return;

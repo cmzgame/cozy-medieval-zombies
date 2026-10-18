@@ -74,6 +74,32 @@ function report(drawn) {
   return { move: m, still: d.filter((x) => x < 0.05).length, lag: l };
 }
 
+// A body that walks, stands, and walks again, the host sending its record only when it moved (the dead and the villagers come as a delta); frames arrive every third
+// step, steady. Reports the drawn x against the truth while it stands, and the first steps of the second walk (1 is steady). `hold` is `netsmooth.hold` (off for the old way).
+export function measureDelta(useHold = true) {
+  ns.reset();
+  const c = { gx: 0, gy: 0 };
+  const truth = (s) => { const w = s < 120 ? s : s < 240 ? 120 : s - 120; return w * V; };
+  const drawn = [];
+  let sent = null;
+  for (let s = 0; s < 420; s++) {
+    if (s >= BASE && (s - BASE) % 3 === 0) {
+      const hostStep = s - BASE;
+      const h = hostStep * STEP;
+      const x = truth(hostStep);
+      ns.frameArrived(h);
+      if (sent === null || x !== sent) { ns.aim(c, x, 0, h); sent = x; } // a record goes when the body moved
+      if (useHold) ns.hold([c], h);
+    }
+    ns.step([c]);
+    drawn.push(c.gx);
+  }
+  const atRest = drawn.slice(190, 235).map((x) => Math.abs(x - 120 * V)); // late in the stand, the buffer long since caught up
+  const start = [];
+  for (let s = 248; s < 260; s++) start.push((drawn[s] - drawn[s - 1]) / V);
+  return { restOffset: Math.max(...atRest), start };
+}
+
 export function measure() {
   const out = {};
   for (const p of ["steady", "alternating 2 and 4 steps apart", "random jitter (-1 to +2 steps)", "a stall of 6 steps now and then"]) {
@@ -84,6 +110,10 @@ export function measure() {
 }
 
 if (process.argv[1] && process.argv[1].endsWith("netsmooth.js")) {
+  for (const [label, hold] of [["without hold", false], ["with hold", true]]) {
+    const d = measureDelta(hold);
+    console.log(`walk, stand, walk (a record only when it moved) ${label}: drawn ${d.restOffset.toFixed(3)} tiles off the truth at rest; the walk's first steps ${d.start.slice(0, 8).map((x) => x.toFixed(2)).join(" ")}`);
+  }
   for (const [p, r] of Object.entries(measure())) {
     const f = (x) => x.toFixed(2);
     console.log(`${p}:`);
