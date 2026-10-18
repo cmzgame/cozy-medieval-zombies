@@ -29,7 +29,7 @@ class MapGen:
             "features": [],
             "sets": [],
             "reserve": [],
-            "biomes": {},
+            "zones": {},
             "scatter": [],
             "wild": None,
             "spawn": list(spawn),
@@ -110,14 +110,14 @@ class MapGen:
 
     # ---- the rest ----
 
-    def biome(self, name, kinds, scale=9):
-        self.json["biomes"][name] = {"kinds": kinds, "scale": scale}
+    def zone(self, name, kinds, scale=9):
+        self.json["zones"][name] = {"kinds": kinds, "scale": scale}
 
-    def scatter(self, rect, biome, density, seed):
-        self.json["scatter"].append({"rect": _norm_rect(rect), "density": list(density), "biome": biome, "seed": seed})
+    def scatter(self, rect, zone, density, seed):
+        self.json["scatter"].append({"rect": _norm_rect(rect), "density": list(density), "zone": zone, "seed": seed})
 
-    def wild(self, biome, density, seed, zombies_per_chunk, rocks=None):
-        w = {"biome": biome, "density": list(density), "seed": seed, "zombiesPerChunk": list(zombies_per_chunk)}
+    def wild(self, zone, density, seed, zombies_per_chunk, rocks=None):
+        w = {"zone": zone, "density": list(density), "seed": seed, "zombiesPerChunk": list(zombies_per_chunk)}
         if rocks:
             w["rocks"] = rocks
         self.json["wild"] = w

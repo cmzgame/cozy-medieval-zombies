@@ -40,7 +40,7 @@ const fireProps = new Set();
 // Beyond the authored bounds the world is wild: forest grown by rule, with a
 // few of the dead per chunk (Michael, 2026-10-09). Harvest register, so the
 // gloomy one is always a choice of place and never the default.
-let wild = null; // { biome: { kinds, scale }, density: [min, max], seed, zombiesPerChunk }
+let wild = null; // { zone: { kinds, scale }, density: [min, max], seed, zombiesPerChunk }
 let bounds = null; // [x, y, w, h] of the authored map
 const pendingSpawns = []; // [x, y] tiles where a wild chunk wants a zombie
 let popFactor = 1; // the world's Starting population as a factor (tuning.population): scales the dead a wild chunk brings
@@ -52,10 +52,10 @@ function isTreeKind(kind) {
   const d = getDef(kind);
   return d ? !!d.canopy : String(kind).startsWith("tree_");
 }
-// Which biome a tile is in, for the ground (docs/15): the scatter rules' rects
-// inside the bounds, the wild rule's biome beyond them.
-let biomeRects = []; // [{ rect: [x, y, w, h], biome }]
-let wildBiome = null;
+// Which zone a tile is in, for the ground (docs/15): the scatter rules' rects
+// inside the bounds, the wild rule's zone beyond them.
+let zoneRects = []; // [{ rect: [x, y, w, h], zone }]
+let wildZone = null;
 // Small things placed near trees (docs/02, question 27): mushrooms now.
 let forage = null; // { kinds, chance, near, seed }
 // Called with (tiles, prop) when a floor changes or a prop comes or goes, so
@@ -363,10 +363,10 @@ export function valueNoise(x, y, scale, seed) {
   return (a + (b - a) * sx) * (1 - sy) + (c + (d - c) * sx) * sy;
 }
 
-function densityAt(rule, biome, x, y) {
+function densityAt(rule, zone, x, y) {
   if (!Array.isArray(rule.density)) return rule.density;
   const [lo, hi] = rule.density;
-  return lo + (hi - lo) * valueNoise(x, y, biome.scale || 8, (rule.seed ?? 1) + 7);
+  return lo + (hi - lo) * valueNoise(x, y, zone.scale || 8, (rule.seed ?? 1) + 7);
 }
 
 // Pick a key from { key: weight } with a 0..1 roll.
@@ -400,8 +400,8 @@ function wildRockAt(x, y) {
 // rolls wildTile makes, so anything can ask where the trees are before their
 // chunks exist.
 function wildPickAt(x, y) {
-  if (!wild || wildRockAt(x, y) || hash2(x, y, wild.seed ?? 1) >= densityAt(wild, wild.biome, x, y)) return null;
-  return weightedPick(wild.biome.kinds, hash2(x, y, (wild.seed ?? 1) + 1));
+  if (!wild || wildRockAt(x, y) || hash2(x, y, wild.seed ?? 1) >= densityAt(wild, wild.zone, x, y)) return null;
+  return weightedPick(wild.zone.kinds, hash2(x, y, (wild.seed ?? 1) + 1));
 }
 
 // What the wild rule stands at a tile: its pick, unless Trees are off and the pick is a tree.
@@ -554,17 +554,17 @@ export function setFloor(x, y, id, layer = 0) {
   groundChanged([[x, y]]);
 }
 
-// The biome a tile belongs to: inside the bounds the first scatter rule whose
+// The zone a tile belongs to: inside the bounds the first scatter rule whose
 // rect holds it, beyond them the wild rule's, else "harvest".
-export function biomeAt(x, y) {
+export function zoneAt(x, y) {
   if (inBounds(x, y)) {
-    for (const r of biomeRects) {
+    for (const r of zoneRects) {
       const [rx, ry, rw, rh] = r.rect;
-      if (x >= rx && y >= ry && x < rx + rw && y < ry + rh) return r.biome;
+      if (x >= rx && y >= ry && x < rx + rw && y < ry + rh) return r.zone;
     }
     return "harvest";
   }
-  return wildBiome || "harvest";
+  return wildZone || "harvest";
 }
 
 // A wall segment on a tile edge. kind: "wall" | "door" | "window". A window has
@@ -2177,19 +2177,19 @@ export function loadMap(json, options = {}) {
     reserveRect(b.rect[0] - pad, b.rect[1] - pad, b.rect[2] + pad * 2, b.rect[3] + pad * 2);
   }
   for (const r of json.reserve || []) reserveRect(...r);
-  const biomes = json.biomes || {};
+  const zones = json.zones || {};
   for (const sc of json.scatter || []) {
-    const biome = sc.biome ? biomes[sc.biome] : { kinds: sc.kinds, scale: sc.scale || 8 };
+    const zone = sc.zone ? zones[sc.zone] : { kinds: sc.kinds, scale: sc.scale || 8 };
     const [x0, y0, w, h] = sc.rect;
     const footprint = sc.footprint || [1, 1];
     const seed = sc.seed ?? 1;
     for (let y = y0; y < y0 + h; y++) {
       for (let x = x0; x < x0 + w; x++) {
         if (reserved.has(key(x, y))) continue;
-        if (hash2(x, y, seed) >= densityAt(sc, biome, x, y)) continue;
+        if (hash2(x, y, seed) >= densityAt(sc, zone, x, y)) continue;
         const t = authored.get(key(x, y));
         if (t && (t.floor !== baseFloor || t.prop || t.n || t.w)) continue;
-        const sprite = weightedPick(biome.kinds, hash2(x, y, seed + 1));
+        const sprite = weightedPick(zone.kinds, hash2(x, y, seed + 1));
         if (noTrees && isTreeKind(sprite)) { ghostTrees.add(ghostKey(x, y)); continue; } // Trees off: the pick is made as ever, a tree is simply not placed (forage still counts it)
         placeProp({ sprite, tile: [x, y], footprint, solid: sc.solid !== false, opaque: !!sc.opaque }, [0, 0]);
       }
@@ -2197,8 +2197,8 @@ export function loadMap(json, options = {}) {
   }
   let wildRule = null;
   if (json.wild) {
-    const biome = json.wild.biome ? biomes[json.wild.biome] : { kinds: json.wild.kinds, scale: json.wild.scale || 8 };
-    wildRule = { ...json.wild, biome };
+    const zone = json.wild.zone ? zones[json.wild.zone] : { kinds: json.wild.kinds, scale: json.wild.scale || 8 };
+    wildRule = { ...json.wild, zone };
   }
   reset({
     floor: baseFloor,
@@ -2206,8 +2206,8 @@ export function loadMap(json, options = {}) {
     wildRule,
     mapBounds: json.bounds || null,
   });
-  biomeRects = (json.scatter || []).filter((sc) => sc.biome).map((sc) => ({ rect: sc.rect, biome: sc.biome }));
-  wildBiome = json.wild?.biome || null;
+  zoneRects = (json.scatter || []).filter((sc) => sc.zone).map((sc) => ({ rect: sc.rect, zone: sc.zone }));
+  wildZone = json.wild?.zone || null;
   // Forage inside the bounds, now that the trees and the wild rule are known:
   // on plain base floor with nothing on it. Beyond the bounds wildTile does it.
   forage = json.forage || null;
