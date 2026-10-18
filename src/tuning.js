@@ -151,6 +151,9 @@ export const feel = {
   cameraFollow: 10, // the camera closes this fraction of its distance to the player per second (a time constant of 1/10 s: it trails a walking player by 0.3 tiles, 19 px); higher is snappier, lower floatier
   blend: true, // draw the movers between sim steps (interp.js): even on a 75, 120, or 144 Hz display and under frame jitter, at up to one step (16.7 ms) of added delay; false draws the last step as it stood
   blendJump: 1.5, // tiles: a mover that moved farther than this in one step (a teleport, a respawn) is drawn where it landed, not blended
+  netDelaySteps: 4, // on a guest: remote bodies are drawn this many steps behind the newest host frame, interpolated between the frames either side (netsmooth.js, #248); 3 stalls on a late frame, more only adds delay
+  netSlew: 0.1, // the fraction of the gap the guest's draw clock closes toward the frames' per frame that arrives
+  netJump: 1.5, // tiles: a remote body that moved farther than this between two frames is put where it landed, not walked there
 };
 
 const sections = { zombie, player, villager, world, population, sight, feel };

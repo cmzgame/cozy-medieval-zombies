@@ -142,6 +142,7 @@ const gameMod = await import("../src/game.js");
 const kitModule = await import("../src/kit.js");
 const worldMod = await import("../src/world.js");
 const chartModule = await import("../src/chart.js");
+const netsmoothTool = await import("./netsmooth.js");
 const { lineOfSight } = await import("../src/visibility.js");
 const { getDef } = await import("../src/assets.js");
 const stationsMod = await import("../src/stations.js");
@@ -179,6 +180,27 @@ check("kit: the default kit fits the sack and the dev bag by placement, and aski
   assert(worldMod.idCounter() === before, "kit.problem moved the id counter");
   assert(kitMod.problem("apple 1e1") !== "" && kitMod.problem("apple 0x10") !== "", "a count of 1e1 or 0x10 was taken");
   return "sack and dev bag fit; no id taken";
+});
+// Remote bodies on a guest move evenly whatever the frames' arrival (#248): steady, alternating early and late, random, and a long stall, each against the old smoothing.
+check("net: a remote body is drawn evenly between the host's frames whatever their arrival (no stopped steps, a spread under 0.2 a step)", () => {
+  const m = netsmoothTool.measure();
+  const lines = [];
+  for (const [p, r] of Object.entries(m)) {
+    assert(r.now.still === 0 && r.now.move.sd < 0.2, `${p}: stood still ${r.now.still} steps, spread ${r.now.move.sd.toFixed(2)}`);
+    lines.push(`${p.slice(0, 14)} ${r.old.still} stopped steps to ${r.now.still}`);
+  }
+  assert(m["alternating 2 and 4 steps apart"].old.still > 50, "the old smoothing no longer stops on a late frame: the measurement is not measuring it");
+  return lines.join("; ");
+});
+// The dead and the villagers come as a delta, a record only when it changed: a body that stops is drawn where it stopped and one that sets off from a rest moves at once
+// (#249's review: it was drawn up to two steps past its stop for good, and set off after a rest in a lurch).
+check("net: a body that walks, stands, and walks again (a record only when it moved) is drawn on its truth at rest and sets off evenly", () => {
+  const d = netsmoothTool.measureDelta(true);
+  const without = netsmoothTool.measureDelta(false);
+  assert(d.restOffset < 1e-9, `a standing body is drawn ${d.restOffset.toFixed(3)} tiles off the host's truth`);
+  assert(d.start.slice(0, 6).every((x) => x > 0.9 && x < 1.1), `it set off ${d.start.slice(0, 6).map((x) => x.toFixed(2)).join(" ")} (1 is steady)`);
+  assert(without.restOffset > 0.05, "without hold the offset at rest is gone: the measurement is not measuring it");
+  return `at rest 0 off (0.10 without hold); the first steps ${d.start.slice(0, 4).map((x) => x.toFixed(2)).join(" ")}`;
 });
 // The chart's frame carries only the changed cells (#237): what a host takes after a reveal, applied to an empty replica, makes the same chart; and a second take is empty.
 check("chart: the changed cells a frame carries rebuild the chart on an empty replica", () => {
