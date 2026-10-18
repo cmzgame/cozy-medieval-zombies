@@ -65,7 +65,7 @@ export const player = {
   hungerMax: 100,
   thirstMax: 100,
   hungerDrainSeconds: 1080, // seconds from full to empty
-  fullAt: 90, // hunger at or above this is full: food is refused ("You are full.", Michael, 2026-10-18, #186); hunger drains all the time, so "full" is a margin, not the exact top
+  fullAt: 90, // hunger at or above this is well fed: health comes back `wellFedRegenMult` times as fast (Michael, 2026-10-18); hunger drains all the time, so "well fed" is a margin, not the exact top
   thirstDrainSeconds: 720,
   // Tiredness and sleep (docs/30 step 2), regeneration, and the needs' hold on stamina.
   tiredMax: 100,
@@ -75,6 +75,7 @@ export const player = {
   wakeHour: 6,
   healthRegenPerMinute: 1,
   sleepRegenPerMinute: 4,
+  wellFedRegenMult: 2, // health comes back this many times as fast when well fed (hunger at fullAt or more), awake or asleep (Michael, 2026-10-18; the number Primary's default)
   needsStaminaRegenMult: 0.5,
   tiredStaminaRegenMult: 0.75,
   starveDamage: 1.5, // hp per second at zero
