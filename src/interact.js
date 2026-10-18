@@ -1180,8 +1180,8 @@ function toggleTorch(player) {
   showMessage("You take the torch in hand. T lights it.");
 }
 
-// Eat one of a food entry (the bag's menu, the belt's menu and its key all come here; a guest's reach it as the host's command, so the
-// word below reaches it through the acting player). Eaten full or not (Michael, 2026-10-18); true when one was eaten.
+// Eat one of a food entry (the bag's menu, the belt's menu and its key all come here; a guest's reach it as the host's command). Eaten
+// full or not (Michael, 2026-10-18); true when one was eaten.
 function eatOne(player, entry, def, take) {
   if (!eat(player, def)) return false;
   entry.count -= 1;

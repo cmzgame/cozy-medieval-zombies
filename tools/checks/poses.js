@@ -47,7 +47,7 @@ export async function run(game) {
     row("a book in the main hand is presented in the idle and the walk", bookItem && book === presentPitch && walkBook === presentPitch && sword !== presentPitch, `the book's arm ${book} idle and ${walkBook} walking, the present pose ${presentPitch}, a sword's ${sword}`);
     // 3. Eating presents for presentTime, standing, then the idle.
     hold(null);
-    p.hunger = 0; // a full belly eats nothing (#186), so there is room, and the world's Survival must be on for there to be an appetite
+    p.hunger = 0; // a hungry body, with the world's Survival on, as in play
     G.rules.rules.survival = true;
     eat(p, G.items.getItem("bread") || { hunger: 0 });
     const ate = step(60);

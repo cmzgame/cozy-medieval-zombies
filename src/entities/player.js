@@ -134,7 +134,7 @@ export function autoDrink(player) {
 // nothing bleeds, faster asleep, faster again well fed (Michael, 2026-10-18), not at all when falling asleep on your feet.
 function updateNeeds(player, dt) {
   if (!rules.survival) {
-    // Off, the needs stay full, and health still comes back as a fed body's does (Michael, 2026-10-15: it stopped too).
+    // Off, the needs stay full, so health comes back as a well-fed body's does (Michael, 2026-10-15: it stopped too; well fed, 2026-10-18).
     player.hunger = player.maxHunger ?? T.hungerMax;
     player.thirst = player.maxThirst ?? T.thirstMax;
     player.tired = player.maxTired ?? T.tiredMax;

@@ -61,6 +61,9 @@ export async function run(game) {
       // full."), by the menu, the double-click, and the key alike.
       const word = () => (document.getElementById("message") || {}).textContent || "";
       const was = G.rules.rules.survival;
+      const bleed0 = me.bleed;
+      const tired0 = me.tired;
+      const sleeping0 = me.sleeping;
       G.rules.rules.survival = true;
       const full = (what, fn, eaten) => {
         me.hp = 40;
@@ -87,10 +90,9 @@ export async function run(game) {
         G.rules.rules.survival = true;
         const P = await import("/src/entities/player.js");
         const T = G.tuning.player;
-        const bleed0 = me.bleed;
-        const tired0 = me.tired;
         me.bleed = null;
         me.tired = me.maxTired;
+        me.sleeping = false;
         me.hp = 40;
         me.thirst = me.maxThirst;
         me.hunger = T.fullAt - 1;
@@ -100,10 +102,11 @@ export async function run(game) {
         row("health comes back wellFedRegenMult times as fast well fed as fed", fed === T.healthRegenPerMinute && wellFed === fed * T.wellFedRegenMult && T.wellFedRegenMult > 1, `fed ${fed} a minute, well fed ${wellFed} (x${T.wellFedRegenMult})`);
         me.hunger = 0;
         row("and none starving", P.regenPerMinute(me) === 0, `${P.regenPerMinute(me)} a minute at hunger 0`);
-        me.bleed = bleed0;
-        me.tired = tired0;
       } finally {
         G.rules.rules.survival = was;
+        me.bleed = bleed0;
+        me.tired = tired0;
+        me.sleeping = sleeping0;
       }
     } else row("the player has a belt", false, "no belt");
   } finally {
