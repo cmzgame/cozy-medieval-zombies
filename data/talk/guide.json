@@ -242,7 +242,7 @@
   "food": {
    "say": [
     "Bread, cheese, apples, anything in a chest or a barrel.",
-    "A food on your belt eats with its key. You will not eat if you are full.",
+    "A food on your belt eats with its key. Food mends you hungry or full, and a full belly mends faster on its own.",
     "Cooked food fills more than raw. Any lit fire that cooks will do, and the oven bakes."
    ],
    "options": [

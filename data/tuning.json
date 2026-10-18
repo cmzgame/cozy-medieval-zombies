@@ -66,6 +66,7 @@
     "wakeHour": 6,
     "healthRegenPerMinute": 1,
     "sleepRegenPerMinute": 4,
+    "wellFedRegenMult": 2,
     "needsStaminaRegenMult": 0.5,
     "tiredStaminaRegenMult": 0.75
   },

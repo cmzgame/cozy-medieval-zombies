@@ -81,25 +81,20 @@ export function aimOrigin(player) {
 
 // ---- needs ----
 
-// Appetite bounds food (Michael, 2026-10-18, #186): with hunger at `fullAt` or more a body eats nothing, so food's heal is a stopgap and never a way to
-// top up. With the Survival setting off the needs stay full for good (updateNeeds), so a body is always full and eats nothing (Michael's
-// word read literally, Primary's call on #186; health still regenerates there, 2026-10-15).
-export function isFull(player) {
+// Well fed: hunger at `fullAt` or more, where health comes back faster on its own (`wellFedRegenMult`). With the Survival setting off
+// the needs stay full for good (updateNeeds), so a body is always well fed.
+export function isWellFed(player) {
   return !rules.survival || player.hunger >= T.fullAt;
 }
 
-// Eats one of `def`; false (and nothing changes) for the dead and for a full belly. The caller says why (interact.eatOne).
+// Eats one of `def`: food heals what it says on the tin, full or not, and hunger stops at the top (Michael, 2026-10-18, overturning
+// #186's "You are full."): the cost of a heal is the food, which the same supply must also spend on hunger. False only for the dead.
 export function eat(player, def) {
   if (player.dead || !(player.hp > 0)) return false; // the dead eat nothing
-  if (isFull(player)) return false;
   player.presentFor = T.presentTime; // the held-out pose while it goes down (docs/32, item 1)
-  // The heal is bounded by the appetite the food fills (Primary's reading of Michael's "bounded by appetite", #186): a food that fills
-  // all it offers heals all of its number; at 89 of 100 a stew that offers 50 fills 11 of them and heals a fifth of its ten.
-  const offered = def.hunger || 0;
-  const fills = offered > 0 ? Math.min(1, Math.max(0, (player.maxHunger - player.hunger) / offered)) : 1;
-  player.hunger = Math.min(player.maxHunger, player.hunger + offered);
+  player.hunger = Math.min(player.maxHunger, player.hunger + (def.hunger || 0));
   player.thirst = Math.min(player.maxThirst, player.thirst + (def.thirst || 0));
-  player.hp = Math.min(player.maxHp, player.hp + (def.heal || 0) * fills);
+  player.hp = Math.min(player.maxHp, player.hp + (def.heal || 0));
   return true;
 }
 
@@ -136,10 +131,10 @@ export function autoDrink(player) {
 // kill at zero, tiredness never does. The Survival setting turns all of it off
 // (Michael, 2026-10-10 late): off, nothing drains and the needs stay full, so
 // the moodles never show; health still regenerates (2026-10-15). Health comes back slowly while fed and watered and
-// nothing bleeds, faster asleep, not at all when falling asleep on your feet.
+// nothing bleeds, faster asleep, faster again well fed (Michael, 2026-10-18), not at all when falling asleep on your feet.
 function updateNeeds(player, dt) {
   if (!rules.survival) {
-    // Off, the needs stay full, and health still comes back as a fed body's does (Michael, 2026-10-15: it stopped too).
+    // Off, the needs stay full, so health comes back as a well-fed body's does (Michael, 2026-10-15: it stopped too; well fed, 2026-10-18).
     player.hunger = player.maxHunger ?? T.hungerMax;
     player.thirst = player.maxThirst ?? T.thirstMax;
     player.tired = player.maxTired ?? T.tiredMax;
@@ -152,11 +147,16 @@ function updateNeeds(player, dt) {
     if (player.thirst <= 0) player.hp = Math.max(0, player.hp - T.dehydrateDamage * dt);
   }
   // Regeneration (docs/30, 3.4).
+  const perMinute = regenPerMinute(player);
+  if (perMinute > 0 && player.hp < player.maxHp) player.hp = Math.min(player.maxHp, player.hp + (perMinute / 60) * dt);
+}
+
+// Health a minute that comes back on its own: none unless fed and watered, nothing bleeding, and not falling asleep on your feet;
+// faster asleep, and faster again well fed.
+export function regenPerMinute(player) {
   const fed = hungerStage(player) < 2 && thirstStage(player) < 2;
-  if (player.hp > 0 && player.hp < player.maxHp && fed && bleedStacks(player) === 0 && tiredStage(player) < 4) {
-    const perMinute = player.sleeping ? T.sleepRegenPerMinute : T.healthRegenPerMinute;
-    player.hp = Math.min(player.maxHp, player.hp + (perMinute / 60) * dt);
-  }
+  if (!(player.hp > 0) || !fed || bleedStacks(player) !== 0 || tiredStage(player) >= 4) return 0;
+  return (player.sleeping ? T.sleepRegenPerMinute : T.healthRegenPerMinute) * (isWellFed(player) ? T.wellFedRegenMult : 1);
 }
 
 // How fast stamina comes back, by the needs (docs/30, 3.2 and 3.3): halved past
