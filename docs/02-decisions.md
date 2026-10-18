@@ -127,6 +127,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
+- Every item in a grid or slot has a hover card with at least its full name and its direct uses, read from the data; "Use" capitalised and in the Use mode's gold (2026-10-18, Every item in a grid has a hover card)
 - An eye on each worn slot hides that item's art and keeps every use; the choice stays with the slot across re-equips, by default (2026-10-18, Hiding a worn item's art: an eye on each worn slot)
 - The aim guide is off by default, for the bow, a throw, and the cast (2026-10-16, The aim guide is off by default)
 - Talk's panel is entirely click-based, with topics, wiki links, Continue, and That's all for now; E starts it (2026-10-16, The needs-michael queue)
@@ -222,6 +223,14 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-18 — Every item in a grid has a hover card (Michael)
+
+From Michael's playtest: "A lot of our buttons are super cramped, even showing unreadable gibberish as the short name for a 2-3 word title. They also tell you literally nothing about what they are. I propose as a universal rule, anything in an inventory (you, zombie, npc, output of stations, et al), really anything sized as a puzzle piece in a grid, should get a hover bubble explaining the basics. The full name and direct uses at least. 'Use' on an object to light it, etc." And: "Give the word Use in these caps and the same yellow color as actually using an item." Asked whether to log it as a standing rule beside "Item art comes as a pair": yes.
+
+- **The rule:** every item drawn as a piece in a grid or slot (your bag, belt, hands, and worn slots; a chest; a body, of the dead or a villager; a station's output; anything else drawn so) shows a hover card with at least its **full name** and its **direct uses**. It is a law in `CLAUDE.md`, beside the item art law, so every new item is checked against it.
+- **Use** is written so, capital U as in the menu, and drawn in the Use mode's gold (`--gold`, the outline on the item being used).
+- *Primary's reading, Michael's to overrule:* the uses are read from the data (a food's heal and hunger, a tool's actions, a weapon's numbers, what a material is made into and where), never written by hand per item, so the card cannot fall behind the game. The card is drawn from what a guest's replica already holds, so a guest sees what the host sees. The build, the card's look, and its reach beyond grids (the build palette, recipe rows, props in the world) are #262.
 
 ### 2026-10-18 — Food heals what it says on the tin; a full belly heals faster (Michael)
 
