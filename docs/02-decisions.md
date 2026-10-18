@@ -187,6 +187,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Process and the studio
 
+- The first priority is a final scope for The Valley, with every dev value real and placeholder sounds in (art may lag); the demo is cut from the finished valley (2026-10-18, The Valley's final scope is the first priority; finished means sounds)
 - References to real things outside the lore are data, `data/references.json`, shown on one wiki page; the first is the Onion-head Hat, after Cake's Comfort Eagle (2026-10-18, The Onion-head Hat; real-world references on one page; specific names; a lore issue)
 - The hidden issues the valley needs are filed again with new scopes; the originals are read and closed when the bot is back (2026-10-18, The hidden issues the valley needs are filed again)
 - Recipes are learned and earned (from villagers and the regions; skills by default), not all known from the start (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
@@ -231,6 +232,16 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-18 — The Valley's final scope is the first priority; finished means sounds (Michael)
+
+Michael, at the end of his first playtest session, for the next morning:
+
+> "When I come back in the morning, remind me that our #1 priority need to be making a final scope for The Valley. We've neem bouncing around between should I work on story and setting, or skilling, or fighting. When we ordered things overall we gave ourselves, the answer, The Valley is proof it works, and it gives us way more than we need to construct The Demo then from the final valley pieces. I think if The Valley, all dev stuff flipped to real values, works as a game the rest will. And finished means sounds if not quite art yet, because demo sounds are easier. In fact this could be hurting my interest in playtesting. Also makes it hard to balance survival in any sense if I unintentionally give myself the "deaf" trait."
+
+- **The first priority is a final scope for The Valley** (#271): one list of what the valley needs to be a finished game, which ends the switching between story and setting, skilling, and fighting. It restates the roadmap's order, the valley first (2026-10-17, The roadmap, and sound: step 1, the valley and skilling; 2026-10-18, The valley first: "the first step in the overall plan"). The list adds to step 1's finish line, which is a feel and not a feature list (2026-10-17), rather than replacing it.
+- **Finished means every dev value flipped to real and sounds in,** "if not quite art yet". *Primary's reading:* "demo sounds" means placeholder sounds, not sounds made for The Demo; what they are is open on #271. It narrows 2026-10-17's "free placeholder sounds come in step 2" (noted where it sits): they are part of the Valley's finish, and #271's scope sets when. Michael's reasons: silence "could be hurting my interest in playtesting", and survival is "hard to balance" while he is in effect deaf.
+- **The demo is cut from the finished valley's pieces.**
 
 ### 2026-10-18 — Health is a thousand; drops by chance; armour modest; weapons differ by situation (Michael)
 
@@ -417,7 +428,7 @@ Michael's ruling stands as made ("editable in the before-you-enter world setting
 **The order of the work**, Michael's, with Primary's changes: two he adopted (strangers play before any money; the Steam page as soon as there is real art), one he clarified (step 1's finish line, below), and his own "4.5" made the plan, which he took with "write the roadmap": (1) the valley and skilling; (2) zombies and combat, until every weapon to be had in the valley feels good against the standard dead; (3) the demo; (4) playing together and telemetry, before the outside playtest (his evening with his brother over a server world first: "I need to prove that client to server to client works with another person, and better yet he has sketchier internet than me"); (5) the first outside playtest, on dev art; (6) Midnight Mass in dev art, the vertical slice, and a second playtest; (7) the name, before money ("I must stop here and pick a final name before I throw money at assets"); (8) art and sound, the paid phase ("I am happy to rule out directional sound now, but the zombies should make some noise, plus interface, fire, actions, walking, et al."); (9) the Steam page and wishlists; (10) the regions and release. `TODO.md` holds it, and a GitHub milestone per step. *Primary's readings, Michael's to overrule:* the demo built at step 3 is a dev-art build for playtests, and the public demo keeps 2026-10-13's final art (step 9's Next Fest); an invited playtest is not "public" in 2026-10-14's sense, so the playtests may come before the name.
 
 - **Step 1's finish line** is a feel, not a feature list: "I can load a session and play skillscape for a good while vibing with production and stocking up and making things neat and building... The experience of doing this part should FEEL fulfilling to do and no big hiccups or resource stoppages, or dead ends. It doesn't need to have final dev art or be perfect or perfectly balanced it just needs to feel like playing a game, not testing a game." *Primary's test of it:* an hour of play with no dead end; what breaks the hour goes on a list.
-- **Free placeholder sounds come in step 2,** for feel and immersion; paid sound is step 8.
+- **Free placeholder sounds come in step 2,** for feel and immersion; paid sound is step 8. (Narrowed 2026-10-18, The Valley's final scope is the first priority; finished means sounds: placeholder sounds are part of the Valley's finish, and when they come is set by its scope, #271.)
 - **Sound and sight:** a sound that carries information may have a visual twin where it makes sense, but "I don't want to require that the player can always see or hear it in every case. There SHOULD be a penalty for playing with sound off." Michael: "when I play WoW or OSRS I am very often watching a youtube or a show or a movie and I play with the sound turned fully off... So feel free to push back on me on sound in the future. Be the sound on advocate between us."
 - **Every sound on the wiki:** "anything in the game that makes a sound should have the sound as a playable file on that wiki page... So long as it does not break any license rules." A sound whose license does not let the wiki host it stays off the wiki, not out of the game.
 
