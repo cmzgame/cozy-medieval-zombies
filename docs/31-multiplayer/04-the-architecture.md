@@ -24,7 +24,7 @@ The client is `main.js`: boot, the data, the art, the figure sheets, the ground,
 
 **My player** is predicted: the guest runs the player's controller in predict mode on its own input every step, so the walk is instant, keeps the inputs the host has not yet acknowledged, and replays them over each frame (`net.js`, `pending`). Everything else about my player (health, hunger, the swing's hit, the draw's release, the action bar) is the host's and is shown as it arrives: a round trip of latency on a swing's result, none on the swing's animation (`14`: the animation is cosmetic).
 
-**Others** are smoothed, not interpolated from a ring: a frame's position is a remote character's target (`netTo`), walked to over the frame's three steps (`smoothStep`).
+**Others** are drawn between the host's frames (`src/netsmooth.js`, #248; it replaced a walk to each frame's position in a fixed three steps, which stood still on a late frame): each remote body keeps the last few positions with the host's sim time, and is drawn `feel.netDelaySteps` (4) steps behind the newest frame, interpolated between the two either side; a frame's position is still the body's `netTo`, the host's truth the sync check hashes.
 
 **Sight, light, fog, the ground, the sheets** are the client's own, built from the replica as they are built from the world on the host: all deterministic from the data.
 
