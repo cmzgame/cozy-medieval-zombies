@@ -191,6 +191,13 @@ if not isinstance(feel.get("blend"), bool):
     fail("tuning.feel.blend: true or false")
 if not (isinstance(feel.get("blendJump"), (int, float)) and not isinstance(feel.get("blendJump"), bool) and feel["blendJump"] > 0):
     fail("tuning.feel.blendJump: a number above 0")
+num = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)
+if not (num(feel.get("netDelaySteps")) and feel["netDelaySteps"] >= 1):
+    fail("tuning.feel.netDelaySteps: a number of at least 1")
+if not (num(feel.get("netSlew")) and 0 < feel["netSlew"] <= 1):
+    fail("tuning.feel.netSlew: a number above 0 and at most 1")
+if not (num(feel.get("netJump")) and feel["netJump"] > 0):
+    fail("tuning.feel.netJump: a number above 0")
 tuning_world = load("data/tuning.json")["world"]
 if tuning_world["stumpSprite"] not in sprites:
     fail(f"tuning.world.stumpSprite: no sprite {tuning_world['stumpSprite']!r}")

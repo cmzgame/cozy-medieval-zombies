@@ -14,6 +14,7 @@
 import * as game from "./game.js";
 import * as map from "./map.js";
 import * as chart from "./chart.js";
+import * as netsmooth from "./netsmooth.js";
 import * as clock from "./clock.js";
 import * as loop from "./loop.js";
 import * as light from "./light.js";
@@ -181,6 +182,7 @@ export function close() {
   pending.length = 0;
   pendingOpened.length = 0;
   pendingTalk.length = 0;
+  netsmooth.reset();
   myBase = null;
   run = null;
   runCount = 0;
@@ -1104,32 +1106,18 @@ const makers = { player: createPlayer, zombie: createZombie, villager: createVil
 
 let predictedPos = null; // where my prediction had me before this frame's record replaced it
 
-// Smoothing on the replica (the wire's fourth part, 2026-10-13, `02`): a frame comes every third step, so a
-// remote character would jump three steps' worth at once; instead the frame's position becomes its target and
-// its own position walks there over the frame's steps, one frame behind the truth, in the character's own gx
-// and gy so the hit tests, the name over its head, and its bubble follow the same point. My own player is
-// predicted, never smoothed. The sync check hashes the targets, which are the host's truth.
+// Smoothing on the replica (the wire's fourth part, 2026-10-13, `02`; rebuilt 2026-10-18, #248): a frame comes every third step, and reaches a guest irregularly, so a
+// remote character is drawn from the positions the host sent (`netsmooth.js`): a few steps behind the newest frame, interpolated between the two either side, in the
+// character's own gx and gy so the hit tests, the name over its head, and its bubble follow the same point. My own player is predicted, never smoothed. `netTo` is the
+// host's truth, which the sync check hashes.
+let frameHostTime = null; // the sim time of the frame being applied
 function aimAt(c, gx, gy) {
-  if (typeof gx !== "number" || typeof gy !== "number") return;
-  const fromX = c.gx;
-  const fromY = c.gy;
-  c.netFrom = [fromX, fromY];
-  c.netTo = [gx, gy];
-  c.netT = 0;
-  c.gx = fromX;
-  c.gy = fromY;
+  netsmooth.aim(c, gx, gy, frameHostTime);
 }
 
 function smoothStep() {
   const S = game.state;
-  const steps = FRAME_EVERY;
-  for (const c of [...S.players, ...S.zombies, ...S.villagers, ...S.corpses]) {
-    if (!c.netTo || c === S.player) continue;
-    c.netT = Math.min(steps, (c.netT || 0) + 1);
-    const t = c.netT / steps;
-    c.gx = c.netFrom[0] + (c.netTo[0] - c.netFrom[0]) * t;
-    c.gy = c.netFrom[1] + (c.netTo[1] - c.netFrom[1]) * t;
-  }
+  netsmooth.step([...S.players, ...S.zombies, ...S.villagers, ...S.corpses].filter((c) => c !== S.player), world.world.timeScale || 1);
 }
 
 function applyFrame(f) {
@@ -1140,6 +1128,8 @@ function applyFrame(f) {
   archery.setReplicaFlares(f.flares || []);
   clock.setElapsed(f.clock);
   loop.setSimTime(f.simTime);
+  frameHostTime = f.simTime;
+  netsmooth.frameArrived(f.simTime, f.timeScale || 1);
   world.setTimeScale(f.timeScale);
   if (f.chart && f.chart.length) chart.apply(f.chart); // a guest only receives the chart; the host reveals it for every player
   if (f.chunks.length) {
@@ -1219,6 +1209,8 @@ function applyFrame(f) {
     const ids = f.roster[name];
     if (Array.isArray(ids)) S[name] = ids.map((id) => byId.get(id)).filter(Boolean);
   }
+  // A body the frame did not carry stood where it was (the dead and the villagers come as a delta): pinned there at this frame's time (netsmooth.js).
+  netsmooth.hold([...S.players, ...S.zombies, ...S.villagers, ...S.corpses].filter((c) => c.id !== myPlayerId), frameHostTime);
   S.player = S.players.find((p) => p.id === myPlayerId) || S.player;
   // Reconciliation: the host's record of me stands at its tick; my inputs it has not yet applied
   // go over it again, so what I see is the host's truth plus what I have done since.
