@@ -46,7 +46,6 @@ export const COMBO = { enabled: true, hits: 3, window: 2 }; // the third hit on 
 export const FINISHER = { mult: 2 };
 export const KICK_PX = 3;
 export const KICK_TIME = 0.08;
-export const WEDGE_TIME = 0.12;
 
 export const FISTS = { damage: 6, range: 0.9, arc: 100, swing: 0.4, knockback: 0.17, stamina: 3, knockdown: 0, style: "one_handed" };
 // Dual wielding (docs/21): the off hand's swing, and what it costs. Filled from data/combat.json.

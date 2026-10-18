@@ -25,7 +25,7 @@ export function propById(id) {
 const ROOM_MAX = 300; // a region bigger than this is outdoors, not a room
 const ROUND_BODY_RADIUS = 0.2; // a body's radius against round props; 0.3 against walls
 
-const chunks = new Map(); // "cx,cy" -> { cx, cy, tiles, floorCache, floorDirty }
+const chunks = new Map(); // "cx,cy" -> { cx, cy, layer, tiles, wild, dirty, lightVersion, saved }
 let source = null; // authored tiles: (x, y) => tile | null
 let defaultFloor = "floor_grass";
 // What a read beyond the grown chunks sees (docs/31/05 item 8): plain floor, no
@@ -1103,7 +1103,7 @@ export function installChunk(d) {
   for (const [floor, n] of d.floors) for (let j = 0; j < n; j++) tiles[i++] = createTile(floor);
   for (const [lx, ly, edge, w] of d.walls) tiles[ly * CHUNK + lx][edge] = { ...w, at: [cx * CHUNK + lx, cy * CHUNK + ly] };
   for (const [lx, ly, list] of d.items) tiles[ly * CHUNK + lx].items = list;
-  const c = { cx, cy, layer, tiles, floorCache: null, floorDirty: true, wild: !!d.wild, dirty: !!d.dirty, lightVersion: 0, saved: null };
+  const c = { cx, cy, layer, tiles, wild: !!d.wild, dirty: !!d.dirty, lightVersion: 0, saved: null };
   chunks.set(k, c);
   lastChunk = null;
   roomsDirty = true;
@@ -1267,7 +1267,7 @@ export function getChunk(cx, cy, create = true, layer = 0) {
     }
   }
   // `wild` and `dirty` decide eviction (docs/23a, B2); `lightVersion` is the light cache's key (B4).
-  c = { cx, cy, layer, tiles, floorCache: null, floorDirty: true, wild: anyWild, dirty: false, lightVersion: 0, saved: null };
+  c = { cx, cy, layer, tiles, wild: anyWild, dirty: false, lightVersion: 0, saved: null };
   chunks.set(k, c);
   touched.add(k); // grown: a guest learns of it like any change (net.js; the guest cannot grow it itself, its settings could shape it differently)
   lastChunk = c;
