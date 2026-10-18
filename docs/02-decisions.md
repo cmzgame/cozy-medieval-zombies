@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Michael hopes a region is not done in one sitting and then visited only for one ingredient: it is returned to (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
 - How long the valley's day-one food would keep a player from starving is a statistic kept current on the wiki and a target in design; the starting foods are weak on purpose, cooking improves them, and the regions could offer better (2026-10-18, Day-one food is a tracked statistic; what scripting means)
 - A villager the dead have hurt heals slowly at the player's rate and still talks and barks; only a dead one is silent (2026-10-18, A hurt villager heals at the player's rate; 2026-10-18, A wounded villager still talks and barks)
 - An item's name is specific unless the thing is truly one of a kind; identical materials keep plain names (2026-10-18, The Onion-head Hat; real-world references on one page; specific names; a lore issue)
@@ -76,9 +77,9 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
-- Every health number is ten times today's (a player 1,000), an even scale with nothing else changed, as step one of #133; big numbers are welcome, a boss may have 10,000; a bar may show a percent instead (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
-- Gear can drop by chance, a lever never used before; a boss's best drop is not guaranteed every kill; a region is returned to for what only it gives (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
-- Armour stays modest, the least of it a little better than nothing; flat numbers mostly, a percent rarely (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
+- Health is a thousand: health numbers ten times today's (a player 1,000); big numbers are welcome, a boss may have 10,000; what scales and when are Primary's reading (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
+- Gear can drop by chance, a lever never used before; a boss's best drop is not guaranteed every kill (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
+- The least armour is just better than nothing; armour mostly in flat numbers, a percent rarely; how strong the best gets is open (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
 - Few strictly-better items does not mean every weapon does the same damage everywhere: resistances make a weapon strong in one place and weak in another (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
 - Combat stays paused until Michael's play session; then the spin cap, knockdown, and push per hit (2026-10-16, The needs-michael queue)
 - The knockdown chance 0.3 is high and stands until the combat pass re-rules it (2026-10-16, The sweep, after wave 3)
@@ -243,10 +244,12 @@ Michael, on Primary's case for a thousand health (100 is cramped: five foods tie
 
 > "I know we said we didn't want to do a ton of 'stricly better' type stuff because it's boring but that does not also mean that all weapons need to do the same amount of damage and in every situation. That is part of what resistances are for."
 
-- **Health is a thousand.** Every health number in the game goes up ten times together: the player's, the dead's, and the villagers' health; weapon damage, bites, bleeding, burning, and starving; food's heals and the healing rates. Nothing else changes, so the game plays exactly as before, and it is step one of #133, before the difficulty pass tunes in the finer steps. **Big numbers are welcome** ("bigger numbers are a playground"): a boss may have 10,000 health, and a final boss may have phases that give time to heal. **A bar may be shown as a percent** instead, a setting. The decimal can move back if it must.
+- **Health is a thousand** ("1000 is an easy win"): health numbers ten times today's, a player 1,000. **Big numbers are welcome** ("bigger numbers are a playground"), and a boss may have 10,000 health. The decimal can move back if it must.
+  *Primary's reading, Michael's to overrule:* every health number scales together so the game plays exactly as before, as step one of #133, before the difficulty pass tunes in the finer steps. That means the player's, the dead's, and the villagers' health; weapon damage, bites, bleeding, burning, and starving; food's heals and every healing rate, the villagers' included; and what walls, doors, shutters, boards, and fences can take, with the dead's strikes on them, so a fence's timing (2026-10-17) stays as it is.
+  **Two things he raised that stay open:** "maybe the final boss has phases some of which give you time for natural regen" meets "no end boss, no win screen" (2026-10-13, What this game is; `00`), which stands; Primary reads it as a region's last boss, for Michael to say (#123). And "we could also allow people to swap some bars to %": a possibility, perhaps a setting, not ruled.
 - **Gear can drop by chance** (#268): a drop chance is a new lever. A boss's best item doesn't drop on every kill, or nobody would fight it twice, but the balance is to be found ("I don't want it to JUST be zombie runescape").
-- **A region is not done in one sitting:** players step back in later for the one special ingredient they need (#123).
-- **Armour stays modest:** the least of it is just better than nothing, like OSRS's green dragonhide. Mostly flat numbers, with a percent only now and then, which a thousand health makes possible (#133).
+- **Regions are returned to:** "I am hoping regions are also not a thing you do in one sitting, step just inside later to get the one special ingredient you need, and otherwise never return." *Primary's reading:* the hope is that a region keeps drawing players back, not one visit and then a dash in for one ingredient (beside "would you ever do it again?"). A hope, to be designed for (#123).
+- **The least armour is just better than nothing,** like OSRS's green dragonhide, and armour works mostly in flat numbers, a percent only now and then, which a thousand health makes possible (#133). Michael adds that keeping armour weak "was also simply a necessity of 100 health", so how strong the best armour gets is open.
 - **Weapons differ by situation:** few strictly-better items, but weapons don't all do the same damage everywhere. Resistances are what makes one weapon strong in one place and weak in another (#133).
 
 ### 2026-10-18 — Food rots: a pace, not world decay (Michael)
