@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- How long the valley's day-one food would keep a player from starving is a statistic kept current on the wiki and a target in design; the starting foods are weak on purpose, cooking improves them, and the regions could offer better (2026-10-18, Day-one food is a tracked statistic; what scripting means)
 - A villager the dead have hurt heals slowly at the player's rate and still talks and barks; only a dead one is silent (2026-10-18, A hurt villager heals at the player's rate; 2026-10-18, A wounded villager still talks and barks)
 - An item's name is specific unless the thing is truly one of a kind; identical materials keep plain names (2026-10-18, The Onion-head Hat; real-world references on one page; specific names; a lore issue)
 - An action that would realistically need a tool needs the tool carried; in a hand too is open; the bag's size is the puzzle, the Developer Bag perhaps excepted (2026-10-18, An action that needs a tool needs the tool with you)
@@ -201,6 +202,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The long arc: normal until it isn't; no story by design, no end boss, no win screen (2026-10-13, The map's choices, and the long arc)
 - The guide is one villager, immune to the dead, who explains the rules (2026-10-13, The guide: one villager)
 - Scripted sequences are a beat list under the clock law, never a cutscene; villagers' memory way later (2026-10-13, The map and talk scoped)
+- Scripting villagers means more than lines: villagers who move about and bark in response to things, on a set routine, and possibly at a player's command (2026-10-18, Day-one food is a tracked statistic; what scripting means)
 - Bugs found by the wiki census go to `docs/bugs.md`, confirmed on `main` before fixing (2026-10-14, Bugs found by the wiki census)
 - The wiki says what the game is on `main`, every number a reference to the data (2026-10-14, A wiki, scoped)
 - The wiki is part of shipping, synced in the same session as the push (2026-10-15, The wiki's rule; 2026-10-15, The wiki is part of shipping)
@@ -223,6 +225,19 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-18 — Day-one food is a tracked statistic; what scripting means (Michael)
+
+From Michael's playtest, after starving in the starting room ("this is how many minutes it takes you to die if you spawn in and never leave or open the starting room"):
+
+> "Let's make a rule and wiki statistic somewhere: how long it would take you to starve if all you had is the food that spawned in the valley on day one? This will be instructive for how much exploration it allows, and how much time it takes for you to get farming working and start production chains. We could also tweak this by starting crops in staggered ages so they are not all harvestable on day one and some could die if not upkept by you. Also on hunger remember cooking is supposed to improve the raw food and new regions could give better or stronger foods as an incentive, so starting foods being weak is good."
+
+- **The statistic** (its definition Primary's reading of Michael's words): the hunger in all the food the valley holds on day one (the starting kit, every container's fixed loot and its rolled loot as an average, the fruit on the trees, and the crops ripe at the start), and how long it keeps one player, and two or four sharing a world, from starving, at hunger's drain. The wiki is to keep it on a page generated from the game's data at every build, so it can't fall behind (cmz-wiki, a Day-one food page, its pull request under way); without tools and the kit alone are its two narrower lines. It is a design target: it says how long a new player can explore before farming must work.
+- **The first count** (Primary's, from the data at 63ea3be): about 7,800 hunger points, about 78 full stomachs, about 23 real hours or 117 game days for one player. The ripe crops hold half of it (about 4,000) and need a shovel or a knife; the containers hold about 2,300 and the apple trees about 1,400; the kit holds 70, about 13 minutes. **The valley is far more generous than this ruling intends.** Michael, on the number: "'roughly 117 game days for one player' empty fields or we introduce rotting lol. I am glad I had this thought, that is wildly imbalanced with no rotting." **Two ways, open:** a leaner start (fewer crops ripe or planted, fewer food rolls in the containers), or **food that rots**. Rot would overturn "no spoilage" (2026-10-12, The big pass answered: "No spoilage.") and is a clock on what you carry and store, so it has to be squared with the clock law's "no world decay" (`00`, Never harder on a clock); Primary's reading is that it can fit, as a property of the food a player chose to gather and store (the way a torch burns down), not a decay of the world, with preserving (cooking, salting, a cellar) as the answer and a production chain of its own. For Michael to rule.
+- **The starting foods are weak on purpose:** cooking improves raw food (it fills more and heals more: `02`, 2026-10-18, The valley first), and the regions could offer better and stronger foods as a reason to go (Michael's "could", #123).
+- **Crops in staggered ages are already so in part:** the valley's crops are placed at all three stages, not all ripe. **Crops dying if not kept up is an idea, not ruled:** today a dry crop pauses and never dies (2026-10-12, The big pass answered: "a dry plot pauses, never dies"; `data/crops.json`), and a crop that dies on a timer meets the clock law's "no world decay" (`00`, Never harder on a clock). A crop the player planted and let go dry is arguably the player's choice; Primary's flag, for Michael.
+
+**What scripting means** (Michael, the same day): "when I asked for scripting and an issue got made a while back, I didn't just mean lines of dialogue, it meant NPCs who can move around and bark in response to things, as a set routine, and possibly even at your command." *Primary's reading:* the scripted sequences of 2026-10-13 (a beat list in the host's step, never a cutscene) and the villagers' routines of the next NPC pass (#103) are one want: villagers who move on a set routine, react to what happens around them with movement and a bark, and possibly do as a player asks. The NPC pass is scoped with it (#103).
 
 ### 2026-10-18 — Every item in a grid has a hover card (Michael)
 
