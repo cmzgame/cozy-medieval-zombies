@@ -79,8 +79,8 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
-- A boss may drop a rare, very powerful capstone item worth farming it for, for its power and especially its mechanical novelty, a policy on the condition that such items can be found (2026-10-19, The belt's three uses; a book in the off hand costs the shield; the Holy Symbol is Faith's staff)
-- A book in the off hand costs the shield; the Holy Symbol is Faith's permission as a staff is Magic's, cast with the symbol raised high and the holy book read; utility books compete with spell books for room; the staff-as-permission, book-as-spell shape is proposed on #275 (2026-10-19, The belt's three uses; a book in the off hand costs the shield; the Holy Symbol is Faith's staff)
+- A boss may drop a rare, very powerful capstone item worth farming it for, for its power and especially its mechanical novelty: a policy on the condition that such items can be found (2026-10-19, Rare capstone drops worth farming a boss for, a policy on its condition)
+- A book in the off hand costs the shield; within the staff-and-book proposal (#275), the Holy Symbol is Faith's permission, cast with the symbol raised, and utility books compete with spell books for room (2026-10-19, The belt restated and added to; a book in the off hand costs the shield; the Holy Symbol is Faith's staff, within the proposal)
 - Mana exists, for spells: slow natural regeneration, potions to top it up, a free top-up at an altar, perhaps special foods later; a spell that drains health is a utility heal on a cooldown or a high mana cost and never replaces food or potions; Blizzard and Consecrate do small damage around you, their point is utility; a region's spells are gated by the region, never by level alone, for now (2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region gates its spells)
 - A player's health stays a hundred, the ×10 scale withdrawn for now; the dead and bosses scale as far as they need, thousands for a boss; max health growing with levels and gear is Michael's leaning, not ruled (2026-10-19, A player's health stays a hundred, for now; the dead scale freely)
 - Gear can drop by chance, a lever never used before; a boss's best drop is not guaranteed every kill (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
@@ -139,7 +139,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
-- The belt has three uses: carried with no action (a torch or a lantern gives its light), used up with its key (food, a potion), and a held item swapped into the right hand with its key (a sword, a book); a left click on a belt slot does what its key does; the halberd, and perhaps the greatsword, cannot go on the belt (2026-10-19, The belt's three uses; a book in the off hand costs the shield; the Holy Symbol is Faith's staff)
+- The belt: its key uses up a consumable and swaps a held item into its own hand (2026-10-10), plus a lantern carried there for more light than a torch's, a left click doing what the key does, and the halberd, perhaps the greatsword, never on it (2026-10-19, The belt restated and added to; a book in the off hand costs the shield; the Holy Symbol is Faith's staff, within the proposal)
 - Every item in a grid or slot has a hover card with at least its full name and its direct uses, read from the data by default; "Use" capitalised and in the Use mode's gold (2026-10-18, Every item in a grid has a hover card)
 - An eye on each worn slot hides that item's art and keeps every use; the choice stays with the slot across re-equips, by default (2026-10-18, Hiding a worn item's art: an eye on each worn slot)
 - The aim guide is off by default, for the bow, a throw, and the cast (2026-10-16, The aim guide is off by default)
@@ -148,7 +148,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The world fills the window; nothing is laid out against 960×540 (2026-10-10, night, The view, the screens, and a law)
 - If the game is good, people will sit for a loading screen (2026-10-10, night, The view, the screens, and a law)
 - The zoom snaps between three levels: wide 1.1, middle 1.8, close 2.7 (2026-10-10, late, The belt as utility slots, a belt torch, the zoom)
-- The belt is utility slots for consumables; a belt torch gives a little over half its light (0.6 since 2026-10-17, was half), seen from a little over half as far (2026-10-10, late, The belt as utility slots, a belt torch, the zoom; 2026-10-17, A belt torch sees a bit further than none); widened (2026-10-19, The belt's three uses; a book in the off hand costs the shield; the Holy Symbol is Faith's staff): three uses, carried, used up, and swapped into a hand
+- The belt is utility slots for consumables; a belt torch gives a little over half its light (0.6 since 2026-10-17, was half), seen from a little over half as far (2026-10-10, late, The belt as utility slots, a belt torch, the zoom; 2026-10-17, A belt torch sees a bit further than none); restated and added to (2026-10-19, The belt restated and added to; a book in the off hand costs the shield; the Holy Symbol is Faith's staff, within the proposal)
 - A belt torch sees a bit further than no torch: `beltLight` 0.6 puts its radius, 1.8, above the dark radius, 1.5 (2026-10-17, A belt torch sees a bit further than none)
 - One container rule: no container inside another unless empty; big furniture is carried with both hands empty (2026-10-10, late, Containers and carrying)
 - Everything is a slot, nothing a pointer; carrying capacity is always a worn item; the hands are slots too (2026-10-10, later, The character; 2026-10-10, after play, The character, Michael's notes)
@@ -239,11 +239,20 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
-### 2026-10-19 — The belt's three uses; a book in the off hand costs the shield; the Holy Symbol is Faith's staff (Michael)
+### 2026-10-19 — Rare capstone drops worth farming a boss for, a policy on its condition (Michael)
+
+> "Make sure my thought about rare very powerful capstone items dropping from bosses as incentive to farm them gets written down somewhere. This is something I am prepared to adopt as policy so long as I can find good items that are worth it. A spell shield that acts as a magic book would be a cool idea. A bow that makes its own arrows when you pull the string back I had bandied about. Maybe a sword with some kind of spinning knockback proc chance or something? But you get the idea: power and especially mechanical novelty."
+
+And earlier the same day: "I do want to argue for low drop chance items that make farming bosses worth it. Not the 1/2,000 like OSRS but if the best item drops on every kill, you finish the zone and never go back."
+
+- **A policy, on its condition:** a boss may drop a rare, very powerful capstone item, the reason to farm it, "so long as I can find good items that are worth it". What makes one worth it: "power and especially mechanical novelty". His examples: a spell shield that works as a magic book (the "someday" shield of the entry below); a bow that makes its own arrows as the string is drawn; a sword with a chance of a spinning knockback.
+- **Rare, never certain:** far kinder than OSRS's odds, but the best item never drops on every kill. *Primary's note:* it restates 2026-10-18's drops by chance (Health is a thousand; drops by chance; armour modest; weapons differ by situation); #268, #123.
+
+### 2026-10-19 — The belt restated and added to; a book in the off hand costs the shield; the Holy Symbol is Faith's staff, within the proposal (Michael)
 
 On Primary's points about the staff and the book (#275, where the whole shape is a proposal: the staff the school's permission, each book one spell, one book in the off hand at a time):
 
-> "#3 answers a question I had had for a while: if belt us a utility spot, why does not not hold and do anything with weapons, which is what people often put on their belts. Answer: you can put them there and tapping the key now swaps it into the appropriate hand.
+> "#3 [Primary's third point: a book on the belt, swapped into the hand by its key] answers a question I had had for a while: if belt us a utility spot, why does not not hold and do anything with weapons, which is what people often put on their belts. Answer: you can put them there and tapping the key now swaps it into the appropriate hand.
 >
 > So for the belt it's:
 >
@@ -257,18 +266,10 @@ On Primary's points about the staff and the book (#275, where the whole shape is
 >
 > Go ahead and rule off hand book fine to cost the shield. Maybe someday we will add a special shield that acts as a book for a specific spell. It's probably not 1.0 unless it's some kind of a zone capstone drop, although I do want to argue for low drop chance items that make farming bosses worth it. Not the 1/2,000 like OSRS but if the best item drops on every kill, you finish the zone and never go back."
 
-- **The belt has three uses:** carried with no action (a torch gives a little light there, a lantern more); used up with its key (food, a potion); and a held item swapped into the right hand with its key (a sword, a book). It widens 2026-10-10's "utility slots for consumables" (noted where it sits). A left click on a belt slot does what its key does. **The halberd cannot go on the belt, and perhaps the greatsword.** *Primary's note:* a left press on a belt slot also starts a drag today, so the build must tell a click from a drag.
-- **A book in the off hand costs the shield.** Someday a special shield may work as a book for one spell, probably not 1.0 unless it is a region's capstone drop.
-- **The Holy Symbol is Faith's permission,** as a staff is Magic's (accepted), cast with the raise-up pose the game already has: the symbol raised high, the holy book read.
-- **Utility books compete with spell books** for room, so a player plans what they will do.
-- **Drops:** "low drop chance items that make farming bosses worth it", far kinder than OSRS's odds, but never the best item on every kill (2026-10-18, drops by chance; #268).
-- **Proposed, not ruled:** the staff as the school's permission and each book one spell, one book in the off hand at a time (#275).
-
-And later the same day:
-
-> "Make sure my thought about rare very powerful capstone items dropping from bosses as incentive to farm them gets written down somewhere. This is something I am prepared to adopt as policy so long as I can find good items that are worth it. A spell shield that acts as a magic book would be a cool idea. A bow that makes its own arrows when you pull the string back I had bandied about. Maybe a sword with some kind of spinning knockback proc chance or something? But you get the idea: power and especially mechanical novelty."
-
-- **A policy, on its condition:** each boss may drop a rare, very powerful capstone item, the reason to farm it, "so long as I can find good items that are worth it". What makes one worth it is "power and especially mechanical novelty". His examples: a spell shield that works as a magic book; a bow that makes its own arrows as the string is drawn; a sword with a chance of a spinning knockback. Rare as 2026-10-18 and above say, never on every kill, far kinder than OSRS (#268, #123).
+- **The belt, restated and added to.** As 2026-10-10 ruled (noted where it sits), its key uses up a consumable and swaps a held item "into the appropriate hand" (a sword to the main hand, a book to the off hand; the code does so today). Added: **carried with no action**, a torch there for less light and **a lantern for more**; **a left click on a belt slot does what its key does**, "if people prefer it"; and **the halberd cannot go on the belt, and perhaps the greatsword.** *Primary's notes for the build:* a press on a belt slot starts a drag today, and a double-click on the belt draws (2026-10-10, night, later still, Double-click, zoom), so the click must be told from both; today the halberd can go on the belt, so the rule belongs in the slot check, which also refuses a guest's slot command (#226).
+- **A book in the off hand costs the shield** (ruled). Someday a special shield may work as a book for one spell, probably not 1.0 unless a region's capstone drop (the entry above). *Primary's note:* `docs/24`'s Q2 asked whether a two-handed staff leaves no shield; a book costs the shield either way, so that half no longer decides it.
+- **Within the staff-and-book proposal (#275), ruled as part of it:** the Holy Symbol is Faith's permission, as a staff is Magic's ("accepted"), cast with the raise-up pose: "holy symbol raised high, reading from the holy book"; and utility books compete with spell books for room, so a player plans what they will do.
+- **Proposed, not ruled:** the staff as the school's permission and each book one spell, one book in the off hand at a time (#275). Open with it: what a hold of right (`docs/21`, the off hand's stance) does with a book in the off hand.
 
 ### 2026-10-19 — Unsafe water: a sickness that may come and passes; the skin sips only clean water; crops take any water (Michael)
 
@@ -534,7 +535,7 @@ From the same talk: "burning a torch now needs to deplete it, but it should be f
 
 - **A torch burns down while it is lit:** fastest in a hand; at the slower "wall" rate on the belt, in a bracket, or on a post; a kill costs a much larger bite, as a weapon's durability does now. Spent, it is gone. It overturns 2026-10-09's "torches never burn out" (struck where it sits).
 - **A torch is doused and lit again with a tinderbox** (T lights, with a tinderbox carried, and douses), and **a new torch starts unlit**. **So does the starting torch:** "Start unlit: the starting torch begins unlit and you light it with your tinderbox when you want it" (Michael, 2026-10-17, on #157). **A torch that leaves a hand, the belt, or a holder is doused** (the builder's reading of "it drains the whole time it's lit", Primary's default on #157, for Michael to overrule): no free relight from the bag.
-- **Belt and hand never stack:** a player gives off one carried light, the held torch winning (two in hand at the stronger light, both burning); a lit torch on the belt while another is held burns for nothing.
+- **Belt and hand never stack:** a player gives off one carried light, the held torch winning (two in hand at the stronger light, both burning); a lit torch on the belt while another is held burns for nothing. (*Primary's reading* (2026-10-19, The belt restated and added to; a book in the off hand costs the shield; the Holy Symbol is Faith's staff, within the proposal): a carried lantern counts as a carried light too.)
 - **The village's torches become lanterns:** placed on the map for now, never going out, a little brighter than a torch and steady where a torch flickers, a light item that may do more someday.
 - **The cold region may dampen or put out torches** (an idea for the regions' draft, #123).
 
@@ -1356,7 +1357,7 @@ The soft see-through hole in a canopy is the player's alone. It was punched for 
 
 ### 2026-10-10, late — The belt as utility slots, a belt torch, the zoom (Michael)
 
-- **The belt is utility slots.** Michael withdrew his question about the belt's usefulness and answered it: tools are used from a hand, so the belt is for consumables and carry items. Food and drink can go on a belt slot, as a stack; its key eats or drinks one. Hand items still swap with the hand. "Health potions, etc." when there are such things. A confirmation on eating can come if it is ever eaten by accident.
+- **The belt is utility slots.** Michael withdrew his question about the belt's usefulness and answered it: tools are used from a hand, so the belt is for consumables and carry items. Food and drink can go on a belt slot, as a stack; its key eats or drinks one. Hand items still swap with the hand. "Health potions, etc." when there are such things. A confirmation on eating can come if it is ever eaten by accident. (Restated and added to (2026-10-19, The belt restated and added to; a book in the off hand costs the shield; the Holy Symbol is Faith's staff, within the proposal): a lantern carried, a left click as the key, the halberd never on the belt.)
 - **A lit torch on the belt gives half its light, and the dead see it from half as far.** Michael: ignore that you would be on fire; it is a trade-off, free hands and a smaller glow against less sight, and perhaps an upgrade for stealth. It is not drawn on the body; only the glow. A torch in hand always wins over one on the belt. *(A little over half since 2026-10-17, `beltLight` 0.6: "A belt torch sees a bit further than none".)* No objection from me beyond the note that the light-at-player rule means the dead's plain sight of you also drops with the dimmer glow, which is the stealth he means.
 - **The zoom snaps between three levels: wide 1.1×, middle 1.8×, close 2.7×.** Z cycles them; the wheel steps one way or the other, one step per 300 ms; the settings screen picks one; the level is kept in the browser. A smooth, eased zoom was built first and withdrawn within the hour: as the world slid under the cursor the player spun to follow the mouse and the view jerked, "definitely worse" (Michael). The three levels are about ten percent off either end of 1× to 3×, as he asked. Integer display scaling is withdrawn for the zoom: the GPU scales the world's pixels with nearest sampling, so at these levels some pixels are one screen pixel wider than their neighbours; Michael judges the look. Tiles, sprites, and the dev art are still drawn at whole pixels in world space.
 - ~~**The spawn area follows the narrower view:** chunk growth back to three ahead.~~ (superseded 2026-10-13: Reading never grows a chunk: four chunks)
@@ -1390,7 +1391,7 @@ The soft see-through hole in a canopy is the player's alone. It was punched for 
 - **A torch goes in either hand.** An item's `hands` may now be `either`: it takes a free hand, the main one first, or the hand it is dropped on.
 - **The starter kit is poor and says so.** A rope belt and a burlap sack, so better ones found in chests read as better. No hood to start: the head slot begins empty.
 - **~~The character screen sits in the centre of the view~~ (superseded 2026-10-12: The theme is kept: panels move and remember their place), laid out like an RPG doll** from Michael's drawing: the belt top-left, the bag top-right, head, chest, legs, and feet down the middle, a hand either side, gloves under the main hand, the bottom corners free for later. The bag column stands beside it. Tab alone keeps the bag in the top-right corner.
-- **Only hand items go on the belt; a belt may ride in a bag; ~~a bag never goes in a bag~~.** (superseded 2026-10-10, late: Containers and carrying: one container rule, an empty one may) Stated so it is clear. Whether a bag may go inside a bigger bag is open question 20.
+- **~~Only hand items go on the belt;~~ (superseded (2026-10-10, late, The belt as utility slots, a belt torch, the zoom): food and drink go there too) a belt may ride in a bag; ~~a bag never goes in a bag~~.** (superseded 2026-10-10, late: Containers and carrying: one container rule, an empty one may) Stated so it is clear. Whether a bag may go inside a bigger bag is open question 20.
 
 ### 2026-10-10, later — The character (Michael)
 
