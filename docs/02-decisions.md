@@ -77,7 +77,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
-- Health is a thousand: health numbers ten times today's (a player 1,000); big numbers are welcome, a boss may have 10,000; what scales and when are Primary's reading (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
+- A player's health stays a hundred, the ×10 scale withdrawn for now; the dead and bosses scale as far as they need, thousands for a boss; max health growing with levels and gear is Michael's leaning, not ruled (2026-10-19, A player's health stays a hundred, for now; the dead scale freely)
 - Gear can drop by chance, a lever never used before; a boss's best drop is not guaranteed every kill (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
 - The least armour is just better than nothing; armour mostly in flat numbers, a percent rarely; how strong the best gets is open (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
 - Few strictly-better items does not mean every weapon does the same damage everywhere: resistances make a weapon strong in one place and weak in another (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
@@ -233,6 +233,17 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-10-19 — A player's health stays a hundred, for now; the dead scale freely (Michael)
+
+On the skills trees (#275), when Primary suggested scaling their damage numbers to a thousand health:
+
+> "I actually don't want to do this right now because I am worried it's way too aggressive, I am wondering if instead players shouldn't start with 100 health and it can be improved through leveling and/or gear. Enemies we can scale as much as we want, thousands for bosses, etc. What if certain gear gave you flat max health increases like + 10 or +15 (on a 100 scale)."
+
+- **The ×10 health scale is withdrawn, for now** ("I actually don't want to do this right now"): a player's health stays a hundred. It overturns 2026-10-18's "Health is a thousand" and Primary's reading of it (struck where they sit); that entry's other rulings (drops by chance, weapons by situation, regions returned to) stand. Its armour ruling stands too, but its reason for flat numbers ("1000 lets us play with more literal numbers") is gone: whether flat armour still works on a hundred is open for Michael (#133).
+- **The dead and bosses scale as far as they need,** "thousands for bosses".
+- **A player's maximum health can grow,** through levels (Faith's "More overall health", #275) and gear, Michael's leaning, not yet ruled: "What if certain gear gave you flat max health increases like + 10 or +15 (on a 100 scale)." *Primary's reading:* flat amounts by default, sized on the hundred.
+- *Primary's note:* the reason given for the scale on 2026-10-18 (five foods heal 1, natural healing is 1 a minute, the low end is cramped) still stands, so fine steps at the low end are for #133 and #275 to solve another way, a fractional heal or rate, if they need them.
+
 ### 2026-10-19 — Skills may touch combat, open for discussion; death takes them, the one real cost of dying (Michael)
 
 On Primary's skills draft (now #275), which listed "off the battlefield: no skill makes you hit harder" as already ruled:
@@ -266,12 +277,12 @@ Michael, on Primary's case for a thousand health (100 is cramped: five foods tie
 
 > "I know we said we didn't want to do a ton of 'stricly better' type stuff because it's boring but that does not also mean that all weapons need to do the same amount of damage and in every situation. That is part of what resistances are for."
 
-- **Health is a thousand** ("1000 is an easy win"): health numbers ten times today's, a player 1,000. **Big numbers are welcome** ("bigger numbers are a playground"), and a boss may have 10,000 health. The decimal can move back if it must.
-  *Primary's reading, Michael's to overrule:* every health number scales together so the game plays exactly as before, as step one of #133, before the difficulty pass tunes in the finer steps. That means the player's, the dead's, and the villagers' health; weapon damage, bites, bleeding, burning, and starving; food's heals and every healing rate, the villagers' included; and what walls, doors, shutters, boards, and fences can take, with the dead's strikes on them, so a fence's timing (2026-10-17) stays as it is.
+- ~~**Health is a thousand** ("1000 is an easy win"): health numbers ten times today's, a player 1,000.~~ (superseded 2026-10-19, A player's health stays a hundred, for now; the dead scale freely: a player starts at a hundred) **Big numbers are welcome** ("bigger numbers are a playground"), and a boss may have 10,000 health. ~~The decimal can move back if it must.~~ (superseded 2026-10-19, A player's health stays a hundred, for now; the dead scale freely: moot)
+  ~~*Primary's reading, Michael's to overrule:* every health number scales together so the game plays exactly as before, as step one of #133, before the difficulty pass tunes in the finer steps.~~ ~~That means the player's, the dead's, and the villagers' health; weapon damage, bites, bleeding, burning, and starving; food's heals and every healing rate, the villagers' included; and what walls, doors, shutters, boards, and fences can take, with the dead's strikes on them, so a fence's timing (2026-10-17) stays as it is.~~ (superseded 2026-10-19, A player's health stays a hundred, for now; the dead scale freely: the scale is withdrawn)
   **Two things he raised that stay open:** "maybe the final boss has phases some of which give you time for natural regen" meets "no end boss, no win screen" (2026-10-13, The map's choices, and the long arc; `00`), which stands; Primary reads it as a region's last boss, for Michael to say (#123). And "we could also allow people to swap some bars to %": a possibility, perhaps a setting, not ruled.
 - **Gear can drop by chance** (#268): a drop chance is a new lever. A boss's best item doesn't drop on every kill, or nobody would fight it twice, but the balance is to be found ("I don't want it to JUST be zombie runescape").
 - **Regions are returned to:** "I am hoping regions are also not a thing you do in one sitting, step just inside later to get the one special ingredient you need, and otherwise never return." *Primary's reading:* the hope is that a region keeps drawing players back, not one visit and then a dash in for one ingredient (beside "would you ever do it again?"). A hope, to be designed for (#123).
-- **The least armour is just better than nothing,** like OSRS's green dragonhide, and armour works mostly in flat numbers, a percent only now and then, which a thousand health makes possible (#133). Michael adds that keeping armour weak "was also simply a necessity of 100 health", so how strong the best armour gets is open.
+- **The least armour is just better than nothing,** like OSRS's green dragonhide, and armour works mostly in flat numbers, a percent only now and then, ~~which a thousand health makes possible~~ (superseded 2026-10-19, A player's health stays a hundred, for now; the dead scale freely: whether flat armour still works on a hundred is open, #133). Michael adds that keeping armour weak "was also simply a necessity of 100 health", so how strong the best armour gets is open.
 - **Weapons differ by situation:** few strictly-better items, but weapons don't all do the same damage everywhere. Resistances are what makes one weapon strong in one place and weak in another (#133).
 
 ### 2026-10-18 — Food rots: a pace, not world decay (Michael)
