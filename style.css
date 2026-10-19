@@ -1393,7 +1393,6 @@ html, body {
   font-size: 14px;
   color: var(--text, inherit);
   background: none;
-  border: 0;
   padding: 0 4px;
   cursor: pointer;
   opacity: 0.8;

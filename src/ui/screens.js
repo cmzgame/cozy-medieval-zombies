@@ -185,6 +185,20 @@ function listen(el) {
   });
   // The dropdowns (#108): a setting, the hair or a painted layer to try, the identity editor's hair style.
   el.addEventListener("change", (e) => {
+    // A count left as nothing, 0, 150, or 2.5: put back a whole number from 1 to 99 (nothing typed keeps the count it had), so the
+    // field never shows one count while the rule holds another.
+    const count = e.target.closest("input[data-kit-count]");
+    if (count) {
+      const pick = count.closest(".kit-pick");
+      const id = count.closest("[data-kit-item]").dataset.kitItem;
+      const list = kitRead(pick.dataset.kitValue);
+      const had = list.find((c) => c.item === id);
+      const n = Math.round(Number(count.value));
+      const fixed = count.value.trim() === "" || !Number.isFinite(n) ? (had ? had.count : 1) : Math.min(99, Math.max(1, n));
+      count.value = String(fixed);
+      kitWrite(pick, list.map((c) => (c.item === id ? { ...c, count: fixed } : c)), false);
+      return;
+    }
     const sel = e.target.closest("select");
     if (!sel) return;
     if (sel.dataset.key) settings.set(sel.dataset.key, JSON.parse(sel.value));
@@ -449,18 +463,15 @@ function showKitProblem() {
 
 // ---- The extra starting items' picker (Michael, 2026-10-19: "a multiselect of some sort with autofill") ----
 // The rule is still text, one `item_id count` a line (kit.js reads it); the picker writes it, so nothing past this screen changes.
-// Each line is read on its own, so one bad line (an older typed list) drops only itself.
+// Each line is read on its own, so one bad line (an older typed list) drops only itself; an item named twice is one row.
 function kitRead(text) {
   const out = [];
   for (const line of String(text || "").split(/[\n,;]+/)) {
-    try {
-      const { items: got } = kit.parseExtra(line);
-      for (const g of got) {
-        const had = out.find((c) => c.item === g.item);
-        if (had) had.count = Math.min(99, had.count + g.count);
-        else out.push({ ...g });
-      }
-    } catch { /* the items are not loaded yet: nothing to show */ }
+    for (const g of kit.parseExtra(line).items) {
+      const had = out.find((c) => c.item === g.item);
+      if (had) had.count = Math.min(99, had.count + g.count);
+      else out.push({ ...g });
+    }
   }
   return out;
 }
@@ -993,6 +1004,13 @@ function render() {
         <div class="screen-buttons row">${button("wait-cancel", "Cancel")}</div>
       </div>`;
   } else if (current === "newworld") {
+    // A remembered list the picker would show differently (a bad line, an item named twice) is written back as shown, so the
+    // rule is what the player sees and can change.
+    if (items.allItems().length) {
+      const raw = sandboxNow().rules.extraKit || "";
+      const shown = kitText(kitRead(raw));
+      if (shown !== raw) data.rules = { ...sandboxNow().rules, extraKit: shown };
+    }
     const now = sandboxNow();
     // What changes later (the pause menu's World rules) is set apart from what is chosen once, when the world is made
     // and baked into it (Trees, Starting population, the dev chest): Michael, #130, "some settings are tweakable on the fly,
