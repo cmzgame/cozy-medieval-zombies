@@ -1039,6 +1039,8 @@ Michael, thinking about the dual-wield balance: **durability is wanted, and as a
 
 ### 2026-10-12 — The virus comes back as a marker (Michael, question 29b)
 
+*Narrowed (2026-10-19, Unsafe water: a sickness that may come and passes; the skin sips only clean water; crops take any water): a drink of unsafe water is a second way in, a small chance.*
+
 (the build's record is `docs/history/02-build-log.md`, same heading)
 
 Michael, on the wounds question: the **stack-bleed** is liked, health potions are an idea for later and need balancing around, and **the virus is wanted back because it adds stakes**: infection "alarming but not uncommon", a thing to take care of that **should not turn you inside one to two in-game days**, with ways to mitigate it that feel fair (an idea: mushrooms, some crafting). **First step, built as a mock-up (`src/infection.js`):** a landed bite that did damage (after the guard and any exposure) infects with a **20 percent chance** (`infection.chance` in `data/combat.json`); the infection is a clock of **1.5 in-game days** (`infection.days`, 1080 real seconds at 720 per day) that only shows itself, as a **moodle going green (Bitten), yellow (Fevered), orange (Sick), red (Turning)** at a quarter each, held red after. **It does nothing else: no turning, no death, no damage.** A message says the bite broke the skin.
