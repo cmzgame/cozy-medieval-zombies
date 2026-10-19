@@ -13,6 +13,7 @@
 import * as settings from "../settings.js";
 import * as rules from "../rules.js";
 import * as kit from "../kit.js";
+import * as items from "../items.js";
 
 // A code, a name, or an address can come off the URL or a friend: never into innerHTML as it is.
 function esc(text) {
@@ -127,6 +128,11 @@ function listen(el) {
     }
     if (btn && btn.closest(".site-nav")) btn.blur(); // a menu button that keeps the focus would take the next Enter itself (so Enter plays on Home)
     if (btn) return go(btn.dataset.go, btn.dataset);
+    // The extra starting items' picker: a suggestion adds its item, a cross takes one out.
+    const add = e.target.closest("li[data-kit-add]");
+    if (add) return kitAdd(add.closest(".kit-pick"), add.dataset.kitAdd);
+    const remove = e.target.closest("button[data-kit-remove]");
+    if (remove) return kitRemove(remove.closest(".kit-pick"), remove.closest("[data-kit-item]").dataset.kitItem);
     // The identity editor's swatches and rows: each sets one field of the look and redraws (youApi).
     const lookBtn = e.target.closest("button[data-look-key]");
     if (lookBtn && youApi) {
@@ -168,7 +174,14 @@ function listen(el) {
   // A dropdown's keys are its own (the arrows pick an answer; input.js would cancel them, and a letter would walk the
   // player); Escape still reaches the screens, and a release is let through so no key is left down (#65, #80).
   el.addEventListener("keydown", (e) => {
-    if (e.target && (e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA") && e.code !== "Escape") e.stopPropagation();
+    const search = e.target.closest && e.target.closest("input[data-kit-search]");
+    if (search) return kitKey(search, e);
+    if (e.target && (e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA" || (e.target.matches && e.target.matches("input[data-kit-count]"))) && e.code !== "Escape") e.stopPropagation();
+  });
+  // A press on a suggestion must not take the focus from the search field (its blur would hide the list first).
+  el.addEventListener("mousedown", (e) => { if (e.target.closest && e.target.closest(".kit-suggest")) e.preventDefault(); });
+  el.addEventListener("focusout", (e) => {
+    if (e.target.matches && e.target.matches("input[data-kit-search]")) kitSuggest(e.target, true);
   });
   // The dropdowns (#108): a setting, the hair or a painted layer to try, the identity editor's hair style.
   el.addEventListener("change", (e) => {
@@ -183,10 +196,14 @@ function listen(el) {
     render();
   });
   el.addEventListener("input", (e) => {
-    const text = e.target.closest("textarea[data-sandbox-text]");
-    if (text) { // a typed Sandbox choice (the extra kit): kept in the page's data with no redraw, so the typing stays where it is
-      data.rules = { ...sandboxNow().rules, [text.dataset.sandboxText]: text.value };
-      showKitProblem();
+    const search = e.target.closest("input[data-kit-search]");
+    if (search) return kitSuggest(search);
+    const count = e.target.closest("input[data-kit-count]");
+    if (count) { // a count typed: kept with no redraw, so the typing stays where it is
+      const pick = count.closest(".kit-pick");
+      const id = count.closest("[data-kit-item]").dataset.kitItem;
+      const n = Number(count.value);
+      if (Number.isInteger(n) && n >= 1 && n <= 99) kitWrite(pick, kitRead(pick.dataset.kitValue).map((c) => (c.item === id ? { ...c, count: n } : c)), false);
       return;
     }
     const name = e.target.closest("input[data-name]");
@@ -430,6 +447,112 @@ function showKitProblem() {
   if (el) el.textContent = kitProblem(sandboxNow().rules);
 }
 
+// ---- The extra starting items' picker (Michael, 2026-10-19: "a multiselect of some sort with autofill") ----
+// The rule is still text, one `item_id count` a line (kit.js reads it); the picker writes it, so nothing past this screen changes.
+// Each line is read on its own, so one bad line (an older typed list) drops only itself.
+function kitRead(text) {
+  const out = [];
+  for (const line of String(text || "").split(/[\n,;]+/)) {
+    try {
+      const { items: got } = kit.parseExtra(line);
+      for (const g of got) {
+        const had = out.find((c) => c.item === g.item);
+        if (had) had.count = Math.min(99, had.count + g.count);
+        else out.push({ ...g });
+      }
+    } catch { /* the items are not loaded yet: nothing to show */ }
+  }
+  return out;
+}
+const kitText = (list) => list.map((c) => (c.count > 1 ? `${c.item} ${c.count}` : c.item)).join("\n");
+const itemName = (id) => (items.hasItemDef(id) ? items.getItem(id).name : id);
+
+function kitPickerHtml(key, value, locked) {
+  const list = kitRead(value);
+  const rows = list.map((c) => `<li class="kit-chip" data-kit-item="${esc(c.item)}"><span class="kit-name">${esc(itemName(c.item))}</span>${locked
+    ? `<span class="kit-n">× ${c.count}</span>`
+    : `<input class="kit-count" type="number" min="1" max="99" value="${c.count}" data-kit-count aria-label="How many ${esc(itemName(c.item))}"><button class="kit-remove" data-kit-remove title="Take it out" aria-label="Take ${esc(itemName(c.item))} out">×</button>`}</li>`).join("");
+  const none = list.length ? "" : `<li class="kit-none">${locked ? "None" : "Nothing extra yet"}</li>`;
+  const add = locked ? "" : `<div class="kit-add"><input type="text" class="kit-search" data-kit-search placeholder="Type an item's name to add it" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false"><ul class="kit-suggest" role="listbox" hidden></ul></div>`;
+  return `<div class="kit-pick" data-kit-key="${esc(key)}" data-kit-value="${esc(value || "")}"><ul class="kit-chips">${rows}${none}</ul>${add}</div>`;
+}
+
+// Writes the list into the page's Sandbox choices and the picker; `redraw` redraws the picker's rows (an add or a removal), keeping
+// the focus in its search field.
+function kitWrite(pick, list, redraw = true) {
+  const text = kitText(list);
+  data.rules = { ...sandboxNow().rules, [pick.dataset.kitKey]: text };
+  pick.dataset.kitValue = text;
+  if (redraw) {
+    const fresh = document.createElement("div");
+    fresh.innerHTML = kitPickerHtml(pick.dataset.kitKey, text, false);
+    const next = fresh.firstElementChild;
+    pick.replaceWith(next);
+    const search = next.querySelector("input[data-kit-search]");
+    if (search) search.focus();
+  }
+  showKitProblem();
+}
+
+function kitAdd(pick, id) {
+  if (!pick || !items.hasItemDef(id)) return;
+  const list = kitRead(pick.dataset.kitValue);
+  const had = list.find((c) => c.item === id);
+  if (had) had.count = Math.min(99, had.count + 1);
+  else list.push({ item: id, count: 1 });
+  kitWrite(pick, list);
+}
+
+function kitRemove(pick, id) {
+  if (!pick) return;
+  kitWrite(pick, kitRead(pick.dataset.kitValue).filter((c) => c.item !== id));
+}
+
+// The suggestions for what is typed: names that begin with it first, then a word of the name, then the name, short name, or id that
+// holds it; eight at most.
+function kitMatches(q) {
+  q = q.trim().toLowerCase();
+  if (!q) return [];
+  const score = (d) => {
+    const name = (d.name || "").toLowerCase();
+    if (name.startsWith(q)) return 0;
+    if (name.split(/\s+/).some((w) => w.startsWith(q))) return 1;
+    if (name.includes(q) || (d.short || "").toLowerCase().includes(q) || d.id.includes(q.replace(/\s+/g, "_"))) return 2;
+    return 9;
+  };
+  return items.allItems().map((d) => [score(d), d]).filter(([s]) => s < 9).sort((a, b) => a[0] - b[0] || a[1].name.localeCompare(b[1].name)).slice(0, 8).map(([, d]) => d);
+}
+
+function kitSuggest(search, hide = false) {
+  const ul = search.parentElement.querySelector(".kit-suggest");
+  const found = hide ? [] : kitMatches(search.value);
+  ul.innerHTML = found.map((d, i) => `<li role="option" data-kit-add="${esc(d.id)}"${i === 0 ? ' class="active" aria-selected="true"' : ""}>${esc(d.name)}<small>${esc(d.id)}</small></li>`).join("")
+    || (!hide && search.value.trim() ? `<li class="kit-nomatch">No item by that name</li>` : "");
+  ul.hidden = !ul.innerHTML;
+  search.setAttribute("aria-expanded", String(!ul.hidden));
+}
+
+// The search field's keys are its own (input.js would walk the player): the arrows move through the suggestions, Enter adds the one
+// marked, Escape shuts the list, and only then backs out of the screen.
+function kitKey(search, e) {
+  const ul = search.parentElement.querySelector(".kit-suggest");
+  const opts = [...ul.querySelectorAll("li[data-kit-add]")];
+  const at = opts.findIndex((o) => o.classList.contains("active"));
+  const mark = (i) => opts.forEach((o, j) => { o.classList.toggle("active", j === i); o.setAttribute("aria-selected", String(j === i)); });
+  if (e.code === "Escape") {
+    if (!ul.hidden) { e.stopPropagation(); e.preventDefault(); kitSuggest(search, true); }
+    return;
+  }
+  e.stopPropagation();
+  if ((e.code === "ArrowDown" || e.code === "ArrowUp") && opts.length) {
+    e.preventDefault();
+    mark((at + (e.code === "ArrowDown" ? 1 : opts.length - 1) + opts.length) % opts.length);
+  } else if ((e.code === "Enter" || e.code === "NumpadEnter") && opts.length) {
+    e.preventDefault();
+    kitAdd(search.closest(".kit-pick"), opts[Math.max(0, at)].dataset.kitAdd);
+  }
+}
+
 // The Sandbox step as it stands: the last choices the browser remembers, over them what this page has changed.
 function sandboxNow() {
   const first = worldsApi && worldsApi.sandbox ? worldsApi.sandbox() : { rules: {}, devChest: false };
@@ -561,7 +684,7 @@ function settingRow(entry) {
 function worldRuleRow(entry, value, attrs, locked = false, why = "the host's") {
   // A switch for a true or false rule, a dropdown for one of a few words (the Starting population; #130).
   const control = entry.text
-    ? `<textarea class="kit-text" data-sandbox-text="${esc(entry.key)}" rows="3" maxlength="600" spellcheck="false" autocomplete="off" placeholder="sword&#10;arrow 20"${locked ? " disabled" : ""}>${esc(value)}</textarea>`
+    ? kitPickerHtml(entry.key, value, locked)
     : typeof value === "boolean"
     ? `<span class="switch-state">${value ? "On" : "Off"}</span>${switchHtml(value, attrs.switch, locked)}`
     : selectHtml(entry.choices, value, attrs.select || "", locked);

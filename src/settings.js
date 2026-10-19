@@ -69,7 +69,7 @@ export const REGISTRY = [
   { key: "showHitShapes", group: "testing", label: "Hit shapes", help: "The dead's body samples, green when the next swing reaches them.", choices: ON_OFF },
   { key: "devChest", group: "sandbox", label: "Dev chest", help: "A chest of every item by the spawn, made with the world.", choices: ON_OFF },
   { key: "devBag", group: "sandbox", fixed: true, label: "Dev bag", help: "Everyone starts wearing the Developer Bag, a big bag, in place of the sack. Chosen when the world is made.", choices: ON_OFF },
-  { key: "extraKit", group: "sandbox", fixed: true, text: true, label: "Extra starting items", help: "On top of the usual kit, for testing: one item a line, `sword` or `arrow 20`. Chosen when the world is made.", choices: [] },
+  { key: "extraKit", group: "sandbox", fixed: true, text: true, label: "Extra starting items", help: "On top of the usual kit, for testing: type an item's name, pick it, and set how many. Chosen when the world is made.", choices: [] },
 ];
 
 // A switch or a dropdown: the row's answers are exactly true and false, or anything else.
