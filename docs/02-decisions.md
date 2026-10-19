@@ -79,6 +79,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
+- A boss may drop a rare, very powerful capstone item worth farming it for, for its power and especially its mechanical novelty, a policy on the condition that such items can be found (2026-10-19, The belt's three uses; a book in the off hand costs the shield; the Holy Symbol is Faith's staff)
 - A book in the off hand costs the shield; the Holy Symbol is Faith's permission as a staff is Magic's, cast with the symbol raised high and the holy book read; utility books compete with spell books for room; the staff-as-permission, book-as-spell shape is proposed on #275 (2026-10-19, The belt's three uses; a book in the off hand costs the shield; the Holy Symbol is Faith's staff)
 - Mana exists, for spells: slow natural regeneration, potions to top it up, a free top-up at an altar, perhaps special foods later; a spell that drains health is a utility heal on a cooldown or a high mana cost and never replaces food or potions; Blizzard and Consecrate do small damage around you, their point is utility; a region's spells are gated by the region, never by level alone, for now (2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region gates its spells)
 - A player's health stays a hundred, the ×10 scale withdrawn for now; the dead and bosses scale as far as they need, thousands for a boss; max health growing with levels and gear is Michael's leaning, not ruled (2026-10-19, A player's health stays a hundred, for now; the dead scale freely)
@@ -262,6 +263,12 @@ On Primary's points about the staff and the book (#275, where the whole shape is
 - **Utility books compete with spell books** for room, so a player plans what they will do.
 - **Drops:** "low drop chance items that make farming bosses worth it", far kinder than OSRS's odds, but never the best item on every kill (2026-10-18, drops by chance; #268).
 - **Proposed, not ruled:** the staff as the school's permission and each book one spell, one book in the off hand at a time (#275).
+
+And later the same day:
+
+> "Make sure my thought about rare very powerful capstone items dropping from bosses as incentive to farm them gets written down somewhere. This is something I am prepared to adopt as policy so long as I can find good items that are worth it. A spell shield that acts as a magic book would be a cool idea. A bow that makes its own arrows when you pull the string back I had bandied about. Maybe a sword with some kind of spinning knockback proc chance or something? But you get the idea: power and especially mechanical novelty."
+
+- **A policy, on its condition:** each boss may drop a rare, very powerful capstone item, the reason to farm it, "so long as I can find good items that are worth it". What makes one worth it is "power and especially mechanical novelty". His examples: a spell shield that works as a magic book; a bow that makes its own arrows as the string is drawn; a sword with a chance of a spinning knockback. Rare as 2026-10-18 and above say, never on every kill, far kinder than OSRS (#268, #123).
 
 ### 2026-10-19 — Unsafe water: a sickness that may come and passes; the skin sips only clean water; crops take any water (Michael)
 
