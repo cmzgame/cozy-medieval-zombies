@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Unsafe water always quenches thirst and never guarantees a penalty: it may bring a small sickness that passes (more tired, slower to heal), with a small real chance of the infection; the waterskin sips by itself only clean water, and unsafe water may still be carried; crops take any water (2026-10-19, Unsafe water: a sickness that may come and passes; the skin sips only clean water; crops take any water)
 - All natural water, water tiles and wells, is unsafe until purified; how it is purified, and what unsafe water does, are open (#279; open question 33) (2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region gates its spells)
 - Michael hopes a region is not done in one sitting and then visited only for one ingredient: it is returned to (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
 - How long the valley's day-one food would keep a player from starving is a statistic kept current on the wiki and a target in design; the starting foods are weak on purpose, cooking improves them, and the regions could offer better (2026-10-18, Day-one food is a tracked statistic; what scripting means)
@@ -118,7 +119,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - A painted head item in two tones is dyed like hair by its entry's dye, undyed or of more tones it keeps the paint; the dead draw an item's painted layer too (2026-10-18, The Onion-head Hat's art: the brow; a dyed hood is dyed like hair, and the dead wear it too)
 - The weeping willow is cut; the art generators are to be archived in tools/art-gen, never run without Michael (2026-10-16, The needs-michael queue)
 - Throwables and consumables usually stack, case by case; one-offs like the Book and Staff of Fire never do (2026-10-16, The needs-michael queue)
-- A waterskin carried, belt or bag, sips by itself at Thirsty, the emptiest first, never mid-fight (2026-10-16, Auto-drinking)
+- A waterskin carried, belt or bag, sips by itself at Thirsty, the emptiest first, never mid-fight (2026-10-16, Auto-drinking); narrowed 2026-10-19, Unsafe water: a sickness that may come and passes; the skin sips only clean water; crops take any water: only clean water
 - Cute wins over grim; the dead are drawn like everyone else (2026-10-08, The project exists)
 - Dev art carries the identity: spooky medieval, never permanently night; occlusion is a hole, not a fade (2026-10-09, Milestone 1 passed, and the vibe pass)
 - The figure is a paper doll on a small rig, generated, eight facings, none mirrored; outfits bake into one sheet (2026-10-10, The figure)
@@ -234,6 +235,21 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-19 — Unsafe water: a sickness that may come and passes; the skin sips only clean water; crops take any water (Michael)
+
+Answering open question 33 (unsafe water, #279):
+
+> "Maybe we need to add a sickness moodle and effect for just general "I drank stream water and am now sick" type of effect. Makes you more tired, slower to heal, etc. It should be a small overall effect that resolves itself. I would also attach a small but real chance of getting infected with the virus. I also want to point out that a desperation drink of bad water should never GUARANTEE a penalty and it should always still satiate your thirst. So it becomes a real risk/reward judgement."
+
+> "Auto sip only clean water, but don't forbid filling a waterskin with bad water"
+
+> "Crops do not need clean water"
+
+- **Unsafe water is a gamble, never a sure penalty:** it always quenches thirst; it may make you sick, a small effect that passes by itself (more tired, slower to heal), with its own moodle; and it carries a small but real chance of the infection.
+- **The waterskin sips by itself only clean water** (2026-10-16's automatic sip, narrowed); a skin may still be filled with unsafe water and drunk from by choice.
+- **Crops take any water;** watering needs no purifying.
+- **Still open** (question 34): how water is purified, whether the trough and the font count as natural water, how a skin shows which it holds, and the numbers.
 
 ### 2026-10-19 — Natural water is unsafe until purified; mana; drain heals never replace food; a region gates its spells (Michael)
 
@@ -563,6 +579,8 @@ Michael went through `38-the-menus-and-the-site.md`'s nine questions with the me
 **The screens explained (Q8), by default:** the Worlds rows as cards (the name, the character and whether they live, the day and hour, when last played, the code, an "on the server" mark; Play big, Delete small), one plain sentence per screen (the relay's address to the Testing tab), and Controls grouped, all as the site's pages in the new look.
 
 ### 2026-10-16 — Auto-drinking, from any waterskin carried (#96; Michael)
+
+*Narrowed 2026-10-19, Unsafe water: a sickness that may come and passes; the skin sips only clean water; crops take any water: the sip by itself takes only clean water.*
 
 Open question 22 since 2026-10-10. Primary proposed the belt as the opt-in (a skin on the belt sips by itself, the bag's by hand); **Michael ruled the wider way: any waterskin the player carries, belt or bag.** At the thirst moodle's second stage ("Thirsty", `autoDrinkStage` in `data/tuning.json`), a sip from the emptiest skin that has water, so one is finished before the next, with the word "You drink from your waterskin." Never mid-fight: not during a swing, a draw or a cast, a guard, a climb, sleep, or another drink. The thirst moodle comes to mean "out of water", as the cozy parent's did. It runs in the world's step on the authority, never in a guest's prediction, so a guest's sip is taken once.
 
@@ -1456,4 +1474,7 @@ Only the open ones live here. The answered ones, as they were written, are in `d
 ~~31. **Water and thirst** (Michael, 2026-10-18, with the bucket: "if wells are infinite the thirst mechanic may become pointless"). Today any water tile and any well fills a skin for nothing, and a carried skin sips by itself (2026-10-16), so thirst asks only that a skin be carried. What thirst is for, and whether water should cost something, is open (*Primary's examples:* clean and foul water, boiling at a fire, wells that run low and refill, the last weighed against "never harder on a clock").~~ (answered 2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region gates its spells: natural water is unsafe until purified)
 32. **A tool carried, or in hand?** (Michael, 2026-10-18: "in your inventory, if not also equipped, tbd"). Built so far: the hatchet, the rod, and the hoe must be in a hand. Open: whether every tool action asks for a hand, or only for the tool somewhere on you.
 
-33. **Unsafe water** (Michael, 2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region gates its spells: "all natural water (water tiles, wells) is not safe until purified"). How it is purified (*Primary's reading:* boiling at a fire, or Faith's Sanctify on carried water); what unsafe water does to you; whether the waterskin's sip by itself (2026-10-16) skips it; whether watering crops needs clean water (*Primary's lean:* no); whether the trough and the font count as natural water; how a skin shows clean or unsafe. The build is #279.
+~~33. **Unsafe water** (Michael, 2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region gates its spells: "all natural water (water tiles, wells) is not safe until purified"). How it is purified (*Primary's reading:* boiling at a fire, or Faith's Sanctify on carried water); what unsafe water does to you; whether the waterskin's sip by itself (2026-10-16) skips it; whether watering crops needs clean water (*Primary's lean:* no); whether the trough and the font count as natural water; how a skin shows clean or unsafe. The build is #279.
+~~ (answered in part 2026-10-19, Unsafe water: a sickness that may come and passes; the skin sips only clean water; crops take any water; the rest is 34)
+
+34. **Unsafe water's remainder** (from 33, answered in part 2026-10-19, Unsafe water: a sickness that may come and passes; the skin sips only clean water; crops take any water): how water is purified (*Primary's reading:* boiling at a fire, or Faith's Sanctify on carried water); whether the trough and the font count as natural water; how a skin shows clean or unsafe; the sickness's numbers. The build is #279.
