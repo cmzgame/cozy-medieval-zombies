@@ -139,7 +139,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
-- The belt: its key uses up a consumable and swaps a held item into its own hand (2026-10-10), plus a lantern carried there for more light than a torch's, a left click doing what the key does, and the halberd, perhaps the greatsword, never on it (2026-10-19, The belt restated and added to; a book in the off hand costs the shield; the Holy Symbol is Faith's staff, within the proposal)
+- The belt: its key uses up a consumable and swaps a held item into its own hand (2026-10-10), plus a lantern carried there for more light than a torch's, and the halberd, perhaps the greatsword, never on it (2026-10-19, The belt restated and added to; a book in the off hand costs the shield; the Holy Symbol is Faith's staff, within the proposal); a slot's key does one thing, a held item now going to the hand chosen for that slot in its right-click menu, the item's own hand by default; no left-click parity (2026-10-19, A belt slot's key does one thing, into the hand chosen for that slot; no left-click parity)
 - Every item in a grid or slot has a hover card with at least its full name and its direct uses, read from the data by default; "Use" capitalised and in the Use mode's gold (2026-10-18, Every item in a grid has a hover card)
 - An eye on each worn slot hides that item's art and keeps every use; the choice stays with the slot across re-equips, by default (2026-10-18, Hiding a worn item's art: an eye on each worn slot)
 - The aim guide is off by default, for the bow, a throw, and the cast (2026-10-16, The aim guide is off by default)
@@ -239,6 +239,23 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-10-19 — A belt slot's key does one thing, into the hand chosen for that slot; no left-click parity (Michael)
+
+On Primary's catch that a press on a belt slot starts a drag, so a left click that also eats or swaps must be told from it:
+
+> "Maybe we remove the left click parity for that reason. That might have gone too far. The other thing is we have to be sure that left clicking a belt slot with an item in it reliably does exactly one thing, so there are no heat of combat surprises. If an item could go to say the left or right hand, we can fix this with a right click or shift right click on the belt slot to choose what it does. So you'd get options:
+>
+> * Equip to main hand
+> * Equip to off hand
+>
+> And you pick, and until you change it, tapping that item from that slot keeps the choice? Default to main hand with visible refusal ("That can't be held in your main hand") or something like that?"
+
+On Primary's tweaks (the choice in the slot's right-click menu, which already exists; the default the item's own hand rather than always the main hand, so a book is not refused until set; a refusal only when the chosen hand cannot take it): "Agreed on your tweaks".
+
+- **No left-click parity:** a left press on a belt slot stays a drag; it withdraws the left click of the entry below (struck where it sits). A double-click still draws or eats, as before.
+- **A belt slot does exactly one thing when used:** a consumable is used; a held item goes to **the hand chosen for that slot**; a carried light swaps into a hand, as before. *Primary's reading:* Michael's "left clicking" and "tapping" mean using the slot, by its key or a double-click, since the left press stays a drag; a double-click draws into the chosen hand too (#285 to confirm).
+- **The hand is chosen in the slot's right-click menu** ("Equip to main hand", "Equip to off hand", Michael's words; the slot's menu already offers "Equip (main hand)" and "Equip (off hand)", `src/interact.js`; *Primary's note:* the current choice is marked), and the choice stays with the slot until changed. **The default is the item's own hand** (a book or a shield the off hand, a sword the main hand, either-handed the main hand); **a visible refusal comes only when the chosen hand cannot take it.** *Primary's reading:* the choice is per player, kept on the player's record and in the save, and a guest changes it through the same menu command. The build is #285.
+
 ### 2026-10-19 — Rare capstone drops worth farming a boss for, a policy on its condition (Michael)
 
 > "Make sure my thought about rare very powerful capstone items dropping from bosses as incentive to farm them gets written down somewhere. This is something I am prepared to adopt as policy so long as I can find good items that are worth it. A spell shield that acts as a magic book would be a cool idea. A bow that makes its own arrows when you pull the string back I had bandied about. Maybe a sword with some kind of spinning knockback proc chance or something? But you get the idea: power and especially mechanical novelty."
@@ -266,7 +283,7 @@ On Primary's points about the staff and the book (#275, where the whole shape is
 >
 > Go ahead and rule off hand book fine to cost the shield. Maybe someday we will add a special shield that acts as a book for a specific spell. It's probably not 1.0 unless it's some kind of a zone capstone drop, although I do want to argue for low drop chance items that make farming bosses worth it. Not the 1/2,000 like OSRS but if the best item drops on every kill, you finish the zone and never go back."
 
-- **The belt, restated and added to.** As 2026-10-10 ruled (noted where it sits), its key uses up a consumable and swaps a held item "into the appropriate hand" (a sword to the main hand, a book to the off hand; today the code puts an item in its own hand, though with both hands empty a book goes to the main hand). Added: **carried with no action**, a torch there for less light and **a lantern for more**; **a left click on a belt slot does what its key does**, "if people prefer it"; and **the halberd cannot go on the belt, and perhaps the greatsword.** *Primary's notes for the build:* a press on a belt slot starts a drag today, and a double-click on the belt draws or eats (2026-10-10, night, later still, Double-click, zoom; #179), so the click must be told from both; today the halberd can go on the belt, so the rule belongs in the slot check, which also refuses a guest's slot command (#226).
+- **The belt, restated and added to.** As 2026-10-10 ruled (noted where it sits), its key uses up a consumable and swaps a held item "into the appropriate hand" (a sword to the main hand, a book to the off hand; today the code puts an item in its own hand, though with both hands empty a book goes to the main hand). Added: **carried with no action**, a torch there for less light and **a lantern for more**; ~~**a left click on a belt slot does what its key does**, "if people prefer it";~~ (superseded (2026-10-19, A belt slot's key does one thing, into the hand chosen for that slot; no left-click parity): withdrawn, a left press stays a drag) and **the halberd cannot go on the belt, and perhaps the greatsword.** *Primary's notes for the build:* a press on a belt slot starts a drag today, and a double-click on the belt draws or eats (2026-10-10, night, later still, Double-click, zoom; #179), so the click must be told from both; today the halberd can go on the belt, so the rule belongs in the slot check, which also refuses a guest's slot command (#226).
 - **A book in the off hand costs the shield** (ruled). Someday a special shield may work as a book for one spell, probably not 1.0 unless a region's capstone drop (the entry above). *Primary's note:* `docs/24`'s Q2 asked whether a two-handed staff leaves no shield; a book costs the shield either way, so that half no longer decides it.
 - **Within the staff-and-book proposal (#275), ruled as part of it:** the Holy Symbol is Faith's permission, as a staff is Magic's ("accepted"), cast with the raise-up pose: "holy symbol raised high, reading from the holy book"; and utility books compete with spell books for room, so a player plans what they will do.
 - **Proposed, not ruled:** the staff as the school's permission and each book one spell, one book in the off hand at a time (#275). Open with it: what a hold of right (`docs/21`, the off hand's stance) does with a book in the off hand.
