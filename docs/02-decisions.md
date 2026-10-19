@@ -79,6 +79,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
+- A book in the off hand costs the shield; the Holy Symbol is Faith's permission as a staff is Magic's, cast with the symbol raised high and the holy book read; utility books compete with spell books for room; the staff-as-permission, book-as-spell shape is proposed on #275 (2026-10-19, The belt's three uses; a book in the off hand costs the shield; the Holy Symbol is Faith's staff)
 - Mana exists, for spells: slow natural regeneration, potions to top it up, a free top-up at an altar, perhaps special foods later; a spell that drains health is a utility heal on a cooldown or a high mana cost and never replaces food or potions; Blizzard and Consecrate do small damage around you, their point is utility; a region's spells are gated by the region, never by level alone, for now (2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region gates its spells)
 - A player's health stays a hundred, the ×10 scale withdrawn for now; the dead and bosses scale as far as they need, thousands for a boss; max health growing with levels and gear is Michael's leaning, not ruled (2026-10-19, A player's health stays a hundred, for now; the dead scale freely)
 - Gear can drop by chance, a lever never used before; a boss's best drop is not guaranteed every kill (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
@@ -137,6 +138,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
+- The belt has three uses: carried with no action (a torch or a lantern gives its light), used up with its key (food, a potion), and a held item swapped into the right hand with its key (a sword, a book); a left click on a belt slot does what its key does; the halberd, and perhaps the greatsword, cannot go on the belt (2026-10-19, The belt's three uses; a book in the off hand costs the shield; the Holy Symbol is Faith's staff)
 - Every item in a grid or slot has a hover card with at least its full name and its direct uses, read from the data by default; "Use" capitalised and in the Use mode's gold (2026-10-18, Every item in a grid has a hover card)
 - An eye on each worn slot hides that item's art and keeps every use; the choice stays with the slot across re-equips, by default (2026-10-18, Hiding a worn item's art: an eye on each worn slot)
 - The aim guide is off by default, for the bow, a throw, and the cast (2026-10-16, The aim guide is off by default)
@@ -145,7 +147,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The world fills the window; nothing is laid out against 960×540 (2026-10-10, night, The view, the screens, and a law)
 - If the game is good, people will sit for a loading screen (2026-10-10, night, The view, the screens, and a law)
 - The zoom snaps between three levels: wide 1.1, middle 1.8, close 2.7 (2026-10-10, late, The belt as utility slots, a belt torch, the zoom)
-- The belt is utility slots for consumables; a belt torch gives a little over half its light (0.6 since 2026-10-17, was half), seen from a little over half as far (2026-10-10, late, The belt as utility slots, a belt torch, the zoom; 2026-10-17, A belt torch sees a bit further than none)
+- The belt is utility slots for consumables; a belt torch gives a little over half its light (0.6 since 2026-10-17, was half), seen from a little over half as far (2026-10-10, late, The belt as utility slots, a belt torch, the zoom; 2026-10-17, A belt torch sees a bit further than none); widened (2026-10-19, The belt's three uses; a book in the off hand costs the shield; the Holy Symbol is Faith's staff): three uses, carried, used up, and swapped into a hand
 - A belt torch sees a bit further than no torch: `beltLight` 0.6 puts its radius, 1.8, above the dark radius, 1.5 (2026-10-17, A belt torch sees a bit further than none)
 - One container rule: no container inside another unless empty; big furniture is carried with both hands empty (2026-10-10, late, Containers and carrying)
 - Everything is a slot, nothing a pointer; carrying capacity is always a worn item; the hands are slots too (2026-10-10, later, The character; 2026-10-10, after play, The character, Michael's notes)
@@ -235,6 +237,31 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-19 — The belt's three uses; a book in the off hand costs the shield; the Holy Symbol is Faith's staff (Michael)
+
+On Primary's points about the staff and the book (#275, where the whole shape is a proposal: the staff the school's permission, each book one spell, one book in the off hand at a time):
+
+> "#3 answers a question I had had for a while: if belt us a utility spot, why does not not hold and do anything with weapons, which is what people often put on their belts. Answer: you can put them there and tapping the key now swaps it into the appropriate hand.
+>
+> So for the belt it's:
+>
+> * Strict utility, no action: carrying a torch there for less light, carrying a lantern there for more light
+> * Single action utility, anything consumable: tap key to eat food on belt, or drink potion. Left click should also do whenever hitting the right number key would do if people prefer it
+> * Held item quickswap, sword or book or whatever. Certain weapons should strictly not allow this like the halberd, perhaps the greatsword."
+
+> "Your bringing holy symbol into the fold here as a staff stand in is great, accepted. I also like the idea that the casting animation for the holy school keeps the same raise up animation which already makes sense. Like something out of exorcist - holy symbol raised high, reading from the holy book
+>
+> Utility books fighting for their place with spell books is great IMO, and it forces you to plan for what you are going to do which is what we want.
+>
+> Go ahead and rule off hand book fine to cost the shield. Maybe someday we will add a special shield that acts as a book for a specific spell. It's probably not 1.0 unless it's some kind of a zone capstone drop, although I do want to argue for low drop chance items that make farming bosses worth it. Not the 1/2,000 like OSRS but if the best item drops on every kill, you finish the zone and never go back."
+
+- **The belt has three uses:** carried with no action (a torch gives a little light there, a lantern more); used up with its key (food, a potion); and a held item swapped into the right hand with its key (a sword, a book). It widens 2026-10-10's "utility slots for consumables" (noted where it sits). A left click on a belt slot does what its key does. **The halberd cannot go on the belt, and perhaps the greatsword.** *Primary's note:* a left press on a belt slot also starts a drag today, so the build must tell a click from a drag.
+- **A book in the off hand costs the shield.** Someday a special shield may work as a book for one spell, probably not 1.0 unless it is a region's capstone drop.
+- **The Holy Symbol is Faith's permission,** as a staff is Magic's (accepted), cast with the raise-up pose the game already has: the symbol raised high, the holy book read.
+- **Utility books compete with spell books** for room, so a player plans what they will do.
+- **Drops:** "low drop chance items that make farming bosses worth it", far kinder than OSRS's odds, but never the best item on every kill (2026-10-18, drops by chance; #268).
+- **Proposed, not ruled:** the staff as the school's permission and each book one spell, one book in the off hand at a time (#275).
 
 ### 2026-10-19 — Unsafe water: a sickness that may come and passes; the skin sips only clean water; crops take any water (Michael)
 
