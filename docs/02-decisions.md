@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- All natural water, water tiles and wells, is unsafe until purified: boiled at a fire, or sanctified (Faith) (2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region's spells are learned there)
 - Michael hopes a region is not done in one sitting and then visited only for one ingredient: it is returned to (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
 - How long the valley's day-one food would keep a player from starving is a statistic kept current on the wiki and a target in design; the starting foods are weak on purpose, cooking improves them, and the regions could offer better (2026-10-18, Day-one food is a tracked statistic; what scripting means)
 - A villager the dead have hurt heals slowly at the player's rate and still talks and barks; only a dead one is silent (2026-10-18, A hurt villager heals at the player's rate; 2026-10-18, A wounded villager still talks and barks)
@@ -77,6 +78,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
+- Mana exists, for spells: slow natural regeneration, potions to top it up, a free top-up at an altar, perhaps special foods later; a spell that drains health is a utility heal on a cooldown or a high mana cost and never replaces food or potions; Blizzard and Consecrate do small damage around you, their point is utility; a region's spells are learned in that region, never by level alone (2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region's spells are learned there)
 - A player's health stays a hundred, the ×10 scale withdrawn for now; the dead and bosses scale as far as they need, thousands for a boss; max health growing with levels and gear is Michael's leaning, not ruled (2026-10-19, A player's health stays a hundred, for now; the dead scale freely)
 - Gear can drop by chance, a lever never used before; a boss's best drop is not guaranteed every kill (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
 - The least armour is just better than nothing; armour mostly in flat numbers, a percent rarely; how strong the best gets is open (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
@@ -232,6 +234,27 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-19 — Natural water is unsafe until purified; mana; drain heals never replace food; a region's spells are learned there (Michael)
+
+On Primary's points about the combat trees (#275):
+
+> "1. I am fine with this, it will have some kind of a cooldown or a high mana cost. It's meant to be a utility heal, but it should never ever replace food and potions"
+
+> "2. Yes! This is a proposal somewhere and it needs adopting. Water is currently way too easy, I would say all natural water (water tiles, wells) is not safe until purified"
+
+> "3. This is fine for now! I will also add that I don't intend these to be things you just learn automatically when you get there, you can be level 10 magic and still a ways from getting blizzard because you are putting off the snowy region"
+
+> "4. Definitely will need to exist. Slow natural regen, potions to top up, top up free at an altar, maybe special foods later that even restore a trickle of mana"
+
+> "Also, blizzard (like consecrate) should do small aoe damage, but the main reason to use it is utility. Worth noting as well that some of these might be spells you just press rather than coming from a staff and book (maybe) in which case there is no UI for this right now. The belt slots look like the place for it, which makes sense for food and other consumable, but a spell on your belt is a little weird."
+
+- **All natural water is unsafe until purified:** water tiles and wells alike. It answers open question 31 (struck where it sits). *Primary's reading, Michael's to overrule:* purified means boiled at a fire, or sanctified by Faith's Sanctify Food and Water (#275); what unsafe water does to you, and whether the waterskin's sip by itself (2026-10-16) drinks only safe water, are for the build.
+- **Mana exists:** slow natural regeneration, potions to top it up, a free top-up at an altar (so the valley's altar has a use, #273), and perhaps special foods later that restore a trickle.
+- **A spell that drains health** (Blood Bolt, Siphon Life) is a utility heal, on a cooldown or a high mana cost, and "should never ever replace food and potions".
+- **A region's spells are learned in that region,** never by level alone: a level 10 mage may still be far from Blizzard.
+- **Blizzard and Consecrate** do small damage around you, but their point is utility.
+- **Open:** how a spell is cast when it comes from no staff or book. The belt fits food and consumables, "but a spell on your belt is a little weird"; there is no place for it yet (#275).
 
 ### 2026-10-19 — A player's health stays a hundred, for now; the dead scale freely (Michael)
 
@@ -1430,5 +1453,5 @@ Only the open ones live here. The answered ones, as they were written, are in `d
 18. **Noise.** Whether anything the player does carries to the dead by sound. Michael (2026-10-09) doubts it fits the cosy idea, and with no guns little is loud; a bow is quiet by design. Lean: leave it out until something in the game is loud, then decide whether that thing should carry. To `05-someday.md`.
 27. **Gathering's remainder.** The law (the wobble and the outline), the actions and their tools (`30` section 4), crops, pumpkins, mushrooms, and rocks are ruled and built. Still open: whether picked things regrow, and whether rocks block sight. To `05-someday.md`.
 29b. **The spin-click cap.** Of "fights cost too little" (2026-10-12), (a) stagger by weight and (c) bleed with the infection marker are built; (b), a turn-rate cap while a swing recovers, or a stamina or recovery cost for turning past about 90 degrees between swings, is not, and Michael paused combat changes. To a `needs-michael` issue (wave 4).
-31. **Water and thirst** (Michael, 2026-10-18, with the bucket: "if wells are infinite the thirst mechanic may become pointless"). Today any water tile and any well fills a skin for nothing, and a carried skin sips by itself (2026-10-16), so thirst asks only that a skin be carried. What thirst is for, and whether water should cost something, is open (*Primary's examples:* clean and foul water, boiling at a fire, wells that run low and refill, the last weighed against "never harder on a clock").
+~~31. **Water and thirst** (Michael, 2026-10-18, with the bucket: "if wells are infinite the thirst mechanic may become pointless"). Today any water tile and any well fills a skin for nothing, and a carried skin sips by itself (2026-10-16), so thirst asks only that a skin be carried. What thirst is for, and whether water should cost something, is open (*Primary's examples:* clean and foul water, boiling at a fire, wells that run low and refill, the last weighed against "never harder on a clock").~~ (answered 2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region's spells are learned there: natural water is unsafe until purified)
 32. **A tool carried, or in hand?** (Michael, 2026-10-18: "in your inventory, if not also equipped, tbd"). Built so far: the hatchet, the rod, and the hoe must be in a hand. Open: whether every tool action asks for a hand, or only for the tool somewhere on you.
