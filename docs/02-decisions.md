@@ -204,7 +204,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - Delivered art is copied in as data and read, never run (2026-10-12, The first item art arrives)
 - Home is Stardew-shaped, the frontier Zomboid-shaped; the arc is geography, not story (2026-10-13, What this game is)
 - Never harder on a clock: no decay, no horde night, no population that grows with the days (2026-10-13, What this game is)
-- Skills are off the battlefield, one per station family; death takes them; recipes learned and earned (2026-10-13, What this game is; 2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
+- Skills are one per station family at most; death takes them, the one real cost of dying; recipes learned and earned; whether a skill may touch combat is open, #275 (2026-10-13, What this game is; 2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break; 2026-10-19, Skills may touch combat, open for discussion; death takes them, the one real cost of dying)
 - Talk never gates and never writes the world, save a teacher's teaching; bosses gate regions and can be fought again (2026-10-13, What this game is; 2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
 - The long arc: normal until it isn't; no story by design, no end boss, no win screen (2026-10-13, The map's choices, and the long arc)
 - The guide is one villager, immune to the dead, who explains the rules (2026-10-13, The guide: one villager)
@@ -232,6 +232,17 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-19 — Skills may touch combat, open for discussion; death takes them, the one real cost of dying (Michael)
+
+On Primary's skills draft (now #275), which listed "off the battlefield: no skill makes you hit harder" as already ruled:
+
+> "Revoked right off the bad as a law, making these changes at a minimum allowable for discussion."
+
+> "On death, yes it should take skills. As of now this is the only true punishment for dying and we need one. As is you can just walk to your corpse and get your stuff back."
+
+- **"No skill makes you hit harder" is revoked as a law** (2026-10-13, What this game is; struck where it sits, with its "only those that touch non-combat things"; `00`'s two lines rewritten). It is not ruled the other way: whether a skill may touch combat, and how far, is open for discussion in the skills scope (#275).
+- **Death takes skills**, as 2026-10-13 said: it is reaffirmed, with its reason. A body's things can be walked back to, so losing what the character had learned is the one real cost of dying. *Primary's reading, Michael's to overrule:* how much death takes (all of it, or a share) is for #275.
 
 ### 2026-10-18 — The Valley's final scope is the first priority; finished means sounds (Michael)
 
@@ -745,7 +756,7 @@ From a conversation on the game's identity (the Zomboid against Stardew tension 
 
 **Never harder on a clock (Michael, a law, in `00`):** no world decay, no shutoffs, no helicopter, no horde night, no population that grows with the days. Every rise in danger is one a player chose ("I went to the bog and accidentally brought some bog danger home with me"), even when danger at home rises with it. The reason: a co-op pair where one plays forty hours a week and the other two; Zomboid and 7 Days to Die punish the one who plays on alone, so he stops playing to wait. The game already passes: needs drain only while a character is in the world (a guest goes dormant after sixty seconds away), crops and fires move only while someone plays, which is a gift to the one who returns, and night cycles without escalating. **To hold when built:** the trickle of `03` refills toward fixed caps answering noise and light, never grows with days survived. **Open (Claude's note, not ruled):** in a shared world one player's choice escalates danger for an absent friend; the cleanest form may be escalation that stays where it was brought (the dead that followed you, a curse riding a character) rather than a world-wide level.
 
-**Skills are off the battlefield (Michael):** no skill makes you hit harder. One per station family at most: cooking, farming, healing, smithing, and one for cloth and leather; for 1.0, if any, only those that touch non-combat things already in the game. Death takes them with the character. Claude's test, agreed in spirit: a skill shows best as things you make (a friend eats your stew, wears your leather), which turns one player's hours into gifts rather than a gap. **Healing** is a skill and a station: several healing items with trade-offs, and the zombie cures made there as soon as the ingredients are gathered, not gated by skill.
+**Skills (Michael):** ~~off the battlefield: no skill makes you hit harder.~~ (superseded 2026-10-19, Skills may touch combat, open for discussion; death takes them, the one real cost of dying: open for discussion, #275) One per station family at most: cooking, farming, healing, smithing, and one for cloth and leather; ~~for 1.0, if any, only those that touch non-combat things already in the game~~ (superseded 2026-10-19, Skills may touch combat, open for discussion; death takes them, the one real cost of dying: whether any touches combat is open, #275). Death takes them with the character. Claude's test, agreed in spirit: a skill shows best as things you make (a friend eats your stew, wears your leather), which turns one player's hours into gifts rather than a gap. **Healing** is a skill and a station: several healing items with trade-offs, and the zombie cures made there as soon as the ingredients are gathered, not gated by skill.
 
 **Recipes: law 1 of `30` restated (Michael):** ~~you know every recipe you need to play effectively from the start~~ (superseded 2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break: recipes are learned and earned). ~~Skill may unlock more, but those unlocks are flavour (a fun dish because it is fun), not power; depth and power grow only as far as the rest of the game asks for them (a hard boss could justify stronger food; until such things exist, nothing does). Replaces "all known from the start" as the whole rule.~~ (superseded 2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break: recipes are learned and earned, a region's reward among them; whether a learned recipe may be power is open, against the rule that rewards are mostly sideways, #123)
 
