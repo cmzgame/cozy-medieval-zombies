@@ -107,7 +107,7 @@ One panel for all of them, on the kit: the recipe list on the left (greyed when 
 | Loom | no | the weaver | cloth from flax (wool waits for the animals); bandages; a tunic, breeches, a cap (built, #212) |
 | Dye vats | no | the weaver's yard | a garment plus a dye plant to the dyed garment |
 | Millstones | no | the mill | grain to flour (built, #201: 2 grain to 1) |
-| Cauldron | its own fire, logs | the witch | the cure (when infection is real); until then a herb tea that restores stamina |
+| Cauldron | its own fire, logs | the witch | the cure (when infection is real; mid to late game, gated by skill, `02` 2026-10-19); until then a herb tea that restores stamina |
 | Cider press | no | the orchard | apples to cider |
 | Smoking rack | its own, logs | the hunter | raw meat to smoked (with animals) |
 
