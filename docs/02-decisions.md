@@ -8,7 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
-- All natural water, water tiles and wells, is unsafe until purified: boiled at a fire, or sanctified (Faith) (2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region's spells are learned there)
+- All natural water, water tiles and wells, is unsafe until purified; how it is purified, and what unsafe water does, are open (#279; open question 33) (2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region gates its spells)
 - Michael hopes a region is not done in one sitting and then visited only for one ingredient: it is returned to (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
 - How long the valley's day-one food would keep a player from starving is a statistic kept current on the wiki and a target in design; the starting foods are weak on purpose, cooking improves them, and the regions could offer better (2026-10-18, Day-one food is a tracked statistic; what scripting means)
 - A villager the dead have hurt heals slowly at the player's rate and still talks and barks; only a dead one is silent (2026-10-18, A hurt villager heals at the player's rate; 2026-10-18, A wounded villager still talks and barks)
@@ -78,7 +78,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
-- Mana exists, for spells: slow natural regeneration, potions to top it up, a free top-up at an altar, perhaps special foods later; a spell that drains health is a utility heal on a cooldown or a high mana cost and never replaces food or potions; Blizzard and Consecrate do small damage around you, their point is utility; a region's spells are learned in that region, never by level alone (2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region's spells are learned there)
+- Mana exists, for spells: slow natural regeneration, potions to top it up, a free top-up at an altar, perhaps special foods later; a spell that drains health is a utility heal on a cooldown or a high mana cost and never replaces food or potions; Blizzard and Consecrate do small damage around you, their point is utility; a region's spells are gated by the region, never by level alone, for now (2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region gates its spells)
 - A player's health stays a hundred, the ×10 scale withdrawn for now; the dead and bosses scale as far as they need, thousands for a boss; max health growing with levels and gear is Michael's leaning, not ruled (2026-10-19, A player's health stays a hundred, for now; the dead scale freely)
 - Gear can drop by chance, a lever never used before; a boss's best drop is not guaranteed every kill (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
 - The least armour is just better than nothing; armour mostly in flat numbers, a percent rarely; how strong the best gets is open (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation)
@@ -235,9 +235,9 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
-### 2026-10-19 — Natural water is unsafe until purified; mana; drain heals never replace food; a region's spells are learned there (Michael)
+### 2026-10-19 — Natural water is unsafe until purified; mana; drain heals never replace food; a region gates its spells (Michael)
 
-On Primary's points about the combat trees (#275):
+On Primary's four points about the combat trees (#275): (1) Blood Bolt and Siphon Life heal you renewably, against food and potions as the costly heals; (2) Sanctify Food and Water implies water that needs purifying, which would also answer open question 31; (3) Blizzard, Magic's capstone, comes from a region, so a valley-only mage has no capstone; (4) mana doesn't exist yet, though several unlocks assume it, and `docs/24`'s Q2 asks what a spell costs:
 
 > "1. I am fine with this, it will have some kind of a cooldown or a high mana cost. It's meant to be a utility heal, but it should never ever replace food and potions"
 
@@ -249,10 +249,10 @@ On Primary's points about the combat trees (#275):
 
 > "Also, blizzard (like consecrate) should do small aoe damage, but the main reason to use it is utility. Worth noting as well that some of these might be spells you just press rather than coming from a staff and book (maybe) in which case there is no UI for this right now. The belt slots look like the place for it, which makes sense for food and other consumable, but a spell on your belt is a little weird."
 
-- **All natural water is unsafe until purified:** water tiles and wells alike. It answers open question 31 (struck where it sits). *Primary's reading, Michael's to overrule:* purified means boiled at a fire, or sanctified by Faith's Sanctify Food and Water (#275); what unsafe water does to you, and whether the waterskin's sip by itself (2026-10-16) drinks only safe water, are for the build.
-- **Mana exists:** slow natural regeneration, potions to top it up, a free top-up at an altar (so the valley's altar has a use, #273), and perhaps special foods later that restore a trickle.
+- **All natural water is unsafe until purified:** water tiles and wells alike. It answers open question 31 (struck where it sits). *Primary's reading, Michael's to overrule:* purified means boiled at a fire, or sanctified by Faith's Sanctify Food and Water (#275), which his tree says is "not usable on a well", so it purifies carried water. The rest is open question 33 and the build, #279: what unsafe water does to you, whether the waterskin's sip by itself (2026-10-16) drinks only safe water, whether watering crops needs clean water, and whether the trough and the font count as natural water.
+- **Mana exists:** slow natural regeneration, potions to top it up, a free top-up at an altar, and perhaps special foods later that restore a trickle. It answers the cost half of `docs/24`'s Q2 (a spell costs mana). *Primary's note:* the altar's top-up gives the valley's altar, a dead end today, a use (#273).
 - **A spell that drains health** (Blood Bolt, Siphon Life) is a utility heal, on a cooldown or a high mana cost, and "should never ever replace food and potions".
-- **A region's spells are learned in that region,** never by level alone: a level 10 mage may still be far from Blizzard.
+- **A region gates its spells, for now** ("This is fine for now!"): never by level alone, so a level 10 mage may still be far from Blizzard, "because you are putting off the snowy region". *Primary's reading:* how the region gives the spell (a teacher, a find, a reward) is for each region.
 - **Blizzard and Consecrate** do small damage around you, but their point is utility.
 - **Open:** how a spell is cast when it comes from no staff or book. The belt fits food and consumables, "but a spell on your belt is a little weird"; there is no place for it yet (#275).
 
@@ -1453,5 +1453,8 @@ Only the open ones live here. The answered ones, as they were written, are in `d
 18. **Noise.** Whether anything the player does carries to the dead by sound. Michael (2026-10-09) doubts it fits the cosy idea, and with no guns little is loud; a bow is quiet by design. Lean: leave it out until something in the game is loud, then decide whether that thing should carry. To `05-someday.md`.
 27. **Gathering's remainder.** The law (the wobble and the outline), the actions and their tools (`30` section 4), crops, pumpkins, mushrooms, and rocks are ruled and built. Still open: whether picked things regrow, and whether rocks block sight. To `05-someday.md`.
 29b. **The spin-click cap.** Of "fights cost too little" (2026-10-12), (a) stagger by weight and (c) bleed with the infection marker are built; (b), a turn-rate cap while a swing recovers, or a stamina or recovery cost for turning past about 90 degrees between swings, is not, and Michael paused combat changes. To a `needs-michael` issue (wave 4).
-~~31. **Water and thirst** (Michael, 2026-10-18, with the bucket: "if wells are infinite the thirst mechanic may become pointless"). Today any water tile and any well fills a skin for nothing, and a carried skin sips by itself (2026-10-16), so thirst asks only that a skin be carried. What thirst is for, and whether water should cost something, is open (*Primary's examples:* clean and foul water, boiling at a fire, wells that run low and refill, the last weighed against "never harder on a clock").~~ (answered 2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region's spells are learned there: natural water is unsafe until purified)
+~~31. **Water and thirst** (Michael, 2026-10-18, with the bucket: "if wells are infinite the thirst mechanic may become pointless"). Today any water tile and any well fills a skin for nothing, and a carried skin sips by itself (2026-10-16), so thirst asks only that a skin be carried. What thirst is for, and whether water should cost something, is open (*Primary's examples:* clean and foul water, boiling at a fire, wells that run low and refill, the last weighed against "never harder on a clock").~~ (answered 2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region gates its spells: natural water is unsafe until purified)
 32. **A tool carried, or in hand?** (Michael, 2026-10-18: "in your inventory, if not also equipped, tbd"). Built so far: the hatchet, the rod, and the hoe must be in a hand. Open: whether every tool action asks for a hand, or only for the tool somewhere on you.
+
+
+33. **Unsafe water** (Michael, 2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region gates its spells: "all natural water (water tiles, wells) is not safe until purified"). What unsafe water does to you; whether the waterskin's sip by itself (2026-10-16) skips it; whether watering crops needs clean water (*Primary's lean:* no); whether the trough and the font count as natural water; how a skin shows clean or unsafe. The build is #279.
