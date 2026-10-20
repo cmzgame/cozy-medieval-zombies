@@ -236,6 +236,21 @@ for it in items:
                 fail(f"sprite {sp}: a rug has facings y and x with footprints [2, 3] and [3, 2]")
         if it.get("kind") != "decor" or it.get("size") != [1, 4] or not it.get("icon"):
             fail(f"item {it['id']}: a rug item is kind decor, 1 by 4, with an icon")
+# Paintings (#326): an item with a `painting` is small (2 by 2, one slot), tall (2 by 3, both slots) or wide (3 by 2, two sections), a decor item with an icon and a held picture, and the
+# `decor_paintings` sheet draws it on both walls (`<id>_north`, `<id>_west`).
+paint_def = load("data/sprites/decor_paintings.json") if os.path.exists("data/sprites/decor_paintings.json") else {}
+for it in items:
+    if "painting" in it:
+        want = {"small": [2, 2], "tall": [2, 3], "wide": [3, 2]}.get(it["painting"])
+        if want is None:
+            fail(f"item {it['id']}: painting is small, tall, or wide")
+        elif it.get("size") != want:
+            fail(f"item {it['id']}: a {it['painting']} painting is {want[0]} by {want[1]}")
+        if it.get("kind") != "decor" or not it.get("icon") or not it.get("held"):
+            fail(f"item {it['id']}: a painting item is kind decor, with an icon and a held picture")
+        for side in ("north", "west"):
+            if f"{it['id']}_{side}" not in paint_def.get("images", {}) or f"{it['id']}_{side}" not in paint_def.get("anchors", {}):
+                fail(f"item {it['id']}: data/sprites/decor_paintings.json has no {it['id']}_{side} picture and anchor")
 # Object Highlight (#301): the outline's colour is hex, its alpha is 0 to 1, and the hit test is asked again every so many ms.
 oh = load("data/tuning.json").get("objectHighlight", {})
 if not (isinstance(oh.get("color"), str) and re.fullmatch(r"#[0-9a-fA-F]{6}", oh["color"])):

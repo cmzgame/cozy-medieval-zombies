@@ -1,0 +1,88 @@
+{
+ "anchorVertex": "top",
+ "images": {
+  "painting_small_oak_north": "data/art/decor/painting_small_oak_north.png",
+  "painting_small_oak_west": "data/art/decor/painting_small_oak_west.png",
+  "painting_small_deer_north": "data/art/decor/painting_small_deer_north.png",
+  "painting_small_deer_west": "data/art/decor/painting_small_deer_west.png",
+  "painting_small_peak_north": "data/art/decor/painting_small_peak_north.png",
+  "painting_small_peak_west": "data/art/decor/painting_small_peak_west.png",
+  "painting_tall_waterfall_north": "data/art/decor/painting_tall_waterfall_north.png",
+  "painting_tall_waterfall_west": "data/art/decor/painting_tall_waterfall_west.png",
+  "painting_tall_pines_north": "data/art/decor/painting_tall_pines_north.png",
+  "painting_tall_pines_west": "data/art/decor/painting_tall_pines_west.png",
+  "painting_wide_castle_north": "data/art/decor/painting_wide_castle_north.png",
+  "painting_wide_castle_west": "data/art/decor/painting_wide_castle_west.png",
+  "painting_wide_lake_north": "data/art/decor/painting_wide_lake_north.png",
+  "painting_wide_lake_west": "data/art/decor/painting_wide_lake_west.png",
+  "painting_wide_sunset_north": "data/art/decor/painting_wide_sunset_north.png",
+  "painting_wide_sunset_west": "data/art/decor/painting_wide_sunset_west.png"
+ },
+ "anchors": {
+  "painting_small_oak_north": [
+   6,
+   69
+  ],
+  "painting_small_oak_west": [
+   22,
+   69
+  ],
+  "painting_small_deer_north": [
+   6,
+   69
+  ],
+  "painting_small_deer_west": [
+   22,
+   69
+  ],
+  "painting_small_peak_north": [
+   6,
+   69
+  ],
+  "painting_small_peak_west": [
+   22,
+   69
+  ],
+  "painting_tall_waterfall_north": [
+   6,
+   65
+  ],
+  "painting_tall_waterfall_west": [
+   22,
+   65
+  ],
+  "painting_tall_pines_north": [
+   6,
+   65
+  ],
+  "painting_tall_pines_west": [
+   22,
+   65
+  ],
+  "painting_wide_castle_north": [
+   6,
+   69
+  ],
+  "painting_wide_castle_west": [
+   51,
+   69
+  ],
+  "painting_wide_lake_north": [
+   6,
+   69
+  ],
+  "painting_wide_lake_west": [
+   51,
+   69
+  ],
+  "painting_wide_sunset_north": [
+   6,
+   69
+  ],
+  "painting_wide_sunset_west": [
+   51,
+   69
+  ]
+ },
+ "note": "the wall paintings, both orientations drawn (not mirrored), hung proud of the wall's face so one set serves wood, stone, and log walls; drawn after their wall segment (render/paintings.js; #326). The anchors are the wall convention, the tile's top vertex at ground level; a wide painting is anchored on its first, far, section."
+}

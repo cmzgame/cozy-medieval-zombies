@@ -13,6 +13,7 @@ import { OCCLUDER_MIN_HEIGHT, frameQuad } from "./scene.js";
 import { makeWall } from "./walls.js";
 import * as loop from "../loop.js"; // the sim clock: a poke's stamp is in sim milliseconds (docs/23a, C2)
 import * as hl from "./highlight.js"; // Object Highlight (#301)
+import * as paintingArt from "./paintings.js"; // a painting hung on a wall (#326)
 
 // ---- props and characters ----
 
@@ -78,6 +79,10 @@ export function emitGhost(ghost) {
     // A wall, door, or window as it would stand, drawn by the real wall code.
     const wall = map.createWall(ghost.wallType || ghost.wallKind, ghost.sprite);
     makeWall(wall, ghost.edge, ghost.tx, ghost.ty, true, false, tint).emit();
+    return;
+  }
+  if (ghost.kind === "painting") {
+    paintingArt.emitGhost(ghost, tint, GHOST_FLAGS());
     return;
   }
   if (ghost.kind === "prop" || ghost.kind === "rug") {

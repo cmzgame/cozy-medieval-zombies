@@ -18,12 +18,19 @@ export function set(t) {
 export const isProp = (id) => !!target && target.kind === "prop" && target.id === id;
 export const isCharacter = (id) => !!target && target.kind === "character" && target.id === id;
 export const isItem = (uid) => !!target && target.kind === "item" && target.uid === uid;
+export const isPainting = (tx, ty, edge) => !!target && target.kind === "painting" && target.tx === tx && target.ty === ty && target.edge === edge;
 
 // The sprite frame outlined: `opts` are the frame's own quad options (its world point and heights); the colour, SOLID, UNLIT and NOFOG are put on here, with any `extra` flag.
 export function outline(sheet, name, x, y, opts, flip = false, extra = 0, skew = 0) {
   const o = { ...opts, color, flags: gl.FLAG_NOFOG | gl.FLAG_UNLIT | gl.FLAG_SOLID | extra };
   if (skew) o.skew = skew;
   for (const [ox, oy] of OFFSETS) frameQuad(sheet, name, x + ox, y + oy, o, flip);
+}
+
+// The same outline for part of a frame: the rectangle (x, y, w, h) drawn from the texture range `uv` (a wide painting's half, which belongs to one wall segment).
+export function outlineRect(x, y, w, h, uv, opts) {
+  const o = { ...opts, color, flags: gl.FLAG_NOFOG | gl.FLAG_UNLIT | gl.FLAG_SOLID };
+  for (const [ox, oy] of OFFSETS) gl.quad(x + ox, y + oy, w, h, uv, o);
 }
 
 // An item block lying on the ground: a halo a pixel wider than its block, behind it.

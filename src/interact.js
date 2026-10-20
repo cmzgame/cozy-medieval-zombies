@@ -50,6 +50,7 @@ import { tiredStage } from "./moodles.js";
 import * as stations from "./stations.js"; // what a prop is as a station (docs/30, section 6)
 import * as stationPanel from "./ui/station-panel.js";
 import * as rugs from "./rugs.js"; // a rug laid from the bag and picked up again (#327)
+import * as paintings from "./paintings.js"; // a painting hung on a wall from the bag and taken down again (#326)
 
 export const INTERACT_RANGE = 1.15; // tiles
 export const SEARCH_TIME = 1.0;
@@ -83,6 +84,7 @@ const onEdge = (o) => ({ kind: "edge", tx: o.tx, ty: o.ty, edge: o.edge });
 const onBracket = (b) => ({ kind: "bracket", tx: b.tx, ty: b.ty, edge: b.edge });
 const onItem = (entry, tx, ty) => ({ kind: "item", uid: entry.uid, tile: [tx, ty] });
 const onCharacter = (c) => ({ kind: "character", id: c.id });
+const onPainting = (h) => ({ kind: "painting", tx: h.tx, ty: h.ty, edge: h.edge }); // a hung painting, by the segment that holds it (#326)
 
 // The actions on an address, rebuilt here from the world (a host's, for a guest's command).
 export function actionsForTarget(t, player) {
@@ -114,6 +116,10 @@ export function actionsForTarget(t, player) {
     if (!b) return [];
     const [mx, my] = map.bracketPos(b);
     return tag(holderActions({ kind: "bracket", bracket: b, mx, my }, player), t);
+  }
+  if (t.kind === "painting") {
+    const held = paintings.holderOf(Math.round(Number(t.tx)), Math.round(Number(t.ty)), t.edge === "w" ? "w" : "n");
+    return held ? tag(paintingActions(held, player), onPainting(held)) : [];
   }
   if (t.kind === "character") {
     const c = t.id === player.id ? player : allCharacters().find((q) => q.id === t.id);
@@ -311,6 +317,24 @@ function rugActions(prop, player) {
     my: prop.tile[1],
     perform() {
       return rugs.pickUp(player, prop);
+    },
+  })];
+}
+
+// A hung painting's Pick up (#326): takes it down into the bag, or at the player's feet if the bag is full. `held` is paintings.holderOf's answer: the segment that holds it and its record.
+function paintingActions(held, player) {
+  const def = getItem(held.rec.item);
+  const [mx, my] = paintings.floorTile(held.tx, held.ty);
+  return [act({
+    kind: "painting",
+    simple: true,
+    label: `Pick up ${def ? def.name.toLowerCase() : "painting"}`,
+    tiles: paintings.tilesOf(held.rec.item, held.tx, held.ty, held.edge),
+    range: paintings.REACH - 0.2,
+    mx,
+    my,
+    perform() {
+      return paintings.takeDown(player, held.tx, held.ty, held.edge);
     },
   })];
 }
@@ -939,12 +963,15 @@ export function actionsAt(sx, sy, player) {
   const rugHere = map.peekTile(tx, ty)?.rug;
   const rugActs = rugHere ? tag(rugActions(rugHere, player), onProp(rugHere)) : [];
   for (const o of openingsAtScreen(sx, sy)) out.push(...tag(openingActions(o, player), onEdge(o)));
+  const hung = paintings.paintingAt(sx, sy); // a painting hung on a wall face under the cursor: its Pick up, with Walk here beside it (#326)
+  const paintActs = hung ? tag(paintingActions(hung, player), onPainting(hung)) : [];
+  out.push(...paintActs);
   for (const b of map.bracketsNear(g.gx, g.gy, 0.8)) out.push(...tag(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player), onBracket(b.bracket)));
   const under = characterAt(sx, sy, player);
   if (under) out.push(...tag(characterActions(under, player), onCharacter(under)));
   else if (playerAt(sx, sy, player)) out.push(...tag(characterActions(player, player), onCharacter(player)));
   out.push(...rugActs); // after the characters': a villager standing on the rug is the thing pointed at (#327)
-  if (out.length === farmActs.length + bucketActs.length + rugActs.length && map.isWalkableTile(tx, ty)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty))); // nothing else here (Till and Plant do not stand in for it)
+  if (out.length === farmActs.length + bucketActs.length + rugActs.length + paintActs.length && map.isWalkableTile(tx, ty)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty))); // nothing else here (Till and Plant do not stand in for it)
   return out;
 }
 
@@ -1306,6 +1333,8 @@ export function itemMenu(player, entry, bag, otherBag) {
   out.push({ label: "Use", enabled: true, onSelect: () => use.begin(entry, { kind: "bag", bag }) });
   // A rug is laid from the bag: Place begins the ghost on the floor (placement.js; #327).
   if (def.rug && mine) out.push({ label: "Place", enabled: true, onSelect: () => placement.beginRug(entry) });
+  // A painting is hung from the bag: Place begins the ghost on a wall's face (placement.js; #326).
+  if (def.painting && mine) out.push({ label: "Place", enabled: true, onSelect: () => placement.beginPainting(entry) });
   if (def.hands && mine) {
     if (def.hands === "either") {
       // A weapon fits either hand: the main hand swaps what is there, the off hand takes a second weapon (docs/21).
