@@ -188,7 +188,13 @@ export const objectHighlight = {
   refreshMs: 100,
 };
 
-const sections = { zombie, player, villager, world, population, sight, feel, floaters, objectHighlight };
+// The hover card (#262; src/ui/hover-card.js): how long the pointer rests before it shows, and how far it sits from the pointer, in UI px.
+export const hoverCard = {
+  delayMs: 60,
+  gap: 14,
+};
+
+const sections = { zombie, player, villager, world, population, sight, feel, floaters, objectHighlight, hoverCard };
 
 // Lay a file's numbers over the defaults; a missing file or section changes nothing.
 export function load(json) {

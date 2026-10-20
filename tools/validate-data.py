@@ -231,6 +231,12 @@ if not (num(oh.get("alpha")) and 0 < oh["alpha"] <= 1):
     fail("tuning.objectHighlight.alpha: a number above 0, up to 1")
 if not (num(oh.get("refreshMs")) and oh["refreshMs"] > 0):
     fail("tuning.objectHighlight.refreshMs: a number above 0")
+# The hover card (#262): the pointer rests this long before it shows, and it sits this far from the pointer.
+hc = load("data/tuning.json").get("hoverCard", {})
+if not (num(hc.get("delayMs")) and hc["delayMs"] >= 0):
+    fail("tuning.hoverCard.delayMs: a number, 0 or more")
+if not (num(hc.get("gap")) and hc["gap"] >= 0):
+    fail("tuning.hoverCard.gap: a number, 0 or more")
 tuning_world = load("data/tuning.json")["world"]
 if tuning_world["stumpSprite"] not in sprites:
     fail(f"tuning.world.stumpSprite: no sprite {tuning_world['stumpSprite']!r}")
