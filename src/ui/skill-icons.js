@@ -208,27 +208,36 @@ const DRAW = {
 const canvases = new Map();
 const urls = new Map();
 
-// A 16 by 16 canvas of the skill's icon, drawn once.
-export function skillIcon(id) {
-  let c = canvases.get(id);
+// A 16 by 16 canvas drawn by `draw(buffer)` and outlined, once per key: the skills' icons and (ui/debuff-icons.js, #308) any other small icon in this style.
+export function iconCanvas(key, draw) {
+  let c = canvases.get(key);
   if (c) return c;
   c = document.createElement("canvas");
   c.width = SIZE;
   c.height = SIZE;
   const b = buffer();
-  const draw = DRAW[id];
   if (draw) draw(b);
   b.outline();
   c.getContext("2d").putImageData(new ImageData(b.d, SIZE, SIZE), 0, 0);
-  canvases.set(id, c);
+  canvases.set(key, c);
   return c;
 }
 
 // The same as a data URL, for an `<img>`.
-export function skillIconURL(id) {
-  let u = urls.get(id);
-  if (!u) { u = skillIcon(id).toDataURL(); urls.set(id, u); }
+export function iconURL(key, draw) {
+  let u = urls.get(key);
+  if (!u) { u = iconCanvas(key, draw).toDataURL(); urls.set(key, u); }
   return u;
+}
+
+// A 16 by 16 canvas of the skill's icon, drawn once.
+export function skillIcon(id) {
+  return iconCanvas(id, DRAW[id]);
+}
+
+// The same as a data URL, for an `<img>`.
+export function skillIconURL(id) {
+  return iconURL(id, DRAW[id]);
 }
 
 // An `<img>` of it at a whole-number scale, crisp.

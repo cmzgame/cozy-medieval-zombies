@@ -501,6 +501,22 @@ html, body {
   pointer-events: none;
 }
 
+/* The row of debuffs (#308; ui/debuff-row.js): along the top, stuck to the top right, growing leftward; the bag's home is under it. The row takes no pointer, its icons do. */
+#debuffs {
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 6px;
+  pointer-events: none;
+}
+.debuff { display: flex; flex-direction: column; align-items: center; width: 40px; pointer-events: auto; }
+.db-box { position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: rgba(20, 8, 12, 0.82); border: 2px solid #8a2a34; border-radius: 6px; }
+.db-stacks { position: absolute; right: -4px; top: -6px; min-width: 14px; padding: 0 3px; box-sizing: border-box; font-size: 11px; font-weight: bold; line-height: 14px; text-align: center; color: #fff; background: #8a2a34; border-radius: 7px; border: 1px solid #1a0a0e; }
+.db-stacks[hidden] { display: none; }
+.db-time { margin-top: 2px; font-size: 12px; font-weight: bold; color: #f4ecd9; text-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 -1px 0 #000; }
+
 /* The hover card (#262; ui/hover-card.js): a small, mostly black, rounded box with a thin light border, over every panel and the belt, never taking the pointer. */
 #hover-card {
   position: absolute;
@@ -715,7 +731,7 @@ html, body {
 #inventory .inv-body {
   position: absolute;
   right: 12px;
-  top: 12px;
+  top: 64px; /* under the row of debuffs (#308) */
   max-width: calc(100% - 24px);
 }
 
@@ -1279,7 +1295,7 @@ html, body {
 }
 
 /* No world chosen (docs/31/09): the title over black, none of the world's interface showing. */
-#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #floaters, #ui.no-world #hover-card, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #talk, #ui.no-world #nav-row, #ui.no-world #skills-panel, #ui.no-world #build-palette, #ui.no-world #map-panel, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
+#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #debuffs, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #floaters, #ui.no-world #hover-card, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #talk, #ui.no-world #nav-row, #ui.no-world #skills-panel, #ui.no-world #build-palette, #ui.no-world #map-panel, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
 /* #debug is #ui's sibling in index.html, not its child, so it is reached with ~; the chat box (#log-input) is #log's
    sibling, so it is named on its own (#16). */
 .screen h2 { font-size: 1.05em; margin: 10px 0 4px; color: #e8dcc0; }
