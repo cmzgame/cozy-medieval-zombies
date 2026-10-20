@@ -334,6 +334,38 @@ check("paintings: hung from the bag onto a wall's face, in the record and the sy
   assert(mapMod.itemsAt(x + 3, y).filter((q) => q.id === "painting_wide_sunset").length === 1 && !hangings(x + 3), "taking down a wide painting's second wall did not drop it once and clear the holder");
   return "hung, in the record and the hash, restored; refused on a post, a window, the wall's end, afar, through a wall; taken down from either segment, once; dropped with the wall or a door";
 });
+// The woods as wall types (#334, PR 1): oak (`wall_wood`), spruce, mahogany, Winter Pine, Bloodbark, and daub are each a drawn wall of their own, built from the delivered files with the
+// oak set's anchors, each with its post and its leaves' sheet (daub's are oak's); the valley is built in oak, spruce, mahogany, and daub, mixed, and never in the regions' two woods.
+check("woods: six drawn wall types with their posts and leaves, anchors the oak set's; the valley mixes oak, spruce, mahogany, and daub and has no Winter Pine or Bloodbark", () => {
+  const defs = {};
+  for (const w of ["wall_wood", "wall_spruce", "wall_mahogany", "wall_winterpine", "wall_bloodbark", "wall_daub"]) defs[w] = read(`data/sprites/${w}.json`);
+  const oak = defs.wall_wood;
+  for (const [w, d] of Object.entries(defs)) {
+    assert(d.wall && d.wall.height === 80 && d.wall.material === "wood" && /^#[0-9a-f]{6}$/i.test(d.wall.color), `${w}: not a wood wall block`);
+    assert(JSON.stringify(Object.keys(d.images)) === JSON.stringify(Object.keys(oak.images)), `${w}: its variants are not the oak set's`);
+    assert(JSON.stringify(d.anchors) === JSON.stringify(oak.anchors), `${w}: its anchors are not the oak set's`);
+    for (const f of Object.values(d.images)) assert(fs.existsSync(path.join(root, f)), `${w}: ${f} is missing`);
+    assert(fs.existsSync(path.join(root, `data/sprites/${d.wall.post}.json`)) && fs.existsSync(path.join(root, `data/sprites/${d.wall.parts}.json`)), `${w}: its post or its leaves' sheet is missing`);
+    if (w === "wall_daub") assert(d.wall.parts === "wall_parts_wood", "daub's leaves are not oak's");
+    else assert(d.wall.parts === (w === "wall_wood" ? "wall_parts_wood" : `wall_parts_${w.slice(5)}`), `${w}: its leaves are another wood's`);
+  }
+  const partsOak = read("data/sprites/wall_parts_wood.json");
+  for (const w of ["spruce", "mahogany", "winterpine", "bloodbark"]) {
+    const p = read(`data/sprites/wall_parts_${w}.json`);
+    assert(JSON.stringify(Object.keys(p.images)) === JSON.stringify(Object.keys(partsOak.images)) && JSON.stringify(p.anchors) === JSON.stringify(partsOak.anchors), `wall_parts_${w}: not the oak leaves' names and anchors`);
+    assert(Object.values(p.images).every((f) => f.includes(`_${w}_`) && fs.existsSync(path.join(root, f))), `wall_parts_${w}: a leaf is missing or another wood's`);
+  }
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const j = read("data/maps/valley.json");
+  const [bx, by, bw, bh] = j.bounds;
+  const C = mapMod.CHUNK;
+  for (let cy = Math.floor(by / C); cy <= Math.floor((by + bh) / C); cy++) for (let cx = Math.floor(bx / C); cx <= Math.floor((bx + bw) / C); cx++) mapMod.getChunk(cx, cy, true);
+  const seen = {};
+  for (let y = by; y < by + bh; y++) for (let x = bx; x < bx + bw; x++) for (const e of ["n", "w"]) { const w = mapMod.tileAt(x, y)[e]; if (w) seen[w.sprite] = (seen[w.sprite] || 0) + 1; }
+  for (const w of ["wall_wood", "wall_spruce", "wall_mahogany", "wall_daub"]) assert(seen[w] > 20, `the valley has ${seen[w] || 0} ${w} segments`);
+  assert(!seen.wall_winterpine && !seen.wall_bloodbark, "the valley holds a region's wood");
+  return Object.entries(seen).map(([k, v]) => `${k.slice(5)} ${v}`).join(", ");
+});
 // Small text (#321): text at or under the threshold (ui/small-text.js, 15 UI px) is set in the clear sans-serif (`--font-small`), so a new small rule cannot slip in pixel-only.
 // `scanSmallText` reads style.css for every rule whose size is at or under the threshold, in any form the stylesheet could write it: `font-size` in px or rem (a rem is 16 px), a
 // percentage or an em or `smaller` (relative to the parent), the keywords (xx-small 9 px, x-small 10, small 13), and the `font:` shorthand with a style, variant, or weight before the
