@@ -40,6 +40,11 @@ export async function run(game) {
     row("a rucksack says where it is worn and what it holds", has("rucksack", "worn on your back; holds 8×5"), text("rucksack").join(" | "));
     row("a waterskin says its fill, and a stack its count and wear", has("waterskin", "Drink: 40% full", { fill: 40 }) && info.cardFor(G.items.makeEntry("bread", 3, { wear: 0.25 })).state === "×3 · 75% left", info.cardFor(G.items.makeEntry("bread", 3, { wear: 0.25 })).state);
     row("a material says what it is made into", has("log", "Splits into 3 plank.") || has("log", "Goes into:"), text("log").join(" | "));
+    // What the cards say is true: the swing animation's name is not a fact about the weapon, an ingredient says what it goes into whatever else it is, ids are player words.
+    row("a halberd says it is held in both hands and never calls itself one-handed", has("halberd", "Equip: both hands.") && !text("halberd").some((l) => /one-handed/.test(l)) && !G.items.allItems().some((d) => info.textOf(info.cardFor(G.items.makeEntry(d.id))).some((l) => /one-handed/.test(l))), text("halberd").join(" | "));
+    row("a plank says what it goes into and what it builds; a stick, though a weapon, says what it goes into", has("plank", "Goes into:") && has("plank", "Builds:") && /door/.test(text("plank").join(" ")) && has("stick", "Goes into:"), `${text("plank").join(" | ")} || ${text("stick").join(" | ")}`);
+    row("the Use lines name things in player words: a bucket fills at water, a well, a trough; seeds go on tilled soil", has("bucket", "Use on water, well") && !text("bucket").some((l) => /floor_|water shallow/.test(l)) && has("potato_seed", "Use on tilled soil: plant."), `${text("bucket").join(" | ")} || ${text("potato_seed").join(" | ")}`);
+    row("a log splits into planks, plural", has("log", "Splits into 3 planks."), text("log").join(" | "));
     // Every item: a name nobody else has, a kind, and no segment but Use is gold.
     const ids = [...new Set((all || []).map((d) => d.id))];
     const names = new Map();
@@ -101,6 +106,34 @@ export async function run(game) {
       el = await hoverOver(".hot-slot.empty", "an empty belt slot shows its name");
       row("an empty belt slot shows its name", !!el && /Belt slot/.test(cardEl().textContent), cardEl().textContent.slice(0, 60));
     }
+    // The card is not stale: a count that changes, and a slot that empties, while the pointer does not move.
+    if (belt) {
+      belt[0] = G.items.makeEntry("bread", 3);
+      panel.renderInventoryPanel(me, bag, null, belt);
+      el = await hoverOver(".hot-slot:not(.empty) .inv-item", "the belt shows bread");
+      const was3 = cardEl().textContent;
+      belt[0].count = 2;
+      panel.renderInventoryPanel(me, bag, null, belt);
+      const now2 = cardEl().textContent;
+      belt[0] = null;
+      panel.renderInventoryPanel(me, bag, null, belt);
+      const gone = cardEl();
+      row("the card is not stale: a count that falls shows at once, and a slot that empties no longer shows the item", /×3/.test(was3) && /×2/.test(now2) && !/×3/.test(now2) && (gone.hidden || !/bread/i.test(gone.textContent)), `${/×3/.test(was3) ? "×3" : "?"} -> ${/×2/.test(now2) ? "×2" : "?"} -> ${gone.hidden ? "hidden" : gone.textContent.slice(0, 30)}`);
+      belt[0] = G.items.makeEntry("tinderbox", 1);
+      panel.renderInventoryPanel(me, bag, null, belt);
+    }
+    // Every piece and slot has the full name for a screen reader, since the title is gone.
+    row("every piece and slot carries its full name as an aria-label", [...document.querySelectorAll(".inv-item")].every((n) => n.getAttribute("aria-label")) && [...document.querySelectorAll(".doll-slot, .hot-slot")].every((n) => n.getAttribute("aria-label")), `${document.querySelectorAll(".inv-item, .doll-slot, .hot-slot").length} checked`);
+    // An open container (a chest, a body, a station's output) is a grid like the bag.
+    const chest = { container: "chest", cols: 4, rows: 3, items: [] };
+    const apple = G.items.makeEntry("apple", 2);
+    apple.x = 0;
+    apple.y = 0;
+    chest.items.push(apple);
+    panel.renderInventoryPanel(me, bag, chest, belt);
+    el = await hoverOver(".inv-item[data-bag='container']", "an item in an open container shows its card");
+    row("an item in an open container (chest, body, station output) shows its card", !!el && /Apple/.test(cardEl().textContent) && /×2/.test(cardEl().textContent) && /Eat/.test(cardEl().textContent), cardEl().textContent.slice(0, 80));
+    panel.renderInventoryPanel(me, bag, null, belt);
     el = await hoverOver(".doll-slot[data-slot='hand:main'] .inv-item", "a hand shows its card");
     row("the main hand's card names the sword", !!el && /sword/i.test(cardEl().textContent), cardEl().textContent.slice(0, 80));
     el = await hoverOver(".doll-slot[data-slot='worn:head'] .inv-item", "a worn slot shows its card");
