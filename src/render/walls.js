@@ -130,9 +130,34 @@ function emitCapFromFrame(sheet, name, anchor, top, corners, h, world, flags) {
   gl.texQuad(pts, uvs, { world, flags: flags | gl.FLAG_SKY });
 }
 
+// A gate that swings (#332, Michael, 2026-10-20: "only fence for now, we can animate doors later"): a door whose parts sheet has
+// the in-between leaves (`leaf_<o>_30`, `leaf_<o>_60`) plays them for SWING_S when it opens or shuts. Each screen plays it when it
+// sees the gate's `open` change (the host's step, a guest's chunk), in sim time, so it is the picture's alone: never the world's,
+// never sent, never saved. A gate first seen is drawn as it stands.
+const SWING_S = 0.24;
+const swings = new Map(); // "tx,ty,edge" -> { open, at }
+function swingLeaf(wall, edge, tx, ty, side, parts, open) {
+  if (wall.kind !== "door" || !parts || !parts.frames[`leaf_${side}_30`]) return null;
+  const k = `${tx},${ty},${edge}`;
+  const now = loop.simTime();
+  let s = swings.get(k);
+  if (!s) swings.set(k, (s = { open, at: -Infinity }));
+  else if (s.open !== open) {
+    s.open = open;
+    s.at = now;
+  }
+  const t = (now - s.at) / SWING_S;
+  if (!(t >= 0 && t < 1)) return null;
+  const step = t < 0.5 ? 0 : 1; // opening: 30 then 60; shutting: 60 then 30
+  return `leaf_${side}_${open ? (step ? "60" : "30") : (step ? "30" : "60")}`;
+}
+
 function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
   const side = edge === "n" ? "north" : "west";
-  const { art, boards, n } = drawnVariant(variant);
+  const { art: settled, boards, n } = drawnVariant(variant);
+  const parts0 = sheet.wall.parts ? getSheet(sheet.wall.parts) : null;
+  const mid = !o.ghost && !wall.broken && !map.boarded(wall) ? swingLeaf(wall, edge, tx, ty, side, parts0, !!wall.open) : null;
+  const art = mid ? "door_open" : settled; // mid-swing: the open frame (its posts and hinge) with the moving leaf after it
   const name = `${side}_${art}`;
   const f = sheet.frames[name];
   if (!f) return;
@@ -158,7 +183,8 @@ function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
     emitCapFromFrame(sheet, name, anchor, [x, y - iso.HH], corners, h, [tx, ty], o.flags);
   }
   if (boards) wallPartQuad(getSheet(sheet.wall.boards || "wall_boards"), `boards_${boards}_${side}_${n}`, x, y, o);
-  if (outside > 0) for (const p of leaves("")) wallPartQuad(parts, p, x, y, o);
+  if (mid) wallPartQuad(parts, mid, x, y, o); // the swinging leaf in place of the open one, while it swings
+  else if (outside > 0) for (const p of leaves("")) wallPartQuad(parts, p, x, y, o);
 }
 
 function isNearWall(tx, ty, edge, playerRoom) {

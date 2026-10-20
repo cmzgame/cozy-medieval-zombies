@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Fences and gates are buildable (a plank a segment, two a gate, the hammer; Free building waives it); only the gate swings, house doors later (2026-10-20, Fences and gates are buildable now; only the gate swings, doors later (Michael); the costs, a gate only in a fence, and the swing's length are Primary's reading)
 - A container does not sway, so the chicken coop is not interactable; its table, `coop`, is a placeholder, and the beehive sways with no action until there is honey (2026-10-20, The beehive and the chicken coop; the readings are the builder's, Michael's to overrule)
 - One buff dish is active at a time, for now (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk)
 - Pemmican is the only food that stacks; every other food takes a cell each, so cooking is worth more per bag slot; hearty cooked dishes carry buffs, a food weighed by how long it keeps, how much it heals, how full it makes you, and its buff (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk)
@@ -256,6 +257,13 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-20 — Fences and gates are buildable now; only the gate swings, doors later (Michael)
+
+Asked, wiring the drawn fence (#332), whether fences should be buildable now and whether house doors should swing like the gate, Michael: "Buildable now and only fence for now, we can animate doors later".
+
+- **A fence and a gate are in the build palette now.** *Primary's reading of the costs*, Michael's to change: a fence segment is a plank, a gate two planks, built with the hammer like the other building; Free building waives both as it waives all building. *Also Primary's reading:* a gate goes on an empty edge or into a fence, never into another wall ("Only in a fence"); a house Door built into a fence still makes a gate, as it has since #147.
+- **Only the fence's gate swings** (its two drawn in-between leaves, played on every screen from the gate's open state; *the length, about a quarter of a second, is Primary's reading*). House doors keep snapping open until they are animated later.
 
 ### 2026-10-20 — Rugs, built: laid from the bag into a slot of their own (#327; Michael's agreed readings, the builder's the rest, Michael's to overrule)
 

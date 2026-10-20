@@ -1,0 +1,16 @@
+{
+ "image": "data/art/village/post_fence.png",
+ "frames": {
+  "idle_0": [
+   0,
+   0,
+   14,
+   43
+  ]
+ },
+ "anchor": [
+  7,
+  39
+ ],
+ "note": "the drawn fence post (art round 3, #332), at a fence's ends, corners, junctions, and where it meets another material"
+}
