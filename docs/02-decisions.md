@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Each wood (oak, spruce, mahogany, Winter Pine, Bloodbark) and daub is a wall type of its own, never paint; a wall's doors and windows match its wood by default and may be built in any other wood; oak, spruce, mahogany, and daub are the valley's and mix in its own buildings, Winter Pine and Bloodbark are restricted to their regions (2026-10-20, The woods are wall types, mixed with any wood's doors and windows; only Winter Pine and Bloodbark are restricted (Michael); costs and the restricted woods offered only with Free building for now are Primary's reading)
 - A painting hangs on the camera-facing face of a plain wall, one to a segment (a wide one two segments, across a joint with no post), never at a corner, and falls to the floor as an item when its wall goes; Pick up takes it down (2026-10-20, Paintings, built: hung from the bag onto a wall's face (#326; the builder's readings, Michael's to overrule))
 - Fences and gates are buildable (a plank a segment, two a gate, the hammer; Free building waives it); only the gate swings, house doors later (2026-10-20, Fences and gates are buildable now; only the gate swings, doors later (Michael); the costs, a gate only in a fence, and the swing's length are Primary's reading)
 - A container does not sway, so the chicken coop is not interactable; its table, `coop`, is a placeholder, and the beehive sways with no action until there is honey (2026-10-20, The beehive and the chicken coop; the readings are the builder's, Michael's to overrule)
@@ -258,6 +259,23 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-20 — The woods are wall types, mixed with any wood's doors and windows; only Winter Pine and Bloodbark are restricted (Michael)
+
+Asked #334's five questions (mixing, finishes, doors per wood, where the woods come from, daub), Michael:
+
+> "1. Yep
+> 2. I don't really think we need to paint the walls? Or is that how you interpreted the daub version and other colors of wood? I assumed they would not be painted but would in fact be whole new walls
+> 3. By default yes,  but I think we should be able to do different windows and doors on different woods.
+> 4. The only ones that need restricting are the white and deep red ones, I think the rest come from trees in the valley? So they should be mixed and matched in the default buildings
+> 5. I think you are thinking of this material differently than I was. I assumed it was simply a new wall type, not plastering "over" anything?"
+
+His first question (2026-10-20) was: "do the wood recolorings mean we can mix and match? So like? Standard wood but with white doors and shutters?"
+
+- **Every wood is a wall type of its own, and so is daub.** Oak, spruce, mahogany, Winter Pine, Bloodbark, and daub are each a whole wall, built as itself; nothing is painted. There is no paint and no "finish" table: Primary's proposal of paints is withdrawn. The "white" of the first question is Winter Pine, the pale wood, and the "deep red" is Bloodbark.
+- **Mix and match: a door or a window may be of a different wood from its wall.** By default a wall's doors and shutters are its own wood (a mahogany house has mahogany doors); building one, the player may choose any other wood for it (oak walls with Winter Pine doors and shutters). Daub, which has no leaves of its own, takes oak's by default.
+- **Only Winter Pine and Bloodbark are restricted.** They are the regions' woods (the Pale Reach, the Crimson Abbey; docs/39), so building with them means going there. Oak, spruce, and mahogany grow in the valley, and the valley's own buildings are built in all of them and in daub, mixed, instead of all in oak.
+- *Primary's readings, Michael's to change:* until there are planks per species (#275), a wall, door, or window of any valley wood or of daub costs what today's do, in plain planks; Winter Pine and Bloodbark are offered only while Free building is on, until the regions and their planks exist. Which valley buildings get which wood is the map's to choose, place by place, in `tools/mapgen/valley.py`.
 
 ### 2026-10-20 — Paintings, built: hung from the bag onto a wall's face (#326; the builder's readings, Michael's to overrule)
 
