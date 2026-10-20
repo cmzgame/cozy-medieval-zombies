@@ -124,7 +124,7 @@
 - **Well** [built]: drink, fill skins and buckets; its winch; rooted.
 - **Trough** [built]: drink and fill, as the well [open #279: natural water or not].
 - **Font** [built]: fill a bucket [open #279: natural water or not].
-- **Altar** [built]: decoration [change: pray for mana, Faith 1].
+- **Altar** [built]: decoration [change: pray for mana and stamina, Faith 1; it also removes bleeds at Faith 4 and restores health at Faith 6].
 - **Fireplace** [built]: a fire (logs), lights its room, cooks; not carried; not made [open #273].
 - **Hearth** [built in the data]: as the fireplace; not placed in the valley.
 - **Campfire** [built in the data]: a fire (logs) that cooks; not placed, not made [open #273].
@@ -245,7 +245,7 @@ The numbers are each weapon's block in `data/items.json` and `data/combat.json`.
 **Faith** (the same proposal)
 - **The Holy Symbol** [to build]: Faith's permission, as a staff is Magic's (ruled within the proposal); from Mining 5's silver; a trinket or a held item [open #282, #283]. The Divine Holy Symbol: a region's.
 - **Prayer books** [to build]: Consecrate Ground (Faith 7), Holy Might (Faith 8), Sanctify Food and Water (Faith 10). Cure Undeath (Faith 10) is learned in a region.
-- **Smite** [to build]: a chance on a melee or ranged strike (Faith 2, 5, 9); a passive.
+- **Smite** [to build]: a chance on a melee or ranged strike (Faith 2, 5, 9), dealing 150%, 200%, then 250% of the triggering hit as holy spell damage; a passive (ruled 2026-10-20).
 
 ### 5.3 Armour and clothing
 
@@ -577,15 +577,15 @@ A skill's level gate stops a player harvesting the food it gates, ripe fields in
 10. 20% chance of a second arrow or throw.
 
 ### Faith (combat)
-1. Praying at an altar to restore mana.
-2. 1 in 10 chance a melee or ranged strike adds smite damage (the level's worth).
+1. Praying at an altar restores mana and stamina (later levels add more, below).
+2. 1 in 10 chance a melee or ranged strike smites: 150% of the hit's damage again, as holy spell damage.
 3. Life Ward: temporary immunity to bites.
-4. More mana.
-5. 2 in 10 smite.
-6. More health.
-7. Consecrate Ground: small damage round you; its point is utility.
+4. More mana; praying at an altar also removes bleeds [Primary's reading of the level].
+5. 2 in 10 smite, at 200% of the hit.
+6. More health; praying at an altar also restores health [Primary's reading of the level].
+7. Consecrate Ground: small damage round you, and light over the whole area while it lasts; its point is utility.
 8. Holy Might: more melee and ranged damage and a sure smite for a while.
-9. 3 in 10 smite.
+9. 3 in 10 smite, at 250% of the hit.
 10. Cure Undeath (learned in a region): cures the infection before you die; and Sanctify Food and Water: food purified of rot, carried water made clean without a fire.
 
 ### Woodcutting (gathering; every wood feeds bows, furniture, or both)
