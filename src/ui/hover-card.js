@@ -80,6 +80,19 @@ export function show(key, build, clientX, clientY) {
   place();
 }
 
+// The card is up and its key starts with `prefix`: build it again under `key` (a card whose facts move, as a debuff's time does, says what is true now).
+export function refresh(prefix, key, build) {
+  if (!el || !cur || !cur.key.startsWith(prefix) || cur.key === key) return;
+  cur = { key, card: build() };
+  fill(cur.card);
+  place();
+}
+
+// Hide the card only if its key starts with `prefix` (a debuff leaving takes its own card, never an item's).
+export function hideIf(prefix) {
+  if (cur && cur.key.startsWith(prefix)) hide();
+}
+
 export function hide() {
   if (!el) return;
   clearTimeout(timer);

@@ -22,6 +22,8 @@ export async function run(game) {
   const hands0 = { main: me.hands.main, off: me.hands.off };
   const head0 = me.worn.head;
   const wasPaused = G.loop.isPaused();
+  const screen0 = G.screens.currentScreen(); // the title or pause screen over the panels would take the pointer: hide it for the check, put it back after
+  if (screen0) G.screens.hide();
   const was = { bag: panel.isBagOpen(), character: panel.isCharacter() };
   const all = G.items.allItems ? G.items.allItems() : null;
   const text = (id, props) => info.textOf(info.cardFor(G.items.makeEntry(id, 1, props)));
@@ -39,7 +41,7 @@ export async function run(game) {
     row("a seed says what it grows", has("potato_seed", "Grows potato on tilled soil.") && info.cardFor(G.items.makeEntry("potato_seed")).kind === "Seed", text("potato_seed").join(" | "));
     row("a rucksack says where it is worn and what it holds", has("rucksack", "worn on your back; holds 8×5"), text("rucksack").join(" | "));
     row("a waterskin says its fill, and a stack its count and wear", has("waterskin", "Drink: 40% full", { fill: 40 }) && info.cardFor(G.items.makeEntry("bread", 3, { wear: 0.25 })).state === "×3 · 75% left", info.cardFor(G.items.makeEntry("bread", 3, { wear: 0.25 })).state);
-    row("a material says what it is made into", has("log", "Splits into 3 plank.") || has("log", "Goes into:"), text("log").join(" | "));
+    row("a material says what it is made into", has("log", "Splits into 3 planks.") || has("log", "Goes into:"), text("log").join(" | "));
     // What the cards say is true: the swing animation's name is not a fact about the weapon, an ingredient says what it goes into whatever else it is, ids are player words.
     row("a halberd says it is held in both hands and never calls itself one-handed", has("halberd", "Equip: both hands.") && !text("halberd").some((l) => /one-handed/.test(l)) && !G.items.allItems().some((d) => info.textOf(info.cardFor(G.items.makeEntry(d.id))).some((l) => /one-handed/.test(l))), text("halberd").join(" | "));
     row("a plank says what it goes into and what it builds; a stick, though a weapon, says what it goes into", has("plank", "Goes into:") && has("plank", "Builds:") && /door/.test(text("plank").join(" ")) && has("stick", "Goes into:"), `${text("plank").join(" | ")} || ${text("stick").join(" | ")}`);
@@ -160,6 +162,7 @@ export async function run(game) {
     me.worn.head = head0;
     panel.setBagOpen(was.bag);
     panel.setCharacterOpen(was.character);
+    if (screen0) G.screens.show(screen0);
     G.loop.setPaused(wasPaused);
   }
   for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);
