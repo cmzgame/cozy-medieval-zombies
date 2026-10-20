@@ -8,6 +8,8 @@
 let root = null;
 let skills = null;
 let hooks = {};
+let buttons = new Map(); // id -> the button
+const shown = {}; // id -> whether its button shows pressed, so a step writes only what changed
 
 // Each icon is a 12 by 12 picture: "#" its main colour, "+" its accent, "." empty; the outline is drawn round whatever is filled.
 const ICONS = {
@@ -136,6 +138,8 @@ const BUTTONS = [
   { id: "menu", title: "Menu", key: "Esc" },
 ];
 
+const NARROW = 480; // the interface's width, in its own pixels, under which the row folds
+
 function iconUrl(name) {
   const { main, accent, art } = ICONS[name];
   const n = 12;
@@ -158,27 +162,44 @@ function iconUrl(name) {
   return c.toDataURL();
 }
 
-// hooks: tap(code) presses a key for one step; openMenu(), openSettings(); and canAct() is false while a screen is up.
+// hooks: tap(code) presses a key for one step; openChat() focuses the chat box keeping any draft (Enter would clear it); openMenu(), openSettings();
+// and canAct() is false while a screen is up.
 export function initNavRow(h) {
   hooks = h;
   root = document.createElement("div");
   root.id = "nav-row";
   root.innerHTML = BUTTONS.map((b) => `<button type="button" class="kit-button nav-button" data-nav="${b.id}" title="${b.title}${b.key ? ` (${b.key})` : ""}" aria-label="${b.title}"><img src="${iconUrl(b.id)}" alt="" draggable="false"></button>`).join("");
   document.getElementById("ui").appendChild(root);
-  root.addEventListener("mousedown", (e) => e.stopPropagation());
+  // A press never takes the focus (a focused button would take the next Enter or Space itself, and the chat box keeps its cursor).
+  root.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  });
   root.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-nav]");
     if (!btn) return;
-    btn.blur(); // a focused button would take the next Enter or Space itself
+    btn.blur();
     press(btn.dataset.nav);
   });
+  buttons = new Map([...root.querySelectorAll("[data-nav]")].map((b) => [b.dataset.nav, b]));
   skills = document.createElement("div");
   skills.id = "skills-panel";
   skills.className = "inv-column kit-frame";
   skills.hidden = true;
-  skills.innerHTML = `<div class="inv-header kit-header"><span class="inv-title">Skills</span><span class="inv-tools"><button class="kit-button inv-close" data-skills-close title="Close">×</button></span></div><div class="kit-well sk-body">${SKILLS.map(([group, names]) => `<div class="sk-group"><div class="sk-group-name">${group}</div>${names.map((s) => `<div class="sk-row"><span>${s}</span><span class="sk-level">1 / 10</span></div>`).join("")}</div>`).join("")}<div class="sk-note">Skills are not built yet; their scope is the game's issue #275.</div></div>`;
+  skills.innerHTML = `<div class="inv-header kit-header"><span class="inv-title">Skills</span><span class="inv-tools"><button class="kit-button inv-close" data-skills-close title="Close">×</button></span></div><div class="kit-well sk-body"><div class="sk-groups">${SKILLS.map(([group, names]) => `<div class="sk-group"><div class="sk-group-name">${group}</div>${names.map((s) => `<div class="sk-row" data-skill="${s.toLowerCase()}"><span>${s}</span><span class="sk-level">1</span></div>`).join("")}</div>`).join("")}</div><div class="sk-note">Not built yet: every skill is level 1 of 10 (#275).</div></div>`;
   document.getElementById("ui").appendChild(skills);
   skills.addEventListener("mousedown", (e) => e.stopPropagation());
+  skills.addEventListener("wheel", (e) => e.stopPropagation()); // its list scrolls on a short screen; the wheel is never the world's zoom
+  // On a narrow interface (a small window, or a large interface scale) the row folds to two columns, clear of the belt, and the skills panel
+  // moves beside it.
+  const ui = document.getElementById("ui");
+  const fold = () => {
+    const narrow = ui.clientWidth < NARROW;
+    root.classList.toggle("narrow", narrow);
+    skills.classList.toggle("narrow", narrow);
+  };
+  new ResizeObserver(fold).observe(ui);
+  fold();
   skills.addEventListener("click", (e) => {
     if (e.target.closest("[data-skills-close]")) closeSkills();
   });
@@ -187,7 +208,10 @@ export function initNavRow(h) {
 function press(id) {
   if (hooks.canAct && !hooks.canAct()) return;
   const b = BUTTONS.find((x) => x.id === id);
-  if (id === "skills") skills.hidden = !skills.hidden;
+  if (id === "skills") {
+    skills.hidden = !skills.hidden;
+    paint("skills", !skills.hidden);
+  } else if (id === "chat") hooks.openChat?.();
   else if (id === "settings") hooks.openSettings?.();
   else if (id === "menu") hooks.openMenu?.();
   else if (b && b.code) hooks.tap?.(b.code);
@@ -201,15 +225,20 @@ export function isSkillsOpen() {
 export function closeSkills() {
   if (!isSkillsOpen()) return false;
   skills.hidden = true;
+  paint("skills", false);
   return true;
 }
 
-// Each frame: a button whose panel is open shows pressed.
+function paint(id, on) {
+  const btn = buttons.get(id);
+  if (!btn || shown[id] === on) return;
+  shown[id] = on;
+  btn.classList.toggle("on", on);
+  btn.setAttribute("aria-pressed", String(on));
+}
+
+// Each step, after the panels have answered the keys: a button whose panel is open shows pressed.
 export function update(open) {
   if (!root) return;
-  for (const btn of root.querySelectorAll("[data-nav]")) {
-    const on = btn.dataset.nav === "skills" ? isSkillsOpen() : !!open[btn.dataset.nav];
-    btn.classList.toggle("on", on);
-    btn.setAttribute("aria-pressed", String(on));
-  }
+  for (const id of buttons.keys()) paint(id, id === "skills" ? isSkillsOpen() : !!open[id]);
 }
