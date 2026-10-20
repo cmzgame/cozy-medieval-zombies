@@ -1,0 +1,16 @@
+{
+ "image": "data/art/village/post_bloodbark.png",
+ "frames": {
+  "idle_0": [
+   0,
+   0,
+   33,
+   98
+  ]
+ },
+ "anchor": [
+  16.0,
+  89.0
+ ],
+ "note": "a drawn corner post, anchored on the grid vertex itself (docs/17)"
+}
