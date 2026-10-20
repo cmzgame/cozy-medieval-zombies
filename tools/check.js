@@ -146,6 +146,9 @@ const floatersMod = await import("../src/floaters.js");
 const itemInfoMod = await import("../src/item-info.js");
 const smallTextMod = await import("../src/ui/small-text.js");
 const rugsImport = await import("../src/rugs.js");
+const woodsImport = await import("../src/woods.js");
+const placementImport = await import("../src/placement.js");
+const rulesImport = await import("../src/rules.js");
 const inventoryMod = await import("../src/inventory.js");
 const itemsMod = await import("../src/items.js");
 const playerMod = await import("../src/entities/player.js");
@@ -365,6 +368,94 @@ check("woods: six drawn wall types with their posts and leaves, anchors the oak 
   for (const w of ["wall_wood", "wall_spruce", "wall_mahogany", "wall_daub"]) assert(seen[w] > 20, `the valley has ${seen[w] || 0} ${w} segments`);
   assert(!seen.wall_winterpine && !seen.wall_bloodbark, "the valley holds a region's wood");
   return Object.entries(seen).map(([k, v]) => `${k.slice(5)} ${v}`).join(", ");
+});
+// A door or a window in another wood than its wall (#334, PR 2): the leaf is the wood's wall sprite, stored only when it differs from the wall's own (a daub wall's own is oak's), carried in the chunk's
+// record and the sync hash, restored; the regions' two woods only while Free building is on; refused in a log or stone wall and for an unknown wood; a guest's `build` command meets the same rules.
+check("woods: a door or a window of another wood than its wall: the leaf rules, the record and the hash, restore, and a guest's build command", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  const W = woodsImport;
+  const placementMod = placementImport;
+  assert(JSON.stringify(W.leafChoices(false)) === JSON.stringify(["wall_wood", "wall_spruce", "wall_mahogany"]) && JSON.stringify(W.leafChoices(true)) === JSON.stringify(["wall_wood", "wall_spruce", "wall_mahogany", "wall_winterpine", "wall_bloodbark"]), "the leaf woods are not oak, spruce, mahogany, and then the regions' two");
+  assert(W.ownLeaf("wall_daub") === "wall_wood" && W.ownLeaf("wall_spruce") === "wall_spruce" && W.ownLeaf("wall_log") === null && W.ownLeaf("wall_stone") === null, "a wall's own leaf wood is wrong (daub's are oak's, a log wall has none)");
+  assert(W.leafProblem("wall_log", "wall_spruce", true) !== "" && W.leafProblem("wall_mahogany", "wall_daub", true) !== "" && W.leafProblem("wall_mahogany", "wall_nothing", true) !== "" && W.leafProblem("wall_mahogany", "wall_winterpine", false) !== "" && W.leafProblem("wall_mahogany", "wall_winterpine", true) === "" && W.leafProblem("wall_log", "", false) === "", "a leaf rule is wrong");
+  assert(W.storedLeaf("wall_mahogany", "wall_mahogany", true) === null && W.storedLeaf("wall_daub", "wall_wood", true) === null && W.storedLeaf("wall_daub", "wall_spruce", true) === "wall_spruce", "a leaf that is the wall's own is stored");
+  mapMod.ensureAround(me.gx, me.gy, 3);
+  let at = null;
+  for (let dy = -14; dy <= 14 && !at; dy++) for (let dx = -14; dx <= 14 && !at; dx++) {
+    const x = Math.round(me.gx) + dx;
+    const y = Math.round(me.gy) + dy;
+    let ok = true;
+    for (let ay = -2; ay < 4 && ok; ay++) for (let ax = -1; ax < 8 && ok; ax++) { const t = mapMod.peekTile(x + ax, y + ay); ok = !!t && t.floor === "floor_grass" && !t.prop && !t.rug && !t.n && !t.w && mapMod.isWalkableTile(x + ax, y + ay); }
+    if (ok) at = [x, y];
+  }
+  assert(at, "no bare grass");
+  const [x, y] = at;
+  mapMod.buildWall(x, y, "n", "wall", "wall_mahogany");
+  mapMod.buildWall(x + 1, y, "n", "wall", "wall_daub");
+  mapMod.buildWall(x + 2, y, "n", "wall", "wall_log");
+  mapMod.buildWall(x + 3, y, "n", "wall", "wall_mahogany");
+  mapMod.buildWall(x + 4, y, "n", "wall", "wall_mahogany");
+  me.gx = x + 2;
+  me.gy = y + 1.6;
+  const free0 = rulesImport.rules.freeBuilding;
+  const doorAt = (tx, edge = "n") => mapMod.peekTile(tx, y)[edge];
+  const build = (what, tx, leaf) => { me.gx = tx; me.gy = y + 1.2; return placementMod.performPlacement(me, { kind: "build", what, tx, ty: y, edge: "n", ...(leaf ? { leaf } : {}) }); };
+  try {
+    rulesImport.rules.freeBuilding = true;
+    const before = gameMod.syncParts().map;
+    build("door", x, "wall_winterpine");
+    const d = doorAt(x);
+    assert(d.kind === "door" && d.sprite === "wall_mahogany" && d.leaf === "wall_winterpine", `the door is ${JSON.stringify(d && { k: d.kind, s: d.sprite, l: d.leaf })}`);
+    assert(gameMod.syncParts().map !== before, "a door of another wood did not move the sync hash");
+    build("window", x + 1, "wall_spruce");
+    build("door", x + 3, "wall_mahogany");
+    build("door", x + 4);
+    assert(doorAt(x + 1).kind === "window" && doorAt(x + 1).leaf === "wall_spruce", "a spruce window in a daub wall was not built");
+    assert(doorAt(x + 3).kind === "door" && !("leaf" in doorAt(x + 3)), "a door of the wall's own wood stored a leaf");
+    assert(doorAt(x + 4).kind === "door" && !("leaf" in doorAt(x + 4)), "a door with no choice stored a leaf");
+    // The record and back.
+    const C = mapMod.CHUNK;
+    const rec = JSON.parse(JSON.stringify(mapMod.serializeChunk(mapMod.getChunk(Math.floor(x / C), Math.floor(y / C), false))));
+    assert(rec.walls.some((w) => w[3] && w[3].leaf === "wall_winterpine") && rec.walls.some((w) => w[3] && w[3].leaf === "wall_spruce"), "the chunk's record does not carry the leaf");
+    mapMod.installChunk(rec);
+    assert(doorAt(x).leaf === "wall_winterpine" && doorAt(x + 1).leaf === "wall_spruce", "the leaf did not come back from the record");
+    // Over a broken door the default leaf is the old one's wood (a new door, never a repair); a region's wood is refused for it with Free building off as for a chosen one.
+    const brokeOld = doorAt(x);
+    brokeOld.broken = true; brokeOld.open = true; brokeOld.hp = 0;
+    mapMod.touch(x, y);
+    build("door", x);
+    assert(doorAt(x) !== brokeOld && !doorAt(x).broken && doorAt(x).leaf === "wall_winterpine", "a door built over a broken Winter Pine one did not default to its wood, or was a repair");
+    rulesImport.rules.freeBuilding = false;
+    const brokeAgain = doorAt(x);
+    brokeAgain.broken = true; brokeAgain.hp = 0;
+    build("door", x);
+    assert(doorAt(x) === brokeAgain, "a Winter Pine door was rebuilt by default with Free building off");
+    brokeAgain.broken = false; brokeAgain.hp = 100;
+    assert(W.leafProblem("wall_log", "wall_spruce", true, "window") === "Only a wood wall takes a spruce window · R to change", `the refusal reads "${W.leafProblem("wall_log", "wall_spruce", true, "window")}"`);
+    rulesImport.rules.freeBuilding = true;
+    // Refusals, with Free building off: a region's wood, a log wall, an unknown wood, a fence's gate.
+    rulesImport.rules.freeBuilding = false;
+    const refused = (tx, what, leaf) => {
+      const had = doorAt(tx) ? doorAt(tx).kind + doorAt(tx).sprite : "";
+      build(what, tx, leaf);
+      return (doorAt(tx) ? doorAt(tx).kind + doorAt(tx).sprite : "") === had;
+    };
+    mapMod.destroyWall(x + 4, y, "n");
+    mapMod.buildWall(x + 4, y, "n", "wall", "wall_mahogany");
+    assert(refused(x + 4, "door", "wall_winterpine"), "a Winter Pine door was built with Free building off");
+    assert(refused(x + 4, "door", "wall_nothing"), "a door of an unknown wood was built");
+    assert(refused(x + 2, "door", "wall_spruce"), "a spruce door was built in a log wall");
+    assert(refused(x + 6, "wall_winterpine", ""), "a Winter Pine wall was built with Free building off");
+    assert(placementMod.paletteKinds().every((k) => !k.region) && placementMod.buildKinds().some((k) => k.region), "the palette offers a region's wood with Free building off");
+    rulesImport.rules.freeBuilding = true;
+    assert(placementMod.paletteKinds().some((k) => k.id === "wall_bloodbark"), "the palette hides a region's wood with Free building on");
+    build("wall_bloodbark", x + 6);
+    assert(doorAt(x + 6) && doorAt(x + 6).kind === "wall" && doorAt(x + 6).sprite === "wall_bloodbark", "a Bloodbark wall was not built with Free building on");
+  } finally {
+    rulesImport.rules.freeBuilding = free0;
+  }
+  return "leaf rules; a Winter Pine door in a mahogany wall and a spruce window in a daub one, in the record and the hash and restored; the wall's own wood stores nothing; refusals";
 });
 // Small text (#321): text at or under the threshold (ui/small-text.js, 15 UI px) is set in the clear sans-serif (`--font-small`), so a new small rule cannot slip in pixel-only.
 // `scanSmallText` reads style.css for every rule whose size is at or under the threshold, in any form the stylesheet could write it: `font-size` in px or rem (a rem is 16 px), a

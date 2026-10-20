@@ -59,8 +59,11 @@
   "thickness": 14,
   "color": "#cfc3a8",
   "material": "wood",
+  "wood": "daub",
+  "name": "Daub",
   "post": "post_daub",
-  "parts": "wall_parts_wood"
+  "parts": "wall_parts_wood",
+  "leaf": "wall_wood"
  },
  "note": "a drawn wall (docs/17), five variants per side, the daub wall type (#334; the delivered files, anchors from anchors_woods.json); daub is the limewashed timber frame, walls and post only, its leaves oak's (wall_parts_wood)"
 }

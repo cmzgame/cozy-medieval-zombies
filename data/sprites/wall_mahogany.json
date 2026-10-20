@@ -59,6 +59,8 @@
   "thickness": 14,
   "color": "#6e3424",
   "material": "wood",
+  "wood": "mahogany",
+  "name": "Mahogany",
   "post": "post_mahogany",
   "parts": "wall_parts_mahogany"
  },

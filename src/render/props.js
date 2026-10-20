@@ -78,6 +78,7 @@ export function emitGhost(ghost) {
   if (ghost.kind === "wall") {
     // A wall, door, or window as it would stand, drawn by the real wall code.
     const wall = map.createWall(ghost.wallType || ghost.wallKind, ghost.sprite);
+    if (ghost.leaf) wall.leaf = ghost.leaf; // a door or window of another wood (#334)
     makeWall(wall, ghost.edge, ghost.tx, ghost.ty, true, false, tint).emit();
     return;
   }

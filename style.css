@@ -1935,6 +1935,17 @@ html, body {
   color: #a8d8a0;
 }
 
+.bp-row.active {
+  background: #3a3044;
+}
+
+.bp-sub {
+  padding: 0 8px 4px;
+  font-size: 12px;
+  font-family: var(--font-small);
+  color: #d8c8e0;
+}
+
 .bp-row.short .bp-cost {
   color: #e87070;
 }

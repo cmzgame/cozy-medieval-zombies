@@ -13,6 +13,7 @@ import * as gl from "../gl.js";
 import { GHOST_FLAGS, ghostColor } from "./props.js";
 import { NEAR_WALL_ALPHA, flameFrame, frameQuad } from "./scene.js";
 import { emitHangings } from "./paintings.js"; // what hangs on a wall's face (#326)
+import { sheetFor } from "../woods.js"; // a door or window of another wood than its wall (#334)
 
 // ---- walls ----
 
@@ -419,7 +420,7 @@ function shakeOffset(tx, ty, edge) {
 }
 
 export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts = null) {
-  const sheet = getSheet(wall.sprite);
+  const sheet = sheetFor(wall); // the wall's own sheet, or its shut leaves recoloured and its open ones another wood's (#334)
   const variant = wallVariant(wall);
   const depth = edge === "n" ? tx + ty - 0.5 : tx - 0.5 + ty;
   const p = iso.toScreen(tx, ty);

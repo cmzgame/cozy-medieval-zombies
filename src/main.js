@@ -69,6 +69,7 @@ import * as settings from "./settings.js";
 import * as screens from "./ui/screens.js";
 import * as figure from "./figure.js";
 import * as placement from "./placement.js";
+import * as woods from "./woods.js"; // the woods: a door or window of another wood than its wall (#334)
 import * as combat from "./combat.js";
 import * as buildPalette from "./ui/build-palette.js";
 import * as mapPanel from "./ui/map-panel.js";
@@ -1383,6 +1384,7 @@ async function boot() {
       assets.setManifest(manifestJson);
     } },
     { name: "data", label: "Reading the data", weight: 2, async run() {
+      woods.setTones(await optionalJson("data/wood_tones.json")); // the woods' tones, for a door or window of another wood than its wall (#334)
       const [itemsJson, buildJson, combatJson, posesJson, lootJson, wardrobesJson, interactionsJson] = await Promise.all([
         assets.loadJson("data/items.json"),
         assets.loadJson("data/build.json"),

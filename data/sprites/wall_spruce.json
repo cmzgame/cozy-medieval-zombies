@@ -59,6 +59,8 @@
   "thickness": 14,
   "color": "#a0845a",
   "material": "wood",
+  "wood": "spruce",
+  "name": "Spruce",
   "post": "post_spruce",
   "parts": "wall_parts_spruce"
  },

@@ -82,6 +82,12 @@ if (map.canBuildWall(px + 5, py + 5, "n")) {
   map.destroyWall(px + 5, py + 5, "n"); did("a wall destroyed with a painting on it");
   map.takeItem(px + 5, py + 5, map.itemsAt(px + 5, py + 5).find((q) => q.id === "painting_small_oak"));
 }
+// A window of another wood than its wall (#334): the leaf is on the wall, marked with the chunk by buildWall.
+if (map.canBuildWall(px + 7, py + 5, "n")) {
+  map.buildWall(px + 7, py + 5, "n", "wall", "wall_mahogany");
+  map.buildWall(px + 7, py + 5, "n", "window", "wall_mahogany", "wall_spruce"); did("a window of another wood built");
+  map.destroyWall(px + 7, py + 5, "n"); did("a window of another wood taken down");
+}
 const at = [px + 4, py - 3];
 const bench = map.createProp({ sprite: "workbench", tile: at, footprint: [1, 1] });
 map.placeProp(bench, at[0], at[1]); did("a prop placed");
