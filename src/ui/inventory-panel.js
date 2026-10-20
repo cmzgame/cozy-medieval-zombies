@@ -224,10 +224,16 @@ function capitalize(s) {
 // A picture for a slot (docs/26): the item's portrait, a square drawn for the
 // character screen; failing that its bag icon if that is square; else none,
 // and the slot shows the coloured block with the label as the bag does.
-function portraitOf(def) {
+function portraitOf(def, entry = null) {
+  if (entry && entry.lit && def.portrait_lit) return def.portrait_lit; // a lit torch shows its flame (#331)
   if (def.portrait) return def.portrait;
   if (def.icon && def.icon.size[0] === def.icon.size[1]) return def.icon;
   return null;
+}
+
+// The bag's picture: a lit torch's has its flame drawn on (`icon_lit`, #331), the torch on the same pixels.
+function iconOf(def, entry) {
+  return entry && entry.lit && def.icon_lit ? def.icon_lit : def.icon;
 }
 
 // An item as a block: in a bag (`w` by `h` cells of `cell` pixels) or, with
@@ -244,7 +250,7 @@ function blockHtml(entry, attrs, cell = CELL, w = 1, h = 1, extraCls = "", slot 
     const pct = Math.max(0, Math.min(100, (entry.fill / cap) * 100));
     inner += `<div class="inv-level" style="${h >= w ? `height:${pct}%;width:100%` : `width:${pct}%;height:100%`}"></div>`;
   }
-  const pic = slot ? portraitOf(def) : def.icon;
+  const pic = slot ? portraitOf(def, entry) : iconOf(def, entry);
   if (pic) {
     // An item with drawn art shows the picture, upright, centred in its footprint, enlarged by a whole
     // number (nearest-pixel), and keeps the slot dark behind it; the same art as in the hand (docs/24).
@@ -576,7 +582,7 @@ function startDrag() {
   if (def.icon) {
     // An item with art is carried as the art alone, nothing behind it (Michael, 2026-10-12).
     g.classList.add("art");
-    g.innerHTML = `<img src="${assetUrl(def.icon.src)}" alt="" draggable="false">`;
+    g.innerHTML = `<img src="${assetUrl(iconOf(def, drag.entry).src)}" alt="" draggable="false">`;
   } else {
     g.style.setProperty("--item", def.color || "#8a8296");
     g.textContent = def.short || def.name;

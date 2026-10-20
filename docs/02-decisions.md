@@ -254,6 +254,12 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-10-21 — The everyday items' art: the large icons for the long items; the rope belt in today's belt's browns (Michael)
+
+Wiring art round 3's everyday items (#331), the delivery's two questions:
+- **The long thin icons** (plank, stick, shovel, hatchet): the delivery came with both, pixel-for-pixel small or rendered to fill the cell. Michael: "For the long icons, use the bigger ones for sure."
+- **The rope belt's colour:** the drawing was the round-1 painting's tan; the item's data was the plain belt's brown. Michael: "I think for the belt I would probably prefer recolored closer to today's belt". Done by swapping its four rope tones for four browns built from today's two (`#8a7a60`, `#73583a`, `#5e4028`, `#432e1c`), the outline and the drawing untouched. *Primary's reading:* no new art was needed, as a straight swap keeps the drawn ramp.
+
 ### 2026-10-20 — Faith: Smite is a share of the hit; prayer grows by level; Consecrate Ground gives light (Michael)
 
 Michael, reading the specs late on 2026-10-20 (first recorded on #275):
