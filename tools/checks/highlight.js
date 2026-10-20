@@ -66,6 +66,35 @@ export async function run(game) {
       if (z) { moved.push([z, z.gx, z.gy]); z.gx = x + 6; z.gy = y; }
       const t1 = probe(x + 1, y);
       row("a tree is found (its menu offers a real action)", !!t1 && t1.kind === "prop" && t1.id === tree.id, JSON.stringify(t1) + " " + labelsOf(tree).join(", "));
+      // The bare ground and leaf litter inside the tree's sprite rectangle, beside the trunk, are art, not the tree: the menu lists the tree there, the highlight does not.
+      let litter = null;
+      const ts = G.iso.toScreen(x + 1, y);
+      for (let dy = -4; dy <= 12 && !litter; dy += 4) for (let dx = -44; dx <= 44 && !litter; dx += 4) {
+        if (Math.abs(dx) < 10) continue;
+        const sx = ts.x + dx;
+        const sy = ts.y + dy;
+        const onTile = G.iso.toGrid(sx, sy);
+        if (Math.round(onTile.gx) === x + 1 && Math.round(onTile.gy) === y) continue;
+        if (!G.interact.interactableAt(sx, sy, () => true) && G.interact.actionsAt(sx, sy, me).some((a) => a.target && a.target.kind === "prop" && a.target.id === tree.id)) litter = [sx, sy];
+      }
+      row("bare ground beside the trunk, inside the tree's sprite rectangle, is not the tree (though the menu lists it)", !!litter && hl.targetAt(litter[0], litter[1], me, null) === null, litter ? `at ${Math.round(litter[0] - ts.x)},${Math.round(litter[1] - ts.y)} from the trunk: ${JSON.stringify(hl.targetAt(litter[0], litter[1], me, null))}` : "no such point found");
+      // The slice the player is seen through is not outlined (the hole would fill): the frame's decision, read from the drawable.
+      const rprops = await import("/src/render/props.js");
+      const all = [];
+      rhl.set({ kind: "prop", id: tree.id });
+      rprops.propDrawables([[x + 1, y]], new Set([tileKey(x + 1, y)]), all);
+      const lit = all.find((o) => o.outlined);
+      const slice = all.find((o) => o.key === (x + 1 + y) * 1000 + 1);
+      const before = lit ? lit.outlined.length : -1;
+      if (slice) slice.occluder = true;
+      const after = lit ? lit.outlined.length : -1;
+      rhl.set(null);
+      row("the slice that is the see-through occluder this frame is not outlined", before === 1 && after === 0, `${before} slices outlined, ${after} once it is the occluder`);
+      const mush = G.map.createProp({ sprite: "mushroom_0", tile: [x + 6, y + 1] });
+      G.map.placeProp(mush, x + 6, y + 1);
+      made.push(mush);
+      const tm = probe(x + 6, y + 1);
+      row("a mushroom (interactable, sways on a click) is found", !!mush.interactable && !!tm && tm.kind === "prop" && tm.id === mush.id, `${JSON.stringify(tm)} interactable ${!!mush.interactable}`);
       const t2 = probe(x + 2, y);
       row("a chest is found", !!t2 && t2.kind === "prop" && t2.id === chest.id, JSON.stringify(t2) + " " + labelsOf(chest).join(", "));
       const t3 = probe(x + 3, y);

@@ -12,6 +12,7 @@ import { areaTiles, buildArea, ensureArea } from "./area.js";
 import { arrowDrawables, emitMarker, entityDrawables, fireDrawables } from "./entities.js";
 import { emitGhost, emitHitShapes, floorItemDrawables, propDrawables } from "./props.js";
 import * as hl from "./highlight.js"; // Object Highlight (#301)
+import { emitTileMark } from "./marks.js"; // the tile an Inspect marks
 import { postDrawables, wallDrawables } from "./walls.js";
 
 // The night, as before: tunables Michael picks by eye, live on
@@ -146,7 +147,7 @@ function emitGrid(tiles) {
   }
 }
 
-export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, fire = null, marker = null, highlight = null }) {
+export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, fire = null, marker = null, tileMark = null, highlight = null }) {
   ensureArea(w, h);
   hl.set(highlight); // the object under the cursor, outlined by the drawables below (#301)
   if (lastLinear !== night.linear) {
@@ -159,6 +160,7 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
   gl.begin();
   emitGround(tiles);
   if (grid) emitGrid(tiles);
+  if (tileMark) emitTileMark(tileMark); // on the ground: whatever stands on or before the tile is drawn over it
   const drawables = [];
   wallDrawables(tiles, visible, playerRoom, drawables);
   postDrawables(tiles, visible, playerRoom, drawables);

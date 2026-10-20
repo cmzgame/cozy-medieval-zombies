@@ -8,7 +8,7 @@ import { objectHighlight as T } from "../tuning.js";
 
 const OFFSETS = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]];
 let target = null;
-let color = null;
+let color = null; // read once, from the tuning loaded at boot
 
 export function set(t) {
   target = t || null;
@@ -19,8 +19,7 @@ export const isProp = (id) => !!target && target.kind === "prop" && target.id ==
 export const isCharacter = (id) => !!target && target.kind === "character" && target.id === id;
 export const isItem = (uid) => !!target && target.kind === "item" && target.uid === uid;
 
-// The sprite frame outlined: `opts` are the frame's own quad options (its world point and heights); the colour, SOLID, UNLIT and NOFOG are put on here, with any `extra` flag
-// (the tree's see-through hole, so the outline is cut with the canopy it goes round).
+// The sprite frame outlined: `opts` are the frame's own quad options (its world point and heights); the colour, SOLID, UNLIT and NOFOG are put on here, with any `extra` flag.
 export function outline(sheet, name, x, y, opts, flip = false, extra = 0, skew = 0) {
   const o = { ...opts, color, flags: gl.FLAG_NOFOG | gl.FLAG_UNLIT | gl.FLAG_SOLID | extra };
   if (skew) o.skew = skew;

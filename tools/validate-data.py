@@ -254,6 +254,8 @@ if not (soil["wetDays"] > 0 and soil["fillCost"] > 0 and all(v > 0 for v in soil
     fail("crops.soil: wetDays, fillCost and the seconds are all above 0")
 for kind, c in crops["crops"].items():
     check_id(f"crops.{kind}.seed", c["seed"])
+    if not isinstance(c.get("name"), str) or not c["name"]:
+        fail(f"crops.{kind}: a name for its labels (\"Harvest potatoes\")")
     check_id(f"crops.{kind}.harvest", c["harvest"]["item"])
     if c["seed"] in item_defs and "seed" not in item_defs[c["seed"]].get("tags", []):
         fail(f"crops.{kind}: the seed item {c['seed']!r} lacks the tag 'seed'")

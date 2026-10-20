@@ -4,7 +4,7 @@
 // is render/highlight.js, which the prop, item, and entity drawables call. Client-only: it reads the world and never writes it, nothing on the wire, nothing saved, and a
 // guest's replica gives the same answer from the same world. The answer is cached while the mouse and the camera stand still and re-asked every `refreshMs`, so a hit test is
 // not paid every frame.
-// Chosen here (Primary's reading, Michael's to overrule): a character before an item before a prop, then the menu's first; the live dead are left to the cursor's zombie hand
+// Chosen here (the builder's readings, Michael's to overrule): a character before an item before a prop, then the menu's first; the live dead are left to the cursor's zombie hand
 // and the swing outline (a corpse is a container, so it is outlined); a door, a shutter, and a wall bracket are edges, not sprites, and are not outlined yet; nothing in
 // placement, removal, or Use mode, with a panel under the pointer, with something carried, or out of sight.
 
@@ -29,7 +29,7 @@ export function clear() {
 // The object a right-click at the canvas point (sx, sy) would act on first, or null. `visible`: the tiles in my sight (null: all).
 export function targetAt(sx, sy, player, visible = null) {
   const seen = (tx, ty) => !visible || visible.has(tileKey(tx, ty));
-  const real = interact.actionsAt(sx, sy, player).filter((a) => a.target && a.kind !== "walk" && ["character", "item", "prop"].includes(a.target.kind));
+  const real = interact.actionsAt(sx, sy, player).filter((a) => a.target && ["character", "item", "prop"].includes(a.target.kind)); // Walk here is a "floor" action on a tile, never one of these
   const ch = real.find((a) => a.target.kind === "character");
   if (ch) {
     const c = interact.characterAt(sx, sy, player);
@@ -37,11 +37,16 @@ export function targetAt(sx, sy, player, visible = null) {
   }
   const item = real.find((a) => a.target.kind === "item");
   if (item && seen(item.target.tile[0], item.target.tile[1])) return { kind: "item", uid: item.target.uid, tile: item.target.tile };
-  // A tall thing's crown is far up the screen from its tile: the pixel under the cursor, if it has an action (a tree's, a crop's).
+  // A tall thing's crown is far up the screen from its tile: the pixel under the cursor counts if the thing has an action (a tree's, a crop's) or is interactable (a mushroom
+  // sways on a click, the gatherables law). Else the menu's prop, but only one that stands on the tile under the cursor: the menu also lists a tree for the bare ground and leaf
+  // litter inside its sprite's rectangle, and that is art beside it, not the tree.
   const front = interact.interactableAt(sx, sy, () => true);
-  let prop = front && interact.actionsForProp(front, player).some((a) => a.kind !== "walk") ? front : null;
+  let prop = front && (front.interactable || interact.actionsForProp(front, player).length > 0) ? front : null;
   if (!prop) {
-    const p = real.find((a) => a.target.kind === "prop");
+    const g = iso.toGrid(sx, sy);
+    const gx = Math.round(g.gx);
+    const gy = Math.round(g.gy);
+    const p = real.find((a) => a.target.kind === "prop" && map.propById(a.target.id)?.tiles.some(([tx, ty]) => tx === gx && ty === gy));
     prop = p ? map.propById(p.target.id) : null;
   }
   if (prop && prop.tiles.some(([tx, ty]) => seen(tx, ty))) return { kind: "prop", id: prop.id };

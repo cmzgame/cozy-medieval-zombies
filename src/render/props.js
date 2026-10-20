@@ -171,7 +171,7 @@ export function propDrawables(tiles, visible, out) {
 }
 
 // Object Highlight (#301): one drawable for the whole prop, sorted just before its first slice, so a thing of several tiles is outlined as one shape and no slice's outline
-// lands on the slice beside it. Each slice is drawn a pixel off in eight directions, flat, with its sway and (a tree's) its see-through hole.
+// lands on the slice beside it. Each slice is drawn a pixel off in eight directions, flat, with its sway; a slice that is the see-through occluder this frame is skipped.
 function highlightProp(lit, out) {
   const key = Math.min(...lit.map((s) => s.d.key)) - 0.5;
   out.push({
@@ -181,8 +181,13 @@ function highlightProp(lit, out) {
     rect: null,
     canOcclude: false,
     occluder: false,
+    // The slices that are outlined: not the one the player is seen through this frame (a tree's canopy with its hole in): eight stacked copies would show far more than the
+    // faded tree and fill the hole. (A getter, so the check can read what the frame decided.)
+    get outlined() {
+      return lit.filter((s) => !s.d.occluder);
+    },
     emit() {
-      for (const s of lit) hl.outline(s.sheet, s.name, s.x, s.y, { world: [s.tx, s.ty], heights: s.f ? [s.f[3], s.f[3], 0, 0] : 0 }, false, s.d.occluder ? gl.FLAG_OCCLUDER : 0, s.f ? swayOf(s.prop, s.f[3]) : 0);
+      for (const s of this.outlined) hl.outline(s.sheet, s.name, s.x, s.y, { world: [s.tx, s.ty], heights: s.f ? [s.f[3], s.f[3], 0, 0] : 0 }, false, 0, s.f ? swayOf(s.prop, s.f[3]) : 0);
     },
   });
 }

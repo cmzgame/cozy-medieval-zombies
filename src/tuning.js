@@ -181,9 +181,9 @@ export const floaters = {
 };
 
 // Object Highlight (#301; src/highlight.js, render/highlight.js): the outline round the game object under the cursor. `color` is the flat colour of the one-pixel outline (a soft
-// pale gold, not the swing outline's green), `refreshMs` how often the hit test is asked again while the mouse and the camera stand still.
+// soft near-white, not the swing outline's green nor the Inspect tile mark's gold), `refreshMs` how often the hit test is asked again while the mouse and the camera stand still.
 export const objectHighlight = {
-  color: "#ffe9a6",
+  color: "#f4f0e6",
   alpha: 1,
   refreshMs: 100,
 };

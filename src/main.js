@@ -56,6 +56,7 @@ import * as net from "./net.js";
 import * as stations from "./stations.js";
 import * as stationPanel from "./ui/station-panel.js";
 import * as talkPanel from "./ui/talk-panel.js"; // a villager's conversation, on the kit (docs/34, #202)
+import * as inspectMark from "./inspect-mark.js"; // the tile an Inspect marks (interact.js)
 import * as navRow from "./ui/nav-row.js"; // the buttons bottom right, one per panel (#295)
 import * as interact from "./interact.js";
 import * as items from "./items.js";
@@ -249,6 +250,7 @@ function afterWorldSet() {
   mapPanel.forgetDrawn();
   floatersUi.clear(); // a world put back has none of the last one's numbers
   objectHighlight.clear();
+  inspectMark.clear(); // nor its marked tile
   floaters.reset();
   light.update();
   if (!glError) ground.invalidateAll();
@@ -818,7 +820,7 @@ function openActionsMenu(m) {
   // A guest's choice goes to the host by its address and label (net.js, docs/31/05 item 10); the host walks
   // the guest's player there and performs it. Building stays this client's own until it is a command too.
   const guest = net.isGuest();
-  const entries = actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => (guest ? net.sendAct(a.target, a.label) : interact.runAction(S.player, a)) }));
+  const entries = actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => (guest && !a.local ? net.sendAct(a.target, a.label) : interact.runAction(S.player, a)) })); // a local action (Inspect) is this client's own
   // Build is in every menu, in case the key is forgotten (Michael, 2026-10-12).
   entries.push({ label: "Build", enabled: !S.player.carrying && !panel.isOpen(), onSelect: toggleBuild });
   const u = view.toUi(m.x, m.y);
@@ -1249,6 +1251,7 @@ async function restoreWorld(snap) {
   mapPanel.forgetDrawn();
   floatersUi.clear();
   objectHighlight.clear();
+  inspectMark.clear();
   floaters.reset();
   light.update();
   if (!glError) ground.invalidateAll();
@@ -1307,6 +1310,7 @@ function render() {
     // The object under the cursor that a right-click would act on, outlined (Object Highlight, #301): asked of the step's own positions and origin, as a click is.
     highlight: objectHighlight.update({ enabled: settings.get("objectHighlight") !== false, blocked: placement.state.active || use.isActive(), mouse: input.getMouse(), player: S.player, visible, now: performance.now() }),
     hitShapes: combat.overlays(S.player, S.zombies, settings.get("showHitShapes")),
+    tileMark: inspectMark.marked(), // the patch an Inspect speaks of
     // The tile grid shows only while building or removing (docs/15).
     grid: placement.state.kind === "build" || placement.state.kind === "remove",
   };
