@@ -890,58 +890,148 @@ html, body {
   border-radius: 3px;
 }
 
-/* ---- the conversation panel (docs/34): a villager's line, then the topics and replies, bottom centre above the belt ---- */
+/* ---- the conversation panel (docs/34): parchment, set apart from the stone panels, with clickable text links (Michael, 2026-10-19, #296) ---- */
 #talk {
   position: absolute;
   left: 50%;
   bottom: 96px;
   transform: translateX(-50%);
   z-index: 7;
-  width: 420px;
-  font-size: 12px;
-  line-height: 1.4;
+  width: 440px;
+  font-size: 13px;
+  line-height: 1.45;
   pointer-events: auto;
+  --parch: #e9dcb6;
+  --parch-dark: #d9c79a;
+  --ink: #2b1d0e;
+  --ink-soft: #5a4630;
+  --edge: #5a3d22;
+  --link: #1d47b8;
+  --link-hover: #0f2f8a;
+  --name: #8c1c12;
+}
+
+.tk-parchment {
+  color: var(--ink);
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(255, 250, 230, 0.55), rgba(255, 250, 230, 0) 70%),
+    linear-gradient(180deg, var(--parch) 0%, var(--parch-dark) 100%);
+  border: 2px solid var(--edge);
+  border-radius: 3px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 245, 215, 0.7),
+    inset 0 0 18px rgba(120, 85, 40, 0.35),
+    0 3px 10px rgba(0, 0, 0, 0.55);
+}
+
+.tk-head {
+  position: relative;
+  padding: 6px 30px 2px;
+  text-align: center;
+}
+
+.tk-name {
+  font-family: "Pirata One", var(--font-ui);
+  font-size: 19px;
+  letter-spacing: 0.5px;
+  color: var(--name);
+}
+
+#talk .tk-close {
+  position: absolute;
+  top: 3px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font: inherit;
+  font-size: 16px;
+  line-height: 20px;
+  color: var(--ink-soft);
+  background: none;
+  border: 0;
+  border-image: none;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+#talk .tk-close:hover,
+#talk .tk-close:focus-visible {
+  color: var(--name);
 }
 
 .tk-body {
-  padding: 8px 10px;
+  padding: 2px 14px 10px;
 }
 
 .tk-say {
   min-height: 34px;
   padding: 2px 0 8px;
+  text-align: center;
 }
 
 .tk-options {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   max-height: 168px;
   overflow-y: auto;
   scrollbar-width: thin;
+  scrollbar-color: var(--edge) transparent;
+}
+
+.tk-continue {
+  align-items: center;
 }
 
 .tk-opt {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
 }
 
-.tk-opt .kit-button {
-  flex: 1;
+/* A choice is text, blue, underlined on hover or focus: OSRS's clickable lines. */
+#talk .tk-link {
+  padding: 1px 2px;
+  font: inherit;
   text-align: left;
+  color: var(--link);
+  background: none;
+  border: 0;
+  border-image: none;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.tk-continue .tk-link {
+  text-align: center;
+}
+
+#talk .tk-link:hover,
+#talk .tk-link:focus-visible {
+  color: var(--link-hover);
+  text-decoration: underline;
+  outline: none;
 }
 
 .tk-wiki {
   flex: 0 0 auto;
-  font-size: 10px;
-  color: var(--gold);
+  font-size: 11px;
+  color: var(--link);
+  text-decoration: none;
 }
 
-.tk-bye {
-  margin-top: 6px; /* outside the scrolling list: always in view beside the X (#230) */
-  width: 100%;
+.tk-wiki:hover,
+.tk-wiki:focus-visible {
+  color: var(--link-hover);
+  text-decoration: underline;
+}
+
+#talk .tk-bye {
+  display: block;
+  margin: 8px auto 0; /* outside the scrolling list: always in view beside the X (#230) */
+  text-align: center;
 }
 
 /* ---- the station panel (docs/30, section 6): recipes, the chosen one, the queue ---- */

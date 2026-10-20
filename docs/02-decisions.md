@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- One buff dish is active at a time, for now (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk)
 - Pemmican is the only food that stacks; every other food takes a cell each, so cooking is worth more per bag slot; hearty cooked dishes carry buffs, a food weighed by how long it keeps, how much it heals, how full it makes you, and its buff (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk)
 - A healing potion is not "minor" unless a major one becomes a separate item (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk)
 - The wizard is alive, a teacher; a skill's level gate stops a player harvesting the food it gates, ripe fields included; every container's loot table is provisional until ruled, and the loot tables are likely the Valley scope's last step (Michael: "this might be the last thing") (2026-10-19, The valley has no cure; the wizard lives; the witch teaches Potions; gates stop a harvest; every loot table provisional; two old limits struck)
@@ -264,6 +265,7 @@ Quick hits on the Valley 1.0 scope (`docs/39`):
 - **Debuffs are apart from moodles,** WoW-style. A moodle is a general ongoing need (hunger, thirst, tiredness), and the infection stays a moodle; a specific negative effect is a debuff: bleeding and poison. *Primary's reading, not ruled:* the sickness from unsafe water is a debuff too, which would settle its name clash with the infection's "Sick" stage if Michael agrees (open question 34; #279).
 - **A healing potion is not "minor"** unless a major one becomes a separate item.
 - **Hearty cooked dishes carry buffs** (for example bacon and eggs: more natural healing for a while, or resistance to the cold). Every food is weighed four ways: how long it keeps, how much it heals, how full it makes you, and whether its buff is useful. *Primary's assignment:* the dishes and their buffs are the skills scope's (Cooking, #275).
+- **One buff dish at a time, for now** (Michael, later the same day, on Primary's suggestion on #275): "Adopted for now, although I will point out that eating food JUST for the buff means even more food production is required so it would push us in the right direction, but I don't want to make food buffs feel mandatory and if you can stack a bunch of them they might."
 - **Pemmican is the only food that stacks.** Every other food takes a cell of its own, so a cooked dish is worth more per bag slot than its raw parts and nobody carries "a million stacks of apples" into a fight (#260).
 - **Open:** Life Ward, a spell or a potion (#275). Michael:
 
