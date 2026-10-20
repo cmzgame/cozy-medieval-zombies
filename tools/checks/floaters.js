@@ -141,6 +141,28 @@ export async function run(game) {
         z.gy = zAt[1];
         G.clock.setHour(hour0);
       }
+      // Only the dead fade in the dark: a villager far enough off to be beyond the dark radius, at night, is drawn whole and so is the number over it.
+      try {
+        const v = S.villagers.find((q) => !q.dead && q.kind !== "zombie");
+        if (!v) row("at night a villager's number, 4+ tiles off, is shown", false, "no villager");
+        else {
+          const vAt = [v.gx, v.gy];
+          G.loop.setPaused(true);
+          G.clock.setHour(1);
+          for (let i = 0; i < 5; i++) G.loop.advance(1 / 60);
+          const spot = [[5, 0], [-5, 0], [0, 5], [0, -5], [6, 6], [-6, -6]].find(([dx, dy]) => { v.gx = me.gx + dx; v.gy = me.gy + dy; return !sightMod.seen(me, v); });
+          ui.clear();
+          fl.reset();
+          fl.damage(v, 4);
+          draw(new Set([tileKey(Math.round(v.gx), Math.round(v.gy))]));
+          const vs = ui.shown();
+          row("at night a villager's number, 4+ tiles off in the dark, is shown (only the dead fade)", !!spot && vs.length === 1 && vs[0].hidden === false, spot ? `unseen by the dead's rule, ${Math.round(Math.hypot(v.gx - me.gx, v.gy - me.gy))} tiles off: hidden ${vs.map((n) => n.hidden).join("")}` : "no dark spot found");
+          v.gx = vAt[0];
+          v.gy = vAt[1];
+        }
+      } finally {
+        G.clock.setHour(hour0);
+      }
       // A frame is a guest's input: a skill that is not one of the fourteen is ignored, never put in the page, and a late number is dropped.
       ui.clear();
       fl.reset();
@@ -151,9 +173,9 @@ export async function run(game) {
       ui.clear();
       fl.reset();
       fl.damage(me, 3);
-      await new Promise((res) => setTimeout(res, T.life * 1000 + 100));
-      draw();
-      row("a number that waited longer than its life (a hidden tab) is dropped, not shown late", ui.shown().length === 0 && !fl.pending(), `${ui.shown().length} on screen`);
+      const late = fl.takeForDraw(performance.now() + T.life * 1000 + 100); // the draw as of a moment after the number's life, given as a time so a visible pane's own drawing cannot take it first
+      fl.receive([[0, me.id, 1e309], [0, me.id, NaN]]);
+      row("a number that waited longer than its life (a hidden tab) is dropped, not shown late; an infinite amount is ignored", late.length === 0 && !fl.pending(), `${late.length} late numbers taken, ${fl.pending() ? "something" : "nothing"} pending`);
       // Receive: the guest's side of the same arrays.
       ui.clear();
       fl.reset();

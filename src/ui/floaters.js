@@ -88,7 +88,7 @@ export function update(dt, chars, visible, me) {
     const bright = e.kind === fl.GATHER ? light.lightAt(c.gx, c.gy) > T.lightAbove : false;
     const n = together.get(e.id) || 0;
     together.set(e.id, n + 1);
-    alive.push({ e, el: build(e, bright), age: 0, gx: c.gx, gy: c.gy, id: e.id, drift: driftOf(e), lift: n * T.fontPx * T.staggerLines });
+    alive.push({ e, el: build(e, bright), age: 0, gx: c.gx, gy: c.gy, id: e.id, zombie: c.kind === "zombie" && !c.dead, drift: driftOf(e), lift: n * T.fontPx * T.staggerLines });
   }
   while (alive.length > T.maxActive) alive.shift().el.remove();
   for (let i = alive.length - 1; i >= 0; i--) {
@@ -102,8 +102,10 @@ export function update(dt, chars, visible, me) {
     const u = view.toUi(s.x + f.drift * T.drift * t, s.y - T.startLift - f.lift - t * T.riseTiles * iso.TH);
     f.el.style.left = `${Math.round(u.x)}px`;
     f.el.style.top = `${Math.round(u.y)}px`;
-    // Mine always; another's only where I see it: in my line of sight and, for the dead in the dark, seen as the bars and bubbles are (#88).
-    const seen = f.id === (me && me.id) || ((!visible || visible.has(tileKey(Math.round(f.gx), Math.round(f.gy)))) && (!me || sight.seen(me, c || f)));
+    // Mine always; another's only where I see it: in my line of sight and, for a live zombie in the dark, seen as the bars, bubbles, and the drawing are (#88; only the
+    // dead fade in the dark, a villager or a friend is drawn whole and so is their number). A body that is gone keeps the rule it had.
+    if (c) f.zombie = c.kind === "zombie" && !c.dead;
+    const seen = f.id === (me && me.id) || ((!visible || visible.has(tileKey(Math.round(f.gx), Math.round(f.gy)))) && (!me || !f.zombie || sight.seen(me, c || f)));
     f.el.style.display = seen ? "" : "none";
     f.el.style.opacity = t <= T.fadeFrom ? "1" : String(Math.max(0, 1 - (t - T.fadeFrom) / (1 - T.fadeFrom)));
   }

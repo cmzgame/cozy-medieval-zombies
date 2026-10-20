@@ -77,7 +77,7 @@ export function receive(list) {
   for (const e of list) {
     if (!Array.isArray(e)) continue;
     const [kind, id, n, skill] = e;
-    if ((kind !== DAMAGE && kind !== HEAL && kind !== GATHER) || typeof id !== "string" || !(n >= 0.5)) continue;
+    if ((kind !== DAMAGE && kind !== HEAL && kind !== GATHER) || typeof id !== "string" || !Number.isFinite(n) || !(n >= 0.5)) continue;
     if (id.length > 64) continue;
     // Only a gather has a skill, and only one of the fourteen: the frame is a guest's input, and the name goes on to the page.
     const sk = kind === GATHER && typeof skill === "string" && SKILL_IDS.has(skill) ? skill : null;
@@ -94,8 +94,7 @@ export function pending() {
 }
 
 // What the drawing has not yet shown, once. A number that waited longer than its own life (a tab that was hidden and drew nothing) is dropped, not shown late.
-export function takeForDraw() {
-  const t = now();
+export function takeForDraw(t = now()) {
   const out = log.filter((e) => e.seq > drawnTo && t - e.at <= T.life * 1000);
   drawnTo = seq;
   return out;
