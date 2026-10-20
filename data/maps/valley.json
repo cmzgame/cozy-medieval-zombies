@@ -5817,6 +5817,55 @@
    "props": []
   },
   {
+   "name": "Hollow Farm's yard",
+   "rect": [
+    56,
+    238,
+    44,
+    3
+   ],
+   "padding": 0,
+   "buildings": [],
+   "floorRects": [],
+   "fences": [],
+   "props": [
+    {
+     "sprite": "chicken_coop",
+     "tile": [
+      16,
+      0
+     ],
+     "footprint": [
+      1,
+      2
+     ],
+     "note": "Hollow Farm's chicken coop (#333)"
+    },
+    {
+     "sprite": "beehive",
+     "tile": [
+      39,
+      1
+     ],
+     "note": "Hollow Farm's hives (#333)"
+    },
+    {
+     "sprite": "beehive",
+     "tile": [
+      41,
+      1
+     ]
+    },
+    {
+     "sprite": "beehive",
+     "tile": [
+      43,
+      1
+     ]
+    }
+   ]
+  },
+  {
    "name": "Hollow Farm's pumpkin field",
    "rect": [
     67,
@@ -12261,40 +12310,6 @@
    "footprint": [
     2,
     3
-   ]
-  },
-  {
-   "sprite": "chicken_coop",
-   "tile": [
-    72,
-    238
-   ],
-   "footprint": [
-    1,
-    2
-   ],
-   "note": "Hollow Farm's chicken coop (#333)"
-  },
-  {
-   "sprite": "beehive",
-   "tile": [
-    95,
-    239
-   ],
-   "note": "Hollow Farm's hives (#333)"
-  },
-  {
-   "sprite": "beehive",
-   "tile": [
-    97,
-    239
-   ]
-  },
-  {
-   "sprite": "beehive",
-   "tile": [
-    99,
-    239
    ]
   },
   {
