@@ -198,10 +198,20 @@ function distToEdge(px, py, tx, ty, edge) {
 
 // Why a thing cannot be built there, or "" if it can. Reach is separate so a
 // build already under way is not cancelled by a small drift.
+// A build entry's wall kind (`wall`, `door`, `window`): its key, or the `kind` it names (#332: "fence" is a wall in the fence's
+// material, "gate" a door in it). `over` names the one material it may be built into, on an empty edge or over that material
+// (a gate in a fence, never a gate in a stone wall).
+export function wallKindOf(what) {
+  return (buildData[what] && buildData[what].kind) || what;
+}
+
 function buildBlock(player, what, tx, ty, edge) {
   const existing = map.tileAt(tx, ty)[edge];
-  if (existing && !map.canStampOver(existing, what)) return "Already a wall";
-  if (!map.canBuildWall(tx, ty, edge, what)) return "No room";
+  const kind = wallKindOf(what);
+  const over = buildData[what] && buildData[what].over;
+  if (existing && over && existing.sprite !== over) return "Only in a fence";
+  if (existing && !map.canStampOver(existing, kind)) return "Already a wall";
+  if (!map.canBuildWall(tx, ty, edge, kind)) return "No room";
   if (distToEdge(player.gx, player.gy, tx, ty, edge) < EDGE_CLEARANCE) return "Step back";
   return shortfall(player, what);
 }
@@ -498,7 +508,11 @@ function buildGhost(player) {
   const { tx, ty, edge } = pickEdge(g.gx, g.gy);
   const what = state.build.what;
   const reason = buildReason(player, what, tx, ty, edge);
-  return { kind: "wall", tx, ty, edge, wallKind: what, sprite: buildData[what].sprite, ok: reason === "", reason };
+  const existing = map.tileAt(tx, ty)[edge];
+  const kind = wallKindOf(what);
+  // As it would stand: a door stamped into a wall takes the wall's material (map.buildWall), so the ghost does too.
+  const sprite = existing && map.canStampOver(existing, kind) ? existing.sprite : buildData[what].sprite;
+  return { kind: "wall", tx, ty, edge, wallKind: what, wallType: kind, sprite, ok: reason === "", reason };
 }
 
 // The left click. Returns true if this mode took it. A red ghost takes the
@@ -680,7 +694,7 @@ function startBuild(player, g) {
         return false;
       }
       spend(player, what);
-      return map.buildWall(g.tx, g.ty, g.edge, what, d.sprite);
+      return map.buildWall(g.tx, g.ty, g.edge, wallKindOf(what), d.sprite);
     },
   };
   if (startAction) startAction(player, action);

@@ -25,5 +25,26 @@
     },
     "seconds": 3,
     "tool": "build"
+  },
+  "fence": {
+    "label": "Fence",
+    "kind": "wall",
+    "sprite": "wall_fence",
+    "cost": {
+      "plank": 1
+    },
+    "seconds": 2,
+    "tool": "build"
+  },
+  "gate": {
+    "label": "Gate",
+    "kind": "door",
+    "sprite": "wall_fence",
+    "over": "wall_fence",
+    "cost": {
+      "plank": 2
+    },
+    "seconds": 3,
+    "tool": "build"
   }
 }

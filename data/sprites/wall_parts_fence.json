@@ -1,0 +1,38 @@
+{
+ "anchorVertex": "top",
+ "images": {
+  "leaf_north": "data/art/village/door_open_fence_north.png",
+  "leaf_north_30": "data/art/village/door_open_fence_north_30.png",
+  "leaf_north_60": "data/art/village/door_open_fence_north_60.png",
+  "leaf_west": "data/art/village/door_open_fence_west.png",
+  "leaf_west_30": "data/art/village/door_open_fence_west_30.png",
+  "leaf_west_60": "data/art/village/door_open_fence_west_60.png"
+ },
+ "anchors": {
+  "leaf_north": [
+   19,
+   31
+  ],
+  "leaf_north_30": [
+   -3,
+   32
+  ],
+  "leaf_north_60": [
+   5,
+   31
+  ],
+  "leaf_west": [
+   10,
+   31
+  ],
+  "leaf_west_30": [
+   19,
+   32
+  ],
+  "leaf_west_60": [
+   11,
+   31
+  ]
+ },
+ "note": "the fence gate's leaves (art round 3, #332): open (leaf_<o>), and the swing's two in-between leaves (leaf_<o>_30, leaf_<o>_60); a fence's leaf always swings toward the camera, so there is no far leaf"
+}
