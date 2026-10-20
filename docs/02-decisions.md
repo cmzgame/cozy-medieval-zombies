@@ -126,6 +126,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The character, the figure, and art
 
+- The long, thin items (the plank, the stick, the shovel, the hatchet) take the larger bag icon, the drawing rendered to fill the cell; the rope belt is drawn in today's belt's browns (2026-10-20, The everyday items' art: the large icons for the long items; the rope belt in today's belt's browns (Michael))
 - A painted head item in two tones is dyed like hair by its entry's dye, undyed or of more tones it keeps the paint; the dead draw an item's painted layer too (2026-10-18, The Onion-head Hat's art: the brow; a dyed hood is dyed like hair, and the dead wear it too)
 - The weeping willow is cut; the art generators are to be archived in tools/art-gen, never run without Michael (2026-10-16, The needs-michael queue)
 - Throwables and consumables usually stack, case by case; one-offs like the Book and Staff of Fire never do (2026-10-16, The needs-michael queue); narrowed (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk): of the foods, only pemmican stacks
@@ -254,7 +255,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
-### 2026-10-21 — The everyday items' art: the large icons for the long items; the rope belt in today's belt's browns (Michael)
+### 2026-10-20 — The everyday items' art: the large icons for the long items; the rope belt in today's belt's browns (Michael)
 
 Wiring art round 3's everyday items (#331), the delivery's two questions:
 - **The long thin icons** (plank, stick, shovel, hatchet): the delivery came with both, pixel-for-pixel small or rendered to fill the cell. Michael: "For the long icons, use the bigger ones for sure."
@@ -270,7 +271,7 @@ Michael, reading the specs late on 2026-10-20 (first recorded on #275):
 
 > "For consecrate ground, it should emit some light over the whole area, because it's cool."
 
-Then, the next day: "Go ahead and record those 3 faith rulings in the right place".
+Then, after a break the same day: "Go ahead and record those 3 faith rulings in the right place".
 
 - **Smite is a share of the hit, not a flat bonus.** A smite deals 150% of the damage of the hit that triggered it, as holy spell damage, at Faith 2; 200% at Faith 5; 250% at Faith 9. Its chances are unchanged (1, 2, then 3 in 10). It scales with whatever raises the hit, Holy Might among them. "Holy spell damage" is a damage type that will matter later (resistances, the dead that fear it). docs/39's "the level's worth" is replaced.
 - **Praying at an altar grows by level, OSRS style:** from Faith 1 it restores mana and stamina. Later it also removes bleeds, and later still it restores health. *Primary's reading of the levels,* Michael's to change: bleeds at Faith 4 (beside more mana), health at Faith 6 (beside more health). His first thought, everything at Faith 1, is set aside for his second.
