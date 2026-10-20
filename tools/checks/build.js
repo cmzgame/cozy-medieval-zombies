@@ -6,7 +6,7 @@
 // with `?nosave`:
 //   await __game.check("build")
 // It builds on open ground through placement.performPlacement (the host's and a guest's one path) with free building on
-// (restored) and takes everything down.
+// (restored) and takes everything down. The dead do not hunt while it runs (restored): a bite mid-build cancels the timed action.
 
 export async function run(game) {
   const G = game;
@@ -14,13 +14,14 @@ export async function run(game) {
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const wasPaused = G.loop.isPaused();
   const free0 = G.rules.rules.freeBuilding;
+  const aggro0 = G.rules.rules.zombieAggro;
   const me = G.player;
   const meAt = [me.gx, me.gy];
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const made = [];
   try {
     G.loop.setPaused(true);
-    G.rules.set({ freeBuilding: true });
+    G.rules.set({ freeBuilding: true, zombieAggro: false }); // each build runs five seconds of the world, and a bite from one of the dead that wanders up to the spot cancels the timed build (#349)
     // Open ground with room round it.
     let c = null;
     for (let y = 120; y < 240 && !c; y += 3) {
@@ -121,7 +122,7 @@ export async function run(game) {
   } finally {
     for (const [x, y, e] of made) if (G.map.tileAt(x, y)[e]) G.map.destroyWall(x, y, e);
     G.teleport(meAt[0], meAt[1]);
-    G.rules.set({ freeBuilding: free0 });
+    G.rules.set({ freeBuilding: free0, zombieAggro: aggro0 });
     G.loop.setPaused(wasPaused);
   }
   return finish();
