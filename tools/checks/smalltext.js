@@ -59,6 +59,17 @@ export async function run(game) {
     row("in the world (HUD, bag, character screen, debuff row, hover card) every small piece is clear and every large one is not", world.length > 20 && wWrong.length === 0, `${world.length} pieces; wrong: ${wWrong.slice(0, 5).map((t) => `${t.cls} "${t.text}" ${t.px}px ${t.family.slice(0, 20)}`).join(" | ") || "none"}`);
     const time = document.querySelector("#debuffs .db-time");
     const stacks = document.querySelector("#debuffs .db-stacks");
+    // Every digit in the clear face at any size (#325), and a digit never makes its line taller (the face's metrics are Pixelify's).
+    {
+      await document.fonts.ready;
+      const box = (txt, size, weight) => { const e = document.createElement("div"); e.textContent = txt; e.style.cssText = `position:absolute;left:-9999px;top:0;font-family:var(--font-ui);font-size:${size}px;font-weight:${weight};white-space:nowrap`; document.body.appendChild(e); const r = e.getBoundingClientRect(); e.remove(); return r; };
+      const bad = [];
+      for (const [size, weight] of [[28, 400], [17, 700], [16, 400]]) {
+        const letters = box("ABCD", size, weight), digits = box("3838", size, weight);
+        if (Math.abs(letters.height - digits.height) > 0.5) bad.push(`${size}px ${weight}: ${letters.height} vs ${digits.height}`);
+      }
+      row("a line with digits is no taller than one without (28, 17 bold, and 16 px)", bad.length === 0, bad.join(" | ") || "same heights");
+    }
     row("the bleed's time and stack number are clear sans-serif, 15 and 14 px", !!time && !!stacks && isSmallFace(getComputedStyle(time).fontFamily) && isSmallFace(getComputedStyle(stacks).fontFamily) && getComputedStyle(time).fontSize === "15px" && getComputedStyle(stacks).fontSize === "14px", `${time && getComputedStyle(time).fontFamily.slice(0, 20)} ${time && getComputedStyle(time).fontSize}`);
     card.hide();
     panel.setBagOpen(false);

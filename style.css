@@ -32,6 +32,9 @@
   src: local("Segoe UI"), local("SegoeUI"), local("Roboto"), local("Roboto-Regular"), local("Helvetica Neue"), local("HelveticaNeue"), local("Arial"), local("ArialMT");
   font-weight: 400;
   unicode-range: U+0030-0039;
+  ascent-override: 92%; /* Pixelify Sans's own ascent and descent: a digit never makes its line taller (#325's review) */
+  descent-override: 28%;
+  line-gap-override: 0%;
 }
 
 @font-face {
@@ -39,6 +42,9 @@
   src: local("Segoe UI Bold"), local("SegoeUI-Bold"), local("Roboto Bold"), local("Roboto-Bold"), local("Helvetica Neue Bold"), local("HelveticaNeue-Bold"), local("Arial Bold"), local("Arial-BoldMT");
   font-weight: 700;
   unicode-range: U+0030-0039;
+  ascent-override: 92%; /* Pixelify Sans's own ascent and descent: a digit never makes its line taller (#325's review) */
+  descent-override: 28%;
+  line-gap-override: 0%;
 }
 
 :root {
