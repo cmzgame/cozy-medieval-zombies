@@ -70,6 +70,10 @@
     "needsStaminaRegenMult": 0.5,
     "tiredStaminaRegenMult": 0.75
   },
+  "hoverCard": {
+    "delayMs": 60,
+    "gap": 14
+  },
   "objectHighlight": {
     "color": "#f4f0e6",
     "alpha": 1,
