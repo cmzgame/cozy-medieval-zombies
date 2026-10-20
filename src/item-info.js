@@ -8,7 +8,7 @@ import { getItem } from "./items.js";
 import * as interactions from "./interactions.js";
 import * as stations from "./stations.js";
 import * as farming from "./farming.js";
-import { buildKinds } from "./placement.js";
+import { paletteKinds } from "./placement.js";
 
 const KIND = { food: "Food", tool: "Tool", material: "Material", clothing: "Clothing", bag: "Bag", ammo: "Ammunition", medicine: "Medicine", drink: "Drink", decor: "Decor" };
 const MAX_LINES = 8; // a small card: the name and the basics, not a page
@@ -107,8 +107,8 @@ export function cardFor(entry) {
   const rec = recipesOf(def);
   if (rec.madeAt.length) lines.push(line(`Made at ${rec.madeAt.slice(0, 2).map(stationWord).join(" or ")}.`));
   if (rec.goesInto.length) lines.push(line(`Goes into: ${rec.goesInto.slice(0, 4).map((g) => g.name.toLowerCase()).join(", ")}${rec.goesInto.length > 4 ? " and more" : ""}.`));
-  const builds = buildKinds().filter((k) => k.cost && k.cost[def.id]).map((k) => `${(k.label || k.id).toLowerCase()} (${k.cost[def.id]})`);
-  if (builds.length) lines.push(line(`Builds: ${builds.join(", ")}.`));
+  const builds = paletteKinds().filter((k) => k.cost && k.cost[def.id]).map((k) => `${(k.label || k.id).toLowerCase()} (${k.cost[def.id]})`);
+  if (builds.length) lines.push(line(`Builds: ${builds.slice(0, 5).join(", ")}${builds.length > 5 ? " and more" : ""}.`));
   if (def.tags && def.tags.includes("fuel")) lines.push(line("Burns as fuel."));
 
   const state = [];

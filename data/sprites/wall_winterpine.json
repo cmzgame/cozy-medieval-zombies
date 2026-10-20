@@ -59,8 +59,11 @@
   "thickness": 14,
   "color": "#b4ad9f",
   "material": "wood",
+  "wood": "winterpine",
+  "name": "Winter Pine",
   "post": "post_winterpine",
-  "parts": "wall_parts_winterpine"
+  "parts": "wall_parts_winterpine",
+  "region": true
  },
  "note": "a drawn wall (docs/17), five variants per side, the Winter Pine wall type (#334; the delivered files, anchors from anchors_woods.json); its doors and shutters are Winter Pine's (wall_parts_winterpine)"
 }

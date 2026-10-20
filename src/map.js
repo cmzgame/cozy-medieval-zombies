@@ -12,6 +12,7 @@
 import { getDef } from "./assets.js";
 import { douse } from "./items.js";
 import { nextId } from "./world.js";
+import { storedLeaf } from "./woods.js"; // the wood of a door's or window's leaves (#334)
 import { emit } from "./events.js";
 import { world as W } from "./tuning.js";
 
@@ -640,7 +641,7 @@ export function besideDoor(x, y) {
 
 // Build a wall, door, or window on an edge, as an authored one would be, and
 // tell sight, light, and the rooms.
-export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT) {
+export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT, leaf = null) {
   const t = growTile(tx, ty);
   const existing = t[edge];
   if (existing && !canStampOver(existing, kind)) return false;
@@ -660,6 +661,8 @@ export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT) {
     if (existing.underBuilt) wall.underBuilt = true;
   }
   wall.built = true; // made by the player: the removal tool may take it down (docs/13)
+  const own = kind !== "wall" ? storedLeaf(sprite, leaf) : null; // a door or window of another wood than its wall (#334); nothing stored when it is the wall's own
+  if (own) wall.leaf = own;
   wall.at = [tx, ty];
   t[edge] = wall;
   touch(tx, ty);

@@ -251,6 +251,30 @@ for it in items:
         for side in ("north", "west"):
             if f"{it['id']}_{side}" not in paint_def.get("images", {}) or f"{it['id']}_{side}" not in paint_def.get("anchors", {}):
                 fail(f"item {it['id']}: data/sprites/decor_paintings.json has no {it['id']}_{side} picture and anchor")
+# The woods (#334): a wall definition with a `wood` has a table of that name in data/wood_tones.json, a name, post and parts sheets that exist, and, if it names a `leaf`, a wall of a wood without
+# a leaf of its own; a build entry of a region's wood names a wall that is `region`; a door's or window's `leaf` choices are the woods with leaves of their own.
+tones = load("data/wood_tones.json") if os.path.exists("data/wood_tones.json") else {"tables": {}}
+wood_walls = {}
+for path in sorted(glob.glob("data/sprites/*.json")):
+    d = load(path)
+    w = d.get("wall") if isinstance(d, dict) else None
+    if w and w.get("wood"):
+        wood_walls[os.path.basename(path)[:-5]] = w
+for sid, w in wood_walls.items():
+    if w["wood"] not in tones["tables"]:
+        fail(f"sprite {sid}: wall.wood {w['wood']!r} has no table in data/wood_tones.json")
+    if not w.get("name"):
+        fail(f"sprite {sid}: a wood wall has a name")
+    for part in ("post", "parts"):
+        if not os.path.exists(f"data/sprites/{w.get(part)}.json"):
+            fail(f"sprite {sid}: wall.{part} {w.get(part)!r} is not a sprite definition")
+    if w.get("leaf") and (w["leaf"] not in wood_walls or wood_walls[w["leaf"]].get("leaf")):
+        fail(f"sprite {sid}: wall.leaf {w['leaf']!r} is not a wood wall with leaves of its own")
+for key, e in load("data/build.json").items():
+    if e.get("region") and not (e.get("sprite") in wood_walls and wood_walls[e["sprite"]].get("region")):
+        fail(f"build {key}: a region entry names the wall of a region's wood")
+    if e.get("sprite") in wood_walls and wood_walls[e["sprite"]].get("region") and not e.get("region"):
+        fail(f"build {key}: a region's wood is offered only with Free building on: mark it `region`")
 # Object Highlight (#301): the outline's colour is hex, its alpha is 0 to 1, and the hit test is asked again every so many ms.
 oh = load("data/tuning.json").get("objectHighlight", {})
 if not (isinstance(oh.get("color"), str) and re.fullmatch(r"#[0-9a-fA-F]{6}", oh["color"])):

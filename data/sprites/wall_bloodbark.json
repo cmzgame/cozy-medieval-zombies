@@ -59,8 +59,11 @@
   "thickness": 14,
   "color": "#561a1e",
   "material": "wood",
+  "wood": "bloodbark",
+  "name": "Bloodbark",
   "post": "post_bloodbark",
-  "parts": "wall_parts_bloodbark"
+  "parts": "wall_parts_bloodbark",
+  "region": true
  },
  "note": "a drawn wall (docs/17), five variants per side, the Bloodbark wall type (#334; the delivered files, anchors from anchors_woods.json); its doors and shutters are Bloodbark's (wall_parts_bloodbark)"
 }

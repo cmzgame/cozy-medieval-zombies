@@ -36,12 +36,15 @@ export function close() {
   if (root) root.hidden = true;
 }
 
-// Rebuilt every step while open, so the have-or-not colouring follows the bag.
+// Rebuilt every step while open, so the have-or-not colouring follows the bag. A wall of each wood is a row of its own (a region's two only while Free building is on); a door or a window
+// has one row, and while it is the mode R cycles the wood of its leaves, shown under the row (#334: the builder's reading of the palette, one row per wall type and R for the leaf wood).
 export function render(player) {
   if (!open) return;
-  const rows = placement.buildKinds().map((k) => {
+  const active = placement.state.kind === "build" && placement.state.build ? placement.state.build.what : null;
+  const rows = placement.paletteKinds().map((k) => {
     const short = placement.shortfall(player, k.id);
-    return `<div class="bp-row${short ? " short" : ""}" data-kind="${k.id}" title="${short || "Click to build"}"><span class="bp-name">${k.label}</span><span class="bp-cost">${placement.costText(k.id)}</span></div>`;
+    const leaf = active === k.id && placement.takesLeaf(k.id) ? `<div class="bp-sub">leaves: ${placement.leafText(placement.buildLeaf())} · R</div>` : "";
+    return `<div class="bp-row${short ? " short" : ""}${active === k.id ? " active" : ""}" data-kind="${k.id}" title="${short || "Click to build"}"><span class="bp-name">${k.label}</span><span class="bp-cost">${placement.costText(k.id)}</span></div>${leaf}`;
   }).join("");
   const remove = `<div class="bp-row bp-remove" data-kind="__remove" title="Highlights what you placed or built; click to destroy it"><span class="bp-name">Remove</span><span class="bp-cost">X</span></div>`;
   const html = `<div class="bp-title">Build</div>${rows}${remove}<div class="bp-hint">Click one, then click the ground. N or Esc to close.</div>`;
