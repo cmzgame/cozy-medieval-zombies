@@ -1,6 +1,7 @@
-// The conversation panel (docs/34, #202): a villager's lines one after another, then the topics and replies, on the talker's own screen, on the kit,
-// bottom centre above the belt. **Entirely click-based** (Michael, 2026-10-16, #91): Continue... between lines, the topics as buttons each with its wiki
-// link, the replies, and the panel's own "That's all for now"; no key binds inside it (E, Space, and 1 to 9 keep their world meanings: only the pause menu
+// The conversation panel (docs/34, #202): a villager's lines one after another, then the topics and replies, on the talker's own screen, on
+// parchment (Michael, 2026-10-19, #296: set apart from the stone panels, with OSRS's clickable text links), bottom centre above the belt. **Entirely
+// click-based** (Michael, 2026-10-16, #91): "Click here to continue" between lines, the topics as blue links each with its wiki link, the replies, and the
+// panel's own "That's all for now"; no key binds inside it (E, Space, and 1 to 9 keep their world meanings: only the pause menu
 // stops the game), Escape closes it in the panels' order. Everything it shows is computed here from the talk data (src/talk.js) and this side's own world, the
 // replica's for a guest: nothing of a conversation crosses the wire but who is talking (`talkingWith`) and a guest's "I have left". Each line the villager says
 // also goes in the talker's own log. It ends with "That's all for now", an `end` node, the X, Escape, walking out of reach, or the villager hurt, turned, or dead.
@@ -30,7 +31,7 @@ export function initTalkPanel(playerGetter, villagersGetter) {
   getVillagers = villagersGetter;
   root = document.createElement("div");
   root.id = "talk";
-  root.className = "inv-column kit-frame";
+  root.className = "tk-parchment";
   root.hidden = true;
   document.getElementById("ui").appendChild(root);
   root.addEventListener("mousedown", (e) => e.stopPropagation());
@@ -104,12 +105,14 @@ function render() {
   const last = open.i >= n.say.length - 1;
   const line = n.say[open.i] ?? "";
   let body;
-  if (!last) body = `<div class="tk-say">${esc(line)}</div><div class="tk-options"><button class="kit-button" data-continue>Continue…</button></div><button class="kit-button tk-bye" data-bye>That's all for now</button>`;
+  // Every choice is a link-styled button: a click is the only way in (no key binds), and a button keeps it focusable and its data-* the check's handle.
+  const link = (attrs, text, cls = "") => `<button type="button" class="tk-link${cls}" ${attrs}>${esc(text)}</button>`;
+  if (!last) body = `<div class="tk-say">${esc(line)}</div><div class="tk-options tk-continue">${link("data-continue", "Click here to continue")}</div>${link("data-bye", "That's all for now", " tk-bye")}`;
   else {
-    const opts = n.options.map((o, k) => `<div class="tk-opt"><button class="kit-button" data-opt="${k}">${esc(o.text)}</button>${o.wiki ? `<a class="tk-wiki" data-wiki href="${WIKI}${slug(o.wiki)}.html" target="_blank" rel="noopener" title="${esc(o.wiki)} on the wiki">${esc(o.wiki)}</a>` : ""}</div>`).join("");
-    body = `<div class="tk-say">${esc(line)}</div><div class="tk-options">${opts}</div><button class="kit-button tk-bye" data-bye>That's all for now</button>`;
+    const opts = n.options.map((o, k) => `<div class="tk-opt">${link(`data-opt="${k}"`, o.text)}${o.wiki ? `<a class="tk-wiki" data-wiki href="${WIKI}${slug(o.wiki)}.html" target="_blank" rel="noopener" title="${esc(o.wiki)} on the wiki">${esc(o.wiki)} ↗</a>` : ""}</div>`).join("");
+    body = `<div class="tk-say">${esc(line)}</div><div class="tk-options">${opts}</div>${link("data-bye", "That's all for now", " tk-bye")}`;
   }
-  const html = `<div class="inv-header kit-header"><span class="inv-title">${esc(v.name || "Villager")}</span><span class="inv-tools"><button class="kit-button inv-close" data-close title="Close">×</button></span></div><div class="tk-body kit-well">${body}</div>`;
+  const html = `<div class="tk-head"><span class="tk-name">${esc(v.name || "Villager")}</span><button type="button" class="tk-close" data-close title="Close">×</button></div><div class="tk-body">${body}</div>`;
   if (html !== lastHtml) {
     root.innerHTML = html;
     lastHtml = html;
