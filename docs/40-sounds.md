@@ -1,0 +1,186 @@
+# 40 — Sounds: the module, the placeholders, and the first few
+
+**Status, 2026-10-19: a spec, nothing built (#310).** Written from `origin/main` at 311d09e. The game has no sound today (`docs/39`, section 13: "None exists today"). This doc is the first sounds and how they are made: one audio module on Web Audio, placeholder sounds generated at boot as the dev art is, and an ear on each client that turns what that client already sees into sound. Read `CLAUDE.md` ("Implementing from a spec", and the multiplayer rule first among the rules), `docs/39` section 13 (the whole list of sounds the Valley will want), then this whole doc, then the files it names, before writing code. The doc decides; a default in brackets is Michael's to overrule, not the implementer's. A *reading* is the writer's interpretation of a ruling, marked as such.
+
+## Why now
+
+Michael, 2026-10-19:
+
+> "Work up a sounds spec and how we should start. I would like to have a few sounds in relatively soon. Basic stuff like walking, mainhand swing, door open, bow draw and release, fire, some kind of cozy ambience soundscape (birds, wind, etc?) or we could find some kind of free usable music that fits as a stand in for something more precise in the future? Either way, hearing a few sounds now will make testing easier (especially the swing sound, because it needs to visually match up with the swing timer)."
+
+The batch's purpose (#310): "improving my visual experience while testing ... and just making it more pleasant to hang out in." The rulings it stands on are in `docs/02`: **2026-10-17, The roadmap, and sound** (a sound that carries information may have a visual twin where it makes sense, "There SHOULD be a penalty for playing with sound off"; Primary is "the sound on advocate"; every sound on its wiki page, its licence allowing; and "I am happy to rule out directional sound now, but the zombies should make some noise, plus interface, fire, actions, walking, et al.") and **2026-10-18, The Valley's final scope; finished means sounds** (silence "could be hurting my interest in playtesting", and survival is "hard to balance ... if I unintentionally give myself the 'deaf' trait").
+
+## The one rule: the ear reads what the eye reads
+
+A sound is never game state. It is never saved, never in the sync check, never read by the simulation, and never rolls `rng.js`. **Every sound is played on each client by that client's ear, from what that client already has:** its own world on the host, its replica on a guest. The ear runs beside the drawing (`main.js` `render()`), reads the world, and writes nothing to it. The step (`game.js`), the wire (`net.js`), and the save are untouched by this whole batch, and `node tools/world.js` hashes the same before and after.
+
+That one rule gives the multiplayer rule its answers at once: a guest hears what it sees, when it sees it, so the sound and the picture agree on every screen; a server world, where every player is a guest, needs nothing of its own; and a server, which has no ear, plays nothing.
+
+## 1. The module
+
+Three files, split as the art is split (the engine, the generators, the reader):
+
+- **`src/audio.js`, the engine.** One `AudioContext`; a gain node per group (`effects`, `ambience`, `music`, `interface`) into a master gain into the speakers; the slots and their buffers; no game imports (a leaf, so a tool page can use it). Its interface:
+  - `register(name, buffers)` and `slot(name)`: a slot is a name with one or more buffers (its variants) and the numbers from `data/sounds.json`. A delivered recording and a generated placeholder register the same way, as `assets.registerSheet` takes a drawn sheet or a generated one.
+  - `play(name, { at, volume, rate, variant })`: one shot. `at` is a grid point `[gx, gy]` or null for a sound with no place (the interface, music). `variant` picks a buffer by index; without it the slot's own cosmetic counter picks. Returns nothing the caller needs.
+  - `loop(name, { at, volume, rate })`: a looping sound; returns a handle with `set({ at, volume, rate })` and `stop(fade)` [fade 0.3 s]. Fires and the ambience beds are loops.
+  - `setListener(gx, gy)`: where this client hears from, set by the ear each frame: its own player, or the camera's centre when that player is dead.
+  - `setOn(bool)`, `setMaster(v)`, `setVolume(group, v)`: read from the settings at boot and on change.
+  - `unlock()`: the browser's autoplay rule keeps a new `AudioContext` suspended until the page has had a user gesture. A `pointerdown` or `keydown` listener on `document`, once, calls `ctx.resume()` and removes itself. Every click before the world (the title, the Worlds screen) is such a gesture, so in practice sound is ready when a world starts. Nothing queues before it: a sound asked for while suspended is dropped, not saved for later.
+  - `log`: the last [200] sounds asked for, `{ name, variant, group, at, gain, muffled, sim, ctx }` (`sim` from `loop.simTime()` through a clock the ear hands in; `ctx` the context's time). Written whether or not the context is running, because **a scripted pane cannot give a user gesture**: the check reads the log, not the speakers. Nothing is logged when the master switch is off or the slot's group is at zero.
+  - Voices are capped [24 at once in all; a slot's own `maxVoices`, footsteps 6], the quietest dropped first, so a crowd of the dead stays a murmur and never a wall of noise.
+- **`src/sound-gen.js`, the placeholders** (section 2), as `src/placeholders.js` is for the art.
+- **`src/sound-cues.js`, the ear** (sections 3 to 5): one `update(S, dt)` from `main.js` `render()`, after the frame is drawn. It reads characters, props, openings, the floaters, and the clock round the listener and calls `audio.play` and the loops. It keeps its own memory of what it heard last frame (a map by character id, by opening edge, by fire prop id), as `ui/speech.js` keeps `lastLeft`: view state of one client, not world state, so a module-level map is right here. When more than [0.25 s] of wall time passed since its last run (a hidden tab, a teleport, a welcome), it takes a fresh baseline and plays nothing, so a return never bursts.
+- **`data/sounds.json`, the slots.** Per slot: `group`, `volume`, `radius` (tiles), `variants`, `maxVoices`, `gen` (the recipe's numbers), and `file` (null, or the delivered recording's paths). Sorted by name, validated by `tools/validate-data.py` (a known group, a recipe or a file, every name the ear asks for present).
+
+**The settings: a new Sound tab** (`settings.GROUPS` gains `["sound", "Sound"]`; the Display tab is about pictures). Its rows, as the registry's choices: **Sound** On / Off (the master switch); **Volume**, **Effects**, **Ambience**, **Music**, **Interface**, each Off, 25%, 50%, 75%, 100%. Defaults: [On; Volume 75%, Effects 100%, Ambience 50%, Music 50%, Interface 75%]. The settings are this browser's, never the world's: a friend's choices are their own. No key is bound [open, question 5].
+
+**Sound on by default: recommended.** Michael asked for sounds to make testing easier and asked Primary to argue for them; a new player meets the game as it is meant to be heard; and the autoplay rule means nothing sounds before the first click, so the game never blares on load. Michael turns it off once in his own browser if he wants it off, and the setting stays. The cost: the pane shares his settings, so a check that touches a sound setting restores it in a `finally` (`docs/testing.md`).
+
+**Paused and hidden.** With the pause menu up, the world stops, so the ear hears no new events; the loops duck to [30%] and come back on resume. A hidden tab runs no frames: the loops fade out and the context is suspended on `visibilitychange`, resumed on return, and the ear takes a fresh baseline.
+
+## 2. Placeholder sounds generated at boot
+
+The placeholder rule (`CLAUDE.md`: placeholder art is generated at boot through the same interface as real sprite sheets) applies to sound as it does to art. **At boot, each slot without a `file` is rendered once into an `AudioBuffer` by an `OfflineAudioContext`** (which the autoplay rule does not stop), from noise and oscillators shaped by filters and envelopes. A slot with a `file` decodes it (`fetch`, `decodeAudioData`) instead; a file that fails falls back to the recipe with a warning. **Nothing is downloaded and nothing waits for a sound file.** A delivered recording replaces a placeholder by filling in `file` in `data/sounds.json`, no code changed; delivered audio is data, read and never run, as delivered art is (`docs/26`, `27`), and lives under `data/sounds/`.
+
+The generators' noise comes from their own small seeded generator, seeded by the slot's name and variant, so a placeholder is the same sound on every boot and every client (and can be hashed, as `check("sheets")` hashes the art). Never `rng.js`, never the sim's. Boot stage: "sounds", its time in `?boot` [all slots under 150 ms; measured and reported].
+
+The recipes, briefly (numbers are the recipe's defaults in `gen`; each slot has [4] variants unless it says, a variant moving its centre frequency and length by up to [10%]):
+
+- **`step_grass`:** [70 ms] of white noise through a band-pass at [600 Hz], Q [0.8]; a 4 ms attack and an exponential fall. Soft.
+- **`step_dirt`:** noise low-passed at [450 Hz] with a [70 Hz] sine thump of 40 ms under it. Farm soil uses it.
+- **`step_wood`:** a [160 Hz] sine falling to [90 Hz] over 50 ms (a hollow knock) with a 5 ms click of noise high-passed at [2 kHz].
+- **`step_stone`:** a [25 ms] click of noise high-passed at [2.5 kHz] over a [220 Hz] knock. Cobble and stone floors use it.
+- **`step_water`:** noise through a band-pass sweeping [800 to 2000 Hz] over 120 ms, with two or three short sine blips at 1 to 3 kHz (bubbles). Shallow water.
+- **`shuffle`:** the dead's step: [140 ms] of noise low-passed at [300 Hz], a drag rather than a footfall; quieter than a step [0.5].
+- **`swing_light`, `swing_heavy`:** the whoosh: noise through a band-pass whose centre sweeps [400 to 1800 to 600 Hz]; the envelope rises to its peak at `peak` seconds and falls away. Light [0.18 s long], heavy [0.30 s, the sweep an octave lower]. Which one a weapon uses: its own `sound` in its weapon block in `data/items.json` if it names one, else [light when its `swing` is under 0.8 s, heavy otherwise: the halberd is heavy, the sword and the tools light].
+- **`hit`:** a blow landing: a [90 Hz] sine with a fast fall in pitch and a 50 ms burst of noise low-passed at [1.2 kHz].
+- **`door_open`, `door_close`, `shutter_open`, `shutter_close`:** the creak: a sawtooth at [110 Hz] wobbling by [±15 Hz] at [9 Hz], band-passed at [900 Hz], [0.45 s]; the close ends in a [60 Hz] thump of 80 ms. Shutters a fifth higher and [0.25 s]. [2 variants each.]
+- **`bow_draw`:** a loop: a band-passed sawtooth at [180 Hz] with a slow wobble, quiet, its rate rising [0.9 to 1.2] with the draw.
+- **`bow_release`:** the twang: a plucked string made by Karplus-Strong in the buffer (a burst of noise through a short damped delay line) at [110 Hz], [0.35 s], with a 40 ms whoosh under it.
+- **`arrow_land`:** a [300 Hz] knock falling in pitch, 40 ms.
+- **`fire_crackle`:** a loop of [4 s]: brown noise low-passed at [700 Hz] (the roar), with pops scattered through it (2 to 8 ms clicks of high-passed noise, about [12 a second], each its own loudness); the ends crossfaded so the loop has no seam. [1 variant.]
+- **`fire_light`:** a whump: noise with a low-pass sweeping [200 to 1200 Hz] over 0.4 s. **`fire_out`:** a hiss: noise high-passed at [3 kHz], falling over 0.8 s.
+- **`wind`:** a loop of [12 s]: brown noise low-passed at [500 Hz], its loudness and cutoff moved by two slow wobbles [0.07 and 0.13 Hz], the ends crossfaded. [1 variant.]
+- **`bird`:** one call, not a loop: two to five chirps of a sine at [2.5 to 5 kHz] sweeping up by [30%] in 60 ms each. [6 variants, three kinds of bird.]
+- **`crickets`:** a loop of [6 s]: a [4.5 kHz] sine gated by a pulse train (pulses at [30 Hz] in groups of three, a group every [0.5 s]), two layers at slightly different rates. [1 variant.]
+- **`groan`** (step 4): a sawtooth at [80 Hz] sliding down, with a slow vibrato, through two band-passes at [700 and 1200 Hz] (an "aah"), [1.2 s]. [3 variants.]
+
+**Every sound on its wiki page** (`02`, 2026-10-17): the generated sounds are ours, so the wiki may carry them all. A tool page [`tools/sounds.html`] renders every slot through the same generators and saves each as a WAV for the wiki Secondary. It is not part of the first step.
+
+## 3. The swing in time with the swing timer
+
+What the code does today: **the swing resolves on the click** (`02`, the parent's hard-won rule, kept). In `combat.tryAttack` the hand's cooldown is set to the weapon's `swing` (`src/combat.js:326`, `player[cd] = weapon.swing`) and the attack animation starts (`:333`) on the same step; the host goes on to find the targets and deal the damage, with hit-stop, on that step too (`:335` onward). The swing timer's bar (`src/ui/swing-timer.js:51`, `updateSwingTimer`, called from `main.js:1218` every frame) is drawn from those same cooldowns: it empties on the step of the click and fills across exactly the swing. The animation's strike frame is `activeFrame` at the style's `fps` (`src/figure/rig.js:18`, `data/poses.json`: `one_handed` and `thrust` at 12 fps with active frame 1, so the blade is at the strike 83 ms after the click); it is cosmetic.
+
+**The whoosh starts on the step the cooldown is set**, which is the moment the bar empties: the ear sees the hand's cooldown rise (`attackCooldown` for the main hand, `offCooldown` for the off hand) and plays that weapon's swing slot at once. So the ear and the bar agree to within one drawn frame, and a fight's rhythm can be played by ear. The whoosh's envelope peaks at `peak` [0.04 s, inside the first frame of the swing], so its loudest point lands with the click and the hit-stop; [the alternative, the peak at the strike frame (83 ms), is question 3]. A landed blow's `hit` plays from the floating number's event (section 5), on the same step.
+
+How a rise is told from noise: a swing sets the cooldown to the weapon's whole `swing` from at or near zero, so the ear counts a rise of more than [0.1 s] since the last frame as a swing. A guest's reconciliation corrects a cooldown by a step or two at most (the cooldowns go exact in the light record, `net.js:239`, `EXACT`), which stays under that. If the check finds a doubled or a missed whoosh, the fallback is a swing count on the player (one integer in the light record, a few bytes on the frame of a swing); it is not built unless the check needs it.
+
+- **My own swing, on the host:** the cooldown is set in the host's own step; the ear hears it on the next drawn frame.
+- **My own swing, on a guest:** the guest predicts its own swing at once (`player-controller.js:36`, `combat.swingFromLeft` with `predict`; `combat.js:334`; `net.js:1054`, `predict`), so its cooldown and its bar move at its own click, and the ear hears it then: no round trip. The replay of pending inputs over each frame changes nothing the ear reads, because the ear reads the result at draw time, not the calls.
+- **A friend's swing, on the host:** the host runs the guest's swing in its own step from the guest's input; the cooldown rises on that player and the ear plays it at the friend's place.
+- **A friend's swing, on a guest:** the friend's `attackCooldown` and `offCooldown` arrive in their light record in the next frame (every third step, 50 ms), with the attack animation in the same record, so the guest hears it as it sees it, at most a frame and the network's delay after the host. Nothing new crosses the wire.
+
+## 4. Space
+
+- **Distance:** a sound with a place is heard by this client's listener at `gain = volume × group × master × (1 − d / radius)²` for `d` under the slot's `radius` [effects 14 tiles, a groan 18, a fire 10], and not at all beyond it (not played, not logged, no voice spent).
+- **Through a wall:** the ear counts the opaque walls on the straight line from the listener's tile to the source's (a wall, a shut door, shut shutters; not a fence, an open door, an open window, or a broken one), with a new `visibility.wallsCrossed(ax, ay, bx, by, max)`: the same edge walk as `lineOfSight` (`src/visibility.js:12`), walls only, props ignored (a tree does not muffle). One wall: a low-pass at [700 Hz] and the gain times [0.5]; two or more: [400 Hz] and [0.25]. A loop's muffle is recomputed [10 times a second]. *A reading:* this is not directional sound; it is the sealed room heard as sealed.
+- **Inside:** when the listener's tile is in a room (`map.roomAt`, not 0), the outdoor beds (wind, birds, crickets) are muffled as through one wall.
+- **No panning.** Michael ruled directional sound out (`02`, 2026-10-17; `docs/39`, section 13: "No directional sound"). *A reading:* that rules out a left-right pan by screen position too, so every sound is centred and only distance and walls shape it. If he wants a gentle pan, it is one `StereoPannerNode` per voice [question 2].
+
+## 5. Multiplayer: who plays each sound, and from what
+
+Every client runs the same ear on what it has. **Nothing new crosses the wire in this batch.** The list below is what each sound reads, on the host (its own world) and on a guest (its replica). The listener is always that client's own player.
+
+- **Footsteps (any character: a player, a villager, the dead):** the walk animation's contact frames. The walk is four keyframes, contact, passing, contact, passing (`rig.js:17`, 8 fps; `rig.js:230`), so a step plays when a character's `anim.name` is `walk` or `carry_walk` and its `anim.frame` turns to 0 or 2: four steps a second. The players' animation is chosen and advanced in `entities/player.js:392`; the villagers' in `villager.js:101` and `:126`; the dead's in `zombie.js` (`:400`, `:600`, `:769`, advanced at `:933`). A guest has every character's `anim` in its record (a player's light record; the dead's and the villagers' delta, whose change test keeps the frame, `net.js:706`), and frames go at 20 a second against an animation frame of 125 ms, so no contact is skipped. The surface is the floor under the foot, `map.tileAt(round(gx), round(gy)).floor`: grass, dirt (and farm soil), wood, stone (and cobble), shallow water. The dead play `shuffle` [whatever the floor]. A variant is chosen by a hash of the character's id and a count of its steps, never by chance. Only the [6] nearest walkers within the radius are heard.
+- **The swing:** section 3. **A hit:** the floating numbers' events (`src/floaters.js:42`, `damage`): the host records each hit in its step and a guest receives them in the frame's `floaters` (`net.js:1147`); the ear reads them through a cursor of its own (`heardTo`, beside the drawing's `drawnTo`, so the Floating numbers setting off does not silence a hit), and plays `hit` at the target's position.
+- **Doors and shutters:** the ear scans the openings within its radius [20 times a second] and remembers each one's state (`open`, `shutter`, `broken`) by its edge; a change it has seen before plays `door_open`, `door_close`, `shutter_open`, or `shutter_close`, and a newly broken one [`door_break`, step 4]. On the host the state changes in the toggle (`src/interact.js:504` to `:506`, for the host's player and a guest's command alike) and when the dead break it (`src/map.js:795`, `damageOpening`); on a guest it arrives in the touched chunk (`net.js:1141`, `installChunk`) in the frame after. So both hear it when the drawn door moves. An opening entering the radius for the first time is learned silently. `map.openingsNear` (`map.js:1380`) scans a fixed 5 by 5 tiles today, so it takes a span, or the ear walks the tiles itself; the scan's cost is measured and reported [under 0.1 ms].
+- **The bow:** a player's `draw` (null, or `{ t, c, source }`) and `recover` ride in the light record (`serializeCharacter` keeps them). The draw begins when `draw` appears (`src/archery.js:676`, `beginDraw`): `bow_draw` starts as a loop at the archer's place, its rate following `draw.c`; it stops when `draw` goes. The release is `recover` rising (`archery.js:708`, the release pose, and `:709`, `arrowShot`, on the same step): `bow_release`. A dry release (under `minDraw`) sets no `recover` and plays only the draw's end. An arrow landing is an arrow gone from the list in flight (`archery.arrowsInFlight` on the host, the frame's `arrows` on a guest, `net.js:1132`): `arrow_land` at its last place. *A reading on a guest's own bow:* the guest does not predict the draw (`player-controller.js:43`, `if (!predict) archery.updateDraw`), so its own draw pose and its draw sound both come back with the host's record, a round trip after the press. The sound follows the picture; predicting the draw is a separate change.
+- **Fire:** the ear reads the burning props within the radius (`map.fires()`, `map.js:86`, each with `fire.lit`), by prop id: the [3] nearest lit ones each hold a `fire_crackle` loop, its gain by distance; a fire's `lit` turning on plays `fire_light` and turning off plays `fire_out`. On the host these change in `feedFire` (`map.js:120`), `lightProp` (`:295`), and `burnFires` (`:98`, the fire going out at `:112`); a guest has them in the touched chunk. A mounted torch and a held lit torch crackle at [a fifth] of a fire; a burning body (`burning` in every character's record) crackles as a fire.
+- **The ambience:** from the clock (`clock.nightFactor()`; a guest's clock is the host's, set from every frame) and the listener's room. Section 7.
+- **The groan** (step 4): a dead one's `line` with the groan's text, new when its `line.left` rises (the same test `ui/speech.js:83` uses for the log line); the dead groan on their own timer in the host's step (`zombie.js:515`), and the line reaches a guest in the dead's record.
+- **The dead's blows on a wall and a fence:** the host's events `wallStruck` and `fenceBurst` (`map.js:722`, `:726`) already reach a guest as the `fx` message (`host.js:220` to `:225`; `net.js:964`), which the host's own client draws from the same events (`main.js:1682`, `:1683`, and `fx` at `:1788`). The ear listens where those are drawn [step 4].
+
+**What a guest cannot hear today without a wire change:** nothing on this list. What would need one later: a sound for something that leaves no trace in a frame (a craft finishing at a station a guest is not looking at, a container opened by another player). If one is ever needed, the frame gains a `sounds` field like `floaters` (`[[slot, gx, gy], ...]`, the slot an index into the sorted names, the place to a tenth: about 15 to 20 bytes each in JSON, only in a frame that has any, `net.PROTOCOL` bumped), or a rare one rides the existing `fx` message (about 60 bytes with the relay's envelope). Either is measured from `net.status().wire`, never guessed. Neither is in this batch.
+
+**The six points**, for the review: (1) nothing runs in the step; the ear is a client reader, as the drawing is; (2) a guest does nothing new: it already swings, walks, opens doors, and draws a bow by the existing paths; (3) everything heard comes from what already reaches a guest, listed above; (4) no world state is added, so the sync check is unchanged; (5) the ear's memory is view state of one client (by id, never "the player"); it reads `loop.simTime()` only to stamp its log, and its only chance is its own hash; (6) the two-tab rows in section 8.
+
+## 6. The visual twin of every informative sound
+
+Michael (2026-10-17): a twin "where it makes sense", and sound off should cost something. A sound that only decorates (the wind, a footstep you can see) needs none. The informative ones in this batch and the next:
+
+- **The swing:** the attack animation and the swing timer's bar (built).
+- **A hit:** the red number over the one hit, the knock back, the hit-stop (built).
+- **A door or shutters opened or shut in sight:** the door drawn open or shut (built).
+- **A door or shutters opened or shut out of sight:** none [by design: what sound on tells you].
+- **A door or shutters broken by the dead:** the jolt of each strike (built); **missing:** a door or shutters breaking has no burst of its own. [Recommended: the fence's splinters at the opening when it breaks, sent as the fence's are, `fx` "splinters".]
+- **The bow's draw and release:** the draw pose and the arrow in flight (built). **An arrow landing:** the arrow lying or lodged (built).
+- **A fire burning:** its flame and its light (built). **A fire lit:** the flame appearing (built). **A fire going out:** the flame gone and "A fire has gone out." within `fireOutRadius` (built, #177).
+- **The dead's footsteps in the dark:** none [by design: the dark hides them from the eye, not the ear].
+- **The groan:** the bubble in sight; in the dark, "Something groans in the dark." in the log within `groanRadius` [6] (built, #150, #177). Behind a wall, or farther than `groanRadius` but within the groan's hearing radius: none [by design].
+- **The dead striking a wall or a fence:** the jolt (built, #174); **a fence bursting:** the splinters (built).
+- **Day and night in the ambience:** the light and the clock on the HUD (built).
+
+So one twin is missing in this batch's reach, the breaking door, and three gaps are deliberate: they are the cost of playing with sound off that Michael asked for.
+
+## 7. Music and ambience
+
+**The generated ambience first** (step 3). Three beds on the `ambience` group, from the clock: **wind** always, at [0.35], swelling and easing on its own; **birds** by day, a call from the `bird` slot every [3 to 9 s] at a random quiet loudness, weighted by `1 − nightFactor`; **crickets** by night, the loop weighted by `nightFactor`. Dawn and dusk crossfade by the same number. Inside a room the beds are muffled (section 4). The ambience has no place; its timing uses its own small generator, never the sim's. *Later, not now:* the arc (`docs/00`) wants the beds to change with the region, no birds in the bog; that is a field on a region when regions come.
+
+**Music: nothing is downloaded or committed until Michael picks.** The `music` group exists, empty. When a track comes it plays with no place, looped or with [a silence of one to three minutes between plays], at the group's volume. The sources, by licence:
+
+- **CC0 (public domain dedication: no conditions, no credit owed, may go on the wiki):** OpenGameArt.org's music with the CC0 licence filter (opengameart.org, Browse, Music, License: CC0); freesound.org's search with the Creative Commons 0 licence filter (mostly effects and ambience recordings, some loops); Kenney's audio packs (kenney.nl, all CC0; effects and interface sounds rather than music).
+- **CC-BY 4.0 (free for any use, commercial too, with a credit line in the form the author asks):** Kevin MacLeod's library at incompetech.com, which has a medieval and folk shelf (*to listen to*, names to be checked on the site: "Thatched Villagers", "Village Consort", "Folk Round"); his credit line is "[Title]" Kevin MacLeod (incompetech.com), Licensed under Creative Commons: By Attribution 4.0. CC-BY tracks on OpenGameArt and freesound, each with its author's credit.
+- **Left out:** anything NC (non-commercial; the game is for sale on Steam, `docs/35`), anything SA or GPL (its conditions reach further than a credit line), and libraries with a licence of their own rather than Creative Commons (they may forbid putting the file on the wiki) until one is read and ruled on.
+
+**Credits** live in a `CREDITS.md` at the repository's root (created with the first sound or track that is not ours: title, author, source address, licence, and the credit line as the licence asks), on the game's About screen (`ui/screens.js`, `aboutHtml`), and on the site's About; the wiki's page for each sound carries its own.
+
+## 8. The order to build in
+
+Each step verified in the browser pane through `window.__game`, with `?nosave`, `loop.setPaused(true)`, and `loop.advance(1/60)`, before the next; `node --check` on every touched module; `node tools/world.js` hashing the same as before (the ear touches no sim). The check is `tools/checks/sound.js`, `await __game.check("sound")`; since a paused pane draws nothing, the check calls the ear (`__game.sound.update()`) after each `advance`, and reads `audio.log`. A check that changes a sound setting restores it in a `finally`.
+
+**Step 1: the module, the settings, the footsteps, and the swing.** `audio.js`, `sound-gen.js` with the step, shuffle, swing, and hit recipes, `sound-cues.js` with the footsteps, the swing, and the hit, `data/sounds.json`, the Sound tab, the unlock, the boot stage. Acceptance:
+
+1. Every slot in `data/sounds.json` has its buffers after boot, each non-empty and as long as its recipe; the boot stage's time is reported.
+2. Each recipe gives the same samples on two boots (a hash per slot, as `sheets`).
+3. Walking two seconds on grass logs about eight `step_grass` entries, each on a step where the player's walk frame turned to 0 or 2; on the cottage's wood floor, `step_wood`.
+4. A swing logs `swing_light` (fists, a dagger) or `swing_heavy` (by the weapon's `swing`) with a sim time within one step (1/60 s) of the step on which the main hand's cooldown was set; a swing of the off hand logs its own, and a click inside the recovery logs nothing.
+5. A hit on one of the dead logs `hit` at its place on the step of the swing; with the Floating numbers setting off, it still does.
+6. A villager walking 8 tiles away logs steps at a lower gain than the player's; one past the radius logs nothing.
+7. A step behind a shut door logs `muffled`; with the door open, not.
+8. With Sound off, walking and swinging log nothing; with Effects at Off, the same; restored after.
+9. Two tabs (`?nosave&relay=none`, `__game.net.open({ join })`, both stepped in turn): the guest's log has its own swing at its own click's step, and the host's swing and footsteps within a frame of the frame that carried them; the host's log has the guest's swing; `check("sync")` passes; the frame's bytes from `net.status().wire` are the same as without sound.
+
+**Step 2: the door and the bow.** The creak recipes, the openings scan, the bow's draw loop, release, and landing. Acceptance:
+
+1. The host's player opening and shutting the cottage's door logs `door_open` then `door_close` at the door; shutters log the shutter slots.
+2. On a guest: the host's door logs on the guest when the frame with its chunk arrives, and the guest's own door (its command) logs on both.
+3. An opening walked into range unchanged logs nothing.
+4. A bow drawn logs `bow_draw` as a loop that stops on release; the release logs `bow_release` on the step `recover` is set; a dry release logs no twang; the arrow's landing logs `arrow_land` where it lies.
+5. On a guest, a friend's draw and release log from their record; the guest's own, from the host's record.
+6. The openings scan's cost is reported.
+
+**Step 3: fire, then ambience.** Acceptance:
+
+1. A lit campfire within the radius holds one `fire_crackle` loop whose gain falls as the player walks away and is gone past the radius; at most three fires are heard at once.
+2. Lighting a campfire logs `fire_light`; feeding it to empty and letting it burn out logs `fire_out`; on a guest, both, from the chunk.
+3. At noon the beds are wind and birds; at midnight wind and crickets (`clock.setHour`); at dusk a mix; inside the cottage with the door shut, muffled.
+4. The pause menu ducks the loops and resume brings them back; Ambience at Off silences the beds and leaves the effects.
+5. On a guest, the beds follow the host's clock.
+
+**Step 4 (next, the dead's voice, not in #310's first batch):** the groan, the dead's shuffle under their own slot, a bite, a wall and a fence struck, a door breaking with its missing twin (section 6). Then `docs/39` section 13 down its list.
+
+**When each step merges:** the wiki is synced for it in the same session (`CLAUDE.md`, the second rule of shipping): the Sound settings, and each sound on the page of what makes it.
+
+## 9. Open questions for Michael
+
+1. **Sound on by default** [recommended, section 1], or off?
+2. **No panning:** does "no directional sound" rule out a gentle left-right pan by where a sound is on screen? [*Reading:* yes; distance and walls only.]
+3. **The whoosh's loudest moment:** with the click, when the bar empties [default], or at the strike frame of the animation, 83 ms later?
+4. **Music:** pick a source and a track or two from section 7, or the generated ambience alone for now [default: ambience alone until you pick].
+5. **A key to mute?** [default: none; the Sound tab only.] `M` is the map.
+6. **The deliberate gaps:** a door out of sight, the dead's steps in the dark, and a groan behind a wall have no visual twin [default], which is the cost of sound off you asked for. Keep all three?
+
+## Not in this scope
+
+Directional sound; voice for villagers' talk; per-material hits (a blade on a shield, on wood); weather; music composed for the game (the paid phase, roadmap step 8); a sound's wiki file (the tool page is named, not built); noise that carries to the dead (`docs/05`, "Noise": still undecided, and a sound here never tells the simulation anything).
