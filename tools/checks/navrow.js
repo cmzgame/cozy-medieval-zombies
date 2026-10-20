@@ -52,7 +52,8 @@ export async function run(game) {
       const ui = document.getElementById("ui");
       const beltEl = document.getElementById("hotbar");
       const beltW = beltEl && beltEl.offsetWidth ? beltEl.offsetWidth : 0; // as nav-row.js measures it: 0 with no belt shown
-      const room = ui.clientWidth - 8 - (8 * 34 + 7 * 3 + 10) >= ui.clientWidth / 2 + beltW / 2 + 8 && ui.clientWidth >= 600;
+      const logRight = Math.max(...["log", "log-input"].map((id) => { const el = document.getElementById(id); return el && el.offsetWidth ? el.offsetLeft + el.offsetWidth : 0; })); // as nav-row.js measures it
+      const room = ui.clientWidth - 8 - (8 * 34 + 7 * 3 + 10) >= Math.max(ui.clientWidth / 2 + beltW / 2, logRight) + 8 && ui.clientWidth >= 600;
       row("the row is one line where it clears the belt, two lines of four where not, on the stone", (room ? tops.size === 1 && rowEl.classList.contains("line") : tops.size === 2) && rowEl.classList.contains("kit-plate"), `${tops.size} line(s) at ${ui.clientWidth} interface px${room ? ", room for one" : ""}`);
     }
     row("the row has its eight buttons in order", ids.join() === "bag,character,skills,map,build,chat,settings,menu", ids.join(", "));
@@ -174,12 +175,18 @@ export async function run(game) {
     const hits = (a, b) => a && b && a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom;
     // An interface so narrow that the belt already lies over the log (a large scale in a small window) has no room left for the row: there
     // only the belt and the moodles are held to.
-    const crowded = hits(others.belt, others.log);
+    // Or so narrow that the row has no room beside the log at all (the log is 340 interface px wide by default).
+    const rowW = document.getElementById("nav-row").getBoundingClientRect().width / k;
+    const logRight = others.log ? others.log.right / k : 0;
+    const crowded = hits(others.belt, others.log) || logRight + rowW + 12 > W;
     if (crowded) { delete others.log; delete others["chat box"]; }
+    // And with a belt so wide that the row has no room between it and the right edge either (the leather belt at 2x in 800 by 600).
+    const beltRight = others.belt ? others.belt.right / k : 0;
+    if (beltRight + rowW + 8 > W) delete others.belt;
     for (const [name, el] of [["the row", document.getElementById("nav-row")], ["the skills panel", sk]]) {
       const a = el.getBoundingClientRect();
       const over = Object.entries(others).filter(([, b]) => hits(a, b)).map(([n]) => n);
-      row(`${name} leaves the belt, the swing bars, the log, the chat box, and the moodles uncovered`, !over.length, over.length ? `covers ${over.join(", ")} at ${W}x${H} interface px` : `${W}x${H} interface px${crowded ? ", the belt already over the log" : ""}`);
+      row(`${name} leaves the belt, the swing bars, the log, the chat box, and the moodles uncovered`, !over.length, over.length ? `covers ${over.join(", ")} at ${W}x${H} interface px` : `${W}x${H} interface px${crowded ? ", crowded: the belt already over the log, or no room beside it" : ""}`);
     }
     closeAll();
     step();

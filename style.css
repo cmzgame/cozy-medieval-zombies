@@ -2231,10 +2231,10 @@ html:not(.kit-ready) #site-page .screen { border: 3px solid #6a6258; }
   position: absolute;
   right: 56px;
   bottom: 98px; /* above the row's two lines on their plate */
+  max-height: calc(92% - 132px); /* its top below the map's head (the map's top is at 8%) */
   z-index: 7;
   width: 170px;
   font-size: 12px;
-  max-height: calc(92% - 120px);
   display: flex;
   flex-direction: column;
   pointer-events: auto;

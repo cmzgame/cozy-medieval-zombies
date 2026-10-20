@@ -16,6 +16,17 @@ let belt = null;
 let fold = () => {};
 let lastW = -1; // the interface's and the belt's widths the layout was last chosen for
 let lastBelt = -1;
+let lastLog = -1;
+
+// The right edge, in interface pixels, of what sits at the bottom left: the chat log and the chat box under it.
+function leftEdge() {
+  let r = 0;
+  for (const id of ["log", "log-input"]) {
+    const el = document.getElementById(id);
+    if (el && el.offsetWidth) r = Math.max(r, el.offsetLeft + el.offsetWidth);
+  }
+  return r;
+}
 const shown = {}; // id -> whether its button shows pressed, so a step writes only what changed
 
 // Each icon is a 12 by 12 picture: "#" its main colour, "+" its accent, "." empty; the outline is drawn round whatever is filled.
@@ -214,11 +225,13 @@ export function initNavRow(h) {
     if (!belt) belt = document.getElementById("hotbar"); // made after the row (main.js: initInventoryPanel), so looked for until found
     const w = ui.clientWidth;
     const bw = belt ? belt.offsetWidth : 0; // 0 with no belt worn (the bar hidden): nothing to keep clear of
-    if (w === lastW && bw === lastBelt) return;
+    const lr = leftEdge(); // the chat log's and the chat box's right edge (the log is resizable, logSize)
+    if (w === lastW && bw === lastBelt && lr === lastLog) return;
     lastW = w;
     lastBelt = bw;
+    lastLog = lr;
     const narrow = w < NARROW;
-    const line = !narrow && w - ROW_RIGHT - LINE_WIDTH >= w / 2 + bw / 2 + ROW_GAP;
+    const line = !narrow && w - ROW_RIGHT - LINE_WIDTH >= Math.max(w / 2 + bw / 2, lr) + ROW_GAP; // clear of the belt and of the log at bottom left
     root.classList.toggle("narrow", narrow);
     skills.classList.toggle("narrow", narrow);
     root.classList.toggle("line", line);
