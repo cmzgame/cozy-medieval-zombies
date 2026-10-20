@@ -76,6 +76,7 @@
 
 ### Structure
 
+- **Wall lanterns** [built]: 33 on the valley's walls, always lit, lighting their rooms (5.12).
 - **Rooms** [built]: found by flood fill; a shed, hut, or forest cabin is one room, a house at least two; no roofs, one storey.
 - **A log wall** [built]: a log, with a hatchet carried.
 - **A door** [built]: three planks, with a smith's hammer; stamped over a wall, of the wall's material; starts closed; blocks sight and bodies.
@@ -139,10 +140,10 @@
 
 One panel for every station; ingredients from the bag, the belt, and every container in reach with a clear line; the station keeps working when you walk off; the output waits in its slot [built]. Cooking recipes are gated by level, never by the pot or the oven (#275).
 
-- **Workbench** [built] (the joiner's, the chandler's; your own at Woodcutting 7): a torch (a stick and cloth); rags from any garment (a knife carried); two sticks from a plank (a hatchet); a hoe and a shovel (a stick and a plank, a hammer); a fishing rod (a stick and cloth, a knife); a hunting bow (two sticks and cloth, a knife); five arrows (a stick, a knife); a wooden shield (three planks, a hammer); a bucket (three planks, a hammer); a chest, a shelf, a bench, a table, a bed, a workbench, a wheelbarrow (planks, a log, cloth, an iron bar; a hammer). Unlock: Crafting 1 [change: by Crafting level and wood; bows and arrows at Crafting 4].
-- **Loom** [built] (the weaver's): linen cloth (two flax); two bandages (a cloth); a linen cap, linen breeches, a linen tunic (one, two, three cloth). Unlock: Crafting 1. Woollen cloth and warm clothes (Crafting 6) [to build]; a leather jerkin (`docs/30` step 8) [open #275].
+- **Workbench** [built] (the joiner's, the chandler's; your own at Woodcutting 7): a torch (a stick and cloth); rags from any garment (a knife carried); two sticks from a plank (a hatchet); a hoe and a shovel (a stick and a plank, a hammer); a fishing rod (a stick and cloth, a knife); a hunting bow (two sticks and cloth, a knife); five arrows (a stick, a knife); a wooden shield (three planks, a hammer); a bucket (three planks, a hammer); a chest, a shelf, a bench, a table, a bed, a workbench, a wheelbarrow (planks, a log, cloth, an iron bar; a hammer). Unlock: open to all today [change: by Crafting level and wood; bows and arrows at Crafting 4; the workbench recipe itself at Woodcutting 7] [open #275: the levels of the hoe, shovel, fishing rod, wooden shield, and wheelbarrow, which the Crafting tree does not name].
+- **Loom** [built] (the weaver's): linen cloth (two flax); two bandages (a cloth); a linen cap, linen breeches, a linen tunic (one, two, three cloth). Unlock: open to all today [change: Crafting 1 names linen cloth, bandages, and the cap] [open #275: the tunic's and the breeches' levels]. Woollen cloth and warm clothes (Crafting 6) [to build]; a leather jerkin (`docs/30` step 8) [open #275].
 - **Forge** [built] (the smithy's): an iron bar from two iron ore; burns charcoal. Unlock: Blacksmithing 1. Silver (Blacksmithing 5) [to build]; less charcoal a bar (Blacksmithing 2) [change: charcoal is the fire's fuel today, not an ingredient].
-- **Anvil** [built] (the smithy's; a smith's hammer in hand): a belt knife, a smith's hammer, a hatchet, a pickaxe (Blacksmithing 1); a scythe, a throwing spear, a flanged mace, an arming sword [change: Blacksmithing 3]; repair (Blacksmithing 4), silver work (5), mail and plate (7) [to build].
+- **Anvil** [built] (the smithy's; a smith's hammer in hand, except for forging the hammer itself): a belt knife, a smith's hammer, a hatchet, a pickaxe (Blacksmithing 1); a scythe, a throwing spear, a flanged mace, an arming sword [change: Blacksmithing 3]; repair (Blacksmithing 4), silver work (5), mail and plate (7) [to build].
 - **Cooking at a fire** [built] (any lit fire that cooks: the nineteen fireplaces, a hearth, a campfire): a roast potato, stew, porridge, grilled perch, trout, and carp. Unlock: Cooking 1 [change: the stew is not among Cooking 1's plain recipes] [open #275: whether it is Cooking 4's hearty stew]. Boiling water safe (Cooking 1) [to build].
 - **Oven** [built] (the baker's): a loaf of bread (two flour), a pumpkin pie (a pumpkin and flour) [change: pie at Cooking 6]. [change: the oven cooks the fire's recipes too (#273: it does not today).]
 - **Millstones** [built] (the mill's): flour from two grain; no fire. Unlock: none named [open #275].
@@ -191,11 +192,11 @@ Every item in `data/items.json` is here with how it is had today; each new item 
 - **Hatchet** [built]: fells trees, chops stumps, splits logs and planks, notches a log wall; a weapon. The home chest, the joiner's chest, chest loot; made at the anvil (Blacksmithing 1).
 - **Pickaxe** [built]: mines rocks and ore. The miners' and the quarryman's chests; made at the anvil (Blacksmithing 1).
 - **Hoe** [built]: tills grass and dirt. The great barn's rack; made at the workbench.
-- **Scythe** [built]: harvests a row of rye at a swing; cuts hay [to build: no recipe uses straw]. Made at the anvil [change: Blacksmithing 3].
+- **Scythe** [built]: harvests a row of rye at a swing; cuts hay [open #275: no recipe uses straw]. Made at the anvil [change: Blacksmithing 3].
 - **Shovel** [built]: digs potatoes and garlic. The home chest; made at the workbench. Digging graves, the buried chest, and plots [to build]; uprooting stumps (Woodcutting 4) [to build].
 - **Belt knife** [built]: harvests cabbages and pumpkins; the bow, arrows, rod, and rags need it carried. The weaver's chest; made at the anvil (Blacksmithing 1). Skinning and butchering [to build] (Beastlore); gutting fish [to build] (Fishing 3).
-- **Smith's hammer** [built]: the anvil's recipes (in hand); doors, windows, boards, Remove, and the workbench's furniture and tools (carried). The joiner's and the quarryman's chests; made at the anvil (Blacksmithing 1).
-- **Fishing rod** [built]: Cast the line at water. Made at the workbench (Fishing 1).
+- **Smith's hammer** [built]: the anvil's recipes (in hand); doors, windows, boards, Remove, and the workbench's furniture and tools (carried). The joiner's and the quarryman's chests; made at the anvil with no hammer needed (Blacksmithing 1).
+- **Fishing rod** [built]: Cast the line at water (Fishing 1). Made at the workbench [open #275: its Crafting level].
 - **Bucket** [built]: fill at water, pour on a plot (3 by 3). The home chest; made at the workbench.
 - **Tinderbox** [built]: lights fires and torches, douses torches; never wears out; rides the belt. The kit; not made (it never wears out).
 - **Torch** [built]: a light (section 5.12) and a weapon. The kit (held, unlit); made at the workbench.
@@ -210,7 +211,7 @@ The numbers are each weapon's block in `data/items.json` and `data/combat.json`.
 **Melee**
 - **Fists** [built].
 - **Stick, plank, torch** [built]: Melee 1. The stick from a body, a haystack, or a split plank; the plank from the kit, a split log, chest loot.
-- **Hatchet, belt knife, and the tools as weapons** [built]: Melee 1 for the hatchet and the knife; poor weapons of five kills.
+- **Hatchet, belt knife, and the tools as weapons** [built]: Melee 1 for the hatchet and the knife; weapons with a kill count each (the hatchet 20, the knife 5, the fishing rod 3; `data/items.json`).
 - **Arming sword** [built]: Melee 1; chest loot; made at the anvil [change: Blacksmithing 3].
 - **Wooden shield** [built]: block; Melee 1; made at the workbench.
 - **Throwing spear** [built]: stab (Melee 1), throw [change: Melee 5]; made at the anvil [change: Blacksmithing 3].
@@ -234,7 +235,7 @@ The numbers are each weapon's block in `data/items.json` and `data/combat.json`.
 - **Bows from fish glue** [to build]: stronger (Fishing 9).
 
 **Magic** (the staff-and-book proposal, #275: proposed, not ruled; mana, section 10)
-- **Staff of Fire** [built]: with a spellbook, casts its spell. The Developer Chest only [change: the wizard gives it free (#275's Mining note)] [open #181: the staff, the book, or one of them]. In the proposal, the fire school's permission, made of oak and a gem.
+- **Staff of Fire** [built]: with a spellbook, casts its spell. The Developer Chest only [open #181: what the wizard gives; Michael's note on #275 says the staff comes free from him]. In the proposal, the fire school's permission, made of oak and a gem.
 - **Book of Fire** [built]: the fireball, cast with a staff. The Developer Chest only [open #181]. Whether the fireball becomes Fire Bolt [open #275].
 - **Spellbooks, one spell each** [to build]: Fire Bolt (Magic 1), Kindle, a utility book (Magic 4), Pyroblast (Magic 7). Frost Bolt, Blood Bolt, Siphon Life, and Blizzard are learned in regions, never in the valley. Their names [open #275: Michael's to choose].
 - **Staves per school**, from a wood and a gem [to build] [open #275, #281: who makes them].
@@ -415,6 +416,7 @@ The staff-and-book proposal (#275), proposed, not ruled, except the parts marked
 
 - **Torch** [built]: radius 3; starts unlit; lit with a tinderbox, a lit torch, a lantern, or a lit fire; doused with T; burns down (fastest in hand, slower on the belt, a post, or a bracket; a kill costs more); belt and hand never stack. Longer-burning with pitch (Woodcutting 3) or fish oil (Fishing 5) [to build].
 - **Lantern post** [built]: the village's lights, always lit, never out.
+- **Wall lanterns** [built]: 33 in the valley's buildings (`brackets[].lantern` in `data/maps/valley.json`), always lit, light their room, light a torch held to them, and cannot be taken.
 - **A carried lantern** [to build]: more light than a torch on the belt; fuel (fish oil) [open #275].
 - **Fireplaces and hearths** [built]: light their room.
 - **Campfire, torch post, wall bracket, jack-o'-lantern** [built in the data]: section 2 [open #273].
@@ -453,12 +455,12 @@ The staff-and-book proposal (#275), proposed, not ruled, except the parts marked
 
 ### Teachers
 
-One per skill, immune, teaching recipes and unlocks as you level [to build]; which villager teaches what, and what Learn looks like [open #275]. The candidates the sources name:
+One per skill, immune, teaching recipes and unlocks as you level [to build]; which villager teaches what, and what Learn looks like [open #275]. Only the wizard is named as a teacher; the places and villagers below are where the sources point, not teachers named:
 - **Magic:** the wizard (ruled).
 - **Potions:** the wizard (ruled 2026-10-18); the witch keeps the cauldron (`docs/30`) [open #275].
 - **Herbalism:** the witch's garden (`docs/29-world/06`) [open #275].
 - **Faith:** the Priest, at the chapel's altar [open #275].
-- **Farming:** the Miller ("he teaches nothing yet") [open #275].
+- **Farming:** none named; the Miller is not immune because "he teaches nothing yet" [open #275].
 - **Woodcutting:** the woodcutters [open #275].
 - **Ranged, Beastlore:** the hunter; the shepherd for sheep [open #275].
 - **Melee, Mining, Fishing, Cooking, Blacksmithing, Crafting:** none named [open #275].
@@ -773,7 +775,7 @@ Later, not at the start: gems inlaid in metal armour.
 - Section 2. **Reach** [built]: every action needs the distance and a clear line (a wall, a shut door, or closed shutters stop it; a fence or an open window do not); building and removing walls go by distance alone.
 
 ### Durability and repair
-- **Durability is kills** [built]: a weapon's number is the dead it will put down; a landed hit wears it; a miss costs nothing; at zero it is gone; a bar on its icon. Tools as weapons, five kills; the bow, a hundred shots; a torch burns down.
+- **Durability is kills** [built]: a weapon's number is the dead it will put down; a landed hit wears it; a miss costs nothing; at zero it is gone; a bar on its icon. Tools as weapons wear by their own kill counts (`data/items.json`); the bow, a hundred shots; a torch burns down.
 - **Repair** [to build]: at the anvil (Blacksmithing 4), a stop-gap; each repair gives back less; made weapons and tools only; boards, doors, and shutters never repaired.
 - **Lasts 25% longer** (Blacksmithing 9) [to build].
 
@@ -961,6 +963,7 @@ The numbers are for tuning; this list is what must change before 1.0.
 - **The debug corner,** shown by default; **the debug keys:** V (draw all), L (light debug), [ and ] (the clock an hour back or forward).
 - **The Testing tab's defaults:** swing targets, hit shapes (ruled: the tab stays shown).
 - **Free building, Multi-hit, Trees, Starting population:** world rules for testing; their defaults the real game's.
+- **Zombie aggro and Survival** (`src/settings.js`): world rules a test turns off; on for the real game.
 - **Combat numbers left for testing:** the third-hit knockdown off (`combo.enabled`), the finisher, the default knockdown chance ("high"), dual wielding's fatal back, the fireball's damage (#89, #133).
 - **The dead's numbers** in `data/tuning.json`, the cozy parent's, never re-decided; their health, damage, sight (#89, #133).
 - **The drains:** hunger, thirst, tiredness (#264).
