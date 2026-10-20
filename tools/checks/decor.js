@@ -144,7 +144,11 @@ export async function run(game) {
     map.placeProp(barrel, x + 7, y + 6);
     made.push(barrel);
     const fitTree = rugs.fitProblem("rug_bearskin", "y", x - 2, y - 2);
-    row("a rug is refused over a tree, an anvil, and a crop, saying what is in the way", /tree/.test(fitTree) && !/_/.test(fitTree) && /anvil/.test(rugs.fitProblem("rug_bearskin", "y", x - 2, y + 2)) && /crop/.test(rugs.fitProblem("rug_bearskin", "y", x - 1, y + 5)), `${fitTree} | ${rugs.fitProblem("rug_bearskin", "y", x - 2, y + 2)} | ${rugs.fitProblem("rug_bearskin", "y", x - 1, y + 5)}`);
+    const fitAnvil = rugs.fitProblem("rug_bearskin", "y", x - 2, y + 2);
+    const fitCrop = rugs.fitProblem("rug_bearskin", "y", x - 1, y + 5);
+    row("a rug is refused over a tree, an anvil, and a crop, saying what is in the way with the right article", fitTree === "There is a tree in the way" && fitAnvil === "There is an anvil in the way" && fitCrop === "There is a potato crop in the way", `${fitTree} | ${fitAnvil} | ${fitCrop}`);
+    const names = ["anvil", "altar", "oven", "ore_cart", "table", "crop_cabbage_2", "tree_yellow_l", "tree_spire_blue_old", "chicken_coop"].map((sp) => rugs.withArticle(rugs.nameOf(sp)));
+    row("a prop's name reads as a player would say it: an before a vowel, a crop as what it is, a tree as a tree", names.join(", ") === "an anvil, an altar, an oven, an ore cart, a table, a cabbage crop, a tree, a tree, a chicken coop", names.join(", "));
     row("a rug is still laid under a barrel and a chest (what can be lifted away)", rugs.fitProblem("rug_regal_red", "x", x + 6, y + 5) === "" && rugs.fitProblem("rug_regal_red", "y", x + 3, y) === "", rugs.fitProblem("rug_regal_red", "x", x + 6, y + 5) || "fits");
     // A wall is not built through a laid rug (both tiles of the edge under one rug), though one along its edge is.
     row("a wall is refused across a laid rug, and allowed on the edge outside it", map.canBuildWall(x, y + 1, "n", "wall") === false && map.canBuildWall(x, y, "n", "wall") === true, `inside ${map.canBuildWall(x, y + 1, "n", "wall")}, on the edge ${map.canBuildWall(x, y, "n", "wall")}`);
