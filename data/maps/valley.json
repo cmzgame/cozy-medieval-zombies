@@ -5817,6 +5817,99 @@
    "props": []
   },
   {
+   "name": "Hollow Farm's yard",
+   "rect": [
+    56,
+    238,
+    44,
+    4
+   ],
+   "padding": 0,
+   "buildings": [],
+   "floorRects": [],
+   "fences": [],
+   "props": [
+    {
+     "sprite": "well",
+     "tile": [
+      28,
+      1
+     ],
+     "note": "Hollow Farm's well (29/05)"
+    },
+    {
+     "sprite": "woodpile",
+     "tile": [
+      4,
+      0
+     ]
+    },
+    {
+     "sprite": "woodpile",
+     "tile": [
+      5,
+      0
+     ]
+    },
+    {
+     "sprite": "cart",
+     "tile": [
+      10,
+      0
+     ],
+     "footprint": [
+      2,
+      3
+     ]
+    },
+    {
+     "sprite": "chicken_coop",
+     "tile": [
+      16,
+      0
+     ],
+     "footprint": [
+      1,
+      2
+     ],
+     "note": "Hollow Farm's chicken coop (#333)"
+    },
+    {
+     "sprite": "beehive",
+     "tile": [
+      39,
+      1
+     ],
+     "note": "Hollow Farm's hives (#333)"
+    },
+    {
+     "sprite": "beehive",
+     "tile": [
+      41,
+      1
+     ]
+    },
+    {
+     "sprite": "beehive",
+     "tile": [
+      43,
+      1
+     ]
+    },
+    {
+     "sprite": "trough",
+     "tile": [
+      3,
+      3
+     ],
+     "footprint": [
+      2,
+      1
+     ]
+    }
+   ]
+  },
+  {
    "name": "Hollow Farm's pumpkin field",
    "rect": [
     67,
@@ -12228,84 +12321,6 @@
    "tile": [
     97,
     94
-   ]
-  },
-  {
-   "sprite": "well",
-   "tile": [
-    84,
-    239
-   ],
-   "note": "Hollow Farm's well (29/05)"
-  },
-  {
-   "sprite": "woodpile",
-   "tile": [
-    60,
-    238
-   ]
-  },
-  {
-   "sprite": "woodpile",
-   "tile": [
-    61,
-    238
-   ]
-  },
-  {
-   "sprite": "cart",
-   "tile": [
-    66,
-    238
-   ],
-   "footprint": [
-    2,
-    3
-   ]
-  },
-  {
-   "sprite": "chicken_coop",
-   "tile": [
-    72,
-    238
-   ],
-   "footprint": [
-    1,
-    2
-   ],
-   "note": "Hollow Farm's chicken coop (#333)"
-  },
-  {
-   "sprite": "beehive",
-   "tile": [
-    95,
-    239
-   ],
-   "note": "Hollow Farm's hives (#333)"
-  },
-  {
-   "sprite": "beehive",
-   "tile": [
-    97,
-    239
-   ]
-  },
-  {
-   "sprite": "beehive",
-   "tile": [
-    99,
-    239
-   ]
-  },
-  {
-   "sprite": "trough",
-   "tile": [
-    59,
-    241
-   ],
-   "footprint": [
-    2,
-    1
    ]
   },
   {

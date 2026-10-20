@@ -445,20 +445,21 @@ def build():
         props=[one("chest", 0, 0, loot="granary_hollow"), one("barrel", 1, 0), one("barrel", 5, 0), one("barrel", 5, 1)],
         brackets=[{"side": "n", "at": 3, "facing": "in", "lantern": True}],
     )
-    # The yard: the well, a woodpile, a cart, the barrels by the barn.
-    g.prop("well", (84, 239), note="Hollow Farm's well (29/05)")
-    g.prop("woodpile", (60, 238))
-    g.prop("woodpile", (61, 238))
-    g.prop("cart", (66, 238), footprint=[2, 3])
+    # The yard: the well, a woodpile, a cart, the barrels by the barn, the trough, and (#333) a coop and three hives: one place, so the wiki's where-found tables read them under the farm.
+    yard = g.place("Hollow Farm's yard", [56, 238, 44, 4], padding=0)
+    yard.prop("well", (28, 1), note="Hollow Farm's well (29/05)")
+    yard.prop("woodpile", (4, 0))
+    yard.prop("woodpile", (5, 0))
+    yard.prop("cart", (10, 0), footprint=[2, 3])
     # The coop at the yard's west end, clear of the pumpkin fence's fade, and three hives east of the lane, clear of the potato field's gate (#333).
-    g.prop("chicken_coop", (72, 238), footprint=[1, 2], note="Hollow Farm's chicken coop (#333)")
-    g.prop("beehive", (95, 239), note="Hollow Farm's hives (#333)")
-    g.prop("beehive", (97, 239))
-    g.prop("beehive", (99, 239))
+    yard.prop("chicken_coop", (16, 0), footprint=[1, 2], note="Hollow Farm's chicken coop (#333)")
+    yard.prop("beehive", (39, 1), note="Hollow Farm's hives (#333)")
+    yard.prop("beehive", (41, 1))
+    yard.prop("beehive", (43, 1))
     # The farm pond below the orchard (29/02): a dirt bank and still water, where the beasts drank; the trough where the lane meets it.
     g.floor_rect([57, 243, 8, 6], "floor_dirt", kind="bank")
     g.floor_rect([58, 244, 6, 4], "floor_water", kind="water", group="pond", note="the farm pond (29/05)")
-    g.prop("trough", (59, 241), footprint=[2, 1])
+    yard.prop("trough", (3, 3), footprint=[2, 1])
     # The pumpkin field: the biggest on the map, pumpkins at every stage, a scarecrow in the middle, inside a fence with a gate on the yard.
     pump = g.place("Hollow Farm's pumpkin field", [67, 241, 20, 14])
     pump.crops([1, 1, 18, 12], ["pumpkin"], stages=(0, 1, 2, 2), seed=2, skip={(9, 6)})
