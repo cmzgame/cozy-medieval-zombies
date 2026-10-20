@@ -21,53 +21,43 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
-## Status (2026-10-19: the skills scope and the Valley 1.0 list)
+## Status (2026-10-20: the playtest batch shipped; art round 3 in, its wiring scoped)
 
-**The Valley 1.0 scope is `docs/39-the-valley.md`** (#271): the one complete list of everything in the valley, each entry built, to change, to build, or open with its issue. Michael's #1 priority (`docs/02` 2026-10-18) is to finish it. The places the sources disagree, which need his word, are listed on #271.
+**Where to pick up: art round 3's wiring.** The design agent delivered three zips (fences and everyday icons, beehive and coop, woods with rugs and paintings). The art is imported by #330: 239 PNGs, audited against the READMEs, nothing wired yet. If #330 is still open, merge it first once its review approves. Each wiring step is its own scoped issue, each with its open questions for Michael at the bottom:
+- **#331 the everyday items:** world pictures, held angles, icons, portraits; the torch's `flame_px` and lit icon. Asks: the long thin icons, convention or large; the rope belt's colour.
+- **#332 the drawn fence and its swinging gate.** Asks: whether house doors swing too; whether fences are buildable now.
+- **#333 the beehive and the chicken coop** in the valley; the coop is a placeholder container. Asks: where they go; what the coop holds.
+- **#334 the woods.** Build in five woods, and mix a wall's wood with its doors' and shutters' finish (white paint first). The swap is done at load from `wood_tones.json`. Michael's idea: the regional woods and the paints are an incentive to leave the valley. Labelled needs-michael.
+- **#326 paintings and #327 rugs, as items:** Place from the bag, Pick up again. The art has landed (comments on both).
 
-**The skills are scoped** (#275, pinned): fourteen skills of ten levels each.
-- **Combat:** Melee, Magic, Ranged, Faith.
-- **Gathering:** Woodcutting, Mining, Fishing, Herbalism, Beastlore (#289).
-- **Production:** Farming, Cooking, Blacksmithing, Crafting, Potions.
-- **The pattern:** better at the thing along several vectors; unlocks, some from outside the valley; small utilities; feeding the other skills.
+Suggested order: #331 (the most visible), then #333 (small), then #332, then #326 and #327, then #334 once Michael has shaped it.
 
-Spun off: gems #281, trinkets #282, silver #283, the belt #285, unsafe water #279, respawns #288.
+**Shipped today (2026-10-19 to 20), all merged, the wiki synced:**
+- floating numbers (#299);
+- the navigation row (#298, #312);
+- parchment talk (#297);
+- tainted water and crop Inspect (#302);
+- Object Highlight (#303);
+- durable fullscreen (#311);
+- the item hover cards (#313);
+- bleeding as a debuff (#315, #320);
+- small text in a clear sans (#322, #323);
+- every digit clear (#325);
+- the sounds spec (#314, `docs/40`, its six questions open);
+- the art brief (#316).
 
-**Ruled 2026-10-19** (`docs/02`):
-- skills may touch combat, open for discussion; death takes skills (#276);
-- health stays a hundred for now (#277);
-- natural water is unsafe until purified, a gamble that always quenches (#278, #280);
-- mana; drain heals never replace food; a region gates its spells (#278);
-- the belt's rules and a book costing the shield; capstone drops as policy (#284, #286);
-- the cure is mid to late game (#287);
-- a production skill's best is never the best of its kind, and repair is a stop-gap (#290).
+**Ruled 2026-10-20** (`docs/02`):
+- a change to an item checks its hover card (#319);
+- every digit is in the clear font;
+- paintings and rugs are items, placed from the bag (#329, which overturned the same day's Decor-in-the-build-palette ruling).
 
-**Merged in the game:** the extra starting items picked from a search (#274); the bag's X with a lit torch (#258); food heals in full (#259). **On the wiki:** the Dead ends page, Day-one food, the Changed-since-verified badge, and All pages.
+**Waiting on Michael:**
+- the sounds spec's six questions (#310);
+- the open questions in #331 to #334;
+- the hardening of the small-text scan (#324, chore, no rush);
+- the earlier list (#271's items, #275's parked crop tools).
 
-**Open, held:** #255 ("region, never biome": the zone word is Michael's), #256 (dead code).
-
-**Found and not yet filed:**
-- a guest's `quick` and Take All can take a living character's gear (`interact.containerAt`);
-- `containerOf` trusts a guest's reach;
-- the checks run in one tab disturb each other;
-- `check("ground")` row 6 fails on main;
-- filed already: #250.
-
-**For Michael when he plays:** whether the dead that know you are inside press a fence with no time limit (#171); the movement blend's added delay against "snappy"; the map panel covering the HUD bars at small windows; a non-empty bag left in a chest by Take All.
-
-**Questions waiting on Michael:**
-- the sources' disagreements on #271;
-- villagers all immune (#103);
-- in-world cutscenes (#106);
-- rot's reach (#264);
-- the final boss (#123);
-- armour on a hundred health (#133);
-- bad-luck protection (#268);
-- "every thing a cell" (#260);
-- the companion (#289);
-- the staff-and-book proposal (#275).
-
-**Next:** settle #271's disagreements with Michael, then build from `docs/39` in an order he picks.
+**The design agent's worktree** (`C:/Users/micha/Dev/cozy-medieval-zombies-art`, branch `art-docs`) was fast-forwarded to main on 2026-10-20. Its deliveries sit under `deliveries/`, untracked; the imported copies are the repo's.
 
 ## Open work, by milestone
 
