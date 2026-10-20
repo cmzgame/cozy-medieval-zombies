@@ -79,6 +79,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
+- The best item a production skill makes is never the best of its kind in the game: the best weapons, armour, and bags come from bosses; repairing is a stop-gap that makes a thing last longer, never a reason to stop making new ones (2026-10-19, A production skill's best is never the best of its kind; repair is a stop-gap)
 - The cure for the infection is a mid- to late-game option, gated by skill, never something made on the first day (2026-10-19, The cure for the infection is mid to late game, gated by skill)
 - A boss may drop a rare, very powerful capstone item worth farming it for: its power and especially its mechanical novelty: a policy on the condition that such items can be found (2026-10-19, Rare capstone drops worth farming a boss for, a policy on its condition)
 - A book in the off hand costs the shield; within the staff-and-book proposal (#275), the Holy Symbol is Faith's permission, cast with the symbol raised, and utility books compete with spell books for room (2026-10-19, The belt restated and added to; a book in the off hand costs the shield; the Holy Symbol is Faith's staff, within the proposal)
@@ -107,7 +108,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - Bleed stacks to five from bites, by Michael's two bounds; a bandage closes it (2026-10-12, Bleed stacks, with Michael's two bounds)
 - The infection is a marker: 20 percent a landed bite, 1.5 days, four stages, no effect yet (2026-10-12, The virus comes back as a marker); a drink of unsafe water is a second way in, a small chance (2026-10-19, Unsafe water: a sickness that may come and passes; the skin sips only clean water; crops take any water)
 - Combat difficulty and infection are one dial, set together (2026-10-12, Combat difficulty and infection are one dial)
-- Weapon durability is one-way, by landed hits, evaporates, no repair (2026-10-12, Weapon durability: permanent, hits only, evaporates)
+- Weapon durability is one-way, by landed hits, evaporates (2026-10-12, Weapon durability: permanent, hits only, evaporates; overturned in part (2026-10-19, A production skill's best is never the best of its kind; repair is a stop-gap): repair at the anvil as a stop-gap)
 - Hold the spin-click turn cap, leave bleed as it is, leave the infection as the marker (2026-10-12, Combat changes paused, deliberately)
 - The dead may hunt villagers, a setting; the player always first (2026-10-12, The dead may hunt villagers)
 - The fireball needs a staff and the Book of Fire both held: the bow's mechanic, flat, big, and slow (2026-10-14, The fireball: a staff and a spellbook cast it; 2026-10-14, The fireball bigger and slower)
@@ -239,6 +240,20 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-19 — A production skill's best is never the best of its kind; repair is a stop-gap (Michael)
+
+On Primary's Blacksmithing and Crafting drafts (#275):
+
+> "On that capstone I want to make a general note: the best item you can make from a PRODUCTION skill should not be the best item of that type in the game. Those should come from boss drop tables. So the special weapons we discussed, the best available armor, etc. Bigger bags than the crafting capstone are one of those things."
+
+On repairing at the anvil (Blacksmithing 4 in Primary's draft):
+
+> "As long as this doesn't completely negate the need to ever make another one. Otherwise the profession dies pretty fast. It should be a stop-gap like in Zomboid where it makes the item last longer (and gives xp) but isn't a long term solution."
+
+- **A production skill's best is never the best of its kind:** the best weapons, the best armour, and bags bigger than Crafting's capstone come from bosses' drop tables (beside the capstone-drop policy, 2026-10-19, Rare capstone drops worth farming a boss for, a policy on its condition).
+- **Repairing is a stop-gap,** as in Zomboid: it makes an item last longer and gives experience, but never removes the need to make a new one. It overturns in part 2026-10-12's "no repair, no mending" (Weapon durability: permanent, hits only, evaporates; struck where it sits); one-way wear by landed hits, and evaporating at zero, stand. *Primary's readings:* each repair gives back less, so an item wears out in the end; repair is for made weapons and tools, while "everything is spent, nothing is repaired" for boards, doors, and shutters (2026-10-10, Openings; 2026-10-17, the siege) stands.
+- *Primary's note:* how strong the best armour gets is still open (2026-10-18, Health is a thousand; drops by chance; armour modest; weapons differ by situation).
 
 ### 2026-10-19 — The cure for the infection is mid to late game, gated by skill (Michael)
 
@@ -1094,7 +1109,7 @@ The right button is the menu, so an off-hand swing there never worked; **ruled: 
 
 ### 2026-10-12 — Weapon durability: permanent, hits only, evaporates (Michael); and a big pass to come
 
-Michael, thinking about the dual-wield balance: **durability is wanted, and as a one-way thing: a bar that only goes down, wears only on a landed hit (never on a miss: a fairness rule), and when empty the item evaporates; no repair, no mending, no gradual dulling.** It waits for a crafting and smith loop to feed it (the weapons are consumables, so the smith and crafting stations are their supply). Claude's earlier "repair at a station" idea is withdrawn. **Large inventories and the bookkeeping they bring are wanted** ("it's how I would want to play"); Claude is to say when performance becomes a concern (the sprite atlas is the first thing to watch). A crowd breaking weapons is not a worry yet and would be a sign to ease something. He has a **big "what should we add" pass planned**: smith, cooking and crafting stations, a wheelbarrow (an immovable crate), seeds for each crop, many tool models, new interfaces, and a rigorous way to handle item interactions: drafted as a to-do list with questions in `22-the-big-pass.md`.
+Michael, thinking about the dual-wield balance: **durability is wanted, and as a one-way thing: a bar that only goes down, wears only on a landed hit (never on a miss: a fairness rule), and when empty the item evaporates; ~~no repair, no mending,~~ no gradual dulling.** (superseded 2026-10-19, A production skill's best is never the best of its kind; repair is a stop-gap: repair at the anvil is a stop-gap, never a reason to stop making new ones) It waits for a crafting and smith loop to feed it (the weapons are consumables, so the smith and crafting stations are their supply). ~~Claude's earlier "repair at a station" idea is withdrawn.~~ (superseded 2026-10-19, A production skill's best is never the best of its kind; repair is a stop-gap: repair at the anvil, as a stop-gap) **Large inventories and the bookkeeping they bring are wanted** ("it's how I would want to play"); Claude is to say when performance becomes a concern (the sprite atlas is the first thing to watch). A crowd breaking weapons is not a worry yet and would be a sign to ease something. He has a **big "what should we add" pass planned**: smith, cooking and crafting stations, a wheelbarrow (an immovable crate), seeds for each crop, many tool models, new interfaces, and a rigorous way to handle item interactions: drafted as a to-do list with questions in `22-the-big-pass.md`.
 
 ### 2026-10-12 — Bleed stacks, with Michael's two bounds (question 29b)
 
