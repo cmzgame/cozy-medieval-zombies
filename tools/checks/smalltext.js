@@ -72,6 +72,19 @@ export async function run(game) {
       row(`the ${name} screen: every small piece is clear and every large one is not`, list.length > 10 && bad.length === 0, `${list.length} pieces; wrong: ${bad.slice(0, 5).map((t) => `${t.cls} "${t.text}" ${t.px}px ${t.family.slice(0, 20)}`).join(" | ") || "none"}`);
       G.screens.hide();
     }
+    // The text boxes the screens make (#world-name and the key and code boxes had no rule: the browser's Arial at 13.33 px) follow the setting: the clear sans, or monospace for a code.
+    const boxes = [];
+    for (const name of ["newworld", "join", "creatorkey", "ownerkey", "addowned"]) {
+      try { G.screens.show(name, name === "newworld" ? { name: "A world" } : {}); } catch { continue; }
+      await wait(100);
+      for (const f of document.querySelectorAll("#screens input[type=text], #screens input[type=password]")) {
+        const cs = getComputedStyle(f);
+        boxes.push({ screen: name, id: f.id || f.className, family: cs.fontFamily, px: parseFloat(cs.fontSize) });
+      }
+      G.screens.hide();
+    }
+    const stray = boxes.filter((b) => !isMono(b.family) && !isSmallFace(b.family));
+    row("every text box on the screens is in the clear sans (or monospace for a code), the World name box included", boxes.some((b) => b.id === "world-name") && stray.length === 0, `${boxes.length} boxes; stray: ${stray.map((b) => `${b.screen}/${b.id} ${b.family.slice(0, 16)} ${b.px}px`).join(" | ") || "none"}`);
     // The setting flips it.
     G.settings.set("smallText", "pixel");
     await wait(100);

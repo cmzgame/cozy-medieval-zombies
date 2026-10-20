@@ -1424,6 +1424,13 @@ html, body {
   color: #a098ac;
 }
 
+/* The text boxes the screens make that have no rule of their own: the browser's default is Arial at 13.33 px, so they follow the Small text setting like the rest (#321). */
+#world-name, #creator-key, #owned-code, #owned-creator, #owned-key, #owner-key {
+  font: inherit;
+  font-size: 14px;
+  font-family: var(--font-small);
+}
+
 .you-row input {
   flex: 1 1 auto;
   min-width: 0;
