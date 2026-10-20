@@ -512,11 +512,12 @@ html, body {
   gap: 6px;
   pointer-events: none;
 }
-.debuff { display: flex; flex-direction: column; align-items: center; width: 40px; pointer-events: auto; }
-.db-box { position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: rgba(20, 8, 12, 0.82); border: 2px solid #8a2a34; border-radius: 6px; }
-.db-stacks { position: absolute; right: -4px; top: -6px; min-width: 14px; padding: 0 3px; box-sizing: border-box; font-size: 11px; font-weight: bold; line-height: 14px; text-align: center; color: #fff; background: #8a2a34; border-radius: 7px; border: 1px solid #1a0a0e; }
+.debuff { display: flex; flex-direction: column; align-items: center; width: 46px; pointer-events: auto; }
+/* The frame and the stack badge are one red (--db-red), the frame's border a smidge bolder (3px) so the badge on its corner runs into it (Michael, 2026-10-20). */
+.db-box { --db-red: #8a2a34; position: relative; width: 40px; height: 40px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: rgba(20, 8, 12, 0.82); border: 3px solid var(--db-red); border-radius: 7px; }
+.db-stacks { position: absolute; right: -9px; top: -9px; min-width: 22px; height: 22px; padding: 0 5px; box-sizing: border-box; font-size: 14px; font-weight: bold; line-height: 22px; text-align: center; color: #fff; background: var(--db-red); border-radius: 11px; }
 .db-stacks[hidden] { display: none; }
-.db-time { margin-top: 2px; font-size: 12px; font-weight: bold; color: #f4ecd9; text-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 -1px 0 #000; }
+.db-time { margin-top: 3px; font-size: 15px; font-weight: bold; color: #f4ecd9; text-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 -1px 0 #000; }
 
 /* The hover card (#262; ui/hover-card.js): a small, mostly black, rounded box with a thin light border, over every panel and the belt, never taking the pointer. */
 #hover-card {
@@ -732,7 +733,7 @@ html, body {
 #inventory .inv-body {
   position: absolute;
   right: 12px;
-  top: 64px; /* under the row of debuffs (#308) */
+  top: 76px; /* under the row of debuffs (#308; the row grew with its bigger numbers, 2026-10-20) */
   max-width: calc(100% - 24px);
 }
 

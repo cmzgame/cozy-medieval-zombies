@@ -51,11 +51,12 @@ export async function run(game) {
       me.bleed = { stacks: 3, left: 600 };
       now = show();
       row("a wound of 600 seconds reads 10m, with three stacks", now.length === 1 && now[0].time === "10m" && now[0].stacks === "3", JSON.stringify(now));
+      const us = (await import("/src/view.js")).view.uiScale; // the row is 6 UI px from the top and 12 from the right at any interface size
       const ic = document.querySelector("#debuffs .debuff").getBoundingClientRect();
       panel.setBagOpen(true);
       panel.renderInventoryPanel(me, bag, null, G.inventory.beltOf(me));
       const bagR = document.querySelector("#inventory .inv-body").getBoundingClientRect();
-      row("the row is at the top right, and the bag opens under it", ic.right > innerWidth - 40 && ic.top < 12 && bagR.top >= ic.bottom - 1, `icon ${Math.round(ic.left)},${Math.round(ic.top)} to ${Math.round(ic.right)},${Math.round(ic.bottom)}; bag top ${Math.round(bagR.top)}; window ${innerWidth}`);
+      row("the row is at the top right, and the bag opens under it", ic.right > innerWidth - 20 * us && ic.top <= 6 * us + 1 && bagR.top >= ic.bottom - 1, `icon ${Math.round(ic.left)},${Math.round(ic.top)} to ${Math.round(ic.right)},${Math.round(ic.bottom)}; bag top ${Math.round(bagR.top)}; window ${innerWidth}`);
       const zOf = (id) => Number(getComputedStyle(document.getElementById(id)).zIndex);
       row("the row is drawn over the map panel and under the menu", zOf("debuffs") > zOf("map-panel") && zOf("debuffs") < 9, `row ${zOf("debuffs")}, map ${zOf("map-panel")}`);
       const el = document.querySelector("#debuffs .debuff");
