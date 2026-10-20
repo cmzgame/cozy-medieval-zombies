@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- A container does not sway, so the chicken coop is not interactable; its table, `coop`, is a placeholder, and the beehive sways with no action until there is honey (2026-10-20, The beehive and the chicken coop; the readings are the builder's, Michael's to overrule)
 - One buff dish is active at a time, for now (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk)
 - Pemmican is the only food that stacks; every other food takes a cell each, so cooking is worth more per bag slot; hearty cooked dishes carry buffs, a food weighed by how long it keeps, how much it heals, how full it makes you, and its buff (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk)
 - A healing potion is not "minor" unless a major one becomes a separate item (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk)
@@ -253,6 +254,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-20 — The beehive and the chicken coop (#333; Michael's "Coop as placeholder container is fine!", the builder's readings Michael's to overrule)
+
+The art of art round 3 is wired (the places and the hashes are in the pull request, #338). **The beehive** is `interactable` with no `clickAnim`, so it sways when clicked as Michael asked; the bee frames stay spare (a `clickAnim` would stop the sway) and it has no action yet, there being no honey item. **The chicken coop** is a container with a placeholder table of its own (`coop`: rags, sticks, a little grain, mostly nothing; no egg item), and **it is not `interactable`: a container does not sway** (the chest does not either; the outline is in the art), though the delivery's JSON said it was.
 
 ### 2026-10-20 — Faith: Smite is a share of the hit; prayer grows by level; Consecrate Ground gives light (Michael)
 

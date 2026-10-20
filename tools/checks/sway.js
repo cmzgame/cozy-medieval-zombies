@@ -85,6 +85,37 @@ export async function run(game) {
     G.teleport(px0, py0);
     G.loop.setPaused(wasPaused);
   }
+  // The beehive (#333): a drawn, solid skep that is interactable with no clickAnim, so a click sways it (it cannot be walked through, so only the click is tried).
+  try {
+    G.loop.setPaused(true);
+    const hive = [...G.map.allProps()].find((q) => q.sprite === "beehive");
+    if (!hive) rows.push({ check: "the beehive sways when clicked", result: "FAIL", detail: "no beehive on the map" });
+    else {
+      const [hx, hy] = hive.tile;
+      G.teleport(hx, hy + 2);
+      G.map.ensureAround(hx, hy, 3);
+      G.loop.advance(1 / 60);
+      hive.pokedAt = undefined;
+      const def = G.assets.getDef("beehive");
+      row("the beehive is interactable, has no clickAnim, and is a drawn sprite (not the dev box)", !!hive.interactable && !def.clickAnim && !def.placeholder, `interactable ${hive.interactable}, clickAnim ${def.clickAnim ? "yes" : "no"}, ${def.placeholder ? "dev box" : "drawn"}`);
+      const s = G.iso.toScreen(hx, hy);
+      let up = null;
+      for (const u of [0, 4, 8, 12, 16, 20, 26]) if (G.interact.interactableAt(s.x, s.y - u) === hive) { up = u; break; }
+      row("a click finds the hive by its pixels", up !== null, `${up} px above its tile`);
+      if (up !== null) {
+        G.interact.pokeAt(s.x, s.y - up, G.player);
+        let lean = 0;
+        for (let i = 0; i < 12; i++) { G.loop.advance(1 / 60); lean = Math.max(lean, Math.abs(swayOf(hive, 30))); }
+        row("the click sways the hive, and it settles", hive.pokedAt !== undefined && lean > 0, `max lean ${lean} px, pokedAt ${hive.pokedAt == null ? "unset" : Math.round(hive.pokedAt)}`);
+        for (let i = 0; i < 40; i++) G.loop.advance(1 / 60);
+        row("the sway is over after its round", swayOf(hive, 30) === 0, `lean ${swayOf(hive, 30)}`);
+      }
+      hive.pokedAt = undefined;
+    }
+  } finally {
+    G.teleport(px0, py0);
+    G.loop.setPaused(wasPaused);
+  }
   const failed = rows.filter((r) => r.result === "FAIL").length;
   console.table(rows);
   return { rows, pass: rows.length - failed, fail: failed };
