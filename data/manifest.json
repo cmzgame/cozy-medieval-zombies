@@ -1,5 +1,5 @@
 {
-  "version": "34040ab3",
+  "version": "98d6d731",
   "files": {
     "data/build.json": {"size": 429, "stamp": "12352f35"},
     "data/combat.json": {"size": 4109, "stamp": "4efa7ba3"},
@@ -627,7 +627,7 @@
     "data/layers/waist/index.json": {"size": 19, "stamp": "e924073b"},
     "data/maps/square.json": {"size": 12943, "stamp": "4e98b5aa"},
     "data/maps/staging.json": {"size": 8764, "stamp": "c7a30606"},
-    "data/maps/valley.json": {"size": 157785, "stamp": "1a2d2570"},
+    "data/maps/valley.json": {"size": 157785, "stamp": "ed5fb50d"},
     "data/site/staging_day_wide.webp": {"size": 103152, "stamp": "d59a0e45"},
     "data/site/staging_dusk_wide.webp": {"size": 60390, "stamp": "234b2082"},
     "data/sprites/altar.json": {"size": 197, "stamp": "1f7da4c7"},

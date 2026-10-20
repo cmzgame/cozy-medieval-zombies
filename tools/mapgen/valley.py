@@ -450,11 +450,11 @@ def build():
     g.prop("woodpile", (60, 238))
     g.prop("woodpile", (61, 238))
     g.prop("cart", (66, 238), footprint=[2, 3])
-    # The coop by the farmhouse's yard and three hives east of the lane, by the potato fence (#333).
-    g.prop("chicken_coop", (72, 239), footprint=[1, 2], note="Hollow Farm's chicken coop (#333)")
-    g.prop("beehive", (94, 239), note="Hollow Farm's hives (#333)")
-    g.prop("beehive", (96, 239))
-    g.prop("beehive", (98, 239))
+    # The coop at the yard's west end, clear of the pumpkin fence's fade, and three hives east of the lane, clear of the potato field's gate (#333).
+    g.prop("chicken_coop", (72, 238), footprint=[1, 2], note="Hollow Farm's chicken coop (#333)")
+    g.prop("beehive", (95, 239), note="Hollow Farm's hives (#333)")
+    g.prop("beehive", (97, 239))
+    g.prop("beehive", (99, 239))
     # The farm pond below the orchard (29/02): a dirt bank and still water, where the beasts drank; the trough where the lane meets it.
     g.floor_rect([57, 243, 8, 6], "floor_dirt", kind="bank")
     g.floor_rect([58, 244, 6, 4], "floor_water", kind="water", group="pond", note="the farm pond (29/05)")

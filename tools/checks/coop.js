@@ -28,10 +28,10 @@ export async function run(game) {
     row("the coop is a drawn container with a loot table of its own, and the hive is drawn, not a dev box", !def.placeholder && !!def.container && def.container.loot === "coop" && !G.assets.getDef("beehive").placeholder, `coop container ${JSON.stringify(def.container)}, hive ${G.assets.getDef("beehive").placeholder ? "dev box" : "drawn"}`);
     const home = coops.find((c) => c.tile[0] >= 98 && c.tile[0] <= 114 && c.tile[1] >= 212 && c.tile[1] <= 224);
     const farm = coops.find((c) => c.tile[0] >= 56 && c.tile[0] <= 100 && c.tile[1] >= 228 && c.tile[1] <= 241);
-    row("the valley has a coop at the home and one at Hollow Farm, and at least five hives (two at the home, three at the farm, three at the manor)", !!home && !!farm && hives.length >= 8, `${coops.length} coops (home ${home ? home.tile : "none"}, farm ${farm ? farm.tile : "none"}), ${hives.length} hives`);
+    row("the valley has a coop at the home and one at Hollow Farm, and at least eight hives (two at the home, three at the farm, three at the manor)", !!home && !!farm && hives.length >= 8, `${coops.length} coops (home ${home ? home.tile : "none"}, farm ${farm ? farm.tile : "none"}), ${hives.length} hives`);
     coop = home || coops[0];
     if (!coop) throw new Error("no coop on the map");
-    row("the coop is two tiles along y, and its sheet is the drawing (a frame, not the box)", coop.tiles.length === 2 && coop.tiles[0][0] === coop.tiles[1][0], `${JSON.stringify(coop.tiles)}`);
+    row("the coop is two tiles along y", coop.tiles.length === 2 && coop.tiles[0][0] === coop.tiles[1][0], `${JSON.stringify(coop.tiles)}`);
     if (role === "guest") {
       // A guest reads the replica: the coop's menu, built from what it has, offers the same Search, named by an address the host can rebuild.
       G.teleport(coop.tile[0], coop.tile[1] - 2);

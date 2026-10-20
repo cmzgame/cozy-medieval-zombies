@@ -12267,7 +12267,7 @@
    "sprite": "chicken_coop",
    "tile": [
     72,
-    239
+    238
    ],
    "footprint": [
     1,
@@ -12278,7 +12278,7 @@
   {
    "sprite": "beehive",
    "tile": [
-    94,
+    95,
     239
    ],
    "note": "Hollow Farm's hives (#333)"
@@ -12286,14 +12286,14 @@
   {
    "sprite": "beehive",
    "tile": [
-    96,
+    97,
     239
    ]
   },
   {
    "sprite": "beehive",
    "tile": [
-    98,
+    99,
     239
    ]
   },

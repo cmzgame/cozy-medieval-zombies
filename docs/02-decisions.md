@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- A container does not sway, so the chicken coop is not interactable; its table, `coop`, is a placeholder, and the beehive sways with no action until there is honey (2026-10-20, The beehive and the chicken coop; the readings are the builder's, Michael's to overrule)
 - One buff dish is active at a time, for now (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk)
 - Pemmican is the only food that stacks; every other food takes a cell each, so cooking is worth more per bag slot; hearty cooked dishes carry buffs, a food weighed by how long it keeps, how much it heals, how full it makes you, and its buff (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk)
 - A healing potion is not "minor" unless a major one becomes a separate item (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk)
@@ -254,9 +255,9 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
-### 2026-10-20 — The beehive and the chicken coop in the valley (#333; Michael's "Coop as placeholder container is fine!", the builder's readings Michael's to overrule)
+### 2026-10-20 — The beehive and the chicken coop (#333; Michael's "Coop as placeholder container is fine!", the builder's readings Michael's to overrule)
 
-The art of art round 3 is wired. **The beehive** is the drawn skep: `interactable` and no `clickAnim`, so it sways when clicked as Michael asked (the bee frames stay spare; a `clickAnim` would stop the sway), and no action yet (no honey item). **The chicken coop** is the bed's facings shape and a **container** with a placeholder table of its own, `coop` in `data/loot.json` (a 3 by 2 grid: rags, sticks, a little grain, mostly nothing: there is no egg item); **it is not `interactable`**, because a container does not sway (the delivery's JSON said so; the chest does not either), and the outline is in the art. **Placed by `tools/mapgen/valley.py`** (the defaults, Michael to say if elsewhere): a coop and two hives in your cottage's yard (the hives in the row under the garden), a coop in Hollow Farm's yard and three hives east of the lane; the manor's three hives were already there as dev boxes and are the drawn skep now. The valley's determinism hash changes with the map: `b6a795eb` (was `1945262f`), `--players=2` `ffe4c472` (was `637c47ba`), `--bite` `f8f37787`.
+The art of art round 3 is wired (the places and the hashes are in the pull request, #338). **The beehive** is `interactable` with no `clickAnim`, so it sways when clicked as Michael asked; the bee frames stay spare (a `clickAnim` would stop the sway) and it has no action yet, there being no honey item. **The chicken coop** is a container with a placeholder table of its own (`coop`: rags, sticks, a little grain, mostly nothing; no egg item), and **it is not `interactable`: a container does not sway** (the chest does not either; the outline is in the art), though the delivery's JSON said it was.
 
 ### 2026-10-20 — Faith: Smite is a share of the hit; prayer grows by level; Consecrate Ground gives light (Michael)
 
