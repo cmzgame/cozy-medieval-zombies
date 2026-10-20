@@ -2263,6 +2263,12 @@ html:not(.kit-ready) #site-page .screen { border: 3px solid #6a6258; }
   padding: 1px 0;
 }
 
+.sk-name {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .sk-level {
   opacity: 0.7;
 }
