@@ -147,7 +147,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 ### The interface and the screens
 
 - Text at or under 15 UI px is set in the system's clear sans-serif, the rest in the pixel font; a Display setting, Small text, flips it (2026-10-20, Very small text in a clear sans-serif; the readings are the builder's, Michael's to overrule)
-- Paintings and rugs are items: carried in the bag, placed with a right-click Place and an outline where they will go, picked up again with a right-click, found in the world and brought home (2026-10-20, Paintings and rugs are items: placed from the bag, picked up again (Michael); the bag sizes, where they are found now, and the art's outline were Primary's readings, agreed by Michael the same day)
+- Paintings and rugs are items: carried in the bag, placed with a right-click Place and an outline where they will go, picked up again with a right-click, found in the world and brought home (2026-10-20, Paintings and rugs are items: placed from the bag, picked up again (Michael); the bag sizes, a rug that won't come up from under furniture, and the art's outline were Primary's readings, agreed by Michael the same day; where they come from now and who can pick one up are still Primary's readings)
 - Every digit is in the clear sans at any size, letters keeping their face; Small text's Pixel restores the old look (2026-10-20, Every digit in the clear font, at any size (Michael); Pixel's digits are Primary's reading)
 - Every item in a grid or slot has a hover card, WoW's tooltip: a small dark rounded box with the full name, the kind, and the direct uses read from the data, Use in gold, following the pointer (2026-10-19, The item hover card; the law is 2026-10-18)
 - A Drink from unsafe water says "(tainted)", every source until purifying exists; a crop has Inspect, a line of what it is and how it stands with its tile marked, this client's own; the Harvest labels name the crop; Object Highlight, a dev setting on by default, outlines the game object under the pointer (2026-10-19, Unsafe water says so; a crop can be inspected; Object Highlight, a dev setting (Michael); the trough and the font tainted, Inspect this client's own, and the playtest's reading are Primary's, Michael's to overrule; what Object Highlight outlines and leaves out is the builder's reading, 2026-10-19, Object Highlight (#301))
@@ -259,11 +259,13 @@ Michael (2026-10-20), minutes after ruling Decor into the build palette: "Actual
 
 - **A painting or a rug is an item.** It is carried in the bag, and its right-click menu offers **Place**: a ghost outlined where it would go (a painting on a wall's face, in its slot; a rug on the floor, `R` turning it), green where it fits and red where not, and a click puts it there. A placed one offers **Pick up** on its own right-click, and it goes back into the bag. You can find them in the world and bring them home. This overturns the same day's Decor-in-the-build-palette ruling, struck below.
 - **They need inventory art,** as every item does ("Item art comes as a pair"): a bag icon each, beside the placed picture, which is the item's world picture.
-- *Primary's readings, agreed by Michael ("Agreed on all 3!"):*
+- *Primary's three readings, agreed by Michael ("Agreed on all 3!"):*
   - **Bag sizes:** a small painting 2x2, a tall one 2x3, a landscape 3x2, a rug rolled up 1x4.
+  - **A rug under furniture doesn't come up** ("Move the table off it first"), so nothing is left standing on nothing (#327).
+  - **Outline:** Object Highlight outlines a placed one, since it now has an action; the art keeps no baked dark outline, the way trees are excused.
+- *Still Primary's readings, Michael's to overrule:*
   - **Where they come from now:** the Developer Chest, and the world's Extra starting items. Loot tables (the manor, the castle) and Crafting (docs/39, Crafting 5) come later.
   - **Who can pick up:** anyone can pick up a placed one, as anyone can take a torch from a bracket.
-  - **Outline:** Object Highlight outlines a placed one, since it now has an action; the art keeps no baked dark outline, the way trees are excused (Michael to rule).
 
 ### 2026-10-20 — Decor is offered only with Free building on, until Crafting gives it costs (Michael)
 
