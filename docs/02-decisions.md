@@ -83,6 +83,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
+- Smite deals 150%, 200%, then 250% of the hit that triggered it as holy spell damage (Faith 2, 5, 9), so it scales with Holy Might; praying at an altar restores mana and stamina from Faith 1, then also removes bleeds, then also restores health, spaced out by level; Consecrate Ground lights its whole area (2026-10-20, Faith: Smite is a share of the hit; prayer grows by level; Consecrate Ground gives light (Michael); the levels of prayer's later steps are Primary's reading)
 - The valley holds no cure for the infection: it is found beyond the valley (2026-10-19, The valley has no cure; the wizard lives; the witch teaches Potions; gates stop a harvest; every loot table provisional; two old limits struck)
 - The best item a production skill makes is never the best of its kind in the game: the best weapons, armour, and bags come from bosses; repairing is a stop-gap that makes a thing last longer, never a reason to stop making new ones (2026-10-19, A production skill's best is never the best of its kind; repair is a stop-gap)
 - The cure for the infection is a mid- to late-game option, gated by skill, never something made on the first day (2026-10-19, The cure for the infection is mid to late game, gated by skill)
@@ -252,6 +253,22 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-20 — Faith: Smite is a share of the hit; prayer grows by level; Consecrate Ground gives light (Michael)
+
+Michael, reading the specs late on 2026-10-20 (first recorded on #275):
+
+> "For the faith skill, if the spec still has does L extra damage, I would change it to does 150% of the hit that proc'd it's damage as holy spell damage (which will mater someday). Then 200%, then 250%? For the tiers? If we are going to scale bosses to the thousands I think this is still conservative. 1-10 extra damage is nothing. This also makes it scale with holy might which is quite a good thing."
+
+> "Also, praying at altars (faith level 1) it also restores stamina and health to full and removes bleeds. Or maybe start with mana and energy, then add bleeds, then add health? We can space these out OSRS style."
+
+> "For consecrate ground, it should emit some light over the whole area, because it's cool."
+
+Then, the next day: "Go ahead and record those 3 faith rulings in the right place".
+
+- **Smite is a share of the hit, not a flat bonus.** A smite deals 150% of the damage of the hit that triggered it, as holy spell damage, at Faith 2; 200% at Faith 5; 250% at Faith 9. Its chances are unchanged (1, 2, then 3 in 10). It scales with whatever raises the hit, Holy Might among them. "Holy spell damage" is a damage type that will matter later (resistances, the dead that fear it). docs/39's "the level's worth" is replaced.
+- **Praying at an altar grows by level, OSRS style:** from Faith 1 it restores mana and stamina. Later it also removes bleeds, and later still it restores health. *Primary's reading of the levels,* Michael's to change: bleeds at Faith 4 (beside more mana), health at Faith 6 (beside more health). His first thought, everything at Faith 1, is set aside for his second.
+- **Consecrate Ground lights its whole area** while it lasts, as well as its small damage and utility.
 
 ### 2026-10-20 — Paintings and rugs are items: placed from the bag, picked up again (Michael)
 
