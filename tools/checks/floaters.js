@@ -113,26 +113,27 @@ export async function run(game) {
       row("a number over a body outside my sight is hidden, never shown through a wall or the dark", hid.length === 1 && hid[0].hidden === true, hid.map((n) => `${n.text} hidden ${n.hidden}`).join(""));
       // The night (#88): a zombie far off in the dark, in my line of sight but unseen, has no number; by day the same one has.
       const sightMod = await import("/src/sight.js");
+      const { tileKey } = await import("/src/visibility.js");
       const hour0 = G.clock.getHour();
       const zAt = [z.gx, z.gy];
       try {
         G.loop.setPaused(true);
         G.clock.setHour(1);
-        G.loop.advance(1 / 60);
-        const dark = [[15, 0], [-15, 0], [0, 15], [0, -15], [12, 12], [-12, -12]].find(([dx, dy]) => { z.gx = meAt[0] + dx; z.gy = meAt[1] + dy; return !sightMod.seen(me, z); });
+        for (let i = 0; i < 5; i++) G.loop.advance(1 / 60); // the light eases to the hour over a few steps
+        const dark = [[15, 0], [-15, 0], [0, 15], [0, -15], [12, 12], [-12, -12]].find(([dx, dy]) => { z.gx = me.gx + dx; z.gy = me.gy + dy; return !sightMod.seen(me, z); });
         const sawAtNight = dark ? sightMod.seen(me, z) : null;
         ui.clear();
         fl.reset();
         fl.damage(z, 2);
-        draw(new Set([`${Math.round(z.gx)},${Math.round(z.gy)}`]));
+        draw(new Set([tileKey(Math.round(z.gx), Math.round(z.gy))]));
         const night = ui.shown();
         row("at night a number over a dead one far off in the dark, in my line of sight but unseen, is hidden", !!dark && sawAtNight === false && night.length === 1 && night[0].hidden === true, dark ? `1 a.m., ${Math.round(Math.hypot(z.gx - me.gx, z.gy - me.gy))} tiles off: seen ${sawAtNight}, hidden ${night.map((n) => n.hidden).join("")}` : "no dark spot found");
         G.clock.setHour(12);
-        G.loop.advance(1 / 60);
+        for (let i = 0; i < 5; i++) G.loop.advance(1 / 60); // the light eases to the hour over a few steps
         ui.clear();
         fl.reset();
         fl.damage(z, 2);
-        draw(new Set([`${Math.round(z.gx)},${Math.round(z.gy)}`]));
+        draw(new Set([tileKey(Math.round(z.gx), Math.round(z.gy))]));
         const noon = ui.shown();
         row("by day the same number, in sight, is shown", noon.length === 1 && noon[0].hidden === false, noon.map((n) => `${n.text} hidden ${n.hidden}`).join(""));
       } finally {
