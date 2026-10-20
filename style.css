@@ -890,7 +890,6 @@ html, body {
   border-radius: 3px;
 }
 
-/* ---- the conversation panel (docs/34): a villager's line, then the topics and replies, bottom centre above the belt ---- */
 /* ---- the conversation panel (docs/34): parchment, set apart from the stone panels, with clickable text links (Michael, 2026-10-19, #296) ---- */
 #talk {
   position: absolute;
@@ -1019,12 +1018,13 @@ html, body {
 .tk-wiki {
   flex: 0 0 auto;
   font-size: 11px;
-  font-style: italic;
-  color: var(--ink-soft);
+  color: var(--link);
   text-decoration: none;
 }
 
-.tk-wiki:hover {
+.tk-wiki:hover,
+.tk-wiki:focus-visible {
+  color: var(--link-hover);
   text-decoration: underline;
 }
 
@@ -1032,7 +1032,6 @@ html, body {
   display: block;
   margin: 8px auto 0; /* outside the scrolling list: always in view beside the X (#230) */
   text-align: center;
-  color: var(--ink-soft);
 }
 
 /* ---- the station panel (docs/30, section 6): recipes, the chosen one, the queue ---- */
