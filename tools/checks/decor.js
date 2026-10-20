@@ -130,6 +130,42 @@ export async function run(game) {
     map.placeProp(under, x + 4, y + 1);
     made.push(under);
     row("a rug is laid under furniture: a chest on its tiles does not stop it", rugs.fitProblem("rug_regal_red", "y", x + 3, y) === "", rugs.fitProblem("rug_regal_red", "y", x + 3, y) || "fits");
+    // A rug is laid only where it could come up again: under what can be lifted (a barrel, a table), never under a tree, an anvil, a crop, or a cart.
+    const tree = map.createProp({ sprite: "tree_oak_m", tile: [x - 2, y - 2] });
+    map.placeProp(tree, x - 2, y - 2);
+    made.push(tree);
+    const anvil = map.createProp({ sprite: "anvil", tile: [x - 2, y + 3] });
+    map.placeProp(anvil, x - 2, y + 3);
+    made.push(anvil);
+    const crop = map.createProp({ sprite: "crop_potato_1", tile: [x - 1, y + 6] });
+    map.placeProp(crop, x - 1, y + 6);
+    made.push(crop);
+    const barrel = map.createProp({ sprite: "barrel", tile: [x + 7, y + 6] });
+    map.placeProp(barrel, x + 7, y + 6);
+    made.push(barrel);
+    const fitTree = rugs.fitProblem("rug_bearskin", "y", x - 2, y - 2);
+    row("a rug is refused over a tree, an anvil, and a crop, saying what is in the way", /tree/.test(fitTree) && !/_/.test(fitTree) && /anvil/.test(rugs.fitProblem("rug_bearskin", "y", x - 2, y + 2)) && /crop/.test(rugs.fitProblem("rug_bearskin", "y", x - 1, y + 5)), `${fitTree} | ${rugs.fitProblem("rug_bearskin", "y", x - 2, y + 2)} | ${rugs.fitProblem("rug_bearskin", "y", x - 1, y + 5)}`);
+    row("a rug is still laid under a barrel and a chest (what can be lifted away)", rugs.fitProblem("rug_regal_red", "x", x + 6, y + 5) === "" && rugs.fitProblem("rug_regal_red", "y", x + 3, y) === "", rugs.fitProblem("rug_regal_red", "x", x + 6, y + 5) || "fits");
+    // A wall is not built through a laid rug (both tiles of the edge under one rug), though one along its edge is.
+    row("a wall is refused across a laid rug, and allowed on the edge outside it", map.canBuildWall(x, y + 1, "n", "wall") === false && map.canBuildWall(x, y, "n", "wall") === true, `inside ${map.canBuildWall(x, y + 1, "n", "wall")}, on the edge ${map.canBuildWall(x, y, "n", "wall")}`);
+    // The menu: a villager standing on the rug is the thing pointed at, so the rug's entry follows hers.
+    const vil = G.game.state.villagers.find((q) => !q.dead);
+    if (vil) {
+      const vAt = [vil.gx, vil.gy];
+      vil.gx = x;
+      vil.gy = y + 2;
+      const vp = G.iso.toScreen(vil.gx, vil.gy);
+      let labels = [];
+      for (const up of [4, 8, 12, 16]) { // the cursor on her feet: on her body and on the rug's tile at once
+        labels = G.interact.actionsAt(vp.x, vp.y - up, me).map((q) => q.label);
+        if (labels.some((l) => /^Talk to/.test(l)) && labels.some((l) => /^Pick up bearskin rug/.test(l))) break;
+      }
+      vil.gx = vAt[0];
+      vil.gy = vAt[1];
+      const ti = labels.findIndex((l) => /^Talk to/.test(l));
+      const pi = labels.findIndex((l) => /^Pick up bearskin rug/.test(l));
+      row("with a villager on the rug, Talk to comes before Pick up in the menu", ti >= 0 && pi >= 0 && ti < pi, labels.join(" | "));
+    } else row("with a villager on the rug, Talk to comes before Pick up in the menu", false, "no villager");
     // Pick up refused under furniture, then allowed.
     const label = G.interact.actionsForTarget({ kind: "prop", id: a.id }, me).find((q) => q.kind === "rug");
     row("the rug's menu offers Pick up bearskin rug", !!label && label.label === "Pick up bearskin rug", label ? label.label : "none");
@@ -137,7 +173,7 @@ export async function run(game) {
     row("Pick up is refused while the chest stands on it, and the rug stays", refused === false && map.peekTile(x, y).rug === a && rugs.pickUpProblem(a) === "Move the chest off it first.", rugs.pickUpProblem(a));
     map.removeProp(chest);
     map.removeProp(under);
-    made.splice(0, made.length, a, b);
+    made.splice(0, made.length, a, b, tree, anvil, crop, barrel);
     // A dropped item lies on it and an item on the floor does not block it.
     const stick = G.items.makeEntry("stick", 1);
     map.dropItem(x + 1, y + 1, stick);
@@ -176,6 +212,17 @@ export async function run(game) {
     G.loop.advance(1 / 60);
     if (gl) G.interact.performByLabel(me, { kind: "prop", id: gl.id }, pickLabel);
     row("a guest's Pick up (by the address and the label) rolls it back into the bag", !!gl && !map.peekTile(x + 5, y + 3).rug && bag.items.length === n0 + 1 && bag.items.some((e) => e.id === "rug_bearskin"), `${pickLabel}; ${bag.items.length} in the bag`);
+    // A second pick-up of the same rug (a walk that met someone else's, a guest's command twice) gets nothing: one rug laid, one rug back.
+    const ent = G.items.makeEntry("rug_bearskin", 1);
+    G.inventory.stow(me, ent);
+    const laidTwice = rugs.placeRug(me, ent.uid, x + 5, y + 3, "x");
+    const dupRug = map.peekTile(x + 5, y + 3).rug;
+    if (dupRug) extra.push(dupRug);
+    const nA = bag.items.filter((e) => e.id === "rug_bearskin").length;
+    const first = rugs.pickUp(me, dupRug);
+    const second = rugs.pickUp(me, dupRug);
+    const nB = bag.items.filter((e) => e.id === "rug_bearskin").length;
+    row("picking the same rug up twice gives one rug, not two", laidTwice === true && first === true && second === false && nB === nA + 1, `first ${first}, second ${second}, ${nB - nA} more in the bag`);
     // The real pick-up of the first rug returns the same item.
     const n1 = bag.items.length;
     row("Pick up of the first rug gives the bearskin back", rugs.pickUp(me, map.peekTile(x, y).rug) === true && !map.peekTile(x, y).rug && bag.items.length === n1 + 1, "back in the bag");

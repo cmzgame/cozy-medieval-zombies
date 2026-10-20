@@ -621,6 +621,8 @@ export function canBuildWall(tx, ty, edge, kind = "wall") {
   const pa = tileAt(a[0], a[1]).prop;
   const pb = tileAt(b[0], b[1]).prop;
   if (pa && pa === pb && pa.solid) return false;
+  const ra = tileAt(a[0], a[1]).rug;
+  if (ra && ra === tileAt(b[0], b[1]).rug) return false; // a wall is not built through a laid rug: it would cut it in two (#327)
   if (kind === "door" && (!isWalkableTile(a[0], a[1]) || !isWalkableTile(b[0], b[1]) || pa || pb)) return false; // both its tiles clear: the dead go for a door, and need to stand at it
   return true;
 }

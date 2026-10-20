@@ -938,12 +938,12 @@ export function actionsAt(sx, sy, player) {
   // A rug under the cursor's tile: its Pick up, with Walk here still offered beside it (#327).
   const rugHere = map.peekTile(tx, ty)?.rug;
   const rugActs = rugHere ? tag(rugActions(rugHere, player), onProp(rugHere)) : [];
-  out.push(...rugActs);
   for (const o of openingsAtScreen(sx, sy)) out.push(...tag(openingActions(o, player), onEdge(o)));
   for (const b of map.bracketsNear(g.gx, g.gy, 0.8)) out.push(...tag(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player), onBracket(b.bracket)));
   const under = characterAt(sx, sy, player);
   if (under) out.push(...tag(characterActions(under, player), onCharacter(under)));
   else if (playerAt(sx, sy, player)) out.push(...tag(characterActions(player, player), onCharacter(player)));
+  out.push(...rugActs); // after the characters': a villager standing on the rug is the thing pointed at (#327)
   if (out.length === farmActs.length + bucketActs.length + rugActs.length && map.isWalkableTile(tx, ty)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty))); // nothing else here (Till and Plant do not stand in for it)
   return out;
 }

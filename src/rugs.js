@@ -28,8 +28,12 @@ export function footprintFor(sprite, facing) {
 
 export const facingsOf = (sprite) => (getDef(sprite).facings || ["y"]).slice();
 
-// Why a rug of this sprite and facing cannot lie with its top tile at (tx, ty), or "": a tile with no ground to lie on (water, an unloaded edge), another rug, or a wall between two of
-// its tiles (it fits within a room or the open ground, never across a wall). Furniture on the tiles is fine, and so are items and bodies.
+// A prop's name for a message: its sprite without the variant ("tree yellow", not "tree yellow l").
+const nameOf = (sprite) => sprite.replace(/_(l|m|s|old|\d+)$/, "").replace(/_/g, " ");
+
+// Why a rug of this sprite and facing cannot lie with its top tile at (tx, ty), or "": a tile with no ground to lie on (water, an unloaded edge), another rug, a prop that cannot be
+// lifted away (so the rug could never be taken up), or a wall between two of its tiles (it fits within a room or the open ground, never across a wall). Furniture that can be lifted
+// is fine on the tiles, and so are items and bodies.
 export function fitProblem(sprite, facing, tx, ty) {
   const [w, h] = footprintFor(sprite, facing);
   for (let dy = 0; dy < h; dy++) {
@@ -40,6 +44,8 @@ export function fitProblem(sprite, facing, tx, ty) {
       if (!t) return "No room";
       if (map.floorRule(t.floor).walk === false) return "No room";
       if (t.rug) return "A rug is already there";
+      // Only under what can be lifted away (a table, a chest, a bed, a chair, a barrel): under a tree, an anvil, a crop, or a cart it could never come up again.
+      if (t.prop && getDef(t.prop.sprite).carry !== true) return `There is a ${nameOf(t.prop.sprite)} in the way`;
       if (dx > 0 && map.wallBetween(x - 1, y, x, y)) return "A wall is in the way";
       if (dy > 0 && map.wallBetween(x, y - 1, x, y)) return "A wall is in the way";
     }
@@ -101,12 +107,13 @@ export function standingOn(rug) {
 // Why the rug cannot come up now, or "": furniture stands on it (taking it up would leave the thing floating over nothing).
 export function pickUpProblem(rug) {
   const on = standingOn(rug);
-  return on ? `Move the ${on.sprite.replace(/_/g, " ")} off it first.` : "";
+  return on ? `Move the ${nameOf(on.sprite)} off it first.` : "";
 }
 
 // Roll the rug up into the player's bag, or at their feet if the bag is full; true when it came up.
 export function pickUp(player, rug) {
   if (!rug || !rug.rugItem || !rugDef(rug.rugItem)) return false;
+  if (map.propById(rug.id) !== rug) return false; // already taken up: a walk to it (a guest's command, or a far click) that meets someone else's pick-up gets nothing, never a second rug
   const why = pickUpProblem(rug);
   if (why) {
     showMessage(why);
