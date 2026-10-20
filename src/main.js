@@ -1208,7 +1208,7 @@ function renderUi() {
   updateSwingTimer(S.player);
   updateSpeech(S.others, visible, S.player, dt);
   updateNames(S.players, visible, S.player);
-  floatersUi.update(dt, [...S.players, ...S.zombies, ...S.villagers, ...S.corpses], visible, S.player); // the numbers over heads, from the same blended positions
+  if (floatersUi.active()) floatersUi.update(dt, [...S.players, ...S.zombies, ...S.villagers, ...S.corpses], visible, S.player); // the numbers over heads, from the same blended positions
   mapPanel.update({ player: S.player, players: S.players, places: (S.info && S.info.places) || [] });
   updateMessage(dt);
 }

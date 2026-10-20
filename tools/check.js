@@ -234,7 +234,7 @@ check("floaters: a hit, a heal, and a gather are recorded where they happen; reg
   floatersMod.setGuestCheck(() => true);
   floatersMod.damage(me, 5);
   assert(floatersMod.takeForFrame().length === 0, "a guest recorded its own number");
-  floatersMod.receive(JSON.parse(JSON.stringify(wire)).concat([["x"], [9, me.id, 3], [0, me.id, 0]])); // the last three are nonsense: ignored
+  floatersMod.receive(JSON.parse(JSON.stringify(wire)).concat([["x"], [9, me.id, 3], [0, me.id, 0], [2, me.id, 3, "<b>"], [2, me.id, 3]])); // the last five are nonsense (a skill that is not one of the fourteen, or none): ignored
   const drawn = floatersMod.takeForDraw();
   floatersMod.setGuestCheck(() => false);
   const want = wire.map((e) => `${e[0] === 0 ? "-" : "+"}${e[2]}`).join(" ");

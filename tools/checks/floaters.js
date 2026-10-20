@@ -111,6 +111,48 @@ export async function run(game) {
       draw(new Set());
       const hid = ui.shown();
       row("a number over a body outside my sight is hidden, never shown through a wall or the dark", hid.length === 1 && hid[0].hidden === true, hid.map((n) => `${n.text} hidden ${n.hidden}`).join(""));
+      // The night (#88): a zombie far off in the dark, in my line of sight but unseen, has no number; by day the same one has.
+      const sightMod = await import("/src/sight.js");
+      const hour0 = G.clock.getHour();
+      const zAt = [z.gx, z.gy];
+      try {
+        G.loop.setPaused(true);
+        G.clock.setHour(1);
+        G.loop.advance(1 / 60);
+        const dark = [[15, 0], [-15, 0], [0, 15], [0, -15], [12, 12], [-12, -12]].find(([dx, dy]) => { z.gx = meAt[0] + dx; z.gy = meAt[1] + dy; return !sightMod.seen(me, z); });
+        const sawAtNight = dark ? sightMod.seen(me, z) : null;
+        ui.clear();
+        fl.reset();
+        fl.damage(z, 2);
+        draw(new Set([`${Math.round(z.gx)},${Math.round(z.gy)}`]));
+        const night = ui.shown();
+        row("at night a number over a dead one far off in the dark, in my line of sight but unseen, is hidden", !!dark && sawAtNight === false && night.length === 1 && night[0].hidden === true, dark ? `1 a.m., ${Math.round(Math.hypot(z.gx - me.gx, z.gy - me.gy))} tiles off: seen ${sawAtNight}, hidden ${night.map((n) => n.hidden).join("")}` : "no dark spot found");
+        G.clock.setHour(12);
+        G.loop.advance(1 / 60);
+        ui.clear();
+        fl.reset();
+        fl.damage(z, 2);
+        draw(new Set([`${Math.round(z.gx)},${Math.round(z.gy)}`]));
+        const noon = ui.shown();
+        row("by day the same number, in sight, is shown", noon.length === 1 && noon[0].hidden === false, noon.map((n) => `${n.text} hidden ${n.hidden}`).join(""));
+      } finally {
+        z.gx = zAt[0];
+        z.gy = zAt[1];
+        G.clock.setHour(hour0);
+      }
+      // A frame is a guest's input: a skill that is not one of the fourteen is ignored, never put in the page, and a late number is dropped.
+      ui.clear();
+      fl.reset();
+      fl.receive([[2, me.id, 3, '"><img src=x onerror="window.__floaterXss=1">'], [2, me.id, 3, "mining"], [0, me.id, 4, "mining"]]);
+      draw();
+      const htmlOf = document.getElementById("floaters").innerHTML;
+      row("a skill name that is not one of the fourteen is dropped and never reaches the page; a real one is drawn", ui.shown().length === 2 && !window.__floaterXss && !htmlOf.includes("onerror") && ui.shown().some((n) => n.skill === "mining"), `${ui.shown().map((n) => `${n.text}${n.skill ? " " + n.skill : ""}`).join(" | ")}`);
+      ui.clear();
+      fl.reset();
+      fl.damage(me, 3);
+      await new Promise((res) => setTimeout(res, T.life * 1000 + 100));
+      draw();
+      row("a number that waited longer than its life (a hidden tab) is dropped, not shown late", ui.shown().length === 0 && !fl.pending(), `${ui.shown().length} on screen`);
       // Receive: the guest's side of the same arrays.
       ui.clear();
       fl.reset();

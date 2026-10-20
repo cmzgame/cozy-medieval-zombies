@@ -3,9 +3,10 @@
 // icon with the number gained: the items, until skills give experience, #275). The authority records each in its own step, where the thing happens (`damagePlayer`,
 // `damageZombie`, `damageVillager`, `eat`, `verbs.run`), so a guest cannot record a different number; they ride the frame like the pokes and every client draws them
 // (ui/floaters.js), the host from its own log and a guest from what it was sent. Natural regeneration, bleeding, burning, and hunger are trickles, not events: they show
-// nothing. Cosmetic: not saved, not in the sync check, never read by the simulation, no chance and no clock. No DOM, so a headless world records them too.
+// nothing. Cosmetic: not saved, not in the sync check, never read by the simulation, no chance, and its one clock is the wall time a number waited to be drawn (to drop the late), which no step reads. No DOM, so a headless world records them too.
 
 import { floaters as T } from "./tuning.js";
+import { skillIds } from "./ui/skill-icons.js"; // a leaf: the fourteen ids, the only skills a frame may name
 
 export const DAMAGE = 0;
 export const HEAL = 1;
@@ -17,6 +18,8 @@ let seq = 0;
 let log = []; // { seq, kind, id, n, skill }
 let sentTo = 0; // the frame's cursor (a seq): what the host has sent guests
 let drawnTo = 0; // the drawing's cursor
+const SKILL_IDS = new Set(skillIds());
+const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now()); // cosmetic only: how long a number has waited to be drawn, never read by the sim
 
 export function setGuestCheck(fn) {
   guestCheck = typeof fn === "function" ? fn : () => false;
@@ -31,7 +34,7 @@ export function reset() {
 
 function push(kind, id, n, skill = null) {
   if (guestCheck() || typeof id !== "string" || !(n >= 0.5)) return;
-  log.push({ seq: ++seq, kind, id, n: Math.round(n), skill });
+  log.push({ seq: ++seq, kind, id, n: Math.round(n), skill, at: now() });
   if (log.length > MAX_LOG) log.splice(0, log.length - MAX_LOG);
 }
 
@@ -75,15 +78,25 @@ export function receive(list) {
     if (!Array.isArray(e)) continue;
     const [kind, id, n, skill] = e;
     if ((kind !== DAMAGE && kind !== HEAL && kind !== GATHER) || typeof id !== "string" || !(n >= 0.5)) continue;
-    log.push({ seq: ++seq, kind, id, n: Math.round(n), skill: typeof skill === "string" ? skill : null });
+    if (id.length > 64) continue;
+    // Only a gather has a skill, and only one of the fourteen: the frame is a guest's input, and the name goes on to the page.
+    const sk = kind === GATHER && typeof skill === "string" && SKILL_IDS.has(skill) ? skill : null;
+    if (kind === GATHER && !sk) continue;
+    log.push({ seq: ++seq, kind, id, n: Math.round(n), skill: sk, at: now() });
   }
   if (log.length > MAX_LOG) log.splice(0, log.length - MAX_LOG);
   sentTo = seq; // a guest sends nothing on
 }
 
-// What the drawing has not yet shown, once.
+// Whether the drawing has something it has not yet been given.
+export function pending() {
+  return seq > drawnTo;
+}
+
+// What the drawing has not yet shown, once. A number that waited longer than its own life (a tab that was hidden and drew nothing) is dropped, not shown late.
 export function takeForDraw() {
-  const out = log.filter((e) => e.seq > drawnTo);
+  const t = now();
+  const out = log.filter((e) => e.seq > drawnTo && t - e.at <= T.life * 1000);
   drawnTo = seq;
   return out;
 }

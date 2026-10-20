@@ -9,6 +9,7 @@ import * as view from "../view.js";
 import * as settings from "../settings.js";
 import * as light from "../light.js";
 import { tileKey } from "../visibility.js";
+import * as sight from "../sight.js";
 import { floaters as T } from "../tuning.js";
 import * as fl from "../floaters.js";
 import { skillIconURL, SIZE } from "./skill-icons.js";
@@ -22,9 +23,12 @@ export function initFloaters() {
   document.getElementById("ui").appendChild(root);
 }
 
-// A side and a size of drift for an event, from its number in the log (no chance: the same events drift the same on every client).
-function driftOf(seq) {
-  const h = Math.imul(seq + 1, 2654435761) >>> 0;
+// A side and a size of drift for an event, from what every client shares of it (who, what kind, how much; no chance, and not the local log's number, which a
+// guest counts for itself): the same event drifts the same on every client.
+function driftOf(e) {
+  let h = 2166136261 ^ (e.kind * 31 + e.n);
+  for (let i = 0; i < e.id.length; i++) h = Math.imul(h ^ e.id.charCodeAt(i), 16777619);
+  h = Math.imul(h ^ (h >>> 15), 2654435761) >>> 0;
   const side = ((h & 0xff) / 255) * 2 - 1; // -1 to 1
   return side * (0.55 + 0.45 * (((h >> 8) & 0xff) / 255));
 }
@@ -44,11 +48,25 @@ function build(e, bright) {
   el.dataset.text = fl.textOf(e);
   if (e.kind === fl.GATHER && e.skill) {
     const px = SIZE * (T.iconScale || 1);
-    el.innerHTML = `<img src="${skillIconURL(e.skill)}" width="${px}" height="${px}" alt="${e.skill}" draggable="false" style="image-rendering:pixelated"><span>${fl.textOf(e)}</span>`;
+    const img = document.createElement("img");
+    img.src = skillIconURL(e.skill);
+    img.width = px;
+    img.height = px;
+    img.alt = e.skill;
+    img.draggable = false;
+    img.style.imageRendering = "pixelated";
+    const span = document.createElement("span");
+    span.textContent = fl.textOf(e);
+    el.append(img, span);
     el.dataset.skill = e.skill;
   } else el.textContent = fl.textOf(e);
   root.appendChild(el);
   return el;
+}
+
+// Whether there is anything to do this frame (numbers alive, or events not yet given to the drawing), so main.js builds nothing when there is not.
+export function active() {
+  return alive.length > 0 || fl.pending();
 }
 
 // Every frame: new events become numbers, each lives and moves, the spent go. `chars`: everyone a number can be over (players, the dead, villagers, bodies); `visible`: my
@@ -70,7 +88,7 @@ export function update(dt, chars, visible, me) {
     const bright = e.kind === fl.GATHER ? light.lightAt(c.gx, c.gy) > T.lightAbove : false;
     const n = together.get(e.id) || 0;
     together.set(e.id, n + 1);
-    alive.push({ e, el: build(e, bright), age: 0, gx: c.gx, gy: c.gy, id: e.id, drift: driftOf(e.seq), lift: n * T.fontPx * T.staggerLines });
+    alive.push({ e, el: build(e, bright), age: 0, gx: c.gx, gy: c.gy, id: e.id, drift: driftOf(e), lift: n * T.fontPx * T.staggerLines });
   }
   while (alive.length > T.maxActive) alive.shift().el.remove();
   for (let i = alive.length - 1; i >= 0; i--) {
@@ -84,7 +102,8 @@ export function update(dt, chars, visible, me) {
     const u = view.toUi(s.x + f.drift * T.drift * t, s.y - T.startLift - f.lift - t * T.riseTiles * iso.TH);
     f.el.style.left = `${Math.round(u.x)}px`;
     f.el.style.top = `${Math.round(u.y)}px`;
-    const seen = f.id === (me && me.id) || !visible || visible.has(tileKey(Math.round(f.gx), Math.round(f.gy)));
+    // Mine always; another's only where I see it: in my line of sight and, for the dead in the dark, seen as the bars and bubbles are (#88).
+    const seen = f.id === (me && me.id) || ((!visible || visible.has(tileKey(Math.round(f.gx), Math.round(f.gy)))) && (!me || sight.seen(me, c || f)));
     f.el.style.display = seen ? "" : "none";
     f.el.style.opacity = t <= T.fadeFrom ? "1" : String(Math.max(0, 1 - (t - T.fadeFrom) / (1 - T.fadeFrom)));
   }
