@@ -503,12 +503,19 @@ export function takeItem(x, y, entry, layer = 0) {
 // on the ground (docs/02: nothing caches a tree anywhere else).
 // Stand a prop (lifted with removeProp) with its anchor at (tx, ty). The
 // footprint keeps its shape; the caller checks the tiles are clear.
+// Where a prop stands on its tiles: a rug (a flat sprite with `rug: true`, #327) in the tile's own `rug` slot, under whatever stands there, so furniture may stand on it and it
+// never blocks a step or a sight; everything else in `prop`.
+function slotOf(prop) {
+  return getDef(prop.sprite).rug ? "rug" : "prop";
+}
+
 export function placeProp(prop, tx, ty) {
   const [w, h] = prop.footprint;
   prop.tile = [tx, ty];
   prop.tiles = [];
   for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) prop.tiles.push([tx + dx, ty + dy]);
-  for (const [x, y] of prop.tiles) growTile(x, y).prop = prop;
+  const slot = slotOf(prop);
+  for (const [x, y] of prop.tiles) growTile(x, y)[slot] = prop;
   if (prop.fire) fireProps.add(prop);
   propsById.set(prop.id, prop); // a lifted prop left the registry (removeProp); put down, it is findable by its id again
   touch(tx, ty);
@@ -528,6 +535,7 @@ export function removeProp(prop) {
   for (const [tx, ty] of prop.tiles) {
     const t = tileAt(tx, ty);
     if (t.prop === prop) t.prop = null;
+    if (t.rug === prop) t.rug = null;
   }
   fireProps.delete(prop);
   propsById.delete(prop.id);
@@ -1042,6 +1050,7 @@ export function serializeChunk(c) {
     if (t.n) walls.push([lx, ly, "n", wallData(t.n)]);
     if (t.w) walls.push([lx, ly, "w", wallData(t.w)]);
     if (t.prop && t.prop.tile[0] === c.cx * CHUNK + lx && t.prop.tile[1] === c.cy * CHUNK + ly) props.push(serializeProp(t.prop));
+    if (t.rug && t.rug.tile[0] === c.cx * CHUNK + lx && t.rug.tile[1] === c.cy * CHUNK + ly) props.push(serializeProp(t.rug)); // a laid rug, saved and sent like a prop (#327)
     if (t.items && t.items.length) items.push([lx, ly, t.items]);
   }
   return { cx: c.cx, cy: c.cy, layer: c.layer, wild: !!c.wild, dirty: !!c.dirty, floors, walls, props, items };
@@ -1083,10 +1092,11 @@ export function installChunk(d) {
   const old = chunks.get(k);
   if (old) {
     for (const t of old.tiles) {
-      const pr = t && t.prop;
-      if (!pr || pr.tile[0] < cx * CHUNK || pr.tile[0] >= (cx + 1) * CHUNK || pr.tile[1] < cy * CHUNK || pr.tile[1] >= (cy + 1) * CHUNK) continue;
-      fireProps.delete(pr);
-      if (propsById.get(pr.id) === pr) propsById.delete(pr.id);
+      for (const pr of [t && t.prop, t && t.rug]) {
+        if (!pr || pr.tile[0] < cx * CHUNK || pr.tile[0] >= (cx + 1) * CHUNK || pr.tile[1] < cy * CHUNK || pr.tile[1] >= (cy + 1) * CHUNK) continue;
+        fireProps.delete(pr);
+        if (propsById.get(pr.id) === pr) propsById.delete(pr.id);
+      }
     }
   }
   for (let i = 0; i < CHUNK * CHUNK; i++) {
@@ -1131,9 +1141,10 @@ export function reviveProp(data, onMap = true) {
 
 export function installProp(data) {
   const prop = reviveProp(data);
+  const slot = slotOf(prop);
   for (const [x, y] of prop.tiles) {
     const t = peekTile(x, y, prop.layer || 0);
-    if (t) t.prop = prop;
+    if (t) t[slot] = prop;
   }
   return prop;
 }

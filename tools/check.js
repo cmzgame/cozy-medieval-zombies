@@ -145,6 +145,8 @@ const chartModule = await import("../src/chart.js");
 const floatersMod = await import("../src/floaters.js");
 const itemInfoMod = await import("../src/item-info.js");
 const smallTextMod = await import("../src/ui/small-text.js");
+const rugsImport = await import("../src/rugs.js");
+const inventoryMod = await import("../src/inventory.js");
 const itemsMod = await import("../src/items.js");
 const playerMod = await import("../src/entities/player.js");
 const verbsMod = await import("../src/verbs.js");
@@ -207,6 +209,52 @@ check("net: a body that walks, stands, and walks again (a record only when it mo
   assert(d.start.slice(0, 6).every((x) => x > 0.9 && x < 1.1), `it set off ${d.start.slice(0, 6).map((x) => x.toFixed(2)).join(" ")} (1 is steady)`);
   assert(without.restOffset > 0.05, "without hold the offset at rest is gone: the measurement is not measuring it");
   return `at rest 0 off (0.10 without hold); the first steps ${d.start.slice(0, 4).map((x) => x.toFixed(2)).join(" ")}`;
+});
+// Rugs (#327): a rug laid from the bag is a prop in the tile's own rug slot (never blocking, furniture over it), in the chunk's record and the sync hash, restored from a record, and Pick up
+// gives the item back; refused over another rug and under furniture. (The drawing, the ghost, and the guest's two tabs are `check("decor")`'s, in the pane.)
+check("rugs: laid from the bag into the rug slot, in the record and the sync hash, restored; refused over a rug and under furniture; picked up", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  const rugsMod = rugsImport;
+  const bag = inventoryMod.bagOf(me);
+  bag.items.length = 0;
+  const e = itemsMod.makeEntry("rug_bearskin", 1);
+  inventoryMod.stow(me, e);
+  let at = null;
+  mapMod.ensureAround(me.gx, me.gy, 3);
+  for (let dy = -12; dy <= 12 && !at; dy++) for (let dx = -12; dx <= 12 && !at; dx++) {
+    const x = Math.round(me.gx) + dx;
+    const y = Math.round(me.gy) + dy;
+    let ok = true;
+    for (let ay = -1; ay < 5 && ok; ay++) for (let ax = -1; ax < 4 && ok; ax++) { const t = mapMod.peekTile(x + ax, y + ay); ok = !!t && t.floor === "floor_grass" && !t.prop && !t.rug && !t.n && !t.w; }
+    if (ok) at = [x, y];
+  }
+  assert(at, "no bare grass");
+  const [x, y] = at;
+  me.gx = x + 1;
+  me.gy = y + 1;
+  const before = gameMod.syncParts().map;
+  assert(rugsMod.placeRug(me, e.uid, x, y, "y"), "the rug was not laid");
+  const rug = mapMod.peekTile(x, y).rug;
+  assert(rug && rug.solid === false && rug.tiles.length === 6 && rug.rugItem === "rug_bearskin" && !mapMod.peekTile(x, y).prop && bag.items.length === 0, "the laid rug is not a rug in the rug slot, or the item stayed in the bag");
+  assert(mapMod.isWalkableTile(x, y), "the rug blocks a step");
+  assert(gameMod.syncParts().map !== before, "a laid rug did not move the sync hash");
+  assert(rugsMod.fitProblem("rug_bearskin", "y", x + 1, y + 1) === "A rug is already there", "a rug was allowed over another");
+  const chest = mapMod.createProp({ sprite: "chest", tile: [x, y] });
+  mapMod.placeProp(chest, x, y);
+  assert(mapMod.peekTile(x, y).rug === rug && mapMod.peekTile(x, y).prop === chest, "furniture did not stand on the rug");
+  assert(rugsMod.pickUpProblem(rug) === "Move the chest off it first." && rugsMod.pickUp(me, rug) === false && mapMod.peekTile(x, y).rug === rug, "Pick up was not refused under furniture");
+  mapMod.removeProp(chest);
+  const C = mapMod.CHUNK;
+  const rec = JSON.parse(JSON.stringify(mapMod.serializeChunk(mapMod.getChunk(Math.floor(x / C), Math.floor(y / C), false))));
+  assert(rec.props.some((p) => p.sprite === "rug_bearskin" && p.rugItem === "rug_bearskin" && p.solid === false), "the chunk's record does not carry the rug");
+  mapMod.installChunk(rec);
+  for (const p of rec.props) mapMod.installProp(p);
+  const back = mapMod.peekTile(x, y).rug;
+  assert(back && back.rugItem === "rug_bearskin" && back.tiles.every(([tx, ty]) => mapMod.peekTile(tx, ty).rug === back), "the rug did not come back from its record");
+  assert(rugsMod.pickUp(me, back) === true && !mapMod.peekTile(x, y).rug && bag.items.some((q) => q.id === "rug_bearskin"), "Pick up did not give the item back");
+  return "laid, in the record and the hash, over by a chest, restored, picked up";
 });
 // Small text (#321): text at or under the threshold (ui/small-text.js, 15 UI px) is set in the clear sans-serif (`--font-small`), so a new small rule cannot slip in pixel-only.
 // `scanSmallText` reads style.css for every rule whose size is at or under the threshold, in any form the stylesheet could write it: `font-size` in px or rem (a rem is 16 px), a

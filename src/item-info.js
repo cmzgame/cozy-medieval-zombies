@@ -10,7 +10,7 @@ import * as stations from "./stations.js";
 import * as farming from "./farming.js";
 import { buildKinds } from "./placement.js";
 
-const KIND = { food: "Food", tool: "Tool", material: "Material", clothing: "Clothing", bag: "Bag", ammo: "Ammunition", medicine: "Medicine", drink: "Drink" };
+const KIND = { food: "Food", tool: "Tool", material: "Material", clothing: "Clothing", bag: "Bag", ammo: "Ammunition", medicine: "Medicine", drink: "Drink", decor: "Decor" };
 const MAX_LINES = 8; // a small card: the name and the basics, not a page
 const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 const seg = (t, k) => (k ? { t, k } : { t });
@@ -94,6 +94,7 @@ export function cardFor(entry) {
     lines.push(line(`${w.damage} damage${w.range ? `, reach ${w.range}` : ""}.`));
   }
   if (def.bow) lines.push(line(`Draw and release to shoot arrows${def.shots ? `; good for about ${def.shots} shots` : ""}.`));
+  if (def.rug) lines.push(line(seg("Place", "word"), ": lay on the floor."));
   if (def.hands) lines.push(line(seg("Equip", "word"), `: ${def.hands === "both" ? "both hands" : def.hands === "either" ? "main or off hand" : `${def.hands} hand`}.`));
   if (def.wear) lines.push(line(seg("Equip", "word"), `: worn on your ${def.wear}${def.bag ? `; holds ${def.bag[0]}×${def.bag[1]}` : ""}${def.beltSlots ? `; ${def.beltSlots} belt slots` : ""}.`));
   if (def.verbs && def.verbs.length) lines.push(line(`For: ${def.verbs.join(", ")}.`));

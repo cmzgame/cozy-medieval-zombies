@@ -3,6 +3,7 @@
 // where it may not, and a left click puts it there. Two kinds:
 //
 //   prop   the mode a player is in whenever they carry furniture;
+//   rug    a rug from the bag, laid flat on the floor (#327; src/rugs.js): the ghost over its 2 by 3, R turns it, a click lays it;
 //   build  a wall, door, or window on the tile edge under the cursor, paid for
 //          in logs or planks (data/build.json) unless the Free building
 //          setting is on, and built over a few seconds like boarding.
@@ -23,6 +24,7 @@ import { showMessage } from "./ui/prompt.js";
 import { rules } from "./rules.js";
 import * as tuning from "./tuning.js";
 import { reachProblem, TOO_FAR } from "./reach.js";
+import * as rugs from "./rugs.js"; // a rug laid from the bag (#327)
 
 // Reach was raised by a full tile on 2026-10-11 (Michael: easier).
 export const PLACE_REACH = 2.6; // tiles from the player to a carried prop's anchor tile
@@ -30,8 +32,8 @@ export const BUILD_REACH = 2.6; // tiles from the player to the middle of a buil
 export const REMOVE_REACH = 2.6; // tiles from the player to the nearest part of what is removed
 const EDGE_CLEARANCE = 0.45; // the player may not stand closer than this to an edge being built
 
-// kind is null, "prop", "build", or "remove". ghost is what the renderer draws.
-export const state = { active: false, kind: null, prop: null, build: null, ghost: null, turns: 0 };
+// kind is null, "prop", "rug", "build", or "remove". ghost is what the renderer draws.
+export const state = { active: false, kind: null, prop: null, build: null, rug: null, ghost: null, turns: 0 };
 // On a guest (docs/31/05 item 10, tier 3): the ghost is the replica's, and the click goes to the host as
 // a command (main.js sets the sender), which performs it for the guest's player with its own reach.
 let sender = null;
@@ -220,6 +222,19 @@ export function beginProp(prop) {
   state.turns = 0;
 }
 
+// A rug from the bag (the item's Place): the ghost follows the cursor, R turns it between its facings, a click lays it within reach, Esc cancels. The item stays in the bag until it is laid.
+export function beginRug(entry) {
+  const def = rugs.rugDef(entry && entry.id);
+  if (!def) return false;
+  state.kind = "rug";
+  state.rug = { uid: entry.uid, id: def.id, sprite: def.rug, facing: rugs.facingsOf(def.rug)[0] };
+  state.prop = null;
+  state.build = null;
+  state.active = true;
+  state.turns = 0;
+  return true;
+}
+
 export function beginBuild(what) {
   if (!buildData[what]) return false;
   state.kind = "build";
@@ -241,7 +256,7 @@ export function beginRemove() {
 // Carrying cannot be cancelled: the prop stays in the hands, so prop mode
 // answers false.
 export function cancel() {
-  if (state.kind !== "build" && state.kind !== "remove") return false;
+  if (state.kind !== "build" && state.kind !== "remove" && state.kind !== "rug") return false;
   end();
   return true;
 }
@@ -250,6 +265,7 @@ function end() {
   state.kind = null;
   state.prop = null;
   state.build = null;
+  state.rug = null;
   state.active = false;
   state.ghost = null;
   state.turns = 0;
@@ -282,6 +298,14 @@ function turn(prop) {
 // Each logic step: follow the carried prop, read R, and put the ghost where
 // the cursor is.
 export function update(player) {
+  if (state.kind === "rug") {
+    // The rug is laid from the bag: gone from it (laid, dropped, moved) or hands full ends the mode.
+    if (player.carrying || !rugs.entryOf(player, state.rug.uid)) end();
+    else if (input.wasPressed("KeyR")) {
+      const fs = rugs.facingsOf(state.rug.sprite);
+      state.rug.facing = fs[(fs.indexOf(state.rug.facing) + 1) % fs.length];
+    }
+  }
   if (player.carrying) {
     if (state.kind === "build" || state.kind === "remove") end(); // hands full: no building or removing
     if (state.kind !== "prop" || state.prop !== player.carrying) beginProp(player.carrying);
@@ -290,6 +314,7 @@ export function update(player) {
     end();
   }
   if (state.kind === "prop") state.ghost = propGhost(player);
+  else if (state.kind === "rug") state.ghost = rugGhost(player);
   else if (state.kind === "build") state.ghost = buildGhost(player);
   else if (state.kind === "remove") state.ghost = removeGhost(player);
   else state.ghost = null;
@@ -452,6 +477,20 @@ function propGhost(player) {
   return { kind: "prop", prop, tx, ty, footprint: [w, h], ok: reason === "", reason };
 }
 
+// The rug's ghost: the footprint centred on the cursor, as a prop's, green where the rug may lie within reach and red where not (the rules are src/rugs.js's).
+function rugGhost(player) {
+  const r = state.rug;
+  if (!r) return null;
+  const m = input.getMouse();
+  if (!m.inside) return null;
+  const g = iso.toGrid(m.x, m.y);
+  const [w, h] = rugs.footprintFor(r.sprite, r.facing);
+  const tx = Math.round(g.gx - (w - 1) / 2);
+  const ty = Math.round(g.gy - (h - 1) / 2);
+  const reason = rugs.reachFor(player, r.sprite, r.facing, tx, ty) || rugs.fitProblem(r.sprite, r.facing, tx, ty);
+  return { kind: "rug", prop: { sprite: r.sprite, facing: r.facing, footprint: [w, h] }, tx, ty, footprint: [w, h], ok: reason === "", reason, rug: { uid: r.uid, facing: r.facing } };
+}
+
 function buildGhost(player) {
   const m = input.getMouse();
   if (!m.inside) return null;
@@ -480,6 +519,23 @@ export function tryConfirm(player) {
     }
     map.placeProp(state.prop, g.tx, g.ty);
     player.carrying = null;
+    end();
+    return true;
+  }
+  if (state.kind === "rug") {
+    // A red ghost takes the click and says why; a green one lays the rug (a guest sends the command the host runs by the same rules).
+    const g = state.ghost;
+    if (!g) return false;
+    if (!g.ok) {
+      showMessage(g.reason);
+      return true;
+    }
+    if (sender) {
+      sender({ kind: "rug", uid: g.rug.uid, tx: g.tx, ty: g.ty, facing: g.rug.facing });
+      end();
+      return true;
+    }
+    rugs.placeRug(player, g.rug.uid, g.tx, g.ty, g.rug.facing);
     end();
     return true;
   }
@@ -525,6 +581,11 @@ function addressOf(t) {
 // checked here against the guest's player, the refusal said to it through the acting player.
 export function performPlacement(player, cmd) {
   if (!player || !cmd) return false;
+  if (cmd.kind === "rug") {
+    // A guest laying a rug from its bag (the host's own click calls placeRug directly): the same reach and fit, the refusal said through the acting player.
+    rugs.placeRug(player, cmd.uid, cmd.tx, cmd.ty, cmd.facing);
+    return true;
+  }
   if (cmd.kind === "prop") {
     const prop = player.carrying;
     if (!prop) return false;
@@ -633,6 +694,10 @@ export function prompt() {
   if (g.kind === "prop") {
     if (!g.ok) return { label: g.reason, mx: g.tx, my: g.ty, progress: null, enabled: false };
     return { label: "Click to place · R turn · E in front", mx: g.tx, my: g.ty, progress: null, enabled: true };
+  }
+  if (g.kind === "rug") {
+    if (!g.ok) return { label: g.reason, mx: g.tx, my: g.ty, progress: null, enabled: false };
+    return { label: "Click to lay the rug · R turn · Esc cancel", mx: g.tx, my: g.ty, progress: null, enabled: true };
   }
   if (g.kind === "remove") {
     const t = g.target;
