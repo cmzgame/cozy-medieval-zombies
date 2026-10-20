@@ -1256,7 +1256,7 @@ html, body {
 }
 
 /* No world chosen (docs/31/09): the title over black, none of the world's interface showing. */
-#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #talk, #ui.no-world #build-palette, #ui.no-world #map-panel, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
+#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #talk, #ui.no-world #nav-row, #ui.no-world #skills-panel, #ui.no-world #build-palette, #ui.no-world #map-panel, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
 /* #debug is #ui's sibling in index.html, not its child, so it is reached with ~; the chat box (#log-input) is #log's
    sibling, so it is named on its own (#16). */
 .screen h2 { font-size: 1.05em; margin: 10px 0 4px; color: #e8dcc0; }
@@ -2159,4 +2159,112 @@ html:not(.kit-ready) #site-page .screen { border: 3px solid #6a6258; }
   #site-page .you-rows { width: 100%; }
   #site-page .you-row { flex-wrap: wrap; }
   #site-page .controls { grid-template-columns: 7.5em 1fr; }
+}
+
+/* ---- the navigation row (#295): OSRS's buttons, bottom right, one per panel ----
+   The row and the skills panel keep clear of the belt and the swing bars (bottom centre), the log and the chat box (bottom left), and the moodles
+   (down the right): check("navrow") measures it. Under 600 interface pixels (a small window, or a large interface scale) the row's buttons are
+   smaller and the skills panel stands above the log (nav-row.js sets .narrow). */
+#nav-row {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 6;
+  display: grid;
+  grid-template-columns: repeat(4, 34px);
+  gap: 3px;
+  pointer-events: auto;
+}
+
+#nav-row.narrow {
+  right: 6px;
+  bottom: 6px;
+  gap: 2px;
+  grid-template-columns: repeat(4, 28px);
+}
+
+#nav-row .nav-button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#nav-row.narrow .nav-button {
+  width: 28px;
+  height: 28px;
+}
+
+#nav-row .nav-button img {
+  width: 28px;
+  height: 28px;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+#nav-row.narrow .nav-button img {
+  width: 21px;
+  height: 21px;
+}
+
+#nav-row .nav-button.on {
+  border-image-source: var(--kit-button_down, var(--kit-button_hover));
+  filter: brightness(1.15);
+}
+
+/* The skills panel the row's Skills button opens: the fourteen skills (#275), placeholders until they are built. One narrow column, right-aligned
+   above the row, left of the moodles; its top stays below the map's head (the map's top is at 8%), and on a short screen its list scrolls. */
+#skills-panel {
+  position: absolute;
+  right: 56px;
+  bottom: 86px;
+  z-index: 7;
+  width: 170px;
+  font-size: 12px;
+  max-height: calc(92% - 120px);
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+}
+
+#skills-panel[hidden] { display: none; }
+
+#skills-panel.narrow {
+  bottom: 152px; /* above the log (its top is 148px up) */
+  max-height: calc(92% - 200px);
+}
+
+.sk-body {
+  padding: 6px 10px 8px;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.sk-group + .sk-group {
+  margin-top: 6px;
+}
+
+.sk-group-name {
+  color: var(--gold);
+  margin-bottom: 2px;
+}
+
+.sk-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 1px 0;
+}
+
+.sk-level {
+  opacity: 0.7;
+}
+
+.sk-note {
+  margin-top: 6px;
+  font-size: 11px;
+  opacity: 0.7;
 }
