@@ -8,12 +8,16 @@ import { getItem } from "./items.js";
 import * as interactions from "./interactions.js";
 import * as stations from "./stations.js";
 import * as farming from "./farming.js";
+import { buildKinds } from "./placement.js";
 
 const KIND = { food: "Food", tool: "Tool", material: "Material", clothing: "Clothing", bag: "Bag", ammo: "Ammunition", medicine: "Medicine", drink: "Drink" };
-const MAX_LINES = 7; // a small card: the name and the basics, not a page
+const MAX_LINES = 8; // a small card: the name and the basics, not a page
 const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 const seg = (t, k) => (k ? { t, k } : { t });
 const line = (...parts) => parts.map((p) => (typeof p === "string" ? seg(p) : p));
+
+// What a player calls the ground and the things a Use row names, where the sprite's id is not it.
+const WORDS = { floor_farm: "tilled soil", floor_farm_y: "tilled soil", floor_water: "water", floor_water_shallow: "water", floor_grass: "grass", floor_dirt: "bare earth", crop: "crops" };
 
 // A target of a Use row, named: a sprite id or a tag, as words.
 function nameOfOn(on) {
@@ -22,6 +26,7 @@ function nameOfOn(on) {
   if (on === "character") return "person";
   if (on === "zombie") return "the dead";
   if (on === "tile") return "the ground";
+  if (WORDS[on]) return WORDS[on];
   return on.replace(/^floor_/, "").replace(/_y$/, "").replace(/_/g, " ");
 }
 
@@ -86,8 +91,7 @@ export function cardFor(entry) {
   if (def.bandage) lines.push(line(seg("Apply", "word"), ": closes a bleeding wound."));
   if (def.weapon) {
     const w = def.weapon;
-    const style = (w.style || "").replace(/_/g, "-");
-    lines.push(line(`${w.damage} damage${style ? `, ${style}` : ""}${w.range ? `, reach ${w.range}` : ""}.`));
+    lines.push(line(`${w.damage} damage${w.range ? `, reach ${w.range}` : ""}.`));
   }
   if (def.bow) lines.push(line(`Draw and release to shoot arrows${def.shots ? `; good for about ${def.shots} shots` : ""}.`));
   if (def.hands) lines.push(line(seg("Equip", "word"), `: ${def.hands === "both" ? "both hands" : def.hands === "either" ? "main or off hand" : `${def.hands} hand`}.`));
@@ -97,10 +101,12 @@ export function cardFor(entry) {
   for (const u of usesOf(def)) lines.push(line(seg("Use", "use"), ` on ${listOf(u.on)}: ${u.verb}.`));
   const crop = def.tags && def.tags.includes("seed") ? farming.cropOfSeed(def.id) : null;
   if (crop) lines.push(line(`Grows ${crop} on tilled soil.`));
-  if (def.splitsInto) lines.push(line(`Splits into ${def.splitsInto.count} ${getItem(def.splitsInto.id).name.toLowerCase()}.`));
+  if (def.splitsInto) lines.push(line(`Splits into ${def.splitsInto.count} ${getItem(def.splitsInto.id).name.toLowerCase()}s.`));
   const rec = recipesOf(def);
   if (rec.madeAt.length) lines.push(line(`Made at ${rec.madeAt.slice(0, 2).map(stationWord).join(" or ")}.`));
-  if (rec.goesInto.length && !def.wear && !def.weapon) lines.push(line(`Goes into: ${rec.goesInto.slice(0, 3).map((g) => g.name.toLowerCase()).join(", ")}${rec.goesInto.length > 3 ? " and more" : ""}.`));
+  if (rec.goesInto.length) lines.push(line(`Goes into: ${rec.goesInto.slice(0, 4).map((g) => g.name.toLowerCase()).join(", ")}${rec.goesInto.length > 4 ? " and more" : ""}.`));
+  const builds = buildKinds().filter((k) => k.cost && k.cost[def.id]).map((k) => `${(k.label || k.id).toLowerCase()} (${k.cost[def.id]})`);
+  if (builds.length) lines.push(line(`Builds: ${builds.join(", ")}.`));
   if (def.tags && def.tags.includes("fuel")) lines.push(line("Burns as fuel."));
 
   const state = [];
