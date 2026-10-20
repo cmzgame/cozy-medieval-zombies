@@ -1166,7 +1166,7 @@ html, body {
 }
 
 /* No world chosen (docs/31/09): the title over black, none of the world's interface showing. */
-#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #talk, #ui.no-world #build-palette, #ui.no-world #map-panel, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
+#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #talk, #ui.no-world #nav-row, #ui.no-world #skills-panel, #ui.no-world #build-palette, #ui.no-world #map-panel, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
 /* #debug is #ui's sibling in index.html, not its child, so it is reached with ~; the chat box (#log-input) is #log's
    sibling, so it is named on its own (#16). */
 .screen h2 { font-size: 1.05em; margin: 10px 0 4px; color: #e8dcc0; }
@@ -2069,4 +2069,77 @@ html:not(.kit-ready) #site-page .screen { border: 3px solid #6a6258; }
   #site-page .you-rows { width: 100%; }
   #site-page .you-row { flex-wrap: wrap; }
   #site-page .controls { grid-template-columns: 7.5em 1fr; }
+}
+
+/* ---- the navigation row (#295): OSRS's buttons, bottom right, one per panel ---- */
+#nav-row {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 6;
+  display: grid;
+  grid-template-columns: repeat(4, 34px);
+  gap: 3px;
+  pointer-events: auto;
+}
+
+#nav-row .nav-button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#nav-row .nav-button img {
+  width: 28px;
+  height: 28px;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+#nav-row .nav-button.on {
+  border-image-source: var(--kit-button_down, var(--kit-button_hover));
+  filter: brightness(1.15);
+}
+
+/* The skills panel the row's Skills button opens: the fourteen skills (#275), placeholders until they are built. */
+#skills-panel {
+  position: absolute;
+  right: 56px; /* clear of the moodles' column down the right */
+  bottom: 86px;
+  z-index: 7;
+  width: 220px;
+  font-size: 12px;
+  pointer-events: auto;
+}
+
+.sk-body {
+  padding: 6px 10px 8px;
+}
+
+.sk-group + .sk-group {
+  margin-top: 6px;
+}
+
+.sk-group-name {
+  color: var(--gold);
+  margin-bottom: 2px;
+}
+
+.sk-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 1px 0;
+}
+
+.sk-level {
+  opacity: 0.7;
+}
+
+.sk-note {
+  margin-top: 8px;
+  font-size: 11px;
+  opacity: 0.7;
 }

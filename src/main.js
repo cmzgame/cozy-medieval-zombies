@@ -53,6 +53,7 @@ import * as net from "./net.js";
 import * as stations from "./stations.js";
 import * as stationPanel from "./ui/station-panel.js";
 import * as talkPanel from "./ui/talk-panel.js"; // a villager's conversation, on the kit (docs/34, #202)
+import * as navRow from "./ui/nav-row.js"; // the buttons bottom right, one per panel (#295)
 import * as interact from "./interact.js";
 import * as items from "./items.js";
 import * as inventory from "./inventory.js";
@@ -854,6 +855,7 @@ function handleEscape() {
   if (use.cancel()) return; // Use mode is the top thing that can close
   if (stationPanel.close()) return;
   if (talkPanel.close()) return; // Escape closes a conversation in the panels' order
+  if (navRow.closeSkills()) return;
   if (screens.back()) return;
   if (buildPalette.isOpen()) {
     buildPalette.close();
@@ -1088,6 +1090,7 @@ function stepGame(dt) {
   if (input.wasPressed("BracketLeft")) clock.setHour(clock.getHour() - 1);
   stationPanel.update(S.player); // the panel follows the station's queue, which game.begin stepped
   talkPanel.update(S.player); // and the conversation ends when the villager is hurt or the talker walks off
+  navRow.update({ bag: panel.isBagOpen(), character: panel.isCharacter(), map: mapPanel.isOpen(), build: buildPalette.isOpen() });
   camera.follow(S.player, dt);
   camera.applyOrigin(V.w, V.h);
   // The ground: re-bake what changed in view, bake one chunk ahead, evict far ones (docs/15).
@@ -1493,6 +1496,7 @@ async function boot() {
       use.init();
       stationPanel.initStationPanel(() => S.player);
       talkPanel.initTalkPanel(() => S.player, () => S.villagers);
+      navRow.initNavRow({ tap: input.tap, openMenu: () => screens.show("pause"), openSettings: () => screens.show("settings"), canAct: () => inWorld && !screens.currentScreen() });
       initHud();
       initPrompt();
       initZombieBars();

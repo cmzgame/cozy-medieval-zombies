@@ -103,6 +103,11 @@ export function wasPressed(code) {
   return justPressed.has(code);
 }
 
+// A key pressed for one step by something other than the keyboard (the navigation row, #295), so it runs the key's own code.
+export function tap(code) {
+  justPressed.add(code);
+}
+
 export function mouseLeftDown() {
   return leftDown;
 }
