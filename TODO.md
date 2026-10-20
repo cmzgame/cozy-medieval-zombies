@@ -23,6 +23,8 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 ## Status (2026-10-18, night: Michael's first playtest session, his cut-off)
 
+**The Valley 1.0 scope is `docs/39-the-valley.md`** (#271): the one complete list, compiled 2026-10-19, in review.
+
 **Michael is playtesting**, one change at a time, and checking things off the wiki's **Valley day** page (cmzgame.github.io/cmz-wiki/valley-day.html). Nothing large is built while he plays: small fixes and his rulings only. He set this message as the cut-off for Valley day ("Make sure everything to this point is also in valley day wiki page... I am now going to bed. Any disagreements that come up you can toss on github somewhere"), and the page now has everything to then, including a section of what was decided or filed but not built.
 
 **Merged during the playtest, reviewed, on the wiki:** the bag's X with a lit torch (#258: the panels redrew every frame); food heals what it says, full or not, and a well-fed body heals twice as fast (#259). The wiki gained a "Changed since verified" badge (wiki #17), the Day-one food page (wiki #18), and Special:All pages for reading every page in turn.

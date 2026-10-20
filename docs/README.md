@@ -47,6 +47,7 @@ One line per doc, with its kind (`CLAUDE.md`, "What a doc is"): a **rule** (bind
 - `36-the-horde-demo.md` — one homestead, the dead without end (milestone The horde demo; #40 to #43; held until final art).
 - `35-steam-and-the-free-demo.md` — the business and marketing plan, kept vague by ruling; its decisions are #94.
 - `38-the-menus-and-the-site.md` — a game menu, not a modal over a game: the screens surveyed, Michael's rulings, the build order (milestone The menus and the site; #16, #107 to #112).
+- `39-the-valley.md` — the Valley 1.0's complete scope (#271): every place, building, station, resource, item, villager, enemy, animal, profession (the fourteen skills, levels 1 to 10, from #275), system, interaction, screen, and sound, each tagged built, change, to build, or open, with how it is unlocked; the dev values to flip to real.
 
 ## Records: `history/`
 
