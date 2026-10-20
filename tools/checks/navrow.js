@@ -4,7 +4,8 @@
 // palette open from their button and close from their real key (a keydown on the window), and the other way round; the button shows pressed while its
 // panel is open. A press never takes the focus or reaches the canvas. Chat focuses the chat box and keeps a draft. Skills opens its panel, which sits
 // on the screen and clear of the map's Centre and X, and Escape closes it. Menu opens the pause menu over open panels, and Escape closes the menu
-// first. Settings opens settings. It puts every panel, screen, and the chat box back as it found them.
+// first. Settings opens settings. The row and the skills panel leave the belt, the swing bars, the log, the chat box, and the moodles uncovered.
+// It puts every panel, screen, and the chat box back as it found them.
 
 export async function run(game) {
   const G = game;
@@ -96,6 +97,9 @@ export async function run(game) {
     click("chat");
     step();
     row("Chat focuses the chat box and keeps a draft", document.activeElement === chat && chat.value === "half a thought", JSON.stringify(chat.value));
+    click("bag");
+    step();
+    row("any other button hands the keys back from the chat box to the world", document.activeElement !== chat && G.panel.isBagOpen());
     chat.blur();
     chat.value = chat0;
 
@@ -118,6 +122,37 @@ export async function run(game) {
     key("Escape");
     step();
     row("Escape closes the skills panel first (the map stays)", !navRow.isSkillsOpen() && mapPanel.isOpen() && !btn("skills").classList.contains("on"));
+
+    // The row and the open skills panel leave the bottom-centre column, the log, the chat box, and the moodles uncovered. The belt, the log, and
+    // the chat box are measured; the swing bars and the moodles may not be showing, so their places are taken from style.css (two bars of 104 by
+    // 14 at 74px up, centred; five moodles of 28 down the right, 12px in, centred).
+    closeAll();
+    step();
+    click("skills");
+    step();
+    const ui = document.getElementById("ui");
+    const k = ui.getBoundingClientRect().width / ui.clientWidth; // the interface's scale
+    const W = ui.clientWidth, H = ui.clientHeight;
+    const box = (l, t, w, h) => ({ left: l * k, top: t * k, right: (l + w) * k, bottom: (t + h) * k });
+    const others = {
+      belt: document.getElementById("hotbar")?.getBoundingClientRect(),
+      "swing bars": box(W / 2 - 52, H - 74 - 32, 104, 32),
+      log: document.getElementById("log")?.getBoundingClientRect(),
+      "chat box": document.getElementById("log-input")?.getBoundingClientRect(),
+      moodles: box(W - 12 - 28, H / 2 - 82, 28, 164),
+    };
+    const hits = (a, b) => a && b && a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom;
+    // An interface so narrow that the belt already lies over the log (a large scale in a small window) has no room left for the row: there
+    // only the belt and the moodles are held to.
+    const crowded = hits(others.belt, others.log);
+    if (crowded) { delete others.log; delete others["chat box"]; }
+    for (const [name, el] of [["the row", document.getElementById("nav-row")], ["the skills panel", sk]]) {
+      const a = el.getBoundingClientRect();
+      const over = Object.entries(others).filter(([, b]) => hits(a, b)).map(([n]) => n);
+      row(`${name} leaves the belt, the swing bars, the log, the chat box, and the moodles uncovered`, !over.length, over.length ? `covers ${over.join(", ")} at ${W}x${H} interface px` : `${W}x${H} interface px${crowded ? ", the belt already over the log" : ""}`);
+    }
+    closeAll();
+    step();
 
     // Menu over open panels: Escape closes the pause menu first, and the panels stay.
     closeAll();

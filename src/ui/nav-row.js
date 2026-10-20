@@ -138,7 +138,7 @@ const BUTTONS = [
   { id: "menu", title: "Menu", key: "Esc" },
 ];
 
-const NARROW = 480; // the interface's width, in its own pixels, under which the row folds
+const NARROW = 600; // the interface's width, in its own pixels, under which the row is smaller and the skills panel stands above the log
 
 function iconUrl(name) {
   const { main, accent, art } = ICONS[name];
@@ -179,6 +179,8 @@ export function initNavRow(h) {
     const btn = e.target.closest("[data-nav]");
     if (!btn) return;
     btn.blur();
+    // The chat box keeps its cursor through a press (the mousedown took no focus); any other button hands the keys back to the world.
+    if (btn.dataset.nav !== "chat" && document.activeElement?.id === "log-input") document.activeElement.blur();
     press(btn.dataset.nav);
   });
   buttons = new Map([...root.querySelectorAll("[data-nav]")].map((b) => [b.dataset.nav, b]));
@@ -186,12 +188,15 @@ export function initNavRow(h) {
   skills.id = "skills-panel";
   skills.className = "inv-column kit-frame";
   skills.hidden = true;
-  skills.innerHTML = `<div class="inv-header kit-header"><span class="inv-title">Skills</span><span class="inv-tools"><button class="kit-button inv-close" data-skills-close title="Close">×</button></span></div><div class="kit-well sk-body"><div class="sk-groups">${SKILLS.map(([group, names]) => `<div class="sk-group"><div class="sk-group-name">${group}</div>${names.map((s) => `<div class="sk-row" data-skill="${s.toLowerCase()}"><span>${s}</span><span class="sk-level">1</span></div>`).join("")}</div>`).join("")}</div><div class="sk-note">Not built yet: every skill is level 1 of 10 (#275).</div></div>`;
+  skills.innerHTML = `<div class="inv-header kit-header"><span class="inv-title">Skills</span><span class="inv-tools"><button class="kit-button inv-close" data-skills-close title="Close">×</button></span></div><div class="kit-well sk-body">${SKILLS.map(([group, names]) => `<div class="sk-group"><div class="sk-group-name">${group}</div>${names.map((s) => `<div class="sk-row" data-skill="${s.toLowerCase()}"><span>${s}</span><span class="sk-level">1</span></div>`).join("")}</div>`).join("")}<div class="sk-note">Not built yet: every skill is level 1 of 10 (#275).</div></div>`;
   document.getElementById("ui").appendChild(skills);
-  skills.addEventListener("mousedown", (e) => e.stopPropagation());
+  skills.addEventListener("mousedown", (e) => {
+    e.stopPropagation();
+    if (e.target.closest("button")) e.preventDefault(); // its X takes no focus either
+  });
   skills.addEventListener("wheel", (e) => e.stopPropagation()); // its list scrolls on a short screen; the wheel is never the world's zoom
-  // On a narrow interface (a small window, or a large interface scale) the row folds to two columns, clear of the belt, and the skills panel
-  // moves beside it.
+  // On a narrow interface (a small window, or a large interface scale) the row's buttons are smaller, clear of the belt and the moodles, and the
+  // skills panel stands above the log (style.css).
   const ui = document.getElementById("ui");
   const fold = () => {
     const narrow = ui.clientWidth < NARROW;
