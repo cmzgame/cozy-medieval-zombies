@@ -79,6 +79,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
+- The best item a production skill makes is never the best of its kind in the game: the best weapons, armour, and bags come from bosses; repairing is a stop-gap that makes a thing last longer, never a reason to stop making new ones (2026-10-19, A production skill's best is never the best of its kind; repair is a stop-gap)
 - The cure for the infection is a mid- to late-game option, gated by skill, never something made on the first day (2026-10-19, The cure for the infection is mid to late game, gated by skill)
 - A boss may drop a rare, very powerful capstone item worth farming it for: its power and especially its mechanical novelty: a policy on the condition that such items can be found (2026-10-19, Rare capstone drops worth farming a boss for, a policy on its condition)
 - A book in the off hand costs the shield; within the staff-and-book proposal (#275), the Holy Symbol is Faith's permission, cast with the symbol raised, and utility books compete with spell books for room (2026-10-19, The belt restated and added to; a book in the off hand costs the shield; the Holy Symbol is Faith's staff, within the proposal)
@@ -239,6 +240,17 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-19 — A production skill's best is never the best of its kind; repair is a stop-gap (Michael)
+
+On Primary's Blacksmithing and Crafting drafts (#275):
+
+> "On that capstone I want to make a general note: the best item you can make from a PRODUCTION skill should not be the best item of that type in the game. Those should come from boss drop tables. So the special weapons we discussed, the best available armor, etc. Bigger bags than the crafting capstone are one of those things."
+
+> "As long as this doesn't completely negate the need to ever make another one. Otherwise the profession dies pretty fast. It should be a stop-gap like in Zomboid where it makes the item last longer (and gives xp) but isn't a long term solution."
+
+- **A production skill's best is never the best of its kind:** the best weapons, the best armour, and bags bigger than Crafting's capstone come from bosses' drop tables (beside the capstone-drop policy, 2026-10-19, Rare capstone drops worth farming a boss for, a policy on its condition).
+- **Repairing is a stop-gap,** as in Zomboid: it makes an item last longer and gives experience, but never removes the need to make a new one. *Primary's reading:* each repair gives back less, so an item wears out in the end.
 
 ### 2026-10-19 — The cure for the infection is mid to late game, gated by skill (Michael)
 
