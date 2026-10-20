@@ -11,6 +11,7 @@ import * as ground from "../ground.js";
 import { areaTiles, buildArea, ensureArea } from "./area.js";
 import { arrowDrawables, emitMarker, entityDrawables, fireDrawables } from "./entities.js";
 import { emitGhost, emitHitShapes, floorItemDrawables, propDrawables } from "./props.js";
+import * as hl from "./highlight.js"; // Object Highlight (#301)
 import { emitTileMark } from "./marks.js"; // the tile an Inspect marks
 import { postDrawables, wallDrawables } from "./walls.js";
 
@@ -146,8 +147,9 @@ function emitGrid(tiles) {
   }
 }
 
-export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, fire = null, marker = null, tileMark = null }) {
+export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, fire = null, marker = null, tileMark = null, highlight = null }) {
   ensureArea(w, h);
+  hl.set(highlight); // the object under the cursor, outlined by the drawables below (#301)
   if (lastLinear !== night.linear) {
     gl.setLightSampling(night.linear);
     lastLinear = night.linear;

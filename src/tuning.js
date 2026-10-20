@@ -180,7 +180,15 @@ export const floaters = {
   gathers: { chop: ["woodcutting", "logs"], mine: ["mining", "mined"], fish: ["fishing", "caught"], pick: ["farming", "picked"], harvest: ["farming", "harvested"] },
 };
 
-const sections = { zombie, player, villager, world, population, sight, feel, floaters };
+// Object Highlight (#301; src/highlight.js, render/highlight.js): the outline round the game object under the cursor. `color` is the flat colour of the one-pixel outline (a soft
+// soft near-white, not the swing outline's green nor the Inspect tile mark's gold), `refreshMs` how often the hit test is asked again while the mouse and the camera stand still.
+export const objectHighlight = {
+  color: "#f4f0e6",
+  alpha: 1,
+  refreshMs: 100,
+};
+
+const sections = { zombie, player, villager, world, population, sight, feel, floaters, objectHighlight };
 
 // Lay a file's numbers over the defaults; a missing file or section changes nothing.
 export function load(json) {

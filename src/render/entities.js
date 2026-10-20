@@ -14,6 +14,7 @@ import { flameFrame, frameQuad } from "./scene.js";
 import { postAt } from "./walls.js";
 import { seenAlpha } from "../sight.js";
 import { sight as sightTuning } from "../tuning.js";
+import * as hl from "./highlight.js"; // Object Highlight (#301)
 
 export function projectileSheet(id) {
   try {
@@ -266,6 +267,7 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
             frameQuad(sheet, name, x + ox, y + oy, { world, heights: f ? [f[3], f[3], 0, 0] : 0, color: SWING_OUTLINE, flags: gl.FLAG_NOFOG | gl.FLAG_UNLIT | gl.FLAG_SOLID }, r.flip);
           }
         }
+        if (hl.isCharacter(e.id)) hl.outline(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0 }, r.flip); // Object Highlight: the one under the cursor that can be acted on (#301)
         const drawHeld = (h) => {
           // A shield that just met a blow is flat bright for a moment (docs/21).
           frameQuad(h.sheet, `held_${h.k}`, h.x, h.y, h.flash ? { world, heights: 40, color: h.flash, flags: gl.FLAG_NOFOG | gl.FLAG_UNLIT | gl.FLAG_SOLID } : { world, heights: 40, color: dim || undefined, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING });
