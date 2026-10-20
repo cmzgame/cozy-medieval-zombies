@@ -1732,7 +1732,7 @@ async function boot() {
       host.install();
       // After the menu's own listener, so a menu closed by Escape is seen first.
       window.addEventListener("keydown", (e) => {
-        if (e.code === "Escape") handleEscape();
+        if (e.code === "Escape" && !e.repeat) handleEscape(); // once a press: a held Esc (leaving a locked fullscreen, #306) does not open and close the pause menu
       });
       // A sprite saved by the tool in another tab shows here at once (docs/23, step 3f).
       try {

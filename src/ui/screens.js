@@ -111,7 +111,10 @@ export function initScreens(handlers = {}) {
     if (t && t !== document.body && t.matches && t.matches("button, a, input, select, textarea")) return;
     go("worlds");
   });
-  document.addEventListener("fullscreenchange", () => { if (current === "settings") render(); });
+  document.addEventListener("fullscreenchange", () => {
+    if (!document.fullscreenElement) unlockEscape(); // however fullscreen ended: the held Esc, the browser's own control, a click
+    if (current === "settings") render();
+  });
   settings.onChange(() => {
     if (current === "settings") render();
   });
@@ -324,11 +327,13 @@ function go(where, ds = {}) {
     if (h.role === "host" && h.guests > 0 && !window.confirm(`Exiting closes the world to ${h.guests === 1 ? "the friend" : `the ${h.guests}`} with you. Exit?`)) return;
     worldsApi.exitGame();
   }
-  // The browser's own fullscreen, never forced: asked for here, by a click (the browser keeps Esc to leave it).
+  // The browser's own fullscreen, never forced: asked for here, by a click. Where the browser has Keyboard Lock (Chrome, Edge), Esc is
+  // locked to the page while fullscreen lasts, so a tap closes the game's menus and a hold leaves fullscreen (#306); elsewhere the
+  // browser keeps the first Esc for itself.
   else if (where === "fullscreen") {
     const done = () => { if (current === "settings") render(); };
     if (document.fullscreenElement) Promise.resolve(document.exitFullscreen()).then(done, done);
-    else if (document.documentElement.requestFullscreen) Promise.resolve(document.documentElement.requestFullscreen()).then(done, done);
+    else if (document.documentElement.requestFullscreen) Promise.resolve(document.documentElement.requestFullscreen()).then(lockEscape).then(done, done);
   }
   // The Worlds screen's rows.
   else if (where === "play") { if (worldsApi) worldsApi.play(ds.world); }
@@ -703,13 +708,26 @@ function worldRuleRow(entry, value, attrs, locked = false, why = "the host's") {
   return `<div class="setting${locked ? " hosts" : ""}"><span class="setting-label">${esc(entry.label)}${locked ? ` <small>(${esc(why)})</small>` : ""}<small class="help">${esc(entry.help || "")}</small></span><span class="control">${control}</span></div>`;
 }
 
+// Durable fullscreen (Michael, 2026-10-19, #306): "When I use the in-game-menu Fullscreen, hitting escape to close the menu immediately
+// backs it out". The Keyboard Lock API gives Esc to the page while fullscreen lasts; the browser then asks for Esc to be held to leave it,
+// and says so in its own banner. It is Chromium's alone, so elsewhere nothing changes and the row says the first Esc is the browser's.
+const escLockable = () => !!(navigator.keyboard && navigator.keyboard.lock);
+function lockEscape() {
+  if (!escLockable() || !document.fullscreenElement) return;
+  return Promise.resolve(navigator.keyboard.lock(["Escape"])).catch(() => {}); // refused (an iframe, a policy): the browser's Esc, as before
+}
+function unlockEscape() {
+  if (navigator.keyboard && navigator.keyboard.unlock) navigator.keyboard.unlock();
+}
+
 // The browser's fullscreen as a switch (docs/38, #112): the game fills the window already; this asks the browser for
 // the whole screen. It is not a stored setting: the browser decides when it ends (Esc leaves it first, and only then
 // pauses), so the row shows what the page is in now and a click asks for the other.
 function fullscreenRow() {
   const can = !!(document.fullscreenEnabled && document.documentElement.requestFullscreen);
   const on = !!document.fullscreenElement;
-  return `<div class="setting"><span class="setting-label">Fullscreen<small class="help">${can ? "The game fills the whole screen. Esc leaves fullscreen first; a second Esc pauses." : "This browser does not allow fullscreen here."}</small></span><span class="control"><span class="switch-state">${on ? "On" : "Off"}</span>${switchHtml(on, `data-go="fullscreen"`, !can)}</span></div>`;
+  const help = !can ? "This browser does not allow fullscreen here." : escLockable() ? "The game fills the whole screen. Esc closes menus as usual; hold Esc to leave fullscreen." : "The game fills the whole screen. In this browser Esc leaves fullscreen first; a second Esc pauses.";
+  return `<div class="setting"><span class="setting-label">Fullscreen<small class="help">${help}</small></span><span class="control"><span class="switch-state">${on ? "On" : "Off"}</span>${switchHtml(on, `data-go="fullscreen"`, !can)}</span></div>`;
 }
 
 // Hair styles, generated and painted (docs/12).
