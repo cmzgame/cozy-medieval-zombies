@@ -25,6 +25,7 @@ export const DEFAULTS = {
   look: {}, // the look before docs/31/09 (skin, hair, eyes, hairStyle): migrated with playerName; identities.js keeps them now
   nameTags: true, // another player's name over their head while in sight (docs/31/03)
   objectHighlight: true, // outline the game object under the cursor that has an action (src/highlight.js; #301); a testing setting, on
+  smallText: "clear", // "clear": text at or under 15 UI px is set in the system's sans-serif; "pixel": in the pixel font like the rest (ui/small-text.js; #321)
   floaters: true, // the floating numbers over heads: damage, heals, and gathers (ui/floaters.js; #294)
   paintedLayers: {}, // slot -> painted layer name to try on, from the settings screen (docs/12)
   panelPos: {}, // "bag" | "character" | "container" -> { x, y } in UI pixels where its header was dragged to (docs/23 step 4; Michael, 2026-10-12)
@@ -57,6 +58,7 @@ export const REGISTRY = [
   { key: "worldScale", group: "display", label: "Zoom", help: "How close the camera sits. Z or the wheel changes it while you play.", choices: [["auto", "Auto"], [1.1, "Wide"], [1.8, "Middle"], [2.7, "Close"]] },
   { key: "cursor", group: "display", label: "Cursor", help: "The pointer: the system's own, or one of three hands.", choices: [["default", "Default"], ["human", "A hand"], ["severed", "A severed hand"], ["zombie", "A zombie hand"]] },
   { key: "nameTags", group: "display", label: "Names over heads", help: "Another player's name over their head while you can see them.", choices: SHOWN },
+  { key: "smallText", group: "display", label: "Small text", help: "Very small text in a plain, clear font (Clear), or in the pixel font like the rest (Pixel).", choices: [["clear", "Clear"], ["pixel", "Pixel"]] },
   { key: "floaters", group: "display", label: "Floating numbers", help: "Damage, healing, and what you gather float up over heads.", choices: SHOWN },
   { key: "swingTimer", group: "display", label: "Swing timer", help: "A bar at the bottom of the screen while a swing recovers.", choices: ON_OFF },
   { key: "aimGuide", group: "display", label: "Aim guide", help: "The landing marker and the dotted line while you draw a bow, wind up a throw, or cast.", choices: ON_OFF },
