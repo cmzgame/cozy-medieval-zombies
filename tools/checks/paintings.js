@@ -22,6 +22,7 @@ export async function run(game) {
   const meAt = [me.gx, me.gy];
   const wasPaused = G.loop.isPaused();
   const walls = [];
+  let restoreView = null; // puts the camera and the cursor back, once the check has moved them
   const IDS = ["small_oak", "small_deer", "small_peak", "tall_waterfall", "tall_pines", "wide_castle", "wide_lake", "wide_sunset"].map((n) => `painting_${n}`);
   try {
     G.loop.setPaused(true);
@@ -66,45 +67,58 @@ export async function run(game) {
     for (let i = 0; i < 8; i++) { map.buildWall(x + i, y, "n", "wall"); walls.push([x + i, y, "n"]); }
     bag.items.length = 0;
     const add = (id) => { const e = G.items.makeEntry(id, 1); G.inventory.stow(me, e); return e; };
+    // The ghost rows do not wait for the page's own frame (it runs no camera and no placement while the title or any screen is up, and not at all in a hidden pane): the check snaps the
+    // camera to the player and applies the origin, aims the cursor with a real mousemove on the canvas, and runs `placement.update` itself, once, then clears the key edges as a step
+    // would (so a tapped key is seen once). The camera and the cursor are put back in the finally.
     const cv = document.getElementById("game");
     const inp = await import("/src/input.js");
-    cv.dispatchEvent(new MouseEvent("mousemove", { clientX: 1000, clientY: 500, bubbles: true }));
-    const sc = 1000 / inp.getMouse().x;
-    const aimAt = (sx, sy) => cv.dispatchEvent(new MouseEvent("mousemove", { clientX: sx * sc, clientY: sy * sc, bubbles: true }));
+    const cam0 = { gx: G.camera.cam.gx, gy: G.camera.cam.gy };
+    const mouse0 = { ...inp.getMouse() };
+    const look = () => { G.camera.snapTo(me.gx, me.gy); G.camera.applyOrigin(G.view.view.w, G.view.view.h); };
+    const cvRect = cv.getBoundingClientRect();
+    cv.dispatchEvent(new MouseEvent("mousemove", { clientX: cvRect.left + 1000, clientY: cvRect.top + 500, bubbles: true }));
+    const sc = 1000 / inp.getMouse().x; // client pixels per canvas pixel
+    restoreView = () => {
+      G.camera.snapTo(cam0.gx, cam0.gy);
+      G.camera.applyOrigin(G.view.view.w, G.view.view.h);
+      if (mouse0.inside) cv.dispatchEvent(new MouseEvent("mousemove", { clientX: cvRect.left + mouse0.x * sc, clientY: cvRect.top + mouse0.y * sc, bubbles: true }));
+      else cv.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
+    };
+    const aimAt = (sx, sy) => cv.dispatchEvent(new MouseEvent("mousemove", { clientX: cvRect.left + sx * sc, clientY: cvRect.top + sy * sc, bubbles: true }));
     const faceMid = (tx, ty) => { const p = G.iso.toScreen(tx, ty); return [p.x + 12, p.y - 47]; }; // the middle of a north segment's camera face
+    const settle = () => { placement.update(me); inp.endStep(); };
+    // Step the world, put the camera on the player, aim at a point computed in that view, and let placement read it.
+    const aimFace = (tx, ty) => { G.loop.advance(1 / 60); look(); aimAt(...faceMid(tx, ty)); settle(); };
     G.teleport(x + 2, y + 1);
     G.loop.advance(1 / 60);
+    look();
 
     // The ghost and the click: Place from the item's menu, over the face of the segment at x + 1.
     const oak = add("painting_small_oak");
     const menu = G.interact.itemMenu(me, oak, bag, null).map((m) => m.label);
     row("an item's menu offers Place beside Use, for a painting", menu.includes("Place") && menu.includes("Use"), menu.join(", "));
     G.interact.itemMenu(me, oak, bag, null).find((m) => m.label === "Place").onSelect();
-    aimAt(...faceMid(x + 1, y));
-    G.loop.advance(1 / 60);
+    aimFace(x + 1, y);
     const g0 = placement.state.ghost;
     row("Place starts the ghost on the face under the cursor, green within reach", placement.state.kind === "painting" && !!g0 && g0.tx === x + 1 && g0.ty === y && g0.edge === "n" && g0.ok === true, g0 ? `${g0.tx},${g0.ty} ${g0.edge} ${g0.ok ? "green" : g0.reason}` : "no ghost");
-    aimAt(...faceMid(x + 6, y)); // out of reach from x + 2
-    G.loop.advance(1 / 60);
+    aimFace(x + 6, y); // out of reach from x + 2
     const g1 = placement.state.ghost;
     row("a face out of reach is a red ghost that says Too far", !!g1 && g1.ok === false && g1.reason === "Too far", g1 ? g1.reason : "no ghost");
     const refusedClick = placement.tryConfirm(me);
     row("a click on the red ghost is spent, says why, and the item stays in the bag", refusedClick === true && bag.items.includes(oak) && !map.peekTile(x + 6, y).n.hangings, "kept");
-    aimAt(...faceMid(x + 1, y));
-    G.loop.advance(1 / 60);
+    aimFace(x + 1, y);
     const hungOk = placement.tryConfirm(me);
     row("a click on the green ghost hangs it: the item leaves the bag, the wall holds it, the mode ends", hungOk === true && !bag.items.includes(oak) && map.peekTile(x + 1, y).n.hangings?.[0]?.item === "painting_small_oak" && placement.state.kind === null, JSON.stringify(map.peekTile(x + 1, y).n.hangings));
     const spare = add("painting_small_deer");
     placement.beginPainting(spare);
     G.loop.advance(1 / 60);
+    settle();
     row("Esc cancels the mode and the item stays in the bag", placement.cancel() === true && placement.state.kind === null && bag.items.includes(spare), "kept");
     // A wide one aimed at its second section hangs from the one before it.
     const wide = add("painting_wide_lake");
     placement.beginPainting(wide);
     G.teleport(x + 6.5, y + 1);
-    G.loop.advance(1 / 60); // the camera follows the player before the cursor is aimed
-    aimAt(...faceMid(x + 7, y)); // the last segment of the run: a wide painting cannot start there, so it hangs from the one before
-    G.loop.advance(1 / 60);
+    aimFace(x + 7, y); // the last segment of the run: a wide painting cannot start there, so it hangs from the one before
     const gw = placement.state.ghost;
     row("a wide painting aimed at the last section of a wall hangs from the one before it (the holder is the segment before)", !!gw && gw.ok === true && gw.tx === x + 6 && gw.edge === "n", gw ? `${gw.tx},${gw.ty} ${gw.ok ? "green" : gw.reason}` : "no ghost");
     placement.cancel();
@@ -180,6 +194,7 @@ export async function run(game) {
     if (!e.guestDone) rows.push({ check: "setup", result: "FAIL", detail: e.message + (e.stack ? " " + e.stack.split("\n")[1] : "") });
   } finally {
     placement.cancel();
+    if (restoreView) restoreView();
     for (const [wx, wy, edge] of walls) map.destroyWall(wx, wy, edge);
     for (const [wx, wy] of walls) for (const e of [...map.itemsAt(wx, wy)]) if (/^painting_/.test(e.id)) map.takeItem(wx, wy, e);
     bag.items.splice(0, bag.items.length, ...bag0);

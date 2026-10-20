@@ -24,6 +24,7 @@ export async function run(game) {
   const made = [];
   const walls = [];
   const extra = []; // laid by the mode test, taken up in the finally
+  let restoreView = null; // puts the camera and the cursor back, once the check has moved them
   try {
     G.loop.setPaused(true);
     const ids = ["rug_bearskin", "rug_regal_red"];
@@ -82,23 +83,38 @@ export async function run(game) {
     made.push(b);
     row("it is 3 by 2, facing x", !!b && b.footprint[0] === 3 && b.footprint[1] === 2 && b.facing === "x" && b.sprite === "rug_regal_red", b ? `${JSON.stringify(b.footprint)} ${b.facing}` : "none");
     // The mode itself, as the Place entry starts it: the ghost follows the cursor, R turns it between y and x, a click lays it as it was turned, Esc cancels and keeps the item.
+    // The ghost rows do not wait for the page's own frame (it runs no camera and no placement while the title or any screen is up, and not at all in a hidden pane): the check snaps the
+    // camera to the player and applies the origin, aims the cursor with a real mousemove on the canvas, and runs `placement.update` itself, once, then clears the key edges as a step
+    // would (so a tapped key is seen once). The camera and the cursor are put back in the finally.
     const inp = await import("/src/input.js");
     const cv = document.getElementById("game");
-    cv.dispatchEvent(new MouseEvent("mousemove", { clientX: 1000, clientY: 500, bubbles: true }));
-    const sc = 1000 / inp.getMouse().x;
-    const aimAt = (gx, gy) => { const p = G.iso.toScreen(gx, gy); cv.dispatchEvent(new MouseEvent("mousemove", { clientX: p.x * sc, clientY: p.y * sc, bubbles: true })); };
+    const cam0 = { gx: G.camera.cam.gx, gy: G.camera.cam.gy };
+    const mouse0 = { ...inp.getMouse() };
+    const look = () => { G.camera.snapTo(me.gx, me.gy); G.camera.applyOrigin(G.view.view.w, G.view.view.h); };
+    const cvRect = cv.getBoundingClientRect();
+    cv.dispatchEvent(new MouseEvent("mousemove", { clientX: cvRect.left + 1000, clientY: cvRect.top + 500, bubbles: true }));
+    const sc = 1000 / inp.getMouse().x; // client pixels per canvas pixel
+    restoreView = () => {
+      G.camera.snapTo(cam0.gx, cam0.gy);
+      G.camera.applyOrigin(G.view.view.w, G.view.view.h);
+      if (mouse0.inside) cv.dispatchEvent(new MouseEvent("mousemove", { clientX: cvRect.left + mouse0.x * sc, clientY: cvRect.top + mouse0.y * sc, bubbles: true }));
+      else cv.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
+    };
+    const aimAt = (gx, gy) => { const p = G.iso.toScreen(gx, gy); cv.dispatchEvent(new MouseEvent("mousemove", { clientX: cvRect.left + p.x * sc, clientY: cvRect.top + p.y * sc, bubbles: true })); };
+    const settle = () => { placement.update(me); inp.endStep(); };
+    // Step the world, put the camera on the player, aim at a grid point computed in that view, and let placement read it.
+    const aimGrid = (gx, gy) => { G.loop.advance(1 / 60); look(); aimAt(gx, gy); settle(); };
     const spare = G.items.makeEntry("rug_regal_red", 1);
     G.inventory.stow(me, spare);
     const menu = G.interact.itemMenu(me, spare, bag, null).map((m) => m.label);
     row("an item's menu offers Place beside Use, for a rug", menu.includes("Place") && menu.includes("Use"), menu.join(", "));
     G.interact.itemMenu(me, spare, bag, null).find((m) => m.label === "Place").onSelect();
     G.teleport(x + 4, y + 3);
-    aimAt(x + 5.5, y + 1.5);
-    G.loop.advance(1 / 60);
+    aimGrid(x + 6, y + 1.5); // the mode rug lies on x + 5 to x + 7, y + 1 and y + 2 once turned: clear of every tile the rows below test
     const g0 = placement.state.ghost;
     row("Place starts the ghost over the 2 by 3 footprint, green where it fits within reach", placement.state.kind === "rug" && !!g0 && g0.footprint[0] === 2 && g0.footprint[1] === 3 && g0.ok === true, g0 ? `${JSON.stringify(g0.footprint)} ${g0.ok ? "green" : g0.reason}` : "no ghost");
     inp.tap("KeyR");
-    G.loop.advance(1 / 60);
+    settle(); // the one update that reads the tap, then the edge is cleared
     const g1 = placement.state.ghost;
     row("R turns it to x: the footprint is 3 by 2", !!g1 && g1.footprint[0] === 3 && g1.footprint[1] === 2 && placement.state.rug.facing === "x", g1 ? JSON.stringify(g1.footprint) : "no ghost");
     const spot = [g1.tx, g1.ty];
@@ -110,6 +126,7 @@ export async function run(game) {
     G.inventory.stow(me, spare2);
     placement.beginRug(spare2);
     G.loop.advance(1 / 60);
+    settle();
     const esc = placement.cancel();
     row("Esc cancels the mode and the item stays in the bag", esc === true && placement.state.kind === null && bag.items.includes(spare2), "kept");
     bag.items.splice(bag.items.indexOf(spare2), 1);
@@ -234,6 +251,8 @@ export async function run(game) {
   } catch (e) {
     if (!e.guestDone) rows.push({ check: "setup", result: "FAIL", detail: e.message + (e.stack ? " " + e.stack.split("\n")[1] : "") });
   } finally {
+    placement.cancel();
+    if (restoreView) restoreView();
     for (const [wx, wy, edge] of walls) map.destroyWall(wx, wy, edge);
     for (const p of [...made, ...extra]) { const t = p && map.propById(p.id); if (t) map.removeProp(t); }
     bag.items.splice(0, bag.items.length, ...bag0);
