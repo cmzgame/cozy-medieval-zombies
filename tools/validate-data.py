@@ -223,6 +223,14 @@ for verb, spec in fl.get("gathers", {}).items():
         fail(f"tuning.floaters.gathers: no verb {verb!r}")
     if not (isinstance(spec, list) and len(spec) == 2 and spec[0] in skill_ids and isinstance(spec[1], str)):
         fail(f"tuning.floaters.gathers.{verb}: [one of the skills, the verb result's field]")
+# Object Highlight (#301): the outline's colour is hex, its alpha is 0 to 1, and the hit test is asked again every so many ms.
+oh = load("data/tuning.json").get("objectHighlight", {})
+if not (isinstance(oh.get("color"), str) and re.fullmatch(r"#[0-9a-fA-F]{6}", oh["color"])):
+    fail("tuning.objectHighlight.color: a colour like #rrggbb")
+if not (num(oh.get("alpha")) and 0 < oh["alpha"] <= 1):
+    fail("tuning.objectHighlight.alpha: a number above 0, up to 1")
+if not (num(oh.get("refreshMs")) and oh["refreshMs"] > 0):
+    fail("tuning.objectHighlight.refreshMs: a number above 0")
 tuning_world = load("data/tuning.json")["world"]
 if tuning_world["stumpSprite"] not in sprites:
     fail(f"tuning.world.stumpSprite: no sprite {tuning_world['stumpSprite']!r}")

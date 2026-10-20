@@ -70,6 +70,11 @@
     "needsStaminaRegenMult": 0.5,
     "tiredStaminaRegenMult": 0.75
   },
+  "objectHighlight": {
+    "color": "#ffe9a6",
+    "alpha": 1,
+    "refreshMs": 100
+  },
   "floaters": {
     "life": 1.1,
     "fadeFrom": 0.5,

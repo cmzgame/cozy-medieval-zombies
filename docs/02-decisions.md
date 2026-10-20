@@ -146,6 +146,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
+- Object Highlight: the game object under the cursor that a right-click would act on first is outlined, a testing setting, on by default; plain art is not (2026-10-19, Object Highlight; the readings are the builder's, Michael's to overrule)
 - Floating numbers over heads: a red -X for a hit, a green +X for a heal, a skill's icon with the number gained for a gather in white or black by the light, drawn from events the authority records, not from health diffs; a number over a body I cannot see is hidden; the fourteen skill icons are placeholder art in `ui/skill-icons.js` (2026-10-19, Floating numbers over heads, and an icon for each skill; the readings are the builder's, Michael's to overrule)
 - Moodles are for ongoing general needs (hunger, thirst, tiredness) and the infection; a specific negative effect, a bleed or a poison, is a debuff of its own, WoW-style (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk)
 - The belt: its key uses up a consumable and swaps a held item into its own hand (2026-10-10), plus a lantern carried there for more light than a torch's, and the halberd, perhaps the greatsword, never on it (2026-10-19, The belt restated and added to; a book in the off hand costs the shield; the Holy Symbol is Faith's staff, within the proposal); a slot's key does one thing, a held item now going to the hand chosen for that slot in its right-click menu, the item's own hand by default; no left-click parity (2026-10-19, A belt slot's key does one thing, into the hand chosen for that slot; no left-click parity)
@@ -247,6 +248,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-19 — Object Highlight (#301; Michael's setting, the builder's readings Michael's to overrule)
+
+Michael: a dev setting, on by default, **Object Highlight** (first "Item Highlight", renamed because Items are a special category): hover a game object with a built-in interaction and it is outlined; a thing that is only art (the leaf pile and sticks under a tree) is not. **The readings:** it is the one thing a right-click would act on first, found with the menu's own hit test (`interact.actionsAt`, and the pixel hit `interactableAt` for a tall tree's crown), so a prop with no action gets none; a character comes before an item before a prop; **the living dead are left to the cursor's zombie hand and the swing outline**, a corpse (a container) is outlined; **a door, a shutter, and a wall bracket are edges, not sprites, and are not outlined yet**; nothing in placement, removal, or Use mode, with a panel under the pointer, with something carried, or out of sight; the colour is a pale gold, not the swing outline's green (`data/tuning.json` `objectHighlight`).
 
 ### 2026-10-19 — Floating numbers over heads, and an icon for each skill (#294; Michael's spec, the builder's readings Michael's to overrule)
 

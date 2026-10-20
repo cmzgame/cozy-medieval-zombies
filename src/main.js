@@ -40,6 +40,7 @@ import * as cursor from "./ui/cursor.js";
 import * as log from "./ui/log.js";
 import { initNames, updateNames } from "./ui/names.js";
 import * as floatersUi from "./ui/floaters.js"; // the numbers over heads (#294)
+import * as objectHighlight from "./highlight.js"; // the outline on the object under the cursor (#301)
 import * as floaters from "./floaters.js";
 import * as use from "./use.js";
 import * as interactions from "./interactions.js";
@@ -247,6 +248,7 @@ function afterWorldSet() {
   mapPanel.close();
   mapPanel.forgetDrawn();
   floatersUi.clear(); // a world put back has none of the last one's numbers
+  objectHighlight.clear();
   floaters.reset();
   light.update();
   if (!glError) ground.invalidateAll();
@@ -1246,6 +1248,7 @@ async function restoreWorld(snap) {
   mapPanel.close();
   mapPanel.forgetDrawn();
   floatersUi.clear();
+  objectHighlight.clear();
   floaters.reset();
   light.update();
   if (!glError) ground.invalidateAll();
@@ -1301,6 +1304,8 @@ function render() {
     drawAll,
     fog: !drawAll,
     ghost: placement.ghost(),
+    // The object under the cursor that a right-click would act on, outlined (Object Highlight, #301): asked of the step's own positions and origin, as a click is.
+    highlight: objectHighlight.update({ enabled: settings.get("objectHighlight") !== false, blocked: placement.state.active || use.isActive(), mouse: input.getMouse(), player: S.player, visible, now: performance.now() }),
     hitShapes: combat.overlays(S.player, S.zombies, settings.get("showHitShapes")),
     // The tile grid shows only while building or removing (docs/15).
     grid: placement.state.kind === "build" || placement.state.kind === "remove",
