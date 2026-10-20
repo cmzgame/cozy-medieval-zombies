@@ -11,6 +11,7 @@ import * as ground from "../ground.js";
 import { areaTiles, buildArea, ensureArea } from "./area.js";
 import { arrowDrawables, emitMarker, entityDrawables, fireDrawables } from "./entities.js";
 import { emitGhost, emitHitShapes, floorItemDrawables, propDrawables } from "./props.js";
+import { emitTileMark } from "./marks.js"; // the tile an Inspect marks
 import { postDrawables, wallDrawables } from "./walls.js";
 
 // The night, as before: tunables Michael picks by eye, live on
@@ -145,7 +146,7 @@ function emitGrid(tiles) {
   }
 }
 
-export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, fire = null, marker = null }) {
+export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, fire = null, marker = null, tileMark = null }) {
   ensureArea(w, h);
   if (lastLinear !== night.linear) {
     gl.setLightSampling(night.linear);
@@ -173,6 +174,7 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
   if (ghost) emitGhost(ghost);
   if (hitShapes) emitHitShapes(hitShapes);
   if (marker) emitMarker(marker);
+  if (tileMark) emitTileMark(tileMark);
 
   const pp = player ? iso.toScreen(player.gx, player.gy) : { x: -9999, y: -9999 };
   gl.end({
