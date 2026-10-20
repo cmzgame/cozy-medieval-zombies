@@ -1524,6 +1524,7 @@ async function boot() {
       stationPanel.initStationPanel(() => S.player);
       talkPanel.initTalkPanel(() => S.player, () => S.villagers);
       navRow.initNavRow({ tap: input.tap, openChat: () => log.focusChat(log.draft()), openMenu: () => screens.show("pause"), openSettings: () => screens.show("settings"), canAct: () => inWorld && !screens.currentScreen() });
+      view.onResize(() => navRow.relayout()); // the row's layout follows the interface size, a screen up or not (#307)
       initHud();
       initPrompt();
       initZombieBars();
