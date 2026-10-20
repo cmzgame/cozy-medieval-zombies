@@ -53,6 +53,8 @@ Spun off: gems #281, trinkets #282, silver #283, the belt #285, unsafe water #27
 - `check("ground")` row 6 fails on main;
 - filed already: #250.
 
+**For Michael when he plays:** whether the dead that know you are inside press a fence with no time limit (#171); the movement blend's added delay against "snappy"; the map panel covering the HUD bars at small windows; a non-empty bag left in a chest by Take All.
+
 **Questions waiting on Michael:**
 - the sources' disagreements on #271;
 - villagers all immune (#103);

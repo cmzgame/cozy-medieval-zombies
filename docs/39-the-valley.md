@@ -76,7 +76,7 @@
 
 ### Structure
 
-- **Wall lanterns** [built]: 33 on the valley's walls, always lit, lighting their rooms (5.12).
+- **Wall lanterns** [built]: 33 on the valley's walls, always lit, each a point of light (5.12).
 - **Rooms** [built]: found by flood fill; a shed, hut, or forest cabin is one room, a house at least two; no roofs, one storey.
 - **A log wall** [built]: a log, with a hatchet carried.
 - **A door** [built]: three planks, with a smith's hammer; stamped over a wall, of the wall's material; starts closed; blocks sight and bodies.
@@ -416,7 +416,7 @@ The staff-and-book proposal (#275), proposed, not ruled, except the parts marked
 
 - **Torch** [built]: radius 3; starts unlit; lit with a tinderbox, a lit torch, a lantern, or a lit fire; doused with T; burns down (fastest in hand, slower on the belt, a post, or a bracket; a kill costs more); belt and hand never stack. Longer-burning with pitch (Woodcutting 3) or fish oil (Fishing 5) [to build].
 - **Lantern post** [built]: the village's lights, always lit, never out.
-- **Wall lanterns** [built]: 33 in the valley's buildings (`brackets[].lantern` in `data/maps/valley.json`), always lit, light their room, light a torch held to them, and cannot be taken.
+- **Wall lanterns** [built]: 33 in the valley's buildings (`brackets[].lantern` in `data/maps/valley.json`), always lit, each a point of light of 3.4 tiles like a lantern post (`src/light.js`), light a torch held to them, and cannot be taken.
 - **A carried lantern** [to build]: more light than a torch on the belt; fuel (fish oil) [open #275].
 - **Fireplaces and hearths** [built]: light their room.
 - **Campfire, torch post, wall bracket, jack-o'-lantern** [built in the data]: section 2 [open #273].
