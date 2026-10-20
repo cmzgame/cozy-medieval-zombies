@@ -146,6 +146,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
+- Every item in a grid or slot has a hover card, WoW's tooltip: a small dark rounded box with the full name, the kind, and the direct uses read from the data, Use in gold, following the pointer (2026-10-19, The item hover card; the law is 2026-10-18)
 - A Drink from unsafe water says "(tainted)", every source until purifying exists; a crop has Inspect, a line of what it is and how it stands with its tile marked, this client's own; the Harvest labels name the crop; Object Highlight, a dev setting on by default, outlines the game object under the pointer (2026-10-19, Unsafe water says so; a crop can be inspected; Object Highlight, a dev setting (Michael); the trough and the font tainted, Inspect this client's own, and the playtest's reading are Primary's, Michael's to overrule; what Object Highlight outlines and leaves out is the builder's reading, 2026-10-19, Object Highlight (#301))
 - Floating numbers over heads: a red -X for a hit, a green +X for a heal, a skill's icon with the number gained for a gather in white or black by the light, drawn from events the authority records, not from health diffs; a number over a body I cannot see is hidden; the fourteen skill icons are placeholder art in `ui/skill-icons.js` (2026-10-19, Floating numbers over heads, and an icon for each skill; the readings are the builder's, Michael's to overrule)
 - Moodles are for ongoing general needs (hunger, thirst, tiredness) and the infection; a specific negative effect, a bleed or a poison, is a debuff of its own, WoW-style (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk)
@@ -248,6 +249,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-19 — The item hover card: WoW's tooltip, built (#262; Michael's look, the builder's readings Michael's to overrule)
+
+Michael (after a playtest): "some of the dev items have long names that are unreadable and you really just have no idea what it is. Style this like item tooltips in wow when you hover. Little mostly black box, rounded, item name and basic details." The law stands (2026-10-18, "Every item in a grid has a hover card"); this is its look and its content. **Built as:** a small, mostly black box with rounded corners and a thin light border (`ui/hover-card.js`), the full name first, then the kind, then one short line each for what the data says it does (`item-info.js`: food heals and fills, a drink's fill, a weapon's damage, the hand or slot it is equipped to, a tool's verbs, what it can be **Use**d on from `data/interactions.json`, what a seed grows, what it is made at and goes into), the count, fill and wear, and a dim "Right-click for actions."; the word **Use** in `--gold`, the other menu words (Eat, Equip, Drink, Apply) bold white; it shows after `hoverCard.delayMs` (60 ms), follows the pointer, flips to stay on screen, and replaces the browser's title tooltip on every grid and slot (the bag, the belt, the hands, the worn slots, a chest, a body, a station's output); an empty slot shows its name. **The readings:** at most seven lines; a clothing, bag, or weapon item does not list what it goes into (every cloth item goes into a torch); an item's `note` is a dev note and is not shown. **Out of this build:** the build palette, a station's recipe rows, a prop in the world.
 
 ### 2026-10-19 — Object Highlight (#301; Michael's setting, the builder's readings Michael's to overrule)
 

@@ -40,6 +40,7 @@ import * as cursor from "./ui/cursor.js";
 import * as log from "./ui/log.js";
 import { initNames, updateNames } from "./ui/names.js";
 import * as floatersUi from "./ui/floaters.js"; // the numbers over heads (#294)
+import * as hoverCardUi from "./ui/hover-card.js"; // the card over an item (#262)
 import * as objectHighlight from "./highlight.js"; // the outline on the object under the cursor (#301)
 import * as floaters from "./floaters.js";
 import * as use from "./use.js";
@@ -1513,6 +1514,7 @@ async function boot() {
         },
       }); // before anything can show a message
       initNames();
+      hoverCardUi.initHoverCard();
       floatersUi.initFloaters();
       floaters.setGuestCheck(() => net.isGuest()); // a guest records none of its own: it draws what the host sent
       use.init();
