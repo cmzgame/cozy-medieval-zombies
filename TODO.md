@@ -21,21 +21,53 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
-## Status (2026-10-18, night: Michael's first playtest session, his cut-off)
+## Status (2026-10-19: the skills scope and the Valley 1.0 list)
 
-**Michael is playtesting**, one change at a time, and checking things off the wiki's **Valley day** page (cmzgame.github.io/cmz-wiki/valley-day.html). Nothing large is built while he plays: small fixes and his rulings only. He set this message as the cut-off for Valley day ("Make sure everything to this point is also in valley day wiki page... I am now going to bed. Any disagreements that come up you can toss on github somewhere"), and the page now has everything to then, including a section of what was decided or filed but not built.
+**The Valley 1.0 scope is `docs/39-the-valley.md`** (#271): the one complete list of everything in the valley, each entry built, to change, to build, or open with its issue. Michael's #1 priority (`docs/02` 2026-10-18) is to finish it. The places the sources disagree, which need his word, are listed on #271.
 
-**Merged during the playtest, reviewed, on the wiki:** the bag's X with a lit torch (#258: the panels redrew every frame); food heals what it says, full or not, and a well-fed body heals twice as fast (#259). The wiki gained a "Changed since verified" badge (wiki #17), the Day-one food page (wiki #18), and Special:All pages for reading every page in turn.
+**The skills are scoped** (#275, pinned): fourteen skills of ten levels each.
+- **Combat:** Melee, Magic, Ranged, Faith.
+- **Gathering:** Woodcutting, Mining, Fishing, Herbalism, Beastlore (#289).
+- **Production:** Farming, Cooking, Blacksmithing, Crafting, Potions.
+- **The pattern:** better at the thing along several vectors; unlocks, some from outside the valley; small utilities; feeding the other skills.
 
-**Ruled today in the playtest** (`docs/02`, 2026-10-18, newest first): health is a thousand (withdrawn the next day, for now: a player stays at a hundred, with max health growing through levels and gear Michael's leaning, `02` 2026-10-19), gear dropping by chance, the least armour just better than nothing (how strong the best gets is open), and weapons that differ by situation, with Michael's hope that regions keep drawing players back (#269); food rots, as pacing and not world decay ("no spoilage" struck), with in-world cutscenes wanted and open against "never a cutscene" (#267); day-one food is a tracked statistic (about 142 game days for one player on the wiki's count, far too generous) and what scripting villagers means (#265, #266); the hover card on every item in a grid is a law (#263, building it is #262); food heals in full (#259).
+Spun off: gems #281, trinkets #282, silver #283, the belt #285, unsafe water #279, respawns #288.
 
-**Filed today, Michael's ideas, design talk unless marked ruled:** bags and stacking (#260), furniture and rugs (#261), the hover card's build (#262), the food economy: a leaner start, rot's details, starving's cliff, auto-eat (#264), loot tables balanced: most containers roll the chest's table, so a valley holds about fourteen rucksacks and swords (#268). Comments added: the regions feed the skills and a dead-free first day (#123), the map redrawn with roomier buildings (#92), villagers all immune unless scripted, a leaning (#103), scripting and cutscenes (#106), drop chances, bad-luck protection, and personal loot (#268), ×10 health (since withdrawn) and armour (#133).
+**Ruled 2026-10-19** (`docs/02`):
+- skills may touch combat, open for discussion; death takes skills (#276);
+- health stays a hundred for now (#277);
+- natural water is unsafe until purified, a gamble that always quenches (#278, #280);
+- mana; drain heals never replace food; a region gates its spells (#278);
+- the belt's rules and a book costing the shield; capstone drops as policy (#284, #286);
+- the cure is mid to late game (#287);
+- a production skill's best is never the best of its kind, and repair is a stop-gap (#290).
 
-**Open, held for after the playtest:** #255 ("region, never biome": its "zone" deviation is Michael's word), #256 (dead code).
+**Merged in the game:** the extra starting items picked from a search (#274); the bag's X with a lit torch (#258); food heals in full (#259). **On the wiki:** the Dead ends page, Day-one food, the Changed-since-verified badge, and All pages.
 
-**Found and not yet filed, to file when the playtest ends:** (1) a guest's `quick` and Take All can name a *living* character as a container and take its gear, a player's hands included (`interact.containerAt` resolves any character id); (2) `containerOf` trusts the reach a guest sends; (3) the checks run all in one tab disturb each other (`players`, `poses`, `reach`, `rooms` fail and everything after `save` throws, though each passes alone); (4) `check("ground")` row 6 fails on main; and, filed: a guest's arrows step every third frame (#250). **For Michael when he plays:** whether the dead that know you are inside press a fence with no time limit (#171); the movement blend's added delay against "snappy"; the map panel covering the HUD bars at small windows; a non-empty bag left in a chest by Take All. **Questions waiting on him:** villagers all immune unless scripted (#103); in-world cutscenes against "never a cutscene" (#106); rot's reach, whether food nobody has found rots (#264); a "final boss" with phases against "no end boss" (#123); bars shown as a percent, how strong the best armour gets, boss health with more players, what flat armour stops, and whether flat armour still works on a hundred health (#133); bad-luck protection and personal loot (#268); "every thing a cell" meaning (#260).
+**Open, held:** #255 ("region, never biome": the zone word is Michael's), #256 (dead code).
 
-**Next: the Valley's final scope, Michael's #1 priority (#271, `docs/02` 2026-10-18): remind him of it first thing.** Then the rest of the playtest, and the skills scope (#275), the first piece of #271 Michael chose in chat; then the loot tables (#268) with the leaner start and rot (#264), learned recipes, which with skills unblock the wizard (#181); the lore issue (#217).
+**Found and not yet filed:**
+- a guest's `quick` and Take All can take a living character's gear (`interact.containerAt`);
+- `containerOf` trusts a guest's reach;
+- the checks run in one tab disturb each other;
+- `check("ground")` row 6 fails on main;
+- filed already: #250.
+
+**For Michael when he plays:** whether the dead that know you are inside press a fence with no time limit (#171); the movement blend's added delay against "snappy"; the map panel covering the HUD bars at small windows; a non-empty bag left in a chest by Take All.
+
+**Questions waiting on Michael:**
+- the sources' disagreements on #271;
+- villagers all immune (#103);
+- in-world cutscenes (#106);
+- rot's reach (#264);
+- the final boss (#123);
+- armour on a hundred health (#133);
+- bad-luck protection (#268);
+- "every thing a cell" (#260);
+- the companion (#289);
+- the staff-and-book proposal (#275).
+
+**Next:** settle #271's disagreements with Michael, then build from `docs/39` in an order he picks.
 
 ## Open work, by milestone
 
