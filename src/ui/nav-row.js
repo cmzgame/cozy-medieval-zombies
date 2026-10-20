@@ -5,6 +5,8 @@
 // the world's (the canvas never sees it). Its icons are dev art drawn here at boot (the placeholder rule): small pixel pictures with a dark
 // outline round them, scaled up crisp.
 
+import { skillIconHtml } from "./skill-icons.js"; // each skill's picture (#294), the same as over a gatherer's head
+
 let root = null;
 let skills = null;
 let hooks = {};
@@ -119,7 +121,7 @@ const ICONS = {
     "............"] },
 };
 
-// The fourteen skills (#275), for the skills panel until they are built.
+// The fourteen skills (#275), for the skills panel until they are built; their ids are ui/skill-icons.js's, the names in lower case.
 const SKILLS = [
   ["Combat", ["Melee", "Magic", "Ranged", "Faith"]],
   ["Gathering", ["Woodcutting", "Mining", "Fishing", "Herbalism", "Beastlore"]],
@@ -188,7 +190,7 @@ export function initNavRow(h) {
   skills.id = "skills-panel";
   skills.className = "inv-column kit-frame";
   skills.hidden = true;
-  skills.innerHTML = `<div class="inv-header kit-header"><span class="inv-title">Skills</span><span class="inv-tools"><button class="kit-button inv-close" data-skills-close title="Close">×</button></span></div><div class="kit-well sk-body">${SKILLS.map(([group, names]) => `<div class="sk-group"><div class="sk-group-name">${group}</div>${names.map((s) => `<div class="sk-row" data-skill="${s.toLowerCase()}"><span>${s}</span><span class="sk-level">1</span></div>`).join("")}</div>`).join("")}<div class="sk-note">Not built yet: every skill is level 1 of 10 (#275).</div></div>`;
+  skills.innerHTML = `<div class="inv-header kit-header"><span class="inv-title">Skills</span><span class="inv-tools"><button class="kit-button inv-close" data-skills-close title="Close">×</button></span></div><div class="kit-well sk-body">${SKILLS.map(([group, names]) => `<div class="sk-group"><div class="sk-group-name">${group}</div>${names.map((s) => `<div class="sk-row" data-skill="${s.toLowerCase()}"><span class="sk-name">${skillIconHtml(s.toLowerCase(), 1)}${s}</span><span class="sk-level">1</span></div>`).join("")}</div>`).join("")}<div class="sk-note">Not built yet: every skill is level 1 of 10 (#275).</div></div>`;
   document.getElementById("ui").appendChild(skills);
   skills.addEventListener("mousedown", (e) => {
     e.stopPropagation();

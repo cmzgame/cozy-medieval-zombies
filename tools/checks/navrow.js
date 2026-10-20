@@ -119,6 +119,7 @@ export async function run(game) {
     row("the skills panel is on the screen", r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth, `${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)} in ${innerWidth}x${innerHeight}`);
     row("the skills panel leaves the map's Centre and X clear", clear);
     row("it lists the fourteen skills", sk.querySelectorAll("[data-skill]").length === 14);
+    row("each skill has its picture", [...sk.querySelectorAll("[data-skill]")].every((r) => r.querySelector("img.skill-icon")?.src.startsWith("data:image/png")));
     key("Escape");
     step();
     row("Escape closes the skills panel first (the map stays)", !navRow.isSkillsOpen() && mapPanel.isOpen() && !btn("skills").classList.contains("on"));
