@@ -1,0 +1,62 @@
+{
+ "beehive_0": {
+  "anchor_px": [
+   23,
+   17
+  ],
+  "size": [
+   47,
+   44
+  ]
+ },
+ "beehive_1": {
+  "anchor_px": [
+   23,
+   17
+  ],
+  "size": [
+   47,
+   44
+  ]
+ },
+ "beehive_2": {
+  "anchor_px": [
+   23,
+   17
+  ],
+  "size": [
+   47,
+   44
+  ]
+ },
+ "chicken_coop_0": {
+  "anchor_px": [
+   53,
+   33
+  ],
+  "size": [
+   80,
+   75
+  ]
+ },
+ "chicken_coop_1": {
+  "anchor_px": [
+   53,
+   33
+  ],
+  "size": [
+   80,
+   75
+  ]
+ },
+ "chicken_coop_2": {
+  "anchor_px": [
+   53,
+   33
+  ],
+  "size": [
+   80,
+   75
+  ]
+ }
+}

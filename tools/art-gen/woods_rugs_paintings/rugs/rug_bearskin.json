@@ -1,0 +1,32 @@
+{
+ "anchorVertex": "top",
+ "facings": [
+  "y",
+  "x"
+ ],
+ "facingFootprint": {
+  "y": [
+   2,
+   3
+  ],
+  "x": [
+   3,
+   2
+  ]
+ },
+ "drawings": {
+  "y": {
+   "image": "data/art/village/rug_bearskin.png",
+   "anchor": [
+    77,
+    -15
+   ]
+  },
+  "x": {
+   "from": "y",
+   "mirror": true
+  }
+ },
+ "carry": true,
+ "note": "a bearskin hide, head at the far (-y) end (Michael, 2026-10-20): floor decoration, no outline, walkable (the map entry's solid: false); long side along y as drawn, along x as its mirror, as the bed"
+}

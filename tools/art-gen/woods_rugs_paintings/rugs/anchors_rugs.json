@@ -1,0 +1,62 @@
+{
+ "rug_bearskin_icon": {
+  "slot_cols_rows": [
+   1,
+   4
+  ],
+  "size": [
+   19,
+   76
+  ],
+  "drawn_from": "the rug rolled up, outlined as an item, the bear's head out of the top"
+ },
+ "rug_regal_red_icon": {
+  "slot_cols_rows": [
+   1,
+   4
+  ],
+  "size": [
+   19,
+   76
+  ],
+  "drawn_from": "the rug rolled up, outlined as an item"
+ },
+ "rug_bearskin": {
+  "anchor_px": [
+   77,
+   -15
+  ],
+  "size": [
+   110,
+   56
+  ],
+  "grip_px": [
+   55,
+   28
+  ],
+  "footprint_cols_rows": [
+   2,
+   3
+  ],
+  "along": "y"
+ },
+ "rug_regal_red": {
+  "anchor_px": [
+   89,
+   -3
+  ],
+  "size": [
+   146,
+   74
+  ],
+  "grip_px": [
+   73,
+   37
+  ],
+  "footprint_cols_rows": [
+   2,
+   3
+  ],
+  "along": "y"
+ }
+}
