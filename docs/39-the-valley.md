@@ -39,7 +39,7 @@
 - **The merchant's house:** a stone house and a storehouse (shelves, chests, barrels), a fenced yard with a cart; the Apprentice.
 - **The baker:** the oven, a table, a shelf, a barrel, a bed, a chest.
 - **The joiner:** the workshop (a workbench, the joiner's chest: a hatchet and a smith's hammer) and his rooms; the yard with a sawpit, two woodpiles, a wheelbarrow.
-- **The weaver:** the loom, a spinning wheel, the weaver's chest (flax seed, a belt knife), a fireplace; three dye vats in the yard.
+- **The weaver:** the loom, a spinning wheel, the weaver's chest (flax seed, a dirk), a fireplace; three dye vats in the yard.
 - **The smithy:** the forge, the anvil, a grindstone, the smithy's chest (iron bars, charcoal), the smith's room; a charcoal clamp, a woodpile, and a cart in the yard.
 - **The toll house** by the bridge: a strongbox, a bed, a chest, a shelf. Its barrier gate across the road [to build].
 - **Eight cottages:** one by the merchant's, the cooper's long house, one by the baker's, the chandler's house (with a workbench in its lean-to), the first and second on the lane, the shut cottage (the Neighbour), the reeve's house (the Reeve). Three gardens have an apple tree.
@@ -143,7 +143,7 @@ One panel for every station; ingredients from the bag, the belt, and every conta
 - **Workbench** [built] (the joiner's, the chandler's; your own at Woodcutting 7): a torch (a stick and cloth); rags from any garment (a knife carried); two sticks from a plank (a hatchet); a hoe and a shovel (a stick and a plank, a hammer); a fishing rod (a stick and cloth, a knife); a hunting bow (two sticks and cloth, a knife); five arrows (a stick, a knife); a wooden shield (three planks, a hammer); a bucket (three planks, a hammer); a chest, a shelf, a bench, a table, a bed, a workbench, a wheelbarrow (planks, a log, cloth, an iron bar; a hammer). Unlock: open to all today [change: by Crafting level and wood; bows and arrows at Crafting 4; the workbench recipe itself at Woodcutting 7] [open #275: the levels of the hoe, shovel, fishing rod, wooden shield, and wheelbarrow, which the Crafting tree does not name].
 - **Loom** [built] (the weaver's): linen cloth (two flax); two bandages (a cloth); a linen cap, linen breeches, a linen tunic (one, two, three cloth). Unlock: open to all today [change: Crafting 1 names linen cloth, bandages, and the cap] [open #275: the tunic's and the breeches' levels]. Woollen cloth and warm clothes (Crafting 6) [to build]; a leather jerkin (`docs/30` step 8) [open #275].
 - **Forge** [built] (the smithy's): an iron bar from two iron ore; burns charcoal. Unlock: Blacksmithing 1. Silver (Blacksmithing 5) [to build]; less charcoal a bar (Blacksmithing 2) [change: charcoal is the fire's fuel today, not an ingredient].
-- **Anvil** [built] (the smithy's; a smith's hammer in hand, except for forging the hammer itself): a belt knife, a smith's hammer, a hatchet, a pickaxe (Blacksmithing 1); a scythe, a throwing spear, a flanged mace, an arming sword [change: Blacksmithing 3]; repair (Blacksmithing 4), silver work (5), mail and plate (7) [to build].
+- **Anvil** [built] (the smithy's; a smith's hammer in hand, except for forging the hammer itself): a dirk, a smith's hammer, a hatchet, a pickaxe (Blacksmithing 1); a scythe, a throwing spear, a flanged mace, an arming sword [change: Blacksmithing 3]; repair (Blacksmithing 4), silver work (5), mail and plate (7) [to build].
 - **Cooking at a fire** [built] (any lit fire that cooks: the nineteen fireplaces, a hearth, a campfire): a roast potato, stew, porridge, grilled perch, trout, and carp. Unlock: Cooking 1 [change: the stew is not among Cooking 1's plain recipes] [open #275: whether it is Cooking 4's hearty stew]. Boiling water safe (Cooking 1) [to build].
 - **Oven** [built] (the baker's): a loaf of bread (two flour), a pumpkin pie (a pumpkin and flour) [change: pie at Cooking 6]. [change: the oven cooks the fire's recipes too (#273: it does not today).]
 - **Millstones** [built] (the mill's): flour from two grain; no fire. Unlock: none named [open #275].
@@ -185,6 +185,8 @@ What comes back, today: ore rocks in place after three game days; apple trees be
 
 ## 5. Items, by kind
 
+**Stacking** (ruled 2026-10-19): pemmican is the only food that stacks; every other food takes a cell of its own (#260) [change: foods stack today].
+
 Every item in `data/items.json` is here with how it is had today; each new item names its source. Item art comes as a pair (and a portrait if held or worn); every item has a hover card (#262). Which items stack, and every item one cell [open #260].
 
 ### 5.1 Tools
@@ -194,7 +196,7 @@ Every item in `data/items.json` is here with how it is had today; each new item 
 - **Hoe** [built]: tills grass and dirt. The great barn's rack; made at the workbench.
 - **Scythe** [built]: harvests a row of rye at a swing; cuts hay [open #275: no recipe uses straw]. Made at the anvil [change: Blacksmithing 3].
 - **Shovel** [built]: digs potatoes and garlic. The home chest; made at the workbench. Digging graves, the buried chest, and plots [to build]; uprooting stumps (Woodcutting 4) [to build].
-- **Belt knife** [built]: harvests cabbages and pumpkins; the bow, arrows, rod, and rags need it carried. The weaver's chest; made at the anvil (Blacksmithing 1). Skinning and butchering [to build] (Beastlore); gutting fish [to build] (Fishing 3).
+- **Dirk** [built] (renamed from the belt knife, 2026-10-19): harvests cabbages and pumpkins; the bow, arrows, rod, and rags need it carried. The weaver's chest; made at the anvil (Blacksmithing 1). Skinning and butchering [to build] (Beastlore); gutting fish [to build] (Fishing 3).
 - **Smith's hammer** [built]: the anvil's recipes (in hand); doors, windows, boards, Remove, and the workbench's furniture and tools (carried). The joiner's and the quarryman's chests; made at the anvil with no hammer needed (Blacksmithing 1).
 - **Fishing rod** [built]: Cast the line at water (Fishing 1). Made at the workbench [open #275: its Crafting level].
 - **Bucket** [built]: fill at water, pour on a plot (3 by 3). The home chest; made at the workbench.
@@ -211,7 +213,7 @@ The numbers are each weapon's block in `data/items.json` and `data/combat.json`.
 **Melee**
 - **Fists** [built].
 - **Stick, plank, torch** [built]: Melee 1. The stick from a body, a haystack, or a split plank; the plank from the kit, a split log, chest loot.
-- **Hatchet, belt knife, and the tools as weapons** [built]: Melee 1 for the hatchet and the knife; weapons with a kill count each (the hatchet 20, the knife 5, the fishing rod 3; `data/items.json`).
+- **Hatchet, dirk, and the tools as weapons** [built]: Melee 1 for the hatchet and the dirk; weapons with a kill count each (the hatchet 20, the dirk 5, the fishing rod 3; `data/items.json`).
 - **Arming sword** [built]: Melee 1; chest loot; made at the anvil [change: Blacksmithing 3].
 - **Wooden shield** [built]: block; Melee 1; made at the workbench.
 - **Throwing spear** [built]: stab (Melee 1), throw [change: Melee 5]; made at the anvil [change: Blacksmithing 3].
@@ -342,14 +344,14 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 
 All [to build]: brewed at a cauldron from Herbalism's herbs and secondaries; drunk from the bag or the belt.
 
-- **Minor healing potion:** Potions 1; the only big heal (ruled: food heals a little, potions big).
+- **Healing potion:** Potions 1 (not "minor" unless a major one is a separate item, ruled 2026-10-19); the only big heal (ruled: food heals a little, potions big).
 - **Healing potions two at a brew:** Potions 2.
 - **Stamina potion:** Potions 3.
 - **Mana potion:** Potions 4.
 - **Poisons:** Potions 5 (nightshade, wolfsbane); coat a blade or an arrow.
 - **Stronger potions** (Potions 6), **one more a brew** (Potions 9).
 - **Throwing potions:** Potions 7; an offensive one bursts where it lands; a healing or mana potion splashes a friend.
-- **Life Ward:** temporary immunity to bites; unlocked at Faith 3 [open #275: who brews it].
+- **Life Ward:** temporary immunity to bites; unlocked at Faith 3 [open #275: a spell or a potion; Michael: "I think this was meant to be a spell"].
 - **A curing potion** for the infection [open #275]: mid to late game, gated by skill (ruled), and found beyond the valley (ruled 2026-10-19).
 - **A herb tea that restores stamina** (`docs/30`'s cauldron) [open #275].
 - **Warding potions against the cold** (Potions 8, the Pale Reach) and **Divine Potions** (Potions 10, the Crimson Abbey's herb): names only.
@@ -539,7 +541,7 @@ A skill's level gate stops a player harvesting the food it gates, ripe fields in
 **The pattern** (Michael, #275): each skill makes you better at the thing itself along several vectors; unlocks new things, some from outside the valley; adds small utilities; and feeds other skills. **Ten levels**, ten the intended stopping point; experience for doing the thing, ten the longest to reach (the numbers tbd); an unlock is a hard gate, shown on the hover card; **death takes skills** (how much [open #275]); **a production skill's best is never the best of its kind** (the best comes from bosses); each skill explains itself in the game. Every skill and level is [to build]; [change] marks a level that gates something open to all today. A level naming a region is a name only.
 
 ### Melee (combat)
-1. Weapons: the torch, arming sword, wooden shield, stick, plank, hatchet, belt knife, throwing spear.
+1. Weapons: the torch, arming sword, wooden shield, stick, plank, hatchet, dirk, throwing spear.
 2. Swings cost 10% less stamina.
 3. The flanged mace [change].
 4. The halberd [change].
@@ -671,7 +673,7 @@ A skill's level gate stops a player harvesting the food it gates, ripe fields in
 10. The feast.
 
 ### Blacksmithing (production; weapons and metal armour at the forge and anvil)
-1. Smelting iron; the belt knife, smith's hammer, hatchet, pickaxe (as now).
+1. Smelting iron; the dirk, smith's hammer, hatchet, pickaxe (as now).
 2. Less charcoal a bar [change].
 3. The iron weapons: the sword, mace, spear, scythe [change].
 4. Repairing at the anvil, a stop-gap: each repair gives back less; made weapons and tools only.
@@ -696,7 +698,7 @@ Later, not at the start: gems inlaid in metal armour.
 10. The best bag the valley makes.
 
 ### Potions (production; at a cauldron, from Herbalism)
-1. The minor healing potion.
+1. The healing potion.
 2. Healing potions two at a time.
 3. Stamina potions.
 4. Mana potions.
@@ -871,7 +873,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 ## 12. The interface
 
 ### Built
-- **The HUD:** the portrait, health and stamina bars, and the hands top-left; the clock top centre; the moodles down the right (bleeding, infection, hunger, thirst, tiredness); the log and chat bottom-left, resizable; the swing timer and the exposure bar; a floating health bar on one of the dead you hurt; your own over your head once hurt; names over other players' heads.
+- **The HUD:** the portrait, health and stamina bars, and the hands top-left; the clock top centre; the moodles down the right (hunger, thirst, tiredness, and the infection) and the debuffs, apart from them, WoW-style (bleeding, poison, the sickness from unsafe water) (ruled 2026-10-19) [to build: debuffs apart]; the log and chat bottom-left, resizable; the swing timer and the exposure bar; a floating health bar on one of the dead you hurt; your own over your head once hurt; names over other players' heads.
 - **The bag, the character screen** (the paper doll, the worn slots with their eyes, the hands, the belt), **the belt bar**.
 - **Containers and bodies** as panels with Take All; **the station panel**; **the talk panel**; **the map on M**; **the build palette**; **the right-click menu**; **the Use mode's gold outline and label**; **prompts** ("E: ..."); **speech bubbles**; **the aim guide** (off by default); **swing targets and hit shapes** (testing).
 - **The site and the screens:** the title (Worlds, Identities, Settings, Controls), New world with its Sandbox step, the loading screens, the pause menu (Resume, Save world, Character, Settings, Controls, Exit game), the dead screen (New character, Exit game), Settings in tabs (Display, Testing).
@@ -884,7 +886,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 - **The belt slot's hand choice**, marked in its menu (#285).
 - **The station panel showing only learned recipes**, and what a missing level needs [open #275].
 - **Learn at a teacher** [open #275].
-- **Moodles** for the sickness from unsafe water [open #279], for well fed and food buffs [open #275], for rot's state on an item [open #264]; clean or unsafe water on a skin [open #279].
+- **Debuffs and buffs** apart from the moodles (ruled 2026-10-19): the sickness from unsafe water a debuff [numbers open #279]; well fed and food buffs as buffs [open #275]; for rot's state on an item [open #264]; clean or unsafe water on a skin [open #279].
 - **A spell bar** [open #275]: only if spells come from no staff or book.
 - **Bars as a percent** [open #133]: a possibility.
 
@@ -896,10 +898,10 @@ Placeholder sounds, generated or from a library [open #271]; every informative s
 - Footsteps by surface: grass, dirt, cobble, wood, stone, shallow water (the walk).
 - Breath when stamina runs low (the bar).
 - Hurt, by a bite (the bar, a flash).
-- A bleed opens; a bandage applied (the moodle).
+- A bleed opens; a bandage applied (the debuff).
 - Eat; drink from a skin, at water, a sip by itself (the log line).
 - A need reaches a new stage: a stomach, a dry throat, a yawn (the moodle).
-- The sickness comes; the infection worsens (the moodle).
+- The sickness comes (the debuff); the infection worsens (the moodle).
 - Death (the dead screen).
 - A level-up; an unlock learned (a burst over the head, the log line).
 

@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Pemmican is the only food that stacks; every other food takes a cell each, so cooking is worth more per bag slot; hearty cooked dishes carry buffs, a food weighed by how long it keeps, how much it heals, how full it makes you, and its buff (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk)
 - The wizard is alive, a teacher; a skill's level gate stops a player harvesting the food it gates, ripe fields included; every container's loot table is provisional until ruled, and the loot tables are likely the Valley scope's last step (Michael: "this might be the last thing") (2026-10-19, The valley has no cure; the wizard lives; the witch teaches Potions; gates stop a harvest; every loot table provisional; two old limits struck)
 - Unsafe water always quenches thirst and never guarantees a penalty: a drink may bring a small sickness that passes (more tired, slower to heal), and carries a small real chance of the infection, a second way in beside a bite; the waterskin sips by itself only clean water, and unsafe water may still be carried; crops take any water (2026-10-19, Unsafe water: a sickness that may come and passes; the skin sips only clean water; crops take any water)
 - All natural water, water tiles and wells, is unsafe until purified; how it is purified is open (#279; open question 34) (2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region gates its spells; what it does narrowed (2026-10-19, Unsafe water: a sickness that may come and passes; the skin sips only clean water; crops take any water))
@@ -143,6 +144,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
+- Moodles are for ongoing general needs (hunger, thirst, tiredness) and the infection; a specific negative effect, a bleed or a poison, is a debuff of its own, WoW-style (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk)
 - The belt: its key uses up a consumable and swaps a held item into its own hand (2026-10-10), plus a lantern carried there for more light than a torch's, and the halberd, perhaps the greatsword, never on it (2026-10-19, The belt restated and added to; a book in the off hand costs the shield; the Holy Symbol is Faith's staff, within the proposal); a slot's key does one thing, a held item now going to the hand chosen for that slot in its right-click menu, the item's own hand by default; no left-click parity (2026-10-19, A belt slot's key does one thing, into the hand chosen for that slot; no left-click parity)
 - Every item in a grid or slot has a hover card with at least its full name and its direct uses, read from the data by default; "Use" capitalised and in the Use mode's gold (2026-10-18, Every item in a grid has a hover card)
 - An eye on each worn slot hides that item's art and keeps every use; the choice stays with the slot across re-equips, by default (2026-10-18, Hiding a worn item's art: an eye on each worn slot)
@@ -242,6 +244,27 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-19 — Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk (Michael)
+
+Quick hits on the Valley 1.0 scope (`docs/39`):
+
+> "Belt knife -> Knife or Dirk"
+
+> "We need to be careful with what is a moodle and what is not. We are going to need to separate the concept of debuffs out, more WoW style. Bleeds and poisons should go here. Reserving moodles for anything that is a general ongoing need rather than a specific negative effect, excepting zombie infection which should stay a moodle"
+
+> "Remove "minor" from healing potions unless we are making major ones a separate item"
+
+> "I also like these more explicit heartier foods as the ones that carry buffs. Like maybe Bacon and Eggs gives you a 10% greater natural healing for 5 real minutes? Or it gives you cold resistance or something? I do think we should have foods that do stuff like this, so you have to balance when it will go bad, how much it heals for, how full it makes you, AND whether it provides a useful buff."
+
+> "I wouldn't mind making Pemmican the only food that can stack. That gives a small-to-mid food reason to make it besides the no going bad thing. And I like other food not stacking because it pushes you to convert it into cooked foods because it's worth more per bag slot. Otherwise you can just bring a million stacks of apples and just eat constantly during any encounter for infinite healing."
+
+- **The belt knife is renamed the Dirk** (its id stays `knife`). *Primary's pick* of Michael's two: "Knife" is already the Throwing Knife's short name.
+- **Debuffs are apart from moodles,** WoW-style. A moodle is a general ongoing need (hunger, thirst, tiredness), and the infection stays a moodle; a specific negative effect is a debuff: bleeding and poison, and *Primary's reading* the sickness from unsafe water too (which settles its name clash with the infection's "Sick" stage, #279).
+- **A healing potion is not "minor"** unless a major one becomes a separate item.
+- **Hearty cooked dishes carry buffs** (for example bacon and eggs: more natural healing for a while, or resistance to the cold). Every food is weighed four ways: how long it keeps, how much it heals, how full it makes you, and whether its buff is useful. The dishes and their buffs are the skills scope's (Cooking, #275).
+- **Pemmican is the only food that stacks.** Every other food takes a cell of its own, so a cooked dish is worth more per bag slot than its raw parts and nobody carries "a million stacks of apples" into a fight (#260).
+- **Open:** Life Ward, a spell or a potion (Michael: "I think this was meant to be a spell when I first mentioned it"; #275).
 
 ### 2026-10-19 — The valley has no cure; the wizard lives; the witch teaches Potions; gates stop a harvest; every loot table provisional; two old limits struck (Michael)
 

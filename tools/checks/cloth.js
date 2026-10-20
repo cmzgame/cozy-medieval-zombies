@@ -114,10 +114,10 @@ export async function run(game) {
     const benchChest = chestBeside(bench, [["tunic", 1], ["stick", 2]]);
     standBy(bench, 1.9);
     const noKnife = craft(bench, "tear_tunic");
-    row("tearing a garment wants a knife on you: without one it is refused, the tunic stays", !noKnife.ok && /knife/.test(noKnife.reason) && benchChest.bag.items.some((e) => e.id === "tunic"), String(noKnife.reason));
+    row("tearing a garment wants a knife on you: without one it is refused, the tunic stays", !noKnife.ok && /dirk/.test(noKnife.reason) && benchChest.bag.items.some((e) => e.id === "tunic"), String(noKnife.reason));
     const inChest = G.grid.add(benchChest.bag, "knife", 1);
     const chestKnife = craft(bench, "tear_tunic");
-    row("a knife in a chest within reach does not count: it has to be on you", inChest > 0 && !chestKnife.ok && /knife/.test(chestKnife.reason), String(chestKnife.reason));
+    row("a knife in a chest within reach does not count: it has to be on you", inChest > 0 && !chestKnife.ok && /dirk/.test(chestKnife.reason), String(chestKnife.reason));
     benchChest.bag.items = benchChest.bag.items.filter((e) => e.id !== "knife");
     const slot = belt ? belt.findIndex((e) => !e) : -1;
     if (slot >= 0) {
