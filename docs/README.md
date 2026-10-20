@@ -37,7 +37,7 @@ One line per doc, with its kind (`CLAUDE.md`, "What a doc is"): a **rule** (bind
 - `30-the-big-pass-spec.md` — the big pass: the needs, every verb, the stations, fire as maintenance, durability, farming (step 4, pickable), the map place by place (steps 5 to 9, each needing a scope), the one engine list (section 12), the open questions (section 15).
 - `31-multiplayer/` — `README` the index and status; `03` play with friends, system by system (the wiki's "With friends" source); `04` the wire as built; `05` the 37 seams as a table (the numbers are cited everywhere); `08` the six habits behind `CLAUDE.md`'s multiplayer rule; `09` worlds, identities, characters, dormancy, the rejoin.
 - `32-better-animations.md` — the rig's pose data and the poses still to build (items 4 to 9; milestone Better animations).
-- `art/README.md` and `art/01-style-bible.md` — the live art reference: the folder's index and the rulebook for drawn art, the first page for a commissioned artist. `art/02` to `10` are the record of each delivery, corrected where the game moved on.
+- `art/README.md` and `art/01-style-bible.md` — the live art reference: the folder's index and the rulebook for drawn art, the first page for a commissioned artist. `art/02` to `10` are the record of each delivery, corrected where the game moved on; `art/11` is the next brief to Claude Design (the fence and the everyday items, #309).
 
 ## Specs: not built, or the unbuilt half
 
