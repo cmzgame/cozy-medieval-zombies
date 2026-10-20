@@ -5822,13 +5822,46 @@
     56,
     238,
     44,
-    3
+    4
    ],
    "padding": 0,
    "buildings": [],
    "floorRects": [],
    "fences": [],
    "props": [
+    {
+     "sprite": "well",
+     "tile": [
+      28,
+      1
+     ],
+     "note": "Hollow Farm's well (29/05)"
+    },
+    {
+     "sprite": "woodpile",
+     "tile": [
+      4,
+      0
+     ]
+    },
+    {
+     "sprite": "woodpile",
+     "tile": [
+      5,
+      0
+     ]
+    },
+    {
+     "sprite": "cart",
+     "tile": [
+      10,
+      0
+     ],
+     "footprint": [
+      2,
+      3
+     ]
+    },
     {
      "sprite": "chicken_coop",
      "tile": [
@@ -5860,6 +5893,17 @@
      "sprite": "beehive",
      "tile": [
       43,
+      1
+     ]
+    },
+    {
+     "sprite": "trough",
+     "tile": [
+      3,
+      3
+     ],
+     "footprint": [
+      2,
       1
      ]
     }
@@ -12277,50 +12321,6 @@
    "tile": [
     97,
     94
-   ]
-  },
-  {
-   "sprite": "well",
-   "tile": [
-    84,
-    239
-   ],
-   "note": "Hollow Farm's well (29/05)"
-  },
-  {
-   "sprite": "woodpile",
-   "tile": [
-    60,
-    238
-   ]
-  },
-  {
-   "sprite": "woodpile",
-   "tile": [
-    61,
-    238
-   ]
-  },
-  {
-   "sprite": "cart",
-   "tile": [
-    66,
-    238
-   ],
-   "footprint": [
-    2,
-    3
-   ]
-  },
-  {
-   "sprite": "trough",
-   "tile": [
-    59,
-    241
-   ],
-   "footprint": [
-    2,
-    1
    ]
   },
   {
