@@ -712,9 +712,10 @@ function worldRuleRow(entry, value, attrs, locked = false, why = "the host's") {
 // backs it out". The Keyboard Lock API gives Esc to the page while fullscreen lasts; the browser then asks for Esc to be held to leave it,
 // and says so in its own banner. It is Chromium's alone, so elsewhere nothing changes and the row says the first Esc is the browser's.
 const escLockable = () => !!(navigator.keyboard && navigator.keyboard.lock);
+let lockRefused = false; // the browser refused the lock once (an iframe, a policy): the help line says so from then on
 function lockEscape() {
   if (!escLockable() || !document.fullscreenElement) return;
-  return Promise.resolve(navigator.keyboard.lock(["Escape"])).catch(() => {}); // refused (an iframe, a policy): the browser's Esc, as before
+  return Promise.resolve(navigator.keyboard.lock(["Escape"])).catch(() => { lockRefused = true; }); // refused: the browser's Esc, as before
 }
 function unlockEscape() {
   if (navigator.keyboard && navigator.keyboard.unlock) navigator.keyboard.unlock();
@@ -726,7 +727,7 @@ function unlockEscape() {
 function fullscreenRow() {
   const can = !!(document.fullscreenEnabled && document.documentElement.requestFullscreen);
   const on = !!document.fullscreenElement;
-  const help = !can ? "This browser does not allow fullscreen here." : escLockable() ? "The game fills the whole screen. Esc closes menus as usual; hold Esc to leave fullscreen." : "The game fills the whole screen. In this browser Esc leaves fullscreen first; a second Esc pauses.";
+  const help = !can ? "This browser does not allow fullscreen here." : escLockable() && !lockRefused ? "The game fills the whole screen. Esc closes menus as usual; hold Esc to leave fullscreen." : "The game fills the whole screen. In this browser Esc leaves fullscreen first; the next one reaches the game.";
   return `<div class="setting"><span class="setting-label">Fullscreen<small class="help">${help}</small></span><span class="control"><span class="switch-state">${on ? "On" : "Off"}</span>${switchHtml(on, `data-go="fullscreen"`, !can)}</span></div>`;
 }
 
