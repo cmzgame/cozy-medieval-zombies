@@ -448,16 +448,16 @@ The staff-and-book proposal (#275), proposed, not ruled, except the parts marked
 
 ### Villagers to place [to build]
 
-- **The wizard** (#181): friendly, robes and hat, a beard (Michael's art); immune; teaches Magic and Potions (ruled); gives the Staff of Fire, the Book of Fire, or one [open #181]; where he lives [open #181].
+- **The wizard** (#181): friendly, robes and hat, a beard (Michael's art); alive, immune; teaches Magic (ruled; Potions is the witch's, 2026-10-19); gives the Staff of Fire, the Book of Fire, or one [open #181]; where he lives [open #181].
 - **The witch** at the mere: keeps the cauldron and the herb garden (`docs/30`, `docs/29-world/06`).
 - **The shepherd** at the croft; **two woodcutters** at their camp; **the hunter** at his lodge; **the bandits' prisoner** in the cage (`docs/29-world/08`).
 - **Names for all** [open #92].
 
 ### Teachers
 
-One per skill, immune, teaching recipes and unlocks as you level [to build]; which villager teaches what, and what Learn looks like [open #275]. Only the wizard is named as a teacher; the places and villagers below are where the sources point, not teachers named:
+One per skill, immune, teaching recipes and unlocks as you level [to build]; which villager teaches what, and what Learn looks like [open #275]. Only the wizard (Magic) and the witch (Potions) are named as teachers; the places and villagers below are where the sources point, not teachers named:
 - **Magic:** the wizard (ruled).
-- **Potions:** the wizard (ruled 2026-10-18); the witch keeps the cauldron (`docs/30`) [open #275].
+- **Potions:** the witch, at her cauldron (ruled 2026-10-19).
 - **Herbalism:** the witch's garden (`docs/29-world/06`) [open #275].
 - **Faith:** the Priest, at the chapel's altar [open #275].
 - **Farming:** none named; the Miller is not immune because "he teaches nothing yet" [open #275].
@@ -533,6 +533,8 @@ None in the game today. All [to build] unless marked.
   - one mechanic with a region's death-school thrall.
 
 ## 9. Professions
+
+A skill's level gate stops a player harvesting what it gates, ripe fields included (ruled 2026-10-19).
 
 **The pattern** (Michael, #275): each skill makes you better at the thing itself along several vectors; unlocks new things, some from outside the valley; adds small utilities; and feeds other skills. **Ten levels**, ten the intended stopping point; experience for doing the thing, ten the longest to reach (the numbers tbd); an unlock is a hard gate, shown on the hover card; **death takes skills** (how much [open #275]); **a production skill's best is never the best of its kind** (the best comes from bosses); each skill explains itself in the game. Every skill and level is [to build]; [change] marks a level that gates something open to all today. A level naming a region is a name only.
 
@@ -743,7 +745,7 @@ Later, not at the start: gems inlaid in metal armour.
 ### Bleeding, the infection, and the cure
 - **Bleeding** [built]: a bite may open a wound, up to five stacks, draining faster with each; a bandage closes it; runs out by itself.
 - **The infection** [built as a marker]: a chance on a landed bite; four stages over about a day and a half (Bitten, Fevered, Sick, Turning); no effect yet [open #275, #123: its real effects]. A second way in: a drink of unsafe water [to build].
-- **The cure** [to build]: mid to late game, gated by skill (ruled): Faith's Cure Undeath (learned in a region), any curing potion [open #275]. **Life Ward** against bites (Faith 3). The infection and combat difficulty are one dial [open #279: whether water's chance follows it].
+- **The cure** [to build]: mid to late game, gated by skill, and **not in the valley** (ruled 2026-10-19): found beyond it (Faith's Cure Undeath, learned in a region; any curing potion [open #275]). **Life Ward** against bites (Faith 3). The infection and combat difficulty are one dial [open #279: whether water's chance follows it].
 
 ### Mana
 - **Mana** [to build]: spells cost it; slow natural regeneration; mana potions (Potions 4); a free top-up praying at an altar (Faith 1); more mana (Faith 4); cheaper spells (Magic 2); perhaps special foods later. A mana bar [to build].
@@ -780,7 +782,7 @@ Later, not at the start: gems inlaid in metal armour.
 - **Lasts 25% longer** (Blacksmithing 9) [to build].
 
 ### Drops by chance
-- **Loot tables** [built]: fixed tables for the placed chests; rolled tables for the rest [change: a table per kind of container, gear rare and where it makes sense, #268].
+- **Loot tables** [built]: fixed tables for the placed chests; rolled tables for the rest [change: a table per kind of container, gear rare and where it makes sense, #268]. **Every loot table is provisional** until ruled otherwise; they are this scope's last step, once every item is known (ruled 2026-10-19).
 - **Gear drops by chance** [to build] (ruled): a lever not yet used.
 - **Bad-luck protection and personal loot** [open #268].
 - **A boss's capstone drop:** a region's.

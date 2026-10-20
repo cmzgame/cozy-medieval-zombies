@@ -6,7 +6,7 @@
 
 The pass that gives the game its stuff and its reasons: the needs that keep you alive, the verbs you have on the world, the items and their interactions, the stations and their recipes, farming, tools, durability, fire as maintenance, and the 1.0 map those things live on, built place by place. At its end the player can list every action the game offers by walking the village, and the loop closes without a vendor: everything `22` names has a source on the map and a station that uses it (`29/08`, the table).
 
-What it is not: new combat rules (paused), magic beyond the two items that exist, quests, story, trade, travel, roofs, floors, animals beyond two, weather, seasons.
+What it is not: new combat rules (paused), magic beyond the two items that exist, quests, story, trade, travel, roofs, floors, animals beyond two (since widened: Beastlore, `02` 2026-10-19), weather, seasons.
 
 ## 2. The laws this pass adds
 
@@ -20,7 +20,7 @@ Rulings, all in `02`:
 6. **Sleep fast-forwards the simulation.** Only in a bed, indoors; the clock runs fast with the world simulated at that speed until morning; you are never woken; you get up. Decided by the co-op tiebreaker of 2026-10-12 (since replaced by the multiplayer rule, `31/08`): the sim runs, nothing is poked. With friends in the world, time runs fast only while every living player in it is in bed (`02`, 2026-10-13).
 7. **Nothing waits for art.** Every new thing has a placeholder from boot through the same sheet interface; a bookcase is a box with a definition until the picture arrives (`CLAUDE.md`'s rule, applied to every item below).
 8. **Water stops walkers.** A tile that is wholly water is unwalkable by every entity: you, the dead, villagers, animals (Michael, 2026-10-12: "it also segments the map"). The bank's blend is ground. The ford and the weir's crest are a shallow kind with stones showing, never blue water, slow for everyone. The river and its crossings are the map's shape (`29`); you drink and fill from any water beside you, as from the well. Boats are someday (`05`); for now water is a source of water and, later, of fish, and that is all.
-9. **Animals last.** Chickens and deer are the last step, so nothing before them depends on them; the knife's skinning, raw meat, leather, and the tannery ride with them.
+9. **Animals last.** (Narrowed, `02` 2026-10-19: Beastlore's animals, #289.) Chickens and deer are the last step, so nothing before them depends on them; the knife's skinning, raw meat, leather, and the tannery ride with them.
 
 ## 3. Staying alive: the needs
 
