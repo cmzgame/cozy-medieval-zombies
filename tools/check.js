@@ -143,6 +143,8 @@ const kitModule = await import("../src/kit.js");
 const worldMod = await import("../src/world.js");
 const chartModule = await import("../src/chart.js");
 const floatersMod = await import("../src/floaters.js");
+const itemInfoMod = await import("../src/item-info.js");
+const itemsMod = await import("../src/items.js");
 const playerMod = await import("../src/entities/player.js");
 const verbsMod = await import("../src/verbs.js");
 const netsmoothTool = await import("./netsmooth.js");
@@ -204,6 +206,30 @@ check("net: a body that walks, stands, and walks again (a record only when it mo
   assert(d.start.slice(0, 6).every((x) => x > 0.9 && x < 1.1), `it set off ${d.start.slice(0, 6).map((x) => x.toFixed(2)).join(" ")} (1 is steady)`);
   assert(without.restOffset > 0.05, "without hold the offset at rest is gone: the measurement is not measuring it");
   return `at rest 0 off (0.10 without hold); the first steps ${d.start.slice(0, 4).map((x) => x.toFixed(2)).join(" ")}`;
+});
+// The hover card (#262): every item's card says its own full name and a kind, no two read alike though six are drawn "Seed", food says what eating heals and fills,
+// and the word Use is its own segment. (The card on the page, its place and its look, is `check("hovercard")`'s, in the pane.)
+check("hover card: every item's card has its own full name, a kind, and what it does, read from the data", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const defs = itemsMod.allItems();
+  const names = new Map();
+  let food = 0;
+  for (const d of defs) {
+    const c = itemInfoMod.cardFor(itemsMod.makeEntry(d.id));
+    assert(c.name === d.name && c.kind, `${d.id}: the card said ${JSON.stringify(c.name)} / ${JSON.stringify(c.kind)}`);
+    names.set(c.name, (names.get(c.name) || 0) + 1);
+    if (d.kind === "food") {
+      food++;
+      assert(c.lines.some((l) => l[0].t === "Eat" && l.map((s) => s.t).join("").startsWith("Eat: heals")), `${d.id}: no Eat line`);
+    }
+    for (const s of c.lines.flat()) assert(s.k !== "use" || s.t === "Use", `${d.id}: the word Use was written ${s.t}`);
+  }
+  const dup = [...names].filter(([, n]) => n > 1).map(([k]) => k);
+  assert(dup.length === 0, `two items share a card name: ${dup.join(", ")}`);
+  const tb = itemInfoMod.cardFor(itemsMod.makeEntry("tinderbox"));
+  assert(tb.lines.flat().some((s) => s.k === "use" && s.t === "Use"), "the tinderbox's card has no Use");
+  return `${defs.length} items, ${food} foods, every name its own`;
 });
 // Floating numbers over heads (#294): the world records a hit, a heal, and a gather where they happen, regeneration records nothing, a guest records none of its own, and the
 // frame's small arrays are what a guest draws. (The drawing, the colours, and the setting are `check("floaters")`'s, in the pane.)

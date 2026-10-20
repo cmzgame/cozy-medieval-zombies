@@ -15,6 +15,8 @@ import * as menu from "./context-menu.js";
 import * as view from "../view.js";
 import * as settings from "../settings.js";
 import * as use from "../use.js";
+import * as hoverCard from "./hover-card.js"; // the card over an item (#262)
+import { cardFor, cardForSlot } from "../item-info.js";
 import { parseSlot, HIDEABLE } from "../inventory.js";
 
 let CELL = view.BASE_CELL; // the bag's cell in UI pixels, read from the view at every render
@@ -88,8 +90,12 @@ export function initInventoryPanel(h) {
       }
       if (hit.bag) quickMove(hit);
     });
+    // The hover card: over an item, its card; over an empty slot, the slot's name; over anything else, none (#262).
+    el.addEventListener("pointermove", onCardMove);
+    el.addEventListener("pointerleave", () => { cardPointer = null; hoverCard.hide(); });
     el.addEventListener("contextmenu", (e) => {
       e.preventDefault();
+      hoverCard.hide();
       if (drag?.started || e.target.closest("[data-eye]")) return;
       const hit = entryFromEvent(e);
       if (hit) openItemMenu(hit, e);
@@ -255,8 +261,7 @@ function blockHtml(entry, attrs, cell = CELL, w = 1, h = 1, extraCls = "", slot 
   if (entry.count > 1) inner += `<span class="inv-stack">${entry.count}</span>`;
   // Durability (docs/30, 5.2): a thin bar once worn, red under a fifth left.
   if (entry.wear > 0) inner += `<div class="inv-wear${entry.wear > 0.8 ? " low" : ""}"><div style="width:${Math.round((1 - entry.wear) * 100)}%"></div></div>`;
-  const title = `${def.name}${entry.fill != null ? ` (${Math.round(entry.fill)}%)` : ""}${entry.count > 1 ? ` x${entry.count}` : ""}${entry.wear > 0 ? ` (${Math.round((1 - entry.wear) * 100)}% left)` : ""}`;
-  return `<div class="${cls.join(" ")}" ${attrs} title="${title}" style="width:${w * cell}px;height:${h * cell}px;--item:${def.color || "#8a8296"}">${inner}</div>`;
+  return `<div class="${cls.join(" ")}" ${attrs} role="img" aria-label="${def.name}" style="width:${w * cell}px;height:${h * cell}px;--item:${def.color || "#8a8296"}">${inner}</div>`;
 }
 
 function itemHtml(entry, index, which) {
@@ -291,7 +296,7 @@ function slotHtml(id, entry, label, extra = "") {
   // A worn slot whose item is drawn on the figure has an eye: click to hide its art (the item keeps every use) or show it (#159).
   const key = id.startsWith("worn:") ? id.slice(5) : null;
   const eye = entry && key && HIDEABLE.includes(key) ? `<button class="slot-eye${hiddenNow.includes(key) ? " off" : ""}" data-eye="${key}" title="${hiddenNow.includes(key) ? "Show on your figure" : "Hide on your figure"}"></button>` : "";
-  return `<div class="doll-slot kit-well${extra}${entry ? "" : " empty"}" data-slot="${id}" title="${label}" style="width:${box};height:${box}">${inner}${eye}</div>`;
+  return `<div class="doll-slot kit-well${extra}${entry ? "" : " empty"}" data-slot="${id}" data-label="${label}" aria-label="${label}" style="width:${box};height:${box}">${inner}${eye}</div>`;
 }
 
 function dollHtml(player) {
@@ -312,7 +317,7 @@ function dollHtml(player) {
 }
 
 function hotbarHtml(belt) {
-  return belt.map((e, i) => `<div class="hot-slot${e ? "" : " empty"}" data-slot="belt:${i}"><span class="hot-key">${i + 1}</span>${e ? blockHtml(e, `data-slot="belt:${i}"`, HOT_CELL, 1, 1, "in-slot", true) : ""}</div>`).join("");
+  return belt.map((e, i) => `<div class="hot-slot${e ? "" : " empty"}" data-slot="belt:${i}" data-label="Belt slot ${i + 1}" aria-label="Belt slot ${i + 1}"><span class="hot-key">${i + 1}</span>${e ? blockHtml(e, `data-slot="belt:${i}"`, HOT_CELL, 1, 1, "in-slot", true) : ""}</div>`).join("");
 }
 
 // What a redraw compares: wear as itemHtml draws it (a bar from the first wear, its percent left, red past 0.8), and fill
@@ -333,6 +338,7 @@ export function renderInventoryPanel(player, inv, container, belt) {
     if (hotbar.dataset.sig !== beltSig) {
       hotbar.innerHTML = hotbarHtml(belt);
       hotbar.dataset.sig = beltSig;
+      refreshCard();
     }
   }
   if (!open && !character) return;
@@ -356,6 +362,7 @@ export function renderInventoryPanel(player, inv, container, belt) {
   containerEl.innerHTML = showContainer ? columnHtml("container", container, capitalize(container.container)) : "";
   if (showContainer && !hadContainer) focus("container"); // a chest just opened comes to the front
   applyPositions();
+  refreshCard();
 }
 
 // ---- where the panels sit ----
@@ -416,6 +423,34 @@ function entryFromEvent(e) {
   const bag = bags[el.dataset.bag];
   const entry = bag?.items[Number(el.dataset.index)];
   return entry ? { entry, bag, which: el.dataset.bag, el } : null;
+}
+
+// The card for what is under the pointer: `target` is the element there, (x, y) the pointer in client pixels. Called as the pointer moves, and again after the panels redraw
+// (`refreshCard`), because a redraw replaces the elements under a pointer that did not move: the card must say what is there now, never what was.
+let cardPointer = null; // the last pointer position over the panels, or null
+function cardAt(target, x, y) {
+  if (drag || use.isActive() || menu.isMenuOpen()) { hoverCard.hide(); return; }
+  const hit = entryFromEvent({ target });
+  if (hit) {
+    const en = hit.entry;
+    hoverCard.show(`${en.uid ?? en.id}|${en.id}|${en.count}|${en.fill ?? ""}|${en.wear ?? ""}`, () => cardFor(en), x, y);
+    return;
+  }
+  const slot = target.closest(".doll-slot.empty, .hot-slot.empty");
+  if (slot && slot.dataset.label) hoverCard.show(`slot|${slot.dataset.slot}`, () => cardForSlot(slot.dataset.label), x, y);
+  else hoverCard.hide();
+}
+
+function onCardMove(e) {
+  cardPointer = { x: e.clientX, y: e.clientY };
+  cardAt(e.target, e.clientX, e.clientY);
+}
+
+function refreshCard() {
+  if (!cardPointer) return;
+  const t = document.elementFromPoint(cardPointer.x, cardPointer.y);
+  if (!t || !t.closest("#inventory, #hotbar")) { hoverCard.hide(); return; }
+  cardAt(t, cardPointer.x, cardPointer.y);
 }
 
 // The entry and the bag a drag began on, found again by uid and column: on a guest the replica's
@@ -533,6 +568,7 @@ function onPointerDown(e) {
 
 function startDrag() {
   drag.started = true;
+  hoverCard.hide();
   menu.closeContextMenu();
   const def = getItem(drag.entry.id);
   const g = document.createElement("div");
