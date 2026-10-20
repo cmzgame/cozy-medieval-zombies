@@ -448,7 +448,10 @@ function removeGhost(player) {
 
 function targetName(t) {
   if (t.type === "prop") return t.prop.sprite.replace(/_/g, " ");
-  const d = buildData[t.wall.kind];
+  // The entry that builds this wall, by its kind and its sprite both (a built fence is a "wall" but no log wall; a gate is a
+  // "door" in the fence's sprite), else the kind's own entry (a door built into a stone wall is a door).
+  const id = Object.keys(buildData).find((k) => wallKindOf(k) === t.wall.kind && buildData[k].sprite === t.wall.sprite);
+  const d = buildData[id] || buildData[t.wall.kind];
   return (d && d.label ? d.label : t.wall.kind).toLowerCase();
 }
 
