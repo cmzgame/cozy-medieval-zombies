@@ -98,12 +98,12 @@ def part_n(x0, y, n, door_at=None, wall=None):
 
 
 # ---- the cottages (29/04, three plans so they do not repeat) ----
-def cottage_a(g, x, y, name, door_side="s", broken=False, torch=True, apple=False):
+def cottage_a(g, x, y, name, door_side="s", broken=False, torch=True, apple=False, wall="wall_wood"):
     """Plan A, the two-room: a living room with the hearth, a bedroom. An 8 by 6 block."""
     s = g.place(name, [x, y, 8, 6])
     openings = [door("s", 1, broken=broken) if door_side == "s" else door("n", 1, broken=broken), window("s" if door_side == "n" else "n", 4), window("e", 1)]
     s.building(
-        [1, 1, 6, 4], "wall_wood", "floor_wood",
+        [1, 1, 6, 4], wall, "floor_wood",
         openings=openings,
         partitions=[part_w(3, 0, 4, door_at=2)],
         # With the north door the table lies across row 3, so the chest takes the corner at (0, 0): (0, 3) was boxed in by the hearth, the table, and two walls (#227).
@@ -119,12 +119,12 @@ def cottage_a(g, x, y, name, door_side="s", broken=False, torch=True, apple=Fals
     return s
 
 
-def cottage_b(g, x, y, name):
+def cottage_b(g, x, y, name, wall="wall_wood"):
     """Plan B, the long house: one long room, the hearth at one end and the byre
     at the other behind a low rail (a see-through wall splits no room). 8 by 8."""
     s = g.place(name, [x, y, 8, 8])
     s.building(
-        [1, 1, 6, 6], "wall_wood", "floor_wood",
+        [1, 1, 6, 6], wall, "floor_wood",
         openings=[door("s", 1), window("w", 1), window("e", 4)],
         partitions=[part_n(0, 4, 6, door_at=2, wall="wall_fence")],
         props=[hearth_n(1, 0), along_x("bed", 3, 0), one("chest", 5, 1), along_y("table", 0, 1), chair(1, 2, "w"), one("barrel", 0, 5), one("barrel", 2, 5), one("haystack", 5, 5)],
@@ -133,11 +133,11 @@ def cottage_b(g, x, y, name):
     return s
 
 
-def cottage_c(g, x, y, name, trade):
+def cottage_c(g, x, y, name, trade, wall="wall_wood"):
     """Plan C, the L-shape: two rooms and a lean-to workshop at the back. 10 by 10."""
     s = g.place(name, [x, y, 10, 10])
     s.building(
-        [1, 1, 6, 4], "wall_wood", "floor_wood",
+        [1, 1, 6, 4], wall, "floor_wood",
         openings=[door("s", 1), window("n", 1), window("n", 4)],
         partitions=[part_w(3, 0, 4, door_at=2)],
         props=[hearth_w(0, 1), along_x("table", 1, 1), chair(1, 2, "n"), along_x("bed", 3, 0), one("chest", 5, 3)],
@@ -145,7 +145,7 @@ def cottage_c(g, x, y, name, trade):
     )
     # The lean-to shares the main room's east wall; its door is on its own west side (laid after, so it wins the edge).
     s.building(
-        [7, 1, 2, 4], "wall_wood", "floor_wood",
+        [7, 1, 2, 4], wall, "floor_wood",
         openings=[door("w", 1), window("e", 2)],
         props=[one("shelf", 1, 0), one("barrel", 0, 3)] if trade == "cooper" else [one("shelf", 1, 0), one("workbench", 0, 3)],
     )
@@ -222,7 +222,7 @@ def build():
     # ---- the inn (the square's east side): the taproom and kitchen, the guest wing, the yard ----
     inn = g.place("the inn", [P(21, 33)[0], P(21, 33)[1], 18, 30])
     inn.building(
-        [1, 1, 12, 10], "wall_wood", "floor_wood",
+        [1, 1, 12, 10], "wall_mahogany", "floor_wood",
         openings=[door("w", 4), window("w", 1, boards={"in": 3}), window("w", 7, boards={"in": 3}), window("n", 2, boards={"in": 3}), window("n", 9), door("e", 8)],
         partitions=[part_w(8, 0, 10, door_at=3)],
         props=[
@@ -238,7 +238,7 @@ def build():
     )
     # The guest wing: three rooms off the taproom's south wall, each with a door into it.
     inn.building(
-        [1, 11, 12, 5], "wall_wood", "floor_wood",
+        [1, 11, 12, 5], "wall_mahogany", "floor_wood",
         openings=[door("n", 1), door("n", 5), door("n", 9), window("s", 2), window("s", 6), window("s", 10)],
         partitions=[part_w(4, 0, 5), part_w(8, 0, 5)],
         props=[along_x("bed", 0, 2), one("chest", 3, 0), along_x("bed", 4, 2), one("chest", 7, 0), along_x("bed", 8, 2), one("chest", 11, 0)],
@@ -283,7 +283,7 @@ def build():
 
     # ---- the priest's house, east of the chapel ----
     priest = g.place("the priest's house", [P(21, 2)[0], P(21, 2)[1], 8, 8])
-    priest.building([1, 1, 6, 6], "wall_wood", "floor_wood",
+    priest.building([1, 1, 6, 6], "wall_daub", "floor_wood",
                     openings=[door("s", 1, boards={"in": 2}), window("e", 2)],
                     partitions=[part_w(3, 0, 6, door_at=3)],
                     props=[hearth_w(0, 1), along_x("table", 1, 4), chair(2, 5, "n"), one("bookcase", 2, 0), along_y("bed", 5, 0), one("chest", 5, 5)],
@@ -329,7 +329,7 @@ def build():
         brackets=[{"side": "n", "at": 7, "facing": "in", "lantern": True}, {"side": "w", "at": 5, "facing": "in", "lantern": True}],
     )
     mer.fence([0, 12, 12, 12], gates=[{"side": "e", "at": 5}])
-    mer.building([1, 13, 8, 6], "wall_wood", "floor_wood", openings=[door("e", 2)],
+    mer.building([1, 13, 8, 6], "wall_mahogany", "floor_wood", openings=[door("e", 2)],
                  props=[one("shelf", 0, 0), one("shelf", 2, 0), one("shelf", 4, 0), one("chest", 7, 0), one("barrel", 0, 5), one("barrel", 1, 5), one("chest", 7, 5), one("cupboard", 4, 5)],
                  brackets=[{"side": "n", "at": 6, "facing": "in", "lantern": True}])
     mer.prop("cart", (10, 20), footprint=[2, 3])
@@ -337,7 +337,7 @@ def build():
     # ---- the trades round the square ----
     # The baker, the square's north-west corner: the oven in the shop wall, a room behind.
     bak = g.place("the baker", [P(9, 46)[0], P(9, 46)[1], 8, 6])
-    bak.building([1, 1, 6, 4], "wall_wood", "floor_wood",
+    bak.building([1, 1, 6, 4], "wall_daub", "floor_wood",
                  openings=[door("n", 2), window("n", 3)],
                  partitions=[part_w(4, 0, 4, door_at=2)],
                  props=[one("oven", 0, 0, footprint=[2, 1], lit=True, fuel=2), along_x("table", 1, 2), one("shelf", 3, 0), one("barrel", 0, 3), along_y("bed", 5, 0), one("chest", 4, 3)],
@@ -358,7 +358,7 @@ def build():
     joi.prop("wheelbarrow", (0, 12), note="the joiner's wheelbarrow (docs/30 section 9.1)")
     # The weaver, west of the square on the west road: the loom, the vats in the yard.
     wea = g.place("the weaver", [P(5, 32)[0], P(5, 32)[1], 14, 10])
-    wea.building([1, 1, 8, 6], "wall_wood", "floor_wood",
+    wea.building([1, 1, 8, 6], "wall_spruce", "floor_wood",
                  openings=[door("s", 2), window("s", 6), window("n", 2)],
                  partitions=[part_w(5, 0, 6, door_at=2)],
                  props=[one("loom", 1, 1, footprint=[2, 2]), one("spinningwheel", 4, 1), one("shelf", 0, 0), one("cupboard", 4, 5), along_x("bed", 6, 0), one("chest", 7, 5, loot="weaver_chest"), hearth_w(5, 3)],
@@ -380,21 +380,21 @@ def build():
 
     # ---- the toll house by the bridge ----
     toll = g.place("the toll house", [P(28, 45)[0], P(28, 45)[1], 6, 8])
-    toll.building([1, 1, 4, 4], "wall_wood", "floor_wood", openings=[door("w", 1), window("n", 2)],
+    toll.building([1, 1, 4, 4], "wall_spruce", "floor_wood", openings=[door("w", 1), window("n", 2)],
                   props=[one("strongbox", 3, 0), along_y("bed", 0, 2), one("chest", 3, 3), one("shelf", 2, 0)],
                   brackets=[{"side": "w", "at": 3, "facing": "out", "lantern": True}])
 
     # ---- the cottages: two plans by the nobles' street, two by the green, four on the lane ----
-    cottage_a(g, *P(1, 23), "a cottage by the merchant's", apple=True)
-    cottage_b(g, *P(1, 27), "the cooper's long house")
+    cottage_a(g, *P(1, 23), "a cottage by the merchant's", apple=True, wall="wall_daub")
+    cottage_b(g, *P(1, 27), "the cooper's long house", wall="wall_spruce")
     cottage_a(g, *P(1, 47), "a cottage by the baker's", door_side="n", apple=True)
-    cottage_c(g, *P(1, 52), "the chandler's house", trade="chandler")
-    cottage_a(g, *P(2, 65), "the first cottage on the lane", door_side="n", broken=True, apple=True)   # the door kicked in
+    cottage_c(g, *P(1, 52), "the chandler's house", trade="chandler", wall="wall_mahogany")
+    cottage_a(g, *P(2, 65), "the first cottage on the lane", door_side="n", broken=True, apple=True, wall="wall_daub")   # the door kicked in
     cottage_b(g, *P(7, 65), "the second cottage on the lane")
-    cottage_a(g, *P(12, 65), "the shut cottage", door_side="n", torch=False)             # a neighbour inside who will not open
+    cottage_a(g, *P(12, 65), "the shut cottage", door_side="n", torch=False, wall="wall_spruce")             # a neighbour inside who will not open
     # The reeve's house at the row's end by the green: stone at the back, wood at the front.
     reeve = g.place("the reeve's house", [P(17, 65)[0], P(17, 65)[1], 8, 6])
-    reeve.building([1, 1, 6, 4], {"n": "wall_stone", "w": "wall_stone", "s": "wall_wood", "e": "wall_wood"}, "floor_wood",
+    reeve.building([1, 1, 6, 4], {"n": "wall_stone", "w": "wall_stone", "s": "wall_mahogany", "e": "wall_mahogany"}, "floor_wood",
                    openings=[door("n", 1), window("n", 4), window("e", 1)],
                    partitions=[part_w(3, 0, 4, door_at=2)],
                    props=[hearth_w(0, 1), along_x("table", 1, 3), chair(1, 2, "s"), one("desk", 0, 0), along_x("bed", 3, 0), one("chest", 5, 3), one("bookcase", 3, 3)],
@@ -416,7 +416,7 @@ def build():
     # The great barn: the biggest wooden building at the farm, a double door on the yard; the tool rack holds a hoe.
     barn = g.place("Hollow Farm's great barn", [56, 228, 16, 10])
     barn.building(
-        [1, 1, 14, 8], "wall_wood", "floor_wood",
+        [1, 1, 14, 8], "wall_spruce", "floor_wood",
         openings=[door("s", 6), door("s", 7), window("n", 3), window("n", 10)],
         props=[
             one("shelf", 0, 0, loot="barn_rack"), one("shelf", 2, 0), one("barrel", 5, 0), one("barrel", 6, 0), one("barrel", 12, 0),
@@ -427,7 +427,7 @@ def build():
     # The farmhouse: a kitchen with the big hearth, a bedroom, a store; the family turned, in the yard.
     fh = g.place("Hollow Farm's farmhouse", [74, 228, 14, 10])
     fh.building(
-        [1, 1, 12, 8], "wall_wood", "floor_wood",
+        [1, 1, 12, 8], "wall_daub", "floor_wood",
         openings=[door("s", 2), window("n", 2), window("n", 9), window("e", 3), window("s", 8)],
         partitions=[part_w(6, 0, 8, door_at=3), part_n(7, 4, 5, door_at=2)],
         props=[
@@ -440,7 +440,7 @@ def build():
     # The granary: seed of every crop, in sacks on a shelf; never refilled (the fields are the renewable source).
     gran = g.place("Hollow Farm's granary", [92, 228, 8, 8])
     gran.building(
-        [1, 1, 6, 6], "wall_wood", "floor_wood",
+        [1, 1, 6, 6], "wall_spruce", "floor_wood",
         openings=[door("s", 2)],
         props=[one("chest", 0, 0, loot="granary_hollow"), one("barrel", 1, 0), one("barrel", 5, 0), one("barrel", 5, 1)],
         brackets=[{"side": "n", "at": 3, "facing": "in", "lantern": True}],
@@ -484,7 +484,7 @@ def build():
     g.floor_rect([80, 26, 1, 4], "floor_wood", kind="bridge", note="the plank footbridge (29/02); floor_bridge_plank when drawn")
     la = g.place("Long Acre's farmhouse", [66, 39, 12, 9])
     la.building(
-        [1, 1, 10, 7], "wall_wood", "floor_wood",
+        [1, 1, 10, 7], "wall_daub", "floor_wood",
         openings=[door("s", 3), window("n", 2), window("n", 7), window("w", 3)],
         partitions=[part_w(5, 0, 7, door_at=3)],
         props=[hearth_w(0, 1), along_x("table", 1, 4), chair(1, 3, "s"), one("cupboard", 3, 0), one("barrel", 0, 6), along_x("bed", 6, 0), one("chest", 9, 0), one("chest", 9, 5), one("shelf", 6, 6)],
@@ -493,7 +493,7 @@ def build():
     la.prop("woodpile", (11, 7))
     lb = g.place("Long Acre's barn", [83, 38, 14, 10])
     lb.building(
-        [1, 1, 12, 8], "wall_wood", "floor_stone",
+        [1, 1, 12, 8], "wall_spruce", "floor_stone",
         openings=[door("s", 5), door("s", 6), window("n", 5)],
         props=[one("barrel", 0, 0), one("barrel", 1, 0), one("barrel", 2, 0), one("haystack", 10, 0, loot="wild"), one("haystack", 10, 2, loot="wild"), one("cart", 1, 3, footprint=[2, 3])],
         brackets=[{"side": "n", "at": 8, "facing": "in", "lantern": True}],
@@ -562,7 +562,7 @@ def build():
     qy.floor_rect([25, 14, 3, 3], "floor_water", group="pond")  # the flooded pit
     qy.prop("wheelbarrow", (15, 11))
     quarryman = g.place("the quarryman's hut", [186, 50, 10, 8])
-    quarryman.building([1, 1, 8, 5], "wall_wood", "floor_wood",
+    quarryman.building([1, 1, 8, 5], "wall_spruce", "floor_wood",
                        openings=[door("e", 2), window("n", 4)],
                        props=[along_x("bed", 0, 0), one("chest", 7, 0, loot="quarry_chest"), one("barrel", 7, 3), along_x("table", 2, 3)],
                        brackets=[{"side": "n", "at": 2, "facing": "in", "lantern": True}])

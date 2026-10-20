@@ -1820,7 +1820,7 @@
       12,
       10
      ],
-     "wall": "wall_wood",
+     "wall": "wall_mahogany",
      "floor": "floor_wood",
      "openings": [
       {
@@ -2106,7 +2106,7 @@
       12,
       5
      ],
-     "wall": "wall_wood",
+     "wall": "wall_mahogany",
      "floor": "floor_wood",
      "openings": [
       {
@@ -2568,7 +2568,7 @@
       6,
       6
      ],
-     "wall": "wall_wood",
+     "wall": "wall_daub",
      "floor": "floor_wood",
      "openings": [
       {
@@ -3261,7 +3261,7 @@
       8,
       6
      ],
-     "wall": "wall_wood",
+     "wall": "wall_mahogany",
      "floor": "floor_wood",
      "openings": [
       {
@@ -3387,7 +3387,7 @@
       6,
       4
      ],
-     "wall": "wall_wood",
+     "wall": "wall_daub",
      "floor": "floor_wood",
      "openings": [
       {
@@ -3736,7 +3736,7 @@
       8,
       6
      ],
-     "wall": "wall_wood",
+     "wall": "wall_spruce",
      "floor": "floor_wood",
      "openings": [
       {
@@ -4075,7 +4075,7 @@
       4,
       4
      ],
-     "wall": "wall_wood",
+     "wall": "wall_spruce",
      "floor": "floor_wood",
      "openings": [
       {
@@ -4154,7 +4154,7 @@
       6,
       4
      ],
-     "wall": "wall_wood",
+     "wall": "wall_daub",
      "floor": "floor_wood",
      "openings": [
       {
@@ -4293,7 +4293,7 @@
       6,
       6
      ],
-     "wall": "wall_wood",
+     "wall": "wall_spruce",
      "floor": "floor_wood",
      "openings": [
       {
@@ -4570,7 +4570,7 @@
       6,
       4
      ],
-     "wall": "wall_wood",
+     "wall": "wall_mahogany",
      "floor": "floor_wood",
      "openings": [
       {
@@ -4671,7 +4671,7 @@
       2,
       4
      ],
-     "wall": "wall_wood",
+     "wall": "wall_mahogany",
      "floor": "floor_wood",
      "openings": [
       {
@@ -4724,7 +4724,7 @@
       6,
       4
      ],
-     "wall": "wall_wood",
+     "wall": "wall_daub",
      "floor": "floor_wood",
      "openings": [
       {
@@ -5001,7 +5001,7 @@
       6,
       4
      ],
-     "wall": "wall_wood",
+     "wall": "wall_spruce",
      "floor": "floor_wood",
      "openings": [
       {
@@ -5136,8 +5136,8 @@
      "wall": {
       "n": "wall_stone",
       "w": "wall_stone",
-      "s": "wall_wood",
-      "e": "wall_wood"
+      "s": "wall_mahogany",
+      "e": "wall_mahogany"
      },
      "floor": "floor_wood",
      "openings": [
@@ -5437,7 +5437,7 @@
       14,
       8
      ],
-     "wall": "wall_wood",
+     "wall": "wall_spruce",
      "floor": "floor_wood",
      "openings": [
       {
@@ -5565,7 +5565,7 @@
       12,
       8
      ],
-     "wall": "wall_wood",
+     "wall": "wall_daub",
      "floor": "floor_wood",
      "openings": [
       {
@@ -5762,7 +5762,7 @@
       6,
       6
      ],
-     "wall": "wall_wood",
+     "wall": "wall_spruce",
      "floor": "floor_wood",
      "openings": [
       {
@@ -8593,7 +8593,7 @@
       10,
       7
      ],
-     "wall": "wall_wood",
+     "wall": "wall_daub",
      "floor": "floor_wood",
      "openings": [
       {
@@ -8750,7 +8750,7 @@
       12,
       8
      ],
-     "wall": "wall_wood",
+     "wall": "wall_spruce",
      "floor": "floor_stone",
      "openings": [
       {
@@ -11486,7 +11486,7 @@
       8,
       5
      ],
-     "wall": "wall_wood",
+     "wall": "wall_spruce",
      "floor": "floor_wood",
      "openings": [
       {
