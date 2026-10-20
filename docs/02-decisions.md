@@ -147,6 +147,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 ### The interface and the screens
 
 - Text at or under 15 UI px is set in the system's clear sans-serif, the rest in the pixel font; a Display setting, Small text, flips it (2026-10-20, Very small text in a clear sans-serif; the readings are the builder's, Michael's to overrule)
+- Every digit is in the clear sans at any size, letters keeping their face; Small text's Pixel restores the old look (2026-10-20, Every digit in the clear font, at any size (Michael); Pixel's digits are Primary's reading)
 - Every item in a grid or slot has a hover card, WoW's tooltip: a small dark rounded box with the full name, the kind, and the direct uses read from the data, Use in gold, following the pointer (2026-10-19, The item hover card; the law is 2026-10-18)
 - A Drink from unsafe water says "(tainted)", every source until purifying exists; a crop has Inspect, a line of what it is and how it stands with its tile marked, this client's own; the Harvest labels name the crop; Object Highlight, a dev setting on by default, outlines the game object under the pointer (2026-10-19, Unsafe water says so; a crop can be inspected; Object Highlight, a dev setting (Michael); the trough and the font tainted, Inspect this client's own, and the playtest's reading are Primary's, Michael's to overrule; what Object Highlight outlines and leaves out is the builder's reading, 2026-10-19, Object Highlight (#301))
 - Floating numbers over heads: a red -X for a hit, a green +X for a heal, a skill's icon with the number gained for a gather in white or black by the light, drawn from events the authority records, not from health diffs; a number over a body I cannot see is hidden; the fourteen skill icons are placeholder art in `ui/skill-icons.js` (2026-10-19, Floating numbers over heads, and an icon for each skill; the readings are the builder's, Michael's to overrule)
@@ -250,6 +251,13 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-20 — Every digit in the clear font, at any size (Michael)
+
+Small text (#322) put everything at or under 15 UI px in the system's sans, since the pixel font's small 3 and 8 run together ("our main font has a small 3 and that looks very close toa small 8"). Asked whether the numbers above that size should follow, Michael: "Yes, make every digit use the clear font at any size, including world names and the character screen heading."
+
+- **Every digit, at any size, is in the system's sans;** every letter keeps its face (the pixel font, or Pirata One in the titles). Built as a digits-only face (`unicode-range` U+0030-0039 over `local()` system fonts, nothing downloaded) put first in the interface's and the titles' font stacks.
+- *Primary's reading:* Small text's **Pixel** gives back the old look exactly, digits included, since the setting exists to compare.
 
 ### 2026-10-20 — Very small text in a clear sans-serif, a Display setting (#321; Michael's ask, Primary's and the builder's readings Michael's to overrule)
 
