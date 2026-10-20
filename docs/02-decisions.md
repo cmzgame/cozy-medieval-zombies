@@ -151,7 +151,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - Floating numbers over heads: a red -X for a hit, a green +X for a heal, a skill's icon with the number gained for a gather in white or black by the light, drawn from events the authority records, not from health diffs; a number over a body I cannot see is hidden; the fourteen skill icons are placeholder art in `ui/skill-icons.js` (2026-10-19, Floating numbers over heads, and an icon for each skill; the readings are the builder's, Michael's to overrule)
 - Moodles are for ongoing general needs (hunger, thirst, tiredness) and the infection; a specific negative effect, a bleed or a poison, is a debuff of its own, WoW-style (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk); bleeding is the first, a row at the top right, its time in minutes rounded up and seconds under a minute (2026-10-19, Bleeding is a debuff: the row at the top right; the readings are the builder's, Michael's to overrule)
 - The belt: its key uses up a consumable and swaps a held item into its own hand (2026-10-10), plus a lantern carried there for more light than a torch's, and the halberd, perhaps the greatsword, never on it (2026-10-19, The belt restated and added to; a book in the off hand costs the shield; the Holy Symbol is Faith's staff, within the proposal); a slot's key does one thing, a held item now going to the hand chosen for that slot in its right-click menu, the item's own hand by default; no left-click parity (2026-10-19, A belt slot's key does one thing, into the hand chosen for that slot; no left-click parity)
-- Every item in a grid or slot has a hover card with at least its full name and its direct uses, read from the data by default; "Use" capitalised and in the Use mode's gold (2026-10-18, Every item in a grid has a hover card)
+- Every item in a grid or slot has a hover card with at least its full name and its direct uses, read from the data by default; "Use" capitalised and in the Use mode's gold (2026-10-18, Every item in a grid has a hover card); a change to what an item does is checked against its card in the same change (2026-10-20, A change to an item checks its card (Michael))
 - An eye on each worn slot hides that item's art and keeps every use; the choice stays with the slot across re-equips, by default (2026-10-18, Hiding a worn item's art: an eye on each worn slot)
 - The aim guide is off by default, for the bow, a throw, and the cast (2026-10-16, The aim guide is off by default)
 - Talk's panel is entirely click-based, with topics, wiki links, Continue, and That's all for now; E starts it (2026-10-16, The needs-michael queue)
@@ -249,6 +249,16 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-20 — A change to an item checks its card (Michael)
+
+After playing with the hover cards (#313):
+
+> "Hover cards confirmed working. If we spot errors we can fix them, but I am happy to have the pattern started. Make sure this is something to check whenever anything that could have one is edited. Edit how an apple works? Check the card too"
+
+- **A change to what an item does checks its card in the same change:** a number in its data (an apple's heal, a weapon's damage, a bag's size), a new use (a verb, an interaction, a recipe it goes into or comes from, a building cost), or code that changes what it does. The card is read in the pane for each item touched, and a card that says something untrue, or leaves out what changed, is fixed in the same pull request. Errors found later are fixed as they are found; the pattern stands.
+- *Primary's reading of "anything that could have one":* every item, since every item drawn in a grid or slot has a card; the same holds for a debuff's card (#315) when a debuff's numbers change.
+- Where it lives: the law in `CLAUDE.md`, a line in `github.md` 8.4 ("Prove it"), and a line in the pull request template.
 
 ### 2026-10-19 — Bleeding is a debuff: the row at the top right (#308; Michael's ask, the builder's readings Michael's to overrule)
 
