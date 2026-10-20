@@ -2,7 +2,7 @@
 
 Everything the art agent knows about the game's art, from the first trees to the inventory icons, plus the things it has not drawn yet and the systems it does not own. Written 2026-10-12 so no one has to ask the art agent what it did, why, or what is missing.
 
-**Since the sweep (2026-10-16):** this page and `01` are the live art reference; `02` to `10` are the record of each delivery, corrected where the game moved on; `11` and `12` are in `docs/history/`.
+**Since the sweep (2026-10-16):** this page and `01` are the live art reference; `02` to `10` are the record of each delivery, corrected where the game moved on; the old `11` and `12` are in `docs/history/`. **Since 2026-10-19** `11` is the brief for the next round (the fence and the everyday items, #309), waiting to be sent.
 
 **Who this is for:** the coding agent (what each file is, what the engine can assume, what to import) and Michael (what exists, what is on the back burner, what is waiting on a decision).
 
@@ -24,7 +24,8 @@ Everything the art agent knows about the game's art, from the first trees to the
 | 08 | [cursors](08-cursors.md) | the three pointing hands, as built (a CSS cursor) |
 | 09 | [stubs](09-stubs.md) | the cutaway walls kept in the back pocket |
 | 10 | [lighting-from-the-art-side](10-lighting-from-the-art-side.md) | what the art must do for the lighting system, and what went wrong |
-| 11 | [open-items-and-lessons](../history/art-11-open-items.md) | a record (2026-10-12): the punch list, the generators, how to ask for art; its open decisions and single-copy art are `art` issues |
+| 11 | [brief-fences-and-everyday-icons](11-brief-fences-and-everyday-icons.md) | a brief to paste to Claude Design (#309, not sent yet): the rickety see-through fence as wall pieces with its gate and swing frames, and the icons, world pictures, and portraits of the items seen on every play |
+| 11 (old) | [open-items-and-lessons](../history/art-11-open-items.md) | a record (2026-10-12): the punch list, the generators, how to ask for art; its open decisions and single-copy art are `art` issues |
 | 12 | [characters-from-the-art-side](../history/art-12-characters-from-the-art-side.md) | a record (2026-10-12): the body rounds, the eyes, what the agent needed; the live page is `../28` |
 
 ## Where the art is
