@@ -52,7 +52,7 @@ export function updateDebuffs(player) {
     if (ids.has(id)) continue;
     entry.el.remove();
     shown.delete(id);
-    hoverCard.hide();
+    hoverCard.hideIf(`debuff|${id}|`); // its own card goes with it; an item's stays
   }
   for (const d of now) {
     let entry = shown.get(d.id);
@@ -62,6 +62,7 @@ export function updateDebuffs(player) {
       root.appendChild(entry.el);
     }
     entry.d = d;
+    hoverCard.refresh(`debuff|${d.id}|`, `debuff|${d.id}|${d.stacks}|${d.time}`, () => cardOf(d)); // a card resting under the pointer follows the row
     if (entry.time !== d.time) {
       entry.time = d.time;
       entry.el.querySelector(".db-time").textContent = d.time;

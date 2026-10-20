@@ -504,6 +504,7 @@ html, body {
 /* The row of debuffs (#308; ui/debuff-row.js): along the top, stuck to the top right, growing leftward; the bag's home is under it. The row takes no pointer, its icons do. */
 #debuffs {
   position: absolute;
+  z-index: 8; /* over the map panel (6), under the menu (9) and the screens (10): a narrow window must not hide an icon */
   top: 6px;
   right: 12px;
   display: flex;

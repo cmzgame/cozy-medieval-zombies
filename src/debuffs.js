@@ -6,11 +6,11 @@
 
 import { rate } from "./bleed.js";
 
-// Whole minutes from a minute up ("10m"), whole seconds under it ("34s"); never "0s" while it lasts.
+// Minutes from a minute up, rounded up ("10m" for 600 s, "2m" for 61 to 120), whole seconds under it ("34s"); never "0s" while it lasts.
 export function timeLabel(left) {
   if (!(left > 0)) return "0s";
   const s = Math.ceil(left);
-  return s >= 60 ? `${Math.floor(s / 60)}m` : `${s}s`;
+  return s >= 60 ? `${Math.ceil(s / 60)}m` : `${s}s`; // minutes round up, as WoW's do: a ten-minute wound reads 10m for its whole first minute
 }
 
 const trim = (n) => String(+n.toFixed(1));
