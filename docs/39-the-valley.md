@@ -511,7 +511,7 @@ One per skill, immune, teaching recipes and unlocks as you level [to build]; whi
 
 None in the game today. All [to build] unless marked.
 
-- **How many kinds:** Beastlore's, below (#289); 2026-10-12's "two animals, last" is struck (ruled 2026-10-19).
+- **How many kinds:** Beastlore's, below [open #289]; 2026-10-12's "two animals, last" is struck (ruled 2026-10-19).
 - **Killing:** any weapon; the weapon decides the yield (a halberd ruins the kill, a bow gives all of it). Beastlore 1.
 - **Skinning and butchering** with a knife: hides and meat; one more at Beastlore 2, faster and one more of every yield at 9.
 - **Deer** (`docs/30` step 8): wild game that flees, hunted with the bow; where Beastlore places it [open #289].
