@@ -23,6 +23,8 @@ export async function run(game) {
   const bag0 = bag.items.slice();
   const counts0 = bag0.map((e) => [e, e.count]);
   const wasPaused = G.loop.isPaused();
+  const screen0 = G.screens.currentScreen(); // the title or pause screen over the panels would take the pointer: hide it for the check, put it back after
+  if (screen0) G.screens.hide();
   const was = { bag: panel.isBagOpen() };
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const show = () => { rowUi.updateDebuffs(me); return rowUi.shownNow(); };
@@ -109,6 +111,7 @@ export async function run(game) {
       panel.setBagOpen(was.bag);
       rowUi.updateDebuffs(me);
     }
+    if (screen0) G.screens.show(screen0);
     G.loop.setPaused(wasPaused); // on a guest too: the check paused the loop whatever the role
   }
   for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);
