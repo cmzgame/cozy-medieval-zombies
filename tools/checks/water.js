@@ -59,7 +59,7 @@ export async function run(game) {
     const near = G.interact.nearestSimpleAction(G.player);
     const s = G.iso.toScreen(wx - 1, wy);
     const menu = G.interact.actionsAt(s.x, s.y, G.player).map((a) => a.label);
-    row("you drink and fill at the bank", !!near && /Drink from the water/.test(near.label) && menu.some((l) => /Fill waterskins/.test(l)), `E: ${near ? near.label : "nothing"}; menu: ${menu.join(" | ")}`);
+    row("you drink and fill at the bank", !!near && /Drink from the water \(tainted\)/.test(near.label) && menu.some((l) => /Fill waterskins/.test(l)), `E: ${near ? near.label : "nothing"}; menu: ${menu.join(" | ")}`);
     G.player.thirst = G.player.maxThirst;
     // 4. Shallow water: walked, at half speed.
     for (let y = -1; y <= 1; y++) lay(wx, wy + y, "floor_water_shallow");

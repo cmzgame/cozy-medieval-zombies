@@ -70,6 +70,10 @@
     "needsStaminaRegenMult": 0.5,
     "tiredStaminaRegenMult": 0.75
   },
+  "water": {
+    "note": "Unsafe water (Michael, 2026-10-19, #279): every natural source, water tiles and wells, is unsafe until purified, and its Drink says \"(tainted)\" (Michael, 2026-10-19). `clean` lists the sprites of sources that are safe (none yet; how water is purified is open); a waterskin's water is tainted unless its entry is marked `clean`.",
+    "clean": []
+  },
   "floaters": {
     "life": 1.1,
     "fadeFrom": 0.5,

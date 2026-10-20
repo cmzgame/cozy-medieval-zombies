@@ -34,6 +34,7 @@ import * as loop from "./loop.js";
 import * as use from "./use.js"; // the Use entry on item menus (docs/30, law 2)
 import * as verbs from "./verbs.js"; // the verb table (docs/31/08, habit 4)
 import * as farming from "./farming.js"; // till, plant, water, harvest (#194)
+import * as inspectMark from "./inspect-mark.js"; // the tile marked while an Inspect's line shows
 import * as bucket from "./bucket.js"; // the bucket item: fill at water, pour on a plot (#199)
 import { lineOfSight } from "./visibility.js";
 import { canReach, reachProblem } from "./reach.js"; // one reach test: distance and a clear line (#208)
@@ -124,7 +125,7 @@ export function actionsForTarget(t, player) {
 // chosen from this player's own menu (the walk there, the timed bar, the message, all the host's).
 export function performByLabel(player, target, label) {
   const a = actionsForTarget(target, player).find((q) => q.label === label);
-  if (!a) return false;
+  if (!a || a.local) return false; // a local action (Inspect) is the asking client's own: never run for another
   runAction(player, a);
   return true;
 }
@@ -558,16 +559,55 @@ function cropActions(prop, player) {
     return r.ok;
   };
   const out = [];
-  const cropTool = farming.cropDef(prop.crop.kind).tool;
+  const def = farming.cropDef(prop.crop.kind);
+  const cropTool = def.tool;
   const noTool = cropTool && toolProblem(player, cropTool);
-  if (farming.stageOf(prop) >= 2) out.push(act({ ...base, kind: "harvest", simple: !noTool, label: noTool ? `Harvest (need a ${toolName(cropTool)})` : "Harvest", enabled: !noTool, duration: soil.seconds.harvest, perform: run("harvest") }));
+  // Each label names the crop (Michael's playtest, 2026-10-19: with potatoes beside the cabbages, E's bare "Harvest" took the potatoes,
+  // which the cottage's shovel digs, and seemed to need no tool, while the cabbage beside them wanted a dirk).
+  if (farming.stageOf(prop) >= 2) out.push(act({ ...base, kind: "harvest", simple: !noTool, label: noTool ? `Harvest ${def.name} (need a ${toolName(cropTool)})` : `Harvest ${def.name}`, enabled: !noTool, duration: soil.seconds.harvest, perform: run("harvest") }));
   else {
     const days = Math.max(1, Math.ceil(farming.daysLeft(prop)));
     out.push(act({ ...base, kind: "harvest", label: farming.isWet(prop) ? `Growing (ready in about ${days} day${days > 1 ? "s" : ""})` : `Dry: waiting for water (about ${days} more day${days > 1 ? "s" : ""} of growth)`, enabled: false }));
   }
   const skin = farming.skinFor(player, null);
   out.push(act({ ...base, kind: "water", label: skin ? "Water" : "Water (no water in a skin)", duration: soil.seconds.water, enabled: !!skin, perform: run("water") }));
+  out.push(inspectCropAction(prop, base));
   return out;
+}
+
+// Inspect a crop (Michael, 2026-10-19): what it is, how long until it is ready, whether it is watered or fertilized, and what harvests
+// it, said in a line, with the patch's tile marked on the ground while the line shows (inspect-mark.js). It only reads the world, so it
+// runs on this client alone, a guest's too (`local`: never sent to the host), from wherever the patch is seen, never walking there.
+export const INSPECT_RANGE = 12; // tiles
+function inspectCropAction(prop, base) {
+  return act({
+    ...base,
+    kind: "inspect",
+    label: "Inspect",
+    range: INSPECT_RANGE,
+    local: true,
+    perform() {
+      showMessage(cropReport(prop), 6);
+      inspectMark.mark(prop.tiles);
+      return true;
+    },
+  });
+}
+
+export function cropReport(prop) {
+  const def = farming.cropDef(prop.crop.kind);
+  const name = def.name[0].toUpperCase() + def.name.slice(1);
+  const parts = [];
+  const wet = farming.isWet(prop);
+  if (farming.stageOf(prop) >= 2) parts.push("ready to harvest", wet ? "watered" : "dry");
+  else {
+    const days = Math.max(1, Math.ceil(farming.daysLeft(prop))); // as the menu's Growing line counts it
+    const left = `about ${days} day${days > 1 ? "s" : ""}`;
+    parts.push(wet ? `ready in ${left}` : `${left} of growing left`, wet ? "watered" : "dry, waiting for water");
+  }
+  parts.push("not fertilized"); // nothing fertilizes yet (the composter, #275's Farming)
+  parts.push(def.tool ? `harvest with a ${toolName(def.tool)}` : "harvest by hand");
+  return `${name}: ${parts.join("; ")}.`;
 }
 
 // A tile's farming (#194): the hoe in a hand tills bare grass or dirt, a seed carried is planted in empty soil.
@@ -675,6 +715,13 @@ function treeActions(prop, player) {
   })];
 }
 
+// Unsafe water (Michael, 2026-10-19, #279): all natural water, water tiles and wells, is unsafe until purified, and a Drink from it says
+// "(tainted)", as Zomboid's does. `tuning.water.clean` names the sources that are safe (none yet); a skin's water is tainted unless its
+// entry is marked clean (nothing marks one yet).
+const cleanWater = (sprite) => (tuning.water?.clean || []).includes(sprite);
+const skinTainted = (entry) => !entry.clean;
+const drinkLabel = (entry, pct) => `Drink (${skinTainted(entry) ? "tainted, " : ""}${pct}%)`;
+
 // Water to drink and fill from: the well (infinite, docs/02 question 16) and, since docs/30
 // law 8, any water tile beside you (the river, a pond, the mere). `source` is
 // { tiles, mx, my, name, onStart? }.
@@ -684,7 +731,7 @@ function waterActions(source, player) {
     act({
       kind: "water",
       simple: player.thirst < 90,
-      label: `Drink from the ${source.name}`,
+      label: `Drink from the ${source.name}${source.clean ? "" : " (tainted)"}`,
       tiles: source.tiles,
       mx: source.mx,
       my: source.my,
@@ -716,7 +763,7 @@ function waterActions(source, player) {
 }
 
 function wellActions(prop, player) {
-  return waterActions({ tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] - 0.6, name: prop.sprite.replace(/_/g, " "), onStart: () => play(prop) }, player); // the bucket goes down for the water; named for what it is (a trough, a font: the wiki census's bugs, 2026-10-15)
+  return waterActions({ tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] - 0.6, name: prop.sprite.replace(/_/g, " "), clean: cleanWater(prop.sprite), onStart: () => play(prop) }, player); // the bucket goes down for the water; named for what it is (a trough, a font: the wiki census's bugs, 2026-10-15)
 }
 
 // A water tile's actions, from its bank; with a fishing rod in hand, the cast. The wait is rolled as the cast starts (on the authority: a
@@ -984,9 +1031,15 @@ export function approachTile(action, player) {
   return best;
 }
 
-// Do an action now if in range, else walk over and do it on arrival.
+// Do an action now if in range, else walk over and do it on arrival. A `local` action (Inspect) only reads the world: it runs here, on a
+// guest too, and only from where it can be done; it never walks.
 export function runAction(player, action) {
   if (action.enabled === false) return;
+  if (action.local) {
+    if (canReach(player, action.tiles, action.range)) startAction(player, action);
+    else showMessage("You can't see it well from here.");
+    return;
+  }
   if (canReach(player, action.tiles, action.range)) {
     startAction(player, action);
     return;
@@ -1245,7 +1298,7 @@ export function itemMenu(player, entry, bag, otherBag) {
   }
   if (def.capacity) {
     const pct = Math.round(entry.fill ?? 0);
-    out.push({ label: `Drink (${pct}%)`, enabled: pct > 0, onSelect: () => drink(player, entry) });
+    out.push({ label: drinkLabel(entry, pct), enabled: pct > 0, onSelect: () => drink(player, entry) });
   }
   if (def.splitsInto && mine) {
     const s = def.splitsInto;
@@ -1330,7 +1383,7 @@ export function slotMenu(player, slotId) {
       out.push({ label: "Eat", enabled: true, onSelect: () => { eatOne(player, entry, bdef, () => { belt[Number(key)] = null; }); } });
     } else if (bdef.capacity) {
       const pct = Math.round(entry.fill ?? 0);
-      out.push({ label: `Drink (${pct}%)`, enabled: pct > 0, onSelect: () => drink(player, entry) });
+      out.push({ label: drinkLabel(entry, pct), enabled: pct > 0, onSelect: () => drink(player, entry) });
     } else out.push({ label: "Equip", enabled: true, onSelect: () => equipFrom(player, entry) });
     out.push({
       label: "Put in bag",
