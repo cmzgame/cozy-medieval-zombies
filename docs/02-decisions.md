@@ -246,6 +246,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-10-19 — Floating numbers over heads, and an icon for each skill (#294; Michael's spec, the builder's readings Michael's to overrule)
+
+Michael: a red "-X" over whoever is hit (damage taken and dealt), a green "+X" for healing, a profession symbol with the number for a gather in white or black, and a tiny icon for every skill. **Built as events, not health diffs:** the authority records a hit, a heal, and a gather where they happen and they ride the frame (`net.PROTOCOL` 8), so natural regeneration (a trickle) shows nothing and each number knows which hit made it. **The builder's readings:** a gather's number is the items gained until skills give experience (#275), by a table in `data/tuning.json` (`floaters.gathers`: chop, mine, fish, pick, and harvest); its text is **black where the light at the character is above `lightAbove` and white where it is below**, with an outline of the other, so it is never taken for the red or the green; **a volley over one body in one frame starts each number a line higher** (`staggerLines`) on top of each one's own sideways drift; **a number over a body I cannot see is hidden** (never a number through a wall or the dark); the fourteen icons are 16 by 16 pixels drawn by shapes at first use, placeholder art like the rest of the kit (`ui/skill-icons.js`).
+
 ### 2026-10-19 — Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk (Michael)
 
 Quick hits on the Valley 1.0 scope (`docs/39`):

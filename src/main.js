@@ -39,6 +39,8 @@ import * as kit from "./ui/kit.js";
 import * as cursor from "./ui/cursor.js";
 import * as log from "./ui/log.js";
 import { initNames, updateNames } from "./ui/names.js";
+import * as floatersUi from "./ui/floaters.js"; // the numbers over heads (#294)
+import * as floaters from "./floaters.js";
 import * as use from "./use.js";
 import * as interactions from "./interactions.js";
 import * as startingKit from "./kit.js"; // the starting kit (#136)
@@ -241,6 +243,8 @@ function afterWorldSet() {
   buildPalette.close();
   mapPanel.close();
   mapPanel.forgetDrawn();
+  floatersUi.clear(); // a world put back has none of the last one's numbers
+  floaters.reset();
   light.update();
   if (!glError) ground.invalidateAll();
   for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
@@ -1204,6 +1208,7 @@ function renderUi() {
   updateSwingTimer(S.player);
   updateSpeech(S.others, visible, S.player, dt);
   updateNames(S.players, visible, S.player);
+  floatersUi.update(dt, [...S.players, ...S.zombies, ...S.villagers, ...S.corpses], visible, S.player); // the numbers over heads, from the same blended positions
   mapPanel.update({ player: S.player, players: S.players, places: (S.info && S.info.places) || [] });
   updateMessage(dt);
 }
@@ -1233,6 +1238,8 @@ async function restoreWorld(snap) {
   buildPalette.close();
   mapPanel.close();
   mapPanel.forgetDrawn();
+  floatersUi.clear();
+  floaters.reset();
   light.update();
   if (!glError) ground.invalidateAll();
   visible = visibility.computeVisible(Math.round(at.gx), Math.round(at.gy), tiles);
@@ -1490,6 +1497,8 @@ async function boot() {
         },
       }); // before anything can show a message
       initNames();
+      floatersUi.initFloaters();
+      floaters.setGuestCheck(() => net.isGuest()); // a guest records none of its own: it draws what the host sent
       use.init();
       stationPanel.initStationPanel(() => S.player);
       talkPanel.initTalkPanel(() => S.player, () => S.villagers);

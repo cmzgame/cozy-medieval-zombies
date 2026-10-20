@@ -7,6 +7,7 @@
 // around it for a while and then give up. Nothing tells them your position
 // through a wall. Noise is deliberately not a factor yet (docs/02).
 
+import * as floaters from "../floaters.js"; // the floating numbers over heads (#294)
 import * as rng from "../rng.js";
 import { nextId } from "../world.js";
 import { rules } from "../rules.js";
@@ -100,6 +101,7 @@ export function isDown(z) {
 export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown = false, stagger = T.stagger, staggerChance = STAGGER_RULES.chance, interrupts = false, from = null } = {}) {
   if (z.dead) return { killed: false, downed: false };
   const wasDown = isDown(z);
+  floaters.damage(z, amount); // the red number over its head (#294)
   z.hp = Math.max(0, z.hp - amount);
   z.path = [];
   z.lastGoal = null;

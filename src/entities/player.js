@@ -2,6 +2,7 @@
 // and cut down for the probe: movement, sprint, aim, animation. Hunger, thirst,
 // flashlight, and auto-walk come back with their own milestones.
 
+import * as floaters from "../floaters.js"; // the floating numbers over heads (#294)
 import * as iso from "../iso.js";
 import { moveCircle, canStep, floorSpeedAt, propById, roomAt } from "../map.js";
 import { findPath } from "../pathfind.js";
@@ -69,6 +70,7 @@ export function createPlayer(gx, gy, { id = null } = {}) {
 
 export function damagePlayer(player, amount) {
   if (player.hp <= 0) return;
+  floaters.damage(player, amount); // the red number over the head (#294)
   player.hp = Math.max(0, player.hp - amount);
   if (player.hp > 0) playAnimation(player.anim, "hurt", true);
 }
@@ -94,7 +96,9 @@ export function eat(player, def) {
   player.presentFor = T.presentTime; // the held-out pose while it goes down (docs/32, item 1)
   player.hunger = Math.min(player.maxHunger, player.hunger + (def.hunger || 0));
   player.thirst = Math.min(player.maxThirst, player.thirst + (def.thirst || 0));
+  const hp0 = player.hp;
   player.hp = Math.min(player.maxHp, player.hp + (def.heal || 0));
+  floaters.heal(player, player.hp - hp0); // the green number: what was gained (#294)
   return true;
 }
 
