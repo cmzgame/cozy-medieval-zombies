@@ -248,6 +248,7 @@ function afterWorldSet() {
   mapPanel.close();
   mapPanel.forgetDrawn();
   floatersUi.clear(); // a world put back has none of the last one's numbers
+  inspectMark.clear(); // nor its marked tile
   floaters.reset();
   light.update();
   if (!glError) ground.invalidateAll();
@@ -1247,6 +1248,7 @@ async function restoreWorld(snap) {
   mapPanel.close();
   mapPanel.forgetDrawn();
   floatersUi.clear();
+  inspectMark.clear();
   floaters.reset();
   light.update();
   if (!glError) ground.invalidateAll();

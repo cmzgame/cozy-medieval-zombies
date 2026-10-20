@@ -137,6 +137,7 @@ export async function run(game) {
       const m = mark.marked();
       const report = G.interact.cropReport(crop);
       row("Inspect: offered, local (never sent to the host), and it marks the patch's tile", !!ins && ins.local === true && !!m && m.tiles.length === crop.tiles.length && m.tiles.every(([x, y], i) => x === crop.tiles[i][0] && y === crop.tiles[i][1]), ins ? `${ins.label}, local ${ins.local}` : "no Inspect");
+      row("Inspect sent by label (as a guest's command would be) is refused: the host never runs another client's local action", (mark.clear(), G.interact.performByLabel(me, { kind: "prop", id: crop.id }, "Inspect") === false) && !mark.marked(), "refused");
       row("Inspect's line: the crop, ready, watered, not fertilized, and the tool that harvests it", /^Potatoes: ready to harvest; watered; not fertilized; harvest with a shovel\.$/.test(report), report);
       mark.clear();
     }

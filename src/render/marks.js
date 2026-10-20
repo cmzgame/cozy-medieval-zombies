@@ -1,5 +1,5 @@
 // A tile marked on the ground (inspect-mark.js): a bright diamond outline on each tile, unlit and unfogged so it reads at night, drawn
-// over the scene as the landing marker is (entities.js emitMarker).
+// with the ground, before the walls, props, and characters, so whatever stands on or before the tile is drawn over it.
 import * as gl from "../gl.js";
 import * as iso from "../iso.js";
 

@@ -158,6 +158,7 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
   gl.begin();
   emitGround(tiles);
   if (grid) emitGrid(tiles);
+  if (tileMark) emitTileMark(tileMark); // on the ground: whatever stands on or before the tile is drawn over it
   const drawables = [];
   wallDrawables(tiles, visible, playerRoom, drawables);
   postDrawables(tiles, visible, playerRoom, drawables);
@@ -174,7 +175,6 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
   if (ghost) emitGhost(ghost);
   if (hitShapes) emitHitShapes(hitShapes);
   if (marker) emitMarker(marker);
-  if (tileMark) emitTileMark(tileMark);
 
   const pp = player ? iso.toScreen(player.gx, player.gy) : { x: -9999, y: -9999 };
   gl.end({

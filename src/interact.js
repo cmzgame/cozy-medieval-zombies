@@ -125,7 +125,7 @@ export function actionsForTarget(t, player) {
 // chosen from this player's own menu (the walk there, the timed bar, the message, all the host's).
 export function performByLabel(player, target, label) {
   const a = actionsForTarget(target, player).find((q) => q.label === label);
-  if (!a) return false;
+  if (!a || a.local) return false; // a local action (Inspect) is the asking client's own: never run for another
   runAction(player, a);
   return true;
 }
@@ -598,13 +598,13 @@ export function cropReport(prop) {
   const def = farming.cropDef(prop.crop.kind);
   const name = def.name[0].toUpperCase() + def.name.slice(1);
   const parts = [];
-  if (farming.stageOf(prop) >= 2) parts.push("ready to harvest");
+  const wet = farming.isWet(prop);
+  if (farming.stageOf(prop) >= 2) parts.push("ready to harvest", wet ? "watered" : "dry");
   else {
-    const days = farming.daysLeft(prop);
-    const left = days < 1 ? "less than a day" : `about ${Math.ceil(days)} day${Math.ceil(days) > 1 ? "s" : ""}`;
-    parts.push(farming.isWet(prop) ? `ready in ${left}` : `waiting for water, ${left} of growing left`);
+    const days = Math.max(1, Math.ceil(farming.daysLeft(prop))); // as the menu's Growing line counts it
+    const left = `about ${days} day${days > 1 ? "s" : ""}`;
+    parts.push(wet ? `ready in ${left}` : `${left} of growing left`, wet ? "watered" : "dry, waiting for water");
   }
-  parts.push(farming.isWet(prop) ? "watered" : "dry");
   parts.push("not fertilized"); // nothing fertilizes yet (the composter, #275's Farming)
   parts.push(def.tool ? `harvest with a ${toolName(def.tool)}` : "harvest by hand");
   return `${name}: ${parts.join("; ")}.`;
