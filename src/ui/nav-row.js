@@ -11,6 +11,11 @@ let root = null;
 let skills = null;
 let hooks = {};
 let buttons = new Map(); // id -> the button
+let ui = null;
+let belt = null;
+let fold = () => {};
+let lastW = -1; // the interface's and the belt's widths the layout was last chosen for
+let lastBelt = -1;
 const shown = {}; // id -> whether its button shows pressed, so a step writes only what changed
 
 // Each icon is a 12 by 12 picture: "#" its main colour, "+" its accent, "." empty; the outline is drawn round whatever is filled.
@@ -141,6 +146,9 @@ const BUTTONS = [
 ];
 
 const NARROW = 600; // the interface's width, in its own pixels, under which the row is smaller and the skills panel stands above the log
+const LINE_WIDTH = 8 * 34 + 7 * 3 + 2 * 5; // the row in one line on its plate (style.css: eight buttons, their gaps, the plate's edge and padding)
+const ROW_RIGHT = 8; // its right margin (style.css)
+const ROW_GAP = 8; // the least room between the row and the belt
 
 function iconUrl(name) {
   const { main, accent, art } = ICONS[name];
@@ -170,6 +178,7 @@ export function initNavRow(h) {
   hooks = h;
   root = document.createElement("div");
   root.id = "nav-row";
+  root.className = "kit-plate"; // on the stone, as the belt is (#307)
   root.innerHTML = BUTTONS.map((b) => `<button type="button" class="kit-button nav-button" data-nav="${b.id}" title="${b.title}${b.key ? ` (${b.key})` : ""}" aria-label="${b.title}"><img src="${iconUrl(b.id)}" alt="" draggable="false"></button>`).join("");
   document.getElementById("ui").appendChild(root);
   // A press never takes the focus (a focused button would take the next Enter or Space itself, and the chat box keeps its cursor).
@@ -197,16 +206,26 @@ export function initNavRow(h) {
     if (e.target.closest("button")) e.preventDefault(); // its X takes no focus either
   });
   skills.addEventListener("wheel", (e) => e.stopPropagation()); // its list scrolls on a short screen; the wheel is never the world's zoom
-  // On a narrow interface (a small window, or a large interface scale) the row's buttons are smaller, clear of the belt and the moodles, and the
-  // skills panel stands above the log (style.css).
-  const ui = document.getElementById("ui");
-  const fold = () => {
-    const narrow = ui.clientWidth < NARROW;
+  // The row's three layouts (style.css): one line of eight along the bottom where it clears the belt (Michael, 2026-10-19, #307: "all in a
+  // row along the bottom if space allows"), two lines of four where it does not, and smaller buttons on a narrow interface (a small window,
+  // or a large interface scale), with the skills panel above the log. The belt's width is measured, since a worn belt sets its slots.
+  ui = document.getElementById("ui");
+  belt = document.getElementById("hotbar");
+  fold = () => {
+    const w = ui.clientWidth;
+    const bw = belt ? belt.offsetWidth : 0;
+    if (w === lastW && bw === lastBelt) return;
+    lastW = w;
+    lastBelt = bw;
+    const narrow = w < NARROW;
+    const beltHalf = bw ? bw / 2 : 60;
+    const line = !narrow && w - ROW_RIGHT - LINE_WIDTH >= w / 2 + beltHalf + ROW_GAP;
     root.classList.toggle("narrow", narrow);
     skills.classList.toggle("narrow", narrow);
+    root.classList.toggle("line", line);
+    skills.classList.toggle("line", line);
   };
-  new ResizeObserver(fold).observe(ui);
-  fold();
+  fold(); // and again from update() whenever the interface's width or the belt's has changed (a background tab gets no ResizeObserver callbacks)
   skills.addEventListener("click", (e) => {
     if (e.target.closest("[data-skills-close]")) closeSkills();
   });
@@ -247,5 +266,6 @@ function paint(id, on) {
 // Each step, after the panels have answered the keys: a button whose panel is open shows pressed.
 export function update(open) {
   if (!root) return;
+  fold();
   for (const id of buttons.keys()) paint(id, id === "skills" ? isSkillsOpen() : !!open[id]);
 }

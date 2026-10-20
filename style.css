@@ -2177,14 +2177,21 @@ html:not(.kit-ready) #site-page .screen { border: 3px solid #6a6258; }
   display: grid;
   grid-template-columns: repeat(4, 34px);
   gap: 3px;
+  padding: 2px; /* inside the plate's 3px edge: the stone the belt sits on (.kit-plate, #307) */
   pointer-events: auto;
 }
 
+/* One line of eight along the bottom, where it clears the belt (#307; nav-row.js measures). */
+#nav-row.line {
+  grid-template-columns: repeat(8, 34px);
+}
+
 #nav-row.narrow {
-  right: 6px;
-  bottom: 6px;
+  right: 4px;
+  bottom: 4px;
   gap: 2px;
-  grid-template-columns: repeat(4, 28px);
+  padding: 1px;
+  grid-template-columns: repeat(4, 26px);
 }
 
 #nav-row .nav-button {
@@ -2197,8 +2204,8 @@ html:not(.kit-ready) #site-page .screen { border: 3px solid #6a6258; }
 }
 
 #nav-row.narrow .nav-button {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
 }
 
 #nav-row .nav-button img {
@@ -2209,8 +2216,8 @@ html:not(.kit-ready) #site-page .screen { border: 3px solid #6a6258; }
 }
 
 #nav-row.narrow .nav-button img {
-  width: 21px;
-  height: 21px;
+  width: 20px;
+  height: 20px;
 }
 
 #nav-row .nav-button.on {
@@ -2223,7 +2230,7 @@ html:not(.kit-ready) #site-page .screen { border: 3px solid #6a6258; }
 #skills-panel {
   position: absolute;
   right: 56px;
-  bottom: 86px;
+  bottom: 98px; /* above the row's two lines on their plate */
   z-index: 7;
   width: 170px;
   font-size: 12px;
@@ -2234,6 +2241,10 @@ html:not(.kit-ready) #site-page .screen { border: 3px solid #6a6258; }
 }
 
 #skills-panel[hidden] { display: none; }
+
+#skills-panel.line {
+  bottom: 62px; /* above the row's one line */
+}
 
 #skills-panel.narrow {
   bottom: 152px; /* above the log (its top is 148px up) */

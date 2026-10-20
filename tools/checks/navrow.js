@@ -45,6 +45,16 @@ export async function run(game) {
     step();
 
     const ids = [...document.querySelectorAll("#nav-row [data-nav]")].map((b) => b.dataset.nav);
+    // The layout (#307): one line of eight on the stone where it clears the belt, else two lines of four.
+    {
+      const rowEl = document.getElementById("nav-row");
+      const tops = new Set([...rowEl.querySelectorAll("[data-nav]")].map((b) => Math.round(b.getBoundingClientRect().top)));
+      const ui = document.getElementById("ui");
+      const k = ui.getBoundingClientRect().width / ui.clientWidth;
+      const belt = document.getElementById("hotbar").getBoundingClientRect();
+      const room = ui.clientWidth - 8 - (8 * 34 + 7 * 3 + 10) >= ui.clientWidth / 2 + belt.width / k / 2 + 8 && ui.clientWidth >= 600;
+      row("the row is one line where it clears the belt, two lines of four where not, on the stone", (room ? tops.size === 1 && rowEl.classList.contains("line") : tops.size === 2) && rowEl.classList.contains("kit-plate"), `${tops.size} line(s) at ${ui.clientWidth} interface px${room ? ", room for one" : ""}`);
+    }
     row("the row has its eight buttons in order", ids.join() === "bag,character,skills,map,build,chat,settings,menu", ids.join(", "));
     row("each button has its drawn icon", ids.every((id) => btn(id).querySelector("img")?.src.startsWith("data:image/png")));
 
