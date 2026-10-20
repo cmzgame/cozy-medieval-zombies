@@ -1,7 +1,7 @@
 // Small text (#321; Michael, 2026-10-20: "a fallback very readable sans-serif font for very small text ... anything under like 13px +/- a couple just renders in that font for extra
 // clarity at the sake of a smidgeon of flavor"). The pixel font (Pixelify Sans) is the game's voice, but under about fifteen pixels it blurs; the system's own sans-serif is hinted
 // for small sizes, needs no download, and is what an Electron build would carry. So every rule at or under the threshold below uses `var(--font-small)` (style.css: `:root`), and the
-// text sized from JS asks for the same variable; anything above it stays Pixelify Sans, the Pirata One titles stay Pirata One, and monospace stays monospace. The Display setting
+// text sized from JS asks for the same variable; anything above it stays Pixelify Sans (its digits excepted: every digit is in the clear face at any size, style.css's CMZ Digits, 2026-10-20), the Pirata One titles stay Pirata One, and monospace stays monospace. The Display setting
 // "Small text" (Clear, the default, or Pixel) puts one class on the page that points `--font-small` back at the pixel font, so Michael can flip and compare. Client-only.
 //
 // THE THRESHOLD, in UI pixels (a rule's `font-size`, or the `fontPx` of the floating numbers): 15. A later change is this one number, and the check that scans style.css
