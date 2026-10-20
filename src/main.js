@@ -41,6 +41,7 @@ import * as log from "./ui/log.js";
 import { initNames, updateNames } from "./ui/names.js";
 import * as floatersUi from "./ui/floaters.js"; // the numbers over heads (#294)
 import * as hoverCardUi from "./ui/hover-card.js"; // the card over an item (#262)
+import { initSmallText } from "./ui/small-text.js"; // very small text in a clear sans-serif (#321)
 import * as debuffRow from "./ui/debuff-row.js"; // the row of debuffs at the top right (#308)
 import * as objectHighlight from "./highlight.js"; // the outline on the object under the cursor (#301)
 import * as floaters from "./floaters.js";
@@ -1368,6 +1369,7 @@ async function boot() {
   identities.migrate(); // the one name and look kept before identities become the first identity
   net.setClient(identities.clientId()); // the browser's id on every join (its hash is what a world records)
   view.init(canvas, ui);
+  initSmallText(); // the Small text setting: a class on the page that points --font-small back at the pixel font (#321)
   applyDebugCorner();
   settings.onChange((key) => {
     if (key === "debugCorner") applyDebugCorner();

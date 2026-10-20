@@ -25,6 +25,8 @@
 
 :root {
   --font-ui: "Pixelify Sans", "Segoe UI", system-ui, sans-serif;
+  /* Text at or under 15 UI px (ui/small-text.js says the number) is set in the system's own hinted sans-serif; the Display setting "Small text: Pixel" points this back at the pixel font. */
+  --font-small: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --text: #efe8da; /* parchment on stone */
   --muted: #bdb2a3;
   --dim: #8a8078;
@@ -75,6 +77,8 @@ html, body {
 }
 
 /* #ui covers the window at its own scale; view.js sizes it. */
+:root.small-pixel { --font-small: var(--font-ui); }
+
 #ui {
   position: absolute;
   left: 0;
@@ -206,6 +210,7 @@ html, body {
   left: 12px;
   top: 10px;
   font-size: 13px;
+  font-family: var(--font-small);
   text-shadow: 0 1px 0 #000;
 }
 
@@ -231,6 +236,7 @@ html, body {
 .hud-name {
   align-self: flex-start;
   font-size: 15px;
+  font-family: var(--font-small);
   font-weight: bold;
   letter-spacing: 0.5px;
   color: #f4ecd9;
@@ -253,6 +259,7 @@ html, body {
   transform: translateX(-50%);
   color: #e8e0d0;
   font-size: 13px;
+  font-family: var(--font-small);
   letter-spacing: 0.03em;
   text-shadow: 0 1px 0 #000, 0 0 3px #000;
   pointer-events: none;
@@ -303,6 +310,7 @@ html, body {
   padding-right: 4px;
   text-align: right;
   font-size: 11px;
+  font-family: var(--font-small);
   line-height: 14px;
 }
 
@@ -312,11 +320,13 @@ html, body {
   left: 4px;
   top: 0;
   font-size: 11px;
+  font-family: var(--font-small);
   line-height: 14px;
 }
 
 .hud-hands {
   font-size: 12px;
+  font-family: var(--font-small);
   color: #cfc4d8;
 }
 
@@ -382,6 +392,7 @@ html, body {
   border-radius: 4px;
   padding: 3px 8px;
   font-size: 12px;
+  font-family: var(--font-small);
   color: #eee;
   text-shadow: none;
 }
@@ -393,6 +404,7 @@ html, body {
 .moodle-tip span {
   color: #b0a8b8;
   font-size: 11px;
+  font-family: var(--font-small);
 }
 
 .moodle:hover .moodle-tip {
@@ -408,6 +420,7 @@ html, body {
   border-radius: 4px;
   padding: 3px 8px;
   font-size: 12px;
+  font-family: var(--font-small);
   white-space: nowrap;
   pointer-events: none;
 }
@@ -439,6 +452,7 @@ html, body {
   border-radius: 4px;
   padding: 4px 12px;
   font-size: 13px;
+  font-family: var(--font-small);
   pointer-events: none;
 }
 
@@ -460,6 +474,7 @@ html, body {
   background: rgba(10, 6, 14, 0.45);
   border-radius: 4px;
   font-size: 12px;
+  font-family: var(--font-small);
   line-height: 1.3;
   color: var(--text);
   text-shadow: 0 1px 0 #000;
@@ -496,6 +511,7 @@ html, body {
   border: 1px solid var(--panel-edge);
   border-radius: 4px;
   font-size: 12px;
+  font-family: var(--font-small);
   color: var(--text);
   white-space: nowrap;
   pointer-events: none;
@@ -515,9 +531,9 @@ html, body {
 .debuff { display: flex; flex-direction: column; align-items: center; width: 46px; pointer-events: auto; }
 /* The frame and the stack badge are one red (--db-red), the frame's border a smidge bolder (3px) so the badge on its corner runs into it (Michael, 2026-10-20). */
 .db-box { --db-red: #8a2a34; position: relative; width: 40px; height: 40px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: rgba(20, 8, 12, 0.82); border: 3px solid var(--db-red); border-radius: 7px; }
-.db-stacks { position: absolute; right: -9px; top: -9px; min-width: 22px; height: 22px; padding: 0 5px; box-sizing: border-box; font-size: 14px; font-weight: bold; line-height: 22px; text-align: center; color: #fff; background: var(--db-red); border-radius: 11px; }
+.db-stacks { position: absolute; right: -9px; top: -9px; min-width: 22px; height: 22px; padding: 0 5px; box-sizing: border-box; font-size: 14px; font-family: var(--font-small); font-weight: bold; line-height: 22px; text-align: center; color: #fff; background: var(--db-red); border-radius: 11px; }
 .db-stacks[hidden] { display: none; }
-.db-time { margin-top: 3px; font-size: 15px; font-weight: bold; color: #f4ecd9; text-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 -1px 0 #000; }
+.db-time { margin-top: 3px; font-size: 15px; font-family: var(--font-small); font-weight: bold; color: #f4ecd9; text-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 -1px 0 #000; }
 
 /* The hover card (#262; ui/hover-card.js): a small, mostly black, rounded box with a thin light border, over every panel and the belt, never taking the pointer. */
 #hover-card {
@@ -530,15 +546,16 @@ html, body {
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
   font-size: 12px;
+  font-family: var(--font-small);
   line-height: 1.3;
   color: #d9d4cc;
   pointer-events: none;
 }
 #hover-card[hidden] { display: none; }
-#hover-card .hc-name { font-size: 14px; font-weight: bold; color: #fff; }
+#hover-card .hc-name { font-size: 14px; font-family: var(--font-small); font-weight: bold; color: #fff; }
 #hover-card .hc-kind { color: #9a96a2; margin-bottom: 3px; }
 #hover-card .hc-line { margin-top: 2px; }
-#hover-card .hc-fine { margin-top: 5px; color: #7c7884; font-size: 11px; }
+#hover-card .hc-fine { margin-top: 5px; color: #7c7884; font-size: 11px; font-family: var(--font-small); }
 #hover-card .hc-use { color: var(--gold); font-weight: bold; }
 #hover-card .hc-word { color: #fff; font-weight: bold; }
 
@@ -556,6 +573,7 @@ html, body {
   border-radius: 4px;
   padding: 3px 0;
   font-size: 12px;
+  font-family: var(--font-small);
   z-index: 9; /* over the panels */
 }
 
@@ -679,6 +697,7 @@ html, body {
   border-radius: 10px;
   color: #000;
   font-size: 14px;
+  font-family: var(--font-small);
   line-height: 1.35;
   text-align: center;
   overflow-wrap: anywhere;
@@ -721,6 +740,7 @@ html, body {
   inset: 0;
   z-index: 7; /* over the bubbles (6) and the bars over the dead; under the menu (9) and the screens (10) */
   font-size: 13px;
+  font-family: var(--font-small);
   pointer-events: none;
 }
 
@@ -789,6 +809,7 @@ html, body {
 
 .inv-header button {
   font-size: 11px;
+  font-family: var(--font-small);
   font-weight: normal;
   padding: 0 6px;
   cursor: pointer;
@@ -797,6 +818,7 @@ html, body {
 .inv-header .inv-close {
   padding: 0 5px;
   font-size: 13px;
+  font-family: var(--font-small);
   line-height: 1;
 }
 
@@ -868,6 +890,7 @@ html, body {
 .inv-label {
   position: relative;
   font-size: 11px;
+  font-family: var(--font-small);
   line-height: 1;
   color: #fff;
   text-shadow: 0 1px 1px #000, 0 0 2px #000;
@@ -889,6 +912,7 @@ html, body {
   right: 3px;
   bottom: 2px;
   font-size: 11px;
+  font-family: var(--font-small);
   font-weight: bold;
   color: #fff;
   text-shadow: 0 1px 1px #000, 0 0 2px #000;
@@ -940,6 +964,7 @@ html, body {
   z-index: 7;
   width: 440px;
   font-size: 13px;
+  font-family: var(--font-small);
   line-height: 1.45;
   pointer-events: auto;
   --parch: #e9dcb6;
@@ -987,6 +1012,7 @@ html, body {
   padding: 0;
   font: inherit;
   font-size: 16px;
+  font-family: var(--font-ui);
   line-height: 20px;
   color: var(--ink-soft);
   background: none;
@@ -1059,6 +1085,7 @@ html, body {
 .tk-wiki {
   flex: 0 0 auto;
   font-size: 11px;
+  font-family: var(--font-small);
   color: var(--link);
   text-decoration: none;
 }
@@ -1084,6 +1111,7 @@ html, body {
   z-index: 7;
   width: 460px;
   font-size: 12px;
+  font-family: var(--font-small);
   line-height: 1.35;
   pointer-events: auto;
 }
@@ -1126,6 +1154,7 @@ html, body {
 .st-row .why {
   display: block;
   font-size: 10px;
+  font-family: var(--font-small);
   line-height: 1.3;
   color: var(--dim);
 }
@@ -1149,6 +1178,7 @@ html, body {
 .st-note {
   color: var(--muted);
   font-size: 11px;
+  font-family: var(--font-small);
   padding: 3px 0;
 }
 
@@ -1246,6 +1276,7 @@ html, body {
   background: rgba(24, 18, 30, 0.8);
   color: #a098ac;
   font-size: 9px;
+  font-family: var(--font-small);
   order: 2;
 }
 
@@ -1292,6 +1323,7 @@ html, body {
 
 .screen h1 {
   font-size: 28px;
+  font-family: var(--font-ui);
   margin: 0 0 4px;
   letter-spacing: 1px;
 }
@@ -1305,7 +1337,7 @@ html, body {
 .row-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 10px; background: rgba(10, 6, 14, 0.45); border: 1px solid #5a4a3a; border-radius: 4px; }
 .row-item.on { border-color: #c9a24a; }
 .row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: left; }
-.row-sub { font-size: 0.85em; color: #c8bca4; }
+.row-sub { font-size: 0.85em; font-family: var(--font-small); color: #c8bca4; }
 .row-sub code { font: 0.95em ui-monospace, Consolas, "Courier New", monospace; color: #c9a24a; letter-spacing: 1px; }
 .row-buttons { display: flex; gap: 6px; flex-shrink: 0; }
 .row-buttons .kit-button.on { border-color: #c9a24a; }
@@ -1315,6 +1347,7 @@ html, body {
 .screen .sub {
   color: #a098ac;
   font-size: 12px;
+  font-family: var(--font-small);
   margin-bottom: 16px;
 }
 
@@ -1332,6 +1365,7 @@ html, body {
 
 .screen button {
   font-size: 16px;
+  font-family: var(--font-ui);
   padding: 4px 14px;
 }
 
@@ -1344,6 +1378,7 @@ html, body {
   border-bottom: 1px solid #2e2636;
   text-align: left;
   font-size: 14px;
+  font-family: var(--font-small);
 }
 
 /* ---- the character screen (docs/12; docs/31/03): the figure turning beside the rows ---- */
@@ -1381,6 +1416,7 @@ html, body {
   padding: 5px 0;
   border-bottom: 1px solid #2e2636;
   font-size: 14px;
+  font-family: var(--font-small);
 }
 
 .you-row > span:first-child {
@@ -1393,6 +1429,7 @@ html, body {
   min-width: 0;
   font: inherit;
   font-size: 14px;
+  font-family: var(--font-small);
   padding: 3px 6px;
   color: var(--text);
   background: var(--well-fill);
@@ -1449,6 +1486,7 @@ html, body {
   background: none;
   color: var(--muted);
   font-size: 15px;
+  font-family: var(--font-small);
   padding: 4px 12px 5px;
 }
 
@@ -1469,6 +1507,7 @@ html, body {
 .setting-label .help {
   color: var(--dim);
   font-size: 11px;
+  font-family: var(--font-small);
   line-height: 1.3;
 }
 
@@ -1483,6 +1522,7 @@ html, body {
 .kit-pick {
   width: 17em;
   font-size: 12px;
+  font-family: var(--font-small);
 }
 .kit-chips {
   list-style: none;
@@ -1522,6 +1562,7 @@ html, body {
   height: auto;
   font: inherit;
   font-size: 14px;
+  font-family: var(--font-small);
   color: var(--text, inherit);
   background: none;
   padding: 0 4px;
@@ -1591,6 +1632,7 @@ html, body {
   text-align: right;
   color: var(--muted);
   font-size: 13px;
+  font-family: var(--font-small);
 }
 
 /* A switch: a dark track, a timber-coloured knob; on, the track green and the knob at the right. */
@@ -1627,6 +1669,7 @@ html, body {
 .screen select {
   font: inherit;
   font-size: 13px;
+  font-family: var(--font-small);
   color: var(--text);
   background: var(--bar-bg);
   border: 1px solid var(--panel-edge);
@@ -1643,6 +1686,7 @@ html, body {
 .controls {
   text-align: left;
   font-size: 13px;
+  font-family: var(--font-small);
   display: grid;
   grid-template-columns: 10.5em 1fr; /* the same key column in every group, so the descriptions line up across them */
   gap: 5px 16px;
@@ -1709,6 +1753,7 @@ html, body {
 
 .slot-label {
   font-size: 9px;
+  font-family: var(--font-small);
   color: var(--dim);
   text-align: center;
   line-height: 1.1;
@@ -1732,6 +1777,7 @@ html, body {
 .inv-nobag {
   color: var(--muted);
   font-size: 12px;
+  font-family: var(--font-small);
   min-width: 160px;
   padding: 6px 8px;
 }
@@ -1759,6 +1805,7 @@ html, body {
   left: 2px;
   top: 0;
   font-size: 9px;
+  font-family: var(--font-small);
   color: var(--muted);
   z-index: 1;
   pointer-events: none;
@@ -1787,11 +1834,12 @@ html, body {
   flex: 0 0 auto;
 }
 
-.mp-title { flex: 1; font-size: 15px; letter-spacing: 1px; text-transform: uppercase; }
+.mp-title { flex: 1; font-size: 15px; font-family: var(--font-small); letter-spacing: 1px; text-transform: uppercase; }
 
 .mp-centre, .mp-x {
   font: inherit;
   font-size: 12px;
+  font-family: var(--font-small);
   color: var(--text);
   background: #2a2330;
   border: 1px solid #6a5a78;
@@ -1827,10 +1875,12 @@ html, body {
   border: 2px solid var(--panel-edge);
   border-radius: 6px;
   font-size: 13px;
+  font-family: var(--font-small);
 }
 
 .bp-title {
   font-size: 15px;
+  font-family: var(--font-small);
   margin-bottom: 6px;
   color: #d8c8e0;
 }
@@ -1869,6 +1919,7 @@ html, body {
 .bp-hint {
   margin-top: 6px;
   font-size: 11px;
+  font-family: var(--font-small);
   color: #a098ac;
   max-width: 220px;
 }
@@ -1892,6 +1943,7 @@ html, body {
 
 #loading h1 {
   font-size: 28px;
+  font-family: var(--font-ui);
   letter-spacing: 1px;
   margin: 0 0 4px;
 }
@@ -1899,6 +1951,7 @@ html, body {
 #loading .sub {
   color: #a098ac;
   font-size: 12px;
+  font-family: var(--font-small);
   margin-bottom: 18px;
 }
 
@@ -1923,6 +1976,7 @@ html, body {
 #loading .line {
   min-height: 18px;
   font-size: 13px;
+  font-family: var(--font-small);
   color: #cfc7d8;
   white-space: pre-wrap;
 }
@@ -1931,6 +1985,7 @@ html, body {
   max-width: 560px;
   margin: 14px auto 0;
   font-size: 13px;
+  font-family: var(--font-small);
   color: #e08a8a;
   white-space: pre-wrap;
 }
@@ -1960,8 +2015,8 @@ html, body {
 #floaters { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .floater { position: absolute; transform: translate(-50%, -100%); font-family: var(--font-ui, sans-serif); font-weight: bold; white-space: nowrap; pointer-events: none; display: flex; align-items: center; gap: 2px; }
 .floater img { display: block; image-rendering: pixelated; }
-.name-tag { position: absolute; transform: translate(-50%, -100%); font: 11px var(--font-ui, sans-serif); color: #f4ecd9; text-shadow: 0 1px 0 #1a1420, 1px 0 0 #1a1420, -1px 0 0 #1a1420, 0 -1px 0 #1a1420; white-space: nowrap; pointer-events: none; }
-#log-input { position: absolute; left: 12px; bottom: 6px; width: 340px; height: 20px; padding: 0 6px; font: 12px var(--font-ui, sans-serif); color: #f4ecd9; background: rgba(10, 6, 14, 0.75); border: 1px solid #5a4a3a; border-radius: 3px; outline: none; }
+.name-tag { position: absolute; transform: translate(-50%, -100%); font: 11px var(--font-small); color: #f4ecd9; text-shadow: 0 1px 0 #1a1420, 1px 0 0 #1a1420, -1px 0 0 #1a1420, 0 -1px 0 #1a1420; white-space: nowrap; pointer-events: none; }
+#log-input { position: absolute; left: 12px; bottom: 6px; width: 340px; height: 20px; padding: 0 6px; font: 12px var(--font-small); color: #f4ecd9; background: rgba(10, 6, 14, 0.75); border: 1px solid #5a4a3a; border-radius: 3px; outline: none; }
 #log-input:focus { border-color: #c9a24a; }
 #log { bottom: 30px; }
 .code { font-size: 1.3em; letter-spacing: 1px; color: #c9a24a; }
@@ -2085,6 +2140,7 @@ html, body {
 
 .site-nav .kit-button {
   font-size: 16px;
+  font-family: var(--font-ui);
   padding: 4px 14px;
   color: var(--text);
   text-decoration: none;
@@ -2095,6 +2151,7 @@ html, body {
 
 .site-nav .play {
   font-size: 26px;
+  font-family: var(--font-ui);
   padding: 8px 30px;
   margin: 0 8px;
   color: var(--gold);
@@ -2129,15 +2186,16 @@ html, body {
 #site-page .screen-wide { max-width: 760px; }
 #site-page .screen-buttons.row { flex-wrap: wrap; }
 #site-page .setting { flex-wrap: wrap; gap: 6px 16px; }
-#site-page .screen p { font-size: 15px; line-height: 1.5; color: #e6dfd0; margin: 0 0 10px; }
+#site-page .screen p { font-size: 15px; font-family: var(--font-small); line-height: 1.5; color: #e6dfd0; margin: 0 0 10px; }
 #site-page .screen a, .site-foot a { color: var(--gold); }
 #site-page .about { text-align: left; }
 #site-page .about h2 { margin-top: 14px; color: var(--gold); }
 #site-page .home { max-width: 620px; padding-top: 26px; }
-#site-page .home .lead { font-size: 22px; color: var(--text); margin-bottom: 18px; }
-#site-page .small { font-size: 13px; color: var(--muted); }
+#site-page .home .lead { font-size: 22px; font-family: var(--font-ui); color: var(--text); margin-bottom: 18px; }
+#site-page .small { font-size: 13px; font-family: var(--font-small); color: var(--muted); }
 #site-page .cta {
   font-size: 26px;
+  font-family: var(--font-ui);
   padding: 10px 34px;
   margin: 4px 0 14px;
   color: var(--gold);
@@ -2158,15 +2216,15 @@ html, body {
   border-radius: 3px;
 }
 .wc-text { min-width: 0; }
-.wc-name { font-size: 17px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.wc-badge { font-size: 11px; color: #1b1712; background: #c9a24a; border-radius: 2px; padding: 1px 6px; }
-.wc-who { font-size: 13px; color: var(--text); margin-top: 3px; }
-.wc-meta { font-size: 12px; color: #c8bca4; margin-top: 2px; }
+.wc-name { font-size: 17px; font-family: var(--font-ui); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.wc-badge { font-size: 11px; font-family: var(--font-small); color: #1b1712; background: #c9a24a; border-radius: 2px; padding: 1px 6px; }
+.wc-who { font-size: 13px; font-family: var(--font-small); color: var(--text); margin-top: 3px; }
+.wc-meta { font-size: 12px; font-family: var(--font-small); color: #c8bca4; margin-top: 2px; }
 .wc-meta code { font: 0.95em ui-monospace, Consolas, "Courier New", monospace; color: #c9a24a; letter-spacing: 1px; }
 .wc-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
 .wc-rest { display: flex; gap: 6px; }
-.screen .kit-button.big { font-size: 20px; padding: 6px 26px; color: var(--gold); }
-.screen .kit-button.small { font-size: 12px; padding: 1px 8px; }
+.screen .kit-button.big { font-size: 20px; font-family: var(--font-ui); padding: 6px 26px; color: var(--gold); }
+.screen .kit-button.small { font-size: 12px; font-family: var(--font-small); padding: 1px 8px; }
 #site-page[data-page="controls"] .screen h2, #screens.controls .screen h2 { text-align: left; margin: 14px 0 2px; color: var(--gold); }
 .controls { margin-top: 4px; }
 
@@ -2185,6 +2243,7 @@ html:not(.kit-ready) #site-page .screen { border: 3px solid #6a6258; }
   padding: 0 16px 24px;
   text-align: center;
   font-size: 12px;
+  font-family: var(--font-small);
   color: var(--muted);
 }
 
@@ -2276,6 +2335,7 @@ html:not(.kit-ready) #site-page .screen { border: 3px solid #6a6258; }
   z-index: 7;
   width: 170px;
   font-size: 12px;
+  font-family: var(--font-small);
   display: flex;
   flex-direction: column;
   pointer-events: auto;
@@ -2328,5 +2388,6 @@ html:not(.kit-ready) #site-page .screen { border: 3px solid #6a6258; }
 .sk-note {
   margin-top: 6px;
   font-size: 11px;
+  font-family: var(--font-small);
   opacity: 0.7;
 }

@@ -13,6 +13,7 @@ import * as sight from "../sight.js";
 import { floaters as T } from "../tuning.js";
 import * as fl from "../floaters.js";
 import { skillIconURL, SIZE } from "./skill-icons.js";
+import { SMALL_TEXT_MAX_PX, SMALL_FONT_VAR } from "./small-text.js";
 
 let root = null;
 const alive = []; // { e, el, age, gx, gy, id, side, size }
@@ -37,6 +38,7 @@ function build(e, bright) {
   const el = document.createElement("div");
   el.className = `floater ${e.kind === fl.DAMAGE ? "dmg" : e.kind === fl.HEAL ? "heal" : "gather"}`;
   el.style.fontSize = `${T.fontPx}px`;
+  if (T.fontPx <= SMALL_TEXT_MAX_PX) el.style.fontFamily = SMALL_FONT_VAR; // the number is small text (ui/small-text.js)
   let color;
   let edge;
   if (e.kind === fl.DAMAGE) { color = T.damageColor; edge = "#1a1010"; }

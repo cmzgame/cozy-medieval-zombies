@@ -631,6 +631,7 @@ function updateDrag(clientX, clientY) {
   g.style.left = `${clientX - (drag.grabX + 0.5) * drag.cellPx}px`;
   g.style.top = `${clientY - (drag.grabY + 0.5) * drag.cellPx}px`;
   g.style.fontSize = `${Math.round(drag.cellPx * 0.32)}px`;
+  g.style.fontFamily = "var(--font-small)"; // a dragged piece's short name: small text (ui/small-text.js)
   const img = g.querySelector("img");
   if (img) {
     // The art fills the footprint, turned with it.

@@ -144,6 +144,7 @@ const worldMod = await import("../src/world.js");
 const chartModule = await import("../src/chart.js");
 const floatersMod = await import("../src/floaters.js");
 const itemInfoMod = await import("../src/item-info.js");
+const smallTextMod = await import("../src/ui/small-text.js");
 const itemsMod = await import("../src/items.js");
 const playerMod = await import("../src/entities/player.js");
 const verbsMod = await import("../src/verbs.js");
@@ -206,6 +207,45 @@ check("net: a body that walks, stands, and walks again (a record only when it mo
   assert(d.start.slice(0, 6).every((x) => x > 0.9 && x < 1.1), `it set off ${d.start.slice(0, 6).map((x) => x.toFixed(2)).join(" ")} (1 is steady)`);
   assert(without.restOffset > 0.05, "without hold the offset at rest is gone: the measurement is not measuring it");
   return `at rest 0 off (0.10 without hold); the first steps ${d.start.slice(0, 4).map((x) => x.toFixed(2)).join(" ")}`;
+});
+// Small text (#321): text at or under the threshold (ui/small-text.js, 15 UI px) is set in the clear sans-serif (`--font-small`), so a new small rule cannot slip in pixel-only.
+// Scans style.css for every rule whose font-size is at or under the threshold (an em under 1 is smaller than its parent: counted) or whose `font:` shorthand is, and src/ui/*.js
+// for text sized from script. Monospace (the debug corner, codes) and the Pirata One titles are left as they are; a rule above the threshold stays the pixel font.
+check("small text: every font-size at or under the threshold is set in --font-small, in the stylesheet and in the scripts", () => {
+  const { SMALL_TEXT_MAX_PX } = smallTextMod;
+  const css = fs.readFileSync(path.join(root, "style.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
+  assert(/--font-small:\s*system-ui/.test(css), ":root has no --font-small");
+  assert(/:root\.small-pixel\s*\{\s*--font-small:\s*var\(--font-ui\)/.test(css), "the Pixel setting's override is missing");
+  const bad = [];
+  const bigNoFace = [];
+  let small = 0;
+  for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const sel = m[1].trim().replace(/\s+/g, " ");
+    const body = m[2];
+    if (/monospace|Pirata/.test(body)) continue;
+    const fs1 = body.match(/font-size\s*:\s*([\d.]+)(px|em)\b/);
+    const sh = body.match(/font\s*:\s*([\d.]+)px\b/);
+    const isSmall = (fs1 && ((fs1[2] === "px" && Number(fs1[1]) <= SMALL_TEXT_MAX_PX) || (fs1[2] === "em" && Number(fs1[1]) < 1))) || (sh && Number(sh[1]) <= SMALL_TEXT_MAX_PX);
+    // A rule above the threshold in px names its pixel font (or Pirata, or monospace), so it does not inherit the small font from a small container it sits in.
+    if (!isSmall) {
+      if (fs1 && fs1[2] === "px" && Number(fs1[1]) > SMALL_TEXT_MAX_PX && !/font-family/.test(body) && !/^font\s*:/m.test(body)) bigNoFace.push(sel);
+      continue;
+    }
+    small++;
+    if (!body.includes("var(--font-small)")) bad.push(sel);
+  }
+  assert(bad.length === 0, `${bad.length} small rules are not in --font-small: ${bad.slice(0, 6).join(" | ")}`);
+  assert(bigNoFace.length === 0, `${bigNoFace.length} rules above the threshold name no font-family (they would inherit a small container's): ${bigNoFace.slice(0, 6).join(" | ")}`);
+  const uiDir = path.join(root, "src", "ui");
+  const badJs = [];
+  for (const f of fs.readdirSync(uiDir).filter((n) => n.endsWith(".js"))) {
+    const text = fs.readFileSync(path.join(uiDir, f), "utf8");
+    if (f === "small-text.js") continue;
+    const sizesText = /\.style\.fontSize\s*=|font-size\s*:\s*\d|\bfont\s*[:=]\s*[`"']?\s*\$?\{?\d|ctx\.font\s*=/.test(text);
+    if (sizesText && !/font-small|SMALL_FONT_VAR|smallFamily/.test(text)) badJs.push(f);
+  }
+  assert(badJs.length === 0, `text sized from script without the small font: ${badJs.join(", ")}`);
+  return `${small} small rules in style.css, every one in --font-small; the scripts that size text use it (threshold ${SMALL_TEXT_MAX_PX} UI px)`;
 });
 // The hover card (#262): every item's card says its own full name and a kind, no two read alike though six are drawn "Seed", food says what eating heals and fills,
 // and the word Use is its own segment. (The card on the page, its place and its look, is `check("hovercard")`'s, in the pane.)

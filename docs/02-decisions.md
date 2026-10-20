@@ -146,6 +146,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
+- Text at or under 15 UI px is set in the system's clear sans-serif, the rest in the pixel font; a Display setting, Small text, flips it (2026-10-20, Very small text in a clear sans-serif; the readings are the builder's, Michael's to overrule)
 - Every item in a grid or slot has a hover card, WoW's tooltip: a small dark rounded box with the full name, the kind, and the direct uses read from the data, Use in gold, following the pointer (2026-10-19, The item hover card; the law is 2026-10-18)
 - A Drink from unsafe water says "(tainted)", every source until purifying exists; a crop has Inspect, a line of what it is and how it stands with its tile marked, this client's own; the Harvest labels name the crop; Object Highlight, a dev setting on by default, outlines the game object under the pointer (2026-10-19, Unsafe water says so; a crop can be inspected; Object Highlight, a dev setting (Michael); the trough and the font tainted, Inspect this client's own, and the playtest's reading are Primary's, Michael's to overrule; what Object Highlight outlines and leaves out is the builder's reading, 2026-10-19, Object Highlight (#301))
 - Floating numbers over heads: a red -X for a hit, a green +X for a heal, a skill's icon with the number gained for a gather in white or black by the light, drawn from events the authority records, not from health diffs; a number over a body I cannot see is hidden; the fourteen skill icons are placeholder art in `ui/skill-icons.js` (2026-10-19, Floating numbers over heads, and an icon for each skill; the readings are the builder's, Michael's to overrule)
@@ -249,6 +250,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-20 — Very small text in a clear sans-serif, a Display setting (#321; Michael's ask, Primary's and the builder's readings Michael's to overrule)
+
+Michael: "Is it possible to have a fallback very readable sans-serif font for very small text? Like both numbers in the bleed, some of the very small settings text, basically anything under like 13px +/- a couple just renders in that font for extra clarity at the sake of a smidgeon of flavor?" **Built:** `--font-small`, the system's own hinted sans-serif (`system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`: no download, and what an Electron build carries), on every text at or under **15 UI px** (one number, `SMALL_TEXT_MAX_PX` in `ui/small-text.js`; it catches the bleed's 15 and 14 and everything smaller: help lines, the log, the chat box, name tags, the hover card, the skills panel, the floating numbers, the map's place names). Pixelify Sans stays above it, the Pirata One titles stay Pirata One, and monospace stays monospace. **A Display setting, "Small text", Clear (the default) or Pixel**, so he can flip and compare: Pixel points the variable back at the pixel font, so it is exactly the old look. **The readings:** the class is on the page's root, not `#ui` (the screens and the loading line sit outside it); a rule above the threshold names its pixel font so a big heading inside a small container (the Controls screen is one) does not inherit the small face; `em` sizes under 1 count as small. A check scans `style.css` and `src/ui/*.js` for any new small rule without the font, and another reads the page's computed fonts.
 
 ### 2026-10-20 — A change to an item checks its card (Michael)
 
