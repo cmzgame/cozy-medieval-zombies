@@ -351,19 +351,22 @@ function heldSheetRotated(img, grip, S) {
   return { image: canvas, frames, anchor: [S / 2, S / 2], animations: {}, facings: [], mirror: {}, tips: [] };
 }
 
-// `angles`: [{ src, grip: [x, y] }] for 0, 22.5, 45, 67.5, 90 degrees clockwise from up. 90 to 180 is the
+// `angles`: [{ src, grip: [x, y], flame?: [x, y] }] for 0, 22.5, 45, 67.5, 90 degrees clockwise from up. 90 to 180 is the
 // matching drawn tilt flipped vertically (grip y mirrored); 180 to 360 the matching one flipped
-// horizontally (grip x mirrored): the design agent's rule for the staff.
+// horizontally (grip x mirrored): the design agent's rule for the staff. A drawn torch gives `flame`, the top pixel of
+// its head in each tilt (art round 3, #331), mirrored with the picture like the grip; the sheet's `tips` (where the
+// renderer puts a lit torch's flame, relative to the grip) come from it, as a generated torch's come from its shape.
 async function heldSheetFromAngles(angles) {
   const imgs = await Promise.all(angles.map((a) => loadImage(a.src)));
-  const flip = (c, gx, gy, v) => {
+  const flip = (c, gx, gy, v, fl = null) => {
     const o = document.createElement("canvas");
     o.width = c.width;
     o.height = c.height;
     const x = o.getContext("2d");
     if (v) { x.translate(0, c.height); x.scale(1, -1); } else { x.translate(c.width, 0); x.scale(-1, 1); }
     x.drawImage(c, 0, 0);
-    return { c: o, gx: v ? gx : c.width - 1 - gx, gy: v ? c.height - 1 - gy : gy };
+    const f = fl && (v ? [fl[0], c.height - 1 - fl[1]] : [c.width - 1 - fl[0], fl[1]]);
+    return { c: o, gx: v ? gx : c.width - 1 - gx, gy: v ? c.height - 1 - gy : gy, fl: f };
   };
   const base = []; // k = 0..8
   imgs.forEach((img, i) => {
@@ -371,13 +374,13 @@ async function heldSheetFromAngles(angles) {
     c.width = img.width;
     c.height = img.height;
     c.getContext("2d").drawImage(img, 0, 0);
-    base[i] = { c, gx: angles[i].grip[0], gy: angles[i].grip[1] };
+    base[i] = { c, gx: angles[i].grip[0], gy: angles[i].grip[1], fl: angles[i].flame || null };
   });
-  for (let k = 5; k <= 8; k++) { const m = base[8 - k]; base[k] = flip(m.c, m.gx, m.gy, true); }
+  for (let k = 5; k <= 8; k++) { const m = base[8 - k]; base[k] = flip(m.c, m.gx, m.gy, true, m.fl); }
   const all = [];
   for (let k = 0; k < 16; k++) {
     if (k <= 8) all[k] = base[k];
-    else { const m = base[16 - k]; all[k] = flip(m.c, m.gx, m.gy, false); }
+    else { const m = base[16 - k]; all[k] = flip(m.c, m.gx, m.gy, false, m.fl); }
   }
   const W = all.reduce((n, f) => n + f.c.width + 1, 0);
   const H = Math.max(...all.map((f) => f.c.height));
@@ -394,7 +397,8 @@ async function heldSheetFromAngles(angles) {
     frameAnchors[`held_${k}`] = [f.gx, f.gy];
     x += f.c.width + 1;
   });
-  return { image: canvas, frames, frameAnchors, anchor: [0, 0], animations: {}, facings: [], mirror: {}, tips: [] };
+  const tips = all.every((f) => f.fl) ? all.map((f) => [f.fl[0] - f.gx, f.fl[1] - f.gy]) : [];
+  return { image: canvas, frames, frameAnchors, anchor: [0, 0], animations: {}, facings: [], mirror: {}, tips };
 }
 
 export function registerSheet(id, sheet, source = null) {
