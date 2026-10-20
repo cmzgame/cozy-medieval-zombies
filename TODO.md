@@ -28,7 +28,7 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 - **#332 the drawn fence and its swinging gate.** Asks: whether house doors swing too; whether fences are buildable now.
 - **#333 the beehive and the chicken coop** in the valley; the coop is a placeholder container. Asks: where they go; what the coop holds.
 - **#334 the woods.** Build in five woods, and mix a wall's wood with its doors' and shutters' finish (white paint first). The swap is done at load from `wood_tones.json`. Michael's idea: the regional woods and the paints are an incentive to leave the valley. Labelled needs-michael.
-- **#326 paintings and #327 rugs, as items:** Place from the bag, Pick up again. The art has landed (comments on both).
+- **#326 paintings and #327 rugs, as items:** Place from the bag, Pick up again. Both built (#327 merged; #326 in review: `check("paintings")`, `docs/02` 2026-10-20 "Paintings, built").
 
 Suggested order: #331 (the most visible), then #333 (small), then #332, then #326 and #327, then #334 once Michael has shaped it.
 

@@ -1,5 +1,5 @@
 {
-  "version": "1e666fbe",
+  "version": "25844ae4",
   "files": {
     "data/build.json": {"size": 781, "stamp": "4209507b"},
     "data/combat.json": {"size": 4109, "stamp": "4efa7ba3"},
@@ -7,10 +7,10 @@
     "data/fishing.json": {"size": 1151, "stamp": "d7ff74ff"},
     "data/ground.json": {"size": 3493, "stamp": "991f8b65"},
     "data/interactions.json": {"size": 3424, "stamp": "33953f3a"},
-    "data/items.json": {"size": 27805, "stamp": "bc361d55"},
+    "data/items.json": {"size": 30949, "stamp": "c824adee"},
     "data/kit.json": {"size": 837, "stamp": "4a64ec6b"},
     "data/looks.json": {"size": 947, "stamp": "d1084ea0"},
-    "data/loot.json": {"size": 4650, "stamp": "d7a9049c"},
+    "data/loot.json": {"size": 5017, "stamp": "5830cbae"},
     "data/poses.json": {"size": 4867, "stamp": "53e6f192"},
     "data/recipes.json": {"size": 11193, "stamp": "894574e2"},
     "data/references.json": {"size": 899, "stamp": "81bd77a4"},
@@ -662,6 +662,7 @@
     "data/sprites/crop_rye_1.json": {"size": 546, "stamp": "0bc48eb5"},
     "data/sprites/crop_rye_2.json": {"size": 558, "stamp": "8b730433"},
     "data/sprites/cupboard.json": {"size": 235, "stamp": "da93b645"},
+    "data/sprites/decor_paintings.json": {"size": 2472, "stamp": "9d577d2c"},
     "data/sprites/desk.json": {"size": 226, "stamp": "04b63a86"},
     "data/sprites/dev_chest.json": {"size": 113, "stamp": "566b95a3"},
     "data/sprites/dyevat.json": {"size": 223, "stamp": "05644763"},

@@ -12,6 +12,7 @@ import { WALL_T, WOOD, METAL, DOOR_TOP, WINDOW_SILL, WINDOW_TOP, BRACKET_UP } fr
 import * as gl from "../gl.js";
 import { GHOST_FLAGS, ghostColor } from "./props.js";
 import { NEAR_WALL_ALPHA, flameFrame, frameQuad } from "./scene.js";
+import { emitHangings } from "./paintings.js"; // what hangs on a wall's face (#326)
 
 // ---- walls ----
 
@@ -480,6 +481,7 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
       gl.poly(top, ghostTint ? ghostColor(shade(color, 1.18), ghostTint) : gl.rgb(shade(color, 1.18), alpha), { world: [tx, ty], flags: flags | gl.FLAG_SKY });
       if (open && outside > 0) emitSwungLeaves(wall, edge, x, y, h, outside, leafOpts);
       }
+      if (wall.hangings && !ghostTint) emitHangings(wall, edge, tx, ty, { tint, flags }); // paintings, right after their segment, before its bracket
       if (br) {
         const opts = { world: [tx, ty], flags };
         gl.poly([[bx - 2, by - 3], [bx + 2, by - 3], [bx + 2, by + 4], [bx - 2, by + 4]], gl.rgb(METAL, alpha), opts);

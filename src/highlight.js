@@ -29,7 +29,7 @@ export function clear() {
 // The object a right-click at the canvas point (sx, sy) would act on first, or null. `visible`: the tiles in my sight (null: all).
 export function targetAt(sx, sy, player, visible = null) {
   const seen = (tx, ty) => !visible || visible.has(tileKey(tx, ty));
-  const real = interact.actionsAt(sx, sy, player).filter((a) => a.target && ["character", "item", "prop"].includes(a.target.kind)); // Walk here is a "floor" action on a tile, never one of these
+  const real = interact.actionsAt(sx, sy, player).filter((a) => a.target && ["character", "item", "prop", "painting"].includes(a.target.kind)); // Walk here is a "floor" action on a tile, never one of these
   const ch = real.find((a) => a.target.kind === "character");
   if (ch) {
     const c = interact.characterAt(sx, sy, player);
@@ -50,6 +50,8 @@ export function targetAt(sx, sy, player, visible = null) {
     prop = p ? map.propById(p.target.id) : null;
   }
   if (prop && prop.tiles.some(([tx, ty]) => seen(tx, ty))) return { kind: "prop", id: prop.id };
+  const pa = real.find((a) => a.target.kind === "painting"); // a painting hung on a wall (#326)
+  if (pa && seen(pa.mx, pa.my)) return { kind: "painting", tx: pa.target.tx, ty: pa.target.ty, edge: pa.target.edge };
   return null;
 }
 

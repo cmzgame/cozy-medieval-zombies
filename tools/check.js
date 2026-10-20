@@ -256,6 +256,82 @@ check("rugs: laid from the bag into the rug slot, in the record and the sync has
   assert(rugsMod.pickUp(me, back) === true && !mapMod.peekTile(x, y).rug && bag.items.some((q) => q.id === "rug_bearskin"), "Pick up did not give the item back");
   return "laid, in the record and the hash, over by a chest, restored, picked up";
 });
+// Paintings (#326): a painting hung from the bag is state on a wall segment (a wide one a holder and a cover), in the chunk's record and the sync hash, restored from a record; Pick up
+// gives the item back (from either segment of a wide one, once); refused on a door, a window, a hung segment, past a post, off the end of a wall; a wall taken down or a door built over it drops
+// the painting as an item, whole. (The drawing, the ghost, and the guest's two tabs are `check("paintings")`'s, in the pane.)
+const paintingsImport = await import("../src/paintings.js");
+check("paintings: hung from the bag onto a wall's face, in the record and the sync hash, restored; refused on openings and past a post; taken down; dropped with their wall", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  const P = paintingsImport;
+  const bag = inventoryMod.bagOf(me);
+  bag.items.length = 0;
+  mapMod.ensureAround(me.gx, me.gy, 3);
+  let at = null;
+  for (let dy = -14; dy <= 14 && !at; dy++) for (let dx = -14; dx <= 14 && !at; dx++) {
+    const x = Math.round(me.gx) + dx;
+    const y = Math.round(me.gy) + dy;
+    let ok = true;
+    for (let ay = -2; ay < 4 && ok; ay++) for (let ax = -1; ax < 9 && ok; ax++) { const t = mapMod.peekTile(x + ax, y + ay); ok = !!t && t.floor === "floor_grass" && !t.prop && !t.rug && !t.n && !t.w; }
+    if (ok) at = [x, y];
+  }
+  assert(at, "no bare grass");
+  const [x, y] = at;
+  for (let i = 0; i < 8; i++) mapMod.buildWall(x + i, y, "n", "wall"); // a run of eight; a west wall and a window are put in below
+  me.gx = x + 2;
+  me.gy = y + 1;
+  const add = (id) => { const e = itemsMod.makeEntry(id, 1); assert(inventoryMod.stow(me, e), `${id} did not fit the bag`); return e; };
+  const hangings = (tx, edge = "n") => mapMod.peekTile(tx, y)[edge].hangings || null;
+  const sync0 = gameMod.syncParts().map;
+  const small = add("painting_small_oak");
+  assert(P.hang(me, small.uid, x + 1, y, "n") === true && !bag.items.includes(small), `the small painting was not hung from the bag (fit "${P.fitProblem("painting_small_oak", x + 1, y, "n")}", reach "${P.reachFor(me, "painting_small_oak", x + 1, y, "n")}")`);
+  assert(JSON.stringify(hangings(x + 1)) === JSON.stringify([{ item: "painting_small_oak", slot: "top", span: 1 }]), `the segment's record is ${JSON.stringify(hangings(x + 1))}`);
+  assert(gameMod.syncParts().map !== sync0, "a hung painting did not move the sync hash");
+  assert(P.fitProblem("painting_small_deer", x + 1, y, "n") === "Something already hangs there", "a second painting was allowed on a hung segment");
+  const wide = add("painting_wide_lake");
+  assert(P.hang(me, wide.uid, x + 2, y, "n") === true, "the wide painting was not hung");
+  assert(hangings(x + 2)[0].span === 2 && JSON.stringify(hangings(x + 3)) === JSON.stringify([{ cover: [x + 2, y], slot: "top" }]), "a wide painting is not a holder and a cover");
+  assert(P.holderOf(x + 3, y, "n").tx === x + 2, "the cover does not name its holder");
+  // The record and back.
+  const C = mapMod.CHUNK;
+  const rec = JSON.parse(JSON.stringify(mapMod.serializeChunk(mapMod.getChunk(Math.floor(x / C), Math.floor(y / C), false))));
+  assert(JSON.stringify(rec.walls || rec).includes("painting_wide_lake") && JSON.stringify(rec.walls || rec).includes("painting_small_oak"), "the chunk's record does not carry the paintings");
+  mapMod.installChunk(rec);
+  assert(hangings(x + 2) && hangings(x + 2)[0].item === "painting_wide_lake" && hangings(x + 3)[0].cover[0] === x + 2, "the paintings did not come back from the record");
+  // Refusals: a post, a door, a window, the end of the wall, too far, a wall between.
+  mapMod.buildWall(x + 5, y, "w", "wall"); // meets the joint between the segments at x + 4 and x + 5
+  assert(P.fitProblem("painting_wide_lake", x + 4, y, "n") === "A post is in the way", `a wide painting over a post: "${P.fitProblem("painting_wide_lake", x + 4, y, "n")}"`);
+  mapMod.buildWall(x + 6, y, "n", "window");
+  assert(P.fitProblem("painting_small_oak", x + 6, y, "n") === "Nothing to hang it on", "a painting was allowed on a window");
+  assert(P.fitProblem("painting_wide_lake", x + 7, y, "n") === "Too wide for the wall", `at the end of a wall: "${P.fitProblem("painting_wide_lake", x + 7, y, "n")}"`);
+  assert(P.fitProblem("painting_small_oak", x, y + 3, "n") === "No wall to hang it on", "a painting was allowed on no wall");
+  me.gx = x + 2;
+  me.gy = y + 8;
+  assert(P.reachFor(me, "painting_small_oak", x + 4, y, "n") === "Too far", "reach was not refused from afar");
+  me.gx = x + 1;
+  me.gy = y - 1; // the far side of the wall
+  assert(P.reachFor(me, "painting_small_oak", x + 4, y, "n") !== "", "reach was allowed through the wall");
+  const far = add("painting_small_deer");
+  assert(P.hang(me, far.uid, x + 4, y, "n") === false && bag.items.includes(far), "a hang through the wall was not refused, or the item left the bag");
+  // Pick up: from the second segment of the wide one, once.
+  me.gx = x + 3;
+  me.gy = y + 1;
+  const n0 = bag.items.length;
+  assert(P.takeDown(me, x + 3, y, "n") === true && bag.items.some((q) => q.id === "painting_wide_lake") && bag.items.length === n0 + 1, "Pick up from the cover did not give the wide painting back");
+  assert(!hangings(x + 2) && !hangings(x + 3), "the holder or the cover still has its record");
+  assert(P.takeDown(me, x + 2, y, "n") === false && bag.items.length === n0 + 1, "a second pick-up gave a second painting");
+  // A wall taken down drops what hangs on it; a door built over it too.
+  const tall = add("painting_tall_pines");
+  assert(P.hang(me, tall.uid, x + 2, y, "n") === true && hangings(x + 2)[0].slot === "both", "the tall painting was not hung with both slots");
+  mapMod.destroyWall(x + 2, y, "n");
+  assert(mapMod.itemsAt(x + 2, y).some((q) => q.id === "painting_tall_pines"), "the tall painting did not fall to the floor with its wall");
+  assert(mapMod.buildWall(x + 1, y, "n", "door") && !mapMod.peekTile(x + 1, y).n.hangings && mapMod.itemsAt(x + 1, y).some((q) => q.id === "painting_small_oak"), "a door built over a painted wall did not drop the painting");
+  const wide2 = add("painting_wide_sunset");
+  assert(P.hang(me, wide2.uid, x + 3, y, "n") === true, "the wide painting was not hung again");
+  mapMod.destroyWall(x + 4, y, "n"); // the cover's wall: the one painting falls, and its holder is clear
+  assert(mapMod.itemsAt(x + 3, y).filter((q) => q.id === "painting_wide_sunset").length === 1 && !hangings(x + 3), "taking down a wide painting's second wall did not drop it once and clear the holder");
+  return "hung, in the record and the hash, restored; refused on a post, a window, the wall's end, afar, through a wall; taken down from either segment, once; dropped with the wall or a door";
+});
 // Small text (#321): text at or under the threshold (ui/small-text.js, 15 UI px) is set in the clear sans-serif (`--font-small`), so a new small rule cannot slip in pixel-only.
 // `scanSmallText` reads style.css for every rule whose size is at or under the threshold, in any form the stylesheet could write it: `font-size` in px or rem (a rem is 16 px), a
 // percentage or an em or `smaller` (relative to the parent), the keywords (xx-small 9 px, x-small 10, small 13), and the `font:` shorthand with a style, variant, or weight before the

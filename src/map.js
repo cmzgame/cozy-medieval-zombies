@@ -644,6 +644,7 @@ export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT) {
   const t = growTile(tx, ty);
   const existing = t[edge];
   if (existing && !canStampOver(existing, kind)) return false;
+  if (existing) releaseHangings(tx, ty, edge); // a door or a window stamped over a wall that held a painting: it falls to the floor (#326)
   if (existing) {
     // Stamped over a wall (or a broken opening): the new one is of the same material, so a door in a wood wall is a wood door,
     // and it remembers the wall it replaced, which the removal tool puts back (never a hole where a wall stood).
@@ -666,12 +667,54 @@ export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT) {
   return true;
 }
 
+// ---- paintings hung on a wall's face (#326; src/paintings.js) ----
+// A wall segment's `hangings` are what hangs on its camera-facing face: { item, slot, span } for a painting (slot "top", "bottom" or "both"; span 1, or 2 for a wide one),
+// and { cover: [tx, ty], slot } on the second segment of a wide one, marking it taken by the painting held at (tx, ty). The segment along from this one, towards the
+// camera's end of the wall: the next tx for a north wall, the next ty for a west wall.
+export function nextAlong(tx, ty, edge) {
+  return edge === "n" ? [tx + 1, ty] : [tx, ty + 1];
+}
+
+// Take a painting off the wall (the holder's record `rec` on the segment (tx, ty)), its cover too: returns its item id. Nothing is given: the caller puts it in a bag or drops it.
+export function removeHanging(tx, ty, edge, rec) {
+  const wall = tileAt(tx, ty)[edge];
+  if (!wall || !wall.hangings || !wall.hangings.includes(rec) || !rec.item) return null;
+  wall.hangings.splice(wall.hangings.indexOf(rec), 1);
+  if (!wall.hangings.length) delete wall.hangings;
+  touch(tx, ty);
+  if (rec.span === 2) {
+    const [nx, ny] = nextAlong(tx, ty, edge);
+    const w2 = tileAt(nx, ny)[edge];
+    if (w2 && w2.hangings) {
+      const i = w2.hangings.findIndex((q) => q.cover && q.cover[0] === tx && q.cover[1] === ty && q.slot === rec.slot);
+      if (i >= 0) w2.hangings.splice(i, 1);
+      if (!w2.hangings.length) delete w2.hangings;
+      touch(nx, ny);
+    }
+  }
+  return rec.item;
+}
+
+// What hangs on a wall about to go (taken down, or stamped over by a door or a window) falls to the floor on the face's side, as an item, whole: a painting is never lost with its wall.
+function releaseHangings(tx, ty, edge) {
+  const wall = tileAt(tx, ty)[edge];
+  if (!wall || !wall.hangings) return;
+  for (const h of [...wall.hangings]) {
+    const [htx, hty] = h.cover || [tx, ty];
+    const holder = tileAt(htx, hty)[edge];
+    const rec = holder && holder.hangings && holder.hangings.find((q) => q.item && (h.item ? q === h : q.slot === h.slot));
+    const item = rec ? removeHanging(htx, hty, edge, rec) : null;
+    if (item) dropItem(htx, hty, { id: item, count: 1, uid: nextId("e") });
+  }
+}
+
 // Take a wall, door, or window off an edge, and whatever hangs on it (its
-// boards go with it, a torch bracket is forgotten).
+// boards go with it, a torch bracket is forgotten, a painting falls to the floor).
 export function destroyWall(tx, ty, edge, restoreUnder = false) {
   const t = growTile(tx, ty);
   const wall = t[edge];
   if (!wall) return false;
+  releaseHangings(tx, ty, edge);
   for (const b of [...bracketSet]) if (b.wall === wall) bracketSet.delete(b);
   t[edge] = null;
   if (restoreUnder && wall.under) {

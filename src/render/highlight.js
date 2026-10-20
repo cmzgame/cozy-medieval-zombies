@@ -18,6 +18,7 @@ export function set(t) {
 export const isProp = (id) => !!target && target.kind === "prop" && target.id === id;
 export const isCharacter = (id) => !!target && target.kind === "character" && target.id === id;
 export const isItem = (uid) => !!target && target.kind === "item" && target.uid === uid;
+export const isPainting = (tx, ty, edge) => !!target && target.kind === "painting" && target.tx === tx && target.ty === ty && target.edge === edge;
 
 // The sprite frame outlined: `opts` are the frame's own quad options (its world point and heights); the colour, SOLID, UNLIT and NOFOG are put on here, with any `extra` flag.
 export function outline(sheet, name, x, y, opts, flip = false, extra = 0, skew = 0) {

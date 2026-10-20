@@ -4,6 +4,7 @@
 //
 //   prop   the mode a player is in whenever they carry furniture;
 //   rug    a rug from the bag, laid flat on the floor (#327; src/rugs.js): the ghost over its 2 by 3, R turns it, a click lays it;
+//   painting  a painting from the bag, hung on the face of the wall under the cursor (#326; src/paintings.js): the ghost on the wall, a click hangs it;
 //   build  a wall, door, or window on the tile edge under the cursor, paid for
 //          in logs or planks (data/build.json) unless the Free building
 //          setting is on, and built over a few seconds like boarding.
@@ -25,6 +26,7 @@ import { rules } from "./rules.js";
 import * as tuning from "./tuning.js";
 import { reachProblem, TOO_FAR } from "./reach.js";
 import * as rugs from "./rugs.js"; // a rug laid from the bag (#327)
+import * as paintings from "./paintings.js"; // a painting hung on a wall from the bag (#326)
 
 // Reach was raised by a full tile on 2026-10-11 (Michael: easier).
 export const PLACE_REACH = 2.6; // tiles from the player to a carried prop's anchor tile
@@ -32,8 +34,8 @@ export const BUILD_REACH = 2.6; // tiles from the player to the middle of a buil
 export const REMOVE_REACH = 2.6; // tiles from the player to the nearest part of what is removed
 const EDGE_CLEARANCE = 0.45; // the player may not stand closer than this to an edge being built
 
-// kind is null, "prop", "rug", "build", or "remove". ghost is what the renderer draws.
-export const state = { active: false, kind: null, prop: null, build: null, rug: null, ghost: null, turns: 0 };
+// kind is null, "prop", "rug", "painting", "build", or "remove". ghost is what the renderer draws.
+export const state = { active: false, kind: null, prop: null, build: null, rug: null, painting: null, ghost: null, turns: 0 };
 // On a guest (docs/31/05 item 10, tier 3): the ghost is the replica's, and the click goes to the host as
 // a command (main.js sets the sender), which performs it for the guest's player with its own reach.
 let sender = null;
@@ -245,6 +247,20 @@ export function beginRug(entry) {
   return true;
 }
 
+// A painting from the bag (the item's Place): the ghost follows the cursor onto the face of a wall, a click hangs it within reach, Esc cancels. The item stays in the bag until it is hung.
+export function beginPainting(entry) {
+  const def = paintings.paintingDef(entry && entry.id);
+  if (!def) return false;
+  state.kind = "painting";
+  state.painting = { uid: entry.uid, id: def.id };
+  state.prop = null;
+  state.build = null;
+  state.rug = null;
+  state.active = true;
+  state.turns = 0;
+  return true;
+}
+
 export function beginBuild(what) {
   if (!buildData[what]) return false;
   state.kind = "build";
@@ -266,7 +282,7 @@ export function beginRemove() {
 // Carrying cannot be cancelled: the prop stays in the hands, so prop mode
 // answers false.
 export function cancel() {
-  if (state.kind !== "build" && state.kind !== "remove" && state.kind !== "rug") return false;
+  if (state.kind !== "build" && state.kind !== "remove" && state.kind !== "rug" && state.kind !== "painting") return false;
   end();
   return true;
 }
@@ -276,6 +292,7 @@ function end() {
   state.prop = null;
   state.build = null;
   state.rug = null;
+  state.painting = null;
   state.active = false;
   state.ghost = null;
   state.turns = 0;
@@ -316,6 +333,7 @@ export function update(player) {
       state.rug.facing = fs[(fs.indexOf(state.rug.facing) + 1) % fs.length];
     }
   }
+  if (state.kind === "painting" && (player.carrying || !paintings.entryOf(player, state.painting.uid))) end(); // gone from the bag (hung, dropped, moved) or hands full ends the mode
   if (player.carrying) {
     if (state.kind === "build" || state.kind === "remove") end(); // hands full: no building or removing
     if (state.kind !== "prop" || state.prop !== player.carrying) beginProp(player.carrying);
@@ -325,6 +343,7 @@ export function update(player) {
   }
   if (state.kind === "prop") state.ghost = propGhost(player);
   else if (state.kind === "rug") state.ghost = rugGhost(player);
+  else if (state.kind === "painting") state.ghost = paintingGhost(player);
   else if (state.kind === "build") state.ghost = buildGhost(player);
   else if (state.kind === "remove") state.ghost = removeGhost(player);
   else state.ghost = null;
@@ -504,6 +523,19 @@ function rugGhost(player) {
   return { kind: "rug", prop: { sprite: r.sprite, facing: r.facing, footprint: [w, h] }, tx, ty, footprint: [w, h], ok: reason === "", reason, rug: { uid: r.uid, facing: r.facing } };
 }
 
+// The painting's ghost: the picture on the face under the cursor, green where it may hang within reach and red where not (the rules are src/paintings.js's). Over no wall there is no
+// ghost to draw, and a click says so.
+function paintingGhost(player) {
+  const p = state.painting;
+  if (!p) return null;
+  const m = input.getMouse();
+  if (!m.inside) return null;
+  const at = paintings.targetAt(p.id, m.x, m.y, player);
+  if (!at) return { kind: "painting", item: p.id, tx: 0, ty: 0, edge: "n", ok: false, reason: "Aim at a wall", none: true, painting: { uid: p.uid } };
+  const reason = at.problem || paintings.reachFor(player, p.id, at.tx, at.ty, at.edge);
+  return { kind: "painting", item: p.id, tx: at.tx, ty: at.ty, edge: at.edge, ok: reason === "", reason, painting: { uid: p.uid } };
+}
+
 function buildGhost(player) {
   const m = input.getMouse();
   if (!m.inside) return null;
@@ -556,6 +588,23 @@ export function tryConfirm(player) {
     end();
     return true;
   }
+  if (state.kind === "painting") {
+    // A red ghost takes the click and says why; a green one hangs the painting (a guest sends the command the host runs by the same rules).
+    const g = state.ghost;
+    if (!g) return false;
+    if (!g.ok) {
+      showMessage(g.reason);
+      return true;
+    }
+    if (sender) {
+      sender({ kind: "painting", uid: g.painting.uid, tx: g.tx, ty: g.ty, edge: g.edge });
+      end();
+      return true;
+    }
+    paintings.hang(player, g.painting.uid, g.tx, g.ty, g.edge);
+    end();
+    return true;
+  }
   if (state.kind === "remove") {
     // Every click in this mode is the tool's, over a target or not.
     const g = state.ghost;
@@ -601,6 +650,11 @@ export function performPlacement(player, cmd) {
   if (cmd.kind === "rug") {
     // A guest laying a rug from its bag (the host's own click calls placeRug directly): the same reach and fit, the refusal said through the acting player.
     rugs.placeRug(player, cmd.uid, cmd.tx, cmd.ty, cmd.facing);
+    return true;
+  }
+  if (cmd.kind === "painting") {
+    // A guest hanging a painting from its bag (the host's own click calls hang directly): the same reach and fit, the refusal said through the acting player.
+    paintings.hang(player, cmd.uid, cmd.tx, cmd.ty, cmd.edge);
     return true;
   }
   if (cmd.kind === "prop") {
@@ -715,6 +769,13 @@ export function prompt() {
   if (g.kind === "rug") {
     if (!g.ok) return { label: g.reason, mx: g.tx, my: g.ty, progress: null, enabled: false };
     return { label: "Click to lay the rug · R turn · Esc cancel", mx: g.tx, my: g.ty, progress: null, enabled: true };
+  }
+  if (g.kind === "painting") {
+    const m = input.getMouse();
+    const at = iso.toGrid(m.x, m.y);
+    const [mx, my] = g.none ? [at.gx, at.gy] : paintings.floorTile(g.tx, g.ty);
+    if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
+    return { label: "Click to hang the painting · Esc cancel", mx, my, progress: null, enabled: true };
   }
   if (g.kind === "remove") {
     const t = g.target;
