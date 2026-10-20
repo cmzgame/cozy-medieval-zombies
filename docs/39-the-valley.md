@@ -149,7 +149,7 @@ One panel for every station; ingredients from the bag, the belt, and every conta
 - **Millstones** [built] (the mill's): flour from two grain; no fire. Unlock: none named [open #275].
 - **Charcoal clamp** [built] (the smithy's yard, three at the burners): three charcoal from four logs over half a game day, lit, a log of fuel a day. Unlock: none named [open #275].
 - **Dye vats** [change] (three in the weaver's yard): no recipes today; a garment and a dye plant to a dyed garment (`docs/30`) [open #273: a recipe or one of a kind].
-- **Cauldron** [to build] (the witch's at the mere, `docs/30`): potions (Potions 1 on), section 5.8. Who keeps it and who teaches [open #275].
+- **Cauldron** [to build] (the witch's at the mere, `docs/30`): potions (Potions 1 on), section 5.8. The witch keeps it and teaches Potions (ruled 2026-10-19).
 - **Smoking rack** [to build] (the hunter's lodge): smoked meat and fish (Cooking 5).
 - **Composter** [to build] (Farming 4): rotten food, rotten fish, or bonemeal in; compost, and a better fertiliser from bonemeal, out at its own pace.
 - **Drying rack** [to build] (Herbalism 4): dried herbs that never rot.
@@ -350,7 +350,7 @@ All [to build]: brewed at a cauldron from Herbalism's herbs and secondaries; dru
 - **Stronger potions** (Potions 6), **one more a brew** (Potions 9).
 - **Throwing potions:** Potions 7; an offensive one bursts where it lands; a healing or mana potion splashes a friend.
 - **Life Ward:** temporary immunity to bites; unlocked at Faith 3 [open #275: who brews it].
-- **A curing potion** for the infection [open #275]: mid to late game, gated by skill (ruled).
+- **A curing potion** for the infection [open #275]: mid to late game, gated by skill (ruled), and found beyond the valley (ruled 2026-10-19).
 - **A herb tea that restores stamina** (`docs/30`'s cauldron) [open #275].
 - **Warding potions against the cold** (Potions 8, the Pale Reach) and **Divine Potions** (Potions 10, the Crimson Abbey's herb): names only.
 
@@ -511,7 +511,7 @@ One per skill, immune, teaching recipes and unlocks as you level [to build]; whi
 
 None in the game today. All [to build] unless marked.
 
-- **How many kinds** [open #289]: 2026-10-12 ruled "two animals, last" (chickens and deer); Beastlore's list below is longer.
+- **How many kinds:** Beastlore's, below (#289); 2026-10-12's "two animals, last" is struck (ruled 2026-10-19).
 - **Killing:** any weapon; the weapon decides the yield (a halberd ruins the kill, a bow gives all of it). Beastlore 1.
 - **Skinning and butchering** with a knife: hides and meat; one more at Beastlore 2, faster and one more of every yield at 9.
 - **Deer** (`docs/30` step 8): wild game that flees, hunted with the bow; where Beastlore places it [open #289].
@@ -534,7 +534,7 @@ None in the game today. All [to build] unless marked.
 
 ## 9. Professions
 
-A skill's level gate stops a player harvesting what it gates, ripe fields included (ruled 2026-10-19).
+A skill's level gate stops a player harvesting the food it gates, ripe fields included (ruled 2026-10-19); that it stops any other gated harvest (a herb, a tree, an ore) the same way is *Primary's reading*.
 
 **The pattern** (Michael, #275): each skill makes you better at the thing itself along several vectors; unlocks new things, some from outside the valley; adds small utilities; and feeds other skills. **Ten levels**, ten the intended stopping point; experience for doing the thing, ten the longest to reach (the numbers tbd); an unlock is a hard gate, shown on the hover card; **death takes skills** (how much [open #275]); **a production skill's best is never the best of its kind** (the best comes from bosses); each skill explains itself in the game. Every skill and level is [to build]; [change] marks a level that gates something open to all today. A level naming a region is a name only.
 
@@ -782,7 +782,7 @@ Later, not at the start: gems inlaid in metal armour.
 - **Lasts 25% longer** (Blacksmithing 9) [to build].
 
 ### Drops by chance
-- **Loot tables** [built]: fixed tables for the placed chests; rolled tables for the rest [change: a table per kind of container, gear rare and where it makes sense, #268]. **Every loot table is provisional** until ruled otherwise; they are this scope's last step, once every item is known (ruled 2026-10-19).
+- **Loot tables** [built]: fixed tables for the placed chests; rolled tables for the rest [change: a table per kind of container, gear rare and where it makes sense, #268]. **Every loot table is provisional** until ruled otherwise (ruled 2026-10-19); they are likely this scope's last step, once every item is known (Michael: "this might be the last thing").
 - **Gear drops by chance** [to build] (ruled): a lever not yet used.
 - **Bad-luck protection and personal loot** [open #268].
 - **A boss's capstone drop:** a region's.

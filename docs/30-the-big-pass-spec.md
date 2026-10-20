@@ -20,7 +20,7 @@ Rulings, all in `02`:
 6. **Sleep fast-forwards the simulation.** Only in a bed, indoors; the clock runs fast with the world simulated at that speed until morning; you are never woken; you get up. Decided by the co-op tiebreaker of 2026-10-12 (since replaced by the multiplayer rule, `31/08`): the sim runs, nothing is poked. With friends in the world, time runs fast only while every living player in it is in bed (`02`, 2026-10-13).
 7. **Nothing waits for art.** Every new thing has a placeholder from boot through the same sheet interface; a bookcase is a box with a definition until the picture arrives (`CLAUDE.md`'s rule, applied to every item below).
 8. **Water stops walkers.** A tile that is wholly water is unwalkable by every entity: you, the dead, villagers, animals (Michael, 2026-10-12: "it also segments the map"). The bank's blend is ground. The ford and the weir's crest are a shallow kind with stones showing, never blue water, slow for everyone. The river and its crossings are the map's shape (`29`); you drink and fill from any water beside you, as from the well. Boats are someday (`05`); for now water is a source of water and, later, of fish, and that is all.
-9. **Animals last.** (Narrowed, `02` 2026-10-19: Beastlore's animals, #289.) Chickens and deer are the last step, so nothing before them depends on them; the knife's skinning, raw meat, leather, and the tannery ride with them.
+9. ~~**Animals last.** Chickens and deer are the last step, so nothing before them depends on them;~~ (superseded, `02` 2026-10-19: Beastlore's animals, #289) the knife's skinning, raw meat, leather, and the tannery ride with the animals.
 
 ## 3. Staying alive: the needs
 
@@ -42,7 +42,7 @@ Four stages each as now (`moodles.js`), with effects in the last two: at "very h
 
 ### 3.4 Health
 
-Regenerates [1 a minute] while hunger and thirst are above their second stage and nothing bleeds; [4 a minute] asleep; twice either well fed, hunger at `fullAt` (90) or more (`wellFedRegenMult`, Michael, 2026-10-18); none otherwise. Bandages close bleeds as now. **Food heals a little** (Michael, 2026-10-18, #179: "I DO want food to heal. It should be a stopgap while you wait for natural heal or grab a potion. The only big heals allowed are from potions"): each food has a `heal` in `data/items.json` beside its hunger, 1 to 2 raw (a potato, a cabbage, an apple, a pumpkin), 4 to 6 cooked (a roast potato, cheese, bread, porridge), 10 for a stew, and none heals as much as a potion will; **food heals what it says on the tin** (Michael, 2026-10-18, overturning #186's "You are full."): eaten whenever you like, full or not, it heals exactly its number and hunger stops at the top, so the cost of a heal is the food itself; eaten from the bag or from the belt (a food on the belt offers Eat and a double-click eats it, as a skin is drunk). The infection stays the marker it is; when it is made real a craftable cure with the mushrooms joins the cauldron's recipes (section 8).
+Regenerates [1 a minute] while hunger and thirst are above their second stage and nothing bleeds; [4 a minute] asleep; twice either well fed, hunger at `fullAt` (90) or more (`wellFedRegenMult`, Michael, 2026-10-18); none otherwise. Bandages close bleeds as now. **Food heals a little** (Michael, 2026-10-18, #179: "I DO want food to heal. It should be a stopgap while you wait for natural heal or grab a potion. The only big heals allowed are from potions"): each food has a `heal` in `data/items.json` beside its hunger, 1 to 2 raw (a potato, a cabbage, an apple, a pumpkin), 4 to 6 cooked (a roast potato, cheese, bread, porridge), 10 for a stew, and none heals as much as a potion will; **food heals what it says on the tin** (Michael, 2026-10-18, overturning #186's "You are full."): eaten whenever you like, full or not, it heals exactly its number and hunger stops at the top, so the cost of a heal is the food itself; eaten from the bag or from the belt (a food on the belt offers Eat and a double-click eats it, as a skin is drunk). The infection stays the marker it is; when it is made real, its cure is found beyond the valley, not at the cauldron (`02` 2026-10-19).
 
 ### 3.5 Death
 
@@ -68,7 +68,7 @@ The whole vocabulary. "Exists" means built before this pass; everything else is 
 
 **Fighting (exists, paused):** swing, shove, block, draw and loose, throw the spear.
 
-**Animals (the last step):** **collect eggs** from a nest, **shoo** a chicken, **hunt** a deer (the bow), **skin** a dead deer (knife), **butcher** (knife).
+**Animals (step 8; which animals is Beastlore's, `02` 2026-10-19, #289):** **collect eggs** from a nest, **shoo** a chicken, **hunt** a deer (the bow), **skin** a dead deer (knife), **butcher** (knife).
 
 ## 5. Items
 
@@ -107,7 +107,7 @@ One panel for all of them, on the kit: the recipe list on the left (greyed when 
 | Loom | no | the weaver | cloth from flax (wool waits for the animals); bandages; a tunic, breeches, a cap (built, #212) |
 | Dye vats | no | the weaver's yard | a garment plus a dye plant to the dyed garment |
 | Millstones | no | the mill | grain to flour (built, #201: 2 grain to 1) |
-| Cauldron | its own fire, logs | the witch | the cure (when infection is real; mid to late game, gated by skill, `02` 2026-10-19); until then a herb tea that restores stamina |
+| Cauldron | its own fire, logs | the witch | a herb tea that restores stamina; not the infection's cure, which is mid to late game, gated by skill, and found beyond the valley (`02` 2026-10-19) |
 | Cider press | no | the orchard | apples to cider |
 | Smoking rack | its own, logs | the hunter | raw meat to smoked (with animals) |
 
@@ -212,7 +212,7 @@ Each step's acceptance is a check under `tools/checks/` where the sim can prove 
 **The names, the crops, how many villagers, and the gloom's door are tabled** (Michael, 2026-10-16) to the "finish the valley" session, since they depend on the game's overall shape, its own open question (#123, blocked on Michael). The questions only Michael can answer, from `29/11` (its answered ones are in `docs/history/29-world-ideation.md`, with `02`'s rulings beside them) and from this pass; each is `needs-michael` for the sweep's wave 4, where it becomes an issue. The plan's defaults are in brackets, as `29/11` had them.
 
 - **Names** (`29/11` Q4): the village, the river, the castle, the farms, the mere, the villagers. [Michael's; the docs and the valley carry role names until then.]
-- **Which new crops first** (Q10). [Turnip, wheat, beans, hops; flax, onion, carrot after; the four herbs with the cure.] *Flax went first (#212, for the loom), by Primary's default.*
+- **Which new crops first** (Q10). [Turnip, wheat, beans, hops; flax, onion, carrot after; the four herbs with the cure.] *The cure is since ruled to be beyond the valley (`02` 2026-10-19).* *Flax went first (#212, for the loom), by Primary's default.*
 - **How many villagers** (Q8): `04` says six to ten; `29/08` places fourteen with six core; the village of step 1 placed seven, with lines. [Fourteen placed, six given lines and jobs first; the atlas allows it.]
 - **The gloom's door: east, by the old road past the woodcutters?** (Q12). It decides which edge of the map the zone system opens first; nothing built depends on it yet. [East.]
 - ~~**Does "every building has rooms" hold for sheds, huts, and the forest cabins?** (Q15).~~ **Ruled by Michael, 2026-10-16 (#92):** "A shed, hut, or forest cabin is one room; the two-rooms rule is for houses."
