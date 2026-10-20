@@ -43,7 +43,7 @@ export function render(player) {
   const active = placement.state.kind === "build" && placement.state.build ? placement.state.build.what : null;
   const rows = placement.paletteKinds().map((k) => {
     const short = placement.shortfall(player, k.id);
-    const leaf = active === k.id && placement.takesLeaf(k.id) ? `<div class="bp-sub">leaves: ${placement.leafText(placement.buildLeaf())} · R</div>` : "";
+    const leaf = active === k.id && placement.takesLeaf(k.id) ? `<div class="bp-sub">${placement.leafHint(placement.buildLeaf(), placement.state.ghost && placement.state.ghost.carriedLeaf)}</div>` : "";
     return `<div class="bp-row${short ? " short" : ""}${active === k.id ? " active" : ""}" data-kind="${k.id}" title="${short || "Click to build"}"><span class="bp-name">${k.label}</span><span class="bp-cost">${placement.costText(k.id)}</span></div>${leaf}`;
   }).join("");
   const remove = `<div class="bp-row bp-remove" data-kind="__remove" title="Highlights what you placed or built; click to destroy it"><span class="bp-name">Remove</span><span class="bp-cost">X</span></div>`;

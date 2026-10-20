@@ -12,7 +12,7 @@
 import { getDef } from "./assets.js";
 import { douse } from "./items.js";
 import { nextId } from "./world.js";
-import { storedLeaf } from "./woods.js"; // the wood of a door's or window's leaves (#334)
+import { storedLeaf, carriedLeaf } from "./woods.js"; // the wood of a door's or window's leaves (#334)
 import { emit } from "./events.js";
 import { world as W } from "./tuning.js";
 
@@ -661,7 +661,7 @@ export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT, leaf
     if (existing.underBuilt) wall.underBuilt = true;
   }
   wall.built = true; // made by the player: the removal tool may take it down (docs/13)
-  const own = kind !== "wall" ? storedLeaf(sprite, leaf) : null; // a door or window of another wood than its wall (#334); nothing stored when it is the wall's own
+  const own = kind !== "wall" ? storedLeaf(sprite, leaf || (existing && existing.kind === kind ? carriedLeaf(existing) : "")) : null; // a door or window of another wood than its wall (#334); nothing stored when it is the wall's own; over a broken one of its kind the default is the old one's wood
   if (own) wall.leaf = own;
   wall.at = [tx, ty];
   t[edge] = wall;

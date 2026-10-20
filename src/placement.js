@@ -89,8 +89,11 @@ function nextLeaf(current) {
   return list[(i + 1) % list.length];
 }
 
-// How the choice reads: "the wall's own", "Spruce".
-export const leafText = (leaf) => (leaf ? woods.woodName(leaf) : "the wall's own");
+// How the choice reads, the same in the palette and in the prompt: "leaves: Spruce · R" (the wall's own, or "as it was" over a broken door or window of another wood, when none is chosen).
+export function leafHint(chosen, carried = "") {
+  const name = chosen ? woods.woodName(chosen) : carried ? `as it was, ${woods.woodName(carried)}` : "the wall's own";
+  return `leaves: ${name} · R`;
+}
 
 // ---- the carry rule ----
 
@@ -242,8 +245,11 @@ function buildBlock(player, what, tx, ty, edge, leaf = "") {
   if (leaf) {
     // The wood of its leaves (#334): only for a door or a window, in a wall of a wood (its own sprite when it is stamped over one).
     const sprite = existing && map.canStampOver(existing, kind) ? existing.sprite : buildData[what].sprite;
-    const why = takesLeaf(what) ? woods.leafProblem(sprite, leaf, rules.freeBuilding) : "No such wood";
+    const why = takesLeaf(what) ? woods.leafProblem(sprite, leaf, rules.freeBuilding, kind) : "No such wood";
     if (why) return why;
+  } else if (existing && map.canStampOver(existing, kind) && ["door", "window"].includes(kind)) {
+    const carried = woods.carriedLeaf(existing); // the default over a broken door or window is its wood, which a region's needs Free building as a chosen one does
+    if (carried && woods.leafProblem(existing.sprite, carried, rules.freeBuilding, kind)) return woods.leafProblem(existing.sprite, carried, rules.freeBuilding, kind);
   }
   if (distToEdge(player.gx, player.gy, tx, ty, edge) < EDGE_CLEARANCE) return "Step back";
   return shortfall(player, what);
@@ -580,7 +586,8 @@ function buildGhost(player) {
   const kind = wallKindOf(what);
   // As it would stand: a door stamped into a wall takes the wall's material (map.buildWall), so the ghost does too, and its leaf wood.
   const sprite = existing && map.canStampOver(existing, kind) ? existing.sprite : buildData[what].sprite;
-  return { kind: "wall", tx, ty, edge, wallKind: what, wallType: kind, sprite, leaf: woods.storedLeaf(sprite, leaf, rules.freeBuilding) || "", chosenLeaf: leaf, ok: reason === "", reason };
+  const carried = takesLeaf(what) && !leaf && existing && map.canStampOver(existing, kind) ? woods.carriedLeaf(existing) : "";
+  return { kind: "wall", tx, ty, edge, wallKind: what, wallType: kind, sprite, leaf: woods.storedLeaf(sprite, leaf || carried, rules.freeBuilding) || "", chosenLeaf: leaf, carriedLeaf: carried, ok: reason === "", reason };
 }
 
 // The left click. Returns true if this mode took it. A red ghost takes the
@@ -819,6 +826,6 @@ export function prompt() {
   }
   const [mx, my] = map.edgeMid(g.tx, g.ty, g.edge);
   if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
-  const wood = takesLeaf(g.wallKind) ? ` · R wood: ${leafText(g.chosenLeaf)}` : "";
+  const wood = takesLeaf(g.wallKind) ? ` · ${leafHint(g.chosenLeaf, g.carriedLeaf)}` : "";
   return { label: `Click to build (${costText(g.wallKind)})${wood} · Esc cancel`, mx, my, progress: null, enabled: true };
 }

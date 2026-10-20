@@ -84,8 +84,9 @@ export async function run(game) {
     setFree(true);
     const namesFree = placement.paletteKinds().map((k) => k.label);
     row("with Free building on it has Winter Pine and Bloodbark too", namesFree.includes("Winter Pine wall") && namesFree.includes("Bloodbark wall"), namesFree.join(", "));
-    const card = info.textOf(info.cardFor(G.items.makeEntry("plank", 1))).join(" | ");
-    row("the plank's card says what it builds, short and without a region's wood", /Builds: .*wall/.test(card) && !/Winter Pine|Bloodbark/.test(card) && card.length < 400, card.slice(0, 300));
+    const cards = [false, true].map((on) => { setFree(on); return info.textOf(info.cardFor(G.items.makeEntry("plank", 1))).join(" | "); });
+    row("the plank's card, with Free building off and on, says the walls once and keeps the door, window, fence, and gate, and never lists a region's wood", cards.every((c) => /Builds: wood wall \(1\), door \(3\), window \(2\), fence \(1\), gate \(2\)\./.test(c) && !/winter pine|bloodbark/i.test(c)) && cards[0] === cards[1], cards.map((c) => c.slice(c.indexOf("Builds:"))).join(" || "));
+    setFree(true);
 
     if (role === "guest") {
       // A guest: the replica holds a door of another wood the host built, with its leaf.
@@ -136,7 +137,7 @@ export async function run(game) {
     placement.beginBuild("door");
     aimEdge(x);
     const g0 = placement.state.ghost;
-    row("the door mode over a mahogany wall, hammer and planks in the bag: a green ghost of a mahogany door, the leaf the wall's own, the prompt naming it", !!g0 && g0.ok === true && g0.sprite === "wall_mahogany" && g0.leaf === "" && /R wood: the wall's own/.test(placement.prompt().label), g0 ? `${g0.sprite} leaf "${g0.leaf}" ${g0.ok ? "green" : g0.reason} | ${placement.prompt() && placement.prompt().label}` : "no ghost");
+    row("the door mode over a mahogany wall, hammer and planks in the bag: a green ghost of a mahogany door, the leaf the wall's own, the prompt naming it", !!g0 && g0.ok === true && g0.sprite === "wall_mahogany" && g0.leaf === "" && /leaves: the wall's own · R/.test(placement.prompt().label), g0 ? `${g0.sprite} leaf "${g0.leaf}" ${g0.ok ? "green" : g0.reason} | ${placement.prompt() && placement.prompt().label}` : "no ghost");
     const cycle = [];
     for (let i = 0; i < 5; i++) { inp.tap("KeyR"); settle(); cycle.push(placement.buildLeaf() || "own"); }
     row("R cycles the leaf wood: the wall's own, oak, spruce, mahogany, and round again (Free building off)", cycle.join(",") === "wall_wood,wall_spruce,wall_mahogany,own,wall_wood", cycle.join(","));
@@ -168,6 +169,14 @@ export async function run(game) {
     G.interact.updateAction(me, 10); // the timed build, run out
     const d = map.peekTile(x, y).n;
     row("a click builds it: a door of the mahogany wall with leaf Winter Pine, and the mode goes on", clicked === true && d.kind === "door" && d.sprite === "wall_mahogany" && d.leaf === "wall_winterpine", d ? `${d.kind} ${d.sprite} leaf ${d.leaf}` : "none");
+    // Over that door broken, the default leaf is its wood, and the prompt says so.
+    d.broken = true;
+    d.hp = 0;
+    map.touch(x, y);
+    placement.beginBuild("door");
+    aimEdge(x);
+    const g2 = placement.state.ghost;
+    row("over a broken Winter Pine door the ghost defaults to its wood, and the prompt says \"as it was\"", !!g2 && g2.ok === true && g2.leaf === "wall_winterpine" && g2.carriedLeaf === "wall_winterpine" && /leaves: as it was, Winter Pine · R/.test(placement.prompt().label), g2 ? `leaf ${g2.leaf} carried ${g2.carriedLeaf} | ${placement.prompt() && placement.prompt().label}` : "no ghost");
     placement.cancel();
     setFree(false);
     // The rules the host meets, by the command a guest sends.

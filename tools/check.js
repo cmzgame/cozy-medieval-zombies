@@ -420,6 +420,20 @@ check("woods: a door or a window of another wood than its wall: the leaf rules, 
     assert(rec.walls.some((w) => w[3] && w[3].leaf === "wall_winterpine") && rec.walls.some((w) => w[3] && w[3].leaf === "wall_spruce"), "the chunk's record does not carry the leaf");
     mapMod.installChunk(rec);
     assert(doorAt(x).leaf === "wall_winterpine" && doorAt(x + 1).leaf === "wall_spruce", "the leaf did not come back from the record");
+    // Over a broken door the default leaf is the old one's wood (a new door, never a repair); a region's wood is refused for it with Free building off as for a chosen one.
+    const brokeOld = doorAt(x);
+    brokeOld.broken = true; brokeOld.open = true; brokeOld.hp = 0;
+    mapMod.touch(x, y);
+    build("door", x);
+    assert(doorAt(x) !== brokeOld && !doorAt(x).broken && doorAt(x).leaf === "wall_winterpine", "a door built over a broken Winter Pine one did not default to its wood, or was a repair");
+    rulesImport.rules.freeBuilding = false;
+    const brokeAgain = doorAt(x);
+    brokeAgain.broken = true; brokeAgain.hp = 0;
+    build("door", x);
+    assert(doorAt(x) === brokeAgain, "a Winter Pine door was rebuilt by default with Free building off");
+    brokeAgain.broken = false; brokeAgain.hp = 100;
+    assert(W.leafProblem("wall_log", "wall_spruce", true, "window") === "Only a wood wall takes a spruce window · R to change", `the refusal reads "${W.leafProblem("wall_log", "wall_spruce", true, "window")}"`);
+    rulesImport.rules.freeBuilding = true;
     // Refusals, with Free building off: a region's wood, a log wall, an unknown wood, a fence's gate.
     rulesImport.rules.freeBuilding = false;
     const refused = (tx, what, leaf) => {

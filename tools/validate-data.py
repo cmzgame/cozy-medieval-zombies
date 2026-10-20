@@ -270,6 +270,23 @@ for sid, w in wood_walls.items():
             fail(f"sprite {sid}: wall.{part} {w.get(part)!r} is not a sprite definition")
     if w.get("leaf") and (w["leaf"] not in wood_walls or wood_walls[w["leaf"]].get("leaf")):
         fail(f"sprite {sid}: wall.leaf {w['leaf']!r} is not a wood wall with leaves of its own")
+# Every tone a role names is in every wood's table (a wood with leaves of its own), so a missing tone fails here and not only in the pane's pixel check; a table that is only part of a wall (daub's
+# limewashed fills) names only tones the roles do, and the wall that has it takes its leaves from a full one.
+role_tones = sorted({h for hs in tones.get("roles", {}).values() for h in hs})
+hex_re = re.compile(r"#[0-9a-fA-F]{6}")
+for wood, table in tones.get("tables", {}).items():
+    full = any(w["wood"] == wood and not w.get("leaf") for w in wood_walls.values())
+    if full:
+        missing = [h for h in role_tones if h not in table]
+        if missing:
+            fail(f"wood_tones: the {wood} table lacks {len(missing)} tone(s) the roles name: {', '.join(missing[:4])}")
+    else:
+        stray = [h for h in table if h not in role_tones]
+        if stray:
+            fail(f"wood_tones: the {wood} table has tone(s) no role names: {', '.join(stray[:4])}")
+    bad = [f"{k}->{v}" for k, v in table.items() if not (hex_re.fullmatch(k) and hex_re.fullmatch(v))]
+    if bad:
+        fail(f"wood_tones: the {wood} table has a value that is no #rrggbb: {', '.join(bad[:3])}")
 for key, e in load("data/build.json").items():
     if e.get("region") and not (e.get("sprite") in wood_walls and wood_walls[e["sprite"]].get("region")):
         fail(f"build {key}: a region entry names the wall of a region's wood")

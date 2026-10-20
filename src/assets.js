@@ -408,6 +408,11 @@ export function registerSheet(id, sheet, source = null) {
   return sheet;
 }
 
+// Forget a generated sheet (the woods' recoloured leaves, when their tones are set again).
+export function dropSheet(id) {
+  sheets.delete(id);
+}
+
 // Swap a sheet's content in place, keeping the object every holder has. The
 // caller redraws it into the atlas (gl.redrawSheet); the image must keep its size.
 export function replaceSheet(id, next) {

@@ -10,7 +10,7 @@
 // of the shut leaf (those that differ from the open frame and carry a leaf role's tone) are looked up in the leaf wood's table, the rest in the wall's own, and the result is registered
 // as a sheet like any generated one, keyed by wall and leaf.
 
-import { getDef, getSheet, registerSheet } from "./assets.js";
+import { getDef, getSheet, registerSheet, dropSheet } from "./assets.js";
 
 const ORDER = ["wall_wood", "wall_spruce", "wall_mahogany", "wall_winterpine", "wall_bloodbark"]; // the woods that have leaves of their own, as the palette lists them
 const OAK = "wall_wood";
@@ -42,10 +42,10 @@ export function leafChoices(freeBuilding) {
   return ORDER.filter((s) => isWoodWall(s) && !wallBlock(s).leaf && (freeBuilding || !wallBlock(s).region));
 }
 
-// Why a door or window in a wall of this sprite cannot have this leaf, or "" (an empty leaf is the wall's own, always fine).
-export function leafProblem(sprite, leaf, freeBuilding) {
+// Why a door or window in a wall of this sprite cannot have this leaf, or "" (an empty leaf is the wall's own, always fine). `kind` is what is being built, for the words.
+export function leafProblem(sprite, leaf, freeBuilding, kind = "door") {
   if (!leaf) return "";
-  if (!isWoodWall(sprite)) return "Only a wood wall takes another wood's door";
+  if (!isWoodWall(sprite)) return `Only a wood wall takes a ${woodName(leaf).toLowerCase()} ${kind} · R to change`;
   if (!ORDER.includes(leaf) || !isWoodWall(leaf) || wallBlock(leaf).leaf) return "No such wood";
   if (wallBlock(leaf).region && !freeBuilding) return `${woodName(leaf)} is found beyond the valley`;
   return "";
@@ -55,6 +55,12 @@ export function leafProblem(sprite, leaf, freeBuilding) {
 export function storedLeaf(sprite, leaf, freeBuilding = true) {
   if (!leaf || leafProblem(sprite, leaf, freeBuilding)) return null;
   return leaf === ownLeaf(sprite) ? null : leaf;
+}
+
+// The leaf a door or window built over this edge's wall defaults to when none is chosen: a broken door or window's own wood (the new one is never a repair, only its default wood is the
+// old one's), else "" (the wall's own).
+export function carriedLeaf(existing) {
+  return existing && existing.broken && existing.leaf && ["door", "window"].includes(existing.kind) ? existing.leaf : "";
 }
 
 // The wall sprite of the wood a wall's leaves are.
@@ -72,7 +78,10 @@ export function partsOf(wall) {
 let tones = null; // data/wood_tones.json
 export function setTones(json) {
   tones = json || null;
+  for (const id of variants.values()) dropSheet(id); // the sheets made from the old tones go with them, so a re-run leaves nothing behind
   variants.clear();
+  masks.clear();
+  scratch.clear();
 }
 
 const variants = new Map(); // "wall>leaf" -> the registered sheet's id
