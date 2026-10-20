@@ -55,6 +55,7 @@ import * as net from "./net.js";
 import * as stations from "./stations.js";
 import * as stationPanel from "./ui/station-panel.js";
 import * as talkPanel from "./ui/talk-panel.js"; // a villager's conversation, on the kit (docs/34, #202)
+import * as navRow from "./ui/nav-row.js"; // the buttons bottom right, one per panel (#295)
 import * as interact from "./interact.js";
 import * as items from "./items.js";
 import * as inventory from "./inventory.js";
@@ -201,6 +202,7 @@ function closeModes() {
   panel.closeAll();
   stationPanel.close();
   talkPanel.close();
+  navRow.closeSkills();
   placement.cancel();
   use.cancel();
   buildPalette.close();
@@ -238,6 +240,7 @@ function afterWorldSet() {
   panel.closeAll();
   stationPanel.close();
   talkPanel.close();
+  navRow.closeSkills();
   placement.cancel();
   use.cancel();
   buildPalette.close();
@@ -484,6 +487,7 @@ function toSite(page, data = {}) {
   panel.closeAll();
   stationPanel.close();
   talkPanel.close();
+  navRow.closeSkills();
   placement.cancel();
   use.cancel();
   buildPalette.close();
@@ -855,10 +859,11 @@ function applyPause() {
 function handleEscape() {
   if (!inWorld) { screens.back(); return; } // no world: the title and its screens only
   if (menu.tookEscape()) return;
+  if (screens.back()) return; // a screen is over every panel (the row's Menu button opens the pause menu with panels open), so it goes first
   if (use.cancel()) return; // Use mode is the top thing that can close
   if (stationPanel.close()) return;
   if (talkPanel.close()) return; // Escape closes a conversation in the panels' order
-  if (screens.back()) return;
+  if (navRow.closeSkills()) return;
   if (buildPalette.isOpen()) {
     buildPalette.close();
     return;
@@ -1185,6 +1190,7 @@ function stepGame(dt) {
   // Who the next swing would hit, flagged for the renderer's outline (docs/14).
   combat.markTargets(S.player, S.zombies, settings.get("showSwingTargets"));
   updateInventoryUi();
+  navRow.update({ bag: panel.isBagOpen(), character: panel.isCharacter(), map: mapPanel.isOpen(), build: buildPalette.isOpen() }); // after the panels answered the keys
   refreshFigure();
 }
 
@@ -1233,6 +1239,7 @@ async function restoreWorld(snap) {
   panel.closeAll();
   stationPanel.close();
   talkPanel.close();
+  navRow.closeSkills();
   placement.cancel();
   use.cancel();
   buildPalette.close();
@@ -1502,6 +1509,7 @@ async function boot() {
       use.init();
       stationPanel.initStationPanel(() => S.player);
       talkPanel.initTalkPanel(() => S.player, () => S.villagers);
+      navRow.initNavRow({ tap: input.tap, openChat: () => log.focusChat(log.draft()), openMenu: () => screens.show("pause"), openSettings: () => screens.show("settings"), canAct: () => inWorld && !screens.currentScreen() });
       initHud();
       initPrompt();
       initZombieBars();

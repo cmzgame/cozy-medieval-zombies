@@ -17,6 +17,11 @@ let onSay = null; // main.js: a line typed is said by your player (docs/31/03: t
 let onCommand = null; // a line beginning with a slash, the slash stripped; nothing behind it yet
 
 // The chat box focused with the cursor ready, from a key (Enter; a slash types the slash first; Michael, 2026-10-13).
+// What is typed in the chat box and not yet sent (the navigation row's Chat button keeps it).
+export function draft() {
+  return input ? input.value : "";
+}
+
 export function focusChat(prefix = "") {
   if (!input) return;
   input.value = prefix;

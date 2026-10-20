@@ -142,11 +142,11 @@ export async function run(game) {
         G.clock.setHour(hour0);
       }
       // Only the dead fade in the dark: a villager far enough off to be beyond the dark radius, at night, is drawn whole and so is the number over it.
+      const v = S.villagers.find((q) => !q.dead && q.kind !== "zombie");
+      const vAt = v ? [v.gx, v.gy] : null;
       try {
-        const v = S.villagers.find((q) => !q.dead && q.kind !== "zombie");
         if (!v) row("at night a villager's number, 4+ tiles off, is shown", false, "no villager");
         else {
-          const vAt = [v.gx, v.gy];
           G.loop.setPaused(true);
           G.clock.setHour(1);
           for (let i = 0; i < 5; i++) G.loop.advance(1 / 60);
@@ -157,10 +157,9 @@ export async function run(game) {
           draw(new Set([tileKey(Math.round(v.gx), Math.round(v.gy))]));
           const vs = ui.shown();
           row("at night a villager's number, 4+ tiles off in the dark, is shown (only the dead fade)", !!spot && vs.length === 1 && vs[0].hidden === false, spot ? `unseen by the dead's rule, ${Math.round(Math.hypot(v.gx - me.gx, v.gy - me.gy))} tiles off: hidden ${vs.map((n) => n.hidden).join("")}` : "no dark spot found");
-          v.gx = vAt[0];
-          v.gy = vAt[1];
         }
       } finally {
+        if (v) { v.gx = vAt[0]; v.gy = vAt[1]; }
         G.clock.setHour(hour0);
       }
       // A frame is a guest's input: a skill that is not one of the fourteen is ignored, never put in the page, and a late number is dropped.
