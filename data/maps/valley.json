@@ -1773,6 +1773,33 @@
       13,
       9
      ]
+    },
+    {
+     "sprite": "chicken_coop",
+     "tile": [
+      6,
+      8
+     ],
+     "footprint": [
+      1,
+      2
+     ],
+     "note": "the home's chicken coop (#333)"
+    },
+    {
+     "sprite": "beehive",
+     "tile": [
+      12,
+      7
+     ],
+     "note": "a hive by the home's garden (#333)"
+    },
+    {
+     "sprite": "beehive",
+     "tile": [
+      14,
+      7
+     ]
     }
    ]
   },
@@ -12234,6 +12261,40 @@
    "footprint": [
     2,
     3
+   ]
+  },
+  {
+   "sprite": "chicken_coop",
+   "tile": [
+    72,
+    239
+   ],
+   "footprint": [
+    1,
+    2
+   ],
+   "note": "Hollow Farm's chicken coop (#333)"
+  },
+  {
+   "sprite": "beehive",
+   "tile": [
+    94,
+    239
+   ],
+   "note": "Hollow Farm's hives (#333)"
+  },
+  {
+   "sprite": "beehive",
+   "tile": [
+    96,
+    239
+   ]
+  },
+  {
+   "sprite": "beehive",
+   "tile": [
+    98,
+    239
    ]
   },
   {

@@ -253,6 +253,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-10-20 — The beehive and the chicken coop in the valley (#333; Michael's "Coop as placeholder container is fine!", the builder's readings Michael's to overrule)
+
+The art of art round 3 is wired. **The beehive** is the drawn skep: `interactable` and no `clickAnim`, so it sways when clicked as Michael asked (the bee frames stay spare; a `clickAnim` would stop the sway), and no action yet (no honey item). **The chicken coop** is the bed's facings shape and a **container** with a placeholder table of its own, `coop` in `data/loot.json` (a 3 by 2 grid: rags, sticks, a little grain, mostly nothing: there is no egg item); **it is not `interactable`**, because a container does not sway (the delivery's JSON said so; the chest does not either), and the outline is in the art. **Placed by `tools/mapgen/valley.py`** (the defaults, Michael to say if elsewhere): a coop and two hives in your cottage's yard (the hives in the row under the garden), a coop in Hollow Farm's yard and three hives east of the lane; the manor's three hives were already there as dev boxes and are the drawn skep now. The valley's determinism hash changes with the map: `b6a795eb` (was `1945262f`), `--players=2` `ffe4c472` (was `637c47ba`), `--bite` `f8f37787`.
+
 ### 2026-10-20 — Paintings and rugs are items: placed from the bag, picked up again (Michael)
 
 Michael (2026-10-20), minutes after ruling Decor into the build palette: "Actually wait, instead of building can these be items? Put them, in your bag, then right click "Place" with hover outline? Right click pick up painting" . Same with rug? They would need inventory art. But I like this more than building specifically because you can find this stuff later and bring it home"

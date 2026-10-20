@@ -192,6 +192,10 @@ def build():
     home.prop("well", (9, 9))
     home.prop("barrel", (11, 9))
     home.prop("woodpile", (13, 9))
+    # The coop and two hives in the yard (#333, art round 3: the beehive and the chicken coop): the coop along y south of the cottage, the skeps in the row under the garden.
+    home.prop("chicken_coop", (6, 8), footprint=[1, 2], note="the home's chicken coop (#333)")
+    home.prop("beehive", (12, 7), note="a hive by the home's garden (#333)")
+    home.prop("beehive", (14, 7))
     home.fence([0, 0, 16, 12], gates=[{"side": "s", "at": 4}, {"side": "w", "at": 9}])
 
     # ================= step 1: the village (29/04) =================
@@ -446,6 +450,11 @@ def build():
     g.prop("woodpile", (60, 238))
     g.prop("woodpile", (61, 238))
     g.prop("cart", (66, 238), footprint=[2, 3])
+    # The coop by the farmhouse's yard and three hives east of the lane, by the potato fence (#333).
+    g.prop("chicken_coop", (72, 239), footprint=[1, 2], note="Hollow Farm's chicken coop (#333)")
+    g.prop("beehive", (94, 239), note="Hollow Farm's hives (#333)")
+    g.prop("beehive", (96, 239))
+    g.prop("beehive", (98, 239))
     # The farm pond below the orchard (29/02): a dirt bank and still water, where the beasts drank; the trough where the lane meets it.
     g.floor_rect([57, 243, 8, 6], "floor_dirt", kind="bank")
     g.floor_rect([58, 244, 6, 4], "floor_water", kind="water", group="pond", note="the farm pond (29/05)")
