@@ -149,6 +149,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
+- A rug is an item laid from the bag into a slot of its own under whatever stands on it, picked up again unless furniture is on it; E takes it up only when nothing else is in reach (2026-10-20, Rugs, built)
 - Text at or under 15 UI px is set in the system's clear sans-serif, the rest in the pixel font; a Display setting, Small text, flips it (2026-10-20, Very small text in a clear sans-serif; the readings are the builder's, Michael's to overrule)
 - Paintings and rugs are items: carried in the bag, placed with a right-click Place and an outline where they will go, picked up again with a right-click, found in the world and brought home (2026-10-20, Paintings and rugs are items: placed from the bag, picked up again (Michael); the bag sizes, a rug that won't come up from under furniture, and the art's outline were Primary's readings, agreed by Michael the same day; where they come from now and who can pick one up are still Primary's readings)
 - Every digit is in the clear sans at any size, letters keeping their face; Small text's Pixel restores the old look (2026-10-20, Every digit in the clear font, at any size (Michael); Pixel's digits are Primary's reading)
@@ -255,6 +256,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-20 — Rugs, built: laid from the bag into a slot of their own (#327; Michael's agreed readings, the builder's the rest, Michael's to overrule)
+
+Built as the 2026-10-20 ruling says (rugs are items, placed from the bag, picked up again): bag size **1 by 4** (rolled), **Pick up refused while furniture stands on it** ("Move the chest off it first."), **no baked outline**, and Object Highlight outlines a laid one (it has Pick up). **The builder's readings:** a laid rug is a prop in **a slot of its own on the tile** (`rug`, beside `prop`), not in `prop`, because a tile holds one prop and furniture must be able to stand on a rug and a rug lie under furniture; it is `solid: false`, never blocks a step or a sight, and carries the item it came from; **Place stays on the screen that chose it** (the ghost, R, and Esc are the client's; the click sends the command to the host as any placement's), and the reach is the furniture's, 2.6 tiles to the nearest tile with a clear line; **E picks a rug up only when nothing else is in reach** (a rug is under the player's feet as often as not, and E would otherwise take it before a chest); the Developer Chest's grid grew from 10 by 6 to 10 by 8 to hold the two rugs. **A rug is laid only under what can be lifted away** (a table, a chest, a bed, a chair, a barrel: a sprite with `carry: true`), never under a tree, an anvil, a crop, or a cart, which would leave it unable to come up; **a wall is not built through a laid rug** (both tiles of the edge under one rug); and in the menu a rug's Pick up follows the characters' entries, a villager on the rug being the thing pointed at.
 
 ### 2026-10-20 — The everyday items' art: the large icons for the long items; the rope belt in today's belt's browns (Michael)
 

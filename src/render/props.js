@@ -80,7 +80,7 @@ export function emitGhost(ghost) {
     makeWall(wall, ghost.edge, ghost.tx, ghost.ty, true, false, tint).emit();
     return;
   }
-  if (ghost.kind === "prop") {
+  if (ghost.kind === "prop" || ghost.kind === "rug") {
     const [w, h] = ghost.footprint;
     const cells = [];
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) cells.push([ghost.tx + dx, ghost.ty + dy, dy * w + dx]);

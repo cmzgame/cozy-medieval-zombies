@@ -12,6 +12,7 @@ import { areaTiles, buildArea, ensureArea } from "./area.js";
 import { arrowDrawables, emitMarker, entityDrawables, fireDrawables } from "./entities.js";
 import { emitGhost, emitHitShapes, floorItemDrawables, propDrawables } from "./props.js";
 import * as hl from "./highlight.js"; // Object Highlight (#301)
+import { emitRugs } from "./rugs.js"; // laid rugs, flat on the ground under everything (#327)
 import { emitTileMark } from "./marks.js"; // the tile an Inspect marks
 import { postDrawables, wallDrawables } from "./walls.js";
 
@@ -160,6 +161,7 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
   gl.begin();
   emitGround(tiles);
   if (grid) emitGrid(tiles);
+  emitRugs(tiles); // after the ground, before every standing drawable: the rugs lie under what stands on them (#327)
   if (tileMark) emitTileMark(tileMark); // on the ground: whatever stands on or before the tile is drawn over it
   const drawables = [];
   wallDrawables(tiles, visible, playerRoom, drawables);

@@ -1,5 +1,5 @@
 {
-  "version": "0fea5491",
+  "version": "394fb079",
   "files": {
     "data/build.json": {"size": 429, "stamp": "12352f35"},
     "data/combat.json": {"size": 4109, "stamp": "4efa7ba3"},
@@ -7,10 +7,10 @@
     "data/fishing.json": {"size": 1151, "stamp": "d7ff74ff"},
     "data/ground.json": {"size": 3493, "stamp": "991f8b65"},
     "data/interactions.json": {"size": 3424, "stamp": "33953f3a"},
-    "data/items.json": {"size": 26915, "stamp": "1fc85738"},
+    "data/items.json": {"size": 27805, "stamp": "bc361d55"},
     "data/kit.json": {"size": 837, "stamp": "4a64ec6b"},
     "data/looks.json": {"size": 947, "stamp": "d1084ea0"},
-    "data/loot.json": {"size": 4551, "stamp": "d7c0c2fa"},
+    "data/loot.json": {"size": 4650, "stamp": "d7a9049c"},
     "data/poses.json": {"size": 4867, "stamp": "53e6f192"},
     "data/recipes.json": {"size": 11193, "stamp": "894574e2"},
     "data/references.json": {"size": 899, "stamp": "81bd77a4"},
@@ -717,6 +717,8 @@
     "data/sprites/rock_1.json": {"size": 449, "stamp": "12e87329"},
     "data/sprites/rock_2.json": {"size": 449, "stamp": "25379984"},
     "data/sprites/rock_3.json": {"size": 449, "stamp": "b184fdb6"},
+    "data/sprites/rug_bearskin.json": {"size": 766, "stamp": "fb712c35"},
+    "data/sprites/rug_regal_red.json": {"size": 766, "stamp": "3de6ad74"},
     "data/sprites/sawpit.json": {"size": 198, "stamp": "9e8448d7"},
     "data/sprites/scarecrow.json": {"size": 244, "stamp": "014674c1"},
     "data/sprites/shelf.json": {"size": 229, "stamp": "da2a63d5"},

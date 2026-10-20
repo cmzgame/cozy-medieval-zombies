@@ -223,6 +223,19 @@ for verb, spec in fl.get("gathers", {}).items():
         fail(f"tuning.floaters.gathers: no verb {verb!r}")
     if not (isinstance(spec, list) and len(spec) == 2 and spec[0] in skill_ids and isinstance(spec[1], str)):
         fail(f"tuning.floaters.gathers.{verb}: [one of the skills, the verb result's field]")
+# Rugs (#327): an item with a `rug` names a sprite that is a rug with the bed's facings (2 by 3 along y, 3 by 2 along x), a 1 by 4 decor item with an icon, and a drawn picture.
+for it in items:
+    if "rug" in it:
+        sp = it["rug"]
+        sprite_json = load(f"data/sprites/{sp}.json") if os.path.exists(f"data/sprites/{sp}.json") else None
+        if not sprite_json or not sprite_json.get("rug"):
+            fail(f"item {it['id']}: rug {sp!r} is not a sprite with rug true")
+        else:
+            fp = sprite_json.get("facingFootprint", {})
+            if fp.get("y") != [2, 3] or fp.get("x") != [3, 2] or sprite_json.get("facings") != ["y", "x"]:
+                fail(f"sprite {sp}: a rug has facings y and x with footprints [2, 3] and [3, 2]")
+        if it.get("kind") != "decor" or it.get("size") != [1, 4] or not it.get("icon"):
+            fail(f"item {it['id']}: a rug item is kind decor, 1 by 4, with an icon")
 # Object Highlight (#301): the outline's colour is hex, its alpha is 0 to 1, and the hit test is asked again every so many ms.
 oh = load("data/tuning.json").get("objectHighlight", {})
 if not (isinstance(oh.get("color"), str) and re.fullmatch(r"#[0-9a-fA-F]{6}", oh["color"])):

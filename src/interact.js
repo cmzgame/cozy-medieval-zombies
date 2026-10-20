@@ -49,6 +49,7 @@ import * as sight from "./sight.js";
 import { tiredStage } from "./moodles.js";
 import * as stations from "./stations.js"; // what a prop is as a station (docs/30, section 6)
 import * as stationPanel from "./ui/station-panel.js";
+import * as rugs from "./rugs.js"; // a rug laid from the bag and picked up again (#327)
 
 export const INTERACT_RANGE = 1.15; // tiles
 export const SEARCH_TIME = 1.0;
@@ -294,6 +295,24 @@ function carryAction(prop, player) {
       return true;
     },
   });
+}
+
+// A laid rug's Pick up (#327): rolls it back into the bag, or at the player's feet if the bag is full. Furniture standing on it refuses ("Move the table off it first"):
+// the action is offered all the same, and says why when it is chosen. Also E, when nothing else is the nearest simple thing in reach.
+function rugActions(prop, player) {
+  if (!prop.rugItem) return [];
+  const def = getItem(prop.rugItem);
+  return [act({
+    kind: "rug",
+    simple: true,
+    label: `Pick up ${def ? def.name.toLowerCase() : "rug"}`,
+    tiles: prop.tiles,
+    mx: prop.tile[0],
+    my: prop.tile[1],
+    perform() {
+      return rugs.pickUp(player, prop);
+    },
+  })];
 }
 
 // Whether the carried prop could stand with its anchor at (tx, ty): the rule
@@ -817,6 +836,7 @@ function pointInRect(x, y, r) {
 // uses lists them all.
 function propActions(prop, player) {
   if (player.carrying) return [];
+  if (getDef(prop.sprite).rug) return rugActions(prop, player); // a laid rug has one action: Pick up (#327)
   const out = [];
   if (prop.container) out.push(...containerActions(prop));
   if (prop.fire && prop.fire.burns) out.push(...fireActions(prop, player));
@@ -915,12 +935,16 @@ export function actionsAt(sx, sy, player) {
       out.push(...tag(propActions(prop, player), onProp(prop)));
     }
   }
+  // A rug under the cursor's tile: its Pick up, with Walk here still offered beside it (#327).
+  const rugHere = map.peekTile(tx, ty)?.rug;
+  const rugActs = rugHere ? tag(rugActions(rugHere, player), onProp(rugHere)) : [];
   for (const o of openingsAtScreen(sx, sy)) out.push(...tag(openingActions(o, player), onEdge(o)));
   for (const b of map.bracketsNear(g.gx, g.gy, 0.8)) out.push(...tag(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player), onBracket(b.bracket)));
   const under = characterAt(sx, sy, player);
   if (under) out.push(...tag(characterActions(under, player), onCharacter(under)));
   else if (playerAt(sx, sy, player)) out.push(...tag(characterActions(player, player), onCharacter(player)));
-  if (out.length === farmActs.length + bucketActs.length && map.isWalkableTile(tx, ty)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty))); // nothing else here (Till and Plant do not stand in for it)
+  out.push(...rugActs); // after the characters': a villager standing on the rug is the thing pointed at (#327)
+  if (out.length === farmActs.length + bucketActs.length + rugActs.length && map.isWalkableTile(tx, ty)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty))); // nothing else here (Till and Plant do not stand in for it)
   return out;
 }
 
@@ -970,6 +994,19 @@ export function nearestSimpleAction(player) {
     if (Math.abs(c.gx - player.gx) > 3 || Math.abs(c.gy - player.gy) > 3) continue;
     if ((c.kind === "zombie" || c.kind === "player") && c.dead && c.corpse) consider(tag(characterActions(c, player), onCharacter(c)));
     else if (c.kind === "villager" && !c.dead) consider(tag(characterActions(c, player), onCharacter(c))); // E talks to the nearest villager (docs/34)
+  }
+  // A laid rug is under the player's feet as often as not, so it is E's last resort: Pick up only when nothing else is in reach (#327).
+  if (!best) {
+    const seenRugs = new Set();
+    for (let dy = -2; dy <= 2; dy++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        const r = map.peekTile(px + dx, py + dy)?.rug;
+        if (r && !seenRugs.has(r)) {
+          seenRugs.add(r);
+          consider(tag(rugActions(r, player), onProp(r)));
+        }
+      }
+    }
   }
   return best;
 }
@@ -1267,6 +1304,8 @@ export function itemMenu(player, entry, bag, otherBag) {
   const mine = bag === bagOf(player);
   // Use: pick the thing up as what you are about to use on something (docs/30, law 2; Michael, 2026-10-12).
   out.push({ label: "Use", enabled: true, onSelect: () => use.begin(entry, { kind: "bag", bag }) });
+  // A rug is laid from the bag: Place begins the ghost on the floor (placement.js; #327).
+  if (def.rug && mine) out.push({ label: "Place", enabled: true, onSelect: () => placement.beginRug(entry) });
   if (def.hands && mine) {
     if (def.hands === "either") {
       // A weapon fits either hand: the main hand swaps what is there, the off hand takes a second weapon (docs/21).

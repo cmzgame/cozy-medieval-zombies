@@ -267,7 +267,8 @@ export function createRemoteInventoryActions(getPlayer, getOpen, send) {
   };
   // Use begins here as it does alone, with the bag's address kept on the mode, since the replica's bag
   // object is new with every frame (main.js's sender reads it when the click lands).
-  const remoteMenu = (entries, more) => entries.map((en) => (en.label === "Use" ? en : { ...en, onSelect: () => send({ op: "menu", label: en.label, ...more }) }));
+  const LOCAL = new Set(["Use", "Place"]); // each only begins a mode on this screen (Use mode, a rug's ghost); the command that follows is the mode's own
+  const remoteMenu = (entries, more) => entries.map((en) => (LOCAL.has(en.label) ? en : { ...en, onSelect: () => send({ op: "menu", label: en.label, ...more }) }));
   const useFromBag = (entries, entry, bag, address) => entries.map((en) => (en.label === "Use" ? { ...en, onSelect: () => use.begin(entry, { kind: "bag", bag, address }) } : en));
   return {
     ...local,
@@ -426,7 +427,7 @@ export function performItemCommand(player, c) {
       entries = h.itemMenu(entry, from.bag, other ? other.bag : null);
     }
     const en = entries.find((q) => q.label === c.label);
-    if (en && en.enabled && en.label !== "Use") {
+    if (en && en.enabled && en.label !== "Use" && en.label !== "Place") {
       en.onSelect();
       ran = true;
     }

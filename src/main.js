@@ -1421,6 +1421,11 @@ async function boot() {
       // Everything is loaded already; this adds the two-tile variants, and a name the manifest lacks fails here with its id.
       await assets.loadMapSprites(json);
       for (const k of placement.buildKinds()) await assets.loadSprite(k.sprite); // what can be built must be drawable
+      for (const d of items.allItems()) if (d.rug) { // a rug laid from the bag must be drawable: its 2 by 3 sheet (#327)
+        const sd = await assets.loadSpriteDef(d.rug);
+        const fp = (sd.facingFootprint && sd.facingFootprint.y) || [2, 3];
+        await assets.loadSprite(d.rug, { tileCount: fp[0] * fp[1] });
+      }
     } },
     // Every outfit the wardrobes can produce is baked now, one per frame so the bar moves, so no one is baked when first seen.
     { name: "figures", label: "Dressing everyone", weight: 6, async run(progress) {
