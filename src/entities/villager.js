@@ -7,6 +7,7 @@
 // They walk with the walking they share with the dead (movement.js), on a tether
 // to `home`.
 
+import * as floaters from "../floaters.js"; // the floating numbers over heads (#294)
 import { createCharacter, wardrobeInto, dress, say } from "./character.js";
 import { getSheet } from "../assets.js";
 import { playAnimation, advanceAnimation } from "../sprites.js";
@@ -130,6 +131,7 @@ export function updateVillager(v, dt, others, players = []) {
 // Returns whether it killed.
 export function damageVillager(v, amount) {
   if (v.dead || v.immune) return false; // an immune villager takes no harm from anything
+  floaters.damage(v, amount); // the red number over its head (#294)
   v.hp = Math.max(0, v.hp - amount);
   v.regenAt = loop.simTime() + T.regenPause;
   v.path = [];

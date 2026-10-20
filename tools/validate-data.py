@@ -9,6 +9,7 @@ import glob
 import hashlib
 import json
 import os
+import re
 import sys
 
 root = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -198,6 +199,30 @@ if not (num(feel.get("netSlew")) and 0 < feel["netSlew"] <= 1):
     fail("tuning.feel.netSlew: a number above 0 and at most 1")
 if not (num(feel.get("netJump")) and feel["netJump"] > 0):
     fail("tuning.feel.netJump: a number above 0")
+# The floating numbers over heads (#294): the numbers are sane, the colours are hex, and every gather names a verb that exists and one of the fourteen skills' icons.
+fl = load("data/tuning.json").get("floaters", {})
+for key in ["life", "riseTiles", "startLift", "fontPx", "iconScale", "maxActive"]:
+    if not (num(fl.get(key)) and fl[key] > 0):
+        fail(f"tuning.floaters.{key}: a number above 0")
+if not (num(fl.get("fadeFrom")) and 0 <= fl["fadeFrom"] < 1):
+    fail("tuning.floaters.fadeFrom: a number from 0 up to (not including) 1")
+for key in ["drift", "lightAbove", "staggerLines"]:
+    if not (num(fl.get(key)) and fl[key] >= 0):
+        fail(f"tuning.floaters.{key}: a number, 0 or more")
+for key in ["damageColor", "healColor", "gatherLight", "gatherDark"]:
+    if not (isinstance(fl.get(key), str) and re.fullmatch(r"#[0-9a-fA-F]{6}", fl[key])):
+        fail(f"tuning.floaters.{key}: a colour like #rrggbb")
+skill_ids = re.findall(r'\{ id: "([a-z]+)", name:', open("src/ui/skill-icons.js", encoding="utf-8").read())
+if len(skill_ids) != 14:
+    fail(f"src/ui/skill-icons.js: fourteen skills expected, found {len(skill_ids)}")
+verb_names = set()
+for src in glob.glob("src/*.js") + glob.glob("src/entities/*.js"):
+    verb_names |= set(re.findall(r'verbs\.define\("([a-z_]+)"', open(src, encoding="utf-8").read()))
+for verb, spec in fl.get("gathers", {}).items():
+    if verb not in verb_names:
+        fail(f"tuning.floaters.gathers: no verb {verb!r}")
+    if not (isinstance(spec, list) and len(spec) == 2 and spec[0] in skill_ids and isinstance(spec[1], str)):
+        fail(f"tuning.floaters.gathers.{verb}: [one of the skills, the verb result's field]")
 tuning_world = load("data/tuning.json")["world"]
 if tuning_world["stumpSprite"] not in sprites:
     fail(f"tuning.world.stumpSprite: no sprite {tuning_world['stumpSprite']!r}")

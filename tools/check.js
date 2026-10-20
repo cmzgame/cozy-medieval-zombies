@@ -142,6 +142,9 @@ const gameMod = await import("../src/game.js");
 const kitModule = await import("../src/kit.js");
 const worldMod = await import("../src/world.js");
 const chartModule = await import("../src/chart.js");
+const floatersMod = await import("../src/floaters.js");
+const playerMod = await import("../src/entities/player.js");
+const verbsMod = await import("../src/verbs.js");
 const netsmoothTool = await import("./netsmooth.js");
 const { lineOfSight } = await import("../src/visibility.js");
 const { getDef } = await import("../src/assets.js");
@@ -201,6 +204,43 @@ check("net: a body that walks, stands, and walks again (a record only when it mo
   assert(d.start.slice(0, 6).every((x) => x > 0.9 && x < 1.1), `it set off ${d.start.slice(0, 6).map((x) => x.toFixed(2)).join(" ")} (1 is steady)`);
   assert(without.restOffset > 0.05, "without hold the offset at rest is gone: the measurement is not measuring it");
   return `at rest 0 off (0.10 without hold); the first steps ${d.start.slice(0, 4).map((x) => x.toFixed(2)).join(" ")}`;
+});
+// Floating numbers over heads (#294): the world records a hit, a heal, and a gather where they happen, regeneration records nothing, a guest records none of its own, and the
+// frame's small arrays are what a guest draws. (The drawing, the colours, and the setting are `check("floaters")`'s, in the pane.)
+check("floaters: a hit, a heal, and a gather are recorded where they happen; regeneration is not; a guest records none; the frame's arrays round-trip", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  floatersMod.reset();
+  const { damagePlayer, eat } = playerMod;
+  damagePlayer(me, 7);
+  me.hp = me.maxHp - 30;
+  const hp1 = me.hp;
+  eat(me, { hunger: 10, heal: 4 });
+  verbsMod.run("nothing", null, me, {}); // a verb that does not exist makes nothing
+  floatersMod.verbDone("mine", me, { ok: true, mined: 2 });
+  floatersMod.verbDone("fish", me, { ok: true, caught: "trout" }); // a fish caught counts one
+  floatersMod.verbDone("fish", me, { ok: true, caught: null }); // nothing bit: nothing floats
+  floatersMod.verbDone("sleep", me, { ok: true }); // not a gather
+  const wire = floatersMod.takeForFrame();
+  assert(JSON.stringify(wire) === JSON.stringify([[0, me.id, 7], [1, me.id, Math.round(me.hp - hp1)], [2, me.id, 2, "mining"], [2, me.id, 1, "fishing"]]), `the frame's arrays were ${JSON.stringify(wire)}`);
+  assert(floatersMod.takeForFrame().length === 0, "a second take was not empty");
+  me.hp = me.maxHp - 20;
+  for (let i = 0; i < 600; i++) gameMod.step(1 / 60);
+  assert(floatersMod.takeForFrame().length === 0, "natural regeneration made a number");
+  // A guest records none of its own, and draws what it is sent.
+  floatersMod.takeForDraw(); // (the host's own, drawn already)
+  floatersMod.setGuestCheck(() => true);
+  floatersMod.damage(me, 5);
+  assert(floatersMod.takeForFrame().length === 0, "a guest recorded its own number");
+  floatersMod.receive(JSON.parse(JSON.stringify(wire)).concat([["x"], [9, me.id, 3], [0, me.id, 0], [2, me.id, 3, "<b>"], [2, me.id, 3]])); // the last five are nonsense (a skill that is not one of the fourteen, or none): ignored
+  const drawn = floatersMod.takeForDraw();
+  floatersMod.setGuestCheck(() => false);
+  const want = wire.map((e) => `${e[0] === 0 ? "-" : "+"}${e[2]}`).join(" ");
+  assert(drawn.length === 4 && drawn.map((e) => floatersMod.textOf(e)).join(" ") === want, `a guest drew ${drawn.map((e) => floatersMod.textOf(e)).join(" ")}, the frame said ${want}`);
+  floatersMod.reset();
+  return `${wire.length} events in the frame; regeneration none; a guest draws what it is sent`;
 });
 // The chart's frame carries only the changed cells (#237): what a host takes after a reveal, applied to an empty replica, makes the same chart; and a second take is empty.
 check("chart: the changed cells a frame carries rebuild the chart on an empty replica", () => {

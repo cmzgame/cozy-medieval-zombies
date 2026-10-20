@@ -70,6 +70,29 @@
     "needsStaminaRegenMult": 0.5,
     "tiredStaminaRegenMult": 0.75
   },
+  "floaters": {
+    "life": 1.1,
+    "fadeFrom": 0.5,
+    "riseTiles": 1,
+    "drift": 12,
+    "startLift": 80,
+    "fontPx": 15,
+    "iconScale": 1,
+    "staggerLines": 1.1,
+    "maxActive": 40,
+    "damageColor": "#e23b3b",
+    "healColor": "#43d36b",
+    "gatherLight": "#ffffff",
+    "gatherDark": "#000000",
+    "lightAbove": 0.5,
+    "gathers": {
+      "chop": ["woodcutting", "logs"],
+      "mine": ["mining", "mined"],
+      "fish": ["fishing", "caught"],
+      "pick": ["farming", "picked"],
+      "harvest": ["farming", "harvested"]
+    }
+  },
   "feel": {
     "cameraFollow": 10,
     "blend": true,

@@ -146,6 +146,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
+- Floating numbers over heads: a red -X for a hit, a green +X for a heal, a skill's icon with the number gained for a gather in white or black by the light, drawn from events the authority records, not from health diffs; a number over a body I cannot see is hidden; the fourteen skill icons are placeholder art in `ui/skill-icons.js` (2026-10-19, Floating numbers over heads, and an icon for each skill; the readings are the builder's, Michael's to overrule)
 - Moodles are for ongoing general needs (hunger, thirst, tiredness) and the infection; a specific negative effect, a bleed or a poison, is a debuff of its own, WoW-style (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk)
 - The belt: its key uses up a consumable and swaps a held item into its own hand (2026-10-10), plus a lantern carried there for more light than a torch's, and the halberd, perhaps the greatsword, never on it (2026-10-19, The belt restated and added to; a book in the off hand costs the shield; the Holy Symbol is Faith's staff, within the proposal); a slot's key does one thing, a held item now going to the hand chosen for that slot in its right-click menu, the item's own hand by default; no left-click parity (2026-10-19, A belt slot's key does one thing, into the hand chosen for that slot; no left-click parity)
 - Every item in a grid or slot has a hover card with at least its full name and its direct uses, read from the data by default; "Use" capitalised and in the Use mode's gold (2026-10-18, Every item in a grid has a hover card)
@@ -246,6 +247,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-19 — Floating numbers over heads, and an icon for each skill (#294; Michael's spec, the builder's readings Michael's to overrule)
+
+Michael: a red "-X" over whoever is hit (damage taken and dealt), a green "+X" for healing, a profession symbol with the number for a gather in white or black, and a tiny icon for every skill. **Built as events, not health diffs (the builder's reading, Primary's, Michael's to overrule):** the authority records a hit, a heal, and a gather where they happen and they ride the frame (`net.PROTOCOL` 8), so natural regeneration (a trickle) shows nothing and each number knows which hit made it. **The builder's readings:** a gather's number is the items gained until skills give experience (#275), by a table in `data/tuning.json` (`floaters.gathers`: chop, mine, fish, pick, and harvest); its text is **black where the light at the character is above `lightAbove` and white where it is below**, with an outline of the other, so it is never taken for the red or the green; **a volley over one body in one frame starts each number a line higher** (`staggerLines`) on top of each one's own sideways drift; **a number over a body I cannot see is hidden** (never a number through a wall or the dark); the fourteen icons are 16 by 16 pixels drawn by shapes at first use, placeholder art like the rest of the kit (`ui/skill-icons.js`).
 
 ### 2026-10-19 — Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk (Michael)
 

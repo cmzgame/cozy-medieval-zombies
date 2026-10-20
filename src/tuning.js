@@ -157,7 +157,30 @@ export const feel = {
   netJump: 1.5, // tiles: a remote body that moved farther than this between two frames is put where it landed, not walked there
 };
 
-const sections = { zombie, player, villager, world, population, sight, feel };
+// Floating numbers over heads (#294; docs/39 section 12; ui/floaters.js): how they rise and fade, how they look, and which verbs are a gather of which skill. A number rises about
+// a tile (`riseTiles`) over `life` seconds and fades over the last of them, drifting a little sideways (`drift` px, a different side for each so a run of hits does not stack
+// on one spot); it starts `startLift` px above the feet (the head's height); the font is the game's pixel font with an outline. A gather shows the skill's icon (ui/skill-icons.js)
+// and the number; its text is white where the ground is dark and black where it is light (`lightAbove`, the light at the character), so it is never mistaken for the damage or the heal.
+// `gathers`: verb name -> [skill, the field of the verb's result that says how many].
+export const floaters = {
+  life: 1.1, // seconds a number lives
+  fadeFrom: 0.5, // the fraction of its life after which it fades
+  riseTiles: 1, // tiles it rises in its life
+  drift: 12, // px of sideways drift over its life, a side and a size each its own
+  startLift: 80, // world px above the feet it starts (names float at 78)
+  fontPx: 15, // the number's size, in UI px
+  iconScale: 1, // the skill icon's size beside a gather's number, in whole multiples of its 16 px
+  staggerLines: 1.1, // a volley over one body (a hit, a heal, a gather in one frame) starts each number this many font heights above the last
+  maxActive: 40, // numbers alive at once; the oldest go first
+  damageColor: "#e23b3b",
+  healColor: "#43d36b",
+  gatherLight: "#ffffff", // a gather's text where the ground is dark
+  gatherDark: "#000000", // and where it is light
+  lightAbove: 0.5, // the light at the character above which a gather's text is black
+  gathers: { chop: ["woodcutting", "logs"], mine: ["mining", "mined"], fish: ["fishing", "caught"], pick: ["farming", "picked"], harvest: ["farming", "harvested"] },
+};
+
+const sections = { zombie, player, villager, world, population, sight, feel, floaters };
 
 // Lay a file's numbers over the defaults; a missing file or section changes nothing.
 export function load(json) {

@@ -1256,7 +1256,7 @@ html, body {
 }
 
 /* No world chosen (docs/31/09): the title over black, none of the world's interface showing. */
-#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #talk, #ui.no-world #nav-row, #ui.no-world #skills-panel, #ui.no-world #build-palette, #ui.no-world #map-panel, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
+#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #floaters, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #talk, #ui.no-world #nav-row, #ui.no-world #skills-panel, #ui.no-world #build-palette, #ui.no-world #map-panel, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
 /* #debug is #ui's sibling in index.html, not its child, so it is reached with ~; the chat box (#log-input) is #log's
    sibling, so it is named on its own (#16). */
 .screen h2 { font-size: 1.05em; margin: 10px 0 4px; color: #e8dcc0; }
@@ -1915,6 +1915,10 @@ html, body {
 
 /* Names over heads (ui/names.js, docs/31/03) and the log's chat line (ui/log.js). */
 #names { position: absolute; inset: 0; pointer-events: none; }
+/* The floating numbers over heads (#294): placed by ui/floaters.js from data/tuning.json's `floaters`; the colour and the outline are inline. */
+#floaters { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.floater { position: absolute; transform: translate(-50%, -100%); font-family: var(--font-ui, sans-serif); font-weight: bold; white-space: nowrap; pointer-events: none; display: flex; align-items: center; gap: 2px; }
+.floater img { display: block; image-rendering: pixelated; }
 .name-tag { position: absolute; transform: translate(-50%, -100%); font: 11px var(--font-ui, sans-serif); color: #f4ecd9; text-shadow: 0 1px 0 #1a1420, 1px 0 0 #1a1420, -1px 0 0 #1a1420, 0 -1px 0 #1a1420; white-space: nowrap; pointer-events: none; }
 #log-input { position: absolute; left: 12px; bottom: 6px; width: 340px; height: 20px; padding: 0 6px; font: 12px var(--font-ui, sans-serif); color: #f4ecd9; background: rgba(10, 6, 14, 0.75); border: 1px solid #5a4a3a; border-radius: 3px; outline: none; }
 #log-input:focus { border-color: #c9a24a; }

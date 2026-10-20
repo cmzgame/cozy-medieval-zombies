@@ -14,6 +14,7 @@
 import * as game from "./game.js";
 import * as map from "./map.js";
 import * as chart from "./chart.js";
+import * as floaters from "./floaters.js";
 import * as netsmooth from "./netsmooth.js";
 import * as clock from "./clock.js";
 import * as loop from "./loop.js";
@@ -112,8 +113,9 @@ export function makeCode() {
 // the fields that differ from what its sprite makes it (`map.serializeProp`), so a chunk, a frame, and a save are about half the size; an older guest
 // would read a prop with its defaults missing.
 // 6 (2026-10-18, #203): the frame carries the chart's changed chunks (`chart`, only when there are any) and the save the whole chart; 7 (2026-10-18, #237): the frame's `chart`
-// is the changed cells, [cx, cy, [index, cell, ...]] per chunk, not whole chunks.
-export const PROTOCOL = 7;
+// is the changed cells, [cx, cy, [index, cell, ...]] per chunk, not whole chunks; 8 (2026-10-19, #294): the frame may carry `floaters`, the hits, heals, and gathers of the step
+// for the numbers over heads ([kind, id, n, skill] each).
+export const PROTOCOL = 8;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -784,6 +786,7 @@ export function hostAfterStep() {
     map.takeTouched(); // nobody to tell: the touched set is drained, not kept for ever (a grown chunk names itself to it in every game)
     chart.takeChanged(); // and the chart's: the world has it all, and the next guest's welcome is the save
     interact.takePokes();
+    floaters.takeForFrame(); // and the floating numbers: nobody to show them to (the host draws its own from its log)
     if (lastSent.size || lastHeavy.size) forgetSent(); // the next guest's welcome is its baseline, and every roster goes out again
     return;
   }
@@ -796,6 +799,7 @@ export function hostAfterStep() {
   for (const id of lastCarried.keys()) if (!S.players.some((q) => q.id === id)) lastCarried.delete(id); // a player gone dormant and back is sent its prop in hand afresh
   const touched = map.takeTouched();
   const chartChanged = chart.takeChanged();
+  const floated = floaters.takeForFrame(); // the hits, heals, and gathers since the last frame (#294)
   // A character no longer in any list is forgotten: its id leaves `known` and what was last sent of it. A far chunk put
   // to sleep takes its dead out of the world and wakes them again later with the same id and the same record; remembered,
   // the record looked unchanged and was never sent, the roster named an id the guest had dropped, and the zombie stood
@@ -879,6 +883,7 @@ export function hostAfterStep() {
     villagers: delta(S.villagers),
     corpses: delta(S.corpses),
     roster,
+    ...(floated.length ? { floaters: floated } : {}), // the numbers over heads, when there are any
     pokes: interact.takePokes(), // the sways and the well's bucket stamped this step (interact.js): a guest sees a field wobble when anyone walks through it
     queues: whenChanged("queues", stations.frameQueues()), // the jobs in the stations, with their time left: the bar a guest's recipes panel shows
     carriers: whenChanged("carriers", light.carriers().filter((c) => c.owner)),
@@ -1139,6 +1144,7 @@ function applyFrame(f) {
     light.forgetAll();
     hooks.chunksChanged && hooks.chunksChanged(f.chunks);
   }
+  if (f.floaters) floaters.receive(f.floaters); // the numbers over heads the host recorded: drawn here as there (ui/floaters.js)
   if (f.pokes) for (const [id, at, kind] of f.pokes) {
     const pr = id ? map.propById(id) : null;
     const field = kind ? "playedAt" : "pokedAt";
