@@ -7,7 +7,7 @@
 //
 // Builder's readings (docs/02): only a plain, solid wall takes a painting (not a door, a window, a fence, or bars: nothing to hang on); only its camera-facing face (the face the
 // bracket's `side` +1 and the boards' `near` are on; the other face is behind the wall and no art is drawn for it), which is the inside of a building's north and west walls and the
-// outside of its south and east walls; one painting to a segment; a wide one across a joint with no post (the same material and no wall meeting the joint); and when its wall goes
+// outside of its south and east walls; one painting to a segment; a wide one across a joint with no post (the same material and no wall meeting the joint); never at a corner (a wall meeting either end of the run on the camera's side hides much of it); and when its wall goes
 // (taken down, or a door or a window built over it) the painting falls to the floor on the face's side, whole, as an item.
 
 import * as map from "./map.js";
@@ -72,6 +72,14 @@ function jointClear(tx, ty, edge) {
   return !wallOf(nx, ny, cross) && !wallOf(cx, cy, cross);
 }
 
+// Whether a wall meets the run's end on the camera's side: a north run's end at a west wall going down from the vertex, a west run's at a north wall going out from it. That wall's
+// thickness and its drawn body stand in front of the painting's end and hide much of it (the art README warned of it), so a painting is not hung there.
+function cornerAt(tx, ty, edge, atFar) {
+  const cross = edge === "n" ? "w" : "n";
+  const [sx, sy] = atFar ? [tx, ty] : nextAlong(tx, ty, edge);
+  return !!wallOf(sx, sy, cross);
+}
+
 // Why a painting of this item cannot hang with its first segment at (tx, ty) on this edge, or "".
 export function fitProblem(itemId, tx, ty, edge) {
   const def = paintingDef(itemId);
@@ -84,6 +92,8 @@ export function fitProblem(itemId, tx, ty, edge) {
     if (second) return second === "No wall to hang it on" ? "Too wide for the wall" : second;
     if (!jointClear(tx, ty, edge)) return "A post is in the way";
   }
+  const [lx, ly] = spanOf(def) === 2 ? nextAlong(tx, ty, edge) : [tx, ty];
+  if (cornerAt(tx, ty, edge, true) || cornerAt(lx, ly, edge, false)) return "A corner is in the way";
   return "";
 }
 

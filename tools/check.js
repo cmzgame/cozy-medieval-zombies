@@ -272,12 +272,12 @@ check("paintings: hung from the bag onto a wall's face, in the record and the sy
     const x = Math.round(me.gx) + dx;
     const y = Math.round(me.gy) + dy;
     let ok = true;
-    for (let ay = -2; ay < 4 && ok; ay++) for (let ax = -1; ax < 9 && ok; ax++) { const t = mapMod.peekTile(x + ax, y + ay); ok = !!t && t.floor === "floor_grass" && !t.prop && !t.rug && !t.n && !t.w; }
+    for (let ay = -2; ay < 4 && ok; ay++) for (let ax = -1; ax < 12 && ok; ax++) { const t = mapMod.peekTile(x + ax, y + ay); ok = !!t && t.floor === "floor_grass" && !t.prop && !t.rug && !t.n && !t.w; }
     if (ok) at = [x, y];
   }
   assert(at, "no bare grass");
   const [x, y] = at;
-  for (let i = 0; i < 8; i++) mapMod.buildWall(x + i, y, "n", "wall"); // a run of eight; a west wall and a window are put in below
+  for (let i = 0; i < 10; i++) mapMod.buildWall(x + i, y, "n", "wall"); // a run of ten; a west wall and a window are put in below
   me.gx = x + 2;
   me.gy = y + 1;
   const add = (id) => { const e = itemsMod.makeEntry(id, 1); assert(inventoryMod.stow(me, e), `${id} did not fit the bag`); return e; };
@@ -299,11 +299,13 @@ check("paintings: hung from the bag onto a wall's face, in the record and the sy
   mapMod.installChunk(rec);
   assert(hangings(x + 2) && hangings(x + 2)[0].item === "painting_wide_lake" && hangings(x + 3)[0].cover[0] === x + 2, "the paintings did not come back from the record");
   // Refusals: a post, a door, a window, the end of the wall, too far, a wall between.
-  mapMod.buildWall(x + 5, y, "w", "wall"); // meets the joint between the segments at x + 4 and x + 5
-  assert(P.fitProblem("painting_wide_lake", x + 4, y, "n") === "A post is in the way", `a wide painting over a post: "${P.fitProblem("painting_wide_lake", x + 4, y, "n")}"`);
+  mapMod.buildWall(x + 8, y, "w", "wall"); // meets the joint between the segments at x + 7 and x + 8, on the camera's side
+  assert(P.fitProblem("painting_wide_lake", x + 7, y, "n") === "A post is in the way", `a wide painting over a post: "${P.fitProblem("painting_wide_lake", x + 7, y, "n")}"`);
+  assert(P.fitProblem("painting_small_oak", x + 8, y, "n") === "A corner is in the way" && P.fitProblem("painting_small_oak", x + 7, y, "n") === "A corner is in the way", "a painting was allowed at a corner, where the wall meeting the run hides it");
+  assert(P.fitProblem("painting_wide_lake", x + 8, y, "n") === "A corner is in the way" && P.fitProblem("painting_small_oak", x + 6, y, "n") === "", "a corner refusal reached the wrong segments");
   mapMod.buildWall(x + 6, y, "n", "window");
   assert(P.fitProblem("painting_small_oak", x + 6, y, "n") === "Nothing to hang it on", "a painting was allowed on a window");
-  assert(P.fitProblem("painting_wide_lake", x + 7, y, "n") === "Too wide for the wall", `at the end of a wall: "${P.fitProblem("painting_wide_lake", x + 7, y, "n")}"`);
+  assert(P.fitProblem("painting_wide_lake", x + 9, y, "n") === "Too wide for the wall", `at the end of a wall: "${P.fitProblem("painting_wide_lake", x + 9, y, "n")}"`);
   assert(P.fitProblem("painting_small_oak", x, y + 3, "n") === "No wall to hang it on", "a painting was allowed on no wall");
   me.gx = x + 2;
   me.gy = y + 8;

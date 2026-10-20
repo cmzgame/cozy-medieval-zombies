@@ -1,7 +1,7 @@
 // Paintings (#326; src/paintings.js, render/paintings.js). From the console, on a tab with `?nosave`:
 //   await __game.check("paintings")
 // A painting is an item (decor; small 2 by 2, tall 2 by 3, wide 3 by 2; its icon, its held picture, and its card: "Place: hang on a wall's face") that Place hangs on the camera-facing
-// face of a plain wall: the ghost follows the cursor onto a wall's face, a click hangs it, Esc keeps the item; the picture is drawn after its wall segment (a wide one with its second);
+// face of a plain wall: the ghost follows the cursor onto a wall's face, a click hangs it, Esc keeps the item; the picture is drawn after its wall segment (a wide one in two halves, each with its own segment); refused at a corner;
 // Pick up takes it down (from either segment of a wide one) and is refused out of reach; a wall taken down drops it as an item; Object Highlight finds it and its menu offers Pick up
 // beside Walk here; a guest's Place and Pick up are the commands the host runs (`performPlacement`, `performByLabel`); the Developer Chest holds all eight. On a guest, run after the
 // host has hung one: the replica has it on the wall and its menu offers Pick up by an address the host can rebuild. The bag, the walls, the floor items, and the player are put back.
@@ -37,6 +37,9 @@ export async function run(game) {
     G.grid.fill(kitBag, kit);
     row("the Developer Chest's grid holds all eight", IDS.every((id) => kitBag.items.some((e) => e.id === id)), `${kitBag.items.filter((e) => IDS.includes(e.id)).length} of 8`);
     const scene = await (await fetch("/src/render/walls.js")).text();
+    const art = await import("/src/render/paintings.js");
+    const splits = ["wide_castle", "wide_lake", "wide_sunset"].flatMap((n) => ["n", "w"].map((e) => [n, e, art.splitOf(`painting_${n}`, e)]));
+    row("each wide painting has a joint inside its picture on both walls, so each segment draws its own half (north: the holder the left, west: the holder the right)", splits.every(([, , s]) => s && s.at > 15 && s.at < s.width - 15), splits.map(([n, e, s]) => `${n}/${e} ${s && s.at}/${s && s.width}`).join(" | "));
     row("the wall drawable emits a segment's hangings after its face and before its bracket", scene.indexOf("emitHangings(wall, edge, tx, ty") > scene.indexOf("emitDrawnWall(sheet, wall, variant") && scene.indexOf("if (br) {", scene.indexOf("emitHangings(wall, edge, tx, ty")) - scene.indexOf("emitHangings(wall, edge, tx, ty") < 200, "order in walls.js");
 
     if (role === "guest") {
@@ -108,6 +111,10 @@ export async function run(game) {
     // Rules, by the module: each refusal says what is in the way.
     row("a wide painting is refused where only one segment is left (the wall's end)", P.fitProblem("painting_wide_lake", x + 7, y, "n") === "Too wide for the wall", P.fitProblem("painting_wide_lake", x + 7, y, "n"));
     row("a painting is refused where there is no wall", P.fitProblem("painting_small_oak", x, y + 3, "n") === "No wall to hang it on", P.fitProblem("painting_small_oak", x, y + 3, "n"));
+    // A corner: a wall meeting the end of a run on the camera's side hides much of a painting there, so it is refused (a wall behind the run, on the far side, hides nothing).
+    map.buildWall(x + 8, y, "w", "wall");
+    walls.push([x + 8, y, "w"]);
+    row("a painting is refused at a corner (a wall meeting the run's end on the camera's side), and not one segment in from it", P.fitProblem("painting_small_oak", x + 7, y, "n") === "A corner is in the way" && P.fitProblem("painting_small_oak", x + 6, y, "n") === "", `${P.fitProblem("painting_small_oak", x + 7, y, "n")} | ${P.fitProblem("painting_small_oak", x + 6, y, "n") || "fits"}`);
     map.buildWall(x + 6, y, "n", "window");
     row("a painting is refused on a window", P.fitProblem("painting_small_oak", x + 6, y, "n") === "Nothing to hang it on" && P.fitProblem("painting_wide_lake", x + 5, y, "n") === "Nothing to hang it on", P.fitProblem("painting_small_oak", x + 6, y, "n"));
     row("a painting is refused on a segment that already holds one", P.fitProblem("painting_small_deer", x + 1, y, "n") === "Something already hangs there", P.fitProblem("painting_small_deer", x + 1, y, "n"));

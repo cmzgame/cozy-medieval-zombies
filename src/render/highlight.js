@@ -27,6 +27,12 @@ export function outline(sheet, name, x, y, opts, flip = false, extra = 0, skew =
   for (const [ox, oy] of OFFSETS) frameQuad(sheet, name, x + ox, y + oy, o, flip);
 }
 
+// The same outline for part of a frame: the rectangle (x, y, w, h) drawn from the texture range `uv` (a wide painting's half, which belongs to one wall segment).
+export function outlineRect(x, y, w, h, uv, opts) {
+  const o = { ...opts, color, flags: gl.FLAG_NOFOG | gl.FLAG_UNLIT | gl.FLAG_SOLID };
+  for (const [ox, oy] of OFFSETS) gl.quad(x + ox, y + oy, w, h, uv, o);
+}
+
 // An item block lying on the ground: a halo a pixel wider than its block, behind it.
 export function itemHalo(ox, oy, world) {
   gl.poly([[ox - 8, oy], [ox, oy - 5], [ox + 8, oy], [ox + 8, oy + 4], [ox, oy + 8], [ox - 8, oy + 4]], color, { world, flags: gl.FLAG_NOFOG | gl.FLAG_UNLIT });
