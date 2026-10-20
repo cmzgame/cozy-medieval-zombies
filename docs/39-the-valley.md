@@ -134,7 +134,8 @@
 - **Jack-o'-lantern and plain pumpkins** [built in the data]: gatherables, carried; not placed in the valley [open #273].
 - **Stump** [built]: left by a felled tree; a hatchet chops it for a log and clears the tile [change: uprooting with a shovel at Woodcutting 4].
 - **Ore rock, rock, apple tree, trees, crops, mushrooms:** section 4.
-- **Decoration** [built]: the grindstone, sawpit, beehive, crane, winch, mill wheel, mine mouth, spoil heap, scarecrow, market cross, notice board, stocks, headstones, maypole, privy, spinning wheel [open #273: which get a use; the beehive's is Beastlore 5's hive].
+- **Beehives and chicken coops** [built, #333]: the drawn beehive (a straw skep on a stand; interactable, outlined, sways on a click, no action yet: there is no honey) at the manor's garden (three), your cottage's garden (two), and east of Hollow Farm's lane (three); the drawn chicken coop (two tiles, along y or mirrored along x, a container with a placeholder table, `coop`: rags, sticks, a little grain; no egg item yet) in your cottage's yard and Hollow Farm's. The coop's door frames and the hive's bee frames are spare until a click animation can play on them.
+- **Decoration** [built]: the grindstone, sawpit, crane, winch, mill wheel, mine mouth, spoil heap, scarecrow, market cross, notice board, stocks, headstones, maypole, privy, spinning wheel [open #273: which get a use].
 
 ## 3. Stations
 
