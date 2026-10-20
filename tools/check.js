@@ -273,7 +273,11 @@ check("small text: every size at or under the threshold is set in --font-small, 
   const { SMALL_TEXT_MAX_PX: MAX } = smallTextMod;
   const css = fs.readFileSync(path.join(root, "style.css"), "utf8");
   assert(/--font-small:\s*system-ui/.test(css), ":root has no --font-small");
-  assert(/:root\.small-pixel\s*\{\s*--font-small:\s*var\(--font-ui\)/.test(css), "the Pixel setting's override is missing");
+  // Pixel puts small text back in the interface's font, and (since every digit took the clear face, 2026-10-20) the interface's and the
+  // titles' digits back in the pixel font: the old look exactly.
+  const pixel = (css.match(/:root\.small-pixel\s*\{([^}]*)\}/) || [])[1] || "";
+  assert(/--font-small:\s*var\(--font-ui\)/.test(pixel) && /--font-ui:\s*var\(--font-pixel\)/.test(pixel), "the Pixel setting's override is missing");
+  assert(/font-family:\s*"CMZ Digits"[\s\S]*?unicode-range:\s*U\+0030-0039/.test(css) && /--font-ui:\s*"CMZ Digits"/.test(css), "every digit is not in the clear face (CMZ Digits first in --font-ui)");
   const files = walkJs(path.join(root, "src")).map((f) => [path.relative(root, f).replace(/\\/g, "/"), fs.readFileSync(f, "utf8")]);
   const real = scanSmallText(css, files, MAX);
   assert(real.bad.length === 0, `${real.bad.length} small rules are not in --font-small: ${real.bad.slice(0, 6).join(" | ")}`);

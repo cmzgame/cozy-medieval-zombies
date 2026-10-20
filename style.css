@@ -23,8 +23,28 @@
   font-display: block;
 }
 
+/* Every digit in a clear sans at any size (Michael, 2026-10-20: "make every digit use the clear font at any size, including world names and
+   the character screen heading"): the pixel font's small 3 and 8 run together. A face of the system's own sans that covers the digits
+   alone (unicode-range), put first in the interface's and the titles' stacks, so a number in any text takes it and every letter keeps
+   its own face. Nothing is downloaded: local() names the fonts the computer has, the first found. */
+@font-face {
+  font-family: "CMZ Digits";
+  src: local("Segoe UI"), local("SegoeUI"), local("Roboto"), local("Roboto-Regular"), local("Helvetica Neue"), local("HelveticaNeue"), local("Arial"), local("ArialMT");
+  font-weight: 400;
+  unicode-range: U+0030-0039;
+}
+
+@font-face {
+  font-family: "CMZ Digits";
+  src: local("Segoe UI Bold"), local("SegoeUI-Bold"), local("Roboto Bold"), local("Roboto-Bold"), local("Helvetica Neue Bold"), local("HelveticaNeue-Bold"), local("Arial Bold"), local("Arial-BoldMT");
+  font-weight: 700;
+  unicode-range: U+0030-0039;
+}
+
 :root {
-  --font-ui: "Pixelify Sans", "Segoe UI", system-ui, sans-serif;
+  --font-pixel: "Pixelify Sans", "Segoe UI", system-ui, sans-serif; /* the pixel font alone, digits and all: Small text's Pixel */
+  --font-ui: "CMZ Digits", var(--font-pixel);
+  --font-title: "CMZ Digits", "Pirata One", var(--font-pixel); /* the Pirata One titles, their digits clear too */
   /* Text at or under 15 UI px (ui/small-text.js says the number) is set in the system's own hinted sans-serif; the Display setting "Small text: Pixel" points this back at the pixel font. */
   --font-small: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --text: #efe8da; /* parchment on stone */
@@ -77,7 +97,7 @@ html, body {
 }
 
 /* #ui covers the window at its own scale; view.js sizes it. */
-:root.small-pixel { --font-small: var(--font-ui); }
+:root.small-pixel { --font-ui: var(--font-pixel); --font-title: "Pirata One", var(--font-pixel); --font-small: var(--font-ui); } /* Pixel: the old look exactly, digits included */
 
 #ui {
   position: absolute;
@@ -997,7 +1017,7 @@ html, body {
 }
 
 .tk-name {
-  font-family: "Pirata One", var(--font-ui);
+  font-family: var(--font-title);
   font-size: 19px;
   letter-spacing: 0.5px;
   color: var(--name);
@@ -2093,7 +2113,7 @@ html, body {
   position: relative;
   z-index: 1;
   display: block;
-  font-family: "Pirata One", var(--font-ui);
+  font-family: var(--font-title);
   font-weight: 400;
   letter-spacing: 1px;
   color: transparent;
