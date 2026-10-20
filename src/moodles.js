@@ -1,11 +1,10 @@
-// Copied from cozy-zombie-game src/moodles.js on 2026-10-10. Since: the infection and bleed moodles read from
-// infection.js and bleed.js (docs/02 question 29b, 2026-10-12).
+// Copied from cozy-zombie-game src/moodles.js on 2026-10-10. Since: the infection moodle reads from infection.js (docs/02 question 29b, 2026-10-12).
+// Bleeding left the moodles on 2026-10-19 (#308): it is a debuff now, src/debuffs.js, the row at the top right.
 // Moodles: pictorial status icons for slow needs. Pure logic, no DOM.
 // The rule: if you react to it within a second it is a bar; if you plan around
 // it, it is a moodle (docs/00, pillar 7; docs/10).
 
 import { stageOf as infectionStage } from "./infection.js";
-import { stacks as bleedStacks } from "./bleed.js";
 
 // Inline SVG placeholder glyphs, drawn in a 16×16 box with currentColor.
 const GLYPHS = {
@@ -21,17 +20,6 @@ const GLYPHS = {
 
 // Order here is display order. `stageOf` returns 0 (hidden) to stages.length.
 export const MOODLES = [
-  {
-    id: "bleed",
-    glyph: GLYPHS.thirst, // a drop, for now
-    stages: [
-      { name: "Bleeding", text: "A wound is open. A bandage will close it." },
-      { name: "Bleeding badly", text: "Two wounds. It will not stop by itself soon." },
-      { name: "Bleeding heavily", text: "Three. Your hands are slick. Bandage it." },
-      { name: "Bleeding out", text: "You are losing blood fast. Bandage it now." },
-    ],
-    stageOf: (player) => Math.min(4, bleedStacks(player)),
-  },
   {
     id: "infection",
     glyph: GLYPHS.infection,
@@ -112,7 +100,7 @@ export function thirstStage(player) {
 // [{ id, glyph, stage, name, text }] for every moodle currently showing.
 // Every moodle, always (Michael, 2026-10-12: all showing, green when nothing is
 // wrong); stage 0 is "fine" with the moodle's own name.
-const FINE = { bleed: ["Not bleeding", "No open wound."], infection: ["Not bitten", "Nothing in your blood."], hunger: ["Fed", "You are not hungry."], thirst: ["Watered", "You are not thirsty."], tired: ["Rested", "You are awake and well."] };
+const FINE = { infection: ["Not bitten", "Nothing in your blood."], hunger: ["Fed", "You are not hungry."], thirst: ["Watered", "You are not thirsty."], tired: ["Rested", "You are awake and well."] };
 export function activeMoodles(player) {
   const out = [];
   for (const m of MOODLES) {

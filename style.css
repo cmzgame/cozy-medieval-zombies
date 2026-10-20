@@ -501,6 +501,46 @@ html, body {
   pointer-events: none;
 }
 
+/* The row of debuffs (#308; ui/debuff-row.js): along the top, stuck to the top right, growing leftward; the bag's home is under it. The row takes no pointer, its icons do. */
+#debuffs {
+  position: absolute;
+  z-index: 8; /* over the map panel (6), under the menu (9) and the screens (10): a narrow window must not hide an icon */
+  top: 6px;
+  right: 12px;
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 6px;
+  pointer-events: none;
+}
+.debuff { display: flex; flex-direction: column; align-items: center; width: 40px; pointer-events: auto; }
+.db-box { position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: rgba(20, 8, 12, 0.82); border: 2px solid #8a2a34; border-radius: 6px; }
+.db-stacks { position: absolute; right: -4px; top: -6px; min-width: 14px; padding: 0 3px; box-sizing: border-box; font-size: 11px; font-weight: bold; line-height: 14px; text-align: center; color: #fff; background: #8a2a34; border-radius: 7px; border: 1px solid #1a0a0e; }
+.db-stacks[hidden] { display: none; }
+.db-time { margin-top: 2px; font-size: 12px; font-weight: bold; color: #f4ecd9; text-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 -1px 0 #000; }
+
+/* The hover card (#262; ui/hover-card.js): a small, mostly black, rounded box with a thin light border, over every panel and the belt, never taking the pointer. */
+#hover-card {
+  position: absolute;
+  z-index: 60;
+  max-width: 260px;
+  padding: 6px 9px 7px;
+  background: rgba(8, 6, 12, 0.94);
+  border: 1px solid #8f8a98;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+  font-size: 12px;
+  line-height: 1.3;
+  color: #d9d4cc;
+  pointer-events: none;
+}
+#hover-card[hidden] { display: none; }
+#hover-card .hc-name { font-size: 14px; font-weight: bold; color: #fff; }
+#hover-card .hc-kind { color: #9a96a2; margin-bottom: 3px; }
+#hover-card .hc-line { margin-top: 2px; }
+#hover-card .hc-fine { margin-top: 5px; color: #7c7884; font-size: 11px; }
+#hover-card .hc-use { color: var(--gold); font-weight: bold; }
+#hover-card .hc-word { color: #fff; font-weight: bold; }
+
 .inv-item.selected {
   outline: 2px solid var(--gold);
   outline-offset: -1px;
@@ -692,7 +732,7 @@ html, body {
 #inventory .inv-body {
   position: absolute;
   right: 12px;
-  top: 12px;
+  top: 64px; /* under the row of debuffs (#308) */
   max-width: calc(100% - 24px);
 }
 
@@ -1256,7 +1296,7 @@ html, body {
 }
 
 /* No world chosen (docs/31/09): the title over black, none of the world's interface showing. */
-#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #floaters, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #talk, #ui.no-world #nav-row, #ui.no-world #skills-panel, #ui.no-world #build-palette, #ui.no-world #map-panel, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
+#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #debuffs, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #floaters, #ui.no-world #hover-card, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #talk, #ui.no-world #nav-row, #ui.no-world #skills-panel, #ui.no-world #build-palette, #ui.no-world #map-panel, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
 /* #debug is #ui's sibling in index.html, not its child, so it is reached with ~; the chat box (#log-input) is #log's
    sibling, so it is named on its own (#16). */
 .screen h2 { font-size: 1.05em; margin: 10px 0 4px; color: #e8dcc0; }
@@ -2177,14 +2217,21 @@ html:not(.kit-ready) #site-page .screen { border: 3px solid #6a6258; }
   display: grid;
   grid-template-columns: repeat(4, 34px);
   gap: 3px;
+  padding: 2px; /* inside the plate's 3px edge: the stone the belt sits on (.kit-plate, #307) */
   pointer-events: auto;
 }
 
+/* One line of eight along the bottom, where it clears the belt (#307; nav-row.js measures). */
+#nav-row.line {
+  grid-template-columns: repeat(8, 34px);
+}
+
 #nav-row.narrow {
-  right: 6px;
-  bottom: 6px;
+  right: 4px;
+  bottom: 4px;
   gap: 2px;
-  grid-template-columns: repeat(4, 28px);
+  padding: 1px;
+  grid-template-columns: repeat(4, 26px);
 }
 
 #nav-row .nav-button {
@@ -2197,8 +2244,8 @@ html:not(.kit-ready) #site-page .screen { border: 3px solid #6a6258; }
 }
 
 #nav-row.narrow .nav-button {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
 }
 
 #nav-row .nav-button img {
@@ -2209,8 +2256,8 @@ html:not(.kit-ready) #site-page .screen { border: 3px solid #6a6258; }
 }
 
 #nav-row.narrow .nav-button img {
-  width: 21px;
-  height: 21px;
+  width: 20px;
+  height: 20px;
 }
 
 #nav-row .nav-button.on {
@@ -2223,17 +2270,21 @@ html:not(.kit-ready) #site-page .screen { border: 3px solid #6a6258; }
 #skills-panel {
   position: absolute;
   right: 56px;
-  bottom: 86px;
+  bottom: 98px; /* above the row's two lines on their plate */
+  max-height: calc(92% - 132px); /* its top below the map's head (the map's top is at 8%) */
   z-index: 7;
   width: 170px;
   font-size: 12px;
-  max-height: calc(92% - 120px);
   display: flex;
   flex-direction: column;
   pointer-events: auto;
 }
 
 #skills-panel[hidden] { display: none; }
+
+#skills-panel.line {
+  bottom: 62px; /* above the row's one line */
+}
 
 #skills-panel.narrow {
   bottom: 152px; /* above the log (its top is 148px up) */

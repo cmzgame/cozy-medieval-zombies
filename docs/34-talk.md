@@ -54,7 +54,7 @@ The seven villagers of the valley (`tools/mapgen/valley.py`, the `villager` call
   - `indoors`: the villager's tile is in a room (`map.roomAt`).
   - `hurt`: the villager is below full health.
   - `holding`: an item id or tag in the talker's hands (barks: the poker; conversations: the talker).
-  - `hungry`, `thirsty`, `tired`, `bleeding`: the talker's moodle past its second stage.
+  - `hungry`, `thirsty`, `tired`: the talker's moodle past its second stage; `bleeding`: the talker has an open wound (a debuff, #308).
   - **Nothing remembers what was said, in 1.0** (Michael, 2026-10-13). Every conversation starts at `start`. Memory is wanted later ("oh, you again"), as a per-character record of what was heard, kept on the player, in the save and the sync check; **keep it cheap to add:** node ids are stable names, never indexes or generated, and a node is addressed as `<talk id>/<node id>`, so a later `heard` condition and set can name them without touching a file's shape.
 
 `python -I tools/validate-data.py` checks every talk file: every `goto` names a node, `start` exists, every condition name is known and its value the right type, every talk id in `villagerAlive` and `villagerDead` exists, no unknown key anywhere, and a bark line is at most [70 characters] so the bubble stays a bubble.
