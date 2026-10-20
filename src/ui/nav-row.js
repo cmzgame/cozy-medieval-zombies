@@ -210,22 +210,22 @@ export function initNavRow(h) {
   // row along the bottom if space allows"), two lines of four where it does not, and smaller buttons on a narrow interface (a small window,
   // or a large interface scale), with the skills panel above the log. The belt's width is measured, since a worn belt sets its slots.
   ui = document.getElementById("ui");
-  belt = document.getElementById("hotbar");
   fold = () => {
+    if (!belt) belt = document.getElementById("hotbar"); // made after the row (main.js: initInventoryPanel), so looked for until found
     const w = ui.clientWidth;
-    const bw = belt ? belt.offsetWidth : 0;
+    const bw = belt ? belt.offsetWidth : 0; // 0 with no belt worn (the bar hidden): nothing to keep clear of
     if (w === lastW && bw === lastBelt) return;
     lastW = w;
     lastBelt = bw;
     const narrow = w < NARROW;
-    const beltHalf = bw ? bw / 2 : 60;
-    const line = !narrow && w - ROW_RIGHT - LINE_WIDTH >= w / 2 + beltHalf + ROW_GAP;
+    const line = !narrow && w - ROW_RIGHT - LINE_WIDTH >= w / 2 + bw / 2 + ROW_GAP;
     root.classList.toggle("narrow", narrow);
     skills.classList.toggle("narrow", narrow);
     root.classList.toggle("line", line);
     skills.classList.toggle("line", line);
   };
-  fold(); // and again from update() whenever the interface's width or the belt's has changed (a background tab gets no ResizeObserver callbacks)
+  fold(); // and again from update() whenever the interface's width or the belt's has changed (a background tab gets no ResizeObserver
+  // callbacks), and from relayout() on every resize of the view, which also comes while a screen is up and the step is not running
   skills.addEventListener("click", (e) => {
     if (e.target.closest("[data-skills-close]")) closeSkills();
   });
@@ -261,6 +261,11 @@ function paint(id, on) {
   shown[id] = on;
   btn.classList.toggle("on", on);
   btn.setAttribute("aria-pressed", String(on));
+}
+
+// The view was resized (main.js: view.onResize), perhaps with a screen up and no step running: choose the layout again.
+export function relayout() {
+  fold();
 }
 
 // Each step, after the panels have answered the keys: a button whose panel is open shows pressed.
