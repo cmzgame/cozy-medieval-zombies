@@ -140,7 +140,7 @@
 
 One panel for every station; ingredients from the bag, the belt, and every container in reach with a clear line; the station keeps working when you walk off; the output waits in its slot [built]. Cooking recipes are gated by level, never by the pot or the oven (#275).
 
-- **Workbench** [built] (the joiner's, the chandler's; your own at Woodcutting 7): a torch (a stick and cloth); rags from any garment (a knife carried); two sticks from a plank (a hatchet); a hoe and a shovel (a stick and a plank, a hammer); a fishing rod (a stick and cloth, a knife); a hunting bow (two sticks and cloth, a knife); five arrows (a stick, a knife); a wooden shield (three planks, a hammer); a bucket (three planks, a hammer); a chest, a shelf, a bench, a table, a bed, a workbench, a wheelbarrow (planks, a log, cloth, an iron bar; a hammer). Unlock: open to all today [change: by Crafting level and wood; bows and arrows at Crafting 4; the workbench recipe itself at Woodcutting 7] [open #275: the levels of the hoe, shovel, fishing rod, wooden shield, and wheelbarrow, which the Crafting tree does not name].
+- **Workbench** [built] (the joiner's, the chandler's; your own at Woodcutting 7): a torch (a stick and cloth); rags from any garment (a dirk carried); two sticks from a plank (a hatchet); a hoe and a shovel (a stick and a plank, a hammer); a fishing rod (a stick and cloth, a dirk); a hunting bow (two sticks and cloth, a dirk); five arrows (a stick, a dirk); a wooden shield (three planks, a hammer); a bucket (three planks, a hammer); a chest, a shelf, a bench, a table, a bed, a workbench, a wheelbarrow (planks, a log, cloth, an iron bar; a hammer). Unlock: open to all today [change: by Crafting level and wood; bows and arrows at Crafting 4; the workbench recipe itself at Woodcutting 7] [open #275: the levels of the hoe, shovel, fishing rod, wooden shield, and wheelbarrow, which the Crafting tree does not name].
 - **Loom** [built] (the weaver's): linen cloth (two flax); two bandages (a cloth); a linen cap, linen breeches, a linen tunic (one, two, three cloth). Unlock: open to all today [change: Crafting 1 names linen cloth, bandages, and the cap] [open #275: the tunic's and the breeches' levels]. Woollen cloth and warm clothes (Crafting 6) [to build]; a leather jerkin (`docs/30` step 8) [open #275].
 - **Forge** [built] (the smithy's): an iron bar from two iron ore; burns charcoal. Unlock: Blacksmithing 1. Silver (Blacksmithing 5) [to build]; less charcoal a bar (Blacksmithing 2) [change: charcoal is the fire's fuel today, not an ingredient].
 - **Anvil** [built] (the smithy's; a smith's hammer in hand, except for forging the hammer itself): a dirk, a smith's hammer, a hatchet, a pickaxe (Blacksmithing 1); a scythe, a throwing spear, a flanged mace, an arming sword [change: Blacksmithing 3]; repair (Blacksmithing 4), silver work (5), mail and plate (7) [to build].
@@ -187,7 +187,7 @@ What comes back, today: ore rocks in place after three game days; apple trees be
 
 **Stacking** (ruled 2026-10-19): pemmican is the only food that stacks; every other food takes a cell of its own (#260) [change: foods stack today].
 
-Every item in `data/items.json` is here with how it is had today; each new item names its source. Item art comes as a pair (and a portrait if held or worn); every item has a hover card (#262). Which items stack, and every item one cell [open #260].
+Every item in `data/items.json` is here with how it is had today; each new item names its source. Item art comes as a pair (and a portrait if held or worn); every item has a hover card (#262). Which items other than food stack, and every item one cell [open #260].
 
 ### 5.1 Tools
 
@@ -257,7 +257,7 @@ The numbers are each weapon's block in `data/items.json` and `data/combat.json`.
 - **Hobnail boots** [built]: feet. The kit only; no recipe [open #275].
 - **Rope belt** [built]: two belt slots. The kit only.
 - **Leather belt** [built]: four belt slots. Chest loot [change: made at Crafting 3].
-- **Torn into rags** [built]: any garment, at the workbench, a knife carried.
+- **Torn into rags** [built]: any garment, at the workbench, a dirk carried.
 - **Hiding a worn item's art** [built]: the eye on each worn slot.
 - **Dyed garments** [to build]: the dye vats [open #273].
 - **Woollen clothes, warm** [to build]: Crafting 6 (Beastlore 4's sheep).
@@ -296,7 +296,7 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 
 **Raw**
 - **Apple** [built]: the kit, barrels, bodies, apple trees.
-- **Potato, cabbage, garlic, pumpkin** [built]: the fields; harvested with a shovel (potato, garlic) or a knife (cabbage, pumpkin). [change: Farming 1 potatoes and cabbages, 3 garlic, 5 pumpkins.]
+- **Potato, cabbage, garlic, pumpkin** [built]: the fields; harvested with a shovel (potato, garlic) or a dirk (cabbage, pumpkin). [change: Farming 1 potatoes and cabbages, 3 garlic, 5 pumpkins.]
 - **Grain** [built]: rye, harvested with the scythe (Farming 5) [change].
 - **Perch, trout, carp** [built]: fishing [change: Fishing 1, 5, 3].
 - **Tomato** [to build]: Farming 5.
@@ -320,7 +320,7 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 - **Tomato soup** [to build]: Cooking 3.
 - **Salted food and smoked food** [to build]: Cooking 5 (Mining 3's salt; the smoking rack).
 - **Pizza** [to build]: flour, tomato, cheese (Cooking 6).
-- **Pemmican** [to build]: meat, a plant, a binder (lard or honey), one cell, keeps all but forever (Cooking 7).
+- **Pemmican** [to build]: meat, a plant, a binder (lard or honey), small, and the only food that stacks, keeps all but forever (Cooking 7).
 - **Eggs and bacon** [to build] (Beastlore 7); the Cooking level [open #275].
 - **Cooked meats** [to build]: the Cooking level [open #275].
 - **The feast** [to build]: a great meal laid on a table; the best food buffs in the game, to everyone who eats from it (Cooking 10).
@@ -515,7 +515,7 @@ None in the game today. All [to build] unless marked.
 
 - **How many kinds:** Beastlore's, below [open #289]; 2026-10-12's "two animals, last" is struck (ruled 2026-10-19).
 - **Killing:** any weapon; the weapon decides the yield (a halberd ruins the kill, a bow gives all of it). Beastlore 1.
-- **Skinning and butchering** with a knife: hides and meat; one more at Beastlore 2, faster and one more of every yield at 9.
+- **Skinning and butchering** with a dirk: hides and meat; one more at Beastlore 2, faster and one more of every yield at 9.
 - **Deer** (`docs/30` step 8): wild game that flees, hunted with the bow; where Beastlore places it [open #289].
 - **Tracking** game, and **snares** for rabbits (meat, hide): Beastlore 3.
 - **Hens** in a henhouse: eggs and feathers checked for regularly; meat when killed. Beastlore 1.
@@ -737,7 +737,7 @@ Later, not at the start: gems inlaid in metal armour.
 - **Thirst** [built]: drains over a game day; four stages (Slightly thirsty, Thirsty, Parched, Dying of thirst); stamina slow at Parched; health drains at the last.
 - **Auto-sip** [built]: a carried skin sips at Thirsty, never mid-fight [change: clean water only].
 - **Unsafe water** [to build, #279]: natural water and wells; always quenches; a sickness that may come and passes (more tired, slower to heal); a small chance of the infection; never a sure penalty.
-- **The sickness's moodle, name, and numbers; purifying; the trough and the font** [open #279].
+- **The sickness's place, name, and numbers; purifying; the trough and the font** [open #279]: a debuff and not a moodle is *Primary's reading* (2026-10-19), not ruled.
 
 ### Tiredness and sleep
 - **Tiredness** [built]: drains over a game day and a quarter; four stages (Yawning; Tired, stamina slower; Exhausted, no sprint; Falling asleep, no healing); never kills.
@@ -834,7 +834,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 - Pick herbs, forage mushrooms, take cuttings and seeds [to build] (Herbalism 1, 3, 6).
 - Take from a stack: logs, planks, stone [built for the quarry's stone; the woodcutters' stacks to build].
 - Dig a grave, the buried chest, a plot [to build] (a shovel).
-- Hunt, track, set a snare, skin, butcher [to build] (Beastlore; a knife).
+- Hunt, track, set a snare, skin, butcher [to build] (Beastlore; a dirk).
 - Collect eggs, milk a cow, take wool, take honey, shoo a hen [to build] (Beastlore).
 - Cut hay [open #275].
 
@@ -873,7 +873,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 ## 12. The interface
 
 ### Built
-- **The HUD:** the portrait, health and stamina bars, and the hands top-left; the clock top centre; the moodles down the right (hunger, thirst, tiredness, and the infection) and the debuffs, apart from them, WoW-style (bleeding, poison, the sickness from unsafe water) (ruled 2026-10-19) [to build: debuffs apart]; the log and chat bottom-left, resizable; the swing timer and the exposure bar; a floating health bar on one of the dead you hurt; your own over your head once hurt; names over other players' heads.
+- **The HUD:** the portrait, health and stamina bars, and the hands top-left; the clock top centre; the moodles down the right (hunger, thirst, tiredness, and the infection) and the debuffs, apart from them, WoW-style (bleeding and poison, ruled 2026-10-19; the sickness from unsafe water, *Primary's reading* [open #279]) [to build: debuffs apart]; the log and chat bottom-left, resizable; the swing timer and the exposure bar; a floating health bar on one of the dead you hurt; your own over your head once hurt; names over other players' heads.
 - **The bag, the character screen** (the paper doll, the worn slots with their eyes, the hands, the belt), **the belt bar**.
 - **Containers and bodies** as panels with Take All; **the station panel**; **the talk panel**; **the map on M**; **the build palette**; **the right-click menu**; **the Use mode's gold outline and label**; **prompts** ("E: ..."); **speech bubbles**; **the aim guide** (off by default); **swing targets and hit shapes** (testing).
 - **The site and the screens:** the title (Worlds, Identities, Settings, Controls), New world with its Sandbox step, the loading screens, the pause menu (Resume, Save world, Character, Settings, Controls, Exit game), the dead screen (New character, Exit game), Settings in tabs (Display, Testing).
@@ -886,7 +886,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 - **The belt slot's hand choice**, marked in its menu (#285).
 - **The station panel showing only learned recipes**, and what a missing level needs [open #275].
 - **Learn at a teacher** [open #275].
-- **Debuffs and buffs** apart from the moodles (ruled 2026-10-19): the sickness from unsafe water a debuff [numbers open #279]; well fed and food buffs as buffs [open #275]; for rot's state on an item [open #264]; clean or unsafe water on a skin [open #279].
+- **Debuffs** apart from the moodles (ruled 2026-10-19); the sickness from unsafe water a debuff, *Primary's reading* [open #279, with its name and numbers]. **Buffs:** hearty food carries them (ruled 2026-10-19); how they are shown, well fed among them, apart from the moodles or as moodles [open #275]. A marker for rot's state on an item [open #264]; clean or unsafe water on a skin [open #279].
 - **A spell bar** [open #275]: only if spells come from no staff or book.
 - **Bars as a percent** [open #133]: a possibility.
 
@@ -901,7 +901,7 @@ Placeholder sounds, generated or from a library [open #271]; every informative s
 - A bleed opens; a bandage applied (the debuff).
 - Eat; drink from a skin, at water, a sip by itself (the log line).
 - A need reaches a new stage: a stomach, a dry throat, a yawn (the moodle).
-- The sickness comes (the debuff); the infection worsens (the moodle).
+- The sickness comes (the debuff, by *Primary's reading*, #279); the infection worsens (the moodle).
 - Death (the dead screen).
 - A level-up; an unlock learned (a burst over the head, the log line).
 
