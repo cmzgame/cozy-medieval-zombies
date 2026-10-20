@@ -147,6 +147,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 ### The interface and the screens
 
 - Text at or under 15 UI px is set in the system's clear sans-serif, the rest in the pixel font; a Display setting, Small text, flips it (2026-10-20, Very small text in a clear sans-serif; the readings are the builder's, Michael's to overrule)
+- Decor (wall hangings, rugs) is offered only while Free building is on, until Crafting gives it costs (2026-10-20, Decor is offered only with Free building on, until Crafting gives it costs (Michael))
 - Every digit is in the clear sans at any size, letters keeping their face; Small text's Pixel restores the old look (2026-10-20, Every digit in the clear font, at any size (Michael); Pixel's digits are Primary's reading)
 - Every item in a grid or slot has a hover card, WoW's tooltip: a small dark rounded box with the full name, the kind, and the direct uses read from the data, Use in gold, following the pointer (2026-10-19, The item hover card; the law is 2026-10-18)
 - A Drink from unsafe water says "(tainted)", every source until purifying exists; a crop has Inspect, a line of what it is and how it stands with its tile marked, this client's own; the Harvest labels name the crop; Object Highlight, a dev setting on by default, outlines the game object under the pointer (2026-10-19, Unsafe water says so; a crop can be inspected; Object Highlight, a dev setting (Michael); the trough and the font tainted, Inspect this client's own, and the playtest's reading are Primary's, Michael's to overrule; what Object Highlight outlines and leaves out is the builder's reading, 2026-10-19, Object Highlight (#301))
@@ -251,6 +252,12 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-20 — Decor is offered only with Free building on, until Crafting gives it costs (Michael)
+
+The wall hangings (#326) and the rugs (#327) are placed from a new Decor group in the build palette, from the art commissioned the same day. Asked whether Decor is offered only while the world's Free building rule is on, or always at no cost, Michael: "Offer Decor only while Free building is on, until Crafting gives it costs."
+
+- **Decor appears in the build palette only while Free building is on;** once Crafting gives each piece its cost (docs/39: Crafting 5 makes rugs and wall pieces), it is offered as other building is, paid for.
 
 ### 2026-10-20 — Every digit in the clear font, at any size (Michael)
 
