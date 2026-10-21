@@ -54,7 +54,7 @@ Read with the root `CLAUDE.md`. This file says what is, not when; the rulings be
 
 ## Rendering and the figure
 
-- `gl.js` the WebGL2 batch, the atlas, the area textures · `render.js` a hub over `render/` (`scene.js` the frame, the night pool, fog, occlusion holes; `area.js` the light textures; `walls.js` drawn walls, caps redrawn on the sky, posts, boards, leaves; `props.js` props and their animations, the ghost; `entities.js`) · `ground.js` the ground baked per chunk · `assets.js` the sprite loader (drawn sheets, furniture slicing, facings; a sheet baked on first sight) · `sprites.js` facings and frame names · `render-util.js` shading · `placeholders.js` the dev art generators · `camera.js` · `view.js` the three zooms and `toUi`.
+- `gl.js` the WebGL2 batch, the atlas (pages of one `sampler2DArray`, opened when a sheet fits none; `frameUV` carries the page, #353), the area textures · `render.js` a hub over `render/` (`scene.js` the frame, the night pool, fog, occlusion holes; `area.js` the light textures; `walls.js` drawn walls, caps redrawn on the sky, posts, boards, leaves; `props.js` props and their animations, the ghost; `entities.js`) · `ground.js` the ground baked per chunk · `assets.js` the sprite loader (drawn sheets, furniture slicing, facings; a sheet baked on first sight) · `sprites.js` facings and frame names · `render-util.js` shading · `placeholders.js` the dev art generators · `camera.js` · `view.js` the three zooms and `toUi`.
 - `figure.js` a hub over `figure/`: `rig.js` the body's numbers (`BODY`) and the poses, `raster.js`, `draw.js` the garments and the sheets, `held.js`, `wardrobe.js` (`docs/12`, `32`; a body number is tried from the console before it is ruled, `docs/testing.md`).
 
 ## Multiplayer

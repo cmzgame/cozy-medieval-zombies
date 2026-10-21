@@ -129,7 +129,7 @@ function emitCapFromFrame(sheet, name, anchor, top, corners, h, world, flags) {
     pts.push([top[0] + ox, top[1] + oy]);
     uvs.push([tu + ox, tv + oy]);
   }
-  gl.texQuad(pts, uvs, { world, flags: flags | gl.FLAG_SKY });
+  gl.texQuad(pts, uvs, { world, flags: flags | gl.FLAG_SKY, page: uv[4] });
 }
 
 // A gate that swings (#332, Michael, 2026-10-20: "only fence for now, we can animate doors later"): a door whose parts sheet has
@@ -274,6 +274,7 @@ function emitCutWall(sheet, name, edge, x, y, h, T, o, cuts) {
   const piece = (pts) => {
     const c = pts.map(([px, py]) => [Math.min(R, Math.max(L, px)), Math.min(B, Math.max(Tp, py))]);
     gl.texQuad(c, c.map(([px, py]) => [uv[0] + px - L, uv[1] + py - Tp]), {
+      page: uv[4],
       world: c.map(([px]) => {
         const k = (px - L) / f[2];
         return [o.wa[0] + (o.wb[0] - o.wa[0]) * k, o.wa[1] + (o.wb[1] - o.wa[1]) * k];
@@ -365,7 +366,7 @@ function makePost(tx, ty, sheet, vis, near) {
               pts.push([x + ox, y + oy]);
               uvs.push([uv[0] + ps.anchor[0] + ox, uv[1] + ps.anchor[1] + oy]);
             }
-            gl.texQuad(pts, uvs, { world: [tx, ty], flags: flags | gl.FLAG_SKY });
+            gl.texQuad(pts, uvs, { world: [tx, ty], flags: flags | gl.FLAG_SKY, page: uv[4] });
           }
         }
         return;

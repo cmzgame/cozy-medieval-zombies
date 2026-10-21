@@ -45,7 +45,7 @@ function emit(item, edge, htx, hty, segTx, segTy, o, lit = false, range = null) 
   const top = a[1] - iso.HH; // the frame's top above the ground at the tile's top vertex
   const heights = [top, top, top - f[3], top - f[3]];
   const uv = gl.frameUV(sheet, name);
-  const part = [uv[0] + from, uv[1], uv[0] + to, uv[3]];
+  const part = [uv[0] + from, uv[1], uv[0] + to, uv[3], uv[4]];
   const world = [wa, wb, wb, wa];
   if (lit) hl.outlineRect(x, y, to - from, f[3], part, { world, heights });
   gl.quad(x, y, to - from, f[3], part, { world, heights, color: o.tint, flags: o.flags });
