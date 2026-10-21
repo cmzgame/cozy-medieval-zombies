@@ -4,7 +4,7 @@
 // player's body gone when the atlas was full) needs: every sheet there is, the player's figure among them, has frames on a real page; a later small sheet fills the tail of page 0 instead of
 // opening another; each page is in its own layer on the GPU (a texel read back from the layer is the canvas's); the player's figure sheet re-placed after the fill lands on a later page and the
 // frame is byte-for-byte the frame it was (a body drawn from page 1 is the body drawn from page 0); a sheet that outgrows its slot is placed anew on whatever page has room; and only a sheet
-// larger than a page itself draws as nothing. The page the filler opens stays until the page is reloaded (a page is never given back). The player's sheet is put back.
+// larger than a page itself draws as nothing. The pages the check opens (two or three) stay until the page is reloaded (a page is never given back). The player's sheet is put back.
 
 export async function run(game) {
   const G = game;
@@ -92,9 +92,28 @@ export async function run(game) {
     const gt = gl.atlasTexel(g1[4], g1[0] + 5, g1[1] + 5);
     row("a sheet that outgrew its slot is placed anew (on whatever page has room) and the new picture is there on the GPU", !isEmpty(g1) && (g1[0] !== g0[0] || g1[1] !== g0[1] || g1[4] !== g0[4]) && !!gt && gt[0] === 0 && gt[1] === 255 && gt[2] === 0, `slot ${JSON.stringify(g0)} then ${JSON.stringify(g1)}; texel ${JSON.stringify(gt)}`);
     // 7. Only a sheet larger than a page draws as nothing.
+    const pagesBefore = gl.atlasInfo().pages;
     const huge = sheetOf(colour(4097, 8, "#ffffff"));
     const uvHuge = gl.frameUV(huge, "a");
-    row("a sheet wider than a page, which no page could hold, is the one case that draws as the empty patch", isEmpty(uvHuge), JSON.stringify(uvHuge));
+    row("a sheet wider than a page, which no page could hold, is the one case that draws as the empty patch, and it opens no page", isEmpty(uvHuge) && gl.atlasInfo().pages === pagesBefore, `${JSON.stringify(uvHuge)}; pages ${pagesBefore} then ${gl.atlasInfo().pages}`);
+    // 8. A sheet exactly a page wide fits (the shelf's gutter is for its neighbours): it is placed, on a page that has the room, and nothing throws.
+    let uvWide = null;
+    let wideErr = "";
+    try {
+      uvWide = gl.frameUV(sheetOf(colour(4096, 8, "#0000ff")), "a");
+    } catch (e) {
+      wideErr = e.message;
+    }
+    row("a sheet exactly 4096 wide is placed (no page left open for nothing, no throw)", !wideErr && !!uvWide && !isEmpty(uvWide) && uvWide[2] - uvWide[0] === 4096 && gl.atlasInfo().pages <= pagesBefore + 1, wideErr || `${JSON.stringify(uvWide)}; pages ${pagesBefore} then ${gl.atlasInfo().pages}`);
+    // 9. An error queued from elsewhere is not a refusal: with one waiting, a page-sized sheet opens another page, which the GPU has in its own layer, and nothing is capped.
+    const pagesNow = gl.atlasInfo().pages;
+    gl.gl.enable(9999); // queues INVALID_ENUM: getError would hand it to the next call that asks
+    const full = sheetOf(colour(4096, 4096, "#ff8800"));
+    const uvFull = gl.frameUV(full, "a");
+    G.loop.advance(0);
+    const tf = gl.atlasTexel(uvFull[4], uvFull[0] + 10, uvFull[1] + 10);
+    const info2 = gl.atlasInfo();
+    row("a stale queued GL error is not read as the GPU refusing a page: a sheet as big as a page opens page " + (pagesNow + 1) + " and its layer holds it", info2.pages === pagesNow + 1 && !isEmpty(uvFull) && uvFull[4] === pagesNow && !!tf && tf[0] === 255 && tf[1] === 136 && tf[2] === 0, `pages ${pagesNow} then ${info2.pages}; the sheet on page ${uvFull[4]}; texel ${JSON.stringify(tf)}`);
     const info = gl.atlasInfo();
     row("the atlas reports its pages and each one's fill", info.pages === info.perPage.length && info.perPage.every((p) => p.fraction >= 0 && p.fraction <= 1) && info.usedRows === info.perPage.reduce((s, p) => s + p.usedRows, 0), JSON.stringify(info.perPage));
   } catch (e) {

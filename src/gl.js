@@ -49,7 +49,8 @@ let pageCap = Infinity; // pages the GPU would give: the array's limit, or fewer
 let maxLayers = 256; // gl.MAX_ARRAY_TEXTURE_LAYERS, read in init
 let pagesOpened = 0; // pages opened after the first, for the log
 let atlasTex = null;
-let stageFbo = null; // the framebuffer a page's staging texture is read through
+let stageTex = null; // the one staging texture a page goes up through, made at the first dirty upload and kept (64 MB of GPU, on purpose: see uploadAtlas)
+let stageFbo = null; // the framebuffer it is read through, with it attached
 const placed = new WeakMap(); // sheet -> { page, ax, ay, w, h }
 
 function openPage() {
@@ -61,12 +62,13 @@ function openPage() {
   return page;
 }
 
-// Where a w by h sheet would go on a page (its shelf position), or null if it does not fit.
+// Where a w by h sheet would go on a page (its shelf position), or null if it does not fit. A shelf's sheets are a pixel apart, but a sheet that starts a shelf may be as wide as the page:
+// a sheet no larger than the page in both ways always fits an empty one (`place` sends only the larger ones to the empty patch).
 function slotOn(page, w, h) {
   let x = page.shelfX;
   let y = page.shelfY;
   let sh = page.shelfH;
-  if (x + w + 1 > ATLAS) {
+  if (x > 0 && x + w + 1 > ATLAS) {
     x = 0;
     y += sh + 1;
     sh = 0;
@@ -101,6 +103,10 @@ function place(sheet) {
     }
     page = openPage();
     at = slotOn(page, w, h);
+    if (!at) {
+      pages.pop(); // cannot happen for a sheet within the page's size; never leave an empty page open
+      return null;
+    }
     pagesOpened++;
     console.info(`sprite atlas page ${pages.length} opened for a ${w}x${h} sheet (the first page held ${pages[0].shelfY + pages[0].shelfH} of ${ATLAS} rows)`);
   }
@@ -382,7 +388,9 @@ function setup() {
   // The atlas texture (the canvas behind it is kept across a loss) and the area textures.
   atlasTex = null; // made in end() with a layer for every page
   gpuLayers = 0;
+  stageTex = null;
   stageFbo = null;
+  pageCap = Infinity; // a restored context starts without the cap an earlier one met
   groundTex.clear(); // a lost context took the ground's textures with it; the ground re-bakes
   gl.uniform1i(uniforms.u_tex, 0);
   gl.uniform1i(uniforms.u_ground, 4);
@@ -598,7 +606,7 @@ export function blank() {
 }
 
 // The atlas on the GPU: an array with a layer for every page, made again (every page re-uploaded from its canvas) when a page has opened since, and a dirty page uploaded alone. If the GPU
-// refuses the layers (out of memory), the array is made with one fewer, the page that did not fit is dropped from drawing (its sheets draw as the empty patch), and no more are opened.
+// is out of memory for the layers (the only error that caps the pages), the array is made with one fewer, the page that did not fit is dropped from drawing (its sheets draw as the empty patch), and no more are opened.
 function uploadAtlas() {
   gl.activeTexture(gl.TEXTURE0);
   const want = Math.min(pages.length, pageCap);
@@ -611,39 +619,47 @@ function uploadAtlas() {
       gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
       gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      while (gl.getError() !== gl.NO_ERROR); // getError gives the oldest queued error: drain it, or one from elsewhere reads as this call's
       gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, ATLAS, ATLAS, n);
-      if (gl.getError() === gl.NO_ERROR) {
+      const err = gl.getError();
+      if (err === gl.NO_ERROR) {
         gpuLayers = n;
         break;
       }
       gl.deleteTexture(atlasTex);
       atlasTex = null;
+      if (err !== gl.OUT_OF_MEMORY) {
+        console.warn(`an atlas array of ${n} pages failed with GL error ${err}; trying again next frame`); // not a refusal of the pages: nothing is capped
+        return;
+      }
       pageCap = n - 1;
-      console.warn(`the GPU refused an atlas array of ${n} pages; drawing with ${n - 1}`);
+      console.warn(`the GPU is out of memory for an atlas array of ${n} pages; drawing with ${n - 1}`);
     }
     for (const pg of pages) pg.dirty = true;
   }
   if (!atlasTex) return;
-  let stage = null;
   pages.forEach((pg, i) => {
     if (!pg.dirty || i >= gpuLayers) return;
     // Each page goes up as a 2D texture first, the one path the atlas always took (texImage2D from the canvas), and is copied into its layer on the GPU: uploading the canvas straight
-    // into a layer converts the canvas's premultiplied colours another way and moved a few hundred pixels of a frame by one level (check("frame") reads the bytes).
-    if (!stage) {
-      stage = makeTexture(gl.NEAREST);
-      if (!stageFbo) stageFbo = gl.createFramebuffer();
+    // into a layer converts the canvas's premultiplied colours another way and moved a few hundred pixels of a frame by one level (check("frame") reads the bytes). The staging texture is
+    // made once, at the first dirty upload, and kept, attached to its framebuffer: 64 MB of GPU held on purpose, because a dirty frame (a figure redrawn when its owner dresses) would
+    // otherwise allocate and free it, 1 to 2 ms each time, and deleting a texture still attached to a framebuffer does not free it anyway.
+    if (!stageTex) {
+      stageTex = makeTexture(gl.NEAREST);
+      stageFbo = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, stageFbo);
+      gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, stageTex, 0);
+    } else {
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, stageFbo);
     }
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, stage);
+    gl.bindTexture(gl.TEXTURE_2D, stageTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, pg.canvas);
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, stageFbo);
-    gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, stage, 0);
     gl.bindTexture(gl.TEXTURE_2D_ARRAY, atlasTex);
     gl.copyTexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, i, 0, 0, ATLAS, ATLAS);
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
     pg.dirty = false;
   });
-  if (stage) gl.deleteTexture(stage); // the staging copy is only for the upload: 64 MB not kept
   gl.bindTexture(gl.TEXTURE_2D_ARRAY, atlasTex);
 }
 
