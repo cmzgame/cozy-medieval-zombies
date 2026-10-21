@@ -21,43 +21,40 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
-## Status (2026-10-20: the playtest batch shipped; art round 3 in, its wiring scoped)
+## Status (2026-10-20, paused by Michael: art round 3 wired in full; the atlas in pages)
 
-**Where to pick up: art round 3's wiring.** The design agent delivered three zips (fences and everyday icons, beehive and coop, woods with rugs and paintings). The art is imported by #330: 239 PNGs, audited against the READMEs, nothing wired yet. If #330 is still open, merge it first once its review approves. Each wiring step is its own scoped issue, each with its open questions for Michael at the bottom:
-- **#331 the everyday items:** world pictures, held angles, icons, portraits; the torch's `flame_px` and lit icon. Asks: the long thin icons, convention or large; the rope belt's colour.
-- **#332 the drawn fence and its swinging gate.** Asks: whether house doors swing too; whether fences are buildable now.
-- **#333 the beehive and the chicken coop** in the valley; the coop is a placeholder container. Asks: where they go; what the coop holds.
-- **#334 the woods.** Build in five woods, and mix a wall's wood with its doors' and shutters' finish (white paint first). The swap is done at load from `wood_tones.json`. Michael's idea: the regional woods and the paints are an incentive to leave the valley. Labelled needs-michael.
-- **#326 paintings and #327 rugs, as items:** Place from the bag, Pick up again. Both built (#327 merged; #326 in review: `check("paintings")`, `docs/02` 2026-10-20 "Paintings, built").
+**Where to pick up:** work is paused at Michael's word ("pause work when this bug fix is done"). Nothing is in flight. Start the next session by asking Michael for his focus.
 
-Suggested order: #331 (the most visible), then #333 (small), then #332, then #326 and #327, then #334 once Michael has shaped it.
+**Art round 3 is done, every piece merged and the wiki synced:**
+- the everyday items' art (#337, closing #331);
+- the beehive and the chicken coop (#338, #340 Hollow Farm's yard; #333);
+- the drawn fence and its swinging gate, buildable (#343; #332);
+- rugs as items (#339, #342; #327);
+- paintings as items, hung on a wall's face (#344; #326);
+- the woods: six wall types, the valley mixed in oak, spruce, mahogany, and daub, and a door or window in any wood (#348, #351; #334).
 
-**Shipped today (2026-10-19 to 20), all merged, the wiki synced:**
-- floating numbers (#299);
-- the navigation row (#298, #312);
-- parchment talk (#297);
-- tainted water and crop Inspect (#302);
-- Object Highlight (#303);
-- durable fullscreen (#311);
-- the item hover cards (#313);
-- bleeding as a debuff (#315, #320);
-- small text in a clear sans (#322, #323);
-- every digit clear (#325);
-- the sounds spec (#314, `docs/40`, its six questions open);
-- the art brief (#316).
+**Fixed the same day:**
+- coming back without a body: the sprite atlas was full, and is now in pages (#354; #353);
+- the Place-ghost rows of `check("paintings")` and `check("decor")` (#346; #345);
+- `check("build")` reading 9/11, a bite cancelling the timed build (#352; #349).
 
 **Ruled 2026-10-20** (`docs/02`):
-- a change to an item checks its hover card (#319);
-- every digit is in the clear font;
-- paintings and rugs are items, placed from the bag (#329, which overturned the same day's Decor-in-the-build-palette ruling).
+- Faith: Smite as a share of the hit, prayer by level, Consecrate Ground lights (#336);
+- fences and gates buildable now, only the gate swings;
+- the woods are wall types, never paint, and doors and windows may be any wood; only Winter Pine and Bloodbark are restricted (#347). Primary's three readings were agreed (#350): plain planks, the regions' woods only with Free building, and daub's doors oak.
+
+**For Michael to look at when he plays:**
+- which valley building got which wood (the builder's list, `docs/02` "The woods as wall types, built");
+- Bloodbark goes near-black at night away from a light (flagged, not tuned; the lever is in `wood_tones.json`);
+- the shared world zoom setting reads "auto" after the reviews; set it as he likes.
 
 **Waiting on Michael:**
 - the sounds spec's six questions (#310);
-- the open questions in #331 to #334;
-- the hardening of the small-text scan (#324, chore, no rush);
+- #341: a multi-tile prop across a chunk edge vanishing on a guest, and two players lifting one piece of furniture;
+- #324 (hardening the small-text scan, no rush);
 - the earlier list (#271's items, #275's parked crop tools).
 
-**The design agent's worktree** (`C:/Users/micha/Dev/cozy-medieval-zombies-art`, branch `art-docs`) was fast-forwarded to main on 2026-10-20. Its deliveries sit under `deliveries/`, untracked; the imported copies are the repo's.
+**The design agent's worktree** (`C:/Users/micha/Dev/cozy-medieval-zombies-art`, branch `art-docs`) was fast-forwarded to main on 2026-10-20; its deliveries sit under `deliveries/`, untracked.
 
 ## Open work, by milestone
 
