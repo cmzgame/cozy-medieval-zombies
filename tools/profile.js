@@ -23,7 +23,7 @@ export async function run(game, { steps = 120 } = {}) {
     if (window.__boot) add("boot (ms)", Object.entries(window.__boot.timings).map(([k, v]) => `${k} ${v}`).join(", "));
     add("world", `${G.map.chunkCount()} chunks, ${G.zombies.length} dead, ${G.corpses.length} corpses, ${G.villagers.length} villagers, ${G.map.roomCount()} rooms, ${G.light.sources().length} light sources`);
     const atlas = G.gl.atlasInfo();
-    add("atlas", `${Math.round(atlas.fraction * 100)}% (${atlas.usedRows} of ${atlas.size} rows), ${G.assets.figureSheetCount()} figure sheets, ${G.assets.corpseSheetCount()} corpse sheets`);
+    add("atlas", `${atlas.pages} page${atlas.pages === 1 ? "" : "s"} of ${atlas.size}: ${atlas.perPage.map((p) => Math.round(p.fraction * 100) + "%").join(", ")} full, ${G.assets.figureSheetCount()} figure sheets, ${G.assets.corpseSheetCount()} corpse sheets`);
     for (const [name, scale] of [["middle", G.view.ZOOM_LEVELS[1]], ["wide", G.view.ZOOM_LEVELS[0]]]) {
       G.view.setZoom(scale);
       for (let i = 0; i < 30; i++) G.loop.advance(1 / 60); // settle: the sight key, the ring's bakes

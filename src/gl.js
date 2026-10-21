@@ -5,7 +5,7 @@
 // face a point along its foot line; the fragment shader samples the light,
 // ambient, and fog textures there. Raw WebGL, no library (Michael, 2026-10-09).
 //
-// Vertex: pos (2, screen px), uv (2, atlas), world (2, grid), height (1, px
+// Vertex: pos (2, screen px), uv (2, atlas) and page (1, the atlas layer), world (2, grid), height (1, px
 // above the foot), color (4, multiplier), flags (1). Flag bits: 1 unlit (a
 // flame), 2 occluder (fades in the holes), 4 sky (lit by outdoors only),
 // 8 unfogged.
@@ -17,7 +17,7 @@ export const FLAG_NOFOG = 8;
 export const FLAG_STANDING = 16; // a prop or a character: takes the legibility floor
 export const FLAG_SOLID = 32; // the quad's colour, flat, keeping the sprite's shape: an outline (docs/14)
 
-const STRIDE = 12; // floats per vertex
+const STRIDE = 13; // floats per vertex
 let ATLAS = 2048; // raised to 4096 in init when the GPU allows: the figures' sheets are large (docs/12)
 
 export let gl = null;
@@ -33,21 +33,47 @@ let vbo = null;
 let verts = new Float32Array(1 << 17);
 let count = 0; // floats written
 let whiteUV = null;
-let emptyUV = null; // a transparent patch: what a sprite that did not fit in the atlas draws as
-let atlasWarned = 0; // 0: no warning yet, 1: nearly full, 2: full
+let emptyUV = null; // a transparent patch: what a sprite that could not be placed draws as (a last resort now: a sheet larger than a page, or a page the GPU refused)
+let atlasWarned = 0; // 0: nothing yet, 2: a sheet was refused (larger than a page, or the GPU gave no more pages)
 let currentWhite = [0, 0, 0, 0];
 
 // ---- atlas ----
-const atlasCanvas = document.createElement("canvas");
-atlasCanvas.width = ATLAS;
-atlasCanvas.height = ATLAS;
-const atlasCtx = atlasCanvas.getContext("2d");
+// The sprite atlas is a stack of pages (docs/23, Performance; #353): each page is a 4096 by 4096 canvas on the CPU (the pages live there and survive a context loss) and a layer of one
+// `sampler2DArray` on the GPU. Page 0 is made at init; a sheet that fits no page's shelves opens the next one, so nothing is ever skipped for want of room and a game that fits in one pays
+// for one (64 MB on the GPU, 64 MB on the CPU, each). A texture per page would have broken the one draw of a frame wherever the sorted stream changed page (props, walls, and the dead
+// interleave their sheets by depth); an array keeps it one draw, the page being a vertex attribute. The array is made with as many layers as there are pages and made again, every page
+// re-uploaded from its canvas, when a page opens (once per page, never in a frame that opens none); a dirty page is uploaded alone.
+const pages = []; // { canvas, ctx, shelfX, shelfY, shelfH, dirty }
+let gpuLayers = 0; // layers the GPU array has now
+let pageCap = Infinity; // pages the GPU would give: the array's limit, or fewer if it refused one
+let maxLayers = 256; // gl.MAX_ARRAY_TEXTURE_LAYERS, read in init
+let pagesOpened = 0; // pages opened after the first, for the log
 let atlasTex = null;
-let atlasDirty = false;
-let shelfX = 0;
-let shelfY = 0;
-let shelfH = 0;
-const placed = new WeakMap(); // sheet -> { ax, ay }
+let stageFbo = null; // the framebuffer a page's staging texture is read through
+const placed = new WeakMap(); // sheet -> { page, ax, ay, w, h }
+
+function openPage() {
+  const canvas = document.createElement("canvas");
+  canvas.width = ATLAS;
+  canvas.height = ATLAS;
+  const page = { canvas, ctx: canvas.getContext("2d"), shelfX: 0, shelfY: 0, shelfH: 0, dirty: true };
+  pages.push(page);
+  return page;
+}
+
+// Where a w by h sheet would go on a page (its shelf position), or null if it does not fit.
+function slotOn(page, w, h) {
+  let x = page.shelfX;
+  let y = page.shelfY;
+  let sh = page.shelfH;
+  if (x + w + 1 > ATLAS) {
+    x = 0;
+    y += sh + 1;
+    sh = 0;
+  }
+  if (y + h > ATLAS) return null;
+  return { x, y, sh };
+}
 
 function place(sheet) {
   let p = placed.get(sheet);
@@ -55,27 +81,40 @@ function place(sheet) {
   const img = sheet.image;
   const w = img.width;
   const h = img.height;
-  if (shelfX + w + 1 > ATLAS) {
-    shelfX = 0;
-    shelfY += shelfH + 1;
-    shelfH = 0;
-  }
-  if (shelfY + h > ATLAS) {
-    // Full: that sprite is not drawn (one warning), but the frame is, instead of an error every frame.
-    if (atlasWarned < 2) console.warn(`sprite atlas full: ${w}x${h} sheet not drawn (docs/19: the atlas is the budget)`);
+  if (w > ATLAS || h > ATLAS) {
+    if (atlasWarned < 2) console.warn(`sprite sheet ${w}x${h} is larger than an atlas page (${ATLAS}): not drawn`);
     atlasWarned = 2;
     return null;
   }
-  atlasCtx.drawImage(img, shelfX, shelfY);
-  p = { ax: shelfX, ay: shelfY, w, h }; // the slot's size: a redraw never paints outside it
-  placed.set(sheet, p);
-  shelfX += w + 1;
-  shelfH = Math.max(shelfH, h);
-  atlasDirty = true;
-  if (atlasWarned < 1 && (shelfY + shelfH) / ATLAS > 0.85) {
-    atlasWarned = 1;
-    console.warn("sprite atlas over 85% full (docs/19: the atlas is the budget)");
+  // The first page with room, so a small sheet late in the day still fills the tail of an earlier page.
+  let at = null;
+  let page = null;
+  for (let i = 0; i < pages.length && !at; i++) {
+    at = slotOn(pages[i], w, h);
+    if (at) page = pages[i];
   }
+  if (!at) {
+    if (pages.length >= Math.min(pageCap, maxLayers)) {
+      if (atlasWarned < 2) console.warn(`sprite atlas full at ${pages.length} pages: ${w}x${h} sheet not drawn (the GPU refused another page)`);
+      atlasWarned = 2;
+      return null;
+    }
+    page = openPage();
+    at = slotOn(page, w, h);
+    pagesOpened++;
+    console.info(`sprite atlas page ${pages.length} opened for a ${w}x${h} sheet (the first page held ${pages[0].shelfY + pages[0].shelfH} of ${ATLAS} rows)`);
+  }
+  if (at.x === 0 && at.y !== page.shelfY) {
+    page.shelfY = at.y;
+    page.shelfH = 0;
+  }
+  page.shelfX = at.x;
+  page.ctx.drawImage(img, at.x, at.y);
+  p = { page: pages.indexOf(page), ax: at.x, ay: at.y, w, h }; // the slot's size: a redraw never paints outside it
+  placed.set(sheet, p);
+  page.shelfX += w + 1;
+  page.shelfH = Math.max(page.shelfH, h);
+  page.dirty = true;
   return p;
 }
 
@@ -85,45 +124,65 @@ export function placeSheet(sheet) {
   return place(sheet);
 }
 
-// How full the atlas is: its side, the rows used so far (px), and the fraction.
+// How full the atlas is: its side, the pages, each page's rows used so far (px) and fraction, and the totals (`usedRows` over all pages, `fraction` of all the rows there are).
 export function atlasInfo() {
-  const used = shelfY + shelfH;
-  return { size: ATLAS, usedRows: used, fraction: +(used / ATLAS).toFixed(3) };
+  const list = pages.map((pg) => {
+    const used = pg.shelfY + pg.shelfH;
+    return { usedRows: used, fraction: +(used / ATLAS).toFixed(3) };
+  });
+  const used = list.reduce((n, p) => n + p.usedRows, 0);
+  return { size: ATLAS, pages: list.length, perPage: list, usedRows: used, fraction: +(used / (ATLAS * Math.max(1, list.length))).toFixed(3) };
+}
+
+// One texel of a page as the GPU has it, [r, g, b, a] (for check("atlas"): the upload put each page in its own layer). Reads the layer through a throwaway framebuffer.
+export function atlasTexel(page, x, y) {
+  if (!gl || lost || !atlasTex || page >= gpuLayers) return null;
+  uploadAtlas();
+  const fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
+  gl.framebufferTextureLayer(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, atlasTex, 0, page);
+  const px = new Uint8Array(4);
+  gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+  gl.deleteFramebuffer(fbo);
+  return [...px];
 }
 
 // Redraw a sheet whose image changed (the player's clothes) at its place.
-// A sheet that grew past its slot (the player's: a weapon with a second attack adds frames, docs/32) gets a new slot;
+// A sheet that grew past its slot (the player's: a weapon with a second attack adds frames, docs/32) gets a new slot, on whatever page has room;
 // redrawn in the old one it painted over its neighbours on the shelf, the newest body's frame among them, which then
 // showed a standing player where a zombie had died (Michael's playtest, 2026-10-14). The old slot is left empty: a
 // sheet grows to the widest it is ever drawn at and stays there, so this costs one slot per growth.
 export function redrawSheet(sheet) {
-  let p = placed.get(sheet);
+  const p = placed.get(sheet);
   if (!p) return;
+  const page = pages[p.page];
   if (sheet.image.width > p.w || sheet.image.height > p.h) {
-    atlasCtx.clearRect(p.ax, p.ay, p.w, p.h);
+    page.ctx.clearRect(p.ax, p.ay, p.w, p.h);
     placed.delete(sheet);
-    place(sheet); // packs and draws it at a new slot
-    atlasDirty = true;
+    place(sheet); // packs and draws it at a new slot, on this page or another
+    page.dirty = true;
     return;
   }
-  atlasCtx.clearRect(p.ax, p.ay, p.w, p.h);
-  atlasCtx.drawImage(sheet.image, p.ax, p.ay);
-  atlasDirty = true;
+  page.ctx.clearRect(p.ax, p.ay, p.w, p.h);
+  page.ctx.drawImage(sheet.image, p.ax, p.ay);
+  page.dirty = true;
 }
 
-// Atlas coordinates of a frame, in texels: [u0, v0, u1, v1].
+// Atlas coordinates of a frame, in texels, and its page: [u0, v0, u1, v1, page].
 export function frameUV(sheet, name) {
   const f = sheet.frames[name];
   if (!f) return null;
   const p = place(sheet);
-  if (!p) return emptyUV;
-  return [p.ax + f[0], p.ay + f[1], p.ax + f[0] + f[2], p.ay + f[1] + f[3]];
+  if (!p || p.page >= pageCap) return emptyUV;
+  return [p.ax + f[0], p.ay + f[1], p.ax + f[0] + f[2], p.ay + f[1] + f[3], p.page];
 }
 
 // ---- shaders ----
 const VS = `#version 300 es
 in vec2 a_pos;
 in vec2 a_uv;
+in float a_page;
 in vec2 a_world;
 in float a_height;
 in vec4 a_color;
@@ -131,6 +190,7 @@ in float a_flags;
 uniform vec2 u_res;
 uniform vec2 u_texSize; // the bound texture's size in texels: the atlas, or a chunk's ground (docs/15)
 out vec2 v_uv;
+flat out float v_page;
 out vec2 v_world;
 out float v_height;
 out vec4 v_color;
@@ -138,6 +198,7 @@ flat out float v_flags;
 out vec2 v_screen;
 void main() {
   v_uv = a_uv / u_texSize;
+  v_page = a_page;
   v_world = a_world;
   v_height = a_height;
   v_color = a_color;
@@ -150,13 +211,16 @@ void main() {
 const FS = `#version 300 es
 precision mediump float;
 in vec2 v_uv;
+flat in float v_page;
 in vec2 v_world;
 in float v_height;
 in vec4 v_color;
 flat in float v_flags;
 in vec2 v_screen;
 out vec4 o;
-uniform sampler2D u_tex;
+uniform highp sampler2DArray u_tex; // the atlas, a page a layer
+uniform sampler2D u_ground; // a chunk's ground picture, when u_isGround
+uniform int u_isGround;
 uniform sampler2D u_light;
 uniform sampler2D u_ambient;
 uniform sampler2D u_fog;
@@ -191,7 +255,7 @@ float poolAt(vec2 p) {
 }
 
 void main() {
-  vec4 tex = texture(u_tex, v_uv) * v_color;
+  vec4 tex = (u_isGround == 1 ? texture(u_ground, v_uv) : texture(u_tex, vec3(v_uv, v_page))) * v_color;
   if (tex.a < 0.004) discard;
   float f = v_flags;
   bool unlit = mod(f, 2.0) >= 1.0;
@@ -253,14 +317,16 @@ export function init(canvas) {
   // The atlas canvas lives on the CPU and survives a context loss; everything on
   // the GPU is made in setup(), which runs again when the context comes back.
   ATLAS = Math.min(4096, gl.getParameter(gl.MAX_TEXTURE_SIZE) || 2048);
-  atlasCanvas.width = ATLAS;
-  atlasCanvas.height = ATLAS;
-  atlasCtx.fillStyle = "#fff";
-  atlasCtx.fillRect(0, 0, 4, 4);
-  shelfX = 10;
-  shelfH = 4;
-  whiteUV = [1, 1, 3, 3];
-  emptyUV = [6, 1, 8, 3]; // x 5 to 9 of the first row is left transparent
+  maxLayers = gl.getParameter(gl.MAX_ARRAY_TEXTURE_LAYERS) || 256;
+  if (!pages.length) {
+    const first = openPage();
+    first.ctx.fillStyle = "#fff";
+    first.ctx.fillRect(0, 0, 4, 4);
+    first.shelfX = 10;
+    first.shelfH = 4;
+  }
+  whiteUV = [1, 1, 3, 3, 0];
+  emptyUV = [6, 1, 8, 3, 0]; // x 5 to 9 of the first row is left transparent
   setup();
   canvas.addEventListener("webglcontextlost", (e) => {
     e.preventDefault(); // without it the browser never restores the context
@@ -293,7 +359,7 @@ function setup() {
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
   gl.useProgram(program);
-  for (const name of ["u_res", "u_texSize", "u_tex", "u_light", "u_ambient", "u_fog", "u_areaOrigin", "u_areaTiles", "u_nightFloor", "u_nightAlpha", "u_tint", "u_outdoor", "u_player", "u_pool", "u_poolStrength", "u_climb", "u_fogColor", "u_fogAlpha", "u_holes", "u_holeCount", "u_holeInner", "u_holeOuter", "u_minStanding", "u_softLight", "u_debug"]) {
+  for (const name of ["u_res", "u_texSize", "u_tex", "u_ground", "u_isGround", "u_light", "u_ambient", "u_fog", "u_areaOrigin", "u_areaTiles", "u_nightFloor", "u_nightAlpha", "u_tint", "u_outdoor", "u_player", "u_pool", "u_poolStrength", "u_climb", "u_fogColor", "u_fogAlpha", "u_holes", "u_holeCount", "u_holeInner", "u_holeOuter", "u_minStanding", "u_softLight", "u_debug"]) {
     uniforms[name] = gl.getUniformLocation(program, name);
   }
   vao = gl.createVertexArray();
@@ -308,15 +374,18 @@ function setup() {
   };
   attr("a_pos", 2, 0);
   attr("a_uv", 2, 2);
-  attr("a_world", 2, 4);
-  attr("a_height", 1, 6);
-  attr("a_color", 4, 7);
-  attr("a_flags", 1, 11);
+  attr("a_page", 1, 4);
+  attr("a_world", 2, 5);
+  attr("a_height", 1, 7);
+  attr("a_color", 4, 8);
+  attr("a_flags", 1, 12);
   // The atlas texture (the canvas behind it is kept across a loss) and the area textures.
-  atlasTex = makeTexture(gl.NEAREST);
-  atlasDirty = true;
+  atlasTex = null; // made in end() with a layer for every page
+  gpuLayers = 0;
+  stageFbo = null;
   groundTex.clear(); // a lost context took the ground's textures with it; the ground re-bakes
   gl.uniform1i(uniforms.u_tex, 0);
+  gl.uniform1i(uniforms.u_ground, 4);
   gl.uniform1i(uniforms.u_light, 1);
   gl.uniform1i(uniforms.u_ambient, 2);
   gl.uniform1i(uniforms.u_fog, 3);
@@ -395,7 +464,7 @@ let groundFloats = 0; // floats written by ground quads this frame
 
 export function uploadGround(key, image) {
   let rec = groundTex.get(key);
-  gl.activeTexture(gl.TEXTURE0);
+  gl.activeTexture(gl.TEXTURE4); // the ground's own unit: unit 0 holds the atlas array
   if (!rec) {
     rec = { tex: makeTexture(gl.NEAREST), w: image.width, h: image.height };
     groundTex.set(key, rec);
@@ -444,20 +513,21 @@ function grow(need) {
   verts = v;
 }
 
-function vertex(x, y, u, v, wx, wy, h, c, flags) {
+function vertex(x, y, u, v, page, wx, wy, h, c, flags) {
   const i = count;
   verts[i] = x;
   verts[i + 1] = y;
   verts[i + 2] = u;
   verts[i + 3] = v;
-  verts[i + 4] = wx;
-  verts[i + 5] = wy;
-  verts[i + 6] = h;
-  verts[i + 7] = c[0];
-  verts[i + 8] = c[1];
-  verts[i + 9] = c[2];
-  verts[i + 10] = c[3];
-  verts[i + 11] = flags;
+  verts[i + 4] = page;
+  verts[i + 5] = wx;
+  verts[i + 6] = wy;
+  verts[i + 7] = h;
+  verts[i + 8] = c[0];
+  verts[i + 9] = c[1];
+  verts[i + 10] = c[2];
+  verts[i + 11] = c[3];
+  verts[i + 12] = flags;
   count += STRIDE;
 }
 
@@ -474,26 +544,27 @@ export function quad(x, y, w, h, uv, { world, heights = 0, color = WHITE, flags 
   const u1 = flip ? uv[0] : uv[2];
   const v0 = uv[1];
   const v1 = uv[3];
+  const pg = uv[4] || 0; // the atlas page the rect is on
   const W = typeof world[0] === "number" ? [world, world, world, world] : world;
   const H = typeof heights === "number" ? [heights, heights, heights, heights] : heights;
   const x1 = x + w;
   const y1 = y + h;
-  vertex(x + skew, y, u0, v0, W[0][0], W[0][1], H[0], color, flags);
-  vertex(x1 + skew, y, u1, v0, W[1][0], W[1][1], H[1], color, flags);
-  vertex(x1, y1, u1, v1, W[2][0], W[2][1], H[2], color, flags);
-  vertex(x + skew, y, u0, v0, W[0][0], W[0][1], H[0], color, flags);
-  vertex(x1, y1, u1, v1, W[2][0], W[2][1], H[2], color, flags);
-  vertex(x, y1, u0, v1, W[3][0], W[3][1], H[3], color, flags);
+  vertex(x + skew, y, u0, v0, pg, W[0][0], W[0][1], H[0], color, flags);
+  vertex(x1 + skew, y, u1, v0, pg, W[1][0], W[1][1], H[1], color, flags);
+  vertex(x1, y1, u1, v1, pg, W[2][0], W[2][1], H[2], color, flags);
+  vertex(x + skew, y, u0, v0, pg, W[0][0], W[0][1], H[0], color, flags);
+  vertex(x1, y1, u1, v1, pg, W[2][0], W[2][1], H[2], color, flags);
+  vertex(x, y1, u0, v1, pg, W[3][0], W[3][1], H[3], color, flags);
 }
 
 // A textured convex quad with any four screen corners and their own atlas
 // texel coordinates, in order around it (docs/17: a drawn wall's cap redrawn
 // on the sky). `world` is one [gx, gy] or four; `heights` likewise.
-export function texQuad(pts, uvs, { world, heights = 0, color = WHITE, flags = 0 } = {}) {
+export function texQuad(pts, uvs, { world, heights = 0, color = WHITE, flags = 0, page = 0 } = {}) {
   grow(STRIDE * 6);
   const W = typeof world[0] === "number" ? [world, world, world, world] : world;
   const H = typeof heights === "number" ? [heights, heights, heights, heights] : heights;
-  for (const k of [0, 1, 2, 0, 2, 3]) vertex(pts[k][0], pts[k][1], uvs[k][0], uvs[k][1], W[k][0], W[k][1], H[k], color, flags);
+  for (const k of [0, 1, 2, 0, 2, 3]) vertex(pts[k][0], pts[k][1], uvs[k][0], uvs[k][1], page, W[k][0], W[k][1], H[k], color, flags); // `page`: the atlas page the texel coordinates are on (frameUV's fifth)
 }
 
 // A flat-coloured convex polygon, fanned from its first point. `world` is one
@@ -512,7 +583,7 @@ export function poly(points, color, { world, heights = 0, flags = 0 } = {}) {
     for (const k of [0, i, i + 1]) {
       const p = points[k];
       const w = wOf(k);
-      vertex(p[0], p[1], u, v, w[0], w[1], hOf(k), color, flags);
+      vertex(p[0], p[1], u, v, 0, w[0], w[1], hOf(k), color, flags);
     }
   }
 }
@@ -526,15 +597,60 @@ export function blank() {
   gl.clear(gl.COLOR_BUFFER_BIT);
 }
 
+// The atlas on the GPU: an array with a layer for every page, made again (every page re-uploaded from its canvas) when a page has opened since, and a dirty page uploaded alone. If the GPU
+// refuses the layers (out of memory), the array is made with one fewer, the page that did not fit is dropped from drawing (its sheets draw as the empty patch), and no more are opened.
+function uploadAtlas() {
+  gl.activeTexture(gl.TEXTURE0);
+  const want = Math.min(pages.length, pageCap);
+  if (!atlasTex || gpuLayers !== want) {
+    if (atlasTex) gl.deleteTexture(atlasTex);
+    for (let n = want; n >= 1; n--) {
+      atlasTex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D_ARRAY, atlasTex);
+      gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, ATLAS, ATLAS, n);
+      if (gl.getError() === gl.NO_ERROR) {
+        gpuLayers = n;
+        break;
+      }
+      gl.deleteTexture(atlasTex);
+      atlasTex = null;
+      pageCap = n - 1;
+      console.warn(`the GPU refused an atlas array of ${n} pages; drawing with ${n - 1}`);
+    }
+    for (const pg of pages) pg.dirty = true;
+  }
+  if (!atlasTex) return;
+  let stage = null;
+  pages.forEach((pg, i) => {
+    if (!pg.dirty || i >= gpuLayers) return;
+    // Each page goes up as a 2D texture first, the one path the atlas always took (texImage2D from the canvas), and is copied into its layer on the GPU: uploading the canvas straight
+    // into a layer converts the canvas's premultiplied colours another way and moved a few hundred pixels of a frame by one level (check("frame") reads the bytes).
+    if (!stage) {
+      stage = makeTexture(gl.NEAREST);
+      if (!stageFbo) stageFbo = gl.createFramebuffer();
+    }
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, stage);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, pg.canvas);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, stageFbo);
+    gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, stage, 0);
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY, atlasTex);
+    gl.copyTexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, i, 0, 0, ATLAS, ATLAS);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+    pg.dirty = false;
+  });
+  if (stage) gl.deleteTexture(stage); // the staging copy is only for the upload: 64 MB not kept
+  gl.bindTexture(gl.TEXTURE_2D_ARRAY, atlasTex);
+}
+
 // Draw everything pushed since begin() with these uniforms.
 export function end(u) {
   if (lost) return; // nothing to draw to; the batch is dropped
-  if (atlasDirty) {
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, atlasTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlasCanvas);
-    atlasDirty = false;
-  }
+  uploadAtlas();
   // The viewport is the whole buffer while u_res is the world's size in its
   // own pixels: the difference is the zoom, applied by the GPU (view.js).
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -567,7 +683,7 @@ export function end(u) {
   gl.uniform1f(uniforms.u_softLight, u.softLight || 0);
   gl.uniform1i(uniforms.u_debug, u.debug);
   gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, atlasTex);
+  gl.bindTexture(gl.TEXTURE_2D_ARRAY, atlasTex);
   gl.activeTexture(gl.TEXTURE1);
   gl.bindTexture(gl.TEXTURE_2D, lightTex);
   gl.activeTexture(gl.TEXTURE2);
@@ -577,13 +693,14 @@ export function end(u) {
   gl.bindVertexArray(vao);
   gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
   gl.bufferData(gl.ARRAY_BUFFER, verts.subarray(0, count), gl.DYNAMIC_DRAW);
-  gl.activeTexture(gl.TEXTURE0);
+  gl.uniform1i(uniforms.u_isGround, 1);
+  gl.activeTexture(gl.TEXTURE4);
   for (const r of groundRanges) {
     gl.bindTexture(gl.TEXTURE_2D, r.rec.tex);
     gl.uniform2f(uniforms.u_texSize, r.rec.w, r.rec.h);
     gl.drawArrays(gl.TRIANGLES, r.first, 6);
   }
-  gl.bindTexture(gl.TEXTURE_2D, atlasTex);
+  gl.uniform1i(uniforms.u_isGround, 0);
   gl.uniform2f(uniforms.u_texSize, ATLAS, ATLAS);
   const first = groundFloats / STRIDE;
   if (count > groundFloats) gl.drawArrays(gl.TRIANGLES, first, count / STRIDE - first);
