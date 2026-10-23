@@ -11732,7 +11732,7 @@
    44
   ]
  ],
- "biomes": {
+ "zones": {
   "harvest": {
    "kinds": {
     "tree_oak_m": 1,
@@ -11775,12 +11775,12 @@
     0.05,
     0.16
    ],
-   "biome": "harvest",
+   "zone": "harvest",
    "seed": 11
   }
  ],
  "wild": {
-  "biome": "harvest",
+  "zone": "harvest",
   "density": [
    0.0405,
    0.1305

@@ -18,7 +18,7 @@
     "water":  { "priority": 4, "texture": "ground_water", "threshold": [0.40, 0.5], "thresholdAbove": "dirt", "verge": 0.15, "lip": 0.25, "lipBand": 0.07 }
   },
   "edgeNoise": "ground_noise",
-  "biomes": {
+  "zones": {
     "harvest": {
       "grass": [
         "data/art/ground/grass_0.png",

@@ -21,38 +21,26 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
-## Status (2026-10-20, paused by Michael: art round 3 wired in full; the atlas in pages)
+## Status (2026-10-23, paused by Michael: housekeeping done; the Valley scope's defaults pass is next)
 
-**Where to pick up:** work is paused at Michael's word ("pause work when this bug fix is done"). Nothing is in flight. Start the next session by asking Michael for his focus.
+**Where to pick up:** a new Primary since 2026-10-23, focus planning and infrastructure. Michael's three goals, in order: (1) a final Valley scope (#271, `docs/39`); (2) a limited demo scope, a cut list from `docs/39` against `docs/36`, each line naming its valley issue; (3) building both, demo-first, after a plan is talked through in chat (Michael prefers prose to question widgets). **Next: the Valley scope's defaults pass**, one issue per sitting, #275 first: Primary writes a recommended answer for every open line of `docs/39` on its issue, Michael overrules what he disagrees with, and what stands is the default, marked tunable; the scope is final when `docs/39` section 16 is empty, and the milestones and issues follow from it. Then the demo's cut list, with its four build issues refiled (#40 to #43 are the bot's, hidden).
 
-**Art round 3 is done, every piece merged and the wiki synced:**
-- the everyday items' art (#337, closing #331);
-- the beehive and the chicken coop (#338, #340 Hollow Farm's yard; #333);
-- the drawn fence and its swinging gate, buildable (#343; #332);
-- rugs as items (#339, #342; #327);
-- paintings as items, hung on a wall's face (#344; #326);
-- the woods: six wall types, the valley mixed in oak, spruce, mahogany, and daub, and a door or window in any wood (#348, #351; #334).
+**Done 2026-10-23:**
+- the two pull requests held since the pause merged, reviewed: #256 (dead code, #99) and #255 (region, never biome, #135); neither visible to a player, so no wiki sync;
+- the demo rule changed (Michael, `docs/02` 2026-10-23): the demo is built now, on dev art, as the game's bounded playtest; only its release waits for final art. PR #356 logs it and waits for Michael's comment opening "Approved", then Primary merges it.
 
-**Fixed the same day:**
-- coming back without a body: the sprite atlas was full, and is now in pages (#354; #353);
-- the Place-ghost rows of `check("paintings")` and `check("decor")` (#346; #345);
-- `check("build")` reading 9/11, a bite cancelling the timed build (#352; #349).
-
-**Ruled 2026-10-20** (`docs/02`):
-- Faith: Smite as a share of the hit, prayer by level, Consecrate Ground lights (#336);
-- fences and gates buildable now, only the gate swings;
-- the woods are wall types, never paint, and doors and windows may be any wood; only Winter Pine and Bloodbark are restricted (#347). Primary's three readings were agreed (#350): plain planks, the regions' woods only with Free building, and daub's doors oak.
-
-**For Michael to look at when he plays:**
-- which valley building got which wood (the builder's list, `docs/02` "The woods as wall types, built");
-- Bloodbark goes near-black at night away from a light (flagged, not tuned; the lever is in `wood_tones.json`);
-- the shared world zoom setting reads "auto" after the reviews; set it as he likes.
+**Not started, on the housekeeping list:**
+- a status page that stays current (`tools/status.html`, reading GitHub live: the milestones as the roadmap, the needs-michael queue, the open pull requests, `docs/39`'s open counts, the deploys);
+- the finished worktrees under `.claude/worktrees/`: every one is merged into `main` (two hold only an untracked `art-preview/` folder and a regenerated manifest), but a session may not remove them (the app's permission refused it), so Michael removes them (`git worktree remove <path>`, then `git worktree prune`), or Settings › Storage once they are old enough.
 
 **Waiting on Michael:**
-- the sounds spec's six questions (#310);
-- #341: a multi-tile prop across a chunk edge vanishing on a guest, and two players lifting one piece of furniture;
-- #324 (hardening the small-text scan, no rush);
-- the earlier list (#271's items, #275's parked crop tools).
+- #356 (a comment opening Approved);
+- #271's items 6 and 8 to 11; the sounds spec's questions (#310);
+- #341 (a multi-tile prop across a chunk edge on a guest; two players lifting one piece of furniture); #324 (no rush);
+- the `needs-michael` issues: #89, #92, #94, #123, #133, #181, #217;
+- from the last session's play list: which valley building got which wood (`docs/02`, "The woods as wall types, built"); Bloodbark near-black at night away from a light (the lever is in `wood_tones.json`); the shared world zoom setting reads "auto".
+
+**The open lines of `docs/39` by issue** (counted 2026-10-23; 194 lines built, 192 to build, 68 to change): #275 51 · #273 11 · #289 9 · #264 9 · #288 7 · #92, #281, #279, #123 5 each · #283, #181, #133 4 each · #103 3 · #282, #268, #262, #260 2 each · #271, #106, #104 1 each.
 
 **The design agent's worktree** (`C:/Users/micha/Dev/cozy-medieval-zombies-art`, branch `art-docs`) was fast-forwarded to main on 2026-10-20; its deliveries sit under `deliveries/`, untracked.
 
@@ -62,7 +50,7 @@ Issues #18 to #55 were filed by the bot and are hidden while it is flagged. **Th
 
 - **00 · Process and infrastructure:** the bot's reinstatement #71; the wiki's publishing build without `--check` #3; the wiki's loose ends #68.
 - **00 · Bugs:** a duplication count for the sync check #101 (with 04). An unverified bug goes to `docs/bugs.md`.
-- **01 · The valley and skilling:** the wizard #181 (waits on the teaching design: skills and learned recipes, unscoped, Michael's); building's leftovers #104; the NPC pass #103; region, never biome #135 (PR #255, held); the engine's chores (#124, #100, #99 with PR #256 held). Built and closed on 2026-10-17 and 18: #10, #136, #156, #159, #190, #195, #196, #197, #208, #215, #236.
+- **01 · The valley and skilling:** the wizard #181 (waits on the teaching design: skills and learned recipes, unscoped, Michael's); building's leftovers #104; the NPC pass #103; the engine's chores (#124, #100). Built and closed on 2026-10-17 and 18: #10, #136, #156, #159, #190, #195, #196, #197, #208, #215, #236; on 2026-10-23: #99, #135.
 - **01 · The valley: farming (big pass step 4)** (`docs/30` sections 8 to 10): built (#194, #199, #200, #201, and cloth #212 closed).
 - **01 · The valley: the 1.0 map, steps 5 to 9** (`docs/30` section 11): the map's open questions #92; fishing joined apple trees in #190 (was #28). Still hidden for later: the castle and the bridge road #24; the forest places #25 beyond the mine and the charcoal burners; dressing and the edges #26; chickens, deer, the tannery #27.
 - **01 · The valley: talk** (`docs/34`): built (#198 and #202 closed).
