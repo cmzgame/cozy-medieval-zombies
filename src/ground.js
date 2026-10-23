@@ -56,7 +56,7 @@ export const REACH_MAX = 4; // tiles: how far a change can move another tile's g
 
 let data = null;
 let seed = 1;
-const biomes = new Map(); // name -> { grass: [{ w, h, px }], base: [r, g, b] }
+const zones = new Map(); // name -> { grass: [{ w, h, px }], base: [r, g, b] }
 const frames = new Map(); // "sheet|frame" -> { w, h, px, ox, oy }
 const chunks = new Map(); // chunkKey -> { cx, cy, rec, dirty }
 const stat = { baked: 0, lastMs: 0, maxMs: 0, phases: {}, syncBakes: 0 }; // phases: the last bake's ms per phase; syncBakes: chunks baked at draw time because no picture was ready
@@ -184,7 +184,7 @@ export function invalidateAll() {
 }
 
 export async function reload() {
-  biomes.clear();
+  zones.clear();
   await init(initJson);
   for (const e of chunks.values()) e.dirty = true;
 }
@@ -201,7 +201,7 @@ export async function init(mapJson) {
     await assets.loadSprite(id);
     usedSheets.add(id);
   }
-  for (const [name, b] of Object.entries(data.biomes)) {
+  for (const [name, b] of Object.entries(data.zones)) {
     const grass = [];
     for (const src of b.grass) {
       const img = await loadImage(src);
@@ -223,7 +223,7 @@ export async function init(mapJson) {
       else for (const [colour, list] of Object.entries(d.files)) files[colour] = await load(list);
       decals.push({ ...d, files, on: d.on || ["grass"], count: d.count || [1, 1], flip: d.flip !== false });
     }
-    biomes.set(name, {
+    zones.set(name, {
       grass,
       decals,
       base: b.grassBase || [75, 95, 61],
@@ -268,8 +268,8 @@ export function kindNames() {
   return ["none", "grass", "laid", ...terrain.map((t) => t.name)];
 }
 
-function biomeOf(x, y) {
-  return biomes.get(map.biomeAt(x, y)) || biomes.get("harvest") || biomes.values().next().value;
+function zoneOf(x, y) {
+  return zones.get(map.zoneAt(x, y)) || zones.get("harvest") || zones.values().next().value;
 }
 
 export function kindOf(floorId) {
@@ -345,10 +345,10 @@ function tintGrid(x0, y0) {
       }
     }
   }
-  // The biome per tile, looked up once per tile rather than per sample.
+  // The zone per tile, looked up once per tile rather than per sample.
   const T = C + 3;
   const bioTile = new Array(T * T);
-  for (let ty = 0; ty < T; ty++) for (let tx = 0; tx < T; tx++) bioTile[ty * T + tx] = biomeOf(gx0 + tx, gy0 + ty);
+  for (let ty = 0; ty < T; ty++) for (let tx = 0; tx < T; tx++) bioTile[ty * T + tx] = zoneOf(gx0 + tx, gy0 + ty);
   const R = new Float32Array(N);
   const G = new Float32Array(N);
   const B = new Float32Array(N);
@@ -417,7 +417,7 @@ function stamp(out, img, sx, sy, flip, stand = false) {
   }
 }
 
-// The decals of every tile of the chunk and DECAL_PAD beyond, by the biome's
+// The decals of every tile of the chunk and DECAL_PAD beyond, by the zone's
 // rules. `near` is a tile some tree's canopy reaches (by straight-line
 // distance from the trunk, as the darkening), `open` one no tree reaches.
 function bakeDecals(out, x0, y0, left, top, log = null) {
@@ -427,7 +427,7 @@ function bakeDecals(out, x0, y0, left, top, log = null) {
   for (let y = y0 - DECAL_PAD; y < y0 + C + DECAL_PAD; y++) {
     for (let x = x0 - DECAL_PAD; x < x0 + C + DECAL_PAD; x++) {
       const kind = kindOf(map.tileAt(x, y).floor);
-      const bio = biomeOf(x, y);
+      const bio = zoneOf(x, y);
       if (!bio.decals.length) continue;
       // The nearest tree whose reach covers this tile; the first found wins a tie.
       let near = null;
@@ -489,7 +489,7 @@ function bakeDecals(out, x0, y0, left, top, log = null) {
 // near a tree rolls the same ones and keeps the pixels it owns.
 function bakeTreeDecals(out, trees, left, top, log) {
   for (const t of trees) {
-    const bio = biomeOf(t.x, t.y);
+    const bio = zoneOf(t.x, t.y);
     let k = 0;
     const roll = () => map.hash2(t.x, t.y, seed + 60 + k++);
     for (const d of bio.decals) {
@@ -525,7 +525,7 @@ function bakeTreeDecals(out, trees, left, top, log) {
 // gradient. Only pixels this chunk owns are touched.
 function bakeShadows(out, x0, y0, left, top) {
   for (const { prop, def } of propsNear(x0, y0, REACH_MAX, "shadow")) {
-    const sh = biomeOf(prop.tile[0], prop.tile[1]).shadow;
+    const sh = zoneOf(prop.tile[0], prop.tile[1]).shadow;
     const sheet = assets.getSheet(prop.sprite);
     const fw = Object.values(sheet.frames)[0][2];
     const rx = def.shadow.width * fw;
@@ -613,7 +613,7 @@ export function bakeImage(cx, cy, kindsOut = null) {
       const x = x0 + lx;
       const y = y0 + ly;
       const o = ly * C + lx;
-      const b = biomeOf(x, y);
+      const b = zoneOf(x, y);
       grass[o] = b.grass[Math.floor(map.hash2(x, y, seed + 10) * b.grass.length)];
       flip[o] = map.hash2(x, y, seed + 11) < 0.5 ? 1 : 0;
       base[o] = b.base;

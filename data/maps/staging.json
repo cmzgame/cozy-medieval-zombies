@@ -497,7 +497,7 @@
    22
   ]
  ],
- "biomes": {
+ "zones": {
   "autumn": {
    "kinds": {
     "tree_orange_m": 1.2,
@@ -532,12 +532,12 @@
     0.22,
     0.36
    ],
-   "biome": "autumn",
+   "zone": "autumn",
    "seed": 5
   }
  ],
  "wild": {
-  "biome": "autumn",
+  "zone": "autumn",
   "density": [
    0.2,
    0.32

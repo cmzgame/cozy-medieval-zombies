@@ -154,7 +154,7 @@ def cottage_c(g, x, y, name, trade, wall="wall_wood"):
 
 def build():
     g = MapGen("The valley", SIZE, spawn=(104, 216))
-    g.biome("harvest", HARVEST, scale=9)
+    g.zone("harvest", HARVEST, scale=9)
 
     # ================= step 0: the bones =================
     # The river (29/01, 29/02): top to bottom, a little east of centre, bulging west by the mill.

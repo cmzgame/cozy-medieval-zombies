@@ -40,7 +40,7 @@ def window(side, at, **extra):
 
 def build():
     g = MapGen("The staging clearing", SIZE, spawn=(23, 27))
-    g.biome("autumn", AUTUMN, scale=7)
+    g.zone("autumn", AUTUMN, scale=7)
 
     # The cabin: one log room, the hearth lit (its glow through the windows at dusk), a bed, a table.
     cabin = g.place("the cabin", [17, 14, 10, 8], padding=1)
