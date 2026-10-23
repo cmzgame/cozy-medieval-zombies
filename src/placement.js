@@ -3,6 +3,8 @@
 // where it may not, and a left click puts it there. Two kinds:
 //
 //   prop   the mode a player is in whenever they carry furniture;
+//   rug    a rug from the bag, laid flat on the floor (#327; src/rugs.js): the ghost over its 2 by 3, R turns it, a click lays it;
+//   painting  a painting from the bag, hung on the face of the wall under the cursor (#326; src/paintings.js): the ghost on the wall, a click hangs it;
 //   build  a wall, door, or window on the tile edge under the cursor, paid for
 //          in logs or planks (data/build.json) unless the Free building
 //          setting is on, and built over a few seconds like boarding.
@@ -23,6 +25,9 @@ import { showMessage } from "./ui/prompt.js";
 import { rules } from "./rules.js";
 import * as tuning from "./tuning.js";
 import { reachProblem, TOO_FAR } from "./reach.js";
+import * as rugs from "./rugs.js"; // a rug laid from the bag (#327)
+import * as paintings from "./paintings.js"; // a painting hung on a wall from the bag (#326)
+import * as woods from "./woods.js"; // a wall in a wood, and a door or window of another wood than its wall (#334)
 
 // Reach was raised by a full tile on 2026-10-11 (Michael: easier).
 export const PLACE_REACH = 2.6; // tiles from the player to a carried prop's anchor tile
@@ -30,8 +35,8 @@ export const BUILD_REACH = 2.6; // tiles from the player to the middle of a buil
 export const REMOVE_REACH = 2.6; // tiles from the player to the nearest part of what is removed
 const EDGE_CLEARANCE = 0.45; // the player may not stand closer than this to an edge being built
 
-// kind is null, "prop", "build", or "remove". ghost is what the renderer draws.
-export const state = { active: false, kind: null, prop: null, build: null, ghost: null, turns: 0 };
+// kind is null, "prop", "rug", "painting", "build", or "remove". ghost is what the renderer draws.
+export const state = { active: false, kind: null, prop: null, build: null, rug: null, painting: null, ghost: null, turns: 0 };
 // On a guest (docs/31/05 item 10, tier 3): the ghost is the replica's, and the click goes to the host as
 // a command (main.js sets the sender), which performs it for the guest's player with its own reach.
 let sender = null;
@@ -59,9 +64,35 @@ export function setBuildData(data) {
   buildData = data || {};
 }
 
-// What can be built, for the palette: [{ id, label, sprite, cost, seconds }].
+// What can be built: [{ id, label, sprite, cost, seconds }]. Every kind, whatever the rules: the replica must be able to draw each.
 export function buildKinds() {
   return Object.entries(buildData).map(([id, d]) => ({ id, ...d }));
+}
+
+// What the palette offers now: a region's wood (`region` in its entry: Winter Pine and Bloodbark, #334) only while Free building is on.
+export function paletteKinds() {
+  return buildKinds().filter((k) => !k.region || rules.freeBuilding);
+}
+
+// A door or a window may be of another wood than the wall it goes into (#334): the entries of kind door or window that are not a fence's gate.
+export const takesLeaf = (what) => ["door", "window"].includes(wallKindOf(what)) && !(buildData[what] && buildData[what].over);
+
+// The leaf wood chosen for the door or window being built: "" is the wall's own (a mahogany wall's door is mahogany, a daub wall's is oak), else a wood wall's sprite. Cycled with R
+// while the mode is a door or a window; the palette and the prompt say it.
+export function buildLeaf() {
+  return state.kind === "build" && state.build && takesLeaf(state.build.what) ? state.build.leaf || "" : "";
+}
+
+function nextLeaf(current) {
+  const list = ["", ...woods.leafChoices(rules.freeBuilding)];
+  const i = list.indexOf(current);
+  return list[(i + 1) % list.length];
+}
+
+// How the choice reads, the same in the palette and in the prompt: "leaves: Spruce · R" (the wall's own, or "as it was" over a broken door or window of another wood, when none is chosen).
+export function leafHint(chosen, carried = "") {
+  const name = chosen ? woods.woodName(chosen) : carried ? `as it was, ${woods.woodName(carried)}` : "the wall's own";
+  return `leaves: ${name} · R`;
 }
 
 // ---- the carry rule ----
@@ -196,18 +227,38 @@ function distToEdge(px, py, tx, ty, edge) {
 
 // Why a thing cannot be built there, or "" if it can. Reach is separate so a
 // build already under way is not cancelled by a small drift.
-function buildBlock(player, what, tx, ty, edge) {
+// A build entry's wall kind (`wall`, `door`, `window`): its key, or the `kind` it names (#332: "fence" is a wall in the fence's
+// material, "gate" a door in it). `over` names the one material it may be built into, on an empty edge or over that material
+// (a gate in a fence, never a gate in a stone wall).
+export function wallKindOf(what) {
+  return (buildData[what] && buildData[what].kind) || what;
+}
+
+function buildBlock(player, what, tx, ty, edge, leaf = "") {
   const existing = map.tileAt(tx, ty)[edge];
-  if (existing && !map.canStampOver(existing, what)) return "Already a wall";
-  if (!map.canBuildWall(tx, ty, edge, what)) return "No room";
+  const kind = wallKindOf(what);
+  const over = buildData[what] && buildData[what].over;
+  if (buildData[what] && buildData[what].region && !rules.freeBuilding) return `${woods.woodName(buildData[what].sprite)} is found beyond the valley`; // a region's wood (#334)
+  if (existing && over && existing.sprite !== over) return "Only in a fence";
+  if (existing && !map.canStampOver(existing, kind)) return "Already a wall";
+  if (!map.canBuildWall(tx, ty, edge, kind)) return "No room";
+  if (leaf) {
+    // The wood of its leaves (#334): only for a door or a window, in a wall of a wood (its own sprite when it is stamped over one).
+    const sprite = existing && map.canStampOver(existing, kind) ? existing.sprite : buildData[what].sprite;
+    const why = takesLeaf(what) ? woods.leafProblem(sprite, leaf, rules.freeBuilding, kind) : "No such wood";
+    if (why) return why;
+  } else if (existing && map.canStampOver(existing, kind) && ["door", "window"].includes(kind)) {
+    const carried = woods.carriedLeaf(existing); // the default over a broken door or window is its wood, which a region's needs Free building as a chosen one does
+    if (carried && woods.leafProblem(existing.sprite, carried, rules.freeBuilding, kind)) return woods.leafProblem(existing.sprite, carried, rules.freeBuilding, kind);
+  }
   if (distToEdge(player.gx, player.gy, tx, ty, edge) < EDGE_CLEARANCE) return "Step back";
   return shortfall(player, what);
 }
 
-function buildReason(player, what, tx, ty, edge) {
+function buildReason(player, what, tx, ty, edge, leaf = "") {
   const [mx, my] = map.edgeMid(tx, ty, edge);
   if (Math.hypot(player.gx - mx, player.gy - my) > BUILD_REACH) return "Too far";
-  return buildBlock(player, what, tx, ty, edge);
+  return buildBlock(player, what, tx, ty, edge, leaf);
 }
 
 // ---- the mode ----
@@ -220,10 +271,37 @@ export function beginProp(prop) {
   state.turns = 0;
 }
 
+// A rug from the bag (the item's Place): the ghost follows the cursor, R turns it between its facings, a click lays it within reach, Esc cancels. The item stays in the bag until it is laid.
+export function beginRug(entry) {
+  const def = rugs.rugDef(entry && entry.id);
+  if (!def) return false;
+  state.kind = "rug";
+  state.rug = { uid: entry.uid, id: def.id, sprite: def.rug, facing: rugs.facingsOf(def.rug)[0] };
+  state.prop = null;
+  state.build = null;
+  state.active = true;
+  state.turns = 0;
+  return true;
+}
+
+// A painting from the bag (the item's Place): the ghost follows the cursor onto the face of a wall, a click hangs it within reach, Esc cancels. The item stays in the bag until it is hung.
+export function beginPainting(entry) {
+  const def = paintings.paintingDef(entry && entry.id);
+  if (!def) return false;
+  state.kind = "painting";
+  state.painting = { uid: entry.uid, id: def.id };
+  state.prop = null;
+  state.build = null;
+  state.rug = null;
+  state.active = true;
+  state.turns = 0;
+  return true;
+}
+
 export function beginBuild(what) {
   if (!buildData[what]) return false;
   state.kind = "build";
-  state.build = { what };
+  state.build = { what, leaf: "" };
   state.prop = null;
   state.active = true;
   return true;
@@ -241,7 +319,7 @@ export function beginRemove() {
 // Carrying cannot be cancelled: the prop stays in the hands, so prop mode
 // answers false.
 export function cancel() {
-  if (state.kind !== "build" && state.kind !== "remove") return false;
+  if (state.kind !== "build" && state.kind !== "remove" && state.kind !== "rug" && state.kind !== "painting") return false;
   end();
   return true;
 }
@@ -250,6 +328,8 @@ function end() {
   state.kind = null;
   state.prop = null;
   state.build = null;
+  state.rug = null;
+  state.painting = null;
   state.active = false;
   state.ghost = null;
   state.turns = 0;
@@ -282,6 +362,15 @@ function turn(prop) {
 // Each logic step: follow the carried prop, read R, and put the ghost where
 // the cursor is.
 export function update(player) {
+  if (state.kind === "rug") {
+    // The rug is laid from the bag: gone from it (laid, dropped, moved) or hands full ends the mode.
+    if (player.carrying || !rugs.entryOf(player, state.rug.uid)) end();
+    else if (input.wasPressed("KeyR")) {
+      const fs = rugs.facingsOf(state.rug.sprite);
+      state.rug.facing = fs[(fs.indexOf(state.rug.facing) + 1) % fs.length];
+    }
+  }
+  if (state.kind === "painting" && (player.carrying || !paintings.entryOf(player, state.painting.uid))) end(); // gone from the bag (hung, dropped, moved) or hands full ends the mode
   if (player.carrying) {
     if (state.kind === "build" || state.kind === "remove") end(); // hands full: no building or removing
     if (state.kind !== "prop" || state.prop !== player.carrying) beginProp(player.carrying);
@@ -289,7 +378,10 @@ export function update(player) {
   } else if (state.kind === "prop") {
     end();
   }
+  if (state.kind === "build" && takesLeaf(state.build.what) && input.wasPressed("KeyR")) state.build.leaf = nextLeaf(state.build.leaf || ""); // the leaf wood (#334)
   if (state.kind === "prop") state.ghost = propGhost(player);
+  else if (state.kind === "rug") state.ghost = rugGhost(player);
+  else if (state.kind === "painting") state.ghost = paintingGhost(player);
   else if (state.kind === "build") state.ghost = buildGhost(player);
   else if (state.kind === "remove") state.ghost = removeGhost(player);
   else state.ghost = null;
@@ -413,7 +505,10 @@ function removeGhost(player) {
 
 function targetName(t) {
   if (t.type === "prop") return t.prop.sprite.replace(/_/g, " ");
-  const d = buildData[t.wall.kind];
+  // The entry that builds this wall, by its kind and its sprite both (a built fence is a "wall" but no log wall; a gate is a
+  // "door" in the fence's sprite), else the kind's own entry (a door built into a stone wall is a door).
+  const id = Object.keys(buildData).find((k) => wallKindOf(k) === t.wall.kind && buildData[k].sprite === t.wall.sprite);
+  const d = buildData[id] || buildData[t.wall.kind];
   return (d && d.label ? d.label : t.wall.kind).toLowerCase();
 }
 
@@ -452,14 +547,47 @@ function propGhost(player) {
   return { kind: "prop", prop, tx, ty, footprint: [w, h], ok: reason === "", reason };
 }
 
+// The rug's ghost: the footprint centred on the cursor, as a prop's, green where the rug may lie within reach and red where not (the rules are src/rugs.js's).
+function rugGhost(player) {
+  const r = state.rug;
+  if (!r) return null;
+  const m = input.getMouse();
+  if (!m.inside) return null;
+  const g = iso.toGrid(m.x, m.y);
+  const [w, h] = rugs.footprintFor(r.sprite, r.facing);
+  const tx = Math.round(g.gx - (w - 1) / 2);
+  const ty = Math.round(g.gy - (h - 1) / 2);
+  const reason = rugs.reachFor(player, r.sprite, r.facing, tx, ty) || rugs.fitProblem(r.sprite, r.facing, tx, ty);
+  return { kind: "rug", prop: { sprite: r.sprite, facing: r.facing, footprint: [w, h] }, tx, ty, footprint: [w, h], ok: reason === "", reason, rug: { uid: r.uid, facing: r.facing } };
+}
+
+// The painting's ghost: the picture on the face under the cursor, green where it may hang within reach and red where not (the rules are src/paintings.js's). Over no wall there is no
+// ghost to draw, and a click says so.
+function paintingGhost(player) {
+  const p = state.painting;
+  if (!p) return null;
+  const m = input.getMouse();
+  if (!m.inside) return null;
+  const at = paintings.targetAt(p.id, m.x, m.y, player);
+  if (!at) return { kind: "painting", item: p.id, tx: 0, ty: 0, edge: "n", ok: false, reason: "Aim at a wall", none: true, painting: { uid: p.uid } };
+  const reason = at.problem || paintings.reachFor(player, p.id, at.tx, at.ty, at.edge);
+  return { kind: "painting", item: p.id, tx: at.tx, ty: at.ty, edge: at.edge, ok: reason === "", reason, painting: { uid: p.uid } };
+}
+
 function buildGhost(player) {
   const m = input.getMouse();
   if (!m.inside) return null;
   const g = iso.toGrid(m.x, m.y);
   const { tx, ty, edge } = pickEdge(g.gx, g.gy);
   const what = state.build.what;
-  const reason = buildReason(player, what, tx, ty, edge);
-  return { kind: "wall", tx, ty, edge, wallKind: what, sprite: buildData[what].sprite, ok: reason === "", reason };
+  const leaf = takesLeaf(what) ? state.build.leaf || "" : "";
+  const reason = buildReason(player, what, tx, ty, edge, leaf);
+  const existing = map.tileAt(tx, ty)[edge];
+  const kind = wallKindOf(what);
+  // As it would stand: a door stamped into a wall takes the wall's material (map.buildWall), so the ghost does too, and its leaf wood.
+  const sprite = existing && map.canStampOver(existing, kind) ? existing.sprite : buildData[what].sprite;
+  const carried = takesLeaf(what) && !leaf && existing && map.canStampOver(existing, kind) ? woods.carriedLeaf(existing) : "";
+  return { kind: "wall", tx, ty, edge, wallKind: what, wallType: kind, sprite, leaf: woods.storedLeaf(sprite, leaf || carried, rules.freeBuilding) || "", chosenLeaf: leaf, carriedLeaf: carried, ok: reason === "", reason };
 }
 
 // The left click. Returns true if this mode took it. A red ghost takes the
@@ -480,6 +608,40 @@ export function tryConfirm(player) {
     }
     map.placeProp(state.prop, g.tx, g.ty);
     player.carrying = null;
+    end();
+    return true;
+  }
+  if (state.kind === "rug") {
+    // A red ghost takes the click and says why; a green one lays the rug (a guest sends the command the host runs by the same rules).
+    const g = state.ghost;
+    if (!g) return false;
+    if (!g.ok) {
+      showMessage(g.reason);
+      return true;
+    }
+    if (sender) {
+      sender({ kind: "rug", uid: g.rug.uid, tx: g.tx, ty: g.ty, facing: g.rug.facing });
+      end();
+      return true;
+    }
+    rugs.placeRug(player, g.rug.uid, g.tx, g.ty, g.rug.facing);
+    end();
+    return true;
+  }
+  if (state.kind === "painting") {
+    // A red ghost takes the click and says why; a green one hangs the painting (a guest sends the command the host runs by the same rules).
+    const g = state.ghost;
+    if (!g) return false;
+    if (!g.ok) {
+      showMessage(g.reason);
+      return true;
+    }
+    if (sender) {
+      sender({ kind: "painting", uid: g.painting.uid, tx: g.tx, ty: g.ty, edge: g.edge });
+      end();
+      return true;
+    }
+    paintings.hang(player, g.painting.uid, g.tx, g.ty, g.edge);
     end();
     return true;
   }
@@ -507,7 +669,7 @@ export function tryConfirm(player) {
       return true;
     }
     if (sender) {
-      sender({ kind: "build", what: g.wallKind, tx: g.tx, ty: g.ty, edge: g.edge });
+      sender({ kind: "build", what: g.wallKind, tx: g.tx, ty: g.ty, edge: g.edge, ...(g.chosenLeaf ? { leaf: g.chosenLeaf } : {}) });
       return true;
     }
     startBuild(player, g);
@@ -525,6 +687,16 @@ function addressOf(t) {
 // checked here against the guest's player, the refusal said to it through the acting player.
 export function performPlacement(player, cmd) {
   if (!player || !cmd) return false;
+  if (cmd.kind === "rug") {
+    // A guest laying a rug from its bag (the host's own click calls placeRug directly): the same reach and fit, the refusal said through the acting player.
+    rugs.placeRug(player, cmd.uid, cmd.tx, cmd.ty, cmd.facing);
+    return true;
+  }
+  if (cmd.kind === "painting") {
+    // A guest hanging a painting from its bag (the host's own click calls hang directly): the same reach and fit, the refusal said through the acting player.
+    paintings.hang(player, cmd.uid, cmd.tx, cmd.ty, cmd.edge);
+    return true;
+  }
   if (cmd.kind === "prop") {
     const prop = player.carrying;
     if (!prop) return false;
@@ -558,12 +730,13 @@ export function performPlacement(player, cmd) {
     const edge = cmd.edge === "n" || cmd.edge === "w" ? cmd.edge : null;
     if (!what || !edge || !Number.isFinite(tx) || !Number.isFinite(ty)) return false;
     if (player.action) return true;
-    const why = buildReason(player, what, tx, ty, edge);
+    const leaf = typeof cmd.leaf === "string" ? cmd.leaf : ""; // the wood of a door's or window's leaves (#334), checked by the same rules the host's own click meets
+    const why = buildReason(player, what, tx, ty, edge, leaf);
     if (why) {
       showMessage(why);
       return true;
     }
-    startBuild(player, { wallKind: what, tx, ty, edge });
+    startBuild(player, { wallKind: what, tx, ty, edge, chosenLeaf: leaf });
     return true;
   }
   if (cmd.kind === "remove") {
@@ -613,13 +786,13 @@ function startBuild(player, g) {
     enabled: true,
     simple: false,
     perform() {
-      const why = buildBlock(player, what, g.tx, g.ty, g.edge);
+      const why = buildBlock(player, what, g.tx, g.ty, g.edge, g.chosenLeaf || "");
       if (why) {
         showMessage(why);
         return false;
       }
       spend(player, what);
-      return map.buildWall(g.tx, g.ty, g.edge, what, d.sprite);
+      return map.buildWall(g.tx, g.ty, g.edge, wallKindOf(what), d.sprite, g.chosenLeaf || null);
     },
   };
   if (startAction) startAction(player, action);
@@ -634,6 +807,17 @@ export function prompt() {
     if (!g.ok) return { label: g.reason, mx: g.tx, my: g.ty, progress: null, enabled: false };
     return { label: "Click to place · R turn · E in front", mx: g.tx, my: g.ty, progress: null, enabled: true };
   }
+  if (g.kind === "rug") {
+    if (!g.ok) return { label: g.reason, mx: g.tx, my: g.ty, progress: null, enabled: false };
+    return { label: "Click to lay the rug · R turn · Esc cancel", mx: g.tx, my: g.ty, progress: null, enabled: true };
+  }
+  if (g.kind === "painting") {
+    const m = input.getMouse();
+    const at = iso.toGrid(m.x, m.y);
+    const [mx, my] = g.none ? [at.gx, at.gy] : paintings.floorTile(g.tx, g.ty);
+    if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
+    return { label: "Click to hang the painting · Esc cancel", mx, my, progress: null, enabled: true };
+  }
   if (g.kind === "remove") {
     const t = g.target;
     const [mx, my] = t.type === "wall" ? map.edgeMid(t.tx, t.ty, t.edge) : t.prop.tile;
@@ -642,5 +826,6 @@ export function prompt() {
   }
   const [mx, my] = map.edgeMid(g.tx, g.ty, g.edge);
   if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
-  return { label: `Click to build (${costText(g.wallKind)}) · Esc cancel`, mx, my, progress: null, enabled: true };
+  const wood = takesLeaf(g.wallKind) ? ` · ${leafHint(g.chosenLeaf, g.carriedLeaf)}` : "";
+  return { label: `Click to build (${costText(g.wallKind)})${wood} · Esc cancel`, mx, my, progress: null, enabled: true };
 }

@@ -7,6 +7,8 @@
 // stores the verb's name, the target, and the start tick, and `perform`
 // re-validates when it fires, so two actors can never fell one tree twice.
 
+import * as floaters from "./floaters.js";
+
 const table = new Map();
 
 export function define(name, verb) {
@@ -30,5 +32,7 @@ export function run(name, world, player, target, args = {}) {
     if (r !== true) return { ok: false, reason: r || "cannot" };
   }
   const out = v.perform(world, player, target, args);
-  return out && typeof out === "object" ? { ok: true, ...out } : { ok: out !== false };
+  const result = out && typeof out === "object" ? { ok: true, ...out } : { ok: out !== false };
+  floaters.verbDone(name, player, result); // a gather floats its number (#294)
+  return result;
 }

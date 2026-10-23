@@ -1,0 +1,390 @@
+{
+ "painting_small_oak_north": {
+  "size": [
+   29,
+   42
+  ],
+  "grip_px": [
+   14,
+   21
+  ],
+  "anchor_px": [
+   6,
+   69
+  ],
+  "orientation": "north"
+ },
+ "painting_small_oak_west": {
+  "size": [
+   28,
+   42
+  ],
+  "grip_px": [
+   14,
+   21
+  ],
+  "anchor_px": [
+   22,
+   69
+  ],
+  "orientation": "west"
+ },
+ "painting_small_oak_icon": {
+  "slot_cols_rows": [
+   2,
+   2
+  ],
+  "size": [
+   38,
+   38
+  ],
+  "drawn_from": "the same picture flat and framed, outlined #2b2522 as an item"
+ },
+ "painting_small_deer_north": {
+  "size": [
+   29,
+   42
+  ],
+  "grip_px": [
+   14,
+   21
+  ],
+  "anchor_px": [
+   6,
+   69
+  ],
+  "orientation": "north"
+ },
+ "painting_small_deer_west": {
+  "size": [
+   28,
+   42
+  ],
+  "grip_px": [
+   14,
+   21
+  ],
+  "anchor_px": [
+   22,
+   69
+  ],
+  "orientation": "west"
+ },
+ "painting_small_deer_icon": {
+  "slot_cols_rows": [
+   2,
+   2
+  ],
+  "size": [
+   38,
+   38
+  ],
+  "drawn_from": "the same picture flat and framed, outlined #2b2522 as an item"
+ },
+ "painting_small_peak_north": {
+  "size": [
+   29,
+   42
+  ],
+  "grip_px": [
+   14,
+   21
+  ],
+  "anchor_px": [
+   6,
+   69
+  ],
+  "orientation": "north"
+ },
+ "painting_small_peak_west": {
+  "size": [
+   28,
+   42
+  ],
+  "grip_px": [
+   14,
+   21
+  ],
+  "anchor_px": [
+   22,
+   69
+  ],
+  "orientation": "west"
+ },
+ "painting_small_peak_icon": {
+  "slot_cols_rows": [
+   2,
+   2
+  ],
+  "size": [
+   38,
+   38
+  ],
+  "drawn_from": "the same picture flat and framed, outlined #2b2522 as an item"
+ },
+ "painting_tall_waterfall_north": {
+  "size": [
+   29,
+   70
+  ],
+  "grip_px": [
+   14,
+   35
+  ],
+  "anchor_px": [
+   6,
+   65
+  ],
+  "orientation": "north"
+ },
+ "painting_tall_waterfall_west": {
+  "size": [
+   28,
+   70
+  ],
+  "grip_px": [
+   14,
+   35
+  ],
+  "anchor_px": [
+   22,
+   65
+  ],
+  "orientation": "west"
+ },
+ "painting_tall_waterfall_icon": {
+  "slot_cols_rows": [
+   2,
+   3
+  ],
+  "size": [
+   38,
+   57
+  ],
+  "drawn_from": "the same picture flat and framed, outlined #2b2522 as an item"
+ },
+ "painting_tall_pines_north": {
+  "size": [
+   29,
+   70
+  ],
+  "grip_px": [
+   14,
+   35
+  ],
+  "anchor_px": [
+   6,
+   65
+  ],
+  "orientation": "north"
+ },
+ "painting_tall_pines_west": {
+  "size": [
+   28,
+   70
+  ],
+  "grip_px": [
+   14,
+   35
+  ],
+  "anchor_px": [
+   22,
+   65
+  ],
+  "orientation": "west"
+ },
+ "painting_tall_pines_icon": {
+  "slot_cols_rows": [
+   2,
+   3
+  ],
+  "size": [
+   38,
+   57
+  ],
+  "drawn_from": "the same picture flat and framed, outlined #2b2522 as an item"
+ },
+ "painting_wide_castle_north": {
+  "size": [
+   58,
+   57
+  ],
+  "grip_px": [
+   29,
+   28
+  ],
+  "anchor_px": [
+   6,
+   69
+  ],
+  "orientation": "north"
+ },
+ "painting_wide_castle_west": {
+  "size": [
+   57,
+   57
+  ],
+  "grip_px": [
+   28,
+   28
+  ],
+  "anchor_px": [
+   51,
+   69
+  ],
+  "orientation": "west"
+ },
+ "painting_wide_castle_icon": {
+  "slot_cols_rows": [
+   3,
+   2
+  ],
+  "size": [
+   57,
+   38
+  ],
+  "drawn_from": "the same picture flat and framed, outlined #2b2522 as an item"
+ },
+ "painting_wide_lake_north": {
+  "size": [
+   58,
+   57
+  ],
+  "grip_px": [
+   29,
+   28
+  ],
+  "anchor_px": [
+   6,
+   69
+  ],
+  "orientation": "north"
+ },
+ "painting_wide_lake_west": {
+  "size": [
+   57,
+   57
+  ],
+  "grip_px": [
+   28,
+   28
+  ],
+  "anchor_px": [
+   51,
+   69
+  ],
+  "orientation": "west"
+ },
+ "painting_wide_lake_icon": {
+  "slot_cols_rows": [
+   3,
+   2
+  ],
+  "size": [
+   57,
+   38
+  ],
+  "drawn_from": "the same picture flat and framed, outlined #2b2522 as an item"
+ },
+ "painting_wide_sunset_north": {
+  "size": [
+   58,
+   57
+  ],
+  "grip_px": [
+   29,
+   28
+  ],
+  "anchor_px": [
+   6,
+   69
+  ],
+  "orientation": "north"
+ },
+ "painting_wide_sunset_west": {
+  "size": [
+   57,
+   57
+  ],
+  "grip_px": [
+   28,
+   28
+  ],
+  "anchor_px": [
+   51,
+   69
+  ],
+  "orientation": "west"
+ },
+ "painting_wide_sunset_icon": {
+  "slot_cols_rows": [
+   3,
+   2
+  ],
+  "size": [
+   57,
+   38
+  ],
+  "drawn_from": "the same picture flat and framed, outlined #2b2522 as an item"
+ },
+ "rug_bearskin_icon": {
+  "slot_cols_rows": [
+   1,
+   4
+  ],
+  "size": [
+   19,
+   76
+  ],
+  "drawn_from": "the rug rolled up, outlined as an item, the bear's head out of the top"
+ },
+ "rug_regal_red_icon": {
+  "slot_cols_rows": [
+   1,
+   4
+  ],
+  "size": [
+   19,
+   76
+  ],
+  "drawn_from": "the rug rolled up, outlined as an item"
+ },
+ "rug_bearskin": {
+  "size": [
+   110,
+   56
+  ],
+  "grip_px": [
+   55,
+   28
+  ],
+  "anchor_px": [
+   77,
+   -15
+  ],
+  "footprint_cols_rows": [
+   2,
+   3
+  ],
+  "along": "y"
+ },
+ "rug_regal_red": {
+  "size": [
+   146,
+   74
+  ],
+  "grip_px": [
+   73,
+   37
+  ],
+  "anchor_px": [
+   89,
+   -3
+  ],
+  "footprint_cols_rows": [
+   2,
+   3
+  ],
+  "along": "y"
+ }
+}

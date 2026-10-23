@@ -24,6 +24,10 @@ The removal tool (Michael, 2026-10-11: "delete anything placed or built, highlig
 - Hands full means no removal, like building.
 - **Tools** (the tool rule, #214, #215): Remove needs a smith's hammer carried (hand, belt, or bag), as does building a door or a window; a log wall needs a hatchet (`data/build.json` `tool`, a tool verb: `build`, `notch`). The shortfall line names it ("You need a smith's hammer.").
 
+## Woods (#334)
+
+Every wood and daub is a wall type of its own (`docs/02`, 2026-10-20), and a door or a window may be of another wood than its wall. The palette has a row for a log wall and one for each wall wood (Oak, Spruce, Mahogany, Daub; Winter Pine and Bloodbark only while Free building is on, the regions' woods), each one plank, and one row each for a door and a window; while a door or a window is the mode, **R cycles the wood of its leaves** (the wall's own, oak, spruce, mahogany, and with Free building the regions' two), shown under its row and in the prompt, and the ghost shows it. The choice is the `leaf` of the `build` command, checked by the host as its own click is: only a wall of a wood takes another wood's leaves, and a region's wood needs Free building. The code is `src/woods.js`; the rulings and the readings are `docs/02`, 2026-10-20.
+
 ## Free building
 
 The world rule `freeBuilding` (`rules.js`, default off; a host's rules bind its guests, and the settings screen's row is what a browser's own worlds take as their rule): while on, every build costs nothing, the palette shows "free", and nothing is taken from the bag. Build time still applies. It is for testing structures; turn it off to test the costs. **It waives the build tools too** (the hammer for a door, a window, and Remove; the hatchet for a log wall; #215), **but not boarding up or pulling a board**: Michael's 2026-10-11 ruling left boards out of it ("planks for boards are untouched"), and they stay a hammer's work.

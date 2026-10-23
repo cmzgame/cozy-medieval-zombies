@@ -1,0 +1,35 @@
+{
+ "anchorVertex": "top",
+ "facings": [
+  "y",
+  "x"
+ ],
+ "facingFootprint": {
+  "y": [
+   1,
+   2
+  ],
+  "x": [
+   2,
+   1
+  ]
+ },
+ "drawings": {
+  "y": {
+   "image": "data/art/village/chicken_coop_0.png",
+   "anchor": [
+    53,
+    33
+   ]
+  },
+  "x": {
+   "from": "y",
+   "mirror": true
+  }
+ },
+ "carry": false,
+ "note": "the drawn chicken coop (docs/29-world/09, 1.2.11; #333): a plank hut on legs with a ramp and a nesting box, long side along y as drawn, along x as its mirror, as the bed; a container (loot table coop, a placeholder: Michael, 2026-10-20, \"Coop as placeholder container is fine!\"), so no interactable: a container does not sway. chicken_coop_1 (door half open) and chicken_coop_2 (open) are spare click frames, drawn the y way: a clickAnim cannot play on a facings sprite yet",
+ "container": {
+  "loot": "coop"
+ }
+}

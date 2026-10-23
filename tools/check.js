@@ -142,6 +142,18 @@ const gameMod = await import("../src/game.js");
 const kitModule = await import("../src/kit.js");
 const worldMod = await import("../src/world.js");
 const chartModule = await import("../src/chart.js");
+const floatersMod = await import("../src/floaters.js");
+const itemInfoMod = await import("../src/item-info.js");
+const smallTextMod = await import("../src/ui/small-text.js");
+const rugsImport = await import("../src/rugs.js");
+const woodsImport = await import("../src/woods.js");
+const placementImport = await import("../src/placement.js");
+const rulesImport = await import("../src/rules.js");
+const inventoryMod = await import("../src/inventory.js");
+const itemsMod = await import("../src/items.js");
+const playerMod = await import("../src/entities/player.js");
+const verbsMod = await import("../src/verbs.js");
+const netsmoothTool = await import("./netsmooth.js");
 const { lineOfSight } = await import("../src/visibility.js");
 const { getDef } = await import("../src/assets.js");
 const stationsMod = await import("../src/stations.js");
@@ -179,6 +191,439 @@ check("kit: the default kit fits the sack and the dev bag by placement, and aski
   assert(worldMod.idCounter() === before, "kit.problem moved the id counter");
   assert(kitMod.problem("apple 1e1") !== "" && kitMod.problem("apple 0x10") !== "", "a count of 1e1 or 0x10 was taken");
   return "sack and dev bag fit; no id taken";
+});
+// Remote bodies on a guest move evenly whatever the frames' arrival (#248): steady, alternating early and late, random, and a long stall, each against the old smoothing.
+check("net: a remote body is drawn evenly between the host's frames whatever their arrival (no stopped steps, a spread under 0.2 a step)", () => {
+  const m = netsmoothTool.measure();
+  const lines = [];
+  for (const [p, r] of Object.entries(m)) {
+    assert(r.now.still === 0 && r.now.move.sd < 0.2, `${p}: stood still ${r.now.still} steps, spread ${r.now.move.sd.toFixed(2)}`);
+    lines.push(`${p.slice(0, 14)} ${r.old.still} stopped steps to ${r.now.still}`);
+  }
+  assert(m["alternating 2 and 4 steps apart"].old.still > 50, "the old smoothing no longer stops on a late frame: the measurement is not measuring it");
+  return lines.join("; ");
+});
+// The dead and the villagers come as a delta, a record only when it changed: a body that stops is drawn where it stopped and one that sets off from a rest moves at once
+// (#249's review: it was drawn up to two steps past its stop for good, and set off after a rest in a lurch).
+check("net: a body that walks, stands, and walks again (a record only when it moved) is drawn on its truth at rest and sets off evenly", () => {
+  const d = netsmoothTool.measureDelta(true);
+  const without = netsmoothTool.measureDelta(false);
+  assert(d.restOffset < 1e-9, `a standing body is drawn ${d.restOffset.toFixed(3)} tiles off the host's truth`);
+  assert(d.start.slice(0, 6).every((x) => x > 0.9 && x < 1.1), `it set off ${d.start.slice(0, 6).map((x) => x.toFixed(2)).join(" ")} (1 is steady)`);
+  assert(without.restOffset > 0.05, "without hold the offset at rest is gone: the measurement is not measuring it");
+  return `at rest 0 off (0.10 without hold); the first steps ${d.start.slice(0, 4).map((x) => x.toFixed(2)).join(" ")}`;
+});
+// Rugs (#327): a rug laid from the bag is a prop in the tile's own rug slot (never blocking, furniture over it), in the chunk's record and the sync hash, restored from a record, and Pick up
+// gives the item back; refused over another rug and under furniture. (The drawing, the ghost, and the guest's two tabs are `check("decor")`'s, in the pane.)
+check("rugs: laid from the bag into the rug slot, in the record and the sync hash, restored; refused over a rug and under furniture; picked up", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  const rugsMod = rugsImport;
+  const bag = inventoryMod.bagOf(me);
+  bag.items.length = 0;
+  const e = itemsMod.makeEntry("rug_bearskin", 1);
+  inventoryMod.stow(me, e);
+  let at = null;
+  mapMod.ensureAround(me.gx, me.gy, 3);
+  for (let dy = -12; dy <= 12 && !at; dy++) for (let dx = -12; dx <= 12 && !at; dx++) {
+    const x = Math.round(me.gx) + dx;
+    const y = Math.round(me.gy) + dy;
+    let ok = true;
+    for (let ay = -1; ay < 5 && ok; ay++) for (let ax = -1; ax < 4 && ok; ax++) { const t = mapMod.peekTile(x + ax, y + ay); ok = !!t && t.floor === "floor_grass" && !t.prop && !t.rug && !t.n && !t.w; }
+    if (ok) at = [x, y];
+  }
+  assert(at, "no bare grass");
+  const [x, y] = at;
+  me.gx = x + 1;
+  me.gy = y + 1;
+  const before = gameMod.syncParts().map;
+  assert(rugsMod.placeRug(me, e.uid, x, y, "y"), "the rug was not laid");
+  const rug = mapMod.peekTile(x, y).rug;
+  assert(rug && rug.solid === false && rug.tiles.length === 6 && rug.rugItem === "rug_bearskin" && !mapMod.peekTile(x, y).prop && bag.items.length === 0, "the laid rug is not a rug in the rug slot, or the item stayed in the bag");
+  assert(mapMod.isWalkableTile(x, y), "the rug blocks a step");
+  assert(gameMod.syncParts().map !== before, "a laid rug did not move the sync hash");
+  assert(rugsMod.fitProblem("rug_bearskin", "y", x + 1, y + 1) === "A rug is already there", "a rug was allowed over another");
+  const chest = mapMod.createProp({ sprite: "chest", tile: [x, y] });
+  mapMod.placeProp(chest, x, y);
+  assert(mapMod.peekTile(x, y).rug === rug && mapMod.peekTile(x, y).prop === chest, "furniture did not stand on the rug");
+  assert(rugsMod.pickUpProblem(rug) === "Move the chest off it first." && rugsMod.pickUp(me, rug) === false && mapMod.peekTile(x, y).rug === rug, "Pick up was not refused under furniture");
+  mapMod.removeProp(chest);
+  const C = mapMod.CHUNK;
+  const rec = JSON.parse(JSON.stringify(mapMod.serializeChunk(mapMod.getChunk(Math.floor(x / C), Math.floor(y / C), false))));
+  assert(rec.props.some((p) => p.sprite === "rug_bearskin" && p.rugItem === "rug_bearskin" && p.solid === false), "the chunk's record does not carry the rug");
+  mapMod.installChunk(rec);
+  for (const p of rec.props) mapMod.installProp(p);
+  const back = mapMod.peekTile(x, y).rug;
+  assert(back && back.rugItem === "rug_bearskin" && back.tiles.every(([tx, ty]) => mapMod.peekTile(tx, ty).rug === back), "the rug did not come back from its record");
+  assert(rugsMod.pickUp(me, back) === true && !mapMod.peekTile(x, y).rug && bag.items.some((q) => q.id === "rug_bearskin"), "Pick up did not give the item back");
+  return "laid, in the record and the hash, over by a chest, restored, picked up";
+});
+// Paintings (#326): a painting hung from the bag is state on a wall segment (a wide one a holder and a cover), in the chunk's record and the sync hash, restored from a record; Pick up
+// gives the item back (from either segment of a wide one, once); refused on a door, a window, a hung segment, past a post, off the end of a wall; a wall taken down or a door built over it drops
+// the painting as an item, whole. (The drawing, the ghost, and the guest's two tabs are `check("paintings")`'s, in the pane.)
+const paintingsImport = await import("../src/paintings.js");
+check("paintings: hung from the bag onto a wall's face, in the record and the sync hash, restored; refused on openings and past a post; taken down; dropped with their wall", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  const P = paintingsImport;
+  const bag = inventoryMod.bagOf(me);
+  bag.items.length = 0;
+  mapMod.ensureAround(me.gx, me.gy, 3);
+  let at = null;
+  for (let dy = -14; dy <= 14 && !at; dy++) for (let dx = -14; dx <= 14 && !at; dx++) {
+    const x = Math.round(me.gx) + dx;
+    const y = Math.round(me.gy) + dy;
+    let ok = true;
+    for (let ay = -2; ay < 4 && ok; ay++) for (let ax = -1; ax < 12 && ok; ax++) { const t = mapMod.peekTile(x + ax, y + ay); ok = !!t && t.floor === "floor_grass" && !t.prop && !t.rug && !t.n && !t.w; }
+    if (ok) at = [x, y];
+  }
+  assert(at, "no bare grass");
+  const [x, y] = at;
+  for (let i = 0; i < 10; i++) mapMod.buildWall(x + i, y, "n", "wall"); // a run of ten; a west wall and a window are put in below
+  me.gx = x + 2;
+  me.gy = y + 1;
+  const add = (id) => { const e = itemsMod.makeEntry(id, 1); assert(inventoryMod.stow(me, e), `${id} did not fit the bag`); return e; };
+  const hangings = (tx, edge = "n") => mapMod.peekTile(tx, y)[edge].hangings || null;
+  const sync0 = gameMod.syncParts().map;
+  const small = add("painting_small_oak");
+  assert(P.hang(me, small.uid, x + 1, y, "n") === true && !bag.items.includes(small), `the small painting was not hung from the bag (fit "${P.fitProblem("painting_small_oak", x + 1, y, "n")}", reach "${P.reachFor(me, "painting_small_oak", x + 1, y, "n")}")`);
+  assert(JSON.stringify(hangings(x + 1)) === JSON.stringify([{ item: "painting_small_oak", slot: "top", span: 1 }]), `the segment's record is ${JSON.stringify(hangings(x + 1))}`);
+  assert(gameMod.syncParts().map !== sync0, "a hung painting did not move the sync hash");
+  assert(P.fitProblem("painting_small_deer", x + 1, y, "n") === "Something already hangs there", "a second painting was allowed on a hung segment");
+  const wide = add("painting_wide_lake");
+  assert(P.hang(me, wide.uid, x + 2, y, "n") === true, "the wide painting was not hung");
+  assert(hangings(x + 2)[0].span === 2 && JSON.stringify(hangings(x + 3)) === JSON.stringify([{ cover: [x + 2, y], slot: "top" }]), "a wide painting is not a holder and a cover");
+  assert(P.holderOf(x + 3, y, "n").tx === x + 2, "the cover does not name its holder");
+  // The record and back.
+  const C = mapMod.CHUNK;
+  const rec = JSON.parse(JSON.stringify(mapMod.serializeChunk(mapMod.getChunk(Math.floor(x / C), Math.floor(y / C), false))));
+  assert(JSON.stringify(rec.walls || rec).includes("painting_wide_lake") && JSON.stringify(rec.walls || rec).includes("painting_small_oak"), "the chunk's record does not carry the paintings");
+  mapMod.installChunk(rec);
+  assert(hangings(x + 2) && hangings(x + 2)[0].item === "painting_wide_lake" && hangings(x + 3)[0].cover[0] === x + 2, "the paintings did not come back from the record");
+  // Refusals: a post, a door, a window, the end of the wall, too far, a wall between.
+  mapMod.buildWall(x + 8, y, "w", "wall"); // meets the joint between the segments at x + 7 and x + 8, on the camera's side
+  assert(P.fitProblem("painting_wide_lake", x + 7, y, "n") === "A post is in the way", `a wide painting over a post: "${P.fitProblem("painting_wide_lake", x + 7, y, "n")}"`);
+  assert(P.fitProblem("painting_small_oak", x + 8, y, "n") === "A corner is in the way" && P.fitProblem("painting_small_oak", x + 7, y, "n") === "A corner is in the way", "a painting was allowed at a corner, where the wall meeting the run hides it");
+  assert(P.fitProblem("painting_wide_lake", x + 8, y, "n") === "A corner is in the way" && P.fitProblem("painting_small_oak", x + 6, y, "n") === "", "a corner refusal reached the wrong segments");
+  mapMod.buildWall(x + 6, y, "n", "window");
+  assert(P.fitProblem("painting_small_oak", x + 6, y, "n") === "Nothing to hang it on", "a painting was allowed on a window");
+  assert(P.fitProblem("painting_wide_lake", x + 9, y, "n") === "Too wide for the wall", `at the end of a wall: "${P.fitProblem("painting_wide_lake", x + 9, y, "n")}"`);
+  assert(P.fitProblem("painting_small_oak", x, y + 3, "n") === "No wall to hang it on", "a painting was allowed on no wall");
+  me.gx = x + 2;
+  me.gy = y + 8;
+  assert(P.reachFor(me, "painting_small_oak", x + 4, y, "n") === "Too far", "reach was not refused from afar");
+  me.gx = x + 1;
+  me.gy = y - 1; // the far side of the wall
+  assert(P.reachFor(me, "painting_small_oak", x + 4, y, "n") !== "", "reach was allowed through the wall");
+  const far = add("painting_small_deer");
+  assert(P.hang(me, far.uid, x + 4, y, "n") === false && bag.items.includes(far), "a hang through the wall was not refused, or the item left the bag");
+  // Pick up: from the second segment of the wide one, once.
+  me.gx = x + 3;
+  me.gy = y + 1;
+  const n0 = bag.items.length;
+  assert(P.takeDown(me, x + 3, y, "n") === true && bag.items.some((q) => q.id === "painting_wide_lake") && bag.items.length === n0 + 1, "Pick up from the cover did not give the wide painting back");
+  assert(!hangings(x + 2) && !hangings(x + 3), "the holder or the cover still has its record");
+  assert(P.takeDown(me, x + 2, y, "n") === false && bag.items.length === n0 + 1, "a second pick-up gave a second painting");
+  // A wall taken down drops what hangs on it; a door built over it too.
+  const tall = add("painting_tall_pines");
+  assert(P.hang(me, tall.uid, x + 2, y, "n") === true && hangings(x + 2)[0].slot === "both", "the tall painting was not hung with both slots");
+  mapMod.destroyWall(x + 2, y, "n");
+  assert(mapMod.itemsAt(x + 2, y).some((q) => q.id === "painting_tall_pines"), "the tall painting did not fall to the floor with its wall");
+  assert(mapMod.buildWall(x + 1, y, "n", "door") && !mapMod.peekTile(x + 1, y).n.hangings && mapMod.itemsAt(x + 1, y).some((q) => q.id === "painting_small_oak"), "a door built over a painted wall did not drop the painting");
+  const wide2 = add("painting_wide_sunset");
+  assert(P.hang(me, wide2.uid, x + 3, y, "n") === true, "the wide painting was not hung again");
+  mapMod.destroyWall(x + 4, y, "n"); // the cover's wall: the one painting falls, and its holder is clear
+  assert(mapMod.itemsAt(x + 3, y).filter((q) => q.id === "painting_wide_sunset").length === 1 && !hangings(x + 3), "taking down a wide painting's second wall did not drop it once and clear the holder");
+  return "hung, in the record and the hash, restored; refused on a post, a window, the wall's end, afar, through a wall; taken down from either segment, once; dropped with the wall or a door";
+});
+// The woods as wall types (#334, PR 1): oak (`wall_wood`), spruce, mahogany, Winter Pine, Bloodbark, and daub are each a drawn wall of their own, built from the delivered files with the
+// oak set's anchors, each with its post and its leaves' sheet (daub's are oak's); the valley is built in oak, spruce, mahogany, and daub, mixed, and never in the regions' two woods.
+check("woods: six drawn wall types with their posts and leaves, anchors the oak set's; the valley mixes oak, spruce, mahogany, and daub and has no Winter Pine or Bloodbark", () => {
+  const defs = {};
+  for (const w of ["wall_wood", "wall_spruce", "wall_mahogany", "wall_winterpine", "wall_bloodbark", "wall_daub"]) defs[w] = read(`data/sprites/${w}.json`);
+  const oak = defs.wall_wood;
+  for (const [w, d] of Object.entries(defs)) {
+    assert(d.wall && d.wall.height === 80 && d.wall.material === "wood" && /^#[0-9a-f]{6}$/i.test(d.wall.color), `${w}: not a wood wall block`);
+    assert(JSON.stringify(Object.keys(d.images)) === JSON.stringify(Object.keys(oak.images)), `${w}: its variants are not the oak set's`);
+    assert(JSON.stringify(d.anchors) === JSON.stringify(oak.anchors), `${w}: its anchors are not the oak set's`);
+    for (const f of Object.values(d.images)) assert(fs.existsSync(path.join(root, f)), `${w}: ${f} is missing`);
+    assert(fs.existsSync(path.join(root, `data/sprites/${d.wall.post}.json`)) && fs.existsSync(path.join(root, `data/sprites/${d.wall.parts}.json`)), `${w}: its post or its leaves' sheet is missing`);
+    if (w === "wall_daub") assert(d.wall.parts === "wall_parts_wood", "daub's leaves are not oak's");
+    else assert(d.wall.parts === (w === "wall_wood" ? "wall_parts_wood" : `wall_parts_${w.slice(5)}`), `${w}: its leaves are another wood's`);
+  }
+  const partsOak = read("data/sprites/wall_parts_wood.json");
+  for (const w of ["spruce", "mahogany", "winterpine", "bloodbark"]) {
+    const p = read(`data/sprites/wall_parts_${w}.json`);
+    assert(JSON.stringify(Object.keys(p.images)) === JSON.stringify(Object.keys(partsOak.images)) && JSON.stringify(p.anchors) === JSON.stringify(partsOak.anchors), `wall_parts_${w}: not the oak leaves' names and anchors`);
+    assert(Object.values(p.images).every((f) => f.includes(`_${w}_`) && fs.existsSync(path.join(root, f))), `wall_parts_${w}: a leaf is missing or another wood's`);
+  }
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const j = read("data/maps/valley.json");
+  const [bx, by, bw, bh] = j.bounds;
+  const C = mapMod.CHUNK;
+  for (let cy = Math.floor(by / C); cy <= Math.floor((by + bh) / C); cy++) for (let cx = Math.floor(bx / C); cx <= Math.floor((bx + bw) / C); cx++) mapMod.getChunk(cx, cy, true);
+  const seen = {};
+  for (let y = by; y < by + bh; y++) for (let x = bx; x < bx + bw; x++) for (const e of ["n", "w"]) { const w = mapMod.tileAt(x, y)[e]; if (w) seen[w.sprite] = (seen[w.sprite] || 0) + 1; }
+  for (const w of ["wall_wood", "wall_spruce", "wall_mahogany", "wall_daub"]) assert(seen[w] > 20, `the valley has ${seen[w] || 0} ${w} segments`);
+  assert(!seen.wall_winterpine && !seen.wall_bloodbark, "the valley holds a region's wood");
+  return Object.entries(seen).map(([k, v]) => `${k.slice(5)} ${v}`).join(", ");
+});
+// A door or a window in another wood than its wall (#334, PR 2): the leaf is the wood's wall sprite, stored only when it differs from the wall's own (a daub wall's own is oak's), carried in the chunk's
+// record and the sync hash, restored; the regions' two woods only while Free building is on; refused in a log or stone wall and for an unknown wood; a guest's `build` command meets the same rules.
+check("woods: a door or a window of another wood than its wall: the leaf rules, the record and the hash, restore, and a guest's build command", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  const W = woodsImport;
+  const placementMod = placementImport;
+  assert(JSON.stringify(W.leafChoices(false)) === JSON.stringify(["wall_wood", "wall_spruce", "wall_mahogany"]) && JSON.stringify(W.leafChoices(true)) === JSON.stringify(["wall_wood", "wall_spruce", "wall_mahogany", "wall_winterpine", "wall_bloodbark"]), "the leaf woods are not oak, spruce, mahogany, and then the regions' two");
+  assert(W.ownLeaf("wall_daub") === "wall_wood" && W.ownLeaf("wall_spruce") === "wall_spruce" && W.ownLeaf("wall_log") === null && W.ownLeaf("wall_stone") === null, "a wall's own leaf wood is wrong (daub's are oak's, a log wall has none)");
+  assert(W.leafProblem("wall_log", "wall_spruce", true) !== "" && W.leafProblem("wall_mahogany", "wall_daub", true) !== "" && W.leafProblem("wall_mahogany", "wall_nothing", true) !== "" && W.leafProblem("wall_mahogany", "wall_winterpine", false) !== "" && W.leafProblem("wall_mahogany", "wall_winterpine", true) === "" && W.leafProblem("wall_log", "", false) === "", "a leaf rule is wrong");
+  assert(W.storedLeaf("wall_mahogany", "wall_mahogany", true) === null && W.storedLeaf("wall_daub", "wall_wood", true) === null && W.storedLeaf("wall_daub", "wall_spruce", true) === "wall_spruce", "a leaf that is the wall's own is stored");
+  mapMod.ensureAround(me.gx, me.gy, 3);
+  let at = null;
+  for (let dy = -14; dy <= 14 && !at; dy++) for (let dx = -14; dx <= 14 && !at; dx++) {
+    const x = Math.round(me.gx) + dx;
+    const y = Math.round(me.gy) + dy;
+    let ok = true;
+    for (let ay = -2; ay < 4 && ok; ay++) for (let ax = -1; ax < 8 && ok; ax++) { const t = mapMod.peekTile(x + ax, y + ay); ok = !!t && t.floor === "floor_grass" && !t.prop && !t.rug && !t.n && !t.w && mapMod.isWalkableTile(x + ax, y + ay); }
+    if (ok) at = [x, y];
+  }
+  assert(at, "no bare grass");
+  const [x, y] = at;
+  mapMod.buildWall(x, y, "n", "wall", "wall_mahogany");
+  mapMod.buildWall(x + 1, y, "n", "wall", "wall_daub");
+  mapMod.buildWall(x + 2, y, "n", "wall", "wall_log");
+  mapMod.buildWall(x + 3, y, "n", "wall", "wall_mahogany");
+  mapMod.buildWall(x + 4, y, "n", "wall", "wall_mahogany");
+  me.gx = x + 2;
+  me.gy = y + 1.6;
+  const free0 = rulesImport.rules.freeBuilding;
+  const doorAt = (tx, edge = "n") => mapMod.peekTile(tx, y)[edge];
+  const build = (what, tx, leaf) => { me.gx = tx; me.gy = y + 1.2; return placementMod.performPlacement(me, { kind: "build", what, tx, ty: y, edge: "n", ...(leaf ? { leaf } : {}) }); };
+  try {
+    rulesImport.rules.freeBuilding = true;
+    const before = gameMod.syncParts().map;
+    build("door", x, "wall_winterpine");
+    const d = doorAt(x);
+    assert(d.kind === "door" && d.sprite === "wall_mahogany" && d.leaf === "wall_winterpine", `the door is ${JSON.stringify(d && { k: d.kind, s: d.sprite, l: d.leaf })}`);
+    assert(gameMod.syncParts().map !== before, "a door of another wood did not move the sync hash");
+    build("window", x + 1, "wall_spruce");
+    build("door", x + 3, "wall_mahogany");
+    build("door", x + 4);
+    assert(doorAt(x + 1).kind === "window" && doorAt(x + 1).leaf === "wall_spruce", "a spruce window in a daub wall was not built");
+    assert(doorAt(x + 3).kind === "door" && !("leaf" in doorAt(x + 3)), "a door of the wall's own wood stored a leaf");
+    assert(doorAt(x + 4).kind === "door" && !("leaf" in doorAt(x + 4)), "a door with no choice stored a leaf");
+    // The record and back.
+    const C = mapMod.CHUNK;
+    const rec = JSON.parse(JSON.stringify(mapMod.serializeChunk(mapMod.getChunk(Math.floor(x / C), Math.floor(y / C), false))));
+    assert(rec.walls.some((w) => w[3] && w[3].leaf === "wall_winterpine") && rec.walls.some((w) => w[3] && w[3].leaf === "wall_spruce"), "the chunk's record does not carry the leaf");
+    mapMod.installChunk(rec);
+    assert(doorAt(x).leaf === "wall_winterpine" && doorAt(x + 1).leaf === "wall_spruce", "the leaf did not come back from the record");
+    // Over a broken door the default leaf is the old one's wood (a new door, never a repair); a region's wood is refused for it with Free building off as for a chosen one.
+    const brokeOld = doorAt(x);
+    brokeOld.broken = true; brokeOld.open = true; brokeOld.hp = 0;
+    mapMod.touch(x, y);
+    build("door", x);
+    assert(doorAt(x) !== brokeOld && !doorAt(x).broken && doorAt(x).leaf === "wall_winterpine", "a door built over a broken Winter Pine one did not default to its wood, or was a repair");
+    rulesImport.rules.freeBuilding = false;
+    const brokeAgain = doorAt(x);
+    brokeAgain.broken = true; brokeAgain.hp = 0;
+    build("door", x);
+    assert(doorAt(x) === brokeAgain, "a Winter Pine door was rebuilt by default with Free building off");
+    brokeAgain.broken = false; brokeAgain.hp = 100;
+    assert(W.leafProblem("wall_log", "wall_spruce", true, "window") === "Only a wood wall takes a spruce window · R to change", `the refusal reads "${W.leafProblem("wall_log", "wall_spruce", true, "window")}"`);
+    rulesImport.rules.freeBuilding = true;
+    // Refusals, with Free building off: a region's wood, a log wall, an unknown wood, a fence's gate.
+    rulesImport.rules.freeBuilding = false;
+    const refused = (tx, what, leaf) => {
+      const had = doorAt(tx) ? doorAt(tx).kind + doorAt(tx).sprite : "";
+      build(what, tx, leaf);
+      return (doorAt(tx) ? doorAt(tx).kind + doorAt(tx).sprite : "") === had;
+    };
+    mapMod.destroyWall(x + 4, y, "n");
+    mapMod.buildWall(x + 4, y, "n", "wall", "wall_mahogany");
+    assert(refused(x + 4, "door", "wall_winterpine"), "a Winter Pine door was built with Free building off");
+    assert(refused(x + 4, "door", "wall_nothing"), "a door of an unknown wood was built");
+    assert(refused(x + 2, "door", "wall_spruce"), "a spruce door was built in a log wall");
+    assert(refused(x + 6, "wall_winterpine", ""), "a Winter Pine wall was built with Free building off");
+    assert(placementMod.paletteKinds().every((k) => !k.region) && placementMod.buildKinds().some((k) => k.region), "the palette offers a region's wood with Free building off");
+    rulesImport.rules.freeBuilding = true;
+    assert(placementMod.paletteKinds().some((k) => k.id === "wall_bloodbark"), "the palette hides a region's wood with Free building on");
+    build("wall_bloodbark", x + 6);
+    assert(doorAt(x + 6) && doorAt(x + 6).kind === "wall" && doorAt(x + 6).sprite === "wall_bloodbark", "a Bloodbark wall was not built with Free building on");
+  } finally {
+    rulesImport.rules.freeBuilding = free0;
+  }
+  return "leaf rules; a Winter Pine door in a mahogany wall and a spruce window in a daub one, in the record and the hash and restored; the wall's own wood stores nothing; refusals";
+});
+// Small text (#321): text at or under the threshold (ui/small-text.js, 15 UI px) is set in the clear sans-serif (`--font-small`), so a new small rule cannot slip in pixel-only.
+// `scanSmallText` reads style.css for every rule whose size is at or under the threshold, in any form the stylesheet could write it: `font-size` in px or rem (a rem is 16 px), a
+// percentage or an em or `smaller` (relative to the parent), the keywords (xx-small 9 px, x-small 10, small 13), and the `font:` shorthand with a style, variant, or weight before the
+// size (`font: bold 12px ...`); and it reads every script under src/ for text sized from script: `style.fontSize`, an inline `font-size:`, `font:`, and `ctx.font` or `.font =` anywhere,
+// each LINE needing the small font within two lines of it (a file that names --font-small once does not excuse a second size). Monospace (the debug corner, codes) and the Pirata One
+// titles are left as they are; a rule above the threshold names its own pixel font so it does not inherit a small container's.
+// Its limit: a relative size (an em, a percent, `smaller`) under 1 counts as small whatever its parent is (a 0.9em inside a 20 px heading is 18 px and would be asked for the
+// small font anyway); the page's computed fonts are what `check("smalltext")` reads, in the pane. The stylesheet is checked as text, not computed.
+const KEYWORD_PX = { "xx-small": 9, "x-small": 10, small: 13, medium: 16, large: 18, "x-large": 24, "xx-large": 32 };
+const SIZE_WORD = "(?:[\\d.]+(?:px|rem|em|%)|xx-small|x-small|small|medium|large|x-large|xx-large|smaller|larger)";
+function sizeOf(value, max) {
+  // "small", "big" (an absolute size over the threshold, which must name its own face), "bigRel" (a relative or fluid size over it), or null (not a size).
+  const v = value.trim().toLowerCase();
+  const m = v.match(/^([\d.]+)(px|rem|em|%)/);
+  if (m) {
+    const n = Number(m[1]);
+    if (m[2] === "px") return n <= max ? "small" : "big";
+    if (m[2] === "rem") return n * 16 <= max ? "small" : "big";
+    return (m[2] === "%" ? n / 100 : n) < 1 ? "small" : "bigRel"; // relative to the parent: a big one inherits the parent's face, which is the parent's to name
+  }
+  if (v.startsWith("clamp(")) return "bigRel";
+  if (v === "smaller") return "small";
+  if (v === "larger") return "bigRel";
+  if (v in KEYWORD_PX) return KEYWORD_PX[v] <= max ? "small" : "big";
+  return null;
+}
+function scanSmallText(cssText, files, max) {
+  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
+  const bad = [];
+  const bigNoFace = [];
+  let small = 0;
+  const shorthand = new RegExp("(?:^|[;\\s])font\\s*:\\s*(?:(?:italic|oblique|normal|bold|bolder|lighter|small-caps|\\d{3})\\s+)*(" + SIZE_WORD + ")(?![\\w-])");
+  for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const sel = m[1].trim().replace(/\s+/g, " ");
+    const body = m[2];
+    if (/monospace|Pirata/.test(body)) continue;
+    const decl = body.match(/(?:^|[;\s])font-size\s*:\s*([^;}]+)/);
+    const sh = body.match(shorthand);
+    const kind = decl ? sizeOf(decl[1], max) : sh ? sizeOf(sh[1], max) : null;
+    if (kind === "small") {
+      small++;
+      if (!body.includes("var(--font-small)")) bad.push(sel);
+    } else if (kind === "big" && !/font-family/.test(body) && !(sh && !decl)) {
+      bigNoFace.push(sel); // a big size with no family of its own (a shorthand carries its family)
+    }
+  }
+  // Scripts: each sizing line needs the small font on it or within two lines of it; a monospace family is exempt.
+  const badJs = [];
+  const SIZING = /\.style\.fontSize\s*=|font-size\s*:\s*[\d.$]|\bfont\s*[:=]\s*[`"']?\s*(?:(?:italic|bold|normal|\d{3})\s+)*\$?\{?\d|\.font\s*=/;
+  const OK = /font-small|SMALL_FONT_VAR|smallFamily|monospace|Consolas/;
+  for (const [name, text] of files) {
+    const lines = text.split("\n");
+    lines.forEach((line, i) => {
+      if (!SIZING.test(line)) return;
+      const near = lines.slice(Math.max(0, i - 2), i + 3).join("\n");
+      if (!OK.test(near)) badJs.push(`${name}:${i + 1}`);
+    });
+  }
+  return { small, bad, bigNoFace, badJs };
+}
+const walkJs = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walkJs(path.join(dir, e.name)) : e.name.endsWith(".js") && e.name !== "small-text.js" ? [path.join(dir, e.name)] : []));
+check("small text: every size at or under the threshold is set in --font-small, in the stylesheet and in the scripts; the scan itself catches each form", () => {
+  const { SMALL_TEXT_MAX_PX: MAX } = smallTextMod;
+  const css = fs.readFileSync(path.join(root, "style.css"), "utf8");
+  assert(/--font-small:\s*system-ui/.test(css), ":root has no --font-small");
+  // Pixel puts small text back in the interface's font, and (since every digit took the clear face, 2026-10-20) the interface's and the
+  // titles' digits back in the pixel font: the old look exactly.
+  const pixel = (css.match(/:root\.small-pixel\s*\{([^}]*)\}/) || [])[1] || "";
+  assert(/--font-small:\s*var\(--font-ui\)/.test(pixel) && /--font-ui:\s*var\(--font-pixel\)/.test(pixel), "the Pixel setting's override is missing");
+  assert(/font-family:\s*"CMZ Digits"[\s\S]*?unicode-range:\s*U\+0030-0039/.test(css) && /--font-ui:\s*"CMZ Digits"/.test(css), "every digit is not in the clear face (CMZ Digits first in --font-ui)");
+  const files = walkJs(path.join(root, "src")).map((f) => [path.relative(root, f).replace(/\\/g, "/"), fs.readFileSync(f, "utf8")]);
+  const real = scanSmallText(css, files, MAX);
+  assert(real.bad.length === 0, `${real.bad.length} small rules are not in --font-small: ${real.bad.slice(0, 6).join(" | ")}`);
+  assert(real.bigNoFace.length === 0, `${real.bigNoFace.length} rules above the threshold name no font-family (they would inherit a small container's): ${real.bigNoFace.slice(0, 6).join(" | ")}`);
+  assert(real.badJs.length === 0, `text sized from script without the small font: ${real.badJs.join(", ")}`);
+  // The scan catches each form: a planted bad rule or line for every one, and a clean one for each that must pass.
+  const planted = (c, f = []) => scanSmallText(c, f, MAX);
+  const mustCatch = {
+    "a px size": [".x { font-size: 12px; }", "bad"],
+    "the shorthand": [".x { font: 12px \"Pixelify Sans\", sans-serif; }", "bad"],
+    "the shorthand with a weight": [".x { font: bold 12px \"Pixelify Sans\", sans-serif; }", "bad"],
+    "the shorthand with a style and a weight": [".x { font: italic 700 12px serif; }", "bad"],
+    "a rem size": [".x { font-size: 0.8rem; }", "bad"],
+    "a percentage": [".x { font-size: 80%; }", "bad"],
+    "an em under 1": [".x { font-size: 0.9em; }", "bad"],
+    "smaller": [".x { font-size: smaller; }", "bad"],
+    "a keyword": [".x { font-size: small; }", "bad"],
+    "a big px rule with no family": [".x { font-size: 18px; }", "bigNoFace"],
+    "a big rem rule with no family": [".x { font-size: 1.5rem; }", "bigNoFace"],
+  };
+  for (const [what, [rule, list]] of Object.entries(mustCatch)) assert(planted(rule)[list].length === 1, `the scan missed ${what}: ${rule}`);
+  const mustPass = [".x { font-size: 12px; font-family: var(--font-small); }", ".x { font: bold 12px var(--font-small); }", ".x { font-size: 12px; font-family: monospace; }", ".x { font-size: 18px; font-family: var(--font-ui); }", ".x { font: 18px var(--font-ui); }", ".x { font-size: 18px; font-family: var(--font-ui); } /* a comment { font-size: 9px; } */", ".x { font-size: 1.3em; }"];
+  for (const rule of mustPass) {
+    const r = planted(rule);
+    assert(r.bad.length === 0 && r.bigNoFace.length === 0, `the scan flagged a clean rule: ${rule}`);
+  }
+  const jsBad = {
+    "a second style.fontSize in a file that already names --font-small": [["a.js", "const f = 'var(--font-small)';\n" + "x;\n".repeat(8) + "el.style.fontSize = `${n}px`;\n"]],
+    "ctx.font in a file outside src/ui": [["src/map.js", "ctx.font = \"11px sans-serif\";\n"]],
+    "an inline font-size in a template": [["b.js", "el.innerHTML = `<b style=\"font-size:12px\">x</b>`;\n"]],
+    "a font shorthand assignment": [["c.js", "ctx.font = `bold 12px ${family}`;\n"]],
+  };
+  for (const [what, f] of Object.entries(jsBad)) assert(planted("", f).badJs.length >= 1, `the scan missed ${what}`);
+  const jsGood = [["d.js", "el.style.fontSize = `${n}px`;\nel.style.fontFamily = SMALL_FONT_VAR;\n"], ["e.js", "ctx.font = `11px ${smallFamily()}`;\n"], ["f.js", "ctx.font = \"bold 9px Consolas, monospace\";\n"]];
+  assert(planted("", jsGood).badJs.length === 0, "the scan flagged a clean script line");
+  return `${real.small} small rules in style.css, every one in --font-small; ${files.length} scripts scanned line by line; ${Object.keys(mustCatch).length + Object.keys(jsBad).length} planted bad forms all caught (threshold ${MAX} UI px)`;
+});
+// The hover card (#262): every item's card says its own full name and a kind, no two read alike though six are drawn "Seed", food says what eating heals and fills,
+// and the word Use is its own segment. (The card on the page, its place and its look, is `check("hovercard")`'s, in the pane.)
+check("hover card: every item's card has its own full name, a kind, and what it does, read from the data", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const defs = itemsMod.allItems();
+  const names = new Map();
+  let food = 0;
+  for (const d of defs) {
+    const c = itemInfoMod.cardFor(itemsMod.makeEntry(d.id));
+    assert(c.name === d.name && c.kind, `${d.id}: the card said ${JSON.stringify(c.name)} / ${JSON.stringify(c.kind)}`);
+    names.set(c.name, (names.get(c.name) || 0) + 1);
+    if (d.kind === "food") {
+      food++;
+      assert(c.lines.some((l) => l[0].t === "Eat" && l.map((s) => s.t).join("").startsWith("Eat: heals")), `${d.id}: no Eat line`);
+    }
+    for (const s of c.lines.flat()) assert(s.k !== "use" || s.t === "Use", `${d.id}: the word Use was written ${s.t}`);
+  }
+  const dup = [...names].filter(([, n]) => n > 1).map(([k]) => k);
+  assert(dup.length === 0, `two items share a card name: ${dup.join(", ")}`);
+  const tb = itemInfoMod.cardFor(itemsMod.makeEntry("tinderbox"));
+  assert(tb.lines.flat().some((s) => s.k === "use" && s.t === "Use"), "the tinderbox's card has no Use");
+  return `${defs.length} items, ${food} foods, every name its own`;
+});
+// Floating numbers over heads (#294): the world records a hit, a heal, and a gather where they happen, regeneration records nothing, a guest records none of its own, and the
+// frame's small arrays are what a guest draws. (The drawing, the colours, and the setting are `check("floaters")`'s, in the pane.)
+check("floaters: a hit, a heal, and a gather are recorded where they happen; regeneration is not; a guest records none; the frame's arrays round-trip", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  floatersMod.reset();
+  const { damagePlayer, eat } = playerMod;
+  damagePlayer(me, 7);
+  me.hp = me.maxHp - 30;
+  const hp1 = me.hp;
+  eat(me, { hunger: 10, heal: 4 });
+  verbsMod.run("nothing", null, me, {}); // a verb that does not exist makes nothing
+  floatersMod.verbDone("mine", me, { ok: true, mined: 2 });
+  floatersMod.verbDone("fish", me, { ok: true, caught: "trout" }); // a fish caught counts one
+  floatersMod.verbDone("fish", me, { ok: true, caught: null }); // nothing bit: nothing floats
+  floatersMod.verbDone("sleep", me, { ok: true }); // not a gather
+  const wire = floatersMod.takeForFrame();
+  assert(JSON.stringify(wire) === JSON.stringify([[0, me.id, 7], [1, me.id, Math.round(me.hp - hp1)], [2, me.id, 2, "mining"], [2, me.id, 1, "fishing"]]), `the frame's arrays were ${JSON.stringify(wire)}`);
+  assert(floatersMod.takeForFrame().length === 0, "a second take was not empty");
+  me.hp = me.maxHp - 20;
+  for (let i = 0; i < 600; i++) gameMod.step(1 / 60);
+  assert(floatersMod.takeForFrame().length === 0, "natural regeneration made a number");
+  // A guest records none of its own, and draws what it is sent.
+  floatersMod.takeForDraw(); // (the host's own, drawn already)
+  floatersMod.setGuestCheck(() => true);
+  floatersMod.damage(me, 5);
+  assert(floatersMod.takeForFrame().length === 0, "a guest recorded its own number");
+  floatersMod.receive(JSON.parse(JSON.stringify(wire)).concat([["x"], [9, me.id, 3], [0, me.id, 0], [2, me.id, 3, "<b>"], [2, me.id, 3]])); // the last five are nonsense (a skill that is not one of the fourteen, or none): ignored
+  const drawn = floatersMod.takeForDraw();
+  floatersMod.setGuestCheck(() => false);
+  const want = wire.map((e) => `${e[0] === 0 ? "-" : "+"}${e[2]}`).join(" ");
+  assert(drawn.length === 4 && drawn.map((e) => floatersMod.textOf(e)).join(" ") === want, `a guest drew ${drawn.map((e) => floatersMod.textOf(e)).join(" ")}, the frame said ${want}`);
+  floatersMod.reset();
+  return `${wire.length} events in the frame; regeneration none; a guest draws what it is sent`;
 });
 // The chart's frame carries only the changed cells (#237): what a host takes after a reveal, applied to an empty replica, makes the same chart; and a second take is empty.
 check("chart: the changed cells a frame carries rebuild the chart on an empty replica", () => {

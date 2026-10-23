@@ -1,0 +1,506 @@
+{
+ "painting_small_oak_north": {
+  "size": [
+   29,
+   42
+  ],
+  "anchor_px": [
+   6,
+   69
+  ],
+  "grip_px": [
+   14,
+   21
+  ],
+  "sections": 1,
+  "slot": "top",
+  "face_px": [
+   26,
+   28
+  ],
+  "hang": {
+   "along_from_far_vertex": 3,
+   "bottom_z": 46,
+   "proud_of_edge_line": 8.5
+  },
+  "frame": "wood"
+ },
+ "painting_small_oak_west": {
+  "size": [
+   28,
+   42
+  ],
+  "anchor_px": [
+   22,
+   69
+  ],
+  "grip_px": [
+   14,
+   21
+  ],
+  "sections": 1,
+  "slot": "top",
+  "face_px": [
+   26,
+   28
+  ],
+  "hang": {
+   "along_from_far_vertex": 3,
+   "bottom_z": 46,
+   "proud_of_edge_line": 8.5
+  },
+  "frame": "wood"
+ },
+ "painting_small_oak_icon": {
+  "slot_cols_rows": [
+   2,
+   2
+  ],
+  "size": [
+   38,
+   38
+  ],
+  "drawn_from": "the same picture flat and framed, outlined #2b2522 as an item"
+ },
+ "painting_small_deer_north": {
+  "size": [
+   29,
+   42
+  ],
+  "anchor_px": [
+   6,
+   69
+  ],
+  "grip_px": [
+   14,
+   21
+  ],
+  "sections": 1,
+  "slot": "top",
+  "face_px": [
+   26,
+   28
+  ],
+  "hang": {
+   "along_from_far_vertex": 3,
+   "bottom_z": 46,
+   "proud_of_edge_line": 8.5
+  },
+  "frame": "wood"
+ },
+ "painting_small_deer_west": {
+  "size": [
+   28,
+   42
+  ],
+  "anchor_px": [
+   22,
+   69
+  ],
+  "grip_px": [
+   14,
+   21
+  ],
+  "sections": 1,
+  "slot": "top",
+  "face_px": [
+   26,
+   28
+  ],
+  "hang": {
+   "along_from_far_vertex": 3,
+   "bottom_z": 46,
+   "proud_of_edge_line": 8.5
+  },
+  "frame": "wood"
+ },
+ "painting_small_deer_icon": {
+  "slot_cols_rows": [
+   2,
+   2
+  ],
+  "size": [
+   38,
+   38
+  ],
+  "drawn_from": "the same picture flat and framed, outlined #2b2522 as an item"
+ },
+ "painting_small_peak_north": {
+  "size": [
+   29,
+   42
+  ],
+  "anchor_px": [
+   6,
+   69
+  ],
+  "grip_px": [
+   14,
+   21
+  ],
+  "sections": 1,
+  "slot": "top",
+  "face_px": [
+   26,
+   28
+  ],
+  "hang": {
+   "along_from_far_vertex": 3,
+   "bottom_z": 46,
+   "proud_of_edge_line": 8.5
+  },
+  "frame": "wood"
+ },
+ "painting_small_peak_west": {
+  "size": [
+   28,
+   42
+  ],
+  "anchor_px": [
+   22,
+   69
+  ],
+  "grip_px": [
+   14,
+   21
+  ],
+  "sections": 1,
+  "slot": "top",
+  "face_px": [
+   26,
+   28
+  ],
+  "hang": {
+   "along_from_far_vertex": 3,
+   "bottom_z": 46,
+   "proud_of_edge_line": 8.5
+  },
+  "frame": "wood"
+ },
+ "painting_small_peak_icon": {
+  "slot_cols_rows": [
+   2,
+   2
+  ],
+  "size": [
+   38,
+   38
+  ],
+  "drawn_from": "the same picture flat and framed, outlined #2b2522 as an item"
+ },
+ "painting_tall_waterfall_north": {
+  "size": [
+   29,
+   70
+  ],
+  "anchor_px": [
+   6,
+   65
+  ],
+  "grip_px": [
+   14,
+   35
+  ],
+  "sections": 1,
+  "slot": "both",
+  "face_px": [
+   26,
+   56
+  ],
+  "hang": {
+   "along_from_far_vertex": 3,
+   "bottom_z": 14,
+   "proud_of_edge_line": 8.5
+  },
+  "frame": "wood"
+ },
+ "painting_tall_waterfall_west": {
+  "size": [
+   28,
+   70
+  ],
+  "anchor_px": [
+   22,
+   65
+  ],
+  "grip_px": [
+   14,
+   35
+  ],
+  "sections": 1,
+  "slot": "both",
+  "face_px": [
+   26,
+   56
+  ],
+  "hang": {
+   "along_from_far_vertex": 3,
+   "bottom_z": 14,
+   "proud_of_edge_line": 8.5
+  },
+  "frame": "wood"
+ },
+ "painting_tall_waterfall_icon": {
+  "slot_cols_rows": [
+   2,
+   3
+  ],
+  "size": [
+   38,
+   57
+  ],
+  "drawn_from": "the same picture flat and framed, outlined #2b2522 as an item"
+ },
+ "painting_tall_pines_north": {
+  "size": [
+   29,
+   70
+  ],
+  "anchor_px": [
+   6,
+   65
+  ],
+  "grip_px": [
+   14,
+   35
+  ],
+  "sections": 1,
+  "slot": "both",
+  "face_px": [
+   26,
+   56
+  ],
+  "hang": {
+   "along_from_far_vertex": 3,
+   "bottom_z": 14,
+   "proud_of_edge_line": 8.5
+  },
+  "frame": "wood"
+ },
+ "painting_tall_pines_west": {
+  "size": [
+   28,
+   70
+  ],
+  "anchor_px": [
+   22,
+   65
+  ],
+  "grip_px": [
+   14,
+   35
+  ],
+  "sections": 1,
+  "slot": "both",
+  "face_px": [
+   26,
+   56
+  ],
+  "hang": {
+   "along_from_far_vertex": 3,
+   "bottom_z": 14,
+   "proud_of_edge_line": 8.5
+  },
+  "frame": "wood"
+ },
+ "painting_tall_pines_icon": {
+  "slot_cols_rows": [
+   2,
+   3
+  ],
+  "size": [
+   38,
+   57
+  ],
+  "drawn_from": "the same picture flat and framed, outlined #2b2522 as an item"
+ },
+ "painting_wide_castle_north": {
+  "size": [
+   58,
+   57
+  ],
+  "anchor_px": [
+   6,
+   69
+  ],
+  "grip_px": [
+   29,
+   28
+  ],
+  "sections": 2,
+  "slot": "top",
+  "face_px": [
+   55,
+   28
+  ],
+  "hang": {
+   "along_from_far_vertex": 3,
+   "bottom_z": 46,
+   "proud_of_edge_line": 8.5
+  },
+  "frame": "gilt"
+ },
+ "painting_wide_castle_west": {
+  "size": [
+   57,
+   57
+  ],
+  "anchor_px": [
+   51,
+   69
+  ],
+  "grip_px": [
+   28,
+   28
+  ],
+  "sections": 2,
+  "slot": "top",
+  "face_px": [
+   55,
+   28
+  ],
+  "hang": {
+   "along_from_far_vertex": 3,
+   "bottom_z": 46,
+   "proud_of_edge_line": 8.5
+  },
+  "frame": "gilt"
+ },
+ "painting_wide_castle_icon": {
+  "slot_cols_rows": [
+   3,
+   2
+  ],
+  "size": [
+   57,
+   38
+  ],
+  "drawn_from": "the same picture flat and framed, outlined #2b2522 as an item"
+ },
+ "painting_wide_lake_north": {
+  "size": [
+   58,
+   57
+  ],
+  "anchor_px": [
+   6,
+   69
+  ],
+  "grip_px": [
+   29,
+   28
+  ],
+  "sections": 2,
+  "slot": "top",
+  "face_px": [
+   55,
+   28
+  ],
+  "hang": {
+   "along_from_far_vertex": 3,
+   "bottom_z": 46,
+   "proud_of_edge_line": 8.5
+  },
+  "frame": "wood"
+ },
+ "painting_wide_lake_west": {
+  "size": [
+   57,
+   57
+  ],
+  "anchor_px": [
+   51,
+   69
+  ],
+  "grip_px": [
+   28,
+   28
+  ],
+  "sections": 2,
+  "slot": "top",
+  "face_px": [
+   55,
+   28
+  ],
+  "hang": {
+   "along_from_far_vertex": 3,
+   "bottom_z": 46,
+   "proud_of_edge_line": 8.5
+  },
+  "frame": "wood"
+ },
+ "painting_wide_lake_icon": {
+  "slot_cols_rows": [
+   3,
+   2
+  ],
+  "size": [
+   57,
+   38
+  ],
+  "drawn_from": "the same picture flat and framed, outlined #2b2522 as an item"
+ },
+ "painting_wide_sunset_north": {
+  "size": [
+   58,
+   57
+  ],
+  "anchor_px": [
+   6,
+   69
+  ],
+  "grip_px": [
+   29,
+   28
+  ],
+  "sections": 2,
+  "slot": "top",
+  "face_px": [
+   55,
+   28
+  ],
+  "hang": {
+   "along_from_far_vertex": 3,
+   "bottom_z": 46,
+   "proud_of_edge_line": 8.5
+  },
+  "frame": "wood"
+ },
+ "painting_wide_sunset_west": {
+  "size": [
+   57,
+   57
+  ],
+  "anchor_px": [
+   51,
+   69
+  ],
+  "grip_px": [
+   28,
+   28
+  ],
+  "sections": 2,
+  "slot": "top",
+  "face_px": [
+   55,
+   28
+  ],
+  "hang": {
+   "along_from_far_vertex": 3,
+   "bottom_z": 46,
+   "proud_of_edge_line": 8.5
+  },
+  "frame": "wood"
+ },
+ "painting_wide_sunset_icon": {
+  "slot_cols_rows": [
+   3,
+   2
+  ],
+  "size": [
+   57,
+   38
+  ],
+  "drawn_from": "the same picture flat and framed, outlined #2b2522 as an item"
+ }
+}

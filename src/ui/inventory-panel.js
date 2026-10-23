@@ -15,6 +15,8 @@ import * as menu from "./context-menu.js";
 import * as view from "../view.js";
 import * as settings from "../settings.js";
 import * as use from "../use.js";
+import * as hoverCard from "./hover-card.js"; // the card over an item (#262)
+import { cardFor, cardForSlot } from "../item-info.js";
 import { parseSlot, HIDEABLE } from "../inventory.js";
 
 let CELL = view.BASE_CELL; // the bag's cell in UI pixels, read from the view at every render
@@ -88,8 +90,12 @@ export function initInventoryPanel(h) {
       }
       if (hit.bag) quickMove(hit);
     });
+    // The hover card: over an item, its card; over an empty slot, the slot's name; over anything else, none (#262).
+    el.addEventListener("pointermove", onCardMove);
+    el.addEventListener("pointerleave", () => { cardPointer = null; hoverCard.hide(); });
     el.addEventListener("contextmenu", (e) => {
       e.preventDefault();
+      hoverCard.hide();
       if (drag?.started || e.target.closest("[data-eye]")) return;
       const hit = entryFromEvent(e);
       if (hit) openItemMenu(hit, e);
@@ -102,6 +108,12 @@ export function initInventoryPanel(h) {
       if (close.dataset.close === "bag") setBagOpen(false);
       else if (close.dataset.close === "container") containerClosed = true;
       else setCharacterOpen(false);
+      return;
+    }
+    if (e.target.closest("button[data-takeall]")) {
+      if (bags.container) handlers.takeAll?.(bags.container);
+      handlers.changed?.();
+      lastSignature = "";
       return;
     }
     const eye = e.target.closest("button[data-eye]");
@@ -212,10 +224,16 @@ function capitalize(s) {
 // A picture for a slot (docs/26): the item's portrait, a square drawn for the
 // character screen; failing that its bag icon if that is square; else none,
 // and the slot shows the coloured block with the label as the bag does.
-function portraitOf(def) {
+function portraitOf(def, entry = null) {
+  if (entry && entry.lit && def.portrait_lit) return def.portrait_lit; // a lit torch shows its flame (#331)
   if (def.portrait) return def.portrait;
   if (def.icon && def.icon.size[0] === def.icon.size[1]) return def.icon;
   return null;
+}
+
+// The bag's picture: a lit torch's has its flame drawn on (`icon_lit`, #331), the torch on the same pixels.
+function iconOf(def, entry) {
+  return entry && entry.lit && def.icon_lit ? def.icon_lit : def.icon;
 }
 
 // An item as a block: in a bag (`w` by `h` cells of `cell` pixels) or, with
@@ -232,7 +250,7 @@ function blockHtml(entry, attrs, cell = CELL, w = 1, h = 1, extraCls = "", slot 
     const pct = Math.max(0, Math.min(100, (entry.fill / cap) * 100));
     inner += `<div class="inv-level" style="${h >= w ? `height:${pct}%;width:100%` : `width:${pct}%;height:100%`}"></div>`;
   }
-  const pic = slot ? portraitOf(def) : def.icon;
+  const pic = slot ? portraitOf(def, entry) : iconOf(def, entry);
   if (pic) {
     // An item with drawn art shows the picture, upright, centred in its footprint, enlarged by a whole
     // number (nearest-pixel), and keeps the slot dark behind it; the same art as in the hand (docs/24).
@@ -249,8 +267,7 @@ function blockHtml(entry, attrs, cell = CELL, w = 1, h = 1, extraCls = "", slot 
   if (entry.count > 1) inner += `<span class="inv-stack">${entry.count}</span>`;
   // Durability (docs/30, 5.2): a thin bar once worn, red under a fifth left.
   if (entry.wear > 0) inner += `<div class="inv-wear${entry.wear > 0.8 ? " low" : ""}"><div style="width:${Math.round((1 - entry.wear) * 100)}%"></div></div>`;
-  const title = `${def.name}${entry.fill != null ? ` (${Math.round(entry.fill)}%)` : ""}${entry.count > 1 ? ` x${entry.count}` : ""}${entry.wear > 0 ? ` (${Math.round((1 - entry.wear) * 100)}% left)` : ""}`;
-  return `<div class="${cls.join(" ")}" ${attrs} title="${title}" style="width:${w * cell}px;height:${h * cell}px;--item:${def.color || "#8a8296"}">${inner}</div>`;
+  return `<div class="${cls.join(" ")}" ${attrs} role="img" aria-label="${def.name}" style="width:${w * cell}px;height:${h * cell}px;--item:${def.color || "#8a8296"}">${inner}</div>`;
 }
 
 function itemHtml(entry, index, which) {
@@ -270,7 +287,7 @@ function columnHtml(which, bag, title) {
   const items = bag.items.map((e, i) => itemHtml(e, i, which)).join("");
   return `
     <div class="inv-column kit-frame">
-      ${headerHtml(title, `<button class="kit-button" data-tidy="${which}" title="Repack">Tidy</button>`, which === "inv" ? "bag" : "container")}
+      ${headerHtml(title, `${which === "container" ? `<button class="kit-button" data-takeall title="Take everything that fits into your bag">Take All</button>` : ""}<button class="kit-button" data-tidy="${which}" title="Repack">Tidy</button>`, which === "inv" ? "bag" : "container")}
       <div class="inv-grid" data-bag="${which}" style="width:${bag.cols * CELL}px;height:${bag.rows * CELL}px;--cell:${CELL}px">${items}<div class="inv-hl" hidden></div></div>
     </div>`;
 }
@@ -285,7 +302,7 @@ function slotHtml(id, entry, label, extra = "") {
   // A worn slot whose item is drawn on the figure has an eye: click to hide its art (the item keeps every use) or show it (#159).
   const key = id.startsWith("worn:") ? id.slice(5) : null;
   const eye = entry && key && HIDEABLE.includes(key) ? `<button class="slot-eye${hiddenNow.includes(key) ? " off" : ""}" data-eye="${key}" title="${hiddenNow.includes(key) ? "Show on your figure" : "Hide on your figure"}"></button>` : "";
-  return `<div class="doll-slot kit-well${extra}${entry ? "" : " empty"}" data-slot="${id}" title="${label}" style="width:${box};height:${box}">${inner}${eye}</div>`;
+  return `<div class="doll-slot kit-well${extra}${entry ? "" : " empty"}" data-slot="${id}" data-label="${label}" aria-label="${label}" style="width:${box};height:${box}">${inner}${eye}</div>`;
 }
 
 function dollHtml(player) {
@@ -306,8 +323,13 @@ function dollHtml(player) {
 }
 
 function hotbarHtml(belt) {
-  return belt.map((e, i) => `<div class="hot-slot${e ? "" : " empty"}" data-slot="belt:${i}"><span class="hot-key">${i + 1}</span>${e ? blockHtml(e, `data-slot="belt:${i}"`, HOT_CELL, 1, 1, "in-slot", true) : ""}</div>`).join("");
+  return belt.map((e, i) => `<div class="hot-slot${e ? "" : " empty"}" data-slot="belt:${i}" data-label="Belt slot ${i + 1}" aria-label="Belt slot ${i + 1}"><span class="hot-key">${i + 1}</span>${e ? blockHtml(e, `data-slot="belt:${i}"`, HOT_CELL, 1, 1, "in-slot", true) : ""}</div>`).join("");
 }
+
+// What a redraw compares: wear as itemHtml draws it (a bar from the first wear, its percent left, red past 0.8), and fill
+// to a whole unit. A lit torch wears every step, and compared exactly it redrew the panels every frame, replacing a
+// button between its press and release so the click never landed (the bag's X, with a lit torch in hand).
+const shownAs = (k, v) => typeof v !== "number" ? v : k === "wear" ? (v > 0 ? `${Math.round((1 - v) * 100)}${v > 0.8 ? "low" : ""}` : 0) : k === "fill" ? Math.round(v) : v;
 
 // Re-render if anything changed. `inv` is the bag on the back or null;
 // `container` is any open bag or null.
@@ -315,19 +337,20 @@ export function renderInventoryPanel(player, inv, container, belt) {
   bags = { inv: inv || null, container: container || null };
   shown.player = player;
   // The hotbar is always shown while a belt is worn.
-  const beltSig = JSON.stringify(belt);
+  const beltSig = JSON.stringify(belt, shownAs);
   if (!belt) hotbar.hidden = true;
   else {
     hotbar.hidden = false;
     if (hotbar.dataset.sig !== beltSig) {
       hotbar.innerHTML = hotbarHtml(belt);
       hotbar.dataset.sig = beltSig;
+      refreshCard();
     }
   }
   if (!open && !character) return;
   if (drag && drag.from.kind === "bag" && drag.from.bag !== inv && drag.from.bag !== container) cancelDrag();
   CELL = view.panelCell();
-  const sig = JSON.stringify([open, character, CELL, use.isActive() && use.current_()?.entry, inv?.items, inv?.cols, inv?.rows, container?.container, container?.items, container?.cols, container?.rows, player.worn, player.hands, player.hidden]);
+  const sig = JSON.stringify([open, character, CELL, use.isActive() && use.current_()?.entry, inv?.items, inv?.cols, inv?.rows, container?.container, container?.items, container?.cols, container?.rows, player.worn, player.hands, player.hidden], shownAs);
   if (sig === lastSignature) return;
   const hadContainer = lastSignature !== "" && /"container"/.test(lastSignature);
   lastSignature = sig;
@@ -345,6 +368,7 @@ export function renderInventoryPanel(player, inv, container, belt) {
   containerEl.innerHTML = showContainer ? columnHtml("container", container, capitalize(container.container)) : "";
   if (showContainer && !hadContainer) focus("container"); // a chest just opened comes to the front
   applyPositions();
+  refreshCard();
 }
 
 // ---- where the panels sit ----
@@ -405,6 +429,34 @@ function entryFromEvent(e) {
   const bag = bags[el.dataset.bag];
   const entry = bag?.items[Number(el.dataset.index)];
   return entry ? { entry, bag, which: el.dataset.bag, el } : null;
+}
+
+// The card for what is under the pointer: `target` is the element there, (x, y) the pointer in client pixels. Called as the pointer moves, and again after the panels redraw
+// (`refreshCard`), because a redraw replaces the elements under a pointer that did not move: the card must say what is there now, never what was.
+let cardPointer = null; // the last pointer position over the panels, or null
+function cardAt(target, x, y) {
+  if (drag || use.isActive() || menu.isMenuOpen()) { hoverCard.hide(); return; }
+  const hit = entryFromEvent({ target });
+  if (hit) {
+    const en = hit.entry;
+    hoverCard.show(`${en.uid ?? en.id}|${en.id}|${en.count}|${en.fill ?? ""}|${en.wear ?? ""}`, () => cardFor(en), x, y);
+    return;
+  }
+  const slot = target.closest(".doll-slot.empty, .hot-slot.empty");
+  if (slot && slot.dataset.label) hoverCard.show(`slot|${slot.dataset.slot}`, () => cardForSlot(slot.dataset.label), x, y);
+  else hoverCard.hide();
+}
+
+function onCardMove(e) {
+  cardPointer = { x: e.clientX, y: e.clientY };
+  cardAt(e.target, e.clientX, e.clientY);
+}
+
+function refreshCard() {
+  if (!cardPointer) return;
+  const t = document.elementFromPoint(cardPointer.x, cardPointer.y);
+  if (!t || !t.closest("#inventory, #hotbar")) { hoverCard.hide(); return; }
+  cardAt(t, cardPointer.x, cardPointer.y);
 }
 
 // The entry and the bag a drag began on, found again by uid and column: on a guest the replica's
@@ -522,6 +574,7 @@ function onPointerDown(e) {
 
 function startDrag() {
   drag.started = true;
+  hoverCard.hide();
   menu.closeContextMenu();
   const def = getItem(drag.entry.id);
   const g = document.createElement("div");
@@ -529,7 +582,7 @@ function startDrag() {
   if (def.icon) {
     // An item with art is carried as the art alone, nothing behind it (Michael, 2026-10-12).
     g.classList.add("art");
-    g.innerHTML = `<img src="${assetUrl(def.icon.src)}" alt="" draggable="false">`;
+    g.innerHTML = `<img src="${assetUrl(iconOf(def, drag.entry).src)}" alt="" draggable="false">`;
   } else {
     g.style.setProperty("--item", def.color || "#8a8296");
     g.textContent = def.short || def.name;
@@ -584,6 +637,7 @@ function updateDrag(clientX, clientY) {
   g.style.left = `${clientX - (drag.grabX + 0.5) * drag.cellPx}px`;
   g.style.top = `${clientY - (drag.grabY + 0.5) * drag.cellPx}px`;
   g.style.fontSize = `${Math.round(drag.cellPx * 0.32)}px`;
+  g.style.fontFamily = "var(--font-small)"; // a dragged piece's short name: small text (ui/small-text.js)
   const img = g.querySelector("img");
   if (img) {
     // The art fills the footprint, turned with it.

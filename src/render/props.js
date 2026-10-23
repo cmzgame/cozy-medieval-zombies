@@ -12,6 +12,8 @@ import { projectileSheet } from "./entities.js";
 import { OCCLUDER_MIN_HEIGHT, frameQuad } from "./scene.js";
 import { makeWall } from "./walls.js";
 import * as loop from "../loop.js"; // the sim clock: a poke's stamp is in sim milliseconds (docs/23a, C2)
+import * as hl from "./highlight.js"; // Object Highlight (#301)
+import * as paintingArt from "./paintings.js"; // a painting hung on a wall (#326)
 
 // ---- props and characters ----
 
@@ -75,11 +77,16 @@ export function emitGhost(ghost) {
   }
   if (ghost.kind === "wall") {
     // A wall, door, or window as it would stand, drawn by the real wall code.
-    const wall = map.createWall(ghost.wallKind, ghost.sprite);
+    const wall = map.createWall(ghost.wallType || ghost.wallKind, ghost.sprite);
+    if (ghost.leaf) wall.leaf = ghost.leaf; // a door or window of another wood (#334)
     makeWall(wall, ghost.edge, ghost.tx, ghost.ty, true, false, tint).emit();
     return;
   }
-  if (ghost.kind === "prop") {
+  if (ghost.kind === "painting") {
+    paintingArt.emitGhost(ghost, tint, GHOST_FLAGS());
+    return;
+  }
+  if (ghost.kind === "prop" || ghost.kind === "rug") {
     const [w, h] = ghost.footprint;
     const cells = [];
     for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) cells.push([ghost.tx + dx, ghost.ty + dy, dy * w + dx]);
@@ -118,6 +125,7 @@ function clickFrame(prop) {
 }
 
 export function propDrawables(tiles, visible, out) {
+  const lit = []; // the slices of the prop under the cursor (Object Highlight, #301)
   for (const [tx, ty] of tiles) {
     const prop = map.tileAt(tx, ty).prop;
     if (!prop) continue;
@@ -162,8 +170,32 @@ export function propDrawables(tiles, visible, out) {
         if (furnFlame) frameQuad(sheet, furnFlame, x, y, { world: [tx, ty], flags: gl.FLAG_UNLIT });
       },
     };
+    if (hl.isProp(prop.id)) lit.push({ d, sheet, name, f, x, y, tx, ty, prop });
     out.push(d);
   }
+  if (lit.length) highlightProp(lit, out);
+}
+
+// Object Highlight (#301): one drawable for the whole prop, sorted just before its first slice, so a thing of several tiles is outlined as one shape and no slice's outline
+// lands on the slice beside it. Each slice is drawn a pixel off in eight directions, flat, with its sway; a slice that is the see-through occluder this frame is skipped.
+function highlightProp(lit, out) {
+  const key = Math.min(...lit.map((s) => s.d.key)) - 0.5;
+  out.push({
+    key,
+    kind: "prop",
+    vis: lit.some((s) => s.d.vis),
+    rect: null,
+    canOcclude: false,
+    occluder: false,
+    // The slices that are outlined: not the one the player is seen through this frame (a tree's canopy with its hole in): eight stacked copies would show far more than the
+    // faded tree and fill the hole. (A getter, so the check can read what the frame decided.)
+    get outlined() {
+      return lit.filter((s) => !s.d.occluder);
+    },
+    emit() {
+      for (const s of this.outlined) hl.outline(s.sheet, s.name, s.x, s.y, { world: [s.tx, s.ty], heights: s.f ? [s.f[3], s.f[3], 0, 0] : 0 }, false, 0, s.f ? swayOf(s.prop, s.f[3]) : 0);
+    },
+  });
 }
 
 // Items on the floor: a small block in the item's colour per entry, fanned a
@@ -185,10 +217,12 @@ export function floorItemDrawables(tiles, visible, out) {
       occluder: false,
       emit() {
         items.forEach((e, i) => {
+          const lit = hl.isItem(e.uid); // Object Highlight (#301)
           // An arrow that landed lies where it fell, pointing as it flew (docs/20).
           if ((e.id === "arrow" || e.id === "spear") && e.at) {
             const sp = iso.toScreen(e.at[0], e.at[1]);
             const sheet = projectileSheet(e.id);
+            if (sheet && lit) hl.outline(sheet, `${e.id}_${e.angle || 0}`, Math.round(sp.x), Math.round(sp.y) - 1, { world: [e.at[0], e.at[1]], heights: 0 });
             if (sheet) frameQuad(sheet, `${e.id}_${e.angle || 0}`, Math.round(sp.x), Math.round(sp.y) - 1, { world: [e.at[0], e.at[1]], heights: 0, flags: gl.FLAG_STANDING | (vis ? gl.FLAG_NOFOG : 0) });
             return;
           }
@@ -196,6 +230,7 @@ export function floorItemDrawables(tiles, visible, out) {
           const ox = x + ((i % 3) - 1) * 9;
           const oy = y - 3 - Math.floor(i / 3) * 5;
           const flags = gl.FLAG_STANDING | (vis ? gl.FLAG_NOFOG : 0);
+          if (lit) hl.itemHalo(ox, oy, [tx, ty]);
           gl.poly([[ox - 7, oy], [ox, oy - 4], [ox + 7, oy], [ox, oy + 4]], gl.rgb("#1a1410"), { world: [tx, ty], flags });
           gl.poly([[ox - 6, oy], [ox, oy - 3], [ox + 6, oy], [ox, oy + 3]], c, { world: [tx, ty], flags });
           gl.poly([[ox - 6, oy], [ox, oy + 3], [ox, oy + 6], [ox - 6, oy + 3]], [c[0] * 0.6, c[1] * 0.6, c[2] * 0.6, 1], { world: [tx, ty], flags });

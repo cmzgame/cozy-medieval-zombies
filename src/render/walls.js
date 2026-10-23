@@ -12,6 +12,8 @@ import { WALL_T, WOOD, METAL, DOOR_TOP, WINDOW_SILL, WINDOW_TOP, BRACKET_UP } fr
 import * as gl from "../gl.js";
 import { GHOST_FLAGS, ghostColor } from "./props.js";
 import { NEAR_WALL_ALPHA, flameFrame, frameQuad } from "./scene.js";
+import { emitHangings } from "./paintings.js"; // what hangs on a wall's face (#326)
+import { sheetFor } from "../woods.js"; // a door or window of another wood than its wall (#334)
 
 // ---- walls ----
 
@@ -127,12 +129,37 @@ function emitCapFromFrame(sheet, name, anchor, top, corners, h, world, flags) {
     pts.push([top[0] + ox, top[1] + oy]);
     uvs.push([tu + ox, tv + oy]);
   }
-  gl.texQuad(pts, uvs, { world, flags: flags | gl.FLAG_SKY });
+  gl.texQuad(pts, uvs, { world, flags: flags | gl.FLAG_SKY, page: uv[4] });
+}
+
+// A gate that swings (#332, Michael, 2026-10-20: "only fence for now, we can animate doors later"): a door whose parts sheet has
+// the in-between leaves (`leaf_<o>_30`, `leaf_<o>_60`) plays them for SWING_S when it opens or shuts. Each screen plays it when it
+// sees the gate's `open` change (the host's step, a guest's chunk), in sim time, so it is the picture's alone: never the world's,
+// never sent, never saved. A gate first seen is drawn as it stands.
+const SWING_S = 0.24;
+const swings = new Map(); // "tx,ty,edge" -> { open, at }
+function swingLeaf(wall, edge, tx, ty, side, parts, open) {
+  if (wall.kind !== "door" || !parts || !parts.frames[`leaf_${side}_30`]) return null;
+  const k = `${tx},${ty},${edge}`;
+  const now = loop.simTime();
+  let s = swings.get(k);
+  if (!s) swings.set(k, (s = { open, at: -Infinity }));
+  else if (s.open !== open) {
+    s.open = open;
+    s.at = now;
+  }
+  const t = (now - s.at) / SWING_S;
+  if (!(t >= 0 && t < 1)) return null;
+  const step = t < 0.5 ? 0 : 1; // opening: 30 then 60; shutting: 60 then 30
+  return `leaf_${side}_${open ? (step ? "60" : "30") : (step ? "30" : "60")}`;
 }
 
 function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
   const side = edge === "n" ? "north" : "west";
-  const { art, boards, n } = drawnVariant(variant);
+  const { art: settled, boards, n } = drawnVariant(variant);
+  const parts0 = sheet.wall.parts ? getSheet(sheet.wall.parts) : null;
+  const mid = !o.ghost && !wall.broken && !map.boarded(wall) ? swingLeaf(wall, edge, tx, ty, side, parts0, !!wall.open) : null;
+  const art = mid ? "door_open" : settled; // mid-swing: the open frame (its posts and hinge) with the moving leaf after it
   const name = `${side}_${art}`;
   const f = sheet.frames[name];
   if (!f) return;
@@ -158,7 +185,8 @@ function emitDrawnWall(sheet, wall, variant, edge, tx, ty, x, y, h, T, o) {
     emitCapFromFrame(sheet, name, anchor, [x, y - iso.HH], corners, h, [tx, ty], o.flags);
   }
   if (boards) wallPartQuad(getSheet(sheet.wall.boards || "wall_boards"), `boards_${boards}_${side}_${n}`, x, y, o);
-  if (outside > 0) for (const p of leaves("")) wallPartQuad(parts, p, x, y, o);
+  if (mid) wallPartQuad(parts, mid, x, y, o); // the swinging leaf in place of the open one, while it swings
+  else if (outside > 0) for (const p of leaves("")) wallPartQuad(parts, p, x, y, o);
 }
 
 function isNearWall(tx, ty, edge, playerRoom) {
@@ -246,6 +274,7 @@ function emitCutWall(sheet, name, edge, x, y, h, T, o, cuts) {
   const piece = (pts) => {
     const c = pts.map(([px, py]) => [Math.min(R, Math.max(L, px)), Math.min(B, Math.max(Tp, py))]);
     gl.texQuad(c, c.map(([px, py]) => [uv[0] + px - L, uv[1] + py - Tp]), {
+      page: uv[4],
       world: c.map(([px]) => {
         const k = (px - L) / f[2];
         return [o.wa[0] + (o.wb[0] - o.wa[0]) * k, o.wa[1] + (o.wb[1] - o.wa[1]) * k];
@@ -337,7 +366,7 @@ function makePost(tx, ty, sheet, vis, near) {
               pts.push([x + ox, y + oy]);
               uvs.push([uv[0] + ps.anchor[0] + ox, uv[1] + ps.anchor[1] + oy]);
             }
-            gl.texQuad(pts, uvs, { world: [tx, ty], flags: flags | gl.FLAG_SKY });
+            gl.texQuad(pts, uvs, { world: [tx, ty], flags: flags | gl.FLAG_SKY, page: uv[4] });
           }
         }
         return;
@@ -392,7 +421,7 @@ function shakeOffset(tx, ty, edge) {
 }
 
 export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts = null) {
-  const sheet = getSheet(wall.sprite);
+  const sheet = sheetFor(wall); // the wall's own sheet, or its shut leaves recoloured and its open ones another wood's (#334)
   const variant = wallVariant(wall);
   const depth = edge === "n" ? tx + ty - 0.5 : tx - 0.5 + ty;
   const p = iso.toScreen(tx, ty);
@@ -454,6 +483,7 @@ export function makeWall(wall, edge, tx, ty, vis, stub, ghostTint = null, cuts =
       gl.poly(top, ghostTint ? ghostColor(shade(color, 1.18), ghostTint) : gl.rgb(shade(color, 1.18), alpha), { world: [tx, ty], flags: flags | gl.FLAG_SKY });
       if (open && outside > 0) emitSwungLeaves(wall, edge, x, y, h, outside, leafOpts);
       }
+      if (wall.hangings && !ghostTint) emitHangings(wall, edge, tx, ty, { tint, flags }); // paintings, right after their segment, before its bracket
       if (br) {
         const opts = { world: [tx, ty], flags };
         gl.poly([[bx - 2, by - 3], [bx + 2, by - 3], [bx + 2, by + 4], [bx - 2, by + 4]], gl.rgb(METAL, alpha), opts);

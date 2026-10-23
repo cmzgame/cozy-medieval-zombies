@@ -1,0 +1,890 @@
+{
+ "apple_world": {
+  "size": [
+   13,
+   15
+  ],
+  "grip_px": [
+   6,
+   9
+  ]
+ },
+ "apple_icon": {
+  "slot_cols_rows": [
+   1,
+   1
+  ],
+  "size": [
+   19,
+   19
+  ],
+  "stack_max": 5,
+  "drawn_from": "apple_world"
+ },
+ "bread_world": {
+  "size": [
+   16,
+   12
+  ],
+  "grip_px": [
+   8,
+   7
+  ]
+ },
+ "bread_icon": {
+  "slot_cols_rows": [
+   1,
+   1
+  ],
+  "size": [
+   19,
+   19
+  ],
+  "drawn_from": "bread_world"
+ },
+ "tinderbox_world": {
+  "size": [
+   16,
+   10
+  ],
+  "grip_px": [
+   7,
+   5
+  ]
+ },
+ "tinderbox_icon": {
+  "slot_cols_rows": [
+   1,
+   1
+  ],
+  "size": [
+   19,
+   19
+  ],
+  "drawn_from": "tinderbox_world"
+ },
+ "bandage_world": {
+  "size": [
+   16,
+   13
+  ],
+  "grip_px": [
+   6,
+   6
+  ]
+ },
+ "bandage_icon": {
+  "slot_cols_rows": [
+   1,
+   1
+  ],
+  "size": [
+   19,
+   19
+  ],
+  "stack_max": 5,
+  "drawn_from": "bandage_world"
+ },
+ "stone_world": {
+  "size": [
+   14,
+   11
+  ],
+  "grip_px": [
+   6,
+   6
+  ]
+ },
+ "stone_icon": {
+  "slot_cols_rows": [
+   1,
+   1
+  ],
+  "size": [
+   19,
+   19
+  ],
+  "stack_max": 20,
+  "drawn_from": "stone_world"
+ },
+ "potato_seed_world": {
+  "size": [
+   14,
+   13
+  ],
+  "grip_px": [
+   7,
+   8
+  ]
+ },
+ "potato_seed_icon": {
+  "slot_cols_rows": [
+   1,
+   1
+  ],
+  "size": [
+   19,
+   19
+  ],
+  "stack_max": 20,
+  "drawn_from": "potato_seed_world"
+ },
+ "cabbage_seed_world": {
+  "size": [
+   14,
+   13
+  ],
+  "grip_px": [
+   7,
+   8
+  ]
+ },
+ "cabbage_seed_icon": {
+  "slot_cols_rows": [
+   1,
+   1
+  ],
+  "size": [
+   19,
+   19
+  ],
+  "stack_max": 20,
+  "drawn_from": "cabbage_seed_world"
+ },
+ "garlic_seed_world": {
+  "size": [
+   14,
+   13
+  ],
+  "grip_px": [
+   7,
+   8
+  ]
+ },
+ "garlic_seed_icon": {
+  "slot_cols_rows": [
+   1,
+   1
+  ],
+  "size": [
+   19,
+   19
+  ],
+  "stack_max": 20,
+  "drawn_from": "garlic_seed_world"
+ },
+ "pumpkin_seed_world": {
+  "size": [
+   14,
+   13
+  ],
+  "grip_px": [
+   7,
+   8
+  ]
+ },
+ "pumpkin_seed_icon": {
+  "slot_cols_rows": [
+   1,
+   1
+  ],
+  "size": [
+   19,
+   19
+  ],
+  "stack_max": 20,
+  "drawn_from": "pumpkin_seed_world"
+ },
+ "rye_seed_world": {
+  "size": [
+   14,
+   13
+  ],
+  "grip_px": [
+   7,
+   8
+  ]
+ },
+ "rye_seed_icon": {
+  "slot_cols_rows": [
+   1,
+   1
+  ],
+  "size": [
+   19,
+   19
+  ],
+  "stack_max": 20,
+  "drawn_from": "rye_seed_world"
+ },
+ "flax_seed_world": {
+  "size": [
+   14,
+   13
+  ],
+  "grip_px": [
+   7,
+   8
+  ]
+ },
+ "flax_seed_icon": {
+  "slot_cols_rows": [
+   1,
+   1
+  ],
+  "size": [
+   19,
+   19
+  ],
+  "stack_max": 20,
+  "drawn_from": "flax_seed_world"
+ },
+ "log_world": {
+  "size": [
+   33,
+   54
+  ],
+  "grip_px": [
+   17,
+   30
+  ]
+ },
+ "log_icon": {
+  "slot_cols_rows": [
+   2,
+   3
+  ],
+  "size": [
+   38,
+   57
+  ],
+  "drawn_from": "log_world"
+ },
+ "tunic_world": {
+  "size": [
+   32,
+   28
+  ],
+  "grip_px": [
+   16,
+   13
+  ]
+ },
+ "tunic_icon": {
+  "slot_cols_rows": [
+   2,
+   2
+  ],
+  "size": [
+   38,
+   38
+  ],
+  "drawn_from": "tunic_world"
+ },
+ "breeches_world": {
+  "size": [
+   24,
+   29
+  ],
+  "grip_px": [
+   12,
+   14
+  ]
+ },
+ "breeches_icon": {
+  "slot_cols_rows": [
+   2,
+   2
+  ],
+  "size": [
+   38,
+   38
+  ],
+  "drawn_from": "breeches_world"
+ },
+ "boots_world": {
+  "size": [
+   14,
+   31
+  ],
+  "grip_px": [
+   7,
+   17
+  ]
+ },
+ "boots_icon": {
+  "slot_cols_rows": [
+   1,
+   2
+  ],
+  "size": [
+   19,
+   38
+  ],
+  "drawn_from": "boots_world"
+ },
+ "belt_world": {
+  "size": [
+   32,
+   14
+  ],
+  "grip_px": [
+   16,
+   6
+  ]
+ },
+ "belt_icon": {
+  "slot_cols_rows": [
+   2,
+   1
+  ],
+  "size": [
+   38,
+   19
+  ],
+  "drawn_from": "belt_world"
+ },
+ "small_sack_world": {
+  "size": [
+   30,
+   32
+  ],
+  "grip_px": [
+   16,
+   16
+  ]
+ },
+ "small_sack_icon": {
+  "slot_cols_rows": [
+   2,
+   2
+  ],
+  "size": [
+   38,
+   38
+  ],
+  "drawn_from": "small_sack_world"
+ },
+ "waterskin_world": {
+  "size": [
+   13,
+   24
+  ],
+  "grip_px": [
+   6,
+   12
+  ]
+ },
+ "waterskin_icon": {
+  "slot_cols_rows": [
+   1,
+   2
+  ],
+  "size": [
+   19,
+   38
+  ],
+  "drawn_from": "waterskin_world"
+ },
+ "waterskin_portrait": {
+  "size": [
+   38,
+   38
+  ],
+  "drawn_from": "the same skin drawn larger for the 38 px slot"
+ },
+ "boots_portrait": {
+  "size": [
+   38,
+   38
+  ],
+  "drawn_from": "the pair side by side, larger"
+ },
+ "belt_portrait": {
+  "size": [
+   38,
+   38
+  ],
+  "drawn_from": "the rope coiled, larger, the ends hanging"
+ },
+ "plank_world": {
+  "size": [
+   7,
+   28
+  ],
+  "grip_px": [
+   3,
+   20
+  ],
+  "tilt_deg_clockwise_from_up": 0
+ },
+ "plank_world_22_5": {
+  "size": [
+   16,
+   28
+  ],
+  "grip_px": [
+   5,
+   20
+  ],
+  "tilt_deg_clockwise_from_up": 22.5
+ },
+ "plank_world_45": {
+  "size": [
+   23,
+   23
+  ],
+  "grip_px": [
+   6,
+   16
+  ],
+  "tilt_deg_clockwise_from_up": 45
+ },
+ "plank_world_67_5": {
+  "size": [
+   28,
+   16
+  ],
+  "grip_px": [
+   7,
+   10
+  ],
+  "tilt_deg_clockwise_from_up": 67.5
+ },
+ "plank_world_90": {
+  "size": [
+   28,
+   7
+  ],
+  "grip_px": [
+   7,
+   3
+  ],
+  "tilt_deg_clockwise_from_up": 90
+ },
+ "plank_icon": {
+  "slot_cols_rows": [
+   1,
+   3
+  ],
+  "size": [
+   19,
+   57
+  ],
+  "drawn_from": "plank_world, pixel for pixel (the convention)"
+ },
+ "plank_icon_large": {
+  "slot_cols_rows": [
+   1,
+   3
+  ],
+  "size": [
+   19,
+   57
+  ],
+  "drawn_from": "plank_world, the same design rendered to fill its 1 x 3 footprint (Question 3's alternative)"
+ },
+ "plank_portrait": {
+  "size": [
+   38,
+   38
+  ],
+  "drawn_from": "plank_world rendered at 1.3x"
+ },
+ "stick_world": {
+  "size": [
+   9,
+   28
+  ],
+  "grip_px": [
+   5,
+   19
+  ],
+  "tilt_deg_clockwise_from_up": 0
+ },
+ "stick_world_22_5": {
+  "size": [
+   14,
+   27
+  ],
+  "grip_px": [
+   4,
+   19
+  ],
+  "tilt_deg_clockwise_from_up": 22.5
+ },
+ "stick_world_45": {
+  "size": [
+   21,
+   22
+  ],
+  "grip_px": [
+   6,
+   15
+  ],
+  "tilt_deg_clockwise_from_up": 45
+ },
+ "stick_world_67_5": {
+  "size": [
+   26,
+   16
+  ],
+  "grip_px": [
+   7,
+   11
+  ],
+  "tilt_deg_clockwise_from_up": 67.5
+ },
+ "stick_world_90": {
+  "size": [
+   28,
+   9
+  ],
+  "grip_px": [
+   8,
+   5
+  ],
+  "tilt_deg_clockwise_from_up": 90
+ },
+ "stick_icon": {
+  "slot_cols_rows": [
+   1,
+   3
+  ],
+  "size": [
+   19,
+   57
+  ],
+  "drawn_from": "stick_world, pixel for pixel (the convention)"
+ },
+ "stick_icon_large": {
+  "slot_cols_rows": [
+   1,
+   3
+  ],
+  "size": [
+   19,
+   57
+  ],
+  "drawn_from": "stick_world, the same design rendered to fill its 1 x 3 footprint (Question 3's alternative)"
+ },
+ "stick_portrait": {
+  "size": [
+   38,
+   38
+  ],
+  "drawn_from": "stick_world rendered at 1.3x"
+ },
+ "hatchet_world": {
+  "size": [
+   12,
+   30
+  ],
+  "grip_px": [
+   7,
+   21
+  ],
+  "tilt_deg_clockwise_from_up": 0
+ },
+ "hatchet_world_22_5": {
+  "size": [
+   16,
+   29
+  ],
+  "grip_px": [
+   4,
+   21
+  ],
+  "tilt_deg_clockwise_from_up": 22.5
+ },
+ "hatchet_world_45": {
+  "size": [
+   23,
+   26
+  ],
+  "grip_px": [
+   6,
+   19
+  ],
+  "tilt_deg_clockwise_from_up": 45
+ },
+ "hatchet_world_67_5": {
+  "size": [
+   28,
+   19
+  ],
+  "grip_px": [
+   7,
+   14
+  ],
+  "tilt_deg_clockwise_from_up": 67.5
+ },
+ "hatchet_world_90": {
+  "size": [
+   30,
+   13
+  ],
+  "grip_px": [
+   8,
+   8
+  ],
+  "tilt_deg_clockwise_from_up": 90
+ },
+ "hatchet_icon": {
+  "slot_cols_rows": [
+   1,
+   2
+  ],
+  "size": [
+   19,
+   38
+  ],
+  "drawn_from": "hatchet_world, pixel for pixel (the convention)"
+ },
+ "hatchet_icon_large": {
+  "slot_cols_rows": [
+   1,
+   2
+  ],
+  "size": [
+   19,
+   38
+  ],
+  "drawn_from": "hatchet_world, the same design rendered to fill its 1 x 2 footprint (Question 3's alternative)"
+ },
+ "hatchet_portrait": {
+  "size": [
+   38,
+   38
+  ],
+  "drawn_from": "hatchet_world rendered at 1.2x"
+ },
+ "shovel_world": {
+  "size": [
+   11,
+   46
+  ],
+  "grip_px": [
+   5,
+   24
+  ],
+  "tilt_deg_clockwise_from_up": 0
+ },
+ "shovel_world_22_5": {
+  "size": [
+   26,
+   44
+  ],
+  "grip_px": [
+   11,
+   24
+  ],
+  "tilt_deg_clockwise_from_up": 22.5
+ },
+ "shovel_world_45": {
+  "size": [
+   37,
+   37
+  ],
+  "grip_px": [
+   16,
+   20
+  ],
+  "tilt_deg_clockwise_from_up": 45
+ },
+ "shovel_world_67_5": {
+  "size": [
+   44,
+   26
+  ],
+  "grip_px": [
+   19,
+   14
+  ],
+  "tilt_deg_clockwise_from_up": 67.5
+ },
+ "shovel_world_90": {
+  "size": [
+   46,
+   11
+  ],
+  "grip_px": [
+   21,
+   5
+  ],
+  "tilt_deg_clockwise_from_up": 90
+ },
+ "shovel_icon": {
+  "slot_cols_rows": [
+   1,
+   3
+  ],
+  "size": [
+   19,
+   57
+  ],
+  "drawn_from": "shovel_world, pixel for pixel (the convention)"
+ },
+ "shovel_icon_large": {
+  "slot_cols_rows": [
+   1,
+   3
+  ],
+  "size": [
+   19,
+   57
+  ],
+  "drawn_from": "shovel_world, the same design rendered to fill its 1 x 3 footprint (Question 3's alternative)"
+ },
+ "shovel_portrait": {
+  "size": [
+   38,
+   38
+  ],
+  "drawn_from": "shovel_world rendered at 0.78x"
+ },
+ "torch_world": {
+  "size": [
+   7,
+   23
+  ],
+  "grip_px": [
+   3,
+   13
+  ],
+  "tilt_deg_clockwise_from_up": 0,
+  "flame_px": [
+   3,
+   0
+  ]
+ },
+ "torch_world_22_5": {
+  "size": [
+   14,
+   22
+  ],
+  "grip_px": [
+   5,
+   13
+  ],
+  "tilt_deg_clockwise_from_up": 22.5,
+  "flame_px": [
+   10,
+   1
+  ]
+ },
+ "torch_world_45": {
+  "size": [
+   19,
+   19
+  ],
+  "grip_px": [
+   7,
+   11
+  ],
+  "tilt_deg_clockwise_from_up": 45,
+  "flame_px": [
+   16,
+   2
+  ]
+ },
+ "torch_world_67_5": {
+  "size": [
+   22,
+   14
+  ],
+  "grip_px": [
+   8,
+   8
+  ],
+  "tilt_deg_clockwise_from_up": 67.5,
+  "flame_px": [
+   20,
+   3
+  ]
+ },
+ "torch_world_90": {
+  "size": [
+   23,
+   7
+  ],
+  "grip_px": [
+   9,
+   3
+  ],
+  "tilt_deg_clockwise_from_up": 90,
+  "flame_px": [
+   22,
+   3
+  ]
+ },
+ "torch_icon": {
+  "slot_cols_rows": [
+   1,
+   2
+  ],
+  "size": [
+   19,
+   38
+  ],
+  "drawn_from": "torch_world, unlit"
+ },
+ "torch_lit_icon": {
+  "slot_cols_rows": [
+   1,
+   2
+  ],
+  "size": [
+   19,
+   38
+  ],
+  "drawn_from": "torch_world with the flame drawn on, for the bag and the slots only; the torch sits on the same pixels as in torch_icon, the flame rises above it"
+ },
+ "torch_portrait": {
+  "size": [
+   38,
+   38
+  ],
+  "drawn_from": "torch_world at 1.3x, unlit"
+ },
+ "torch_lit_portrait": {
+  "size": [
+   38,
+   38
+  ],
+  "drawn_from": "torch_portrait with the flame drawn on, the torch on the same pixels"
+ },
+ "flame_torch_0": {
+  "size": [
+   28,
+   32
+  ],
+  "base_px": [
+   14,
+   28
+  ],
+  "note": "unlit flicker frame; loop 0-1-2"
+ },
+ "flame_torch_1": {
+  "size": [
+   28,
+   32
+  ],
+  "base_px": [
+   14,
+   28
+  ],
+  "note": "unlit flicker frame; loop 0-1-2"
+ },
+ "flame_torch_2": {
+  "size": [
+   28,
+   32
+  ],
+  "base_px": [
+   14,
+   28
+  ],
+  "note": "unlit flicker frame; loop 0-1-2"
+ }
+}

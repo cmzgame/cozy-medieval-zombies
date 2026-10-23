@@ -59,6 +59,8 @@
   "thickness": 14,
   "color": "#6e4b32",
   "material": "wood",
+  "wood": "oak",
+  "name": "Oak",
   "post": "post_wood",
   "parts": "wall_parts_wood"
  },

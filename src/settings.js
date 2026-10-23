@@ -24,6 +24,9 @@ export const DEFAULTS = {
   playerName: "", // the identity before docs/31/09: read once to migrate into identities.js, and by the ?nosave test world's identity
   look: {}, // the look before docs/31/09 (skin, hair, eyes, hairStyle): migrated with playerName; identities.js keeps them now
   nameTags: true, // another player's name over their head while in sight (docs/31/03)
+  objectHighlight: true, // outline the game object under the cursor that has an action (src/highlight.js; #301); a testing setting, on
+  smallText: "clear", // "clear": text at or under 15 UI px is set in the system's sans-serif; "pixel": in the pixel font like the rest (ui/small-text.js; #321)
+  floaters: true, // the floating numbers over heads: damage, heals, and gathers (ui/floaters.js; #294)
   paintedLayers: {}, // slot -> painted layer name to try on, from the settings screen (docs/12)
   panelPos: {}, // "bag" | "character" | "container" -> { x, y } in UI pixels where its header was dragged to (docs/23 step 4; Michael, 2026-10-12)
   cursor: "default", // the system's own, or one of the three hands (ui/cursor.js; Michael, 2026-10-12)
@@ -55,6 +58,8 @@ export const REGISTRY = [
   { key: "worldScale", group: "display", label: "Zoom", help: "How close the camera sits. Z or the wheel changes it while you play.", choices: [["auto", "Auto"], [1.1, "Wide"], [1.8, "Middle"], [2.7, "Close"]] },
   { key: "cursor", group: "display", label: "Cursor", help: "The pointer: the system's own, or one of three hands.", choices: [["default", "Default"], ["human", "A hand"], ["severed", "A severed hand"], ["zombie", "A zombie hand"]] },
   { key: "nameTags", group: "display", label: "Names over heads", help: "Another player's name over their head while you can see them.", choices: SHOWN },
+  { key: "smallText", group: "display", label: "Small text", help: "Very small text in a plain, clear font (Clear), or in the pixel font like the rest (Pixel).", choices: [["clear", "Clear"], ["pixel", "Pixel"]] },
+  { key: "floaters", group: "display", label: "Floating numbers", help: "Damage, healing, and what you gather float up over heads.", choices: SHOWN },
   { key: "swingTimer", group: "display", label: "Swing timer", help: "A bar at the bottom of the screen while a swing recovers.", choices: ON_OFF },
   { key: "aimGuide", group: "display", label: "Aim guide", help: "The landing marker and the dotted line while you draw a bow, wind up a throw, or cast.", choices: ON_OFF },
   { key: "zombieAggro", group: "rules", label: "Zombie aggro", help: "On, the dead hunt you. Off, they wander and ignore you.", choices: ON_OFF },
@@ -66,10 +71,11 @@ export const REGISTRY = [
   { key: "population", group: "rules", fixed: true, label: "Starting population", help: "How many of the dead the world starts with, in its places and in each new stretch of wild. It never grows with time. Chosen when the world is made.", choices: [["none", "None"], ["low", "Low"], ["standard", "Standard"], ["high", "High"]] },
   { key: "debugCorner", group: "testing", label: "Debug corner", help: "The numbers and the keys in the top-left corner.", choices: SHOWN },
   { key: "showSwingTargets", group: "testing", label: "Swing targets", help: "A green outline on what your next swing would hit.", choices: ON_OFF },
+  { key: "objectHighlight", group: "testing", label: "Object Highlight", help: "An outline on the game object under the cursor that you can act on: a tree, a crop, a chest, an item on the ground, a villager. Plain scenery gets none.", choices: ON_OFF },
   { key: "showHitShapes", group: "testing", label: "Hit shapes", help: "The dead's body samples, green when the next swing reaches them.", choices: ON_OFF },
   { key: "devChest", group: "sandbox", label: "Dev chest", help: "A chest of every item by the spawn, made with the world.", choices: ON_OFF },
   { key: "devBag", group: "sandbox", fixed: true, label: "Dev bag", help: "Everyone starts wearing the Developer Bag, a big bag, in place of the sack. Chosen when the world is made.", choices: ON_OFF },
-  { key: "extraKit", group: "sandbox", fixed: true, text: true, label: "Extra starting items", help: "On top of the usual kit, for testing: one item a line, `sword` or `arrow 20`. Chosen when the world is made.", choices: [] },
+  { key: "extraKit", group: "sandbox", fixed: true, text: true, label: "Extra starting items", help: "On top of the usual kit, for testing: type an item's name, pick it, and set how many. Chosen when the world is made.", choices: [] },
 ];
 
 // A switch or a dropdown: the row's answers are exactly true and false, or anything else.

@@ -1,1 +1,19 @@
-{"placeholder": {"kind": "flame"}}
+{
+ "images": {
+  "flame_0": "data/art/items/flame_torch_0.png",
+  "flame_1": "data/art/items/flame_torch_1.png",
+  "flame_2": "data/art/items/flame_torch_2.png"
+ },
+ "anchor": [
+  14,
+  28
+ ],
+ "animations": {
+  "idle": {
+   "fps": 0,
+   "loop": false,
+   "frames": 1
+  }
+ },
+ "note": "the drawn torch flame (art round 3, #331): three flicker frames on a 28x32 cell, base (14, 28), unlit; used by a torch in the hand and in a wall bracket (the torch post draws its own)"
+}

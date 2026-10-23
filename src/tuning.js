@@ -65,7 +65,7 @@ export const player = {
   hungerMax: 100,
   thirstMax: 100,
   hungerDrainSeconds: 1080, // seconds from full to empty
-  fullAt: 90, // hunger at or above this is full: food is refused ("You are full.", Michael, 2026-10-18, #186); hunger drains all the time, so "full" is a margin, not the exact top
+  fullAt: 90, // hunger at or above this is well fed: health comes back `wellFedRegenMult` times as fast (Michael, 2026-10-18); hunger drains all the time, so "well fed" is a margin, not the exact top
   thirstDrainSeconds: 720,
   // Tiredness and sleep (docs/30 step 2), regeneration, and the needs' hold on stamina.
   tiredMax: 100,
@@ -75,6 +75,7 @@ export const player = {
   wakeHour: 6,
   healthRegenPerMinute: 1,
   sleepRegenPerMinute: 4,
+  wellFedRegenMult: 2, // health comes back this many times as fast when well fed (hunger at fullAt or more), awake or asleep (Michael, 2026-10-18; the number Primary's default)
   needsStaminaRegenMult: 0.5,
   tiredStaminaRegenMult: 0.75,
   starveDamage: 1.5, // hp per second at zero
@@ -151,9 +152,49 @@ export const feel = {
   cameraFollow: 10, // the camera closes this fraction of its distance to the player per second (a time constant of 1/10 s: it trails a walking player by 0.3 tiles, 19 px); higher is snappier, lower floatier
   blend: true, // draw the movers between sim steps (interp.js): even on a 75, 120, or 144 Hz display and under frame jitter, at up to one step (16.7 ms) of added delay; false draws the last step as it stood
   blendJump: 1.5, // tiles: a mover that moved farther than this in one step (a teleport, a respawn) is drawn where it landed, not blended
+  netDelaySteps: 4, // on a guest: remote bodies are drawn this many steps behind the newest host frame, interpolated between the frames either side (netsmooth.js, #248); 3 stalls on a late frame, more only adds delay
+  netSlew: 0.1, // the fraction of the gap the guest's draw clock closes toward the frames' per frame that arrives
+  netJump: 1.5, // tiles: a remote body that moved farther than this between two frames is put where it landed, not walked there
 };
 
-const sections = { zombie, player, villager, world, population, sight, feel };
+// Floating numbers over heads (#294; docs/39 section 12; ui/floaters.js): how they rise and fade, how they look, and which verbs are a gather of which skill. A number rises about
+// a tile (`riseTiles`) over `life` seconds and fades over the last of them, drifting a little sideways (`drift` px, a different side for each so a run of hits does not stack
+// on one spot); it starts `startLift` px above the feet (the head's height); the font is the game's pixel font with an outline. A gather shows the skill's icon (ui/skill-icons.js)
+// and the number; its text is white where the ground is dark and black where it is light (`lightAbove`, the light at the character), so it is never mistaken for the damage or the heal.
+// `gathers`: verb name -> [skill, the field of the verb's result that says how many].
+export const floaters = {
+  life: 1.1, // seconds a number lives
+  fadeFrom: 0.5, // the fraction of its life after which it fades
+  riseTiles: 1, // tiles it rises in its life
+  drift: 12, // px of sideways drift over its life, a side and a size each its own
+  startLift: 80, // world px above the feet it starts (names float at 78)
+  fontPx: 15, // the number's size, in UI px
+  iconScale: 1, // the skill icon's size beside a gather's number, in whole multiples of its 16 px
+  staggerLines: 1.1, // a volley over one body (a hit, a heal, a gather in one frame) starts each number this many font heights above the last
+  maxActive: 40, // numbers alive at once; the oldest go first
+  damageColor: "#e23b3b",
+  healColor: "#43d36b",
+  gatherLight: "#ffffff", // a gather's text where the ground is dark
+  gatherDark: "#000000", // and where it is light
+  lightAbove: 0.5, // the light at the character above which a gather's text is black
+  gathers: { chop: ["woodcutting", "logs"], mine: ["mining", "mined"], fish: ["fishing", "caught"], pick: ["farming", "picked"], harvest: ["farming", "harvested"] },
+};
+
+// Object Highlight (#301; src/highlight.js, render/highlight.js): the outline round the game object under the cursor. `color` is the flat colour of the one-pixel outline (a soft
+// soft near-white, not the swing outline's green nor the Inspect tile mark's gold), `refreshMs` how often the hit test is asked again while the mouse and the camera stand still.
+export const objectHighlight = {
+  color: "#f4f0e6",
+  alpha: 1,
+  refreshMs: 100,
+};
+
+// The hover card (#262; src/ui/hover-card.js): how long the pointer rests before it shows, and how far it sits from the pointer, in UI px.
+export const hoverCard = {
+  delayMs: 60,
+  gap: 14,
+};
+
+const sections = { zombie, player, villager, world, population, sight, feel, floaters, objectHighlight, hoverCard };
 
 // Lay a file's numbers over the defaults; a missing file or section changes nothing.
 export function load(json) {

@@ -9,6 +9,7 @@ import glob
 import hashlib
 import json
 import os
+import re
 import sys
 
 root = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -191,6 +192,120 @@ if not isinstance(feel.get("blend"), bool):
     fail("tuning.feel.blend: true or false")
 if not (isinstance(feel.get("blendJump"), (int, float)) and not isinstance(feel.get("blendJump"), bool) and feel["blendJump"] > 0):
     fail("tuning.feel.blendJump: a number above 0")
+num = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)
+if not (num(feel.get("netDelaySteps")) and feel["netDelaySteps"] >= 1):
+    fail("tuning.feel.netDelaySteps: a number of at least 1")
+if not (num(feel.get("netSlew")) and 0 < feel["netSlew"] <= 1):
+    fail("tuning.feel.netSlew: a number above 0 and at most 1")
+if not (num(feel.get("netJump")) and feel["netJump"] > 0):
+    fail("tuning.feel.netJump: a number above 0")
+# The floating numbers over heads (#294): the numbers are sane, the colours are hex, and every gather names a verb that exists and one of the fourteen skills' icons.
+fl = load("data/tuning.json").get("floaters", {})
+for key in ["life", "riseTiles", "startLift", "fontPx", "iconScale", "maxActive"]:
+    if not (num(fl.get(key)) and fl[key] > 0):
+        fail(f"tuning.floaters.{key}: a number above 0")
+if not (num(fl.get("fadeFrom")) and 0 <= fl["fadeFrom"] < 1):
+    fail("tuning.floaters.fadeFrom: a number from 0 up to (not including) 1")
+for key in ["drift", "lightAbove", "staggerLines"]:
+    if not (num(fl.get(key)) and fl[key] >= 0):
+        fail(f"tuning.floaters.{key}: a number, 0 or more")
+for key in ["damageColor", "healColor", "gatherLight", "gatherDark"]:
+    if not (isinstance(fl.get(key), str) and re.fullmatch(r"#[0-9a-fA-F]{6}", fl[key])):
+        fail(f"tuning.floaters.{key}: a colour like #rrggbb")
+skill_ids = re.findall(r'\{ id: "([a-z]+)", name:', open("src/ui/skill-icons.js", encoding="utf-8").read())
+if len(skill_ids) != 14:
+    fail(f"src/ui/skill-icons.js: fourteen skills expected, found {len(skill_ids)}")
+verb_names = set()
+for src in glob.glob("src/*.js") + glob.glob("src/entities/*.js"):
+    verb_names |= set(re.findall(r'verbs\.define\("([a-z_]+)"', open(src, encoding="utf-8").read()))
+for verb, spec in fl.get("gathers", {}).items():
+    if verb not in verb_names:
+        fail(f"tuning.floaters.gathers: no verb {verb!r}")
+    if not (isinstance(spec, list) and len(spec) == 2 and spec[0] in skill_ids and isinstance(spec[1], str)):
+        fail(f"tuning.floaters.gathers.{verb}: [one of the skills, the verb result's field]")
+# Rugs (#327): an item with a `rug` names a sprite that is a rug with the bed's facings (2 by 3 along y, 3 by 2 along x), a 1 by 4 decor item with an icon, and a drawn picture.
+for it in items:
+    if "rug" in it:
+        sp = it["rug"]
+        sprite_json = load(f"data/sprites/{sp}.json") if os.path.exists(f"data/sprites/{sp}.json") else None
+        if not sprite_json or not sprite_json.get("rug"):
+            fail(f"item {it['id']}: rug {sp!r} is not a sprite with rug true")
+        else:
+            fp = sprite_json.get("facingFootprint", {})
+            if fp.get("y") != [2, 3] or fp.get("x") != [3, 2] or sprite_json.get("facings") != ["y", "x"]:
+                fail(f"sprite {sp}: a rug has facings y and x with footprints [2, 3] and [3, 2]")
+        if it.get("kind") != "decor" or it.get("size") != [1, 4] or not it.get("icon"):
+            fail(f"item {it['id']}: a rug item is kind decor, 1 by 4, with an icon")
+# Paintings (#326): an item with a `painting` is small (2 by 2, one slot), tall (2 by 3, both slots) or wide (3 by 2, two sections), a decor item with an icon and a held picture, and the
+# `decor_paintings` sheet draws it on both walls (`<id>_north`, `<id>_west`).
+paint_def = load("data/sprites/decor_paintings.json") if os.path.exists("data/sprites/decor_paintings.json") else {}
+for it in items:
+    if "painting" in it:
+        want = {"small": [2, 2], "tall": [2, 3], "wide": [3, 2]}.get(it["painting"])
+        if want is None:
+            fail(f"item {it['id']}: painting is small, tall, or wide")
+        elif it.get("size") != want:
+            fail(f"item {it['id']}: a {it['painting']} painting is {want[0]} by {want[1]}")
+        if it.get("kind") != "decor" or not it.get("icon") or not it.get("held"):
+            fail(f"item {it['id']}: a painting item is kind decor, with an icon and a held picture")
+        for side in ("north", "west"):
+            if f"{it['id']}_{side}" not in paint_def.get("images", {}) or f"{it['id']}_{side}" not in paint_def.get("anchors", {}):
+                fail(f"item {it['id']}: data/sprites/decor_paintings.json has no {it['id']}_{side} picture and anchor")
+# The woods (#334): a wall definition with a `wood` has a table of that name in data/wood_tones.json, a name, post and parts sheets that exist, and, if it names a `leaf`, a wall of a wood without
+# a leaf of its own; a build entry of a region's wood names a wall that is `region`; a door's or window's `leaf` choices are the woods with leaves of their own.
+tones = load("data/wood_tones.json") if os.path.exists("data/wood_tones.json") else {"tables": {}}
+wood_walls = {}
+for path in sorted(glob.glob("data/sprites/*.json")):
+    d = load(path)
+    w = d.get("wall") if isinstance(d, dict) else None
+    if w and w.get("wood"):
+        wood_walls[os.path.basename(path)[:-5]] = w
+for sid, w in wood_walls.items():
+    if w["wood"] not in tones["tables"]:
+        fail(f"sprite {sid}: wall.wood {w['wood']!r} has no table in data/wood_tones.json")
+    if not w.get("name"):
+        fail(f"sprite {sid}: a wood wall has a name")
+    for part in ("post", "parts"):
+        if not os.path.exists(f"data/sprites/{w.get(part)}.json"):
+            fail(f"sprite {sid}: wall.{part} {w.get(part)!r} is not a sprite definition")
+    if w.get("leaf") and (w["leaf"] not in wood_walls or wood_walls[w["leaf"]].get("leaf")):
+        fail(f"sprite {sid}: wall.leaf {w['leaf']!r} is not a wood wall with leaves of its own")
+# Every tone a role names is in every wood's table (a wood with leaves of its own), so a missing tone fails here and not only in the pane's pixel check; a table that is only part of a wall (daub's
+# limewashed fills) names only tones the roles do, and the wall that has it takes its leaves from a full one.
+role_tones = sorted({h for hs in tones.get("roles", {}).values() for h in hs})
+hex_re = re.compile(r"#[0-9a-fA-F]{6}")
+for wood, table in tones.get("tables", {}).items():
+    full = any(w["wood"] == wood and not w.get("leaf") for w in wood_walls.values())
+    if full:
+        missing = [h for h in role_tones if h not in table]
+        if missing:
+            fail(f"wood_tones: the {wood} table lacks {len(missing)} tone(s) the roles name: {', '.join(missing[:4])}")
+    else:
+        stray = [h for h in table if h not in role_tones]
+        if stray:
+            fail(f"wood_tones: the {wood} table has tone(s) no role names: {', '.join(stray[:4])}")
+    bad = [f"{k}->{v}" for k, v in table.items() if not (hex_re.fullmatch(k) and hex_re.fullmatch(v))]
+    if bad:
+        fail(f"wood_tones: the {wood} table has a value that is no #rrggbb: {', '.join(bad[:3])}")
+for key, e in load("data/build.json").items():
+    if e.get("region") and not (e.get("sprite") in wood_walls and wood_walls[e["sprite"]].get("region")):
+        fail(f"build {key}: a region entry names the wall of a region's wood")
+    if e.get("sprite") in wood_walls and wood_walls[e["sprite"]].get("region") and not e.get("region"):
+        fail(f"build {key}: a region's wood is offered only with Free building on: mark it `region`")
+# Object Highlight (#301): the outline's colour is hex, its alpha is 0 to 1, and the hit test is asked again every so many ms.
+oh = load("data/tuning.json").get("objectHighlight", {})
+if not (isinstance(oh.get("color"), str) and re.fullmatch(r"#[0-9a-fA-F]{6}", oh["color"])):
+    fail("tuning.objectHighlight.color: a colour like #rrggbb")
+if not (num(oh.get("alpha")) and 0 < oh["alpha"] <= 1):
+    fail("tuning.objectHighlight.alpha: a number above 0, up to 1")
+if not (num(oh.get("refreshMs")) and oh["refreshMs"] > 0):
+    fail("tuning.objectHighlight.refreshMs: a number above 0")
+# The hover card (#262): the pointer rests this long before it shows, and it sits this far from the pointer.
+hc = load("data/tuning.json").get("hoverCard", {})
+if not (num(hc.get("delayMs")) and hc["delayMs"] >= 0):
+    fail("tuning.hoverCard.delayMs: a number, 0 or more")
+if not (num(hc.get("gap")) and hc["gap"] >= 0):
+    fail("tuning.hoverCard.gap: a number, 0 or more")
 tuning_world = load("data/tuning.json")["world"]
 if tuning_world["stumpSprite"] not in sprites:
     fail(f"tuning.world.stumpSprite: no sprite {tuning_world['stumpSprite']!r}")
@@ -214,6 +329,8 @@ if not (soil["wetDays"] > 0 and soil["fillCost"] > 0 and all(v > 0 for v in soil
     fail("crops.soil: wetDays, fillCost and the seconds are all above 0")
 for kind, c in crops["crops"].items():
     check_id(f"crops.{kind}.seed", c["seed"])
+    if not isinstance(c.get("name"), str) or not c["name"]:
+        fail(f"crops.{kind}: a name for its labels (\"Harvest potatoes\")")
     check_id(f"crops.{kind}.harvest", c["harvest"]["item"])
     if c["seed"] in item_defs and "seed" not in item_defs[c["seed"]].get("tags", []):
         fail(f"crops.{kind}: the seed item {c['seed']!r} lacks the tag 'seed'")

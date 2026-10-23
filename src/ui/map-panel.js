@@ -6,6 +6,7 @@
 
 import * as chart from "../chart.js";
 import * as iso from "../iso.js";
+import { smallFamily } from "./small-text.js";
 
 const CHUNK = 16;
 export const ZOOMS = [2, 4, 8]; // pixels of height of a tile's diamond; its width is twice that
@@ -23,7 +24,6 @@ let root = null;
 let canvas = null;
 let ctx = null;
 let open = false;
-let font = "11px sans-serif";
 const view = { zoom: 1, gx: 0, gy: 0, following: true };
 const drawn = new Map(); // "cx,cy" -> { canvas, v, h, last }; one not drawn for a while is dropped (a whole explored valley at the close zoom would hold tens of MB)
 const revealed = new Set(); // place indexes with a charted tile (the chart never un-charts, so one yes is for good)
@@ -52,8 +52,6 @@ export function initMapPanel() {
   document.getElementById("ui").appendChild(root);
   canvas = root.querySelector("canvas");
   ctx = canvas.getContext("2d");
-  const f = getComputedStyle(document.body).fontFamily;
-  if (f) font = `11px ${f}`;
   root.addEventListener("mousedown", (e) => e.stopPropagation());
   root.addEventListener("contextmenu", (e) => e.preventDefault());
   root.querySelector(".mp-x").addEventListener("click", close);
@@ -298,7 +296,7 @@ export function update(state) {
     ctx.drawImage(e.canvas, left, top);
   }
   if (frames % FORGET_EVERY === 0) for (const [k, e] of drawn) if (frames - (e.last ?? 0) > FORGET_EVERY) drawn.delete(k);
-  ctx.font = font;
+  ctx.font = `11px ${smallFamily()}`; // the place names are small text (ui/small-text.js)
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
   // A place's name, once any of its tiles is charted; one that would sit on another's is left out.

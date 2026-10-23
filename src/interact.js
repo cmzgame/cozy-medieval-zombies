@@ -25,7 +25,7 @@ import { getDef } from "./assets.js";
 import { canPutDown, putDownTarget, canCarry, propRect } from "./placement.js";
 import * as placement from "./placement.js";
 import * as grid from "./grid.js";
-import { autoWalk, eat, drink, isFull } from "./entities/player.js";
+import { autoWalk, eat, drink } from "./entities/player.js";
 import { showMessage } from "./ui/prompt.js";
 import { pokeVillager, startTalk, endTalk } from "./entities/villager.js";
 import { lootOf } from "./entities/character.js";
@@ -34,6 +34,7 @@ import * as loop from "./loop.js";
 import * as use from "./use.js"; // the Use entry on item menus (docs/30, law 2)
 import * as verbs from "./verbs.js"; // the verb table (docs/31/08, habit 4)
 import * as farming from "./farming.js"; // till, plant, water, harvest (#194)
+import * as inspectMark from "./inspect-mark.js"; // the tile marked while an Inspect's line shows
 import * as bucket from "./bucket.js"; // the bucket item: fill at water, pour on a plot (#199)
 import { lineOfSight } from "./visibility.js";
 import { canReach, reachProblem } from "./reach.js"; // one reach test: distance and a clear line (#208)
@@ -48,6 +49,8 @@ import * as sight from "./sight.js";
 import { tiredStage } from "./moodles.js";
 import * as stations from "./stations.js"; // what a prop is as a station (docs/30, section 6)
 import * as stationPanel from "./ui/station-panel.js";
+import * as rugs from "./rugs.js"; // a rug laid from the bag and picked up again (#327)
+import * as paintings from "./paintings.js"; // a painting hung on a wall from the bag and taken down again (#326)
 
 export const INTERACT_RANGE = 1.15; // tiles
 export const SEARCH_TIME = 1.0;
@@ -81,6 +84,7 @@ const onEdge = (o) => ({ kind: "edge", tx: o.tx, ty: o.ty, edge: o.edge });
 const onBracket = (b) => ({ kind: "bracket", tx: b.tx, ty: b.ty, edge: b.edge });
 const onItem = (entry, tx, ty) => ({ kind: "item", uid: entry.uid, tile: [tx, ty] });
 const onCharacter = (c) => ({ kind: "character", id: c.id });
+const onPainting = (h) => ({ kind: "painting", tx: h.tx, ty: h.ty, edge: h.edge }); // a hung painting, by the segment that holds it (#326)
 
 // The actions on an address, rebuilt here from the world (a host's, for a guest's command).
 export function actionsForTarget(t, player) {
@@ -113,6 +117,10 @@ export function actionsForTarget(t, player) {
     const [mx, my] = map.bracketPos(b);
     return tag(holderActions({ kind: "bracket", bracket: b, mx, my }, player), t);
   }
+  if (t.kind === "painting") {
+    const held = paintings.holderOf(Math.round(Number(t.tx)), Math.round(Number(t.ty)), t.edge === "w" ? "w" : "n");
+    return held ? tag(paintingActions(held, player), onPainting(held)) : [];
+  }
   if (t.kind === "character") {
     const c = t.id === player.id ? player : allCharacters().find((q) => q.id === t.id);
     return c ? tag(characterActions(c, player), t) : [];
@@ -124,7 +132,7 @@ export function actionsForTarget(t, player) {
 // chosen from this player's own menu (the walk there, the timed bar, the message, all the host's).
 export function performByLabel(player, target, label) {
   const a = actionsForTarget(target, player).find((q) => q.label === label);
-  if (!a) return false;
+  if (!a || a.local) return false; // a local action (Inspect) is the asking client's own: never run for another
   runAction(player, a);
   return true;
 }
@@ -293,6 +301,42 @@ function carryAction(prop, player) {
       return true;
     },
   });
+}
+
+// A laid rug's Pick up (#327): rolls it back into the bag, or at the player's feet if the bag is full. Furniture standing on it refuses ("Move the table off it first"):
+// the action is offered all the same, and says why when it is chosen. Also E, when nothing else is the nearest simple thing in reach.
+function rugActions(prop, player) {
+  if (!prop.rugItem) return [];
+  const def = getItem(prop.rugItem);
+  return [act({
+    kind: "rug",
+    simple: true,
+    label: `Pick up ${def ? def.name.toLowerCase() : "rug"}`,
+    tiles: prop.tiles,
+    mx: prop.tile[0],
+    my: prop.tile[1],
+    perform() {
+      return rugs.pickUp(player, prop);
+    },
+  })];
+}
+
+// A hung painting's Pick up (#326): takes it down into the bag, or at the player's feet if the bag is full. `held` is paintings.holderOf's answer: the segment that holds it and its record.
+function paintingActions(held, player) {
+  const def = getItem(held.rec.item);
+  const [mx, my] = paintings.floorTile(held.tx, held.ty);
+  return [act({
+    kind: "painting",
+    simple: true,
+    label: `Pick up ${def ? def.name.toLowerCase() : "painting"}`,
+    tiles: paintings.tilesOf(held.rec.item, held.tx, held.ty, held.edge),
+    range: paintings.REACH - 0.2,
+    mx,
+    my,
+    perform() {
+      return paintings.takeDown(player, held.tx, held.ty, held.edge);
+    },
+  })];
 }
 
 // Whether the carried prop could stand with its anchor at (tx, ty): the rule
@@ -558,16 +602,55 @@ function cropActions(prop, player) {
     return r.ok;
   };
   const out = [];
-  const cropTool = farming.cropDef(prop.crop.kind).tool;
+  const def = farming.cropDef(prop.crop.kind);
+  const cropTool = def.tool;
   const noTool = cropTool && toolProblem(player, cropTool);
-  if (farming.stageOf(prop) >= 2) out.push(act({ ...base, kind: "harvest", simple: !noTool, label: noTool ? `Harvest (need a ${toolName(cropTool)})` : "Harvest", enabled: !noTool, duration: soil.seconds.harvest, perform: run("harvest") }));
+  // Each label names the crop (Michael's playtest, 2026-10-19: with potatoes beside the cabbages, E's bare "Harvest" took the potatoes,
+  // which the cottage's shovel digs, and seemed to need no tool, while the cabbage beside them wanted a dirk).
+  if (farming.stageOf(prop) >= 2) out.push(act({ ...base, kind: "harvest", simple: !noTool, label: noTool ? `Harvest ${def.name} (need a ${toolName(cropTool)})` : `Harvest ${def.name}`, enabled: !noTool, duration: soil.seconds.harvest, perform: run("harvest") }));
   else {
     const days = Math.max(1, Math.ceil(farming.daysLeft(prop)));
     out.push(act({ ...base, kind: "harvest", label: farming.isWet(prop) ? `Growing (ready in about ${days} day${days > 1 ? "s" : ""})` : `Dry: waiting for water (about ${days} more day${days > 1 ? "s" : ""} of growth)`, enabled: false }));
   }
   const skin = farming.skinFor(player, null);
   out.push(act({ ...base, kind: "water", label: skin ? "Water" : "Water (no water in a skin)", duration: soil.seconds.water, enabled: !!skin, perform: run("water") }));
+  out.push(inspectCropAction(prop, base));
   return out;
+}
+
+// Inspect a crop (Michael, 2026-10-19): what it is, how long until it is ready, whether it is watered or fertilized, and what harvests
+// it, said in a line, with the patch's tile marked on the ground while the line shows (inspect-mark.js). It only reads the world, so it
+// runs on this client alone, a guest's too (`local`: never sent to the host), from wherever the patch is seen, never walking there.
+export const INSPECT_RANGE = 12; // tiles
+function inspectCropAction(prop, base) {
+  return act({
+    ...base,
+    kind: "inspect",
+    label: "Inspect",
+    range: INSPECT_RANGE,
+    local: true,
+    perform() {
+      showMessage(cropReport(prop), 6);
+      inspectMark.mark(prop.tiles);
+      return true;
+    },
+  });
+}
+
+export function cropReport(prop) {
+  const def = farming.cropDef(prop.crop.kind);
+  const name = def.name[0].toUpperCase() + def.name.slice(1);
+  const parts = [];
+  const wet = farming.isWet(prop);
+  if (farming.stageOf(prop) >= 2) parts.push("ready to harvest", wet ? "watered" : "dry");
+  else {
+    const days = Math.max(1, Math.ceil(farming.daysLeft(prop))); // as the menu's Growing line counts it
+    const left = `about ${days} day${days > 1 ? "s" : ""}`;
+    parts.push(wet ? `ready in ${left}` : `${left} of growing left`, wet ? "watered" : "dry, waiting for water");
+  }
+  parts.push("not fertilized"); // nothing fertilizes yet (the composter, #275's Farming)
+  parts.push(def.tool ? `harvest with a ${toolName(def.tool)}` : "harvest by hand");
+  return `${name}: ${parts.join("; ")}.`;
 }
 
 // A tile's farming (#194): the hoe in a hand tills bare grass or dirt, a seed carried is planted in empty soil.
@@ -675,6 +758,13 @@ function treeActions(prop, player) {
   })];
 }
 
+// Unsafe water (Michael, 2026-10-19, #279): all natural water, water tiles and wells, is unsafe until purified, and a Drink from it says
+// "(tainted)", as Zomboid's does. `tuning.water.clean` names the sources that are safe (none yet); a skin's water is tainted unless its
+// entry is marked clean (nothing marks one yet).
+const cleanWater = (sprite) => (tuning.water?.clean || []).includes(sprite);
+const skinTainted = (entry) => !entry.clean;
+const drinkLabel = (entry, pct) => `Drink (${skinTainted(entry) ? "tainted, " : ""}${pct}%)`;
+
 // Water to drink and fill from: the well (infinite, docs/02 question 16) and, since docs/30
 // law 8, any water tile beside you (the river, a pond, the mere). `source` is
 // { tiles, mx, my, name, onStart? }.
@@ -684,7 +774,7 @@ function waterActions(source, player) {
     act({
       kind: "water",
       simple: player.thirst < 90,
-      label: `Drink from the ${source.name}`,
+      label: `Drink from the ${source.name}${source.clean ? "" : " (tainted)"}`,
       tiles: source.tiles,
       mx: source.mx,
       my: source.my,
@@ -716,7 +806,7 @@ function waterActions(source, player) {
 }
 
 function wellActions(prop, player) {
-  return waterActions({ tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] - 0.6, name: prop.sprite.replace(/_/g, " "), onStart: () => play(prop) }, player); // the bucket goes down for the water; named for what it is (a trough, a font: the wiki census's bugs, 2026-10-15)
+  return waterActions({ tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] - 0.6, name: prop.sprite.replace(/_/g, " "), clean: cleanWater(prop.sprite), onStart: () => play(prop) }, player); // the bucket goes down for the water; named for what it is (a trough, a font: the wiki census's bugs, 2026-10-15)
 }
 
 // A water tile's actions, from its bank; with a fishing rod in hand, the cast. The wait is rolled as the cast starts (on the authority: a
@@ -770,6 +860,7 @@ function pointInRect(x, y, r) {
 // uses lists them all.
 function propActions(prop, player) {
   if (player.carrying) return [];
+  if (getDef(prop.sprite).rug) return rugActions(prop, player); // a laid rug has one action: Pick up (#327)
   const out = [];
   if (prop.container) out.push(...containerActions(prop));
   if (prop.fire && prop.fire.burns) out.push(...fireActions(prop, player));
@@ -868,12 +959,19 @@ export function actionsAt(sx, sy, player) {
       out.push(...tag(propActions(prop, player), onProp(prop)));
     }
   }
+  // A rug under the cursor's tile: its Pick up, with Walk here still offered beside it (#327).
+  const rugHere = map.peekTile(tx, ty)?.rug;
+  const rugActs = rugHere ? tag(rugActions(rugHere, player), onProp(rugHere)) : [];
   for (const o of openingsAtScreen(sx, sy)) out.push(...tag(openingActions(o, player), onEdge(o)));
+  const hung = paintings.paintingAt(sx, sy); // a painting hung on a wall face under the cursor: its Pick up, with Walk here beside it (#326)
+  const paintActs = hung ? tag(paintingActions(hung, player), onPainting(hung)) : [];
+  out.push(...paintActs);
   for (const b of map.bracketsNear(g.gx, g.gy, 0.8)) out.push(...tag(holderActions({ kind: "bracket", bracket: b.bracket, mx: b.mx, my: b.my }, player), onBracket(b.bracket)));
   const under = characterAt(sx, sy, player);
   if (under) out.push(...tag(characterActions(under, player), onCharacter(under)));
   else if (playerAt(sx, sy, player)) out.push(...tag(characterActions(player, player), onCharacter(player)));
-  if (out.length === farmActs.length + bucketActs.length && map.isWalkableTile(tx, ty)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty))); // nothing else here (Till and Plant do not stand in for it)
+  out.push(...rugActs); // after the characters': a villager standing on the rug is the thing pointed at (#327)
+  if (out.length === farmActs.length + bucketActs.length + rugActs.length + paintActs.length && map.isWalkableTile(tx, ty)) out.push(...tag([walkAction([tx, ty])], onTile(tx, ty))); // nothing else here (Till and Plant do not stand in for it)
   return out;
 }
 
@@ -923,6 +1021,19 @@ export function nearestSimpleAction(player) {
     if (Math.abs(c.gx - player.gx) > 3 || Math.abs(c.gy - player.gy) > 3) continue;
     if ((c.kind === "zombie" || c.kind === "player") && c.dead && c.corpse) consider(tag(characterActions(c, player), onCharacter(c)));
     else if (c.kind === "villager" && !c.dead) consider(tag(characterActions(c, player), onCharacter(c))); // E talks to the nearest villager (docs/34)
+  }
+  // A laid rug is under the player's feet as often as not, so it is E's last resort: Pick up only when nothing else is in reach (#327).
+  if (!best) {
+    const seenRugs = new Set();
+    for (let dy = -2; dy <= 2; dy++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        const r = map.peekTile(px + dx, py + dy)?.rug;
+        if (r && !seenRugs.has(r)) {
+          seenRugs.add(r);
+          consider(tag(rugActions(r, player), onProp(r)));
+        }
+      }
+    }
   }
   return best;
 }
@@ -984,9 +1095,15 @@ export function approachTile(action, player) {
   return best;
 }
 
-// Do an action now if in range, else walk over and do it on arrival.
+// Do an action now if in range, else walk over and do it on arrival. A `local` action (Inspect) only reads the world: it runs here, on a
+// guest too, and only from where it can be done; it never walks.
 export function runAction(player, action) {
   if (action.enabled === false) return;
+  if (action.local) {
+    if (canReach(player, action.tiles, action.range)) startAction(player, action);
+    else showMessage("You can't see it well from here.");
+    return;
+  }
   if (canReach(player, action.tiles, action.range)) {
     startAction(player, action);
     return;
@@ -1180,10 +1297,9 @@ function toggleTorch(player) {
   showMessage("You take the torch in hand. T lights it.");
 }
 
-// Eat one of a food entry (the bag's menu, the belt's menu and its key all come here; a guest's reach it as the host's command, so the
-// word below reaches it through the acting player). Refused with a word when the belly is full (#186); true when one was eaten.
+// Eat one of a food entry (the bag's menu, the belt's menu and its key all come here; a guest's reach it as the host's command). Eaten
+// full or not (Michael, 2026-10-18); true when one was eaten.
 function eatOne(player, entry, def, take) {
-  if (isFull(player)) { showMessage("You are full."); return false; }
   if (!eat(player, def)) return false;
   entry.count -= 1;
   if (entry.count <= 0) take();
@@ -1215,6 +1331,10 @@ export function itemMenu(player, entry, bag, otherBag) {
   const mine = bag === bagOf(player);
   // Use: pick the thing up as what you are about to use on something (docs/30, law 2; Michael, 2026-10-12).
   out.push({ label: "Use", enabled: true, onSelect: () => use.begin(entry, { kind: "bag", bag }) });
+  // A rug is laid from the bag: Place begins the ghost on the floor (placement.js; #327).
+  if (def.rug && mine) out.push({ label: "Place", enabled: true, onSelect: () => placement.beginRug(entry) });
+  // A painting is hung from the bag: Place begins the ghost on a wall's face (placement.js; #326).
+  if (def.painting && mine) out.push({ label: "Place", enabled: true, onSelect: () => placement.beginPainting(entry) });
   if (def.hands && mine) {
     if (def.hands === "either") {
       // A weapon fits either hand: the main hand swaps what is there, the off hand takes a second weapon (docs/21).
@@ -1246,7 +1366,7 @@ export function itemMenu(player, entry, bag, otherBag) {
   }
   if (def.capacity) {
     const pct = Math.round(entry.fill ?? 0);
-    out.push({ label: `Drink (${pct}%)`, enabled: pct > 0, onSelect: () => drink(player, entry) });
+    out.push({ label: drinkLabel(entry, pct), enabled: pct > 0, onSelect: () => drink(player, entry) });
   }
   if (def.splitsInto && mine) {
     const s = def.splitsInto;
@@ -1331,7 +1451,7 @@ export function slotMenu(player, slotId) {
       out.push({ label: "Eat", enabled: true, onSelect: () => { eatOne(player, entry, bdef, () => { belt[Number(key)] = null; }); } });
     } else if (bdef.capacity) {
       const pct = Math.round(entry.fill ?? 0);
-      out.push({ label: `Drink (${pct}%)`, enabled: pct > 0, onSelect: () => drink(player, entry) });
+      out.push({ label: drinkLabel(entry, pct), enabled: pct > 0, onSelect: () => drink(player, entry) });
     } else out.push({ label: "Equip", enabled: true, onSelect: () => equipFrom(player, entry) });
     out.push({
       label: "Put in bag",

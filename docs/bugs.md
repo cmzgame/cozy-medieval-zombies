@@ -17,9 +17,10 @@
 ## Open: likely bugs
 
 - **`check("sync")` reports a chunk-count difference when the players are far from the spawn** (found testing #196's iron workings, 2026-10-18, on `main`; reproduced in two tabs). The host evicts the wild chunks far from every player (`evictChunks`), the guest's replica keeps what it was sent, so with both players 110 tiles from the spawn the host holds fewer chunks and props than the guest and the map and registry parts differ (e.g. host 162 chunks, 6715 props; guest 168, 6876). Nothing is wrong in play that the check can see, but it means the check cannot pass far from the spawn, and the guest holds chunks the host no longer has. Likely fix: the guest drops what the host dropped (the frame names evicted chunks), or the check compares only the chunks both hold.
-- **A guest is never told "A fire has gone out."** (found reading the code for #197, on `main`): `src/main.js` ~1626 shows the line for the host's own player only; `src/host.js` forwards `craftDone` and `torchSpent` to a guest but has no `fireOut`, and a server world tells nobody. A guest tending a clamp or a forge never hears it die.
 - **`check("growth")`'s "a mutator grows its chunk" row fails on a second run in the same page** (found 2026-10-18): the far chunk the first run grew stays grown, so the row's premise (it was ungrown) is gone. The check should pick a chunk it has not grown or restore the map.
 - **A guest who leaves mid-action shows its messages on the host's screen** (found reviewing #193 on `main` at its merge of #192; read from the code, not reproduced). `src/net.js` ~642: on `leave` the guest is dropped from `guests`, but its character stays for the grace and a timed action it began (a cast, a pick, a chop) still completes; `net.messageTo` then returns false (no guest), so the host's message and log sinks (`src/host.js` ~264-272) fall through and show "You catch a perch." on the host's own screen and log. Likely fix: the sinks swallow a message for a player whose guest is gone (or cancel its timed action on leave).
+
+- **The hover card's plurals add an "s" and its names are lower-cased** (found syncing the wiki for #313, 2026-10-20, read from the code at `8af4eed`, *needs repro*). `src/item-info.js`, the `splitsInto` line ("Splits into N <name>s") and the "Goes into" and "Builds" lines: an item whose plural is not "+s", or whose name keeps a capital ("Onion-head Hat", "Staff of Fire"), would read oddly. Likely fix: a `plural` (and kept case) per item in the data where the rule fails.
 
 - **`check("build")` fails 9 of 11 on `main`** (found reviewing #227, on `main` at `0e765f7`, fresh tab): "the player's own wall with a door removed is still the player's own" and "a new door built over a broken stamped one remembers the wall under it". Not a play bug found; 11 of 11 in my run after other checks in the same tab, so it may depend on what ran first.
 
@@ -36,6 +37,7 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 
 (Move items here with the commit that fixed them.)
 
+- [x] **A guest was never told "A fire has gone out."** (found reading the code for #197): fixed: `host.js` forwards `fireOut` as a screen message to every guest whose player stands within `world.fireOutRadius`, as the host's own player is told; tried with a guest beside a campfire burning out, in two tabs.
 - [x] **Chopping was the one tool action with no clear-line check** (found reviewing #210): fixed in #208: one reach test, `src/reach.js`, distance and a clear line, for every player action (the chop, the menu's actions, a craft's station and ingredients, the panels, a poke, the bed, the fire); `check("reach")`.
 
 - [x] **Chopping a tree needs no tool and leaves no stump** (the census's line in Closed below, "not built yet"): built in #195: a hatchet in hand, a stump left, the stump chopped for a log.

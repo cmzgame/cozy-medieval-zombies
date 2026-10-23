@@ -127,8 +127,21 @@ export async function run(game) {
     const foodBefore = count("potato");
     const seedsBefore = count("potato_seed");
     const list = labels({ kind: "prop", id: crop.id });
-    row("a ready crop's menu offers Harvest (and E, a simple action)", list.includes("Harvest") && G.interact.actionsForTarget({ kind: "prop", id: crop.id }, me).find((a) => a.label === "Harvest").simple === true, list.join(", "));
-    const did = G.interact.performByLabel(me, { kind: "prop", id: crop.id }, "Harvest");
+    row("a ready crop's menu offers Harvest potatoes, the crop named (and E, a simple action)", list.includes("Harvest potatoes") && G.interact.actionsForTarget({ kind: "prop", id: crop.id }, me).find((a) => a.label === "Harvest potatoes").simple === true, list.join(", "));
+    // Inspect (Michael, 2026-10-19): a line of what it is and how it stands, and the patch's tile marked; this client's own, never sent.
+    {
+      const mark = await import("/src/inspect-mark.js");
+      mark.clear();
+      const ins = G.interact.actionsForTarget({ kind: "prop", id: crop.id }, me).find((a) => a.label === "Inspect");
+      if (ins) G.interact.runAction(me, ins);
+      const m = mark.marked();
+      const report = G.interact.cropReport(crop);
+      row("Inspect: offered, local (never sent to the host), and it marks the patch's tile", !!ins && ins.local === true && !!m && m.tiles.length === crop.tiles.length && m.tiles.every(([x, y], i) => x === crop.tiles[i][0] && y === crop.tiles[i][1]), ins ? `${ins.label}, local ${ins.local}` : "no Inspect");
+      row("Inspect sent by label (as a guest's command would be) is refused: the host never runs another client's local action", (mark.clear(), G.interact.performByLabel(me, { kind: "prop", id: crop.id }, "Inspect") === false) && !mark.marked(), "refused");
+      row("Inspect's line: the crop, ready, watered, not fertilized, and the tool that harvests it", /^Potatoes: ready to harvest; watered; not fertilized; harvest with a shovel\.$/.test(report), report);
+      mark.clear();
+    }
+    const did = G.interact.performByLabel(me, { kind: "prop", id: crop.id }, "Harvest potatoes");
     for (let i = 0; i < 100 && me.action; i++) G.interact.updateAction(me, 0.1);
     const [lo, hi] = crops.potato.harvest.count;
     const gotFood = count("potato") - foodBefore;
@@ -314,7 +327,7 @@ export async function run(game) {
     G.inventory.stow(me, bucket);
     row("a new bucket is empty", (bucket.fill ?? 0) === 0, `fill ${bucket.fill}`);
     const atPond = G.interact.actionsForTarget({ kind: "tile", tile: pond }, me);
-    row("carried in the bag, it offers Fill the bucket at the pond (and the waterskin's own entries are unchanged)", atPond.some((a) => a.label === "Fill the bucket" && a.enabled) && atPond.some((a) => a.label === "Drink from the water"), atPond.map((a) => a.label).join(", "));
+    row("carried in the bag, it offers Fill the bucket at the pond (and the waterskin's own entries are unchanged)", atPond.some((a) => a.label === "Fill the bucket" && a.enabled) && atPond.some((a) => a.label === "Drink from the water (tainted)"), atPond.map((a) => a.label).join(", "));
     row("an empty bucket cannot pour, and nothing growing needs a pour", !G.verbs.run("pour", G.world, me, { tile: pond }).ok && /empty/.test(G.verbs.run("pour", G.world, me, { tile: pond }).reason), String(G.verbs.run("pour", G.world, me, { tile: pond }).reason));
     const filledBy = G.interact.performByLabel(me, { kind: "tile", tile: pond }, "Fill the bucket");
     for (let i = 0; i < 100 && me.action; i++) G.interact.updateAction(me, 0.1);
