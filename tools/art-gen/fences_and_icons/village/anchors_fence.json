@@ -1,0 +1,203 @@
+{
+ "wall_fence_north_plain": {
+  "anchor_px": [
+   -1,
+   33
+  ],
+  "size": [
+   38,
+   53
+  ]
+ },
+ "wall_fence_north_door_shut": {
+  "anchor_px": [
+   -1,
+   34
+  ],
+  "size": [
+   38,
+   54
+  ]
+ },
+ "wall_fence_north_door_open": {
+  "anchor_px": [
+   -1,
+   34
+  ],
+  "size": [
+   38,
+   54
+  ]
+ },
+ "door_open_fence_north": {
+  "anchor_px": [
+   19,
+   31
+  ],
+  "size": [
+   29,
+   46
+  ]
+ },
+ "door_open_fence_north_30": {
+  "anchor_px": [
+   -3,
+   32
+  ],
+  "size": [
+   16,
+   50
+  ]
+ },
+ "door_open_fence_north_60": {
+  "anchor_px": [
+   5,
+   31
+  ],
+  "size": [
+   16,
+   49
+  ]
+ },
+ "boards_gate_north_1": {
+  "anchor_px": [
+   8,
+   21
+  ],
+  "size": [
+   39,
+   24
+  ]
+ },
+ "boards_gate_north_2": {
+  "anchor_px": [
+   8,
+   29
+  ],
+  "size": [
+   39,
+   39
+  ]
+ },
+ "boards_gate_north_3": {
+  "anchor_px": [
+   8,
+   28
+  ],
+  "size": [
+   39,
+   39
+  ]
+ },
+ "wall_fence_west_plain": {
+  "anchor_px": [
+   39,
+   33
+  ],
+  "size": [
+   38,
+   53
+  ]
+ },
+ "wall_fence_west_door_shut": {
+  "anchor_px": [
+   39,
+   34
+  ],
+  "size": [
+   38,
+   54
+  ]
+ },
+ "wall_fence_west_door_open": {
+  "anchor_px": [
+   39,
+   34
+  ],
+  "size": [
+   38,
+   54
+  ]
+ },
+ "door_open_fence_west": {
+  "anchor_px": [
+   10,
+   31
+  ],
+  "size": [
+   29,
+   46
+  ]
+ },
+ "door_open_fence_west_30": {
+  "anchor_px": [
+   19,
+   32
+  ],
+  "size": [
+   16,
+   50
+  ]
+ },
+ "door_open_fence_west_60": {
+  "anchor_px": [
+   11,
+   31
+  ],
+  "size": [
+   16,
+   49
+  ]
+ },
+ "boards_gate_west_1": {
+  "anchor_px": [
+   31,
+   23
+  ],
+  "size": [
+   39,
+   28
+  ]
+ },
+ "boards_gate_west_2": {
+  "anchor_px": [
+   31,
+   28
+  ],
+  "size": [
+   39,
+   40
+  ]
+ },
+ "boards_gate_west_3": {
+  "anchor_px": [
+   31,
+   30
+  ],
+  "size": [
+   39,
+   43
+  ]
+ },
+ "post_fence": {
+  "anchor_px": [
+   7,
+   39
+  ],
+  "size": [
+   14,
+   43
+  ]
+ },
+ "_fence": {
+  "height": 36,
+  "thickness": 6,
+  "tones": [
+   "#c6b38e",
+   "#b5a27e",
+   "#8d7b5f",
+   "#5f5241"
+  ],
+  "note": "anchor_px is the tile's top vertex at ground level for every piece except post_fence, whose anchor is its own centre at ground; height and thickness are the fence's definition numbers"
+ }
+}

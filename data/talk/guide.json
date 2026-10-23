@@ -242,7 +242,7 @@
   "food": {
    "say": [
     "Bread, cheese, apples, anything in a chest or a barrel.",
-    "A food on your belt eats with its key. You will not eat if you are full.",
+    "A food on your belt eats with its key. Food mends you hungry or full, and a full belly mends faster on its own.",
     "Cooked food fills more than raw. Any lit fire that cooks will do, and the oven bakes."
    ],
    "options": [
@@ -409,7 +409,7 @@
    "say": [
     "A hoe in a hand turns bare grass or dirt to soil. Seed goes in soil, and water keeps it growing.",
     "Watered soil stays wet for two days. A dry crop only pauses. It never dies.",
-    "Harvest when it is ripe, with the tool for it carried: a shovel for potatoes and garlic, a knife for cabbage and pumpkin, a scythe for rye. A few seeds come back and the soil stays.",
+    "Harvest when it is ripe, with the tool for it carried: a shovel for potatoes and garlic, a dirk for cabbage and pumpkin, a scythe for rye. A few seeds come back and the soil stays.",
     "A scythe takes the ripe rye on the three tiles ahead at a swing.",
     "The granaries at Hollow Farm and the mill keep seed of every crop."
    ],
@@ -464,8 +464,8 @@
   "cloth": {
    "say": [
     "Flax grows like any crop. The loom turns two flax into linen cloth, and cloth into bandages, a cap, breeches, or a tunic.",
-    "A knife on you tears an old garment into rags at a workbench, and a rag will do where a recipe wants cloth.",
-    "The weaver's chest has flax seed and a knife in it, if nobody has been."
+    "A dirk on you tears an old garment into rags at a workbench, and a rag will do where a recipe wants cloth.",
+    "The weaver's chest has flax seed and a dirk in it, if nobody has been."
    ],
    "options": [
     {

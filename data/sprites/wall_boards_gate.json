@@ -1,0 +1,38 @@
+{
+ "anchorVertex": "top",
+ "images": {
+  "boards_door_north_1": "data/art/village/boards_gate_north_1.png",
+  "boards_door_north_2": "data/art/village/boards_gate_north_2.png",
+  "boards_door_north_3": "data/art/village/boards_gate_north_3.png",
+  "boards_door_west_1": "data/art/village/boards_gate_west_1.png",
+  "boards_door_west_2": "data/art/village/boards_gate_west_2.png",
+  "boards_door_west_3": "data/art/village/boards_gate_west_3.png"
+ },
+ "anchors": {
+  "boards_door_north_1": [
+   8,
+   21
+  ],
+  "boards_door_north_2": [
+   8,
+   29
+  ],
+  "boards_door_north_3": [
+   8,
+   28
+  ],
+  "boards_door_west_1": [
+   31,
+   23
+  ],
+  "boards_door_west_2": [
+   31,
+   28
+  ],
+  "boards_door_west_3": [
+   31,
+   30
+  ]
+ },
+ "note": "boards across a shut fence gate (art round 3, #332), one to three, named as the house boards are so the wall renderer reads them by the fence's `wall.boards`"
+}

@@ -11,6 +11,8 @@ Closes #
 if the save or the world changed, python -I tools/validate-data.py, the spec's acceptance, the check()s in the pane;
 screenshots or a short clip for anything visible. -->
 
+For a change to what an item (or a debuff) does: its hover card, read in the pane, and still true (Michael, 2026-10-20). Or: no item changed.
+
 ## The guest's side
 
 <!-- The six points of CLAUDE.md's multiplayer rule ("The two rules of shipping"), each answered by its number.

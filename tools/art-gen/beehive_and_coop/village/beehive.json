@@ -1,0 +1,15 @@
+{
+ "anchorVertex": "top",
+ "images": {
+  "idle_0": "data/art/village/beehive_0.png",
+  "bees_1": "data/art/village/beehive_1.png",
+  "bees_2": "data/art/village/beehive_2.png"
+ },
+ "anchor": [
+  23,
+  17
+ ],
+ "interactable": true,
+ "carry": false,
+ "note": "a straw skep on a plank stand (docs/29-world/09, 1.5.11): a gatherable, outlined, sways on click. bees_1 and bees_2 are optional click frames (bees stirring at the entrance); to use them add clickAnim {frames: [bees_1, bees_2, bees_1], ms: [160, 260, 160]} and the sway stops, as the well's does"
+}

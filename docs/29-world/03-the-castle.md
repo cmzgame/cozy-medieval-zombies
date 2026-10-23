@@ -111,7 +111,7 @@ Three rooms: the **kitchen** (a wide hearth with a spit, two tables, hanging pot
 
 ### The herb garden
 
-Twelve by ten of farm soil inside a hedge, with the **herb crops** (new gatherables: sage, yarrow, feverfew, nettle; three stages each, same recipe as the crops): the ingredients `05` names for the infection's cure. A gardener's shed with a hoe, a watering can, seeds. **Earns its place:** the only cultivated herbs in 1.0; the witch's are wild.
+Twelve by ten of farm soil inside a hedge, with the **herb crops** (new gatherables: sage, yarrow, feverfew, nettle; three stages each, same recipe as the crops): the ingredients `05` names for the infection's cure, which is found beyond the valley (`02` 2026-10-19). A gardener's shed with a hoe, a watering can, seeds. **Earns its place:** the only cultivated herbs in 1.0; the witch's are wild.
 
 ### The pleasure garden
 
@@ -132,7 +132,7 @@ The **stables** against the east wall: eight stalls (stall partitions as a low w
 ### The towers
 
 - **North-west, the watch**: a brazier, a ladder against the wall, a horn on a peg, a bed, a view through its slits up the river. The lookout.
-- **North-east, the wizard's study**: bookshelves (wall props), a desk, a scorched circle on the floor (an authored decal), a stand with **the staff of fire** on it and **the book of fire** open on the desk (both items exist, art and all, `24`; this room is where they come from), jars, a skull, a stuffed crow. The door was barred from inside; the wizard is here, dead, in robes (a robe is a long tunic with a dye). **Earns its place:** the magic items of 1.0 come from one room, and the room says why they exist.
+- **North-east, the wizard's study**: bookshelves (wall props), a desk, a scorched circle on the floor (an authored decal), a stand with **the staff of fire** on it and **the book of fire** open on the desk (both items exist, art and all, `24`; this room is where they come from), jars, a skull, a stuffed crow. (Corrected, `02` 2026-10-19: the wizard is alive, a teacher, #181, so his body and the door barred from inside are gone; where he lives is for the map.) **Earns its place:** the magic items of 1.0 come from one room, and the room says why they exist.
 - **South-west, the dungeon**: three cells behind `wall_bars` with their doors open, chains on the walls, a rat? (no animals), a prisoner's bones. One cell holds the dead jailer.
 - **South-east**: the treasury that stood here (coin, silver cups, a crown, a strongbox) was cut with coin on 2026-10-12 (`02`; what the page said of it is in `docs/history/29-world-ideation.md`); what the fourth tower holds is open until step 5 is scoped.
 

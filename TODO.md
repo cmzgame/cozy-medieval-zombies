@@ -9,7 +9,7 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 *Primary's:* each step ends with Michael playing it and saying it is done; the pace is set by his play and his rulings, not by the build.
 
 1. **The valley and skilling** (`01 ·`). Done when Michael can sit down for an hour of production, stocking up, and building and it feels like playing a game, not testing one: no dead end, no resource stoppage, no "now what?". Not final art, not balanced; fulfilling, OSRS-style, a second-monitor semi-idle game. *Primary's test of it:* whatever breaks that hour goes on a short list, and the step is done when the list is empty.
-2. **Zombies and combat** (`02 ·`): every weapon you can get without leaving the valley feels good against the standard dead. The difficulty pass (#89, #133), the siege (#147), darkness. **Free placeholder sounds** come in here (hits, groans, footsteps), for feel and immersion; one the wiki may not host stays off the wiki, not out of the game.
+2. **Zombies and combat** (`02 ·`): every weapon you can get without leaving the valley feels good against the standard dead. The difficulty pass (#89, #133), the siege (#147), darkness. **Free placeholder sounds** come in here (hits, groans, footsteps), for feel and immersion, or sooner: they are part of the Valley's finish, timed by its scope (#271, `02` 2026-10-18); one the wiki may not host stays off the wiki, not out of the game.
 3. **The demo** (`03 ·`): the horde demo (`docs/36`), also the first build strangers play.
 4. **Playing together, and telemetry** (`04 ·`), before the outside playtest and ideally earlier: Michael's evening with his brother over a server world (possible today: make a world, Move to the server with the creator key, and he joins by its code), then Play with friends for everyone (#143) and telemetry (#144).
 5. **The first outside playtest** (`05 ·`): people who are not Michael or his brother, on dev art (*Primary's:* five to ten, watched, with telemetry). Nothing is paid for before this.
@@ -21,27 +21,58 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
-## Status (2026-10-17, night)
+## Status (2026-10-20, paused by Michael: art round 3 wired in full; the atlas in pages)
 
-Merged since the sweep, all reviewed and synced to the wiki: the menus and the site (#120, #125, #128, #129, #131), the player cap (#138), Trees off keeping the mushrooms (#149), the window law (#140), the aim guide off by default (#141), darkness shortening sight (#150, #173: the dark hides information, never physics; a shuttered room dark by day; a belt torch at 0.6), the siege (#151, #152, #155, #171: the dead remember the door, wait until dawn, burst a fence in a crowd and never give up on a fenced house while they know you are in it; no sleep in a siege; doors and windows built onto walls), torches that burn down, the tinderbox, lanterns, the flare, and the light verb (#157, #164, #165, #169, #172: lighting any fire needs a flame carried; a bracket works as a post), the wordmark in Pirata One (#163, #166), and the roadmap (#160) with Michael's rulings of the day (#137, #145, #148, #153). **Next for a Secondary:** #136, the starting kit as a world choice, half built on the pushed branch `secondary/136-kit` (no PR; what is left is on the issue); then #175 (a lantern lights a torch), #174 (a spread crowd never bursts a fence), #154, #159, #161. **Open with Michael:** whether the dead that know you are inside press a fence with no time limit (built that way in #171, his to overrule); the brother evening over a server world; his combat session (#89, #133); draft 2 of the game's shape (#123). The bot account is still flagged (#71, which lists the hidden issues today's work overtook).
+**Where to pick up:** work is paused at Michael's word ("pause work when this bug fix is done"). Nothing is in flight. Start the next session by asking Michael for his focus.
+
+**Art round 3 is done, every piece merged and the wiki synced:**
+- the everyday items' art (#337, closing #331);
+- the beehive and the chicken coop (#338, #340 Hollow Farm's yard; #333);
+- the drawn fence and its swinging gate, buildable (#343; #332);
+- rugs as items (#339, #342; #327);
+- paintings as items, hung on a wall's face (#344; #326);
+- the woods: six wall types, the valley mixed in oak, spruce, mahogany, and daub, and a door or window in any wood (#348, #351; #334).
+
+**Fixed the same day:**
+- coming back without a body: the sprite atlas was full, and is now in pages (#354; #353);
+- the Place-ghost rows of `check("paintings")` and `check("decor")` (#346; #345);
+- `check("build")` reading 9/11, a bite cancelling the timed build (#352; #349).
+
+**Ruled 2026-10-20** (`docs/02`):
+- Faith: Smite as a share of the hit, prayer by level, Consecrate Ground lights (#336);
+- fences and gates buildable now, only the gate swings;
+- the woods are wall types, never paint, and doors and windows may be any wood; only Winter Pine and Bloodbark are restricted (#347). Primary's three readings were agreed (#350): plain planks, the regions' woods only with Free building, and daub's doors oak.
+
+**For Michael to look at when he plays:**
+- which valley building got which wood (the builder's list, `docs/02` "The woods as wall types, built");
+- Bloodbark goes near-black at night away from a light (flagged, not tuned; the lever is in `wood_tones.json`);
+- the shared world zoom setting reads "auto" after the reviews; set it as he likes.
+
+**Waiting on Michael:**
+- the sounds spec's six questions (#310);
+- #341: a multi-tile prop across a chunk edge vanishing on a guest, and two players lifting one piece of furniture;
+- #324 (hardening the small-text scan, no rush);
+- the earlier list (#271's items, #275's parked crop tools).
+
+**The design agent's worktree** (`C:/Users/micha/Dev/cozy-medieval-zombies-art`, branch `art-docs`) was fast-forwarded to main on 2026-10-20; its deliveries sit under `deliveries/`, untracked.
 
 ## Open work, by milestone
 
 Issues #18 to #55 were filed by the bot and are hidden while it is flagged. **The ones the valley needs are filed again with new scopes** (Michael, 2026-10-18, `docs/02`), each naming the number it stands for; when the bot is back, each original is read against what was built and closed (#71). The rest stay hidden for their own steps.
 
 - **00 · Process and infrastructure:** the bot's reinstatement #71; the wiki's publishing build without `--check` #3; the wiki's loose ends #68.
-- **00 · Bugs:** a guest's held-out pose when it drinks #122; `check("players")` after `check("save")` #132. An unverified bug goes to `docs/bugs.md`.
-- **01 · The valley and skilling:** a hatchet fells a tree and leaves a stump #195 (was #18); mining, the iron workings and the quarry #196, and charcoal #197 (both from #25); fishing #190 (apple trees built, #192; fishing in #193); the starting kit as data and a world choice #136; torches burn down, the tinderbox, lanterns #156; hiding a worn item's art #159; building's leftovers #104; the NPC pass #103; region, never biome #135; Take All #10; the engine's chores (#124, #100, #99).
-- **01 · The valley: farming (big pass step 4)** (`docs/30` sections 8 to 10): farming #194 (was #20); the bucket #199 (was #22); the farms and the mill, flour with them #201 (was #21 and half of #23); the scythe #200 (was the other half of #23). Lighting a fire (#19) is built (#169).
+- **00 · Bugs:** a duplication count for the sync check #101 (with 04). An unverified bug goes to `docs/bugs.md`.
+- **01 · The valley and skilling:** the wizard #181 (waits on the teaching design: skills and learned recipes, unscoped, Michael's); building's leftovers #104; the NPC pass #103; region, never biome #135 (PR #255, held); the engine's chores (#124, #100, #99 with PR #256 held). Built and closed on 2026-10-17 and 18: #10, #136, #156, #159, #190, #195, #196, #197, #208, #215, #236.
+- **01 · The valley: farming (big pass step 4)** (`docs/30` sections 8 to 10): built (#194, #199, #200, #201, and cloth #212 closed).
 - **01 · The valley: the 1.0 map, steps 5 to 9** (`docs/30` section 11): the map's open questions #92; fishing joined apple trees in #190 (was #28). Still hidden for later: the castle and the bridge road #24; the forest places #25 beyond the mine and the charcoal burners; dressing and the edges #26; chickens, deer, the tannery #27.
-- **01 · The valley: talk** (`docs/34`): the data, barks, and the guide #198 (was #37 and #38); conversations and the guide's questions #202 (was #39).
-- **01 · The valley: the map on M** (`docs/33`): the chart #203 (was #35); the panel #204 (was #36).
+- **01 · The valley: talk** (`docs/34`): built (#198 and #202 closed).
+- **01 · The valley: the map on M** (`docs/33`): built (#203 and #204 closed).
 - **01 · The menus and the site** (`docs/38`): #16; Michael's fullscreen check #112.
-- **01 · Art owed (docs/26):** the hand items #46; the tools #47; the icons and portraits #48; the art exporter #44; the spot checks #45; the art asks #105.
-- **02 · Zombies and combat:** the combat pass #89 (after Michael's session); armour and difficulty #133; the siege #147; darkness's loose ends #158.
+- **01 · Art owed (docs/26):** bag icons first, the everyday items still on placeholder blocks (48 of the items), with the fish, the rod, the bucket, the Onion-head Hat's icon and portrait added since #182; the hand items #46; the tools #47; the icons and portraits #48; the art exporter #44; the spot checks #45; the art asks #105.
+- **02 · Zombies and combat:** the combat pass #89 (after Michael's session); armour and difficulty #133.
 - **02 · Better animations** (`docs/32`): #29 to #34 and the elbow's next poses.
 - **03 · The demo** (`docs/36`): the scenario layer #40; the set #41; the horde and the run's limits #42; the score, the end, and the entry #43.
-- **04 · Playing together, and telemetry:** Play with friends #143; telemetry #144; the Full dot #139; speech lines on a server world #154; the seams #102; a duplication count for the sync check #101.
+- **04 · Playing together, and telemetry:** Play with friends #143; telemetry #144; the Full dot #139; a guest's arrows step every third frame #250; the seams #102; a duplication count for the sync check #101.
 - **07 · The name:** the business decisions of `docs/35` #94.
 - **10 · The regions and release:** the game's final shape #123.
 - **Hidden, their milestones unseen until the bot is back (#71):** the background probe #49; the fireball's cost and area #50; the throwing knives and axes #51; the floor stamp in build mode #52 (likely moot now the map is generated, Primary's reading; read when the bot is back); the painted held slot #53; more one-handed weapons #54; `docs/12`'s spec sheet #55. #50, #51, and #54 belong to `02 ·`; moving them is on #71's list.

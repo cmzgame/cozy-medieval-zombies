@@ -12,6 +12,7 @@ import * as interact from "../interact.js";
 import * as tuning from "../tuning.js";
 import * as use from "../use.js";
 import { showMessage } from "./prompt.js";
+import { refreshCorpse } from "../entities/character.js"; // a body drawn without what was taken
 import { canReach } from "../reach.js"; // distance and a clear line (#208)
 
 function slotGet(player, id) {
@@ -40,6 +41,44 @@ function slotSet(player, id, entry) {
 function detachFrom(player, entry, from) {
   if (from.kind === "bag") grid.remove(from.bag, entry);
   else if (slotGet(player, from.id) === entry) slotSet(player, from.id, null);
+}
+
+// Take All (#10): everything in a container's grid into the player's bag, in the grid's order (top to bottom, left to right); what does not fit the bag goes to a free
+// belt slot if it belongs there (a hand item, a food, a skin, the tinderbox: `canPlace`); what fits neither stays behind. A bag that holds things does not nest
+// (canStoreIn): such a bag stays where it is (a non-empty bag is not worn instead; Michael's to rule) and is counted apart as `nested`, not as `left`, so the word is not
+// "full" with a half-empty bag. Returns { moved, left, nested, noBag }. Never the player's own bag. Runs wherever the player's actions run: the host's own click, or a guest's command on the host.
+export function takeAllFrom(player, from, h = createInventoryActions(() => player)) {
+  const mine = inventory.bagOf(player);
+  const result = { moved: 0, left: 0, nested: 0, noBag: false };
+  if (!mine) { result.noBag = !!from; return result; }
+  if (!from || from === mine) return result;
+  const belt = inventory.beltOf(player);
+  for (const e of [...from.items].sort((a, b) => a.y - b.y || a.x - b.x)) {
+    const before = e.count;
+    if (inventory.canStoreIn(e) && grid.transfer(from, mine, e)) { result.moved++; continue; }
+    if (belt && e.count > 0) {
+      const i = belt.indexOf(null);
+      if (i >= 0 && h.canPlace(e, `belt:${i}`)) {
+        grid.remove(from, e);
+        belt[i] = e;
+        result.moved++;
+        continue;
+      }
+    }
+    if (e.count < before) result.moved++; // a stack that went in in part
+    if (!inventory.canStoreIn(e)) result.nested++; // a bag with things in it: it stays, whatever room there is
+    else result.left++;
+  }
+  return result;
+}
+
+// The one word for what Take All left, for the host's own click and a guest's command alike (#10): no bag on your back; a bag with things in it staying (nothing but those
+// stayed); the bag full (with or without some of it gone in). "" when nothing stayed.
+export function takeAllWord(r) {
+  if (r.noBag) return "You have no bag.";
+  if (r.left) return r.moved ? "Your bag is full: the rest stays." : "Your bag is full.";
+  if (r.nested) return "A bag with things in it stays: empty it first.";
+  return "";
 }
 
 function restoreTo(player, entry, from) {
@@ -146,6 +185,13 @@ export function createInventoryActions(getPlayer) {
     noRoom(intoBag) {
       showMessage(intoBag ? "No room in your bag." : "No room in there.");
     },
+    // The Take All button on a container's panel (#10).
+    takeAll(bag) {
+      const r = takeAllFrom(getPlayer(), bag);
+      const word = takeAllWord(r);
+      if (word) showMessage(word);
+      return r;
+    },
     // The grid's own moves, here as well as on the wire's side (Michael's playtest, 2026-10-14: nothing could be dragged
     // between bags or within one). The panel once did these itself when a handler was missing; main.js's switch between
     // the local and the remote handlers took a missing local one to mean "the remote one", which only sends to a host,
@@ -221,7 +267,8 @@ export function createRemoteInventoryActions(getPlayer, getOpen, send) {
   };
   // Use begins here as it does alone, with the bag's address kept on the mode, since the replica's bag
   // object is new with every frame (main.js's sender reads it when the click lands).
-  const remoteMenu = (entries, more) => entries.map((en) => (en.label === "Use" ? en : { ...en, onSelect: () => send({ op: "menu", label: en.label, ...more }) }));
+  const LOCAL = new Set(["Use", "Place"]); // each only begins a mode on this screen (Use mode, a rug's ghost); the command that follows is the mode's own
+  const remoteMenu = (entries, more) => entries.map((en) => (LOCAL.has(en.label) ? en : { ...en, onSelect: () => send({ op: "menu", label: en.label, ...more }) }));
   const useFromBag = (entries, entry, bag, address) => entries.map((en) => (en.label === "Use" ? { ...en, onSelect: () => use.begin(entry, { kind: "bag", bag, address }) } : en));
   return {
     ...local,
@@ -250,6 +297,10 @@ export function createRemoteInventoryActions(getPlayer, getOpen, send) {
     tidy(bag) {
       const a = addressOf(bag);
       if (a) send({ op: "tidy", bag: a });
+    },
+    takeAll(bag) {
+      const a = addressOf(bag);
+      if (a && !a.mine) send({ op: "takeall", bag: a });
     },
     itemMenu(entry, bag, otherBag) {
       const from = addressOf(bag);
@@ -317,6 +368,16 @@ export function performItemCommand(player, c) {
   const { touched, containerOf, fromOf, entryIn } = resolvers(player);
   let ran = false;
   if (c.op === "hide") return typeof c.slot === "string" && inventory.toggleHidden(player, c.slot) !== null; // a guest's eye: the same toggle, on the host
+  if (c.op === "takeall") {
+    const to = containerOf(c.bag);
+    if (!to || to.bag === inventory.bagOf(player)) return false;
+    const r = takeAllFrom(player, to.bag, h);
+    const word = takeAllWord(r);
+    if (word) showMessage(word);
+    if (to.corpse) refreshCorpse(to.corpse); // what was taken comes off its body
+    for (const [tx, ty] of touched) map.markDirty(tx, ty);
+    return r.moved > 0 || r.left > 0 || r.nested > 0 || r.noBag;
+  }
   if (c.op === "tidy") {
     const to = containerOf(c.bag);
     if (to) grid.tidy(to.bag);
@@ -366,7 +427,7 @@ export function performItemCommand(player, c) {
       entries = h.itemMenu(entry, from.bag, other ? other.bag : null);
     }
     const en = entries.find((q) => q.label === c.label);
-    if (en && en.enabled && en.label !== "Use") {
+    if (en && en.enabled && en.label !== "Use" && en.label !== "Place") {
       en.onSelect();
       ran = true;
     }

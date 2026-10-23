@@ -68,7 +68,26 @@ const [px, py] = [Math.round(p.gx), Math.round(p.gy)];
 map.setFloor(px + 3, py + 3, "floor_dirt"); did("a floor set");
 const e = map.dropItem(px + 2, py + 2, { id: "stick", count: 1 }); did("an item dropped");
 map.takeItem(px + 2, py + 2, e); did("an item taken");
-if (map.canBuildWall(px + 5, py + 5, "n")) { map.buildWall(px + 5, py + 5, "n", "wall"); did("a wall built"); map.destroyWall(px + 5, py + 5, "n"); did("a wall destroyed"); }
+if (map.canBuildWall(px + 5, py + 5, "n")) {
+  map.buildWall(px + 5, py + 5, "n", "wall"); did("a wall built");
+  // A painting hung on its face from the bag (#326) and taken down, then hung again and dropped with the wall (a hanging is the wall's state: map.touch marks the chunk).
+  const paintings = await import("../src/paintings.js");
+  p.gx = px + 5; p.gy = py + 6;
+  const art = items.makeEntry("painting_small_oak", 1);
+  inventory.stow(p, art);
+  if (!paintings.hang(p, art.uid, px + 5, py + 5, "n")) fail("the painting was not hung");
+  did("a painting hung");
+  paintings.takeDown(p, px + 5, py + 5, "n"); did("a painting taken down");
+  paintings.hang(p, art.uid, px + 5, py + 5, "n");
+  map.destroyWall(px + 5, py + 5, "n"); did("a wall destroyed with a painting on it");
+  map.takeItem(px + 5, py + 5, map.itemsAt(px + 5, py + 5).find((q) => q.id === "painting_small_oak"));
+}
+// A window of another wood than its wall (#334): the leaf is on the wall, marked with the chunk by buildWall.
+if (map.canBuildWall(px + 7, py + 5, "n")) {
+  map.buildWall(px + 7, py + 5, "n", "wall", "wall_mahogany");
+  map.buildWall(px + 7, py + 5, "n", "window", "wall_mahogany", "wall_spruce"); did("a window of another wood built");
+  map.destroyWall(px + 7, py + 5, "n"); did("a window of another wood taken down");
+}
 const at = [px + 4, py - 3];
 const bench = map.createProp({ sprite: "workbench", tile: at, footprint: [1, 1] });
 map.placeProp(bench, at[0], at[1]); did("a prop placed");

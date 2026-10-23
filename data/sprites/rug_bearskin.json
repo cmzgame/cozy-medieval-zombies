@@ -1,0 +1,33 @@
+{
+ "anchorVertex": "top",
+ "facings": [
+  "y",
+  "x"
+ ],
+ "facingFootprint": {
+  "y": [
+   2,
+   3
+  ],
+  "x": [
+   3,
+   2
+  ]
+ },
+ "drawings": {
+  "y": {
+   "image": "data/art/decor/rug_bearskin.png",
+   "anchor": [
+    77,
+    -15
+   ]
+  },
+  "x": {
+   "from": "y",
+   "mirror": true
+  }
+ },
+ "carry": false,
+ "note": "a laid rug (docs/02, 2026-10-20, \"Paintings and rugs are items\"; #327): a flat 2 by 3 drawing on the ground plane, long side along y as drawn, along x as its mirror, as the bed; no outline (you walk on it). `rug` puts it in the tile's rug slot, under whatever stands on it, so furniture may stand on it and it never blocks. It is made by placing the item of the same name from the bag and gives that item back (src/rugs.js).",
+ "rug": true
+}

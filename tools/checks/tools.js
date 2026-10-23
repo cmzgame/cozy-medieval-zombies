@@ -163,9 +163,9 @@ export async function run(game) {
     const tableNo = can("table");
     const bowNo = can("bow");
     const handleNo = can("handle");
-    row("a table, a bow, and sticks from a plank are each refused without their tool, by name", /smith's hammer/.test(tableNo) && /knife/.test(bowNo) && /hatchet/.test(handleNo), `${tableNo} | ${bowNo} | ${handleNo}`);
+    row("a table, a bow, and sticks from a plank are each refused without their tool, by name", /smith's hammer/.test(tableNo) && /dirk/.test(bowNo) && /hatchet/.test(handleNo), `${tableNo} | ${bowNo} | ${handleNo}`);
     stowTool("hammer");
-    row("a hammer carried in the bag lets the table through and not the bow", can("table") === true && /knife/.test(can("bow")), `${can("table")} | ${can("bow")}`);
+    row("a hammer carried in the bag lets the table through and not the bow", can("table") === true && /dirk/.test(can("bow")), `${can("table")} | ${can("bow")}`);
     stripTools();
     me.hands.main = G.items.makeEntry("knife", 1);
     row("a knife in a hand lets the bow and the arrows through and not the table", can("bow") === true && can("arrows") === true && /hammer/.test(can("table")), `${can("bow")} | ${can("table")}`);
@@ -186,7 +186,7 @@ export async function run(game) {
     G.teleport(x + 0.5, y + 0.9);
     step();
     const harvest = (c) => G.verbs.run("harvest", G.world, me, { prop: c.id });
-    const trials = [["rye", "harvest", "scythe", "scythe"], ["potato", "dig", "shovel", "shovel"], ["garlic", "dig", "shovel", "shovel"], ["cabbage", "cut", "knife", "belt knife"], ["pumpkin", "cut", "knife", "belt knife"]];
+    const trials = [["rye", "harvest", "scythe", "scythe"], ["potato", "dig", "shovel", "shovel"], ["garlic", "dig", "shovel", "shovel"], ["cabbage", "cut", "knife", "dirk"], ["pumpkin", "cut", "knife", "dirk"]];
     let dx = 0;
     for (const [kind, verb, tool, name] of trials) {
       const c = sow(kind, dx);
@@ -202,7 +202,7 @@ export async function run(game) {
     }
     const menuCrop = sow("cabbage", dx++);
     const menuNo = G.interact.actionsForTarget({ kind: "prop", id: menuCrop.id }, me).find((a) => /^Harvest/.test(a.label));
-    row("a ripe cabbage's menu says Harvest (need a belt knife), greyed", !!menuNo && !menuNo.enabled && /knife/.test(menuNo.label), menuNo ? menuNo.label : "none");
+    row("a ripe cabbage's menu says Harvest (need a dirk), greyed", !!menuNo && !menuNo.enabled && /dirk/.test(menuNo.label), menuNo ? menuNo.label : "none");
 
     // Apples stay by hand.
     const tree = map.createProp({ sprite: "tree_apple", tile: [x + 4, y] });

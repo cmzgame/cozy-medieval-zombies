@@ -39,6 +39,12 @@ import * as kit from "./ui/kit.js";
 import * as cursor from "./ui/cursor.js";
 import * as log from "./ui/log.js";
 import { initNames, updateNames } from "./ui/names.js";
+import * as floatersUi from "./ui/floaters.js"; // the numbers over heads (#294)
+import * as hoverCardUi from "./ui/hover-card.js"; // the card over an item (#262)
+import { initSmallText } from "./ui/small-text.js"; // very small text in a clear sans-serif (#321)
+import * as debuffRow from "./ui/debuff-row.js"; // the row of debuffs at the top right (#308)
+import * as objectHighlight from "./highlight.js"; // the outline on the object under the cursor (#301)
+import * as floaters from "./floaters.js";
 import * as use from "./use.js";
 import * as interactions from "./interactions.js";
 import * as startingKit from "./kit.js"; // the starting kit (#136)
@@ -53,6 +59,8 @@ import * as net from "./net.js";
 import * as stations from "./stations.js";
 import * as stationPanel from "./ui/station-panel.js";
 import * as talkPanel from "./ui/talk-panel.js"; // a villager's conversation, on the kit (docs/34, #202)
+import * as inspectMark from "./inspect-mark.js"; // the tile an Inspect marks (interact.js)
+import * as navRow from "./ui/nav-row.js"; // the buttons bottom right, one per panel (#295)
 import * as interact from "./interact.js";
 import * as items from "./items.js";
 import * as inventory from "./inventory.js";
@@ -61,6 +69,7 @@ import * as settings from "./settings.js";
 import * as screens from "./ui/screens.js";
 import * as figure from "./figure.js";
 import * as placement from "./placement.js";
+import * as woods from "./woods.js"; // the woods: a door or window of another wood than its wall (#334)
 import * as combat from "./combat.js";
 import * as buildPalette from "./ui/build-palette.js";
 import * as mapPanel from "./ui/map-panel.js";
@@ -199,6 +208,7 @@ function closeModes() {
   panel.closeAll();
   stationPanel.close();
   talkPanel.close();
+  navRow.closeSkills();
   placement.cancel();
   use.cancel();
   buildPalette.close();
@@ -236,11 +246,16 @@ function afterWorldSet() {
   panel.closeAll();
   stationPanel.close();
   talkPanel.close();
+  navRow.closeSkills();
   placement.cancel();
   use.cancel();
   buildPalette.close();
   mapPanel.close();
   mapPanel.forgetDrawn();
+  floatersUi.clear(); // a world put back has none of the last one's numbers
+  objectHighlight.clear();
+  inspectMark.clear(); // nor its marked tile
+  floaters.reset();
   light.update();
   if (!glError) ground.invalidateAll();
   for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
@@ -480,6 +495,7 @@ function toSite(page, data = {}) {
   panel.closeAll();
   stationPanel.close();
   talkPanel.close();
+  navRow.closeSkills();
   placement.cancel();
   use.cancel();
   buildPalette.close();
@@ -808,7 +824,7 @@ function openActionsMenu(m) {
   // A guest's choice goes to the host by its address and label (net.js, docs/31/05 item 10); the host walks
   // the guest's player there and performs it. Building stays this client's own until it is a command too.
   const guest = net.isGuest();
-  const entries = actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => (guest ? net.sendAct(a.target, a.label) : interact.runAction(S.player, a)) }));
+  const entries = actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => (guest && !a.local ? net.sendAct(a.target, a.label) : interact.runAction(S.player, a)) })); // a local action (Inspect) is this client's own
   // Build is in every menu, in case the key is forgotten (Michael, 2026-10-12).
   entries.push({ label: "Build", enabled: !S.player.carrying && !panel.isOpen(), onSelect: toggleBuild });
   const u = view.toUi(m.x, m.y);
@@ -851,10 +867,11 @@ function applyPause() {
 function handleEscape() {
   if (!inWorld) { screens.back(); return; } // no world: the title and its screens only
   if (menu.tookEscape()) return;
+  if (screens.back()) return; // a screen is over every panel (the row's Menu button opens the pause menu with panels open), so it goes first
   if (use.cancel()) return; // Use mode is the top thing that can close
   if (stationPanel.close()) return;
   if (talkPanel.close()) return; // Escape closes a conversation in the panels' order
-  if (screens.back()) return;
+  if (navRow.closeSkills()) return;
   if (buildPalette.isOpen()) {
     buildPalette.close();
     return;
@@ -1181,6 +1198,7 @@ function stepGame(dt) {
   // Who the next swing would hit, flagged for the renderer's outline (docs/14).
   combat.markTargets(S.player, S.zombies, settings.get("showSwingTargets"));
   updateInventoryUi();
+  navRow.update({ bag: panel.isBagOpen(), character: panel.isCharacter(), map: mapPanel.isOpen(), build: buildPalette.isOpen() }); // after the panels answered the keys
   refreshFigure();
 }
 
@@ -1199,11 +1217,13 @@ function renderUi() {
   uiSimTime = now;
   panel.renderInventoryPanel(S.player, inventory.bagOf(S.player), openBag ? openBag.bag : null, inventory.beltOf(S.player));
   updateHud({ player: S.player });
+  debuffRow.updateDebuffs(S.player); // the row at the top right, from this player's own record (#308)
   updatePrompt(interact.promptFor(S.player, S.progress), S.progress);
   updateZombieBars(S.zombies, visible, S.player);
   updateSwingTimer(S.player);
   updateSpeech(S.others, visible, S.player, dt);
   updateNames(S.players, visible, S.player);
+  if (floatersUi.active()) floatersUi.update(dt, [...S.players, ...S.zombies, ...S.villagers, ...S.corpses], visible, S.player); // the numbers over heads, from the same blended positions
   mapPanel.update({ player: S.player, players: S.players, places: (S.info && S.info.places) || [] });
   updateMessage(dt);
 }
@@ -1228,11 +1248,16 @@ async function restoreWorld(snap) {
   panel.closeAll();
   stationPanel.close();
   talkPanel.close();
+  navRow.closeSkills();
   placement.cancel();
   use.cancel();
   buildPalette.close();
   mapPanel.close();
   mapPanel.forgetDrawn();
+  floatersUi.clear();
+  objectHighlight.clear();
+  inspectMark.clear();
+  floaters.reset();
   light.update();
   if (!glError) ground.invalidateAll();
   visible = visibility.computeVisible(Math.round(at.gx), Math.round(at.gy), tiles);
@@ -1287,7 +1312,10 @@ function render() {
     drawAll,
     fog: !drawAll,
     ghost: placement.ghost(),
+    // The object under the cursor that a right-click would act on, outlined (Object Highlight, #301): asked of the step's own positions and origin, as a click is.
+    highlight: objectHighlight.update({ enabled: settings.get("objectHighlight") !== false, blocked: placement.state.active || use.isActive(), mouse: input.getMouse(), player: S.player, visible, now: performance.now() }),
     hitShapes: combat.overlays(S.player, S.zombies, settings.get("showHitShapes")),
+    tileMark: inspectMark.marked(), // the patch an Inspect speaks of
     // The tile grid shows only while building or removing (docs/15).
     grid: placement.state.kind === "build" || placement.state.kind === "remove",
   };
@@ -1342,6 +1370,7 @@ async function boot() {
   identities.migrate(); // the one name and look kept before identities become the first identity
   net.setClient(identities.clientId()); // the browser's id on every join (its hash is what a world records)
   view.init(canvas, ui);
+  initSmallText(); // the Small text setting: a class on the page that points --font-small back at the pixel font (#321)
   applyDebugCorner();
   settings.onChange((key) => {
     if (key === "debugCorner") applyDebugCorner();
@@ -1355,6 +1384,7 @@ async function boot() {
       assets.setManifest(manifestJson);
     } },
     { name: "data", label: "Reading the data", weight: 2, async run() {
+      woods.setTones(await optionalJson("data/wood_tones.json")); // the woods' tones, for a door or window of another wood than its wall (#334)
       const [itemsJson, buildJson, combatJson, posesJson, lootJson, wardrobesJson, interactionsJson] = await Promise.all([
         assets.loadJson("data/items.json"),
         assets.loadJson("data/build.json"),
@@ -1393,6 +1423,11 @@ async function boot() {
       // Everything is loaded already; this adds the two-tile variants, and a name the manifest lacks fails here with its id.
       await assets.loadMapSprites(json);
       for (const k of placement.buildKinds()) await assets.loadSprite(k.sprite); // what can be built must be drawable
+      for (const d of items.allItems()) if (d.rug) { // a rug laid from the bag must be drawable: its 2 by 3 sheet (#327)
+        const sd = await assets.loadSpriteDef(d.rug);
+        const fp = (sd.facingFootprint && sd.facingFootprint.y) || [2, 3];
+        await assets.loadSprite(d.rug, { tileCount: fp[0] * fp[1] });
+      }
     } },
     // Every outfit the wardrobes can produce is baked now, one per frame so the bar moves, so no one is baked when first seen.
     { name: "figures", label: "Dressing everyone", weight: 6, async run(progress) {
@@ -1490,9 +1525,15 @@ async function boot() {
         },
       }); // before anything can show a message
       initNames();
+      hoverCardUi.initHoverCard();
+      debuffRow.initDebuffRow();
+      floatersUi.initFloaters();
+      floaters.setGuestCheck(() => net.isGuest()); // a guest records none of its own: it draws what the host sent
       use.init();
       stationPanel.initStationPanel(() => S.player);
       talkPanel.initTalkPanel(() => S.player, () => S.villagers);
+      navRow.initNavRow({ tap: input.tap, openChat: () => log.focusChat(log.draft()), openMenu: () => screens.show("pause"), openSettings: () => screens.show("settings"), canAct: () => inWorld && !screens.currentScreen() });
+      view.onResize(() => navRow.relayout()); // the row's layout follows the interface size, a screen up or not (#307)
       initHud();
       initPrompt();
       initZombieBars();
@@ -1706,7 +1747,9 @@ async function boot() {
       host.install();
       // After the menu's own listener, so a menu closed by Escape is seen first.
       window.addEventListener("keydown", (e) => {
-        if (e.code === "Escape") handleEscape();
+        // Once a press: a held Esc (leaving a locked fullscreen, #306) does not open and close the pause menu. A repeat that closed the
+        // actions menu still spends the flag that close left, so the next real press is not swallowed.
+        if (e.code === "Escape") { if (e.repeat) menu.tookEscape(); else handleEscape(); }
       });
       // A sprite saved by the tool in another tab shows here at once (docs/23, step 3f).
       try {

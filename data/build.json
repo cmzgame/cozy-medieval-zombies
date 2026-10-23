@@ -8,6 +8,68 @@
     "seconds": 3,
     "tool": "notch"
   },
+  "wall_oak": {
+    "label": "Oak wall",
+    "kind": "wall",
+    "sprite": "wall_wood",
+    "cost": {
+      "plank": 1
+    },
+    "seconds": 3,
+    "tool": "build"
+  },
+  "wall_spruce": {
+    "label": "Spruce wall",
+    "kind": "wall",
+    "sprite": "wall_spruce",
+    "cost": {
+      "plank": 1
+    },
+    "seconds": 3,
+    "tool": "build"
+  },
+  "wall_mahogany": {
+    "label": "Mahogany wall",
+    "kind": "wall",
+    "sprite": "wall_mahogany",
+    "cost": {
+      "plank": 1
+    },
+    "seconds": 3,
+    "tool": "build"
+  },
+  "wall_daub": {
+    "label": "Daub wall",
+    "kind": "wall",
+    "sprite": "wall_daub",
+    "cost": {
+      "plank": 1
+    },
+    "seconds": 3,
+    "tool": "build"
+  },
+  "wall_winterpine": {
+    "label": "Winter Pine wall",
+    "kind": "wall",
+    "sprite": "wall_winterpine",
+    "cost": {
+      "plank": 1
+    },
+    "seconds": 3,
+    "tool": "build",
+    "region": true
+  },
+  "wall_bloodbark": {
+    "label": "Bloodbark wall",
+    "kind": "wall",
+    "sprite": "wall_bloodbark",
+    "cost": {
+      "plank": 1
+    },
+    "seconds": 3,
+    "tool": "build",
+    "region": true
+  },
   "door": {
     "label": "Door",
     "sprite": "wall_log",
@@ -20,6 +82,27 @@
   "window": {
     "label": "Window",
     "sprite": "wall_log",
+    "cost": {
+      "plank": 2
+    },
+    "seconds": 3,
+    "tool": "build"
+  },
+  "fence": {
+    "label": "Fence",
+    "kind": "wall",
+    "sprite": "wall_fence",
+    "cost": {
+      "plank": 1
+    },
+    "seconds": 2,
+    "tool": "build"
+  },
+  "gate": {
+    "label": "Gate",
+    "kind": "door",
+    "sprite": "wall_fence",
+    "over": "wall_fence",
     "cost": {
       "plank": 2
     },

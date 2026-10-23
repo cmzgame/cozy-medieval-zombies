@@ -37,7 +37,7 @@ One line per doc, with its kind (`CLAUDE.md`, "What a doc is"): a **rule** (bind
 - `30-the-big-pass-spec.md` — the big pass: the needs, every verb, the stations, fire as maintenance, durability, farming (step 4, pickable), the map place by place (steps 5 to 9, each needing a scope), the one engine list (section 12), the open questions (section 15).
 - `31-multiplayer/` — `README` the index and status; `03` play with friends, system by system (the wiki's "With friends" source); `04` the wire as built; `05` the 37 seams as a table (the numbers are cited everywhere); `08` the six habits behind `CLAUDE.md`'s multiplayer rule; `09` worlds, identities, characters, dormancy, the rejoin.
 - `32-better-animations.md` — the rig's pose data and the poses still to build (items 4 to 9; milestone Better animations).
-- `art/README.md` and `art/01-style-bible.md` — the live art reference: the folder's index and the rulebook for drawn art, the first page for a commissioned artist. `art/02` to `10` are the record of each delivery, corrected where the game moved on.
+- `art/README.md` and `art/01-style-bible.md` — the live art reference: the folder's index and the rulebook for drawn art, the first page for a commissioned artist. `art/02` to `10` are the record of each delivery, corrected where the game moved on; `art/11` is the next brief to Claude Design (the fence and the everyday items, #309).
 
 ## Specs: not built, or the unbuilt half
 
@@ -47,6 +47,8 @@ One line per doc, with its kind (`CLAUDE.md`, "What a doc is"): a **rule** (bind
 - `36-the-horde-demo.md` — one homestead, the dead without end (milestone The horde demo; #40 to #43; held until final art).
 - `35-steam-and-the-free-demo.md` — the business and marketing plan, kept vague by ruling; its decisions are #94.
 - `38-the-menus-and-the-site.md` — a game menu, not a modal over a game: the screens surveyed, Michael's rulings, the build order (milestone The menus and the site; #16, #107 to #112).
+- `39-the-valley.md` — the Valley 1.0's complete scope (#271): every place, building, station, resource, item, villager, enemy, animal, profession (the fourteen skills, levels 1 to 10, from #275), system, interaction, screen, and sound, each tagged built, change, to build, or open, with how it is unlocked; the dev values to flip to real.
+- `40-sounds.md` — sounds (#310): one audio module on Web Audio, placeholder sounds generated at boot as the dev art is, an ear on each client that plays what that client already sees (nothing new on the wire), the swing on the swing timer, the visual twins, the music sources, the build order (footsteps and the swing first).
 
 ## Records: `history/`
 

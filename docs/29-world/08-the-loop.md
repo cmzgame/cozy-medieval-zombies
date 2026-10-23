@@ -21,7 +21,7 @@ Every item or material the docs name, and the places on this map that supply it.
 | bandages | cloth at the loom; the barracks' chests; the witch |
 | herbs | **the castle's herb garden**; the witch's garden; wild in clearings |
 | mushrooms | **the forage rule near trees**; the witch's bed |
-| the cure (brewing) | **the witch's cauldron**; a second cauldron in the castle kitchen if two is right |
+| the cure | beyond the valley, not here (`02` 2026-10-19); the brewing is **the witch's cauldron**, a second cauldron in the castle kitchen if two is right |
 | seeds | **the granaries** (Hollow's, the mill's); the merchant's storehouse; the gardener's shed; the witch |
 | food, raw | every field and orchard; the hen house's eggs (once); the river's fish if fishing comes |
 | food, cooked | the inn's kitchen; the castle kitchen; the baker; any hearth with the cooking station |

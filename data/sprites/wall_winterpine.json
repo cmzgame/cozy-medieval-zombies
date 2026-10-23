@@ -1,0 +1,69 @@
+{
+ "anchorVertex": "top",
+ "images": {
+  "north_plain": "data/art/village/wall_winterpine_north_plain.png",
+  "north_door_shut": "data/art/village/wall_winterpine_north_door_shut.png",
+  "north_door_open": "data/art/village/wall_winterpine_north_door_open.png",
+  "north_window_shut": "data/art/village/wall_winterpine_north_window_shut.png",
+  "north_window_open": "data/art/village/wall_winterpine_north_window_open.png",
+  "west_plain": "data/art/village/wall_winterpine_west_plain.png",
+  "west_door_shut": "data/art/village/wall_winterpine_west_door_shut.png",
+  "west_door_open": "data/art/village/wall_winterpine_west_door_open.png",
+  "west_window_shut": "data/art/village/wall_winterpine_west_window_shut.png",
+  "west_window_open": "data/art/village/wall_winterpine_west_window_open.png"
+ },
+ "anchors": {
+  "north_plain": [
+   7.0,
+   84.0
+  ],
+  "north_door_shut": [
+   7.0,
+   84.0
+  ],
+  "north_door_open": [
+   7.0,
+   84.0
+  ],
+  "north_window_shut": [
+   7.0,
+   84.0
+  ],
+  "north_window_open": [
+   7.0,
+   84.0
+  ],
+  "west_plain": [
+   39.0,
+   84.0
+  ],
+  "west_door_shut": [
+   39.0,
+   84.0
+  ],
+  "west_door_open": [
+   39.0,
+   84.0
+  ],
+  "west_window_shut": [
+   39.0,
+   84.0
+  ],
+  "west_window_open": [
+   39.0,
+   84.0
+  ]
+ },
+ "wall": {
+  "height": 80,
+  "thickness": 14,
+  "color": "#b4ad9f",
+  "material": "wood",
+  "wood": "winterpine",
+  "name": "Winter Pine",
+  "post": "post_winterpine",
+  "parts": "wall_parts_winterpine",
+  "region": true
+ },
+ "note": "a drawn wall (docs/17), five variants per side, the Winter Pine wall type (#334; the delivered files, anchors from anchors_woods.json); its doors and shutters are Winter Pine's (wall_parts_winterpine)"
+}

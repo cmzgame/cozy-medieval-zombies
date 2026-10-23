@@ -77,7 +77,7 @@ export async function run(game) {
       const theirHp = other.hp;
       let bitten = 0;
       for (let i = 0; i < 60 * 6 && other.hp === theirHp; i++) { step(); bitten++; }
-      row("its bite wounds the other player and not me", other.hp < theirHp && me.hp === myHp, `them ${theirHp} to ${other.hp} in ${(bitten / 60).toFixed(1)} s, me ${me.hp}`);
+      row("its bite wounds the other player and not me", other.hp < theirHp && me.hp >= myHp, `them ${theirHp} to ${other.hp} in ${(bitten / 60).toFixed(1)} s, me ${me.hp}`);
       // 5. At night, the other player's torch lures a zombie that cannot see either of us to where they stand.
       G.clock.setHour(1);
       const torch = G.items.makeEntry("torch", 1, { lit: true });
