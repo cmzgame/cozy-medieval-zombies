@@ -254,13 +254,17 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - Every world sends telemetry (anonymous, by default); the legal answer waits for the beta (2026-10-17, Play alone or play with friends; telemetry from every world)
 - The free web demo lives forever at a link; the same code in an Electron wrapper on Steam; no rebuild (2026-10-13, The free web demo forever)
 - The artist first; Steam is the audience; the demo is a scenario with its own rules, outside the clock law (2026-10-13, The free web demo forever)
-- The demo is a proof of concept: supplies for a few days, final art only, not built yet; Endless later (2026-10-13, The demo is a proof of concept)
+- The demo is a proof of concept: supplies for a few days; ~~final art only, not built yet~~ (overturned 2026-10-23, The demo is built on dev art now) built now, on dev art, the game's bounded playtest, and given real art only before it goes public; Endless later (2026-10-13, The demo is a proof of concept; 2026-10-23, The demo is built on dev art now; only its release waits for final art)
 - The demo sells the game: the first run reaches the first night; preparation buys time, never escape; a Wishlist button (2026-10-14, The demo sells the game)
 - The dead walk in from off screen; the goal is to kill the player; no co-op; "cosy by day" withdrawn (2026-10-14, The demo re-ruled)
 - The game needs its name before anything public; then an infrastructure day with the repository private (2026-10-14, The demo re-ruled)
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-23 — The demo is built on dev art now; only its release waits for final art (Michael)
+
+Michael, naming a new Primary with a planning-and-infrastructure focus and setting three goals (a final Valley scope, #271; a limited demo scope; then building both, demo-first, after a plan is talked through): "Make that change to the demo rule, there is no reason it must wait for final art and is the much simpler overall playtest because it's not meant for long term survival or maxxing skills or whatever, it's there to give you a bounded experience of the game." **Ruled:** the demo (`36`) is built now, on dev art, as the game's bounded playtest; 2026-10-13's "not built yet" and "nothing goes into the demo without its final art" are struck. What stands from 2026-10-13: it is built, tested, and given real art before it goes to the public as a demo or beside a Steam page. *Primary's reading, Michael's to overrule:* the demo's scope is a cut list from the Valley's (`39`), each line naming the valley issue it depends on, so the two scopes close together, and the build order is demo-first with the shared systems (combat feel, sounds, the scenario layer) first. Docs: 36, 39, TODO.
 
 ### 2026-10-20 — Doors and windows in another wood, built: the palette, the leaf, and the costs (#334, PR 2; the builder's readings, Michael's to overrule)
 
@@ -1061,7 +1065,7 @@ Item 3's plan steps a player away from a shared world after five minutes of real
 
 ### 2026-10-13 — The demo is a proof of concept: supplies for a few days, final art only, not built yet (Michael)
 
-On `36`: endless supply is **not** for the demo. The homestead holds enough for a few days of careful play and nothing is replenished; if players routinely last longer, the scenario or the game is not hard enough. An **Endless** mode with supply to keep up (and a leaderboard with it) is wanted later as a permanent game mode (`05`). The demo is not to be built yet; when it is, it is built, tested, and in real art before it goes public or beside a Steam page, and **nothing goes into the demo without its final art**. Docs: 05, 35, 36, TODO.
+On `36`: endless supply is **not** for the demo. The homestead holds enough for a few days of careful play and nothing is replenished; if players routinely last longer, the scenario or the game is not hard enough. An **Endless** mode with supply to keep up (and a leaderboard with it) is wanted later as a permanent game mode (`05`). ~~The demo is not to be built yet~~ (overturned 2026-10-23, The demo is built on dev art now; only its release waits for final art); when it is, it is built, tested, and in real art before it goes public or beside a Steam page, ~~and **nothing goes into the demo without its final art**~~ (overturned 2026-10-23, the same entry). Docs: 05, 35, 36, TODO.
 
 ### 2026-10-13 — The free web demo forever, a desktop wrapper for Steam, and the horde demo (Michael)
 
