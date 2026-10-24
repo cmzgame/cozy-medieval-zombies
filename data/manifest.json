@@ -1,8 +1,8 @@
 {
-  "version": "1c691648",
+  "version": "9da4b41d",
   "files": {
     "data/build.json": {"size": 1897, "stamp": "1c15b95c"},
-    "data/combat.json": {"size": 4754, "stamp": "1449e3ea"},
+    "data/combat.json": {"size": 5021, "stamp": "4e2c90e2"},
     "data/crops.json": {"size": 2313, "stamp": "36c5359c"},
     "data/fishing.json": {"size": 1151, "stamp": "d7ff74ff"},
     "data/ground.json": {"size": 3492, "stamp": "fb2c261c"},
@@ -11,7 +11,7 @@
     "data/kit.json": {"size": 837, "stamp": "4a64ec6b"},
     "data/looks.json": {"size": 947, "stamp": "d1084ea0"},
     "data/loot.json": {"size": 5017, "stamp": "5830cbae"},
-    "data/poses.json": {"size": 4980, "stamp": "ddfccc1e"},
+    "data/poses.json": {"size": 5262, "stamp": "09f8e93c"},
     "data/recipes.json": {"size": 11193, "stamp": "894574e2"},
     "data/references.json": {"size": 899, "stamp": "81bd77a4"},
     "data/tuning.json": {"size": 4284, "stamp": "778235cd"},
