@@ -18,6 +18,7 @@ export const ANIMS = {
   attack: { fps: 12, loop: false, frames: 4, activeFrame: 1 },
   shove: { fps: 12, loop: false, frames: 3, activeFrame: 1 }, // Space (docs/41 step 2): both arms out; the player's alone, posed from data/poses.json `shove`
   hurt: { fps: 10, loop: false, frames: 2 },
+  reel: { fps: 6, loop: false, frames: 2 }, // a stagger (Michael, 2026-10-24, #385): the dead thrown back, arms flung up; the dead's sheet alone, posed from data/poses.json `reel`
   die: { fps: 8, loop: false, frames: 4 },
   carry_idle: { fps: 2, loop: true, frames: 2 },
   carry_walk: { fps: 8, loop: true, frames: 4 },
@@ -64,6 +65,13 @@ const DEFAULT_POSES = {
       { pitch: 98, offPitch: 62, offOut: 4, lean: 1 },
       { pitch: 100, offPitch: 38, offOut: 6, lean: 1.5 },
       { pitch: 96, offPitch: 75, offOut: 3, lean: 0.5 },
+    ],
+  },
+  reel: {
+    fps: 6,
+    frames: [
+      { pitch: 135, offPitch: 135, out: 3, offOut: 3, lean: -3 },
+      { pitch: 120, offPitch: 120, out: 2.5, offOut: 2.5, lean: -2.5 },
     ],
   },
   shove: {
@@ -154,6 +162,13 @@ export function animsFor(spec) {
   // atlas where three did (docs/19: the atlas is the budget).
   if (spec.noCarry) {
     const { carry_idle, carry_walk, present, shove, ...rest } = out; // the held-out pose and the shove are the player's alone too (docs/32; docs/41 step 2)
+    out = rest;
+  }
+  // The reel is the dead's alone (#385), its speed and length from `reel` in data/poses.json.
+  const rl = POSES.reel;
+  if (spec.variant === "zombie" && rl && rl.frames && rl.frames.length) out = { ...out, reel: { ...ANIMS.reel, fps: rl.fps ?? ANIMS.reel.fps, frames: rl.frames.length } };
+  else if (out.reel) {
+    const { reel, ...rest } = out;
     out = rest;
   }
   return out;
@@ -253,9 +268,11 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
       break;
     case "attack":
     case "attack_alt":
-    case "shove": {
-      // The shove (docs/41, step 2) is posed from its own style, both arms out, whatever is held.
-      const f = (POSES[anim === "shove" ? "shove" : style || (zombie ? "zombie" : "one_handed")] || DEFAULT_POSES[anim === "shove" ? "shove" : "one_handed"]).frames[i];
+    case "shove":
+    case "reel": {
+      // The shove (docs/41, step 2) and the dead's reel (#385) are posed from their own styles, whatever is held.
+      const own = anim === "shove" || anim === "reel" ? anim : null;
+      const f = (POSES[own || style || (zombie ? "zombie" : "one_handed")] || DEFAULT_POSES[own || "one_handed"]).frames[i];
       if (f) {
         p.offOwn = f.offPitch != null; // the style moves the off arm itself (the bow's string hand): holding does not override it
         p.armPitch = [f.offPitch ?? 0, f.pitch];
@@ -309,7 +326,7 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
     p.armOut[0] = HOLD_OUT;
     p.bend[0] = 0;
   }
-  const swinging = anim === "attack" || anim === "attack_alt" || anim === "shove"; // the shove is both arms out whatever is held (docs/41, step 2)
+  const swinging = anim === "attack" || anim === "attack_alt" || anim === "shove" || anim === "reel"; // the shove is both arms out whatever is held (docs/41, step 2); the reel too (#385)
   if (holding.main && !fixed && !swinging && anim !== "present") {
     // A thing with a pose of its own (`held.pose`, a pose in the data: the book's "present", docs/32 item 1; the bow's
     // "bow_rest", 2026-10-14) holds the arms so in the idle and the walk; anything else is held forward at the hold's pitch.

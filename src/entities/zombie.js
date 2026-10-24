@@ -158,7 +158,10 @@ export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown
     z.stagger = Math.max(z.stagger, stagger);
     z.staggerImmune = z.stagger + STAGGER_RULES.immunity;
   }
-  playAnimation(z.anim, "hurt", true);
+  // A stagger reels (#385: the shoved "just slide backwards, pause briefly, and then resume"), a hit that does not, flinches;
+  // a sheet without the reel flinches for both.
+  const sheet = staggered ? getSheet(z.sprite) : null;
+  playAnimation(z.anim, sheet && sheet.animations && sheet.animations.reel ? "reel" : "hurt", true);
   return { killed: false, downed: false, staggered, cancelled };
 }
 
@@ -669,6 +672,14 @@ export function updateZombie(z, dt, players, others, villagers = null) {
           z.attackHit = false;
           playAnimation(z.anim, "attack", true);
         } else {
+          // A waiter with a fence or a gate between it and its target strikes that instead of standing (Michael, 2026-10-24, #385:
+          // the dead "get near the fence ... and just stand there"; a siege keeps its pressure on a fence). Its cooldown over and no
+          // token to be had, it goes back to pressing; the press hands it back here when a token is free.
+          const across = z.attackCooldown <= 0 ? z.press || fenceAhead(z.gx, z.gy, tgt.gx, tgt.gy) : null;
+          if (across && tileAt(across.tx, across.ty)[across.edge] === across.wall) {
+            startPress(z, { wall: across.wall, tx: across.tx, ty: across.ty, edge: across.edge, stand: across.stand || tileOf(z) });
+            break;
+          }
           show(z, "idle");
           separate(z, dt, others);
         }
@@ -851,7 +862,8 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       }
       // A fence is no wall to a bite (Michael, 2026-10-17: "otherwise exploitable"): a player in reach across it is bitten, by the
       // chase's own bite (contact, sight, the cooldown); the dead one goes back to pressing when the player is out of reach.
-      if (tgt && z.seesNow && distTo(z, tgt) <= biteReach(z, tgt)) {
+      // With bite tokens (docs/41, step 5) only one that may bite goes back to the chase; the rest keep striking the fence (#385).
+      if (tgt && z.seesNow && distTo(z, tgt) <= biteReach(z, tgt) && z.attackCooldown <= 0 && mayBite(z, tgt, others)) {
         z.state = "chase";
         z.repathTimer = 0;
         break;

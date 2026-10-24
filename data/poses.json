@@ -24,6 +24,10 @@
     {"pitch": 95, "offPitch": 95, "out": 2, "offOut": 2, "lean": 3, "bob": 1},
     {"pitch": 85, "offPitch": 85, "out": 1.5, "offOut": 1.5, "lean": 1}
   ] },
+  "reel": { "fps": 6, "frames": [
+    {"pitch": 135, "offPitch": 135, "out": 3, "offOut": 3, "lean": -3},
+    {"pitch": 120, "offPitch": 120, "out": 2.5, "offOut": 2.5, "lean": -2.5}
+  ] },
   "zombie": { "fps": 10, "activeFrame": 4, "frames": [
     {"pitch": 40, "offPitch": 40, "lean": -0.5},
     {"pitch": 70, "offPitch": 65, "lean": -1.5},
