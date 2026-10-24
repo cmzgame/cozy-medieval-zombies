@@ -201,7 +201,7 @@ function pushes(weapon) {
 // share (player-controller.js) and the held facing (entities/player.js). A sheet without the animation ends it at once.
 export function swinging(player) {
   const a = player.anim;
-  return !!a && (a.name === "attack" || a.name === "attack_alt") && !a.done;
+  return !!a && (a.name === "attack" || a.name === "attack_alt" || a.name === "shove") && !a.done; // the shove commits as a swing does (docs/41, step 2)
 }
 
 // What the player cannot swing through: carrying furniture, a timed action under way, or being dead.
