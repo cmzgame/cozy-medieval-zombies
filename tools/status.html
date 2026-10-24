@@ -8,7 +8,11 @@
      the issues with none, docs/39's tags, and TODO.md's status block, read live from GitHub on every load so the page
      never goes stale. The public API unauthenticated (about five requests a load, of sixty an hour per address) and
      the raw files on main. Nothing stored, nothing posted, no token. Served locally at localhost:8010/tools/status.html
-     and by the site's deploy at cmzgame.github.io/cozy-medieval-zombies/tools/status.html. -->
+     and by the site's deploy at cmzgame.github.io/cozy-medieval-zombies/tools/status.html.
+     It works while the repository is public: GitHub Pages serves a free organisation's public repositories only, and
+     the API is read without a login. When the game's repository goes private (github.md, section 2), the page needs
+     a token kept in the reader's own browser, or a host that can see the private repository; the day that happens
+     is the day this is reworked (Michael, 2026-10-24). -->
 <style>
   :root {
     --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1c1a; --muted: #6b6a64; --line: #dedcd4; --link: #1f5fa8;
