@@ -55,7 +55,7 @@ export const FISTS = { damage: 6, range: 0.9, arc: 100, swing: 0.4, knockback: 0
 export const DUAL = { offDamage: 1, window: 2.5, lockout: 0.45, front: 1.5, side: 2.5, behind: 100, arc: 100, sideArc: 220 };
 // The shove (docs/41, step 2): the crowd tool. `targets` is how many of the dead one shove reaches whatever the Multi-hit
 // setting; `cooldown` is also the recovery, in which no swing starts.
-export const SHOVE = { range: 1.0, arc: 100, knockback: 0.8, knockbackChance: 1, stagger: 0.8, knockdown: 0.1, stamina: 15, cooldown: 0.5, targets: 3 };
+export const SHOVE = { range: 1.0, arc: 100, knockback: 0.4, knockbackChance: 1, stagger: 0.8, knockdown: 0.1, stamina: 15, cooldown: 0.5, targets: 3 };
 
 // The numbers that belong to no item, from data/combat.json (fists and the
 // shove). Merged in place, so `weaponOf(player) !== FISTS` keeps working.
@@ -415,6 +415,10 @@ export function wearWeapon(player, slot, hits = 1) {
 // at once, so a click inside the recovery is refused on the guest as it is on the host; the push is the host's alone.
 export function tryShove(player, zombies, predict = false) {
   if (!canAct(player) || (player.shoveCooldown || 0) > 0) return null;
+  // The tired shove, as the tired blow (2026-10-11, narrowed 2026-10-24): one the bar cannot pay for pushes, staggers, and floors at
+  // `blow.tiredDamage`, so an empty bar cannot hold a crowd in a stagger for ever (#385; Primary's reading, Michael's to overrule).
+  const tired = player.stamina < SHOVE.stamina;
+  const share = tired ? BLOW.tiredDamage : 1;
   player.shoveCooldown = SHOVE.cooldown;
   player.stamina = Math.max(0, player.stamina - SHOVE.stamina);
   if (player.stamina <= 0) player.winded = true;
@@ -425,7 +429,7 @@ export function tryShove(player, zombies, predict = false) {
   const hit = [];
   for (const z of targetsIn(player, SHOVE, zombies, (z) => !isDown(z), SHOVE.targets ?? 1)) {
     hit.push(z);
-    damageZombie(z, 0, { dir: [dir.x, dir.y], knockback: pushes(SHOVE) ? SHOVE.knockback : 0, knockdown: rng.chance(SHOVE.knockdown), stagger: SHOVE.stagger, staggerChance: 1, from: [player.gx, player.gy] });
+    damageZombie(z, 0, { dir: [dir.x, dir.y], knockback: pushes(SHOVE) ? SHOVE.knockback * share : 0, knockdown: rng.chance(SHOVE.knockdown * share), stagger: SHOVE.stagger * share, staggerChance: 1, from: [player.gx, player.gy] });
   }
   emit("shove", { count: hit.length });
   if (hit.length) {

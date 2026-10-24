@@ -94,7 +94,8 @@ export function staggerZombie(z, seconds, dir = null, push = 0) {
     z.attackCooldown = T.cooldown;
   }
   z.stagger = Math.max(z.stagger, seconds);
-  playAnimation(z.anim, "hurt", true);
+  const sheet = getSheet(z.sprite); // it reels (#385), as a staggering blow does; a sheet without the reel flinches
+  playAnimation(z.anim, sheet && sheet.animations && sheet.animations.reel ? "reel" : "hurt", true);
 }
 
 // On the floor, lying (`downTimer`) or rising (`gettingUp`): a blow while it lies is a finisher, one while it rises
@@ -147,7 +148,7 @@ export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown
     z.attackCooldown = T.cooldown;
   }
   // Does the blow stagger it, stopping its walk? Not while it is immune from the last stagger, and otherwise by
-  // chance (light weapons seldom). Every landed hit shows the flinch whether or not it staggers.
+  // chance (light weapons seldom). A hit that does not stagger shows the flinch; one that does, the reel (#385).
   const staggered = !(z.staggerImmune > 0) && rng.chance(staggerChance);
   if (staggered) {
     z.attackHit = false;
@@ -158,7 +159,10 @@ export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown
     z.stagger = Math.max(z.stagger, stagger);
     z.staggerImmune = z.stagger + STAGGER_RULES.immunity;
   }
-  playAnimation(z.anim, "hurt", true);
+  // A stagger reels (#385: the shoved "just slide backwards, pause briefly, and then resume"), a hit that does not, flinches;
+  // a sheet without the reel flinches for both.
+  const sheet = staggered ? getSheet(z.sprite) : null;
+  playAnimation(z.anim, sheet && sheet.animations && sheet.animations.reel ? "reel" : "hurt", true);
   return { killed: false, downed: false, staggered, cancelled };
 }
 
@@ -338,7 +342,10 @@ export function mayBite(z, tgt, others) {
   const inReach = (o) => !o.dead && o.kind === "zombie" && !isDown(o) && o.seesNow && o.target === tgt && distTo(o, tgt) <= biteReach(o, tgt);
   // A cooldown from anything counts (a bite, step 1's cancel, a stagger, a fence or door struck, a bite on another
   // target): it can only mean fewer bites, never more than the pool, so it is kept so on purpose.
-  const holder = (o) => o.state === "attack" || o.attackCooldown > 0;
+  // One striking a fence or a gate (`press`, `pressHit`) holds no token and is no waiter: a strike sets its cooldown, and counted as a
+  // holder it would take the crowd's tokens from the biters (the review of #389); it still counts toward the pool (`near`).
+  const pressing = (o) => o.state === "press" || o.state === "pressHit";
+  const holder = (o) => !pressing(o) && (o.state === "attack" || o.attackCooldown > 0);
   let near = 0;
   let holders = 0;
   const mine = distTo(z, tgt);
@@ -346,7 +353,7 @@ export function mayBite(z, tgt, others) {
     if (!inReach(o)) continue;
     near++;
     if (holder(o)) holders++;
-    else if (o !== z && !(o.stagger > 0) && distTo(o, tgt) < mine) return false; // a nearer waiter that could begin takes the token first (a staggered one cannot)
+    else if (o !== z && !pressing(o) && !(o.stagger > 0) && distTo(o, tgt) < mine) return false; // a nearer waiter that could begin takes the token first (a staggered one cannot)
   }
   const per = Math.max(1, Math.floor(T.biteTokensPer) || 1); // never 0: the pool would be NaN and nobody would bite
   const pool = T.biteTokens + Math.floor(Math.max(0, near - per) / per); // one more for every `per` beyond the first `per`
@@ -669,6 +676,21 @@ export function updateZombie(z, dt, players, others, villagers = null) {
           z.attackHit = false;
           playAnimation(z.anim, "attack", true);
         } else {
+          // A waiter with a fence or a gate between it and its target strikes that instead of standing (Michael, 2026-10-24, #385:
+          // the dead "get near the fence ... and just stand there"; a siege keeps its pressure on a fence). Its cooldown over and no
+          // token to be had, it goes back to pressing; the press hands it back here when a token is free.
+          const across = z.attackCooldown <= 0 ? z.press || fenceAhead(z.gx, z.gy, tgt.gx, tgt.gy) : null;
+          // Only a fence or a gate still standing and shut, within its reach, with its target on the far side (the review of #389:
+          // a press left from an older fence, an open gate, or a fence beside them on their own side is no reason to strike).
+          const between = (f) => {
+            if (!f || tileAt(f.tx, f.ty)[f.edge] !== f.wall || wayOpen(f.wall)) return false;
+            const [mx, my] = edgeMid(f.tx, f.ty, f.edge);
+            return Math.hypot(mx - z.gx, my - z.gy) <= T.fenceReach && sideOf(f.tx, f.ty, f.edge, z.gx, z.gy) !== sideOf(f.tx, f.ty, f.edge, tgt.gx, tgt.gy);
+          };
+          if (between(across)) {
+            startPress(z, { wall: across.wall, tx: across.tx, ty: across.ty, edge: across.edge, stand: across.stand || tileOf(z) });
+            break;
+          }
           show(z, "idle");
           separate(z, dt, others);
         }
@@ -851,7 +873,18 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       }
       // A fence is no wall to a bite (Michael, 2026-10-17: "otherwise exploitable"): a player in reach across it is bitten, by the
       // chase's own bite (contact, sight, the cooldown); the dead one goes back to pressing when the player is out of reach.
-      if (tgt && z.seesNow && distTo(z, tgt) <= biteReach(z, tgt)) {
+      // At the fence, its target seen on its own side of it: the fence is no longer in the way (the review of #389), so the chase again.
+      // Only at the fence: the side is the edge's whole line, and one walking round to a gate on the yard's far side has the player on
+      // its own side of that line all the way there (the second review of #389).
+      const [rx, ry] = edgeMid(f.tx, f.ty, f.edge);
+      if (tgt && z.seesNow && Math.hypot(rx - z.gx, ry - z.gy) <= T.fenceReach && sideOf(f.tx, f.ty, f.edge, z.gx, z.gy) === sideOf(f.tx, f.ty, f.edge, tgt.gx, tgt.gy)) {
+        z.press = null;
+        z.state = "chase";
+        z.repathTimer = 0;
+        break;
+      }
+      // With bite tokens (docs/41, step 5) only one that may bite goes back to the chase; the rest keep striking the fence (#385).
+      if (tgt && z.seesNow && distTo(z, tgt) <= biteReach(z, tgt) && z.attackCooldown <= 0 && mayBite(z, tgt, others)) {
         z.state = "chase";
         z.repathTimer = 0;
         break;

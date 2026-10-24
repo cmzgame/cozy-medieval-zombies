@@ -34,6 +34,8 @@ Ruled by Michael on 2026-10-12 (`02-decisions.md`, question 29 and the log entry
 
 *2026-10-23, `41` step 6 built (#367):* **the dead have 150 health** (was 100), set from hit counts after the pass: the sword 5 hits (was 3), the mace 4, or 3 after a knockdown sets up the finisher (3), the hatchet 5 (4), the stick 11 (8), the spear's stab 5 (4), fists 25 (17), the bow 4 arrows (3). Michael's first thought of "two times" was held: with the free knockdown gone kills were slower already. The number is `zombie.hp` in `data/tuning.json`, Michael's to retune from the counts.
 
+*2026-10-24, after Michael's first real melee test (#385; `02`, The first real melee test):* **the shove pushes 0.4 tiles** (was 0.8), and **a shove the bar cannot pay for pushes, staggers, and floors at half** (`blow.tiredDamage`), as the tired blow does, so an empty bar cannot hold a crowd in a stagger (Primary's reading); **the dead reel through a stagger** (`reel` in `data/poses.json`, the dead's sheet alone; a hit that does not stagger still flinches); **the dead that wait for a bite token strike the fence or gate between them and their target** instead of standing.
+
 ## The convention
 
 | Input | Role |
