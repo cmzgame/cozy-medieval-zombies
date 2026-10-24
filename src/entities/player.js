@@ -383,7 +383,7 @@ export function updatePlayer(player, dt, snap = IDLE) {
     player.aim.sy = n.y;
     // The drawn facing holds the swing's direction while its animation plays (docs/41, step 1): the aim and the
     // next swing stay free, so the picture matches the blow already struck.
-    const mid = (player.anim.name === "attack" || player.anim.name === "attack_alt") && !player.anim.done;
+    const mid = (player.anim.name === "attack" || player.anim.name === "attack_alt" || player.anim.name === "shove") && !player.anim.done; // the shove holds its facing too (docs/41, step 2)
     if (!mid) player.facing = iso.facingFromScreenVector(ax, ay);
   }
 

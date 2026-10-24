@@ -17,7 +17,7 @@ import { pickTargetAround, repath, followPath, separate, faceToward, roomOf, idl
 import * as loop from "../loop.js";
 import * as talk from "../talk.js";
 import { lineOfSight } from "../visibility.js";
-import { villager as T } from "../tuning.js";
+import { villager as T, zombie as ZT } from "../tuning.js";
 
 const DEAD_SKIN = "#9fbf88"; // what a turned villager's skin goes // as a wiggle's (interact.js): spam does not restart the line
 
@@ -162,7 +162,7 @@ export function turnVillager(v) {
   z.wound = [5, 3, 0];
   dress(z);
   z.state = "down";
-  z.downTimer = 2;
+  z.downTimer = ZT.turnDownTime; // data/tuning.json
   z.gettingUp = false;
   playAnimation(z.anim, "die", true);
   emit("villagerDied", { villager: v, zombie: z });

@@ -26,6 +26,7 @@
     "stagger": 0.3,
     "downTime": 0.8,
     "getUpTime": 0.6,
+    "turnDownTime": 2,
     "knockTime": 0.15,
     "breachReach": 1.1,
     "pressGiveUp": 20,

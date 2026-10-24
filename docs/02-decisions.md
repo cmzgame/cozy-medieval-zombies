@@ -113,7 +113,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - ~~Combat stays paused until Michael's play session; then the spin cap, knockdown, and push per hit~~ (superseded 2026-10-23, The melee feel pass: Michael played, and ruled the pass; the spin cap is not built, knockdown is restricted, the push per hit stays as it is) (2026-10-16, The needs-michael queue)
 - ~~The knockdown chance 0.3 is high and stands until the combat pass re-rules it~~ (re-ruled 2026-10-23, The melee feel pass: 0 by default, a chance only on the mace, the halberd's thrust, and the shove) (2026-10-16, The sweep, after wave 3)
 - The swing resolves on the click, the animation is cosmetic, the cooldown is the rate limit (2026-10-11, Placement and melee scoped)
-- Left click swings, Space shoves; a swing at zero stamina lands at half damage (2026-10-11, Placement and melee scoped)
+- Left click swings, Space shoves; a swing ~~at zero stamina~~ the bar cannot pay for lands at half damage (narrowed 2026-10-24, Primary's reading in building `41` step 4, Michael's to overrule: a swing the bar cannot pay for lands at half; with regeneration between swings the bar never reached zero, so the old test never fired) (2026-10-11, Placement and melee scoped)
 - Every number on a weapon is tunable per item; knockback and the shove's push are a third (2026-10-11, Melee tunables, the shove, and multi-hit; 2026-10-11, Melee's first play notes)
 - A floating health bar is the finisher's tell; swing targets are a green outline, a setting (2026-10-11, A floating health bar is the finisher's tell; 2026-10-11, Swing targets, and a pin for a sandbox screen)
 - Left the main hand; right tapped the menu, held the off hand; middle or Q the other mode (2026-10-12, The mouse in combat: three roles)
@@ -1485,7 +1485,7 @@ Michael is conserving credits: the scoping is done here, the building by another
 - **Left click swings, Space shoves.** Placement declines the click first. Zomboid's convention, and the mouse stays the aim.
 - **The swing resolves on the click**, the animation is cosmetic, the cooldown is the rate limit: the parent's hard-won rule (`cozy-zombie-game/docs/22-melee.md`), kept. Reach is a grid circle cut to a screen-space arc with body samples, point blank always hits, down-screen slack. Knockdown, finishers, stagger, knockback, death with the corpse staying. Hit-stop and screen kick. No sounds yet.
 - **What Michael shapes:** the swing's keyframes live in `data/poses.json` with a Preview and Reload in the layer editor; held item art gets a painted slot in the editor (`data/held/`); weapon numbers are blocks in `items.json`. Weapons to add: stick, sword, mace; the hatchet and the torch get stats; fists exist.
-- **Stamina never locks you out of hitting**: at zero a swing lands at half damage.
+- **Stamina never locks you out of hitting**: ~~at zero~~ a swing the bar cannot pay for lands at half damage (narrowed 2026-10-24, Primary's reading in building `41` step 4, Michael's to overrule: a swing the bar cannot pay for lands at half; with regeneration between swings the bar never reached zero, so the old test never fired).
 - **Not ported now:** the parent's wind-up and lunge (a trial after play), weapon condition, hit locations.
 
 ### 2026-10-11 — The well's bucket; milestone 10 done (Michael)

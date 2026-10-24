@@ -84,7 +84,6 @@ export function createZombie(gx, gy, { id = null, hp = T.hp, aggro = false } = {
   return z;
 }
 
-// On the floor, lying or rising: a hit now is a finisher (docs/14).
 // A blow met by a shield: the dead one's attack is lost and it reels for `seconds` (docs/21).
 export function staggerZombie(z, seconds, dir = null, push = 0) {
   if (z.dead || isDown(z)) return;
@@ -98,6 +97,8 @@ export function staggerZombie(z, seconds, dir = null, push = 0) {
   playAnimation(z.anim, "hurt", true);
 }
 
+// On the floor, lying (`downTimer`) or rising (`gettingUp`): a blow while it lies is a finisher, one while it rises
+// plain damage and nothing else (docs/41, step 3).
 export function isDown(z) {
   return z.state === "down";
 }
