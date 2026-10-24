@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Everything rots, food in containers from the world's start and planted or hanging food generously slowly, within the clock law because the world's clock runs only while someone is in it; day one holds about twelve game days of food, a leaner start; a barrel doubles food's life; the starving fade over half a game day; no auto-eat; a dry growing crop pauses, a ripe one rots in the ground (2026-10-23, The food economy ruled)
 - The valley's map as it stands is a testing map, not the final valley, which is redrawn roomier with distinct areas, its teachers placed with it (2026-10-23, The skills' open lines ruled)
 - Each resource from the ground gets a prop of its own to mine, signposted by its look; the plan's other crops are cut from 1.0; today's broadleaf is oak, today's conifer spruce, mahogany new (2026-10-23, The skills' open lines ruled)
 - A door or a window may be of another wood than its wall: `leaf`, stored only when it differs, chosen with R while building, one palette row per wall type; a region's two woods and the other's leaves in a log or stone wall are refused (2026-10-20, Doors and windows in another wood, built: the palette, the leaf, and the costs (#334, PR 2; the builder's readings, Michael's to overrule))
@@ -267,6 +268,20 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-23 — The food economy ruled: everything rots, planted food slowly; a leaner start to about twelve days; the starving fade; no auto-eat (Michael; #264)
+
+The second sitting of the Valley scope's defaults pass. Michael overruled one default and sharpened two; the rest stood. The rulings:
+
+- **Everything rots, including food nobody has found.** Primary's default was that only food a player had taken rots. Michael: "any food PLANTED, i.e. it still has roots in the ground or is still hanging from a tree, rots much, much more slowly. Generously slowly, but does still rot. Food that spawns in containers should rot I think, else opening container but never looting food becomes a viable strategy since it would preserve it forever if you left that single bread in the barrel until you needed it. We also don't want to punish people for wanting to loot all of the food they find and centralize its location to a base." So: food in a container rots from the world's start; food in the ground or on a tree rots slowly (*Primary's reading:* five times the item's life); and it sits within the clock law because the world's clock runs only while someone is in the world (`31/09`), so nothing rots while a friend is away.
+- **The rates** (game days to rotten, a number per item in the data, Primary's defaults accepted): raw fish 1; cooked dishes 2; bread 3; apples 6; potatoes, cabbages, garlic, pumpkins 8; cheese 10; salted or smoked 20; grain, flour, dried herbs, pemmican, honey never. **Rotten food** is a Rotten item, not edible, for the composter and the pigs later. **On the card:** "Spoils in N days" (Michael: an American phrasing, not "goes off"), a mark on the icon on its last day; fresh and rotten only.
+- **Preserving:** salting and smoking 20 days, drying and pemmican forever, **a barrel doubles the life of food in it**, the cellar cut for 1.0.
+- **A leaner start, to a target:** day one holds about twelve game days of food for one player with tools and about six without, a tenth of today, read on the wiki's Day-one food page; one ripe row per farm and one at your cottage, the rest at the first two stages; bread and cheese at a third of their weight in the chest's table and barrels one or two apples; the kit and the orchard unchanged. The pantry table for shelves and cupboards is #268's.
+- **The starving fade:** from empty, health drains to dead over half a game day instead of about a minute. **The hunger drain** stays a day and a half until rot is in, then both are retuned together.
+- **No auto-eat from the belt:** food heals exactly its number, so an automatic bite would spend a heal; the Hungry moodle and a stomach growl are the prompt.
+- **Untended crops:** a growing crop that goes dry pauses, as before; a ripe crop left in the ground rots on its slow clock, which answers Michael's worry that "there is never a reason to harvest until you are sure you're going to eat it soon" without a death timer. Michael is open to discussion here.
+
+Docs: 39 (every #264 line), TODO.
 
 ### 2026-10-23 — The skills' open lines ruled: death takes all, teachers and Learn, the station panel, every weapon craftable, the staff and the book, the testing map (Michael; #275)
 
