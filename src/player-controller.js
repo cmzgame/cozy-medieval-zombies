@@ -13,7 +13,7 @@ import * as interact from "./interact.js";
 // `predict`: a guest's own player, between the host's frames (net.js; docs/31/04). The guard, the swing's start, the
 // halberd's thrust, the walking speed, and the combat clocks run as they will on the host, so the swing and the raised
 // shield show at once; what touches anything but the player is the host's alone and skipped: the pokes (main.js makes
-// a guest's own), the hit itself (combat.tryAttack's `predict`), the bow's draw and loose, and the shove.
+// a guest's own), the hit itself (combat.tryAttack's `predict`), the bow's draw and loose, and the shove's push (its recovery and pose are predicted, docs/41 step 2).
 export function controlPlayer(player, zombies, dt, s, predict = false) {
   // The right button held with a shield in the off hand raises the guard (docs/21): you can
   // still swing, stab, or throw from behind it, for much less damage (the shield's `attackMult`).
@@ -24,6 +24,8 @@ export function controlPlayer(player, zombies, dt, s, predict = false) {
   player.blocking = !!shield && s.offDown && !player.carrying && !player.dead;
   const launcher = archery.launcherOf(player);
   const bowHeld = !!launcher && launcher.button === "primary";
+  // Space first (docs/41, step 2): a shove and a click on the same step give the shove, its recovery refusing the swing.
+  if (s.space) combat.tryShove(player, zombies, predict); // a guest predicts its own recovery, the push is the host's (docs/41, step 2)
   // A left click swings; on a mushroom, a rock, or a tree (its visible pixels) that thing sways too.
   // With a bow in hand the left button is the draw, not a swing or a poke (docs/20).
   if (s.clicked && !s.clickSpent && !bowHeld && !archery.drawState(player)) {
@@ -51,6 +53,5 @@ export function controlPlayer(player, zombies, dt, s, predict = false) {
   // One place decides the walking speed: braced slowest, a draw next (docs/21); a swing's animation slows the walk
   // to its share, the commitment to a swing (docs/41, step 1; `blow.swingMove`, data/combat.json).
   player.moveMult = (bracing ? archery.tunables.braceMove : player.drawing ? archery.tunables.drawSpeed : 1) * (player.blocking ? shield.moveMult : 1) * (combat.swinging(player) ? combat.BLOW.swingMove : 1);
-  if (s.space && !predict) combat.tryShove(player, zombies);
   combat.updateCombat(player, zombies, dt);
 }

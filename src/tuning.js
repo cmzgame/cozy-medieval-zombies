@@ -16,7 +16,9 @@ export const zombie = {
   contact: 0.7, // tiles: close enough to bite
   damage: 8, // a bite
   cooldown: 1.2, // seconds between bites
-  hp: 100,
+  biteTokens: 2, // bite tokens (docs/41 step 5): how many of the dead in reach of one target may bite at once
+  biteTokensPer: 3, // one token more for every this many of the dead in reach beyond the first three: three in reach, two bite; six, three; nine, four
+  hp: 150, // set from hit counts after the melee feel pass (docs/41 step 6; was 100): the sword 5, the mace 4, the hatchet 5, the stick 11, fists 25, the bow 4 arrows; Michael's to retune
   repath: 0.3, // seconds between repaths while chasing
   radius: 0.3, // the body, in tiles
   searchTime: 10, // seconds spent looking around the last sighting
@@ -28,8 +30,9 @@ export const zombie = {
   groanMin: 20, // seconds between groans
   groanMax: 60,
   stagger: 0.3, // seconds a hit stops it (docs/14)
-  downTime: 2, // seconds on the floor after a knockdown
+  downTime: 0.8, // seconds on the floor after a knockdown: one finisher blow at the sword's pace fits, then it rises (docs/41 step 3; was 2)
   getUpTime: 0.6, // seconds to rise, the fall played backwards
+  turnDownTime: 2, // seconds a villager the dead have just turned lies before it rises (open to the finisher meanwhile; was a 2 in villager.js)
   knockTime: 0.15, // a push is spread over this long, not a teleport
   breachReach: 1.1, // tiles from the edge midpoint to hit it
   pressGiveUp: 20, // seconds a dead one pressing a fence goes on pressing without seeing the player before it gives up and searches (a held siege never gives up; #147, #167)
@@ -56,7 +59,7 @@ export const player = {
   // screen. Michael wanted longer (2026-10-09): 16 per second is just over 6 s,
   // about a screen and a half at 5.25 tiles per second.
   sprintDrain: 16,
-  staminaRegen: 22,
+  staminaRegen: 10, // a second (22 until docs/41 step 4): with the swing costs raised, the one pacer of melee; no endurance tiers, no strain (Michael, 2026-10-23)
   sprintRecoverAt: 20, // stamina needed to sprint again once winded
   aimY: 22, // aim originates from the chest, this many pixels above the feet
   // Slow needs (docs/10): the cozy parent's drains, to be retuned with farming.

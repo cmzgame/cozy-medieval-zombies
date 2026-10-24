@@ -19,6 +19,11 @@
     {"pitch": 90, "out": 0, "offPitch": 78, "offOut": 0.5, "lean": 2, "bob": 1},
     {"pitch": 65, "out": 1, "offPitch": 55, "offOut": 1, "lean": 0.5, "wrist": 25}
   ] },
+  "shove": { "fps": 12, "activeFrame": 1, "frames": [
+    {"pitch": 60, "offPitch": 60, "out": 1, "offOut": 1, "lean": -1},
+    {"pitch": 95, "offPitch": 95, "out": 2, "offOut": 2, "lean": 3, "bob": 1},
+    {"pitch": 85, "offPitch": 85, "out": 1.5, "offOut": 1.5, "lean": 1}
+  ] },
   "zombie": { "fps": 10, "activeFrame": 4, "frames": [
     {"pitch": 40, "offPitch": 40, "lean": -0.5},
     {"pitch": 70, "offPitch": 65, "lean": -1.5},
