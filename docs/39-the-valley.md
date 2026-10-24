@@ -485,7 +485,7 @@ One per skill, immune, teaching recipes and unlocks as you level [to build]; whi
 
 ### The dead, as built [built]
 
-- **One kind:** the dead, dressed as who they were; a hundred health; a slow walk; sight eight tiles, less in the dark; they know only where they last saw you.
+- **One kind:** the dead, dressed as who they were; a hundred health [change, `41` step 6: set from hit counts after the pass, 150 the first trial]; a slow walk; sight eight tiles, less in the dark; they know only where they last saw you; a bite with a 0.4 s wind-up that any landed hit cancels, and only a few of a crowd biting at once [change, `41` steps 1 and 5].
 - **Their states:** idle, wander, chase, search, attack, press a fence, breach an opening, siege, staggered, knocked down, burning, dead.
 - **The bite:** a set damage on a cooldown, needing line of sight; a chance of a bleed stack; a chance of the infection; over a fence; at an open window.
 - **What they break:** doors, shutters, boards, gates, and fences, striking on the bite's cooldown; one alone breaks a fence slowly, a crowd faster; a fence bursts into splinters. Walls never.
@@ -502,7 +502,7 @@ One per skill, immune, teaching recipes and unlocks as you level [to build]; whi
 - **The graveyard's rising** and **the dead placed lying with a facing** (the barrow's watchers) [to build].
 - **The castle's garrison** of thirty to forty [to build]; **the bandits**, dead in leather, one with a bow [to build].
 - **A first day free of the dead, then a curve to the valley's level** [open #123].
-- **The difficulty pass:** tougher dead, weaker weapons, dearer stamina, the turn-rate cap [to build, #89, #133].
+- **The difficulty pass** [change, `41`, #89]: ruled 2026-10-23 as the melee feel pass, six steps: the bite's wind-up and its cancel, the flinch, the shove as the crowd tool, knockdown restricted, stamina as the one pacer (regeneration 10 a second, swing costs raised; no endurance tiers, no strain, ever), bite tokens, the dead's health from hit counts. ~~The turn-rate cap~~ is closed, not built (the commitment is a slowdown through the swing). Armour and resistances stay #133.
 - **Resistances, and what blocks the bite** [open #133].
 - **Whether the dead stay slow** [open #123].
 - **The infection's real effects** [open #123]: about a day and a half to find the cure (Michael, 2026-10-23: "24 or 48 hours"), then death, the moodles worsening along the way; the numbers at #123's sitting.
@@ -722,6 +722,7 @@ Later, not at the start: gems inlaid in metal armour.
 ### Health
 - **A hundred** [built]; the dead and bosses scale freely (ruled).
 - **Natural regeneration** [built]: slowly, while fed and watered and not bleeding; faster asleep; twice as fast well fed.
+- **Stamina** [change, `41` step 4]: one bar for sprinting, swinging, the shove, and the guard; regenerates 22 a second today, 10 a second after the pass with every swing's cost raised, so it is the one pacer of melee; no endurance tiers and no muscle strain, ever (ruling 2026-10-23).
 - **Food heals a little, exactly its number** [built]; **potions heal big** [to build].
 - **Max health raised by levels (Faith 6) and gear** [to build] [open #133: flat amounts on gear, Michael's leaning].
 - **Drain spells** heal on a cooldown or a high mana cost, never in place of food or potions [to build].
