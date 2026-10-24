@@ -13,6 +13,9 @@ import * as sight from "../sight.js";
 // so this clears the head at any zoom. A flat ui-px offset (prompt.js's way)
 // does not: at close zoom the figure outgrows it and the bar sits on the chest.
 const HEAD_CLEARANCE = 76;
+// A downed one lies flat: its bar sits just over the body, not a standing head's height above it, where it floated beside
+// whoever stood near and read as theirs (Michael, 2026-10-24, #385: "their health bar disappears when downed").
+const DOWN_CLEARANCE = 30;
 
 // A damaged zombie this close keeps its bar even behind a canopy: it is the one
 // being fought, and in a dense forest nearly everything has some canopy in front.
@@ -57,7 +60,7 @@ export function updateZombieBars(zombies, visible, player) {
     seen.add(z.id);
     const { el, fill } = barFor(z.id);
     const s = iso.toScreen(z.gx, z.gy);
-    const p = view.toUi(s.x, s.y - HEAD_CLEARANCE);
+    const p = view.toUi(s.x, s.y - (z.state === "down" ? DOWN_CLEARANCE : HEAD_CLEARANCE));
     el.style.left = `${Math.round(p.x)}px`;
     el.style.top = `${Math.round(p.y)}px`;
     const pct = Math.max(0, z.hp / z.maxHp);
