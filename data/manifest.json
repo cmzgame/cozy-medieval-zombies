@@ -1,5 +1,5 @@
 {
-  "version": "a0e0a886",
+  "version": "c4d2751e",
   "files": {
     "data/build.json": {"size": 1897, "stamp": "1c15b95c"},
     "data/combat.json": {"size": 5306, "stamp": "6cf37ded"},
@@ -15,7 +15,7 @@
     "data/recipes.json": {"size": 11193, "stamp": "894574e2"},
     "data/references.json": {"size": 899, "stamp": "81bd77a4"},
     "data/sounds.json": {"size": 7170, "stamp": "ee31600b"},
-    "data/tuning.json": {"size": 4354, "stamp": "3e490463"},
+    "data/tuning.json": {"size": 4398, "stamp": "43fad5bf"},
     "data/wardrobes.json": {"size": 9067, "stamp": "ce830859"},
     "data/wood_tones.json": {"size": 5576, "stamp": "380f20b5"},
     "data/art/character/character_body.json": {"size": 17235, "stamp": "2b1fcf24"},

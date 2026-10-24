@@ -33,6 +33,8 @@ export const zombie = {
   downTime: 0.8, // seconds on the floor after a knockdown: one finisher blow at the sword's pace fits, then it rises (docs/41 step 3; was 2)
   getUpTime: 0.6, // seconds to rise, the fall played backwards
   turnDownTime: 2, // seconds a villager the dead have just turned lies before it rises (open to the finisher meanwhile; was a 2 in villager.js)
+  burstSpeed: 1.5, // the closing burst (#385, a trial): the dead walk this many times as fast within burstRange of a target they see; 1 is off (docs/42)
+  burstRange: 3, // tiles
   knockTime: 0.15, // a push is spread over this long, not a teleport
   breachReach: 1.1, // tiles from the edge midpoint to hit it
   pressGiveUp: 20, // seconds a dead one pressing a fence goes on pressing without seeing the player before it gives up and searches (a held siege never gives up; #147, #167)
