@@ -32,7 +32,7 @@ import { detach } from "./inventory.js"; // a worn-out weapon leaves the hand (d
 // these, the code keeping the same defaults. pointBlank: tiles this close are always hit; knockdownChance: the share
 // of hits that floor the dead for a weapon with no `knockdown` of its own (0 since docs/41 step 3: knockdown is the
 // game's crit, earned by the mace, the halberd's thrust, and the shove alone);
-// tiredDamage: a swing at zero stamina still lands, at this share; hitStop, hitStopKill: the freeze on a hit and a kill;
+// tiredDamage: a swing the bar cannot pay for (stamina below its cost; docs/41, step 4) still lands, at this share; hitStop, hitStopKill: the freeze on a hit and a kill;
 // swingMove: the walk's share while the swing's animation plays, the commitment to a swing (docs/41, step 1).
 export const BLOW = { pointBlank: 0.55, knockdownChance: 0, tiredDamage: 0.5, hitStop: 0.07, hitStopKill: 0.12, swingMove: 0.6 };
 export const BODY_SLACK = 0.8; // tiles of extra reach for a zombie drawn below the player
@@ -50,7 +50,7 @@ export const FINISHER = { mult: 2 };
 export const KICK_PX = 3;
 export const KICK_TIME = 0.08;
 
-export const FISTS = { damage: 6, range: 0.9, arc: 100, swing: 0.4, knockback: 0.17, stamina: 3, knockdown: 0, style: "one_handed" };
+export const FISTS = { damage: 6, range: 0.9, arc: 100, swing: 0.4, knockback: 0.17, stamina: 4, knockdown: 0, style: "one_handed" };
 // Dual wielding (docs/21): the off hand's swing, and what it costs. Filled from data/combat.json.
 export const DUAL = { offDamage: 1, window: 2.5, lockout: 0.45, front: 1.5, side: 2.5, behind: 100, arc: 100, sideArc: 220 };
 // The shove (docs/41, step 2): the crowd tool. `targets` is how many of the dead one shove reaches whatever the Multi-hit
@@ -333,8 +333,10 @@ export function tryAttack(player, zombies, hand = "main", mode = null, predict =
   if ((player.swingLock || 0) > 0 && offWeaponOf(player)) return null; // the other hand must wait its turn
   const weapon = hand === "off" ? offWeaponOf(player) : mode === "alt" ? altWeaponOf(player) : weaponOf(player);
   if (!weapon) return null;
-  // A swing at zero stamina still lands, at half damage: never locked out of hitting.
-  const tired = player.stamina <= 0;
+  // A swing the bar cannot pay for still lands, at half damage: never locked out of hitting (the 2026-10-11 ruling,
+  // "a swing at zero stamina lands at half damage", read as the cost: with regeneration between swings the bar hovers
+  // just above zero and "at zero" was never true at the moment of a swing, so the tired blow never came; docs/41 step 4).
+  const tired = player.stamina < weapon.stamina;
   player.stamina = Math.max(0, player.stamina - weapon.stamina);
   if (player.stamina <= 0) player.winded = true;
   player[cd] = weapon.swing;

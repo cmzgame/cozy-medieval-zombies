@@ -47,7 +47,7 @@
     "stamina": 100,
     "sprintMult": 1.75,
     "sprintDrain": 16,
-    "staminaRegen": 22,
+    "staminaRegen": 10,
     "sprintRecoverAt": 20,
     "aimY": 22,
     "hungerMax": 100,
