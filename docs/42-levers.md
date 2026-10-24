@@ -14,7 +14,7 @@ Two kinds:
 - **Whether every landed hit cancels a bite's wind-up, or only one that staggers:** today every hit; a switch in code (`damageZombie` in `src/entities/zombie.js`), not yet data (2026-10-23).
 - **The bite's wind-up:** the dead's `attack` in `data/poses.json`, the bite on its fifth frame at 10 fps, 400 ms (`41` step 1).
 - **Bite tokens:** `zombie.biteTokens` 2 and `zombie.biteTokensPer` 3 in `data/tuning.json`: how many of the dead in reach of one target bite at once (`41` step 5).
-- **The closing burst** (a trial, 2026-10-24, #385): the dead walk faster once close to a target they see; its two numbers land in `data/tuning.json` with the trial.
+- **The closing burst** (a trial, 2026-10-24, #385): `zombie.burstSpeed` 1.5 within `zombie.burstRange` 3 tiles of a target the dead one sees, in the chase; `burstSpeed` 1 switches it off.
 - **The floor:** `zombie.downTime` 0.8 s, `zombie.getUpTime` 0.6 s; a turned villager `zombie.turnDownTime` 2 s (`41` step 3).
 
 ### The player's blows
