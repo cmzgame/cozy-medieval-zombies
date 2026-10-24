@@ -20,6 +20,8 @@ Ruled by Michael on 2026-10-12 (`02-decisions.md`, question 29 and the log entry
 
 *The swing timer:* the two gold bars are the setting `Swing timer` (on by default, `settings.js`); the exposure bar is danger, not rhythm, and always shows; not covered by the bars: the bow's draw and recovery, the thrown spear, the shove. The HUD as built, bars and labels, is `10`.
 
+*2026-10-23, `41` step 2 built (#363):* **the shove on Space is the crowd tool:** no damage, a push of 0.8 tiles (was 0.53), a stagger of 0.8 s (was 0.6), a knockdown one time in ten (was one in four), on up to three of the dead in its wedge whatever the Multi-hit setting; 15 stamina (was 5); its 0.5 s cooldown is also a recovery in which no swing starts (a guest's predicted swing refuses the same way, from the record); its own pose, both arms out (`shove` in `data/poses.json` and the rig's table, the player's sheet alone). Measured by `check("melee")` (#361) on this step alone: a sensible shove-then-strike landed 7.3 bites a fight against five (main 7.2) and a mindless shove every half second 17 (main 6.4): the recovery punishes spam; with step 1 beside it, 1.4.
+
 ## The convention
 
 | Input | Role |
