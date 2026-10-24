@@ -21,26 +21,34 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
-## Status (2026-10-23, paused by Michael: housekeeping done; the Valley scope's defaults pass is next)
+## Status (2026-10-24, Michael's hold: two sittings of the Valley scope ruled; the melee feel pass under way; the loot and bag defaults drafted and held)
 
-**Where to pick up:** a new Primary since 2026-10-23, focus planning and infrastructure. Michael's three goals, in order: (1) a final Valley scope (#271, `docs/39`); (2) a limited demo scope, a cut list from `docs/39` against `docs/36`, each line naming its valley issue; (3) building both, demo-first, after a plan is talked through in chat (Michael prefers prose to question widgets). **Next: the Valley scope's defaults pass**, one issue per sitting, #275 first: Primary writes a recommended answer for every open line of `docs/39` on its issue, Michael overrules what he disagrees with, and what stands is the default, marked tunable; the scope is final when `docs/39` section 16 is empty, and the milestones and issues follow from it. Then the demo's cut list, with its four build issues refiled (#40 to #43 are the bot's, hidden).
+**Where to pick up:** a new Primary since 2026-10-23, focus planning and infrastructure. Michael's three goals, in order: (1) a final Valley scope (#271, `docs/39`); (2) a limited demo scope, a cut list from `docs/39` against `docs/36`, each line naming its valley issue; (3) building both, demo-first, after a plan is talked through in chat (Michael prefers prose to question widgets). **The Valley scope closes by the defaults pass:** Primary proposes an answer for every open line of `docs/39` on its issue, one issue per sitting, Michael overrules in prose, what stands is the default marked tunable; the scope is final when `docs/39` section 16 is empty, and the milestones and issues follow from it. Two sittings are done (#275 and #264, below); **the third, #268 and #260 together (the loot tables and the bags), is drafted in chat and held at Michael's word until he comes back to it.** Then #273 (the dead ends), then the rest by their counts below. Then the demo's cut list, with its four build issues refiled (#40 to #43 are the bot's, hidden).
 
-**Done 2026-10-23:**
-- the two pull requests held since the pause merged, reviewed: #256 (dead code, #99) and #255 (region, never biome, #135); neither visible to a player, so no wiki sync;
-- the demo rule changed (Michael, `docs/02` 2026-10-23): the demo is built now, on dev art, as the game's bounded playtest; only its release waits for final art. PR #356 logs it and waits for Michael's comment opening "Approved", then Primary merges it.
+**Ruled 2026-10-23** (`docs/02`, newest first; each rewrote its lines of `docs/39`):
+- **the food economy (#264, PR #360):** everything rots, food in containers from the world's start and planted or hanging food generously slowly (five times its life, Primary's reading), within the clock law because the world's clock runs only while someone is in it; the rates per food; Rotten is an item for the composter; "Spoils in N days" on the card; a barrel doubles food's life, no cellar; a leaner start to about twelve game days of food on day one; the starving fade over half a game day; no auto-eat; a dry growing crop pauses, a ripe one rots in the ground;
+- **the skills' open lines (#275, PR #359):** death takes all skills; combat experience by damage dealt, Faith by its acts; a skill touches combat only as far as the four combat trees say; level-1 recipes known, the rest learned once from a teacher on the teacher's screen; the station panel lists every recipe, the unlearned greyed; every melee weapon craftable; the staff in either hand and the book in the other, the book never degrades, no spell bar; "Book of [Spell]", "Staff of [School]"; the testing map (below);
+- **the demo (PR #356):** built now on dev art, the game's bounded playtest; only its release waits for final art;
+- **the melee feel pass (Michael with the Secondary (combat); `docs/41`, #89, PR #368 open):** six steps, each measured by `check("melee")` before the next; no endurance or strain ever; the turn rate never capped; hit sounds gate the finish; the unconditional bite cancel stands for now as a lever to tune after real combat testing.
 
-**Not started, on the housekeeping list:**
-- a status page that stays current (`tools/status.html`, reading GitHub live: the milestones as the roadmap, the needs-michael queue, the open pull requests, `docs/39`'s open counts, the deploys);
-- the finished worktrees under `.claude/worktrees/`: every one is merged into `main` (two hold only an untracked `art-preview/` folder and a regenerated manifest), but a session may not remove them (the app's permission refused it), so Michael removes them (`git worktree remove <path>`, then `git worktree prune`), or Settings › Storage once they are old enough.
+**The valley's map as it stands is a testing map, not the final valley** (Michael, 2026-10-23: "a smidge too close, and most of the buildings you can barely fit into", an updated clearing); the redraw and the teachers' placement are #92.
+
+**The melee feel pass (the Secondary (combat)):** the instrument merged (#369, `check("melee")`; the baseline on #362: 12.4 bites a fight swinging, 6.4 with the shove); the spec PR #368 has Primary's review with six fixes and Michael's word, and merges when the fixes land; step 1 (PR #370) is approved and merges after #368, refreshed; steps 2 to 6 are #363 to #367. Every pull request into `main` is reviewed by Primary, the reasoning as well as the code (Michael, 2026-10-23).
+
+**Done 2026-10-23 besides:** #256 (dead code, #99) and #255 (region, never biome, #135) merged, both invisible to players; #357 (the earlier status). Nothing merged today changes what a player sees, so no wiki sync is owed yet; the first visible change will be #370.
+
+**Open for the Secondary:** the status page (#358, `tools/status.html`, reading GitHub live), after the melee pass.
+
+**Not done, Michael's hand:** the finished worktrees under `.claude/worktrees/` are all merged into `main` (two hold only an untracked `art-preview/` folder and a regenerated manifest); a session may not remove them, so Michael does (`git worktree remove <path>`, then `git worktree prune`), or Settings › Storage once they are old enough.
 
 **Waiting on Michael:**
-- #356 (a comment opening Approved);
+- the loot and bag defaults (#268, #260), drafted in chat on 2026-10-23, held;
 - #271's items 6 and 8 to 11; the sounds spec's questions (#310);
 - #341 (a multi-tile prop across a chunk edge on a guest; two players lifting one piece of furniture); #324 (no rush);
-- the `needs-michael` issues: #89, #92, #94, #123, #133, #181, #217;
-- from the last session's play list: which valley building got which wood (`docs/02`, "The woods as wall types, built"); Bloodbark near-black at night away from a light (the lever is in `wood_tones.json`); the shared world zoom setting reads "auto".
+- the `needs-michael` issues: #89 (now the melee pass's record), #92, #94, #123, #133, #181, #217;
+- from the last play list: which valley building got which wood (`docs/02`, "The woods as wall types, built"); Bloodbark near-black at night away from a light (the lever is in `wood_tones.json`); the shared world zoom setting reads "auto".
 
-**The open lines of `docs/39` by issue** (counted 2026-10-23; 194 lines built, 192 to build, 68 to change): #275 51 · #273 11 · #289 9 · #264 9 · #288 7 · #92, #281, #279, #123 5 each · #283, #181, #133 4 each · #103 3 · #282, #268, #262, #260 2 each · #271, #106, #104 1 each.
+**The open lines of `docs/39` by issue** (counted 2026-10-24; 206 lines built, 206 to build, 73 to change, 96 open, down from 162): #273 13 · #92 11 · #289 10 · #279 10 · #288 8 · #281 7 · #123 7 · #282, #181, #133 5 each · #283 4 · #103 3 · #268, #262, #260, #104 2 each · #271, #261, #106 1 each.
 
 **The design agent's worktree** (`C:/Users/micha/Dev/cozy-medieval-zombies-art`, branch `art-docs`) was fast-forwarded to main on 2026-10-20; its deliveries sit under `deliveries/`, untracked.
 
@@ -57,7 +65,7 @@ Issues #18 to #55 were filed by the bot and are hidden while it is flagged. **Th
 - **01 · The valley: the map on M** (`docs/33`): built (#203 and #204 closed).
 - **01 · The menus and the site** (`docs/38`): #16; Michael's fullscreen check #112.
 - **01 · Art owed (docs/26):** bag icons first, the everyday items still on placeholder blocks (48 of the items), with the fish, the rod, the bucket, the Onion-head Hat's icon and portrait added since #182; the hand items #46; the tools #47; the icons and portraits #48; the art exporter #44; the spot checks #45; the art asks #105.
-- **02 · Zombies and combat:** the combat pass #89 (after Michael's session); armour and difficulty #133.
+- **02 · Zombies and combat:** the melee feel pass (`docs/41`; #89 its record): the instrument #361 built; steps #362 to #367; armour and difficulty #133.
 - **02 · Better animations** (`docs/32`): #29 to #34 and the elbow's next poses.
 - **03 · The demo** (`docs/36`): the scenario layer #40; the set #41; the horde and the run's limits #42; the score, the end, and the entry #43.
 - **04 · Playing together, and telemetry:** Play with friends #143; telemetry #144; the Full dot #139; a guest's arrows step every third frame #250; the seams #102; a duplication count for the sync check #101.

@@ -95,7 +95,7 @@ export function preview(from, dir, distance, c = 1, range = tunables.range) {
 // Fire one. The landing point, the path, and the flight time are fixed here.
 // `from` is anyone with gx and gy (the archer). Returns the arrow.
 export function shoot(from, dir, distance, c = 1, o = {}) {
-  const { shooter = from, damage = tunables.damage, knockback = tunables.knockback, range = tunables.range, speed = tunables.speed, arcMin = tunables.arcMin, arcMax = tunables.arcMax, z0 = tunables.z0, projectile = "arrow", breakChance = 0, staggerChance = undefined, interrupts = false, item = null, flat = false, vanish = false, contact = 0, landRadius = null, ignite = false } = o;
+  const { shooter = from, damage = tunables.damage, knockback = tunables.knockback, range = tunables.range, speed = tunables.speed, arcMin = tunables.arcMin, arcMax = tunables.arcMax, z0 = tunables.z0, projectile = "arrow", breakChance = 0, staggerChance = undefined, item = null, flat = false, vanish = false, contact = 0, landRadius = null, ignite = false } = o;
   const p = preview(from, dir, distance, c, range);
   const T = Math.max(1 / 120, p.landing / speed);
   const a = {
@@ -103,8 +103,7 @@ export function shoot(from, dir, distance, c = 1, o = {}) {
     projectile, // "arrow" or "spear": which picture, and which item lands or lodges
     item, // a thrown item's own entry, which is what lands (an arrow is made fresh)
     breakChance, // of a thrown item: rolled as it comes down; a broken one is gone
-    staggerChance, // of the hit it lands (undefined: the default); a heavy throw interrupts a bite
-    interrupts,
+    staggerChance, // of the hit it lands (undefined: the default)
     flat, // a spell's flight (docs/24): no arc, the same height all the way, so it cannot be lobbed over a wall
     vanish, // a spell leaves nothing: no item lands or lodges (Michael, 2026-10-14)
     contact, // tiles: above 0, it bursts on the first of the dead within this of it as it flies (the fireball; #11)
@@ -274,7 +273,7 @@ function land(a, met = null) {
   const broken = a.breakChance > 0 && rng.chance(a.breakChance);
   if (hit) {
     if (a.ignite) burn.ignite(hit); // before the damage, so a body it kills burns on as a corpse (#14)
-    damageZombie(hit, Math.round(a.damage * (0.4 + 0.6 * a.c)), { dir: [a.dx, a.dy], knockback: a.knockback, staggerChance: a.staggerChance, interrupts: a.interrupts, from: [a.x0, a.y0] });
+    damageZombie(hit, Math.round(a.damage * (0.4 + 0.6 * a.c)), { dir: [a.dx, a.dy], knockback: a.knockback, staggerChance: a.staggerChance, from: [a.x0, a.y0] });
     // The arrow stays in the body (Michael): it comes out in the loot when the dead one is
     // killed and searched, so getting it back means finishing the job. They stack up in there.
     const id = a.item ? a.item.id : "arrow";
@@ -703,7 +702,7 @@ export function releaseDraw(player, ctx) {
     item = { ...L.entry };
     release(player.hands, L.entry);
   }
-  const a = shoot(player, aim.dir, aim.distance, c, { damage: (L.damage ?? tunables.damage) * guardedMult(player), knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, staggerChance: L.staggerChance, interrupts: !!L.interrupts, item, flat: !!L.flat, vanish: !!L.vanish, contact: L.contact || 0, landRadius: L.landRadius ?? null, ignite: !!L.ignite });
+  const a = shoot(player, aim.dir, aim.distance, c, { damage: (L.damage ?? tunables.damage) * guardedMult(player), knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, staggerChance: L.staggerChance, item, flat: !!L.flat, vanish: !!L.vanish, contact: L.contact || 0, landRadius: L.landRadius ?? null, ignite: !!L.ignite });
   player.recover = tunables.recoverTime;
   setPose(player, 3); // the release: the arrow loosed, the throw let go, the spell cast forward (docs/32, item 3)
   emit("arrowShot", { player, arrow: a, c });

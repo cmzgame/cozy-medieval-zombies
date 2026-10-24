@@ -31,8 +31,9 @@ import { detach } from "./inventory.js"; // a worn-out weapon leaves the hand (d
 // The blow's own numbers (the wiki census, 2026-10-15: combat numbers are data): `data/combat.json` `blow` fills
 // these, the code keeping the same defaults. pointBlank: tiles this close are always hit; knockdownChance: the share
 // of hits that floor the dead for a weapon with no `knockdown` of its own (high, for the combat pass, Michael);
-// tiredDamage: a swing at zero stamina still lands, at this share; hitStop, hitStopKill: the freeze on a hit and a kill.
-export const BLOW = { pointBlank: 0.55, knockdownChance: 0.3, tiredDamage: 0.5, hitStop: 0.045, hitStopKill: 0.09 };
+// tiredDamage: a swing at zero stamina still lands, at this share; hitStop, hitStopKill: the freeze on a hit and a kill;
+// swingMove: the walk's share while the swing's animation plays, the commitment to a swing (docs/41, step 1).
+export const BLOW = { pointBlank: 0.55, knockdownChance: 0.3, tiredDamage: 0.5, hitStop: 0.07, hitStopKill: 0.12, swingMove: 0.6 };
 export const BODY_SLACK = 0.8; // tiles of extra reach for a zombie drawn below the player
 export const BODY_TOP = 48; // px: a figure's height, for scaling the slack
 // A figure's drawn body with its arms is about this wide on each side of its middle.
@@ -194,6 +195,13 @@ function targetsIn(player, weapon, zombies, accept = () => true, limit = null) {
 // Whether a blow pushes at all: the weapon's `knockbackChance` (default always).
 function pushes(weapon) {
   return rng.chance(weapon.knockbackChance ?? 1);
+}
+
+// Whether the player's swing animation is still playing: the commitment (docs/41, step 1), read for the walk's
+// share (player-controller.js) and the held facing (entities/player.js). A sheet without the animation ends it at once.
+export function swinging(player) {
+  const a = player.anim;
+  return !!a && (a.name === "attack" || a.name === "attack_alt") && !a.done;
 }
 
 // What the player cannot swing through: carrying furniture, a timed action under way, or being dead.
@@ -366,7 +374,7 @@ export function tryAttack(player, zombies, hand = "main", mode = null, predict =
     const swung = player.hands[hand];
     const dousedTorch = !!(swung && items.getItem(swung.id).fire && !items.isLit(swung));
     if (weapon.ignite && !dousedTorch && rng.chance(weapon.ignite)) burn.ignite(z);
-    const r = damageZombie(z, amount, { dir: [dir.x, dir.y], knockback: push, knockdown, stagger: weapon.stagger, staggerChance: weapon.staggerChance, interrupts: weapon.interrupts, from: [player.gx, player.gy] });
+    const r = damageZombie(z, amount, { dir: [dir.x, dir.y], knockback: push, knockdown, stagger: weapon.stagger, staggerChance: weapon.staggerChance, from: [player.gx, player.gy] });
     if (r.killed) killed = true;
   }
   if (hit.length) {
@@ -408,7 +416,7 @@ export function tryShove(player, zombies) {
   const hit = [];
   for (const z of targetsIn(player, SHOVE, zombies, (z) => !isDown(z), SHOVE.targets ?? 1)) {
     hit.push(z);
-    damageZombie(z, 0, { dir: [dir.x, dir.y], knockback: pushes(SHOVE) ? SHOVE.knockback : 0, knockdown: rng.chance(SHOVE.knockdown), stagger: SHOVE.stagger, staggerChance: 1, interrupts: true, from: [player.gx, player.gy] });
+    damageZombie(z, 0, { dir: [dir.x, dir.y], knockback: pushes(SHOVE) ? SHOVE.knockback : 0, knockdown: rng.chance(SHOVE.knockdown), stagger: SHOVE.stagger, staggerChance: 1, from: [player.gx, player.gy] });
   }
   emit("shove", { count: hit.length });
   if (hit.length) {
