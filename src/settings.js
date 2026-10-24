@@ -113,7 +113,8 @@ export function get(key) {
 export function set(key, value) {
   if (!(key in DEFAULTS) || settings[key] === value) return;
   settings[key] = value;
-  // Only what differs from the defaults is saved (the review of #390): saving every key pinned each default in a browser the first
+  // Values are replaced, never changed in place (an object changed in place would change DEFAULTS too, its copy being shallow, and stop
+  // being saved). Only what differs from the defaults is saved (the review of #390): saving every key pinned each default in a browser the first
   // time anything changed (a zoom, a moved panel), so a default changed later never reached it; now it does, unless chosen.
   const mine = {};
   for (const k of Object.keys(DEFAULTS)) if (JSON.stringify(settings[k]) !== JSON.stringify(DEFAULTS[k])) mine[k] = settings[k];
