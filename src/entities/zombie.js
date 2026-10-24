@@ -636,6 +636,11 @@ export function updateZombie(z, dt, players, others, villagers = null) {
   if (!tgt) return; // no one alive to hunt: nothing to do this step
   if (z.aggro && !z.lastSeen) z.lastSeen = [tgt.gx, tgt.gy]; // spawned aggro
 
+  // The closing burst (Michael, 2026-10-24, #385, a trial): one of the dead in the chase, with its target in sight and close, walks
+  // faster, as Zomboid's do, so one or two can close on a player not paying attention and a careful one can kite one away from the
+  // rest. Keyed to distance, never to time (the clock law). `zombie.burstSpeed` 1 switches it off (docs/42).
+  const bursting = z.state === "chase" && z.seesNow && z.target && T.burstSpeed > 1 && distTo(z, z.target) <= T.burstRange;
+  z.speed = T.speed * (bursting ? T.burstSpeed : 1);
   switch (z.state) {
     case "idle": {
       show(z, "idle");
