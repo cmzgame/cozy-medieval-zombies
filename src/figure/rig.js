@@ -284,6 +284,7 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
         p.heldOut = [f.offHeldOut ?? null, f.heldOut ?? null];
         p.headD = f.headD ?? 0;
         p.bend = [f.offBend ?? 0, f.bend ?? 0];
+        if (anim === "reel") p.flash = i === 0; // a staggering hit flashes white on its first frame, as the flinch does (docs/41, step 1)
       }
       break;
     }
