@@ -405,13 +405,16 @@ export function wearWeapon(player, slot, hits = 1) {
 // wedge whatever the Multi-hit setting: the crowd tool (docs/41, step 2). Works with anything in the hands, or
 // nothing. Its cooldown is also a recovery in which no swing starts (tryAttack). The pose is `shove`, both arms
 // out; a sheet without it plays the swing.
-export function tryShove(player, zombies) {
+// `predict`: a guest's own player between the host's frames (as tryAttack's): the clocks, the stamina, and the pose run
+// at once, so a click inside the recovery is refused on the guest as it is on the host; the push is the host's alone.
+export function tryShove(player, zombies, predict = false) {
   if (!canAct(player) || (player.shoveCooldown || 0) > 0) return null;
   player.shoveCooldown = SHOVE.cooldown;
   player.stamina = Math.max(0, player.stamina - SHOVE.stamina);
   if (player.stamina <= 0) player.winded = true;
   const sheet = getSheet(player.sprite);
   playAnimation(player.anim, sheet && sheet.animations.shove ? "shove" : "attack", true);
+  if (predict) return [];
   const dir = gridAim(player);
   const hit = [];
   for (const z of targetsIn(player, SHOVE, zombies, (z) => !isDown(z), SHOVE.targets ?? 1)) {
