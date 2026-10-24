@@ -177,6 +177,8 @@ Each step verified in the browser pane through `window.__game`, with `?nosave`, 
 
 ## 9. Open questions for Michael
 
+**Answered 2026-10-24** (`docs/02`, The first real melee test): 1, 2, 3, 4, and 6 stand as written below; 5 is overturned: a mute key on F8, with a line as its twin. Step 2 widens to the shove, the bow, a spell's cast, the dead's death and fall, and doors and shutters (#386); the grass footstep is deleted, a player on grass playing the dead's shuffle.
+
 1. **Sound on by default** [recommended, section 1], or off?
 2. **No panning:** does "no directional sound" rule out a gentle left-right pan by where a sound is on screen? [*Reading:* yes; distance and walls only.]
 3. **The whoosh's loudest moment:** at the click, as the bar starts to fill [default], or at the strike frame of the animation, 83 ms later?
