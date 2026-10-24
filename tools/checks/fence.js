@@ -187,7 +187,7 @@ export async function run(game) {
     // The dead start together, in line with the window and the one edge they press, so a crowd is on one section (a crowd that arrives
     // spread out settles on several and may never burst one: its own issue). They know the player is in the house (their last sighting is
     // inside it), so none gives up pressing unseen (#171).
-    const startDead = (list) => list.forEach((z, i) => { z.gx = cx + (i - 1.5) * 0.25; z.gy = cy - 6.5 - (i > 1 ? 1 : 0); z.path = []; z.breach = null; z.press = null; z.repathTimer = 0; z.pathFailed = false; z.state = "chase"; z.aggro = true; z.noWay = 0; z.lastSeen = [cx, cy]; });
+    const startDead = (list) => list.forEach((z, i) => { z.gx = cx + (i - 1.5) * 0.25; z.gy = cy - 6.5 - (i > 1 ? 1 : 0); z.path = []; z.breach = null; z.press = null; z.siege = null; z.repathTimer = 0; z.pathFailed = false; z.state = "chase"; z.aggro = true; z.noWay = 0; z.lastSeen = [cx, cy]; }); // no siege left from a row before (the gate opened lets two into the yard, and they hold one)
     for (const z of dead) z.gx = cx + 90;
     // A yard with no gate: they cross the fence nearest their way.
     setUp(false);
@@ -205,6 +205,23 @@ export async function run(game) {
     let t3 = 0;
     while (t3 < 60 * 90 && G.map.tileAt(cx, cy - 3).n === gate) { step(1); t3++; }
     row("a gate goes first: two of the dead seek it and burst it while the fence beside it stands", G.map.tileAt(cx, cy - 3).n !== gate && standing() === before2 - 1 && bursts.length === 1 && bursts[0].tx === cx && bursts[0].ty === cy - 3, `after ${(t3 / 60).toFixed(0)} s, ${standing()} of ${before2} edges stand, burst at ${bursts[0] ? `${bursts[0].tx},${bursts[0].ty}${bursts[0].edge}` : "none"}`);
+    // A gate opened while the dead strike it ends the press (Michael, 2026-10-24: he opened a gate to let them in rather than have it
+    // broken, and they went on striking it open): no strike lands on it once open, and they come through it.
+    setUp(true);
+    startDead(dead.slice(0, 2));
+    for (const z of dead.slice(2)) { z.gx = cx + 90; z.aggro = false; z.state = "idle"; }
+    const openGate = G.map.tileAt(cx, cy - 3).n;
+    let tPress = 0;
+    while (tPress < 60 * 30 && !dead.slice(0, 2).some((z) => z.state === "pressHit" && z.press && z.press.wall === openGate)) { step(1); tPress++; }
+    const struckAtGate = () => shakes.filter((s) => s.tx === cx && s.ty === cy - 3 && s.edge === "n").length;
+    const pressedIt = tPress < 60 * 30;
+    openGate.open = true;
+    G.map.touch(cx, cy - 3);
+    const struck0 = struckAtGate();
+    step(60 * 6);
+    const struckAfter = struckAtGate() - struck0;
+    const through = dead.slice(0, 2).filter((z) => z.gy > cy - 3).length;
+    row("a gate opened while the dead strike it: no strike lands once it is open, and they come through it", pressedIt && struckAfter === 0 && G.map.tileAt(cx, cy - 3).n === openGate && through > 0, `${pressedIt ? `pressing after ${(tPress / 60).toFixed(1)} s` : "never pressed"}, ${struckAfter} strikes on the open gate in six seconds, ${through} of 2 through, states ${dead.slice(0, 2).map((z) => z.state).join(",")}`);
     // A gate on the yard's far side still goes first: they walk round to it rather than strike the fence nearest them (the second
     // review of #389: a press that let go as soon as the player was on its own side of the gate's line never got there).
     setUp(false);

@@ -862,7 +862,9 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       // At a fence across its way: strike it (the `pressHit` state; map.strikeFence). It goes on when it is gone, and gives
       // up when it has not seen the player for a while.
       const f = z.press;
-      if (!f || tileAt(f.tx, f.ty)[f.edge] !== f.wall || !z.aggro) {
+      // A gate opened while it pressed is no longer across its way (Michael, 2026-10-24: he opened a gate the dead were striking and
+      // they went on striking it): it walks through, as through a broken one.
+      if (!f || tileAt(f.tx, f.ty)[f.edge] !== f.wall || wayOpen(f.wall) || !z.aggro) {
         z.press = null;
         z.state = z.aggro ? "chase" : "idle";
         z.repathTimer = 0;
@@ -920,7 +922,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
     }
     case "pressHit": {
       const f = z.press;
-      if (!f || tileAt(f.tx, f.ty)[f.edge] !== f.wall) { // gone while it swung (another's strike broke it)
+      if (!f || tileAt(f.tx, f.ty)[f.edge] !== f.wall || wayOpen(f.wall)) { // gone while it swung (another's strike broke it), or a gate opened
         z.press = null;
         z.state = "chase";
         z.repathTimer = 0;
