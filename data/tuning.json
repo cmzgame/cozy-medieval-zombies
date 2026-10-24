@@ -22,7 +22,7 @@
     "groanMin": 20,
     "groanMax": 60,
     "stagger": 0.3,
-    "downTime": 2,
+    "downTime": 0.8,
     "getUpTime": 0.6,
     "knockTime": 0.15,
     "breachReach": 1.1,

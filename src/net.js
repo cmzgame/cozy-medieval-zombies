@@ -236,7 +236,7 @@ const lastRoster = { zombies: "", villagers: "", corpses: "" };
 // A player's numbers that go whole in the light record: the position, and the clocks that gate a swing, so a guest's
 // predicted swing is refused or allowed on the same step as the host's (rounded, a cooldown of 0.0167 would go as 0.02 and
 // the guest would hold a click the host took).
-const EXACT = new Set(["gx", "gy", "attackCooldown", "offCooldown", "swingLock"]);
+const EXACT = new Set(["gx", "gy", "attackCooldown", "offCooldown", "swingLock", "shoveCooldown"]); // shoveCooldown: the shove's recovery gates a swing too (docs/41, step 2)
 const HEAVY = new Set(["worn", "hidden", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
 const lastHeavy = new Map(); // player id -> the heavy part's text last sent
 const lastLight = new Map(); // player id -> the light record's text last sent
