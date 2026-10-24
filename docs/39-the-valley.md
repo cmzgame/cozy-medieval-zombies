@@ -485,7 +485,7 @@ One per skill, immune, teaching recipes and unlocks as you level [to build]; whi
 
 ### The dead, as built [built]
 
-- **One kind:** the dead, dressed as who they were; a hundred health [change, `41` step 6: set from hit counts after the pass, 150 the first trial]; a slow walk; sight eight tiles, less in the dark; they know only where they last saw you; a bite with a 0.4 s wind-up that any landed hit cancels, and only a few of a crowd biting at once [change, `41` steps 1 and 5].
+- **One kind:** the dead, dressed as who they were; 150 health (`41` step 6, set from hit counts: the sword 5 hits, the mace 4, the stick 11; was a hundred; Michael's to retune) [built]; a slow walk; sight eight tiles, less in the dark; they know only where they last saw you; a bite with a 0.4 s wind-up that any landed hit cancels, and only a few of a crowd biting at once [change, `41` steps 1 and 5].
 - **Their states:** idle, wander, chase, search, attack, press a fence, breach an opening, siege, staggered, knocked down, burning, dead.
 - **The bite:** a set damage on a cooldown, needing line of sight; a chance of a bleed stack; a chance of the infection; over a fence; at an open window.
 - **What they break:** doors, shutters, boards, gates, and fences, striking on the bite's cooldown; one alone breaks a fence slowly, a crowd faster; a fence bursts into splinters. Walls never.
