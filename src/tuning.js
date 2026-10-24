@@ -16,7 +16,7 @@ export const zombie = {
   contact: 0.7, // tiles: close enough to bite
   damage: 8, // a bite
   cooldown: 1.2, // seconds between bites
-  hp: 100,
+  hp: 150, // set from hit counts after the melee feel pass (docs/41 step 6; was 100): the sword 5, the mace 4, the hatchet 5, the stick 11, fists 25, the bow 4 arrows; Michael's to retune
   repath: 0.3, // seconds between repaths while chasing
   radius: 0.3, // the body, in tiles
   searchTime: 10, // seconds spent looking around the last sighting

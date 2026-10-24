@@ -20,6 +20,8 @@ Ruled by Michael on 2026-10-12 (`02-decisions.md`, question 29 and the log entry
 
 *The swing timer:* the two gold bars are the setting `Swing timer` (on by default, `settings.js`); the exposure bar is danger, not rhythm, and always shows; not covered by the bars: the bow's draw and recovery, the thrown spear, the shove. The HUD as built, bars and labels, is `10`.
 
+*2026-10-23, `41` step 6 built (#367):* **the dead have 150 health** (was 100), set from hit counts after the pass: the sword 5 hits (was 3), the mace 4 (3), the hatchet 5 (4), the stick 11 (8), the spear's stab 5 (4), fists 25 (17), the bow 4 arrows (3). Michael's first thought of "two times" was held: with the free knockdown gone kills were slower already. The number is `zombie.hp` in `data/tuning.json`, Michael's to retune from the counts.
+
 ## The convention
 
 | Input | Role |

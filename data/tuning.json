@@ -13,7 +13,7 @@
     "fenceStrike": 1,
     "fenceReach": 0.9,
     "fenceBiteExtra": 0.5,
-    "hp": 100,
+    "hp": 150,
     "repath": 0.3,
     "radius": 0.3,
     "searchTime": 10,
