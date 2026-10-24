@@ -45,6 +45,9 @@ import { initSmallText } from "./ui/small-text.js"; // very small text in a clea
 import * as debuffRow from "./ui/debuff-row.js"; // the row of debuffs at the top right (#308)
 import * as objectHighlight from "./highlight.js"; // the outline on the object under the cursor (#301)
 import * as floaters from "./floaters.js";
+import * as audio from "./audio.js"; // the sound engine (docs/40)
+import * as soundGen from "./sound-gen.js"; // the placeholder sounds, generated at boot
+import * as soundCues from "./sound-cues.js"; // the ear: what this client sees, heard
 import * as use from "./use.js";
 import * as interactions from "./interactions.js";
 import * as startingKit from "./kit.js"; // the starting kit (#136)
@@ -256,6 +259,7 @@ function afterWorldSet() {
   objectHighlight.clear();
   inspectMark.clear(); // nor its marked tile
   floaters.reset();
+  soundCues.reset(); // the ear starts again from a baseline
   light.update();
   if (!glError) ground.invalidateAll();
   for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
@@ -1070,6 +1074,7 @@ function stepGame(dt) {
   applyPause(); // the last guest gone while this host is away: held from the next step
   // A screen up on the wire: the world runs on, but nothing pressed reaches it or this client's modes.
   const screenUp = !!screens.currentScreen();
+  audio.setDuck(screenUp && net.onTheWire() ? 0.3 : 1); // on the wire the world runs on under a screen, its sounds ducked (docs/40, section 1)
   loop.setFreezeAllowed(!net.onTheWire());
   // The world first: the rules, the clock, the fires, the chunks round each player (game.js).
   if (!guest) game.begin(dt);
@@ -1258,6 +1263,7 @@ async function restoreWorld(snap) {
   objectHighlight.clear();
   inspectMark.clear();
   floaters.reset();
+  soundCues.reset();
   light.update();
   if (!glError) ground.invalidateAll();
   visible = visibility.computeVisible(Math.round(at.gx), Math.round(at.gy), tiles);
@@ -1333,6 +1339,7 @@ function render() {
     interp.restore();
     camera.applyOrigin(V.w, V.h); // the step's origin back, which the next step's mouse picking reads
   }
+  soundCues.update(S); // the ear (docs/40): what this client sees, heard, from the step's own positions
   const [cx, cy] = map.chunkCoord(Math.round(S.player.gx), Math.round(S.player.gy));
   const hand = (e) => (e ? e.id : "-");
   debugEl.textContent =
@@ -1374,6 +1381,8 @@ async function boot() {
   applyDebugCorner();
   settings.onChange((key) => {
     if (key === "debugCorner") applyDebugCorner();
+    if (key === "soundOn") audio.setOn(settings.get("soundOn") !== false);
+    if (key === "soundVolume") audio.setMaster(settings.get("soundVolume"));
   });
   let json = null;
   let manifestJson = null;
@@ -1465,6 +1474,21 @@ async function boot() {
         progress((i + 1) / held.length);
       }
       for (const def of items.allItems()) if (def.shield) assets.registerSheet("held_shield_guard", figure.generateHeld("shield_guard", def.held.colours)); // the raised guard (docs/21)
+    } },
+    // The sounds (docs/40, section 2): the engine, and every slot's placeholder rendered once by an OfflineAudioContext
+    // (which the browser's autoplay rule does not stop), or a delivered file decoded. Nothing sounds before the first click.
+    { name: "sounds", label: "Making the sounds", weight: 1, async run() {
+      const soundsJson = await optionalJson("data/sounds.json");
+      if (!soundsJson) return;
+      soundCues.configure(soundsJson);
+      const ctx = audio.init({ voices: soundsJson.voices, groups: soundsJson.groups });
+      audio.setOn(settings.get("soundOn") !== false);
+      audio.setMaster(settings.get("soundVolume"));
+      audio.setClock(loop.simTime);
+      audio.unlock();
+      const decode = ctx ? (buf) => ctx.decodeAudioData(buf) : null;
+      const buffers = await soundGen.generateAll(soundsJson.slots || {}, audio.sampleRate(), decode);
+      for (const [name, def] of Object.entries(soundsJson.slots || {})) audio.register(name, buffers[name] || [], def);
     } },
     { name: "world", label: "Growing the world", weight: 1, async run() {
       // The world itself (game.js): the same calls headless under Node (tools/world.js).
@@ -1892,6 +1916,7 @@ async function boot() {
   };
   events.on("autosaveTick", autosave);
   document.addEventListener("visibilitychange", () => { if (document.hidden) autosave(); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) audio.suspend(); else { audio.resume(); soundCues.reset(); } }); // a hidden tab runs no frames (docs/40)
   // A hosting window with friends in it must stay in front (a covered one is slowed to a crawl by the browser,
   // and its world with it): the tab's title says so while it is hidden, where the tab strip and the taskbar show it.
   const plainTitle = document.title;
@@ -1932,6 +1957,8 @@ async function boot() {
     get openBag() { return openBag; },
     get handlers() { return handlers; },
     get timing() { return timing; },
+    // The sounds (docs/40): the ear run by hand after an advance (a paused pane draws nothing), its baseline, the log, the engine.
+    sound: { update: (dt) => soundCues.update(S, dt), reset: () => soundCues.reset(), get log() { return audio.log; }, audio },
     get drawn() { return drawn; },
     setPaused,
     refreshFigure,

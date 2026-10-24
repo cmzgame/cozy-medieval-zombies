@@ -104,6 +104,7 @@ export function createDevApi(ctx) {
     // A check from tools/checks/ by name: __game.check("determinism"), __game.check("ground").
     check(name, opts) { return import(`/tools/checks/${name}.js`).then((m) => m.run(window.__game, opts)); },
     get timing() { return ctx.timing; }, // the step's, sight's, and render's milliseconds (tools/profile.js)
+    sound: ctx.sound, // the sounds (docs/40): __game.sound.update(dt) after an advance, reset(), log, audio
     get drawn() { return ctx.drawn; },
     teleport(gx, gy) { const p = P(); p.gx = gx; p.gy = gy; p.auto = null; camera.snapTo(gx, gy); },
     walkTo(gx, gy) { return autoWalk(P(), [gx, gy]); },

@@ -27,6 +27,8 @@ export const DEFAULTS = {
   objectHighlight: true, // outline the game object under the cursor that has an action (src/highlight.js; #301); a testing setting, on
   smallText: "clear", // "clear": text at or under 15 UI px is set in the system's sans-serif; "pixel": in the pixel font like the rest (ui/small-text.js; #321)
   floaters: true, // the floating numbers over heads: damage, heals, and gathers (ui/floaters.js; #294)
+  soundOn: true, // the master switch (docs/40, section 1): on by default, nothing sounds before the first click (the browser's autoplay rule)
+  soundVolume: 0.75, // the master volume: 0, 0.25, 0.5, 0.75, or 1 (docs/40)
   paintedLayers: {}, // slot -> painted layer name to try on, from the settings screen (docs/12)
   panelPos: {}, // "bag" | "character" | "container" -> { x, y } in UI pixels where its header was dragged to (docs/23 step 4; Michael, 2026-10-12)
   cursor: "default", // the system's own, or one of the three hands (ui/cursor.js; Michael, 2026-10-12)
@@ -49,7 +51,7 @@ export const DEFAULTS = {
 // The tabs are the player's own. The groups "rules" and "sandbox" are not tabs: they are the world's, chosen at the
 // Sandbox step of New world and changed by its host from the pause menu (docs/38, #109); their keys here are only the
 // last choices, offered again at the next Sandbox step.
-export const GROUPS = [["display", "Display"], ["testing", "Testing"]];
+export const GROUPS = [["display", "Display"], ["sound", "Sound"], ["testing", "Testing"]];
 export const WORLD_GROUPS = ["rules", "sandbox"];
 const ON_OFF = [[true, "On"], [false, "Off"]];
 const SHOWN = [[true, "Shown"], [false, "Hidden"]];
@@ -63,6 +65,8 @@ export const REGISTRY = [
   { key: "swingTimer", group: "display", label: "Swing timer", help: "A bar at the bottom of the screen while a swing recovers.", choices: ON_OFF },
   { key: "showSwingTargets", group: "display", label: "Swing targets", help: "A green outline on what your next swing would hit. Green means the swing lands.", choices: ON_OFF },
   { key: "aimGuide", group: "display", label: "Aim guide", help: "The landing marker and the dotted line while you draw a bow, wind up a throw, or cast.", choices: ON_OFF },
+  { key: "soundOn", group: "sound", label: "Sound", help: "Every sound in the game. Nothing sounds until the page has been clicked once.", choices: ON_OFF },
+  { key: "soundVolume", group: "sound", label: "Volume", help: "How loud the game is.", choices: [[0, "Off"], [0.25, "25%"], [0.5, "50%"], [0.75, "75%"], [1, "100%"]] },
   { key: "zombieAggro", group: "rules", label: "Zombie aggro", help: "On, the dead hunt you. Off, they wander and ignore you.", choices: ON_OFF },
   { key: "zombiesAttackVillagers", group: "rules", label: "Zombies attack villagers", help: "On, the dead hunt villagers whatever aggro says; with aggro on, you first.", choices: ON_OFF }, // two knobs on purpose (Michael, 2026-10-15)
   { key: "survival", group: "rules", label: "Survival", help: "Hunger, thirst, and tiredness. Off, the body has no needs.", choices: ON_OFF },

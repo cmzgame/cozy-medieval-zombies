@@ -18,6 +18,7 @@ let seq = 0;
 let log = []; // { seq, kind, id, n, skill }
 let sentTo = 0; // the frame's cursor (a seq): what the host has sent guests
 let drawnTo = 0; // the drawing's cursor
+let heardTo = 0; // the ear's cursor (sound-cues.js, docs/40): its own, so the Floating numbers setting off does not silence a hit
 const SKILL_IDS = new Set(skillIds());
 const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now()); // cosmetic only: how long a number has waited to be drawn, never read by the sim
 
@@ -30,6 +31,7 @@ export function reset() {
   log = [];
   sentTo = 0;
   drawnTo = 0;
+  heardTo = 0;
 }
 
 function push(kind, id, n, skill = null) {
@@ -97,6 +99,13 @@ export function pending() {
 export function takeForDraw(t = now()) {
   const out = log.filter((e) => e.seq > drawnTo && t - e.at <= T.life * 1000);
   drawnTo = seq;
+  return out;
+}
+
+// The hits the ear has not yet heard, once (docs/40, section 5): every damage event since its last read, whatever the drawing does.
+export function takeForEar() {
+  const out = log.filter((e) => e.seq > heardTo && e.kind === DAMAGE);
+  heardTo = seq;
   return out;
 }
 
