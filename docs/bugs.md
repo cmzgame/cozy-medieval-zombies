@@ -24,9 +24,13 @@
 
 - **`check("build")` fails 9 of 11 on `main`** (found reviewing #227, on `main` at `0e765f7`, fresh tab): "the player's own wall with a door removed is still the player's own" and "a new door built over a broken stamped one remembers the wall under it". Not a play bug found; 11 of 11 in my run after other checks in the same tab, so it may depend on what ran first.
 
+- **A thrown spear lodged in a body comes back fresh** (found syncing the wiki for the melee pass, cmz-wiki#20, 2026-10-24; read from the code at `c25fe4d`, *needs repro*). A thrown spear that lands keeps its own entry and so its wear (`src/archery.js` `land`, the `dropItem` of `a.item`), but one that hits records only its id in the body's `lodged` (`hit.lodged[id]`), and `lootOf` (`src/entities/character.js`, the `lodged` loop) makes a new one by that id on the search, so a worn spear thrown into one of the dead is repaired by the kill. Likely fix: lodge the thrown entry itself, as a landing keeps it, and an arrow by count as now.
+
 ## Open: surprises for Michael to rule on
 
 Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling (`docs/02`) before anyone changes code.
+
+- **A spear that hits and kills can be gone from the body's loot, with no word** (Michael's question, 2026-10-24; read from the code at `c25fe4d`). The spear's 50% break chance (`breakChance` in its `thrown` block) is rolled on every throw, hits included, and a broken spear neither lies where it fell nor lodges (`src/archery.js` `land`: `if (!broken && !a.vanish)`), so half the spears that kill are not in the search. Nothing tells the player it broke (`arrowLanded` carries `broken`, and nothing reads it). The two other ways a spear is not in the loot are not losses: a body's grid too full puts it on the floor at the body's feet, and a lodged one comes back fresh (above, Open). Rulings wanted: whether a spear that hits a body may break at all (or breaks only on the ground, or lodges always and breaks on the search), and a visual twin for a break (a log line "The spear breaks.", splinters), by the sound ruling (2026-10-17) a break sound too when there is one.
 
 
 ## Became issues
