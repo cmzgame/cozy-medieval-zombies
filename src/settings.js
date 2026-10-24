@@ -13,7 +13,7 @@ export const DEFAULTS = {
   zombiesAttackVillagers: false, // on: the dead hunt villagers, whatever aggro says; with aggro on, the player first when both are in sight (two knobs on purpose, Michael 2026-10-15; docs/19)
   swingTimer: true, // a bar at the bottom centre of the screen while a swing recovers (World of Warcraft's swing timer; docs/21)
   aimGuide: false, // the landing marker and dotted line while you draw a bow, wind up a throw, or cast (docs/20); off by default since 2026-10-16 (Michael: you learn by trial and error how long to hold). A browser that saved its settings keeps its own
-  showSwingTargets: false, // outline the zombies the next swing would hit (docs/14), for testing and for play
+  showSwingTargets: true, // outline the zombies the next swing would hit (docs/14): on by default since docs/41 step 1 (green means the swing lands)
   multiHit: false, // on: a blow reaches everything in its wedge; off: only the nearest. Off is the intended way to play (Michael, 2026-10-12): multi-hit is the easy button (docs/14)
   showHitShapes: false, // draw the dead's body samples, green when the next swing reaches them (docs/14)
   freeBuilding: false, // on: building costs nothing (docs/13), for testing structures
@@ -61,6 +61,7 @@ export const REGISTRY = [
   { key: "smallText", group: "display", label: "Small text", help: "Very small text in a plain, clear font (Clear), or in the pixel font like the rest (Pixel).", choices: [["clear", "Clear"], ["pixel", "Pixel"]] },
   { key: "floaters", group: "display", label: "Floating numbers", help: "Damage, healing, and what you gather float up over heads.", choices: SHOWN },
   { key: "swingTimer", group: "display", label: "Swing timer", help: "A bar at the bottom of the screen while a swing recovers.", choices: ON_OFF },
+  { key: "showSwingTargets", group: "display", label: "Swing targets", help: "A green outline on what your next swing would hit. Green means the swing lands.", choices: ON_OFF },
   { key: "aimGuide", group: "display", label: "Aim guide", help: "The landing marker and the dotted line while you draw a bow, wind up a throw, or cast.", choices: ON_OFF },
   { key: "zombieAggro", group: "rules", label: "Zombie aggro", help: "On, the dead hunt you. Off, they wander and ignore you.", choices: ON_OFF },
   { key: "zombiesAttackVillagers", group: "rules", label: "Zombies attack villagers", help: "On, the dead hunt villagers whatever aggro says; with aggro on, you first.", choices: ON_OFF }, // two knobs on purpose (Michael, 2026-10-15)
@@ -70,7 +71,6 @@ export const REGISTRY = [
   { key: "trees", group: "rules", fixed: true, label: "Trees", help: "Every tree: the forests, the wild, and the orchards (so no apples from trees). Off, none are made, anywhere. Chosen when the world is made.", choices: ON_OFF },
   { key: "population", group: "rules", fixed: true, label: "Starting population", help: "How many of the dead the world starts with, in its places and in each new stretch of wild. It never grows with time. Chosen when the world is made.", choices: [["none", "None"], ["low", "Low"], ["standard", "Standard"], ["high", "High"]] },
   { key: "debugCorner", group: "testing", label: "Debug corner", help: "The numbers and the keys in the top-left corner.", choices: SHOWN },
-  { key: "showSwingTargets", group: "testing", label: "Swing targets", help: "A green outline on what your next swing would hit.", choices: ON_OFF },
   { key: "objectHighlight", group: "testing", label: "Object Highlight", help: "An outline on the game object under the cursor that you can act on: a tree, a crop, a chest, an item on the ground, a villager. Plain scenery gets none.", choices: ON_OFF },
   { key: "showHitShapes", group: "testing", label: "Hit shapes", help: "The dead's body samples, green when the next swing reaches them.", choices: ON_OFF },
   { key: "devChest", group: "sandbox", label: "Dev chest", help: "A chest of every item by the spawn, made with the world.", choices: ON_OFF },
