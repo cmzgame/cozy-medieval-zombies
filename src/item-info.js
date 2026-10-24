@@ -96,6 +96,9 @@ export function cardFor(entry) {
     // The main hand's other mode on the middle button or Q (docs/21), with its own numbers and cost: the halberd's thrust.
     const a = w.alt;
     if (a && a.damage) lines.push(line(`${a.name ? a.name[0].toUpperCase() + a.name.slice(1) : "Other mode"} (middle button or Q): ${a.damage} damage${a.range ? `, reach ${a.range}` : ""}${a.stamina ? `; ${a.stamina} stamina` : ""}.`));
+    // A weapon thrown on the middle button or Q (docs/21): the spear. A full throw does the whole of it.
+    const th = def.thrown;
+    if (th && th.damage) lines.push(line(`Throw (middle button or Q): ${th.damage} damage at full draw, up to ${th.range} tiles${th.breakChance ? `; may break (${Math.round(th.breakChance * 100)}%)` : ""}.`));
   }
   if (def.bow) lines.push(line(`Draw and release to shoot arrows${def.shots ? `; good for about ${def.shots} shots` : ""}.`));
   if (def.rug) lines.push(line(seg("Place", "word"), ": lay on the floor."));
