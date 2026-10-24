@@ -5,27 +5,39 @@
 //
 // Step 1: the footsteps (a character's walk turning to a contact frame), the swing (a hand's cooldown rising), and a hit
 // (the floating numbers' events, read through a cursor of the ear's own so the Floating numbers setting off does not
-// silence one). Its memory (what it heard last frame, by character id) is view state of one client, so a module-level
-// map is right here. Its gaps are measured in sim time (loop.simTime): when more than FRESH seconds of the world's time
-// passed since its last run (a tab hidden while its world ran on), and after reset(), it takes a fresh baseline and
-// plays nothing, so a return never bursts and a check that awaits between steps loses nothing. Its only chance is a
-// hash of an id and a count.
+// silence one). Step 2 (#386): the shove (its cooldown rising), the bow's draw (a loop while `draw` is up) and release
+// (`recover` rising), a spell's cast (`recover` rising with a spell in hand), an arrow landing (a projectile gone from the
+// list in flight), the dead's death and a downed one's fall (a body's state), and doors and shutters (an opening's
+// state, scanned round the listener). Its memory (what it heard last frame, by id or edge) is view state of one client,
+// so a module-level map is right here. Its gaps are measured in sim time (loop.simTime): when more than FRESH seconds
+// of the world's time passed since its last run either way (a tab hidden while its world ran on), and after reset(), it
+// takes a fresh baseline and plays nothing, so a return never bursts and a check that awaits between steps loses
+// nothing. Its only chance is a hash of an id and a count.
 
 import * as audio from "./audio.js";
 import * as loop from "./loop.js";
 import * as map from "./map.js";
 import * as floaters from "./floaters.js";
 import * as combat from "./combat.js";
+import * as archery from "./archery.js";
 import { cam } from "./camera.js";
 import { hashString } from "./sound-gen.js";
 
 const FRESH = 0.25; // seconds of sim time since the last run past which the ear starts again from a baseline (docs/40)
 const WALK = new Set(["walk", "carry_walk"]);
+const LANDS = new Set(["arrow", "fire_arrow"]); // the projectiles whose landing is `arrow_land` (a spear's and a spell's are later)
 
-let steps = { nearest: 6, gap: 0.18, dead: "shuffle" }; // data/sounds.json `footsteps`
+let steps = { nearest: 6, gap: 0.18, dead: "shuffle", default: "shuffle" }; // data/sounds.json `footsteps`
 let swingCfg = { heavyAt: 0.8, rise: 0.1 }; // data/sounds.json `swing`
+let openCfg = { radius: 14, every: 0.05, slot: "door" }; // data/sounds.json `openings`
+let bowCfg = { rateFrom: 0.9, rateTo: 1.2 }; // data/sounds.json `bow`
 const walkers = new Map(); // id -> { name, frame, last, count }: a character's walk as heard last frame
-const hands = new Map(); // player id -> { main, off }: its hands' cooldowns last frame
+const hands = new Map(); // player id -> { main, off, shove, recover }: its clocks last frame
+const draws = new Map(); // player id -> the bow's draw loop's handle
+const bodies = new Map(); // a dead one's id -> { dead, down }
+const openings = new Map(); // "x,y,edge" -> { open, broken }
+let flying = []; // the arrows in flight last frame, { gx, gy, projectile }
+let lastScan = -Infinity;
 let lastSim = null;
 let fresh = true;
 
@@ -33,23 +45,39 @@ export function configure(data) {
   if (!data) return;
   if (data.footsteps) steps = { ...steps, ...data.footsteps };
   if (data.swing) swingCfg = { ...swingCfg, ...data.swing };
+  if (data.openings) openCfg = { ...openCfg, ...data.openings };
+  if (data.bow) bowCfg = { ...bowCfg, ...data.bow };
 }
 
 // A fresh baseline at the next update: a new world, a welcome, a tab come back.
 export function reset() {
   walkers.clear();
   hands.clear();
+  for (const h of draws.values()) h.stop(0.05);
+  draws.clear();
+  bodies.clear();
+  openings.clear();
+  flying = [];
+  lastScan = -Infinity;
   lastSim = null;
   fresh = true;
 }
 
 const living = (S) => [...S.players, ...S.villagers, ...S.zombies].filter((c) => c && !c.dead && !c.corpse);
+const theDead = (S) => [...S.zombies, ...(S.corpses || [])].filter((c) => c && c.kind === "zombie");
 
 function remember(S) {
   walkers.clear();
   for (const c of living(S)) walkers.set(c.id, { name: c.anim && c.anim.name, frame: c.anim && c.anim.frame, last: -Infinity, count: 0 });
   hands.clear();
-  for (const p of S.players) hands.set(p.id, { main: p.attackCooldown || 0, off: p.offCooldown || 0 });
+  for (const p of S.players) hands.set(p.id, clocks(p));
+  for (const h of draws.values()) h.stop(0.05);
+  draws.clear();
+  bodies.clear();
+  for (const z of theDead(S)) bodies.set(z.id, bodyState(z));
+  flying = inFlight();
+  openings.clear();
+  scanOpenings(S, false);
   floaters.takeForEar(); // what happened before the baseline is not heard
 }
 
@@ -67,12 +95,19 @@ export function update(S, dt = 0) {
   if (fresh || !(gap <= FRESH) || gap < -FRESH) {
     remember(S);
     lastSim = sim;
+    lastScan = sim;
     fresh = false;
     return;
   }
   footsteps(S, sim);
-  swings(S);
+  players(S);
   hits(S);
+  deaths(S);
+  arrows();
+  if (sim - lastScan >= openCfg.every || sim < lastScan) {
+    lastScan = sim;
+    scanOpenings(S, true);
+  }
   lastSim = sim;
 }
 
@@ -103,10 +138,11 @@ function footsteps(S, sim) {
   }
 }
 
+// The floor's step slot; a floor not listed, grass among them since #386, takes the default (the dead's shuffle).
 function stepSlot(c) {
   const t = map.tileAt(Math.round(c.gx), Math.round(c.gy));
   const name = t && steps[t.floor];
-  return typeof name === "string" ? name : "step_grass";
+  return typeof name === "string" ? name : steps.default || "shuffle";
 }
 
 function listenerAt(S) {
@@ -114,20 +150,51 @@ function listenerAt(S) {
   return me && !me.dead ? [me.gx, me.gy] : [cam.gx, cam.gy];
 }
 
-// ---- the swing: a hand's cooldown risen by more than `rise` since the last frame, which only a swing does (a swing
-// sets it to the weapon's whole `swing` from at or near zero). The slot is the weapon's own `sound`, else light or heavy
-// by how long its swing is.
-function swings(S) {
+// ---- a player's hands: the swing (a hand's cooldown risen by more than `rise` since the last frame, which only a swing
+// does), the shove (its cooldown risen), the bow's draw (a loop while `draw` is up with a bow in hand, its rate following
+// the draw) and release (`recover` risen with a bow), a spell's cast (`recover` risen with a spell). A dry release sets no
+// `recover`, so it ends the draw's loop and plays no twang. A thrown spear's throw is a sound of its own, later.
+function clocks(p) {
+  return { main: p.attackCooldown || 0, off: p.offCooldown || 0, shove: p.shoveCooldown || 0, recover: p.recover || 0 };
+}
+
+function players(S) {
   for (const p of S.players) {
-    if (p.dead) continue;
-    const was = hands.get(p.id) || { main: 0, off: 0 };
-    const main = p.attackCooldown || 0;
-    const off = p.offCooldown || 0;
-    hands.set(p.id, { main, off });
-    if (main - was.main > swingCfg.rise) audio.play(swingSlot(mainWeapon(p, main)), { at: [p.gx, p.gy] });
-    if (off - was.off > swingCfg.rise) audio.play(swingSlot(combat.offWeaponOf(p) || combat.FISTS), { at: [p.gx, p.gy] });
+    const was = hands.get(p.id) || { main: 0, off: 0, shove: 0, recover: 0 };
+    const now = clocks(p);
+    hands.set(p.id, now);
+    if (p.dead) {
+      stopDraw(p.id);
+      continue;
+    }
+    const at = [p.gx, p.gy];
+    if (now.main - was.main > swingCfg.rise) audio.play(swingSlot(mainWeapon(p, now.main)), { at });
+    if (now.off - was.off > swingCfg.rise) audio.play(swingSlot(combat.offWeaponOf(p) || combat.FISTS), { at });
+    if (now.shove - was.shove > swingCfg.rise) audio.play("shove", { at });
+    const L = archery.launcherOf(p);
+    const kind = L && !L.refuse ? L.kind : null;
+    if (p.draw && kind === "bow") {
+      const rate = bowCfg.rateFrom + (bowCfg.rateTo - bowCfg.rateFrom) * Math.max(0, Math.min(1, p.draw.c || 0));
+      const h = draws.get(p.id);
+      if (h && h.playing) h.set({ at, rate });
+      else draws.set(p.id, audio.loop("bow_draw", { at, rate }));
+    } else stopDraw(p.id);
+    if (now.recover - was.recover > swingCfg.rise) {
+      if (kind === "bow") audio.play("bow_release", { at });
+      else if (kind === "spell") audio.play("cast", { at });
+    }
   }
-  for (const id of [...hands.keys()]) if (!S.players.some((p) => p.id === id)) hands.delete(id);
+  for (const id of [...hands.keys()]) {
+    if (S.players.some((p) => p.id === id)) continue;
+    hands.delete(id);
+    stopDraw(id);
+  }
+}
+
+function stopDraw(id) {
+  const h = draws.get(id);
+  if (h) h.stop(0.08);
+  draws.delete(id);
 }
 
 // The main hand's swing or its other mode (the halberd's thrust), told apart by which one's `swing` the cooldown is.
@@ -152,4 +219,89 @@ function hits(S) {
     const c = all.find((x) => x.id === e.id);
     if (c) audio.play("hit", { at: [c.gx, c.gy] });
   }
+}
+
+// ---- the dead: a death when one is dead that was not (a tier below a hit), a fall when one goes down that was standing
+// (so downed reads apart from dead; #385). First sight is learned silently.
+function bodyState(z) {
+  const dead = !!(z.dead || z.corpse);
+  return { dead, down: !dead && z.state === "down" };
+}
+
+function deaths(S) {
+  const seen = new Set();
+  for (const z of theDead(S)) {
+    seen.add(z.id);
+    const now = bodyState(z);
+    const was = bodies.get(z.id);
+    bodies.set(z.id, now);
+    if (!was) continue;
+    if (now.dead && !was.dead) audio.play("death", { at: [z.gx, z.gy] });
+    else if (now.down && !was.down) audio.play("fall", { at: [z.gx, z.gy] });
+  }
+  for (const id of [...bodies.keys()]) if (!seen.has(id)) bodies.delete(id);
+}
+
+// ---- an arrow landing: an arrow or a fire arrow in flight last frame and gone now, heard at its last place. The frame
+// sends arrows with no id (net.js), so each is matched to the nearest of its kind still flying.
+function inFlight() {
+  return archery.arrowsInFlight().filter((a) => !a.done && LANDS.has(a.projectile)).map((a) => ({ gx: a.gx, gy: a.gy, projectile: a.projectile }));
+}
+
+function arrows() {
+  const now = inFlight();
+  const used = new Set();
+  for (const a of flying) {
+    let best = -1;
+    let bestD = 3; // tiles: an arrow moves well under this between two frames
+    now.forEach((b, i) => {
+      if (used.has(i) || b.projectile !== a.projectile) return;
+      const d = Math.hypot(b.gx - a.gx, b.gy - a.gy);
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    });
+    if (best >= 0) used.add(best);
+    else audio.play("arrow_land", { at: [a.gx, a.gy] });
+  }
+  flying = now;
+}
+
+// ---- doors and shutters: every opening within `radius` of the listener, remembered by its edge. A change seen before
+// plays the one creak at the opening, open or close (Michael: one placeholder for all four); a break plays nothing (its
+// own sound is step 4, never the open); an opening first seen, walked into range, is learned silently.
+// The scan's cost for the check (docs/40 step 2, item 8): the mean milliseconds of `n` silent scans where the listener
+// stands. A silent scan only learns what is there, which the next real one would learn the same.
+export function scanCost(S, n = 50) {
+  if (!S || !S.players) return null;
+  const t0 = performance.now();
+  for (let i = 0; i < n; i++) scanOpenings(S, false);
+  return { ms: (performance.now() - t0) / n, openings: openings.size, every: openCfg.every };
+}
+
+function scanOpenings(S, play) {
+  const [lx, ly] = listenerAt(S);
+  const r = Math.ceil(openCfg.radius);
+  const cx = Math.round(lx);
+  const cy = Math.round(ly);
+  const seen = new Set();
+  for (let y = cy - r; y <= cy + r; y++) {
+    for (let x = cx - r; x <= cx + r; x++) {
+      const t = map.tileAt(x, y);
+      for (const edge of ["n", "w"]) {
+        const w = t[edge];
+        if (!w || (w.kind !== "door" && w.kind !== "window")) continue;
+        const key = `${x},${y},${edge}`;
+        seen.add(key);
+        const now = { open: w.kind === "door" ? !!w.open : w.shutter === "open", broken: !!w.broken };
+        const was = openings.get(key);
+        openings.set(key, now);
+        if (!play || !was) continue;
+        if (now.broken !== was.broken) continue; // a break, not an open
+        if (now.open !== was.open) audio.play(openCfg.slot, { at: edge === "n" ? [x, y - 0.5] : [x - 0.5, y] });
+      }
+    }
+  }
+  for (const key of [...openings.keys()]) if (!seen.has(key)) openings.delete(key);
 }

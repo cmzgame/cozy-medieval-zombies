@@ -30,6 +30,7 @@ const CONTROLS = [
     ["Right-click", "Everything you can do to what is under the cursor"],
     ["M", "The map: what anyone in the world has seen; the wheel zooms, drag to move it"],
     ["Esc", "Close what is open, else pause"],
+    ["F8", "Sound on or off"],
   ]],
   ["Fighting", [
     ["Left-click", "Swing what you hold; fists with nothing. Hold to draw a bow or cast"],
