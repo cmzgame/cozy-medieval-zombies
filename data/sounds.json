@@ -1,21 +1,258 @@
 {
-  "note": "The sound slots (docs/40, section 1): each a name the ear plays, its group, its volume (0 to 1, before the group's and the master's), its radius in tiles (heard at (1 - d / radius) squared, not at all beyond it), how many variants the generator makes, how many may sound at once (maxVoices), the recipe's numbers (gen), and a delivered recording's path (file: null for a placeholder generated at boot by src/sound-gen.js). A recording replaces a placeholder by filling in file, no code changed. Step 1: the footsteps, the dead's shuffle, the swing, the hit.",
+  "note": "The sound slots (docs/40, section 1): each a name the ear plays, its group, its volume (0 to 1, before the group's and the master's), its radius in tiles (heard at (1 - d / radius) squared, not at all beyond it), how many variants the generator makes, how many may sound at once (maxVoices), the recipe's numbers (gen), and a delivered recording's path (file: null for a placeholder generated at boot by src/sound-gen.js). A recording replaces a placeholder by filling in file, no code changed. Step 1: the footsteps, the dead's shuffle, the swing, the hit. Step 2 (#386): the shove, the bow's draw (a loop: `loop` true) and release, an arrow landing, a spell's cast, the dead's death and a downed one's fall, a door or shutters opening or closing (one placeholder for all four, Michael); the grass step gone, the player on grass shuffling as the dead do.",
   "voices": 24,
-  "groups": { "effects": 1, "ambience": 0.5, "music": 0.5, "interface": 0.75 },
+  "groups": {
+    "effects": 1,
+    "ambience": 0.5,
+    "music": 0.5,
+    "interface": 0.75
+  },
   "slots": {
-    "hit": { "group": "effects", "volume": 0.85, "radius": 14, "variants": 4, "maxVoices": 6, "gen": { "recipe": "hit", "length": 0.16, "freq": 90, "drop": 0.45, "noiseCut": 1200, "noiseLength": 0.05 }, "file": null },
-    "shuffle": { "group": "effects", "volume": 0.5, "radius": 14, "variants": 4, "maxVoices": 6, "gen": { "recipe": "shuffle", "length": 0.14, "cut": 300 }, "file": null },
-    "step_dirt": { "group": "effects", "volume": 0.55, "radius": 14, "variants": 4, "maxVoices": 6, "gen": { "recipe": "step_dirt", "length": 0.07, "cut": 450, "thump": 70, "thumpLength": 0.04 }, "file": null },
-    "step_grass": { "group": "effects", "volume": 0.5, "radius": 14, "variants": 4, "maxVoices": 6, "gen": { "recipe": "step_grass", "length": 0.07, "centre": 600, "q": 0.8 }, "file": null },
-    "step_stone": { "group": "effects", "volume": 0.5, "radius": 14, "variants": 4, "maxVoices": 6, "gen": { "recipe": "step_stone", "length": 0.06, "clickLength": 0.025, "clickCut": 2500, "knock": 220 }, "file": null },
-    "step_water": { "group": "effects", "volume": 0.5, "radius": 14, "variants": 4, "maxVoices": 6, "gen": { "recipe": "step_water", "length": 0.12, "from": 800, "to": 2000, "bubbles": 3 }, "file": null },
-    "step_wood": { "group": "effects", "volume": 0.55, "radius": 14, "variants": 4, "maxVoices": 6, "gen": { "recipe": "step_wood", "length": 0.06, "from": 160, "to": 90, "clickCut": 2000 }, "file": null },
-    "swing_heavy": { "group": "effects", "volume": 0.7, "radius": 14, "variants": 4, "maxVoices": 4, "gen": { "recipe": "swing", "length": 0.3, "peak": 0.04, "sweep": [200, 900, 300] }, "file": null },
-    "swing_light": { "group": "effects", "volume": 0.6, "radius": 14, "variants": 4, "maxVoices": 4, "gen": { "recipe": "swing", "length": 0.18, "peak": 0.04, "sweep": [400, 1800, 600] }, "file": null }
+    "arrow_land": {
+      "group": "effects",
+      "volume": 0.55,
+      "radius": 14,
+      "variants": 3,
+      "maxVoices": 4,
+      "gen": {
+        "recipe": "arrow_land",
+        "length": 0.05,
+        "freq": 300
+      },
+      "file": null
+    },
+    "bow_draw": {
+      "group": "effects",
+      "volume": 0.35,
+      "radius": 14,
+      "variants": 1,
+      "maxVoices": 3,
+      "loop": true,
+      "gen": {
+        "recipe": "bow_draw",
+        "length": 1.0,
+        "freq": 180,
+        "wobble": 5,
+        "centre": 700
+      },
+      "file": null
+    },
+    "bow_release": {
+      "group": "effects",
+      "volume": 0.7,
+      "radius": 14,
+      "variants": 3,
+      "maxVoices": 4,
+      "gen": {
+        "recipe": "bow_release",
+        "length": 0.35,
+        "freq": 110,
+        "whoosh": 0.04
+      },
+      "file": null
+    },
+    "cast": {
+      "group": "effects",
+      "volume": 0.6,
+      "radius": 14,
+      "variants": 3,
+      "maxVoices": 3,
+      "gen": {
+        "recipe": "cast",
+        "length": 0.4,
+        "from": 400,
+        "to": 2400
+      },
+      "file": null
+    },
+    "death": {
+      "group": "effects",
+      "volume": 0.55,
+      "radius": 14,
+      "variants": 3,
+      "maxVoices": 4,
+      "gen": {
+        "recipe": "death",
+        "length": 0.45,
+        "from": 70,
+        "to": 38,
+        "cut": 400
+      },
+      "file": null
+    },
+    "door": {
+      "group": "effects",
+      "volume": 0.6,
+      "radius": 14,
+      "variants": 2,
+      "maxVoices": 4,
+      "gen": {
+        "recipe": "door",
+        "length": 0.45,
+        "freq": 110,
+        "wobble": 15,
+        "rate": 9,
+        "centre": 900
+      },
+      "file": null
+    },
+    "fall": {
+      "group": "effects",
+      "volume": 0.7,
+      "radius": 14,
+      "variants": 3,
+      "maxVoices": 4,
+      "gen": {
+        "recipe": "fall",
+        "length": 0.22,
+        "freq": 55,
+        "cut": 250
+      },
+      "file": null
+    },
+    "hit": {
+      "group": "effects",
+      "volume": 0.85,
+      "radius": 14,
+      "variants": 4,
+      "maxVoices": 6,
+      "gen": {
+        "recipe": "hit",
+        "length": 0.16,
+        "freq": 90,
+        "drop": 0.45,
+        "noiseCut": 1200,
+        "noiseLength": 0.05
+      },
+      "file": null
+    },
+    "shove": {
+      "group": "effects",
+      "volume": 0.7,
+      "radius": 14,
+      "variants": 4,
+      "maxVoices": 4,
+      "gen": {
+        "recipe": "shove",
+        "length": 0.16,
+        "cut": 500,
+        "thump": 120
+      },
+      "file": null
+    },
+    "shuffle": {
+      "group": "effects",
+      "volume": 0.5,
+      "radius": 14,
+      "variants": 4,
+      "maxVoices": 6,
+      "gen": {
+        "recipe": "shuffle",
+        "length": 0.14,
+        "cut": 300
+      },
+      "file": null
+    },
+    "step_dirt": {
+      "group": "effects",
+      "volume": 0.55,
+      "radius": 14,
+      "variants": 4,
+      "maxVoices": 6,
+      "gen": {
+        "recipe": "step_dirt",
+        "length": 0.07,
+        "cut": 450,
+        "thump": 70,
+        "thumpLength": 0.04
+      },
+      "file": null
+    },
+    "step_stone": {
+      "group": "effects",
+      "volume": 0.5,
+      "radius": 14,
+      "variants": 4,
+      "maxVoices": 6,
+      "gen": {
+        "recipe": "step_stone",
+        "length": 0.06,
+        "clickLength": 0.025,
+        "clickCut": 2500,
+        "knock": 220
+      },
+      "file": null
+    },
+    "step_water": {
+      "group": "effects",
+      "volume": 0.5,
+      "radius": 14,
+      "variants": 4,
+      "maxVoices": 6,
+      "gen": {
+        "recipe": "step_water",
+        "length": 0.12,
+        "from": 800,
+        "to": 2000,
+        "bubbles": 3
+      },
+      "file": null
+    },
+    "step_wood": {
+      "group": "effects",
+      "volume": 0.55,
+      "radius": 14,
+      "variants": 4,
+      "maxVoices": 6,
+      "gen": {
+        "recipe": "step_wood",
+        "length": 0.06,
+        "from": 160,
+        "to": 90,
+        "clickCut": 2000
+      },
+      "file": null
+    },
+    "swing_heavy": {
+      "group": "effects",
+      "volume": 0.7,
+      "radius": 14,
+      "variants": 4,
+      "maxVoices": 4,
+      "gen": {
+        "recipe": "swing",
+        "length": 0.3,
+        "peak": 0.04,
+        "sweep": [
+          200,
+          900,
+          300
+        ]
+      },
+      "file": null
+    },
+    "swing_light": {
+      "group": "effects",
+      "volume": 0.6,
+      "radius": 14,
+      "variants": 4,
+      "maxVoices": 4,
+      "gen": {
+        "recipe": "swing",
+        "length": 0.18,
+        "peak": 0.04,
+        "sweep": [
+          400,
+          1800,
+          600
+        ]
+      },
+      "file": null
+    }
   },
   "footsteps": {
-    "note": "The floor under a foot (map.tileAt(round(gx), round(gy)).floor) to its step slot; a floor not listed steps as grass. The dead shuffle whatever the floor.",
-    "floor_grass": "step_grass",
+    "note": "The floor under a foot (map.tileAt(round(gx), round(gy)).floor) to its step slot; a floor not listed takes `default`. The dead shuffle whatever the floor; grass shuffles too, so a player on grass and the dead sound alike (Michael, 2026-10-24, #385).",
+    "floor_grass": "shuffle",
     "floor_dirt": "step_dirt",
     "floor_farm": "step_dirt",
     "floor_farm_y": "step_dirt",
@@ -26,7 +263,23 @@
     "floor_water": "step_water",
     "dead": "shuffle",
     "nearest": 6,
-    "gap": 0.18
+    "gap": 0.18,
+    "default": "shuffle"
   },
-  "swing": { "note": "A weapon's own `sound` names its swing slot; else light under heavyAt seconds of swing, heavy at or over it. A cooldown risen by more than rise seconds since the last frame is a swing.", "heavyAt": 0.8, "rise": 0.1 }
+  "swing": {
+    "note": "A weapon's own `sound` names its swing slot; else light under heavyAt seconds of swing, heavy at or over it. A cooldown risen by more than rise seconds since the last frame is a swing.",
+    "heavyAt": 0.8,
+    "rise": 0.1
+  },
+  "openings": {
+    "note": "Doors and shutters (#386): the ear scans the openings within `radius` tiles of the listener every `every` seconds of sim time and remembers each by its edge; a change it has seen plays `slot` at the opening (open and close alike), a break plays nothing (step 4), an opening first seen is learned silently.",
+    "radius": 14,
+    "every": 0.05,
+    "slot": "door"
+  },
+  "bow": {
+    "note": "The bow's draw loop's rate from `rateFrom` at no draw to `rateTo` at a full one (docs/40, section 5).",
+    "rateFrom": 0.9,
+    "rateTo": 1.2
+  }
 }
