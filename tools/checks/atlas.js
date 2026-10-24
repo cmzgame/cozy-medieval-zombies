@@ -3,7 +3,7 @@
 // The atlas is a stack of 4096 pages, a page a layer of one array texture, opened when a sheet fits none. This check overflows page 0 with filler sheets and proves what the bug (#353: the
 // player's body gone when the atlas was full) needs: every sheet there is, the player's figure among them, has frames on a real page; a later small sheet fills the tail of page 0 instead of
 // opening another; each page is in its own layer on the GPU (a texel read back from the layer is the canvas's); the player's figure sheet re-placed after the fill lands on a later page and the
-// frame is byte-for-byte the frame it was (a body drawn from page 1 is the body drawn from page 0); a sheet that outgrows its slot is placed anew on whatever page has room; and only a sheet
+// frame is the frame it was (a body drawn from page 1 is the body drawn from page 0; see the fifth row for the one allowance); a sheet that outgrows its slot is placed anew on whatever page has room; and only a sheet
 // larger than a page itself draws as nothing. The pages the check opens (two or three) stay until the page is reloaded (a page is never given back). The player's sheet is put back.
 
 export async function run(game) {
@@ -20,20 +20,40 @@ export async function run(game) {
   const isEmpty = (uv) => !uv || (uv[0] === 6 && uv[1] === 1 && uv[2] === 8 && uv[3] === 3);
   const colour = (w, h, css) => { const c = document.createElement("canvas"); c.width = w; c.height = h; const k = c.getContext("2d"); k.fillStyle = css; k.fillRect(0, 0, w, h); return c; };
   const sheetOf = (img) => ({ image: img, frames: { a: [0, 0, img.width, img.height] }, anchor: [0, 0] });
-  const hash = () => {
+  const grab = () => {
     const gl2 = gl.gl;
     const px = new Uint8Array(gl2.canvas.width * gl2.canvas.height * 4);
     gl2.readPixels(0, 0, gl2.canvas.width, gl2.canvas.height, gl2.RGBA, gl2.UNSIGNED_BYTE, px);
+    return px;
+  };
+  const hashOf = (px) => {
     let h = 2166136261;
     for (let i = 0; i < px.length; i++) h = Math.imul(h ^ px[i], 16777619);
     return (h >>> 0).toString(16);
+  };
+  // Two frames compared pixel by pixel: how many differ, and how many of those took the colour a neighbour had (above, below, left,
+  // right). At the world's zooms (none a whole number) a pixel's centre now and then lands exactly between two texels, and nearest
+  // sampling breaks that tie by the float rounding of the interpolated coordinate, which depends on where in the atlas the sheet sits:
+  // the same sheet on another slot, of page 0 or any other, can draw such a pixel from the neighbouring texel (#392: seven pixels of one
+  // row of the figure, each the colour of the pixel beside it). A tie is no missing body; anything else would be.
+  const compare = (A, B, w) => {
+    const same = (i, j) => A[j] === B[i] && A[j + 1] === B[i + 1] && A[j + 2] === B[i + 2] && A[j + 3] === B[i + 3];
+    let differ = 0;
+    let ties = 0;
+    for (let i = 0; i < A.length; i += 4) {
+      if (same(i, i)) continue;
+      differ++;
+      if ([4 * w, -4 * w, 4, -4].some((o) => i + o >= 0 && i + o < A.length && same(i, i + o))) ties++;
+    }
+    return { differ, ties };
   };
   try {
     G.loop.setPaused(true);
     performance.now = () => 1234567.5; // the flames and sways animate on the wall clock: frozen, or no two renders are alike
     G.loop.advance(1 / 60);
     G.loop.advance(0);
-    const before = hash();
+    const beforePx = grab();
+    const before = hashOf(beforePx);
     const info0 = gl.atlasInfo();
     // 1. Overflow page 0: a filler too tall for what is left of it opens the next page.
     const left0 = info0.size - info0.perPage[0].usedRows;
@@ -72,14 +92,20 @@ export async function run(game) {
     own.image = colour(ownImage.width, ownImage.height, "rgba(0,0,0,0)");
     gl.redrawSheet(own);
     G.loop.advance(0);
-    const gone = hash(); // the control: with the slot blank and nothing else drawn, the body is gone from the frame
+    const gonePx = grab(); // the control: with the slot blank and nothing else drawn, the body is gone from the frame
+    const gone = hashOf(gonePx);
     G.assets.registerSheet(id, clone, own.source);
     const uvClone = gl.frameUV(clone, Object.keys(clone.frames)[0]);
     G.loop.advance(0);
-    const after = hash();
+    const afterPx = grab();
+    const after = hashOf(afterPx);
     own.image = ownImage;
     gl.redrawSheet(own);
-    row("the player's figure placed after the fill lands on a later page, not as nothing, and the frame is byte for byte the frame it was (in a hosted or joined world, the page only)", uvClone[4] >= 1 && !isEmpty(uvClone) && (networked || (after === before && gone !== before)), `figure ${ownImage.width}x${ownImage.height} on page ${uvClone[4]}; frame ${before}, with the body blank ${gone}, from the page-${uvClone[4]} copy ${after}`);
+    const w = gl.gl.canvas.width;
+    const body = compare(beforePx, gonePx, w).differ; // the pixels the body covers
+    const moved = compare(beforePx, afterPx, w);
+    const sameFrame = body > 0 && moved.differ === moved.ties && moved.differ <= Math.max(1, Math.floor(body * 0.02));
+    row("the player's figure placed after the fill lands on a later page, not as nothing, and the frame is the frame it was, but for sampling ties (in a hosted or joined world, the page only)", uvClone[4] >= 1 && !isEmpty(uvClone) && (networked || sameFrame), `figure ${ownImage.width}x${ownImage.height} on page ${uvClone[4]}; the body covers ${body} pixels (blank: ${gone}); the page-${uvClone[4]} copy's frame ${after === before ? "byte for byte the same" : `differs in ${moved.differ}, ${moved.ties} of them ties`} (${before}, ${after})`);
     G.assets.registerSheet(id, own, own.source);
     // 6. A sheet that outgrows its slot is placed anew, across pages.
     const grow = sheetOf(colour(300, 100, "#ffff00"));
