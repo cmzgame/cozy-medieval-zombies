@@ -309,7 +309,7 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
     p.armOut[0] = HOLD_OUT;
     p.bend[0] = 0;
   }
-  const swinging = anim === "attack" || anim === "attack_alt";
+  const swinging = anim === "attack" || anim === "attack_alt" || anim === "shove"; // the shove is both arms out whatever is held (docs/41, step 2)
   if (holding.main && !fixed && !swinging && anim !== "present") {
     // A thing with a pose of its own (`held.pose`, a pose in the data: the book's "present", docs/32 item 1; the bow's
     // "bow_rest", 2026-10-14) holds the arms so in the idle and the walk; anything else is held forward at the hold's pitch.
