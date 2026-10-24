@@ -1,0 +1,47 @@
+# 42 — The levers: every number Michael means to keep tuning, and every world setting
+
+**Status, 2026-10-24: a reference, kept current by the rule in `CLAUDE.md` (a ruling that names a lever or a world setting adds or changes its line here in the same commit).** Created for #384 (Michael: "I do keep saying it and I am not sure if it ever gets written down"). Values are as of `main` when a line was last touched; the data is the truth, and the wiki's page of these reads the data (#387). The reasons are the rulings in `docs/02`, named on each line.
+
+Two kinds:
+- **A tuning lever** is a number Michael is still balancing by play: ours to turn, not a player's.
+- **A world setting** is a choice a player makes: a world's rule (chosen at the Sandbox step of New world or by the host from the pause menu, `docs/38`), or a player's own setting (the Settings screen). "Someday" marks one Michael has named that is not built.
+
+## Tuning levers
+
+### The dead and the bite
+- **The dead's health:** `zombie.hp` in `data/tuning.json`, 150. Michael's number (`41` step 6, 2026-10-23). The sword kills in 3 up to 102, in 4 from 103 to 136, in 5 from 137 to 170. Room to go up with the difficulty pass (#133; #385).
+- **What a cancelled bite costs the dead one:** today the bite's whole cooldown, `zombie.cooldown`, 1.2 s (2026-10-23, the cancel is a lever; `docs/41` step 1). The softer setting is half of it.
+- **Whether every landed hit cancels a bite's wind-up, or only one that staggers:** today every hit; a switch in code (`damageZombie` in `src/entities/zombie.js`), not yet data (2026-10-23).
+- **The bite's wind-up:** the dead's `attack` in `data/poses.json`, the bite on its fifth frame at 10 fps, 400 ms (`41` step 1).
+- **Bite tokens:** `zombie.biteTokens` 2 and `zombie.biteTokensPer` 3 in `data/tuning.json`: how many of the dead in reach of one target bite at once (`41` step 5).
+- **The closing burst** (a trial, 2026-10-24, #385): the dead walk faster once close to a target they see; its two numbers land in `data/tuning.json` with the trial.
+- **The floor:** `zombie.downTime` 0.8 s, `zombie.getUpTime` 0.6 s; a turned villager `zombie.turnDownTime` 2 s (`41` step 3).
+
+### The player's blows
+- **Stamina's regeneration:** `player.staminaRegen` 10 a second (`41` step 4; "no law about stamina regen").
+- **Each weapon's swing cost:** `stamina` on each weapon block in `data/items.json` (`41` step 4).
+- **The tired blow:** `blow.tiredDamage` 0.5 in `data/combat.json`: a swing the bar cannot pay for (2026-10-11, narrowed 2026-10-24).
+- **Knockdown:** `blow.knockdownChance` 0; the mace's `knockdown` 0.35, the halberd thrust's 0.5, the shove's 0.1 (`41` step 3).
+- **The finisher:** `finisher.mult` 1.5; the third-hit combo `combo.enabled` off, kept for testing (2026-10-12).
+- **The shove:** `shove` in `data/combat.json`: the push `knockback` (0.4 tiles from 2026-10-24, #385), `stagger` 0.8 s, `stamina` 15, `cooldown` 0.5 s, `targets` 3 (`41` step 2).
+- **The spear's break:** `thrown.breakChance` on the spear in `data/items.json`, 0.25, hit or miss (2026-10-24).
+- **Hit stop and the swing's commitment:** `blow.hitStop` 0.07, `blow.hitStopKill` 0.12, `blow.swingMove` 0.6 (`41` step 1).
+
+### Food, the world, the valley
+- **Rot:** each food's life in game days, and planted or hanging food at five times it (2026-10-23, the food economy; not built).
+- **Day-one food:** the target of about twelve game days for one player with tools, read on the wiki's Day-one food page (2026-10-23).
+- **The loot tables:** every container's table is provisional until ruled (2026-10-19; #268).
+
+## World settings
+
+### A world's rules (`src/settings.js`, groups `rules` and `sandbox`)
+- **Zombie aggro**, on (2026-10-15). **Zombies attack villagers**, off (2026-10-15). **Survival**, on (2026-10-13). **Free building**, off. **Multi-hit**, off, "the easy button" (2026-10-12).
+- **Trees** and **Starting population**, chosen when the world is made and fixed after (2026-10-16).
+- **Dev chest**, on; **Dev bag**, off; **Extra starting items**, none: the Sandbox step's testing choices (2026-10-16).
+- **Combat difficulty and infection, one dial** (2026-10-12): someday; today `infection.chance` 0.2 in `data/combat.json` is its only part.
+- **What death takes:** all skills (2026-10-23); a world rule to soften it someday, playtests deciding.
+
+### A player's own settings (`src/settings.js`, groups `display` and `sound`)
+- **The aim guide**, on by default from 2026-10-24 (#385; it was off since 2026-10-16), off for the challenge.
+- **Swing targets**, on (`41` step 1). **Swing timer**, on. **Floating numbers**, shown.
+- **Sound**, on; **Volume**, 75% (`docs/40`; 2026-10-24, question 1); a mute key, F8 (2026-10-24, #386).
