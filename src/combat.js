@@ -29,9 +29,10 @@ import { detach } from "./inventory.js"; // a worn-out weapon leaves the hand (d
 // Tunables (docs/14).
 // The blow's own numbers (the wiki census, 2026-10-15: combat numbers are data): `data/combat.json` `blow` fills
 // these, the code keeping the same defaults. pointBlank: tiles this close are always hit; knockdownChance: the share
-// of hits that floor the dead for a weapon with no `knockdown` of its own (high, for the combat pass, Michael);
+// of hits that floor the dead for a weapon with no `knockdown` of its own (0 since docs/41 step 3: knockdown is the
+// game's crit, earned by the mace, the halberd's thrust, and the shove alone);
 // tiredDamage: a swing at zero stamina still lands, at this share; hitStop, hitStopKill: the freeze on a hit and a kill.
-export const BLOW = { pointBlank: 0.55, knockdownChance: 0.3, tiredDamage: 0.5, hitStop: 0.045, hitStopKill: 0.09 };
+export const BLOW = { pointBlank: 0.55, knockdownChance: 0, tiredDamage: 0.5, hitStop: 0.045, hitStopKill: 0.09 };
 export const BODY_SLACK = 0.8; // tiles of extra reach for a zombie drawn below the player
 export const BODY_TOP = 48; // px: a figure's height, for scaling the slack
 // A figure's drawn body with its arms is about this wide on each side of its middle.
@@ -338,10 +339,13 @@ export function tryAttack(player, zombies, hand = "main", mode = null, predict =
   let killed = false;
   for (const z of targetsIn(player, weapon, zombies)) {
     hit.push(z);
-    const finisher = isDown(z);
+    // On the floor it is a finisher; rising it takes plain damage and nothing else (docs/41, step 3: the floor is
+    // one blow long, and the rise is safe from the multiplier, so a knockdown is a moment and not a free kill).
+    const down = isDown(z);
+    const finisher = down && !z.gettingUp;
     // The third hit within the window always floors it; fists never do.
     let combo = false;
-    if (!finisher) {
+    if (!down) {
       const now = loop.simTime();
       z.hits = (z.hits || []).filter((t) => now - t <= COMBO.window);
       z.hits.push(now);
@@ -351,9 +355,9 @@ export function tryAttack(player, zombies, hand = "main", mode = null, predict =
       }
     }
     const chance = weapon.knockdown ?? BLOW.knockdownChance;
-    const knockdown = !finisher && (combo || rng.chance(chance));
+    const knockdown = !down && (combo || rng.chance(chance));
     const amount = Math.round(weapon.damage * (tired ? BLOW.tiredDamage : 1) * (finisher ? FINISHER.mult : 1) * guardedMult(player) * (hand === "off" ? DUAL.offDamage : 1));
-    const push = !finisher && pushes(weapon) ? weapon.knockback : 0;
+    const push = !down && pushes(weapon) ? weapon.knockback : 0;
     // A weapon with an `ignite` chance (the torch, #14) may set the dead one alight: rolled only for such a weapon, so
     // no other blow spends a roll, and before the damage, so a killing blow's body burns on as a corpse.
     // An unlit torch (doused, or new, #156) sets nothing alight and spends no roll.

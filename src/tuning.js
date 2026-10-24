@@ -28,7 +28,7 @@ export const zombie = {
   groanMin: 20, // seconds between groans
   groanMax: 60,
   stagger: 0.3, // seconds a hit stops it (docs/14)
-  downTime: 2, // seconds on the floor after a knockdown
+  downTime: 0.8, // seconds on the floor after a knockdown: one finisher blow at the sword's pace fits, then it rises (docs/41 step 3; was 2)
   getUpTime: 0.6, // seconds to rise, the fall played backwards
   knockTime: 0.15, // a push is spread over this long, not a teleport
   breachReach: 1.1, // tiles from the edge midpoint to hit it

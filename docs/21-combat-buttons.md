@@ -20,6 +20,8 @@ Ruled by Michael on 2026-10-12 (`02-decisions.md`, question 29 and the log entry
 
 *The swing timer:* the two gold bars are the setting `Swing timer` (on by default, `settings.js`); the exposure bar is danger, not rhythm, and always shows; not covered by the bars: the bow's draw and recovery, the thrown spear, the shove. The HUD as built, bars and labels, is `10`.
 
+*2026-10-23, `41` step 3 built (#364):* **knockdown is restricted to the weapons that earn it:** the default chance for a weapon with none of its own is 0 (`blow.knockdownChance`; was 0.3), the mace's 0.35 (was 0.6), the halberd's thrust 0.5 (new), the shove's its own; the floor is 0.8 s (was 2) and the rise 0.6 s as before, and **a rising zombie takes plain damage with no finisher**, so one finisher blow at the sword's pace fits and the knockdown is a moment, not a free kill. The third-hit combo stays off.
+
 ## The convention
 
 | Input | Role |
