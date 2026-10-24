@@ -970,7 +970,7 @@ The numbers are for tuning; this list is what must change before 1.0.
 - **The Testing tab's defaults:** swing targets, hit shapes (ruled: the tab stays shown).
 - **Free building, Multi-hit, Trees, Starting population:** world rules for testing; their defaults the real game's.
 - **Zombie aggro and Survival** (`src/settings.js`): world rules a test turns off; on for the real game.
-- **Combat numbers left for testing:** the third-hit knockdown off (`combo.enabled`), the finisher, the default knockdown chance ("high"), dual wielding's fatal back, the fireball's damage (#89, #133).
+- **Combat numbers left for testing:** the third-hit knockdown off (`combo.enabled`), the finisher, ~~the default knockdown chance ("high")~~ (settled at 0 by `41` step 3: only the mace, the thrust, and the shove floor), dual wielding's fatal back, the fireball's damage (#89, #133).
 - **The dead's numbers** in `data/tuning.json`, the cozy parent's, never re-decided; their health, damage, sight (#89, #133).
 - **The drains:** hunger, thirst, tiredness (#264).
 - **The starving cliff** and the thirst cliff (#264).
