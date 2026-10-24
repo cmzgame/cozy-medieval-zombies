@@ -292,6 +292,43 @@ for key, e in load("data/build.json").items():
         fail(f"build {key}: a region entry names the wall of a region's wood")
     if e.get("sprite") in wood_walls and wood_walls[e["sprite"]].get("region") and not e.get("region"):
         fail(f"build {key}: a region's wood is offered only with Free building on: mark it `region`")
+# The sounds (docs/40, #379): every slot has a known group, a volume from 0 to 1, a radius above 0, at least one variant,
+# a voice cap, and either a recipe sound-gen.js knows or a delivered file that exists; every slot the ear asks for (the
+# footsteps' floors, the dead's shuffle, the swing, the hit) is a slot.
+SOUND_RECIPES = {"step_grass", "step_dirt", "step_wood", "step_stone", "step_water", "shuffle", "swing", "hit"}  # src/sound-gen.js RECIPES
+snd = load("data/sounds.json")
+sslots = snd.get("slots", {})
+for name, d in sslots.items():
+    where = f"sounds.{name}"
+    if d.get("group") not in ("effects", "ambience", "music", "interface"):
+        fail(f"{where}.group: one of effects, ambience, music, interface")
+    if not (num(d.get("volume")) and 0 <= d["volume"] <= 1):
+        fail(f"{where}.volume: 0 to 1")
+    if not (num(d.get("radius")) and d["radius"] > 0):
+        fail(f"{where}.radius: above 0")
+    if not (isinstance(d.get("variants"), int) and d["variants"] >= 1):
+        fail(f"{where}.variants: a whole number, at least 1")
+    if not (isinstance(d.get("maxVoices"), int) and d["maxVoices"] >= 1):
+        fail(f"{where}.maxVoices: a whole number, at least 1")
+    f = d.get("file")
+    if f:
+        for path in (f if isinstance(f, list) else [f]):
+            if not os.path.exists(path):
+                fail(f"{where}.file: {path} is not on disk")
+    elif (d.get("gen") or {}).get("recipe") not in SOUND_RECIPES:
+        fail(f"{where}: no file and no recipe sound-gen.js knows ({(d.get('gen') or {}).get('recipe')})")
+    elif not (num(d["gen"].get("length")) and d["gen"]["length"] > 0):
+        fail(f"{where}.gen.length: above 0")
+asked = {"hit", "swing_light", "swing_heavy"}
+fs = snd.get("footsteps", {})
+asked |= {v for k, v in fs.items() if k.startswith("floor_") or k == "dead"}
+for name in sorted(asked):
+    if name not in sslots:
+        fail(f"sounds: the ear asks for {name}, which is not a slot")
+for k in fs:
+    if k.startswith("floor_") and not os.path.exists(os.path.join("data", "sprites", f"{k}.json")):
+        fail(f"sounds.footsteps.{k}: no such floor")
+
 # Object Highlight (#301): the outline's colour is hex, its alpha is 0 to 1, and the hit test is asked again every so many ms.
 oh = load("data/tuning.json").get("objectHighlight", {})
 if not (isinstance(oh.get("color"), str) and re.fullmatch(r"#[0-9a-fA-F]{6}", oh["color"])):
