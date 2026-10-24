@@ -486,6 +486,12 @@ export async function run(game) {
         step(6);
       }
 
+      // The openings scan's cost (item 8): a silent scan where the player stands, over the tiles within its radius.
+      G.teleport(saved.gx, saved.gy);
+      step(5);
+      const cost = snd.scanCost ? snd.scanCost(100) : null;
+      row("the openings scan's cost is reported", !!cost && cost.ms >= 0, cost ? `${cost.ms.toFixed(3)} ms a scan over ${cost.openings} openings, one every ${cost.every} s of sim time` : "no __game.sound.scanCost");
+
       // F8: the same switch as the Sound tab, with a line.
       const was8 = G.settings.get("soundOn");
       const press8 = () => document.dispatchEvent(new KeyboardEvent("keydown", { code: "F8", key: "F8", bubbles: true }));

@@ -271,6 +271,15 @@ function arrows() {
 // ---- doors and shutters: every opening within `radius` of the listener, remembered by its edge. A change seen before
 // plays the one creak at the opening, open or close (Michael: one placeholder for all four); a break plays nothing (its
 // own sound is step 4, never the open); an opening first seen, walked into range, is learned silently.
+// The scan's cost for the check (docs/40 step 2, item 8): the mean milliseconds of `n` silent scans where the listener
+// stands. A silent scan only learns what is there, which the next real one would learn the same.
+export function scanCost(S, n = 50) {
+  if (!S || !S.players) return null;
+  const t0 = performance.now();
+  for (let i = 0; i < n; i++) scanOpenings(S, false);
+  return { ms: (performance.now() - t0) / n, openings: openings.size, every: openCfg.every };
+}
+
 function scanOpenings(S, play) {
   const [lx, ly] = listenerAt(S);
   const r = Math.ceil(openCfg.radius);

@@ -1972,7 +1972,7 @@ async function boot() {
     get handlers() { return handlers; },
     get timing() { return timing; },
     // The sounds (docs/40): the ear run by hand after an advance (a paused pane draws nothing), its baseline, the log, the engine.
-    sound: { update: (dt) => soundCues.update(S, dt), reset: () => soundCues.reset(), get log() { return audio.log; }, audio },
+    sound: { update: (dt) => soundCues.update(S, dt), reset: () => soundCues.reset(), scanCost: (n) => soundCues.scanCost(S, n), get log() { return audio.log; }, audio },
     get drawn() { return drawn; },
     setPaused,
     refreshFigure,
