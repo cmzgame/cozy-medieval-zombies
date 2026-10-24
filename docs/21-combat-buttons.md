@@ -30,6 +30,8 @@ Ruled by Michael on 2026-10-12 (`02-decisions.md`, question 29 and the log entry
 
 *2026-10-23, `41` step 4 built (#365):* **stamina is the one pacer of melee:** regeneration 10 a second (was 22) with every swing's cost raised (the snapshot above; the sword 10, the mace 14, the halberd 16 and 20, fists 4); a swing the bar cannot pay for (stamina below its cost) lands at half damage, the tired blow; sprint's drain stays 16 a second, so the bar you fight with is the bar you run with; **no endurance tiers and no muscle strain, ever** (Michael, `02` 2026-10-23). A weapon's hover card now says what a swing costs. From a full bar a sword spammed runs dry in about ten seconds.
 
+*2026-10-23, `41` step 5 built (#366):* **bite tokens:** only a few of the dead in reach of one target bite at once (`zombie.biteTokens` 2, plus one for every `biteTokensPer` 3 in reach beyond the first three: three in reach, two bite; six, three; nine, four); a holder is read from the state the frame already carries (in its attack or on its cooldown, not down) and keeps the token through its cooldown and a stagger, losing it when floored, killed, or out of reach; a freed token goes to the nearest waiter, who needs its whole wind-up; the waiters stand in contact and press in. Per target: a villager's crowd has its own pool. Fence and door strikes ask no token; the siege is unchanged.
+
 ## The convention
 
 | Input | Role |

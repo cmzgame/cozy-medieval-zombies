@@ -10,6 +10,8 @@
     "contact": 0.7,
     "damage": 8,
     "cooldown": 1.2,
+    "biteTokens": 2,
+    "biteTokensPer": 3,
     "fenceStrike": 1,
     "fenceReach": 0.9,
     "fenceBiteExtra": 0.5,
