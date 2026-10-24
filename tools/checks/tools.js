@@ -127,7 +127,7 @@ export async function run(game) {
     G.interact.performByLabel(me, gateAddr, withH.label);
     for (let i = 0; i < 100 && me.action; i++) G.interact.updateAction(me, 0.1);
     const nailed = map.addBoard(gateW, 1);
-    row("a fence gate takes no boards: none in its menu, the door's command does nothing, addBoard refuses it", map.isFence(gateW) && !gateLabels.some((l) => /^Board up/.test(l)) && !nailed && gateW.boards.near.length + gateW.boards.far.length === 0 && G.inventory.countAll(me, "plank") === planksG, `menu: ${gateLabels.join(", ")}; planks ${G.inventory.countAll(me, "plank")} of ${planksG}`);
+    row("a fence gate takes no boards: none in its menu, the door's command does nothing, addBoard refuses it", map.isFence(gateW) && gateLabels.includes("Open door") && !gateLabels.some((l) => /^Board up/.test(l)) && !nailed && gateW.boards.near.length + gateW.boards.far.length === 0 && G.inventory.countAll(me, "plank") === planksG, `menu: ${gateLabels.join(", ")}; planks ${G.inventory.countAll(me, "plank")} of ${planksG}`);
     // Board it again, then take the hammer away: both Board up and Pull a board are greyed with the tool named.
     G.interact.performByLabel(me, doorAddr, G.interact.actionsForTarget(doorAddr, me).find((a) => /^Board up/.test(a.label)).label);
     for (let i = 0; i < 100 && me.action; i++) G.interact.updateAction(me, 0.1);
