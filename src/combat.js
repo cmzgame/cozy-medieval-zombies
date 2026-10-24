@@ -415,8 +415,9 @@ export function wearWeapon(player, slot, hits = 1) {
 // at once, so a click inside the recovery is refused on the guest as it is on the host; the push is the host's alone.
 export function tryShove(player, zombies, predict = false) {
   if (!canAct(player) || (player.shoveCooldown || 0) > 0) return null;
-  // The tired shove, as the tired blow (2026-10-11, narrowed 2026-10-24): one the bar cannot pay for pushes, staggers, and floors at
-  // `blow.tiredDamage`, so an empty bar cannot hold a crowd in a stagger for ever (#385; Primary's reading, Michael's to overrule).
+  // The tired shove, as the tired blow (2026-10-11, narrowed 2026-10-24): one the bar cannot pay for staggers and floors at
+  // `blow.tiredDamage`, so an empty bar cannot hold a crowd in a stagger for ever (#385; Primary's reading), and pushes `shove.tiredPush`
+  // of its push (Michael, 2026-10-24).
   const tired = player.stamina < SHOVE.stamina;
   const share = tired ? BLOW.tiredDamage : 1;
   player.shoveCooldown = SHOVE.cooldown;
