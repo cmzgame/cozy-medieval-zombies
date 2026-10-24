@@ -30,7 +30,7 @@ export const zombie = {
   groanMin: 20, // seconds between groans
   groanMax: 60,
   stagger: 0.3, // seconds a hit stops it (docs/14)
-  downTime: 2, // seconds on the floor after a knockdown
+  downTime: 0.8, // seconds on the floor after a knockdown: one finisher blow at the sword's pace fits, then it rises (docs/41 step 3; was 2)
   getUpTime: 0.6, // seconds to rise, the fall played backwards
   knockTime: 0.15, // a push is spread over this long, not a teleport
   breachReach: 1.1, // tiles from the edge midpoint to hit it
@@ -58,7 +58,7 @@ export const player = {
   // screen. Michael wanted longer (2026-10-09): 16 per second is just over 6 s,
   // about a screen and a half at 5.25 tiles per second.
   sprintDrain: 16,
-  staminaRegen: 22,
+  staminaRegen: 10, // a second (22 until docs/41 step 4): with the swing costs raised, the one pacer of melee; no endurance tiers, no strain (Michael, 2026-10-23)
   sprintRecoverAt: 20, // stamina needed to sprint again once winded
   aimY: 22, // aim originates from the chest, this many pixels above the feet
   // Slow needs (docs/10): the cozy parent's drains, to be retuned with farming.

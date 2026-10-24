@@ -30,9 +30,17 @@ export { idleTime, roomOf, faceToward, repath, followPath, separate, pickTargetA
 // How a hit staggers (docs/02 question 29b, Michael: stun plus knockdown on every hit felt too strong).
 // `chance` is the default that a hit staggers at all (each weapon has its own `staggerChance`, by weight);
 // `immunity` is the seconds after a stagger ends in which another cannot start, so a stream of hits cannot
-// hold one of the dead forever. A bite under way is not cancelled by a stagger, only by a knockdown or a
-// weapon that `interrupts` (the heavy ones). Filled from data/combat.json.
+// hold one of the dead forever. Filled from data/combat.json. Since docs/41 step 1: every landed hit shows a
+// flinch (the hurt pose, the walk going on), a stagger is the flinch that also stops the walk, and any landed
+// hit during a bite's wind-up cancels the bite, whatever the weapon (`interrupts` is retired).
 export const STAGGER_RULES = { chance: 0.5, immunity: 0.6 };
+
+// The flinch is a one-shot (docs/41, step 1): the walk and the idle do not replace an unfinished hurt, so a hit
+// shows on a zombie that keeps walking; an attack, a fall, or a new hurt do replace it.
+function show(z, name, restart = false) {
+  if (z.anim.name === "hurt" && !z.anim.done && (name === "idle" || name === "walk")) return;
+  playAnimation(z.anim, name, restart);
+}
 
 
 export function createZombie(gx, gy, { id = null, hp = T.hp, aggro = false } = {}) {
@@ -98,7 +106,7 @@ export function isDown(z) {
 // along, `knockback` tiles of push, `knockdown` floors it, `stagger` seconds it
 // is stopped, `from` where the blow came from (the dead then know where). A
 // downed zombie takes the damage and nothing else. Returns { killed, downed }.
-export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown = false, stagger = T.stagger, staggerChance = STAGGER_RULES.chance, interrupts = false, from = null } = {}) {
+export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown = false, stagger = T.stagger, staggerChance = STAGGER_RULES.chance, from = null } = {}) {
   if (z.dead) return { killed: false, downed: false };
   const wasDown = isDown(z);
   floaters.damage(z, amount); // the red number over its head (#294)
@@ -128,17 +136,29 @@ export function damageZombie(z, amount, { dir = [0, 0], knockback = 0, knockdown
     playAnimation(z.anim, "die", true);
     return { killed: false, downed: true };
   }
-  // Does the blow stagger it? Not while it is immune from the last stagger, not at all by chance (light
-  // weapons seldom), and not a bite already under way unless the weapon interrupts: it shrugs the blow
-  // off and finishes the bite (the damage and the push still land).
+  // The bite's wind-up (docs/41, step 1): a landed hit before the bite lands cancels it, every weapon, every time;
+  // the dead one goes back to the chase with the bite's cooldown to wait out, as a blow met by a shield does. A
+  // bite already landed is past cancelling (its recovery frames play out unless a stagger ends them).
   const biting = z.state === "attack";
-  if (z.staggerImmune > 0 || (biting && !interrupts) || !rng.chance(staggerChance)) return { killed: false, downed: false, staggered: false };
-  z.attackHit = false;
-  if (biting) z.state = "chase";
-  z.stagger = Math.max(z.stagger, stagger);
-  z.staggerImmune = z.stagger + STAGGER_RULES.immunity;
+  const cancelled = biting && !z.attackHit;
+  if (cancelled) {
+    z.state = "chase";
+    z.attackCooldown = T.cooldown;
+  }
+  // Does the blow stagger it, stopping its walk? Not while it is immune from the last stagger, and otherwise by
+  // chance (light weapons seldom). Every landed hit shows the flinch whether or not it staggers.
+  const staggered = !(z.staggerImmune > 0) && rng.chance(staggerChance);
+  if (staggered) {
+    z.attackHit = false;
+    if (z.state === "attack") {
+      z.state = "chase";
+      z.attackCooldown = T.cooldown;
+    }
+    z.stagger = Math.max(z.stagger, stagger);
+    z.staggerImmune = z.stagger + STAGGER_RULES.immunity;
+  }
   playAnimation(z.anim, "hurt", true);
-  return { killed: false, downed: false, staggered: true };
+  return { killed: false, downed: false, staggered, cancelled };
 }
 
 // Dead: the fall plays once and holds, the body stays, nothing thinks again.
@@ -423,7 +443,7 @@ function nearestFlame(z) {
 function moveToward(z, dt, goalTile, others) {
   const goalChanged = !z.lastGoal || z.lastGoal[0] !== goalTile[0] || z.lastGoal[1] !== goalTile[1];
   if (z.repathTimer <= 0 || ((goalChanged || !z.path.length) && !z.pathFailed)) repath(z, goalTile);
-  playAnimation(z.anim, "walk");
+  show(z, "walk");
   if (z.path.length) return followPath(z, dt, others);
   // Same tile or unreachable: nudge straight at it.
   const dx = goalTile[0] - z.gx;
@@ -607,7 +627,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
 
   switch (z.state) {
     case "idle": {
-      playAnimation(z.anim, "idle");
+      show(z, "idle");
       z.idleTimer -= dt;
       if (z.aggro) {
         z.state = "chase";
@@ -623,7 +643,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       break;
     }
     case "wander": {
-      playAnimation(z.anim, "walk");
+      show(z, "walk");
       if (z.aggro) {
         z.state = "chase";
         z.repathTimer = 0;
@@ -645,7 +665,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
           z.attackHit = false;
           playAnimation(z.anim, "attack", true);
         } else {
-          playAnimation(z.anim, "idle");
+          show(z, "idle");
           separate(z, dt, others);
         }
         break;
@@ -759,7 +779,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         z.attackHit = false;
         playAnimation(z.anim, "attack", true);
       } else {
-        playAnimation(z.anim, "idle");
+        show(z, "idle");
       }
       break;
     }
@@ -794,10 +814,10 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         break;
       }
       if (z.path.length) {
-        playAnimation(z.anim, "walk");
+        show(z, "walk");
         followPath(z, dt, others);
       } else {
-        playAnimation(z.anim, "idle");
+        show(z, "idle");
         z.idleTimer -= dt;
         if (z.idleTimer <= 0) {
           const target = pickTargetAround(z.lastSeen[0], z.lastSeen[1], T.searchRadius, roomOf(z));
@@ -851,7 +871,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
         z.attackHit = false;
         playAnimation(z.anim, "attack", true);
       } else {
-        playAnimation(z.anim, "idle");
+        show(z, "idle");
         separate(z, dt, others);
       }
       break;
@@ -910,7 +930,7 @@ export function updateZombie(z, dt, players, others, villagers = null) {
             break;
           }
         }
-        playAnimation(z.anim, "idle");
+        show(z, "idle");
         break;
       }
       const known = cands.filter((c) => s.openings.some((k) => k.tx === c.tx && k.ty === c.ty && k.edge === c.edge));

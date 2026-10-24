@@ -381,11 +381,14 @@ export function updatePlayer(player, dt, snap = IDLE) {
     const n = iso.normalize(ax, ay);
     player.aim.sx = n.x;
     player.aim.sy = n.y;
-    player.facing = iso.facingFromScreenVector(ax, ay);
+    // The drawn facing holds the swing's direction while its animation plays (docs/41, step 1): the aim and the
+    // next swing stay free, so the picture matches the blow already struck.
+    const mid = (player.anim.name === "attack" || player.anim.name === "attack_alt") && !player.anim.done;
+    if (!mid) player.facing = iso.facingFromScreenVector(ax, ay);
   }
 
   // A one-shot plays out; one the sheet lacks (a sheet not yet rebaked for the weapon) ends at once rather than hold.
-  const oneShot = (player.anim.name === "attack" || player.anim.name === "attack_alt" || player.anim.name === "hurt") && !!(sheet && sheet.animations[player.anim.name]);
+  const oneShot = (player.anim.name === "attack" || player.anim.name === "attack_alt" || player.anim.name === "shove" || player.anim.name === "hurt") && !!(sheet && sheet.animations[player.anim.name]);
   // The held-out pose (docs/32, item 1): eating, drinking, or a drink at water, for its time, standing; walking ends it.
   if (player.presentFor > 0) player.presentFor = walking ? 0 : Math.max(0, player.presentFor - dt);
   const presenting = player.presentFor > 0 && !player.carrying && !!(sheet && sheet.animations.present);

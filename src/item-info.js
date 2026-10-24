@@ -92,7 +92,10 @@ export function cardFor(entry) {
   if (def.bandage) lines.push(line(seg("Apply", "word"), ": closes a bleeding wound."));
   if (def.weapon) {
     const w = def.weapon;
-    lines.push(line(`${w.damage} damage${w.range ? `, reach ${w.range}` : ""}.`));
+    lines.push(line(`${w.damage} damage${w.range ? `, reach ${w.range}` : ""}${w.stamina ? `; ${w.stamina} stamina a swing` : ""}.`)); // the cost since docs/41 step 4: stamina is the one pacer of melee
+    // The main hand's other mode on the middle button or Q (docs/21), with its own numbers and cost: the halberd's thrust.
+    const a = w.alt;
+    if (a && a.damage) lines.push(line(`${a.name ? a.name[0].toUpperCase() + a.name.slice(1) : "Other mode"} (middle button or Q): ${a.damage} damage${a.range ? `, reach ${a.range}` : ""}${a.stamina ? `; ${a.stamina} stamina` : ""}.`));
   }
   if (def.bow) lines.push(line(`Draw and release to shoot arrows${def.shots ? `; good for about ${def.shots} shots` : ""}.`));
   if (def.rug) lines.push(line(seg("Place", "word"), ": lay on the floor."));
