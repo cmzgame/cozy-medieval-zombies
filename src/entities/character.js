@@ -163,7 +163,7 @@ export function lootOf(ch) {
   ch.hands.off = null;
   if (ch.pockets) ch.pockets.items = [];
   for (const e of entries) if (!grid.insert(bag, e)) dropItem(Math.round(ch.gx), Math.round(ch.gy), e);
-  // What hit it and stayed (arrows, stacked; a spear): what did not fit lies at its feet.
+  // What hit it and stayed: arrows by count, stacked, and below them a thrown thing as itself (`lodgedItems`); what did not fit lies at its feet.
   for (const [id, n] of Object.entries(ch.lodged || {})) {
     const put = grid.add(bag, id, n);
     for (let i = put; i < n; i++) dropItem(Math.round(ch.gx), Math.round(ch.gy), { id, count: 1 });
