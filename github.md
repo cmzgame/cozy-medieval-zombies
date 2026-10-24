@@ -67,7 +67,7 @@ An issue is one piece of work a session can finish in one pull request: what, wh
 
 When Michael says "work your queue", or at the start of any session once the role is confirmed:
 
-1. `git fetch origin`; read `TODO.md`'s Status block and the newest entries at the top of `docs/02-decisions.md`.
+1. `git fetch origin`; read `TODO.md`'s Status block and the newest entries at the top of `docs/02-decisions.md`. The status page (`tools/status.html`, live at `https://cmzgame.github.io/cozy-medieval-zombies/tools/status.html`, #358) shows the whole of it at once, read from GitHub on every load: the deploys, Michael's queue, the open pull requests, the milestones, and the unfiled issues.
 2. **Primary:** `gh pr list --label needs-review`, then `gh issue list --label for:primary`, then the open deploy runs (`gh run list --workflow deploy.yml --limit 5`).
 3. **A Secondary:** your own open pull requests first (the box's `secondary/` query while the bot is flagged; `gh pr list --author cmzgame-bot` after), then `gh issue list --label for:secondary --label ready` filtered to your focus (add `--label area:…`), oldest first. The wiki Secondary also `gh pr list --state all --label needs-wiki` (a merged pull request keeps the label until its sync clears it).
 4. Anything you cannot decide goes to Michael: a comment with the question and the options (a recommendation first), the label `needs-michael`, and on to the next thing. Michael's queue: [open items needing Michael](https://github.com/cmzgame/cozy-medieval-zombies/issues?q=is%3Aopen+label%3Aneeds-michael).

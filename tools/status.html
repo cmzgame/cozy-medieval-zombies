@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio status</title>
+<!-- Where everything is (#358): main and the deploy, Michael's queue, the open pull requests, the roadmap's milestones,
+     the issues with none, docs/39's tags, and TODO.md's status block, read live from GitHub on every load so the page
+     never goes stale. The public API unauthenticated (about five requests a load, of sixty an hour per address) and
+     the raw files on main. Nothing stored, nothing posted, no token. Served locally at localhost:8010/tools/status.html
+     and by the site's deploy at cmzgame.github.io/cozy-medieval-zombies/tools/status.html.
+     It works while the repository is public: GitHub Pages serves a free organisation's public repositories only, and
+     the API is read without a login. When the game's repository goes private (github.md, section 2), the page needs
+     a token kept in the reader's own browser, or a host that can see the private repository; the day that happens
+     is the day this is reworked (Michael, 2026-10-24). -->
+<style>
+  :root {
+    --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1c1a; --muted: #6b6a64; --line: #dedcd4; --link: #1f5fa8;
+    --ok: #2f7d32; --bad: #b3261e; --warn: #9a6200; --run: #1f5fa8;
+    --built: #4c8a3f; --change: #c18a1b; --tobuild: #8c8a82; --chip: #f0efea;
+    --bar: #e8e6df;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17171a; --panel: #212125; --ink: #ecebe6; --muted: #a09f99; --line: #34343a; --link: #7fb2ee;
+      --ok: #6cc070; --bad: #f07d75; --warn: #e3ad4c; --run: #7fb2ee;
+      --built: #6aa85b; --change: #d9a640; --tobuild: #7a7973; --chip: #2b2b30;
+      --bar: #2e2e33;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 16px; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-bottom: 12px; }
+  header h1 { font-size: 20px; margin: 0; font-weight: 600; }
+  header .meta { color: var(--muted); font-size: 13px; }
+  button { font: inherit; font-size: 13px; padding: 3px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 0 0 12px; }
+  section > h2 { font-size: 15px; margin: 0 0 8px; font-weight: 600; }
+  .note { color: var(--muted); font-size: 13px; }
+  .fail { color: var(--bad); font-size: 13px; }
+  .counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .count { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: block; color: inherit; }
+  .count:hover { text-decoration: none; border-color: var(--link); }
+  .count b { display: block; font-size: 26px; line-height: 1.1; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .count span { color: var(--muted); font-size: 12px; }
+  ul.list { list-style: none; margin: 0; padding: 0; }
+  ul.list li { padding: 5px 0; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+  ul.list li:first-child { border-top: 0; }
+  .num { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 3.2em; }
+  .title { flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; }
+  .side { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .chips { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; line-height: 1; padding: 3px 6px; border-radius: 999px; background: var(--chip); color: var(--ink); white-space: nowrap; }
+  .chip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .chip.draft { background: transparent; border: 1px dashed var(--muted); color: var(--muted); }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+  .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); } .dot.run { background: var(--run); } .dot.warn { background: var(--warn); }
+  .run-row { display: flex; flex-wrap: wrap; gap: 2px 10px; padding: 4px 0; border-top: 1px solid var(--line); align-items: baseline; }
+  .run-row:first-of-type { border-top: 0; }
+  .run-row.latest { font-size: 15px; padding-bottom: 8px; }
+  details { border-top: 1px solid var(--line); padding: 6px 0; }
+  details:first-of-type { border-top: 0; }
+  summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "▸"; color: var(--muted); width: 1em; }
+  details[open] > summary::before { content: "▾"; }
+  summary .mname { flex: 1 1 240px; min-width: 0; font-weight: 500; }
+  .progress { flex: 0 1 220px; display: flex; align-items: center; gap: 8px; }
+  .bar { flex: 1; height: 8px; border-radius: 4px; background: var(--bar); overflow: hidden; display: flex; min-width: 60px; }
+  .bar > div { height: 100%; }
+  .progress .side { min-width: 7em; text-align: right; }
+  details ul.list { margin: 6px 0 2px 1.2em; }
+  .stack { height: 14px; border-radius: 4px; overflow: hidden; display: flex; background: var(--bar); margin: 4px 0 6px; }
+  .stack > div { height: 100%; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+  table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 13px; }
+  th, td { text-align: left; padding: 4px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; border-top: 0; }
+  td.n { text-align: right; font-variant-numeric: tabular-nums; width: 3.5em; }
+  td.i { width: 4em; white-space: nowrap; }
+  .md p { margin: 0 0 8px; }
+  .md ul { margin: 0 0 8px; padding-left: 1.2em; }
+  .md li { margin: 2px 0; }
+  code { font: 12px/1.4 ui-monospace, "Cascadia Mono", Consolas, monospace; background: var(--chip); padding: 1px 4px; border-radius: 4px; overflow-wrap: anywhere; }
+  footer { color: var(--muted); font-size: 12px; margin: 4px 0 24px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Studio status</h1>
+    <span class="meta" id="loaded">Loading…</span>
+    <button id="reload" type="button">Reload</button>
+  </header>
+
+  <section id="deploy"><h2>Main and the deploy</h2><p class="note">Loading…</p></section>
+  <section id="counts"><h2>At a glance</h2><p class="note">Loading…</p></section>
+  <section id="michael"><h2>Waiting on Michael</h2><p class="note">Loading…</p></section>
+  <section id="pulls"><h2>Open pull requests</h2><p class="note">Loading…</p></section>
+  <section id="roadmap"><h2>The roadmap</h2><p class="note">Loading…</p></section>
+  <section id="unfiled"><h2>Unfiled: open issues with no milestone</h2><p class="note">Loading…</p></section>
+  <section id="valley"><h2>The Valley scope (docs/39)</h2><p class="note">Loading…</p></section>
+  <section id="todo"><h2>TODO.md's status</h2><p class="note">Loading…</p></section>
+
+  <footer id="foot"></footer>
+</main>
+
+<script>
+"use strict";
+const OWNER = "cmzgame", REPO = "cozy-medieval-zombies";
+const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
+const WEB = `https://github.com/${OWNER}/${REPO}`;
+const RAW = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main`;
+const MICHAEL = ["needs-michael", "needs-playtest"];
+
+let rate = null; // the last x-ratelimit headers seen
+
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const $ = (id) => document.getElementById(id);
+const issueUrl = (n) => `${WEB}/issues/${n}`;
+const searchUrl = (q) => `${WEB}/issues?q=${encodeURIComponent(q)}`;
+
+function ago(iso) {
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 90) return "just now";
+  const m = s / 60; if (m < 90) return `${Math.round(m)} min ago`;
+  const h = m / 60; if (h < 36) return `${Math.round(h)} h ago`;
+  return `${Math.round(h / 24)} days ago`;
+}
+
+// One section's body, replaced whole; its heading stays.
+function fill(id, html) {
+  const sec = $(id);
+  const h2 = sec.querySelector("h2");
+  sec.innerHTML = "";
+  sec.appendChild(h2);
+  sec.insertAdjacentHTML("beforeend", html);
+}
+const failed = (id, what, err) => fill(id, `<p class="fail">Could not read ${esc(what)}: ${esc(err && err.message ? err.message : err)}</p>`);
+
+async function getJSON(url) {
+  const r = await fetch(url, { headers: { Accept: "application/vnd.github+json" } });
+  const left = r.headers.get("x-ratelimit-remaining");
+  if (left !== null) rate = { left: +left, limit: +r.headers.get("x-ratelimit-limit"), reset: +r.headers.get("x-ratelimit-reset") };
+  if (!r.ok) {
+    if ((r.status === 403 || r.status === 429) && rate && rate.left === 0) {
+      throw new Error(`GitHub's hourly limit for unauthenticated reads is spent; it resets at ${new Date(rate.reset * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
+    }
+    throw new Error(`HTTP ${r.status}`);
+  }
+  return { data: await r.json(), link: r.headers.get("link") || "" };
+}
+
+// Every page of a list endpoint (the Link header's rel="next"), up to `max` pages.
+async function getAll(url, max = 5) {
+  const out = [];
+  let next = url;
+  for (let i = 0; next && i < max; i++) {
+    const { data, link } = await getJSON(next);
+    out.push(...data);
+    const m = link.match(/<([^>]+)>;\s*rel="next"/);
+    next = m ? m[1] : null;
+  }
+  return out;
+}
+
+async function getText(url) {
+  const r = await fetch(url, { cache: "no-store" });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.text();
+}
+
+function chip(label) {
+  const c = /^[0-9a-f]{6}$/i.test(label.color || "") ? `#${label.color}` : "var(--muted)";
+  return `<span class="chip" title="${esc(label.description || label.name)}"><i style="background:${c}"></i>${esc(label.name)}</span>`;
+}
+const chips = (labels) => (labels && labels.length ? `<span class="chips">${labels.map(chip).join("")}</span>` : "");
+
+function issueRow(it) {
+  return `<li><a class="num" href="${esc(it.html_url)}">#${it.number}</a><a class="title" href="${esc(it.html_url)}">${esc(it.title)}</a>${chips(it.labels)}</li>`;
+}
+
+// ---- 1. Main and the deploy
+function showDeploy(runs) {
+  if (!runs.length) return fill("deploy", `<p class="note">No runs of deploy.yml yet.</p>`);
+  const state = (r) => (r.status !== "completed" ? ["run", r.status.replace("_", " ")] : r.conclusion === "success" ? ["ok", "deployed"] : r.conclusion === "cancelled" || r.conclusion === "skipped" ? ["warn", r.conclusion] : ["bad", r.conclusion || "failed"]);
+  const row = (r, i) => {
+    const [cls, word] = state(r);
+    const msg = (r.head_commit && r.head_commit.message ? r.head_commit.message : r.display_title || "").split("\n")[0];
+    return `<div class="run-row${i === 0 ? " latest" : ""}"><span><span class="dot ${cls}"></span><a href="${esc(r.html_url)}">${esc(word)}</a></span><span class="title">${esc(msg)}</span><span class="side"><a href="${WEB}/commit/${esc(r.head_sha)}">${esc(r.head_sha.slice(0, 7))}</a> · ${esc(ago(r.created_at))}</span></div>`;
+  };
+  fill("deploy", runs.map(row).join("") + `<p class="note">The latest run of <a href="${WEB}/actions/workflows/deploy.yml">deploy.yml</a> and the five before it; a merge to main deploys to players.</p>`);
+}
+
+// ---- 2. The counts
+function showCounts(issues, pulls, valley) {
+  const waiting = issues.filter((i) => i.labels.some((l) => MICHAEL.includes(l.name))).length;
+  const cell = (n, what, href) => `<a class="count" href="${esc(href)}"><b>${n === null ? "?" : n}</b><span>${esc(what)}</span></a>`;
+  fill("counts", `<div class="counts">
+    ${cell(issues.length, "open issues", searchUrl("is:open is:issue"))}
+    ${cell(waiting, "waiting on Michael", searchUrl(`is:open is:issue label:${MICHAEL.join(",")}`))}
+    ${cell(pulls === null ? null : pulls.length, "open pull requests", `${WEB}/pulls`)}
+    ${cell(valley ? valley.openLines : null, "open lines of docs/39", `${WEB}/blob/main/docs/39-the-valley.md`)}
+  </div>`);
+}
+
+// ---- 3. Waiting on Michael
+function showMichael(issues) {
+  const list = issues.filter((i) => i.labels.some((l) => MICHAEL.includes(l.name))).sort((a, b) => a.number - b.number);
+  if (!list.length) return fill("michael", `<p class="note">Nothing labelled needs-michael or needs-playtest.</p>`);
+  fill("michael", `<ul class="list">${list.map(issueRow).join("")}</ul><p class="note">Every open issue labelled <a href="${esc(searchUrl("is:open label:needs-michael"))}">needs-michael</a> or <a href="${esc(searchUrl("is:open label:needs-playtest"))}">needs-playtest</a>.</p>`);
+}
+
+// ---- 4. Open pull requests
+function showPulls(pulls) {
+  if (!pulls.length) return fill("pulls", `<p class="note">No open pull requests.</p>`);
+  const rows = pulls.sort((a, b) => a.number - b.number).map((p) => `<li><a class="num" href="${esc(p.html_url)}">#${p.number}</a><a class="title" href="${esc(p.html_url)}">${esc(p.title)}</a>${p.draft ? `<span class="chip draft">draft</span>` : ""}${chips(p.labels)}<span class="side"><code>${esc(p.head.ref)}</code> · updated ${esc(ago(p.updated_at))}</span></li>`);
+  fill("pulls", `<ul class="list">${rows.join("")}</ul><p class="note">"Updated" is the pull request's last change of any kind (a push, a comment, a label): the list endpoint carries no push time, and asking each one for it would spend the hourly limit.</p>`);
+}
+
+// ---- 5 and 6. The roadmap and the unfiled
+function progress(closed, open) {
+  const total = closed + open;
+  const pct = total ? Math.round((closed / total) * 100) : 0;
+  return `<span class="progress"><span class="bar" role="img" aria-label="${closed} of ${total} closed"><div style="width:${pct}%;background:var(--ok)"></div></span><span class="side">${closed} of ${total} closed</span></span>`;
+}
+
+// A milestone's own counts are GitHub's and take in its pull requests and the bot's issues, which the unauthenticated
+// list cannot read while the bot is flagged (#18 to #55, github.md's box, #71). What is open and not listed is said.
+function showRoadmap(milestones, issues, pulls) {
+  const group = (list) => {
+    const m = new Map();
+    for (const it of list) if (it.milestone) (m.get(it.milestone.number) || m.set(it.milestone.number, []).get(it.milestone.number)).push(it);
+    return m;
+  };
+  const byMs = group(issues);
+  const prsByMs = group(pulls || []);
+  const ms = milestones.slice().sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true }));
+  let hiddenAll = 0;
+  const html = ms.map((m) => {
+    const open = (byMs.get(m.number) || []).sort((a, b) => a.number - b.number);
+    const prs = (prsByMs.get(m.number) || []).length;
+    const hidden = Math.max(0, m.open_issues - open.length - prs);
+    hiddenAll += hidden;
+    const done = m.state === "closed" ? ` <span class="chip">closed</span>` : "";
+    const extra = [prs ? `${prs} open pull request${prs === 1 ? "" : "s"}` : "", hidden ? `${hidden} open issue${hidden === 1 ? "" : "s"} this page cannot read (the bot's, hidden while it is flagged, <a href="${issueUrl(71)}">#71</a>)` : ""].filter(Boolean).join("; ");
+    const body = (open.length ? `<ul class="list">${open.map(issueRow).join("")}</ul>` : "") + (extra ? `<p class="note" style="margin:4px 0 0 1.2em">${extra}.</p>` : "") + (!open.length && !extra ? `<p class="note" style="margin:4px 0 0 1.2em">No open issues.</p>` : "");
+    return `<details${open.length && m.state === "open" && open.length <= 6 ? " open" : ""}><summary><a class="mname" href="${esc(m.html_url)}">${esc(m.title)}</a>${done}${progress(m.closed_issues, m.open_issues)}</summary>${body}</details>`;
+  }).join("");
+  fill("roadmap", html + `<p class="note">The <a href="${WEB}/milestones?direction=asc&sort=title&state=open">milestones</a> by title, 00 to 10. A milestone's counts are GitHub's own and take in its pull requests${hiddenAll ? ` and ${hiddenAll} of the bot's issues, hidden while it is flagged` : ""}; the lists under them are the open issues this page can read.</p>`);
+}
+
+function showUnfiled(issues) {
+  const list = issues.filter((i) => !i.milestone).sort((a, b) => a.number - b.number);
+  if (!list.length) return fill("unfiled", `<p class="note">Every open issue has a milestone.</p>`);
+  fill("unfiled", `<details open><summary><a class="mname" href="${esc(searchUrl("is:open is:issue no:milestone"))}">${list.length} open issues with no milestone</a></summary><ul class="list">${list.map(issueRow).join("")}</ul></details>`);
+}
+
+// ---- 7. The Valley scope: docs/39's tags. The tags are the doc's own legend (its line "**Tags.**", left out of the
+// counts): [built], [change: how], [to build], [open #N]. A line with two tags counts under both.
+function parseValley(text) {
+  const out = { built: 0, change: 0, tobuild: 0, openLines: 0, byIssue: new Map(), noIssue: 0 };
+  for (const line of text.split("\n")) {
+    if (line.includes("**Tags.**")) continue;
+    if (/\[built\b/.test(line)) out.built++;
+    if (/\[change\b/.test(line)) out.change++;
+    if (/\[to build\b/.test(line)) out.tobuild++;
+    const tags = line.match(/\[open\b[^\]]*\]/g);
+    if (!tags) continue;
+    out.openLines++;
+    const nums = new Set();
+    for (const t of tags) for (const m of t.matchAll(/#(\d+)/g)) nums.add(+m[1]);
+    if (!nums.size) out.noIssue++;
+    for (const n of nums) out.byIssue.set(n, (out.byIssue.get(n) || 0) + 1);
+  }
+  return out;
+}
+
+function showValley(v, issues) {
+  const src = `${WEB}/blob/main/docs/39-the-valley.md`;
+  const total = v.built + v.change + v.tobuild;
+  const seg = (n, color) => (n ? `<div style="width:${(n / total) * 100}%;background:${color}" title="${n}"></div>` : "");
+  const titles = new Map(issues.map((i) => [i.number, i]));
+  const rows = [...v.byIssue.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0]).map(([n, c]) => {
+    const it = titles.get(n);
+    return `<tr><td class="i"><a href="${issueUrl(n)}">#${n}</a></td><td>${it ? `<a href="${esc(it.html_url)}">${esc(it.title)}</a>` : `<span class="note">closed, or not an issue</span>`}</td><td class="n">${c}</td></tr>`;
+  }).join("");
+  fill("valley", `
+    <div class="stack" role="img" aria-label="${v.built} built, ${v.change} to change, ${v.tobuild} to build">${seg(v.built, "var(--built)")}${seg(v.change, "var(--change)")}${seg(v.tobuild, "var(--tobuild)")}</div>
+    <div class="legend">
+      <span><i style="background:var(--built)"></i>${v.built} built</span>
+      <span><i style="background:var(--change)"></i>${v.change} to change</span>
+      <span><i style="background:var(--tobuild)"></i>${v.tobuild} to build</span>
+      <span>${v.openLines} lines open${v.noIssue ? ` (${v.noIssue} naming no issue)` : ""}</span>
+    </div>
+    <table><thead><tr><th>Issue</th><th>Open lines of docs/39 that wait on it</th><th style="text-align:right">Lines</th></tr></thead><tbody>${rows || `<tr><td colspan="3" class="note">No open lines.</td></tr>`}</tbody></table>
+    <p class="note">Counted from <a href="${src}">docs/39 on main</a> by its tags; a line with two tags counts under both, and an open line naming two issues counts under each.</p>`);
+}
+
+// ---- 8. TODO.md's status block, with bold, code, links, and #N rendered; nothing more.
+function inline(s) {
+  let h = esc(s);
+  h = h.replace(/`([^`]+)`/g, (_, c) => `<code>${c}</code>`);
+  h = h.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+  h = h.replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, (_, t, u) => `<a href="${u}">${t}</a>`);
+  h = h.replace(/(^|[\s(;,])#(\d+)\b/g, (_, pre, n) => `${pre}<a href="${issueUrl(n)}">#${n}</a>`);
+  return h;
+}
+
+function showTodo(text) {
+  const lines = text.split("\n");
+  const start = lines.findIndex((l) => /^## Status\b/.test(l));
+  if (start < 0) return fill("todo", `<p class="fail">TODO.md on main has no "## Status" heading.</p>`);
+  let end = lines.findIndex((l, i) => i > start && /^## /.test(l));
+  if (end < 0) end = lines.length;
+  const head = lines[start].replace(/^## /, "");
+  let html = "";
+  let inList = false;
+  for (const raw of lines.slice(start + 1, end)) {
+    const l = raw.trimEnd();
+    const item = l.match(/^\s*[-*] (.*)$/);
+    if (item) { if (!inList) { html += "<ul>"; inList = true; } html += `<li>${inline(item[1])}</li>`; continue; }
+    if (inList) { html += "</ul>"; inList = false; }
+    if (l.trim()) html += `<p>${inline(l)}</p>`;
+  }
+  if (inList) html += "</ul>";
+  fill("todo", `<p class="note">${inline(head)} · <a href="${WEB}/blob/main/TODO.md">TODO.md on main</a></p><div class="md">${html}</div>`);
+}
+
+// ---- the load
+async function load() {
+  $("reload").disabled = true;
+  $("loaded").textContent = "Loading…";
+  const [runsR, issuesR, pullsR, msR, valleyR, todoR] = await Promise.allSettled([
+    getJSON(`${API}/actions/workflows/deploy.yml/runs?per_page=6`).then((r) => r.data.workflow_runs || []),
+    getAll(`${API}/issues?state=open&per_page=100`).then((all) => all.filter((i) => !i.pull_request)),
+    getAll(`${API}/pulls?state=open&per_page=100`),
+    getAll(`${API}/milestones?state=all&per_page=100`),
+    getText(`${RAW}/docs/39-the-valley.md`).then(parseValley),
+    getText(`${RAW}/TODO.md`),
+  ]);
+  const issues = issuesR.status === "fulfilled" ? issuesR.value : null;
+  const pulls = pullsR.status === "fulfilled" ? pullsR.value : null;
+  const valley = valleyR.status === "fulfilled" ? valleyR.value : null;
+
+  runsR.status === "fulfilled" ? showDeploy(runsR.value) : failed("deploy", "the deploy runs", runsR.reason);
+  issues ? showCounts(issues, pulls, valley) : failed("counts", "the open issues", issuesR.reason);
+  issues ? showMichael(issues) : failed("michael", "the open issues", issuesR.reason);
+  pulls ? showPulls(pulls) : failed("pulls", "the open pull requests", pullsR.reason);
+  if (msR.status === "fulfilled" && issues) showRoadmap(msR.value, issues, pulls);
+  else failed("roadmap", msR.status !== "fulfilled" ? "the milestones" : "the open issues", msR.status !== "fulfilled" ? msR.reason : issuesR.reason);
+  issues ? showUnfiled(issues) : failed("unfiled", "the open issues", issuesR.reason);
+  valley ? showValley(valley, issues || []) : failed("valley", "docs/39 on main", valleyR.reason);
+  todoR.status === "fulfilled" ? showTodo(todoR.value) : failed("todo", "TODO.md on main", todoR.reason);
+
+  $("loaded").textContent = `Read live from GitHub at ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  $("foot").innerHTML = `${esc(OWNER)}/${esc(REPO)} on <a href="${WEB}">GitHub</a>, the API read unauthenticated${rate ? `: ${rate.left} of ${rate.limit} reads left this hour for this address, reset at ${new Date(rate.reset * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}. Nothing is stored or sent. <code>tools/status.html</code>, #358.`;
+  $("reload").disabled = false;
+}
+
+$("reload").addEventListener("click", load);
+load();
+</script>
+</body>
+</html>
