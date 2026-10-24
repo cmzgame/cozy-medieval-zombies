@@ -32,7 +32,7 @@ import { detach } from "./inventory.js"; // a worn-out weapon leaves the hand (d
 // these, the code keeping the same defaults. pointBlank: tiles this close are always hit; knockdownChance: the share
 // of hits that floor the dead for a weapon with no `knockdown` of its own (0 since docs/41 step 3: knockdown is the
 // game's crit, earned by the mace, the halberd's thrust, and the shove alone);
-// tiredDamage: a swing at zero stamina still lands, at this share; hitStop, hitStopKill: the freeze on a hit and a kill;
+// tiredDamage: a swing the bar cannot pay for (stamina below its cost; docs/41, step 4) still lands, at this share; hitStop, hitStopKill: the freeze on a hit and a kill;
 // swingMove: the walk's share while the swing's animation plays, the commitment to a swing (docs/41, step 1).
 export const BLOW = { pointBlank: 0.55, knockdownChance: 0, tiredDamage: 0.5, hitStop: 0.07, hitStopKill: 0.12, swingMove: 0.6 };
 export const BODY_SLACK = 0.8; // tiles of extra reach for a zombie drawn below the player
