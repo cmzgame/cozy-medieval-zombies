@@ -5,7 +5,7 @@
 // guest's replica gives the same answer from the same world. The answer is cached while the mouse and the camera stand still and re-asked every `refreshMs`, so a hit test is
 // not paid every frame.
 // Chosen here (the builder's readings, Michael's to overrule): a character before an item before a prop, then the menu's first; the live dead are left to the cursor's zombie hand
-// and the swing outline (a corpse is a container, so it is outlined); a door, a shutter, and a wall bracket are edges, not sprites, and are not outlined yet; nothing in
+// and the swing outline, except one lying downed, outlined so it reads apart from a corpse (Michael, 2026-10-24, #385) (a corpse is a container, so it is outlined); a door, a shutter, and a wall bracket are edges, not sprites, and are not outlined yet; nothing in
 // placement, removal, or Use mode, with a panel under the pointer, with something carried, or out of sight.
 
 import * as iso from "./iso.js";
@@ -29,6 +29,9 @@ export function clear() {
 // The object a right-click at the canvas point (sx, sy) would act on first, or null. `visible`: the tiles in my sight (null: all).
 export function targetAt(sx, sy, player, visible = null) {
   const seen = (tx, ty) => !visible || visible.has(tileKey(tx, ty));
+  // One of the dead lying downed (#385): outlined as the moment for a finisher, though no menu action is on it.
+  const lying = interact.characterAt(sx, sy, player);
+  if (lying && lying.kind === "zombie" && !lying.dead && lying.state === "down" && seen(Math.round(lying.gx), Math.round(lying.gy))) return { kind: "character", id: lying.id };
   const real = interact.actionsAt(sx, sy, player).filter((a) => a.target && ["character", "item", "prop", "painting"].includes(a.target.kind)); // Walk here is a "floor" action on a tile, never one of these
   const ch = real.find((a) => a.target.kind === "character");
   if (ch) {
