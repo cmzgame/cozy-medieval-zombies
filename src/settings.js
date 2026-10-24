@@ -12,7 +12,7 @@ export const DEFAULTS = {
   zombieAggro: true, // on by default since 2026-10-15 (Michael: a sandbox setting, the dead hunt unless you turn them off); off they wander and ignore you (2026-10-10). A browser that saved its settings keeps its own
   zombiesAttackVillagers: false, // on: the dead hunt villagers, whatever aggro says; with aggro on, the player first when both are in sight (two knobs on purpose, Michael 2026-10-15; docs/19)
   swingTimer: true, // a bar at the bottom centre of the screen while a swing recovers (World of Warcraft's swing timer; docs/21)
-  aimGuide: false, // the landing marker and dotted line while you draw a bow, wind up a throw, or cast (docs/20); off by default since 2026-10-16 (Michael: you learn by trial and error how long to hold). A browser that saved its settings keeps its own
+  aimGuide: true, // the landing marker and dotted line while you draw a bow, wind up a throw, or cast (docs/20); on by default since 2026-10-24 (Michael, #385: "the little marker zipping down the line ... is like a loading bar"), off for the challenge; it was off from 2026-10-16. A browser that saved its settings keeps its own
   showSwingTargets: true, // outline the zombies the next swing would hit (docs/14): on by default since docs/41 step 1 (green means the swing lands)
   multiHit: false, // on: a blow reaches everything in its wedge; off: only the nearest. Off is the intended way to play (Michael, 2026-10-12): multi-hit is the easy button (docs/14)
   showHitShapes: false, // draw the dead's body samples, green when the next swing reaches them (docs/14)
@@ -113,8 +113,13 @@ export function get(key) {
 export function set(key, value) {
   if (!(key in DEFAULTS) || settings[key] === value) return;
   settings[key] = value;
+  // Values are replaced, never changed in place (an object changed in place would change DEFAULTS too, its copy being shallow, and stop
+  // being saved). Only what differs from the defaults is saved (the review of #390): saving every key pinned each default in a browser the first
+  // time anything changed (a zoom, a moved panel), so a default changed later never reached it; now it does, unless chosen.
+  const mine = {};
+  for (const k of Object.keys(DEFAULTS)) if (JSON.stringify(settings[k]) !== JSON.stringify(DEFAULTS[k])) mine[k] = settings[k];
   try {
-    localStorage.setItem(KEY, JSON.stringify(settings));
+    localStorage.setItem(KEY, JSON.stringify(mine));
   } catch {
     // Not persisted; still applied for this run.
   }
