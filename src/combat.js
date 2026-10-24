@@ -20,6 +20,7 @@ import * as items from "./items.js";
 import * as loop from "./loop.js";
 import { emit } from "./events.js";
 import { playAnimation } from "./sprites.js";
+import { getSheet } from "./assets.js";
 import { aimOrigin } from "./entities/player.js";
 import { damageZombie, isDown, staggerZombie, STAGGER_RULES } from "./entities/zombie.js";
 import * as rng from "./rng.js";
@@ -31,8 +32,9 @@ import { detach } from "./inventory.js"; // a worn-out weapon leaves the hand (d
 // these, the code keeping the same defaults. pointBlank: tiles this close are always hit; knockdownChance: the share
 // of hits that floor the dead for a weapon with no `knockdown` of its own (0 since docs/41 step 3: knockdown is the
 // game's crit, earned by the mace, the halberd's thrust, and the shove alone);
-// tiredDamage: a swing at zero stamina still lands, at this share; hitStop, hitStopKill: the freeze on a hit and a kill.
-export const BLOW = { pointBlank: 0.55, knockdownChance: 0, tiredDamage: 0.5, hitStop: 0.045, hitStopKill: 0.09 };
+// tiredDamage: a swing at zero stamina still lands, at this share; hitStop, hitStopKill: the freeze on a hit and a kill;
+// swingMove: the walk's share while the swing's animation plays, the commitment to a swing (docs/41, step 1).
+export const BLOW = { pointBlank: 0.55, knockdownChance: 0, tiredDamage: 0.5, hitStop: 0.07, hitStopKill: 0.12, swingMove: 0.6 };
 export const BODY_SLACK = 0.8; // tiles of extra reach for a zombie drawn below the player
 export const BODY_TOP = 48; // px: a figure's height, for scaling the slack
 // A figure's drawn body with its arms is about this wide on each side of its middle.
@@ -51,7 +53,9 @@ export const KICK_TIME = 0.08;
 export const FISTS = { damage: 6, range: 0.9, arc: 100, swing: 0.4, knockback: 0.17, stamina: 3, knockdown: 0, style: "one_handed" };
 // Dual wielding (docs/21): the off hand's swing, and what it costs. Filled from data/combat.json.
 export const DUAL = { offDamage: 1, window: 2.5, lockout: 0.45, front: 1.5, side: 2.5, behind: 100, arc: 100, sideArc: 220 };
-export const SHOVE = { range: 1.0, arc: 100, knockback: 0.53, knockbackChance: 1, stagger: 0.6, knockdown: 0.25, stamina: 5, cooldown: 0.45 };
+// The shove (docs/41, step 2): the crowd tool. `targets` is how many of the dead one shove reaches whatever the Multi-hit
+// setting; `cooldown` is also the recovery, in which no swing starts.
+export const SHOVE = { range: 1.0, arc: 100, knockback: 0.8, knockbackChance: 1, stagger: 0.8, knockdown: 0.1, stamina: 15, cooldown: 0.5, targets: 3 };
 
 // The numbers that belong to no item, from data/combat.json (fists and the
 // shove). Merged in place, so `weaponOf(player) !== FISTS` keeps working.
@@ -175,14 +179,16 @@ export function holdsWeapon(player) {
 
 // The zombies a blow reaches: everything in the wedge, or only the nearest one
 // when multi-hit is off (the setting, or the weapon's own `multiHit: false`).
-function targetsIn(player, weapon, zombies, accept = () => true) {
+// `limit`: the shove's own cap (docs/41, step 2), the nearest so many whatever the Multi-hit setting; else the rule.
+function targetsIn(player, weapon, zombies, accept = () => true, limit = null) {
   // A blow does not go through a wall, a shut door, or shut shutters: the same sight that keeps the
   // dead from biting through them (Michael found a hit on a zombie behind a wall, with no outline,
   // because the dead one was in the fog).
   const list = zombies.filter((z) => !z.dead && accept(z) && inWedge(player, weapon, z) && lineOfSight(player.gx, player.gy, z.gx, z.gy));
+  const d = (z) => Math.hypot(z.gx - player.gx, z.gy - player.gy);
+  if (limit != null) return list.sort((a, b) => d(a) - d(b)).slice(0, limit);
   const multi = rules.multiHit && weapon.multiHit !== false;
   if (multi || list.length < 2) return list;
-  const d = (z) => Math.hypot(z.gx - player.gx, z.gy - player.gy);
   list.sort((a, b) => d(a) - d(b));
   return [list[0]];
 }
@@ -190,6 +196,13 @@ function targetsIn(player, weapon, zombies, accept = () => true) {
 // Whether a blow pushes at all: the weapon's `knockbackChance` (default always).
 function pushes(weapon) {
   return rng.chance(weapon.knockbackChance ?? 1);
+}
+
+// Whether the player's swing animation is still playing: the commitment (docs/41, step 1), read for the walk's
+// share (player-controller.js) and the held facing (entities/player.js). A sheet without the animation ends it at once.
+export function swinging(player) {
+  const a = player.anim;
+  return !!a && (a.name === "attack" || a.name === "attack_alt") && !a.done;
 }
 
 // What the player cannot swing through: carrying furniture, a timed action under way, or being dead.
@@ -316,6 +329,7 @@ export function exposedTo(player, zombie, damage) {
 export function tryAttack(player, zombies, hand = "main", mode = null, predict = false) {
   const cd = hand === "off" ? "offCooldown" : "attackCooldown";
   if (!canAct(player) || (player[cd] || 0) > 0) return null;
+  if ((player.shoveCooldown || 0) > 0) return null; // the shove's recovery (docs/41, step 2): no swing until it is over
   if ((player.swingLock || 0) > 0 && offWeaponOf(player)) return null; // the other hand must wait its turn
   const weapon = hand === "off" ? offWeaponOf(player) : mode === "alt" ? altWeaponOf(player) : weaponOf(player);
   if (!weapon) return null;
@@ -364,7 +378,7 @@ export function tryAttack(player, zombies, hand = "main", mode = null, predict =
     const swung = player.hands[hand];
     const dousedTorch = !!(swung && items.getItem(swung.id).fire && !items.isLit(swung));
     if (weapon.ignite && !dousedTorch && rng.chance(weapon.ignite)) burn.ignite(z);
-    const r = damageZombie(z, amount, { dir: [dir.x, dir.y], knockback: push, knockdown, stagger: weapon.stagger, staggerChance: weapon.staggerChance, interrupts: weapon.interrupts, from: [player.gx, player.gy] });
+    const r = damageZombie(z, amount, { dir: [dir.x, dir.y], knockback: push, knockdown, stagger: weapon.stagger, staggerChance: weapon.staggerChance, from: [player.gx, player.gy] });
     if (r.killed) killed = true;
   }
   if (hit.length) {
@@ -391,19 +405,25 @@ export function wearWeapon(player, slot, hits = 1) {
   }
 }
 
-// Space: no damage, a strong push, a stagger, sometimes a knockdown. Works with
-// anything in the hands, or nothing.
-export function tryShove(player, zombies) {
+// Space: no damage, a strong push, a stagger, sometimes a knockdown, on up to SHOVE.targets of the dead in the
+// wedge whatever the Multi-hit setting: the crowd tool (docs/41, step 2). Works with anything in the hands, or
+// nothing. Its cooldown is also a recovery in which no swing starts (tryAttack). The pose is `shove`, both arms
+// out; a sheet without it plays the swing.
+// `predict`: a guest's own player between the host's frames (as tryAttack's): the clocks, the stamina, and the pose run
+// at once, so a click inside the recovery is refused on the guest as it is on the host; the push is the host's alone.
+export function tryShove(player, zombies, predict = false) {
   if (!canAct(player) || (player.shoveCooldown || 0) > 0) return null;
   player.shoveCooldown = SHOVE.cooldown;
   player.stamina = Math.max(0, player.stamina - SHOVE.stamina);
   if (player.stamina <= 0) player.winded = true;
-  playAnimation(player.anim, "attack", true);
+  const sheet = getSheet(player.sprite);
+  playAnimation(player.anim, sheet && sheet.animations.shove ? "shove" : "attack", true);
+  if (predict) return [];
   const dir = gridAim(player);
   const hit = [];
-  for (const z of targetsIn(player, SHOVE, zombies, (z) => !isDown(z))) {
+  for (const z of targetsIn(player, SHOVE, zombies, (z) => !isDown(z), SHOVE.targets ?? 1)) {
     hit.push(z);
-    damageZombie(z, 0, { dir: [dir.x, dir.y], knockback: pushes(SHOVE) ? SHOVE.knockback : 0, knockdown: rng.chance(SHOVE.knockdown), stagger: SHOVE.stagger, staggerChance: 1, interrupts: true, from: [player.gx, player.gy] });
+    damageZombie(z, 0, { dir: [dir.x, dir.y], knockback: pushes(SHOVE) ? SHOVE.knockback : 0, knockdown: rng.chance(SHOVE.knockdown), stagger: SHOVE.stagger, staggerChance: 1, from: [player.gx, player.gy] });
   }
   emit("shove", { count: hit.length });
   if (hit.length) {
