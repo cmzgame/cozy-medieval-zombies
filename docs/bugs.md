@@ -37,6 +37,7 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 
 (Move items here with the commit that fixed them.)
 
+- [x] **A thrown spear lodged in a body came back fresh from the search** (found syncing the wiki for the melee pass, cmz-wiki#20, 2026-10-24): fixed by the spear-break change of 2026-10-24: a thrown thing that stays in a body is kept as itself (`lodgedItems`) and comes out of the search with its wear; arrows lodge by count as before.
 - [x] **A guest was never told "A fire has gone out."** (found reading the code for #197): fixed: `host.js` forwards `fireOut` as a screen message to every guest whose player stands within `world.fireOutRadius`, as the host's own player is told; tried with a guest beside a campfire burning out, in two tabs.
 - [x] **Chopping was the one tool action with no clear-line check** (found reviewing #210): fixed in #208: one reach test, `src/reach.js`, distance and a clear line, for every player action (the chop, the menu's actions, a craft's station and ingredients, the panels, a poke, the bed, the fire); `check("reach")`.
 
@@ -46,6 +47,7 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 
 (Move items here when judged intended or not worth fixing, with a word why.)
 
+- **A spear that hits and kills could be gone from the body's loot, with no word** (Michael's question, 2026-10-24): ruled the same day (`docs/02`, The spear breaks one throw in four): the break is 25%, the same on a hit or a miss, and the thrower is now told "The throwing spear breaks."
 - [x] **Chopping a tree needs no tool and leaves no stump; feeding a fire lights it** (no torch or flint needed). Docs/30 says otherwise for both. **Closed (Michael, 2026-10-15): not built yet,** docs/30's; written as a TODO under the big pass so it is somewhere real.
 - [x] **Darkness never shortens the player's sight**: night tints the picture, but every on-screen tile with a clear line is seen. Docs/07's acceptance says the reverse. **Moved to a discussion (Michael, 2026-10-15: he thinks it should):** open question 30 in `docs/02`, for the lighting work; two old rulings pull against each other there.
 - [x] **Nothing but walls blocks sight or light**: no map entry sets `opaque`, so trees, rocks, and furniture never block. **Closed (Michael, 2026-10-15): intended for now.**

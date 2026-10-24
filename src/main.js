@@ -1748,6 +1748,10 @@ async function boot() {
       events.on("weaponBroke", ({ item, who }) => {
         if (!who || who === S.player.id) showMessage(`Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3);
       });
+      // A thrown thing that broke where it came down, hit or miss (Michael, 2026-10-24): the thrower is told (a guest's, host.js).
+      events.on("arrowLanded", ({ arrow, broken }) => {
+        if (broken && arrow.item && arrow.shooter === S.player) showMessage(`The ${items.getItem(arrow.item.id).name.toLowerCase()} breaks.`, 2);
+      });
       events.on("drank", ({ who, auto }) => {
         if (auto && who === S.player.id) showMessage("You drink from your waterskin.", 2); // a guest's, host.js
       });
