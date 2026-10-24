@@ -1,6 +1,6 @@
 # 39 — The Valley 1.0: the complete scope
 
-**Status, 2026-10-23: a spec, and the one complete list of what The Valley 1.0 holds (#271); the skills' open lines were ruled on 2026-10-23 (#275, `docs/02`), and the map as it stands is a testing map, not the final valley.** Compiled from `origin/main` at 3e1f5d0 (the data in `data/`, `docs/30`, `docs/29-world`, `docs/02` through its 2026-10-19 entries, `docs/04`, `docs/34`) and from the open issues of the same day: the skills trees on #275, Beastlore on #289, and the scoping issues #92, #103, #123, #133, #181, #260, #261, #262, #264, #268, #273, #279, #281, #282, #283, #285, #288. Valley only: a region appears only as the name of what comes from it. Lists, not reasons; the reasons are `docs/02` and the issues. Numbers are the data's and tuning's, not this page's. Rewritten in place when the scope changes, never appended.
+**Status, 2026-10-23: a spec, and the one complete list of what The Valley 1.0 holds (#271); the skills' open lines (#275) and the food economy (#264) were ruled on 2026-10-23 (`docs/02`), and the map as it stands is a testing map, not the final valley.** Compiled from `origin/main` at 3e1f5d0 (the data in `data/`, `docs/30`, `docs/29-world`, `docs/02` through its 2026-10-19 entries, `docs/04`, `docs/34`) and from the open issues of the same day: the skills trees on #275, Beastlore on #289, and the scoping issues #92, #103, #123, #133, #181, #260, #261, #262, #264, #268, #273, #279, #281, #282, #283, #285, #288. Valley only: a region appears only as the name of what comes from it. Lists, not reasons; the reasons are `docs/02` and the issues. Numbers are the data's and tuning's, not this page's. Rewritten in place when the scope changes, never appended.
 
 ## 0. How to read it
 
@@ -181,7 +181,7 @@ What comes back, today: ore rocks in place after three game days; apple trees be
 - **Sticks** [change]: the twigs under trees are decals, not items; a stick comes from a plank (a hatchet), a body, or a haystack. Picking sticks under trees (`docs/30`, "exists by rule") [open #288].
 - **Fish** [built]: perch, trout, carp; never run out. The river: perch, trout. The ponds: carp, perch. The brook: trout, perch. The mere (when built): trout, carp. Unlock: a rod; [change: perch at Fishing 1, carp at 3, trout at 5].
 - **Water** [built]: the river, the ford, the brook, four ponds (the duck pond, the farm pond, the manor's fish pond, the quarry's pit), five wells (yours, the square's, the inn's, Hollow Farm's, Long Acre's), four troughs, the chapel's font. The mere, the moat, the croft's spring, the millpond [to build]. Never runs out. All natural water unsafe until purified [change, #279].
-- **Crops in the fields** [built]: potatoes, cabbages, garlic, pumpkins, rye, flax, planted at mixed stages at your cottage, Hollow Farm, and Long Acre; a ripe crop is harvested once and the tile stays soil; seed comes back. A leaner start [open #264].
+- **Crops in the fields** [built]: potatoes, cabbages, garlic, pumpkins, rye, flax, planted at mixed stages at your cottage, Hollow Farm, and Long Acre; a ripe crop is harvested once and the tile stays soil; seed comes back. A leaner start [change: one ripe row per farm and one at your cottage, everything else at the first two stages; today about half the plots are ripe] (ruled 2026-10-23). A ripe crop left in the ground rots, generously slowly, five times its item's life (*Primary's reading* of Michael's "much, much more slowly"), and is harvested rotten with its seed still given back [to build].
 - **Seed** [built]: the two granaries (seed of every crop, never refilled), the weaver's chest (flax); two back from every harvest.
 
 ## 5. Items, by kind
@@ -433,7 +433,7 @@ The staff-and-book proposal (#275), proposed, not ruled, except the parts marked
 
 - Worn: a linen tunic, linen breeches, hobnail boots, a rope belt, a burlap sack.
 - Carried: a full waterskin, a loaf of bread, two apples, a plank, a torch (in hand, unlit), a tinderbox.
-- [open #264: a leaner start]; [open #279: whether the skin's water is clean].
+- The kit is unchanged by the leaner start (ruled 2026-10-23); [open #279: whether the skin's water is clean].
 
 ## 6. NPCs
 
@@ -730,9 +730,9 @@ Later, not at the start: gems inlaid in metal armour.
 ### Hunger and being well fed
 - **Hunger** [built]: drains over about a game day and a half; four stages (Peckish, Hungry, Very hungry, Starving); stamina regenerates at half rate at Very hungry; health drains at Starving.
 - **Well fed** [built]: hunger at the top, health back twice as fast. Buffs from the hearty stew (Cooking 4) and the feast (Cooking 10) [to build]; well fed longer (Cooking 9) [to build].
-- **The starving cliff, a slower fade** [open #264].
-- **Auto-eat from the belt** [open #264].
-- **Day-one food** [built as a wiki statistic]: far too generous; a leaner start [open #264].
+- **The starving fade** [change: from empty, health drains to dead over half a game day, six real minutes, instead of about a minute] (ruled 2026-10-23).
+- **No auto-eat from the belt** (ruled 2026-10-23: food heals exactly its number, so an automatic bite spends a heal); the prompt is the Hungry moodle and a stomach growl, the moodle its visual twin [to build: the sound].
+- **Day-one food** [built as a wiki statistic]: the target is about 12 game days for one player with tools and about 6 without, a tenth of today, shown on the wiki's page (ruled 2026-10-23); the leaner start is the fields (section 4) and the containers' rolls (bread and cheese at a third of their weight, barrels one or two apples; the pantry table is #268) [change].
 
 ### Thirst and unsafe water
 - **Thirst** [built]: drains over a game day; four stages (Slightly thirsty, Thirsty, Parched, Dying of thirst); stamina slow at Parched; health drains at the last.
@@ -755,10 +755,10 @@ Later, not at the start: gems inlaid in metal armour.
 
 ### Rot and preserving
 - **Food rots** [to build] (ruled; a pace, not world decay).
-- **How fast each food rots; whether food nobody has found rots; whether rotten food is edible at a cost or gone** [open #264].
-- **Preserving:** cooking [open #264]; salting and smoking (Cooking 5); drying herbs (Herbalism 4); pemmican keeps all but forever (Cooking 7); Sanctify purifies food of rot (Faith 10); a cellar [open #264].
+- **Everything rots** (ruled 2026-10-23): food in a container rots from the world's start whether or not it was found (so an opened-but-unlooted chest is no fridge, and looting everything to one base is never punished); food still planted or hanging rots much more slowly, generously, but does rot (five times its life, *Primary's reading*); the world's clock runs only while someone is in the world, so nothing rots while a friend is away, which is how it sits within the clock law. **The rates**, in game days to rotten, one number per item in the data: raw fish 1; cooked dishes 2; bread 3; apples 6; potatoes, cabbages, garlic, and pumpkins 8; cheese 10; salted or smoked 20; grain, flour, dried herbs, pemmican, and honey never. **Rotten food** is a Rotten item, not edible, for the composter (Farming 4) and the pigs later. **On the card:** "Spoils in 3 days" under the numbers, a small mark on the icon on its last day; fresh and rotten only, no stale middle. The rot clock is a stamp on the item in simulation time, set by the authority, read by a guest like any field [to build].
+- **Preserving:** cooking, only in that a fish that lasts a day becomes a dish that lasts two; salting and smoking (Cooking 5) give 20 days; drying herbs (Herbalism 4) and pemmican (Cooking 7) last forever; Sanctify purifies food of rot (Faith 10); **a barrel doubles the life of food kept in it**, the valley's barrels' job; the cellar is cut for 1.0 (ruled 2026-10-23).
 - **Rot's use:** the composter (Farming 4).
-- **Crops dying untended** [open #264]: today a dry crop pauses and never dies.
+- **Crops dying untended:** a growing crop that goes dry pauses and never dies, as before; a ripe crop left in the ground rots on its slow clock whether watered or not, which is what keeps the field from being a free fridge (ruled 2026-10-23, Michael open to discussion).
 
 ### Light and darkness
 - **The day** [built]: twelve real minutes; night never permanent.
@@ -887,7 +887,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 - **The belt slot's hand choice**, marked in its menu (#285).
 - **The station panel lists every recipe of the station** but boss-drop ones, the unlearned greyed with what they need, so a goal is always in view (ruled 2026-10-23) [to build].
 - **Learn at a teacher** [to build]: the teacher's screen (ruled 2026-10-23).
-- **Debuffs** apart from the moodles (ruled 2026-10-19); the sickness from unsafe water a debuff, *Primary's reading* [open #279, with its name and numbers]. **Buffs:** hearty food carries them (ruled 2026-10-19); shown in the debuff row, in gold, well fed among them, never as moodles: a moodle describes a general state and is read-only, a buff or a debuff is one specific effect, often directly interactable, as a bandage removes a bleed (ruled 2026-10-23). A marker for rot's state on an item [open #264]; clean or unsafe water on a skin [open #279].
+- **Debuffs** apart from the moodles (ruled 2026-10-19); the sickness from unsafe water a debuff, *Primary's reading* [open #279, with its name and numbers]. **Buffs:** hearty food carries them (ruled 2026-10-19); shown in the debuff row, in gold, well fed among them, never as moodles: a moodle describes a general state and is read-only, a buff or a debuff is one specific effect, often directly interactable, as a bandage removes a bleed (ruled 2026-10-23). a mark on a food's icon on its last day, and "Spoils in N days" on its card (ruled 2026-10-23); clean or unsafe water on a skin [open #279].
 - **No spell bar** (ruled 2026-10-23): a spell needs a staff and a book.
 - **Bars as a percent** [open #133]: a possibility.
 
@@ -1001,7 +1001,6 @@ The numbers are for tuning; this list is what must change before 1.0.
 - **#260:** stacking; the bag tiers' sizes and names.
 - **#261:** the furniture pass.
 - **#262:** the hover card beyond grids; short names.
-- **#264:** rot's details; a leaner start; the starving cliff; auto-eat.
 - **#268:** loot tables per container; bad-luck protection; personal loot.
 - **#271:** placeholder sounds, generated or library, and which first.
 - **#273:** each dead end: a recipe or one of a kind.
