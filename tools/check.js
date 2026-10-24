@@ -167,7 +167,7 @@ check("sync: a board struck short of a break leaves the map hash, a broken one m
   const C = mapMod.CHUNK;
   for (let cy = Math.floor(by / C); cy <= Math.floor((by + bh) / C); cy++) for (let cx = Math.floor(bx / C); cx <= Math.floor((bx + bw) / C); cx++) mapMod.getChunk(cx, cy, true);
   let door = null;
-  for (let y = by; y < by + bh && !door; y++) for (let x = bx; x < bx + bw && !door; x++) { const w = mapMod.tileAt(x, y).n; if (w && w.kind === "door" && !w.broken) door = w; }
+  for (let y = by; y < by + bh && !door; y++) for (let x = bx; x < bx + bw && !door; x++) { const w = mapMod.tileAt(x, y).n; if (w && w.kind === "door" && !w.broken && !mapMod.isFence(w)) door = w; } // a house door: a gate takes no boards (2026-10-24)
   assert(door, "no door in the valley");
   mapMod.addBoard(door, 1);
   const map0 = gameMod.syncParts().map;

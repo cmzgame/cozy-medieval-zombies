@@ -51,7 +51,7 @@ map.eachChunk((c) => tiles.push(c));
 let door = null;
 for (const c of tiles) {
   for (const t of c.tiles) {
-    for (const e of ["n", "w"]) if (!door && t[e] && t[e].kind === "door" && !t[e].broken) door = t[e];
+    for (const e of ["n", "w"]) if (!door && t[e] && t[e].kind === "door" && !t[e].broken && !map.isFence(t[e])) door = t[e]; // a house door: a gate takes no boards (2026-10-24)
   }
 }
 const p = game.state.player;

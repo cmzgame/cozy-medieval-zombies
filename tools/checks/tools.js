@@ -116,6 +116,18 @@ export async function run(game) {
     G.interact.performByLabel(me, doorAddr, pullLabel.label);
     for (let i = 0; i < 100 && me.action; i++) G.interact.updateAction(me, 0.1);
     row("pulling a board with it gives the plank back", w.boards.near.length + w.boards.far.length === 0 && G.inventory.countAll(me, "plank") === planks0, `planks ${G.inventory.countAll(me, "plank")} of ${planks0}`);
+    // A fence gate beside it takes no boards (Michael, 2026-10-24: "I would not allow boards on fences period"): no Board up in its menu,
+    // the door's label sent at it (a guest's command) does nothing, and map.addBoard refuses it; the hammer and the plank are in hand.
+    map.buildWall(x + 3, y + 2, "n", "door", "wall_fence");
+    restore.push(() => { if (map.tileAt(x + 3, y + 2).n) map.destroyWall(x + 3, y + 2, "n"); });
+    const gateAddr = { kind: "edge", tx: x + 3, ty: y + 2, edge: "n" };
+    const gateW = map.tileAt(x + 3, y + 2).n;
+    const gateLabels = G.interact.actionsForTarget(gateAddr, me).map((a) => a.label);
+    const planksG = G.inventory.countAll(me, "plank");
+    G.interact.performByLabel(me, gateAddr, withH.label);
+    for (let i = 0; i < 100 && me.action; i++) G.interact.updateAction(me, 0.1);
+    const nailed = map.addBoard(gateW, 1);
+    row("a fence gate takes no boards: none in its menu, the door's command does nothing, addBoard refuses it", map.isFence(gateW) && !gateLabels.some((l) => /^Board up/.test(l)) && !nailed && gateW.boards.near.length + gateW.boards.far.length === 0 && G.inventory.countAll(me, "plank") === planksG, `menu: ${gateLabels.join(", ")}; planks ${G.inventory.countAll(me, "plank")} of ${planksG}`);
     // Board it again, then take the hammer away: both Board up and Pull a board are greyed with the tool named.
     G.interact.performByLabel(me, doorAddr, G.interact.actionsForTarget(doorAddr, me).find((a) => /^Board up/.test(a.label)).label);
     for (let i = 0; i < 100 && me.action; i++) G.interact.updateAction(me, 0.1);

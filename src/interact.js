@@ -554,7 +554,7 @@ function openingActions(o, player) {
   const planks = countAll(player, "plank");
   const noHammer = toolProblem(player, tuning.world.boardTool); // the tool rule (#215): boarding and pulling are hammer work
   const need = noHammer ? toolName(tuning.world.boardTool) : "";
-  if (mine.length < map.BOARDS_PER_SIDE) {
+  if (mine.length < map.BOARDS_PER_SIDE && !map.isFence(w)) { // a fence takes no boards, a gate included (map.addBoard)
     out.push(act({
       ...base,
       kind: "board",
@@ -1270,6 +1270,7 @@ export function updateInteract(player, dt, keys) {
       const a = openingActions(o, player).find((x) => x.kind === "board");
       if (a && a.enabled) startAction(player, a);
       else if (a) showMessage(toolProblem(player, tuning.world.boardTool) || "You need a plank.");
+      else if (map.isFence(o.wall)) showMessage("A gate takes no boards.");
     }
   }
   if (keys.t) toggleTorch(player);

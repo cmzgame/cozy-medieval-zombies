@@ -812,8 +812,10 @@ function boardsOn(wall, side) {
   return side > 0 ? wall.boards.near : wall.boards.far;
 }
 
-// Nail a board on a side, if there is room. Planks are free until the inventory.
+// Nail a board on a side, if there is room. Planks are free until the inventory. Never on a fence, a gate included (Michael,
+// 2026-10-24: "I would not allow boards on fences period"): the one door through which every board passes, the host's and a guest's.
 export function addBoard(wall, side) {
+  if (isFence(wall)) return false;
   const b = boardsOn(wall, side);
   if (b.length >= BOARDS_PER_SIDE) return false;
   b.push(BOARD_HP);
