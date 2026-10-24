@@ -4,15 +4,16 @@
 // swings whenever a swing is possible (the "swing" policy); again shoving whenever two or more are in the shove's
 // reach (the "shove" policy, the mindless one: it spams the shove, which the recovery punishes); and again shoving
 // only when two or more fresh threats are in reach, none of them staggered or pushed or down, and never twice without
-// a swing between, swinging otherwise (the "space" policy: make room, then strike). A trial runs thirty seconds of simulation at 1/60, or until the dead
-// are all dead. The player cannot die in a trial: health is set back to full every step and the damage taken is counted
+// a swing between, swinging otherwise (the "space" policy: make room, then strike). Then the lone case (Primary's ask on #368): one zombie against the
+// stick, swinging, so the question "can a lone zombie ever bite a player who keeps clicking" is a number every step
+// prints. A trial runs thirty seconds of simulation at 1/60, or until the dead are all dead. The player cannot die in a trial: health is set back to full every step and the damage taken is counted
 // instead, so a death screen never interrupts the instrument. The world's own dead and villagers are set aside for
 // the trials and put back after (on the proving ground sixty of the dead would join the fight, and a villager's walk
 // spends the generator), a fresh sword is drawn each trial (durability is by kills, and ten fights wear one out), and
 // the generator is seeded per trial, so a trial repeats as far as the world round the clearing is the same.
 // From the console, on a ?nosave tab:
 //   await __game.check("melee")                       ten trials of each of the three policies, the means printed as rows
-//   await __game.check("melee", { trials: 5, policy: "space", seconds: 20, count: 5, radius: 4, seed: 1 })
+//   await __game.check("melee", { trials: 5, policy: "space", seconds: 20, count: 5, radius: 4, seed: 1, weapon: "sword", lone: false })
 // It pauses the loop, works on open ground with the dead it brings and takes away, and puts the player's hands,
 // place, aim, health, stamina, wounds, the hour, the rules, and the generator back (docs/testing.md).
 // The reference point: on 2026-10-12 a sword spammed at five charging dead landed 7.8 bites a fight (docs/02).
@@ -21,10 +22,12 @@ export async function run(game, opts = {}) {
   const G = game;
   const trials = opts.trials ?? 10;
   const seconds = opts.seconds ?? 30;
-  const count = opts.count ?? 5;
+  const count0 = opts.count ?? 5;
   const radius = opts.radius ?? 4;
   const seed0 = opts.seed ?? 1;
   const policies = opts.policy ? [opts.policy] : ["swing", "shove", "space"];
+  const weapon = opts.weapon ?? "sword";
+  const lone = opts.lone ?? !opts.policy; // the lone case runs with the full set, not with a single policy asked for
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const p = G.player;
@@ -99,13 +102,17 @@ export async function run(game, opts = {}) {
     G.events.on("bitten", onBitten);
     const shoveReach = () => G.combat.SHOVE.range;
 
-    for (const policy of policies) {
+    // Each run: a policy, how many of the dead, and which weapon; the lone case is the stick against one.
+    const runs = policies.map((policy) => ({ key: policy, policy, count: count0, weapon }));
+    if (lone) runs.push({ key: "lone (one zombie, the stick)", policy: "swing", count: 1, weapon: "stick" });
+    for (const run of runs) {
+      const { policy, key, count } = run;
       const per = { bites: [], first: [], kills: [], swings: [], hits: [], shoves: [], damage: [], seconds: [] };
       for (let trial = 0; trial < trials; trial++) {
         clear();
         G.rng.seed(seed0 + trial);
         G.teleport(open[0], open[1]);
-        p.hands.main = G.items.makeEntry("sword", 1); // fresh each trial: wear is by kills, and a worn-out sword leaves the hand mid-run
+        p.hands.main = G.items.makeEntry(run.weapon, 1); // fresh each trial: wear is by kills, and a worn-out weapon leaves the hand mid-run
         p.hp = p.maxHp;
         p.stamina = p.maxStamina;
         p.winded = false;
@@ -162,10 +169,10 @@ export async function run(game, opts = {}) {
         bites: r1(mean(per.bites)), first: r1(mean(per.first)), kills: r1(mean(per.kills)), swings: r1(mean(per.swings)), hits: r1(mean(per.hits)),
         shoves: r1(mean(per.shoves)), damage: r1(mean(per.damage)), seconds: r1(mean(per.seconds)), trials, per,
       };
-      results[policy] = m;
-      row(`${policy}: bites a fight (mean of ${trials})`, true, `${m.bites} (${spread(per.bites)}); damage ${m.damage}`);
-      row(`${policy}: seconds to the first bite`, true, `${m.first} (${spread(per.first)}); fights ran ${m.seconds} s`);
-      row(`${policy}: kills of ${count}, swings, hits, shoves`, true, `${m.kills} killed; ${m.swings} swings, ${m.hits} landed; ${m.shoves} shoves`);
+      results[key] = m;
+      row(`${key}: bites a fight (mean of ${trials})`, true, `${m.bites} (${spread(per.bites)}); damage ${m.damage}`);
+      row(`${key}: seconds to the first bite`, true, `${m.first} (${spread(per.first)}); fights ran ${m.seconds} s`);
+      row(`${key}: kills of ${count}, swings, hits, shoves`, true, `${m.kills} killed; ${m.swings} swings, ${m.hits} landed; ${m.shoves} shoves`);
     }
     const ran = Object.values(results).every((m) => m.swings + m.shoves > 0 && m.seconds > 0);
     row("the instrument ran: swings happened in every policy", ran, Object.keys(results).join(", "));
