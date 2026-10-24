@@ -20,7 +20,7 @@ Two kinds:
 ### The player's blows
 - **Stamina's regeneration:** `player.staminaRegen` 10 a second (`41` step 4; "no law about stamina regen").
 - **Each weapon's swing cost:** `stamina` on each weapon block in `data/items.json` (`41` step 4).
-- **The tired blow:** `blow.tiredDamage` 0.5 in `data/combat.json`: a swing the bar cannot pay for (2026-10-11, narrowed 2026-10-24).
+- **The tired blow:** `blow.tiredDamage` 0.5 in `data/combat.json`: a swing the bar cannot pay for (2026-10-11, narrowed 2026-10-24); a shove the bar cannot pay for pushes, staggers, and floors at the same share (2026-10-24, #385, Primary's reading).
 - **Knockdown:** `blow.knockdownChance` 0; the mace's `knockdown` 0.35, the halberd thrust's 0.5, the shove's 0.1 (`41` step 3).
 - **The finisher:** `finisher.mult` 1.5; the third-hit combo `combo.enabled` off, kept for testing (2026-10-12).
 - **The shove:** `shove` in `data/combat.json`: the push `knockback` (0.4 tiles from 2026-10-24, #385), `stagger` 0.8 s, `stamina` 15, `cooldown` 0.5 s, `targets` 3 (`41` step 2).
