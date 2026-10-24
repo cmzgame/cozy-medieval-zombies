@@ -295,7 +295,7 @@ for key, e in load("data/build.json").items():
 # The sounds (docs/40, #379): every slot has a known group, a volume from 0 to 1, a radius above 0, at least one variant,
 # a voice cap, and either a recipe sound-gen.js knows or a delivered file that exists; every slot the ear asks for (the
 # footsteps' floors, the dead's shuffle, the swing, the hit) is a slot.
-SOUND_RECIPES = {"step_grass", "step_dirt", "step_wood", "step_stone", "step_water", "shuffle", "swing", "hit"}  # src/sound-gen.js RECIPES
+SOUND_RECIPES = {"step_dirt", "step_wood", "step_stone", "step_water", "shuffle", "swing", "hit", "shove", "bow_draw", "bow_release", "arrow_land", "cast", "death", "fall", "door"}  # src/sound-gen.js RECIPES
 snd = load("data/sounds.json")
 sslots = snd.get("slots", {})
 for name, d in sslots.items():
@@ -319,9 +319,11 @@ for name, d in sslots.items():
         fail(f"{where}: no file and no recipe sound-gen.js knows ({(d.get('gen') or {}).get('recipe')})")
     elif not (num(d["gen"].get("length")) and d["gen"]["length"] > 0):
         fail(f"{where}.gen.length: above 0")
-asked = {"hit", "swing_light", "swing_heavy"}
+asked = {"hit", "swing_light", "swing_heavy", "shove", "bow_draw", "bow_release", "arrow_land", "cast", "death", "fall", snd.get("openings", {}).get("slot", "door")}
 fs = snd.get("footsteps", {})
-asked |= {v for k, v in fs.items() if k.startswith("floor_") or k == "dead"}
+asked |= {v for k, v in fs.items() if k.startswith("floor_") or k in ("dead", "default")}
+if not sslots.get("bow_draw", {}).get("loop"):
+    fail("sounds.bow_draw.loop: the draw is a loop (true)")
 for name in sorted(asked):
     if name not in sslots:
         fail(f"sounds: the ear asks for {name}, which is not a slot")
