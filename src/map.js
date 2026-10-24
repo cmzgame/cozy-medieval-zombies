@@ -812,8 +812,10 @@ function boardsOn(wall, side) {
   return side > 0 ? wall.boards.near : wall.boards.far;
 }
 
-// Nail a board on a side, if there is room. Planks are free until the inventory.
+// Nail a board on a side, if there is room. Planks are free until the inventory. Never on a fence, a gate included (Michael,
+// 2026-10-24: "I would not allow boards on fences period"): the one door through which every board passes, the host's and a guest's.
 export function addBoard(wall, side) {
+  if (isFence(wall)) return false;
   const b = boardsOn(wall, side);
   if (b.length >= BOARDS_PER_SIDE) return false;
   b.push(BOARD_HP);
@@ -2176,7 +2178,7 @@ export function loadMap(json, options = {}) {
       // inside of a north or west wall is the near side of its edge; of a south or east, the far.
       if (o.open) { wall.open = true; if (o.kind === "window") wall.shutter = "open"; }
       if (o.broken) { wall.broken = true; wall.hp = 0; if (o.kind === "door") wall.open = true; if (o.kind === "window") wall.shutter = "open"; }
-      if (o.boards) {
+      if (o.boards && !isFence(wall)) { // a fence takes no boards, a gate included (2026-10-24), as map.addBoard
         const inNear = o.side === "n" || o.side === "w";
         const inside = inNear ? wall.boards.near : wall.boards.far;
         const outside = inNear ? wall.boards.far : wall.boards.near;

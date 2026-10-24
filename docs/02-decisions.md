@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- A fence takes no boards, a gate included (2026-10-24, No boards on a fence)
 - Everything rots, food in containers from the world's start and planted or hanging food generously slowly, within the clock law because the world's clock runs only while someone is in it; day one holds about twelve game days of food, a leaner start; a barrel doubles food's life; the starving fade over half a game day; no auto-eat; a dry growing crop pauses, a ripe one rots in the ground (2026-10-23, The food economy ruled)
 - The valley's map as it stands is a testing map, not the final valley, which is redrawn roomier with distinct areas, its teachers placed with it (2026-10-23, The skills' open lines ruled)
 - Each resource from the ground gets a prop of its own to mine, signposted by its look; the plan's other crops are cut from 1.0; today's broadleaf is oak, today's conifer spruce, mahogany new (2026-10-23, The skills' open lines ruled)
@@ -277,6 +278,12 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-24 — No boards on a fence, a gate included (Michael)
+
+The review of #397 found that the dead's strikes on a fence gate ignored its boards, so a boarded gate was no stronger. Primary asked whether boards on a gate should count as they do on a door. Michael: "I would not allow boards on fences period." A fence and its gate take no boards: Board up is not offered on one, `B` at a gate says "A gate takes no boards.", and `map.addBoard` refuses a fence for the host and a guest alike. A fence is a yard's edge that a crowd brings down in time, not a seal; the house's doors and shutters are what a player boards.
+
+Docs: 09.
 
 ### 2026-10-24 — The shove pushes farther: 0.65 tiles, a tired one 0.45 (Michael)
 
