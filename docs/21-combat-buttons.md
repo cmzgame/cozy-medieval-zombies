@@ -20,6 +20,8 @@ Ruled by Michael on 2026-10-12 (`02-decisions.md`, question 29 and the log entry
 
 *The swing timer:* the two gold bars are the setting `Swing timer` (on by default, `settings.js`); the exposure bar is danger, not rhythm, and always shows; not covered by the bars: the bow's draw and recovery, the thrown spear, the shove. The HUD as built, bars and labels, is `10`.
 
+*2026-10-23, `41` step 5 built (#366):* **bite tokens:** only a few of the dead in reach of one target bite at once (`zombie.biteTokens` 2, plus one for every `biteTokensPer` 3 in reach beyond the first three: three in reach, two bite; six, three; nine, four); a holder is read from the state the frame already carries (in its attack or on its cooldown, not down) and keeps the token through its cooldown and a stagger, losing it when floored, killed, or out of reach; a freed token goes to the nearest waiter, who needs its whole wind-up; the waiters stand in contact and press in. Per target: a villager's crowd has its own pool. Fence and door strikes ask no token; the siege is unchanged.
+
 ## The convention
 
 | Input | Role |

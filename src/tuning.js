@@ -16,6 +16,8 @@ export const zombie = {
   contact: 0.7, // tiles: close enough to bite
   damage: 8, // a bite
   cooldown: 1.2, // seconds between bites
+  biteTokens: 2, // bite tokens (docs/41 step 5): how many of the dead in reach of one target may bite at once
+  biteTokensPer: 3, // one token more for every this many of the dead in reach beyond the first three: three in reach, two bite; six, three; nine, four
   hp: 100,
   repath: 0.3, // seconds between repaths while chasing
   radius: 0.3, // the body, in tiles

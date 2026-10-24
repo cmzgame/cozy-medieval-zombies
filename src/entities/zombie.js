@@ -303,6 +303,32 @@ function distTo(z, e) {
   return Math.hypot(e.gx - z.gx, e.gy - z.gy);
 }
 
+// Bite tokens (docs/41, step 5; Doom's and the battle circle's rule): only a few of the dead in reach of one target
+// bite at once, and the rest press in and wait, so a crowd is a thing a player can read and manage, and it grows
+// dangerous by how many are let near, never by a clock. No field is kept: a holder is read from state the frame
+// already carries. In reach of the target: within its bite's reach with the target in sight. A holder: one in reach
+// that is in its attack or still on its cooldown (so it keeps the token through the cooldown and through a stagger,
+// which sets the cooldown) and is not down; it loses the token when floored, killed, pushed or walked out of reach,
+// or when the target leaves. The pool: T.biteTokens, plus one for every T.biteTokensPer in reach beyond the first
+// three. `z` may begin when the holders are fewer than the pool and no other waiter that could also begin is nearer
+// to the target, so a freed token goes to the nearest, who then needs its whole wind-up. Per target: a villager's
+// crowd and each player's have their own pool. Fence and door strikes are not bites and ask nothing here.
+export function mayBite(z, tgt, others) {
+  const inReach = (o) => !o.dead && o.kind === "zombie" && !isDown(o) && o.seesNow && (o.target ? o.target === tgt : true) && distTo(o, tgt) <= biteReach(o, tgt);
+  const holder = (o) => o.state === "attack" || o.attackCooldown > 0;
+  let near = 0;
+  let holders = 0;
+  const mine = distTo(z, tgt);
+  for (const o of others) {
+    if (!inReach(o)) continue;
+    near++;
+    if (holder(o)) holders++;
+    else if (o !== z && distTo(o, tgt) < mine) return false; // a nearer waiter takes the token first
+  }
+  const pool = T.biteTokens + Math.floor(Math.max(0, near - 3) / T.biteTokensPer);
+  return holders < pool;
+}
+
 
 // Symmetric with the player's own sight: if you could see it, it can see you.
 // The range scales with the light on the player (the cozy parent's rule):
@@ -612,7 +638,9 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       if (d <= biteReach(z, tgt) && z.seesNow) {
         z.path = [];
         faceToward(z, tgt.gx - z.gx, tgt.gy - z.gy);
-        if (z.attackCooldown <= 0) {
+        // With its cooldown over it bites only when it holds a token (docs/41, step 5); else it waits as the
+        // cooldown branch waits: standing in contact, pressing in.
+        if (z.attackCooldown <= 0 && mayBite(z, tgt, others)) {
           z.state = "attack";
           z.attackHit = false;
           playAnimation(z.anim, "attack", true);
