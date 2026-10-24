@@ -873,8 +873,11 @@ export function updateZombie(z, dt, players, others, villagers = null) {
       }
       // A fence is no wall to a bite (Michael, 2026-10-17: "otherwise exploitable"): a player in reach across it is bitten, by the
       // chase's own bite (contact, sight, the cooldown); the dead one goes back to pressing when the player is out of reach.
-      // Its target seen on its own side of the fence: the fence is no longer in the way (the review of #389), so the chase again.
-      if (tgt && z.seesNow && sideOf(f.tx, f.ty, f.edge, z.gx, z.gy) === sideOf(f.tx, f.ty, f.edge, tgt.gx, tgt.gy)) {
+      // At the fence, its target seen on its own side of it: the fence is no longer in the way (the review of #389), so the chase again.
+      // Only at the fence: the side is the edge's whole line, and one walking round to a gate on the yard's far side has the player on
+      // its own side of that line all the way there (the second review of #389).
+      const [rx, ry] = edgeMid(f.tx, f.ty, f.edge);
+      if (tgt && z.seesNow && Math.hypot(rx - z.gx, ry - z.gy) <= T.fenceReach && sideOf(f.tx, f.ty, f.edge, z.gx, z.gy) === sideOf(f.tx, f.ty, f.edge, tgt.gx, tgt.gy)) {
         z.press = null;
         z.state = "chase";
         z.repathTimer = 0;

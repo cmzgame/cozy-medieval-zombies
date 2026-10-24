@@ -205,6 +205,20 @@ export async function run(game) {
     let t3 = 0;
     while (t3 < 60 * 90 && G.map.tileAt(cx, cy - 3).n === gate) { step(1); t3++; }
     row("a gate goes first: two of the dead seek it and burst it while the fence beside it stands", G.map.tileAt(cx, cy - 3).n !== gate && standing() === before2 - 1 && bursts.length === 1 && bursts[0].tx === cx && bursts[0].ty === cy - 3, `after ${(t3 / 60).toFixed(0)} s, ${standing()} of ${before2} edges stand, burst at ${bursts[0] ? `${bursts[0].tx},${bursts[0].ty}${bursts[0].edge}` : "none"}`);
+    // A gate on the yard's far side still goes first: they walk round to it rather than strike the fence nearest them (the second
+    // review of #389: a press that let go as soon as the player was on its own side of the gate's line never got there).
+    setUp(false);
+    G.map.destroyWall(cx, cy + 4, "n");
+    G.map.buildWall(cx, cy + 4, "n", "door", "wall_fence");
+    G.map.touch(cx, cy + 4);
+    step(2);
+    bursts.length = 0;
+    startDead(dead.slice(0, 2));
+    for (const z of dead.slice(2)) { z.gx = cx + 90; z.aggro = false; z.state = "idle"; }
+    const farGate = G.map.tileAt(cx, cy + 4).n;
+    let tFar = 0;
+    while (tFar < 60 * 150 && G.map.tileAt(cx, cy + 4).n === farGate) { step(1); tFar++; }
+    row("a gate on the yard's far side still goes first: they walk round to it and burst it", G.map.tileAt(cx, cy + 4).n !== farGate && bursts.length === 1 && bursts[0].tx === cx && bursts[0].ty === cy + 4, `after ${(tFar / 60).toFixed(0)} s, ${bursts.length} burst${bursts[0] ? ` at ${bursts[0].tx},${bursts[0].ty}` : ""}`);
     // The siege presses too: the dead that know a player is in the house, out of sight of it (the window shut), whose way to its
     // door is across the fence.
     setUp(false, false);
