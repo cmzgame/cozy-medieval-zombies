@@ -227,6 +227,11 @@ export function install() {
   events.on("weaponBroke", ({ item, who }) => {
     if (who && who !== (self() ? self().id : null) && net.isHost()) net.messageTo(who, `Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3);
   });
+  // A guest's thrown thing broke where it came down (Michael, 2026-10-24): told to that guest; the host's own, main.js.
+  events.on("arrowLanded", ({ arrow, broken }) => {
+    const who = arrow.shooter && arrow.shooter.id;
+    if (broken && arrow.item && who && who !== (self() ? self().id : null) && net.isHost()) net.messageTo(who, `The ${items.getItem(arrow.item.id).name.toLowerCase()} breaks.`, 2);
+  });
   // A torch mounted on a bracket or a post burnt out: a line in the log of every guest whose player stands near (nobody's
   // item, so no weaponBroke).
   events.on("torchSpent", ({ x, y }) => {

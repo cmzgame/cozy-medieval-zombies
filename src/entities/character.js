@@ -41,7 +41,8 @@ export function createCharacter(kind, gx, gy, { id = null, name = null, speed = 
     line: null, // { text, until } while a speech bubble shows (docs/19)
     lootTable: null, // the table the pockets roll from on first search
     loot: null, // a body's grid, made on first search: what is still on it (docs/19)
-    lodged: {}, // what hit it and stayed in it, by item id (arrows, a spear): it comes out in its loot (docs/20)
+    lodged: {}, // what hit it and stayed in it, by item id (arrows): it comes out in its loot (docs/20)
+    lodgedItems: [], // a thrown thing that stayed in it, as itself (a spear, its wear kept): it comes out in its loot
     burning: false, // on fire (burn.js, #14: its timer burnLeft and burnTaken; fire.js draws it)
     burnAcc: 0, // flames owed this step
     corpse: false, // the fall is over and the body is one frame (dressCorpse)
@@ -162,12 +163,17 @@ export function lootOf(ch) {
   ch.hands.off = null;
   if (ch.pockets) ch.pockets.items = [];
   for (const e of entries) if (!grid.insert(bag, e)) dropItem(Math.round(ch.gx), Math.round(ch.gy), e);
-  // What hit it and stayed (arrows, stacked; a spear): what did not fit lies at its feet.
+  // What hit it and stayed: arrows by count, stacked, and below them a thrown thing as itself (`lodgedItems`); what did not fit lies at its feet.
   for (const [id, n] of Object.entries(ch.lodged || {})) {
     const put = grid.add(bag, id, n);
     for (let i = put; i < n; i++) dropItem(Math.round(ch.gx), Math.round(ch.gy), { id, count: 1 });
   }
   ch.lodged = {};
+  for (const e of ch.lodgedItems || []) {
+    if (e.uid == null) e.uid = nextId("e");
+    if (!grid.insert(bag, e)) dropItem(Math.round(ch.gx), Math.round(ch.gy), e);
+  }
+  ch.lodgedItems = [];
   return bag;
 }
 

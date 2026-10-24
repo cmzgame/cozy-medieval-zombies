@@ -276,10 +276,14 @@ function land(a, met = null) {
     damageZombie(hit, Math.round(a.damage * (0.4 + 0.6 * a.c)), { dir: [a.dx, a.dy], knockback: a.knockback, staggerChance: a.staggerChance, from: [a.x0, a.y0] });
     // The arrow stays in the body (Michael): it comes out in the loot when the dead one is
     // killed and searched, so getting it back means finishing the job. They stack up in there.
-    const id = a.item ? a.item.id : "arrow";
+    // A thrown item lodges as itself, its wear kept, as one that lands is (a spear came back fresh from the search:
+    // the wiki sync, cmz-wiki#20); arrows lodge by count, made fresh, as they always have.
     if (!broken && !a.vanish) { // a spell lodges nothing
-      hit.lodged = hit.lodged || {};
-      hit.lodged[id] = (hit.lodged[id] || 0) + 1;
+      if (a.item) (hit.lodgedItems = hit.lodgedItems || []).push({ ...a.item });
+      else {
+        hit.lodged = hit.lodged || {};
+        hit.lodged.arrow = (hit.lodged.arrow || 0) + 1;
+      }
     }
     keep = false;
   }
