@@ -1,8 +1,8 @@
 {
-  "version": "c4d2751e",
+  "version": "68ff6e2c",
   "files": {
     "data/build.json": {"size": 1897, "stamp": "1c15b95c"},
-    "data/combat.json": {"size": 5306, "stamp": "6cf37ded"},
+    "data/combat.json": {"size": 5524, "stamp": "1fd05f67"},
     "data/crops.json": {"size": 2313, "stamp": "36c5359c"},
     "data/fishing.json": {"size": 1151, "stamp": "d7ff74ff"},
     "data/ground.json": {"size": 3492, "stamp": "fb2c261c"},

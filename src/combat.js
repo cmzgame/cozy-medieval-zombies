@@ -55,7 +55,7 @@ export const FISTS = { damage: 6, range: 0.9, arc: 100, swing: 0.4, knockback: 0
 export const DUAL = { offDamage: 1, window: 2.5, lockout: 0.45, front: 1.5, side: 2.5, behind: 100, arc: 100, sideArc: 220 };
 // The shove (docs/41, step 2): the crowd tool. `targets` is how many of the dead one shove reaches whatever the Multi-hit
 // setting; `cooldown` is also the recovery, in which no swing starts.
-export const SHOVE = { range: 1.0, arc: 100, knockback: 0.4, knockbackChance: 1, stagger: 0.8, knockdown: 0.1, stamina: 15, cooldown: 0.5, targets: 3 };
+export const SHOVE = { range: 1.0, arc: 100, knockback: 0.65, knockbackChance: 1, stagger: 0.8, knockdown: 0.1, stamina: 15, cooldown: 0.5, targets: 3, tiredPush: 0.7 };
 
 // The numbers that belong to no item, from data/combat.json (fists and the
 // shove). Merged in place, so `weaponOf(player) !== FISTS` keeps working.
@@ -429,7 +429,8 @@ export function tryShove(player, zombies, predict = false) {
   const hit = [];
   for (const z of targetsIn(player, SHOVE, zombies, (z) => !isDown(z), SHOVE.targets ?? 1)) {
     hit.push(z);
-    damageZombie(z, 0, { dir: [dir.x, dir.y], knockback: pushes(SHOVE) ? SHOVE.knockback * share : 0, knockdown: rng.chance(SHOVE.knockdown * share), stagger: SHOVE.stagger * share, staggerChance: 1, from: [player.gx, player.gy] });
+    // A tired shove's push has its own share (Michael, 2026-10-24: the tired push "a foot or two back"), its stagger and knockdown the tired blow's.
+    damageZombie(z, 0, { dir: [dir.x, dir.y], knockback: pushes(SHOVE) ? SHOVE.knockback * (tired ? SHOVE.tiredPush ?? share : 1) : 0, knockdown: rng.chance(SHOVE.knockdown * share), stagger: SHOVE.stagger * share, staggerChance: 1, from: [player.gx, player.gy] });
   }
   emit("shove", { count: hit.length });
   if (hit.length) {

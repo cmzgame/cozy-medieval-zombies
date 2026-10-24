@@ -92,6 +92,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
+- The shove pushes 0.65 tiles, a tired one 0.45 (`shove.tiredPush`); the tired stagger stays under the shove's recovery (2026-10-24, The shove pushes farther)
 - The dead that wait for a bite token strike the fence or gate between them and their target; the shove's push 0.4 tiles; a placeholder reel pose through a stagger; the downed keep their health bar and are outlined; a closing burst near a seen target, a trial; corners stay dangerous; the spear, the halberd, the bow, and the dead's 150 left for now (2026-10-24, The first real melee test)
 - The spear breaks one throw in four, the same on a hit or a miss, and the thrower is told; a spear that stays in a body keeps its wear (2026-10-24, The spear breaks one throw in four, hit or miss, and says so)
 - The melee feel pass (`docs/41`, #89), six steps adopted across the board: the bite gets a 0.4 s wind-up and any landed hit in it cancels the bite; every hit shows a flinch, the stagger still by weight; the shove on Space is the crowd tool (three targets, a bigger push, a recovery in which no swing starts); knockdown is restricted to the mace, the halberd's thrust, and the shove, and a rising zombie is safe from the finisher; stamina regeneration 10 a second with swing costs raised is the one pacer; bite tokens let only a few of the dead in reach bite at once, per target; the dead's health is set from hit counts after the rest (2026-10-23, The melee feel pass)
@@ -276,6 +277,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-24 — The shove pushes farther: 0.65 tiles, a tired one 0.45 (Michael)
+
+After playing the halved push with the closing burst: "I think my cut in half of the push was too far, especially with the lunge mechanic. When you are low on stamina it seems like it pushes them like a foot or two back and only staggers them for a split second. I think it can be like 0.2-0.3 tiles more generous on both full stamina and empty." **Ruled:** the push is 0.65 tiles (`shove.knockback`, was 0.4), and a tired shove's push has its own share, `shove.tiredPush` 0.7 of it, 0.45 tiles (was 0.2, at the tired blow's half). *Primary's reading, Michael's to overrule:* the tired shove's stagger stays at the tired blow's half, 0.4 s, under the shove's 0.5 s recovery, so an empty bar still cannot hold a crowd in a stagger (the lock found building #389); its knockdown chance stays halved too. Docs: 42.
 
 ### 2026-10-24 — The first real melee test: the dead strike a fence while they wait, the shove's push halved, the downed made readable, a closing burst to try, the aim guide on, the sounds widened, a mute key, a list of the levers (Michael; #385)
 

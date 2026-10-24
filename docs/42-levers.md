@@ -20,10 +20,10 @@ Two kinds:
 ### The player's blows
 - **Stamina's regeneration:** `player.staminaRegen` 10 a second (`41` step 4; "no law about stamina regen").
 - **Each weapon's swing cost:** `stamina` on each weapon block in `data/items.json` (`41` step 4).
-- **The tired blow:** `blow.tiredDamage` 0.5 in `data/combat.json`: a swing the bar cannot pay for (2026-10-11, narrowed 2026-10-24); a shove the bar cannot pay for pushes, staggers, and floors at the same share (2026-10-24, #385, Primary's reading).
+- **The tired blow:** `blow.tiredDamage` 0.5 in `data/combat.json`: a swing the bar cannot pay for (2026-10-11, narrowed 2026-10-24); a shove the bar cannot pay for staggers and floors at the same share, and pushes `shove.tiredPush` of its push (2026-10-24, #385, Primary's reading; the push's own share, Michael's).
 - **Knockdown:** `blow.knockdownChance` 0; the mace's `knockdown` 0.35, the halberd thrust's 0.5, the shove's 0.1 (`41` step 3).
 - **The finisher:** `finisher.mult` 1.5; the third-hit combo `combo.enabled` off, kept for testing (2026-10-12).
-- **The shove:** `shove` in `data/combat.json`: the push `knockback` (0.4 tiles from 2026-10-24, #385), `stagger` 0.8 s, `stamina` 15, `cooldown` 0.5 s, `targets` 3 (`41` step 2).
+- **The shove:** `shove` in `data/combat.json`: the push `knockback` (0.65 tiles, and a tired shove `tiredPush` 0.7 of it, 0.45; Michael, 2026-10-24), `stagger` 0.8 s, `stamina` 15, `cooldown` 0.5 s, `targets` 3 (`41` step 2).
 - **The spear's break:** `thrown.breakChance` on the spear in `data/items.json`, 0.25, hit or miss (2026-10-24).
 - **Hit stop and the swing's commitment:** `blow.hitStop` 0.07, `blow.hitStopKill` 0.12, `blow.swingMove` 0.6 (`41` step 1).
 
