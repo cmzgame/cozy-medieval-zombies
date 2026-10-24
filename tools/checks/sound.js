@@ -1,5 +1,7 @@
-// The sounds, step 1 (docs/40, section 8; #379): the slots and their placeholders, the footsteps, the swing, the hit,
-// distance, the master switch and the volume, and a gap of wall time between steps. A paused pane draws nothing, so the
+// The sounds, steps 1 and 2 (docs/40, section 8; #379, #386): the slots and their placeholders, the footsteps (the grass
+// step gone: grass shuffles), the swing, the hit, distance, the master switch and the volume, a gap of wall time between
+// steps; then the shove, the bow's draw, release, and landing, a dry release, a spell's cast, a thrown spear (no bow
+// sound), the dead's death and fall, doors and shutters (a change, a break, an opening walked into range), and F8. A paused pane draws nothing, so the
 // check runs the ear by hand after each step (`__game.sound.update(1/60)`) and reads its log, never the speakers (a
 // scripted pane gives no user gesture, so the context stays suspended; the log is written either way).
 // From the console, on a ?nosave tab of the valley (the spawn is in the cottage, on its wood floor):
@@ -122,10 +124,10 @@ export async function run(game) {
           prev = { name: a.name, frame: a.frame };
           snd.update(1 / 60);
         }
-        const st = named(/^step_/).filter((e) => e.at && Math.hypot(e.at[0] - p.gx, e.at[1] - p.gy) < 9);
-        const grassSteps = st.filter((e) => e.name === "step_grass");
+        const st = named(/^(step_|shuffle$)/).filter((e) => e.at && Math.hypot(e.at[0] - p.gx, e.at[1] - p.gy) < 9);
+        const grassSteps = st.filter((e) => e.name === "shuffle"); // the grass step is the dead's shuffle since #386 (Michael)
         const onContact = st.every((e) => contacts.some((c) => near(c, e.sim, 0.001)));
-        row("two seconds of walking on grass logs about eight step_grass", grassSteps.length >= 6 && grassSteps.length <= 9, `${grassSteps.length} step_grass of ${st.length} steps; ${contacts.length} contact frames`);
+        row("two seconds of walking on grass logs about eight steps, each the dead's shuffle (#386: no grass step)", grassSteps.length >= 6 && grassSteps.length <= 9 && st.length === grassSteps.length && !audio.slot("step_grass"), `${grassSteps.length} shuffle of ${st.length} steps; ${contacts.length} contact frames; a step_grass slot: ${!!audio.slot("step_grass")}`);
         row("each step on a step where the walk turned to frame 0 or 2", st.length > 0 && onContact, st.length ? `${st.filter((e) => contacts.some((c) => near(c, e.sim, 0.001))).length} of ${st.length} on a contact` : "no steps");
         row("the first on the first contact out of idle", st.length > 0 && contacts.length > 0 && near(st[0].sim, contacts[0], 0.001), st.length ? `first step ${st[0].sim.toFixed(3)}, first contact ${contacts[0] ? contacts[0].toFixed(3) : "-"}` : "no steps");
       }
@@ -138,7 +140,7 @@ export async function run(game) {
         clear();
         G.walkTo(wood.x + 3, wood.y);
         step(60);
-        const w = named(/^step_/);
+        const w = named(/^(step_|shuffle$)/);
         row("a step on wood logs step_wood", w.length > 0 && w.every((e) => e.name === "step_wood"), w.map((e) => e.name).join(", ") || "no steps");
       }
       p.auto = null;
@@ -245,7 +247,7 @@ export async function run(game) {
       if (!v) row("a villager's steps by distance", false, "no villager in this world");
       else {
         const v0 = { gx: v.gx, gy: v.gy };
-        const radius = data.slots.step_grass.radius;
+        const radius = data.slots.shuffle.radius;
         const walkAt = (dist, n = 40) => {
           clear();
           let frame = 1;
@@ -258,10 +260,10 @@ export async function run(game) {
             v.anim.frame = frame;
             snd.update(1 / 60);
           }
-          return snd.log.filter((e) => /^step_/.test(e.name) && e.at && Math.hypot(e.at[0] - v.gx, e.at[1] - v.gy) < 0.01);
+          return snd.log.filter((e) => /^(step_|shuffle$)/.test(e.name) && e.at && Math.hypot(e.at[0] - v.gx, e.at[1] - v.gy) < 0.01);
         };
         // The player's own step for comparison: the gain at no distance.
-        const mineGain = data.slots.step_grass.volume * 0.75;
+        const mineGain = data.slots.shuffle.volume * 0.75;
         const at8 = walkAt(8);
         const at15 = walkAt(radius + 1);
         v.gx = v0.gx;
@@ -306,6 +308,194 @@ export async function run(game) {
       await new Promise((r) => setTimeout(r, 1000));
       snd.update(1 / 60);
       row("an await of a second of wall time between two steps loses no sound", named(/^swing_/).length === 1, `${named(/^swing_/).length} swing logged`);
+    }
+
+    // ---- step 2 (#386), on open grass with no one else about.
+    {
+      const open = findRun("floor_grass", 8);
+      if (open) G.teleport(open.x, open.y);
+      p.hands.main = null;
+      p.hands.off = null;
+      p.shoveCooldown = 0;
+      step(10);
+      // The shove.
+      clear();
+      const at = G.loop.simTime();
+      G.combat.tryShove(p, G.zombies);
+      step();
+      const sh = named(/^shove$/);
+      row("a shove logs `shove` within a step", sh.length === 1 && Math.abs(sh[0].sim - at) <= 1 / 60 + 1e-6, `${sh.length} logged${sh[0] ? `, +${((sh[0].sim - at) * 1000).toFixed(0)}ms` : ""}`);
+      step(40);
+
+      // The bow: the draw a loop, the release on the step `recover` is set, the arrow's landing where it lies.
+      const A = G.archery;
+      p.hands.main = G.items.makeEntry("bow", 1);
+      p.hands.off = p.hands.main;
+      const bag = G.inventory.bagOf(p);
+      const hadArrows = G.inventory.countItem(bag, "arrow");
+      G.inventory.addItem(bag, "arrow", 10);
+      const target = [Math.round(p.gx) + 6, Math.round(p.gy)];
+      A.setAim(target[0], target[1]);
+      step(2);
+      clear();
+      A.press();
+      step(50);
+      const drawLog = named(/^bow_draw$/);
+      const relAt = G.loop.simTime();
+      const shot = A.release();
+      step();
+      const rel = named(/^bow_release$/);
+      let landed = [];
+      for (let i = 0; i < 120 && !landed.length; i++) { step(); landed = named(/^arrow_land$/); }
+      row("a bow drawn logs `bow_draw` as a loop, once", drawLog.length === 1 && drawLog[0].loop === true, `${drawLog.length} logged${drawLog[0] ? `, loop ${drawLog[0].loop}` : ""}`);
+      row("the release logs `bow_release` on the step `recover` is set", !!shot && rel.length === 1 && Math.abs(rel[0].sim - relAt) <= 1 / 60 + 1e-6, `shot ${!!shot}; ${rel.length} logged`);
+      row("the arrow's landing logs `arrow_land` where it lies", landed.length === 1 && Math.hypot(landed[0].at[0] - target[0], landed[0].at[1] - target[1]) < 2.5, landed[0] ? `at ${landed[0].at} against the aim ${target}` : "none");
+      // A dry release: no twang.
+      step(30);
+      clear();
+      A.press();
+      step(2);
+      A.release();
+      step(30);
+      row("a dry release logs no twang", named(/^bow_release$/).length === 0 && named(/^arrow_land$/).length === 0, `${named(/^bow_release$/).length} twang, ${named(/^arrow_land$/).length} landing`);
+      const extra = G.inventory.countItem(bag, "arrow") - hadArrows;
+      if (extra > 0) G.inventory.removeItem(bag, "arrow", extra);
+      // the arrow that flew lies on the ground; it is left there, as a test world is expendable (?nosave)
+
+      // A spell's cast: the staff and the Book of Fire.
+      p.hands.main = G.items.makeEntry("staff_of_fire", 1);
+      p.hands.off = G.items.makeEntry("book_of_fire", 1);
+      A.setAim(target[0], target[1]);
+      step(30);
+      clear();
+      A.press();
+      step(50);
+      const castAt = G.loop.simTime();
+      const cast = A.release();
+      step(90);
+      const c = named(/^cast$/);
+      const bowish = named(/^(bow_draw|bow_release|arrow_land)$/).length;
+      row("a spell's cast logs `cast` on its loose, and no bow sound", !!cast && c.length === 1 && Math.abs(c[0].sim - castAt) <= 1 / 60 + 1e-6 && bowish === 0, `cast ${!!cast}; ${c.length} cast; bow sounds ${bowish}`);
+      // A thrown spear: no bow sound, no arrow landing.
+      p.hands.main = G.items.makeEntry("spear", 1);
+      p.hands.off = null;
+      step(30);
+      clear();
+      A.press();
+      step(40);
+      A.release();
+      step(90);
+      row("a thrown spear logs no bow_draw, bow_release, or arrow_land", named(/^(bow_draw|bow_release|arrow_land)$/).length === 0, snd.log.map((e) => e.name).join(", ") || "nothing");
+      A.setAim(null);
+      p.hands.main = null;
+      p.hands.off = null;
+
+      // The dead: a fall when one is knocked down, a death when one dies.
+      const { createZombie, damageZombie } = await import("/src/entities/zombie.js");
+      const z = createZombie(p.gx + 2, p.gy, { aggro: false });
+      z.state = "idle";
+      G.zombies.push(z);
+      added.push(z);
+      step(2);
+      clear();
+      damageZombie(z, 0, { knockdown: true });
+      step();
+      const fall = named(/^fall$/);
+      step(60);
+      clear();
+      damageZombie(z, 100000);
+      step(5);
+      const death = named(/^death$/);
+      row("one of the dead knocked down logs `fall`", fall.length === 1, `${fall.length} logged`);
+      row("one of the dead killed logs `death`, and no `fall`", death.length === 1 && named(/^fall$/).length === 0, `${death.length} death, ${named(/^fall$/).length} fall`);
+
+      // Doors and shutters: a change logs the creak at the opening; a break nothing; an opening walked into range nothing.
+      G.teleport(saved.gx, saved.gy);
+      step(10);
+      const nearest = (kind, r = 12) => {
+        const cx = Math.round(p.gx), cy = Math.round(p.gy);
+        let best = null;
+        for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
+          const t = G.map.tileAt(x, y);
+          for (const edge of ["n", "w"]) {
+            const w = t[edge];
+            if (w && w.kind === kind && !w.broken && !(w.boards && ((w.boards.near || []).length || (w.boards.far || []).length))) {
+              const d = Math.hypot(x - p.gx, y - p.gy);
+              if (!best || d < best.d) best = { w, x, y, edge, d };
+            }
+          }
+        }
+        return best;
+      };
+      const flip = (o) => {
+        if (o.w.kind === "door") o.w.open = !o.w.open;
+        else o.w.shutter = o.w.shutter === "open" ? "closed" : "open";
+        G.map.touch(o.x, o.y);
+      };
+      const door = nearest("door");
+      const win = nearest("window");
+      if (!door) row("a door opened and shut logs the creak twice, at the door", false, "no door near the spawn");
+      else {
+        const was = door.w.open;
+        clear();
+        flip(door);
+        step(6);
+        flip(door);
+        step(6);
+        const creaks = named(/^door$/);
+        row("a door opened and shut logs the creak twice, at the door", creaks.length === 2 && creaks.every((e) => Math.hypot(e.at[0] - door.x, e.at[1] - door.y) <= 1), `${creaks.length} logged`);
+        door.w.open = was;
+        step(6);
+        // Changed out of range, then walked back to: learned silently.
+        const away = { x: door.x + 2 * data.openings.radius + 2, y: door.y }; // well past the ear's reach (a teleport needs no path)
+        {
+          G.teleport(away.x, away.y);
+          step(10);
+          flip(door);
+          step(6);
+          clear();
+          G.teleport(saved.gx, saved.gy);
+          step(12);
+          row("an opening walked into range logs nothing", named(/^door$/).length === 0, `${named(/^door$/).length} logged`);
+          flip(door);
+          step(6);
+        }
+        // A break logs no creak.
+        const before = { hp: door.w.hp, broken: door.w.broken, open: door.w.open };
+        step(6);
+        clear();
+        for (let i = 0; i < 200 && !door.w.broken; i++) G.map.damageOpening(door.w, 1, 50);
+        G.map.touch(door.x, door.y);
+        step(6);
+        row("the dead breaking a door log no creak", !!door.w.broken && named(/^door$/).length === 0, `broken ${door.w.broken}; ${named(/^door$/).length} logged`);
+        Object.assign(door.w, before);
+        G.map.touch(door.x, door.y);
+        step(6);
+      }
+      if (!win) row("shutters opened and shut log the creak twice", false, "no window near the spawn");
+      else {
+        const was = win.w.shutter;
+        clear();
+        flip(win);
+        step(6);
+        flip(win);
+        step(6);
+        row("shutters opened and shut log the creak twice", named(/^door$/).length === 2, `${named(/^door$/).length} logged`);
+        win.w.shutter = was;
+        G.map.touch(win.x, win.y);
+        step(6);
+      }
+
+      // F8: the same switch as the Sound tab, with a line.
+      const was8 = G.settings.get("soundOn");
+      const press8 = () => document.dispatchEvent(new KeyboardEvent("keydown", { code: "F8", key: "F8", bubbles: true }));
+      press8();
+      const off = G.settings.get("soundOn");
+      const lineOff = /Sound off\./.test(document.body.innerText);
+      press8();
+      const on2 = G.settings.get("soundOn");
+      const lineOn = /Sound on\./.test(document.body.innerText);
+      row("F8 turns Sound off and on, with its line", was8 !== false && off === false && on2 === true && lineOff && lineOn, `off: ${off}, "Sound off." shown ${lineOff}; on: ${on2}, "Sound on." shown ${lineOn}`);
     }
   } finally {
     for (const z of added) {

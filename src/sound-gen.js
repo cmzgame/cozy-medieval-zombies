@@ -82,11 +82,6 @@ function chain(...nodes) {
 // The recipes. `g` the slot's numbers (data/sounds.json `gen`), `k` the variant's factor (0.9 to 1.1: a variant moves
 // its centre frequency and length by up to a tenth), `rand` the slot's own generator, `L` the length in seconds.
 const RECIPES = {
-  step_grass(oc, g, k, rand, L) {
-    const n = noise(oc, L, rand);
-    chain(n, filter(oc, "bandpass", g.centre * k, g.q), envelope(oc, { attack: 0.004, end: L }), oc.destination);
-    return [n];
-  },
   step_dirt(oc, g, k, rand, L) {
     const n = noise(oc, L, rand);
     chain(n, filter(oc, "lowpass", g.cut * k), envelope(oc, { attack: 0.004, level: 0.8, end: L }), oc.destination);
@@ -152,6 +147,131 @@ const RECIPES = {
     chain(n, f, envelope(oc, { attack: g.peak, level: 1, end: L }), oc.destination);
     return [n];
   },
+  // ---- step 2 (#386)
+  shove(oc, g, k, rand, L) {
+    // A push: a dull thump under a short breath of low noise.
+    const n = noise(oc, L, rand);
+    chain(n, filter(oc, "lowpass", g.cut * k), envelope(oc, { attack: 0.006, level: 0.8, end: L }), oc.destination);
+    const o = oc.createOscillator();
+    o.frequency.setValueAtTime(g.thump * k, 0);
+    o.frequency.exponentialRampToValueAtTime(g.thump * k * 0.6, L);
+    chain(o, envelope(oc, { attack: 0.003, level: 0.7, end: L * 0.7 }), oc.destination);
+    o.start(0);
+    o.stop(L);
+    return [n];
+  },
+  bow_draw(oc, g, k, rand, L) {
+    // The draw's creak, a loop: a band-passed sawtooth with a slow wobble, held level end to end so it loops clean.
+    const o = oc.createOscillator();
+    o.type = "sawtooth";
+    o.frequency.value = g.freq * k;
+    const lfo = oc.createOscillator();
+    lfo.frequency.value = 1 / L; // one whole wobble over the loop, so its ends meet
+    const depth = oc.createGain();
+    depth.gain.value = g.wobble;
+    chain(lfo, depth);
+    depth.connect(o.frequency);
+    const level = oc.createGain();
+    level.gain.value = 0.35;
+    chain(o, filter(oc, "bandpass", g.centre * k, 2), level, oc.destination);
+    o.start(0);
+    lfo.start(0);
+    o.stop(L);
+    lfo.stop(L);
+    return [];
+  },
+  bow_release(oc, g, k, rand, L) {
+    // The twang: a plucked string by Karplus-Strong, made sample by sample, with a short whoosh under it.
+    const sr = oc.sampleRate;
+    const n = Math.ceil(L * sr);
+    const b = oc.createBuffer(1, n, sr);
+    const d = b.getChannelData(0);
+    const period = Math.max(2, Math.round(sr / (g.freq * k)));
+    const ring = new Float32Array(period);
+    for (let i = 0; i < period; i++) ring[i] = rand() * 2 - 1;
+    for (let i = 0; i < n; i++) {
+      const j = i % period;
+      d[i] = ring[j] * Math.min(1, (n - i) / (sr * 0.05));
+      ring[j] = 0.996 * 0.5 * (ring[j] + ring[(j + 1) % period]);
+    }
+    const src = oc.createBufferSource();
+    src.buffer = b;
+    const gain = oc.createGain();
+    gain.gain.value = 0.6;
+    chain(src, gain, oc.destination);
+    const w = noise(oc, g.whoosh, rand);
+    chain(w, filter(oc, "bandpass", 1200, 1), envelope(oc, { attack: 0.005, level: 0.4, end: g.whoosh }), oc.destination);
+    return [src, w];
+  },
+  arrow_land(oc, g, k, rand, L) {
+    const o = oc.createOscillator();
+    o.frequency.setValueAtTime(g.freq * k, 0);
+    o.frequency.exponentialRampToValueAtTime(g.freq * k * 0.5, L);
+    chain(o, envelope(oc, { attack: 0.001, level: 0.9, end: L }), oc.destination);
+    o.start(0);
+    o.stop(L);
+    const n = noise(oc, 0.008, rand);
+    chain(n, filter(oc, "highpass", 1800), envelope(oc, { attack: 0.0005, level: 0.4, end: 0.008 }), oc.destination);
+    return [n];
+  },
+  cast(oc, g, k, rand, L) {
+    // A spell let go: a rising shimmer of noise and a chirp under it.
+    const n = noise(oc, L, rand);
+    const f = filter(oc, "bandpass", g.from * k, 3);
+    f.frequency.setValueAtTime(g.from * k, 0);
+    f.frequency.exponentialRampToValueAtTime(g.to * k, L);
+    chain(n, f, envelope(oc, { attack: L * 0.3, level: 0.9, end: L }), oc.destination);
+    const o = oc.createOscillator();
+    o.type = "triangle";
+    o.frequency.setValueAtTime(g.from * k * 1.5, 0);
+    o.frequency.exponentialRampToValueAtTime(g.to * k * 0.5, L);
+    chain(o, envelope(oc, { attack: L * 0.2, level: 0.25, end: L }), oc.destination);
+    o.start(0);
+    o.stop(L);
+    return [n];
+  },
+  death(oc, g, k, rand, L) {
+    // A body giving out, a tier below a hit: a low falling tone and a soft collapse.
+    const o = oc.createOscillator();
+    o.frequency.setValueAtTime(g.from * k, 0);
+    o.frequency.exponentialRampToValueAtTime(g.to * k, L);
+    chain(o, envelope(oc, { attack: 0.01, level: 0.8, end: L }), oc.destination);
+    o.start(0);
+    o.stop(L);
+    const n = noise(oc, L * 0.6, rand);
+    chain(n, filter(oc, "lowpass", g.cut * k), envelope(oc, { start: 0.05, attack: 0.02, level: 0.5, end: L * 0.6 }), oc.destination);
+    return [n];
+  },
+  fall(oc, g, k, rand, L) {
+    // A body hitting the ground: a deep thud.
+    const o = oc.createOscillator();
+    o.frequency.setValueAtTime(g.freq * k * 1.6, 0);
+    o.frequency.exponentialRampToValueAtTime(g.freq * k, 0.04);
+    chain(o, envelope(oc, { attack: 0.002, level: 1, end: L }), oc.destination);
+    o.start(0);
+    o.stop(L);
+    const n = noise(oc, 0.06, rand);
+    chain(n, filter(oc, "lowpass", g.cut * k), envelope(oc, { attack: 0.001, level: 0.6, end: 0.06 }), oc.destination);
+    return [n];
+  },
+  door(oc, g, k, rand, L) {
+    // The creak, for a door and shutters alike, opening or closing (Michael: one placeholder for all four).
+    const o = oc.createOscillator();
+    o.type = "sawtooth";
+    o.frequency.value = g.freq * k;
+    const lfo = oc.createOscillator();
+    lfo.frequency.value = g.rate;
+    const depth = oc.createGain();
+    depth.gain.value = g.wobble;
+    chain(lfo, depth);
+    depth.connect(o.frequency);
+    chain(o, filter(oc, "bandpass", g.centre * k, 3), envelope(oc, { attack: 0.04, level: 0.6, end: L }), oc.destination);
+    o.start(0);
+    lfo.start(0);
+    o.stop(L);
+    lfo.stop(L);
+    return [];
+  },
   hit(oc, g, k, rand, L) {
     const o = oc.createOscillator();
     o.frequency.setValueAtTime(g.freq * k, 0);
@@ -179,7 +299,8 @@ export async function renderVariant(name, def, variant, sampleRate) {
   const rand = generator(hashString(`${name}#${variant}`));
   const k = 0.9 + rand() * 0.2; // the variant's factor: its centre and length moved by up to a tenth
   const L = Math.max(0.01, (g.length || 0.1) * k);
-  const oc = new Ctor(1, Math.ceil((L + 0.01) * sampleRate), sampleRate);
+  const pad = def.loop ? 0 : 0.01; // a loop is rendered to its exact length, so its ends meet with no gap
+  const oc = new Ctor(1, Math.ceil((L + pad) * sampleRate), sampleRate);
   const sources = recipe(oc, g, k, rand, L);
   for (const s of sources) if (s && s.start) s.start(0);
   return oc.startRendering();

@@ -181,6 +181,52 @@ function stopVoice(voice) {
   try { voice.node.stop(); } catch { /* already stopped */ }
 }
 
+// A looping sound (docs/40, section 1): the bow's draw today, fires and the beds later. Returns a handle with
+// `set({ at, volume, rate })` (its gain recomputed by distance) and `stop(fade)`. Logged once, when it starts, as a
+// one-shot is; with the switch off, the group at zero, or past its radius it starts silent and logs nothing, and a later
+// `set` does not wake it (the ear starts a fresh one when the cause begins again).
+export function loop(name, { at = null, volume = 1, rate = 1 } = {}) {
+  const dead = { set() {}, stop() {}, playing: false };
+  const s = slots.get(name);
+  if (!s || !s.buffers.length) return dead;
+  if (!on || !(masterLevel > 0) || !(groupLevel[s.group] > 0)) return dead;
+  const fallAt = (p) => {
+    if (!p) return 1;
+    const d = Math.hypot(p[0] - listener[0], p[1] - listener[1]);
+    return d < s.radius ? (1 - d / s.radius) ** 2 : 0;
+  };
+  const f0 = fallAt(at);
+  if (!(f0 > 0)) return dead;
+  log.push({ name, variant: 0, group: s.group, at: at ? [+at[0].toFixed(2), +at[1].toFixed(2)] : null, gain: +(s.volume * volume * f0 * groupLevel[s.group] * masterLevel * duck).toFixed(4), muffled: false, sim: simClock(), ctx: ctx ? ctx.currentTime : 0, loop: true });
+  if (log.length > LOG_MAX) log.splice(0, log.length - LOG_MAX);
+  const handle = { playing: true, set() {}, stop() { handle.playing = false; } };
+  if (!ctx || ctx.state !== "running") return handle; // suspended: logged, never queued
+  const src = ctx.createBufferSource();
+  src.buffer = s.buffers[0];
+  src.loop = true;
+  src.playbackRate.value = rate;
+  const g = ctx.createGain();
+  g.gain.value = s.volume * volume * f0;
+  src.connect(g);
+  g.connect(groupGain[s.group]);
+  src.start();
+  handle.set = ({ at: p = at, volume: v = volume, rate: r = null } = {}) => {
+    at = p;
+    volume = v;
+    g.gain.setTargetAtTime(s.volume * v * fallAt(p), ctx.currentTime, 0.03);
+    if (r != null) src.playbackRate.setTargetAtTime(r, ctx.currentTime, 0.03);
+  };
+  handle.stop = (fade = 0.3) => {
+    if (!handle.playing) return;
+    handle.playing = false;
+    const t = ctx.currentTime;
+    g.gain.setTargetAtTime(0, t, Math.max(0.01, fade / 3));
+    try { src.stop(t + fade); } catch { /* already stopped */ }
+    src.onended = () => { try { g.disconnect(); } catch { /* gone */ } };
+  };
+  return handle;
+}
+
 export function state() {
   return { context: ctx ? ctx.state : "none", on, master: masterLevel, duck, voices: voices.length, slots: slots.size, listener: [...listener] };
 }

@@ -1921,6 +1921,16 @@ async function boot() {
   events.on("autosaveTick", autosave);
   document.addEventListener("visibilitychange", () => { if (document.hidden) autosave(); });
   document.addEventListener("visibilitychange", () => { if (document.hidden) audio.suspend(); else { audio.resume(); soundCues.reset(); } }); // a hidden tab runs no frames (docs/40)
+  // F8 mutes and unmutes (Michael, 2026-10-24, #386): the same switch as the Sound tab, with a line as its visual twin. F8,
+  // because browsers leave it alone (F1 opens Chrome's help on Windows, which a page cannot always stop). A key of this
+  // browser's settings, never the world's: it works with any panel or screen up.
+  document.addEventListener("keydown", (e) => {
+    if (e.code !== "F8" || e.repeat) return;
+    e.preventDefault();
+    const on = settings.get("soundOn") === false;
+    settings.set("soundOn", on);
+    showMessage(on ? "Sound on." : "Sound off.", 2);
+  });
   // A hosting window with friends in it must stay in front (a covered one is slowed to a crawl by the browser,
   // and its world with it): the tab's title says so while it is hidden, where the tab strip and the taskbar show it.
   const plainTitle = document.title;
