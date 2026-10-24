@@ -331,11 +331,13 @@ function distTo(z, e) {
 // that is in its attack or still on its cooldown (so it keeps the token through the cooldown and through a stagger,
 // which sets the cooldown) and is not down; it loses the token when floored, killed, pushed or walked out of reach,
 // or when the target leaves. The pool: T.biteTokens, plus one for every T.biteTokensPer in reach beyond the first
-// three. `z` may begin when the holders are fewer than the pool and no other waiter that could also begin is nearer
+// T.biteTokensPer (three: three in reach, two bite; six, three; nine, four). `z` may begin when the holders are fewer than the pool and no other waiter that could also begin is nearer
 // to the target, so a freed token goes to the nearest, who then needs its whole wind-up. Per target: a villager's
 // crowd and each player's have their own pool. Fence and door strikes are not bites and ask nothing here.
 export function mayBite(z, tgt, others) {
-  const inReach = (o) => !o.dead && o.kind === "zombie" && !isDown(o) && o.seesNow && (o.target ? o.target === tgt : true) && distTo(o, tgt) <= biteReach(o, tgt);
+  const inReach = (o) => !o.dead && o.kind === "zombie" && !isDown(o) && o.seesNow && o.target === tgt && distTo(o, tgt) <= biteReach(o, tgt);
+  // A cooldown from anything counts (a bite, step 1's cancel, a stagger, a fence or door struck, a bite on another
+  // target): it can only mean fewer bites, never more than the pool, so it is kept so on purpose.
   const holder = (o) => o.state === "attack" || o.attackCooldown > 0;
   let near = 0;
   let holders = 0;
@@ -344,9 +346,10 @@ export function mayBite(z, tgt, others) {
     if (!inReach(o)) continue;
     near++;
     if (holder(o)) holders++;
-    else if (o !== z && distTo(o, tgt) < mine) return false; // a nearer waiter takes the token first
+    else if (o !== z && !(o.stagger > 0) && distTo(o, tgt) < mine) return false; // a nearer waiter that could begin takes the token first (a staggered one cannot)
   }
-  const pool = T.biteTokens + Math.floor(Math.max(0, near - 3) / T.biteTokensPer);
+  const per = Math.max(1, Math.floor(T.biteTokensPer) || 1); // never 0: the pool would be NaN and nobody would bite
+  const pool = T.biteTokens + Math.floor(Math.max(0, near - per) / per); // one more for every `per` beyond the first `per`
   return holders < pool;
 }
 
