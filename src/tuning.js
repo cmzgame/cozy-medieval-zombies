@@ -56,7 +56,7 @@ export const player = {
   // screen. Michael wanted longer (2026-10-09): 16 per second is just over 6 s,
   // about a screen and a half at 5.25 tiles per second.
   sprintDrain: 16,
-  staminaRegen: 22,
+  staminaRegen: 10, // a second (22 until docs/41 step 4): with the swing costs raised, the one pacer of melee; no endurance tiers, no strain (Michael, 2026-10-23)
   sprintRecoverAt: 20, // stamina needed to sprint again once winded
   aimY: 22, // aim originates from the chest, this many pixels above the feet
   // Slow needs (docs/10): the cozy parent's drains, to be retuned with farming.
