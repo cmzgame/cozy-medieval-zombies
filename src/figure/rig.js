@@ -16,6 +16,7 @@ export const ANIMS = {
   idle: { fps: 2, loop: true, frames: 2 },
   walk: { fps: 8, loop: true, frames: 4 },
   attack: { fps: 12, loop: false, frames: 4, activeFrame: 1 },
+  shove: { fps: 12, loop: false, frames: 3, activeFrame: 1 }, // Space (docs/41 step 2): both arms out; the player's alone, posed from data/poses.json `shove`
   hurt: { fps: 10, loop: false, frames: 2 },
   die: { fps: 8, loop: false, frames: 4 },
   carry_idle: { fps: 2, loop: true, frames: 2 },
@@ -63,6 +64,15 @@ const DEFAULT_POSES = {
       { pitch: 98, offPitch: 62, offOut: 4, lean: 1 },
       { pitch: 100, offPitch: 38, offOut: 6, lean: 1.5 },
       { pitch: 96, offPitch: 75, offOut: 3, lean: 0.5 },
+    ],
+  },
+  shove: {
+    fps: 12,
+    activeFrame: 1,
+    frames: [
+      { pitch: 60, offPitch: 60, out: 1, offOut: 1, lean: -1 },
+      { pitch: 95, offPitch: 95, out: 2, offOut: 2, lean: 3, bob: 1 },
+      { pitch: 85, offPitch: 85, out: 1.5, offOut: 1.5, lean: 1 },
     ],
   },
   one_handed: {
@@ -132,6 +142,9 @@ export function animsFor(spec) {
   const st = POSES[styleFor(spec)];
   let out = ANIMS;
   if (st && st.frames && st.frames.length) out = { ...ANIMS, attack: { ...ANIMS.attack, fps: st.fps ?? ANIMS.attack.fps, activeFrame: st.activeFrame ?? ANIMS.attack.activeFrame, frames: st.frames.length } };
+  // The shove's pose is data too (docs/41, step 2): its speed, active frame, and length from `shove` in data/poses.json.
+  const sh = POSES.shove;
+  if (sh && sh.frames && sh.frames.length) out = { ...out, shove: { ...ANIMS.shove, fps: sh.fps ?? ANIMS.shove.fps, activeFrame: sh.activeFrame ?? ANIMS.shove.activeFrame, frames: sh.frames.length } };
   // The main hand's other attack (docs/32, item 2): only on the sheet of a figure whose weapon's `alt` names a style,
   // so the atlas pays for the halberd's bearer alone.
   const alt = spec.altStyle && POSES[spec.altStyle];
@@ -140,7 +153,7 @@ export function animsFor(spec) {
   // left off, which makes the sheet 27 percent narrower and so five fit across the
   // atlas where three did (docs/19: the atlas is the budget).
   if (spec.noCarry) {
-    const { carry_idle, carry_walk, present, ...rest } = out; // the held-out pose is the player's alone too (docs/32)
+    const { carry_idle, carry_walk, present, shove, ...rest } = out; // the held-out pose and the shove are the player's alone too (docs/32; docs/41 step 2)
     out = rest;
   }
   return out;
@@ -239,8 +252,10 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
       }
       break;
     case "attack":
-    case "attack_alt": {
-      const f = (POSES[style || (zombie ? "zombie" : "one_handed")] || DEFAULT_POSES.one_handed).frames[i];
+    case "attack_alt":
+    case "shove": {
+      // The shove (docs/41, step 2) is posed from its own style, both arms out, whatever is held.
+      const f = (POSES[anim === "shove" ? "shove" : style || (zombie ? "zombie" : "one_handed")] || DEFAULT_POSES[anim === "shove" ? "shove" : "one_handed"]).frames[i];
       if (f) {
         p.offOwn = f.offPitch != null; // the style moves the off arm itself (the bow's string hand): holding does not override it
         p.armPitch = [f.offPitch ?? 0, f.pitch];
