@@ -1,16 +1,18 @@
 // The melee instrument (docs/41, section 5; #361): bites a fight, by script, so every step of the melee feel pass
 // is a number before and after. Five of the dead in a ring of four tiles round the player, aggro and chasing, at
 // noon so they see; a scripted player with the Developer sword who aims at the nearest living zombie each step and
-// swings whenever a swing is possible (the "swing" policy), and again shoving whenever two or more are in the
-// shove's reach (the "shove" policy). A trial runs thirty seconds of simulation at 1/60, or until the dead are all
-// dead. The player cannot die in a trial: health is set back to full every step and the damage taken is counted
+// swings whenever a swing is possible (the "swing" policy); again shoving whenever two or more are in the shove's
+// reach (the "shove" policy, the mindless one: it spams the shove, which the recovery punishes); and again shoving
+// only when two or more fresh threats are in reach, none of them staggered or pushed or down, and never twice without
+// a swing between, swinging otherwise (the "space" policy: make room, then strike). A trial runs thirty seconds of simulation at 1/60, or until the dead
+// are all dead. The player cannot die in a trial: health is set back to full every step and the damage taken is counted
 // instead, so a death screen never interrupts the instrument. The world's own dead and villagers are set aside for
 // the trials and put back after (on the proving ground sixty of the dead would join the fight, and a villager's walk
 // spends the generator), a fresh sword is drawn each trial (durability is by kills, and ten fights wear one out), and
 // the generator is seeded per trial, so a trial repeats as far as the world round the clearing is the same.
 // From the console, on a ?nosave tab:
-//   await __game.check("melee")                       ten trials of each policy, the means printed as rows
-//   await __game.check("melee", { trials: 5, policy: "swing", seconds: 20, count: 5, radius: 4, seed: 1 })
+//   await __game.check("melee")                       ten trials of each of the three policies, the means printed as rows
+//   await __game.check("melee", { trials: 5, policy: "space", seconds: 20, count: 5, radius: 4, seed: 1 })
 // It pauses the loop, works on open ground with the dead it brings and takes away, and puts the player's hands,
 // place, aim, health, stamina, wounds, the hour, the rules, and the generator back (docs/testing.md).
 // The reference point: on 2026-10-12 a sword spammed at five charging dead landed 7.8 bites a fight (docs/02).
@@ -22,7 +24,7 @@ export async function run(game, opts = {}) {
   const count = opts.count ?? 5;
   const radius = opts.radius ?? 4;
   const seed0 = opts.seed ?? 1;
-  const policies = opts.policy ? [opts.policy] : ["swing", "shove"];
+  const policies = opts.policy ? [opts.policy] : ["swing", "shove", "space"];
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const p = G.player;
@@ -127,19 +129,21 @@ export async function run(game, opts = {}) {
           added.push(z);
         }
         tally.bites = 0; tally.damage = 0; tally.first = null; tally.t = 0;
-        let swings = 0; let hits = 0; let shoves = 0;
+        let swings = 0; let hits = 0; let shoves = 0; let swungSinceShove = true;
         const steps = Math.round(seconds * 60);
         let n = 0;
         for (; n < steps && alive().length; n++) {
           const z = nearest();
           face(z);
-          const inShove = alive().filter((o) => dist(o) <= shoveReach() + 0.3).length;
-          if (policy === "shove" && inShove >= 2 && (p.shoveCooldown || 0) <= 0) {
+          const near = alive().filter((o) => dist(o) <= shoveReach() + 0.3);
+          const fresh = near.filter((o) => !(o.stagger > 0) && !o.knock && o.state !== "down").length;
+          const wants = policy === "shove" ? near.length >= 2 : policy === "space" ? fresh >= 2 && swungSinceShove : false;
+          if (wants && (p.shoveCooldown || 0) <= 0) {
             const r = G.combat.tryShove(p, G.zombies);
-            if (r) shoves++;
+            if (r) { shoves++; swungSinceShove = false; }
           } else {
             const r = G.combat.swingFromLeft(p, G.zombies);
-            if (r) { swings++; if (r.length) hits++; }
+            if (r) { swings++; swungSinceShove = true; if (r.length) hits++; }
           }
           step();
           tally.t += 1 / 60;
