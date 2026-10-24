@@ -48,8 +48,9 @@ export function controlPlayer(player, zombies, dt, s, predict = false) {
     aimAt: s.aimAt || null, // a grid point from a client whose cursor is not here (net.js)
     blocked: s.blocked,
   });
-  // One place decides the walking speed: braced slowest, a draw next (docs/21).
-  player.moveMult = (bracing ? archery.tunables.braceMove : player.drawing ? archery.tunables.drawSpeed : 1) * (player.blocking ? shield.moveMult : 1);
+  // One place decides the walking speed: braced slowest, a draw next (docs/21); a swing's animation slows the walk
+  // to its share, the commitment to a swing (docs/41, step 1; `blow.swingMove`, data/combat.json).
+  player.moveMult = (bracing ? archery.tunables.braceMove : player.drawing ? archery.tunables.drawSpeed : 1) * (player.blocking ? shield.moveMult : 1) * (combat.swinging(player) ? combat.BLOW.swingMove : 1);
   if (s.space && !predict) combat.tryShove(player, zombies);
   combat.updateCombat(player, zombies, dt);
 }

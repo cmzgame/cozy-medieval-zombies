@@ -20,6 +20,8 @@ Ruled by Michael on 2026-10-12 (`02-decisions.md`, question 29 and the log entry
 
 *The swing timer:* the two gold bars are the setting `Swing timer` (on by default, `settings.js`); the exposure bar is danger, not rhythm, and always shows; not covered by the bars: the bow's draw and recovery, the thrown spear, the shove. The HUD as built, bars and labels, is `10`.
 
+*2026-10-23, `41` step 1 built (#362):* **the bite has a wind-up** (six frames at 10 fps, the bite on the fifth, 400 ms after the attack begins; `data/poses.json`, `zombie`) and **any landed hit during it cancels the bite**, whatever the weapon (`interrupts` is retired from every weapon block and the shove); **every landed hit shows a flinch** (the hurt pose, 0.2 s, the walk going on), and the stagger by weight with its 0.6 s immunity is the flinch that also stops the walk; hit stop 0.07 and 0.12 on a kill; **Swing targets is on by default**; and the commitment to a swing is a walk at 0.6 while its animation plays (`blow.swingMove`) with the drawn facing held to the swing's direction, the aim and the next swing free. No turn cap, by ruling. Measured by `check("melee")` (#361): against five in a ring, swinging alone landed 8 bites a fight (was 12.4) and swinging with the shove 1.2 (was 6.4).
+
 ## The convention
 
 | Input | Role |
