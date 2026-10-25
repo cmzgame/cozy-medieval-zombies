@@ -24,9 +24,23 @@
 
 - **`check("build")` fails 9 of 11 on `main`** (found reviewing #227, on `main` at `0e765f7`, fresh tab): "the player's own wall with a door removed is still the player's own" and "a new door built over a broken stamped one remembers the wall under it". Not a play bug found; 11 of 11 in my run after other checks in the same tab, so it may depend on what ran first.
 
+- **A brass buckle on the leather belt is called "undyed"** (found syncing the wiki for #417, 2026-10-25, read from the code at `e045b31`, *needs repro*). The belt's own buckle colour (`data/items.json`, `good_belt`'s `art.colours`) is the hex of the Brass dye, so `src/dye.js` `colourWords` (~76) and the picker (`src/ui/dye-panel.js` ~114) name a brass buckle by its own-colour word: the card reads "Black and undyed" where the swatch row reads "Black and brass". Likely fix: name a region by its dye when the own colour is a dye's hex.
+
+- **A dyeable item's card counts one colour more than its picker shows** (found syncing the wiki for #417, 2026-10-25, at `e045b31`, *needs repro*). `src/item-info.js` (~112) counts the whole palette; the picker (`src/ui/dye-panel.js` ~137) drops a palette colour equal to the item's own, which it shows as Undyed. The breeches' own colour is Walnut brown and the boots' Dark brown, so each card says one more colour than there are swatches.
+
+- **The dye vat's picker leaves out the belt's slots and a bag inside a bag** (found syncing the wiki for #417, 2026-10-25, at `e045b31`). `src/dye.js` `dyeables` (~122-132) lists the worn slots, the hands, and the worn bag's items; `entryOf` would take an entry from anywhere carried. Not a loss today (nothing dyeable rides on a belt), but a satchel carried in a rucksack cannot be dyed without wearing it.
+
+- **A repair place's greyed line says nothing worn is carried when everything worn is already above its ceiling** (found syncing the wiki for #416, 2026-10-25, at `e045b31`). `src/repair.js` `propActions` (~135, ~152): a worn sword at 70% at the grindstone (next ceiling 60%) is skipped, and the one line left reads "Sharpen (no dull blade carried)". Likely fix: "Sharpen (nothing it can better)" when something worn was skipped.
+
+- **Two small words** (found syncing the wiki, 2026-10-25, at `e045b31`): `data/sprites/sawpit.json`'s note names `src/repair.js` where the code is `src/sawpit.js`; `src/sawpit.js` (~47) says "1 fall at your feet" when one plank falls.
+
 ## Open: surprises for Michael to rule on
 
 Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling (`docs/02`) before anyone changes code.
+
+- **A free sharpening spends the rung the anvil uses** (found syncing the wiki for #416, 2026-10-25, at `e045b31`). One count serves both places (`src/repair.js` ~44-48, ~103), as `docs/43` section 6 rules, so a sword sharpened once at the grindstone (to 60%) can no longer be repaired to 100% at the anvil, only to 80%. Read literally that is the ruling; it may surprise a player who sharpens first. For Michael: keep, or let the grindstone's rungs not lower the anvil's.
+
+- **The fishing rod is repaired with a plank, though no plank made it** (found syncing the wiki for #416, 2026-10-25, at `e045b31`). `data/items.json` gives the rod `repair.with: "plank"` (the spec's "a plank for wood"); its recipe is a stick and cloth. The bow likewise. Listed to be seen, not as a bug.
 
 
 ## Became issues
