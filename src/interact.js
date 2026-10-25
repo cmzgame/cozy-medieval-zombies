@@ -986,14 +986,8 @@ function propActions(prop, player) {
   if (prop.fire && prop.fire.burns) out.push(...fireActions(prop, player));
   else if (prop.fire && prop.fire.switch) out.push(...switchActions(prop, player)); // a lantern post (docs/43, section 3)
   if (prop.fire && prop.fire.holds) out.push(...holderActions({ kind: "post", prop }, player));
-  if (prop.wood) {
-    // A tree's own actions first, then Gather sticks (docs/46 step 3): E takes the sticks only when none of the tree's own is E's (a laden
-    // apple tree's Pick apples is; a hatchet's Chop down never is), so a tree that bears is picked first and every other gives its sticks.
-    const own = [...pickActions(prop, player), ...treeActions(prop, player)];
-    const sticks = trees.propActions(prop, player, act, world);
-    if (own.some((a) => a.simple && a.enabled !== false)) for (const a of sticks) a.simple = false;
-    out.push(...own, ...sticks);
-  }
+  // A tree's own actions first, then Gather sticks (docs/46 step 3), the menu's alone: never E's, which opens doors (Primary on #461).
+  if (prop.wood) out.push(...pickActions(prop, player), ...treeActions(prop, player), ...trees.propActions(prop, player, act, world));
   if (prop.sapling) out.push(inspectSaplingAction(prop)); // a planted sapling: how long until it is a tree, the asking client's own line
   if (prop.crop) out.push(...cropActions(prop, player), ...bucket.tileActions(prop.tile[0], prop.tile[1], player, act, world).filter((a) => a.kind === "pour"));
   out.push(...mineActions(prop, player));

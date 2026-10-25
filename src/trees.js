@@ -196,14 +196,15 @@ verbs.define("sticks", {
 });
 
 // A standing tree's entry: Gather sticks while it has some, greyed with why once taken today. Nothing on any other prop. The caller
-// (interact.js) puts it after the tree's own actions and keeps it from E while one of those is E's (Pick apples).
+// (interact.js) puts it after the tree's own actions. It is the menu's alone, never E's (Primary on #461): E opens doors and shutters, and
+// the woods ring every house, so a tree a tile nearer than a door must never take it.
 export function propActions(prop, player, act, world) {
   if (!isStandingTree(prop)) return [];
   const base = { kind: "sticks", tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] };
   if (!hasSticks(prop)) return [act({ ...base, label: "Gather sticks (none until tomorrow)", enabled: false })];
   return [act({
     ...base,
-    simple: true,
+    simple: false, // menu-only: never E's
     label: "Gather sticks",
     duration: T.sticks.seconds,
     perform() {

@@ -1577,7 +1577,9 @@ check("saplings and sticks: dropped at their chance, planted by the host and a g
   me.gx = tree.tile[0] + 0.9; me.gy = tree.tile[1] + 0.3; me.moving = false;
   const before = labels(tree);
   const sticksAct = interactMod.actionsForTarget({ kind: "prop", id: tree.id }, me).find((a) => a.label === "Gather sticks");
-  assert(before.includes("Gather sticks") && sticksAct.simple === true && sticksAct.duration === T.sticks.seconds, `a tree's menu: ${before.join(", ")}`);
+  assert(before.includes("Gather sticks") && sticksAct.simple === false && sticksAct.duration === T.sticks.seconds, `a tree's menu: ${before.join(", ")}`);
+  const eNear = interactMod.nearestSimpleAction(me);
+  assert(!eNear || eNear.kind !== "sticks", `E beside a plain tree took ${eNear && eNear.label}`); // menu-only: E opens doors (Primary on #461)
   const m0 = gameMod.syncParts().map;
   assert(interactMod.performByLabel(me, { kind: "prop", id: tree.id }, "Gather sticks") && me.action, "the label started no bar");
   finish();
@@ -1588,7 +1590,7 @@ check("saplings and sticks: dropped at their chance, planted by the host and a g
   assert(!again.ok && again.reason === treesMod.NONE_TODAY && labels(tree).includes("Gather sticks (none until tomorrow) [off]"), `the same day: ${JSON.stringify(again)}; ${labels(tree).join(", ")}`);
   clock.setElapsed((day + 1) * DAY + 1);
   assert(labels(tree).includes("Gather sticks") && verbsMod.run("sticks", S, me, { prop: tree.id }).ok, "the next day the tree had no sticks");
-  // Never on a stump; kept from E by a laden apple tree's own Pick apples, E's on a plain tree.
+  // Never on a stump; never E's, on an apple tree too (where Pick apples stays E's).
   const stump = mapMod.tileAt(open[0], open[1]).prop;
   assert(!labels(stump).some((l) => /sticks/.test(l)), `a stump offers sticks: ${labels(stump).join(", ")}`);
   const apple = mapMod.allProps().find((p) => p.sprite === "tree_apple");

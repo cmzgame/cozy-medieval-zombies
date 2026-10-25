@@ -8,7 +8,7 @@
 // client's own line) and Pick up. Over the days of the clock it turns to its second stage and then to the round oak, keeping its id, its
 // chunk marked; one with the player standing on it waits and grows once stepped off; the grown oak is chopped by its label. Gather sticks
 // under a tree by the label a guest sends, after its bar: one or two sticks, greyed and refused the same day, again the next; none on a
-// stump; on a laden apple tree E keeps to Pick apples. Over the bag, the sapling's and the stick's cards read on the page. The world is put
+// stump; never E's (the menu's alone: E opens doors), on a laden apple tree E keeping to Pick apples. Over the bag, the sapling's and the stick's cards read on the page. The world is put
 // back from its own save at the end (run it solo).
 //
 // Two tabs (`?nosave&relay=none`): on the host `await __game.check("saplings", { keep: true })` skips the world's restore, plants a sapling
@@ -325,7 +325,8 @@ export async function run(game, opts = {}) {
     standAt(tree.tile[0] + 0.9, tree.tile[1] + 0.3);
     const acts = G.interact.actionsForTarget({ kind: "prop", id: tree.id }, me);
     const sAct = acts.find((a) => a.label === "Gather sticks");
-    row("a standing tree's menu offers Gather sticks after its own, E's on a plain tree, its bar the data's", !!sAct && sAct.simple === true && sAct.duration === T.sticks.seconds && acts.indexOf(sAct) > acts.findIndex((a) => a.kind === "tree"), acts.map((a) => `${a.label}${a.simple ? " (E)" : ""}`).join(", "));
+    const eNear = G.interact.nearestSimpleAction(me);
+    row("a standing tree's menu offers Gather sticks after its own, its bar the data's, the menu's alone: E beside the tree never takes it (E opens doors)", !!sAct && sAct.simple === false && sAct.duration === T.sticks.seconds && acts.indexOf(sAct) > acts.findIndex((a) => a.kind === "tree") && (!eNear || eNear.kind !== "sticks"), `${acts.map((a) => `${a.label}${a.simple ? " (E)" : ""}`).join(", ")}; E: ${eNear ? eNear.label : "none"}`);
     const st0 = count("stick");
     const ran = G.interact.performByLabel(me, { kind: "prop", id: tree.id }, "Gather sticks");
     const timed = !!me.action && me.action.action.duration === T.sticks.seconds;
@@ -345,7 +346,7 @@ export async function run(game, opts = {}) {
       const aa = G.interact.actionsForTarget({ kind: "prop", id: apple.id }, me);
       const near = G.interact.nearestSimpleAction(me);
       const onApple = near && near.target && near.target.id === apple.id;
-      row("on a laden apple tree E keeps to Pick apples: Gather sticks is on the menu but not E's", aa.some((a) => a.label === "Gather sticks" && a.simple === false) && aa.some((a) => /^Pick/.test(a.label) && a.simple) && (!onApple || /^Pick/.test(near.label)), `${aa.map((a) => `${a.label}${a.simple ? " (E)" : ""}`).join(", ")}; E: ${near ? `${near.label} on ${near.target && near.target.id}` : "none"}`);
+      row("on a laden apple tree too, Gather sticks is on the menu but not E's, and E keeps to Pick apples", aa.some((a) => a.label === "Gather sticks" && a.simple === false) && aa.some((a) => /^Pick/.test(a.label) && a.simple) && (!onApple || /^Pick/.test(near.label)) && (!near || near.kind !== "sticks"), `${aa.map((a) => `${a.label}${a.simple ? " (E)" : ""}`).join(", ")}; E: ${near ? `${near.label} on ${near.target && near.target.id}` : "none"}`);
     }
 
     // ---- the cards on the page, over the bag ----
