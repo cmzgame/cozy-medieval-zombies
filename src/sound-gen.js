@@ -272,6 +272,37 @@ const RECIPES = {
     lfo.stop(L);
     return [];
   },
+  moan(oc, g, k, rand, L) {
+    // The dead's moan (#424): a low voice, falling, with a slow waver, through one vowel's formant.
+    const o = oc.createOscillator();
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(g.from * k, 0);
+    o.frequency.linearRampToValueAtTime(g.to * k, L);
+    const lfo = oc.createOscillator();
+    lfo.frequency.value = g.vibrato;
+    const depth = oc.createGain();
+    depth.gain.value = g.depth;
+    chain(lfo, depth);
+    depth.connect(o.frequency);
+    chain(o, filter(oc, "bandpass", g.formant * k, 2), envelope(oc, { attack: 0.18, level: 0.9, end: L }), oc.destination);
+    o.start(0);
+    lfo.start(0);
+    o.stop(L);
+    lfo.stop(L);
+    return [];
+  },
+  strike(oc, g, k, rand, L) {
+    // A blow on wood (#424): the dead at a door, shutters, boards, or a fence. A short thump and a knock of noise.
+    const o = oc.createOscillator();
+    o.frequency.setValueAtTime(g.freq * k, 0);
+    o.frequency.exponentialRampToValueAtTime(g.freq * k * 0.6, L);
+    chain(o, envelope(oc, { attack: 0.002, level: 0.9, end: L }), oc.destination);
+    o.start(0);
+    o.stop(L);
+    const n = noise(oc, g.noiseLength, rand);
+    chain(n, filter(oc, "lowpass", g.cut * k), envelope(oc, { attack: 0.001, level: 0.8, end: g.noiseLength }), oc.destination);
+    return [n];
+  },
   hit(oc, g, k, rand, L) {
     const o = oc.createOscillator();
     o.frequency.setValueAtTime(g.freq * k, 0);

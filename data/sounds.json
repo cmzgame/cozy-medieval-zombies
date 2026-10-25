@@ -1,5 +1,5 @@
 {
-  "note": "The sound slots (docs/40, section 1): each a name the ear plays, its group, its volume (0 to 1, before the group's and the master's), its radius in tiles (heard at (1 - d / radius) squared, not at all beyond it), how many variants the generator makes, how many may sound at once (maxVoices), the recipe's numbers (gen), and a delivered recording's path (file: null for a placeholder generated at boot by src/sound-gen.js). A recording replaces a placeholder by filling in file, no code changed. Step 1: the footsteps, the dead's shuffle, the swing, the hit. Step 2 (#386): the shove, the bow's draw (a loop: `loop` true) and release, an arrow landing, a spell's cast, the dead's death and a downed one's fall, a door or shutters opening or closing (one placeholder for all four, Michael); the grass step gone, the player on grass shuffling as the dead do.",
+  "note": "The sound slots (docs/40, section 1): each a name the ear plays, its group, its volume (0 to 1, before the group's and the master's), its radius in tiles (heard at (1 - d / radius) squared, not at all beyond it), how many variants the generator makes, how many may sound at once (maxVoices), the recipe's numbers (gen), and a delivered recording's path (file: null for a placeholder generated at boot by src/sound-gen.js). A recording replaces a placeholder by filling in file, no code changed. Step 1: the footsteps, the dead's shuffle, the swing, the hit. Step 2 (#386): the shove, the bow's draw (a loop: `loop` true) and release, an arrow landing, a spell's cast, the dead's death and a downed one's fall, a door or shutters opening or closing (one placeholder for all four, Michael); the grass step gone, the player on grass shuffling as the dead do. #424: the dead's moan when one turns to the chase (throttled, `moan`), and a strike when the dead hit a door, shutters, boards, or a fence (one placeholder for all, heard with the jolt every client draws).",
   "voices": 24,
   "groups": {
     "effects": 1,
@@ -248,6 +248,38 @@
         ]
       },
       "file": null
+    },
+    "moan": {
+      "group": "effects",
+      "volume": 0.55,
+      "radius": 16,
+      "variants": 3,
+      "maxVoices": 2,
+      "gen": {
+        "recipe": "moan",
+        "length": 1.1,
+        "from": 92,
+        "to": 70,
+        "vibrato": 5,
+        "depth": 5,
+        "formant": 620
+      },
+      "file": null
+    },
+    "strike": {
+      "group": "effects",
+      "volume": 0.8,
+      "radius": 14,
+      "variants": 3,
+      "maxVoices": 3,
+      "gen": {
+        "recipe": "strike",
+        "length": 0.22,
+        "freq": 72,
+        "cut": 900,
+        "noiseLength": 0.08
+      },
+      "file": null
     }
   },
   "footsteps": {
@@ -281,5 +313,21 @@
     "note": "The bow's draw loop's rate from `rateFrom` at no draw to `rateTo` at a full one (docs/40, section 5).",
     "rateFrom": 0.9,
     "rateTo": 1.2
+  },
+  "moan": {
+    "note": "The dead's moan (#424): one turning from a calm state (`from`, its `state` in the frame) to closing on someone (`to`: the chase, or breaking an opening or pressing a fence to come at them) moans, no sooner than `again` seconds after its own last and `gap` after anyone's, so a crowd does not drone; the voice cap does the rest (maxVoices).",
+    "from": [
+      "idle",
+      "wander",
+      "search",
+      "siege"
+    ],
+    "to": [
+      "chase",
+      "breach",
+      "press"
+    ],
+    "again": 10,
+    "gap": 1.2
   }
 }

@@ -1731,7 +1731,7 @@ async function boot() {
         burning.spark(p.gx + d.x * 0.45, p.gy + d.y * 0.45, 22);
       });
       // A wall the dead strike jolts once a strike, and a fence that gives bursts into splinters (map.strikeFence, #147, #174): drawn here.
-      events.on("wallStruck", ({ tx, ty, edge }) => shakeFence(tx, ty, edge));
+      events.on("wallStruck", ({ tx, ty, edge }) => { shakeFence(tx, ty, edge); soundCues.struck(tx, ty, edge); }); // the jolt, and its sound (#424)
       events.on("fenceBurst", ({ x, y }) => burning.splinters(x, y, 12));
       // A blow that landed kicks the camera of the client whose player struck (docs/31/05, item 13).
       events.on("kicked", ({ player: p, x, y, seconds }) => {
@@ -1846,7 +1846,7 @@ async function boot() {
     fx: (kind, x, y, z) => { // a visual the host's world made (a blocked blow's sparks, z its height; a fence's splinters; a fence shaking, its tile and z 1 for a west edge)
       if (kind === "spark") burning.spark(x, y, z);
       else if (kind === "splinters") burning.splinters(x, y, z);
-      else if (kind === "shake") shakeFence(Math.round(x), Math.round(y), z ? "w" : "n");
+      else if (kind === "shake") { shakeFence(Math.round(x), Math.round(y), z ? "w" : "n"); soundCues.struck(Math.round(x), Math.round(y), z ? "w" : "n"); } // and its sound (#424)
     },
     // A container my player opened on the host: the grid is on my replica's prop, entry, or body, found by
     // its address (interact.containerAt; a station's output is its own bag, docs/30 section 6), again every frame.
