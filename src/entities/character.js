@@ -48,7 +48,6 @@ export function createCharacter(kind, gx, gy, { id = null, name = null, speed = 
     corpse: false, // the fall is over and the body is one frame (dressCorpse)
     corpseKey: "", // which worn garments the corpse is drawn in
     searched: false,
-    behindProp: false,
   };
 }
 
@@ -59,7 +58,7 @@ export function createCharacter(kind, gx, gy, { id = null, name = null, speed = 
 // same entries the body wears, so after the copy they are made one again by uid.
 
 const CH_BY_ID = new Set(["target", "carrying"]);
-const CH_DROPPED = new Set(["sprite", "breach", "press", "auto", "action", "line", "behindProp", "netBuf"]);
+const CH_DROPPED = new Set(["sprite", "breach", "press", "auto", "action", "line", "netBuf", "swingTarget"]); // swingTarget: an old save's renderer flag, shed (#102)
 
 export function serializeCharacter(ch) {
   const out = {};
@@ -113,7 +112,6 @@ export function restoreCharacter(data, makers) {
   ch.auto = null;
   ch.action = null;
   ch.line = null;
-  ch.behindProp = false;
   ch._targetId = targetId || null;
   ch._carryingId = carryingId || null;
   ch._carried = carried || null; // the caller revives it when the id finds nothing on the map (game.js, net.js)

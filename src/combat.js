@@ -492,11 +492,12 @@ export function swingTargets(player, zombies) {
   return blowTargets(player, w, near);
 }
 
-// Flag each zombie (and each animal, docs/45) for the renderer's outline: `on` marks the targets, else clears.
-export function markTargets(player, zombies, on) {
-  const hit = on ? new Set(swingTargets(player, zombies)) : null;
-  for (const z of zombies) z.swingTarget = !!hit && hit.has(z);
-  for (const a of animalList()) a.swingTarget = !!hit && hit.has(a);
+// The ids of the dead (and the animals, docs/45) the renderer outlines, into the client's own set (`client.targets`,
+// src/client.js): `on` marks the targets, else clears. Never a flag on the bodies: a host's flags were saved, sent in the
+// dead's records, and drawn on a guest as the host's own targets (docs/31/05 item 7, #102).
+export function markTargets(player, zombies, on, marks) {
+  marks.clear();
+  if (on) for (const t of swingTargets(player, zombies)) marks.add(t.id);
 }
 
 // Each logic step: cooldowns and the effects' timers.

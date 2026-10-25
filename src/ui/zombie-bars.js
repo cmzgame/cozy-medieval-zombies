@@ -7,6 +7,7 @@ import * as iso from "../iso.js";
 import * as view from "../view.js";
 import { tileKey } from "../visibility.js";
 import * as sight from "../sight.js";
+import { client } from "../client.js"; // who a tall prop hides, from the renderer (#102)
 
 // World px above the feet anchor (iso.toScreen's tile centre, where the
 // figure is drawn from): figure.js's sprite is FH 72 px tall from the feet,
@@ -54,7 +55,7 @@ export function updateZombieBars(zombies, visible, player) {
   const seen = new Set();
   for (const z of zombies) {
     if (z.dead || z.hp >= z.maxHp) continue;
-    if (z.behindProp && Math.hypot(z.gx - player.gx, z.gy - player.gy) > NEAR) continue;
+    if (client.behind.has(z.id) && Math.hypot(z.gx - player.gx, z.gy - player.gy) > NEAR) continue;
     if (!visible.has(tileKey(Math.round(z.gx), Math.round(z.gy)))) continue;
     if (!sight.seen(player, z)) continue; // a dead one lost in the dark has no bar floating where it stands (#88)
     seen.add(z.id);

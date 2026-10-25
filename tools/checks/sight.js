@@ -81,10 +81,11 @@ export async function run(game) {
     const saySomething = (at) => { z.gx = me.gx + at; z.gy = me.gy; z.line = { text: "Hnnngh.", left: 2 }; return new Set([G.visibility.tileKey(Math.round(z.gx), Math.round(z.gy))]); };
     G.clock.setHour(12);
     step();
-    z.behindProp = true;
+    const { client } = await import("/src/client.js"); // who a canopy hides, the renderer's note by id (#102)
+    client.behind.add(z.id);
     speech.updateSpeech([z], saySomething(6), me, 1 / 60);
     row("by day a dead one behind a canopy says nothing in the log", !groaned(), `last line: ${logMod.lines().slice(-1)[0]}`);
-    z.behindProp = false;
+    client.behind.delete(z.id);
     z.line = null;
     G.clock.setHour(0);
     step(60 * (T.groanGap + 1)); // past the groans' gap in the log (`groanGap`, sim seconds)

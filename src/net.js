@@ -36,6 +36,7 @@ import { createZombie } from "./entities/zombie.js";
 import { createVillager } from "./entities/villager.js";
 import { serializeAnimal, restoreAnimal } from "./entities/animal.js"; // the animals, a record of their own (docs/45)
 import { say } from "./entities/character.js";
+import { client, refind } from "./client.js"; // my own player, the client's (docs/31/05 item 26, #102)
 
 let role = null; // "host" | "guest" | null (alone)
 let code = null;
@@ -1113,7 +1114,7 @@ export function guestStep(mySnap) {
     for (const t of ready) { pendingTalk.splice(pendingTalk.indexOf(t), 1); hooks.talk(t.what); }
   }
   if (joined) smoothStep();
-  if (joined && game.state.player && !steppedAway && !returning) {
+  if (joined && client.me && !steppedAway && !returning) {
     const s = mySnap.idle ? mySnap : testSnapshot || mySnap; // a screen up: nothing pressed, whatever a check says
     // The fight (docs/31/06, tier 2): the clicks and the buttons go as they are, the aim as a vector and
     // a ground point; the host resolves the swing, the draw, and the shove against its own dead.
@@ -1124,7 +1125,7 @@ export function guestStep(mySnap) {
     sendInput(snap);
     // Prediction (docs/31/04): my own walking runs here at once against the replica's walls; the host's
     // word arrives a wire later and the inputs it has not yet applied are replayed over it (applyFrame).
-    predict(game.state.player, snap);
+    predict(client.me, snap);
   }
 }
 
@@ -1234,7 +1235,7 @@ function aimAt(c, gx, gy) {
 function smoothStep() {
   const S = game.state;
   const scale = world.world.timeScale || 1;
-  netsmooth.step([...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals].filter((c) => c !== S.player), scale);
+  netsmooth.step([...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals].filter((c) => c !== client.me), scale);
   archery.stepReplica(netsmooth.drawClock(scale)); // what flies, stepped from its launch on the bodies' clock (#250)
   // A fireball's or a fire arrow's light, and a flare's, moved with it every step (the frame's own setting of the burners is every third).
   const glows = archery.projectileLights();
@@ -1247,7 +1248,7 @@ let glowed = false; // a flight's light was set last step: set once more when th
 
 function applyFrame(f) {
   const S = game.state;
-  if (S.player) predictedPos = [S.player.gx, S.player.gy];
+  if (client.me) predictedPos = [client.me.gx, client.me.gy];
   if (f.rules) rules.set(f.rules); // sent when they change
   archery.applyReplicaArrows(f.arrows || null, f.simTime); // the flights loosed and come down since the last frame (#250)
   clock.setElapsed(f.clock);
@@ -1360,10 +1361,10 @@ function applyFrame(f) {
   }
   // A body the frame did not carry stood where it was (the dead and the villagers come as a delta): pinned there at this frame's time (netsmooth.js).
   netsmooth.hold([...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals].filter((c) => c.id !== myPlayerId), frameHostTime);
-  S.player = S.players.find((p) => p.id === myPlayerId) || S.player;
+  refind(S.players, myPlayerId); // the replica keeps my object; found again only when the frame's list holds a new one under my id (client.js)
   // Reconciliation: the host's record of me stands at its tick; my inputs it has not yet applied
   // go over it again, so what I see is the host's truth plus what I have done since.
-  const me = S.player;
+  const me = client.me;
   const mine = f.players.find((r) => r.id === myPlayerId);
   if (me && mine) {
     const predictedX = predictedPos ? predictedPos[0] : me.gx;
@@ -1393,7 +1394,6 @@ function applyFrame(f) {
     }
   }
   S.others = [...S.players, ...S.zombies, ...S.villagers];
-  S.progress = S.player ? S.player.actionProgress : null;
   if (f.carriers) light.setCarriers(f.carriers); // sent when they change
   // The burning is a visual the host's step makes (fire.js): the flame particles and the body as a light come
   // from the burning flag, which the frame carries, so a guest runs the same update on its replica (found 2026-10-13:
@@ -1542,7 +1542,7 @@ function ringWhole(p) {
 // One input with nothing held, sent at once: a guest's tab hidden mid-walk tells the host it stopped, before the
 // host's own half-second lapse (the coder agent's review of item 3's plan). Kept in the replay like any input.
 export function idleNow() {
-  const me = game.state.player;
+  const me = client.me;
   if (role !== "guest" || !joined || steppedAway || !me) return;
   const snap = { ...game.idleSnapshot(), aim: null, aimAt: null, keys: null };
   seq++;

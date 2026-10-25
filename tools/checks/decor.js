@@ -18,6 +18,9 @@ export async function run(game) {
   const info = await import("/src/item-info.js");
   const me = G.player;
   const role = G.net.status().role;
+  // A guest's console does not teleport (docs/31/07 question 14, #102): there the replica's own player is stood directly, the camera
+  // with it, and the host's next frame puts it back where the host has it.
+  const standAt = (gx, gy) => { if (role !== "guest") return G.teleport(gx, gy); me.gx = gx; me.gy = gy; me.auto = null; G.camera.snapTo(gx, gy); };
   const bag = G.inventory.bagOf(me);
   const bag0 = bag.items.slice();
   const counts0 = bag0.map((e) => [e, e.count]);
@@ -69,7 +72,7 @@ export async function run(game) {
     const red = G.items.makeEntry("rug_regal_red", 1);
     G.inventory.stow(me, bear);
     G.inventory.stow(me, red);
-    G.teleport(x + 3, y + 3);
+    standAt(x + 3, y + 3);
     G.loop.advance(1 / 60);
 
     // Place, y: the bearskin at (x, y), 2 wide and 3 along y.
@@ -111,7 +114,7 @@ export async function run(game) {
     const menu = G.interact.itemMenu(me, spare, bag, null).map((m) => m.label);
     row("an item's menu offers Place beside Use, for a rug", menu.includes("Place") && menu.includes("Use"), menu.join(", "));
     G.interact.itemMenu(me, spare, bag, null).find((m) => m.label === "Place").onSelect();
-    G.teleport(x + 4, y + 3);
+    standAt(x + 4, y + 3);
     aimGrid(x + 6, y + 1.5); // the mode rug lies on x + 5 to x + 7, y + 1 and y + 2 once turned: clear of every tile the rows below test
     const g0 = placement.state.ghost;
     row("Place starts the ghost over the 2 by 3 footprint, green where it fits within reach", placement.state.kind === "rug" && !!g0 && g0.footprint[0] === 2 && g0.footprint[1] === 3 && g0.ok === true, g0 ? `${JSON.stringify(g0.footprint)} ${g0.ok ? "green" : g0.reason}` : "no ghost");
@@ -208,11 +211,11 @@ export async function run(game) {
     row("Object Highlight finds the rug under the cursor", !!seen && seen.kind === "prop" && seen.id === a.id, JSON.stringify(seen));
     const lying = map.itemsAt(x + 1, y + 1).find((e) => e.id === "stick");
     if (lying) map.takeItem(x + 1, y + 1, lying); // the stick would be E's first: a rug is its last resort
-    G.teleport(x + 0.5, y + 1);
+    standAt(x + 0.5, y + 1);
     G.loop.advance(1 / 60);
     const near = G.interact.nearestSimpleAction(me);
     row("E picks the rug up when it is the nearest thing (nothing else in reach)", !!near && near.kind === "rug" && /^Pick up /.test(near.label), near ? near.label : "none");
-    G.teleport(x + 3, y + 3);
+    standAt(x + 3, y + 3);
     G.loop.advance(1 / 60);
     // Save and restore: the chunk's record and back.
     const [cx, cy] = map.chunkCoord(x, y);
@@ -231,7 +234,7 @@ export async function run(game) {
     row("a guest's Place (the command the host runs) lays the rug: the item leaves the bag", gp === true && !!gl && !bag.items.includes(again), gl ? `${gl.sprite} at ${gl.tile}` : "not laid");
     const pickLabel = gl ? G.interact.actionsForTarget({ kind: "prop", id: gl.id }, me).find((q) => q.kind === "rug").label : "";
     const n0 = bag.items.length;
-    G.teleport(x + 4.6, y + 3); // within a step of it: the host walks a guest there otherwise, and the check is not waiting
+    standAt(x + 4.6, y + 3); // within a step of it: the host walks a guest there otherwise, and the check is not waiting
     G.loop.advance(1 / 60);
     if (gl) G.interact.performByLabel(me, { kind: "prop", id: gl.id }, pickLabel);
     row("a guest's Pick up (by the address and the label) rolls it back into the bag", !!gl && !map.peekTile(x + 5, y + 3).rug && bag.items.length === n0 + 1 && bag.items.some((e) => e.id === "rug_bearskin"), `${pickLabel}; ${bag.items.length} in the bag`);
@@ -261,7 +264,7 @@ export async function run(game) {
       if (!spot) row("an open tile outdoors for the set-down rows", false, "none");
       else {
         const [sx, sy] = spot;
-        G.teleport(sx, sy + 1);
+        standAt(sx, sy + 1);
         G.loop.advance(1 / 60);
         const labels = (prop) => G.interact.actionsForProp(prop, me).map((a) => a.label);
         const pumpkin = G.items.makeEntry("pumpkin", 1);
@@ -285,12 +288,12 @@ export async function run(game) {
         const indoor = room ? map.nearestWalkable(room.tile[0], room.tile[1] + 1, (x, y) => !!map.tileAt(x, y).prop) : null;
         let refused = "";
         if (indoor) {
-          G.teleport(indoor[0], indoor[1] + 0.2);
+          standAt(indoor[0], indoor[1] + 0.2);
           G.loop.advance(1 / 60);
           placement.performPlacement(me, { kind: "setdown", uid: post.uid, tx: indoor[0], ty: indoor[1] });
           refused = (document.getElementById("message") || {}).textContent || "";
         }
-        G.teleport(sx, sy + 1);
+        standAt(sx, sy + 1);
         G.loop.advance(1 / 60);
         placement.performPlacement(me, { kind: "setdown", uid: post.uid, tx: sx + 1, ty: sy });
         const mine = map.peekTile(sx + 1, sy).prop;
@@ -321,7 +324,7 @@ export async function run(game) {
     for (const p of [...made, ...extra]) { const t = p && map.propById(p.id); if (t) map.removeProp(t); }
     bag.items.splice(0, bag.items.length, ...bag0);
     for (const [e, n] of counts0) e.count = n;
-    G.teleport(meAt[0], meAt[1]);
+    standAt(meAt[0], meAt[1]);
     G.loop.setPaused(wasPaused);
   }
   for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);

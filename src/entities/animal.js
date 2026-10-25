@@ -174,8 +174,9 @@ export function createAnimal(species, gx, gy, { id = null, home = null, homeId =
 }
 
 // ---- as data, and back: everything plain is saved; the sheet's id is the species' and is named again ----
+// An old save's `swingTarget` (the renderer's flag before it was the client's, #102) is shed, never saved or sent again.
 export function serializeAnimal(a) {
-  const { sprite, ...rest } = a;
+  const { sprite, swingTarget: _shed, ...rest } = a;
   return rest;
 }
 

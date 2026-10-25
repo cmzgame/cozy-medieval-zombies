@@ -26,8 +26,9 @@ carrying: null
 line: null                    // { text, until } while a bubble shows
 loot: null                    // the corpse's grid, built on first search (see 4)
 searched: false
-behindProp: false
 ```
+
+Who stands behind a tall prop is the renderer's note, by id, in the client's own set (`client.behind`, `src/client.js`), never a field on the character (#102).
 
 - **Player** adds what it has now: `aim, stamina, maxStamina, sprinting, winded, moving, hunger, thirst, auto, action`.
 - **Zombie** adds its states and combat fields as now (`state, aggro, lastSeen, seesNow, searchTimer, path, repathTimer, sightTimer, lastGoal, idleTimer, attackCooldown, attackHit, pathFailed, breach, sincePlayer, stuckTime, hits, stagger, knock, downTimer, upTimer, gettingUp`) and `groanTimer`.

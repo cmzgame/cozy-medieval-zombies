@@ -26,11 +26,11 @@ export async function run(game) {
     await W.create("First world", a.id);
     step(2);
     const first = W.current;
-    row("a world made from an identity has a character by its name", W.inWorld && !!first && S.player.name === "Ada" && first.owners && Object.values(first.owners).includes(S.player.id), `world ${first && first.name}, player ${S.player.name} ${S.player.id}`);
+    row("a world made from an identity has a character by its name", W.inWorld && !!first && G.player.name === "Ada" && first.owners && Object.values(first.owners).includes(G.player.id), `world ${first && first.name}, player ${G.player.name} ${G.player.id}`);
     // A mess to find again: the plank dropped at the feet.
-    const bag = G.inventory.bagOf(S.player);
+    const bag = G.inventory.bagOf(G.player);
     const plank = bag.items.find((e) => e.id === "plank");
-    const at = [Math.round(S.player.gx), Math.round(S.player.gy)];
+    const at = [Math.round(G.player.gx), Math.round(G.player.gy)];
     G.grid.remove(bag, plank);
     G.map.dropItem(at[0], at[1], plank);
     step(2);
@@ -41,25 +41,25 @@ export async function run(game) {
     await W.create("Second world", b.id);
     step(2);
     const second = W.current;
-    row("a second world has its own character from the other identity", S.player.name === "Bram" && second.worldId !== first.worldId && G.save.listWorlds().length === 2, `player ${S.player.name}, ${G.save.listWorlds().length} listed`);
+    row("a second world has its own character from the other identity", G.player.name === "Bram" && second.worldId !== first.worldId && G.save.listWorlds().length === 2, `player ${G.player.name}, ${G.save.listWorlds().length} listed`);
     await W.leave();
     // 3. The first world played again: the same character, the plank where it fell.
     await W.play(first.worldId);
     step(2);
     const floor = G.map.itemsAt(at[0], at[1]).map((e) => e.id);
-    row("the first world played again is the same character with the mess it left", W.inWorld && S.player.name === "Ada" && W.current.worldId === first.worldId && floor.includes("plank"), `player ${S.player.name}, floor ${floor.join(",") || "nothing"}`);
+    row("the first world played again is the same character with the mess it left", W.inWorld && G.player.name === "Ada" && W.current.worldId === first.worldId && floor.includes("plank"), `player ${G.player.name}, floor ${floor.join(",") || "nothing"}`);
     // 4. The identity edited: a stamp, never backfilled.
     I.update(a.id, { name: "Ada the Second" });
-    row("an identity edited changes no character already made from it", S.player.name === "Ada" && I.get(a.id).name === "Ada the Second", `character ${S.player.name}, identity ${I.get(a.id).name}`);
+    row("an identity edited changes no character already made from it", G.player.name === "Ada" && I.get(a.id).name === "Ada the Second", `character ${G.player.name}, identity ${I.get(a.id).name}`);
     // 5. A death, and a new character in the same world from the other identity; the body stays.
-    const deadId = S.player.id;
-    G.events.emit("playerHit", { zombie: S.zombies[0], damage: 1000, victim: S.player });
+    const deadId = G.player.id;
+    G.events.emit("playerHit", { zombie: S.zombies[0], damage: 1000, victim: G.player });
     step(2);
     const deadScreen = G.screens.currentScreen() === "dead";
     await W.respawn(b.id);
     step(2);
     const body = S.players.find((p) => p.id === deadId);
-    row("after a death a new character stands in the same world and the body stays", deadScreen && S.player.id !== deadId && S.player.name === "Bram" && !!body && body.dead && W.current.worldId === first.worldId, `dead screen ${deadScreen}, now ${S.player.name} ${S.player.id}, body ${body ? (body.dead ? "dead" : "alive") : "gone"}`);
+    row("after a death a new character stands in the same world and the body stays", deadScreen && G.player.id !== deadId && G.player.name === "Bram" && !!body && body.dead && W.current.worldId === first.worldId, `dead screen ${deadScreen}, now ${G.player.name} ${G.player.id}, body ${body ? (body.dead ? "dead" : "alive") : "gone"}`);
     await W.leave();
     const after = G.save.listWorlds().find((w) => w.worldId === first.worldId);
     row("the world's row names the new character", !!after && after.myCharacter === "Bram" && !after.dead, after ? `${after.name} as ${after.myCharacter}${after.dead ? " (dead)" : ""}` : "no row");
@@ -130,7 +130,7 @@ export async function run(game) {
     // Sandbox step's last choices make one, so nothing remembered changes.
     await W.create("Checks' world", a.id);
     step(2);
-    row("it ends in a fresh world, so the checks after it in the page have one", W.inWorld && !!S.player, `in a world ${W.inWorld}`);
+    row("it ends in a fresh world, so the checks after it in the page have one", W.inWorld && !!G.player, `in a world ${W.inWorld}`);
   } finally {
     G.loop.setPaused(false);
   }
