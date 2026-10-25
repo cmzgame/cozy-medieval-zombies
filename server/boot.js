@@ -37,6 +37,7 @@ export async function bootData(root) {
   (await import("../src/farming.js")).load(optional("data/crops.json")); // the crops (#194)
   (await import("../src/fishing.js")).load(optional("data/fishing.json")); // the waters' tables and the cast (#190)
   (await import("../src/dye.js")).load(optional("data/dyes.json")); // the dye vat's colours (docs/43 section 8, #412)
+  (await import("../src/entities/animal.js")).load(optional("data/animals.json")); // the valley's species (docs/45)
   const talkFiles = {}; // what villagers say (docs/34, #198): every file under data/talk, by its name
   const talkDir = path.join(root, "data/talk");
   if (fs.existsSync(talkDir)) for (const f of fs.readdirSync(talkDir)) if (f.endsWith(".json")) talkFiles[f.slice(0, -5)] = read(`data/talk/${f}`);

@@ -1,0 +1,13 @@
+{
+  "note": "The valley's animals (docs/45, step 1). Per species: its name, whether it is wild game (renewed at its home up to the cap; tame livestock is not), its walk and run in tiles a second, its body's radius, its health, what it flees and how far (null: it never runs), how far it wanders from its home, how long it stands between walks, how often a stand is spent grazing, and what it gives (step 2 makes the items: `meat` names the raw meat, counts are [least, most]). `renew`: one animal back at a wild home below its cap each `seconds` of the game's clock, and never while a player is within `clear` tiles of the home (nothing materialises in view). Defaults, Primary's (docs/45): Michael's to tune.",
+  "renew": { "seconds": 720, "clear": 30 },
+  "species": {
+    "hen": { "name": "hen", "wild": false, "walk": 0.9, "run": 0, "radius": 0.2, "hp": 4, "flee": null, "wander": 3, "idle": [1.5, 4], "graze": 0.6, "yields": { "meat": "hen", "meatCount": [1, 1], "feathers": [3, 5] } },
+    "rabbit": { "name": "rabbit", "wild": true, "walk": 1.1, "run": 4.2, "radius": 0.18, "hp": 3, "flee": { "sight": 6, "tiles": 8, "clear": 10 }, "wander": 6, "idle": [1.5, 5], "graze": 0.6, "yields": { "meat": "rabbit", "meatCount": [1, 1], "hide": [1, 1] } },
+    "deer": { "name": "deer", "wild": true, "walk": 1.0, "run": 4.6, "radius": 0.3, "hp": 30, "flee": { "sight": 9, "tiles": 12, "clear": 14 }, "wander": 10, "idle": [2, 6], "graze": 0.5, "yields": { "meat": "venison", "meatCount": [3, 4], "hide": [1, 1] } },
+    "boar": { "name": "boar", "wild": true, "walk": 0.9, "run": 3.2, "radius": 0.3, "hp": 40, "flee": null, "wander": 9, "idle": [2, 6], "graze": 0.5, "yields": { "meat": "pork", "meatCount": [3, 5], "hide": [1, 1] } },
+    "cow": { "name": "cow", "wild": false, "walk": 0.7, "run": 0, "radius": 0.35, "hp": 40, "flee": null, "wander": 4, "idle": [3, 8], "graze": 0.7, "yields": { "meat": "beef", "meatCount": [4, 5], "hide": [1, 1] } },
+    "sheep": { "name": "sheep", "wild": false, "walk": 0.8, "run": 0, "radius": 0.28, "hp": 20, "flee": null, "wander": 4, "idle": [2, 7], "graze": 0.7, "yields": { "meat": "mutton", "meatCount": [2, 3], "hide": [1, 1] } },
+    "pig": { "name": "pig", "wild": false, "walk": 0.8, "run": 0, "radius": 0.3, "hp": 30, "flee": null, "wander": 3, "idle": [2, 7], "graze": 0.6, "yields": { "meat": "pork", "meatCount": [2, 4], "lard": [1, 1] } }
+  }
+}
