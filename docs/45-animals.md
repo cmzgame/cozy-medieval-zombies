@@ -39,13 +39,22 @@
 - **Its command item is not the lead** (Michael: "a lead does not make sense for sending an animal out to attack, unless it's REALLY long"): which item commands it is decided when it is built.
 - **Bosses ignore interception** and keep their own target; ordinary dead switch to a companion in their way. **A companion that "dies" goes home hurt** and is back after a game day. One mechanic with the death school's thrall, later.
 
-## 6. The guest's side (every step)
+## 6. Art
+
+*Primary's approach, accepted by Michael (2026-10-25: "I like this overall"):*
+- **Animals are drawn sprite sheets, not a second rig.** The human rig (`src/figure/`) exists so characters can wear and hold items; animals wear and hold nothing, so frame-by-frame sheets, as most pixel games draw their animals, are simpler to build and to commission. The sprite loader already reads named frames, facings, and timed animations (`docs/sprite-definitions.md`); step 1 adds the one missing piece, an entity that plays its sheet's own named animations (idle, walk, run, eat, dead) as it moves, where today a character's animations come from the rig.
+- **Per species, per facing:** idle 2 frames, walk 4, dead 1, eat 2 where it grazes, attack 3 for the boar; **four facings, two drawn and their mirrors**, as furniture mirrors; about ten to fourteen drawn frames a species, fewer for hens and rabbits. The companion, later, is the same sheet with an attack.
+- **Dev art first:** placeholder animals generated at boot through the same interface (root `CLAUDE.md`), so no step waits; real art replaces them with no code change.
+- **The brief** (`docs/art/12-animals.md`, written when the art is asked for): a sheet spec for each of the seven species and the item pairs for every product (egg, milk, wool, the meats, bacon, lard, hide, feather), each with its portrait where held or worn. **It points at the chicken coop and the beehive** (`data/art/village/chicken_coop_*.png`, `beehive_*.png`) as the two most recent pieces to guide the work (Michael, 2026-10-25), and keeps the detail of the earlier briefs (Michael: "your detailed descriptions for those briefs produced better work than I would have, so keep that up").
+- **The style question comes first:** how bright the valley is drawn and Plants vs Zombies as a reference (#426) are settled before real animal art is commissioned, so nothing is drawn twice. When an artist is hired, the same brief is the commission.
+
+## 7. The guest's side (every step)
 
 Animals are characters of the world, stepped on the host as the dead and the villagers are: in the frame as a delta with a roster (as the dead's), in the save, in `game.syncParts`; their wander and flight read `loop.simTime()` and `rng`. Every verb (lead, let go, feed, collect, milk, shear, skin, butcher, set a snare, check a snare) is a verb in `verbs.js` or a menu label performed by the host by the animal's or prop's id; a pen's trough and a snare are props in their chunk; products land in the actor's bag or at their feet. Each step tries its features in two tabs with `check("sync")` and reads what it adds to a frame from `net.status().wire`; animals are many and move, so the wire's cost is measured, not guessed.
 
-## 7. Build steps
+## 8. Build steps
 
-1. **Animals in the world:** the animal character (species data in `data/animals.json`: speed, flee, home, yields), wander and flee, the dead ignoring them, Object Highlight and the name; deer and rabbits in the woods, the farms' livestock placed; renewal to a cap. A new `check("animals")`.
+1. **Animals in the world:** the animal character (species data in `data/animals.json`: speed, flee, home, yields), its sheet's named animations played as it moves (section 6), placeholder sheets generated at boot, wander and flee, the dead ignoring them, Object Highlight and the name; deer and rabbits in the woods, the farms' livestock placed; renewal to a cap. A new `check("animals")`.
 2. **Hunting:** kills by weapon and yield, skinning and butchering, the products as items with cards, boar that fight back, snares.
 3. **Keeping:** the lead, pens, the feed trough, the daily produce (eggs, feathers, milk with a bucket, wool with shears), shears at the anvil, breeding.
 4. **The recipes:** raw meat at a fire and in recipes, cheese and butter, bacon and lard, smoked meat, pemmican, woollen cloth, leather, fletched arrows.
