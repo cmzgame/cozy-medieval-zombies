@@ -1140,6 +1140,141 @@ check("water: tainted and clean, boiling by Use and both menus, Sick and its rol
   return `Sick ${(nSick / N * 100).toFixed(1)}%, infection ${(nInf / N * 100).toFixed(2)}% over ${N} drinks; boiled by the skin's menu, the fire's, Use, a guest's two commands, the belt; greyed and refused with why; the sync parts; the save`;
 });
 
+const fruitArt = await import("../src/fruit-art.js");
+check("fruit art: apples painted on a crown's leaves only, spread, the same every time, the source untouched (#422)", () => {
+  // A crown of leaf green inside a dark outline, a brown trunk below it, as the round tree is drawn.
+  const w = 60;
+  const h = 70;
+  const px = new Uint8ClampedArray(w * h * 4);
+  const put = (x, y, [r, g, b]) => { const i = (y * w + x) * 4; px[i] = r; px[i + 1] = g; px[i + 2] = b; px[i + 3] = 255; };
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const d = Math.hypot(x - 30, y - 26);
+    if (d < 24) put(x, y, (x + y) % 5 ? [88, 134, 70] : [56, 90, 50]);
+    else if (d < 25.5) put(x, y, [26, 38, 28]);
+    else if (y >= 50 && x >= 26 && x < 34) put(x, y, [104, 72, 48]);
+  }
+  const before = new Uint8ClampedArray(px);
+  const def = JSON.parse(fs.readFileSync(path.join(root, "data/sprites/tree_apple.json"), "utf8"));
+  const spec = def.fruit;
+  assert(spec && spec.count > 0 && Array.isArray(spec.shape) && spec.shape.every((r) => [...r].every((c) => c === "." || spec.colours[c])), "tree_apple's fruit block: a count, a shape, a colour for each letter");
+  const a = fruitArt.paintFruit(px, w, h, spec);
+  const b = fruitArt.paintFruit(px, w, h, spec);
+  assert(px.every((v, i) => v === before[i]), "painting wrote into the source picture");
+  assert(a.spots.length === spec.count, `${a.spots.length} apples of ${spec.count}`);
+  assert(JSON.stringify(a.spots) === JSON.stringify(b.spots) && a.px.every((v, i) => v === b.px[i]), "two paintings differ");
+  const sw = Math.max(...spec.shape.map((r) => r.length));
+  const sh = spec.shape.length;
+  let changed = 0;
+  for (let i = 0; i < a.px.length; i += 4) {
+    if (a.px[i] === px[i] && a.px[i + 1] === px[i + 1] && a.px[i + 2] === px[i + 2] && a.px[i + 3] === px[i + 3]) continue;
+    changed++;
+    assert(fruitArt.isLeaf(px, i), `a fruit pixel at ${(i / 4) % w},${Math.floor(i / 4 / w)} is not on a leaf`);
+  }
+  const cells = spec.shape.join("").replace(/\./g, "").length;
+  assert(changed <= spec.count * cells && changed > 0, `${changed} pixels changed for ${spec.count} apples of ${cells}`);
+  for (const [x, y] of a.spots) for (const [ox, oy] of a.spots) if (x !== ox || y !== oy) assert(Math.abs(x - ox) >= sw + (spec.gap ?? 2) || Math.abs(y - oy) >= sh + (spec.gap ?? 2), `apples at ${x},${y} and ${ox},${oy} too close`);
+  // Spread: apples in every quarter of the crown.
+  const quarters = new Set(a.spots.map(([x, y]) => `${x + sw / 2 < 30 ? "w" : "e"}${y + sh / 2 < 26 ? "n" : "s"}`));
+  assert(quarters.size === 4, `apples in ${[...quarters].join(", ")} only`);
+  const bare = JSON.parse(fs.readFileSync(path.join(root, "data/sprites/tree_apple_bare.json"), "utf8"));
+  assert(bare.image === def.image && !bare.fruit && JSON.stringify(bare.frames) === JSON.stringify(def.frames) && JSON.stringify(bare.anchor) === JSON.stringify(def.anchor), "the bare tree is the same picture, frames, and anchor with no fruit");
+  const oak = JSON.parse(fs.readFileSync(path.join(root, "data/sprites/tree_oak_m.json"), "utf8"));
+  assert(def.image === oak.image && JSON.stringify(def.anchor) === JSON.stringify(oak.anchor) && JSON.stringify(def.bounds) === JSON.stringify(oak.bounds) && JSON.stringify(def.collide) === JSON.stringify(oak.collide), "the apple tree is the round tree's picture, anchor, bounds, and trunk (tree_oak_m)");
+  return `${a.spots.length} apples, ${changed} pixels, all on leaves, in all four quarters; the bare tree and the round tree agree`;
+});
+
+const beesMod = await import("../src/render/bees.js");
+check("bees: three to six drawn bees (stripes dark, gold, dark, a head, wings folding every step, facing their way), in loops above and beside a hive's crown by day, none from dusk to dawn, whole pixels, livelier when honey is taken (#441)", () => {
+  const hives = Array.from({ length: 20 }, (_, i) => ({ id: `p_${100 + i * 7}` }));
+  const counts = new Set();
+  for (const hv of hives) {
+    const n = beesMod.beesAt(hv, 123.4, "day").length;
+    assert(n >= 3 && n <= 6, `${hv.id}: ${n} bees by day`);
+    counts.add(n);
+    for (const phase of ["dusk", "night", "dawn"]) assert(beesMod.beesAt(hv, 123.4, phase).length === 0, `${hv.id}: bees at ${phase}`);
+  }
+  assert(counts.size >= 2, `every hive has the same number of bees (${[...counts]})`);
+  const hv = hives[0];
+  let seen = 0;
+  let behind = 0;
+  let widest = 0;
+  for (let t = 0; t < 60; t += 0.37) {
+    for (const b of beesMod.beesAt(hv, t, "day", t % 3 / 3)) {
+      assert(Number.isInteger(b.x) && Number.isInteger(b.y), `a bee at ${b.x},${b.y}`);
+      for (const [fx, fy] of beesMod.figureOf(b)) assert(Math.abs(b.x + fx) <= 45 && b.y + fy >= -34 && b.y + fy <= 9, `a bee's figure strayed to ${b.x + fx},${b.y + fy} from the crown`);
+      assert(b.dx === 1 || b.dx === -1, `a bee's way ${b.dx}`);
+    }
+    for (const b of beesMod.beesAt(hv, t, "day")) {
+      assert(b.y <= 1, `a calm bee at ${b.y} px from the cloud's anchor sits on the crown, not above it`);
+      seen++;
+      if (b.back) behind++;
+      widest = Math.max(widest, Math.abs(b.x));
+    }
+  }
+  assert(behind / seen < 0.35, `${behind} of ${seen} bees behind the hive: most should be in front`);
+  assert(widest >= 12, `the calm cloud spans only ${widest} px either side of the crown`);
+  const { BEES } = beesMod;
+  assert(BEES.gold === "#e0b03a" && BEES.dark === "#2b2522" && BEES.wing === "#e8e4d0" && BEES.rx[0] >= 10 && BEES.rx[1] <= 18, `the bee's colours and loops: ${JSON.stringify(BEES)}`);
+  // The figure's pixels: facing right, wings up, a body of three stripes (dark, gold, dark) three tall, a dark head pixel at the right, two wing pixels
+  // above; the next step one wing pixel; facing left the same mirrored.
+  const grid = (bee) => {
+    const px = beesMod.figureOf(bee);
+    const xs = px.map((p) => p[0]);
+    const ys = px.map((p) => p[1]);
+    const x0 = Math.min(...xs);
+    const y0 = Math.min(...ys);
+    const at = (x, y) => (px.find((p) => p[0] === x + x0 && p[1] === y + y0) || [0, 0, "."])[2];
+    return { w: Math.max(...xs) - x0 + 1, h: Math.max(...ys) - y0 + 1, at, n: px.length, x0 };
+  };
+  const D = BEES.dark;
+  const Gd = BEES.gold;
+  const Wg = BEES.wing;
+  const right = grid({ dx: 1, wing: true });
+  assert(right.w === 4 && right.h === 4 && right.n === 12, `the figure is ${right.w} by ${right.h} with ${right.n} pixels, not 4 by 4 (in a 5 by 4 frame) with 12`);
+  for (let y = 1; y <= 3; y++) assert(right.at(0, y) === D && right.at(1, y) === Gd && right.at(2, y) === D, `body row ${y} is not dark, gold, dark: ${right.at(0, y)} ${right.at(1, y)} ${right.at(2, y)}`);
+  assert(right.at(3, 2) === D && right.at(3, 1) === "." && right.at(3, 3) === ".", "no dark head pixel at the right, mid-body");
+  assert(right.at(0, 0) === Wg && right.at(1, 0) === Wg && right.at(2, 0) === "." && right.at(3, 0) === ".", "the wings up are not two pale pixels above the body");
+  const folded = beesMod.figureOf({ dx: 1, wing: false }).filter((p) => p[2] === Wg);
+  assert(folded.length === 1, `folded, ${folded.length} wing pixels, not one`);
+  const left = grid({ dx: -1, wing: true });
+  assert(left.at(0, 2) === D && left.at(1, 1) === D && left.at(2, 1) === Gd && left.at(3, 1) === D && left.at(2, 0) === Wg && left.at(3, 0) === Wg, "facing left is not the figure mirrored");
+  const centreR = beesMod.figureOf({ dx: 1, wing: true });
+  const centreL = beesMod.figureOf({ dx: -1, wing: true });
+  assert(centreR.some((p) => p[0] === 0 && p[1] === 0 && p[2] === Gd) && centreL.some((p) => p[0] === 0 && p[1] === 0 && p[2] === Gd), "the bee's position is not its gold middle, both ways");
+  // The wing's beat on every step, with the sim time summed in sixtieths as the loop sums it (not k / 60, which rounds kindly).
+  let simT = 0;
+  let lastWing = null;
+  let flips = 0;
+  for (let k = 0; k < 3600; k++) {
+    simT += 1 / 60;
+    const wing = beesMod.beesAt(hv, simT, "day")[0].wing;
+    if (lastWing !== null && wing !== lastWing) flips++;
+    lastWing = wing;
+  }
+  assert(flips === 3599, `the wing flickered on ${flips} of 3599 steps, not every one`);
+  assert(JSON.stringify(beesMod.beesAt(hv, 50, "day")) === JSON.stringify(beesMod.beesAt(hv, 50, "day")), "the same moment drew two ways");
+  assert(JSON.stringify(beesMod.beesAt(hv, 50, "day")) !== JSON.stringify(beesMod.beesAt(hv, 50.5, "day")), "the bees did not move in half a second");
+  // A step of the clock moves a bee a few pixels, not across its loop (calm, and while the stir fades).
+  for (const s of [0, 0.5]) {
+    const p = beesMod.beesAt(hv, 80, "day", s);
+    const q = beesMod.beesAt(hv, 80 + 1 / 60, "day", s);
+    p.forEach((b, i) => assert(Math.abs(b.x - q[i].x) <= 4 && Math.abs(b.y - q[i].y) <= 4, `a bee jumped ${b.x},${b.y} to ${q[i].x},${q[i].y} in a step (stir ${s})`));
+  }
+  const calm = hives.find((x) => beesMod.countOf(x) < 6);
+  assert(beesMod.beesAt(calm, 10, "day", 1).length === 6, "a stirred hive has six bees");
+  const spread = (list) => Math.max(...list.map((b) => Math.abs(b.x)));
+  let wider = 0;
+  for (let t = 0; t < 20; t += 0.5) if (spread(beesMod.beesAt(calm, t, "day", 1)) >= spread(beesMod.beesAt(calm, t, "day", 0))) wider++;
+  assert(wider >= 30, `a stirred hive's bees fly wider only ${wider} of 40 times`);
+  // The stir read off the prop: honeyAt is the clock at the take plus the days.
+  const tuningJson = read("data/tuning.json");
+  const day = clock.DAY_LENGTH * tuningJson.work.honey.days;
+  const taken = { id: "p_9", honeyAt: 5000 + day };
+  assert(beesMod.stirOf({ id: "p_9" }, 5000) === 0, "a hive never taken from is stirred");
+  assert(beesMod.stirOf(taken, 5000) === 1 && beesMod.stirOf(taken, 5000 + beesMod.BEES.stirSeconds / 2) === 0.5 && beesMod.stirOf(taken, 5000 + beesMod.BEES.stirSeconds) === 0 && beesMod.stirOf(taken, 5000 + 100) === 0, "the stir does not fade from 1 to 0 over its seconds");
+  return `${[...counts].sort().join(", ")} bees by hive, none from dusk to dawn; six and wider when stirred, for ${beesMod.BEES.stirSeconds} s of the clock`;
+});
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;

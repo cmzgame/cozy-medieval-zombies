@@ -105,7 +105,7 @@ And four herbs for a kitchen garden and the wild, the same recipe but smaller (o
 
 Also: a scarecrow, 1x1, a cross of poles with a stuffed sack body, a turnip or sack head with a painted face, a ragged coat and hat, about 60 px tall; outlined (it is interactable, and it will wobble). Two variants: the farm's, plain, and the witch's, better dressed and with a crow on its arm.
 
-And apples as a fruit tree: tree_apple, about 72 px tall, a round canopy on a short trunk, in three states: bare (early), leafy with blossom, and laden with red apples; outlined all round (it is gathered). A preview of a field of each crop at stage 2 beside a rye field, at 1x and 3x.
+[OVERTAKEN by #422, 2026-10-25: the apple tree is the round tree, green, with apples painted on at load (src/fruit-art.js); do not ask for this.] And apples as a fruit tree: tree_apple, about 72 px tall, a round canopy on a short trunk, in three states: bare (early), leafy with blossom, and laden with red apples; outlined all round (it is gathered). A preview of a field of each crop at stage 2 beside a rye field, at 1x and 3x.
 ```
 
 ### Request 1.5: the first stations
