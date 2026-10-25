@@ -146,6 +146,10 @@ export async function run(game) {
     const afterDoor = wallAt(own);
     row("a paid door taken apart gives half its planks back, rounded down (one of three), and the wall is back", paidOk && planks() === 1 && afterDoor && afterDoor.kind === "wall" && /take the door apart: 1 plank/i.test(msg()), `paid ${paidOk}; ${planks()} plank back; the edge ${afterDoor ? afterDoor.kind : "empty"}; "${msg()}"`);
     const logT = { type: "wall", tx: own[0], ty: own[1], edge: "n", wall: afterDoor };
+    // A stale target (a wall already gone, as a guest's late command may name) is refused with a reason, never a throw (#432).
+    const gone = G.placement.takeApartProblem(me, { type: "wall", tx: own[0], ty: own[1], edge: "w", wall: null });
+    const goneProp = G.placement.takeApartProblem(me, { type: "prop", prop: { id: "p-none", sprite: "chest", tiles: [[0, 0]], tile: [0, 0] } });
+    row("a target that is gone is refused with a reason, not a throw", gone === "There is nothing there." && goneProp === "There is nothing there.", `wall: "${gone}"; prop: "${goneProp}"`);
     const logWhy = G.placement.takeApartProblem(me, logT);
     row("a log wall asks for the tool its build asks for (a hatchet, not the hammer), and gives nothing back from its one log", /hatchet/i.test(logWhy) && G.placement.partsOf(logT).back.length === 0, `"${logWhy}"; back ${JSON.stringify(G.placement.partsOf(logT).back)}`);
     G.rules.set({ freeBuilding: true });

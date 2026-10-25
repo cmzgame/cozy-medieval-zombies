@@ -4,7 +4,7 @@
 // in the same world, the body left; the world rule Village stations made with a world and kept (docs/43 section 5). From the console, on a tab with `?nosave` (the worlds
 // store is in memory there, so Michael's own worlds are never touched):
 //   await __game.check("worlds")
-// It leaves the pane on the Worlds screen with the worlds it made in the page's store.
+// It leaves the pane in a fresh world of its own (#432), with the worlds it made in the page's store.
 
 export async function run(game) {
   const G = game;
@@ -126,6 +126,11 @@ export async function run(game) {
         G.settings.set("villageStations", was);
       }
     }
+    // The checks after this one in the page need a world (#432: build ran with none): it ends in a fresh one of its own, made as the
+    // Sandbox step's last choices make one, so nothing remembered changes.
+    await W.create("Checks' world", a.id);
+    step(2);
+    row("it ends in a fresh world, so the checks after it in the page have one", W.inWorld && !!S.player, `in a world ${W.inWorld}`);
   } finally {
     G.loop.setPaused(false);
   }
