@@ -426,7 +426,7 @@ function send(msg) {
 // What the host will take of a guest's snapshot: the shape the step reads, nothing else, every number finite
 // (a NaN aim or a far aim point would ride into the player's record and the save), the key events only the
 // ones that exist.
-const KEY_EVENTS = ["eTap", "ePressed", "bTap", "bHold", "t", "belt1", "belt2", "belt3", "belt4", "drawCancel"]; // drawCancel: a right tap during a draw (2026-10-15)
+const KEY_EVENTS = ["eTap", "ePressed", "bTap", "bHold", "t", "belt1", "belt2", "belt3", "belt4", "drawCancel", "wave"]; // drawCancel: a right tap during a draw (2026-10-15); wave: G or /wave (docs/43 section 7)
 export function cleanSnap(raw) {
   const s = raw && typeof raw === "object" ? raw : {};
   const num = (v, lim) => (typeof v === "number" && Number.isFinite(v) ? Math.max(-lim, Math.min(lim, v)) : 0);
@@ -707,6 +707,7 @@ const sameAnimKey = (r) => JSON.stringify(r.anim && typeof r.anim === "object" ?
 
 function slim(c) {
   const r = { id: c.id, gx: r3(c.gx), gy: r3(c.gy), facing: c.facing, anim: roundAnim(c.anim), hp: r2(c.hp), dead: c.dead, state: c.state, corpse: c.corpse, line: c.line ? { text: c.line.text, left: Math.ceil(c.line.left * 2) / 2 } : null, blocking: c.blocking, talkingWith: c.talkingWith, burning: !!c.burning, carryingId: c.carrying ? c.carrying.id : null };
+  if (c.cremate) r.cremate = true; // a body set alight by Burn corpse (docs/43 section 7): a guest's menu greys its search; its removal is the roster's
   if (c.searched) {
     r.searched = true;
     r.loot = c.loot; // a body opened: its grid, for a guest with it open

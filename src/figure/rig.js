@@ -25,6 +25,10 @@ export const ANIMS = {
   // The held-out pose (docs/32, item 1): one frame, the player's alone (the noCarry pattern), played while
   // eating or drinking; a book in the main hand takes its arm for the idle and the walk as well.
   present: { fps: 1, loop: true, frames: 1 },
+  // The wave (docs/43 section 7): the player's alone, on G or /wave, looped for `player.waveSeconds`; posed from data/poses.json `wave`.
+  wave: { fps: 4, loop: true, frames: 2 },
+  // The cowering (docs/43 section 7): a villager's alone (an immune one with the dead near), arms up; posed from data/poses.json `cower`.
+  cower: { fps: 8, loop: true, frames: 2 },
 };
 
 // ---- the attack keyframes, as data (docs/14) ----
@@ -119,6 +123,21 @@ const DEFAULT_POSES = {
       { pitch: 60, offPitch: 55, lean: 1 },
     ],
   },
+  // The wave and the cowering (docs/43 section 7): what data/poses.json holds, so a missing file is not fatal.
+  wave: {
+    fps: 4,
+    frames: [
+      { pitch: 125, out: 3, bend: 40, headD: 0.5 },
+      { pitch: 125, out: 6, bend: 40, headD: 0.5 },
+    ],
+  },
+  cower: {
+    fps: 8,
+    frames: [
+      { pitch: 140, out: -1.5, bend: 55, offPitch: 140, offOut: -1.5, offBend: 55, lean: -1.5, bob: 2, headD: -1 },
+      { pitch: 140, out: -1, bend: 55, offPitch: 140, offOut: -1, offBend: 55, lean: -1.5, bob: 3, headD: -1 },
+    ],
+  },
 };
 let POSES = DEFAULT_POSES;
 
@@ -161,7 +180,14 @@ export function animsFor(spec) {
   // left off, which makes the sheet 27 percent narrower and so five fit across the
   // atlas where three did (docs/19: the atlas is the budget).
   if (spec.noCarry) {
-    const { carry_idle, carry_walk, present, shove, ...rest } = out; // the held-out pose and the shove are the player's alone too (docs/32; docs/41 step 2)
+    const { carry_idle, carry_walk, present, shove, wave, ...rest } = out; // the held-out pose, the shove, and the wave are the player's alone too (docs/32; docs/41 step 2; docs/43 section 7)
+    out = rest;
+  } else if (POSES.wave && POSES.wave.frames && POSES.wave.frames.length) out = { ...out, wave: { ...ANIMS.wave, fps: POSES.wave.fps ?? ANIMS.wave.fps, frames: POSES.wave.frames.length } };
+  // The cowering is a villager's alone (docs/43 section 7): a figure of the player's variant that carries nothing is a villager's.
+  const cw = POSES.cower;
+  if (spec.noCarry && spec.variant !== "zombie" && cw && cw.frames && cw.frames.length) out = { ...out, cower: { ...ANIMS.cower, fps: cw.fps ?? ANIMS.cower.fps, frames: cw.frames.length } };
+  else if (out.cower) {
+    const { cower, ...rest } = out;
     out = rest;
   }
   // The reel is the dead's alone (#385), its speed and length from `reel` in data/poses.json.
@@ -229,6 +255,7 @@ function restPose() {
 // still swings in the attack.
 const HOLD_PITCH = 55;
 const HOLD_OUT = 1.5;
+const OWN_STYLE = new Set(["shove", "reel", "wave", "cower"]); // animations posed from a style of their own name, whatever is held
 
 export function pose(variant, anim, i, holding = { main: false, off: false }, style = null) {
   const p = restPose();
@@ -269,10 +296,13 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
     case "attack":
     case "attack_alt":
     case "shove":
-    case "reel": {
-      // The shove (docs/41, step 2) and the dead's reel (#385) are posed from their own styles, whatever is held.
-      const own = anim === "shove" || anim === "reel" ? anim : null;
-      const f = (POSES[own || style || (zombie ? "zombie" : "one_handed")] || DEFAULT_POSES[own || "one_handed"]).frames[i];
+    case "reel":
+    case "wave":
+    case "cower": {
+      // The shove (docs/41, step 2), the dead's reel (#385), the wave and the cowering (docs/43 section 7) are posed from their own styles, whatever is held.
+      const own = OWN_STYLE.has(anim) ? anim : null;
+      const st = POSES[own || style || (zombie ? "zombie" : "one_handed")] || DEFAULT_POSES[own || "one_handed"];
+      const f = own === "wave" || own === "cower" ? st.frames[i % st.frames.length] : st.frames[i];
       if (f) {
         p.offOwn = f.offPitch != null; // the style moves the off arm itself (the bow's string hand): holding does not override it
         p.armPitch = [f.offPitch ?? 0, f.pitch];
@@ -327,7 +357,7 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
     p.armOut[0] = HOLD_OUT;
     p.bend[0] = 0;
   }
-  const swinging = anim === "attack" || anim === "attack_alt" || anim === "shove" || anim === "reel"; // the shove is both arms out whatever is held (docs/41, step 2); the reel too (#385)
+  const swinging = anim === "attack" || anim === "attack_alt" || OWN_STYLE.has(anim); // the shove is both arms out whatever is held (docs/41, step 2); the reel too (#385); the wave's arm and the cowering's arms (docs/43 section 7)
   if (holding.main && !fixed && !swinging && anim !== "present") {
     // A thing with a pose of its own (`held.pose`, a pose in the data: the book's "present", docs/32 item 1; the bow's
     // "bow_rest", 2026-10-14) holds the arms so in the idle and the walk; anything else is held forward at the hold's pitch.

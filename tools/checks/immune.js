@@ -4,7 +4,8 @@
 // From the console, on a tab with `?nosave`:
 //   await __game.check("immune")
 // It makes two villagers on open ground (one immune), sets one of the dead on them with "Zombies attack villagers" on, and takes them
-// away and puts the rule and the dead back.
+// away and puts the rule and the dead back. Then the cowering (docs/43 section 7): an immune villager with one of the dead pinned two tiles
+// off cowers, arms up, with a "!", for its seconds, runs, stands wary, and walks back to its spot when the dead one is gone; an at-risk one does not.
 
 export async function run(game) {
   const G = game;
@@ -83,6 +84,59 @@ export async function run(game) {
     z.path = [];
     step(60 * 8);
     row("with the world's rule off, the dead leave an at-risk villager alone too", spare.hp === spare.maxHp && !spare.dead, `Spare ${spare.hp.toFixed(0)} of ${spare.maxHp}`);
+
+    // The cowering (docs/43 section 7): an immune villager that sees one of the dead within `cowerRadius` cowers about `cowerSeconds`, arms up, a
+    // "!" over its head, runs about `fleeTiles` away, stands wary, and walks back to its spot once none of the dead is within `cowerClearRadius`.
+    // The states ride in the villager's record (state, anim, line); a guest's replica draws them (the two-tab run reads them there).
+    const VT = G.tuning.villager;
+    const { pokeVillager } = await import("/src/entities/villager.js");
+    // Every other one of the dead off the ground (the redshirt the rows above let die has got up as one): only the pinned one is near.
+    for (const o of S.zombies) if (o !== z && !o.dead && Math.hypot(o.gx - cx, o.gy - cy) < 40) { const keep = { gx: o.gx, gy: o.gy }; if (dead0.has(o)) restore.push(() => Object.assign(o, keep, { path: [] })); o.gx = cx + 90; o.gy = cy + 95; o.path = []; o.target = null; }
+    const timid = createVillager(cx - 4, cy - 2, { id: "vt_cower", name: "Timid", immune: true });
+    S.villagers.push(timid);
+    restore.push(() => takeVillager(timid));
+    const home = [...timid.home];
+    const pinAt = [timid.gx + 2, timid.gy];
+    const pin = () => { z.gx = pinAt[0]; z.gy = pinAt[1]; z.path = []; z.target = null; z.state = "idle"; };
+    pin();
+    const d0 = Math.hypot(timid.gx - z.gx, timid.gy - z.gy);
+    step(1);
+    pin();
+    const sheetHas = !!(G.assets.getSheet(timid.sprite).animations || {}).cower;
+    row("an immune villager who sees one of the dead near cowers, arms up, a ! over its head", d0 <= VT.cowerRadius && timid.state === "cower" && timid.anim.name === "cower" && sheetHas && !!timid.line && timid.line.text === VT.cowerBubble, `${d0.toFixed(1)} tiles (cowerRadius ${VT.cowerRadius}): ${timid.state}, ${timid.anim.name}, the sheet ${sheetHas ? "has" : "lacks"} the pose, bubble "${timid.line ? timid.line.text : ""}"`);
+    const answered = pokeVillager(timid, me);
+    row("a poke while it cowers is not answered", answered === false && timid.state === "cower", `answered ${answered}, ${timid.state}`);
+    let cowered = 1;
+    const seen = ["cower"];
+    for (let i = 0; i < 60 * 6 && timid.state !== "wary"; i++) {
+      step(1);
+      pin();
+      if (timid.state === "cower") cowered++;
+      if (seen[seen.length - 1] !== timid.state) seen.push(timid.state);
+    }
+    row("it cowers about its seconds, then runs", Math.abs(cowered / 60 - VT.cowerSeconds) <= 3 / 60 && seen[1] === "flee", `${(cowered / 60).toFixed(2)} s against ${VT.cowerSeconds}; then ${seen.slice(1).join(", ")}`);
+    const fled = Math.hypot(timid.gx - z.gx, timid.gy - z.gy);
+    row("it runs about fleeTiles from the dead one and stands wary", timid.state === "wary" && fled >= d0 + VT.fleeTiles - 1.5, `${timid.state}, ${d0.toFixed(1)} tiles to ${fled.toFixed(1)} (fleeTiles ${VT.fleeTiles})`);
+    z.gx = cx + 90; // the dead one gone off
+    z.gy = cy + 90;
+    let nearest = Infinity;
+    const after = [];
+    for (let i = 0; i < 60 * 15; i++) {
+      step(1);
+      nearest = Math.min(nearest, Math.hypot(timid.gx - home[0], timid.gy - home[1]));
+      if (after[after.length - 1] !== timid.state) after.push(timid.state);
+      if (nearest < 0.5 && timid.state === "idle") break;
+    }
+    row("with none of the dead near it walks back to its spot", nearest < 1 && !after.includes("cower") && !after.includes("flee"), `${after.join(", ")}; came within ${nearest.toFixed(2)} of its spot`);
+    // An at-risk villager is not one of these: it does not cower (it is the ground for the flight of docs/04, not built).
+    const plain = createVillager(cx - 4, cy + 3, { id: "vt_plain", name: "Plain" });
+    S.villagers.push(plain);
+    restore.push(() => takeVillager(plain));
+    pinAt[0] = plain.gx + 2;
+    pinAt[1] = plain.gy;
+    const plainStates = new Set();
+    for (let i = 0; i < 60 * 2; i++) { pin(); step(1); plainStates.add(plain.state); }
+    row("an at-risk villager does not cower", !plainStates.has("cower") && !plainStates.has("flee") && !plainStates.has("wary"), [...plainStates].join(", "));
   } finally {
     for (const r of restore.reverse()) r();
     G.rules.set(rules0);

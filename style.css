@@ -584,6 +584,7 @@ html, body {
 #hover-card .hc-fine { margin-top: 5px; color: #7c7884; font-size: 11px; font-family: var(--font-small); }
 #hover-card .hc-use { color: var(--gold); font-weight: bold; }
 #hover-card .hc-word { color: #fff; font-weight: bold; }
+#hover-card .hc-warn { color: var(--red); font-weight: bold; } /* a warning: Burn corpse's "Burns the body and everything in it." (docs/43 section 7) */
 
 .inv-item.selected {
   outline: 2px solid var(--gold);

@@ -25,7 +25,8 @@ import { getDef } from "./assets.js";
 import { canPutDown, putDownTarget, canCarry, propRect } from "./placement.js";
 import * as placement from "./placement.js";
 import * as grid from "./grid.js";
-import { autoWalk, eat, drink } from "./entities/player.js";
+import { autoWalk, eat, drink, wave } from "./entities/player.js";
+import * as burn from "./burn.js"; // Burn corpse (docs/43 section 7)
 import { showMessage } from "./ui/prompt.js";
 import { pokeVillager, startTalk, endTalk } from "./entities/villager.js";
 import { lootOf } from "./entities/character.js";
@@ -167,6 +168,7 @@ export function containerAt(player, a) {
   }
   if (a.characterId) {
     const c = allCharacters().find((q) => q.id === a.characterId);
+    if (c && c.cremate) return null; // a body burning away (docs/43 section 7): nothing in it can be reached, and a panel open on it closes
     const bag = c ? lootOf(c) : null;
     return bag ? { bag, corpse: c, tiles: [[Math.round(c.gx), Math.round(c.gy)]] } : null;
   }
@@ -1371,12 +1373,21 @@ export function beltEvents() {
   return ev;
 }
 
+// The wave (docs/43 section 7): G, or /wave typed in the chat (main.js calls `queueWave`), is a key event `wave` in this client's next snapshot.
+// The queue is this client's input, as the key trackers are, never world state.
+let waveQueued = false;
+export function queueWave() {
+  waveQueued = true;
+}
+
 export function keyEvents(dt) {
   const ev = {};
   track(keyE, dt, null, () => { ev.eTap = true; }); // no hold of E: a long press is a tap on its release
   track(keyB, dt, () => { ev.bHold = true; }, () => { ev.bTap = true; });
   if (input.wasPressed("KeyE")) ev.ePressed = true;
   if (input.wasPressed("KeyT")) ev.t = true;
+  if (input.wasPressed("KeyG") || waveQueued) ev.wave = true;
+  waveQueued = false;
   return Object.keys(ev).length ? ev : null;
 }
 
@@ -1388,6 +1399,7 @@ export function updateInteract(player, dt, keys) {
   // The belt (docs/11; the belt as utility slots, Michael 2026-10-10 late): a consumable on the slot is used; anything
   // else swaps with its hand. Moved from main.js into the world's step (item 4), so a guest's press reaches its body.
   for (let i = 0; i < 4; i++) if (keys[`belt${i + 1}`]) beltPress(player, i);
+  if (keys.wave && !wave(player) && player.carrying) showMessage("Your arms are full."); // the wave (docs/43 section 7): played for its seconds, a field of the light record
   if (player.carrying) {
     // Only E, and only to put it down.
     if (keys.ePressed) {
@@ -1829,6 +1841,7 @@ export function clickCharacterAt(sx, sy, player) {
 // moment and rolls its pockets; after that it just opens. The grid is the body's.
 function searchBodyAction(c) {
   const tiles = [[Math.round(c.gx), Math.round(c.gy)]];
+  if (c.cremate) return act({ kind: "container", simple: false, label: `${c.searched ? "Open" : "Search"} body (it is burning)`, tiles, mx: c.gx, my: c.gy, enabled: false, perform: () => false }); // burning away (docs/43 section 7)
   return act({
     kind: "container",
     simple: true,
@@ -1838,6 +1851,7 @@ function searchBodyAction(c) {
     my: c.gy,
     duration: c.searched ? 0 : SEARCH_TIME,
     perform() {
+      if (c.cremate) return false; // set alight while the bar ran
       const bag = lootOf(c);
       c.searched = true;
       emit("containerOpened", { bag, tiles, name: "body", corpse: c, character: c });
@@ -1849,9 +1863,32 @@ function searchBodyAction(c) {
 // What a right-click on a character offers, by kind. Everyone, the player
 // included, can be set on fire and put out: a visual test with no effect
 // (fire.js, docs/05 "Burning"), from anywhere on screen.
+// Burn corpse (docs/43 section 7): on every body of the dead, greyed with what is lacking (a tinderbox and a log), or while it already burns;
+// a timed action that runs the `burncorpse` verb by the body's id, so a guest's choice of the label is the host's doing. Its card warns in red.
+function burnCorpseAction(c, player) {
+  const need = burn.burnNeed(player);
+  const burning = !!(c.cremate || c.burning);
+  const label = burning ? "Burn corpse (already burning)" : need ? `Burn corpse (need ${need})` : "Burn corpse";
+  return act({
+    kind: "burncorpse",
+    label,
+    tiles: [[Math.round(c.gx), Math.round(c.gy)]],
+    range: CLICK_REACH,
+    mx: c.gx,
+    my: c.gy,
+    enabled: !burning && !need,
+    duration: tuning.work.burnCorpse.seconds,
+    card: burn.burnCard(player),
+    perform() {
+      return runVerb("burncorpse", player, { character: c.id });
+    },
+  });
+}
+
 function characterActions(c, player) {
   const out = [];
   if ((c.kind === "zombie" || c.kind === "player") && c.dead && c.corpse) out.push(searchBodyAction(c)); // a player's body too (2026-10-14)
+  if (burn.isBurnableBody(c)) out.push(burnCorpseAction(c, player)); // the dead's bodies; a player's is left for its friends (docs/43 section 7)
   if (c.kind === "villager") {
     // Talk (docs/34): a simple action, so E does it when the villager is the nearest thing within reach (the prompt names it, and a door nearer wins);
     // it runs on the host as the talking player, who is told to open the panel (`talkStarted`).

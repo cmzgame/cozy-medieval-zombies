@@ -6,7 +6,7 @@
 //
 // A row: { "use": <item id or tag>, "on": <what>, "verb": "Chop", "message": "...", ... }
 // `on` is an item id or tag (an item in a bag or slot), a prop's sprite id, "fire" (any prop
-// whose fire burns; #14), "bracket" (a wall bracket and what hangs in it, #170), one of "character" | "zombie" | "villager", a floor sprite id, or
+// whose fire burns; #14), "bracket" (a wall bracket and what hangs in it, #170), one of "character" | "zombie" | "villager" | "corpse" (a body of the dead), a floor sprite id, or
 // "tile". The first matching row wins: a row for one fire in particular goes above "fire".
 // A target: { kind: "item", entry } | { kind: "prop", prop } | { kind: "bracket", bracket } | { kind: "character", ch } | { kind: "tile", x, y, floor }.
 
@@ -36,7 +36,7 @@ function targetMatches(what, target) {
     case "item": return itemMatches(what, target.entry);
     case "prop": return what === target.prop.sprite || (what === "fire" && !!(target.prop.fire && target.prop.fire.burns)) || (what === "crop" && !!target.prop.crop); // "fire": any that burns (#14); "crop": any crop (#194)
     case "bracket": return what === "bracket"; // a torch in a wall bracket (#170): the light verb's rows
-    case "character": return what === "character" || what === target.ch.kind;
+    case "character": return what === "character" || what === target.ch.kind || (what === "corpse" && target.ch.kind === "zombie" && !!target.ch.corpse); // "corpse": a body of the dead (Burn corpse, docs/43 section 7)
     case "tile": return what === "tile" || what === target.floor;
     default: return false;
   }
