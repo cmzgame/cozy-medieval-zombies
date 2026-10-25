@@ -121,7 +121,10 @@ export function makeCode() {
 // guest drops them too (map.dropChunk); an older guest kept every chunk it was sent, so far from the spawn its map and registry were the host's and more.
 // 11 (2026-10-25, docs/45 step 2): an animal's record carries a carcass's weapon class and its skinning (`kb`, `sk`); 12 (2026-10-25,
 // docs/45 step 3): and who leads it, the day it was fed, the day its milk or wool was taken, and its home (`ld`, `fd`, `tk`, `hm`).
-export const PROTOCOL = 12;
+// 13 (2026-10-25, #250): the frame's `arrows` is { go, end }, each flight's launch once and its end once (archery.launchRecord, endRecord), only
+// when there are any, and a guest steps the flights itself; the `flares` list is gone (a guest makes a fireball's flare where it lands). An older
+// guest read `arrows` as the positions in flight every frame.
+export const PROTOCOL = 13;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -252,10 +255,38 @@ const lastHeavy = new Map(); // player id -> the heavy part's text last sent
 const lastLight = new Map(); // player id -> the light record's text last sent
 const lastExtras = { rules: "", carriers: "", queues: "", animalHomes: "" }; // sent when they change, not every frame
 
+// The flights (#250): each one's launch goes once, in the first frame after it is loosed, and its end once, in the first frame after it
+// comes down (archery.launchRecord, endRecord); a guest steps it between (archery.stepReplica). Seen every step, so a flight that is loosed
+// and comes down between two frames is still sent; its birth is the host's clock's, so a flight sent late is still drawn on time.
+const flightsSeen = new Map(); // flight id -> { a, born }: in flight, its launch not yet sent
+const flightsSent = new Map(); // flight id -> { a, born }: its launch sent, its end owed
+let resendFlights = false; // a guest joined: every flight in the air goes again (the others know it by id and keep their own)
+function seeFlights() {
+  const now = loop.simTime();
+  // Every flight loosed in the step, even one already down (its launch and its end go in the same frame), and any in the air not yet sent
+  // (a guest joined while it flew).
+  for (const a of [...archery.takeLaunched(), ...archery.arrowsInFlight()]) if (a.id != null && !flightsSent.has(a.id) && !flightsSeen.has(a.id) && (!a.done || a.landAt)) flightsSeen.set(a.id, { a, born: now - a.t });
+}
+function takeFlights(h) {
+  const go = [];
+  const end = [];
+  const flying = new Set(archery.arrowsInFlight());
+  if (resendFlights) for (const f of flightsSent.values()) if (!f.a.done) go.push(archery.launchRecord(f.a, h - f.born));
+  resendFlights = false;
+  for (const [id, f] of flightsSeen) { go.push(archery.launchRecord(f.a, h - f.born)); flightsSent.set(id, f); }
+  flightsSeen.clear();
+  for (const [id, f] of flightsSent) {
+    if (f.a.done) end.push(archery.endRecord(f.a));
+    if (f.a.done || !flying.has(f.a)) flightsSent.delete(id); // down, or gone with no landing (a world put back): a guest's own ends at its fixed end
+  }
+  return go.length || end.length ? { ...(go.length ? { go } : {}), ...(end.length ? { end } : {}) } : null;
+}
+
 // What the host remembers of what it sent, forgotten: the next frame carries every record, roster, and extra again.
 // Called when a guest joins (the welcome is that guest's baseline, and a record that changed and changed back
 // between the last frame and the welcome would otherwise never be corrected for it) and with nobody to tell.
 function forgetSent() {
+  resendFlights = true;
   lastSent.clear();
   lastAnimal.clear();
   lastHeavy.clear();
@@ -427,6 +458,24 @@ export function status() {
 
 export function setTestSnapshot(s) {
   testSnapshot = s;
+}
+
+// For the headless checks (tools/check.js, #250's review): this world as a host with one guest that never speaks, each message the host sends
+// handed to `capture` in place of a wire. Returns { joined (what a join does to what was sent), done (alone again) }.
+export function testHost(capture) {
+  const was = { role, transport };
+  role = "host";
+  transport = { kind: "test", ready: true, send: capture, close() {} };
+  guests.set("test-guest", { playerId: null, hash: null, queue: [], last: null, ack: 0, joinedAt: tick });
+  return {
+    joined: forgetSent,
+    done() {
+      guests.delete("test-guest");
+      role = was.role;
+      transport = was.transport;
+      forgetSent();
+    },
+  };
 }
 
 function send(msg) {
@@ -833,8 +882,11 @@ export function hostAfterStep() {
     interact.takePokes();
     floaters.takeForFrame(); // and the floating numbers: nobody to show them to (the host draws its own from its log)
     if (lastSent.size || lastHeavy.size) forgetSent(); // the next guest's welcome is its baseline, and every roster goes out again
+    archery.takeLaunched();
+    if (flightsSeen.size || flightsSent.size) { flightsSeen.clear(); flightsSent.clear(); } // and the flights: a joiner gets what is in the air from the frame after its welcome
     return;
   }
+  seeFlights(); // every step, so a flight loosed and down between two frames still goes
   frameCount += 1 / Math.max(1, world.world.timeScale || 1);
   if (frameCount < FRAME_EVERY - 1e-9) return; // not this step: the chunks touched and the pokes keep until the frame
   frameCount = Math.min(frameCount - FRAME_EVERY, FRAME_EVERY); // the remainder carries, never more than a frame's worth
@@ -850,6 +902,7 @@ export function hostAfterStep() {
   evictedSent += evicted.length;
   const chartChanged = chart.takeChanged();
   const floated = floaters.takeForFrame(); // the hits, heals, and gathers since the last frame (#294)
+  const flights = takeFlights(loop.simTime()); // the arrows, thrown things, and spells loosed and come down since the last frame (#250)
   // A character no longer in any list is forgotten: its id leaves `known` and what was last sent of it. A far chunk put
   // to sleep takes its dead out of the world and wakes them again later with the same id and the same record; remembered,
   // the record looked unchanged and was never sent, the roster named an id the guest had dropped, and the zombie stood
@@ -948,8 +1001,7 @@ export function hostAfterStep() {
     carriers: whenChanged("carriers", light.carriers().filter((c) => c.owner)),
     rules: whenChanged("rules", { ...rules.rules }), // the world's rules are the host's (docs/31/07, question 13)
     sync: hashThis || undefined, // this frame both sides hash (the sync check)
-    arrows: archery.arrowsInFlight().filter((a) => !a.done).map((a) => ({ gx: a.gx, gy: a.gy, z: a.z, frame: a.frame, projectile: a.projectile })),
-    flares: archery.flaresNow().map((f) => ({ gx: f.gx, gy: f.gy, t: f.t })), // where a fireball came down, for the light (archery.projectileLights)
+    ...(flights ? { arrows: flights } : {}), // { go, end }: the flights loosed and come down since the last frame, once each (#250), which a guest steps between; no flares travel (a guest makes a fireball's where its drawn flight ends)
   };
   send(game.toSafe(frame));
   if (hashThis) {
@@ -1181,15 +1233,23 @@ function aimAt(c, gx, gy) {
 
 function smoothStep() {
   const S = game.state;
-  netsmooth.step([...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals].filter((c) => c !== S.player), world.world.timeScale || 1);
+  const scale = world.world.timeScale || 1;
+  netsmooth.step([...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals].filter((c) => c !== S.player), scale);
+  archery.stepReplica(netsmooth.drawClock(scale)); // what flies, stepped from its launch on the bodies' clock (#250)
+  // A fireball's or a fire arrow's light, and a flare's, moved with it every step (the frame's own setting of the burners is every third).
+  const glows = archery.projectileLights();
+  if (glows.length || glowed) {
+    light.setBurners([...burning.lights([...S.players, ...S.zombies, ...S.villagers, ...S.corpses]), ...glows]); // moving lights, read where they are asked for (light.js): nothing to re-bake
+  }
+  glowed = glows.length > 0;
 }
+let glowed = false; // a flight's light was set last step: set once more when the last goes, so it does not linger
 
 function applyFrame(f) {
   const S = game.state;
   if (S.player) predictedPos = [S.player.gx, S.player.gy];
   if (f.rules) rules.set(f.rules); // sent when they change
-  archery.setReplicaArrows(f.arrows || []);
-  archery.setReplicaFlares(f.flares || []);
+  archery.applyReplicaArrows(f.arrows || null, f.simTime); // the flights loosed and come down since the last frame (#250)
   clock.setElapsed(f.clock);
   loop.setSimTime(f.simTime);
   frameHostTime = f.simTime;

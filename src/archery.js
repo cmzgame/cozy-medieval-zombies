@@ -76,9 +76,17 @@ export function peakHeight(s, p = tunables) {
 // ---- the arrows in flight ----
 
 const flying = [];
+let nextFlightId = 1; // each flight's id, which a guest knows it by (net.js sends its launch once, #250); not in the world's hash, nothing in the sim reads it
 
 export function arrowsInFlight() {
-  return replica || flying;
+  return replica ? replica.shown : flying;
+}
+
+// The flights loosed since the last take, down or not (net.js sends each one's launch, and its end with it if it came down in the step it was
+// loosed: a fireball cast point-blank bursts in its cast step, #250's review). Bounded, for a world nobody takes it from.
+const launched = [];
+export function takeLaunched() {
+  return launched.splice(0);
 }
 
 // Where a release would land, without flying anything: for the marker and the
@@ -101,6 +109,7 @@ export function shoot(from, dir, distance, c = 1, o = {}) {
   const T = Math.max(1 / 120, p.landing / speed);
   const a = {
     kind: "arrow",
+    id: nextFlightId++,
     projectile, // "arrow" or "spear": which picture, and which item lands or lodges
     item, // a thrown item's own entry, which is what lands (an arrow is made fresh)
     breakChance, // of a thrown item: rolled as it comes down; a broken one is gone
@@ -139,6 +148,8 @@ export function shoot(from, dir, distance, c = 1, o = {}) {
     a.stopWhy = stop.why;
   }
   flying.push(a);
+  launched.push(a);
+  if (launched.length > 256) launched.shift();
   return a;
 }
 
@@ -264,6 +275,7 @@ function land(a, met = null) {
   const d = met ? Math.min(a.s, a.speed * a.t) : a.stopD != null ? a.stopD : a.s;
   const gx = a.x0 + a.dx * d;
   const gy = a.y0 + a.dy * d;
+  a.landAt = [gx, gy]; // where it came down, which a guest's flight ends at (net.js, endRecord)
   const ground = angleIndex([(a.dx - a.dy) * iso.HW, (a.dx + a.dy) * iso.HH]);
   // A shot that came down on its own (not stopped short) hurts the body at the
   // landing point, if one is there (docs/20: hits are checked at landing only).
@@ -376,10 +388,125 @@ export function getMarker(player) {
   return player ? player.marker || null : null;
 }
 
-// On a guest, what flies is what the host says flies (net.js): a list drawn in place of the world's.
-let replica = null;
-export function setReplicaArrows(list) {
-  replica = list;
+// ---- a guest's flights (#250) ----
+//
+// A flight is fixed at its release, so a guest needs only that, once. The host sends each flight's launch in the first frame after it is
+// loosed (`launchRecord`, net.js) and its end in the first frame after it comes down (`endRecord`: its age then and where), and the guest
+// steps it here with the host's own `pose`, every step, on the clock the remote bodies are drawn at (`netsmooth.drawClock`: a few steps
+// behind the newest frame), so it moves every step instead of every third and meets the body it hits where both are drawn. The host stays
+// the authority: what is hit, what lands, and what lodges come in the records and the chunks. A flight here ends when its drawn age reaches
+// the host's end, or its own fixed end, which for anything that does not burst on contact is the same; one that drifted from the host's
+// landing point is eased onto it over what is left of its flight. A fireball's flare is made where its drawn flight ends, as the host makes it
+// where it lands. Nothing here is the world's: a guest's store, or a scratch one a check or a tool makes (`flightStore`).
+
+let replica = null; // a guest's flights (net.js), or null on the authority
+
+const rounded = (v, k) => Math.round(v * k) / k;
+const finite = (v) => typeof v === "number" && Number.isFinite(v);
+
+// The age at which a flight comes down unless it meets something first (`update`'s end).
+function endAge(a) {
+  return a.stopD != null && a.s > 0 ? (a.T * a.stopD) / a.s : a.T;
+}
+
+// Where a flight's ground point is at age `t` (`pose`'s, without the picture).
+function groundAt(a, t) {
+  const u = clamp01(t / a.T);
+  return [a.x0 + a.dx * a.s * u, a.y0 + a.dy * a.s * u];
+}
+
+// What a guest steps a flight from, sent once: everything `pose` reads, its fixed end, and its age `age` at the frame (net.js passes the
+// host's clock's age, so a flight that came down between two frames is still sent with the right birth).
+export function launchRecord(a, age = a.t) {
+  return { id: a.id, p: a.projectile, x: rounded(a.x0, 1e4), y: rounded(a.y0, 1e4), dx: rounded(a.dx, 1e6), dy: rounded(a.dy, 1e6), s: rounded(a.s, 1e4), T: rounded(a.T, 1e6), H: rounded(a.H, 100), z0: a.z0, v: a.speed, ...(a.flat ? { f: 1 } : {}), e: rounded(endAge(a), 1e6), t: rounded(age, 1e6) };
+}
+
+// A flight that came down, sent once: its id, its age then, and where it came down.
+export function endRecord(a) {
+  const at = a.landAt || [a.gx, a.gy];
+  return [a.id, rounded(a.t, 1e6), rounded(at[0], 1e4), rounded(at[1], 1e4)];
+}
+
+export function flightStore() {
+  return { byId: new Map(), shown: [], flares: [], clock: null, stats: { go: 0, again: 0, end: 0 } };
+}
+
+// A frame's flights (`news`: { go: [launch records], end: [end records] }) at the frame's host time `h`.
+export function applyFlights(store, news, h) {
+  if (!news || !finite(h)) return;
+  for (const L of Array.isArray(news.go) ? news.go : []) {
+    if (!L || !finite(L.id)) continue;
+    if (store.byId.has(L.id)) { store.stats.again++; continue; } // sent again for a joiner (net.js): known already
+    if (![L.x, L.y, L.dx, L.dy, L.s, L.T, L.e, L.t].every(finite)) continue;
+    store.stats.go++;
+    const a = { kind: "arrow", id: L.id, projectile: typeof L.p === "string" ? L.p : "arrow", x0: L.x, y0: L.y, dx: L.dx, dy: L.dy, s: L.s, T: Math.max(1e-6, L.T), H: finite(L.H) ? L.H : 0, z0: finite(L.z0) ? L.z0 : tunables.z0, speed: finite(L.v) ? L.v : tunables.speed, flat: !!L.f, end: L.e, born: h - L.t, hostEnd: null, landAt: null, fix: null, t: 0, gx: L.x, gy: L.y, z: 0, frame: 0, done: false };
+    pose(a);
+    store.byId.set(a.id, a);
+  }
+  for (const E of Array.isArray(news.end) ? news.end : []) {
+    const a = Array.isArray(E) ? store.byId.get(E[0]) : null;
+    if (!a || !finite(E[1])) continue;
+    store.stats.end++;
+    a.hostEnd = E[1];
+    if (!finite(E[2]) || !finite(E[3])) continue;
+    a.landAt = [E[2], E[3]];
+    const stop = Math.min(a.end, a.hostEnd);
+    const mine = groundAt(a, stop);
+    const ex = a.landAt[0] - mine[0];
+    const ey = a.landAt[1] - mine[1];
+    if (Math.hypot(ex, ey) > 0.01) a.fix = { from: Math.max(0, Math.min(stop, a.t)), to: stop, ex, ey }; // drifted: eased onto the host's point
+  }
+}
+
+// Every guest step: each flight where it is at host time `R` (the draw clock), those not yet loosed in that time held back, those down gone.
+export function stepFlights(store, R) {
+  store.shown.length = 0;
+  if (!finite(R)) return;
+  // Never backward: the draw clock pulled back toward late frames would step a flight back along its path. A clock gone back by seconds is a new world.
+  if (finite(store.clock) && R < store.clock && R > store.clock - 2) R = store.clock;
+  store.clock = R;
+  for (const a of store.byId.values()) {
+    const age = R - a.born;
+    if (a.heardAge === undefined) a.heardAge = age; // its age in the drawn time on the first step it was known: above 0, its launch came late (check("arrows"))
+    const stop = a.hostEnd != null ? Math.min(a.end, a.hostEnd) : a.end;
+    const down = age >= stop - 1e-6; // the records' rounding: a flight at the host's very end is down
+    if (down || age < -2) { // down in the drawn time (or the clock went back: a new world)
+      if (down && a.projectile === "fireball") {
+        const at = a.landAt || groundAt(a, stop);
+        store.flares.push({ gx: at[0], gy: at[1], t: age - stop, born: a.born + stop });
+      }
+      a.done = true;
+      store.byId.delete(a.id);
+      continue;
+    }
+    if (age < 0) continue; // loosed on the host, not yet in the drawn time
+    a.t = age;
+    pose(a);
+    if (a.fix) {
+      const k = a.fix.to > a.fix.from ? clamp01((age - a.fix.from) / (a.fix.to - a.fix.from)) : 1;
+      a.gx += a.fix.ex * k;
+      a.gy += a.fix.ey * k;
+    }
+    store.shown.push(a);
+  }
+  for (let i = store.flares.length - 1; i >= 0; i--) {
+    const f = store.flares[i];
+    f.t = R - f.born;
+    if (f.t >= tunables.flareSeconds || f.t < -2) store.flares.splice(i, 1);
+  }
+}
+
+// On a guest (net.js): a frame's flights, and each step the flights at the draw clock.
+export function applyReplicaArrows(news, h) {
+  if (!replica) replica = flightStore();
+  applyFlights(replica, news, h);
+}
+export function stepReplica(R) {
+  if (replica) stepFlights(replica, R);
+}
+// What reached this guest: launches, launches sent again (a join), ends; and what is flying and drawn now (check("arrows")).
+export function replicaStats() {
+  return replica ? { ...replica.stats, known: replica.byId.size, shown: replica.shown.length, clock: replica.clock } : null;
 }
 
 // A spell in flight lights the ground under it (docs/24): a moving light, as a burning body is one. From the arrows in
@@ -399,14 +526,10 @@ export function projectileLights() {
   return out;
 }
 
-// The flares in the world: { gx, gy, t }, aged by `update`. On a guest, the host's (net.js).
+// The flares in the world: { gx, gy, t }, aged by `update`. On a guest, made where a fireball's drawn flight ends (`stepFlights`).
 const flares = [];
-let replicaFlares = null;
 export function flaresNow() {
-  return replicaFlares || flares;
-}
-export function setReplicaFlares(list) {
-  replicaFlares = list;
+  return replica ? replica.flares : flares;
 }
 
 // The fireball's picture (data/art/items/fireball.png, the design agent's: 64 px cells, a row per direction with row k
@@ -589,8 +712,8 @@ export function generateSpear() {
 export function reset() {
   flying.length = 0;
   flares.length = 0;
+  launched.length = 0;
   replica = null;
-  replicaFlares = null;
 }
 
 export function setAimOverride(player, p) {

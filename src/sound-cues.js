@@ -289,8 +289,8 @@ function struckWalls() {
   strikes = [];
 }
 
-// ---- an arrow landing: an arrow or a fire arrow in flight last frame and gone now, heard at its last place. The frame
-// sends arrows with no id (net.js), so each is matched to the nearest of its kind still flying.
+// ---- an arrow landing: an arrow or a fire arrow in flight last frame and gone now, heard at its last place. Each is matched
+// to the nearest of its kind still flying (a guest's flights leave its list when their drawn flight ends, archery.stepFlights).
 function inFlight() {
   return archery.arrowsInFlight().filter((a) => !a.done && LANDS.has(a.projectile)).map((a) => ({ gx: a.gx, gy: a.gy, projectile: a.projectile }));
 }
