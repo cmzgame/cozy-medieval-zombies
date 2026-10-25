@@ -2,7 +2,9 @@
 //   await __game.check("highlight")
 // What a right-click would act on first is found under the cursor and nothing else: a tree, a chest, an item lying on the ground, a villager, and one of the world's crops are
 // each found; bare grass, a decoration prop with no action, and a living zombie (the cursor's hand and the swing outline are its) are not; a target out of sight is not; the
-// setting off, a mode, a cursor off the world, and something carried each make none; the answer is held while the mouse stands still. On a guest it reads the replica: the same
+// setting off, a mode, a cursor off the world, and something carried each make none; the answer is held while the mouse stands still. A mushroom a tile behind a tree, under
+// its crown, is found at a covered point by the click (and swayed), Object Highlight, and the menu's first, while a crown point with nothing behind it and the trunk are still the
+// tree (interact.interactableAt's one rule, bugs.md 2026-10-25). On a guest it reads the replica: the same
 // tree, chest, crop, and bare grass. Everything the check makes is put back, and the setting restored, in the finally.
 
 export async function run(game) {
@@ -130,6 +132,58 @@ export async function run(game) {
       rhl.set(hl.targetAt(s.x, s.y - 12, me, null));
       row("the drawing knows its target: isProp, isItem, isCharacter", rhl.isProp(tree.id) && !rhl.isProp(chest.id) && !rhl.isItem("x") && !rhl.isCharacter("x"), "the tree and nothing else");
       rhl.set(null);
+      // A gatherable behind a tree's crown (bugs.md, 2026-10-25): a mushroom a tile behind the tree, straight up the screen into its crown. The
+      // covered points are the mushroom's own solid pixels where the frontmost hit is the tree's crown (interact.hitsAt, frontmost first).
+      // Canvas points move with the camera, and a render can move it (an await lets the page draw, and loop.advance renders), so one step is
+      // taken first (the sim clock past 0 too: a stamp at sim 0 reads as none, `!prop.pokedAt`), then every point is read fresh and every row
+      // that reads one runs before the next render; the click's lean, which steps the loop, is last.
+      const hid = G.map.createProp({ sprite: "mushroom_0", tile: [x, y - 1] });
+      G.map.placeProp(hid, x, y - 1);
+      made.push(hid);
+      G.teleport(x - 0.9, y + 0.1);
+      G.loop.advance(1 / 60);
+      const tf = G.iso.toScreen(x + 1, y); // the tree's foot, read now
+      const covered = [];
+      const hr = G.placement.propRect(hid, x, y - 1);
+      for (let py = 0; py < hr.h; py++) for (let px = 0; px < hr.w; px++) {
+        const sx = hr.x + px + 0.5;
+        const sy = hr.y + py + 0.5;
+        const hits = G.interact.hitsAt(sx, sy, () => true);
+        const behind = hits.find((h) => !h.crown); // the first thing behind the crown that is not a crown: the one that may win
+        if (hits.length >= 2 && hits[0].prop === tree && hits[0].crown && behind && behind.prop === hid) covered.push([sx, sy]);
+      }
+      row("a mushroom a tile behind a tree has points its crown covers (the frontmost pixel there is the crown, not the trunk)", covered.length > 0, `${covered.length} covered points of the mushroom's`);
+      // A crown pixel with nothing small behind it is still the tree; so is its trunk.
+      let bare = null;
+      for (let up = 40; up <= 130 && !bare; up += 2) for (const side of [0, -16, 16, -30, 30]) {
+        const hits = G.interact.hitsAt(tf.x + side, tf.y - up, () => true);
+        if (hits.length === 1 && hits[0].prop === tree && hits[0].crown) { bare = [tf.x + side, tf.y - up]; break; }
+      }
+      const tBare = bare ? hl.targetAt(bare[0], bare[1], me, null) : null;
+      const firstBare = bare ? G.interact.menuActions(bare[0], bare[1], me, G.interact.interactableAt(bare[0], bare[1])).find((a) => a.target && a.target.kind === "prop") : null;
+      row("a crown pixel with nothing behind it still names the tree: the click, Object Highlight, and the menu's first", !!bare && G.interact.interactableAt(bare[0], bare[1]) === tree && !!tBare && tBare.id === tree.id && !!firstBare && firstBare.target.id === tree.id, bare ? `at ${Math.round(bare[0] - tf.x)},${Math.round(bare[1] - tf.y)}: ${JSON.stringify(tBare)}, menu first ${firstBare && firstBare.label}` : "no bare crown point found");
+      const foot = G.interact.hitsAt(tf.x, tf.y - 8, () => true);
+      row("the trunk is the trunk (not the crown) and names the tree", foot.length > 0 && foot[0].prop === tree && foot[0].crown === false && G.interact.interactableAt(tf.x, tf.y - 8) === tree, JSON.stringify(foot.map((h) => [h.prop.sprite, h.crown])));
+      if (covered.length) {
+        const [cx, cy] = covered[Math.floor(covered.length / 2)];
+        const where = `at ${Math.round(cx - tf.x)},${Math.round(cy - tf.y)} from the tree's foot`;
+        const byClick = G.interact.interactableAt(cx, cy);
+        const byAny = G.interact.interactableAt(cx, cy, () => true);
+        row("there the pixel hit names the mushroom, not the crown (the click's and Use mode's test alike)", byClick === hid && byAny === hid, `${where}: ${byClick && byClick.sprite}, ${byAny && byAny.sprite}`);
+        const tHid = hl.targetAt(cx, cy, me, null);
+        row("there Object Highlight's target is the mushroom", !!tHid && tHid.kind === "prop" && tHid.id === hid.id, JSON.stringify(tHid));
+        const menuThere = G.interact.menuActions(cx, cy, me, G.interact.interactableAt(cx, cy));
+        const firstProp = menuThere.find((a) => a.target && a.target.kind === "prop");
+        row("there the right-click menu's first target is the mushroom (its Forage), addressed by its id for a guest", !!firstProp && firstProp.target.id === hid.id, menuThere.map((a) => `${a.label} -> ${a.target ? a.target.id || a.target.kind : "none"}`).join(", "));
+        hid.pokedAt = undefined;
+        const sim0 = G.loop.simTime() * 1000;
+        const poked = G.interact.pokeAt(cx, cy, me);
+        const stampedAt = hid.pokedAt;
+        let lean = 0;
+        for (let i = 0; i < 12; i++) { G.loop.advance(1 / 60); lean = Math.max(lean, Math.abs(rprops.swayOf(hid, 22))); }
+        row("a click there sways the mushroom (its stamp on the sim clock, the renderer leaning it), and the tree is not stamped", poked === hid && stampedAt > 0 && Math.abs(stampedAt - sim0) < 100 && lean > 0 && !Number.isFinite(tree.pokedAt), `poked ${poked && poked.sprite}, pokedAt ${stampedAt} at sim ${Math.round(sim0)}, max lean ${lean} px, tree pokedAt ${tree.pokedAt}`);
+        hid.pokedAt = undefined;
+      }
     } else {
       // A guest: the replica's own tree, chest, crop, and bare grass.
       const near = (pred) => [...G.map.allProps()].filter(pred).sort((a, b) => Math.hypot(a.tile[0] - me.gx, a.tile[1] - me.gy) - Math.hypot(b.tile[0] - me.gx, b.tile[1] - me.gy))[0];

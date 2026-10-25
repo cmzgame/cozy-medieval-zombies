@@ -834,15 +834,10 @@ function handleMouse() {
 }
 
 function openActionsMenu(m) {
-  // A mushroom or a rock wiggles; the menu still opens if it has actions
-  // other than walking there (none yet; question 27).
+  // A mushroom or a rock wiggles; the thing clicked by its pixels offers its own actions first (a tree: Chop down; a mushroom under a
+  // tree's crown: Forage, interact.interactableAt's one rule), once each.
   const poked = interact.pokeAt(m.x, m.y, client.me);
-  let actions = interact.actionsAt(m.x, m.y, client.me);
-  if (poked) {
-    // The thing clicked offers its own actions (a tree: Chop down), once each.
-    actions = actions.filter((a) => a.kind !== "walk" && !/^Walk/.test(a.label || ""));
-    for (const a of interact.actionsForProp(poked, client.me)) if (!actions.some((b) => b.label === a.label)) actions.push(a);
-  }
+  const actions = interact.menuActions(m.x, m.y, client.me, poked);
   // A guest's choice goes to the host by its address and label (net.js, docs/31/05 item 10); the host walks
   // the guest's player there and performs it. Building stays this client's own until it is a command too.
   const guest = net.isGuest();

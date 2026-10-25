@@ -24,6 +24,7 @@ export async function run(game, opts = {}) {
   const info = await import("/src/item-info.js");
   const panel = await import("/src/ui/inventory-panel.js");
   const art = await import("/src/gather-art.js");
+  const reach = await import("/src/reach.js");
   const RES = G.tuning.resources;
   const HERBS = ["sage", "nettle", "feverfew", "yarrow", "woad", "madder", "weld", "mana_herb", "nightshade", "wolfsbane", "grave_moss"];
   const ITEMS = [...HERBS, "mushroom", "clay", "salt"];
@@ -167,9 +168,9 @@ export async function run(game, opts = {}) {
 
     // ---- the sway: a click within reach and a body walking through (the gatherables law) ----
     {
-      // A click finds the frontmost thing under the cursor, and a tree's crown or a rock standing in front (a tile nearer the viewer) wins
-      // over a small thing behind it, as it does for a mushroom under a tree today (the menu and E find a node by its tile, crown or not).
-      // So the click is tried on the nodes with nothing tall in front first, then the rest, until one is found by its pixels.
+      // A click finds the frontmost thing under the cursor, and a rock or a tree's trunk standing in front (a tile nearer the viewer) wins over
+      // a small thing behind it; a tree's crown does not (interact.interactableAt's rule, bugs.md 2026-10-25: the row after this one clicks a
+      // node under a crown). So this row tries the nodes with nothing tall in front first, then the rest, until one is found by its pixels.
       const clear = (p) => {
         for (let dy = 0; dy <= 6; dy++) for (let dx = -1; dx <= 6; dx++) {
           if (!dx && !dy) continue;
@@ -228,6 +229,49 @@ export async function run(game, opts = {}) {
       const bankClick = clickAny(nodesOf(kinds.clay));
       const said = (c) => (c.ok ? `${c.p.sprite} at ${c.p.tile} swayed${c.covered.length ? ` after ${c.covered.length} behind something tall` : ""}` : `none swayed: ${c.covered.slice(0, 4).join("; ")}`);
       row("a click within reach finds an herb and a clay bank by their pixels and sways each (its stamp on the sim clock)", herbClick.ok && bankClick.ok, `${said(herbClick)}; ${said(bankClick)}`);
+      // A node under a tree's crown, one of the world's own herbs and mushrooms: a solid pixel of it where the frontmost hit is a tree's crown
+      // and the first gatherable behind is the node (interact.hitsAt, frontmost first). The point is found as the camera stands, then the player
+      // is stood two tiles south (within reach) and the same offset in the node's picture is clicked.
+      const isTreeProp = (q) => !!G.assets.getDef(q.sprite).canopy;
+      const underCrown = (p) => {
+        const r = G.placement.propRect(p, p.tile[0], p.tile[1]);
+        if (!r) return null;
+        for (let y = 0; y < r.h; y++) for (let x = 0; x < r.w; x++) {
+          const hits = G.interact.hitsAt(r.x + x + 0.5, r.y + y + 0.5, () => true);
+          if (hits.length < 2 || !hits[0].crown) continue;
+          const behind = hits.find((h) => !h.crown); // the first thing behind the crown that is not a crown (a trunk or a non-interactable prop blocks)
+          if (behind && behind.prop === p) return { x, y, tree: hits[0].prop };
+        }
+        return null;
+      };
+      let coveredClick = null;
+      const skipped = []; // nodes under a crown out of reach from their stand spot
+      for (const p of [...herbNodes, ...nodesOf(kinds.mushrooms)]) {
+        let treeNearer = false;
+        for (let dy = 0; dy <= 6 && !treeNearer; dy++) for (let dx = -1; dx <= 6 && !treeNearer; dx++) {
+          const q = G.map.peekTile(p.tile[0] + dx, p.tile[1] + dy)?.prop;
+          treeNearer = !!q && isTreeProp(q) && q.tile[0] + q.tile[1] > p.tile[0] + p.tile[1];
+        }
+        if (!treeNearer) continue;
+        const u = underCrown(p);
+        if (!u) continue;
+        G.map.ensureAround(p.tile[0], p.tile[1], 2);
+        G.teleport(p.tile[0], p.tile[1] + 2);
+        me.auto = null;
+        G.loop.advance(1 / 60);
+        if (!reach.canReach(me, p.tiles, G.interact.CLICK_REACH)) { skipped.push(`${p.sprite} at ${p.tile}`); continue; } // out of reach from the stand spot (a wall, a fence between): the next node
+        p.pokedAt = undefined;
+        u.tree.pokedAt = undefined; // a saved stamp on the tree would read as this click's
+        const r = G.placement.propRect(p, p.tile[0], p.tile[1]);
+        const sx = r.x + u.x + 0.5;
+        const sy = r.y + u.y + 0.5;
+        const still = G.interact.hitsAt(sx, sy, () => true);
+        const found = G.interact.interactableAt(sx, sy);
+        const poked = G.interact.pokeAt(sx, sy, me);
+        coveredClick = { p, tree: u.tree, ok: !!still[0] && still[0].crown && found === p && poked === p && Number.isFinite(p.pokedAt) && !Number.isFinite(u.tree.pokedAt), detail: `${p.sprite} at ${p.tile} under ${u.tree.sprite} at ${u.tree.tile}: front ${still[0] ? `${still[0].prop.sprite}${still[0].crown ? " (crown)" : ""}` : "nothing"}, found ${found && found.sprite}, pokedAt ${p.pokedAt}` };
+        break;
+      }
+      row("a click on a point of an herb or a mushroom that a tree's crown covers finds the node and sways it, not the tree", !!coveredClick && coveredClick.ok, `${coveredClick ? coveredClick.detail : "no node under a crown, within reach of its stand spot, among the world's herbs and mushrooms"}${skipped.length ? `; out of reach first: ${skipped.slice(0, 3).join(", ")}${skipped.length > 3 ? ` and ${skipped.length - 3} more` : ""}` : ""}`);
       const herb = nodesOf(kinds.yarrow)[0];
       const bank0 = bankClick.p || nodesOf(kinds.clay)[0];
       for (const p of [herb, bank0]) p.pokedAt = undefined;
