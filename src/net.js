@@ -255,9 +255,6 @@ const lastHeavy = new Map(); // player id -> the heavy part's text last sent
 const lastLight = new Map(); // player id -> the light record's text last sent
 const lastExtras = { rules: "", carriers: "", queues: "", animalHomes: "" }; // sent when they change, not every frame
 
-// What the host remembers of what it sent, forgotten: the next frame carries every record, roster, and extra again.
-// Called when a guest joins (the welcome is that guest's baseline, and a record that changed and changed back
-// between the last frame and the welcome would otherwise never be corrected for it) and with nobody to tell.
 // The flights (#250): each one's launch goes once, in the first frame after it is loosed, and its end once, in the first frame after it
 // comes down (archery.launchRecord, endRecord); a guest steps it between (archery.stepReplica). Seen every step, so a flight that is loosed
 // and comes down between two frames is still sent; its birth is the host's clock's, so a flight sent late is still drawn on time.
@@ -283,6 +280,9 @@ function takeFlights(h) {
   return go.length || end.length ? { ...(go.length ? { go } : {}), ...(end.length ? { end } : {}) } : null;
 }
 
+// What the host remembers of what it sent, forgotten: the next frame carries every record, roster, and extra again.
+// Called when a guest joins (the welcome is that guest's baseline, and a record that changed and changed back
+// between the last frame and the welcome would otherwise never be corrected for it) and with nobody to tell.
 function forgetSent() {
   resendFlights = true;
   lastSent.clear();
