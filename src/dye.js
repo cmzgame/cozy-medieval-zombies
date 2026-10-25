@@ -26,6 +26,33 @@ export function colour(id) {
   const c = data.colours[id];
   return c ? { id, name: c.name, hex: norm(c.hex), cost: c.cost || null } : null;
 }
+
+// A plain word for a colour no dye gives (docs/bugs.md: a looted hood's card read "#705848"): by its lightness, saturation, and hue,
+// "brownish" for a dull or dark warm colour (the dead's drab wool), "greyish" for one with little colour, else the hue's family.
+// Read from the colour itself, not the nearest dye: the nearest dye of a slate or a moss is a grey-brown hide.
+export function colourFamily(hex) {
+  const h = norm(hex);
+  if (!h) return "dyed";
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  const d = max - min;
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  if (l < 0.12) return "blackish";
+  if (l > 0.65 && s < 0.5) return "whitish";
+  if (s < 0.15) return "greyish";
+  const hue = d === 0 ? 0 : max === r ? (60 * ((g - b) / d) + 360) % 360 : max === g ? 60 * ((b - r) / d + 2) : 60 * ((r - g) / d + 4);
+  const warm = hue < 50 || hue >= 345;
+  if (warm && (s < 0.35 || l < 0.5)) return "brownish";
+  if (hue < 15 || hue >= 345) return "reddish";
+  if (hue < 45) return "orange";
+  if (hue < 70) return "yellowish";
+  if (hue < 170) return "greenish";
+  if (hue < 260) return "bluish";
+  if (hue < 300 || l < 0.5) return "purplish";
+  return "pinkish";
+}
 let byHex = null;
 // A dye by its hex, or null (a colour no vat gives: an item's own, a wardrobe's).
 export function colourOfHex(hex) {
@@ -66,11 +93,15 @@ export function currentColours(entry) {
 }
 
 // A region's colour in words, for the card and the picker alike: a dye's name when the colour is a dye's hex, an own colour
-// too (the leather belt's own buckle is the Brass dye's hex, so it is "Brass"); "Undyed" for an own colour no vat gives.
+// too (the leather belt's own buckle is the Brass dye's hex, so it is "Brass"); "Undyed" for an own colour no vat gives; and a
+// colour neither (a wardrobe's, on a garment looted from the dead: a hood's #705848) is a plain word, "Brownish" (colourFamily),
+// never its hex.
 export function regionWord(hex, own) {
   const c = colourOfHex(hex);
   if (c) return c.name;
-  return norm(hex) === norm(own) ? "Undyed" : String(hex);
+  if (norm(hex) === norm(own)) return "Undyed";
+  const word = colourFamily(hex);
+  return word[0].toUpperCase() + word.slice(1);
 }
 
 // The words for an entry's colours, for its card: "Woad blue", a scheme's "Black and iron" (and "Black and brass", the

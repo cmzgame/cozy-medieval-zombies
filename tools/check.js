@@ -2048,6 +2048,21 @@ check("milking: a bucket of water in hand and an empty one in the bag milks; the
   }
 });
 
+// A colour no dye gives, on a garment from the dead (docs/bugs.md: a looted hood's card read "#705848"): a plain word, read from the colour;
+// a dye's own hex keeps its name and an item's own colour reads Undyed. Every wardrobe colour reads as a word.
+check("dye words: a wardrobe's colour no vat gives reads a plain word on the card, never its hex", () => {
+  const hood = itemsMod.makeEntry("hood", 1, { colour: "#705848" });
+  const state = itemInfoMod.cardFor(hood).state;
+  assert(/Brownish/.test(state) && !/#/.test(state), `the hood's card: "${state}"`);
+  assert(dyeMod.regionWord("#3e5e90", "#000000") === "Woad blue" && dyeMod.regionWord("#5f8a3a", "#5f8a3a") === "Undyed", "a dye's hex or an own colour lost its word");
+  const hexes = new Set();
+  const walk = (o) => { if (Array.isArray(o)) o.forEach(walk); else if (o && typeof o === "object") for (const [k, v] of Object.entries(o)) { if (k === "colour" && typeof v === "string") hexes.add(v); if (k === "colours" && Array.isArray(v)) v.forEach((x) => typeof x === "string" && hexes.add(x)); walk(v); } };
+  walk(read("data/wardrobes.json"));
+  const bad = [...hexes].filter((h) => /#/.test(dyeMod.regionWord(h, "#000001")));
+  assert(!bad.length, `read as a hex: ${bad.join(", ")}`);
+  return `${state}; ${hexes.size} wardrobe colours, each a word`;
+});
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;
