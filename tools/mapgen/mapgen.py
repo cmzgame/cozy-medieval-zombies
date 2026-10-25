@@ -126,6 +126,33 @@ class MapGen:
     def forage(self, kinds, chance, near, seed):
         self.json["forage"] = {"kinds": kinds, "chance": chance, "near": near, "seed": seed}
 
+    def resource(self, name, sprites, count, rects=None, open=(), floors=None, open_floors=None, near=None, rise=False, solid=True, jitter=None, seed=61):
+        """A natural resource's area and its count (docs/46; src/map.js reads it, src/resources.js keeps it): `sprites` by weight are its
+        nodes; `count` is kept in its area, made up at the load by the comeback's own rule and kept by a debt per take; `rects` (default the
+        bounds) are its area, clipped to the bounds; `open` names the places whose footprint is open to it (the quarry to stone), where
+        `open_floors` count as natural ground too; `floors` default to the map's base floor; `near` is how close a tree must stand (mushrooms);
+        `rise` draws a new one rising out of the ground; `jitter` sets a small thing off its tile's centre."""
+        r = {"sprites": dict(sprites), "count": int(count)}
+        if rects:
+            r["rects"] = [_norm_rect(x) for x in rects]
+        if open:
+            r["open"] = list(open)
+        if floors:
+            r["floors"] = list(floors)
+        if open_floors:
+            r["openFloors"] = list(open_floors)
+        if near:
+            r["near"] = int(near)
+        if rise:
+            r["rise"] = True
+        if not solid:
+            r["solid"] = False
+        if jitter:
+            r["jitter"] = jitter
+        r["seed"] = int(seed)
+        self.json.setdefault("resources", {})[name] = r
+        return r
+
     def zombie(self, x, y):
         self.json["zombies"].append([int(x), int(y)])
 

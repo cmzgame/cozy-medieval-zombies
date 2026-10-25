@@ -20,6 +20,8 @@
 
 - **`check("build")` fails 9 of 11 on `main`** (found reviewing #227, on `main` at `0e765f7`, fresh tab): "the player's own wall with a door removed is still the player's own" and "a new door built over a broken stamped one remembers the wall under it". Not a play bug found; 11 of 11 in my run after other checks in the same tab, so it may depend on what ran first.
 
+- **A prop removed or restaged in an ungrown chunk leaves a solid ghost out of the registry** (found building #447 and reproduced by its review under Node, 2026-10-25, on `primary/447-resources-comeback`; not reachable in play today). `map.removeProp` (`src/map.js` ~787) and `map.restage` reach the tile through `tileAt`, which for an ungrown chunk is the frozen blank tile: the prop leaves the registry, but the authored tile keeps it, so when the chunk grows it stands on its tile again, solid, not minable, and a sync mismatch. Every remover today stands in its own grown ring. Likely fix: reach the tile through `growTile`, as `placeProp` does (a mutator grows its chunk).
+
 - **An infection caught from tainted water opens on Bitten, "The bite broke the skin."** (found syncing the wiki for #435, at `fa2997f`, *needs repro*). `src/moodles.js` (~26): the first stage's words assume a bite, and water gives no bite.
 
 ## Open: surprises for Michael to rule on

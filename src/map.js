@@ -14,7 +14,7 @@ import { douse, getItem, hasItemDef } from "./items.js";
 import { nextId } from "./world.js";
 import { storedLeaf, carriedLeaf } from "./woods.js"; // the wood of a door's or window's leaves (#334)
 import { emit } from "./events.js";
-import { world as W } from "./tuning.js";
+import { world as W, resources as RES } from "./tuning.js";
 
 export const CHUNK = 16;
 // Every prop by its id (docs/31/08, habit 1): anything kept across a step
@@ -59,6 +59,13 @@ let zoneRects = []; // [{ rect: [x, y, w, h], zone }]
 let wildZone = null;
 // Small things placed near trees (docs/02, question 27): mushrooms now.
 let forage = null; // { kinds, chance, near, seed }
+// Natural resources (docs/46): the map's areas per kind (its `resources` block), the scatter's reserved tiles kept from the load (the
+// buildings, the places and their padding, the reserve rects), and the footprints of the places an area opens to its own kind (the quarry
+// to stone, the iron workings to ore). Read by resourceSpotProblem, the one test of where a node may stand, at the load and at a comeback.
+let resourceKindList = []; // [{ name, sprites, count, rects, open, floors, openFloors, near, rise, solid, jitter, seed, days }]
+const resourceBySprite = new Map(); // sprite -> its kind
+let reservedTiles = new Set(); // "x,y"
+const openPlaces = new Map(); // a place's name -> Set of its footprint's "x,y"
 // Called with (tiles, prop) when a floor changes or a prop comes or goes, so
 // the ground can re-bake what it touches (docs/15). The ground registers it;
 // the map does not import the ground.
@@ -521,6 +528,180 @@ function wildTile(x, y) {
   else if (kind) t.prop = createProp({ sprite: kind, tile: [x, y] });
   else t.prop = forageProp(x, y);
   return t;
+}
+
+// ---- natural resources: the areas and where a node may stand (docs/46) ----
+// A kind keeps a count for its area; a taken node's replacement grows at a random spot in that area (src/resources.js). The area is the
+// map's rects, clipped to the valley's bounds: the wild keeps its comeback by new chunks. Where a node may stand is one test, here, made at
+// the load (the extra rocks the counts ask for, on the authored tiles) and at every comeback (on the live tiles, its chunk grown first).
+
+export function resourceKinds() {
+  return resourceKindList;
+}
+
+export function resourceKind(name) {
+  return resourceKindList.find((k) => k.name === name) || null;
+}
+
+// The kind a sprite is a node of, or null (a tree, a house).
+export function resourceKindOf(sprite) {
+  return resourceBySprite.get(sprite) || null;
+}
+
+export function inResourceArea(kind, x, y) {
+  if (!kind || !inBounds(x, y)) return false;
+  for (const [rx, ry, rw, rh] of kind.rects) if (x >= rx && y >= ry && x < rx + rw && y < ry + rh) return true;
+  return false;
+}
+
+// A tile for a pure read that knows the authored map where nothing has grown: the live tile if its chunk is loaded, else the authored one
+// (an ungrown chunk inside the bounds is as the file made it, and a valley chunk is never dropped), else null, the plain base tile.
+function readTile(x, y) {
+  const t = peekTile(x, y);
+  if (t) return t;
+  return (inBounds(x, y) && source && source(x, y)) || null;
+}
+
+function wallReadBetween(x0, y0, x1, y1) {
+  const [ex, ey, edge] = edgeBetween(x0, y0, x1, y1);
+  const t = readTile(ex, ey);
+  return t ? t[edge] : null;
+}
+
+// A tree at a tile as it stands now (a felled one gone), or where one would have stood with Trees off (the scatter's ghostTrees).
+function standingTreeAt(x, y) {
+  if (!inBounds(x, y)) return treeAt(x, y);
+  if (ghostTrees.has(ghostKey(x, y))) return true;
+  const t = readTile(x, y);
+  return !!(t && t.prop && getDef(t.prop.sprite).canopy);
+}
+
+// Whether a fill from (x0, y0), bounded by walls (fences and gates, the authored and a player's, and any other wall) and by water no one
+// walks, stays within `cap` tiles: a fenced yard or a pen, where nothing grows. A fill past the cap, or out past the valley's bounds, is
+// open ground. A see-through wall bounds no room, so the room test alone cannot find a fenced field. A pure read: it grows nothing.
+export function fencedIn(x0, y0, cap = RES.yardCap) {
+  const seen = new Set([ghostKey(x0, y0)]);
+  const stack = [x0, y0];
+  while (stack.length) {
+    const y = stack.pop();
+    const x = stack.pop();
+    for (const [dx, dy] of STEPS4) {
+      const nx = x + dx;
+      const ny = y + dy;
+      const k = ghostKey(nx, ny);
+      if (seen.has(k)) continue;
+      if (wallReadBetween(x, y, nx, ny)) continue;
+      if (!inBounds(nx, ny)) return false;
+      const nt = readTile(nx, ny);
+      if (floorRule(nt ? nt.floor : defaultFloor).walk === false) continue;
+      seen.add(k);
+      if (seen.size > cap) return false;
+      stack.push(nx, ny);
+    }
+  }
+  return true;
+}
+
+// Why a node of `kind` may not stand at (x, y), or null when it may (docs/46 section 2). Natural ground only: inside its area; not on the
+// scatter's reserved tiles unless they are its own place's (the quarry's to stone); on one of its floors (the base grass, and its own
+// place's dirt), so never a road, water, a built floor, or tilled soil; nothing on the tile (a prop, a rug, an item, where a tree would
+// stand with Trees off) and no wall on its edges; for a kind that grows `near` trees, a tree within that many tiles; not inside a room
+// (`live` only: the rooms are the loaded chunks') nor a fenced yard; no body on it. `live` reads the tile as it is, which the caller has
+// grown through a mutator first (a blank tile would test free); without it (the load) the authored tile is read. `not` is a tile it may not
+// take: the one a node was just taken from, since a comeback grows somewhere else.
+export function resourceSpotProblem(kind, x, y, { live = true, bodies = [], not = null } = {}) {
+  if (!inResourceArea(kind, x, y)) return "outside its area";
+  if (not && not[0] === x && not[1] === y) return "where the last one stood";
+  const key = `${x},${y}`;
+  const own = kind.open.some((name) => openPlaces.has(name) && openPlaces.get(name).has(key));
+  if (reservedTiles.has(key) && !own) return "a reserved tile";
+  const t = live ? peekTile(x, y) : readTile(x, y);
+  if (live && !t) return "not grown";
+  const tile = t || blank;
+  if (tile.prop || tile.rug) return "under a prop";
+  if (tile.items && tile.items.length) return "things lie there";
+  if (!(kind.floors.includes(tile.floor) || (own && kind.openFloors.includes(tile.floor)))) return "not natural ground";
+  if (tile.n || tile.w || wallReadBetween(x, y, x, y + 1) || wallReadBetween(x, y, x + 1, y)) return "against a wall";
+  if (ghostTrees.has(ghostKey(x, y))) return "where a tree would stand";
+  if (kind.near) {
+    let near = false;
+    for (let dy = -kind.near; dy <= kind.near && !near; dy++) for (let dx = -kind.near; dx <= kind.near && !near; dx++) if ((dx || dy) && standingTreeAt(x + dx, y + dy)) near = true;
+    if (!near) return "no tree near";
+  }
+  if (live && roomAt(x, y) > 0) return "inside a room";
+  if (fencedIn(x, y)) return "inside a fenced yard";
+  for (const b of bodies) if (b && Math.hypot(b.gx - x, b.gy - y) < 1) return "a body stands there";
+  return null;
+}
+
+// A tile of the area for a roll in 0..1: the rects laid end to end by their tiles, so every tile of the area is as likely.
+export function resourceSpotAt(kind, roll) {
+  const area = kind.rects.reduce((n, r) => n + r[2] * r[3], 0);
+  let cell = Math.min(area - 1, Math.floor(roll * area));
+  for (const [rx, ry, rw, rh] of kind.rects) {
+    if (cell < rw * rh) return [rx + (cell % rw), ry + Math.floor(cell / rw)];
+    cell -= rw * rh;
+  }
+  return [kind.rects[0][0], kind.rects[0][1]];
+}
+
+// A node of `kind` made for (x, y), not placed: its sprite picked by weight and, for a small thing (a mushroom), set a little off the
+// tile's centre, both from `roll` (the sim's generator at a comeback, a hash at the load); `id` when the load names it, else the
+// world's counter's.
+export function makeResourceProp(kind, x, y, roll, id = null) {
+  const sprite = weightedPick(kind.sprites, roll());
+  const def = { sprite, tile: [x, y], solid: kind.solid };
+  if (id) def.id = id;
+  if (kind.jitter) {
+    const u = (roll() - 0.5) * kind.jitter;
+    const v = (roll() - 0.5) * kind.jitter;
+    def.offset = [Math.round((u - v) * 32), Math.round((u + v) * 16)];
+  }
+  return createProp(def);
+}
+
+// The nodes of `kind` standing in its area: a census for the checks (the comeback itself keeps debts, never a census). The registry holds
+// every authored prop of the valley, grown or not, and every prop of a grown chunk; a carried prop is out of it.
+export function resourceCensus(kind) {
+  let n = 0;
+  for (const p of propsById.values()) if (kind.sprites[p.sprite] !== undefined && inResourceArea(kind, p.tile[0], p.tile[1])) n++;
+  return n;
+}
+
+// The kinds from a map file's `resources` block, their rects clipped to the bounds and their defaults filled.
+function readResourceKinds(json) {
+  resourceKindList = [];
+  resourceBySprite.clear();
+  const base = json.floor || "floor_grass";
+  const b = json.bounds;
+  for (const [name, k] of Object.entries(json.resources || {})) {
+    if (!b || !k || !k.sprites) continue;
+    const rects = [];
+    for (const [x, y, w, h] of k.rects || [b]) {
+      const x0 = Math.max(x, b[0]);
+      const y0 = Math.max(y, b[1]);
+      const x1 = Math.min(x + w, b[0] + b[2]);
+      const y1 = Math.min(y + h, b[1] + b[3]);
+      if (x1 > x0 && y1 > y0) rects.push([x0, y0, x1 - x0, y1 - y0]);
+    }
+    const kind = {
+      name,
+      sprites: { ...k.sprites },
+      count: Math.max(0, k.count | 0),
+      rects,
+      open: k.open || [],
+      floors: k.floors || [base],
+      openFloors: k.openFloors || [],
+      near: k.near || 0,
+      rise: !!k.rise,
+      solid: k.solid !== false,
+      jitter: k.jitter || 0,
+      seed: k.seed ?? 61,
+      days: Array.isArray(k.days) ? k.days : null,
+    };
+    resourceKindList.push(kind);
+    for (const sprite of Object.keys(kind.sprites)) resourceBySprite.set(sprite, kind);
+  }
 }
 
 export function createTile(floor = defaultFloor) {
@@ -2359,6 +2540,45 @@ export function loadMap(json, options = {}) {
         props.push(prop);
         get(x, y).prop = prop;
       }
+    }
+  }
+  // The natural resources' areas (docs/46): the reserved tiles kept, the places an area opens to its own kind, and each kind's count made
+  // up at generation by the comeback's own rule, on the authored tiles (the valley's stone: the quarry's eight, and the rest at random
+  // spots on natural ground). Rolled by hash, never the sim's generator, so the load rolls the same in any order, as the scatter does; a
+  // count the map already meets (the ore rocks, the forage's mushrooms) adds nothing, and one it exceeds takes nothing away.
+  reservedTiles = reserved;
+  readResourceKinds(json);
+  // An open place is its footprint less what anything else keeps clear inside it: another set's footprint and padding (the quarryman's
+  // hut in the quarry, the miners' hut at the iron workings), a building's rect and padding, a reserve rect.
+  openPlaces.clear();
+  for (const s of json.sets || []) {
+    if (!s.name || !resourceKindList.some((k) => k.open.includes(s.name))) continue;
+    const kept = new Set();
+    const keep = (x0, y0, w, h) => { for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) kept.add(key(x, y)); };
+    for (const o of json.sets || []) {
+      if (o === s) continue;
+      const pad = o.padding ?? 1;
+      for (const [x, y] of setFootprint(o)) keep(x - pad, y - pad, pad * 2 + 1, pad * 2 + 1);
+    }
+    const origin = setOrigin(s);
+    for (const b of [...(json.buildings || []).map((q) => ({ ...q, origin: [0, 0] })), ...(s.buildings || []).map((q) => ({ ...q, origin }))]) {
+      const pad = b.padding ?? 1;
+      keep(b.rect[0] + b.origin[0] - pad, b.rect[1] + b.origin[1] - pad, b.rect[2] + pad * 2, b.rect[3] + pad * 2);
+    }
+    for (const r of json.reserve || []) keep(...r);
+    openPlaces.set(s.name, new Set(setFootprint(s).map(([x, y]) => key(x, y)).filter((k) => !kept.has(k))));
+  }
+  const bodiesAt = [json.spawn || [0, 0], ...(json.zombies || []), ...(json.villagers || []).map((v) => v.tile)].map(([x, y]) => ({ gx: x, gy: y }));
+  for (const kind of resourceKindList) {
+    let have = props.filter((p) => kind.sprites[p.sprite] !== undefined && inResourceArea(kind, p.tile[0], p.tile[1])).length;
+    for (let i = 0; have < kind.count && kind.rects.length && i < kind.count * 400; i++) {
+      const [x, y] = resourceSpotAt(kind, hash2(i, 1, kind.seed));
+      if (resourceSpotProblem(kind, x, y, { live: false, bodies: bodiesAt })) continue;
+      let r = 0;
+      const prop = makeResourceProp(kind, x, y, () => hash2(i, 2 + r++, kind.seed), `res_${kind.name}_${i}`); // an id from the load's own index, not the world's counter: a count tuned moves no other id
+      props.push(prop);
+      get(x, y).prop = prop;
+      have++;
     }
   }
   // The brackets last: placing one grows its chunk, and a chunk grown before the forage pass took a blank

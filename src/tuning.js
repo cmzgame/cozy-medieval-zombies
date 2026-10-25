@@ -239,7 +239,20 @@ export const water = {
   infectionChance: 0.01,
 };
 
-const sections = { zombie, player, villager, world, population, sight, feel, floaters, objectHighlight, hoverCard, work, water };
+// Natural resources (docs/46; src/resources.js, map.js's resource areas): a taken node's replacement falls due `days` of the clock later (a
+// game day or two, rolled), its debt looked at once a `checkSeconds` of the clock, on the boundary of its multiples, as the fruit trees are;
+// a spot is drawn at random in the area `tries` times a look, then waits for the next; a fill from a spot that stays within `yardCap` tiles
+// is a fenced yard or a pen, and nothing grows there; a rock or an ore rock rises out of the ground over `riseSeconds` of the sim clock.
+// The counts are the map's (its `resources` block, written by tools/mapgen/valley.py). Primary's defaults, levers in docs/42.
+export const resources = {
+  days: [1, 2],
+  checkSeconds: 30,
+  tries: 8,
+  yardCap: 300,
+  riseSeconds: 1,
+};
+
+const sections = { zombie, player, villager, world, population, sight, feel, floaters, objectHighlight, hoverCard, work, water, resources };
 
 // Lay a file's numbers over the defaults; a missing file or section changes nothing.
 export function load(json) {

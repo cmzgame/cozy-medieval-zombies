@@ -185,5 +185,6 @@
     "saw": { "item": "log", "seconds": 5 },
     "honey": { "item": "honey", "count": [1, 1], "days": 3, "seconds": 3 },
     "burnCorpse": { "flame": "tinderbox", "fuel": "log", "hours": 1, "seconds": 2 }
-  }
+  },
+  "resources": { "days": [1, 2], "checkSeconds": 30, "tries": 8, "yardCap": 300, "riseSeconds": 1 }
 }

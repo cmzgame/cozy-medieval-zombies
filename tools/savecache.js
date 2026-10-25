@@ -200,28 +200,38 @@ if (apple.sprite !== "tree_apple" || apple.regrowAt !== undefined) fail(`the app
   did("a stump chopped up");
   me.hands.main = null;
 }
-// Mining (#196): a rock mined (removed, with stone), an ore rock mined (restaged spent with its day) and coming back on it.
+// Mining (#196): a rock mined (removed, with stone); an ore rock at the iron workings mined (gone, a debt on the ore area's record, which
+// the save keeps outside the chunks) and its replacement rising elsewhere in the area on its day (docs/46: the new prop marks its chunk).
 {
   const me = game.state.player;
   const verbs = await import("../src/verbs.js");
   const items = await import("../src/items.js");
+  const resources = await import("../src/resources.js");
   const [rx, ry] = [apple.tile[0] + 3, apple.tile[1]];
   const rock = map.createProp({ sprite: "rock_0", tile: [rx, ry] });
   map.placeProp(rock, rx, ry);
-  const oreRock = map.createProp({ sprite: "ore_rock", tile: [rx + 2, ry] });
-  map.placeProp(oreRock, rx + 2, ry);
   me.hands.main = items.makeEntry("pickaxe", 1);
   me.gx = rx + 1;
   me.gy = ry + 0.4;
   const m1 = verbs.run("mine", game.state, me, { prop: rock.id });
   if (!m1.ok) fail(`mine: ${m1.reason}`);
   did("a rock mined");
+  const oreKind = map.resourceKind("ore");
+  const oreRock = map.allProps().find((q) => q.sprite === "ore_rock" && map.inResourceArea(oreKind, q.tile[0], q.tile[1]));
+  if (!oreRock) fail("no ore rock at the iron workings");
+  const [mx, my] = [me.gx, me.gy];
+  me.gx = oreRock.tile[0] + 1;
+  me.gy = oreRock.tile[1] + 0.4;
   const m2 = verbs.run("mine", game.state, me, { prop: oreRock.id });
   if (!m2.ok) fail(`mine: ${m2.reason}`);
-  did("an ore rock mined out");
-  clock.setElapsed(clock.getElapsed() + 4 * clock.DAY_LENGTH); did("an ore rock coming back", 120);
-  if (oreRock.sprite !== "ore_rock") fail(`the ore rock did not come back (${oreRock.sprite})`);
-  map.removeProp(oreRock);
+  if (resources.owed("ore").length !== 1) fail(`the ore rock mined left ${resources.owed("ore").length} debts, not one`);
+  me.gx = mx;
+  me.gy = my;
+  did("an ore rock mined, its replacement owed");
+  const before = map.allProps().filter((q) => q.sprite === "ore_rock").length;
+  clock.setElapsed(clock.getElapsed() + 3 * clock.DAY_LENGTH); did("an ore rock rising elsewhere in its area", 120);
+  const grown = map.allProps().filter((q) => q.sprite === "ore_rock");
+  if (grown.length !== before + 1 || resources.owed("ore").length || grown.some((q) => q.tile[0] === oreRock.tile[0] && q.tile[1] === oreRock.tile[1])) fail(`no new ore rock rose elsewhere (${before} before, ${grown.length} after, ${resources.owed("ore").length} owed)`);
   me.hands.main = null;
   // A hive's honey taken (docs/43 section 6, #410): the day it has more rides on the prop.
   await import("../src/hives.js");
