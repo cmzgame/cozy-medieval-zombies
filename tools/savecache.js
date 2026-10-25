@@ -223,6 +223,15 @@ if (apple.sprite !== "tree_apple" || apple.regrowAt !== undefined) fail(`the app
   if (oreRock.sprite !== "ore_rock") fail(`the ore rock did not come back (${oreRock.sprite})`);
   map.removeProp(oreRock);
   me.hands.main = null;
+  // A hive's honey taken (docs/43 section 6, #410): the day it has more rides on the prop.
+  await import("../src/hives.js");
+  const hive = map.allProps().find((q) => q.sprite === "beehive" && Math.hypot(q.tile[0] - me.gx, q.tile[1] - me.gy) < 40);
+  if (!hive) fail("no beehive near the player");
+  me.gx = hive.tile[0];
+  me.gy = hive.tile[1] + 1;
+  const h1 = verbs.run("honey", game.state, me, { prop: hive.id });
+  if (!h1.ok) fail(`honey: ${h1.reason}`);
+  did("a hive's honey taken");
 }
 // A torch burning down in a bracket: its wear changes every step and only the save's copy of the chunk hears (map.burnHolders).
 const mount = [...map.brackets()].find((b) => !b.wall.bracket.torch) || [...map.brackets()][0];
