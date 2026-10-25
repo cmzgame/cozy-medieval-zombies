@@ -194,6 +194,7 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
       case "torch_post": sheet = placeholders.generateTorchPost(ph); break;
       case "lantern_post": sheet = placeholders.generateLanternPost(ph); break;
       case "flame": sheet = placeholders.generateFlame(); break;
+      case "animal": sheet = placeholders.generateAnimal(ph, def); break; // docs/45 section 6: a species' sheet, its animations and facings the definition's own
       case "ground": sheet = placeholders.generateGround(ph); break; // docs/15: dirt, cobble
       case "noise": sheet = placeholders.generateNoise(ph); break; // docs/15: the edges' noise
       case "ui": sheet = placeholders.generateUiKit(ph); break; // docs/23 step 4: the interface's frame, well, and button

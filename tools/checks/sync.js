@@ -1,6 +1,6 @@
 // The whole-world sync check (docs/31/04, "a replica check"; the gate of tier 3): a host's world and
 // a guest's replica hashed in parts at the same tick and compared, the map chunk by chunk, the prop
-// registry, the fires, the players whole, the dead as the frames carry them, the clock. A mutation
+// registry, the fires, the players whole, the dead as the frames carry them, the animals (docs/45), the clock. A mutation
 // that bypassed a touch or a record shows up as a part that differs. Two tabs on the loopback, the
 // guest joined (CLAUDE.md), then on the host:
 //   __game.net.setSyncReports(true)     // the host marks every tenth frame; both sides hash it and the guest reports
@@ -25,7 +25,7 @@ export async function run(game) {
       const mine = rep.ring.get(g.tick);
       row(`${playerId}'s tick is in the host's ring`, !!mine, mine ? `tick ${g.tick}` : `tick ${g.tick} not kept (the ring holds ${[...rep.ring.keys()].join(", ") || "nothing"}): step the host less far ahead`);
       if (!mine) continue;
-      for (const part of ["map", "chart", "registry", "fires", "players", "dead", "clock", "rules"]) {
+      for (const part of ["map", "chart", "registry", "fires", "players", "dead", "animals", "clock", "rules"]) {
         row(`${playerId}: the ${part} agrees at tick ${g.tick}`, mine[part] === g.parts[part], mine[part] === g.parts[part] ? `${mine[part]} (host ${mine.counts})` : `host ${mine[part]} vs guest ${g.parts[part]}; host ${mine.counts}; guest ${g.parts.counts}`);
       }
     }

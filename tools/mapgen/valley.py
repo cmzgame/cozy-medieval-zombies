@@ -585,6 +585,18 @@ def build():
                  props=[along_x("bed", 0, 0), one("barrel", 5, 0), one("chest", 5, 3, loot="charcoal_sacks")],
                  brackets=[{"side": "n", "at": 1, "facing": "in", "lantern": True}])
 
+    # ---- the beasts' pens (docs/45; docs/39's byre and pigsty at Hollow Farm, the croft's sheepfold across the ford) ----
+    # West of the orchard, clear of the farm's reserve: the byre's paddock and the pigsty, each a fence with a gate toward the farm.
+    byre = g.place("Hollow Farm's byre", [20, 232, 14, 10])
+    byre.fence([0, 0, 14, 10], gates=[{"side": "e", "at": 5}])
+    sty = g.place("Hollow Farm's pigsty", [22, 244, 10, 8])
+    sty.floor_rect([1, 1, 8, 6], "floor_dirt")
+    sty.fence([0, 0, 10, 8], gates=[{"side": "e", "at": 3}])
+    g.reserve([18, 230, 20, 24])
+    # The croft's sheepfold, south of the drove past the ford (docs/39: the croft, its cottage and the shepherd to come).
+    fold = g.place("the croft's sheepfold", [146, 211, 12, 9])
+    fold.fence([0, 0, 12, 9], gates=[{"side": "n", "at": 6}])
+
     # ---- reserves: the castle (step 5) and the farms (step 4) take no forest yet ----
     g.reserve([VX, VY, 64, 144])      # the village block, 29/04's plan
     g.reserve([136, 126, 66, 64])     # the castle's compound (29/03 at (140, 130)) with its moat
@@ -615,6 +627,26 @@ def build():
     dead += [(220, 172), (226, 175), (214, 178)]                                                                        # the charcoal burners
     for x, y in dead:
         g.zombie(x, y)
+
+    # ---- the animals (docs/45, step 1): game in the woods ringing the valley, each herd a clearing it drifts back to and is renewed at;
+    # the farms' stock where docs/39 has it. Defaults, Primary's, Michael's to move. ----
+    g.animals("deer", (22, 120), 3, cap=4, name="the west wood")
+    g.animals("deer", (30, 40), 4, name="the north-west wood")
+    g.animals("deer", (160, 72), 3, cap=4, name="the north-east wood")
+    g.animals("deer", (232, 110), 2, cap=3, name="the east wood")
+    g.animals("deer", (190, 226), 3, cap=4, name="the south-east wood")
+    g.animals("deer", (14, 196), 2, cap=3, name="the south-west wood")
+    g.animals("rabbit", (48, 150), 3, name="the village's west edge")
+    g.animals("rabbit", (70, 14), 2, cap=3, name="above Long Acre")
+    g.animals("rabbit", (150, 104), 2, cap=3, name="the castle's north edge")
+    g.animals("rabbit", (44, 222), 3, name="the farm lane's edge")
+    g.animals("rabbit", (205, 200), 2, cap=3, name="the burners' edge")
+    g.animals("boar", (14, 80), 2, name="the far west wood")
+    g.animals("boar", (240, 240), 2, name="the far south-east wood")
+    g.animals("hen", (74, 239), 3, name="Hollow Farm's hens", clearing=False)
+    g.animals("cow", (27, 237), 2, name="Hollow Farm's byre", clearing=False)
+    g.animals("pig", (27, 248), 2, name="Hollow Farm's pigsty", clearing=False)
+    g.animals("sheep", (152, 215), 4, name="the croft's sheep", clearing=False)
 
     # ---- the living (29/08's cast; names are Michael's to give, placeholders until then) ----
     # The guide stands just outside your cottage's door, in view on stepping out and under three tiles from the spawn: the neighbour from the farm

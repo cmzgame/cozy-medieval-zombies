@@ -1488,3 +1488,129 @@ export function generateUiKit(ph) {
   }
   return { image: canvas, frames, anchor: [0, 0], bounds: { x: 0, y: 0, w: canvas.width, h: canvas.height }, animations: {}, facings: [], mirror: {} };
 }
+
+// ---------------------------------------------------------------------------
+// Animals (docs/45 section 6): dev art for a species' drawn sheet, the shape real art will have. The definition gives the
+// sheet's own `animations`, `facings` (the two drawn diagonals, se and ne) and `mirror` (sw and nw drawn flipped), which the
+// headless world reads straight off it, so both sheets agree; this draws a frame for every name `${anim}_${facing}_${i}`.
+// `ph`: `size` [w, h] of a frame, `body` [w, h], `legs` the leg length, `feet` 2 or 4, `neck`, `head` (its radius), the
+// colours `coat`, `belly`, `headColour`, `leg`, and the marks `ears`, `comb`, `tusks`, `horns`, `patches`, `snout`, `tail`.
+// Hard pixels: every shape is filled row by row, never antialiased.
+// ---------------------------------------------------------------------------
+function pxEllipse(ctx, cx, cy, rx, ry, color) {
+  ctx.fillStyle = color;
+  for (let y = -ry; y <= ry; y++) {
+    const w = Math.round(rx * Math.sqrt(Math.max(0, 1 - (y * y) / (ry * ry || 1))));
+    if (w > 0 || y === 0) ctx.fillRect(Math.round(cx - w), Math.round(cy + y), w * 2 + 1, 1);
+  }
+}
+
+function pxRect(ctx, x, y, w, h, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h)));
+}
+
+// One frame, its feet's centre at (ax, ay): `facing` se (toward the camera, the head nearer) or ne (away, the head beyond the body).
+function drawAnimal(ctx, ax, ay, ph, facing, anim, i) {
+  const OUT = "#2a1e16";
+  const coat = ph.coat;
+  const [bw, bh] = ph.body;
+  const legLen = ph.legs;
+  const rx = Math.round(bw / 2);
+  const ry = Math.round(bh / 2);
+  const away = facing === "ne";
+  if (anim === "dead") {
+    // Lying on its side: the body flat on the ground, the legs out toward the camera, the head down.
+    const by = ay - ry + 1;
+    pxEllipse(ctx, ax, by, rx + 1, ry, OUT);
+    pxEllipse(ctx, ax, by, rx, ry - 1, coat);
+    if (ph.belly) pxEllipse(ctx, ax, by + 1, rx - 2, Math.max(1, ry - 3), ph.belly);
+    for (let k = 0; k < (ph.feet || 4); k++) pxRect(ctx, ax - rx + 3 + k * Math.max(2, Math.floor((bw - 6) / Math.max(1, (ph.feet || 4) - 1))), by + ry - 1, 1, Math.max(2, Math.round(legLen / 2)), ph.leg || OUT);
+    const hr = ph.head;
+    pxEllipse(ctx, ax + rx + hr - 1, ay - hr, hr + 1, hr, OUT);
+    pxEllipse(ctx, ax + rx + hr - 1, ay - hr, hr, hr - 1, ph.headColour || coat);
+    return;
+  }
+  // The gait: each leg's swing and the body's bob, by the animation and the frame.
+  const walking = anim === "walk" || anim === "run";
+  const stride = anim === "run" ? 2 : 1;
+  const phase = [0, 1, 0, -1][i % 4];
+  const bob = walking ? (i % 2 ? -1 : 0) * (anim === "run" ? 2 : 1) : anim === "idle" && i === 1 ? 1 : 0;
+  const bodyY = ay - legLen - ry + bob;
+  const eating = anim === "eat";
+  const lunge = anim === "attack" ? [1, 4, 2][i] || 0 : 0;
+  // The head: forward of the body and up on its neck, down to the grass while it eats.
+  const hr = ph.head;
+  const neck = ph.neck || 0;
+  const hx = ax + rx + lunge - (away ? 2 : 0);
+  const hy = eating ? ay - hr - 1 + (i % 2) : bodyY - ry * 0.4 - neck + (away ? -2 : 0);
+  const drawHead = () => {
+    if (neck > 0 && !eating) pxRect(ctx, hx - 2, hy, 4, bodyY - hy, ph.headColour || coat);
+    if (eating && neck > 0) pxRect(ctx, ax + rx - 3, bodyY - 1, 3, hy - bodyY + 2, ph.headColour || coat);
+    if (ph.ears) {
+      const eh = ph.ears;
+      pxRect(ctx, hx - 2, hy - hr - eh, 2, eh + 1, OUT);
+      pxRect(ctx, hx + 1, hy - hr - eh + 1, 2, eh, OUT);
+      pxRect(ctx, hx - 1, hy - hr - eh + 1, 1, eh - 1, ph.headColour || coat);
+    }
+    if (ph.horns) {
+      pxRect(ctx, hx - 3, hy - hr - 2, 2, 2, "#e8e0c8");
+      pxRect(ctx, hx + 2, hy - hr - 2, 2, 2, "#e8e0c8");
+    }
+    pxEllipse(ctx, hx, hy, hr + 1, hr + 1, OUT);
+    pxEllipse(ctx, hx, hy, hr, hr, ph.headColour || coat);
+    if (ph.comb) pxRect(ctx, hx - 1, hy - hr - 2, 3, 2, "#c8282a");
+    if (!away) {
+      pxRect(ctx, hx + Math.ceil(hr / 2), hy - 1, 1, 1, "#111111"); // the eye
+      if (ph.comb) pxRect(ctx, hx + hr + 1, hy, 2, 1, "#e8a020"); // the beak
+      if (ph.snout) pxRect(ctx, hx + hr - 1, hy, 3, 2, ph.snout);
+      if (ph.tusks) pxRect(ctx, hx + hr, hy + 2, 1, 2, "#f0ead8");
+    }
+  };
+  const feet = ph.feet || 4;
+  const legX = feet === 2 ? [-1, 1] : [-rx + 2, -rx + 4, rx - 4, rx - 2];
+  const drawLegs = (near) => {
+    legX.forEach((lx, k) => {
+      const isNear = k % 2 === 1;
+      if (isNear !== near) return;
+      const swing = walking ? (k < legX.length / 2 ? phase : -phase) * stride * (isNear ? 1 : -1) : 0;
+      pxRect(ctx, ax + lx + swing, ay - legLen + bob, feet === 2 ? 1 : 2, legLen - bob, isNear ? ph.leg || OUT : shade(ph.leg || "#3a2a1e", 0.75));
+    });
+  };
+  if (away) drawHead();
+  drawLegs(false);
+  // The tail, behind.
+  if (ph.tail) pxRect(ctx, ax - rx - 2, bodyY - ry + 2, 3, 3, ph.tail);
+  pxEllipse(ctx, ax, bodyY, rx + 1, ry + 1, OUT);
+  pxEllipse(ctx, ax, bodyY, rx, ry, coat);
+  if (ph.belly) pxEllipse(ctx, ax, bodyY + Math.ceil(ry / 2), rx - 2, Math.max(1, Math.floor(ry / 2)), ph.belly);
+  pxEllipse(ctx, ax - 1, bodyY - Math.ceil(ry / 2), Math.max(1, rx - 3), Math.max(1, Math.floor(ry / 3)), shade(coat.startsWith("#") ? coat : "#888888", 1.15)); // the light on its back
+  if (ph.patches) {
+    pxEllipse(ctx, ax - Math.round(rx / 3), bodyY - 1, Math.max(2, Math.round(rx / 4)), Math.max(1, Math.round(ry / 3)), ph.patches);
+    pxEllipse(ctx, ax + Math.round(rx / 3), bodyY + 1, Math.max(1, Math.round(rx / 5)), Math.max(1, Math.round(ry / 4)), ph.patches);
+  }
+  drawLegs(true);
+  if (!away) drawHead();
+}
+
+export function generateAnimal(ph, def) {
+  const [fw, fh] = ph.size;
+  const facings = def.facings || ["se", "ne"];
+  const animations = def.animations || { idle: { fps: 2, loop: true, frames: 2 } };
+  const names = Object.keys(animations);
+  const most = Math.max(...names.map((a) => animations[a].frames));
+  const { canvas, ctx } = makeCanvas(fw * most, fh * names.length * facings.length);
+  const frames = {};
+  const ax = Math.floor(fw / 2);
+  const ay = fh - 3;
+  facings.forEach((facing, fi) => {
+    names.forEach((anim, ni) => {
+      const row = fi * names.length + ni;
+      for (let i = 0; i < animations[anim].frames; i++) {
+        drawAnimal(ctx, i * fw + ax, row * fh + ay, ph, facing, anim, i);
+        frames[`${anim}_${facing}_${i}`] = [i * fw, row * fh, fw, fh];
+      }
+    });
+  });
+  return { image: canvas, frames, anchor: [ax, ay], bounds: { x: 0, y: 0, w: fw, h: fh }, animations, facings, mirror: def.mirror || {} };
+}
