@@ -1998,7 +1998,7 @@ check("hover card: every name that reaches a plural or a lower-cased line reads 
 // read in the skin, butcher, milk, and shear lines this way.
 check("item names counted: mass nouns, pairs, and +s (the butcher's and the shears' words)", () => {
   const cn = itemsMod.countName;
-  const want = [["venison_raw", 3, "3 raw venison"], ["bacon", 2, "2 bacon"], ["lard", 1, "some lard"], ["wool", 2, "2 wool"], ["feather", 4, "4 feathers"], ["hide", 1, "a hide"], ["egg", 1, "an egg"], ["milk", 1, "a jug of milk"]];
+  const want = [["venison_raw", 3, "3 raw venison"], ["bacon", 2, "2 bacon"], ["lard", 1, "some lard"], ["wool", 2, "2 wool"], ["feather", 4, "4 feathers"], ["hide", 1, "a hide"], ["egg", 1, "an egg"], ["milk", 1, "a jug of milk"], ["shears", 1, "shears"], ["shears", 2, "2 shears"], ["gloves", 1, "work gloves"], ["hammer", 1, "a smith's hammer"]];
   const bad = want.filter(([id, n, s]) => cn(id, n) !== s).map(([id, n, s]) => `${id} x${n}: "${cn(id, n)}", not "${s}"`);
   const animals = read("data/animals.json").species;
   for (const [sp, d] of Object.entries(animals)) {

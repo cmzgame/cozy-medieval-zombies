@@ -3,7 +3,7 @@
 // worn on the back, the hotbar is the belt worn at the waist, and an entry is
 // in exactly one place. Placement rules live in grid.js.
 
-import { getItem, toolFor, release, canHold, hold, handFor } from "./items.js";
+import { getItem, toolFor, aName, release, canHold, hold, handFor } from "./items.js";
 import * as grid from "./grid.js";
 
 export const WORN_SLOTS = ["head", "chest", "hands", "legs", "feet", "waist", "back"];
@@ -100,11 +100,12 @@ export function carriedTool(player, verb) {
   return null;
 }
 
-// The refusal for a missing tool, or null: "You need a smith's hammer." names the item the verb belongs to.
+// The refusal for a missing tool, or null: "You need a smith's hammer." names the item the verb belongs to, with its article ("You need
+// shears.": the item's `noun`, items.aName).
 export function toolProblem(player, verb) {
   if (carriedTool(player, verb)) return null;
   const t = toolFor(verb);
-  return `You need a ${t ? t.name.toLowerCase() : "tool"}.`;
+  return `You need ${t ? aName(t.id) : "a tool"}.`;
 }
 
 // ---- across the player's places ----

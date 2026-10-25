@@ -11,7 +11,7 @@
 
 import * as map from "./map.js";
 import { getDef } from "./assets.js";
-import { getItem, containerGrid } from "./items.js";
+import { getItem, aName, containerGrid } from "./items.js";
 import * as grid from "./grid.js";
 import { bagOf, beltOf, createBag, countAll, takeAll, toolProblem, detach } from "./inventory.js";
 import * as verbs from "./verbs.js";
@@ -170,7 +170,7 @@ export function canMake(player, prop, r, count = 1) {
   { const why = reachProblem(player, prop.tiles, REACH); if (why) return why === TOO_FAR ? "Too far from it." : why; }
   if (r.fire && !(prop.fire && prop.fire.lit)) return "The fire is out.";
   if (r.uses) { const why = toolProblem(player, r.uses); if (why) return why; } // a carried tool by its verb (#215)
-  if (r.tool && !toolInHand(player, r.tool)) return `Needs a ${getItem(r.tool).name.toLowerCase()} in hand.`;
+  if (r.tool && !toolInHand(player, r.tool)) return `Needs ${aName(r.tool)} in hand.`;
   const short = shortfall(player, prop, r, count);
   if (short.length) return `Short of ${short.map((s) => `${s.need - s.have} ${nameOfWant(s.want)}`).join(", ")}.`;
   return true;

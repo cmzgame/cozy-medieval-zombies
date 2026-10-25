@@ -621,8 +621,8 @@ function lanternActions(target, player) {
   return [act({ ...base, simple: flame, label: flame ? "Light the lantern" : "Light the lantern (need a tinderbox or a flame)", enabled: flame, perform: () => runVerb("light", player, address) })];
 }
 
-// The name of the tool a verb belongs to, for a greyed entry: "smith's hammer".
-const toolName = (verb) => { const t = toolFor(verb); return t ? t.name.toLowerCase() : "tool"; };
+// The name of the tool a verb belongs to with its article, for a greyed entry: "a smith's hammer", "shears" (items.aName).
+const toolName = (verb) => { const t = toolFor(verb); return t ? aName(t.id) : "a tool"; };
 
 // Doors and windows: open and close, board and pull (docs/09). Nobody climbs through a window (Michael, 2026-10-16).
 function openingActions(o, player) {
@@ -663,7 +663,7 @@ function openingActions(o, player) {
     out.push(act({
       ...base,
       kind: "board",
-      label: noHammer ? `Board up (need a ${need})` : planks ? `Board up (${mine.length}/${map.BOARDS_PER_SIDE})` : "Board up (need a plank)",
+      label: noHammer ? `Board up (need ${need})` : planks ? `Board up (${mine.length}/${map.BOARDS_PER_SIDE})` : "Board up (need a plank)",
       duration: BOARD_TIME,
       enabled: planks > 0 && !noHammer,
       perform() {
@@ -679,7 +679,7 @@ function openingActions(o, player) {
     out.push(act({
       ...base,
       kind: "pull",
-      label: noHammer ? `Pull a board (need a ${need})` : `Pull a board (${mine.length} this side, the plank comes back)`,
+      label: noHammer ? `Pull a board (need ${need})` : `Pull a board (${mine.length} this side, the plank comes back)`,
       duration: PULL_TIME,
       enabled: !noHammer,
       perform() {
@@ -712,7 +712,7 @@ function cropActions(prop, player) {
   const noTool = cropTool && toolProblem(player, cropTool);
   // Each label names the crop (Michael's playtest, 2026-10-19: with potatoes beside the cabbages, E's bare "Harvest" took the potatoes,
   // which the cottage's shovel digs, and seemed to need no tool, while the cabbage beside them wanted a dirk).
-  if (farming.stageOf(prop) >= 2) out.push(act({ ...base, kind: "harvest", simple: !noTool, label: noTool ? `Harvest ${def.name} (need a ${toolName(cropTool)})` : `Harvest ${def.name}`, enabled: !noTool, duration: soil.seconds.harvest, perform: run("harvest") }));
+  if (farming.stageOf(prop) >= 2) out.push(act({ ...base, kind: "harvest", simple: !noTool, label: noTool ? `Harvest ${def.name} (need ${toolName(cropTool)})` : `Harvest ${def.name}`, enabled: !noTool, duration: soil.seconds.harvest, perform: run("harvest") }));
   else {
     const days = Math.max(1, Math.ceil(farming.daysLeft(prop)));
     out.push(act({ ...base, kind: "harvest", label: farming.isWet(prop) ? `Growing (ready in about ${days} day${days > 1 ? "s" : ""})` : `Dry: waiting for water (about ${days} more day${days > 1 ? "s" : ""} of growth)`, enabled: false }));
@@ -773,7 +773,7 @@ export function cropReport(prop) {
     parts.push(wet ? `ready in ${left}` : `${left} of growing left`, wet ? "watered" : "dry, waiting for water");
   }
   parts.push("not fertilized"); // nothing fertilizes yet (the composter, #275's Farming)
-  parts.push(def.tool ? `harvest with a ${toolName(def.tool)}` : "harvest by hand");
+  parts.push(def.tool ? `harvest with ${toolName(def.tool)}` : "harvest by hand");
   return `${name}: ${parts.join("; ")}.`;
 }
 
@@ -1563,7 +1563,7 @@ export function itemMenu(player, entry, bag, otherBag) {
     const s = def.splitsInto;
     const noAxe = toolProblem(player, tuning.world.splitTool); // splitting is hatchet work (#215)
     out.push({
-      label: `Split into ${countName(s.id, s.count)}${noAxe ? ` (need a ${toolName(tuning.world.splitTool)})` : ""}`,
+      label: `Split into ${countName(s.id, s.count)}${noAxe ? ` (need ${toolName(tuning.world.splitTool)})` : ""}`,
       enabled: !noAxe,
       onSelect: () => {
         if (toolProblem(player, tuning.world.splitTool)) { showMessage(toolProblem(player, tuning.world.splitTool)); return; }

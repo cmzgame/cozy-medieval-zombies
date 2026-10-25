@@ -228,6 +228,12 @@ export async function run(game, opts = {}) {
       const hungry = labels(q);
       fill(foldTrough, "grain", 4);
       feedTime();
+      const shears = bag().items.find((e) => e.id === "shears");
+      grid.remove(bag(), shears);
+      const noShears = labels(q);
+      grid.insert(bag(), shears);
+      const shearLine = noShears.find((l) => l.startsWith("Shear")) || "no Shear line";
+      row("a fed sheep with no shears carried is greyed \"(you need shears)\", never \"a shears\"", /^Shear the sheep \(you need shears\) \[grey\]$/.test(shearLine), shearLine);
       byLabel(q, "Shear the sheep");
       work(A.workSeconds("shear"));
       row("an unfed sheep's shearing is greyed; its trough filled, it eats, and shears carried give its wool", hungry.some((l) => /Shear the sheep \(the sheep has not been fed today\) \[grey\]/.test(l)) && q.fedDay === A.today() && bagCount("wool") >= 1, `${hungry.find((l) => l.startsWith("Shear"))}; fed ${q.fedDay}; wool +${bagCount("wool")}`);
