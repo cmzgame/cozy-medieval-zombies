@@ -12936,7 +12936,216 @@
    "near": 2,
    "solid": false,
    "jitter": 0.6,
+   "where": "under trees",
    "seed": 63
+  },
+  "sage": {
+   "sprites": {
+    "herb_sage": 1
+   },
+   "count": 16,
+   "solid": false,
+   "jitter": 0.5,
+   "where": "in the valley",
+   "seed": 64
+  },
+  "nettle": {
+   "sprites": {
+    "herb_nettle": 1
+   },
+   "count": 16,
+   "solid": false,
+   "jitter": 0.5,
+   "where": "in the valley",
+   "seed": 65
+  },
+  "feverfew": {
+   "sprites": {
+    "herb_feverfew": 1
+   },
+   "count": 14,
+   "solid": false,
+   "jitter": 0.5,
+   "where": "in the valley",
+   "seed": 66
+  },
+  "yarrow": {
+   "sprites": {
+    "herb_yarrow": 1
+   },
+   "count": 16,
+   "solid": false,
+   "jitter": 0.5,
+   "where": "in the valley",
+   "seed": 67
+  },
+  "woad": {
+   "sprites": {
+    "herb_woad": 1
+   },
+   "count": 10,
+   "solid": false,
+   "jitter": 0.5,
+   "where": "in the valley",
+   "seed": 68
+  },
+  "madder": {
+   "sprites": {
+    "herb_madder": 1
+   },
+   "count": 10,
+   "solid": false,
+   "jitter": 0.5,
+   "where": "in the valley",
+   "seed": 69
+  },
+  "weld": {
+   "sprites": {
+    "herb_weld": 1
+   },
+   "count": 10,
+   "solid": false,
+   "jitter": 0.5,
+   "where": "in the valley",
+   "seed": 70
+  },
+  "mana_herb": {
+   "sprites": {
+    "herb_mana_herb": 1
+   },
+   "count": 10,
+   "rects": [
+    [
+     106,
+     0,
+     24,
+     110
+    ],
+    [
+     116,
+     110,
+     20,
+     80
+    ],
+    [
+     124,
+     190,
+     24,
+     66
+    ],
+    [
+     56,
+     23,
+     64,
+     10
+    ]
+   ],
+   "solid": false,
+   "jitter": 0.5,
+   "water": 2,
+   "where": "near water",
+   "seed": 71
+  },
+  "nightshade": {
+   "sprites": {
+    "herb_nightshade": 1
+   },
+   "count": 7,
+   "near": 2,
+   "solid": false,
+   "jitter": 0.5,
+   "where": "near trees",
+   "seed": 72
+  },
+  "wolfsbane": {
+   "sprites": {
+    "herb_wolfsbane": 1
+   },
+   "count": 7,
+   "near": 2,
+   "solid": false,
+   "jitter": 0.5,
+   "where": "near trees",
+   "seed": 73
+  },
+  "grave_moss": {
+   "sprites": {
+    "herb_grave_moss": 1
+   },
+   "count": 4,
+   "rects": [
+    [
+     74,
+     84,
+     32,
+     14
+    ]
+   ],
+   "solid": false,
+   "jitter": 0.5,
+   "own": true,
+   "night": true,
+   "where": "in the graveyard",
+   "seed": 74
+  },
+  "clay": {
+   "sprites": {
+    "clay_bank": 1
+   },
+   "count": 8,
+   "rects": [
+    [
+     106,
+     0,
+     24,
+     110
+    ],
+    [
+     116,
+     110,
+     20,
+     80
+    ],
+    [
+     124,
+     190,
+     24,
+     12
+    ],
+    [
+     124,
+     212,
+     24,
+     44
+    ]
+   ],
+   "floors": [
+    "floor_dirt"
+   ],
+   "water": 1,
+   "waterGroup": "river",
+   "where": "by the river",
+   "seed": 80
+  },
+  "salt": {
+   "sprites": {
+    "salt_rock": 1
+   },
+   "count": 4,
+   "rects": [
+    [
+     206,
+     130,
+     46,
+     34
+    ]
+   ],
+   "open": [
+    "the iron workings"
+   ],
+   "rise": true,
+   "where": "at the iron workings",
+   "seed": 81
   }
  }
 }

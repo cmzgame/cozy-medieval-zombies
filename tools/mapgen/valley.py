@@ -616,11 +616,33 @@ def build():
     # ---- natural resources (docs/46, #288): what comes back, and where; the counts are docs/42's levers ----
     # Stone everywhere on natural ground in the valley, the quarry's pit open to it (its eight, and the rest placed at the load by the
     # comeback's rule); ore at the iron workings and the hills round them (their six); mushrooms near trees anywhere in the woods (the
-    # forage's 774). Herbs, clay by the river, and salt with the ore are step 2's.
+    # forage's 774).
     ROCKS = {"rock_0": 1, "rock_1": 1, "rock_2": 1, "rock_3": 1}
+    ORE_AREA = [[206, 130, 46, 34]]
     g.resource("stone", ROCKS, 40, open=["the quarry"], open_floors=["floor_dirt"], rise=True, seed=61)
-    g.resource("ore", {"ore_rock": 1}, 6, rects=[[206, 130, 46, 34]], open=["the iron workings"], rise=True, seed=62)
-    g.resource("mushrooms", {"mushroom_0": 1, "mushroom_1": 1, "mushroom_2": 1, "mushroom_3": 1, "mushroom_4": 1}, 774, near=2, solid=False, jitter=0.6, seed=63)
+    g.resource("ore", {"ore_rock": 1}, 6, rects=ORE_AREA, open=["the iron workings"], rise=True, seed=62)
+    g.resource("mushrooms", {"mushroom_0": 1, "mushroom_1": 1, "mushroom_2": 1, "mushroom_3": 1, "mushroom_4": 1}, 774, near=2, solid=False, jitter=0.6, seed=63, where="under trees")
+    # Step 2 (#448): the herbs, 120 in all, grow like weeds at random on natural ground, never in patches, each kind favouring its ground
+    # (docs/46 section 2): the common herbs and the dye plants anywhere, the mana herb within two tiles of water (by the river and the brook
+    # west of Long Acre, the open water), nightshade and wolfsbane near trees, the graveyard's inside its wall (its own place, its fence
+    # open to it), coming back only at night. The rarer a kind, the fewer (a default, Primary's; the split is docs/42's lever). Clay banks
+    # on the river's own dirt bank, beside its water, the ford's band left out (the drove's dirt meets the water there); salt rocks in the
+    # ore area, rising as the ore does.
+    RIVER = [[106, 0, 24, 110], [116, 110, 20, 80], [124, 190, 24, 66]]  # the river's corridor, top to bottom (its polyline at the top of build)
+    BROOK = [56, 23, 64, 10]  # the brook and its banks (above); Long Acre's reserve keeps all but its west end
+    CLAY_AREA = [[106, 0, 24, 110], [116, 110, 20, 80], [124, 190, 24, 12], [124, 212, 24, 44]]  # the corridor less the ford's band, y 202 to 211
+    GRAVEYARD = [gy[0], gy[1], 32, 14]  # inside the graveyard's wall
+    HERBS = [  # the kind (its node is herb_<kind>, its item <kind>), its count, and where it grows
+        ("sage", 16, {}), ("nettle", 16, {}), ("feverfew", 14, {}), ("yarrow", 16, {}),
+        ("woad", 10, {}), ("madder", 10, {}), ("weld", 10, {}),
+        ("mana_herb", 10, {"rects": RIVER + [BROOK], "water": 2, "where": "near water"}),
+        ("nightshade", 7, {"near": 2, "where": "near trees"}), ("wolfsbane", 7, {"near": 2, "where": "near trees"}),
+        ("grave_moss", 4, {"rects": [GRAVEYARD], "own": True, "night": True, "where": "in the graveyard"}),
+    ]
+    for i, (name, count, where) in enumerate(HERBS):
+        g.resource(name, {f"herb_{name}": 1}, count, solid=False, jitter=0.5, seed=64 + i, **{"where": "in the valley", **where})
+    g.resource("clay", {"clay_bank": 1}, 8, rects=CLAY_AREA, floors=["floor_dirt"], water=1, water_group="river", seed=80, where="by the river")
+    g.resource("salt", {"salt_rock": 1}, 4, rects=ORE_AREA, open=["the iron workings"], rise=True, seed=81, where="at the iron workings")
 
     # ---- the dead (29/08): the streets and the square, the bridge's two ends, the graveyard, the trades, the nobles, the cottages ----
     dead = []

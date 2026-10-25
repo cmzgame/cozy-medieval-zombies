@@ -22,6 +22,8 @@
 
 - **A looted hood's card shows a raw colour code** (found reviewing #454, 2026-10-25, confirmed headless). A garment from the dead with a wardrobe colour no vat gives (a hood with `colour: "#705848"`) reads `#705848` on its card: `cardFor(...).state`. It comes from the last branch of `src/dye.js` `regionWord` (~73), now the one place a colour's word is made. Likely fix: a plain word for a colour no dye names ("undyed", or the nearest dye's family).
 
+- **A click on an herb or mushroom under a tree's crown hits the tree** (found building #448, 2026-10-25, confirmed in the pane and under Node). `src/interact.js` `interactableAt` names the frontmost interactable with an opaque pixel under the cursor, so a crown a tile nearer the viewer covers a small gatherable: it cannot be swayed by a click, and the right-click menu, which reaches a crown through the same test, may offer the tree first. E is unaffected (it finds the nearest action by tile). Mushrooms always grow within two tiles of a tree, and herbs often do. Likely fix: inside the player's see-through hole (the canopy fade) a crown's pixels do not win the hit test, or a small gatherable on the cursor's tile beats a crown.
+
 - **An infection caught from tainted water opens on Bitten, "The bite broke the skin."** (found syncing the wiki for #435, at `fa2997f`, *needs repro*). `src/moodles.js` (~26): the first stage's words assume a bite, and water gives no bite.
 
 ## Open: surprises for Michael to rule on

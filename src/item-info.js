@@ -1,10 +1,10 @@
 // What an item card says (#262; the law "Every item in a grid has a hover card", docs/02): the full name, the kind, and the direct uses, all read from the data and never
-// written per item: `data/items.json` (food, drink, weapon, hands, wear, verbs, bag, fire, splitsInto, repair, dye, tags), `data/interactions.json` (what the item can be Used on),
+// written per item: `data/items.json` (food, drink, weapon, hands, wear, verbs, bag, fire, splitsInto, repair, dye, tags: a seed, an herb, a dye plant, a mushroom name the kind), `data/interactions.json` (what the item can be Used on),
 // `data/recipes.json` (what it is made at and goes into), `data/crops.json` (what a seed plants), `data/dyes.json` (what a vat dyes it). It touches no DOM (it reads the registries the game loads: items, interactions, recipes, crops, and the build kinds), so a headless world can ask it and the check can read it;
 // ui/hover-card.js draws what this returns. A card is { name, kind, state, lines, fine }: `lines` and `fine` are lists of lines, a line a list of segments { t, k } where `k`
 // is "use" for the word Use (drawn in --gold, Michael 2026-10-18), "word" for another menu word (Eat, Equip, Drink, Apply), or absent for plain text.
 
-import { getItem, wearPerHit, wearPerShot } from "./items.js";
+import { getItem, wearPerHit, wearPerShot, toolFor } from "./items.js";
 import { work } from "./tuning.js"; // the repair ladders and the sawpit's item (docs/43 section 6)
 import * as interactions from "./interactions.js";
 import * as stations from "./stations.js";
@@ -13,8 +13,9 @@ import { buildKinds } from "./placement.js";
 import { isWoodWall } from "./woods.js";
 import * as dye from "./dye.js";
 import { holdsWater, isTainted } from "./water.js"; // clean or tainted (docs/44)
-import { sourcesOf, snareRule, keptFrom } from "./entities/animal.js"; // where a yield comes from, and the snare (docs/45 section 2)
-import { getDef } from "./assets.js";
+import { sourcesOf, snareRule, keptFrom } from "./entities/animal.js"; // where a yield comes from, the snare (docs/45 section 2), and what keeping gives (section 3)
+import { defIdsWith, getDef } from "./assets.js"; // the nodes a gathered thing comes from (docs/46 step 2)
+import { resourceKindOf } from "./map.js"; // and where they grow: the map's resource kinds
 
 const KIND = { food: "Food", tool: "Tool", material: "Material", clothing: "Clothing", bag: "Bag", ammo: "Ammunition", medicine: "Medicine", drink: "Drink", decor: "Decor" };
 const MAX_LINES = 8; // a small card: the name and the basics, not a page
@@ -44,7 +45,7 @@ function listOf(names) {
   return `${names.slice(0, 3).join(", ")} and more`;
 }
 
-const an = (n) => `${/^[aeiou]/.test(n) ? "an" : "a"} ${n}`;
+const an = (n) => `${/^[aeiou]/i.test(n) ? "an" : "a"} ${n}`;
 function listOr(names) {
   return names.length <= 1 ? names.join("") : `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}`;
 }
@@ -67,6 +68,32 @@ export function usesOf(def) {
     if (!groups.get(verb).includes(name)) groups.get(verb).push(name);
   }
   return [...groups].map(([verb, on]) => ({ verb, on }));
+}
+
+// Where a gathered thing comes from (docs/46 step 2, #448), read from the data: every node whose sprite definition gives it (its `gather`,
+// `dig`, or `mine` block) and the map's resource kind that node belongs to, which says where it grows (`where`) and whether only at night:
+// "Grows wild near water; gathered by hand.", "Grows wild in the graveyard; gathered by hand, only at night.", "Forage under trees.", "Dug from the clay banks by the river, a shovel carried.", "Mined
+// from salt rocks at the iron workings, a pickaxe in hand." A kind with no `where` (the valley's rocks and ore today) says nothing.
+export function gatheredFrom(def) {
+  const out = [];
+  for (const field of ["gather", "dig", "mine"]) {
+    for (const sid of defIdsWith(field)) {
+      const sd = getDef(sid);
+      const b = sd[field];
+      if (!b || b.item !== def.id) continue;
+      const kind = resourceKindOf(sid);
+      if (!kind || !kind.where) continue;
+      const where = kind.where;
+      const night = kind.night || b.night ? ", only at night" : "";
+      const node = `${sd.name || sid.replace(/_\d+$/, "").replace(/_/g, " ")}s`;
+      let text;
+      if (field === "gather") text = b.word ? `${b.word} ${where}${night}.` : `Grows wild ${where}; gathered by hand${night}.`;
+      else if (field === "dig") { const t = toolFor(b.tool); text = `Dug from the ${node} ${where}${t ? `, ${an(t.name.toLowerCase())} carried` : ""}.`; }
+      else { const t = toolFor("mine"); text = `Mined from ${node} ${where}${t ? `, ${an(t.name.toLowerCase())} in hand` : ""}.`; }
+      if (!out.includes(text)) out.push(text);
+    }
+  }
+  return out;
 }
 
 // The recipes that make it, and those it goes into, as station words: { madeAt: [stations], goesInto: [{ name, station }] }.
@@ -93,6 +120,9 @@ export function cardFor(entry) {
   const lines = [];
   let kind = KIND[def.kind] || cap(def.kind || "");
   if (def.tags && def.tags.includes("seed")) kind = "Seed";
+  else if (def.kind === "material" && def.tags && def.tags.includes("dye")) kind = "Dye plant"; // woad, madder, weld (docs/46 step 2): gathered as herbs
+  else if (def.kind === "material" && def.tags && def.tags.includes("herb")) kind = "Herb"; // what Herbalism gathers (docs/39 section 4); garlic, a crop, stays Food
+  else if (def.kind === "material" && def.tags && def.tags.includes("mushroom")) kind = "Forage"; // a mushroom, foraged (Herbalism 3): not food until Cooking says how it is eaten
   else if (def.book) kind = "Spell book";
   else if (def.staff) kind = "Staff";
   else if (def.bow) kind = "Bow";
@@ -185,6 +215,7 @@ export function cardFor(entry) {
     const sn = snareRule();
     lines.push(line(`Set near rabbits, it holds one after about ${sn.hours} game hours.`));
   }
+  for (const t of gatheredFrom(def)) lines.push(line(t)); // where it is gathered (docs/46 step 2)
 
   const state = [];
   if (entry.count > 1) state.push(`×${entry.count}`);

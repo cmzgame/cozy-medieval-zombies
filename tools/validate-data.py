@@ -286,6 +286,34 @@ for sid in sorted(sprites):
         if retired in m:
             fail(f"sprites.{sid}.mine: `{retired}` is retired (docs/46: an ore rock no longer comes back in place)")
 
+# Gathering (docs/46 step 2, #448): a `gather` block (by hand) or a `dig` block (a tool carried) names an item that exists, a count, seconds,
+# and the skill and level it is recorded at (open to all until the skills are built); a dig names a verb some tool lists; `night` is a flag.
+# A node gathered is a gatherable (interactable, the law). A `mine` block may record its skill and level too.
+tool_verbs = {v for it in items for v in it.get("verbs", [])}
+for sid in sorted(sprites):
+    d = load(f"data/sprites/{sid}.json")
+    for field in ("gather", "dig", "mine"):
+        g = d.get(field)
+        if not g:
+            continue
+        where = f"sprites.{sid}.{field}"
+        if field != "mine":
+            check_id(where, g.get("item"))
+            if not (len(g.get("count", [])) == 2 and 1 <= g["count"][0] <= g["count"][1] and g.get("seconds", 0) > 0):
+                fail(f"{where}: a count [lo, hi] from 1 and seconds above 0")
+            if not d.get("interactable"):
+                fail(f"{where}: a node gathered is interactable (the gatherables law)")
+        if ("skill" in g or field != "mine") and g.get("skill") not in ("herbalism", "mining", "woodcutting", "farming", "beastlore", "fishing"):
+            fail(f"{where}: the gathering skill it is recorded at, not {g.get('skill')!r}")
+        if ("level" in g or field != "mine") and not (isinstance(g.get("level"), int) and 1 <= g["level"] <= 10):
+            fail(f"{where}: a level from 1 to 10")
+        if field == "dig" and g.get("tool") not in tool_verbs:
+            fail(f"{where}: the tool's verb {g.get('tool')!r} is listed by no item")
+        if "night" in g and not isinstance(g["night"], bool):
+            fail(f"{where}: night is true or false")
+        if "word" in g and not (isinstance(g["word"], str) and g["word"][:1].isupper()):
+            fail(f"{where}: the menu's word, capitalised")
+
 # Natural resources (docs/46): a map's `resources` kind names sprites that exist and are gatherables (interactable), a count of 0 or more,
 # rects of positive size, places it opens to that the map has, and floors that exist; the tuning's numbers are sensible.
 for path in sorted(glob.glob("data/maps/*.json")):
@@ -313,6 +341,16 @@ for path in sorted(glob.glob("data/maps/*.json")):
         for fl in k.get("floors", []) + k.get("openFloors", []):
             if fl not in sprites:
                 fail(f"{where}: no floor {fl!r}")
+        if "water" in k and not (isinstance(k["water"], int) and k["water"] >= 1):
+            fail(f"{where}: water is a distance in tiles, 1 or more")
+        groups = {r.get("group") for r in m.get("floorRects", []) + m.get("features", []) if str(r.get("sprite", "")).startswith("floor_water")}
+        if k.get("waterGroup") and k["waterGroup"] not in groups:
+            fail(f"{where}: grows by the water {k['waterGroup']!r}, which the map has none of")
+        if "where" in k and not (isinstance(k["where"], str) and k["where"] and k["where"][0].islower()):
+            fail(f"{where}: where it grows, in words for a card (\"near the river\"), not {k['where']!r}")
+        for flag in ("own", "night"):
+            if flag in k and not isinstance(k[flag], bool):
+                fail(f"{where}: {flag} is true or false")
 rt = load("data/tuning.json").get("resources", {})
 if rt:
     d0, d1 = rt.get("days", [1, 2])
@@ -868,20 +906,46 @@ for path in glob.glob("data/maps/*.json"):
     for p in pngs_in(load(path)):
         check_png(path, p)
 
-# The pair rule (docs/26): drawn world art and an icon come together.
+# The pair rule (docs/26): drawn world art and an icon come together. An icon generated from a design (`icon.placeholder`: a sprite's id
+# whose definition is a gatherable's dev art, or a design of its own; docs/46 step 2) is both halves from one design: main.js makes the
+# bag's picture and the item lying on the floor from it; it names a design src/gather-art.js draws, and no `src` of its own.
+ART_KINDS = ("herb", "mushroom", "lump")
+generated = 0
+for i in items:
+    ph = (i.get("icon") or {}).get("placeholder")
+    if ph is None:
+        continue
+    generated += 1
+    if i["icon"].get("src"):
+        fail(f"items.{i['id']}.icon: a generated icon has no src (main.js makes it)")
+    design = ph
+    if isinstance(ph, str):
+        if ph not in sprites:
+            fail(f"items.{i['id']}.icon: no sprite {ph!r} to draw it from")
+            continue
+        sd = load(f"data/sprites/{ph}.json")
+        if sd.get("image") or sd.get("images") or sd.get("drawings"):
+            fail(f"items.{i['id']}.icon: its sprite {ph!r} is drawn art now; the item wants its own drawn icon (a src) in place of the generated one")
+        if not any((sd.get(f) or {}).get("item") == i["id"] for f in ("gather", "dig", "mine")):
+            fail(f"items.{i['id']}.icon: its sprite {ph!r} does not give {i['id']!r} (no gather, dig, or mine block names it)")
+        design = sd.get("placeholder") or {}
+    if not isinstance(design, dict) or design.get("kind") not in ART_KINDS:
+        fail(f"items.{i['id']}.icon: a design of kind {' or '.join(ART_KINDS)}, not {design!r}")
+    if i["icon"].get("size") != [19 * i["size"][0], 19 * i["size"][1]]:
+        fail(f"items.{i['id']}.icon: its size is the footprint at 19 px a cell")
 drawn = 0
 placeholders = []
 for i in items:
     held = i.get("held") or {}
     world = bool(held.get("image") or held.get("angles"))
-    icon = bool(i.get("icon"))
+    icon = bool(i.get("icon")) and (i.get("icon") or {}).get("placeholder") is None
     if world != icon:
         fail(f"items.{i['id']}: half a pair ({'world picture' if world else 'icon'} only; docs/26)")
     elif world:
         drawn += 1
     else:
         placeholders.append(i["id"])
-notes.append(f"{drawn} items with drawn art as pairs, {len(placeholders)} on placeholder art")
+notes.append(f"{drawn} items with drawn art as pairs, {len(placeholders)} on placeholder art ({generated} with a generated pair)")
 
 # The dye vat (docs/43 section 8, #412): every colour a name and a hex, every palette's ids colours, and each item's `dye` block
 # names regions whose palette or colours exist, or schemes of a colour per region; a painted item's `art.keys` is a pair of

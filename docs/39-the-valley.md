@@ -33,7 +33,7 @@
 - **The green:** the duck pond, the maypole, two benches, a woodpile. The willow by the pond [to build].
 - **The inn:** the taproom (a counter, four tables, two fireplaces, barrels, a cupboard, a shelf), three guest rooms with a bed and a chest each, a fenced yard (a well, a woodpile, a privy, a cart, a trough); the Innkeeper, the Guest, the Child.
 - **The chapel:** the nave (an altar, a lectern, a font, six pews), the vestry, a chest, a cupboard; the Priest. The altar's prayer for mana (Faith 1) [to build].
-- **The graveyard:** a fence (a low stone wall when drawn) with its gate, eighteen headstones, eight of the dead standing. Its rising [to build]; open graves to dig [to build]; its herbs and fungi (Herbalism 7) [to build].
+- **The graveyard:** a fence (a low stone wall when drawn) with its gate, eighteen headstones, eight of the dead standing. Its rising [to build]; open graves to dig [to build]; its herbs and fungi (Herbalism 7) [built, #448: one placeholder, grave moss, inside the wall, gathered only at night; its kinds Michael's to name].
 - **The crypt:** two coffins, a chest.
 - **The priest's house.**
 - **The manor:** a stone house (two fireplaces, tables, a bed, a bookcase, a desk, a strongbox, cupboards), a walled garden with three beehives, two benches, a trough, and a fish pond. The hives worked for honey (Beastlore 5) [built, #410].
@@ -165,7 +165,7 @@ One panel for every station; ingredients from the bag, the belt, and every conta
 
 ## 4. Natural resources
 
-What comes back, today: stone, ore, and mushrooms at random spots within their areas, each area keeping its count; rocks and ore rise from the ground (2026-10-25, `46`; built, #447); apple trees bear again in place after three days; fields give seed back; fish never run out; the wild grows new forest, rocks, and mushrooms as new chunks. [change: clay and herbs come back the same way (`46` step 2).]
+What comes back, today: stone, ore, salt, clay, herbs, and mushrooms at random spots within their areas, each area keeping its count; rocks, ore, and salt rise from the ground (2026-10-25, `46`; built, #447 and #448); apple trees bear again in place after three days; fields give seed back; fish never run out; the wild grows new forest, rocks, and mushrooms as new chunks.
 
 - **Trees** [built]: twenty-four kinds by shape (round, spire), colour, and size; felled with a hatchet for two to six logs, leaving a stump; never regrow in the valley; saplings from felling, planted (Woodcutting 4, `46`).
 - **Tree species** [to build]: oak, the common tree (Woodcutting 1); spruce (Woodcutting 3: sturdier furniture, resin); mahogany (Woodcutting 5: fine furniture, a better bow); Winter Pine (the Pale Reach, the snow region, Woodcutting 8) and Bloodbark (the Crimson Abbey, Woodcutting 10) as names. Today's broadleaf is oak and today's conifer is spruce; mahogany is new, planted in the manor's garden and the forest's deep, and needs a design (an art ask); the regions' trees come later (ruled 2026-10-23).
@@ -175,11 +175,11 @@ What comes back, today: stone, ore, and mushrooms at random spots within their a
 - **Apple trees** [built]: twenty-three (the orchard and three gardens); picked by hand for three to five apples, bare three days, bear again in place.
 - **Rocks** [built]: mined with a pickaxe for three stone; forty in the valley, the quarry's eight and the rest on natural ground; a mined one rises again elsewhere on natural ground a game day or two later, the valley's count kept (`46`, #447); the wild's are scattered by rule and come back as new chunks.
 - **Ore rocks** [built]: six at the iron workings; two iron ore each; a mined ore rock is gone, and a new one rises elsewhere in the ore area (the iron workings and the hills round them) a game day or two later (`46`, #447). Unlock: Mining 1.
-- **Salt and clay** [to build]: Mining 3. Each resource from the ground gets a prop of its own to mine, signposted by its look: the rock gives stone and the ore rock iron today; clay, salt, and gems need theirs (Michael, 2026-10-23: "design a small prop for each that can be mined. Also: gems!"). *Primary's reading:* a clay bank at the river's edge, a salt rock in the mine, gems by chance from the ore rock from Mining 4 and a crystal cluster deep in the mine for the finer ones. They come back at random within their areas, clay by the river and salt with the ore (`46`); gems are #281's.
+- **Salt and clay** [built, #448]: Mining 3 (open to all until the skills): eight clay banks on the river's bank, dug with a shovel carried for two clay; four salt rocks in the ore area, mined with a pickaxe for two salt, rising as the ore does; each comes back elsewhere in its area (`46`). Neither has a use yet (salting and jugs are to build). Each resource from the ground gets a prop of its own to mine, signposted by its look: the rock gives stone and the ore rock iron today; clay, salt, and gems need theirs (Michael, 2026-10-23: "design a small prop for each that can be mined. Also: gems!"). *Primary's reading:* a clay bank at the river's edge, a salt rock in the mine, gems by chance from the ore rock from Mining 4 and a crystal cluster deep in the mine for the finer ones. They come back at random within their areas, clay by the river and salt with the ore (`46`); gems are #281's.
 - **Silver** [to build]: Mining 5; where, and what it makes [open #283].
 - **Gems** [to build]: from any rock, rare (at most about 10% a rock); basic at Mining 4, finer at Mining 7; their kinds [open #281].
-- **Herbs** [to build]: none exist. The valley's common herbs and the healing herb in the wild (Herbalism 1); the mana herb near water (Herbalism 4); nightshade and wolfsbane (Herbalism 5); the graveyard's herbs and fungi, planted only at night (Herbalism 7). The common herbs are sage, nettle, and feverfew; yarrow is the healing herb; the mana herb's name is Michael's to choose (ruled 2026-10-23). They grow like weeds at random all over the ground, never in patches, and come back elsewhere once picked (`46`).
-- **Mushrooms** [built]: placed by rule near trees (774 in the valley); sway only [change: foraged at Herbalism 3, for Potions and Cooking (`46` step 2)]; once picked one comes back near trees elsewhere in the woods (`46`; the comeback built, #447, waiting for the forage verb).
+- **Herbs** [built, #448]: gathered by hand (open to all until the skills; the level recorded on each), 120 in eleven kinds: sage, nettle, feverfew, yarrow, the mana herb ("Mana herb" until Michael names it), nightshade, wolfsbane, grave moss (the graveyard's, a placeholder), and the dye plants woad, madder, and weld (a default; their cost at the vats is Michael's, `43`). No use yet: potions, the tea, and seasoning are to build. The valley's common herbs and the healing herb in the wild (Herbalism 1); the mana herb near water (Herbalism 4); nightshade and wolfsbane (Herbalism 5); the graveyard's herbs and fungi, planted only at night (Herbalism 7). The common herbs are sage, nettle, and feverfew; yarrow is the healing herb; the mana herb's name is Michael's to choose (ruled 2026-10-23). They grow like weeds at random all over the ground, never in patches, and come back elsewhere once picked (`46`).
+- **Mushrooms** [built]: placed by rule near trees (774 in the valley); foraged by hand for a mushroom (Herbalism 3, open to all until the skills; built, #448), for Potions and Cooking when they come; once foraged one comes back near trees elsewhere in the woods (`46`).
 - **Berries** on brambles at the forest's edges (`docs/29-world/06`): picked like herbs, Herbalism 1 (ruled 2026-10-23) [to build].
 - **Sticks** [change]: the twigs under trees are decals, not items; a stick comes from a plank (a hatchet), a body, or a haystack. Gather sticks under a standing tree, once a day each (`46`).
 - **Fish** [built]: perch, trout, carp; never run out. The river: perch, trout. The ponds: carp, perch. The brook: trout, perch. The mere (when built): trout, carp. Unlock: a rod; [change: perch at Fishing 1, carp at 3, trout at 5].
@@ -379,14 +379,14 @@ All [to build]: brewed at a cauldron from Herbalism's herbs and secondaries; dru
 - **Resin and pitch** [to build]: from spruce (Woodcutting 3); torches that burn longer, waterproofing.
 - **Spruce and mahogany wood** [to build]: Woodcutting 3 and 5; a log and a plank per wood, as the walls are (ruled 2026-10-23).
 - **Sapling** [to build]: Woodcutting 4.
-- **Salt, clay** [to build]: Mining 3.
+- **Salt, clay** [built, #448]: Mining 3; no use yet (salting, jugs and jars to build).
 - **Silver** [to build]: Mining 5 [open #283].
 - **Gems** [to build]: section 5.10.
 - **Fish bones and bonemeal** [to build]: gutting a catch (Fishing 3); crops grow faster.
 - **Fish oil** [to build]: Fishing 5; lamp and lantern fuel, longer-burning torches.
 - **Fish glue** [to build]: Fishing 9; stronger bows.
 - **Compost and a better fertiliser** [to build]: the composter (Farming 4).
-- **Herbs, dried herbs, cuttings, herb seeds** [to build]: Herbalism 1, 4, 6.
+- **Herbs** [built, #448]: Herbalism 1, 4, 5, 7 (section 4); no use yet. **Dried herbs, cuttings, herb seeds** [to build]: Herbalism 4, 6. **Mushroom** [built, #448]: foraged (Herbalism 3); no use yet.
 - **Rotten food, rotten fish** [to build]: what rot leaves (#264); the composter takes them.
 - **Hides** [built, #443] **and leather** [to build]: skinned (Beastlore 2), tanned (Crafting 3).
 - **Feathers** [built: a butchered hen's, #443; a fed hen's most days, #444]: generous, so arrows can be farmed: a fed hen a feather most days, a butchered hen three to five; one fletches five arrows (`45`).
@@ -632,7 +632,7 @@ A skill's level gate stops a player harvesting the food it gates, ripe fields in
 ### Herbalism (gathering; feeds Potions, Cooking, Faith, Farming)
 1. Picking the valley's common herbs in the wild, the healing herb among them.
 2. Sometimes two herbs a pick.
-3. Foraging mushrooms as secondaries [change: they only sway today].
+3. Foraging mushrooms as secondaries [built, #448: open to all].
 4. The mana herb (near water); the drying rack.
 5. Nightshade and wolfsbane, for poisons.
 6. Cuttings and seeds from herbs you can pick, for the herb bed.
@@ -837,7 +837,8 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 - Chisel a gem [open #281].
 - Pick apples (by hand) [built].
 - Cast the line (a rod in hand) [built]; gut a catch [to build]; set and empty a fish trap [to build].
-- Pick herbs, forage mushrooms, take cuttings and seeds [to build] (Herbalism 1, 3, 6).
+- Gather herbs, forage mushrooms (by hand) [built, #448] (Herbalism 1, 3, 4, 5, 7; open to all until the skills); take cuttings and seeds [to build] (Herbalism 6).
+- Dig a clay bank (a shovel carried; Mining 3) [built, #448]; mine a salt rock (a pickaxe in hand; Mining 3) [built, #448].
 - Take from a stack: logs, planks, stone [built for the quarry's stone; the woodcutters' stacks to build].
 - Dig a grave, the buried chest, a plot [to build] (a shovel).
 - Hunt, track, set a snare, skin, butcher [to build] (Beastlore; a dirk).
