@@ -209,6 +209,10 @@ const rulesImport = await import("../src/rules.js");
 const inventoryMod = await import("../src/inventory.js");
 const itemsMod = await import("../src/items.js");
 const playerMod = await import("../src/entities/player.js");
+const characterMod = await import("../src/entities/character.js");
+const paintingsMod = await import("../src/paintings.js");
+const setdownMod = await import("../src/setdown.js");
+const campfireMod = await import("../src/campfire.js");
 const verbsMod = await import("../src/verbs.js");
 const netsmoothTool = await import("./netsmooth.js");
 const { lineOfSight } = await import("../src/visibility.js");
@@ -236,6 +240,140 @@ check("sync: a board struck short of a break leaves the map hash, a broken one m
   assert(broke === "board", `the board did not break (${broke})`);
   assert(gameMod.syncParts().map !== map0, "a broken board did not move the map hash");
   return "struck: same; broken: moved";
+});
+// The duplication count (#101): every item in the world counted, a move between a bag and the floor changing no count, an entry held in
+// two places caught with both places named, one gone moving the items part, and the two places that are one thing by design (a
+// two-handed thing in both hands, a searched body's grid and its worn slots) counted once; the parts fit the host's cap on a report.
+check("sync: the item census counts every item once, keeps a move, and catches an entry held twice or gone (#101)", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const a = S.player;
+  const b = gameMod.addPlayer(a.gx + 5, a.gy, {});
+  const c0 = gameMod.itemCensus();
+  assert(c0.dups.length === 0, `a fresh world holds ${c0.dups.length} entries twice: ${JSON.stringify(c0.dups.slice(0, 3))}`);
+  assert(c0.entries > 0 && c0.units >= c0.entries, `the census found ${c0.entries} entries, ${c0.units} units`);
+  const p0 = gameMod.syncParts();
+  assert(p0.items === gameMod.hashOf(c0.text) && p0.living === gameMod.hashOf(c0.livingText) && /0 too deep, 0 held twice$/.test(p0.census), `the parts are ${p0.items} / ${p0.living} / ${p0.census}`);
+  const keys = Object.keys(p0);
+  assert(keys.length <= 16 && keys.every((k) => String(p0[k]).length <= 200), `a guest's report would be cut: ${keys.length} parts, longest ${Math.max(...keys.map((k) => String(p0[k]).length))}`);
+  // A move: an entry from a's bag to the floor, then back into b's bag. No count changes and nothing is held twice.
+  const bagA = inventoryMod.bagOf(a);
+  const bagB = inventoryMod.bagOf(b);
+  const e = bagA.items[0];
+  bagA.items.splice(0, 1);
+  const lying = mapMod.dropItem(Math.round(a.gx), Math.round(a.gy), e);
+  const c1 = gameMod.itemCensus();
+  assert(c1.text === c0.text && c1.dups.length === 0, `a move to the floor changed the census: ${c1.summary}`);
+  const t = mapMod.tileAt(Math.round(a.gx), Math.round(a.gy));
+  t.items.splice(t.items.indexOf(lying), 1);
+  bagB.items.push({ ...lying });
+  const c2 = gameMod.itemCensus();
+  assert(c2.text === c0.text && c2.dups.length === 0, `a move into another bag changed the census: ${c2.summary}`);
+  // A copy left behind: the same uid in two bags is caught, with both places.
+  bagA.items.push({ ...lying });
+  const c3 = gameMod.itemCensus();
+  assert(c3.dups.length === 1 && c3.dups[0].uid === lying.uid && c3.dups[0].places.length === 2, `a duplicated entry was not caught: ${c3.summary}`);
+  assert(c3.dups[0].places.some((w) => w.includes(a.id)) && c3.dups[0].places.some((w) => w.includes(b.id)), `the places are ${c3.dups[0].places.join(" / ")}`);
+  assert(/1 held twice: /.test(gameMod.syncParts().census) && c3.text !== c0.text, `the census part says ${gameMod.syncParts().census}`);
+  bagA.items.pop();
+  // One gone: the items part moves.
+  const gone = bagB.items.pop();
+  assert(gameMod.syncParts().items !== p0.items, "an entry gone did not move the items part");
+  bagB.items.push(gone);
+  assert(gameMod.syncParts().items === p0.items, "the entry back did not bring the items part back");
+  // A two-handed thing in both hands: counted once, as one object (the host's) or as one uid in two objects (a replica's); a one-handed
+  // thing's uid in both hands is two places.
+  const hands0 = { ...b.hands };
+  b.hands.main = null;
+  b.hands.off = null;
+  const before = gameMod.itemCensus();
+  const halberd = itemsMod.makeEntry("halberd", 1);
+  assert(itemsMod.handFor("halberd") === "both", "the halberd is not two-handed");
+  b.hands.main = halberd;
+  b.hands.off = halberd;
+  const both = gameMod.itemCensus();
+  assert(both.dups.length === 0 && both.units === before.units + 1, `a two-handed thing counted ${both.units - before.units} times, ${both.dups.length} held twice`);
+  b.hands.off = { ...halberd }; // the replica's copy: two objects, one uid
+  const replica = gameMod.itemCensus();
+  assert(replica.units === before.units + 1 && replica.dups.length === 0, "a replica's two-handed thing counted twice");
+  const plank = itemsMod.makeEntry("plank", 1);
+  b.hands.main = plank;
+  b.hands.off = { ...plank };
+  const oneHanded = gameMod.itemCensus();
+  assert(oneHanded.dups.length === 1 && oneHanded.dups[0].uid === plank.uid, `a one-handed thing's uid in both hands was not caught: ${oneHanded.summary}`);
+  b.hands.main = hands0.main;
+  b.hands.off = hands0.off;
+  // A searched body: its grid holds what it wore, and its worn slots still point at those entries (and at what is taken from it). The
+  // living's garments are their own part, so the whole count is compared here.
+  const all = (c) => [...c.totals].sort((p, q) => (p[0] < q[0] ? -1 : 1)).join(";");
+  const z = S.zombies.find((q) => Object.values(q.worn).some(Boolean));
+  assert(z, "none of the dead wears anything");
+  z.lootTable = null; // no roll: the search lays out only what it has
+  const unsearched = gameMod.itemCensus();
+  const grid = characterMod.lootOf(z);
+  const searched = gameMod.itemCensus();
+  assert(all(searched) === all(unsearched) && searched.dups.length === 0, `a search changed the census: ${unsearched.summary} to ${searched.summary}`);
+  const taken = grid.items.find((q) => q.uid);
+  grid.items.splice(grid.items.indexOf(taken), 1);
+  bagB.items.push(taken);
+  const moved = gameMod.itemCensus();
+  assert(all(moved) === all(unsearched) && moved.dups.length === 0, `a garment taken from a body changed the census: ${moved.summary}`);
+  assert(moved.text !== unsearched.text && moved.livingText !== unsearched.livingText, "a garment from the living into a bag moved neither the held count nor the living's");
+  // What stands or hangs as an item: a rug laid, a painting hung, a bracket hung and a torch in it, a torch post, a snare, and a campfire
+  // set down, each by its own verb from a's bag, keep every count (each one unit of its item, held by "placed"); picked up again, the same.
+  a.worn.back = itemsMod.makeEntry("dev_bag", 1); // room for a 5 by 5 campfire beside the rest
+  mapMod.ensureAround(a.gx, a.gy, 3);
+  let at = null;
+  for (let dy = -36; dy <= 36 && !at; dy++) for (let dx = -36; dx <= 36 && !at; dx++) {
+    const x = Math.round(a.gx) + dx;
+    const y = Math.round(a.gy) + dy;
+    let ok = true;
+    for (let ay = -2; ay < 10 && ok; ay++) for (let ax = -1; ax < 13 && ok; ax++) { const tt = mapMod.peekTile(x + ax, y + ay); ok = !!tt && tt.floor === "floor_grass" && !tt.prop && !tt.rug && !tt.n && !tt.w && !(tt.items && tt.items.length); }
+    if (ok) at = [x, y];
+  }
+  assert(at, "no bare grass for the placed things");
+  const [x, y] = at;
+  for (let i = 0; i < 10; i++) mapMod.buildWall(x + i, y, "n", "wall");
+  const stow = (id) => { const en = itemsMod.makeEntry(id, 1); assert(inventoryMod.stow(a, en), `${id} did not fit the bag`); return en; };
+  const standAt = (gx, gy) => { a.gx = gx; a.gy = gy; };
+  const ids = ["rug_bearskin", "painting_small_oak", "wall_bracket", "torch", "torch_post", "snare", "campfire"];
+  const ents = Object.fromEntries(ids.map((id) => [id, stow(id)]));
+  const count = (c, id) => (c.totals.get(id) || 0);
+  const held0 = gameMod.itemCensus();
+  const check0 = (what) => {
+    const c = gameMod.itemCensus();
+    const moved = ids.filter((id) => count(c, id) !== count(held0, id)).map((id) => `${id} ${count(held0, id)} to ${count(c, id)}`);
+    assert(c.text === held0.text && c.dups.length === 0, `${what} changed the count: ${moved.join(", ") || c.summary}`);
+    return c;
+  };
+  standAt(x + 2, y + 1);
+  assert(paintingsMod.hang(a, ents.painting_small_oak.uid, x + 1, y, "n") === true, "the painting was not hung");
+  check0("a painting hung");
+  standAt(x + 5, y + 1);
+  assert(setdownMod.hang(a, ents.wall_bracket.uid, x + 5, y, "n") === true, "the bracket was not hung");
+  check0("a bracket hung");
+  const br = mapMod.peekTile(x + 5, y).n.bracket;
+  inventoryMod.bagOf(a).items.splice(inventoryMod.bagOf(a).items.indexOf(ents.torch), 1);
+  br.torch = true; // a torch put in it, as the bracket holds one
+  check0("a torch in a bracket");
+  standAt(x + 2, y + 4);
+  assert(rugsImport.placeRug(a, ents.rug_bearskin.uid, x + 1, y + 3, "y") === true, "the rug was not laid");
+  check0("a rug laid");
+  standAt(x + 8, y + 4);
+  assert(setdownMod.place(a, ents.torch_post.uid, x + 8, y + 3) === true, "the torch post was not set down");
+  check0("a torch post set down");
+  standAt(x + 10, y + 4);
+  assert(setdownMod.place(a, ents.snare.uid, x + 10, y + 3) === true, "the snare was not set down");
+  const placedCensus = check0("a snare set down");
+  standAt(x + 8, y + 7);
+  assert(campfireMod.place(a, ents.campfire.uid, x + 8, y + 6) === true, "the campfire was not set down");
+  const lastPlaced = check0("a campfire set down");
+  assert(ids.every((id) => (lastPlaced.groups.placed.get(id) || 0) === (held0.groups.placed.get(id) || 0) + 1), `the placed hold ${JSON.stringify([...lastPlaced.groups.placed])}, before ${JSON.stringify([...held0.groups.placed])}`);
+  standAt(x + 10, y + 4);
+  assert(setdownMod.pickUp(a, mapMod.peekTile(x + 10, y + 3).prop) === true, "the snare was not picked up");
+  check0("a snare picked up");
+  assert(placedCensus.dups.length === 0, "the placed things were held twice");
+  return `${c0.summary.replace(/, 0 too deep, 0 held twice$/, "")}; a move kept, a copy caught at ${c3.dups[0].places.join(" and ")}, one gone moved the part, a two-handed thing and a body counted once, a one-handed uid in both hands caught, seven placed things kept and one picked up`;
 });
 // The starting kit (#136) against the real grid, not the validator's area count: the default kit fits the sack and the Developer Bag
 // by placement, and asking leaves the id counter where it was (the world's count is part of its hash).

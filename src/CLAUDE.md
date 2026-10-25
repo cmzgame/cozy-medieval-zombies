@@ -21,7 +21,7 @@ Read with the root `CLAUDE.md`. This file says what is, not when; the rulings be
 
 ## The world and its state
 
-- `game.js`: the world's state, `create` from a map file, the step order (`begin`, `step`), `serialize` and `restore` (the save and the join's format), `hashText`, `syncParts` (what `check("sync")` compares), `verifySaveCache`.
+- `game.js`: the world's state, `create` from a map file, the step order (`begin`, `step`), `serialize` and `restore` (the save and the join's format), `hashText`, `syncParts` (what `check("sync")` compares), `itemCensus` (every item in the world counted, each uid's places, #101: the sync parts `items` and `census`), `verifySaveCache`.
 - `map.js`: tiles, edge walls, collision, rooms, authoring (sets, features, scatter, wild), `propById`, `feedFire`, `setFireLit` and `setLantern` (a switch or a lantern on or off; a put-out emits `firePutOut`, never the burnt-out `fireOut`), growth and eviction (`evictFar`; `dropChunk` the one way a chunk leaves memory, the host's eviction and a guest told of one alike; `takeEvicted` the dropped chunks for the frame).
 - `world.js`: the world's time scale (1 awake, `sleepTimeScale` from `data/tuning.json` while every living player sleeps; `game.timeScaleNow`) and the id counter every prop and entry takes its instance id from.
 - `interp.js`: drawn positions between steps (#161): each step marks where every character and the camera stood (`mark`), and `render` puts them `loop.alpha()` of the way to where the step left them (`apply`) and takes it off again in a `finally` (`restore`); nothing in the simulation or the interface logic ever reads a blended position; a jump over `feel.blendJump` tiles is not blended; arrows and the fireball are marked too, with their height.
