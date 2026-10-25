@@ -251,6 +251,42 @@ map.setHolder(mountTarget, true, { wear: 0.2, lit: true }); did("a torch mounted
 did("a mounted torch burning down", 200);
 map.setHolder(mountTarget, false); did("the torch taken out");
 
+// A snare set from the bag, holding a rabbit, and set again once the catch is taken (docs/45 section 2): its state rides on the prop.
+{
+  const setdown = await import("../src/setdown.js");
+  const animal = await import("../src/entities/animal.js");
+  const grid = await import("../src/grid.js");
+  const me = game.state.player;
+  const home = game.state.animalHomes.find((h) => h.species === "rabbit");
+  if (!home) fail("the valley has no home of rabbits");
+  me.gx = home.at[0] + 4;
+  me.gy = home.at[1];
+  steps(2);
+  const sn = items.makeEntry("snare", 1);
+  const bag0 = inventory.bagOf(me).items;
+  inventory.bagOf(me).items = []; // room for it: the run above has filled the kit's sack
+  if (!grid.insert(inventory.bagOf(me), sn)) fail("no room in the bag for a snare");
+  let at = null;
+  for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+    const tx = Math.round(me.gx) + dx;
+    const ty = Math.round(me.gy) + dy;
+    if (!at && map.isWalkableTile(tx, ty) && !map.tileAt(tx, ty).prop && map.tileAt(tx, ty).room === 0) at = [tx, ty];
+  }
+  if (!at || !setdown.place(me, sn.uid, at[0], at[1])) fail("the snare could not be set beside the rabbits' home");
+  did("a snare set");
+  const snare = map.tileAt(at[0], at[1]).prop;
+  clock.setElapsed(snare.snare.setAt + animal.snareRule().hours * animal.GAME_HOUR + 1);
+  me.gx += 70; // nobody near to see the catch
+  did("a snare holding a rabbit", 70);
+  const caught = game.state.animals.find((q) => q.id === snare.snare.holds);
+  if (!caught) fail("the snare caught nothing");
+  caught.butchered = true;
+  did("a snare set again once its catch is taken", 70);
+  if (snare.snare.holds !== null) fail("the snare was not set again");
+  map.removeProp(snare);
+  inventory.bagOf(me).items = bag0;
+}
+
 // The save as the server writes it: the snapshot's text, the same characters as the object's.
 const extra = { worldId: "w", name: "n", owners: {}, dormant: {}, myPlayerId: null, server: true };
 const st = save.snapshotText("valley", extra);

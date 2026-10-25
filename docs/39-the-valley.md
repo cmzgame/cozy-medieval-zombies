@@ -107,7 +107,7 @@
 - **The herb bed** (Farming 7) [to build].
 - **The drying rack** (Herbalism 4) [to build].
 - **Fish traps**, set in the water (Fishing 7) [to build].
-- **Snares** (Beastlore 3) [to build].
+- **Snares** (Beastlore 3) [built, #443: set from the bag near rabbits, holding one after six game hours; open to all until the skills].
 - **The feast's table:** any table, the feast laid on it (Cooking 10) [to build].
 - **A campfire** (ruled 2026-10-25, `43` section 3) [built]: built from the palette, three stone and two logs, outdoors; six logs of three hours; picked up only out and empty, as a Campfire item (5 by 5).
 - **Wall brackets** (ruled 2026-10-25, `43` section 4) [built]: made at the anvil (an iron bar, Blacksmithing 1), hung like a painting; the valley's four start holding an unlit torch.
@@ -195,13 +195,13 @@ Every item in `data/items.json` is here with how it is had today; each new item 
 
 ### 5.1 Tools
 
-- **Shears** [to build]: shear a fed sheep's wool; the anvil, Blacksmithing 1 (`45`). **The lead** [to build]: leads livestock home; the workbench, Crafting 1. **The snare** [to build]: catches a rabbit, set near the woods; the workbench, Crafting 1, set at Beastlore 3 (`45`).
+- **Shears** [to build]: shear a fed sheep's wool; the anvil, Blacksmithing 1 (`45`). **The lead** [to build]: leads livestock home; the workbench, Crafting 1. **The snare** [built, #443]: catches a rabbit, set near the woods; the workbench, Crafting 1, set at Beastlore 3 (`45`).
 - **Hatchet** [built]: fells trees, chops stumps, splits logs and planks, notches a log wall; a weapon. The home chest, the joiner's chest; made at the anvil (Blacksmithing 1).
 - **Pickaxe** [built]: mines rocks and ore. The miners' and the quarryman's chests; made at the anvil (Blacksmithing 1).
 - **Hoe** [built]: tills grass and dirt. The great barn's rack; made at the workbench.
 - **Scythe** [built]: harvests a row of rye at a swing; cuts hay (Farming 5), eaten by penned animals from Beastlore 4; straw is cut (ruled 2026-10-23). Made at the anvil [change: Blacksmithing 3].
 - **Shovel** [built]: digs potatoes and garlic. The home chest; made at the workbench. Digging graves, the buried chest, and plots [to build]; uprooting stumps (Woodcutting 4) [to build].
-- **Dirk** [built] (renamed from the belt knife, 2026-10-19): harvests cabbages and pumpkins; the bow, arrows, rod, and rags need it carried. The weaver's chest; made at the anvil (Blacksmithing 1). Skinning and butchering [to build] (Beastlore); gutting fish [to build] (Fishing 3).
+- **Dirk** [built] (renamed from the belt knife, 2026-10-19): harvests cabbages and pumpkins; the bow, arrows, rod, and rags need it carried. The weaver's chest; made at the anvil (Blacksmithing 1). Skinning and butchering [built, #443] (Beastlore; open to all until the skills); gutting fish [to build] (Fishing 3).
 - **Smith's hammer** [built]: the anvil's recipes (in hand); doors, windows, boards, Remove, and the workbench's furniture and tools (carried). The joiner's and the quarryman's chests; made at the anvil with no hammer needed (Blacksmithing 1).
 - **Fishing rod** [built]: Cast the line at water (Fishing 1). Made at the workbench, Crafting 1 (ruled 2026-10-23).
 - **Bucket** [built]: fill at water, pour on a plot (3 by 3). The home chest; made at the workbench.
@@ -307,7 +307,7 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 - **Tomato** [to build]: Farming 5.
 - **Mushrooms, eaten or cooked** [to build]: Herbalism 3 (some for Cooking).
 - **Eggs** [to build]: laid by a fed hen into its coop (Beastlore 1, `45`).
-- **Raw meat** [to build]: hen, rabbit (Beastlore 3's snares), venison (the deer), beef (cows), mutton (sheep), pork (pigs and boar, Beastlore 7); each cooked alone at a fire or used raw in recipes (`45` section 4). **Bacon and lard** from a pig (Beastlore 7) (`45`).
+- **Raw meat** [built, #443: butchered, eaten raw; cooked alone and in recipes, to build, `45` step 4]: hen, rabbit (Beastlore 3's snares), venison (the deer), beef (cows), mutton (sheep), pork (pigs and boar, Beastlore 7); each cooked alone at a fire or used raw in recipes (`45` section 4). **Bacon and lard** from a pig (Beastlore 7) (`45`) [built, #443].
 - **Milk** [to build]: cows (Beastlore 4).
 - **Honey** [built, #410]: the hive (Beastlore 5), a pot every three game days (*default*); never rots.
 - **Wheel of cheese** [built]: chests, pantries, and the inn's counter only [change: made from milk (Beastlore 4) at Cooking 3 (ruled 2026-10-23)].
@@ -388,8 +388,8 @@ All [to build]: brewed at a cauldron from Herbalism's herbs and secondaries; dru
 - **Compost and a better fertiliser** [to build]: the composter (Farming 4).
 - **Herbs, dried herbs, cuttings, herb seeds** [to build]: Herbalism 1, 4, 6.
 - **Rotten food, rotten fish** [to build]: what rot leaves (#264); the composter takes them.
-- **Hides and leather** [to build]: skinned (Beastlore 2), tanned (Crafting 3).
-- **Feathers** [to build]: generous, so arrows can be farmed: a fed hen a feather most days, a butchered hen three to five; one fletches five arrows (`45`).
+- **Hides** [built, #443] **and leather** [to build]: skinned (Beastlore 2), tanned (Crafting 3).
+- **Feathers** [built from a butchered hen, #443; a fed hen's, to build]: generous, so arrows can be farmed: a fed hen a feather most days, a butchered hen three to five; one fletches five arrows (`45`).
 - **Wool and woollen cloth** [to build]: sheep (Beastlore 4), Crafting 6.
 - **Honey and wax**: the hive (Beastlore 5) [honey built, #410]; wax for candles [to build].
 - **Lard** [to build]: pigs (Beastlore 7); pemmican's binder.
