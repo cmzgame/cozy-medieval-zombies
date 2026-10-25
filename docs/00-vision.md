@@ -6,7 +6,7 @@ This document is the tiebreaker. When a design or implementation question has no
 
 ## The idea in one paragraph
 
-A cute isometric pixel village in the Habbo / early-2000s style, medieval and low-fantasy: thatched cottages, an inn, a chapel, a well, a smithy, and a knight with a big head. The dead have risen. You move through the village as one continuous place: cross the square, look through the inn's window, see who is inside before you open the door. The world keeps looking cute. The dead keep coming. Underneath the sweetness is a serious survival simulation in the spirit of Project Zomboid, boiled down to a few rules that collide: light, sight, noise, hunger, thirst, sleep, a hearth you keep lit, a garden you tend, and a home you furnish and defend.
+A cute isometric pixel village, medieval and low-fantasy: thatched cottages, an inn, a chapel, a well, a smithy, and a knight with a big head. The dead have risen. You move through the village as one continuous place: cross the square, look through the inn's window, see who is inside before you open the door. The world keeps looking cute. The dead keep coming. Underneath the sweetness is a serious survival simulation in the spirit of Project Zomboid, boiled down to a few rules that collide: light, sight, noise, hunger, thirst, sleep, a hearth you keep lit, a garden you tend, and a home you furnish and defend.
 
 ## What this game is (2026-10-13)
 

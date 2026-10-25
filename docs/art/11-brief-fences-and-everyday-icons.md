@@ -10,7 +10,7 @@ Please read the whole brief before drawing. Near the end are four questions; ans
 
 ## The game and the style, in short
 
-Cozy Medieval Zombies: a cosy, slightly spooky medieval village overrun by the dead, in 2:1 isometric pixel art, Habbo-like. Muted autumn colours, never neon. Your own rulebook, `docs/art/01-style-bible.md`, still holds in full. The parts that matter most here:
+Cozy Medieval Zombies: a cosy, slightly spooky medieval village overrun by the dead, in 2:1 isometric pixel art. Muted autumn colours, never neon. Your own rulebook, `docs/art/01-style-bible.md`, still holds in full. The parts that matter most here:
 
 - Hard pixels only: every pixel alpha 0 or 255.
 - Light from the top left. Three or four flat shades per material, a darkest-of-its-own-colour edge on the lower or outer side, no gradients, no dither.
