@@ -1244,6 +1244,36 @@ check("bees: three to six drawn bees (stripes dark, gold, dark, a head, wings fo
   return `${[...counts].sort().join(", ")} bees by hive, none from dusk to dawn; six and wider when stirred, for ${beesMod.BEES.stirSeconds} s of the clock`;
 });
 
+// A repair place's one greyed line (docs/43 section 6; docs/bugs.md, fixed): with nothing worn carried it says what the place does; with
+// everything worn already at or above the place's ceiling for it, "nothing it can better". The menu is built as a guest's replica builds it.
+check("repairs: a grindstone or an anvil with nothing to better says so, not that nothing worn is carried", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  mapMod.ensureAround(101, 188, 3); // the smithy
+  const stone = mapMod.allProps().find((q) => q.sprite === "grindstone");
+  const anvil = mapMod.allProps().find((q) => q.sprite === "anvil");
+  assert(stone && anvil, "no grindstone or anvil at the smithy");
+  const acts = (prop) => interactMod.actionsForTarget({ kind: "prop", id: prop.id }, me);
+  const labels = (prop) => acts(prop).filter((a) => a.kind === "sharpen" || a.kind === "repair").map((a) => `${a.label}${a.enabled === false ? " [off]" : ""}`); // the anvil is a station too
+  const standBy = (prop) => { const t = interactMod.approachTile(acts(prop)[0], me); if (t) { me.gx = t[0]; me.gy = t[1]; } };
+  inventoryMod.bagOf(me).items.length = 0;
+  (inventoryMod.beltOf(me) || []).fill(null);
+  me.hands.main = null;
+  me.hands.off = null;
+  standBy(stone);
+  assert(JSON.stringify(labels(stone)) === JSON.stringify(["Sharpen (no dull blade carried) [off]"]), `nothing carried: ${labels(stone).join(" | ")}`);
+  // A sword at 70% with one repair behind it: the stone's next rung is 40%, the anvil's 80%.
+  me.hands.main = itemsMod.makeEntry("sword", 1, { wear: 0.3, repairs: 1 });
+  assert(JSON.stringify(labels(stone)) === JSON.stringify(["Sharpen (nothing it can better) [off]"]), `a sword above the stone's rung: ${labels(stone).join(" | ")}`);
+  me.hands.main.wear = 0.1; // 90%, above the anvil's 80%
+  standBy(anvil);
+  assert(JSON.stringify(labels(anvil)) === JSON.stringify(["Repair (nothing it can better) [off]"]), `a sword above the anvil's rung: ${labels(anvil).join(" | ")}`);
+  me.hands.main = null;
+  assert(JSON.stringify(labels(anvil)) === JSON.stringify(["Repair (nothing worn carried) [off]"]), `nothing carried at the anvil: ${labels(anvil).join(" | ")}`);
+  return "nothing carried, and a sword above each place's rung, each its one greyed line";
+});
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;

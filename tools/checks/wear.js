@@ -166,6 +166,7 @@ async function repairs(G, row) {
     row("sharpened again at once: refused, the stone's next rung (40%) is below it", !again.ok && /sharp as the stone/.test(again.reason) && blade.repairs === 1, String(again.reason));
     const blunt = G.verbs.run("sharpen", G.world, me, { prop: stone.id, uid: mace.uid });
     row("the mace refused at the grindstone by the verb too", !blunt.ok && /edge/.test(blunt.reason), String(blunt.reason));
+    row("the sword at 60% (the stone's next rung 40%) and a blunt mace: one greyed line, nothing it can better", JSON.stringify(labels(stone)) === JSON.stringify(["Sharpen (nothing it can better) [off]"]), labels(stone).join(" | "));
 
     standBy(anvil);
     blade.wear = 0.7;

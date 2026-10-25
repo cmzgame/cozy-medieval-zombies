@@ -24,8 +24,6 @@
 
 - **`check("build")` fails 9 of 11 on `main`** (found reviewing #227, on `main` at `0e765f7`, fresh tab): "the player's own wall with a door removed is still the player's own" and "a new door built over a broken stamped one remembers the wall under it". Not a play bug found; 11 of 11 in my run after other checks in the same tab, so it may depend on what ran first.
 
-- **A repair place's greyed line says nothing worn is carried when everything worn is already above its ceiling** (found syncing the wiki for #416, 2026-10-25, at `e045b31`). `src/repair.js` `propActions` (~135, ~152): a worn sword at 70% at the grindstone (next ceiling 60%) is skipped, and the one line left reads "Sharpen (no dull blade carried)". Likely fix: "Sharpen (nothing it can better)" when something worn was skipped.
-
 - **Two small words** (found syncing the wiki, 2026-10-25, at `e045b31`): `data/sprites/sawpit.json`'s note names `src/repair.js` where the code is `src/sawpit.js`; `src/sawpit.js` (~47) says "1 fall at your feet" when one plank falls.
 
 - **Talk is answered while an immune villager cowers or runs** (found syncing the wiki for #434, 2026-10-25, read at `fa2997f`, *needs repro*). `src/entities/villager.js` `startTalk` (~304-319) does not look at the cower or flee state; `docs/43`'s status says Talk is not answered then. A Talk to a fleeing villager whose dead one is beyond `talkDeadRadius` would start a conversation and cut off the flight.
@@ -52,6 +50,8 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 ## Fixed
 
 (Move items here with the commit that fixed them.)
+
+- [x] **A repair place's greyed line said nothing worn was carried when everything worn was already above its ceiling** (found syncing the wiki for #416, 2026-10-25): a sword at 70% at the grindstone (next rung 60%) was skipped, and the one line left read "Sharpen (no dull blade carried)". Fixed in the bugs batch (`primary/bugs-batch-1`): `repair.propActions` notes a worn thing skipped for its ceiling, and the one greyed line then reads "Sharpen (nothing it can better)" or "Repair (nothing it can better)"; the old words stay for nothing worn carried. A guest's menu is built by the same function from its replica, so it reads the same. `node tools/check.js` ("repairs") and `check("wear")` have rows for it.
 
 - [x] **The dye vat's picker left out the belt's slots and a bag inside a bag** (found syncing the wiki for #417, 2026-10-25): `dyeables` listed the worn slots, the hands, and the worn bag's items, while the verb's `entryOf` took the belt's slots too. Read again on `main`: a satchel carried in a worn rucksack was already listed (it is an item of the worn bag), and no bag holding things can go into a bag (`inventory.canStoreIn`), so the belt's slots were the one gap, and no dyeable thing rides a belt yet. Fixed in the bugs batch (`primary/bugs-batch-1`): one walk in `src/dye.js` (`carried`: the worn things, the hands, the belt's slots, the bag, and a bag or a belt inside it in its turn) serves the picker's list and the verb's `entryOf` alike, so the picker offers nothing the verb refuses; `node tools/check.js` ("dye vat": gloves on a worn belt's slot dyed by a guest's command, a cap in a satchel in the bag) and `check("dye")` (a satchel in a worn rucksack listed and dyed, gloves on the belt listed) have rows for it.
 
