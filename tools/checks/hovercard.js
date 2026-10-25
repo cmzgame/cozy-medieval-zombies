@@ -40,6 +40,7 @@ export async function run(game) {
     row("a tinderbox: the word Use is its own segment, and the card says what it lights", !!useSeg && useSeg.t === "Use" && has("tinderbox", "Use on campfire, torch post") && has("tinderbox", ": light."), text("tinderbox").join(" | "));
     row("a seed says what it grows", has("potato_seed", "Grows potato on tilled soil.") && info.cardFor(G.items.makeEntry("potato_seed")).kind === "Seed", text("potato_seed").join(" | "));
     row("a rucksack says where it is worn and what it holds", has("rucksack", "worn on your back; holds 8×5"), text("rucksack").join(" | "));
+    row("a linen satchel says it is a bag worn on the back holding 7×5, made at the loom (#400)", has("satchel", "worn on your back; holds 7×5") && has("satchel", "Made at the loom.") && info.cardFor(G.items.makeEntry("satchel")).kind === "Bag", text("satchel").join(" | "));
     // A stack is one of the few things that stack (#399): throwing knives, which also wear; a single food shows no count.
     const knives = info.cardFor(G.items.makeEntry("throwing_knife", 3, { wear: 0.25 })).state;
     const oneLoaf = info.cardFor(G.items.makeEntry("bread", 1)).state;

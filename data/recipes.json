@@ -198,6 +198,21 @@
    "seconds": 14
   },
   {
+   "id": "weave_satchel",
+   "station": "loom",
+   "out": {
+    "id": "satchel",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "cloth",
+     "count": 6
+    }
+   ],
+   "seconds": 24
+  },
+  {
    "id": "handle",
    "station": "workbench",
    "out": {

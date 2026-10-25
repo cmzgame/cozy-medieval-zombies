@@ -1,8 +1,10 @@
 // A guest's slot command meets the host's canPlace (#224). From the console, on a tab with `?nosave`:
 //   await __game.check("slots")
 // It sends the command a guest's drag would send (inventory-actions `performItemCommand`, the host's handler) for items the host's own drag would refuse
-// and allow: a log onto the belt, a hammer onto the belt, a sword onto the head slot, a cap onto it, a belt slot that does not exist. The bag, belt, and
-// worn slots are put back.
+// and allow: a log onto the belt, a hammer onto the belt, a sword onto the head slot, a cap onto it, a belt slot that does not exist. Then the bags (#400):
+// a full sack taken off is set down holding everything, stands as a container (Open, Equip, no Pick up while full), and is equipped again by the menu's
+// label as a guest's command is, its things still in it; a linen satchel sent onto the back takes it, the sack dropped at the feet with its things, and
+// the satchel's own grid, 7 by 5, takes what is put in it. The bag, belt, worn slots, and the floor are put back.
 
 export async function run(game) {
   const G = game;
@@ -15,6 +17,9 @@ export async function run(game) {
   const belt = G.inventory.beltOf(me);
   const belt0 = belt ? belt.slice() : null;
   const head0 = me.worn.head;
+  const back0 = me.worn.back;
+  const tile0 = [Math.round(me.gx), Math.round(me.gy)];
+  const floor0 = G.map.itemsAt(tile0[0], tile0[1]).slice();
   const { performItemCommand } = await import("/src/ui/inventory-actions.js");
   const send = (entry, slot) => performItemCommand(me, { op: "slot", uid: entry.uid, src: { kind: "bag", bag: { mine: true } }, slot });
   try {
@@ -34,13 +39,48 @@ export async function run(game) {
     row("a slot name that means nothing is refused", send(sword, "nowhere:0") === false && bag.items.includes(sword), "nowhere:0");
     row("a belt slot with a negative or non-number index is refused (the item stays in the bag)", send(sword, "belt:-1") === false && send(sword, "belt:x") === false && bag.items.includes(sword), "belt:-1, belt:x");
     row("a hand that is not main or off is refused, even for an either-hand item", send(sword, "hand:foo") === false && bag.items.includes(sword) && me.hands.foo === undefined, "hand:foo");
+
+    // ---- Bags (#400): taken off, a bag keeps its contents and stands as a container.
+    const [tx, ty] = tile0;
+    const sack = me.worn.back;
+    const held = bag.items.length;
+    const msg = () => (document.getElementById("message") || {}).textContent || "";
+    G.interact.slotMenu(me, "worn:back").find((m) => m.label === "Unequip").onSelect();
+    const down = G.map.itemsAt(tx, ty).find((e) => e.id === sack.id && e.bag === bag);
+    row("a full sack taken off is set down at your feet with everything still in it, and the back is bare", !me.worn.back && !!down && down.bag.items.length === held && held > 0 && /set the burlap sack down/i.test(msg()), `back ${me.worn.back ? me.worn.back.id : "bare"}; on the floor ${down ? `the sack holding ${down.bag.items.length} of ${held}` : "nothing"}; "${msg()}"`);
+    const target = down ? { kind: "item", uid: down.uid, tile: [tx, ty] } : null;
+    const labels = target ? G.interact.actionsForTarget(target, me).map((a) => a.label) : [];
+    row("set down, it is a container: Open and Equip on its menu, and no Pick up while it holds things", labels.some((l) => /^Open /.test(l)) && labels.some((l) => /^Equip /.test(l)) && !labels.some((l) => /^Pick up/.test(l)), labels.join(", "));
+    const open = down ? G.interact.containerAt(me, { entryUid: down.uid, tile: [tx, ty] }) : null;
+    row("opened by its address (a guest's), it is the same grid with the same things", !!open && open.bag === bag && open.bag.items.length === held, open ? `${open.bag.items.length} things` : "no container at the address");
+    const equipLabel = labels.find((l) => /^Equip /.test(l));
+    const ran = equipLabel ? G.interact.performByLabel(me, target, equipLabel) : false;
+    for (let i = 0; i < 5; i++) G.loop.advance(1 / 60);
+    row("equipped again by its menu label (a guest's command), it is on the back holding all it held, and off the floor", ran && me.worn.back && me.worn.back.bag === bag && G.inventory.bagOf(me).items.length === held && !G.map.itemsAt(tx, ty).some((e) => e.bag === bag), `ran ${ran}; back ${me.worn.back ? me.worn.back.id : "bare"} holding ${G.inventory.bagOf(me) ? G.inventory.bagOf(me).items.length : 0}`);
+
+    // ---- The linen satchel (#400): 7 by 5, onto the back; the old bag drops with its things.
+    const satchel = G.items.makeEntry("satchel", 1);
+    G.map.dropItem(tx, ty, satchel);
+    const onFloor = G.map.itemsAt(tx, ty).find((e) => e.id === "satchel");
+    const swapLabel = onFloor ? G.interact.actionsForTarget({ kind: "item", uid: onFloor.uid, tile: [tx, ty] }, me).map((a) => a.label).find((l) => /^Swap bags/.test(l)) : null;
+    const swapped = swapLabel ? G.interact.performByLabel(me, { kind: "item", uid: onFloor.uid, tile: [tx, ty] }, swapLabel) : false;
+    for (let i = 0; i < 5; i++) G.loop.advance(1 / 60);
+    const sb = G.inventory.bagOf(me);
+    const oldDown = G.map.itemsAt(tx, ty).find((e) => e.bag === bag);
+    row("a linen satchel equipped from the floor swaps bags: on the back, the sack set down with its things", swapped && me.worn.back && me.worn.back.id === "satchel" && !!oldDown && oldDown.bag.items.length === held, `${swapLabel || "no Swap bags"}; back ${me.worn.back ? me.worn.back.id : "bare"}; the sack down holding ${oldDown ? oldDown.bag.items.length : "-"}`);
+    let put = 0;
+    if (sb) for (let i = 0; i < 40; i++) put += G.inventory.addItem(sb, "stick", 1);
+    row("the satchel's own grid is 7 by 5 and takes what is put in it", !!sb && sb.cols === 7 && sb.rows === 5 && put > 0, sb ? `${sb.cols} by ${sb.rows}; ${put} sticks put in` : "no bag on the back");
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message });
   } finally {
     bag.items.splice(0, bag.items.length, ...bag0);
     if (belt) for (let i = 0; i < belt.length; i++) belt[i] = belt0[i];
     me.worn.head = head0;
+    me.worn.back = back0;
     for (const [e, n] of counts0) e.count = n;
+    const t = G.map.tileAt(tile0[0], tile0[1]);
+    if (t) { t.items = floor0.slice(); G.map.touch(tile0[0], tile0[1]); }
   }
   for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);
   return { rows, passed: rows.filter((r) => r.result === "pass").length, total: rows.length };
