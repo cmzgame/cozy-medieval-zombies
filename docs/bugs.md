@@ -17,7 +17,6 @@
 ## Open: likely bugs
 
 - **`check("sync")` reports a chunk-count difference when the players are far from the spawn** (found testing #196's iron workings, 2026-10-18, on `main`; reproduced in two tabs). The host evicts the wild chunks far from every player (`evictChunks`), the guest's replica keeps what it was sent, so with both players 110 tiles from the spawn the host holds fewer chunks and props than the guest and the map and registry parts differ (e.g. host 162 chunks, 6715 props; guest 168, 6876). Nothing is wrong in play that the check can see, but it means the check cannot pass far from the spawn, and the guest holds chunks the host no longer has. Likely fix: the guest drops what the host dropped (the frame names evicted chunks), or the check compares only the chunks both hold.
-- **`check("growth")`'s "a mutator grows its chunk" row fails on a second run in the same page** (found 2026-10-18): the far chunk the first run grew stays grown, so the row's premise (it was ungrown) is gone. The check should pick a chunk it has not grown or restore the map.
 - **A guest who leaves mid-action shows its messages on the host's screen** (found reviewing #193 on `main` at its merge of #192; read from the code, not reproduced). `src/net.js` ~642: on `leave` the guest is dropped from `guests`, but its character stays for the grace and a timed action it began (a cast, a pick, a chop) still completes; `net.messageTo` then returns false (no guest), so the host's message and log sinks (`src/host.js` ~264-272) fall through and show "You catch a perch." on the host's own screen and log. Likely fix: the sinks swallow a message for a player whose guest is gone (or cancel its timed action on leave).
 
 - **The hover card's plurals add an "s" and its names are lower-cased** (found syncing the wiki for #313, 2026-10-20, read from the code at `8af4eed`, *needs repro*). `src/item-info.js`, the `splitsInto` line ("Splits into N <name>s") and the "Goes into" and "Builds" lines: an item whose plural is not "+s", or whose name keeps a capital ("Onion-head Hat", "Staff of Fire"), would read oddly. Likely fix: a `plural` (and kept case) per item in the data where the rule fails.
@@ -44,6 +43,8 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 ## Fixed
 
 (Move items here with the commit that fixed them.)
+
+- [x] **`check("growth")`'s "a mutator grows its chunk" row failed on a second run in the same page** (found 2026-10-18): the far chunk the first run grew stayed grown, so the row's premise was gone. Fixed in the bugs batch (`primary/bugs-batch-1`): the row walks out from the old spot, two chunks a stride, to a chunk not yet grown, and counts from just before its own write; the row's detail names the chunk. Run it twice in one page to see it pass both times.
 
 - [x] **Burn corpse's done line typed "about an hour"** (found syncing the wiki for #434): `src/burn.js` said it whatever `work.burnCorpse.hours` was, while the card read the data. Fixed in the bugs batch (`primary/bugs-batch-1`): the verb's message reads `work.burnCorpse.hours` ("about an hour" at 1, "about 2 hours" at 2); the host's message sink carries it to the guest who burned the body, as before. `node tools/check.js` ("burn corpse") and `check("burn")` try it with the data's hours and with two.
 

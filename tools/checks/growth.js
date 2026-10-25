@@ -51,13 +51,17 @@ export async function run(game) {
     }
     check("a frame at every zoom grew nothing", G.map.chunkCount() === before, `${G.map.chunkCount()} chunks`);
 
-    // 4. A mutator does grow: a floor set far away makes exactly one chunk, then it is put back.
-    const fx = px + 4000;
+    // 4. A mutator does grow: a floor set far away makes exactly one chunk, then it is put back. The chunk is one not grown yet, so a
+    // second run in the same page (whose first run grew the chunk it used, which stays) still starts from an ungrown one.
     const fy = py + 4000;
+    let fx = px + 4000;
+    for (let k = 0; k < 64 && G.map.peekTile(fx, fy) !== null; k++) fx += G.map.CHUNK * 2;
+    const ungrown = G.map.peekTile(fx, fy) === null;
+    const count0 = G.map.chunkCount();
     const was = G.map.tileAt(fx, fy).floor;
     G.map.setFloor(fx, fy, was === "floor_dirt" ? "floor_grass" : "floor_dirt");
-    const grown = G.map.chunkCount() - before;
-    check("a mutator grows its chunk", grown === 1 && G.map.peekTile(fx, fy) !== null, `${grown} chunk`);
+    const grown = G.map.chunkCount() - count0;
+    check("a mutator grows its chunk", ungrown && grown === 1 && G.map.peekTile(fx, fy) !== null, `${grown} chunk at ${fx},${fy}${ungrown ? "" : " (no ungrown chunk found)"}`);
     G.map.setFloor(fx, fy, was);
 
     // 5. The step's own growth is the player's ring: one step grows nothing new where the player stands.
