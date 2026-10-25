@@ -106,6 +106,32 @@ export async function run(game) {
     row("an immune villager who sees one of the dead near cowers, arms up, a ! over its head", d0 <= VT.cowerRadius && timid.state === "cower" && timid.anim.name === "cower" && sheetHas && !!timid.line && timid.line.text === VT.cowerBubble, `${d0.toFixed(1)} tiles (cowerRadius ${VT.cowerRadius}): ${timid.state}, ${timid.anim.name}, the sheet ${sheetHas ? "has" : "lacks"} the pose, bubble "${timid.line ? timid.line.text : ""}"`);
     const answered = pokeVillager(timid, me);
     row("a poke while it cowers is not answered", answered === false && timid.state === "cower", `answered ${answered}, ${timid.state}`);
+    // Talk while it cowers or runs (docs/43 section 7) is not answered either, by the menu's label as a guest's command runs it on the host:
+    // with a talk file and the dead one moved past `talkDeadRadius` for the call, so only the fright refuses it (not a bark for the dead near).
+    let talkStarts = 0;
+    const heard = () => { talkStarts++; };
+    G.events.on("talkStarted", heard);
+    restore.push(() => G.events.off("talkStarted", heard));
+    const talkWhile = () => {
+      const at = [me.gx, me.gy];
+      const zAt = [z.gx, z.gy];
+      timid.talk = "neighbour";
+      z.gx = timid.gx + VT.talkDeadRadius + 2;
+      z.gy = timid.gy;
+      G.teleport(timid.gx + 1, timid.gy + 1);
+      const before = timid.state;
+      const entry = G.interact.actionsForTarget({ kind: "character", id: timid.id }, me).find((a) => /^Talk to/.test(a.label));
+      if (entry) G.interact.performByLabel(me, { kind: "character", id: timid.id }, entry.label);
+      const out = { offered: !!entry, before, after: timid.state, talking: timid.talkingWith.length };
+      timid.talk = null;
+      G.teleport(at[0], at[1]);
+      z.gx = zAt[0];
+      z.gy = zAt[1];
+      return out;
+    };
+    const t1 = talkWhile();
+    row("Talk while it cowers is not answered: no conversation, still cowering", t1.offered && t1.before === "cower" && t1.after === "cower" && t1.talking === 0 && talkStarts === 0, JSON.stringify({ ...t1, talkStarts }));
+    let t2 = null;
     let cowered = 1;
     const seen = ["cower"];
     for (let i = 0; i < 60 * 6 && timid.state !== "wary"; i++) {
@@ -113,7 +139,9 @@ export async function run(game) {
       pin();
       if (timid.state === "cower") cowered++;
       if (seen[seen.length - 1] !== timid.state) seen.push(timid.state);
+      if (!t2 && timid.state === "flee") t2 = talkWhile();
     }
+    row("Talk while it runs, the dead one past talkDeadRadius, is not answered: the flight goes on", !!t2 && t2.offered && t2.before === "flee" && t2.after === "flee" && t2.talking === 0 && talkStarts === 0, JSON.stringify({ ...t2, talkStarts }));
     row("it cowers about its seconds, then runs", Math.abs(cowered / 60 - VT.cowerSeconds) <= 3 / 60 && seen[1] === "flee", `${(cowered / 60).toFixed(2)} s against ${VT.cowerSeconds}; then ${seen.slice(1).join(", ")}`);
     const fled = Math.hypot(timid.gx - z.gx, timid.gy - z.gy);
     row("it runs about fleeTiles from the dead one and stands wary", timid.state === "wary" && fled >= d0 + VT.fleeTiles - 1.5, `${timid.state}, ${d0.toFixed(1)} tiles to ${fled.toFixed(1)} (fleeTiles ${VT.fleeTiles})`);

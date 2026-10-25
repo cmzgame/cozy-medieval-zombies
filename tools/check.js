@@ -1304,6 +1304,33 @@ check("sawpit: what does not fit falls at your feet, in the right number", () =>
   return `${one.message} / ${two.message}`;
 });
 
+// Talk while an immune villager cowers or runs (docs/43 section 7; docs/bugs.md, fixed): not answered, as a poke is not, and the flight goes on;
+// once it stands wary, Talk is answered. Run as the host runs a guest's Talk, on the authority.
+const villagerMod = await import("../src/entities/villager.js");
+check("villagers: Talk is not answered while an immune villager cowers or runs", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  const v = villagerMod.createVillager(me.gx + 1, me.gy, { id: "vt_talk", name: "Timid", immune: true, talk: "neighbour" });
+  gameMod.state.villagers.push(v);
+  let started = 0;
+  const hear = () => { started++; };
+  eventsMod.on("talkStarted", hear);
+  try {
+    for (const state of ["cower", "flee"]) {
+      v.state = state;
+      const ok = villagerMod.startTalk(v, me);
+      assert(ok === false && v.state === state && v.talkingWith.length === 0 && started === 0, `Talk while it ${state}s: began ${ok}, now ${v.state}, talking with ${v.talkingWith.join(",")}`);
+    }
+    v.state = "wary";
+    assert(villagerMod.startTalk(v, me) === true && v.state === "talk" && started === 1, `Talk once it stands wary: ${v.state}, ${started} started`);
+  } finally {
+    eventsMod.off("talkStarted", hear);
+    gameMod.state.villagers.splice(gameMod.state.villagers.indexOf(v), 1);
+  }
+  return "refused cowering and running, answered wary";
+});
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;

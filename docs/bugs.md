@@ -24,8 +24,6 @@
 
 - **`check("build")` fails 9 of 11 on `main`** (found reviewing #227, on `main` at `0e765f7`, fresh tab): "the player's own wall with a door removed is still the player's own" and "a new door built over a broken stamped one remembers the wall under it". Not a play bug found; 11 of 11 in my run after other checks in the same tab, so it may depend on what ran first.
 
-- **Talk is answered while an immune villager cowers or runs** (found syncing the wiki for #434, 2026-10-25, read at `fa2997f`, *needs repro*). `src/entities/villager.js` `startTalk` (~304-319) does not look at the cower or flee state; `docs/43`'s status says Talk is not answered then. A Talk to a fleeing villager whose dead one is beyond `talkDeadRadius` would start a conversation and cut off the flight.
-
 - **Burn corpse's done line types "about an hour"** (found syncing the wiki for #434, at `fa2997f`). `src/burn.js` (~141) says it whatever `work.burnCorpse.hours` is; the card (~113) reads the data.
 
 - **An infection caught from tainted water opens on Bitten, "The bite broke the skin."** (found syncing the wiki for #435, at `fa2997f`, *needs repro*). `src/moodles.js` (~26): the first stage's words assume a bite, and water gives no bite.
@@ -48,6 +46,8 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 ## Fixed
 
 (Move items here with the commit that fixed them.)
+
+- [x] **Talk was answered while an immune villager cowered or ran** (found syncing the wiki for #434, 2026-10-25): `src/entities/villager.js` `startTalk` did not look at the cower or flee state, so a Talk to a fleeing villager whose dead one was beyond `talkDeadRadius` began a conversation and cut off the flight; `docs/43` section 7 says a poke or Talk is not answered then. Fixed in the bugs batch (`primary/bugs-batch-1`): `startTalk` refuses while the villager cowers or runs, as `pokeVillager` does; a wary one talks. It runs on the host, so a guest's Talk (the menu's label) is refused the same and no panel opens on its replica. `node tools/check.js` ("villagers: Talk") and `check("immune")` (Talk by the label while it cowers and while it runs, the dead one past `talkDeadRadius`) have rows for it.
 
 - [x] **Two small words** (found syncing the wiki, 2026-10-25): `data/sprites/sawpit.json`'s note named `src/repair.js` where the code is `src/sawpit.js`, and `src/sawpit.js` said "1 fall at your feet" when one plank fell. Fixed in the bugs batch (`primary/bugs-batch-1`): the note names `src/sawpit.js` (the manifest restamped), and the message says "1 falls at your feet", "2 fall" for more; `node tools/check.js` ("sawpit") saws with room for two planks and for one.
 
