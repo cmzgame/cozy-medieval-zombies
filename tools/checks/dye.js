@@ -161,7 +161,7 @@ export async function run(game, opts = {}) {
     el.querySelector("[data-apply]").click();
     dyePanel.update(me);
     const beltCard = info.textOf(info.cardFor(belt));
-    row("black with the belt's own brass buckle reads brass in the picker and on the card, not undyed", picked === "Leather black, buckle brass" && beltCard.some((l) => l.includes("Black and brass")) && !beltCard.some((l) => /undyed/i.test(l)), `${picked} | ${beltCard.join(" | ")}`);
+    row("black with the belt's own brass buckle reads brass in the picker and on the card, not undyed", /^leather black, buckle brass$/i.test(picked) && beltCard.some((l) => l.includes("Black and brass")) && !beltCard.some((l) => /undyed/i.test(l)), `${picked} | ${beltCard.join(" | ")}`);
     // Everything carried is listed: a rucksack worn with a satchel in it, and gloves on a worn belt's slot (put there by hand: no
     // dyeable thing rides a belt today, the walk is the guard). The worn things and the bag are put back in the finally.
     const ruck = G.items.makeEntry("rucksack", 1);
