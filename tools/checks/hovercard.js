@@ -40,7 +40,10 @@ export async function run(game) {
     row("a tinderbox: the word Use is its own segment, and the card says what it lights", !!useSeg && useSeg.t === "Use" && has("tinderbox", "Use on campfire, torch post") && has("tinderbox", ": light."), text("tinderbox").join(" | "));
     row("a seed says what it grows", has("potato_seed", "Grows potato on tilled soil.") && info.cardFor(G.items.makeEntry("potato_seed")).kind === "Seed", text("potato_seed").join(" | "));
     row("a rucksack says where it is worn and what it holds", has("rucksack", "worn on your back; holds 8×5"), text("rucksack").join(" | "));
-    row("a waterskin says its fill, and a stack its count and wear", has("waterskin", "Drink: 40% full", { fill: 40 }) && info.cardFor(G.items.makeEntry("bread", 3, { wear: 0.25 })).state === "×3 · 75% left", info.cardFor(G.items.makeEntry("bread", 3, { wear: 0.25 })).state);
+    // A stack is one of the few things that stack (#399): throwing knives, which also wear; a single food shows no count.
+    const knives = info.cardFor(G.items.makeEntry("throwing_knife", 3, { wear: 0.25 })).state;
+    const oneLoaf = info.cardFor(G.items.makeEntry("bread", 1)).state;
+    row("a waterskin says its fill, a stack its count and wear, and a single food no count", has("waterskin", "Drink: 40% full", { fill: 40 }) && knives === "×3 · 75% left" && !/×/.test(oneLoaf), `knives "${knives}"; a loaf "${oneLoaf}"`);
     row("a material says what it is made into", has("log", "Splits into 3 planks.") || has("log", "Goes into:"), text("log").join(" | "));
     // What the cards say is true: the swing animation's name is not a fact about the weapon, an ingredient says what it goes into whatever else it is, ids are player words.
     row("a halberd says it is held in both hands and never calls itself one-handed", has("halberd", "Equip: both hands.") && !text("halberd").some((l) => /one-handed/.test(l)) && !G.items.allItems().some((d) => info.textOf(info.cardFor(G.items.makeEntry(d.id))).some((l) => /one-handed/.test(l))), text("halberd").join(" | "));
@@ -63,7 +66,7 @@ export async function run(game) {
 
     // On the page.
     for (const e of [...bag.items]) bag.items.splice(bag.items.indexOf(e), 1);
-    const bread1 = G.items.makeEntry("bread", 2);
+    const bread1 = G.items.makeEntry("bread", 1); // one a cell (#399)
     const hatchet = G.items.makeEntry("hatchet", 1);
     G.inventory.stow(me, bread1);
     G.inventory.stow(me, hatchet);
@@ -110,9 +113,9 @@ export async function run(game) {
     }
     // The card is not stale: a count that changes, and a slot that empties, while the pointer does not move.
     if (belt) {
-      belt[0] = G.items.makeEntry("bread", 3);
+      belt[0] = G.items.makeEntry("arrow", 3); // a count that can change is a stack's: arrows, which stack and ride on the belt (#399)
       panel.renderInventoryPanel(me, bag, null, belt);
-      el = await hoverOver(".hot-slot:not(.empty) .inv-item", "the belt shows bread");
+      el = await hoverOver(".hot-slot:not(.empty) .inv-item", "the belt shows arrows");
       const was3 = cardEl().textContent;
       belt[0].count = 2;
       panel.renderInventoryPanel(me, bag, null, belt);
@@ -120,7 +123,7 @@ export async function run(game) {
       belt[0] = null;
       panel.renderInventoryPanel(me, bag, null, belt);
       const gone = cardEl();
-      row("the card is not stale: a count that falls shows at once, and a slot that empties no longer shows the item", /×3/.test(was3) && /×2/.test(now2) && !/×3/.test(now2) && (gone.hidden || !/bread/i.test(gone.textContent)), `${/×3/.test(was3) ? "×3" : "?"} -> ${/×2/.test(now2) ? "×2" : "?"} -> ${gone.hidden ? "hidden" : gone.textContent.slice(0, 30)}`);
+      row("the card is not stale: a count that falls shows at once, and a slot that empties no longer shows the item", /×3/.test(was3) && /×2/.test(now2) && !/×3/.test(now2) && (gone.hidden || !/arrow/i.test(gone.textContent)), `${/×3/.test(was3) ? "×3" : "?"} -> ${/×2/.test(now2) ? "×2" : "?"} -> ${gone.hidden ? "hidden" : gone.textContent.slice(0, 30)}`);
       belt[0] = G.items.makeEntry("tinderbox", 1);
       panel.renderInventoryPanel(me, bag, null, belt);
     }
