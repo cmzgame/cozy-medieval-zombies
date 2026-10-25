@@ -103,6 +103,7 @@ export function create({ json, look = null, name = null, devChest = false, rules
   S.corpses = [];
   S.villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i, immune: !!v.immune, talk: talkIdOf(v), guide: !!v.guide }));
   interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses]);
+  burn.setCharacters((id) => S.corpses.find((c) => c.id === id) || S.zombies.find((c) => c.id === id) || null); // Burn corpse's body by id (docs/43 section 7)
   wireTalk();
   archery.setTargets(() => S.zombies); // what an arrow can hit when it lands (docs/20)
   map.ensureAround(S.player.gx, S.player.gy, 4);
@@ -316,6 +317,7 @@ export function restore(saved, json) {
     else if (c.kind !== "player") dress(c);
   }
   interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses]);
+  burn.setCharacters((id) => S.corpses.find((c) => c.id === id) || S.zombies.find((c) => c.id === id) || null); // Burn corpse's body by id (docs/43 section 7)
   wireTalk();
   archery.setTargets(() => S.zombies);
   archery.reset();
@@ -426,8 +428,8 @@ export function syncParts() {
     fires: hashOf(`${[...map.fires()].map((p) => `${p.id}:${p.fire && p.fire.lit ? "lit" : "out"}`).sort().join(",")}`),
     players: hashOf(S.players.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map(playerText).join("\n")),
     // The dead as the frames carry them (the wire sends them as a delta, so a missed update shows here): where, state, hp,
-    // facing, the frame of the animation, burning.
-    dead: hashOf([...S.zombies, ...S.villagers, ...S.corpses].slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((z) => `${z.id} ${f(at(z)[0])},${f(at(z)[1])} ${z.state || "-"} hp ${hp2(z.hp)} ${z.dead ? "dead" : ""}${z.corpse ? "corpse" : ""} ${z.facing} ${z.anim ? `${z.anim.name}:${z.anim.frame}` : "-"}${z.burning ? " fire" : ""}${z.talkingWith && z.talkingWith.length ? ` talk ${z.talkingWith.join("+")}` : ""}`).join("\n")),
+    // facing, the frame of the animation, burning, a body set alight by Burn corpse (docs/43 section 7), a villager's cowering (its state).
+    dead: hashOf([...S.zombies, ...S.villagers, ...S.corpses].slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((z) => `${z.id} ${f(at(z)[0])},${f(at(z)[1])} ${z.state || "-"} hp ${hp2(z.hp)} ${z.dead ? "dead" : ""}${z.corpse ? "corpse" : ""} ${z.facing} ${z.anim ? `${z.anim.name}:${z.anim.frame}` : "-"}${z.burning ? " fire" : ""}${z.cremate ? " cremate" : ""}${z.talkingWith && z.talkingWith.length ? ` talk ${z.talkingWith.join("+")}` : ""}`).join("\n")),
     clock: hashOf(`${f(clock.getElapsed())} ${f(loop.simTime())} ${world.world.timeScale}`),
     rules: hashOf(Object.keys(rules.rules).sort().map((k) => `${k}=${typeof rules.rules[k] === "boolean" ? (rules.rules[k] ? 1 : 0) : rules.rules[k]}`).join(" ")), // world state since the second step of item 5
   };
@@ -636,6 +638,11 @@ export function step(dt, snapshots = null) {
   const everyone = [...S.others, ...S.corpses]; // and the fallen, who burn and are drawn
   burn.update(everyone, dt); // the burn's timer and its damage, the world's (#14)
   burning.update(dt, everyone); // and its flames, a visual (docs/05)
+  // A body burnt away by Burn corpse (docs/43 section 7): its fire out, it and everything in it are gone; the corpses' roster takes it from every guest.
+  if (S.corpses.some(burn.burnedAway)) {
+    for (const c of S.corpses) if (burn.burnedAway(c)) events.emit("corpseBurnedAway", { corpse: c });
+    S.corpses = S.corpses.filter((c) => !burn.burnedAway(c));
+  }
   for (const p of S.players) {
     S.acting = p;
     p.actionProgress = interact.updateAction(p, dt);

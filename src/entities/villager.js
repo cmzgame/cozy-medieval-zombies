@@ -17,6 +17,7 @@ import { pickTargetAround, repath, followPath, separate, faceToward, roomOf, idl
 import * as loop from "../loop.js";
 import * as talk from "../talk.js";
 import { lineOfSight } from "../visibility.js";
+import { isWalkableTile, roomAt } from "../map.js";
 import { villager as T, zombie as ZT } from "../tuning.js";
 
 const DEAD_SKIN = "#9fbf88"; // what a turned villager's skin goes // as a wiggle's (interact.js): spam does not restart the line
@@ -41,7 +42,7 @@ export function createVillager(gx, gy, { id = null, name = null, line = null, wa
   const v = {
     ...createCharacter("villager", gx, gy, { id: id || `v${nextId++}`, name, speed: T.speed, radius: T.radius, hp: 100 }),
     home: [gx, gy],
-    state: "idle", // idle | wander | talk
+    state: "idle", // idle | wander | talk | hurt | cower | flee | wary (the last three an immune villager's, docs/43 section 7)
     greeting: line || "Hey!",
     immune: !!immune, // the dead neither target nor harm it, whatever the world's rules (#180: a teacher, like the guide; the rest can die)
     talk: talkId, // the name of its file in data/talk (docs/34); none, or a file that is not there, and it says its map line
@@ -59,6 +60,8 @@ export function createVillager(gx, gy, { id = null, name = null, line = null, wa
     pokedAt: 0, // sim milliseconds of the last poke that spoke
     hurtTimer: 0,
     regenAt: 0, // sim seconds before which a hurt villager does not heal (a hit sets it)
+    cowerTimer: 0, // seconds of the cowering left (docs/43 section 7: an immune villager with the dead near; states cower, flee, wary)
+    cowerFrom: null, // [gx, gy]: where the dead one stood that it cowers from, and runs from
   };
   wardrobeInto(v, "village", wardrobe);
   return v;
@@ -71,12 +74,117 @@ function regen(v, dt) {
   v.hp = Math.min(v.maxHp ?? 100, v.hp + (T.regenPerMinute / 60) * dt);
 }
 
+// ---- the cowering (docs/43 section 7): the ground for the villagers who flee for real (docs/04) ----
+// An immune villager (the guide, a teacher) that sees one of the dead within `cowerRadius` cowers for `cowerSeconds`, arms up (the `cower`
+// pose on a villager's sheet), a "!" over its head as the visual twin; then it runs about `fleeTiles` away from the dead one at `fleeSpeed`
+// times its walk, stands wary there, and walks back to its spot once none of the dead is within `cowerClearRadius`. The states ride in the
+// villager's record (`state`, `anim`, `line`), so every client draws it; nothing here rolls the generator (the way out is chosen by angle).
+const COWER_FROM = new Set(["idle", "wander", "talk", "wary"]); // what a sight of the dead interrupts: not a cowering already under way, nor the flight
+
+// The nearest of the dead this villager sees within `radius` tiles (a line of sight, so a wall between hides one), or null.
+function deadInSight(v, others, radius) {
+  let best = null;
+  let bestD = radius;
+  for (const z of others) {
+    if (z.kind !== "zombie" || z.dead) continue;
+    const d = Math.hypot(z.gx - v.gx, z.gy - v.gy);
+    if (d > bestD) continue;
+    if (!lineOfSight(v.gx, v.gy, z.gx, z.gy)) continue;
+    best = z;
+    bestD = d;
+  }
+  return best;
+}
+
+function anyDeadWithin(v, others, radius) {
+  return others.some((z) => z.kind === "zombie" && !z.dead && Math.hypot(z.gx - v.gx, z.gy - v.gy) <= radius);
+}
+
+function cower(v, z) {
+  const sheet = getSheet(v.sprite);
+  v.state = "cower";
+  v.cowerTimer = T.cowerSeconds;
+  v.cowerFrom = [z.gx, z.gy];
+  v.path = [];
+  v.lastGoal = null;
+  v.talkingWith = []; // a conversation ends: the talker's panel closes (talk-panel.js, the villager no longer holds them)
+  faceToward(v, z.gx - v.gx, z.gy - v.gy);
+  say(v, T.cowerBubble, T.cowerSeconds + 0.5);
+  playAnimation(v.anim, sheet && sheet.animations && sheet.animations.cower ? "cower" : "idle", true);
+}
+
+// A tile about `fleeTiles` away from the dead one, on the villager's own side of the walls, that it can walk to: straight away first, then
+// turning a little each way, then further round. Null when there is nowhere (it stands wary where it is).
+function fleeTo(v, from) {
+  let ax = v.gx - from[0];
+  let ay = v.gy - from[1];
+  const len = Math.hypot(ax, ay) || 1;
+  ax /= len;
+  ay /= len;
+  if (ax === 0 && ay === 0) ax = 1;
+  const room = roomOf(v);
+  const here = [Math.round(v.gx), Math.round(v.gy)];
+  for (const deg of [0, 30, -30, 60, -60, 90, -90, 135, -135]) {
+    const r = (deg * Math.PI) / 180;
+    const dx = ax * Math.cos(r) - ay * Math.sin(r);
+    const dy = ax * Math.sin(r) + ay * Math.cos(r);
+    for (const dist of [T.fleeTiles, Math.max(1, Math.round(T.fleeTiles / 2))]) {
+      const t = [Math.round(v.gx + dx * dist), Math.round(v.gy + dy * dist)];
+      if (t[0] === here[0] && t[1] === here[1]) continue;
+      if (!isWalkableTile(t[0], t[1]) || roomAt(t[0], t[1]) !== room) continue;
+      repath(v, t);
+      if (!v.pathFailed && v.path.length) return t;
+    }
+  }
+  v.path = [];
+  return null;
+}
+
+function updateCowering(v, dt, others) {
+  if (v.dead) return;
+  if (COWER_FROM.has(v.state)) {
+    const z = deadInSight(v, others, T.cowerRadius);
+    if (z) cower(v, z);
+  }
+}
+
 export function updateVillager(v, dt, others, players = []) {
   const sheet = getSheet(v.sprite);
   regen(v, dt);
+  if (v.immune) updateCowering(v, dt, others);
   if (v.talkingWith.length) keepTalkers(v, players);
   if ((v.state === "idle" || v.state === "wander") && !v.dead) ambientBark(v, players);
   switch (v.state) {
+    case "cower": {
+      if (sheet && sheet.animations && sheet.animations.cower) playAnimation(v.anim, "cower");
+      v.cowerTimer -= dt;
+      if (v.cowerTimer <= 0) {
+        v.state = fleeTo(v, v.cowerFrom || [v.gx, v.gy]) ? "flee" : "wary";
+        playAnimation(v.anim, v.state === "flee" ? "walk" : "idle", true);
+      }
+      break;
+    }
+    case "flee": {
+      playAnimation(v.anim, "walk");
+      const walk = v.speed;
+      v.speed = walk * T.fleeSpeed; // a run, for the flight alone
+      const done = followPath(v, dt, others);
+      v.speed = walk;
+      if (done) v.state = "wary";
+      break;
+    }
+    case "wary": {
+      // Stands where it ran to until none of the dead is near, then walks back to its spot (and wanders on its tether from there).
+      playAnimation(v.anim, "idle");
+      separate(v, dt, others);
+      if (!anyDeadWithin(v, others, T.cowerClearRadius)) {
+        repath(v, [Math.round(v.home[0]), Math.round(v.home[1])]);
+        v.cowerFrom = null;
+        v.state = v.path.length ? "wander" : "idle";
+        v.idleTimer = T.talkIdleSeconds; // fixed, not rolled: the cowering never shifts the generator
+      }
+      break;
+    }
     case "idle": {
       playAnimation(v.anim, "idle");
       separate(v, dt, others); // step aside from whoever is standing on them, the player included
@@ -249,6 +357,7 @@ function ambientBark(v, players) {
 // whether it spoke (a second poke inside the cooldown does nothing).
 export function pokeVillager(v, player) {
   const now = loop.simTime() * 1000; // sim milliseconds (docs/23a, C2)
+  if (v.state === "cower" || v.state === "flee") return false; // too frightened to answer (docs/43 section 7)
   if (now - v.pokedAt < T.pokeCooldownMs) return false;
   v.pokedAt = now;
   v.path = [];

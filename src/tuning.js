@@ -88,6 +88,7 @@ export const player = {
   drinkSip: 50, // per drink from a waterskin
   autoDrinkStage: 2, // the thirst moodle's stage a carried waterskin sips by itself at ("Thirsty"; docs/02, 2026-10-16)
   presentTime: 0.6, // seconds the held-out pose shows for a bite or a sip (docs/32, item 1)
+  waveSeconds: 2, // seconds the wave plays, on G or /wave (docs/43 section 7); walking ends it sooner
 };
 
 export const villager = {
@@ -107,6 +108,15 @@ export const villager = {
   talkIdleSeconds: 1, // seconds a villager stands after a conversation before it wanders (fixed, not rolled: talk never touches the generator)
   talkDeadRadius: 5, // tiles: with the dead this close a villager barks instead of talking (docs/34)
   barkMaxLength: 70, // characters: a bark line is at most this long, so a bubble stays a bubble (the validator's)
+  // The cowering (docs/43 section 7): an immune villager (the guide, a teacher) with one of the dead in sight within `cowerRadius` tiles cowers for
+  // `cowerSeconds`, arms up, a `cowerBubble` over its head as the visual twin, then runs about `fleeTiles` tiles away at `fleeSpeed` times its walk,
+  // and paths back to its spot once none of the dead is within `cowerClearRadius`. Primary's defaults.
+  cowerRadius: 3,
+  cowerSeconds: 1,
+  cowerBubble: "!",
+  fleeTiles: 4,
+  fleeSpeed: 2,
+  cowerClearRadius: 6,
 };
 
 export const world = {
@@ -209,6 +219,9 @@ export const work = {
   anvil: { ceilings: [1, 0.8, 0.6], seconds: 6, uses: "smith" },
   saw: { item: "log", seconds: 5 },
   honey: { item: "honey", count: [1, 1], days: 3, seconds: 3 },
+  // Burn corpse (docs/43 section 7): on a body of the dead, with a `flame` carried (the item) and one `fuel` spent; it burns `hours` game hours,
+  // giving light, then it and everything in it are gone. `seconds` is the bar's. Primary's defaults but the hour (Michael's "about a game hour").
+  burnCorpse: { flame: "tinderbox", fuel: "log", hours: 1, seconds: 2 },
 };
 
 const sections = { zombie, player, villager, world, population, sight, feel, floaters, objectHighlight, hoverCard, work };

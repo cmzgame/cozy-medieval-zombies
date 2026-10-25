@@ -1,7 +1,9 @@
 // Burning made real (#14; Michael, 2026-10-15): a status like bleeding, capped at one, never more than its cap over a
 // burn, only on the dead; set by a torch's blow (its `ignite` chance), always by the fireball and a fire arrow; arrows
 // dipped in a lit fire become fire arrows, which a bow draws first and which lodge as plain ones; a body that dies
-// burning burns on; the old menu toggle is gone. From the console, on a ?nosave tab:
+// burning burns on; the old menu toggle is gone; Burn corpse (docs/43 section 7): greyed with why, a tinderbox and a log, the log spent, by
+// the label a guest sends and by Use, the body alight about a game hour with its light, then it and everything in it gone, its card's warning
+// in red on the page. From the console, on a ?nosave tab:
 // await __game.check("burn")
 // It pauses the loop, works on open ground with the dead it brings and takes away, and puts the player's hands, place,
 // and settings back.
@@ -36,6 +38,7 @@ export async function run(game) {
     p.aim.sy = n.y;
   };
   const flyOut = () => { for (let i = 0; i < 600 && archery.arrowsInFlight().length; i++) step(); };
+  const restoreCounts = []; // [item id, count before]: what Burn corpse's rows took or gave, put back
   try {
     G.rules.set({ zombieAggro: false });
     G.rules.set({ multiHit: false });
@@ -208,6 +211,84 @@ export async function run(game) {
       row("with none left the bow draws plain arrows", L2 && L2.ammo === "arrow" && !L2.ignite, L2 ? L2.ammo : "no launcher");
       G.inventory.takeAll(p, "arrow", 3);
     }
+
+    // 8. Burn corpse (docs/43 section 7): on a body of the dead, greyed with what is lacking; a tinderbox and a log, the log spent; the body
+    // burns about a game hour, giving light, and it and everything in it are gone; its card warns in red; by the label a guest sends, and by Use.
+    G.teleport(open[0], open[1]);
+    p.hands.main = null;
+    p.hands.off = null;
+    step();
+    const WB = G.tuning.work.burnCorpse;
+    const { damageZombie } = await import("/src/entities/zombie.js");
+    const corpseOf = (gx, gy) => {
+      const z = bring(gx, gy);
+      damageZombie(z, z.hp + 10);
+      for (let i = 0; i < 180 && !G.corpses.includes(z); i++) step();
+      return z;
+    };
+    const body = corpseOf(p.gx + 1, p.gy);
+    row("a fallen one of the dead is a body to burn", G.corpses.includes(body) && body.corpse, `corpse ${body.corpse}, in the corpses ${G.corpses.includes(body)}`);
+    const flame0 = G.inventory.countAll(p, WB.flame);
+    const fuel0 = G.inventory.countAll(p, WB.fuel);
+    restoreCounts.push([WB.flame, flame0], [WB.fuel, fuel0]);
+    G.inventory.takeAll(p, WB.flame, 99);
+    G.inventory.takeAll(p, WB.fuel, 99);
+    const bodyAddr = { kind: "character", id: body.id };
+    const burnEntry = () => G.interact.actionsForTarget(bodyAddr, p).find((a) => /^Burn corpse/.test(a.label || ""));
+    const none = burnEntry();
+    p.hands.main = G.items.makeEntry(WB.flame, 1); // the tinderbox carried in a hand: anywhere on you will do
+    const noLog = burnEntry();
+    p.hands.off = G.items.makeEntry(WB.fuel, 1);
+    const ready = burnEntry();
+    row("Burn corpse is greyed with why, then offered with a tinderbox and a log", none && none.enabled === false && none.label === "Burn corpse (need a tinderbox and a log)" && noLog && noLog.enabled === false && noLog.label === "Burn corpse (need a log)" && ready && ready.enabled !== false && ready.label === "Burn corpse", [none, noLog, ready].map((a) => (a ? `${a.label}${a.enabled === false ? " (greyed)" : ""}` : "none")).join("; "));
+    const card = ready && ready.card;
+    row("its card warns in red: Burns the body and everything in it.", !!card && card.lines[0][0].k === "warn" && card.lines[0][0].t === "Burns the body and everything in it.", card ? card.lines.map((l) => l.map((s) => s.t).join("")).join(" / ") : "no card");
+    // On the page: the menu entry's card, shown while the pointer is over it, the warning in --red, gone with the menu.
+    {
+      const hc = await import("/src/ui/hover-card.js");
+      G.menu.openContextMenu(40, 40, [{ label: ready.label, enabled: true, card: ready.card, onSelect: () => {} }]);
+      const el = [...document.querySelectorAll("#menu .menu-entry")].find((q) => q.textContent === "Burn corpse");
+      const box = el ? el.getBoundingClientRect() : null;
+      if (el) el.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: box.left + 6, clientY: box.top + 4 }));
+      await new Promise((r) => setTimeout(r, (G.tuning.hoverCard.delayMs || 0) + 120));
+      const up = hc.current();
+      const warn = document.querySelector("#hover-card .hc-warn");
+      const red = getComputedStyle(document.documentElement).getPropertyValue("--red").trim();
+      const toRgb = (hex) => { const n = parseInt(hex.replace("#", ""), 16); return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`; };
+      const shownRed = !!warn && getComputedStyle(warn).color === toRgb(red);
+      G.menu.closeContextMenu();
+      const gone = !hc.current();
+      row("on the page the entry shows the card, its warning drawn in --red, gone with the menu", !!up && up.shown && !!warn && warn.textContent === "Burns the body and everything in it." && shownRed && gone, `card ${up ? up.key : "none"}, shown ${up && up.shown}, warning ${warn ? `"${warn.textContent}" ${getComputedStyle(warn).color}` : "none"} (--red ${red}), gone ${gone}`);
+    }
+    // Performed by the label, as a guest's choice arrives: the bar, then the body alight, the log spent, the tinderbox kept.
+    const ran = G.interact.performByLabel(p, bodyAddr, "Burn corpse");
+    step(Math.ceil(WB.seconds * 60) + 3);
+    const burningLights = G.burning.lights([body]).length;
+    row("by its label: the bar, then the body burns and gives light, the log spent and the tinderbox kept", ran && body.cremate && body.burning && Math.abs(body.burnLeft - (WB.hours * G.map.HOUR_SECONDS - 3 / 60)) < 0.2 && G.inventory.countAll(p, WB.fuel) === 0 && G.inventory.countAll(p, WB.flame) === 1 && burningLights === 1, `cremate ${body.cremate}, burning ${body.burning}, ${body.burnLeft.toFixed(2)} s left of ${WB.hours * G.map.HOUR_SECONDS}, logs ${G.inventory.countAll(p, WB.fuel)}, tinderboxes ${G.inventory.countAll(p, WB.flame)}, lights ${burningLights}`);
+    const labels = G.interact.actionsForTarget(bodyAddr, p).map((a) => `${a.label}${a.enabled === false ? " (greyed)" : ""}`);
+    row("while it burns: no search, no second burn, its grid out of reach", labels.includes("Search body (it is burning) (greyed)") && labels.includes("Burn corpse (already burning) (greyed)") && G.interact.containerAt(p, { characterId: body.id }) === null, labels.join("; "));
+    const save = JSON.parse(JSON.stringify(G.game.serialize()));
+    const inSave = save.characters.corpses.find((c) => c.id === body.id);
+    row("the save keeps the body burning", !!inSave && inSave.cremate === true && inSave.burning === true && inSave.burnLeft > 0, inSave ? `cremate ${inSave.cremate}, ${inSave.burnLeft.toFixed(1)} s left` : "not in the save");
+    const tile = [Math.round(body.gx), Math.round(body.gy)];
+    const floor0 = G.map.itemsAt(tile[0], tile[1]).length;
+    step(Math.ceil(WB.hours * G.map.HOUR_SECONDS * 60) + 10);
+    row("after about a game hour the body and everything in it are gone, nothing dropped", !G.corpses.includes(body) && G.map.itemsAt(tile[0], tile[1]).length === floor0, `in the corpses ${G.corpses.includes(body)}, things on its tile ${floor0} to ${G.map.itemsAt(tile[0], tile[1]).length}`);
+    // The tinderbox used on a body (the Use mode, a guest's `use` command): the same verb; refusals say why.
+    const body2 = corpseOf(p.gx + 1, p.gy + 1);
+    const tinder = p.hands.main;
+    use.applyWith(tinder, { kind: "character", ch: body2 }, p);
+    const noFuel = !body2.cremate;
+    p.hands.off = G.items.makeEntry(WB.fuel, 1);
+    use.applyWith(tinder, { kind: "character", ch: body2 }, p);
+    const twice = G.verbs.run("burncorpse", G.world, p, { character: body2.id });
+    const alive = bring(p.gx - 2, p.gy);
+    const living = G.verbs.run("burncorpse", G.world, p, { character: alive.id });
+    const info = await import("/src/item-info.js");
+    const tinderCard = info.textOf(info.cardFor(tinder)).join(" | ");
+    row("a tinderbox used on a body burns it; refused with no log, twice, and on the living; the tinderbox's card says so", noFuel && body2.cremate && !twice.ok && twice.reason === "It is already burning." && !living.ok && /burn/i.test(tinderCard || ""), `with no log ${noFuel ? "refused" : "burned"}; then ${body2.cremate ? "burning" : "not"}; again "${twice.reason}"; the living "${living.reason}"; card: ${tinderCard}`);
+    body2.burning = false; // put out by the check, so it is taken away below, not by the step
+    body2.cremate = false;
   } catch (e) {
     row("the check ran", false, String(e && e.stack || e));
   } finally {
@@ -219,6 +300,11 @@ export async function run(game) {
     }
     p.hands.main = saved.main;
     p.hands.off = saved.off;
+    for (const [id, n] of restoreCounts) {
+      const now = G.inventory.countAll(p, id);
+      if (now > n) G.inventory.takeAll(p, id, now - n);
+      else if (now < n) G.give(id, n - now);
+    }
     G.teleport(saved.gx, saved.gy);
     p.aim = saved.aim;
     G.rules.set({ zombieAggro: saved.aggro });
