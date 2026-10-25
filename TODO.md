@@ -36,7 +36,10 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
   7. The dye vat (#417).
 - **Water** (`docs/44`, #435): no fixed source clean, boiling by Use or either menu, a clean starting skin, the Sick debuff, the infection's third stage Queasy.
 - **The dead's moan and the strike sound** (#436, Michael's playtest note #424).
-- **Test fixes:** `check("slots")` independent of the checks before it (#430); `check("build")` after `check("worlds")`, with a stale Take apart target refused (#433, #432).
+- **Test fixes:**
+  - `check("slots")` independent of the checks before it (#430);
+  - `check("build")` after `check("worlds")`, with a stale Take apart target refused (#433, #432);
+  - `check("kindle")` from an empty bag, and a hover card measured before it flips near the right edge, a player-visible fix (#439, #437).
 
 **The order ahead** (Michael, 2026-10-25):
 1. The animals sitting (#289).
@@ -47,8 +50,8 @@ Small issues fill the gaps.
 
 **Open lines of `docs/39` by issue** (counted 2026-10-25; 73 open, down from 162): #92 11 · #289 10 · #288 8 · #123 7 · #281 7 · #181, #282, #133 5 each · #283 4 · #103 3 · #104, #262 2 each · #217, #261, #106, #271 1 each.
 
-**In flight:** the Secondary's wiki batch for #434, #435, and #436 (Primary reviews it). Then, for any Secondary:
-- #437, `check("kindle")`'s order leak;
+**The wiki** for everything above is synced (cmz-wiki#31 to #34). **Next, for any Secondary:**
+- `check("debuffs")`' Sick-card row still fails late in one page, though it passes fresh;
 - #422, apple trees as a green round tree;
 - #423, the off hand's swing animation and sound;
 - #425's open bug lines.
@@ -56,6 +59,7 @@ Small issues fill the gaps.
 **Waiting on Michael:**
 - whether a free sharpening should use up the anvil's repair too, and the plank that repairs the fishing rod and the bow (#425);
 - water's infection opening with the bite's "Bitten" line (#435's review);
+- whether a sip of tainted water at full thirst should still roll Sick (it does today; `docs/bugs.md`, from #439);
 - #426, how bright the valley is drawn, and Plants vs Zombies as a reference;
 - #415, defensive spikes;
 - #419, his Stardew Valley notebook;
