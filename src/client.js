@@ -1,5 +1,6 @@
 // This browser's side of a world (docs/31/05, items 7 and 26, #102): who I am, and what my renderer and interface note about
-// the world's objects, kept here and never written on them. The world (game.js) never reads it, and a server world has none.
+// the world's objects, kept here and never written on them. The world (game.js) never reads it. A server world and tools/world.js
+// load it through net.js, and its listener follows their picks, but nothing on an authority's path reads `client.me`.
 // `me` follows the world's own picks (`game.setPlayer`, `pickPlayer`, the `playerPicked` event: a world made, restored, played
 // again as my character, a new character after a death, a step away and back); a guest's is the player its welcome named, kept
 // by id through every frame (net.js); and while the dead screen is up it is my body. Nothing in the step reads it.

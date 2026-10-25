@@ -21,6 +21,9 @@ export async function run(game) {
   const { performItemCommand } = await import("/src/ui/inventory-actions.js");
   const made = [];
   const role = G.net.status().role;
+  // A guest's console does not teleport (docs/31/07 question 14, #102): there the replica's own player is stood directly, the camera
+  // with it, and the host's next frame puts it back where the host has it.
+  const standAt = (gx, gy) => { if (role !== "guest") return G.teleport(gx, gy); me.gx = gx; me.gy = gy; me.auto = null; G.camera.snapTo(gx, gy); };
   let coop = null;
   let coop0 = null;
   let hive = null;
@@ -40,10 +43,7 @@ export async function run(game) {
     row("the coop is two tiles along y", coop.tiles.length === 2 && coop.tiles[0][0] === coop.tiles[1][0], `${JSON.stringify(coop.tiles)}`);
     if (role === "guest") {
       // A guest reads the replica: the coop's menu, built from what it has, offers the same Search, named by an address the host can rebuild.
-      // A guest's console does not teleport (docs/31/07 question 14, #102): the replica's own player is stood by the coop for
-      // the read (the host's next frame puts it back where the host has it); the coop's menu is read at once.
-      me.gx = coop.tile[0];
-      me.gy = coop.tile[1] - 2;
+      standAt(coop.tile[0], coop.tile[1] - 2); // the replica's own player stood by the coop for the read; its menu is read at once
       map.ensureAround(coop.tile[0], coop.tile[1], 3);
       const a = G.interact.actionsForTarget({ kind: "prop", id: coop.id }, me).find((q) => q.kind === "container");
       row("on a guest the coop's menu offers Search or Open chicken coop, by an address the host can rebuild", !!a && /^(Search|Open) chicken coop$/.test(a.label), a ? a.label : "no container action");
@@ -55,7 +55,7 @@ export async function run(game) {
     }
     // Search and Take All.
     coop0 = { bag: coop.bag, searched: coop.searched };
-    G.teleport(coop.tile[0], coop.tile[1] - 2);
+    standAt(coop.tile[0], coop.tile[1] - 2);
     map.ensureAround(coop.tile[0], coop.tile[1], 3);
     G.loop.advance(1 / 60);
     coop.bag = null;
@@ -101,7 +101,7 @@ export async function run(game) {
     map.ensureAround(hive.tile[0], hive.tile[1], 2);
     const hiveActs = () => G.interact.actionsForTarget({ kind: "prop", id: hive.id }, me).filter((x) => x.kind === "honey");
     const t = G.interact.approachTile(hiveActs()[0], me);
-    if (t) G.teleport(t[0], t[1]);
+    if (t) standAt(t[0], t[1]);
     bag.items.length = 0;
     const honey = () => bag.items.filter((e) => e.id === H.item).reduce((n, e) => n + e.count, 0);
     row("the hive says it is one (`hive` on its definition) and the honey's numbers are data, honey a food", G.assets.getDef("beehive").hive === true && H.days > 0 && H.seconds > 0 && G.items.getItem(H.item).kind === "food", JSON.stringify(H));
@@ -130,7 +130,7 @@ export async function run(game) {
     me.action = null;
     bag.items.splice(0, bag.items.length, ...bag0);
     for (const [e, n] of counts0) e.count = n;
-    G.teleport(meAt[0], meAt[1]);
+    standAt(meAt[0], meAt[1]);
     G.loop.setPaused(wasPaused);
   }
   for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);

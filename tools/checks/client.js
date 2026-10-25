@@ -1,13 +1,14 @@
 // The client's own side of a world (docs/31/05 items 7 and 26, docs/31/07 question 14; #102). From the console, on a tab
 // with `?nosave`:
 //   await __game.check("client")
-// Alone or on the host: `client.me` is my player and follows the world's picks (a second player picked and me again);
+// Alone or on the host: `client.me` is my player and follows the world's picks (a second player picked and me again), and a
+// friend joining a world with no pick of its own (a dead host's, played again) takes the world's pick and never `client.me`;
 // the swing's targets are ids in a set the client holds, never a flag on a body, and a body's record (the save's and the
 // wire's) carries no such flag; no character carries a `behindProp`; a dead speaker's line is left to the world's step,
 // never cleared by the bubbles; the host's console writes. On a guest (two tabs, `?nosave&relay=none`, after a join and
 // some frames): `client.me` is the player my welcome named and in the replica's list; the console is read-only, every
 // writing helper refusing with why and the replica unchanged by the attempts, and its reads still answering. Everything
-// moved is put back: the second player gone, the zombie where it stood, the hands, and the pick.
+// moved is put back: the second and third players gone, the zombie where it stood, the hands, and the pick.
 
 export async function run(game) {
   const G = game;
@@ -22,6 +23,7 @@ export async function run(game) {
   const me = G.player;
   const chars = () => [...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals];
   let other = null;
+  let joiner = null;
   let moved = null;
   const hands0 = me ? { main: me.hands.main, off: me.hands.off } : null;
   try {
@@ -58,6 +60,14 @@ export async function run(game) {
       const picked = client.me === other;
       G.game.pickPlayer(me);
       row("a pick moves client.me, and back (the world's playerPicked)", picked && client.me === me, `picked ${picked}, back ${client.me === me}`);
+      // A dead host's world played again has no pick of its own (its one player a body); a friend who joins then is the world's pick,
+      // never the client's (the review of #465). Stood in for here: the world's pick cleared, and a player added as a join adds one.
+      const pick0 = S.player;
+      S.player = null;
+      joiner = G.addPlayer(Math.round(me.gx) + 3, Math.round(me.gy));
+      const kept = client.me === me && S.player === joiner;
+      S.player = pick0;
+      row("a friend joining a world with no pick of its own takes the world's pick, not client.me (a dead host keeps its body's screen)", kept, `client.me ${client.me ? client.me.id : "none"}, the friend ${joiner.id}`);
 
       // The swing's targets: a zombie stood in reach, the main hand a sword.
       const z = S.zombies.find((q) => !q.dead);
@@ -85,6 +95,7 @@ export async function run(game) {
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message + (e.stack ? " " + e.stack.split("\n")[1] : "") });
   } finally {
+    if (joiner) G.game.removePlayer(joiner.id);
     if (other) { G.game.removePlayer(other.id); if (client.me !== me && S.players.includes(me)) G.game.pickPlayer(me); }
     if (moved) Object.assign(moved.z, { gx: moved.gx, gy: moved.gy, auto: moved.auto });
     if (hands0 && role !== "guest") { me.hands.main = hands0.main; me.hands.off = hands0.off; }

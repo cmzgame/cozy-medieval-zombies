@@ -17,6 +17,9 @@ export async function run(game) {
   const info = await import("/src/item-info.js");
   const me = G.player;
   const role = G.net.status().role;
+  // A guest's console does not teleport (docs/31/07 question 14, #102): there the replica's own player is stood directly, the camera
+  // with it, and the host's next frame puts it back where the host has it.
+  const standAt = (gx, gy) => { if (role !== "guest") return G.teleport(gx, gy); me.gx = gx; me.gy = gy; me.auto = null; G.camera.snapTo(gx, gy); };
   const wasPaused = G.loop.isPaused();
   const meAt = [me.gx, me.gy];
   const bag = G.inventory.bagOf(me);
@@ -85,7 +88,7 @@ export async function run(game) {
     const namesFree = placement.paletteKinds().map((k) => k.label);
     row("with Free building on it has Winter Pine and Bloodbark too", namesFree.includes("Winter Pine wall") && namesFree.includes("Bloodbark wall"), namesFree.join(", "));
     const cards = [false, true].map((on) => { setFree(on); return info.textOf(info.cardFor(G.items.makeEntry("plank", 1))).join(" | "); });
-    row("the plank's card, with Free building off and on, says the walls once and keeps the door, window, fence, and gate, and never lists a region's wood", cards.every((c) => /Builds: wood wall \(1\), door \(3\), window \(2\), fence \(1\), gate \(2\)\./.test(c) && !/winter pine|bloodbark/i.test(c)) && cards[0] === cards[1], cards.map((c) => c.slice(c.indexOf("Builds:"))).join(" || "));
+    row("the plank's card, with Free building off and on, says the walls once and keeps the door, window, fence, gate, and feeding trough (docs/45, #444), and never lists a region's wood", cards.every((c) => /Builds: wood wall \(1\), door \(3\), window \(2\), fence \(1\), gate \(2\), feeding trough \(3\)\./.test(c) && !/winter pine|bloodbark/i.test(c)) && cards[0] === cards[1], cards.map((c) => c.slice(c.indexOf("Builds:"))).join(" || "));
     setFree(true);
 
     if (role === "guest") {
@@ -198,7 +201,7 @@ export async function run(game) {
     setFree(!!free0);
     bag.items.splice(0, bag.items.length, ...bag0);
     for (const [e, n] of counts0) e.count = n;
-    G.teleport(meAt[0], meAt[1]);
+    standAt(meAt[0], meAt[1]);
     G.loop.setPaused(wasPaused);
   }
   for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);

@@ -16,6 +16,9 @@ export async function run(game) {
   const info = await import("/src/item-info.js");
   const me = G.player;
   const role = G.net.status().role;
+  // A guest's console does not teleport (docs/31/07 question 14, #102): there the replica's own player is stood directly, the camera
+  // with it, and the host's next frame puts it back where the host has it.
+  const standAt = (gx, gy) => { if (role !== "guest") return G.teleport(gx, gy); me.gx = gx; me.gy = gy; me.auto = null; G.camera.snapTo(gx, gy); };
   const bag = G.inventory.bagOf(me);
   const bag0 = bag.items.slice();
   const counts0 = bag0.map((e) => [e, e.count]);
@@ -89,7 +92,7 @@ export async function run(game) {
     const settle = () => { placement.update(me); inp.endStep(); };
     // Step the world, put the camera on the player, aim at a point computed in that view, and let placement read it.
     const aimFace = (tx, ty) => { G.loop.advance(1 / 60); look(); aimAt(...faceMid(tx, ty)); settle(); };
-    G.teleport(x + 2, y + 1);
+    standAt(x + 2, y + 1);
     G.loop.advance(1 / 60);
     look();
 
@@ -117,7 +120,7 @@ export async function run(game) {
     // A wide one aimed at its second section hangs from the one before it.
     const wide = add("painting_wide_lake");
     placement.beginPainting(wide);
-    G.teleport(x + 6.5, y + 1);
+    standAt(x + 6.5, y + 1);
     aimFace(x + 7, y); // the last segment of the run: a wide painting cannot start there, so it hangs from the one before
     const gw = placement.state.ghost;
     row("a wide painting aimed at the last section of a wall hangs from the one before it (the holder is the segment before)", !!gw && gw.ok === true && gw.tx === x + 6 && gw.edge === "n", gw ? `${gw.tx},${gw.ty} ${gw.ok ? "green" : gw.reason}` : "no ghost");
@@ -133,7 +136,7 @@ export async function run(game) {
     row("a painting is refused on a window", P.fitProblem("painting_small_oak", x + 6, y, "n") === "Nothing to hang it on" && P.fitProblem("painting_wide_lake", x + 5, y, "n") === "Nothing to hang it on", P.fitProblem("painting_small_oak", x + 6, y, "n"));
     row("a painting is refused on a segment that already holds one", P.fitProblem("painting_small_deer", x + 1, y, "n") === "Something already hangs there", P.fitProblem("painting_small_deer", x + 1, y, "n"));
     // Wide and tall: hung, drawn, the cover.
-    G.teleport(x + 4, y + 1);
+    standAt(x + 4, y + 1);
     G.loop.advance(1 / 60);
     const tall = add("painting_tall_pines");
     row("a tall painting takes both slots of one segment", P.hang(me, tall.uid, x + 3, y, "n") === true && map.peekTile(x + 3, y).n.hangings[0].slot === "both", JSON.stringify(map.peekTile(x + 3, y).n.hangings));
@@ -148,11 +151,11 @@ export async function run(game) {
     const labels = G.interact.actionsAt(sp[0], sp[1], me).map((a) => a.label);
     row("its menu offers Pick up, with Walk here beside it", labels.some((l) => /^Pick up castle painting$/i.test(l)) && labels.some((l) => /^Walk here/.test(l)), labels.join(" | "));
     // Pick up from the cover, once; and out of reach.
-    G.teleport(x + 5, y + 8);
+    standAt(x + 5, y + 8);
     G.loop.advance(1 / 60);
     const nFar = bag.items.length;
     row("Pick up is refused out of reach and the painting stays", P.takeDown(me, x + 5, y, "n") === false && !!map.peekTile(x + 4, y).n.hangings && bag.items.length === nFar, P.reachFor(me, "painting_wide_castle", x + 4, y, "n"));
-    G.teleport(x + 5, y + 1);
+    standAt(x + 5, y + 1);
     G.loop.advance(1 / 60);
     const n0 = bag.items.length;
     row("Pick up from the second segment takes the whole painting down into the bag", P.takeDown(me, x + 5, y, "n") === true && bag.items.length === n0 + 1 && bag.items.some((e) => e.id === "painting_wide_castle") && !map.peekTile(x + 4, y).n.hangings && !map.peekTile(x + 5, y).n.hangings, `${bag.items.length - n0} more in the bag`);
@@ -178,7 +181,7 @@ export async function run(game) {
     if (lyingFeet) map.takeItem(feet[0], feet[1], lyingFeet);
     bag.items.length = 0;
     // The wall goes: the painting falls to the floor, whole.
-    G.teleport(x + 3, y + 1);
+    standAt(x + 3, y + 1);
     const tall2 = add("painting_tall_waterfall");
     P.hang(me, tall2.uid, x + 2, y, "n");
     map.destroyWall(x + 2, y, "n");
@@ -192,7 +195,7 @@ export async function run(game) {
     row("after the restore the painting is on its wall", map.peekTile(x + 1, y).n.hangings?.[0]?.item === "painting_small_oak", JSON.stringify(map.peekTile(x + 1, y).n.hangings));
     // A wall bracket (docs/43 section 4): hung on a face as a painting is, by the guest's command; it holds a torch; empty, a player's own comes down again.
     {
-      G.teleport(x + 5, y + 1);
+      standAt(x + 5, y + 1);
       G.loop.advance(1 / 60);
       const br = add("wall_bracket");
       const began = placement.beginBracket(br);
@@ -229,7 +232,7 @@ export async function run(game) {
     for (const [wx, wy] of walls) for (const e of [...map.itemsAt(wx, wy)]) if (/^painting_/.test(e.id)) map.takeItem(wx, wy, e);
     bag.items.splice(0, bag.items.length, ...bag0);
     for (const [e, n] of counts0) e.count = n;
-    G.teleport(meAt[0], meAt[1]);
+    standAt(meAt[0], meAt[1]);
     G.loop.setPaused(wasPaused);
   }
   for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);

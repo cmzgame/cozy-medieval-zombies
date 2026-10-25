@@ -220,6 +220,7 @@ const archeryMod = await import("../src/archery.js");
 const { lineOfSight } = await import("../src/visibility.js");
 const { getDef } = await import("../src/assets.js");
 const stationsMod = await import("../src/stations.js");
+const clientMod = await import("../src/client.js"); // the client's own side, which a world made headless still feeds by its picks (#102)
 await bootData(root);
 // The sync hash (game.syncParts) and what the wire promises: a board struck short of a break changes nothing a guest sees, so the map
 // part must not move; a board broken is carried (the chunk is touched), so it must (the review of #185, #189).
@@ -2162,6 +2163,34 @@ check("hover card: every name that reaches a plural or a lower-cased line reads 
   assert(!bad.length, bad.join("; "));
   const lines = itemsJson.flatMap((d) => itemInfoMod.textOf(itemInfoMod.cardFor(itemsMod.makeEntry(d.id, 1))).filter((l) => /^(Splits into|A sawpit|Goes into|Builds)/.test(l)));
   return `every name regular; ${lines.length} such lines on the cards today`;
+});
+
+// A fallen host's screen stays its body when a friend joins (the review of #465, #102): a world whose only player has fallen is
+// restored with no pick of its own, and the friend who joins it (addPlayer, or putPlayer for one back from dormancy) becomes the
+// world's pick, never the client's: the host's camera, HUD, ear, host.self(), and stepping away stay with the body (src/client.js).
+check("client: a dead host's client.me stays its body when a guest joins the world played again (#102)", () => {
+  const { client, setMe } = clientMod;
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const mine = S.player;
+  assert(client.me === mine, `after the create client.me is ${client.me ? client.me.id : "none"}, not ${mine.id}`);
+  mine.hp = 0;
+  for (let i = 0; i < 1200 && !S.corpses.some((c) => c.id === mine.id); i++) gameMod.step(1 / 60);
+  assert(S.corpses.some((c) => c.id === mine.id) && !S.players.length, `my player did not become a body (${S.players.length} players)`);
+  gameMod.restore(gameMod.serialize(), json); // played again: the save's players are none
+  const body = S.corpses.find((c) => c.id === mine.id);
+  assert(body && !S.player, `after the restore the world's pick is ${S.player ? S.player.id : "none"}, my body ${body ? "there" : "missing"}`);
+  setMe(body); // main.js playWorld, mine fallen
+  const back = gameMod.putPlayer(characterMod.serializeCharacter(playerMod.createPlayer(body.gx + 2, body.gy, { id: "Pback" })));
+  assert(client.me === body && S.player === back, `a friend back from dormancy took client.me (${client.me ? client.me.id : "none"}); the world's pick ${S.player ? S.player.id : "none"}`);
+  gameMod.removePlayer(back.id);
+  S.player = null; // the world with nobody again, for the other way in
+  const joined = gameMod.addPlayer(body.gx + 3, body.gy, {});
+  assert(client.me === body && S.player === joined, `a joining friend took client.me (${client.me ? client.me.id : "none"}); the world's pick ${S.player ? S.player.id : "none"}`);
+  gameMod.pickPlayer(joined); // the client's own pick still moves it (a new character, main.js)
+  assert(client.me === joined, "pickPlayer no longer moves client.me");
+  return `the body ${body.id} kept through a putPlayer and an addPlayer; the world's pick the friend's; a pick moves it`;
 });
 
 let failed = 0;
