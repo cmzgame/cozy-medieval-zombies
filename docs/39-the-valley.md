@@ -1,6 +1,6 @@
 # 39 — The Valley 1.0: the complete scope
 
-**Status, 2026-10-25: a spec, and the one complete list of what The Valley 1.0 holds (#271); the skills' open lines (#275) and the food economy (#264) were ruled on 2026-10-23, the loot tables (#268) and the bags (#260) on 2026-10-24, the tables built the same day, and the dead ends (#273) and water (#279) on 2026-10-25, `docs/43` and `docs/44` (`docs/02`), and the map as it stands is a testing map, not the final valley.** Compiled from `origin/main` at 3e1f5d0 (the data in `data/`, `docs/30`, `docs/29-world`, `docs/02` through its 2026-10-19 entries, `docs/04`, `docs/34`) and from the open issues of the same day: the skills trees on #275, Beastlore on #289, and the scoping issues #92, #103, #123, #133, #181, #260, #261, #262, #264, #268, #273, #279, #281, #282, #283, #285, #288. Valley only: a region appears only as the name of what comes from it. Lists, not reasons; the reasons are `docs/02` and the issues. Numbers are the data's and tuning's, not this page's. Rewritten in place when the scope changes, never appended.
+**Status, 2026-10-25: a spec, and the one complete list of what The Valley 1.0 holds (#271); the skills' open lines (#275) and the food economy (#264) were ruled on 2026-10-23, the loot tables (#268) and the bags (#260) on 2026-10-24, the tables built the same day, and the dead ends (#273), water (#279), and the animals (#289) on 2026-10-25, `docs/43`, `docs/44`, and `docs/45` (`docs/02`), and the map as it stands is a testing map, not the final valley.** Compiled from `origin/main` at 3e1f5d0 (the data in `data/`, `docs/30`, `docs/29-world`, `docs/02` through its 2026-10-19 entries, `docs/04`, `docs/34`) and from the open issues of the same day: the skills trees on #275, Beastlore on #289, and the scoping issues #92, #103, #123, #133, #181, #260, #261, #262, #264, #268, #273, #279, #281, #282, #283, #285, #288. Valley only: a region appears only as the name of what comes from it. Lists, not reasons; the reasons are `docs/02` and the issues. Numbers are the data's and tuning's, not this page's. Rewritten in place when the scope changes, never appended.
 
 ## 0. How to read it
 
@@ -94,13 +94,14 @@
 
 ### Furniture and fittings
 
+- **The feeding trough** [to build]: built from the palette, planks, in a pen; filled with grain, vegetables, or hay (`45`).
 - **Made at the workbench, set down beside it** [built]: a chest, a shelf, a bench, a table, a bed, a workbench, a wheelbarrow. [change: Crafting 1 makes oak furniture; Crafting 5 spruce and mahogany.]
 - **Carrying furniture** [built]: anything not rooted, built in, or burning; on your head, both hands empty; set down with the ghost; R turns it.
 - **Fine furniture** from spruce and mahogany (Crafting 5) [to build].
 - **Rugs and wall pieces** (Crafting 5) [to build] [open #261: on a wall's edge or against it; whether any does something; before or after the redraw].
 - **Workstations of your own** (Woodcutting 7 unlocks, Crafting makes) [change: the workbench recipe is open to all today] [to build]: the workbench, the loom, the drying rack, the composter, the cauldron, the smoking rack, and the hive, never the forge, the anvil, the millstones, or the oven, so the village stays worth walking to; no speed bonus, a workshop at home (ruled 2026-10-23).
 - **The composter** (Farming 4) [to build].
-- **The henhouse** (Beastlore 1) [to build].
+- **The henhouse** (Beastlore 1) [to build]: the chicken coop is a hen's home in a pen; a fed hen lays its egg and feather into the coop's grid (`45`).
 - **Pens** for cows and sheep (Beastlore 4), pigs (Beastlore 7) [to build].
 - **The hive** (Beastlore 5) [to build].
 - **The herb bed** (Farming 7) [to build].
@@ -194,6 +195,7 @@ Every item in `data/items.json` is here with how it is had today; each new item 
 
 ### 5.1 Tools
 
+- **Shears** [to build]: shear a fed sheep's wool; the anvil, Blacksmithing 1 (`45`). **The lead** [to build]: leads livestock home; the workbench, Crafting 1. **The snare** [to build]: catches a rabbit, set near the woods; the workbench, Crafting 1, set at Beastlore 3 (`45`).
 - **Hatchet** [built]: fells trees, chops stumps, splits logs and planks, notches a log wall; a weapon. The home chest, the joiner's chest; made at the anvil (Blacksmithing 1).
 - **Pickaxe** [built]: mines rocks and ore. The miners' and the quarryman's chests; made at the anvil (Blacksmithing 1).
 - **Hoe** [built]: tills grass and dirt. The great barn's rack; made at the workbench.
@@ -206,7 +208,7 @@ Every item in `data/items.json` is here with how it is had today; each new item 
 - **Tinderbox** [built]: lights fires and torches, puts out torches; never wears out; rides the belt. The kit; not made (it never wears out).
 - **Torch** [built]: a light (section 5.12) and a weapon. The kit (held, unlit); made at the workbench.
 - **A chisel or other gem tool** [open #281].
-- **The companion's command item** (a whistle or a lead) [open #289].
+- **The companion's command item**: not the lead, decided when the companion is built (`45`). **The lead** [to build]: leads livestock home (Crafting 1).
 - **A watering can, pitchfork, sickle, flail** (the barns' racks in `docs/29-world/05`): props, not tools (ruled 2026-10-23; the pitchfork someday). The threshing flail is not Melee 8's flail, the weapon.
 
 ### 5.2 Weapons
@@ -304,8 +306,8 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 - **Perch, trout, carp** [built]: fishing [change: Fishing 1, 5, 3].
 - **Tomato** [to build]: Farming 5.
 - **Mushrooms, eaten or cooked** [to build]: Herbalism 3 (some for Cooking).
-- **Eggs** [to build]: the henhouse (Beastlore 1).
-- **Raw meat**: hen, rabbit (Beastlore 3's snares), venison (`docs/30`'s deer), pork and boar (Beastlore 7) [to build].
+- **Eggs** [to build]: laid by a fed hen into its coop (Beastlore 1, `45`).
+- **Raw meat** [to build]: hen, rabbit (Beastlore 3's snares), venison (the deer), beef (cows), mutton (sheep), pork (pigs and boar, Beastlore 7); each cooked alone at a fire or used raw in recipes (`45` section 4). **Bacon and lard** from a pig (Beastlore 7) (`45`).
 - **Milk** [to build]: cows (Beastlore 4).
 - **Honey** [built, #410]: the hive (Beastlore 5), a pot every three game days (*default*); never rots.
 - **Wheel of cheese** [built]: chests, pantries, and the inn's counter only [change: made from milk (Beastlore 4) at Cooking 3 (ruled 2026-10-23)].
@@ -317,7 +319,7 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 - **Grilled perch, grilled trout, grilled carp** [built]: at a fire (Cooking 1).
 - **Porridge** [built]: two grain at a fire (Cooking 1).
 - **Loaf of bread** [built]: two flour at the oven (Cooking 1); the kit, the home chest, chests, pantries, the inn's counter, and the body loot.
-- **Stew** [built]: two potatoes, a cabbage, garlic at a fire [change: a plain pottage at Cooking 1 keeps the day-one recipe; the hearty stew with its buff is Cooking 4 (ruled 2026-10-23)].
+- **Stew** [built]: two potatoes, a cabbage, garlic at a fire [change: a plain pottage at Cooking 1 keeps the day-one recipe, with a meat pottage beside it once there is meat; the hearty stew with its buff is Cooking 4, any meat (ruled 2026-10-23; `45`)].
 - **Pumpkin pie** [built]: a pumpkin and flour at the oven [change: Cooking 6].
 - **Seasoned dishes** [to build]: herbs and garlic, a little more healing (Cooking 3).
 - **Tomato soup** [to build]: Cooking 3.
@@ -326,6 +328,7 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 - **Pemmican** [to build]: meat, a plant, a binder (lard or honey), small, and the only food that stacks, keeps all but forever (Cooking 7).
 - **Eggs and bacon** [to build] (Beastlore 7): Cooking 4 (ruled 2026-10-23).
 - **Cooked meats** [to build]: Cooking 1 (ruled 2026-10-23).
+- **Meat pie** [to build]: at the oven, raw meat and flour (`45`, a default).
 - **The feast** [to build]: a great meal laid on a table; the best food buffs in the game, to everyone who eats from it (Cooking 10).
 - **Cooks two at a time** (Cooking 6), **heals 25% more and keeps you well fed longer** (Cooking 9) [to build].
 - **Frostroot stew** (Cooking 8, the Pale Reach): a name only.
@@ -386,7 +389,7 @@ All [to build]: brewed at a cauldron from Herbalism's herbs and secondaries; dru
 - **Herbs, dried herbs, cuttings, herb seeds** [to build]: Herbalism 1, 4, 6.
 - **Rotten food, rotten fish** [to build]: what rot leaves (#264); the composter takes them.
 - **Hides and leather** [to build]: skinned (Beastlore 2), tanned (Crafting 3).
-- **Feathers** [to build]: hens (Beastlore 1); fletching.
+- **Feathers** [to build]: generous, so arrows can be farmed: a fed hen a feather most days, a butchered hen three to five; one fletches five arrows (`45`).
 - **Wool and woollen cloth** [to build]: sheep (Beastlore 4), Crafting 6.
 - **Honey and wax**: the hive (Beastlore 5) [honey built, #410]; wax for candles [to build].
 - **Lard** [to build]: pigs (Beastlore 7); pemmican's binder.
@@ -515,25 +518,25 @@ One per skill, immune, teaching recipes and unlocks as you level [to build]; whi
 
 None in the game today. All [to build] unless marked.
 
-- **How many kinds:** Beastlore's, below [open #289]; 2026-10-12's "two animals, last" is struck (ruled 2026-10-19).
+- **How many kinds:** seven: hens, rabbits, deer, cows, sheep, pigs and boar, with your own beehives (ruled 2026-10-25, `45`); 2026-10-12's "two animals, last" is struck (ruled 2026-10-19).
 - **Killing:** any weapon; the weapon decides the yield (a halberd ruins the kill, a bow gives all of it). Beastlore 1.
 - **Skinning and butchering** with a dirk: hides and meat; one more at Beastlore 2, faster and one more of every yield at 9.
-- **Deer** (`docs/30` step 8): wild game that flees, hunted with the bow; where Beastlore places it [open #289].
-- **Tracking** game, and **snares** for rabbits (meat, hide): Beastlore 3.
-- **Hens** in a henhouse: eggs and feathers checked for regularly; meat when killed. Beastlore 1.
+- **Deer** (`docs/30` step 8): wild game that flees, hunted with the bow; in herds in the woods ringing the valley, free to roam, back slowly to a cap (`45`).
+- **Tracking** game (its faint tracks seen within a few tiles), and **snares** for rabbits (meat, hide): Beastlore 3 (`45`).
+- **Hens** in a henhouse (the chicken coop): a fed hen lays its egg and a feather most days into the coop's grid; meat and three to five feathers when butchered. Beastlore 1 (`45`).
 - **Cows** in a pen: milk to cheese and butter. **Sheep** in a pen: wool. Beastlore 4.
 - **Bees** in a hive of your own: honey and wax. Beastlore 5.
 - **Breeding, and pens that give more:** Beastlore 6.
 - **Pigs, and boar to hunt:** pork, bacon, lard. Beastlore 7.
-- **Feeding, breeding, and tending; whether the dead attack livestock or predators come** [open #289].
+- **Feeding, breeding, and tending** (`45` section 3): never starve or die of neglect; fed at a feeding trough (grain, vegetables, or hay) they produce, unfed they stop; breeding at Beastlore 6; **the dead ignore animals, no predators come**; livestock from the farms, led home on a lead, a pen any fenced yard with its gates shut.
 - **Animals in the world:** wander and flee on the host's step, in the frame and the save, in the sync check.
 - **The snow region's beasts** (Beastlore 8, the Pale Reach): a name only.
-- **Beastwarding, the companion** (Beastlore 10) [open #289: whether it is in at all, and for 1.0 or later]:
+- **Beastwarding, the companion** (Beastlore 10; in 1.0, built last, after the demo, `45` section 5):
   - three commands: follow, stay, attack a target and come back;
   - the command item held in the main hand; a left click on one of the dead sends it;
-  - an enemy that is not a boss switches to a companion in its way; bosses [open #289];
+  - an enemy that is not a boss switches to a companion in its way; bosses ignore interception;
   - each player has their own; it never hurts a player;
-  - when it dies [open #289];
+  - when it "dies" it goes home hurt and is back after a game day;
   - one mechanic with a region's death-school thrall.
 
 ## 9. Professions
@@ -648,7 +651,7 @@ A skill's level gate stops a player harvesting the food it gates, ripe fields in
 7. Pigs and boar: pork, bacon, lard.
 8. The snow region's beasts (the Pale Reach).
 9. Skins and tames faster; one more of every yield.
-10. Beastwarding: the companion [open #289].
+10. Beastwarding: the companion (in 1.0, built last, `45`).
 
 ### Farming (production; feeds Cooking, Crafting, Herbalism, Potions, Faith)
 1. Tilling and planting potatoes and cabbages [change: every crop today].
@@ -817,7 +820,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 - Pray at an altar [to build] (Faith 1).
 - Throw a potion; splash a friend [to build] (Potions 7).
 - Coat a blade or an arrow with poison [to build] (Potions 5).
-- Command a companion: follow, stay, attack and return [open #289].
+- Command a companion: follow, stay, attack and return (`45` section 5, after the demo).
 
 ### Eating, drinking, healing
 - Eat (the menu, a double-click, the belt's key), drink from a skin, drink at water, fill skins, apply a bandage [built].
@@ -838,7 +841,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 - Take from a stack: logs, planks, stone [built for the quarry's stone; the woodcutters' stacks to build].
 - Dig a grave, the buried chest, a plot [to build] (a shovel).
 - Hunt, track, set a snare, skin, butcher [to build] (Beastlore; a dirk).
-- Collect eggs, milk a cow, take wool, shoo a hen [to build]; take honey [built, #410] (Beastlore).
+- Collect eggs from a coop, milk a cow, shear a sheep, lead an animal, fill a feeding trough [to build] (`45`); take honey [built, #410] (Beastlore).
 - Cut hay (Farming 5) [to build].
 
 ### Farming
@@ -954,7 +957,7 @@ Placeholder sounds, generated or from a library [open #271]; every informative s
 - **Skills** [to build]: on the player's record; each player's own levels, gates, and teaching; death takes them from that character.
 - **The feast** [to build]: feeds everyone who eats from it.
 - **Throwing potions** [to build]: a healing or mana potion splashes a friend.
-- **Companions** [open #289]: each player's own; never hurts a player; a guest's companion a character in the frame.
+- **Companions** (`45`): each player's own; never hurts a player; a guest's companion a character in the frame.
 - **Drops by chance** (ruled 2026-10-24, #268): each player's own roll; bad-luck protection kept on the player.
 - **The first day's curve** [open #123]: one per world.
 - **Sleep** [built]: time runs fast only while every living player is in bed.
@@ -1008,4 +1011,3 @@ The numbers are for tuning; this list is what must change before 1.0.
 - **#281, #282, #283:** gems, trinkets, silver.
 - **#285:** the belt (to build, ruled).
 - **#288:** what comes back, and where.
-- **#289:** how many animals; the companion.
