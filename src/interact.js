@@ -1828,7 +1828,7 @@ export function stampFromGuest(player, id, kind) {
   const def = getDef(prop.sprite);
   if (!prop.interactable || def.sway === false || def.clickAnim) return false;
   const now = loop.simTime() * 1000;
-  if (!prop.pokedAt || now - prop.pokedAt >= POKE_COOLDOWN_MS) stamp(prop, now);
+  if (prop.pokedAt == null || now - prop.pokedAt >= POKE_COOLDOWN_MS) stamp(prop, now);
   return true;
 }
 
@@ -1838,7 +1838,7 @@ export function pokeAt(sx, sy, player) {
   const def = getDef(prop.sprite);
   if (def.sway === false || def.clickAnim) return prop;
   const now = loop.simTime() * 1000; // sim milliseconds (docs/23a, C2); the renderer reads the same clock
-  if (inReach(prop, player) && (!prop.pokedAt || now - prop.pokedAt >= POKE_COOLDOWN_MS)) stamp(prop, now);
+  if (inReach(prop, player) && (prop.pokedAt == null || now - prop.pokedAt >= POKE_COOLDOWN_MS)) stamp(prop, now);
   return prop;
 }
 
@@ -1863,7 +1863,7 @@ export function brushThrough(ch) {
   const def = getDef(prop.sprite);
   if (def.sway === false || def.clickAnim) return;
   const now = loop.simTime() * 1000;
-  if (!prop.pokedAt || now - prop.pokedAt >= BRUSH_MS) stamp(prop, now);
+  if (prop.pokedAt == null || now - prop.pokedAt >= BRUSH_MS) stamp(prop, now);
 }
 
 // ---- characters under the cursor (docs/19) ----
@@ -2114,7 +2114,7 @@ export function play(prop) {
   if (!anim) return false;
   const now = loop.simTime() * 1000; // sim milliseconds (docs/23a, C2)
   const total = anim.ms.reduce((a, b) => a + b, 0);
-  if (prop.playedAt && now - prop.playedAt < total) return false;
+  if (prop.playedAt != null && now - prop.playedAt < total) return false;
   stamp(prop, now, "playedAt");
   return true;
 }

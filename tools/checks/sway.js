@@ -5,7 +5,8 @@
 // mismatch between the stamp (sim time) and the renderer (wall time) had
 // switched every wobble off without any check noticing.
 // From the console: await __game.check("sway")
-// It pauses the loop, moves the player to a crop or a mushroom, and puts them back.
+// It pauses the loop, moves the player to a crop or a mushroom, and puts them back; a last row pokes at sim time 0 (the clock set by hand
+// and put back), which is a stamp like any other.
 
 import { swayOf, WIGGLE_MS } from "../../src/render/props.js";
 
@@ -67,7 +68,7 @@ export async function run(game) {
     for (let i = 0; i < 40; i++) step();
     p.pokedAt = undefined;
     const stamps = [];
-    const watch = () => { if (p.pokedAt && stamps[stamps.length - 1] !== p.pokedAt) stamps.push(p.pokedAt); };
+    const watch = () => { if (p.pokedAt != null && stamps[stamps.length - 1] !== p.pokedAt) stamps.push(p.pokedAt); };
     G.teleport(x - 1.2, y);
     step();
     for (let i = 0; i < 60; i++) { G.player.gx = x - 1.2 + i * (3 / 60); G.player.gy = y; step(); watch(); }
@@ -113,6 +114,28 @@ export async function run(game) {
       hive.pokedAt = undefined;
     }
   } finally {
+    G.teleport(px0, py0);
+    G.loop.setPaused(wasPaused);
+  }
+  // A poke at sim time 0 (a never-stepped world): the stamp is 0, and it is a stamp: the thing sways and the rest holds (read as
+  // `!pokedAt`, as until this check's row, it was none). The clock is set by hand, never stepped, and put back.
+  const sim0 = G.loop.simTime();
+  try {
+    G.loop.setPaused(true);
+    G.teleport(x, y + 2);
+    G.loop.setSimTime(0);
+    p.pokedAt = undefined;
+    const took = G.interact.stampFromGuest(G.player, p.id, 0);
+    const at = p.pokedAt;
+    let lean = 0;
+    for (let i = 1; i <= 12; i++) { G.loop.setSimTime(i / 60); lean = Math.max(lean, Math.abs(swayOf(p, 40))); }
+    G.loop.setSimTime(0.25);
+    G.interact.stampFromGuest(G.player, p.id, 0);
+    const held = p.pokedAt === 0;
+    row("a poke at sim time 0 is stamped 0, sways, and a second poke inside its rest does not restamp it", took && at === 0 && lean > 0 && held, `took ${took}, pokedAt ${at}, max lean ${lean} px, after the second poke ${p.pokedAt}`);
+  } finally {
+    p.pokedAt = undefined;
+    G.loop.setSimTime(sim0);
     G.teleport(px0, py0);
     G.loop.setPaused(wasPaused);
   }
