@@ -5,8 +5,8 @@
 // design of its own; placeholders.iconCanvas): the item-art law's pair from one design, until drawn art replaces it. Every picture has
 // the gatherables' dark outline all the way round (the law in CLAUDE.md; docs/art/01, rule 4), one pixel, hard-edged.
 //
-// A design: { kind: "herb", leaf, stem?, flower?, eye?, berries?, flowers: "top" | "spike" | "umbel" | "bell" | "none", stems, height,
-// spread, leafSize, leafGap, mound?, seed } · { kind: "mushroom", cap, stalk, capWidth, capHeight, stalkHeight, spots? } · { kind: "lump",
+// A design: { kind: "herb", leaf, stem?, flower?, eye?, glow?, berries?, root?, flowers: "spike" | "daisy" | "umbel" | "cluster" | "star" |
+// "hood" | "bell" | "top" | "none", wide?, spikeFrom?, stems, height, spread, base, leafSize, leafGap, broad?, serrated?, mound?, tufts?, seed } · { kind: "mushroom", cap, stalk, capWidth, capHeight, stalkHeight, spots? } · { kind: "lump",
 // color, halfWidth, height, streaks?, sheen?, crystals?, crystal?, seed }. The foot of the picture is its anchor: the pixel drawn at the
 // tile's centre.
 
@@ -51,16 +51,25 @@ function line(x0, y0, x1, y1) {
 // A dome's height at column x: half-width `hw`, height `h`, at least one pixel.
 const domeAt = (x, hw, h) => Math.max(1, Math.round(h * Math.sqrt(Math.max(0, 1 - (x / (hw + 0.5)) ** 2))));
 
-// An herb: stems from the foot, leaves along them on alternating sides, its flowers where the design says; or a low mound (a moss).
+// An herb, drawn to be found (Primary's look at #457: at the world's zoom a thin sprig vanished into the grass): a clump of leaves at the
+// foot (`base`), stems rising from it with leaves along them on alternating sides (`leafSize` long, two rows when `broad`, notched when
+// `serrated`), and its flowers where the design says, each kind its own colour and shape; or a tuft of moss (`mound`, with `tufts`).
+//   flowers: "spike" (a dense column up the stem's top half), "daisy" (white petals round an `eye`), "umbel" (a flat head), "cluster"
+//   (a round head at each tip), "star" (a small five-pixel star at each tip), "hood" (hooded blooms up the top of the stem), "bell" (bells
+//   hanging from the leaves), "none"; `glow` a pale pixel over each tip (the mana herb), `berries` hung from the leaves, `root` roots
+//   showing either side of the foot (madder).
 function herb(d, set) {
   const leaf = d.leaf || "#5a8a4a";
-  const dark = tone(leaf, 0.72);
-  const light = tone(leaf, 1.28);
-  const stem = d.stem || tone(leaf, 0.62);
+  const dark = tone(leaf, 0.7);
+  const light = tone(leaf, 1.3);
+  const stem = d.stem || tone(leaf, 0.66);
   const flower = d.flower || null;
+  const fLight = flower ? tone(flower, 1.15) : null;
+  const fDark = flower ? tone(flower, 0.72) : null;
   const seed = d.seed || 1;
   const H = d.height || 10;
   const spread = d.spread ?? 3;
+  if (d.root) for (const [x, y] of [[-1, 0], [-2, 1], [-3, 1], [1, 0], [2, 1], [3, 1], [0, 1]]) set(x, y, x === 0 ? tone(d.root, 0.75) : d.root);
   if (d.mound) {
     for (let x = -spread; x <= spread; x++) {
       const ch = domeAt(x, spread, H);
@@ -69,10 +78,22 @@ function herb(d, set) {
         let c = top ? light : k === 0 ? dark : leaf;
         if (!top && k > 0 && hash(seed, x * 31 + k) < 0.25) c = dark;
         set(x, -k, c);
-        if (top && flower && hash(seed + 7, x) < 0.4) set(x, -k - 1, flower);
+      }
+      // Tufts: pale strands standing out of the top, tipped with the flower's colour.
+      if (d.tufts && Math.abs(x) < spread && (x % 2 === 0 || hash(seed + 5, x + 40) < 0.4)) {
+        const t = Math.max(1, Math.round(d.tufts * (1 - Math.abs(x) / (spread + 1)) * (0.45 + 0.55 * hash(seed + 3, x + 20))));
+        const lean = hash(seed + 9, x + 60) < 0.3 ? (x < 0 ? -1 : 1) : 0;
+        for (let k = 0; k < t; k++) set(x + (k === t - 1 && t > 2 ? lean : 0), -ch - k, k === t - 1 && flower ? flower : k % 2 ? leaf : light);
       }
     }
     return;
+  }
+  // The clump at the foot: two or three rows of leaves, wider at the bottom.
+  const base = d.base || 0;
+  for (let x = -base; x <= base; x++) {
+    set(x, 0, Math.abs(x) % 2 ? dark : leaf);
+    if (Math.abs(x) < base) set(x, -1, (x + seed) % 3 === 0 ? light : leaf);
+    if (Math.abs(x) < base - 1) set(x, -2, Math.abs(x) % 2 ? leaf : light);
   }
   const n = Math.max(1, d.stems || 3);
   const L = d.leafSize || 1;
@@ -81,46 +102,80 @@ function herb(d, set) {
   for (let i = 0; i < n; i++) {
     const t = n === 1 ? 0 : (i / (n - 1)) * 2 - 1;
     const tx = Math.round(t * spread);
-    const ty = -Math.max(3, Math.round(H * (0.8 + 0.2 * hash(seed, i)) * (1 - 0.2 * Math.abs(t))));
-    stems.push({ i, pts: line(0, 0, tx, ty), tx, ty });
+    const ty = -Math.max(3, Math.round(H * (0.84 + 0.16 * hash(seed, i)) * (1 - 0.18 * Math.abs(t))));
+    stems.push({ i, pts: line(0, -Math.min(base ? 1 : 0, 1), tx, ty), tx, ty });
   }
   for (const s of stems) for (const [x, y] of s.pts) set(x, y, stem);
   // The leaves, then the flowers over them.
   for (const s of stems) {
     const len = s.pts.length;
-    for (let k = 2; k < len - 1; k += gap) {
+    for (let k = base ? 3 : 2; k < len - 1; k += gap) {
       const [lx, ly] = s.pts[k];
       const side = (Math.floor(k / gap) + s.i) % 2 ? 1 : -1;
-      for (let j = 1; j <= L; j++) set(lx + side * j, ly - (j > 1 ? 1 : 0), j === L ? light : leaf);
-      if (L >= 2) set(lx + side, ly - 1, leaf);
-      if (d.berries && hash(seed + 3, s.i * 17 + k) < 0.4) set(lx + side * (L + 1), ly, d.berries);
-      if (d.flowers === "bell" && flower && hash(seed + 5, s.i * 13 + k) < 0.6) {
+      for (let j = 1; j <= L; j++) {
+        const up = j > 1 ? 1 : 0;
+        set(lx + side * j, ly - up, j === L ? light : leaf);
+        if (d.broad && j < L) set(lx + side * j, ly - up + 1, d.serrated && j % 2 === 0 ? leaf : dark);
+        if (d.serrated && j === L) set(lx + side * (j + 1), ly - up - 1, light);
+      }
+      if (d.berries && hash(seed + 3, s.i * 17 + k) < 0.55) {
+        set(lx + side * (L + 1), ly + 1, d.berries);
+        set(lx + side * L, ly + 2, d.berries);
+      }
+      if (d.flowers === "bell" && flower && hash(seed + 5, s.i * 13 + k) < 0.7) {
         set(lx + side * L, ly + 1, flower);
-        set(lx + side * L, ly + 2, tone(flower, 0.72));
+        set(lx + side * (L + 1), ly + 1, fDark);
+        set(lx + side * L, ly + 2, fDark);
       }
     }
   }
-  if (!flower) return;
-  for (const s of stems) {
-    const { tx, ty, pts } = s;
-    if (d.flowers === "top") {
-      set(tx - 1, ty, flower);
-      set(tx + 1, ty, flower);
-      set(tx, ty - 1, tone(flower, 1.12));
-      set(tx, ty + 1, tone(flower, 0.82));
-      set(tx, ty, d.eye || flower);
-    } else if (d.flowers === "spike") {
-      for (let k = Math.ceil(pts.length * 0.5); k < pts.length; k += 2) {
-        const [x, y] = pts[k];
-        set(x - 1, y, flower);
-        set(x + 1, y, tone(flower, 0.8));
+  if (flower) {
+    for (const s of stems) {
+      const { tx, ty, pts } = s;
+      const f = d.flowers;
+      if (f === "daisy" || f === "star") {
+        const petal = f === "daisy" ? flower : fLight;
+        set(tx - 1, ty, petal);
+        set(tx + 1, ty, petal);
+        set(tx, ty - 1, petal);
+        set(tx, ty + 1, f === "daisy" ? petal : fDark);
+        if (f === "daisy") { set(tx - 1, ty - 1, fDark); set(tx + 1, ty + 1, fDark); }
+        set(tx, ty, d.eye || flower);
+      } else if (f === "cluster") {
+        for (let y = ty - 2; y <= ty; y++) for (let x = tx - 1; x <= tx + 1; x++) set(x, y, (x + y) % 2 ? flower : y === ty - 2 ? fLight : fDark);
+        set(tx, ty - 3, fLight);
+      } else if (f === "spike") {
+        for (let k = Math.floor(pts.length * (d.spikeFrom ?? 0.4)); k < pts.length; k++) {
+          const [x, y] = pts[k];
+          set(x - 1, y, k % 2 ? flower : fDark);
+          set(x, y, k % 2 ? fLight : flower);
+          if (d.wide || k % 2) set(x + 1, y, fDark);
+        }
+        set(tx, ty - 1, fLight);
+      } else if (f === "hood") {
+        for (let k = Math.floor(pts.length * 0.45); k < pts.length; k += 2) {
+          const [x, y] = pts[k];
+          const side = k % 4 < 2 ? -1 : 1;
+          set(x + side, y - 1, fLight);
+          set(x + side, y, flower);
+          set(x + side * 2, y, flower);
+          set(x + side, y + 1, fDark);
+        }
+        set(tx, ty - 1, fLight);
+        set(tx, ty - 2, flower);
+      } else if (f === "umbel") {
+        for (let x = tx - 3; x <= tx + 3; x++) set(x, ty - 1, Math.abs(x - tx) === 3 ? fDark : flower);
+        for (let x = tx - 2; x <= tx + 2; x++) set(x, ty - 2, fLight);
+        set(tx, ty, stem);
+      } else if (f === "top") {
+        set(tx - 1, ty, flower);
+        set(tx + 1, ty, flower);
+        set(tx, ty - 1, fLight);
+        set(tx, ty, d.eye || flower);
       }
-      set(tx, ty - 1, tone(flower, 1.12));
-    } else if (d.flowers === "umbel") {
-      for (let x = tx - 2; x <= tx + 2; x++) set(x, ty - 1, flower);
-      for (let x = tx - 1; x <= tx + 1; x++) set(x, ty - 2, tone(flower, 1.12));
     }
   }
+  if (d.glow) for (const s of stems) { set(s.tx, s.ty - 1, d.glow); if (d.flowers === "none" || !flower) set(s.tx, s.ty, tone(d.glow, 0.85)); }
 }
 
 // A mushroom: a pale stalk under a domed cap with a dark rim.

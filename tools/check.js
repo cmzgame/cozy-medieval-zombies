@@ -1431,12 +1431,15 @@ check("herbs, clay, and salt: placed to their counts on their ground, gathered b
   assert(verbsMod.run("gather", S, me, { prop: fever.id }).ok, "the feverfew was not gathered");
   const parts1 = gameMod.syncParts();
   assert(parts1.players !== parts0.players && parts1.map !== parts0.map, `a gather did not move the players' part (${parts1.players !== parts0.players}) or the map's (${parts1.map !== parts0.map})`);
-  // The cards: the full name, the kind, and no use that is not built.
+  // The cards: the full name, the kind, where it is gathered (read from its nodes and their kinds' `where`), and no use that is not built.
+  const SOURCE = { sage: "Grows wild in the valley; gathered by hand.", nettle: "Grows wild in the valley; gathered by hand.", feverfew: "Grows wild in the valley; gathered by hand.", yarrow: "Grows wild in the valley; gathered by hand.", woad: "Grows wild in the valley; gathered by hand.", madder: "Grows wild in the valley; gathered by hand.", weld: "Grows wild in the valley; gathered by hand.", mana_herb: "Grows wild near the river; gathered by hand.", nightshade: "Grows wild near trees; gathered by hand.", wolfsbane: "Grows wild near trees; gathered by hand.", grave_moss: "Grows wild in the graveyard, at night; gathered by hand.", mushroom: "Forage under trees.", clay: "Dug from the clay banks by the river, a shovel carried.", salt: "Mined from salt rocks at the iron workings, a pickaxe in hand." };
   const KIND = { sage: "Herb", nettle: "Herb", feverfew: "Herb", yarrow: "Herb", mana_herb: "Herb", nightshade: "Herb", wolfsbane: "Herb", grave_moss: "Herb", woad: "Dye plant", madder: "Dye plant", weld: "Dye plant", mushroom: "Mushroom", clay: "Material", salt: "Material" };
   for (const [id, kind] of Object.entries(KIND)) {
     const c = itemInfoMod.cardFor(itemsMod.makeEntry(id));
-    assert(c.name === itemsMod.getItem(id).name && c.kind === kind && c.lines.length === 0, `${id}'s card: ${itemInfoMod.textOf(c).join(" | ")}`);
+    const lines = c.lines.map((l) => l.map((g) => g.t).join(""));
+    assert(c.name === itemsMod.getItem(id).name && c.kind === kind && lines.length === 1 && lines[0] === SOURCE[id], `${id}'s card: ${itemInfoMod.textOf(c).join(" | ")}`);
   }
+  assert(itemInfoMod.sourcesOf(itemsMod.getItem("stone")).length === 0 && itemInfoMod.sourcesOf(itemsMod.getItem("iron_ore")).length === 0, "stone or iron ore gained a source line (their kinds have no where)");
   assert(itemsMod.getItem("mana_herb").name === "Mana herb" && itemsMod.getItem("grave_moss").name === "Grave moss", "the placeholder names moved");
   // The art: every design outlined all the way round, its icon fitting 19 by 19, the herbs' icons their nodes' pictures.
   const designs = itemsMod.allItems().filter((d) => d.icon && d.icon.placeholder).map((d) => [d.id, typeof d.icon.placeholder === "string" ? getDef(d.icon.placeholder).placeholder : d.icon.placeholder]);

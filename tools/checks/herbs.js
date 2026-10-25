@@ -27,6 +27,7 @@ export async function run(game, opts = {}) {
   const RES = G.tuning.resources;
   const HERBS = ["sage", "nettle", "feverfew", "yarrow", "woad", "madder", "weld", "mana_herb", "nightshade", "wolfsbane", "grave_moss"];
   const ITEMS = [...HERBS, "mushroom", "clay", "salt"];
+  const SOURCE = { sage: "Grows wild in the valley; gathered by hand.", nettle: "Grows wild in the valley; gathered by hand.", feverfew: "Grows wild in the valley; gathered by hand.", yarrow: "Grows wild in the valley; gathered by hand.", woad: "Grows wild in the valley; gathered by hand.", madder: "Grows wild in the valley; gathered by hand.", weld: "Grows wild in the valley; gathered by hand.", mana_herb: "Grows wild near the river; gathered by hand.", nightshade: "Grows wild near trees; gathered by hand.", wolfsbane: "Grows wild near trees; gathered by hand.", grave_moss: "Grows wild in the graveyard, at night; gathered by hand.", mushroom: "Forage under trees.", clay: "Dug from the clay banks by the river, a shovel carried.", salt: "Mined from salt rocks at the iron workings, a pickaxe in hand." };
   const KIND = { woad: "Dye plant", madder: "Dye plant", weld: "Dye plant", mushroom: "Mushroom", clay: "Material", salt: "Material" };
   const me = G.player;
   const cardText = (id) => info.textOf(info.cardFor(G.items.makeEntry(id))).join(" | ");
@@ -58,7 +59,7 @@ export async function run(game, opts = {}) {
         if (performance.now() - last >= 1000 / 60) { last = performance.now(); G.loop.advance(1 / 60); }
       }
       row("the label goes to the host, which runs the bar and the verb: the nettle in my bag on the replica and the node gone from it", nettles() === n0 + 1 && !G.map.propById(k.node.id) && !G.map.tileAt(k.node.tile[0], k.node.tile[1]).prop, `${n0} -> ${nettles()} nettles, node ${G.map.propById(k.node.id) ? "still there" : "gone"}, ${Math.round(performance.now() - t0)} ms`);
-      row("on the guest the nettle's card says its name and kind", /^Nettle \| Herb/.test(cardText("nettle")), cardText("nettle"));
+      row("on the guest the nettle's card says its name, its kind, and where it grows (the replica's map kinds)", /^Nettle \| Herb/.test(cardText("nettle")) && cardText("nettle").includes(SOURCE.nettle), cardText("nettle"));
     } catch (e) {
       rows.push({ check: "ran to the end", result: "FAIL", detail: e && e.stack ? e.stack.split("\n").slice(0, 3).join(" | ") : String(e) });
     } finally {
@@ -186,10 +187,10 @@ export async function run(game, opts = {}) {
       const name = G.items.getItem(id).name;
       const kind = KIND[id] || "Herb";
       const img = el.querySelector("img.inv-icon");
-      if (!text.startsWith(name) || !text.includes(kind) || /Use|Eat|Goes into|Made at/.test(text) || !img || !/^data:image\/png/.test(img.getAttribute("src"))) wrong.push(`${id}: "${text}", icon ${img ? "drawn" : "none"}`);
+      if (!text.startsWith(name) || !text.includes(kind) || !text.includes(SOURCE[id]) || /Use|Eat|Goes into|Made at/.test(text) || !img || !/^data:image\/png/.test(img.getAttribute("src"))) wrong.push(`${id}: "${text}", icon ${img ? "drawn" : "none"}`);
     }
     (await import("/src/ui/hover-card.js")).hide();
-    row("over the bag each new item shows its icon and its card: its full name and its kind, and no use that is not built", wrong.length === 0, wrong.length ? wrong.join("; ") : read.join(" || "));
+    row("over the bag each new item shows its icon and its card: its full name, its kind, and where it is gathered, and no use that is not built", wrong.length === 0, wrong.length ? wrong.join("; ") : read.join(" || "));
     panel.setBagOpen(was.bag);
     for (const e of [...bag.items]) bag.items.splice(bag.items.indexOf(e), 1);
 

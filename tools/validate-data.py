@@ -286,6 +286,8 @@ for path in sorted(glob.glob("data/maps/*.json")):
         groups = {r.get("group") for r in m.get("floorRects", []) + m.get("features", []) if str(r.get("sprite", "")).startswith("floor_water")}
         if k.get("waterGroup") and k["waterGroup"] not in groups:
             fail(f"{where}: grows by the water {k['waterGroup']!r}, which the map has none of")
+        if "where" in k and not (isinstance(k["where"], str) and k["where"] and k["where"][0].islower()):
+            fail(f"{where}: where it grows, in words for a card (\"near the river\"), not {k['where']!r}")
         for flag in ("own", "night"):
             if flag in k and not isinstance(k[flag], bool):
                 fail(f"{where}: {flag} is true or false")

@@ -617,7 +617,7 @@ def build():
     ORE_AREA = [[206, 130, 46, 34]]
     g.resource("stone", ROCKS, 40, open=["the quarry"], open_floors=["floor_dirt"], rise=True, seed=61)
     g.resource("ore", {"ore_rock": 1}, 6, rects=ORE_AREA, open=["the iron workings"], rise=True, seed=62)
-    g.resource("mushrooms", {"mushroom_0": 1, "mushroom_1": 1, "mushroom_2": 1, "mushroom_3": 1, "mushroom_4": 1}, 774, near=2, solid=False, jitter=0.6, seed=63)
+    g.resource("mushrooms", {"mushroom_0": 1, "mushroom_1": 1, "mushroom_2": 1, "mushroom_3": 1, "mushroom_4": 1}, 774, near=2, solid=False, jitter=0.6, seed=63, where="under trees")
     # Step 2 (#448): the herbs, 120 in all, grow like weeds at random on natural ground, never in patches, each kind favouring its ground
     # (docs/46 section 2): the common herbs and the dye plants anywhere, the mana herb within two tiles of water by the river, nightshade and
     # wolfsbane near trees, the graveyard's inside its wall (its own place, its fence open to it), coming back only at night. The rarer a
@@ -628,14 +628,14 @@ def build():
     HERBS = [  # the kind (its node is herb_<kind>, its item <kind>), its count, and where it grows
         ("sage", 16, {}), ("nettle", 16, {}), ("feverfew", 14, {}), ("yarrow", 16, {}),
         ("woad", 10, {}), ("madder", 10, {}), ("weld", 10, {}),
-        ("mana_herb", 10, {"rects": RIVER, "water": 2}),
-        ("nightshade", 7, {"near": 2}), ("wolfsbane", 7, {"near": 2}),
-        ("grave_moss", 4, {"rects": [GRAVEYARD], "own": True, "night": True}),
+        ("mana_herb", 10, {"rects": RIVER, "water": 2, "where": "near the river"}),
+        ("nightshade", 7, {"near": 2, "where": "near trees"}), ("wolfsbane", 7, {"near": 2, "where": "near trees"}),
+        ("grave_moss", 4, {"rects": [GRAVEYARD], "own": True, "night": True, "where": "in the graveyard"}),
     ]
     for i, (name, count, where) in enumerate(HERBS):
-        g.resource(name, {f"herb_{name}": 1}, count, solid=False, jitter=0.5, seed=64 + i, **where)
-    g.resource("clay", {"clay_bank": 1}, 8, rects=RIVER, water=2, water_group="river", seed=80)
-    g.resource("salt", {"salt_rock": 1}, 4, rects=ORE_AREA, open=["the iron workings"], rise=True, seed=81)
+        g.resource(name, {f"herb_{name}": 1}, count, solid=False, jitter=0.5, seed=64 + i, **{"where": "in the valley", **where})
+    g.resource("clay", {"clay_bank": 1}, 8, rects=RIVER, water=2, water_group="river", seed=80, where="by the river")
+    g.resource("salt", {"salt_rock": 1}, 4, rects=ORE_AREA, open=["the iron workings"], rise=True, seed=81, where="at the iron workings")
 
     # ---- the dead (29/08): the streets and the square, the bridge's two ends, the graveyard, the trades, the nobles, the cottages ----
     dead = []

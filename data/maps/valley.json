@@ -12901,6 +12901,7 @@
    "near": 2,
    "solid": false,
    "jitter": 0.6,
+   "where": "under trees",
    "seed": 63
   },
   "sage": {
@@ -12910,6 +12911,7 @@
    "count": 16,
    "solid": false,
    "jitter": 0.5,
+   "where": "in the valley",
    "seed": 64
   },
   "nettle": {
@@ -12919,6 +12921,7 @@
    "count": 16,
    "solid": false,
    "jitter": 0.5,
+   "where": "in the valley",
    "seed": 65
   },
   "feverfew": {
@@ -12928,6 +12931,7 @@
    "count": 14,
    "solid": false,
    "jitter": 0.5,
+   "where": "in the valley",
    "seed": 66
   },
   "yarrow": {
@@ -12937,6 +12941,7 @@
    "count": 16,
    "solid": false,
    "jitter": 0.5,
+   "where": "in the valley",
    "seed": 67
   },
   "woad": {
@@ -12946,6 +12951,7 @@
    "count": 10,
    "solid": false,
    "jitter": 0.5,
+   "where": "in the valley",
    "seed": 68
   },
   "madder": {
@@ -12955,6 +12961,7 @@
    "count": 10,
    "solid": false,
    "jitter": 0.5,
+   "where": "in the valley",
    "seed": 69
   },
   "weld": {
@@ -12964,6 +12971,7 @@
    "count": 10,
    "solid": false,
    "jitter": 0.5,
+   "where": "in the valley",
    "seed": 70
   },
   "mana_herb": {
@@ -12994,6 +13002,7 @@
    "solid": false,
    "jitter": 0.5,
    "water": 2,
+   "where": "near the river",
    "seed": 71
   },
   "nightshade": {
@@ -13004,6 +13013,7 @@
    "near": 2,
    "solid": false,
    "jitter": 0.5,
+   "where": "near trees",
    "seed": 72
   },
   "wolfsbane": {
@@ -13014,6 +13024,7 @@
    "near": 2,
    "solid": false,
    "jitter": 0.5,
+   "where": "near trees",
    "seed": 73
   },
   "grave_moss": {
@@ -13033,6 +13044,7 @@
    "jitter": 0.5,
    "own": true,
    "night": true,
+   "where": "in the graveyard",
    "seed": 74
   },
   "clay": {
@@ -13062,6 +13074,7 @@
    ],
    "water": 2,
    "waterGroup": "river",
+   "where": "by the river",
    "seed": 80
   },
   "salt": {
@@ -13081,6 +13094,7 @@
     "the iron workings"
    ],
    "rise": true,
+   "where": "at the iron workings",
    "seed": 81
   }
  }

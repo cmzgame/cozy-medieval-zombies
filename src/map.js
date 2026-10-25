@@ -62,7 +62,7 @@ let forage = null; // { kinds, chance, near, seed }
 // Natural resources (docs/46): the map's areas per kind (its `resources` block), the scatter's reserved tiles kept from the load (the
 // buildings, the places and their padding, the reserve rects), and the footprints of the places an area opens to its own kind (the quarry
 // to stone, the iron workings to ore). Read by resourceSpotProblem, the one test of where a node may stand, at the load and at a comeback.
-let resourceKindList = []; // [{ name, sprites, count, rects, open, floors, openFloors, near, rise, solid, jitter, seed, days, water, waterGroup, own, night }]
+let resourceKindList = []; // [{ name, sprites, count, rects, open, floors, openFloors, near, rise, solid, jitter, seed, days, water, waterGroup, own, night, where }]
 const resourceBySprite = new Map(); // sprite -> its kind
 let reservedTiles = new Set(); // "x,y"
 const openPlaces = new Map(); // a place's name -> Set of its footprint's "x,y"
@@ -720,6 +720,7 @@ function readResourceKinds(json) {
       waterGroup: k.waterGroup || null, // the named water it must be (the river), or any
       own: !!k.own, // the whole area is its own place: its reserved tiles and its fence open to it (the graveyard to its herbs)
       night: !!k.night, // a replacement grows only at night (the graveyard's; resources.step)
+      where: typeof k.where === "string" ? k.where : null, // where it grows, in words, for the card of what it gives (item-info.sourcesOf)
     };
     resourceKindList.push(kind);
     for (const sprite of Object.keys(kind.sprites)) resourceBySprite.set(sprite, kind);

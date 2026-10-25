@@ -4,7 +4,7 @@
 // ui/hover-card.js draws what this returns. A card is { name, kind, state, lines, fine }: `lines` and `fine` are lists of lines, a line a list of segments { t, k } where `k`
 // is "use" for the word Use (drawn in --gold, Michael 2026-10-18), "word" for another menu word (Eat, Equip, Drink, Apply), or absent for plain text.
 
-import { getItem, wearPerHit, wearPerShot } from "./items.js";
+import { getItem, wearPerHit, wearPerShot, toolFor } from "./items.js";
 import { work } from "./tuning.js"; // the repair ladders and the sawpit's item (docs/43 section 6)
 import * as interactions from "./interactions.js";
 import * as stations from "./stations.js";
@@ -13,6 +13,8 @@ import { buildKinds } from "./placement.js";
 import { isWoodWall } from "./woods.js";
 import * as dye from "./dye.js";
 import { holdsWater, isTainted } from "./water.js"; // clean or tainted (docs/44)
+import { defIdsWith, getDef } from "./assets.js"; // the nodes a gathered thing comes from (docs/46 step 2)
+import { resourceKindOf } from "./map.js"; // and where they grow: the map's resource kinds
 
 const KIND = { food: "Food", tool: "Tool", material: "Material", clothing: "Clothing", bag: "Bag", ammo: "Ammunition", medicine: "Medicine", drink: "Drink", decor: "Decor" };
 const MAX_LINES = 8; // a small card: the name and the basics, not a page
@@ -53,6 +55,32 @@ export function usesOf(def) {
     if (!groups.get(verb).includes(name)) groups.get(verb).push(name);
   }
   return [...groups].map(([verb, on]) => ({ verb, on }));
+}
+
+// Where a gathered thing comes from (docs/46 step 2, #448), read from the data: every node whose sprite definition gives it (its `gather`,
+// `dig`, or `mine` block) and the map's resource kind that node belongs to, which says where it grows (`where`) and whether only at night:
+// "Grows wild near the river; gathered by hand.", "Forage under trees.", "Dug from the clay banks by the river, a shovel carried.", "Mined
+// from salt rocks at the iron workings, a pickaxe in hand." A kind with no `where` (the valley's rocks and ore today) says nothing.
+const an = (n) => `${/^[aeiou]/i.test(n) ? "an" : "a"} ${n}`;
+export function sourcesOf(def) {
+  const out = [];
+  for (const field of ["gather", "dig", "mine"]) {
+    for (const sid of defIdsWith(field)) {
+      const sd = getDef(sid);
+      const b = sd[field];
+      if (!b || b.item !== def.id) continue;
+      const kind = resourceKindOf(sid);
+      if (!kind || !kind.where) continue;
+      const where = `${kind.where}${kind.night || b.night ? ", at night" : ""}`;
+      const node = `${sd.name || sid.replace(/_\d+$/, "").replace(/_/g, " ")}s`;
+      let text;
+      if (field === "gather") text = b.word ? `${b.word} ${where}.` : `Grows wild ${where}; gathered by hand.`;
+      else if (field === "dig") { const t = toolFor(b.tool); text = `Dug from the ${node} ${where}${t ? `, ${an(t.name.toLowerCase())} carried` : ""}.`; }
+      else { const t = toolFor("mine"); text = `Mined from ${node} ${where}${t ? `, ${an(t.name.toLowerCase())} in hand` : ""}.`; }
+      if (!out.includes(text)) out.push(text);
+    }
+  }
+  return out;
 }
 
 // The recipes that make it, and those it goes into, as station words: { madeAt: [stations], goesInto: [{ name, station }] }.
@@ -151,6 +179,7 @@ export function cardFor(entry) {
   }
   if (builds.length) lines.push(line(`Builds: ${builds.slice(0, 6).join(", ")}${builds.length > 6 ? " and more" : ""}.`));
   if (def.tags && def.tags.includes("fuel")) lines.push(line("Burns as fuel."));
+  for (const t of sourcesOf(def)) lines.push(line(t)); // where it is gathered (docs/46 step 2)
 
   const state = [];
   if (entry.count > 1) state.push(`×${entry.count}`);
