@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Ore, stone, clay, herbs, and mushrooms come back at random spots within their areas, keeping a steady count; rocks and ore rise from the ground, herbs and mushrooms appear; no herb patches; trees from saplings, sticks under trees, fish never run out (2026-10-25, Natural resources ruled)
 - Animals: seven kinds; game mostly in the woods but free to roam, back slowly to a cap; livestock from the farms, led home, penned in a fenced yard; safe from the dead; fed animals produce; generous feathers; raw meat in recipes; the companion in 1.0, last (2026-10-25, Animals ruled)
 - No fixed water source is clean; boiling at a lit fire by Use or either menu; the starting skin clean; the sickness a debuff, Sick (the infection's third stage renamed Queasy), 20% a tainted drink, 1% of the infection (2026-10-25, Water ruled)
 - The basic lore (#217) is in the Valley's scope, paired with the map redraw (#92) and taken first (2026-10-25, The basic lore is part of the Valley's scope)
@@ -289,6 +290,20 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-25 — Natural resources ruled: random spawns within defined areas, a steady count, rocks rising from the ground, no herb patches, trees from saplings (Michael; #288)
+
+The seventh sitting of the Valley scope's defaults pass. Michael reshaped Primary's spawn rules and adopted the rest; the spec is `docs/46`. The rulings:
+
+- **One comeback rule for ore, stone, clay, herbs, and mushrooms:** "I want them to be random spawns but within defined areas. Stone everywhere, ore in certain areas, clay by the river, herbs all over in the ground. All the same in that once exhausted, a replacement will spawn somewhere eventually so unless you go on a resource binge all day the amount in the valley should stay roughly the same." Ore no longer comes back in place.
+- **No herb patches:** "they are like weeds that grow randomly."
+- **Appearing:** "As far as things popping into existence, that was mostly a zombie rule so they don't bum rush you unfairly. For rocks and ore, do the frozen zombie plan for that region - they pop up out of the ground with an animation. Mushrooms and herbs can definitely just appear." *Primary's reading:* a rock or ore rock grows up out of the earth over a second or so, in view or not.
+- **Why:** "the main point I think is to make exploration more or less required for getting these types of resources vs. farming and animal keeping where you can put it in a defined spot."
+- **Adopted from Primary's draft:** trees never regrow where felled (saplings at Woodcutting 4, planted, growing in about five game days); sticks gathered under a standing tree once a day ("Sticks under trees is great"); fish never run out ("Fish never run out is great"); a new node only on natural ground, never in a room, a fenced yard, a built floor, tilled soil, or under a prop.
+
+It overturns the ore rock's comeback in place (2026-10-18, Mining, struck there) and narrows `src/CLAUDE.md`'s "nothing materialises in view" to everything but a resource's comeback.
+
+Docs: 46 (new), 39, 42, 43, 05, README, `src/CLAUDE.md`.
 
 ### 2026-10-25 — Animals ruled: game mostly in the woods but free to roam, livestock from the farms, safe pens, generous feathers, raw meat in recipes, the companion last (Michael; #289)
 
@@ -956,7 +971,7 @@ Michael's notes after a play and a night's thinking, with Primary in chat:
 
 ### 2026-10-18 — Mining, the quarry, the iron workings, and charcoal (#196, #197; Primary's defaults and the builder's readings, Michael's to overrule)
 
-**Mining, the quarry, and the iron workings** (#196; `docs/30` section 10, `docs/29-world/06`; Primary's defaults, Michael's to overrule): a pickaxe in a hand mines a rock for three stone and the rock goes for good; **an ore rock gives two iron ore and stands spent for three clock days, then comes back (the same mechanism as a picked apple tree), so iron never runs out** while common rocks may go for good, the forest being large. **No chicken and egg:** the iron workings' miners' hut holds a pickaxe and a crate of ore, the quarryman's a pickaxe and a hammer, **the smithy's own chest the first iron (three bars and a sack of charcoal for its fire, #197)**. The two places are in the east woods and the north-east; their cliffs are `wall_stone` (a `fence` feature may now run on some sides only), the mine mouth, spoil heaps, winch, crane, cut stone, ore cart, and ore rocks dev boxes until drawn; ten of the dead are about them. Counts, seconds, and days are data in the rock definitions (`mine`).
+**Mining, the quarry, and the iron workings** (#196; `docs/30` section 10, `docs/29-world/06`; Primary's defaults, Michael's to overrule): a pickaxe in a hand mines a rock for three stone and the rock goes for good; ~~**an ore rock gives two iron ore and stands spent for three clock days, then comes back (the same mechanism as a picked apple tree), so iron never runs out** while common rocks may go for good, the forest being large.~~ (Overturned 2026-10-25, Natural resources ruled: a mined rock or ore rock is gone, and a new one rises elsewhere in its area, the count kept.) **No chicken and egg:** the iron workings' miners' hut holds a pickaxe and a crate of ore, the quarryman's a pickaxe and a hammer, **the smithy's own chest the first iron (three bars and a sack of charcoal for its fire, #197)**. The two places are in the east woods and the north-east; their cliffs are `wall_stone` (a `fence` feature may now run on some sides only), the mine mouth, spoil heaps, winch, crane, cut stone, ore cart, and ore rocks dev boxes until drawn; ten of the dead are about them. Counts, seconds, and days are data in the rock definitions (`mine`).
 
 **Charcoal: the clamp, the burners, and a clamp in the smithy's yard** (#197; Primary's defaults, Michael's to overrule): the charcoal clamp is a 2 by 2 station with a slow fire of its own (one log a game day, almost no light) and one recipe, **four logs to three charcoal over half a game day** with the fire lit (a log of fuel, a flame carried, #169's rule), so it is fed, lit, and left: the semi-idle rhythm. **One stands in the smithy's yard** (the clamp as a placed prop rather than a recipe), so the smith's loop needs no walk to the east woods; the burners' clearing south of the iron workings has three, sacks of charcoal, a hut with a chest of them, and three of the dead. No smoke is drawn on a clamp yet (`fire.js`'s smoke is the burning dead's).
 
