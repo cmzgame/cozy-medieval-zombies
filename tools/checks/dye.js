@@ -133,6 +133,17 @@ export async function run(game, opts = {}) {
     row("the world's figure is rebaked in the colour", sheet1 !== sheet0, `${sheet0} to ${sheet1}`);
     const card = info.textOf(info.cardFor(tunic));
     row("the tunic's card names its colour and what the vat can do", card.some((l) => l.includes("Woad blue")) && card.some((l) => l.includes("Can be dyed at a dye vat: 16 colours.")), card.join(" | "));
+    // The card counts the swatches the picker shows: the breeches' own colour is Walnut brown, a cloth dye, so it is their Undyed swatch, not one more.
+    const breeches = G.items.makeEntry("breeches", 1);
+    G.inventory.stow(me, breeches);
+    dyePanel.update(me);
+    el.querySelector(`[data-uid="${breeches.uid}"]`).click();
+    dyePanel.update(me);
+    const shown = el.querySelectorAll(`[data-region="0"]`).length - 1; // the swatches but Undyed
+    const said = (info.textOf(info.cardFor(breeches)).join(" ").match(/dye vat: (\d+) colours/) || [])[1];
+    row("the breeches' card counts the colours their picker shows (fifteen: Walnut brown is their own, Undyed)", shown === 15 && Number(said) === shown, `${shown} swatches besides Undyed; the card says ${said}`);
+    el.querySelector(`[data-uid="${tunic.uid}"]`).click();
+    dyePanel.update(me);
     // A two-region item with schemes.
     el.querySelector(`[data-uid="${belt.uid}"]`).click();
     dyePanel.update(me);
@@ -143,6 +154,36 @@ export async function run(game, opts = {}) {
     dyePanel.update(me);
     el.querySelector("[data-apply]").click();
     row("a scheme applies whole: the belt black and iron", Array.isArray(belt.colours) && belt.colours.join() === "#2a2428,#8c8c94", JSON.stringify(belt.colours));
+    // The belt's own buckle is the Brass dye's hex: the picker and the card both call it brass, never undyed.
+    el.querySelector(`[data-scheme="#2a2428,#c8a040"]`).click();
+    dyePanel.update(me);
+    const picked = el.querySelector(".dy-picked").textContent;
+    el.querySelector("[data-apply]").click();
+    dyePanel.update(me);
+    const beltCard = info.textOf(info.cardFor(belt));
+    row("black with the belt's own brass buckle reads brass in the picker and on the card, not undyed", /^leather black, buckle brass$/i.test(picked) && beltCard.some((l) => l.includes("Black and brass")) && !beltCard.some((l) => /undyed/i.test(l)), `${picked} | ${beltCard.join(" | ")}`);
+    // Everything carried is listed: a rucksack worn with a satchel in it, and gloves on a worn belt's slot (put there by hand: no
+    // dyeable thing rides a belt today, the walk is the guard). The worn things and the bag are put back in the finally.
+    const ruck = G.items.makeEntry("rucksack", 1);
+    me.worn.back = ruck;
+    const satchel = G.items.makeEntry("satchel", 1);
+    G.inventory.stow(me, satchel);
+    const beltOn = G.items.makeEntry("good_belt", 1);
+    me.worn.waist = beltOn;
+    const gloves = G.items.makeEntry("gloves", 1);
+    G.inventory.beltOf(me)[0] = gloves;
+    dyePanel.update(me);
+    const st3 = dyePanel.state();
+    row("the picker lists a satchel carried in a worn rucksack and gloves on the belt's slot", !!st3 && st3.garments.includes(String(satchel.uid)) && st3.garments.includes(String(gloves.uid)), JSON.stringify(st3 && st3.garments));
+    el.querySelector(`[data-uid="${satchel.uid}"]`).click();
+    dyePanel.update(me);
+    el.querySelector(`[data-region="1"][data-hex="#5c2020"]`).click();
+    dyePanel.update(me);
+    el.querySelector("[data-apply]").click();
+    dyePanel.update(me);
+    row("the satchel in the rucksack takes an oxblood strap from the picker", Array.isArray(satchel.colours) && satchel.colours[1] === "#5c2020", JSON.stringify(satchel.colours));
+    me.worn.back = worn0.back ?? null;
+    me.worn.waist = worn0.waist ?? null;
     // Closing: Escape's way (the station panel's close shuts the picker) and walking away.
     row("Escape's close shuts the picker", stationPanel.close() === true && !dyePanel.isOpen() && root().hidden, String(dyePanel.isOpen()));
     dyePanel.openPanel(vat, me);

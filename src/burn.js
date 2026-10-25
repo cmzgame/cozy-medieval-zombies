@@ -138,7 +138,8 @@ verbs.define("burncorpse", {
     const c = bodyOf(target);
     if (takeAll(player, WK.burnCorpse.fuel, 1) < 1) return false;
     if (!burnCorpse(c)) return false;
-    return { ok: true, message: "The body catches. It will burn for about an hour, and nothing in it will be left." };
+    const h = WK.burnCorpse.hours; // read from the data, as the card's line is (burnCard)
+    return { ok: true, message: `The body catches. It will burn for about ${h === 1 ? "an hour" : `${h} hours`}, and nothing in it will be left.` };
   },
 });
 

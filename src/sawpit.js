@@ -44,7 +44,8 @@ verbs.define("saw", {
     const placed = bag ? inventory.addItem(bag, out.id, out.count) : 0;
     for (let i = placed; i < out.count; i++) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(out.id, 1));
     const name = items.getItem(out.id).name.toLowerCase();
-    const message = placed < out.count ? `You saw the ${sawnName()} into ${out.count} ${name}s; ${out.count - placed} fall at your feet.` : `You saw the ${sawnName()} into ${out.count} ${name}s.`;
+    const fell = out.count - placed;
+    const message = fell > 0 ? `You saw the ${sawnName()} into ${out.count} ${name}s; ${fell} ${fell === 1 ? "falls" : "fall"} at your feet.` : `You saw the ${sawnName()} into ${out.count} ${name}s.`;
     return { sawn: out.count, message };
   },
 });
