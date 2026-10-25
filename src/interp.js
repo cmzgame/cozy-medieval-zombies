@@ -3,7 +3,8 @@
 // moving character (and the camera) stood before it; the renderer draws them where they are `loop.alpha()` of the way from there to where the step put them,
 // then puts the step's positions back. Nothing in the simulation ever sees an interpolated position: it is put on at the start of `render` and taken off at the
 // end of it, in a `finally`. A character that moved farther than `feel.blendJump` tiles in one step (a teleport, a knock, a respawn) is not blended.
-// Free-flying things (an arrow, a thrown item, the fireball) are marked too, with their height `z`.
+// Free-flying things (an arrow, a thrown item, the fireball) are marked too, with their height `z`; one loosed during the step is marked from its
+// launch point once the step is over (`adopt`), on a host and a guest alike.
 
 
 import { feel } from "./tuning.js";
@@ -28,6 +29,21 @@ export function blend(prev, cur, alpha) {
 export function mark(list) {
   tracked.length = 0;
   for (const c of list) if (c && typeof c.gx === "number") tracked.push({ c, px: c.gx, py: c.gy, pz: typeof c.z === "number" ? c.z : null, cx: 0, cy: 0, cz: 0 });
+}
+
+// At the end of a step: a flight that began in it (an arrow loosed, or a guest's flight come into its drawn time, #250) was not there to be
+// marked, so it would stand where the step left it for every frame of the step and then move: marked now from where it was loosed (`x0`, `y0`,
+// `z0`), so its first frames draw it leaving the bow. Anything already marked, or with no launch point, is left alone.
+export function adopt(list) {
+  if (!list || !list.length) return;
+  let have = null;
+  for (const c of list) {
+    if (!c || typeof c.x0 !== "number" || typeof c.y0 !== "number" || typeof c.gx !== "number") continue;
+    if (!have) have = new Set(tracked.map((t) => t.c));
+    if (have.has(c)) continue;
+    tracked.push({ c, px: c.x0, py: c.y0, pz: typeof c.z === "number" && typeof c.z0 === "number" ? c.z0 : null, cx: 0, cy: 0, cz: 0 });
+    have.add(c);
+  }
 }
 
 // At the start of a draw: put every marked character `alpha` of the way from where it stood to where the step left it.

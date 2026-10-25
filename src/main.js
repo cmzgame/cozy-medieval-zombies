@@ -1042,6 +1042,7 @@ function update(dt) {
   } finally {
     input.endStep();
   }
+  interp.adopt(archery.arrowsInFlight()); // a flight loosed in this step, drawn from where it left the bow, not stood still for the step (#250)
   timing.step = performance.now() - t0;
   if (t0 - timing.maxResetAt > 3000) {
     timing.stepMax = 0;

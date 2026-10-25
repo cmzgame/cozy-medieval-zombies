@@ -2,6 +2,7 @@
 // with the arrival patterns of a real wire (steady, alternating early and late, random, one long stall then a catch-up), and each guest step draws it where the smoothing
 // puts it. Reported per pattern, for the old smoothing (walk to each frame's position in a fixed three steps) and for `src/netsmooth.js`: the movement per step (mean, spread,
 // how many steps it stood still, the largest), and how far behind the host's truth it is drawn (in steps; the spread of that too). The old code is kept here, as it was.
+// And a guest's arrows under the same patterns (#250, `measureArrows`): drawn where each frame put them, as they were, against stepped from their launch records.
 import * as ns from "../src/netsmooth.js";
 
 const STEP = 1 / 60;
@@ -100,9 +101,147 @@ export function measureDelta(useHold = true) {
   return { restOffset: Math.max(...atRest), start };
 }
 
+// Arrows on a guest (#250): a flight loosed every 90 host steps (20 tiles at 16 a second, 75 steps in the air), the frames arriving by `pattern`.
+// The old way drew each flight where the newest frame put it (the frame's positions, as `setReplicaArrows` did); now the guest is sent each
+// flight's launch once and its end once and steps it itself (`archery.applyFlights`, `stepFlights`) on the bodies' draw clock. Reports, per way,
+// the movement a step while a flight is drawn (1 = its speed), the steps it stood still, and how far from its launch point it is first drawn
+// (in steps of its movement: under 1 is no first-frame stall).
+export function measureArrows(pattern = "steady", archery) {
+  const SPEED = 16;
+  const S = 20;
+  const STEP_MOVE = SPEED * STEP;
+  const T = S / SPEED;
+  const EVERY = 90;
+  const flights = []; // { id, L (the host step it was loosed in), born, landStep, tEnd }
+  for (let L = 10, id = 1; L < N - 120; L += EVERY, id++) {
+    const born = (L - 1) * STEP; // loosed in step L and stepped once in it: its age at the end of step L is one step
+    const landStep = L - 1 + Math.ceil(T / STEP - 1e-9);
+    flights.push({ id, L, born, landStep, tEnd: (landStep - L + 1) * STEP });
+  }
+  const host = (f) => ({ id: f.id, projectile: "arrow", x0: 0, y0: f.id * 3, dx: 1, dy: 0, s: S, T, H: 100, z0: 30, speed: SPEED, flat: false, stopD: null, t: 0, landAt: [S, f.id * 3] });
+  const xAt = (f, hostStep) => Math.min(1, Math.max(0, ((hostStep - f.L + 1) * STEP) / T)) * S; // where the host has it at the end of a step
+  const fr = frames(pattern);
+  const run = (useNew) => {
+    ns.reset();
+    const store = archery.flightStore();
+    let shownOld = []; // the old replica: [{ id, gx }] as the newest frame said
+    const drawn = new Map(); // id -> [gx per guest step, null when not drawn]
+    let ti = 0;
+    let prevK = -1;
+    for (let s = 0; s < N; s++) {
+      while (ti < fr.length && fr[ti].arrive <= s) {
+        const K = fr[ti].k * 3; // the host step the frame was sent after
+        const h = K * STEP;
+        if (useNew) {
+          const go = flights.filter((f) => f.L > prevK && f.L <= K).map((f) => archery.launchRecord(host(f), h - f.born));
+          const end = flights.filter((f) => f.landStep > prevK && f.landStep <= K).map((f) => archery.endRecord({ ...host(f), t: f.tEnd }));
+          ns.frameArrived(h);
+          archery.applyFlights(store, go.length || end.length ? { go, end } : null, h);
+        } else shownOld = flights.filter((f) => f.L <= K && f.landStep > K).map((f) => ({ id: f.id, gx: xAt(f, K) }));
+        prevK = K;
+        ti++;
+      }
+      let list = shownOld;
+      if (useNew) {
+        ns.step([]);
+        archery.stepFlights(store, ns.drawClock());
+        list = store.shown;
+      }
+      for (const a of list) {
+        if (!drawn.has(a.id)) drawn.set(a.id, []);
+        drawn.get(a.id)[s] = a.gx;
+      }
+    }
+    const moves = [];
+    const firsts = [];
+    for (const xs of drawn.values()) {
+      const at = [];
+      xs.forEach((x, s) => { if (typeof x === "number") at.push([s, x]); });
+      if (at.length < 4) continue;
+      firsts.push(at[0][1] / STEP_MOVE);
+      for (let i = 2; i < at.length - 1; i++) if (at[i][0] === at[i - 1][0] + 1) moves.push((at[i][1] - at[i - 1][1]) / STEP_MOVE); // inner steps only
+    }
+    return { move: stat(moves), still: moves.filter((x) => x < 0.05).length, steps: moves.length, first: stat(firsts), flights: drawn.size };
+  };
+  return { old: run(false), now: run(true), flights: flights.length };
+}
+
+// Arrows on a guest across a stall in the host's sim (#250's review): a hit-stop or a slow frame stops the host's clock for `stall` steps of real
+// time, so no frame comes and the guest's draw clock runs on; drawn at that clock uncapped, a flight loosed after the stall first appeared far
+// from the bow (11.5 steps out after a 15-step stall), a short one was never drawn, and a burst flew past its target. Flights are loosed every
+// 40 host steps (8 tiles at 16 a second, 30 steps in the air), one across each stall, one bursting 12 steps out just after it. Reports the
+// flights never drawn, the farthest first draw from the bow (steps of flight), steps drawn backward, how far a flight is ever drawn past the
+// host's newest word of it (steps), how far past a burst, and the steps it stood still: during the stall, as the host's own flights stand in
+// a hit-stop, and after it (none: the draw clock is held within two steps of the newest frame, netsmooth.step).
+export function measureArrowStall(stall, archery) {
+  const SPEED = 16;
+  const S = 8;
+  const T = S / SPEED;
+  const steps = (t) => t / STEP;
+  ns.reset();
+  const store = archery.flightStore();
+  const stalls = [[150, stall], [330, stall]]; // [real step, length]
+  const stalled = (s) => stalls.some(([a, n]) => s >= a && s < a + n);
+  const looseAt = new Set([20, 60, 100, 140, 147, 220, 260, 300, 326, 400, 440]); // host sim steps; 147 and 326 fly across a stall
+  const burstAt = new Map([[152, 12]]); // host sim step loosed -> steps until it bursts (loosed just after the first stall's start in host time)
+  const flights = []; // { id, L, born, tEnd }
+  const inbox = []; // { arrive, h, news }
+  let hs = 0; // host sim steps
+  let sentUpTo = 0;
+  let id = 0;
+  const out = { lost: 0, firstMax: 0, backward: 0, aheadMax: 0, burstOver: -Infinity, still: 0, stillAfter: 0, drawn: 0 };
+  const nearStall = (s) => stalls.some(([a, n]) => s >= a && s < a + n + 8); // the stall, and the wire's few steps after it
+  const lastAge = new Map();
+  let latestH = null;
+  for (let s = 0; s < 520; s++) {
+    // The host: a step of its sim unless stalled; a frame after every third.
+    if (!stalled(s)) {
+      hs++;
+      if (looseAt.has(hs) || burstAt.has(hs)) {
+        id++;
+        const life = burstAt.has(hs) ? burstAt.get(hs) * STEP : T;
+        flights.push({ id, L: hs, born: (hs - 1) * STEP, tEnd: Math.ceil(steps(life) - 1e-9) * STEP, burst: burstAt.has(hs) });
+      }
+      if (hs % 3 === 0) {
+        const h = hs * STEP;
+        const go = flights.filter((f) => f.L > sentUpTo && f.L <= hs).map((f) => archery.launchRecord({ id: f.id, projectile: "arrow", x0: 0, y0: f.id, dx: 1, dy: 0, s: S, T, H: 40, z0: 30, speed: SPEED, flat: false, stopD: null, t: 0 }, h - f.born));
+        const end = flights.filter((f) => !f.ended && f.born + f.tEnd <= h + 1e-9).map((f) => { f.ended = true; return [f.id, f.tEnd, (f.tEnd / T) * S, f.id]; });
+        sentUpTo = hs;
+        inbox.push({ arrive: s + 4, h, news: go.length || end.length ? { go, end } : null });
+      }
+    }
+    // The guest.
+    while (inbox.length && inbox[0].arrive <= s) {
+      const m = inbox.shift();
+      ns.frameArrived(m.h);
+      latestH = m.h;
+      archery.applyFlights(store, m.news, m.h);
+    }
+    ns.step([]);
+    archery.stepFlights(store, ns.drawClock());
+    for (const a of store.shown) {
+      const f = flights.find((q) => q.id === a.id);
+      if (!lastAge.has(a.id)) { out.firstMax = Math.max(out.firstMax, steps(a.t)); out.drawn++; }
+      else {
+        if (a.t < lastAge.get(a.id) - 1e-9) out.backward++;
+        if (a.t - lastAge.get(a.id) < 1e-9) { out.still++; if (!nearStall(s)) out.stillAfter++; }
+      }
+      lastAge.set(a.id, a.t);
+      out.aheadMax = Math.max(out.aheadMax, steps(a.t - (latestH - f.born)));
+      if (f.burst) out.burstOver = Math.max(out.burstOver, steps(a.t - f.tEnd));
+    }
+  }
+  out.lost = flights.filter((f) => !lastAge.has(f.id)).length;
+  out.flights = flights.length;
+  ns.reset();
+  return out;
+}
+
+export const PATTERNS =["steady", "alternating 2 and 4 steps apart", "random jitter (-1 to +2 steps)", "a stall of 6 steps now and then"];
+
 export function measure() {
   const out = {};
-  for (const p of ["steady", "alternating 2 and 4 steps apart", "random jitter (-1 to +2 steps)", "a stall of 6 steps now and then"]) {
+  for (const p of PATTERNS) {
     const fr = frames(p);
     out[p] = { old: report(runOld(fr)), now: report(runNew(fr)) };
   }
@@ -121,5 +260,19 @@ if (process.argv[1] && process.argv[1].endsWith("netsmooth.js")) {
       const o = r[k];
       console.log(`  ${k === "old" ? "old (fixed 3 steps)" : "buffered         "}: movement a step (1 = steady) mean ${f(o.move.mean)} sd ${f(o.move.sd)} from ${f(o.move.min)} to ${f(o.move.max)}, standing still ${o.still} steps; behind the host ${f(o.lag.mean)} steps (sd ${f(o.lag.sd)})`);
     }
+  }
+  const archery = await import("../src/archery.js");
+  for (const p of PATTERNS) {
+    const r = measureArrows(p, archery);
+    const f = (x) => x.toFixed(2);
+    console.log(`arrows, ${p} (${r.flights} flights):`);
+    for (const k of ["old", "now"]) {
+      const o = r[k];
+      console.log(`  ${k === "old" ? "old (each frame's place)" : "stepped from launch     "}: movement a step (1 = its speed) mean ${f(o.move.mean)} sd ${f(o.move.sd)} from ${f(o.move.min)} to ${f(o.move.max)}, standing still ${o.still} of ${o.steps} steps; first drawn ${f(o.first.mean)} steps' flight from the bow (at most ${f(o.first.max)})`);
+    }
+  }
+  for (const n of [15, 30]) {
+    const o = measureArrowStall(n, archery);
+    console.log(`arrows across a ${n}-step stall of the host's sim: ${o.lost} of ${o.flights} never drawn; first drawn at most ${o.firstMax.toFixed(2)} steps' flight from the bow; ${o.backward} steps backward; at most ${o.aheadMax.toFixed(2)} steps past the host's newest word, ${o.burstOver.toFixed(2)} past a burst; ${o.still} steps held, ${o.stillAfter} of them after the stall`);
   }
 }

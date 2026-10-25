@@ -5,7 +5,7 @@
 // (so its speed is the host's whatever the arrival). The guest's clock for this runs on its own steps and is nudged toward the frames' clock (`netSlew` of the gap per
 // frame), so a run of early or late frames moves it a little and never in a lurch. Nothing here touches a body's authoritative position: `netTo` is still the host's
 // truth, the sync check's. A body that moved farther than `netJump` tiles between two frames is not blended (a teleport, a respawn), and with the world sped up (sleep)
-// there is nothing to smooth: bodies are put where the frame says.
+// there is nothing to smooth: bodies are put where the frame says. The arrows in flight are drawn on the same clock (`drawClock`, archery.js).
 
 import { feel as tuning } from "./tuning.js"; // data/tuning.json feel.netDelaySteps, netSlew, netJump
 
@@ -62,10 +62,24 @@ export function hold(list, h) {
   }
 }
 
+// The host time the remote bodies are drawn at this step (with the world sped up, the newest frame's, where they are put), or null before the
+// first frame. What flies is drawn on it too (archery.stepReplica, #250), so an arrow and the body it hits are drawn at the same moment. Capped
+// at two steps past the newest frame, as a body's draw is (`sample`): when the host's sim stalls (a hit-stop, a slow frame) no frame comes,
+// R runs on, and a flight drawn at R would fly past what the host has said, burst beyond its target, or come down before it was ever drawn.
+export function drawClock(timeScale = 1) {
+  if (timeScale > 1 || R === null || latest === null) return timeScale > 1 ? latest : R;
+  return Math.min(R, latest + 2 * STEP);
+}
+
 // Every guest step: the clock moves on, and each body is put where it was at that time.
 export function step(list, timeScale = 1) {
   if (R === null) return;
   R += STEP;
+  // Never more than two steps past the newest frame (#250's review): when the host's sim stalls (a hit-stop, a slow frame) no frame comes, and a
+  // clock that ran on was many steps ahead when frames came again, drawing a flight loosed then far from the bow and every body and flight
+  // held at the newest frame, moving only as each came, until the slew pulled it back. Held here, it is a few steps ahead at most and is
+  // pulled back smoothly. (A body is never drawn past two steps beyond its newest position anyway, `sample`.)
+  if (latest !== null && timeScale <= 1 && R > latest + 2 * STEP) R = latest + 2 * STEP;
   for (const c of list) {
     const buf = c.netBuf;
     if (!buf || !buf.length) continue;
