@@ -13,6 +13,7 @@ import { canReach } from "../reach.js";
 import { emit } from "../events.js";
 import { showMessage } from "./prompt.js";
 import * as map from "../map.js";
+import * as dyePanel from "./dye-panel.js"; // the dye vat's own panel, the picker (docs/43 section 8)
 
 let root = null;
 let open = null; // { propId, station, recipe (id), count }
@@ -65,11 +66,16 @@ export function initStationPanel(playerGetter) {
 }
 
 export function isOpen() {
-  return !!open;
+  return !!open || dyePanel.isOpen();
 }
 
 export function openFor(prop, player) {
-  if (!stations.stationOf(prop).length) return false;
+  const kinds = stations.stationOf(prop);
+  if (!kinds.length) return false;
+  if (kinds.includes("dyevat")) { // a vat makes nothing: it dyes what you wear (docs/43 section 8); one panel at the top at a time
+    if (player === getPlayer() && open) { open = null; root.hidden = true; }
+    return dyePanel.openFor(prop, player);
+  }
   // A guest's "Use the workbench" runs on the host as the guest's player (net.js, docs/31/05 item 10): the host's
   // own panel stays shut; the output opens on the guest through containerOpened, and its recipes panel is owed.
   if (player !== getPlayer()) {
@@ -88,6 +94,7 @@ export function openPanel(prop, player) {
   const kinds = stations.stationOf(prop);
   if (!kinds.length) return false;
   const list = kinds.flatMap((k) => stations.recipesFor(k)); // the oven's own rows, then the fire's (docs/43, section 3)
+  dyePanel.close(); // one panel at the top at a time
   open = { propId: prop.id, station: kinds[0], stations: kinds, recipe: list[0] ? list[0].id : null, count: 1 };
   root.hidden = false;
   lastHtml = "";
@@ -102,9 +109,10 @@ function openOutput(prop) {
   emit("containerOpened", { bag: stations.outputOf(prop), tiles: prop.tiles, name: "output", closeDist: stations.REACH + 1 });
 }
 
-// Returns true if it was open.
+// Returns true if it, or the dye vat's picker, was open.
 export function close() {
-  if (!open) return false;
+  const picker = dyePanel.close();
+  if (!open) return picker;
   open = null;
   root.hidden = true;
   return true;
@@ -160,6 +168,7 @@ function render(player) {
 
 // Each step: redraw what changed, close when the player has walked away.
 export function update(player) {
+  dyePanel.update(player);
   if (!open) return;
   const prop = map.propById(open.propId);
   if (!prop) return close();

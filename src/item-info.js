@@ -1,6 +1,6 @@
 // What an item card says (#262; the law "Every item in a grid has a hover card", docs/02): the full name, the kind, and the direct uses, all read from the data and never
-// written per item: `data/items.json` (food, drink, weapon, hands, wear, verbs, bag, fire, splitsInto, repair, tags), `data/interactions.json` (what the item can be Used on),
-// `data/recipes.json` (what it is made at and goes into), `data/crops.json` (what a seed plants). It touches no DOM (it reads the registries the game loads: items, interactions, recipes, crops, and the build kinds), so a headless world can ask it and the check can read it;
+// written per item: `data/items.json` (food, drink, weapon, hands, wear, verbs, bag, fire, splitsInto, repair, dye, tags), `data/interactions.json` (what the item can be Used on),
+// `data/recipes.json` (what it is made at and goes into), `data/crops.json` (what a seed plants), `data/dyes.json` (what a vat dyes it). It touches no DOM (it reads the registries the game loads: items, interactions, recipes, crops, and the build kinds), so a headless world can ask it and the check can read it;
 // ui/hover-card.js draws what this returns. A card is { name, kind, state, lines, fine }: `lines` and `fine` are lists of lines, a line a list of segments { t, k } where `k`
 // is "use" for the word Use (drawn in --gold, Michael 2026-10-18), "word" for another menu word (Eat, Equip, Drink, Apply), or absent for plain text.
 
@@ -11,6 +11,7 @@ import * as stations from "./stations.js";
 import * as farming from "./farming.js";
 import { buildKinds } from "./placement.js";
 import { isWoodWall } from "./woods.js";
+import * as dye from "./dye.js";
 
 const KIND = { food: "Food", tool: "Tool", material: "Material", clothing: "Clothing", bag: "Bag", ammo: "Ammunition", medicine: "Medicine", drink: "Drink", decor: "Decor" };
 const MAX_LINES = 8; // a small card: the name and the basics, not a page
@@ -107,6 +108,9 @@ export function cardFor(entry) {
   if (def.place === "campfire") lines.push(line(seg("Place", "word"), ": set down outdoors as a campfire, cold and empty.")); // docs/43, section 3
   if (def.hands) lines.push(line(seg("Equip", "word"), `: ${def.hands === "both" ? "both hands" : def.hands === "either" ? "main or off hand" : `${def.hands} hand`}.`));
   if (def.wear) lines.push(line(seg("Equip", "word"), `: worn on your ${def.wear}${def.bag ? `; holds ${def.bag[0]}×${def.bag[1]}` : ""}${def.beltSlots ? `; ${def.beltSlots} belt slots` : ""}.`));
+  // What a dye vat can do to it (docs/43 section 8): its regions' colours, or its schemes, counted.
+  const dyes = dye.dyeOf(def);
+  if (dyes) lines.push(line(`Can be dyed at a dye vat: ${dyes.schemes ? `${dyes.schemes.length} schemes` : dyes.regions.map((r) => `${r.choices.length} colours${dyes.regions.length > 1 ? ` for the ${r.name.toLowerCase()}` : ""}`).join(", ")}.`));
   if (def.verbs && def.verbs.length) lines.push(line(`For: ${def.verbs.join(", ")}.`));
   if (def.fire) lines.push(line(`Gives light${def.fire.burnsDown ? "; burns down while lit" : ""}.`));
   for (const u of usesOf(def)) lines.push(line(seg("Use", "use"), ` on ${listOf(u.on)}: ${u.verb}.`));
@@ -143,6 +147,8 @@ export function cardFor(entry) {
     const left = Math.max(0, Math.max(work.grindstone.ceilings.length, work.anvil.ceilings.length) - entry.repairs);
     state.push(left ? `${left} repair${left > 1 ? "s" : ""} left` : "past repair");
   }
+  const dyed = dye.colourWords(entry);
+  if (dyed) state.push(dyed); // what it was dyed, by the vat's names
   return { name: def.name, kind, state: state.join(" · "), lines: lines.slice(0, MAX_LINES), fine: [line("Right-click for actions.")] };
 }
 

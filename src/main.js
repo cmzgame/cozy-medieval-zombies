@@ -61,6 +61,8 @@ import * as save from "./save.js";
 import * as net from "./net.js";
 import * as stations from "./stations.js";
 import * as stationPanel from "./ui/station-panel.js";
+import * as dyePanel from "./ui/dye-panel.js";
+import * as dye from "./dye.js";
 import * as talkPanel from "./ui/talk-panel.js"; // a villager's conversation, on the kit (docs/34, #202)
 import * as inspectMark from "./inspect-mark.js"; // the tile an Inspect marks (interact.js)
 import * as navRow from "./ui/nav-row.js"; // the buttons bottom right, one per panel (#295)
@@ -1055,6 +1057,7 @@ function armGuest(on) {
   placement.setSender(on ? (cmd) => net.sendPlace(cmd) : null);
   interact.setStampSink(on ? (id, kind) => net.sendPoke(id, kind) : null); // a click's sway or the well's bucket, told to the host for everyone's screen
   stationPanel.setSender(on ? (cmd) => net.sendCraft(cmd) : null);
+  dyePanel.setSender(on ? (cmd) => net.sendDye(cmd) : null); // the dye vat's Apply, by the vat's id, the entry's uid, and the colours (docs/43 section 8)
   talkPanel.setEnder(on ? (id) => net.sendTalkEnd(id) : null); // a guest's panel closing is told to the host
 }
 
@@ -1410,6 +1413,7 @@ async function boot() {
       startingKit.load(await assets.loadJson("data/kit.json")); // the starting kit (#136)
       farming.load(await optionalJson("data/crops.json")); // the crops (#194)
       fishing.load(await optionalJson("data/fishing.json")); // the waters' tables and the cast (#190)
+      dye.load(await optionalJson("data/dyes.json")); // the dye vat's colours (docs/43 section 8, #412)
       const talkPaths = Object.keys(manifestJson.files).filter((p) => /^data\/talk\/[^/]+\.json$/.test(p)); // what villagers say (docs/34, #198)
       const talkFiles = {};
       await Promise.all(talkPaths.map(async (p) => { talkFiles[p.slice("data/talk/".length, -".json".length)] = await assets.loadJson(p); }));
@@ -1555,6 +1559,8 @@ async function boot() {
       floaters.setGuestCheck(() => net.isGuest()); // a guest records none of its own: it draws what the host sent
       use.init();
       stationPanel.initStationPanel(() => S.player);
+      // The dye vat's picker (docs/43 section 8): the player's look in these clothes, baked by the figure code, the hands empty.
+      dyePanel.initDyePanel(() => S.player, (worn) => figure.generateFigure(figure.characterSpec(figure.characterInputs({ kind: "player", look: S.player.look, worn, hands: { main: null, off: null } }, undefined, {}, null))));
       talkPanel.initTalkPanel(() => S.player, () => S.villagers);
       navRow.initNavRow({ tap: input.tap, openChat: () => log.focusChat(log.draft()), openMenu: () => screens.show("pause"), openSettings: () => screens.show("settings"), canAct: () => inWorld && !screens.currentScreen() });
       view.onResize(() => navRow.relayout()); // the row's layout follows the interface size, a screen up or not (#307)
@@ -1838,6 +1844,12 @@ async function boot() {
     // A container my player opened on the host: the grid is on my replica's prop, entry, or body, found by
     // its address (interact.containerAt; a station's output is its own bag, docs/30 section 6), again every frame.
     opened: (w) => {
+      // A dye vat my player used on the host: its picker on my replica (docs/43 section 8); a vat has no grid.
+      if (w.dye && w.propId) {
+        const pr = map.propById(w.propId);
+        if (pr) { stationPanel.close(); dyePanel.openPanel(pr, S.player); }
+        return;
+      }
       const c = interact.containerAt(S.player, w);
       if (!c) return;
       // A station my player used on the host: its recipes panel on my replica (the output opens below as any container).

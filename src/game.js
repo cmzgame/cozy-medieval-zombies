@@ -31,6 +31,7 @@ import * as inventory from "./inventory.js";
 import * as rules from "./rules.js";
 import * as tuning from "./tuning.js";
 import * as stations from "./stations.js"; // the stations' queues run in the world's time (docs/30, section 6)
+import "./dye.js"; // the dye vat's verb (docs/43 section 8, #412)
 import * as rng from "./rng.js";
 import * as world from "./world.js";
 import * as loop from "./loop.js";
@@ -401,7 +402,7 @@ events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, dama
 // their fires), the prop registry (every id the map answers to, the carried ones apart: a guest that
 // lost a lifted prop's id from its registry, or kept a removed one, shows here, as the review found),
 // the fires, the players whole (their position at three decimals, their hands, their worn, their bags
-// by uid), the dead and the villagers as the frames carry them (position, state, hp), the clock. Not
+// by uid, an entry's dye: its `colours`, docs/43 section 8), the dead and the villagers as the frames carry them (position, state, hp), the clock. Not
 // in it: the generator's state and the id counter, which a replica never rolls or draws from.
 export function syncParts() {
   const S = state;
@@ -410,8 +411,8 @@ export function syncParts() {
   // A fire's fuel to the unit: a replica refreshes it at each whole unit burned (map.burnFires), not each step.
   const chunks = (m.chunks || []).slice().sort((a, b) => (a.cx - b.cx) || (a.cy - b.cy)).map((c) => ({ ...c, props: (c.props || []).map((p) => { const { pokedAt, playedAt, ...q } = p; return q.fire && typeof q.fire.fuel === "number" ? { ...q, fire: { ...q.fire, fuel: Math.floor(q.fire.fuel) } } : q; }) }));
   // An entry's wear in whole hundredths, as the wire compares it (net.js sends a player's heavy part when its wear rounds differently), and its
-  // repair count (docs/43 section 6): a guest's copy of a wear lags the host's by under a hundredth and never rounds otherwise.
-  const entryText = (e) => (e ? `${e.id}#${e.uid}x${e.count ?? 1}${e.lit ? "L" : ""}${e.fill != null ? `f${f(e.fill)}` : ""}${e.wear > 0 ? `w${Math.round(e.wear * 100)}` : ""}${e.repairs ? `r${e.repairs}` : ""}${e.bag ? `[${(e.bag.items || []).map(entryText).join(",")}]` : ""}` : "-");
+  // repair count (docs/43 section 6), and its dye (section 8): a guest's copy of a wear lags the host's by under a hundredth and never rounds otherwise.
+  const entryText = (e) => (e ? `${e.id}#${e.uid}x${e.count ?? 1}${e.lit ? "L" : ""}${e.fill != null ? `f${f(e.fill)}` : ""}${e.wear > 0 ? `w${Math.round(e.wear * 100)}` : ""}${e.repairs ? `r${e.repairs}` : ""}${e.colours ? `c${e.colours.join("/")}` : ""}${e.colour ? `c${e.colour}` : ""}${e.bag ? `[${(e.bag.items || []).map(entryText).join(",")}]` : ""}` : "-");
   const at = (c) => (c.netTo ? c.netTo : [c.gx, c.gy]); // a replica's smoothing target is the host's truth (net.js)
   // Health as the wire carries it, to two decimals (net.js r2): a bleeding player's drains in fractions every step, so
   // three decimals differed between the host and every replica though nothing was wrong (found testing item 5's third

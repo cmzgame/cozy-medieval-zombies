@@ -971,7 +971,7 @@ function propActions(prop, player) {
 // A station (docs/30, section 6): one entry that opens its panel; the panel calls the craft verb.
 function stationActions(prop, player) {
   const list = stations.stationOf(prop);
-  const label = list.length === 1 && list[0] === "cooking" ? "Cook here" : `Use the ${prop.sprite.replace(/_/g, " ")}`; // a fire that only cooks, else the station by name (the oven cooks too)
+  const label = list.length === 1 && list[0] === "cooking" ? "Cook here" : list.includes("dyevat") ? "Use the dye vat" : `Use the ${prop.sprite.replace(/_/g, " ")}`; // a fire that only cooks, else the station by name (the oven cooks too)
   return [act({
     kind: "station",
     simple: true,
