@@ -5,7 +5,7 @@
 // (so its speed is the host's whatever the arrival). The guest's clock for this runs on its own steps and is nudged toward the frames' clock (`netSlew` of the gap per
 // frame), so a run of early or late frames moves it a little and never in a lurch. Nothing here touches a body's authoritative position: `netTo` is still the host's
 // truth, the sync check's. A body that moved farther than `netJump` tiles between two frames is not blended (a teleport, a respawn), and with the world sped up (sleep)
-// there is nothing to smooth: bodies are put where the frame says.
+// there is nothing to smooth: bodies are put where the frame says. The arrows in flight are drawn on the same clock (`drawClock`, archery.js).
 
 import { feel as tuning } from "./tuning.js"; // data/tuning.json feel.netDelaySteps, netSlew, netJump
 
@@ -60,6 +60,12 @@ export function hold(list, h) {
     c.netBuf.push({ h, x: last.x, y: last.y });
     if (c.netBuf.length > KEEP) c.netBuf.shift();
   }
+}
+
+// The host time the remote bodies are drawn at this step (with the world sped up, the newest frame's, where they are put), or null before the
+// first frame. What flies is drawn on it too (archery.stepReplica, #250), so an arrow and the body it hits are drawn at the same moment.
+export function drawClock(timeScale = 1) {
+  return timeScale > 1 ? latest : R;
 }
 
 // Every guest step: the clock moves on, and each body is put where it was at that time.

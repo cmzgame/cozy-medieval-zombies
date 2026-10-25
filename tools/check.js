@@ -215,6 +215,7 @@ const setdownMod = await import("../src/setdown.js");
 const campfireMod = await import("../src/campfire.js");
 const verbsMod = await import("../src/verbs.js");
 const netsmoothTool = await import("./netsmooth.js");
+const archeryMod = await import("../src/archery.js");
 const { lineOfSight } = await import("../src/visibility.js");
 const { getDef } = await import("../src/assets.js");
 const stationsMod = await import("../src/stations.js");
@@ -397,6 +398,101 @@ check("net: a remote body is drawn evenly between the host's frames whatever the
   }
   assert(m["alternating 2 and 4 steps apart"].old.still > 50, "the old smoothing no longer stops on a late frame: the measurement is not measuring it");
   return lines.join("; ");
+});
+// Arrows on a guest (#250): each flight's launch sent once and stepped there every step, not drawn where each frame (every third step) put it.
+check("net: a guest's arrow moves every step whatever the frames' arrival (no stopped steps, a spread under 0.2 a step), first drawn within a step of the bow", () => {
+  const lines = [];
+  for (const p of netsmoothTool.PATTERNS) {
+    const r = netsmoothTool.measureArrows(p, archeryMod);
+    assert(r.now.still === 0 && r.now.move.sd < 0.2 && Math.abs(r.now.move.mean - 1) < 0.02, `${p}: stood still ${r.now.still} steps, spread ${r.now.move.sd.toFixed(2)}, mean ${r.now.move.mean.toFixed(2)}`);
+    assert(r.now.flights === r.flights, `${p}: ${r.now.flights} of ${r.flights} flights drawn`);
+    assert(r.old.still > r.old.steps / 2, `${p}: the old way stood still only ${r.old.still} of ${r.old.steps} steps: the measurement is not measuring it`);
+    lines.push(`${p.slice(0, 14)} ${r.old.still} of ${r.old.steps} stopped steps to ${r.now.still}`);
+  }
+  const steady = netsmoothTool.measureArrows("steady", archeryMod);
+  assert(steady.now.first.max <= 1 + 1e-9, `first drawn ${steady.now.first.max.toFixed(2)} steps' flight from the bow on a steady wire`);
+  return lines.join("; ");
+});
+// A guest's flight is the host's: stepped from its launch record with the host's own pose, it is where the host's flight is at every age (to a
+// thousandth of a tile, the record's rounding), its picture's angle the same, and it ends at the host's end; a fireball that bursts on one of the
+// dead ends at the host's age and point and leaves its flare there; a landing point that drifted is eased onto (#250).
+check("net: a flight replayed from its launch record is the host's step for step, ends where the host's did, and a fireball's flare is made there", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  const STEP = 1 / 60;
+  // A way out across open ground from the spawn: the first of eight directions an arrow of 14 tiles flies down unstopped.
+  const dir = [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, 1], [-1, -1], [1, -1]].find((d) => { archeryMod.reset(); const t = archeryMod.shoot(me, d, 14, 1); return t.stopD == null && t.s > 10; });
+  assert(!!dir, "no open ground round the spawn for 14 tiles");
+  const flyAndReplay = (shoot) => {
+    archeryMod.reset();
+    const a = shoot();
+    const host = []; // [age, gx, gy, z, frame] after each step
+    for (let i = 0; i < 600 && !a.done; i++) {
+      archeryMod.update(STEP);
+      if (!a.done) host.push([a.t, a.gx, a.gy, a.z, a.frame]);
+    }
+    assert(a.done && host.length > 3, "the flight never came down");
+    const h0 = 100; // any host clock: the frame after the first step
+    const store = archeryMod.flightStore();
+    archeryMod.applyFlights(store, { go: [archeryMod.launchRecord(a, host[0][0])] }, h0);
+    let err = 0;
+    let frames = 0;
+    let shown = 0;
+    for (let k = 0; k < host.length; k++) {
+      archeryMod.stepFlights(store, h0 + (host[k][0] - host[0][0]));
+      const g = store.shown[0];
+      if (!g) continue;
+      shown++;
+      err = Math.max(err, Math.hypot(g.gx - host[k][1], g.gy - host[k][2]), Math.abs(g.z - host[k][3]) / 100);
+      if (g.frame !== host[k][4]) frames++;
+    }
+    const endAt = h0 + (a.t - host[0][0]);
+    archeryMod.applyFlights(store, { end: [archeryMod.endRecord(a)] }, endAt);
+    archeryMod.stepFlights(store, endAt);
+    return { a, host, store, err, frames, shown, gone: store.shown.length === 0 && store.byId.size === 0 };
+  };
+  const arrow = flyAndReplay(() => archeryMod.shoot(me, dir, 14, 1));
+  assert(arrow.shown === arrow.host.length && arrow.err < 2e-3 && arrow.frames === 0, `the arrow: drawn ${arrow.shown} of ${arrow.host.length} steps, off by ${arrow.err.toFixed(4)} tiles at most, ${arrow.frames} steps with another angle`);
+  assert(arrow.gone, "the arrow is still drawn after its end");
+  // A fireball that meets one of the dead short of its landing: the guest's flight ends at the host's age, its flare at the host's point.
+  const spell = itemsMod.getItem("book_of_fire").book.spell;
+  const z = S.zombies.find((q) => !q.dead);
+  assert(!!z, "none of the dead in the valley");
+  const z0 = [z.gx, z.gy, z.hp];
+  const n = Math.hypot(dir[0], dir[1]);
+  z.gx = me.gx + (dir[0] / n) * 3;
+  z.gy = me.gy + (dir[1] / n) * 3;
+  const fire = flyAndReplay(() => archeryMod.shoot(me, dir, 8, 1, { projectile: "fireball", speed: spell.speed, flat: true, vanish: true, z0: spell.z0, contact: spell.contact, landRadius: spell.landRadius, damage: 1, knockback: 0 }));
+  [z.gx, z.gy, z.hp] = z0;
+  const burst = fire.a.t < fire.a.T - 1e-9;
+  const flare = fire.store.flares[0];
+  assert(burst, `the fireball did not burst on the one of the dead in its path (age ${fire.a.t.toFixed(3)} of ${fire.a.T.toFixed(3)})`);
+  assert(fire.err < 2e-3 && fire.gone, `the fireball: off by ${fire.err.toFixed(4)}, ${fire.gone ? "gone" : "still drawn"} at the host's end`);
+  assert(!!flare && Math.hypot(flare.gx - fire.a.landAt[0], flare.gy - fire.a.landAt[1]) < 1e-3, `the guest's flare ${flare ? `${flare.gx.toFixed(3)},${flare.gy.toFixed(3)}` : "none"} against the host's landing ${fire.a.landAt.map((v) => v.toFixed(3)).join(",")}`);
+  // A landing point 0.3 tiles off what the guest's own numbers give: eased onto by the end, no step more than twice the flight's own.
+  archeryMod.reset();
+  const b = archeryMod.shoot(me, dir, 14, 1);
+  for (let i = 0; i < 600 && !b.done; i++) archeryMod.update(STEP);
+  const store = archeryMod.flightStore();
+  archeryMod.applyFlights(store, { go: [archeryMod.launchRecord(b, 0)] }, 0);
+  archeryMod.stepFlights(store, 0.1);
+  const off = archeryMod.endRecord(b);
+  off[2] += 0.3;
+  archeryMod.applyFlights(store, { end: [off] }, 0.2);
+  let last = null;
+  let worst = 0;
+  for (let R = 0.1 + STEP; R < b.t - 1e-9; R += STEP) {
+    archeryMod.stepFlights(store, R);
+    const g = store.shown[0];
+    if (!g) break;
+    if (last) worst = Math.max(worst, Math.hypot(g.gx - last[0], g.gy - last[1]) / (b.speed * STEP));
+    last = [g.gx, g.gy];
+  }
+  const miss = last ? Math.hypot(last[0] - off[2], last[1] - off[3]) : Infinity;
+  assert(miss < b.speed * STEP * 1.5 && worst < 2, `a drifted flight ends ${miss.toFixed(3)} tiles from the host's point, its biggest step ${worst.toFixed(2)} of its own`);
+  archeryMod.reset();
+  return `the arrow on the host's path to ${arrow.err.toExponential(1)} tiles over ${arrow.shown} steps; the fireball burst at ${fire.a.t.toFixed(3)} s, its flare at the host's point; a 0.3-tile drift eased in, ${miss.toFixed(3)} off at the last step`;
 });
 // The dead and the villagers come as a delta, a record only when it changed: a body that stops is drawn where it stopped and one that sets off from a rest moves at once
 // (#249's review: it was drawn up to two steps past its stop for good, and set off after a rest in a lurch).
