@@ -844,6 +844,25 @@ check("dye vat: three vats open the picker; the verb dyes by uid, refuses what i
   inventoryMod.stow(me, hood);
   assert(run(hood.uid, ["#6a3c72"]).ok && !hood.colour && hood.colours.join() === "#6a3c72", "a wardrobe-dyed hood did not take orchil");
   assert(run(hood.uid, ["#5f8a3a"]).ok && !hood.colours && !hood.colour, "the hood's own green did not undye it");
+  // The picker lists everything carried the verb can take (docs/bugs.md, fixed): the satchel in the worn bag, and a garment on a worn belt's slot,
+  // dyed by its uid as a guest's command names it.
+  const beltWorn = itemsMod.makeEntry("good_belt", 1);
+  const waist0 = me.worn.waist;
+  me.worn.waist = beltWorn;
+  const onBelt = itemsMod.makeEntry("gloves", 1);
+  inventoryMod.ensureSlots(beltWorn)[0] = onBelt;
+  const listed = dyeMod.dyeables(me).map((d) => d.entry);
+  assert(listed.includes(satchel) && listed.includes(onBelt) && listed.includes(beltWorn), `the picker's list: ${listed.map((e) => e.id).join(", ")}`);
+  hostMod.netHooks().dye(me, { propId: vat.id, uid: onBelt.uid, colours: ["#5c2020"] });
+  assert(onBelt.colours && onBelt.colours.join() === "#5c2020", "gloves on the belt's slot were not dyed by the guest's command");
+  // A bag inside a bag, and what it holds (no bag holding things goes into a bag today, inventory.canStoreIn; the walk is the guard).
+  const inner = itemsMod.makeEntry("satchel", 1);
+  const innerCap = itemsMod.makeEntry("cap", 1);
+  inventoryMod.ensureBag(inner).items.push(innerCap);
+  inventoryMod.bagOf(me).items.push(inner);
+  assert(dyeMod.dyeables(me).some((d) => d.entry === innerCap) && run(innerCap.uid, ["#3e5e90"]).ok && innerCap.colours.join() === "#3e5e90", "a cap in a satchel in the bag was not listed and dyed");
+  inventoryMod.bagOf(me).items.splice(inventoryMod.bagOf(me).items.indexOf(inner), 1);
+  me.worn.waist = waist0;
   // The cost hook costs nothing: no dye names a cost.
   assert(dyeMod.costOf(itemsMod.getItem("tunic"), ["#3e5e90"]).length === 0, "a dye costs something before #288");
   // A guest's command: the host's hook runs the same verb as that player.

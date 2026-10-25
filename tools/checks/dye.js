@@ -162,6 +162,28 @@ export async function run(game, opts = {}) {
     dyePanel.update(me);
     const beltCard = info.textOf(info.cardFor(belt));
     row("black with the belt's own brass buckle reads brass in the picker and on the card, not undyed", picked === "Leather black, buckle brass" && beltCard.some((l) => l.includes("Black and brass")) && !beltCard.some((l) => /undyed/i.test(l)), `${picked} | ${beltCard.join(" | ")}`);
+    // Everything carried is listed: a rucksack worn with a satchel in it, and gloves on a worn belt's slot (put there by hand: no
+    // dyeable thing rides a belt today, the walk is the guard). The worn things and the bag are put back in the finally.
+    const ruck = G.items.makeEntry("rucksack", 1);
+    me.worn.back = ruck;
+    const satchel = G.items.makeEntry("satchel", 1);
+    G.inventory.stow(me, satchel);
+    const beltOn = G.items.makeEntry("good_belt", 1);
+    me.worn.waist = beltOn;
+    const gloves = G.items.makeEntry("gloves", 1);
+    G.inventory.beltOf(me)[0] = gloves;
+    dyePanel.update(me);
+    const st3 = dyePanel.state();
+    row("the picker lists a satchel carried in a worn rucksack and gloves on the belt's slot", !!st3 && st3.garments.includes(String(satchel.uid)) && st3.garments.includes(String(gloves.uid)), JSON.stringify(st3 && st3.garments));
+    el.querySelector(`[data-uid="${satchel.uid}"]`).click();
+    dyePanel.update(me);
+    el.querySelector(`[data-region="1"][data-hex="#5c2020"]`).click();
+    dyePanel.update(me);
+    el.querySelector("[data-apply]").click();
+    dyePanel.update(me);
+    row("the satchel in the rucksack takes an oxblood strap from the picker", Array.isArray(satchel.colours) && satchel.colours[1] === "#5c2020", JSON.stringify(satchel.colours));
+    me.worn.back = worn0.back ?? null;
+    me.worn.waist = worn0.waist ?? null;
     // Closing: Escape's way (the station panel's close shuts the picker) and walking away.
     row("Escape's close shuts the picker", stationPanel.close() === true && !dyePanel.isOpen() && root().hidden, String(dyePanel.isOpen()));
     dyePanel.openPanel(vat, me);

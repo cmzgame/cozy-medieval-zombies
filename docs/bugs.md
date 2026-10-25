@@ -24,8 +24,6 @@
 
 - **`check("build")` fails 9 of 11 on `main`** (found reviewing #227, on `main` at `0e765f7`, fresh tab): "the player's own wall with a door removed is still the player's own" and "a new door built over a broken stamped one remembers the wall under it". Not a play bug found; 11 of 11 in my run after other checks in the same tab, so it may depend on what ran first.
 
-- **The dye vat's picker leaves out the belt's slots and a bag inside a bag** (found syncing the wiki for #417, 2026-10-25, at `e045b31`). `src/dye.js` `dyeables` (~122-132) lists the worn slots, the hands, and the worn bag's items; `entryOf` would take an entry from anywhere carried. Not a loss today (nothing dyeable rides on a belt), but a satchel carried in a rucksack cannot be dyed without wearing it.
-
 - **A repair place's greyed line says nothing worn is carried when everything worn is already above its ceiling** (found syncing the wiki for #416, 2026-10-25, at `e045b31`). `src/repair.js` `propActions` (~135, ~152): a worn sword at 70% at the grindstone (next ceiling 60%) is skipped, and the one line left reads "Sharpen (no dull blade carried)". Likely fix: "Sharpen (nothing it can better)" when something worn was skipped.
 
 - **Two small words** (found syncing the wiki, 2026-10-25, at `e045b31`): `data/sprites/sawpit.json`'s note names `src/repair.js` where the code is `src/sawpit.js`; `src/sawpit.js` (~47) says "1 fall at your feet" when one plank falls.
@@ -54,6 +52,8 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 ## Fixed
 
 (Move items here with the commit that fixed them.)
+
+- [x] **The dye vat's picker left out the belt's slots and a bag inside a bag** (found syncing the wiki for #417, 2026-10-25): `dyeables` listed the worn slots, the hands, and the worn bag's items, while the verb's `entryOf` took the belt's slots too. Read again on `main`: a satchel carried in a worn rucksack was already listed (it is an item of the worn bag), and no bag holding things can go into a bag (`inventory.canStoreIn`), so the belt's slots were the one gap, and no dyeable thing rides a belt yet. Fixed in the bugs batch (`primary/bugs-batch-1`): one walk in `src/dye.js` (`carried`: the worn things, the hands, the belt's slots, the bag, and a bag or a belt inside it in its turn) serves the picker's list and the verb's `entryOf` alike, so the picker offers nothing the verb refuses; `node tools/check.js` ("dye vat": gloves on a worn belt's slot dyed by a guest's command, a cap in a satchel in the bag) and `check("dye")` (a satchel in a worn rucksack listed and dyed, gloves on the belt listed) have rows for it.
 
 - [x] **A dyeable item's card counted one colour more than its picker showed** (found syncing the wiki for #417, 2026-10-25): the card counted the whole palette, and the picker drops a palette colour equal to the item's own (its Undyed swatch). Fixed in the bugs batch (`primary/bugs-batch-1`): `item-info.js` counts as the picker does, so the breeches read 15 colours and the boots 6; `node tools/check.js` ("dye vat") and `check("dye")` (the breeches' swatches against their card) have rows for it.
 

@@ -7,7 +7,7 @@
 
 import * as verbs from "./verbs.js";
 import { getItem } from "./items.js";
-import { carriedEntry, countAll, takeAll } from "./inventory.js";
+import { countAll, takeAll } from "./inventory.js";
 import { reachProblem, TOO_FAR } from "./reach.js";
 import * as map from "./map.js";
 import { stationOf, REACH } from "./stations.js";
@@ -120,23 +120,45 @@ export function unlock() {
   return data.unlock;
 }
 
-// The entry with this uid that the player may dye: worn, then in a hand, on the belt, or in the bag.
+const WORN_ORDER = ["head", "chest", "hands", "waist", "legs", "feet", "back"];
+
+// Everything the player carries, worn first, then the hands, the belt's slots, and the bag, a bag or a belt inside the bag
+// opened in its turn (a satchel in a rucksack, a cap in that satchel): [{ entry, slot | null }], `slot` the worn slot.
+function carried(player) {
+  const out = [];
+  const seen = new Set();
+  const add = (e, slot) => {
+    if (!e || seen.has(e)) return;
+    seen.add(e);
+    out.push({ entry: e, slot });
+    for (const inner of (e.bag && e.bag.items) || []) add(inner, null); // a bag's things, whoever wears it
+    for (const inner of e.slots || []) add(inner, null); // a belt's slots, worn or carried
+  };
+  const worn = player.worn || {};
+  const slots = [...WORN_ORDER, ...Object.keys(worn).filter((s) => !WORN_ORDER.includes(s))];
+  // The worn things first, each before what it holds, so the picker lists them in their order.
+  for (const slot of slots) if (worn[slot]) { seen.add(worn[slot]); out.push({ entry: worn[slot], slot }); }
+  for (const slot of ["main", "off"]) add(player.hands && player.hands[slot], null);
+  for (const slot of slots) {
+    const e = worn[slot];
+    if (!e) continue;
+    for (const inner of e.slots || []) add(inner, null);
+    for (const inner of (e.bag && e.bag.items) || []) add(inner, null);
+  }
+  return out;
+}
+
+// The entry with this uid that the player may dye: anywhere it carries it (worn, in a hand, on the belt, in the bag or a bag in it),
+// the same walk the picker's list is (`dyeables`), so the picker offers nothing the verb refuses and the verb takes all it offers.
 export function entryOf(player, uid) {
   if (uid == null || !player) return null;
-  for (const e of Object.values(player.worn || {})) if (e && e.uid === uid) return e;
-  return carriedEntry(player, uid);
+  const hit = carried(player).find((c) => c.entry.uid === uid);
+  return hit ? hit.entry : null;
 }
 
 // Every entry the player could take to the vat, worn first: [{ entry, slot | null }].
 export function dyeables(player) {
-  const out = [];
-  const seen = new Set();
-  const add = (e, slot) => { if (e && !seen.has(e) && getItem(e.id) && getItem(e.id).dye) { seen.add(e); out.push({ entry: e, slot }); } };
-  for (const slot of ["head", "chest", "hands", "waist", "legs", "feet", "back"]) add(player.worn && player.worn[slot], slot);
-  for (const slot of ["main", "off"]) add(player.hands && player.hands[slot], null);
-  const bag = player.worn && player.worn.back && player.worn.back.bag;
-  for (const e of (bag && bag.items) || []) add(e, null);
-  return out;
+  return carried(player).filter((c) => getItem(c.entry.id) && getItem(c.entry.id).dye);
 }
 
 // Whether the player may dye that entry these colours at that vat now: true, or the reason not.
