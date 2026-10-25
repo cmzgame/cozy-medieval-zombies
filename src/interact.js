@@ -17,7 +17,7 @@ import * as input from "./input.js";
 import * as map from "./map.js";
 import { getSheet, idleFrame } from "./assets.js";
 import { resolveFacing, frameName } from "./sprites.js";
-import { getItem, toolFor, makeEntry, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
+import { getItem, toolFor, aName, countName, makeEntry, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
 import { stacks as bleedStacks, clear as clearBleed } from "./bleed.js";
 import { beltKey, flameOf, NO_FLAME, skinsOf, carriedTool, toolProblem } from "./inventory.js";
 import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, restoreOffHand, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
@@ -1563,7 +1563,7 @@ export function itemMenu(player, entry, bag, otherBag) {
     const s = def.splitsInto;
     const noAxe = toolProblem(player, tuning.world.splitTool); // splitting is hatchet work (#215)
     out.push({
-      label: `Split into ${s.count} ${getItem(s.id).name.toLowerCase()}s${noAxe ? ` (need a ${toolName(tuning.world.splitTool)})` : ""}`,
+      label: `Split into ${countName(s.id, s.count)}${noAxe ? ` (need a ${toolName(tuning.world.splitTool)})` : ""}`,
       enabled: !noAxe,
       onSelect: () => {
         if (toolProblem(player, tuning.world.splitTool)) { showMessage(toolProblem(player, tuning.world.splitTool)); return; }

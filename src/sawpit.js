@@ -56,7 +56,7 @@ export function propActions(prop, player, act, world) {
   const out = yieldOf();
   if (!out) return [];
   const has = inventory.countAll(player, WK.saw.item) > 0;
-  const what = `${out.count} ${items.getItem(out.id).name.toLowerCase()}s`;
+  const what = items.countName(out.id, out.count);
   return [act({
     kind: "saw",
     simple: has,

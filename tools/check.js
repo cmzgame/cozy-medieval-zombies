@@ -1973,8 +1973,9 @@ check("hover card: every name that reaches a plural or a lower-cased line reads 
   const irregular = /(s|x|z|ch|sh|[^aeiou]y|[^f]f|fe|man|foot|tooth|mouse|sheep|deer|fish|child)$/i;
   for (const d of itemsJson) {
     if (!d.splitsInto) continue;
-    const name = byId.get(d.splitsInto.id).name;
-    if (irregular.test(name)) bad.push(`${d.id} splits into "${name}", whose plural is not +s`);
+    const into = byId.get(d.splitsInto.id);
+    const name = into.name;
+    if (irregular.test(name) && !into.plural && !into.noun) bad.push(`${d.id} splits into "${name}", whose plural is not +s (give it a \`plural\` or a \`noun\`)`);
     if (/[A-Z]/.test(name.slice(1))) bad.push(`${d.id} splits into "${name}", which keeps a capital`);
   }
   for (const r of recipes) {
@@ -1990,6 +1991,22 @@ check("hover card: every name that reaches a plural or a lower-cased line reads 
   assert(!bad.length, bad.join("; "));
   const lines = itemsJson.flatMap((d) => itemInfoMod.textOf(itemInfoMod.cardFor(itemsMod.makeEntry(d.id, 1))).filter((l) => /^(Splits into|A sawpit|Goes into|Builds)/.test(l)));
   return `every name regular; ${lines.length} such lines on the cards today`;
+});
+
+// An item's name counted in a sentence (src/items.js countName; docs/bugs.md, the butcher's "3 raw venisons"): a definition's `noun` "mass"
+// reads "some lard" and "3 raw venison", "pair" reads "shears", and anything else "a"/"an" and +s. Every yield and product an animal gives is
+// read in the skin, butcher, milk, and shear lines this way.
+check("item names counted: mass nouns, pairs, and +s (the butcher's and the shears' words)", () => {
+  const cn = itemsMod.countName;
+  const want = [["venison_raw", 3, "3 raw venison"], ["bacon", 2, "2 bacon"], ["lard", 1, "some lard"], ["wool", 2, "2 wool"], ["feather", 4, "4 feathers"], ["hide", 1, "a hide"], ["egg", 1, "an egg"], ["milk", 1, "a jug of milk"]];
+  const bad = want.filter(([id, n, s]) => cn(id, n) !== s).map(([id, n, s]) => `${id} x${n}: "${cn(id, n)}", not "${s}"`);
+  const animals = read("data/animals.json").species;
+  for (const [sp, d] of Object.entries(animals)) {
+    const ids = [...Object.values(d.yields || {}).flat().map((y) => y.id), ...(d.produce ? [d.produce.item] : [])];
+    for (const id of ids) if (/(ss|[^aeiou]y|[^s]s)$/.test(itemsMod.nounName(id)) && !itemsMod.getItem(id).noun && !itemsMod.getItem(id).plural) bad.push(`${sp}'s ${id} has a name that will not take +s`);
+  }
+  assert(!bad.length, bad.join("; "));
+  return want.map(([id, n]) => cn(id, n)).join(", ");
 });
 
 let failed = 0;

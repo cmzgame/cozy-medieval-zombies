@@ -761,10 +761,7 @@ function give(player, id, count) {
 }
 
 function said(list) {
-  const name = (y) => {
-    const n = items.getItem(y.id).name.toLowerCase();
-    return y.count > 1 ? `${y.count} ${n.endsWith("s") ? n : `${n}s`}` : `${/^[aeiou]/.test(n) ? "an" : "a"} ${n}`;
-  };
+  const name = (y) => items.countName(y.id, y.count); // "3 raw venison", "some lard", "2 feathers" (the item's `noun` and `plural`)
   if (!list.length) return "";
   return list.length === 1 ? name(list[0]) : `${list.slice(0, -1).map(name).join(", ")} and ${name(list[list.length - 1])}`;
 }
