@@ -41,12 +41,11 @@ import { serializeCharacter, restoreCharacter, dress, dressCorpse } from "./enti
 import { createPlayer, updatePlayer, updateFallen, setSleepScaleRule, setSiegeQuery, damagePlayer, autoDrink } from "./entities/player.js";
 import { canPutDown } from "./placement.js";
 import { playAnimation } from "./sprites.js";
-import { getDef } from "./assets.js"; // a placed prop's definition names the item it stands as (itemCensus, #101)
 import { createZombie, updateZombie, siegeHeldOn } from "./entities/zombie.js";
 import { createVillager, updateVillager, turnVillager, damageVillager, setTalkWorld, talkIdOf } from "./entities/villager.js";
 import { controlPlayer } from "./player-controller.js";
 import * as animal from "./entities/animal.js"; // the valley's game and livestock (docs/45)
-import { getDef } from "./assets.js"; // a sprite definition's data (a feeding trough's `feed`): read, never drawn
+import { getDef } from "./assets.js"; // a sprite definition's data (a feeding trough's `feed`; the item a placed prop stands as, itemCensus #101): read, never drawn
 
 export const state = {
   info: null, // what the map file gave: spawn, the authored dead and villagers, the name

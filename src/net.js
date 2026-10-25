@@ -653,7 +653,7 @@ export function hostStep(mySnap, me) {
       // A guest's hashes at a tick (the sync check).
       if (guests.has(msg.from) && msg.parts && typeof msg.parts === "object") {
         const parts = {};
-        for (const k of Object.keys(msg.parts).slice(0, 16)) if (typeof msg.parts[k] === "string") parts[k] = msg.parts[k].slice(0, 200); // twelve parts since the item census (#101): room for four more
+        for (const k of Object.keys(msg.parts).slice(0, 16)) if (typeof msg.parts[k] === "string") parts[k] = msg.parts[k].slice(0, 200); // thirteen parts since the item census (#101): room for three more
         guestSync.set(msg.from, { tick: msg.tick | 0, parts });
       }
     } else if (msg.type === "say") {
