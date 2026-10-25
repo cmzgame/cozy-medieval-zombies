@@ -1,4 +1,5 @@
 {
+ "villageStation": true,
  "anchorVertex": "top",
  "images": {
   "idle_0": "data/art/village/well_0.png",
