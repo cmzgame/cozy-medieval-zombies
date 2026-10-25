@@ -1,6 +1,6 @@
 # 39 — The Valley 1.0: the complete scope
 
-**Status, 2026-10-25: a spec, and the one complete list of what The Valley 1.0 holds (#271); the skills' open lines (#275) and the food economy (#264) were ruled on 2026-10-23, the loot tables (#268) and the bags (#260) on 2026-10-24, the tables built the same day, and the dead ends (#273) on 2026-10-25, `docs/43` (`docs/02`), and the map as it stands is a testing map, not the final valley.** Compiled from `origin/main` at 3e1f5d0 (the data in `data/`, `docs/30`, `docs/29-world`, `docs/02` through its 2026-10-19 entries, `docs/04`, `docs/34`) and from the open issues of the same day: the skills trees on #275, Beastlore on #289, and the scoping issues #92, #103, #123, #133, #181, #260, #261, #262, #264, #268, #273, #279, #281, #282, #283, #285, #288. Valley only: a region appears only as the name of what comes from it. Lists, not reasons; the reasons are `docs/02` and the issues. Numbers are the data's and tuning's, not this page's. Rewritten in place when the scope changes, never appended.
+**Status, 2026-10-25: a spec, and the one complete list of what The Valley 1.0 holds (#271); the skills' open lines (#275) and the food economy (#264) were ruled on 2026-10-23, the loot tables (#268) and the bags (#260) on 2026-10-24, the tables built the same day, and the dead ends (#273) and water (#279) on 2026-10-25, `docs/43` and `docs/44` (`docs/02`), and the map as it stands is a testing map, not the final valley.** Compiled from `origin/main` at 3e1f5d0 (the data in `data/`, `docs/30`, `docs/29-world`, `docs/02` through its 2026-10-19 entries, `docs/04`, `docs/34`) and from the open issues of the same day: the skills trees on #275, Beastlore on #289, and the scoping issues #92, #103, #123, #133, #181, #260, #261, #262, #264, #268, #273, #279, #281, #282, #283, #285, #288. Valley only: a region appears only as the name of what comes from it. Lists, not reasons; the reasons are `docs/02` and the issues. Numbers are the data's and tuning's, not this page's. Rewritten in place when the scope changes, never appended.
 
 ## 0. How to read it
 
@@ -123,8 +123,8 @@
 - **The Developer Chest** [built]: section 15.
 - **Table, chair, bench, pew, lectern** [built]: furniture, carried; table and bench made [change: the chair at the workbench, Crafting 1; the pew and the lectern stay the chapel's (2026-10-25, `43`)]. Sitting [to build] (`docs/32`'s pose).
 - **Well** [built]: drink, fill skins and buckets; its winch; rooted.
-- **Trough** [built]: drink and fill, as the well [open #279: natural water or not].
-- **Font** [built]: fill a bucket [open #279: natural water or not].
+- **Trough** [built]: drink and fill, as the well; tainted, as every fixed source (2026-10-25, `44`).
+- **Font** [built]: fill a bucket; tainted, as every fixed source (2026-10-25, `44`).
 - **Altar** [built]: decoration [change: pray for mana and stamina, Faith 1; it also removes bleeds at Faith 4 and restores health at Faith 6].
 - **Fireplace** [built]: lights its room, cooks; not carried; not made [change: a switch, on and off, no fuel (2026-10-25, `43` section 2)].
 - **Hearth** [built in the data]: as the fireplace [change: built from the palette, six stone, against a wall indoors; a switch, no fuel (`43`)].
@@ -337,10 +337,9 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 - **Waterskin** [built]: drink, sips by itself when Thirsty, filled at any water or a well; on the belt or in the bag. The kit (full), barrels, bodies, and made at Crafting 3 (ruled 2026-10-23). [change: sips by itself only clean water; may hold unsafe water, drunk by choice.]
 - **Bucket** [built]: section 5.1; waters crops with any water.
 - **Drinking at water** [built]: any water beside you, the well's menu.
-- **Unsafe water** [to build] (#279): all natural water, water tiles and wells; always quenches; may bring a small sickness that passes; a small chance of the infection.
-- **Clean water** [to build]: boiled at a fire (Cooking 1), or sanctified (Faith 10, carried water only, never a well). How a skin shows which it holds [open #279].
+- **Unsafe water** [to build] (#279): every fixed source, water tiles, wells, the trough, and the font (`44`); always quenches; may bring a small sickness that passes; a small chance of the infection.
+- **Clean water** [to build]: boiled at a fire (Cooking 1), or sanctified (Faith 10, carried water only, never a well). Boiled by Use on a lit cooking fire, or from the vessel's or the fire's menu, about 30 s; the card says clean or tainted, a brown drop on a tainted icon (2026-10-25, `44`).
 - **Jugs and jars** [to build]: clay (Mining 3), keep purified water clean.
-- **Whether the trough and the font count as natural water** [open #279].
 - **A bottle, a mug** (`docs/30`) [to build]: a bottle is a clay jug (Mining 3, shaped at Crafting 1, fired in an oven); a mug is wood at the workbench, Crafting 1 (ruled 2026-10-23).
 
 ### 5.8 Potions
@@ -435,7 +434,7 @@ The staff-and-book proposal (#275), proposed, not ruled, except the parts marked
 
 - Worn: a linen tunic, linen breeches, hobnail boots, a rope belt, a burlap sack.
 - Carried: a full waterskin, a loaf of bread, two apples, a plank, a torch (in hand, unlit), a tinderbox.
-- The kit is unchanged by the leaner start (ruled 2026-10-23); [open #279: whether the skin's water is clean].
+- The kit is unchanged by the leaner start (ruled 2026-10-23); the skin's water clean [change: tainted today] (2026-10-25, `44`).
 
 ## 6. NPCs
 
@@ -740,8 +739,8 @@ Later, not at the start: gems inlaid in metal armour.
 ### Thirst and unsafe water
 - **Thirst** [built]: drains over a game day; four stages (Slightly thirsty, Thirsty, Parched, Dying of thirst); stamina slow at Parched; health drains at the last.
 - **Auto-sip** [built]: a carried skin sips at Thirsty, never mid-fight [change: clean water only].
-- **Unsafe water** [to build, #279]: natural water and wells; always quenches; a sickness that may come and passes (more tired, slower to heal); a small chance of the infection; never a sure penalty.
-- **The sickness's place, name, and numbers; purifying; the trough and the font** [open #279]: a debuff and not a moodle is *Primary's reading* (2026-10-19), not ruled.
+- **Unsafe water** [to build, #279]: every fixed source, water tiles, wells, the trough, and the font (`44`); always quenches; a sickness that may come and passes (more tired, slower to heal); a small chance of the infection; never a sure penalty.
+- **Sick** (ruled 2026-10-25, `44` section 4) [to build]: a debuff (the infection's third stage renamed Queasy), tiredness 50% faster and food healing 25% less for about half a game day; 20% a tainted drink, stacking to three; 1% a tainted drink of the infection, its chance on the difficulty dial.
 
 ### Tiredness and sleep
 - **Tiredness** [built]: drains over a game day and a quarter; four stages (Yawning; Tired, stamina slower; Exhausted, no sprint; Falling asleep, no healing); never kills.
@@ -750,8 +749,8 @@ Later, not at the start: gems inlaid in metal armour.
 
 ### Bleeding, the infection, and the cure
 - **Bleeding** [built]: a bite may open a wound, up to five stacks, draining faster with each; a bandage closes it; runs out by itself.
-- **The infection** [built as a marker]: a chance on a landed bite; four stages over about a day and a half (Bitten, Fevered, Sick, Turning); no effect yet [open #123: its real effects: about a day and a half to find the cure, then death, the moodles worsening along the way (Michael, 2026-10-23)]. A second way in: a drink of unsafe water [to build].
-- **The cure** [to build]: mid to late game, gated by skill, and **not in the valley** (ruled 2026-10-19): found beyond it (Faith's Cure Undeath, learned in a region; a Divine Potion at Potions 10, the Abbey's (ruled 2026-10-23)). **Life Ward** against bites (Faith 3). The infection and combat difficulty are one dial [open #279: whether water's chance follows it].
+- **The infection** [built as a marker]: a chance on a landed bite; four stages over about a day and a half (Bitten, Fevered, Sick, Turning) [change: the third named Queasy, Sick being tainted water's (2026-10-25, `44`)]; no effect yet [open #123: its real effects: about a day and a half to find the cure, then death, the moodles worsening along the way (Michael, 2026-10-23)]. A second way in: a drink of unsafe water [to build].
+- **The cure** [to build]: mid to late game, gated by skill, and **not in the valley** (ruled 2026-10-19): found beyond it (Faith's Cure Undeath, learned in a region; a Divine Potion at Potions 10, the Abbey's (ruled 2026-10-23)). **Life Ward** against bites (Faith 3). The infection and combat difficulty are one dial (water's chance follows it, 2026-10-25, `44`).
 
 ### Mana
 - **Mana** [to build]: spells cost it; slow natural regeneration; mana potions (Potions 4); a free top-up praying at an altar (Faith 1); more mana (Faith 4); cheaper spells (Magic 2); perhaps special foods later. A mana bar [to build].
@@ -877,7 +876,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 ## 12. The interface
 
 ### Built
-- **The HUD:** the portrait, health and stamina bars, and the hands top-left; the clock top centre; the moodles down the right (hunger, thirst, tiredness, and the infection) and the debuffs, apart from them, WoW-style (bleeding and poison, ruled 2026-10-19; the sickness from unsafe water, *Primary's reading* [open #279]) [built, #308: the row of debuffs at the top right, with its icon, time, stacks, and hover card; bleeding is the first and left the moodles]; the log and chat bottom-left, resizable; the swing timer and the exposure bar; a floating health bar on one of the dead you hurt; your own over your head once hurt; names over other players' heads; **floating numbers over heads** (built, #294: a red -X over whoever is hit, a green +X over whoever is healed, and a skill's icon with the number gained over whoever gathers, in white or black by the light; `src/floaters.js`, `ui/floaters.js`, `data/tuning.json` `floaters`; the setting "Floating numbers") and **an icon for each of the fourteen skills** (`ui/skill-icons.js`, generated at boot, for the skills panel and the hover card too).
+- **The HUD:** the portrait, health and stamina bars, and the hands top-left; the clock top centre; the moodles down the right (hunger, thirst, tiredness, and the infection) and the debuffs, apart from them, WoW-style (bleeding and poison, ruled 2026-10-19; Sick, from tainted water, `44`) [built, #308: the row of debuffs at the top right, with its icon, time, stacks, and hover card; bleeding is the first and left the moodles]; the log and chat bottom-left, resizable; the swing timer and the exposure bar; a floating health bar on one of the dead you hurt; your own over your head once hurt; names over other players' heads; **floating numbers over heads** (built, #294: a red -X over whoever is hit, a green +X over whoever is healed, and a skill's icon with the number gained over whoever gathers, in white or black by the light; `src/floaters.js`, `ui/floaters.js`, `data/tuning.json` `floaters`; the setting "Floating numbers") and **an icon for each of the fourteen skills** (`ui/skill-icons.js`, generated at boot, for the skills panel and the hover card too).
 - **The bag, the character screen** (the paper doll, the worn slots with their eyes, the hands, the belt), **the belt bar**.
 - **Containers and bodies** as panels with Take All; **the station panel**; **the talk panel**; **the map on M**; **the build palette**; **the right-click menu**; **the Use mode's gold outline and label**; **prompts** ("E: ..."); **speech bubbles**; **the aim guide** (on by default since 2026-10-24); **swing targets and hit shapes** (testing).
 - **The site and the screens:** the title (Worlds, Identities, Settings, Controls), New world with its Sandbox step, the loading screens, the pause menu (Resume, Save world, Character, Settings, Controls, Exit game), the dead screen (New character, Exit game), Settings in tabs (Display, Testing).
@@ -890,7 +889,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 - **The belt slot's hand choice**, marked in its menu (#285).
 - **The station panel lists every recipe of the station** but boss-drop ones, the unlearned greyed with what they need, so a goal is always in view (ruled 2026-10-23) [to build].
 - **Learn at a teacher** [to build]: the teacher's screen (ruled 2026-10-23).
-- **Debuffs** apart from the moodles (ruled 2026-10-19); the sickness from unsafe water a debuff, *Primary's reading* [open #279, with its name and numbers]. **Buffs:** hearty food carries them (ruled 2026-10-19); shown in the debuff row, in gold, well fed among them, never as moodles: a moodle describes a general state and is read-only, a buff or a debuff is one specific effect, often directly interactable, as a bandage removes a bleed (ruled 2026-10-23). a mark on a food's icon on its last day, and "Spoils in N days" on its card (ruled 2026-10-23); clean or unsafe water on a skin [open #279].
+- **Debuffs** apart from the moodles (ruled 2026-10-19); Sick, from tainted water, a debuff (2026-10-25, `44`). **Buffs:** hearty food carries them (ruled 2026-10-19); shown in the debuff row, in gold, well fed among them, never as moodles: a moodle describes a general state and is read-only, a buff or a debuff is one specific effect, often directly interactable, as a bandage removes a bleed (ruled 2026-10-23). a mark on a food's icon on its last day, and "Spoils in N days" on its card (ruled 2026-10-23); clean or tainted water on a skin's card and a brown drop on a tainted icon (2026-10-25, `44`).
 - **No spell bar** (ruled 2026-10-23): a spell needs a staff and a book.
 - **Bars as a percent** [open #133]: a possibility.
 
@@ -905,7 +904,7 @@ Placeholder sounds, generated or from a library [open #271]; every informative s
 - A bleed opens; a bandage applied (the debuff).
 - Eat; drink from a skin, at water, a sip by itself (the log line).
 - A need reaches a new stage: a stomach, a dry throat, a yawn (the moodle).
-- The sickness comes (the debuff, by *Primary's reading*, #279); the infection worsens (the moodle).
+- Sick comes (the debuff, 2026-10-25, `44`); the infection worsens (the moodle).
 - Death (the dead screen).
 - A level-up; an unlock learned (a burst over the head, the log line).
 
@@ -1006,7 +1005,6 @@ The numbers are for tuning; this list is what must change before 1.0.
 - **#262:** the hover card beyond grids; short names.
 - **#271:** placeholder sounds, generated or library, and which first.
 - **What the demo includes** of `43`'s dead ends (Michael, 2026-10-25: an open question).
-- **#279:** purifying; the trough and the font; the sickness; a skin's clean or unsafe.
 - **#281, #282, #283:** gems, trinkets, silver.
 - **#285:** the belt (to build, ruled).
 - **#288:** what comes back, and where.
