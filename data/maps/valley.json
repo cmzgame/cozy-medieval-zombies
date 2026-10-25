@@ -5880,6 +5880,15 @@
      "note": "Hollow Farm's chicken coop (#333)"
     },
     {
+     "sprite": "feed_trough",
+     "tile": [
+      19,
+      0
+     ],
+     "id": "feed_trough_hens",
+     "note": "the hens' feeding trough by their coop (docs/45 section 3)"
+    },
+    {
      "sprite": "beehive",
      "tile": [
       39,
@@ -11746,7 +11755,17 @@
      ]
     }
    ],
-   "props": []
+   "props": [
+    {
+     "sprite": "feed_trough",
+     "tile": [
+      10,
+      2
+     ],
+     "id": "feed_trough_byre",
+     "note": "the byre's feeding trough (docs/45 section 3): empty until a player fills it"
+    }
+   ]
   },
   {
    "name": "Hollow Farm's pigsty",
@@ -11786,7 +11805,17 @@
      ]
     }
    ],
-   "props": []
+   "props": [
+    {
+     "sprite": "feed_trough",
+     "tile": [
+      6,
+      2
+     ],
+     "id": "feed_trough_sty",
+     "note": "the pigsty's feeding trough (docs/45 section 3)"
+    }
+   ]
   },
   {
    "name": "the croft's sheepfold",
@@ -11816,7 +11845,17 @@
      ]
     }
    ],
-   "props": []
+   "props": [
+    {
+     "sprite": "feed_trough",
+     "tile": [
+      3,
+      2
+     ],
+     "id": "feed_trough_fold",
+     "note": "the sheepfold's feeding trough (docs/45 section 3)"
+    }
+   ]
   }
  ],
  "reserve": [

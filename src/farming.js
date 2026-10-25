@@ -263,6 +263,7 @@ verbs.define("harvest", {
 // `harvest` verb as a hand does (re-validated on the host: reach, ready), the grain and the seeds into the bag, the tiles staying soil. A
 // swing at nothing, or at a crop not ready, still swings. It runs on the authority only: a guest's own swing is predicted without the
 // event (combat.tryAttack), and the host's step makes this one.
+const HAY = "hay";
 export function scytheSwing(player) {
   const g = iso.screenDirToGrid(player.aim.sx, player.aim.sy);
   const dir = iso.normalize(g.gx, g.gy);
@@ -287,6 +288,14 @@ export function scytheSwing(player) {
     for (const [id, n] of r.gave) got.set(id, (got.get(id) || 0) + n);
   }
   if (cut) showMessage(`You scythe ${cut} row${cut > 1 ? "s" : ""}: ${[...got].map(([id, n]) => `${items.getItem(id).name.toLowerCase()} x${n}`).join(", ")}${fell ? `; ${fell} fall${fell > 1 ? "" : "s"} at your feet` : ""}.`);
+  else if (items.getItem(HAY) && [...tiles.values()].filter(([x, y]) => { const t = map.peekTile(x, y); return t && !t.prop && t.room === 0 && /grass/.test(t.floor || ""); }).length >= 2) {
+    // Hay (docs/45 section 3; Farming 5, open to all until the skills; Primary's default): a swing over open grass with no crop in it cuts
+    // one, feed for a trough. The grass stays: hay costs the swing's stamina, not the meadow.
+    const placed = inventory.addItem(inventory.bagOf(player), HAY, 1);
+    if (!placed) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(HAY, 1));
+    showMessage(placed ? "You cut some hay." : "You cut some hay; it falls at your feet.");
+    return 1;
+  }
   return cut;
 }
 
