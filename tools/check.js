@@ -1359,6 +1359,38 @@ check("burn corpse: the done line says the hours the data gives", () => {
   return said.join(" / ");
 });
 
+const placementMod = await import("../src/placement.js");
+const woodsMod = await import("../src/woods.js");
+// The hover card's plurals and lower-cased names (docs/bugs.md: not reproduced, guarded): "Splits into 3 planks" and the sawpit's line add an "s"
+// to the item split into, and "Goes into" and "Builds" lower-case a recipe's or a build kind's name. No name that reaches those lines today has a
+// plural that is not "+s" or a capital past its first letter; this fails the day one does, and the fix then is a `plural` (and a kept case) in the data.
+check("hover card: every name that reaches a plural or a lower-cased line reads rightly (+s, no capital past the first letter)", () => {
+  const itemsJson = read("data/items.json");
+  const recipes = read("data/recipes.json").rows;
+  const byId = new Map(itemsJson.map((d) => [d.id, d]));
+  const bad = [];
+  const irregular = /(s|x|z|ch|sh|[^aeiou]y|[^f]f|fe|man|foot|tooth|mouse|sheep|deer|fish|child)$/i;
+  for (const d of itemsJson) {
+    if (!d.splitsInto) continue;
+    const name = byId.get(d.splitsInto.id).name;
+    if (irregular.test(name)) bad.push(`${d.id} splits into "${name}", whose plural is not +s`);
+    if (/[A-Z]/.test(name.slice(1))) bad.push(`${d.id} splits into "${name}", which keeps a capital`);
+  }
+  for (const r of recipes) {
+    const o = r.out || {};
+    const name = o.id ? byId.get(o.id).name : r.label || (o.prop ? o.prop.replace(/_/g, " ") : r.id);
+    if (/[A-Z]/.test(name.slice(1))) bad.push(`recipe ${r.id}'s "${name}" is lower-cased on a card's Goes into line`);
+  }
+  for (const k of placementMod.buildKinds()) {
+    if (!k.cost || k.region || (woodsMod.isWoodWall(k.sprite) && k.kind === "wall")) continue; // as the card: a wood's walls are one "wood wall", a region's wood never shown
+    const name = k.label || k.id;
+    if (/[A-Z]/.test(name.slice(1))) bad.push(`build kind ${k.id}'s "${name}" is lower-cased on a card's Builds line`);
+  }
+  assert(!bad.length, bad.join("; "));
+  const lines = itemsJson.flatMap((d) => itemInfoMod.textOf(itemInfoMod.cardFor(itemsMod.makeEntry(d.id, 1))).filter((l) => /^(Splits into|A sawpit|Goes into|Builds)/.test(l)));
+  return `every name regular; ${lines.length} such lines on the cards today`;
+});
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;
