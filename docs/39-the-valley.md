@@ -115,7 +115,7 @@
 
 - **Bed** [built]: sleep (indoors); carried; made at the workbench.
 - **Chest** [built]: a container; carried; made at the workbench.
-- **Shelf, cupboard, desk, bookcase, strongbox, counter, coffin, haystack, woodpile, cart, stall** [built]: containers that roll the chest's loot table (the farms' haystacks a stick) [change: a table per kind of container, #268]; the shelf is made, the rest are dead ends [open #273].
+- **Shelf, cupboard, desk, bookcase, strongbox, counter, coffin, haystack, woodpile, cart, stall** [built]: containers, each kind with its own loot table (2026-10-24, #268): shelf and cupboard the pantry, woodpile its wood, cart and stall the market, bookcase and desk nothing until books, strongbox nothing until gems and trinkets, coffin grave goods, counter the inn's, haystack a stick; the shelf is made, the rest are dead ends [open #273].
 - **Barrel** [built]: a container (apples, a waterskin, logs); carried; not made [open #273].
 - **Wheelbarrow** [built]: a big empty container, carried like a barrel; made at the workbench.
 - **Stone stack, ore cart, charcoal sack** [built]: containers that hold their material.
@@ -186,13 +186,13 @@ What comes back, today: ore rocks in place after three game days; apple trees be
 
 ## 5. Items, by kind
 
-**Stacking** (ruled 2026-10-19): pemmican is the only food that stacks; every other food takes a cell of its own (#260) [change: foods stack today].
+**Stacking** (ruled 2026-10-19 and 2026-10-24, #260) [built]: one thing a cell. Only arrows and fire arrows (20), throwing knives (20), throwing axes (10), bandages (5), every seed (20), and pemmican when it comes stack; every other item, food and materials included, takes a cell of its own, and shapes stay as they are.
 
-Every item in `data/items.json` is here with how it is had today; each new item names its source. Item art comes as a pair (and a portrait if held or worn); every item has a hover card (#262). Which items other than food stack, and every item one cell [open #260].
+Every item in `data/items.json` is here with how it is had today; each new item names its source. Item art comes as a pair (and a portrait if held or worn); every item has a hover card (#262). What stacks is the paragraph above.
 
 ### 5.1 Tools
 
-- **Hatchet** [built]: fells trees, chops stumps, splits logs and planks, notches a log wall; a weapon. The home chest, the joiner's chest, chest loot; made at the anvil (Blacksmithing 1).
+- **Hatchet** [built]: fells trees, chops stumps, splits logs and planks, notches a log wall; a weapon. The home chest, the joiner's chest; made at the anvil (Blacksmithing 1).
 - **Pickaxe** [built]: mines rocks and ore. The miners' and the quarryman's chests; made at the anvil (Blacksmithing 1).
 - **Hoe** [built]: tills grass and dirt. The great barn's rack; made at the workbench.
 - **Scythe** [built]: harvests a row of rye at a swing; cuts hay (Farming 5), eaten by penned animals from Beastlore 4; straw is cut (ruled 2026-10-23). Made at the anvil [change: Blacksmithing 3].
@@ -213,12 +213,12 @@ The numbers are each weapon's block in `data/items.json` and `data/combat.json`.
 
 **Melee**
 - **Fists** [built].
-- **Stick, plank, torch** [built]: Melee 1. The stick from a body, a haystack, or a split plank; the plank from the kit, a split log, chest loot.
+- **Stick, plank, torch** [built]: Melee 1. The stick from a body, a haystack, or a split plank; the plank from the kit, a split log, a chest, a woodpile, a market cart.
 - **Hatchet, dirk, and the tools as weapons** [built]: Melee 1 for the hatchet and the dirk; weapons with a kill count each (the hatchet 20, the dirk 5, the fishing rod 3; `data/items.json`).
-- **Arming sword** [built]: Melee 1; chest loot; made at the anvil [change: Blacksmithing 3].
+- **Arming sword** [built]: Melee 1; found once, in the toll house's chest (the castle's armoury when it is built); made at the anvil [change: Blacksmithing 3].
 - **Wooden shield** [built]: block; Melee 1; made at the workbench.
 - **Throwing spear** [built]: stab (Melee 1), throw [change: Melee 5]; made at the anvil [change: Blacksmithing 3].
-- **Flanged mace** [built]: [change: Melee 3]; chest loot; made at the anvil [change: Blacksmithing 3].
+- **Flanged mace** [built]: [change: Melee 3]; found once, in the toll house's chest (the castle's armoury when it is built); made at the anvil [change: Blacksmithing 3].
 - **Halberd** [built]: two hands, the sweep [change: Melee 4], the thrust [change: Melee 7]; never on the belt [to build, #285]. The Developer Chest only; found in the castle's armoury (`docs/29-world/03`) and forged at Blacksmithing 5 (every melee weapon is craftable, ruled 2026-10-23: weapons degrade and repair only delays it; the level is *Primary's reading*) [to build].
 - **Flail and greatsword** [to build]: Melee 8; the greatsword perhaps never on the belt (#285). Found in the castle's armoury and forged at Blacksmithing 7 (ruled 2026-10-23; the level *Primary's reading*).
 - **Dual wielding** [built] [change: Melee 10].
@@ -251,13 +251,13 @@ The numbers are each weapon's block in `data/items.json` and `data/combat.json`.
 ### 5.3 Armour and clothing
 
 - **Linen cap** [built]: head. Made at the loom.
-- **Onion-head Hat** [built]: head; a reference (Cake's "Comfort Eagle"). Chest loot only [change: rare, #268].
+- **Onion-head Hat** [built]: head; a reference (Cake's "Comfort Eagle"). One of a kind, worn by Hollow Farm's scarecrow (2026-10-24, #268).
 - **Linen tunic** [built]: chest. The kit; made at the loom.
-- **Work gloves** [built]: hands. Chest loot, and made at Crafting 3 (ruled 2026-10-23).
+- **Work gloves** [built]: hands. One pair found, on Hollow Farm's barn rack (#268), and made at Crafting 3 (ruled 2026-10-23).
 - **Linen breeches** [built]: legs. The kit; made at the loom.
 - **Hobnail boots** [built]: feet. The kit, and made at Crafting 3 (ruled 2026-10-23).
 - **Rope belt** [built]: two belt slots. The kit only.
-- **Leather belt** [built]: four belt slots. Chest loot [change: made at Crafting 3].
+- **Leather belt** [built]: four belt slots. One found, on Hollow Farm's barn rack (#268) [change: made at Crafting 3].
 - **Torn into rags** [built]: any garment, at the workbench, a dirk carried.
 - **Hiding a worn item's art** [built]: the eye on each worn slot.
 - **Dyed garments** [to build]: the dye vats [open #273].
@@ -273,13 +273,13 @@ The numbers are each weapon's block in `data/items.json` and `data/combat.json`.
 ### 5.4 Bags
 
 - **Burlap sack** [built]: the kit.
-- **Rucksack** [built]: chest loot [change: rare, #268; or made in a tier, #260].
-- **Developer Bag** [built]: section 15.
-- **The first sewn bag** [to build]: leather, Crafting 3.
-- **The second tier** [to build]: Crafting 6 (wool).
-- **The best bag the valley makes** [to build]: Crafting 10.
-- **Bigger bags** come from bosses, a region's.
-- **Sizes, how many tiers, the top bag's name** [open #260].
+Ruled 2026-10-24 (#260): **a bag is made, never found** (Michael: "I think rucksack should be craftable, and I prefer that in general as a default"), each tier costing a fair bit and asking for skill levels; **a bag taken off keeps its contents** and stands in the world as a container, only the worn bag being your inventory [to build].
+- **Burlap sack** [built]: 6 by 4; the kit.
+- **Linen satchel** [to build]: 7 by 5; made at the loom, Crafting 3, from linen cloth (*default:* six), so it can be made before the animals come.
+- **Rucksack** [built]: 8 by 5 today [change: 8 by 6; found nowhere; made at the workbench, Crafting 6 and Beastlore 4; *default:* four leather, four woollen cloth, two spruce planks, and the linen satchel it replaces; it waits for leather and wool, which come with the animals].
+- **The best bag the valley makes** [to build]: 10 by 6, Crafting 10, a mahogany frame, leather, wool, and fish glue.
+- **Bigger bags** come from bosses, a region's two, the larger near the Developer Bag's size; their names are Michael's, with #217's lore pass.
+- **Developer Bag** [built]: section 15; a dev world's alone.
 
 ### 5.5 Belt items
 
@@ -306,7 +306,7 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 - **Raw meat**: hen, rabbit (Beastlore 3's snares), venison (`docs/30`'s deer), pork and boar (Beastlore 7) [to build].
 - **Milk** [to build]: cows (Beastlore 4).
 - **Honey** [to build]: the hive (Beastlore 5).
-- **Wheel of cheese** [built]: chest loot only [change: made from milk (Beastlore 4) at Cooking 3 (ruled 2026-10-23)].
+- **Wheel of cheese** [built]: chests, pantries, and the inn's counter only [change: made from milk (Beastlore 4) at Cooking 3 (ruled 2026-10-23)].
 - **Butter** [to build]: from milk.
 - **Frostroot** (the Pale Reach's seed, Farming 8): a name only.
 
@@ -314,7 +314,7 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 - **Roast potato** [built]: a potato at a fire (Cooking 1).
 - **Grilled perch, grilled trout, grilled carp** [built]: at a fire (Cooking 1).
 - **Porridge** [built]: two grain at a fire (Cooking 1).
-- **Loaf of bread** [built]: two flour at the oven (Cooking 1); the kit, the home chest, chest and body loot.
+- **Loaf of bread** [built]: two flour at the oven (Cooking 1); the kit, the home chest, chests, pantries, the inn's counter, and the body loot.
 - **Stew** [built]: two potatoes, a cabbage, garlic at a fire [change: a plain pottage at Cooking 1 keeps the day-one recipe; the hearty stew with its buff is Cooking 4 (ruled 2026-10-23)].
 - **Pumpkin pie** [built]: a pumpkin and flour at the oven [change: Cooking 6].
 - **Seasoned dishes** [to build]: herbs and garlic, a little more healing (Cooking 3).
@@ -359,8 +359,8 @@ All [to build]: brewed at a cauldron from Herbalism's herbs and secondaries; dru
 
 ### 5.9 Materials
 
-- **Log** [built]: felled trees, stumps, chest and barrel loot; splits into three planks (a hatchet); a log wall; fuel. More a tree at Woodcutting 6 [to build].
-- **Plank** [built]: split from a log; the kit, chest loot; doors, windows, boards, furniture. Two more a log at Woodcutting 9 [to build].
+- **Log** [built]: felled trees, stumps, woodpiles; splits into three planks (a hatchet); a log wall; fuel. More a tree at Woodcutting 6 [to build].
+- **Plank** [built]: split from a log; the kit, chests, woodpiles, market carts; doors, windows, boards, furniture. Two more a log at Woodcutting 9 [to build].
 - **Stick** [built]: section 4.
 - **Charcoal** [built]: the clamp, the smithy's chest, the burners' sacks and hut; the forge's fuel.
 - **Iron ore** [built]: ore rocks, the miners' chest, the ore cart. More a rock at Mining 4 and 9 [to build].
@@ -786,9 +786,9 @@ Later, not at the start: gems inlaid in metal armour.
 - **Lasts 25% longer** (Blacksmithing 9) [to build].
 
 ### Drops by chance
-- **Loot tables** [built]: fixed tables for the placed chests; rolled tables for the rest [change: a table per kind of container, gear rare and where it makes sense, #268]. **Every loot table is provisional** until ruled otherwise (ruled 2026-10-19); they are likely this scope's last step, once every item is known (Michael: "this might be the last thing").
+- **Loot tables** [built]: fixed tables for the placed chests; a rolled table per kind of container (2026-10-24, #268), weights out of 32 so a weight reads as a chance in 32 a roll (OSRS's drop tables the guide); no weapon, tool, bag, hat, or belt in any rolled table, gear made by default and found only where it is placed; rolled once, when a container is first searched, and never refilled. **Every loot table is provisional** until ruled otherwise (ruled 2026-10-19); they are likely this scope's last step, once every item is known (Michael: "this might be the last thing").
 - **Gear drops by chance** [to build] (ruled): a lever not yet used.
-- **Bad-luck protection and personal loot** [open #268].
+- **Bad-luck protection and personal loot** (ruled 2026-10-24, #268) [to build, with the bosses]: each player rolls their own drop on a boss's kill; a capstone starts at about 1 in 8 and the chance rises with every kill that misses, certain by the twentieth, the count kept on the player and in the save.
 - **A boss's capstone drop:** a region's.
 
 ### Resources that come back
@@ -954,7 +954,7 @@ Placeholder sounds, generated or from a library [open #271]; every informative s
 - **The feast** [to build]: feeds everyone who eats from it.
 - **Throwing potions** [to build]: a healing or mana potion splashes a friend.
 - **Companions** [open #289]: each player's own; never hurts a player; a guest's companion a character in the frame.
-- **Drops by chance** [open #268]: each player's own roll or one for the group; bad-luck protection kept on the player.
+- **Drops by chance** (ruled 2026-10-24, #268): each player's own roll; bad-luck protection kept on the player.
 - **The first day's curve** [open #123]: one per world.
 - **Sleep** [built]: time runs fast only while every living player is in bed.
 - **The belt's hand choice** [to build, #285]: per player, in the save, changed by a guest's command.
@@ -975,14 +975,12 @@ The numbers are for tuning; this list is what must change before 1.0.
 - **The drains:** hunger, thirst, tiredness (#264).
 - **The starving cliff** and the thirst cliff (#264).
 - **The day-one food count:** the kit, the containers, the ripe crops, the apple trees (#264).
-- **The loot tables:** seventy props rolling the chest's table; fourteen rucksacks, swords, maces, belts, and Onion-head Hats in a valley; no bandages in any table (#268).
 - **Every recipe known from the start** (to learned and earned, #275).
 - **No skills:** fishing, farming, and every recipe open to all (#275).
 - **The infection as a marker** with no effect (#275, #123).
 - **All water safe** (#279).
 - **No rot** (#264).
 - **Items only the Developer Chest gives:** the halberd, the Book and the Staff of Fire, the throwing knives and axes (the last two art only).
-- **Bags and stacking:** what stacks today (#260).
 - **Placeholder names:** the villagers' roles, Wyn, the places (#92).
 - **The graveyard's eight standing,** not rising.
 - **The oven that does not cook; the tinderbox's dead Light row on a lantern; the empty brackets; the dye vats with no recipes** (#273).
@@ -999,10 +997,9 @@ The numbers are for tuning; this list is what must change before 1.0.
 - **#123:** a dead-free first day and the curve; whether the dead stay slow; the infection's effects.
 - **#133:** armour, resistances, the bite, max health from gear, the difficulty numbers.
 - **#181:** what the wizard gives; where he lives.
-- **#260:** stacking; the bag tiers' sizes and names.
+- **#260:** the regions' bags' names (#217's lore pass).
 - **#261:** the furniture pass.
 - **#262:** the hover card beyond grids; short names.
-- **#268:** loot tables per container; bad-luck protection; personal loot.
 - **#271:** placeholder sounds, generated or library, and which first.
 - **#273:** each dead end: a recipe or one of a kind.
 - **#279:** purifying; the trough and the font; the sickness; a skin's clean or unsafe.

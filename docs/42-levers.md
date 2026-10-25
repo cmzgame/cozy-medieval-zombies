@@ -30,7 +30,10 @@ Two kinds:
 ### Food, the world, the valley
 - **Rot:** each food's life in game days, and planted or hanging food at five times it (2026-10-23, the food economy; not built).
 - **Day-one food:** the target of about twelve game days for one player with tools, read on the wiki's Day-one food page (2026-10-23).
-- **The loot tables:** every container's table is provisional until ruled (2026-10-19; #268).
+- **The loot tables:** a table per kind of container in `data/loot.json`, weights out of 32 so a weight is a chance in 32 a roll, `rolls` how many rolls a container makes; the wiki shows each item's rate (2026-10-24, #268: Michael tunes them from the wiki, OSRS's tables the guide).
+- **What stacks and how far:** each item's `stack` in `data/items.json`; one thing a cell unless chosen (2026-10-24, #260).
+- **The bags' sizes:** each bag's `bag` in `data/items.json`: the sack 6 by 4, the rucksack 8 by 5 today (8 by 6 ruled), the satchel 7 by 5 and the best bag 10 by 6 to build (2026-10-24, #260).
+- **A boss's capstone:** about 1 in 8 at first, rising with each kill that misses, certain by the twentieth, per player (2026-10-24, #268; not built).
 
 ## World settings
 
