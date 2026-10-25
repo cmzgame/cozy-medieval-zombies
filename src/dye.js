@@ -28,7 +28,7 @@ export function colour(id) {
 }
 
 // A plain word for a colour no dye gives (docs/bugs.md: a looted hood's card read "#705848"): by its lightness, saturation, and hue,
-// "brownish" for a dull or dark warm colour (the dead's drab wool), "greyish" for one with little colour, else the hue's family.
+// "brownish" for a dull, or dark and not vivid, warm colour (the dead's drab wool), "greyish" for one with little colour, else the hue's family.
 // Read from the colour itself, not the nearest dye: the nearest dye of a slate or a moss is a grey-brown hide.
 export function colourFamily(hex) {
   const h = norm(hex);
@@ -44,7 +44,7 @@ export function colourFamily(hex) {
   if (s < 0.15) return "greyish";
   const hue = d === 0 ? 0 : max === r ? (60 * ((g - b) / d) + 360) % 360 : max === g ? 60 * ((b - r) / d + 2) : 60 * ((r - g) / d + 4);
   const warm = hue < 50 || hue >= 345;
-  if (warm && (s < 0.35 || l < 0.5)) return "brownish";
+  if (warm && (s < 0.35 || (l < 0.5 && s < 0.6))) return "brownish"; // a dark red or a gold, saturated, keeps its hue
   if (hue < 15 || hue >= 345) return "reddish";
   if (hue < 45) return "orange";
   if (hue < 70) return "yellowish";
