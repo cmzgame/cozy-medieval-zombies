@@ -34,6 +34,7 @@ import { serializeCharacter, restoreCharacter, dress, dressCorpse } from "./enti
 import { createPlayer } from "./entities/player.js";
 import { createZombie } from "./entities/zombie.js";
 import { createVillager } from "./entities/villager.js";
+import { serializeAnimal, restoreAnimal } from "./entities/animal.js"; // the animals, a record of their own (docs/45)
 import { say } from "./entities/character.js";
 
 let role = null; // "host" | "guest" | null (alone)
@@ -114,8 +115,9 @@ export function makeCode() {
 // would read a prop with its defaults missing.
 // 6 (2026-10-18, #203): the frame carries the chart's changed chunks (`chart`, only when there are any) and the save the whole chart; 7 (2026-10-18, #237): the frame's `chart`
 // is the changed cells, [cx, cy, [index, cell, ...]] per chunk, not whole chunks; 8 (2026-10-19, #294): the frame may carry `floaters`, the hits, heals, and gathers of the step
-// for the numbers over heads ([kind, id, n, skill] each).
-export const PROTOCOL = 8;
+// for the numbers over heads ([kind, id, n, skill] each); 9 (2026-10-25, docs/45): the animals, a fourth list as a delta with its own roster (`animals`, a lean
+// record: where, facing, the animation, state, hp, dead) and the homes' renewal (`animalHomes`, when it changes); the save carries both.
+export const PROTOCOL = 9;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -173,6 +175,7 @@ export function close() {
   away.clear();
   lastCarried.clear();
   lastSent.clear();
+  lastAnimal.clear();
   lastHeavy.clear();
   lastLight.clear();
   syncRing.clear(); // a stale report from an earlier wire on this page must not meet the check
@@ -227,7 +230,7 @@ export function wireRates() {
 // when it differs from the last sent, and each list's roster of ids goes out when its membership changes; a
 // character the host has not sent before goes whole (record). The welcome is the baseline a guest starts from.
 const lastSent = new Map(); // character id -> the slim record's text last sent
-const lastRoster = { zombies: "", villagers: "", corpses: "" };
+const lastRoster = { zombies: "", villagers: "", corpses: "", animals: "" };
 // A player's record in two parts (the review's third point, 2026-10-13): the heavy fields (the bag, the worn,
 // the hands, the prop in hand, the look and the name and the rest that never change) go whole only when their
 // shape changes, on a pick-up, a drop, a wear; the light fields (position, facing, animation, hp, the needs
@@ -240,13 +243,14 @@ const EXACT = new Set(["gx", "gy", "attackCooldown", "offCooldown", "swingLock",
 const HEAVY = new Set(["worn", "hidden", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
 const lastHeavy = new Map(); // player id -> the heavy part's text last sent
 const lastLight = new Map(); // player id -> the light record's text last sent
-const lastExtras = { rules: "", carriers: "", queues: "" }; // sent when they change, not every frame
+const lastExtras = { rules: "", carriers: "", queues: "", animalHomes: "" }; // sent when they change, not every frame
 
 // What the host remembers of what it sent, forgotten: the next frame carries every record, roster, and extra again.
 // Called when a guest joins (the welcome is that guest's baseline, and a record that changed and changed back
 // between the last frame and the welcome would otherwise never be corrected for it) and with nobody to tell.
 function forgetSent() {
   lastSent.clear();
+  lastAnimal.clear();
   lastHeavy.clear();
   lastLight.clear();
   for (const k of Object.keys(lastRoster)) lastRoster[k] = "";
@@ -690,7 +694,7 @@ export function hostStep(mySnap, me) {
 
 function allCharacters() {
   const S = game.state;
-  return [...S.players, ...S.zombies, ...S.villagers, ...S.corpses];
+  return [...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals];
 }
 
 // What a guest needs of a character each step: where it is and what it is doing.
@@ -716,7 +720,37 @@ function slim(c) {
   return r;
 }
 
+// An animal's record (docs/45 section 7): the whole of it once, then only the fields that differ from the last ones sent: where it is,
+// its facing, the animation's name (`an`) and the frame it shows (`fr`; a guest draws by them and never steps an animal's animation, so
+// the timer stays home), its state, health, and death. Animals are many and most of them stand: a grazing one sends its frame alone, a
+// walker its position and frame (measured on #452: 149 bytes a record with everything, 101 with the timer and the unchanged health
+// left out, and this). The wire is ordered and a joiner's welcome is newer than any baseline, so what was last sent is what every guest
+// has. Its home, what it is fed, and what it gives join here (or force a whole record) when steps 2 and 3 change them.
+const lastAnimal = new Map(); // animal id -> its fields as last sent
+function animalFields(a) {
+  return { gx: r3(a.gx), gy: r3(a.gy), facing: a.facing, an: a.anim.name, fr: a.anim.frame, state: a.state, hp: r2(a.hp), dead: !!a.dead };
+}
+function animalRecord(a) {
+  const now = animalFields(a);
+  const was = known.has(a.id) ? lastAnimal.get(a.id) : null;
+  lastAnimal.set(a.id, now);
+  if (!known.has(a.id)) {
+    known.add(a.id);
+    const r = { full: true, ...serializeAnimal(a) };
+    delete r.path; // a guest never walks it
+    r.gx = now.gx;
+    r.gy = now.gy;
+    r.hp = now.hp;
+    r.anim = roundAnim(r.anim);
+    return r;
+  }
+  const r = { id: a.id };
+  for (const k of Object.keys(now)) if (!was || was[k] !== now[k]) r[k] = now[k];
+  return r;
+}
+
 function record(c) {
+  if (c.kind === "animal") return animalRecord(c);
   if ((c.kind === "player" && !c.corpse) || !known.has(c.id)) { // a player's body goes as the dead's bodies do (2026-10-14)
     known.add(c.id);
     const r = { full: true, ...serializeCharacter(c), line: c.line }; // the save drops a bubble; a frame carries it (the chat)
@@ -807,8 +841,9 @@ export function hostAfterStep() {
   // on the host and nowhere on the guest's screen (found reviewing the wire's delta, 2026-10-13).
   {
     const present = new Set();
-    for (const list of [S.players, S.zombies, S.villagers, S.corpses]) for (const c of list) present.add(c.id);
+    for (const list of [S.players, S.zombies, S.villagers, S.corpses, S.animals]) for (const c of list) present.add(c.id);
     for (const id of lastSent.keys()) if (!present.has(id)) lastSent.delete(id);
+    for (const id of lastAnimal.keys()) if (!present.has(id)) lastAnimal.delete(id);
     for (const id of known) if (!present.has(id)) known.delete(id);
     // And a player's last heavy and light parts: one gone dormant and back came back with an unchanged heavy part, so only a
     // light record went out, to guests that had dropped it, which never saw it again.
@@ -850,6 +885,11 @@ export function hostAfterStep() {
   const delta = (list) => {
     const out = [];
     for (const c of list) {
+      if (c.kind === "animal") {
+        const r = animalRecord(c); // its own delta: whole once, then what changed
+        if (r.full || Object.keys(r).length > 1) out.push(r);
+        continue;
+      }
       const r = record(c);
       if (r.full) {
         out.push(r);
@@ -864,7 +904,7 @@ export function hostAfterStep() {
     return out;
   };
   let roster = null;
-  for (const name of ["zombies", "villagers", "corpses"]) {
+  for (const name of ["zombies", "villagers", "corpses", "animals"]) {
     const ids = S[name].map((c) => c.id);
     const text = ids.join(",");
     if (text === lastRoster[name]) continue;
@@ -883,6 +923,8 @@ export function hostAfterStep() {
     zombies: delta(S.zombies),
     villagers: delta(S.villagers),
     corpses: delta(S.corpses),
+    animals: delta(S.animals), // docs/45: a fourth list, its own roster
+    animalHomes: whenChanged("animalHomes", S.animalHomes), // each home's cap and renewal, when it changes (the sync check's animals part reads it)
     roster,
     ...(floated.length ? { floaters: floated } : {}), // the numbers over heads, when there are any
     pokes: interact.takePokes(), // the sways and the well's bucket stamped this step (interact.js): a guest sees a field wobble when anyone walks through it
@@ -1123,7 +1165,7 @@ function aimAt(c, gx, gy) {
 
 function smoothStep() {
   const S = game.state;
-  netsmooth.step([...S.players, ...S.zombies, ...S.villagers, ...S.corpses].filter((c) => c !== S.player), world.world.timeScale || 1);
+  netsmooth.step([...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals].filter((c) => c !== S.player), world.world.timeScale || 1);
 }
 
 function applyFrame(f) {
@@ -1162,7 +1204,10 @@ function applyFrame(f) {
     let c = byId.get(r.id);
     if (r.full) {
       const { full, ...data } = r;
-      if (!c) {
+      if (!c && data.kind === "animal") {
+        c = restoreAnimal(data); // an animal: a record of its own, its sheet its species' (docs/45)
+        byId.set(c.id, c);
+      } else if (!c) {
         c = restoreCharacter(data, makers);
         c.target = null;
         delete c._targetId;
@@ -1188,6 +1233,12 @@ function applyFrame(f) {
         if (c.corpse) dressCorpse(c);
         else if (c.kind === "player") c.sprite = keep || c.sprite;
       }
+    } else if (c && c.kind === "animal") {
+      // An animal's delta (animalRecord): only what changed; the animation's name and frame as `an` and `fr`.
+      const { id: _id, an, fr, gx, gy, ...rest } = r;
+      Object.assign(c, rest);
+      if (an !== undefined || fr !== undefined) c.anim = { ...c.anim, ...(an !== undefined ? { name: an } : {}), ...(fr !== undefined ? { frame: fr } : {}) };
+      if (gx !== undefined || gy !== undefined) aimAt(c, gx ?? (c.netTo ? c.netTo[0] : c.gx), gy ?? (c.netTo ? c.netTo[1] : c.gy));
     } else if (c) {
       const { carryingId, loot, worn, light: isLight, ...rest } = r;
       const wasX = c.gx;
@@ -1212,12 +1263,14 @@ function applyFrame(f) {
   bring(f.zombies || []);
   bring(f.villagers || []);
   bring(f.corpses || []);
-  if (f.roster) for (const name of ["zombies", "villagers", "corpses"]) {
+  bring(f.animals || []);
+  if (f.animalHomes) S.animalHomes = f.animalHomes;
+  if (f.roster) for (const name of ["zombies", "villagers", "corpses", "animals"]) {
     const ids = f.roster[name];
     if (Array.isArray(ids)) S[name] = ids.map((id) => byId.get(id)).filter(Boolean);
   }
   // A body the frame did not carry stood where it was (the dead and the villagers come as a delta): pinned there at this frame's time (netsmooth.js).
-  netsmooth.hold([...S.players, ...S.zombies, ...S.villagers, ...S.corpses].filter((c) => c.id !== myPlayerId), frameHostTime);
+  netsmooth.hold([...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals].filter((c) => c.id !== myPlayerId), frameHostTime);
   S.player = S.players.find((p) => p.id === myPlayerId) || S.player;
   // Reconciliation: the host's record of me stands at its tick; my inputs it has not yet applied
   // go over it again, so what I see is the host's truth plus what I have done since.

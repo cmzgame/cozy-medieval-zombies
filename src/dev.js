@@ -67,6 +67,7 @@ export function createDevApi(ctx) {
     get zombies() { return ctx.zombies; },
     get corpses() { return ctx.corpses; },
     get villagers() { return ctx.villagers; },
+    get animals() { return ctx.animals; },
     // The bow's arc, fired from the console (docs/20, step 1). `dir` is a grid
     // direction [dx, dy], `distance` the full-draw distance in tiles, `c` the draw (0 to 1).
     archery: {

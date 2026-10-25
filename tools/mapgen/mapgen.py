@@ -37,6 +37,7 @@ class MapGen:
             "props": [],
             "forage": None,
             "villagers": [],
+            "animals": [],
         }
 
     # ---- surfaces ----
@@ -154,6 +155,20 @@ class MapGen:
         self.json["props"].append(p)
         return p
 
+    def animals(self, species, tile, count, cap=None, name=None, clearing=True):
+        """A home for a herd, a flock, or a pen's stock (docs/45): `count` animals of a species (data/animals.json) made round
+        `tile` at a world's birth, which they wander from and drift back to; a wild species' home has one back now and then up
+        to `cap` (the count by default). `clearing` keeps the trees off the five by five round the spot, so the first stand there."""
+        h = {"species": species, "tile": [int(tile[0]), int(tile[1])], "count": int(count)}
+        if cap is not None:
+            h["cap"] = int(cap)
+        if name:
+            h["name"] = name
+        self.json["animals"].append(h)
+        if clearing:
+            self.reserve([int(tile[0]) - 2, int(tile[1]) - 2, 5, 5])
+        return h
+
     def write(self, path):
         guides = [v for v in self.json["villagers"] if v.get("guide")]
         sx, sy = self.json["spawn"]
@@ -165,6 +180,8 @@ class MapGen:
                 del j[k]
         if not j["reserve"]:
             del j["reserve"]
+        if not j["animals"]:
+            del j["animals"]
         with open(path, "w", encoding="utf-8", newline="\n") as f:
             json.dump(j, f, indent=1)
             f.write("\n")

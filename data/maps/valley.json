@@ -11717,9 +11717,115 @@
    "floorRects": [],
    "fences": [],
    "props": []
+  },
+  {
+   "name": "Hollow Farm's byre",
+   "rect": [
+    20,
+    232,
+    14,
+    10
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [],
+   "fences": [
+    {
+     "rect": [
+      0,
+      0,
+      14,
+      10
+     ],
+     "wall": "wall_fence",
+     "gates": [
+      {
+       "side": "e",
+       "at": 5
+      }
+     ]
+    }
+   ],
+   "props": []
+  },
+  {
+   "name": "Hollow Farm's pigsty",
+   "rect": [
+    22,
+    244,
+    10,
+    8
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [
+    {
+     "rect": [
+      1,
+      1,
+      8,
+      6
+     ],
+     "sprite": "floor_dirt"
+    }
+   ],
+   "fences": [
+    {
+     "rect": [
+      0,
+      0,
+      10,
+      8
+     ],
+     "wall": "wall_fence",
+     "gates": [
+      {
+       "side": "e",
+       "at": 3
+      }
+     ]
+    }
+   ],
+   "props": []
+  },
+  {
+   "name": "the croft's sheepfold",
+   "rect": [
+    146,
+    211,
+    12,
+    9
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [],
+   "fences": [
+    {
+     "rect": [
+      0,
+      0,
+      12,
+      9
+     ],
+     "wall": "wall_fence",
+     "gates": [
+      {
+       "side": "n",
+       "at": 6
+      }
+     ]
+    }
+   ],
+   "props": []
   }
  ],
  "reserve": [
+  [
+   18,
+   230,
+   20,
+   24
+  ],
   [
    56,
    84,
@@ -11743,6 +11849,84 @@
    24,
    56,
    44
+  ],
+  [
+   20,
+   118,
+   5,
+   5
+  ],
+  [
+   28,
+   38,
+   5,
+   5
+  ],
+  [
+   158,
+   70,
+   5,
+   5
+  ],
+  [
+   230,
+   108,
+   5,
+   5
+  ],
+  [
+   188,
+   224,
+   5,
+   5
+  ],
+  [
+   12,
+   194,
+   5,
+   5
+  ],
+  [
+   46,
+   148,
+   5,
+   5
+  ],
+  [
+   68,
+   12,
+   5,
+   5
+  ],
+  [
+   148,
+   102,
+   5,
+   5
+  ],
+  [
+   42,
+   220,
+   5,
+   5
+  ],
+  [
+   203,
+   198,
+   5,
+   5
+  ],
+  [
+   12,
+   78,
+   5,
+   5
+  ],
+  [
+   238,
+   238,
+   5,
+   5
   ]
  ],
  "zones": {
@@ -12503,6 +12687,169 @@
    "name": "Miller",
    "wardrobe": 4,
    "line": "Grain is grain. Bring it, I will grind it."
+  }
+ ],
+ "animals": [
+  {
+   "species": "deer",
+   "tile": [
+    22,
+    120
+   ],
+   "count": 3,
+   "cap": 4,
+   "name": "the west wood"
+  },
+  {
+   "species": "deer",
+   "tile": [
+    30,
+    40
+   ],
+   "count": 4,
+   "name": "the north-west wood"
+  },
+  {
+   "species": "deer",
+   "tile": [
+    160,
+    72
+   ],
+   "count": 3,
+   "cap": 4,
+   "name": "the north-east wood"
+  },
+  {
+   "species": "deer",
+   "tile": [
+    232,
+    110
+   ],
+   "count": 2,
+   "cap": 3,
+   "name": "the east wood"
+  },
+  {
+   "species": "deer",
+   "tile": [
+    190,
+    226
+   ],
+   "count": 3,
+   "cap": 4,
+   "name": "the south-east wood"
+  },
+  {
+   "species": "deer",
+   "tile": [
+    14,
+    196
+   ],
+   "count": 2,
+   "cap": 3,
+   "name": "the south-west wood"
+  },
+  {
+   "species": "rabbit",
+   "tile": [
+    48,
+    150
+   ],
+   "count": 3,
+   "name": "the village's west edge"
+  },
+  {
+   "species": "rabbit",
+   "tile": [
+    70,
+    14
+   ],
+   "count": 2,
+   "cap": 3,
+   "name": "above Long Acre"
+  },
+  {
+   "species": "rabbit",
+   "tile": [
+    150,
+    104
+   ],
+   "count": 2,
+   "cap": 3,
+   "name": "the castle's north edge"
+  },
+  {
+   "species": "rabbit",
+   "tile": [
+    44,
+    222
+   ],
+   "count": 3,
+   "name": "the farm lane's edge"
+  },
+  {
+   "species": "rabbit",
+   "tile": [
+    205,
+    200
+   ],
+   "count": 2,
+   "cap": 3,
+   "name": "the burners' edge"
+  },
+  {
+   "species": "boar",
+   "tile": [
+    14,
+    80
+   ],
+   "count": 2,
+   "name": "the far west wood"
+  },
+  {
+   "species": "boar",
+   "tile": [
+    240,
+    240
+   ],
+   "count": 2,
+   "name": "the far south-east wood"
+  },
+  {
+   "species": "hen",
+   "tile": [
+    74,
+    239
+   ],
+   "count": 3,
+   "name": "Hollow Farm's hens"
+  },
+  {
+   "species": "cow",
+   "tile": [
+    27,
+    237
+   ],
+   "count": 2,
+   "name": "Hollow Farm's byre"
+  },
+  {
+   "species": "pig",
+   "tile": [
+    27,
+    248
+   ],
+   "count": 2,
+   "name": "Hollow Farm's pigsty"
+  },
+  {
+   "species": "sheep",
+   "tile": [
+    152,
+    215
+   ],
+   "count": 4,
+   "name": "the croft's sheep"
   }
  ]
 }
