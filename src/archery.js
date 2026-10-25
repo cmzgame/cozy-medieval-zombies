@@ -16,6 +16,7 @@ import { guardedMult, styleOf } from "./combat.js";
 import { getItem } from "./items.js";
 import { getSheet, idleFrame } from "./assets.js";
 import { damageZombie } from "./entities/zombie.js";
+import { damageAnimal, isWild } from "./entities/animal.js"; // game shot, and stock only when aimed at (docs/45 section 2)
 import * as burn from "./burn.js";
 import { DOOR_TOP, WINDOW_SILL, WINDOW_TOP } from "./placeholders.js";
 import { countAll, takeAll, detach } from "./inventory.js";
@@ -242,7 +243,7 @@ export function update(dt) {
     // A shot that bursts on contact (the fireball, Michael 2026-10-15: "it's a fireball, not an arrow"): the first of the
     // dead within its contact radius, short of where a wall would stop it, takes the hit and the flight ends there.
     if (a.contact > 0 && a.t < end) {
-      const body = bodyAt(a.gx, a.gy, a.contact, { z: a.z, ahead: a });
+      const body = bodyAt(a.gx, a.gy, a.contact, { z: a.z, ahead: a, spell: a.vanish });
       if (body) {
         flying.splice(i, 1);
         land(a, body);
@@ -268,12 +269,18 @@ function land(a, met = null) {
   // landing point, if one is there (docs/20: hits are checked at landing only).
   let hit = null;
   if (met) hit = met; // met on the way (a contact burst)
-  else if (a.stopD == null) hit = bodyAt(gx, gy, a.landRadius ?? tunables.hitRadius, { z: a.z }); // never through a wall (#13)
+  else if (a.stopD == null) hit = bodyAt(gx, gy, a.landRadius ?? tunables.hitRadius, { z: a.z, spell: a.vanish }); // never through a wall (#13)
   let keep = true;
   const broken = a.breakChance > 0 && rng.chance(a.breakChance);
-  if (hit) {
+  if (hit && hit.kind === "animal") {
+    // An animal (docs/45 section 2): the shot's damage, the class the carcass keeps (an arrow the bow's, a thrown thing its own, a spell
+    // its), and what stayed in it comes back when it is butchered. No fire: an animal does not burn.
+    damageAnimal(hit, Math.round(a.damage * (0.4 + 0.6 * a.c)), { by: a.shooter, cls: a.vanish ? "spell" : a.item ? "thrown" : "bow", from: [a.x0, a.y0] });
+  } else if (hit) {
     if (a.ignite) burn.ignite(hit); // before the damage, so a body it kills burns on as a corpse (#14)
     damageZombie(hit, Math.round(a.damage * (0.4 + 0.6 * a.c)), { dir: [a.dx, a.dy], knockback: a.knockback, staggerChance: a.staggerChance, from: [a.x0, a.y0] });
+  }
+  if (hit) {
     // The arrow stays in the body (Michael): it comes out in the loot when the dead one is
     // killed and searched, so getting it back means finishing the job. They stack up in there.
     // A thrown item lodges as itself, its wear kept, as one that lands is (a spear came back fresh from the search:
@@ -302,7 +309,7 @@ function land(a, met = null) {
 
 let targets = () => [];
 
-// main.js hands in the dead that can be hit (the living dead; villagers and the archer never are).
+// game.js hands in what can be hit: the living dead and the animals (docs/45); villagers and the archer never are.
 export function setTargets(fn) {
   targets = fn;
 }
@@ -312,21 +319,30 @@ export function setTargets(fn) {
 // and #13 an arrow landing just short of a wall hit one past it): only a body with no wall between it and the point at
 // the shot's height `o.z` counts, and with `o.ahead` (the shot) only one ahead of where it was loosed, so nothing behind
 // the caster is hit on the way out. A landing (an arrow, a spear, the fireball's) needs no ahead test.
+// A tame animal (docs/45 section 2: livestock is hurt only on purpose) is hit only when nothing else is there to be hit, the shot meant for
+// it, and never by a spell (`o.spell`): an arrow meant for one of the dead passes the cow beside it by.
 function bodyAt(gx, gy, r = tunables.hitRadius, o = null) {
   let best = null;
   let bestD = r;
+  let tame = null;
+  let tameD = r;
   for (const z of targets()) {
     if (z.dead) continue;
     const d = Math.hypot(z.gx - gx, z.gy - gy);
-    if (d > bestD) continue;
+    const isTame = z.kind === "animal" && !isWild(z);
+    if (d > (isTame ? tameD : bestD)) continue;
+    if (isTame && o && o.spell) continue;
     if (o && o.ahead && (z.gx - o.ahead.x0) * o.ahead.dx + (z.gy - o.ahead.y0) * o.ahead.dy <= 0) continue;
     if (o && !clearBetween(gx, gy, z.gx, z.gy, o.z ?? tunables.z0)) continue;
-    if (d <= bestD) {
+    if (isTame) {
+      tame = z;
+      tameD = d;
+    } else {
       best = z;
       bestD = d;
     }
   }
-  return best;
+  return best || tame;
 }
 
 // No wall or closed door stands between two points at height `z` (a landing's or a fireball's reach, bodyAt): the edges crossed on the

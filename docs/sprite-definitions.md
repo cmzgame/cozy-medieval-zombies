@@ -44,6 +44,7 @@ A prop is created from a map entry and its definition (`map.createProp`); these 
 - **Trees:** `canopy: { "reach" }` (2, 3, 4 by tier: the ground bake's leaf and darkening reach; a definition with a `canopy` is what opens the see-through hole round the player, `CLAUDE.md`), `shadow: { "width" }` (a fraction of the frame's width; any prop with `shadow` casts a baked ellipse), `leaves` (`brown`, `yellow`, `orange`, `red`: the colour of the leaves under it).
 - **Walls:** `wall: { "height", "thickness", "color", "material", "wood", "name", "region", "leaf", "post", "parts", "boards", "seeThrough", "fence" }`: the face height and thickness (80; stone 16, wood 14, log 18), `post` the post definition, `parts` the leaves and shutters sheet, `boards` the overlays (`wall_boards` by default), `seeThrough: true` a fence or bars that sight and light pass and that bounds no room (`src/CLAUDE.md`). There is no `climb`: nobody climbs through a window (#134).
 - **`slices`:** the UI kit's 9-slice corners per picture, in interface pixels (`src/ui/kit.js`).
+- **`snare`:** `true` on the snare's sprite (`snare.json`, docs/45 section 2): set down from the bag it is not solid and carries `prop.snare = { setAt, holds }` (`setdown.place`), which `animal.snareStep` fills with a rabbit and empties again.
 
 ## What a delivery looks like (the conventions since the village set, 2026-10-11)
 

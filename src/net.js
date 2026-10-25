@@ -116,8 +116,9 @@ export function makeCode() {
 // 6 (2026-10-18, #203): the frame carries the chart's changed chunks (`chart`, only when there are any) and the save the whole chart; 7 (2026-10-18, #237): the frame's `chart`
 // is the changed cells, [cx, cy, [index, cell, ...]] per chunk, not whole chunks; 8 (2026-10-19, #294): the frame may carry `floaters`, the hits, heals, and gathers of the step
 // for the numbers over heads ([kind, id, n, skill] each); 9 (2026-10-25, docs/45): the animals, a fourth list as a delta with its own roster (`animals`, a lean
-// record: where, facing, the animation, state, hp, dead) and the homes' renewal (`animalHomes`, when it changes); the save carries both.
-export const PROTOCOL = 9;
+// record: where, facing, the animation, state, hp, dead) and the homes' renewal (`animalHomes`, when it changes); the save carries both; 10 (2026-10-25,
+// docs/45 step 2): an animal's record carries a carcass's weapon class and its skinning (`kb`, `sk`).
+export const PROTOCOL = 10;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -728,7 +729,7 @@ function slim(c) {
 // has. Its home, what it is fed, and what it gives join here (or force a whole record) when steps 2 and 3 change them.
 const lastAnimal = new Map(); // animal id -> its fields as last sent
 function animalFields(a) {
-  return { gx: r3(a.gx), gy: r3(a.gy), facing: a.facing, an: a.anim.name, fr: a.anim.frame, state: a.state, hp: r2(a.hp), dead: !!a.dead };
+  return { gx: r3(a.gx), gy: r3(a.gy), facing: a.facing, an: a.anim.name, fr: a.anim.frame, state: a.state, hp: r2(a.hp), dead: !!a.dead, kb: a.killedBy || null, sk: !!a.skinned }; // a carcass's weapon class and its skinning as `kb` and `sk` (step 2)
 }
 function animalRecord(a) {
   const now = animalFields(a);
@@ -1235,8 +1236,10 @@ function applyFrame(f) {
       }
     } else if (c && c.kind === "animal") {
       // An animal's delta (animalRecord): only what changed; the animation's name and frame as `an` and `fr`.
-      const { id: _id, an, fr, gx, gy, ...rest } = r;
+      const { id: _id, an, fr, gx, gy, kb, sk, ...rest } = r;
       Object.assign(c, rest);
+      if (kb !== undefined) c.killedBy = kb;
+      if (sk !== undefined) c.skinned = sk;
       if (an !== undefined || fr !== undefined) c.anim = { ...c.anim, ...(an !== undefined ? { name: an } : {}), ...(fr !== undefined ? { frame: fr } : {}) };
       if (gx !== undefined || gy !== undefined) aimAt(c, gx ?? (c.netTo ? c.netTo[0] : c.gx), gy ?? (c.netTo ? c.netTo[1] : c.gy));
     } else if (c) {
