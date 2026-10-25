@@ -19,7 +19,7 @@ import { nextId } from "../world.js";
 let data = null;
 
 export function load(json) {
-  data = json && json.species ? json : { species: {}, renew: { seconds: 720, clear: 30 } };
+  data = json && json.species ? json : { species: {}, renew: { seconds: 720, clear: 48 } };
 }
 
 export function loaded() {
@@ -37,7 +37,7 @@ export function speciesNames() {
 }
 
 export function renewRule() {
-  return (data && data.renew) || { seconds: 720, clear: 30 };
+  return (data && data.renew) || { seconds: 720, clear: 48 };
 }
 
 // The sheet a species is drawn from (data/sprites/animal_<species>.json).
@@ -120,8 +120,10 @@ function threatInSight(a, threats, radius) {
   return best;
 }
 
-function anyWithin(a, threats, radius) {
-  return threats.some((t) => Math.hypot(t.gx - a.gx, t.gy - a.gy) <= radius);
+// Whether it still sees anything it would run from within `radius`: only what it can see holds it alert, so one of the dead
+// standing still behind a wall does not hold a deer for ever.
+function anyInSight(a, threats, radius) {
+  return threats.some((t) => Math.hypot(t.gx - a.gx, t.gy - a.gy) <= radius && lineOfSight(a.gx, a.gy, t.gx, t.gy));
 }
 
 // A tile about `tiles` away from the threat, straight away first and then turning, that it can run to; null when there is none.
@@ -213,7 +215,7 @@ export function updateAnimal(a, dt, others, threats) {
       if (looked) {
         const t = threatInSight(a, threats, sp.flee ? sp.flee.sight : 0);
         if (t) startFlee(a, t, sp);
-        else if (!anyWithin(a, threats, sp.flee ? sp.flee.clear : 0)) {
+        else if (!anyInSight(a, threats, sp.flee ? sp.flee.clear : 0)) {
           a.fleeFrom = null;
           settle(a, sp);
         }
@@ -256,7 +258,8 @@ export function updateAnimal(a, dt, others, threats) {
 // ---- homes (docs/45 section 1): where the map put each herd or flock, and the renewal of game up to a cap ----
 // A home: { id, species, at, radius, cap, renew, nextAt }. The animals made at a world's birth stand round it (at most two
 // tiles off its point, on the clearing the map keeps there); a wild home below its cap has one back each `renew.seconds`
-// of the game's clock, at its point, never while a player is within `renew.clear` tiles (nothing materialises in view).
+// of the game's clock, on a free outdoor tile of its clearing, never while a player, living or dead, is within `renew.clear`
+// tiles (nothing materialises in view), and not at all while the whole clearing is built over or walled in (it waits).
 export function homesFrom(list) {
   return (list || []).map((h, i) => {
     const sp = speciesOf(h.species);
@@ -278,6 +281,16 @@ export function populate(homes) {
   return out;
 }
 
+// A walkable outdoor tile of the clearing round a home's point, the point first; null when there is none.
+function freeSpot(at) {
+  for (const [dx, dy] of SPREAD) {
+    const x = at[0] + dx;
+    const y = at[1] + dy;
+    if (isWalkableTile(x, y) && roomAt(x, y) === 0) return [x, y];
+  }
+  return null;
+}
+
 // The renewal, once a step on the authority: returns the animals born this step (the caller adds them).
 export function renewHomes(homes, animals, players) {
   const born = [];
@@ -295,8 +308,10 @@ export function renewHomes(homes, animals, players) {
       continue;
     }
     if (now < h.nextAt) continue;
-    if (players.some((p) => !p.dead && Math.hypot(p.gx - h.at[0], p.gy - h.at[1]) <= R.clear)) continue; // waits until nobody is near
-    born.push(createAnimal(h.species, h.at[0], h.at[1], { home: h.at.slice(), homeId: h.id }));
+    if (players.some((p) => Math.hypot(p.gx - h.at[0], p.gy - h.at[1]) <= R.clear)) continue; // waits until nobody is near: a dead player's screen still looks
+    const spot = freeSpot(h.at);
+    if (!spot) continue; // built over, or inside a room a player made there: it waits (a sealed room is a cell)
+    born.push(createAnimal(h.species, spot[0], spot[1], { home: h.at.slice(), homeId: h.id }));
     h.nextAt = living + 1 < h.cap ? now + R.seconds : null;
   }
   return born;

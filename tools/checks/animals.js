@@ -4,7 +4,8 @@
 // will have); the valley's homes (game in the woods, the farms' stock in their pens, the hens at Hollow Farm's coop); a hen walking
 // plays its walk and stands in one of the four diagonals; a rabbit flees a player and a deer one of the dead, running, and settles
 // when nothing is near; the dead ignore them; Object Highlight and the Look at line on an animal under the pointer; the renewal at a
-// wild home below its cap (never with a player near, never past the cap); a pen holds its stock with the gate shut, and opened, they
+// wild home below its cap (never with a player near, living or dead, never past the cap, only on a free outdoor tile of its clearing);
+// each pen holds its stock with the gate shut though their homes are moved outside it, and opened, they
 // wander out and drift back toward home; an animal's record and the save. Everything moved is put back; the dead's aggro is off for
 // the run and restored.
 
@@ -179,10 +180,11 @@ export async function run(game) {
       row("an animal under the pointer is found by its own pixels, not a figure's tall box", !!at && interact.characterAt(p.x, p.y - sheet.anchor[1] - 20, me) !== hen, at ? `at ${at.map(Math.round)}` : "no pixel of it under any point tried");
       row("its menu has Look at the hen, the asking client's own (local)", !!look && look.local === true && look.enabled !== false, acts.map((a) => a.label).join(", ") || "no actions");
       row("Object Highlight outlines it", !!t && t.kind === "character" && t.id === hen.id, JSON.stringify(t));
-      const before = document.querySelector("#prompt-message, .message")?.textContent || "";
+      const msg = document.getElementById("message");
+      if (msg) msg.textContent = "";
       if (look) interact.runAction(me, look);
-      const line = A.lookLine(hen);
-      row("Look at says what it is and what it is doing", /hen/.test(line) && line !== before, line);
+      const shown = msg ? msg.textContent : "";
+      row("Look at shows what it is and what it is doing, on this screen", !!look && shown === A.lookLine(hen) && /hen/.test(shown), shown || "nothing shown");
     }
 
     // ---- the renewal at a wild home ----
@@ -211,40 +213,84 @@ export async function run(game) {
       clock.setElapsed(c0); // at once: the world's own homes must not see the time jump
       row("a wild home below its cap has one back after its time (renew.seconds of the clock), at its spot", timed && early === 0 && one, `timer ${timed}, early ${early}, then ${one ? "one at the spot" : "not one"}`);
       row("never while a player is within its clear distance, never past the cap, and tame stock is not renewed", near === 0 && past === 0 && tameBorn === 0, `with a player near ${near}, at the cap ${past}, tame ${tameBorn}`);
+      // A dead player's screen still looks: one lying within the distance holds it too.
+      clock.setElapsed(c0 + R.seconds * 13);
+      const h2 = { id: "hcheck2", species: sp, at: [10, 10], count: 1, cap: 1, renew: true, nextAt: c0 };
+      const deadNear = A.renewHomes([h2], [], [{ gx: 10 + R.clear - 1, gy: 10, dead: true }]).length;
+      const deadFar = A.renewHomes([h2], [], [{ gx: 10 + R.clear + 1, gy: 10, dead: true }]).length;
+      // A clearing built over: the spot first, a free outdoor tile of the clearing next, and nothing while the whole clearing is in a room.
+      const outdoorFree = (x, y) => G.map.isWalkableTile(x, y) && G.map.tileAt(x, y).room === 0;
+      const box5 = (x, y) => { const out = []; for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) out.push([x + i, y + j]); return out; };
+      let walled = null;
+      let blocked = null;
+      for (let j = -14; j <= 14 && (!walled || !blocked); j++) for (let i = -14; i <= 14 && (!walled || !blocked); i++) {
+        const x = Math.round(meAt[0]) + i;
+        const y = Math.round(meAt[1]) + j;
+        if (!walled && box5(x, y).every(([u, v]) => !outdoorFree(u, v))) walled = [x, y];
+        if (!blocked && !G.map.isWalkableTile(x, y) && G.map.tileAt(x, y).room === 0 && box5(x, y).some(([u, v]) => outdoorFree(u, v))) blocked = [x, y];
+      }
+      const hW = walled && { id: "hcheck3", species: sp, at: walled, count: 1, cap: 1, renew: true, nextAt: c0 };
+      const inRoom = hW ? A.renewHomes([hW], [], []).length : -1;
+      const hB = blocked && { id: "hcheck4", species: sp, at: blocked, count: 1, cap: 1, renew: true, nextAt: c0 };
+      const bornB = hB ? A.renewHomes([hB], [], []) : [];
+      const moved = bornB.length === 1 && outdoorFree(Math.round(bornB[0].gx), Math.round(bornB[0].gy)) && Math.max(Math.abs(bornB[0].gx - blocked[0]), Math.abs(bornB[0].gy - blocked[1])) <= 2;
+      clock.setElapsed(c0);
+      row("a dead player within the clear distance holds it too (their screen still looks), one just past it does not", deadNear === 0 && deadFar === 1, `dead near ${deadNear}, dead past it ${deadFar}`);
+      row("a renewal stands on a free outdoor tile of the clearing, and waits while the whole clearing is walled in", !!walled && inRoom === 0 && !!blocked && moved, `walled in at ${walled}: ${inRoom} born; the spot blocked at ${blocked}: ${bornB.length ? `born at ${Math.round(bornB[0].gx)},${Math.round(bornB[0].gy)}` : "none"}`);
     }
 
-    // ---- a pen holds its stock with the gate shut; opened, they wander out and drift back ----
-    const byre = ((S.info && S.info.places) || []).find((p) => p.name === "Hollow Farm's byre");
-    const cows = S.animals.filter((a) => a.species === "cow" && !a.dead);
-    if (byre && cows.length) {
-      const [rx, ry, rw, rh] = byre.box;
-      let gate = null;
-      for (let y = ry; y < ry + rh && !gate; y++) for (let x = rx; x <= rx + rw && !gate; x++) { const w = G.map.tileAt(x, y).w; if (w && w.kind === "door") gate = { w, x, y }; }
-      for (const c of cows) keep(c);
-      G.teleport(rx + rw + 6, ry + rh / 2);
-      step(30);
-      const inside = (c) => c.gx > rx && c.gx < rx + rw - 1 + 0.5 && c.gy > ry && c.gy < ry + rh - 1 + 0.5;
-      let out = 0;
-      for (let i = 0; i < 60 * 40; i++) { for (const c of cows) if (c.state === "idle" || c.state === "eat") c.idleTimer = Math.min(c.idleTimer, 0.3); step(); if (cows.some((c) => !inside(c))) out++; }
-      row("a pen with its gate shut keeps its stock (forty seconds of walking)", !!gate && !gate.w.open && out === 0, gate ? `gate at ${gate.x},${gate.y}, ${out} steps with one outside` : "no gate found on the byre");
-      if (gate) {
-        const open0 = gate.w.open;
-        restore.push(() => { gate.w.open = open0; });
-        gate.w.open = true;
-        const c = cows[0];
-        c.gx = gate.x + 3;
-        c.gy = gate.y;
-        c.path = [];
-        c.state = "idle";
-        c.idleTimer = 0;
-        const far0 = Math.hypot(c.gx - c.home[0], c.gy - c.home[1]);
-        let nearest = far0;
-        for (let i = 0; i < 60 * 40; i++) { if (c.state === "idle" || c.state === "eat") c.idleTimer = Math.min(c.idleTimer, 0.3); step(); nearest = Math.min(nearest, Math.hypot(c.gx - c.home[0], c.gy - c.home[1])); }
-        const sp = A.speciesOf("cow");
-        row("a cow outside a pen left open wanders toward its home and stays near it", nearest <= sp.wander && Math.hypot(c.gx - c.home[0], c.gy - c.home[1]) <= sp.wander + 1, `${far0.toFixed(1)} tiles from home at first, ${nearest.toFixed(1)} at nearest, ${Math.hypot(c.gx - c.home[0], c.gy - c.home[1]).toFixed(1)} at the end`);
+    // ---- a pen holds its stock with the gate shut, though their homes are moved outside it; opened, they wander out and drift back ----
+    const placesAll = (S.info && S.info.places) || [];
+    const gateOf = (box) => {
+      const [rx, ry, rw, rh] = box;
+      for (let y = ry; y <= ry + rh; y++) for (let x = rx; x <= rx + rw; x++) {
+        const t = G.map.tileAt(x, y);
+        if (t.w && t.w.kind === "door" && y < ry + rh && (x === rx || x === rx + rw)) return { w: t.w, x, y, out: [x === rx ? -1 : 1, 0] };
+        if (t.n && t.n.kind === "door" && x < rx + rw && (y === ry || y === ry + rh)) return { w: t.n, x, y, out: [0, y === ry ? -1 : 1] };
       }
-      G.teleport(meAt[0], meAt[1]);
-    } else row("the byre and its cows for the pen's test", false, byre ? "no cows" : "no byre (run on the valley)");
+      return null;
+    };
+    const inBox = (c, box) => c.gx > box[0] - 0.5 && c.gx < box[0] + box[2] - 0.5 && c.gy > box[1] - 0.5 && c.gy < box[1] + box[3] - 0.5;
+    const held = [];
+    for (const [species, name] of [["cow", "Hollow Farm's byre"], ["pig", "Hollow Farm's pigsty"], ["sheep", "the croft's sheepfold"]]) {
+      const place = placesAll.find((p) => p.name === name);
+      if (!place) { held.push(`${name}: no such place`); continue; }
+      const box = place.box;
+      const gate = gateOf(box);
+      const stock = S.animals.filter((a) => a.species === species && !a.dead && inBox(a, box));
+      if (!gate || !stock.length) { held.push(`${name}: ${gate ? "no stock" : "no gate"}`); continue; }
+      for (const c of stock) keep(c);
+      const away = [gate.x + gate.out[0] * 12, gate.y + gate.out[1] * 12];
+      for (const c of stock) { c.home = away.slice(); c.path = []; c.state = "idle"; c.idleTimer = 0; }
+      G.teleport(box[0] + box[2] / 2, box[1] + box[3] / 2);
+      let outSteps = 0;
+      for (let i = 0; i < 60 * 40; i++) { for (const c of stock) if (c.state === "idle" || c.state === "eat") c.idleTimer = Math.min(c.idleTimer, 0.3); step(); if (stock.some((c) => !inBox(c, box))) outSteps++; }
+      held.push(`${name}: ${stock.length} ${species} ${outSteps === 0 && !gate.w.open ? "held" : `out for ${outSteps} steps`}`);
+    }
+    row("each pen holds its stock with the gate shut, though their homes are moved twelve tiles outside the gate (forty seconds of walking)", held.length === 3 && held.every((h) => h.endsWith("held")), held.join("; "));
+    for (const r of restore.splice(0).reverse()) r(); // the stock's homes and places back before the open gate
+    const byre = placesAll.find((p) => p.name === "Hollow Farm's byre");
+    const cows = S.animals.filter((a) => a.species === "cow" && !a.dead);
+    const gate = byre && gateOf(byre.box);
+    if (gate && cows.length) {
+      for (const c of cows) keep(c);
+      const open0 = gate.w.open;
+      restore.push(() => { gate.w.open = open0; });
+      gate.w.open = true;
+      G.teleport(gate.x + 6, gate.y);
+      const c = cows[0];
+      c.gx = gate.x + gate.out[0] * 3;
+      c.gy = gate.y + gate.out[1] * 3;
+      c.path = [];
+      c.state = "idle";
+      c.idleTimer = 0;
+      const far0 = Math.hypot(c.gx - c.home[0], c.gy - c.home[1]);
+      let nearest = far0;
+      for (let i = 0; i < 60 * 40; i++) { if (c.state === "idle" || c.state === "eat") c.idleTimer = Math.min(c.idleTimer, 0.3); step(); nearest = Math.min(nearest, Math.hypot(c.gx - c.home[0], c.gy - c.home[1])); }
+      const sp = A.speciesOf("cow");
+      row("a cow outside a pen left open wanders toward its home and stays near it", nearest <= sp.wander && Math.hypot(c.gx - c.home[0], c.gy - c.home[1]) <= sp.wander + 1, `${far0.toFixed(1)} tiles from home at first, ${nearest.toFixed(1)} at nearest, ${Math.hypot(c.gx - c.home[0], c.gy - c.home[1]).toFixed(1)} at the end`);
+    } else row("the byre's gate and its cows for the open gate", false, byre ? "no gate or no cows" : "no byre (run on the valley)");
+    G.teleport(meAt[0], meAt[1]);
 
     // ---- the record and the save ----
     {

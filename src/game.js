@@ -688,7 +688,8 @@ export function step(dt, snapshots = null) {
       animal.updateAnimal(a, dt, bodies, threats);
       interact.brushThrough(a);
     }
-    for (const a of animal.renewHomes(S.animalHomes, S.animals, S.players)) S.animals.push(a);
+    const watching = [...S.players, ...S.corpses.filter((c) => c.kind === "player")]; // a dead player's screen still looks at the world
+    for (const a of animal.renewHomes(S.animalHomes, S.animals, watching)) S.animals.push(a);
   }
   // Villagers bitten through get up as the dead, in what they wore (docs/19).
   if (S.villagers.some((v) => v.dead)) {
