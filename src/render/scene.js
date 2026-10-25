@@ -14,6 +14,7 @@ import { emitGhost, emitHitShapes, floorItemDrawables, propDrawables } from "./p
 import * as hl from "./highlight.js"; // Object Highlight (#301)
 import { emitRugs } from "./rugs.js"; // laid rugs, flat on the ground under everything (#327)
 import { emitTileMark } from "./marks.js"; // the tile an Inspect marks
+import { emitTracks } from "./tracks.js"; // game's prints on the ground (docs/45 section 2)
 import { postDrawables, wallDrawables } from "./walls.js";
 
 // The night, as before: tunables Michael picks by eye, live on
@@ -148,7 +149,7 @@ function emitGrid(tiles) {
   }
 }
 
-export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, fire = null, marker = null, tileMark = null, highlight = null }) {
+export function renderScene({ w, h, tiles, visible, entities, playerRoom, player = null, camera = null, drawAll = false, fog = true, ghost = null, hitShapes = null, grid = false, arrows = null, fire = null, marker = null, tileMark = null, highlight = null, tracks = null }) {
   ensureArea(w, h);
   hl.set(highlight); // the object under the cursor, outlined by the drawables below (#301)
   if (lastLinear !== night.linear) {
@@ -163,6 +164,7 @@ export function renderScene({ w, h, tiles, visible, entities, playerRoom, player
   if (grid) emitGrid(tiles);
   emitRugs(tiles); // after the ground, before every standing drawable: the rugs lie under what stands on them (#327)
   if (tileMark) emitTileMark(tileMark); // on the ground: whatever stands on or before the tile is drawn over it
+  if (tracks && tracks.length) emitTracks(tracks, drawAll ? null : visible); // game's prints, on the ground and in sight
   const drawables = [];
   wallDrawables(tiles, visible, playerRoom, drawables);
   postDrawables(tiles, visible, playerRoom, drawables);

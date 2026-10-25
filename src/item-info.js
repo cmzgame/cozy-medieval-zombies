@@ -13,6 +13,8 @@ import { buildKinds } from "./placement.js";
 import { isWoodWall } from "./woods.js";
 import * as dye from "./dye.js";
 import { holdsWater, isTainted } from "./water.js"; // clean or tainted (docs/44)
+import { sourcesOf, snareRule } from "./entities/animal.js"; // where a yield comes from, and the snare (docs/45 section 2)
+import { getDef } from "./assets.js";
 
 const KIND = { food: "Food", tool: "Tool", material: "Material", clothing: "Clothing", bag: "Bag", ammo: "Ammunition", medicine: "Medicine", drink: "Drink", decor: "Decor" };
 const MAX_LINES = 8; // a small card: the name and the basics, not a page
@@ -40,6 +42,18 @@ function listOf(names) {
   if (names.length === 1) return names[0];
   if (names.length <= 4) return `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}`;
   return `${names.slice(0, 3).join(", ")} and more`;
+}
+
+const an = (n) => `${/^[aeiou]/.test(n) ? "an" : "a"} ${n}`;
+function listOr(names) {
+  return names.length <= 1 ? names.join("") : `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}`;
+}
+function getDefSafe(id) {
+  try {
+    return getDef(id);
+  } catch {
+    return null;
+  }
 }
 
 // The Use rows for an item, grouped by their verb: [{ verb, on: [names] }].
@@ -148,6 +162,19 @@ export function cardFor(entry) {
   }
   if (builds.length) lines.push(line(`Builds: ${builds.slice(0, 6).join(", ")}${builds.length > 6 ? " and more" : ""}.`));
   if (def.tags && def.tags.includes("fuel")) lines.push(line("Burns as fuel."));
+  // Where an animal's yield comes from (docs/45 section 2, read from data/animals.json): skinned or butchered from which kinds.
+  const from = sourcesOf(def.id);
+  if (from.length) {
+    const how = (h) => from.filter((f) => f.how === h).map((f) => f.species);
+    const bits = [];
+    if (how("skin").length) bits.push(`skinned from ${listOr(how("skin").map(an))}`);
+    if (how("butcher").length) bits.push(`butchered from ${listOr(how("butcher").map(an))}`);
+    lines.push(line(`${cap(bits.join("; "))}, a dirk carried.`));
+  }
+  if (def.place && getDefSafe(def.place) && getDefSafe(def.place).snare) {
+    const sn = snareRule();
+    lines.push(line(`Set near rabbits, it holds one after about ${sn.hours} game hours.`));
+  }
 
   const state = [];
   if (entry.count > 1) state.push(`×${entry.count}`);

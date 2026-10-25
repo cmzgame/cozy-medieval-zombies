@@ -175,7 +175,22 @@ for path in sorted(glob.glob("data/maps/*.json")):
 # kind `animal` or a drawn one) with idle, walk, eat, and dead, a run if it flees, the two drawn diagonals and their mirrors; every home a
 # map names is of a species that exists, with a count, and a cap no smaller.
 animals = load("data/animals.json")
-ANIMAL_FIELDS = {"name", "wild", "walk", "run", "radius", "hp", "flee", "wander", "idle", "graze", "yields"}
+ANIMAL_FIELDS = {"name", "wild", "walk", "run", "radius", "hp", "flee", "wander", "idle", "graze", "yields", "fight"}
+# Hunting (docs/45 step 2): every yield is an item that exists, skinned or butchered, with a count [least, most]; every weapon class a
+# kill can name has its share in 0..1 (the classes the code names, and those `classes` maps an item to); the work, the snare, the tracks.
+KILL_CLASSES = {"bow", "thrown", "melee", "spell", "halberd", "snare"}
+kills = animals.get("kills", {})
+for cls in KILL_CLASSES | set(animals.get("classes", {}).values()):
+    if not (0 <= kills.get(cls, -1) <= 1):
+        fail(f"animals.kills: the class {cls!r} needs a share in 0..1")
+for item_id in animals.get("classes", {}):
+    check_id("animals.classes", item_id)
+if not all(animals.get("work", {}).get(k, 0) > 0 for k in ("skin", "butcher")):
+    fail("animals.work: skin and butcher need seconds above 0")
+if not (animals.get("snare", {}).get("hours", 0) > 0 and animals["snare"].get("reach", 0) > 0):
+    fail("animals.snare: hours and reach above 0")
+if not all(animals.get("tracks", {}).get(k, 0) > 0 for k in ("every", "seconds", "radius", "keep")):
+    fail("animals.tracks: every, seconds, radius, and keep above 0")
 if not (animals.get("renew", {}).get("seconds", 0) > 0 and animals["renew"].get("clear", 0) > 0):
     fail("animals: renew needs seconds and clear above 0")
 for sp, a in animals.get("species", {}).items():
@@ -185,6 +200,18 @@ for sp, a in animals.get("species", {}).items():
         fail(f"animals.{sp}: walk, hp, radius, and wander above 0, graze in 0..1")
     if not (len(a.get("idle", [])) == 2 and 0 < a["idle"][0] <= a["idle"][1]):
         fail(f"animals.{sp}: idle is [least, most] seconds")
+    y = a.get("yields", {})
+    if set(y) - {"skin", "butcher"} or not y.get("butcher"):
+        fail(f"animals.{sp}.yields: `skin` and `butcher` lists, something to butcher")
+    for how in ("skin", "butcher"):
+        for e in y.get(how, []):
+            check_id(f"animals.{sp}.yields.{how}", e.get("id"))
+            c = e.get("count", [])
+            if not (len(c) == 2 and 0 <= c[0] <= c[1]):
+                fail(f"animals.{sp}.yields.{how}: {e.get('id')} needs a count [least, most]")
+    f = a.get("fight")
+    if f is not None and not (all(f.get(k, 0) > 0 for k in ("damage", "reach", "windup", "cooldown", "seconds", "giveUp")) and a["run"] > a["walk"]):
+        fail(f"animals.{sp}.fight: damage, reach, windup, cooldown, seconds, and giveUp above 0, and a run to charge with")
     if a.get("flee") and not (a["run"] > a["walk"] and all(a["flee"].get(k, 0) > 0 for k in ("sight", "tiles", "clear")) and a["flee"]["clear"] >= a["flee"]["sight"]):
         fail(f"animals.{sp}: a species that flees runs faster than it walks, with sight, tiles, and a clear distance at least its sight")
     sid = f"animal_{sp}"

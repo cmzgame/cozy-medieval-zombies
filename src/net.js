@@ -119,7 +119,8 @@ export function makeCode() {
 // record: where, facing, the animation, state, hp, dead) and the homes' renewal (`animalHomes`, when it changes); the save carries both.
 // 10 (2026-10-25): the frame may carry `evicted`, the [cx, cy] of the wild chunks the host dropped since the last frame (map.takeEvicted), and a
 // guest drops them too (map.dropChunk); an older guest kept every chunk it was sent, so far from the spawn its map and registry were the host's and more.
-export const PROTOCOL = 10;
+// 11 (2026-10-25, docs/45 step 2): an animal's record carries a carcass's weapon class and its skinning (`kb`, `sk`).
+export const PROTOCOL = 11;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -731,7 +732,7 @@ function slim(c) {
 // has. Its home, what it is fed, and what it gives join here (or force a whole record) when steps 2 and 3 change them.
 const lastAnimal = new Map(); // animal id -> its fields as last sent
 function animalFields(a) {
-  return { gx: r3(a.gx), gy: r3(a.gy), facing: a.facing, an: a.anim.name, fr: a.anim.frame, state: a.state, hp: r2(a.hp), dead: !!a.dead };
+  return { gx: r3(a.gx), gy: r3(a.gy), facing: a.facing, an: a.anim.name, fr: a.anim.frame, state: a.state, hp: r2(a.hp), dead: !!a.dead, kb: a.killedBy || null, sk: !!a.skinned }; // a carcass's weapon class and its skinning as `kb` and `sk` (step 2)
 }
 function animalRecord(a) {
   const now = animalFields(a);
@@ -1254,8 +1255,10 @@ function applyFrame(f) {
       }
     } else if (c && c.kind === "animal") {
       // An animal's delta (animalRecord): only what changed; the animation's name and frame as `an` and `fr`.
-      const { id: _id, an, fr, gx, gy, ...rest } = r;
+      const { id: _id, an, fr, gx, gy, kb, sk, ...rest } = r;
       Object.assign(c, rest);
+      if (kb !== undefined) c.killedBy = kb;
+      if (sk !== undefined) c.skinned = sk;
       if (an !== undefined || fr !== undefined) c.anim = { ...c.anim, ...(an !== undefined ? { name: an } : {}), ...(fr !== undefined ? { frame: fr } : {}) };
       if (gx !== undefined || gy !== undefined) aimAt(c, gx ?? (c.netTo ? c.netTo[0] : c.gx), gy ?? (c.netTo ? c.netTo[1] : c.gy));
     } else if (c) {

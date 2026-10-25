@@ -55,6 +55,7 @@ import * as farming from "./farming.js"; // till, plant, water, harvest (#194)
 import * as fishing from "./fishing.js"; // fishing: the rod, the cast, the catch (#190)
 import { canReach } from "./reach.js"; // one reach test, distance and a clear line (#208)
 import * as animals from "./entities/animal.js"; // the species, read at boot (docs/45)
+import * as tracks from "./tracks.js"; // game's tracks, this client's view (docs/45 section 2)
 import * as talk from "./talk.js"; // what villagers say: the barks and the conversations' data (docs/34, #198)
 import * as world from "./world.js";
 import * as game from "./game.js";
@@ -1036,6 +1037,7 @@ function refreshFigureOf(p, force = false) {
 function update(dt) {
   const t0 = performance.now();
   if (!inWorld) return; // no world chosen yet (docs/31/09)
+  tracks.update(S.animals); // the prints wild game leaves, read from where it stands before this step (docs/45 section 2)
   interp.mark([...S.players, ...S.zombies, ...S.villagers, ...S.animals, ...archery.arrowsInFlight()]); // where everything stood before this step, for the draw between steps (#161)
   camera.mark();
   try {
@@ -1251,7 +1253,7 @@ function renderUi() {
     const c = m && m.inside && !S.player.dead ? interact.characterAt(m.x, m.y, S.player) : null;
     updateHoverName(c && c.kind === "animal" && visible.has(visibility.tileKey(Math.round(c.gx), Math.round(c.gy))) ? c : null);
   }
-  if (floatersUi.active()) floatersUi.update(dt, [...S.players, ...S.zombies, ...S.villagers, ...S.corpses], visible, S.player); // the numbers over heads, from the same blended positions
+  if (floatersUi.active()) floatersUi.update(dt, [...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals], visible, S.player); // the numbers over heads, from the same blended positions
   mapPanel.update({ player: S.player, players: S.players, places: (S.info && S.info.places) || [] });
   updateMessage(dt);
 }
@@ -1345,6 +1347,7 @@ function render() {
     highlight: objectHighlight.update({ enabled: settings.get("objectHighlight") !== false, blocked: placement.state.active || use.isActive(), mouse: input.getMouse(), player: S.player, visible, now: performance.now() }),
     hitShapes: combat.overlays(S.player, S.zombies, settings.get("showHitShapes")),
     tileMark: inspectMark.marked(), // the patch an Inspect speaks of
+    tracks: tracks.near(S.player), // wild game's prints near me (docs/45 section 2; this client's view, nothing sent)
     // The tile grid shows only while building or removing (docs/15).
     grid: placement.state.kind === "build" || placement.state.kind === "remove",
   };

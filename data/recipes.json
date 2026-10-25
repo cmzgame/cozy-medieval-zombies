@@ -325,6 +325,27 @@
    "uses": "cut"
   },
   {
+   "id": "snare",
+   "station": "workbench",
+   "out": {
+    "id": "snare",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "stick",
+     "count": 2
+    },
+    {
+     "tag": "cloth",
+     "count": 1
+    }
+   ],
+   "seconds": 5,
+   "uses": "cut",
+   "note": "docs/45 section 2: a snare for rabbits, Crafting 1 (open until the skills); a stake and a noose of cloth"
+  },
+  {
    "id": "shield",
    "station": "workbench",
    "out": {
