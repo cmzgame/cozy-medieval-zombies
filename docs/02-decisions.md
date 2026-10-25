@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- No fixed water source is clean; boiling at a lit fire by Use or either menu; the starting skin clean; the sickness a debuff, Queasy, 20% a tainted drink, 1% of the infection (2026-10-25, Water ruled)
 - The basic lore (#217) is in the Valley's scope, paired with the map redraw (#92) and taken first (2026-10-25, The basic lore is part of the Valley's scope)
 - Fixed home lights (fireplace, hearth, lantern) are switches, portable ones (torch, campfire) cost fuel; a lantern goes out; the campfire built, six logs of three hours, picked up only empty; Pick up and Take apart for everything; made by default, the village's stations one of a kind behind a world rule; Place as decoration (2026-10-25, The dead ends ruled)
 - A loot table per kind of container, weights out of 32; no gear in a rolled table, placed once where it makes sense; rolled once, never refilled; boss drops personal with a rising chance (2026-10-24, The loot tables and the bags)
@@ -285,6 +286,18 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-25 — Water ruled: no fixed source is clean, boil with Use or either menu, a clean starting skin, Queasy (Michael; #279)
+
+The fifth sitting of the Valley scope's defaults pass. Primary's defaults stood, with Michael's shape for boiling. The spec is `docs/44`. The rulings:
+
+- **No fixed source is clean:** wells, the river, ponds, the trough, and the chapel's font. **Mixing taints** a clean skin topped up at a tainted source.
+- **Boiling at a lit cooking fire (Cooking 1), three ways to one verb.** Michael: "Purifying water is a perfect spot for 'use' to shine. Click use on skin or bucket, click on fireplace or campfire, little loading bar like when you fill from well, and it boils the water to clean it. Can also be done from right click on either the waterskin/bucket (grey if not near fire) or fire (grey if no waterskin or bucket with tainted water in inventory)? Are we mixing too many interaction methods?" Primary's answer: no; right-click is the complete interface and Use its shortcut, all three one verb. About 30 seconds a vessel (*default*). Sanctify stays Faith 10, carried water only.
+- **The card says which it is,** "(tainted)" stays on Drink, a brown drop marks a tainted icon; **the starting skin is full of clean water.**
+- **The sickness is a debuff named Queasy** (*Primary's default*: the infection's third stage is already "Sick"): tiredness builds 50% faster, food heals 25% less, about half a game day; 20% a tainted drink, stacking to three; **1% a tainted drink of the infection**, which with no cure in the valley makes a tainted drink a desperate choice; the infection's chance joins the difficulty dial.
+- **Filed for later:** the boiling pot, for large stews that restore water too and for boiling four skins at once, perhaps built into a fireplace to raise its cost ("I think this might be an eventual goal because I think it's a massive flavor win").
+
+Docs: 44 (new), 39, 42, 05, README.
 
 ### 2026-10-25 — The basic lore is part of the Valley's scope, paired with the map redraw, the lore first (Michael)
 

@@ -28,6 +28,7 @@ Two kinds:
 - **Hit stop and the swing's commitment:** `blow.hitStop` 0.07, `blow.hitStopKill` 0.12, `blow.swingMove` 0.6 (`41` step 1).
 
 ### Food, the world, the valley
+- **Tainted water and Queasy:** 20% a tainted drink, stacking to three, tiredness 50% faster and food healing 25% less for about half a game day; 1% a tainted drink of the infection; about 30 s to boil a vessel (2026-10-25, `44`; not built).
 - **The campfire:** six logs at most, three game hours a log, built with two (2026-10-25, `43`; not built: today four logs of two hours in `data/sprites/campfire.json`).
 - **Take apart's return:** half a thing's materials, rounded down (2026-10-25, `43`; not built).
 - **Repairs:** `work.grindstone.ceilings` 0.6, 0.4, 0.2 and `work.anvil.ceilings` 1, 0.8, 0.6 in `data/tuning.json`, on one count per item, the entry's `repairs` (2026-10-25, `43`; built, #410). The bars' seconds, `work.grindstone.seconds` 4 and `work.anvil.seconds` 6, the anvil's tool `work.anvil.uses` (the smith's hammer's verb, `smith`), and each item's material, its `repair.with` in `data/items.json` (an iron bar for iron, a plank for wood), are Primary's defaults.

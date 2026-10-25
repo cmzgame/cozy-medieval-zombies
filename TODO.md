@@ -23,29 +23,42 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
-## Status (2026-10-24, late: the melee baseline accepted; the loot tables and the bags ruled and built)
+## Status (2026-10-25, night: five defaults sittings done; the dead ends and water scoped; three docs/43 steps built)
 
-**The melee pass is the baseline** (Michael, after playing it whole: "in terms of basic mechanics, we are there"; `docs/02`, The melee baseline; `docs/41`'s status). Fine-tuning goes on with the skills, through the numbers in `docs/42`. What came out of his two test sessions, all merged: the dead strike a fence while they wait for a bite token; the reel pose on a stagger; the downed keep their health bar and are outlined; a closing burst near a seen target (a trial, #394); the aim guide on by default; the shove at 0.65 tiles, a tired one 0.45 with its stagger under the recovery (#396); a gate opened while the dead strike it lets them through (#397); no boards on a fence, a gate included (#398); sounds steps 1 and 2 and the F8 mute key (the Secondary's).
+**Paused for the night at Michael's word.** Where to pick up, in his order: **the animals (#289), then the basic lore (#217), then the map redraw (#92)**, the big ones, with small issues as time allows; **then build the demo**, and consider spending money (art, sound).
 
-**The loot tables and the bags, ruled and built** (`docs/02`, The loot tables and the bags; #399, #403): a table per kind of container, weights out of 32, read on the wiki's **Drop tables** page, from which Michael tunes them (OSRS's tables the guide); no gear in a rolled table, placed once (a sword and a mace in the toll house, a belt and gloves on the barn rack, the Onion-head Hat on the scarecrow); **gear is made by default**; only arrows, throwing knives and axes, bandages, and seeds stack; bags are made, never found: the linen satchel (7 by 5, the loom) is built, the rucksack (8 by 6, Crafting 6 and Beastlore 4) waits for leather and wool, and **no rucksack exists in play** until then; a bag taken off keeps its contents. Containers' food dropped to about a quarter (about 24 apples, 8 bread, 5 cheese in a valley).
+**The Valley scope's defaults pass** (`docs/39`; one issue a sitting, Primary proposes, Michael overrules in prose, `docs/02` logs it): **done:** the skills (#275) and the food economy (#264), 2026-10-23; the loot tables and the bags (#268, #260), 2026-10-24; the dead ends (#273, the spec `docs/43`) and water (#279, the spec `docs/44`), 2026-10-25. **The basic lore is in the scope** (2026-10-25), paired with the map redraw and taken first. **Open lines of `docs/39` by issue** (counted 2026-10-25; 222 built, 231 to build, 98 to change, 73 open, down from 162): #92 11 · #289 10 · #288 8 · #123 7 · #281 7 · #181, #282, #133 5 each · #283 4 · #103 3 · #104, #262 2 each · #217, #261, #106, #271 1 each.
 
-**Where to pick up:** a new Primary since 2026-10-23, focus planning and infrastructure. Michael's three goals, in order: (1) a final Valley scope (#271, `docs/39`); (2) a limited demo scope, a cut list from `docs/39` against `docs/36`, each line naming its valley issue; (3) building both, demo-first, after a plan is talked through in chat (Michael prefers prose to question widgets). **The Valley scope closes by the defaults pass:** Primary proposes an answer for every open line of `docs/39` on its issue, one issue per sitting, Michael overrules in prose, what stands is the default marked tunable; the scope is final when `docs/39` section 16 is empty. **Three sittings are done** (#275 and #264 on 2026-10-23, #268 and #260 on 2026-10-24); **next is #273** (the dead ends, 13 lines), then the rest by their counts below. Then the demo's cut list, with its four build issues refiled (#40 to #43 are the bot's, hidden).
+**Built today:**
+- **#397:** a gate opened while the dead strike it lets them through.
+- **#398:** no boards on a fence.
+- **#399:** the loot tables, a table per container, weights out of 32, the wiki's Drop tables page.
+- **#403:** the linen satchel, and a bag set down keeps its contents.
+- **#413:** `docs/43` step 1, Take apart.
+- **#416:** step 5, repairs that run out, the sawpit, and honey.
+- **#417:** step 7, the dye vat.
+- The melee pass is accepted as the baseline (`docs/41`).
 
-**The open lines of `docs/39` by issue** (counted 2026-10-24, late; 215 lines built, 232 to build, 78 to change, 95 open): #273 13 · #92 11 · #279 10 · #289 10 · #288 8 · #123 7 · #281 7 · #181, #282, #133 5 each · #283 4 · #103 3 · #104, #262 2 each · #261, #106, #271 1 each.
+**Michael allowed parallel builds** (2026-10-25): well-scoped steps may run as Primary's subagents in their own worktrees, everything reviewed by Primary (the pane and the two-tab test are Primary's, since a builder has no pane of its own).
 
-**Ruled before this** (`docs/02`, newest first): the food economy (#264), the skills' open lines (#275), the demo on dev art (#356), the melee feel pass (#368), all 2026-10-23. **The valley's map as it stands is a testing map, not the final valley**; the redraw and the teachers' placement are #92.
-
-**The Secondary** (one session, "Current Secondary Agent"; offloaded work goes to it as `for:secondary` `ready` issues, every change reviewed by Primary before `main`): its queue is clear after #403's wiki sync (cmz-wiki#30, approved).
-
-**Not done, Michael's hand:** the finished worktrees under `.claude/worktrees/` are merged into `main`; a session may not remove them, so Michael does (`git worktree remove <path>`, then `git worktree prune`), or Settings › Storage once they are old enough.
+**In flight:**
+- The Secondary is on `docs/43` step 2, fires and lights (#407). Then #408 and #409, and #411 after #407 (they share `burn.js`).
+- **Water's build is #418,** `for:secondary`.
+- The wiki syncs owed for #413, #416, and #417 are the Secondary's; Primary reviews each.
 
 **Waiting on Michael:**
-- the loot rates, from the wiki's Drop tables page; the rucksack's default recipe (four leather, four woollen cloth, two spruce planks, the satchel);
-- #393, the downed art brief to the design agent; the satchel's drawn art (world picture, icon, 38 by 38 portrait) on the next brief;
-- whether the mace's and the thrust's cards should name their knockdown; the burst against a drawn bow, a raised shield, or a brace;
-- #271's items 6 and 8 to 11; picks of placeholder music;
-- #341 (a multi-tile prop across a chunk edge on a guest); #324 (no rush);
+- the loot rates, from the wiki's Drop tables page;
+- #415 (defensive spikes, for discussion);
+- #419 (his Stardew Valley notebook);
+- #393 (the downed art brief); the satchel's drawn art on the next brief;
+- whether the mace's and the thrust's cards name knockdown;
+- picks of placeholder music;
+- #341, #324;
 - the `needs-michael` issues: #92, #94, #123, #133, #181, #217.
+
+**The game's own name** belongs to the private infrastructure work, never to public issues or docs; it is settled in session with the lore.
+
+**Not done, Michael's hand:** the finished worktrees under `.claude/worktrees/` (two builders' among them, `agent-a6d8d9d842bc1e0e6` and `agent-a0c864dfb44981bb9`, merged) are his to remove (`git worktree remove <path>`, then `git worktree prune`).
 
 **The design agent's worktree** (`C:/Users/micha/Dev/cozy-medieval-zombies-art`, branch `art-docs`) was fast-forwarded to main on 2026-10-20; its deliveries sit under `deliveries/`, untracked.
 
