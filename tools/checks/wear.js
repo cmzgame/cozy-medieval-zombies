@@ -19,6 +19,17 @@ export async function run(game) {
   const G = game;
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
+  const done = () => {
+    const failed = rows.filter((r) => r.result === "FAIL").length;
+    console.table(rows);
+    return { rows, pass: rows.length - failed, fail: failed };
+  };
+  // On a guest the durability rows are the host's (a swing resolves on the host, and a guest's console does not teleport, #102):
+  // it reads the repairs' menus off the replica alone.
+  if (G.net.status().role === "guest") {
+    await repairs(G, row);
+    return done();
+  }
   const wasPaused = G.loop.isPaused();
   const p = G.player;
   const saved = { main: p.hands.main, off: p.hands.off, gx: p.gx, gy: p.gy, aim: { ...p.aim }, aggro: G.rules.rules.zombieAggro, multi: G.rules.rules.multiHit };
@@ -98,9 +109,7 @@ export async function run(game) {
     G.loop.setPaused(wasPaused);
   }
   await repairs(G, row);
-  const failed = rows.filter((r) => r.result === "FAIL").length;
-  console.table(rows);
-  return { rows, pass: rows.length - failed, fail: failed };
+  return done();
 }
 
 // Repairs that run out (docs/43 section 6, #410): the grindstone and the anvil on one count per item.
@@ -116,6 +125,9 @@ async function repairs(G, row) {
   const meAt = [me.gx, me.gy];
   const wasPaused = G.loop.isPaused();
   const role = G.net.status().role;
+  // A guest's console does not teleport (docs/31/07 question 14, #102): there the replica's own player is stood directly, the camera
+  // with it, and the host's next frame puts it back where the host has it.
+  const standAt = (gx, gy) => { if (role !== "guest") return G.teleport(gx, gy); me.gx = gx; me.gy = gy; me.auto = null; G.camera.snapTo(gx, gy); };
   const W = G.tuning.work;
   const pct = (e) => 100 - Math.round((e.wear || 0) * 100);
   const card = (e) => info.textOf(info.cardFor(e)).join(" | ");
@@ -123,7 +135,7 @@ async function repairs(G, row) {
   const labels = (prop) => acts(prop).map((a) => `${a.label}${a.enabled === false ? " [off]" : ""}`);
   const finish = () => { for (let i = 0; i < 600 && me.action; i++) G.interact.updateAction(me, 1 / 30); };
   // Stand where the menu's walk would stop: a tile in reach with a clear line (the smithy's walls are round them).
-  const standBy = (prop) => { const t = G.interact.approachTile(acts(prop)[0], me); if (t) G.teleport(t[0], t[1]); G.loop.advance(1 / 60); };
+  const standBy = (prop) => { const t = G.interact.approachTile(acts(prop)[0], me); if (t) standAt(t[0], t[1]); G.loop.advance(1 / 60); };
   try {
     G.loop.setPaused(true);
     const sword = G.items.getItem("sword");
@@ -221,7 +233,7 @@ async function repairs(G, row) {
     if (belt && belt0) belt.splice(0, belt.length, ...belt0);
     me.hands.main = hands0.main;
     me.hands.off = hands0.off;
-    G.teleport(meAt[0], meAt[1]);
+    standAt(meAt[0], meAt[1]);
     G.loop.setPaused(wasPaused);
   }
 }

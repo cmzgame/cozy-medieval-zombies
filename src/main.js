@@ -83,6 +83,7 @@ import * as buildPalette from "./ui/build-palette.js";
 import * as mapPanel from "./ui/map-panel.js";
 import * as shell from "./boot.js";
 import { createDevApi } from "./dev.js";
+import { client, setMe, refind } from "./client.js"; // who I am, and the renderer's and the interface's notes on the world's objects (#102)
 import { createInventoryActions, createRemoteInventoryActions } from "./ui/inventory-actions.js";
 import * as identities from "./identities.js"; // identities, the browser id, friends' worlds (docs/31/09)
 import * as rng from "./rng.js";
@@ -168,7 +169,7 @@ const sharedWorld = () => (net.isHost() && net.hasGuests()) || (net.isGuest() &&
 
 // This client's own: the idle clock, read every step. Any input resets it; asleep, dead, or alone it does not run.
 function checkAway() {
-  const me = S.player;
+  const me = client.me;
   if (away || !inWorld) return;
   if (!sharedWorld() || !me || me.dead || me.sleeping) {
     lastInputAt = performance.now();
@@ -179,7 +180,7 @@ function checkAway() {
 
 function stepAway() {
   if (away) return false;
-  const me = S.player;
+  const me = client.me;
   if (net.isGuest()) {
     if (!net.stepAway()) return false;
   } else if (!host.awayNow(me.id, myHash())) return false;
@@ -257,7 +258,7 @@ function afterWorldSet() {
   figureKey = "";
   figureQuick = "";
   refreshFigure(true);
-  camera.snapTo(S.player.gx, S.player.gy);
+  camera.snapTo(client.me.gx, client.me.gy);
   camera.applyOrigin(V.w, V.h);
   tiles = camera.viewportTiles(V.w, V.h);
   visKey = null;
@@ -280,7 +281,7 @@ function afterWorldSet() {
   light.update();
   if (!glError) ground.invalidateAll();
   for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
-  visible = visibility.computeVisible(Math.round(S.player.gx), Math.round(S.player.gy), tiles);
+  visible = visibility.computeVisible(Math.round(client.me.gx), Math.round(client.me.gy), tiles);
   lastAutosave = loop.simTime();
 }
 
@@ -382,7 +383,7 @@ async function enterNewWorld(name, identity, { keep = true, rules: chosenRules =
     });
     afterWorldSet();
     setInWorld(true);
-    currentWorld = keep ? { worldId: save.newWorldId(), name: name || "A world", code: null, created: Date.now(), open: false, owners: { [myHash()]: S.player.id }, dormant: {} } : null;
+    currentWorld = keep ? { worldId: save.newWorldId(), name: name || "A world", code: null, created: Date.now(), open: false, owners: { [myHash()]: client.me.id }, dormant: {} } : null;
     started = keep;
     screens.hide();
     if (!keep) return false;
@@ -425,7 +426,7 @@ async function playWorldBehindScreen(worldId) {
   // Mine fallen: its body (a corpse since 2026-10-14) is this screen's player for the dead screen, never someone else's.
   const myBody = !mine ? S.corpses.find((c) => c.id === mineId && c.kind === "player") || null : null;
   if (myBody) {
-    S.player = myBody;
+    setMe(myBody);
     camera.snapTo(myBody.gx, myBody.gy);
   }
   mine = mine || (myBody ? null : S.players[0]);
@@ -435,7 +436,7 @@ async function playWorldBehindScreen(worldId) {
   }
   setInWorld(true);
   started = true;
-  if (!S.player || S.player.dead) screens.show("dead", { when: clock.getLabel(), who: S.player ? S.player.name || S.player.id : "Your survivor" }); // none of mine in it: a new character, as after a death
+  if (!client.me || client.me.dead) screens.show("dead", { when: clock.getLabel(), who: client.me ? client.me.name || client.me.id : "Your survivor" }); // none of mine in it: a new character, as after a death
   else {
     screens.hide();
     showMessage(`${clock.getLabel()}. Welcome back.`, 3);
@@ -467,7 +468,7 @@ function respawn(identity) {
     return true;
   }
   if (!inWorld) return false;
-  const spawn = S.info ? S.info.spawn : [S.player.gx, S.player.gy];
+  const spawn = S.info ? S.info.spawn : [client.me.gx, client.me.gy];
   const at = map.nearestWalkable(spawn[0] + 1, spawn[1] + 1, (x, y) => S.players.some((p) => Math.round(p.gx) === x && Math.round(p.gy) === y)) || spawn;
   const p = game.addPlayer(at[0], at[1], { look: lookOf(identity), name: identity.name || null });
   game.pickPlayer(p);
@@ -489,7 +490,7 @@ async function saveWorld(extra = {}) {
     const wrong = game.verifySaveCache();
     if (wrong.length) console.warn(`The save's cache missed ${wrong.length} chunk(s), saved right now (a change marked nothing; see map.unsaved):`, wrong);
   }
-  const r = await save.writeWorld(save.snapshot(MAP_NAME, { worldId: currentWorld.worldId, name: currentWorld.name, code: currentWorld.code, created: currentWorld.created, open: !!currentWorld.open, owners: currentWorld.owners, dormant: currentWorld.dormant || {}, myPlayerId: S.player.id, ...extra }));
+  const r = await save.writeWorld(save.snapshot(MAP_NAME, { worldId: currentWorld.worldId, name: currentWorld.name, code: currentWorld.code, created: currentWorld.created, open: !!currentWorld.open, owners: currentWorld.owners, dormant: currentWorld.dormant || {}, myPlayerId: client.me.id, ...extra }));
   if (r.ok) {
     lastAutosave = loop.simTime();
     lastAutosaveAt = performance.now();
@@ -783,7 +784,7 @@ function here() {
     inWorld,
     joining: awaitingWelcome, // in the stand-in, waiting for the host's world (#111)
     name: currentWorld ? currentWorld.name : guest ? (joinedWorld && joinedWorld.name) || st.code : "",
-    myCharacter: inWorld && S.player ? S.player.name || S.player.id : "",
+    myCharacter: inWorld && client.me ? client.me.name || client.me.id : "",
     role: st.role,
     code: currentWorld ? currentWorld.code : st.code,
     worldId: currentWorld ? currentWorld.worldId : null,
@@ -816,7 +817,7 @@ function handleMouse() {
   // draw spends it instead. The right button held is the off hand's stance (docs/21).
   const tap = buttons.off.tap;
   if (tap) {
-    if (archery.drawState(S.player)) {
+    if (archery.drawState(client.me)) {
       // The draw ends in the world's step, as an event in my snapshot (`drawCancel`), here or on the host: a guest's
       // tap once ended only its own copy, and the host loosed the arrow on the left button's release (the wiki
       // census's bugs, 2026-10-15).
@@ -829,27 +830,27 @@ function handleMouse() {
     }
   }
   menu.tookClick();
-  if (menu.isMenuOpen() && S.player.moving) menu.closeContextMenu();
+  if (menu.isMenuOpen() && client.me.moving) menu.closeContextMenu();
 }
 
 function openActionsMenu(m) {
   // A mushroom or a rock wiggles; the thing clicked by its pixels offers its own actions first (a tree: Chop down; a mushroom under a
   // tree's crown: Forage, interact.interactableAt's one rule), once each.
-  const poked = interact.pokeAt(m.x, m.y, S.player);
-  const actions = interact.menuActions(m.x, m.y, S.player, poked);
+  const poked = interact.pokeAt(m.x, m.y, client.me);
+  const actions = interact.menuActions(m.x, m.y, client.me, poked);
   // A guest's choice goes to the host by its address and label (net.js, docs/31/05 item 10); the host walks
   // the guest's player there and performs it. Building stays this client's own until it is a command too.
   const guest = net.isGuest();
-  const entries = actions.map((a) => ({ label: a.label, enabled: a.enabled, card: a.card || null, onSelect: () => (guest && !a.local ? net.sendAct(a.target, a.label) : interact.runAction(S.player, a)) })); // a local action (Inspect) is this client's own
+  const entries = actions.map((a) => ({ label: a.label, enabled: a.enabled, card: a.card || null, onSelect: () => (guest && !a.local ? net.sendAct(a.target, a.label) : interact.runAction(client.me, a)) })); // a local action (Inspect) is this client's own
   // Build is in every menu, in case the key is forgotten (Michael, 2026-10-12).
-  entries.push({ label: "Build", enabled: !S.player.carrying && !panel.isOpen(), onSelect: toggleBuild });
+  entries.push({ label: "Build", enabled: !client.me.carrying && !panel.isOpen(), onSelect: toggleBuild });
   const u = view.toUi(m.x, m.y);
   menu.openContextMenu(u.x, u.y, entries);
 }
 
 // What is under the cursor for Use mode (use.js): a character, else a prop by its pixels, else the tile.
 function useTargetAt(sx, sy) {
-  const ch = interact.characterAt(sx, sy, S.player);
+  const ch = interact.characterAt(sx, sy, client.me);
   if (ch) return { kind: "character", ch };
   const prop = interact.interactableAt(sx, sy, () => true);
   if (prop) return { kind: "prop", prop };
@@ -910,9 +911,9 @@ function toggleBuild() {
     buildPalette.close();
     return;
   }
-  if (S.player.carrying) return showMessage("Your hands are full.");
+  if (client.me.carrying) return showMessage("Your hands are full.");
   if (panel.isOpen()) return showMessage("Close your bag to build."); // the palette and the bag take turns on the screen (02, 2026-10-15)
-  buildPalette.openPalette(S.player);
+  buildPalette.openPalette(client.me);
 }
 
 // X: Take apart (the removal tool, docs/43 section 2), or out of it if in it. Same limits as N.
@@ -921,7 +922,7 @@ function toggleRemove() {
     placement.cancel();
     return;
   }
-  if (S.player.carrying) return showMessage("Your hands are full.");
+  if (client.me.carrying) return showMessage("Your hands are full.");
   if (panel.isOpen()) return showMessage("Close your bag to build.");
   buildPalette.close();
   placement.beginRemove();
@@ -934,7 +935,7 @@ function applyDebugCorner() {
 function updateInventoryUi() {
   // Carrying furniture: both hands are full and nothing else happens until it
   // is down (docs/02). The bag closes if it was open.
-  if (S.player.carrying) {
+  if (client.me.carrying) {
     if (panel.isOpen()) {
       panel.closeAll();
       openBag = null;
@@ -946,7 +947,7 @@ function updateInventoryUi() {
   // instead, with the message (docs/11, check 6). C opens and closes the
   // character screen. The two are independent (Michael, 2026-10-12).
   if (input.wasPressed("Tab")) {
-    if (inventory.bagOf(S.player)) panel.toggleBag();
+    if (inventory.bagOf(client.me)) panel.toggleBag();
     else {
       panel.toggleCharacter();
       if (panel.isCharacter()) showMessage("No bag on your back.");
@@ -959,7 +960,7 @@ function updateInventoryUi() {
   // host (interact.beltEvents, updateInteract; item 4: on a guest they changed only its own replica).
   if (openBag && openBag.address) {
     // On a guest the replica's objects are new with every frame: the grid is found again by its address.
-    const c = interact.containerAt(S.player, openBag.address);
+    const c = interact.containerAt(client.me, openBag.address);
     if (!c) openBag = null;
     else {
       if (c.bag !== openBag.bag) openBag.prev = openBag.bag; // the panel may still hold the last frame's object for a click (inventory-actions addressOf)
@@ -968,7 +969,7 @@ function updateInventoryUi() {
     }
   }
   if (openBag) {
-    if (!canReach(S.player, openBag.tiles, openBag.closeDist || tuning.world.containerCloseDist)) openBag = null; // a station's output reaches as far as its panel; a wall between shuts it too (#208)
+    if (!canReach(client.me, openBag.tiles, openBag.closeDist || tuning.world.containerCloseDist)) openBag = null; // a station's output reaches as far as its panel; a wall between shuts it too (#208)
     else if (openBag.corpse && openBag.corpse.cremate) openBag = null; // a body set alight (docs/43 section 7): its grid closes; a guest's is gone by its address (interact.containerAt)
   }
   if (openBag && openBag.corpse) corpseWatch = openBag.corpse;
@@ -1008,7 +1009,7 @@ function refreshFigure(force = false) {
 function refreshFigureOf(p, force = false) {
   // The swing's keyframe set follows the weapon in the main hand (docs/14); a spear's throw has its own.
   const style = combat.styleOf(p, !!archery.drawState(p));
-  const painted = p === S.player ? settings.get("paintedLayers") || {} : {};
+  const painted = p === client.me ? settings.get("paintedLayers") || {} : {};
   // What the sheet depends on, as ids: the cheap test every step; the spec and its key only when it changed (docs/23a, B7).
   const quick = JSON.stringify([p.look, p.worn, p.hands, style, painted, p.hidden]);
   const keys = figureKeys.get(p.id) || { key: "", quick: "" };
@@ -1041,6 +1042,7 @@ function update(dt) {
   } finally {
     input.endStep();
   }
+  interp.adopt(archery.arrowsInFlight()); // a flight loosed in this step, drawn from where it left the bow, not stood still for the step (#250)
   timing.step = performance.now() - t0;
   if (t0 - timing.maxResetAt > 3000) {
     timing.stepMax = 0;
@@ -1080,10 +1082,10 @@ function stepGame(dt) {
   armGuest(guest);
   // A guest's own death: the host's world says so in the record, and this screen shows it, once (2026-10-14: a guest
   // who died never saw the dead screen, which only the host's own death raised).
-  if (guest && S.player && !S.player.dead) deadShown = false; // alive again (a new character, another world)
-  if (guest && S.player && S.player.dead && !deadShown && net.status().joined) {
+  if (guest && client.me && !client.me.dead) deadShown = false; // alive again (a new character, another world)
+  if (guest && client.me && client.me.dead && !deadShown && net.status().joined) {
     deadShown = true;
-    screens.show("dead", { when: clock.getLabel(), who: S.player.name || S.player.id });
+    screens.show("dead", { when: clock.getLabel(), who: client.me.name || client.me.id });
   }
   checkAway();
   applyPause(); // the last guest gone while this host is away: held from the next step
@@ -1102,7 +1104,7 @@ function stepGame(dt) {
   if (input.wasPressed("Enter") || input.wasPressed("NumpadEnter")) log.focusChat("");
   if (input.wasPressed("Slash")) log.focusChat("/");
   if (input.wasPressed("KeyN")) toggleBuild();
-  if (input.wasPressed("KeyM")) mapPanel.toggle(S.player); // the map: a client view, the world keeps running (docs/33)
+  if (input.wasPressed("KeyM")) mapPanel.toggle(client.me); // the map: a client view, the world keeps running (docs/33)
   if (input.wasPressed("KeyX")) toggleRemove();
   // The wheel zooms in integer steps, 1× to 3× (docs/02, 2026-10-10 night):
   // down zooms out. The panel's own wheel use (rotating a drag) wins; an open panel alone does not stop it (2026-10-15).
@@ -1120,29 +1122,29 @@ function stepGame(dt) {
     }
   }
   if (input.wasPressed("KeyL")) night.debug = (night.debug + 1) % 4;
-  // Debug: ] and [ skip the clock an hour forward or back.
-  if (input.wasPressed("BracketRight")) clock.setHour(clock.getHour() + 1);
-  if (input.wasPressed("BracketLeft")) clock.setHour(clock.getHour() - 1);
-  stationPanel.update(S.player); // the panel follows the station's queue, which game.begin stepped
-  talkPanel.update(S.player); // and the conversation ends when the villager is hurt or the talker walks off
-  camera.follow(S.player, dt);
+  // Debug: ] and [ skip the clock an hour forward or back; the host's alone, a guest's clock is the host's (docs/31/07 question 14, #102).
+  if (!guest && input.wasPressed("BracketRight")) clock.setHour(clock.getHour() + 1);
+  if (!guest && input.wasPressed("BracketLeft")) clock.setHour(clock.getHour() - 1);
+  stationPanel.update(client.me); // the panel follows the station's queue, which game.begin stepped
+  talkPanel.update(client.me); // and the conversation ends when the villager is hurt or the talker walks off
+  camera.follow(client.me, dt);
   camera.applyOrigin(V.w, V.h);
   // The ground: re-bake what changed in view, bake one chunk ahead, evict far ones (docs/15).
   if (!glError) ground.update(camera.cam.gx, camera.cam.gy, tiles);
   // Placement first: its ghost follows the cursor and a left click that
   // places is spent before anything else can use it (docs/13).
-  if (guest) placement.syncCarried(S.player); // the carried prop's mode follows the record (placement.js)
-  placement.update(S.player);
+  if (guest) placement.syncCarried(client.me); // the carried prop's mode follows the record (placement.js)
+  placement.update(client.me);
   if (buildPalette.isOpen()) {
-    if (S.player.carrying || panel.isOpen()) buildPalette.close();
-    else buildPalette.render(S.player);
+    if (client.me.carrying || panel.isOpen()) buildPalette.close();
+    else buildPalette.render(client.me);
   }
   // A left click is placement's if it takes it, else a swing (docs/14), made
   // after the player has turned to the cursor this step.
   buttons.update(dt);
   let clicked = input.mouseLeftPressed() && !menu.tookClick();
   // With the hand cursor, the zombie hand over one of the dead (ui/cursor.js).
-  const under = interact.characterAt(input.getMouse().x, input.getMouse().y, S.player);
+  const under = interact.characterAt(input.getMouse().x, input.getMouse().y, client.me);
   cursor.setOverDead(!!under && under.kind === "zombie" && !under.dead);
   // Use mode (use.js): the label names what is under the cursor, and a left click on the world is the target, spent here,
   // the bag open or not (a Use begun from the bag is aimed with the bag still open).
@@ -1150,21 +1152,21 @@ function stepGame(dt) {
     const target = useTargetAt(input.getMouse().x, input.getMouse().y);
     use.hover(target);
     if (clicked) {
-      use.apply(target, S.player);
+      use.apply(target, client.me);
       clicked = false;
     }
   }
-  const clickSpent = clicked && placement.tryConfirm(S.player); // on a guest the confirm is a command (placement.setSender)
+  const clickSpent = clicked && placement.tryConfirm(client.me); // on a guest the confirm is a command (placement.setSender)
   // A guest's left click makes a gatherable sway and the well's bucket play on its own screen as the host's player's does
   // (player-controller.js, which only a world's step runs): the stamp tells the host, which tells everyone (interact.setStampSink).
   if (guest && clicked && !clickSpent) {
     const m = input.getMouse();
-    const launcher = archery.launcherOf(S.player);
-    if (m && !(launcher && launcher.button === "primary") && !archery.drawState(S.player)) {
-      interact.pokeAt(m.x, m.y, S.player);
-      interact.playAt(m.x, m.y, S.player);
+    const launcher = archery.launcherOf(client.me);
+    if (m && !(launcher && launcher.button === "primary") && !archery.drawState(client.me)) {
+      interact.pokeAt(m.x, m.y, client.me);
+      interact.playAt(m.x, m.y, client.me);
       // A villager under the cursor answers on the host, by its id (item 4: the host has no cursor of mine).
-      const c = interact.characterAt(m.x, m.y, S.player);
+      const c = interact.characterAt(m.x, m.y, client.me);
       if (c && c.kind === "villager") net.sendPokeVillager(c.id);
     }
   }
@@ -1179,12 +1181,12 @@ function stepGame(dt) {
   // The world: the player from the mouse and the keys as a snapshot (docs/23a, D1;
   // never the input module), the dead, the villagers, the light (game.js).
   const mouse = input.getMouse();
-  const o = aimOrigin(S.player);
+  const o = aimOrigin(client.me);
   const mySnap = {
     axis: input.moveAxis(),
     sprint: input.isDown("ShiftLeft") || input.isDown("ShiftRight"),
     aim: { x: mouse.x - o.x, y: mouse.y - o.y }, // the cursor relative to the chest, a vector a host can read (net.js)
-    aimAt: archery.aimPoint(S.player, mouse), // the ground point the cursor means, for a bow drawn on a host (net.js)
+    aimAt: archery.aimPoint(client.me, mouse), // the ground point the cursor means, for a bow drawn on a host (net.js)
     clicked,
     clickSpent,
     keys,
@@ -1198,11 +1200,11 @@ function stepGame(dt) {
   };
   if (guest) net.guestStep(mySnap);
   else {
-    game.step(dt, net.hostStep(mySnap, S.player));
+    game.step(dt, net.hostStep(mySnap, client.me));
     net.hostAfterStep();
   }
-  const px = Math.round(S.player.gx);
-  const py = Math.round(S.player.gy);
+  const px = Math.round(client.me.gx);
+  const py = Math.round(client.me.gy);
   playerRoom = map.roomAt(px, py); // refinds rooms if a wall changed
   // Sight is cast from the player's tile centre and only recomputed when the
   // player or the camera enters a new tile. Casting every step at 60 Hz was the
@@ -1216,7 +1218,7 @@ function stepGame(dt) {
     timing.vis = performance.now() - t1;
   }
   // Who the next swing would hit, flagged for the renderer's outline (docs/14).
-  combat.markTargets(S.player, S.zombies, settings.get("showSwingTargets"));
+  combat.markTargets(client.me, S.zombies, settings.get("showSwingTargets"), client.targets);
   updateInventoryUi();
   navRow.update({ bag: panel.isBagOpen(), character: panel.isCharacter(), map: mapPanel.isOpen(), build: buildPalette.isOpen() }); // after the panels answered the keys
   refreshFigure();
@@ -1235,22 +1237,23 @@ function renderUi() {
   const now = loop.simTime();
   const dt = now - uiSimTime;
   uiSimTime = now;
-  panel.renderInventoryPanel(S.player, inventory.bagOf(S.player), openBag ? openBag.bag : null, inventory.beltOf(S.player));
-  updateHud({ player: S.player });
-  debuffRow.updateDebuffs(S.player); // the row at the top right, from this player's own record (#308)
-  updatePrompt(interact.promptFor(S.player, S.progress), S.progress);
-  updateZombieBars(S.zombies, visible, S.player);
-  updateSwingTimer(S.player);
-  updateSpeech(S.others, visible, S.player, dt);
-  updateNames(S.players, visible, S.player);
+  panel.renderInventoryPanel(client.me, inventory.bagOf(client.me), openBag ? openBag.bag : null, inventory.beltOf(client.me));
+  updateHud({ player: client.me });
+  debuffRow.updateDebuffs(client.me); // the row at the top right, from this player's own record (#308)
+  const progress = client.me ? client.me.actionProgress : null; // my own timed action's, from my record (the world's S.progress is its own player's)
+  updatePrompt(interact.promptFor(client.me, progress), progress);
+  updateZombieBars(S.zombies, visible, client.me);
+  updateSwingTimer(client.me);
+  updateSpeech(S.others, visible, client.me, dt);
+  updateNames(S.players, visible, client.me);
   {
     // An animal's name while the pointer is on one I can see (docs/45).
     const m = input.getMouse();
-    const c = m && m.inside && !S.player.dead ? interact.characterAt(m.x, m.y, S.player) : null;
+    const c = m && m.inside && !client.me.dead ? interact.characterAt(m.x, m.y, client.me) : null;
     updateHoverName(c && c.kind === "animal" && visible.has(visibility.tileKey(Math.round(c.gx), Math.round(c.gy))) ? c : null);
   }
-  if (floatersUi.active()) floatersUi.update(dt, [...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals], visible, S.player); // the numbers over heads, from the same blended positions
-  mapPanel.update({ player: S.player, players: S.players, places: (S.info && S.info.places) || [] });
+  if (floatersUi.active()) floatersUi.update(dt, [...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals], visible, client.me); // the numbers over heads, from the same blended positions
+  mapPanel.update({ player: client.me, players: S.players, places: (S.info && S.info.places) || [] });
   updateMessage(dt);
 }
 
@@ -1264,7 +1267,7 @@ async function restoreWorld(snap) {
   refreshFigure(true);
   // A world may come back with nobody standing in it (a server world brought home: every character dormant until its
   // player returns, item 5); the camera and the first sight start at the spawn, and playWorld puts my character back.
-  const at = S.player || { gx: S.info && S.info.spawn ? S.info.spawn[0] : 0, gy: S.info && S.info.spawn ? S.info.spawn[1] : 0 };
+  const at = client.me || { gx: S.info && S.info.spawn ? S.info.spawn[0] : 0, gy: S.info && S.info.spawn ? S.info.spawn[1] : 0 };
   camera.snapTo(at.gx, at.gy);
   camera.applyOrigin(V.w, V.h);
   tiles = camera.viewportTiles(V.w, V.h);
@@ -1293,7 +1296,7 @@ async function restoreWorld(snap) {
 
 // The step while a screen is up on the wire: the camera and the world, my player idle, no keys.
 function stepWithScreenUp(dt, guest) {
-  const player = S.player;
+  const player = client.me;
   camera.follow(player, dt);
   camera.applyOrigin(V.w, V.h);
   if (!glError) ground.update(camera.cam.gx, camera.cam.gy, tiles);
@@ -1317,8 +1320,8 @@ function stepWithScreenUp(dt, guest) {
 
 function render() {
   const r0 = performance.now();
-  if (!inWorld || !S.player) { gl.blank(); return; } // the title over black, never the world left (docs/31/09, #16)
-  if (started && !S.player.dead && loop.simTime() - lastAutosave >= AUTOSAVE && performance.now() - lastAutosaveAt >= AUTOSAVE * 1000) {
+  if (!inWorld || !client.me) { gl.blank(); return; } // the title over black, never the world left (docs/31/09, #16)
+  if (started && !client.me.dead && loop.simTime() - lastAutosave >= AUTOSAVE && performance.now() - lastAutosaveAt >= AUTOSAVE * 1000) {
     // Stamped when asked, so a save still being written (or a world that saves nothing, a guest's) is asked once a minute, not every frame.
     lastAutosave = loop.simTime();
     lastAutosaveAt = performance.now();
@@ -1332,18 +1335,18 @@ function render() {
     entities: [...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals], // the animals drawn as any entity, from their own sheets (docs/45); every player, not mine alone (Michael's first real join, 2026-10-13: the other player was a name with no body)
     arrows: archery.arrowsInFlight(),
     fire: burning.all(),
-    marker: settings.get("aimGuide") ? archery.getMarker(S.player) : null, // the viewer's own Aim guide (docs/20, 02 2026-10-16)
+    marker: settings.get("aimGuide") ? archery.getMarker(client.me) : null, // the viewer's own Aim guide (docs/20, 02 2026-10-16)
     playerRoom,
-    player: S.player,
+    player: client.me,
     camera: camera.cam,
     drawAll,
     fog: !drawAll,
     ghost: placement.ghost(),
     // The object under the cursor that a right-click would act on, outlined (Object Highlight, #301): asked of the step's own positions and origin, as a click is.
-    highlight: objectHighlight.update({ enabled: settings.get("objectHighlight") !== false, blocked: placement.state.active || use.isActive(), mouse: input.getMouse(), player: S.player, visible, now: performance.now() }),
-    hitShapes: combat.overlays(S.player, S.zombies, settings.get("showHitShapes")),
+    highlight: objectHighlight.update({ enabled: settings.get("objectHighlight") !== false, blocked: placement.state.active || use.isActive(), mouse: input.getMouse(), player: client.me, visible, now: performance.now() }),
+    hitShapes: combat.overlays(client.me, S.zombies, settings.get("showHitShapes")),
     tileMark: inspectMark.marked(), // the patch an Inspect speaks of
-    tracks: tracks.near(S.player), // wild game's prints near me (docs/45 section 2; this client's view, nothing sent)
+    tracks: tracks.near(client.me), // wild game's prints near me (docs/45 section 2; this client's view, nothing sent)
     // The tile grid shows only while building or removing (docs/15).
     grid: placement.state.kind === "build" || placement.state.kind === "remove",
   };
@@ -1362,12 +1365,12 @@ function render() {
     camera.applyOrigin(V.w, V.h); // the step's origin back, which the next step's mouse picking reads
   }
   soundCues.update(S); // the ear (docs/40): what this client sees, heard, from the step's own positions
-  const [cx, cy] = map.chunkCoord(Math.round(S.player.gx), Math.round(S.player.gy));
+  const [cx, cy] = map.chunkCoord(Math.round(client.me.gx), Math.round(client.me.gy));
   const hand = (e) => (e ? e.id : "-");
   debugEl.textContent =
     `fps ${loop.getFps()}\n` +
-    `player ${S.player.gx.toFixed(2)},${S.player.gy.toFixed(2)} ${S.player.facing} hp ${Math.ceil(S.player.hp)} hunger ${Math.round(S.player.hunger)} thirst ${Math.round(S.player.thirst)}\n` +
-    `${clock.getLabel()} ${clock.getPhase()}  bright ${clock.getBrightness().toFixed(2)}  light@player ${light.lightAt(S.player.gx, S.player.gy).toFixed(2)}  hands ${hand(S.player.hands.main)}/${hand(S.player.hands.off)}  guard ${combat.shieldOf(S.player) ? (S.player.blocking ? "UP" : "ready") : "no shield"}\n` +
+    `player ${client.me.gx.toFixed(2)},${client.me.gy.toFixed(2)} ${client.me.facing} hp ${Math.ceil(client.me.hp)} hunger ${Math.round(client.me.hunger)} thirst ${Math.round(client.me.thirst)}\n` +
+    `${clock.getLabel()} ${clock.getPhase()}  bright ${clock.getBrightness().toFixed(2)}  light@player ${light.lightAt(client.me.gx, client.me.gy).toFixed(2)}  hands ${hand(client.me.hands.main)}/${hand(client.me.hands.off)}  guard ${combat.shieldOf(client.me) ? (client.me.blocking ? "UP" : "ready") : "no shield"}\n` +
     `chunk ${cx},${cy}  room ${playerRoom}${playerRoom > 0 ? (map.roomSealed(map.getRoom(playerRoom)) ? " sealed" : " open") : ""}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `ground ${groundLine()}${net.onTheWire() ? `  wire out ${(net.wireRates().out / 1024).toFixed(1)} KB/s in ${(net.wireRates().in / 1024).toFixed(1)} KB/s` : ""}\n` +
@@ -1541,12 +1544,12 @@ async function boot() {
           rules: { ...sandboxChoices().rules, ...Object.fromEntries(rules.FIXED.map((k) => [k, rules.DEFAULTS[k]])) },
         });
         refreshFigure();
-        camera.snapTo(S.player.gx, S.player.gy);
+        camera.snapTo(client.me.gx, client.me.gy);
         camera.applyOrigin(V.w, V.h);
         tiles = camera.viewportTiles(V.w, V.h);
         light.update();
         for (const [cx, cy] of ground.prebakeTargets(tiles)) light.chunkLight(cx, cy);
-        visible = visibility.computeVisible(Math.round(S.player.gx), Math.round(S.player.gy), tiles);
+        visible = visibility.computeVisible(Math.round(client.me.gx), Math.round(client.me.gy), tiles);
         setInWorld(true);
       }
     } },
@@ -1580,7 +1583,7 @@ async function boot() {
         // The log is the chat (docs/31/03): a line typed is said by my player; a guest's is said on the host.
         onSay: (text) => {
           if (net.isGuest()) net.sendSay(text);
-          else say(S.player, text);
+          else say(client.me, text);
         },
         // A line beginning with a slash: /wave waves (docs/43 section 7), a key event in my next snapshot as G is, so a guest's is the host's doing.
         onCommand: (cmd) => {
@@ -1594,10 +1597,10 @@ async function boot() {
       floatersUi.initFloaters();
       floaters.setGuestCheck(() => net.isGuest()); // a guest records none of its own: it draws what the host sent
       use.init();
-      stationPanel.initStationPanel(() => S.player);
+      stationPanel.initStationPanel(() => client.me);
       // The dye vat's picker (docs/43 section 8): the player's look in these clothes, baked by the figure code, the hands empty.
-      dyePanel.initDyePanel(() => S.player, (worn) => figure.generateFigure(figure.characterSpec(figure.characterInputs({ kind: "player", look: S.player.look, worn, hands: { main: null, off: null } }, undefined, {}, null))));
-      talkPanel.initTalkPanel(() => S.player, () => S.villagers);
+      dyePanel.initDyePanel(() => client.me, (worn) => figure.generateFigure(figure.characterSpec(figure.characterInputs({ kind: "player", look: client.me.look, worn, hands: { main: null, off: null } }, undefined, {}, null))));
+      talkPanel.initTalkPanel(() => client.me, () => S.villagers);
       navRow.initNavRow({ tap: input.tap, openChat: () => log.focusChat(log.draft()), openMenu: () => screens.show("pause"), openSettings: () => screens.show("settings"), canAct: () => inWorld && !screens.currentScreen() });
       view.onResize(() => navRow.relayout()); // the row's layout follows the interface size, a screen up or not (#307)
       initHud();
@@ -1612,8 +1615,8 @@ async function boot() {
       // Rejoin) has no ?join=, got the host's handlers, and its every panel action changed its own copy of the
       // world and told the host nothing (a bag taken from the dev chest vanished from the joiner's chest and went
       // nowhere; Michael's real join, 2026-10-13).
-      const localHandlers = createInventoryActions(() => S.player);
-      remoteHandlers = createRemoteInventoryActions(() => S.player, () => openBag, (cmd) => net.sendItem(cmd));
+      const localHandlers = createInventoryActions(() => client.me);
+      remoteHandlers = createRemoteInventoryActions(() => client.me, () => openBag, (cmd) => net.sendItem(cmd));
       handlers = {};
       for (const k of new Set([...Object.keys(localHandlers), ...Object.keys(remoteHandlers)])) {
         const lv = localHandlers[k];
@@ -1730,7 +1733,7 @@ async function boot() {
           // The figure in the kit's clothes, the hands empty, baked by the game's own code.
           sheet: () => bake(lookOf(editing), kitWorn, {}),
           // This world's character as it is, for the pause menu's Character screen.
-          characterSheet: () => (inWorld && S.player ? bake(S.player.look, S.player.worn, settings.get("paintedLayers") || {}) : null),
+          characterSheet: () => (inWorld && client.me ? bake(client.me.look, client.me.worn, settings.get("paintedLayers") || {}) : null),
         },
         // Painted layers to try on, per slot, regardless of what is worn (docs/12).
         layers: {
@@ -1750,12 +1753,12 @@ async function boot() {
       // players they are for (host.js); this client only reads the world (item 5's first step, 2026-10-14).
       // A bite names its victim (docs/31/05, item 18): the wound is theirs; the words are mine alone.
       events.on("bitten", ({ player: p, opened, infected }) => {
-        if (p !== S.player) return;
+        if (p !== client.me) return;
         if (infected) showMessage("The bite broke the skin.");
         else if (opened && bleed.stacks(p) === 1) showMessage("You are bleeding. A bandage will stop it.");
       });
       // A blow met by the shield: sparks where they meet (docs/21); the flash is the player's own state (combat.js).
-      events.on("blocked", ({ zombie, player: p = S.player }) => {
+      events.on("blocked", ({ zombie, player: p = client.me }) => {
         const d = iso.normalize(zombie.gx - p.gx, zombie.gy - p.gy);
         burning.spark(p.gx + d.x * 0.45, p.gy + d.y * 0.45, 22);
       });
@@ -1764,10 +1767,10 @@ async function boot() {
       events.on("fenceBurst", ({ x, y }) => burning.splinters(x, y, 12));
       // A blow that landed kicks the camera of the client whose player struck (docs/31/05, item 13).
       events.on("kicked", ({ player: p, x, y, seconds }) => {
-        if (p === S.player) camera.kick(x, y, seconds);
+        if (p === client.me) camera.kick(x, y, seconds);
       });
       events.on("gameOver", ({ player: p }) => {
-        if (p !== S.player) return; // another player's death is theirs to see
+        if (p !== client.me) return; // another player's death is theirs to see
         // The world says so (game.js) and the host saves it (host.js); the client shows it.
         screens.show("dead", { when: clock.getLabel(), who: p.name || p.id });
       });
@@ -1776,30 +1779,30 @@ async function boot() {
       events.on("sleepStart", () => showMessage(game.everyoneAsleep() ? "You lie down. The night goes on without you." : "You lie down. Time will pass faster once everyone in the world is asleep.", 5));
       events.on("sleepEnd", ({ hours }) => showMessage(`${clock.getLabel()}. You slept ${hours} hours.`, 4));
       events.on("fireOut", ({ tile }) => {
-        if (Math.hypot(tile[0] - S.player.gx, tile[1] - S.player.gy) <= tuning.world.fireOutRadius) showMessage("A fire has gone out.");
+        if (Math.hypot(tile[0] - client.me.gx, tile[1] - client.me.gy) <= tuning.world.fireOutRadius) showMessage("A fire has gone out.");
       });
       // A craft done and a weapon worn out (docs/30, sections 5.2 and 6): the line and the word for my own player
       // (a guest's reach it through the host, host.js).
       events.on("craftDone", ({ out, tile }) => {
         const line = `Made ${out.prop ? out.prop.replace(/_/g, " ") : `${out.count > 1 ? `${out.count} ` : ""}${items.getItem(out.id).name.toLowerCase()}`}.`;
-        if (Math.hypot(tile[0] - S.player.gx, tile[1] - S.player.gy) <= tuning.world.craftDoneRadius) log.push(line, "result");
+        if (Math.hypot(tile[0] - client.me.gx, tile[1] - client.me.gy) <= tuning.world.craftDoneRadius) log.push(line, "result");
       });
       events.on("torchSpent", ({ x, y }) => {
-        if (Math.hypot(x - S.player.gx, y - S.player.gy) <= tuning.world.torchSpentRadius) log.push("A torch burns out.", "result"); // a guest's, host.js
+        if (Math.hypot(x - client.me.gx, y - client.me.gy) <= tuning.world.torchSpentRadius) log.push("A torch burns out.", "result"); // a guest's, host.js
       });
       events.on("weaponBroke", ({ item, who }) => {
-        if (!who || who === S.player.id) showMessage(`Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3);
+        if (!who || who === client.me.id) showMessage(`Your ${items.getItem(item).name.toLowerCase()} is spent.`, 3);
       });
       // A thrown thing that broke where it came down, hit or miss (Michael, 2026-10-24): the thrower is told (a guest's, host.js).
       events.on("arrowLanded", ({ arrow, broken }) => {
-        if (broken && arrow.item && arrow.shooter && arrow.shooter.id === S.player.id) showMessage(`The ${items.getItem(arrow.item.id).name.toLowerCase()} breaks.`, 2);
+        if (broken && arrow.item && arrow.shooter && arrow.shooter.id === client.me.id) showMessage(`The ${items.getItem(arrow.item.id).name.toLowerCase()} breaks.`, 2);
       });
       events.on("drank", ({ who, auto }) => {
-        if (auto && who === S.player.id) showMessage("You drink from your waterskin.", 2); // a guest's, host.js
+        if (auto && who === client.me.id) showMessage("You drink from your waterskin.", 2); // a guest's, host.js
       });
       events.on("talkStarted", ({ villager, by }) => {
-        if (by !== S.player) return; // a guest's player's conversation is told to the guest (host.js), not this screen
-        talkPanel.openFor(villager, S.player);
+        if (by !== client.me) return; // a guest's player's conversation is told to the guest (host.js), not this screen
+        talkPanel.openFor(villager, client.me);
       });
       events.on("containerGone", ({ bags }) => {
         if (openBag && bags.includes(openBag.bag)) openBag = null; // its panel closes with it (placement.js destroy)
@@ -1807,13 +1810,13 @@ async function boot() {
       events.on("containerOpened", ({ bag, tiles: where, name, corpse, closeDist }) => {
         // Opened by a guest's player (the acting player, game.js): the host tells the guest (host.js), not this screen.
         const by = game.state.acting;
-        if (by && by !== S.player) return;
+        if (by && by !== client.me) return;
         openBag = { bag, tiles: where, name, corpse: corpse || null, closeDist: closeDist || 0 };
         panel.setBagOpen(true);
       });
       // The host's answers to the world's events, and the routing of a message or a log line said while a guest's
       // player acts (host.js): once, here, as this page may host.
-      host.init({ cap: () => tuning.world.playerCapBrowser, store: ownersStore, save: () => saveWorld(), self: () => S.player, arrived: (p) => refreshFigureOf(p, true) });
+      host.init({ cap: () => tuning.world.playerCapBrowser, store: ownersStore, save: () => saveWorld(), self: () => client.me, arrived: (p) => refreshFigureOf(p, true) });
       host.install();
       // After the menu's own listener, so a menu closed by Escape is seen first.
       window.addEventListener("keydown", (e) => {
@@ -1849,17 +1852,16 @@ async function boot() {
       shell.worldNoCancel(); // the world is here: Leave is the way out now (the review of #115)
       awaitingWelcome = false;
       await restoreWorld(snap);
-      S.player = S.players.find((p) => p.id === playerId) || S.player;
-      game.state.player = S.player;
+      refind(S.players, playerId); // the world's restore picked its first player; mine is the one my welcome named
       refreshFigure(true);
-      camera.snapTo(S.player.gx, S.player.gy);
+      camera.snapTo(client.me.gx, client.me.gy);
       setInWorld(true);
       currentWorld = null; // the host's world, never saved here
       joinedWorld = world || null; // its name and its host's, for the pause menu (the wiki census's bugs, 2026-10-15)
       started = false;
       // The bookmark learns the world's name, its host, and my character there (docs/31/09).
       // (A world of mine on the server has its own row among my worlds, item 5: not a friend's world too.)
-      if (!identities.owned().some((o) => o.code === net.status().code)) identities.rememberJoined({ code: net.status().code, name: world ? world.name : null, hostName: world ? world.host : null, myCharacter: S.player.name || S.player.id });
+      if (!identities.owned().some((o) => o.code === net.status().code)) identities.rememberJoined({ code: net.status().code, name: world ? world.name : null, hostName: world ? world.host : null, myCharacter: client.me.name || client.me.id });
       // The host's world is here: its ground baked behind the screen, then the screen goes (#107).
       await settleWorld(0.5);
       await shell.worldEnd();
@@ -1884,15 +1886,15 @@ async function boot() {
       // A dye vat my player used on the host: its picker on my replica (docs/43 section 8); a vat has no grid.
       if (w.dye && w.propId) {
         const pr = map.propById(w.propId);
-        if (pr) { stationPanel.close(); dyePanel.openPanel(pr, S.player); }
+        if (pr) { stationPanel.close(); dyePanel.openPanel(pr, client.me); }
         return;
       }
-      const c = interact.containerAt(S.player, w);
+      const c = interact.containerAt(client.me, w);
       if (!c) return;
       // A station my player used on the host: its recipes panel on my replica (the output opens below as any container).
       if (w.station && w.propId) {
         const pr = map.propById(w.propId);
-        if (pr) stationPanel.openPanel(pr, S.player);
+        if (pr) stationPanel.openPanel(pr, client.me);
       }
       openBag = { bag: c.bag, tiles: w.tiles, name: w.name, corpse: c.corpse, closeDist: w.closeDist || 0, address: w };
       panel.setBagOpen(true);
@@ -1900,7 +1902,7 @@ async function boot() {
     // A conversation my player began on the host: the panel on my replica, its lines computed here from my own copy of the villager and the world (docs/34).
     talk: (w) => {
       const v = S.villagers.find((q) => q.id === w.villagerId);
-      if (v) talkPanel.openFor(v, S.player);
+      if (v) talkPanel.openFor(v, client.me);
     },
     // A log line said for my player on the host (the Use mode's result).
     log: (text, kind) => log.push(text, kind),
@@ -1949,7 +1951,7 @@ async function boot() {
   // pump: a hidden host's world open to friends with nobody in it yet answers the wire (a join) without stepping.
   // pump: a world that is not stepping (hidden and open with nobody in, or held) still answers the wire, so a join is heard.
   loop.start({ update, render, crash: shell.crash, pump: () => {
-    if (inWorld && net.isHost()) net.hostStep({ ...game.idleSnapshot(), idle: true }, S.player);
+    if (inWorld && net.isHost()) net.hostStep({ ...game.idleSnapshot(), idle: true }, client.me);
     applyPause();
   } });
   // A world with friends in it is stepped by a Worker's timer when the browser stops drawing this tab (item 3, `02`):
@@ -1994,7 +1996,7 @@ async function boot() {
   if (net.isGuest() && !joinedWorld) { awaitingWelcome = true; showJoining(net.status().code); }
 
   window.__game = createDevApi({
-    get player() { return S.player; },
+    get player() { return client.me; },
     get zombies() { return S.zombies; },
     get corpses() { return S.corpses; },
     get villagers() { return S.villagers; },

@@ -18,6 +18,9 @@ export async function run(game) {
   const { objectHighlight: T } = await import("/src/tuning.js");
   const me = G.player;
   const role = G.net.status().role;
+  // A guest's console does not teleport (docs/31/07 question 14, #102): there the replica's own player is stood directly, the camera
+  // with it, and the host's next frame puts it back where the host has it.
+  const standAt = (gx, gy) => { if (role !== "guest") return G.teleport(gx, gy); me.gx = gx; me.gy = gy; me.auto = null; G.camera.snapTo(gx, gy); };
   const setting0 = G.settings.get("objectHighlight");
   const meAt = [me.gx, me.gy];
   const wasPaused = G.loop.isPaused();
@@ -49,7 +52,7 @@ export async function run(game) {
     }
     if (!at) throw new Error("no bare grass for the check");
     const [x, y] = at;
-    G.teleport(x - 0.9, y + 0.1);
+    standAt(x - 0.9, y + 0.1);
     if (role !== "guest") {
       const put = (sprite, tx, ty) => { const p = G.map.createProp({ sprite, tile: [tx, ty] }); G.map.placeProp(p, tx, ty); made.push(p); return p; };
       const tree = put("tree_oak_m", x + 1, y);
@@ -114,11 +117,11 @@ export async function run(game) {
       // The crop, one of the world's own.
       const crop = [...G.map.allProps()].filter((q) => q.crop && labelsOf(q).length > 0).sort((a, b) => Math.hypot(a.tile[0] - me.gx, a.tile[1] - me.gy) - Math.hypot(b.tile[0] - me.gx, b.tile[1] - me.gy))[0];
       if (crop) {
-        G.teleport(crop.tile[0] - 0.9, crop.tile[1] + 0.1);
+        standAt(crop.tile[0] - 0.9, crop.tile[1] + 0.1);
         G.map.ensureAround(me.gx, me.gy, 3);
         const tc = probe(crop.tile[0], crop.tile[1]);
         row("a crop is found", !!tc && tc.kind === "prop" && tc.id === crop.id, `${crop.sprite}: ${JSON.stringify(tc)} (${labelsOf(crop).join(", ")})`);
-        G.teleport(x - 0.9, y + 0.1);
+        standAt(x - 0.9, y + 0.1);
       } else row("a crop is found", false, "no crop with an action in the world");
       // update(): the setting, the modes, the cursor, the cache.
       const s = G.iso.toScreen(x + 1, y);
@@ -140,7 +143,7 @@ export async function run(game) {
       const hid = G.map.createProp({ sprite: "mushroom_0", tile: [x, y - 1] });
       G.map.placeProp(hid, x, y - 1);
       made.push(hid);
-      G.teleport(x - 0.9, y + 0.1);
+      standAt(x - 0.9, y + 0.1);
       G.loop.advance(1 / 60);
       const tf = G.iso.toScreen(x + 1, y); // the tree's foot, read now
       const covered = [];
@@ -190,12 +193,12 @@ export async function run(game) {
       for (const [name, pred] of [["a tree", (q) => q.wood && labelsOf(q).length > 0], ["a chest", (q) => q.container && labelsOf(q).length > 0], ["a crop", (q) => q.crop && labelsOf(q).length > 0]]) {
         const p = near(pred);
         if (!p) { row(`on a guest ${name} is found`, false, "none in the replica"); continue; }
-        G.teleport(p.tile[0] - 0.9, p.tile[1] + 0.1);
+        standAt(p.tile[0] - 0.9, p.tile[1] + 0.1);
         G.map.ensureAround(me.gx, me.gy, 3);
         const t = probe(p.tile[0], p.tile[1]);
         row(`on a guest ${name} is found`, !!t && t.kind === "prop" && t.id === p.id, `${p.sprite}: ${JSON.stringify(t)}`);
       }
-      G.teleport(x - 0.9, y + 0.1);
+      standAt(x - 0.9, y + 0.1);
       row("on a guest bare grass is not", probe(x + 3, y - 1) === null, JSON.stringify(probe(x + 3, y - 1)));
     }
   } catch (e) {
@@ -210,7 +213,7 @@ export async function run(game) {
       for (const [c, cx, cy] of moved) { c.gx = cx; c.gy = cy; }
       me.carrying = null;
     }
-    G.teleport(meAt[0], meAt[1]);
+    standAt(meAt[0], meAt[1]);
     G.loop.setPaused(wasPaused);
   }
   for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);

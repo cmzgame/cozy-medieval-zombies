@@ -16,6 +16,7 @@ import { emitRugs } from "./rugs.js"; // laid rugs, flat on the ground under eve
 import { emitTileMark } from "./marks.js"; // the tile an Inspect marks
 import { emitTracks } from "./tracks.js"; // game's prints on the ground (docs/45 section 2)
 import { postDrawables, wallDrawables } from "./walls.js";
+import { client } from "../client.js"; // who stands behind a tall prop, the client's own (#102)
 
 // The night, as before: tunables Michael picks by eye, live on
 // window.__game.render.night. `climb` is how many pixels a pool climbs a wall
@@ -101,9 +102,10 @@ function rectsOverlap(a, b) {
 // Who is behind a tall prop. Only the player is seen through it, by a soft
 // hole in the canopy (docs/06); the dead are not: a zombie behind a tree is
 // hidden by the tree like anything else, so the forest gives no laser vision
-// (Michael, 2026-10-11). Every figure gets `behindProp` for the UI that floats
-// over it (the health bars) to stay out of the same leak.
+// (Michael, 2026-10-11). Every figure behind one goes in `client.behind`, by id, for the UI that floats over it
+// (the health bars, the bubbles) to stay out of the same leak; never a flag on the figure (docs/31/05 item 7, #102).
 function computeOcclusion(drawables, me) {
+  client.behind.clear();
   for (let i = 0; i < drawables.length; i++) {
     const d = drawables[i];
     if (d.kind !== "entity" || d.entity.dead || !d.rect) continue;
@@ -121,7 +123,7 @@ function computeOcclusion(drawables, me) {
         }
       }
     }
-    d.entity.behindProp = behind;
+    if (behind) client.behind.add(d.entity.id);
   }
 }
 

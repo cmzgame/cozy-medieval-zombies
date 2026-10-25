@@ -62,16 +62,25 @@ export const state = {
   acting: null, // the player whose update or command runs right now, so a message finds its screen (net.js)
 };
 
+// The world's own player (the one a world made or restored stands as; a browser's client follows it as `client.me`,
+// src/client.js, by the `playerPicked` event). In the step it is read by `S.progress` and by `playerHit`'s handler, as the
+// victim when an event names none (every emitter names one today: the dead's bite, check("worlds")); a host's own input
+// goes to its player by id (net.hostStep), not by this pick.
+function own(p) {
+  state.player = p;
+  events.emit("playerPicked", { player: p });
+}
+
 // The player's list, kept with the one player while the game has one.
 export function setPlayer(p) {
-  state.player = p;
   state.players = p ? [p] : [];
+  own(p);
 }
 
 // Me among the players, the list kept: a world played again as the character this browser made there,
 // or a new character after a death with the body still listed (docs/31/09).
 export function pickPlayer(p) {
-  if (p && state.players.includes(p)) state.player = p;
+  if (p && state.players.includes(p)) own(p);
 }
 
 // The world from a map file: the generator seeded, the map loaded and the
@@ -630,7 +639,7 @@ export function addPlayer(gx, gy, { look = null, name = null, id = null } = {}) 
   if (name) p.name = name;
   giveStarterKit(p);
   S.players.push(p);
-  if (!S.player) S.player = p;
+  if (!S.player) S.player = p; // the world's pick, never the client's: a guest joining a world whose host has fallen (the pick null after the restore) is not the host's screen (the review of #465); a client that wants it calls pickPlayer
   return p;
 }
 
@@ -672,7 +681,7 @@ export function putPlayer(record) {
   delete p._carryingId;
   delete p._carried;
   S.players.push(p);
-  if (!S.player) S.player = p;
+  if (!S.player) S.player = p; // the world's pick only, as addPlayer's
   return p;
 }
 
@@ -878,7 +887,7 @@ export function step(dt, snapshots = null) {
     S.zombies = S.zombies.filter((z) => !z.corpse);
   }
   // A fallen player's body joins the fallen the same way: drawn, searched, saved, and sent as one of the dead's bodies.
-  // The client whose player it was keeps its own reference (S.player) for the dead screen; a new character replaces it.
+  // The client whose player it was keeps its own reference (`client.me`, src/client.js) for the dead screen; a new character replaces it.
   if (S.players.some((p) => p.corpse)) {
     S.corpses.push(...S.players.filter((p) => p.corpse));
     S.players = S.players.filter((p) => !p.corpse);

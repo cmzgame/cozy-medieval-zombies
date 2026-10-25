@@ -24,6 +24,7 @@ import * as combat from "./combat.js";
 import * as archery from "./archery.js";
 import { cam } from "./camera.js";
 import { hashString } from "./sound-gen.js";
+import { client } from "./client.js";
 
 const FRESH = 0.25; // seconds of sim time since the last run past which the ear starts again from a baseline (docs/40)
 const WALK = new Set(["walk", "carry_walk"]);
@@ -99,12 +100,12 @@ function remember(S) {
   floaters.takeForEar(); // what happened before the baseline is not heard
 }
 
-// `S` the world's state (game.state: players, zombies, villagers, corpses, player). `dt` is accepted for a check that
+// `S` the world's state (game.state: players, zombies, villagers, corpses); the listener is this client's own player (client.me, #102). `dt` is accepted for a check that
 // passes the step it advanced; the gap itself is read from the sim clock.
 export function update(S, dt = 0) {
   if (!S || !S.players) return;
   const sim = loop.simTime();
-  const me = S.player;
+  const me = client.me;
   audio.setClock(loop.simTime);
   audio.setListener(me && !me.dead ? me.gx : cam.gx, me && !me.dead ? me.gy : cam.gy); // a dead player hears from the camera
   const gap = lastSim === null ? Infinity : sim - lastSim;
@@ -166,7 +167,7 @@ function stepSlot(c) {
 }
 
 function listenerAt(S) {
-  const me = S.player;
+  const me = client.me;
   return me && !me.dead ? [me.gx, me.gy] : [cam.gx, cam.gy];
 }
 
@@ -289,8 +290,8 @@ function struckWalls() {
   strikes = [];
 }
 
-// ---- an arrow landing: an arrow or a fire arrow in flight last frame and gone now, heard at its last place. The frame
-// sends arrows with no id (net.js), so each is matched to the nearest of its kind still flying.
+// ---- an arrow landing: an arrow or a fire arrow in flight last frame and gone now, heard at its last place. Each is matched
+// to the nearest of its kind still flying (a guest's flights leave its list when their drawn flight ends, archery.stepFlights).
 function inFlight() {
   return archery.arrowsInFlight().filter((a) => !a.done && LANDS.has(a.projectile)).map((a) => ({ gx: a.gx, gy: a.gy, projectile: a.projectile }));
 }
