@@ -117,7 +117,9 @@ export function makeCode() {
 // is the changed cells, [cx, cy, [index, cell, ...]] per chunk, not whole chunks; 8 (2026-10-19, #294): the frame may carry `floaters`, the hits, heals, and gathers of the step
 // for the numbers over heads ([kind, id, n, skill] each); 9 (2026-10-25, docs/45): the animals, a fourth list as a delta with its own roster (`animals`, a lean
 // record: where, facing, the animation, state, hp, dead) and the homes' renewal (`animalHomes`, when it changes); the save carries both.
-export const PROTOCOL = 9;
+// 10 (2026-10-25): the frame may carry `evicted`, the [cx, cy] of the wild chunks the host dropped since the last frame (map.takeEvicted), and a
+// guest drops them too (map.dropChunk); an older guest kept every chunk it was sent, so far from the spawn its map and registry were the host's and more.
+export const PROTOCOL = 10;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -415,7 +417,7 @@ export async function isOpen(code) {
 }
 
 export function status() {
-  return { role, code, lag, selfId, guests: [...guests.values()].map((g) => g.playerId), myPlayerId, joined, framesSeen, lastFrameAt, tick, waiting: role === "guest" && !joined, transport: transport ? transport.kind : null, relay: relayUrl, protocol: PROTOCOL, wire: wireRates(), welcome: lastWelcome, welcomesPacking: welcomesPacking.size };
+  return { role, code, lag, selfId, guests: [...guests.values()].map((g) => g.playerId), myPlayerId, joined, framesSeen, lastFrameAt, tick, waiting: role === "guest" && !joined, transport: transport ? transport.kind : null, relay: relayUrl, protocol: PROTOCOL, wire: wireRates(), welcome: lastWelcome, welcomesPacking: welcomesPacking.size, evicted: { sent: evictedSent, dropped: evictedDropped } };
 }
 
 export function setTestSnapshot(s) {
@@ -781,6 +783,8 @@ function record(c) {
 export const FRAME_EVERY = 3;
 let frameCount = 0; // steps over the scale since the last frame
 let framesSent = 0;
+let evictedSent = 0; // the chunks this host's frames have named as dropped (status, check("eviction"))
+let evictedDropped = 0; // the chunks this guest's replica dropped as its frames named them (status, check("eviction"))
 
 // After the world's step: the frame to every guest, when one is due.
 // A browser host's welcome, packed off the step (CompressionStream) and sent when it is done, to the same connection on
@@ -819,6 +823,7 @@ export function hostAfterStep() {
   tick++;
   if (role !== "host" || !guests.size) {
     map.takeTouched(); // nobody to tell: the touched set is drained, not kept for ever (a grown chunk names itself to it in every game)
+    map.takeEvicted(); // and the chunks dropped: the next guest's welcome holds only what is loaded
     chart.takeChanged(); // and the chart's: the world has it all, and the next guest's welcome is the save
     interact.takePokes();
     floaters.takeForFrame(); // and the floating numbers: nobody to show them to (the host draws its own from its log)
@@ -833,6 +838,11 @@ export function hostAfterStep() {
   const S = game.state;
   for (const id of lastCarried.keys()) if (!S.players.some((q) => q.id === id)) lastCarried.delete(id); // a player gone dormant and back is sent its prop in hand afresh
   const touched = map.takeTouched();
+  // The chunks dropped since the last frame, named once like the touched ones: the wire is ordered and every frame reaches every
+  // joined guest (a joiner's frames before its welcome are kept and those after its tick applied, guestStep), so nothing is lost;
+  // a drop is idempotent, so one the welcome already lacks costs nothing.
+  const evicted = map.takeEvicted();
+  evictedSent += evicted.length;
   const chartChanged = chart.takeChanged();
   const floated = floaters.takeForFrame(); // the hits, heals, and gathers since the last frame (#294)
   // A character no longer in any list is forgotten: its id leaves `known` and what was last sent of it. A far chunk put
@@ -917,6 +927,7 @@ export function hostAfterStep() {
     clock: clock.getElapsed(),
     simTime: loop.simTime(),
     timeScale: world.world.timeScale,
+    ...(evicted.length ? { evicted } : {}), // the wild chunks dropped since the last frame, [cx, cy] each: the field only when there are any (protocol 10)
     chunks: touched.map(([cx, cy]) => map.getChunk(cx, cy, false)).filter(Boolean).map(map.serializeChunk),
     ...(chartChanged.length ? { chart: chartChanged } : {}), // the chart cells written since the last frame, [cx, cy, [index, cell, ...]] per chunk (#237; whole chunks only in the welcome): the field only when there are any
     players: S.players.map(playerRecord),
@@ -1180,6 +1191,13 @@ function applyFrame(f) {
   netsmooth.frameArrived(f.simTime, f.timeScale || 1);
   world.setTimeScale(f.timeScale);
   if (f.chart && f.chart.length) chart.apply(f.chart); // a guest only receives the chart; the host reveals it for every player
+  // The chunks the host dropped, dropped here by the host's own path (the registry, the fire set, the light's listener), before the
+  // frame's chunks go in: one dropped and grown again in the same frame arrives fresh below. No guard for my own player's ring: the
+  // host keeps every chunk within `evictChunks` (8) of every player, mine among them, twice the ring of 4 it grows, so a chunk
+  // named here is far beyond where my prediction has me.
+  if (Array.isArray(f.evicted)) for (const at of f.evicted) {
+    if (Array.isArray(at) && Number.isInteger(at[0]) && Number.isInteger(at[1]) && map.dropChunk(at[0], at[1])) evictedDropped++;
+  }
   if (f.chunks.length) {
     for (const d of f.chunks) map.installChunk(d);
     for (const d of f.chunks) for (const p of d.props) map.installProp(p);
