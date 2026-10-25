@@ -1,4 +1,4 @@
-# 44 — Water: tainted and clean, boiling, and being Queasy
+# 44 — Water: tainted and clean, boiling, and being Sick
 
 **Status, 2026-10-25: a spec, ruled by Michael in session (`02`, 2026-10-25, Water ruled; #279, building on 2026-10-19's unsafe water). Not built.** Written from `origin/main` at 31d330a. One build step (#279's build issue). A **default** is Primary's, Michael's to overrule; the rest is his ruling. Skill gates are open to all until the skills are built.
 
@@ -22,23 +22,23 @@
 
 ## 3. Telling them apart
 
-- **The hover card says which it is:** "Clean water", or "Tainted water: drinking it may make you Queasy." The Drink label keeps "(tainted)". A small brown drop on the icon marks a tainted skin or bucket, so it reads at a glance in the bag. The item's name does not change.
+- **The hover card says which it is:** "Clean water", or "Tainted water: drinking it may make you Sick." The Drink label keeps "(tainted)". A small brown drop on the icon marks a tainted skin or bucket, so it reads at a glance in the bag. The item's name does not change.
 
-## 4. Queasy
+## 4. Sick
 
-- **A debuff, not a moodle** (the debuff row, top right, beside bleeding; `src/debuffs.js`). Its name is **Queasy** (*default*): the infection's third stage is already "Sick" (`src/moodles.js`), and two things called Sick would read as one.
+- **A debuff, not a moodle** (the debuff row, top right, beside bleeding; `src/debuffs.js`), named **Sick** (Michael, 2026-10-25: "Sick is natural, queasy is pre-zombie!"). **The infection's third stage, "Sick" today, is renamed "Queasy"** (`src/moodles.js`), so the two never read as one.
 - **Its effects**, small and self-resolving: tiredness builds 50% faster; food heals 25% less (Michael's "slower to heal"); it lasts about half a game day.
-- **The chance:** 20% a tainted drink; a tainted drink while Queasy adds its time again, up to three stacks, as bleeding stacks. **A 1% chance a tainted drink of the infection** (there is no cure in the valley, so ten tainted drinks carry about a one-in-ten chance of death: a desperate choice, by design; Michael accepted the number).
+- **The chance:** 20% a tainted drink; a tainted drink while Sick adds its time again, up to three stacks, as bleeding stacks. **A 1% chance a tainted drink of the infection** (there is no cure in the valley, so ten tainted drinks carry about a one-in-ten chance of death: a desperate choice, by design; Michael accepted the number).
 - **The infection's chance joins the one difficulty dial** with the bite's when that dial is built (`docs/42`).
 - Its card says what it does and how long is left, as bleeding's does; its visual twin is the icon in the row.
 
 ## 5. The guest's side
 
-`boil` is a verb in `verbs.js`, run on the host; the Use mode's click and both menus send it by the vessel's uid and the fire's prop id, the same path as the host's player. `clean` and `fill` ride on the entry in the player's record and the save; Queasy is player state (`player.queasy = { stacks, left }`, as `player.bleed`), in the player's record and the save, and `game.syncParts` compares the players whole. Chance comes from `rng`, time from `loop.simTime()`. Tried in two tabs with `check("sync")`; what it adds to a frame read from `net.status().wire`.
+`boil` is a verb in `verbs.js`, run on the host; the Use mode's click and both menus send it by the vessel's uid and the fire's prop id, the same path as the host's player. `clean` and `fill` ride on the entry in the player's record and the save; Sick is player state (`player.sick = { stacks, left }`, as `player.bleed`), in the player's record and the save, and `game.syncParts` compares the players whole. Chance comes from `rng`, time from `loop.simTime()`. Tried in two tabs with `check("sync")`; what it adds to a frame read from `net.status().wire`.
 
 ## 6. Proof and pages
 
-Rows in `check("food")` (the drink, the chance, the auto-sip skipping tainted), `check("debuffs")` (Queasy's row, card, stacks, and its end), `check("kindle")` or a new `check("water")` (boil by Use, by either menu, greyed with why, mixing taints, the kit's skin clean); every changed card read in the pane (the waterskin, the bucket). The wiki's Water, Thirst, Waterskin, Bucket, Debuffs, Cooking, and Valley day pages.
+Rows in `check("food")` (the drink, the chance, the auto-sip skipping tainted), `check("debuffs")` (Sick's row, card, stacks, and its end; the infection's third stage named Queasy), `check("kindle")` or a new `check("water")` (boil by Use, by either menu, greyed with why, mixing taints, the kit's skin clean); every changed card read in the pane (the waterskin, the bucket). The wiki's Water, Thirst, Waterskin, Bucket, Debuffs, Cooking, and Valley day pages.
 
 ## 7. Later
 
