@@ -1,6 +1,6 @@
 # 39 — The Valley 1.0: the complete scope
 
-**Status, 2026-10-23: a spec, and the one complete list of what The Valley 1.0 holds (#271); the skills' open lines (#275) and the food economy (#264) were ruled on 2026-10-23 (`docs/02`), and the map as it stands is a testing map, not the final valley.** Compiled from `origin/main` at 3e1f5d0 (the data in `data/`, `docs/30`, `docs/29-world`, `docs/02` through its 2026-10-19 entries, `docs/04`, `docs/34`) and from the open issues of the same day: the skills trees on #275, Beastlore on #289, and the scoping issues #92, #103, #123, #133, #181, #260, #261, #262, #264, #268, #273, #279, #281, #282, #283, #285, #288. Valley only: a region appears only as the name of what comes from it. Lists, not reasons; the reasons are `docs/02` and the issues. Numbers are the data's and tuning's, not this page's. Rewritten in place when the scope changes, never appended.
+**Status, 2026-10-24: a spec, and the one complete list of what The Valley 1.0 holds (#271); the skills' open lines (#275) and the food economy (#264) were ruled on 2026-10-23, the loot tables (#268) and the bags (#260) on 2026-10-24, the tables built the same day (`docs/02`), and the map as it stands is a testing map, not the final valley.** Compiled from `origin/main` at 3e1f5d0 (the data in `data/`, `docs/30`, `docs/29-world`, `docs/02` through its 2026-10-19 entries, `docs/04`, `docs/34`) and from the open issues of the same day: the skills trees on #275, Beastlore on #289, and the scoping issues #92, #103, #123, #133, #181, #260, #261, #262, #264, #268, #273, #279, #281, #282, #283, #285, #288. Valley only: a region appears only as the name of what comes from it. Lists, not reasons; the reasons are `docs/02` and the issues. Numbers are the data's and tuning's, not this page's. Rewritten in place when the scope changes, never appended.
 
 ## 0. How to read it
 
@@ -116,7 +116,7 @@
 - **Bed** [built]: sleep (indoors); carried; made at the workbench.
 - **Chest** [built]: a container; carried; made at the workbench.
 - **Shelf, cupboard, desk, bookcase, strongbox, counter, coffin, haystack, woodpile, cart, stall** [built]: containers, each kind with its own loot table (2026-10-24, #268): shelf and cupboard the pantry, woodpile its wood, cart and stall the market, bookcase and desk nothing until books, strongbox nothing until gems and trinkets, coffin grave goods, counter the inn's, haystack a stick; the shelf is made, the rest are dead ends [open #273].
-- **Barrel** [built]: a container (apples, a waterskin, logs); carried; not made [open #273].
+- **Barrel** [built]: a container (one or two apples or a waterskin, empty half the time; #268); carried; not made [open #273].
 - **Wheelbarrow** [built]: a big empty container, carried like a barrel; made at the workbench.
 - **Stone stack, ore cart, charcoal sack** [built]: containers that hold their material.
 - **The Developer Chest** [built]: section 15.
@@ -135,7 +135,7 @@
 - **Stump** [built]: left by a felled tree; a hatchet chops it for a log and clears the tile [change: uprooting with a shovel at Woodcutting 4].
 - **Ore rock, rock, apple tree, trees, crops, mushrooms:** section 4.
 - **Beehives and chicken coops** [built, #333]: the drawn beehive (a straw skep on a stand; interactable, outlined, sways on a click, no action yet: there is no honey) at the manor's garden (three), your cottage's garden (two), and east of Hollow Farm's lane (three); the drawn chicken coop (two tiles, along y or mirrored along x, a container with a placeholder table, `coop`: rags, sticks, a little grain; no egg item yet) in your cottage's yard and Hollow Farm's. The coop's door frames and the hive's bee frames are spare until a click animation can play on them.
-- **Decoration** [built]: the grindstone, sawpit, crane, winch, mill wheel, mine mouth, spoil heap, scarecrow, market cross, notice board, stocks, headstones, maypole, privy, spinning wheel [open #273: which get a use].
+- **Decoration** [built]: the grindstone, sawpit, crane, winch, mill wheel, mine mouth, spoil heap, market cross, notice board, stocks, headstones, maypole, privy, spinning wheel (the scarecrow is a container since #268, wearing the Onion-head Hat) [open #273: which get a use].
 
 ## 3. Stations
 
@@ -276,7 +276,7 @@ The numbers are each weapon's block in `data/items.json` and `data/combat.json`.
 Ruled 2026-10-24 (#260): **a bag is made, never found** (Michael: "I think rucksack should be craftable, and I prefer that in general as a default"), each tier costing a fair bit and asking for skill levels; **a bag taken off keeps its contents** and stands in the world as a container, only the worn bag being your inventory [to build].
 - **Burlap sack** [built]: 6 by 4; the kit.
 - **Linen satchel** [to build]: 7 by 5; made at the loom, Crafting 3, from linen cloth (*default:* six), so it can be made before the animals come.
-- **Rucksack** [built]: 8 by 5 today [change: 8 by 6; found nowhere; made at the workbench, Crafting 6 and Beastlore 4; *default:* four leather, four woollen cloth, two spruce planks, and the linen satchel it replaces; it waits for leather and wool, which come with the animals].
+- **Rucksack** [built]: 8 by 5; found nowhere since #268, so for now it has no source at all, not even the Developer Chest [change: 8 by 6; made at the workbench, Crafting 6 and Beastlore 4; *default:* four leather, four woollen cloth, two spruce planks, and the linen satchel it replaces; it waits for leather and wool, which come with the animals].
 - **The best bag the valley makes** [to build]: 10 by 6, Crafting 10, a mahogany frame, leather, wool, and fish glue.
 - **Bigger bags** come from bosses, a region's two, the larger near the Developer Bag's size; their names are Michael's, with #217's lore pass.
 - **Developer Bag** [built]: section 15; a dev world's alone.
@@ -733,7 +733,7 @@ Later, not at the start: gems inlaid in metal armour.
 - **Well fed** [built]: hunger at the top, health back twice as fast. Buffs from the hearty stew (Cooking 4) and the feast (Cooking 10) [to build]; well fed longer (Cooking 9) [to build].
 - **The starving fade** [change: from empty, health drains to dead over half a game day, six real minutes, instead of about a minute] (ruled 2026-10-23).
 - **No auto-eat from the belt** (ruled 2026-10-23: food heals exactly its number, so an automatic bite spends a heal); the prompt is the Hungry moodle and a stomach growl, the moodle its visual twin [to build: the sound].
-- **Day-one food** [built as a wiki statistic]: the target is about 12 game days for one player with tools and about 6 without, a tenth of today, shown on the wiki's page (ruled 2026-10-23); the leaner start is the fields (section 4) and the containers' rolls (bread and cheese at a third of their weight, barrels one or two apples; the pantry table is #268) [change].
+- **Day-one food** [built as a wiki statistic]: the target is about 12 game days for one player with tools and about 6 without, a tenth of today, shown on the wiki's page (ruled 2026-10-23); the leaner start is the fields (section 4) and the containers' rolls (bread and cheese at a third of their weight, barrels one or two apples, and the pantry table: built 2026-10-24, #268); the fields' half [change].
 
 ### Thirst and unsafe water
 - **Thirst** [built]: drains over a game day; four stages (Slightly thirsty, Thirsty, Parched, Dying of thirst); stamina slow at Parched; health drains at the last.
@@ -786,7 +786,7 @@ Later, not at the start: gems inlaid in metal armour.
 - **Lasts 25% longer** (Blacksmithing 9) [to build].
 
 ### Drops by chance
-- **Loot tables** [built]: fixed tables for the placed chests; a rolled table per kind of container (2026-10-24, #268), weights out of 32 so a weight reads as a chance in 32 a roll (OSRS's drop tables the guide); no weapon, tool, bag, hat, or belt in any rolled table, gear made by default and found only where it is placed; rolled once, when a container is first searched, and never refilled. **Every loot table is provisional** until ruled otherwise (ruled 2026-10-19); they are likely this scope's last step, once every item is known (Michael: "this might be the last thing").
+- **Loot tables** [built]: fixed tables for the placed chests; a rolled table per kind of container (2026-10-24, #268), weights out of 32 so a weight reads as a chance in 32 a roll (OSRS's drop tables the guide); no weapon, tool, bag, hat, or belt in any rolled table but a coffin's rare dirk, as grave goods (sticks and planks count as materials), gear made by default and found only where it is placed; rolled once, when a container is first searched, and never refilled. **Every loot table is provisional** until ruled otherwise (ruled 2026-10-19); they are likely this scope's last step, once every item is known (Michael: "this might be the last thing").
 - **Gear drops by chance** [to build] (ruled): a lever not yet used.
 - **Bad-luck protection and personal loot** (ruled 2026-10-24, #268) [to build, with the bosses]: each player rolls their own drop on a boss's kill; a capstone starts at about 1 in 8 and the chance rises with every kill that misses, certain by the twentieth, the count kept on the player and in the save.
 - **A boss's capstone drop:** a region's.
@@ -991,6 +991,7 @@ The numbers are for tuning; this list is what must change before 1.0.
 
 ## 16. The open questions this scope waits on
 
+- **The rucksack has no source** until leather and wool come with the animals (#260's ruling; the satchel and a set-down bag are #400).
 - **#92:** the map redrawn (the map as it stands is a testing map) and roomier interiors; the names; how many villagers; the gloom's door; which villager teaches which skill (from #275).
 - **#103:** every villager immune; reactions to the dead; follow and stay.
 - **#106:** scripting and in-world cutscenes.

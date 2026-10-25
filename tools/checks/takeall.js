@@ -92,14 +92,14 @@ export async function run(game) {
     for (let i = 0; i < belt.length; i++) belt[i] = G.items.makeEntry("hammer", 1);
     const f4 = fillBag();
     G.grid.remove(bag, f4[f4.length - 1]); // a hatchet's room
-    const room = G.grid.add(bag, "apple", 99); // how many apples the rest of the bag takes (they go in)
-    for (const e of bag.items.filter((q) => q.id === "apple")) G.grid.remove(bag, e);
-    put(chest.bag, "apple", room + 4);
-    const held = G.inventory.countItem(chest.bag, "apple");
+    const room = G.grid.add(bag, "arrow", 99); // how many arrows the rest of the bag takes (they go in): arrows stack, apples no longer do (#260)
+    for (const e of bag.items.filter((q) => q.id === "arrow")) G.grid.remove(bag, e);
+    put(chest.bag, "arrow", room + 4);
+    const held = G.inventory.countItem(chest.bag, "arrow");
     const total4 = tally(chest.bag, bag);
     const ran4 = takeAll(addr);
-    const remainder = G.inventory.countItem(chest.bag, "apple");
-    row("a stack that fits only in part is merged into the bag and its remainder stays (nothing lost)", ran4 === true && remainder > 0 && remainder < held && tally(chest.bag, bag) === total4, `${held} apples in the chest (the bag had room for ${room}): ${G.inventory.countItem(bag, "apple")} went in, ${remainder} stay`);
+    const remainder = G.inventory.countItem(chest.bag, "arrow");
+    row("a stack that fits only in part is merged into the bag and its remainder stays (nothing lost)", ran4 === true && remainder > 0 && remainder < held && tally(chest.bag, bag) === total4, `${held} arrows in the chest (the bag had room for ${room}): ${G.inventory.countItem(bag, "arrow")} went in, ${remainder} stay`);
     chest.bag.items.length = 0;
 
     // 5. A station's output, by the address a guest names it with.

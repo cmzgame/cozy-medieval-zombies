@@ -170,7 +170,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
-- One thing a cell: only ammunition, throwables, bandages, seeds, and pemmican stack; bags made, never found, the satchel, the rucksack, and the valley's best in tiers (2026-10-24, The loot tables and the bags)
+- One thing a cell: only arrows, throwing knives and axes, bandages, seeds, and pemmican stack; bags made, never found, the satchel, the rucksack, and the valley's best in tiers (2026-10-24, The loot tables and the bags)
 - The aim guide on by default, off for the challenge; a mute key on F8 with a line as its twin; the player on grass steps as the dead shuffle; sounds step 2 widened to the shove, the bow, the cast, the dead's death and fall, doors and shutters (2026-10-24, The first real melee test)
 - A new character knows the level-1 recipes; a level's recipes are learned once from the skill's teacher on the teacher's own screen; the station panel lists every recipe of the station, the unlearned greyed with what they need; buffs and debuffs are specific, interactable effects shown in the debuff row, never moodles, which describe a general state (2026-10-23, The skills' open lines ruled)
 - A rug is an item laid from the bag into a slot of its own under whatever stands on it, picked up again unless furniture is on it; E takes it up only when nothing else is in reach (2026-10-20, Rugs, built)
@@ -288,7 +288,7 @@ The third sitting of the Valley scope's defaults pass. Primary's defaults stood 
 
 - **Gear is made by default.** Found gear is the exception, placed where it makes sense; a thing that matters costs a fair bit and asks for skill levels.
 - **A table per kind of container**, holding what it would really hold: a chest a little food, cloth, a rag; a barrel one or two apples or a waterskin; shelves and cupboards a pantry; a woodpile its wood; carts and stalls the market's goods; bookcases and desks nothing until books; a strongbox nothing until gems and trinkets; a coffin nothing, a rag, or rarely a dirk; the inn's counter bread, cheese, apples. Weights are out of 32, so a weight reads as a chance in 32 a roll, as OSRS's tables are read.
-- **No weapon, tool, bag, hat, or belt in any rolled table.** Placed once: the hatchets in your home chest and the joiner's; a sword and a mace in the toll house's chest until the castle's armoury is built; a leather belt and work gloves on Hollow Farm's barn rack; the Onion-head Hat, one of a kind, on the pumpkin field's scarecrow. No rucksack anywhere.
+- **No weapon, tool, bag, hat, or belt in any rolled table,** but for a coffin's rare dirk, as grave goods (sticks and planks count as materials here). Placed once: the hatchets in your home chest and the joiner's; a sword and a mace in the toll house's chest until the castle's armoury is built; a leather belt and work gloves on Hollow Farm's barn rack; the Onion-head Hat, one of a kind, on the pumpkin field's scarecrow. No rucksack anywhere.
 - **Rolled once,** when a container is first searched, and never refilled: the fields, the orchard, the fish, and the regions are what comes back.
 - **Boss drops are personal and protected:** each player rolls their own; a capstone starts at about 1 in 8 and rises with each kill that misses, certain by the twentieth, the count on the player and in the save (with the bosses).
 - **The dead's pockets stay poor.**
