@@ -1,1 +1,1 @@
-{"placeholder": {"kind": "box", "color": "#b09a58", "height": 48, "inset": 14, "label": "Scarecrow"}, "carry": false, "note": "Hollow Farm's scarecrow (#201), in the middle of the pumpkin field; a dev box until it is drawn (docs/29-world/05)"}
+{"placeholder": {"kind": "box", "color": "#b09a58", "height": 48, "inset": 14, "label": "Scarecrow"}, "container": {"loot": "scarecrow"}, "carry": false, "note": "Hollow Farm's scarecrow (#201), in the middle of the pumpkin field; a dev box until it is drawn (docs/29-world/05)"}

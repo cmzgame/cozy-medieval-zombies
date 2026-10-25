@@ -67,7 +67,7 @@ export async function run(game) {
     clamp.queue[0].left = 0.5; // the rest of the half day: the seconds are the recipe's, the step is the world's
     step(90);
     const out = G.stations.outputOf(clamp);
-    row("and finishes when it is lit again: three charcoal in the output", out.items.some((e) => e.id === "charcoal" && e.count === 3), `output holds ${out.items.map((e) => `${e.id} x${e.count}`).join(", ") || "nothing"}`);
+    row("and finishes when it is lit again: three charcoal in the output", out.items.filter((e) => e.id === "charcoal").reduce((k, e) => k + e.count, 0) === 3, `output holds ${out.items.map((e) => `${e.id} x${e.count}`).join(", ") || "nothing"}`);
 
     // The charcoal lights the forge: fed to it, it burns, and a bar is smelted from ore.
     const forge = props.find((q) => q.sprite === "forge") || null;

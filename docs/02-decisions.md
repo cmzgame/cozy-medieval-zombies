@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- A loot table per kind of container, weights out of 32; no gear in a rolled table, placed once where it makes sense; rolled once, never refilled; boss drops personal with a rising chance (2026-10-24, The loot tables and the bags)
 - A fence takes no boards, a gate included (2026-10-24, No boards on a fence)
 - Everything rots, food in containers from the world's start and planted or hanging food generously slowly, within the clock law because the world's clock runs only while someone is in it; day one holds about twelve game days of food, a leaner start; a barrel doubles food's life; the starving fade over half a game day; no auto-eat; a dry growing crop pauses, a ripe one rots in the ground (2026-10-23, The food economy ruled)
 - The valley's map as it stands is a testing map, not the final valley, which is redrawn roomier with distinct areas, its teachers placed with it (2026-10-23, The skills' open lines ruled)
@@ -93,6 +94,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
+- The melee feel pass accepted as the baseline; tuning goes on with the skills (2026-10-24, The melee baseline)
 - The shove pushes 0.65 tiles, a tired one 0.45 (`shove.tiredPush`); the tired stagger stays under the shove's recovery (2026-10-24, The shove pushes farther)
 - The dead that wait for a bite token strike the fence or gate between them and their target; the shove's push 0.4 tiles; a placeholder reel pose through a stagger; the downed keep their health bar and are outlined; a closing burst near a seen target, a trial; corners stay dangerous; the spear, the halberd, the bow, and the dead's 150 left for now (2026-10-24, The first real melee test)
 - The spear breaks one throw in four, the same on a hit or a miss, and the thrower is told; a spear that stays in a body keeps its wear (2026-10-24, The spear breaks one throw in four, hit or miss, and says so)
@@ -168,6 +170,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
+- One thing a cell: only arrows, throwing knives and axes, bandages, seeds, and pemmican stack; bags made, never found, the satchel, the rucksack, and the valley's best in tiers (2026-10-24, The loot tables and the bags)
 - The aim guide on by default, off for the challenge; a mute key on F8 with a line as its twin; the player on grass steps as the dead shuffle; sounds step 2 widened to the shove, the bow, the cast, the dead's death and fall, doors and shutters (2026-10-24, The first real melee test)
 - A new character knows the level-1 recipes; a level's recipes are learned once from the skill's teacher on the teacher's own screen; the station panel lists every recipe of the station, the unlearned greyed with what they need; buffs and debuffs are specific, interactable effects shown in the debuff row, never moodles, which describe a general state (2026-10-23, The skills' open lines ruled)
 - A rug is an item laid from the bag into a slot of its own under whatever stands on it, picked up again unless furniture is on it; E takes it up only when nothing else is in reach (2026-10-20, Rugs, built)
@@ -278,6 +281,28 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-24 — The loot tables and the bags ruled: a table per container, gear made by default, one thing a cell, bags made never found (Michael; #268, #260)
+
+The third sitting of the Valley scope's defaults pass. Primary's defaults stood but for one: Michael made the rucksack crafted rather than found, "and I prefer that in general as a default. Just make it cost a fair bit, and require some skill levels so you really do have to work for it." On the tables: "Just having these fixed loot tables as a starting point will let me browse the wiki, see the drop rates for everything, and tell you to adjust them. Use OSRS drop tables as a guide." The rulings:
+
+- **Gear is made by default.** Found gear is the exception, placed where it makes sense; a thing that matters costs a fair bit and asks for skill levels.
+- **A table per kind of container**, holding what it would really hold: a chest a little food, cloth, a rag; a barrel one or two apples or a waterskin; shelves and cupboards a pantry; a woodpile its wood; carts and stalls the market's goods; bookcases and desks nothing until books; a strongbox nothing until gems and trinkets; a coffin nothing, a rag, or rarely a dirk; the inn's counter bread, cheese, apples. Weights are out of 32, so a weight reads as a chance in 32 a roll, as OSRS's tables are read.
+- **No weapon, tool, bag, hat, or belt in any rolled table,** but for a coffin's rare dirk, as grave goods (sticks and planks count as materials here). Placed once: the hatchets in your home chest and the joiner's; a sword and a mace in the toll house's chest until the castle's armoury is built; a leather belt and work gloves on Hollow Farm's barn rack; the Onion-head Hat, one of a kind, on the pumpkin field's scarecrow. No rucksack anywhere.
+- **Rolled once,** when a container is first searched, and never refilled: the fields, the orchard, the fish, and the regions are what comes back.
+- **Boss drops are personal and protected:** each player rolls their own; a capstone starts at about 1 in 8 and rises with each kill that misses, certain by the twentieth, the count on the player and in the save (with the bosses).
+- **The dead's pockets stay poor.**
+- **Measured, not guessed:** the wiki shows every table's rates, generated from the data.
+- **One thing a cell:** only arrows and fire arrows (20), throwing knives (20), throwing axes (10), bandages (5), every seed (20), and pemmican when it comes stack; food and materials take a cell each, which also keeps rot simple (a stack would merge food of different ages). Shapes stay; nothing becomes 1 by 1. The wheelbarrow is the hauling answer.
+- **Bags are made, never found:** the sack (6 by 4) in the kit; a linen satchel (7 by 5) at the loom at Crafting 3, from flax, so it can be made before the animals; the rucksack (8 by 6) at Crafting 6 and Beastlore 4, a fair cost (*Primary's default, Michael's to overrule:* four leather, four woollen cloth, two spruce planks, and the satchel it replaces); the valley's best (10 by 6) at Crafting 10; a region's two from bosses, named by Michael. A bag taken off keeps its contents and stands as a container. The Developer Bag stays a dev world's.
+
+Docs: 39, 42.
+
+### 2026-10-24 — The melee baseline: the feel pass is accepted (Michael)
+
+After playing the whole melee pass (`docs/41`) with the first test's changes (#385), the closing burst (#394), the longer shove (#396), and the fence fixes (#397, #398): "melee combat (and ranged and magic) are pretty much where I want them. They feel MUCH more consistent and predictable, and it's also noticeably harder to kill a zombie ... the bullet sponge thing is working. I would say in terms of basic mechanics, we are there. Fine tuning will probably still happen, especially as we add skills in, but we now have a proper baseline." The pass is closed; its numbers are levers (`42`), tuned from here with the skills.
+
+Docs: 41.
 
 ### 2026-10-24 — No boards on a fence, a gate included (Michael)
 

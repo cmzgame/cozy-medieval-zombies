@@ -33,7 +33,7 @@ export async function run(game) {
 
     // The chests: a fresh world's cottage chest and the joiner's each hold a hatchet, made from their own tables.
     G.map.ensureAround(106, 216, 3);
-    const NAMED = ["home_chest", "joiner_chest", "weaver_chest", "granary_hollow", "granary_mill", "smithy_chest", "miners_chest", "quarry_chest", "charcoal_sacks"]; // the fixed tables the map names on a chest (#195, #196, #197, #212, #201)
+    const NAMED = ["home_chest", "joiner_chest", "weaver_chest", "granary_hollow", "granary_mill", "smithy_chest", "miners_chest", "quarry_chest", "charcoal_sacks", "toll_chest"]; // the fixed tables the map names on a chest (#195, #196, #197, #212, #201, #268)
     const home = G.map.allProps().find((p) => p.sprite === "chest" && p.container && p.container.loot === "home_chest");
     G.map.ensureAround(76, 190, 4);
     const joiner = G.map.allProps().find((p) => p.sprite === "chest" && p.container && p.container.loot === "joiner_chest");

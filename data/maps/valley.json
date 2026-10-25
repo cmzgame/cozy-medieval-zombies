@@ -4113,7 +4113,8 @@
        "tile": [
         3,
         3
-       ]
+       ],
+       "loot": "toll_chest"
       },
       {
        "sprite": "shelf",

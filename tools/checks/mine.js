@@ -23,7 +23,7 @@ export async function run(game) {
   const labels = (id) => G.interact.actionsForTarget({ kind: "prop", id }, me).map((a) => a.label);
   const run1 = (id) => G.verbs.run("mine", G.world, me, { prop: id });
   const finish = () => { for (let i = 0; i < 100 && me.action; i++) G.interact.updateAction(me, 0.1); };
-  const holds = (table, id, n) => G.items.rollLoot(table).some((e) => e.id === id && (n === undefined || e.count === n));
+  const holds = (table, id, n) => { const got = G.items.rollLoot(table).filter((e) => e.id === id).reduce((k, e) => k + e.count, 0); return n === undefined ? got > 0 : got === n; }; // n in all: what does not stack rolls one entry each (#260)
   try {
     G.loop.setPaused(true);
 

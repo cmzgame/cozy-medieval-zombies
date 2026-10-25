@@ -10,7 +10,7 @@
 // floor; beyond them a chunk is wild, grown from the map's `wild` rule.
 
 import { getDef } from "./assets.js";
-import { douse } from "./items.js";
+import { douse, getItem, hasItemDef } from "./items.js";
 import { nextId } from "./world.js";
 import { storedLeaf, carriedLeaf } from "./woods.js"; // the wood of a door's or window's leaves (#334)
 import { emit } from "./events.js";
@@ -471,6 +471,14 @@ export function itemsAt(x, y, layer = 0) {
 }
 
 export function dropItem(x, y, entry, layer = 0) {
+  // One thing a cell (#260, Michael 2026-10-24): what does not stack lies as that many entries, never one with a count, so a pick-up
+  // never puts several into one cell (a harvest, a pick, or a mine with a full bag drops its overflow here).
+  const def = hasItemDef(entry.id) ? getItem(entry.id) : null;
+  if (def && !def.stack && (entry.count || 1) > 1) {
+    let last = null;
+    for (let i = 0; i < entry.count; i++) last = dropItem(x, y, { ...entry, count: 1, uid: i === 0 ? entry.uid : null }, layer);
+    return last;
+  }
   const t = growTile(x, y, layer);
   markDirty(x, y);
   if (!t.items) t.items = [];

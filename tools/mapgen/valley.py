@@ -381,7 +381,7 @@ def build():
     # ---- the toll house by the bridge ----
     toll = g.place("the toll house", [P(28, 45)[0], P(28, 45)[1], 6, 8])
     toll.building([1, 1, 4, 4], "wall_spruce", "floor_wood", openings=[door("w", 1), window("n", 2)],
-                  props=[one("strongbox", 3, 0), along_y("bed", 0, 2), one("chest", 3, 3), one("shelf", 2, 0)],
+                  props=[one("strongbox", 3, 0), along_y("bed", 0, 2), one("chest", 3, 3, loot="toll_chest"), one("shelf", 2, 0)],
                   brackets=[{"side": "w", "at": 3, "facing": "out", "lantern": True}])
 
     # ---- the cottages: two plans by the nobles' street, two by the green, four on the lane ----
