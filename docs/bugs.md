@@ -24,8 +24,6 @@
 
 - **`check("build")` fails 9 of 11 on `main`** (found reviewing #227, on `main` at `0e765f7`, fresh tab): "the player's own wall with a door removed is still the player's own" and "a new door built over a broken stamped one remembers the wall under it". Not a play bug found; 11 of 11 in my run after other checks in the same tab, so it may depend on what ran first.
 
-- **A brass buckle on the leather belt is called "undyed"** (found syncing the wiki for #417, 2026-10-25, read from the code at `e045b31`, *needs repro*). The belt's own buckle colour (`data/items.json`, `good_belt`'s `art.colours`) is the hex of the Brass dye, so `src/dye.js` `colourWords` (~76) and the picker (`src/ui/dye-panel.js` ~114) name a brass buckle by its own-colour word: the card reads "Black and undyed" where the swatch row reads "Black and brass". Likely fix: name a region by its dye when the own colour is a dye's hex.
-
 - **A dyeable item's card counts one colour more than its picker shows** (found syncing the wiki for #417, 2026-10-25, at `e045b31`, *needs repro*). `src/item-info.js` (~112) counts the whole palette; the picker (`src/ui/dye-panel.js` ~137) drops a palette colour equal to the item's own, which it shows as Undyed. The breeches' own colour is Walnut brown and the boots' Dark brown, so each card says one more colour than there are swatches.
 
 - **The dye vat's picker leaves out the belt's slots and a bag inside a bag** (found syncing the wiki for #417, 2026-10-25, at `e045b31`). `src/dye.js` `dyeables` (~122-132) lists the worn slots, the hands, and the worn bag's items; `entryOf` would take an entry from anywhere carried. Not a loss today (nothing dyeable rides on a belt), but a satchel carried in a rucksack cannot be dyed without wearing it.
@@ -58,6 +56,8 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 ## Fixed
 
 (Move items here with the commit that fixed them.)
+
+- [x] **A brass buckle on the leather belt was called "undyed"** (found syncing the wiki for #417, 2026-10-25): the belt's own buckle is the Brass dye's hex, and the card and the picker named any own colour "undyed", so black with its own buckle read "Black and undyed". Fixed in the bugs batch (`primary/bugs-batch-1`): `dye.regionWord`, one word for the card (`colourWords`) and the picker (`ui/dye-panel.js`), names a region by its dye whenever its colour is a dye's hex, own or not, and "Undyed" only for an own colour no vat gives; the picker's Colour line reads Undyed when the item is its own colours whole, as its card names none. `node tools/check.js` ("dye vat") and `check("dye")` have rows for it.
 
 - [x] **Dual wielding: the off hand's swing never moved the off arm, and was heard as no sound of its own** (#423, Michael's playtest, 2026-10-25): the off hand's swing played the main arm's `attack` animation, restarting the main arm's swing, and the rig had no pose that moved the off arm, so the second arm never moved and every swing looked like the main hand's. Fixed in #423's branch: an `attack_off` animation on every player's sheet, the off weapon's style with the arms swapped (`rig.js` `pose`), its weapon drawn along the off forearm (`render/entities.js`), played by `combat.tryAttack` for the off hand on the host and in a guest's prediction alike. The sound path was found wired (the off hand's `offCooldown` rises on the step of its swing, on the host and in a guest's prediction and light record, and the ear plays its weapon's slot); `check("sound")` and `check("poses")` gained rows that prove both.
 

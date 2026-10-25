@@ -65,15 +65,23 @@ export function currentColours(entry) {
   return own;
 }
 
-// The words for an entry's colours, for its card: "Woad blue", a scheme's "Black and iron", a free two-region item's
-// "Cloth undyed, strap oxblood"; null while it is its own.
+// A region's colour in words, for the card and the picker alike: a dye's name when the colour is a dye's hex, an own colour
+// too (the leather belt's own buckle is the Brass dye's hex, so it is "Brass"); "Undyed" for an own colour no vat gives.
+export function regionWord(hex, own) {
+  const c = colourOfHex(hex);
+  if (c) return c.name;
+  return norm(hex) === norm(own) ? "Undyed" : String(hex);
+}
+
+// The words for an entry's colours, for its card: "Woad blue", a scheme's "Black and iron" (and "Black and brass", the
+// buckle its own brass), a free two-region item's "Cloth undyed, strap oxblood"; null while it is its own.
 export function colourWords(entry) {
   const def = entry && getItem(entry.id);
   const d = dyeOf(def);
   if (!d || (!entry.colours && !entry.colour)) return null;
   const now = currentColours(entry);
   if (now.every((c, i) => c === d.own[i])) return null;
-  const names = now.map((c, i) => (c === d.own[i] ? "undyed" : (colourOfHex(c) || { name: c }).name.toLowerCase()));
+  const names = now.map((c, i) => regionWord(c, d.own[i]).toLowerCase());
   const s = names.length === 1 ? names[0] : d.schemes ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names.map((n, i) => `${d.regions[i].name.toLowerCase()} ${n}`).join(", ");
   return s[0].toUpperCase() + s.slice(1);
 }

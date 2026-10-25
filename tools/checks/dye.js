@@ -143,6 +143,14 @@ export async function run(game, opts = {}) {
     dyePanel.update(me);
     el.querySelector("[data-apply]").click();
     row("a scheme applies whole: the belt black and iron", Array.isArray(belt.colours) && belt.colours.join() === "#2a2428,#8c8c94", JSON.stringify(belt.colours));
+    // The belt's own buckle is the Brass dye's hex: the picker and the card both call it brass, never undyed.
+    el.querySelector(`[data-scheme="#2a2428,#c8a040"]`).click();
+    dyePanel.update(me);
+    const picked = el.querySelector(".dy-picked").textContent;
+    el.querySelector("[data-apply]").click();
+    dyePanel.update(me);
+    const beltCard = info.textOf(info.cardFor(belt));
+    row("black with the belt's own brass buckle reads brass in the picker and on the card, not undyed", picked === "Leather black, buckle brass" && beltCard.some((l) => l.includes("Black and brass")) && !beltCard.some((l) => /undyed/i.test(l)), `${picked} | ${beltCard.join(" | ")}`);
     // Closing: Escape's way (the station panel's close shuts the picker) and walking away.
     row("Escape's close shuts the picker", stationPanel.close() === true && !dyePanel.isOpen() && root().hidden, String(dyePanel.isOpen()));
     dyePanel.openPanel(vat, me);

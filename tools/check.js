@@ -826,11 +826,14 @@ check("dye vat: three vats open the picker; the verb dyes by uid, refuses what i
   assert(run(belt.uid, ["#8c8c94", "#2a2428"]).reason === "The vat has no such scheme for it.", "the belt took iron and black, no scheme");
   assert(run(belt.uid, ["#a63a2c", "#c8a040"]).reason === "The vat has no such scheme for it.", "the belt took madder, no scheme");
   assert(itemInfoMod.textOf(itemInfoMod.cardFor(belt)).some((l) => l.includes("6 schemes")) && itemInfoMod.textOf(itemInfoMod.cardFor(belt)).some((l) => l.includes("Black and iron")), `the belt's card: ${itemInfoMod.textOf(itemInfoMod.cardFor(belt)).join(" | ")}`);
+  // The belt's own buckle is the Brass dye's hex: black with its own buckle is "Black and brass", never "undyed" (docs/bugs.md, fixed).
+  assert(run(belt.uid, ["#2a2428", "#c8a040"]).ok && dyeMod.colourWords(belt) === "Black and brass", `the belt black with its own brass buckle reads ${dyeMod.colourWords(belt)}`);
   const satchel = itemsMod.makeEntry("satchel", 1);
   inventoryMod.stow(me, satchel);
   assert(run(satchel.uid, ["#3e6a38", "#5c2020"]).ok && satchel.colours.join() === "#3e6a38,#5c2020", "the satchel did not take green cloth and an oxblood strap");
   assert(run(satchel.uid, ["#5c2020", "#3e6a38"]).reason === "The vat has no such colour for it.", "the satchel took oxblood cloth and a green strap");
   assert(run(satchel.uid, ["#c8b890", "#5c2020"]).ok && satchel.colours.join() === "#c8b890,#5c2020", "the satchel's own cloth with a dyed strap was refused");
+  assert(dyeMod.colourWords(satchel) === "Cloth undyed, strap oxblood", `the satchel's own cloth, no vat's colour, reads ${dyeMod.colourWords(satchel)}`);
   // A wardrobe's single colour (a hood from the dead) is replaced, and an item's own colours undye it.
   const hood = itemsMod.makeEntry("hood", 1, { colour: "#705848" });
   inventoryMod.stow(me, hood);
