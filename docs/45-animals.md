@@ -21,7 +21,7 @@
 - **Snares** catch rabbits: made at the workbench (*default:* Crafting 1; set at Beastlore 3, ruled), set on the ground near the woods, holding a rabbit after a while (*default*). A snare is a placed prop like a torch post: not a gatherable (no sway, no outline of its own), shown by Object Highlight. Bow and snares both work, so hunting touches Ranged without needing it.
 - **What a kill leaves:** a **carcass**, the animal's own record turned dead (*default:* animals keep one list, a dead one marked so, never the dead's `corpses`), carrying how it was killed (the weapon's class, for the yield) and whether it is skinned and butchered; in the record, the save, and the sync check.
 - **Skinning and butchering** need a dirk carried: raw meat, hides, and feathers.
-- **Livestock is hurt only on purpose** (*default*): a swing aimed at a tame animal hurts it; a multi-hit swing, the shove, a fireball's flare, or an arrow meant for one of the dead passes it by.
+- **Livestock is hurt only on purpose** (*default*): a swing aimed at a tame animal hurts it; a multi-hit swing, the shove, a fireball's flare, or an arrow meant for one of the dead passes a tame animal by. Wild game (deer, boar, rabbits) takes arrows and blows as anything does.
 
 ## 3. Keeping animals
 

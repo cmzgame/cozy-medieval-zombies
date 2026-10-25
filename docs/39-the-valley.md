@@ -94,6 +94,7 @@
 
 ### Furniture and fittings
 
+- **The feeding trough** [to build]: built from the palette, planks, in a pen; filled with grain, vegetables, or hay (`45`).
 - **Made at the workbench, set down beside it** [built]: a chest, a shelf, a bench, a table, a bed, a workbench, a wheelbarrow. [change: Crafting 1 makes oak furniture; Crafting 5 spruce and mahogany.]
 - **Carrying furniture** [built]: anything not rooted, built in, or burning; on your head, both hands empty; set down with the ghost; R turns it.
 - **Fine furniture** from spruce and mahogany (Crafting 5) [to build].
@@ -194,6 +195,7 @@ Every item in `data/items.json` is here with how it is had today; each new item 
 
 ### 5.1 Tools
 
+- **Shears** [to build]: shear a fed sheep's wool; the anvil, Blacksmithing 1 (`45`). **The lead** [to build]: leads livestock home; the workbench, Crafting 1. **The snare** [to build]: catches a rabbit, set near the woods; the workbench, Crafting 1, set at Beastlore 3 (`45`).
 - **Hatchet** [built]: fells trees, chops stumps, splits logs and planks, notches a log wall; a weapon. The home chest, the joiner's chest; made at the anvil (Blacksmithing 1).
 - **Pickaxe** [built]: mines rocks and ore. The miners' and the quarryman's chests; made at the anvil (Blacksmithing 1).
 - **Hoe** [built]: tills grass and dirt. The great barn's rack; made at the workbench.
@@ -305,7 +307,7 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 - **Tomato** [to build]: Farming 5.
 - **Mushrooms, eaten or cooked** [to build]: Herbalism 3 (some for Cooking).
 - **Eggs** [to build]: laid by a fed hen into its coop (Beastlore 1, `45`).
-- **Raw meat** [to build]: hen, rabbit (Beastlore 3's snares), venison (the deer), beef (cows), mutton (sheep), pork (pigs and boar, Beastlore 7); each cooked alone at a fire or used raw in recipes (`45` section 4). **Bacon and lard** from a pig (Beastlore 7). **Shears** (the anvil), **the lead** and **the snare** (the workbench), **the feeding trough** (the palette) [to build] (`45`).
+- **Raw meat** [to build]: hen, rabbit (Beastlore 3's snares), venison (the deer), beef (cows), mutton (sheep), pork (pigs and boar, Beastlore 7); each cooked alone at a fire or used raw in recipes (`45` section 4). **Bacon and lard** from a pig (Beastlore 7) (`45`).
 - **Milk** [to build]: cows (Beastlore 4).
 - **Honey** [built, #410]: the hive (Beastlore 5), a pot every three game days (*default*); never rots.
 - **Wheel of cheese** [built]: chests, pantries, and the inn's counter only [change: made from milk (Beastlore 4) at Cooking 3 (ruled 2026-10-23)].
@@ -326,6 +328,7 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 - **Pemmican** [to build]: meat, a plant, a binder (lard or honey), small, and the only food that stacks, keeps all but forever (Cooking 7).
 - **Eggs and bacon** [to build] (Beastlore 7): Cooking 4 (ruled 2026-10-23).
 - **Cooked meats** [to build]: Cooking 1 (ruled 2026-10-23).
+- **Meat pie** [to build]: at the oven, raw meat and flour (`45`, a default).
 - **The feast** [to build]: a great meal laid on a table; the best food buffs in the game, to everyone who eats from it (Cooking 10).
 - **Cooks two at a time** (Cooking 6), **heals 25% more and keeps you well fed longer** (Cooking 9) [to build].
 - **Frostroot stew** (Cooking 8, the Pale Reach): a name only.
