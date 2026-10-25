@@ -1,1 +1,1 @@
-{"placeholder": {"kind": "box", "color": "#6a4a2a", "height": 18, "inset": 6, "label": "Tanning"}, "station": "tanning_vat", "note": "docs/45 section 4: a tanning vat, made at the workbench (the tannery's, docs/39); a hide to leather (Crafting 3, open until the skills)"}
+{"placeholder": {"kind": "box", "color": "#6a4a2a", "height": 18, "inset": 6, "label": "Tanning"}, "station": "tanning_vat", "note": "docs/45 section 4: a tanning vat, made at the workbench (the tannery's, docs/39); a hide to leather (Crafting 3, open until the skills)", "carry": false}

@@ -5,7 +5,8 @@
 // the hearty stew, eggs and bacon, cheese, and pemmican (with lard and with honey) at the fire; a meat pie at the oven; butter at the
 // workbench; smoked meat at the rack, a log spent; leather at the vat; yarn at the spinning wheel and woollen cloth at the loom, which
 // serves as cloth; arrows fletched, one feather for five, refused without one; the valley's spinning wheel a station; every new item's
-// card. Everything set down goes, and the bag, the hands, and the rules are put back.
+// card; every recipe's ingredients spent, a raw meat on the belt or in a hand too (the review of #462). Everything set down goes, and the
+// bag, the hands, the belt, the clock, the player's needs, and the rules are put back.
 
 export async function run(game) {
   const G = game;
@@ -18,7 +19,9 @@ export async function run(game) {
   const grid = await import("/src/grid.js");
   const items = await import("/src/items.js");
   const info = await import("/src/item-info.js");
-  const saved = { gx: me.gx, gy: me.gy, main: me.hands.main, off: me.hands.off, bag: JSON.parse(JSON.stringify(inventory.bagOf(me).items)), paused: G.loop.isPaused(), aggro: G.rules.rules.zombieAggro };
+  const clock = await import("/src/clock.js");
+  const belt0 = inventory.beltOf(me) ? inventory.beltOf(me).slice() : null;
+  const saved = { gx: me.gx, gy: me.gy, main: me.hands.main, off: me.hands.off, bag: JSON.parse(JSON.stringify(inventory.bagOf(me).items)), paused: G.loop.isPaused(), aggro: G.rules.rules.zombieAggro, villageStations: G.rules.rules.villageStations, clock: clock.getElapsed(), hunger: me.hunger, thirst: me.thirst, tired: me.tired, hp: me.hp };
   const made = [];
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const bag = () => inventory.bagOf(me);
@@ -34,7 +37,8 @@ export async function run(game) {
     if (out) out.items = [];
     return { ok: true, got, left: bag().items.map((e) => `${e.id}${(e.count || 1) > 1 ? "x" + e.count : ""}`) };
   };
-  const gave = (r, id, n = 1) => r.ok && r.got.some((g) => g.id === id && g.count === n);
+  const spent = (r) => r.ok && r.left.every((e) => e === "hammer" || e === "knife"); // nothing but the tools left: every ingredient taken
+  const gave = (r, id, n = 1) => r.ok && r.got.some((g) => g.id === id && g.count === n) && spent(r);
   const show = (r) => (r.ok ? r.got.map((g) => `${g.id} x${g.count}`).join(", ") || "nothing" : `refused: ${r.why}`);
   try {
     G.loop.setPaused(true);
@@ -68,6 +72,31 @@ export async function run(game) {
     row("each raw meat cooks alone at a fire (a hen, a rabbit, venison, beef, mutton, pork)", cookedRows.every(([m, r]) => gave(r, `${m}_cooked`)), cookedRows.map(([m, r]) => `${m}: ${show(r)}`).join("; "));
 
     // ---- raw meat in recipes ----
+    // A raw meat on the belt, and one in a hand, are spent as one in the bag is (the review of #462: counted, never taken, pottage for ever).
+    const belt = inventory.beltOf(me);
+    let beltRow = "no belt";
+    if (belt) {
+      const slot = belt.findIndex((e) => !e);
+      fillBag([["potato", 2], ["cabbage", 1]]);
+      belt[slot] = items.makeEntry("beef_raw", 1);
+      const r = G.verbs.run("craft", G.world.world, me, { prop: fire.id }, { recipe: "meat_pottage", count: 1 });
+      step(Math.ceil(stations.recipe("meat_pottage").seconds * 60) + 4);
+      const out = stations.outputOf(fire);
+      beltRow = `${r.ok ? "made" : r.reason}; belt slot ${belt[slot] ? `${belt[slot].id} still there` : "emptied"}; output ${out ? out.items.map((e) => e.id).join(",") : "none"}`;
+      const ok = r.ok && !belt[slot] && out && out.items.some((e) => e.id === "meat_pottage");
+      if (out) out.items = [];
+      belt[slot] = null;
+      fillBag([["potato", 2], ["cabbage", 1]]);
+      me.hands.main = items.makeEntry("pork_raw", 1);
+      const r2 = G.verbs.run("craft", G.world.world, me, { prop: fire.id }, { recipe: "meat_pottage", count: 1 });
+      step(Math.ceil(stations.recipe("meat_pottage").seconds * 60) + 4);
+      const out2 = stations.outputOf(fire);
+      const ok2 = r2.ok && !me.hands.main && out2 && out2.items.some((e) => e.id === "meat_pottage");
+      beltRow += `; held: ${r2.ok ? "made" : r2.reason}, the hand ${me.hands.main ? `${me.hands.main.id} still held` : "emptied"}`;
+      if (out2) out2.items = [];
+      me.hands.main = null;
+      row("a raw meat on the belt, and one in a hand, go into a meat pottage and are spent", ok && ok2, beltRow);
+    } else row("a raw meat on the belt, and one in a hand, go into a meat pottage and are spent", false, beltRow);
     const pottage = craft(fire, "meat_pottage", [["venison_raw", 1], ["potato", 2], ["cabbage", 1]]);
     const plain = stations.recipe("stew");
     row("the meat pottage takes any raw meat beside the plain pottage, which keeps its meatless recipe", gave(pottage, "meat_pottage") && items.getItem("stew").name === "Plain pottage" && !plain.in.some((w) => w.tag === "meat"), `${show(pottage)}; the plain one: ${plain.in.map((w) => `${w.id || w.tag} x${w.count}`).join(", ")}`);
@@ -84,6 +113,19 @@ export async function run(game) {
     row("a meat pie at the oven", gave(pie, "meat_pie"), show(pie));
     const butter = craft(bench, "butter", [["milk", 1]]);
     row("butter churned from milk at the workbench", gave(butter, "butter"), show(butter));
+    const interact = await import("/src/interact.js");
+    const carryOf = (pr) => interact.actionsForProp(pr, me).find((a) => a.kind === "carry");
+    me.hands.main = null;
+    me.hands.off = null;
+    G.rules.rules.villageStations = true; // the oven movable, as a world's rule makes it (docs/43 section 5), put back in the finally
+    fillBag([["rabbit_raw", 1], ["flour", 1]]);
+    G.verbs.run("craft", G.world.world, me, { prop: oven.id }, { recipe: "meat_pie", count: 1 });
+    const busyCarry = carryOf(oven);
+    step(Math.ceil(stations.recipe("meat_pie").seconds * 60) + 4);
+    const idleCarry = carryOf(oven);
+    if (stations.outputOf(oven)) stations.outputOf(oven).items = [];
+    G.rules.rules.villageStations = saved.villageStations;
+    row("a station is not picked up while its queue runs, and is once it is done", !!busyCarry && !busyCarry.enabled && !!idleCarry && idleCarry.enabled, `busy: ${busyCarry ? `${busyCarry.label}, ${busyCarry.enabled}` : "no Pick up"}; done: ${idleCarry ? `${idleCarry.label}, ${idleCarry.enabled}` : "no Pick up"}`);
 
     // ---- the smoking rack and the tanning vat, made at the workbench and set beside it ----
     const before = new Set([...map.allProps()].map((p) => p.id));
@@ -93,7 +135,8 @@ export async function run(game) {
     made.push(...fresh);
     const rack = fresh.find((p) => p.sprite === "smoking_rack");
     const vat = fresh.find((p) => p.sprite === "tanning_vat");
-    row("a smoking rack and a tanning vat are made at the workbench and stand beside it, stations", !!rack && !!vat && stations.stationOf(rack).includes("smoking_rack") && stations.stationOf(vat).includes("tanning_vat"), `${fresh.map((p) => p.sprite).join(", ") || "nothing set down"}`);
+    const lift = (pr) => (pr ? interact.actionsForProp(pr, me).some((a) => a.kind === "carry") : true);
+    row("a smoking rack and a tanning vat are made at the workbench and stand beside it, stations that are not carried off (the spinning wheel neither)", !!rack && !!vat && stations.stationOf(rack).includes("smoking_rack") && stations.stationOf(vat).includes("tanning_vat") && !lift(rack) && !lift(vat) && !lift(wheel), `${fresh.map((p) => p.sprite).join(", ") || "nothing set down"}; a Pick up on the rack ${lift(rack)}, the vat ${lift(vat)}, the wheel ${lift(wheel)}`);
     if (rack) {
       G.teleport(rack.tile[0], rack.tile[1] + 1);
       step();
@@ -125,16 +168,21 @@ export async function run(game) {
     // ---- the cards ----
     const want = {
       venison_cooked: [/Eat: heals 6, fills hunger 34/, /Made at a cooking fire/],
+      hen_cooked: [/Eat: heals 4, fills hunger 26/, /Made at a cooking fire/],
+      rabbit_cooked: [/Eat: heals 4, fills hunger 26/, /Made at a cooking fire/],
+      beef_cooked: [/Eat: heals 6, fills hunger 34/, /Made at a cooking fire/],
+      mutton_cooked: [/Eat: heals 5, fills hunger 30/, /Made at a cooking fire/],
+      pork_cooked: [/Eat: heals 5, fills hunger 30/, /Made at a cooking fire/],
       meat_pottage: [/Made at a cooking fire/],
       hearty_stew: [/Eat: heals 10, fills hunger 75/],
       eggs_and_bacon: [/Made at a cooking fire/],
       meat_pie: [/Made at the oven/],
       butter: [/Made at the workbench/],
       smoked_meat: [/Made at the smoking rack/],
-      pemmican: [/Made at a cooking fire/],
+      pemmican: [/Made at a cooking fire/, /Eat: heals 3, fills hunger 35/],
       yarn: [/Made at the spinning wheel/, /Goes into: woollen cloth/],
       woollen_cloth: [/Made at the loom/],
-      leather: [/Made at the tanning vat/],
+      leather: [/Made at the tanning vat/, /To come: the leather belt, the rucksack, and leather armour/],
       cheese: [/Made at a cooking fire/],
       venison_raw: [/Goes into:/, /Butchered from a deer/],
       lard: [/Goes into:.*pemmican/],
@@ -149,11 +197,15 @@ export async function run(game) {
   } finally {
     for (const p of made) if (map.propById(p.id)) map.removeProp(p);
     bag().items = saved.bag;
+    if (belt0) inventory.beltOf(me).splice(0, belt0.length, ...belt0);
+    clock.setElapsed(saved.clock);
+    Object.assign(me, { hunger: saved.hunger, thirst: saved.thirst, tired: saved.tired, hp: saved.hp });
     me.hands.main = saved.main;
     me.hands.off = saved.off;
     me.action = null;
     me.auto = null;
     G.rules.set({ zombieAggro: saved.aggro });
+    G.rules.rules.villageStations = saved.villageStations;
     G.teleport(saved.gx, saved.gy);
     G.loop.setPaused(saved.paused);
   }

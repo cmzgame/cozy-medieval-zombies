@@ -78,5 +78,5 @@ The forge, the anvil, the oven, the millstones, the dye vats, and the wells stay
 
 - **What the demo includes** of all this is open (Michael, 2026-10-25: "consider it an open question").
 - **Filed for later** (`05`): things set on a table or a barrel; villagers waving back.
-- **The spinning wheel** spins wool into yarn for woollen cloth (Crafting 6) when the sheep come; the notice board stays decoration until the quest board of 1.1; the crane, winch, mill wheel, mine mouth, spoil heap, market cross, stocks, headstones, maypole, and privy stay decoration.
+- **The spinning wheel** spins wool into yarn for woollen cloth (Crafting 6) [built, #445: a station, the loom weaving the yarn]; the notice board stays decoration until the quest board of 1.1; the crane, winch, mill wheel, mine mouth, spoil heap, market cross, stocks, headstones, maypole, and privy stay decoration.
 - **`docs/00` pillar 4** ("The hearth is light, warmth, and cooking. Wood, water, and seed are what you go out for.") is left as written: a hearth that is a switch is still light, warmth, and cooking, and wood still feeds the campfire, the stations, and building. Michael's to amend if he reads it otherwise.

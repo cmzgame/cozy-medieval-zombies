@@ -99,7 +99,7 @@
 - **Carrying furniture** [built]: anything not rooted, built in, or burning; on your head, both hands empty; set down with the ghost; R turns it.
 - **Fine furniture** from spruce and mahogany (Crafting 5) [to build].
 - **Rugs and wall pieces** (Crafting 5) [to build] [open #261: on a wall's edge or against it; whether any does something; before or after the redraw].
-- **Workstations of your own** (Woodcutting 7 unlocks, Crafting makes) [change: the workbench recipe is open to all today] [to build]: the workbench, the loom, the drying rack, the composter, the cauldron, the smoking rack, and the hive, never the forge, the anvil, the millstones, or the oven, so the village stays worth walking to; no speed bonus, a workshop at home (ruled 2026-10-23).
+- **Workstations of your own** (Woodcutting 7 unlocks, Crafting makes) [change: the workbench recipe is open to all today] [to build]: the workbench, the loom, the drying rack, the composter, the cauldron, the smoking rack [built, #445: made at the workbench, four sticks and two planks], and the hive, never the forge, the anvil, the millstones, or the oven, so the village stays worth walking to; no speed bonus, a workshop at home (ruled 2026-10-23).
 - **The composter** (Farming 4) [to build].
 - **The henhouse** (Beastlore 1) [built, #444: Hollow Farm's hens lay into its coop; open to all until the skills]: the chicken coop is a hen's home in a pen; a fed hen lays its egg and feather into the coop's grid (`45`).
 - **Pens** for cows and sheep (Beastlore 4), pigs (Beastlore 7) [built, #444: any fenced yard with its gates shut, a led animal let go inside it stays; breeding inside; open to all until the skills].
@@ -138,7 +138,7 @@
 - **Ore rock, rock, apple tree, trees, crops, mushrooms:** section 4.
 - **Beehives and chicken coops** [built, #333]: the drawn beehive (a straw skep on a stand; interactable, outlined, sways on a click; Take honey every few game days, #410) at the manor's garden (three), your cottage's garden (two), and east of Hollow Farm's lane (three); the drawn chicken coop (two tiles, along y or mirrored along x, a container with a placeholder table, `coop`: rags, sticks, a little grain; no egg item yet) in your cottage's yard and Hollow Farm's. The coop's door frames and the hive's bee frames are spare until a click animation can play on them.
 - **The grindstone and the sawpit** [built, #410]: the grindstone sharpens an edged weapon or tool for free (60, 40, then 20%, on the item's repair count), the sawpit saws a log into three planks with no hatchet (`43` section 6).
-- **Decoration** [built]: the crane, winch, mill wheel, mine mouth, spoil heap, market cross, notice board, stocks, headstones, maypole, privy, spinning wheel (the scarecrow is a container since #268, wearing the Onion-head Hat) [change: the spinning wheel spins wool when the sheep come; the rest stay decoration (2026-10-25); the grindstone, the sawpit, and the beehives' honey are built, #410].
+- **Decoration** [built]: the crane, winch, mill wheel, mine mouth, spoil heap, market cross, notice board, stocks, headstones, maypole, privy (the scarecrow is a container since #268, wearing the Onion-head Hat) [the spinning wheel is a station since #445, wool spun to yarn; the rest stay decoration (2026-10-25); the grindstone, the sawpit, and the beehives' honey are built, #410].
 
 ## 3. Stations
 
@@ -148,7 +148,7 @@ One panel for every station; ingredients from the bag, the belt, and every conta
 - **Loom** [built] (the weaver's): linen cloth (two flax); two bandages (a cloth); a linen cap, linen breeches, a linen tunic (one, two, three cloth). Unlock: open to all today [change: Crafting 1 names linen cloth, bandages, and the cap] [change: the tunic and the breeches too, Crafting 1: they are clothes (ruled 2026-10-23)]. Woollen cloth and warm clothes (Crafting 6) [to build]; a leather jerkin at Crafting 3 (ruled 2026-10-23) [to build].
 - **Forge** [built] (the smithy's): an iron bar from two iron ore; burns charcoal. Unlock: Blacksmithing 1. Silver (Blacksmithing 5) [to build]; less charcoal a bar (Blacksmithing 2) [change: charcoal is the fire's fuel today, not an ingredient].
 - **Anvil** [built] (the smithy's; a smith's hammer in hand, except for forging the hammer itself): a dirk, a smith's hammer, a hatchet, a pickaxe (Blacksmithing 1); a scythe, a throwing spear, a flanged mace, an arming sword [change: Blacksmithing 3]; repair (Blacksmithing 4) [built, #410: to 100, 80, then 60% for a unit of the item's material, on the count the grindstone shares], silver work (5), mail and plate (7) [to build].
-- **Cooking at a fire** [built] (any lit fire that cooks: the nineteen fireplaces, a hearth, a campfire, and the oven, `43` section 3): a roast potato, stew, porridge, grilled perch, trout, and carp. Unlock: Cooking 1 [change: the stew is not among Cooking 1's plain recipes] [change: the stew splits, a plain pottage at Cooking 1 and the hearty stew with its buff at Cooking 4 (ruled 2026-10-23)]. Boiling water safe (Cooking 1) [to build].
+- **Cooking at a fire** [built] (any lit fire that cooks: the nineteen fireplaces, a hearth, a campfire, and the oven, `43` section 3): a roast potato, the plain pottage (the stew, renamed), porridge, grilled perch, trout, and carp; and since #445 each raw meat cooked alone, the meat pottage, the hearty stew (two meats; its buff to build), eggs and bacon, cheese from milk, and pemmican. Unlock: Cooking 1 [change: the hearty stew at Cooking 4, eggs and bacon at 4, cheese at 3, pemmican at 7, open to all until the skills (ruled 2026-10-23)]. Boiling water safe (Cooking 1) [to build].
 - **Oven** [built] (the baker's): a loaf of bread (two flour), a pumpkin pie (a pumpkin and flour) [change: pie at Cooking 6]. The oven cooks the fire's recipes too (`43` section 3).
 - **Millstones** [built] (the mill's): flour from two grain; no fire. Unlock: Cooking 1 (ruled 2026-10-23).
 - **Charcoal clamp** [built] (the smithy's yard, three at the burners): three charcoal from four logs over half a game day, lit, a log of fuel a day. Unlock: Blacksmithing 1 (ruled 2026-10-23).
@@ -327,7 +327,7 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 - **Pizza** [to build]: flour, tomato, cheese (Cooking 6).
 - **Pemmican** [built, #445: a raw meat, garlic or a cabbage, lard or honey, at a fire; stacks twenty]: meat, a plant, a binder (lard or honey), small, and the only food that stacks, keeps all but forever (Cooking 7).
 - **Eggs and bacon** [built, #445: two eggs and bacon at a fire] (Beastlore 7): Cooking 4 (ruled 2026-10-23).
-- **Cooked meats** [to build]: Cooking 1 (ruled 2026-10-23).
+- **Cooked meats** [built, #445: each raw meat alone at a fire, a roast hen, rabbit, mutton, and pork, a venison and a beef steak]: Cooking 1 (ruled 2026-10-23).
 - **Meat pie** [built, #445]: at the oven, raw meat and flour (`45`, a default).
 - **The feast** [to build]: a great meal laid on a table; the best food buffs in the game, to everyone who eats from it (Cooking 10).
 - **Cooks two at a time** (Cooking 6), **heals 25% more and keeps you well fed longer** (Cooking 9) [to build].
@@ -857,7 +857,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 - Craft at a station: the panel, Make, the queue, collect from the output [built].
 - Cook at any fire that cooks, bake at the oven, smelt at the forge, smith at the anvil (a hammer in hand), weave at the loom, mill at the millstones, burn charcoal in the clamp [built].
 - Dye at the vats (`43` section 8) [to build].
-- Brew at the cauldron [to build]; smoke at the rack [to build]; salt food [to build]; press cider (Cooking 3) [to build]; tan hides [to build]; set a gem in a trinket [to build]; repair at the anvil [built, #410].
+- Brew at the cauldron [to build]; smoke at the rack [built, #445]; salt food [to build]; press cider (Cooking 3) [to build]; tan hides [built, #445]; set a gem in a trinket [to build]; repair at the anvil [built, #410].
 - Lay a feast on a table and eat from it [to build] (Cooking 10).
 - Learn from a teacher [to build]: a screen of what you can learn now, a button each (ruled 2026-10-23).
 
@@ -997,7 +997,7 @@ The numbers are for tuning; this list is what must change before 1.0.
 ## 16. The open questions this scope waits on
 
 - **#217:** the basic lore, the story's spine and the world's names, paired with #92 and taken first.
-- **The rucksack has no source** until leather and wool come with the animals (#260's ruling; the satchel and a set-down bag are #400).
+- **The rucksack has no source**: leather and woollen cloth are made since #445, and the rucksack's own recipe (`docs/39` above: four leather, four woollen cloth, two spruce planks, the satchel) waits for its build with the skills (#260's ruling; the satchel and a set-down bag are #400).
 - **#92:** the map redrawn (the map as it stands is a testing map) and roomier interiors; the names; how many villagers; the gloom's door; which villager teaches which skill (from #275).
 - **#103:** every villager immune; reactions to the dead; follow and stay.
 - **#106:** scripting and in-world cutscenes.
