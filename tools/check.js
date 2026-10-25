@@ -686,7 +686,7 @@ for (const file of fs.readdirSync(path.join(root, "data", "maps")).filter((f) =>
     for (const p of mapMod.allProps()) {
       const [tx0, ty0] = p.tile;
       if (tx0 < bx || ty0 < by || tx0 >= bx + bw || ty0 >= by + bh) continue;
-      if (!(p.container || stationsMod.stationOf(p) || getDef(p.sprite).sleep)) continue;
+      if (!(p.container || stationsMod.stationOf(p).length || getDef(p.sprite).sleep)) continue;
       n++;
       let ok = false;
       for (const [tx, ty] of p.tiles) {

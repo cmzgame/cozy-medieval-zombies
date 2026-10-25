@@ -61,8 +61,9 @@ export function update() {
   const torchFire = getItem("torch").fire;
   for (const b of map.brackets()) {
     if (b.wall.bracket.lantern) {
+      if (b.wall.bracket.lit === false) continue; // a lantern put out (docs/43, section 3)
       const [lx, ly] = map.bracketPos(b);
-      curSources.push({ gx: lx, gy: ly, radius: getDef("lantern_post").fire.radius, intensity: 1, kind: "lantern", flicker: null }); // steady, never out; the one number is the lantern post's `fire.radius` (data/sprites/lantern_post.json)
+      curSources.push({ gx: lx, gy: ly, radius: getDef("lantern_post").fire.radius, intensity: 1, kind: "lantern", flicker: null }); // steady, burning nothing; the one number is the lantern post's `fire.radius` (data/sprites/lantern_post.json)
       continue;
     }
     if (!b.wall.bracket.torch || b.wall.bracket.lit === false) continue; // a mounted torch that is out gives no light

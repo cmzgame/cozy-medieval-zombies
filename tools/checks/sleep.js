@@ -1,6 +1,6 @@
 // Sleep and the needs (docs/30 step 2): the sleep verb refuses outdoors and
 // takes a bed indoors; asleep, the world's time scale rises and the loop runs
-// the night through: the clock reaches the morning, the fire burns its logs
+// the night through: the clock reaches the morning, the fire burns its logs (a home fire, a switch since docs/43, burns none)
 // down by the hours, tiredness is restored, health comes back at the sleeping
 // rate; the sleeper gets up with the scale back at one. From the console:
 // await __game.check("sleep")
@@ -52,19 +52,25 @@ export async function run(game) {
     const r = G.verbs.run("sleep", G.world.world, p, { prop: bed.id });
     row("the verb takes a bed indoors at night", r.ok && !!p.sleeping && G.world.world.timeScale > 1, `${r.ok ? "asleep" : r.reason}, time scale ${G.world.world.timeScale}`);
     // 3. The night, stepped: tiredness restored, the clock at the morning, the fire down by its hours, health up.
+    // The rate is the player's own each step (well fed it doubles, Michael 2026-10-18), so the expected health is summed as it goes.
+    const { regenPerMinute } = await import("/src/entities/player.js");
     const hour0 = G.clock.getHour();
     let steps = 0;
-    while (p.sleeping && steps < 60 * 60 * 20) { step(); steps++; }
+    let expectedHp = 0;
+    while (p.sleeping && steps < 60 * 60 * 20) { expectedHp += regenPerMinute(p) / 60 / 60; step(); steps++; }
+    expectedHp = Math.min(p.maxHp - 60, expectedHp);
     const slept = steps / 60 / 30; // game hours
     const h = G.clock.getHour();
     row("the sleeper gets up rested in the morning", !p.sleeping && p.tired >= p.maxTired - 0.01 && h >= 6 && h < 7, `up after ${slept.toFixed(1)} game hours (from ${hour0}:00), at ${h}:00, tired ${Math.round(p.tired)}`);
     row("the time scale is back at one", G.world.world.timeScale === 1, `scale ${G.world.world.timeScale}`);
     if (fire) {
-      const expected = Math.max(0, 2 - slept / fire.fire.hoursPerUnit);
-      row("the fire burned its logs down by the hours", Math.abs(fire.fire.fuel - expected) < 0.15 && (expected > 0 ? fire.fire.lit : !fire.fire.lit), `fuel ${fire.fire.fuel.toFixed(2)} (expected ${expected.toFixed(2)} at ${fire.fire.hoursPerUnit} h a log), lit ${fire.fire.lit}`);
+      if (fire.fire.switch) row("a home fire is a switch: lit all night, it burns no fuel (docs/43, section 3)", fire.fire.lit === true && Math.abs(fire.fire.fuel - 2) < 1e-9, `${fire.sprite}: fuel ${fire.fire.fuel.toFixed(2)}, lit ${fire.fire.lit}`);
+      else {
+        const expected = Math.max(0, 2 - slept / fire.fire.hoursPerUnit);
+        row("the fire burned its logs down by the hours", Math.abs(fire.fire.fuel - expected) < 0.15 && (expected > 0 ? fire.fire.lit : !fire.fire.lit), `fuel ${fire.fire.fuel.toFixed(2)} (expected ${expected.toFixed(2)} at ${fire.fire.hoursPerUnit} h a log), lit ${fire.fire.lit}`);
+      }
     }
     const gained = p.hp - 60;
-    const expectedHp = Math.min(40, (slept * 30 / 60) * G.tuning.player.sleepRegenPerMinute);
     row("health came back at the sleeping rate", Math.abs(gained - expectedHp) < 2, `+${gained.toFixed(1)} (expected about ${expectedHp.toFixed(1)})`);
     // 4. Two players (Michael, 2026-10-13: sleep is optional in a world with friends in it, and time skips only when
     // every living player is in bed): one asleep, the other awake, the world keeps its pace; both asleep, it skips;

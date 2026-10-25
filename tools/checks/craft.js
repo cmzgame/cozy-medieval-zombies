@@ -23,7 +23,7 @@ export async function run(game) {
   for (const id of ["hammer", "knife"]) G.inventory.stow(p, G.items.makeEntry(id, 1)); // the tool rule (#215): the workbench's rows want a carried hammer or knife
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const find = (station) => {
-    for (const c of map.loadedChunks()) for (const t of c.tiles) if (t.prop && t.prop.tile && G.stations.stationOf(t.prop) === station && map.peekTile(t.prop.tile[0], t.prop.tile[1]) === t) return t.prop;
+    for (const c of map.loadedChunks()) for (const t of c.tiles) if (t.prop && t.prop.tile && G.stations.stationOf(t.prop).includes(station) && map.peekTile(t.prop.tile[0], t.prop.tile[1]) === t) return t.prop;
     return null;
   };
   const made = []; // props placed by the check, taken away after
@@ -89,6 +89,10 @@ export async function run(game) {
     // 4. The oven: bread from flour, paused while the fire is out.
     if (oven) {
       standBy(oven);
+      // The oven cooks the fire's recipes as well as its own (docs/43, section 3): two stations, both lists, a cooking row allowed there.
+      const kinds = G.stations.stationOf(oven);
+      const cookAt = G.stations.canMake(p, oven, G.stations.recipe("roast_potato"), 1);
+      row("the oven is two stations, its own and cooking, and a cooking recipe is made there (docs/43)", kinds.length === 2 && kinds[0] === "oven" && kinds[1] === "cooking" && cookAt !== "Not at this station.", `${kinds.join(", ")}; roast potato: ${cookAt}`);
       chestBeside(oven, [["flour", 2]]);
       const fireSaved = { lit: oven.fire.lit, fuel: oven.fire.fuel };
       oven.fire.lit = false;
@@ -129,7 +133,7 @@ export async function run(game) {
     G.teleport(spot[0] + 0.5, spot[1] + 2.6);
     step();
     const grind = G.stations.recipe("flour");
-    row("the millstones are a station of their own, with a row for grain to flour and no fire", G.stations.stationOf(stones) === "millstones" && grind && !grind.fire && G.stations.recipesFor("millstones").length === 1, "millstones: " + G.stations.recipesFor("millstones").map((r) => r.id).join(", "));
+    row("the millstones are a station of their own, with a row for grain to flour and no fire", G.stations.stationOf(stones).includes("millstones") && grind && !grind.fire && G.stations.recipesFor("millstones").length === 1, "millstones: " + G.stations.recipesFor("millstones").map((r) => r.id).join(", "));
     const sacks = map.createProp({ sprite: "chest", tile: [spot[0] + 2, spot[1] + 2] });
     map.placeProp(sacks, spot[0] + 2, spot[1] + 2);
     made.push(sacks);

@@ -74,7 +74,7 @@ export async function run(game) {
     G.teleport(cx, cy);
     row("one with no fuel is not lit (nothing to burn)", dry.fire.lit === false, `lit ${dry.fire.lit}`);
 
-    // Not a hearth or a fireplace (only "a campfire or a torch"), by a real fireball.
+    // Not a hearth or a fireplace (only "a campfire or a torch"; a home light is a switch lit by hand, docs/43), by a real fireball.
     const hearth = G.map.createProp({ sprite: "fireplace", tile: [cx + 5, cy - 2], fuel: 2, lit: false });
     G.map.placeProp(hearth, cx + 5, cy - 2);
     restore.push(() => G.map.removeProp(hearth));
@@ -82,7 +82,17 @@ export async function run(game) {
     cast(cx + 5, cy - 2);
     for (let i = 0; i < 60 * 3 && G.archery.flying().some((a) => !a.done); i++) step(1);
     step(2);
-    row("a fireball landing on a fireplace with fuel does not light it", hearth.fire.lit === false && hearth.fire.fuel > 0, `lit ${hearth.fire.lit}, fuel ${hearth.fire.fuel}`);
+    row("a fireball landing on a fireplace (a switch) does not light it", hearth.fire.lit === false && hearth.fire.switch === true, `lit ${hearth.fire.lit}, switch ${hearth.fire.switch}`);
+    // Nor a lantern put out (docs/43, section 3): it is lit again by hand, with a flame.
+    const lamp = G.map.createProp({ sprite: "lantern_post", tile: [cx + 5, cy + 2] });
+    G.map.placeProp(lamp, cx + 5, cy + 2);
+    restore.push(() => G.map.removeProp(lamp));
+    G.map.setFireLit(lamp, false);
+    G.teleport(cx, cy + 2);
+    cast(cx + 5, cy + 2);
+    for (let i = 0; i < 60 * 3 && G.archery.flying().some((a) => !a.done); i++) step(1);
+    step(2);
+    row("nor a lantern post that was put out", lamp.fire.lit === false, `lit ${lamp.fire.lit}`);
     G.teleport(cx, cy);
 
     // A torch in a bracket that is out, by a real fireball at the wall: lit from its own side, not through the wall from the other.

@@ -103,6 +103,7 @@ export function cardFor(entry) {
   if (def.bow) lines.push(line(`Draw and release to shoot arrows${def.shots ? `; good for about ${def.shots} shots` : ""}.`));
   if (def.rug) lines.push(line(seg("Place", "word"), ": lay on the floor."));
   if (def.painting) lines.push(line(seg("Place", "word"), ": hang on a wall's face."));
+  if (def.place === "campfire") lines.push(line(seg("Place", "word"), ": set down outdoors as a campfire, cold and empty.")); // docs/43, section 3
   if (def.hands) lines.push(line(seg("Equip", "word"), `: ${def.hands === "both" ? "both hands" : def.hands === "either" ? "main or off hand" : `${def.hands} hand`}.`));
   if (def.wear) lines.push(line(seg("Equip", "word"), `: worn on your ${def.wear}${def.bag ? `; holds ${def.bag[0]}×${def.bag[1]}` : ""}${def.beltSlots ? `; ${def.beltSlots} belt slots` : ""}.`));
   if (def.verbs && def.verbs.length) lines.push(line(`For: ${def.verbs.join(", ")}.`));

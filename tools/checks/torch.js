@@ -1,6 +1,6 @@
 // Torches burn down and are lit with a tinderbox (Michael, 2026-10-17, #156): a lit torch burns while it is lit, fastest held
 // and at the slower wall rate on the belt, in a bracket, or on a post; a kill costs far more than a second of burning; a spent
-// torch is gone; a new one starts unlit; T lights it only with a tinderbox carried and douses a lit one; an unlit torch gives no
+// torch is gone; a new one starts unlit; T lights it only with a tinderbox carried and puts out a lit one ("put out", never "douse": docs/43); an unlit torch gives no
 // light; the village's own mounted torches never go out. From the console, on a tab with `?nosave`:
 //   await __game.check("torch")
 // It shortens the burn times for the test (`world.torchHeldLife` and `torchWallLife`, put back in the finally), and puts the
@@ -38,7 +38,7 @@ export async function run(game) {
     step(2);
     row("an unlit torch in the hand gives no light", G.items.heldFire(me.hands) === null && G.light.carriers().every((c) => c.owner !== me.id), `carried lights ${G.light.carriers().length}`);
 
-    // T: with no tinderbox, it says why and lights nothing; with one, it lights; again, it douses.
+    // T: with no tinderbox, it says why and lights nothing; with one, it lights; again, it puts it out.
     const boxes = [];
     for (const e of [...(bag.items || [])]) if (e.id === "tinderbox") boxes.push(e);
     for (const e of boxes) G.inventory.detach(me, e);
@@ -50,7 +50,8 @@ export async function run(game) {
     press();
     row("T with a tinderbox lights the torch in hand, and it gives light", fresh.lit === true && G.items.heldFire(me.hands) !== null, `lit ${fresh.lit}`);
     press();
-    row("T again douses it", !fresh.lit && G.items.heldFire(me.hands) === null, `lit ${fresh.lit}`);
+    const said = (document.getElementById("message") || {}).textContent || "";
+    row("T again puts it out, and says so in those words (never \"douse\", docs/43)", !fresh.lit && G.items.heldFire(me.hands) === null && said === "You put out the torch.", `lit ${fresh.lit}; "${said}"`);
 
     // Burning: held faster than on the belt, and a kill costs far more than a second.
     press();
