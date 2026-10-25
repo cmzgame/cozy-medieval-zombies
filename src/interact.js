@@ -448,7 +448,7 @@ function fireActions(prop, player) {
   if (prop.sprite === campfire.SPRITE) return campfireActions(prop, player);
   const name = prop.sprite.replace(/_/g, " ");
   const fuelId = f.fuelItem;
-  const fuelName = getItem(fuelId).name.toLowerCase();
+  const fuelA = aName(fuelId); // "a log", "some charcoal" (items.aName: the fuel's `noun`)
   const have = countAll(player, fuelId);
   const full = f.fuel >= f.maxFuel;
   const hours = map.fireHoursLeft(prop);
@@ -456,9 +456,9 @@ function fireActions(prop, player) {
   // Lighting a fire that is out needs a flame carried too (Michael, 2026-10-17, #168): a tinderbox or a lit torch, the light verb's rule.
   const flame = f.lit ? true : !!flameOf(player);
   let label;
-  if (!f.lit) label = !have ? `Light the ${name} (need a ${fuelName})` : flame ? `Light the ${name} (a ${fuelName})` : `Light the ${name} (need a tinderbox or a flame)`;
-  else if (full) label = `The ${name} is full (${f.maxFuel} ${fuelName}s${left})`;
-  else label = have ? `Feed the ${name} (${Math.ceil(f.fuel)} of ${f.maxFuel}${left})` : `Feed the ${name} (need a ${fuelName}${left})`;
+  if (!f.lit) label = !have ? `Light the ${name} (need ${fuelA})` : flame ? `Light the ${name} (${fuelA})` : `Light the ${name} (need a tinderbox or a flame)`;
+  else if (full) label = `The ${name} is full (${countName(fuelId, f.maxFuel)}${left})`;
+  else label = have ? `Feed the ${name} (${Math.ceil(f.fuel)} of ${f.maxFuel}${left})` : `Feed the ${name} (need ${fuelA}${left})`;
   return [act({
     kind: "fire",
     simple: have > 0 && !full && flame,
