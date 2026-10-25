@@ -1,1 +1,1 @@
-{"placeholder": {"kind": "box", "color": "#5a4a30", "height": 6, "inset": 2, "label": "Sawpit"}, "carry": false, "saw": true, "note": "a dev box for the sawpit (docs/30 step 1; docs/29/09 has its art request); saws a log into planks with no hatchet (docs/43 section 6, src/repair.js)"}
+{"placeholder": {"kind": "box", "color": "#5a4a30", "height": 6, "inset": 2, "label": "Sawpit"}, "carry": false, "saw": true, "note": "a dev box for the sawpit (docs/30 step 1; docs/29/09 has its art request); saws a log into planks with no hatchet (docs/43 section 6, src/sawpit.js)"}

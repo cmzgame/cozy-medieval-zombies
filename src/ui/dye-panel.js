@@ -111,7 +111,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 const same = (a, b) => a.length === b.length && a.every((c, i) => c === b[i]);
 const swatch = (attrs, style, on, title) => `<button class="swatch${on ? " on" : ""}" ${attrs} style="${style}" title="${esc(title)}"></button>`;
 const split = (hexes) => (hexes.length > 1 ? `--swatch:linear-gradient(135deg, ${hexes[0]} 0 55%, ${hexes[1]} 55% 100%)` : `--swatch:${hexes[0]}`);
-const nameOf = (hex, own) => (hex === own ? "Undyed" : (dye.colourOfHex(hex) || { name: hex }).name);
+const nameOf = (hex, own) => dye.regionWord(hex, own); // a dye's name (an own brass buckle's too), else Undyed for its own colour
 
 function render(player) {
   if (!open || !player) return;
@@ -138,7 +138,7 @@ function render(player) {
         body += `<div class="dy-row"><span class="dy-label">${esc(r.name)}</span><span class="dy-swatches">${own}${rest}</span></div>`;
       });
     }
-    const words = picks.map((c, i) => nameOf(c, d.own[i]));
+    const words = same(picks, d.own) ? picks.map(() => "Undyed") : picks.map((c, i) => nameOf(c, d.own[i])); // its own colours whole read Undyed, as its card names none
     const cost = dye.costOf(def, picks);
     const now = dye.currentColours(chosen.entry);
     const can = dye.applyProblem(player, map.propById(open.propId), open.uid, picks);

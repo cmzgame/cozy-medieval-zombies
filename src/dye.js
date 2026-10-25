@@ -7,7 +7,7 @@
 
 import * as verbs from "./verbs.js";
 import { getItem } from "./items.js";
-import { carriedEntry, countAll, takeAll } from "./inventory.js";
+import { countAll, takeAll } from "./inventory.js";
 import { reachProblem, TOO_FAR } from "./reach.js";
 import * as map from "./map.js";
 import { stationOf, REACH } from "./stations.js";
@@ -65,15 +65,23 @@ export function currentColours(entry) {
   return own;
 }
 
-// The words for an entry's colours, for its card: "Woad blue", a scheme's "Black and iron", a free two-region item's
-// "Cloth undyed, strap oxblood"; null while it is its own.
+// A region's colour in words, for the card and the picker alike: a dye's name when the colour is a dye's hex, an own colour
+// too (the leather belt's own buckle is the Brass dye's hex, so it is "Brass"); "Undyed" for an own colour no vat gives.
+export function regionWord(hex, own) {
+  const c = colourOfHex(hex);
+  if (c) return c.name;
+  return norm(hex) === norm(own) ? "Undyed" : String(hex);
+}
+
+// The words for an entry's colours, for its card: "Woad blue", a scheme's "Black and iron" (and "Black and brass", the
+// buckle its own brass), a free two-region item's "Cloth undyed, strap oxblood"; null while it is its own.
 export function colourWords(entry) {
   const def = entry && getItem(entry.id);
   const d = dyeOf(def);
   if (!d || (!entry.colours && !entry.colour)) return null;
   const now = currentColours(entry);
   if (now.every((c, i) => c === d.own[i])) return null;
-  const names = now.map((c, i) => (c === d.own[i] ? "undyed" : (colourOfHex(c) || { name: c }).name.toLowerCase()));
+  const names = now.map((c, i) => regionWord(c, d.own[i]).toLowerCase());
   const s = names.length === 1 ? names[0] : d.schemes ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names.map((n, i) => `${d.regions[i].name.toLowerCase()} ${n}`).join(", ");
   return s[0].toUpperCase() + s.slice(1);
 }
@@ -112,23 +120,45 @@ export function unlock() {
   return data.unlock;
 }
 
-// The entry with this uid that the player may dye: worn, then in a hand, on the belt, or in the bag.
+const WORN_ORDER = ["head", "chest", "hands", "waist", "legs", "feet", "back"];
+
+// Everything the player carries, worn first, then the hands, the belt's slots, and the bag, a bag or a belt inside the bag
+// opened in its turn (a satchel in a rucksack, a cap in that satchel): [{ entry, slot | null }], `slot` the worn slot.
+function carried(player) {
+  const out = [];
+  const seen = new Set();
+  const add = (e, slot) => {
+    if (!e || seen.has(e)) return;
+    seen.add(e);
+    out.push({ entry: e, slot });
+    for (const inner of (e.bag && e.bag.items) || []) add(inner, null); // a bag's things, whoever wears it
+    for (const inner of e.slots || []) add(inner, null); // a belt's slots, worn or carried
+  };
+  const worn = player.worn || {};
+  const slots = [...WORN_ORDER, ...Object.keys(worn).filter((s) => !WORN_ORDER.includes(s))];
+  // The worn things first, each before what it holds, so the picker lists them in their order.
+  for (const slot of slots) if (worn[slot]) { seen.add(worn[slot]); out.push({ entry: worn[slot], slot }); }
+  for (const slot of ["main", "off"]) add(player.hands && player.hands[slot], null);
+  for (const slot of slots) {
+    const e = worn[slot];
+    if (!e) continue;
+    for (const inner of e.slots || []) add(inner, null);
+    for (const inner of (e.bag && e.bag.items) || []) add(inner, null);
+  }
+  return out;
+}
+
+// The entry with this uid that the player may dye: anywhere it carries it (worn, in a hand, on the belt, in the bag or a bag in it),
+// the same walk the picker's list is (`dyeables`), so the picker offers nothing the verb refuses and the verb takes all it offers.
 export function entryOf(player, uid) {
   if (uid == null || !player) return null;
-  for (const e of Object.values(player.worn || {})) if (e && e.uid === uid) return e;
-  return carriedEntry(player, uid);
+  const hit = carried(player).find((c) => c.entry.uid === uid);
+  return hit ? hit.entry : null;
 }
 
 // Every entry the player could take to the vat, worn first: [{ entry, slot | null }].
 export function dyeables(player) {
-  const out = [];
-  const seen = new Set();
-  const add = (e, slot) => { if (e && !seen.has(e) && getItem(e.id) && getItem(e.id).dye) { seen.add(e); out.push({ entry: e, slot }); } };
-  for (const slot of ["head", "chest", "hands", "waist", "legs", "feet", "back"]) add(player.worn && player.worn[slot], slot);
-  for (const slot of ["main", "off"]) add(player.hands && player.hands[slot], null);
-  const bag = player.worn && player.worn.back && player.worn.back.bag;
-  for (const e of (bag && bag.items) || []) add(e, null);
-  return out;
+  return carried(player).filter((c) => getItem(c.entry.id) && getItem(c.entry.id).dye);
 }
 
 // Whether the player may dye that entry these colours at that vat now: true, or the reason not.
