@@ -16,6 +16,7 @@ export async function run(game) {
   const p = G.player;
   const hands0 = { main: p.hands.main, off: p.hands.off };
   const hunger0 = p.hunger;
+  const stamina0 = p.stamina;
   const survival0 = G.rules.rules.survival;
   const assets = await import("/src/assets.js");
   const combat = await import("/src/combat.js");
@@ -186,6 +187,7 @@ export async function run(game) {
     p.hands.main = hands0.main;
     p.hands.off = hands0.off;
     p.hunger = hunger0;
+    p.stamina = stamina0;
     G.rules.rules.survival = survival0;
     p.presentFor = 0;
     G.loop.advance(1 / 60);

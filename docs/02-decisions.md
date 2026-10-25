@@ -172,7 +172,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The character screen is the identity; the dead tones allowed; bald first; facial hair after 1.0 (the wizard's beard open, 2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break); no body shapes (2026-10-13, The character screen is the identity)
 - The trees' tiers are remapped and drawn bigger, giants one in five; half the debris; a thinner forest (2026-10-11, The trees' tiers are remapped and drawn bigger; 2026-10-11, Half the debris; 2026-10-11, Fewer mushrooms, sticks under trees)
 - The one-handed swing is a high-to-fall slash, never behind the back; a pose has a wrist (2026-10-13, The one-handed swing is a high-to-fall slash; 2026-10-13, A swing has a wrist)
-- Better animations are poses as data on the final rig, not more frames (2026-10-13, Better animations, scoped)
+- Better animations are poses as data on the final rig, not more frames; no dual-wield pose but the off hand's swing (2026-10-13, Better animations, scoped; 2026-10-25, The off hand's swing moves the off arm)
 - The off hand's swing moves the off arm: the main swing's pose mirrored, not a pose set of its own (2026-10-25, The off hand's swing moves the off arm)
 - Elbows on the rig, never knees, held straight until a pose uses them; no art redrawn (2026-10-15, Elbows on the rig, held straight)
 - A bow's limbs are upright on screen whatever way it points; a staff is held like a vertical pole (2026-10-14, The bow held upright, both hands on it; 2026-10-15, The bowstring to the chin and the cast's pose)
@@ -294,7 +294,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### 2026-10-25 — The off hand's swing moves the off arm (Michael's playtest; #423)
 
-Michael, playing: "For some reason the second arm still never moves during dual wielding, nor does it have a sound. Hopefully this is simple, the animation and sound are the same for each in theory." So the off hand's swing is the main hand's swing mirrored onto the other arm, the main arm holding what it holds; this overturns, in that one part, 2026-10-13's "no dual-wield poses at all" (Better animations, scoped), struck there. No other dual-wield pose (a stance, a cross-guard) is ruled in. Built as `attack_off` on every player's sheet (`docs/21`, Dual wielding).
+Michael, playing: "For some reason the second arm still never moves during dual wielding, nor does it have a sound. Hopefully this is simple, the animation and sound are the same for each in theory." So the off hand's swing is the main hand's swing mirrored onto the other arm, the main arm holding what it holds; this overturns, in that one part, 2026-10-13's "no dual-wield poses at all" (Better animations, scoped), struck there. The rest of that ruling stands: no other dual-wield pose (a stance, a cross-guard). Built as `attack_off` on every player's sheet (`docs/21`, Dual wielding).
 
 Docs: 21, bugs.
 
