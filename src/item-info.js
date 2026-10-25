@@ -60,7 +60,7 @@ export function recipesOf(def) {
   for (const r of stations.recipes()) {
     if (r.out && r.out.id === def.id && !madeAt.includes(r.station)) madeAt.push(r.station);
     if ((r.in || []).some((w) => w.id === def.id || (w.tag && def.tags && def.tags.includes(w.tag)))) {
-      const out = r.out && r.out.id ? getItem(r.out.id).name : r.out && r.out.prop ? cap(r.out.prop.replace(/_/g, " ")) : r.label || r.id;
+      const out = r.out && r.out.id ? getItem(r.out.id).name : r.label ? r.label : r.out && r.out.prop ? cap(r.out.prop.replace(/_/g, " ")) : r.id; // a recipe's own label first (the jack-o'-lantern's prop is "pumpkin")
       if (!goesInto.some((g) => g.name === out)) goesInto.push({ name: out, station: r.station });
     }
   }
@@ -106,6 +106,10 @@ export function cardFor(entry) {
   if (def.rug) lines.push(line(seg("Place", "word"), ": lay on the floor."));
   if (def.painting) lines.push(line(seg("Place", "word"), ": hang on a wall's face."));
   if (def.place === "campfire") lines.push(line(seg("Place", "word"), ": set down outdoors as a campfire, cold and empty.")); // docs/43, section 3
+  // docs/43, section 4: set down as its prop, by where it may stand; food placed as decoration does not come back food; a bracket hung as a painting is.
+  if (def.place && def.place !== "campfire") lines.push(line(seg("Place", "word"), def.stand === "outdoors" ? ": set down outdoors." : ": set down on the floor."));
+  if (def.placeAs) lines.push(line(seg("Place as decoration", "word"), ": set down on the floor; picked up again, it is a decoration, not food."));
+  if (def.bracket) lines.push(line(seg("Place", "word"), ": hang on a wall's face, to hold a torch."));
   if (def.hands) lines.push(line(seg("Equip", "word"), `: ${def.hands === "both" ? "both hands" : def.hands === "either" ? "main or off hand" : `${def.hands} hand`}.`));
   if (def.wear) lines.push(line(seg("Equip", "word"), `: worn on your ${def.wear}${def.bag ? `; holds ${def.bag[0]}×${def.bag[1]}` : ""}${def.beltSlots ? `; ${def.beltSlots} belt slots` : ""}.`));
   // What a dye vat can do to it (docs/43 section 8): its regions' colours, or its schemes, counted.

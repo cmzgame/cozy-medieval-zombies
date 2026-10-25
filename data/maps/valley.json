@@ -2465,13 +2465,15 @@
        "side": "n",
        "at": 2,
        "facing": "in",
-       "torch": false
+       "torch": true,
+       "lit": false
       },
       {
        "side": "n",
        "at": 7,
        "facing": "in",
-       "torch": false
+       "torch": true,
+       "lit": false
       }
      ]
     }
@@ -2542,7 +2544,8 @@
        "side": "n",
        "at": 1,
        "facing": "in",
-       "torch": false
+       "torch": true,
+       "lit": false
       }
      ]
     }
@@ -5100,7 +5103,8 @@
        "side": "w",
        "at": 0,
        "facing": "in",
-       "torch": false
+       "torch": true,
+       "lit": false
       }
      ]
     }
@@ -12175,6 +12179,51 @@
     84,
     154
    ]
+  },
+  {
+   "sprite": "torch_post",
+   "tile": [
+    90,
+    165
+   ],
+   "torch": true,
+   "lit": false
+  },
+  {
+   "sprite": "torch_post",
+   "tile": [
+    64,
+    156
+   ],
+   "torch": true,
+   "lit": false
+  },
+  {
+   "sprite": "torch_post",
+   "tile": [
+    76,
+    160
+   ],
+   "torch": true,
+   "lit": false
+  },
+  {
+   "sprite": "torch_post",
+   "tile": [
+    114,
+    156
+   ],
+   "torch": true,
+   "lit": false
+  },
+  {
+   "sprite": "torch_post",
+   "tile": [
+    118,
+    160
+   ],
+   "torch": true,
+   "lit": false
   },
   {
    "sprite": "maypole",

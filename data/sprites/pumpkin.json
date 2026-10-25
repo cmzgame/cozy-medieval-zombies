@@ -34,7 +34,8 @@
   "flicker": {
    "amp": 0.12,
    "speed": 5
-  }
+  },
+  "switch": true
  },
  "interactable": true,
  "carry": true,

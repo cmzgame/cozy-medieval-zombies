@@ -633,6 +633,24 @@ for sid, d in sprite_flags.items():
 for flag, value in (("repair", "grindstone"), ("repair", "anvil"), ("saw", True), ("hive", True)):
     if not any(d.get(flag) == value for d in sprite_flags.values()):
         fail(f"sprites: no definition has {flag} {value!r}")
+# Set down and picked up again (docs/43 sections 3 and 4; src/setdown.js): an item's `place` or `placeAs` names a sprite, its `stand` a rule;
+# a sprite's `item` names the item Pick up gives back; a palette prop's `stand` likewise.
+STANDS = ("outdoors", "wall", "ground")
+for i in items:
+    for key in ("place", "placeAs"):
+        if key in i and i[key] not in sprites:
+            fail(f"items.{i['id']}.{key}: no sprite {i[key]!r}")
+    if "stand" in i and i["stand"] not in STANDS:
+        fail(f"items.{i['id']}.stand: one of {STANDS}, not {i['stand']!r}")
+for sid, d in sprite_flags.items():
+    if "item" in d and d["item"] not in item_ids:
+        fail(f"sprites.{sid}.item: no item {d['item']!r}")
+for k, b in build.items() if isinstance(build, dict) else []:
+    if isinstance(b, dict) and b.get("kind") == "prop":
+        if b.get("sprite") not in sprites:
+            fail(f"build.{k}.sprite: no sprite {b.get('sprite')!r}")
+        if b.get("stand", "ground") not in STANDS:
+            fail(f"build.{k}.stand: one of {STANDS}, not {b.get('stand')!r}")
 saw = work.get("saw") or {}
 check_id("tuning.work.saw.item", saw.get("item"))
 if saw.get("item") in item_defs and not item_defs[saw["item"]].get("splitsInto"):

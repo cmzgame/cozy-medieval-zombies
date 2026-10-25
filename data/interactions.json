@@ -13,6 +13,8 @@
   {"use": "tinderbox", "on": "fireplace", "verb": "Light", "action": "light", "message": "You light the fireplace."},
   {"use": "tinderbox", "on": "hearth", "verb": "Light", "action": "light", "message": "You light the hearth."},
   {"use": "log", "on": "campfire", "verb": "Add", "action": "feed"},
+  {"use": "tinderbox", "on": "pumpkin", "verb": "Light", "action": "light", "message": "You light the jack-o'-lantern."},
+  {"use": "torch", "on": "pumpkin", "verb": "Light", "action": "light"},
   {"use": "torch", "on": "lantern_post", "verb": "Light", "action": "light", "message": "You light the torch."},
   {"use": "torch", "on": "fire", "verb": "Light", "action": "light", "message": "You light the torch."},
   {"use": "arrow", "on": "fire", "verb": "Dip", "action": "dip", "args": {"from": "arrow", "to": "fire_arrow"}, "message": "You dip the arrows in the fire."},

@@ -486,6 +486,186 @@
    "uses": "build"
   },
   {
+   "id": "cupboard",
+   "station": "workbench",
+   "out": {
+    "prop": "cupboard"
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 5
+    }
+   ],
+   "seconds": 12,
+   "uses": "build"
+  },
+  {
+   "id": "desk",
+   "station": "workbench",
+   "out": {
+    "prop": "desk"
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 4
+    }
+   ],
+   "seconds": 10,
+   "uses": "build"
+  },
+  {
+   "id": "bookcase",
+   "station": "workbench",
+   "out": {
+    "prop": "bookcase"
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 5
+    }
+   ],
+   "seconds": 12,
+   "uses": "build"
+  },
+  {
+   "id": "counter",
+   "station": "workbench",
+   "out": {
+    "prop": "counter",
+    "footprint": [
+     3,
+     1
+    ]
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 4
+    }
+   ],
+   "seconds": 10,
+   "uses": "build"
+  },
+  {
+   "id": "chair",
+   "station": "workbench",
+   "out": {
+    "prop": "chair"
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 2
+    }
+   ],
+   "seconds": 6,
+   "uses": "build"
+  },
+  {
+   "id": "cart",
+   "station": "workbench",
+   "out": {
+    "prop": "cart",
+    "footprint": [
+     2,
+     3
+    ]
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 6
+    },
+    {
+     "id": "iron_bar",
+     "count": 1
+    }
+   ],
+   "seconds": 16,
+   "uses": "build"
+  },
+  {
+   "id": "stall",
+   "station": "workbench",
+   "out": {
+    "prop": "stall",
+    "footprint": [
+     2,
+     1
+    ]
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 6
+    },
+    {
+     "tag": "cloth",
+     "count": 1
+    }
+   ],
+   "seconds": 16,
+   "uses": "build"
+  },
+  {
+   "id": "barrel",
+   "station": "workbench",
+   "out": {
+    "prop": "barrel"
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 4
+    },
+    {
+     "id": "iron_bar",
+     "count": 1
+    }
+   ],
+   "seconds": 10,
+   "uses": "build"
+  },
+  {
+   "id": "jack_o_lantern",
+   "station": "workbench",
+   "label": "Jack-o'-lantern",
+   "out": {
+    "prop": "pumpkin"
+   },
+   "in": [
+    {
+     "id": "pumpkin",
+     "count": 1
+    }
+   ],
+   "seconds": 4,
+   "uses": "cut"
+  },
+  {
+   "id": "torch_post",
+   "station": "workbench",
+   "out": {
+    "id": "torch_post",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 2
+    },
+    {
+     "id": "stick",
+     "count": 1
+    }
+   ],
+   "seconds": 6,
+   "uses": "build"
+  },
+  {
    "id": "charcoal",
    "station": "clamp",
    "out": {
@@ -674,6 +854,41 @@
     }
    ],
    "seconds": 16,
+   "tool": "hammer"
+  },
+  {
+   "id": "strongbox",
+   "station": "anvil",
+   "out": {
+    "prop": "strongbox"
+   },
+   "in": [
+    {
+     "id": "iron_bar",
+     "count": 2
+    },
+    {
+     "id": "plank",
+     "count": 2
+    }
+   ],
+   "seconds": 14,
+   "tool": "hammer"
+  },
+  {
+   "id": "wall_bracket",
+   "station": "anvil",
+   "out": {
+    "id": "wall_bracket",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "iron_bar",
+     "count": 1
+    }
+   ],
+   "seconds": 6,
    "tool": "hammer"
   },
   {

@@ -2,7 +2,8 @@
 // in a chest within reach, taking its seconds in the world's time, paused while
 // the station's fire is out, the result landing in the station's output; a
 // prop recipe landing beside the station; the craft verb refusing what it
-// should. From the console: await __game.check("craft")
+// should; the made things of docs/43 section 4 (the furniture, the barrel, the jack-o'-lantern, a torch post and a wall bracket as items, the
+// strongbox at the anvil), each landing where it should, a made container empty and searched. From the console: await __game.check("craft")
 // It pauses the loop, uses the joiner's workbench and the baker's oven from the
 // valley (or any workbench and oven it finds), places a chest of its own
 // beside each, and takes everything away again.
@@ -171,6 +172,57 @@ export async function run(game) {
     step();
     const none = G.verbs.run("craft", G.world.world, p, { prop: stones.id }, { recipe: "bread", count: 1 });
     row("the millstones refuse a recipe of another station", !none.ok && /Not at this station/.test(none.reason), none.reason || "took it");
+    // 5. The made things (docs/43 section 4): every row made at its station from a big chest beside it, the props beside the station, `made`,
+    // a container empty and already searched; the torch post and the wall bracket as items in the output.
+    {
+      const anvil = find("anvil");
+      let jackSeen = null;
+      const make = (station, id) => {
+        standBy(station);
+        const r = G.stations.recipe(id);
+        const box = chestBeside(station, []);
+        box.bag = G.inventory.createBag(12, 12, "chest");
+        for (const w of r.in) G.grid.add(box.bag, w.id || (w.tag === "cloth" ? "rag" : w.tag), w.count);
+        const ids = new Set([...map.allProps()].map((q) => q.id));
+        G.stations.outputOf(station).items.length = 0; // room in the output for an item made (the earlier rows fill it)
+        const out0 = 0;
+        const res = G.verbs.run("craft", G.world.world, p, { prop: station.id }, { recipe: id, count: 1 });
+        step(Math.ceil(r.seconds * 60) + 2);
+        if (r.out.prop) {
+          const pr = [...map.allProps()].find((q) => !ids.has(q.id) && q.sprite === r.out.prop);
+          const fine = !!pr && pr.made === true && (!pr.container || (pr.searched === true && pr.bag && pr.bag.items.length === 0));
+          const jackFine = pr && pr.sprite === "pumpkin" && pr.fire.switch === true && pr.fire.lit === true && G.map.setFireLit(pr, false) && pr.fire.lit === false;
+          if (pr && pr.sprite === "pumpkin") jackSeen = !!jackFine;
+          if (pr) G.map.removeProp(pr); // taken away at once, so the room beside the station never fills
+          map.removeProp(box);
+          made.splice(made.indexOf(box), 1);
+          return { ok: res.ok && fine, detail: res.ok ? (pr ? `${pr.sprite} at ${pr.tile}, made ${pr.made}${pr.container ? `, empty ${pr.bag && pr.bag.items.length === 0}` : ""}` : "nothing landed") : res.reason };
+        }
+        map.removeProp(box);
+        made.splice(made.indexOf(box), 1);
+        const o = G.stations.outputOf(station).items;
+        const got = o.slice(out0).find((e) => e.id === r.out.id) || o.find((e) => e.id === r.out.id);
+        if (got) o.splice(o.indexOf(got), 1);
+        return { ok: res.ok && !!got, detail: res.ok ? (got ? `${got.id} in the output` : "no item") : res.reason };
+      };
+      const bench2 = [];
+      for (const id of ["cupboard", "desk", "bookcase", "counter", "chair", "cart", "stall", "barrel", "jack_o_lantern", "torch_post"]) {
+        const r = make(bench, id);
+        bench2.push(`${id}: ${r.ok ? "ok" : r.detail}`);
+        if (!r.ok) row(`the workbench makes the ${id.replace(/_/g, " ")} (docs/43 section 4)`, false, r.detail);
+      }
+      row("the workbench makes the cupboard, desk, bookcase, counter, chair, cart, stall, barrel, jack-o'-lantern, and torch post (docs/43 section 4)", bench2.every((x) => x.endsWith(": ok")), bench2.join("; "));
+      if (anvil) {
+        const held = p.hands.main;
+        const hammer = G.items.makeEntry("hammer", 1);
+        p.hands.main = hammer; // the anvil's recipes want the hammer in a hand
+        const a1 = make(anvil, "strongbox");
+        const a2 = make(anvil, "wall_bracket");
+        p.hands.main = held;
+        row("the anvil makes the strongbox (a prop, empty) and the wall bracket (an item) with a hammer in hand", a1.ok && a2.ok, `${a1.detail}; ${a2.detail}`);
+      } else row("an anvil in the loaded chunks", false, "none");
+      row("a made jack-o'-lantern is a switch, lit, put out with nothing (docs/43 section 4)", jackSeen === true, `seen ${jackSeen}`);
+    }
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message });
   } finally {
