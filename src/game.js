@@ -46,6 +46,7 @@ import { createZombie, updateZombie, siegeHeldOn } from "./entities/zombie.js";
 import { createVillager, updateVillager, turnVillager, damageVillager, setTalkWorld, talkIdOf } from "./entities/villager.js";
 import { controlPlayer } from "./player-controller.js";
 import * as animal from "./entities/animal.js"; // the valley's game and livestock (docs/45)
+import { getDef } from "./assets.js"; // a sprite definition's data (a feeding trough's `feed`): read, never drawn
 
 export const state = {
   info: null, // what the map file gave: spawn, the authored dead and villagers, the name
@@ -141,6 +142,7 @@ function ageSpeech(dt) {
 function wireAnimals() {
   const S = state;
   animal.resetSnares(map.allProps()); // the snares this world has, set before it was saved
+  animal.setDefs((id) => { try { return getDef(id); } catch { return null; } }); // what a feeding trough is (a definition's `feed`)
   archery.setTargets(() => [...S.zombies, ...S.animals]);
   combat.setAnimals(() => S.animals);
   animal.setAnimalList(() => S.animals);
@@ -465,9 +467,9 @@ export function syncParts() {
     // facing, the frame of the animation, burning, a body set alight by Burn corpse (docs/43 section 7), a villager's cowering (its state).
     dead: hashOf([...S.zombies, ...S.villagers, ...S.corpses].slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((z) => `${z.id} ${f(at(z)[0])},${f(at(z)[1])} ${z.state || "-"} hp ${hp2(z.hp)} ${z.dead ? "dead" : ""}${z.corpse ? "corpse" : ""} ${z.facing} ${z.anim ? `${z.anim.name}:${z.anim.frame}` : "-"}${z.burning ? " fire" : ""}${z.cremate ? " cremate" : ""}${z.talkingWith && z.talkingWith.length ? ` talk ${z.talkingWith.join("+")}` : ""}`).join("\n")),
     // The animals as the frames carry them (docs/45 section 7): where, the state, health, dead, how it was killed and whether it is
-    // skinned (a carcass, step 2; a butchered one has left the list), the facing and the frame of the animation, the home; and each
-    // home's renewal. Fed and produce days join with step 3.
-    animals: hashOf([...S.animals.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((a) => `${a.id} ${a.species} ${f(at(a)[0])},${f(at(a)[1])} ${a.state} hp ${hp2(a.hp)} ${a.dead ? `dead ${a.killedBy || "-"}${a.skinned ? " skinned" : ""}` : ""} ${a.facing} ${a.anim.name}:${a.anim.frame} home ${a.homeId || "-"} ${a.home.join(",")}`), ...S.animalHomes.map((h) => `${h.id} ${h.species} cap ${h.cap} next ${h.nextAt === null ? "-" : f(h.nextAt)}`)].join("\n")),
+    // skinned (a carcass, step 2; a butchered one has left the list), who leads it and the days it was fed and its milk or wool taken
+    // (step 3), the facing and the frame of the animation, the home; and each home's renewal.
+    animals: hashOf([...S.animals.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((a) => `${a.id} ${a.species} ${f(at(a)[0])},${f(at(a)[1])} ${a.state} hp ${hp2(a.hp)} ${a.dead ? `dead ${a.killedBy || "-"}${a.skinned ? " skinned" : ""}` : ""}${a.leaderId ? ` led ${a.leaderId}` : ""} fed ${a.fedDay} taken ${a.takenDay} ${a.facing} ${a.anim.name}:${a.anim.frame} home ${a.homeId || "-"} ${a.home.join(",")}`), ...S.animalHomes.map((h) => `${h.id} ${h.species} cap ${h.cap} next ${h.nextAt === null ? "-" : f(h.nextAt)}`)].join("\n")),
     clock: hashOf(`${f(clock.getElapsed())} ${f(loop.simTime())} ${world.world.timeScale}`),
     rules: hashOf(Object.keys(rules.rules).sort().map((k) => `${k}=${typeof rules.rules[k] === "boolean" ? (rules.rules[k] ? 1 : 0) : rules.rules[k]}`).join(" ")), // world state since the second step of item 5
   };
@@ -851,6 +853,11 @@ export function step(dt, snapshots = null) {
     if (Math.floor(loop.simTime()) !== Math.floor(loop.simTime() - dt)) {
       const snares = animal.setSnares(map.propById);
       if (snares.length) for (const pr of animal.snareStep(snares, S.animals, S.animalHomes, watching)) map.markDirty(pr.tile[0], pr.tile[1]);
+      // The keeping (docs/45 section 3): a tame animal not fed today eats as soon as a trough it can reach holds feed, a fed hen lays into
+      // its coop, and two of a kind fed in a pen with room breed. Every tame animal, near a player or not: nothing waits on a visit. A lead
+      // whose leader is gone (a guest away, a death) is freed.
+      animal.freeLostLeads(S.animals, S.players);
+      for (const a of animal.dailyStep(S.animals)) S.animals.push(a);
     }
   }
   // Villagers bitten through get up as the dead, in what they wore (docs/19).
