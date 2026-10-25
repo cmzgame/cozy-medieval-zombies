@@ -210,8 +210,8 @@ for i in items:
     if "vessel" in i and not (i["vessel"].get("capacity", 0) > 0 and i.get("hands")):
         fail(f"items.{i['id']}: a vessel needs a capacity above 0 and `hands`")
 
-# Mining (#196): a `mine` block names an item that exists, a count, seconds, and either `gone` or a spent kind that exists, says it ripens back,
-# and agrees with the whole one on everything but the picture (restaging swaps only the sprite and its day).
+# Mining (#196): a `mine` block names an item that exists, a count, seconds, and `gone`: a mined rock goes, and a node in its area comes back
+# elsewhere in it (docs/46); the spent ore rock that came back in place is retired (`spent` and `days` are no longer read).
 for sid in sorted(sprites):
     d = load(f"data/sprites/{sid}.json")
     m = d.get("mine")
@@ -220,20 +220,47 @@ for sid in sorted(sprites):
     check_id(f"sprites.{sid}.mine", m.get("item"))
     if not (len(m.get("count", [])) == 2 and 1 <= m["count"][0] <= m["count"][1] and m.get("seconds", 0) > 0):
         fail(f"sprites.{sid}.mine: a count [lo, hi] from 1 and seconds above 0")
-    if not (m.get("gone") or m.get("spent")):
-        fail(f"sprites.{sid}.mine: it either goes (`gone`) or stands spent (`spent` and `days`)")
-    if m.get("spent"):
-        if m["spent"] not in sprites:
-            fail(f"sprites.{sid}.mine: no spent kind {m['spent']!r}")
-            continue
-        sp = load(f"data/sprites/{m['spent']}.json")
-        if sp.get("ripens") != sid:
-            fail(f"sprites.{m['spent']}: `ripens` should name {sid!r}, not {sp.get('ripens')!r}")
-        if not m.get("days", 0) > 0:
-            fail(f"sprites.{sid}.mine: a spent rock needs `days` above 0")
-        for field in ("collide", "interactable", "carry", "solid", "footprint"):
-            if d.get(field) != sp.get(field):
-                fail(f"sprites.{sid} and {m['spent']} disagree on {field!r}")
+    if m.get("gone") is not True:
+        fail(f"sprites.{sid}.mine: a mined rock goes (`gone`); it comes back elsewhere in its area (docs/46)")
+    for retired in ("spent", "days"):
+        if retired in m:
+            fail(f"sprites.{sid}.mine: `{retired}` is retired (docs/46: an ore rock no longer comes back in place)")
+
+# Natural resources (docs/46): a map's `resources` kind names sprites that exist and are gatherables (interactable), a count of 0 or more,
+# rects of positive size, places it opens to that the map has, and floors that exist; the tuning's numbers are sensible.
+for path in sorted(glob.glob("data/maps/*.json")):
+    m = load(path)
+    set_names = {s.get("name") for s in m.get("sets", [])}
+    for name, k in (m.get("resources") or {}).items():
+        where = f"{path}: resources.{name}"
+        if not k.get("sprites"):
+            fail(f"{where}: no sprites")
+        for sid, w in (k.get("sprites") or {}).items():
+            if sid not in sprites:
+                fail(f"{where}: no sprite {sid!r}")
+            elif not load(f"data/sprites/{sid}.json").get("interactable"):
+                fail(f"{where}: {sid!r} is not interactable (the gatherables law)")
+            if not w > 0:
+                fail(f"{where}: {sid!r} has no weight")
+        if not (isinstance(k.get("count"), int) and k["count"] >= 0):
+            fail(f"{where}: a count of 0 or more")
+        for r in k.get("rects", []):
+            if not (len(r) == 4 and r[2] > 0 and r[3] > 0):
+                fail(f"{where}: a rect [x, y, w, h] with a size, not {r}")
+        for place in k.get("open", []):
+            if place not in set_names:
+                fail(f"{where}: opens to {place!r}, which the map has no place for")
+        for fl in k.get("floors", []) + k.get("openFloors", []):
+            if fl not in sprites:
+                fail(f"{where}: no floor {fl!r}")
+rt = load("data/tuning.json").get("resources", {})
+if rt:
+    d0, d1 = rt.get("days", [1, 2])
+    if not (0 < d0 <= d1):
+        fail("tuning.resources.days: [lo, hi] with 0 < lo <= hi")
+    for key in ("checkSeconds", "tries", "yardCap", "riseSeconds"):
+        if key in rt and not rt[key] > 0:
+            fail(f"tuning.resources.{key}: a number above 0")
 
 # Chopping (#195): a tool lists the verb `chop`, the stump and the tuning's names exist, and every placed container's own `loot` names a table.
 if not any("chop" in i.get("verbs", []) for i in items):
