@@ -291,15 +291,19 @@ export function install() {
     if (!net.isGuest()) cfg.save();
   });
   // A message said while a guest's player acts goes to the guest's screen, not this one (docs/31/04); a log line
-  // (the Use mode's result, use.js) the same way.
+  // (the Use mode's result, use.js) the same way. A guest's player whose guest has gone (left mid-action: its character
+  // stands for the grace and a timed action it began, a cast, a pick, a chop, still ends) has no screen to tell, and the
+  // line is swallowed, never shown on this one (docs/bugs.md, fixed).
   setMessageSink((text, seconds) => {
     const by = S.acting;
     if (!by || by === self() || !net.isHost()) return false;
-    return net.messageTo(by.id, text, seconds);
+    net.messageTo(by.id, text, seconds); // false when its guest is gone: the line goes nowhere
+    return true;
   });
   log.setSink((text, kind) => {
     const by = S.acting;
     if (!by || by === self() || !net.isHost()) return false;
-    return net.logTo(by.id, text, kind);
+    net.logTo(by.id, text, kind); // false when its guest is gone: the line goes nowhere
+    return true;
   });
 }

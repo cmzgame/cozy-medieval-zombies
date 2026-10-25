@@ -75,6 +75,7 @@ export function reset({ floor = "floor_grass", authored = null, wildRule = null,
   chunks.clear();
   sleepers.clear();
   woken.length = 0;
+  evicted.clear(); // a new map owes no frame a drop
   nextRoomId = 1;
   lastChunk = null;
   rooms.clear();
@@ -1506,10 +1507,43 @@ export function restoreMap(data) {
 const sleepers = new Map(); // chunk key -> the characters that stood in it when it was dropped (an empty list: grown before, its dead gone elsewhere)
 const woken = []; // keys of chunks grown again with sleepers on record
 const evictListeners = [];
+const evicted = new Map(); // chunk key -> [cx, cy]: dropped since the wire last asked (net.js names them to a guest, which drops them too)
 
 // Called with (key, cx, cy) for every chunk dropped; the light cache forgets it.
 export function onEvict(fn) {
   evictListeners.push(fn);
+}
+
+// The chunks evicted since the last call, as [cx, cy] (layer 0: only the wild is dropped), for the frame: a guest's
+// replica drops what the host dropped (the sync check found a guest holding chunks the host no longer had, 2026-10-18).
+// One grown again since is left out: it is in the touched list, and a guest's installChunk replaces its old copy whole.
+export function takeEvicted() {
+  const out = [];
+  for (const [k, at] of evicted) if (!chunks.has(k)) out.push(at);
+  evicted.clear();
+  return out;
+}
+
+// One chunk out of memory: the props and rugs anchored in it leave the registry and the fire set, and the eviction's
+// listeners are told (the light cache forgets it). The host's eviction (evictFar) and a guest's replica told of one by
+// the frame (net.js) both come through here. True when it was loaded.
+export function dropChunk(cx, cy, layer = 0) {
+  const k = chunkKey(cx, cy, layer);
+  const c = chunks.get(k);
+  if (!c) return false;
+  // Its props leave the registry and the fire set with it (the sync check found evicted mushrooms kept
+  // as ghosts in the host's registry, 2026-10-13); the chunk grows back with new props and new ids.
+  for (const t of c.tiles) {
+    for (const pr of [t && t.prop, t && t.rug]) {
+      if (!pr || pr.tile[0] < c.cx * CHUNK || pr.tile[0] >= (c.cx + 1) * CHUNK || pr.tile[1] < c.cy * CHUNK || pr.tile[1] >= (c.cy + 1) * CHUNK) continue;
+      fireProps.delete(pr);
+      if (propsById.get(pr.id) === pr) propsById.delete(pr.id);
+    }
+  }
+  chunks.delete(k);
+  lastChunk = null;
+  for (const fn of evictListeners) fn(k, c.cx, c.cy);
+  return true;
 }
 
 // Drop every wild chunk that play has not changed and that lies more than
@@ -1524,19 +1558,10 @@ export function evictFar(gx, gy, radius, keep = () => false) {
     if (!c.wild || c.dirty || c.layer !== 0) continue;
     if (Math.max(Math.abs(c.cx - pcx), Math.abs(c.cy - pcy)) <= radius) continue;
     if (keep(c.cx, c.cy)) continue;
-    // Its props leave the registry and the fire set with it (the sync check found evicted mushrooms kept
-    // as ghosts in the host's registry, 2026-10-13); the chunk grows back with new props and new ids.
-    for (const t of c.tiles) {
-      const pr = t && t.prop;
-      if (!pr || pr.tile[0] < c.cx * CHUNK || pr.tile[0] >= (c.cx + 1) * CHUNK || pr.tile[1] < c.cy * CHUNK || pr.tile[1] >= (c.cy + 1) * CHUNK) continue;
-      fireProps.delete(pr);
-      if (propsById.get(pr.id) === pr) propsById.delete(pr.id);
-    }
-    chunks.delete(k);
+    dropChunk(c.cx, c.cy, c.layer); // the walk's own entry deleted from the Map: the walk goes on safely
+    evicted.set(k, [c.cx, c.cy]); // for the next frame (net.js): a guest drops it too
     out.push([k, c.cx, c.cy]);
-    for (const fn of evictListeners) fn(k, c.cx, c.cy);
   }
-  if (out.length) lastChunk = null;
   return out;
 }
 

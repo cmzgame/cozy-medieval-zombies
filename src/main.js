@@ -193,14 +193,26 @@ function comeBack() {
   if (!away) return false;
   away = false;
   lastInputAt = performance.now();
-  if (net.isGuest()) net.comeBack();
-  else {
+  if (net.isGuest()) {
+    // A guest's away screen stays up until the host's frame carries my player and the chunks round it (net.js
+    // `returning`, hooks.returned): the host may have dropped them while I was out, and nothing pops in in view.
+    if (net.comeBack()) {
+      applyPause();
+      return true;
+    }
+  } else {
     const p = host.backNow(myHash());
     if (p) game.pickPlayer(p);
   }
   if (screens.currentScreen() === "away") screens.hide();
   applyPause();
   return true;
+}
+
+// A guest's return complete (net.js hooks.returned): my player is in the host's frame again with its ring whole.
+function returned() {
+  if (screens.currentScreen() === "away") screens.hide();
+  applyPause();
 }
 
 // The host refused a guest's step away (net.js `stay`): in again, nothing lost.
@@ -1857,6 +1869,7 @@ async function boot() {
     // The host's side (host.js): the joins and whose character, the saves, dormancy, stepping away, a guest's commands.
     ...host.netHooks(),
     stay: stayed,
+    returned,
     // The host knows no living character of mine here: the creation steps, then joinAs (which brings the screen back).
     who: (dead) => { shell.worldHide(); screens.creationFor({ for: "join", code: net.status().code, dead }); },
     joined: (id) => showMessage(`Joined as ${id}.`, 3),
