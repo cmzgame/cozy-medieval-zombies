@@ -8,7 +8,7 @@ Where this page and `06-art.md` disagree, `06` is the palette log for the engine
 
 ## The look in one paragraph
 
-Cosy, slightly spooky autumn: chunky readable shapes, muted harvest colours, a dusky cool shift in the shadows, a little rot at the edges. Habbo-flat, not painterly: a few big flat shades per material, never gradients, never dither. Saturation lives in a few accents (crimson, harvest yellow, firelight); the ground and walls stay quiet. The test from `06`: *what would a peasant zombie be standing in?* Muted, cool-shifted, a little dusky.
+Cosy, slightly spooky autumn: chunky readable shapes, muted harvest colours, a dusky cool shift in the shadows, a little rot at the edges. Flat, not painterly: a few big flat shades per material, never gradients, never dither. Saturation lives in a few accents (crimson, harvest yellow, firelight); the ground and walls stay quiet. The test from `06`: *what would a peasant zombie be standing in?* Muted, cool-shifted, a little dusky.
 
 ## The seven hard rules
 

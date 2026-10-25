@@ -1,6 +1,6 @@
 # Cozy Medieval Zombies (working title)
 
-A cute isometric medieval village in the Habbo / early-2000s pixel style, overrun by the dead. One continuous map: walk from the square into the inn, look out its window, see what is coming. The art stays cute; the systems stay serious. Friends play together in one world, hosted in a browser or on the studio's server.
+A cute isometric medieval village in pixel art, overrun by the dead. One continuous map: walk from the square into the inn, look out its window, see what is coming. The art stays cute; the systems stay serious. Friends play together in one world, hosted in a browser or on the studio's server.
 
 **Play it:** https://cmzgame.github.io/cozy-medieval-zombies/ · **How it works:** https://cmzgame.github.io/cmz-wiki/ (the wiki: every item, weapon, place, and rule, generated from the game's own data).
 

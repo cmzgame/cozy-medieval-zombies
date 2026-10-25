@@ -1,6 +1,6 @@
 # Cozy Medieval Zombies
 
-A cute isometric medieval village, in the Habbo / early-2000s pixel style, overrun by the dead. One continuous map with real line of sight; friends play together in one world. Plain HTML, CSS, and JavaScript with ES modules: raw WebGL2 for the world (`src/gl.js`; Canvas 2D generates the dev art and uploads it as textures), DOM for the interface. No build step, no engine, no framework, no rendering library. Started 2026-10-08 from two prototypes (`docs/01`), both kept as they were; nothing from them binds here until it is re-decided in `docs/02`.
+A cute isometric medieval village in pixel art, overrun by the dead. One continuous map with real line of sight; friends play together in one world. Plain HTML, CSS, and JavaScript with ES modules: raw WebGL2 for the world (`src/gl.js`; Canvas 2D generates the dev art and uploads it as textures), DOM for the interface. No build step, no engine, no framework, no rendering library. Started 2026-10-08 from two prototypes (`docs/01`), both kept as they were; nothing from them binds here until it is re-decided in `docs/02`.
 
 > **First, every session: ask Michael "Am I Primary or Secondary, and what is my focus?"** and change nothing (no file, branch, commit, issue, label, or pull request) until he answers; reading is fine. The roles and the workflow from an issue to a merged pull request: `github.md`, section 0 and on. **Temporary (since 2026-10-15): the agents' account `cmzgame-bot` is flagged;** the rules while it is are the box at the top of `github.md`, and #71 is its end.
 
