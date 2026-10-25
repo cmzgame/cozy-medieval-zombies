@@ -24,8 +24,6 @@
 
 - **`check("build")` fails 9 of 11 on `main`** (found reviewing #227, on `main` at `0e765f7`, fresh tab): "the player's own wall with a door removed is still the player's own" and "a new door built over a broken stamped one remembers the wall under it". Not a play bug found; 11 of 11 in my run after other checks in the same tab, so it may depend on what ran first.
 
-- **A dyeable item's card counts one colour more than its picker shows** (found syncing the wiki for #417, 2026-10-25, at `e045b31`, *needs repro*). `src/item-info.js` (~112) counts the whole palette; the picker (`src/ui/dye-panel.js` ~137) drops a palette colour equal to the item's own, which it shows as Undyed. The breeches' own colour is Walnut brown and the boots' Dark brown, so each card says one more colour than there are swatches.
-
 - **The dye vat's picker leaves out the belt's slots and a bag inside a bag** (found syncing the wiki for #417, 2026-10-25, at `e045b31`). `src/dye.js` `dyeables` (~122-132) lists the worn slots, the hands, and the worn bag's items; `entryOf` would take an entry from anywhere carried. Not a loss today (nothing dyeable rides on a belt), but a satchel carried in a rucksack cannot be dyed without wearing it.
 
 - **A repair place's greyed line says nothing worn is carried when everything worn is already above its ceiling** (found syncing the wiki for #416, 2026-10-25, at `e045b31`). `src/repair.js` `propActions` (~135, ~152): a worn sword at 70% at the grindstone (next ceiling 60%) is skipped, and the one line left reads "Sharpen (no dull blade carried)". Likely fix: "Sharpen (nothing it can better)" when something worn was skipped.
@@ -56,6 +54,8 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 ## Fixed
 
 (Move items here with the commit that fixed them.)
+
+- [x] **A dyeable item's card counted one colour more than its picker showed** (found syncing the wiki for #417, 2026-10-25): the card counted the whole palette, and the picker drops a palette colour equal to the item's own (its Undyed swatch). Fixed in the bugs batch (`primary/bugs-batch-1`): `item-info.js` counts as the picker does, so the breeches read 15 colours and the boots 6; `node tools/check.js` ("dye vat") and `check("dye")` (the breeches' swatches against their card) have rows for it.
 
 - [x] **A brass buckle on the leather belt was called "undyed"** (found syncing the wiki for #417, 2026-10-25): the belt's own buckle is the Brass dye's hex, and the card and the picker named any own colour "undyed", so black with its own buckle read "Black and undyed". Fixed in the bugs batch (`primary/bugs-batch-1`): `dye.regionWord`, one word for the card (`colourWords`) and the picker (`ui/dye-panel.js`), names a region by its dye whenever its colour is a dye's hex, own or not, and "Undyed" only for an own colour no vat gives; the picker's Colour line reads Undyed when the item is its own colours whole, as its card names none. `node tools/check.js` ("dye vat") and `check("dye")` have rows for it.
 

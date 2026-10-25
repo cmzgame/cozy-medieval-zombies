@@ -117,9 +117,10 @@ export function cardFor(entry) {
   if (def.bracket) lines.push(line(seg("Place", "word"), ": hang on a wall's face, to hold a torch."));
   if (def.hands) lines.push(line(seg("Equip", "word"), `: ${def.hands === "both" ? "both hands" : def.hands === "either" ? "main or off hand" : `${def.hands} hand`}.`));
   if (def.wear) lines.push(line(seg("Equip", "word"), `: worn on your ${def.wear}${def.bag ? `; holds ${def.bag[0]}×${def.bag[1]}` : ""}${def.beltSlots ? `; ${def.beltSlots} belt slots` : ""}.`));
-  // What a dye vat can do to it (docs/43 section 8): its regions' colours, or its schemes, counted.
+  // What a dye vat can do to it (docs/43 section 8): its regions' colours, or its schemes, counted as the picker shows them (ui/dye-panel.js):
+  // a palette colour equal to the item's own is its Undyed swatch, not one more (the breeches' own is Walnut brown, the boots' Dark brown).
   const dyes = dye.dyeOf(def);
-  if (dyes) lines.push(line(`Can be dyed at a dye vat: ${dyes.schemes ? `${dyes.schemes.length} schemes` : dyes.regions.map((r) => `${r.choices.length} colours${dyes.regions.length > 1 ? ` for the ${r.name.toLowerCase()}` : ""}`).join(", ")}.`));
+  if (dyes) lines.push(line(`Can be dyed at a dye vat: ${dyes.schemes ? `${dyes.schemes.length} schemes` : dyes.regions.map((r, i) => `${r.choices.filter((c) => c.hex !== dyes.own[i]).length} colours${dyes.regions.length > 1 ? ` for the ${r.name.toLowerCase()}` : ""}`).join(", ")}.`));
   if (def.verbs && def.verbs.length) lines.push(line(`For: ${def.verbs.join(", ")}.`));
   if (def.fire) lines.push(line(`Gives light${def.fire.burnsDown ? "; burns down while lit" : ""}.`));
   for (const u of usesOf(def)) lines.push(line(seg("Use", "use"), ` on ${listOf(u.on)}: ${u.verb}.`));

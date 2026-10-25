@@ -133,6 +133,17 @@ export async function run(game, opts = {}) {
     row("the world's figure is rebaked in the colour", sheet1 !== sheet0, `${sheet0} to ${sheet1}`);
     const card = info.textOf(info.cardFor(tunic));
     row("the tunic's card names its colour and what the vat can do", card.some((l) => l.includes("Woad blue")) && card.some((l) => l.includes("Can be dyed at a dye vat: 16 colours.")), card.join(" | "));
+    // The card counts the swatches the picker shows: the breeches' own colour is Walnut brown, a cloth dye, so it is their Undyed swatch, not one more.
+    const breeches = G.items.makeEntry("breeches", 1);
+    G.inventory.stow(me, breeches);
+    dyePanel.update(me);
+    el.querySelector(`[data-uid="${breeches.uid}"]`).click();
+    dyePanel.update(me);
+    const shown = el.querySelectorAll(`[data-region="0"]`).length - 1; // the swatches but Undyed
+    const said = (info.textOf(info.cardFor(breeches)).join(" ").match(/dye vat: (\d+) colours/) || [])[1];
+    row("the breeches' card counts the colours their picker shows (fifteen: Walnut brown is their own, Undyed)", shown === 15 && Number(said) === shown, `${shown} swatches besides Undyed; the card says ${said}`);
+    el.querySelector(`[data-uid="${tunic.uid}"]`).click();
+    dyePanel.update(me);
     // A two-region item with schemes.
     el.querySelector(`[data-uid="${belt.uid}"]`).click();
     dyePanel.update(me);

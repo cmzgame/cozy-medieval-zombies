@@ -806,6 +806,11 @@ check("dye vat: three vats open the picker; the verb dyes by uid, refuses what i
   assert(gameMod.syncParts().players !== sync0, "a dyed tunic did not move the players' sync hash");
   const card = itemInfoMod.textOf(itemInfoMod.cardFor(tunic));
   assert(card.some((l) => l.includes("Woad blue")) && card.some((l) => l.includes("Can be dyed at a dye vat: 16 colours.")), `the tunic's card: ${card.join(" | ")}`);
+  // A card counts as the picker shows: a palette colour equal to the item's own is its Undyed swatch (the breeches' Walnut brown, the boots' Dark brown).
+  for (const [id, n] of [["breeches", 15], ["boots", 6], ["gloves", 7]]) {
+    const t = itemInfoMod.textOf(itemInfoMod.cardFor(itemsMod.makeEntry(id, 1)));
+    assert(t.some((l) => l.includes(`Can be dyed at a dye vat: ${n} colours.`)), `the ${id}' card: ${t.join(" | ")}`);
+  }
   // Refusals, each with its word.
   assert(run(tunic.uid, ["#123456"]).reason === "The vat has no such colour for it.", "a colour off the palette was allowed");
   assert(run(tunic.uid, ["#3e5e90", "#3e5e90"]).reason === "That is not a colouring for it.", "two colours for a one-region tunic were allowed");
