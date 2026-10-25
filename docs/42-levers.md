@@ -1,6 +1,6 @@
 # 42 — The levers: every number Michael means to keep tuning, and every world setting
 
-**Status, 2026-10-24: a reference, kept current by the rule in `CLAUDE.md` (a ruling that names a lever or a world setting adds or changes its line here in the same commit).** Created for #384 (Michael: "I do keep saying it and I am not sure if it ever gets written down"). Values are as of `main` when a line was last touched; the data is the truth, and the wiki's page of these reads the data (#387). The reasons are the rulings in `docs/02`, named on each line.
+**Status, 2026-10-25: a reference, kept current by the rule in `CLAUDE.md` (a ruling that names a lever or a world setting adds or changes its line here in the same commit).** Created for #384 (Michael: "I do keep saying it and I am not sure if it ever gets written down"). Values are as of `main` when a line was last touched; the data is the truth, and the wiki's page of these reads the data (#387). The reasons are the rulings in `docs/02`, named on each line.
 
 Two kinds:
 - **A tuning lever** is a number Michael is still balancing by play: ours to turn, not a player's.
@@ -30,7 +30,9 @@ Two kinds:
 ### Food, the world, the valley
 - **The campfire:** six logs at most, three game hours a log, built with two (2026-10-25, `43`; not built: today four logs of two hours in `data/sprites/campfire.json`).
 - **Take apart's return:** half a thing's materials, rounded down (2026-10-25, `43`; not built).
-- **Repairs:** the grindstone's ceilings 60, 40, 20%, the anvil's 100, 80, 60%, on one count per item (2026-10-25, `43`; not built).
+- **Repairs:** `work.grindstone.ceilings` 0.6, 0.4, 0.2 and `work.anvil.ceilings` 1, 0.8, 0.6 in `data/tuning.json`, on one count per item, the entry's `repairs` (2026-10-25, `43`; built, #410). The bars' seconds, `work.grindstone.seconds` 4 and `work.anvil.seconds` 6, the anvil's tool `work.anvil.uses` (the smith's hammer's verb, `smith`), and each item's material, its `repair.with` in `data/items.json` (an iron bar for iron, a plank for wood), are Primary's defaults.
+- **The sawpit:** `work.saw` in `data/tuning.json`: a log (`item`) sawn into what it splits into, three planks, in `seconds` 5 (*default*), no hatchet (2026-10-25, `43`; built, #410).
+- **Honey:** `work.honey` in `data/tuning.json`: a hive gives `count` 1 to 1 of `item` honey and again `days` 3 of the clock later, in `seconds` 3 ("every few game days", 2026-10-25, `43`; the numbers Primary's defaults; built, #410). The pot of honey's own numbers, hunger 20 and heal 3, are its line in `data/items.json`.
 - **Burn corpse:** about a game hour of burning, a log spent (2026-10-25, `43`; not built).
 - **The dye vat:** the dyes and their palettes in `data/dyes.json` (twenty-four, Primary's palette), what each item may take in its `dye` block in `data/items.json`; Crafting 3 to use a vat (`unlock`, open to all until the skills); a dye's `cost`, none yet, until #288 rules whether it costs a plant (2026-10-25, `43` section 8).
 - **Rot:** each food's life in game days, and planted or hanging food at five times it (2026-10-23, the food economy; not built).

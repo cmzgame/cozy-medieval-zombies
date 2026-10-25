@@ -594,9 +594,58 @@ for kind, b in load("data/build.json").items():
         wanted[f"build.{kind}.tool"] = b["tool"]
 for key in ("boardTool", "splitTool"):
     wanted[f"tuning.world.{key}"] = load("data/tuning.json")["world"][key]
+wanted["tuning.work.anvil.uses"] = load("data/tuning.json").get("work", {}).get("anvil", {}).get("uses")
 for where, verb in wanted.items():
     if verb not in tool_verbs:
         fail(f"{where}: no tool item lists the verb {verb!r}")
+
+# Repairs, the sawpit, and honey (docs/43 section 6, #410): an item's `repair` names a material that exists, is on a thing that wears (a weapon's
+# kills or a bow's shots) and that a recipe makes ("the weapons and tools that can be made"), and `edged` is true or absent; the ladders are
+# ceilings from 0 to 1 that fall; a sprite's `repair` is the grindstone or the anvil and some prop is each, as some prop is a sawpit and a hive;
+# the sawpit's item splits into something; the hive's honey is food with a count, days, and seconds.
+work = load("data/tuning.json").get("work", {})
+made_ids = {r["out"].get("id") for r in recipe_rows if r.get("out")}
+for i in items:
+    r = i.get("repair")
+    if r is None:
+        continue
+    where = f"items.{i['id']}.repair"
+    if not isinstance(r, dict) or set(r) - {"with", "edged"}:
+        fail(f"{where}: {{ with, edged? }}")
+        continue
+    check_id(where, r.get("with"))
+    if r.get("edged") not in (None, True):
+        fail(f"{where}.edged: true or absent")
+    if not ((i.get("weapon") or {}).get("kills") or i.get("shots")):
+        fail(f"{where}: on a thing that does not wear (no weapon kills, no shots)")
+    if i["id"] not in made_ids:
+        fail(f"{where}: no recipe makes {i['id']!r}, and only what can be made is repaired")
+for place in ("grindstone", "anvil"):
+    lad = (work.get(place) or {}).get("ceilings")
+    if not (isinstance(lad, list) and lad and all(num(c) and 0 < c <= 1 for c in lad) and all(a > b for a, b in zip(lad, lad[1:]))):
+        fail(f"tuning.work.{place}.ceilings: falling shares above 0, at most 1")
+    if not (num((work.get(place) or {}).get("seconds")) and work[place]["seconds"] > 0):
+        fail(f"tuning.work.{place}.seconds: a number above 0")
+sprite_flags = {sid: load(f"data/sprites/{sid}.json") for sid in sorted(sprites)}
+for sid, d in sprite_flags.items():
+    if "repair" in d and d["repair"] not in ("grindstone", "anvil"):
+        fail(f"sprites.{sid}.repair: grindstone or anvil, not {d['repair']!r}")
+for flag, value in (("repair", "grindstone"), ("repair", "anvil"), ("saw", True), ("hive", True)):
+    if not any(d.get(flag) == value for d in sprite_flags.values()):
+        fail(f"sprites: no definition has {flag} {value!r}")
+saw = work.get("saw") or {}
+check_id("tuning.work.saw.item", saw.get("item"))
+if saw.get("item") in item_defs and not item_defs[saw["item"]].get("splitsInto"):
+    fail(f"tuning.work.saw.item: {saw.get('item')!r} splits into nothing")
+if not (num(saw.get("seconds")) and saw["seconds"] > 0):
+    fail("tuning.work.saw.seconds: a number above 0")
+honey = work.get("honey") or {}
+check_id("tuning.work.honey.item", honey.get("item"))
+if honey.get("item") in item_defs and item_defs[honey["item"]].get("kind") != "food":
+    fail(f"tuning.work.honey.item: {honey.get('item')!r} is not food")
+hc_count = honey.get("count") or []
+if not (len(hc_count) == 2 and 1 <= hc_count[0] <= hc_count[1] and num(honey.get("days")) and honey["days"] > 0 and num(honey.get("seconds")) and honey["seconds"] > 0):
+    fail("tuning.work.honey: a count [lo, hi], days and seconds above 0")
 
 # The chart's colours (docs/33, #203): every floor definition has a `mapColor` (#rrggbb), the trees and rocks have one, and the palette (every definition with one)
 # fits a byte (the cell's surface index).
