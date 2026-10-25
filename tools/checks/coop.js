@@ -40,7 +40,10 @@ export async function run(game) {
     row("the coop is two tiles along y", coop.tiles.length === 2 && coop.tiles[0][0] === coop.tiles[1][0], `${JSON.stringify(coop.tiles)}`);
     if (role === "guest") {
       // A guest reads the replica: the coop's menu, built from what it has, offers the same Search, named by an address the host can rebuild.
-      G.teleport(coop.tile[0], coop.tile[1] - 2);
+      // A guest's console does not teleport (docs/31/07 question 14, #102): the replica's own player is stood by the coop for
+      // the read (the host's next frame puts it back where the host has it); the coop's menu is read at once.
+      me.gx = coop.tile[0];
+      me.gy = coop.tile[1] - 2;
       map.ensureAround(coop.tile[0], coop.tile[1], 3);
       const a = G.interact.actionsForTarget({ kind: "prop", id: coop.id }, me).find((q) => q.kind === "container");
       row("on a guest the coop's menu offers Search or Open chicken coop, by an address the host can rebuild", !!a && /^(Search|Open) chicken coop$/.test(a.label), a ? a.label : "no container action");

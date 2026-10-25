@@ -3,8 +3,9 @@
 // a rounded rectangle that wraps its text and grows to any length (a long speech
 // is just a taller one), with a tail at the bottom that points down at the top
 // of the head of whoever is speaking. A character speaks by `say(ch, text)`
-// (entities/character.js), which sets `ch.line`; this module shows it, counts
-// its time down in game time, and takes it away.
+// (entities/character.js), which sets `ch.line`; this module shows it and takes the bubble away when the line goes.
+// The line's life is the world's (game.js ageSpeech, on the authority; a guest's replica gets its end in the record):
+// nothing here writes on the speaker (docs/31/05 item 7, #102).
 
 import * as iso from "../iso.js";
 import * as log from "./log.js";
@@ -13,6 +14,7 @@ import { tileKey } from "../visibility.js";
 import * as sight from "../sight.js";
 import * as loop from "../loop.js";
 import { sight as sightTuning } from "../tuning.js";
+import { client } from "../client.js"; // who a tall prop hides, from the renderer (#102)
 
 // World px above the feet where the tail's tip lands: just over the top of the
 // figure's frame (FH 72, feet 66 from its top), so at any zoom the tail meets
@@ -50,8 +52,8 @@ function bubbleFor(id) {
   return entry;
 }
 
-// Show every live line, move it with its speaker, and age it by `dt` seconds of
-// game time (a paused game keeps its bubbles). `visible` is the player's fog set.
+// Show every live line and move it with its speaker (a paused game keeps its bubbles: the world ages them, and it is not
+// stepping). `visible` is the player's fog set.
 const lastLeft = new Map(); // an unseen dead one's id -> the seconds its line had left last time: a rise is a new line (a guest's frame replaces the line object, so the object is no key)
 let lastHeardAt = -Infinity; // sim seconds
 export function updateSpeech(characters, visible, player, dt) {
@@ -61,13 +63,10 @@ export function updateSpeech(characters, visible, player, dt) {
   for (const ch of characters) {
     const line = ch.line;
     if (!line) continue;
-    if (ch.dead) { // aged and cleared by the world's step on the authority (game.js ageSpeech, #154); a guest's replica gets the end in the record
-      ch.line = null;
-      continue;
-    }
+    if (ch.dead) continue; // cleared by the world's step on the authority (game.js ageSpeech, #154); a guest's replica gets the end in the record
     const shown =
       ch === player ||
-      (visible.has(tileKey(Math.round(ch.gx), Math.round(ch.gy))) && !(ch.behindProp && Math.hypot(ch.gx - player.gx, ch.gy - player.gy) > NEAR) &&
+      (visible.has(tileKey(Math.round(ch.gx), Math.round(ch.gy))) && !(client.behind.has(ch.id) && Math.hypot(ch.gx - player.gx, ch.gy - player.gy) > NEAR) &&
         !(ch.kind === "zombie" && !sight.seen(player, ch))); // a groan from the dark shows no bubble where it stands (#88)
     if (!shown) {
       // A groan from one lost in the dark, in line of sight but unseen: no bubble where it stands, and a line in the log with no

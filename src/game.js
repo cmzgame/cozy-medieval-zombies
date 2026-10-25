@@ -62,16 +62,23 @@ export const state = {
   acting: null, // the player whose update or command runs right now, so a message finds its screen (net.js)
 };
 
+// The world's own player (the one a world made or restored stands as; a browser's client follows it as `client.me`,
+// src/client.js, by the `playerPicked` event, and nothing in the step reads which it is but the HUD's progress).
+function own(p) {
+  state.player = p;
+  events.emit("playerPicked", { player: p });
+}
+
 // The player's list, kept with the one player while the game has one.
 export function setPlayer(p) {
-  state.player = p;
   state.players = p ? [p] : [];
+  own(p);
 }
 
 // Me among the players, the list kept: a world played again as the character this browser made there,
 // or a new character after a death with the body still listed (docs/31/09).
 export function pickPlayer(p) {
-  if (p && state.players.includes(p)) state.player = p;
+  if (p && state.players.includes(p)) own(p);
 }
 
 // The world from a map file: the generator seeded, the map loaded and the
@@ -630,7 +637,7 @@ export function addPlayer(gx, gy, { look = null, name = null, id = null } = {}) 
   if (name) p.name = name;
   giveStarterKit(p);
   S.players.push(p);
-  if (!S.player) S.player = p;
+  if (!S.player) own(p);
   return p;
 }
 
@@ -672,7 +679,7 @@ export function putPlayer(record) {
   delete p._carryingId;
   delete p._carried;
   S.players.push(p);
-  if (!S.player) S.player = p;
+  if (!S.player) own(p);
   return p;
 }
 

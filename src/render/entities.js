@@ -15,6 +15,7 @@ import { postAt } from "./walls.js";
 import { seenAlpha } from "../sight.js";
 import { sight as sightTuning } from "../tuning.js";
 import * as hl from "./highlight.js"; // Object Highlight (#301)
+import { client } from "../client.js"; // the swing's targets, the client's own (#102)
 
 export function projectileSheet(id) {
   try {
@@ -263,14 +264,15 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
       occluded: false,
       emit() {
         const world = [e.gx, e.gy];
-        if (e.swingTarget && fade >= sightTuning.seenAt) {
+        const target = client.targets.has(e.id) && fade >= sightTuning.seenAt;
+        if (target) {
           // The next swing would hit this one (docs/14): a one-pixel outline, eight copies of the
           // sprite flat green just behind it, unlit and unfogged so it reads at night.
           for (const [ox, oy] of SWING_OUTLINE_OFFSETS) {
             frameQuad(sheet, name, x + ox, y + oy, { world, heights: f ? [f[3], f[3], 0, 0] : 0, color: SWING_OUTLINE, flags: gl.FLAG_NOFOG | gl.FLAG_UNLIT | gl.FLAG_SOLID }, r.flip);
           }
         }
-        if (hl.isCharacter(e.id) && !(e.swingTarget && fade >= sightTuning.seenAt)) hl.outline(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0 }, r.flip); // Object Highlight: the one under the cursor that can be acted on (#301) // the green swing outline wins: it says this swing lands (docs/41; the review of #390)
+        if (hl.isCharacter(e.id) && !target) hl.outline(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0 }, r.flip); // Object Highlight: the one under the cursor that can be acted on (#301) // the green swing outline wins: it says this swing lands (docs/41; the review of #390)
         const drawHeld = (h) => {
           // A shield that just met a blow is flat bright for a moment (docs/21).
           frameQuad(h.sheet, `held_${h.k}`, h.x, h.y, h.flash ? { world, heights: 40, color: h.flash, flags: gl.FLAG_NOFOG | gl.FLAG_UNLIT | gl.FLAG_SOLID } : { world, heights: 40, color: dim || undefined, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING });
