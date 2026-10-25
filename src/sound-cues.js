@@ -12,7 +12,9 @@
 // so a module-level map is right here. Its gaps are measured in sim time (loop.simTime): when more than FRESH seconds
 // of the world's time passed since its last run either way (a tab hidden while its world ran on), and after reset(), it
 // takes a fresh baseline and plays nothing, so a return never bursts and a check that awaits between steps loses
-// nothing. Its only chance is a hash of an id and a count.
+// nothing. Its only chance is a hash of an id and a count. #424: the dead's moan (one turning to the chase from a calm state, its
+// `state` in the frame, throttled) and a strike (the jolt every client draws when the dead hit a door, shutters, boards, or a fence:
+// main.js hands each to `struck`, from the host's own event and a guest's fx alike).
 
 import * as audio from "./audio.js";
 import * as loop from "./loop.js";
@@ -31,11 +33,15 @@ let steps = { nearest: 6, gap: 0.18, dead: "shuffle", default: "shuffle" }; // d
 let swingCfg = { heavyAt: 0.8, rise: 0.1 }; // data/sounds.json `swing`
 let openCfg = { radius: 14, every: 0.05, slot: "door" }; // data/sounds.json `openings`
 let bowCfg = { rateFrom: 0.9, rateTo: 1.2 }; // data/sounds.json `bow`
+let moanCfg = { from: ["idle", "wander", "search", "siege"], to: ["chase", "breach", "press"], again: 10, gap: 1.2 }; // data/sounds.json `moan`
 const walkers = new Map(); // id -> { name, frame, last, count }: a character's walk as heard last frame
 const hands = new Map(); // player id -> { main, off, shove, recover }: its clocks last frame
 const draws = new Map(); // player id -> the bow's draw loop's handle
 const bodies = new Map(); // a dead one's id -> { dead, down }
 const openings = new Map(); // "x,y,edge" -> { open, broken }
+const chases = new Map(); // a dead one's id -> { state, last, count }: its state as heard last frame, and when it last moaned
+let lastMoan = -Infinity;
+let strikes = []; // the jolts drawn since the last update, [tx, ty, edge]
 let flying = []; // the arrows in flight last frame, { gx, gy, projectile }
 let lastScan = -Infinity;
 let lastSim = null;
@@ -47,6 +53,12 @@ export function configure(data) {
   if (data.swing) swingCfg = { ...swingCfg, ...data.swing };
   if (data.openings) openCfg = { ...openCfg, ...data.openings };
   if (data.bow) bowCfg = { ...bowCfg, ...data.bow };
+  if (data.moan) moanCfg = { ...moanCfg, ...data.moan };
+}
+
+// A wall the dead struck, as this client draws its jolt (main.js: the host's own `wallStruck`, a guest's `shake` fx).
+export function struck(tx, ty, edge) {
+  strikes.push([tx, ty, edge]);
 }
 
 // A fresh baseline at the next update: a new world, a welcome, a tab come back.
@@ -57,6 +69,9 @@ export function reset() {
   draws.clear();
   bodies.clear();
   openings.clear();
+  chases.clear();
+  lastMoan = -Infinity;
+  strikes = [];
   flying = [];
   lastScan = -Infinity;
   lastSim = null;
@@ -75,6 +90,9 @@ function remember(S) {
   draws.clear();
   bodies.clear();
   for (const z of theDead(S)) bodies.set(z.id, bodyState(z));
+  chases.clear();
+  for (const z of S.zombies) if (z && !z.dead && !z.corpse) chases.set(z.id, { state: z.state, last: -Infinity, count: 0 });
+  strikes = [];
   flying = inFlight();
   openings.clear();
   scanOpenings(S, false);
@@ -103,6 +121,8 @@ export function update(S, dt = 0) {
   players(S);
   hits(S);
   deaths(S);
+  moans(S, sim);
+  struckWalls();
   arrows();
   if (sim - lastScan >= openCfg.every || sim < lastScan) {
     lastScan = sim;
@@ -240,6 +260,33 @@ function deaths(S) {
     else if (now.down && !was.down) audio.play("fall", { at: [z.gx, z.gy] });
   }
   for (const id of [...bodies.keys()]) if (!seen.has(id)) bodies.delete(id);
+}
+
+// ---- the moan (#424): one of the dead turning from a calm state to closing on someone (the chase, or breaking an opening or
+// pressing a fence to come at them) moans, throttled by its own last moan and
+// by anyone's, so a crowd closing at once gives one or two, not a drone. First sight is learned silently.
+function moans(S, sim) {
+  const seen = new Set();
+  for (const z of S.zombies) {
+    if (!z || z.dead || z.corpse) continue;
+    seen.add(z.id);
+    const was = chases.get(z.id);
+    const now = { state: z.state, last: was ? was.last : -Infinity, count: was ? was.count : 0 };
+    chases.set(z.id, now);
+    if (!was || !moanCfg.to.includes(z.state) || !moanCfg.from.includes(was.state)) continue; // a calm one closing on someone
+    if (sim - now.last < moanCfg.again || sim - lastMoan < moanCfg.gap) continue;
+    now.last = sim;
+    now.count++;
+    lastMoan = sim;
+    audio.play("moan", { at: [z.gx, z.gy], variant: hashString(`${z.id}#moan${now.count}`) });
+  }
+  for (const id of [...chases.keys()]) if (!seen.has(id)) chases.delete(id);
+}
+
+// ---- a strike (#424): each jolt this client drew since the last update, at the edge struck.
+function struckWalls() {
+  for (const [tx, ty, edge] of strikes) audio.play("strike", { at: edge === "w" ? [tx - 0.5, ty] : [tx, ty - 0.5] });
+  strikes = [];
 }
 
 // ---- an arrow landing: an arrow or a fire arrow in flight last frame and gone now, heard at its last place. The frame

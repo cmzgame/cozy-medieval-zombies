@@ -1,7 +1,7 @@
 // The sounds, steps 1 and 2 (docs/40, section 8; #379, #386): the slots and their placeholders, the footsteps (the grass
 // step gone: grass shuffles), the swing, the hit, distance, the master switch and the volume, a gap of wall time between
 // steps; then the shove, the bow's draw, release, and landing, a dry release, a spell's cast, a thrown spear (no bow
-// sound), the dead's death and fall, doors and shutters (a change, a break, an opening walked into range), and F8. A paused pane draws nothing, so the
+// sound), the dead's death and fall, their moan and a strike on a wall (#424), doors and shutters (a change, a break, an opening walked into range), and F8. A paused pane draws nothing, so the
 // check runs the ear by hand after each step (`__game.sound.update(1/60)`) and reads its log, never the speakers (a
 // scripted pane gives no user gesture, so the context stays suspended; the log is written either way).
 // From the console, on a ?nosave tab of the valley (the spawn is in the cottage, on its wood floor):
@@ -408,6 +408,54 @@ export async function run(game) {
       const death = named(/^death$/);
       row("one of the dead knocked down logs `fall`", fall.length === 1, `${fall.length} logged`);
       row("one of the dead killed logs `death`, and no `fall`", death.length === 1 && named(/^fall$/).length === 0, `${death.length} death, ${named(/^fall$/).length} fall`);
+
+      // The moan (#424): one of the dead turning to the chase from a calm state moans, at it; again soon, it does not; a crowd turning at
+      // once gives one, not a drone (the gap). The ear alone runs here (snd.update with no world step), so the state set is the state heard.
+      {
+        const ear = () => snd.update(0);
+        const mz = [0, 1, 2].map((i) => { const q = createZombie(p.gx + 3 + i, p.gy + 1, { aggro: false }); q.state = "idle"; G.zombies.push(q); added.push(q); return q; });
+        step(2);
+        clear();
+        mz[0].state = "chase";
+        ear();
+        const first = named(/^moan$/);
+        mz[0].state = "idle";
+        ear();
+        mz[0].state = "chase";
+        ear();
+        const again = named(/^moan$/).length;
+        clear();
+        mz[0].state = "idle"; // never stepped while chasing nothing: the world's step wants a target for a chase
+        G.loop.advance(data.moan.gap + 0.05); // past the gap, not past the first one's own `again`
+        snd.update(0);
+        clear();
+        mz[1].state = "chase";
+        mz[2].state = "chase";
+        ear();
+        const crowd = named(/^moan$/).length;
+        mz[1].state = "idle";
+        mz[2].state = "idle";
+        row("one of the dead turning to the chase logs `moan` at it; turning again soon logs none; two at once log one", first.length === 1 && Math.hypot(first[0].at[0] - mz[0].gx, first[0].at[1] - mz[0].gy) < 0.01 && again === 1 && crowd === 1, `first ${first.length}, again ${again}, two at once ${crowd}`);
+        clear();
+        mz[0].state = "attack";
+        ear();
+        mz[0].state = "chase";
+        ear();
+        mz[0].state = "idle";
+        row("from an attack back to the chase it does not moan (only from a calm state)", named(/^moan$/).length === 0, `${named(/^moan$/).length} logged`);
+        for (const q of mz) q.state = "idle";
+      }
+
+      // The strike (#424): the jolt every client draws when the dead hit a door, shutters, boards, or a fence logs `strike` at the edge.
+      {
+        clear();
+        const tx = Math.round(p.gx) + 1;
+        const ty = Math.round(p.gy);
+        G.events.emit("wallStruck", { tx, ty, edge: "n" });
+        step();
+        const st = named(/^strike$/);
+        row("a wall the dead strike logs `strike` at the edge, with the jolt (the host's event; a guest's fx calls the same)", st.length === 1 && Math.hypot(st[0].at[0] - tx, st[0].at[1] - (ty - 0.5)) < 0.01, `${st.length} logged`);
+      }
 
       // Doors and shutters: a change logs the creak at the opening; a break nothing; an opening walked into range nothing.
       G.teleport(saved.gx, saved.gy);
