@@ -175,7 +175,7 @@ for path in sorted(glob.glob("data/maps/*.json")):
 # kind `animal` or a drawn one) with idle, walk, eat, and dead, a run if it flees, the two drawn diagonals and their mirrors; every home a
 # map names is of a species that exists, with a count, and a cap no smaller.
 animals = load("data/animals.json")
-ANIMAL_FIELDS = {"name", "wild", "walk", "run", "radius", "hp", "flee", "wander", "idle", "graze", "yields", "fight"}
+ANIMAL_FIELDS = {"name", "wild", "walk", "run", "radius", "hp", "flee", "wander", "idle", "graze", "yields", "fight", "produce", "lays"}
 # Hunting (docs/45 step 2): every yield is an item that exists, skinned or butchered, with a count [least, most]; every weapon class a
 # kill can name has its share in 0..1 (the classes the code names, and those `classes` maps an item to); the work, the snare, the tracks.
 KILL_CLASSES = {"bow", "thrown", "melee", "spell", "halberd", "snare"}
@@ -191,6 +191,39 @@ if not (animals.get("snare", {}).get("hours", 0) > 0 and animals["snare"].get("r
     fail("animals.snare: hours and reach above 0")
 if not all(animals.get("tracks", {}).get(k, 0) > 0 for k in ("every", "seconds", "radius", "keep")):
     fail("animals.tracks: every, seconds, radius, and keep above 0")
+# Keeping (docs/45 step 3): the numbers, every product an item, every produce verb a tool some item lists and its work seconds, something to
+# feed a trough with, the trough's definition, a coop for the hens to lay in.
+K = animals.get("keep", {})
+for k in ("feedReach", "coopReach", "breedDays", "penCap", "roomPerHead", "penMax", "leadSpeed", "leadReach", "leadClose"):
+    if not K.get(k, 0) > 0:
+        fail(f"animals.keep.{k}: above 0")
+for k in ("feather", "more"):
+    if not (0 <= K.get(k, -1) <= 1):
+        fail(f"animals.keep.{k}: a chance in 0..1")
+item_verbs = {v for i in items for v in i.get("verbs", [])}
+for need in ("lead",):
+    if need not in item_verbs:
+        fail(f"animals: no item lists the verb {need!r}")
+if not any("feed" in i.get("tags", []) for i in items):
+    fail("animals: no item is tagged feed, so no trough can be filled")
+if "feed_trough" not in sprites or not load("data/sprites/feed_trough.json").get("feed"):
+    fail("sprites.feed_trough: the feeding trough's definition, with `feed`")
+for sp, a in animals.get("species", {}).items():
+    pr = a.get("produce")
+    if pr:
+        check_id(f"animals.{sp}.produce", pr.get("item"))
+        if pr.get("verb") not in item_verbs:
+            fail(f"animals.{sp}.produce: no item lists the verb {pr.get('verb')!r}")
+        if not animals.get("work", {}).get(pr.get("verb"), 0) > 0:
+            fail(f"animals.{sp}.produce: work needs seconds for {pr.get('verb')!r}")
+        c = pr.get("count", [])
+        if not (len(c) == 2 and 1 <= c[0] <= c[1]):
+            fail(f"animals.{sp}.produce: a count [least, most]")
+    L = a.get("lays")
+    if L:
+        check_id(f"animals.{sp}.lays", L.get("item"))
+        if "chicken_coop" not in sprites:
+            fail(f"animals.{sp}.lays: no chicken coop to lay in")
 if not (animals.get("renew", {}).get("seconds", 0) > 0 and animals["renew"].get("clear", 0) > 0):
     fail("animals: renew needs seconds and clear above 0")
 for sp, a in animals.get("species", {}).items():

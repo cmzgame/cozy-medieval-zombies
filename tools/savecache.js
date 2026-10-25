@@ -287,6 +287,24 @@ map.setHolder(mountTarget, false); did("the torch taken out");
   inventory.bagOf(me).items = bag0;
 }
 
+// The keeping's daily pass (docs/45 section 3): a feeding trough eaten from, and a hen's egg laid into its coop, as the day turns.
+{
+  const animal = await import("../src/entities/animal.js");
+  const grid = await import("../src/grid.js");
+  const interact2 = await import("../src/interact.js");
+  const hen = game.state.animals.find((a) => a.species === "hen" && !a.dead);
+  if (!hen) fail("the valley has no hen");
+  const trough = map.allProps().filter((q) => q.sprite === "feed_trough").sort((x, y) => Math.hypot(x.tile[0] - hen.home[0], x.tile[1] - hen.home[1]) - Math.hypot(y.tile[0] - hen.home[0], y.tile[1] - hen.home[1]))[0];
+  if (!trough) fail("no feeding trough by the hens");
+  const tb = interact2.propBag(trough);
+  for (let i = 0; i < 4; i++) grid.insert(tb, items.makeEntry("grain", 1));
+  map.markDirty(trough.tile[0], trough.tile[1]); // filled by hand, as the panel's drop marks it
+  did("a feeding trough filled");
+  clock.setElapsed((animal.today() + 1) * clock.DAY_LENGTH + 2);
+  did("a feeding trough eaten from and a coop laid in as the day turns", 70);
+  if (hen.fedDay !== animal.today()) fail("the hen was not fed when the day turned");
+}
+
 // The save as the server writes it: the snapshot's text, the same characters as the object's.
 const extra = { worldId: "w", name: "n", owners: {}, dormant: {}, myPlayerId: null, server: true };
 const st = save.snapshotText("valley", extra);

@@ -94,15 +94,15 @@
 
 ### Furniture and fittings
 
-- **The feeding trough** [to build]: built from the palette, planks, in a pen; filled with grain, vegetables, or hay (`45`).
+- **The feeding trough** [built, #444; one in each farm pen and by Hollow Farm's coop, empty until filled]: built from the palette, planks, in a pen; filled with grain, vegetables, or hay (`45`).
 - **Made at the workbench, set down beside it** [built]: a chest, a shelf, a bench, a table, a bed, a workbench, a wheelbarrow. [change: Crafting 1 makes oak furniture; Crafting 5 spruce and mahogany.]
 - **Carrying furniture** [built]: anything not rooted, built in, or burning; on your head, both hands empty; set down with the ghost; R turns it.
 - **Fine furniture** from spruce and mahogany (Crafting 5) [to build].
 - **Rugs and wall pieces** (Crafting 5) [to build] [open #261: on a wall's edge or against it; whether any does something; before or after the redraw].
 - **Workstations of your own** (Woodcutting 7 unlocks, Crafting makes) [change: the workbench recipe is open to all today] [to build]: the workbench, the loom, the drying rack, the composter, the cauldron, the smoking rack, and the hive, never the forge, the anvil, the millstones, or the oven, so the village stays worth walking to; no speed bonus, a workshop at home (ruled 2026-10-23).
 - **The composter** (Farming 4) [to build].
-- **The henhouse** (Beastlore 1) [to build]: the chicken coop is a hen's home in a pen; a fed hen lays its egg and feather into the coop's grid (`45`).
-- **Pens** for cows and sheep (Beastlore 4), pigs (Beastlore 7) [to build].
+- **The henhouse** (Beastlore 1) [built, #444: Hollow Farm's hens lay into its coop; open to all until the skills]: the chicken coop is a hen's home in a pen; a fed hen lays its egg and feather into the coop's grid (`45`).
+- **Pens** for cows and sheep (Beastlore 4), pigs (Beastlore 7) [built, #444: any fenced yard with its gates shut, a led animal let go inside it stays; breeding inside; open to all until the skills].
 - **The hive** (Beastlore 5) [to build].
 - **The herb bed** (Farming 7) [to build].
 - **The drying rack** (Herbalism 4) [to build].
@@ -195,7 +195,7 @@ Every item in `data/items.json` is here with how it is had today; each new item 
 
 ### 5.1 Tools
 
-- **Shears** [to build]: shear a fed sheep's wool; the anvil, Blacksmithing 1 (`45`). **The lead** [to build]: leads livestock home; the workbench, Crafting 1. **The snare** [built, #443]: catches a rabbit, set near the woods; the workbench, Crafting 1, set at Beastlore 3 (`45`).
+- **Shears** [built, #444]: shear a fed sheep's wool; the anvil, Blacksmithing 1 (`45`). **The lead** [built, #444]: leads livestock home; the workbench, Crafting 1. **The snare** [built, #443]: catches a rabbit, set near the woods; the workbench, Crafting 1, set at Beastlore 3 (`45`).
 - **Hatchet** [built]: fells trees, chops stumps, splits logs and planks, notches a log wall; a weapon. The home chest, the joiner's chest; made at the anvil (Blacksmithing 1).
 - **Pickaxe** [built]: mines rocks and ore. The miners' and the quarryman's chests; made at the anvil (Blacksmithing 1).
 - **Hoe** [built]: tills grass and dirt. The great barn's rack; made at the workbench.
@@ -208,7 +208,7 @@ Every item in `data/items.json` is here with how it is had today; each new item 
 - **Tinderbox** [built]: lights fires and torches, puts out torches; never wears out; rides the belt. The kit; not made (it never wears out).
 - **Torch** [built]: a light (section 5.12) and a weapon. The kit (held, unlit); made at the workbench.
 - **A chisel or other gem tool** [open #281].
-- **The companion's command item**: not the lead, decided when the companion is built (`45`). **The lead** [to build]: leads livestock home (Crafting 1).
+- **The companion's command item**: not the lead, decided when the companion is built (`45`). **The lead** [built, #444]: leads livestock home (Crafting 1).
 - **A watering can, pitchfork, sickle, flail** (the barns' racks in `docs/29-world/05`): props, not tools (ruled 2026-10-23; the pitchfork someday). The threshing flail is not Melee 8's flail, the weapon.
 
 ### 5.2 Weapons
@@ -306,9 +306,9 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 - **Perch, trout, carp** [built]: fishing [change: Fishing 1, 5, 3].
 - **Tomato** [to build]: Farming 5.
 - **Mushrooms, eaten or cooked** [to build]: Herbalism 3 (some for Cooking).
-- **Eggs** [to build]: laid by a fed hen into its coop (Beastlore 1, `45`).
+- **Eggs** [built, #444]: laid by a fed hen into its coop (Beastlore 1, `45`).
 - **Raw meat** [built, #443: butchered, eaten raw; cooked alone and in recipes, to build, `45` step 4]: hen, rabbit (Beastlore 3's snares), venison (the deer), beef (cows), mutton (sheep), pork (pigs and boar, Beastlore 7); each cooked alone at a fire or used raw in recipes (`45` section 4). **Bacon and lard** from a pig (Beastlore 7) (`45`) [built, #443].
-- **Milk** [to build]: cows (Beastlore 4).
+- **Milk** [built, #444: a jug, a bucket carried]: cows (Beastlore 4).
 - **Honey** [built, #410]: the hive (Beastlore 5), a pot every three game days (*default*); never rots.
 - **Wheel of cheese** [built]: chests, pantries, and the inn's counter only [change: made from milk (Beastlore 4) at Cooking 3 (ruled 2026-10-23)].
 - **Butter** [to build]: from milk.
@@ -389,8 +389,8 @@ All [to build]: brewed at a cauldron from Herbalism's herbs and secondaries; dru
 - **Herbs, dried herbs, cuttings, herb seeds** [to build]: Herbalism 1, 4, 6.
 - **Rotten food, rotten fish** [to build]: what rot leaves (#264); the composter takes them.
 - **Hides** [built, #443] **and leather** [to build]: skinned (Beastlore 2), tanned (Crafting 3).
-- **Feathers** [built from a butchered hen, #443; a fed hen's, to build]: generous, so arrows can be farmed: a fed hen a feather most days, a butchered hen three to five; one fletches five arrows (`45`).
-- **Wool and woollen cloth** [to build]: sheep (Beastlore 4), Crafting 6.
+- **Feathers** [built: a butchered hen's, #443; a fed hen's most days, #444]: generous, so arrows can be farmed: a fed hen a feather most days, a butchered hen three to five; one fletches five arrows (`45`).
+- **Wool** [built, #444] **and woollen cloth** [to build]: sheep (Beastlore 4), Crafting 6.
 - **Honey and wax**: the hive (Beastlore 5) [honey built, #410]; wax for candles [to build].
 - **Lard** [to build]: pigs (Beastlore 7); pemmican's binder.
 - **Hay** [to build]: cut with the scythe at Farming 5, eaten by penned animals (Beastlore 4); straw is cut (ruled 2026-10-23).
@@ -842,7 +842,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 - Dig a grave, the buried chest, a plot [to build] (a shovel).
 - Hunt, track, set a snare, skin, butcher [to build] (Beastlore; a dirk).
 - Collect eggs from a coop, milk a cow, shear a sheep, lead an animal, fill a feeding trough [to build] (`45`); take honey [built, #410] (Beastlore).
-- Cut hay (Farming 5) [to build].
+- Cut hay (Farming 5) [built, #444: the scythe over open grass; open to all until the skills].
 
 ### Farming
 - Till (a hoe), plant a seed, water (a skin for one tile, a bucket for 3 by 3), harvest (by the crop's tool), the scythe's row harvest, fill and pour a bucket [built].

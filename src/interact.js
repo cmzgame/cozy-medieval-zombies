@@ -29,7 +29,7 @@ import { autoWalk, eat, drink, wave } from "./entities/player.js";
 import * as burn from "./burn.js"; // Burn corpse (docs/43 section 7)
 import { showMessage } from "./ui/prompt.js";
 import { pokeVillager, startTalk, endTalk } from "./entities/villager.js";
-import { lookLine, snareLine, workProblem, workSeconds, hasHide } from "./entities/animal.js";
+import { lookLine, snareLine, workProblem, workSeconds, hasHide, leadProblem, produceProblem, speciesOf as animalSpecies } from "./entities/animal.js";
 import { lootOf } from "./entities/character.js";
 import { emit } from "./events.js";
 import * as loop from "./loop.js";
@@ -1940,9 +1940,32 @@ function carcassActions(c, player) {
   return out;
 }
 
+// A tame animal's keeping (docs/45 sections 1 and 3): Lead it (a lead carried) and Let go, Milk a cow (a bucket) or Shear a sheep (shears) once a
+// day when it has been fed, each greyed with why; the verbs run on the host by the animal's id, so a guest's label is the host's doing.
+function keepingActions(c, player) {
+  if (animalSpecies(c.species).wild) return [];
+  const out = [];
+  const tile = [[Math.round(c.gx), Math.round(c.gy)]];
+  const greyed = (why) => why && !/^Too far|wall|door|shut/i.test(why); // reach is the walk's to solve
+  const said = (word, why) => (greyed(why) ? `${word} (${why.replace(/\.$/, "").replace(/^./, (ch) => ch.toLowerCase())})` : word);
+  if (c.leaderId === player.id) {
+    out.push(act({ kind: "letgo", label: `Let go of the ${c.name}`, tiles: tile, range: CLICK_REACH, mx: c.gx, my: c.gy, perform: () => runVerb("letgo", player, { character: c.id }) }));
+  } else {
+    const why = leadProblem(player, c);
+    out.push(act({ kind: "lead", label: said(`Lead the ${c.name}`, why), tiles: tile, range: CLICK_REACH, mx: c.gx, my: c.gy, enabled: !greyed(why), perform: () => runVerb("lead", player, { character: c.id }) }));
+  }
+  const pr = animalSpecies(c.species).produce;
+  if (pr) {
+    const why = produceProblem(player, c);
+    const word = pr.verb === "milk" ? `Milk the ${c.name}` : `Shear the ${c.name}`;
+    out.push(act({ kind: pr.verb, label: said(word, why), tiles: tile, range: CLICK_REACH, mx: c.gx, my: c.gy, enabled: !greyed(why), duration: workSeconds(pr.verb), perform: () => runVerb(pr.verb, player, { character: c.id }) }));
+  }
+  return out;
+}
+
 function characterActions(c, player) {
   const out = [];
-  if (c.kind === "animal") return c.dead && !c.butchered ? [...carcassActions(c, player), lookAtAnimalAction(c)] : [lookAtAnimalAction(c)];
+  if (c.kind === "animal") return c.dead && !c.butchered ? [...carcassActions(c, player), lookAtAnimalAction(c)] : [...keepingActions(c, player), lookAtAnimalAction(c)];
   if ((c.kind === "zombie" || c.kind === "player") && c.dead && c.corpse) out.push(searchBodyAction(c)); // a player's body too (2026-10-14)
   if (burn.isBurnableBody(c)) out.push(burnCorpseAction(c, player)); // the dead's bodies; a player's is left for its friends (docs/43 section 7)
   if (c.kind === "villager") {

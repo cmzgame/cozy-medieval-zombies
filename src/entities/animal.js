@@ -10,14 +10,19 @@
 // bites the player who did; a kill leaves a carcass, the animal's own record turned dead (one list: never the dead's corpses),
 // with the class of the weapon that killed it (`killedBy`, the share of every yield it leaves) and whether it is skinned; the `skin`
 // and `butcher` verbs, a dirk carried, give the yields to the bag or the feet, and a butchered carcass leaves the list. A snare set
-// near rabbits holds one after a while. Every roll is the sim's generator's and every time the sim's (the step's dt, the game's
-// clock); nothing here reads a window.
+// near rabbits holds one after a while.
+// Keeping (docs/45, step 3): a lead carried leads a tame animal and letting it go makes where it stands its home, so one let go in a
+// fenced yard with its gates shut stays (a pen); once a game day a tame animal eats one unit of feed from a feeding trough near its home,
+// and fed it gives that day (a cow's milk with a bucket, a sheep's wool with shears, a hen's egg and most days a feather into its coop),
+// some days one more (pens that give more); two of a kind fed in a pen with room breed a young one every few days up to a cap. An unfed
+// animal simply gives nothing: nothing punishes being away. Every roll is the sim's generator's and every time the sim's (the step's dt,
+// the game's clock); nothing here reads a window.
 
 import { createAnimation, playAnimation, advanceAnimation } from "../sprites.js";
 import { getSheet } from "../assets.js";
 import { repath, followPath, separate, pickTargetAround, faceToward } from "./movement.js";
 import { lineOfSight } from "../visibility.js";
-import { isWalkableTile, roomAt, dropItem } from "../map.js";
+import { isWalkableTile, roomAt, dropItem, peekTile, canStep, markDirty } from "../map.js";
 import * as rng from "../rng.js";
 import * as clock from "../clock.js";
 import * as loop from "../loop.js";
@@ -78,6 +83,15 @@ export function snareRule() {
   return (data && data.snare) || { hours: 6, reach: 16 };
 }
 
+export function keepRule() {
+  return (data && data.keep) || { feedReach: 8, coopReach: 4, feather: 0.8, more: 0.25, breedDays: 3, penCap: 6, roomPerHead: 6, penMax: 500, leadSpeed: 2.6, leadReach: 12, leadClose: 1.6 };
+}
+
+// The game's day, counted from zero (clock.getDay is the label's, from one).
+export function today() {
+  return Math.floor(clock.getElapsed() / clock.DAY_LENGTH);
+}
+
 export function tracksRule() {
   return (data && data.tracks) || { every: 1, seconds: 240, radius: 8, keep: 10 };
 }
@@ -87,6 +101,17 @@ export function sourcesOf(itemId) {
   const out = [];
   for (const [name, sp] of Object.entries((data && data.species) || {})) {
     for (const how of ["skin", "butcher"]) if (((sp.yields || {})[how] || []).some((y) => y.id === itemId)) out.push({ species: sp.name || name, how });
+  }
+  return out;
+}
+
+// The species whose keeping gives an item (docs/45 section 3), for its card: [{ species, how }] with how "milk", "shear", or "lay".
+export function keptFrom(itemId) {
+  const out = [];
+  for (const [name, sp] of Object.entries((data && data.species) || {})) {
+    if (sp.produce && sp.produce.item === itemId) out.push({ species: sp.name || name, how: sp.produce.verb });
+    if (sp.lays && sp.lays.item === itemId) out.push({ species: sp.name || name, how: "lay" });
+    if (sp.lays && itemId === "feather") out.push({ species: sp.name || name, how: "lay" });
   }
   return out;
 }
@@ -140,6 +165,11 @@ export function createAnimal(species, gx, gy, { id = null, home = null, homeId =
     calmAt: 0, // sim seconds when the boar gives up the charge
     windup: 0, // seconds left of the boar's bite before it lands
     biteTimer: 0, // seconds before the boar bites again
+    leaderId: null, // the player leading it on a lead (docs/45 section 1)
+    fedDay: -1, // the game day it last ate from a trough (step 3): fed today, it gives today
+    takenDay: -1, // the game day its milk or wool was last taken
+    bredDay: -1, // the game day it last bred (-1: never)
+    lastDay: today(), // the game day its daily pass last ran (the first is tomorrow's)
   };
 }
 
@@ -316,6 +346,10 @@ export function updateAnimal(a, dt, others, threats) {
       charge(a, dt, others, threats, sp);
       break;
     }
+    case "led": {
+      led(a, dt, others, threats, sp);
+      break;
+    }
     default:
       settle(a, sp);
   }
@@ -363,6 +397,253 @@ function charge(a, dt, others, threats, sp) {
   a.speed = sp.run;
   followPath(a, dt, others);
   a.speed = sp.walk;
+}
+
+// ---- led on a lead (docs/45 section 1) ----
+// It follows its leader at `keep.leadSpeed` (a cow is slow on its own; on a lead it keeps up), stands when close, and is let go where it
+// stands when the leader is gone, dead, or past `keep.leadReach` tiles: where it is let go is its home, so a pen holds it.
+function led(a, dt, others, threats, sp) {
+  const K = keepRule();
+  const t = threats.find((q) => q.id === a.leaderId && q.kind === "player");
+  const d = t ? Math.hypot(t.gx - a.gx, t.gy - a.gy) : Infinity;
+  if (!t || t.dead || d > K.leadReach) {
+    letGo(a);
+    return;
+  }
+  if (d <= K.leadClose) {
+    a.path = [];
+    playAnimation(a.anim, "idle");
+    faceToward(a, t.gx - a.gx, t.gy - a.gy);
+    separate(a, dt, others);
+    return;
+  }
+  a.repathTimer -= dt;
+  if (a.repathTimer <= 0 || !a.path.length) repath(a, [Math.round(t.gx), Math.round(t.gy)]);
+  playAnimation(a.anim, "walk");
+  a.speed = K.leadSpeed;
+  followPath(a, dt, others);
+  a.speed = sp.walk;
+}
+
+function letGo(a) {
+  a.leaderId = null;
+  a.home = [Math.round(a.gx), Math.round(a.gy)];
+  a.path = [];
+  a.state = "idle";
+  a.idleTimer = 1;
+  playAnimation(a.anim, "idle", true);
+}
+
+// How many animals a player leads, and how many leads they carry (one lead, one animal).
+function ledBy(player) {
+  return animalList().filter((a) => a.leaderId === player.id && !a.dead).length;
+}
+function leadsCarried(player) {
+  return inventory.countAll(player, "lead");
+}
+
+// Why a player cannot lead this animal now, or "".
+export function leadProblem(player, a) {
+  if (!a || a.dead) return "There is nothing there.";
+  if (isWild(a)) return `A ${a.name} will not be led.`;
+  if (a.leaderId === player.id) return "You are leading it.";
+  if (a.leaderId) return "Someone else is leading it.";
+  const why = reachProblem(player, [[Math.round(a.gx), Math.round(a.gy)]], BODY_REACH);
+  if (why) return why === "Too far away." ? `Too far from the ${a.name}.` : why;
+  const tool = inventory.toolProblem(player, "lead");
+  if (tool) return tool;
+  if (ledBy(player) >= leadsCarried(player)) return "Your lead is in use.";
+  return "";
+}
+
+verbs.define("lead", {
+  validate(world, player, target) {
+    return leadProblem(player, animalOf(target)) || true;
+  },
+  perform(world, player, target) {
+    const a = animalOf(target);
+    a.leaderId = player.id;
+    a.state = "led";
+    a.path = [];
+    a.repathTimer = 0;
+    return { ok: true, message: `You put the lead on the ${a.name}.` };
+  },
+});
+
+verbs.define("letgo", {
+  validate(world, player, target) {
+    const a = animalOf(target);
+    if (!a || a.leaderId !== player.id) return "You are not leading it.";
+    return true;
+  },
+  perform(world, player, target) {
+    const a = animalOf(target);
+    letGo(a);
+    return { ok: true, message: `You let the ${a.name} go. It will stay near here.` };
+  },
+});
+
+// ---- what a fed animal gives (docs/45 section 3) ----
+// Milk and wool are taken by hand once a day from an animal fed that day, its tool carried (a bucket, shears): the product to the bag or
+// the feet, one more at `keep.more` (pens that give more, Beastlore 6, open to all until the skills).
+export function produceProblem(player, a) {
+  const sp = a && speciesOf(a.species);
+  const pr = sp && sp.produce;
+  if (!a || a.dead || !pr) return "There is nothing to take.";
+  if (a.fedDay !== today()) return `The ${a.name} has not been fed today.`;
+  if (a.takenDay === today()) return pr.verb === "milk" ? "It has been milked today." : "It has been shorn today.";
+  const why = player ? reachProblem(player, [[Math.round(a.gx), Math.round(a.gy)]], BODY_REACH) : "";
+  if (why) return why === "Too far away." ? `Too far from the ${a.name}.` : why;
+  return player ? inventory.toolProblem(player, pr.verb) || "" : "";
+}
+
+function produceVerb(verb) {
+  verbs.define(verb, {
+    validate(world, player, target) {
+      const a = animalOf(target);
+      if (a && speciesOf(a.species).produce && speciesOf(a.species).produce.verb !== verb) return "That is not how.";
+      return produceProblem(player, a) || true;
+    },
+    perform(world, player, target) {
+      const a = animalOf(target);
+      const pr = speciesOf(a.species).produce;
+      const [lo, hi] = pr.count;
+      const n = lo + rng.int(hi - lo + 1) + (rng.chance(keepRule().more) ? 1 : 0);
+      give(player, pr.item, n);
+      a.takenDay = today();
+      return { ok: true, message: `You ${verb === "milk" ? "milk" : "shear"} the ${a.name}: ${said([{ id: pr.item, count: n }])}.` };
+    },
+  });
+}
+produceVerb("milk");
+produceVerb("shear");
+
+// ---- the daily pass: feed, lay, breed ----
+// A feeding trough (a prop whose definition says `feed`) within `keep.feedReach` tiles of the home, holding an item tagged `feed`.
+function troughFor(a) {
+  const R = keepRule().feedReach;
+  const [hx, hy] = a.home;
+  for (let r = 0; r <= R; r++) {
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      const pr = peekTile(Math.round(hx) + dx, Math.round(hy) + dy)?.prop;
+      if (!pr || !pr.bag || !isFeedTrough(pr)) continue;
+      if (pr.bag.items.some(isFeed)) return pr;
+    }
+  }
+  return null;
+}
+let defOf = () => null; // the sprite definitions, handed in by game.js (assets.getDef): a trough is a definition's `feed`
+export function setDefs(fn) {
+  defOf = fn;
+}
+function isFeedTrough(prop) {
+  const d = defOf(prop.sprite);
+  return !!(d && d.feed);
+}
+function isFeed(e) {
+  const def = e && items.getItem(e.id);
+  return !!(def && def.tags && def.tags.includes("feed"));
+}
+// One unit of feed out of a trough: the first feed in its grid.
+function eatFrom(trough) {
+  const e = trough.bag.items.find(isFeed);
+  if ((e.count || 1) > 1) e.count -= 1;
+  else grid.remove(trough.bag, e);
+  markDirty(trough.tile[0], trough.tile[1]);
+}
+
+// A hen's coop: a chicken coop within `keep.coopReach` of its home, its grid made on first use (as a container's is).
+function coopFor(a) {
+  const R = keepRule().coopReach;
+  const [hx, hy] = a.home;
+  for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+    const pr = peekTile(Math.round(hx) + dx, Math.round(hy) + dy)?.prop;
+    if (pr && pr.sprite === "chicken_coop" && pr.container) {
+      if (!pr.bag) {
+        const [c, r] = items.containerGrid(pr.container.loot);
+        pr.bag = inventory.createBag(c, r, "chicken coop");
+        pr.searched = false;
+      }
+      return pr;
+    }
+  }
+  return null;
+}
+function lay(a, coop) {
+  const L = speciesOf(a.species).lays;
+  const K = keepRule();
+  const [lo, hi] = L.count;
+  const n = lo + rng.int(hi - lo + 1) + (rng.chance(K.more) ? 1 : 0);
+  for (let i = 0; i < n; i++) grid.insert(coop.bag, items.makeEntry(L.item, 1)); // a full coop takes no more
+  if (rng.chance(K.feather)) grid.insert(coop.bag, items.makeEntry("feather", 1));
+  markDirty(coop.tile[0], coop.tile[1]);
+}
+
+// The pen an animal stands in: every tile it could walk to without crossing a fence, a wall, or a shut gate, when that is at most
+// `keep.penMax` tiles; null in the open.
+export function penOf(a) {
+  const max = keepRule().penMax;
+  const start = [Math.round(a.gx), Math.round(a.gy)];
+  const seen = new Set([`${start[0]},${start[1]}`]);
+  const queue = [start];
+  while (queue.length) {
+    const [x, y] = queue.shift();
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx;
+      const ny = y + dy;
+      const k = `${nx},${ny}`;
+      if (seen.has(k) || !canStep(x, y, nx, ny)) continue;
+      seen.add(k);
+      if (seen.size > max) return null;
+      queue.push([nx, ny]);
+    }
+  }
+  return seen;
+}
+
+// Once a second of sim time on the authority (game.js), for every tame animal whose day has turned since its last pass: it eats from a
+// trough near home and, fed, a hen lays; then two of a kind fed today in one pen with room breed, out of every watcher's sight. Returns
+// the young born (the caller adds them).
+export function dailyStep(animals, watchers) {
+  const day = today();
+  const K = keepRule();
+  const R = renewRule();
+  const due = animals.filter((a) => !a.dead && !isWild(a) && a.lastDay < day);
+  if (!due.length) return [];
+  for (const a of due) {
+    a.lastDay = day;
+    const t = troughFor(a);
+    if (!t) continue;
+    eatFrom(t);
+    a.fedDay = day;
+    if (speciesOf(a.species).lays) {
+      const coop = coopFor(a);
+      if (coop) lay(a, coop);
+    }
+  }
+  const born = [];
+  const done = new Set();
+  const rested = (q) => q.bredDay < 0 || q.bredDay + K.breedDays <= day; // never bred, or its days since are past
+  for (const a of due) {
+    if (done.has(a.id) || a.fedDay !== day || !rested(a) || a.state === "led") continue;
+    const pen = penOf(a);
+    if (!pen) continue;
+    const inPen = (q) => pen.has(`${Math.round(q.gx)},${Math.round(q.gy)}`);
+    const kin = animals.filter((q) => !q.dead && q.species === a.species && inPen(q));
+    for (const q of kin) done.add(q.id);
+    const ready = kin.filter((q) => q.fedDay === day && rested(q) && q.state !== "led");
+    if (ready.length < 2 || kin.length >= K.penCap || pen.size < K.roomPerHead * (kin.length + 1)) continue;
+    if (watchers.some((p) => Math.hypot(p.gx - a.gx, p.gy - a.gy) <= R.clear)) continue; // nothing materialises in view: it waits for a day nobody is near
+    const spot = [...pen].map((k) => k.split(",").map(Number)).find(([x, y]) => !animals.some((q) => Math.round(q.gx) === x && Math.round(q.gy) === y) && roomAt(x, y) === 0);
+    if (!spot) continue;
+    const young = createAnimal(a.species, spot[0], spot[1], { home: a.home.slice(), homeId: a.homeId });
+    young.lastDay = day;
+    born.push(young);
+    ready[0].bredDay = day;
+    ready[1].bredDay = day;
+  }
+  return born;
 }
 
 // ---- hurt and killed (docs/45 section 2) ----
@@ -632,6 +913,8 @@ const KILLED = { bow: "Shot clean.", thrown: "Speared.", melee: "Beaten down.", 
 export function lookLine(a) {
   if (a.dead) return `A dead ${a.name}${a.skinned ? ", skinned" : ""}. ${KILLED[a.killedBy] || ""}`.trim();
   if (a.state === "charge") return `A ${a.name}, and it is angry.`;
+  if (a.state === "led") return `A ${a.name}, on a lead.`;
+  if (!speciesOf(a.species).wild) return a.fedDay === today() ? `A ${a.name}. Fed today.` : `A ${a.name}, hungry: a feeding trough near it, filled, would feed it.`;
   const sp = speciesOf(a.species);
   if (a.state === "flee") return `A ${a.name}, running.`;
   if (sp.wild) return a.state === "eat" ? `A ${a.name}, grazing. It has not seen you.` : `A ${a.name}. Wild; it keeps its distance.`;
