@@ -284,6 +284,28 @@ function propName(prop) {
   return prop.sprite.replace(/_/g, " ");
 }
 
+// Take apart (docs/43, section 2): a made prop destroyed for half its materials, with its recipe's tool, refused while it holds anything.
+// The label says why it is refused, as Pick up's does; the host's click and a guest's command by this label both run placement.takeApart.
+function takeApartAction(prop, player) {
+  const t = { type: "prop", prop };
+  const held = placement.holdsProblem(prop);
+  const { back, tool } = placement.partsOf(t);
+  const noTool = held ? "" : placement.toolProblem(player, tool);
+  const why = held || noTool;
+  const parts = back.map((b) => `${b.count} ${getItem(b.id).name.toLowerCase()}${b.count === 1 ? "" : "s"}`).join(", ");
+  return act({
+    kind: "takeapart",
+    label: why ? `Take apart (${why.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase())})` : `Take apart${parts ? ` (${parts} back)` : ""}`,
+    tiles: prop.tiles,
+    mx: prop.tile[0],
+    my: prop.tile[1],
+    enabled: !why,
+    perform() {
+      return placement.takeApart(player, t);
+    },
+  });
+}
+
 function carryAction(prop, player) {
   const free = !player.hands.main && !player.hands.off;
   return act({
@@ -872,6 +894,7 @@ function propActions(prop, player) {
   if (getDef(prop.sprite).sleep) out.push(...sleepAction(prop, player));
   if (stations.stationOf(prop)) out.push(...stationActions(prop, player));
   if (canCarry(prop)) out.push(carryAction(prop, player));
+  if (prop.made) out.push(takeApartAction(prop, player)); // only what a player made (docs/43, section 2)
   return out;
 }
 

@@ -28,6 +28,7 @@ import { reachProblem, TOO_FAR } from "./reach.js";
 import * as rugs from "./rugs.js"; // a rug laid from the bag (#327)
 import * as paintings from "./paintings.js"; // a painting hung on a wall from the bag (#326)
 import * as woods from "./woods.js"; // a wall in a wood, and a door or window of another wood than its wall (#334)
+import * as stations from "./stations.js"; // a made prop's recipe, for what taking it apart gives back (docs/43, section 2)
 
 // Reach was raised by a full tile on 2026-10-11 (Michael: easier).
 export const PLACE_REACH = 2.6; // tiles from the player to a carried prop's anchor tile
@@ -497,19 +498,82 @@ function removeGhost(player) {
   if (!m.inside) return null;
   const target = removalTarget(m.x, m.y);
   if (!target) return null;
-  const noTool = toolProblem(player, tuning.world.boardTool);
-  const far = removeReachProblem(player, target);
-  const ok = !noTool && !far;
-  return { kind: "remove", target, ok, reason: noTool || far };
+  const why = takeApartProblem(player, target);
+  return { kind: "remove", target, ok: !why, reason: why };
+}
+
+// The entry that builds this wall, by its kind and its sprite both (a built fence is a "wall" but no log wall; a gate is a
+// "door" in the fence's sprite), else the kind's own entry (a door built into a stone wall is a door).
+function buildEntryOf(wall) {
+  const id = Object.keys(buildData).find((k) => wallKindOf(k) === wall.kind && buildData[k].sprite === wall.sprite);
+  return buildData[id] || buildData[wall.kind] || null;
 }
 
 function targetName(t) {
   if (t.type === "prop") return t.prop.sprite.replace(/_/g, " ");
-  // The entry that builds this wall, by its kind and its sprite both (a built fence is a "wall" but no log wall; a gate is a
-  // "door" in the fence's sprite), else the kind's own entry (a door built into a stone wall is a door).
-  const id = Object.keys(buildData).find((k) => wallKindOf(k) === t.wall.kind && buildData[k].sprite === t.wall.sprite);
-  const d = buildData[id] || buildData[t.wall.kind];
+  const d = buildEntryOf(t.wall);
   return (d && d.label ? d.label : t.wall.kind).toLowerCase();
+}
+
+// ---- Take apart (docs/43, section 2; Michael, 2026-10-25) ----
+// One rule for what a player made: taking it apart destroys it and gives back half its materials, rounded down, with the tool its
+// recipe asks for (a hammer for furniture and for building, a hatchet for a log wall), and is refused while it holds anything, so
+// nothing is lost by accident. Only what a player made: a prop made at a station (`made`), a wall, door, or window built (`built`);
+// the village's own furniture is carried, never taken apart. A wall built while Free building was on cost nothing (`free`), so it gives
+// nothing back. The palette's Remove is this, under the one word.
+
+// What taking it apart gives back and the tool it needs: { back: [{ id, count }], tool }. A recipe's ingredient named by a tag (the bed's
+// cloth) gives nothing back: which item it was is not kept.
+export function partsOf(t) {
+  if (t.type === "prop") {
+    const r = stations.recipes().find((q) => q.out && q.out.prop === t.prop.sprite);
+    const back = r ? (r.in || []).filter((i) => i.id).map((i) => ({ id: i.id, count: Math.floor((i.count || 1) / 2) })).filter((i) => i.count > 0) : [];
+    return { back, tool: (r && r.uses) || tuning.world.boardTool };
+  }
+  const d = buildEntryOf(t.wall);
+  const back = t.wall.free || !d ? [] : Object.entries(d.cost || {}).map(([id, n]) => ({ id, count: Math.floor(n / 2) })).filter((i) => i.count > 0);
+  return { back, tool: (d && d.tool) || tuning.world.boardTool };
+}
+
+// Why a prop holding something may not be taken apart (or picked up into the bag), or "": what is in its grid or its output box, or a
+// queue still running (its ingredients are already in it).
+export function holdsProblem(prop) {
+  if ([prop.bag, prop.output].some((b) => b && b.items && b.items.length)) return "Empty it first.";
+  if (prop.queue && prop.queue.length) return "It is still making something.";
+  return "";
+}
+
+// Why this player may not take it apart now, or "": what it holds, the tool, the reach.
+export function takeApartProblem(player, t) {
+  if (t.type === "prop") {
+    const held = holdsProblem(t.prop);
+    if (held) return held;
+  }
+  return toolProblem(player, partsOf(t).tool) || removeReachProblem(player, t);
+}
+
+function partsText(back) {
+  return back.map((b) => `${b.count} ${noun(b.id, b.count)}`).join(", ");
+}
+
+// Take it apart for this player: the host's own click, a guest's `remove` command, and the menu's Take apart all come here. The
+// materials go to the player's bag, and what does not fit to the floor at their feet.
+export function takeApart(player, t) {
+  const why = takeApartProblem(player, t);
+  if (why) {
+    showMessage(why);
+    return false;
+  }
+  const { back } = partsOf(t);
+  const name = targetName(t);
+  destroy(t);
+  const bag = inventory.bagOf(player);
+  for (const b of back) {
+    const added = bag ? inventory.addItem(bag, b.id, b.count) : 0;
+    if (b.count - added > 0) map.dropItem(Math.round(player.gx), Math.round(player.gy), items.makeEntry(b.id, b.count - added));
+  }
+  showMessage(back.length ? `You take the ${name} apart: ${partsText(back)}.` : `You take the ${name} apart; nothing is left worth keeping.`);
+  return true;
 }
 
 // Destroy it. A container spills what it held onto the floor; a wall takes its boards with it.
@@ -657,7 +721,7 @@ export function tryConfirm(player) {
       sender({ kind: "remove", target: addressOf(g.target) });
       return true;
     }
-    destroy(g.target);
+    takeApart(player, g.target);
     return true;
   }
   if (state.kind === "build") {
@@ -753,17 +817,7 @@ export function performPlacement(player, cmd) {
       if (wall && wall.built) t = { type: "wall", tx, ty, edge: a.edge, wall };
     }
     if (!t) return false;
-    const noTool = toolProblem(player, tuning.world.boardTool);
-    if (noTool) {
-      showMessage(noTool);
-      return true;
-    }
-    const far = removeReachProblem(player, t);
-    if (far) {
-      showMessage(far);
-      return true;
-    }
-    destroy(t);
+    takeApart(player, t); // the one rule, its refusal said to the acting player
     return true;
   }
   return false;
@@ -792,7 +846,9 @@ function startBuild(player, g) {
         return false;
       }
       spend(player, what);
-      return map.buildWall(g.tx, g.ty, g.edge, wallKindOf(what), d.sprite, g.chosenLeaf || null);
+      const built = map.buildWall(g.tx, g.ty, g.edge, wallKindOf(what), d.sprite, g.chosenLeaf || null);
+      if (built && rules.freeBuilding) map.tileAt(g.tx, g.ty)[g.edge].free = true; // it cost nothing, so taking it apart gives nothing back (docs/43, section 2)
+      return built;
     },
   };
   if (startAction) startAction(player, action);
@@ -822,7 +878,8 @@ export function prompt() {
     const t = g.target;
     const [mx, my] = t.type === "wall" ? map.edgeMid(t.tx, t.ty, t.edge) : t.prop.tile;
     if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };
-    return { label: `Click to remove ${targetName(t)} · Esc cancel`, mx, my, progress: null, enabled: true };
+    const { back } = partsOf(t);
+    return { label: `Click to take apart ${targetName(t)}${back.length ? ` (${partsText(back)} back)` : ""} · Esc cancel`, mx, my, progress: null, enabled: true };
   }
   const [mx, my] = map.edgeMid(g.tx, g.ty, g.edge);
   if (!g.ok) return { label: g.reason, mx, my, progress: null, enabled: false };

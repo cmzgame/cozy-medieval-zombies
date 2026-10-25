@@ -903,7 +903,7 @@ function toggleBuild() {
   buildPalette.openPalette(S.player);
 }
 
-// X: the removal tool, or out of it if in it. Same limits as N.
+// X: Take apart (the removal tool, docs/43 section 2), or out of it if in it. Same limits as N.
 function toggleRemove() {
   if (placement.state.kind === "remove") {
     placement.cancel();
