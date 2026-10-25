@@ -174,7 +174,7 @@ What comes back, today: ore rocks in place after three game days; apple trees be
 - **The willow** at the pond and the mere, **the yew** in the graveyard [to build].
 - **Apple trees** [built]: twenty-three (the orchard and three gardens); picked by hand for three to five apples, bare three days, bear again in place.
 - **Rocks** [built]: mined with a pickaxe for three stone; at the quarry and scattered by rule [change: a mined rock rises again elsewhere on natural ground, the valley's count kept (`46`)].
-- **Ore rocks** [built]: six at the iron workings; two iron ore each, spent three days, back in place. Unlock: Mining 1.
+- **Ore rocks** [built]: six at the iron workings; two iron ore each, spent three days, back in place [change: a mined ore rock is gone, and a new one rises elsewhere in an ore area (`46`)]. Unlock: Mining 1.
 - **Salt and clay** [to build]: Mining 3. Each resource from the ground gets a prop of its own to mine, signposted by its look: the rock gives stone and the ore rock iron today; clay, salt, and gems need theirs (Michael, 2026-10-23: "design a small prop for each that can be mined. Also: gems!"). *Primary's reading:* a clay bank at the river's edge, a salt rock in the mine, gems by chance from the ore rock from Mining 4 and a crystal cluster deep in the mine for the finer ones. They come back at random within their areas, clay by the river and salt with the ore (`46`); gems are #281's.
 - **Silver** [to build]: Mining 5; where, and what it makes [open #283].
 - **Gems** [to build]: from any rock, rare (at most about 10% a rock); basic at Mining 4, finer at Mining 7; their kinds [open #281].
@@ -796,6 +796,7 @@ Later, not at the start: gems inlaid in metal armour.
 - **A boss's capstone drop:** a region's.
 
 ### Resources that come back
+- Ruled (2026-10-25, `46`): section 4.
 
 ## 11. Interactions
 

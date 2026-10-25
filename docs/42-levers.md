@@ -28,7 +28,7 @@ Two kinds:
 - **Hit stop and the swing's commitment:** `blow.hitStop` 0.07, `blow.hitStopKill` 0.12, `blow.swingMove` 0.6 (`41` step 1).
 
 ### Food, the world, the valley
-- **Natural resources:** each kind's count for its area (stone, ore, clay, herbs, mushrooms), the time before a taken node's replacement grows, a sapling's growing days, sticks under a tree once a day (2026-10-25, `46`; not built).
+- **Natural resources:** each kind's count for its area (stone 40, iron ore 6, salt 4, clay 8, herbs 120, mushrooms 774), a taken node's replacement after one to two game days, a rock's rise about a second, a sapling's five growing days, sticks under a tree once a day, one or two (2026-10-25, `46`; defaults, not built).
 - **Animals:** game's renewal cap per wood, herd sizes, the feed cycle, feathers (a fed hen most days, a butchered hen three to five, one feather to five arrows), breeding's days and pen cap (2026-10-25, `45`; not built; numbers in `data/animals.json` when built).
 - **Tainted water and Sick** (`data/tuning.json` `water`): `sickChance` 0.2 a tainted drink, `sickMaxStacks` 3, `sickTiredMult` 1.5 (tiredness 50% faster) and `sickHealMult` 0.75 (food heals 25% less) for `sickDays` 0.5 of a game day a stack; `infectionChance` 0.01 a tainted drink of the infection; `boilSeconds` 30 to boil a skin at a lit cooking fire within `boilReach` 2.6 tiles (Primary's defaults: the seconds, the stacks' time adding up; the builder's: the reach); `clean`, the sources that are safe, empty (2026-10-25, `44`; built, #418).
 - **The campfire:** six logs at most, three game hours a log, built with two (2026-10-25, `43`; not built: today four logs of two hours in `data/sprites/campfire.json`).
