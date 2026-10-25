@@ -27,6 +27,7 @@ export async function run(game) {
   try {
     if (!belt) throw new Error("no belt to try slots on");
     for (let i = 0; i < belt.length; i++) belt[i] = null;
+    bag.items.length = 0; // an empty bag: a bag left full by a check before would send the sword stowed below to the belt (put back in the finally)
     me.worn.head = null;
     const log = G.items.makeEntry("log", 1);
     const hammer = G.items.makeEntry("hammer", 1);
