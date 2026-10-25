@@ -760,6 +760,64 @@ check("trees off: the mushrooms stand where they stand with trees (the valley, i
   return `${on.found.length} mushrooms in the same places, ${on.trunks} trees on and none off`;
 });
 
+// Natural resources (docs/46, step 1): each kind's count in its area is its lever with Trees on and off (the stone made up at the load by the
+// comeback's rule, in the same places either way); a take inside an area queues one debt, one in the wild none; past its day a node of the
+// kind stands at a new spot in the area, never the tile it was taken from, a rock with its sim-clock stamp and a mushroom without; the debts
+// ride in the save and come back with it, and are not a sync part. The pane's check("resources") has every row of section 7, and the guest.
+const resourcesMod = await import("../src/resources.js");
+const RESOURCES = (await import("../src/tuning.js")).resources;
+check("natural resources: counts kept per area, a debt per take, a comeback elsewhere in the area, the wild owing nothing, the debts in the save", () => {
+  const json = read("data/maps/valley.json");
+  const at = {};
+  for (const trees of [true, false]) {
+    gameMod.create({ json, rules: { zombieAggro: false, trees } });
+    const got = mapMod.resourceKinds().map((k) => [k.name, mapMod.resourceCensus(k), k.count]);
+    for (const [name, n, lever] of got) assert(n === lever, `trees ${trees}: ${name} ${n} standing, lever ${lever}`);
+    at[trees] = mapMod.allProps().filter((p) => p.sprite.startsWith("rock_")).map((p) => p.tile.join(",")).sort().join(" ");
+  }
+  assert(at[true] === at[false], "the stone made up at the load stands elsewhere with Trees off");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const ore = mapMod.resourceKind("ore");
+  const mush = mapMod.resourceKind("mushrooms");
+  const rock = mapMod.allProps().find((p) => p.sprite === "ore_rock");
+  mapMod.growTile(rock.tile[0], rock.tile[1]);
+  assert(resourcesMod.taken({ sprite: "rock_0", tile: [-30, 40] }) === null && resourcesMod.owed("stone").length === 0, "a rock taken in the wild left a debt");
+  const debt = resourcesMod.taken(rock);
+  mapMod.removeProp(rock);
+  const shroom = mapMod.allProps().find((p) => mush.sprites[p.sprite] !== undefined && mapMod.inResourceArea(mush, p.tile[0], p.tile[1]));
+  mapMod.growTile(shroom.tile[0], shroom.tile[1]);
+  resourcesMod.taken(shroom);
+  mapMod.removeProp(shroom);
+  assert(debt && resourcesMod.owed("ore").length === 1 && mapMod.resourceCensus(ore) === ore.count - 1, "an ore rock taken did not leave one debt and one fewer standing");
+  const save = JSON.parse(JSON.stringify(gameMod.serialize()));
+  assert(save.resources.debts.ore.length === 1 && !Object.keys(gameMod.syncParts()).some((k) => /resource|debt/.test(k)), "the debts are not in the save, or are a sync part");
+  gameMod.restore(save, json);
+  assert(resourcesMod.owed("ore").length === 1 && resourcesMod.owed("ore")[0].due === debt.due && resourcesMod.owed("mushrooms").length === 1, "the debts did not come back with the save");
+  const ids = new Set(mapMod.allProps().map((p) => p.id));
+  const due = Math.max(...["ore", "mushrooms"].flatMap((n) => resourcesMod.owed(n).map((d) => d.due)));
+  clock.setElapsed(due + 1);
+  let looks = 0;
+  for (; looks < 40 && (resourcesMod.owed("ore").length || resourcesMod.owed("mushrooms").length); looks++) {
+    gameMod.begin(0);
+    clock.setElapsed(clock.getElapsed() + RESOURCES.checkSeconds);
+  }
+  const fresh = (kind) => mapMod.allProps().find((p) => !ids.has(p.id) && kind.sprites[p.sprite] !== undefined && mapMod.inResourceArea(kind, p.tile[0], p.tile[1]));
+  const newOre = fresh(ore);
+  const newShroom = fresh(mush);
+  assert(newOre && (newOre.tile[0] !== debt.at[0] || newOre.tile[1] !== debt.at[1]), `no new ore rock elsewhere in its area after ${looks} looks`);
+  // The rule itself: the taken tile, now free, as a one-tile area refuses the debt's replacement and grows one without the debt's tile.
+  const [tx, ty] = debt.at;
+  const one = { ...ore, rects: [[tx, ty, 1, 1]] };
+  assert(mapMod.resourceSpotProblem(ore, tx, ty) === null, `the taken tile is not free: ${mapMod.resourceSpotProblem(ore, tx, ty)}`);
+  assert(mapMod.resourceSpotProblem(ore, tx, ty, { not: [tx, ty] }) === "where the last one stood" && resourcesMod.grow(one, [], [tx, ty]) === null, "a replacement could grow where its node was taken");
+  const again = resourcesMod.grow(one, []);
+  assert(again && again.tile[0] === tx && again.tile[1] === ty, "the one-tile area grew nothing without the debt's tile");
+  mapMod.removeProp(again);
+  assert(Number.isFinite(newOre.risenAt) && resourcesMod.riseOf(newOre, 40, newOre.risenAt) === 40 && resourcesMod.riseOf(newOre, 40, newOre.risenAt + RESOURCES.riseSeconds) === 0, "the new ore rock has no stamp to rise from");
+  assert(newShroom && newShroom.risenAt === undefined && mapMod.resourceCensus(mush) === mush.count && mapMod.resourceCensus(ore) === ore.count, "the mushroom did not come back, or the counts are not their levers");
+  return `stone 40, ore 6, mushrooms 774 with Trees on and off; ore back at ${newOre.tile.join(",")} (taken at ${debt.at.join(",")}) and a mushroom at ${newShroom.tile.join(",")} after ${looks} looks`;
+});
+
 // The dye vat (docs/43 section 8, #412): the three vats in the weaver's yard are stations that open the picker (on a guest's player, the word to
 // that guest); the `dye` verb, by the vat's id and the entry's uid, dyes a worn or carried garment a palette's colour or a scheme whole, and
 // refuses what the item does not allow, an item that is not dyeable or not carried, and a vat out of reach; its own colours undye it; the
@@ -806,6 +864,11 @@ check("dye vat: three vats open the picker; the verb dyes by uid, refuses what i
   assert(gameMod.syncParts().players !== sync0, "a dyed tunic did not move the players' sync hash");
   const card = itemInfoMod.textOf(itemInfoMod.cardFor(tunic));
   assert(card.some((l) => l.includes("Woad blue")) && card.some((l) => l.includes("Can be dyed at a dye vat: 16 colours.")), `the tunic's card: ${card.join(" | ")}`);
+  // A card counts as the picker shows: a palette colour equal to the item's own is its Undyed swatch (the breeches' Walnut brown, the boots' Dark brown).
+  for (const [id, n] of [["breeches", 15], ["boots", 6], ["gloves", 7]]) {
+    const t = itemInfoMod.textOf(itemInfoMod.cardFor(itemsMod.makeEntry(id, 1)));
+    assert(t.some((l) => l.includes(`Can be dyed at a dye vat: ${n} colours.`)), `the ${id}' card: ${t.join(" | ")}`);
+  }
   // Refusals, each with its word.
   assert(run(tunic.uid, ["#123456"]).reason === "The vat has no such colour for it.", "a colour off the palette was allowed");
   assert(run(tunic.uid, ["#3e5e90", "#3e5e90"]).reason === "That is not a colouring for it.", "two colours for a one-region tunic were allowed");
@@ -826,16 +889,38 @@ check("dye vat: three vats open the picker; the verb dyes by uid, refuses what i
   assert(run(belt.uid, ["#8c8c94", "#2a2428"]).reason === "The vat has no such scheme for it.", "the belt took iron and black, no scheme");
   assert(run(belt.uid, ["#a63a2c", "#c8a040"]).reason === "The vat has no such scheme for it.", "the belt took madder, no scheme");
   assert(itemInfoMod.textOf(itemInfoMod.cardFor(belt)).some((l) => l.includes("6 schemes")) && itemInfoMod.textOf(itemInfoMod.cardFor(belt)).some((l) => l.includes("Black and iron")), `the belt's card: ${itemInfoMod.textOf(itemInfoMod.cardFor(belt)).join(" | ")}`);
+  // The belt's own buckle is the Brass dye's hex: black with its own buckle is "Black and brass", never "undyed" (docs/bugs.md, fixed).
+  assert(run(belt.uid, ["#2a2428", "#c8a040"]).ok && dyeMod.colourWords(belt) === "Black and brass", `the belt black with its own brass buckle reads ${dyeMod.colourWords(belt)}`);
   const satchel = itemsMod.makeEntry("satchel", 1);
   inventoryMod.stow(me, satchel);
   assert(run(satchel.uid, ["#3e6a38", "#5c2020"]).ok && satchel.colours.join() === "#3e6a38,#5c2020", "the satchel did not take green cloth and an oxblood strap");
   assert(run(satchel.uid, ["#5c2020", "#3e6a38"]).reason === "The vat has no such colour for it.", "the satchel took oxblood cloth and a green strap");
   assert(run(satchel.uid, ["#c8b890", "#5c2020"]).ok && satchel.colours.join() === "#c8b890,#5c2020", "the satchel's own cloth with a dyed strap was refused");
+  assert(dyeMod.colourWords(satchel) === "Cloth undyed, strap oxblood", `the satchel's own cloth, no vat's colour, reads ${dyeMod.colourWords(satchel)}`);
   // A wardrobe's single colour (a hood from the dead) is replaced, and an item's own colours undye it.
   const hood = itemsMod.makeEntry("hood", 1, { colour: "#705848" });
   inventoryMod.stow(me, hood);
   assert(run(hood.uid, ["#6a3c72"]).ok && !hood.colour && hood.colours.join() === "#6a3c72", "a wardrobe-dyed hood did not take orchil");
   assert(run(hood.uid, ["#5f8a3a"]).ok && !hood.colours && !hood.colour, "the hood's own green did not undye it");
+  // The picker lists everything carried the verb can take (docs/bugs.md, fixed): the satchel in the worn bag, and a garment on a worn belt's slot,
+  // dyed by its uid as a guest's command names it.
+  const beltWorn = itemsMod.makeEntry("good_belt", 1);
+  const waist0 = me.worn.waist;
+  me.worn.waist = beltWorn;
+  const onBelt = itemsMod.makeEntry("gloves", 1);
+  inventoryMod.ensureSlots(beltWorn)[0] = onBelt;
+  const listed = dyeMod.dyeables(me).map((d) => d.entry);
+  assert(listed.includes(satchel) && listed.includes(onBelt) && listed.includes(beltWorn), `the picker's list: ${listed.map((e) => e.id).join(", ")}`);
+  hostMod.netHooks().dye(me, { propId: vat.id, uid: onBelt.uid, colours: ["#5c2020"] });
+  assert(onBelt.colours && onBelt.colours.join() === "#5c2020", "gloves on the belt's slot were not dyed by the guest's command");
+  // A bag inside a bag, and what it holds (no bag holding things goes into a bag today, inventory.canStoreIn; the walk is the guard).
+  const inner = itemsMod.makeEntry("satchel", 1);
+  const innerCap = itemsMod.makeEntry("cap", 1);
+  inventoryMod.ensureBag(inner).items.push(innerCap);
+  inventoryMod.bagOf(me).items.push(inner);
+  assert(dyeMod.dyeables(me).some((d) => d.entry === innerCap) && run(innerCap.uid, ["#3e5e90"]).ok && innerCap.colours.join() === "#3e5e90", "a cap in a satchel in the bag was not listed and dyed");
+  inventoryMod.bagOf(me).items.splice(inventoryMod.bagOf(me).items.indexOf(inner), 1);
+  me.worn.waist = waist0;
   // The cost hook costs nothing: no dye names a cost.
   assert(dyeMod.costOf(itemsMod.getItem("tunic"), ["#3e5e90"]).length === 0, "a dye costs something before #288");
   // A guest's command: the host's hook runs the same verb as that player.
@@ -1215,6 +1300,153 @@ check("bees: three to six drawn bees (stripes dark, gold, dark, a head, wings fo
   assert(beesMod.stirOf({ id: "p_9" }, 5000) === 0, "a hive never taken from is stirred");
   assert(beesMod.stirOf(taken, 5000) === 1 && beesMod.stirOf(taken, 5000 + beesMod.BEES.stirSeconds / 2) === 0.5 && beesMod.stirOf(taken, 5000 + beesMod.BEES.stirSeconds) === 0 && beesMod.stirOf(taken, 5000 + 100) === 0, "the stir does not fade from 1 to 0 over its seconds");
   return `${[...counts].sort().join(", ")} bees by hive, none from dusk to dawn; six and wider when stirred, for ${beesMod.BEES.stirSeconds} s of the clock`;
+});
+
+// A repair place's one greyed line (docs/43 section 6; docs/bugs.md, fixed): with nothing worn carried it says what the place does; with
+// everything worn already at or above the place's ceiling for it, "nothing it can better". The menu is built as a guest's replica builds it.
+check("repairs: a grindstone or an anvil with nothing to better says so, not that nothing worn is carried", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  mapMod.ensureAround(101, 188, 3); // the smithy
+  const stone = mapMod.allProps().find((q) => q.sprite === "grindstone");
+  const anvil = mapMod.allProps().find((q) => q.sprite === "anvil");
+  assert(stone && anvil, "no grindstone or anvil at the smithy");
+  const acts = (prop) => interactMod.actionsForTarget({ kind: "prop", id: prop.id }, me);
+  const labels = (prop) => acts(prop).filter((a) => a.kind === "sharpen" || a.kind === "repair").map((a) => `${a.label}${a.enabled === false ? " [off]" : ""}`); // the anvil is a station too
+  const standBy = (prop) => { const t = interactMod.approachTile(acts(prop)[0], me); if (t) { me.gx = t[0]; me.gy = t[1]; } };
+  inventoryMod.bagOf(me).items.length = 0;
+  (inventoryMod.beltOf(me) || []).fill(null);
+  me.hands.main = null;
+  me.hands.off = null;
+  standBy(stone);
+  assert(JSON.stringify(labels(stone)) === JSON.stringify(["Sharpen (no dull blade carried) [off]"]), `nothing carried: ${labels(stone).join(" | ")}`);
+  // A sword at 70% with one repair behind it: the stone's next rung is 40%, the anvil's 80%.
+  me.hands.main = itemsMod.makeEntry("sword", 1, { wear: 0.3, repairs: 1 });
+  assert(JSON.stringify(labels(stone)) === JSON.stringify(["Sharpen (nothing it can better) [off]"]), `a sword above the stone's rung: ${labels(stone).join(" | ")}`);
+  me.hands.main.wear = 0.1; // 90%, above the anvil's 80%
+  standBy(anvil);
+  assert(JSON.stringify(labels(anvil)) === JSON.stringify(["Repair (nothing it can better) [off]"]), `a sword above the anvil's rung: ${labels(anvil).join(" | ")}`);
+  me.hands.main = null;
+  assert(JSON.stringify(labels(anvil)) === JSON.stringify(["Repair (nothing worn carried) [off]"]), `nothing carried at the anvil: ${labels(anvil).join(" | ")}`);
+  return "nothing carried, and a sword above each place's rung, each its one greyed line";
+});
+
+// The sawpit's words (docs/43 section 6; docs/bugs.md, fixed): one plank that does not fit "falls" at your feet, more "fall".
+check("sawpit: what does not fit falls at your feet, in the right number", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  const W = worldMod.world;
+  mapMod.ensureAround(74, 192, 3); // the joiner's yard
+  const pit = mapMod.allProps().find((q) => q.sprite === "sawpit");
+  assert(pit, "no sawpit in the joiner's yard");
+  const act = interactMod.actionsForTarget({ kind: "prop", id: pit.id }, me)[0];
+  const t = interactMod.approachTile(act, me);
+  if (t) { me.gx = t[0]; me.gy = t[1]; }
+  const sack = itemsMod.makeEntry("small_sack", 1);
+  me.worn.back = sack;
+  me.hands.main = null;
+  me.hands.off = null;
+  (inventoryMod.beltOf(me) || []).fill(null);
+  // A bag two planks wide: the log sawn from it leaves room for two, and one falls.
+  sack.bag = inventoryMod.createBag(2, 3);
+  assert(inventoryMod.stow(me, itemsMod.makeEntry("log", 1)) === "bag", "the log did not go in the bag");
+  const one = verbsMod.run("saw", W, me, { prop: pit.id });
+  assert(one.ok && /; 1 falls at your feet\.$/.test(one.message), `one over: ${one.message || one.reason}`);
+  // A bag one plank wide, the log in a hand: two fall.
+  sack.bag = inventoryMod.createBag(1, 3);
+  me.hands.main = itemsMod.makeEntry("log", 1);
+  const two = verbsMod.run("saw", W, me, { prop: pit.id });
+  assert(two.ok && /; 2 fall at your feet\.$/.test(two.message), `two over: ${two.message || two.reason}`);
+  return `${one.message} / ${two.message}`;
+});
+
+// Talk while an immune villager cowers or runs (docs/43 section 7; docs/bugs.md, fixed): not answered, as a poke is not, and the flight goes on;
+// once it stands wary, Talk is answered. Run as the host runs a guest's Talk, on the authority.
+const villagerMod = await import("../src/entities/villager.js");
+check("villagers: Talk is not answered while an immune villager cowers or runs", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  const v = villagerMod.createVillager(me.gx + 1, me.gy, { id: "vt_talk", name: "Timid", immune: true, talk: "neighbour" });
+  gameMod.state.villagers.push(v);
+  let started = 0;
+  const hear = () => { started++; };
+  eventsMod.on("talkStarted", hear);
+  try {
+    for (const state of ["cower", "flee"]) {
+      v.state = state;
+      const ok = villagerMod.startTalk(v, me);
+      assert(ok === false && v.state === state && v.talkingWith.length === 0 && started === 0, `Talk while it ${state}s: began ${ok}, now ${v.state}, talking with ${v.talkingWith.join(",")}`);
+    }
+    v.state = "wary";
+    assert(villagerMod.startTalk(v, me) === true && v.state === "talk" && started === 1, `Talk once it stands wary: ${v.state}, ${started} started`);
+  } finally {
+    eventsMod.off("talkStarted", hear);
+    gameMod.state.villagers.splice(gameMod.state.villagers.indexOf(v), 1);
+  }
+  return "refused cowering and running, answered wary";
+});
+
+// Burn corpse's done line (docs/43 section 7; docs/bugs.md, fixed): the hours read from `work.burnCorpse.hours`, as the card reads them.
+check("burn corpse: the done line says the hours the data gives", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  const W = worldMod.world;
+  const WB = tuningMod.work.burnCorpse;
+  const h0 = WB.hours;
+  const said = [];
+  try {
+    for (const h of [h0, 2]) {
+      const z = gameMod.state.zombies.find((q) => !q.dead && !q.corpse);
+      assert(z, "none of the dead to lay down");
+      Object.assign(z, { dead: true, corpse: true, gx: me.gx + 1, gy: me.gy, cremate: false, burning: false });
+      me.hands.main = itemsMod.makeEntry(WB.flame, 1);
+      me.hands.off = itemsMod.makeEntry(WB.fuel, 1);
+      WB.hours = h;
+      const r = verbsMod.run("burncorpse", W, me, { ch: z });
+      const want = `The body catches. It will burn for about ${h === 1 ? "an hour" : `${h} hours`}, and nothing in it will be left.`;
+      assert(r.ok && r.message === want, `with ${h} hours: ${r.message || r.reason}`);
+      said.push(r.message);
+    }
+  } finally {
+    WB.hours = h0;
+  }
+  return said.join(" / ");
+});
+
+const placementMod = await import("../src/placement.js");
+const woodsMod = await import("../src/woods.js");
+// The hover card's plurals and lower-cased names (docs/bugs.md: not reproduced, guarded): "Splits into 3 planks" and the sawpit's line add an "s"
+// to the item split into, and "Goes into" and "Builds" lower-case a recipe's or a build kind's name. No name that reaches those lines today has a
+// plural that is not "+s" or a capital past its first letter; this fails the day one does, and the fix then is a `plural` (and a kept case) in the data.
+check("hover card: every name that reaches a plural or a lower-cased line reads rightly (+s, no capital past the first letter)", () => {
+  const itemsJson = read("data/items.json");
+  const recipes = read("data/recipes.json").rows;
+  const byId = new Map(itemsJson.map((d) => [d.id, d]));
+  const bad = [];
+  const irregular = /(s|x|z|ch|sh|[^aeiou]y|[^f]f|fe|man|foot|tooth|mouse|sheep|deer|fish|child)$/i;
+  for (const d of itemsJson) {
+    if (!d.splitsInto) continue;
+    const name = byId.get(d.splitsInto.id).name;
+    if (irregular.test(name)) bad.push(`${d.id} splits into "${name}", whose plural is not +s`);
+    if (/[A-Z]/.test(name.slice(1))) bad.push(`${d.id} splits into "${name}", which keeps a capital`);
+  }
+  for (const r of recipes) {
+    const o = r.out || {};
+    const name = o.id ? byId.get(o.id).name : r.label || (o.prop ? o.prop.replace(/_/g, " ") : r.id);
+    if (/[A-Z]/.test(name.slice(1))) bad.push(`recipe ${r.id}'s "${name}" is lower-cased on a card's Goes into line`);
+  }
+  for (const k of placementMod.buildKinds()) {
+    if (!k.cost || k.region || (woodsMod.isWoodWall(k.sprite) && k.kind === "wall")) continue; // as the card: a wood's walls are one "wood wall", a region's wood never shown
+    const name = k.label || k.id;
+    if (/[A-Z]/.test(name.slice(1))) bad.push(`build kind ${k.id}'s "${name}" is lower-cased on a card's Builds line`);
+  }
+  assert(!bad.length, bad.join("; "));
+  const lines = itemsJson.flatMap((d) => itemInfoMod.textOf(itemInfoMod.cardFor(itemsMod.makeEntry(d.id, 1))).filter((l) => /^(Splits into|A sawpit|Goes into|Builds)/.test(l)));
+  return `every name regular; ${lines.length} such lines on the cards today`;
 });
 
 let failed = 0;

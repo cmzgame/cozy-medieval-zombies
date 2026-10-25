@@ -298,11 +298,13 @@ export function talkContext(v, player) {
   return talk.contextFor(v, player, talkWorld());
 }
 
-// Start a conversation (the menu's Talk to, and E): refused only for the dead (a wounded villager still talks, Michael, 2026-10-18); with the dead within `talkDeadRadius` the villager barks instead of
+// Start a conversation (the menu's Talk to, and E): refused for the dead (a wounded villager still talks, Michael, 2026-10-18) and for an immune one that
+// cowers or runs (docs/43 section 7); with the dead within `talkDeadRadius` the villager barks instead of
 // talking; else it stops, faces the talker, and takes them into `talkingWith`, and `talkStarted` tells the talker's screen to open the panel. Returns
 // whether a conversation began. Runs on the authority, as the player.
 export function startTalk(v, player) {
   if (v.dead) return false;
+  if (v.state === "cower" || v.state === "flee") return false; // too frightened to answer, as a poke (docs/43 section 7); the flight goes on
   if (!lineOfSight(player.gx, player.gy, v.gx, v.gy)) return false; // the same test `keepTalkers` ends a conversation on: never through a wall
   const w = talkWorld();
   const deadClose = !!w && (w.zombies || []).some((z) => !z.dead && Math.hypot(z.gx - v.gx, z.gy - v.gy) <= T.talkDeadRadius);

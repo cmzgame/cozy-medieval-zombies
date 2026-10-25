@@ -114,7 +114,8 @@ define("anvil", "repair");
 
 // The menu's entries at a grindstone or an anvil: one for each worn thing carried that this place can still better, with what it would
 // reach ("Sharpen arming sword (35% to 60%)", "Repair hoe (20% to 100%, a plank)"); one past repair, or missing the hammer or the material,
-// greyed with why; nothing to do, one greyed line that says what the place does.
+// greyed with why; nothing to do, one greyed line that says what the place does, or "(nothing it can better)" when what is worn is
+// already at or above this place's ceiling for it.
 export function propActions(prop, player, act, world) {
   const place = placeOf(prop);
   if (!place) return [];
@@ -122,6 +123,7 @@ export function propActions(prop, player, act, world) {
   const word = place === "grindstone" ? "Sharpen" : "Repair";
   const base = { kind: verb, tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] };
   const out = [];
+  let aboveCeiling = false; // something worn was carried, but at or above what this place reaches for it now
   for (const entry of carried(player)) {
     const def = items.getItem(entry.id);
     const r = repairOf(def);
@@ -132,7 +134,7 @@ export function propActions(prop, player, act, world) {
       out.push(act({ ...base, label: `${word} ${name} (worn past repair)`, enabled: false }));
       continue;
     }
-    if (percentLeft(entry) >= Math.round(c * 100)) continue; // this place can do nothing for it now
+    if (percentLeft(entry) >= Math.round(c * 100)) { aboveCeiling = true; continue; } // this place can do nothing for it now
     const why = problem(place, player, entry);
     const material = place === "anvil" ? `, ${article(items.getItem(r.with).name.toLowerCase())}` : "";
     const need = why && why.startsWith("You need ") ? why.slice("You need ".length).replace(/\.$/, "") : null;
@@ -149,6 +151,6 @@ export function propActions(prop, player, act, world) {
       },
     }));
   }
-  if (!out.length) out.push(act({ ...base, label: place === "grindstone" ? "Sharpen (no dull blade carried)" : "Repair (nothing worn carried)", enabled: false }));
+  if (!out.length) out.push(act({ ...base, label: aboveCeiling ? `${word} (nothing it can better)` : place === "grindstone" ? "Sharpen (no dull blade carried)" : "Repair (nothing worn carried)", enabled: false }));
   return out;
 }
