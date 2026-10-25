@@ -212,6 +212,7 @@ export function cardFor(entry) {
   }
   if (builds.length) lines.push(line(`Builds: ${builds.slice(0, 6).join(", ")}${builds.length > 6 ? " and more" : ""}.`));
   if (def.tags && def.tags.includes("fuel")) lines.push(line("Burns as fuel."));
+  if (def.toCome) lines.push(line(`To come: ${def.toCome}.`)); // what a material waits for, said on its card (leather, docs/45 step 4)
   // Where an animal's yield comes from (docs/45 section 2, read from data/animals.json): skinned or butchered from which kinds.
   const from = sourcesOf(def.id);
   if (from.length) {

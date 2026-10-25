@@ -63,7 +63,7 @@ export async function run(game) {
     if (!bench) throw new Error("no workbench in the loaded chunks");
     // 1. The workbench: arrows from a stick in a chest beside it.
     standBy(bench);
-    const chest = chestBeside(bench, [["stick", 1], ["plank", 4]]);
+    const chest = chestBeside(bench, [["stick", 1], ["feather", 1], ["plank", 4]]); // arrows are fletched: a feather for five (docs/45 step 4)
     const r0 = G.verbs.run("craft", G.world.world, p, { prop: bench.id }, { recipe: "arrows", count: 1 });
     row("the verb takes a recipe from a chest's ingredients", r0.ok && G.grid.countItem ? true : r0.ok, r0.ok ? "started" : r0.reason);
     row("the ingredients are taken when the work starts", !chest.bag.items.some((e) => e.id === "stick"), `chest holds ${chest.bag.items.map((e) => `${e.id} x${e.count}`).join(", ")}`);
