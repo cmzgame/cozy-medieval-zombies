@@ -14,6 +14,7 @@ import { makeWall } from "./walls.js";
 import * as loop from "../loop.js"; // the sim clock: a poke's stamp is in sim milliseconds (docs/23a, C2)
 import * as hl from "./highlight.js"; // Object Highlight (#301)
 import * as paintingArt from "./paintings.js"; // a painting hung on a wall (#326)
+import * as bees from "./bees.js"; // bees round a hive by day (#441)
 
 // ---- props and characters ----
 
@@ -163,6 +164,8 @@ export function propDrawables(tiles, visible, out) {
     const furnFlame = fl && fl.tile === i && prop.fire && prop.fire.lit && vis
       ? `flame_${prop.facing}_${Math.floor((performance.now() / 1000) * sheet.flameFps + Math.abs(tx * 3 + ty * 7)) % fl.count}`
       : null;
+    // A hive in sight has its bees by day (#441): the far ones before it, the near ones after.
+    const swarm = f && vis && i === 0 && getDef(prop.sprite).hive ? bees.beesFor(prop, f, x, y, an) : null;
     const d = {
       key: (tx + ty) * 1000 + 1,
       kind: "prop",
@@ -170,9 +173,12 @@ export function propDrawables(tiles, visible, out) {
       rect,
       canOcclude: !!f && f[3] >= OCCLUDER_MIN_HEIGHT && !!getDef(prop.sprite).canopy,
       occluder: false,
+      bees: swarm, // what `check("bees")` reads of the frame
       emit() {
         const flags = gl.FLAG_STANDING | (d.occluder ? gl.FLAG_OCCLUDER : 0);
+        if (swarm) bees.emit(swarm, true, [tx, ty]);
         propSlice(sheet, name, f, x, y, tx, ty, flags, undefined, f ? swayOf(prop, f[3]) : 0);
+        if (swarm) bees.emit(swarm, false, [tx, ty]);
         if (flame) frameQuad(sheet, flameName, x, y, { world: [tx, ty], flags: gl.FLAG_UNLIT });
         if (furnFlame) frameQuad(sheet, furnFlame, x, y, { world: [tx, ty], flags: gl.FLAG_UNLIT });
       },

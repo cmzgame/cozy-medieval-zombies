@@ -106,6 +106,9 @@
 
   function layoutOf(def) {
     // How the def's pictures became the sheet, so a save can split it back.
+    // A fruit tree laden (#422): its sheet is the named picture with fruit painted on at load, so a save would write the fruit into that file (the bare tree's, and the
+    // round tree's delivered art): not editable here; its fruit block is in the definition.
+    if (def.fruit) return { kind: "fruit", paths: [] };
     if (def.images) return { kind: "images", paths: [...new Set(Object.values(def.images))] };
     if (def.image) return { kind: "image", paths: [def.image] };
     if (def.drawings) return { kind: "drawings", paths: [...new Set(Object.values(def.drawings).filter((d) => d.image).map((d) => d.image))] };
@@ -150,6 +153,7 @@
         ${editable ? `<button id="save"><b>Save to the game</b></button>` : ""}
         ${canSaveAsDrawn ? `<button id="saveDrawn"><b>Save as drawn</b> (the generated picture becomes data/art/generated/${id}.png and the definition points at it)</button>` : ""}
         ${generated && !canSaveAsDrawn ? `<span class="note">A generated ${def.placeholder.kind} is not saved as drawn here (it needs per-tile or wall fields the drawn form has not got); edit its generator in src/placeholders.js.</span>` : ""}
+        ${lay.kind === "fruit" ? `<span class="note">A fruit tree laden: ${def.image} with its fruit painted on at load (src/fruit-art.js). Tune the definition's fruit block below; the picture is the bare tree's.</span>` : ""}
         ${lay.kind === "drawings" ? `<span class="note">A furniture sheet is packed from its drawings with slices and mirrors; edit its PNGs (${lay.paths.join(", ")}) in an image editor and save them over the files, then reload the game; its anchors are in the definition below.</span>` : ""}
         <button id="download">Download the sheet PNG</button>
       </div>
