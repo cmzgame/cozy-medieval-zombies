@@ -1331,6 +1331,34 @@ check("villagers: Talk is not answered while an immune villager cowers or runs",
   return "refused cowering and running, answered wary";
 });
 
+// Burn corpse's done line (docs/43 section 7; docs/bugs.md, fixed): the hours read from `work.burnCorpse.hours`, as the card reads them.
+check("burn corpse: the done line says the hours the data gives", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  const W = worldMod.world;
+  const WB = tuningMod.work.burnCorpse;
+  const h0 = WB.hours;
+  const said = [];
+  try {
+    for (const h of [h0, 2]) {
+      const z = gameMod.state.zombies.find((q) => !q.dead && !q.corpse);
+      assert(z, "none of the dead to lay down");
+      Object.assign(z, { dead: true, corpse: true, gx: me.gx + 1, gy: me.gy, cremate: false, burning: false });
+      me.hands.main = itemsMod.makeEntry(WB.flame, 1);
+      me.hands.off = itemsMod.makeEntry(WB.fuel, 1);
+      WB.hours = h;
+      const r = verbsMod.run("burncorpse", W, me, { ch: z });
+      const want = `The body catches. It will burn for about ${h === 1 ? "an hour" : `${h} hours`}, and nothing in it will be left.`;
+      assert(r.ok && r.message === want, `with ${h} hours: ${r.message || r.reason}`);
+      said.push(r.message);
+    }
+  } finally {
+    WB.hours = h0;
+  }
+  return said.join(" / ");
+});
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;

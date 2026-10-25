@@ -24,8 +24,6 @@
 
 - **`check("build")` fails 9 of 11 on `main`** (found reviewing #227, on `main` at `0e765f7`, fresh tab): "the player's own wall with a door removed is still the player's own" and "a new door built over a broken stamped one remembers the wall under it". Not a play bug found; 11 of 11 in my run after other checks in the same tab, so it may depend on what ran first.
 
-- **Burn corpse's done line types "about an hour"** (found syncing the wiki for #434, at `fa2997f`). `src/burn.js` (~141) says it whatever `work.burnCorpse.hours` is; the card (~113) reads the data.
-
 - **An infection caught from tainted water opens on Bitten, "The bite broke the skin."** (found syncing the wiki for #435, at `fa2997f`, *needs repro*). `src/moodles.js` (~26): the first stage's words assume a bite, and water gives no bite.
 
 ## Open: surprises for Michael to rule on
@@ -46,6 +44,8 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 ## Fixed
 
 (Move items here with the commit that fixed them.)
+
+- [x] **Burn corpse's done line typed "about an hour"** (found syncing the wiki for #434): `src/burn.js` said it whatever `work.burnCorpse.hours` was, while the card read the data. Fixed in the bugs batch (`primary/bugs-batch-1`): the verb's message reads `work.burnCorpse.hours` ("about an hour" at 1, "about 2 hours" at 2); the host's message sink carries it to the guest who burned the body, as before. `node tools/check.js` ("burn corpse") and `check("burn")` try it with the data's hours and with two.
 
 - [x] **Talk was answered while an immune villager cowered or ran** (found syncing the wiki for #434, 2026-10-25): `src/entities/villager.js` `startTalk` did not look at the cower or flee state, so a Talk to a fleeing villager whose dead one was beyond `talkDeadRadius` began a conversation and cut off the flight; `docs/43` section 7 says a poke or Talk is not answered then. Fixed in the bugs batch (`primary/bugs-batch-1`): `startTalk` refuses while the villager cowers or runs, as `pokeVillager` does; a wary one talks. It runs on the host, so a guest's Talk (the menu's label) is refused the same and no panel opens on its replica. `node tools/check.js` ("villagers: Talk") and `check("immune")` (Talk by the label while it cowers and while it runs, the dead one past `talkDeadRadius`) have rows for it.
 

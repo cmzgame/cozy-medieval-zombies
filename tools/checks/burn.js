@@ -289,6 +289,21 @@ export async function run(game) {
     row("a tinderbox used on a body burns it; refused with no log, twice, and on the living; the tinderbox's card says so", noFuel && body2.cremate && !twice.ok && twice.reason === "It is already burning." && !living.ok && /burn/i.test(tinderCard || ""), `with no log ${noFuel ? "refused" : "burned"}; then ${body2.cremate ? "burning" : "not"}; again "${twice.reason}"; the living "${living.reason}"; card: ${tinderCard}`);
     body2.burning = false; // put out by the check, so it is taken away below, not by the step
     body2.cremate = false;
+    // The done line reads the hours from the data, as the card does: tried with the data's own and with two hours set for the call.
+    const doneLine = (hours) => {
+      const body3 = corpseOf(p.gx + 1, p.gy - 1);
+      p.hands.off = G.items.makeEntry(WB.fuel, 1);
+      const h0 = WB.hours;
+      WB.hours = hours;
+      let res;
+      try { res = G.verbs.run("burncorpse", G.world, p, { character: body3.id }); } finally { WB.hours = h0; }
+      body3.burning = false; // put out by the check, as body2
+      body3.cremate = false;
+      return (res && (res.message || res.reason)) || "";
+    };
+    const own = doneLine(WB.hours);
+    const two = doneLine(2);
+    row("Burn corpse's done line says the hours the data gives, as its card does", own === `The body catches. It will burn for about ${WB.hours === 1 ? "an hour" : `${WB.hours} hours`}, and nothing in it will be left.` && two === "The body catches. It will burn for about 2 hours, and nothing in it will be left.", `${own} || with 2: ${two}`);
   } catch (e) {
     row("the check ran", false, String(e && e.stack || e));
   } finally {
