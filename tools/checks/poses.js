@@ -4,7 +4,8 @@
 // Items 1 and 2 so far: the held-out pose (`present`, the player's alone; a book in the main hand presents in
 // the idle and the walk; eating and drinking present for `presentTime`) and the halberd's thrust (`attack_alt`
 // from the `thrust` style, only on the sheet of a figure whose weapon's `alt` names it); and docs/43 section 7's wave (the player's alone, G
-// and /wave as the snapshot's key event, for `waveSeconds`, ended by walking) and cowering (a villager's alone). It pauses the loop,
+// and /wave as the snapshot's key event, for `waveSeconds`, ended by walking) and cowering (a villager's alone); and the off hand's
+// swing (#423: `attack_off`, the off arm swinging, on every player's sheet). It pauses the loop,
 // puts things in the player's hands, hides the title for the keys, and gives back what was there.
 
 export async function run(game) {
@@ -15,6 +16,7 @@ export async function run(game) {
   const p = G.player;
   const hands0 = { main: p.hands.main, off: p.hands.off };
   const hunger0 = p.hunger;
+  const stamina0 = p.stamina;
   const survival0 = G.rules.rules.survival;
   const assets = await import("/src/assets.js");
   const combat = await import("/src/combat.js");
@@ -103,7 +105,46 @@ export async function run(game) {
     const castAt = G.figure.poseAt("cast_staff");
     const bowAt = G.figure.poseAt("bow");
     row("the cast's pose follows the staff's hand, with its own rhythm", staffMain === "cast_staff" && bookMain === "cast_book" && bookAlone !== "cast_book" && bookAlone !== "cast_staff" && castAt[0] === 0.3 && castAt[1] === 0.7 && bowAt[0] === 0.35 && bowAt[1] === 0.8, `staff in the main hand ${staffMain}, book in the main hand ${bookMain}, the book alone ${bookAlone}; the cast at ${castAt.join(", ")}, the bow at ${bowAt.join(", ")}`);
-    // 9. The wave and the cowering (docs/43 section 7): the wave on the player's sheet alone, the cowering on a villager's alone, each from its style in the data.
+    // 9. The off hand's swing (#423): `attack_off` on the player's sheet alone, the sheet the same size with one weapon or
+    // two; the off arm swinging (its hand away from the idle's, the main swing's hand mirrored) and the main arm held; and
+    // the left button's second click, the off hand's turn, playing it to the end.
+    {
+      hold("sword");
+      const oneWidth = sheet().image ? sheet().image.width : 0;
+      p.hands.off = G.items.makeEntry("mace", 1);
+      step(2);
+      const twoWidth = sheet().image ? sheet().image.width : 0;
+      const ao = sheet().animations.attack_off;
+      const vAo = v ? !!assets.getSheet(v.sprite).animations.attack_off : false;
+      const zAo = z ? !!assets.getSheet(z.sprite).animations.attack_off : false;
+      row("the off hand's swing is on the player's sheet alone, the same size with one weapon or two", !!ao && ao.frames === 4 && !ao.loop && !vAo && !zAo && oneWidth > 0 && oneWidth === twoWidth, `${ao ? `${ao.frames} frames at ${ao.fps} fps, active ${ao.activeFrame}` : "none"}; a villager's ${vAo}, the dead's ${zAo}; ${oneWidth} px with a sword, ${twoWidth} px with a sword and a mace`);
+      const J = sheet().joints || {};
+      const idleJ = J.idle_s_0, offJ = J.attack_off_s_0, mainJ = J.attack_s_0;
+      const ok = !!idleJ && !!offJ && !!mainJ;
+      const offMoved = ok ? Math.hypot(offJ.off.x - idleJ.off.x, offJ.off.y - idleJ.off.y) : 0;
+      const mainMoved = ok ? Math.hypot(offJ.main.x - idleJ.main.x, offJ.main.y - idleJ.main.y) : 99;
+      const mirrored = ok && Math.abs(offJ.off.x + mainJ.main.x) <= 1 && Math.abs(offJ.off.y - mainJ.main.y) <= 1;
+      const held = G.figure.pose("player", "attack_off", 1, { main: true, off: true }, "one_handed");
+      const swing = G.figure.pose("player", "attack", 1, { main: true, off: true }, "one_handed");
+      row("the off hand's swing moves the off arm, mirroring the main's, and holds the main arm", ok && offMoved >= 10 && mainMoved <= 2 && mirrored && held.armPitch[0] === swing.armPitch[1] && held.armPitch[1] === swing.armPitch[0], ok ? `facing s, the wind-up: the off hand ${offMoved.toFixed(1)} px from the idle's (${offJ.off.x}, ${offJ.off.y}), the main swing's main hand (${mainJ.main.x}, ${mainJ.main.y}); the main hand ${mainMoved.toFixed(1)} px; frame 1's arms ${held.armPitch.join(", ")} against the main swing's ${swing.armPitch.join(", ")}` : "no joints for idle_s_0, attack_s_0, or attack_off_s_0");
+      p.attackCooldown = 0;
+      p.offCooldown = 0;
+      p.swingLock = 0;
+      p.shoveCooldown = 0;
+      p.stamina = 100;
+      const first = combat.swingFromLeft(p, []);
+      const firstAnim = p.anim.name;
+      step(Math.ceil(0.5 * combat.DUAL.lockout * 60) + 1); // past the lockout, the main hand still recovering
+      const second = combat.swingFromLeft(p, []);
+      const offRun = [p.anim.name, ...step(40)];
+      row("the left button's second click swings the off hand and plays attack_off to the end", first !== null && second !== null && p.lastHand === "off" && firstAnim === "attack" && count(offRun, "attack_off") >= 18 && offRun[offRun.length - 1] === "idle", `the first click ${first !== null ? firstAnim : "refused"}, the second ${second !== null ? `the ${p.lastHand} hand` : "refused"}; attack_off ${count(offRun, "attack_off")} steps, then ${offRun[offRun.length - 1]}`);
+      p.hands.off = null;
+      p.attackCooldown = 0;
+      p.offCooldown = 0;
+      p.swingLock = 0;
+      p.exposedFor = 0;
+    }
+    // 10. The wave and the cowering (docs/43 section 7): the wave on the player's sheet alone, the cowering on a villager's alone, each from its style in the data.
     hold(null);
     const wv = sheet().animations.wave;
     const vSheet = v ? assets.getSheet(v.sprite).animations : {};
@@ -146,6 +187,7 @@ export async function run(game) {
     p.hands.main = hands0.main;
     p.hands.off = hands0.off;
     p.hunger = hunger0;
+    p.stamina = stamina0;
     G.rules.rules.survival = survival0;
     p.presentFor = 0;
     G.loop.advance(1 / 60);

@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Ore, stone, clay, herbs, and mushrooms come back at random spots within their areas, keeping a steady count; rocks and ore rise from the ground, herbs and mushrooms appear; no herb patches; trees from saplings, sticks under trees, fish never run out (2026-10-25, Natural resources ruled)
 - Animals: seven kinds; game mostly in the woods but free to roam, back slowly to a cap; livestock from the farms, led home, penned in a fenced yard; safe from the dead; fed animals produce; generous feathers; raw meat in recipes; the companion in 1.0, last (2026-10-25, Animals ruled)
 - No fixed water source is clean; boiling at a lit fire by Use or either menu; the starting skin clean; the sickness a debuff, Sick (the infection's third stage renamed Queasy), 20% a tainted drink, 1% of the infection (2026-10-25, Water ruled)
 - The basic lore (#217) is in the Valley's scope, paired with the map redraw (#92) and taken first (2026-10-25, The basic lore is part of the Valley's scope)
@@ -171,7 +172,8 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The character screen is the identity; the dead tones allowed; bald first; facial hair after 1.0 (the wizard's beard open, 2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break); no body shapes (2026-10-13, The character screen is the identity)
 - The trees' tiers are remapped and drawn bigger, giants one in five; half the debris; a thinner forest (2026-10-11, The trees' tiers are remapped and drawn bigger; 2026-10-11, Half the debris; 2026-10-11, Fewer mushrooms, sticks under trees)
 - The one-handed swing is a high-to-fall slash, never behind the back; a pose has a wrist (2026-10-13, The one-handed swing is a high-to-fall slash; 2026-10-13, A swing has a wrist)
-- Better animations are poses as data on the final rig, not more frames; no dual-wield poses (2026-10-13, Better animations, scoped)
+- Better animations are poses as data on the final rig, not more frames; no dual-wield pose but the off hand's swing (2026-10-13, Better animations, scoped; 2026-10-25, The off hand's swing moves the off arm)
+- The off hand's swing moves the off arm: the main swing's pose mirrored, not a pose set of its own (2026-10-25, The off hand's swing moves the off arm)
 - Elbows on the rig, never knees, held straight until a pose uses them; no art redrawn (2026-10-15, Elbows on the rig, held straight)
 - A bow's limbs are upright on screen whatever way it points; a staff is held like a vertical pole (2026-10-14, The bow held upright, both hands on it; 2026-10-15, The bowstring to the chin and the cast's pose)
 
@@ -289,6 +291,26 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-25 — The off hand's swing moves the off arm (Michael's playtest; #423)
+
+Michael, playing: "For some reason the second arm still never moves during dual wielding, nor does it have a sound. Hopefully this is simple, the animation and sound are the same for each in theory." So the off hand's swing is the main hand's swing mirrored onto the other arm, the main arm holding what it holds; this overturns, in that one part, 2026-10-13's "no dual-wield poses at all" (Better animations, scoped), struck there. The rest of that ruling stands: no other dual-wield pose (a stance, a cross-guard). Built as `attack_off` on every player's sheet (`docs/21`, Dual wielding).
+
+Docs: 21, bugs.
+
+### 2026-10-25 — Natural resources ruled: random spawns within defined areas, a steady count, rocks rising from the ground, no herb patches, trees from saplings (Michael; #288)
+
+The seventh sitting of the Valley scope's defaults pass. Michael reshaped Primary's spawn rules and adopted the rest; the spec is `docs/46`. The rulings:
+
+- **One comeback rule for ore, stone, clay, herbs, and mushrooms:** "I want them to be random spawns but within defined areas. Stone everywhere, ore in certain areas, clay by the river, herbs all over in the ground. All the same in that once exhausted, a replacement will spawn somewhere eventually so unless you go on a resource binge all day the amount in the valley should stay roughly the same." Ore no longer comes back in place.
+- **No herb patches:** "they are like weeds that grow randomly."
+- **Appearing:** "As far as things popping into existence, that was mostly a zombie rule so they don't bum rush you unfairly. For rocks and ore, do the frozen zombie plan for that region - they pop up out of the ground with an animation. Mushrooms and herbs can definitely just appear." *Primary's reading:* a rock or ore rock grows up out of the earth over a second or so, in view or not.
+- **Why:** "the main point I think is to make exploration more or less required for getting these types of resources vs. farming and animal keeping where you can put it in a defined spot."
+- **Adopted from Primary's draft:** trees never regrow where felled (saplings at Woodcutting 4, planted, growing in about five game days); sticks gathered under a standing tree once a day ("Sticks under trees is great"); fish never run out ("Fish never run out is great"); a new node only on natural ground, never in a room, a fenced yard, a built floor, tilled soil, or under a prop.
+
+It overturns the ore rock's comeback in place (2026-10-18, Mining, struck there) and narrows `src/CLAUDE.md`'s "nothing materialises in view" to everything but a resource's comeback.
+
+Docs: 46 (new), 39, 42, 43, 05, README, `src/CLAUDE.md`.
 
 ### 2026-10-25 — Animals ruled: game mostly in the woods but free to roam, livestock from the farms, safe pens, generous feathers, raw meat in recipes, the companion last (Michael; #289)
 
@@ -956,7 +978,7 @@ Michael's notes after a play and a night's thinking, with Primary in chat:
 
 ### 2026-10-18 — Mining, the quarry, the iron workings, and charcoal (#196, #197; Primary's defaults and the builder's readings, Michael's to overrule)
 
-**Mining, the quarry, and the iron workings** (#196; `docs/30` section 10, `docs/29-world/06`; Primary's defaults, Michael's to overrule): a pickaxe in a hand mines a rock for three stone and the rock goes for good; **an ore rock gives two iron ore and stands spent for three clock days, then comes back (the same mechanism as a picked apple tree), so iron never runs out** while common rocks may go for good, the forest being large. **No chicken and egg:** the iron workings' miners' hut holds a pickaxe and a crate of ore, the quarryman's a pickaxe and a hammer, **the smithy's own chest the first iron (three bars and a sack of charcoal for its fire, #197)**. The two places are in the east woods and the north-east; their cliffs are `wall_stone` (a `fence` feature may now run on some sides only), the mine mouth, spoil heaps, winch, crane, cut stone, ore cart, and ore rocks dev boxes until drawn; ten of the dead are about them. Counts, seconds, and days are data in the rock definitions (`mine`).
+**Mining, the quarry, and the iron workings** (#196; `docs/30` section 10, `docs/29-world/06`; Primary's defaults, Michael's to overrule): a pickaxe in a hand mines a rock for three stone and the rock goes for good; ~~**an ore rock gives two iron ore and stands spent for three clock days, then comes back (the same mechanism as a picked apple tree), so iron never runs out** while common rocks may go for good, the forest being large.~~ (Overturned 2026-10-25, Natural resources ruled: a mined rock or ore rock is gone, and a new one rises elsewhere in its area, the count kept.) **No chicken and egg:** the iron workings' miners' hut holds a pickaxe and a crate of ore, the quarryman's a pickaxe and a hammer, **the smithy's own chest the first iron (three bars and a sack of charcoal for its fire, #197)**. The two places are in the east woods and the north-east; their cliffs are `wall_stone` (a `fence` feature may now run on some sides only), the mine mouth, spoil heaps, winch, crane, cut stone, ore cart, and ore rocks dev boxes until drawn; ten of the dead are about them. Counts, seconds, and days are data in the rock definitions (`mine`).
 
 **Charcoal: the clamp, the burners, and a clamp in the smithy's yard** (#197; Primary's defaults, Michael's to overrule): the charcoal clamp is a 2 by 2 station with a slow fire of its own (one log a game day, almost no light) and one recipe, **four logs to three charcoal over half a game day** with the fire lit (a log of fuel, a flame carried, #169's rule), so it is fed, lit, and left: the semi-idle rhythm. **One stands in the smithy's yard** (the clamp as a placed prop rather than a recipe), so the smith's loop needs no walk to the east woods; the burners' clearing south of the iron workings has three, sacks of charcoal, a hut with a chest of them, and three of the dead. No smoke is drawn on a clamp yet (`fire.js`'s smoke is the burning dead's).
 
@@ -1354,7 +1376,7 @@ Michael on the first swing pass, in the frames editor: the behind-the-back part 
 
 ### 2026-10-13 — Better animations, scoped (Michael): poses the game lacks as data on the final rig, not more frames
 
-Michael, after the summary: the idle and the walk are at the fidelity he wants; more frames are not the point, only for the really complex ones; what is missing is simple new poses, with the combat ones first. **The list, as `docs/32-better-animations.md`**, in order: a reliable held-out pose (the book, a torch held to something, drinking and eating); the halberd's two distinct attacks (its thrust with its own style); the cast for the staff and the book on the bow's draw mechanics, the staff held high and the book held out; the braced draw as its own animation with the draw thresholds as data beside the bow's speeds (Michael: "even sicker if it was tunable"); the spear's throw checked by eye; arrows that land upright some of the time, a steep arc planting with a tunable chance on the sim's generator; sleep lying on the bed; sit on chairs, benches, and pews; a better death for every model, the one item that earns frames, with the atlas measured; a quick pass on the walk's numbers; and, at the end, the arrow and the spear redrawn as dev art (done with the spec: a two-tone shaft, a tapered head over a socket, swept fletching and a nock, a lashing and a broad stone point on the spear; the sheets check re-baselined for `arrow` and `spear`). **No dual-wield poses at all.** The spec is written for implementation by another model so it needs no further talk if the multiplayer work takes this session.
+Michael, after the summary: the idle and the walk are at the fidelity he wants; more frames are not the point, only for the really complex ones; what is missing is simple new poses, with the combat ones first. **The list, as `docs/32-better-animations.md`**, in order: a reliable held-out pose (the book, a torch held to something, drinking and eating); the halberd's two distinct attacks (its thrust with its own style); the cast for the staff and the book on the bow's draw mechanics, the staff held high and the book held out; the braced draw as its own animation with the draw thresholds as data beside the bow's speeds (Michael: "even sicker if it was tunable"); the spear's throw checked by eye; arrows that land upright some of the time, a steep arc planting with a tunable chance on the sim's generator; sleep lying on the bed; sit on chairs, benches, and pews; a better death for every model, the one item that earns frames, with the atlas measured; a quick pass on the walk's numbers; and, at the end, the arrow and the spear redrawn as dev art (done with the spec: a two-tone shaft, a tapered head over a socket, swept fletching and a nock, a lashing and a broad stone point on the spear; the sheets check re-baselined for `arrow` and `spear`). ~~**No dual-wield poses at all.**~~ (Overturned in part 2026-10-25, The off hand's swing moves the off arm: the off hand's swing is the main swing mirrored; no other dual-wield pose.) The spec is written for implementation by another model so it needs no further talk if the multiplayer work takes this session.
 
 ### 2026-10-13 — On the wire the world never pauses (Michael: "never pausing is right and simplest. It's what Zomboid does"; `31/03`, `31/07` question 6 answered)
 

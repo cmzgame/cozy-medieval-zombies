@@ -163,6 +163,13 @@ export function styleFor(spec) {
   return spec.style && POSES[spec.style] ? spec.style : fallback;
 }
 
+// The style the off hand's swing (`attack_off`, #423) is drawn from: the spec's `offStyle` (the off weapon's), else the
+// one-handed swing.
+export function offStyleFor(spec) {
+  const st = spec.offStyle && POSES[spec.offStyle];
+  return st && st.frames && st.frames.length ? spec.offStyle : "one_handed";
+}
+
 // The animation table for a figure: the shared one, with the attack taking its
 // speed, active frame, and length from the style, so a style may be longer.
 export function animsFor(spec) {
@@ -182,7 +189,14 @@ export function animsFor(spec) {
   if (spec.noCarry) {
     const { carry_idle, carry_walk, present, shove, wave, ...rest } = out; // the held-out pose, the shove, and the wave are the player's alone too (docs/32; docs/41 step 2; docs/43 section 7)
     out = rest;
-  } else if (POSES.wave && POSES.wave.frames && POSES.wave.frames.length) out = { ...out, wave: { ...ANIMS.wave, fps: POSES.wave.fps ?? ANIMS.wave.fps, frames: POSES.wave.frames.length } };
+  } else {
+    if (POSES.wave && POSES.wave.frames && POSES.wave.frames.length) out = { ...out, wave: { ...ANIMS.wave, fps: POSES.wave.fps ?? ANIMS.wave.fps, frames: POSES.wave.frames.length } };
+    // The off hand's swing (#423): on every player's sheet, held two weapons or not, so taking up a second weapon never
+    // grows the sheet past its place in the atlas (as the thrust's reserve, 2026-10-14); its speed, active frame, and
+    // length from the off weapon's style, the arms swapped in pose().
+    const of = POSES[offStyleFor(spec)] || DEFAULT_POSES.one_handed;
+    if (of.frames && of.frames.length) out = { ...out, attack_off: { fps: of.fps ?? ANIMS.attack.fps, loop: false, frames: of.frames.length, activeFrame: of.activeFrame ?? ANIMS.attack.activeFrame } };
+  }
   // The cowering is a villager's alone (docs/43 section 7): a figure of the player's variant that carries nothing is a villager's.
   const cw = POSES.cower;
   if (spec.noCarry && spec.variant !== "zombie" && cw && cw.frames && cw.frames.length) out = { ...out, cower: { ...ANIMS.cower, fps: cw.fps ?? ANIMS.cower.fps, frames: cw.frames.length } };
@@ -318,6 +332,26 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
       }
       break;
     }
+    case "attack_off": {
+      // The off hand's swing (#423): the style's frames mirrored, the main arm's numbers on the off arm and the off arm's
+      // (a style that moves both) on the main; the main arm holds what it holds, as the off arm does in the main's swing.
+      const st = POSES[style || "one_handed"] || DEFAULT_POSES.one_handed;
+      const f = st.frames[i];
+      if (f) {
+        p.offOwn = true; // the off arm swings: holding does not override it
+        p.mainOwn = f.offPitch != null; // the style moves the other arm itself
+        p.armPitch = [f.pitch, f.offPitch ?? 0];
+        p.armOut = [f.out ?? p.armOut[0], f.offOut ?? p.armOut[1]];
+        p.lean = f.lean ?? 0;
+        p.bob = f.bob ?? 0;
+        p.wrist = f.wrist ?? 0;
+        p.heldTilt = [f.heldTilt ?? null, f.offHeldTilt ?? null];
+        p.heldOut = [f.heldOut ?? null, f.offHeldOut ?? null];
+        p.headD = f.headD ?? 0;
+        p.bend = [f.bend ?? 0, f.offBend ?? 0];
+      }
+      break;
+    }
     case "present":
       heldPoseArms(p, "present", false);
       p.headD = (POSES.present || DEFAULT_POSES.present).headD ?? 0;
@@ -350,18 +384,19 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
       break;
   }
   // Holding: the arm comes forward and stays there, except the main arm in
-  // the attack and both arms when carrying or dying.
+  // the attack, the off arm in the off hand's, and both arms when carrying or dying.
   const fixed = anim === "die" || anim.startsWith("carry");
   if (holding.off && !fixed && !p.offOwn) {
     p.armPitch[0] = HOLD_PITCH;
     p.armOut[0] = HOLD_OUT;
     p.bend[0] = 0;
   }
-  const swinging = anim === "attack" || anim === "attack_alt" || OWN_STYLE.has(anim); // the shove is both arms out whatever is held (docs/41, step 2); the reel too (#385); the wave's arm and the cowering's arms (docs/43 section 7)
+  const swinging = anim === "attack" || anim === "attack_alt" || OWN_STYLE.has(anim) || (anim === "attack_off" && p.mainOwn); // the shove is both arms out whatever is held (docs/41, step 2); the reel too (#385); the wave's arm and the cowering's arms (docs/43 section 7)
   if (holding.main && !fixed && !swinging && anim !== "present") {
     // A thing with a pose of its own (`held.pose`, a pose in the data: the book's "present", docs/32 item 1; the bow's
     // "bow_rest", 2026-10-14) holds the arms so in the idle and the walk; anything else is held forward at the hold's pitch.
-    if (holding.mainPose && (POSES[holding.mainPose] || DEFAULT_POSES[holding.mainPose])) heldPoseArms(p, holding.mainPose, true);
+    // In the off hand's swing the pose holds the main arm alone, the off arm being the swing's.
+    if (holding.mainPose && (POSES[holding.mainPose] || DEFAULT_POSES[holding.mainPose])) heldPoseArms(p, holding.mainPose, anim !== "attack_off");
     else {
       p.armPitch[1] = HOLD_PITCH;
       p.armOut[1] = HOLD_OUT;
