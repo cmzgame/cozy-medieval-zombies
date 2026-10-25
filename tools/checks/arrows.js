@@ -77,11 +77,15 @@ export async function run(game, opts = {}) {
           now.add(a.id);
           let rec = seen.get(a.id);
           if (!rec) {
-            // Its first step drawn: between steps it starts at the bow (alpha 0 is the step's start).
+            // Its first step drawn: between steps it starts at the bow (alpha 0 is the step's start), unless its first step carried it farther
+            // than interp's `feel.blendJump` from the bow (a launch inside a clock jump of bunched frames), which interp draws where it is, as a
+            // teleported body is (interp.isJump): then it is drawn at its own place.
+            const at = [a.gx, a.gy, a.z];
+            const jumped = interp.isJump(a.x0, a.y0, at[0], at[1]);
             interp.apply(0);
-            const atBow = Math.hypot(a.gx - a.x0, a.gy - a.y0) < 1e-9 && Math.abs(a.z - a.z0) < 1e-9;
+            const atBow = jumped ? Math.hypot(a.gx - at[0], a.gy - at[1]) < 1e-9 && Math.abs(a.z - at[2]) < 1e-9 : Math.hypot(a.gx - a.x0, a.gy - a.y0) < 1e-9 && Math.abs(a.z - a.z0) < 1e-9;
             interp.restore();
-            rec = { a, at: [], bowOk: atBow, before: typeof R0 !== "number" || a.born < R0 };
+            rec = { a, at: [], bowOk: atBow, jumped, before: typeof R0 !== "number" || a.born < R0 };
             seen.set(a.id, rec);
           }
           rec.at.push([s, a.gx, a.gy, a.t]);
@@ -140,7 +144,9 @@ export async function run(game, opts = {}) {
       const firstAdv = (r) => { const sN = r.at[0][0]; return typeof clocks[sN - 1] === "number" ? clocks[sN] - clocks[sN - 1] : STEP; };
       // A launch that reached me after the clock had passed it (the clock run on past a late frame) is drawn on the step it came, at its age then.
       const onTime = (r) => firstAge(r) <= Math.max(firstAdv(r), r.a.heardAge ?? 0) + 1e-6;
-      row("first drawn on the step its drawn time passes its launch (no older than the clock's advance that step, or than its age when a late launch came), and on that step drawn between steps from the bow itself (no first-frame stall)", fresh.length >= 3 && fresh.every((r) => onTime(r) && r.bowOk), `${fresh.length} loosed during the run (${flights.length - fresh.length} already in the air left out): first drawn ${fresh.map((r) => (Math.hypot(r.at[0][1] - r.a.x0, r.at[0][2] - r.a.y0) / (r.a.speed * STEP)).toFixed(2)).join(" ")} steps' flight out, its age in steps against the clock's advance and its age when heard ${fresh.map((r) => `${(firstAge(r) / STEP).toFixed(2)}/${(firstAdv(r) / STEP).toFixed(2)}/${((r.a.heardAge ?? 0) / STEP).toFixed(2)}`).join(" ")}; from the bow between steps ${fresh.filter((r) => r.bowOk).length} of ${fresh.length}`);
+      const lateOnes = fresh.filter((r) => !onTime(r)).map((r) => r.a.id);
+      const offBow = fresh.filter((r) => !r.bowOk).map((r) => r.a.id);
+      row("first drawn on the step its drawn time passes its launch (no older than the clock's advance that step, or than its age when a late launch came), and on that step drawn between steps from the bow itself, or at its place when that first step is a jump past feel.blendJump (no first-frame stall)", fresh.length >= 3 && !lateOnes.length && !offBow.length, `${fresh.length} loosed during the run (${flights.length - fresh.length} already in the air left out): first drawn ${fresh.map((r) => (Math.hypot(r.at[0][1] - r.a.x0, r.at[0][2] - r.a.y0) / (r.a.speed * STEP)).toFixed(2)).join(" ")} steps' flight out, its age in steps against the clock's advance and its age when heard ${fresh.map((r) => `${(firstAge(r) / STEP).toFixed(2)}/${(firstAdv(r) / STEP).toFixed(2)}/${((r.a.heardAge ?? 0) / STEP).toFixed(2)}`).join(" ")}; from the bow between steps ${fresh.filter((r) => r.bowOk && !r.jumped).length} of ${fresh.length}, ${fresh.filter((r) => r.jumped).length} a first step past blendJump (${fresh.filter((r) => r.jumped && r.bowOk).length} at its place); late ${lateOnes.join(",") || "none"}, off the bow ${offBow.join(",") || "none"}`);
       // Down at the host's end: a flight whose end came is gone once its drawn age reaches it, never drawn past it.
       const ended = flights.filter((r) => r.a.hostEnd != null);
       const past = ended.filter((r) => r.a.t >= Math.min(r.a.end, r.a.hostEnd) + 1e-6); // `t` is the age it was last drawn at
