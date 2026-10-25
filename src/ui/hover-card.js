@@ -55,6 +55,10 @@ function fill(card) {
 // The card sits down and to the right of the pointer, flipped up or left where that would leave the screen.
 function place() {
   if (!el || el.hidden) return;
+  // Measured at the top left first: placed near the right edge a card narrows to fit (and grows tall), so it would never be seen to need
+  // the flip and would run off the bottom (#437, found with check("hovercard")).
+  el.style.left = "0px";
+  el.style.top = "0px";
   const w = el.offsetWidth;
   const h = el.offsetHeight;
   const { uiW, uiH } = view.view;
