@@ -26,7 +26,7 @@ export const MOODLES = [
     stages: [
       { name: "Bitten", text: "The bite broke the skin. You feel fine. Watch it." },
       { name: "Fevered", text: "A chill and a headache. It is spreading." },
-      { name: "Sick", text: "Your hands shake. There is not much time." },
+      { name: "Queasy", text: "Your hands shake. There is not much time." }, // "Sick" until 2026-10-25: Sick is tainted water's debuff now (Michael: "Sick is natural, queasy is pre-zombie!"; docs/44)
       { name: "Turning", text: "It has taken hold. (Nothing happens yet: a marker.)" },
     ],
     stageOf: (player) => infectionStage(player),

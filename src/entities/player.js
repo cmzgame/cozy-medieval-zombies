@@ -13,6 +13,8 @@ import { rules } from "../rules.js";
 import { player as T } from "../tuning.js";
 import { tiredStage, hungerStage, thirstStage } from "../moodles.js";
 import { stacks as bleedStacks } from "../bleed.js";
+import * as sick from "../sick.js"; // tainted water's debuff (docs/44): tiredness faster, food heals less, and the one roll a tainted drink makes
+import { isTainted } from "../water.js"; // an entry not marked clean (docs/44)
 import * as verbs from "../verbs.js";
 import { setTimeScale, nextId } from "../world.js";
 import * as clock from "../clock.js";
@@ -60,12 +62,22 @@ export function createPlayer(gx, gy, { id = null } = {}) {
     flashBroken: false, // the flash is the red one of a broken guard
     offMemory: null, // what a two-hander pushed out of the off hand, to come back (inventory.js)
     bleed: null, // { stacks, left } while bleeding (bleed.js)
+    sick: null, // { stacks, left } while Sick from tainted water (sick.js; docs/44)
     infection: null, // { since } once infected (infection.js)
     draw: null, // { t, c, source }: a bow or a throw drawn (archery.js; docs/31/05 item 12: on the player, so two can draw)
     recover: 0, // seconds after a shot before the next draw
     aimOverride: null, // [gx, gy]: scripts and tests aim here instead of the cursor
     marker: null, // { from, full, land }: where the draw would land, for this player's own client
+    waveFor: 0, // seconds of the wave left (docs/43 section 7): set by the world's step from G or /wave (`wave`), a number in the light record, so every client draws it
   };
+}
+
+// The wave (docs/43 section 7): G or /wave, a key event in the player's snapshot performed by the world's step (interact.updateInteract), so a
+// guest's reaches the host as the host's own does. Not for the dead, a sleeper, or arms full of furniture. Returns whether it waves.
+export function wave(player) {
+  if (!player || player.dead || player.sleeping || player.carrying) return false;
+  player.waveFor = T.waveSeconds;
+  return true;
 }
 
 export function damagePlayer(player, amount) {
@@ -91,24 +103,28 @@ export function isWellFed(player) {
 
 // Eats one of `def`: food heals what it says on the tin, full or not, and hunger stops at the top (Michael, 2026-10-18, overturning
 // #186's "You are full."): the cost of a heal is the food, which the same supply must also spend on hunger. False only for the dead.
+// Sick, food heals `water.sickHealMult` of its number (docs/44: "slower to heal").
 export function eat(player, def) {
   if (player.dead || !(player.hp > 0)) return false; // the dead eat nothing
   player.presentFor = T.presentTime; // the held-out pose while it goes down (docs/32, item 1)
   player.hunger = Math.min(player.maxHunger, player.hunger + (def.hunger || 0));
   player.thirst = Math.min(player.maxThirst, player.thirst + (def.thirst || 0));
   const hp0 = player.hp;
-  player.hp = Math.min(player.maxHp, player.hp + (def.heal || 0));
+  player.hp = Math.min(player.maxHp, player.hp + (def.heal || 0) * sick.healMult(player));
   floaters.heal(player, player.hp - hp0); // the green number: what was gained (#294)
   return true;
 }
 
-// A sip from a waterskin entry: up to T.drinkSip of its fill.
+// A sip from a waterskin entry: up to T.drinkSip of its fill. Its water is tainted unless the entry is marked `clean` (docs/44): a tainted sip
+// always quenches and rolls what it may bring (sick.taintedDrink, the one roll a source's Drink makes too). On the authority only: every caller
+// is a menu entry, a belt key, or the auto-sip, each run by the host as the player who drank.
 export function drink(player, entry) {
   const amount = Math.min(entry.fill ?? 0, T.drinkSip, player.maxThirst - player.thirst + 1);
   if (amount <= 0) return false;
   player.presentFor = T.presentTime; // the held-out pose while it goes down (docs/32, item 1)
   entry.fill -= amount;
   player.thirst = Math.min(player.maxThirst, player.thirst + amount);
+  if (isTainted(entry)) sick.taintedDrink(player);
   return true;
 }
 
@@ -116,7 +132,8 @@ export function drink(player, entry) {
 // sip from any waterskin the player carries, belt or bag, the emptiest that has water first, so one skin is finished
 // before the next is started. Never mid-fight: not during a swing, a draw or a cast, a guard, sleep, or
 // another drink's held-out pose. The authority's step alone calls it (game.js), never a guest's prediction, so a
-// guest's sip is not taken twice. Returns the entry drunk from, or null.
+// guest's sip is not taken twice. It takes only clean water (2026-10-19, built with docs/44): a tainted skin is left for the player to choose. Returns
+// the entry drunk from, or null.
 export function autoDrink(player) {
   if (!rules.survival || player.dead || player.sleeping) return null;
   if (thirstStage(player) < T.autoDrinkStage) return null;
@@ -126,7 +143,7 @@ export function autoDrink(player) {
   const skins = [];
   for (const e of beltOf(player) || []) if (e && getItem(e.id).capacity) skins.push(e);
   skins.push(...waterContainers(bagOf(player)));
-  const wet = skins.filter((e) => (e.fill ?? 0) > 0).sort((p, q) => p.fill - q.fill);
+  const wet = skins.filter((e) => (e.fill ?? 0) > 0 && !isTainted(e)).sort((p, q) => p.fill - q.fill);
   for (const e of wet) if (drink(player, e)) return e;
   return null;
 }
@@ -146,7 +163,7 @@ function updateNeeds(player, dt) {
     player.hunger = Math.max(0, player.hunger - (T.hungerMax / T.hungerDrainSeconds) * dt);
     player.thirst = Math.max(0, player.thirst - (T.thirstMax / T.thirstDrainSeconds) * dt);
     if (player.sleeping) player.tired = Math.min(player.maxTired, player.tired + (T.tiredMax / T.sleepRestoreSeconds) * dt);
-    else player.tired = Math.max(0, player.tired - (T.tiredMax / T.tiredDrainSeconds) * dt);
+    else player.tired = Math.max(0, player.tired - (T.tiredMax / T.tiredDrainSeconds) * sick.tiredMult(player) * dt); // Sick, faster (docs/44)
     if (player.hunger <= 0) player.hp = Math.max(0, player.hp - T.starveDamage * dt);
     if (player.thirst <= 0) player.hp = Math.max(0, player.hp - T.dehydrateDamage * dt);
   }
@@ -392,6 +409,9 @@ export function updatePlayer(player, dt, snap = IDLE) {
   // The held-out pose (docs/32, item 1): eating, drinking, or a drink at water, for its time, standing; walking ends it.
   if (player.presentFor > 0) player.presentFor = walking ? 0 : Math.max(0, player.presentFor - dt);
   const presenting = player.presentFor > 0 && !player.carrying && !!(sheet && sheet.animations.present);
-  if (!oneShot || player.anim.done) playAnimation(player.anim, presenting ? "present" : (player.carrying ? "carry_" : "") + (walking ? "walk" : "idle"));
+  // The wave (docs/43 section 7): for its seconds, standing; walking ends it, as it ends the held-out pose; eating or drinking comes first.
+  if (player.waveFor > 0) player.waveFor = walking || player.carrying ? 0 : Math.max(0, player.waveFor - dt);
+  const waving = !presenting && player.waveFor > 0 && !!(sheet && sheet.animations.wave);
+  if (!oneShot || player.anim.done) playAnimation(player.anim, presenting ? "present" : waving ? "wave" : (player.carrying ? "carry_" : "") + (walking ? "walk" : "idle"));
   advanceAnimation(player.anim, sheet, dt);
 }

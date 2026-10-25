@@ -830,7 +830,7 @@ function openActionsMenu(m) {
   // A guest's choice goes to the host by its address and label (net.js, docs/31/05 item 10); the host walks
   // the guest's player there and performs it. Building stays this client's own until it is a command too.
   const guest = net.isGuest();
-  const entries = actions.map((a) => ({ label: a.label, enabled: a.enabled, onSelect: () => (guest && !a.local ? net.sendAct(a.target, a.label) : interact.runAction(S.player, a)) })); // a local action (Inspect) is this client's own
+  const entries = actions.map((a) => ({ label: a.label, enabled: a.enabled, card: a.card || null, onSelect: () => (guest && !a.local ? net.sendAct(a.target, a.label) : interact.runAction(S.player, a)) })); // a local action (Inspect) is this client's own
   // Build is in every menu, in case the key is forgotten (Michael, 2026-10-12).
   entries.push({ label: "Build", enabled: !S.player.carrying && !panel.isOpen(), onSelect: toggleBuild });
   const u = view.toUi(m.x, m.y);
@@ -959,6 +959,7 @@ function updateInventoryUi() {
   }
   if (openBag) {
     if (!canReach(S.player, openBag.tiles, openBag.closeDist || tuning.world.containerCloseDist)) openBag = null; // a station's output reaches as far as its panel; a wall between shuts it too (#208)
+    else if (openBag.corpse && openBag.corpse.cremate) openBag = null; // a body set alight (docs/43 section 7): its grid closes; a guest's is gone by its address (interact.containerAt)
   }
   if (openBag && openBag.corpse) corpseWatch = openBag.corpse;
   if (corpseWatch) {
@@ -1551,6 +1552,11 @@ async function boot() {
         onSay: (text) => {
           if (net.isGuest()) net.sendSay(text);
           else say(S.player, text);
+        },
+        // A line beginning with a slash: /wave waves (docs/43 section 7), a key event in my next snapshot as G is, so a guest's is the host's doing.
+        onCommand: (cmd) => {
+          if (/^wave$/i.test(cmd)) interact.queueWave();
+          else log.push(cmd ? `There is no /${cmd.split(/\s+/)[0]}. Try /wave.` : "Try /wave.", "info");
         },
       }); // before anything can show a message
       initNames();

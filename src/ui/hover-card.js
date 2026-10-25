@@ -2,7 +2,7 @@
 // rounded, item name and basic details"): one small dark card with a thin light border that follows the pointer, kept on screen, shown almost at once (`delayMs`), and replacing
 // the browser's slow title tooltip. This module is only the card: `show(key, build, clientX, clientY)` is called as the pointer moves over something, with a key that names what
 // it is over (the card is built again only when the key changes) and a function that builds { name, kind, state, lines, fine } (src/item-info.js says it for an item); `hide()`
-// when the pointer is over nothing. A line is a list of segments { t, k }: k "use" is the word Use in --gold, "word" another menu word in bold. Text is set with textContent,
+// when the pointer is over nothing. A line is a list of segments { t, k }: k "use" is the word Use in --gold, "word" another menu word in bold, "warn" a warning in --red (Burn corpse's, docs/43 section 7). Text is set with textContent,
 // never as HTML. Client-only: it reads what the replica already has, so a guest sees what the host sees. Its numbers are in data/tuning.json `hoverCard`.
 
 import * as view from "../view.js";

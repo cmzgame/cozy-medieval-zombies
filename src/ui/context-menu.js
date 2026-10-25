@@ -1,7 +1,9 @@
 // Copied from cozy-zombie-game src/ui/context-menu.js on 2026-10-10. Since: clamped to the UI layer's size
 // through view.js instead of 960 by 540, and an Escape that closed the menu is swallowed (docs/10, 2026-10-10).
-// Right-click context menu. Entries: [{ label, enabled, onSelect }].
+// Right-click context menu. Entries: [{ label, enabled, onSelect, card? }]: an entry with a `card` ({ name, kind, state, lines, fine }, as
+// item-info.js makes them) shows it in the hover card while the pointer is over the entry (Burn corpse's warning, docs/43 section 7).
 import * as view from "../view.js";
+import * as hoverCard from "./hover-card.js";
 
 let root = null;
 let open = false;
@@ -16,6 +18,12 @@ export function initContextMenu() {
 
   root.addEventListener("mousedown", (e) => e.stopPropagation());
   root.addEventListener("contextmenu", (e) => e.preventDefault());
+  root.addEventListener("mousemove", (e) => {
+    const el = e.target.closest(".menu-entry");
+    if (el && el._card) hoverCard.show(`menu:${el.textContent}`, () => el._card, e.clientX, e.clientY);
+    else hoverCard.hideIf("menu:");
+  });
+  root.addEventListener("mouseleave", () => hoverCard.hideIf("menu:"));
   root.addEventListener("click", (e) => {
     const el = e.target.closest(".menu-entry");
     if (!el || el.classList.contains("disabled")) return;
@@ -45,6 +53,7 @@ export function openContextMenu(x, y, entries, canvasW = view.view.uiW, canvasH 
     el.className = `menu-entry${en.enabled === false ? " disabled" : ""}`;
     el.textContent = en.label;
     el._onSelect = en.onSelect;
+    el._card = en.card || null;
     root.appendChild(el);
   }
   root.hidden = false;
@@ -59,6 +68,7 @@ export function openContextMenu(x, y, entries, canvasW = view.view.uiW, canvasH 
 export function closeContextMenu() {
   open = false;
   if (root) root.hidden = true;
+  hoverCard.hideIf("menu:");
 }
 
 export function isMenuOpen() {

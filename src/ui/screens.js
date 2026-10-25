@@ -53,7 +53,8 @@ const CONTROLS = [
   ]],
   ["Talking", [
     ["Enter", "Chat: type a line, Enter says it"],
-    ["/", "Chat: a command (nothing answers yet)"],
+    ["/", "Chat: a command (/wave waves)"],
+    ["G", "Wave, for everyone to see"],
   ]],
   ["Testing", [
     ["V", "Fog off"],

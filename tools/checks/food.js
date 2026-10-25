@@ -115,6 +115,63 @@ export async function run(game) {
         me.sleeping = sleeping0;
       }
     } else row("the player has a belt", false, "no belt");
+
+    // Water (docs/44): a tainted drink always quenches and makes the one roll (two of the generator's floats: Sick, then the infection), from a
+    // skin and from a source alike; a clean sip makes none; the auto-sip takes only clean water; Sick, food heals sickHealMult of its number.
+    {
+      const P = await import("/src/entities/player.js");
+      const rng = await import("/src/rng.js");
+      const W = G.tuning.water;
+      const keep = { sick: me.sick, infection: me.infection, rng: rng.getState(), presentFor: me.presentFor, fills: G.inventory.skinsOf(me).map((e) => [e, e.fill]) };
+      const used = (fn) => { const s0 = rng.getState(); fn(); const next = rng.float(); rng.setState(s0); const seq = [rng.float(), rng.float(), rng.float()]; rng.setState(s0); return seq.indexOf(next); };
+      try {
+        G.rules.rules.survival = true;
+        const tainted = G.items.makeEntry("waterskin", 1, { fill: 100 });
+        const clean = G.items.makeEntry("waterskin", 1, { fill: 100, clean: true });
+        G.inventory.stow(me, tainted);
+        G.inventory.stow(me, clean);
+        me.sick = null;
+        me.thirst = 10;
+        const n1 = used(() => G.interact.itemMenu(me, tainted, bag, null).find((m) => m.label.startsWith("Drink (tainted")).onSelect());
+        row("a tainted skin's Drink quenches and makes the one roll (two floats: Sick, the infection)", n1 === 2 && me.thirst > 10, `${n1} floats, thirst ${me.thirst.toFixed(1)}`);
+        me.sick = null;
+        me.thirst = 10;
+        const n2 = used(() => G.interact.itemMenu(me, clean, bag, null).find((m) => m.label === "Drink (100%)").onSelect());
+        row("a clean skin's Drink quenches and rolls nothing", n2 === 0 && me.thirst > 10, `${n2} floats`);
+        // The chance, through the module's own roll: a roll under sickChance makes you Sick, one over it does not; while Sick every tainted drink adds a stack.
+        const S = await import("/src/sick.js");
+        me.sick = null;
+        S.taintedDrink(me, W.sickChance + 0.001, 0.99);
+        const none = !me.sick;
+        S.taintedDrink(me, W.sickChance - 0.001, 0.99);
+        const one = me.sick && me.sick.stacks === 1;
+        S.taintedDrink(me, 0.99, 0.99);
+        row("Sick at its chance (20%), and a further tainted drink adds a stack", none && one && me.sick.stacks === 2 && Math.abs(W.sickChance - 0.2) < 1e-9, JSON.stringify(me.sick));
+        row("the infection at its chance (1%) from a tainted drink", Math.abs(W.infectionChance - 0.01) < 1e-9 && S.taintedDrink({ sick: null, infection: null }, 0.99, 0.0099).infected === true && S.taintedDrink({ sick: null, infection: null }, 0.99, 0.0101).infected === false, `infectionChance ${W.infectionChance}`);
+        // Sick, food heals a quarter less.
+        me.hp = 40;
+        const stew = G.items.makeEntry("stew", 1);
+        G.inventory.stow(me, stew);
+        G.interact.itemMenu(me, stew, bag, null).find((m) => m.label === "Eat").onSelect();
+        row("Sick, food heals sickHealMult of its number", Math.abs(me.hp - (40 + heal("stew") * W.sickHealMult)) < 1e-9, `health ${me.hp} (wanted ${40 + heal("stew") * W.sickHealMult})`);
+        me.sick = null;
+        // The auto-sip takes only clean water.
+        me.thirst = 20;
+        me.presentFor = 0;
+        for (const e of G.inventory.skinsOf(me)) if (e !== tainted) e.fill = 0;
+        tainted.fill = 100;
+        row("the auto-sip leaves a tainted skin alone", P.autoDrink(me) === null && tainted.fill === 100, `tainted fill ${tainted.fill}`);
+        clean.fill = 100;
+        const drank = P.autoDrink(me);
+        row("and sips from a clean one", drank === clean && clean.fill < 100, `drank ${drank ? (drank === clean ? "the clean skin" : drank.id) : "nothing"}`);
+      } finally {
+        me.sick = keep.sick;
+        me.infection = keep.infection;
+        me.presentFor = keep.presentFor;
+        for (const [e, f] of keep.fills) e.fill = f; // the kit's own skin, emptied for the auto-sip's rows
+        rng.setState(keep.rng);
+      }
+    }
   } finally {
     G.rules.rules.survival = state0.survival;
     me.hp = state0.hp;

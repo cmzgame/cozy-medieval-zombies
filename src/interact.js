@@ -25,7 +25,8 @@ import { getDef } from "./assets.js";
 import { canPutDown, putDownTarget, canCarry, propRect } from "./placement.js";
 import * as placement from "./placement.js";
 import * as grid from "./grid.js";
-import { autoWalk, eat, drink } from "./entities/player.js";
+import { autoWalk, eat, drink, wave } from "./entities/player.js";
+import * as burn from "./burn.js"; // Burn corpse (docs/43 section 7)
 import { showMessage } from "./ui/prompt.js";
 import { pokeVillager, startTalk, endTalk } from "./entities/villager.js";
 import { lootOf } from "./entities/character.js";
@@ -56,6 +57,8 @@ import * as setdown from "./setdown.js"; // an item set down as its prop, a brac
 import * as repair from "./repair.js"; // the grindstone sharpens, the anvil repairs, on one count per item (docs/43 section 6)
 import * as sawpit from "./sawpit.js"; // the sawpit saws a log into planks with no hatchet (docs/43 section 6)
 import * as hives from "./hives.js"; // the beehives give honey every few days (docs/43 section 6)
+import * as water from "./water.js"; // tainted and clean water, and the boil verb (docs/44)
+import { taintedDrink } from "./sick.js"; // a tainted drink's one roll, Sick and the infection (docs/44)
 
 export const INTERACT_RANGE = 1.15; // tiles
 export const SEARCH_TIME = 1.0;
@@ -165,6 +168,7 @@ export function containerAt(player, a) {
   }
   if (a.characterId) {
     const c = allCharacters().find((q) => q.id === a.characterId);
+    if (c && c.cremate) return null; // a body burning away (docs/43 section 7): nothing in it can be reached, and a panel open on it closes
     const bag = c ? lootOf(c) : null;
     return bag ? { bag, corpse: c, tiles: [[Math.round(c.gx), Math.round(c.gy)]] } : null;
   }
@@ -851,16 +855,15 @@ function treeActions(prop, player) {
   })];
 }
 
-// Unsafe water (Michael, 2026-10-19, #279): all natural water, water tiles and wells, is unsafe until purified, and a Drink from it says
-// "(tainted)", as Zomboid's does. `tuning.water.clean` names the sources that are safe (none yet); a skin's water is tainted unless its
-// entry is marked clean (nothing marks one yet).
-const cleanWater = (sprite) => (tuning.water?.clean || []).includes(sprite);
-const skinTainted = (entry) => !entry.clean;
-const drinkLabel = (entry, pct) => `Drink (${skinTainted(entry) ? "tainted, " : ""}${pct}%)`;
+// Unsafe water (Michael, 2026-10-19, #279; docs/44): all natural water, water tiles and wells, is tainted, and a Drink from it says "(tainted)", as
+// Zomboid's does. `tuning.water.clean` names the sources that are safe (none: no fixed source is clean, 2026-10-25); a skin's water is tainted unless
+// its entry is marked clean (the kit's skin, a boiled one; src/water.js).
+const drinkLabel = (entry, pct) => `Drink (${water.isTainted(entry) ? "tainted, " : ""}${pct}%)`;
 
 // Water to drink and fill from: the well (infinite, docs/02 question 16) and, since docs/30
 // law 8, any water tile beside you (the river, a pond, the mere). `source` is
-// { tiles, mx, my, name, onStart? }.
+// { tiles, mx, my, name, clean, onStart? }. A tainted Drink rolls what it may bring (sick.taintedDrink, the one roll a skin's Drink makes too), and
+// a Fill from a tainted source taints the whole skin (docs/44: mixing taints).
 function waterActions(source, player) {
   const toFill = () => skinsOf(player).filter((it) => (it.fill ?? 0) < 100); // the belt's skin too (#215)
   return [
@@ -877,6 +880,7 @@ function waterActions(source, player) {
       perform() {
         player.thirst = player.maxThirst;
         showMessage("You drink your fill.");
+        if (!source.clean) taintedDrink(player);
         return true;
       },
     }),
@@ -890,7 +894,10 @@ function waterActions(source, player) {
       enabled: toFill().length > 0,
       perform() {
         const list = toFill();
-        for (const it of list) it.fill = 100;
+        for (const it of list) {
+          water.mixInto(it, !!source.clean);
+          it.fill = 100;
+        }
         showMessage(list.length > 1 ? `Filled ${list.length} waterskins.` : "Filled your waterskin.");
         return list.length > 0;
       },
@@ -899,13 +906,13 @@ function waterActions(source, player) {
 }
 
 function wellActions(prop, player) {
-  return waterActions({ tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] - 0.6, name: prop.sprite.replace(/_/g, " "), clean: cleanWater(prop.sprite), onStart: () => play(prop) }, player); // the bucket goes down for the water; named for what it is (a trough, a font: the wiki census's bugs, 2026-10-15)
+  return waterActions({ tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] - 0.6, name: prop.sprite.replace(/_/g, " "), clean: water.cleanSource(prop.sprite), onStart: () => play(prop) }, player); // the bucket goes down for the water; named for what it is (a trough, a font: the wiki census's bugs, 2026-10-15)
 }
 
 // A water tile's actions, from its bank; with a fishing rod in hand, the cast. The wait is rolled as the cast starts (on the authority: a
 // guest's menu entry is its label and the water's address, `performByLabel`), and the bar shows it; walking away ends it.
 function waterTileActions(tx, ty, player) {
-  const out = waterActions({ tiles: [[tx, ty]], mx: tx, my: ty, name: "water" }, player);
+  const out = waterActions({ tiles: [[tx, ty]], mx: tx, my: ty, name: "water", clean: water.sourceCleanAt(tx, ty) }, player);
   if (fishing.rodIn(player)) {
     const cast = act({
       kind: "fish",
@@ -965,11 +972,37 @@ function propActions(prop, player) {
   if (prop.water) out.push(...wellActions(prop, player), ...bucket.tileActions(prop.tile[0], prop.tile[1], player, act, world));
   if (getDef(prop.sprite).sleep) out.push(...sleepAction(prop, player));
   if (stations.stationOf(prop).length) out.push(...stationActions(prop, player));
+  if (prop.fire && prop.fire.cooks && prop.fire.lit) out.push(boilAtFireAction(prop, player)); // Boil water at a lit cooking fire (docs/44)
   out.push(...repair.propActions(prop, player, act, world), ...sawpit.propActions(prop, player, act, world), ...hives.propActions(prop, player, act, world)); // docs/43 section 6: each is nothing on a prop that is not its own
   if (canCarry(prop)) out.push(carryAction(prop, player));
   if (getDef(prop.sprite).item) out.push(itemPickUpAction(prop, player)); // a torch post, a decoration: back into the bag as its item (docs/43, section 4)
   if (prop.made) out.push(takeApartAction(prop, player)); // only what a player made (docs/43, section 2)
   return out;
+}
+
+// Boil water at a lit cooking fire (docs/44 section 2): the fire's menu boils the fullest tainted skin carried, greyed with why when none is. The bar
+// is water.boilAction's, the same as the Use mode's and the skin's menu's; a guest's choice of the label does the same on the host.
+function boilAtFireAction(prop, player) {
+  const skin = water.taintedSkins(player)[0] || null;
+  if (!skin) return act({ kind: "boil", label: `Boil water (${water.NO_TAINTED.replace(/\.$/, "").toLowerCase()})`, tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] - 0.6, enabled: false });
+  return act(water.boilAction(player, skin.uid, prop));
+}
+
+// Boil water from a skin's own menu, in the bag or on the belt (docs/44 section 2): the nearest lit cooking fire in reach, greyed with why when there is
+// none; null for a skin with nothing to boil (empty or clean). It runs the verb with `timed`, which checks it and starts the bar.
+function boilSkinEntry(player, entry) {
+  if (!water.boilable(entry)) return null;
+  const fire = water.litFireNear(player);
+  return {
+    label: fire ? "Boil water" : `Boil water (${water.NO_FIRE.replace(/\.$/, "").toLowerCase()})`,
+    enabled: !!fire,
+    onSelect: () => {
+      const f = water.litFireNear(player);
+      if (!f) { showMessage(water.NO_FIRE); return; }
+      const r = verbs.run("boil", world, player, { prop: f.id, entry: entry.uid }, { timed: true });
+      if (!r.ok) showMessage(r.reason || "Nothing happens.");
+    },
+  };
 }
 
 // Pick up a prop that names its item (setdown.js): greyed with why while it cannot come up (a torch on the post, the village's own).
@@ -1340,12 +1373,21 @@ export function beltEvents() {
   return ev;
 }
 
+// The wave (docs/43 section 7): G, or /wave typed in the chat (main.js calls `queueWave`), is a key event `wave` in this client's next snapshot.
+// The queue is this client's input, as the key trackers are, never world state.
+let waveQueued = false;
+export function queueWave() {
+  waveQueued = true;
+}
+
 export function keyEvents(dt) {
   const ev = {};
   track(keyE, dt, null, () => { ev.eTap = true; }); // no hold of E: a long press is a tap on its release
   track(keyB, dt, () => { ev.bHold = true; }, () => { ev.bTap = true; });
   if (input.wasPressed("KeyE")) ev.ePressed = true;
   if (input.wasPressed("KeyT")) ev.t = true;
+  if (input.wasPressed("KeyG") || waveQueued) ev.wave = true;
+  waveQueued = false;
   return Object.keys(ev).length ? ev : null;
 }
 
@@ -1357,6 +1399,7 @@ export function updateInteract(player, dt, keys) {
   // The belt (docs/11; the belt as utility slots, Michael 2026-10-10 late): a consumable on the slot is used; anything
   // else swaps with its hand. Moved from main.js into the world's step (item 4), so a guest's press reaches its body.
   for (let i = 0; i < 4; i++) if (keys[`belt${i + 1}`]) beltPress(player, i);
+  if (keys.wave && !wave(player) && player.carrying) showMessage("Your arms are full."); // the wave (docs/43 section 7): played for its seconds, a field of the light record
   if (player.carrying) {
     // Only E, and only to put it down.
     if (keys.ePressed) {
@@ -1488,6 +1531,8 @@ export function itemMenu(player, entry, bag, otherBag) {
   if (def.capacity) {
     const pct = Math.round(entry.fill ?? 0);
     out.push({ label: drinkLabel(entry, pct), enabled: pct > 0, onSelect: () => drink(player, entry) });
+    const boil = mine ? boilSkinEntry(player, entry) : null; // a skin of yours, not one in a chest
+    if (boil) out.push(boil);
   }
   if (def.splitsInto && mine) {
     const s = def.splitsInto;
@@ -1573,6 +1618,8 @@ export function slotMenu(player, slotId) {
     } else if (bdef.capacity) {
       const pct = Math.round(entry.fill ?? 0);
       out.push({ label: drinkLabel(entry, pct), enabled: pct > 0, onSelect: () => drink(player, entry) });
+      const boil = boilSkinEntry(player, entry);
+      if (boil) out.push(boil);
     } else out.push({ label: "Equip", enabled: true, onSelect: () => equipFrom(player, entry) });
     out.push({
       label: "Put in bag",
@@ -1794,6 +1841,7 @@ export function clickCharacterAt(sx, sy, player) {
 // moment and rolls its pockets; after that it just opens. The grid is the body's.
 function searchBodyAction(c) {
   const tiles = [[Math.round(c.gx), Math.round(c.gy)]];
+  if (c.cremate) return act({ kind: "container", simple: false, label: `${c.searched ? "Open" : "Search"} body (it is burning)`, tiles, mx: c.gx, my: c.gy, enabled: false, perform: () => false }); // burning away (docs/43 section 7)
   return act({
     kind: "container",
     simple: true,
@@ -1803,6 +1851,7 @@ function searchBodyAction(c) {
     my: c.gy,
     duration: c.searched ? 0 : SEARCH_TIME,
     perform() {
+      if (c.cremate) return false; // set alight while the bar ran
       const bag = lootOf(c);
       c.searched = true;
       emit("containerOpened", { bag, tiles, name: "body", corpse: c, character: c });
@@ -1814,9 +1863,32 @@ function searchBodyAction(c) {
 // What a right-click on a character offers, by kind. Everyone, the player
 // included, can be set on fire and put out: a visual test with no effect
 // (fire.js, docs/05 "Burning"), from anywhere on screen.
+// Burn corpse (docs/43 section 7): on every body of the dead, greyed with what is lacking (a tinderbox and a log), or while it already burns;
+// a timed action that runs the `burncorpse` verb by the body's id, so a guest's choice of the label is the host's doing. Its card warns in red.
+function burnCorpseAction(c, player) {
+  const need = burn.burnNeed(player);
+  const burning = !!(c.cremate || c.burning);
+  const label = burning ? "Burn corpse (already burning)" : need ? `Burn corpse (need ${need})` : "Burn corpse";
+  return act({
+    kind: "burncorpse",
+    label,
+    tiles: [[Math.round(c.gx), Math.round(c.gy)]],
+    range: CLICK_REACH,
+    mx: c.gx,
+    my: c.gy,
+    enabled: !burning && !need,
+    duration: tuning.work.burnCorpse.seconds,
+    card: burn.burnCard(player),
+    perform() {
+      return runVerb("burncorpse", player, { character: c.id });
+    },
+  });
+}
+
 function characterActions(c, player) {
   const out = [];
   if ((c.kind === "zombie" || c.kind === "player") && c.dead && c.corpse) out.push(searchBodyAction(c)); // a player's body too (2026-10-14)
+  if (burn.isBurnableBody(c)) out.push(burnCorpseAction(c, player)); // the dead's bodies; a player's is left for its friends (docs/43 section 7)
   if (c.kind === "villager") {
     // Talk (docs/34): a simple action, so E does it when the villager is the nearest thing within reach (the prompt names it, and a door nearer wins);
     // it runs on the host as the talking player, who is told to open the panel (`talkStarted`).

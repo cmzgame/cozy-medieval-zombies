@@ -17,6 +17,7 @@ import { beltOf, carriedEntry as carried, flameOf, countAll, takeAll } from "./i
 import { getItem } from "./items.js";
 import { burnZombie } from "./entities/zombie.js";
 import { reachProblem } from "./reach.js"; // one reach test, distance and a clear line (#208)
+import { work as WK } from "./tuning.js"; // Burn corpse's flame, fuel, and hours (docs/43 section 7)
 
 export const BURN = { dps: 0.8, duration: 10, cap: 10 };
 
@@ -51,6 +52,95 @@ export function update(characters, dt) {
     burnZombie(c, share);
   }
 }
+
+// ---- Burn corpse (docs/43 section 7; Michael, 2026-10-25) ----
+// A body of the dead set alight on purpose, with a flame carried (a tinderbox, `work.burnCorpse.flame`) and one log spent (`fuel`): it burns
+// `hours` game hours (map.HOUR_SECONDS each), giving light as any burning body does (fire.js), and then it and everything in it are gone, its
+// worn, its hands, its pockets, its grid, what lodged in it. The mark is `cremate` on the corpse (saved; in the slim record, so a guest's menu
+// greys the search; in the sync check's `dead` part); the burn is its `burning` and `burnLeft`, run down by `update` like any burn; the body
+// leaves the corpses when it goes out (game.js, `burnedAway`), and the corpses' roster in the next frame takes it from every guest.
+
+const BODY_REACH = 2.6; // tiles, the click's reach (interact.CLICK_REACH), as a fire's
+let findCharacter = () => null; // game.js hands in the lookup by id across the world's lists (as interact's characters are)
+export function setCharacters(fn) {
+  findCharacter = fn;
+}
+
+const article = (name) => (/^[aeiou]/i.test(name) ? `an ${name}` : `a ${name}`);
+const itemName = (id) => getItem(id).name.toLowerCase();
+
+// Is this a body that Burn corpse is for: one of the dead's, fallen and lying (a player's body is a friend's to come back for; never offered).
+export function isBurnableBody(c) {
+  return !!c && c.kind === "zombie" && c.dead && c.corpse;
+}
+
+// What a player lacks to burn a body, as the menu's reason, or null: a tinderbox and a log, carried anywhere on them.
+export function burnNeed(player) {
+  const flame = countAll(player, WK.burnCorpse.flame) > 0;
+  const fuel = countAll(player, WK.burnCorpse.fuel) > 0;
+  if (flame && fuel) return null;
+  const want = [];
+  if (!flame) want.push(article(itemName(WK.burnCorpse.flame)));
+  if (!fuel) want.push(article(itemName(WK.burnCorpse.fuel)));
+  return want.join(" and ");
+}
+
+// Set a body alight to burn away. Returns whether it is burning now.
+export function burnCorpse(c) {
+  if (!isBurnableBody(c) || c.cremate) return false;
+  c.cremate = true;
+  c.burning = true;
+  c.burnTaken = 0;
+  c.burnLeft = WK.burnCorpse.hours * map.HOUR_SECONDS;
+  return true;
+}
+
+// A body burnt to nothing: its fire set by Burn corpse has gone out. The step takes it from the corpses (game.js).
+export function burnedAway(c) {
+  return !!c && !!c.cremate && !c.burning;
+}
+
+// What the menu entry's hover card says (pure, read from the data): the warning in red, what it needs, and what it does.
+export function burnCard(player = null) {
+  const need = player ? burnNeed(player) : null;
+  return {
+    name: "Burn corpse",
+    kind: "Action",
+    state: need ? `needs ${need}` : "",
+    lines: [
+      [{ t: "Burns the body and everything in it.", k: "warn" }],
+      [{ t: `Needs ${article(itemName(WK.burnCorpse.flame))} and ${article(itemName(WK.burnCorpse.fuel))} carried; the ${itemName(WK.burnCorpse.fuel)} is spent.` }],
+      [{ t: `It burns about ${WK.burnCorpse.hours === 1 ? "a game hour" : `${WK.burnCorpse.hours} game hours`}, giving light.` }],
+    ],
+    fine: [],
+  };
+}
+
+// The target: a character by id (a menu's address, a script's), or the character itself (a Use on the host, `{ kind: "character", ch }`).
+function bodyOf(target) {
+  if (!target) return null;
+  if (target.ch) return target.ch;
+  const id = typeof target.character === "string" ? target.character : typeof target.id === "string" ? target.id : null;
+  return id ? findCharacter(id) : null;
+}
+
+verbs.define("burncorpse", {
+  validate(world, player, target) {
+    const c = bodyOf(target);
+    if (!isBurnableBody(c)) return c && c.kind === "zombie" && !c.dead ? "It is not dead yet." : "There is no body there to burn.";
+    if (c.cremate || c.burning) return "It is already burning.";
+    { const why = reachProblem(player, [[Math.round(c.gx), Math.round(c.gy)]], BODY_REACH); if (why) return why === "Too far away." ? "Too far from the body." : why; }
+    const need = burnNeed(player);
+    if (need) return `You need ${need} to burn it.`;
+    return true;
+  },
+  perform(world, player, target) {
+    const c = bodyOf(target);
+    if (takeAll(player, WK.burnCorpse.fuel, 1) < 1) return false;
+    if (!burnCorpse(c)) return false;
+    return { ok: true, message: "The body catches. It will burn for about an hour, and nothing in it will be left." };
+  },
+});
 
 // ---- fire arrows: arrows used on a lit fire (data/interactions.json, the `dip` verb) ----
 

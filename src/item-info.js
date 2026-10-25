@@ -12,6 +12,7 @@ import * as farming from "./farming.js";
 import { buildKinds } from "./placement.js";
 import { isWoodWall } from "./woods.js";
 import * as dye from "./dye.js";
+import { holdsWater, isTainted } from "./water.js"; // clean or tainted (docs/44)
 
 const KIND = { food: "Food", tool: "Tool", material: "Material", clothing: "Clothing", bag: "Bag", ammo: "Ammunition", medicine: "Medicine", drink: "Drink", decor: "Decor" };
 const MAX_LINES = 8; // a small card: the name and the basics, not a page
@@ -28,6 +29,7 @@ function nameOfOn(on) {
   if (on === "bracket") return "wall bracket";
   if (on === "character") return "person";
   if (on === "zombie") return "the dead";
+  if (on === "corpse") return "a body of the dead";
   if (on === "tile") return "the ground";
   if (WORDS[on]) return WORDS[on];
   return on.replace(/^floor_/, "").replace(/_y$/, "").replace(/_/g, " ");
@@ -92,6 +94,8 @@ export function cardFor(entry) {
     lines.push(line(seg("Eat", "word"), `: ${bits.join(", ") || "a bite"}.`));
   }
   if (def.capacity) lines.push(line(seg("Drink", "word"), `: ${Math.round(entry.fill ?? 0)}% full; fill it at water.`));
+  // Which water it holds (docs/44 section 3): the item's name never changes, the card says it, and a brown drop marks a tainted one's icon (inventory-panel.js).
+  if (holdsWater(entry)) lines.push(line(!isTainted(entry) ? "Clean water." : def.capacity ? "Tainted water: drinking it may make you Sick." : "Tainted water."));
   if (def.bandage) lines.push(line(seg("Apply", "word"), ": closes a bleeding wound."));
   if (def.weapon) {
     const w = def.weapon;

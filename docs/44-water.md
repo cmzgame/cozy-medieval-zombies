@@ -1,8 +1,20 @@
 # 44 — Water: tainted and clean, boiling, and being Sick
 
-**Status, 2026-10-25: a spec, ruled by Michael in session (`02`, 2026-10-25, Water ruled; #279, building on 2026-10-19's unsafe water). Not built; the build is #418.** Written from `origin/main` at 31d330a. One build step. A **default** is Primary's, Michael's to overrule; the rest is his ruling. Skill gates are open to all until the skills are built.
+**Status, 2026-10-25: a spec, ruled by Michael in session (`02`, 2026-10-25, Water ruled; #279, building on 2026-10-19's unsafe water). Built (#418): the whole of it, in one step.** Written from `origin/main` at 31d330a. A **default** is Primary's, Michael's to overrule; the rest is his ruling. Skill gates are open to all until the skills are built.
 
-**Built already:** a natural source's Drink and a skin's Drink say "(tainted)" (`src/interact.js` `drinkLabel`, `cleanWater`); `data/tuning.json` `water.clean` lists the clean sources (none); a skin's water is tainted unless its entry is marked `clean`.
+**Where it lives:** `src/water.js` (clean and tainted, mixing, the `boil` verb and its bar), `src/sick.js` (the debuff and `taintedDrink`, the one roll), `src/debuffs.js` and `src/ui/debuff-icons.js` (Sick's row and icon), `src/moodles.js` (Queasy), the numbers in `data/tuning.json` `water`; the proofs are `node tools/check.js` ("water") and `check("boil")`, `check("food")`, `check("debuffs")`, `check("kit")`.
+
+**The builder's readings** (Michael's to overrule):
+- **A tainted drink while Sick always adds a stack**, with no roll: the 20% is for becoming Sick; once Sick, each tainted drink adds a stack and its half day, the time capped at three stacks' (a game day and a half), so a drink at three stacks tops the time up to the cap.
+- **Both rolls every tainted drink**, Sick's and the infection's, two floats of `rng` whatever they bring, so the generator's use never depends on the outcome; a clean sip rolls nothing. With Survival off a tainted drink still rolls.
+- **"Food heals 25% less"** is eating's heal (an item's `heal`), not natural regeneration; **"tiredness 50% faster"** is the awake drain, not sleep's restoring.
+- **A lit cooking fire** is any prop whose fire `cooks` and is lit: the fireplace, the hearth, the campfire, and the oven too. A Use on a fire that does not cook (the forge, a clamp) is refused: "That is no cooking fire."
+- **"In reach"** is `water.boilReach`, 2.6 tiles with a clear line (the click's reach, a station's); the bar's range is the same, so the fire's menu walks the player to within it, and walking away or a wall cancels the bar as any timed action's.
+- **The skin's menu** offers Boil water only on a tainted skin that holds water (nothing on a clean or an empty one), in your own bag and on the belt; a skin in a hand has only its hand's menu. **The fire's menu** offers it only on a lit cooking fire; an unlit one offers nothing. The greyed labels: "Boil water (no lit fire in reach)", "Boil water (no tainted water carried)".
+- **The card** says "Clean water." or "Tainted water: drinking it may make you Sick." on a skin holding water, and a bucket's "Clean water." or "Tainted water." (it is never drunk); nothing on an empty one. **The drop** is a small brown CSS drop in the top right corner of the block (`.inv-taint`), on a skin or a bucket holding tainted water.
+- **Mixing:** a clean source into an empty vessel would make it clean; into tainted water it stays tainted (no clean source exists yet).
+- **The words:** Sick begun, "Your stomach turns. You feel sick."; a stack more, "The water sits badly. You feel worse."; the boil done, "The water boils. It is clean now." The infection from water has no line of its own: the moodle shows it, and its first stage still reads "Bitten" (open: a water infection may want its own first words).
+- **On the wire**, Sick's `left` is to two decimals in the light record as bleeding's is, so a Sick player's light part changes every frame for as long as it lasts (minutes, where bleeding's is seconds): about 35 bytes a frame a Sick player. Whole seconds would do for the row if it ever matters.
 
 ## 1. Sources
 
