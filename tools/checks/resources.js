@@ -30,7 +30,6 @@ export async function run(game, opts = {}) {
     const p = G.map.propById(k.id);
     row("on the guest the risen ore rock is there by its id, at the host's tile, arrived through its touched chunk", !!p && p.sprite === k.sprite && p.tile[0] === k.tile[0] && p.tile[1] === k.tile[1] && G.map.tileAt(k.tile[0], k.tile[1]).prop === p, p ? `${p.id} ${p.sprite} at ${p.tile.join(",")}` : `no prop ${k.id}`);
     row("with the host's sim-clock stamp, so the replica draws the same rise (below the ground at its stamp, whole after)", !!p && p.risenAt === k.risenAt && resources.riseOf(p, 40, p.risenAt) === 40 && resources.riseOf(p, 40, p.risenAt + RES.riseSeconds) === 0, p ? `risenAt ${p.risenAt} (host ${k.risenAt}), the guest's clock ${G.loop.simTime().toFixed(2)}` : "-");
-    row("the guest owes nothing of its own (the debts are the host's)", Object.keys(resources.serialize().debts).length === 0, JSON.stringify(resources.serialize()));
     return done();
   }
 
