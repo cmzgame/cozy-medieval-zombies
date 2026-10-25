@@ -103,6 +103,26 @@ for k in kit.get("items", []):
 for bag_def in (back, item_defs.get("dev_bag")):
     if bag_def and bag_def.get("bag") and need > bag_def["bag"][0] * bag_def["bag"][1]:
         fail(f"kit.items: the kit needs {need} cells and the {bag_def['id']} holds {bag_def['bag'][0] * bag_def['bag'][1]}")
+for k in kit.get("items", []):
+    d = item_defs.get(k.get("item"))
+    if "clean" in k and (k["clean"] is not True or not d or not (d.get("capacity") or d.get("vessel")) or not k.get("fill")):
+        fail(f"kit.items: {k.get('item')!r}: `clean` is true, on a drink or a vessel with water in it (docs/44)")
+
+# Water (docs/44): the clean sources are sprites; the bar, the reach, and the counts above zero; the chances and the multipliers in range.
+wt = load("data/tuning.json").get("water", {})
+for sid in wt.get("clean", []):
+    if sid not in sprites and not str(sid).startswith("floor_"):
+        fail(f"tuning.water.clean: {sid!r} is no sprite")
+for key in ("boilSeconds", "boilReach", "sickDays"):
+    if key in wt and not (isinstance(wt[key], (int, float)) and wt[key] > 0):
+        fail(f"tuning.water.{key}: a number above 0")
+if "sickMaxStacks" in wt and not (isinstance(wt["sickMaxStacks"], int) and wt["sickMaxStacks"] >= 1):
+    fail("tuning.water.sickMaxStacks: a whole number of at least 1")
+for key in ("sickChance", "infectionChance", "sickHealMult"):
+    if key in wt and not (isinstance(wt[key], (int, float)) and 0 <= wt[key] <= 1):
+        fail(f"tuning.water.{key}: a number from 0 to 1")
+if "sickTiredMult" in wt and not (isinstance(wt["sickTiredMult"], (int, float)) and wt["sickTiredMult"] >= 1):
+    fail("tuning.water.sickTiredMult: a number of at least 1")
 
 # Fruit trees (#190): a `pick` block names an item and a bare kind that exist; the bare kind says it ripens back to the laden one; and the two
 # kinds agree on everything but the picture, since restaging a prop swaps only its sprite and its day (map.restage).

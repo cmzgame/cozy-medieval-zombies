@@ -33,6 +33,7 @@
   {"use": "bucket", "on": "crop", "verb": "Pour", "action": "pour"},
   {"use": "bucket", "on": "floor_farm", "verb": "Pour", "action": "pour"},
   {"use": "bucket", "on": "floor_farm_y", "verb": "Pour", "action": "pour"},
+  {"use": "waterskin", "on": "fire", "verb": "Boil", "action": "boil", "args": {"timed": true}},
   {"use": "waterskin", "on": "well", "verb": "Fill", "message": "The well's own menu fills it; this is just a note that the rule works."}
  ]
 }

@@ -1,10 +1,11 @@
 // Debuffs (#308; Michael, 2026-10-19: "Bleed debuff, row running along the top of the screen, stuck top right ... number of minutes left (10m) unless < 1m and then (34s)"; docs/02,
 // "Debuffs apart from moodles"): a specific negative effect with a time left, shown as an icon in a row at the top right with its time, its stacks, and a hover card. A moodle is
 // a general ongoing need (hunger, thirst, tiredness) and the infection stays one; bleeding is the first debuff and left the moodles. Pure and DOM-free: `activeDebuffs(player)` reads
-// what the player's own record carries (`player.bleed = { stacks, left }`, run by the host's step in bleed.js and sent in the player's record, so a guest draws the same), and
+// what the player's own record carries (`player.bleed = { stacks, left }`, run by the host's step in bleed.js, and `player.sick`, sick.js's, each sent in the player's record, so a guest draws the same), and
 // `cardOf` says it as a hover card (src/item-info.js's shape, drawn by ui/hover-card.js). ui/debuff-row.js draws the row. Adding a debuff is a row here and an icon in ui/debuff-icons.js.
 
 import { rate } from "./bleed.js";
+import { water as W } from "./tuning.js";
 
 // Minutes from a minute up, rounded up ("10m" for 600 s, "2m" for 61 to 120), whole seconds under it ("34s"); never "0s" while it lasts.
 export function timeLabel(left) {
@@ -25,6 +26,17 @@ export const DEBUFFS = [
       `Losing ${trim(rate(d.stacks))} health a second.`,
       "A bandage stops it.",
       "Another bite makes it worse and starts the time again.",
+    ],
+  },
+  {
+    // Sick (docs/44 section 4): from tainted water; its stacks are only how long it lasts (src/sick.js).
+    id: "sick",
+    name: "Sick",
+    read: (p) => (p && p.sick && p.sick.stacks > 0 && p.sick.left > 0 ? { stacks: p.sick.stacks, left: p.sick.left } : null),
+    lines: () => [
+      `Tiredness builds ${Math.round((W.sickTiredMult - 1) * 100)}% faster.`,
+      `Food heals ${Math.round((1 - W.sickHealMult) * 100)}% less.`,
+      "It passes. More tainted water makes it last longer.",
     ],
   },
 ];

@@ -28,7 +28,7 @@ Two kinds:
 - **Hit stop and the swing's commitment:** `blow.hitStop` 0.07, `blow.hitStopKill` 0.12, `blow.swingMove` 0.6 (`41` step 1).
 
 ### Food, the world, the valley
-- **Tainted water and Sick** (`data/tuning.json` `water`): 20% a tainted drink, stacking to three, tiredness 50% faster and food healing 25% less for about half a game day a stack; 1% a tainted drink of the infection; about 30 s to boil a skin (Primary's default) (2026-10-25, `44`; not built).
+- **Tainted water and Sick** (`data/tuning.json` `water`): `sickChance` 0.2 a tainted drink, `sickMaxStacks` 3, `sickTiredMult` 1.5 (tiredness 50% faster) and `sickHealMult` 0.75 (food heals 25% less) for `sickDays` 0.5 of a game day a stack; `infectionChance` 0.01 a tainted drink of the infection; `boilSeconds` 30 to boil a skin at a lit cooking fire within `boilReach` 2.6 tiles (Primary's defaults: the seconds, the stacks' time adding up; the builder's: the reach); `clean`, the sources that are safe, empty (2026-10-25, `44`; built, #418).
 - **The campfire:** six logs at most, three game hours a log, built with two (2026-10-25, `43`; not built: today four logs of two hours in `data/sprites/campfire.json`).
 - **Take apart's return:** half a thing's materials, rounded down (2026-10-25, `43`; not built).
 - **Repairs:** `work.grindstone.ceilings` 0.6, 0.4, 0.2 and `work.anvil.ceilings` 1, 0.8, 0.6 in `data/tuning.json`, on one count per item, the entry's `repairs` (2026-10-25, `43`; built, #410). The bars' seconds, `work.grindstone.seconds` 4 and `work.anvil.seconds` 6, the anvil's tool `work.anvil.uses` (the smith's hammer's verb, `smith`), and each item's material, its `repair.with` in `data/items.json` (an iron bar for iron, a plank for wood), are Primary's defaults.
@@ -50,7 +50,7 @@ Two kinds:
 - **Zombie aggro**, on (2026-10-15). **Zombies attack villagers**, off (2026-10-15). **Survival**, on (2026-10-13). **Free building**, off. **Multi-hit**, off, "the easy button" (2026-10-12).
 - **Trees** and **Starting population**, chosen when the world is made and fixed after (2026-10-16).
 - **Dev chest**, on; **Dev bag**, off; **Extra starting items**, none: the Sandbox step's testing choices (2026-10-16).
-- **Combat difficulty and infection, one dial** (2026-10-12): someday; today `infection.chance` 0.2 in `data/combat.json` is its only part, and tainted water's 1% joins it (2026-10-25, `44`).
+- **Combat difficulty and infection, one dial** (2026-10-12): someday; today `infection.chance` 0.2 in `data/combat.json` is its only part, and tainted water's 1%, `water.infectionChance` in `data/tuning.json`, joins it (2026-10-25, `44`).
 - **What death takes:** all skills (2026-10-23); a world rule to soften it someday, playtests deciding.
 
 ### A player's own settings (`src/settings.js`, groups `display` and `sound`)

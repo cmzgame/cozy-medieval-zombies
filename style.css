@@ -954,6 +954,20 @@ html, body {
   pointer-events: none;
 }
 
+/* Tainted water (docs/44): a small brown drop in the top right corner of a skin or a bucket that holds it. */
+.inv-taint {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  background: #7a5230;
+  border-radius: 0 50% 50% 50%;
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 1px #1c140e;
+  pointer-events: none;
+}
+
 /* Durability (docs/30, 5.2): a thin bar at the foot of a worn item. */
 .inv-wear {
   position: absolute;

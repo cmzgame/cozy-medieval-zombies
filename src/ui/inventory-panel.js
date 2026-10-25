@@ -17,6 +17,7 @@ import * as settings from "../settings.js";
 import * as use from "../use.js";
 import * as hoverCard from "./hover-card.js"; // the card over an item (#262)
 import { cardFor, cardForSlot } from "../item-info.js";
+import { holdsWater, isTainted } from "../water.js"; // the brown drop on a tainted skin or bucket (docs/44)
 import { parseSlot, HIDEABLE } from "../inventory.js";
 
 let CELL = view.BASE_CELL; // the bag's cell in UI pixels, read from the view at every render
@@ -268,6 +269,8 @@ function blockHtml(entry, attrs, cell = CELL, w = 1, h = 1, extraCls = "", slot 
     inner += `<span class="inv-label">${def.short || def.name}</span>`;
   }
   if (entry.count > 1) inner += `<span class="inv-stack">${entry.count}</span>`;
+  // Tainted water (docs/44 section 3): a small brown drop in the corner of a skin or a bucket that holds it, so it reads at a glance; the name stays.
+  if (holdsWater(entry) && isTainted(entry)) inner += `<span class="inv-taint" aria-hidden="true"></span>`;
   // Durability (docs/30, 5.2): a thin bar once worn, red under a fifth left.
   if (entry.wear > 0) inner += `<div class="inv-wear${entry.wear > 0.8 ? " low" : ""}"><div style="width:${Math.round((1 - entry.wear) * 100)}%"></div></div>`;
   return `<div class="${cls.join(" ")}" ${attrs} role="img" aria-label="${def.name}" style="width:${w * cell}px;height:${h * cell}px;--item:${tintOf(entry, def)}">${inner}</div>`;
@@ -442,7 +445,7 @@ function cardAt(target, x, y) {
   const hit = entryFromEvent({ target });
   if (hit) {
     const en = hit.entry;
-    hoverCard.show(`${en.uid ?? en.id}|${en.id}|${en.count}|${en.fill ?? ""}|${en.wear ?? ""}`, () => cardFor(en), x, y);
+    hoverCard.show(`${en.uid ?? en.id}|${en.id}|${en.count}|${en.fill ?? ""}|${en.wear ?? ""}|${en.clean ? "clean" : ""}`, () => cardFor(en), x, y);
     return;
   }
   const slot = target.closest(".doll-slot.empty, .hot-slot.empty");

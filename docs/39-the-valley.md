@@ -334,11 +334,11 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 
 ### 5.7 Drink and water
 
-- **Waterskin** [built]: drink, sips by itself when Thirsty, filled at any water or a well; on the belt or in the bag. The kit (full), barrels, bodies, and made at Crafting 3 (ruled 2026-10-23). [change: sips by itself only clean water; may hold unsafe water, drunk by choice.]
+- **Waterskin** [built]: drink, sips by itself when Thirsty, filled at any water or a well; on the belt or in the bag. The kit (full of clean water), barrels, bodies, and made at Crafting 3 (ruled 2026-10-23). Sips by itself only clean water; may hold tainted water, drunk by choice (`44`, built #418).
 - **Bucket** [built]: section 5.1; waters crops with any water.
 - **Drinking at water** [built]: any water beside you, the well's menu.
 - **Unsafe water** [to build] (#279): every fixed source, water tiles, wells, the trough, and the font (`44`); always quenches; may bring a small sickness that passes; a small chance of the infection.
-- **Clean water** [to build]: boiled at a fire (Cooking 1), or sanctified (Faith 10, carried water only, never a well). Boiled by Use on a lit cooking fire, or from the vessel's or the fire's menu, about 30 s; the card says clean or tainted, a brown drop on a tainted icon (2026-10-25, `44`).
+- **Clean water** [built, #418]: boiled at a fire (Cooking 1, open to all until the skills), or sanctified [to build] (Faith 10, carried water only, never a well). Boiled by Use on a lit cooking fire, or from the skin's or the fire's menu, 30 s, skins only until fluid transfer; the card says clean or tainted, a brown drop on a tainted icon (2026-10-25, `44`).
 - **Jugs and jars** [to build]: clay (Mining 3), keep purified water clean.
 - **A bottle, a mug** (`docs/30`) [to build]: a bottle is a clay jug (Mining 3, shaped at Crafting 1, fired in an oven); a mug is wood at the workbench, Crafting 1 (ruled 2026-10-23).
 
@@ -434,7 +434,7 @@ The staff-and-book proposal (#275), proposed, not ruled, except the parts marked
 
 - Worn: a linen tunic, linen breeches, hobnail boots, a rope belt, a burlap sack.
 - Carried: a full waterskin, a loaf of bread, two apples, a plank, a torch (in hand, unlit), a tinderbox.
-- The kit is unchanged by the leaner start (ruled 2026-10-23); the skin's water clean [change: tainted today] (2026-10-25, `44`).
+- The kit is unchanged by the leaner start (ruled 2026-10-23); the skin's water clean (2026-10-25, `44`; built #418).
 
 ## 6. NPCs
 
@@ -738,9 +738,9 @@ Later, not at the start: gems inlaid in metal armour.
 
 ### Thirst and unsafe water
 - **Thirst** [built]: drains over a game day; four stages (Slightly thirsty, Thirsty, Parched, Dying of thirst); stamina slow at Parched; health drains at the last.
-- **Auto-sip** [built]: a carried skin sips at Thirsty, never mid-fight [change: clean water only].
+- **Auto-sip** [built]: a carried skin sips at Thirsty, never mid-fight, clean water only (#418).
 - **Unsafe water** [to build, #279]: every fixed source, water tiles, wells, the trough, and the font (`44`); always quenches; a sickness that may come and passes (more tired, slower to heal); a small chance of the infection; never a sure penalty.
-- **Sick** (ruled 2026-10-25, `44` section 4) [to build]: a debuff (the infection's third stage renamed Queasy), tiredness 50% faster and food healing 25% less for about half a game day; 20% a tainted drink, stacking to three; 1% a tainted drink of the infection, its chance on the difficulty dial.
+- **Sick** (ruled 2026-10-25, `44` section 4) [built, #418]: a debuff (the infection's third stage renamed Queasy), tiredness 50% faster and food healing 25% less for about half a game day; 20% a tainted drink, stacking to three; 1% a tainted drink of the infection, its chance on the difficulty dial.
 
 ### Tiredness and sleep
 - **Tiredness** [built]: drains over a game day and a quarter; four stages (Yawning; Tired, stamina slower; Exhausted, no sprint; Falling asleep, no healing); never kills.
@@ -749,7 +749,7 @@ Later, not at the start: gems inlaid in metal armour.
 
 ### Bleeding, the infection, and the cure
 - **Bleeding** [built]: a bite may open a wound, up to five stacks, draining faster with each; a bandage closes it; runs out by itself.
-- **The infection** [built as a marker]: a chance on a landed bite; four stages over about a day and a half (Bitten, Fevered, Sick, Turning) [change: the third named Queasy, Sick being tainted water's (2026-10-25, `44`)]; no effect yet [open #123: its real effects: about a day and a half to find the cure, then death, the moodles worsening along the way (Michael, 2026-10-23)]. A second way in: a drink of unsafe water [to build].
+- **The infection** [built as a marker]: a chance on a landed bite; four stages over about a day and a half (Bitten, Fevered, Queasy, Turning; the third renamed from Sick, Sick being tainted water's, 2026-10-25, `44`, #418); no effect yet [open #123: its real effects: about a day and a half to find the cure, then death, the moodles worsening along the way (Michael, 2026-10-23)]. A second way in: a drink of tainted water, 1% (built, #418).
 - **The cure** [to build]: mid to late game, gated by skill, and **not in the valley** (ruled 2026-10-19): found beyond it (Faith's Cure Undeath, learned in a region; a Divine Potion at Potions 10, the Abbey's (ruled 2026-10-23)). **Life Ward** against bites (Faith 3). The infection and combat difficulty are one dial (water's chance follows it, 2026-10-25, `44`).
 
 ### Mana
@@ -821,7 +821,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 
 ### Eating, drinking, healing
 - Eat (the menu, a double-click, the belt's key), drink from a skin, drink at water, fill skins, apply a bandage [built].
-- Drink a potion [to build]; boil water [to build] (Cooking 1); sanctify food and water [to build] (Faith 10).
+- Drink a potion [to build]; boil water [built, #418] (Cooking 1); sanctify food and water [to build] (Faith 10).
 
 ### The belt and the bag
 - A belt slot's key does one thing [change: the hand chosen per slot, #285].

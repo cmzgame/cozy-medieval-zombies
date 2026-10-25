@@ -2,8 +2,10 @@
 //   await __game.check("debuffs")
 // A bite that bleeds shows the drop icon with "12s" and no stack number; another bite makes two stacks and starts the time again; a bandage clears it and the row is empty; a wound of
 // 600 seconds reads "10m"; there is no bleed moodle (and no "Not bleeding" line) any more; the row sits at the top right with the bag opening under it; its hover card names it, what
-// it does, and what ends it; the host's step runs the timer. On a guest, run after the host has opened a wound on the guest's player (`bleed.apply` on that player in the host's tab):
-// the replica's record carries the stacks and the time, and the row shows the same. The wound, the bag, and the health are put back.
+// it does, and what ends it; the host's step runs the timer. Sick (docs/44): a tainted drink under the chance shows its own icon with half a game day, each further tainted drink a
+// stack and its time up to three, its card says what it does and how long is left, it sits beside bleeding, and the host's step runs it out; the infection's third stage is Queasy.
+// On a guest, run after the host has opened a wound on the guest's player and made it Sick (`bleed.apply` and `sick.apply` on that player in the host's tab): the replica's record
+// carries the stacks and the time, and the row shows the same. The wound, Sick, the infection, the bag, and the health are put back.
 
 export async function run(game) {
   const G = game;
@@ -18,6 +20,8 @@ export async function run(game) {
   const me = G.player;
   const role = G.net.status().role;
   const bleed0 = me.bleed ? { ...me.bleed } : null;
+  const sick0 = me.sick ? { ...me.sick } : null;
+  const infection0 = me.infection;
   const hp0 = me.hp;
   const bag = G.inventory.bagOf(me);
   const bag0 = bag.items.slice();
@@ -95,10 +99,48 @@ export async function run(game) {
       const apply = G.interact.itemMenu(me, bandage, bag, null).find((m) => m.label === "Apply");
       apply.onSelect();
       row("a bandage clears the wound and the row is empty", !me.bleed && show().length === 0, `bleed ${JSON.stringify(me.bleed)}, ${show().length} in the row`);
+
+      // Sick (docs/44 section 4): a tainted drink's debuff, its own icon in the row; its stacks are only time, half a game day each, up to three.
+      const S = await import("/src/sick.js");
+      const W = G.tuning.water;
+      const half = W.sickDays * G.clock.DAY_LENGTH;
+      me.sick = null;
+      S.taintedDrink(me, 0, 0.99); // a roll under the chance: Sick
+      now = show();
+      row("a tainted drink that makes you Sick shows its icon in the row, with half a game day and no stack number", now.length === 1 && now[0].id === "sick" && now[0].name === "Sick" && now[0].stacks === "" && now[0].time === deb.timeLabel(half) && !!document.querySelector('#debuffs .debuff[data-id="sick"] img'), JSON.stringify(now));
+      S.taintedDrink(me, 0.99, 0.99); // already Sick: a stack and its time more, whatever the roll
+      now = show();
+      row("another tainted drink while Sick makes two stacks and adds its time", me.sick.stacks === 2 && me.sick.left === 2 * half && now[0].stacks === "2", JSON.stringify(me.sick));
+      S.taintedDrink(me, 0.99, 0.99);
+      S.taintedDrink(me, 0.99, 0.99);
+      row("three stacks at most, and a game day and a half at most", me.sick.stacks === W.sickMaxStacks && me.sick.left === W.sickMaxStacks * half, JSON.stringify(me.sick));
+      const sel = document.querySelector('#debuffs .debuff[data-id="sick"]');
+      const sr = sel.getBoundingClientRect();
+      sel.dispatchEvent(new PointerEvent("pointermove", { clientX: sr.left + 8, clientY: sr.top + 8, bubbles: true }));
+      await wait(150);
+      row("its card names it and what it does, and how long is left", !hc.hidden && /Sick/.test(hc.textContent) && /Debuff/.test(hc.textContent) && /Tiredness builds 50% faster\./.test(hc.textContent) && /Food heals 25% less\./.test(hc.textContent) && /×3/.test(hc.textContent) && /18m left/.test(hc.textContent), hc.textContent.slice(0, 160));
+      sel.dispatchEvent(new PointerEvent("pointerleave", { bubbles: false }));
+      me.bleed = { stacks: 1, left: 30 };
+      row("bleeding and Sick show side by side", show().length === 2 && show().some((d) => d.id === "bleed") && show().some((d) => d.id === "sick"), JSON.stringify(show()));
+      me.bleed = null;
+      me.sick.left = 1;
+      for (let i = 0; i < 90; i++) G.loop.advance(1 / 60);
+      row("the host's step runs Sick down and it passes: the row is empty", me.sick === null && show().length === 0, `${JSON.stringify(me.sick)}, ${show().length} in the row`);
+      // The infection's third stage is Queasy now, never Sick.
+      const inf0 = me.infection;
+      const I = await import("/src/infection.js");
+      me.infection = { since: G.clock.getElapsed() - 0.6 * I.duration() };
+      const stage = moodles.activeMoodles(me).find((m) => m.id === "infection");
+      row("the infection's third stage is named Queasy", !!stage && stage.stage === 3 && stage.name === "Queasy" && !moodles.MOODLES.find((m) => m.id === "infection").stages.some((s) => s.name === "Sick"), stage ? `${stage.stage} ${stage.name}` : "none");
+      me.infection = inf0;
     } else {
       const now = show();
-      row("on a guest the replica's record carries the wound and the row shows the same stacks and a time", !!me.bleed && me.bleed.stacks > 0 && now.length === 1 && now[0].id === "bleed" && now[0].stacks === (me.bleed.stacks > 1 ? String(me.bleed.stacks) : "") && /^\d+[sm]$/.test(now[0].time), `${JSON.stringify(me.bleed)} -> ${JSON.stringify(now)}`);
+      const bleedNow = now.find((d) => d.id === "bleed"); // Sick may sit beside it (docs/44)
+      row("on a guest the replica's record carries the wound and the row shows the same stacks and a time", !!me.bleed && me.bleed.stacks > 0 && !!bleedNow && bleedNow.stacks === (me.bleed.stacks > 1 ? String(me.bleed.stacks) : "") && /^\d+[sm]$/.test(bleedNow.time), `${JSON.stringify(me.bleed)} -> ${JSON.stringify(now)}`);
       row("on a guest there is no bleed moodle either", !moodles.activeMoodles(me).some((m) => m.id === "bleed"), moodles.activeMoodles(me).map((m) => m.id).join(","));
+      // Sick (docs/44): the host made the guest's player Sick (`(await import("/src/sick.js")).apply(p)` twice on that player in the host's tab).
+      const sickNow = now.find((d) => d.id === "sick");
+      row("on a guest the replica's record carries Sick (its stacks and its time) and the row shows it", !!me.sick && me.sick.stacks > 0 && !!sickNow && sickNow.stacks === (me.sick.stacks > 1 ? String(me.sick.stacks) : "") && /^\d+[sm]$/.test(sickNow.time), `${JSON.stringify(me.sick)} -> ${JSON.stringify(sickNow || null)}`);
     }
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message + (e.stack ? " " + e.stack.split("\n")[1] : "") });
@@ -106,6 +148,8 @@ export async function run(game) {
     card.hide();
     if (role !== "guest") {
       me.bleed = bleed0;
+      me.sick = sick0;
+      me.infection = infection0;
       me.hp = hp0;
       bag.items.splice(0, bag.items.length, ...bag0);
       for (const [e, n] of counts0) e.count = n;
