@@ -39,6 +39,8 @@ export async function run(game, opts = {}) {
   const me = () => G.player;
   const meAt = [me().gx, me().gy];
   const hands0 = { main: me().hands.main, off: me().hands.off };
+  const bag = G.inventory.bagOf(me());
+  const bag0 = bag ? bag.items.slice() : null; // the ore and stone the verb mines go here: put back after a `keep` run
   const clock0 = G.clock.getElapsed();
   const undo = [];
   const bodies = () => [...G.game.state.players, ...G.game.state.zombies, ...G.game.state.villagers, ...G.game.state.corpses];
@@ -127,6 +129,16 @@ export async function run(game, opts = {}) {
     const inWorks = tileIn(works.box, ore);
     row("the quarry's footprint is open to stone (its dirt natural ground) and not to ore", !!inQuarry && G.map.peekTile(inQuarry[0], inQuarry[1]).floor === "floor_dirt" && G.map.resourceSpotProblem(ore, inQuarry[0], inQuarry[1]) === "outside its area", inQuarry ? `${inQuarry.join(",")} on ${G.map.peekTile(inQuarry[0], inQuarry[1]).floor}` : "no free tile in the quarry");
     row("the iron workings' footprint is open to ore", !!inWorks, inWorks ? inWorks.join(",") : "no free tile at the iron workings");
+    // What another place keeps clear inside an open one stays clear: the quarryman's hut in the quarry, the miners' hut at the iron workings.
+    const passing = (name, kind) => {
+      const s = json.sets.find((q) => q.name === name);
+      let n = 0;
+      if (s) for (let y = s.rect[1] - 1; y <= s.rect[1] + s.rect[3]; y++) for (let x = s.rect[0] - 1; x <= s.rect[0] + s.rect[2]; x++) if (!G.map.resourceSpotProblem(kind, x, y, { live: false })) n++;
+      return s ? n : -1;
+    };
+    const hutQ = passing("the quarryman's hut", stone);
+    const hutM = passing("the miners' hut", ore);
+    row("the huts inside them stay clear: no tile of the quarryman's hut or its padding takes stone, nor of the miners' hut ore", hutQ === 0 && hutM === 0, `${hutQ} and ${hutM} tiles pass`);
     const only = (kind, rects) => ({ ...kind, rects });
     const qRock = resources.grow(only(stone, [quarry.box]), bodies());
     const wRock = resources.grow(only(ore, [works.box]), bodies());
@@ -212,7 +224,17 @@ export async function run(game, opts = {}) {
     const [newStone] = grown(stone);
     const [newShroom] = grown(mush);
     row("past its day an ore rock stands at a new spot in the ore area, and the count is back", !!newOre && G.map.inResourceArea(ore, newOre.tile[0], newOre.tile[1]) && G.map.resourceCensus(ore) === tOre.n0 && !resources.owed("ore").length, newOre ? `${newOre.id} at ${newOre.tile.join(",")} after ${looks} looks; ${G.map.resourceCensus(ore)} standing` : `none after ${looks} looks`);
-    row("ore never returns in place: the new one is elsewhere, and its old tile is empty", !!newOre && (newOre.tile[0] !== tOre.tile[0] || newOre.tile[1] !== tOre.tile[1]) && !G.map.tileAt(tOre.tile[0], tOre.tile[1]).prop && G.map.resourceSpotProblem(ore, tOre.tile[0], tOre.tile[1], { not: tOre.tile }) !== null, newOre ? `old ${tOre.tile.join(",")}, new ${newOre.tile.join(",")}` : "-");
+    row("ore never returns in place: the new one is elsewhere, and its old tile is empty", !!newOre && (newOre.tile[0] !== tOre.tile[0] || newOre.tile[1] !== tOre.tile[1]) && !G.map.tileAt(tOre.tile[0], tOre.tile[1]).prop, newOre ? `old ${tOre.tile.join(",")}, new ${newOre.tile.join(",")}` : "-");
+    // The rule itself: a one-tile area that is the taken tile, free in every other way, refuses the debt's replacement and takes any other.
+    const free = !G.map.resourceSpotProblem(ore, tOre.tile[0], tOre.tile[1], { bodies: bodies() }) ? tOre.tile : tileIn(works.box, ore);
+    if (free) {
+      const one = only(ore, [[free[0], free[1], 1, 1]]);
+      const why = G.map.resourceSpotProblem(ore, free[0], free[1], { bodies: bodies(), not: free });
+      const refused = resources.grow(one, bodies(), free);
+      const allowed = resources.grow(one, bodies());
+      row("the rule never grows a replacement where its node was taken: a one-tile area that is that tile refuses it, and grows a rock without the debt's tile", why === "where the last one stood" && refused === null && !!allowed && allowed.tile[0] === free[0] && allowed.tile[1] === free[1], `${free.join(",")}: ${why}; with the debt's tile ${refused ? refused.id : "nothing"}, without ${allowed ? allowed.id : "nothing"}`);
+      if (allowed) G.map.removeProp(allowed);
+    } else row("the rule never grows a replacement where its node was taken", false, "no free tile at the iron workings");
     row("a rock stands at a new spot in the valley, and the stone count is back", !!newStone && G.map.resourceCensus(stone) === tStone.n0 && !resources.owed("stone").length, newStone ? `${newStone.sprite} at ${newStone.tile.join(",")}` : "none");
     row("a mushroom comes back near trees elsewhere, simply appearing (no rise)", !!newShroom && newShroom.risenAt === undefined && newShroom.solid === false && G.map.resourceCensus(mush) === mush.count - resources.owed("mushrooms").length, newShroom ? `${newShroom.sprite} at ${newShroom.tile.join(",")}; ${G.map.resourceCensus(mush)} standing, ${resources.owed("mushrooms").length} owed` : "none");
     for (const p of [newOre, newStone, newShroom]) if (p) row(`the ${p.sprite} marked its chunk and stands on the live tile (what a guest gets: the chunk's record carries it${p.risenAt !== undefined ? " and its stamp" : ""})`, G.map.tileAt(p.tile[0], p.tile[1]).prop === p && (() => { let c = null; G.map.eachChunk((ch) => { if (ch.cx === Math.floor(p.tile[0] / 16) && ch.cy === Math.floor(p.tile[1] / 16)) c = ch; }); const rec = c && G.map.serializeChunk(c).props.find((q) => q.id === p.id); return !!c && c.dirty && !!rec && rec.risenAt === p.risenAt; })(), `${p.id}`);
@@ -254,6 +276,7 @@ export async function run(game, opts = {}) {
       me().hands.main = hands0.main;
       me().hands.off = hands0.off;
       me().action = null;
+      if (bag && bag0) bag.items.splice(0, bag.items.length, ...bag0);
       G.clock.setElapsed(clock0);
       G.teleport(meAt[0], meAt[1]);
     } else {

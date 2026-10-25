@@ -805,6 +805,14 @@ check("natural resources: counts kept per area, a debt per take, a comeback else
   const newOre = fresh(ore);
   const newShroom = fresh(mush);
   assert(newOre && (newOre.tile[0] !== debt.at[0] || newOre.tile[1] !== debt.at[1]), `no new ore rock elsewhere in its area after ${looks} looks`);
+  // The rule itself: the taken tile, now free, as a one-tile area refuses the debt's replacement and grows one without the debt's tile.
+  const [tx, ty] = debt.at;
+  const one = { ...ore, rects: [[tx, ty, 1, 1]] };
+  assert(mapMod.resourceSpotProblem(ore, tx, ty) === null, `the taken tile is not free: ${mapMod.resourceSpotProblem(ore, tx, ty)}`);
+  assert(mapMod.resourceSpotProblem(ore, tx, ty, { not: [tx, ty] }) === "where the last one stood" && resourcesMod.grow(one, [], [tx, ty]) === null, "a replacement could grow where its node was taken");
+  const again = resourcesMod.grow(one, []);
+  assert(again && again.tile[0] === tx && again.tile[1] === ty, "the one-tile area grew nothing without the debt's tile");
+  mapMod.removeProp(again);
   assert(Number.isFinite(newOre.risenAt) && resourcesMod.riseOf(newOre, 40, newOre.risenAt) === 40 && resourcesMod.riseOf(newOre, 40, newOre.risenAt + RESOURCES.riseSeconds) === 0, "the new ore rock has no stamp to rise from");
   assert(newShroom && newShroom.risenAt === undefined && mapMod.resourceCensus(mush) === mush.count && mapMod.resourceCensus(ore) === ore.count, "the mushroom did not come back, or the counts are not their levers");
   return `stone 40, ore 6, mushrooms 774 with Trees on and off; ore back at ${newOre.tile.join(",")} (taken at ${debt.at.join(",")}) and a mushroom at ${newShroom.tile.join(",")} after ${looks} looks`;

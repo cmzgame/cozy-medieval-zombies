@@ -566,7 +566,7 @@ export function begin(dt) {
   map.burnFires(dt);
   map.burnHolders(dt); // the torches mounted on brackets and posts burn down at the wall rate (map.js)
   fruit.step(); // a bare fruit tree bears again on its day (fruit.js)
-  resources.step([...S.players, ...S.zombies, ...S.villagers, ...S.corpses]); // a taken resource grows again elsewhere in its area, under no body (docs/46)
+  resources.step(() => [...S.players, ...S.zombies, ...S.villagers, ...S.corpses]); // a taken resource grows again elsewhere in its area, under no body (docs/46)
   farming.step(); // a crop's picture follows its stage (farming.js, #194)
   burnTorches(dt);
   stations.update(dt); // every station's queue, in the world's time (docs/30, section 6)

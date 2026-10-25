@@ -63,20 +63,23 @@ export function grow(kind, bodies = [], not = null) {
   return null;
 }
 
-// The debts fallen due, looked at once a `checkSeconds` of the clock (in game.begin, on the authority).
+// The debts fallen due, looked at once a `checkSeconds` of the clock (in game.begin, on the authority). `bodies` is every character, or a
+// function that lists them, asked only on a step that has a debt to grow.
 export function step(bodies = []) {
   const now = clock.getElapsed();
   const b = Math.floor(now / RES.checkSeconds);
   if (b === bucket) return;
   bucket = b;
   const at = b * RES.checkSeconds;
+  let who = null;
   for (const kind of map.resourceKinds()) {
     const list = debts.get(kind.name);
     if (!list || !list.length) continue;
     for (let i = 0; i < list.length; i++) {
       const d = list[i];
       if (d.due > at) continue;
-      if (!grow(kind, bodies, d.at)) continue; // waits for the next look
+      if (!who) who = typeof bodies === "function" ? bodies() : bodies;
+      if (!grow(kind, who, d.at)) continue; // waits for the next look
       list.splice(i, 1);
       i--;
     }

@@ -646,10 +646,12 @@ export function resourceSpotAt(kind, roll) {
 }
 
 // A node of `kind` made for (x, y), not placed: its sprite picked by weight and, for a small thing (a mushroom), set a little off the
-// tile's centre, both from `roll` (the sim's generator at a comeback, a hash at the load).
-export function makeResourceProp(kind, x, y, roll) {
+// tile's centre, both from `roll` (the sim's generator at a comeback, a hash at the load); `id` when the load names it, else the
+// world's counter's.
+export function makeResourceProp(kind, x, y, roll, id = null) {
   const sprite = weightedPick(kind.sprites, roll());
   const def = { sprite, tile: [x, y], solid: kind.solid };
+  if (id) def.id = id;
   if (kind.jitter) {
     const u = (roll() - 0.5) * kind.jitter;
     const v = (roll() - 0.5) * kind.jitter;
@@ -2546,10 +2548,25 @@ export function loadMap(json, options = {}) {
   // count the map already meets (the ore rocks, the forage's mushrooms) adds nothing, and one it exceeds takes nothing away.
   reservedTiles = reserved;
   readResourceKinds(json);
+  // An open place is its footprint less what anything else keeps clear inside it: another set's footprint and padding (the quarryman's
+  // hut in the quarry, the miners' hut at the iron workings), a building's rect and padding, a reserve rect.
   openPlaces.clear();
   for (const s of json.sets || []) {
     if (!s.name || !resourceKindList.some((k) => k.open.includes(s.name))) continue;
-    openPlaces.set(s.name, new Set(setFootprint(s).map(([x, y]) => key(x, y))));
+    const kept = new Set();
+    const keep = (x0, y0, w, h) => { for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) kept.add(key(x, y)); };
+    for (const o of json.sets || []) {
+      if (o === s) continue;
+      const pad = o.padding ?? 1;
+      for (const [x, y] of setFootprint(o)) keep(x - pad, y - pad, pad * 2 + 1, pad * 2 + 1);
+    }
+    const origin = setOrigin(s);
+    for (const b of [...(json.buildings || []).map((q) => ({ ...q, origin: [0, 0] })), ...(s.buildings || []).map((q) => ({ ...q, origin }))]) {
+      const pad = b.padding ?? 1;
+      keep(b.rect[0] + b.origin[0] - pad, b.rect[1] + b.origin[1] - pad, b.rect[2] + pad * 2, b.rect[3] + pad * 2);
+    }
+    for (const r of json.reserve || []) keep(...r);
+    openPlaces.set(s.name, new Set(setFootprint(s).map(([x, y]) => key(x, y)).filter((k) => !kept.has(k))));
   }
   const bodiesAt = [json.spawn || [0, 0], ...(json.zombies || []), ...(json.villagers || []).map((v) => v.tile)].map(([x, y]) => ({ gx: x, gy: y }));
   for (const kind of resourceKindList) {
@@ -2558,7 +2575,7 @@ export function loadMap(json, options = {}) {
       const [x, y] = resourceSpotAt(kind, hash2(i, 1, kind.seed));
       if (resourceSpotProblem(kind, x, y, { live: false, bodies: bodiesAt })) continue;
       let r = 0;
-      const prop = makeResourceProp(kind, x, y, () => hash2(i, 2 + r++, kind.seed));
+      const prop = makeResourceProp(kind, x, y, () => hash2(i, 2 + r++, kind.seed), `res_${kind.name}_${i}`); // an id from the load's own index, not the world's counter: a count tuned moves no other id
       props.push(prop);
       get(x, y).prop = prop;
       have++;
