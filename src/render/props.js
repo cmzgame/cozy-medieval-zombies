@@ -267,10 +267,19 @@ export function floorItemDrawables(tiles, visible, out) {
             if (sheet) frameQuad(sheet, `${e.id}_${e.angle || 0}`, Math.round(sp.x), Math.round(sp.y) - 1, { world: [e.at[0], e.at[1]], heights: 0, flags: gl.FLAG_STANDING | (vis ? gl.FLAG_NOFOG : 0) });
             return;
           }
-          const c = gl.rgb(getItem(e.id).color || "#8a8296");
+          const def = getItem(e.id);
+          const c = gl.rgb(def.color || "#8a8296");
           const ox = x + ((i % 3) - 1) * 9;
           const oy = y - 3 - Math.floor(i / 3) * 5;
           const flags = gl.FLAG_STANDING | (vis ? gl.FLAG_NOFOG : 0);
+          // An item whose icon is generated from a design (an herb, a mushroom, clay, salt; docs/46 step 2) lies as that picture, the pair's
+          // world half; every other item keeps the block in its colour until it has drawn art.
+          const pic = def.icon && def.icon.placeholder ? projectileSheet(`icon_${e.id}`) : null;
+          if (pic) {
+            if (lit) hl.outline(pic, "idle_0", ox, oy + 2, { world: [tx, ty], heights: 0 });
+            frameQuad(pic, "idle_0", ox, oy + 2, { world: [tx, ty], heights: 0, flags });
+            return;
+          }
           if (lit) hl.itemHalo(ox, oy, [tx, ty]);
           gl.poly([[ox - 7, oy], [ox, oy - 4], [ox + 7, oy], [ox, oy + 4]], gl.rgb("#1a1410"), { world: [tx, ty], flags });
           gl.poly([[ox - 6, oy], [ox, oy - 3], [ox + 6, oy], [ox, oy + 3]], c, { world: [tx, ty], flags });

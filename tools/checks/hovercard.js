@@ -56,6 +56,10 @@ export async function run(game) {
     row("a plank says what it goes into and what it builds; a stick, though a weapon, says what it goes into", has("plank", "Goes into:") && has("plank", "Builds:") && /door/.test(text("plank").join(" ")) && has("stick", "Goes into:"), `${text("plank").join(" | ")} || ${text("stick").join(" | ")}`);
     row("the Use lines name things in player words: a bucket fills at water, a well, a trough; seeds go on tilled soil", has("bucket", "Use on water, well") && !text("bucket").some((l) => /floor_|water shallow/.test(l)) && has("potato_seed", "Use on tilled soil: plant."), `${text("bucket").join(" | ")} || ${text("potato_seed").join(" | ")}`);
     row("a log splits into planks, plural", has("log", "Splits into 3 planks."), text("log").join(" | "));
+    // The gathered things of docs/46 step 2 (#448): each card its full name and its kind, and no use, since potions, seasoning, salting, and jugs are not built.
+    const gathered = { sage: "Herb", nettle: "Herb", feverfew: "Herb", yarrow: "Herb", mana_herb: "Herb", nightshade: "Herb", wolfsbane: "Herb", grave_moss: "Herb", woad: "Dye plant", madder: "Dye plant", weld: "Dye plant", mushroom: "Mushroom", clay: "Material", salt: "Material" };
+    const offCards = Object.entries(gathered).filter(([id, kind]) => { const c = info.cardFor(G.items.makeEntry(id)); return c.name !== G.items.getItem(id).name || c.kind !== kind || c.lines.length; });
+    row("the herbs, the dye plants, the mushroom, clay, and salt: each card its full name and its kind (Herb, Dye plant, Mushroom, Material), and no use that is not built", offCards.length === 0, Object.keys(gathered).map((id) => text(id).join(" | ")).join(" || "));
     // Every item: a name nobody else has, a kind, and no segment but Use is gold.
     const ids = [...new Set((all || []).map((d) => d.id))];
     const names = new Map();

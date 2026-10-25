@@ -8,6 +8,7 @@ import * as iso from "./iso.js";
 import * as input from "./input.js";
 import * as loop from "./loop.js";
 import * as assets from "./assets.js";
+import { iconCanvas } from "./placeholders.js"; // an item's generated icon, from its node's design (docs/46 step 2)
 import * as events from "./events.js";
 import * as map from "./map.js";
 import * as camera from "./camera.js";
@@ -1488,6 +1489,16 @@ async function boot() {
         progress((i + 1) / held.length);
       }
       for (const def of items.allItems()) if (def.shield) assets.registerSheet("held_shield_guard", figure.generateHeld("shield_guard", def.held.colours)); // the raised guard (docs/21)
+      // An item whose icon is generated (`icon.placeholder`: a sprite's id, its node's design, or a design of its own; docs/46 step 2): the bag's
+      // picture from that design, and the same picture as the item lying on the floor (`icon_<id>`, render/props.js), the pair from one design.
+      for (const def of items.allItems()) {
+        const ic = def.icon && def.icon.placeholder;
+        if (!ic) continue;
+        const design = typeof ic === "string" ? assets.getDef(ic).placeholder : ic;
+        const made = iconCanvas(design, def.icon.size);
+        def.icon.src = made.canvas.toDataURL("image/png");
+        assets.registerSheet(`icon_${def.id}`, made.sheet, { generated: "icon", def: typeof ic === "string" ? `data/sprites/${ic}.json` : "data/items.json" });
+      }
     } },
     // The sounds (docs/40, section 2): the engine, and every slot's placeholder rendered once by an OfflineAudioContext
     // (which the browser's autoplay rule does not stop), or a delivered file decoded. Nothing sounds before the first click.

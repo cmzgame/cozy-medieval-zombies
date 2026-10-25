@@ -62,7 +62,7 @@ let forage = null; // { kinds, chance, near, seed }
 // Natural resources (docs/46): the map's areas per kind (its `resources` block), the scatter's reserved tiles kept from the load (the
 // buildings, the places and their padding, the reserve rects), and the footprints of the places an area opens to its own kind (the quarry
 // to stone, the iron workings to ore). Read by resourceSpotProblem, the one test of where a node may stand, at the load and at a comeback.
-let resourceKindList = []; // [{ name, sprites, count, rects, open, floors, openFloors, near, rise, solid, jitter, seed, days }]
+let resourceKindList = []; // [{ name, sprites, count, rects, open, floors, openFloors, near, rise, solid, jitter, seed, days, water, waterGroup, own, night }]
 const resourceBySprite = new Map(); // sprite -> its kind
 let reservedTiles = new Set(); // "x,y"
 const openPlaces = new Map(); // a place's name -> Set of its footprint's "x,y"
@@ -576,6 +576,20 @@ function standingTreeAt(x, y) {
   return !!(t && t.prop && getDef(t.prop.sprite).canopy);
 }
 
+// Whether water lies within `r` tiles of (x, y) (a square ring, as the trees' `near`): a floor you drink beside, of the named water `group`
+// if one is given (the river; the map file's water rects, `waterBodyAt`). A pure read: it grows nothing.
+export function waterNear(x, y, r, group = null) {
+  for (let dy = -r; dy <= r; dy++) {
+    for (let dx = -r; dx <= r; dx++) {
+      if (!dx && !dy) continue;
+      const t = readTile(x + dx, y + dy);
+      if (!floorRule(t ? t.floor : defaultFloor).drink) continue;
+      if (!group || waterBodyAt(x + dx, y + dy) === group) return true;
+    }
+  }
+  return false;
+}
+
 // Whether a fill from (x0, y0), bounded by walls (fences and gates, the authored and a player's, and any other wall) and by water no one
 // walks, stays within `cap` tiles: a fenced yard or a pen, where nothing grows. A fill past the cap, or out past the valley's bounds, is
 // open ground. A see-through wall bounds no room, so the room test alone cannot find a fenced field. A pure read: it grows nothing.
@@ -608,12 +622,14 @@ export function fencedIn(x0, y0, cap = RES.yardCap) {
 // stand with Trees off) and no wall on its edges; for a kind that grows `near` trees, a tree within that many tiles; not inside a room
 // (`live` only: the rooms are the loaded chunks') nor a fenced yard; no body on it. `live` reads the tile as it is, which the caller has
 // grown through a mutator first (a blank tile would test free); without it (the load) the authored tile is read. `not` is a tile it may not
-// take: the one a node was just taken from, since a comeback grows somewhere else.
+// take: the one a node was just taken from, since a comeback grows somewhere else. Step 2 (#448): a kind that grows by `water` wants water
+// within that many tiles (of its `waterGroup`, the river, if it names one; read like the trees, never growing a chunk); a kind whose area
+// is its `own` place (the graveyard's herbs) takes the reserved tiles and the fenced yard of its area, as the quarry's stone takes the pit.
 export function resourceSpotProblem(kind, x, y, { live = true, bodies = [], not = null } = {}) {
   if (!inResourceArea(kind, x, y)) return "outside its area";
   if (not && not[0] === x && not[1] === y) return "where the last one stood";
   const key = `${x},${y}`;
-  const own = kind.open.some((name) => openPlaces.has(name) && openPlaces.get(name).has(key));
+  const own = kind.own || kind.open.some((name) => openPlaces.has(name) && openPlaces.get(name).has(key));
   if (reservedTiles.has(key) && !own) return "a reserved tile";
   const t = live ? peekTile(x, y) : readTile(x, y);
   if (live && !t) return "not grown";
@@ -628,8 +644,9 @@ export function resourceSpotProblem(kind, x, y, { live = true, bodies = [], not 
     for (let dy = -kind.near; dy <= kind.near && !near; dy++) for (let dx = -kind.near; dx <= kind.near && !near; dx++) if ((dx || dy) && standingTreeAt(x + dx, y + dy)) near = true;
     if (!near) return "no tree near";
   }
+  if (kind.water && !waterNear(x, y, kind.water, kind.waterGroup)) return kind.waterGroup ? `no ${kind.waterGroup} near` : "no water near";
   if (live && roomAt(x, y) > 0) return "inside a room";
-  if (fencedIn(x, y)) return "inside a fenced yard";
+  if (!kind.own && fencedIn(x, y)) return "inside a fenced yard";
   for (const b of bodies) if (b && Math.hypot(b.gx - x, b.gy - y) < 1) return "a body stands there";
   return null;
 }
@@ -698,6 +715,10 @@ function readResourceKinds(json) {
       jitter: k.jitter || 0,
       seed: k.seed ?? 61,
       days: Array.isArray(k.days) ? k.days : null,
+      water: k.water || 0, // how close water must be (the mana herb, a clay bank; docs/46 step 2)
+      waterGroup: k.waterGroup || null, // the named water it must be (the river), or any
+      own: !!k.own, // the whole area is its own place: its reserved tiles and its fence open to it (the graveyard to its herbs)
+      night: !!k.night, // a replacement grows only at night (the graveyard's; resources.step)
     };
     resourceKindList.push(kind);
     for (const sprite of Object.keys(kind.sprites)) resourceBySprite.set(sprite, kind);

@@ -1,5 +1,5 @@
 // What an item card says (#262; the law "Every item in a grid has a hover card", docs/02): the full name, the kind, and the direct uses, all read from the data and never
-// written per item: `data/items.json` (food, drink, weapon, hands, wear, verbs, bag, fire, splitsInto, repair, dye, tags), `data/interactions.json` (what the item can be Used on),
+// written per item: `data/items.json` (food, drink, weapon, hands, wear, verbs, bag, fire, splitsInto, repair, dye, tags: a seed, an herb, a dye plant, a mushroom name the kind), `data/interactions.json` (what the item can be Used on),
 // `data/recipes.json` (what it is made at and goes into), `data/crops.json` (what a seed plants), `data/dyes.json` (what a vat dyes it). It touches no DOM (it reads the registries the game loads: items, interactions, recipes, crops, and the build kinds), so a headless world can ask it and the check can read it;
 // ui/hover-card.js draws what this returns. A card is { name, kind, state, lines, fine }: `lines` and `fine` are lists of lines, a line a list of segments { t, k } where `k`
 // is "use" for the word Use (drawn in --gold, Michael 2026-10-18), "word" for another menu word (Eat, Equip, Drink, Apply), or absent for plain text.
@@ -79,6 +79,9 @@ export function cardFor(entry) {
   const lines = [];
   let kind = KIND[def.kind] || cap(def.kind || "");
   if (def.tags && def.tags.includes("seed")) kind = "Seed";
+  else if (def.kind === "material" && def.tags && def.tags.includes("dye")) kind = "Dye plant"; // woad, madder, weld (docs/46 step 2): gathered as herbs
+  else if (def.kind === "material" && def.tags && def.tags.includes("herb")) kind = "Herb"; // what Herbalism gathers (docs/39 section 4); garlic, a crop, stays Food
+  else if (def.kind === "material" && def.tags && def.tags.includes("mushroom")) kind = "Mushroom"; // foraged (Herbalism 3)
   else if (def.book) kind = "Spell book";
   else if (def.staff) kind = "Staff";
   else if (def.bow) kind = "Bow";
