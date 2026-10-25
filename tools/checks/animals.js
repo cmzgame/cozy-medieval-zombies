@@ -133,7 +133,7 @@ export async function run(game) {
       G.teleport(rab.gx + 18, rab.gy); // past its clear distance, inside the active box (far enough and it would stand frozen mid-flight, unstepped)
       step(60 * 4);
       row("with nothing within its clear distance it settles again", ["idle", "eat", "wander"].includes(rab.state), rab.state);
-      G.teleport(meAt[0], meAt[1]);
+      G.teleport(...(field || meAt)); // back to the open ground, not the indoor spawn
       step();
       // A deer, the player out of its sight, one of the dead beside it.
       const deer = spawn("deer", open[0], open[1]);
@@ -158,7 +158,7 @@ export async function run(game) {
       for (let i = 0; i < 120; i++) { step(); if (S.zombies.some((q) => q.target && q.target.kind === "animal")) targeted = true; }
       G.rules.rules.zombieAggro = false;
       row("the dead ignore animals: never a target, never one of the living they hunt, never hurt", !targeted && !S.others.some((c) => c.kind === "animal") && hen.hp === henHp, `targeted ${targeted}, in the living ${S.others.some((c) => c.kind === "animal")}, hen hp ${henHp} to ${hen.hp}`);
-      G.teleport(meAt[0], meAt[1]);
+      G.teleport(...(field || meAt));
       step();
     }
 
