@@ -46,7 +46,7 @@ export function render(player) {
     const leaf = active === k.id && placement.takesLeaf(k.id) ? `<div class="bp-sub">${placement.leafHint(placement.buildLeaf(), placement.state.ghost && placement.state.ghost.carriedLeaf)}</div>` : "";
     return `<div class="bp-row${short ? " short" : ""}${active === k.id ? " active" : ""}" data-kind="${k.id}" title="${short || "Click to build"}"><span class="bp-name">${k.label}</span><span class="bp-cost">${placement.costText(k.id)}</span></div>${leaf}`;
   }).join("");
-  const remove = `<div class="bp-row bp-remove" data-kind="__remove" title="Highlights what you placed or built; click to destroy it"><span class="bp-name">Remove</span><span class="bp-cost">X</span></div>`;
+  const remove = `<div class="bp-row bp-remove" data-kind="__remove" title="Highlights what you made or built; click to take it apart for half its materials (docs/43)"><span class="bp-name">Take apart</span><span class="bp-cost">X</span></div>`;
   const html = `<div class="bp-title">Build</div>${rows}${remove}<div class="bp-hint">Click one, then click the ground. N or Esc to close.</div>`;
   if (root.dataset.html !== html) {
     root.innerHTML = html;

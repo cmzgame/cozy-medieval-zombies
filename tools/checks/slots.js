@@ -4,7 +4,9 @@
 // and allow: a log onto the belt, a hammer onto the belt, a sword onto the head slot, a cap onto it, a belt slot that does not exist. Then the bags (#400):
 // a full sack taken off is set down holding everything, stands as a container (Open, Equip, no Pick up while full), and is equipped again by the menu's
 // label as a guest's command is, its things still in it; a linen satchel sent onto the back takes it, the sack dropped at the feet with its things, and
-// the satchel's own grid, 7 by 5, takes what is put in it. The bag, belt, worn slots, and the floor are put back.
+// the satchel's own grid, 7 by 5, takes what is put in it. Pick up keeps a thing whole (docs/43, section 2): a chest holding an apple, picked
+// up by its menu's label, is carried overhead holding it, and set down by a guest's `prop` placement still holds it. The bag, belt, worn
+// slots, and the floor are put back.
 
 export async function run(game) {
   const G = game;
@@ -70,6 +72,24 @@ export async function run(game) {
     row("a linen satchel equipped from the floor swaps bags: on the back, the sack set down with its things", swapped && me.worn.back && me.worn.back.id === "satchel" && !!oldDown && oldDown.bag.items.length === held, `${swapLabel || "no Swap bags"}; back ${me.worn.back ? me.worn.back.id : "bare"}; the sack down holding ${oldDown ? oldDown.bag.items.length : "-"}`);
     let put = 0;
     if (sb) for (let i = 0; i < 40; i++) put += G.inventory.addItem(sb, "stick", 1);
+    // ---- Pick up keeps a thing whole (docs/43, section 2): a chest holding something is carried overhead with it.
+    me.worn.back = back0;
+    me.hands.main = null;
+    me.hands.off = null;
+    const chestTile = [tx + 1, ty];
+    const chest = G.map.createProp({ sprite: "chest", tile: chestTile });
+    chest.bag = G.inventory.createBag(4, 3, "chest");
+    chest.searched = true;
+    G.grid.add(chest.bag, "apple", 1);
+    G.map.placeProp(chest, chestTile[0], chestTile[1]);
+    const pick = G.interact.actionsForTarget({ kind: "prop", id: chest.id }, me).map((a) => a.label).find((l) => /^Pick up chest$/.test(l));
+    const picked = pick ? G.interact.performByLabel(me, { kind: "prop", id: chest.id }, pick) : false;
+    for (let i = 0; i < 5; i++) G.loop.advance(1 / 60);
+    const carried = me.carrying === chest && chest.bag.items.length === 1;
+    const setBack = carried ? G.placement.performPlacement(me, { kind: "prop", tx: chestTile[0], ty: chestTile[1], turns: 0 }) : false;
+    row("Pick up keeps a thing whole: a chest holding an apple is carried overhead holding it, and set down by a guest's placement still holds it", picked && carried && setBack && !me.carrying && G.map.propById(chest.id) === chest && chest.bag.items.length === 1, `label "${pick}"; carried ${carried}; set down ${setBack}; holds ${chest.bag.items.length}`);
+    if (G.map.propById(chest.id)) G.map.removeProp(chest);
+    if (me.carrying === chest) me.carrying = null;
     row("the satchel's own grid is 7 by 5 and takes what is put in it", !!sb && sb.cols === 7 && sb.rows === 5 && put > 0, sb ? `${sb.cols} by ${sb.rows}; ${put} sticks put in` : "no bag on the back");
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message });

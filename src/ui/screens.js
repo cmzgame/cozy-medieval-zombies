@@ -47,7 +47,7 @@ const CONTROLS = [
   ]],
   ["Building", [
     ["N", "Build menu: walls, doors, windows"],
-    ["X", "Remove: highlights what you built or made, click to destroy it"],
+    ["X", "Take apart: highlights what you built or made; click to take it apart for half its materials"],
     ["R / wheel", "Turn what you are placing, or the item you are dragging"],
     ["B", "Board up the nearest opening; hold to pull a board"],
   ]],

@@ -14,15 +14,16 @@ A rule, not a list (Michael, 2026-10-11: "extend it to other items that can be p
 
 **Every entrance breaks** (Michael, 2026-10-17: "every entrance that you can use MUST be usable by zombies, and if something gates it it must be breakable by zombies. This stops a fortress."): a door and a window always have hit points, whatever they are made of (`createWall`; only a plain wall has none), so a door built in a stone wall is a stone door the dead can break, and no build can make an entrance they cannot. Placement therefore asks nothing more of a door than a wall does: a room with no door at all is a cell ("You just can't leave") and is allowed, and a door, a gate, or boards are always fine.
 
-## Removal
+## Take apart (the removal tool)
 
-The removal tool (Michael, 2026-10-11: "delete anything placed or built, highlight green, click to destroy"). **X** enters it, or the Remove row on the build palette; X, N, or Escape leaves it. Moving the cursor highlights the front-most thing under it that the player placed or built, in the ghost's green; red with "Too far" past `REMOVE_REACH`; a click destroys it instantly and the tool stays on.
+The removal tool (Michael, 2026-10-11: "delete anything placed or built, highlight green, click to destroy"), since `docs/43` section 2 (2026-10-25) **Take apart**, under the one word and the one rule the made prop's own menu has (`placement.takeApart`). **X** enters it, or the Take apart row on the build palette; X, N, or Escape leaves it. Moving the cursor highlights the front-most thing under it that the player made or built, in the ghost's green, and the prompt says what comes back ("Click to take apart door (1 plank back)"); red with the refusal ("Too far", "Empty it first.", the tool) otherwise; a click takes it apart instantly and the tool stays on.
 
 - **What can be removed** (Michael, 2026-10-15: what players made, never the village's own things): a prop made at a station (`made`, set when a station delivers it) and a wall, door, or window with `built` set (`placement.js`, `removalTarget`). Trees, the well, the hearth, the campfire, torch posts, and the cottage's own walls never highlight, so the tool is quiet over a forest.
-- **What it does:** a prop is removed from the map and a container spills what it held onto its tile; a wall is taken off its edge with its boards and bracket, and sight, light, rooms, and pathing update at once. Nothing is refunded.
+- **What it does:** it gives back **half the thing's materials, rounded down**: a prop's recipe (`data/recipes.json`, the row whose output is the prop; an ingredient named by a tag, the bed's cloth, gives nothing back), a wall's build entry (`data/build.json`), so a door gives one plank of three and a one-plank wall nothing. They go to the player's bag, and what does not fit to the floor at their feet. **A thing holding anything is refused** ("Empty it first."; a queue still running: "It is still making something."), so nothing is lost by accident (overturning 2026-10-15's spill). **A wall built while Free building was on** carries `free` and gives nothing back. A wall is taken off its edge with its boards and bracket, and sight, light, rooms, and pathing update at once.
+- **The menu:** a made prop's own menu offers **Take apart** too, its label naming what comes back ("Take apart (2 planks back)") or why not ("Take apart (empty it first)"); a guest's command by that label runs the same rule.
 - **Finding the target:** a prop by its tile or its drawn rectangle; a wall by its drawn face on screen, or by the ground edge the building tool would pick, a little behind a face hit. The front-most (highest tile sum) wins.
 - Hands full means no removal, like building.
-- **Tools** (the tool rule, #214, #215): Remove needs a smith's hammer carried (hand, belt, or bag), as does building a door or a window; a log wall needs a hatchet (`data/build.json` `tool`, a tool verb: `build`, `notch`). The shortfall line names it ("You need a smith's hammer.").
+- **Tools** (the tool rule, #214, #215): Take apart needs the tool the thing's recipe or build asks for, carried (hand, belt, or bag): a smith's hammer for furniture, a door, or a window, a hatchet for a log wall (`data/build.json` `tool`, a recipe's `uses`, a tool verb: `build`, `notch`). The shortfall line names it ("You need a smith's hammer.").
 
 ## Woods (#334)
 
@@ -30,7 +31,7 @@ Every wood and daub is a wall type of its own (`docs/02`, 2026-10-20), and a doo
 
 ## Free building
 
-The world rule `freeBuilding` (`rules.js`, default off; a host's rules bind its guests, and the settings screen's row is what a browser's own worlds take as their rule): while on, every build costs nothing, the palette shows "free", and nothing is taken from the bag. Build time still applies. It is for testing structures; turn it off to test the costs. **It waives the build tools too** (the hammer for a door, a window, and Remove; the hatchet for a log wall; #215), **but not boarding up or pulling a board**: Michael's 2026-10-11 ruling left boards out of it ("planks for boards are untouched"), and they stay a hammer's work.
+The world rule `freeBuilding` (`rules.js`, default off; a host's rules bind its guests, and the settings screen's row is what a browser's own worlds take as their rule): while on, every build costs nothing, the palette shows "free", and nothing is taken from the bag. Build time still applies. It is for testing structures; turn it off to test the costs. **It waives the build tools too** (the hammer for a door, a window, and Take apart; the hatchet for a log wall; #215), **but not boarding up or pulling a board**: Michael's 2026-10-11 ruling left boards out of it ("planks for boards are untouched"), and they stay a hammer's work.
 
 ## Accepted, and what is left for later
 

@@ -1,7 +1,11 @@
 // Doors, windows, and shutters built onto walls (Michael, 2026-10-17, #147): a door or a window is
 // built over a plain wall (the edge's kind and state set, the material kept, the wall remembered and put back by the removal
 // tool), or over a broken door or window as a new one, never a repair; a window is not built over a fence, a gate (a door)
-// is; a door or a window always has hit points, whatever the wall is made of; the removal tool keeps what was the player's.
+// is; a door or a window always has hit points, whatever the wall is made of; the removal tool keeps what was the player's. Then Take apart
+// (docs/43, section 2), with Free building off: a paid door gives half its planks back, rounded down, and the wall is back; a log wall asks for
+// its build's tool (a hatchet) and gives nothing back from one log; a door built free gives nothing; a made chest is refused while it holds
+// anything, taken apart empty by its menu's label (a guest's way) for half its planks, which a full bag drops at the feet; the village's own
+// chest is carried, never taken apart.
 // From the console, on a tab
 // with `?nosave`:
 //   await __game.check("build")
@@ -19,6 +23,11 @@ export async function run(game) {
   const meAt = [me.gx, me.gy];
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const made = [];
+  const props = [];
+  const bag = G.inventory.bagOf(me);
+  const bag0 = bag ? bag.items.slice() : [];
+  const counts0 = bag0.map((e) => [e, e.count]);
+  const hands0 = { main: me.hands.main, off: me.hands.off };
   try {
     G.loop.setPaused(true);
     G.rules.set({ freeBuilding: true, zombieAggro: false }); // each build runs five seconds of the world, and a bite from one of the dead that wanders up to the spot cancels the timed build (#349)
@@ -119,7 +128,81 @@ export async function run(game) {
     G.placement.performPlacement(me, { kind: "remove", target: { type: "wall", tx: again[0], ty: again[1], edge: "n" } });
     const filled = wallAt(again);
     row("and removing it puts the wall back, never a hole", filled && filled.kind === "wall", filled ? filled.kind : "a hole");
+
+    // ---- Take apart (docs/43, section 2), paid: Free building off.
+    G.rules.set({ freeBuilding: false });
+    const msg = () => (document.getElementById("message") || {}).textContent || "";
+    const planks = () => G.inventory.countItem(bag, "plank");
+    bag.items.length = 0;
+    me.hands.main = null;
+    me.hands.off = null;
+    G.inventory.addItem(bag, "hammer", 1);
+    G.inventory.addItem(bag, "plank", 3);
+    build("door", own); // over the player's own log wall: three planks paid
+    const paid = wallAt(own);
+    const paidOk = paid && paid.kind === "door" && !paid.free && planks() === 0;
+    G.teleport(own[0], own[1] + 1);
+    G.placement.performPlacement(me, { kind: "remove", target: { type: "wall", tx: own[0], ty: own[1], edge: "n" } });
+    const afterDoor = wallAt(own);
+    row("a paid door taken apart gives half its planks back, rounded down (one of three), and the wall is back", paidOk && planks() === 1 && afterDoor && afterDoor.kind === "wall" && /take the door apart: 1 plank/i.test(msg()), `paid ${paidOk}; ${planks()} plank back; the edge ${afterDoor ? afterDoor.kind : "empty"}; "${msg()}"`);
+    const logT = { type: "wall", tx: own[0], ty: own[1], edge: "n", wall: afterDoor };
+    const logWhy = G.placement.takeApartProblem(me, logT);
+    row("a log wall asks for the tool its build asks for (a hatchet, not the hammer), and gives nothing back from its one log", /hatchet/i.test(logWhy) && G.placement.partsOf(logT).back.length === 0, `"${logWhy}"; back ${JSON.stringify(G.placement.partsOf(logT).back)}`);
+    G.rules.set({ freeBuilding: true });
+    build("door", edgeAt(0));
+    G.rules.set({ freeBuilding: false });
+    const freeDoor = wallAt(edgeAt(0));
+    const p0 = planks();
+    G.teleport(edgeAt(0)[0], edgeAt(0)[1] + 1);
+    G.placement.performPlacement(me, { kind: "remove", target: { type: "wall", tx: edgeAt(0)[0], ty: edgeAt(0)[1], edge: "n" } });
+    row("a door built while Free building was on cost nothing, so taking it apart gives nothing back", freeDoor && freeDoor.free === true && planks() === p0 && wallAt(edgeAt(0)) && wallAt(edgeAt(0)).kind === "wall", `free ${freeDoor && freeDoor.free}; planks ${p0} then ${planks()}`);
+
+    // A made chest: refused while it holds anything; empty, taken apart by its menu label for half its planks.
+    const spot = [cx + 2, cy + 3];
+    const chestAt = (made, at = spot) => {
+      const q = G.map.createProp({ sprite: "chest", tile: at });
+      if (made) q.made = true;
+      q.bag = G.inventory.createBag(4, 3, "chest");
+      q.searched = true;
+      G.map.placeProp(q, at[0], at[1]);
+      props.push(q);
+      return q;
+    };
+    G.teleport(spot[0], spot[1] + 1.2);
+    step();
+    const chest = chestAt(true);
+    G.grid.add(chest.bag, "apple", 1);
+    const target = { kind: "prop", id: chest.id };
+    const fullLabels = G.interact.actionsForTarget(target, me).map((a) => a.label);
+    G.placement.performPlacement(me, { kind: "remove", target: { type: "prop", id: chest.id } });
+    const stillThere = G.map.propById(chest.id);
+    row("a made chest holding anything is not taken apart: its menu says to empty it, and the removal tool's click is refused", fullLabels.includes("Take apart (empty it first)") && !!stillThere && chest.bag.items.length === 1 && /Empty it first/.test(msg()), `${fullLabels.join(", ")}; still there ${!!stillThere}; "${msg()}"`);
+    chest.bag.items.length = 0;
+    const emptyLabel = G.interact.actionsForTarget(target, me).map((a) => a.label).find((l) => /^Take apart/.test(l));
+    const pBefore = planks();
+    const ran = emptyLabel ? G.interact.performByLabel(me, target, emptyLabel) : false;
+    step(5);
+    row("empty, it is taken apart by its menu's label (a guest's command), for half its four planks", emptyLabel === "Take apart (2 planks back)" && ran && !G.map.propById(chest.id) && planks() - pBefore === 2, `"${emptyLabel}"; ran ${ran}; gone ${!G.map.propById(chest.id)}; +${planks() - pBefore} planks`);
+    // A full bag: what does not fit lies at the feet.
+    const chest2 = chestAt(true);
+    let filled2 = 0;
+    for (let i = 0; i < 80; i++) filled2 += G.inventory.addItem(bag, "stone", 1);
+    const feet = [Math.round(me.gx), Math.round(me.gy)];
+    const floorBefore = G.map.itemsAt(feet[0], feet[1]).filter((e) => e.id === "plank").length;
+    G.placement.performPlacement(me, { kind: "remove", target: { type: "prop", id: chest2.id } });
+    const floorAfter = G.map.itemsAt(feet[0], feet[1]).filter((e) => e.id === "plank").length;
+    row("with the bag full, what comes back lies on the floor at the player's feet", !G.map.propById(chest2.id) && floorAfter - floorBefore === 2, `${filled2} stones filled the bag; ${floorAfter - floorBefore} planks at the feet`);
+    for (const e of G.map.itemsAt(feet[0], feet[1]).filter((q) => q.id === "plank")) G.map.takeItem(feet[0], feet[1], e);
+    bag.items.length = 0;
+    // The village's own chest: carried, never taken apart.
+    const village = chestAt(false);
+    const vLabels = G.interact.actionsForTarget({ kind: "prop", id: village.id }, me).map((a) => a.label);
+    row("the village's own chest is carried (Pick up), never taken apart", vLabels.some((l) => /^Pick up chest/.test(l)) && !vLabels.some((l) => /^Take apart/.test(l)), vLabels.join(", "));
   } finally {
+    for (const q of props) if (G.map.propById(q.id)) G.map.removeProp(q);
+    if (bag) { bag.items.splice(0, bag.items.length, ...bag0); for (const [e, n] of counts0) e.count = n; }
+    me.hands.main = hands0.main;
+    me.hands.off = hands0.off;
     for (const [x, y, e] of made) if (G.map.tileAt(x, y)[e]) G.map.destroyWall(x, y, e);
     G.teleport(meAt[0], meAt[1]);
     G.rules.set({ freeBuilding: free0, zombieAggro: aggro0 });
