@@ -14,6 +14,7 @@ import * as grid from "./grid.js";
 import * as paintings from "./paintings.js";
 import { getDef } from "./assets.js";
 import * as clock from "./clock.js";
+import { noteSnare } from "./entities/animal.js"; // the snares the step looks at (docs/45 section 2)
 import { reachProblem, TOO_FAR } from "./reach.js";
 import { showMessage } from "./ui/prompt.js";
 
@@ -85,6 +86,7 @@ export function place(player, uid, tx, ty) {
   const prop = map.createProp({ sprite: p.sprite, tile: [tx, ty], ...(snare ? { solid: false } : {}) }); // a snare is a stake and a noose: walked over
   if (!p.decoration) prop.made = true; // a player's own; a decoration is only picked up again, never taken apart
   if (snare) prop.snare = { setAt: clock.getElapsed(), holds: null }; // set from now: it holds a rabbit after a while (docs/45 section 2, animal.js)
+  if (snare) noteSnare(prop);
   map.placeProp(prop, tx, ty);
   showMessage(p.decoration ? `You set the ${items.getItem(entry.id).name.toLowerCase()} down as decoration.` : `You set the ${nameOf(p.sprite)} down.`);
   return true;

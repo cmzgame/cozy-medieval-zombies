@@ -165,7 +165,7 @@ export function guardAgainst(player, zombie, damage) {
     return damage;
   }
   player.stamina -= sh.stamina;
-  if (front) staggerZombie(zombie, sh.stagger, iso.normalize(zombie.gx - player.gx, zombie.gy - player.gy), sh.push ?? 0.25);
+  if (front && zombie.kind === "zombie") staggerZombie(zombie, sh.stagger, iso.normalize(zombie.gx - player.gx, zombie.gy - player.gy), sh.push ?? 0.25); // a boar's bite is met and nothing more (docs/45): an animal has no stagger
   loop.freeze(BLOW.hitStop * 0.6);
   kick(player);
   player.blockFlash = 0.14; // the shield's flash
@@ -202,8 +202,9 @@ function targetsIn(player, weapon, zombies, accept = () => true, limit = null) {
 }
 
 // The animals a blow reaches beside the dead (docs/45 section 2), handed in by game.js as the arrows' targets are: wild game takes a
-// blow as anything does; tame stock only when it is the one thing the blow would hit (the swing aimed at it), never one of several, so
-// a multi-hit swing among the dead passes the pen's cow by. The shove is for the dead alone.
+// blow as anything does; tame stock only when the blow has nothing else to hit (the swing aimed at it), and then the nearest one alone,
+// so a swing at one of the dead passes the pen's cow by in either Multi-hit mode, and a swing in a pen strikes one cow, never none (the
+// review of #456: as archery's bodyAt, the dead and the wild first, then the tame). The shove is for the dead alone.
 let animalList = () => [];
 export function setAnimals(fn) {
   animalList = fn;
@@ -213,8 +214,9 @@ function blowTargets(player, weapon, zombies) {
   const reach = weapon.range + BODY_SLACK + 1;
   const near = animalList().filter((a) => !a.dead && Math.abs(a.gx - player.gx) <= reach && Math.abs(a.gy - player.gy) <= reach);
   if (!near.length) return targetsIn(player, weapon, zombies);
-  const list = targetsIn(player, weapon, [...zombies, ...near]);
-  return list.length > 1 ? list.filter((t) => t.kind !== "animal" || animals.isWild(t)) : list;
+  const list = targetsIn(player, weapon, [...zombies, ...near.filter((a) => animals.isWild(a))]);
+  if (list.length) return list;
+  return targetsIn(player, weapon, near.filter((a) => !animals.isWild(a)), () => true, 1);
 }
 
 // Whether a blow pushes at all: the weapon's `knockbackChance` (default always).

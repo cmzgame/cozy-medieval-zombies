@@ -139,6 +139,7 @@ function ageSpeech(dt) {
 // living dead and the animals (docs/45 section 2). The lists are the world's own, read when a shot lands or a blow swings.
 function wireAnimals() {
   const S = state;
+  animal.resetSnares(map.allProps()); // the snares this world has, set before it was saved
   archery.setTargets(() => [...S.zombies, ...S.animals]);
   combat.setAnimals(() => S.animals);
   animal.setAnimalList(() => S.animals);
@@ -717,7 +718,7 @@ export function step(dt, snapshots = null) {
     // The snares, once a second of sim time (read from the sim's clock, so a restored world checks on the same steps): a catch, or set
     // again once its catch is taken. A change marks the snare's chunk, so a guest sees what it holds.
     if (Math.floor(loop.simTime()) !== Math.floor(loop.simTime() - dt)) {
-      const snares = [...map.allProps()].filter((p) => p.snare);
+      const snares = animal.setSnares(map.propById);
       if (snares.length) for (const pr of animal.snareStep(snares, S.animals, S.animalHomes, watching)) map.markDirty(pr.tile[0], pr.tile[1]);
     }
   }

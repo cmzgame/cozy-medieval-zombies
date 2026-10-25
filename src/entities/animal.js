@@ -405,13 +405,17 @@ function animalOf(target) {
   return id ? animalList().find((a) => a.id === id) || null : null;
 }
 
-// A yield's count: rolled in its range, then the share the kill left (`kills`), rounded.
+// A yield's count: rolled in its range, then the share the kill left (`kills`) taken as its expected value, the whole part and one more
+// at the chance of the rest (Primary's default, the review of #456: rounding gave every one-count yield, a hide or a rabbit's meat, the
+// same whatever the weapon). The generator is asked for the rest only when there is one.
 function rollYields(a, how) {
   const share = killShare(a.killedBy || "melee");
   const out = [];
   for (const y of (speciesOf(a.species).yields || {})[how] || []) {
     const [lo, hi] = y.count;
-    const n = Math.round((lo + rng.int(hi - lo + 1)) * share);
+    const e = (lo + rng.int(hi - lo + 1)) * share;
+    const whole = Math.floor(e + 1e-9);
+    const n = whole + (e - whole > 1e-9 && rng.float() < e - whole ? 1 : 0);
     if (n > 0) out.push({ id: y.id, count: n });
   }
   return out;
@@ -550,7 +554,28 @@ export function renewHomes(homes, animals, players) {
 // dead, within `renew.clear` of the rabbit or of the snare (nothing materialises in view). The rabbit is the home's own, so the home
 // renews it in time: hunting by snare is renewal, never endless. The catch is a carcass (killed by the snare, its whole yield) lying on
 // the snare; once it is butchered the snare is set again. Run once a second of sim time by game.js; returns the snares it changed.
-const HOUR = 30; // clock seconds in a game hour (clock.DAY_LENGTH 720 / 24)
+export const GAME_HOUR = clock.DAY_LENGTH / 24; // clock seconds in a game hour
+const HOUR = GAME_HOUR;
+
+// The snares set in the world, by prop id: noted when one is set (setdown.js) and read again from the map when a world is made or put
+// back (game.js), so the step looks at a handful of props, never every tree; one gone from the map drops out at the next look.
+const snareIds = new Set();
+export function noteSnare(prop) {
+  if (prop && prop.snare) snareIds.add(prop.id);
+}
+export function resetSnares(props) {
+  snareIds.clear();
+  for (const p of props) if (p.snare) snareIds.add(p.id);
+}
+export function setSnares(byId) {
+  const out = [];
+  for (const id of snareIds) {
+    const p = byId(id);
+    if (p && p.snare) out.push(p);
+    else snareIds.delete(id);
+  }
+  return out;
+}
 export function snareStep(snares, animals, homes, watchers) {
   const changed = [];
   const now = clock.getElapsed();

@@ -31,6 +31,7 @@ export async function run(game) {
   const saved = { gx: me.gx, gy: me.gy, hp: me.hp, stamina: me.stamina, aim: { ...me.aim }, main: me.hands.main, off: me.hands.off, bag: JSON.parse(JSON.stringify(inventory.bagOf(me).items)), clock: clock.getElapsed(), paused: G.loop.isPaused(), aggro: G.rules.rules.zombieAggro, multi: G.rules.rules.multiHit };
   const ids0 = new Set(S.animals.map((a) => a.id));
   const zombies0 = S.zombies.slice();
+  const restoreAfter = [];
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const spawn = (species, gx, gy) => { const a = A.createAnimal(species, gx, gy, { home: [gx, gy] }); a.idleTimer = 999; S.animals.push(a); return a; };
   const face = (t) => {
@@ -71,6 +72,7 @@ export async function run(game) {
     // row), since the point is the blow, not the stalk.
     const deerSp = A.speciesOf("deer");
     const flee0 = deerSp.flee;
+    restoreAfter.push(() => { deerSp.flee = flee0; });
     deerSp.flee = null;
     hold("sword");
     const d1 = spawn("deer", fx + 1, fy);
@@ -95,22 +97,35 @@ export async function run(game) {
     row("an arrow's kill is the bow's, and the arrow stays in it", d3.dead && d3.killedBy === "bow" && (d3.lodged && d3.lodged.arrow >= 1), `killed by ${d3.killedBy}, lodged ${JSON.stringify(d3.lodged || {})}, landed ${landed ? (landed.hit ? landed.hit.kind : "on nothing") : "never"}`);
     deerSp.flee = flee0;
 
-    // ---- livestock is hurt only on purpose ----
-    G.rules.rules.multiHit = true;
+    // ---- livestock is hurt only on purpose, in either Multi-hit mode (off is the intended way to play) ----
     hold("sword");
-    const cow = spawn("cow", fx + 1, fy - 0.4);
-    const z = createZombie(fx + 1, fy + 0.4, { aggro: false });
-    z.state = "idle";
-    S.zombies.push(z);
-    const cowHp = cow.hp;
-    const zHp = z.hp;
-    swing({ gx: fx + 1, gy: fy });
-    step(40);
-    const passed = cow.hp === cowHp && z.hp < zHp;
-    S.zombies.splice(S.zombies.indexOf(z), 1);
-    swing(cow);
-    step(40);
-    row("a multi-hit swing among the dead passes a tame cow by; aimed at the cow alone, it hurts it", passed && cow.hp < cowHp, `with one of the dead beside it: cow ${cowHp} to ${passed ? cowHp : "?"}, the dead one ${zHp} to ${z.hp}; then alone: cow ${cow.hp}`);
+    const dropAnimal = (a) => { const i = S.animals.indexOf(a); if (i >= 0) S.animals.splice(i, 1); };
+    for (const multi of [false, true]) {
+      G.rules.rules.multiHit = multi;
+      // One of the dead straight ahead and a cow nearer, off to the side within the wedge: the swing aimed at the dead one.
+      const z = createZombie(fx + 1.3, fy, { aggro: false });
+      z.state = "idle";
+      S.zombies.push(z);
+      const cow = spawn("cow", fx + 0.85, fy + 0.3);
+      const zHp = z.hp;
+      swing(z);
+      step(40);
+      const side = `cow ${cow.hp} of ${cow.maxHp}, the dead one ${zHp} to ${z.hp}`;
+      const passed = cow.hp === cow.maxHp && z.hp < zHp;
+      S.zombies.splice(S.zombies.indexOf(z), 1);
+      dropAnimal(cow);
+      // Two cows in a pen, 0.7 tiles apart, the swing aimed at the nearer: it strikes that one, and only it.
+      const cowA = spawn("cow", fx + 1, fy);
+      const cowB = spawn("cow", fx + 1.4, fy + 0.55);
+      swing(cowA);
+      step(40);
+      const pen = `the aimed cow ${cowA.hp}, the other ${cowB.hp}`;
+      const struck = cowA.hp < cowA.maxHp && cowB.hp === cowB.maxHp;
+      dropAnimal(cowA);
+      dropAnimal(cowB);
+      row(`Multi-hit ${multi ? "on" : "off"}: a swing at one of the dead passes a nearer cow by, and a swing into a pen strikes the cow aimed at and no other`, passed && struck, `${side}; ${pen}`);
+    }
+    G.rules.rules.multiHit = true;
     const wildRabbit = spawn("rabbit", fx + 1, fy + 0.6);
     A.speciesOf("rabbit").flee && (wildRabbit.lookTimer = 99);
     const z2 = createZombie(fx + 1, fy - 0.6, { aggro: false });
@@ -157,6 +172,22 @@ export async function run(game) {
     G.teleport(fx + 30, fy);
     for (let i = 0; i < 60 * 3 && boar.state === "charge"; i++) step();
     row("it gives up past its giving-up distance", boar.state !== "charge", `state ${boar.state}`);
+    // A shield met the bite: the guard takes it, and the boar is not staggered as one of the dead would be (it has no stagger, and no hurt pose).
+    {
+      const shield = items.makeEntry("shield", 1);
+      const off0 = me.hands.off;
+      me.hands.off = shield;
+      me.blocking = true;
+      me.stamina = 100;
+      boar.gx = me.gx + 1;
+      boar.gy = me.gy;
+      face(boar);
+      const taken = combat.guardAgainst(me, boar, 10);
+      const clean = boar.stagger === undefined && boar.knock === undefined && boar.anim.name !== "hurt";
+      me.blocking = false;
+      me.hands.off = off0;
+      row("a shield meets the boar's bite, and the boar is not staggered as the dead are", taken < 10 && clean, `took ${taken} of 10; stagger ${boar.stagger}, anim ${boar.anim.name}`);
+    }
     G.teleport(fx, fy);
     step();
     me.hp = hp0;
@@ -165,6 +196,10 @@ export async function run(game) {
     row("a deer struck runs (it never fights)", deerCharge.state === "flee" || deerCharge.state === "alert", deerCharge.state);
 
     // ---- skinning and butchering, by the labels a guest sends ----
+    // The deer's venison fixed at four for these rows, so the shares tell apart: a bow's four, a melee kill's three, a halberd's none.
+    const deerYields = deerSp.yields;
+    restoreAfter.push(() => { deerSp.yields = deerYields; });
+    deerSp.yields = { skin: deerYields.skin, butcher: [{ id: "venison_raw", count: [4, 4] }] };
     const knife = items.makeEntry("knife", 1);
     hold(null);
     for (const a of [d1, d2, d3]) { a.gx = fx + 1; a.gy = fy; }
@@ -180,7 +215,7 @@ export async function run(game) {
     work(A.workSeconds("butcher"));
     const venMelee = bagCount("venison_raw") - ven0;
     step(2);
-    row("a dirk carried, Skin then Butcher by their labels: a hide, and a melee kill's venison (three quarters of 3 to 4, rounded)", d1.skinned && skinnedHide === 1 && venMelee >= 2 && venMelee <= 3 && !S.animals.includes(d1), `hide +${skinnedHide}, venison +${venMelee}, the carcass ${S.animals.includes(d1) ? "still listed" : "gone from the list"}`);
+    row("a dirk carried, Skin then Butcher by their labels: a melee kill's hide (three quarters of one: one or none by the chance of the rest) and three quarters of four venison, three", d1.skinned && skinnedHide <= 1 && venMelee === 3 && !S.animals.includes(d1), `hide +${skinnedHide}, venison +${venMelee}, the carcass ${S.animals.includes(d1) ? "still listed" : "gone from the list"}`);
     const ven1 = bagCount("venison_raw");
     const arrows0 = bagCount("arrow");
     byLabel(d3, "Skin the deer");
@@ -188,7 +223,7 @@ export async function run(game) {
     byLabel(d3, "Butcher the deer");
     work(A.workSeconds("butcher"));
     const venBow = bagCount("venison_raw") - ven1;
-    row("a bow's kill gives the whole yield, and its arrow comes back with the meat", venBow >= 3 && venBow <= 4 && bagCount("arrow") - arrows0 >= 1, `venison +${venBow}, arrows +${bagCount("arrow") - arrows0}`);
+    row("a bow's kill gives the whole yield, four of four, and its arrow comes back with the meat", venBow === 4 && bagCount("arrow") - arrows0 >= 1, `venison +${venBow}, arrows +${bagCount("arrow") - arrows0}`);
     const hide2 = bagCount("hide");
     const ven2 = bagCount("venison_raw");
     byLabel(d2, "Skin the deer");
@@ -217,10 +252,16 @@ export async function run(game) {
     // ---- the carcass in the record and the sync part ----
     const boarDead = spawn("boar", fx + 2, fy);
     A.damageAnimal(boarDead, 99, { by: me, cls: "thrown" });
-    const parts = G.game.syncParts();
     const rec = A.serializeAnimal(boarDead);
     const back = A.restoreAnimal(JSON.parse(JSON.stringify(rec)));
-    row("a carcass's class and skinning are in its record and come back; the sync part names them", rec.killedBy === "thrown" && back.dead && back.killedBy === "thrown" && back.skinned === false && typeof parts.animals === "string", `record ${rec.killedBy}/${rec.skinned}, restored ${back.killedBy}/${back.skinned}`);
+    const h0 = G.game.syncParts().animals;
+    boarDead.killedBy = "bow";
+    const h1 = G.game.syncParts().animals;
+    boarDead.skinned = true;
+    const h2 = G.game.syncParts().animals;
+    boarDead.killedBy = "thrown";
+    boarDead.skinned = false;
+    row("a carcass's class and skinning are in its record and come back, and the sync part's hash moves with each", rec.killedBy === "thrown" && back.dead && back.killedBy === "thrown" && back.skinned === false && h0 !== h1 && h1 !== h2 && h2 !== h0, `record ${rec.killedBy}/${rec.skinned}, restored ${back.killedBy}/${back.skinned}; the animals part ${h0}, then ${h1} (bow), then ${h2} (skinned)`);
 
     // ---- snares ----
     const snareRow = stations.recipes().find((r) => r.out && r.out.id === "snare");
@@ -235,7 +276,7 @@ export async function run(game) {
       const home = { id: "hsnare", species: "rabbit", at: [fx + 6, fy + 2], count: 1, cap: 1, renew: true, nextAt: null };
       const rab = spawn("rabbit", fx + 6, fy + 2);
       rab.homeId = "hsnare";
-      const H = 30;
+      const H = A.GAME_HOUR;
       clock.setElapsed(prop.snare.setAt + A.snareRule().hours * H - 5);
       const early = A.snareStep([prop], S.animals, [home], []).length;
       clock.setElapsed(prop.snare.setAt + A.snareRule().hours * H + 5);
@@ -271,8 +312,8 @@ export async function run(game) {
     for (const id of ["hen_raw", "rabbit_raw", "venison_raw", "beef_raw", "mutton_raw", "pork_raw", "bacon", "lard", "hide", "feather", "snare"]) cards[id] = info.textOf(info.cardFor(items.makeEntry(id, 1))).join(" / ");
     const want = {
       venison_raw: [/Eat: heals 1, fills hunger 14/, /Butchered from a deer, a dirk carried/],
-      pork_raw: [/Butchered from a boar and a pig/],
-      hide: [/Skinned from a rabbit, a deer, a boar, a cow and a sheep, a dirk carried/],
+      pork_raw: [/Butchered from a boar or a pig/],
+      hide: [/Skinned from a rabbit, a deer, a boar, a cow or a sheep, a dirk carried/],
       feather: [/Butchered from a hen/],
       bacon: [/Butchered from a pig/],
       lard: [/Butchered from a pig/],
@@ -283,6 +324,7 @@ export async function run(game) {
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message + (e.stack ? " " + e.stack.split("\n")[1] : "") });
   } finally {
+    for (const r of restoreAfter.reverse()) r();
     S.animals.splice(0, S.animals.length, ...S.animals.filter((a) => ids0.has(a.id)));
     S.zombies.splice(0, S.zombies.length, ...zombies0);
     inventory.bagOf(me).items = saved.bag;

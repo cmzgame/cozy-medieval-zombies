@@ -275,7 +275,7 @@ map.setHolder(mountTarget, false); did("the torch taken out");
   if (!at || !setdown.place(me, sn.uid, at[0], at[1])) fail("the snare could not be set beside the rabbits' home");
   did("a snare set");
   const snare = map.tileAt(at[0], at[1]).prop;
-  clock.setElapsed(snare.snare.setAt + animal.snareRule().hours * 30 + 1);
+  clock.setElapsed(snare.snare.setAt + animal.snareRule().hours * animal.GAME_HOUR + 1);
   me.gx += 70; // nobody near to see the catch
   did("a snare holding a rabbit", 70);
   const caught = game.state.animals.find((q) => q.id === snare.snare.holds);

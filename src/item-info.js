@@ -45,8 +45,8 @@ function listOf(names) {
 }
 
 const an = (n) => `${/^[aeiou]/.test(n) ? "an" : "a"} ${n}`;
-function listAnd(names) {
-  return names.length <= 1 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+function listOr(names) {
+  return names.length <= 1 ? names.join("") : `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}`;
 }
 function getDefSafe(id) {
   try {
@@ -167,8 +167,8 @@ export function cardFor(entry) {
   if (from.length) {
     const how = (h) => from.filter((f) => f.how === h).map((f) => f.species);
     const bits = [];
-    if (how("skin").length) bits.push(`skinned from ${listAnd(how("skin").map(an))}`);
-    if (how("butcher").length) bits.push(`butchered from ${listAnd(how("butcher").map(an))}`);
+    if (how("skin").length) bits.push(`skinned from ${listOr(how("skin").map(an))}`);
+    if (how("butcher").length) bits.push(`butchered from ${listOr(how("butcher").map(an))}`);
     lines.push(line(`${cap(bits.join("; "))}, a dirk carried.`));
   }
   if (def.place && getDefSafe(def.place) && getDefSafe(def.place).snare) {
