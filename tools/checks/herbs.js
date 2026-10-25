@@ -24,6 +24,7 @@ export async function run(game, opts = {}) {
   const info = await import("/src/item-info.js");
   const panel = await import("/src/ui/inventory-panel.js");
   const art = await import("/src/gather-art.js");
+  const reach = await import("/src/reach.js");
   const RES = G.tuning.resources;
   const HERBS = ["sage", "nettle", "feverfew", "yarrow", "woad", "madder", "weld", "mana_herb", "nightshade", "wolfsbane", "grave_moss"];
   const ITEMS = [...HERBS, "mushroom", "clay", "salt"];
@@ -238,12 +239,13 @@ export async function run(game, opts = {}) {
         for (let y = 0; y < r.h; y++) for (let x = 0; x < r.w; x++) {
           const hits = G.interact.hitsAt(r.x + x + 0.5, r.y + y + 0.5, () => true);
           if (hits.length < 2 || !hits[0].crown) continue;
-          const small = hits.find((h) => h.prop.interactable && !isTreeProp(h.prop));
-          if (small && small.prop === p) return { x, y, tree: hits[0].prop };
+          const behind = hits.find((h) => !h.crown); // the first thing behind the crown that is not a crown (a trunk or a non-interactable prop blocks)
+          if (behind && behind.prop === p) return { x, y, tree: hits[0].prop };
         }
         return null;
       };
       let coveredClick = null;
+      const skipped = []; // nodes under a crown out of reach from their stand spot
       for (const p of [...herbNodes, ...nodesOf(kinds.mushrooms)]) {
         let treeNearer = false;
         for (let dy = 0; dy <= 6 && !treeNearer; dy++) for (let dx = -1; dx <= 6 && !treeNearer; dx++) {
@@ -257,7 +259,9 @@ export async function run(game, opts = {}) {
         G.teleport(p.tile[0], p.tile[1] + 2);
         me.auto = null;
         G.loop.advance(1 / 60);
+        if (!reach.canReach(me, p.tiles, G.interact.CLICK_REACH)) { skipped.push(`${p.sprite} at ${p.tile}`); continue; } // out of reach from the stand spot (a wall, a fence between): the next node
         p.pokedAt = undefined;
+        u.tree.pokedAt = undefined; // a saved stamp on the tree would read as this click's
         const r = G.placement.propRect(p, p.tile[0], p.tile[1]);
         const sx = r.x + u.x + 0.5;
         const sy = r.y + u.y + 0.5;
@@ -267,7 +271,7 @@ export async function run(game, opts = {}) {
         coveredClick = { p, tree: u.tree, ok: !!still[0] && still[0].crown && found === p && poked === p && Number.isFinite(p.pokedAt) && !Number.isFinite(u.tree.pokedAt), detail: `${p.sprite} at ${p.tile} under ${u.tree.sprite} at ${u.tree.tile}: front ${still[0] ? `${still[0].prop.sprite}${still[0].crown ? " (crown)" : ""}` : "nothing"}, found ${found && found.sprite}, pokedAt ${p.pokedAt}` };
         break;
       }
-      row("a click on a point of an herb or a mushroom that a tree's crown covers finds the node and sways it, not the tree", !!coveredClick && coveredClick.ok, coveredClick ? coveredClick.detail : "no node under a crown found among the world's herbs and mushrooms");
+      row("a click on a point of an herb or a mushroom that a tree's crown covers finds the node and sways it, not the tree", !!coveredClick && coveredClick.ok, `${coveredClick ? coveredClick.detail : "no node under a crown, within reach of its stand spot, among the world's herbs and mushrooms"}${skipped.length ? `; out of reach first: ${skipped.slice(0, 3).join(", ")}${skipped.length > 3 ? ` and ${skipped.length - 3} more` : ""}` : ""}`);
       const herb = nodesOf(kinds.yarrow)[0];
       const bank0 = bankClick.p || nodesOf(kinds.clay)[0];
       for (const p of [herb, bank0]) p.pokedAt = undefined;

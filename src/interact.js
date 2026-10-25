@@ -1697,7 +1697,8 @@ function alphaOf(sheet) {
 // A tree's bare trunk in its own frame, so the pixel hit can tell the crown from it: scanning up from the foot (the frame's lowest solid row),
 // the trunk is every row no wider than twice the foot's span (or three quarters of the widest row, for a dev tree's root flare), and in those
 // rows only the foot's columns, a pixel either side; every other solid pixel is the crown. Solid is an alpha of half or more, so the faint
-// ground shadow a dev tree draws is neither. Read from the picture, so delivered art and the dev trees alike need no field. Cached per frame.
+// ground shadow a dev tree draws is neither. Read from the picture, so delivered art and the dev trees alike need no field. Worked out once
+// per sheet and frame name and kept (a sheet's pixels do not change), never per rendered frame.
 const trunks = new Map(); // sheet -> Map(frame name -> { line, l, r }): rows below `line`, columns l to r, are the trunk
 function trunkOf(sheet, name) {
   let byName = trunks.get(sheet);
@@ -1775,17 +1776,21 @@ export function hitsAt(sx, sy, wanted = (prop) => prop.interactable) {
 // The one thing under the cursor by its pixels: the click's sway (pokeAt), the right-click menu's first target (menuActions), Object
 // Highlight's prop (highlight.js), and Use mode's prop, all through this one rule. The frontmost hit, except that a tree's crown does not
 // hide a gatherable behind it (bugs.md, 2026-10-25: a mushroom or an herb under a crown a tile nearer could not be clicked; mushrooms always
-// grow within two tiles of a tree): when the frontmost pixel is a crown, the frontmost interactable that is not a tree with a solid pixel at
-// the same point wins. A crown with nothing small behind it is still the tree, and the trunk always is, so a tree over a mushroom is still
-// clicked for its Chop or its sticks on its trunk or on any crown pixel clear of the small thing.
+// grow within two tiles of a tree): when the frontmost pixel `wanted` takes is a crown, the first thing behind it at the same point that is
+// not a crown wins if it is an interactable that is not a tree (an herb, a mushroom, a crop, a rock, a sapling, a stump, the beehive) and
+// `wanted` takes it; anything else there (another tree's trunk, a prop that is not interactable) blocks, and the crown is the answer. The
+// look behind reads every prop whatever `wanted` says, so the click (interactables only) and Object Highlight (anything) agree on what blocks.
+// A crown with nothing behind it is still the tree, and the trunk always is, so a tree over a mushroom is still clicked for its Chop or its
+// sticks on its trunk or on any crown pixel clear of the small thing.
 export function interactableAt(sx, sy, wanted = (prop) => prop.interactable) {
-  const hits = hitsAt(sx, sy, wanted);
-  if (!hits.length) return null;
-  if (hits[0].crown) {
-    const small = hits.find((h) => h.prop.interactable && !isTree(h.prop));
-    if (small) return small.prop;
+  const all = hitsAt(sx, sy, () => true);
+  const i = all.findIndex((h) => wanted(h.prop));
+  if (i < 0) return null;
+  if (all[i].crown) {
+    const next = all.slice(i + 1).find((h) => !h.crown);
+    if (next && next.prop.interactable && !isTree(next.prop) && wanted(next.prop)) return next.prop;
   }
-  return hits[0].prop;
+  return all[i].prop;
 }
 
 // Poke the interactable under the cursor: the thing found, or null. It sways
@@ -2128,9 +2133,12 @@ export function actionsForProp(prop, player) {
   return tag(propActions(prop, player), onProp(prop));
 }
 
-// The right-click menu's actions at a canvas point, given the thing the click found by its pixels (pokeAt's answer, or null). With one,
-// Walk here is dropped and that thing's own actions stand first among the props' (before a tree whose sprite rectangle also covers the
-// point, as a crown over a mushroom does), and another's action with the same label gives way to it; with none, it is actionsAt's list.
+// The right-click menu's actions at a canvas point, given the thing the click found by its pixels (pokeAt's answer, or null); with none,
+// it is actionsAt's list unchanged. With one: every walk action (Walk here) is dropped, as is any action of another target whose label
+// one of the thing's own has; the thing's own actions (actionsForProp, addressed by its id) are taken out of where actionsAt put them and
+// put where the list's first remaining prop-addressed action stood, so after the tile's items, water, and farm actions and before any
+// other prop's (a tree whose sprite rectangle also covers the point, as a crown over a mushroom does; a rug under the tile), or at the end
+// when no prop-addressed action is left.
 export function menuActions(sx, sy, player, poked) {
   const actions = actionsAt(sx, sy, player);
   if (!poked) return actions;

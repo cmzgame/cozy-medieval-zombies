@@ -149,7 +149,8 @@ export async function run(game) {
         const sx = hr.x + px + 0.5;
         const sy = hr.y + py + 0.5;
         const hits = G.interact.hitsAt(sx, sy, () => true);
-        if (hits.length >= 2 && hits[0].prop === tree && hits[0].crown && hits.some((h) => h.prop === hid)) covered.push([sx, sy]);
+        const behind = hits.find((h) => !h.crown); // the first thing behind the crown that is not a crown: the one that may win
+        if (hits.length >= 2 && hits[0].prop === tree && hits[0].crown && behind && behind.prop === hid) covered.push([sx, sy]);
       }
       row("a mushroom a tile behind a tree has points its crown covers (the frontmost pixel there is the crown, not the trunk)", covered.length > 0, `${covered.length} covered points of the mushroom's`);
       // A crown pixel with nothing small behind it is still the tree; so is its trunk.
