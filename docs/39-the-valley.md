@@ -154,11 +154,11 @@ One panel for every station; ingredients from the bag, the belt, and every conta
 - **Charcoal clamp** [built] (the smithy's yard, three at the burners): three charcoal from four logs over half a game day, lit, a log of fuel a day. Unlock: Blacksmithing 1 (ruled 2026-10-23).
 - **Dye vats** [change] (three in the weaver's yard, all three usable): Crafting 3 unlocks a picker like a stripped-down character creation, each garment's regions and allowed colours or schemes its own data (2026-10-25, `43` section 8); whether a dye costs a plant waits for #288.
 - **Cauldron** [to build] (the witch's at the mere, `docs/30`): potions (Potions 1 on), section 5.8. The witch keeps it and teaches Potions (ruled 2026-10-19).
-- **Smoking rack** [to build] (the hunter's lodge): smoked meat and fish (Cooking 5).
+- **Smoking rack** [built, #445: made at the workbench as a workstation of your own; smoked meat, a raw meat and a log] (the hunter's lodge's [to build]): smoked meat and fish (Cooking 5) [smoked fish to build].
 - **Composter** [to build] (Farming 4): rotten food, rotten fish, or bonemeal in; compost, and a better fertiliser from bonemeal, out at its own pace.
 - **Drying rack** [to build] (Herbalism 4): dried herbs that never rot.
 - **Cider press** [to build] (the orchard, `docs/30`): cider from apples (Cooking 3; ruled 2026-10-23). Ale is cut from 1.0 with hops.
-- **Tanning** [to build] (Crafting 3): hides to leather at a tanning vat (ruled 2026-10-23).
+- **Tanning** [built, #445: a tanning vat made at the workbench; a hide to leather] (Crafting 3): hides to leather at a tanning vat (ruled 2026-10-23).
 - **Jugs and jars** [to build]: no kiln; clay (Mining 3) is shaped at the workbench (Crafting 1) and fired in any oven (ruled 2026-10-23).
 - **Gem cutting** (Mining 4: "finding and chiselling") [open #281: a tool or a station, which skill].
 - **Building a station** of your own: section 2.
@@ -232,7 +232,7 @@ The numbers are each weapon's block in `data/items.json` and `data/combat.json`.
 
 **Ranged**
 - **Hunting bow** [built]: Ranged 1; made at the workbench [change: Crafting 4, a bow from each wood: oak the basic, mahogany a better one].
-- **Arrows** [built]: five from a stick at the workbench [change: Crafting 4, fletched with feathers and bound with fish glue]; lodged arrows return in a body's loot; picked up again 25% of the time when missed (Ranged 5) [to build].
+- **Arrows** [built]: five from a stick and a feather at the workbench, fletched [built, #445] [change: Crafting 4, bound with fish glue]; lodged arrows return in a body's loot; picked up again 25% of the time when missed (Ranged 5) [to build].
 - **Fire arrows** [built]: arrows dipped in a lit fire.
 - **Throwing knives** [change: they throw, Ranged 3]: art only today; the Developer Chest only. The bandits' camp (`docs/29-world/08`) and Blacksmithing 3 (ruled 2026-10-23).
 - **Throwing axes** [change: they throw, Ranged 6]: as the knives; the woodcutters' camp and Blacksmithing 3 (ruled 2026-10-23).
@@ -307,11 +307,11 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 - **Tomato** [to build]: Farming 5.
 - **Mushrooms, eaten or cooked** [to build]: Herbalism 3 (some for Cooking).
 - **Eggs** [built, #444]: laid by a fed hen into its coop (Beastlore 1, `45`).
-- **Raw meat** [built, #443: butchered, eaten raw; cooked alone and in recipes, to build, `45` step 4]: hen, rabbit (Beastlore 3's snares), venison (the deer), beef (cows), mutton (sheep), pork (pigs and boar, Beastlore 7); each cooked alone at a fire or used raw in recipes (`45` section 4). **Bacon and lard** from a pig (Beastlore 7) (`45`) [built, #443].
+- **Raw meat** [built, #443: butchered, eaten raw; cooked alone at a fire and in recipes, #445]: hen, rabbit (Beastlore 3's snares), venison (the deer), beef (cows), mutton (sheep), pork (pigs and boar, Beastlore 7); each cooked alone at a fire or used raw in recipes (`45` section 4). **Bacon and lard** from a pig (Beastlore 7) (`45`) [built, #443].
 - **Milk** [built, #444: a jug, a bucket carried]: cows (Beastlore 4).
 - **Honey** [built, #410]: the hive (Beastlore 5), a pot every three game days (*default*); never rots.
-- **Wheel of cheese** [built]: chests, pantries, and the inn's counter only [change: made from milk (Beastlore 4) at Cooking 3 (ruled 2026-10-23)].
-- **Butter** [to build]: from milk.
+- **Wheel of cheese** [built]: chests, pantries, and the inn's counter, and made from two jugs of milk at a fire (Cooking 3, open until the skills) [built, #445].
+- **Butter** [built, #445]: churned from milk at the workbench.
 - **Frostroot** (the Pale Reach's seed, Farming 8): a name only.
 
 **Cooked**
@@ -319,16 +319,16 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 - **Grilled perch, grilled trout, grilled carp** [built]: at a fire (Cooking 1).
 - **Porridge** [built]: two grain at a fire (Cooking 1).
 - **Loaf of bread** [built]: two flour at the oven (Cooking 1); the kit, the home chest, chests, pantries, the inn's counter, and the body loot.
-- **Stew** [built]: two potatoes, a cabbage, garlic at a fire [change: a plain pottage at Cooking 1 keeps the day-one recipe, with a meat pottage beside it once there is meat; the hearty stew with its buff is Cooking 4, any meat (ruled 2026-10-23; `45`)].
+- **Stew** [built; the plain pottage since #445, the meat pottage and the hearty stew beside it, the stew's buff to build]: two potatoes, a cabbage, garlic at a fire [change: a plain pottage at Cooking 1 keeps the day-one recipe, with a meat pottage beside it once there is meat; the hearty stew with its buff is Cooking 4, any meat (ruled 2026-10-23; `45`)].
 - **Pumpkin pie** [built]: a pumpkin and flour at the oven [change: Cooking 6].
 - **Seasoned dishes** [to build]: herbs and garlic, a little more healing (Cooking 3).
 - **Tomato soup** [to build]: Cooking 3.
-- **Salted food and smoked food** [to build]: Cooking 5 (Mining 3's salt; the smoking rack).
+- **Salted food and smoked food** [smoked meat built, #445; salted to build]: Cooking 5 (Mining 3's salt; the smoking rack).
 - **Pizza** [to build]: flour, tomato, cheese (Cooking 6).
-- **Pemmican** [to build]: meat, a plant, a binder (lard or honey), small, and the only food that stacks, keeps all but forever (Cooking 7).
-- **Eggs and bacon** [to build] (Beastlore 7): Cooking 4 (ruled 2026-10-23).
+- **Pemmican** [built, #445: a raw meat, garlic or a cabbage, lard or honey, at a fire; stacks twenty]: meat, a plant, a binder (lard or honey), small, and the only food that stacks, keeps all but forever (Cooking 7).
+- **Eggs and bacon** [built, #445: two eggs and bacon at a fire] (Beastlore 7): Cooking 4 (ruled 2026-10-23).
 - **Cooked meats** [to build]: Cooking 1 (ruled 2026-10-23).
-- **Meat pie** [to build]: at the oven, raw meat and flour (`45`, a default).
+- **Meat pie** [built, #445]: at the oven, raw meat and flour (`45`, a default).
 - **The feast** [to build]: a great meal laid on a table; the best food buffs in the game, to everyone who eats from it (Cooking 10).
 - **Cooks two at a time** (Cooking 6), **heals 25% more and keeps you well fed longer** (Cooking 9) [to build].
 - **Frostroot stew** (Cooking 8, the Pale Reach): a name only.
@@ -388,11 +388,11 @@ All [to build]: brewed at a cauldron from Herbalism's herbs and secondaries; dru
 - **Compost and a better fertiliser** [to build]: the composter (Farming 4).
 - **Herbs** [built, #448]: Herbalism 1, 4, 5, 7 (section 4); no use yet. **Dried herbs, cuttings, herb seeds** [to build]: Herbalism 4, 6. **Mushroom** [built, #448]: foraged (Herbalism 3); no use yet.
 - **Rotten food, rotten fish** [to build]: what rot leaves (#264); the composter takes them.
-- **Hides** [built, #443] **and leather** [to build]: skinned (Beastlore 2), tanned (Crafting 3).
+- **Hides** [built, #443] **and leather** [built, #445]: skinned (Beastlore 2), tanned (Crafting 3).
 - **Feathers** [built: a butchered hen's, #443; a fed hen's most days, #444]: generous, so arrows can be farmed: a fed hen a feather most days, a butchered hen three to five; one fletches five arrows (`45`).
-- **Wool** [built, #444] **and woollen cloth** [to build]: sheep (Beastlore 4), Crafting 6.
+- **Wool** [built, #444] **and woollen cloth** [built, #445: yarn at the spinning wheel, cloth at the loom; warm clothes to build]: sheep (Beastlore 4), Crafting 6.
 - **Honey and wax**: the hive (Beastlore 5) [honey built, #410]; wax for candles [to build].
-- **Lard** [to build]: pigs (Beastlore 7); pemmican's binder.
+- **Lard** [built, #443]: pigs (Beastlore 7); pemmican's binder.
 - **Hay** [to build]: cut with the scythe at Farming 5, eaten by penned animals (Beastlore 4); straw is cut (ruled 2026-10-23).
 - **Thread** (`docs/30`): cut; cloth covers it (ruled 2026-10-23).
 - **Frost iron, grave iron, frostfin, frostmoss, the snow beasts' furs, Winter Pine, Bloodbark, bloodvine, the Abbey's rarest herb:** region names only.
