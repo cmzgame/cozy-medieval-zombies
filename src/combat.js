@@ -125,6 +125,13 @@ export function offWeaponOf(player) {
   return def && def.weapon && !def.shield ? def.weapon : null;
 }
 
+// The style the off hand's swing is drawn from (#423): its weapon's, or null (the one-handed swing). The figure's
+// `attack_off` animation is that style's frames with the arms swapped, so the off arm swings and the main arm holds.
+export function offStyleOf(player) {
+  const w = offWeaponOf(player);
+  return (w && w.style) || null;
+}
+
 // The shield in the off hand, or null (docs/21).
 export function shieldOf(player) {
   const e = player.hands.off;
@@ -202,7 +209,7 @@ function pushes(weapon) {
 // share (player-controller.js) and the held facing (entities/player.js). A sheet without the animation ends it at once.
 export function swinging(player) {
   const a = player.anim;
-  return !!a && (a.name === "attack" || a.name === "attack_alt" || a.name === "shove") && !a.done; // the shove commits as a swing does (docs/41, step 2)
+  return !!a && (a.name === "attack" || a.name === "attack_alt" || a.name === "attack_off" || a.name === "shove") && !a.done; // the shove commits as a swing does (docs/41, step 2); the off hand's swing as the main's (#423)
 }
 
 // What the player cannot swing through: carrying furniture, a timed action under way, or being dead.
@@ -346,7 +353,15 @@ export function tryAttack(player, zombies, hand = "main", mode = null, predict =
     player.swingLock = weapon.swing * DUAL.lockout; // so two swings never land on the same frame
     if (hand === "off") player.exposedFor = DUAL.window; // the price of the second weapon
   }
-  playAnimation(player.anim, mode === "alt" && altStyleOf(player) ? "attack_alt" : "attack", true); // the thrust has its own (docs/32)
+  // The thrust has its own (docs/32); the off hand's swing moves the off arm (#423: it once played the main arm's), on a
+  // sheet that has it (every player's does; one a rebake behind plays the main arm's rather than none).
+  let anim = mode === "alt" && altStyleOf(player) ? "attack_alt" : "attack";
+  if (hand === "off") {
+    let sheet = null;
+    try { sheet = getSheet(player.sprite); } catch { sheet = null; } // a sheet not loaded: the main arm's swing
+    if (sheet && sheet.animations.attack_off) anim = "attack_off";
+  }
+  playAnimation(player.anim, anim, true);
   if (predict) return [];
   emit("meleeSwing", { player, weapon, hand }); // `hand`: the scythe's row harvest (farming.js) asks what is in it
 

@@ -73,7 +73,8 @@ function applyCovers(outfit, painted) {
 // hands, the dead's wardrobe index and wound, and the painted-layer overrides.
 // `assets.sheetFor` keeps these to rebake a sheet when the painted layers reload.
 // `extra`: what the hands ask of the drawing beyond the style (docs/32): `altStyle`, the main weapon's other attack;
-// `heldPose`, a held thing's own pose from the poses data ("present": the book; "bow_rest": the bow, both arms).
+// `heldPose`, a held thing's own pose from the poses data ("present": the book; "bow_rest": the bow, both arms); `offStyle`,
+// the off weapon's swing style, which the off hand's swing (`attack_off`, #423) is drawn from.
 export function characterInputs(ch, artOf = artResolver, overrides = {}, style = null, extra = {}) {
   const outfit = {};
   for (const slot of OUTFIT_SLOTS) {
@@ -92,6 +93,7 @@ export function characterInputs(ch, artOf = artResolver, overrides = {}, style =
     overrides,
     style,
     altStyle: zombie ? null : extra.altStyle || null,
+    offStyle: zombie ? null : extra.offStyle || null,
   };
 }
 
@@ -133,7 +135,7 @@ export function characterSpec(inp) {
   painted.beard = getLayer("beard", overrides.beard || fullLook.beard || null); // facial hair (docs/25), a look like the hair
   const outfit = { ...inp.outfit };
   applyCovers(outfit, painted);
-  return { variant: "player", look: fullLook, outfit, wound: null, holding: inp.holding, painted, style: inp.style, altStyle: inp.altStyle || null, noCarry: !!inp.noCarry };
+  return { variant: "player", look: fullLook, outfit, wound: null, holding: inp.holding, painted, style: inp.style, altStyle: inp.altStyle || null, offStyle: inp.offStyle || null, noCarry: !!inp.noCarry };
 }
 
 // The player's spec from their look and what they wear; `worn` is the slot map
@@ -153,5 +155,5 @@ export function zombieSpec(k) {
 // A key that changes when the drawing would.
 export function specKey(spec) {
   const names = spec.painted ? Object.fromEntries(Object.entries(spec.painted).map(([k, v]) => [k, v ? v.name : null])) : null;
-  return JSON.stringify([spec.variant, spec.look, spec.outfit, spec.wound, spec.holding, names, layersVersion, spec.style || null, !!spec.noCarry, spec.altStyle || null]);
+  return JSON.stringify([spec.variant, spec.look, spec.outfit, spec.wound, spec.holding, names, layersVersion, spec.style || null, !!spec.noCarry, spec.altStyle || null, spec.offStyle || null]);
 }
