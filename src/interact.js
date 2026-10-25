@@ -58,6 +58,7 @@ import * as setdown from "./setdown.js"; // an item set down as its prop, a brac
 import * as repair from "./repair.js"; // the grindstone sharpens, the anvil repairs, on one count per item (docs/43 section 6)
 import * as sawpit from "./sawpit.js"; // the sawpit saws a log into planks with no hatchet (docs/43 section 6)
 import * as hives from "./hives.js"; // the beehives give honey every few days (docs/43 section 6)
+import * as gather from "./gather.js"; // herbs gathered, mushrooms foraged, clay dug (docs/46 step 2, #448)
 import * as water from "./water.js"; // tainted and clean water, and the boil verb (docs/44)
 import { taintedDrink } from "./sick.js"; // a tainted drink's one roll, Sick and the infection (docs/44)
 
@@ -964,6 +965,7 @@ function propActions(prop, player) {
   if (prop.wood) out.push(...pickActions(prop, player), ...treeActions(prop, player));
   if (prop.crop) out.push(...cropActions(prop, player), ...bucket.tileActions(prop.tile[0], prop.tile[1], player, act, world).filter((a) => a.kind === "pour"));
   out.push(...mineActions(prop, player));
+  out.push(...gather.propActions(prop, player, act, world)); // an herb, a mushroom, a clay bank (docs/46 step 2): nothing on any other prop
   if (prop.water) out.push(...wellActions(prop, player), ...bucket.tileActions(prop.tile[0], prop.tile[1], player, act, world));
   if (getDef(prop.sprite).sleep) out.push(...sleepAction(prop, player));
   if (stations.stationOf(prop).length) out.push(...stationActions(prop, player));

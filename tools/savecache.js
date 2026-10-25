@@ -242,6 +242,34 @@ if (apple.sprite !== "tree_apple" || apple.regrowAt !== undefined) fail(`the app
   const h1 = verbs.run("honey", game.state, me, { prop: hive.id });
   if (!h1.ok) fail(`honey: ${h1.reason}`);
   did("a hive's honey taken");
+  // Gathering (docs/46 step 2, #448): an herb gathered by hand, a clay bank dug with a shovel carried, a salt rock mined: each node gone (its
+  // chunk marked), a debt on its area's record, and the replacements growing elsewhere in their areas on their days.
+  await import("../src/gather.js");
+  const nodeOf = (name) => { const k = map.resourceKind(name); return map.allProps().find((q) => k.sprites[q.sprite] !== undefined && map.inResourceArea(k, q.tile[0], q.tile[1])); };
+  const at = (p) => { me.gx = p.tile[0] + 1; me.gy = p.tile[1] + 0.4; };
+  const sage = nodeOf("sage");
+  at(sage);
+  const g1 = verbs.run("gather", game.state, me, { prop: sage.id });
+  if (!g1.ok) fail(`gather: ${g1.reason}`);
+  did("an herb gathered, its replacement owed");
+  const bank = nodeOf("clay");
+  at(bank);
+  inventory.stow(me, items.makeEntry("shovel", 1));
+  const g2 = verbs.run("dig", game.state, me, { prop: bank.id });
+  if (!g2.ok) fail(`dig: ${g2.reason}`);
+  did("a clay bank dug, its replacement owed");
+  const saltRock = nodeOf("salt");
+  at(saltRock);
+  me.hands.main = items.makeEntry("pickaxe", 1);
+  const g3 = verbs.run("mine", game.state, me, { prop: saltRock.id });
+  if (!g3.ok) fail(`mine salt: ${g3.reason}`);
+  did("a salt rock mined, its replacement owed");
+  me.hands.main = null;
+  clock.setElapsed(clock.getElapsed() + 3 * clock.DAY_LENGTH);
+  const owing = () => ["sage", "clay", "salt"].filter((n) => resources.owed(n).length);
+  for (let i = 0; i < 80 && owing().length; i++) { steps(1); clock.setElapsed(clock.getElapsed() + 30); } // a look each checkSeconds of the clock: a spot by the river takes a few draws
+  did("an herb, a clay bank, and a salt rock grown elsewhere in their areas");
+  if (owing().length) fail(`still owed after 80 looks: ${owing().join(", ")}`);
 }
 // A torch burning down in a bracket: its wear changes every step and only the save's copy of the chunk hears (map.burnHolders).
 const mount = [...map.brackets()].find((b) => !b.wall.bracket.torch) || [...map.brackets()][0];
