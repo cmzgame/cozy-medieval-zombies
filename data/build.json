@@ -108,5 +108,17 @@
     },
     "seconds": 3,
     "tool": "build"
+  },
+  "campfire": {
+    "label": "Campfire",
+    "kind": "prop",
+    "sprite": "campfire",
+    "cost": {
+      "stone": 3,
+      "log": 2
+    },
+    "fuel": "log",
+    "seconds": 4,
+    "note": "docs/43 section 3 (Michael, 2026-10-25): built on open ground outdoors only, no skill and no tool; its two logs are its starting fuel, not materials (Take apart gives back half its stones)"
   }
 }

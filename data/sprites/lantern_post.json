@@ -1,1 +1,1 @@
-{"placeholder": {"kind": "lantern_post", "color": "#4a3324"}, "fire": {"radius": 3.4}, "carry": false, "collide": {"radius": 0.12}}
+{"placeholder": {"kind": "lantern_post", "color": "#4a3324"}, "fire": {"radius": 3.4, "switch": true}, "carry": false, "collide": {"radius": 0.12}}

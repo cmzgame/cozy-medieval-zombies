@@ -13,7 +13,8 @@
 
 import * as verbs from "./verbs.js";
 import * as map from "./map.js";
-import { beltOf, carriedEntry as carried, flameOf } from "./inventory.js";
+import { beltOf, carriedEntry as carried, flameOf, countAll, takeAll } from "./inventory.js";
+import { getItem } from "./items.js";
 import { burnZombie } from "./entities/zombie.js";
 import { reachProblem } from "./reach.js"; // one reach test, distance and a clear line (#208)
 
@@ -96,15 +97,16 @@ function lightTarget(player, target, flame) {
     const b = [...map.brackets()].find((q) => q.tx === target.bracket.tx && q.ty === target.bracket.ty && q.edge === target.bracket.edge);
     if (!b) return { reason: "There is nothing there to light." };
     const br = b.wall.bracket;
-    if (br.lantern) return { reason: "A lantern is always lit." };
+    if (br.lantern) return br.lit !== false ? { reason: "It is already lit." } : { light: () => map.setLantern(b, true), at: map.bracketPos(b), message: "You light the lantern." }; // put out, lit again (docs/43, section 3)
     if (!br.torch) return { reason: "There is no torch there." };
     if (br.lit !== false) return { reason: "It is already lit." };
     return { light: () => map.lightBracket(b), at: map.bracketPos(b) };
   }
   const prop = typeof target.prop === "string" ? map.propById(target.prop) : target.prop;
   const f = prop && prop.fire;
-  if (prop && prop.sprite === "lantern_post") return { reason: "A lantern is always lit." }; // as a lantern in a bracket says
-  if (!f || !(prop.sprite === "campfire" || f.holds)) return { reason: "That cannot be lit." }; // a campfire or a torch: not a hearth, an oven, or a forge
+  // A home light is a switch (docs/43, section 3): a fireplace, a hearth, a lantern post, turned on with a flame, burning nothing.
+  if (f && f.switch) return f.lit ? { reason: "It is already lit." } : { light: () => map.setFireLit(prop, true), prop, message: `You light the ${prop.sprite === "lantern_post" ? "lantern" : prop.sprite.replace(/_/g, " ")}.` };
+  if (!f || !(prop.sprite === "campfire" || f.holds)) return { reason: "That cannot be lit." }; // a campfire or a torch: not an oven or a forge
   if (prop.sprite === "campfire") {
     if (f.lit) return { reason: "It is already burning." };
     if (!(f.fuel > 0)) return { reason: "It has nothing to burn." };
@@ -112,7 +114,7 @@ function lightTarget(player, target, flame) {
     if (!f.has) return { reason: "There is no torch there." };
     if (f.lit) return { reason: "It is already lit." };
   }
-  return { light: () => map.lightProp(prop), prop };
+  return { light: () => map.lightProp(prop), prop, message: prop.sprite === "campfire" ? "You light the campfire." : undefined };
 }
 
 // The fire a target is, when it burns: a campfire or any burner that is lit, a torch on a post that is lit, a lit torch in a bracket
@@ -121,7 +123,7 @@ function burningFire(target) {
   if (target.bracket) {
     const b = [...map.brackets()].find((q) => q.tx === target.bracket.tx && q.ty === target.bracket.ty && q.edge === target.bracket.edge);
     if (!b) return null;
-    if (b.wall.bracket.lantern) return { at: map.bracketPos(b), lantern: true }; // a lantern is a flame: always lit (Michael, 2026-10-17, #175)
+    if (b.wall.bracket.lantern) return b.wall.bracket.lit === false ? null : { at: map.bracketPos(b), lantern: true }; // a lantern is a flame while lit (Michael, 2026-10-17, #175; put out since docs/43)
     if (!b.wall.bracket.torch || !map.holderState({ kind: "bracket", bracket: b }).lit) return null;
     return { at: map.bracketPos(b) };
   }
@@ -153,6 +155,58 @@ function reaches(player, prop, at) {
   return reachProblem(player, tiles, DIP_REACH) || true;
 }
 
+// ---- put out and add fuel (docs/43, section 3; Michael, 2026-10-25: "Put out" everywhere, never "douse") ----
+// What a target is to put out, or why not: { reason } or { put(), name, at|prop }. A lantern (in a bracket or on a post), a torch in a
+// bracket or on a post, a campfire (it keeps its fuel), a fireplace or a hearth. Nothing is needed to put a light out.
+function putOutTarget(target) {
+  if (target.bracket) {
+    const b = [...map.brackets()].find((q) => q.tx === target.bracket.tx && q.ty === target.bracket.ty && q.edge === target.bracket.edge);
+    if (!b) return { reason: "There is nothing there to put out." };
+    const br = b.wall.bracket;
+    if (br.lantern) return br.lit === false ? { reason: "It is already out." } : { put: () => map.setLantern(b, false), name: "lantern", at: map.bracketPos(b) };
+    if (!br.torch || br.lit === false) return { reason: "It is already out." };
+    return { put: () => map.putOutBracket(b), name: "torch", at: map.bracketPos(b) };
+  }
+  const prop = typeof target.prop === "string" ? map.propById(target.prop) : target.prop;
+  const f = prop && prop.fire;
+  if (!f || !(f.switch || prop.sprite === "campfire" || (f.holds && f.has))) return { reason: "That cannot be put out." }; // the stations keep their fuel and their fire (docs/43)
+  if (!f.lit) return { reason: "It is already out." };
+  return { put: () => map.setFireLit(prop, false), name: prop.sprite === "lantern_post" ? "lantern" : f.holds ? "torch" : prop.sprite.replace(/_/g, " "), prop };
+}
+
+verbs.define("putout", {
+  validate(world, player, target) {
+    const t = putOutTarget(target);
+    if (t.reason) return t.reason;
+    return t.prop ? reaches(player, t.prop) : reaches(player, { tile: t.at, tiles: [t.at] }, t.at);
+  },
+  perform(world, player, target) {
+    const t = putOutTarget(target);
+    const ok = !!t.put && t.put();
+    return { ok, message: ok ? `You put out the ${t.name}.` : "" };
+  },
+});
+
+// One unit of a burner's fuel from what the player carries: a log on a campfire, as its menu's Add a log and Use do. A log on a cold
+// campfire lights nothing (#168: a flame is needed); on a lit one it keeps it going. A home light takes none (a switch).
+verbs.define("feed", {
+  validate(world, player, target) {
+    const prop = typeof target.prop === "string" ? map.propById(target.prop) : target.prop;
+    const f = prop && prop.fire;
+    if (!f || !f.burns || f.switch) return "That takes no fuel.";
+    if (f.fuel >= f.maxFuel) return "It is full.";
+    if (countAll(player, f.fuelItem) <= 0) return `You have no ${getItem(f.fuelItem).name.toLowerCase()}.`;
+    return reaches(player, prop);
+  },
+  perform(world, player, target) {
+    const prop = typeof target.prop === "string" ? map.propById(target.prop) : target.prop;
+    const f = prop.fire;
+    if (!map.feedFire(prop, prop.sprite !== "campfire")) return { ok: false };
+    takeAll(player, f.fuelItem, 1);
+    return { ok: true, message: `You add a ${getItem(f.fuelItem).name.toLowerCase()}${f.lit ? "" : "; it is not lit"}.` };
+  },
+});
+
 verbs.define("light", {
   validate(world, player, target) {
     const k = torchFromFire(player, target);
@@ -170,6 +224,7 @@ verbs.define("light", {
     if (k) return { ok: k.light(), message: k.message };
     const flame = flameOf(player, target.entry);
     const t = lightTarget(player, target, flame);
-    return { ok: !!t.light && t.light() };
+    const ok = !!t.light && t.light();
+    return ok && t.message ? { ok, message: t.message } : { ok }; // a lantern, a home light, or a campfire names itself, over a row's word
   },
 });

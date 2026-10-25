@@ -32,6 +32,7 @@
   "room": true,
   "burns": true,
   "cooks": true,
+  "switch": true,
   "maxFuel": 4,
   "flicker": {
    "amp": 0.18,

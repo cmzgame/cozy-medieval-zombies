@@ -70,9 +70,9 @@ export function isOpen() {
 }
 
 export function openFor(prop, player) {
-  const station = stations.stationOf(prop);
-  if (!station) return false;
-  if (station === "dyevat") { // a vat makes nothing: it dyes what you wear (docs/43 section 8); one panel at the top at a time
+  const kinds = stations.stationOf(prop);
+  if (!kinds.length) return false;
+  if (kinds.includes("dyevat")) { // a vat makes nothing: it dyes what you wear (docs/43 section 8); one panel at the top at a time
     if (player === getPlayer() && open) { open = null; root.hidden = true; }
     return dyePanel.openFor(prop, player);
   }
@@ -91,11 +91,11 @@ export function openFor(prop, player) {
 // The panel itself, without the output: a guest opens it on its replica once the host says its player
 // used the station (the output opens through the same `opened` as any container).
 export function openPanel(prop, player) {
-  const station = stations.stationOf(prop);
-  if (!station) return false;
-  const list = stations.recipesFor(station);
+  const kinds = stations.stationOf(prop);
+  if (!kinds.length) return false;
+  const list = kinds.flatMap((k) => stations.recipesFor(k)); // the oven's own rows, then the fire's (docs/43, section 3)
   dyePanel.close(); // one panel at the top at a time
-  open = { propId: prop.id, station, recipe: list[0] ? list[0].id : null, count: 1 };
+  open = { propId: prop.id, station: kinds[0], stations: kinds, recipe: list[0] ? list[0].id : null, count: 1 };
   root.hidden = false;
   lastHtml = "";
   render(player);
@@ -133,7 +133,7 @@ function render(player) {
   if (!open || !player) return;
   const prop = map.propById(open.propId);
   if (!prop) return close();
-  const list = stations.recipesFor(open.station);
+  const list = (open.stations || [open.station]).flatMap((k) => stations.recipesFor(k));
   const rows = list.map((r) => {
     const can = stations.canMake(player, prop, r, 1);
     const out = nameOfOut(r);

@@ -51,6 +51,7 @@ import * as stations from "./stations.js"; // what a prop is as a station (docs/
 import * as stationPanel from "./ui/station-panel.js";
 import * as rugs from "./rugs.js"; // a rug laid from the bag and picked up again (#327)
 import * as paintings from "./paintings.js"; // a painting hung on a wall from the bag and taken down again (#326)
+import * as campfire from "./campfire.js"; // a campfire picked up and set down again (docs/43, section 3)
 import * as repair from "./repair.js"; // the grindstone sharpens, the anvil repairs, on one count per item (docs/43 section 6)
 import * as sawpit from "./sawpit.js"; // the sawpit saws a log into planks with no hatchet (docs/43 section 6)
 import * as hives from "./hives.js"; // the beehives give honey every few days (docs/43 section 6)
@@ -293,7 +294,7 @@ function takeApartAction(prop, player) {
   const t = { type: "prop", prop };
   const held = placement.holdsProblem(prop);
   const { back, tool } = placement.partsOf(t);
-  const noTool = held ? "" : placement.toolProblem(player, tool);
+  const noTool = held || !tool ? "" : placement.toolProblem(player, tool); // a campfire asks for no tool
   const why = held || noTool;
   const parts = back.map((b) => `${b.count} ${getItem(b.id).name.toLowerCase()}${b.count === 1 ? "" : "s"}`).join(", ");
   return act({
@@ -430,6 +431,8 @@ function containerActions(prop) {
 function fireActions(prop, player) {
   const f = prop.fire;
   if (!f || !f.burns) return [];
+  if (f.switch) return switchActions(prop, player); // a fireplace, a hearth: on and off, no fuel (docs/43, section 3)
+  if (prop.sprite === campfire.SPRITE) return campfireActions(prop, player);
   const name = prop.sprite.replace(/_/g, " ");
   const fuelId = f.fuelItem;
   const fuelName = getItem(fuelId).name.toLowerCase();
@@ -461,6 +464,47 @@ function fireActions(prop, player) {
   })];
 }
 
+// A verb run from a menu entry: its refusal said, its message said when it succeeds.
+function runVerb(name, player, target) {
+  const r = verbs.run(name, world, player, target);
+  if (!r.ok) showMessage(r.reason || "Nothing happens.");
+  else if (r.message) showMessage(r.message);
+  return r.ok;
+}
+
+// A home light (docs/43, section 3; Michael, 2026-10-25: fixed home lights are switches, portable lights cost fuel): a fireplace, a
+// hearth, a lantern on a post. Light it with a flame carried (a tinderbox or a lit torch, #168); put it out with nothing. It burns no fuel.
+function switchActions(prop, player) {
+  const f = prop.fire;
+  const name = prop.sprite === "lantern_post" ? "lantern" : prop.sprite.replace(/_/g, " ");
+  const base = { kind: "fire", tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] - 0.6 };
+  if (f.lit) return [act({ ...base, simple: false, label: `Put out the ${name}`, perform: () => runVerb("putout", player, { prop: prop.id }) })];
+  const flame = !!flameOf(player);
+  return [act({ ...base, simple: flame, label: flame ? `Light the ${name}` : `Light the ${name} (need a tinderbox or a flame)`, enabled: flame, perform: () => runVerb("light", player, { prop: prop.id }) })];
+}
+
+// The campfire (docs/43, section 3): Add a log (a cold one is not lit by it), Light with a flame, Put out (keeping its fuel), and Pick up
+// when it is out and empty.
+function campfireActions(prop, player) {
+  const f = prop.fire;
+  const base = { kind: "fire", tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] - 0.6 };
+  const have = countAll(player, f.fuelItem);
+  const full = f.fuel >= f.maxFuel;
+  const hours = map.fireHoursLeft(prop);
+  const left = f.lit ? `, ${hours < 1 ? "under an hour" : `${Math.round(hours)} h`} left` : "";
+  const held = `${Math.ceil(f.fuel)} of ${f.maxFuel}${left}`;
+  const out = [];
+  out.push(act({ ...base, simple: have > 0 && !full && f.lit, label: full ? `The campfire is full (${held})` : have ? `Add a log (${held})` : `Add a log (need a log; ${held})`, enabled: have > 0 && !full, perform: () => runVerb("feed", player, { prop: prop.id }) }));
+  if (f.lit) out.push(act({ ...base, simple: false, label: "Put out the campfire", perform: () => runVerb("putout", player, { prop: prop.id }) }));
+  else if (f.fuel > 0) {
+    const flame = !!flameOf(player);
+    out.push(act({ ...base, simple: flame, label: flame ? "Light the campfire" : "Light the campfire (need a tinderbox or a flame)", enabled: flame, perform: () => runVerb("light", player, { prop: prop.id }) }));
+  }
+  const why = campfire.pickUpProblem(prop);
+  out.push(act({ ...base, kind: "pickup", simple: false, label: why ? "Pick up campfire (only when out and empty)" : "Pick up campfire", enabled: !why, perform: () => campfire.pickUp(player, prop) }));
+  return out;
+}
+
 // A bed (docs/30, 3.3): one entry that runs the sleep verb; the verb says no with a reason.
 function sleepAction(prop, player) {
   const h = clock.getHour();
@@ -482,7 +526,7 @@ function sleepAction(prop, player) {
 
 // Brackets and posts: take the torch into a hand or the bag, or mount the one you carry.
 function holderActions(target, player) {
-  if (target.kind === "bracket" && target.bracket.wall.bracket.lantern) return []; // a lantern is the village's, not taken or mounted (#156)
+  if (target.kind === "bracket" && target.bracket.wall.bracket.lantern) return lanternActions(target, player); // the village's: put out and lit again, never taken (docs/43, section 3)
   const what = target.kind === "bracket" ? "bracket" : "post";
   const mx = target.kind === "bracket" ? target.mx : target.prop.tile[0];
   const my = target.kind === "bracket" ? target.my - 0.4 : target.prop.tile[1] - 0.9;
@@ -506,7 +550,17 @@ function holderActions(target, player) {
         return r.ok;
       },
     })] : [];
-    return [...out, act({
+    const lit = map.holderState(target).lit !== false;
+    const putOut = lit ? [act({
+      kind: "holder",
+      simple: false,
+      label: "Put out the torch",
+      tiles,
+      mx,
+      my,
+      perform: () => runVerb("putout", player, target.kind === "bracket" ? { bracket: { tx: target.bracket.tx, ty: target.bracket.ty, edge: target.bracket.edge } } : { prop: target.prop.id }),
+    })] : [];
+    return [...out, ...putOut, act({
       kind: "holder",
       simple: true,
       label: "Take the torch",
@@ -539,6 +593,17 @@ function holderActions(target, player) {
       return true;
     },
   })];
+}
+
+// A lantern in a bracket on a wall (docs/43, section 3): Put out, or Light with a flame carried. Reached from its own side of the wall.
+function lanternActions(target, player) {
+  const bk = target.bracket;
+  const tiles = [bk.wall.bracket.side > 0 ? [bk.tx, bk.ty] : bk.edge === "n" ? [bk.tx, bk.ty - 1] : [bk.tx - 1, bk.ty]];
+  const base = { kind: "holder", tiles, mx: target.mx, my: target.my - 0.4 };
+  const address = { bracket: { tx: bk.tx, ty: bk.ty, edge: bk.edge } };
+  if (bk.wall.bracket.lit !== false) return [act({ ...base, simple: false, label: "Put out the lantern", perform: () => runVerb("putout", player, address) })];
+  const flame = !!flameOf(player);
+  return [act({ ...base, simple: flame, label: flame ? "Light the lantern" : "Light the lantern (need a tinderbox or a flame)", enabled: flame, perform: () => runVerb("light", player, address) })];
 }
 
 // The name of the tool a verb belongs to, for a greyed entry: "smith's hammer".
@@ -889,13 +954,14 @@ function propActions(prop, player) {
   const out = [];
   if (prop.container) out.push(...containerActions(prop));
   if (prop.fire && prop.fire.burns) out.push(...fireActions(prop, player));
+  else if (prop.fire && prop.fire.switch) out.push(...switchActions(prop, player)); // a lantern post (docs/43, section 3)
   if (prop.fire && prop.fire.holds) out.push(...holderActions({ kind: "post", prop }, player));
   if (prop.wood) out.push(...pickActions(prop, player), ...treeActions(prop, player));
   if (prop.crop) out.push(...cropActions(prop, player), ...bucket.tileActions(prop.tile[0], prop.tile[1], player, act, world).filter((a) => a.kind === "pour"));
   out.push(...mineActions(prop, player));
   if (prop.water) out.push(...wellActions(prop, player), ...bucket.tileActions(prop.tile[0], prop.tile[1], player, act, world));
   if (getDef(prop.sprite).sleep) out.push(...sleepAction(prop, player));
-  if (stations.stationOf(prop)) out.push(...stationActions(prop, player));
+  if (stations.stationOf(prop).length) out.push(...stationActions(prop, player));
   out.push(...repair.propActions(prop, player, act, world), ...sawpit.propActions(prop, player, act, world), ...hives.propActions(prop, player, act, world)); // docs/43 section 6: each is nothing on a prop that is not its own
   if (canCarry(prop)) out.push(carryAction(prop, player));
   if (prop.made) out.push(takeApartAction(prop, player)); // only what a player made (docs/43, section 2)
@@ -904,8 +970,8 @@ function propActions(prop, player) {
 
 // A station (docs/30, section 6): one entry that opens its panel; the panel calls the craft verb.
 function stationActions(prop, player) {
-  const station = stations.stationOf(prop);
-  const label = station === "cooking" ? "Cook here" : station === "dyevat" ? "Use the dye vat" : `Use the ${prop.sprite.replace(/_/g, " ")}`;
+  const list = stations.stationOf(prop);
+  const label = list.length === 1 && list[0] === "cooking" ? "Cook here" : list.includes("dyevat") ? "Use the dye vat" : `Use the ${prop.sprite.replace(/_/g, " ")}`; // a fire that only cooks, else the station by name (the oven cooks too)
   return [act({
     kind: "station",
     simple: true,
@@ -1303,7 +1369,7 @@ export function updateInteract(player, dt, keys) {
   if (keys.t) toggleTorch(player);
 }
 
-// T (Michael, 2026-10-17, #156): the torch in a hand, else on the belt, is lit with a tinderbox carried and doused when it
+// T (Michael, 2026-10-17, #156): the torch in a hand, else on the belt, is lit with a tinderbox carried and put out when it
 // is lit; with no tinderbox it says why; with none in hand or on the belt, the one in the bag is taken into a hand (unlit).
 function toggleTorch(player) {
   const belt = beltOf(player) || [];
@@ -1311,7 +1377,7 @@ function toggleTorch(player) {
   if (e) {
     if (e.lit) {
       e.lit = false;
-      showMessage("You douse the torch.");
+      showMessage("You put out the torch."); // "Put out" everywhere, never "douse" (docs/43, section 3)
     } else if (countAll(player, "tinderbox") <= 0) showMessage("You need a tinderbox to light it.");
     else {
       e.lit = true;
@@ -1363,6 +1429,8 @@ export function itemMenu(player, entry, bag, otherBag) {
   if (def.rug && mine) out.push({ label: "Place", enabled: true, onSelect: () => placement.beginRug(entry) });
   // A painting is hung from the bag: Place begins the ghost on a wall's face (placement.js; #326).
   if (def.painting && mine) out.push({ label: "Place", enabled: true, onSelect: () => placement.beginPainting(entry) });
+  // A Campfire item is set down from the bag: Place begins the ghost on the ground (placement.js; docs/43, section 3).
+  if (def.place === campfire.SPRITE && mine) out.push({ label: "Place", enabled: true, onSelect: () => placement.beginCampfire(entry) });
   if (def.hands && mine) {
     if (def.hands === "either") {
       // A weapon fits either hand: the main hand swaps what is there, the off hand takes a second weapon (docs/21).
