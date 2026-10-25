@@ -197,9 +197,41 @@ export async function run(game) {
       step();
       const two = named(/^swing_/);
       row("an off-hand swing logs its own", offSwing !== null && two.length === 2, `${two.length} swings logged (${two.map((e) => e.name).join(", ")})`);
+      // #423: the off swing alone logs the off weapon's slot (the mace's) within a step of its cooldown's step, with the off
+      // arm's animation; and the same two clicks through the controller in a guest's predict mode (what a guest runs for its
+      // own player between the host's frames) log a swing each.
+      const lockSteps = Math.ceil(0.5 * G.combat.DUAL.lockout * 60) + 1;
+      const ready = () => { p.attackCooldown = 0; p.offCooldown = 0; p.swingLock = 0; p.shoveCooldown = 0; p.exposedFor = 0; p.stamina = 100; };
+      const mace = G.items.getItem("mace").weapon;
+      const maceSlot = typeof mace.sound === "string" ? mace.sound : mace.swing >= data.swing.heavyAt ? "swing_heavy" : "swing_light";
+      ready();
+      step(40);
+      G.combat.swingFromLeft(p, G.zombies);
+      step(lockSteps);
+      clear();
+      const offAt = G.loop.simTime();
+      const offAgain = G.combat.swingFromLeft(p, G.zombies);
+      const offAnim = p.anim.name;
+      const offHand = p.lastHand;
+      step();
+      const one = named(/^swing_/);
+      row("the off hand's swing logs its weapon's slot within a step, with the off arm's animation", offAgain !== null && offHand === "off" && offAnim === "attack_off" && one.length === 1 && one[0].name === maceSlot && Math.abs(one[0].sim - offAt) <= 1 / 60 + 1e-6, `${offAgain !== null ? `the ${offHand} hand, ${offAnim}` : "refused"}; ${one.map((e) => `${e.name} +${((e.sim - offAt) * 1000).toFixed(0)}ms`).join(" ") || "none"} (the mace's slot ${maceSlot})`);
+      const { controlPlayer } = await import("/src/player-controller.js");
+      const click = { ...G.game.idleSnapshot(), clicked: true };
+      ready();
+      step(40);
+      clear();
+      controlPlayer(p, G.zombies, 1 / 60, click, true);
+      const predMain = p.lastHand;
+      step(lockSteps);
+      controlPlayer(p, G.zombies, 1 / 60, click, true);
+      const predOff = p.lastHand;
+      const predAnim = p.anim.name;
+      step();
+      const pred = named(/^swing_/);
+      row("a guest's predicted swings, main then off, log a swing each, the off with the off arm's animation", predMain === "main" && predOff === "off" && predAnim === "attack_off" && pred.length === 2 && pred[1].name === maceSlot, `hands ${predMain}, ${predOff}; ${predAnim}; ${pred.length} swings logged (${pred.map((e) => e.name).join(", ")})`);
       p.hands.off = null;
-      p.attackCooldown = 0;
-      p.offCooldown = 0;
+      ready();
       step(40);
     }
 
