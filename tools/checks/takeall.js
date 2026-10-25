@@ -84,8 +84,8 @@ export async function run(game) {
     put(chest.bag, "apple", 2);
     const bagFull = !G.grid.findSpot(bag, "apple");
     const ran3 = takeAll(addr);
-    const onBelt = belt.find((e) => e && e.id === "apple");
-    row("food that does not fit the full bag goes to a free belt slot", bagFull && ran3 === true && !!onBelt && onBelt.count === 2 && chest.bag.items.length === 0, `bag full ${bagFull}; belt ${belt.filter(Boolean).map((e) => `${e.id}x${e.count}`).join(",") || "empty"}; chest ${chest.bag.items.length}`);
+    const onBelt = belt.filter((e) => e && e.id === "apple").reduce((k, e) => ({ count: k.count + e.count }), { count: 0 }); // apples take a slot each now (#260)
+    row("food that does not fit the full bag goes to a free belt slot", bagFull && ran3 === true && onBelt.count === 2 && chest.bag.items.length === 0, `bag full ${bagFull}; belt ${belt.filter(Boolean).map((e) => `${e.id}x${e.count}`).join(",") || "empty"}; chest ${chest.bag.items.length}`);
 
     // 4. A stack that fits in part: merged into the bag (and the belt takes none of it, the belt being full), the remainder stays.
     bag.items.length = 0;

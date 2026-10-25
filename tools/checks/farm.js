@@ -32,6 +32,7 @@ export async function run(game) {
     G.loop.setPaused(true);
     farming.reset();
     for (const q of G.map.allProps()) if (q.crop && q.crop.stage !== undefined) farming.settle(q); // the map's authored crops settle at the clock as it is, before the check moves it
+    bag.items.length = 0; // an empty bag for the harvests: nothing stacks now (#260), so a full one drops them at the player's feet (put back in the finally)
     for (const id of ["shovel", "knife"]) G.inventory.stow(me, G.items.makeEntry(id, 1)); // the tool rule (#215): a root is dug, a head cut; carried is enough (the bag is put back in the finally)
 
     // The data.

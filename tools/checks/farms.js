@@ -17,6 +17,7 @@ export async function run(game) {
   const hands0 = { main: p.hands.main, off: p.hands.off };
   const wasPaused = G.loop.isPaused();
   G.loop.setPaused(true);
+  bag.items.length = 0; // an empty bag for the harvests: nothing stacks now (#260), so a full one drops them at the player's feet (put back in the finally)
   for (const id of ["shovel", "knife", "scythe"]) G.inventory.stow(p, G.items.makeEntry(id, 1)); // the tool rule (#215): the harvests below are dug, cut, and scythed
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const farming = await import("/src/farming.js");
