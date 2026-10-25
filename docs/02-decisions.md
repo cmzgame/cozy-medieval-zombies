@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Ore, stone, clay, herbs, and mushrooms come back at random spots within their areas, keeping a steady count; rocks and ore rise from the ground, herbs and mushrooms appear; no herb patches; trees from saplings, sticks under trees, fish never run out (2026-10-25, Natural resources ruled)
 - Animals: seven kinds; game mostly in the woods but free to roam, back slowly to a cap; livestock from the farms, led home, penned in a fenced yard; safe from the dead; fed animals produce; generous feathers; raw meat in recipes; the companion in 1.0, last (2026-10-25, Animals ruled)
 - No fixed water source is clean; boiling at a lit fire by Use or either menu; the starting skin clean; the sickness a debuff, Sick (the infection's third stage renamed Queasy), 20% a tainted drink, 1% of the infection (2026-10-25, Water ruled)
 - The basic lore (#217) is in the Valley's scope, paired with the map redraw (#92) and taken first (2026-10-25, The basic lore is part of the Valley's scope)
@@ -289,6 +290,18 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-25 — Natural resources ruled: random spawns within defined areas, a steady count, rocks rising from the ground, no herb patches, trees from saplings (Michael; #288)
+
+The seventh sitting of the Valley scope's defaults pass. Michael reshaped Primary's spawn rules and adopted the rest; the spec is `docs/46`. The rulings:
+
+- **One comeback rule for ore, stone, clay, herbs, and mushrooms:** "I want them to be random spawns but within defined areas. Stone everywhere, ore in certain areas, clay by the river, herbs all over in the ground. All the same in that once exhausted, a replacement will spawn somewhere eventually so unless you go on a resource binge all day the amount in the valley should stay roughly the same." Ore no longer comes back in place.
+- **No herb patches:** "they are like weeds that grow randomly."
+- **Appearing:** "As far as things popping into existence, that was mostly a zombie rule so they don't bum rush you unfairly. For rocks and ore, do the frozen zombie plan for that region - they pop up out of the ground with an animation. Mushrooms and herbs can definitely just appear." *Primary's reading:* a rock or ore rock grows up out of the earth over a second or so, in view or not.
+- **Why:** "the main point I think is to make exploration more or less required for getting these types of resources vs. farming and animal keeping where you can put it in a defined spot."
+- **Adopted from Primary's draft:** trees never regrow where felled (saplings at Woodcutting 4, planted, growing in about five game days); sticks gathered under a standing tree once a day ("Sticks under trees is great"); fish never run out ("Fish never run out is great"); a new node only on natural ground, never in a room, a fenced yard, a built floor, tilled soil, or under a prop.
+
+Docs: 46 (new), 39, 42, README.
 
 ### 2026-10-25 — Animals ruled: game mostly in the woods but free to roam, livestock from the farms, safe pens, generous feathers, raw meat in recipes, the companion last (Michael; #289)
 

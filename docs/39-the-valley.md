@@ -1,6 +1,6 @@
 # 39 — The Valley 1.0: the complete scope
 
-**Status, 2026-10-25: a spec, and the one complete list of what The Valley 1.0 holds (#271); the skills' open lines (#275) and the food economy (#264) were ruled on 2026-10-23, the loot tables (#268) and the bags (#260) on 2026-10-24, the tables built the same day, and the dead ends (#273), water (#279), and the animals (#289) on 2026-10-25, `docs/43`, `docs/44`, and `docs/45` (`docs/02`), and the map as it stands is a testing map, not the final valley.** Compiled from `origin/main` at 3e1f5d0 (the data in `data/`, `docs/30`, `docs/29-world`, `docs/02` through its 2026-10-19 entries, `docs/04`, `docs/34`) and from the open issues of the same day: the skills trees on #275, Beastlore on #289, and the scoping issues #92, #103, #123, #133, #181, #260, #261, #262, #264, #268, #273, #279, #281, #282, #283, #285, #288. Valley only: a region appears only as the name of what comes from it. Lists, not reasons; the reasons are `docs/02` and the issues. Numbers are the data's and tuning's, not this page's. Rewritten in place when the scope changes, never appended.
+**Status, 2026-10-25: a spec, and the one complete list of what The Valley 1.0 holds (#271); the skills' open lines (#275) and the food economy (#264) were ruled on 2026-10-23, the loot tables (#268) and the bags (#260) on 2026-10-24, the tables built the same day, and the dead ends (#273), water (#279), the animals (#289), and natural resources (#288) on 2026-10-25, `docs/43` to `docs/46` (`docs/02`), and the map as it stands is a testing map, not the final valley.** Compiled from `origin/main` at 3e1f5d0 (the data in `data/`, `docs/30`, `docs/29-world`, `docs/02` through its 2026-10-19 entries, `docs/04`, `docs/34`) and from the open issues of the same day: the skills trees on #275, Beastlore on #289, and the scoping issues #92, #103, #123, #133, #181, #260, #261, #262, #264, #268, #273, #279, #281, #282, #283, #285, #288. Valley only: a region appears only as the name of what comes from it. Lists, not reasons; the reasons are `docs/02` and the issues. Numbers are the data's and tuning's, not this page's. Rewritten in place when the scope changes, never appended.
 
 ## 0. How to read it
 
@@ -165,23 +165,23 @@ One panel for every station; ingredients from the bag, the belt, and every conta
 
 ## 4. Natural resources
 
-What comes back, today: ore rocks in place after three game days; apple trees bear again in place after three days; fields give seed back; fish never run out; the wild grows new forest, rocks, and mushrooms as new chunks. Nothing else comes back. The rest is [open #288] (in place, OSRS-style, or at a new spot nearby, WoW-style).
+What comes back, today: ore rocks in place after three game days; apple trees bear again in place after three days; fields give seed back; fish never run out; the wild grows new forest, rocks, and mushrooms as new chunks. Nothing else comes back. [change: ore, stone, clay, herbs, and mushrooms come back at random spots within their areas, keeping a steady count; rocks and ore rise from the ground (2026-10-25, `46`).]
 
-- **Trees** [built]: twenty-four kinds by shape (round, spire), colour, and size; felled with a hatchet for two to six logs, leaving a stump; never regrow in the valley [open #288].
+- **Trees** [built]: twenty-four kinds by shape (round, spire), colour, and size; felled with a hatchet for two to six logs, leaving a stump; never regrow in the valley; saplings from felling, planted (Woodcutting 4, `46`).
 - **Tree species** [to build]: oak, the common tree (Woodcutting 1); spruce (Woodcutting 3: sturdier furniture, resin); mahogany (Woodcutting 5: fine furniture, a better bow); Winter Pine (the Pale Reach, the snow region, Woodcutting 8) and Bloodbark (the Crimson Abbey, Woodcutting 10) as names. Today's broadleaf is oak and today's conifer is spruce; mahogany is new, planted in the manor's garden and the forest's deep, and needs a design (an art ask); the regions' trees come later (ruled 2026-10-23).
 - **Saplings** [to build]: felling sometimes drops one (Woodcutting 4); planted, it grows a tree.
 - **Stumps** [built]: chopped for a log, the tile cleared [change: uprooted with a shovel at Woodcutting 4, the tile cleared for good].
 - **The willow** at the pond and the mere, **the yew** in the graveyard [to build].
 - **Apple trees** [built]: twenty-three (the orchard and three gardens); picked by hand for three to five apples, bare three days, bear again in place.
-- **Rocks** [built]: mined with a pickaxe for three stone, gone for good [open #288]; at the quarry and scattered by rule.
+- **Rocks** [built]: mined with a pickaxe for three stone; at the quarry and scattered by rule [change: a mined rock rises again elsewhere on natural ground, the valley's count kept (`46`)].
 - **Ore rocks** [built]: six at the iron workings; two iron ore each, spent three days, back in place. Unlock: Mining 1.
-- **Salt and clay** [to build]: Mining 3. Each resource from the ground gets a prop of its own to mine, signposted by its look: the rock gives stone and the ore rock iron today; clay, salt, and gems need theirs (Michael, 2026-10-23: "design a small prop for each that can be mined. Also: gems!"). *Primary's reading:* a clay bank at the river's edge, a salt rock in the mine, gems by chance from the ore rock from Mining 4 and a crystal cluster deep in the mine for the finer ones. Where they come back [open #288].
+- **Salt and clay** [to build]: Mining 3. Each resource from the ground gets a prop of its own to mine, signposted by its look: the rock gives stone and the ore rock iron today; clay, salt, and gems need theirs (Michael, 2026-10-23: "design a small prop for each that can be mined. Also: gems!"). *Primary's reading:* a clay bank at the river's edge, a salt rock in the mine, gems by chance from the ore rock from Mining 4 and a crystal cluster deep in the mine for the finer ones. They come back at random within their areas, clay by the river and salt with the ore (`46`); gems are #281's.
 - **Silver** [to build]: Mining 5; where, and what it makes [open #283].
 - **Gems** [to build]: from any rock, rare (at most about 10% a rock); basic at Mining 4, finer at Mining 7; their kinds [open #281].
-- **Herbs** [to build]: none exist. The valley's common herbs and the healing herb in the wild (Herbalism 1); the mana herb near water (Herbalism 4); nightshade and wolfsbane (Herbalism 5); the graveyard's herbs and fungi, planted only at night (Herbalism 7). The common herbs are sage, nettle, and feverfew; yarrow is the healing herb; the mana herb's name is Michael's to choose (ruled 2026-10-23). How and where they come back [open #288].
-- **Mushrooms** [built]: placed by rule near trees (774 in the valley); sway only [change: foraged at Herbalism 3, for Potions and Cooking]; how they come back [open #288].
+- **Herbs** [to build]: none exist. The valley's common herbs and the healing herb in the wild (Herbalism 1); the mana herb near water (Herbalism 4); nightshade and wolfsbane (Herbalism 5); the graveyard's herbs and fungi, planted only at night (Herbalism 7). The common herbs are sage, nettle, and feverfew; yarrow is the healing herb; the mana herb's name is Michael's to choose (ruled 2026-10-23). They grow like weeds at random all over the ground, never in patches, and come back elsewhere once picked (`46`).
+- **Mushrooms** [built]: placed by rule near trees (774 in the valley); sway only [change: foraged at Herbalism 3, for Potions and Cooking]; they come back near trees elsewhere in the woods once picked (`46`).
 - **Berries** on brambles at the forest's edges (`docs/29-world/06`): picked like herbs, Herbalism 1 (ruled 2026-10-23) [to build].
-- **Sticks** [change]: the twigs under trees are decals, not items; a stick comes from a plank (a hatchet), a body, or a haystack. Picking sticks under trees (`docs/30`, "exists by rule") [open #288].
+- **Sticks** [change]: the twigs under trees are decals, not items; a stick comes from a plank (a hatchet), a body, or a haystack. Gather sticks under a standing tree, once a day each (`46`).
 - **Fish** [built]: perch, trout, carp; never run out. The river: perch, trout. The ponds: carp, perch. The brook: trout, perch. The mere (when built): trout, carp. Unlock: a rod; [change: perch at Fishing 1, carp at 3, trout at 5].
 - **Water** [built]: the river, the ford, the brook, four ponds (the duck pond, the farm pond, the manor's fish pond, the quarry's pit), five wells (yours, the square's, the inn's, Hollow Farm's, Long Acre's), four troughs, the chapel's font. The mere, the moat, the croft's spring, the millpond [to build]. Never runs out. All natural water unsafe until purified [change, #279].
 - **Crops in the fields** [built]: potatoes, cabbages, garlic, pumpkins, rye, flax, planted at mixed stages at your cottage, Hollow Farm, and Long Acre; a ripe crop is harvested once and the tile stays soil; seed comes back. A leaner start [change: one ripe row per farm and one at your cottage, everything else at the first two stages; today about half the plots are ripe] (ruled 2026-10-23). A ripe crop left in the ground rots, generously slowly, five times its item's life (*Primary's reading* of Michael's "much, much more slowly"), and is harvested rotten with its seed still given back [to build].
@@ -796,7 +796,6 @@ Later, not at the start: gems inlaid in metal armour.
 - **A boss's capstone drop:** a region's.
 
 ### Resources that come back
-- [open #288]: section 4.
 
 ## 11. Interactions
 
@@ -1010,4 +1009,3 @@ The numbers are for tuning; this list is what must change before 1.0.
 - **What the demo includes** of `43`'s dead ends (Michael, 2026-10-25: an open question).
 - **#281, #282, #283:** gems, trinkets, silver.
 - **#285:** the belt (to build, ruled).
-- **#288:** what comes back, and where.
