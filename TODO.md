@@ -23,7 +23,7 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
-## Status (2026-10-26: the scoped work is built; next is the animals sitting, at Michael's word)
+## Status (2026-10-25, later: the scoped work is built; next is the animals sitting, at Michael's word)
 
 **Stopped at the animals sitting (#289), for Michael to say whether he has time for it now.** Everything scoped before it is built and merged:
 - **The dead ends** (`docs/43`), all seven steps:
@@ -51,10 +51,10 @@ Small issues fill the gaps.
 **Open lines of `docs/39` by issue** (counted 2026-10-25; 73 open, down from 162): #92 11 · #289 10 · #288 8 · #123 7 · #281 7 · #181, #282, #133 5 each · #283 4 · #103 3 · #104, #262 2 each · #217, #261, #106, #271 1 each.
 
 **The wiki** for everything above is synced (cmz-wiki#31 to #34). **Next, for any Secondary:**
-- `check("debuffs")`' Sick-card row still fails late in one page, though it passes fresh;
+- `check("debuffs")`' Sick-card row still fails late in one page, though it passes fresh: Primary reproduced it on #439's own branch, after its fix, running hovercard, villagers, talk, and kindle first (23 of 24; fresh 24 of 24);
 - #422, apple trees as a green round tree;
 - #423, the off hand's swing animation and sound;
-- #425's open bug lines.
+- the Open lines in `docs/bugs.md`.
 
 **Waiting on Michael:**
 - whether a free sharpening should use up the anvil's repair too, and the plank that repairs the fishing rod and the bow (#425);
