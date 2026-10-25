@@ -18,6 +18,7 @@ export const DEFAULTS = {
   freeBuilding: !!settings.DEFAULTS.freeBuilding, // building costs nothing
   trees: settings.DEFAULTS.trees !== false, // the world has trees (#130): off, none are placed when it is made or a chunk is grown
   population: settings.DEFAULTS.population, // "none", "low", "standard", or "high": how many of the dead it starts with (#130)
+  villageStations: !!settings.DEFAULTS.villageStations, // the village's stations fixed, or movable and craftable (docs/43 section 5)
   extraKit: settings.DEFAULTS.extraKit, // text, one `item_id count` a line: items every new character starts with beyond the default kit (#136; kit.js)
   devBag: !!settings.DEFAULTS.devBag, // every new character starts wearing the Developer Bag in place of the sack (#136)
 };
@@ -27,7 +28,7 @@ export const ENUMS = { population: ["none", "low", "standard", "high"] };
 
 // The rules chosen when a world is made and never changed after (#130): they shape what is placed, and a change
 // would reach only the chunks not yet grown. A server world's owner cannot set them either.
-export const FIXED = ["trees", "population", "extraKit", "devBag"];
+export const FIXED = ["trees", "population", "villageStations", "extraKit", "devBag"];
 
 // The rules that are text, not a switch or a word (#136).
 export const TEXTS = ["extraKit"];

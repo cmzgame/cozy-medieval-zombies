@@ -241,7 +241,7 @@ function playersOf(save) {
 }
 
 // The rules an owner may set: the five, each true or false (src/rules.js), nothing else. A world's meta also holds the
-// two it was made with (Trees, Starting population: a world moved up from a browser carries them), shown to its owner
+// three it was made with (Trees, Starting population, Village stations: a world moved up from a browser carries them), shown to its owner
 // and never changed by one (`withFixed`).
 const RULE_KEYS = ["zombieAggro", "zombiesAttackVillagers", "multiHit", "survival", "freeBuilding"];
 const POPULATIONS = ["none", "low", "standard", "high"];
@@ -252,6 +252,7 @@ function cleanRules(raw, withFixed = false) {
     if (withFixed) {
       if (typeof raw.trees === "boolean") out.trees = raw.trees;
       if (POPULATIONS.includes(raw.population)) out.population = raw.population;
+      if (typeof raw.villageStations === "boolean") out.villageStations = raw.villageStations; // docs/43 section 5
     }
   }
   return out;

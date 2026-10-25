@@ -105,9 +105,11 @@ export function leafHint(chosen, carried = "") {
 
 // A prop can be lifted unless it is rooted (a tree, a well), built in (a
 // hearth, a torch post), or a fire that burns fuel (a campfire). A sprite's own
-// `carry` flag, true or false, overrides the rule either way (docs/13).
+// `carry` flag, true or false, overrides the rule either way (docs/13); a village station's (`villageStation`) gives way to
+// the world rule Village stations (docs/43 section 5).
 export function canCarry(prop) {
   const d = getDef(prop.sprite);
+  if (d.villageStation && rules.villageStations) return true; // the village's stations, movable by a world's rule (docs/43 section 5)
   if (d.carry !== undefined) return !!d.carry;
   if (prop.wood || prop.water) return false;
   if (prop.fire && (prop.fire.room || prop.fire.holds || prop.fire.burns)) return false;
@@ -571,6 +573,7 @@ function buildEntryOf(wall) {
 
 function targetName(t) {
   if (t.type === "prop") return t.prop.sprite.replace(/_/g, " ");
+  if (!t.wall) return "nothing";
   const d = buildEntryOf(t.wall);
   return (d && d.label ? d.label : t.wall.kind).toLowerCase();
 }
@@ -599,6 +602,7 @@ export function partsOf(t) {
     const back = !d || t.prop.free ? [] : Object.entries(d.cost || {}).filter(([k]) => k !== d.fuel).map(([k, n]) => ({ id: k, count: Math.floor(n / 2) })).filter((i) => i.count > 0);
     return { back, tool: d ? d.tool || null : tuning.world.boardTool };
   }
+  if (!t.wall) return { back: [], tool: null }; // a stale target (a guest's command, a wall already gone): nothing to give (#432)
   const d = buildEntryOf(t.wall);
   const back = t.wall.free || !d ? [] : Object.entries(d.cost || {}).map(([id, n]) => ({ id, count: Math.floor(n / 2) })).filter((i) => i.count > 0);
   return { back, tool: (d && d.tool) || tuning.world.boardTool };
@@ -619,6 +623,7 @@ export function holdsProblem(prop) {
 
 // Why this player may not take it apart now, or "": what it holds, the tool, the reach.
 export function takeApartProblem(player, t) {
+  if (!t || (t.type === "prop" ? !t.prop || !map.propById(t.prop.id) : !t.wall)) return "There is nothing there."; // a stale target, never a throw (#432)
   if (t.type === "prop") {
     const held = holdsProblem(t.prop);
     if (held) return held;

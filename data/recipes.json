@@ -1045,6 +1045,139 @@
    ],
    "seconds": 12,
    "fire": true
+  },
+  {
+   "id": "forge",
+   "station": "workbench",
+   "rule": "villageStations",
+   "out": {
+    "prop": "forge",
+    "footprint": [
+     2,
+     1
+    ]
+   },
+   "in": [
+    {
+     "id": "stone",
+     "count": 10
+    },
+    {
+     "id": "iron_bar",
+     "count": 2
+    }
+   ],
+   "seconds": 20,
+   "uses": "build"
+  },
+  {
+   "id": "anvil",
+   "station": "anvil",
+   "rule": "villageStations",
+   "out": {
+    "prop": "anvil"
+   },
+   "in": [
+    {
+     "id": "iron_bar",
+     "count": 5
+    }
+   ],
+   "seconds": 20,
+   "tool": "hammer"
+  },
+  {
+   "id": "oven",
+   "station": "workbench",
+   "rule": "villageStations",
+   "out": {
+    "prop": "oven",
+    "footprint": [
+     2,
+     1
+    ]
+   },
+   "in": [
+    {
+     "id": "stone",
+     "count": 8
+    },
+    {
+     "id": "iron_bar",
+     "count": 1
+    }
+   ],
+   "seconds": 20,
+   "uses": "build"
+  },
+  {
+   "id": "millstones",
+   "station": "workbench",
+   "rule": "villageStations",
+   "out": {
+    "prop": "millstones",
+    "footprint": [
+     2,
+     2
+    ]
+   },
+   "in": [
+    {
+     "id": "stone",
+     "count": 6
+    },
+    {
+     "id": "plank",
+     "count": 4
+    }
+   ],
+   "seconds": 20,
+   "uses": "build"
+  },
+  {
+   "id": "dyevat",
+   "station": "workbench",
+   "rule": "villageStations",
+   "label": "Dye vat",
+   "out": {
+    "prop": "dyevat"
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 4
+    },
+    {
+     "id": "iron_bar",
+     "count": 1
+    }
+   ],
+   "seconds": 12,
+   "uses": "build"
+  },
+  {
+   "id": "well",
+   "station": "workbench",
+   "rule": "villageStations",
+   "out": {
+    "prop": "well"
+   },
+   "in": [
+    {
+     "id": "stone",
+     "count": 10
+    },
+    {
+     "id": "plank",
+     "count": 2
+    },
+    {
+     "id": "bucket",
+     "count": 1
+    }
+   ],
+   "seconds": 20,
+   "uses": "build"
   }
  ]
 }

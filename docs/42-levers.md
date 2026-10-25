@@ -48,7 +48,7 @@ Two kinds:
 ## World settings
 
 ### A world's rules (`src/settings.js`, groups `rules` and `sandbox`)
-- **Village stations:** fixed, or movable and craftable; fixed by default (2026-10-25, `43` section 5; not built).
+- **Village stations:** the world rule `villageStations` (`src/rules.js`, the Sandbox step's "Village stations"), Fixed by default, or Movable and craftable; chosen when a world is made (2026-10-25, `43` section 5; built, #409). Its recipes are the rows of `data/recipes.json` that name `rule: "villageStations"`.
 - **Zombie aggro**, on (2026-10-15). **Zombies attack villagers**, off (2026-10-15). **Survival**, on (2026-10-13). **Free building**, off. **Multi-hit**, off, "the easy button" (2026-10-12).
 - **Trees** and **Starting population**, chosen when the world is made and fixed after (2026-10-16).
 - **Dev chest**, on; **Dev bag**, off; **Extra starting items**, none: the Sandbox step's testing choices (2026-10-16).
