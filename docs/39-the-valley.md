@@ -100,7 +100,7 @@
 - **Rugs and wall pieces** (Crafting 5) [to build] [open #261: on a wall's edge or against it; whether any does something; before or after the redraw].
 - **Workstations of your own** (Woodcutting 7 unlocks, Crafting makes) [change: the workbench recipe is open to all today] [to build]: the workbench, the loom, the drying rack, the composter, the cauldron, the smoking rack, and the hive, never the forge, the anvil, the millstones, or the oven, so the village stays worth walking to; no speed bonus, a workshop at home (ruled 2026-10-23).
 - **The composter** (Farming 4) [to build].
-- **The henhouse** (Beastlore 1) [to build].
+- **The henhouse** (Beastlore 1) [to build]: the chicken coop is a hen's home in a pen; a fed hen lays its egg and feather into the coop's grid (`45`).
 - **Pens** for cows and sheep (Beastlore 4), pigs (Beastlore 7) [to build].
 - **The hive** (Beastlore 5) [to build].
 - **The herb bed** (Farming 7) [to build].
@@ -304,8 +304,8 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 - **Perch, trout, carp** [built]: fishing [change: Fishing 1, 5, 3].
 - **Tomato** [to build]: Farming 5.
 - **Mushrooms, eaten or cooked** [to build]: Herbalism 3 (some for Cooking).
-- **Eggs** [to build]: the henhouse (Beastlore 1).
-- **Raw meat**: hen, rabbit (Beastlore 3's snares), venison (`docs/30`'s deer), pork and boar (Beastlore 7) [to build].
+- **Eggs** [to build]: laid by a fed hen into its coop (Beastlore 1, `45`).
+- **Raw meat** [to build]: hen, rabbit (Beastlore 3's snares), venison (the deer), beef (cows), mutton (sheep), pork (pigs and boar, Beastlore 7); each cooked alone at a fire or used raw in recipes (`45` section 4). **Bacon and lard** from a pig (Beastlore 7). **Shears** (the anvil), **the lead** and **the snare** (the workbench), **the feeding trough** (the palette) [to build] (`45`).
 - **Milk** [to build]: cows (Beastlore 4).
 - **Honey** [built, #410]: the hive (Beastlore 5), a pot every three game days (*default*); never rots.
 - **Wheel of cheese** [built]: chests, pantries, and the inn's counter only [change: made from milk (Beastlore 4) at Cooking 3 (ruled 2026-10-23)].
@@ -317,7 +317,7 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 - **Grilled perch, grilled trout, grilled carp** [built]: at a fire (Cooking 1).
 - **Porridge** [built]: two grain at a fire (Cooking 1).
 - **Loaf of bread** [built]: two flour at the oven (Cooking 1); the kit, the home chest, chests, pantries, the inn's counter, and the body loot.
-- **Stew** [built]: two potatoes, a cabbage, garlic at a fire [change: a plain pottage at Cooking 1 keeps the day-one recipe; the hearty stew with its buff is Cooking 4 (ruled 2026-10-23)].
+- **Stew** [built]: two potatoes, a cabbage, garlic at a fire [change: a plain pottage at Cooking 1 keeps the day-one recipe, with a meat pottage beside it once there is meat; the hearty stew with its buff is Cooking 4, any meat (ruled 2026-10-23; `45`)].
 - **Pumpkin pie** [built]: a pumpkin and flour at the oven [change: Cooking 6].
 - **Seasoned dishes** [to build]: herbs and garlic, a little more healing (Cooking 3).
 - **Tomato soup** [to build]: Cooking 3.
@@ -519,13 +519,13 @@ None in the game today. All [to build] unless marked.
 - **Killing:** any weapon; the weapon decides the yield (a halberd ruins the kill, a bow gives all of it). Beastlore 1.
 - **Skinning and butchering** with a dirk: hides and meat; one more at Beastlore 2, faster and one more of every yield at 9.
 - **Deer** (`docs/30` step 8): wild game that flees, hunted with the bow; in herds in the woods ringing the valley, free to roam, back slowly to a cap (`45`).
-- **Tracking** game, and **snares** for rabbits (meat, hide): Beastlore 3.
-- **Hens** in a henhouse: eggs and feathers checked for regularly; meat when killed. Beastlore 1.
+- **Tracking** game (its faint tracks seen within a few tiles), and **snares** for rabbits (meat, hide): Beastlore 3 (`45`).
+- **Hens** in a henhouse (the chicken coop): a fed hen lays its egg and a feather most days into the coop's grid; meat and three to five feathers when butchered. Beastlore 1 (`45`).
 - **Cows** in a pen: milk to cheese and butter. **Sheep** in a pen: wool. Beastlore 4.
 - **Bees** in a hive of your own: honey and wax. Beastlore 5.
 - **Breeding, and pens that give more:** Beastlore 6.
 - **Pigs, and boar to hunt:** pork, bacon, lard. Beastlore 7.
-- **Feeding, breeding, and tending** (`45` section 3): never starve or die of neglect; fed at a trough they produce, unfed they stop; breeding at Beastlore 6; **the dead ignore animals, no predators come**; livestock from the farms, led home on a lead, a pen any fenced yard with its gates shut.
+- **Feeding, breeding, and tending** (`45` section 3): never starve or die of neglect; fed at a feeding trough (grain, vegetables, or hay) they produce, unfed they stop; breeding at Beastlore 6; **the dead ignore animals, no predators come**; livestock from the farms, led home on a lead, a pen any fenced yard with its gates shut.
 - **Animals in the world:** wander and flee on the host's step, in the frame and the save, in the sync check.
 - **The snow region's beasts** (Beastlore 8, the Pale Reach): a name only.
 - **Beastwarding, the companion** (Beastlore 10; in 1.0, built last, after the demo, `45` section 5):
@@ -838,7 +838,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 - Take from a stack: logs, planks, stone [built for the quarry's stone; the woodcutters' stacks to build].
 - Dig a grave, the buried chest, a plot [to build] (a shovel).
 - Hunt, track, set a snare, skin, butcher [to build] (Beastlore; a dirk).
-- Collect eggs, milk a cow, take wool, shoo a hen [to build]; take honey [built, #410] (Beastlore).
+- Collect eggs from a coop, milk a cow, shear a sheep, lead an animal, fill a feeding trough [to build] (`45`); take honey [built, #410] (Beastlore).
 - Cut hay (Farming 5) [to build].
 
 ### Farming

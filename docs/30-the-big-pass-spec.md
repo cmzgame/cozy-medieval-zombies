@@ -68,7 +68,7 @@ The whole vocabulary. "Exists" means built before this pass; everything else is 
 
 **Fighting (exists, paused):** swing, shove, block, draw and loose, throw the spear.
 
-**Animals (step 8; which animals is Beastlore's, `02` 2026-10-19, #289):** **collect eggs** from a nest, **shoo** a chicken, **hunt** a deer (the bow), **skin** a dead deer (knife), **butcher** (knife).
+**Animals (step 8; superseded by `docs/45`, 2026-10-25; which animals is Beastlore's, `02` 2026-10-19, #289):** **collect eggs** from a nest, **shoo** a chicken, **hunt** a deer (the bow), **skin** a dead deer (knife), **butcher** (knife).
 
 ## 5. Items
 
