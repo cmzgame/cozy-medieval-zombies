@@ -1,6 +1,6 @@
 # 39 — The Valley 1.0: the complete scope
 
-**Status, 2026-10-25: a spec, and the one complete list of what The Valley 1.0 holds (#271); the skills' open lines (#275) and the food economy (#264) were ruled on 2026-10-23, the loot tables (#268) and the bags (#260) on 2026-10-24, the tables built the same day, and the dead ends (#273) on 2026-10-25, `docs/43` (`docs/02`), and the map as it stands is a testing map, not the final valley.** Compiled from `origin/main` at 3e1f5d0 (the data in `data/`, `docs/30`, `docs/29-world`, `docs/02` through its 2026-10-19 entries, `docs/04`, `docs/34`) and from the open issues of the same day: the skills trees on #275, Beastlore on #289, and the scoping issues #92, #103, #123, #133, #181, #260, #261, #262, #264, #268, #273, #279, #281, #282, #283, #285, #288. Valley only: a region appears only as the name of what comes from it. Lists, not reasons; the reasons are `docs/02` and the issues. Numbers are the data's and tuning's, not this page's. Rewritten in place when the scope changes, never appended.
+**Status, 2026-10-25: a spec, and the one complete list of what The Valley 1.0 holds (#271); the skills' open lines (#275) and the food economy (#264) were ruled on 2026-10-23, the loot tables (#268) and the bags (#260) on 2026-10-24, the tables built the same day, and the dead ends (#273) and water (#279) on 2026-10-25, `docs/43` and `docs/44` (`docs/02`), and the map as it stands is a testing map, not the final valley.** Compiled from `origin/main` at 3e1f5d0 (the data in `data/`, `docs/30`, `docs/29-world`, `docs/02` through its 2026-10-19 entries, `docs/04`, `docs/34`) and from the open issues of the same day: the skills trees on #275, Beastlore on #289, and the scoping issues #92, #103, #123, #133, #181, #260, #261, #262, #264, #268, #273, #279, #281, #282, #283, #285, #288. Valley only: a region appears only as the name of what comes from it. Lists, not reasons; the reasons are `docs/02` and the issues. Numbers are the data's and tuning's, not this page's. Rewritten in place when the scope changes, never appended.
 
 ## 0. How to read it
 
@@ -337,7 +337,7 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 - **Waterskin** [built]: drink, sips by itself when Thirsty, filled at any water or a well; on the belt or in the bag. The kit (full), barrels, bodies, and made at Crafting 3 (ruled 2026-10-23). [change: sips by itself only clean water; may hold unsafe water, drunk by choice.]
 - **Bucket** [built]: section 5.1; waters crops with any water.
 - **Drinking at water** [built]: any water beside you, the well's menu.
-- **Unsafe water** [to build] (#279): all natural water, water tiles and wells; always quenches; may bring a small sickness that passes; a small chance of the infection.
+- **Unsafe water** [to build] (#279): every fixed source, water tiles, wells, the trough, and the font (`44`); always quenches; may bring a small sickness that passes; a small chance of the infection.
 - **Clean water** [to build]: boiled at a fire (Cooking 1), or sanctified (Faith 10, carried water only, never a well). Boiled by Use on a lit cooking fire, or from the vessel's or the fire's menu, about 30 s; the card says clean or tainted, a brown drop on a tainted icon (2026-10-25, `44`).
 - **Jugs and jars** [to build]: clay (Mining 3), keep purified water clean.
 - **A bottle, a mug** (`docs/30`) [to build]: a bottle is a clay jug (Mining 3, shaped at Crafting 1, fired in an oven); a mug is wood at the workbench, Crafting 1 (ruled 2026-10-23).
@@ -739,7 +739,7 @@ Later, not at the start: gems inlaid in metal armour.
 ### Thirst and unsafe water
 - **Thirst** [built]: drains over a game day; four stages (Slightly thirsty, Thirsty, Parched, Dying of thirst); stamina slow at Parched; health drains at the last.
 - **Auto-sip** [built]: a carried skin sips at Thirsty, never mid-fight [change: clean water only].
-- **Unsafe water** [to build, #279]: natural water and wells; always quenches; a sickness that may come and passes (more tired, slower to heal); a small chance of the infection; never a sure penalty.
+- **Unsafe water** [to build, #279]: every fixed source, water tiles, wells, the trough, and the font (`44`); always quenches; a sickness that may come and passes (more tired, slower to heal); a small chance of the infection; never a sure penalty.
 - **Sick** (ruled 2026-10-25, `44` section 4) [to build]: a debuff (the infection's third stage renamed Queasy), tiredness 50% faster and food healing 25% less for about half a game day; 20% a tainted drink, stacking to three; 1% a tainted drink of the infection, its chance on the difficulty dial.
 
 ### Tiredness and sleep
@@ -904,7 +904,7 @@ Placeholder sounds, generated or from a library [open #271]; every informative s
 - A bleed opens; a bandage applied (the debuff).
 - Eat; drink from a skin, at water, a sip by itself (the log line).
 - A need reaches a new stage: a stomach, a dry throat, a yawn (the moodle).
-- The sickness comes (the debuff, by *Primary's reading*, #279); the infection worsens (the moodle).
+- Sick comes (the debuff, 2026-10-25, `44`); the infection worsens (the moodle).
 - Death (the dead screen).
 - A level-up; an unlock learned (a burst over the head, the log line).
 

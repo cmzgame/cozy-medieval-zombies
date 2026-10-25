@@ -23,31 +23,33 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
-## Status (2026-10-25, night: five defaults sittings done; the dead ends and water scoped; three docs/43 steps built)
+## Status (2026-10-25, night: five defaults sittings done; the dead ends and water scoped; four docs/43 steps built)
 
 **Paused for the night at Michael's word.** Where to pick up, in his order: **the animals (#289), then the basic lore (#217), then the map redraw (#92)**, the big ones, with small issues as time allows; **then build the demo**, and consider spending money (art, sound).
 
 **The Valley scope's defaults pass** (`docs/39`; one issue a sitting, Primary proposes, Michael overrules in prose, `docs/02` logs it): **done:** the skills (#275) and the food economy (#264), 2026-10-23; the loot tables and the bags (#268, #260), 2026-10-24; the dead ends (#273, the spec `docs/43`) and water (#279, the spec `docs/44`), 2026-10-25. **The basic lore is in the scope** (2026-10-25), paired with the map redraw and taken first. **Open lines of `docs/39` by issue** (counted 2026-10-25; 222 built, 231 to build, 98 to change, 73 open, down from 162): #92 11 · #289 10 · #288 8 · #123 7 · #281 7 · #181, #282, #133 5 each · #283 4 · #103 3 · #104, #262 2 each · #217, #261, #106, #271 1 each.
 
-**Built today:**
+**Built since the last status:**
 - **#397:** a gate opened while the dead strike it lets them through.
 - **#398:** no boards on a fence.
 - **#399:** the loot tables, a table per container, weights out of 32, the wiki's Drop tables page.
-- **#403:** the linen satchel, and a bag set down keeps its contents.
+- **#403:** the linen satchel, and a bag taken off keeps its contents.
 - **#413:** `docs/43` step 1, Take apart.
 - **#416:** step 5, repairs that run out, the sawpit, and honey.
 - **#417:** step 7, the dye vat.
+- **#421:** step 2, fires and lights: home lights as switches, lanterns put out, the campfire built.
 - The melee pass is accepted as the baseline (`docs/41`).
 
 **Michael allowed parallel builds** (2026-10-25): well-scoped steps may run as Primary's subagents in their own worktrees, everything reviewed by Primary (the pane and the two-tab test are Primary's, since a builder has no pane of its own).
 
 **In flight:**
-- The Secondary is on `docs/43` step 2, fires and lights (#407). Then #408 and #409, and #411 after #407 (they share `burn.js`).
+- The Secondary is on `docs/43` step 3, the made things (#408), then #409 and #411.
 - **Water's build is #418,** `for:secondary`.
-- The wiki syncs owed for #413, #416, and #417 are the Secondary's; Primary reviews each.
+- The wiki syncs owed for #413, #416, #417, and #421 are the Secondary's, in one batch; Primary reviews it.
 
 **Waiting on Michael:**
-- the loot rates, from the wiki's Drop tables page;
+- the loot rates, from the wiki's Drop tables page; the rucksack's default recipe;
+- the burst against a drawn bow, a raised shield, or a brace; #271's items 6 and 8 to 11;
 - #415 (defensive spikes, for discussion);
 - #419 (his Stardew Valley notebook);
 - #393 (the downed art brief); the satchel's drawn art on the next brief;
