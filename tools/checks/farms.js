@@ -16,14 +16,15 @@ export async function run(game) {
   const counts0 = bag0.map((e) => [e, e.count]);
   const hands0 = { main: p.hands.main, off: p.hands.off };
   const wasPaused = G.loop.isPaused();
-  G.loop.setPaused(true);
-  bag.items.length = 0; // an empty bag for the harvests: nothing stacks now (#260), so a full one drops them at the player's feet (put back in the finally)
-  for (const id of ["shovel", "knife", "scythe"]) G.inventory.stow(p, G.items.makeEntry(id, 1)); // the tool rule (#215): the harvests below are dug, cut, and scythed
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const farming = await import("/src/farming.js");
   const restore = [];
   const aggro0 = G.rules.rules.zombieAggro; // the dead stay off for the run: a long craft or a loaded farm otherwise lets them kill the player (the checks run in sequence)
   try {
+    // Inside the try, so the finally puts the bag and the pause back whatever throws (#401).
+    G.loop.setPaused(true);
+    bag.items.length = 0; // an empty bag for the harvests: nothing stacks now (#260), so a full one drops them at the player's feet (put back in the finally)
+    for (const id of ["shovel", "knife", "scythe"]) G.inventory.stow(p, G.items.makeEntry(id, 1)); // the tool rule (#215): the harvests below are dug, cut, and scythed
     G.rules.set({ zombieAggro: false });
     const crops = farming.get().crops;
     const kinds = Object.keys(crops);

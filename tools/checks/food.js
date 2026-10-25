@@ -44,19 +44,22 @@ export async function run(game) {
     row("a heal is capped at full health", me.hp === me.maxHp, `health ${me.hp} of ${me.maxHp}`);
 
     // From the belt: the slot's Eat entry, and a double-click.
-    me.hunger = 0; // the belt rows eat stew twice, so there is room for it
+    me.hunger = 0; // the belt rows eat two stews, so there is room for them
     if (belt) {
-      const slot = belt.findIndex((e) => !e);
-      if (slot >= 0) {
+      // Food is one a cell since #399, so a belt slot holds one food: a stew in each of two slots, eaten one after the other.
+      const free = belt.map((e, i) => (e ? -1 : i)).filter((i) => i >= 0);
+      if (free.length >= 2) {
+        const [a, b] = free;
         me.hp = 40;
-        belt[slot] = G.items.makeEntry("stew", 2);
-        const id = `belt:${slot}`;
+        belt[a] = G.items.makeEntry("stew", 1);
+        belt[b] = G.items.makeEntry("stew", 1);
+        const id = `belt:${a}`;
         row("a food on the belt offers Eat from its slot, and not Equip", G.interact.slotMenu(me, id).some((m) => m.label === "Eat") && !G.interact.slotMenu(me, id).some((m) => m.label.startsWith("Equip")), G.interact.slotMenu(me, id).map((m) => m.label).join(", "));
         const did = actions.useSlot(id);
-        row("a double-click on it eats one: health up, one fewer on the belt", did === true && me.hp === 40 + heal("stew") && belt[slot] && belt[slot].count === 1, `health ${me.hp}, ${belt[slot] ? belt[slot].count : 0} left`);
-        actions.useSlot(id);
-        row("and the last one empties the slot", belt[slot] === null && me.hp === 40 + 2 * heal("stew"), `slot ${belt[slot] ? "still full" : "empty"}, health ${me.hp}`);
-      } else row("a free belt slot for the belt rows", false, "none");
+        row("a double-click on it eats it: health up, its slot empty, the other slot's stew still there", did === true && me.hp === 40 + heal("stew") && belt[a] === null && !!belt[b], `health ${me.hp}; slot ${a + 1} ${belt[a] ? "still full" : "empty"}, slot ${b + 1} ${belt[b] ? "full" : "empty"}`);
+        actions.useSlot(`belt:${b}`);
+        row("the second slot, a second bite: both slots empty", belt[b] === null && me.hp === 40 + 2 * heal("stew"), `slot ${b + 1} ${belt[b] ? "still full" : "empty"}, health ${me.hp}`);
+      } else row("two free belt slots for the belt rows", false, `${free.length} free`);
       // Food heals what it says on the tin, full or not, and hunger stops at the top (Michael, 2026-10-18, overturning #186's "You are
       // full."), by the menu, the double-click, and the key alike.
       const word = () => (document.getElementById("message") || {}).textContent || "";
@@ -75,10 +78,13 @@ export async function run(game) {
       };
       try {
         const slot2 = belt.findIndex((e) => !e);
-        belt[slot2] = G.items.makeEntry("stew", 3);
-        full("the belt slot's menu", () => G.interact.slotMenu(me, `belt:${slot2}`).find((m) => m.label === "Eat").onSelect(), () => belt[slot2].count === 2);
-        full("the double-click on it", () => actions.useSlot(`belt:${slot2}`), () => belt[slot2].count === 1);
+        const oneStew = () => { belt[slot2] = G.items.makeEntry("stew", 1); }; // one food a slot (#399): each way in eats a stew of its own
+        oneStew();
+        full("the belt slot's menu", () => G.interact.slotMenu(me, `belt:${slot2}`).find((m) => m.label === "Eat").onSelect(), () => belt[slot2] === null);
+        oneStew();
+        full("the double-click on it", () => actions.useSlot(`belt:${slot2}`), () => belt[slot2] === null);
         const press = (await import("/src/interact.js")).updateInteract;
+        oneStew();
         full("the belt key", () => press(me, 1 / 60, { [`belt${slot2 + 1}`]: true }), () => belt[slot2] === null);
         // With Survival off the needs stay full for good, and food heals all the same.
         G.rules.rules.survival = false;
