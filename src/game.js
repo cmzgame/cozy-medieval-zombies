@@ -22,6 +22,7 @@ import * as sick from "./sick.js"; // tainted water's debuff (docs/44)
 import * as burn from "./burn.js"; // burning as a status (#14): the step's, beside the visual fire.js
 import * as fruit from "./fruit.js"; // bare fruit trees bear again (#190)
 import * as farming from "./farming.js"; // crops grow on the clock (#194)
+import * as resources from "./resources.js"; // a taken natural resource comes back elsewhere in its area (docs/46)
 import * as chart from "./chart.js"; // what the world has seen of itself (docs/33, #203)
 import * as kit from "./kit.js"; // the starting kit as data and the world's additions (#136)
 import * as infection from "./infection.js";
@@ -90,6 +91,7 @@ export function create({ json, look = null, name = null, devChest = false, rules
   S.info = map.loadMap(json, mapOptions());
   fruit.reset();
   farming.reset();
+  resources.reset(); // a new world owes nothing
   map.setTouchHook(chart.noteTouched);
   chart.reset(); // a new world has seen nothing
   const info = S.info;
@@ -222,6 +224,7 @@ function worldWithout(chunks) {
     world: { timeScale: world.world.timeScale, idCounter: world.idCounter() },
     rules: { ...rules.rules }, // the world's own rules ride in its save (item 5's second step; a server world reads only these)
     chart: chart.serialize(), // what the world has seen: the world's, not any player's, and it outlives the chunks it was seen in
+    resources: resources.serialize(), // the natural resources owed to their areas, and the last look (docs/46): the host's, as the generator is
     map: { chunks: null, pending: map.serializePending(), sleepers: map.sleeperEntries().map(([k, list]) => [k, list.map(serializeCharacter)]) },
     characters: {
       players: S.players.map(serializeCharacter),
@@ -298,6 +301,7 @@ export function restore(saved, json) {
   map.setTouchHook(chart.noteTouched);
   chart.restore(save.chart);
   fruit.reset();
+  resources.restore(save.resources); // a save from before it owes nothing (worlds are expendable, 2026-10-17)
   const makers = { player: createPlayer, zombie: createZombie, villager: createVillager };
   const all = [];
   const bring = (list) => (list || []).map((d) => {
@@ -416,7 +420,8 @@ events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, dama
 // lost a lifted prop's id from its registry, or kept a removed one, shows here, as the review found),
 // the fires, the players whole (their position at three decimals, their hands, their worn, their bags
 // by uid, an entry's dye: its `colours`, docs/43 section 8), the dead and the villagers as the frames carry them (position, state, hp), the clock. Not
-// in it: the generator's state and the id counter, which a replica never rolls or draws from.
+// in it: the generator's state and the id counter, which a replica never rolls or draws from, and the natural resources' debts (docs/46,
+// resources.js), the host's record of what it will grow, which a replica never steps: what a debt grows reaches it as a touched chunk.
 export function syncParts() {
   const S = state;
   const f = (n) => (typeof n === "number" ? n.toFixed(3) : String(n));
@@ -574,6 +579,7 @@ export function begin(dt) {
   map.burnFires(dt);
   map.burnHolders(dt); // the torches mounted on brackets and posts burn down at the wall rate (map.js)
   fruit.step(); // a bare fruit tree bears again on its day (fruit.js)
+  resources.step(() => [...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals]); // a taken resource grows again elsewhere in its area, under no body, an animal's or a carcass's among them (docs/46)
   farming.step(); // a crop's picture follows its stage (farming.js, #194)
   burnTorches(dt);
   stations.update(dt); // every station's queue, in the world's time (docs/30, section 6)

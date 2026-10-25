@@ -14,6 +14,8 @@ import { makeWall } from "./walls.js";
 import * as loop from "../loop.js"; // the sim clock: a poke's stamp is in sim milliseconds (docs/23a, C2)
 import * as hl from "./highlight.js"; // Object Highlight (#301)
 import * as paintingArt from "./paintings.js"; // a painting hung on a wall (#326)
+import { resources as RES } from "../tuning.js"; // a rock's rise (docs/46)
+import { riseOf } from "../resources.js"; // how far a rising rock is still below the ground (docs/46)
 import * as bees from "./bees.js"; // bees round a hive by day (#441)
 
 // ---- props and characters ----
@@ -118,6 +120,29 @@ export function swayOf(prop, height) { // exported for tools/checks/sway.js
   return Math.round(Math.sin(k * Math.PI * 3) * reach * (1 - k));
 }
 
+// A rock or an ore rock rises out of the ground (docs/46 section 3; Michael: "they pop up out of the ground with an animation"): drawn whole,
+// as if risen from below, cut at the ground line, never scaled. How far it is still below is resources.riseOf, from the sim-clock stamp
+// the host put on it as it grew (`risenAt`, carried in its chunk to every guest). The slice of a rising prop: the top `height - sink` rows
+// of its frame, at the frame's own width, `sink` pixels lower, so the part below the ground line is not drawn; and a little broken soil and
+// dust at its foot while it rises (whole pixels, fading).
+const SOIL = [[-15, 1], [-9, 3], [-3, 4], [4, 3], [10, 2], [16, 0]];
+function risingSlice(sheet, name, f, x, y, tx, ty, flags, sink, k) {
+  const an = (sheet.frameAnchors && sheet.frameAnchors[name]) || sheet.anchor;
+  const uv = gl.frameUV(sheet, name);
+  const h = f[3] - sink;
+  if (uv && h > 0) gl.quad(x - an[0], y - an[1] + sink, f[2], h, [uv[0], uv[1], uv[2], uv[3] - sink, uv[4]], { world: [tx, ty], heights: [h, h, 0, 0], flags });
+  const fade = Math.max(0, 1 - k);
+  const soil = gl.rgb("#4a3a28", fade);
+  const dust = gl.rgb("#9a8a6a", 0.7 * fade);
+  for (const [dx, dy] of SOIL) {
+    const sx = x + Math.round(dx * (0.6 + 0.4 * k));
+    const sy = y + dy;
+    gl.poly([[sx - 1, sy - 1], [sx + 1, sy - 1], [sx + 1, sy + 1], [sx - 1, sy + 1]], soil, { world: [tx, ty], flags: gl.FLAG_STANDING });
+    const py = sy - 2 - Math.round(k * 6);
+    gl.poly([[sx - 1, py - 1], [sx + 1, py - 1], [sx + 1, py + 1], [sx - 1, py + 1]], dust, { world: [tx, ty], flags: gl.FLAG_STANDING });
+  }
+}
+
 // The frame of a playing click animation (the well's bucket), or null when it
 // is not playing (interact.play starts it).
 function clickFrame(prop) {
@@ -156,6 +181,7 @@ export function propDrawables(tiles, visible, out) {
         : { x: x - an[0], y: y - an[1], w: f[2], h: f[3] }
       : null;
     const vis = visible.has(tileKey(tx, ty));
+    const sink = f && prop.risenAt !== undefined ? riseOf(prop, f[3]) : 0; // a rock rising out of the ground (docs/46)
     const flameName = idleFrame(sheet, prop, frameIdx, "flame");
     const flame = !sheet.flames && !!(prop.fire && prop.fire.lit && sheet.frames[flameName] && vis);
     // Furniture's flames (the fireplace): on the slice that holds the firebox,
@@ -178,13 +204,14 @@ export function propDrawables(tiles, visible, out) {
       emit() {
         const flags = gl.FLAG_STANDING | (d.occluder ? gl.FLAG_OCCLUDER : 0);
         if (swarm) bees.emit(swarm, true, [tx, ty]);
-        propSlice(sheet, name, f, x, y, tx, ty, flags, undefined, f ? swayOf(prop, f[3]) : 0);
+        if (sink > 0) risingSlice(sheet, name, f, x, y, tx, ty, flags, sink, (loop.simTime() - prop.risenAt) / RES.riseSeconds);
+        else propSlice(sheet, name, f, x, y, tx, ty, flags, undefined, f ? swayOf(prop, f[3]) : 0);
         if (swarm) bees.emit(swarm, false, [tx, ty]);
         if (flame) frameQuad(sheet, flameName, x, y, { world: [tx, ty], flags: gl.FLAG_UNLIT });
         if (furnFlame) frameQuad(sheet, furnFlame, x, y, { world: [tx, ty], flags: gl.FLAG_UNLIT });
       },
     };
-    if (hl.isProp(prop.id)) lit.push({ d, sheet, name, f, x, y, tx, ty, prop });
+    if (hl.isProp(prop.id) && !sink) lit.push({ d, sheet, name, f, x, y, tx, ty, prop }); // a rising rock is outlined once it is up
     out.push(d);
   }
   if (lit.length) highlightProp(lit, out);

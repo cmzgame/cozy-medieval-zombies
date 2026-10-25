@@ -1,8 +1,8 @@
 // Mining (#196; docs/30 section 10). From the console, on a tab with `?nosave`:
 //   await __game.check("mine")
-// It mines a rock and an ore rock with and without a pickaxe, watches the ore rock come back on its clock day, does the same by the menu's
-// label on the rock's address (a guest's way), and reads the tables of the chests that start the smithy. The props, the bag, the hands,
-// the clock, and the place are put back.
+// It mines a rock and an ore rock with and without a pickaxe (each goes; an ore rock no longer stands spent to come back in place, docs/46:
+// its comeback elsewhere in its area is check("resources")'s), does the same by the menu's label on the rock's address (a guest's way),
+// and reads the tables of the chests that start the smithy. The props, the bag, the hands, the clock, and the place are put back.
 
 export async function run(game) {
   const G = game;
@@ -18,6 +18,8 @@ export async function run(game) {
   const DAY = G.clock.DAY_LENGTH;
   const mining = await import("/src/mining.js");
   const fruit = await import("/src/fruit.js");
+  const resources = await import("/src/resources.js"); // the rocks it mines in the valley leave debts on the stone area's record: put back after
+  const owed0 = resources.serialize();
   const restore = [];
   const count = (id) => G.inventory.countAll(me, id);
   const labels = (id) => G.interact.actionsForTarget({ kind: "prop", id }, me).map((a) => a.label);
@@ -31,8 +33,7 @@ export async function run(game) {
     const rockDefs = [0, 1, 2, 3].map((n) => G.assets.getDef(`rock_${n}`));
     row("the pickaxe lists the verb mine; the four rocks give stone and go; there is a stone item", G.items.getItem("pickaxe").verbs.includes("mine") && rockDefs.every((d) => d.mine && d.mine.item === "stone" && d.mine.gone === true && d.interactable === true) && !!G.items.getItem("stone"), JSON.stringify(rockDefs[0].mine));
     const ore = G.assets.getDef("ore_rock");
-    const spent = G.assets.getDef("ore_rock_spent");
-    row("the ore rock gives iron ore and stands spent for days, and the spent kind says it ripens back (a gatherable both ways: interactable and outlined)", ore.mine.item === "iron_ore" && ore.mine.spent === "ore_rock_spent" && ore.mine.days > 0 && spent.ripens === "ore_rock" && ore.interactable === true && spent.interactable === true && ore.placeholder.outline === true && spent.placeholder.outline === true, JSON.stringify(ore.mine) + "; outlined both ways (the gatherables law)");
+    row("the ore rock gives iron ore and goes, with no spent kind and no days (docs/46), a gatherable: interactable and outlined", ore.mine.item === "iron_ore" && ore.mine.gone === true && !("spent" in ore.mine) && !("days" in ore.mine) && ore.interactable === true && ore.placeholder.outline === true, JSON.stringify(ore.mine) + "; outlined (the gatherables law)");
 
     // Two tiles of bare ground beside the player.
     let at = null;
@@ -66,24 +67,11 @@ export async function run(game) {
     const mined = run1(rock.id);
     row("mining a rock gives its stone and the rock goes (a second miner finds it gone)", mined.ok && count("stone") - stoneBefore === rockDefs[0].mine.count[0] && !G.map.propById(rock.id) && !G.map.tileAt(x, y).prop && !run1(rock.id).ok, `+${count("stone") - stoneBefore} stone`);
 
-    // An ore rock: ore, spent, back after its days.
+    // An ore rock: ore, and it goes.
     const oreBefore = count("iron_ore");
-    const t0 = G.clock.getElapsed();
     const gotOre = run1(orePiece.id);
-    row("an ore rock gives iron ore and stands spent, with the day it returns three days on", gotOre.ok && count("iron_ore") - oreBefore === ore.mine.count[0] && orePiece.sprite === "ore_rock_spent" && Math.abs(orePiece.regrowAt - (t0 + ore.mine.days * DAY)) < 1, `+${count("iron_ore") - oreBefore} ore, ${orePiece.sprite}, regrowAt ${orePiece.regrowAt}`);
-    row("a spent one cannot be mined and its menu says when it returns", !run1(orePiece.id).ok && /mined out/.test(run1(orePiece.id).reason) && labels(orePiece.id).some((l) => /^Mined out \(more in about 3 days\)/.test(l)), `${run1(orePiece.id).reason}; ${labels(orePiece.id).join(", ")}`);
-    const day = orePiece.regrowAt;
-    G.clock.setElapsed(day - 40);
-    fruit.reset();
-    G.game.begin(0);
-    row("a day short it is still spent", orePiece.sprite === "ore_rock_spent", orePiece.sprite);
-    const copy = { ...JSON.parse(JSON.stringify(G.map.serializeProp(orePiece))), id: "p_mine_check" };
-    const revived = G.map.reviveProp(copy, false);
-    row("a save's copy of the prop, revived, keeps its day", revived.sprite === "ore_rock_spent" && revived.regrowAt === day, `${revived.sprite} ${revived.regrowAt}`);
-    G.clock.setElapsed(day + 31);
-    G.game.begin(0);
-    row("past its day it is an ore rock again (iron never runs out)", orePiece.sprite === "ore_rock" && orePiece.regrowAt === undefined, `${orePiece.sprite} ${orePiece.regrowAt}`);
-    G.clock.setElapsed(t0);
+    row("an ore rock gives iron ore and goes, nothing left standing on its tile (it never comes back in place)", gotOre.ok && count("iron_ore") - oreBefore === ore.mine.count[0] && !G.map.propById(orePiece.id) && !G.map.tileAt(x + 2, y).prop, `+${count("iron_ore") - oreBefore} ore, ${G.map.tileAt(x + 2, y).prop ? G.map.tileAt(x + 2, y).prop.sprite : "nothing"} on its tile`);
+    row("a mined ore rock cannot be mined again and offers nothing", !run1(orePiece.id).ok && labels(orePiece.id).length === 0, `${run1(orePiece.id).reason}; ${labels(orePiece.id).join(", ") || "no entries"}`);
 
     // Through a wall (a sealed room is a cell, #147): the same clear line the farming verbs need.
     G.map.buildWall(x, y + 1, "n", "wall");
@@ -125,6 +113,7 @@ export async function run(game) {
     for (const r of restore.reverse()) r();
     G.clock.setElapsed(clock0);
     fruit.reset();
+    resources.restore(owed0);
     bag.items.splice(0, bag.items.length, ...bag0);
     me.hands.main = hands0.main;
     me.hands.off = hands0.off;
