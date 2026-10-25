@@ -435,7 +435,8 @@ events.on("animalBite", ({ animal: a, victim, damage }) => {
 // their fires), the prop registry (every id the map answers to, the carried ones apart: a guest that
 // lost a lifted prop's id from its registry, or kept a removed one, shows here, as the review found),
 // the fires, the players whole (their position at three decimals, their hands, their worn, their bags
-// by uid, an entry's dye: its `colours`, docs/43 section 8), the dead and the villagers as the frames carry them (position, state, hp), the clock. Not
+// by uid, an entry's dye: its `colours`, docs/43 section 8), the dead and the villagers as the frames carry them (position, state, hp), the clock,
+// and every item counted (`items` and `census`, itemCensus below: #101). Not
 // in it: the generator's state and the id counter, which a replica never rolls or draws from, and the natural resources' debts (docs/46,
 // resources.js), the host's record of what it will grow, which a replica never steps: what a debt grows reaches it as a touched chunk.
 export function syncParts() {
@@ -469,8 +470,91 @@ export function syncParts() {
     clock: hashOf(`${f(clock.getElapsed())} ${f(loop.simTime())} ${world.world.timeScale}`),
     rules: hashOf(Object.keys(rules.rules).sort().map((k) => `${k}=${typeof rules.rules[k] === "boolean" ? (rules.rules[k] ? 1 : 0) : rules.rules[k]}`).join(" ")), // world state since the second step of item 5
   };
+  // Every item in the world counted (#101, tier 3's duplication count): the units of each item id, hashed, and the census's line with
+  // how many entries are held twice. A part that differed caught a divergence; these catch a count that drifted the same way on both
+  // sides, against a mark taken before (tools/checks/sync.js), and a uid in two places at once.
+  const census = itemCensus(m.chunks || []);
+  parts.items = hashOf(census.text);
+  parts.census = census.summary;
   parts.counts = `${chunks.length} chunks, ${[...map.allProps()].length} props, ${[...map.fires()].length} fires, ${S.players.length} players, ${S.zombies.length} dead, ${S.villagers.length} villagers, ${S.corpses.length} corpses, ${S.animals.length} animals`;
   return parts;
+}
+
+// Every item in the world (#101): each entry wherever it is held, on the map (a prop's bag, a station's output, a set-down bag, a rug,
+// a painting or a bracket on a wall, the floor's items, and what is inside each of those) and on the characters (the players', the
+// dead's, the villagers', and the bodies' hands, worn things with the bags and belts in them, pockets, a body's grid, a carried prop),
+// as the frames carry them to a guest: what is lodged in one of the dead or in an animal (`lodged`, `lodgedItems`) is not on the wire
+// and stays the host's until a search or a butchering lays it out, so it is not counted, and an animal holds nothing else. An entry is an object whose `id` is an item's and has no `sprite` (a prop's).
+// Two places that are one thing by design count once: both hands holding one two-handed thing, and a searched body, whose grid IS the
+// body (its worn slots point at the grid's entries, or at what was taken from it: character.js lootOf), so a body with a grid is
+// counted by its grid alone. `chunks` is `map.serializeMap().chunks` when the caller has it. Returns the entries, the units (counts
+// summed), the kinds, the entries with no uid (the dead's garments before a search are literals), those with a count under one, each
+// uid held more than once with where, the `totals` by id and the same by holder (`groups`: the map, the players, the bodies, the
+// living dead and the villagers), the `text` of every kind's units (sorted, what `items` hashes), and a one-line `summary`.
+export function itemCensus(chunks = null) {
+  const S = state;
+  const totals = new Map(); // item id -> units
+  const groups = { map: new Map(), players: new Map(), bodies: new Map(), living: new Map() }; // the same, by who holds it: a drift's detail
+  const where = new Map(); // uid -> the first place it was found
+  const dups = []; // { uid, id, places }
+  let entries = 0;
+  let units = 0;
+  let noUid = 0;
+  let empty = 0;
+  const isEntry = (o) => typeof o.id === "string" && o.sprite === undefined && items.hasItemDef(o.id);
+  const walk = (o, at, group, depth = 0) => {
+    if (!o || typeof o !== "object" || depth > 16) return;
+    if (Array.isArray(o)) {
+      for (const v of o) walk(v, at, group, depth + 1);
+      return;
+    }
+    if (isEntry(o)) {
+      entries++;
+      const n = typeof o.count === "number" ? o.count : 1;
+      units += n;
+      if (n < 1) empty++;
+      totals.set(o.id, (totals.get(o.id) || 0) + n);
+      group.set(o.id, (group.get(o.id) || 0) + n);
+      if (o.uid == null) noUid++;
+      else if (where.has(o.uid)) {
+        const d = dups.find((x) => x.uid === o.uid);
+        if (d) d.places.push(at);
+        else dups.push({ uid: o.uid, id: o.id, places: [where.get(o.uid), at] });
+      } else where.set(o.uid, at);
+    }
+    for (const v of Object.values(o)) if (v && typeof v === "object") walk(v, at, group, depth + 1);
+  };
+  for (const c of chunks || map.serializeMap().chunks || []) {
+    for (const p of c.props || []) walk(p, `prop ${p.id} in chunk ${c.cx},${c.cy}`, groups.map);
+    for (const [lx, ly, edge, w] of c.walls || []) walk(w, `the ${edge} wall of ${c.cx * map.CHUNK + lx},${c.cy * map.CHUNK + ly}`, groups.map);
+    for (const [lx, ly, list] of c.items || []) walk(list, `the floor at ${c.cx * map.CHUNK + lx},${c.cy * map.CHUNK + ly}`, groups.map);
+  }
+  const holders = [[S.players, groups.players], [S.corpses, groups.bodies], [S.zombies, groups.living], [S.villagers, groups.living]];
+  for (const [list, group] of holders) for (const ch of list) {
+    const who = `${ch.kind || "character"} ${ch.id}`;
+    if (ch.loot) walk(ch.loot, `${who}'s body`, group);
+    else {
+      const main = ch.hands ? ch.hands.main : null;
+      const off = ch.hands ? ch.hands.off : null;
+      if (main) walk(main, `${who}'s main hand`, group);
+      if (off && !(off === main || (main && off.uid != null && off.uid === main.uid))) walk(off, `${who}'s off hand`, group);
+      for (const [slot, e] of Object.entries(ch.worn || {})) if (e) walk(e, `${who}'s ${slot}`, group);
+      if (ch.pockets) walk(ch.pockets, `${who}'s pockets`, group);
+    }
+    if (ch.carrying) walk(map.serializeProp(ch.carrying), `what ${who} carries`, group);
+  }
+  const kinds = [...totals.keys()].sort();
+  const text = kinds.map((id) => `${id} ${totals.get(id)}`).join("\n");
+  let summary = `${entries} entries, ${units} units, ${kinds.length} kinds, ${noUid} with no uid, ${empty} under one, ${dups.length} held twice`;
+  if (dups.length) {
+    summary += ":";
+    for (const d of dups) {
+      const more = ` ${d.uid}`;
+      if (summary.length + more.length > 190) { summary += " ..."; break; }
+      summary += more;
+    }
+  }
+  return { entries, units, kinds: kinds.length, noUid, empty, totals, groups, dups, text, summary };
 }
 
 export function hashOf(text) {
