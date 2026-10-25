@@ -1,7 +1,8 @@
 // Chopping (#195; docs/30 sections 4 and 10: "chop a tree or a stump (hatchet)"): a hatchet in a hand fells a tree, which drops its logs and
 // leaves a stump; the hatchet on the stump gives a log and clears the tile. A tool is an item whose `verbs` list the verb (`chop`), so a
 // better axe is a row in data; the seconds and the stump's sprite are `world.chopSeconds` and `world.stumpSprite`. Felled logs are the one
-// renewable wood: the forest is as large as it is (Primary's reading, #195).
+// renewable wood: the forest is as large as it is (Primary's reading, #195). A felled tree sometimes drops a sapling on its tile (docs/46
+// step 3, #449: trees.fellDrop, its chance in data), which a player plants to grow a new one (trees.js).
 
 import * as verbs from "./verbs.js";
 import * as map from "./map.js";
@@ -10,6 +11,7 @@ import { getDef } from "./assets.js";
 import { showMessage } from "./ui/prompt.js";
 import { world as W } from "./tuning.js";
 import { reachProblem } from "./reach.js"; // distance and a clear line (#208)
+import { fellDrop } from "./trees.js"; // a felled tree sometimes drops a sapling (docs/46 step 3)
 
 // The tool a player holds that chops, or null.
 export function heldAxe(player) {
@@ -40,12 +42,14 @@ verbs.define("chop", {
     const tree = !!getDef(prop.sprite).canopy;
     map.removeProp(prop);
     for (let i = 0; i < logs; i++) map.dropItem(tx, ty, { id: "log", count: 1 });
+    let sapling = false;
     if (tree) {
       const s = map.createProp({ sprite: W.stumpSprite, tile: [tx, ty] }); // a felled tree leaves its stump
       map.placeProp(s, tx, ty);
+      sapling = fellDrop(tx, ty); // and sometimes a sapling, by the sim's generator (Woodcutting 4, open to all until the skills)
     }
     const n = `${logs} log${logs > 1 ? "s" : ""}`;
-    showMessage(stump ? `${n} from the stump, and the ground is clear.` : tree ? `${n} on the ground, and a stump.` : `${n} on the ground.`);
-    return { logs };
+    showMessage(stump ? `${n} from the stump, and the ground is clear.` : tree ? `${n} on the ground, and a stump${sapling ? "; a sapling fell too" : ""}.` : `${n} on the ground.`);
+    return { logs, sapling };
   },
 });

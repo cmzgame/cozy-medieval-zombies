@@ -23,6 +23,7 @@ import * as burn from "./burn.js"; // burning as a status (#14): the step's, bes
 import * as fruit from "./fruit.js"; // bare fruit trees bear again (#190)
 import * as farming from "./farming.js"; // crops grow on the clock (#194)
 import * as resources from "./resources.js"; // a taken natural resource comes back elsewhere in its area (docs/46)
+import * as trees from "./trees.js"; // a planted sapling grows into a tree; sticks under trees (docs/46 step 3)
 import * as chart from "./chart.js"; // what the world has seen of itself (docs/33, #203)
 import * as kit from "./kit.js"; // the starting kit as data and the world's additions (#136)
 import * as infection from "./infection.js";
@@ -91,6 +92,7 @@ export function create({ json, look = null, name = null, devChest = false, rules
   S.info = map.loadMap(json, mapOptions());
   fruit.reset();
   farming.reset();
+  trees.reset(); // a new world looks at its saplings at once
   resources.reset(); // a new world owes nothing
   map.setTouchHook(chart.noteTouched);
   chart.reset(); // a new world has seen nothing
@@ -351,6 +353,7 @@ export function restore(saved, json) {
   world.setTimeScale(save.world.timeScale);
   clock.setElapsed(save.clock);
   farming.reset(true); // after the clock: a restored world's crops wait for the next boundary, as the running one's did
+  trees.reset(true); // and its saplings
   loop.setSimTime(save.simTime);
   rng.setState(save.rng);
   light.forgetAll();
@@ -598,6 +601,7 @@ export function begin(dt) {
   fruit.step(); // a bare fruit tree bears again on its day (fruit.js)
   resources.step(() => [...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals]); // a taken resource grows again elsewhere in its area, under no body, an animal's or a carcass's among them (docs/46)
   farming.step(); // a crop's picture follows its stage (farming.js, #194)
+  trees.step(() => [...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals]); // a planted sapling grows, waiting while anyone stands on it (docs/46 step 3)
   burnTorches(dt);
   stations.update(dt); // every station's queue, in the world's time (docs/30, section 6)
   for (const p of S.players) {

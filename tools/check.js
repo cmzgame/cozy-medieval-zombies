@@ -1468,6 +1468,154 @@ check("herbs, clay, and salt: placed to their counts on their ground, gathered b
   return `${HERBS.length} herb kinds, ${herbTotal} herbs, clay ${kinds.clay.count}, salt ${kinds.salt.count}; gathered by verb and label, foraged, the graveyard's at night only, clay with a shovel, salt with a pickaxe; back after ${looks} looks by day, the graveyard's at night; ${designs.length} designs outlined`;
 });
 
+// Saplings and sticks (docs/46 step 3, #449): felling drops a sapling at its chance (seeded, the sim's generator), and always at 1 and never at
+// 0; the sapling planted from the bag by the host's own call and by a guest's `setdown` command on open grass, refused indoors, on a road, on
+// tilled soil, and against a wall; it grows through its stages to the round oak over its days, keeping its id, the tree solid and choppable;
+// it waits while a body stands on it (the stamp marks its chunk); Gather sticks by the label a guest sends, after its bar, once a game day,
+// greyed and refused after, again the next day, never on a stump, kept from E by a laden apple tree's Pick apples; the stamps in the save and
+// the sync hash; the cards. (The page, the pictures, and two tabs are `check("saplings")`'s, in the pane.)
+const treesMod = await import("../src/trees.js");
+const setdownMod = await import("../src/setdown.js");
+check("saplings and sticks: dropped at their chance, planted by the host and a guest on open grass only, grown to an oak over their days, waiting while stood on; sticks once a day", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  const T = tuningMod.trees;
+  const DAY = clock.DAY_LENGTH;
+  const bag = inventoryMod.bagOf(me);
+  for (const e of [...bag.items]) inventoryMod.detach(me, e);
+  // The data.
+  assert(T.sapling.chance > 0 && T.sapling.chance < 1 && T.sapling.days === 5 && T.sapling.grows === "tree_oak_m" && getDef("tree_oak_m").canopy && T.sapling.stages.every((s) => getDef(s).sapling && getDef(s).interactable && getDef(s).item === "sapling"), `the tuning: ${JSON.stringify(T)}`);
+  const sapDef = itemsMod.getItem("sapling");
+  assert(sapDef.place === T.sapling.stages[0] && sapDef.stand === "natural" && T.sticks.item === "stick" && read("data/tuning.json").floaters.gathers.sticks, "the sapling item or the sticks' floater");
+  // The chance, seeded: the share of a thousand rolls near the lever, the same for the same seed.
+  const rolls = (seed) => { rng.seed(seed); let n = 0; const [x, y] = [0, 0]; for (let i = 0; i < 1000; i++) { mapMod.growTile(x, y); if (treesMod.fellDrop(x, y)) n++; } for (const e of [...mapMod.itemsAt(x, y)]) mapMod.takeItem(x, y, e); return n; };
+  const n1 = rolls(5);
+  assert(Math.abs(n1 / 1000 - T.sapling.chance) < 0.05 && rolls(5) === n1, `${n1} saplings in 1000 fellings at ${T.sapling.chance}`);
+  // Felling by the verb: at chance 1 a sapling falls on the stump's tile, at 0 none.
+  const chance0 = T.sapling.chance;
+  const fellOne = (chance) => {
+    const tree = mapMod.allProps().find((p) => treesMod.isStandingTree(p) && !p.sprite.startsWith("tree_apple") && Math.hypot(p.tile[0] - me.gx, p.tile[1] - me.gy) < 30);
+    mapMod.growTile(tree.tile[0], tree.tile[1]);
+    me.gx = tree.tile[0] + 1; me.gy = tree.tile[1] + 0.2;
+    me.hands.main = itemsMod.makeEntry("hatchet", 1);
+    T.sapling.chance = chance;
+    const r = verbsMod.run("chop", S, me, { prop: tree.id });
+    T.sapling.chance = chance0;
+    me.hands.main = null;
+    const fell = mapMod.itemsAt(tree.tile[0], tree.tile[1]).filter((e) => e.id === "sapling").length;
+    return { r, fell, tile: tree.tile };
+  };
+  const always = fellOne(1);
+  const never = fellOne(0);
+  assert(always.r.ok && always.r.sapling === true && always.fell === 1, `at chance 1: ${JSON.stringify(always.r)}, ${always.fell} on the tile`);
+  assert(never.r.ok && never.r.sapling === false && never.fell === 0, `at chance 0: ${JSON.stringify(never.r)}, ${never.fell} on the tile`);
+  // Where it may be planted: open grass outdoors, never indoors, on a road, on tilled soil, or against a wall.
+  const near = (test, r = 30) => { for (let d = 1; d <= r; d++) for (let dy = -d; dy <= d; dy++) for (let dx = -d; dx <= d; dx++) { if (Math.max(Math.abs(dx), Math.abs(dy)) !== d) continue; const x = Math.round(me.gx) + dx; const y = Math.round(me.gy) + dy; mapMod.growTile(x, y); if (test(x, y)) return [x, y]; } return null; };
+  mapMod.ensureAround(me.gx, me.gy, 3);
+  const open = near((x, y) => treesMod.standProblem(x, y) === "" && treesMod.standProblem(x + 1, y) === "" && mapMod.isWalkableTile(x + 1, y));
+  const indoors = near((x, y) => mapMod.roomAt(x, y) > 0 && !mapMod.tileAt(x, y).prop && !mapMod.tileAt(x, y).rug, 60);
+  const road = near((x, y) => ["floor_cobble", "floor_dirt"].includes(mapMod.tileAt(x, y).floor) && !mapMod.tileAt(x, y).prop && mapMod.roomAt(x, y) <= 0, 60);
+  const walled = near((x, y) => { const t = mapMod.tileAt(x, y); return t.floor === mapMod.baseFloor() && !t.prop && mapMod.roomAt(x, y) <= 0 && (t.n || t.w); }, 60);
+  assert(open && indoors && road && walled, `tiles to try: open ${open}, indoors ${indoors}, road ${road}, against a wall ${walled}`);
+  const tilled = [open[0] + 1, open[1]];
+  mapMod.setFloor(tilled[0], tilled[1], "floor_farm");
+  const why = { indoors: setdownMod.standProblem("natural", ...indoors), road: setdownMod.standProblem("natural", ...road), tilled: setdownMod.standProblem("natural", ...tilled), walled: setdownMod.standProblem("natural", ...walled), open: setdownMod.standProblem("natural", ...open) };
+  assert(why.open === "" && why.indoors === "Outdoors only" && why.road === "Open grass only" && why.tilled === "Open grass only" && why.walled === "Not against a wall", `the stand rule: ${JSON.stringify(why)}`);
+  mapMod.setFloor(tilled[0], tilled[1], mapMod.baseFloor());
+  // Refused by place itself, reach aside: stand beside each.
+  const sap = () => { const e = itemsMod.makeEntry("sapling", 1); inventoryMod.stow(me, e); return e; };
+  const tryAt = (at) => { me.gx = at[0] + 1; me.gy = at[1]; const e = sap(); const ok = setdownMod.place(me, e.uid, at[0], at[1]); if (!ok) inventoryMod.detach(me, e); return ok; };
+  assert(!tryAt(road) && !tryAt(walled) && !mapMod.tileAt(road[0], road[1]).prop, "a sapling was planted on a road or against a wall");
+  // The host's own planting.
+  const now0 = clock.getElapsed();
+  me.gx = open[0] + 1; me.gy = open[1] + 0.3;
+  const e1 = sap();
+  assert(setdownMod.place(me, e1.uid, open[0], open[1]), "the sapling was not planted on open grass");
+  const s1 = mapMod.tileAt(open[0], open[1]).prop;
+  assert(s1 && s1.sprite === T.sapling.stages[0] && s1.solid === false && s1.sapling && s1.sapling.at === now0 && !s1.made && inventoryMod.countAll(me, "sapling") === 0, `planted: ${s1 && JSON.stringify(mapMod.serializeProp(s1))}`);
+  // A guest's way: the setdown command by the entry's uid and the tile, through the one path (placement.performPlacement).
+  const spot2 = near((x, y) => treesMod.standProblem(x, y) === "" && Math.hypot(x - open[0], y - open[1]) > 3);
+  me.gx = spot2[0] + 1; me.gy = spot2[1] + 0.3;
+  const e2 = sap();
+  placementImport.performPlacement(me, { kind: "setdown", uid: e2.uid, tx: spot2[0], ty: spot2[1] });
+  const s2 = mapMod.tileAt(spot2[0], spot2[1]).prop;
+  assert(s2 && s2.sapling && s2.sprite === T.sapling.stages[0] && inventoryMod.countAll(me, "sapling") === 0, "a guest's setdown command planted nothing");
+  // Its menu: Inspect (the client's own) and Pick up; no Take apart.
+  const labels = (p) => interactMod.actionsForTarget({ kind: "prop", id: p.id }, me).map((a) => `${a.label}${a.enabled === false ? " [off]" : ""}${a.local ? " [local]" : ""}`);
+  const sl = labels(s2);
+  assert(sl.includes("Inspect [local]") && sl.includes("Pick up sapling") && !sl.some((l) => /Take apart|Gather sticks/.test(l)), `the sapling's menu: ${sl.join(", ")}`);
+  assert(/a tree in about 5 days/.test(treesMod.report(s2)), treesMod.report(s2));
+  // Growing: the looks once a checkSeconds, the stages, then the oak. Nobody stands on the first; the player stands on the second.
+  me.gx = s2.tile[0]; me.gy = s2.tile[1];
+  const look = () => { gameMod.begin(0); clock.setElapsed(clock.getElapsed() + T.checkSeconds); };
+  const lookUntil = (t) => { while (clock.getElapsed() < t) look(); look(); };
+  const parts0 = gameMod.syncParts().map;
+  lookUntil(now0 + 0.6 * T.sapling.days * DAY);
+  assert(s1.sprite === T.sapling.stages[1] && mapMod.propById(s1.id) === s1, `past half its days the first is ${s1.sprite}`);
+  assert(s2.sprite === T.sapling.stages[0] && s2.sapling.waited > 0.5 * T.sapling.days * DAY && gameMod.syncParts().map !== parts0, `stood on, the second is ${s2.sprite}, waited ${s2.sapling.waited}`);
+  lookUntil(now0 + T.sapling.days * DAY + 60);
+  const oak = mapMod.tileAt(open[0], open[1]).prop;
+  assert(oak && oak.id === s1.id && oak.sprite === T.sapling.grows && oak.solid === true && oak.wood === getDef(T.sapling.grows).wood && !oak.sapling && !oak.made && mapMod.propById(s1.id) === oak, `grown: ${oak && JSON.stringify(mapMod.serializeProp(oak))}`);
+  assert(mapMod.tileAt(spot2[0], spot2[1]).prop === s2 && s2.sapling, "the one stood on grew all the same");
+  // Stepped off, it grows on from where it waited.
+  me.gx = open[0] + 2; me.gy = open[1] + 2;
+  const left = treesMod.daysLeft(s2);
+  lookUntil(clock.getElapsed() + left * DAY + 60);
+  const oak2 = mapMod.tileAt(spot2[0], spot2[1]).prop;
+  assert(oak2 && oak2.sprite === T.sapling.grows && oak2.id === s2.id, `stepped off, after ${left.toFixed(2)} days it is ${oak2 && oak2.sprite}`);
+  // A tree grown is a tree: chopped for its logs, and a stump.
+  me.gx = open[0] + 1; me.gy = open[1] + 0.2;
+  me.hands.main = itemsMod.makeEntry("hatchet", 1);
+  const felled = verbsMod.run("chop", S, me, { prop: oak.id });
+  me.hands.main = null;
+  assert(felled.ok && felled.logs === oak.wood && mapMod.tileAt(open[0], open[1]).prop.sprite === "stump", `the grown oak chopped: ${JSON.stringify(felled)}`);
+  // Sticks: under a standing tree by the label a guest sends, after the bar; once a day; again the next.
+  const finish = () => { for (let i = 0; i < 600 && me.action; i++) interactMod.updateAction(me, 0.1); };
+  const tree = mapMod.allProps().find((p) => treesMod.isStandingTree(p) && !p.sprite.startsWith("tree_apple") && Math.hypot(p.tile[0] - me.gx, p.tile[1] - me.gy) < 30);
+  me.gx = tree.tile[0] + 0.9; me.gy = tree.tile[1] + 0.3; me.moving = false;
+  const before = labels(tree);
+  const sticksAct = interactMod.actionsForTarget({ kind: "prop", id: tree.id }, me).find((a) => a.label === "Gather sticks");
+  assert(before.includes("Gather sticks") && sticksAct.simple === true && sticksAct.duration === T.sticks.seconds, `a tree's menu: ${before.join(", ")}`);
+  const m0 = gameMod.syncParts().map;
+  assert(interactMod.performByLabel(me, { kind: "prop", id: tree.id }, "Gather sticks") && me.action, "the label started no bar");
+  finish();
+  const got = inventoryMod.countAll(me, "stick");
+  const day = Math.floor(clock.getElapsed() / DAY);
+  assert(got >= T.sticks.count[0] && got <= T.sticks.count[1] && tree.sticksAt === (day + 1) * DAY && gameMod.syncParts().map !== m0, `gathered ${got}, sticksAt ${tree.sticksAt} (day ${day})`);
+  const again = verbsMod.run("sticks", S, me, { prop: tree.id });
+  assert(!again.ok && again.reason === treesMod.NONE_TODAY && labels(tree).includes("Gather sticks (none until tomorrow) [off]"), `the same day: ${JSON.stringify(again)}; ${labels(tree).join(", ")}`);
+  clock.setElapsed((day + 1) * DAY + 1);
+  assert(labels(tree).includes("Gather sticks") && verbsMod.run("sticks", S, me, { prop: tree.id }).ok, "the next day the tree had no sticks");
+  // Never on a stump; kept from E by a laden apple tree's own Pick apples, E's on a plain tree.
+  const stump = mapMod.tileAt(open[0], open[1]).prop;
+  assert(!labels(stump).some((l) => /sticks/.test(l)), `a stump offers sticks: ${labels(stump).join(", ")}`);
+  const apple = mapMod.allProps().find((p) => p.sprite === "tree_apple");
+  mapMod.growTile(apple.tile[0], apple.tile[1]);
+  const appleActs = interactMod.actionsForTarget({ kind: "prop", id: apple.id }, me);
+  const appleSticks = appleActs.find((a) => a.label === "Gather sticks");
+  assert(appleSticks && appleSticks.simple === false && appleActs.find((a) => /^Pick/.test(a.label)).simple === true, `the apple tree: ${appleActs.map((a) => `${a.label}${a.simple ? " (E)" : ""}`).join(", ")}`);
+  // The stamps in the save: a sapling's growing and a tree's sticks day.
+  const spot3 = near((x, y) => treesMod.standProblem(x, y) === "");
+  me.gx = spot3[0] + 1; me.gy = spot3[1];
+  const e3 = sap();
+  setdownMod.place(me, e3.uid, spot3[0], spot3[1]);
+  const s3 = mapMod.tileAt(spot3[0], spot3[1]).prop;
+  s3.sapling.waited = 77;
+  mapMod.touch(spot3[0], spot3[1]);
+  const saved = JSON.parse(JSON.stringify(gameMod.serialize()));
+  gameMod.restore(saved, json);
+  const s3b = mapMod.propById(s3.id);
+  const treeB = mapMod.propById(tree.id);
+  assert(s3b && s3b.sapling && s3b.sapling.at === s3.sapling.at && s3b.sapling.waited === 77 && treeB && treeB.sticksAt === tree.sticksAt, `after the save: ${s3b && JSON.stringify(s3b.sapling)}, sticksAt ${treeB && treeB.sticksAt}`);
+  // The cards.
+  const card = (id) => itemInfoMod.textOf(itemInfoMod.cardFor(itemsMod.makeEntry(id, 1))).join(" | ");
+  assert(card("sapling") === "Sapling | Sapling | Place: plant on open grass outdoors. | Grows into a tree in about 5 game days; it waits while anyone stands on it. | Sometimes dropped by a felled tree (about 1 in 3). | Right-click for actions.", card("sapling"));
+  assert(card("stick").includes("Gathered under any standing tree, 1 to 2, once a day a tree."), card("stick"));
+  return `${n1} saplings in 1000 fellings at ${chance0}; planted by the host and a guest's command; refused indoors, on a road, tilled soil, and against a wall; an oak after ${T.sapling.days} days, the one stood on after ${left.toFixed(2)} more; sticks ${got} once a day; the stamps saved; the cards`;
+});
+
 // A repair place's one greyed line (docs/43 section 6; docs/bugs.md, fixed): with nothing worn carried it says what the place does; with
 // everything worn already at or above the place's ceiling for it, "nothing it can better". The menu is built as a guest's replica builds it.
 check("repairs: a grindstone or an anvil with nothing to better says so, not that nothing worn is carried", () => {
