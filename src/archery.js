@@ -455,6 +455,7 @@ export function stepFlights(store, R) {
   if (!finite(R)) return;
   for (const a of store.byId.values()) {
     const age = R - a.born;
+    if (a.heardAge === undefined) a.heardAge = age; // its age in the drawn time on the first step it was known: above 0, its launch came late (check("arrows"))
     const stop = a.hostEnd != null ? Math.min(a.end, a.hostEnd) : a.end;
     const down = age >= stop - 1e-6; // the records' rounding: a flight at the host's very end is down
     if (down || age < -2) { // down in the drawn time (or the clock went back: a new world)

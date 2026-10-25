@@ -9,8 +9,10 @@
 // On a guest (two tabs, `?nosave&relay=none`, joined by `__game.net.open({ join })`), with the host's tab running its keep:
 //   await __game.check("arrows", { guest: kept })   about eight seconds of the wall clock, a step of mine each sixtieth: each flight's drawn place
 //                                                   read each step; it moves every step (the old replica stood still two steps in three and
-//                                                   jumped on the third), evenly, at its own speed; it is first drawn near the bow and, between
-//                                                   steps, from the bow itself; it is gone at the host's end; a fireball leaves its flare where
+//                                                   jumped on the third), by its speed times what the draw clock moved (bunched frames from a
+//                                                   background host move that clock, and the bodies, several steps at once: reported); one
+//                                                   loosed during the run is first drawn on the step its drawn time passes its launch and,
+//                                                   between steps, from the bow itself; it is gone at the host's end; a fireball leaves its flare where
 //                                                   its drawn flight ended; each launch came once
 // Then `check("sync")` on the host. `node tools/netsmooth.js` measures the same against the old way under four arrival patterns.
 
@@ -25,6 +27,7 @@ export async function run(game, opts = {}) {
   const yieldOnce = () => new Promise((r) => { const ch = new MessageChannel(); ch.port1.onmessage = () => r(); ch.port2.postMessage(0); });
   const interp = await import("/src/interp.js");
   const archery = await import("/src/archery.js");
+  const netsmooth = await import("/src/netsmooth.js");
   const role = G.net.status().role;
   const STEP = 1 / 60;
 
@@ -46,7 +49,9 @@ export async function run(game, opts = {}) {
     const screen0 = G.screens.currentScreen();
     const stats0 = archery.replicaStats() || { go: 0, again: 0, end: 0 };
     const wire0 = G.net.status().wire;
-    const seen = new Map(); // id -> { a, at: [[step, gx, gy]], bowOk (the between-steps draw at alpha 0 on its first step) }
+    const seen = new Map(); // id -> { a, at: [[step, gx, gy, age]], bowOk (the between-steps draw at alpha 0 on its first step) }
+    const clocks = []; // the draw clock (netsmooth.drawClock) after each step: what the flights are stepped on
+    const clockNow = () => netsmooth.drawClock(G.world.world.timeScale || 1);
     const flares = []; // [step, gx, gy] as each appears
     const flaresSeen = new Set(G.archery.flares());
     const gone = new Map(); // id -> the step it left the list
@@ -57,12 +62,15 @@ export async function run(game, opts = {}) {
       let last = t0;
       let s = 0;
       let prevIds = new Set();
+      clocks[0] = clockNow();
+      const R0 = clocks[0]; // a flight born before this was in the air when the run began
       while (performance.now() - t0 < 8000) {
         await yieldOnce();
         if (performance.now() - last < 1000 / 60) continue;
         last = performance.now();
         G.loop.advance(STEP); // main's step: the frames applied, the flights stepped on the draw clock, the new ones adopted from the bow (interp)
         s++;
+        clocks[s] = clockNow();
         const now = new Set();
         for (const a of G.archery.flying()) {
           if (a.done) continue;
@@ -73,10 +81,10 @@ export async function run(game, opts = {}) {
             interp.apply(0);
             const atBow = Math.hypot(a.gx - a.x0, a.gy - a.y0) < 1e-9 && Math.abs(a.z - a.z0) < 1e-9;
             interp.restore();
-            rec = { a, at: [], bowOk: atBow };
+            rec = { a, at: [], bowOk: atBow, before: typeof R0 !== "number" || a.born < R0 };
             seen.set(a.id, rec);
           }
-          rec.at.push([s, a.gx, a.gy]);
+          rec.at.push([s, a.gx, a.gy, a.t]);
         }
         for (const id of prevIds) if (!now.has(id)) gone.set(id, s);
         prevIds = now;
@@ -86,33 +94,53 @@ export async function run(game, opts = {}) {
       const wire = G.net.status().wire;
       const flights = [...seen.values()].filter((r) => r.at.length >= 4);
       row("flights from the host's keep run reached me and were drawn (an arrow loosed as the last comes down, every third a fireball)", flights.length >= 4 && flights.some((r) => r.a.projectile === "fireball"), `${seen.size} flights drawn, ${flights.length} for four steps or more: ${[...new Set([...seen.values()].map((r) => r.a.projectile))].join(", ")}`);
-      // Every step it is drawn, it moves; and evenly, at its own speed (the draw clock moves a step a step, nudged a tenth of the frames' gap).
+      // Every step it is drawn, it moves, and by exactly its speed times what the draw clock moved that step. The clock moves a step a step,
+      // nudged a tenth of the frames' gap at each arrival; frames that come bunched (a host's tab in the background steps through the Worker in
+      // bursts) move it several steps at once, and the remote bodies with it (netsmooth.js, #248): that is reported, not failed here.
       let still = 0;
       let moves = 0;
-      let worst = 1;
-      let worstHi = 1;
-      const means = [];
+      let off = 0; // steps where the flight did not move by its speed times the clock's advance
+      let lo = Infinity;
+      let hi = 0;
+      let worstStep = null; // the largest movement and the clock's advance on its step
+      let clockMin = Infinity;
+      let clockMax = 0;
+      let jumps = 0;
+      for (let i = 1; i < clocks.length; i++) {
+        if (typeof clocks[i] !== "number" || typeof clocks[i - 1] !== "number") continue;
+        const dR = (clocks[i] - clocks[i - 1]) / STEP;
+        clockMin = Math.min(clockMin, dR);
+        clockMax = Math.max(clockMax, dR);
+        if (dR > 1.5) jumps++;
+      }
       for (const r of flights) {
         const own = r.a.speed * STEP;
-        const d = [];
-        for (let i = 2; i < r.at.length - 1; i++) {
-          if (r.at[i][0] !== r.at[i - 1][0] + 1) continue;
-          const m = Math.hypot(r.at[i][1] - r.at[i - 1][1], r.at[i][2] - r.at[i - 1][2]) / own;
-          d.push(m);
-          if (m < 0.05) still++;
-        }
-        moves += d.length;
-        if (d.length) {
-          means.push(d.reduce((x, y) => x + y, 0) / d.length);
-          worst = Math.min(worst, ...d);
-          worstHi = Math.max(worstHi, ...d);
+        for (let i = 1; i < r.at.length; i++) {
+          const [sNow, gx, gy, age] = r.at[i];
+          const [sWas, gx0, gy0, age0] = r.at[i - 1];
+          if (sNow !== sWas + 1) continue;
+          const dR = (clocks[sNow] - clocks[sWas]) / STEP;
+          const m = Math.hypot(gx - gx0, gy - gy0) / own; // in steps of its own flight
+          moves++;
+          if (m < 0.05 && dR > 0.5) still++;
+          // The flight is tied to the clock: its age moved as the clock did, and its place by its speed over that age (to 2%).
+          const tied = Math.abs((age - age0) / STEP - dR) < 1e-6 && (dR < 0.1 || Math.abs(m / dR - 1) < 0.02);
+          if (!tied && !r.a.fix) off++;
+          if (dR > 0.1) { lo = Math.min(lo, m / dR); hi = Math.max(hi, m / dR); }
+          if (!worstStep || m > worstStep.m) worstStep = { m, dR };
         }
       }
-      row("each flight moves every step it is drawn: no step stood still (the old replica stood still two steps in three, then jumped three steps' flight)", moves > 60 && still === 0, `${still} of ${moves} steps stood still`);
-      row("evenly, at its own speed: every step between half and one and a half of its flight a step (the draw clock's nudges), each flight's mean within 0.15", moves > 60 && worst > 0.5 && worstHi < 1.6 && means.every((m) => Math.abs(m - 1) < 0.15), `a step's movement ${worst.toFixed(2)} to ${worstHi.toFixed(2)} of its own; flights' means ${means.map((m) => m.toFixed(2)).join(" ")}`);
-      // Its first drawn place is near the bow (a frame late beyond the draw clock's delay may start it a step or two out), and between steps it is drawn from the bow itself.
-      const firsts = flights.map((r) => Math.hypot(r.at[0][1] - r.a.x0, r.at[0][2] - r.a.y0) / (r.a.speed * STEP));
-      row("first drawn within three steps' flight of the bow, and on its first step drawn between steps from the bow itself (no first-frame stall)", flights.length > 0 && firsts.every((f) => f <= 3) && flights.every((r) => r.bowOk), `first drawn ${firsts.map((f) => f.toFixed(2)).join(" ")} steps' flight out; from the bow between steps ${flights.filter((r) => r.bowOk).length} of ${flights.length}`);
+      row("each flight moves every step it is drawn: no step stood still while the draw clock moved (the old replica stood still two steps in three, then jumped three steps' flight)", moves > 60 && still === 0, `${still} of ${moves} steps stood still`);
+      row("each step it moves by its speed times what the draw clock moved (to 2%): it is stepped on the bodies' clock, every step", moves > 60 && off === 0, `${off} of ${moves} steps off the clock; a step's movement over the clock's advance ${lo.toFixed(3)} to ${hi.toFixed(3)}; the largest step ${worstStep ? worstStep.m.toFixed(2) : "-"} of its own, with the clock moving ${worstStep ? worstStep.dR.toFixed(2) : "-"} steps`);
+      row("the draw clock's own advance a step, reported (frames bunched by a background host move it, and the remote bodies with it: netsmooth's, not this check's)", true, `${clockMin.toFixed(2)} to ${clockMax.toFixed(2)} steps a step; ${jumps} steps it moved more than one and a half`);
+      // Its first drawn place: on the step its drawn time passes its launch, no older than that step's clock advance (a flight already in the air
+      // when the run began is left out), and between steps drawn from the bow itself.
+      const fresh = flights.filter((r) => !r.before);
+      const firstAge = (r) => r.at[0][3];
+      const firstAdv = (r) => { const sN = r.at[0][0]; return typeof clocks[sN - 1] === "number" ? clocks[sN] - clocks[sN - 1] : STEP; };
+      // A launch that reached me after the clock had passed it (the clock run on past a late frame) is drawn on the step it came, at its age then.
+      const onTime = (r) => firstAge(r) <= Math.max(firstAdv(r), r.a.heardAge ?? 0) + 1e-6;
+      row("first drawn on the step its drawn time passes its launch (no older than the clock's advance that step, or than its age when a late launch came), and on that step drawn between steps from the bow itself (no first-frame stall)", fresh.length >= 3 && fresh.every((r) => onTime(r) && r.bowOk), `${fresh.length} loosed during the run (${flights.length - fresh.length} already in the air left out): first drawn ${fresh.map((r) => (Math.hypot(r.at[0][1] - r.a.x0, r.at[0][2] - r.a.y0) / (r.a.speed * STEP)).toFixed(2)).join(" ")} steps' flight out, its age in steps against the clock's advance and its age when heard ${fresh.map((r) => `${(firstAge(r) / STEP).toFixed(2)}/${(firstAdv(r) / STEP).toFixed(2)}/${((r.a.heardAge ?? 0) / STEP).toFixed(2)}`).join(" ")}; from the bow between steps ${fresh.filter((r) => r.bowOk).length} of ${fresh.length}`);
       // Down at the host's end: a flight whose end came is gone once its drawn age reaches it, never drawn past it.
       const ended = flights.filter((r) => r.a.hostEnd != null);
       const past = ended.filter((r) => r.a.t >= Math.min(r.a.end, r.a.hostEnd) + 1e-6); // `t` is the age it was last drawn at
