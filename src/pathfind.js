@@ -215,7 +215,8 @@ function search(w, sx, sy, gx, gy, canStep, maxExpansions) {
   return null;
 }
 
-// What the shared workspace holds (for the checks and the measurement): nodes it has room for, and the last search's count.
+// What the shared workspace holds (for the checks and the measurement): nodes it has room for, the count of the last search it ran,
+// and whether a search holds it now.
 export function workspaceStats() {
-  return { capacity: shared.cap, lastNodes: shared.count };
+  return { capacity: shared.cap, lastNodes: shared.count, busy: shared.busy };
 }

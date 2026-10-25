@@ -29,6 +29,7 @@ const bleed = await import("../src/bleed.js");
 const infection = await import("../src/infection.js");
 const items = await import("../src/items.js");
 const pathfind = await import("../src/pathfind.js");
+const oldPathfinder = await import("./pathbench.js"); // the old pathfinder, kept there as it was (#124); importing it runs no bench
 
 check("rng: the same seed gives the same sequence", () => {
   rng.seed(7);
@@ -103,11 +104,21 @@ check("pathfind: the memory kept between searches leaves no trace, grows, and su
     if ((x < 5 && nx >= 5) || (x >= 5 && nx < 5)) return Math.max(y, ny) >= 9 && Math.min(y, ny) >= 9;
     return true;
   };
+  // A search that outgrows the workspace partway and still finds its way: a wall along x = 5 from y = -60 to 60, the gap at its end. The
+  // arrays double mid-search (more nodes touched than there was room for when it began) and the path is the old pathfinder's, tile for tile.
+  const cap0 = pathfind.workspaceStats().capacity;
+  const walled = (x, y, nx, ny) => !((x < 5) !== (nx < 5) && Math.min(y, ny) < 60) && Math.abs(nx) <= 200 && Math.abs(ny) <= 200;
+  const grownPath = pathfind.findPath([0, 0], [10, 0], walled, 100000);
+  const grownNodes = pathfind.workspaceStats().lastNodes;
+  assert(grownPath && grownPath.length > 100, `the search round the wall found ${grownPath ? grownPath.length + " tiles" : "nothing"}`);
+  assert(grownNodes > cap0 && pathfind.workspaceStats().capacity > cap0, `the search touched ${grownNodes} nodes with room for ${cap0}: it never grew mid-search`);
+  assert(JSON.stringify(grownPath) === JSON.stringify(oldPathfinder.oldFindPath([0, 0], [10, 0], walled, 100000)), "the path found while growing is not the old pathfinder's");
   const first = JSON.stringify(pathfind.findPath([2, 2], [9, 2], canStep, 1500));
+  const firstNodes = pathfind.workspaceStats().lastNodes;
   // A failed search fills the arrays; the same search again is the same path.
   pathfind.findPath([2, 2], [9, 2], (x, y, nx, ny) => nx !== 5 && ny >= 0 && nx >= 0 && ny <= 12 && nx <= 12, 1500);
   assert(JSON.stringify(pathfind.findPath([2, 2], [9, 2], canStep, 1500)) === first, "a search after another found another path");
-  // An open field far bigger than the workspace's first size (the wild, every tile walkable): the arrays grow and the path is straight.
+  // An open field far out in the wild (every tile walkable): the path is straight.
   const open = () => true;
   const far = pathfind.findPath([-3000, 7000], [-2900, 7060], open, 20000);
   assert(far && far.length === 100, `the long open path is ${far && far.length} tiles, not 100`);
@@ -124,10 +135,16 @@ check("pathfind: the memory kept between searches leaves no trace, grows, and su
   };
   assert(JSON.stringify(pathfind.findPath([2, 2], [9, 2], nesting, 1500)) === first, "the outer search changed with a search inside it");
   assert(inner === first, "the inner search found another path");
-  // A canStep that throws leaves the shared memory free for the next search.
-  try { pathfind.findPath([2, 2], [9, 2], () => { throw new Error("x"); }, 1500); } catch {}
+  // A canStep that throws leaves the shared memory free: the next search runs in it (its node count is the shared workspace's, as the
+  // same search's was before), not in a workspace of its own as a search inside a search would.
+  let threw = false;
+  try { pathfind.findPath([2, 2], [9, 2], () => { throw new Error("x"); }, 1500); } catch { threw = true; }
+  assert(threw && !pathfind.workspaceStats().busy, "the shared workspace is still held after a canStep threw");
+  const thrownNodes = pathfind.workspaceStats().lastNodes;
+  assert(thrownNodes !== firstNodes, `the thrown search left ${thrownNodes} nodes, as many as the search after it will: the next row proves nothing`);
   assert(JSON.stringify(pathfind.findPath([2, 2], [9, 2], canStep, 1500)) === first, "a search after a throw found another path");
-  return `room for ${cap} nodes`;
+  assert(pathfind.workspaceStats().lastNodes === firstNodes, `the search after a throw did not run in the shared workspace (it holds ${pathfind.workspaceStats().lastNodes} nodes, the search touches ${firstNodes})`);
+  return `grew from ${cap0} to room for ${pathfind.workspaceStats().capacity} nodes mid-search (${grownNodes} touched, ${grownPath.length} tiles round a wall, the old pathfinder's path); freed after a throw`;
 });
 
 check("pathfind: the reused memory finds the old pathfinder's paths on the valley, tile for tile (#124, tools/pathbench.js)", () => {
