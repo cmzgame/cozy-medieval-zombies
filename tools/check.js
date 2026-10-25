@@ -97,6 +97,46 @@ check("pathfind: a path round a wall, none through it", () => {
   return `${path.length} tiles round the wall`;
 });
 
+check("pathfind: the memory kept between searches leaves no trace, grows, and survives a search inside a search (#124)", () => {
+  const canStep = (x, y, nx, ny) => {
+    if (nx < 0 || ny < 0 || nx > 12 || ny > 12) return false;
+    if ((x < 5 && nx >= 5) || (x >= 5 && nx < 5)) return Math.max(y, ny) >= 9 && Math.min(y, ny) >= 9;
+    return true;
+  };
+  const first = JSON.stringify(pathfind.findPath([2, 2], [9, 2], canStep, 1500));
+  // A failed search fills the arrays; the same search again is the same path.
+  pathfind.findPath([2, 2], [9, 2], (x, y, nx, ny) => nx !== 5 && ny >= 0 && nx >= 0 && ny <= 12 && nx <= 12, 1500);
+  assert(JSON.stringify(pathfind.findPath([2, 2], [9, 2], canStep, 1500)) === first, "a search after another found another path");
+  // An open field far bigger than the workspace's first size (the wild, every tile walkable): the arrays grow and the path is straight.
+  const open = () => true;
+  const far = pathfind.findPath([-3000, 7000], [-2900, 7060], open, 20000);
+  assert(far && far.length === 100, `the long open path is ${far && far.length} tiles, not 100`);
+  const wide = pathfind.findPath([0, 0], [400, 400], (x, y, nx, ny) => Math.abs(nx) < 200, 6000);
+  assert(wide === null, "a search past its bound found a path");
+  const cap = pathfind.workspaceStats().capacity;
+  assert(cap >= 6000, `the workspace holds ${cap} nodes after a search of 6000 expansions`);
+  assert(JSON.stringify(pathfind.findPath([2, 2], [9, 2], canStep, 1500)) === first, "the grown workspace found another path");
+  // A canStep that searches: the inner search has its own memory, and both answer as alone.
+  let inner = null;
+  const nesting = (x, y, nx, ny) => {
+    if (!inner) inner = JSON.stringify(pathfind.findPath([2, 2], [9, 2], canStep, 1500));
+    return canStep(x, y, nx, ny);
+  };
+  assert(JSON.stringify(pathfind.findPath([2, 2], [9, 2], nesting, 1500)) === first, "the outer search changed with a search inside it");
+  assert(inner === first, "the inner search found another path");
+  // A canStep that throws leaves the shared memory free for the next search.
+  try { pathfind.findPath([2, 2], [9, 2], () => { throw new Error("x"); }, 1500); } catch {}
+  assert(JSON.stringify(pathfind.findPath([2, 2], [9, 2], canStep, 1500)) === first, "a search after a throw found another path");
+  return `room for ${cap} nodes`;
+});
+
+check("pathfind: the reused memory finds the old pathfinder's paths on the valley, tile for tile (#124, tools/pathbench.js)", () => {
+  const out = execFileSync(process.execPath, [path.join(root, "tools/pathbench.js"), "400", "--quiet"], { encoding: "utf8" });
+  const line = out.trim().split("\n").pop();
+  assert(/paths identical/.test(line), line);
+  return line.replace(/^pathbench: /, "");
+});
+
 check("a bite lands with no page behind the world (the host's rules in the world; item 5's first step)", () => {
   const out = execFileSync(process.execPath, [path.join(root, "tools/world.js"), "valley", "600", "--bite"], { encoding: "utf8" });
   const m = out.match(/bite: hp ([\d.]+) to ([\d.]+)/);
