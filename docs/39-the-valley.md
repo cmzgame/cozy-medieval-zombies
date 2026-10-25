@@ -167,9 +167,9 @@ One panel for every station; ingredients from the bag, the belt, and every conta
 
 What comes back, today: stone, ore, salt, clay, herbs, and mushrooms at random spots within their areas, each area keeping its count; rocks, ore, and salt rise from the ground (2026-10-25, `46`; built, #447 and #448); apple trees bear again in place after three days; fields give seed back; fish never run out; the wild grows new forest, rocks, and mushrooms as new chunks.
 
-- **Trees** [built]: twenty-four kinds by shape (round, spire), colour, and size; felled with a hatchet for two to six logs, leaving a stump; never regrow in the valley; saplings from felling, planted (Woodcutting 4, `46`).
+- **Trees** [built]: twenty-four kinds by shape (round, spire), colour, and size; felled with a hatchet for two to six logs, leaving a stump; never regrow in the valley; saplings from felling, planted (Woodcutting 4, `46`; built, #449).
 - **Tree species** [to build]: oak, the common tree (Woodcutting 1); spruce (Woodcutting 3: sturdier furniture, resin); mahogany (Woodcutting 5: fine furniture, a better bow); Winter Pine (the Pale Reach, the snow region, Woodcutting 8) and Bloodbark (the Crimson Abbey, Woodcutting 10) as names. Today's broadleaf is oak and today's conifer is spruce; mahogany is new, planted in the manor's garden and the forest's deep, and needs a design (an art ask); the regions' trees come later (ruled 2026-10-23).
-- **Saplings** [to build]: felling sometimes drops one (Woodcutting 4); planted, it grows a tree.
+- **Saplings** [built, #449]: felling sometimes drops one (about one in three; Woodcutting 4, open to all until the skills); planted from the bag on open grass outdoors, never against a wall or a door, it grows into the round oak over about five game days, waiting while anyone stands on it (`46`).
 - **Stumps** [built]: chopped for a log, the tile cleared [change: uprooted with a shovel at Woodcutting 4, the tile cleared for good].
 - **The willow** at the pond and the mere, **the yew** in the graveyard [to build].
 - **Apple trees** [built]: twenty-three (the orchard and three gardens); picked by hand for three to five apples, bare three days, bear again in place.
@@ -181,7 +181,7 @@ What comes back, today: stone, ore, salt, clay, herbs, and mushrooms at random s
 - **Herbs** [built, #448]: gathered by hand (open to all until the skills; the level recorded on each), 120 in eleven kinds: sage, nettle, feverfew, yarrow, the mana herb ("Mana herb" until Michael names it), nightshade, wolfsbane, grave moss (the graveyard's, a placeholder), and the dye plants woad, madder, and weld (a default; their cost at the vats is Michael's, `43`). No use yet: potions, the tea, and seasoning are to build. The valley's common herbs and the healing herb in the wild (Herbalism 1); the mana herb near water (Herbalism 4); nightshade and wolfsbane (Herbalism 5); the graveyard's herbs and fungi, planted only at night (Herbalism 7). The common herbs are sage, nettle, and feverfew; yarrow is the healing herb; the mana herb's name is Michael's to choose (ruled 2026-10-23). They grow like weeds at random all over the ground, never in patches, and come back elsewhere once picked (`46`).
 - **Mushrooms** [built]: placed by rule near trees (774 in the valley); foraged by hand for a mushroom (Herbalism 3, open to all until the skills; built, #448), for Potions and Cooking when they come; once foraged one comes back near trees elsewhere in the woods (`46`).
 - **Berries** on brambles at the forest's edges (`docs/29-world/06`): picked like herbs, Herbalism 1 (ruled 2026-10-23) [to build].
-- **Sticks** [change]: the twigs under trees are decals, not items; a stick comes from a plank (a hatchet), a body, or a haystack. Gather sticks under a standing tree, once a day each (`46`).
+- **Sticks** [built, #449]: the twigs under trees are decals, not items; a stick comes from a plank (a hatchet), a body, a haystack, or Gather sticks under any standing tree, one or two, once a day a tree (`46`).
 - **Fish** [built]: perch, trout, carp; never run out. The river: perch, trout. The ponds: carp, perch. The brook: trout, perch. The mere (when built): trout, carp. Unlock: a rod; [change: perch at Fishing 1, carp at 3, trout at 5].
 - **Water** [built]: the river, the ford, the brook, four ponds (the duck pond, the farm pond, the manor's fish pond, the quarry's pit), five wells (yours, the square's, the inn's, Hollow Farm's, Long Acre's), four troughs, the chapel's font. The mere, the moat, the croft's spring, the millpond [to build]. Never runs out. All natural water unsafe until purified [change, #279].
 - **Crops in the fields** [built]: potatoes, cabbages, garlic, pumpkins, rye, flax, planted at mixed stages at your cottage, Hollow Farm, and Long Acre; a ripe crop is harvested once and the tile stays soil; seed comes back. A leaner start [change: one ripe row per farm and one at your cottage, everything else at the first two stages; today about half the plots are ripe] (ruled 2026-10-23). A ripe crop left in the ground rots, generously slowly, five times its item's life (*Primary's reading* of Michael's "much, much more slowly"), and is harvested rotten with its seed still given back [to build].
@@ -217,7 +217,7 @@ The numbers are each weapon's block in `data/items.json` and `data/combat.json`.
 
 **Melee**
 - **Fists** [built].
-- **Stick, plank, torch** [built]: Melee 1. The stick from a body, a haystack, or a split plank; the plank from the kit, a split log, a chest, a woodpile, a market cart.
+- **Stick, plank, torch** [built]: Melee 1. The stick from a body, a haystack, a split plank, or gathered under a tree (`46`); the plank from the kit, a split log, a chest, a woodpile, a market cart.
 - **Hatchet, dirk, and the tools as weapons** [built]: Melee 1 for the hatchet and the dirk; weapons with a kill count each (the hatchet 20, the dirk 5, the fishing rod 3; `data/items.json`).
 - **Arming sword** [built]: Melee 1; found once, in the toll house's chest (the castle's armoury when it is built); made at the anvil [change: Blacksmithing 3].
 - **Wooden shield** [built]: block; Melee 1; made at the workbench.
@@ -378,7 +378,7 @@ All [to build]: brewed at a cauldron from Herbalism's herbs and secondaries; dru
 - **Bandage** [built]: closes bleeds; made at the loom; the Developer Chest [change: in the loot tables and on the dead, `docs/21`'s list].
 - **Resin and pitch** [to build]: from spruce (Woodcutting 3); torches that burn longer, waterproofing.
 - **Spruce and mahogany wood** [to build]: Woodcutting 3 and 5; a log and a plank per wood, as the walls are (ruled 2026-10-23).
-- **Sapling** [to build]: Woodcutting 4.
+- **Sapling** [built, #449]: dropped by a felled tree, Woodcutting 4 (open to all until the skills); planted, it grows into a tree (section 4).
 - **Salt, clay** [built, #448]: Mining 3; no use yet (salting, jugs and jars to build).
 - **Silver** [to build]: Mining 5 [open #283].
 - **Gems** [to build]: section 5.10.
@@ -597,7 +597,7 @@ A skill's level gate stops a player harvesting the food it gates, ripe fields in
 1. Felling oak, the common tree; a stump left; oak makes the basic furniture and bow [change: any tree today].
 2. Chops 10% faster.
 3. Spruce: sturdier furniture; resin for pitch (longer torches, waterproofing); the sawpit, logs to planks with no hatchet (`43`).
-4. Uprooting stumps with a shovel, the tile cleared for good; felling sometimes drops a sapling to plant [change].
+4. Uprooting stumps with a shovel, the tile cleared for good [change]; felling sometimes drops a sapling to plant [built, #449, the level not enforced until the skills].
 5. Mahogany: fine furniture, a better bow.
 6. +1 log a tree.
 7. Building your own workstations (Crafting makes them) [change].
@@ -832,7 +832,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 
 ### Gathering
 - Fell a tree, chop a stump (a hatchet in hand) [built].
-- Uproot a stump (a shovel; Woodcutting 4) [to build]; plant a sapling [to build].
+- Uproot a stump (a shovel; Woodcutting 4) [to build]; plant a sapling [built, #449]; gather sticks under a tree [built, #449].
 - Mine a rock or an ore rock (a pickaxe in hand) [built].
 - Chisel a gem [open #281].
 - Pick apples (by hand) [built].
