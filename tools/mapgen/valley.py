@@ -597,6 +597,15 @@ def build():
            rocks={"kinds": {"rock_0": 1, "rock_1": 1, "rock_2": 1, "rock_3": 1}, "cell": 40, "chance": 0.6, "seed": 51})
     g.forage({"mushroom_0": 1, "mushroom_1": 1, "mushroom_2": 1, "mushroom_3": 1, "mushroom_4": 1}, chance=0.021, near=2, seed=41)
 
+    # ---- natural resources (docs/46, #288): what comes back, and where; the counts are docs/42's levers ----
+    # Stone everywhere on natural ground in the valley, the quarry's pit open to it (its eight, and the rest placed at the load by the
+    # comeback's rule); ore at the iron workings and the hills round them (their six); mushrooms near trees anywhere in the woods (the
+    # forage's 774). Herbs, clay by the river, and salt with the ore are step 2's.
+    ROCKS = {"rock_0": 1, "rock_1": 1, "rock_2": 1, "rock_3": 1}
+    g.resource("stone", ROCKS, 40, open=["the quarry"], open_floors=["floor_dirt"], rise=True, seed=61)
+    g.resource("ore", {"ore_rock": 1}, 6, rects=[[206, 130, 46, 34]], open=["the iron workings"], rise=True, seed=62)
+    g.resource("mushrooms", {"mushroom_0": 1, "mushroom_1": 1, "mushroom_2": 1, "mushroom_3": 1, "mushroom_4": 1}, 774, near=2, solid=False, jitter=0.6, seed=63)
+
     # ---- the dead (29/08): the streets and the square, the bridge's two ends, the graveyard, the trades, the nobles, the cottages ----
     dead = []
     dead += [(sq[0] + 3, sq[1] + 3), (sq[0] + 9, sq[1] + 9), (sq[0] + 8, sq[1] + 4), (sq[0] + 2, sq[1] + 10)]          # the square

@@ -12504,5 +12504,57 @@
    "wardrobe": 4,
    "line": "Grain is grain. Bring it, I will grind it."
   }
- ]
+ ],
+ "resources": {
+  "stone": {
+   "sprites": {
+    "rock_0": 1,
+    "rock_1": 1,
+    "rock_2": 1,
+    "rock_3": 1
+   },
+   "count": 40,
+   "open": [
+    "the quarry"
+   ],
+   "openFloors": [
+    "floor_dirt"
+   ],
+   "rise": true,
+   "seed": 61
+  },
+  "ore": {
+   "sprites": {
+    "ore_rock": 1
+   },
+   "count": 6,
+   "rects": [
+    [
+     206,
+     130,
+     46,
+     34
+    ]
+   ],
+   "open": [
+    "the iron workings"
+   ],
+   "rise": true,
+   "seed": 62
+  },
+  "mushrooms": {
+   "sprites": {
+    "mushroom_0": 1,
+    "mushroom_1": 1,
+    "mushroom_2": 1,
+    "mushroom_3": 1,
+    "mushroom_4": 1
+   },
+   "count": 774,
+   "near": 2,
+   "solid": false,
+   "jitter": 0.6,
+   "seed": 63
+  }
+ }
 }

@@ -760,6 +760,56 @@ check("trees off: the mushrooms stand where they stand with trees (the valley, i
   return `${on.found.length} mushrooms in the same places, ${on.trunks} trees on and none off`;
 });
 
+// Natural resources (docs/46, step 1): each kind's count in its area is its lever with Trees on and off (the stone made up at the load by the
+// comeback's rule, in the same places either way); a take inside an area queues one debt, one in the wild none; past its day a node of the
+// kind stands at a new spot in the area, never the tile it was taken from, a rock with its sim-clock stamp and a mushroom without; the debts
+// ride in the save and come back with it, and are not a sync part. The pane's check("resources") has every row of section 7, and the guest.
+const resourcesMod = await import("../src/resources.js");
+const RESOURCES = (await import("../src/tuning.js")).resources;
+check("natural resources: counts kept per area, a debt per take, a comeback elsewhere in the area, the wild owing nothing, the debts in the save", () => {
+  const json = read("data/maps/valley.json");
+  const at = {};
+  for (const trees of [true, false]) {
+    gameMod.create({ json, rules: { zombieAggro: false, trees } });
+    const got = mapMod.resourceKinds().map((k) => [k.name, mapMod.resourceCensus(k), k.count]);
+    for (const [name, n, lever] of got) assert(n === lever, `trees ${trees}: ${name} ${n} standing, lever ${lever}`);
+    at[trees] = mapMod.allProps().filter((p) => p.sprite.startsWith("rock_")).map((p) => p.tile.join(",")).sort().join(" ");
+  }
+  assert(at[true] === at[false], "the stone made up at the load stands elsewhere with Trees off");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const ore = mapMod.resourceKind("ore");
+  const mush = mapMod.resourceKind("mushrooms");
+  const rock = mapMod.allProps().find((p) => p.sprite === "ore_rock");
+  mapMod.growTile(rock.tile[0], rock.tile[1]);
+  assert(resourcesMod.taken({ sprite: "rock_0", tile: [-30, 40] }) === null && resourcesMod.owed("stone").length === 0, "a rock taken in the wild left a debt");
+  const debt = resourcesMod.taken(rock);
+  mapMod.removeProp(rock);
+  const shroom = mapMod.allProps().find((p) => mush.sprites[p.sprite] !== undefined && mapMod.inResourceArea(mush, p.tile[0], p.tile[1]));
+  mapMod.growTile(shroom.tile[0], shroom.tile[1]);
+  resourcesMod.taken(shroom);
+  mapMod.removeProp(shroom);
+  assert(debt && resourcesMod.owed("ore").length === 1 && mapMod.resourceCensus(ore) === ore.count - 1, "an ore rock taken did not leave one debt and one fewer standing");
+  const save = JSON.parse(JSON.stringify(gameMod.serialize()));
+  assert(save.resources.debts.ore.length === 1 && !Object.keys(gameMod.syncParts()).some((k) => /resource|debt/.test(k)), "the debts are not in the save, or are a sync part");
+  gameMod.restore(save, json);
+  assert(resourcesMod.owed("ore").length === 1 && resourcesMod.owed("ore")[0].due === debt.due && resourcesMod.owed("mushrooms").length === 1, "the debts did not come back with the save");
+  const ids = new Set(mapMod.allProps().map((p) => p.id));
+  const due = Math.max(...["ore", "mushrooms"].flatMap((n) => resourcesMod.owed(n).map((d) => d.due)));
+  clock.setElapsed(due + 1);
+  let looks = 0;
+  for (; looks < 40 && (resourcesMod.owed("ore").length || resourcesMod.owed("mushrooms").length); looks++) {
+    gameMod.begin(0);
+    clock.setElapsed(clock.getElapsed() + RESOURCES.checkSeconds);
+  }
+  const fresh = (kind) => mapMod.allProps().find((p) => !ids.has(p.id) && kind.sprites[p.sprite] !== undefined && mapMod.inResourceArea(kind, p.tile[0], p.tile[1]));
+  const newOre = fresh(ore);
+  const newShroom = fresh(mush);
+  assert(newOre && (newOre.tile[0] !== debt.at[0] || newOre.tile[1] !== debt.at[1]), `no new ore rock elsewhere in its area after ${looks} looks`);
+  assert(Number.isFinite(newOre.risenAt) && resourcesMod.riseOf(newOre, 40, newOre.risenAt) === 40 && resourcesMod.riseOf(newOre, 40, newOre.risenAt + RESOURCES.riseSeconds) === 0, "the new ore rock has no stamp to rise from");
+  assert(newShroom && newShroom.risenAt === undefined && mapMod.resourceCensus(mush) === mush.count && mapMod.resourceCensus(ore) === ore.count, "the mushroom did not come back, or the counts are not their levers");
+  return `stone 40, ore 6, mushrooms 774 with Trees on and off; ore back at ${newOre.tile.join(",")} (taken at ${debt.at.join(",")}) and a mushroom at ${newShroom.tile.join(",")} after ${looks} looks`;
+});
+
 // The dye vat (docs/43 section 8, #412): the three vats in the weaver's yard are stations that open the picker (on a guest's player, the word to
 // that guest); the `dye` verb, by the vat's id and the entry's uid, dyes a worn or carried garment a palette's colour or a scheme whole, and
 // refuses what the item does not allow, an item that is not dyeable or not carried, and a vat out of reach; its own colours undye it; the

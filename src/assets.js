@@ -648,6 +648,7 @@ export async function loadMapSprites(json) {
   for (const id in json.wild?.kinds || {}) want(id);
   for (const id in json.forage?.kinds || {}) want(id); // mushrooms near trees (docs/02, question 27)
   for (const id in json.wild?.rocks?.kinds || {}) want(id); // big rocks in the wild
+  for (const k of Object.values(json.resources || {})) for (const id in k.sprites || {}) want(id); // the natural resources' nodes (docs/46)
   want("player");
   want("zombie");
   want("flame");

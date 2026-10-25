@@ -803,18 +803,12 @@ function pickActions(prop, player) {
   })];
 }
 
-// A rock or an ore rock is mined with a pickaxe in hand (#196); without one the entry says so; a spent ore rock says when the ore returns.
-// The timed action runs the `mine` verb, so a guest's choice of the same label does the same on the host.
+// A rock or an ore rock is mined with a pickaxe in hand (#196); without one the entry says so. A mined one is gone, and its replacement
+// rises elsewhere in its area (docs/46, resources.js). The timed action runs the `mine` verb, so a guest's choice of the same label does the same on the host.
 function mineActions(prop, player) {
   const m = mining.mineOf(prop);
   const base = { tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] };
-  if (!m) {
-    const back = fruit.ripeAt(prop);
-    const returns = getDef(prop.sprite).ripens;
-    if (back === null || !returns || !getDef(returns).mine) return []; // only a mined-out rock (a picked apple tree has its own words)
-    const days = Math.max(1, Math.ceil((back - clock.getElapsed()) / clock.DAY_LENGTH));
-    return [act({ ...base, kind: "mine", label: `Mined out (more in about ${days} day${days > 1 ? "s" : ""})`, enabled: false })];
-  }
+  if (!m) return [];
   const name = getItem(m.item).name.toLowerCase();
   const axe = mining.heldPick(player);
   return [act({
