@@ -34,9 +34,17 @@
 
 - **Two small words** (found syncing the wiki, 2026-10-25, at `e045b31`): `data/sprites/sawpit.json`'s note names `src/repair.js` where the code is `src/sawpit.js`; `src/sawpit.js` (~47) says "1 fall at your feet" when one plank falls.
 
+- **Talk is answered while an immune villager cowers or runs** (found syncing the wiki for #434, 2026-10-25, read at `fa2997f`, *needs repro*). `src/entities/villager.js` `startTalk` (~304-319) does not look at the cower or flee state; `docs/43`'s status says Talk is not answered then. A Talk to a fleeing villager whose dead one is beyond `talkDeadRadius` would start a conversation and cut off the flight.
+
+- **Burn corpse's done line types "about an hour"** (found syncing the wiki for #434, at `fa2997f`). `src/burn.js` (~141) says it whatever `work.burnCorpse.hours` is; the card (~113) reads the data.
+
+- **An infection caught from tainted water opens on Bitten, "The bite broke the skin."** (found syncing the wiki for #435, at `fa2997f`, *needs repro*). `src/moodles.js` (~26): the first stage's words assume a bite, and water gives no bite.
+
 ## Open: surprises for Michael to rule on
 
 Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling (`docs/02`) before anyone changes code.
+
+- **A sip at full thirst still takes water and rolls Sick and the infection** (found syncing the wiki for #435, at `fa2997f`). `src/entities/player.js` (~122, ~127): drinking a tainted skin when not thirsty spends a unit and rolls both chances. Perhaps intended (a drink is a drink); for Michael.
 
 - **A free sharpening spends the rung the anvil uses** (found syncing the wiki for #416, 2026-10-25, at `e045b31`). One count serves both places (`src/repair.js` ~44-48, ~103), as `docs/43` section 6 rules, so a sword sharpened once at the grindstone (to 60%) can no longer be repaired to 100% at the anvil, only to 80%. Read literally that is the ruling; it may surprise a player who sharpens first. For Michael: keep, or let the grindstone's rungs not lower the anvil's.
 
@@ -51,6 +59,8 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 
 (Move items here with the commit that fixed them.)
 
+- [x] **`check("kindle")` failed after hovercard, villagers, talk, burn, immune, and poses in one page** (#437): it took the bag as it found it, so a bag left full sent the logs and the torch it stowed elsewhere. Fixed in #437's branch: kindle starts from an empty bag and puts it back in its `finally`, as slots does since #430.
+- [x] **A hover card near the right edge ran off the bottom of the window** (found fixing #437, `check("hovercard")`'s corner row): placed near the edge a card narrowed to fit before it was measured, so it never flipped. Fixed in #437's branch: `ui/hover-card.js` `place` measures it at the top left first. The same run found `check("debuffs")` reading the row before it was redrawn for the last stacks (a hidden pane draws no frame); the check draws it first now.
 - [x] **`check("build")` threw after `check("worlds")` in one page** (#432, found reviewing #431, 2026-10-25): worlds left the page with no world, so build's door was never built and its Take apart probed an empty wall slot, and `placement.partsOf` and `takeApartProblem` threw on the missing wall. Fixed in #432's branch: worlds ends in a fresh world of its own, and a stale target (a wall or a prop already gone, as a guest's late command may name) is refused with "There is nothing there.", never a throw; `check("build")` has a row for it.
 - [x] **A thrown spear lodged in a body came back fresh from the search** (found syncing the wiki for the melee pass, cmz-wiki#20, 2026-10-24): fixed by the spear-break change of 2026-10-24: a thrown thing that stays in a body is kept as itself (`lodgedItems`) and comes out of the search with its wear; arrows lodge by count as before.
 - [x] **A guest was never told "A fire has gone out."** (found reading the code for #197): fixed: `host.js` forwards `fireOut` as a screen message to every guest whose player stands within `world.fireOutRadius`, as the host's own player is told; tried with a guest beside a campfire burning out, in two tabs.
