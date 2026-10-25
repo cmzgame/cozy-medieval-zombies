@@ -2048,6 +2048,47 @@ check("milking: a bucket of water in hand and an empty one in the bag milks; the
   }
 });
 
+// A made prop lands on tiles that are all free (docs/bugs.md: check("craft") run twice): a counter, three tiles, made at the joiner's
+// workbench once stood over the bench's own tiles and took the bench off the map, its record kept.
+check("crafting: a made counter lands on free tiles, never over the workbench that made it", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  const benches = mapMod.allProps().filter((q) => q.sprite === "workbench" && mapMod.peekTile(q.tile[0], q.tile[1]).prop === q);
+  assert(benches.length, "no workbench in the loaded chunks");
+  const said = [];
+  for (const bench of benches) {
+    // The tile below the bench taken (a chest the check sets there, as the pane check's own chests are), so the nearest anchor is one a
+    // tile up and to the left, from which a three-tile counter reaches over the bench.
+    const [bx0, by0] = [bench.tile[0], bench.tile[1] + 1];
+    let blocker = null;
+    if (mapMod.isWalkableTile(bx0, by0) && !mapMod.tileAt(bx0, by0).prop) {
+      blocker = mapMod.createProp({ sprite: "chest", tile: [bx0, by0] });
+      mapMod.placeProp(blocker, bx0, by0);
+    }
+    const stand = mapMod.nearestWalkable(bench.tile[0], bench.tile[1] + 1, (x, y) => !!mapMod.tileAt(x, y).prop || !bench.tiles.some(([bx, by]) => lineOfSight(x, y, bx, by)));
+    me.gx = stand[0];
+    me.gy = stand[1];
+    const bag = inventoryMod.bagOf(me);
+    bag.items = [];
+    inventoryMod.addItem(bag, "plank", 8);
+    me.hands.main = itemsMod.makeEntry("hammer", 1); // the tool rule (#215): carried
+    const before = new Set(mapMod.allProps().map((q) => q.id));
+    const r = verbsMod.run("craft", worldMod.world, me, { prop: bench.id }, { recipe: "counter", count: 1 });
+    assert(r.ok, `the craft at ${bench.id}: ${r.reason}`);
+    for (let i = 0; i < 60 * 12 && bench.queue && bench.queue.length; i++) stationsMod.update(1 / 60);
+    const counter = mapMod.allProps().find((q) => !before.has(q.id) && q.sprite === "counter");
+    assert(counter, `no counter landed at ${bench.id}`);
+    const held = bench.tiles.every(([x, y]) => mapMod.peekTile(x, y).prop === bench);
+    const own = counter.tiles.every(([x, y]) => mapMod.peekTile(x, y).prop === counter);
+    if (blocker) mapMod.removeProp(blocker);
+    assert(held && own, `${bench.id}: the bench on its tiles ${held}, the counter on all of its ${own} (${counter.tiles.join(" ")})`);
+    said.push(`${bench.id} at ${bench.tiles.join(" ")}, its counter at ${counter.tiles.join(" ")}`);
+    mapMod.removeProp(counter);
+  }
+  return said.join("; ");
+});
+
 // A colour no dye gives, on a garment from the dead (docs/bugs.md: a looted hood's card read "#705848"): a plain word, read from the colour;
 // a dye's own hex keeps its name and an item's own colour reads Undyed. Every wardrobe colour reads as a word.
 check("dye words: a wardrobe's colour no vat gives reads a plain word on the card, never its hex", () => {

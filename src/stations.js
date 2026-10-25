@@ -196,14 +196,31 @@ export function outputOf(prop) {
   return prop.output;
 }
 
+// Whether a made prop of this footprint may stand with its anchor at (x, y): every one of its tiles walkable, empty, bare of items, not
+// beside a door (#134), and no wall between two of them, as placement.canPutDown asks of a carried prop. Only the anchor was asked until
+// check("craft") ran twice: a counter (three tiles) made at the joiner's workbench stood over the bench's own tiles, and the bench was
+// gone from the map while its record stayed.
+function fits(x, y, [w, h]) {
+  for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) {
+    const tx = x + dx;
+    const ty = y + dy;
+    const t = map.tileAt(tx, ty);
+    if (t.prop || t.items || !map.isWalkableTile(tx, ty) || map.besideDoor(tx, ty)) return false;
+    if (dx > 0 && map.wallBetween(tx - 1, ty, tx, ty)) return false;
+    if (dy > 0 && map.wallBetween(tx, ty - 1, tx, ty)) return false;
+  }
+  return true;
+}
+
 // A finished make lands: an item into the output (the floor beside if it is full),
-// a prop beside the station.
+// a prop beside the station, on tiles that are all free.
 function deliver(prop, r) {
   const o = r.out;
   if (o.prop) {
-    const at = map.nearestWalkable(prop.tile[0], prop.tile[1] + 1, (x, y) => !!map.tileAt(x, y).prop || map.tileAt(x, y).items || map.besideDoor(x, y)); // never on a door's tiles (#134)
+    const fp = o.footprint || [1, 1];
+    const at = map.nearestWalkable(prop.tile[0], prop.tile[1] + 1, (x, y) => !fits(x, y, fp));
     if (at) {
-      const made = map.createProp({ sprite: o.prop, tile: at, footprint: o.footprint || [1, 1] });
+      const made = map.createProp({ sprite: o.prop, tile: at, footprint: fp });
       made.made = true; // players made it, so X may take it away again (placement.removalTarget; 2026-10-15)
       // A container made here starts empty (the wiki census's bugs, 2026-10-15: a crafted chest rolled the chest's
       // loot on its first search): its bag made now, already searched, so nothing is ever rolled into it.
