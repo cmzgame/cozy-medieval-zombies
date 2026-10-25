@@ -12997,12 +12997,18 @@
      190,
      24,
      66
+    ],
+    [
+     56,
+     23,
+     64,
+     10
     ]
    ],
    "solid": false,
    "jitter": 0.5,
    "water": 2,
-   "where": "near the river",
+   "where": "near water",
    "seed": 71
   },
   "nightshade": {
@@ -13069,10 +13075,19 @@
      124,
      190,
      24,
-     66
+     12
+    ],
+    [
+     124,
+     212,
+     24,
+     44
     ]
    ],
-   "water": 2,
+   "floors": [
+    "floor_dirt"
+   ],
+   "water": 1,
    "waterGroup": "river",
    "where": "by the river",
    "seed": 80

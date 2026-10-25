@@ -1341,6 +1341,18 @@ check("herbs, clay, and salt: placed to their counts on their ground, gathered b
     const solid = n === "clay" || n === "salt";
     assert(p.interactable && p.solid === solid, `${n}: interactable ${p.interactable}, solid ${p.solid}`);
   }
+  // The sway (the gatherables law): a body walking through an herb stamps its sway, as through a crop; through a clay bank, solid, it does not.
+  {
+    const herb = nodesOf(kinds.weld)[0];
+    const bank0 = nodesOf(kinds.clay)[0];
+    for (const p of [herb, bank0]) { mapMod.ensureAround(p.tile[0], p.tile[1], 0); p.pokedAt = undefined; }
+    const walker = { gx: herb.tile[0], gy: herb.tile[1] };
+    interactMod.brushThrough(walker);
+    const walker2 = { gx: bank0.tile[0], gy: bank0.tile[1] };
+    interactMod.brushThrough(walker2);
+    assert(Number.isFinite(herb.pokedAt) && bank0.pokedAt === undefined, `walked through: the weld's pokedAt ${herb.pokedAt}, the clay bank's ${bank0.pokedAt}`);
+    herb.pokedAt = undefined;
+  }
   // Gathering: stand by a node, the verb by its id.
   const finish = () => { for (let i = 0; i < 600 && me.action; i++) interactMod.updateAction(me, 0.1); };
   const standBy = (p) => { mapMod.ensureAround(p.tile[0], p.tile[1], 1); me.gx = p.tile[0] + 0.9; me.gy = p.tile[1] + 0.3; me.moving = false; };
@@ -1411,7 +1423,9 @@ check("herbs, clay, and salt: placed to their counts on their ground, gathered b
   clock.setElapsed(Math.ceil(due / clock.DAY_LENGTH) * clock.DAY_LENGTH + clock.DAY_LENGTH * (12 / 24)); // noon of the day after the last falls due
   let looks = 0;
   const others = Object.keys(taken).filter((n) => n !== "grave_moss");
-  for (; looks < 12 && others.some((n) => resourcesMod.owed(n).length); looks++) { gameMod.begin(0); clock.setElapsed(clock.getElapsed() + RESOURCES.checkSeconds); }
+  // A look an hour of the clock; past 20:00 the clock goes on to the next noon, so the looks stay in the day and the graveyard's cannot grow by chance.
+  const dayLook = () => { gameMod.begin(0); clock.setElapsed(clock.getElapsed() + RESOURCES.checkSeconds); if (clock.getHour() >= 20 || clock.getHour() < 8) clock.setElapsed(Math.ceil(clock.getElapsed() / clock.DAY_LENGTH) * clock.DAY_LENGTH + clock.DAY_LENGTH / 2); };
+  for (; looks < 12 && others.some((n) => resourcesMod.owed(n).length); looks++) { dayLook(); assert(clock.getPhase() === "day", `a daytime look at ${clock.getHour().toFixed(1)}`); }
   assert(!others.some((n) => resourcesMod.owed(n).length), `by day after ${looks} looks still owed: ${others.filter((n) => resourcesMod.owed(n).length).join(", ")}`);
   assert(resourcesMod.owed("grave_moss").length === 1, "the graveyard's came back by day");
   const back = (n) => mapMod.allProps().find((p) => !ids.has(p.id) && kinds[n].sprites[p.sprite] !== undefined && mapMod.inResourceArea(kinds[n], p.tile[0], p.tile[1]));
@@ -1432,8 +1446,8 @@ check("herbs, clay, and salt: placed to their counts on their ground, gathered b
   const parts1 = gameMod.syncParts();
   assert(parts1.players !== parts0.players && parts1.map !== parts0.map, `a gather did not move the players' part (${parts1.players !== parts0.players}) or the map's (${parts1.map !== parts0.map})`);
   // The cards: the full name, the kind, where it is gathered (read from its nodes and their kinds' `where`), and no use that is not built.
-  const SOURCE = { sage: "Grows wild in the valley; gathered by hand.", nettle: "Grows wild in the valley; gathered by hand.", feverfew: "Grows wild in the valley; gathered by hand.", yarrow: "Grows wild in the valley; gathered by hand.", woad: "Grows wild in the valley; gathered by hand.", madder: "Grows wild in the valley; gathered by hand.", weld: "Grows wild in the valley; gathered by hand.", mana_herb: "Grows wild near the river; gathered by hand.", nightshade: "Grows wild near trees; gathered by hand.", wolfsbane: "Grows wild near trees; gathered by hand.", grave_moss: "Grows wild in the graveyard, at night; gathered by hand.", mushroom: "Forage under trees.", clay: "Dug from the clay banks by the river, a shovel carried.", salt: "Mined from salt rocks at the iron workings, a pickaxe in hand." };
-  const KIND = { sage: "Herb", nettle: "Herb", feverfew: "Herb", yarrow: "Herb", mana_herb: "Herb", nightshade: "Herb", wolfsbane: "Herb", grave_moss: "Herb", woad: "Dye plant", madder: "Dye plant", weld: "Dye plant", mushroom: "Mushroom", clay: "Material", salt: "Material" };
+  const SOURCE = { sage: "Grows wild in the valley; gathered by hand.", nettle: "Grows wild in the valley; gathered by hand.", feverfew: "Grows wild in the valley; gathered by hand.", yarrow: "Grows wild in the valley; gathered by hand.", woad: "Grows wild in the valley; gathered by hand.", madder: "Grows wild in the valley; gathered by hand.", weld: "Grows wild in the valley; gathered by hand.", mana_herb: "Grows wild near water; gathered by hand.", nightshade: "Grows wild near trees; gathered by hand.", wolfsbane: "Grows wild near trees; gathered by hand.", grave_moss: "Grows wild in the graveyard; gathered by hand, only at night.", mushroom: "Forage under trees.", clay: "Dug from the clay banks by the river, a shovel carried.", salt: "Mined from salt rocks at the iron workings, a pickaxe in hand." };
+  const KIND = { sage: "Herb", nettle: "Herb", feverfew: "Herb", yarrow: "Herb", mana_herb: "Herb", nightshade: "Herb", wolfsbane: "Herb", grave_moss: "Herb", woad: "Dye plant", madder: "Dye plant", weld: "Dye plant", mushroom: "Forage", clay: "Material", salt: "Material" };
   for (const [id, kind] of Object.entries(KIND)) {
     const c = itemInfoMod.cardFor(itemsMod.makeEntry(id));
     const lines = c.lines.map((l) => l.map((g) => g.t).join(""));

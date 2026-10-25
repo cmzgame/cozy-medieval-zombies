@@ -1,5 +1,5 @@
 {
-  "version": "ca1df822",
+  "version": "0b4b15a1",
   "files": {
     "data/animals.json": {"size": 4009, "stamp": "0268f89c"},
     "data/build.json": {"size": 2639, "stamp": "7419bc3e"},
@@ -627,7 +627,7 @@
     "data/layers/waist/index.json": {"size": 19, "stamp": "e924073b"},
     "data/maps/square.json": {"size": 12940, "stamp": "91f0d8ea"},
     "data/maps/staging.json": {"size": 8761, "stamp": "c49d0cd7"},
-    "data/maps/valley.json": {"size": 165979, "stamp": "acaecb96"},
+    "data/maps/valley.json": {"size": 166111, "stamp": "fa82ca95"},
     "data/site/staging_day_wide.webp": {"size": 103152, "stamp": "d59a0e45"},
     "data/site/staging_dusk_wide.webp": {"size": 60390, "stamp": "234b2082"},
     "data/sprites/altar.json": {"size": 197, "stamp": "1f7da4c7"},

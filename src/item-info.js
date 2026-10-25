@@ -72,7 +72,7 @@ export function usesOf(def) {
 
 // Where a gathered thing comes from (docs/46 step 2, #448), read from the data: every node whose sprite definition gives it (its `gather`,
 // `dig`, or `mine` block) and the map's resource kind that node belongs to, which says where it grows (`where`) and whether only at night:
-// "Grows wild near the river; gathered by hand.", "Forage under trees.", "Dug from the clay banks by the river, a shovel carried.", "Mined
+// "Grows wild near water; gathered by hand.", "Grows wild in the graveyard; gathered by hand, only at night.", "Forage under trees.", "Dug from the clay banks by the river, a shovel carried.", "Mined
 // from salt rocks at the iron workings, a pickaxe in hand." A kind with no `where` (the valley's rocks and ore today) says nothing.
 export function gatheredFrom(def) {
   const out = [];
@@ -83,10 +83,11 @@ export function gatheredFrom(def) {
       if (!b || b.item !== def.id) continue;
       const kind = resourceKindOf(sid);
       if (!kind || !kind.where) continue;
-      const where = `${kind.where}${kind.night || b.night ? ", at night" : ""}`;
+      const where = kind.where;
+      const night = kind.night || b.night ? ", only at night" : "";
       const node = `${sd.name || sid.replace(/_\d+$/, "").replace(/_/g, " ")}s`;
       let text;
-      if (field === "gather") text = b.word ? `${b.word} ${where}.` : `Grows wild ${where}; gathered by hand.`;
+      if (field === "gather") text = b.word ? `${b.word} ${where}${night}.` : `Grows wild ${where}; gathered by hand${night}.`;
       else if (field === "dig") { const t = toolFor(b.tool); text = `Dug from the ${node} ${where}${t ? `, ${an(t.name.toLowerCase())} carried` : ""}.`; }
       else { const t = toolFor("mine"); text = `Mined from ${node} ${where}${t ? `, ${an(t.name.toLowerCase())} in hand` : ""}.`; }
       if (!out.includes(text)) out.push(text);
@@ -121,7 +122,7 @@ export function cardFor(entry) {
   if (def.tags && def.tags.includes("seed")) kind = "Seed";
   else if (def.kind === "material" && def.tags && def.tags.includes("dye")) kind = "Dye plant"; // woad, madder, weld (docs/46 step 2): gathered as herbs
   else if (def.kind === "material" && def.tags && def.tags.includes("herb")) kind = "Herb"; // what Herbalism gathers (docs/39 section 4); garlic, a crop, stays Food
-  else if (def.kind === "material" && def.tags && def.tags.includes("mushroom")) kind = "Mushroom"; // foraged (Herbalism 3)
+  else if (def.kind === "material" && def.tags && def.tags.includes("mushroom")) kind = "Forage"; // a mushroom, foraged (Herbalism 3): not food until Cooking says how it is eaten
   else if (def.book) kind = "Spell book";
   else if (def.staff) kind = "Staff";
   else if (def.bow) kind = "Bow";

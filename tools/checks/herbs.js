@@ -27,8 +27,8 @@ export async function run(game, opts = {}) {
   const RES = G.tuning.resources;
   const HERBS = ["sage", "nettle", "feverfew", "yarrow", "woad", "madder", "weld", "mana_herb", "nightshade", "wolfsbane", "grave_moss"];
   const ITEMS = [...HERBS, "mushroom", "clay", "salt"];
-  const SOURCE = { sage: "Grows wild in the valley; gathered by hand.", nettle: "Grows wild in the valley; gathered by hand.", feverfew: "Grows wild in the valley; gathered by hand.", yarrow: "Grows wild in the valley; gathered by hand.", woad: "Grows wild in the valley; gathered by hand.", madder: "Grows wild in the valley; gathered by hand.", weld: "Grows wild in the valley; gathered by hand.", mana_herb: "Grows wild near the river; gathered by hand.", nightshade: "Grows wild near trees; gathered by hand.", wolfsbane: "Grows wild near trees; gathered by hand.", grave_moss: "Grows wild in the graveyard, at night; gathered by hand.", mushroom: "Forage under trees.", clay: "Dug from the clay banks by the river, a shovel carried.", salt: "Mined from salt rocks at the iron workings, a pickaxe in hand." };
-  const KIND = { woad: "Dye plant", madder: "Dye plant", weld: "Dye plant", mushroom: "Mushroom", clay: "Material", salt: "Material" };
+  const SOURCE = { sage: "Grows wild in the valley; gathered by hand.", nettle: "Grows wild in the valley; gathered by hand.", feverfew: "Grows wild in the valley; gathered by hand.", yarrow: "Grows wild in the valley; gathered by hand.", woad: "Grows wild in the valley; gathered by hand.", madder: "Grows wild in the valley; gathered by hand.", weld: "Grows wild in the valley; gathered by hand.", mana_herb: "Grows wild near water; gathered by hand.", nightshade: "Grows wild near trees; gathered by hand.", wolfsbane: "Grows wild near trees; gathered by hand.", grave_moss: "Grows wild in the graveyard; gathered by hand, only at night.", mushroom: "Forage under trees.", clay: "Dug from the clay banks by the river, a shovel carried.", salt: "Mined from salt rocks at the iron workings, a pickaxe in hand." };
+  const KIND = { woad: "Dye plant", madder: "Dye plant", weld: "Dye plant", mushroom: "Forage", clay: "Material", salt: "Material" };
   const me = G.player;
   const cardText = (id) => info.textOf(info.cardFor(G.items.makeEntry(id))).join(" | ");
   let kept = null;
@@ -165,6 +165,30 @@ export async function run(game, opts = {}) {
     }
     row("every new item's icon is made at boot from its design (an herb's its node's own pixels), 19 by 19, outlined, and registered as its picture on the floor", badIcons.length === 0, badIcons.join("; ") || `${ITEMS.length} icons`);
 
+    // ---- the sway: a click within reach and a body walking through (the gatherables law) ----
+    {
+      const herb = nodesOf(kinds.yarrow)[0];
+      const bank0 = nodesOf(kinds.clay)[0];
+      const clickOn = (p) => {
+        standBy(p);
+        p.pokedAt = undefined;
+        const s = G.iso.toScreen(p.tile[0], p.tile[1]);
+        const [ox, oy] = p.offset || [0, 0];
+        for (const up of [0, 3, 6, 9, 12, 15]) for (const dx of [0, -2, 2]) if (G.interact.interactableAt(s.x + ox + dx, s.y + oy - up) === p) { G.interact.pokeAt(s.x + ox + dx, s.y + oy - up, me); return Number.isFinite(p.pokedAt); }
+        return null;
+      };
+      const herbClick = clickOn(herb);
+      const bankClick = clickOn(bank0);
+      row("a click within reach finds an herb and a clay bank by their pixels and sways each (its stamp on the sim clock)", herbClick === true && bankClick === true, `yarrow ${herbClick === null ? "not found under the cursor" : herbClick}, clay bank ${bankClick === null ? "not found" : bankClick}`);
+      for (const p of [herb, bank0]) p.pokedAt = undefined;
+      G.teleport(herb.tile[0] - 1.2, herb.tile[1]);
+      G.loop.advance(1 / 60);
+      G.teleport(herb.tile[0], herb.tile[1]);
+      G.loop.advance(1 / 60);
+      const herbBrushed = Number.isFinite(herb.pokedAt);
+      row("walking through an herb sways it (not solid), as through a crop; a clay bank is solid and is walked round", herbBrushed && !herb.solid && bank0.solid === true, `yarrow pokedAt ${herb.pokedAt}, solid ${herb.solid}; clay bank solid ${bank0.solid}`);
+    }
+
     // ---- the cards on the page, over the bag ----
     for (const e of [...bag.items]) bag.items.splice(bag.items.indexOf(e), 1);
     for (const id of ITEMS) G.inventory.stow(me, G.items.makeEntry(id, 1));
@@ -246,7 +270,14 @@ export async function run(game, opts = {}) {
     G.clock.setElapsed(Math.ceil(due / G.clock.DAY_LENGTH) * G.clock.DAY_LENGTH + G.clock.DAY_LENGTH / 2); // noon, the day after the last falls due
     const byDayKinds = ["nettle", "clay", "salt"];
     let looks = 0;
-    for (; looks < 30 && byDayKinds.some((n) => resources.owed(n).length); looks++) { G.game.begin(0); G.clock.setElapsed(G.clock.getElapsed() + RES.checkSeconds); }
+    let night = 0; // a look an hour of the clock; past 20:00 it goes on to the next noon, so every look is by day and the graveyard's cannot grow by chance
+    for (; looks < 30 && byDayKinds.some((n) => resources.owed(n).length); looks++) {
+      G.game.begin(0);
+      if (G.clock.getPhase() !== "day") night++;
+      G.clock.setElapsed(G.clock.getElapsed() + RES.checkSeconds);
+      if (G.clock.getHour() >= 20 || G.clock.getHour() < 8) G.clock.setElapsed(Math.ceil(G.clock.getElapsed() / G.clock.DAY_LENGTH) * G.clock.DAY_LENGTH + G.clock.DAY_LENGTH / 2);
+    }
+    if (night) row("every comeback look was by day", false, `${night} looks at night`);
     const grownOf = (n) => G.map.allProps().find((p) => !ids0.has(p.id) && kinds[n].sprites[p.sprite] !== undefined && G.map.inResourceArea(kinds[n], p.tile[0], p.tile[1]));
     const back = byDayKinds.map((n) => [n, grownOf(n)]);
     row("past their days a nettle, a clay bank, and a salt rock stand at new spots in their areas, each where the rule allows", back.every(([n, p]) => p && (p.tile[0] !== taken[n][0] || p.tile[1] !== taken[n][1])), back.map(([n, p]) => `${n} ${p ? p.tile.join(",") : "none"}`).join("; ") + ` after ${looks} looks`);

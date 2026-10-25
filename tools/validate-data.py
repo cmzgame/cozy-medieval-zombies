@@ -890,7 +890,12 @@ for i in items:
         if ph not in sprites:
             fail(f"items.{i['id']}.icon: no sprite {ph!r} to draw it from")
             continue
-        design = load(f"data/sprites/{ph}.json").get("placeholder") or {}
+        sd = load(f"data/sprites/{ph}.json")
+        if sd.get("image") or sd.get("images") or sd.get("drawings"):
+            fail(f"items.{i['id']}.icon: its sprite {ph!r} is drawn art now; the item wants its own drawn icon (a src) in place of the generated one")
+        if not any((sd.get(f) or {}).get("item") == i["id"] for f in ("gather", "dig", "mine")):
+            fail(f"items.{i['id']}.icon: its sprite {ph!r} does not give {i['id']!r} (no gather, dig, or mine block names it)")
+        design = sd.get("placeholder") or {}
     if not isinstance(design, dict) or design.get("kind") not in ART_KINDS:
         fail(f"items.{i['id']}.icon: a design of kind {' or '.join(ART_KINDS)}, not {design!r}")
     if i["icon"].get("size") != [19 * i["size"][0], 19 * i["size"][1]]:
