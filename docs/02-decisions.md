@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Animals: seven kinds; game mostly in the woods but free to roam, back slowly to a cap; livestock from the farms, led home, penned in a fenced yard; safe from the dead; fed animals produce; generous feathers; raw meat in recipes; the companion in 1.0, last (2026-10-25, Animals ruled)
 - No fixed water source is clean; boiling at a lit fire by Use or either menu; the starting skin clean; the sickness a debuff, Sick (the infection's third stage renamed Queasy), 20% a tainted drink, 1% of the infection (2026-10-25, Water ruled)
 - The basic lore (#217) is in the Valley's scope, paired with the map redraw (#92) and taken first (2026-10-25, The basic lore is part of the Valley's scope)
 - Fixed home lights (fireplace, hearth, lantern) are switches, portable ones (torch, campfire) cost fuel; a lantern goes out; the campfire built, six logs of three hours, picked up only empty; Pick up and Take apart for everything; made by default, the village's stations one of a kind behind a world rule; Place as decoration (2026-10-25, The dead ends ruled)
@@ -288,6 +289,22 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-25 — Animals ruled: game mostly in the woods but free to roam, livestock from the farms, safe pens, generous feathers, raw meat in recipes, the companion last (Michael; #289)
+
+The sixth sitting of the Valley scope's defaults pass. Primary's defaults stood but for four of Michael's changes; the spec is `docs/45`. The rulings:
+
+- **Seven kinds:** hens, rabbits, deer, cows, sheep, pigs and boar, with your own beehives.
+- **Game mostly in the woods, never fenced in by a rule:** "let's be careful about restricting game to certain areas. It would be a problem if most of the deer were clumped in the city center ... but that also does not mean they can never leave the forest." Game comes back slowly to a cap per wood (*default*). Rabbits eating unfenced crops is an idea, not ruled ("Not sure if that is worth building").
+- **Livestock comes from the farms,** led home on a lead at its Beastlore level; a pen is any fenced yard with its gates shut.
+- **Deer flee, boar fight back when attacked; the weapon decides the yield; snares and the bow both hunt; skinning and butchering with a dirk.**
+- **Penned animals never starve or die of neglect; fed animals produce, unfed ones stop;** breeding at Beastlore 6; **livestock is safe** (the dead ignore animals; no predators).
+- **Feathers generous, so arrows can be farmed:** "If bow and arrow is supposed to be usable as a staple item, we should probably be a little more generous with feathers." *Defaults:* a fed hen a feather most days, a butchered hen three to five, one feather fletching five arrows.
+- **Raw meat goes into recipes, and onto a fire as it is:** "I don't want a deer to yield only 'Cooked Deer Meat' to cooking, although throwing it directly in to cook should still be possible for the desperate or impatient."
+- **The lead moves animals; the companion's command item waits:** "a lead does not make sense for sending an animal out to attack, unless it's REALLY long lol. Let's lead now for moving animals and wait on the beastlore attack item until we get there."
+- **The companion is in 1.0, built last, after the demo;** bosses ignore interception; a companion that "dies" goes home hurt and is back after a game day.
+
+Docs: 45 (new), 39, 42, 05, README.
 
 ### 2026-10-25 — Cheery at home, spooky beyond: Tirisfal is the outer regions' register, region by region; Habbo no longer the reference (Michael, clarifying)
 

@@ -53,6 +53,7 @@ One line per doc, with its kind (`CLAUDE.md`, "What a doc is"): a **rule** (bind
 - `42-levers.md` — **reference.** Every tuning lever Michael means to keep turning and every world setting he names: where it lives, its value, the ruling, its kind (#384); its wiki page is #387.
 - `43-dead-ends.md` — **spec.** The dead ends of the valley (#273): fires and lights, Pick up and Take apart, the made things, the village's stations behind a switch, repairs that run out, Burn corpse, the wave, the cowering, the dye vat; seven build steps.
 - `44-water.md` — **spec.** Water (#279): no fixed source clean, boiling by Use or either menu, a clean starting skin, the Sick debuff (the infection's third stage renamed Queasy); one build step.
+- `45-animals.md` — **spec.** Animals (#289): seven kinds, game mostly in the woods but free to roam, livestock from the farms, safe pens, generous feathers, raw meat in recipes, the companion last; five build steps.
 
 ## Records: `history/`
 
