@@ -2,10 +2,11 @@
 // above and beside the crown of every hive in view, by day only (none from dusk to dawn: `clock.getPhase()` is "day"), livelier for a few seconds when
 // the hive's honey is taken (read off its `honeyAt`, which the host's verb sets and the chunk carries to a guest; `stirOf`). Cosmetic and the client's
 // alone, like the fire's flicker: drawn by every client from what it already has, no sim state, nothing saved or sent; its time is the sim clock
-// (`loop.simTime()`), so it is steady across frames and stops with the pause. A bee is yellow and black, a body of 2 by 2 whole pixels with its
-// front column gold and its back column dark, and a pale wing pixel over it that flickers on alternate steps, so one colour or another shows
-// against straw, soil, or grass at every zoom (Primary's pane looks on #451: single dark pixels, then dark bodies over soil, could not be seen). Most of a loop is in front of the hive and drawn after it; only the farthest arc is
-// drawn before it, so the hive hides a bee passing behind. `beesAt` is pure, for `check("bees")` and `node tools/check.js`.
+// (`loop.simTime()`), so it is steady across frames and stops with the pause. A bee is a small figure drawn at the hive art's own scale, 5 by 4
+// whole pixels (`BEES.figure`): a body of three stripes, dark, gold, dark, 3 by 3, a dark pixel at its head, and two pale wing pixels above that
+// fold to one on alternate steps; it faces the way it flies, mirrored (Primary's pane looks on #451: single pixels, then 2 by 2 specks, read as
+// noise against the straw's 1-pixel lines). Most of a loop is in front of the hive and drawn after it; only the farthest arc is drawn before it,
+// so the hive hides a bee passing behind. `beesAt` and `figureOf` are pure, for `check("bees")` and `node tools/check.js`.
 
 import * as gl from "../gl.js";
 import * as clock from "../clock.js";
@@ -22,12 +23,32 @@ export const BEES = {
   lift: [8, 16], // and this far above the cloud's anchor, so the bees fly over and beside the crown, not on it
   spin: [1.2, 2.4], // radians a second round the loop
   backArc: -0.6, // a bee is behind the hive only where its loop's sine is below this (the farthest arc)
-  size: 2, // the body, square: its front column gold, its back column dark, so one or the other shows against straw, soil, or grass
+  // The figure facing right (its head at the right), rows top to bottom: D dark, G gold, W wing, `.` nothing. Its centre pixel (2, 2) is the bee's
+  // position. Facing left is each row reversed.
+  figure: {
+    up: [".WW..", ".DGD.", ".DGDD", ".DGD."], // wings up
+    folded: ["..W..", ".DGD.", ".DGDD", ".DGD."], // wings folded to one pixel, the next step
+  },
+  centre: [2, 2],
   stirSeconds: 8, // how long a hive stays lively after its honey is taken, fading
   gold: "#e0b03a",
   dark: "#2b2522",
   wing: "#e8e4d0",
 };
+const COLOUR = { D: "dark", G: "gold", W: "wing" };
+
+// A bee's pixels as drawn: [dx, dy, colour] from its position, for its way (`dx`) and its wing's beat (`wing`).
+export function figureOf(bee) {
+  const rows = bee.wing ? BEES.figure.up : BEES.figure.folded;
+  const out = [];
+  rows.forEach((row, y) => {
+    const r = bee.dx < 0 ? [...row].reverse() : [...row];
+    r.forEach((ch, x) => {
+      if (COLOUR[ch]) out.push([x - (bee.dx < 0 ? row.length - 1 - BEES.centre[0] : BEES.centre[0]), y - BEES.centre[1], BEES[COLOUR[ch]]]);
+    });
+  });
+  return out;
+}
 
 // FNV-1a over a string: a hive's numbers from its id, the same on every client.
 function hash(s) {
@@ -79,7 +100,9 @@ export function beesAt(prop, t, phase, stir = 0) {
 
 // How lively a hive is at the clock's second `now`: 1 the moment its honey was taken, fading to 0 over `stirSeconds`. The moment is read off the
 // prop itself, with no memory: the `honey` verb sets `honeyAt` to the clock then plus `work.honey.days` of days (src/hives.js), so a hive whose
-// honey was taken while nobody watched is calm when it comes into view, and a guest reads the same from the same prop.
+// honey was taken while nobody watched is calm when it comes into view, and a guest reads the same from the same prop. The "just taken" moment is
+// `honeyAt` minus today's value of that lever (`docs/42-levers.md`, Honey): lowering `work.honey.days` between a take and its day moves that
+// moment later and can stir the hive once more, cosmetically; nothing else reads it.
 export function stirOf(prop, now) {
   if (!Number.isFinite(prop.honeyAt)) return 0;
   const takenAt = prop.honeyAt - WK.honey.days * clock.DAY_LENGTH;
@@ -96,25 +119,19 @@ export function beesFor(prop, f, x, y, an) {
   return { list, cx, cy, ground: y };
 }
 
-const square = (x, y, k) => [[x, y], [x + k, y], [x + k, y + k], [x, y + k]];
-
-// Draw the bees of `bees` (what `beesFor` returned) on the farthest arc of their loops (`back` true, before the hive) or the rest (after it).
+// Draw the bees of `bees` (what `beesFor` returned) on the farthest arc of their loops (`back` true, before the hive) or the rest (after it):
+// each pixel of each figure a one-pixel square at whole pixels.
 export function emit(bees, back, world) {
   if (!bees) return;
-  const gold = gl.rgb(BEES.gold);
-  const dark = gl.rgb(BEES.dark);
-  const wing = gl.rgb(BEES.wing);
-  const k = BEES.size;
-  const half = k / 2;
   for (const b of bees.list) {
     if (b.back !== back) continue;
     const px = bees.cx + b.x;
     const py = bees.cy + b.y;
     const opts = { world, heights: Math.max(0, bees.ground - py), flags: gl.FLAG_STANDING };
-    const front = b.dx > 0 ? px + half : px; // the column the bee flies toward
-    const rear = b.dx > 0 ? px : px + half;
-    gl.poly([[front, py], [front + half, py], [front + half, py + k], [front, py + k]], gold, opts);
-    gl.poly([[rear, py], [rear + half, py], [rear + half, py + k], [rear, py + k]], dark, opts);
-    if (b.wing) gl.poly(square(rear, py - 1, 1), wing, opts); // over the body's back column
+    for (const [dx, dy, c] of figureOf(b)) {
+      const x = px + dx;
+      const y = py + dy;
+      gl.poly([[x, y], [x + 1, y], [x + 1, y + 1], [x, y + 1]], gl.rgb(c), opts);
+    }
   }
 }

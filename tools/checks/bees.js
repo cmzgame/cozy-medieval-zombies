@@ -44,9 +44,21 @@ export async function run(game) {
     const noon = at(12);
     const n = noon && noon.bees ? noon.bees.list.length : 0;
     row("at noon a hive in sight has three to six bees, its own number", n >= 3 && n <= 6 && n === bees.countOf(hive), `${n} (its number ${bees.countOf(hive)}) at ${hx},${hy}`);
-    const near = noon && noon.bees && noon.bees.list.every((b) => Number.isInteger(b.x) && Number.isInteger(b.y) && Math.abs(b.x) <= 42 && b.y >= -31 && b.y <= 1);
+    const near = noon && noon.bees && noon.bees.list.every((b) => Number.isInteger(b.x) && Number.isInteger(b.y) && b.y <= 1 && bees.figureOf(b).every(([fx, fy]) => Math.abs(b.x + fx) <= 45 && b.y + fy >= -34 && b.y + fy <= 9));
     row("each at a whole pixel, in a cloud above and beside the crown, not on it", !!near, where(noon));
-    row("a bee is yellow and black: a 2 by 2 body, its front column gold (#e0b03a) and its back dark (#2b2522), with a pale wing pixel (#e8e4d0)", bees.BEES.size === 2 && bees.BEES.gold === "#e0b03a" && bees.BEES.dark === "#2b2522" && bees.BEES.wing === "#e8e4d0", JSON.stringify({ size: bees.BEES.size, gold: bees.BEES.gold, dark: bees.BEES.dark, wing: bees.BEES.wing }));
+    // The figure's pixels, facing right with its wings up (rows top to bottom, its leftmost column first), then folded, then facing left.
+    const pic = (bee) => {
+      const px = bees.figureOf(bee);
+      const x0 = Math.min(...px.map((p) => p[0]));
+      const y0 = Math.min(...px.map((p) => p[1]));
+      const at = (x, y) => (px.find((p) => p[0] === x + x0 && p[1] === y + y0) || [0, 0, "."])[2];
+      return [0, 1, 2, 3].map((y) => [0, 1, 2, 3].map((x) => ({ [bees.BEES.dark]: "D", [bees.BEES.gold]: "G", [bees.BEES.wing]: "W" }[at(x, y)] || ".")).join(""));
+    };
+    const up = pic({ dx: 1, wing: true });
+    const fold = pic({ dx: 1, wing: false });
+    const left = pic({ dx: -1, wing: true });
+    row("a bee is a drawn figure: a body of stripes dark, gold, dark, 3 by 3, a dark head pixel, two pale wing pixels above (#2b2522, #e0b03a, #e8e4d0)", JSON.stringify(up) === JSON.stringify(["WW..", "DGD.", "DGDD", "DGD."]) && bees.BEES.dark === "#2b2522" && bees.BEES.gold === "#e0b03a" && bees.BEES.wing === "#e8e4d0", up.join(" / "));
+    row("its wings fold to one pixel on the next step, and it faces the way it flies (mirrored)", fold.join("").split("W").length - 1 === 1 && JSON.stringify(left) === JSON.stringify(up.map((r) => [...r].reverse().join(""))), `folded ${fold.join(" / ")}; left ${left.join(" / ")}`);
     const f = G.assets.getSheet("beehive").frames.idle_0;
     const top = noon && noon.rect ? noon.rect.y : null;
     row("the cloud's centre is the hive's crown, a few pixels under the top of its picture", noon && noon.bees && noon.bees.cy === top + bees.BEES.crownY && noon.bees.cx === noon.rect.x + Math.round(f[2] / 2), noon && noon.bees ? `centre ${noon.bees.cx},${noon.bees.cy}, picture from ${noon.rect.x},${top}` : "none");
@@ -56,8 +68,17 @@ export async function run(game) {
     // The sim clock: paused it holds still, and a step moves the bees a little, never across their loops.
     G.clock.setHour(12);
     const a = drawn().bees.list;
-    const b = drawn().bees.list;
-    row("paused, the bees hold still", JSON.stringify(a) === JSON.stringify(b), `${JSON.stringify(a.map((q) => [q.x, q.y]))}`);
+    // Real time passes while paused (a wait, and the wall clock pushed on a minute): the bees read only the sim clock, so they stay put.
+    await new Promise((res) => setTimeout(res, 150));
+    const realNow = performance.now.bind(performance);
+    let b;
+    try {
+      performance.now = () => realNow() + 60000;
+      b = drawn().bees.list;
+    } finally {
+      performance.now = realNow;
+    }
+    row("paused, the bees hold still while real time passes", JSON.stringify(a) === JSON.stringify(b), `${JSON.stringify(a.map((q) => [q.x, q.y]))} after 150 ms and the wall clock a minute on`);
     let moved = 0;
     let jump = 0;
     let flicks = 0;

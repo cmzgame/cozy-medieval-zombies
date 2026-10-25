@@ -49,6 +49,15 @@ export async function run(game) {
       return { w: fw, h: fh, px: k.getImageData(0, 0, fw, fh).data };
     };
     const art = await import("/src/fruit-art.js");
+    const propsArt = await import("/src/render/props.js");
+    const { tileKey } = await import("/src/visibility.js");
+    // The sheet the renderer's drawable for the tree draws from this frame.
+    const drawnSheet = () => {
+      const out = [];
+      propsArt.propDrawables([[tx, ty]], new Set([tileKey(tx, ty)]), out);
+      const d = out.find((q) => q.kind === "prop" && q.rect);
+      return d ? d.sheet : null;
+    };
     const laden = G.assets.getSheet("tree_apple");
     const bareSheet = G.assets.getSheet("tree_apple_bare");
     const round = G.assets.getSheet("tree_oak_m");
@@ -83,7 +92,7 @@ export async function run(game) {
     const [lo, hi] = def.pick.count;
     row("picking gives the apples (a count in data) into the bag", r.ok && got >= lo && got <= hi, `got ${got} of ${lo} to ${hi}`);
     row("and the tree is bare, with the day it bears again set three days on", tree.sprite === "tree_apple_bare" && Math.abs(tree.regrowAt - (G.clock.getElapsed() + def.pick.days * G.clock.DAY_LENGTH)) < 1, `${tree.sprite}, regrowAt ${tree.regrowAt}`);
-    row("and it is drawn bare: the round tree's crown with no apples", G.assets.getSheet(tree.sprite) === bareSheet, tree.sprite);
+    row("and it is drawn bare: the frame's drawable for it draws from the bare sheet, the round tree's crown with no apples", drawnSheet() === bareSheet, drawnSheet() ? drawnSheet().id : "no drawable");
     const again = G.verbs.run("pick", G.world, me, { prop: tree.id });
     row("a second pick finds it bare and gets nothing", !again.ok && apples() === before + got, String(again.reason));
     const bareMenu = actions();
@@ -104,7 +113,7 @@ export async function run(game) {
     G.clock.setElapsed(day + 31);
     G.game.begin(0);
     row("past its day it bears again, with no day left on it", tree.sprite === "tree_apple" && tree.regrowAt === undefined, `${tree.sprite} ${tree.regrowAt}`);
-    row("and it is drawn with its apples again", G.assets.getSheet(tree.sprite) === laden, tree.sprite);
+    row("and it is drawn with its apples again: the frame's drawable draws from the bearing sheet", drawnSheet() === laden, drawnSheet() ? drawnSheet().id : "no drawable");
 
     // A guest's way: the label on the prop's address, run on the host.
     const before2 = apples();

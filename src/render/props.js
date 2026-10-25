@@ -174,6 +174,7 @@ export function propDrawables(tiles, visible, out) {
       canOcclude: !!f && f[3] >= OCCLUDER_MIN_HEIGHT && !!getDef(prop.sprite).canopy,
       occluder: false,
       bees: swarm, // what `check("bees")` reads of the frame
+      sheet, // and the sheet it draws from (`check("apples")`: a picked tree drawn bare)
       emit() {
         const flags = gl.FLAG_STANDING | (d.occluder ? gl.FLAG_OCCLUDER : 0);
         if (swarm) bees.emit(swarm, true, [tx, ty]);

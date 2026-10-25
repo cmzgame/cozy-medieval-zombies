@@ -1126,7 +1126,7 @@ check("fruit art: apples painted on a crown's leaves only, spread, the same ever
 });
 
 const beesMod = await import("../src/render/bees.js");
-check("bees: three to six yellow-and-black 2 by 2 bees with a wing flickering every step, in loops above and beside a hive's crown by day, none from dusk to dawn, whole pixels, livelier when honey is taken (#441)", () => {
+check("bees: three to six drawn bees (stripes dark, gold, dark, a head, wings folding every step, facing their way), in loops above and beside a hive's crown by day, none from dusk to dawn, whole pixels, livelier when honey is taken (#441)", () => {
   const hives = Array.from({ length: 20 }, (_, i) => ({ id: `p_${100 + i * 7}` }));
   const counts = new Set();
   for (const hv of hives) {
@@ -1143,7 +1143,7 @@ check("bees: three to six yellow-and-black 2 by 2 bees with a wing flickering ev
   for (let t = 0; t < 60; t += 0.37) {
     for (const b of beesMod.beesAt(hv, t, "day", t % 3 / 3)) {
       assert(Number.isInteger(b.x) && Number.isInteger(b.y), `a bee at ${b.x},${b.y}`);
-      assert(Math.abs(b.x) <= 42 && b.y >= -31 && b.y <= 7, `a bee strayed to ${b.x},${b.y} from the crown`);
+      for (const [fx, fy] of beesMod.figureOf(b)) assert(Math.abs(b.x + fx) <= 45 && b.y + fy >= -34 && b.y + fy <= 9, `a bee's figure strayed to ${b.x + fx},${b.y + fy} from the crown`);
       assert(b.dx === 1 || b.dx === -1, `a bee's way ${b.dx}`);
     }
     for (const b of beesMod.beesAt(hv, t, "day")) {
@@ -1156,7 +1156,33 @@ check("bees: three to six yellow-and-black 2 by 2 bees with a wing flickering ev
   assert(behind / seen < 0.35, `${behind} of ${seen} bees behind the hive: most should be in front`);
   assert(widest >= 12, `the calm cloud spans only ${widest} px either side of the crown`);
   const { BEES } = beesMod;
-  assert(BEES.size === 2 && BEES.gold === "#e0b03a" && BEES.dark === "#2b2522" && BEES.wing === "#e8e4d0" && BEES.rx[0] >= 10 && BEES.rx[1] <= 18, `the bee's look: ${JSON.stringify(BEES)}`);
+  assert(BEES.gold === "#e0b03a" && BEES.dark === "#2b2522" && BEES.wing === "#e8e4d0" && BEES.rx[0] >= 10 && BEES.rx[1] <= 18, `the bee's colours and loops: ${JSON.stringify(BEES)}`);
+  // The figure's pixels: facing right, wings up, a body of three stripes (dark, gold, dark) three tall, a dark head pixel at the right, two wing pixels
+  // above; the next step one wing pixel; facing left the same mirrored.
+  const grid = (bee) => {
+    const px = beesMod.figureOf(bee);
+    const xs = px.map((p) => p[0]);
+    const ys = px.map((p) => p[1]);
+    const x0 = Math.min(...xs);
+    const y0 = Math.min(...ys);
+    const at = (x, y) => (px.find((p) => p[0] === x + x0 && p[1] === y + y0) || [0, 0, "."])[2];
+    return { w: Math.max(...xs) - x0 + 1, h: Math.max(...ys) - y0 + 1, at, n: px.length, x0 };
+  };
+  const D = BEES.dark;
+  const Gd = BEES.gold;
+  const Wg = BEES.wing;
+  const right = grid({ dx: 1, wing: true });
+  assert(right.w === 4 && right.h === 4 && right.n === 12, `the figure is ${right.w} by ${right.h} with ${right.n} pixels, not 4 by 4 (in a 5 by 4 frame) with 12`);
+  for (let y = 1; y <= 3; y++) assert(right.at(0, y) === D && right.at(1, y) === Gd && right.at(2, y) === D, `body row ${y} is not dark, gold, dark: ${right.at(0, y)} ${right.at(1, y)} ${right.at(2, y)}`);
+  assert(right.at(3, 2) === D && right.at(3, 1) === "." && right.at(3, 3) === ".", "no dark head pixel at the right, mid-body");
+  assert(right.at(0, 0) === Wg && right.at(1, 0) === Wg && right.at(2, 0) === "." && right.at(3, 0) === ".", "the wings up are not two pale pixels above the body");
+  const folded = beesMod.figureOf({ dx: 1, wing: false }).filter((p) => p[2] === Wg);
+  assert(folded.length === 1, `folded, ${folded.length} wing pixels, not one`);
+  const left = grid({ dx: -1, wing: true });
+  assert(left.at(0, 2) === D && left.at(1, 1) === D && left.at(2, 1) === Gd && left.at(3, 1) === D && left.at(2, 0) === Wg && left.at(3, 0) === Wg, "facing left is not the figure mirrored");
+  const centreR = beesMod.figureOf({ dx: 1, wing: true });
+  const centreL = beesMod.figureOf({ dx: -1, wing: true });
+  assert(centreR.some((p) => p[0] === 0 && p[1] === 0 && p[2] === Gd) && centreL.some((p) => p[0] === 0 && p[1] === 0 && p[2] === Gd), "the bee's position is not its gold middle, both ways");
   // The wing's beat on every step, with the sim time summed in sixtieths as the loop sums it (not k / 60, which rounds kindly).
   let simT = 0;
   let lastWing = null;

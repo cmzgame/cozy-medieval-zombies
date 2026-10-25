@@ -153,7 +153,7 @@
         ${editable ? `<button id="save"><b>Save to the game</b></button>` : ""}
         ${canSaveAsDrawn ? `<button id="saveDrawn"><b>Save as drawn</b> (the generated picture becomes data/art/generated/${id}.png and the definition points at it)</button>` : ""}
         ${generated && !canSaveAsDrawn ? `<span class="note">A generated ${def.placeholder.kind} is not saved as drawn here (it needs per-tile or wall fields the drawn form has not got); edit its generator in src/placeholders.js.</span>` : ""}
-        ${lay.kind === "fruit" ? `<span class="note">A fruit tree laden: ${def.image} with its fruit painted on at load (src/fruit-art.js). Tune the definition's fruit block below; the picture is the bare tree's.</span>` : ""}
+        ${lay.kind === "fruit" ? `<span class="note">A fruit tree laden: ${def.image} with its fruit painted on at load (src/fruit-art.js). Not saved from here: the picture is the bare tree's (and the round tree's delivered art), and the fruit block lives in data/sprites/${id}.json, edited by hand (Apply below does not repaint the fruit).</span>` : ""}
         ${lay.kind === "drawings" ? `<span class="note">A furniture sheet is packed from its drawings with slices and mirrors; edit its PNGs (${lay.paths.join(", ")}) in an image editor and save them over the files, then reload the game; its anchors are in the definition below.</span>` : ""}
         <button id="download">Download the sheet PNG</button>
       </div>
