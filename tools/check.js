@@ -1126,7 +1126,7 @@ check("fruit art: apples painted on a crown's leaves only, spread, the same ever
 });
 
 const beesMod = await import("../src/render/bees.js");
-check("bees: three to six 2-pixel bees with a flickering wing, in loops above and beside a hive's crown by day, none from dusk to dawn, whole pixels, livelier when honey is taken (#441)", () => {
+check("bees: three to six yellow-and-black 2 by 2 bees with a wing flickering every step, in loops above and beside a hive's crown by day, none from dusk to dawn, whole pixels, livelier when honey is taken (#441)", () => {
   const hives = Array.from({ length: 20 }, (_, i) => ({ id: `p_${100 + i * 7}` }));
   const counts = new Set();
   for (const hv of hives) {
@@ -1156,9 +1156,18 @@ check("bees: three to six 2-pixel bees with a flickering wing, in loops above an
   assert(behind / seen < 0.35, `${behind} of ${seen} bees behind the hive: most should be in front`);
   assert(widest >= 12, `the calm cloud spans only ${widest} px either side of the crown`);
   const { BEES } = beesMod;
-  assert(BEES.size === 2 && BEES.wing === "#e8e4d0" && BEES.rx[0] >= 10 && BEES.rx[1] <= 18, `the bee's look: ${JSON.stringify(BEES)}`);
-  const wings = [0, 1, 2, 3].map((k) => beesMod.beesAt(hv, 40 + k / 60, "day")[0].wing);
-  assert(wings[0] !== wings[1] && wings[1] !== wings[2] && wings[2] !== wings[3], `the wing does not flicker on alternate steps: ${wings}`);
+  assert(BEES.size === 2 && BEES.gold === "#e0b03a" && BEES.dark === "#2b2522" && BEES.wing === "#e8e4d0" && BEES.rx[0] >= 10 && BEES.rx[1] <= 18, `the bee's look: ${JSON.stringify(BEES)}`);
+  // The wing's beat on every step, with the sim time summed in sixtieths as the loop sums it (not k / 60, which rounds kindly).
+  let simT = 0;
+  let lastWing = null;
+  let flips = 0;
+  for (let k = 0; k < 3600; k++) {
+    simT += 1 / 60;
+    const wing = beesMod.beesAt(hv, simT, "day")[0].wing;
+    if (lastWing !== null && wing !== lastWing) flips++;
+    lastWing = wing;
+  }
+  assert(flips === 3599, `the wing flickered on ${flips} of 3599 steps, not every one`);
   assert(JSON.stringify(beesMod.beesAt(hv, 50, "day")) === JSON.stringify(beesMod.beesAt(hv, 50, "day")), "the same moment drew two ways");
   assert(JSON.stringify(beesMod.beesAt(hv, 50, "day")) !== JSON.stringify(beesMod.beesAt(hv, 50.5, "day")), "the bees did not move in half a second");
   // A step of the clock moves a bee a few pixels, not across its loop (calm, and while the stir fades).

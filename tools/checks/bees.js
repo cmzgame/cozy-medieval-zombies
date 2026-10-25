@@ -46,7 +46,7 @@ export async function run(game) {
     row("at noon a hive in sight has three to six bees, its own number", n >= 3 && n <= 6 && n === bees.countOf(hive), `${n} (its number ${bees.countOf(hive)}) at ${hx},${hy}`);
     const near = noon && noon.bees && noon.bees.list.every((b) => Number.isInteger(b.x) && Number.isInteger(b.y) && Math.abs(b.x) <= 42 && b.y >= -31 && b.y <= 1);
     row("each at a whole pixel, in a cloud above and beside the crown, not on it", !!near, where(noon));
-    row("a bee is a 2 by 2 dark body with a pale wing pixel (#e8e4d0)", bees.BEES.size === 2 && bees.BEES.wing === "#e8e4d0", JSON.stringify({ size: bees.BEES.size, dark: bees.BEES.dark, wing: bees.BEES.wing }));
+    row("a bee is yellow and black: a 2 by 2 body, its front column gold (#e0b03a) and its back dark (#2b2522), with a pale wing pixel (#e8e4d0)", bees.BEES.size === 2 && bees.BEES.gold === "#e0b03a" && bees.BEES.dark === "#2b2522" && bees.BEES.wing === "#e8e4d0", JSON.stringify({ size: bees.BEES.size, gold: bees.BEES.gold, dark: bees.BEES.dark, wing: bees.BEES.wing }));
     const f = G.assets.getSheet("beehive").frames.idle_0;
     const top = noon && noon.rect ? noon.rect.y : null;
     row("the cloud's centre is the hive's crown, a few pixels under the top of its picture", noon && noon.bees && noon.bees.cy === top + bees.BEES.crownY && noon.bees.cx === noon.rect.x + Math.round(f[2] / 2), noon && noon.bees ? `centre ${noon.bees.cx},${noon.bees.cy}, picture from ${noon.rect.x},${top}` : "none");
@@ -72,7 +72,7 @@ export async function run(game) {
       prev = now;
     }
     row("stepped, they drift: moving, at most a few pixels a step", moved > 0 && jump <= 4, `${moved} moves in 30 steps, the largest ${jump} px`);
-    row("each wing flickers on alternate steps", flicks >= shown * 0.9, `${flicks} flicks in ${shown} bee-steps (a step's sim time can round onto the same sixtieth now and then)`);
+    row("each wing flickers on alternate steps, every step", flicks === shown, `${flicks} flicks in ${shown} bee-steps`);
     row("most of them in front of the hive", behind / shown < 0.5, `${behind} of ${shown} bee-steps behind it`);
     // Take honey: livelier for a few seconds of the clock, from the prop's own day, then calm again.
     const r = G.verbs.run("honey", G.world, me, { prop: hive.id });

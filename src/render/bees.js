@@ -2,9 +2,9 @@
 // above and beside the crown of every hive in view, by day only (none from dusk to dawn: `clock.getPhase()` is "day"), livelier for a few seconds when
 // the hive's honey is taken (read off its `honeyAt`, which the host's verb sets and the chunk carries to a guest; `stirOf`). Cosmetic and the client's
 // alone, like the fire's flicker: drawn by every client from what it already has, no sim state, nothing saved or sent; its time is the sim clock
-// (`loop.simTime()`), so it is steady across frames and stops with the pause. A bee is a dark body of 2 by 2 whole pixels (the delivered hive's own
-// bees' dark, `beehive_1.png`) with a pale wing pixel over it that flickers on alternate steps, so it reads at a glance at every zoom (Primary's pane
-// look on #451: single pixels on the crown could not be seen). Most of a loop is in front of the hive and drawn after it; only the farthest arc is
+// (`loop.simTime()`), so it is steady across frames and stops with the pause. A bee is yellow and black, a body of 2 by 2 whole pixels with its
+// front column gold and its back column dark, and a pale wing pixel over it that flickers on alternate steps, so one colour or another shows
+// against straw, soil, or grass at every zoom (Primary's pane looks on #451: single dark pixels, then dark bodies over soil, could not be seen). Most of a loop is in front of the hive and drawn after it; only the farthest arc is
 // drawn before it, so the hive hides a bee passing behind. `beesAt` is pure, for `check("bees")` and `node tools/check.js`.
 
 import * as gl from "../gl.js";
@@ -22,8 +22,9 @@ export const BEES = {
   lift: [8, 16], // and this far above the cloud's anchor, so the bees fly over and beside the crown, not on it
   spin: [1.2, 2.4], // radians a second round the loop
   backArc: -0.6, // a bee is behind the hive only where its loop's sine is below this (the farthest arc)
-  size: 2, // the body, square
+  size: 2, // the body, square: its front column gold, its back column dark, so one or the other shows against straw, soil, or grass
   stirSeconds: 8, // how long a hive stays lively after its honey is taken, fading
+  gold: "#e0b03a",
   dark: "#2b2522",
   wing: "#e8e4d0",
 };
@@ -55,7 +56,7 @@ export function beesAt(prop, t, phase, stir = 0) {
   // Livelier is wider loops and a fast buzz on top, never a faster loop: a speed that changed with the stir would jump every bee along its loop
   // (the angle is speed times a large sim time), where a size that changes only moves it a little.
   const reach = 1 + 0.5 * s;
-  const step = Math.floor(t * 60);
+  const step = Math.round(t * 60); // the step number: sim time is a sum of sixtieths, and flooring it lands on the step before now and then
   const out = [];
   for (let i = 0; i < n; i++) {
     const key = `${prop.id}#${i}`;
@@ -100,15 +101,20 @@ const square = (x, y, k) => [[x, y], [x + k, y], [x + k, y + k], [x, y + k]];
 // Draw the bees of `bees` (what `beesFor` returned) on the farthest arc of their loops (`back` true, before the hive) or the rest (after it).
 export function emit(bees, back, world) {
   if (!bees) return;
+  const gold = gl.rgb(BEES.gold);
   const dark = gl.rgb(BEES.dark);
   const wing = gl.rgb(BEES.wing);
   const k = BEES.size;
+  const half = k / 2;
   for (const b of bees.list) {
     if (b.back !== back) continue;
     const px = bees.cx + b.x;
     const py = bees.cy + b.y;
     const opts = { world, heights: Math.max(0, bees.ground - py), flags: gl.FLAG_STANDING };
-    gl.poly(square(px, py, k), dark, opts);
-    if (b.wing) gl.poly(square(b.dx > 0 ? px : px + k - 1, py - 1, 1), wing, opts); // over the body's trailing half
+    const front = b.dx > 0 ? px + half : px; // the column the bee flies toward
+    const rear = b.dx > 0 ? px : px + half;
+    gl.poly([[front, py], [front + half, py], [front + half, py + k], [front, py + k]], gold, opts);
+    gl.poly([[rear, py], [rear + half, py], [rear + half, py + k], [rear, py + k]], dark, opts);
+    if (b.wing) gl.poly(square(rear, py - 1, 1), wing, opts); // over the body's back column
   }
 }
