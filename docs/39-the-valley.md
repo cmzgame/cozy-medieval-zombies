@@ -131,7 +131,7 @@
 - **Oven, forge, anvil, loom, workbench, millstones, charcoal clamp, dye vat:** stations, section 3.
 - **Lantern post** [built]: lights a held torch [change: put out and lit again, a switch (2026-10-25, overturning never out)].
 - **Torch post and wall bracket** [built in the data]: hold a torch [change: the post made at the workbench (Crafting 1), a few along the square and the road; the bracket as above (`43` section 4)].
-- **Jack-o'-lantern** [built in the data] [change: carved from a pumpkin with a dirk at the workbench (Crafting 1), a small light that never goes out; the plain pumpkin props cut; a pumpkin may be placed as decoration, one way (`43` section 4)].
+- **Jack-o'-lantern** [built in the data] [change: carved from a pumpkin with a dirk at the workbench (Crafting 1), a small light that is a switch as the home lights are; a pumpkin may be placed as decoration, one way, and the square map's plain pumpkin props become that decoration (`43` section 4)].
 - **Stump** [built]: left by a felled tree; a hatchet chops it for a log and clears the tile [change: uprooting with a shovel at Woodcutting 4].
 - **Ore rock, rock, apple tree, trees, crops, mushrooms:** section 4.
 - **Beehives and chicken coops** [built, #333]: the drawn beehive (a straw skep on a stand; interactable, outlined, sways on a click, no action yet: there is no honey) at the manor's garden (three), your cottage's garden (two), and east of Hollow Farm's lane (three); the drawn chicken coop (two tiles, along y or mirrored along x, a container with a placeholder table, `coop`: rags, sticks, a little grain; no egg item yet) in your cottage's yard and Hollow Farm's. The coop's door frames and the hive's bee frames are spare until a click animation can play on them.
@@ -201,7 +201,7 @@ Every item in `data/items.json` is here with how it is had today; each new item 
 - **Smith's hammer** [built]: the anvil's recipes (in hand); doors, windows, boards, Remove, and the workbench's furniture and tools (carried). The joiner's and the quarryman's chests; made at the anvil with no hammer needed (Blacksmithing 1).
 - **Fishing rod** [built]: Cast the line at water (Fishing 1). Made at the workbench, Crafting 1 (ruled 2026-10-23).
 - **Bucket** [built]: fill at water, pour on a plot (3 by 3). The home chest; made at the workbench.
-- **Tinderbox** [built]: lights fires and torches, douses torches; never wears out; rides the belt. The kit; not made (it never wears out).
+- **Tinderbox** [built]: lights fires and torches, puts out torches; never wears out; rides the belt. The kit; not made (it never wears out).
 - **Torch** [built]: a light (section 5.12) and a weapon. The kit (held, unlit); made at the workbench.
 - **A chisel or other gem tool** [open #281].
 - **The companion's command item** (a whistle or a lead) [open #289].
@@ -929,7 +929,7 @@ Placeholder sounds, generated or from a library [open #271]; every informative s
 - Tilling, planting, watering, pouring, filling at water; a well's winch; harvesting by tool (scythe, dig, cut, pull).
 - Casting the line; a bite on the line; a catch; a miss (the log line).
 - A fire lit (tinderbox), fed; burning, by kind (campfire, hearth, forge, oven, clamp); a fire going out (the log line, built).
-- A torch lit, doused, spent (the log line, built).
+- A torch lit, put out, spent (the log line, built).
 - Each station at work: the anvil, the loom, the workbench, the millstones, the forge's bellows; a craft done (the log line, built).
 - Sleep and waking.
 - The day and the night: birds by day, crickets and owls by night; the river.
