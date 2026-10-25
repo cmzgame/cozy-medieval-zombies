@@ -171,6 +171,7 @@ export async function run(game) {
     const can = (id) => G.stations.canMake(me, bench, G.stations.recipe(id), 1);
     G.inventory.stow(me, G.items.makeEntry("plank", 8));
     G.inventory.stow(me, G.items.makeEntry("stick", 4));
+    G.inventory.stow(me, G.items.makeEntry("feather", 1)); // arrows are fletched: a feather for five (docs/45 step 4)
     G.inventory.stow(me, G.items.makeEntry("cap", 1)); // a garment is tagged cloth (a cap fits the bag where a tunic may not)
     const tableNo = can("table");
     const bowNo = can("bow");

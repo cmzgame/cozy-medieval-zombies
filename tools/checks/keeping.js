@@ -8,9 +8,12 @@
 // beside the pen, not the next day though both are fed, and none at the pen's cap; Hollow Farm's hens laying into their coop; milk with an
 // empty bucket once a day, refused with a bucket of water; an unfed sheep's shearing greyed, then its wool; hay from the scythe over grass;
 // the sync part's hash moving with the taken day and the leader. The farms' stock, troughs, and coop, the player, the bag, the hands, the
-// clock, and the rules are put back, and anything added goes.
+// clock, and the rules are put back, and anything added goes; every trough and coop put back is marked, so a guest in a two-tab run gets
+// it too. `{ keep: true }` leaves the farms' stock, troughs, and coop as the check left them (Primary's two-tab run of #460):
+//   await __game.check("keeping", { keep: true })   // on the host, a guest joined; then check("sync")
 
-export async function run(game) {
+export async function run(game, opts = {}) {
+  const keepWorld = !!opts.keep;
   const G = game;
   const S = G.game.state;
   const rows = [];
@@ -117,14 +120,15 @@ export async function run(game) {
     const here = [Math.round(walker.gx), Math.round(walker.gy)];
     row("let go by hand, where it stands is its home", walker.state !== "led" && walker.leaderId === null && walker.home[0] === here[0] && walker.home[1] === here[1] && (walker.home[0] !== home0[0] || walker.home[1] !== home0[1]), `home ${home0} to ${walker.home}`);
     // Its leader shut in a house it cannot reach: lost after its seconds, its home kept.
-    walker.home = [Math.round(saved.gx) + 6, Math.round(saved.gy) + 4];
+    const home = (S.info && S.info.spawn) || [Math.round(saved.gx), Math.round(saved.gy)]; // the map's spawn: inside your cottage, its door shut
+    walker.home = [home[0] + 6, home[1] + 4];
     walker.gx = walker.home[0];
     walker.gy = walker.home[1];
     G.teleport(walker.gx + 1, walker.gy);
     step();
     byLabel(walker, "Lead the cow");
     const keptHome = walker.home.slice();
-    G.teleport(saved.gx, saved.gy); // the spawn: inside the cottage, its door shut
+    G.teleport(home[0], home[1]); // inside the cottage, its door shut
     for (let i = 0; i < 60 * (A.keepRule().leadStuck + 2) && walker.state === "led"; i++) step();
     row("with no way to its leader (shut in a house) the lead is lost after its seconds, and the cow keeps its old home", walker.state !== "led" && walker.leaderId === null && walker.home[0] === keptHome[0] && walker.home[1] === keptHome[1], `state ${walker.state}, home ${walker.home} (was ${keptHome})`);
     // A leader gone from the world (a guest away): the lead is freed by the sweep, the home kept.
@@ -255,8 +259,10 @@ export async function run(game) {
   } finally {
     for (const p of extraProps) G.map.removeProp(p);
     S.animals.splice(0, S.animals.length, ...S.animals.filter((a) => ids0.has(a.id)));
-    for (const [a, d] of stock0) Object.assign(a, d, { path: [], anim: { ...d.anim } });
-    for (const [p, b, searched] of props0) { p.bag = b; p.searched = searched; }
+    if (!keepWorld) {
+      for (const [a, d] of stock0) Object.assign(a, d, { path: [], anim: { ...d.anim } });
+      for (const [p, b, searched] of props0) { p.bag = b; p.searched = searched; G.map.markDirty(p.tile[0], p.tile[1]); } // marked: a guest's replica gets them back too
+    }
     for (const [i, p] of others.entries()) { p.gx = otherAt[i][0]; p.gy = otherAt[i][1]; }
     bag().items = saved.bag;
     me.hands.main = saved.main;
