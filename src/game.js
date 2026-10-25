@@ -123,6 +123,7 @@ export function create({ json, look = null, name = null, devChest = false, rules
   S.animalHomes = animal.homesFrom(info.animals); // the herds, the flocks, and the pens' stock where the map put them (docs/45)
   S.animals = animal.populate(S.animalHomes);
   interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses, ...S.animals]);
+  stations.setBodies(() => [...S.players, ...S.villagers, ...S.zombies, ...S.corpses, ...S.animals]); // a made prop lands on no one
   burn.setCharacters((id) => S.corpses.find((c) => c.id === id) || S.zombies.find((c) => c.id === id) || null); // Burn corpse's body by id (docs/43 section 7)
   wireTalk();
   wireAnimals();
@@ -354,6 +355,7 @@ export function restore(saved, json) {
     else if (c.kind !== "player") dress(c);
   }
   interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses, ...S.animals]);
+  stations.setBodies(() => [...S.players, ...S.villagers, ...S.zombies, ...S.corpses, ...S.animals]); // a made prop lands on no one
   burn.setCharacters((id) => S.corpses.find((c) => c.id === id) || S.zombies.find((c) => c.id === id) || null); // Burn corpse's body by id (docs/43 section 7)
   wireTalk();
   wireAnimals();

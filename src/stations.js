@@ -11,7 +11,8 @@
 
 import * as map from "./map.js";
 import { getDef } from "./assets.js";
-import { getItem, aName, containerGrid } from "./items.js";
+import { getItem, aName, countName, containerGrid } from "./items.js";
+import * as loop from "./loop.js"; // the sim clock: a spot is read once a step
 import * as grid from "./grid.js";
 import { bagOf, beltOf, createBag, countAll, takeAll, toolProblem, detach } from "./inventory.js";
 import * as verbs from "./verbs.js";
@@ -171,6 +172,7 @@ export function canMake(player, prop, r, count = 1) {
   if (r.fire && !(prop.fire && prop.fire.lit)) return "The fire is out.";
   if (r.uses) { const why = toolProblem(player, r.uses); if (why) return why; } // a carried tool by its verb (#215)
   if (r.tool && !toolInHand(player, r.tool)) return `Needs ${aName(r.tool)} in hand.`;
+  { const why = roomProblem(prop, r); if (why) return why; } // refused before anything is spent: a made prop needs a spot beside it
   const short = shortfall(player, prop, r, count);
   if (short.length) return `Short of ${short.map((s) => `${s.need - s.have} ${nameOfWant(s.want)}`).join(", ")}.`;
   return true;
@@ -196,11 +198,18 @@ export function outputOf(prop) {
   return prop.output;
 }
 
+// The bodies on the map (the players, the villagers, the dead, the animals, the bodies lying), handed in by game.js: a made prop never lands
+// on a tile one stands on (the crafter usually stands on the first tile tried, below the station), as placement.canPutDown keeps clear of the player.
+let bodies = () => [];
+export function setBodies(fn) {
+  bodies = fn;
+}
+
 // Whether a made prop of this footprint may stand with its anchor at (x, y): every one of its tiles walkable, empty, bare of items, not
-// beside a door (#134), and no wall between two of them, as placement.canPutDown asks of a carried prop. Only the anchor was asked until
-// check("craft") ran twice: a counter (three tiles) made at the joiner's workbench stood over the bench's own tiles, and the bench was
-// gone from the map while its record stayed.
-function fits(x, y, [w, h]) {
+// beside a door (#134), no body on it, and no wall between two of them, as placement.canPutDown asks of a carried prop. Only the anchor was
+// asked until check("craft") ran twice: a counter (three tiles) made at the joiner's workbench stood over the bench's own tiles, and the
+// bench was gone from the map while its record stayed.
+function fits(x, y, [w, h], near) {
   for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) {
     const tx = x + dx;
     const ty = y + dy;
@@ -208,17 +217,87 @@ function fits(x, y, [w, h]) {
     if (t.prop || t.items || !map.isWalkableTile(tx, ty) || map.besideDoor(tx, ty)) return false;
     if (dx > 0 && map.wallBetween(tx - 1, ty, tx, ty)) return false;
     if (dy > 0 && map.wallBetween(tx, ty - 1, tx, ty)) return false;
+    if (near.some((c) => Math.hypot(c.gx - tx, c.gy - ty) < 0.7)) return false;
   }
   return true;
 }
 
-// A finished make lands: an item into the output (the floor beside if it is full),
-// a prop beside the station, on tiles that are all free.
+// Where a made prop of this footprint lands beside its station, or null: the tiles a body could walk to from beside the station, nearest
+// by the walk first (breadth first by `map.canStep`, so never through a wall or a shut door into the next room), up to SPOT_STEPS steps,
+// the first whose footprint fits. Read once a step for a station and a shape while the map is unchanged (the panel asks it for every row).
+const SPOT_STEPS = 12;
+const spotCache = new Map();
+const SIDES = [[0, 1], [1, 0], [-1, 0], [0, -1]];
+function spotFor(prop, fp) {
+  const key = `${prop.id}:${fp[0]}x${fp[1]}`;
+  const now = `${loop.simTime()}|${map.worldVersion}`; // a step's, and only while nothing on the map changed
+  const hit = spotCache.get(key);
+  if (hit && hit.at === now) return hit.spot;
+  if (spotCache.size > 64) spotCache.clear();
+  const R = SPOT_STEPS + Math.max(fp[0], fp[1]) + 2;
+  const near = bodies().filter((c) => c && Math.abs(c.gx - prop.tile[0]) <= R && Math.abs(c.gy - prop.tile[1]) <= R);
+  const seen = new Set(prop.tiles.map(([x, y]) => `${x},${y}`));
+  const grow = (from) => {
+    const out = [];
+    for (const [x, y] of from) for (const [dx, dy] of SIDES) {
+      const k = `${x + dx},${y + dy}`;
+      if (seen.has(k) || !map.canStep(x, y, x + dx, y + dy)) continue;
+      seen.add(k);
+      out.push([x + dx, y + dy]);
+    }
+    return out;
+  };
+  let ring = grow(prop.tiles);
+  let spot = null;
+  for (let step = 0; step < SPOT_STEPS && ring.length && !spot; step++) {
+    ring.sort((a, b) => (a[1] - b[1]) || (a[0] - b[0])); // a fixed order: the same spot wherever the step runs
+    for (const [x, y] of ring) if (fits(x, y, fp, near)) { spot = [x, y]; break; }
+    ring = grow(ring);
+  }
+  spotCache.set(key, { at: now, spot });
+  return spot;
+}
+
+// The item a made prop is picked up as (its definition's `item`), or null: what goes in the output when there is no room for the prop.
+function propItem(sprite) {
+  let d = null;
+  try { d = getDef(sprite); } catch { return null; }
+  return d && typeof d.item === "string" ? d.item : null;
+}
+
+// Why a prop recipe cannot be made here now, or "": no room beside the station for it, and no item form to put in the output instead.
+export function roomProblem(prop, r) {
+  const o = (r && r.out) || {};
+  if (!o.prop || propItem(o.prop)) return "";
+  if (spotFor(prop, o.footprint || [1, 1])) return "";
+  return `There is no room beside it for ${madeWords(o)}.`;
+}
+
+// A made thing in words, for a line: "a counter", "5 arrows", "a loaf of bread".
+export function madeWords(out) {
+  if (!out) return "something";
+  if (out.prop) {
+    let n = null;
+    try { n = getDef(out.prop).name; } catch { n = null; }
+    const name = (n || out.prop.replace(/_/g, " ")).toLowerCase();
+    return `${/^[aeiou]/.test(name) ? "an" : "a"} ${name}`;
+  }
+  return countName(out.id, out.count || 1);
+}
+
+// The craft-done line, the host's log and a guest's alike: "Made 5 arrows.", "Made a counter."
+export function doneLine(out) {
+  return `Made ${madeWords(out)}.`;
+}
+
+// A finished make lands: an item into the output (the floor beside if it is full), a prop beside the station on tiles that are all free
+// and that a body could walk to from it. Returns what landed (the recipe's `out`, or the prop's item put in the output instead), or null
+// when nothing could land yet: the job then waits at the head of the queue and tries again, so nothing made is lost.
 function deliver(prop, r) {
   const o = r.out;
   if (o.prop) {
     const fp = o.footprint || [1, 1];
-    const at = map.nearestWalkable(prop.tile[0], prop.tile[1] + 1, (x, y) => !fits(x, y, fp));
+    const at = spotFor(prop, fp);
     if (at) {
       const made = map.createProp({ sprite: o.prop, tile: at, footprint: fp });
       made.made = true; // players made it, so X may take it away again (placement.removalTarget; 2026-10-15)
@@ -230,8 +309,12 @@ function deliver(prop, r) {
         made.searched = true;
       }
       map.placeProp(made, at[0], at[1]);
+      spotCache.clear();
+      return o;
     }
-    return;
+    const item = propItem(o.prop);
+    if (item && grid.add(outputOf(prop), item, 1) === 1) return { id: item, count: 1 };
+    return null;
   }
   const bag = outputOf(prop);
   const put = grid.add(bag, o.id, o.count);
@@ -239,6 +322,7 @@ function deliver(prop, r) {
     const at = map.nearestWalkable(prop.tile[0], prop.tile[1] + 1);
     if (at) map.dropItem(at[0], at[1], { id: o.id, count: o.count - put });
   }
+  return o;
 }
 
 // Every station's queue, a step: a recipe that needs fire waits while the fire is out.
@@ -252,8 +336,9 @@ export function update(dt) {
     q.left -= dt;
     map.unsaved(prop.tile[0], prop.tile[1], false); // the job's time left is saved; the wire sends it in the frame's queues
     if (q.left > 0) continue;
-    deliver(prop, r);
-    emit("craftDone", { id: prop.id, tile: prop.tile, recipe: r.id, out: r.out, by: q.by });
+    const landed = deliver(prop, r);
+    if (!landed) { q.left = 1; continue; } // no room for it yet (a body on the spot, the room filled since it began): tried again in a second
+    emit("craftDone", { id: prop.id, tile: prop.tile, recipe: r.id, out: landed, by: q.by });
     q.count -= 1;
     if (q.count > 0) q.left = r.seconds;
     else prop.queue.shift();
