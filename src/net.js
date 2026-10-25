@@ -141,16 +141,18 @@ const SYNC_EVERY_FRAMES = 10;
 let syncReports = false;
 const syncRing = new Map(); // tick -> parts (the host's own)
 const guestSync = new Map(); // guest key -> { tick, parts }
+let syncOff = 0; // how many times the reports have gone off: a mark of check("sync") taken before is dropped (#101)
 export function setSyncReports(on) {
   syncReports = !!on;
   if (!on) {
     syncRing.clear();
     guestSync.clear();
+    syncOff++;
   }
   if (role === "host") send({ type: "syncOn", on: syncReports });
 }
 export function syncReport() {
-  return { ring: syncRing, guests: new Map([...guestSync].map(([key, v]) => [guests.get(key) ? guests.get(key).playerId : key, v])) };
+  return { on: syncReports, offs: syncOff, ring: syncRing, guests: new Map([...guestSync].map(([key, v]) => [guests.get(key) ? guests.get(key).playerId : key, v])) };
 }
 let clientId = null; // this browser's id on the join (identities.js); the host records its hash
 export function setClient(id) {
