@@ -1274,6 +1274,36 @@ check("repairs: a grindstone or an anvil with nothing to better says so, not tha
   return "nothing carried, and a sword above each place's rung, each its one greyed line";
 });
 
+// The sawpit's words (docs/43 section 6; docs/bugs.md, fixed): one plank that does not fit "falls" at your feet, more "fall".
+check("sawpit: what does not fit falls at your feet, in the right number", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  const W = worldMod.world;
+  mapMod.ensureAround(74, 192, 3); // the joiner's yard
+  const pit = mapMod.allProps().find((q) => q.sprite === "sawpit");
+  assert(pit, "no sawpit in the joiner's yard");
+  const act = interactMod.actionsForTarget({ kind: "prop", id: pit.id }, me)[0];
+  const t = interactMod.approachTile(act, me);
+  if (t) { me.gx = t[0]; me.gy = t[1]; }
+  const sack = itemsMod.makeEntry("small_sack", 1);
+  me.worn.back = sack;
+  me.hands.main = null;
+  me.hands.off = null;
+  (inventoryMod.beltOf(me) || []).fill(null);
+  // A bag two planks wide: the log sawn from it leaves room for two, and one falls.
+  sack.bag = inventoryMod.createBag(2, 3);
+  assert(inventoryMod.stow(me, itemsMod.makeEntry("log", 1)) === "bag", "the log did not go in the bag");
+  const one = verbsMod.run("saw", W, me, { prop: pit.id });
+  assert(one.ok && /; 1 falls at your feet\.$/.test(one.message), `one over: ${one.message || one.reason}`);
+  // A bag one plank wide, the log in a hand: two fall.
+  sack.bag = inventoryMod.createBag(1, 3);
+  me.hands.main = itemsMod.makeEntry("log", 1);
+  const two = verbsMod.run("saw", W, me, { prop: pit.id });
+  assert(two.ok && /; 2 fall at your feet\.$/.test(two.message), `two over: ${two.message || two.reason}`);
+  return `${one.message} / ${two.message}`;
+});
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;

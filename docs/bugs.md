@@ -24,8 +24,6 @@
 
 - **`check("build")` fails 9 of 11 on `main`** (found reviewing #227, on `main` at `0e765f7`, fresh tab): "the player's own wall with a door removed is still the player's own" and "a new door built over a broken stamped one remembers the wall under it". Not a play bug found; 11 of 11 in my run after other checks in the same tab, so it may depend on what ran first.
 
-- **Two small words** (found syncing the wiki, 2026-10-25, at `e045b31`): `data/sprites/sawpit.json`'s note names `src/repair.js` where the code is `src/sawpit.js`; `src/sawpit.js` (~47) says "1 fall at your feet" when one plank falls.
-
 - **Talk is answered while an immune villager cowers or runs** (found syncing the wiki for #434, 2026-10-25, read at `fa2997f`, *needs repro*). `src/entities/villager.js` `startTalk` (~304-319) does not look at the cower or flee state; `docs/43`'s status says Talk is not answered then. A Talk to a fleeing villager whose dead one is beyond `talkDeadRadius` would start a conversation and cut off the flight.
 
 - **Burn corpse's done line types "about an hour"** (found syncing the wiki for #434, at `fa2997f`). `src/burn.js` (~141) says it whatever `work.burnCorpse.hours` is; the card (~113) reads the data.
@@ -50,6 +48,8 @@ Not clearly bugs: behaviour that may or may not be intended. Each needs a ruling
 ## Fixed
 
 (Move items here with the commit that fixed them.)
+
+- [x] **Two small words** (found syncing the wiki, 2026-10-25): `data/sprites/sawpit.json`'s note named `src/repair.js` where the code is `src/sawpit.js`, and `src/sawpit.js` said "1 fall at your feet" when one plank fell. Fixed in the bugs batch (`primary/bugs-batch-1`): the note names `src/sawpit.js` (the manifest restamped), and the message says "1 falls at your feet", "2 fall" for more; `node tools/check.js` ("sawpit") saws with room for two planks and for one.
 
 - [x] **A repair place's greyed line said nothing worn was carried when everything worn was already above its ceiling** (found syncing the wiki for #416, 2026-10-25): a sword at 70% at the grindstone (next rung 60%) was skipped, and the one line left read "Sharpen (no dull blade carried)". Fixed in the bugs batch (`primary/bugs-batch-1`): `repair.propActions` notes a worn thing skipped for its ceiling, and the one greyed line then reads "Sharpen (nothing it can better)" or "Repair (nothing it can better)"; the old words stay for nothing worn carried. A guest's menu is built by the same function from its replica, so it reads the same. `node tools/check.js` ("repairs") and `check("wear")` have rows for it.
 

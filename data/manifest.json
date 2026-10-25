@@ -1,5 +1,5 @@
 {
-  "version": "da9f19b8",
+  "version": "985f7fc8",
   "files": {
     "data/build.json": {"size": 2639, "stamp": "7419bc3e"},
     "data/combat.json": {"size": 5524, "stamp": "1fd05f67"},
@@ -729,7 +729,7 @@
     "data/sprites/rock_3.json": {"size": 449, "stamp": "b184fdb6"},
     "data/sprites/rug_bearskin.json": {"size": 766, "stamp": "fb712c35"},
     "data/sprites/rug_regal_red.json": {"size": 766, "stamp": "3de6ad74"},
-    "data/sprites/sawpit.json": {"size": 286, "stamp": "59dbc64c"},
+    "data/sprites/sawpit.json": {"size": 286, "stamp": "b568c5b7"},
     "data/sprites/scarecrow.json": {"size": 280, "stamp": "27888b57"},
     "data/sprites/shelf.json": {"size": 230, "stamp": "478c11d3"},
     "data/sprites/spinningwheel.json": {"size": 203, "stamp": "984812d9"},
