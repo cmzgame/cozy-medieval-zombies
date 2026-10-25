@@ -19,6 +19,7 @@ export async function run(game) {
   const belt = G.inventory.beltOf(me);
   const belt0 = belt ? belt.slice() : null;
   const head0 = me.worn.head;
+  const hands0 = { main: me.hands.main, off: me.hands.off }; // the chest rows empty the hands: put back in the finally
   const back0 = me.worn.back;
   const tile0 = [Math.round(me.gx), Math.round(me.gy)];
   const floor0 = G.map.itemsAt(tile0[0], tile0[1]).slice();
@@ -98,6 +99,8 @@ export async function run(game) {
     bag.items.splice(0, bag.items.length, ...bag0);
     if (belt) for (let i = 0; i < belt.length; i++) belt[i] = belt0[i];
     me.worn.head = head0;
+    me.hands.main = hands0.main;
+    me.hands.off = hands0.off;
     me.worn.back = back0;
     for (const [e, n] of counts0) e.count = n;
     const t = G.map.tileAt(tile0[0], tile0[1]);
