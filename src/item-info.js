@@ -5,7 +5,7 @@
 // is "use" for the word Use (drawn in --gold, Michael 2026-10-18), "word" for another menu word (Eat, Equip, Drink, Apply), or absent for plain text.
 
 import { getItem, wearPerHit, wearPerShot, toolFor } from "./items.js";
-import { work } from "./tuning.js"; // the repair ladders and the sawpit's item (docs/43 section 6)
+import { work, trees } from "./tuning.js"; // the repair ladders and the sawpit's item (docs/43 section 6); the sapling and the sticks (docs/46 step 3)
 import * as interactions from "./interactions.js";
 import * as stations from "./stations.js";
 import * as farming from "./farming.js";
@@ -96,6 +96,19 @@ export function gatheredFrom(def) {
   return out;
 }
 
+// What a tree gives besides its logs (docs/46 step 3, #449), read from the tuning (trees.js): the sapling a felling sometimes drops, and the
+// sticks gathered under a standing tree once a day: "Sometimes dropped by a felled tree (about 1 in 3).", "Gathered under any standing
+// tree, 1 to 2 a day from each tree."
+export function fromTrees(def) {
+  const out = [];
+  if (def.id === trees.sapling.item) out.push(`Sometimes dropped by a felled tree (about 1 in ${Math.max(1, Math.round(1 / trees.sapling.chance))}).`);
+  if (def.id === trees.sticks.item) {
+    const [lo, hi] = trees.sticks.count;
+    out.push(`Gathered under any standing tree, ${lo === hi ? lo : `${lo} to ${hi}`} a day from each tree.`);
+  }
+  return out;
+}
+
 // The recipes that make it, and those it goes into, as station words: { madeAt: [stations], goesInto: [{ name, station }] }.
 export function recipesOf(def) {
   const madeAt = [];
@@ -120,6 +133,7 @@ export function cardFor(entry) {
   const lines = [];
   let kind = KIND[def.kind] || cap(def.kind || "");
   if (def.tags && def.tags.includes("seed")) kind = "Seed";
+  else if (def.tags && def.tags.includes("sapling")) kind = "Seedling"; // a young tree to plant (docs/46 step 3), not "Sapling | Sapling"
   else if (def.kind === "material" && def.tags && def.tags.includes("dye")) kind = "Dye plant"; // woad, madder, weld (docs/46 step 2): gathered as herbs
   else if (def.kind === "material" && def.tags && def.tags.includes("herb")) kind = "Herb"; // what Herbalism gathers (docs/39 section 4); garlic, a crop, stays Food
   else if (def.kind === "material" && def.tags && def.tags.includes("mushroom")) kind = "Forage"; // a mushroom, foraged (Herbalism 3): not food until Cooking says how it is eaten
@@ -156,7 +170,13 @@ export function cardFor(entry) {
   if (def.painting) lines.push(line(seg("Place", "word"), ": hang on a wall's face."));
   if (def.place === "campfire") lines.push(line(seg("Place", "word"), ": set down outdoors as a campfire, cold and empty.")); // docs/43, section 3
   // docs/43, section 4: set down as its prop, by where it may stand; food placed as decoration does not come back food; a bracket hung as a painting is.
-  if (def.place && def.place !== "campfire") lines.push(line(seg("Place", "word"), def.stand === "outdoors" ? ": set down outdoors." : ": set down on the floor."));
+  if (def.place && def.place !== "campfire") lines.push(line(seg("Place", "word"), def.stand === "natural" ? ": plant on open grass outdoors." : def.stand === "outdoors" ? ": set down outdoors." : ": set down on the floor."));
+  // A sapling (docs/46 step 3): what it grows into and how long, from the tuning (trees.js).
+  if (def.id === trees.sapling.item) {
+    // The tree it grows into: the one its entry carries (an apple tree's sapling, #461), else a tree (the round oak, the default).
+    const n = entry.tree && getDefSafe(entry.tree) ? getDefSafe(entry.tree).name : null;
+    lines.push(line(`Grows into ${n ? an(n) : "a tree"} in about ${trees.sapling.days} game days; it waits while anyone stands on it.`));
+  }
   if (def.placeAs) lines.push(line(seg("Place as decoration", "word"), ": set down on the floor; picked up again, it is a decoration, not food."));
   if (def.bracket) lines.push(line(seg("Place", "word"), ": hang on a wall's face, to hold a torch."));
   if (def.hands) lines.push(line(seg("Equip", "word"), `: ${def.hands === "both" ? "both hands" : def.hands === "either" ? "main or off hand" : `${def.hands} hand`}.`));
@@ -217,6 +237,7 @@ export function cardFor(entry) {
     lines.push(line(`Set near rabbits, it holds one after about ${sn.hours} game hours.`));
   }
   for (const t of gatheredFrom(def)) lines.push(line(t)); // where it is gathered (docs/46 step 2)
+  for (const t of fromTrees(def)) lines.push(line(t)); // a sapling from a felling, sticks under a tree (docs/46 step 3)
 
   const state = [];
   if (entry.count > 1) state.push(`×${entry.count}`);

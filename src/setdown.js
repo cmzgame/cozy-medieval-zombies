@@ -1,6 +1,6 @@
 // Things set down from the bag and picked up again (docs/43 section 4, step 3; Michael, 2026-10-25): an item whose definition names a prop
 // (`place`, or `placeAs` for Place as decoration) is set down on a tile as that prop, by its own rule for where it may stand (`stand`:
-// "outdoors", "wall" for indoors against a wall, "ground" for any open floor); the prop's definition names the item Pick up gives back
+// "outdoors", "wall" for indoors against a wall, "ground" for any open floor, "natural" for open grass outdoors, a sapling's, trees.js's rule); the prop's definition names the item Pick up gives back
 // (`item`). A torch post is one (outdoors, picked up only when a player made it and it holds no torch); a decoration is another (a pumpkin
 // placed as decoration comes back a Decorative pumpkin, not food, so a prop that does not rot is never a larder). A wall bracket (an item
 // with `bracket`) is hung on a wall's face as a painting is (paintings.js's rules for a face) and taken down again while empty. The
@@ -15,6 +15,7 @@ import * as paintings from "./paintings.js";
 import { getDef } from "./assets.js";
 import * as clock from "./clock.js";
 import { noteSnare } from "./entities/animal.js"; // the snares the step looks at (docs/45 section 2)
+import * as trees from "./trees.js"; // a sapling planted on open grass (docs/46 step 3)
 import { reachProblem, TOO_FAR } from "./reach.js";
 import { showMessage } from "./ui/prompt.js";
 
@@ -31,6 +32,7 @@ function wallBeside(tx, ty) {
 // Why a prop cannot stand on (tx, ty) by this rule, or "": open floor with nothing on it (a read never grows a chunk: a tile not grown is no
 // room), then outdoors only, or indoors against a wall.
 export function standProblem(rule, tx, ty) {
+  if (rule === "natural") return trees.standProblem(tx, ty); // a sapling: open grass outdoors, no wall beside it (docs/46 step 3)
   const t = map.peekTile(tx, ty);
   if (!t || !map.isWalkableTile(tx, ty) || t.prop || t.rug) return "No room";
   if (rule === "outdoors" && t.room > 0) return "Outdoors only";
@@ -83,12 +85,14 @@ export function place(player, uid, tx, ty) {
   if ((entry.count || 1) > 1) entry.count -= 1;
   else grid.remove(bag, entry);
   const snare = !!getDef(p.sprite).snare;
-  const prop = map.createProp({ sprite: p.sprite, tile: [tx, ty], ...(snare ? { solid: false } : {}) }); // a snare is a stake and a noose: walked over
-  if (!p.decoration) prop.made = true; // a player's own; a decoration is only picked up again, never taken apart
+  const sapling = !!getDef(p.sprite).sapling;
+  const prop = map.createProp({ sprite: p.sprite, tile: [tx, ty], ...(snare || sapling ? { solid: false } : {}) }); // a snare is a stake and a noose, a sapling a whip of a tree: walked over
+  if (!p.decoration && !sapling) prop.made = true; // a player's own; a decoration is only picked up again, never taken apart, and a sapling grows into a tree of the woods
   if (snare) prop.snare = { setAt: clock.getElapsed(), holds: null }; // set from now: it holds a rabbit after a while (docs/45 section 2, animal.js)
   if (snare) noteSnare(prop);
+  if (sapling) trees.plant(prop, clock.getElapsed(), entry.tree || null); // growing from now, into the tree its entry carries (docs/46 step 3)
   map.placeProp(prop, tx, ty);
-  showMessage(p.decoration ? `You set the ${items.getItem(entry.id).name.toLowerCase()} down as decoration.` : `You set the ${nameOf(p.sprite)} down.`);
+  showMessage(p.decoration ? `You set the ${items.getItem(entry.id).name.toLowerCase()} down as decoration.` : sapling ? `You plant the ${nameOf(p.sprite)}.` : `You set the ${nameOf(p.sprite)} down.`);
   return true;
 }
 
@@ -111,7 +115,7 @@ export function pickUp(player, prop) {
     return false;
   }
   const bag = inventory.bagOf(player);
-  const entry = items.makeEntry(getDef(prop.sprite).item, 1);
+  const entry = items.makeEntry(getDef(prop.sprite).item, 1, prop.sapling && prop.sapling.tree ? { tree: prop.sapling.tree } : {}); // a sapling keeps the tree it grows into
   if (!bag || !grid.insert(bag, entry)) {
     showMessage(bag ? "No room in your bag." : "You have no bag.");
     return false;

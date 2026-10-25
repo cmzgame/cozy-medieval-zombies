@@ -1683,6 +1683,11 @@ export function growTile(x, y, layer = 0) {
   return c.tiles[(y - cy * CHUNK) * CHUNK + (x - cx * CHUNK)];
 }
 
+// The map's base floor (the valley's grass): natural ground, where a sapling is planted (src/trees.js).
+export function baseFloor() {
+  return defaultFloor;
+}
+
 // The blank tile a read beyond the grown ring returns (for a check to recognise).
 export function blankTile() {
   return blank;

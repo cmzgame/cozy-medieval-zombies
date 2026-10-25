@@ -59,6 +59,7 @@ import * as repair from "./repair.js"; // the grindstone sharpens, the anvil rep
 import * as sawpit from "./sawpit.js"; // the sawpit saws a log into planks with no hatchet (docs/43 section 6)
 import * as hives from "./hives.js"; // the beehives give honey every few days (docs/43 section 6)
 import * as gather from "./gather.js"; // herbs gathered, mushrooms foraged, clay dug (docs/46 step 2, #448)
+import * as trees from "./trees.js"; // sticks under a tree, a sapling's Inspect (docs/46 step 3, #449)
 import * as water from "./water.js"; // tainted and clean water, and the boil verb (docs/44)
 import { taintedDrink } from "./sick.js"; // a tainted drink's one roll, Sick and the infection (docs/44)
 
@@ -741,6 +742,25 @@ function inspectCropAction(prop, base) {
   });
 }
 
+// Inspect a planted sapling (docs/46 step 3): how long until it is a tree, said in a line with its tile marked, as a crop's Inspect; the
+// asking client's own (`local`), read from the prop's stamp and the clock, a guest's too.
+function inspectSaplingAction(prop) {
+  return act({
+    kind: "inspect",
+    label: "Inspect",
+    tiles: prop.tiles,
+    mx: prop.tile[0],
+    my: prop.tile[1],
+    range: INSPECT_RANGE,
+    local: true,
+    perform() {
+      showMessage(trees.report(prop), 6);
+      inspectMark.mark(prop.tiles);
+      return true;
+    },
+  });
+}
+
 export function cropReport(prop) {
   const def = farming.cropDef(prop.crop.kind);
   const name = def.name[0].toUpperCase() + def.name.slice(1);
@@ -967,7 +987,9 @@ function propActions(prop, player) {
   if (prop.fire && prop.fire.burns) out.push(...fireActions(prop, player));
   else if (prop.fire && prop.fire.switch) out.push(...switchActions(prop, player)); // a lantern post (docs/43, section 3)
   if (prop.fire && prop.fire.holds) out.push(...holderActions({ kind: "post", prop }, player));
-  if (prop.wood) out.push(...pickActions(prop, player), ...treeActions(prop, player));
+  // A tree's own actions first, then Gather sticks (docs/46 step 3), the menu's alone: never E's, which opens doors (Primary on #461).
+  if (prop.wood) out.push(...pickActions(prop, player), ...treeActions(prop, player), ...trees.propActions(prop, player, act, world));
+  if (prop.sapling) out.push(inspectSaplingAction(prop)); // a planted sapling: how long until it is a tree, the asking client's own line
   if (prop.crop) out.push(...cropActions(prop, player), ...bucket.tileActions(prop.tile[0], prop.tile[1], player, act, world).filter((a) => a.kind === "pour"));
   out.push(...mineActions(prop, player));
   out.push(...gather.propActions(prop, player, act, world)); // an herb, a mushroom, a clay bank (docs/46 step 2): nothing on any other prop
