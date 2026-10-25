@@ -17,6 +17,7 @@ import { bagOf, beltOf, createBag, countAll, takeAll, toolProblem } from "./inve
 import * as verbs from "./verbs.js";
 import { canReach, reachProblem, TOO_FAR } from "./reach.js"; // one reach test, distance and a clear line (#208)
 import { emit } from "./events.js";
+import { rules } from "./rules.js"; // a recipe a world rule keeps off (docs/43 section 5)
 
 export const REACH = 2.6; // tiles: the click's reach (interact.js CLICK_REACH); containers this close feed a craft
 const OUTPUT = [3, 2]; // the output bag's grid
@@ -54,8 +55,12 @@ export function stationOf(prop) {
   return out;
 }
 
+// Whether a recipe is open in this world: a row may name a world rule (`rule`) that must be on for it (docs/43 section 5: the village's
+// stations made only with Village stations on); a closed row is hidden, not greyed.
+export const isOpen = (r) => !!r && (!r.rule || !!rules[r.rule]);
+
 export function recipesFor(station) {
-  return rows.filter((r) => r.station === station);
+  return rows.filter((r) => r.station === station && isOpen(r));
 }
 
 // Every bag a craft may draw on: the player's bag, the station's own output,
@@ -145,6 +150,7 @@ function toolInHand(player, id) {
 
 // Whether a recipe can be started at a station now: true, or the reason not.
 export function canMake(player, prop, r, count = 1) {
+  if (!isOpen(r)) return "No such recipe."; // a world rule keeps it off (docs/43 section 5)
   if (!stationOf(prop).includes(r.station)) return "Not at this station.";
   { const why = reachProblem(player, prop.tiles, REACH); if (why) return why === TOO_FAR ? "Too far from it." : why; }
   if (r.fire && !(prop.fire && prop.fire.lit)) return "The fire is out.";

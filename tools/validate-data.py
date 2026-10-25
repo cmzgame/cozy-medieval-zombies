@@ -653,6 +653,20 @@ for sid, d in sprite_flags.items():
 for flag, value in (("repair", "grindstone"), ("repair", "anvil"), ("saw", True), ("hive", True)):
     if not any(d.get(flag) == value for d in sprite_flags.values()):
         fail(f"sprites: no definition has {flag} {value!r}")
+# A recipe a world rule keeps off (docs/43 section 5): its `rule` names a world rule (src/rules.js DEFAULTS); a village station's prop is
+# made only behind one, and a sprite marked `villageStation` stays fixed (`carry` false) unless the rule moves it.
+import re as _re
+_rules_src = open("src/rules.js", encoding="utf-8").read()
+_rule_keys = set(_re.findall(r"^  (\w+):", _rules_src.split("export const DEFAULTS = {", 1)[1].split("};", 1)[0], _re.M))
+for r in load("data/recipes.json")["rows"]:
+    if "rule" in r and r["rule"] not in _rule_keys:
+        fail(f"recipes.{r['id']}.rule: no world rule {r['rule']!r}")
+    out_prop = (r.get("out") or {}).get("prop")
+    if out_prop and out_prop in sprite_flags and sprite_flags[out_prop].get("villageStation") and r.get("rule") != "villageStations":
+        fail(f"recipes.{r['id']}: a village station is made only behind the rule villageStations")
+for sid, d in sprite_flags.items():
+    if d.get("villageStation") and d.get("carry") is not False:
+        fail(f"sprites.{sid}: a village station is fixed (carry false); the world rule moves it")
 # Set down and picked up again (docs/43 sections 3 and 4; src/setdown.js): an item's `place` or `placeAs` names a sprite, its `stand` a rule;
 # a sprite's `item` names the item Pick up gives back; a palette prop's `stand` likewise.
 STANDS = ("outdoors", "wall", "ground")
