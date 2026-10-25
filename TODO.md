@@ -23,56 +23,59 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
-## Status (2026-10-25, paused for the night after `docs/43` step 3; resume here)
+## Status (2026-10-25, later: the scoped work is built; next is the animals sitting, at Michael's word)
 
-**Resume in this order** (Michael, 2026-10-25):
-1. **Finish the dead ends** (`docs/43`): step 4, the village's stations behind a world rule (#409), then step 6, Burn corpse, the wave, and the cowering (#411). The Secondary builds them, one PR each, reviewed by Primary; Primary may run a step in parallel as a subagent if it touches different files.
-2. **Build water** (`docs/44`, #418), the Secondary's or a parallel builder's.
-3. **The animals sitting** (#289), the next of the Valley scope's defaults pass: Primary drafts defaults, Michael overrules in prose, `docs/02` logs it.
-4. **Then the basic lore (#217), then the map redraw (#92)**: a pair that evolve together, the lore first. The game's own name belongs to the private infrastructure work; it is settled in session with the lore, never in public issues or docs.
-5. **Then build the demo**, and consider spending money (art, sound).
+**Stopped at the animals sitting (#289), for Michael to say whether he has time for it now.** Everything scoped before it is built and merged:
+- **The dead ends** (`docs/43`), all seven steps:
+  1. Take apart (#413).
+  2. Fires and lights, home lights as switches (#421).
+  3. The made things and Place as decoration (#428).
+  4. The village's stations behind a world rule (#431).
+  5. Repairs, the sawpit, and honey (#416).
+  6. Burn corpse, the wave, and the cowering (#434).
+  7. The dye vat (#417).
+- **Water** (`docs/44`, #435): no fixed source clean, boiling by Use or either menu, a clean starting skin, the Sick debuff, the infection's third stage Queasy.
+- **The dead's moan and the strike sound** (#436, Michael's playtest note #424).
+- **Test fixes:**
+  - `check("slots")` independent of the checks before it (#430);
+  - `check("build")` after `check("worlds")`, with a stale Take apart target refused (#433, #432);
+  - `check("kindle")` from an empty bag, and a hover card measured before it flips near the right edge, a player-visible fix (#439, #437).
 
-Small issues fill the gaps between these.
+**The order ahead** (Michael, 2026-10-25):
+1. The animals sitting (#289).
+2. The basic lore (#217), then the map redraw (#92), a pair that evolve together, the lore first. The game's own name belongs to the private infrastructure work: settled in session, never in public issues or docs.
+3. Then build the demo, and consider spending money (art, sound).
 
-**Done 2026-10-25:**
-- **The defaults sittings:** the dead ends (#273, `docs/43`) and water (#279, `docs/44`), making five in all with the skills (#275), food (#264), and the loot tables and bags (#268, #260).
-- **`docs/43` steps built:**
-  - 1, Take apart (#413);
-  - 2, fires and lights, home lights as switches, the campfire (#421);
-  - 3, the made things, the placements, and Place as decoration (#428);
-  - 5, repairs that run out, the sawpit, and honey (#416);
-  - 7, the dye vat (#417).
-- **The tone corrected:** cheery at home, spooky beyond, region by region; Habbo no longer the visual reference (#427).
-- **The rulings:** the basic lore joins the Valley scope (#414), and the melee pass is accepted as the baseline.
+Small issues fill the gaps.
 
 **Open lines of `docs/39` by issue** (counted 2026-10-25; 73 open, down from 162): #92 11 · #289 10 · #288 8 · #123 7 · #281 7 · #181, #282, #133 5 each · #283 4 · #103 3 · #104, #262 2 each · #217, #261, #106, #271 1 each.
 
-**Michael's playtest notes, filed:**
-- #422: apple trees become a green copy of the round tree, with apples.
-- #423: dual wielding's off hand has no swing animation or sound.
-- #424: a moan when the dead close in, and a strike sound for doors, shutters, and fences.
-- On #275: dual wielding as a top Melee unlock.
+**The wiki** for everything above is synced (cmz-wiki#31 to #34). **Next, for any Secondary:**
+- `check("debuffs")`' Sick-card row still fails late in one page, though it passes fresh: Primary reproduced it on #439's own branch, after its fix, running hovercard, villagers, talk, and kindle first (23 of 24; fresh 24 of 24);
+- #422, apple trees as a green round tree;
+- #423, the off hand's swing animation and sound;
+- the Open lines in `docs/bugs.md`.
 
 **Waiting on Michael:**
-- from game #425's bug lines: whether a free sharpening should use up the anvil's repair too (it does, by the shared count), and the plank that repairs the fishing rod and the bow;
-- #426: how bright the valley is drawn, and Plants vs Zombies as a reference;
-- #415: defensive spikes;
-- #419: his Stardew Valley notebook;
+- whether a free sharpening should use up the anvil's repair too, and the plank that repairs the fishing rod and the bow (#425);
+- water's infection opening with the bite's "Bitten" line (#435's review);
+- whether a sip of tainted water at full thirst should still roll Sick (it does today; `docs/bugs.md`, from #439);
+- #426, how bright the valley is drawn, and Plants vs Zombies as a reference;
+- #415, defensive spikes;
+- #419, his Stardew Valley notebook;
 - the loot rates, from the wiki's Drop tables page;
 - the rucksack's default recipe;
 - the burst against a drawn bow, a raised shield, or a brace;
 - #271's items 6 and 8 to 11;
-- #393: the downed art brief; the satchel's drawn art on the next brief;
+- #393, the downed art brief; the satchel's drawn art;
 - whether the mace's and the thrust's cards name knockdown;
-- picks of placeholder music;
+- placeholder music;
 - #341, #324;
 - the `needs-michael` issues: #92, #94, #123, #133, #181, #217.
 
-**A test leak to find:** run after craft, decor, paintings, torch, kindle, build, and hovercard in one page, `check("slots")` fails one row because belt slot 0 already holds a sword; on a fresh page it passes. One instrument leaves a sword on the belt.
+**Parallel builders are allowed** (2026-10-25): Primary runs their pane and two-tab tests, merges main in, and reviews before main.
 
-**The Secondary** (one session, "Current Secondary Agent") stops for the night after #428's wiki sync. Parallel builders are allowed (2026-10-25): Primary runs their pane and two-tab tests, merges main in, and reviews before main.
-
-**Not done, Michael's hand:** the finished worktrees under `.claude/worktrees/`, two builders' among them (`agent-a6d8d9d842bc1e0e6`, `agent-a0c864dfb44981bb9`), are merged and his to remove (`git worktree remove <path>`, then `git worktree prune`).
+**Not done, Michael's hand:** the finished worktrees under `.claude/worktrees/` are merged and his to remove (`git worktree remove <path>`, then `git worktree prune`). Four of them are builders': `agent-a6d8d9d842bc1e0e6`, `agent-a0c864dfb44981bb9`, `agent-a14108f5070c7c9a8`, `agent-a4eee3c3d70381daa`.
 
 **The design agent's worktree** (`C:/Users/micha/Dev/cozy-medieval-zombies-art`, branch `art-docs`) was fast-forwarded to main on 2026-10-20; its deliveries sit under `deliveries/`, untracked.
 
