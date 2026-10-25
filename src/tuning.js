@@ -182,7 +182,7 @@ export const floaters = {
   gatherLight: "#ffffff", // a gather's text where the ground is dark
   gatherDark: "#000000", // and where it is light
   lightAbove: 0.5, // the light at the character above which a gather's text is black
-  gathers: { chop: ["woodcutting", "logs"], mine: ["mining", "mined"], fish: ["fishing", "caught"], pick: ["farming", "picked"], harvest: ["farming", "harvested"] },
+  gathers: { chop: ["woodcutting", "logs"], mine: ["mining", "mined"], fish: ["fishing", "caught"], pick: ["farming", "picked"], harvest: ["farming", "harvested"], honey: ["beastlore", "taken"] },
 };
 
 // Object Highlight (#301; src/highlight.js, render/highlight.js): the outline round the game object under the cursor. `color` is the flat colour of the one-pixel outline (a soft
@@ -199,7 +199,19 @@ export const hoverCard = {
   gap: 14,
 };
 
-const sections = { zombie, player, villager, world, population, sight, feel, floaters, objectHighlight, hoverCard };
+// Work at the village's props (docs/43 section 6, #410; src/repair.js, src/hives.js). A made weapon or tool carries one repair count; each repair, at
+// either place, uses up the next rung of both ladders: the grindstone sharpens an edged one free up to `grindstone.ceilings[n]` of its condition,
+// the anvil repairs anything made up to `anvil.ceilings[n]` for one unit of its material (the item's `repair.with`) with the `uses` tool carried;
+// past the last rung it is past repair (Michael, 2026-10-25: "each does inevitably decay down the ladder to death"). The sawpit saws `saw.item`
+// into what it splits into, with no hatchet; a hive gives `honey.count` of `honey.item`, and again `honey.days` of the clock later. Seconds are the bar's.
+export const work = {
+  grindstone: { ceilings: [0.6, 0.4, 0.2], seconds: 4 },
+  anvil: { ceilings: [1, 0.8, 0.6], seconds: 6, uses: "smith" },
+  saw: { item: "log", seconds: 5 },
+  honey: { item: "honey", count: [1, 1], days: 3, seconds: 3 },
+};
+
+const sections = { zombie, player, villager, world, population, sight, feel, floaters, objectHighlight, hoverCard, work };
 
 // Lay a file's numbers over the defaults; a missing file or section changes nothing.
 export function load(json) {

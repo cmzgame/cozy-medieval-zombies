@@ -2,7 +2,10 @@
 //   await __game.check("coop")
 // The coop is a drawn container with a loot table of its own (coop, a placeholder), two tiles along y or, mirrored, along x, no dev box; the valley has coops and hives at the home and at
 // Hollow Farm; the coop's menu offers Search, which opens its 3 by 2 grid; Take All, sent the way a guest's button sends it, moves what is in it to the bag and empties it. (The hive's sway
-// is `check("sway")`'s.) The coop's bag, the player's bag, and anything made are put back.
+// is `check("sway")`'s.) Then the hive's honey (docs/43 section 6, #410), by `check("apples")`' pattern: Take honey by a guest's label on the hive's
+// id after its bar, honey in the bag and the day on the prop three days on, a second take refused and the menu saying when, the chunk marked
+// and the day in the prop's record, none a little short of the day and honey again past it; on a guest, every hive in the replica offers what
+// its day says. The coop's bag, the hive's day, the clock, the player's bag, and anything made are put back.
 
 export async function run(game) {
   const G = game;
@@ -20,6 +23,9 @@ export async function run(game) {
   const role = G.net.status().role;
   let coop = null;
   let coop0 = null;
+  let hive = null;
+  let hive0 = null;
+  let clock0 = null;
   try {
     G.loop.setPaused(true);
     const coops = [...map.allProps()].filter((p) => p.sprite === "chicken_coop");
@@ -38,6 +44,10 @@ export async function run(game) {
       map.ensureAround(coop.tile[0], coop.tile[1], 3);
       const a = G.interact.actionsForTarget({ kind: "prop", id: coop.id }, me).find((q) => q.kind === "container");
       row("on a guest the coop's menu offers Search or Open chicken coop, by an address the host can rebuild", !!a && /^(Search|Open) chicken coop$/.test(a.label), a ? a.label : "no container action");
+      // The hive's day rides on the prop in its chunk: the replica's menu reads it (Take honey while it has some, else when it will).
+      const hivesMod = await import("/src/hives.js");
+      const hv = hives.map((q) => [q, G.interact.actionsForTarget({ kind: "prop", id: q.id }, me).find((x) => x.kind === "honey")]);
+      row("on a guest every hive in the replica has its menu read off the replica's day: Take honey, or No honey yet with the days", hv.length > 0 && hv.every(([q, x]) => !!x && (hivesMod.hasHoney(q) ? x.label === "Take honey" : /^No honey yet \(more in about \d+ days?\)$/.test(x.label) && x.enabled === false)), hv.map(([q, x]) => `${q.id} ${q.honeyAt ?? "-"} ${x ? x.label : "none"}`).join("; "));
       throw Object.assign(new Error("guest done"), { guestDone: true });
     }
     // Search and Take All.
@@ -76,11 +86,45 @@ export async function run(game) {
       const sheet = G.assets.getSheet("chicken_coop", 2);
       row("a coop along x has its two tiles along x (the mirrored drawing)", cx.tiles.length === 2 && cx.tiles[0][1] === cx.tiles[1][1] && !!sheet && Object.keys(sheet.frames).length >= 2, `${JSON.stringify(cx.tiles)}, ${sheet ? Object.keys(sheet.frames).length : 0} frames`);
     } else row("a coop along x has its two tiles along x (the mirrored drawing)", false, "no bare grass found");
+
+    // The hives give honey (docs/43 section 6, #410), by apples' pattern: taken by the verb and by a guest's label, empty until its day, the day
+    // on the prop (saved, sent with the chunk), and full again past it.
+    const hivesMod = await import("/src/hives.js");
+    const H = G.tuning.work.honey;
+    hive = hives.find((q) => hivesMod.hasHoney(q)) || hives[0];
+    hive0 = { honeyAt: hive.honeyAt, had: "honeyAt" in hive };
+    clock0 = G.clock.getElapsed();
+    delete hive.honeyAt;
+    map.ensureAround(hive.tile[0], hive.tile[1], 2);
+    const hiveActs = () => G.interact.actionsForTarget({ kind: "prop", id: hive.id }, me).filter((x) => x.kind === "honey");
+    const t = G.interact.approachTile(hiveActs()[0], me);
+    if (t) G.teleport(t[0], t[1]);
+    bag.items.length = 0;
+    const honey = () => bag.items.filter((e) => e.id === H.item).reduce((n, e) => n + e.count, 0);
+    row("the hive says it is one (`hive` on its definition) and the honey's numbers are data, honey a food", G.assets.getDef("beehive").hive === true && H.days > 0 && H.seconds > 0 && G.items.getItem(H.item).kind === "food", JSON.stringify(H));
+    row("a hive with honey offers Take honey, a simple action (E does it)", hiveActs().some((x) => x.label === "Take honey" && x.enabled !== false && x.simple), hiveActs().map((x) => x.label).join(", "));
+    const did = G.interact.performByLabel(me, { kind: "prop", id: hive.id }, "Take honey");
+    const timed = !!me.action && me.action.action.duration === H.seconds;
+    for (let i = 0; i < 600 && me.action; i++) G.interact.updateAction(me, 1 / 30);
+    row("a guest's command (the label on the hive's id) takes it after the bar: honey in the bag, the day on the prop days on", did && timed && honey() >= H.count[0] && honey() <= H.count[1] && Math.abs(hive.honeyAt - (G.clock.getElapsed() + H.days * G.clock.DAY_LENGTH)) < 1, `ran ${did}, bar ${timed}, ${honey()} honey, honeyAt ${hive.honeyAt}, now ${G.clock.getElapsed()}`);
+    const again = G.verbs.run("honey", G.world, me, { prop: hive.id });
+    row("a second take finds none, and the menu says when", !again.ok && hiveActs().some((x) => /^No honey yet \(more in about 3 days\)$/.test(x.label) && x.enabled === false), `${again.reason}; ${hiveActs().map((x) => x.label).join(", ")}`);
+    const [hcx, hcy] = map.chunkCoord(hive.tile[0], hive.tile[1]);
+    const hchunk = map.getChunk(hcx, hcy, false);
+    row("its chunk is marked for the wire and its saved copy dropped; the day is in the prop's record", hchunk.dirty === true && hchunk.saved === null && map.serializeProp(hive).honeyAt === hive.honeyAt, `dirty ${hchunk.dirty}, saved ${hchunk.saved === null ? "dropped" : "kept"}, ${JSON.stringify(map.serializeProp(hive))}`);
+    G.clock.setElapsed(hive.honeyAt - 40);
+    const short = hivesMod.hasHoney(hive);
+    G.clock.setElapsed(hive.honeyAt + 1);
+    row("a little short of its day it has none; past it, honey again", !short && hivesMod.hasHoney(hive) && hiveActs().some((x) => x.label === "Take honey"), `short ${short}, after ${hivesMod.hasHoney(hive)}`);
+    G.clock.setElapsed(clock0);
   } catch (e) {
     if (!e.guestDone) rows.push({ check: "setup", result: "FAIL", detail: e.message + (e.stack ? " " + e.stack.split("\n")[1] : "") });
   } finally {
     for (const p of made) { const t = map.propById(p.id); if (t) map.removeProp(t); }
     if (coop && coop0) { coop.bag = coop0.bag; coop.searched = coop0.searched; }
+    if (hive && hive0) { if (hive0.had) hive.honeyAt = hive0.honeyAt; else delete hive.honeyAt; map.touch(hive.tile[0], hive.tile[1]); }
+    if (clock0 !== null) G.clock.setElapsed(clock0);
+    me.action = null;
     bag.items.splice(0, bag.items.length, ...bag0);
     for (const [e, n] of counts0) e.count = n;
     G.teleport(meAt[0], meAt[1]);
