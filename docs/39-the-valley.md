@@ -1,6 +1,6 @@
 # 39 — The Valley 1.0: the complete scope
 
-**Status, 2026-10-24: a spec, and the one complete list of what The Valley 1.0 holds (#271); the skills' open lines (#275) and the food economy (#264) were ruled on 2026-10-23, the loot tables (#268) and the bags (#260) on 2026-10-24, the tables built the same day (`docs/02`), and the map as it stands is a testing map, not the final valley.** Compiled from `origin/main` at 3e1f5d0 (the data in `data/`, `docs/30`, `docs/29-world`, `docs/02` through its 2026-10-19 entries, `docs/04`, `docs/34`) and from the open issues of the same day: the skills trees on #275, Beastlore on #289, and the scoping issues #92, #103, #123, #133, #181, #260, #261, #262, #264, #268, #273, #279, #281, #282, #283, #285, #288. Valley only: a region appears only as the name of what comes from it. Lists, not reasons; the reasons are `docs/02` and the issues. Numbers are the data's and tuning's, not this page's. Rewritten in place when the scope changes, never appended.
+**Status, 2026-10-25: a spec, and the one complete list of what The Valley 1.0 holds (#271); the skills' open lines (#275) and the food economy (#264) were ruled on 2026-10-23, the loot tables (#268) and the bags (#260) on 2026-10-24, the tables built the same day, and the dead ends (#273) on 2026-10-25, `docs/43` (`docs/02`), and the map as it stands is a testing map, not the final valley.** Compiled from `origin/main` at 3e1f5d0 (the data in `data/`, `docs/30`, `docs/29-world`, `docs/02` through its 2026-10-19 entries, `docs/04`, `docs/34`) and from the open issues of the same day: the skills trees on #275, Beastlore on #289, and the scoping issues #92, #103, #123, #133, #181, #260, #261, #262, #264, #268, #273, #279, #281, #282, #283, #285, #288. Valley only: a region appears only as the name of what comes from it. Lists, not reasons; the reasons are `docs/02` and the issues. Numbers are the data's and tuning's, not this page's. Rewritten in place when the scope changes, never appended.
 
 ## 0. How to read it
 
@@ -107,16 +107,16 @@
 - **Fish traps**, set in the water (Fishing 7) [to build].
 - **Snares** (Beastlore 3) [to build].
 - **The feast's table:** any table, the feast laid on it (Cooking 10) [to build].
-- **A campfire** [open #273]: placeable and lit in the data, placed nowhere in the valley, made by nothing.
-- **Wall brackets** [open #273]: the valley's four are empty and none can be added, so a torch is never mounted in the valley.
+- **A campfire** (ruled 2026-10-25, `43` section 2) [to build]: built from the palette, three stone and two logs, outdoors; six logs of three hours; picked up only out and empty, as a Campfire item (5 by 5).
+- **Wall brackets** (ruled 2026-10-25, `43` section 4) [to build]: made at the anvil (an iron bar, Blacksmithing 1), hung like a painting; the valley's four start holding an unlit torch.
 - **The Bloodbark Shrine** (Bloodbark from the Crimson Abbey, Woodcutting 10): a name only.
 
 ### Props, and what each does
 
 - **Bed** [built]: sleep (indoors); carried; made at the workbench.
 - **Chest** [built]: a container; carried; made at the workbench.
-- **Shelf, cupboard, desk, bookcase, strongbox, counter, coffin, haystack, woodpile, cart, stall** [built]: containers, each kind with its own loot table (2026-10-24, #268): shelf and cupboard the pantry, woodpile its wood, cart and stall the market, bookcase and desk nothing until books, strongbox nothing until gems and trinkets, coffin grave goods, counter the inn's, haystack a stick; the shelf is made, the rest are dead ends [open #273].
-- **Barrel** [built]: a container (one or two apples or a waterskin, empty half the time; #268); carried; not made [open #273].
+- **Shelf, cupboard, desk, bookcase, strongbox, counter, coffin, haystack, woodpile, cart, stall** [built]: containers, each kind with its own loot table (2026-10-24, #268): shelf and cupboard the pantry, woodpile its wood, cart and stall the market, bookcase and desk nothing until books, strongbox nothing until gems and trinkets, coffin grave goods, counter the inn's, haystack a stick; the shelf is made [change: the cupboard, desk, bookcase, counter at Crafting 1, the cart and stall at Crafting 5, the strongbox at the anvil (Blacksmithing 3); the coffin, haystack, and woodpile stay one of a kind (2026-10-25, `43`)].
+- **Barrel** [built]: a container (one or two apples or a waterskin, empty half the time; #268); carried [change: made at the workbench, four planks and an iron bar, Crafting 3 (2026-10-25, `43`)].
 - **Wheelbarrow** [built]: a big empty container, carried like a barrel; made at the workbench.
 - **Stone stack, ore cart, charcoal sack** [built]: containers that hold their material.
 - **The Developer Chest** [built]: section 15.
@@ -125,17 +125,17 @@
 - **Trough** [built]: drink and fill, as the well [open #279: natural water or not].
 - **Font** [built]: fill a bucket [open #279: natural water or not].
 - **Altar** [built]: decoration [change: pray for mana and stamina, Faith 1; it also removes bleeds at Faith 4 and restores health at Faith 6].
-- **Fireplace** [built]: a fire (logs), lights its room, cooks; not carried; not made [open #273].
-- **Hearth** [built in the data]: as the fireplace; not placed in the valley.
-- **Campfire** [built in the data]: a fire (logs) that cooks; not placed, not made [open #273].
+- **Fireplace** [built]: lights its room, cooks; not carried; not made [change: a switch, on and off, no fuel (2026-10-25, `43` section 2)].
+- **Hearth** [built in the data]: as the fireplace [change: built from the palette, six stone, against a wall indoors; a switch, no fuel (`43`)].
+- **Campfire** [built in the data]: a fire (logs) that cooks [change: built, placed at the woodcutters' camp and the charcoal burners (`43` section 2)].
 - **Oven, forge, anvil, loom, workbench, millstones, charcoal clamp, dye vat:** stations, section 3.
-- **Lantern post** [built]: always lit, never out; lights a held torch.
-- **Torch post and wall bracket** [built in the data]: hold a torch; no torch posts placed, brackets empty [open #273].
-- **Jack-o'-lantern and plain pumpkins** [built in the data]: gatherables, carried; not placed in the valley [open #273].
+- **Lantern post** [built]: lights a held torch [change: put out and lit again, a switch (2026-10-25, overturning never out)].
+- **Torch post and wall bracket** [built in the data]: hold a torch [change: the post made at the workbench (Crafting 1), a few along the square and the road; the bracket as above (`43` section 4)].
+- **Jack-o'-lantern** [built in the data] [change: carved from a pumpkin with a dirk at the workbench (Crafting 1), a small light that never goes out; the plain pumpkin props cut; a pumpkin may be placed as decoration, one way (`43` section 4)].
 - **Stump** [built]: left by a felled tree; a hatchet chops it for a log and clears the tile [change: uprooting with a shovel at Woodcutting 4].
 - **Ore rock, rock, apple tree, trees, crops, mushrooms:** section 4.
 - **Beehives and chicken coops** [built, #333]: the drawn beehive (a straw skep on a stand; interactable, outlined, sways on a click, no action yet: there is no honey) at the manor's garden (three), your cottage's garden (two), and east of Hollow Farm's lane (three); the drawn chicken coop (two tiles, along y or mirrored along x, a container with a placeholder table, `coop`: rags, sticks, a little grain; no egg item yet) in your cottage's yard and Hollow Farm's. The coop's door frames and the hive's bee frames are spare until a click animation can play on them.
-- **Decoration** [built]: the grindstone, sawpit, crane, winch, mill wheel, mine mouth, spoil heap, market cross, notice board, stocks, headstones, maypole, privy, spinning wheel (the scarecrow is a container since #268, wearing the Onion-head Hat) [open #273: which get a use].
+- **Decoration** [built]: the grindstone, sawpit, crane, winch, mill wheel, mine mouth, spoil heap, market cross, notice board, stocks, headstones, maypole, privy, spinning wheel (the scarecrow is a container since #268, wearing the Onion-head Hat) [change: the grindstone sharpens and the sawpit saws (`43` section 6), the beehives give honey, the spinning wheel spins wool when the sheep come; the rest stay decoration (2026-10-25)].
 
 ## 3. Stations
 
@@ -146,10 +146,10 @@ One panel for every station; ingredients from the bag, the belt, and every conta
 - **Forge** [built] (the smithy's): an iron bar from two iron ore; burns charcoal. Unlock: Blacksmithing 1. Silver (Blacksmithing 5) [to build]; less charcoal a bar (Blacksmithing 2) [change: charcoal is the fire's fuel today, not an ingredient].
 - **Anvil** [built] (the smithy's; a smith's hammer in hand, except for forging the hammer itself): a dirk, a smith's hammer, a hatchet, a pickaxe (Blacksmithing 1); a scythe, a throwing spear, a flanged mace, an arming sword [change: Blacksmithing 3]; repair (Blacksmithing 4), silver work (5), mail and plate (7) [to build].
 - **Cooking at a fire** [built] (any lit fire that cooks: the nineteen fireplaces, a hearth, a campfire): a roast potato, stew, porridge, grilled perch, trout, and carp. Unlock: Cooking 1 [change: the stew is not among Cooking 1's plain recipes] [change: the stew splits, a plain pottage at Cooking 1 and the hearty stew with its buff at Cooking 4 (ruled 2026-10-23)]. Boiling water safe (Cooking 1) [to build].
-- **Oven** [built] (the baker's): a loaf of bread (two flour), a pumpkin pie (a pumpkin and flour) [change: pie at Cooking 6]. [change: the oven cooks the fire's recipes too (#273: it does not today).]
+- **Oven** [built] (the baker's): a loaf of bread (two flour), a pumpkin pie (a pumpkin and flour) [change: pie at Cooking 6]. [change: the oven cooks the fire's recipes too (`43` section 2: a bug stops it today).]
 - **Millstones** [built] (the mill's): flour from two grain; no fire. Unlock: Cooking 1 (ruled 2026-10-23).
 - **Charcoal clamp** [built] (the smithy's yard, three at the burners): three charcoal from four logs over half a game day, lit, a log of fuel a day. Unlock: Blacksmithing 1 (ruled 2026-10-23).
-- **Dye vats** [change] (three in the weaver's yard): no recipes today; a garment and a dye plant to a dyed garment (`docs/30`) [open #273: a recipe or one of a kind].
+- **Dye vats** [change] (three in the weaver's yard, all three usable): Crafting 3 unlocks a picker like a stripped-down character creation, each garment's regions and allowed colours or schemes its own data (2026-10-25, `43` section 8); whether a dye costs a plant waits for #288.
 - **Cauldron** [to build] (the witch's at the mere, `docs/30`): potions (Potions 1 on), section 5.8. The witch keeps it and teaches Potions (ruled 2026-10-19).
 - **Smoking rack** [to build] (the hunter's lodge): smoked meat and fish (Cooking 5).
 - **Composter** [to build] (Farming 4): rotten food, rotten fish, or bonemeal in; compost, and a better fertiliser from bonemeal, out at its own pace.
@@ -260,7 +260,7 @@ The numbers are each weapon's block in `data/items.json` and `data/combat.json`.
 - **Leather belt** [built]: four belt slots. One found, on Hollow Farm's barn rack (#268) [change: made at Crafting 3].
 - **Torn into rags** [built]: any garment, at the workbench, a dirk carried.
 - **Hiding a worn item's art** [built]: the eye on each worn slot.
-- **Dyed garments** [to build]: the dye vats [open #273].
+- **Dyed garments** [to build]: the dye vats (`43` section 8).
 - **Woollen clothes, warm** [to build]: Crafting 6 (Beastlore 4's sheep).
 - **Leather armour** [to build]: the bandits' (`docs/29-world/06`), the jerkin at Crafting 3; the bandits' leather armour is found only (ruled 2026-10-23).
 - **Mail and plate** [to build]: Blacksmithing 7.
@@ -422,7 +422,7 @@ The staff-and-book proposal (#275), proposed, not ruled, except the parts marked
 - **Wall lanterns** [built]: 33 in the valley's buildings (`brackets[].lantern` in `data/maps/valley.json`), always lit, each a point of light of 3.4 tiles like a lantern post (`src/light.js`), light a torch held to them, and cannot be taken.
 - **A carried lantern** [to build]: more light than a torch on the belt; its fuel fish oil (Fishing 5); made at Blacksmithing 4 (ruled 2026-10-23).
 - **Fireplaces and hearths** [built]: light their room.
-- **Campfire, torch post, wall bracket, jack-o'-lantern** [built in the data]: section 2 [open #273].
+- **Campfire, torch post, wall bracket, jack-o'-lantern** [built in the data]: section 2 (ruled 2026-10-25, `43`).
 - **The charcoal clamp** [built]: a tiny light.
 - **Candles** [to build]: from wax (Beastlore 5).
 - **Lamps** on fish oil [to build]: Fishing 5.
@@ -851,7 +851,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 ### Making
 - Craft at a station: the panel, Make, the queue, collect from the output [built].
 - Cook at any fire that cooks, bake at the oven, smelt at the forge, smith at the anvil (a hammer in hand), weave at the loom, mill at the millstones, burn charcoal in the clamp [built].
-- Dye at the vats [open #273].
+- Dye at the vats (`43` section 8) [to build].
 - Brew at the cauldron [to build]; smoke at the rack [to build]; salt food [to build]; press cider (Cooking 3) [to build]; tan hides [to build]; set a gem in a trinket [to build]; repair at the anvil [to build].
 - Lay a feast on a table and eat from it [to build] (Cooking 10).
 - Learn from a teacher [to build]: a screen of what you can learn now, a button each (ruled 2026-10-23).
@@ -1002,7 +1002,7 @@ The numbers are for tuning; this list is what must change before 1.0.
 - **#261:** the furniture pass.
 - **#262:** the hover card beyond grids; short names.
 - **#271:** placeholder sounds, generated or library, and which first.
-- **#273:** each dead end: a recipe or one of a kind.
+- **What the demo includes** of `43`'s dead ends (Michael, 2026-10-25: an open question).
 - **#279:** purifying; the trough and the font; the sickness; a skin's clean or unsafe.
 - **#281, #282, #283:** gems, trinkets, silver.
 - **#285:** the belt (to build, ruled).

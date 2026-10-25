@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Fixed home lights (fireplace, hearth, lantern) are switches, portable ones (torch, campfire) cost fuel; a lantern goes out; the campfire built, six logs of three hours, picked up only empty; Pick up and Take apart for everything; made by default, the village's stations one of a kind behind a world rule; Place as decoration (2026-10-25, The dead ends ruled)
 - A loot table per kind of container, weights out of 32; no gear in a rolled table, placed once where it makes sense; rolled once, never refilled; boss drops personal with a rising chance (2026-10-24, The loot tables and the bags)
 - A fence takes no boards, a gate included (2026-10-24, No boards on a fence)
 - Everything rots, food in containers from the world's start and planted or hanging food generously slowly, within the clock law because the world's clock runs only while someone is in it; day one holds about twelve game days of food, a leaner start; a barrel doubles food's life; the starving fade over half a game day; no auto-eat; a dry growing crop pauses, a ripe one rots in the ground (2026-10-23, The food economy ruled)
@@ -35,7 +36,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - Food heals a little, a stopgap; only potions heal big; cooked and combined food more, by default (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
 - The dead strike what they break, an attack on a cooldown as on a player, Michael's leaning and the default; the shake toned down (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break)
 - Magic is taught by a friendly wizard in the valley (2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break); Potions by the witch (2026-10-19, The valley has no cure; the wizard lives; the witch teaches Potions; gates stop a harvest; every loot table provisional; two old limits struck)
-- A torch burns down while lit (fastest in hand, slower on a belt, bracket, or post; a kill costs more), is doused and lit with a tinderbox, and starts unlit; belt and hand never stack; the village's lights are lanterns that never go out (2026-10-17, Torches burn down; the tinderbox; the village's lights become lanterns)
+- A torch burns down while lit (fastest in hand, slower on a belt, bracket, or post; a kill costs more), is put out and lit with a tinderbox, and starts unlit; belt and hand never stack; ~~the village's lights are lanterns that never go out~~ (overturned 2026-10-25, The dead ends ruled: a lantern goes out) (2026-10-17, Torches burn down; the tinderbox; the village's lights become lanterns)
 - Only bodies burn; anything with fire (a torch, a tinderbox, a fireball) lights what is made to be lit; nothing spreads; the fireball keeps some damage, less than now, and becomes a flare (2026-10-17, Only characters burn; fire lights what is made to be lit; the fireball as a flare)
 - A sealed room is safe, and a cell: nothing digs, no wall breaks, you cannot leave (2026-10-17, The siege: a sealed room is a cell, the dead wait for dawn, a crowd bursts a fence); narrowed 2026-10-18 (One reach test for every action, #208): it binds the dead, not the player, who may stamp a door into a wall or Remove a wall they built, from either side ("removing wall and placing door are fine")
 - The dead that know you are inside wait until the next dawn, for now; no sleep while they do (2026-10-17, The siege: a sealed room is a cell, the dead wait for dawn, a crowd bursts a fence)
@@ -94,6 +95,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
+- Repairs run out: one count per item, the grindstone to 60, 40, 20%, the anvil to 100, 80, 60%; Burn corpse destroys a body and all in it (2026-10-25, The dead ends ruled)
 - The melee feel pass accepted as the baseline; tuning goes on with the skills (2026-10-24, The melee baseline)
 - The shove pushes 0.65 tiles, a tired one 0.45 (`shove.tiredPush`); the tired stagger stays under the shove's recovery (2026-10-24, The shove pushes farther)
 - The dead that wait for a bite token strike the fence or gate between them and their target; the shove's push 0.4 tiles; a placeholder reel pose through a stagger; the downed keep their health bar and are outlined; a closing burst near a seen target, a trial; corners stay dangerous; the spear, the halberd, the bow, and the dead's 150 left for now (2026-10-24, The first real melee test)
@@ -170,6 +172,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
+- "Put out", never "douse"; a wave emote for the demo; immune villagers cower; the dye vat's picker and per-item colour schemes (2026-10-25, The dead ends ruled)
 - One thing a cell: only arrows, throwing knives and axes, bandages, seeds, and pemmican stack; bags made, never found, the satchel, the rucksack, and the valley's best in tiers (2026-10-24, The loot tables and the bags)
 - The aim guide on by default, off for the challenge; a mute key on F8 with a line as its twin; the player on grass steps as the dead shuffle; sounds step 2 widened to the shove, the bow, the cast, the dead's death and fall, doors and shutters (2026-10-24, The first real melee test)
 - A new character knows the level-1 recipes; a level's recipes are learned once from the skill's teacher on the teacher's own screen; the station panel lists every recipe of the station, the unlearned greyed with what they need; buffs and debuffs are specific, interactable effects shown in the debuff row, never moodles, which describe a general state (2026-10-23, The skills' open lines ruled)
@@ -281,6 +284,26 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-25 — The dead ends ruled: fires and lights, Pick up and Take apart, made things, stations behind a switch, repairs that run out, a body burned, a wave, the cowering, the dye vat (Michael; #273)
+
+The fourth sitting of the Valley scope's defaults pass, over four rounds in chat. Michael overruled or reshaped much of Primary's draft; what he did not comment on stood. The spec is `docs/43`. The rulings:
+
+- **A lantern goes out.** Michael: "never goes out is an ANCIENT ruling, if light attracts zombies, they need to be snuffable." A lantern on a post or in a bracket can be put out and lit again with a tinderbox or a lit torch. It overturns 2026-10-17 (Torches burn down), struck where it sits.
+- **"Put out" everywhere**, never "douse" (Primary's answer to "which is more universal?"): a lantern, a torch, a campfire, a fireplace.
+- **Fixed home lights are switches; portable lights cost fuel.** Michael: lighting a house "is one of the least fun tasks I have done so far ... I had contemplated at more than one point just making this a permanent on/off switch." A fireplace, a hearth, and a lantern turn on and off and burn no fuel; a torch burns down and a campfire takes logs.
+- **The campfire:** built from the palette (three stone, two logs, outdoors, no skill), its two logs its starting fuel; six logs at most, three game hours each ("they take up SO MUCH inventory space"); put out; picked up only when out and empty ("to stop people from using them to do log inventory shenanigans"), as a Campfire item of 5 by 5 cells.
+- **Pick up and Take apart, for everything:** Pick up keeps a thing whole; Take apart destroys it for half its materials, with its recipe's tool; both refused while it holds anything; the build palette's Remove becomes Take apart.
+- **Made by default** (the loot sitting's rule): the hearth, wall brackets, torch posts, the cupboard, desk, bookcase, counter, chair, cart, stall, strongbox, and barrel, and the jack-o'-lantern carved from a pumpkin; the plain pumpkin props cut. **Place as decoration**, small in scope: an item naming a decoration prop may become it, food one way only; the pumpkin first; ground only.
+- **The village's stations stay one of a kind, behind a switch:** "we need to BUILD it in such a way as to make this change more like flipping a switch than rebuilding anything ... Once built, I accept your defaults as the starting situation." A world rule, off by default, makes them movable and craftable.
+- **Repairs run out:** "it would give you infinite repairs, meaning the item would truly never break ... That definitely can't happen." One repair count per item; the grindstone sharpens for free up to 60%, then 40%, then 20%, then never; the anvil repairs up to 100%, 80%, 60% on the same count; skills raise the ceilings, every item still decays to breaking.
+- **Burn corpse** (Michael's): greyed out without a tinderbox and a log; the body burns about a game hour, giving light, then it and everything in it are gone, with a clear warning on its hover card. "Zomboid's disappear on a timer but I like this better."
+- **Wave**, for the demo: "if I should be so lucky that someone mentions my game in a youtube video or something, that is the one they would want." A new pose, approved.
+- **Immune villagers cower:** "a fig leaf of having them cower or run away scared before pathing back ... a cowering animation with their arms up in a defensive post would be pretty funny." A new pose, approved.
+- **The dye vat:** all three usable, unlocked at Crafting 3 as a reward; a picker like a stripped-down character creation screen; each item declares its dyeable regions and allowed colours or schemes, so a two-colour piece can gain a new scheme as data; artists paint one pair of key tones per region (Michael: "I am trying to think where this might go when I hire real artists").
+- **The oven cooks** the fire's recipes too (ruled before; a bug). **What the demo includes** of all this is open. **Filed for later:** things set on a table; villagers waving back.
+
+Docs: 43 (new), 39, 42, 05, README.
 
 ### 2026-10-24 — The loot tables and the bags ruled: a table per container, gear made by default, one thing a cell, bags made never found (Michael; #268, #260)
 
@@ -912,7 +935,7 @@ From the same talk: "burning a torch now needs to deplete it, but it should be f
 - **A torch burns down while it is lit:** fastest in a hand; at the slower "wall" rate on the belt, in a bracket, or on a post; a kill costs a much larger bite, as a weapon's durability does now. Spent, it is gone. It overturns 2026-10-09's "torches never burn out" (struck where it sits).
 - **A torch is doused and lit again with a tinderbox** (T lights, with a tinderbox carried, and douses), and **a new torch starts unlit**. **So does the starting torch:** "Start unlit: the starting torch begins unlit and you light it with your tinderbox when you want it" (Michael, 2026-10-17, on #157). **A torch that leaves a hand, the belt, or a holder is doused** (the builder's reading of "it drains the whole time it's lit", Primary's default on #157, for Michael to overrule): no free relight from the bag.
 - **Belt and hand never stack:** a player gives off one carried light, the held torch winning (two in hand at the stronger light, both burning); a lit torch on the belt while another is held burns for nothing. (*Primary's reading* (2026-10-19, The belt restated and added to; a book in the off hand costs the shield; the Holy Symbol is Faith's staff, within the proposal): a carried lantern counts as a carried light too.)
-- **The village's torches become lanterns:** placed on the map for now, never going out, a little brighter than a torch and steady where a torch flickers, a light item that may do more someday.
+- **The village's torches become lanterns:** placed on the map for now, ~~never going out~~ (overturned 2026-10-25, The dead ends ruled: a lantern can be put out and lit again), a little brighter than a torch and steady where a torch flickers, a light item that may do more someday.
 - **The cold region may dampen or put out torches** (an idea for the regions' draft, #123).
 
 ### 2026-10-17 — Only characters burn; fire lights what is made to be lit; the fireball as a flare (Michael)

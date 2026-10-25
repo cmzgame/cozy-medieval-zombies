@@ -51,6 +51,7 @@ One line per doc, with its kind (`CLAUDE.md`, "What a doc is"): a **rule** (bind
 - `40-sounds.md` — sounds (#310): one audio module on Web Audio, placeholder sounds generated at boot as the dev art is, an ear on each client that plays what that client already sees (nothing new on the wire), the swing on the swing timer, the visual twins, the music sources, the build order (footsteps and the swing first).
 - `41-melee-feel.md` — the melee feel pass (#89): the bite's wind-up and its cancel, the flinch, the shove as the crowd tool, knockdown restricted, stamina as the pacer, bite tokens, the dead's health from hit counts; a spec, with the research summarised; sounds gate its finish.
 - `42-levers.md` — **reference.** Every tuning lever Michael means to keep turning and every world setting he names: where it lives, its value, the ruling, its kind (#384); its wiki page is #387.
+- `43-dead-ends.md` — **spec.** The dead ends of the valley (#273): fires and lights, Pick up and Take apart, the made things, the village's stations behind a switch, repairs that run out, Burn corpse, the wave, the cowering, the dye vat; seven build steps.
 
 ## Records: `history/`
 

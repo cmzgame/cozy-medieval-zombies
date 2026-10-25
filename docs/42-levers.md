@@ -28,6 +28,10 @@ Two kinds:
 - **Hit stop and the swing's commitment:** `blow.hitStop` 0.07, `blow.hitStopKill` 0.12, `blow.swingMove` 0.6 (`41` step 1).
 
 ### Food, the world, the valley
+- **The campfire:** six logs at most, three game hours a log, built with two (2026-10-25, `43`; not built: today four logs of two hours in `data/sprites/campfire.json`).
+- **Take apart's return:** half a thing's materials, rounded down (2026-10-25, `43`; not built).
+- **Repairs:** the grindstone's ceilings 60, 40, 20%, the anvil's 100, 80, 60%, on one count per item (2026-10-25, `43`; not built).
+- **Burn corpse:** about a game hour of burning, a log spent (2026-10-25, `43`; not built).
 - **Rot:** each food's life in game days, and planted or hanging food at five times it (2026-10-23, the food economy; not built).
 - **Day-one food:** the target of about twelve game days for one player with tools, read on the wiki's Day-one food page (2026-10-23).
 - **The loot tables:** a table per kind of container in `data/loot.json`, weights out of 32 so a weight is a chance in 32 a roll, `rolls` how many rolls a container makes; the wiki shows each item's rate (2026-10-24, #268: Michael tunes them from the wiki, OSRS's tables the guide).
@@ -38,6 +42,7 @@ Two kinds:
 ## World settings
 
 ### A world's rules (`src/settings.js`, groups `rules` and `sandbox`)
+- **Village stations:** fixed, or movable and craftable; fixed by default (2026-10-25, `43` section 5; not built).
 - **Zombie aggro**, on (2026-10-15). **Zombies attack villagers**, off (2026-10-15). **Survival**, on (2026-10-13). **Free building**, off. **Multi-hit**, off, "the easy button" (2026-10-12).
 - **Trees** and **Starting population**, chosen when the world is made and fixed after (2026-10-16).
 - **Dev chest**, on; **Dev bag**, off; **Extra starting items**, none: the Sandbox step's testing choices (2026-10-16).
