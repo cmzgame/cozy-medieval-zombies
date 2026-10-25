@@ -1784,7 +1784,7 @@ async function boot() {
       // A craft done and a weapon worn out (docs/30, sections 5.2 and 6): the line and the word for my own player
       // (a guest's reach it through the host, host.js).
       events.on("craftDone", ({ out, tile }) => {
-        const line = `Made ${out.prop ? out.prop.replace(/_/g, " ") : `${out.count > 1 ? `${out.count} ` : ""}${items.getItem(out.id).name.toLowerCase()}`}.`;
+        const line = stations.doneLine(out); // "Made 5 arrows.", "Made a counter." (the host's log and a guest's alike)
         if (Math.hypot(tile[0] - client.me.gx, tile[1] - client.me.gy) <= tuning.world.craftDoneRadius) log.push(line, "result");
       });
       events.on("torchSpent", ({ x, y }) => {

@@ -110,7 +110,7 @@ export function emitGhost(ghost) {
 // for a mushroom, up to five for a giant tree. Whole pixels at the top.
 export const WIGGLE_MS = 560;
 export function swayOf(prop, height) { // exported for tools/checks/sway.js
-  if (!prop.pokedAt) return 0;
+  if (prop.pokedAt == null) return 0; // a stamp at sim 0 is a stamp (a never-stepped world)
   // Sim milliseconds, the clock interact.pokeAt stamps with. Reading the wall
   // clock here (as it did until 2026-10-12) made every sway over before it began.
   const t = loop.simTime() * 1000 - prop.pokedAt;
@@ -146,7 +146,7 @@ function risingSlice(sheet, name, f, x, y, tx, ty, flags, sink, k) {
 // The frame of a playing click animation (the well's bucket), or null when it
 // is not playing (interact.play starts it).
 function clickFrame(prop) {
-  if (!prop.playedAt) return null;
+  if (prop.playedAt == null) return null;
   const anim = getDef(prop.sprite).clickAnim;
   if (!anim) return null;
   let t = loop.simTime() * 1000 - prop.playedAt; // sim milliseconds, as interact.play stamps it

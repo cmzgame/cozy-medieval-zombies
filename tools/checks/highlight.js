@@ -138,7 +138,7 @@ export async function run(game) {
       // A gatherable behind a tree's crown (bugs.md, 2026-10-25): a mushroom a tile behind the tree, straight up the screen into its crown. The
       // covered points are the mushroom's own solid pixels where the frontmost hit is the tree's crown (interact.hitsAt, frontmost first).
       // Canvas points move with the camera, and a render can move it (an await lets the page draw, and loop.advance renders), so one step is
-      // taken first (the sim clock past 0 too: a stamp at sim 0 reads as none, `!prop.pokedAt`), then every point is read fresh and every row
+      // taken first (the sim clock past 0 too, as it was when a stamp at sim 0 read as none), then every point is read fresh and every row
       // that reads one runs before the next render; the click's lean, which steps the loop, is last.
       const hid = G.map.createProp({ sprite: "mushroom_0", tile: [x, y - 1] });
       G.map.placeProp(hid, x, y - 1);

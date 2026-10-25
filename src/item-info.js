@@ -4,7 +4,7 @@
 // ui/hover-card.js draws what this returns. A card is { name, kind, state, lines, fine }: `lines` and `fine` are lists of lines, a line a list of segments { t, k } where `k`
 // is "use" for the word Use (drawn in --gold, Michael 2026-10-18), "word" for another menu word (Eat, Equip, Drink, Apply), or absent for plain text.
 
-import { getItem, wearPerHit, wearPerShot, toolFor } from "./items.js";
+import { getItem, wearPerHit, wearPerShot, toolFor, countName, pluralName } from "./items.js";
 import { work, trees } from "./tuning.js"; // the repair ladders and the sawpit's item (docs/43 section 6); the sapling and the sticks (docs/46 step 3)
 import * as interactions from "./interactions.js";
 import * as stations from "./stations.js";
@@ -173,8 +173,9 @@ export function cardFor(entry) {
   if (def.place && def.place !== "campfire") lines.push(line(seg("Place", "word"), def.stand === "natural" ? ": plant on open grass outdoors." : def.stand === "outdoors" ? ": set down outdoors." : ": set down on the floor."));
   // A sapling (docs/46 step 3): what it grows into and how long, from the tuning (trees.js).
   if (def.id === trees.sapling.item) {
-    // The tree it grows into: the one its entry carries (an apple tree's sapling, #461), else a tree (the round oak, the default).
-    const n = entry.tree && getDefSafe(entry.tree) ? getDefSafe(entry.tree).name : null;
+    // The tree it grows into: the one its entry carries (an apple tree's sapling, #461), else the default's (the round oak, "an oak").
+    const grows = entry.tree || trees.sapling.grows;
+    const n = getDefSafe(grows) ? getDefSafe(grows).name : null;
     lines.push(line(`Grows into ${n ? an(n) : "a tree"} in about ${trees.sapling.days} game days; it waits while anyone stands on it.`));
   }
   if (def.placeAs) lines.push(line(seg("Place as decoration", "word"), ": set down on the floor; picked up again, it is a decoration, not food."));
@@ -190,8 +191,8 @@ export function cardFor(entry) {
   for (const u of usesOf(def)) lines.push(line(seg("Use", "use"), ` on ${listOf(u.on)}: ${u.verb}.`));
   const crop = def.tags && def.tags.includes("seed") ? farming.cropOfSeed(def.id) : null;
   if (crop) lines.push(line(`Grows ${crop} on tilled soil.`));
-  if (def.splitsInto) lines.push(line(`Splits into ${def.splitsInto.count} ${getItem(def.splitsInto.id).name.toLowerCase()}s.`));
-  if (def.splitsInto && def.id === work.saw.item) lines.push(line(`A sawpit saws it into ${getItem(def.splitsInto.id).name.toLowerCase()}s with no hatchet.`)); // docs/43 section 6
+  if (def.splitsInto) lines.push(line(`Splits into ${countName(def.splitsInto.id, def.splitsInto.count)}.`));
+  if (def.splitsInto && def.id === work.saw.item) lines.push(line(`A sawpit saws it into ${pluralName(def.splitsInto.id)} with no hatchet.`)); // docs/43 section 6
   // Repairs that run out (docs/43 section 6): where, with what, and how many in its life.
   const rep = def.repair && (wearPerHit(def) > 0 || wearPerShot(def) > 0) ? def.repair : null;
   if (rep) {

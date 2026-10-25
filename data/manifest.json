@@ -1,5 +1,5 @@
 {
-  "version": "8a4a9397",
+  "version": "02df401f",
   "files": {
     "data/animals.json": {"size": 5400, "stamp": "778b4155"},
     "data/build.json": {"size": 3016, "stamp": "87aeb2be"},
@@ -9,7 +9,7 @@
     "data/fishing.json": {"size": 1151, "stamp": "d7ff74ff"},
     "data/ground.json": {"size": 3492, "stamp": "fb2c261c"},
     "data/interactions.json": {"size": 4176, "stamp": "0cbd9fe3"},
-    "data/items.json": {"size": 50158, "stamp": "585e0915"},
+    "data/items.json": {"size": 50757, "stamp": "73df3a67"},
     "data/kit.json": {"size": 939, "stamp": "628d28a8"},
     "data/looks.json": {"size": 947, "stamp": "d1084ea0"},
     "data/loot.json": {"size": 7901, "stamp": "6cc83f31"},
@@ -772,9 +772,9 @@
     "data/sprites/tree_blue_l.json": {"size": 312, "stamp": "ba3fe39c"},
     "data/sprites/tree_blue_m.json": {"size": 309, "stamp": "289df1bb"},
     "data/sprites/tree_blue_old.json": {"size": 311, "stamp": "7258c4f8"},
-    "data/sprites/tree_oak_l.json": {"size": 313, "stamp": "e517f212"},
-    "data/sprites/tree_oak_m.json": {"size": 310, "stamp": "86984d52"},
-    "data/sprites/tree_oak_old.json": {"size": 312, "stamp": "4c13d258"},
+    "data/sprites/tree_oak_l.json": {"size": 328, "stamp": "bcb1cb03"},
+    "data/sprites/tree_oak_m.json": {"size": 325, "stamp": "94cb871c"},
+    "data/sprites/tree_oak_old.json": {"size": 327, "stamp": "fd33abb3"},
     "data/sprites/tree_orange_l.json": {"size": 315, "stamp": "341accaf"},
     "data/sprites/tree_orange_m.json": {"size": 312, "stamp": "81388726"},
     "data/sprites/tree_orange_old.json": {"size": 314, "stamp": "5f90a62c"},

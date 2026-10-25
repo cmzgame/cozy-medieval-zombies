@@ -98,7 +98,7 @@ export function propActions(prop, player, act, world) {
     const base = { kind: verb, tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] };
     const why = blockProblem(player, b);
     if (why) {
-      const short = b.night && clock.getPhase() !== "night" ? ONLY_AT_NIGHT : `need a ${why.replace(/^You need an? /, "").replace(/\.$/, "")}`;
+      const short = b.night && clock.getPhase() !== "night" ? ONLY_AT_NIGHT : `need ${why.replace(/^You need /, "").replace(/\.$/, "")}`;
       out.push(act({ ...base, label: `${label} (${short})`, enabled: false }));
       continue;
     }

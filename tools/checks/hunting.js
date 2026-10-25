@@ -47,6 +47,7 @@ export async function run(game) {
   const byLabel = (a, label) => interact.performByLabel(me, { kind: "character", id: a.id }, label);
   const labels = (a) => interact.actionsForTarget({ kind: "character", id: a.id }, me).map((x) => `${x.label}${x.enabled === false ? " [grey]" : ""}`);
   const work = (seconds) => step(Math.ceil(seconds * 60) + 10);
+  const said = () => ((document.getElementById("message") || {}).textContent || "").trim(); // the last line on the host's screen
   try {
     G.loop.setPaused(true);
     G.rules.rules.zombieAggro = false;
@@ -223,6 +224,8 @@ export async function run(game) {
     byLabel(d3, "Butcher the deer");
     work(A.workSeconds("butcher"));
     const venBow = bagCount("venison_raw") - ven1;
+    const venSaid = said();
+    row("the butcher's line counts venison as a mass noun: \"4 raw venison\", never \"venisons\"", /You butcher the deer: 4 raw venison\./.test(venSaid) && !/venisons/.test(venSaid), venSaid);
     row("a bow's kill gives the whole yield, four of four, and its arrow comes back with the meat", venBow === 4 && bagCount("arrow") - arrows0 >= 1, `venison +${venBow}, arrows +${bagCount("arrow") - arrows0}`);
     const hide2 = bagCount("hide");
     const ven2 = bagCount("venison_raw");
@@ -245,6 +248,9 @@ export async function run(game) {
     byLabel(pig, "Butcher the pig");
     work(A.workSeconds("butcher"));
     row("a pig butchered gives pork, bacon, and lard", bagCount("pork_raw") >= 2 && bagCount("bacon") >= 1 && bagCount("lard") >= 1, `pork ${bagCount("pork_raw")}, bacon ${bagCount("bacon")}, lard ${bagCount("lard")}`);
+    const pigSaid = said();
+    row("the pig's line reads its meats as mass nouns (\"2 raw pork\", \"some bacon\", \"some lard\"), never \"bacons\" or \"a lard\"", /You butcher the pig: \d raw pork, (some|\d) bacon and some lard\./.test(pigSaid) && !/porks|bacons|a lard/.test(pigSaid), pigSaid);
+    row("countName: a feather counts by +s, venison and lard as mass", items.countName("feather", 3) === "3 feathers" && items.countName("feather", 1) === "a feather" && items.countName("venison_raw", 3) === "3 raw venison" && items.countName("lard", 1) === "some lard", [items.countName("feather", 3), items.countName("feather", 1), items.countName("venison_raw", 3), items.countName("lard", 1)].join(" | "));
     const alive = spawn("deer", fx + 1, fy);
     alive.lookTimer = 99;
     row("a living animal has no Skin or Butcher, only Look at", labels(alive).join(" | ") === "Look at the deer", labels(alive).join(" | "));

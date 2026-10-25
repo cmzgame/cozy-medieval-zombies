@@ -14,7 +14,7 @@
 import * as verbs from "./verbs.js";
 import * as map from "./map.js";
 import { beltOf, carriedEntry as carried, flameOf, countAll, takeAll } from "./inventory.js";
-import { getItem } from "./items.js";
+import { getItem, aName } from "./items.js";
 import { burnZombie } from "./entities/zombie.js";
 import { reachProblem } from "./reach.js"; // one reach test, distance and a clear line (#208)
 import { work as WK } from "./tuning.js"; // Burn corpse's flame, fuel, and hours (docs/43 section 7)
@@ -294,7 +294,7 @@ verbs.define("feed", {
     const f = prop.fire;
     if (!map.feedFire(prop, prop.sprite !== "campfire")) return { ok: false };
     takeAll(player, f.fuelItem, 1);
-    return { ok: true, message: `You add a ${getItem(f.fuelItem).name.toLowerCase()}${f.lit ? "" : "; it is not lit"}.` };
+    return { ok: true, message: `You add ${aName(f.fuelItem)}${f.lit ? "" : "; it is not lit"}.` };
   },
 });
 

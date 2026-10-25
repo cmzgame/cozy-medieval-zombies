@@ -526,7 +526,7 @@ export function produceProblem(player, a) {
   if (!player) return "";
   const tool = inventory.toolProblem(player, pr.verb);
   if (tool) return tool;
-  const held = inventory.carriedTool(player, pr.verb);
+  const held = inventory.carriedTool(player, pr.verb, (e) => !(e.fill > 0)); // an empty bucket wherever it is carried, before a full one in hand
   if (held && held.fill > 0) return "Empty the bucket first."; // milk is a jug, not the bucket's fill (Primary's default): a bucket of water does not milk
   return "";
 }
@@ -762,10 +762,7 @@ function give(player, id, count) {
 }
 
 function said(list) {
-  const name = (y) => {
-    const n = items.getItem(y.id).name.toLowerCase();
-    return y.count > 1 ? `${y.count} ${n.endsWith("s") ? n : `${n}s`}` : `${/^[aeiou]/.test(n) ? "an" : "a"} ${n}`;
-  };
+  const name = (y) => items.countName(y.id, y.count); // "3 raw venison", "some lard", "2 feathers" (the item's `noun` and `plural`)
   if (!list.length) return "";
   return list.length === 1 ? name(list[0]) : `${list.slice(0, -1).map(name).join(", ")} and ${name(list[list.length - 1])}`;
 }

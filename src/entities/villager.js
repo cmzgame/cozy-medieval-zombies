@@ -57,7 +57,7 @@ export function createVillager(gx, gy, { id = null, name = null, line = null, wa
     pathFailed: false,
     lastGoal: null,
     talkTimer: 0,
-    pokedAt: 0, // sim milliseconds of the last poke that spoke
+    pokedAt: null, // sim milliseconds of the last poke that spoke; null for none (a poke at sim 0 is a poke)
     hurtTimer: 0,
     regenAt: 0, // sim seconds before which a hurt villager does not heal (a hit sets it)
     cowerTimer: 0, // seconds of the cowering left (docs/43 section 7: an immune villager with the dead near; states cower, flee, wary)
@@ -360,7 +360,7 @@ function ambientBark(v, players) {
 export function pokeVillager(v, player) {
   const now = loop.simTime() * 1000; // sim milliseconds (docs/23a, C2)
   if (v.state === "cower" || v.state === "flee") return false; // too frightened to answer (docs/43 section 7)
-  if (now - v.pokedAt < T.pokeCooldownMs) return false;
+  if (v.pokedAt != null && now - v.pokedAt < T.pokeCooldownMs) return false;
   v.pokedAt = now;
   v.path = [];
   v.lastGoal = null;

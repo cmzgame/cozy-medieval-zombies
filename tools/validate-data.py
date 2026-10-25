@@ -879,6 +879,14 @@ for i in items:
             fail(f"items.{i['id']}.{key}: no sprite {i[key]!r}")
     if "stand" in i and i["stand"] not in STANDS:
         fail(f"items.{i['id']}.stand: one of {STANDS}, not {i['stand']!r}")
+# How an item's name counts in a sentence (src/items.js countName): `noun` "mass" (some lard, 3 raw venison) or "pair" (shears, 2 shears),
+# and `plural` a plural that is not +s, a non-empty string.
+NOUNS = ("mass", "pair")
+for i in items:
+    if "noun" in i and i["noun"] not in NOUNS:
+        fail(f"items.{i['id']}.noun: one of {NOUNS}, not {i['noun']!r}")
+    if "plural" in i and not (isinstance(i["plural"], str) and i["plural"].strip()):
+        fail(f"items.{i['id']}.plural: a word, not {i['plural']!r}")
 for sid, d in sprite_flags.items():
     if "item" in d and d["item"] not in item_ids:
         fail(f"sprites.{sid}.item: no item {d['item']!r}")

@@ -17,7 +17,7 @@ import * as input from "./input.js";
 import * as map from "./map.js";
 import { getSheet, idleFrame } from "./assets.js";
 import { resolveFacing, frameName } from "./sprites.js";
-import { getItem, toolFor, makeEntry, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
+import { getItem, toolFor, aName, countName, makeEntry, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
 import { stacks as bleedStacks, clear as clearBleed } from "./bleed.js";
 import { beltKey, flameOf, NO_FLAME, skinsOf, carriedTool, toolProblem } from "./inventory.js";
 import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, restoreOffHand, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
@@ -448,7 +448,7 @@ function fireActions(prop, player) {
   if (prop.sprite === campfire.SPRITE) return campfireActions(prop, player);
   const name = prop.sprite.replace(/_/g, " ");
   const fuelId = f.fuelItem;
-  const fuelName = getItem(fuelId).name.toLowerCase();
+  const fuelA = aName(fuelId); // "a log", "some charcoal" (items.aName: the fuel's `noun`)
   const have = countAll(player, fuelId);
   const full = f.fuel >= f.maxFuel;
   const hours = map.fireHoursLeft(prop);
@@ -456,9 +456,9 @@ function fireActions(prop, player) {
   // Lighting a fire that is out needs a flame carried too (Michael, 2026-10-17, #168): a tinderbox or a lit torch, the light verb's rule.
   const flame = f.lit ? true : !!flameOf(player);
   let label;
-  if (!f.lit) label = !have ? `Light the ${name} (need a ${fuelName})` : flame ? `Light the ${name} (a ${fuelName})` : `Light the ${name} (need a tinderbox or a flame)`;
-  else if (full) label = `The ${name} is full (${f.maxFuel} ${fuelName}s${left})`;
-  else label = have ? `Feed the ${name} (${Math.ceil(f.fuel)} of ${f.maxFuel}${left})` : `Feed the ${name} (need a ${fuelName}${left})`;
+  if (!f.lit) label = !have ? `Light the ${name} (need ${fuelA})` : flame ? `Light the ${name} (${fuelA})` : `Light the ${name} (need a tinderbox or a flame)`;
+  else if (full) label = `The ${name} is full (${countName(fuelId, f.maxFuel)}${left})`;
+  else label = have ? `Feed the ${name} (${Math.ceil(f.fuel)} of ${f.maxFuel}${left})` : `Feed the ${name} (need ${fuelA}${left})`;
   return [act({
     kind: "fire",
     simple: have > 0 && !full && flame,
@@ -621,8 +621,8 @@ function lanternActions(target, player) {
   return [act({ ...base, simple: flame, label: flame ? "Light the lantern" : "Light the lantern (need a tinderbox or a flame)", enabled: flame, perform: () => runVerb("light", player, address) })];
 }
 
-// The name of the tool a verb belongs to, for a greyed entry: "smith's hammer".
-const toolName = (verb) => { const t = toolFor(verb); return t ? t.name.toLowerCase() : "tool"; };
+// The name of the tool a verb belongs to with its article, for a greyed entry: "a smith's hammer", "shears" (items.aName).
+const toolName = (verb) => { const t = toolFor(verb); return t ? aName(t.id) : "a tool"; };
 
 // Doors and windows: open and close, board and pull (docs/09). Nobody climbs through a window (Michael, 2026-10-16).
 function openingActions(o, player) {
@@ -663,7 +663,7 @@ function openingActions(o, player) {
     out.push(act({
       ...base,
       kind: "board",
-      label: noHammer ? `Board up (need a ${need})` : planks ? `Board up (${mine.length}/${map.BOARDS_PER_SIDE})` : "Board up (need a plank)",
+      label: noHammer ? `Board up (need ${need})` : planks ? `Board up (${mine.length}/${map.BOARDS_PER_SIDE})` : "Board up (need a plank)",
       duration: BOARD_TIME,
       enabled: planks > 0 && !noHammer,
       perform() {
@@ -679,7 +679,7 @@ function openingActions(o, player) {
     out.push(act({
       ...base,
       kind: "pull",
-      label: noHammer ? `Pull a board (need a ${need})` : `Pull a board (${mine.length} this side, the plank comes back)`,
+      label: noHammer ? `Pull a board (need ${need})` : `Pull a board (${mine.length} this side, the plank comes back)`,
       duration: PULL_TIME,
       enabled: !noHammer,
       perform() {
@@ -712,7 +712,7 @@ function cropActions(prop, player) {
   const noTool = cropTool && toolProblem(player, cropTool);
   // Each label names the crop (Michael's playtest, 2026-10-19: with potatoes beside the cabbages, E's bare "Harvest" took the potatoes,
   // which the cottage's shovel digs, and seemed to need no tool, while the cabbage beside them wanted a dirk).
-  if (farming.stageOf(prop) >= 2) out.push(act({ ...base, kind: "harvest", simple: !noTool, label: noTool ? `Harvest ${def.name} (need a ${toolName(cropTool)})` : `Harvest ${def.name}`, enabled: !noTool, duration: soil.seconds.harvest, perform: run("harvest") }));
+  if (farming.stageOf(prop) >= 2) out.push(act({ ...base, kind: "harvest", simple: !noTool, label: noTool ? `Harvest ${def.name} (need ${toolName(cropTool)})` : `Harvest ${def.name}`, enabled: !noTool, duration: soil.seconds.harvest, perform: run("harvest") }));
   else {
     const days = Math.max(1, Math.ceil(farming.daysLeft(prop)));
     out.push(act({ ...base, kind: "harvest", label: farming.isWet(prop) ? `Growing (ready in about ${days} day${days > 1 ? "s" : ""})` : `Dry: waiting for water (about ${days} more day${days > 1 ? "s" : ""} of growth)`, enabled: false }));
@@ -773,7 +773,7 @@ export function cropReport(prop) {
     parts.push(wet ? `ready in ${left}` : `${left} of growing left`, wet ? "watered" : "dry, waiting for water");
   }
   parts.push("not fertilized"); // nothing fertilizes yet (the composter, #275's Farming)
-  parts.push(def.tool ? `harvest with a ${toolName(def.tool)}` : "harvest by hand");
+  parts.push(def.tool ? `harvest with ${toolName(def.tool)}` : "harvest by hand");
   return `${name}: ${parts.join("; ")}.`;
 }
 
@@ -1563,7 +1563,7 @@ export function itemMenu(player, entry, bag, otherBag) {
     const s = def.splitsInto;
     const noAxe = toolProblem(player, tuning.world.splitTool); // splitting is hatchet work (#215)
     out.push({
-      label: `Split into ${s.count} ${getItem(s.id).name.toLowerCase()}s${noAxe ? ` (need a ${toolName(tuning.world.splitTool)})` : ""}`,
+      label: `Split into ${countName(s.id, s.count)}${noAxe ? ` (need ${toolName(tuning.world.splitTool)})` : ""}`,
       enabled: !noAxe,
       onSelect: () => {
         if (toolProblem(player, tuning.world.splitTool)) { showMessage(toolProblem(player, tuning.world.splitTool)); return; }
@@ -1828,7 +1828,7 @@ export function stampFromGuest(player, id, kind) {
   const def = getDef(prop.sprite);
   if (!prop.interactable || def.sway === false || def.clickAnim) return false;
   const now = loop.simTime() * 1000;
-  if (!prop.pokedAt || now - prop.pokedAt >= POKE_COOLDOWN_MS) stamp(prop, now);
+  if (prop.pokedAt == null || now - prop.pokedAt >= POKE_COOLDOWN_MS) stamp(prop, now);
   return true;
 }
 
@@ -1838,7 +1838,7 @@ export function pokeAt(sx, sy, player) {
   const def = getDef(prop.sprite);
   if (def.sway === false || def.clickAnim) return prop;
   const now = loop.simTime() * 1000; // sim milliseconds (docs/23a, C2); the renderer reads the same clock
-  if (inReach(prop, player) && (!prop.pokedAt || now - prop.pokedAt >= POKE_COOLDOWN_MS)) stamp(prop, now);
+  if (inReach(prop, player) && (prop.pokedAt == null || now - prop.pokedAt >= POKE_COOLDOWN_MS)) stamp(prop, now);
   return prop;
 }
 
@@ -1863,7 +1863,7 @@ export function brushThrough(ch) {
   const def = getDef(prop.sprite);
   if (def.sway === false || def.clickAnim) return;
   const now = loop.simTime() * 1000;
-  if (!prop.pokedAt || now - prop.pokedAt >= BRUSH_MS) stamp(prop, now);
+  if (prop.pokedAt == null || now - prop.pokedAt >= BRUSH_MS) stamp(prop, now);
 }
 
 // ---- characters under the cursor (docs/19) ----
@@ -2114,7 +2114,7 @@ export function play(prop) {
   if (!anim) return false;
   const now = loop.simTime() * 1000; // sim milliseconds (docs/23a, C2)
   const total = anim.ms.reduce((a, b) => a + b, 0);
-  if (prop.playedAt && now - prop.playedAt < total) return false;
+  if (prop.playedAt != null && now - prop.playedAt < total) return false;
   stamp(prop, now, "playedAt");
   return true;
 }

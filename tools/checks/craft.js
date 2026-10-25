@@ -212,6 +212,10 @@ export async function run(game) {
         if (!r.ok) row(`the workbench makes the ${id.replace(/_/g, " ")} (docs/43 section 4)`, false, r.detail);
       }
       row("the workbench makes the cupboard, desk, bookcase, counter, chair, cart, stall, barrel, jack-o'-lantern, and torch post (docs/43 section 4)", bench2.every((x) => x.endsWith(": ok")), bench2.join("; "));
+      // A made prop lands on tiles that are all free: a counter's three once stood over the workbench's own, and the bench left the map
+      // (its record kept), so a second run of this check found another bench behind a wall.
+      const benchHeld = bench.tiles.every(([x, y]) => map.peekTile(x, y).prop === bench);
+      row("every made thing landed on free tiles: the workbench still stands on all its own", benchHeld, bench.tiles.map(([x, y]) => `${x},${y}: ${(map.peekTile(x, y).prop || { sprite: "nothing" }).sprite}`).join("; "));
       if (anvil) {
         const held = p.hands.main;
         const hammer = G.items.makeEntry("hammer", 1);
@@ -288,6 +292,13 @@ export async function run(game) {
     for (const [e, n] of counts0) e.count = n;
     G.teleport(saved.gx, saved.gy);
     G.loop.setPaused(wasPaused);
+  }
+  // What a second run in this page needs (docs/bugs.md: the second run once met "There is a wall in the way"): the same workbench found
+  // again, standing on its tiles, and nothing the check made left on the map.
+  if (bench) {
+    const again = find("workbench");
+    const left = made.filter((q) => map.propById(q.id) === q);
+    row("the page is left as found: the same workbench found again on its tiles, and nothing the check made still stands", again === bench && left.length === 0, `found ${again ? `${again.id} at ${again.tile}` : "none"} (was ${bench.id}); ${left.length} left`);
   }
   const failed = rows.filter((r) => r.result === "FAIL").length;
   console.table(rows);

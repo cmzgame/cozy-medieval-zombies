@@ -11,6 +11,7 @@
 // character put back into the world (the browser rebakes its sheet).
 
 import * as game from "./game.js";
+import * as stations from "./stations.js"; // the craft-done line
 import * as map from "./map.js";
 import * as net from "./net.js";
 import * as figure from "./figure.js";
@@ -266,7 +267,7 @@ export function install() {
   // A craft done: a line in the log of every guest whose player stands near (the stations step outside any acting player).
   events.on("craftDone", ({ out, tile }) => {
     if (!net.isHost()) return;
-    const line = `Made ${out.prop ? out.prop.replace(/_/g, " ") : `${out.count > 1 ? `${out.count} ` : ""}${items.getItem(out.id).name.toLowerCase()}`}.`;
+    const line = stations.doneLine(out); // "Made 5 arrows.", "Made a counter." (the host's log and a guest's alike)
     for (const id of net.guestPlayerIds()) {
       const p = S.players.find((q) => q.id === id);
       if (p && Math.hypot(tile[0] - p.gx, tile[1] - p.gy) <= tuning.world.craftDoneRadius) net.logTo(id, line, "result");

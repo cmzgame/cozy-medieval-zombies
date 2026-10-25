@@ -162,6 +162,11 @@ export async function run(game, opts = {}) {
     dyePanel.update(me);
     const beltCard = info.textOf(info.cardFor(belt));
     row("black with the belt's own brass buckle reads brass in the picker and on the card, not undyed", /^leather black, buckle brass$/i.test(picked) && beltCard.some((l) => l.includes("Black and brass")) && !beltCard.some((l) => /undyed/i.test(l)), `${picked} | ${beltCard.join(" | ")}`);
+    // A hood looted from the dead wears its wardrobe's colour, which no vat gives: its card names it in a plain word, never the hex.
+    const looted = G.items.makeEntry("hood", 1, { colour: "#705848" });
+    const lootedCard = info.textOf(info.cardFor(looted));
+    const lootedState = info.cardFor(looted).state || "";
+    row("a looted hood in a colour no dye gives reads \"Brownish\" on its card, never \"#705848\"", /Brownish/.test(lootedState) && !lootedCard.some((l) => /#[0-9a-f]{6}/i.test(l)), `${lootedState} | ${lootedCard.join(" | ")}`);
     // Everything carried is listed: a rucksack worn with a satchel in it, and gloves on a worn belt's slot (put there by hand: no
     // dyeable thing rides a belt today, the walk is the guard). The worn things and the bag are put back in the finally.
     const ruck = G.items.makeEntry("rucksack", 1);

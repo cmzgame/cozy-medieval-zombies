@@ -1913,7 +1913,7 @@ check("saplings and sticks: dropped at their chance, planted by the host and a g
   const labels = (p) => interactMod.actionsForTarget({ kind: "prop", id: p.id }, me).map((a) => `${a.label}${a.enabled === false ? " [off]" : ""}${a.local ? " [local]" : ""}`);
   const sl = labels(s2);
   assert(sl.includes("Inspect [local]") && sl.includes("Pick up sapling") && !sl.some((l) => /Take apart|Gather sticks/.test(l)), `the sapling's menu: ${sl.join(", ")}`);
-  assert(/a tree in about 5 days/.test(treesMod.report(s2)), treesMod.report(s2));
+  assert(/an oak in about 5 days/.test(treesMod.report(s2)), treesMod.report(s2));
   // Growing: the looks once a checkSeconds, the stages, then the oak. Nobody stands on the first; the player stands on the second.
   me.gx = s2.tile[0]; me.gy = s2.tile[1];
   const look = () => { gameMod.begin(0); clock.setElapsed(clock.getElapsed() + T.checkSeconds); };
@@ -2013,7 +2013,7 @@ check("saplings and sticks: dropped at their chance, planted by the host and a g
   assert(s3b && s3b.sapling && s3b.sapling.at === s3.sapling.at && s3b.sapling.waited === 77 && treeB && treeB.sticksAt === tree.sticksAt, `after the save: ${s3b && JSON.stringify(s3b.sapling)}, sticksAt ${treeB && treeB.sticksAt}`);
   // The cards.
   const card = (id) => itemInfoMod.textOf(itemInfoMod.cardFor(itemsMod.makeEntry(id, 1))).join(" | ");
-  assert(card("sapling") === "Sapling | Seedling | Place: plant on open grass outdoors. | Grows into a tree in about 5 game days; it waits while anyone stands on it. | Sometimes dropped by a felled tree (about 1 in 3). | Right-click for actions.", card("sapling"));
+  assert(card("sapling") === "Sapling | Seedling | Place: plant on open grass outdoors. | Grows into an oak in about 5 game days; it waits while anyone stands on it. | Sometimes dropped by a felled tree (about 1 in 3). | Right-click for actions.", card("sapling"));
   assert(card("stick").includes("Gathered under any standing tree, 1 to 2 a day from each tree."), card("stick"));
   return `${n1} saplings in 1000 fellings at ${chance0}; planted by the host and a guest's command; refused indoors, on a road, tilled soil, and against a wall; an oak after ${T.sapling.days} days, the one stood on after ${left.toFixed(2)} more; an apple tree's sapling an apple tree, kept through a pick-up, held back by a wall with its reason said; sticks ${got} once a day; the stamps saved; the cards`;
 });
@@ -2146,8 +2146,9 @@ check("hover card: every name that reaches a plural or a lower-cased line reads 
   const irregular = /(s|x|z|ch|sh|[^aeiou]y|[^f]f|fe|man|foot|tooth|mouse|sheep|deer|fish|child)$/i;
   for (const d of itemsJson) {
     if (!d.splitsInto) continue;
-    const name = byId.get(d.splitsInto.id).name;
-    if (irregular.test(name)) bad.push(`${d.id} splits into "${name}", whose plural is not +s`);
+    const into = byId.get(d.splitsInto.id);
+    const name = into.name;
+    if (irregular.test(name) && !into.plural && !into.noun) bad.push(`${d.id} splits into "${name}", whose plural is not +s (give it a \`plural\` or a \`noun\`)`);
     if (/[A-Z]/.test(name.slice(1))) bad.push(`${d.id} splits into "${name}", which keeps a capital`);
   }
   for (const r of recipes) {
@@ -2163,6 +2164,194 @@ check("hover card: every name that reaches a plural or a lower-cased line reads 
   assert(!bad.length, bad.join("; "));
   const lines = itemsJson.flatMap((d) => itemInfoMod.textOf(itemInfoMod.cardFor(itemsMod.makeEntry(d.id, 1))).filter((l) => /^(Splits into|A sawpit|Goes into|Builds)/.test(l)));
   return `every name regular; ${lines.length} such lines on the cards today`;
+});
+
+// An item's name counted in a sentence (src/items.js countName; docs/bugs.md, the butcher's "3 raw venisons"): a definition's `noun` "mass"
+// reads "some lard" and "3 raw venison", "pair" reads "shears", and anything else "a"/"an" and +s. Every yield and product an animal gives is
+// read in the skin, butcher, milk, and shear lines this way.
+check("item names counted: mass nouns, pairs, and +s (the butcher's and the shears' words)", () => {
+  const cn = itemsMod.countName;
+  const want = [["venison_raw", 3, "3 raw venison"], ["bacon", 2, "2 bacon"], ["lard", 1, "some lard"], ["wool", 2, "2 wool"], ["feather", 4, "4 feathers"], ["hide", 1, "a hide"], ["egg", 1, "an egg"], ["milk", 1, "a jug of milk"], ["milk", 2, "2 jugs of milk"], ["bread", 2, "2 loaves of bread"], ["honey", 3, "3 pots of honey"], ["charcoal", 1, "some charcoal"], ["charcoal", 6, "6 charcoal"], ["shears", 1, "shears"], ["shears", 2, "2 shears"], ["gloves", 1, "work gloves"], ["hammer", 1, "a smith's hammer"]];
+  const bad = want.filter(([id, n, s]) => cn(id, n) !== s).map(([id, n, s]) => `${id} x${n}: "${cn(id, n)}", not "${s}"`);
+  const animals = read("data/animals.json").species;
+  for (const [sp, d] of Object.entries(animals)) {
+    const ids = [...Object.values(d.yields || {}).flat().map((y) => y.id), ...(d.produce ? [d.produce.item] : [])];
+    for (const id of ids) if (/(ss|[^aeiou]y|[^s]s)$/.test(itemsMod.nounName(id)) && !itemsMod.getItem(id).noun && !itemsMod.getItem(id).plural) bad.push(`${sp}'s ${id} has a name that will not take +s`);
+  }
+  // A name of more than one word joined by "of" or "and" ("Jug of milk", "Eggs and bacon") never takes +s at its end ("2 jug of milks"):
+  // every such item, wherever it is counted, names its plural or its noun.
+  for (const d of read("data/items.json")) if (/ (of|and) /i.test(d.name) && !d.noun && !d.plural) bad.push(`${d.id} ("${d.name}") wants a \`plural\` or a \`noun\``);
+  assert(!bad.length, bad.join("; "));
+  return want.map(([id, n]) => cn(id, n)).join(", ");
+});
+
+// Milking asks for an empty bucket (docs/45 section 3; docs/bugs.md): a bucket of water in a hand must not hide an empty one in the bag, as
+// carriedTool's first bucket, the hand's, once did. The verb runs on the host for a guest's label alike.
+const animalMod = await import("../src/entities/animal.js");
+const gridMod = await import("../src/grid.js");
+check("milking: a bucket of water in hand and an empty one in the bag milks; the water stays; one of water alone is refused", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  const cow = animalMod.createAnimal("cow", me.gx, me.gy, { home: [me.gx, me.gy] });
+  S.animals.push(cow);
+  cow.fedDay = animalMod.today();
+  cow.takenDay = -1;
+  const bag = inventoryMod.bagOf(me);
+  bag.items = [];
+  const main0 = me.hands.main;
+  const off0 = me.hands.off;
+  try {
+    me.hands.main = null;
+    me.hands.off = null;
+    const none = animalMod.produceProblem(me, cow);
+    const wet = itemsMod.makeEntry("bucket", 1, { fill: 50 });
+    me.hands.main = wet;
+    const wetOnly = animalMod.produceProblem(me, cow);
+    const dry = itemsMod.makeEntry("bucket", 1);
+    gridMod.insert(bag, dry);
+    const both = animalMod.produceProblem(me, cow);
+    const r = verbsMod.run("milk", worldMod.world, me, { character: cow.id });
+    assert(none === "You need a bucket.", `no bucket: "${none}"`);
+    assert(wetOnly === "Empty the bucket first.", `a bucket of water alone: "${wetOnly}"`);
+    assert(both === "", `a bucket of water in hand and an empty one in the bag: "${both}"`);
+    assert(r.ok && inventoryMod.countItem(bag, "milk") >= 1 && wet.fill === 50, `milked: ${JSON.stringify(r)}, milk ${inventoryMod.countItem(bag, "milk")}, the hand's water ${wet.fill}`);
+    return `${none} / ${wetOnly} / milked: ${r.message}`;
+  } finally {
+    me.hands.main = main0;
+    me.hands.off = off0;
+    S.animals.splice(S.animals.indexOf(cow), 1);
+  }
+});
+
+// A made prop lands on tiles that are all free (docs/bugs.md: check("craft") run twice): a counter, three tiles, made at the joiner's
+// workbench once stood over the bench's own tiles and took the bench off the map, its record kept.
+check("crafting: a made counter lands on free tiles, never over the workbench that made it", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  const benches = mapMod.allProps().filter((q) => q.sprite === "workbench" && mapMod.peekTile(q.tile[0], q.tile[1]).prop === q);
+  assert(benches.length, "no workbench in the loaded chunks");
+  const said = [];
+  for (const bench of benches) {
+    // The tile below the bench taken (a chest the check sets there, as the pane check's own chests are), so the nearest anchor is one a
+    // tile up and to the left, from which a three-tile counter reaches over the bench.
+    const [bx0, by0] = [bench.tile[0], bench.tile[1] + 1];
+    let blocker = null;
+    if (mapMod.isWalkableTile(bx0, by0) && !mapMod.tileAt(bx0, by0).prop) {
+      blocker = mapMod.createProp({ sprite: "chest", tile: [bx0, by0] });
+      mapMod.placeProp(blocker, bx0, by0);
+      // A bench whose one way out is that tile (a market stall's) is shut in by it: the chest comes away again.
+      if (stationsMod.roomProblem(bench, stationsMod.recipe("counter"))) { mapMod.removeProp(blocker); blocker = null; }
+    }
+    const stand = mapMod.nearestWalkable(bench.tile[0], bench.tile[1] + 1, (x, y) => !!mapMod.tileAt(x, y).prop || !bench.tiles.some(([bx, by]) => lineOfSight(x, y, bx, by)));
+    me.gx = stand[0];
+    me.gy = stand[1];
+    const bag = inventoryMod.bagOf(me);
+    bag.items = [];
+    inventoryMod.addItem(bag, "plank", 8);
+    me.hands.main = itemsMod.makeEntry("hammer", 1); // the tool rule (#215): carried
+    const before = new Set(mapMod.allProps().map((q) => q.id));
+    const r = verbsMod.run("craft", worldMod.world, me, { prop: bench.id }, { recipe: "counter", count: 1 });
+    if (!r.ok && r.reason === "There is no room beside it for a counter.") {
+      // A bench in a room too full for a counter (the market's p890: the old search put it outside the wall) is refused, not crowded.
+      if (blocker) mapMod.removeProp(blocker);
+      said.push(`${bench.id}: no room in its own room, refused`);
+      continue;
+    }
+    assert(r.ok, `the craft at ${bench.id}: ${r.reason}`);
+    for (let i = 0; i < 60 * 12 && bench.queue && bench.queue.length; i++) stationsMod.update(1 / 60);
+    const counter = mapMod.allProps().find((q) => !before.has(q.id) && q.sprite === "counter");
+    assert(counter, `no counter landed at ${bench.id}`);
+    const held = bench.tiles.every(([x, y]) => mapMod.peekTile(x, y).prop === bench);
+    const own = counter.tiles.every(([x, y]) => mapMod.peekTile(x, y).prop === counter);
+    if (blocker) mapMod.removeProp(blocker);
+    assert(held && own, `${bench.id}: the bench on its tiles ${held}, the counter on all of its ${own} (${counter.tiles.join(" ")})`);
+    const onMe = counter.tiles.some(([x, y]) => Math.hypot(me.gx - x, me.gy - y) < 0.7);
+    const room0 = mapMod.tileAt(stand[0], stand[1]).room;
+    const sameRoom = counter.tiles.every(([x, y]) => mapMod.tileAt(x, y).room === room0);
+    assert(!onMe && sameRoom, `${bench.id}: the counter ${onMe ? "stands on the crafter" : ""}${sameRoom ? "" : " is in another room than the crafter's"} (${counter.tiles.join(" ")}, the crafter at ${stand})`);
+    said.push(`${bench.id} at ${bench.tiles.join(" ")}, its counter at ${counter.tiles.join(" ")}`);
+    mapMod.removeProp(counter);
+  }
+  return said.join("; ");
+});
+
+// A made prop with no room beside its station is never lost (the review of #466): the craft is refused before anything is spent, with a
+// line saying why; a job whose room filled after it began waits at the head of the queue and lands once there is room.
+check("crafting: no room beside the station refuses the make before it spends anything, and a job that lost its room waits for it", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  const bench = mapMod.allProps().find((q) => q.sprite === "workbench" && mapMod.peekTile(q.tile[0], q.tile[1]).prop === q);
+  assert(bench, "no workbench in the loaded chunks");
+  const stand = mapMod.nearestWalkable(bench.tile[0], bench.tile[1] + 1, (x, y) => !!mapMod.tileAt(x, y).prop || !bench.tiles.some(([bx, by]) => lineOfSight(x, y, bx, by)));
+  me.gx = stand[0];
+  me.gy = stand[1];
+  const bag = inventoryMod.bagOf(me);
+  bag.items = [];
+  inventoryMod.addItem(bag, "plank", 8);
+  me.hands.main = itemsMod.makeEntry("hammer", 1);
+  // Every tile a body could walk to from beside the bench, within the search's reach and a margin: a chest on each.
+  const reached = [];
+  const seen = new Set(bench.tiles.map(([x, y]) => `${x},${y}`));
+  let ring = bench.tiles.slice();
+  for (let step = 0; step < 16 && ring.length; step++) {
+    const next = [];
+    for (const [x, y] of ring) for (const [dx, dy] of [[0, 1], [1, 0], [-1, 0], [0, -1]]) {
+      const k = `${x + dx},${y + dy}`;
+      if (seen.has(k) || !mapMod.canStep(x, y, x + dx, y + dy)) continue;
+      seen.add(k);
+      next.push([x + dx, y + dy]);
+    }
+    reached.push(...next);
+    ring = next;
+  }
+  const fill = (tiles) => tiles.filter(([x, y]) => !mapMod.tileAt(x, y).prop).map(([x, y]) => { const c = mapMod.createProp({ sprite: "chest", tile: [x, y] }); mapMod.placeProp(c, x, y); return c; });
+  let chests = fill(reached);
+  const planks0 = inventoryMod.countItem(bag, "plank");
+  const refused = verbsMod.run("craft", worldMod.world, me, { prop: bench.id }, { recipe: "counter", count: 1 });
+  const kept = inventoryMod.countItem(bag, "plank") === planks0;
+  for (const c of chests) mapMod.removeProp(c);
+  assert(!refused.ok && refused.reason === "There is no room beside it for a counter." && kept, `with no room: ${JSON.stringify(refused)}, planks kept ${kept}`);
+  // Begun with room, the room filled before it is done: no counter and no word yet, the job kept; the room freed, it lands.
+  let done = null;
+  const hear = (e) => { done = e; };
+  eventsMod.on("craftDone", hear);
+  try {
+    const r = verbsMod.run("craft", worldMod.world, me, { prop: bench.id }, { recipe: "counter", count: 1 });
+    assert(r.ok, `with room: ${r.reason}`);
+    chests = fill(reached);
+    for (let i = 0; i < 60 * 12; i++) stationsMod.update(1 / 60);
+    const waiting = !done && bench.queue && bench.queue.length === 1 && !mapMod.allProps().some((q) => q.sprite === "counter" && q.made);
+    for (const c of chests) mapMod.removeProp(c);
+    for (let i = 0; i < 90 && bench.queue && bench.queue.length; i++) stationsMod.update(1 / 60);
+    const landed = mapMod.allProps().find((q) => q.sprite === "counter" && q.made);
+    assert(waiting && landed && done && stationsMod.doneLine(done.out) === "Made a counter.", `waiting ${waiting}; landed ${landed ? landed.tiles.join(" ") : "no"}; the line ${done ? stationsMod.doneLine(done.out) : "none"}`);
+    if (landed) mapMod.removeProp(landed);
+  } finally {
+    eventsMod.off && eventsMod.off("craftDone", hear);
+  }
+  const arrows = stationsMod.doneLine({ id: "arrow", count: 5 });
+  assert(arrows === "Made 5 arrows.", `the arrows' line: "${arrows}"`);
+  return `refused: "${refused.reason}"; ${reached.length} tiles filled; the job waited and landed; "${arrows}"`;
+});
+
+// A colour no dye gives, on a garment from the dead (docs/bugs.md: a looted hood's card read "#705848"): a plain word, read from the colour;
+// a dye's own hex keeps its name and an item's own colour reads Undyed. Every wardrobe colour reads as a word.
+check("dye words: a wardrobe's colour no vat gives reads a plain word on the card, never its hex", () => {
+  const hood = itemsMod.makeEntry("hood", 1, { colour: "#705848" });
+  const state = itemInfoMod.cardFor(hood).state;
+  assert(/Brownish/.test(state) && !/#/.test(state), `the hood's card: "${state}"`);
+  assert(dyeMod.regionWord("#3e5e90", "#000000") === "Woad blue" && dyeMod.regionWord("#5f8a3a", "#5f8a3a") === "Undyed", "a dye's hex or an own colour lost its word");
+  // A vivid colour keeps its hue: a red and a gold no dye gives are not "brownish" (the review of #466).
+  assert(dyeMod.colourFamily("#c03030") === "reddish" && dyeMod.colourFamily("#c8a020") === "yellowish", `a red reads ${dyeMod.colourFamily("#c03030")}, a gold ${dyeMod.colourFamily("#c8a020")}`);
+  const hexes = new Set();
+  const walk = (o) => { if (Array.isArray(o)) o.forEach(walk); else if (o && typeof o === "object") for (const [k, v] of Object.entries(o)) { if (k === "colour" && typeof v === "string") hexes.add(v); if (k === "colours" && Array.isArray(v)) v.forEach((x) => typeof x === "string" && hexes.add(x)); walk(v); } };
+  walk(read("data/wardrobes.json"));
+  const bad = [...hexes].filter((h) => /#/.test(dyeMod.regionWord(h, "#000001")));
+  assert(!bad.length, `read as a hex: ${bad.join(", ")}`);
+  return `${state}; ${hexes.size} wardrobe colours, each a word`;
 });
 
 // A fallen host's screen stays its body when a friend joins (the review of #465, #102): a world whose only player has fallen is

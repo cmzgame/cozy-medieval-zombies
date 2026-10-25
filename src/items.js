@@ -59,6 +59,29 @@ export function allItems() {
   return [...items.values()];
 }
 
+// An item's name in a sentence, lower-cased: with its article (`aName`), its plural (`pluralName`), or a count (`countName`). A definition's
+// `noun` says how it counts: "mass" (venison, lard, wool: "some lard", "3 raw venison"), "pair" (shears, breeches: "shears", "2 shears");
+// its `plural` names a plural that is not +s. Anything else is "a"/"an" and +s ("a feather", "3 feathers").
+export function nounName(id) {
+  return hasItemDef(id) ? getItem(id).name.toLowerCase() : String(id).replace(/_/g, " ");
+}
+export function pluralName(id) {
+  const def = items.get(id);
+  if (def && def.plural) return def.plural;
+  const name = nounName(id);
+  return def && (def.noun === "mass" || def.noun === "pair") ? name : `${name}s`;
+}
+export function aName(id) {
+  const def = items.get(id);
+  const name = nounName(id);
+  if (def && def.noun === "mass") return `some ${name}`;
+  if (def && def.noun === "pair") return name;
+  return `${/^[aeiou]/.test(name) ? "an" : "a"} ${name}`;
+}
+export function countName(id, n) {
+  return n === 1 ? aName(id) : `${n} ${pluralName(id)}`;
+}
+
 // The tool whose `verbs` list a verb (the first), or null: what a refusal names ("You need a smith's hammer.").
 export function toolFor(verb) {
   return allItems().find((i) => i.kind === "tool" && (i.verbs || []).includes(verb)) || null;

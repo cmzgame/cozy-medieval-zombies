@@ -170,8 +170,7 @@ export function costOf(what) {
 }
 
 function noun(id, n) {
-  const name = items.hasItemDef(id) ? items.getItem(id).name.toLowerCase() : id;
-  return n === 1 ? name : `${name}s`;
+  return n === 1 ? items.nounName(id) : items.pluralName(id);
 }
 
 // "1 log", "3 planks", or "free".
