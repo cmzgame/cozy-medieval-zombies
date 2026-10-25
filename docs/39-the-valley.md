@@ -76,7 +76,7 @@
 
 ### Structure
 
-- **Wall lanterns** [built]: 33 on the valley's walls, always lit, each a point of light (5.12).
+- **Wall lanterns** [built]: 33 on the valley's walls, each a point of light (5.12) [change: put out and lit again (2026-10-25, `43`)].
 - **Rooms** [built]: found by flood fill; a shed, hut, or forest cabin is one room, a house at least two; no roofs, one storey.
 - **A log wall** [built]: a log, with a hatchet carried.
 - **A door** [built]: three planks, with a smith's hammer; stamped over a wall, of the wall's material; starts closed; blocks sight and bodies.
@@ -115,12 +115,12 @@
 
 - **Bed** [built]: sleep (indoors); carried; made at the workbench.
 - **Chest** [built]: a container; carried; made at the workbench.
-- **Shelf, cupboard, desk, bookcase, strongbox, counter, coffin, haystack, woodpile, cart, stall** [built]: containers, each kind with its own loot table (2026-10-24, #268): shelf and cupboard the pantry, woodpile its wood, cart and stall the market, bookcase and desk nothing until books, strongbox nothing until gems and trinkets, coffin grave goods, counter the inn's, haystack a stick; the shelf is made [change: the cupboard, desk, bookcase, counter at Crafting 1, the cart and stall at Crafting 5, the strongbox at the anvil (Blacksmithing 3); the coffin, haystack, and woodpile stay one of a kind (2026-10-25, `43`)].
+- **Shelf, cupboard, desk, bookcase, strongbox, counter, coffin, haystack, woodpile, cart, stall** [built]: containers, each kind with its own loot table (2026-10-24, #268): shelf and cupboard the pantry, woodpile its wood, cart and stall the market, bookcase and desk nothing until books, strongbox nothing until gems and trinkets, coffin grave goods, counter the inn's, haystack a stick; the shelf is made [change: the cupboard, desk, bookcase, counter at Crafting 1, the cart and stall at Crafting 5, the strongbox at the anvil (Blacksmithing 3); the coffin, haystack, and woodpile stay one of a kind (2026-10-25, `43` section 5)].
 - **Barrel** [built]: a container (one or two apples or a waterskin, empty half the time; #268); carried [change: made at the workbench, four planks and an iron bar, Crafting 3 (2026-10-25, `43`)].
 - **Wheelbarrow** [built]: a big empty container, carried like a barrel; made at the workbench.
 - **Stone stack, ore cart, charcoal sack** [built]: containers that hold their material.
 - **The Developer Chest** [built]: section 15.
-- **Table, chair, bench, pew, lectern** [built]: furniture, carried; table and bench made. Sitting [to build] (`docs/32`'s pose).
+- **Table, chair, bench, pew, lectern** [built]: furniture, carried; table and bench made [change: the chair at the workbench, Crafting 1; the pew and the lectern stay the chapel's (2026-10-25, `43`)]. Sitting [to build] (`docs/32`'s pose).
 - **Well** [built]: drink, fill skins and buckets; its winch; rooted.
 - **Trough** [built]: drink and fill, as the well [open #279: natural water or not].
 - **Font** [built]: fill a bucket [open #279: natural water or not].
@@ -145,7 +145,7 @@ One panel for every station; ingredients from the bag, the belt, and every conta
 - **Loom** [built] (the weaver's): linen cloth (two flax); two bandages (a cloth); a linen cap, linen breeches, a linen tunic (one, two, three cloth). Unlock: open to all today [change: Crafting 1 names linen cloth, bandages, and the cap] [change: the tunic and the breeches too, Crafting 1: they are clothes (ruled 2026-10-23)]. Woollen cloth and warm clothes (Crafting 6) [to build]; a leather jerkin at Crafting 3 (ruled 2026-10-23) [to build].
 - **Forge** [built] (the smithy's): an iron bar from two iron ore; burns charcoal. Unlock: Blacksmithing 1. Silver (Blacksmithing 5) [to build]; less charcoal a bar (Blacksmithing 2) [change: charcoal is the fire's fuel today, not an ingredient].
 - **Anvil** [built] (the smithy's; a smith's hammer in hand, except for forging the hammer itself): a dirk, a smith's hammer, a hatchet, a pickaxe (Blacksmithing 1); a scythe, a throwing spear, a flanged mace, an arming sword [change: Blacksmithing 3]; repair (Blacksmithing 4), silver work (5), mail and plate (7) [to build].
-- **Cooking at a fire** [built] (any lit fire that cooks: the nineteen fireplaces, a hearth, a campfire): a roast potato, stew, porridge, grilled perch, trout, and carp. Unlock: Cooking 1 [change: the stew is not among Cooking 1's plain recipes] [change: the stew splits, a plain pottage at Cooking 1 and the hearty stew with its buff at Cooking 4 (ruled 2026-10-23)]. Boiling water safe (Cooking 1) [to build].
+- **Cooking at a fire** [built] (any lit fire that cooks: the nineteen fireplaces, a hearth, a campfire [change: and the oven, `43` section 3]): a roast potato, stew, porridge, grilled perch, trout, and carp. Unlock: Cooking 1 [change: the stew is not among Cooking 1's plain recipes] [change: the stew splits, a plain pottage at Cooking 1 and the hearty stew with its buff at Cooking 4 (ruled 2026-10-23)]. Boiling water safe (Cooking 1) [to build].
 - **Oven** [built] (the baker's): a loaf of bread (two flour), a pumpkin pie (a pumpkin and flour) [change: pie at Cooking 6]. [change: the oven cooks the fire's recipes too (`43` section 2: a bug stops it today).]
 - **Millstones** [built] (the mill's): flour from two grain; no fire. Unlock: Cooking 1 (ruled 2026-10-23).
 - **Charcoal clamp** [built] (the smithy's yard, three at the burners): three charcoal from four logs over half a game day, lit, a log of fuel a day. Unlock: Blacksmithing 1 (ruled 2026-10-23).
@@ -417,11 +417,11 @@ The staff-and-book proposal (#275), proposed, not ruled, except the parts marked
 
 ### 5.12 Light sources
 
-- **Torch** [built]: radius 3; starts unlit; lit with a tinderbox, a lit torch, a lantern, or a lit fire; doused with T; burns down (fastest in hand, slower on the belt, a post, or a bracket; a kill costs more); belt and hand never stack. Longer-burning with pitch (Woodcutting 3) or fish oil (Fishing 5) [to build].
-- **Lantern post** [built]: the village's lights, always lit, never out.
-- **Wall lanterns** [built]: 33 in the valley's buildings (`brackets[].lantern` in `data/maps/valley.json`), always lit, each a point of light of 3.4 tiles like a lantern post (`src/light.js`), light a torch held to them, and cannot be taken.
+- **Torch** [built]: radius 3; starts unlit; lit with a tinderbox, a lit torch, a lantern, or a lit fire; put out with T [change: "douse" today, 2026-10-25]; burns down (fastest in hand, slower on the belt, a post, or a bracket; a kill costs more); belt and hand never stack. Longer-burning with pitch (Woodcutting 3) or fish oil (Fishing 5) [to build].
+- **Lantern post** [built]: the village's lights [change: put out and lit again (2026-10-25, `43`)].
+- **Wall lanterns** [built]: 33 in the valley's buildings (`brackets[].lantern` in `data/maps/valley.json`), each a point of light of 3.4 tiles like a lantern post (`src/light.js`), light a torch held to them, and cannot be taken [change: put out and lit again (2026-10-25, `43`)].
 - **A carried lantern** [to build]: more light than a torch on the belt; its fuel fish oil (Fishing 5); made at Blacksmithing 4 (ruled 2026-10-23).
-- **Fireplaces and hearths** [built]: light their room.
+- **Fireplaces and hearths** [built]: light their room [change: switches, on and off, no fuel (2026-10-25, `43`)].
 - **Campfire, torch post, wall bracket, jack-o'-lantern** [built in the data]: section 2 (ruled 2026-10-25, `43`).
 - **The charcoal clamp** [built]: a tiny light.
 - **Candles** [to build]: from wax (Beastlore 5).
@@ -592,7 +592,7 @@ A skill's level gate stops a player harvesting the food it gates, ripe fields in
 ### Woodcutting (gathering; every wood feeds bows, furniture, or both)
 1. Felling oak, the common tree; a stump left; oak makes the basic furniture and bow [change: any tree today].
 2. Chops 10% faster.
-3. Spruce: sturdier furniture; resin for pitch (longer torches, waterproofing).
+3. Spruce: sturdier furniture; resin for pitch (longer torches, waterproofing); the sawpit, logs to planks with no hatchet (`43`).
 4. Uprooting stumps with a shovel, the tile cleared for good; felling sometimes drops a sapling to plant [change].
 5. Mahogany: fine furniture, a better bow.
 6. +1 log a tree.
@@ -642,7 +642,7 @@ A skill's level gate stops a player harvesting the food it gates, ripe fields in
 2. One more hide or cut of meat from anything skinned.
 3. Tracking; snares for rabbits.
 4. Pens: cows (milk, cheese, butter) and sheep (wool).
-5. Bees: a hive (honey, wax).
+5. Bees: a hive (honey, wax); the village's beehives give honey every few days (`43`).
 6. Penned animals give more, and breed.
 7. Pigs and boar: pork, bacon, lard.
 8. The snow region's beasts (the Pale Reach).
@@ -674,10 +674,10 @@ A skill's level gate stops a player harvesting the food it gates, ripe fields in
 10. The feast.
 
 ### Blacksmithing (production; weapons and metal armour at the forge and anvil)
-1. Smelting iron; the dirk, smith's hammer, hatchet, pickaxe (as now).
-2. Less charcoal a bar [change].
-3. The iron weapons: the sword, mace, spear, scythe [change].
-4. Repairing at the anvil, a stop-gap: each repair gives back less; made weapons and tools only.
+1. Smelting iron; the dirk, smith's hammer, hatchet, pickaxe (as now); wall brackets (`43`).
+2. Less charcoal a bar [change]; sharpening at a grindstone, to 60, 40, then 20% (`43`).
+3. The iron weapons: the sword, mace, spear, scythe [change]; the strongbox (`43`).
+4. Repairing at the anvil, a stop-gap: each repair gives back less, to 100, 80, then 60% on the count the grindstone shares (`43`); made weapons and tools only.
 5. Silver work (#283).
 6. One more bar a smelt.
 7. Metal armour: mail and plate, modest (#133).
@@ -687,11 +687,11 @@ A skill's level gate stops a player harvesting the food it gates, ripe fields in
 Later, not at the start: gems inlaid in metal armour.
 
 ### Crafting (production; by hand at the workbench and the loom)
-1. Sticks, torches, rags, oak furniture, a bucket; linen cloth, bandages, a linen cap (as now).
+1. Sticks, torches, rags, oak furniture (the chair, cupboard, desk, bookcase, and counter among it), a bucket, torch posts, the jack-o'-lantern; linen cloth, bandages, a linen cap (as now; `43`).
 2. Crafts 10% faster; two bandages from a cloth [change: one a cloth at Crafting 1; today's recipe gives two] (ruled 2026-10-23; a bandage also heals modestly under its stop-bleed, more than an apple, tuned in the food pass).
-3. Leatherwork: hides tanned, a leather belt, the first sewn bag [change: the leather belt is found today].
+3. Leatherwork: hides tanned, a leather belt, the first sewn bag [change: the leather belt is found today]; the barrel; the dye vat's picker (`43`).
 4. The bowyer's craft: a bow and arrows from each wood, fletched and glued [change].
-5. Fine furniture from spruce and mahogany; rugs and wall pieces (#261).
+5. Fine furniture from spruce and mahogany, the cart and the market stall; rugs and wall pieces (#261).
 6. Wool: woollen cloth and warm clothes; the second bag tier.
 7. Trinkets: a gem set in one (#281, #282).
 8. Crossbows; fur cloaks (the Pale Reach's furs).
@@ -764,13 +764,13 @@ Later, not at the start: gems inlaid in metal armour.
 ### Light and darkness
 - **The day** [built]: twelve real minutes; night never permanent.
 - **Darkness shortens sight** [built]: the dead fade past a soft edge unless in light; a torch gives it back; a belt torch a little.
-- **Fire lights rooms** [built]: a lit hearth or fireplace lights its whole room.
+- **Fire lights rooms** [built]: a lit hearth or fireplace lights its whole room [change: lit as a switch, no fuel (2026-10-25)].
 - **The dead see fire** [built]: from far at night.
-- **Lanterns never go out** [built]; **torches burn down** [built].
+- ~~**Lanterns never go out**~~ [change: put out and lit again (2026-10-25, `43`)]; **torches burn down** [built].
 
 ### Fire and fuel
 - **Fire is maintenance** [built]: a fire burns its fuel over game hours and goes out; a station's craft pauses while its fire is out and resumes when fed; "A fire has gone out."
-- **Fuel** [built]: logs for fireplaces, hearths, campfires, the oven, and the clamp; charcoal for the forge. Lighting needs a flame carried (a tinderbox, a lit torch); feeding does not.
+- **Fuel** [built]: logs for fireplaces, hearths, campfires, the oven, and the clamp; charcoal for the forge. Lighting needs a flame carried (a tinderbox, a lit torch); feeding does not [change: fireplaces and hearths burn no fuel, switches lit with a flame; the campfire six logs of three hours, a log added to it cold not lighting it (2026-10-25, `43`)].
 - **Only bodies burn; nothing spreads** [built]; burning, a short damage over time, capped.
 - **Fire arrows** [built]: arrows dipped in a lit fire.
 
@@ -867,7 +867,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 - Open and close doors and shutters (E) [built].
 - Search or open a container or a body; Take All [built].
 - Light a fire (a flame carried), feed it, read how long it has [built].
-- Take a torch (T takes one from the bag), light it, douse it (T), mount it on a post or in a bracket, take it down [built].
+- Take a torch (T takes one from the bag), light it, put it out (T), mount it on a post or in a bracket, take it down [built].
 - Sleep in a bed [built].
 - Talk to a villager (E or the menu); poke one [built].
 - Sit on a chair or a bench [to build] (`docs/32`).
@@ -983,7 +983,7 @@ The numbers are for tuning; this list is what must change before 1.0.
 - **Items only the Developer Chest gives:** the halberd, the Book and the Staff of Fire, the throwing knives and axes (the last two art only).
 - **Placeholder names:** the villagers' roles, Wyn, the places (#92).
 - **The graveyard's eight standing,** not rising.
-- **The oven that does not cook; the tinderbox's dead Light row on a lantern; the empty brackets; the dye vats with no recipes** (#273).
+- **The oven that does not cook; the tinderbox's dead Light row on a lantern; the empty brackets; the dye vats with no recipes** (`43`'s steps).
 - **Worlds as expendable tests,** no save migration, until Michael says he wants one kept.
 - **The console hooks** (`window.__game`, `giveKit`): testing tools, in every world today.
 - **Sounds:** none (section 13).
