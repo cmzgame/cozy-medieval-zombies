@@ -217,6 +217,21 @@ export async function run(game, opts = {}) {
     const milked = bagCount("milk");
     const again = labels(c0);
     row("a fed cow is milked with an empty bucket carried, once a day: greyed without one, with a bucket of water, and after", /Milk the cow \(you need a bucket\) \[grey\]/.test(noBucket.join("|")) && /Milk the cow \(empty the bucket first\) \[grey\]/.test(water.join("|")) && milked >= 1 && again.some((l) => /Milk the cow \(it has been milked today\) \[grey\]/.test(l)), `${noBucket.find((l) => l.startsWith("Milk"))}; ${water.find((l) => l.startsWith("Milk"))}; milk +${milked}; then ${again.find((l) => l.startsWith("Milk"))}`);
+    // A bucket of water in the hand and an empty one in the bag: the empty one milks, wherever it is carried, and the hand's keeps its water.
+    c0.takenDay = -1;
+    bag().items = [];
+    const inHand = items.makeEntry("bucket", 1);
+    inHand.fill = 50;
+    me.hands.main = inHand;
+    me.hands.off = null;
+    grid.insert(bag(), items.makeEntry("bucket", 1));
+    const mixed = labels(c0);
+    byLabel(c0, "Milk the cow");
+    work(A.workSeconds("milk"));
+    const milkLine = mixed.find((l) => l.startsWith("Milk")) || "no Milk line";
+    row("a bucket of water in hand and an empty one in the bag: Milk is offered, the cow is milked, and the hand's bucket keeps its water", milkLine === "Milk the cow" && bagCount("milk") >= 1 && inHand.fill === 50 && c0.takenDay === A.today(), `${milkLine}; milk ${bagCount("milk")}; the hand's water ${inHand.fill}`);
+    me.hands.main = saved.main;
+    me.hands.off = saved.off;
     if (sheep.length) {
       const q = sheep[0];
       q.state = "idle";

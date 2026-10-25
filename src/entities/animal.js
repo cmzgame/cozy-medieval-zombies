@@ -525,7 +525,7 @@ export function produceProblem(player, a) {
   if (!player) return "";
   const tool = inventory.toolProblem(player, pr.verb);
   if (tool) return tool;
-  const held = inventory.carriedTool(player, pr.verb);
+  const held = inventory.carriedTool(player, pr.verb, (e) => !(e.fill > 0)); // an empty bucket wherever it is carried, before a full one in hand
   if (held && held.fill > 0) return "Empty the bucket first."; // milk is a jug, not the bucket's fill (Primary's default): a bucket of water does not milk
   return "";
 }

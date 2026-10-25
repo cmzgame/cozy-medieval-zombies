@@ -2009,6 +2009,45 @@ check("item names counted: mass nouns, pairs, and +s (the butcher's and the shea
   return want.map(([id, n]) => cn(id, n)).join(", ");
 });
 
+// Milking asks for an empty bucket (docs/45 section 3; docs/bugs.md): a bucket of water in a hand must not hide an empty one in the bag, as
+// carriedTool's first bucket, the hand's, once did. The verb runs on the host for a guest's label alike.
+const animalMod = await import("../src/entities/animal.js");
+const gridMod = await import("../src/grid.js");
+check("milking: a bucket of water in hand and an empty one in the bag milks; the water stays; one of water alone is refused", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  const cow = animalMod.createAnimal("cow", me.gx, me.gy, { home: [me.gx, me.gy] });
+  S.animals.push(cow);
+  cow.fedDay = animalMod.today();
+  cow.takenDay = -1;
+  const bag = inventoryMod.bagOf(me);
+  bag.items = [];
+  const main0 = me.hands.main;
+  const off0 = me.hands.off;
+  try {
+    me.hands.main = null;
+    me.hands.off = null;
+    const none = animalMod.produceProblem(me, cow);
+    const wet = itemsMod.makeEntry("bucket", 1, { fill: 50 });
+    me.hands.main = wet;
+    const wetOnly = animalMod.produceProblem(me, cow);
+    const dry = itemsMod.makeEntry("bucket", 1);
+    gridMod.insert(bag, dry);
+    const both = animalMod.produceProblem(me, cow);
+    const r = verbsMod.run("milk", worldMod.world, me, { character: cow.id });
+    assert(none === "You need a bucket.", `no bucket: "${none}"`);
+    assert(wetOnly === "Empty the bucket first.", `a bucket of water alone: "${wetOnly}"`);
+    assert(both === "", `a bucket of water in hand and an empty one in the bag: "${both}"`);
+    assert(r.ok && inventoryMod.countItem(bag, "milk") >= 1 && wet.fill === 50, `milked: ${JSON.stringify(r)}, milk ${inventoryMod.countItem(bag, "milk")}, the hand's water ${wet.fill}`);
+    return `${none} / ${wetOnly} / milked: ${r.message}`;
+  } finally {
+    me.hands.main = main0;
+    me.hands.off = off0;
+    S.animals.splice(S.animals.indexOf(cow), 1);
+  }
+});
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;
