@@ -686,7 +686,7 @@ for (const file of fs.readdirSync(path.join(root, "data", "maps")).filter((f) =>
     for (const p of mapMod.allProps()) {
       const [tx0, ty0] = p.tile;
       if (tx0 < bx || ty0 < by || tx0 >= bx + bw || ty0 >= by + bh) continue;
-      if (!(p.container || stationsMod.stationOf(p) || getDef(p.sprite).sleep)) continue;
+      if (!(p.container || stationsMod.stationOf(p).length || getDef(p.sprite).sleep)) continue;
       n++;
       let ok = false;
       for (const [tx, ty] of p.tiles) {
@@ -781,7 +781,7 @@ check("dye vat: three vats open the picker; the verb dyes by uid, refuses what i
   assert(at.length === 3, `${at.length} vats in the weaver's yard`);
   mapMod.ensureAround(at[1][0], at[1][1], 2);
   const vats = at.map(([x, y]) => mapMod.peekTile(x, y) && mapMod.peekTile(x, y).prop).filter((q) => q && q.sprite === "dyevat");
-  assert(vats.length === 3 && vats.every((v) => stationsMod.stationOf(v) === "dyevat"), "the three vats are not dye vat stations");
+  assert(vats.length === 3 && vats.every((v) => stationsMod.stationOf(v).includes("dyevat")), "the three vats are not dye vat stations");
   const vat = vats[1];
   let stand = null;
   for (const [dx, dy] of [[0, 1], [0, -1], [1, 1], [-1, 1], [0, 2]]) if (!stand && mapMod.isWalkableTile(vat.tile[0] + dx, vat.tile[1] + dy)) stand = [vat.tile[0] + dx, vat.tile[1] + dy];

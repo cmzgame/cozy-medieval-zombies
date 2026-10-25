@@ -77,7 +77,7 @@
 
 ### Structure
 
-- **Wall lanterns** [built]: 33 on the valley's walls, each a point of light (5.12) [change: put out and lit again (2026-10-25, `43`)].
+- **Wall lanterns** [built]: 33 on the valley's walls, each a point of light (5.12), put out and lit again (2026-10-25, `43`).
 - **Rooms** [built]: found by flood fill; a shed, hut, or forest cabin is one room, a house at least two; no roofs, one storey.
 - **A log wall** [built]: a log, with a hatchet carried.
 - **A door** [built]: three planks, with a smith's hammer; stamped over a wall, of the wall's material; starts closed; blocks sight and bodies.
@@ -108,7 +108,7 @@
 - **Fish traps**, set in the water (Fishing 7) [to build].
 - **Snares** (Beastlore 3) [to build].
 - **The feast's table:** any table, the feast laid on it (Cooking 10) [to build].
-- **A campfire** (ruled 2026-10-25, `43` section 2) [to build]: built from the palette, three stone and two logs, outdoors; six logs of three hours; picked up only out and empty, as a Campfire item (5 by 5).
+- **A campfire** (ruled 2026-10-25, `43` section 3) [built]: built from the palette, three stone and two logs, outdoors; six logs of three hours; picked up only out and empty, as a Campfire item (5 by 5).
 - **Wall brackets** (ruled 2026-10-25, `43` section 4) [to build]: made at the anvil (an iron bar, Blacksmithing 1), hung like a painting; the valley's four start holding an unlit torch.
 - **The Bloodbark Shrine** (Bloodbark from the Crimson Abbey, Woodcutting 10): a name only.
 
@@ -147,8 +147,8 @@ One panel for every station; ingredients from the bag, the belt, and every conta
 - **Loom** [built] (the weaver's): linen cloth (two flax); two bandages (a cloth); a linen cap, linen breeches, a linen tunic (one, two, three cloth). Unlock: open to all today [change: Crafting 1 names linen cloth, bandages, and the cap] [change: the tunic and the breeches too, Crafting 1: they are clothes (ruled 2026-10-23)]. Woollen cloth and warm clothes (Crafting 6) [to build]; a leather jerkin at Crafting 3 (ruled 2026-10-23) [to build].
 - **Forge** [built] (the smithy's): an iron bar from two iron ore; burns charcoal. Unlock: Blacksmithing 1. Silver (Blacksmithing 5) [to build]; less charcoal a bar (Blacksmithing 2) [change: charcoal is the fire's fuel today, not an ingredient].
 - **Anvil** [built] (the smithy's; a smith's hammer in hand, except for forging the hammer itself): a dirk, a smith's hammer, a hatchet, a pickaxe (Blacksmithing 1); a scythe, a throwing spear, a flanged mace, an arming sword [change: Blacksmithing 3]; repair (Blacksmithing 4) [built, #410: to 100, 80, then 60% for a unit of the item's material, on the count the grindstone shares], silver work (5), mail and plate (7) [to build].
-- **Cooking at a fire** [built] (any lit fire that cooks: the nineteen fireplaces, a hearth, a campfire [change: and the oven, `43` section 3]): a roast potato, stew, porridge, grilled perch, trout, and carp. Unlock: Cooking 1 [change: the stew is not among Cooking 1's plain recipes] [change: the stew splits, a plain pottage at Cooking 1 and the hearty stew with its buff at Cooking 4 (ruled 2026-10-23)]. Boiling water safe (Cooking 1) [to build].
-- **Oven** [built] (the baker's): a loaf of bread (two flour), a pumpkin pie (a pumpkin and flour) [change: pie at Cooking 6]. [change: the oven cooks the fire's recipes too (`43` section 2: a bug stops it today).]
+- **Cooking at a fire** [built] (any lit fire that cooks: the nineteen fireplaces, a hearth, a campfire, and the oven, `43` section 3): a roast potato, stew, porridge, grilled perch, trout, and carp. Unlock: Cooking 1 [change: the stew is not among Cooking 1's plain recipes] [change: the stew splits, a plain pottage at Cooking 1 and the hearty stew with its buff at Cooking 4 (ruled 2026-10-23)]. Boiling water safe (Cooking 1) [to build].
+- **Oven** [built] (the baker's): a loaf of bread (two flour), a pumpkin pie (a pumpkin and flour) [change: pie at Cooking 6]. The oven cooks the fire's recipes too (`43` section 3).
 - **Millstones** [built] (the mill's): flour from two grain; no fire. Unlock: Cooking 1 (ruled 2026-10-23).
 - **Charcoal clamp** [built] (the smithy's yard, three at the burners): three charcoal from four logs over half a game day, lit, a log of fuel a day. Unlock: Blacksmithing 1 (ruled 2026-10-23).
 - **Dye vats** [change] (three in the weaver's yard, all three usable): Crafting 3 unlocks a picker like a stripped-down character creation, each garment's regions and allowed colours or schemes its own data (2026-10-25, `43` section 8); whether a dye costs a plant waits for #288.
@@ -418,11 +418,11 @@ The staff-and-book proposal (#275), proposed, not ruled, except the parts marked
 
 ### 5.12 Light sources
 
-- **Torch** [built]: radius 3; starts unlit; lit with a tinderbox, a lit torch, a lantern, or a lit fire; put out with T [change: "douse" today, 2026-10-25]; burns down (fastest in hand, slower on the belt, a post, or a bracket; a kill costs more); belt and hand never stack. Longer-burning with pitch (Woodcutting 3) or fish oil (Fishing 5) [to build].
-- **Lantern post** [built]: the village's lights [change: put out and lit again (2026-10-25, `43`)].
-- **Wall lanterns** [built]: 33 in the valley's buildings (`brackets[].lantern` in `data/maps/valley.json`), each a point of light of 3.4 tiles like a lantern post (`src/light.js`), light a torch held to them, and cannot be taken [change: put out and lit again (2026-10-25, `43`)].
+- **Torch** [built]: radius 3; starts unlit; lit with a tinderbox, a lit torch, a lantern, or a lit fire; put out with T; burns down (fastest in hand, slower on the belt, a post, or a bracket; a kill costs more); belt and hand never stack. Longer-burning with pitch (Woodcutting 3) or fish oil (Fishing 5) [to build].
+- **Lantern post** [built]: the village's lights; put out and lit again with a tinderbox or a lit torch, a switch with no fuel (2026-10-25, `43`).
+- **Wall lanterns** [built]: 33 in the valley's buildings (`brackets[].lantern` in `data/maps/valley.json`), each a point of light of 3.4 tiles like a lantern post (`src/light.js`), light a torch held to them, and cannot be taken; put out and lit again (2026-10-25, `43`).
 - **A carried lantern** [to build]: more light than a torch on the belt; its fuel fish oil (Fishing 5); made at Blacksmithing 4 (ruled 2026-10-23).
-- **Fireplaces and hearths** [built]: light their room [change: switches, on and off, no fuel (2026-10-25, `43`)].
+- **Fireplaces and hearths** [built]: light their room; switches, on with a flame and off with nothing, no fuel (2026-10-25, `43`).
 - **Campfire, torch post, wall bracket, jack-o'-lantern** [built in the data]: section 2 (ruled 2026-10-25, `43`).
 - **The charcoal clamp** [built]: a tiny light.
 - **Candles** [to build]: from wax (Beastlore 5).
@@ -765,13 +765,13 @@ Later, not at the start: gems inlaid in metal armour.
 ### Light and darkness
 - **The day** [built]: twelve real minutes; night never permanent.
 - **Darkness shortens sight** [built]: the dead fade past a soft edge unless in light; a torch gives it back; a belt torch a little.
-- **Fire lights rooms** [built]: a lit hearth or fireplace lights its whole room [change: lit as a switch, no fuel (2026-10-25)].
+- **Fire lights rooms** [built]: a lit hearth or fireplace lights its whole room, lit as a switch with no fuel (2026-10-25, `43`).
 - **The dead see fire** [built]: from far at night.
 - ~~**Lanterns never go out**~~ [change: put out and lit again (2026-10-25, `43`)]; **torches burn down** [built].
 
 ### Fire and fuel
 - **Fire is maintenance** [built]: a fire burns its fuel over game hours and goes out; a station's craft pauses while its fire is out and resumes when fed; "A fire has gone out."
-- **Fuel** [built]: logs for fireplaces, hearths, campfires, the oven, and the clamp; charcoal for the forge. Lighting needs a flame carried (a tinderbox, a lit torch); feeding does not [change: fireplaces and hearths burn no fuel, switches lit with a flame; the campfire six logs of three hours, a log added to it cold not lighting it (2026-10-25, `43`)].
+- **Fuel** [built]: logs for campfires, the oven, and the clamp; charcoal for the forge; fireplaces and hearths burn none, switches lit with a flame (2026-10-25, `43`). Lighting needs a flame carried (a tinderbox, a lit torch); feeding does not; the campfire holds six logs of three hours, and a log added to it cold does not light it.
 - **Only bodies burn; nothing spreads** [built]; burning, a short damage over time, capped.
 - **Fire arrows** [built]: arrows dipped in a lit fire.
 

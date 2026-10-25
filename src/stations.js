@@ -42,14 +42,16 @@ export function recipe(id) {
   return rows.find((r) => r.id === id) || null;
 }
 
-// What a prop is as a station, or null.
+// What a prop is as a station: a list, empty for none (docs/43, section 3, 2026-10-25: the oven cooks the fire's six recipes as well
+// as its own, so a prop can be more than one station). Its own station first, then "cooking" for a fire that cooks.
 export function stationOf(prop) {
-  if (!prop) return null;
+  if (!prop) return [];
   let def = null;
-  try { def = getDef(prop.sprite); } catch { return null; }
-  if (def.station) return def.station;
-  if (prop.fire && prop.fire.cooks) return "cooking";
-  return null;
+  try { def = getDef(prop.sprite); } catch { return []; }
+  const out = [];
+  if (def.station) out.push(def.station);
+  if (prop.fire && prop.fire.cooks) out.push("cooking");
+  return out;
 }
 
 export function recipesFor(station) {
@@ -143,7 +145,7 @@ function toolInHand(player, id) {
 
 // Whether a recipe can be started at a station now: true, or the reason not.
 export function canMake(player, prop, r, count = 1) {
-  if (stationOf(prop) !== r.station) return "Not at this station.";
+  if (!stationOf(prop).includes(r.station)) return "Not at this station.";
   { const why = reachProblem(player, prop.tiles, REACH); if (why) return why === TOO_FAR ? "Too far from it." : why; }
   if (r.fire && !(prop.fire && prop.fire.lit)) return "The fire is out.";
   if (r.uses) { const why = toolProblem(player, r.uses); if (why) return why; } // a carried tool by its verb (#215)

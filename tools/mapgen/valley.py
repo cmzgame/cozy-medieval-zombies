@@ -575,6 +575,7 @@ def build():
     cb.prop("charcoal_sack", (4, 8))
     cb.prop("charcoal_sack", (6, 8))
     cb.prop("wheelbarrow", (11, 8))
+    cb.prop("campfire", (18, 9), fuel=2)  # the burners' own fire (docs/43, section 3): cold, two logs in it
     hut = g.place("the burners' hut", [234, 168, 8, 8])
     hut.building([1, 1, 6, 5], "wall_wood", "floor_wood",
                  openings=[door("w", 2), window("n", 3)],

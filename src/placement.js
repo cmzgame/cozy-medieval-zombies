@@ -5,7 +5,8 @@
 //   prop   the mode a player is in whenever they carry furniture;
 //   rug    a rug from the bag, laid flat on the floor (#327; src/rugs.js): the ghost over its 2 by 3, R turns it, a click lays it;
 //   painting  a painting from the bag, hung on the face of the wall under the cursor (#326; src/paintings.js): the ghost on the wall, a click hangs it;
-//   build  a wall, door, or window on the tile edge under the cursor, paid for
+//   campfire  a Campfire item from the bag, set down on the tile under the cursor outdoors (docs/43, section 3; src/campfire.js);
+//   build  a wall, door, or window on the tile edge under the cursor, paid for, or a prop on a tile (a campfire: an entry of `kind` prop),
 //          in logs or planks (data/build.json) unless the Free building
 //          setting is on, and built over a few seconds like boarding.
 //
@@ -29,6 +30,7 @@ import * as rugs from "./rugs.js"; // a rug laid from the bag (#327)
 import * as paintings from "./paintings.js"; // a painting hung on a wall from the bag (#326)
 import * as woods from "./woods.js"; // a wall in a wood, and a door or window of another wood than its wall (#334)
 import * as stations from "./stations.js"; // a made prop's recipe, for what taking it apart gives back (docs/43, section 2)
+import * as campfire from "./campfire.js"; // a campfire built from the palette, picked up, set down again (docs/43, section 3)
 
 // Reach was raised by a full tile on 2026-10-11 (Michael: easier).
 export const PLACE_REACH = 2.6; // tiles from the player to a carried prop's anchor tile
@@ -235,6 +237,20 @@ export function wallKindOf(what) {
   return (buildData[what] && buildData[what].kind) || what;
 }
 
+// A build entry that stands a prop on a tile, not a wall on an edge (docs/43, section 3: the campfire): `kind: "prop"`, its `sprite`.
+export const isPropBuild = (what) => !!(buildData[what] && buildData[what].kind === "prop");
+
+// Why a prop build cannot go on (tx, ty), or "": its own rule for where it stands (a campfire: open ground outdoors), then the cost.
+function propBuildBlock(player, what, tx, ty) {
+  const d = buildData[what];
+  const why = d.sprite === campfire.SPRITE ? campfire.standProblem(tx, ty) : map.peekTile(tx, ty) && !map.peekTile(tx, ty).prop && map.isWalkableTile(tx, ty) ? "" : "No room";
+  return why || shortfall(player, what);
+}
+
+function propBuildReason(player, what, tx, ty) {
+  return campfire.reachFor(player, tx, ty) || propBuildBlock(player, what, tx, ty);
+}
+
 function buildBlock(player, what, tx, ty, edge, leaf = "") {
   const existing = map.tileAt(tx, ty)[edge];
   const kind = wallKindOf(what);
@@ -291,6 +307,20 @@ export function beginPainting(entry) {
   if (!def) return false;
   state.kind = "painting";
   state.painting = { uid: entry.uid, id: def.id };
+  state.prop = null;
+  state.build = null;
+  state.rug = null;
+  state.active = true;
+  state.turns = 0;
+  return true;
+}
+
+// A Campfire item from the bag (its Place, docs/43 section 3): the ghost on the tile under the cursor, a click sets it down outdoors, Esc
+// cancels. The item stays in the bag until it is set down.
+export function beginCampfire(entry) {
+  if (!entry || entry.id !== campfire.ITEM) return false;
+  state.kind = "campfire";
+  state.campfire = { uid: entry.uid };
   state.prop = null;
   state.build = null;
   state.rug = null;
@@ -372,6 +402,7 @@ export function update(player) {
     }
   }
   if (state.kind === "painting" && (player.carrying || !paintings.entryOf(player, state.painting.uid))) end(); // gone from the bag (hung, dropped, moved) or hands full ends the mode
+  if (state.kind === "campfire" && (player.carrying || !campfire.entryOf(player, state.campfire.uid))) end(); // the Campfire item set down, dropped, or moved, or hands full
   if (player.carrying) {
     if (state.kind === "build" || state.kind === "remove") end(); // hands full: no building or removing
     if (state.kind !== "prop" || state.prop !== player.carrying) beginProp(player.carrying);
@@ -383,6 +414,7 @@ export function update(player) {
   if (state.kind === "prop") state.ghost = propGhost(player);
   else if (state.kind === "rug") state.ghost = rugGhost(player);
   else if (state.kind === "painting") state.ghost = paintingGhost(player);
+  else if (state.kind === "campfire") state.ghost = campfireGhost(player);
   else if (state.kind === "build") state.ghost = buildGhost(player);
   else if (state.kind === "remove") state.ghost = removeGhost(player);
   else state.ghost = null;
@@ -527,8 +559,16 @@ function targetName(t) {
 export function partsOf(t) {
   if (t.type === "prop") {
     const r = stations.recipes().find((q) => q.out && q.out.prop === t.prop.sprite);
-    const back = r ? (r.in || []).filter((i) => i.id).map((i) => ({ id: i.id, count: Math.floor((i.count || 1) / 2) })).filter((i) => i.count > 0) : [];
-    return { back, tool: (r && r.uses) || tuning.world.boardTool };
+    if (r) {
+      const back = (r.in || []).filter((i) => i.id).map((i) => ({ id: i.id, count: Math.floor((i.count || 1) / 2) })).filter((i) => i.count > 0);
+      return { back, tool: r.uses || tuning.world.boardTool };
+    }
+    // Built from the palette (a campfire): half its cost but its fuel (the campfire's logs were fuel, not materials), with the entry's
+    // tool, or none if it names none (a campfire wants no tool to build or to take apart).
+    const id = Object.keys(buildData).find((k) => buildData[k].kind === "prop" && buildData[k].sprite === t.prop.sprite);
+    const d = id ? buildData[id] : null;
+    const back = !d || t.prop.free ? [] : Object.entries(d.cost || {}).filter(([k]) => k !== d.fuel).map(([k, n]) => ({ id: k, count: Math.floor(n / 2) })).filter((i) => i.count > 0);
+    return { back, tool: d ? d.tool || null : tuning.world.boardTool };
   }
   const d = buildEntryOf(t.wall);
   const back = t.wall.free || !d ? [] : Object.entries(d.cost || {}).map(([id, n]) => ({ id, count: Math.floor(n / 2) })).filter((i) => i.count > 0);
@@ -540,6 +580,11 @@ export function partsOf(t) {
 export function holdsProblem(prop) {
   if ([prop.bag, prop.output].some((b) => b && b.items && b.items.length)) return "Empty it first.";
   if (prop.queue && prop.queue.length) return "It is still making something.";
+  const f = prop.fire;
+  if (f && f.burns && !f.switch) {
+    if (f.lit) return "Put it out first.";
+    if (f.fuel > 0) return "It still has fuel in it; let it burn down."; // a campfire's logs, as its Pick up asks (docs/43, section 3)
+  }
   return "";
 }
 
@@ -549,7 +594,8 @@ export function takeApartProblem(player, t) {
     const held = holdsProblem(t.prop);
     if (held) return held;
   }
-  return toolProblem(player, partsOf(t).tool) || removeReachProblem(player, t);
+  const tool = partsOf(t).tool;
+  return (tool ? toolProblem(player, tool) : null) || removeReachProblem(player, t);
 }
 
 function partsText(back) {
@@ -638,12 +684,32 @@ function paintingGhost(player) {
   return { kind: "painting", item: p.id, tx: at.tx, ty: at.ty, edge: at.edge, ok: reason === "", reason, painting: { uid: p.uid } };
 }
 
+// The Campfire item's ghost (docs/43, section 3): the campfire on the tile under the cursor, green where it may stand within reach.
+function campfireGhost(player) {
+  const c = state.campfire;
+  if (!c) return null;
+  const m = input.getMouse();
+  if (!m.inside) return null;
+  const g = iso.toGrid(m.x, m.y);
+  const tx = Math.round(g.gx);
+  const ty = Math.round(g.gy);
+  const reason = campfire.reachFor(player, tx, ty) || campfire.standProblem(tx, ty);
+  return { kind: "prop", prop: { sprite: campfire.SPRITE }, tx, ty, footprint: [1, 1], ok: reason === "", reason, campfire: { uid: c.uid }, label: "Click to set the campfire down · Esc cancel" };
+}
+
 function buildGhost(player) {
   const m = input.getMouse();
   if (!m.inside) return null;
   const g = iso.toGrid(m.x, m.y);
-  const { tx, ty, edge } = pickEdge(g.gx, g.gy);
   const what = state.build.what;
+  if (isPropBuild(what)) {
+    // A prop on the tile under the cursor (a campfire), drawn as the carried prop's ghost is, with its own line.
+    const tx = Math.round(g.gx);
+    const ty = Math.round(g.gy);
+    const reason = propBuildReason(player, what, tx, ty);
+    return { kind: "prop", prop: { sprite: buildData[what].sprite }, tx, ty, footprint: [1, 1], ok: reason === "", reason, build: what, label: `Click to build (${costText(what)}) · Esc cancel` };
+  }
+  const { tx, ty, edge } = pickEdge(g.gx, g.gy);
   const leaf = takesLeaf(what) ? state.build.leaf || "" : "";
   const reason = buildReason(player, what, tx, ty, edge, leaf);
   const existing = map.tileAt(tx, ty)[edge];
@@ -724,12 +790,34 @@ export function tryConfirm(player) {
     takeApart(player, g.target);
     return true;
   }
+  if (state.kind === "campfire") {
+    const g = state.ghost;
+    if (!g) return false;
+    if (!g.ok) {
+      showMessage(g.reason);
+      return true;
+    }
+    if (sender) {
+      sender({ kind: "campfire", uid: g.campfire.uid, tx: g.tx, ty: g.ty });
+      end();
+      return true;
+    }
+    campfire.place(player, g.campfire.uid, g.tx, g.ty);
+    end();
+    return true;
+  }
   if (state.kind === "build") {
     const g = state.ghost;
     if (!g) return false;
     if (player.action) return true; // one build at a time
     if (!g.ok) {
       showMessage(g.reason);
+      return true;
+    }
+    if (g.build) {
+      // A prop build (a campfire): the tile, no edge.
+      if (sender) sender({ kind: "build", what: g.build, tx: g.tx, ty: g.ty });
+      else startPropBuild(player, g.build, g.tx, g.ty);
       return true;
     }
     if (sender) {
@@ -787,6 +875,24 @@ export function performPlacement(player, cmd) {
     player.carrying = null;
     return true;
   }
+  if (cmd.kind === "campfire") {
+    // A guest setting its Campfire item down (the host's own click calls campfire.place directly): the same reach and rule.
+    campfire.place(player, cmd.uid, cmd.tx, cmd.ty);
+    return true;
+  }
+  if (cmd.kind === "build" && typeof cmd.what === "string" && isPropBuild(cmd.what)) {
+    const tx = Math.round(Number(cmd.tx));
+    const ty = Math.round(Number(cmd.ty));
+    if (!Number.isFinite(tx) || !Number.isFinite(ty)) return false;
+    if (player.action) return true;
+    const why = propBuildReason(player, cmd.what, tx, ty);
+    if (why) {
+      showMessage(why);
+      return true;
+    }
+    startPropBuild(player, cmd.what, tx, ty);
+    return true;
+  }
   if (cmd.kind === "build") {
     const what = typeof cmd.what === "string" && buildData[cmd.what] ? cmd.what : null;
     const tx = Math.round(Number(cmd.tx));
@@ -821,6 +927,37 @@ export function performPlacement(player, cmd) {
     return true;
   }
   return false;
+}
+
+// A prop built from the palette (a campfire), timed as a wall is: nothing spent until the bar completes, everything checked again then.
+// The build's fuel item (`fuel` in its entry: the campfire's logs) is the prop's starting fuel, not a material.
+function startPropBuild(player, what, tx, ty) {
+  const d = buildData[what];
+  const action = {
+    kind: "build",
+    label: `Building ${d.label.toLowerCase()}`,
+    tiles: [[tx, ty]],
+    mx: tx,
+    my: ty,
+    range: BUILD_REACH + 0.6,
+    duration: d.seconds || 0,
+    enabled: true,
+    simple: false,
+    perform() {
+      const why = propBuildBlock(player, what, tx, ty);
+      if (why) {
+        showMessage(why);
+        return false;
+      }
+      const fuel = d.fuel && !rules.freeBuilding ? costOf(what)[d.fuel] || 0 : d.fuel ? (d.cost || {})[d.fuel] || 0 : 0; // its fuel, paid for or free
+      spend(player, what);
+      const prop = d.sprite === campfire.SPRITE ? campfire.makeFire(tx, ty, fuel, true) : (() => { const q = map.createProp({ sprite: d.sprite, tile: [tx, ty] }); q.made = true; map.placeProp(q, tx, ty); return q; })();
+      if (rules.freeBuilding) prop.free = true; // it cost nothing, so taking it apart gives nothing back (docs/43, section 2)
+      return true;
+    },
+  };
+  if (startAction) startAction(player, action);
+  else action.perform();
 }
 
 // A timed action, like boarding: the bar runs, moving cancels it, nothing is
@@ -861,7 +998,7 @@ export function prompt() {
   if (!g) return null;
   if (g.kind === "prop") {
     if (!g.ok) return { label: g.reason, mx: g.tx, my: g.ty, progress: null, enabled: false };
-    return { label: "Click to place · R turn · E in front", mx: g.tx, my: g.ty, progress: null, enabled: true };
+    return { label: g.label || "Click to place · R turn · E in front", mx: g.tx, my: g.ty, progress: null, enabled: true };
   }
   if (g.kind === "rug") {
     if (!g.ok) return { label: g.reason, mx: g.tx, my: g.ty, progress: null, enabled: false };

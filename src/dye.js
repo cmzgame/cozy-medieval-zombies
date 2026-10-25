@@ -134,7 +134,7 @@ export function dyeables(player) {
 // Whether the player may dye that entry these colours at that vat now: true, or the reason not.
 export function applyProblem(player, prop, uid, colours) {
   if (!prop) return "That is gone.";
-  if (stationOf(prop) !== "dyevat") return "That is not a dye vat.";
+  if (!stationOf(prop).includes("dyevat")) return "That is not a dye vat.";
   const why = reachProblem(player, prop.tiles, REACH);
   if (why) return why === TOO_FAR ? "Too far from the vat." : why;
   const locked = unlockProblem(player);

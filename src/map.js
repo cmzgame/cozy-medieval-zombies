@@ -99,7 +99,7 @@ export const LOG_SECONDS = 2 * HOUR_SECONDS; // the default: two hours a unit
 export function burnFires(dt) {
   for (const p of fireProps) {
     const f = p.fire;
-    if (!f.burns || !f.lit) continue;
+    if (!f.burns || !f.lit || f.switch) continue; // a home light is a switch: on or off, no fuel (docs/43, section 3)
     const before = f.fuel;
     f.fuel -= dt / (f.hoursPerUnit * HOUR_SECONDS);
     // A guest's copy of the fuel refreshes when the chunk is sent: at every whole unit burned, so a guest's
@@ -116,14 +116,15 @@ export function burnFires(dt) {
 }
 
 // Feed a burner one unit of its fuel (the caller has taken the item), lighting
-// it if it was out. The one mutator of a fire's fuel: it touches the tile and
-// says what changed (docs/31/08, habit 3). Returns false if it is full.
-export function feedFire(prop) {
+// it if it was out and `light` says so (a station's fire is lit by its fuel and a carried flame together; a log on a cold campfire
+// lights nothing, docs/43 section 3, #168). The one mutator of a fire's fuel: it touches the tile and
+// says what changed (docs/31/08, habit 3). Returns false if it is full, or a switch (a home light burns no fuel).
+export function feedFire(prop, light = true) {
   const f = prop.fire;
-  if (!f || !f.burns) return false;
+  if (!f || !f.burns || f.switch) return false;
   if (f.fuel >= f.maxFuel) return false;
   f.fuel = Math.min(f.maxFuel, f.fuel + 1);
-  f.lit = true;
+  if (light) f.lit = true;
   touch(prop.tile[0], prop.tile[1]);
   emit("fireFed", { id: prop.id, tile: prop.tile, fuel: f.fuel });
   return true;
@@ -139,7 +140,8 @@ export function fireHoursLeft(prop) {
 // A bracket is state on a wall edge: `wall.bracket = { side, torch }`, where
 // side is +1 for the near side of the edge (south of a north edge, east of a
 // west edge) and -1 for the far side. A post is a prop whose fire `holds` a
-// torch. A torch burns down while it is lit and a lantern (`bracket.lantern`, a `lantern_post`) never goes out (docs/07, #156).
+// torch. A torch burns down while it is lit; a lantern (`bracket.lantern`, a `lantern_post`) burns nothing and is put out and lit again
+// (docs/43, section 3, 2026-10-25, striking 2026-10-17's "never goes out": light will draw the dead, so a light must be snuffable).
 
 const bracketSet = new Set(); // { tx, ty, edge, wall }
 
@@ -209,7 +211,8 @@ export function kindleNear(x, y, r = 1, clear = null) {
 export function addBracket(tx, ty, edge, side, torch = false, lantern = false) {
   const wall = growTile(tx, ty)[edge];
   if (!wall) return null;
-  // A lantern is the village's own light (#156): steady, never out, not a torch and not taken; a bracket holds one or the other.
+  // A lantern is the village's own light (#156): steady, burning nothing, not a torch and not taken; a bracket holds one or the other.
+  // Put out and lit again since docs/43 section 3: `lit: false` when out, nothing (lit) as authored.
   wall.bracket = lantern ? { side, torch: false, lantern: true } : { side, torch };
   const b = { tx, ty, edge, wall };
   bracketSet.add(b);
@@ -281,6 +284,41 @@ export function setHolder(target, has, entry = null) {
   }
   // It touched nothing before 2026-10-15: a guest saw a torch mounted or taken only once its chunk went for another
   // reason (found auditing the changes for the save's cache, `02`).
+}
+
+// ---- put out, and the switches (docs/43, section 3; Michael, 2026-10-25) ----
+// A lantern in a bracket on or off: `lit: false` when out, nothing when lit (as every authored lantern starts). Touches its wall.
+export function setLantern(b, lit) {
+  const br = b && b.wall && b.wall.bracket;
+  if (!br || !br.lantern || (br.lit !== false) === !!lit) return false;
+  if (lit) delete br.lit;
+  else br.lit = false;
+  touchWall(b.wall);
+  emit(lit ? "fireLit" : "firePutOut", { tile: [b.tx, b.ty] });
+  return true;
+}
+
+// A prop's fire on or off with nothing spent: a switch (a fireplace, a hearth, a lantern post) either way; any burner or a post's torch
+// put out (a campfire keeps the fuel left). Touches its chunk. Returns whether it changed.
+export function setFireLit(prop, lit) {
+  const f = prop && prop.fire;
+  if (!f || f.lit === !!lit) return false;
+  if (lit && !f.switch) return false; // lighting a burner or a torch is lightProp's (it asks for fuel or a torch)
+  f.lit = !!lit;
+  touch(prop.tile[0], prop.tile[1]);
+  emit(lit ? "fireLit" : "firePutOut", { id: prop.id, tile: prop.tile }); // not fireOut: that one tells the players near that a fire burnt out
+  return true;
+}
+
+// A torch in a bracket put out (it keeps its wear). Touches its wall.
+export function putOutBracket(b) {
+  const br = b && b.wall && b.wall.bracket;
+  if (!br || !br.torch || br.lit === false) return false;
+  br.lit = false;
+  if (br.wear === undefined) br.wear = 0; // an authored torch, lit for good until now, burns from here on when lit again
+  touchWall(b.wall);
+  emit("firePutOut", { tile: [b.tx, b.ty] });
+  return true;
 }
 
 // Light what is made to be lit (Michael, 2026-10-17, #156: "fire lights what is made to be lit"): an unlit campfire with fuel in
@@ -664,9 +702,11 @@ export function buildWall(tx, ty, edge, kind, sprite = WALL_SPRITE_DEFAULT, leaf
   if (existing && existing.kind === "wall") {
     wall.under = existing.sprite;
     if (existing.built) wall.underBuilt = true; // the player's own wall comes back the player's own
+    if (existing.free) wall.underFree = true; // and a free one free
   } else if (existing && existing.under) {
     wall.under = existing.under; // a new door over a broken stamped one still stands in the wall it was stamped into
     if (existing.underBuilt) wall.underBuilt = true;
+    if (existing.underFree) wall.underFree = true;
   }
   wall.built = true; // made by the player: the removal tool may take it down (docs/13)
   const own = kind !== "wall" ? storedLeaf(sprite, leaf || (existing && existing.kind === kind ? carriedLeaf(existing) : "")) : null; // a door or window of another wood than its wall (#334); nothing stored when it is the wall's own; over a broken one of its kind the default is the old one's wood
@@ -733,6 +773,7 @@ export function destroyWall(tx, ty, edge, restoreUnder = false) {
     t[edge] = createWall("wall", wall.under);
     t[edge].at = [tx, ty];
     if (wall.underBuilt) t[edge].built = true;
+    if (wall.underFree) t[edge].free = true; // a wall built while Free building was on comes back free: it gives nothing when taken apart (docs/43, section 2)
   }
   touch(tx, ty);
   rebuildRoomsAround(tx, ty, edge);
@@ -2008,6 +2049,7 @@ function propBase(def, offset = [0, 0]) {
       room: !!f.room,
       burns: !!f.burns,
       cooks: !!f.cooks,
+      switch: !!f.switch, // a home light (a fireplace, a hearth, a lantern): on and off, no fuel, lit with a flame (docs/43, section 3)
       holds, // "torch": a post, lit while it holds one
       has,
       lit: holds ? has : def.lit ?? f.lit ?? !f.burns,

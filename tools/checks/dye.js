@@ -90,7 +90,7 @@ export async function run(game, opts = {}) {
     if (vatTiles[1]) G.map.ensureAround(vatTiles[1][0], vatTiles[1][1], 2);
     const vats = vatTiles.map(vatAt).filter(Boolean);
     const labels = vats.map((v) => G.interact.actionsForTarget({ kind: "prop", id: v.id }, me).map((a) => a.label));
-    row("the weaver's yard has three dye vats, each a station offering Use the dye vat", vats.length === 3 && vats.every((v) => G.stations.stationOf(v) === "dyevat") && labels.every((l) => l.includes("Use the dye vat")), `${vats.length} vats; ${labels.map((l) => l.join("/")).join(" | ")}`);
+    row("the weaver's yard has three dye vats, each a station offering Use the dye vat", vats.length === 3 && vats.every((v) => G.stations.stationOf(v).includes("dyevat")) && labels.every((l) => l.includes("Use the dye vat")), `${vats.length} vats; ${labels.map((l) => l.join("/")).join(" | ")}`);
     const vat = vats[1];
     if (!vat) throw new Error("no vat");
     let stand = null;
