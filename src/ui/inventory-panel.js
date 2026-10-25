@@ -236,6 +236,9 @@ function iconOf(def, entry) {
   return entry && entry.lit && def.icon_lit ? def.icon_lit : def.icon;
 }
 
+// The block's colour where an item has no drawn icon: a dyed entry's first colour (docs/43 section 8), else the item's own.
+const tintOf = (entry, def) => (entry && Array.isArray(entry.colours) && entry.colours[0]) || (entry && entry.colour) || def.color || "#8a8296";
+
 // An item as a block: in a bag (`w` by `h` cells of `cell` pixels) or, with
 // `slot` set, in a slot `cell` pixels square showing its portrait.
 function blockHtml(entry, attrs, cell = CELL, w = 1, h = 1, extraCls = "", slot = false) {
@@ -267,7 +270,7 @@ function blockHtml(entry, attrs, cell = CELL, w = 1, h = 1, extraCls = "", slot 
   if (entry.count > 1) inner += `<span class="inv-stack">${entry.count}</span>`;
   // Durability (docs/30, 5.2): a thin bar once worn, red under a fifth left.
   if (entry.wear > 0) inner += `<div class="inv-wear${entry.wear > 0.8 ? " low" : ""}"><div style="width:${Math.round((1 - entry.wear) * 100)}%"></div></div>`;
-  return `<div class="${cls.join(" ")}" ${attrs} role="img" aria-label="${def.name}" style="width:${w * cell}px;height:${h * cell}px;--item:${def.color || "#8a8296"}">${inner}</div>`;
+  return `<div class="${cls.join(" ")}" ${attrs} role="img" aria-label="${def.name}" style="width:${w * cell}px;height:${h * cell}px;--item:${tintOf(entry, def)}">${inner}</div>`;
 }
 
 function itemHtml(entry, index, which) {
@@ -584,7 +587,7 @@ function startDrag() {
     g.classList.add("art");
     g.innerHTML = `<img src="${assetUrl(iconOf(def, drag.entry).src)}" alt="" draggable="false">`;
   } else {
-    g.style.setProperty("--item", def.color || "#8a8296");
+    g.style.setProperty("--item", tintOf(drag.entry, def));
     g.textContent = def.short || def.name;
   }
   document.body.appendChild(g);

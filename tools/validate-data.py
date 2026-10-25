@@ -658,6 +658,58 @@ for i in items:
         placeholders.append(i["id"])
 notes.append(f"{drawn} items with drawn art as pairs, {len(placeholders)} on placeholder art")
 
+# The dye vat (docs/43 section 8, #412): every colour a name and a hex, every palette's ids colours, and each item's `dye` block
+# names regions whose palette or colours exist, or schemes of a colour per region; a painted item's `art.keys` is a pair of
+# hex tones per region, and only a wearable item is dyeable.
+HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
+dyes = load("data/dyes.json") if os.path.exists("data/dyes.json") else {"colours": {}, "palettes": {}}
+dye_colours = dyes.get("colours", {})
+for cid, c in dye_colours.items():
+    if not isinstance(c, dict) or not c.get("name") or not HEX.match(str(c.get("hex", ""))):
+        fail(f"dyes.colours.{cid}: wants a name and a #rrggbb hex")
+    for w in (c.get("cost") or []) if isinstance(c, dict) else []:
+        check_id(f"dyes.colours.{cid}.cost", w.get("item"))
+for pid, pal in dyes.get("palettes", {}).items():
+    for cid in pal:
+        if cid not in dye_colours:
+            fail(f"dyes.palettes.{pid}: no colour {cid!r}")
+dyeable = 0
+for i in items:
+    d = i.get("dye")
+    keys = (i.get("art") or {}).get("keys")
+    if d is None:
+        if keys is not None:
+            fail(f"items.{i['id']}: art.keys with no dye block")
+        continue
+    dyeable += 1
+    regions = d.get("regions") or []
+    if not i.get("wear"):
+        fail(f"items.{i['id']}: a dye block on an item that is not worn")
+    if not regions:
+        fail(f"items.{i['id']}: a dye block with no regions")
+    for n, r in enumerate(regions):
+        if not r.get("name"):
+            fail(f"items.{i['id']}.dye.regions[{n}]: no name")
+        if r.get("palette") is not None and r["palette"] not in dyes.get("palettes", {}):
+            fail(f"items.{i['id']}.dye.regions[{n}]: no palette {r['palette']!r}")
+        for cid in r.get("colours") or []:
+            if cid not in dye_colours:
+                fail(f"items.{i['id']}.dye.regions[{n}]: no colour {cid!r}")
+        if not d.get("schemes") and not r.get("palette") and not r.get("colours"):
+            fail(f"items.{i['id']}.dye.regions[{n}]: neither a palette nor colours, and the item has no schemes")
+    for n, sch in enumerate(d.get("schemes") or []):
+        if len(sch) != len(regions):
+            fail(f"items.{i['id']}.dye.schemes[{n}]: {len(sch)} colours for {len(regions)} regions")
+        for cid in sch:
+            if cid not in dye_colours:
+                fail(f"items.{i['id']}.dye.schemes[{n}]: no colour {cid!r}")
+    if keys is not None:
+        if not (i.get("art") or {}).get("painted"):
+            fail(f"items.{i['id']}: art.keys on an item with no painted layer")
+        if len(keys) > len(regions) or any(len(k) != 2 or not all(HEX.match(str(t)) for t in k) for k in keys):
+            fail(f"items.{i['id']}: art.keys wants a pair of #rrggbb tones per region")
+notes.append(f"{dyeable} dyeable items, {len(dye_colours)} dyes")
+
 # The manifest matches the disk (docs/23, step 1).
 manifest = load("data/manifest.json")
 on_disk = {}

@@ -901,7 +901,7 @@ function propActions(prop, player) {
 // A station (docs/30, section 6): one entry that opens its panel; the panel calls the craft verb.
 function stationActions(prop, player) {
   const station = stations.stationOf(prop);
-  const label = station === "cooking" ? "Cook here" : `Use the ${prop.sprite.replace(/_/g, " ")}`;
+  const label = station === "cooking" ? "Cook here" : station === "dyevat" ? "Use the dye vat" : `Use the ${prop.sprite.replace(/_/g, " ")}`;
   return [act({
     kind: "station",
     simple: true,

@@ -1,0 +1,34 @@
+{
+ "note": "The dye vat (docs/43 section 8, #412; src/dye.js). `colours` are the dyes a vat gives, each a name and a hex: the light tone a region takes, its shade the engine's (a painted garment's dark key becomes the colour darkened, docs/28). `palettes` are lists of colour ids an item's `dye` block names for a region (`palette`), or a region lists its own `colours`; a two-region item may instead list `schemes`, a colour id per region, and then only those are offered (a new scheme is one line of data, no new art). An item's own colours (its `art.colours`) are always offered first, as Undyed. `unlock` is Crafting 3, open to all until the skills are built (docs/43 section 1). The cost hook: a colour may name `cost`, a list of {item, count} taken from what the player carries when it is applied; none does, so a dye costs nothing until #288 rules whether it costs a plant (woad, madder, weld). Primary's palette, Michael's to change here.",
+ "unlock": {"skill": "crafting", "level": 3},
+ "colours": {
+  "bleached": {"name": "Bleached", "hex": "#e4dcc6"},
+  "weld": {"name": "Weld yellow", "hex": "#c8a640"},
+  "saffron": {"name": "Saffron", "hex": "#d48a2c"},
+  "madder": {"name": "Madder red", "hex": "#a63a2c"},
+  "rose": {"name": "Rose madder", "hex": "#c47070"},
+  "crimson": {"name": "Crimson", "hex": "#84202e"},
+  "woad": {"name": "Woad blue", "hex": "#3e5e90"},
+  "pale_woad": {"name": "Pale woad", "hex": "#86a2bc"},
+  "indigo": {"name": "Indigo", "hex": "#2a3560"},
+  "green": {"name": "Lincoln green", "hex": "#3e6a38"},
+  "sage": {"name": "Sage", "hex": "#84906a"},
+  "walnut": {"name": "Walnut brown", "hex": "#5a4030"},
+  "russet": {"name": "Russet", "hex": "#8c5634"},
+  "orchil": {"name": "Orchil purple", "hex": "#6a3c72"},
+  "ash": {"name": "Ash grey", "hex": "#74706c"},
+  "black": {"name": "Black", "hex": "#2a2428"},
+  "natural": {"name": "Natural leather", "hex": "#8a5a2a"},
+  "tan": {"name": "Tan", "hex": "#a87a48"},
+  "dark_brown": {"name": "Dark brown", "hex": "#3a2a1c"},
+  "oxblood": {"name": "Oxblood", "hex": "#5c2020"},
+  "grey_hide": {"name": "Grey hide", "hex": "#6a5e52"},
+  "brass": {"name": "Brass", "hex": "#c8a040"},
+  "iron": {"name": "Iron", "hex": "#8c8c94"},
+  "bronze": {"name": "Bronze", "hex": "#a46a3a"}
+ },
+ "palettes": {
+  "cloth": ["bleached", "weld", "saffron", "madder", "rose", "crimson", "woad", "pale_woad", "indigo", "green", "sage", "walnut", "russet", "orchil", "ash", "black"],
+  "leather": ["natural", "tan", "walnut", "dark_brown", "oxblood", "grey_hide", "black"]
+ }
+}

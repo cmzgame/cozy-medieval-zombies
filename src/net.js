@@ -608,13 +608,13 @@ export function hostStep(mySnap, me) {
           game.state.acting = null;
         }
       }
-    } else if (msg.type === "item" || msg.type === "use" || msg.type === "place" || msg.type === "craft") {
+    } else if (msg.type === "item" || msg.type === "use" || msg.type === "place" || msg.type === "craft" || msg.type === "dye") {
       // The panel's drags, drops, and menus, and the Use mode's pair, from a guest (docs/31/05, item 9):
       // run here as the guest's player through the same code its own panel uses (main.js hands in
       // inventory-actions.js's executors).
       const g = guests.get(msg.from);
       const p = g && game.state.players.find((q) => q.id === g.playerId);
-      const hook = msg.type === "item" ? hooks.item : msg.type === "use" ? hooks.use : msg.type === "place" ? hooks.place : hooks.craft;
+      const hook = msg.type === "item" ? hooks.item : msg.type === "use" ? hooks.use : msg.type === "place" ? hooks.place : msg.type === "dye" ? hooks.dye : hooks.craft;
       if (p && hook) {
         game.state.acting = p;
         try {
@@ -1293,6 +1293,11 @@ export function kickTo(playerId, x, y, seconds) {
 
 export function sendCraft(cmd) {
   if (role === "guest" && cmd && cmd.propId) send({ type: "craft", ...cmd });
+}
+
+// A dye (ui/dye-panel.js Apply; docs/43 section 8): the vat by id, the entry by uid, the colours a hex per region; the host runs the verb.
+export function sendDye(cmd) {
+  if (role === "guest" && cmd && cmd.propId && cmd.uid != null && Array.isArray(cmd.colours)) send({ type: "dye", propId: cmd.propId, uid: cmd.uid, colours: cmd.colours });
 }
 
 // A placement (placement.js): a carried prop put down at a tile, a wall built on an edge, a built thing removed.
