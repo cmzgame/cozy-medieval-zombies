@@ -273,6 +273,12 @@ export async function run(game) {
     const prop = G.map.tileAt(fx + 1, fy - 1).prop;
     row("set down outdoors from the bag, it is a snare set from now, walked over", placedOk && !!prop && !!prop.snare && prop.snare.holds === null && prop.solid === false, prop ? JSON.stringify(prop.snare) + ` solid ${prop.solid}` : "nothing set");
     if (prop && prop.snare) {
+      // Every other player (a guest in a two-tab run) out past the clear distance for these rows, and back after: a catch waits while
+      // anyone is near, rightly (Primary's two-tab run of #456).
+      const others = S.players.filter((p) => p !== me);
+      const otherAt = others.map((p) => [p.gx, p.gy]);
+      restoreAfter.push(() => others.forEach((p, i) => { p.gx = otherAt[i][0]; p.gy = otherAt[i][1]; }));
+      for (const p of others) { p.gx = fx + A.renewRule().clear + 20; p.gy = fy; }
       const home = { id: "hsnare", species: "rabbit", at: [fx + 6, fy + 2], count: 1, cap: 1, renew: true, nextAt: null };
       const rab = spawn("rabbit", fx + 6, fy + 2);
       rab.homeId = "hsnare";
@@ -284,12 +290,15 @@ export async function run(game) {
       const caught = A.snareStep([prop], S.animals, [home], []).length;
       row("after its hours, with a home of rabbits near and nobody to see, it holds one of theirs: a carcass on the snare, the snare's", early === 0 && watched === 0 && caught === 1 && rab.dead && rab.killedBy === "snare" && rab.gx === fx + 1 && rab.gy === fy - 1 && prop.snare.holds === rab.id, `early ${early}, watched ${watched}, caught ${caught}; the rabbit ${rab.dead ? "dead" : "alive"} by ${rab.killedBy} at ${rab.gx},${rab.gy}`);
       row("its Look at says what it holds", A.snareLine(prop) === "The snare holds a rabbit.", A.snareLine(prop));
+      const caughtAt = clock.getElapsed();
       byLabel(rab, "Skin the rabbit");
       work(A.workSeconds("skin"));
       byLabel(rab, "Butcher the rabbit");
       work(A.workSeconds("butcher"));
-      const reset = A.snareStep([prop], S.animals, [home], []).length;
-      row("once the catch is taken it is set again", reset === 1 && prop.snare.holds === null && bagCount("rabbit_raw") >= 1, `set again ${reset === 1}, holds ${prop.snare.holds}, rabbit meat ${bagCount("rabbit_raw")}`);
+      A.snareStep([prop], S.animals, [home], []); // the world's own pass may have set it again during the butchering already: either way
+      const reset = prop.snare.holds === null && prop.snare.setAt >= caughtAt; // set again from the moment its catch was gone
+      row("once the catch is taken it is set again", reset && bagCount("rabbit_raw") >= 1, `holds ${prop.snare.holds}, set at ${prop.snare.setAt.toFixed(1)}, rabbit meat ${bagCount("rabbit_raw")}`);
+      others.forEach((p, i) => { p.gx = otherAt[i][0]; p.gy = otherAt[i][1]; });
       clock.setElapsed(saved.clock);
       G.map.removeProp ? G.map.removeProp(prop) : null;
     }

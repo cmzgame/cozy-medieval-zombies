@@ -315,6 +315,24 @@ map.setHolder(mountTarget, false); did("the torch taken out");
   inventory.bagOf(me).items = bag0;
 }
 
+// The keeping's daily pass (docs/45 section 3): a feeding trough eaten from, and a hen's egg laid into its coop, as the day turns.
+{
+  const animal = await import("../src/entities/animal.js");
+  const grid = await import("../src/grid.js");
+  const interact2 = await import("../src/interact.js");
+  const hen = game.state.animals.find((a) => a.species === "hen" && !a.dead);
+  if (!hen) fail("the valley has no hen");
+  const trough = map.allProps().filter((q) => q.sprite === "feed_trough").sort((x, y) => Math.hypot(x.tile[0] - hen.home[0], x.tile[1] - hen.home[1]) - Math.hypot(y.tile[0] - hen.home[0], y.tile[1] - hen.home[1]))[0];
+  if (!trough) fail("no feeding trough by the hens");
+  const tb = interact2.propBag(trough);
+  for (let i = 0; i < 4; i++) grid.insert(tb, items.makeEntry("grain", 1));
+  map.markDirty(trough.tile[0], trough.tile[1]); // filled by hand, as the panel's drop marks it
+  did("a feeding trough filled");
+  clock.setElapsed((animal.today() + 1) * clock.DAY_LENGTH + 2);
+  did("a feeding trough eaten from and a coop laid in as the day turns", 6 * 60); // the troughs are looked for every fifth second
+  if (hen.fedDay !== animal.today()) fail("the hen was not fed when the day turned");
+}
+
 // Saplings and sticks (docs/46 step 3, #449): a sapling planted from the bag, its growing waiting while the player stands on it (the stamp on
 // the prop), turning to its second stage and then to the round oak in place; and sticks gathered under a tree (the day it has more on the prop).
 {

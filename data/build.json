@@ -132,5 +132,17 @@
     },
     "seconds": 8,
     "note": "docs/43 section 4 (step 3): built inside a room, against a wall; a switch (section 3), out when built; no tool (the builder's default, as the campfire's)"
+  },
+  "feed_trough": {
+    "label": "Feeding trough",
+    "kind": "prop",
+    "sprite": "feed_trough",
+    "stand": "ground",
+    "cost": {
+      "plank": 3
+    },
+    "seconds": 6,
+    "tool": "build",
+    "note": "docs/45 section 3: a feeding trough (not the water trough) in a pen, filled with grain, vegetables, or hay; built from the palette, planks (Primary's default)"
   }
 }

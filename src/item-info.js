@@ -13,7 +13,7 @@ import { buildKinds } from "./placement.js";
 import { isWoodWall } from "./woods.js";
 import * as dye from "./dye.js";
 import { holdsWater, isTainted } from "./water.js"; // clean or tainted (docs/44)
-import { sourcesOf, snareRule } from "./entities/animal.js"; // where a yield comes from, and the snare (docs/45 section 2)
+import { sourcesOf, snareRule, keptFrom } from "./entities/animal.js"; // where a yield comes from, the snare (docs/45 section 2), and what keeping gives (section 3)
 import { defIdsWith, getDef } from "./assets.js"; // the nodes a gathered thing comes from (docs/46 step 2)
 import { resourceKindOf } from "./map.js"; // and where they grow: the map's resource kinds
 
@@ -217,6 +217,16 @@ export function cardFor(entry) {
     if (how("butcher").length) bits.push(`butchered from ${listOr(how("butcher").map(an))}`);
     lines.push(line(`${cap(bits.join("; "))}, a dirk carried.`));
   }
+  // What keeping gives (docs/45 section 3): a fed cow's milk, a sheep's wool, a hen's egg and feather; what feed is for; what a lead does.
+  for (const k of keptFrom(def.id)) {
+    if (k.how === "milk") lines.push(line(`Milked from ${an(`fed ${k.species}`)}, a bucket carried.`));
+    else if (k.how === "shear") lines.push(line(`Shorn from ${an(`fed ${k.species}`)}, shears carried.`));
+    else lines.push(line(`Laid by ${an(`fed ${k.species}`)} into its coop.`));
+  }
+  if (def.tags && def.tags.includes("feed")) lines.push(line("Feed: put in a feeding trough, a tame animal near it eats one a day."));
+  if (def.verbs && def.verbs.includes("lead")) lines.push(line("Leads a tame animal; let go, it stays where it stands."));
+  if (def.verbs && def.verbs.includes("shear")) lines.push(line("Shears a fed sheep's wool."));
+  if (def.verbs && def.verbs.includes("milk")) lines.push(line("Milks a fed cow."));
   if (def.place && getDefSafe(def.place) && getDefSafe(def.place).snare) {
     const sn = snareRule();
     lines.push(line(`Set near rabbits, it holds one after about ${sn.hours} game hours.`));
