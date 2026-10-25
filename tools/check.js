@@ -1126,7 +1126,7 @@ check("fruit art: apples painted on a crown's leaves only, spread, the same ever
 });
 
 const beesMod = await import("../src/render/bees.js");
-check("bees: three to six specks round a hive by day, none from dusk to dawn, whole pixels, livelier when honey is taken (#441)", () => {
+check("bees: three to six 2-pixel bees with a flickering wing, in loops above and beside a hive's crown by day, none from dusk to dawn, whole pixels, livelier when honey is taken (#441)", () => {
   const hives = Array.from({ length: 20 }, (_, i) => ({ id: `p_${100 + i * 7}` }));
   const counts = new Set();
   for (const hv of hives) {
@@ -1137,20 +1137,35 @@ check("bees: three to six specks round a hive by day, none from dusk to dawn, wh
   }
   assert(counts.size >= 2, `every hive has the same number of bees (${[...counts]})`);
   const hv = hives[0];
+  let seen = 0;
+  let behind = 0;
+  let widest = 0;
   for (let t = 0; t < 60; t += 0.37) {
     for (const b of beesMod.beesAt(hv, t, "day", t % 3 / 3)) {
       assert(Number.isInteger(b.x) && Number.isInteger(b.y), `a bee at ${b.x},${b.y}`);
-      assert(Math.abs(b.x) <= 30 && b.y >= -24 && b.y <= 14, `a bee strayed to ${b.x},${b.y} from the crown`);
+      assert(Math.abs(b.x) <= 42 && b.y >= -31 && b.y <= 7, `a bee strayed to ${b.x},${b.y} from the crown`);
       assert(b.dx === 1 || b.dx === -1, `a bee's way ${b.dx}`);
     }
+    for (const b of beesMod.beesAt(hv, t, "day")) {
+      assert(b.y <= 1, `a calm bee at ${b.y} px from the cloud's anchor sits on the crown, not above it`);
+      seen++;
+      if (b.back) behind++;
+      widest = Math.max(widest, Math.abs(b.x));
+    }
   }
+  assert(behind / seen < 0.35, `${behind} of ${seen} bees behind the hive: most should be in front`);
+  assert(widest >= 12, `the calm cloud spans only ${widest} px either side of the crown`);
+  const { BEES } = beesMod;
+  assert(BEES.size === 2 && BEES.wing === "#e8e4d0" && BEES.rx[0] >= 10 && BEES.rx[1] <= 18, `the bee's look: ${JSON.stringify(BEES)}`);
+  const wings = [0, 1, 2, 3].map((k) => beesMod.beesAt(hv, 40 + k / 60, "day")[0].wing);
+  assert(wings[0] !== wings[1] && wings[1] !== wings[2] && wings[2] !== wings[3], `the wing does not flicker on alternate steps: ${wings}`);
   assert(JSON.stringify(beesMod.beesAt(hv, 50, "day")) === JSON.stringify(beesMod.beesAt(hv, 50, "day")), "the same moment drew two ways");
   assert(JSON.stringify(beesMod.beesAt(hv, 50, "day")) !== JSON.stringify(beesMod.beesAt(hv, 50.5, "day")), "the bees did not move in half a second");
   // A step of the clock moves a bee a few pixels, not across its loop (calm, and while the stir fades).
   for (const s of [0, 0.5]) {
     const p = beesMod.beesAt(hv, 80, "day", s);
     const q = beesMod.beesAt(hv, 80 + 1 / 60, "day", s);
-    p.forEach((b, i) => assert(Math.abs(b.x - q[i].x) <= 3 && Math.abs(b.y - q[i].y) <= 3, `a bee jumped ${b.x},${b.y} to ${q[i].x},${q[i].y} in a step (stir ${s})`));
+    p.forEach((b, i) => assert(Math.abs(b.x - q[i].x) <= 4 && Math.abs(b.y - q[i].y) <= 4, `a bee jumped ${b.x},${b.y} to ${q[i].x},${q[i].y} in a step (stir ${s})`));
   }
   const calm = hives.find((x) => beesMod.countOf(x) < 6);
   assert(beesMod.beesAt(calm, 10, "day", 1).length === 6, "a stirred hive has six bees");
