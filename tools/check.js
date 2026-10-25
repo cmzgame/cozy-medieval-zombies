@@ -1669,8 +1669,7 @@ check("herbs, clay, and salt: placed to their counts on their ground, gathered b
 // it waits while a body stands on it (the stamp marks its chunk); Gather sticks by the label a guest sends, after its bar, once a game day,
 // greyed and refused after, again the next day, never on a stump, kept from E by a laden apple tree's Pick apples; the stamps in the save and
 // the sync hash; the cards. (The page, the pictures, and two tabs are `check("saplings")`'s, in the pane.)
-const treesMod = await import("../src/trees.js");
-const setdownMod = await import("../src/setdown.js");
+const treesMod = await import("../src/trees.js"); // setdownMod is the file's own, above
 check("saplings and sticks: dropped at their chance, planted by the host and a guest on open grass only, grown to an oak over their days, waiting while stood on; sticks once a day", () => {
   const json = read("data/maps/valley.json");
   gameMod.create({ json, rules: { zombieAggro: false } });
@@ -1793,6 +1792,39 @@ check("saplings and sticks: dropped at their chance, planted by the host and a g
   const appleActs = interactMod.actionsForTarget({ kind: "prop", id: apple.id }, me);
   const appleSticks = appleActs.find((a) => a.label === "Gather sticks");
   assert(appleSticks && appleSticks.simple === false && appleActs.find((a) => /^Pick/.test(a.label)).simple === true, `the apple tree: ${appleActs.map((a) => `${a.label}${a.simple ? " (E)" : ""}`).join(", ")}`);
+  // An apple tree's sapling grows an apple tree (the review of #461, a default): the entry carries it, through the card, the planting, a
+  // pick-up, and the growing; any other tree's carries nothing (the round oak).
+  const ax = near((x, y) => treesMod.standProblem(x, y) === "" && mapMod.canBuildWall(x, y, "n") && Math.hypot(x - spot2[0], y - spot2[1]) > 3 && Math.hypot(x - open[0], y - open[1]) > 3);
+  T.sapling.chance = 1;
+  const fromApple = treesMod.fellDrop(ax[0], ax[1], "tree_apple");
+  const fromOak = treesMod.fellDrop(ax[0], ax[1], "tree_oak_l");
+  T.sapling.chance = chance0;
+  assert(fromApple && fromApple.tree === "tree_apple" && fromOak && fromOak.tree === undefined && treesMod.growsFrom("tree_apple_bare") === "tree_apple", `the felled trees' saplings: ${JSON.stringify(fromApple)}, ${JSON.stringify(fromOak)}`);
+  mapMod.takeItem(ax[0], ax[1], fromApple);
+  mapMod.takeItem(ax[0], ax[1], fromOak);
+  const appleSap = itemsMod.makeEntry("sapling", 1, { tree: "tree_apple" });
+  const appleCard = itemInfoMod.textOf(itemInfoMod.cardFor(appleSap));
+  assert(appleCard.includes("Grows into an apple tree in about 5 game days; it waits while anyone stands on it."), appleCard.join(" | "));
+  inventoryMod.stow(me, appleSap);
+  me.gx = ax[0] + 1; me.gy = ax[1] + 0.3;
+  assert(setdownMod.place(me, appleSap.uid, ax[0], ax[1]), "the apple sapling was not planted");
+  const ap1 = mapMod.tileAt(ax[0], ax[1]).prop;
+  assert(ap1.sapling.tree === "tree_apple" && /an apple tree in about 5 days/.test(treesMod.report(ap1)), `planted: ${JSON.stringify(ap1.sapling)}; ${treesMod.report(ap1)}`);
+  assert(setdownMod.pickUp(me, ap1), "the apple sapling was not picked up");
+  const appleBack = inventoryMod.bagOf(me).items.find((e) => e.id === "sapling" && e.tree === "tree_apple");
+  assert(appleBack && setdownMod.place(me, appleBack.uid, ax[0], ax[1]), "picked up, the apple sapling lost its tree, or was not planted again");
+  const ap = mapMod.tileAt(ax[0], ax[1]).prop;
+  // A wall on its edge since it was planted: its Inspect says the stand rule's reason, and it does not grow into its tree; the wall gone, it does.
+  mapMod.buildWall(ax[0], ax[1], "n", "wall");
+  const blocked = treesMod.report(ap);
+  me.gx = ax[0] + 3; me.gy = ax[1] + 3;
+  lookUntil(ap.sapling.at + T.sapling.days * DAY + 60);
+  assert(/^A sapling that cannot grow into an apple tree here: not against a wall\./.test(blocked) && mapMod.tileAt(ax[0], ax[1]).prop === ap && ap.sapling && /cannot grow/.test(treesMod.report(ap)), `with a wall on its edge: "${blocked}"; ${mapMod.tileAt(ax[0], ax[1]).prop.sprite}`);
+  mapMod.destroyWall(ax[0], ax[1], "n");
+  look();
+  look();
+  const appleTree = mapMod.tileAt(ax[0], ax[1]).prop;
+  assert(appleTree && appleTree.sprite === "tree_apple" && appleTree.id === ap.id && !appleTree.sapling, `the wall gone: ${appleTree && appleTree.sprite}`);
   // The stamps in the save: a sapling's growing and a tree's sticks day.
   const spot3 = near((x, y) => treesMod.standProblem(x, y) === "");
   me.gx = spot3[0] + 1; me.gy = spot3[1];
@@ -1808,9 +1840,9 @@ check("saplings and sticks: dropped at their chance, planted by the host and a g
   assert(s3b && s3b.sapling && s3b.sapling.at === s3.sapling.at && s3b.sapling.waited === 77 && treeB && treeB.sticksAt === tree.sticksAt, `after the save: ${s3b && JSON.stringify(s3b.sapling)}, sticksAt ${treeB && treeB.sticksAt}`);
   // The cards.
   const card = (id) => itemInfoMod.textOf(itemInfoMod.cardFor(itemsMod.makeEntry(id, 1))).join(" | ");
-  assert(card("sapling") === "Sapling | Sapling | Place: plant on open grass outdoors. | Grows into a tree in about 5 game days; it waits while anyone stands on it. | Sometimes dropped by a felled tree (about 1 in 3). | Right-click for actions.", card("sapling"));
-  assert(card("stick").includes("Gathered under any standing tree, 1 to 2, once a day a tree."), card("stick"));
-  return `${n1} saplings in 1000 fellings at ${chance0}; planted by the host and a guest's command; refused indoors, on a road, tilled soil, and against a wall; an oak after ${T.sapling.days} days, the one stood on after ${left.toFixed(2)} more; sticks ${got} once a day; the stamps saved; the cards`;
+  assert(card("sapling") === "Sapling | Seedling | Place: plant on open grass outdoors. | Grows into a tree in about 5 game days; it waits while anyone stands on it. | Sometimes dropped by a felled tree (about 1 in 3). | Right-click for actions.", card("sapling"));
+  assert(card("stick").includes("Gathered under any standing tree, 1 to 2 a day from each tree."), card("stick"));
+  return `${n1} saplings in 1000 fellings at ${chance0}; planted by the host and a guest's command; refused indoors, on a road, tilled soil, and against a wall; an oak after ${T.sapling.days} days, the one stood on after ${left.toFixed(2)} more; an apple tree's sapling an apple tree, kept through a pick-up, held back by a wall with its reason said; sticks ${got} once a day; the stamps saved; the cards`;
 });
 
 // A repair place's one greyed line (docs/43 section 6; docs/bugs.md, fixed): with nothing worn carried it says what the place does; with

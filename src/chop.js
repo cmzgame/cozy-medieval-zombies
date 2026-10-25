@@ -46,7 +46,7 @@ verbs.define("chop", {
     if (tree) {
       const s = map.createProp({ sprite: W.stumpSprite, tile: [tx, ty] }); // a felled tree leaves its stump
       map.placeProp(s, tx, ty);
-      sapling = fellDrop(tx, ty); // and sometimes a sapling, by the sim's generator (Woodcutting 4, open to all until the skills)
+      sapling = !!fellDrop(tx, ty, prop.sprite); // and sometimes a sapling of its kind, by the sim's generator (Woodcutting 4, open to all until the skills)
     }
     const n = `${logs} log${logs > 1 ? "s" : ""}`;
     showMessage(stump ? `${n} from the stump, and the ground is clear.` : tree ? `${n} on the ground, and a stump${sapling ? "; a sapling fell too" : ""}.` : `${n} on the ground.`);

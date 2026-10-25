@@ -8,7 +8,9 @@
 // game.begin, on the authority, once a `checkSeconds` of the clock on its boundary, as fruit.js looks at the trees): a sapling with someone
 // standing on its tile waits, the time since the last look added to `waited` (and its chunk marked: the stamp is on the prop, so the save and
 // the chunk to a guest carry it); otherwise its picture follows its stage (a restage, which marks its chunk), and once grown it becomes the
-// tree in place, keeping its id, unless a wall or a room has come round it since (the stand rule again), when it waits as it is. Trees are no
+// tree in place, keeping its id, unless a wall or a room has come round it since (the stand rule again), when it waits as it is (and its
+// Inspect says why). The tree is the round oak unless the sapling came from a tree whose definition names another (`saplingGrows`: an apple
+// tree's sapling grows an apple tree), carried on the item's entry as `tree` and on the planted prop's record. Trees are no
 // natural resource kind: a planted sapling and the tree it grows never count against resources.js's areas.
 //
 // Sticks under trees: the `sticks` verb on any standing tree (a prop with wood and a canopy, never a stump) gives `sticks.count` of the stick
@@ -56,10 +58,33 @@ export function standProblem(x, y, { self = null, items: withItems = true } = {}
 }
 
 // A sapling's prop is planted now: its growing starts from the clock.
-export function plant(prop, now = clock.getElapsed()) {
-  prop.sapling = { at: now, waited: 0 };
+// `tree` is the tree it grows into, carried from the felling on the item's entry (an apple tree's sapling grows an apple tree), or none
+// for the default, the round oak (`tuning.trees.sapling.grows`).
+export function plant(prop, now = clock.getElapsed(), tree = null) {
+  prop.sapling = { at: now, waited: 0, ...(tree ? { tree } : {}) };
   return prop;
 }
+
+// The tree a sapling from a felled tree of `sprite` grows into, as the sapling's entry carries it: the felled tree's definition's
+// `saplingGrows` (an apple tree's, laden or bare, is the apple tree, so felling one never loses the orchard for good), else null, the
+// default (the round oak). A default, Michael's to overrule (#461).
+export function growsFrom(sprite) {
+  let d = null;
+  try { d = getDef(sprite); } catch { return null; }
+  const g = d && typeof d.saplingGrows === "string" ? d.saplingGrows : null;
+  return g && g !== T.sapling.grows ? g : null;
+}
+
+// The tree a planted sapling (its `sapling` record) or a sapling's entry (its `tree`) grows into.
+export const treeOf = (rec) => (rec && rec.tree) || T.sapling.grows;
+
+// A tree's name for a line: "an apple tree", else "a tree".
+function treeName(sprite) {
+  let n = null;
+  try { n = getDef(sprite).name; } catch { n = null; }
+  return n ? `${/^[aeiou]/i.test(n) ? "an" : "a"} ${n}` : "a tree";
+}
+export const treeWords = treeName;
 
 const total = () => T.sapling.days * DAY;
 
@@ -83,17 +108,23 @@ export function daysLeft(prop, now = clock.getElapsed()) {
 }
 
 // The line its Inspect says (interact.js), on any client from the prop's stamp and the clock.
+// A sapling that can no longer grow into its tree (a wall, a fence, a gate, or a door on its edge since, a room closed round it) says the
+// stand rule's reason instead, the review of #461.
 export function report(prop, now = clock.getElapsed()) {
-  if (stageOf(prop, now) >= T.sapling.stages.length) return "A sapling, ready to grow into a tree: it waits while anyone stands on it.";
+  const what = treeName(treeOf(prop.sapling));
+  const why = standProblem(prop.tile[0], prop.tile[1], { self: prop, items: false });
+  if (why) return `A sapling that cannot grow into ${what} here: ${why.toLowerCase()}. It waits until that changes.`;
+  if (stageOf(prop, now) >= T.sapling.stages.length) return `A sapling, ready to grow into ${what}: it waits while anyone stands on it.`;
   const days = Math.max(1, Math.ceil(daysLeft(prop, now)));
-  return `A sapling: a tree in about ${days} day${days > 1 ? "s" : ""} of growing, which waits while anyone stands on it.`;
+  return `A sapling: ${what} in about ${days} day${days > 1 ? "s" : ""} of growing, which waits while anyone stands on it.`;
 }
 
-// Felling a tree sometimes drops a sapling on its tile (chop.js, on the authority): one roll of the sim's generator. True when one fell.
-export function fellDrop(tx, ty) {
-  if (!(rng.float() < T.sapling.chance)) return false;
-  map.dropItem(tx, ty, items.makeEntry(T.sapling.item, 1));
-  return true;
+// Felling a tree of `sprite` sometimes drops a sapling on its tile (chop.js, on the authority): one roll of the sim's generator. The entry
+// carries the tree it grows into when that is not the default (`tree`, growsFrom). Returns the entry on the floor, or null.
+export function fellDrop(tx, ty, sprite = null) {
+  if (!(rng.float() < T.sapling.chance)) return null;
+  const tree = sprite ? growsFrom(sprite) : null;
+  return map.dropItem(tx, ty, items.makeEntry(T.sapling.item, 1, tree ? { tree } : {}));
 }
 
 // A grown sapling becomes the tree in its place, keeping its id; null (it waits as it is) while the stand rule refuses it now.
@@ -102,7 +133,7 @@ export function growUp(prop) {
   if (standProblem(x, y, { self: prop, items: false })) return null;
   const id = prop.id;
   map.removeProp(prop);
-  const tree = map.createProp({ id, sprite: T.sapling.grows, tile: [x, y] });
+  const tree = map.createProp({ id, sprite: treeOf(prop.sapling), tile: [x, y] });
   map.placeProp(tree, x, y); // marks its chunk: the save's copy goes, and a guest gets the chunk with the tree
   return tree;
 }

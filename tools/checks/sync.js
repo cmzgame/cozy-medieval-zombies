@@ -20,8 +20,9 @@
 //   await __game.check("sync", { since: true })                  // or { since: mark }: every item's count is the mark's
 // A run without `since` compares nothing with a mark, and a mark is dropped once the reports go off. The minute is moving only: eating,
 // burning, making, a first search of a container or a body (its loot is rolled then), a kill's arrows, the wild growing or the dead
-// going to sleep with a player far off, a hen laying in a coop or stock eating from a trough (docs/45, on the clock), and a guest going
-// dormant all change counts honestly; the row names each item whose count
+// going to sleep with a player far off, a hen laying in a coop or stock eating from a trough (docs/45, on the clock), a sapling dropped
+// by a felling, a sapling planted (one `sapling` placed, gone when it grows into its tree on the clock) and sticks gathered under a tree
+// (docs/46 step 3), and a guest going dormant all change counts honestly; the row names each item whose count
 // moved and by whom it is held. A drift only in the living dead's and villagers' garments (the part `living`) is a note, not a failure.
 
 let lastMark = null;

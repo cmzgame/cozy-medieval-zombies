@@ -386,6 +386,13 @@ if tt:
     g = sp.get("grows")
     if g not in sprites or not load(f"data/sprites/{g}.json").get("canopy") or not load(f"data/sprites/{g}.json").get("wood"):
         fail(f"tuning.trees.sapling.grows: {g!r} is no tree (a canopy and wood)")
+    # A tree's `saplingGrows` (an apple tree's sapling grows an apple tree, #461) names a tree.
+    for sid in sorted(sprites):
+        sg = load(f"data/sprites/{sid}.json").get("saplingGrows")
+        if sg is None:
+            continue
+        if sg not in sprites or not load(f"data/sprites/{sg}.json").get("canopy") or not load(f"data/sprites/{sg}.json").get("wood"):
+            fail(f"sprites.{sid}.saplingGrows: {sg!r} is no tree (a canopy and wood)")
     st = tt.get("sticks") or {}
     check_id("tuning.trees.sticks.item", st.get("item"))
     c0, c1 = (st.get("count") or [0, 0])[:2]

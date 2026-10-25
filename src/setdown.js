@@ -90,7 +90,7 @@ export function place(player, uid, tx, ty) {
   if (!p.decoration && !sapling) prop.made = true; // a player's own; a decoration is only picked up again, never taken apart, and a sapling grows into a tree of the woods
   if (snare) prop.snare = { setAt: clock.getElapsed(), holds: null }; // set from now: it holds a rabbit after a while (docs/45 section 2, animal.js)
   if (snare) noteSnare(prop);
-  if (sapling) trees.plant(prop); // growing from now (docs/46 step 3)
+  if (sapling) trees.plant(prop, clock.getElapsed(), entry.tree || null); // growing from now, into the tree its entry carries (docs/46 step 3)
   map.placeProp(prop, tx, ty);
   showMessage(p.decoration ? `You set the ${items.getItem(entry.id).name.toLowerCase()} down as decoration.` : sapling ? `You plant the ${nameOf(p.sprite)}.` : `You set the ${nameOf(p.sprite)} down.`);
   return true;
@@ -115,7 +115,7 @@ export function pickUp(player, prop) {
     return false;
   }
   const bag = inventory.bagOf(player);
-  const entry = items.makeEntry(getDef(prop.sprite).item, 1);
+  const entry = items.makeEntry(getDef(prop.sprite).item, 1, prop.sapling && prop.sapling.tree ? { tree: prop.sapling.tree } : {}); // a sapling keeps the tree it grows into
   if (!bag || !grid.insert(bag, entry)) {
     showMessage(bag ? "No room in your bag." : "You have no bag.");
     return false;

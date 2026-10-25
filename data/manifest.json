@@ -1,5 +1,5 @@
 {
-  "version": "90c33f80",
+  "version": "b764d006",
   "files": {
     "data/animals.json": {"size": 5400, "stamp": "778b4155"},
     "data/build.json": {"size": 3016, "stamp": "87aeb2be"},
@@ -765,8 +765,8 @@
     "data/sprites/stump.json": {"size": 391, "stamp": "b3a77ae1"},
     "data/sprites/table.json": {"size": 399, "stamp": "f82ad8f5"},
     "data/sprites/torch_post.json": {"size": 301, "stamp": "64eed80e"},
-    "data/sprites/tree_apple.json": {"size": 813, "stamp": "8f90fd30"},
-    "data/sprites/tree_apple_bare.json": {"size": 477, "stamp": "f5dc0d75"},
+    "data/sprites/tree_apple.json": {"size": 843, "stamp": "33f40e8c"},
+    "data/sprites/tree_apple_bare.json": {"size": 507, "stamp": "816cfc67"},
     "data/sprites/tree_blue_l.json": {"size": 312, "stamp": "ba3fe39c"},
     "data/sprites/tree_blue_m.json": {"size": 309, "stamp": "289df1bb"},
     "data/sprites/tree_blue_old.json": {"size": 311, "stamp": "7258c4f8"},

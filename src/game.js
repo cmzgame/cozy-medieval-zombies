@@ -451,8 +451,8 @@ export function syncParts() {
   // A fire's fuel to the unit: a replica refreshes it at each whole unit burned (map.burnFires), not each step.
   const chunks = (m.chunks || []).slice().sort((a, b) => (a.cx - b.cx) || (a.cy - b.cy)).map((c) => ({ ...c, props: (c.props || []).map((p) => { const { pokedAt, playedAt, ...q } = p; return q.fire && typeof q.fire.fuel === "number" ? { ...q, fire: { ...q.fire, fuel: Math.floor(q.fire.fuel) } } : q; }) }));
   // An entry's wear in whole hundredths, as the wire compares it (net.js sends a player's heavy part when its wear rounds differently), and its
-  // repair count (docs/43 section 6), its dye (section 8), and whether its water is clean (docs/44): a guest's copy of a wear lags the host's by under a hundredth and never rounds otherwise.
-  const entryText = (e) => (e ? `${e.id}#${e.uid}x${e.count ?? 1}${e.lit ? "L" : ""}${e.fill != null ? `f${f(e.fill)}` : ""}${e.clean ? "clean" : ""}${e.wear > 0 ? `w${Math.round(e.wear * 100)}` : ""}${e.repairs ? `r${e.repairs}` : ""}${e.colours ? `c${e.colours.join("/")}` : ""}${e.colour ? `c${e.colour}` : ""}${e.bag ? `[${(e.bag.items || []).map(entryText).join(",")}]` : ""}` : "-");
+  // repair count (docs/43 section 6), its dye (section 8), whether its water is clean (docs/44), and the tree a sapling grows into (docs/46 step 3): a guest's copy of a wear lags the host's by under a hundredth and never rounds otherwise.
+  const entryText = (e) => (e ? `${e.id}#${e.uid}x${e.count ?? 1}${e.lit ? "L" : ""}${e.fill != null ? `f${f(e.fill)}` : ""}${e.clean ? "clean" : ""}${e.tree ? `t${e.tree}` : ""}${e.wear > 0 ? `w${Math.round(e.wear * 100)}` : ""}${e.repairs ? `r${e.repairs}` : ""}${e.colours ? `c${e.colours.join("/")}` : ""}${e.colour ? `c${e.colour}` : ""}${e.bag ? `[${(e.bag.items || []).map(entryText).join(",")}]` : ""}` : "-");
   const at = (c) => (c.netTo ? c.netTo : [c.gx, c.gy]); // a replica's smoothing target is the host's truth (net.js)
   // Health as the wire carries it, to two decimals (net.js r2): a bleeding player's drains in fractions every step, so
   // three decimals differed between the host and every replica though nothing was wrong (found testing item 5's third
@@ -493,7 +493,8 @@ export function syncParts() {
 // An entry is an object whose `id` is an item's and that has no `sprite` (a prop's). What stands or hangs as an item without being an
 // entry counts one unit of that item with no uid, held by "placed": a laid rug (`rugItem`), a painting on a wall (`hangings`' `item`),
 // a bracket a player hung (`made`: a wall bracket) and the torch in any bracket, a prop whose definition names its `item` (a torch post,
-// a snare, a decorative pumpkin), the torch in a post (`fire.has`), and a campfire (the Campfire item it is picked up as).
+// a snare, a decorative pumpkin, a planted sapling until it grows into its tree, docs/46 step 3), the torch in a post (`fire.has`), and a
+// campfire (the Campfire item it is picked up as).
 // Not counted: what is lodged in one of the dead or in an animal (`lodged`, `lodgedItems`), which is not on the wire and stays the
 // host's until a search or a butchering lays it out; an animal holds nothing else.
 // Two places that are one thing by design count once: a two-handed thing in both hands (the same object; on a replica, a two-handed

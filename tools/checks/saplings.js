@@ -36,8 +36,8 @@ export async function run(game, opts = {}) {
   const labelsOf = (p) => G.interact.actionsForTarget({ kind: "prop", id: p.id }, me).map((a) => `${a.label}${a.enabled === false ? " [off]" : ""}${a.local ? " [local]" : ""}`);
   const count = (id) => G.inventory.countAll(me, id);
   const message = () => ((document.getElementById("message") || {}).textContent || "").trim();
-  const SAPLING_CARD = "Sapling | Sapling | Place: plant on open grass outdoors. | Grows into a tree in about 5 game days; it waits while anyone stands on it. | Sometimes dropped by a felled tree (about 1 in 3). | Right-click for actions.";
-  const STICK_LINE = "Gathered under any standing tree, 1 to 2, once a day a tree.";
+  const SAPLING_CARD = "Sapling | Seedling | Place: plant on open grass outdoors. | Grows into a tree in about 5 game days; it waits while anyone stands on it. | Sometimes dropped by a felled tree (about 1 in 3). | Right-click for actions.";
+  const STICK_LINE = "Gathered under any standing tree, 1 to 2 a day from each tree.";
   let kept = null;
   const done = () => {
     for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);
@@ -182,11 +182,19 @@ export async function run(game, opts = {}) {
     // ---- felling drops a sapling at its chance ----
     {
       const rng0 = G.rng.getState();
-      const roll = (seed) => { G.rng.seed(seed); let n = 0; for (let i = 0; i < 1000; i++) if (G.rng.float() < T.sapling.chance) n++; return n; };
+      // The felling's own roll, trees.fellDrop, a thousand times on one tile under the player, its saplings taken up again after each run.
+      const [rx, ry] = [Math.round(me.gx), Math.round(me.gy)];
+      const roll = (seed) => {
+        G.rng.seed(seed);
+        let n = 0;
+        for (let i = 0; i < 1000; i++) if (trees.fellDrop(rx, ry, "tree_oak_m")) n++;
+        for (const e of [...map.itemsAt(rx, ry)]) if (e.id === "sapling") map.takeItem(rx, ry, e);
+        return n;
+      };
       const a = roll(7);
       const b = roll(7);
       G.rng.setState(rng0);
-      row("the chance is the sim's generator's: a thousand seeded rolls near the lever, the same twice", a === b && Math.abs(a / 1000 - T.sapling.chance) < 0.05, `${a} and ${b} of 1000 at ${T.sapling.chance}`);
+      row("the felling's roll (trees.fellDrop) is the sim's generator's: a thousand seeded fellings near the lever, the same twice", a === b && Math.abs(a / 1000 - T.sapling.chance) < 0.05, `${a} and ${b} of 1000 at ${T.sapling.chance}`);
       const fell = (chance) => {
         const tree = plainTreeNear(me.gx, me.gy);
         standAt(tree.tile[0] + 0.9, tree.tile[1] + 0.2);
@@ -319,6 +327,33 @@ export async function run(game, opts = {}) {
     const stump = map.peekTile(open[0], open[1]).prop;
     row("the grown oak is chopped by its label for its logs, and leaves a stump", chopped && !map.propById(oak.id) && !!stump && stump.sprite === "stump" && map.itemsAt(open[0], open[1]).filter((e) => e.id === "log").reduce((n, e) => n + e.count, 0) === oak.wood, `${chopLabel}; ${stump ? stump.sprite : "nothing"}`);
     for (const e of [...map.itemsAt(open[0], open[1])]) map.takeItem(open[0], open[1], e);
+
+    // ---- an apple tree's sapling grows an apple tree (a default, the review of #461); a wall on its edge holds it back, and Inspect says why ----
+    {
+      const ax = openNear(home[0] + 6, home[1] - 6, (x, y) => map.canBuildWall(x, y, "n") && Math.hypot(x - spot2[0], y - spot2[1]) > 3 && Math.hypot(x - open[0], y - open[1]) > 3);
+      T.sapling.chance = 1;
+      const fromApple = trees.fellDrop(ax[0], ax[1], "tree_apple");
+      T.sapling.chance = chance0;
+      if (fromApple) map.takeItem(ax[0], ax[1], fromApple);
+      const appleSap = G.items.makeEntry("sapling", 1, { tree: "tree_apple" });
+      const appleCard = info.textOf(info.cardFor(appleSap));
+      row("a felled apple tree's sapling carries its tree, and its card says it grows into an apple tree", !!fromApple && fromApple.tree === "tree_apple" && appleCard.includes("Grows into an apple tree in about 5 game days; it waits while anyone stands on it."), `${JSON.stringify(fromApple)}; ${appleCard.join(" | ")}`);
+      standAt(ax[0] + 1.2, ax[1] + 0.3);
+      G.inventory.stow(me, appleSap);
+      placement.performPlacement(me, { kind: "setdown", uid: appleSap.uid, tx: ax[0], ty: ax[1] });
+      const ap = map.peekTile(ax[0], ax[1]).prop;
+      map.buildWall(ax[0], ax[1], "n", "wall");
+      const blocked = ap ? trees.report(ap) : "";
+      standAt(ax[0] + 3, ax[1] + 3);
+      if (ap) lookUntil(ap.sapling.at + T.sapling.days * DAY + 60);
+      const held = map.peekTile(ax[0], ax[1]).prop;
+      row("with a wall on its edge it does not grow into its tree, and its Inspect gives the stand rule's reason", !!ap && ap.sapling.tree === "tree_apple" && held === ap && !!ap.sapling && /^A sapling that cannot grow into an apple tree here: not against a wall\./.test(blocked), `"${blocked}"; ${held ? held.sprite : "nothing"}`);
+      map.destroyWall(ax[0], ax[1], "n");
+      look();
+      look();
+      const grown = map.peekTile(ax[0], ax[1]).prop;
+      row("the wall gone, it grows into an apple tree with its id", !!grown && !!ap && grown.sprite === "tree_apple" && grown.id === ap.id && !grown.sapling, grown ? `${grown.id} ${grown.sprite}` : "nothing");
+    }
 
     // ---- sticks under a tree ----
     const tree = plainTreeNear(me.gx, me.gy);
