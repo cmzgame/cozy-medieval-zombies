@@ -58,6 +58,7 @@ export function recipesOf(def) {
   const madeAt = [];
   const goesInto = [];
   for (const r of stations.recipes()) {
+    if (!stations.isOpen(r)) continue; // a recipe a world rule keeps off is not on a card (docs/43 section 5)
     if (r.out && r.out.id === def.id && !madeAt.includes(r.station)) madeAt.push(r.station);
     if ((r.in || []).some((w) => w.id === def.id || (w.tag && def.tags && def.tags.includes(w.tag)))) {
       const out = r.out && r.out.id ? getItem(r.out.id).name : r.label ? r.label : r.out && r.out.prop ? cap(r.out.prop.replace(/_/g, " ")) : r.id; // a recipe's own label first (the jack-o'-lantern's prop is "pumpkin")

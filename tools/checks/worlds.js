@@ -1,7 +1,7 @@
 // Worlds, identities, characters (docs/31/09): a world made from an identity, left, listed,
 // played again as the same character with the mess it left; a second world from a second
 // identity; the identity edited and neither character changed; a death and a new character
-// in the same world, the body left. From the console, on a tab with `?nosave` (the worlds
+// in the same world, the body left; the world rule Village stations made with a world and kept (docs/43 section 5). From the console, on a tab with `?nosave` (the worlds
 // store is in memory there, so Michael's own worlds are never touched):
 //   await __game.check("worlds")
 // It leaves the pane on the Worlds screen with the worlds it made in the page's store.
@@ -89,6 +89,42 @@ export async function run(game) {
       await W.leave();
     } finally {
       if (prevRelay) G.net.setRelay(prevRelay);
+    }
+    // The world rule Village stations (docs/43 section 5): a Sandbox choice, Fixed by default, chosen when the world is made and kept in its
+    // save; on, the village's stations are carried and made. The remembered choice is put back after.
+    {
+      const was = G.settings.get("villageStations");
+      try {
+        const entry = G.settings.REGISTRY.find((e) => e.key === "villageStations");
+        const rulesMod = await import("/src/rules.js");
+        row("Village stations is a world rule of the Sandbox step, chosen when the world is made, Fixed by default", !!entry && entry.group === "rules" && entry.fixed === true && rulesMod.DEFAULTS.villageStations === false && rulesMod.FIXED.includes("villageStations"), entry ? `${entry.label}: ${entry.choices.map((c) => c[1]).join(" / ")}` : "no row");
+        const c = I.add({ name: "Cai", look: { hairStyle: "short" } });
+        await W.create("Stations world", c.id, { rules: { villageStations: true } });
+        step(2);
+        const on = rulesMod.rules.villageStations;
+        const anvil = [...G.map.allProps()].find((q) => q.sprite === "anvil");
+        const movable = !!anvil && G.placement.canCarry(anvil);
+        const listed = G.stations.recipesFor("workbench").some((r) => r.id === "forge");
+        W.setWorldRules({ villageStations: false });
+        const still = rulesMod.rules.villageStations;
+        const made = W.current;
+        await W.save();
+        await W.leave();
+        await W.play(made.worldId);
+        step(2);
+        const kept = rulesMod.rules.villageStations;
+        row("made with it on, the village's anvil is carried and the forge is made at the workbench; the host cannot change it after; the save keeps it", on === true && movable && listed && still === true && kept === true, `on ${on}, anvil carried ${movable}, forge listed ${listed}, after a change ${still}, played again ${kept}`);
+        await W.leave();
+        await W.create("Fixed world", c.id, { rules: { villageStations: false } });
+        step(2);
+        const anvil2 = [...G.map.allProps()].find((q) => q.sprite === "anvil");
+        const fixed = !!anvil2 && !G.placement.canCarry(anvil2);
+        const hidden = !G.stations.recipesFor("workbench").some((r) => r.id === "forge");
+        row("made with it off, the village's stations stay where they stand and none is made (the rows hidden)", rulesMod.rules.villageStations === false && fixed && hidden, `carried ${!fixed}, listed ${!hidden}`);
+        await W.leave();
+      } finally {
+        G.settings.set("villageStations", was);
+      }
     }
   } finally {
     G.loop.setPaused(false);

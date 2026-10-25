@@ -222,6 +222,61 @@ export async function run(game) {
         row("the anvil makes the strongbox (a prop, empty) and the wall bracket (an item) with a hammer in hand", a1.ok && a2.ok, `${a1.detail}; ${a2.detail}`);
       } else row("an anvil in the loaded chunks", false, "none");
       row("a made jack-o'-lantern is a switch, lit, put out with nothing (docs/43 section 4)", jackSeen === true, `seen ${jackSeen}`);
+      // The village's stations behind the world rule Village stations (docs/43 section 5): off, their rows are hidden and they stay put; on (a
+      // test world only, put back after), each is made, a made one is carried and set down, and it works as the village's does.
+      {
+        const R = (await import("/src/rules.js")).rules;
+        const was = R.villageStations;
+        const hands0 = { main: p.hands.main, off: p.hands.off };
+        const ids = ["forge", "anvil", "oven", "millstones", "dyevat", "well"];
+        try {
+          G.rules.set({ villageStations: false });
+          const hiddenOff = ids.every((id) => !G.stations.recipesFor(G.stations.recipe(id).station).some((r) => r.id === id)) && /No such recipe/.test(G.stations.canMake(p, bench, G.stations.recipe("forge"), 1) || "");
+          const villageAnvil = anvil;
+          row("with Village stations off, no station's row is offered (Make refuses it) and the village's anvil stays where it stands", hiddenOff && !!villageAnvil && !G.placement.canCarry(villageAnvil), `hidden ${hiddenOff}, the anvil carried ${villageAnvil && G.placement.canCarry(villageAnvil)}`);
+          G.rules.set({ villageStations: true });
+          const got = {};
+          const keep = {};
+          for (const id of ids) {
+            const st = id === "anvil" ? anvil : bench;
+            if (!st) { got[id] = "no station"; continue; }
+            if (id === "anvil") p.hands.main = G.items.makeEntry("hammer", 1);
+            const ids0 = new Set([...map.allProps()].map((q) => q.id));
+            const r = make(st, id);
+            got[id] = r.ok ? "ok" : r.detail;
+            void ids0;
+          }
+          row("with Village stations on, the workbench makes the forge, oven, millstones, dye vat, and well, and the anvil a second anvil, each a made prop", ids.every((id) => got[id] === "ok"), ids.map((id) => `${id}: ${got[id]}`).join("; "));
+          // A second anvil, placed by the check, works as the village's does: it makes a dirk; carried and set down again it still does.
+          standBy(anvil);
+          const at = map.nearestWalkable(Math.round(p.gx) + 1, Math.round(p.gy), (x, y) => !!map.tileAt(x, y).prop);
+          const second = map.createProp({ sprite: "anvil", tile: at });
+          second.made = true;
+          map.placeProp(second, at[0], at[1]);
+          made.push(second);
+          p.hands.main = null; // both hands free to lift it
+          p.hands.off = null;
+          const lift = G.interact.actionsForProp(second, p).find((q) => q.kind === "carry");
+          const lifted = lift ? lift.perform() !== false && p.carrying === second : false;
+          if (p.carrying === second) { G.placement.performPlacement(p, { kind: "prop", tx: at[0], ty: at[1], turns: 0 }); }
+          p.hands.main = G.items.makeEntry("hammer", 1);
+          const box = chestBeside(second, [["iron_bar", 1], ["stick", 1]]);
+          box.bag = G.inventory.createBag(8, 8, "chest");
+          G.grid.add(box.bag, "iron_bar", 1);
+          G.grid.add(box.bag, "stick", 1);
+          const r2 = G.verbs.run("craft", G.world.world, p, { prop: second.id }, { recipe: "knife", count: 1 });
+          step(Math.ceil(G.stations.recipe("knife").seconds * 60) + 2);
+          const dirk = G.stations.outputOf(second).items.some((e) => e.id === "knife");
+          row("a second anvil is carried and set down again, and makes a dirk as the village's does", lifted && p.carrying === null && map.propById(second.id) === second && r2.ok && dirk, `carried ${lifted}, set down ${!!map.propById(second.id)}; ${r2.ok ? "" : r2.reason}; dirk ${dirk}`);
+          const canMove = ids.every((id) => G.placement.canCarry([...map.allProps()].find((q) => q.sprite === id) || { sprite: id }));
+          row("with it on, the village's own are movable too (every one of the six)", canMove, ids.map((id) => `${id} ${G.placement.canCarry([...map.allProps()].find((q) => q.sprite === id) || { sprite: id })}`).join(", "));
+          void keep;
+        } finally {
+          G.rules.set({ villageStations: was });
+          p.hands.main = hands0.main;
+          p.hands.off = hands0.off;
+        }
+      }
     }
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message });
