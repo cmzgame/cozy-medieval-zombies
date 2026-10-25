@@ -213,6 +213,22 @@
    "seconds": 24
   },
   {
+   "id": "woollen_cloth",
+   "station": "loom",
+   "out": {
+    "id": "woollen_cloth",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "yarn",
+     "count": 2
+    }
+   ],
+   "seconds": 8,
+   "note": "yarn woven to woollen cloth (Crafting 6; docs/45 section 4; open to all until the skills)"
+  },
+  {
    "id": "handle",
    "station": "workbench",
    "out": {
@@ -319,10 +335,15 @@
     {
      "id": "stick",
      "count": 1
+    },
+    {
+     "id": "feather",
+     "count": 1
     }
    ],
    "seconds": 5,
-   "uses": "cut"
+   "uses": "cut",
+   "note": "fletched: one feather for five arrows (Crafting 4, open until the skills; docs/45 section 3; the fish glue binding waits for Fishing 9)"
   },
   {
    "id": "snare",
@@ -361,6 +382,62 @@
    "seconds": 4,
    "uses": "cut",
    "note": "docs/45 section 1: a lead, Crafting 1 (open until the skills)"
+  },
+  {
+   "id": "butter",
+   "station": "workbench",
+   "out": {
+    "id": "butter",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "milk",
+     "count": 1
+    }
+   ],
+   "seconds": 10,
+   "note": "churned (Cooking 3; docs/45 section 4; open to all until the skills)"
+  },
+  {
+   "id": "smoking_rack",
+   "station": "workbench",
+   "out": {
+    "prop": "smoking_rack"
+   },
+   "in": [
+    {
+     "id": "stick",
+     "count": 4
+    },
+    {
+     "id": "plank",
+     "count": 2
+    }
+   ],
+   "seconds": 10,
+   "uses": "build",
+   "note": "a smoking rack of your own (docs/39: a workstation of your own; docs/45 section 4; open to all until the skills)"
+  },
+  {
+   "id": "tanning_vat",
+   "station": "workbench",
+   "out": {
+    "prop": "tanning_vat"
+   },
+   "in": [
+    {
+     "id": "plank",
+     "count": 4
+    },
+    {
+     "id": "iron_bar",
+     "count": 1
+    }
+   ],
+   "seconds": 10,
+   "uses": "build",
+   "note": "a tanning vat (docs/39: the tannery's; docs/45 section 4; open to all until the skills)"
   },
   {
    "id": "shield",
@@ -1051,6 +1128,225 @@
    "fire": true
   },
   {
+   "id": "hen_cooked",
+   "station": "cooking",
+   "out": {
+    "id": "hen_cooked",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "hen_raw",
+     "count": 1
+    }
+   ],
+   "seconds": 6,
+   "fire": true,
+   "note": "a raw hen cooked alone (docs/45 section 4; open to all until the skills)"
+  },
+  {
+   "id": "rabbit_cooked",
+   "station": "cooking",
+   "out": {
+    "id": "rabbit_cooked",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "rabbit_raw",
+     "count": 1
+    }
+   ],
+   "seconds": 6,
+   "fire": true,
+   "note": "a raw rabbit cooked alone (docs/45 section 4; open to all until the skills)"
+  },
+  {
+   "id": "venison_cooked",
+   "station": "cooking",
+   "out": {
+    "id": "venison_cooked",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "venison_raw",
+     "count": 1
+    }
+   ],
+   "seconds": 6,
+   "fire": true,
+   "note": "a raw venison cooked alone (docs/45 section 4; open to all until the skills)"
+  },
+  {
+   "id": "beef_cooked",
+   "station": "cooking",
+   "out": {
+    "id": "beef_cooked",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "beef_raw",
+     "count": 1
+    }
+   ],
+   "seconds": 6,
+   "fire": true,
+   "note": "a raw beef cooked alone (docs/45 section 4; open to all until the skills)"
+  },
+  {
+   "id": "mutton_cooked",
+   "station": "cooking",
+   "out": {
+    "id": "mutton_cooked",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "mutton_raw",
+     "count": 1
+    }
+   ],
+   "seconds": 6,
+   "fire": true,
+   "note": "a raw mutton cooked alone (docs/45 section 4; open to all until the skills)"
+  },
+  {
+   "id": "pork_cooked",
+   "station": "cooking",
+   "out": {
+    "id": "pork_cooked",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "pork_raw",
+     "count": 1
+    }
+   ],
+   "seconds": 6,
+   "fire": true,
+   "note": "a raw pork cooked alone (docs/45 section 4; open to all until the skills)"
+  },
+  {
+   "id": "meat_pottage",
+   "station": "cooking",
+   "out": {
+    "id": "meat_pottage",
+    "count": 1
+   },
+   "in": [
+    {
+     "tag": "meat",
+     "count": 1
+    },
+    {
+     "id": "potato",
+     "count": 2
+    },
+    {
+     "id": "cabbage",
+     "count": 1
+    }
+   ],
+   "seconds": 12,
+   "fire": true,
+   "note": "the pottage with meat, beside the plain one (Cooking 1; docs/45 section 4; open to all until the skills)"
+  },
+  {
+   "id": "hearty_stew",
+   "station": "cooking",
+   "out": {
+    "id": "hearty_stew",
+    "count": 1
+   },
+   "in": [
+    {
+     "tag": "meat",
+     "count": 2
+    },
+    {
+     "id": "potato",
+     "count": 1
+    },
+    {
+     "id": "cabbage",
+     "count": 1
+    },
+    {
+     "id": "garlic",
+     "count": 1
+    }
+   ],
+   "seconds": 16,
+   "fire": true,
+   "note": "the hearty stew, any meat (Cooking 4; docs/45 section 4; open to all until the skills)"
+  },
+  {
+   "id": "eggs_and_bacon",
+   "station": "cooking",
+   "out": {
+    "id": "eggs_and_bacon",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "egg",
+     "count": 2
+    },
+    {
+     "id": "bacon",
+     "count": 1
+    }
+   ],
+   "seconds": 8,
+   "fire": true,
+   "note": "Cooking 4 (docs/45 section 4; open to all until the skills)"
+  },
+  {
+   "id": "cheese",
+   "station": "cooking",
+   "out": {
+    "id": "cheese",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "milk",
+     "count": 2
+    }
+   ],
+   "seconds": 20,
+   "fire": true,
+   "note": "cheese from milk, warmed and set (Cooking 3; docs/45 section 4; open to all until the skills)"
+  },
+  {
+   "id": "pemmican",
+   "station": "cooking",
+   "out": {
+    "id": "pemmican",
+    "count": 2
+   },
+   "in": [
+    {
+     "tag": "meat",
+     "count": 1
+    },
+    {
+     "tag": "plant",
+     "count": 1
+    },
+    {
+     "tag": "binder",
+     "count": 1
+    }
+   ],
+   "seconds": 14,
+   "fire": true,
+   "note": "meat, a plant, a binder (lard or honey), dried and pounded (Cooking 7; docs/45 section 4; open to all until the skills)"
+  },
+  {
    "id": "bread",
    "station": "oven",
    "out": {
@@ -1100,6 +1396,27 @@
    ],
    "seconds": 12,
    "fire": true
+  },
+  {
+   "id": "meat_pie",
+   "station": "oven",
+   "out": {
+    "id": "meat_pie",
+    "count": 1
+   },
+   "in": [
+    {
+     "tag": "meat",
+     "count": 1
+    },
+    {
+     "id": "flour",
+     "count": 1
+    }
+   ],
+   "seconds": 14,
+   "fire": true,
+   "note": "at an oven, raw meat and flour (a default; docs/45 section 4; open to all until the skills)"
   },
   {
    "id": "forge",
@@ -1233,6 +1550,58 @@
    ],
    "seconds": 20,
    "uses": "build"
+  },
+  {
+   "id": "smoked_meat",
+   "station": "smoking_rack",
+   "out": {
+    "id": "smoked_meat",
+    "count": 1
+   },
+   "in": [
+    {
+     "tag": "meat",
+     "count": 1
+    },
+    {
+     "id": "log",
+     "count": 1
+    }
+   ],
+   "seconds": 30,
+   "note": "any raw meat smoked over a log (Cooking 5; docs/45 section 4; open to all until the skills)"
+  },
+  {
+   "id": "leather",
+   "station": "tanning_vat",
+   "out": {
+    "id": "leather",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "hide",
+     "count": 1
+    }
+   ],
+   "seconds": 30,
+   "note": "a hide tanned to leather (Crafting 3; docs/45 section 4; open to all until the skills)"
+  },
+  {
+   "id": "yarn",
+   "station": "spinning_wheel",
+   "out": {
+    "id": "yarn",
+    "count": 1
+   },
+   "in": [
+    {
+     "id": "wool",
+     "count": 2
+    }
+   ],
+   "seconds": 8,
+   "note": "wool spun to yarn (Crafting 6; docs/45 section 4; open to all until the skills)"
   }
  ]
 }

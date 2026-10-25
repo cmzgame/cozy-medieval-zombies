@@ -13,7 +13,7 @@ import * as map from "./map.js";
 import { getDef } from "./assets.js";
 import { getItem, containerGrid } from "./items.js";
 import * as grid from "./grid.js";
-import { bagOf, beltOf, createBag, countAll, takeAll, toolProblem } from "./inventory.js";
+import { bagOf, beltOf, createBag, countAll, takeAll, toolProblem, detach } from "./inventory.js";
 import * as verbs from "./verbs.js";
 import { canReach, reachProblem, TOO_FAR } from "./reach.js"; // one reach test, distance and a clear line (#208)
 import { emit } from "./events.js";
@@ -114,7 +114,19 @@ function take(player, prop, want, count) {
   // Every match across the sources, in source order, and for a tag a garment last: a recipe that asks for `cloth` takes a rag or a cloth
   // before it burns a tunic (the #216 review: rags exist so the first torches do not cost a whole garment).
   const found = [];
-  for (const bag of sources(player, prop)) for (const e of [...bag.items]) if (matches(e, want)) found.push([bag, e]);
+  const [own, ...rest] = sources(player, prop);
+  const from = (bag) => { if (bag) for (const e of [...bag.items]) if (matches(e, want)) found.push([bag, e]); };
+  from(own);
+  if (want.tag) {
+    // The belt and the hands, as `have` counts them (the review of #462: a raw meat on the belt was counted and never spent, so it made
+    // pottage for ever): the player's own before the containers. A thing held in both hands is one.
+    for (const e of beltOf(player) || []) if (e && matches(e, want)) found.push([null, e]);
+    for (const slot of ["main", "off"]) {
+      const e = player.hands[slot];
+      if (e && matches(e, want) && !found.some(([, f]) => f === e)) found.push([null, e]);
+    }
+  }
+  for (const bag of rest) from(bag);
   if (want.tag) {
     const garment = ([, e]) => (getItem(e.id).kind === "clothing" ? 1 : 0);
     found.sort((a, b) => garment(a) - garment(b)); // stable: the order inside each kind stays the source order
@@ -124,7 +136,10 @@ function take(player, prop, want, count) {
     const t = Math.min(remaining, e.count);
     e.count -= t;
     remaining -= t;
-    if (e.count <= 0) grid.remove(bag, e);
+    if (e.count <= 0) {
+      if (bag) grid.remove(bag, e);
+      else detach(player, e); // off the belt or out of the hand
+    }
   }
   return count - remaining;
 }

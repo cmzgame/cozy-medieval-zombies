@@ -320,15 +320,16 @@ function takeApartAction(prop, player) {
 
 function carryAction(prop, player) {
   const free = !player.hands.main && !player.hands.off;
+  const busy = !!(prop.queue && prop.queue.length); // a station mid-job stays where it is (the review of #462), as Take apart refuses it
   return act({
     kind: "carry",
-    label: free ? `Pick up ${propName(prop)}` : `Pick up ${propName(prop)} (needs both hands)`,
+    label: busy ? `Pick up ${propName(prop)} (it is still making something)` : free ? `Pick up ${propName(prop)}` : `Pick up ${propName(prop)} (needs both hands)`,
     tiles: prop.tiles,
     mx: prop.tile[0],
     my: prop.tile[1],
-    enabled: free && !player.carrying,
+    enabled: free && !player.carrying && !busy,
     perform() {
-      if (player.carrying || !(!player.hands.main && !player.hands.off)) return false;
+      if (player.carrying || !(!player.hands.main && !player.hands.off) || (prop.queue && prop.queue.length)) return false;
       map.removeProp(prop);
       player.carrying = prop;
       player.auto = null;
