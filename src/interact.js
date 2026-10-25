@@ -1695,30 +1695,103 @@ function alphaOf(sheet) {
   return p;
 }
 
-export function interactableAt(sx, sy, wanted = (prop) => prop.interactable) {
+// A tree's bare trunk in its own frame, so the pixel hit can tell the crown from it: scanning up from the foot (the frame's lowest solid row),
+// the trunk is every row no wider than twice the foot's span (or three quarters of the widest row, for a dev tree's root flare), and in those
+// rows only the foot's columns, a pixel either side; every other solid pixel is the crown. Solid is an alpha of half or more, so the faint
+// ground shadow a dev tree draws is neither. Read from the picture, so delivered art and the dev trees alike need no field. Worked out once
+// per sheet and frame name and kept (a sheet's pixels do not change), never per rendered frame.
+const trunks = new Map(); // sheet -> Map(frame name -> { line, l, r }): rows below `line`, columns l to r, are the trunk
+function trunkOf(sheet, name) {
+  let byName = trunks.get(sheet);
+  if (!byName) trunks.set(sheet, (byName = new Map()));
+  let t = byName.get(name);
+  if (t) return t;
+  const f = sheet.frames[name];
+  const al = alphaOf(sheet);
+  const x0 = Math.max(0, f[0]);
+  const y0 = Math.max(0, f[1]);
+  const x1 = Math.min(al.w, f[0] + f[2]);
+  const y1 = Math.min(al.h, f[1] + f[3]);
+  const solid = (x, y) => al.a[y * al.w + x] >= 128;
+  const width = [];
+  let widest = 0;
+  for (let y = y0; y < y1; y++) {
+    let n = 0;
+    for (let x = x0; x < x1; x++) if (solid(x, y)) n++;
+    width.push(n);
+    widest = Math.max(widest, n);
+  }
+  let foot = y1 - 1;
+  while (foot >= y0 && width[foot - y0] === 0) foot--;
+  t = { line: y1, l: 0, r: -1 }; // nothing solid: no trunk, every pixel the crown
+  if (foot >= y0) {
+    let l = x1;
+    let r = x0 - 1;
+    for (let x = x0; x < x1; x++) if (solid(x, foot)) { l = Math.min(l, x); r = Math.max(r, x); }
+    const wide = Math.min(2 * (r - l + 1), widest * 0.75);
+    let line = foot;
+    while (line >= y0 && width[line - y0] <= wide) line--;
+    t = { line, l: l - 1, r: r + 1 };
+  }
+  byName.set(name, t);
+  return t;
+}
+const isTree = (prop) => !!getDef(prop.sprite).canopy; // the engine's one idea of a tree (map.js isTreeKind)
+
+// Everything that `wanted` takes with a solid pixel at the canvas point (sx, sy), frontmost first (by the depth of its tile; a tie keeps the
+// search's order), each once: { prop, depth, crown }, `crown` true when the pixel is a tree's crown, not its bare trunk (trunkOf). The pixels
+// are the thing's idle frame. interactableAt's rule picks from this list; a check reads it to find a covered point.
+export function hitsAt(sx, sy, wanted = (prop) => prop.interactable) {
   const g = iso.toGrid(sx, sy);
   const tx = Math.round(g.gx);
   const ty = Math.round(g.gy);
-  let best = null;
+  const hits = [];
+  const seen = new Set();
   // A giant tree's crown is about six tiles up the screen from its trunk's
   // tile, so look that far down the grid as well as a little around.
   for (let dy = -2; dy <= 7; dy++) {
     for (let dx = -2; dx <= 7; dx++) {
       const prop = map.peekTile(tx + dx, ty + dy)?.prop; // a hit test never grows a chunk (docs/23a, A4)
-      if (!prop || !wanted(prop)) continue;
+      if (!prop || seen.has(prop) || !wanted(prop)) continue;
+      seen.add(prop);
       const r = propRect(prop, prop.tile[0], prop.tile[1]);
       if (!r || !pointInRect(sx, sy, r)) continue;
       const sheet = getSheet(prop.sprite, prop.tiles.length);
-      const f = sheet.frames[idleFrame(sheet, prop, 0)];
+      const name = idleFrame(sheet, prop, 0);
+      const f = sheet.frames[name];
       const px = Math.floor(sx - r.x) + (sheet.bounds ? sheet.bounds.x : 0) + f[0];
       const py = Math.floor(sy - r.y) + (sheet.bounds ? sheet.bounds.y : 0) + f[1];
       const al = alphaOf(sheet);
       if (px < 0 || py < 0 || px >= al.w || py >= al.h || al.a[py * al.w + px] === 0) continue;
-      const depth = prop.tile[0] + prop.tile[1];
-      if (!best || depth > best.depth) best = { prop, depth };
+      let crown = false;
+      if (isTree(prop)) {
+        const t = trunkOf(sheet, name);
+        crown = !(py > t.line && px >= t.l && px <= t.r);
+      }
+      hits.push({ prop, depth: prop.tile[0] + prop.tile[1], crown });
     }
   }
-  return best ? best.prop : null;
+  return hits.sort((a, b) => b.depth - a.depth); // stable: a tie keeps the search's order, as the old single pass did
+}
+
+// The one thing under the cursor by its pixels: the click's sway (pokeAt), the right-click menu's first target (menuActions), Object
+// Highlight's prop (highlight.js), and Use mode's prop, all through this one rule. The frontmost hit, except that a tree's crown does not
+// hide a gatherable behind it (bugs.md, 2026-10-25: a mushroom or an herb under a crown a tile nearer could not be clicked; mushrooms always
+// grow within two tiles of a tree): when the frontmost pixel `wanted` takes is a crown, the first thing behind it at the same point that is
+// not a crown wins if it is an interactable that is not a tree (an herb, a mushroom, a crop, a rock, a sapling, a stump, the beehive) and
+// `wanted` takes it; anything else there (another tree's trunk, a prop that is not interactable) blocks, and the crown is the answer. The
+// look behind reads every prop whatever `wanted` says, so the click (interactables only) and Object Highlight (anything) agree on what blocks.
+// A crown with nothing behind it is still the tree, and the trunk always is, so a tree over a mushroom is still clicked for its Chop or its
+// sticks on its trunk or on any crown pixel clear of the small thing.
+export function interactableAt(sx, sy, wanted = (prop) => prop.interactable) {
+  const all = hitsAt(sx, sy, () => true);
+  const i = all.findIndex((h) => wanted(h.prop));
+  if (i < 0) return null;
+  if (all[i].crown) {
+    const next = all.slice(i + 1).find((h) => !h.crown);
+    if (next && next.prop.interactable && !isTree(next.prop) && wanted(next.prop)) return next.prop;
+  }
+  return all[i].prop;
 }
 
 // Poke the interactable under the cursor: the thing found, or null. It sways
@@ -2055,7 +2128,25 @@ export function playAt(sx, sy, player) {
 }
 
 // The actions of a thing the player clicked by its pixels (a tree's crown is
-// further up the screen than the menu's own search reaches).
+// further up the screen than the menu's own search reaches), each addressed to
+// it, so a guest's choice reaches the host by the prop's id (net.sendAct).
 export function actionsForProp(prop, player) {
-  return propActions(prop, player);
+  return tag(propActions(prop, player), onProp(prop));
+}
+
+// The right-click menu's actions at a canvas point, given the thing the click found by its pixels (pokeAt's answer, or null); with none,
+// it is actionsAt's list unchanged. With one: every walk action (Walk here) is dropped, as is any action of another target whose label
+// one of the thing's own has; the thing's own actions (actionsForProp, addressed by its id) are taken out of where actionsAt put them and
+// put where the list's first remaining prop-addressed action stood, so after the tile's items, water, and farm actions and before any
+// other prop's (a tree whose sprite rectangle also covers the point, as a crown over a mushroom does; a rug under the tile), or at the end
+// when no prop-addressed action is left.
+export function menuActions(sx, sy, player, poked) {
+  const actions = actionsAt(sx, sy, player);
+  if (!poked) return actions;
+  const own = actionsForProp(poked, player);
+  const labels = new Set(own.map((a) => a.label));
+  const rest = actions.filter((a) => a.kind !== "walk" && !/^Walk/.test(a.label || "") && !(a.target && a.target.kind === "prop" && a.target.id === poked.id) && !labels.has(a.label));
+  const at = rest.findIndex((a) => a.target && a.target.kind === "prop");
+  rest.splice(at < 0 ? rest.length : at, 0, ...own);
+  return rest;
 }
