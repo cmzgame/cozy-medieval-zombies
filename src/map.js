@@ -75,6 +75,7 @@ export function reset({ floor = "floor_grass", authored = null, wildRule = null,
   chunks.clear();
   sleepers.clear();
   woken.length = 0;
+  evicted.clear(); // a new map owes no frame a drop
   nextRoomId = 1;
   lastChunk = null;
   rooms.clear();

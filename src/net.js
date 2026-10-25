@@ -194,6 +194,7 @@ export function close() {
   run = null;
   runCount = 0;
   steppedAway = false;
+  returning = false;
   welcoming = false;
   held.length = 0;
   early.length = 0;
@@ -1056,7 +1057,7 @@ export function guestStep(mySnap) {
     for (const t of ready) { pendingTalk.splice(pendingTalk.indexOf(t), 1); hooks.talk(t.what); }
   }
   if (joined) smoothStep();
-  if (joined && game.state.player && !steppedAway) {
+  if (joined && game.state.player && !steppedAway && !returning) {
     const s = mySnap.idle ? mySnap : testSnapshot || mySnap; // a screen up: nothing pressed, whatever a check says
     // The fight (docs/31/06, tier 2): the clicks and the buttons go as they are, the aim as a vector and
     // a ground point; the host resolves the swing, the draw, and the shove against its own dead.
@@ -1312,6 +1313,15 @@ function applyFrame(f) {
     lastCorrection = Math.hypot(me.gx - predictedX, me.gy - predictedY);
   }
   predictedPos = null;
+  if (returning) {
+    // Back from a step away: the host has my player again once a frame carries its record, and the ring round it is
+    // whole once the chunks the host dropped while I was out (its keep no longer counted me) have come back grown.
+    returningFrames++;
+    if ((me && mine && ringWhole(me)) || returningFrames > RETURN_WAIT_FRAMES) {
+      returning = false;
+      if (hooks.returned) hooks.returned();
+    }
+  }
   S.others = [...S.players, ...S.zombies, ...S.villagers];
   S.progress = S.player ? S.player.actionProgress : null;
   if (f.carriers) light.setCarriers(f.carriers); // sent when they change
@@ -1428,9 +1438,15 @@ export function stepAway() {
   send({ type: "away" });
   return true;
 }
+// Back: the host is asked to put my character in again. Until a frame carries it and the ring of chunks round it
+// (`returning`), nothing is sent or predicted and the client keeps its away screen up (hooks.returned ends it):
+// while I was out the host's eviction no longer counted me, so the chunks round me may have been dropped here
+// too, and walking on at once would be walking on blank tiles that then pop in (the review of #455).
 export function comeBack() {
   if (role !== "guest" || !steppedAway) return false;
   steppedAway = false;
+  returning = true;
+  returningFrames = 0;
   pending.length = 0;
   run = null;
   runCount = 0;
@@ -1439,6 +1455,18 @@ export function comeBack() {
 }
 export function isSteppedAway() {
   return steppedAway;
+}
+export function isReturning() {
+  return returning;
+}
+let returning = false;
+let returningFrames = 0;
+const RETURN_WAIT_FRAMES = 200; // ten seconds of frames: a host that never puts me back (it refused) lets me go on anyway
+const RING = 4; // the chunks the host grows round each player (game.begin, map.ensureAround)
+function ringWhole(p) {
+  const [cx, cy] = map.chunkCoord(Math.round(p.gx), Math.round(p.gy));
+  for (let dy = -RING; dy <= RING; dy++) for (let dx = -RING; dx <= RING; dx++) if (!map.getChunk(cx + dx, cy + dy, false)) return false;
+  return true;
 }
 
 // One input with nothing held, sent at once: a guest's tab hidden mid-walk tells the host it stopped, before the
