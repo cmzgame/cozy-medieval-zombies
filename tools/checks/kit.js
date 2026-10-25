@@ -1,7 +1,7 @@
 // The starting kit as data and a world's choice (#136; Michael, 2026-10-16, on #123): data/kit.json is the default (what every world
 // started with, plus the tinderbox); a world may add items to it (rule `extraKit`: one `item_id count` a line) and may start wearing
 // the Developer Bag in place of the sack (rule `devBag`); a kit that does not fit is refused with a word; a new character, a guest's
-// too, is given the world's kit by the host. From the console, on a tab with `?nosave`:
+// too, is given the world's kit by the host; the kit's waterskin is full of clean water (docs/44). From the console, on a tab with `?nosave`:
 //   await __game.check("kit")
 // It makes second players (and takes them away) and sets the two rules (put back in the finally).
 
@@ -21,6 +21,7 @@ export async function run(game) {
     row("the torch is in the hand, unlit", !!p0.hands.main && p0.hands.main.id === "torch" && !p0.hands.main.lit, `hand ${p0.hands.main && p0.hands.main.id}`);
     const skin = (G.inventory.bagOf(p0).items || []).find((e) => e.id === "waterskin");
     row("the waterskin starts full", !!skin && skin.fill === 100, `fill ${skin && skin.fill}`);
+    row("and its water is clean (docs/44): no (tainted) on its Drink, and its card says Clean water", !!skin && skin.clean === true && G.interact.itemMenu(p0, skin, G.inventory.bagOf(p0), null).some((m) => m.label === "Drink (100%)") && (await import("/src/item-info.js")).textOf((await import("/src/item-info.js")).cardFor(skin)).includes("Clean water."), `clean ${skin && skin.clean}`);
 
     G.rules.set({ extraKit: "sword\narrow 20, apple 2" });
     const p1 = player(5, 3);

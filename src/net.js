@@ -823,7 +823,7 @@ export function hostAfterStep() {
     for (const [k, v] of Object.entries(full)) {
       if (k === "full" || k === "ack" || k === "actionView" || k === "line") continue;
       if (HEAVY.has(k)) heavy[k] = v;
-      else light[k] = k === "bleed" && v ? { stacks: v.stacks, left: r2(v.left) } : typeof v === "number" && !EXACT.has(k) ? r2(v) : v; // the wound's time to two decimals: the row of debuffs shows whole seconds (#308)
+      else light[k] = (k === "bleed" || k === "sick") && v ? { stacks: v.stacks, left: r2(v.left) } : typeof v === "number" && !EXACT.has(k) ? r2(v) : v; // the wound's time, and Sick's (docs/44), to two decimals: the row of debuffs shows whole seconds (#308)
     }
     // A lit torch's wear rises every step (#156): compared to two decimals, so the heavy part goes whole when it changes by a
     // hundredth, not every frame the torch burns. The rounding covers every `wear` key, a weapon's per-hit wear too (a guest's

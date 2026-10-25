@@ -852,6 +852,236 @@ check("dye vat: three vats open the picker; the verb dyes by uid, refuses what i
   return "three vats, a tunic woad then madder, the belt's scheme, the satchel's two regions, refusals worded, undyed, the hash, the save, a guest's command, the cards";
 });
 
+// Water (docs/44, #418): no fixed source is clean, mixing taints, the kit's skin starts clean, the auto-sip skips a tainted skin; `boil` at a lit cooking
+// fire by Use, by the skin's menu (bag and belt), and by the fire's menu, each greyed with why, each a timed bar by the fire's id and the skin's uid, the
+// fill kept, and a guest's command the same path; a tainted drink's one roll, from a source and from a skin, two floats of the generator and none for a
+// clean sip; Sick's stacks and time, its effects, its card, its end; the infection's third stage named Queasy; `clean` and `sick` in the sync parts and
+// the save. (The page, the drop on the icon, the card read over the bag, and two tabs are `check("boil")`'s, `check("food")`'s, and `check("debuffs")`', in the pane.)
+const waterMod = await import("../src/water.js");
+const sickMod = await import("../src/sick.js");
+const debuffsMod = await import("../src/debuffs.js");
+const moodlesMod = await import("../src/moodles.js");
+const useMod = await import("../src/use.js");
+const invActionsMod = await import("../src/ui/inventory-actions.js");
+const tuningMod = await import("../src/tuning.js");
+check("water: tainted and clean, boiling by Use and both menus, Sick and its rolls, Queasy, the sync parts and the save", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false, survival: true } });
+  const S = gameMod.state;
+  const me = S.player;
+  const W = tuningMod.water;
+  const bag = inventoryMod.bagOf(me);
+  // The kit's skin is full of clean water.
+  const kitSkin = bag.items.find((e) => e.id === "waterskin");
+  assert(kitSkin && kitSkin.fill === 100 && kitSkin.clean === true, `the kit's skin: ${JSON.stringify(kitSkin)}`);
+  assert(itemInfoMod.textOf(itemInfoMod.cardFor(kitSkin)).includes("Clean water."), `the kit skin's card: ${itemInfoMod.textOf(itemInfoMod.cardFor(kitSkin)).join(" | ")}`);
+  assert(W.clean.length === 0, "a fixed source is clean");
+  // Open ground with a water tile near it.
+  let wet = null;
+  const [bx, by, bw, bh] = json.bounds;
+  for (let y = by; y < by + bh && !wet; y += 1) for (let x = bx; x < bx + bw && !wet; x += 1) {
+    mapMod.ensureAround(x, y, 0);
+    if (!mapMod.drinkableAt(x, y)) continue;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!wet && mapMod.isWalkableTile(x + dx, y + dy) && !mapMod.drinkableAt(x + dx, y + dy) && !mapMod.tileAt(x + dx, y + dy).prop) wet = { water: [x, y], stand: [x + dx, y + dy] };
+  }
+  assert(wet, "no water with a bank in the valley");
+  me.gx = wet.stand[0];
+  me.gy = wet.stand[1];
+  mapMod.ensureAround(me.gx, me.gy, 2);
+  const finish = () => { for (let i = 0; i < 600 && me.action; i++) interactMod.updateAction(me, 0.1); };
+  // The auto-sip takes only clean water.
+  me.thirst = 20;
+  const tainted = itemsMod.makeEntry("waterskin", 1, { fill: 60 });
+  kitSkin.fill = 0;
+  inventoryMod.stow(me, tainted);
+  assert(playerMod.autoDrink(me) === null && tainted.fill === 60, "the auto-sip drank tainted water");
+  kitSkin.fill = 80;
+  assert(playerMod.autoDrink(me) === kitSkin && kitSkin.fill < 80, "the auto-sip did not drink the clean skin");
+  // Mixing taints: the clean skin topped up at the water is tainted all through; the bucket too.
+  const tile = { kind: "tile", tile: wet.water };
+  const fillLabel = interactMod.actionsForTarget(tile, me).map((a) => a.label).find((l) => l.startsWith("Fill waterskins"));
+  const drinkLabel = interactMod.actionsForTarget(tile, me).map((a) => a.label).find((l) => l.startsWith("Drink from"));
+  assert(drinkLabel === "Drink from the water (tainted)", `the water's Drink: ${drinkLabel}`);
+  interactMod.performByLabel(me, tile, fillLabel);
+  finish();
+  assert(kitSkin.fill === 100 && !kitSkin.clean && tainted.fill === 100, `filling at the water did not taint the clean skin: ${JSON.stringify(kitSkin)}`);
+  assert(itemInfoMod.textOf(itemInfoMod.cardFor(kitSkin)).includes("Tainted water: drinking it may make you Sick."), "the tainted skin's card");
+  assert(interactMod.itemMenu(me, kitSkin, bag, null).some((m) => m.label === "Drink (tainted, 100%)"), "Drink lost its (tainted)");
+  const bucket = itemsMod.makeEntry("bucket", 1, { fill: 0, clean: true });
+  inventoryMod.stow(me, bucket);
+  const r0 = verbsMod.run("fill", worldMod.world, me, { tile: wet.water, entry: bucket.uid });
+  assert(r0.ok && bucket.fill === 100 && !bucket.clean, `the bucket filled at the water stayed clean: ${r0.reason || JSON.stringify(bucket)}`);
+  assert(itemInfoMod.textOf(itemInfoMod.cardFor(bucket)).includes("Tainted water."), "the bucket's card");
+  inventoryMod.detach(me, bucket);
+  // A source's Drink and a skin's each roll twice; a clean sip not at all.
+  const rolls = (fn) => { rng.seed(11); fn(); const next = rng.float(); rng.seed(11); const seq = [rng.float(), rng.float(), rng.float()]; return seq.indexOf(next); };
+  me.sick = null;
+  assert(rolls(() => { me.thirst = 10; interactMod.performByLabel(me, tile, drinkLabel); finish(); }) === 2, "a source's tainted Drink did not roll twice");
+  me.sick = null;
+  me.thirst = 10;
+  assert(rolls(() => playerMod.drink(me, tainted)) === 2, "a skin's tainted sip did not roll twice");
+  const clean = itemsMod.makeEntry("waterskin", 1, { fill: 100, clean: true });
+  me.thirst = 10;
+  assert(rolls(() => playerMod.drink(me, clean)) === 0, "a clean sip rolled");
+  // The rolls: Sick at sickChance, then a stack and its time a drink, up to three, the time capped; the infection at its chance.
+  me.sick = null;
+  me.infection = null;
+  const day = W.sickDays * clock.DAY_LENGTH;
+  assert(sickMod.taintedDrink(me, W.sickChance + 0.01, 0.5).sick === false && !me.sick, "a roll over the chance made you Sick");
+  assert(sickMod.taintedDrink(me, 0, 0.5).sick === true && me.sick.stacks === 1 && me.sick.left === day, `Sick began: ${JSON.stringify(me.sick)}`);
+  me.sick.left -= 10;
+  assert(sickMod.taintedDrink(me, 0.99, 0.5).worse === true && me.sick.stacks === 2 && me.sick.left === 2 * day - 10, `a second drink: ${JSON.stringify(me.sick)}`);
+  sickMod.taintedDrink(me, 0.99, 0.5);
+  sickMod.taintedDrink(me, 0.99, 0.5);
+  assert(me.sick.stacks === 3 && me.sick.left === 3 * day, `three stacks and a day and a half at most: ${JSON.stringify(me.sick)}`);
+  assert(!me.infection && sickMod.taintedDrink(me, 0.99, W.infectionChance + 0.001).infected === false && !me.infection, "a roll over the infection's chance infected");
+  assert(sickMod.taintedDrink(me, 0.99, 0).infected === true && !!me.infection, "a roll of 0 did not infect");
+  me.infection = null;
+  // Over many drinks, about a fifth make you Sick and about one in a hundred infect.
+  rng.seed(5);
+  let nSick = 0;
+  let nInf = 0;
+  const N = 20000;
+  for (let i = 0; i < N; i++) {
+    const p = { sick: null, infection: null, dead: false };
+    const r = sickMod.taintedDrink(p);
+    if (r.sick) nSick++;
+    if (r.infected) nInf++;
+  }
+  assert(Math.abs(nSick / N - W.sickChance) < 0.015 && Math.abs(nInf / N - W.infectionChance) < 0.004, `Sick ${nSick / N}, infection ${nInf / N}`);
+  // The effects: tiredness 1.5 times as fast, food 0.75 of its heal; the stacks do not grow them.
+  me.sick = { stacks: 1, left: 100 };
+  assert(sickMod.tiredMult(me) === W.sickTiredMult && sickMod.healMult(me) === W.sickHealMult, "Sick's effects");
+  me.sick = { stacks: 3, left: 100 };
+  assert(sickMod.tiredMult(me) === W.sickTiredMult, "the stacks grew the effects");
+  me.hp = 50;
+  playerMod.eat(me, { heal: 4 });
+  assert(Math.abs(me.hp - (50 + 4 * W.sickHealMult)) < 1e-9, `food healed ${me.hp - 50} Sick`);
+  me.tired = 50;
+  me.sleeping = null;
+  const t0 = me.tired;
+  playerMod.updatePlayer(me, 1);
+  const drainSick = t0 - me.tired;
+  me.sick = null;
+  me.tired = 50;
+  playerMod.updatePlayer(me, 1);
+  const drainWell = 50 - me.tired;
+  assert(Math.abs(drainSick - drainWell * W.sickTiredMult) < 1e-9, `tiredness ${drainSick} Sick against ${drainWell} well`);
+  // The debuff: its row, its card, its stacks, and its end in the host's step.
+  me.sick = { stacks: 2, left: 400 };
+  const d = debuffsMod.activeDebuffs(me).find((q) => q.id === "sick");
+  assert(d && d.stacks === 2 && d.time === "7m" && d.name === "Sick", `the row: ${JSON.stringify(d)}`);
+  const card = debuffsMod.cardOf(d);
+  const cardText = card.lines.map((l) => l.map((s) => s.t).join("")).join(" ");
+  assert(card.kind === "Debuff" && /×2/.test(card.state) && /7m left/.test(card.state) && /Tiredness builds 50% faster\./.test(cardText) && /Food heals 25% less\./.test(cardText), `the card: ${card.state} | ${cardText}`);
+  me.sick = { stacks: 1, left: 0.5 };
+  for (let i = 0; i < 60; i++) gameMod.step(1 / 60, null);
+  assert(me.sick === null, `Sick did not end in the host's step: ${JSON.stringify(me.sick)}`);
+  // The infection's third stage is Queasy, not Sick.
+  const inf = moodlesMod.MOODLES.find((m) => m.id === "infection");
+  assert(inf.stages[2].name === "Queasy" && !inf.stages.some((s) => s.name === "Sick"), `the stages: ${inf.stages.map((s) => s.name).join(", ")}`);
+  // Boiling: a lit campfire beside the player on open ground.
+  let spot = null;
+  const [sx0, sy0] = S.info.spawn;
+  for (let y = sy0 - 40; y < sy0 + 40 && !spot; y += 2) for (let x = sx0 - 40; x < sx0 + 40 && !spot; x += 2) {
+    mapMod.ensureAround(x, y, 1);
+    let ok = true;
+    for (let dy = -1; dy <= 1 && ok; dy++) for (let dx = -1; dx <= 2 && ok; dx++) ok = mapMod.isWalkableTile(x + dx, y + dy) && !mapMod.tileAt(x + dx, y + dy).prop && mapMod.tileAt(x + dx, y + dy).room === 0 && !mapMod.drinkableAt(x + dx, y + dy);
+    if (ok) spot = [x, y];
+  }
+  assert(spot, "no open ground in the valley");
+  me.gx = spot[0];
+  me.gy = spot[1];
+  const fire = mapMod.createProp({ sprite: "campfire", tile: [spot[0] + 1, spot[1]], fuel: 3, lit: true });
+  mapMod.placeProp(fire, spot[0] + 1, spot[1]);
+  assert(fire.fire.cooks && fire.fire.lit, "the campfire is not a lit cooking fire");
+  for (const e of [...bag.items]) if (e.id === "waterskin") inventoryMod.detach(me, e);
+  const skinA = itemsMod.makeEntry("waterskin", 1, { fill: 40 });
+  const skinB = itemsMod.makeEntry("waterskin", 1, { fill: 90 });
+  inventoryMod.stow(me, skinA);
+  inventoryMod.stow(me, skinB);
+  const onFire = { kind: "prop", id: fire.id };
+  const fireLabels = () => interactMod.actionsForTarget(onFire, me).map((a) => `${a.label}${a.enabled === false ? " [off]" : ""}`);
+  // The skin's menu: Boil water, which starts the bar; the fill is kept and the entry is clean at its end.
+  const boilOf = (e) => interactMod.itemMenu(me, e, bag, null).find((m) => m.label.startsWith("Boil water"));
+  assert(boilOf(skinA) && boilOf(skinA).enabled && boilOf(skinA).label === "Boil water", `the skin's menu: ${boilOf(skinA) && boilOf(skinA).label}`);
+  boilOf(skinA).onSelect();
+  assert(me.action && me.action.action.duration === W.boilSeconds && me.action.action.label === "Boil water", "the skin's menu did not start a bar of boilSeconds");
+  const sync0 = gameMod.syncParts().players;
+  finish();
+  assert(skinA.clean === true && skinA.fill === 40, `the skin's menu did not boil it: ${JSON.stringify(skinA)}`);
+  assert(gameMod.syncParts().players !== sync0, "a boiled skin did not move the players' sync part");
+  assert(!boilOf(skinA), "a clean skin still offers Boil water");
+  // The fire's menu: the fullest tainted skin first.
+  assert(fireLabels().includes("Boil water"), `the fire's menu: ${fireLabels().join(", ")}`);
+  interactMod.performByLabel(me, onFire, "Boil water");
+  assert(me.action && me.action.action.duration === W.boilSeconds, "the fire's menu did not start the bar");
+  finish();
+  assert(skinB.clean === true && skinB.fill === 90, `the fire's menu did not boil the fullest skin: ${JSON.stringify(skinB)}`);
+  assert(fireLabels().includes("Boil water (no tainted water carried) [off]"), `greyed with why: ${fireLabels().join(", ")}`);
+  // Use: the skin on the fire, the same bar.
+  const skinC = itemsMod.makeEntry("waterskin", 1, { fill: 70 });
+  inventoryMod.stow(me, skinC);
+  useMod.applyWith(skinC, { kind: "prop", prop: fire }, me);
+  assert(me.action && me.action.action.duration === W.boilSeconds, "Use on the fire did not start the bar");
+  finish();
+  assert(skinC.clean === true && skinC.fill === 70, `Use did not boil it: ${JSON.stringify(skinC)}`);
+  // A guest's way: the menu's label by uid, and the Use command by the fire's id.
+  const skinD = itemsMod.makeEntry("waterskin", 1, { fill: 50 });
+  inventoryMod.stow(me, skinD);
+  assert(invActionsMod.performItemCommand(me, { op: "menu", label: "Boil water", uid: skinD.uid, src: { kind: "bag", bag: { mine: true } } }) === true && me.action, "a guest's menu command did not start the bar");
+  finish();
+  assert(skinD.clean === true, "a guest's menu command did not boil it");
+  const skinE = itemsMod.makeEntry("waterskin", 1, { fill: 30 });
+  inventoryMod.stow(me, skinE);
+  assert(invActionsMod.performUseCommand(me, { uid: skinE.uid, src: { kind: "bag", bag: { mine: true } }, target: { kind: "prop", id: fire.id } }, null) === true && me.action, "a guest's Use command did not start the bar");
+  finish();
+  assert(skinE.clean === true, "a guest's Use command did not boil it");
+  // The belt's menu.
+  const belt = inventoryMod.beltOf(me);
+  const slot = belt.findIndex((e) => !e);
+  assert(slot >= 0, "no free belt slot");
+  const skinF = itemsMod.makeEntry("waterskin", 1, { fill: 20 });
+  belt[slot] = skinF;
+  const beltBoil = interactMod.slotMenu(me, `belt:${slot}`).find((m) => m.label.startsWith("Boil water"));
+  assert(beltBoil && beltBoil.enabled, "the belt's skin offers no Boil water");
+  beltBoil.onSelect();
+  finish();
+  assert(skinF.clean === true && skinF.fill === 20, "the belt's Boil water did not boil it");
+  belt[slot] = null;
+  // Greyed with why, and the refusals: no lit fire in reach, an empty skin, too far, the fire out mid-bar.
+  const skinG = itemsMod.makeEntry("waterskin", 1, { fill: 60 });
+  inventoryMod.stow(me, skinG);
+  me.gx = spot[0] - 6;
+  assert(boilOf(skinG).label === "Boil water (no lit fire in reach)" && !boilOf(skinG).enabled, `greyed: ${boilOf(skinG).label}`);
+  const far = verbsMod.run("boil", worldMod.world, me, { prop: fire.id, entry: skinG.uid }, { timed: true });
+  assert(!far.ok && far.reason === "Too far away.", `too far: ${far.reason}`);
+  me.gx = spot[0];
+  const empty = itemsMod.makeEntry("waterskin", 1, { fill: 0 });
+  inventoryMod.stow(me, empty);
+  assert(!boilOf(empty), "an empty skin offers Boil water");
+  const r1 = verbsMod.run("boil", worldMod.world, me, { prop: fire.id, entry: empty.uid }, { timed: true });
+  assert(!r1.ok && r1.reason === "The waterskin is empty.", `empty: ${r1.reason}`);
+  boilOf(skinG).onSelect();
+  mapMod.setFireLit(fire, false); // a campfire is no switch: put it out by hand as the putout verb does
+  finish();
+  assert(!skinG.clean, "a skin boiled though the fire went out mid-bar");
+  assert(!fireLabels().some((l) => l.startsWith("Boil water")), "an unlit fire offers Boil water");
+  const r2 = verbsMod.run("boil", worldMod.world, me, { prop: fire.id, entry: skinG.uid }, { timed: true });
+  assert(!r2.ok && r2.reason === "The fire is out.", `out: ${r2.reason}`);
+  // The sync parts carry `sick`; the save keeps `clean` and `sick`.
+  me.sick = null;
+  const p0 = gameMod.syncParts().players;
+  me.sick = { stacks: 2, left: 300 };
+  assert(gameMod.syncParts().players !== p0, "Sick did not move the players' sync part");
+  const saved = JSON.parse(JSON.stringify(gameMod.serialize()));
+  gameMod.restore(saved, json);
+  const back = gameMod.state.player;
+  const bb = inventoryMod.bagOf(back).items.filter((e) => e.id === "waterskin");
+  assert(back.sick && back.sick.stacks === 2 && back.sick.left === 300 && bb.some((e) => e.clean && e.fill === 90) && bb.some((e) => !e.clean && e.fill === 60), `the save: ${JSON.stringify(back.sick)} ${JSON.stringify(bb.map((e) => [e.fill, !!e.clean]))}`);
+  return `Sick ${(nSick / N * 100).toFixed(1)}%, infection ${(nInf / N * 100).toFixed(2)}% over ${N} drinks; boiled by the skin's menu, the fire's, Use, a guest's two commands, the belt; greyed and refused with why; the sync parts; the save`;
+});
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;

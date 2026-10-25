@@ -224,7 +224,22 @@ export const work = {
   burnCorpse: { flame: "tinderbox", fuel: "log", hours: 1, seconds: 2 },
 };
 
-const sections = { zombie, player, villager, world, population, sight, feel, floaters, objectHighlight, hoverCard, work };
+// Water (docs/44; src/water.js, src/sick.js): no fixed source is clean (`clean` lists the sprites of any that are; none), a skin is boiled clean at a lit
+// cooking fire within `boilReach` tiles in `boilSeconds`; a tainted drink rolls `sickChance` of Sick and `infectionChance` of the infection; Sick lasts
+// `sickDays` of a game day a stack, up to `sickMaxStacks`, drains tiredness `sickTiredMult` times as fast and lets food heal `sickHealMult` of its number.
+export const water = {
+  clean: [],
+  boilSeconds: 30,
+  boilReach: 2.6, // the click's reach (interact.CLICK_REACH), a station's (stations.REACH)
+  sickChance: 0.2,
+  sickDays: 0.5,
+  sickMaxStacks: 3,
+  sickTiredMult: 1.5,
+  sickHealMult: 0.75,
+  infectionChance: 0.01,
+};
+
+const sections = { zombie, player, villager, world, population, sight, feel, floaters, objectHighlight, hoverCard, work, water };
 
 // Lay a file's numbers over the defaults; a missing file or section changes nothing.
 export function load(json) {

@@ -137,7 +137,7 @@ export function createDevApi(ctx) {
       if (!p.worn.back || p.worn.back.id !== "dev_bag") {
         const dev = { id: "dev_bag", count: 1 };
         const bag = inventory.ensureBag(dev);
-        if (old) for (const e of old.items) inventory.addItem(bag, e.id, e.count, e.fill != null ? { fill: e.fill } : {});
+        if (old) for (const e of old.items) inventory.addItem(bag, e.id, e.count, { ...(e.fill != null ? { fill: e.fill } : {}), ...(e.clean ? { clean: true } : {}) }); // a skin keeps its water and whether it is clean (docs/44)
         p.worn.back = dev;
       }
       const bag = inventory.bagOf(p);

@@ -12,6 +12,9 @@ let data = null;
 
 const find = (id) => { try { return items.getItem(id); } catch { return null; } }; // an item or null: a typed id may be wrong
 
+// What a kit line puts on its entry: a drink's `fill`, and `clean` for water that is safe (docs/44: the starting skin is full of clean water).
+const propsOf = (k) => ({ ...(k.fill != null ? { fill: k.fill } : {}), ...(k.clean ? { clean: true } : {}) });
+
 export function load(json) {
   data = json && Array.isArray(json.worn) && Array.isArray(json.items) ? json : null;
 }
@@ -52,7 +55,7 @@ export function problem(text, devBag = false) {
   const place = (item, count, props) => inventory.addItem(bag, item, count, props) >= count;
   const ids = world.idCounter(); // the trial placement makes entries, which take instance ids: this asks, it must not move the world's count
   try {
-    for (const k of get().items) if (!k.hold && !place(k.item, k.count || 1, k.fill != null ? { fill: k.fill } : {})) return "The kit itself does not fit the bag.";
+    for (const k of get().items) if (!k.hold && !place(k.item, k.count || 1, propsOf(k))) return "The kit itself does not fit the bag.";
     for (const e of extra) if (!place(e.item, e.count, {})) return `The starting bag is full: ${def.name.toLowerCase()} (${def.bag[0]} by ${def.bag[1]}) has no room for ${e.count > 1 ? `${e.count} ` : ""}${items.getItem(e.item).name.toLowerCase()}. Take something out of the list.`;
     return "";
   } finally {
@@ -70,7 +73,7 @@ export function give(player, { extra = "", devBag = false } = {}) {
   const bag = inventory.bagOf(player);
   for (const e of k.items) {
     if (e.hold) items.hold(player.hands, items.makeEntry(e.item, 1), e.hold === "off" ? "off" : null);
-    else inventory.addItem(bag, e.item, e.count || 1, e.fill != null ? { fill: e.fill } : {});
+    else inventory.addItem(bag, e.item, e.count || 1, propsOf(e));
   }
   for (const e of parseExtra(extra).items) inventory.addItem(bag, e.item, e.count); // what does not fit is left out: `problem` refused it at creation
 }

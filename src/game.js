@@ -18,6 +18,7 @@ import * as events from "./events.js";
 import * as archery from "./archery.js";
 import * as burning from "./fire.js";
 import * as bleed from "./bleed.js";
+import * as sick from "./sick.js"; // tainted water's debuff (docs/44)
 import * as burn from "./burn.js"; // burning as a status (#14): the step's, beside the visual fire.js
 import * as fruit from "./fruit.js"; // bare fruit trees bear again (#190)
 import * as farming from "./farming.js"; // crops grow on the clock (#194)
@@ -413,14 +414,14 @@ export function syncParts() {
   // A fire's fuel to the unit: a replica refreshes it at each whole unit burned (map.burnFires), not each step.
   const chunks = (m.chunks || []).slice().sort((a, b) => (a.cx - b.cx) || (a.cy - b.cy)).map((c) => ({ ...c, props: (c.props || []).map((p) => { const { pokedAt, playedAt, ...q } = p; return q.fire && typeof q.fire.fuel === "number" ? { ...q, fire: { ...q.fire, fuel: Math.floor(q.fire.fuel) } } : q; }) }));
   // An entry's wear in whole hundredths, as the wire compares it (net.js sends a player's heavy part when its wear rounds differently), and its
-  // repair count (docs/43 section 6), and its dye (section 8): a guest's copy of a wear lags the host's by under a hundredth and never rounds otherwise.
-  const entryText = (e) => (e ? `${e.id}#${e.uid}x${e.count ?? 1}${e.lit ? "L" : ""}${e.fill != null ? `f${f(e.fill)}` : ""}${e.wear > 0 ? `w${Math.round(e.wear * 100)}` : ""}${e.repairs ? `r${e.repairs}` : ""}${e.colours ? `c${e.colours.join("/")}` : ""}${e.colour ? `c${e.colour}` : ""}${e.bag ? `[${(e.bag.items || []).map(entryText).join(",")}]` : ""}` : "-");
+  // repair count (docs/43 section 6), its dye (section 8), and whether its water is clean (docs/44): a guest's copy of a wear lags the host's by under a hundredth and never rounds otherwise.
+  const entryText = (e) => (e ? `${e.id}#${e.uid}x${e.count ?? 1}${e.lit ? "L" : ""}${e.fill != null ? `f${f(e.fill)}` : ""}${e.clean ? "clean" : ""}${e.wear > 0 ? `w${Math.round(e.wear * 100)}` : ""}${e.repairs ? `r${e.repairs}` : ""}${e.colours ? `c${e.colours.join("/")}` : ""}${e.colour ? `c${e.colour}` : ""}${e.bag ? `[${(e.bag.items || []).map(entryText).join(",")}]` : ""}` : "-");
   const at = (c) => (c.netTo ? c.netTo : [c.gx, c.gy]); // a replica's smoothing target is the host's truth (net.js)
   // Health as the wire carries it, to two decimals (net.js r2): a bleeding player's drains in fractions every step, so
   // three decimals differed between the host and every replica though nothing was wrong (found testing item 5's third
   // step, the first bleeding guest a sync check met; the rule a fire's fuel already follows: compare what the wire promises).
   const hp2 = (n) => (typeof n === "number" ? (Math.round(n * 100) / 100).toFixed(2) : String(n));
-  const playerText = (p) => [`${p.id} ${f(at(p)[0])},${f(at(p)[1])} hp ${hp2(p.hp)} ${p.dead ? "dead" : "alive"}`, `hands ${entryText(p.hands.main)} ${entryText(p.hands.off)}`, `worn ${Object.keys(p.worn).sort().map((k) => `${k}:${entryText(p.worn[k])}`).join(" ")}`, `hidden ${(p.hidden || []).join(",")}`, `belt ${(inventory.beltOf(p) || []).map(entryText).join(" ")}`, `carrying ${p.carrying ? p.carrying.id : "-"}`, `bleed ${p.bleed ? `${p.bleed.stacks}/${hp2(p.bleed.left)}` : "-"}`].join(" | "); // the wound a bleeding player has: stacks and time, as the wire carries them (#308)
+  const playerText = (p) => [`${p.id} ${f(at(p)[0])},${f(at(p)[1])} hp ${hp2(p.hp)} ${p.dead ? "dead" : "alive"}`, `hands ${entryText(p.hands.main)} ${entryText(p.hands.off)}`, `worn ${Object.keys(p.worn).sort().map((k) => `${k}:${entryText(p.worn[k])}`).join(" ")}`, `hidden ${(p.hidden || []).join(",")}`, `belt ${(inventory.beltOf(p) || []).map(entryText).join(" ")}`, `carrying ${p.carrying ? p.carrying.id : "-"}`, `bleed ${p.bleed ? `${p.bleed.stacks}/${hp2(p.bleed.left)}` : "-"}`, `sick ${p.sick ? `${p.sick.stacks}/${hp2(p.sick.left)}` : "-"}`].join(" | "); // the wound a bleeding player has, and Sick (docs/44): stacks and time, as the wire carries them (#308)
   const parts = {
     map: hashOf(JSON.stringify(chunks, (k, v) => (k === "wear" && typeof v === "number" ? Math.floor(v * 100) / 100 : k === "hp" && typeof v === "number" ? undefined : k === "boards" && v && Array.isArray(v.near) ? { near: v.near.length, far: v.far.length } : v))), // a mounted torch's wear to the hundredth: what the wire sends (map.burnHolders); a wall's health not at all (the wire sends a break, not the blows: strikeFence, damageOpening), a board's health (a bare number in `wall.boards`) not either, only how many boards stand, so a broken one still shows
     chart: hashOf(chart.hashText()), // what the world has seen, the charted chunks sorted (docs/33)
@@ -622,6 +623,7 @@ export function step(dt, snapshots = null) {
     // guest's prediction runs too. The word goes to whoever drank (main.js for this screen, host.js for a guest's).
     if (autoDrink(p)) events.emit("drank", { who: p.id, auto: true });
     bleed.update(p, dt);
+    sick.update(p, dt); // Sick runs down here, on the authority, as the wound does (docs/44)
     // The mouse and the keys, as a snapshot, to the player's controller (docs/23a, D1; never the input module).
     // Only a player whose client is here is controlled: the draw and the combat clock are still
     // one per world (docs/31/05, items 12 and 13), so an absent player's idle input must not touch them.

@@ -86,8 +86,16 @@
     "refreshMs": 100
   },
   "water": {
-    "note": "Unsafe water (Michael, 2026-10-19, #279): every natural source, water tiles and wells, is unsafe until purified, and its Drink says \"(tainted)\" (Michael, 2026-10-19). `clean` lists the sprites of sources that are safe (none yet; how water is purified is open); a waterskin's water is tainted unless its entry is marked `clean`.",
-    "clean": []
+    "note": "Water (docs/44; Michael, 2026-10-19 and 2026-10-25, #279): every natural source is tainted, and its Drink says \"(tainted)\". `clean` lists the sprites of sources that are safe (none: no fixed source is clean); a waterskin's water is tainted unless its entry is marked `clean`, and filling at a tainted source taints it all. `boilSeconds` is the bar to boil a skin at a lit cooking fire within `boilReach` tiles (src/water.js). A tainted drink rolls `sickChance` of Sick (src/sick.js), and, while Sick, every tainted drink adds a stack and `sickDays` of a game day more, up to `sickMaxStacks`; Sick drains tiredness `sickTiredMult` times as fast and food heals `sickHealMult` of its number, however many stacks; and `infectionChance` of the infection (one roll each, src/sick.js taintedDrink).",
+    "clean": [],
+    "boilSeconds": 30,
+    "boilReach": 2.6,
+    "sickChance": 0.2,
+    "sickDays": 0.5,
+    "sickMaxStacks": 3,
+    "sickTiredMult": 1.5,
+    "sickHealMult": 0.75,
+    "infectionChance": 0.01
   },
   "floaters": {
     "life": 1.1,

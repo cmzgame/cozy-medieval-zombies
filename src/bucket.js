@@ -3,7 +3,8 @@
 // capacity, as a waterskin does. Fill at any water (a water tile, a well, a trough, a font; the menu or the Use mode) and Pour on a plot,
 // which waters every crop in the 3 by 3 round the target tile (farming.soak, as a waterskin does one) and empties it: one pour a fill.
 // Both are verbs by the target tile and the entry's uid, run on the host. (A waterskin is not a bucket: `vessel` is not `capacity`, so
-// "Fill waterskins" and the drink menu leave it alone; water and thirst are an open question, #209.)
+// "Fill waterskins" and the drink menu leave it alone; water and thirst are an open question, #209.) Its water is tainted from every fixed source
+// (docs/44), and nothing boils a bucket yet: that waits for the boiling pot's fluid transfer.
 
 import * as verbs from "./verbs.js";
 import * as map from "./map.js";
@@ -12,6 +13,7 @@ import * as inventory from "./inventory.js";
 import { showMessage } from "./ui/prompt.js";
 import * as farming from "./farming.js";
 import { lineOfSight } from "./visibility.js";
+import * as water from "./water.js"; // tainted and clean water (docs/44): a fill from a tainted source taints the bucket
 
 const vesselOf = (entry) => (entry && items.getItem(entry.id).vessel) || null;
 export const capacityOf = (entry) => (vesselOf(entry) ? vesselOf(entry).capacity : 0);
@@ -79,6 +81,7 @@ verbs.define("fill", {
   },
   perform(world, player, target) {
     const b = pick(player, target.entry, "fill");
+    water.mixInto(b, water.sourceCleanAt(...tileOf(target))); // a tainted source taints it all (docs/44)
     b.fill = capacityOf(b);
     return { message: "You fill the bucket." };
   },
