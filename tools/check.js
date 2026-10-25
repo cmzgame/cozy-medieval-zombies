@@ -1439,7 +1439,7 @@ check("herbs, clay, and salt: placed to their counts on their ground, gathered b
     const lines = c.lines.map((l) => l.map((g) => g.t).join(""));
     assert(c.name === itemsMod.getItem(id).name && c.kind === kind && lines.length === 1 && lines[0] === SOURCE[id], `${id}'s card: ${itemInfoMod.textOf(c).join(" | ")}`);
   }
-  assert(itemInfoMod.sourcesOf(itemsMod.getItem("stone")).length === 0 && itemInfoMod.sourcesOf(itemsMod.getItem("iron_ore")).length === 0, "stone or iron ore gained a source line (their kinds have no where)");
+  assert(itemInfoMod.gatheredFrom(itemsMod.getItem("stone")).length === 0 && itemInfoMod.gatheredFrom(itemsMod.getItem("iron_ore")).length === 0, "stone or iron ore gained a source line (their kinds have no where)");
   assert(itemsMod.getItem("mana_herb").name === "Mana herb" && itemsMod.getItem("grave_moss").name === "Grave moss", "the placeholder names moved");
   // The art: every design outlined all the way round, its icon fitting 19 by 19, the herbs' icons their nodes' pictures.
   const designs = itemsMod.allItems().filter((d) => d.icon && d.icon.placeholder).map((d) => [d.id, typeof d.icon.placeholder === "string" ? getDef(d.icon.placeholder).placeholder : d.icon.placeholder]);

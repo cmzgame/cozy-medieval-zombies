@@ -26,6 +26,7 @@ import { damageZombie, isDown, staggerZombie, STAGGER_RULES } from "./entities/z
 import * as rng from "./rng.js";
 import { rules } from "./rules.js";
 import { detach } from "./inventory.js"; // a worn-out weapon leaves the hand (docs/30, 5.2)
+import * as animals from "./entities/animal.js"; // the blows that reach an animal (docs/45 section 2)
 
 // Tunables (docs/14).
 // The blow's own numbers (the wiki census, 2026-10-15: combat numbers are data): `data/combat.json` `blow` fills
@@ -164,7 +165,7 @@ export function guardAgainst(player, zombie, damage) {
     return damage;
   }
   player.stamina -= sh.stamina;
-  if (front) staggerZombie(zombie, sh.stagger, iso.normalize(zombie.gx - player.gx, zombie.gy - player.gy), sh.push ?? 0.25);
+  if (front && zombie.kind === "zombie") staggerZombie(zombie, sh.stagger, iso.normalize(zombie.gx - player.gx, zombie.gy - player.gy), sh.push ?? 0.25); // a boar's bite is met and nothing more (docs/45): an animal has no stagger
   loop.freeze(BLOW.hitStop * 0.6);
   kick(player);
   player.blockFlash = 0.14; // the shield's flash
@@ -198,6 +199,24 @@ function targetsIn(player, weapon, zombies, accept = () => true, limit = null) {
   if (multi || list.length < 2) return list;
   list.sort((a, b) => d(a) - d(b));
   return [list[0]];
+}
+
+// The animals a blow reaches beside the dead (docs/45 section 2), handed in by game.js as the arrows' targets are: wild game takes a
+// blow as anything does; tame stock only when the blow has nothing else to hit (the swing aimed at it), and then the nearest one alone,
+// so a swing at one of the dead passes the pen's cow by in either Multi-hit mode, and a swing in a pen strikes one cow, never none (the
+// review of #456: as archery's bodyAt, the dead and the wild first, then the tame). The shove is for the dead alone.
+let animalList = () => [];
+export function setAnimals(fn) {
+  animalList = fn;
+}
+
+function blowTargets(player, weapon, zombies) {
+  const reach = weapon.range + BODY_SLACK + 1;
+  const near = animalList().filter((a) => !a.dead && Math.abs(a.gx - player.gx) <= reach && Math.abs(a.gy - player.gy) <= reach);
+  if (!near.length) return targetsIn(player, weapon, zombies);
+  const list = targetsIn(player, weapon, [...zombies, ...near.filter((a) => animals.isWild(a))]);
+  if (list.length) return list;
+  return targetsIn(player, weapon, near.filter((a) => !animals.isWild(a)), () => true, 1);
 }
 
 // Whether a blow pushes at all: the weapon's `knockbackChance` (default always).
@@ -368,8 +387,15 @@ export function tryAttack(player, zombies, hand = "main", mode = null, predict =
   const dir = gridAim(player);
   const hit = [];
   let killed = false;
-  for (const z of targetsIn(player, weapon, zombies)) {
+  for (const z of blowTargets(player, weapon, zombies)) {
     hit.push(z);
+    if (z.kind === "animal") {
+      // An animal (docs/45 section 2): the blow's damage, no knockdown or combo; the weapon's class decides what the carcass gives.
+      const swungEntry = player.hands[hand];
+      const amount = Math.round(weapon.damage * (tired ? BLOW.tiredDamage : 1) * guardedMult(player) * (hand === "off" ? DUAL.offDamage : 1));
+      if (animals.damageAnimal(z, amount, { by: player, cls: animals.classOfItem(swungEntry && swungEntry.id), from: [player.gx, player.gy] }).killed) killed = true;
+      continue;
+    }
     // On the floor it is a finisher; rising it takes plain damage and nothing else (docs/41, step 3: the floor is
     // one blow long, and the rise is safe from the multiplier, so a knockdown is a moment and not a free kill).
     const down = isDown(z);
@@ -463,13 +489,14 @@ export function swingTargets(player, zombies) {
   if (!canAct(player, true)) return [];
   const w = nextSwingWeapon(player);
   const near = zombies.filter((z) => Math.abs(z.gx - player.gx) <= w.range + BODY_SLACK + 1 && Math.abs(z.gy - player.gy) <= w.range + BODY_SLACK + 1);
-  return targetsIn(player, w, near);
+  return blowTargets(player, w, near);
 }
 
-// Flag each zombie for the renderer's outline: `on` marks the targets, else clears.
+// Flag each zombie (and each animal, docs/45) for the renderer's outline: `on` marks the targets, else clears.
 export function markTargets(player, zombies, on) {
   const hit = on ? new Set(swingTargets(player, zombies)) : null;
   for (const z of zombies) z.swingTarget = !!hit && hit.has(z);
+  for (const a of animalList()) a.swingTarget = !!hit && hit.has(a);
 }
 
 // Each logic step: cooldowns and the effects' timers.

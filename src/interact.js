@@ -29,7 +29,7 @@ import { autoWalk, eat, drink, wave } from "./entities/player.js";
 import * as burn from "./burn.js"; // Burn corpse (docs/43 section 7)
 import { showMessage } from "./ui/prompt.js";
 import { pokeVillager, startTalk, endTalk } from "./entities/villager.js";
-import { lookLine } from "./entities/animal.js";
+import { lookLine, snareLine, workProblem, workSeconds, hasHide } from "./entities/animal.js";
 import { lootOf } from "./entities/character.js";
 import { emit } from "./events.js";
 import * as loop from "./loop.js";
@@ -972,6 +972,7 @@ function propActions(prop, player) {
   if (prop.fire && prop.fire.cooks && prop.fire.lit) out.push(boilAtFireAction(prop, player)); // Boil water at a lit cooking fire (docs/44)
   out.push(...repair.propActions(prop, player, act, world), ...sawpit.propActions(prop, player, act, world), ...hives.propActions(prop, player, act, world)); // docs/43 section 6: each is nothing on a prop that is not its own
   if (canCarry(prop)) out.push(carryAction(prop, player));
+  if (prop.snare) out.push(lookAtSnareAction(prop)); // a set snare (docs/45 section 2): what it holds, the asking client's own line
   if (getDef(prop.sprite).item) out.push(itemPickUpAction(prop, player)); // a torch post, a decoration: back into the bag as its item (docs/43, section 4)
   if (prop.made) out.push(takeApartAction(prop, player)); // only what a player made (docs/43, section 2)
   return out;
@@ -1898,9 +1899,52 @@ function lookAtAnimalAction(c) {
   });
 }
 
+// A snare's Look at (docs/45 section 2): what it holds, or how long it has been set; the asking client's own line, as an animal's is.
+function lookAtSnareAction(prop) {
+  return act({
+    kind: "look",
+    label: "Look at the snare",
+    tiles: prop.tiles,
+    mx: prop.tile[0],
+    my: prop.tile[1],
+    range: INSPECT_RANGE,
+    local: true,
+    perform() {
+      showMessage(snareLine(prop), 4);
+      return true;
+    },
+  });
+}
+
+// Skin and Butcher a carcass (docs/45 section 2): timed actions that run the `skin` and `butcher` verbs by the animal's id, a dirk carried,
+// so a guest's choice of the label is the host's doing; greyed with why (no dirk, skin it first, already skinned).
+function carcassActions(c, player) {
+  const out = [];
+  const one = (verb, word) => {
+    const why = workProblem(player, c, verb);
+    const far = why && /^Too far|wall|door|shut/i.test(why); // reach is the walk's to solve, not a reason to grey it
+    return act({
+      kind: verb,
+      label: why && !far ? `${word} the ${c.name} (${why.replace(/\.$/, "").replace(/^./, (ch) => ch.toLowerCase())})` : `${word} the ${c.name}`,
+      tiles: [[Math.round(c.gx), Math.round(c.gy)]],
+      range: CLICK_REACH,
+      mx: c.gx,
+      my: c.gy,
+      enabled: !why || far,
+      duration: workSeconds(verb),
+      perform() {
+        return runVerb(verb, player, { character: c.id });
+      },
+    });
+  };
+  if (hasHide(c) && !c.skinned) out.push(one("skin", "Skin"));
+  out.push(one("butcher", "Butcher"));
+  return out;
+}
+
 function characterActions(c, player) {
   const out = [];
-  if (c.kind === "animal") return [lookAtAnimalAction(c)];
+  if (c.kind === "animal") return c.dead && !c.butchered ? [...carcassActions(c, player), lookAtAnimalAction(c)] : [lookAtAnimalAction(c)];
   if ((c.kind === "zombie" || c.kind === "player") && c.dead && c.corpse) out.push(searchBodyAction(c)); // a player's body too (2026-10-14)
   if (burn.isBurnableBody(c)) out.push(burnCorpseAction(c, player)); // the dead's bodies; a player's is left for its friends (docs/43 section 7)
   if (c.kind === "villager") {

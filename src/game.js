@@ -113,7 +113,7 @@ export function create({ json, look = null, name = null, devChest = false, rules
   interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses, ...S.animals]);
   burn.setCharacters((id) => S.corpses.find((c) => c.id === id) || S.zombies.find((c) => c.id === id) || null); // Burn corpse's body by id (docs/43 section 7)
   wireTalk();
-  archery.setTargets(() => S.zombies); // what an arrow can hit when it lands (docs/20)
+  wireAnimals();
   map.ensureAround(S.player.gx, S.player.gy, 4);
   for (const [x, y] of map.takePendingSpawns()) S.zombies.push(createZombie(x, y));
   map.rebuildRooms();
@@ -133,6 +133,16 @@ function ageSpeech(dt) {
       if (l.left <= 0 || c.dead) c.line = null;
     }
   }
+}
+
+// What an arrow can hit when it lands (docs/20), what a blow reaches beside the dead, and what the hunting verbs find by id: the
+// living dead and the animals (docs/45 section 2). The lists are the world's own, read when a shot lands or a blow swings.
+function wireAnimals() {
+  const S = state;
+  animal.resetSnares(map.allProps()); // the snares this world has, set before it was saved
+  archery.setTargets(() => [...S.zombies, ...S.animals]);
+  combat.setAnimals(() => S.animals);
+  animal.setAnimalList(() => S.animals);
 }
 
 // What the talk conditions read (docs/34): the dead, the living villagers, and the talk ids the map placed (a villager gone from the
@@ -333,7 +343,7 @@ export function restore(saved, json) {
   interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses, ...S.animals]);
   burn.setCharacters((id) => S.corpses.find((c) => c.id === id) || S.zombies.find((c) => c.id === id) || null); // Burn corpse's body by id (docs/43 section 7)
   wireTalk();
-  archery.setTargets(() => S.zombies);
+  wireAnimals();
   archery.reset();
   burning.reset();
   stations.resetActive(map.allProps());
@@ -413,6 +423,12 @@ events.on("playerHit", ({ zombie, damage, victim }) => {
   events.emit("bitten", { player: p, zombie, taken, opened, infected });
 });
 events.on("villagerHit", ({ villager, damage }) => damageVillager(villager, damage));
+// A boar's bite (docs/45 section 2: it fights back at the player who struck it), through the guard and the exposure as the dead's is; no wound
+// to bleed and no infection, which are the dead's.
+events.on("animalBite", ({ animal: a, victim, damage }) => {
+  if (!victim || victim.dead) return;
+  damagePlayer(victim, combat.exposedTo(victim, a, combat.guardAgainst(victim, a, damage)));
+});
 
 // The whole world in parts, each hashed, for the sync check (docs/31/04, "a replica check"; tier 3's gate):
 // what the wire promises a replica has. The map chunk by chunk (floors, walls, props with their bags and
@@ -446,9 +462,10 @@ export function syncParts() {
     // The dead as the frames carry them (the wire sends them as a delta, so a missed update shows here): where, state, hp,
     // facing, the frame of the animation, burning, a body set alight by Burn corpse (docs/43 section 7), a villager's cowering (its state).
     dead: hashOf([...S.zombies, ...S.villagers, ...S.corpses].slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((z) => `${z.id} ${f(at(z)[0])},${f(at(z)[1])} ${z.state || "-"} hp ${hp2(z.hp)} ${z.dead ? "dead" : ""}${z.corpse ? "corpse" : ""} ${z.facing} ${z.anim ? `${z.anim.name}:${z.anim.frame}` : "-"}${z.burning ? " fire" : ""}${z.cremate ? " cremate" : ""}${z.talkingWith && z.talkingWith.length ? ` talk ${z.talkingWith.join("+")}` : ""}`).join("\n")),
-    // The animals as the frames carry them (docs/45 section 7): where, the state, health, dead, the facing and the frame of the
-    // animation, the home; and each home's renewal. Skinned, butchered, how it was killed, fed and produce days join with steps 2 and 3.
-    animals: hashOf([...S.animals.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((a) => `${a.id} ${a.species} ${f(at(a)[0])},${f(at(a)[1])} ${a.state} hp ${hp2(a.hp)} ${a.dead ? "dead" : ""} ${a.facing} ${a.anim.name}:${a.anim.frame} home ${a.homeId || "-"} ${a.home.join(",")}`), ...S.animalHomes.map((h) => `${h.id} ${h.species} cap ${h.cap} next ${h.nextAt === null ? "-" : f(h.nextAt)}`)].join("\n")),
+    // The animals as the frames carry them (docs/45 section 7): where, the state, health, dead, how it was killed and whether it is
+    // skinned (a carcass, step 2; a butchered one has left the list), the facing and the frame of the animation, the home; and each
+    // home's renewal. Fed and produce days join with step 3.
+    animals: hashOf([...S.animals.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((a) => `${a.id} ${a.species} ${f(at(a)[0])},${f(at(a)[1])} ${a.state} hp ${hp2(a.hp)} ${a.dead ? `dead ${a.killedBy || "-"}${a.skinned ? " skinned" : ""}` : ""} ${a.facing} ${a.anim.name}:${a.anim.frame} home ${a.homeId || "-"} ${a.home.join(",")}`), ...S.animalHomes.map((h) => `${h.id} ${h.species} cap ${h.cap} next ${h.nextAt === null ? "-" : f(h.nextAt)}`)].join("\n")),
     clock: hashOf(`${f(clock.getElapsed())} ${f(loop.simTime())} ${world.world.timeScale}`),
     rules: hashOf(Object.keys(rules.rules).sort().map((k) => `${k}=${typeof rules.rules[k] === "boolean" ? (rules.rules[k] ? 1 : 0) : rules.rules[k]}`).join(" ")), // world state since the second step of item 5
   };
@@ -696,6 +713,14 @@ export function step(dt, snapshots = null) {
     }
     const watching = [...S.players, ...S.corpses.filter((c) => c.kind === "player")]; // a dead player's screen still looks at the world
     for (const a of animal.renewHomes(S.animalHomes, S.animals, watching)) S.animals.push(a);
+    // A carcass butchered is taken (docs/45 section 2): it leaves the list, and the roster takes it from every guest.
+    if (S.animals.some((a) => a.butchered)) S.animals = S.animals.filter((a) => !a.butchered);
+    // The snares, once a second of sim time (read from the sim's clock, so a restored world checks on the same steps): a catch, or set
+    // again once its catch is taken. A change marks the snare's chunk, so a guest sees what it holds.
+    if (Math.floor(loop.simTime()) !== Math.floor(loop.simTime() - dt)) {
+      const snares = animal.setSnares(map.propById);
+      if (snares.length) for (const pr of animal.snareStep(snares, S.animals, S.animalHomes, watching)) map.markDirty(pr.tile[0], pr.tile[1]);
+    }
   }
   // Villagers bitten through get up as the dead, in what they wore (docs/19).
   if (S.villagers.some((v) => v.dead)) {
