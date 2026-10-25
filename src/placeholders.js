@@ -9,6 +9,7 @@
 
 import { TW, TH, HW, HH } from "./iso.js";
 import { shade, poly } from "./render-util.js";
+import { pixelsOf, iconPixelsOf } from "./gather-art.js"; // the gatherables' dev art (docs/46 step 2)
 
 function makeCanvas(w, h) {
   const c = document.createElement("canvas");
@@ -1613,4 +1614,40 @@ export function generateAnimal(ph, def) {
     });
   });
   return { image: canvas, frames, anchor: [ax, ay], bounds: { x: 0, y: 0, w: fw, h: fh }, animations, facings, mirror: def.mirror || {} };
+}
+
+// ---------------------------------------------------------------------------
+// The gatherables' dev art (docs/46 step 2, #448): an herb, a mushroom, a clay bank, a salt rock, from a design drawn by gather-art.js
+// as pixels (pure, so the headless check reads the same). `generateNode` is the node in the world, its anchor the picture's foot at the
+// tile's centre; `iconCanvas` is an item's bag icon from the same design, centred in its footprint at 19 px a cell, which main.js also
+// registers as the item's sheet on the floor (`icon_<id>`). Drawn art replaces either through the same fields.
+// ---------------------------------------------------------------------------
+function paintPixels(p) {
+  const { canvas, ctx } = makeCanvas(p.w, p.h);
+  for (const [x, y, c] of p.px) {
+    ctx.fillStyle = c;
+    ctx.fillRect(x, y, 1, 1);
+  }
+  return canvas;
+}
+
+export function generateNode(ph) {
+  const p = pixelsOf(ph);
+  return {
+    image: paintPixels(p),
+    frames: { idle_0: [0, 0, p.w, p.h] },
+    anchor: [p.ax, p.ay],
+    bounds: { x: 0, y: 0, w: p.w, h: p.h },
+    animations: { idle: { fps: 0, loop: false, frames: 1 } },
+    facings: [],
+    mirror: {},
+  };
+}
+
+// An item's icon from a design: { canvas, sheet } (the sheet, one frame, anchored on the picture's foot, is what lies on the floor).
+export function iconCanvas(ph, size = [19, 19]) {
+  const p = iconPixelsOf(ph, size);
+  const canvas = paintPixels(p);
+  const sheet = { image: canvas, frames: { idle_0: [0, 0, p.w, p.h] }, anchor: [p.ax, p.ay], bounds: { x: 0, y: 0, w: p.w, h: p.h }, animations: {}, facings: [], mirror: {} };
+  return { canvas, sheet, fits: p.fits };
 }
