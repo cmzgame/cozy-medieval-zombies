@@ -26,6 +26,18 @@ export async function run(game) {
   const restore = [];
   try {
     G.loop.setPaused(true);
+    // The valley's own (docs/43 section 4): its torch posts by the square and along the high street, and its four brackets that stood empty,
+    // each hold an unlit torch with no wear, for a player to light.
+    const vPosts = [...G.map.allProps()].filter((q) => q.sprite === "torch_post" && !q.made); // read before the check sets up a post of its own
+    const vBrackets = [...G.map.brackets()].filter((b) => b.wall.bracket.torch && !b.wall.bracket.made);
+    row("the valley's torch posts and its four torch brackets each hold an unlit torch, unworn", vPosts.length >= 4 && vPosts.every((q) => q.fire.has && q.fire.lit === false) && vBrackets.length === 4 && vBrackets.every((b) => b.wall.bracket.lit === false && b.wall.bracket.wear === 0), `${vPosts.length} posts (${vPosts.map((q) => `${q.tile}: ${q.fire.has ? (q.fire.lit ? "lit" : "unlit") : "empty"}`).join(", ")}); ${vBrackets.length} brackets`);
+    // The valley's empty brackets hold an unlit torch since docs/43 section 4: the rows below want empty ones, so those torches come out for the
+    // run and go back in the finally, unlit and unworn as authored.
+    for (const b of [...G.map.brackets()].filter((q) => q.wall.bracket.torch && q.wall.bracket.lit === false && !q.wall.bracket.made)) {
+      const t = { kind: "bracket", bracket: b };
+      G.map.setHolder(t, false);
+      restore.push(() => G.map.setHolder(t, true, { lit: false, wear: 0 }));
+    }
     W.torchHeldLife = 60; // seconds held: a hundredth of a day
     W.torchWallLife = 120;
     me.hands.main = null;

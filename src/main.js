@@ -1436,6 +1436,7 @@ async function boot() {
       // Everything is loaded already; this adds the two-tile variants, and a name the manifest lacks fails here with its id.
       await assets.loadMapSprites(json);
       for (const k of placement.buildKinds()) await assets.loadSprite(k.sprite); // what can be built must be drawable
+      for (const r of stations.recipes()) if (r.out && r.out.prop && r.out.footprint) await assets.loadSprite(r.out.prop, { tileCount: r.out.footprint[0] * r.out.footprint[1] }); // what can be made must be drawable at its own footprint (docs/43 section 4: a made counter, cart, stall)
       for (const d of items.allItems()) if (d.rug) { // a rug laid from the bag must be drawable: its 2 by 3 sheet (#327)
         const sd = await assets.loadSpriteDef(d.rug);
         const fp = (sd.facingFootprint && sd.facingFootprint.y) || [2, 3];

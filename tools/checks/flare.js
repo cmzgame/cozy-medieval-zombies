@@ -16,6 +16,13 @@ export async function run(game) {
   const restore = [];
   const T = G.archery.tunables;
   try {
+    // The valley's empty brackets hold an unlit torch since docs/43 section 4: the rows below want empty ones, so those torches come out for the
+    // run and go back in the finally, unlit and unworn as authored.
+    for (const b of [...G.map.brackets()].filter((q) => q.wall.bracket.torch && q.wall.bracket.lit === false && !q.wall.bracket.made)) {
+      const t = { kind: "bracket", bracket: b };
+      G.map.setHolder(t, false);
+      restore.push(() => G.map.setHolder(t, true, { lit: false, wear: 0 }));
+    }
     G.loop.setPaused(true);
     // Open ground, grown first.
     let c = null;

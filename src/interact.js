@@ -52,6 +52,7 @@ import * as stationPanel from "./ui/station-panel.js";
 import * as rugs from "./rugs.js"; // a rug laid from the bag and picked up again (#327)
 import * as paintings from "./paintings.js"; // a painting hung on a wall from the bag and taken down again (#326)
 import * as campfire from "./campfire.js"; // a campfire picked up and set down again (docs/43, section 3)
+import * as setdown from "./setdown.js"; // an item set down as its prop, a bracket hung on a wall, and each picked up again (docs/43, section 4)
 import * as repair from "./repair.js"; // the grindstone sharpens, the anvil repairs, on one count per item (docs/43 section 6)
 import * as sawpit from "./sawpit.js"; // the sawpit saws a log into planks with no hatchet (docs/43 section 6)
 import * as hives from "./hives.js"; // the beehives give honey every few days (docs/43 section 6)
@@ -476,7 +477,7 @@ function runVerb(name, player, target) {
 // hearth, a lantern on a post. Light it with a flame carried (a tinderbox or a lit torch, #168); put it out with nothing. It burns no fuel.
 function switchActions(prop, player) {
   const f = prop.fire;
-  const name = prop.sprite === "lantern_post" ? "lantern" : prop.sprite.replace(/_/g, " ");
+  const name = map.fireName(prop);
   const base = { kind: "fire", tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] - 0.6 };
   if (f.lit) return [act({ ...base, simple: false, label: `Put out the ${name}`, perform: () => runVerb("putout", player, { prop: prop.id }) })];
   const flame = !!flameOf(player);
@@ -577,7 +578,9 @@ function holderActions(target, player) {
     })];
   }
   const have = countAll(player, "torch") > 0;
-  return [act({
+  // A bracket a player hung, empty, is taken down again into the bag (docs/43, section 4).
+  const down = bk && bk.wall.bracket.made ? [act({ kind: "holder", simple: false, label: "Take down the bracket", tiles, mx, my, perform: () => setdown.takeDown(player, bk) })] : [];
+  return [...down, act({
     kind: "holder",
     simple: have,
     label: have ? "Mount the torch" : `An empty ${what} (need a torch)`,
@@ -964,8 +967,25 @@ function propActions(prop, player) {
   if (stations.stationOf(prop).length) out.push(...stationActions(prop, player));
   out.push(...repair.propActions(prop, player, act, world), ...sawpit.propActions(prop, player, act, world), ...hives.propActions(prop, player, act, world)); // docs/43 section 6: each is nothing on a prop that is not its own
   if (canCarry(prop)) out.push(carryAction(prop, player));
+  if (getDef(prop.sprite).item) out.push(itemPickUpAction(prop, player)); // a torch post, a decoration: back into the bag as its item (docs/43, section 4)
   if (prop.made) out.push(takeApartAction(prop, player)); // only what a player made (docs/43, section 2)
   return out;
+}
+
+// Pick up a prop that names its item (setdown.js): greyed with why while it cannot come up (a torch on the post, the village's own).
+function itemPickUpAction(prop, player) {
+  const why = setdown.pickUpProblem(prop);
+  const name = getItem(getDef(prop.sprite).item).name.toLowerCase();
+  return act({
+    kind: "pickup",
+    simple: false,
+    label: why ? `Pick up ${name} (${why.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase())})` : `Pick up ${name}`,
+    tiles: prop.tiles,
+    mx: prop.tile[0],
+    my: prop.tile[1],
+    enabled: !why,
+    perform: () => setdown.pickUp(player, prop),
+  });
 }
 
 // A station (docs/30, section 6): one entry that opens its panel; the panel calls the craft verb.
@@ -1431,6 +1451,11 @@ export function itemMenu(player, entry, bag, otherBag) {
   if (def.painting && mine) out.push({ label: "Place", enabled: true, onSelect: () => placement.beginPainting(entry) });
   // A Campfire item is set down from the bag: Place begins the ghost on the ground (placement.js; docs/43, section 3).
   if (def.place === campfire.SPRITE && mine) out.push({ label: "Place", enabled: true, onSelect: () => placement.beginCampfire(entry) });
+  // An item that sets down as its prop (a torch post, a decorative pumpkin) or hangs on a wall (a bracket; docs/43, section 4); food placed as
+  // decoration is one way (it comes back a decoration, not food), so the entry says so.
+  if (def.place && def.place !== campfire.SPRITE && mine) out.push({ label: "Place", enabled: true, onSelect: () => placement.beginSetdown(entry) });
+  if (def.placeAs && mine) out.push({ label: "Place as decoration (it will not be food again)", enabled: true, onSelect: () => placement.beginSetdown(entry) });
+  if (def.bracket && mine) out.push({ label: "Place", enabled: true, onSelect: () => placement.beginBracket(entry) });
   if (def.hands && mine) {
     if (def.hands === "either") {
       // A weapon fits either hand: the main hand swaps what is there, the off hand takes a second weapon (docs/21).

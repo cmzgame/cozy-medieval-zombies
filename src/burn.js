@@ -105,7 +105,7 @@ function lightTarget(player, target, flame) {
   const prop = typeof target.prop === "string" ? map.propById(target.prop) : target.prop;
   const f = prop && prop.fire;
   // A home light is a switch (docs/43, section 3): a fireplace, a hearth, a lantern post, turned on with a flame, burning nothing.
-  if (f && f.switch) return f.lit ? { reason: "It is already lit." } : { light: () => map.setFireLit(prop, true), prop, message: `You light the ${prop.sprite === "lantern_post" ? "lantern" : prop.sprite.replace(/_/g, " ")}.` };
+  if (f && f.switch) return f.lit ? { reason: "It is already lit." } : { light: () => map.setFireLit(prop, true), prop, message: `You light the ${map.fireName(prop)}.` };
   if (!f || !(prop.sprite === "campfire" || f.holds)) return { reason: "That cannot be lit." }; // a campfire or a torch: not an oven or a forge
   if (prop.sprite === "campfire") {
     if (f.lit) return { reason: "It is already burning." };
@@ -171,7 +171,7 @@ function putOutTarget(target) {
   const f = prop && prop.fire;
   if (!f || !(f.switch || prop.sprite === "campfire" || (f.holds && f.has))) return { reason: "That cannot be put out." }; // the stations keep their fuel and their fire (docs/43)
   if (!f.lit) return { reason: "It is already out." };
-  return { put: () => map.setFireLit(prop, false), name: prop.sprite === "lantern_post" ? "lantern" : f.holds ? "torch" : prop.sprite.replace(/_/g, " "), prop };
+  return { put: () => map.setFireLit(prop, false), name: f.holds ? "torch" : map.fireName(prop), prop };
 }
 
 verbs.define("putout", {

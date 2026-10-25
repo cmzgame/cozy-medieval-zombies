@@ -6,7 +6,8 @@
   13,
   21
  ],
- "interactable": true,
- "carry": true,
- "note": "a plain pumpkin (docs/17), a gatherable"
+ "interactable": false,
+ "carry": false,
+ "note": "a plain pumpkin (docs/17) as decoration (docs/43 section 4): Pick up gives a Decorative pumpkin, not food; not interactable",
+ "item": "decorative_pumpkin"
 }

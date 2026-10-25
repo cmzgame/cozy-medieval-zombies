@@ -1,1 +1,1 @@
-{"placeholder": {"kind": "torch_post", "color": "#4a3324"}, "fire": {"radius": 3, "holds": "torch", "flicker": {"amp": 0.14, "speed": 9}}, "collide": {"radius": 0.12}}
+{"placeholder": {"kind": "torch_post", "color": "#4a3324"}, "fire": {"radius": 3, "holds": "torch", "flicker": {"amp": 0.14, "speed": 9}}, "collide": {"radius": 0.12}, "item": "torch_post", "note": "a player's own post, empty, is picked up as the Torch post item (docs/43 section 4; src/setdown.js)"}

@@ -32,6 +32,13 @@ export async function run(game) {
     return b.edge === "n" ? [b.tx, e0 + s * d] : [e0 + s * d, b.ty];
   };
   try {
+    // The valley's empty brackets hold an unlit torch since docs/43 section 4: the rows below want empty ones, so those torches come out for the
+    // run and go back in the finally, unlit and unworn as authored.
+    for (const b of [...G.map.brackets()].filter((q) => q.wall.bracket.torch && q.wall.bracket.lit === false && !q.wall.bracket.made)) {
+      const t = { kind: "bracket", bracket: b };
+      G.map.setHolder(t, false);
+      restore.push(() => G.map.setHolder(t, true, { lit: false, wear: 0 }));
+    }
     G.loop.setPaused(true);
     let c = null;
     for (let y = 120; y < 240 && !c; y += 3) {
@@ -427,6 +434,61 @@ export async function run(game) {
           }
         }
       }
+    }
+    // ---- The hearth (docs/43, section 4): built from the palette inside a room, against a wall, six stone; a switch, out when built.
+    {
+      const free0 = G.rules.rules.freeBuilding;
+      restore.push(() => G.rules.set({ freeBuilding: free0 }));
+      G.rules.set({ freeBuilding: false });
+      const sd = await import("/src/setdown.js");
+      const said = () => (document.getElementById("message") || {}).textContent || "";
+      const entry = G.placement.buildKinds().find((k) => k.id === "hearth");
+      row("the build palette has a hearth: a prop, six stone, standing indoors against a wall", !!entry && entry.kind === "prop" && entry.sprite === "hearth" && entry.stand === "wall" && entry.cost.stone === 6, JSON.stringify(entry && entry.cost));
+      // In the cottage the player woke in: a tile against a wall, and one in the open of the room.
+      const room = G.map.tileAt(Math.round(meAt[0]), Math.round(meAt[1])).room;
+      let wallTile = null;
+      let openTile = null;
+      for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++) {
+        const x = Math.round(meAt[0]) + dx, y = Math.round(meAt[1]) + dy;
+        const t = G.map.peekTile(x, y);
+        if (!t || t.room !== room) continue;
+        const why = sd.standProblem("wall", x, y);
+        if (!why && !wallTile && G.map.isWalkableTile(x, y + 1) && G.map.tileAt(x, y + 1).room === room && !G.map.tileAt(x, y + 1).prop) wallTile = [x, y];
+        if (why === "Against a wall" && !openTile) openTile = [x, y];
+      }
+      const outside = [];
+      for (let r = 3; r < 14 && !outside.length; r++) for (let dx = -r; dx <= r && !outside.length; dx++) { const x = Math.round(meAt[0]) + dx, y = Math.round(meAt[1]) + r; if (sd.standProblem("ground", x, y) === "" && !(G.map.peekTile(x, y).room > 0)) outside.push(x, y); }
+      row("a hearth is refused outdoors and in the open of a room", outside.length && sd.standProblem("wall", outside[0], outside[1]) === "Indoors only" && !!openTile, `outdoors: ${outside.length ? sd.standProblem("wall", outside[0], outside[1]) : "no tile"}; open floor: ${openTile ? sd.standProblem("wall", openTile[0], openTile[1]) : "none found"}`);
+      if (wallTile) {
+        const [hx, hy] = wallTile;
+        G.teleport(hx, hy + 1.2);
+        G.loop.advance(1 / 60);
+        const back0 = me.worn.back;
+        restore.push(() => { me.worn.back = back0; });
+        me.worn.back = G.items.makeEntry("rucksack", 1); // room for the six stone
+        const st0 = G.inventory.countAll(me, "stone");
+        G.inventory.addItem(G.inventory.bagOf(me), "stone", 6);
+        G.placement.performPlacement(me, { kind: "build", what: "hearth", tx: hx, ty: hy });
+        for (let i = 0; i < 60 * 9; i++) G.loop.advance(1 / 60);
+        const h = G.map.tileAt(hx, hy).prop;
+        if (h && h.sprite === "hearth") restore.push(() => { if (G.map.propById(h.id)) G.map.removeProp(h); });
+        row("built against a wall: a hearth, a switch, out, made, the six stone paid", !!h && h.sprite === "hearth" && h.fire.switch === true && h.fire.lit === false && h.made === true && G.inventory.countAll(me, "stone") === st0, h ? `switch ${h.fire.switch}, lit ${h.fire.lit}, made ${h.made}; stone ${G.inventory.countAll(me, "stone")}` : `nothing built: "${said()}"`);
+        if (h && h.sprite === "hearth") {
+          const tb = G.items.makeEntry("tinderbox", 1);
+          G.inventory.stow(me, tb);
+          restore.push(() => G.inventory.detach(me, tb));
+          const lightIt = G.interact.actionsForProp(h, me).find((q) => q.label === "Light the hearth");
+          const lit = lightIt ? lightIt.perform() : null;
+          const off = G.interact.actionsForProp(h, me).find((q) => q.label === "Put out the hearth");
+          const out = off ? off.perform() : null;
+          const ta = G.interact.actionsForProp(h, me).find((q) => /^Take apart/.test(q.label));
+          const s0 = G.inventory.countAll(me, "stone");
+          const apart = ta ? ta.perform() : null;
+          row("lit with the tinderbox and put out with nothing; taken apart for half its stone", lit === true && out === true && ta && ta.label === "Take apart (3 stones back)" && apart === true && G.inventory.countAll(me, "stone") - s0 === 3, `${lit} ${out}; ${ta && ta.label}; +${G.inventory.countAll(me, "stone") - s0}`);
+          G.inventory.takeAll(me, "stone", 3);
+        }
+      } else row("a tile against a wall in the cottage", false, "none");
+      G.teleport(meAt[0], meAt[1]);
     }
   } finally {
     for (const r of restore.reverse()) r();

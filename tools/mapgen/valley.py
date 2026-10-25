@@ -111,7 +111,7 @@ def cottage_a(g, x, y, name, door_side="s", broken=False, torch=True, apple=Fals
         # #134): the table lies across row 1 from the south door's side, and across row 3 from the north door's.
         props=([hearth_w(0, 1), along_x("table", 1, 1), chair(1, 2, "n"), one("chest", 0, 3)] if door_side == "s"
                else [hearth_w(0, 1), along_x("table", 1, 3), chair(1, 2, "s"), one("chest", 0, 0)]) + [along_x("bed", 3, 0), one("chest", 5, 3)],
-        brackets=[{"side": "w", "at": 0, "facing": "in", **({"lantern": True} if torch else {"torch": False})}],
+        brackets=[{"side": "w", "at": 0, "facing": "in", **({"lantern": True} if torch else {"torch": True, "lit": False})}],
     )
     s.prop("woodpile", (7, 4))
     if apple:
@@ -208,7 +208,10 @@ def build():
     g.prop("noticeboard", (sq[0] + 11, sq[1] + 7), note="by the inn's door; the quest board of 1.1")
     g.prop("stocks", (sq[0] + 11, sq[1] + 11))
     for x, y in [(sq[0], sq[1] + 11), (sq[0] + 11, sq[1] + 2), (sq[0], sq[1] + 2)]:
-        g.prop("lantern_post", (x, y))  # the square's lamps: lanterns, steady and never out (they were torches until #156)
+        g.prop("lantern_post", (x, y))  # the square's lamps: lanterns, steady, burning nothing (they were torches until #156)
+    # Torch posts by the square and along the high street (docs/43 section 4), each holding an unlit torch: a player lights them.
+    for x, y in [(sq[0] + 6, sq[1] + 13), (64, HIGH_Y - 2), (76, HIGH_Y + 2), (114, HIGH_Y - 2), (118, HIGH_Y + 2)]:
+        g.prop("torch_post", (x, y), torch=True, lit=False)
 
     # ---- the green: the pond with its dirt bank, benches, the maypole, a woodpile ----
     pond = P(15, 53)
@@ -264,7 +267,7 @@ def build():
             along_x("pew", 1, 3), along_x("pew", 1, 5), along_x("pew", 1, 7), along_x("pew", 5, 3), along_x("pew", 5, 5), along_x("pew", 5, 7),
             one("chest", 9, 0), one("cupboard", 9, 3),
         ],
-        brackets=[{"side": "n", "at": 2, "facing": "in", "torch": False}, {"side": "n", "at": 7, "facing": "in", "torch": False}],
+        brackets=[{"side": "n", "at": 2, "facing": "in", "torch": True, "lit": False}, {"side": "n", "at": 7, "facing": "in", "torch": True, "lit": False}],  # unlit torches (docs/43 section 4)
     )
     # Headstones in rows either side of the chapel, and the crypt in the north-east corner.
     pr = P(21, 2)  # the priest's house stands among the stones' rows; no stone stands in it (one did, in its walkway)
@@ -279,7 +282,7 @@ def build():
     crypt = g.place("the crypt", [gy[0] + 25, gy[1] + 1, 6, 6])
     crypt.building([1, 1, 4, 4], "wall_stone", "floor_stone", openings=[door("w", 2)],
                    props=[along_y("coffin", 0, 0), along_y("coffin", 3, 0), one("chest", 3, 3)],
-                   brackets=[{"side": "n", "at": 1, "facing": "in", "torch": False}])
+                   brackets=[{"side": "n", "at": 1, "facing": "in", "torch": True, "lit": False}])  # an unlit torch (docs/43 section 4)
 
     # ---- the priest's house, east of the chapel ----
     priest = g.place("the priest's house", [P(21, 2)[0], P(21, 2)[1], 8, 8])

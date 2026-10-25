@@ -208,15 +208,37 @@ export function kindleNear(x, y, r = 1, clear = null) {
   return n;
 }
 
-export function addBracket(tx, ty, edge, side, torch = false, lantern = false) {
+export function addBracket(tx, ty, edge, side, torch = false, lantern = false, lit = true) {
   const wall = growTile(tx, ty)[edge];
   if (!wall) return null;
   // A lantern is the village's own light (#156): steady, burning nothing, not a torch and not taken; a bracket holds one or the other.
   // Put out and lit again since docs/43 section 3: `lit: false` when out, nothing (lit) as authored.
   wall.bracket = lantern ? { side, torch: false, lantern: true } : { side, torch };
+  if (torch && !lantern && lit === false) Object.assign(wall.bracket, { lit: false, wear: 0 }); // an unlit torch in it, burning from its first light (docs/43 section 4)
   const b = { tx, ty, edge, wall };
   bracketSet.add(b);
   return b;
+}
+
+// A bracket a player made, hung on the camera face of a wall (docs/43 section 4; src/setdown.js): empty, `made`, so it is theirs to take down
+// again. Touches the wall's chunk, so a guest's replica gets it and rebuilds its bracket list (net.js).
+export function hangBracket(tx, ty, edge) {
+  const wall = peekTile(tx, ty) && peekTile(tx, ty)[edge];
+  if (!wall || wall.bracket) return null;
+  wall.bracket = { side: 1, torch: false, made: true };
+  const b = { tx, ty, edge, wall };
+  bracketSet.add(b);
+  touch(tx, ty);
+  return b;
+}
+
+// A bracket taken off its wall (an empty one a player made). Touches the wall's chunk.
+export function removeBracket(b) {
+  if (!b || !b.wall || !b.wall.bracket) return false;
+  delete b.wall.bracket;
+  for (const q of [...bracketSet]) if (q.wall === b.wall) bracketSet.delete(q);
+  touch(b.tx, b.ty);
+  return true;
 }
 
 // Where a bracket's torch burns, in grid space: a little off the edge on its side.
@@ -297,6 +319,10 @@ export function setLantern(b, lit) {
   emit(lit ? "fireLit" : "firePutOut", { tile: [b.tx, b.ty] });
   return true;
 }
+
+// A fire's name in a player's words: a lantern post is a lantern, the pumpkin prop a jack-o'-lantern, else its sprite's words.
+const FIRE_NAMES = { lantern_post: "lantern", pumpkin: "jack-o'-lantern" };
+export const fireName = (prop) => FIRE_NAMES[prop.sprite] || prop.sprite.replace(/_/g, " ");
 
 // A prop's fire on or off with nothing spent: a switch (a fireplace, a hearth, a lantern post) either way; any burner or a post's torch
 // put out (a campfire keeps the fuel left). Touches its chunk. Returns whether it changed.
@@ -2052,7 +2078,7 @@ function propBase(def, offset = [0, 0]) {
       switch: !!f.switch, // a home light (a fireplace, a hearth, a lantern): on and off, no fuel, lit with a flame (docs/43, section 3)
       holds, // "torch": a post, lit while it holds one
       has,
-      lit: holds ? has : def.lit ?? f.lit ?? !f.burns,
+      lit: holds ? has && def.lit !== false : def.lit ?? f.lit ?? !f.burns, // a post may be authored holding an unlit torch (docs/43 section 4)
       // The units in it now: the map's number, else none. The definition's `fire.fuel` names the item it burns (below),
       // and was read here as the count until 2026-10-15: an authored burner with no number of its own held the word
       // "log", and feeding it made the fuel not a number, a fire that never went out and marked its chunk every step
@@ -2260,10 +2286,10 @@ export function loadMap(json, options = {}) {
     for (const br of b.brackets || []) {
       const inSide = br.side === "n" || br.side === "w" ? 1 : -1;
       const side = br.facing === "out" ? -inSide : inSide;
-      if (br.side === "n") pendingBrackets.push([bx + br.at, by, "n", side, !!br.torch, !!br.lantern]);
-      else if (br.side === "s") pendingBrackets.push([bx + br.at, by + bh, "n", side, !!br.torch, !!br.lantern]);
-      else if (br.side === "w") pendingBrackets.push([bx, by + br.at, "w", side, !!br.torch, !!br.lantern]);
-      else if (br.side === "e") pendingBrackets.push([bx + bw, by + br.at, "w", side, !!br.torch, !!br.lantern]);
+      if (br.side === "n") pendingBrackets.push([bx + br.at, by, "n", side, !!br.torch, !!br.lantern, br.lit !== false]);
+      else if (br.side === "s") pendingBrackets.push([bx + br.at, by + bh, "n", side, !!br.torch, !!br.lantern, br.lit !== false]);
+      else if (br.side === "w") pendingBrackets.push([bx, by + br.at, "w", side, !!br.torch, !!br.lantern, br.lit !== false]);
+      else if (br.side === "e") pendingBrackets.push([bx + bw, by + br.at, "w", side, !!br.torch, !!br.lantern, br.lit !== false]);
     }
   }
   const baseFloor = json.floor || "floor_grass";
@@ -2338,7 +2364,7 @@ export function loadMap(json, options = {}) {
   // The brackets last: placing one grows its chunk, and a chunk grown before the forage pass took a blank
   // tile wherever nothing was authored, so the forage's mushroom landed on an authored tile that chunk never
   // saw (fifteen ghosts in the registry, found by the sync check, 2026-10-13).
-  for (const [tx, ty, edge, side, torch, lantern] of pendingBrackets) addBracket(tx, ty, edge, side, torch, lantern);
+  for (const [tx, ty, edge, side, torch, lantern, lit] of pendingBrackets) addBracket(tx, ty, edge, side, torch, lantern, lit);
   // A crop's rows follow the furrows of the soil it stands in (docs/17), unless
   // the map gave it a facing; the floors are all laid by now.
   for (const prop of props) {

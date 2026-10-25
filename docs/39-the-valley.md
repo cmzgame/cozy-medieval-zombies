@@ -109,7 +109,7 @@
 - **Snares** (Beastlore 3) [to build].
 - **The feast's table:** any table, the feast laid on it (Cooking 10) [to build].
 - **A campfire** (ruled 2026-10-25, `43` section 3) [built]: built from the palette, three stone and two logs, outdoors; six logs of three hours; picked up only out and empty, as a Campfire item (5 by 5).
-- **Wall brackets** (ruled 2026-10-25, `43` section 4) [to build]: made at the anvil (an iron bar, Blacksmithing 1), hung like a painting; the valley's four start holding an unlit torch.
+- **Wall brackets** (ruled 2026-10-25, `43` section 4) [built]: made at the anvil (an iron bar, Blacksmithing 1), hung like a painting; the valley's four start holding an unlit torch.
 - **The Bloodbark Shrine** (Bloodbark from the Crimson Abbey, Woodcutting 10): a name only.
 
 ### Props, and what each does
@@ -117,22 +117,22 @@
 - **Bed** [built]: sleep (indoors); carried; made at the workbench.
 - **Chest** [built]: a container; carried; made at the workbench.
 - **Shelf, cupboard, desk, bookcase, strongbox, counter, coffin, haystack, woodpile, cart, stall** [built]: containers, each kind with its own loot table (2026-10-24, #268): shelf and cupboard the pantry, woodpile its wood, cart and stall the market, bookcase and desk nothing until books, strongbox nothing until gems and trinkets, coffin grave goods, counter the inn's, haystack a stick; the shelf is made [change: the cupboard, desk, bookcase, counter at Crafting 1, the cart and stall at Crafting 5, the strongbox at the anvil (Blacksmithing 3); the coffin, haystack, and woodpile stay one of a kind (2026-10-25, `43` section 5)].
-- **Barrel** [built]: a container (one or two apples or a waterskin, empty half the time; #268); carried [change: made at the workbench, four planks and an iron bar, Crafting 3 (2026-10-25, `43`)].
+- **Barrel** [built]: a container (one or two apples or a waterskin, empty half the time; #268); carried; made at the workbench, four planks and an iron bar, Crafting 3 (2026-10-25, `43`); its keeping food longer waits for rot.
 - **Wheelbarrow** [built]: a big empty container, carried like a barrel; made at the workbench.
 - **Stone stack, ore cart, charcoal sack** [built]: containers that hold their material.
 - **The Developer Chest** [built]: section 15.
-- **Table, chair, bench, pew, lectern** [built]: furniture, carried; table and bench made [change: the chair at the workbench, Crafting 1; the pew and the lectern stay the chapel's (2026-10-25, `43`)]. Sitting [to build] (`docs/32`'s pose).
+- **Table, chair, bench, pew, lectern** [built]: furniture, carried; table, bench, and chair made at the workbench, Crafting 1; the pew and the lectern stay the chapel's (2026-10-25, `43`). Sitting [to build] (`docs/32`'s pose).
 - **Well** [built]: drink, fill skins and buckets; its winch; rooted.
 - **Trough** [built]: drink and fill, as the well; tainted, as every fixed source (2026-10-25, `44`).
 - **Font** [built]: fill a bucket; tainted, as every fixed source (2026-10-25, `44`).
 - **Altar** [built]: decoration [change: pray for mana and stamina, Faith 1; it also removes bleeds at Faith 4 and restores health at Faith 6].
 - **Fireplace** [built]: lights its room, cooks; not carried; not made [change: a switch, on and off, no fuel (2026-10-25, `43` section 2)].
-- **Hearth** [built in the data]: as the fireplace [change: built from the palette, six stone, against a wall indoors; a switch, no fuel (`43`)].
+- **Hearth** [built]: as the fireplace; built from the palette, six stone, against a wall indoors; a switch, no fuel (`43`).
 - **Campfire** [built in the data]: a fire (logs) that cooks [change: built, placed at the woodcutters' camp and the charcoal burners (`43` section 2)].
 - **Oven, forge, anvil, loom, workbench, millstones, charcoal clamp, dye vat:** stations, section 3.
 - **Lantern post** [built]: lights a held torch [change: put out and lit again, a switch (2026-10-25, overturning never out)].
-- **Torch post and wall bracket** [built in the data]: hold a torch [change: the post made at the workbench (Crafting 1), a few along the square and the road; the bracket as above (`43` section 4)].
-- **Jack-o'-lantern** [built in the data] [change: carved from a pumpkin with a dirk at the workbench (Crafting 1), a small light that is a switch as the home lights are; a pumpkin may be placed as decoration, one way, and the square map's plain pumpkin props become that decoration (`43` section 4)].
+- **Torch post and wall bracket** [built]: hold a torch; the post made at the workbench (Crafting 1) and set down outdoors, five by the square and along the high street holding unlit torches; the bracket as above (`43` section 4).
+- **Jack-o'-lantern** [built]: carved from a pumpkin with a dirk at the workbench (Crafting 1), a small light that is a switch as the home lights are; a pumpkin may be placed as decoration, one way, and the square map's plain pumpkin props are that decoration (`43` section 4).
 - **Stump** [built]: left by a felled tree; a hatchet chops it for a log and clears the tile [change: uprooting with a shovel at Woodcutting 4].
 - **Ore rock, rock, apple tree, trees, crops, mushrooms:** section 4.
 - **Beehives and chicken coops** [built, #333]: the drawn beehive (a straw skep on a stand; interactable, outlined, sways on a click; Take honey every few game days, #410) at the manor's garden (three), your cottage's garden (two), and east of Hollow Farm's lane (three); the drawn chicken coop (two tiles, along y or mirrored along x, a container with a placeholder table, `coop`: rags, sticks, a little grain; no egg item yet) in your cottage's yard and Hollow Farm's. The coop's door frames and the hive's bee frames are spare until a click animation can play on them.

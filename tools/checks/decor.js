@@ -4,6 +4,8 @@
 // block a step, furniture may stand on it or be set down over it, it is drawn before everything that stands (the scene's order), and two rugs never overlap nor one lie across a wall;
 // Pick up gives back the item and is refused while furniture stands on it ("Move the chest off it first."); it survives a save and restore; a guest's Place and Pick up are the
 // commands the host runs (`performPlacement`, `performByLabel`); the Developer Chest holds both rugs. On a guest, run after the host has laid a rug: the replica has it, walkable.
+// Set down and picked up again (docs/43 section 4; src/setdown.js): a pumpkin placed as decoration is a decoration, not interactable, and
+// comes back a Decorative pumpkin, not food; a torch post is set down outdoors only, comes up only empty and only a player's own.
 // The bag, the map, and the player are put back.
 
 export async function run(game) {
@@ -248,6 +250,68 @@ export async function run(game) {
     const n1 = bag.items.length;
     row("Pick up of the first rug gives the bearskin back", rugs.pickUp(me, map.peekTile(x, y).rug) === true && !map.peekTile(x, y).rug && bag.items.length === n1 + 1, "back in the bag");
     made.splice(0, made.length, map.peekTile(x + 2, y + 4).rug);
+    // ---- Set down and picked up again (docs/43 section 4), by the guest's command (performPlacement) and the menus' labels.
+    {
+      const setdown = await import("/src/setdown.js");
+      let spot = null;
+      for (let r = 2; r < 20 && !spot; r++) for (let dy = -r; dy <= r && !spot; dy++) for (let dx = -r; dx <= r && !spot; dx++) {
+        const x = Math.round(meAt[0]) + dx, y = Math.round(meAt[1]) + dy;
+        if (!setdown.standProblem("outdoors", x, y) && !setdown.standProblem("outdoors", x + 1, y) && map.isWalkableTile(x, y + 1) && !map.peekTile(x, y + 1).prop) spot = [x, y];
+      }
+      if (!spot) row("an open tile outdoors for the set-down rows", false, "none");
+      else {
+        const [sx, sy] = spot;
+        G.teleport(sx, sy + 1);
+        G.loop.advance(1 / 60);
+        const labels = (prop) => G.interact.actionsForProp(prop, me).map((a) => a.label);
+        const pumpkin = G.items.makeEntry("pumpkin", 1);
+        G.inventory.stow(me, pumpkin);
+        const menu = G.interact.itemMenu(me, pumpkin, bag, null).map((m) => m.label);
+        placement.performPlacement(me, { kind: "setdown", uid: pumpkin.uid, tx: sx, ty: sy });
+        const deco = map.peekTile(sx, sy).prop;
+        if (deco) extra.push(deco);
+        row("a pumpkin's menu has Place as decoration, and set down it is a decoration: not interactable, not made, the pumpkin gone from the bag", menu.includes("Place as decoration (it will not be food again)") && !!deco && deco.sprite === "pumpkin_plain_0" && G.assets.getDef(deco.sprite).interactable === false && !deco.made && !bag.items.includes(pumpkin), `${menu.join(", ")}; ${deco ? deco.sprite : "nothing"}`);
+        const up = deco ? G.interact.actionsForProp(deco, me).find((a) => a.label === "Pick up decorative pumpkin") : null;
+        const upOk = up ? up.perform() : null;
+        const back = bag.items.find((e) => e.id === "decorative_pumpkin");
+        const bdef = G.items.getItem("decorative_pumpkin");
+        row("picked up it is a Decorative pumpkin: decor, not food (one way)", upOk === true && !!back && bdef.kind === "decor" && !bdef.hunger && !(bdef.tags || []).includes("food") && !map.propById(deco.id), `${deco ? labels(deco).join(", ") : ""}; ${back ? back.id : "none"}`);
+        const card = info.textOf(info.cardFor(G.items.makeEntry("pumpkin", 1)));
+        row("the pumpkin's card says Place as decoration, and that it comes back a decoration", card.some((l) => /^Place as decoration: .*not food/.test(l)), card.join(" | "));
+        // The torch post: outdoors only, a player's own, empty to come up.
+        const post = G.items.makeEntry("torch_post", 1);
+        G.inventory.stow(me, post);
+        const room = [...map.allProps()].find((q) => q.sprite === "bed");
+        const indoor = room ? map.nearestWalkable(room.tile[0], room.tile[1] + 1, (x, y) => !!map.tileAt(x, y).prop) : null;
+        let refused = "";
+        if (indoor) {
+          G.teleport(indoor[0], indoor[1] + 0.2);
+          G.loop.advance(1 / 60);
+          placement.performPlacement(me, { kind: "setdown", uid: post.uid, tx: indoor[0], ty: indoor[1] });
+          refused = (document.getElementById("message") || {}).textContent || "";
+        }
+        G.teleport(sx, sy + 1);
+        G.loop.advance(1 / 60);
+        placement.performPlacement(me, { kind: "setdown", uid: post.uid, tx: sx + 1, ty: sy });
+        const mine = map.peekTile(sx + 1, sy).prop;
+        if (mine) extra.push(mine);
+        row("a torch post sets down outdoors only, a player's own, empty", /Outdoors only/.test(refused) && !!mine && mine.sprite === "torch_post" && mine.made === true && !mine.fire.has, `indoors: "${refused}"; ${mine ? `made ${mine.made}, has ${mine.fire.has}` : "nothing"}`);
+        if (mine) {
+          const torch = G.items.makeEntry("torch", 1);
+          G.inventory.stow(me, torch);
+          const mount = G.interact.actionsForProp(mine, me).find((a) => a.label === "Mount the torch");
+          if (mount) mount.perform();
+          const held = labels(mine);
+          const take = G.interact.actionsForProp(mine, me).find((a) => a.label === "Take the torch");
+          if (take) take.perform();
+          const pick = G.interact.actionsForProp(mine, me).find((a) => a.label === "Pick up torch post");
+          const picked = pick ? pick.perform() : null;
+          row("with a torch on it Pick up is greyed until the torch is taken; then it comes up as the Torch post item", held.includes("Pick up torch post (take the torch first)") && picked === true && !map.propById(mine.id) && bag.items.some((e) => e.id === "torch_post"), `${held.join(", ")}; picked ${picked}`);
+        }
+        const village = [...map.allProps()].find((q) => q.sprite === "torch_post" && !q.made);
+        row("the village's own torch post is not picked up", !!village && G.interact.actionsForProp(village, me).some((a) => a.label === "Pick up torch post (that is the village's)" && a.enabled === false), village ? labels(village).join(", ") : "no village post");
+      }
+    }
   } catch (e) {
     if (!e.guestDone) rows.push({ check: "setup", result: "FAIL", detail: e.message + (e.stack ? " " + e.stack.split("\n")[1] : "") });
   } finally {

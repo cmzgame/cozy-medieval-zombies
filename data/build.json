@@ -119,6 +119,18 @@
     },
     "fuel": "log",
     "seconds": 4,
-    "note": "docs/43 section 3 (Michael, 2026-10-25): built on open ground outdoors only, no skill and no tool; its two logs are its starting fuel, not materials (Take apart gives back half its stones)"
+    "note": "docs/43 section 3 (Michael, 2026-10-25): built on open ground outdoors only, no skill and no tool; its two logs are its starting fuel, not materials (Take apart gives back half its stones)",
+    "stand": "outdoors"
+  },
+  "hearth": {
+    "label": "Hearth",
+    "kind": "prop",
+    "sprite": "hearth",
+    "stand": "wall",
+    "cost": {
+      "stone": 6
+    },
+    "seconds": 8,
+    "note": "docs/43 section 4 (step 3): built inside a room, against a wall; a switch (section 3), out when built; no tool (the builder's default, as the campfire's)"
   }
 }
