@@ -118,7 +118,9 @@
       "fish": ["fishing", "caught"],
       "pick": ["farming", "picked"],
       "harvest": ["farming", "harvested"],
-      "honey": ["beastlore", "taken"]
+      "honey": ["beastlore", "taken"],
+      "gather": ["herbalism", "gathered"],
+      "dig": ["mining", "dug"]
     }
   },
   "feel": {

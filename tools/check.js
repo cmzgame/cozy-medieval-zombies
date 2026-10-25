@@ -1372,6 +1372,172 @@ check("bees: three to six drawn bees (stripes dark, gold, dark, a head, wings fo
   return `${[...counts].sort().join(", ")} bees by hive, none from dusk to dawn; six and wider when stirred, for ${beesMod.BEES.stirSeconds} s of the clock`;
 });
 
+// Herbs, clay, and salt (docs/46 step 2, #448): each herb kind placed to its count on its ground (the mana herb by water, nightshade and
+// wolfsbane by trees, the graveyard's inside its wall), clay banks by the river, salt rocks in the ore area; gathered by the verb and by the
+// menu's label a guest sends (the herb to the bag, the node gone, a debt), a mushroom foraged, the graveyard's only at night, clay dug only
+// with a shovel carried, salt mined with a pickaxe; a full bag drops it at the feet; past their days each comes back elsewhere in its area,
+// the graveyard's only at night and salt rising; the cards say the name, the kind, and no use that is not built; the dev art is outlined
+// all the way round and fits its icon. (The pictures on the page, every card read over the bag, and two tabs are `check("herbs")`'s.)
+const gatherArt = await import("../src/gather-art.js");
+await import("../src/gather.js");
+check("herbs, clay, and salt: placed to their counts on their ground, gathered by the verb and a guest's label, the night and the tool, the comeback, the cards, the art", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  const bag = inventoryMod.bagOf(me);
+  const HERBS = ["sage", "nettle", "feverfew", "yarrow", "woad", "madder", "weld", "mana_herb", "nightshade", "wolfsbane", "grave_moss"];
+  const kinds = Object.fromEntries([...HERBS, "clay", "salt", "mushrooms"].map((n) => [n, mapMod.resourceKind(n)]));
+  for (const [n, k] of Object.entries(kinds)) assert(k, `no resource kind ${n}`);
+  const nodesOf = (k) => mapMod.allProps().filter((p) => k.sprites[p.sprite] !== undefined && mapMod.inResourceArea(k, p.tile[0], p.tile[1]));
+  // The counts: 120 herbs, split by kind, each its lever; clay 8; salt 4.
+  const herbTotal = HERBS.reduce((s, n) => s + kinds[n].count, 0);
+  assert(herbTotal === 120, `the herbs' levers add to ${herbTotal}, not 120`);
+  for (const n of [...HERBS, "clay", "salt"]) assert(mapMod.resourceCensus(kinds[n]) === kinds[n].count, `${n}: ${mapMod.resourceCensus(kinds[n])} standing, lever ${kinds[n].count}`);
+  assert(kinds.clay.count === 8 && kinds.salt.count === 4, `clay ${kinds.clay.count}, salt ${kinds.salt.count}`);
+  // Their ground.
+  const treeNear = (x, y, r) => { for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) { const t = mapMod.tileAt(x + dx, y + dy); if ((dx || dy) && t.prop && getDef(t.prop.sprite).canopy) return true; } return false; };
+  for (const p of nodesOf(kinds.mana_herb)) assert(mapMod.waterNear(p.tile[0], p.tile[1], 2), `a mana herb at ${p.tile} is not by water`);
+  for (const p of nodesOf(kinds.clay)) assert(mapMod.waterNear(p.tile[0], p.tile[1], 2, "river"), `a clay bank at ${p.tile} is not by the river`);
+  for (const n of ["nightshade", "wolfsbane"]) for (const p of nodesOf(kinds[n])) { mapMod.ensureAround(p.tile[0], p.tile[1], 1); assert(treeNear(p.tile[0], p.tile[1], 2), `${n} at ${p.tile} has no tree near`); }
+  const gy = json.resources.grave_moss.rects[0];
+  for (const p of nodesOf(kinds.grave_moss)) assert(p.tile[0] >= gy[0] && p.tile[1] >= gy[1] && p.tile[0] < gy[0] + gy[2] && p.tile[1] < gy[1] + gy[3], `grave moss at ${p.tile} outside the graveyard`);
+  const fence = json.features.find((f) => f.kind === "fence" && f.rect[0] === gy[0] && f.rect[1] === gy[1]);
+  assert(fence && kinds.grave_moss.own && kinds.grave_moss.night, "the graveyard's herbs are not its own place's, or not night's");
+  for (const p of nodesOf(kinds.salt)) assert(mapMod.inResourceArea(mapMod.resourceKind("ore"), p.tile[0], p.tile[1]), `a salt rock at ${p.tile} outside the ore area`);
+  // Every node: a gatherable, the herbs and mushrooms walked through, the clay bank and salt rock solid.
+  for (const n of [...HERBS, "clay", "salt"]) {
+    const p = nodesOf(kinds[n])[0];
+    const solid = n === "clay" || n === "salt";
+    assert(p.interactable && p.solid === solid, `${n}: interactable ${p.interactable}, solid ${p.solid}`);
+  }
+  // The sway (the gatherables law): a body walking through an herb stamps its sway, as through a crop; through a clay bank, solid, it does not.
+  {
+    const herb = nodesOf(kinds.weld)[0];
+    const bank0 = nodesOf(kinds.clay)[0];
+    for (const p of [herb, bank0]) { mapMod.ensureAround(p.tile[0], p.tile[1], 0); p.pokedAt = undefined; }
+    const walker = { gx: herb.tile[0], gy: herb.tile[1] };
+    interactMod.brushThrough(walker);
+    const walker2 = { gx: bank0.tile[0], gy: bank0.tile[1] };
+    interactMod.brushThrough(walker2);
+    assert(Number.isFinite(herb.pokedAt) && bank0.pokedAt === undefined, `walked through: the weld's pokedAt ${herb.pokedAt}, the clay bank's ${bank0.pokedAt}`);
+    herb.pokedAt = undefined;
+  }
+  // Gathering: stand by a node, the verb by its id.
+  const finish = () => { for (let i = 0; i < 600 && me.action; i++) interactMod.updateAction(me, 0.1); };
+  const standBy = (p) => { mapMod.ensureAround(p.tile[0], p.tile[1], 1); me.gx = p.tile[0] + 0.9; me.gy = p.tile[1] + 0.3; me.moving = false; };
+  const count = (id) => bag.items.filter((e) => e.id === id).reduce((s, e) => s + e.count, 0);
+  for (const e of [...bag.items]) if (!["waterskin"].includes(e.id)) inventoryMod.detach(me, e);
+  clock.setHour(12);
+  const sage = nodesOf(kinds.sage)[0];
+  standBy(sage);
+  const o0 = resourcesMod.owed("sage").length;
+  const g1 = verbsMod.run("gather", S, me, { prop: sage.id });
+  assert(g1.ok && g1.gathered === 1 && count("sage") === 1 && !mapMod.propById(sage.id) && resourcesMod.owed("sage").length === o0 + 1, `gather sage: ${JSON.stringify(g1)}, ${count("sage")} in the bag, owed ${resourcesMod.owed("sage").length}`);
+  assert(mapMod.resourceCensus(kinds.sage) === kinds.sage.count - 1, "the sage count did not fall by one");
+  // A guest's way: the menu's label on the node's address, run as the host runs it (net.js `act`), the bar of its seconds, then the verb.
+  const labels = (p) => interactMod.actionsForTarget({ kind: "prop", id: p.id }, me).map((a) => `${a.label}${a.enabled === false ? " [off]" : ""}`);
+  const nettle = nodesOf(kinds.nettle)[0];
+  standBy(nettle);
+  assert(labels(nettle).includes("Gather nettle"), `the nettle's menu: ${labels(nettle).join(", ")}`);
+  interactMod.performByLabel(me, { kind: "prop", id: nettle.id }, "Gather nettle");
+  assert(me.action && me.action.action.duration === getDef(nettle.sprite).gather.seconds, "the label did not start the gathering's bar");
+  finish();
+  assert(count("nettle") === 1 && !mapMod.propById(nettle.id) && resourcesMod.owed("nettle").length === 1, "the label's bar did not gather the nettle");
+  // A mushroom foraged by its label (Herbalism 3): the mushroom to the bag, a debt on the mushrooms' record.
+  const shroom = nodesOf(kinds.mushrooms)[0];
+  standBy(shroom);
+  interactMod.performByLabel(me, { kind: "prop", id: shroom.id }, "Forage mushroom");
+  finish();
+  assert(count("mushroom") === 1 && !mapMod.propById(shroom.id) && resourcesMod.owed("mushrooms").length === 1, `forage: ${count("mushroom")} mushrooms, owed ${resourcesMod.owed("mushrooms").length}; menu ${labels(shroom).join(", ")}`);
+  // The graveyard's: by day refused and greyed, at night gathered.
+  const moss = nodesOf(kinds.grave_moss)[0];
+  standBy(moss);
+  const day = verbsMod.run("gather", S, me, { prop: moss.id });
+  assert(!day.ok && /only at night/.test(day.reason) && labels(moss).includes("Gather grave moss (only at night) [off]") && mapMod.propById(moss.id), `by day: ${JSON.stringify(day)}; menu ${labels(moss).join(", ")}`);
+  clock.setHour(1);
+  assert(labels(moss).includes("Gather grave moss"), `at night the menu: ${labels(moss).join(", ")}`);
+  const night = verbsMod.run("gather", S, me, { prop: moss.id });
+  assert(night.ok && count("grave_moss") === 1 && resourcesMod.owed("grave_moss").length === 1, `at night: ${JSON.stringify(night)}`);
+  clock.setHour(12);
+  // Clay: no shovel, refused and greyed; a shovel in the bag (carried, the tool rule), dug for two.
+  const bank = nodesOf(kinds.clay)[0];
+  standBy(bank);
+  const noTool = verbsMod.run("dig", S, me, { prop: bank.id });
+  assert(!noTool.ok && noTool.reason === "You need a shovel." && labels(bank).includes("Dig clay (need a shovel) [off]"), `no shovel: ${JSON.stringify(noTool)}; menu ${labels(bank).join(", ")}`);
+  inventoryMod.stow(me, itemsMod.makeEntry("shovel", 1));
+  interactMod.performByLabel(me, { kind: "prop", id: bank.id }, "Dig clay");
+  finish();
+  assert(count("clay") === 2 && !mapMod.propById(bank.id) && resourcesMod.owed("clay").length === 1, `dig: ${count("clay")} clay, owed ${resourcesMod.owed("clay").length}`);
+  // Salt: mined with a pickaxe in hand (mining.js), two salt, a debt.
+  const salt = nodesOf(kinds.salt)[0];
+  standBy(salt);
+  assert(!verbsMod.run("mine", S, me, { prop: salt.id }).ok, "salt mined with no pickaxe");
+  me.hands.main = itemsMod.makeEntry("pickaxe", 1);
+  const ms = verbsMod.run("mine", S, me, { prop: salt.id });
+  me.hands.main = null;
+  assert(ms.ok && count("salt") === 2 && resourcesMod.owed("salt").length === 1, `mine salt: ${JSON.stringify(ms)}`);
+  // A full bag: the herb falls at the feet.
+  const yarrow = nodesOf(kinds.yarrow)[0];
+  standBy(yarrow);
+  const fillers = [];
+  for (let i = 0; i < 200; i++) { const e = itemsMod.makeEntry("stone", 1); if (!inventoryMod.addItem(bag, "stone", 1)) break; fillers.push(e); }
+  const g2 = verbsMod.run("gather", S, me, { prop: yarrow.id });
+  const feet = mapMod.itemsAt(Math.round(me.gx), Math.round(me.gy));
+  assert(g2.ok && count("yarrow") === 0 && feet.some((e) => e.id === "yarrow") && /at your feet/.test(g2.message), `a full bag: ${JSON.stringify(g2)}, at the feet ${feet.map((e) => e.id)}`);
+  for (const e of [...bag.items]) if (e.id === "stone") inventoryMod.detach(me, e);
+  // The comeback: past the days, by day the graveyard's waits and the rest grow elsewhere in their areas; then at night it grows.
+  const ids = new Set(mapMod.allProps().map((p) => p.id));
+  const taken = { sage: sage.tile, nettle: nettle.tile, grave_moss: moss.tile, clay: bank.tile, salt: salt.tile, yarrow: yarrow.tile };
+  const due = Math.max(...Object.keys(taken).map((n) => Math.max(...resourcesMod.owed(n).map((d) => d.due))));
+  clock.setElapsed(Math.ceil(due / clock.DAY_LENGTH) * clock.DAY_LENGTH + clock.DAY_LENGTH * (12 / 24)); // noon of the day after the last falls due
+  let looks = 0;
+  const others = Object.keys(taken).filter((n) => n !== "grave_moss");
+  // A look an hour of the clock; past 20:00 the clock goes on to the next noon, so the looks stay in the day and the graveyard's cannot grow by chance.
+  const dayLook = () => { gameMod.begin(0); clock.setElapsed(clock.getElapsed() + RESOURCES.checkSeconds); if (clock.getHour() >= 20 || clock.getHour() < 8) clock.setElapsed(Math.ceil(clock.getElapsed() / clock.DAY_LENGTH) * clock.DAY_LENGTH + clock.DAY_LENGTH / 2); };
+  for (; looks < 12 && others.some((n) => resourcesMod.owed(n).length); looks++) { dayLook(); assert(clock.getPhase() === "day", `a daytime look at ${clock.getHour().toFixed(1)}`); }
+  assert(!others.some((n) => resourcesMod.owed(n).length), `by day after ${looks} looks still owed: ${others.filter((n) => resourcesMod.owed(n).length).join(", ")}`);
+  assert(resourcesMod.owed("grave_moss").length === 1, "the graveyard's came back by day");
+  const back = (n) => mapMod.allProps().find((p) => !ids.has(p.id) && kinds[n].sprites[p.sprite] !== undefined && mapMod.inResourceArea(kinds[n], p.tile[0], p.tile[1]));
+  for (const n of others) {
+    const p = back(n);
+    assert(p && (p.tile[0] !== taken[n][0] || p.tile[1] !== taken[n][1]) && mapMod.resourceCensus(kinds[n]) === kinds[n].count, `${n} did not come back elsewhere in its area`);
+  }
+  assert(Number.isFinite(back("salt").risenAt) && back("sage").risenAt === undefined && mapMod.waterNear(back("clay").tile[0], back("clay").tile[1], 2, "river"), "salt does not rise, an herb rises, or the clay bank is not by the river");
+  clock.setHour(23.5);
+  for (let i = 0; i < 12 && resourcesMod.owed("grave_moss").length; i++) { gameMod.begin(0); clock.setElapsed(clock.getElapsed() + RESOURCES.checkSeconds); }
+  const mossBack = back("grave_moss");
+  assert(mossBack && clock.getPhase() === "night" && mapMod.resourceCensus(kinds.grave_moss) === kinds.grave_moss.count, "the graveyard's did not come back at night");
+  // What a guest gets: the herb in the player's record moves the players' sync part, the node gone moves the map's.
+  const parts0 = gameMod.syncParts();
+  const fever = nodesOf(kinds.feverfew)[0];
+  standBy(fever);
+  assert(verbsMod.run("gather", S, me, { prop: fever.id }).ok, "the feverfew was not gathered");
+  const parts1 = gameMod.syncParts();
+  assert(parts1.players !== parts0.players && parts1.map !== parts0.map, `a gather did not move the players' part (${parts1.players !== parts0.players}) or the map's (${parts1.map !== parts0.map})`);
+  // The cards: the full name, the kind, where it is gathered (read from its nodes and their kinds' `where`), and no use that is not built.
+  const SOURCE = { sage: "Grows wild in the valley; gathered by hand.", nettle: "Grows wild in the valley; gathered by hand.", feverfew: "Grows wild in the valley; gathered by hand.", yarrow: "Grows wild in the valley; gathered by hand.", woad: "Grows wild in the valley; gathered by hand.", madder: "Grows wild in the valley; gathered by hand.", weld: "Grows wild in the valley; gathered by hand.", mana_herb: "Grows wild near water; gathered by hand.", nightshade: "Grows wild near trees; gathered by hand.", wolfsbane: "Grows wild near trees; gathered by hand.", grave_moss: "Grows wild in the graveyard; gathered by hand, only at night.", mushroom: "Forage under trees.", clay: "Dug from the clay banks by the river, a shovel carried.", salt: "Mined from salt rocks at the iron workings, a pickaxe in hand." };
+  const KIND = { sage: "Herb", nettle: "Herb", feverfew: "Herb", yarrow: "Herb", mana_herb: "Herb", nightshade: "Herb", wolfsbane: "Herb", grave_moss: "Herb", woad: "Dye plant", madder: "Dye plant", weld: "Dye plant", mushroom: "Forage", clay: "Material", salt: "Material" };
+  for (const [id, kind] of Object.entries(KIND)) {
+    const c = itemInfoMod.cardFor(itemsMod.makeEntry(id));
+    const lines = c.lines.map((l) => l.map((g) => g.t).join(""));
+    assert(c.name === itemsMod.getItem(id).name && c.kind === kind && lines.length === 1 && lines[0] === SOURCE[id], `${id}'s card: ${itemInfoMod.textOf(c).join(" | ")}`);
+  }
+  assert(itemInfoMod.gatheredFrom(itemsMod.getItem("stone")).length === 0 && itemInfoMod.gatheredFrom(itemsMod.getItem("iron_ore")).length === 0, "stone or iron ore gained a source line (their kinds have no where)");
+  assert(itemsMod.getItem("mana_herb").name === "Mana herb" && itemsMod.getItem("grave_moss").name === "Grave moss", "the placeholder names moved");
+  // The art: every design outlined all the way round, its icon fitting 19 by 19, the herbs' icons their nodes' pictures.
+  const designs = itemsMod.allItems().filter((d) => d.icon && d.icon.placeholder).map((d) => [d.id, typeof d.icon.placeholder === "string" ? getDef(d.icon.placeholder).placeholder : d.icon.placeholder]);
+  for (const sid of ["clay_bank", "salt_rock", ...HERBS.map((n) => `herb_${n}`)]) designs.push([sid, getDef(sid).placeholder]);
+  for (const [id, d] of designs) {
+    const p = gatherArt.pixelsOf(d);
+    const at = new Map(p.px.map(([x, y, c]) => [`${x},${y}`, c]));
+    const open = p.px.filter(([x, y, c]) => c !== gatherArt.OUTLINE && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => !at.has(`${x + dx},${y + dy}`)));
+    assert(open.length === 0 && at.get(`${p.ax},${p.ay}`) && at.get(`${p.ax},${p.ay}`) !== gatherArt.OUTLINE, `${id}: ${open.length} pixels with no outline beside them, or no foot`);
+    if (itemsMod.hasItemDef(id)) assert(gatherArt.iconPixelsOf(d, [19, 19]).fits, `${id}'s icon does not fit 19 by 19 (${p.w} by ${p.h})`);
+  }
+  return `${HERBS.length} herb kinds, ${herbTotal} herbs, clay ${kinds.clay.count}, salt ${kinds.salt.count}; gathered by verb and label, foraged, the graveyard's at night only, clay with a shovel, salt with a pickaxe; back after ${looks} looks by day, the graveyard's at night; ${designs.length} designs outlined`;
+});
+
 // A repair place's one greyed line (docs/43 section 6; docs/bugs.md, fixed): with nothing worn carried it says what the place does; with
 // everything worn already at or above the place's ceiling for it, "nothing it can better". The menu is built as a guest's replica builds it.
 check("repairs: a grindstone or an anvil with nothing to better says so, not that nothing worn is carried", () => {
