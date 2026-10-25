@@ -54,6 +54,7 @@ One line per doc, with its kind (`CLAUDE.md`, "What a doc is"): a **rule** (bind
 - `43-dead-ends.md` — **spec.** The dead ends of the valley (#273): fires and lights, Pick up and Take apart, the made things, the village's stations behind a switch, repairs that run out, Burn corpse, the wave, the cowering, the dye vat; seven build steps.
 - `44-water.md` — **spec.** Water (#279): no fixed source clean, boiling by Use or either menu, a clean starting skin, the Sick debuff (the infection's third stage renamed Queasy); one build step.
 - `45-animals.md` — **spec.** Animals (#289): seven kinds, game mostly in the woods but free to roam, livestock from the farms, safe pens, generous feathers, raw meat in recipes, the companion last; five build steps.
+- `46-natural-resources.md` — **spec.** Natural resources (#288): one comeback rule (random spots within defined areas, a steady count) for ore, stone, clay, herbs, and mushrooms; rocks rising from the ground; trees from saplings; sticks under trees; three build steps.
 
 ## Records: `history/`
 
