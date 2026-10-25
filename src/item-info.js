@@ -173,8 +173,9 @@ export function cardFor(entry) {
   if (def.place && def.place !== "campfire") lines.push(line(seg("Place", "word"), def.stand === "natural" ? ": plant on open grass outdoors." : def.stand === "outdoors" ? ": set down outdoors." : ": set down on the floor."));
   // A sapling (docs/46 step 3): what it grows into and how long, from the tuning (trees.js).
   if (def.id === trees.sapling.item) {
-    // The tree it grows into: the one its entry carries (an apple tree's sapling, #461), else a tree (the round oak, the default).
-    const n = entry.tree && getDefSafe(entry.tree) ? getDefSafe(entry.tree).name : null;
+    // The tree it grows into: the one its entry carries (an apple tree's sapling, #461), else the default's (the round oak, "an oak").
+    const grows = entry.tree || trees.sapling.grows;
+    const n = getDefSafe(grows) ? getDefSafe(grows).name : null;
     lines.push(line(`Grows into ${n ? an(n) : "a tree"} in about ${trees.sapling.days} game days; it waits while anyone stands on it.`));
   }
   if (def.placeAs) lines.push(line(seg("Place as decoration", "word"), ": set down on the floor; picked up again, it is a decoration, not food."));

@@ -1740,7 +1740,7 @@ check("saplings and sticks: dropped at their chance, planted by the host and a g
   const labels = (p) => interactMod.actionsForTarget({ kind: "prop", id: p.id }, me).map((a) => `${a.label}${a.enabled === false ? " [off]" : ""}${a.local ? " [local]" : ""}`);
   const sl = labels(s2);
   assert(sl.includes("Inspect [local]") && sl.includes("Pick up sapling") && !sl.some((l) => /Take apart|Gather sticks/.test(l)), `the sapling's menu: ${sl.join(", ")}`);
-  assert(/a tree in about 5 days/.test(treesMod.report(s2)), treesMod.report(s2));
+  assert(/an oak in about 5 days/.test(treesMod.report(s2)), treesMod.report(s2));
   // Growing: the looks once a checkSeconds, the stages, then the oak. Nobody stands on the first; the player stands on the second.
   me.gx = s2.tile[0]; me.gy = s2.tile[1];
   const look = () => { gameMod.begin(0); clock.setElapsed(clock.getElapsed() + T.checkSeconds); };
@@ -1840,7 +1840,7 @@ check("saplings and sticks: dropped at their chance, planted by the host and a g
   assert(s3b && s3b.sapling && s3b.sapling.at === s3.sapling.at && s3b.sapling.waited === 77 && treeB && treeB.sticksAt === tree.sticksAt, `after the save: ${s3b && JSON.stringify(s3b.sapling)}, sticksAt ${treeB && treeB.sticksAt}`);
   // The cards.
   const card = (id) => itemInfoMod.textOf(itemInfoMod.cardFor(itemsMod.makeEntry(id, 1))).join(" | ");
-  assert(card("sapling") === "Sapling | Seedling | Place: plant on open grass outdoors. | Grows into a tree in about 5 game days; it waits while anyone stands on it. | Sometimes dropped by a felled tree (about 1 in 3). | Right-click for actions.", card("sapling"));
+  assert(card("sapling") === "Sapling | Seedling | Place: plant on open grass outdoors. | Grows into an oak in about 5 game days; it waits while anyone stands on it. | Sometimes dropped by a felled tree (about 1 in 3). | Right-click for actions.", card("sapling"));
   assert(card("stick").includes("Gathered under any standing tree, 1 to 2 a day from each tree."), card("stick"));
   return `${n1} saplings in 1000 fellings at ${chance0}; planted by the host and a guest's command; refused indoors, on a road, tilled soil, and against a wall; an oak after ${T.sapling.days} days, the one stood on after ${left.toFixed(2)} more; an apple tree's sapling an apple tree, kept through a pick-up, held back by a wall with its reason said; sticks ${got} once a day; the stamps saved; the cards`;
 });

@@ -36,7 +36,7 @@ export async function run(game, opts = {}) {
   const labelsOf = (p) => G.interact.actionsForTarget({ kind: "prop", id: p.id }, me).map((a) => `${a.label}${a.enabled === false ? " [off]" : ""}${a.local ? " [local]" : ""}`);
   const count = (id) => G.inventory.countAll(me, id);
   const message = () => ((document.getElementById("message") || {}).textContent || "").trim();
-  const SAPLING_CARD = "Sapling | Seedling | Place: plant on open grass outdoors. | Grows into a tree in about 5 game days; it waits while anyone stands on it. | Sometimes dropped by a felled tree (about 1 in 3). | Right-click for actions.";
+  const SAPLING_CARD = "Sapling | Seedling | Place: plant on open grass outdoors. | Grows into an oak in about 5 game days; it waits while anyone stands on it. | Sometimes dropped by a felled tree (about 1 in 3). | Right-click for actions.";
   const STICK_LINE = "Gathered under any standing tree, 1 to 2 a day from each tree.";
   let kept = null;
   const done = () => {
@@ -75,7 +75,7 @@ export async function run(game, opts = {}) {
       row("on the guest the host's sapling is there by its id, at the host's tile, with the host's growing stamp (its chunk)", !!s && s.sprite === k.sapling.sprite && s.tile[0] === k.sapling.tile[0] && s.tile[1] === k.sapling.tile[1] && !!s.sapling && s.sapling.at === k.sapling.at, s ? `${s.id} ${s.sprite} at ${s.tile}, ${JSON.stringify(s.sapling)}` : `no prop ${k.sapling.id}`);
       const sl = s ? labelsOf(s) : [];
       row("its menu on the replica: Inspect (this client's own) and Pick up sapling", sl.includes("Inspect [local]") && sl.includes("Pick up sapling"), sl.join(", "));
-      if (s) row("its Inspect line, read from the stamp and the clock here", /^A sapling: a tree in about \d days? of growing/.test(trees.report(s)), trees.report(s));
+      if (s) row("its Inspect line, read from the stamp and the clock here", /^A sapling: an oak in about \d days? of growing/.test(trees.report(s)), trees.report(s));
       const gone = map.propById(k.gathered.id);
       const gl = gone ? labelsOf(gone) : [];
       row("the tree the host gathered under is greyed on the replica, its day on the prop", !!gone && gone.sticksAt === k.gathered.sticksAt && gl.includes("Gather sticks (none until tomorrow) [off]"), gl.join(", ") || "no tree");
@@ -272,7 +272,7 @@ export async function run(game, opts = {}) {
     row("its chunk is marked for the wire and its saved copy dropped", !!ch && ch.dirty === true && ch.saved === null, ch ? `dirty ${ch.dirty}` : "no chunk");
     const sl = s1 ? labelsOf(s1) : [];
     row("its menu: Inspect (this client's own) and Pick up sapling; no Take apart, no sticks", sl.includes("Inspect [local]") && sl.includes("Pick up sapling") && !sl.some((l) => /Take apart|sticks/.test(l)), sl.join(", "));
-    row("its Inspect line says how long", /a tree in about 5 days of growing, which waits while anyone stands on it/.test(trees.report(s1)), trees.report(s1));
+    row("its Inspect line says how long", /an oak in about 5 days of growing, which waits while anyone stands on it/.test(trees.report(s1)), trees.report(s1));
 
     // ---- a guest's command, and the refusals ----
     const spot2 = openNear(open[0] + 4, open[1] + 4, (x, y) => Math.hypot(x - open[0], y - open[1]) > 3);
@@ -403,7 +403,7 @@ export async function run(game, opts = {}) {
     }
     (await import("/src/ui/hover-card.js")).hide();
     panel.setBagOpen(was.bag);
-    const sapOk = /^Sapling/.test(read.sapling) && read.sapling.includes("Place: plant on open grass outdoors.") && read.sapling.includes("Grows into a tree in about 5 game days") && read.sapling.includes("Sometimes dropped by a felled tree (about 1 in 3).");
+    const sapOk = /^Sapling/.test(read.sapling) && read.sapling.includes("Place: plant on open grass outdoors.") && read.sapling.includes("Grows into an oak in about 5 game days") && read.sapling.includes("Sometimes dropped by a felled tree (about 1 in 3).");
     row("over the bag the sapling's card says its name, its kind, Place, how long it grows, and where it comes from; the stick's where it is gathered", sapOk && read.stick.includes(STICK_LINE) && cardText("sapling") === SAPLING_CARD, `sapling: ${read.sapling} || stick: ${read.stick}`);
     bag.items.length = 0;
 
