@@ -1006,7 +1006,7 @@ function refreshFigureOf(p, force = false) {
   keys.quick = quick;
   figureKeys.set(p.id, keys);
   const mainDef = p.hands && p.hands.main ? items.getItem(p.hands.main.id) : null;
-  const extra = { altStyle: combat.altStyleOf(p), heldPose: (mainDef && mainDef.held && mainDef.held.pose) || null }; // docs/32, items 1 and 2
+  const extra = { altStyle: combat.altStyleOf(p), heldPose: (mainDef && mainDef.held && mainDef.held.pose) || null, offStyle: combat.offStyleOf(p) }; // docs/32, items 1 and 2; the off hand's swing (#423)
   const spec = figure.characterSpec(figure.characterInputs(p, undefined, painted, style, extra));
   const key = figure.specKey(spec);
   if (!force && key === keys.key) return;
