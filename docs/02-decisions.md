@@ -172,7 +172,8 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The character screen is the identity; the dead tones allowed; bald first; facial hair after 1.0 (the wizard's beard open, 2026-10-18, The valley first; food heals a little; teachers are safe; the wizard; the dead strike what they break); no body shapes (2026-10-13, The character screen is the identity)
 - The trees' tiers are remapped and drawn bigger, giants one in five; half the debris; a thinner forest (2026-10-11, The trees' tiers are remapped and drawn bigger; 2026-10-11, Half the debris; 2026-10-11, Fewer mushrooms, sticks under trees)
 - The one-handed swing is a high-to-fall slash, never behind the back; a pose has a wrist (2026-10-13, The one-handed swing is a high-to-fall slash; 2026-10-13, A swing has a wrist)
-- Better animations are poses as data on the final rig, not more frames; no dual-wield poses (2026-10-13, Better animations, scoped)
+- Better animations are poses as data on the final rig, not more frames; no dual-wield pose but the off hand's swing (2026-10-13, Better animations, scoped; 2026-10-25, The off hand's swing moves the off arm)
+- The off hand's swing moves the off arm: the main swing's pose mirrored, not a pose set of its own (2026-10-25, The off hand's swing moves the off arm)
 - Elbows on the rig, never knees, held straight until a pose uses them; no art redrawn (2026-10-15, Elbows on the rig, held straight)
 - A bow's limbs are upright on screen whatever way it points; a staff is held like a vertical pole (2026-10-14, The bow held upright, both hands on it; 2026-10-15, The bowstring to the chin and the cast's pose)
 
@@ -290,6 +291,12 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-25 — The off hand's swing moves the off arm (Michael's playtest; #423)
+
+Michael, playing: "For some reason the second arm still never moves during dual wielding, nor does it have a sound. Hopefully this is simple, the animation and sound are the same for each in theory." So the off hand's swing is the main hand's swing mirrored onto the other arm, the main arm holding what it holds; this overturns, in that one part, 2026-10-13's "no dual-wield poses at all" (Better animations, scoped), struck there. The rest of that ruling stands: no other dual-wield pose (a stance, a cross-guard). Built as `attack_off` on every player's sheet (`docs/21`, Dual wielding).
+
+Docs: 21, bugs.
 
 ### 2026-10-25 — Natural resources ruled: random spawns within defined areas, a steady count, rocks rising from the ground, no herb patches, trees from saplings (Michael; #288)
 
@@ -1369,7 +1376,7 @@ Michael on the first swing pass, in the frames editor: the behind-the-back part 
 
 ### 2026-10-13 — Better animations, scoped (Michael): poses the game lacks as data on the final rig, not more frames
 
-Michael, after the summary: the idle and the walk are at the fidelity he wants; more frames are not the point, only for the really complex ones; what is missing is simple new poses, with the combat ones first. **The list, as `docs/32-better-animations.md`**, in order: a reliable held-out pose (the book, a torch held to something, drinking and eating); the halberd's two distinct attacks (its thrust with its own style); the cast for the staff and the book on the bow's draw mechanics, the staff held high and the book held out; the braced draw as its own animation with the draw thresholds as data beside the bow's speeds (Michael: "even sicker if it was tunable"); the spear's throw checked by eye; arrows that land upright some of the time, a steep arc planting with a tunable chance on the sim's generator; sleep lying on the bed; sit on chairs, benches, and pews; a better death for every model, the one item that earns frames, with the atlas measured; a quick pass on the walk's numbers; and, at the end, the arrow and the spear redrawn as dev art (done with the spec: a two-tone shaft, a tapered head over a socket, swept fletching and a nock, a lashing and a broad stone point on the spear; the sheets check re-baselined for `arrow` and `spear`). **No dual-wield poses at all.** The spec is written for implementation by another model so it needs no further talk if the multiplayer work takes this session.
+Michael, after the summary: the idle and the walk are at the fidelity he wants; more frames are not the point, only for the really complex ones; what is missing is simple new poses, with the combat ones first. **The list, as `docs/32-better-animations.md`**, in order: a reliable held-out pose (the book, a torch held to something, drinking and eating); the halberd's two distinct attacks (its thrust with its own style); the cast for the staff and the book on the bow's draw mechanics, the staff held high and the book held out; the braced draw as its own animation with the draw thresholds as data beside the bow's speeds (Michael: "even sicker if it was tunable"); the spear's throw checked by eye; arrows that land upright some of the time, a steep arc planting with a tunable chance on the sim's generator; sleep lying on the bed; sit on chairs, benches, and pews; a better death for every model, the one item that earns frames, with the atlas measured; a quick pass on the walk's numbers; and, at the end, the arrow and the spear redrawn as dev art (done with the spec: a two-tone shaft, a tapered head over a socket, swept fletching and a nock, a lashing and a broad stone point on the spear; the sheets check re-baselined for `arrow` and `spear`). ~~**No dual-wield poses at all.**~~ (Overturned in part 2026-10-25, The off hand's swing moves the off arm: the off hand's swing is the main swing mirrored; no other dual-wield pose.) The spec is written for implementation by another model so it needs no further talk if the multiplayer work takes this session.
 
 ### 2026-10-13 — On the wire the world never pauses (Michael: "never pausing is right and simplest. It's what Zomboid does"; `31/03`, `31/07` question 6 answered)
 

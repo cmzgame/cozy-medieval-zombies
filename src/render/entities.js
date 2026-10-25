@@ -243,7 +243,10 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
         let hs = null;
         try { hs = getSheet(`held_${entry.id}`); } catch { continue; }
         const j = joints[slot];
-        const along = (e.anim.name === "attack" || e.anim.name === "attack_alt") && slot === "main" && def.held.swing !== false;
+        // In a swing the swinging hand's thing points along its forearm: the main hand's in `attack` and `attack_alt`, the off
+        // hand's in `attack_off` (#423); the other hand's is held at rest.
+        const swingHand = e.anim.name === "attack" || e.anim.name === "attack_alt" ? "main" : e.anim.name === "attack_off" ? "off" : null;
+        const along = slot === swingHand && def.held.swing !== false;
         const k = hs.byFacing ? (j.angFace ?? j.ang) : along ? j.angSwing : j.ang; // a bow is upright by the facing (held.js)
         held.push({ sheet: hs, k, x: x + j.x, y: y + j.y, near: j.near, tip: def.fire && (!def.fire.burnsDown || entry.lit) ? hs.tips[k] : null }); // the flame only on a lit torch
       }
