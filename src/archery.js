@@ -82,6 +82,13 @@ export function arrowsInFlight() {
   return replica ? replica.shown : flying;
 }
 
+// The flights loosed since the last take, down or not (net.js sends each one's launch, and its end with it if it came down in the step it was
+// loosed: a fireball cast point-blank bursts in its cast step, #250's review). Bounded, for a world nobody takes it from.
+const launched = [];
+export function takeLaunched() {
+  return launched.splice(0);
+}
+
 // Where a release would land, without flying anything: for the marker and the
 // scripts. `dir` is a grid direction (any length), `distance` the full-draw
 // distance (the cursor's, in tiles; capped at the range), `c` the draw.
@@ -141,6 +148,8 @@ export function shoot(from, dir, distance, c = 1, o = {}) {
     a.stopWhy = stop.why;
   }
   flying.push(a);
+  launched.push(a);
+  if (launched.length > 256) launched.shift();
   return a;
 }
 
@@ -419,7 +428,7 @@ export function endRecord(a) {
 }
 
 export function flightStore() {
-  return { byId: new Map(), shown: [], flares: [], stats: { go: 0, again: 0, end: 0 } };
+  return { byId: new Map(), shown: [], flares: [], clock: null, stats: { go: 0, again: 0, end: 0 } };
 }
 
 // A frame's flights (`news`: { go: [launch records], end: [end records] }) at the frame's host time `h`.
@@ -453,6 +462,9 @@ export function applyFlights(store, news, h) {
 export function stepFlights(store, R) {
   store.shown.length = 0;
   if (!finite(R)) return;
+  // Never backward: the draw clock pulled back toward late frames would step a flight back along its path. A clock gone back by seconds is a new world.
+  if (finite(store.clock) && R < store.clock && R > store.clock - 2) R = store.clock;
+  store.clock = R;
   for (const a of store.byId.values()) {
     const age = R - a.born;
     if (a.heardAge === undefined) a.heardAge = age; // its age in the drawn time on the first step it was known: above 0, its launch came late (check("arrows"))
@@ -494,7 +506,7 @@ export function stepReplica(R) {
 }
 // What reached this guest: launches, launches sent again (a join), ends; and what is flying and drawn now (check("arrows")).
 export function replicaStats() {
-  return replica ? { ...replica.stats, known: replica.byId.size, shown: replica.shown.length } : null;
+  return replica ? { ...replica.stats, known: replica.byId.size, shown: replica.shown.length, clock: replica.clock } : null;
 }
 
 // A spell in flight lights the ground under it (docs/24): a moving light, as a burning body is one. From the arrows in
@@ -700,6 +712,7 @@ export function generateSpear() {
 export function reset() {
   flying.length = 0;
   flares.length = 0;
+  launched.length = 0;
   replica = null;
 }
 

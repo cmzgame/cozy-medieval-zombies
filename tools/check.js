@@ -193,7 +193,8 @@ check("the save's version is 3 and a version-1 save is upgraded with the rules a
 // beside it, so no prop stands on either tile of a door (a chair just past a partition door once left a window the only
 // way in, and a window is never one). The generator (tools/mapgen/valley.py) keeps to it; this is the proof.
 const { bootData } = await import("../server/boot.js");
-await import("../src/net.js");
+const netMod = await import("../src/net.js");
+const loopMod = await import("../src/loop.js");
 const mapMod = await import("../src/map.js");
 const gameMod = await import("../src/game.js");
 const kitModule = await import("../src/kit.js");
@@ -493,6 +494,81 @@ check("net: a flight replayed from its launch record is the host's step for step
   assert(miss < b.speed * STEP * 1.5 && worst < 2, `a drifted flight ends ${miss.toFixed(3)} tiles from the host's point, its biggest step ${worst.toFixed(2)} of its own`);
   archeryMod.reset();
   return `the arrow on the host's path to ${arrow.err.toExponential(1)} tiles over ${arrow.shown} steps; the fireball burst at ${fire.a.t.toFixed(3)} s, its flare at the host's point; a 0.3-tile drift eased in, ${miss.toFixed(3)} off at the last step`;
+});
+// The host's half of #250 on the wire (the review): the frames themselves, built by hostAfterStep for a guest that never speaks (net.testHost).
+check("net: the frames carry each flight's launch once and its end once, and nothing when nothing flies; a fireball down in its cast step still goes, flare and all; a join sends what is in the air again", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  const STEP = 1 / 60;
+  const dir = [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, 1], [-1, -1], [1, -1]].find((d) => { archeryMod.reset(); const t = archeryMod.shoot(me, d, 14, 1); return t.stopD == null && t.s > 10; });
+  assert(!!dir, "no open ground round the spawn for 14 tiles");
+  archeryMod.reset();
+  const frames = [];
+  const host = netMod.testHost((m) => { if (m.type === "frame") frames.push(JSON.parse(JSON.stringify(m))); });
+  const z = S.zombies.find((q) => !q.dead);
+  const z0 = z ? [z.gx, z.gy, z.hp] : null;
+  try {
+    const step = (fn) => { loopMod.setSimTime(loopMod.simTime() + STEP); if (fn) fn(); archeryMod.update(STEP); netMod.hostAfterStep(); };
+    const goes = (id) => frames.flatMap((f) => (f.arrows && f.arrows.go) || []).filter((r) => r.id === id);
+    const ends = (id) => frames.flatMap((f) => (f.arrows && f.arrows.end) || []).filter((e) => e[0] === id);
+    for (let i = 0; i < 9; i++) step();
+    assert(frames.length >= 3 && frames.every((f) => !("arrows" in f) && !("flares" in f)), `with nothing in the air a frame still carries ${frames.find((f) => "arrows" in f || "flares" in f) ? "arrows or flares" : "nothing"}, ${frames.length} frames`);
+    // An arrow: its launch in the first frame after it is loosed, its end in the first after it lands, nothing between.
+    frames.length = 0;
+    let a = null;
+    step(() => { a = archeryMod.shoot(me, dir, 10, 1); });
+    for (let i = 0; i < 300 && !a.done; i++) step();
+    for (let i = 0; i < 3; i++) step();
+    const carrying = frames.filter((f) => f.arrows).length;
+    assert(goes(a.id).length === 1 && ends(a.id).length === 1 && carrying === 2, `the arrow: ${goes(a.id).length} launches, ${ends(a.id).length} ends, ${carrying} of ${frames.length} frames carrying flights`);
+    const bytes = frames.filter((f) => f.arrows).reduce((n, f) => n + JSON.stringify(f.arrows).length, 0);
+    // A fireball cast point-blank at one of the dead bursts in its cast step: its launch and its end in the same frame, and a guest makes its flare.
+    assert(!!z, "none of the dead in the valley");
+    const n = Math.hypot(dir[0], dir[1]);
+    z.gx = me.gx + (dir[0] / n) * 0.55;
+    z.gy = me.gy + (dir[1] / n) * 0.55;
+    frames.length = 0;
+    const spell = itemsMod.getItem("book_of_fire").book.spell;
+    let b = null;
+    step(() => { b = archeryMod.shoot(me, dir, 8, 1, { projectile: "fireball", speed: spell.speed, flat: true, vanish: true, z0: spell.z0, contact: spell.contact, landRadius: spell.landRadius, damage: 1, knockback: 0 }); });
+    assert(b.done, "the fireball cast point-blank did not burst in its cast step");
+    for (let i = 0; i < 3; i++) step();
+    const fFrame = frames.find((f) => f.arrows && (f.arrows.go || []).some((r) => r.id === b.id));
+    assert(goes(b.id).length === 1 && ends(b.id).length === 1 && !!fFrame && (fFrame.arrows.end || []).some((e) => e[0] === b.id), `the point-blank fireball: ${goes(b.id).length} launches, ${ends(b.id).length} ends${fFrame ? "" : ", in no frame"}`);
+    const store = archeryMod.flightStore();
+    for (const f of frames) archeryMod.applyFlights(store, f.arrows || null, f.simTime);
+    for (let R = fFrame.simTime - 4 * STEP; R < fFrame.simTime + 30 * STEP && !store.flares.length; R += STEP) archeryMod.stepFlights(store, R);
+    const fl = store.flares[0];
+    assert(!!fl && Math.hypot(fl.gx - b.landAt[0], fl.gy - b.landAt[1]) < 1e-3, `the guest's flare ${fl ? `${fl.gx.toFixed(3)},${fl.gy.toFixed(3)}` : "none"} against the host's ${b.landAt.map((v) => v.toFixed(3)).join(",")}`);
+    // A join: what is in the air goes again, once, and a guest that knew it keeps its own.
+    frames.length = 0;
+    let c = null;
+    step(() => { c = archeryMod.shoot(me, dir, 14, 1); });
+    for (let i = 0; i < 3; i++) step();
+    host.joined();
+    for (let i = 0; i < 3; i++) step();
+    const again = archeryMod.flightStore();
+    for (const f of frames) archeryMod.applyFlights(again, f.arrows || null, f.simTime);
+    assert(goes(c.id).length === 2 && again.stats.go === 1 && again.stats.again === 1, `after a join the flight in the air went ${goes(c.id).length} times; the guest took ${again.stats.go} and knew ${again.stats.again}`);
+    const born = goes(c.id).map((r) => frames.find((f) => f.arrows && (f.arrows.go || []).includes(r)).simTime - r.t);
+    assert(Math.abs(born[0] - born[1]) < 1e-6, `the two launches give births ${born.map((x) => x.toFixed(4)).join(" and ")}`);
+    return `nothing in an empty frame; the arrow's launch and end in 2 frames (${bytes} bytes); the point-blank fireball's both in its first frame, the flare at the host's point; a join's resend the same birth, known once`;
+  } finally {
+    host.done();
+    archeryMod.reset();
+    if (z) [z.gx, z.gy, z.hp] = z0;
+  }
+});
+// Across a stall in the host's sim (a hit-stop, a slow frame: no frames come while the guest steps on), the guest's flights stay with the host's word.
+check("net: across a 15- and a 30-step stall of the host's sim a guest draws every flight, starts each near the bow, never steps one back, never more than two steps past the host's word, and holds none after the stall", () => {
+  const lines = [];
+  for (const n of [15, 30]) {
+    const o = netsmoothTool.measureArrowStall(n, archeryMod);
+    assert(o.lost === 0 && o.firstMax <= 2 && o.backward === 0 && o.aheadMax <= 2 + 1e-3 && o.burstOver <= 1e-3 && o.stillAfter === 0, `${n} steps: ${o.lost} never drawn, first drawn ${o.firstMax.toFixed(2)} steps out, ${o.backward} backward, ${o.aheadMax.toFixed(2)} steps past the host's word, ${o.burstOver.toFixed(2)} past a burst, ${o.stillAfter} held after the stall`);
+    lines.push(`${n} steps: first drawn at most ${o.firstMax.toFixed(2)} steps out, at most ${o.aheadMax.toFixed(2)} past the host's word, ${o.stillAfter} held after`);
+  }
+  return lines.join("; ");
 });
 // The dead and the villagers come as a delta, a record only when it changed: a body that stops is drawn where it stopped and one that sets off from a rest moves at once
 // (#249's review: it was drawn up to two steps past its stop for good, and set off after a rest in a lurch).

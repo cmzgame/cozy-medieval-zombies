@@ -51,7 +51,7 @@ export async function run(game, opts = {}) {
     const wire0 = G.net.status().wire;
     const seen = new Map(); // id -> { a, at: [[step, gx, gy, age]], bowOk (the between-steps draw at alpha 0 on its first step) }
     const clocks = []; // the draw clock (netsmooth.drawClock) after each step: what the flights are stepped on
-    const clockNow = () => netsmooth.drawClock(G.world.world.timeScale || 1);
+    const clockNow = () => { const st = archery.replicaStats(); return st && typeof st.clock === "number" ? st.clock : netsmooth.drawClock(G.world.world.timeScale || 1); }; // the clock the flights were stepped at
     const flares = []; // [step, gx, gy] as each appears
     const flaresSeen = new Set(G.archery.flares());
     const gone = new Map(); // id -> the step it left the list

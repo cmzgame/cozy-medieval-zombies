@@ -63,15 +63,23 @@ export function hold(list, h) {
 }
 
 // The host time the remote bodies are drawn at this step (with the world sped up, the newest frame's, where they are put), or null before the
-// first frame. What flies is drawn on it too (archery.stepReplica, #250), so an arrow and the body it hits are drawn at the same moment.
+// first frame. What flies is drawn on it too (archery.stepReplica, #250), so an arrow and the body it hits are drawn at the same moment. Capped
+// at two steps past the newest frame, as a body's draw is (`sample`): when the host's sim stalls (a hit-stop, a slow frame) no frame comes,
+// R runs on, and a flight drawn at R would fly past what the host has said, burst beyond its target, or come down before it was ever drawn.
 export function drawClock(timeScale = 1) {
-  return timeScale > 1 ? latest : R;
+  if (timeScale > 1 || R === null || latest === null) return timeScale > 1 ? latest : R;
+  return Math.min(R, latest + 2 * STEP);
 }
 
 // Every guest step: the clock moves on, and each body is put where it was at that time.
 export function step(list, timeScale = 1) {
   if (R === null) return;
   R += STEP;
+  // Never more than two steps past the newest frame (#250's review): when the host's sim stalls (a hit-stop, a slow frame) no frame comes, and a
+  // clock that ran on was many steps ahead when frames came again, drawing a flight loosed then far from the bow and every body and flight
+  // held at the newest frame, moving only as each came, until the slew pulled it back. Held here, it is a few steps ahead at most and is
+  // pulled back smoothly. (A body is never drawn past two steps beyond its newest position anyway, `sample`.)
+  if (latest !== null && timeScale <= 1 && R > latest + 2 * STEP) R = latest + 2 * STEP;
   for (const c of list) {
     const buf = c.netBuf;
     if (!buf || !buf.length) continue;

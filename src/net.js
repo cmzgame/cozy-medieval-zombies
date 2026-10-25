@@ -263,7 +263,9 @@ const flightsSent = new Map(); // flight id -> { a, born }: its launch sent, its
 let resendFlights = false; // a guest joined: every flight in the air goes again (the others know it by id and keep their own)
 function seeFlights() {
   const now = loop.simTime();
-  for (const a of archery.arrowsInFlight()) if (!a.done && a.id != null && !flightsSent.has(a.id) && !flightsSeen.has(a.id)) flightsSeen.set(a.id, { a, born: now - a.t });
+  // Every flight loosed in the step, even one already down (its launch and its end go in the same frame), and any in the air not yet sent
+  // (a guest joined while it flew).
+  for (const a of [...archery.takeLaunched(), ...archery.arrowsInFlight()]) if (a.id != null && !flightsSent.has(a.id) && !flightsSeen.has(a.id) && (!a.done || a.landAt)) flightsSeen.set(a.id, { a, born: now - a.t });
 }
 function takeFlights(h) {
   const go = [];
@@ -456,6 +458,24 @@ export function status() {
 
 export function setTestSnapshot(s) {
   testSnapshot = s;
+}
+
+// For the headless checks (tools/check.js, #250's review): this world as a host with one guest that never speaks, each message the host sends
+// handed to `capture` in place of a wire. Returns { joined (what a join does to what was sent), done (alone again) }.
+export function testHost(capture) {
+  const was = { role, transport };
+  role = "host";
+  transport = { kind: "test", ready: true, send: capture, close() {} };
+  guests.set("test-guest", { playerId: null, hash: null, queue: [], last: null, ack: 0, joinedAt: tick });
+  return {
+    joined: forgetSent,
+    done() {
+      guests.delete("test-guest");
+      role = was.role;
+      transport = was.transport;
+      forgetSent();
+    },
+  };
 }
 
 function send(msg) {
@@ -862,6 +882,7 @@ export function hostAfterStep() {
     interact.takePokes();
     floaters.takeForFrame(); // and the floating numbers: nobody to show them to (the host draws its own from its log)
     if (lastSent.size || lastHeavy.size) forgetSent(); // the next guest's welcome is its baseline, and every roster goes out again
+    archery.takeLaunched();
     if (flightsSeen.size || flightsSent.size) { flightsSeen.clear(); flightsSent.clear(); } // and the flights: a joiner gets what is in the air from the frame after its welcome
     return;
   }
@@ -1215,7 +1236,14 @@ function smoothStep() {
   const scale = world.world.timeScale || 1;
   netsmooth.step([...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals].filter((c) => c !== S.player), scale);
   archery.stepReplica(netsmooth.drawClock(scale)); // what flies, stepped from its launch on the bodies' clock (#250)
+  // A fireball's or a fire arrow's light, and a flare's, moved with it every step (the frame's own setting of the burners is every third).
+  const glows = archery.projectileLights();
+  if (glows.length || glowed) {
+    light.setBurners([...burning.lights([...S.players, ...S.zombies, ...S.villagers, ...S.corpses]), ...glows]); // moving lights, read where they are asked for (light.js): nothing to re-bake
+  }
+  glowed = glows.length > 0;
 }
+let glowed = false; // a flight's light was set last step: set once more when the last goes, so it does not linger
 
 function applyFrame(f) {
   const S = game.state;
