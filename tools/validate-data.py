@@ -194,7 +194,7 @@ if not all(animals.get("tracks", {}).get(k, 0) > 0 for k in ("every", "seconds",
 # Keeping (docs/45 step 3): the numbers, every product an item, every produce verb a tool some item lists and its work seconds, something to
 # feed a trough with, the trough's definition, a coop for the hens to lay in.
 K = animals.get("keep", {})
-for k in ("feedReach", "coopReach", "breedDays", "penCap", "roomPerHead", "penMax", "leadSpeed", "leadReach", "leadClose"):
+for k in ("feedReach", "coopReach", "breedDays", "penCap", "roomPerHead", "penMax", "leadPull", "leadMax", "leadStuck", "leadReach", "leadClose"):
     if not K.get(k, 0) > 0:
         fail(f"animals.keep.{k}: above 0")
 for k in ("feather", "more"):

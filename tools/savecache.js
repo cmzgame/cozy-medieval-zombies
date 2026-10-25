@@ -329,7 +329,7 @@ map.setHolder(mountTarget, false); did("the torch taken out");
   map.markDirty(trough.tile[0], trough.tile[1]); // filled by hand, as the panel's drop marks it
   did("a feeding trough filled");
   clock.setElapsed((animal.today() + 1) * clock.DAY_LENGTH + 2);
-  did("a feeding trough eaten from and a coop laid in as the day turns", 70);
+  did("a feeding trough eaten from and a coop laid in as the day turns", 6 * 60); // the troughs are looked for every fifth second
   if (hen.fedDay !== animal.today()) fail("the hen was not fed when the day turned");
 }
 

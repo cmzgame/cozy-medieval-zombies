@@ -456,7 +456,7 @@ def build():
     yard.prop("cart", (10, 0), footprint=[2, 3])
     # The coop at the yard's west end, clear of the pumpkin fence's fade, and three hives east of the lane, clear of the potato field's gate (#333).
     yard.prop("chicken_coop", (16, 0), footprint=[1, 2], note="Hollow Farm's chicken coop (#333)")
-    yard.prop("feed_trough", (19, 0), note="the hens' feeding trough by their coop (docs/45 section 3)")
+    yard.prop("feed_trough", (19, 0), id="feed_trough_hens", note="the hens' feeding trough by their coop (docs/45 section 3)")
     yard.prop("beehive", (39, 1), note="Hollow Farm's hives (#333)")
     yard.prop("beehive", (41, 1))
     yard.prop("beehive", (43, 1))
@@ -590,16 +590,16 @@ def build():
     # West of the orchard, clear of the farm's reserve: the byre's paddock and the pigsty, each a fence with a gate toward the farm.
     byre = g.place("Hollow Farm's byre", [20, 232, 14, 10])
     byre.fence([0, 0, 14, 10], gates=[{"side": "e", "at": 5}])
-    byre.prop("feed_trough", (10, 2), note="the byre's feeding trough (docs/45 section 3): empty until a player fills it")
+    byre.prop("feed_trough", (10, 2), id="feed_trough_byre", note="the byre's feeding trough (docs/45 section 3): empty until a player fills it")
     sty = g.place("Hollow Farm's pigsty", [22, 244, 10, 8])
     sty.floor_rect([1, 1, 8, 6], "floor_dirt")
     sty.fence([0, 0, 10, 8], gates=[{"side": "e", "at": 3}])
-    sty.prop("feed_trough", (6, 2), note="the pigsty's feeding trough (docs/45 section 3)")
+    sty.prop("feed_trough", (6, 2), id="feed_trough_sty", note="the pigsty's feeding trough (docs/45 section 3)")
     g.reserve([18, 230, 20, 24])
     # The croft's sheepfold, south of the drove past the ford (docs/39: the croft, its cottage and the shepherd to come).
     fold = g.place("the croft's sheepfold", [146, 211, 12, 9])
     fold.fence([0, 0, 12, 9], gates=[{"side": "n", "at": 6}])
-    fold.prop("feed_trough", (3, 2), note="the sheepfold's feeding trough (docs/45 section 3)")
+    fold.prop("feed_trough", (3, 2), id="feed_trough_fold", note="the sheepfold's feeding trough (docs/45 section 3)")
 
     # ---- reserves: the castle (step 5) and the farms (step 4) take no forest yet ----
     g.reserve([VX, VY, 64, 144])      # the village block, 29/04's plan

@@ -722,9 +722,11 @@ export function step(dt, snapshots = null) {
     if (Math.floor(loop.simTime()) !== Math.floor(loop.simTime() - dt)) {
       const snares = animal.setSnares(map.propById);
       if (snares.length) for (const pr of animal.snareStep(snares, S.animals, S.animalHomes, watching)) map.markDirty(pr.tile[0], pr.tile[1]);
-      // The keeping's daily pass (docs/45 section 3): a tame animal whose day has turned eats from a trough near home, a fed hen lays into
-      // its coop, and two of a kind fed in a pen with room breed, unseen. Every tame animal, near a player or not: nothing waits on a visit.
-      for (const a of animal.dailyStep(S.animals, watching)) S.animals.push(a);
+      // The keeping (docs/45 section 3): a tame animal not fed today eats as soon as a trough it can reach holds feed, a fed hen lays into
+      // its coop, and two of a kind fed in a pen with room breed. Every tame animal, near a player or not: nothing waits on a visit. A lead
+      // whose leader is gone (a guest away, a death) is freed.
+      animal.freeLostLeads(S.animals, S.players);
+      for (const a of animal.dailyStep(S.animals)) S.animals.push(a);
     }
   }
   // Villagers bitten through get up as the dead, in what they wore (docs/19).

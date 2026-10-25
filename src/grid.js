@@ -22,6 +22,7 @@ export function sizeOf(entry) {
 // Would an item of this id and rotation fit at (x, y)? `ignore` is an entry to
 // treat as absent (the one being moved).
 export function fits(bag, id, x, y, rot = false, ignore = null) {
+  if (bag.accepts && !(getItem(id).tags || []).includes(bag.accepts)) return false; // a grid for one kind of thing (a feeding trough's feed, docs/45)
   const [w, h] = sizeOfId(id, rot);
   if (x < 0 || y < 0 || x + w > bag.cols || y + h > bag.rows) return false;
   for (const e of bag.items) {

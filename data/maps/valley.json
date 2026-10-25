@@ -5885,6 +5885,7 @@
       19,
       0
      ],
+     "id": "feed_trough_hens",
      "note": "the hens' feeding trough by their coop (docs/45 section 3)"
     },
     {
@@ -11761,6 +11762,7 @@
       10,
       2
      ],
+     "id": "feed_trough_byre",
      "note": "the byre's feeding trough (docs/45 section 3): empty until a player fills it"
     }
    ]
@@ -11810,6 +11812,7 @@
       6,
       2
      ],
+     "id": "feed_trough_sty",
      "note": "the pigsty's feeding trough (docs/45 section 3)"
     }
    ]
@@ -11849,6 +11852,7 @@
       3,
       2
      ],
+     "id": "feed_trough_fold",
      "note": "the sheepfold's feeding trough (docs/45 section 3)"
     }
    ]

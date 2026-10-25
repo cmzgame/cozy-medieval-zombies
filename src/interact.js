@@ -401,23 +401,27 @@ function putDownAction(player, tx, ty, simple = false) {
 export function propBag(prop) {
   if (!prop.bag) {
     const [cols, rows] = containerGrid(prop.container.loot);
-    prop.bag = createBag(cols, rows, prop.sprite.replace(/_/g, " "));
-    prop.searched = false;
-    map.unsaved(prop.tile[0], prop.tile[1], false); // made on first use, by whichever path asks first
+    const d = getDef(prop.sprite);
+    prop.bag = createBag(cols, rows, d.containerName || prop.sprite.replace(/_/g, " "));
+    if (d.accepts) prop.bag.accepts = d.accepts; // a feeding trough takes feed alone (docs/45)
+    prop.searched = !!d.searched; // a container that is never rolled (a feeding trough) opens at once
+    if (d.searched) map.markDirty(prop.tile[0], prop.tile[1]); // never searched, so no search marks it: its grid goes to a guest from here
+    else map.unsaved(prop.tile[0], prop.tile[1], false); // made on first use, by whichever path asks first
   }
   return prop.bag;
 }
 
 function containerActions(prop) {
-  const name = prop.sprite.replace(/_/g, " ");
+  const name = getDef(prop.sprite).containerName || prop.sprite.replace(/_/g, " ");
+  const open = prop.searched || !!getDef(prop.sprite).searched; // a container never rolled (a feeding trough) opens at once, as itself
   return [act({
     kind: "container",
     simple: true,
-    label: prop.searched ? `Open ${name}` : `Search ${name}`,
+    label: open ? `Open ${name}` : `Search ${name}`,
     tiles: prop.tiles,
     mx: prop.tile[0],
     my: prop.tile[1],
-    duration: prop.searched ? 0 : SEARCH_TIME,
+    duration: open ? 0 : SEARCH_TIME,
     perform() {
       const bag = propBag(prop);
       if (!prop.searched) {

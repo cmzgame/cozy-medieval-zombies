@@ -84,7 +84,7 @@ export function snareRule() {
 }
 
 export function keepRule() {
-  return (data && data.keep) || { feedReach: 8, coopReach: 4, feather: 0.8, more: 0.25, breedDays: 3, penCap: 6, roomPerHead: 6, penMax: 500, leadSpeed: 2.6, leadReach: 12, leadClose: 1.6 };
+  return (data && data.keep) || { feedReach: 8, coopReach: 4, feather: 0.8, more: 0.25, breedDays: 3, penCap: 6, roomPerHead: 6, penMax: 500, leadPull: 1.5, leadMax: 6, leadStuck: 3, leadReach: 40, leadClose: 1.6 };
 }
 
 // The game's day, counted from zero (clock.getDay is the label's, from one).
@@ -169,7 +169,7 @@ export function createAnimal(species, gx, gy, { id = null, home = null, homeId =
     fedDay: -1, // the game day it last ate from a trough (step 3): fed today, it gives today
     takenDay: -1, // the game day its milk or wool was last taken
     bredDay: -1, // the game day it last bred (-1: never)
-    lastDay: today(), // the game day its daily pass last ran (the first is tomorrow's)
+    lastDay: today(), // the game day it last ate
   };
 }
 
@@ -400,18 +400,21 @@ function charge(a, dt, others, threats, sp) {
 }
 
 // ---- led on a lead (docs/45 section 1) ----
-// It follows its leader at `keep.leadSpeed` (a cow is slow on its own; on a lead it keeps up), stands when close, and is let go where it
-// stands when the leader is gone, dead, or past `keep.leadReach` tiles: where it is let go is its home, so a pen holds it.
+// It keeps its leader's pace, a walk or a sprint (the review of #460: a cow dropped on the road at a slower fixed speed): the farther behind, the
+// faster, `keep.leadPull` a second for each tile up to `keep.leadMax`, and stands when within `keep.leadClose`. It is lost only when it truly
+// cannot follow: no way to its leader for `keep.leadStuck` seconds, or its leader gone, dead, or out past `keep.leadReach`. A lost lead keeps
+// the old home, so the animal walks back to it; only the player's own Let go makes where it stands its home (and a pen holds it then).
 function led(a, dt, others, threats, sp) {
   const K = keepRule();
   const t = threats.find((q) => q.id === a.leaderId && q.kind === "player");
   const d = t ? Math.hypot(t.gx - a.gx, t.gy - a.gy) : Infinity;
   if (!t || t.dead || d > K.leadReach) {
-    letGo(a);
+    loseLead(a);
     return;
   }
   if (d <= K.leadClose) {
     a.path = [];
+    a.stuckFor = 0;
     playAnimation(a.anim, "idle");
     faceToward(a, t.gx - a.gx, t.gy - a.gy);
     separate(a, dt, others);
@@ -419,19 +422,44 @@ function led(a, dt, others, threats, sp) {
   }
   a.repathTimer -= dt;
   if (a.repathTimer <= 0 || !a.path.length) repath(a, [Math.round(t.gx), Math.round(t.gy)]);
+  if (a.pathFailed || !a.path.length) {
+    a.stuckFor = (a.stuckFor || 0) + dt;
+    if (a.stuckFor >= K.leadStuck) loseLead(a);
+    playAnimation(a.anim, "idle");
+    return;
+  }
+  a.stuckFor = 0;
   playAnimation(a.anim, "walk");
-  a.speed = K.leadSpeed;
+  a.speed = Math.min(K.leadMax, Math.max(sp.walk, d * K.leadPull));
   followPath(a, dt, others);
   a.speed = sp.walk;
 }
 
+// The player's own Let go: where it stands is its home now.
 function letGo(a) {
-  a.leaderId = null;
   a.home = [Math.round(a.gx), Math.round(a.gy)];
+  loseLead(a);
+}
+
+// A lead lost (or let go): it is nobody's, and wanders round its home, wherever that is.
+function loseLead(a) {
+  a.leaderId = null;
+  a.stuckFor = 0;
   a.path = [];
-  a.state = "idle";
-  a.idleTimer = 1;
-  playAnimation(a.anim, "idle", true);
+  if (!a.dead) {
+    a.state = "idle";
+    a.idleTimer = 1;
+    playAnimation(a.anim, "idle", true);
+  }
+}
+
+// Once a second (game.js): a lead whose leader is not a present, living player is lost, so a guest who led an animal off and went away (an
+// animal far from everyone is not stepped) has its lead back, and a carcass keeps no leader.
+export function freeLostLeads(animals, players) {
+  for (const a of animals) {
+    if (!a.leaderId) continue;
+    if (a.dead || !players.some((p) => p.id === a.leaderId && !p.dead)) loseLead(a);
+  }
 }
 
 // How many animals a player leads, and how many leads they carry (one lead, one animal).
@@ -494,7 +522,12 @@ export function produceProblem(player, a) {
   if (a.takenDay === today()) return pr.verb === "milk" ? "It has been milked today." : "It has been shorn today.";
   const why = player ? reachProblem(player, [[Math.round(a.gx), Math.round(a.gy)]], BODY_REACH) : "";
   if (why) return why === "Too far away." ? `Too far from the ${a.name}.` : why;
-  return player ? inventory.toolProblem(player, pr.verb) || "" : "";
+  if (!player) return "";
+  const tool = inventory.toolProblem(player, pr.verb);
+  if (tool) return tool;
+  const held = inventory.carriedTool(player, pr.verb);
+  if (held && held.fill > 0) return "Empty the bucket first."; // milk is a jug, not the bucket's fill (Primary's default): a bucket of water does not milk
+  return "";
 }
 
 function produceVerb(verb) {
@@ -518,20 +551,27 @@ function produceVerb(verb) {
 produceVerb("milk");
 produceVerb("shear");
 
-// ---- the daily pass: feed, lay, breed ----
-// A feeding trough (a prop whose definition says `feed`) within `keep.feedReach` tiles of the home, holding an item tagged `feed`.
-function troughFor(a) {
-  const R = keepRule().feedReach;
-  const [hx, hy] = a.home;
-  for (let r = 0; r <= R; r++) {
-    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
-      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-      const pr = peekTile(Math.round(hx) + dx, Math.round(hy) + dy)?.prop;
-      if (!pr || !pr.bag || !isFeedTrough(pr)) continue;
-      if (pr.bag.items.some(isFeed)) return pr;
-    }
+// ---- feeding, laying, breeding: checked every second ----
+// A tame animal fed nothing yet today eats one unit as soon as a trough it can reach holds feed: in a pen, a trough on that pen's own
+// fences (a trough is solid, so it stands at the pen's edge of the flood or inside it); out of a pen, one within `keep.feedReach` tiles of
+// its home. A trough is a prop whose definition says `feed`, holding an item tagged `feed`.
+function troughsNear(x, y, radius) {
+  const out = [];
+  const R = Math.ceil(radius);
+  for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+    if (Math.hypot(dx, dy) > radius) continue;
+    const pr = peekTile(Math.round(x) + dx, Math.round(y) + dy)?.prop;
+    if (pr && pr.bag && isFeedTrough(pr) && pr.bag.items.some(isFeed) && !out.includes(pr)) out.push(pr);
   }
-  return null;
+  return out;
+}
+function troughFor(a) {
+  const K = keepRule();
+  const near = troughsNear(a.gx, a.gy, Math.max(K.feedReach, Math.sqrt(K.penMax)));
+  if (!near.length) return null;
+  const pen = penOf(a);
+  if (pen) return near.find((t) => t.tiles.some(([x, y]) => [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => pen.has(`${x + dx},${y + dy}`)))) || null;
+  return near.find((t) => t.tiles.some(([x, y]) => Math.hypot(x - a.home[0], y - a.home[1]) <= K.feedReach)) || null;
 }
 let defOf = () => null; // the sprite definitions, handed in by game.js (assets.getDef): a trough is a definition's `feed`
 export function setDefs(fn) {
@@ -602,21 +642,21 @@ export function penOf(a) {
   return seen;
 }
 
-// Once a second of sim time on the authority (game.js), for every tame animal whose day has turned since its last pass: it eats from a
-// trough near home and, fed, a hen lays; then two of a kind fed today in one pen with room breed, out of every watcher's sight. Returns
-// the young born (the caller adds them).
-export function dailyStep(animals, watchers) {
+// Once a second of sim time on the authority (game.js): every tame animal not yet fed today eats as soon as it can (and, fed, a hen lays into
+// its coop); then two of a kind fed today in one pen with room, rested since their last young, have one, beside a parent in the pen. A birth
+// may come in view (Primary's default, for Michael: his rule that nothing pops into view "was mostly a zombie rule so they don't bum rush you
+// unfairly", and a young one in a pen is a cosy arrival); one owed waits only for feed, room, and its days. Returns the young (the caller adds them).
+export function dailyStep(animals) {
   const day = today();
   const K = keepRule();
-  const R = renewRule();
-  const due = animals.filter((a) => !a.dead && !isWild(a) && a.lastDay < day);
-  if (!due.length) return [];
-  for (const a of due) {
-    a.lastDay = day;
+  const feeding = Math.floor(loop.simTime()) % 5 === 0; // the troughs looked for every fifth second (a wide look, for every hungry animal); the rest every second
+  for (const a of animals) {
+    if (!feeding || a.dead || isWild(a) || a.fedDay === day || a.state === "led") continue;
     const t = troughFor(a);
     if (!t) continue;
     eatFrom(t);
     a.fedDay = day;
+    a.lastDay = day;
     if (speciesOf(a.species).lays) {
       const coop = coopFor(a);
       if (coop) lay(a, coop);
@@ -625,8 +665,8 @@ export function dailyStep(animals, watchers) {
   const born = [];
   const done = new Set();
   const rested = (q) => q.bredDay < 0 || q.bredDay + K.breedDays <= day; // never bred, or its days since are past
-  for (const a of due) {
-    if (done.has(a.id) || a.fedDay !== day || !rested(a) || a.state === "led") continue;
+  for (const a of animals) {
+    if (a.dead || isWild(a) || done.has(a.id) || a.fedDay !== day || !rested(a) || a.state === "led") continue;
     const pen = penOf(a);
     if (!pen) continue;
     const inPen = (q) => pen.has(`${Math.round(q.gx)},${Math.round(q.gy)}`);
@@ -634,12 +674,19 @@ export function dailyStep(animals, watchers) {
     for (const q of kin) done.add(q.id);
     const ready = kin.filter((q) => q.fedDay === day && rested(q) && q.state !== "led");
     if (ready.length < 2 || kin.length >= K.penCap || pen.size < K.roomPerHead * (kin.length + 1)) continue;
-    if (watchers.some((p) => Math.hypot(p.gx - a.gx, p.gy - a.gy) <= R.clear)) continue; // nothing materialises in view: it waits for a day nobody is near
-    const spot = [...pen].map((k) => k.split(",").map(Number)).find(([x, y]) => !animals.some((q) => Math.round(q.gx) === x && Math.round(q.gy) === y) && roomAt(x, y) === 0);
+    // The free tile of the pen nearest the first parent: beside it.
+    const p0 = ready[0];
+    let spot = null;
+    let best = Infinity;
+    for (const k of pen) {
+      const [x, y] = k.split(",").map(Number);
+      const dd = Math.hypot(x - p0.gx, y - p0.gy);
+      if (dd >= best || roomAt(x, y) !== 0 || animals.some((q) => !q.dead && Math.round(q.gx) === x && Math.round(q.gy) === y)) continue;
+      spot = [x, y];
+      best = dd;
+    }
     if (!spot) continue;
-    const young = createAnimal(a.species, spot[0], spot[1], { home: a.home.slice(), homeId: a.homeId });
-    young.lastDay = day;
-    born.push(young);
+    born.push(createAnimal(a.species, spot[0], spot[1], { home: p0.home.slice(), homeId: p0.homeId }));
     ready[0].bredDay = day;
     ready[1].bredDay = day;
   }
@@ -659,6 +706,7 @@ export function damageAnimal(a, amount, { by = null, cls = "melee", from = null 
     a.killedBy = cls;
     a.path = [];
     a.targetId = null;
+    a.leaderId = null; // a carcass keeps no leader
     a.windup = 0;
     playAnimation(a.anim, "dead", true);
     emit("animalKilled", { animal: a, by, cls });
