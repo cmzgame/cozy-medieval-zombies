@@ -19,6 +19,7 @@ export async function run(game) {
   const hands0 = { main: me.hands.main, off: me.hands.off };
   const bag = G.inventory.bagOf(me);
   const bagItems0 = bag.items.slice();
+  const counts0 = bagItems0.map((e) => [e, e.count]);
   const restore = [];
   const mk = (id, props = {}) => G.items.makeEntry(id, 1, props);
   const run = (target) => G.verbs.run("light", G.world, me, target);
@@ -32,6 +33,7 @@ export async function run(game) {
     return b.edge === "n" ? [b.tx, e0 + s * d] : [e0 + s * d, b.ty];
   };
   try {
+    bag.items.length = 0; // an empty bag (#437): a bag left full by a check before would send the logs and the torch stowed below elsewhere; put back in the finally
     // The valley's empty brackets hold an unlit torch since docs/43 section 4: the rows below want empty ones, so those torches come out for the
     // run and go back in the finally, unlit and unworn as authored.
     for (const b of [...G.map.brackets()].filter((q) => q.wall.bracket.torch && q.wall.bracket.lit === false && !q.wall.bracket.made)) {
@@ -492,6 +494,8 @@ export async function run(game) {
     }
   } finally {
     for (const r of restore.reverse()) r();
+    bag.items.splice(0, bag.items.length, ...bagItems0);
+    for (const [e, n] of counts0) e.count = n;
     me.hands.main = hands0.main;
     me.hands.off = hands0.off;
     G.teleport(meAt[0], meAt[1]);

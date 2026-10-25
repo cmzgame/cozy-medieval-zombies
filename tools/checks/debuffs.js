@@ -114,6 +114,7 @@ export async function run(game) {
       S.taintedDrink(me, 0.99, 0.99);
       S.taintedDrink(me, 0.99, 0.99);
       row("three stacks at most, and a game day and a half at most", me.sick.stacks === W.sickMaxStacks && me.sick.left === W.sickMaxStacks * half, JSON.stringify(me.sick));
+      show(); // the row drawn again for the stacks just added (a hidden pane draws no frame of its own; #437)
       const sel = document.querySelector('#debuffs .debuff[data-id="sick"]');
       const sr = sel.getBoundingClientRect();
       sel.dispatchEvent(new PointerEvent("pointermove", { clientX: sr.left + 8, clientY: sr.top + 8, bubbles: true }));
