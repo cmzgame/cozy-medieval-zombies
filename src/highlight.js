@@ -41,7 +41,7 @@ export function targetAt(sx, sy, player, visible = null) {
   const item = real.find((a) => a.target.kind === "item");
   if (item && seen(item.target.tile[0], item.target.tile[1])) return { kind: "item", uid: item.target.uid, tile: item.target.tile };
   // A tall thing's crown is far up the screen from its tile: the pixel under the cursor counts if the thing has an action (a tree's, a crop's) or is interactable (a mushroom
-  // sways on a click, the gatherables law). Else the menu's prop, but only one that stands on the tile under the cursor: the menu also lists a tree for the bare ground and leaf
+  // sways on a click, the gatherables law; behind a tree's crown it wins over the crown, interactableAt's one rule, as the click's sway and the menu's first do). Else the menu's prop, but only one that stands on the tile under the cursor: the menu also lists a tree for the bare ground and leaf
   // litter inside its sprite's rectangle, and that is art beside it, not the tree.
   const front = interact.interactableAt(sx, sy, () => true);
   let prop = front && (front.interactable || interact.actionsForProp(front, player).length > 0) ? front : null;
