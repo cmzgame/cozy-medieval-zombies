@@ -40,6 +40,7 @@ export async function run(game) {
     row("a tinderbox: the word Use is its own segment, and the card says what it lights", !!useSeg && useSeg.t === "Use" && has("tinderbox", "Use on campfire, torch post") && has("tinderbox", ": light."), text("tinderbox").join(" | "));
     row("a seed says what it grows", has("potato_seed", "Grows potato on tilled soil.") && info.cardFor(G.items.makeEntry("potato_seed")).kind === "Seed", text("potato_seed").join(" | "));
     row("a rucksack says where it is worn and what it holds", has("rucksack", "worn on your back; holds 8×5"), text("rucksack").join(" | "));
+    row("a linen satchel says it is a bag worn on the back holding 7×5, made at the loom (#400)", has("satchel", "worn on your back; holds 7×5") && has("satchel", "Made at the loom.") && info.cardFor(G.items.makeEntry("satchel")).kind === "Bag", text("satchel").join(" | "));
     row("a waterskin says its fill, and a stack its count and wear", has("waterskin", "Drink: 40% full", { fill: 40 }) && info.cardFor(G.items.makeEntry("bread", 3, { wear: 0.25 })).state === "×3 · 75% left", info.cardFor(G.items.makeEntry("bread", 3, { wear: 0.25 })).state);
     row("a material says what it is made into", has("log", "Splits into 3 planks.") || has("log", "Goes into:"), text("log").join(" | "));
     // What the cards say is true: the swing animation's name is not a fact about the weapon, an ingredient says what it goes into whatever else it is, ids are player words.

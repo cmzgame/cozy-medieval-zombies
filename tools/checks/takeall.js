@@ -2,7 +2,9 @@
 //   await __game.check("takeall")
 // It sends the command a guest's button would send (`performItemCommand`, op "takeall", the host's handler) for a chest, a station's output, and a body, each named by its address:
 // everything fits and the container empties in the grid's order; a bag that fills takes what fits and the rest stays, with the word; what does not fit the bag but belongs on the belt
-// goes to a free belt slot; a stack that fits in part is merged and the remainder stays; the player's own bag is refused; a searched body is redrawn without what was taken.
+// goes to a free belt slot; a stack that fits in part is merged and the remainder stays; the player's own bag is refused; a searched body is redrawn without what was taken;
+// a bag set down on the floor with things in it is taken from by its address and then, empty, can be picked up; an empty linen satchel in a chest is taken, one holding
+// things stays (#400).
 // The bag, belt, and everything it makes are put back.
 
 export async function run(game) {
@@ -148,6 +150,39 @@ export async function run(game) {
     me.worn.back = back0;
     row("with no bag on your back Take All says so and moves nothing", rNone.noBag === true && takeAllWord(rNone) === "You have no bag." && chest.bag.items.length === 1, `"${takeAllWord(rNone)}"`);
     chest.bag.items.length = 0;
+
+    // 6c. A bag set down with things in it (#400) is a container on the floor: Take All by its address empties it into the bag, and the sack stays
+    // standing, empty now, so it can be picked up.
+    bag.items.length = 0;
+    const [fx, fy] = [Math.round(me.gx), Math.round(me.gy)];
+    const floor0 = map.itemsAt(fx, fy).slice();
+    restore.push(() => { const t = map.tileAt(fx, fy); t.items = floor0.slice(); map.touch(fx, fy); });
+    const setDown = G.items.makeEntry("small_sack", 1);
+    setDown.bag = G.inventory.createBag(6, 4, "burlap sack");
+    put(setDown.bag, "apple", 2);
+    const lying = map.dropItem(fx, fy, setDown);
+    const fromFloor = takeAll({ entryUid: lying.uid, tile: [fx, fy] });
+    const stillThere = map.itemsAt(fx, fy).find((e) => e.uid === lying.uid);
+    const floorLabels = stillThere ? G.interact.actionsForTarget({ kind: "item", uid: lying.uid, tile: [fx, fy] }, me).map((a) => a.label) : [];
+    row("a bag set down with things in it is taken from by its address: everything into the bag, and the sack, empty, stays where it lies", fromFloor === true && G.inventory.countItem(bag, "apple") === 2 && !!stillThere && stillThere.bag.items.length === 0, `ran ${fromFloor}; ${G.inventory.countItem(bag, "apple")} apples in the bag; the sack ${stillThere ? `holds ${stillThere.bag.items.length}` : "gone"}`);
+    row("once empty, the set-down sack can be picked up", floorLabels.some((l) => /^Pick up Burlap sack/.test(l)), floorLabels.join(", "));
+
+    // 6d. The linen satchel (#400) is a bag like the others: empty, Take All takes it from a chest; holding things, it stays.
+    bag.items.length = 0;
+    chest.bag.items.length = 0;
+    const emptySatchel = G.items.makeEntry("satchel", 1);
+    G.grid.insert(chest.bag, emptySatchel);
+    const rEmpty = takeAllFrom(me, chest.bag);
+    row("an empty linen satchel in a chest is taken by Take All", rEmpty.moved === 1 && bag.items.includes(emptySatchel) && chest.bag.items.length === 0, `moved ${rEmpty.moved}; in the bag ${bag.items.map((e) => e.id).join(",") || "nothing"}`);
+    bag.items.length = 0;
+    const fullSatchel = G.items.makeEntry("satchel", 1);
+    G.inventory.ensureBag(fullSatchel);
+    put(fullSatchel.bag, "cloth", 1);
+    G.grid.insert(chest.bag, fullSatchel);
+    const rFull = takeAllFrom(me, chest.bag);
+    row("a linen satchel holding cloth stays in the chest, with the word", rFull.nested === 1 && chest.bag.items.includes(fullSatchel) && takeAllWord(rFull) === "A bag with things in it stays: empty it first.", `nested ${rFull.nested}: "${takeAllWord(rFull)}"`);
+    chest.bag.items.length = 0;
+    bag.items.length = 0;
 
     // 7. The player's own bag is refused, and a container out of reach is not taken from.
     put(bag, "log", 1);

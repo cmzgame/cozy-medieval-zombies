@@ -30,7 +30,7 @@ export async function run(game) {
     row("flax is a sixth crop, on rye's days, with its seed and its fibre, and three outlined stage sprites (the gatherables law)", !!crops.flax && JSON.stringify(crops.flax.stages) === JSON.stringify(crops.rye.stages) && G.items.getItem(crops.flax.seed).tags.includes("seed") && G.items.getItem("flax") && [0, 1, 2].every((s) => G.assets.getDef(`crop_flax_${s}`).crop.kind === "flax" && G.assets.getDef(`crop_flax_${s}`).placeholder.outline === true), JSON.stringify(crops.flax));
     row("cloth and a rag are tagged cloth (a garment already was), so every recipe that asks for the tag takes any of them", ["cloth", "rag", "cap", "tunic"].every((id) => G.items.getItem(id).tags.includes("cloth")) && G.stations.recipe("torch").in.some((i) => i.tag === "cloth"), "torch asks the tag");
     const loomRows = G.stations.recipesFor("loom").map((r) => r.id);
-    row("the loom has rows: cloth from flax, bandages and clothes from cloth", ["cloth", "bandage", "weave_cap", "weave_breeches", "weave_tunic"].every((id) => loomRows.includes(id)) && G.stations.recipe("cloth").in[0].id === "flax" && G.stations.recipe("bandage").in[0].id === "cloth", loomRows.join(", "));
+    row("the loom has rows: cloth from flax, bandages, clothes, and the linen satchel from cloth", ["cloth", "bandage", "weave_cap", "weave_breeches", "weave_tunic", "weave_satchel"].every((id) => loomRows.includes(id)) && G.stations.recipe("cloth").in[0].id === "flax" && G.stations.recipe("bandage").in[0].id === "cloth", loomRows.join(", "));
     const tears = G.stations.recipesFor("workbench").filter((r) => r.id.startsWith("tear_"));
     row("a garment tears into two rags at the workbench with a knife on you, and no rag or cloth is ever torn", tears.length === 6 && tears.every((r) => r.out.id === "rag" && r.out.count === 2 && r.uses === "cut" && !["rag", "cloth"].includes(r.in[0].id)), tears.map((r) => r.id).join(", "));
     G.map.ensureAround(76, 168, 4);
@@ -109,6 +109,18 @@ export async function run(game) {
     row("a cloth becomes a cap (clothes at the loom: a cap from one, breeches from two, a tunic from three)", r3.ok && got3.cap === 1 && G.stations.recipe("weave_breeches").in[0].count === 2 && G.stations.recipe("weave_tunic").in[0].count === 3, `${r3.ok ? "" : r3.reason + "; "}output ${JSON.stringify(got3)}`);
     const rshort = craft(loom, "weave_tunic");
     row("a tunic wants three cloth: one short is refused", !rshort.ok && /Short/.test(rshort.reason), String(rshort.reason));
+    // The linen satchel (#400): six cloth at the loom, a bag of 7 by 5, made before the animals come.
+    const sr = G.stations.recipe("weave_satchel");
+    const shortSatchel = craft(loom, "weave_satchel");
+    row("a linen satchel wants six cloth: with fewer it is refused", sr && sr.in[0].id === "cloth" && sr.in[0].count === 6 && !shortSatchel.ok && /Short/.test(shortSatchel.reason), `${sr ? `${sr.in[0].count} ${sr.in[0].id}` : "no recipe"}; ${shortSatchel.reason}`);
+    G.grid.add(loomChest.bag, "cloth", 6);
+    const rs = craft(loom, "weave_satchel");
+    finish(loom, "weave_satchel");
+    const satchelMade = G.stations.outputOf(loom).items.find((e) => e.id === "satchel");
+    const sdef = G.items.getItem("satchel");
+    const sgrid = satchelMade ? G.inventory.ensureBag(satchelMade) : null;
+    row("six cloth become a linen satchel: a bag worn on the back, its grid 7 by 5", rs.ok && !!satchelMade && sdef.kind === "bag" && sdef.wear === "back" && !!sgrid && sgrid.cols === 7 && sgrid.rows === 5, `${rs.ok ? "" : rs.reason + "; "}${satchelMade ? `a satchel, ${sgrid.cols} by ${sgrid.rows}` : "no satchel in the output"}`);
+    take(loom);
 
     const bench = place("workbench", [x + 3, y + 3], [2, 1]);
     const benchChest = chestBeside(bench, [["tunic", 1], ["stick", 2]]);
