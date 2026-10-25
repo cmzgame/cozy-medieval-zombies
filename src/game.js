@@ -409,7 +409,9 @@ export function syncParts() {
   const m = map.serializeMap();
   // A fire's fuel to the unit: a replica refreshes it at each whole unit burned (map.burnFires), not each step.
   const chunks = (m.chunks || []).slice().sort((a, b) => (a.cx - b.cx) || (a.cy - b.cy)).map((c) => ({ ...c, props: (c.props || []).map((p) => { const { pokedAt, playedAt, ...q } = p; return q.fire && typeof q.fire.fuel === "number" ? { ...q, fire: { ...q.fire, fuel: Math.floor(q.fire.fuel) } } : q; }) }));
-  const entryText = (e) => (e ? `${e.id}#${e.uid}x${e.count ?? 1}${e.lit ? "L" : ""}${e.fill != null ? `f${f(e.fill)}` : ""}${e.bag ? `[${(e.bag.items || []).map(entryText).join(",")}]` : ""}` : "-");
+  // An entry's wear in whole hundredths, as the wire compares it (net.js sends a player's heavy part when its wear rounds differently), and its
+  // repair count (docs/43 section 6): a guest's copy of a wear lags the host's by under a hundredth and never rounds otherwise.
+  const entryText = (e) => (e ? `${e.id}#${e.uid}x${e.count ?? 1}${e.lit ? "L" : ""}${e.fill != null ? `f${f(e.fill)}` : ""}${e.wear > 0 ? `w${Math.round(e.wear * 100)}` : ""}${e.repairs ? `r${e.repairs}` : ""}${e.bag ? `[${(e.bag.items || []).map(entryText).join(",")}]` : ""}` : "-");
   const at = (c) => (c.netTo ? c.netTo : [c.gx, c.gy]); // a replica's smoothing target is the host's truth (net.js)
   // Health as the wire carries it, to two decimals (net.js r2): a bleeding player's drains in fractions every step, so
   // three decimals differed between the host and every replica though nothing was wrong (found testing item 5's third

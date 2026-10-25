@@ -52,6 +52,9 @@ import * as stationPanel from "./ui/station-panel.js";
 import * as rugs from "./rugs.js"; // a rug laid from the bag and picked up again (#327)
 import * as paintings from "./paintings.js"; // a painting hung on a wall from the bag and taken down again (#326)
 import * as campfire from "./campfire.js"; // a campfire picked up and set down again (docs/43, section 3)
+import * as repair from "./repair.js"; // the grindstone sharpens, the anvil repairs, on one count per item (docs/43 section 6)
+import * as sawpit from "./sawpit.js"; // the sawpit saws a log into planks with no hatchet (docs/43 section 6)
+import * as hives from "./hives.js"; // the beehives give honey every few days (docs/43 section 6)
 
 export const INTERACT_RANGE = 1.15; // tiles
 export const SEARCH_TIME = 1.0;
@@ -959,6 +962,7 @@ function propActions(prop, player) {
   if (prop.water) out.push(...wellActions(prop, player), ...bucket.tileActions(prop.tile[0], prop.tile[1], player, act, world));
   if (getDef(prop.sprite).sleep) out.push(...sleepAction(prop, player));
   if (stations.stationOf(prop).length) out.push(...stationActions(prop, player));
+  out.push(...repair.propActions(prop, player, act, world), ...sawpit.propActions(prop, player, act, world), ...hives.propActions(prop, player, act, world)); // docs/43 section 6: each is nothing on a prop that is not its own
   if (canCarry(prop)) out.push(carryAction(prop, player));
   if (prop.made) out.push(takeApartAction(prop, player)); // only what a player made (docs/43, section 2)
   return out;

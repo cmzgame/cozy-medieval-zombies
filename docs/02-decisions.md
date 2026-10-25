@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- The basic lore (#217) is in the Valley's scope, paired with the map redraw (#92) and taken first (2026-10-25, The basic lore is part of the Valley's scope)
 - Fixed home lights (fireplace, hearth, lantern) are switches, portable ones (torch, campfire) cost fuel; a lantern goes out; the campfire built, six logs of three hours, picked up only empty; Pick up and Take apart for everything; made by default, the village's stations one of a kind behind a world rule; Place as decoration (2026-10-25, The dead ends ruled)
 - A loot table per kind of container, weights out of 32; no gear in a rolled table, placed once where it makes sense; rolled once, never refilled; boss drops personal with a rising chance (2026-10-24, The loot tables and the bags)
 - A fence takes no boards, a gate included (2026-10-24, No boards on a fence)
@@ -284,6 +285,12 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-25 — The basic lore is part of the Valley's scope, paired with the map redraw, the lore first (Michael)
+
+"I would consider basic lore part of valley scope, because these NPCs need to be able to explain what the hell is going on, a lot of things need names ... that depend on a basic lore. And it should synchronize nicely with the planned map, or rather they should evolve in step together." And: "Let's leave map redraw and basic lore / name as a sort of pair, maybe lore first then map, just in case it matters." So #217's spine and names join the Valley scope (`docs/39`), taken as a pair with #92, the lore first. The next sittings of the defaults pass are water (#279) and the animals (#289).
+
+Docs: 39.
 
 ### 2026-10-25 — The dead ends ruled: fires and lights, Pick up and Take apart, made things, stations behind a switch, repairs that run out, a body burned, a wave, the cowering, the dye vat (Michael; #273)
 

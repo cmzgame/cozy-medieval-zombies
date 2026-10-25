@@ -1,10 +1,11 @@
 // What an item card says (#262; the law "Every item in a grid has a hover card", docs/02): the full name, the kind, and the direct uses, all read from the data and never
-// written per item: `data/items.json` (food, drink, weapon, hands, wear, verbs, bag, fire, splitsInto, tags), `data/interactions.json` (what the item can be Used on),
+// written per item: `data/items.json` (food, drink, weapon, hands, wear, verbs, bag, fire, splitsInto, repair, tags), `data/interactions.json` (what the item can be Used on),
 // `data/recipes.json` (what it is made at and goes into), `data/crops.json` (what a seed plants). It touches no DOM (it reads the registries the game loads: items, interactions, recipes, crops, and the build kinds), so a headless world can ask it and the check can read it;
 // ui/hover-card.js draws what this returns. A card is { name, kind, state, lines, fine }: `lines` and `fine` are lists of lines, a line a list of segments { t, k } where `k`
 // is "use" for the word Use (drawn in --gold, Michael 2026-10-18), "word" for another menu word (Eat, Equip, Drink, Apply), or absent for plain text.
 
-import { getItem } from "./items.js";
+import { getItem, wearPerHit, wearPerShot } from "./items.js";
+import { work } from "./tuning.js"; // the repair ladders and the sawpit's item (docs/43 section 6)
 import * as interactions from "./interactions.js";
 import * as stations from "./stations.js";
 import * as farming from "./farming.js";
@@ -112,6 +113,14 @@ export function cardFor(entry) {
   const crop = def.tags && def.tags.includes("seed") ? farming.cropOfSeed(def.id) : null;
   if (crop) lines.push(line(`Grows ${crop} on tilled soil.`));
   if (def.splitsInto) lines.push(line(`Splits into ${def.splitsInto.count} ${getItem(def.splitsInto.id).name.toLowerCase()}s.`));
+  if (def.splitsInto && def.id === work.saw.item) lines.push(line(`A sawpit saws it into ${getItem(def.splitsInto.id).name.toLowerCase()}s with no hatchet.`)); // docs/43 section 6
+  // Repairs that run out (docs/43 section 6): where, with what, and how many in its life.
+  const rep = def.repair && (wearPerHit(def) > 0 || wearPerShot(def) > 0) ? def.repair : null;
+  if (rep) {
+    const mat = getItem(rep.with).name.toLowerCase();
+    const n = Math.max(work.grindstone.ceilings.length, work.anvil.ceilings.length);
+    lines.push(line(`Repaired at an anvil with ${/^[aeiou]/.test(mat) ? "an" : "a"} ${mat}${rep.edged ? ", or sharpened at a grindstone" : ""}; ${n} repairs in all.`));
+  }
   const rec = recipesOf(def);
   if (rec.madeAt.length) lines.push(line(`Made at ${rec.madeAt.slice(0, 2).map(stationWord).join(" or ")}.`));
   if (rec.goesInto.length) lines.push(line(`Goes into: ${rec.goesInto.slice(0, 4).map((g) => g.name.toLowerCase()).join(", ")}${rec.goesInto.length > 4 ? " and more" : ""}.`));
@@ -130,6 +139,10 @@ export function cardFor(entry) {
   if (entry.count > 1) state.push(`×${entry.count}`);
   if (entry.fill != null && !def.capacity) state.push(`${Math.round(entry.fill)}% full`);
   if (entry.wear > 0) state.push(`${Math.round((1 - entry.wear) * 100)}% left`);
+  if (rep && entry.repairs > 0) {
+    const left = Math.max(0, Math.max(work.grindstone.ceilings.length, work.anvil.ceilings.length) - entry.repairs);
+    state.push(left ? `${left} repair${left > 1 ? "s" : ""} left` : "past repair");
+  }
   return { name: def.name, kind, state: state.join(" · "), lines: lines.slice(0, MAX_LINES), fine: [line("Right-click for actions.")] };
 }
 

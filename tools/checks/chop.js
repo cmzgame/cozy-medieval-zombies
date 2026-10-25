@@ -1,8 +1,9 @@
 // Chopping (#195; docs/30 sections 4 and 10). From the console, on a tab with `?nosave`:
 //   await __game.check("chop")
 // It fells a tree near the player with and without a hatchet, chops the stump it leaves, and does the same by the menu's label on the
-// tree's address (a guest's way); and opens the cottage's and the joiner's chests for the hatchet each holds. The tree, the logs, the
-// stump, the bag, the hands, and the place are put back.
+// tree's address (a guest's way); and opens the cottage's and the joiner's chests for the hatchet each holds. Then the sawpit (docs/43
+// section 6): no log carried greyed, a log sawn into three planks by the label on its id with no hatchet, then refused. The tree, the logs,
+// the stump, the bag, the hands, and the place are put back.
 
 export async function run(game) {
   const G = game;
@@ -102,6 +103,28 @@ export async function run(game) {
     const ra = run1(apple.id);
     row("an apple tree is a tree: felled it leaves a stump too", ra.ok && G.map.tileAt(tx, ty).prop && G.map.tileAt(tx, ty).prop.sprite === "stump", G.map.tileAt(tx, ty).prop ? G.map.tileAt(tx, ty).prop.sprite : "none");
     clearLogs(tx, ty);
+
+    // The sawpit (docs/43 section 6, #410): a log sawn into planks with no hatchet, by a guest's label on the sawpit's id after its bar.
+    G.map.ensureAround(74, 192, 3); // the joiner's yard (tools/mapgen/valley.py)
+    const pit = G.map.allProps().find((p) => G.assets.getDef(p.sprite).saw === true);
+    row("the valley has a sawpit, and what it saws and how long are data", !!pit && G.tuning.work.saw.item === "log" && G.tuning.work.saw.seconds > 0, pit ? `${pit.sprite} at ${pit.tile}, ${JSON.stringify(G.tuning.work.saw)}` : "no sawpit");
+    if (pit) {
+      me.hands.main = null;
+      me.hands.off = null;
+      bag.items.length = 0;
+      const pitActs = () => G.interact.actionsForTarget({ kind: "prop", id: pit.id }, me).filter((a) => a.kind === "saw");
+      const at = G.interact.approachTile(pitActs()[0], me);
+      if (at) G.teleport(at[0], at[1]);
+      row("with no log carried it says so, greyed", pitActs().some((a) => a.label === "Saw a log into 3 planks (no log carried)" && a.enabled === false), pitActs().map((a) => a.label).join(", "));
+      G.inventory.stow(me, G.items.makeEntry("log", 1));
+      const did3 = G.interact.performByLabel(me, { kind: "prop", id: pit.id }, "Saw a log into 3 planks");
+      const bar = !!me.action && me.action.action.duration === G.tuning.work.saw.seconds;
+      finish();
+      const planks = G.inventory.countAll(me, "plank");
+      row("a guest's command (the label on the sawpit's id) saws it after the bar, with no hatchet carried: the log gone, three planks", did3 && bar && !G.inventory.carriedTool(me, "split") && G.inventory.countAll(me, "log") === 0 && planks === 3, `ran ${did3}, bar ${bar}, logs ${G.inventory.countAll(me, "log")}, planks ${planks}`);
+      const none = G.verbs.run("saw", G.world, me, { prop: pit.id });
+      row("and with the log gone the verb refuses", !none.ok && /need a log/.test(none.reason), String(none.reason));
+    }
     void chop;
   } finally {
     for (const r of restore.reverse()) r();
