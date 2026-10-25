@@ -64,6 +64,7 @@
     "drinkSip": 50,
     "autoDrinkStage": 2,
     "presentTime": 0.6,
+    "waveSeconds": 2,
     "tiredMax": 100,
     "tiredDrainSeconds": 900,
     "sleepRestoreSeconds": 240,
@@ -136,7 +137,13 @@
     "talkWalkAway": 1,
     "talkIdleSeconds": 1,
     "talkDeadRadius": 5,
-    "barkMaxLength": 70
+    "barkMaxLength": 70,
+    "cowerRadius": 3,
+    "cowerSeconds": 1,
+    "cowerBubble": "!",
+    "fleeTiles": 4,
+    "fleeSpeed": 2,
+    "cowerClearRadius": 6
   },
   "world": {
     "activeTiles": 40,
@@ -168,6 +175,7 @@
     "grindstone": { "ceilings": [0.6, 0.4, 0.2], "seconds": 4 },
     "anvil": { "ceilings": [1, 0.8, 0.6], "seconds": 6, "uses": "smith" },
     "saw": { "item": "log", "seconds": 5 },
-    "honey": { "item": "honey", "count": [1, 1], "days": 3, "seconds": 3 }
+    "honey": { "item": "honey", "count": [1, 1], "days": 3, "seconds": 3 },
+    "burnCorpse": { "flame": "tinderbox", "fuel": "log", "hours": 1, "seconds": 2 }
   }
 }

@@ -28,6 +28,7 @@ function nameOfOn(on) {
   if (on === "bracket") return "wall bracket";
   if (on === "character") return "person";
   if (on === "zombie") return "the dead";
+  if (on === "corpse") return "a body of the dead";
   if (on === "tile") return "the ground";
   if (WORDS[on]) return WORDS[on];
   return on.replace(/^floor_/, "").replace(/_y$/, "").replace(/_/g, " ");

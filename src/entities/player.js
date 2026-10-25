@@ -65,7 +65,16 @@ export function createPlayer(gx, gy, { id = null } = {}) {
     recover: 0, // seconds after a shot before the next draw
     aimOverride: null, // [gx, gy]: scripts and tests aim here instead of the cursor
     marker: null, // { from, full, land }: where the draw would land, for this player's own client
+    waveFor: 0, // seconds of the wave left (docs/43 section 7): set by the world's step from G or /wave (`wave`), a number in the light record, so every client draws it
   };
+}
+
+// The wave (docs/43 section 7): G or /wave, a key event in the player's snapshot performed by the world's step (interact.updateInteract), so a
+// guest's reaches the host as the host's own does. Not for the dead, a sleeper, or arms full of furniture. Returns whether it waves.
+export function wave(player) {
+  if (!player || player.dead || player.sleeping || player.carrying) return false;
+  player.waveFor = T.waveSeconds;
+  return true;
 }
 
 export function damagePlayer(player, amount) {
@@ -392,6 +401,9 @@ export function updatePlayer(player, dt, snap = IDLE) {
   // The held-out pose (docs/32, item 1): eating, drinking, or a drink at water, for its time, standing; walking ends it.
   if (player.presentFor > 0) player.presentFor = walking ? 0 : Math.max(0, player.presentFor - dt);
   const presenting = player.presentFor > 0 && !player.carrying && !!(sheet && sheet.animations.present);
-  if (!oneShot || player.anim.done) playAnimation(player.anim, presenting ? "present" : (player.carrying ? "carry_" : "") + (walking ? "walk" : "idle"));
+  // The wave (docs/43 section 7): for its seconds, standing; walking ends it, as it ends the held-out pose; eating or drinking comes first.
+  if (player.waveFor > 0) player.waveFor = walking || player.carrying ? 0 : Math.max(0, player.waveFor - dt);
+  const waving = !presenting && player.waveFor > 0 && !!(sheet && sheet.animations.wave);
+  if (!oneShot || player.anim.done) playAnimation(player.anim, presenting ? "present" : waving ? "wave" : (player.carrying ? "carry_" : "") + (walking ? "walk" : "idle"));
   advanceAnimation(player.anim, sheet, dt);
 }

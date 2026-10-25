@@ -3,8 +3,9 @@
 //   await __game.check("poses")
 // Items 1 and 2 so far: the held-out pose (`present`, the player's alone; a book in the main hand presents in
 // the idle and the walk; eating and drinking present for `presentTime`) and the halberd's thrust (`attack_alt`
-// from the `thrust` style, only on the sheet of a figure whose weapon's `alt` names it). It pauses the loop,
-// puts things in the player's hands, and gives back what was there.
+// from the `thrust` style, only on the sheet of a figure whose weapon's `alt` names it); and docs/43 section 7's wave (the player's alone, G
+// and /wave as the snapshot's key event, for `waveSeconds`, ended by walking) and cowering (a villager's alone). It pauses the loop,
+// puts things in the player's hands, hides the title for the keys, and gives back what was there.
 
 export async function run(game) {
   const G = game;
@@ -102,6 +103,45 @@ export async function run(game) {
     const castAt = G.figure.poseAt("cast_staff");
     const bowAt = G.figure.poseAt("bow");
     row("the cast's pose follows the staff's hand, with its own rhythm", staffMain === "cast_staff" && bookMain === "cast_book" && bookAlone !== "cast_book" && bookAlone !== "cast_staff" && castAt[0] === 0.3 && castAt[1] === 0.7 && bowAt[0] === 0.35 && bowAt[1] === 0.8, `staff in the main hand ${staffMain}, book in the main hand ${bookMain}, the book alone ${bookAlone}; the cast at ${castAt.join(", ")}, the bow at ${bowAt.join(", ")}`);
+    // 9. The wave and the cowering (docs/43 section 7): the wave on the player's sheet alone, the cowering on a villager's alone, each from its style in the data.
+    hold(null);
+    const wv = sheet().animations.wave;
+    const vSheet = v ? assets.getSheet(v.sprite).animations : {};
+    const zSheet = z ? assets.getSheet(z.sprite).animations : {};
+    const styles = G.figure.poseStyles();
+    row("the wave is on the player's sheet alone and the cowering on a villager's alone", !!wv && wv.frames === 2 && wv.loop && !sheet().animations.cower && !!vSheet.cower && !vSheet.wave && !zSheet.wave && !zSheet.cower && styles.includes("wave") && styles.includes("cower"), `player wave ${wv ? `${wv.frames} frames at ${wv.fps} fps` : "none"}; villager cower ${vSheet.cower ? vSheet.cower.frames : "none"}, wave ${!!vSheet.wave}; the dead ${!!zSheet.wave}/${!!zSheet.cower}`);
+    const w0 = G.figure.pose("player", "wave", 0);
+    const w1 = G.figure.pose("player", "wave", 1);
+    const held = G.figure.pose("player", "wave", 0, { main: true, off: false });
+    const cw = G.figure.pose("player", "cower", 0);
+    row("the wave raises the main arm and moves the hand side to side; the cowering raises both arms", w0.armPitch[1] >= 110 && w0.armPitch[1] === w1.armPitch[1] && w0.armOut[1] !== w1.armOut[1] && w0.armPitch[0] < 30 && held.armPitch[1] === w0.armPitch[1] && cw.armPitch[0] >= 110 && cw.armPitch[1] >= 110, `wave arm ${w0.armPitch[1]}, hand out ${w0.armOut[1]} then ${w1.armOut[1]}, off arm ${w0.armPitch[0]}; held still waves ${held.armPitch[1]}; cower arms ${cw.armPitch.join(", ")}`);
+    // G is a key event in the snapshot, performed by the world's step (a guest's the same way): the wave for its seconds, then the idle.
+    const screen0 = G.screens.currentScreen();
+    if (screen0) G.screens.hide();
+    try {
+      p.waveFor = 0;
+      window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyG", bubbles: true }));
+      const first = step(2);
+      window.dispatchEvent(new KeyboardEvent("keyup", { code: "KeyG", bubbles: true }));
+      const rest = step(Math.ceil(G.tuning.player.waveSeconds * 60) + 10);
+      const waved = [...first, ...rest].filter((a) => a === "wave").length / 60;
+      row("G waves for waveSeconds, then the idle", Math.abs(waved - G.tuning.player.waveSeconds) <= 3 / 60 && rest[rest.length - 1] === "idle", `waved ${waved.toFixed(2)} s against ${G.tuning.player.waveSeconds}; then ${rest[rest.length - 1]}`);
+      // /wave in the chat: the same key event in the next snapshot.
+      const box = document.getElementById("log-input");
+      box.value = "/wave";
+      box.dispatchEvent(new KeyboardEvent("keydown", { code: "Enter", key: "Enter", bubbles: true }));
+      const chat = step(3);
+      row("/wave in the chat waves too", chat.includes("wave") && p.waveFor > 0, `${chat.join(", ")}; ${p.waveFor.toFixed(2)} s left`);
+      // Walking ends it, as it ends the held-out pose.
+      const { updatePlayer } = await import("/src/entities/player.js");
+      const at = [p.gx, p.gy];
+      updatePlayer(p, 1 / 60, { ...G.game.idleSnapshot(), axis: { x: 1, y: 0 } });
+      G.teleport(at[0], at[1]);
+      row("walking ends the wave", p.waveFor === 0 && p.anim.name !== "wave", `${p.waveFor} left, ${p.anim.name}`);
+    } finally {
+      p.waveFor = 0;
+      if (screen0 && !G.screens.currentScreen()) G.screens.show(screen0);
+    }
   } finally {
     p.hands.main = hands0.main;
     p.hands.off = hands0.off;
