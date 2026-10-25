@@ -760,6 +760,98 @@ check("trees off: the mushrooms stand where they stand with trees (the valley, i
   return `${on.found.length} mushrooms in the same places, ${on.trunks} trees on and none off`;
 });
 
+// The dye vat (docs/43 section 8, #412): the three vats in the weaver's yard are stations that open the picker (on a guest's player, the word to
+// that guest); the `dye` verb, by the vat's id and the entry's uid, dyes a worn or carried garment a palette's colour or a scheme whole, and
+// refuses what the item does not allow, an item that is not dyeable or not carried, and a vat out of reach; its own colours undye it; the
+// colours are on the entry in the sync hash and the save; a guest's command (host.js's hook) is the same verb; the card says what it can be
+// dyed and what it is. (The picker on the page, the figure's recolouring, and two tabs are `check("dye")`'s and `check("layers")`', in the pane.)
+const dyeMod = await import("../src/dye.js");
+const hostMod = await import("../src/host.js");
+const eventsMod = await import("../src/events.js");
+const interactMod = await import("../src/interact.js");
+check("dye vat: three vats open the picker; the verb dyes by uid, refuses what it should, undyes, and is in the sync hash, the save, a guest's command, and the card", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  const W = worldMod.world;
+  const wea = json.sets.find((q) => q.name === "the weaver");
+  assert(wea, "no weaver in the valley");
+  const at = wea.props.filter((q) => q.sprite === "dyevat").map((q) => [wea.rect[0] + q.tile[0], wea.rect[1] + q.tile[1]]);
+  assert(at.length === 3, `${at.length} vats in the weaver's yard`);
+  mapMod.ensureAround(at[1][0], at[1][1], 2);
+  const vats = at.map(([x, y]) => mapMod.peekTile(x, y) && mapMod.peekTile(x, y).prop).filter((q) => q && q.sprite === "dyevat");
+  assert(vats.length === 3 && vats.every((v) => stationsMod.stationOf(v) === "dyevat"), "the three vats are not dye vat stations");
+  const vat = vats[1];
+  let stand = null;
+  for (const [dx, dy] of [[0, 1], [0, -1], [1, 1], [-1, 1], [0, 2]]) if (!stand && mapMod.isWalkableTile(vat.tile[0] + dx, vat.tile[1] + dy)) stand = [vat.tile[0] + dx, vat.tile[1] + dy];
+  assert(stand, "nowhere to stand by the vat");
+  me.gx = stand[0];
+  me.gy = stand[1];
+  // The menu's entry, as a guest's label runs it on the host: the word goes to the player who used it.
+  let told = null;
+  const hear = (e) => { told = e; };
+  eventsMod.on("dyeOpened", hear);
+  const labels = interactMod.actionsForTarget({ kind: "prop", id: vat.id }, me).map((a) => a.label);
+  assert(labels.includes("Use the dye vat"), `the vat's menu: ${labels.join(", ")}`);
+  interactMod.performByLabel(me, { kind: "prop", id: vat.id }, "Use the dye vat");
+  eventsMod.off("dyeOpened", hear);
+  assert(told && told.prop === vat && told.player === me, "using the vat did not say so for the player who used it");
+  const tunic = me.worn.chest;
+  assert(tunic && tunic.id === "tunic", "no tunic worn");
+  const run = (uid, colours, prop = vat) => verbsMod.run("dye", W, me, { prop: prop.id }, { uid, colours });
+  const sync0 = gameMod.syncParts().players;
+  let r = run(tunic.uid, ["#3e5e90"]);
+  assert(r.ok && tunic.colours && tunic.colours[0] === "#3e5e90", `the tunic was not dyed woad: ${r.reason || JSON.stringify(tunic.colours)}`);
+  assert(gameMod.syncParts().players !== sync0, "a dyed tunic did not move the players' sync hash");
+  const card = itemInfoMod.textOf(itemInfoMod.cardFor(tunic));
+  assert(card.some((l) => l.includes("Woad blue")) && card.some((l) => l.includes("Can be dyed at a dye vat: 16 colours.")), `the tunic's card: ${card.join(" | ")}`);
+  // Refusals, each with its word.
+  assert(run(tunic.uid, ["#123456"]).reason === "The vat has no such colour for it.", "a colour off the palette was allowed");
+  assert(run(tunic.uid, ["#3e5e90", "#3e5e90"]).reason === "That is not a colouring for it.", "two colours for a one-region tunic were allowed");
+  assert(run(tunic.uid, ["#c8a040"]).reason === "The vat has no such colour for it.", "brass, not a cloth colour, was allowed on the tunic");
+  const bread = itemsMod.makeEntry("bread", 1);
+  inventoryMod.stow(me, bread);
+  assert(run(bread.uid, ["#3e5e90"]).reason === "That can't be dyed.", "bread was dyed");
+  assert(run("e-nothing", ["#3e5e90"]).reason === "You don't have that with you.", "an entry not carried was dyed");
+  const notVat = mapMod.allProps().find((q) => q.sprite === "loom");
+  if (notVat) assert(run(tunic.uid, ["#a63a2c"], notVat).reason === "That is not a dye vat.", "the loom dyed");
+  me.gx = stand[0] + 12;
+  assert(run(tunic.uid, ["#a63a2c"]).reason === "Too far from the vat.", "a vat twelve tiles off dyed");
+  me.gx = stand[0];
+  // A two-region item with schemes takes one whole, and not a mix; a free two-region item takes each region from its own palette.
+  const belt = itemsMod.makeEntry("good_belt", 1);
+  inventoryMod.stow(me, belt);
+  assert(run(belt.uid, ["#2a2428", "#8c8c94"]).ok && belt.colours.join() === "#2a2428,#8c8c94", "the leather belt did not take black and iron");
+  assert(run(belt.uid, ["#8c8c94", "#2a2428"]).reason === "The vat has no such scheme for it.", "the belt took iron and black, no scheme");
+  assert(run(belt.uid, ["#a63a2c", "#c8a040"]).reason === "The vat has no such scheme for it.", "the belt took madder, no scheme");
+  assert(itemInfoMod.textOf(itemInfoMod.cardFor(belt)).some((l) => l.includes("6 schemes")) && itemInfoMod.textOf(itemInfoMod.cardFor(belt)).some((l) => l.includes("Black and iron")), `the belt's card: ${itemInfoMod.textOf(itemInfoMod.cardFor(belt)).join(" | ")}`);
+  const satchel = itemsMod.makeEntry("satchel", 1);
+  inventoryMod.stow(me, satchel);
+  assert(run(satchel.uid, ["#3e6a38", "#5c2020"]).ok && satchel.colours.join() === "#3e6a38,#5c2020", "the satchel did not take green cloth and an oxblood strap");
+  assert(run(satchel.uid, ["#5c2020", "#3e6a38"]).reason === "The vat has no such colour for it.", "the satchel took oxblood cloth and a green strap");
+  assert(run(satchel.uid, ["#c8b890", "#5c2020"]).ok && satchel.colours.join() === "#c8b890,#5c2020", "the satchel's own cloth with a dyed strap was refused");
+  // A wardrobe's single colour (a hood from the dead) is replaced, and an item's own colours undye it.
+  const hood = itemsMod.makeEntry("hood", 1, { colour: "#705848" });
+  inventoryMod.stow(me, hood);
+  assert(run(hood.uid, ["#6a3c72"]).ok && !hood.colour && hood.colours.join() === "#6a3c72", "a wardrobe-dyed hood did not take orchil");
+  assert(run(hood.uid, ["#5f8a3a"]).ok && !hood.colours && !hood.colour, "the hood's own green did not undye it");
+  // The cost hook costs nothing: no dye names a cost.
+  assert(dyeMod.costOf(itemsMod.getItem("tunic"), ["#3e5e90"]).length === 0, "a dye costs something before #288");
+  // A guest's command: the host's hook runs the same verb as that player.
+  hostMod.netHooks().dye(me, { propId: vat.id, uid: tunic.uid, colours: ["#a63a2c"] });
+  assert(tunic.colours.join() === "#a63a2c", "the guest's command did not dye the tunic madder");
+  hostMod.netHooks().dye(me, { propId: vat.id, uid: tunic.uid, colours: ["#ffffff"] });
+  assert(tunic.colours.join() === "#a63a2c", "the guest's command dyed a colour off the palette");
+  // The save keeps it.
+  const saved = JSON.parse(JSON.stringify(gameMod.serialize()));
+  gameMod.restore(saved, json);
+  const back = gameMod.state.player;
+  const sat = inventoryMod.bagOf(back).items.find((q) => q.id === "satchel");
+  assert(back.worn.chest.colours.join() === "#a63a2c" && sat && sat.colours.join() === "#c8b890,#5c2020", "the save lost a dye");
+  return "three vats, a tunic woad then madder, the belt's scheme, the satchel's two regions, refusals worded, undyed, the hash, the save, a guest's command, the cards";
+});
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;

@@ -1251,6 +1251,106 @@ html, body {
   background: var(--gold);
 }
 
+/* ---- the dye vat's picker (docs/43 section 8): the figure turning beside the garment, its swatches, and Apply ---- */
+#dye {
+  position: absolute;
+  left: 50%;
+  top: 34px;
+  transform: translateX(-50%);
+  z-index: 7;
+  width: 520px;
+  font-size: 12px;
+  font-family: var(--font-small);
+  line-height: 1.35;
+  pointer-events: auto;
+}
+
+.dy-body {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.dy-preview {
+  flex: 0 0 auto;
+  width: 144px;
+  height: 216px;
+  image-rendering: pixelated;
+}
+
+.dy-rows {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 4px 8px;
+}
+
+.dy-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dy-label {
+  flex: 0 0 58px;
+  color: var(--muted);
+  padding-top: 3px;
+}
+
+.dy-garments, .dy-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+#dye .dy-garment {
+  font-size: 11px;
+  font-family: var(--font-small);
+  padding: 2px 6px;
+}
+
+#dye .dy-garment.on {
+  outline: 1px solid var(--gold);
+}
+
+#dye button.swatch {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 2px solid #2b2522;
+  border-radius: 3px;
+  background: var(--swatch);
+  cursor: pointer;
+}
+
+#dye button.swatch:hover {
+  border-color: #c9b98e;
+}
+
+#dye button.swatch.on {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold);
+}
+
+.dy-picked {
+  padding-top: 3px;
+}
+
+.dy-apply {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.dy-note {
+  color: var(--muted);
+  font-size: 11px;
+  font-family: var(--font-small);
+}
+
 .inv-hl.ok {
   background: rgba(110, 220, 120, 0.35);
   border: 1px solid #7ee08a;
@@ -1355,7 +1455,7 @@ html, body {
 }
 
 /* No world chosen (docs/31/09): the title over black, none of the world's interface showing. */
-#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #debuffs, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #floaters, #ui.no-world #hover-card, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #talk, #ui.no-world #nav-row, #ui.no-world #skills-panel, #ui.no-world #build-palette, #ui.no-world #map-panel, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
+#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #debuffs, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #floaters, #ui.no-world #hover-card, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #dye, #ui.no-world #talk, #ui.no-world #nav-row, #ui.no-world #skills-panel, #ui.no-world #build-palette, #ui.no-world #map-panel, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
 /* #debug is #ui's sibling in index.html, not its child, so it is reached with ~; the chat box (#log-input) is #log's
    sibling, so it is named on its own (#16). */
 .screen h2 { font-size: 1.05em; margin: 10px 0 4px; color: #e8dcc0; }

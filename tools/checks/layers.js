@@ -78,5 +78,62 @@ export async function run(game) {
     const set = coloursOf(F.generateFigure(F.playerSpec(look, { head: entry }, artThree)));
     rows.push({ check: `a three-tone painted hat ${label} keeps all three tones`, result: three.every((c) => set.has(c)) && !set.has("#3355aa") ? "pass" : "FAIL", detail: three.map((c) => set.has(c)).join(" ") });
   }
+  // Every painted slot dyed by its entry (docs/43 section 8): an item whose art names a painted layer and `keys`, a pair of key tones per region,
+  // is recoloured region by region: the light key becomes the entry's colour, the dark key its shade (draw.js SHADE_DYE, 0.16), and a tone that
+  // is no key is kept; undyed, the painting keeps its keys. One throwaway layer and item per slot, read at exact pixels of idle_s_0: a substitution
+  // part's pixels are found inside the generated part (the bare figure's part map), a free part's beside its joint.
+  const raster = await import("/src/figure/raster.js");
+  const shadeOf = (hex) => "#" + raster.tone(raster.hexToRgb(hex), -0.16).map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
+  const KL = "#c0a080", KD = "#806040", K2L = "#4080c0", K2D = "#205080", KEEP = "#f0f0f0";
+  const bareMap = F.generateFigure({ ...F.playerSpec(look, {}, artOf), partMaps: true });
+  const pmap = bareMap.partMaps.idle_s_0;
+  const BJ = bareMap.joints.idle_s_0;
+  const FW = F.FW;
+  // Four pixels in a row deep inside a generated part (its neighbours above and below the same part), nearest its middle.
+  const inside = (partId) => {
+    const all = [];
+    for (let y = 1; y < F.FH - 1; y++) for (let x = 1; x < FW - 4; x++) {
+      let ok = true;
+      for (let k = -1; k <= 4 && ok; k++) for (const dy of [-1, 0, 1]) if (pmap[(y + dy) * FW + x + k] !== partId) ok = false;
+      if (ok) all.push([x, y]);
+    }
+    if (!all.length) return null;
+    const mx = all.reduce((s, p) => s + p[0], 0) / all.length, my = all.reduce((s, p) => s + p[1], 0) / all.length;
+    return all.sort((a, b) => Math.hypot(a[0] - mx, a[1] - my) - Math.hypot(b[0] - mx, b[1] - my))[0];
+  };
+  const at = (j) => [Math.round(F.FEET_X + j.x), Math.round(F.FEET_Y + j.y)];
+  const P_TORSO = 3, P_LEGL = 1;
+  const slots = [
+    { slot: "chest", part: "torso", wear: "chest", shape: "tunic", anchor: at(BJ.neck), spot: inside(P_TORSO), two: true },
+    { slot: "waist", part: "torso", wear: "waist", shape: "belt", anchor: at(BJ.neck), spot: inside(P_TORSO) },
+    { slot: "legs", part: "legL", wear: "legs", shape: "breeches", anchor: at(BJ.hipL), spot: inside(P_LEGL) },
+    { slot: "feet", part: "footR", wear: "feet", shape: "boots", anchor: at(BJ.footR), spot: [at(BJ.footR)[0] + 1, at(BJ.footR)[1] + 1] },
+    { slot: "hands", part: "handR", wear: "hands", shape: "gloves", anchor: at(BJ.handR), spot: [at(BJ.handR)[0] + 2, at(BJ.handR)[1]] },
+    { slot: "head", part: "head", wear: "head", shape: "hood", anchor: at(BJ.head), spot: [at(BJ.head)[0] - 1, at(BJ.head)[1] - 14] },
+  ];
+  for (const s of slots) {
+    if (!s.spot) { rows.push({ check: `a painted ${s.slot} layer is dyed by its key tones`, result: "FAIL", detail: "no pixel inside the part" }); continue; }
+    const [sx, sy] = s.spot;
+    const off = (k) => [sx + k - s.anchor[0], sy - s.anchor[1]];
+    const tones = s.two ? [KL, KD, K2L, K2D, KEEP] : [KL, KD, KEEP];
+    const name = `zz_key_${s.slot}`;
+    F.registerLayer(s.slot, name, { parts: { [s.part]: { s: tones.map((c, k) => [...off(k), c]) } }, options: {} });
+    const id = `zz_keyed_${s.slot}`;
+    const keys = s.two ? [[KL, KD], [K2L, K2D]] : [[KL, KD]];
+    const artKeyed = (q) => (q === id ? { shape: s.shape, colours: s.two ? [KL, K2L] : [KL], painted: name, keys } : artOf(q));
+    const dyedTo = s.two ? ["#aa2222", "#22aa44"] : ["#aa2222"];
+    const sheetDyed = F.generateFigure(F.playerSpec(look, { [s.wear]: { id, count: 1, colours: dyedTo } }, artKeyed));
+    const sheetOwn = F.generateFigure(F.playerSpec(look, { [s.wear]: { id, count: 1 } }, artKeyed));
+    const got = tones.map((_, k) => pxAt(sheetDyed, "idle_s_0", sx + k, sy));
+    const own = tones.map((_, k) => pxAt(sheetOwn, "idle_s_0", sx + k, sy));
+    const want = s.two ? [dyedTo[0], shadeOf(dyedTo[0]), dyedTo[1], shadeOf(dyedTo[1]), KEEP] : [dyedTo[0], shadeOf(dyedTo[0]), KEEP];
+    rows.push({ check: `a painted ${s.slot} layer is dyed by its key tones${s.two ? ", two regions each its own" : ""}, a tone that is no key kept`, result: got.join() === want.join() ? "pass" : "FAIL", detail: `got ${got.join(" ")}, want ${want.join(" ")}` });
+    rows.push({ check: `undyed, the painted ${s.slot} layer keeps its keys`, result: own.join() === tones.join() ? "pass" : "FAIL", detail: own.join(" ") });
+  }
+  // The onion hat now names its keys: dyed by the keys it draws exactly as it did by its two tones (the wardrobes' dyed hoods unchanged).
+  const hoodKeys = (artOf("hood") || {}).keys;
+  const viaKeys = coloursOf(F.generateFigure(F.playerSpec(look, { head: { id: "hood", count: 1, colour: "#b08a3e" } }, artOf)));
+  const viaTones = coloursOf(F.generateFigure(F.playerSpec(look, { head: { id: "hood", count: 1, colour: "#b08a3e" } }, (q) => (q === "hood" ? { ...artOf("hood"), keys: undefined } : artOf(q)))));
+  rows.push({ check: "the onion hat's keys are its two greens, and dyed by them it draws as by its two tones", result: JSON.stringify(hoodKeys) === JSON.stringify([["#5f8a3a", "#46682a"]]) && [...viaKeys].sort().join() === [...viaTones].sort().join() ? "pass" : "FAIL", detail: `${JSON.stringify(hoodKeys)}; ${viaKeys.size} and ${viaTones.size} colours` });
   return { rows, fails: rows.filter((r) => r.result === "FAIL").length };
 }

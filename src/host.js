@@ -189,6 +189,15 @@ export function netHooks() {
       const r = verbs.run("craft", world.world, p, { prop: propId }, { recipe, count }); // the world object (world.js), as the panel passes it
       if (!r.ok) showMessage(r.reason || "Cannot.");
     },
+    // A guest's Apply at a dye vat (docs/43 section 8): the vat by id, the entry by uid, a hex per region; the verb checks the rest.
+    dye: (p, cmd) => {
+      const propId = typeof cmd.propId === "string" ? cmd.propId : null;
+      const colours = Array.isArray(cmd.colours) ? cmd.colours.slice(0, 8).map((c) => (typeof c === "string" ? c.slice(0, 7) : null)) : null;
+      if (!propId || cmd.uid == null || !colours) return;
+      const r = verbs.run("dye", world.world, p, { prop: propId }, { uid: cmd.uid, colours });
+      if (r.ok) showMessage("Dyed.");
+      else showMessage(r.reason || "Cannot.");
+    },
   };
 }
 
@@ -267,6 +276,10 @@ export function install() {
   events.on("containerOpened", ({ tiles: where, name, closeDist, prop, entry, tile, character, station }) => {
     const by = S.acting;
     if (by && by !== self() && net.isHost()) net.openedFor(by.id, { propId: prop ? prop.id : null, entryUid: entry ? entry.uid : null, tile: tile || null, characterId: character ? character.id : null, tiles: where, name, closeDist: closeDist || 0, station: !!station });
+  });
+  // A dye vat a guest's player used (ui/dye-panel.js openFor): told to the guest, whose picker opens on its replica.
+  events.on("dyeOpened", ({ prop, player: by }) => {
+    if (by && by !== self() && prop && net.isHost()) net.openedFor(by.id, { propId: prop.id, dye: true, tiles: prop.tiles });
   });
   // A conversation a guest's player began (villager.js startTalk): told to the guest, whose panel opens on its replica.
   events.on("talkStarted", ({ villager, by }) => {

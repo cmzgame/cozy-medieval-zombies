@@ -118,9 +118,11 @@ function drawFrame(frame, spec, facing, anim, i) {
   const rests = {};
   const restOf = (variant) => (rests[variant] ||= joints(pose(variant, "idle", 0, { main: false, off: false })));
   const restJ = restOf(spec.variant);
+  // A worn item's painted layer comes dyed by its entry (dyeWorn, below); hair, beards, and the body are dyed by the look (dye).
   const layerPx = (slot, partName) => {
     const L = painted[slot];
-    return L && L.parts && L.parts[partName] ? L.parts[partName][facing] || null : null;
+    const pixels = L && L.parts && L.parts[partName] ? L.parts[partName][facing] || null : null;
+    return pixels && outfit[slot] ? dyeWorn(slot, pixels) : pixels;
   };
   // Dyeing (docs/25): a hair or beard layer with `options.dye` is painted in
   // the wearer's hair colour: its lightest colour becomes the hair colour, every
@@ -140,15 +142,34 @@ function drawFrame(frame, spec, facing, anim, i) {
     if (!pixels || !L || !L.options || !L.options.dye) return pixels;
     return dyeTo(pixels, (slot === "beard" && look.beardColour) || look.hair);
   };
-  // A painted head item is dyed like hair when its entry is (2026-10-18, the onion hat): the entry's colour becomes the
-  // light tone and its shade the dark (a villager's or one of the dead's dyed hood). Only a dyed entry (`dyed`, from
-  // wardrobe.js), only the layer the item names (not a try-on from the settings nor the dead's pool), and only a layer
-  // painted in two tones plus the outline, as hair is: a hat of more tones keeps its paint, dyed or not.
-  const dyeHead = (pixels) => {
-    const head = outfit.head;
-    const L = painted.head;
-    if (!pixels || !head || !head.dyed || !L || head.painted !== L.name || !head.colours || !head.colours[0]) return pixels;
-    return isTwoTone(L, tonesOf) ? dyeTo(pixels, head.colours[0]) : pixels;
+  // A painted garment in any slot is dyed by its worn entry (docs/43 section 8; docs/28, "colour is data, not art"; the onion
+  // hat first, 2026-10-18): only a dyed entry (`dyed`, from wardrobe.js), only the layer the item names (not a try-on from the
+  // settings nor the dead's pool). With `keys` on the item's art, one pair of key tones per region (light, dark), region i's
+  // light key becomes the entry's colour i and its dark key that colour's shade; every other tone and the outline are kept.
+  // Without keys, the one-region rule hair has: a layer painted in two tones plus the outline takes the first colour as its
+  // light tone and its shade as the dark, and a layer of more tones keeps its paint, dyed or not.
+  const keyMaps = {}; // slot -> the key tones' replacements, made once a frame
+  const keyMapOf = (slot, g) => {
+    if (keyMaps[slot]) return keyMaps[slot];
+    const m = new Map();
+    g.keys.forEach((pair, i) => {
+      const c = g.colours[i];
+      if (!pair || !c) return;
+      const rgb = hexToRgb(c);
+      if (pair[0]) m.set(hexOf(hexToRgb(pair[0])), hexOf(rgb));
+      if (pair[1]) m.set(hexOf(hexToRgb(pair[1])), hexOf(tone(rgb, -SHADE_DYE)));
+    });
+    return (keyMaps[slot] = m);
+  };
+  const dyeWorn = (slot, pixels) => {
+    const g = outfit[slot];
+    const L = painted[slot];
+    if (!pixels || !g || !g.dyed || !L || g.painted !== L.name || !g.colours || !g.colours[0]) return pixels;
+    if (Array.isArray(g.keys) && g.keys.length) {
+      const m = keyMapOf(slot, g);
+      return pixels.map(([x, y, c]) => [x, y, m.get(c) || m.get(String(c).toLowerCase()) || c]);
+    }
+    return isTwoTone(L, tonesOf) ? dyeTo(pixels, g.colours[0]) : pixels;
   };
   const layerRest = (slot) => restOf(painted[slot] ? painted[slot].variant : spec.variant);
   // Carry pixels painted relative to the rest segment a0 -> b0 onto this
@@ -444,7 +465,7 @@ function drawFrame(frame, spec, facing, anim, i) {
       }
     }
     if (paintedHair) { const r = P(layerRest("hair").head); stamp(dye("hair", layerPx("hair", "head")), r, below(r), hc, below(hc)); }
-    if (paintedHead) { const r = P(layerRest("head").head); stamp(dyeHead(layerPx("head", "head")), r, below(r), hc, below(hc)); }
+    if (paintedHead) { const r = P(layerRest("head").head); stamp(layerPx("head", "head"), r, below(r), hc, below(hc)); }
     if (painted.beard) { const r = P(layerRest("beard").head); stamp(dye("beard", layerPx("beard", "head")), r, below(r), hc, below(hc)); }
     if (spec.wound && !helm) {
       const w = P([spec.wound[0], spec.wound[1], J.head[2] + spec.wound[2]]);
