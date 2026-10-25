@@ -1,6 +1,6 @@
 # 06 — Art direction and the dev palette
 
-Michael, 2026-10-09: spooky medieval, a bit haunted, never permanently night. Not Stardew's bright lawn; closer to Tirisfal Glades, a place where Halloween never quite ends. The dev art should carry that identity now, before real art, because a visual identity helps motivation. The character placeholders were kept at first; later the same day the player got worn yellowed linen with sleeves and brown breeches (no denim), and the dead stayed as they were.
+Michael, 2026-10-09: spooky medieval, a bit haunted, never permanently night. Not Stardew's bright lawn; closer to Tirisfal Glades, a place where Halloween never quite ends. **Read since 2026-10-25 as the outer regions' register, not the valley's** (Michael: "Tirisfal was always for the outer regions"): the valley is cheery, start-as-Stardew, and each region beyond is spookier than the last (`00`; how bright the valley is drawn is #426). The dev art should carry that identity now, before real art, because a visual identity helps motivation. The character placeholders were kept at first; later the same day the player got worn yellowed linen with sleeves and brown breeches (no denim), and the dead stayed as they were.
 
 ## The genre test
 

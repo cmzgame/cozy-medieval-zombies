@@ -152,6 +152,8 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The character, the figure, and art
 
+- Cheery at home, spooky beyond: the valley start-as-Stardew, Tirisfal the outer regions' register, region by region, not a gradient (2026-10-25, Cheery at home, spooky beyond)
+- Habbo is no longer the visual reference; its techniques (flat side shading, stepped shadows) stay as how pixels are drawn (2026-10-25, Cheery at home, spooky beyond)
 - The long, thin items (the plank, the stick, the shovel, the hatchet) take the larger bag icon, the drawing rendered to fill the cell; the rope belt is drawn in today's belt's browns (2026-10-20, The everyday items' art: the large icons for the long items; the rope belt in today's belt's browns (Michael))
 - A painted head item in two tones is dyed like hair by its entry's dye, undyed or of more tones it keeps the paint; the dead draw an item's painted layer too (2026-10-18, The Onion-head Hat's art: the brow; a dyed hood is dyed like hair, and the dead wear it too)
 - The weeping willow is cut; the art generators are to be archived in tools/art-gen, never run without Michael (2026-10-16, The needs-michael queue)
@@ -286,6 +288,14 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-25 — Cheery at home, spooky beyond: Tirisfal is the outer regions' register, region by region; Habbo no longer the reference (Michael, clarifying)
+
+Asked whether the valley should be brighter to match "start as Stardew" (#426), Michael: "Tirisfal was always for the outer regions. The idea was always the further you go from home the spookier it gets, we changed the interpretation to be more of a region than gradient change." So the valley is cheery and cosy, start-as-Stardew; the regions beyond are spooky, Tirisfal Glades for the darkest; the mood changes region by region, not as a gradient. It corrects how `docs/00`, `docs/06`, and 2026-10-09's "Dev art gets the game's visual identity now" read; how bright the valley is drawn, and Plants vs Zombies as a style reference, stay open on #426.
+
+**Habbo is no longer the visual reference either.** Michael: "I think we have also evolved past Habbo as a visual reference. That and Tirisfal are ANCIENT ideas in the lifespan of this game ... Habbo doesn't have action combat with skillshots." The game is a cute isometric pixel-art village; the identity lines (`CLAUDE.md`, the README, `docs/00`, the style bible, the art briefs) drop the name. What stays are the drawing techniques it once named, the figure's flat side shading and the stepped shadows, which describe how the pixels are drawn today (`src/figure/raster.js`, `src/ground.js`, `docs/12`, `docs/15`), and the records under `docs/history`, never edited.
+
+Docs: 00, 06, CLAUDE.md, README, art/01, art/11, 29-world/09.
 
 ### 2026-10-25 — Water ruled: no fixed source is clean, boil with Use or either menu, a clean starting skin, Sick (Michael; #279)
 
@@ -1894,7 +1904,7 @@ The conversation that opens Milestone 2. Its design is `07-lighting.md`.
 - **The dead know only where they last saw you.** Michael drew the case: he ran a route around a house with solid walls and the dead cut the corner straight to him, as if they had his coordinates. They did: chase was pathing to the player's live tile. Now a zombie remembers the last place it saw you, walks there, searches around it for ten seconds, and gives up (narrowed 2026-10-17, The siege: a sealed room is a cell, the dead wait for dawn, a crowd bursts a fence: the dead that know you are inside wait until dawn). No biting through walls either: a bite needs line of sight. **Noise is deliberately not a factor yet**; Michael is unsure it fits the cosy idea and with no guns there is nothing loud. Open question 18.
 - **The stamina bar is the first UI**, because Michael sprints everywhere. Sprint lasts about six seconds instead of two and a half.
 - **The fog is lighter.** It shades what you cannot see clearly but never distracts from what is there. 0.74 alpha was near black; now 0.46 in a dusky purple. (Lowered again to 0.36 later the same day, above.)
-- **Dev art gets the game's visual identity now.** Spooky medieval, a bit haunted, never permanently night; Tirisfal Glades, not Stardew. Thick walls, planks and bricks, open windows, dirt roads, a farm tile, dull grass. The character placeholders were kept at first; the player's clothes changed later the same day (above) and the dead are unchanged. See `06-art.md`, which also records the genre test for any new colour.
+- **Dev art gets the game's visual identity now.** Spooky medieval, a bit haunted, never permanently night; Tirisfal Glades, not Stardew (narrowed 2026-10-25, Cheery at home, spooky beyond: the outer regions' register, the valley cheery). Thick walls, planks and bricks, open windows, dirt roads, a farm tile, dull grass. The character placeholders were kept at first; the player's clothes changed later the same day (above) and the dead are unchanged. See `06-art.md`, which also records the genre test for any new colour.
 - **One screen is a few huts, a small square, part of a castle, or barely all of a small one. That is plenty.** Michael: all of those are scenarios where one screen would be generous. ~~960×540 stands, no zoom.~~ (superseded 2026-10-10, night: The view, the screens, and a law: the world fills the window; three zoom levels since The belt as utility slots, a belt torch, the zoom) The countryside stays in `05-someday.md`.
 - ~~**Players can go through windows.** Michael, on seeing the wedge: "now we can let players go through windows!" Open question 5 is settled: the living and the dead both, with the details (slow, loud, broken or open) decided at the openings milestone.~~ (superseded 2026-10-16: Nobody climbs through a window; region is the word, #134)
 - **Near walls draw full height and translucent when you are inside.** Michael likes seeing the full wall. ~~Stubs stay on the `C` key for now and may come back later.~~ (superseded 2026-10-11: Final rulings on the plan, and pumpkins join the gatherables: stubs retire as a setting, the idea kept in `05`) This supersedes the stub plan that `03-world-model.md` carried until the docs pass later on 2026-10-09.
