@@ -252,7 +252,18 @@ export const resources = {
   riseSeconds: 1,
 };
 
-const sections = { zombie, player, villager, world, population, sight, feel, floaters, objectHighlight, hoverCard, work, water, resources };
+// Trees: saplings and sticks (docs/46 section 4, step 3; src/trees.js). Felling a tree drops a `sapling.item` at `sapling.chance` (Woodcutting
+// `level`, recorded and not enforced until the skills); planted on open grass it shows each of `stages` for an equal share of `days` game days
+// of growth, which waits while anyone stands on it, then is the tree `grows` (the round oak). Gather sticks under a standing tree gives
+// `sticks.count` of `sticks.item` after a bar of `sticks.seconds`, and that tree has none again until the next game day. The saplings are
+// looked at once a `checkSeconds` of the clock, on its boundary, as the fruit trees are. Primary's defaults, levers in docs/42.
+export const trees = {
+  sapling: { item: "sapling", chance: 0.33, days: 5, stages: ["sapling_0", "sapling_1"], grows: "tree_oak_m", skill: "woodcutting", level: 4 },
+  sticks: { item: "stick", count: [1, 2], seconds: 2 },
+  checkSeconds: 30,
+};
+
+const sections = { zombie, player, villager, world, population, sight, feel, floaters, objectHighlight, hoverCard, work, water, resources, trees };
 
 // Lay a file's numbers over the defaults; a missing file or section changes nothing.
 export function load(json) {

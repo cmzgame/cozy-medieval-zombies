@@ -7,11 +7,12 @@
 //
 // A design: { kind: "herb", leaf, stem?, flower?, eye?, glow?, berries?, root?, flowers: "spike" | "daisy" | "umbel" | "cluster" | "star" |
 // "hood" | "bell" | "top" | "none", wide?, spikeFrom?, stems, height, spread, base, leafSize, leafGap, broad?, serrated?, mound?, tufts?, seed } · { kind: "mushroom", cap, stalk, capWidth, capHeight, stalkHeight, spots? } · { kind: "lump",
-// color, halfWidth, height, streaks?, sheen?, crystals?, crystal?, seed }. The foot of the picture is its anchor: the pixel drawn at the
-// tile's centre.
+// color, halfWidth, height, streaks?, sheen?, crystals?, crystal?, seed } · { kind: "sapling", trunk, leaf, soil, height, crown, wide?, seed } (docs/46
+// step 3: a young tree planted, not a gatherable, outlined as the gatherables are so it is found in the grass). The foot of the picture is its
+// anchor: the pixel drawn at the tile's centre.
 
 export const OUTLINE = "#2b2522";
-export const KINDS = ["herb", "mushroom", "lump"];
+export const KINDS = ["herb", "mushroom", "lump", "sapling"];
 
 // A small hash in 0..1 of two integers: the design's variation, never the sim's generator.
 function hash(seed, i) {
@@ -229,7 +230,49 @@ function lump(d, set) {
   }
 }
 
-const DRAW = { herb, mushroom, lump };
+// A sapling (docs/46 step 3, #449): a young tree from a felling, planted, drawn at each stage of its growing: a little mound of turned earth at
+// the foot, a thin trunk (two pixels wide when `wide`) rising `height` pixels, a pair of leaves on a twig half way up, and a lumpy crown of
+// leaves `crown` pixels round, lit from the upper left. Larger at each stage; the grown tree is the round oak's drawn picture.
+function sapling(d, set) {
+  const trunk = d.trunk || "#6a4a2a";
+  const leaf = d.leaf || "#4f8a3a";
+  const soil = d.soil || "#6a5034";
+  const seed = d.seed || 1;
+  const H = Math.max(3, d.height || 6);
+  const R = Math.max(2, d.crown || 3);
+  for (let x = -3; x <= 3; x++) set(x, 0, Math.abs(x) === 3 ? tone(soil, 0.78) : x > 0 ? tone(soil, 0.88) : soil);
+  for (let x = -2; x <= 2; x++) set(x, -1, x < 0 ? tone(soil, 1.18) : soil);
+  for (let y = -1; y >= -H; y--) {
+    set(0, y, y === -1 ? tone(trunk, 0.8) : trunk);
+    if (d.wide) set(1, y, tone(trunk, 0.72));
+  }
+  // A twig with a pair of leaves half way up the trunk, on the side the seed picks.
+  const side = hash(seed, 7) < 0.5 ? -1 : 1;
+  const ty = -Math.max(2, Math.round(H * 0.55));
+  const off = side > 0 && d.wide ? 1 : 0;
+  set(off + side, ty, tone(trunk, 0.9));
+  set(off + side * 2, ty - 1, leaf);
+  set(off + side * 3, ty - 1, tone(leaf, 1.25));
+  set(off + side * 2, ty - 2, tone(leaf, 1.25));
+  // The crown: a disc a little wider than tall, its edge broken by the seed, shaded darker to the lower right.
+  const cy = -H - R + 1;
+  const cx = d.wide ? 0.5 : 0;
+  for (let y = -R; y <= R; y++) {
+    for (let x = -R - 1; x <= R + 1; x++) {
+      const dx = x - cx;
+      const r2 = (dx * dx) / 1.15 + y * y;
+      const edge = R * R - (hash(seed, (x + 20) * 41 + y + 20) < 0.35 ? R : 0);
+      if (r2 > edge) continue;
+      const lit = dx + y < -R * 0.6;
+      const shade = dx + y > R * 0.5;
+      let c = lit ? tone(leaf, 1.22) : shade ? tone(leaf, 0.72) : leaf;
+      if (!lit && !shade && hash(seed + 3, (x + 20) * 37 + y) < 0.18) c = tone(leaf, 0.86);
+      set(x, cy + y, c);
+    }
+  }
+}
+
+const DRAW = { herb, mushroom, lump, sapling };
 
 // The picture of a design: { w, h, ax, ay, px: [[x, y, "#rrggbb"]] }, the outline included, the anchor (ax, ay) its foot.
 export function pixelsOf(design) {

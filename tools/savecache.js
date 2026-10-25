@@ -333,6 +333,52 @@ map.setHolder(mountTarget, false); did("the torch taken out");
   if (hen.fedDay !== animal.today()) fail("the hen was not fed when the day turned");
 }
 
+// Saplings and sticks (docs/46 step 3, #449): a sapling planted from the bag, its growing waiting while the player stands on it (the stamp on
+// the prop), turning to its second stage and then to the round oak in place; and sticks gathered under a tree (the day it has more on the prop).
+{
+  const setdown = await import("../src/setdown.js");
+  const trees = await import("../src/trees.js");
+  const grid = await import("../src/grid.js");
+  const { trees: T } = await import("../src/tuning.js");
+  const me = game.state.player;
+  const [ox, oy] = [Math.round(me.gx), Math.round(me.gy)];
+  let at = null;
+  for (let d = 2; d < 20 && !at; d++) for (let dy = -d; dy <= d && !at; dy++) for (let dx = -d; dx <= d && !at; dx++) {
+    const [x, y] = [ox + dx, oy + dy];
+    if (trees.standProblem(x, y) === "" && quiet(x, y)) at = [x, y];
+  }
+  if (!at) fail("no open grass near the player for a sapling");
+  const bag0 = inventory.bagOf(me).items;
+  inventory.bagOf(me).items = [];
+  const sap = items.makeEntry("sapling", 1);
+  if (!grid.insert(inventory.bagOf(me), sap)) fail("no room in the bag for a sapling");
+  me.gx = at[0] + 1;
+  me.gy = at[1];
+  if (!setdown.place(me, sap.uid, at[0], at[1])) fail("the sapling could not be planted");
+  did("a sapling planted");
+  const s = map.tileAt(at[0], at[1]).prop;
+  me.gx = at[0];
+  me.gy = at[1];
+  clock.setElapsed(clock.getElapsed() + 120);
+  did("a sapling waiting while stood on", 70);
+  if (!(s.sapling.waited > 0)) fail(`the sapling stood on did not wait (${JSON.stringify(s.sapling)})`);
+  me.gx = at[0] + 2;
+  me.gy = at[1] + 2;
+  clock.setElapsed(s.sapling.at + s.sapling.waited + 0.6 * T.sapling.days * clock.DAY_LENGTH);
+  did("a sapling turning to its next stage", 70);
+  if (s.sprite !== T.sapling.stages[1]) fail(`the sapling did not turn (${s.sprite})`);
+  clock.setElapsed(s.sapling.at + s.sapling.waited + T.sapling.days * clock.DAY_LENGTH + 60);
+  did("a sapling grown into a tree", 70);
+  const oak = map.tileAt(at[0], at[1]).prop;
+  if (!oak || oak.sprite !== T.sapling.grows || oak.id !== s.id) fail(`the sapling did not grow into the oak (${oak && oak.sprite})`);
+  me.gx = at[0] + 0.9;
+  me.gy = at[1] + 0.3;
+  const g = verbs.run("sticks", game.state, me, { prop: oak.id });
+  if (!g.ok) fail(`sticks: ${g.reason}`);
+  did("sticks gathered under a tree");
+  inventory.bagOf(me).items = bag0;
+}
+
 // The save as the server writes it: the snapshot's text, the same characters as the object's.
 const extra = { worldId: "w", name: "n", owners: {}, dormant: {}, myPlayerId: null, server: true };
 const st = save.snapshotText("valley", extra);

@@ -359,6 +359,47 @@ if rt:
     for key in ("checkSeconds", "tries", "yardCap", "riseSeconds"):
         if key in rt and not rt[key] > 0:
             fail(f"tuning.resources.{key}: a number above 0")
+# Saplings and sticks (docs/46 step 3, src/trees.js): the sapling's chance in 0..1, its days above 0, its item planted as its first stage, every
+# stage a sapling sprite that gives the item back, the tree it grows a tree (a canopy and wood); the sticks' item and count.
+tt = load("data/tuning.json").get("trees", {})
+if tt:
+    sp = tt.get("sapling") or {}
+    if not (isinstance(sp.get("chance"), (int, float)) and 0 <= sp["chance"] <= 1):
+        fail("tuning.trees.sapling.chance: a number from 0 to 1")
+    if not (isinstance(sp.get("days"), (int, float)) and sp["days"] > 0):
+        fail("tuning.trees.sapling.days: a number above 0")
+    if not (isinstance(tt.get("checkSeconds"), (int, float)) and tt["checkSeconds"] > 0):
+        fail("tuning.trees.checkSeconds: a number above 0")
+    check_id("tuning.trees.sapling.item", sp.get("item"))
+    stages = sp.get("stages") or []
+    if not stages:
+        fail("tuning.trees.sapling.stages: at least one sprite")
+    for s in stages:
+        if s not in sprites:
+            fail(f"tuning.trees.sapling.stages: no sprite {s!r}")
+            continue
+        sd = load(f"data/sprites/{s}.json")
+        if not sd.get("sapling") or sd.get("item") != sp.get("item"):
+            fail(f"sprites.{s}: a sapling's stage says `sapling` and gives back {sp.get('item')!r}")
+    if sp.get("item") in item_defs and stages and item_defs[sp["item"]].get("place") != stages[0]:
+        fail(f"items.{sp.get('item')}.place: the sapling is planted as its first stage, {stages[0]!r}")
+    g = sp.get("grows")
+    if g not in sprites or not load(f"data/sprites/{g}.json").get("canopy") or not load(f"data/sprites/{g}.json").get("wood"):
+        fail(f"tuning.trees.sapling.grows: {g!r} is no tree (a canopy and wood)")
+    # A tree's `saplingGrows` (an apple tree's sapling grows an apple tree, #461) names a tree.
+    for sid in sorted(sprites):
+        sg = load(f"data/sprites/{sid}.json").get("saplingGrows")
+        if sg is None:
+            continue
+        if sg not in sprites or not load(f"data/sprites/{sg}.json").get("canopy") or not load(f"data/sprites/{sg}.json").get("wood"):
+            fail(f"sprites.{sid}.saplingGrows: {sg!r} is no tree (a canopy and wood)")
+    st = tt.get("sticks") or {}
+    check_id("tuning.trees.sticks.item", st.get("item"))
+    c0, c1 = (st.get("count") or [0, 0])[:2]
+    if not (isinstance(c0, int) and isinstance(c1, int) and 1 <= c0 <= c1):
+        fail("tuning.trees.sticks.count: [lo, hi] whole numbers with 1 <= lo <= hi")
+    if not (isinstance(st.get("seconds"), (int, float)) and st["seconds"] > 0):
+        fail("tuning.trees.sticks.seconds: a number above 0")
 
 # Chopping (#195): a tool lists the verb `chop`, the stump and the tuning's names exist, and every placed container's own `loot` names a table.
 if not any("chop" in i.get("verbs", []) for i in items):
@@ -831,7 +872,7 @@ for sid, d in sprite_flags.items():
         fail(f"sprites.{sid}: a village station is fixed (carry false); the world rule moves it")
 # Set down and picked up again (docs/43 sections 3 and 4; src/setdown.js): an item's `place` or `placeAs` names a sprite, its `stand` a rule;
 # a sprite's `item` names the item Pick up gives back; a palette prop's `stand` likewise.
-STANDS = ("outdoors", "wall", "ground")
+STANDS = ("outdoors", "wall", "ground", "natural")  # natural: open grass outdoors, a sapling's (docs/46 step 3, src/trees.js)
 for i in items:
     for key in ("place", "placeAs"):
         if key in i and i[key] not in sprites:
@@ -909,7 +950,7 @@ for path in glob.glob("data/maps/*.json"):
 # The pair rule (docs/26): drawn world art and an icon come together. An icon generated from a design (`icon.placeholder`: a sprite's id
 # whose definition is a gatherable's dev art, or a design of its own; docs/46 step 2) is both halves from one design: main.js makes the
 # bag's picture and the item lying on the floor from it; it names a design src/gather-art.js draws, and no `src` of its own.
-ART_KINDS = ("herb", "mushroom", "lump")
+ART_KINDS = ("herb", "mushroom", "lump", "sapling")
 generated = 0
 for i in items:
     ph = (i.get("icon") or {}).get("placeholder")
@@ -926,8 +967,8 @@ for i in items:
         sd = load(f"data/sprites/{ph}.json")
         if sd.get("image") or sd.get("images") or sd.get("drawings"):
             fail(f"items.{i['id']}.icon: its sprite {ph!r} is drawn art now; the item wants its own drawn icon (a src) in place of the generated one")
-        if not any((sd.get(f) or {}).get("item") == i["id"] for f in ("gather", "dig", "mine")):
-            fail(f"items.{i['id']}.icon: its sprite {ph!r} does not give {i['id']!r} (no gather, dig, or mine block names it)")
+        if not any((sd.get(f) or {}).get("item") == i["id"] for f in ("gather", "dig", "mine")) and sd.get("item") != i["id"]:
+            fail(f"items.{i['id']}.icon: its sprite {ph!r} does not give {i['id']!r} (no gather, dig, or mine block names it, nor its Pick up's `item`)")
         design = sd.get("placeholder") or {}
     if not isinstance(design, dict) or design.get("kind") not in ART_KINDS:
         fail(f"items.{i['id']}.icon: a design of kind {' or '.join(ART_KINDS)}, not {design!r}")

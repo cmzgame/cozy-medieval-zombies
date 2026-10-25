@@ -120,7 +120,8 @@
       "harvest": ["farming", "harvested"],
       "honey": ["beastlore", "taken"],
       "gather": ["herbalism", "gathered"],
-      "dig": ["mining", "dug"]
+      "dig": ["mining", "dug"],
+      "sticks": ["woodcutting", "gathered"]
     }
   },
   "feel": {
@@ -188,5 +189,10 @@
     "honey": { "item": "honey", "count": [1, 1], "days": 3, "seconds": 3 },
     "burnCorpse": { "flame": "tinderbox", "fuel": "log", "hours": 1, "seconds": 2 }
   },
-  "resources": { "days": [1, 2], "checkSeconds": 30, "tries": 8, "yardCap": 300, "riseSeconds": 1 }
+  "resources": { "days": [1, 2], "checkSeconds": 30, "tries": 8, "yardCap": 300, "riseSeconds": 1 },
+  "trees": {
+    "sapling": { "item": "sapling", "chance": 0.33, "days": 5, "stages": ["sapling_0", "sapling_1"], "grows": "tree_oak_m", "skill": "woodcutting", "level": 4 },
+    "sticks": { "item": "stick", "count": [1, 2], "seconds": 2 },
+    "checkSeconds": 30
+  }
 }
