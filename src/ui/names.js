@@ -6,6 +6,7 @@
 import * as iso from "../iso.js";
 import * as view from "../view.js";
 import * as settings from "../settings.js";
+import { getSheet } from "../assets.js";
 
 const HEAD_TOP = 78; // world px above the feet: over the bubble's tail (speech.js HEAD_TOP 68)
 let root = null;
@@ -26,6 +27,36 @@ function tagFor(id) {
     pool.set(id, el);
   }
   return el;
+}
+
+// An animal's name while the pointer is on it (docs/45: a name on hover): one tag, over the animal, gone when the pointer leaves.
+let hoverTag = null;
+export function updateHoverName(animal) {
+  if (!root) return;
+  if (!animal) {
+    if (hoverTag) hoverTag.style.display = "none";
+    return;
+  }
+  if (!hoverTag) {
+    hoverTag = document.createElement("div");
+    hoverTag.className = "name-tag animal-tag";
+    root.appendChild(hoverTag);
+  }
+  const name = animal.dead ? `Dead ${animal.name}` : animal.name[0].toUpperCase() + animal.name.slice(1);
+  if (hoverTag.textContent !== name) hoverTag.textContent = name;
+  const s = iso.toScreen(animal.gx, animal.gy);
+  const u = view.toUi(s.x, s.y - animalTop(animal));
+  hoverTag.style.left = `${Math.round(u.x)}px`;
+  hoverTag.style.top = `${Math.round(u.y)}px`;
+  hoverTag.style.display = "";
+}
+// Over its head: the sheet's anchor sits at the feet, so its height above them is the anchor's row.
+function animalTop(a) {
+  try {
+    return getSheet(a.sprite).anchor[1] + 4;
+  } catch {
+    return 30;
+  }
 }
 
 // `players`: everyone who is a player; `me`: mine, skipped; `visible`: my sight.

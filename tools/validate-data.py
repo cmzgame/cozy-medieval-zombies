@@ -171,6 +171,40 @@ for path in sorted(glob.glob("data/maps/*.json")):
         if name not in fishing["waters"]:
             fail(f"{path}: the water {name!r} has no table in data/fishing.json")
 
+# Animals (docs/45): every species has its numbers, a walk, a wander, a stand, a graze chance, and a sheet (`animal_<species>`, the dev art's
+# kind `animal` or a drawn one) with idle, walk, eat, and dead, a run if it flees, the two drawn diagonals and their mirrors; every home a
+# map names is of a species that exists, with a count, and a cap no smaller.
+animals = load("data/animals.json")
+ANIMAL_FIELDS = {"name", "wild", "walk", "run", "radius", "hp", "flee", "wander", "idle", "graze", "yields"}
+if not (animals.get("renew", {}).get("seconds", 0) > 0 and animals["renew"].get("clear", 0) > 0):
+    fail("animals: renew needs seconds and clear above 0")
+for sp, a in animals.get("species", {}).items():
+    if set(a) - ANIMAL_FIELDS:
+        fail(f"animals.{sp}: unknown fields {sorted(set(a) - ANIMAL_FIELDS)}")
+    if not (a.get("walk", 0) > 0 and a.get("hp", 0) > 0 and a.get("radius", 0) > 0 and a.get("wander", 0) > 0 and 0 <= a.get("graze", -1) <= 1):
+        fail(f"animals.{sp}: walk, hp, radius, and wander above 0, graze in 0..1")
+    if not (len(a.get("idle", [])) == 2 and 0 < a["idle"][0] <= a["idle"][1]):
+        fail(f"animals.{sp}: idle is [least, most] seconds")
+    if a.get("flee") and not (a["run"] > a["walk"] and all(a["flee"].get(k, 0) > 0 for k in ("sight", "tiles", "clear")) and a["flee"]["clear"] >= a["flee"]["sight"]):
+        fail(f"animals.{sp}: a species that flees runs faster than it walks, with sight, tiles, and a clear distance at least its sight")
+    sid = f"animal_{sp}"
+    if sid not in sprites:
+        fail(f"animals.{sp}: no sprite definition {sid}")
+        continue
+    d = load(f"data/sprites/{sid}.json")
+    anims = d.get("animations", {})
+    for name in ["idle", "walk", "eat", "dead"] + (["run"] if a.get("flee") else []):
+        if name not in anims:
+            fail(f"sprites.{sid}: no {name} animation")
+    if d.get("facings") != ["se", "ne"] or d.get("mirror") != {"sw": "se", "nw": "ne"}:
+        fail(f"sprites.{sid}: facings se and ne, mirrored to sw and nw (docs/45 section 6)")
+for path in sorted(glob.glob("data/maps/*.json")):
+    for h in load(path).get("animals", []):
+        if h.get("species") not in animals.get("species", {}):
+            fail(f"{path}: an animals home of unknown species {h.get('species')!r}")
+        elif not (h.get("count", 0) >= 1 and h.get("cap", h.get("count", 0)) >= h.get("count", 0) and len(h.get("tile", [])) == 2):
+            fail(f"{path}: the {h['species']} home at {h.get('tile')} needs a tile, a count of one or more, and a cap no smaller")
+
 # The bucket (#199): an item with a `vessel` has a capacity above 0 and can be held.
 for i in items:
     if "vessel" in i and not (i["vessel"].get("capacity", 0) > 0 and i.get("hands")):

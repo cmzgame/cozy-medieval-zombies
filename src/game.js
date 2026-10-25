@@ -44,6 +44,7 @@ import { playAnimation } from "./sprites.js";
 import { createZombie, updateZombie, siegeHeldOn } from "./entities/zombie.js";
 import { createVillager, updateVillager, turnVillager, damageVillager, setTalkWorld, talkIdOf } from "./entities/villager.js";
 import { controlPlayer } from "./player-controller.js";
+import * as animal from "./entities/animal.js"; // the valley's game and livestock (docs/45)
 
 export const state = {
   info: null, // what the map file gave: spawn, the authored dead and villagers, the name
@@ -52,6 +53,8 @@ export const state = {
   zombies: [], // the dead that still think; the fallen move to corpses (docs/23a, B1)
   corpses: [],
   villagers: [],
+  animals: [], // game and livestock, living and dead (docs/45): one list, a dead one marked so
+  animalHomes: [], // where the map put each herd and flock, with its cap and its renewal (animal.js)
   others: [], // the living, rebuilt each step; the interface reads it between steps
   progress: null, // 0..1 of the player's timed action
   acting: null, // the player whose update or command runs right now, so a message finds its screen (net.js)
@@ -105,7 +108,9 @@ export function create({ json, look = null, name = null, devChest = false, rules
   S.zombies = placeAuthoredDead(info.zombies).map(([x, y]) => createZombie(x, y));
   S.corpses = [];
   S.villagers = (info.villagers || []).map((v, i) => createVillager(v.tile[0], v.tile[1], { id: `v${i}`, name: v.name, line: v.line, wardrobe: v.wardrobe ?? i, immune: !!v.immune, talk: talkIdOf(v), guide: !!v.guide }));
-  interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses]);
+  S.animalHomes = animal.homesFrom(info.animals); // the herds, the flocks, and the pens' stock where the map put them (docs/45)
+  S.animals = animal.populate(S.animalHomes);
+  interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses, ...S.animals]);
   burn.setCharacters((id) => S.corpses.find((c) => c.id === id) || S.zombies.find((c) => c.id === id) || null); // Burn corpse's body by id (docs/43 section 7)
   wireTalk();
   archery.setTargets(() => S.zombies); // what an arrow can hit when it lands (docs/20)
@@ -226,7 +231,9 @@ function worldWithout(chunks) {
       zombies: S.zombies.map(serializeCharacter),
       corpses: S.corpses.map(serializeCharacter),
       villagers: S.villagers.map(serializeCharacter),
+      animals: S.animals.map(animal.serializeAnimal),
     },
+    animalHomes: S.animalHomes.map((h) => ({ ...h, at: h.at.slice() })),
   });
   out.map.chunks = chunks;
   return out;
@@ -308,6 +315,8 @@ export function restore(saved, json) {
   S.zombies = bring(save.characters.zombies);
   S.corpses = bring(save.characters.corpses);
   S.villagers = bring(save.characters.villagers);
+  S.animals = (save.characters.animals || []).map(animal.restoreAnimal);
+  S.animalHomes = save.animalHomes || animal.homesFrom(S.info.animals);
   S.others = [];
   S.progress = null;
   map.setSleepers((save.map.sleepers || []).map(([k, list]) => [k, bring(list)]));
@@ -321,7 +330,7 @@ export function restore(saved, json) {
     if (c.corpse) dressCorpse(c); // a player's body too (2026-10-14)
     else if (c.kind !== "player") dress(c);
   }
-  interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses]);
+  interact.setCharacters(() => [...S.villagers, ...S.zombies, ...S.corpses, ...S.animals]);
   burn.setCharacters((id) => S.corpses.find((c) => c.id === id) || S.zombies.find((c) => c.id === id) || null); // Burn corpse's body by id (docs/43 section 7)
   wireTalk();
   archery.setTargets(() => S.zombies);
@@ -350,6 +359,7 @@ export function hashText() {
     ...S.zombies.map((z) => `${z.id} ${f(z.gx)},${f(z.gy)} ${z.state} ${z.wardrobe} hp ${z.hp}`),
     ...S.villagers.map((v) => `${v.id} ${f(v.gx)},${f(v.gy)} ${v.state}`),
     ...S.corpses.map((z) => `${z.id} ${f(z.gx)},${f(z.gy)} corpse`),
+    ...S.animals.map((a) => `${a.id} ${a.species} ${f(a.gx)},${f(a.gy)} ${a.state}${a.dead ? " dead" : ""}`),
   ].join("\n");
 }
 
@@ -436,10 +446,13 @@ export function syncParts() {
     // The dead as the frames carry them (the wire sends them as a delta, so a missed update shows here): where, state, hp,
     // facing, the frame of the animation, burning, a body set alight by Burn corpse (docs/43 section 7), a villager's cowering (its state).
     dead: hashOf([...S.zombies, ...S.villagers, ...S.corpses].slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((z) => `${z.id} ${f(at(z)[0])},${f(at(z)[1])} ${z.state || "-"} hp ${hp2(z.hp)} ${z.dead ? "dead" : ""}${z.corpse ? "corpse" : ""} ${z.facing} ${z.anim ? `${z.anim.name}:${z.anim.frame}` : "-"}${z.burning ? " fire" : ""}${z.cremate ? " cremate" : ""}${z.talkingWith && z.talkingWith.length ? ` talk ${z.talkingWith.join("+")}` : ""}`).join("\n")),
+    // The animals as the frames carry them (docs/45 section 7): where, the state, health, dead, the facing and the frame of the
+    // animation, the home; and each home's renewal. Skinned, butchered, how it was killed, fed and produce days join with steps 2 and 3.
+    animals: hashOf([...S.animals.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((a) => `${a.id} ${a.species} ${f(at(a)[0])},${f(at(a)[1])} ${a.state} hp ${hp2(a.hp)} ${a.dead ? "dead" : ""} ${a.facing} ${a.anim.name}:${a.anim.frame} home ${a.homeId || "-"} ${a.home.join(",")}`), ...S.animalHomes.map((h) => `${h.id} ${h.species} cap ${h.cap} next ${h.nextAt === null ? "-" : f(h.nextAt)}`)].join("\n")),
     clock: hashOf(`${f(clock.getElapsed())} ${f(loop.simTime())} ${world.world.timeScale}`),
     rules: hashOf(Object.keys(rules.rules).sort().map((k) => `${k}=${typeof rules.rules[k] === "boolean" ? (rules.rules[k] ? 1 : 0) : rules.rules[k]}`).join(" ")), // world state since the second step of item 5
   };
-  parts.counts = `${chunks.length} chunks, ${[...map.allProps()].length} props, ${[...map.fires()].length} fires, ${S.players.length} players, ${S.zombies.length} dead, ${S.villagers.length} villagers, ${S.corpses.length} corpses`;
+  parts.counts = `${chunks.length} chunks, ${[...map.allProps()].length} props, ${[...map.fires()].length} fires, ${S.players.length} players, ${S.zombies.length} dead, ${S.villagers.length} villagers, ${S.corpses.length} corpses, ${S.animals.length} animals`;
   return parts;
 }
 
@@ -566,7 +579,7 @@ export function begin(dt) {
   map.burnFires(dt);
   map.burnHolders(dt); // the torches mounted on brackets and posts burn down at the wall rate (map.js)
   fruit.step(); // a bare fruit tree bears again on its day (fruit.js)
-  resources.step(() => [...S.players, ...S.zombies, ...S.villagers, ...S.corpses]); // a taken resource grows again elsewhere in its area, under no body (docs/46)
+  resources.step(() => [...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals]); // a taken resource grows again elsewhere in its area, under no body, an animal's or a carcass's among them (docs/46)
   farming.step(); // a crop's picture follows its stage (farming.js, #194)
   burnTorches(dt);
   stations.update(dt); // every station's queue, in the world's time (docs/30, section 6)
@@ -670,6 +683,19 @@ export function step(dt, snapshots = null) {
     if (!nearPlayer(v)) continue;
     updateVillager(v, dt, S.others, S.players);
     interact.brushThrough(v);
+  }
+  // The animals near anyone (docs/45): they step aside from the living and from each other, and the fleeing kinds run from a
+  // living player and the standing dead; the dead ignore them. A wild home below its cap has one back when nobody is near.
+  if (S.animals.length || S.animalHomes.length) {
+    const bodies = [...S.others, ...S.animals];
+    const threats = [...S.players.filter((p) => !p.dead), ...S.zombies.filter((z) => !z.dead && z.state !== "down")];
+    for (const a of S.animals) {
+      if (!nearPlayer(a)) continue;
+      animal.updateAnimal(a, dt, bodies, threats);
+      interact.brushThrough(a);
+    }
+    const watching = [...S.players, ...S.corpses.filter((c) => c.kind === "player")]; // a dead player's screen still looks at the world
+    for (const a of animal.renewHomes(S.animalHomes, S.animals, watching)) S.animals.push(a);
   }
   // Villagers bitten through get up as the dead, in what they wore (docs/19).
   if (S.villagers.some((v) => v.dead)) {

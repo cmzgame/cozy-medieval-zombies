@@ -51,7 +51,7 @@
 - **The orchard** at Hollow Farm's west end: twenty apple trees, two barrels.
 - **Long Acre** (north-west): the farmhouse, the barn (barrels, two haystacks, a cart), two rye fields, a flax strip, a kitchen garden of cabbages and garlic, a well, a woodpile.
 - **The mill** on the river: the millstones, the mill wheel (a box, not turning), barrels, a chest, a shelf; the Miller. **The mill's granary** (seed of every crop, mostly rye).
-- **At Hollow Farm, to build:** the hen house (Beastlore 1), the byre and the pigsty as pens (Beastlore 4 and 7), the dovecote, the hay meadow [to build]; the cider press (Cooking 3) [to build]; the plan's turnips, beans, and hops are cut from 1.0 (ruled 2026-10-23).
+- **At Hollow Farm:** the byre and the pigsty as fenced pens west of the orchard, with two cows and two pigs, and three hens at the yard's coop [built, #442; leading one home, Beastlore 1, 4, and 7, to build (`45` step 3)]; to build: the hen house (Beastlore 1), the dovecote, the hay meadow [to build]; the cider press (Cooking 3) [to build]; the plan's turnips, beans, and hops are cut from 1.0 (ruled 2026-10-23).
 - **At Long Acre, to build:** the threshing floor and the cart shed [to build]; the plan's wheat and onions are cut from 1.0; the fields are planted from the valley's seven crops (section 5) (ruled 2026-10-23).
 
 ### The east and north-east woods [built]
@@ -67,7 +67,7 @@
 - **The woodcutters' camp** [to build]: cabins, a sawpit, log and plank stacks that give their wood, stumps; two woodcutters.
 - **The hunter's lodge** [to build]: the smoking rack, a skinning frame, snares; the hunter.
 - **The bandit camp** [to build]: tents (containers), a campfire, a cage with a prisoner, a buried chest; six of the dead.
-- **The croft** across the ford [to build]: a cottage, a sheepfold, a spring with a trough, a plot; the shepherd.
+- **The croft** across the ford: its sheepfold, a fenced pen south of the drove with four sheep [built, #442]; a cottage, a spring with a trough, a plot; the shepherd [to build].
 - **The hermitage** [to build]: a ruined chapel, the hermit's cell, a book of prayers.
 - **The standing stones; the barrow** with its sealed door; **the gallows tree, the crossroads, and the tinker's cart** [to build].
 - **The tannery** [to build]: cut until the animals bring it back; where hides are tanned at a tanning vat (Crafting 3), coming in with Beastlore 1, since hides do (ruled 2026-10-23).

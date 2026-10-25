@@ -38,7 +38,7 @@ import * as panel from "./ui/inventory-panel.js";
 import * as kit from "./ui/kit.js";
 import * as cursor from "./ui/cursor.js";
 import * as log from "./ui/log.js";
-import { initNames, updateNames } from "./ui/names.js";
+import { initNames, updateNames, updateHoverName } from "./ui/names.js";
 import * as floatersUi from "./ui/floaters.js"; // the numbers over heads (#294)
 import * as hoverCardUi from "./ui/hover-card.js"; // the card over an item (#262)
 import { initSmallText } from "./ui/small-text.js"; // very small text in a clear sans-serif (#321)
@@ -54,6 +54,7 @@ import * as startingKit from "./kit.js"; // the starting kit (#136)
 import * as farming from "./farming.js"; // till, plant, water, harvest (#194)
 import * as fishing from "./fishing.js"; // fishing: the rod, the cast, the catch (#190)
 import { canReach } from "./reach.js"; // one reach test, distance and a clear line (#208)
+import * as animals from "./entities/animal.js"; // the species, read at boot (docs/45)
 import * as talk from "./talk.js"; // what villagers say: the barks and the conversations' data (docs/34, #198)
 import * as world from "./world.js";
 import * as game from "./game.js";
@@ -1023,7 +1024,7 @@ function refreshFigureOf(p, force = false) {
 function update(dt) {
   const t0 = performance.now();
   if (!inWorld) return; // no world chosen yet (docs/31/09)
-  interp.mark([...S.players, ...S.zombies, ...S.villagers, ...archery.arrowsInFlight()]); // where everything stood before this step, for the draw between steps (#161)
+  interp.mark([...S.players, ...S.zombies, ...S.villagers, ...S.animals, ...archery.arrowsInFlight()]); // where everything stood before this step, for the draw between steps (#161)
   camera.mark();
   try {
     stepGame(dt);
@@ -1232,6 +1233,12 @@ function renderUi() {
   updateSwingTimer(S.player);
   updateSpeech(S.others, visible, S.player, dt);
   updateNames(S.players, visible, S.player);
+  {
+    // An animal's name while the pointer is on one I can see (docs/45).
+    const m = input.getMouse();
+    const c = m && m.inside && !S.player.dead ? interact.characterAt(m.x, m.y, S.player) : null;
+    updateHoverName(c && c.kind === "animal" && visible.has(visibility.tileKey(Math.round(c.gx), Math.round(c.gy))) ? c : null);
+  }
   if (floatersUi.active()) floatersUi.update(dt, [...S.players, ...S.zombies, ...S.villagers, ...S.corpses], visible, S.player); // the numbers over heads, from the same blended positions
   mapPanel.update({ player: S.player, players: S.players, places: (S.info && S.info.places) || [] });
   updateMessage(dt);
@@ -1312,7 +1319,7 @@ function render() {
     h: V.h,
     tiles,
     visible,
-    entities: [...S.players, ...S.zombies, ...S.villagers, ...S.corpses], // every player, not mine alone (Michael's first real join, 2026-10-13: the other player was a name with no body)
+    entities: [...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals], // the animals drawn as any entity, from their own sheets (docs/45); every player, not mine alone (Michael's first real join, 2026-10-13: the other player was a name with no body)
     arrows: archery.arrowsInFlight(),
     fire: burning.all(),
     marker: settings.get("aimGuide") ? archery.getMarker(S.player) : null, // the viewer's own Aim guide (docs/20, 02 2026-10-16)
@@ -1353,7 +1360,7 @@ function render() {
     `chunk ${cx},${cy}  room ${playerRoom}${playerRoom > 0 ? (map.roomSealed(map.getRoom(playerRoom)) ? " sealed" : " open") : ""}  rooms ${map.roomCount()}  sources ${light.sources().length} (${light.sources().filter((s) => s.kind === "portal").length} portals)\n` +
     `tiles ${tiles.length} visible ${visible.size} drawables ${drawn}  step ${timing.step.toFixed(1)}ms max3s ${timing.stepMax.toFixed(1)}ms vis ${timing.vis.toFixed(1)}ms render ${(timing.render || 0).toFixed(1)}ms\n` +
     `ground ${groundLine()}${net.onTheWire() ? `  wire out ${(net.wireRates().out / 1024).toFixed(1)} KB/s in ${(net.wireRates().in / 1024).toFixed(1)} KB/s` : ""}\n` +
-    `villagers ${S.villagers.length}  zombies ${S.zombies.length}  corpses ${S.corpses.length}  chunks ${map.chunkCount()}  near ${S.zombies.filter(game.nearPlayer).length}  ${S.zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
+    `villagers ${S.villagers.length}  animals ${S.animals.length}  zombies ${S.zombies.length}  corpses ${S.corpses.length}  chunks ${map.chunkCount()}  near ${S.zombies.filter(game.nearPlayer).length}  ${S.zombies.slice(0, 6).map((z) => z.state).join(" ")}\n` +
     `Tab: bag   C: character   1-4: belt   N: build   X: remove   Z: zoom   right-click: actions   Esc: close or pause   E: nearest   T: torch   Enter: chat   B: boards   V: ${drawAll ? "all" : "fog"}   ] [: hour   L: debug ${["off", "light", "ambient", "fog"][night.debug]}${glError ? `   WebGL2 unavailable: ${glError}` : ""}`;
 }
 
@@ -1415,6 +1422,7 @@ async function boot() {
       farming.load(await optionalJson("data/crops.json")); // the crops (#194)
       fishing.load(await optionalJson("data/fishing.json")); // the waters' tables and the cast (#190)
       dye.load(await optionalJson("data/dyes.json")); // the dye vat's colours (docs/43 section 8, #412)
+      animals.load(await optionalJson("data/animals.json")); // the valley's species (docs/45)
       const talkPaths = Object.keys(manifestJson.files).filter((p) => /^data\/talk\/[^/]+\.json$/.test(p)); // what villagers say (docs/34, #198)
       const talkFiles = {};
       await Promise.all(talkPaths.map(async (p) => { talkFiles[p.slice("data/talk/".length, -".json".length)] = await assets.loadJson(p); }));
@@ -1968,6 +1976,7 @@ async function boot() {
     get zombies() { return S.zombies; },
     get corpses() { return S.corpses; },
     get villagers() { return S.villagers; },
+    get animals() { return S.animals; },
     get tiles() { return tiles; },
     get visible() { return visible; },
     get playerRoom() { return playerRoom; },

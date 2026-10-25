@@ -29,6 +29,7 @@ import { autoWalk, eat, drink, wave } from "./entities/player.js";
 import * as burn from "./burn.js"; // Burn corpse (docs/43 section 7)
 import { showMessage } from "./ui/prompt.js";
 import { pokeVillager, startTalk, endTalk } from "./entities/villager.js";
+import { lookLine } from "./entities/animal.js";
 import { lootOf } from "./entities/character.js";
 import { emit } from "./events.js";
 import * as loop from "./loop.js";
@@ -1787,7 +1788,7 @@ export function characterAt(sx, sy, viewer = null) {
     // The frame's own pixels, placed as the renderer places them; a standing one also
     // keeps the forgiving column over its feet. A body lies to one side of its feet,
     // so the column alone never found it (Michael, 2026-10-13: no Search body on a corpse).
-    const standing = !c.corpse && sx >= p.x - 12 && sx <= p.x + 12 && sy >= p.y - 64 && sy <= p.y + 2;
+    const standing = !c.corpse && c.kind !== "animal" && sx >= p.x - 12 && sx <= p.x + 12 && sy >= p.y - 64 && sy <= p.y + 2; // an animal is as big as its own pixels (a hen is a hand high)
     if (!standing && !characterPixelAt(c, sx, sy, p)) continue;
     if (!best || c.gx + c.gy > best.gx + best.gy) best = c;
   }
@@ -1879,8 +1880,25 @@ function burnCorpseAction(c, player) {
   });
 }
 
+// Look at an animal (docs/45: a name on hover and Object Highlight, not a gatherable's sway): what it is and what it is doing, said in a line.
+// It only reads the world, so it is the asking client's own (`local`), a guest's too, from as far as an Inspect reaches.
+function lookAtAnimalAction(c) {
+  return act({
+    kind: "look",
+    label: `Look at the ${c.name}`,
+    tiles: [[Math.round(c.gx), Math.round(c.gy)]],
+    range: INSPECT_RANGE,
+    local: true,
+    perform() {
+      showMessage(lookLine(c), 4);
+      return true;
+    },
+  });
+}
+
 function characterActions(c, player) {
   const out = [];
+  if (c.kind === "animal") return [lookAtAnimalAction(c)];
   if ((c.kind === "zombie" || c.kind === "player") && c.dead && c.corpse) out.push(searchBodyAction(c)); // a player's body too (2026-10-14)
   if (burn.isBurnableBody(c)) out.push(burnCorpseAction(c, player)); // the dead's bodies; a player's is left for its friends (docs/43 section 7)
   if (c.kind === "villager") {

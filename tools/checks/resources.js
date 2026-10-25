@@ -43,7 +43,7 @@ export async function run(game, opts = {}) {
   const bag0 = bag ? bag.items.slice() : null; // the ore and stone the verb mines go here: put back after a `keep` run
   const clock0 = G.clock.getElapsed();
   const undo = [];
-  const bodies = () => [...G.game.state.players, ...G.game.state.zombies, ...G.game.state.villagers, ...G.game.state.corpses];
+  const bodies = () => [...G.game.state.players, ...G.game.state.zombies, ...G.game.state.villagers, ...G.game.state.corpses, ...(G.game.state.animals || [])];
   const kindProps = (kind) => G.map.allProps().filter((p) => kind.sprites[p.sprite] !== undefined && G.map.inResourceArea(kind, p.tile[0], p.tile[1]));
   const json = await (await fetch("/data/maps/valley.json", { cache: "no-store" })).json();
   try {
@@ -115,6 +115,17 @@ export async function run(game, opts = {}) {
     row("not inside an authored fenced yard (your cottage's: refused, and the fill alone finds it closed)", !!probe(yx, yy) && G.map.fencedIn(yx, yy), `${yx},${yy}: ${probe(yx, yy)}, fenced in ${G.map.fencedIn(yx, yy)}`);
     G.teleport(cx + 0.5, cy + 0.4);
     row("not under a body (the player standing on it)", probe(cx, cy) === "a body stands there", String(probe(cx, cy)));
+    G.teleport(meAt[0], meAt[1]);
+    const beast = (G.game.state.animals || []).find((a) => !a.dead);
+    if (beast) {
+      const [bx, by] = [beast.gx, beast.gy];
+      beast.gx = cx + 0.3;
+      beast.gy = cy - 0.2;
+      const why = probe(cx, cy);
+      beast.gx = bx;
+      beast.gy = by;
+      row("not under an animal (a living one counts as a body, as the step's list has it)", why === "a body stands there", `${beast.species} ${beast.id}: ${why}`);
+    } else row("not under an animal", false, "no living animal in the world");
     G.teleport(meAt[0], meAt[1]);
 
     // ---- the places open to their own kind ----
