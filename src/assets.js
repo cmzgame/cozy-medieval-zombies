@@ -5,6 +5,7 @@
 import * as placeholders from "./placeholders.js";
 import * as figure from "./figure.js";
 import { inBatches } from "./boot.js";
+import { fruitCanvas } from "./fruit-art.js"; // fruit painted into a drawn crown at load (#422)
 
 const defs = new Map();
 const sheets = new Map();
@@ -161,6 +162,9 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
       anchor = sc(anchor);
       if (bounds) bounds = { x: Math.round(bounds.x * k), y: Math.round(bounds.y * k), w: Math.round(bounds.w * k), h: Math.round(bounds.h * k) };
     }
+    // A fruit tree laden (`fruit`, #422): the picture copied into a canvas and its fruit painted on the crown's leaves (src/fruit-art.js); the
+    // file itself is never written, and the bare kind names the same file without the block.
+    if (def.fruit) image = fruitCanvas(image, def.fruit);
     sheet = {
       image,
       frames,
@@ -200,7 +204,7 @@ export async function loadSprite(id, { tileCount = 1 } = {}) {
     throw new Error(`Sprite ${id} has neither image nor placeholder`);
   }
   // Where the sheet came from (docs/23, step 3b): the files, or the generator; the tools open either.
-  sheet.source = def.placeholder ? { generated: def.placeholder.kind, def: `data/sprites/${id}.json` } : { drawn: pngsOf(def), def: `data/sprites/${id}.json` };
+  sheet.source = def.placeholder ? { generated: def.placeholder.kind, def: `data/sprites/${id}.json` } : { drawn: pngsOf(def), def: `data/sprites/${id}.json`, ...(def.fruit ? { painted: "fruit" } : {}) };
   sheet.id = id;
   sheets.set(key, sheet);
   return sheet;

@@ -1,7 +1,7 @@
 {
-  "version": "06391291",
+  "version": "7be1b7b9",
   "files": {
-    "data/animals.json": {"size": 2399, "stamp": "02bbcf2c"},
+    "data/animals.json": {"size": 2532, "stamp": "82a50135"},
     "data/build.json": {"size": 2639, "stamp": "7419bc3e"},
     "data/combat.json": {"size": 5524, "stamp": "1fd05f67"},
     "data/crops.json": {"size": 2313, "stamp": "36c5359c"},
@@ -749,8 +749,8 @@
     "data/sprites/stump.json": {"size": 391, "stamp": "b3a77ae1"},
     "data/sprites/table.json": {"size": 399, "stamp": "f82ad8f5"},
     "data/sprites/torch_post.json": {"size": 301, "stamp": "64eed80e"},
-    "data/sprites/tree_apple.json": {"size": 488, "stamp": "bbbd0224"},
-    "data/sprites/tree_apple_bare.json": {"size": 361, "stamp": "fba3b719"},
+    "data/sprites/tree_apple.json": {"size": 813, "stamp": "8f90fd30"},
+    "data/sprites/tree_apple_bare.json": {"size": 477, "stamp": "f5dc0d75"},
     "data/sprites/tree_blue_l.json": {"size": 312, "stamp": "ba3fe39c"},
     "data/sprites/tree_blue_m.json": {"size": 309, "stamp": "289df1bb"},
     "data/sprites/tree_blue_old.json": {"size": 311, "stamp": "7258c4f8"},

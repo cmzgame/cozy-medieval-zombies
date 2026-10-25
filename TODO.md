@@ -52,7 +52,6 @@ Small issues fill the gaps.
 
 **The wiki** for everything above is synced (cmz-wiki#31 to #34). **Next, for any Secondary:**
 - `check("debuffs")`' Sick-card row still fails late in one page, though it passes fresh: Primary reproduced it on #439's own branch, after its fix, running hovercard, villagers, talk, and kindle first (23 of 24; fresh 24 of 24);
-- #422, apple trees as a green round tree;
 - #423, the off hand's swing animation and sound;
 - the Open lines in `docs/bugs.md`.
 

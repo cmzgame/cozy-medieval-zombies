@@ -23,19 +23,28 @@ export async function run(game) {
   const hashes = {};
   // Flames, flicker, and sways animate on the wall clock (render.js): frozen for
   // the two renders, or no two boots ever draw the same frame.
+  // What animates on the sim clock (the bees at a hive, #441; a sway's lean) is drawn at a pinned sim time too: the world steps on its own
+  // clock, then the draw alone reads the fixed one, and the stepped time is put back straight after.
   const realNow = performance.now.bind(performance);
   performance.now = () => 1234567.5;
+  const PINNED_SIM = 4321.25;
+  let simBack = null;
   try {
     G.loop.setPaused(true);
     for (const [name, hour] of [["noon", 12], ["midnight", 0]]) {
       G.clock.setHour(hour);
       G.loop.advance(1 / 60);
+      simBack = G.loop.simTime();
+      G.loop.setSimTime(PINNED_SIM);
       G.loop.advance(0);
       const px = new Uint8Array(canvas.width * canvas.height * 4);
       gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      G.loop.setSimTime(simBack);
+      simBack = null;
       hashes[name] = `${canvas.width}x${canvas.height}:${hashBytes(px)}`;
     }
   } finally {
+    if (simBack !== null) G.loop.setSimTime(simBack);
     performance.now = realNow;
     G.clock.setHour(hour0);
     G.loop.advance(1 / 60);

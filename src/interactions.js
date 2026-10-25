@@ -11,6 +11,14 @@
 // A target: { kind: "item", entry } | { kind: "prop", prop } | { kind: "bracket", bracket } | { kind: "character", ch } | { kind: "tile", x, y, floor }.
 
 import { getItem } from "./items.js";
+import { getDef } from "./assets.js";
+
+// A prop's name: its definition's `name` ("apple tree", #422), else its sprite id in words.
+function propName(sprite) {
+  let def = null;
+  try { def = getDef(sprite); } catch { /* not loaded: the id */ }
+  return (def && def.name) || sprite.replace(/_\d+$/, "").replace(/_/g, " ");
+}
 
 let rows = [];
 export const NOTHING = "Nothing interesting happens.";
@@ -54,7 +62,7 @@ export function nameOfTarget(target) {
   if (!target) return "";
   switch (target.kind) {
     case "item": { const d = getItem(target.entry.id); return d ? d.name : target.entry.id; }
-    case "prop": return target.prop.sprite.replace(/_\d+$/, "").replace(/_/g, " ");
+    case "prop": return propName(target.prop.sprite);
     case "bracket": { const b = target.bracket.wall.bracket; return b.lantern ? "the lantern" : b.torch ? "the torch in the bracket" : "the empty bracket"; } // what is there (#177)
     case "character": return target.ch.name || (target.ch.kind === "zombie" ? "one of the dead" : target.ch.kind);
     case "tile": return (target.floor || "the ground").replace(/^floor_/, "").replace(/_/g, " ");
