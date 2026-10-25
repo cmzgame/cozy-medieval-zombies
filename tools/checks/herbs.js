@@ -167,19 +167,69 @@ export async function run(game, opts = {}) {
 
     // ---- the sway: a click within reach and a body walking through (the gatherables law) ----
     {
-      const herb = nodesOf(kinds.yarrow)[0];
-      const bank0 = nodesOf(kinds.clay)[0];
-      const clickOn = (p) => {
-        standBy(p);
-        p.pokedAt = undefined;
-        const s = G.iso.toScreen(p.tile[0], p.tile[1]);
-        const [ox, oy] = p.offset || [0, 0];
-        for (const up of [0, 3, 6, 9, 12, 15]) for (const dx of [0, -2, 2]) if (G.interact.interactableAt(s.x + ox + dx, s.y + oy - up) === p) { G.interact.pokeAt(s.x + ox + dx, s.y + oy - up, me); return Number.isFinite(p.pokedAt); }
-        return null;
+      // A click finds the frontmost thing under the cursor, and a tree's crown or a rock standing in front (a tile nearer the viewer) wins
+      // over a small thing behind it, as it does for a mushroom under a tree today (the menu and E find a node by its tile, crown or not).
+      // So the click is tried on the nodes with nothing tall in front first, then the rest, until one is found by its pixels.
+      const clear = (p) => {
+        for (let dy = 0; dy <= 6; dy++) for (let dx = -1; dx <= 6; dx++) {
+          if (!dx && !dy) continue;
+          G.map.growTile(p.tile[0] + dx, p.tile[1] + dy);
+          const q = G.map.peekTile(p.tile[0] + dx, p.tile[1] + dy)?.prop;
+          if (q && (G.assets.getDef(q.sprite).canopy || q.solid) && q.tile[0] + q.tile[1] > p.tile[0] + p.tile[1] - 1) return false; // a tree or a rock nearer the viewer
+        }
+        return true;
       };
-      const herbClick = clickOn(herb);
-      const bankClick = clickOn(bank0);
-      row("a click within reach finds an herb and a clay bank by their pixels and sways each (its stamp on the sim clock)", herbClick === true && bankClick === true, `yarrow ${herbClick === null ? "not found under the cursor" : herbClick}, clay bank ${bankClick === null ? "not found" : bankClick}`);
+      // As check("sway") clicks a crop: the player two tiles south (within CLICK_REACH), a step, then the screen point. The point is not
+      // guessed from the tile: every opaque pixel of the thing's own picture, in the rect the hit test itself uses (placement.propRect, the
+      // offset of a jittered herb in it), is tried until interactableAt names the thing (by id), and pokeAt is given that point.
+      const clickOn = (p) => {
+        G.map.ensureAround(p.tile[0], p.tile[1], 2);
+        G.teleport(p.tile[0], p.tile[1] + 2);
+        me.auto = null;
+        G.loop.advance(1 / 60);
+        p.pokedAt = undefined;
+        const r = G.placement.propRect(p, p.tile[0], p.tile[1]);
+        const sheet = G.assets.getSheet(p.sprite, p.tiles.length);
+        const f = sheet.frames[G.assets.idleFrame(sheet, p, 0)];
+        const c = document.createElement("canvas");
+        c.width = f[2];
+        c.height = f[3];
+        c.getContext("2d").drawImage(sheet.image, f[0], f[1], f[2], f[3], 0, 0, f[2], f[3]);
+        const a = c.getContext("2d").getImageData(0, 0, f[2], f[3]).data;
+        const bx = sheet.bounds ? sheet.bounds.x : 0;
+        const by = sheet.bounds ? sheet.bounds.y : 0;
+        let inFront = null;
+        for (let y = 0; y < r.h; y++) {
+          for (let x = 0; x < r.w; x++) {
+            if (!a[((y + by) * f[2] + x + bx) * 4 + 3]) continue;
+            const sx = r.x + x + 0.5;
+            const sy = r.y + y + 0.5;
+            const hit = G.interact.interactableAt(sx, sy);
+            if (hit && hit.id !== p.id) inFront = hit.sprite;
+            if (!hit || hit.id !== p.id) continue;
+            const poked = G.interact.pokeAt(sx, sy, me);
+            return { ok: !!poked && poked.id === p.id && Number.isFinite(p.pokedAt), inFront: null };
+          }
+        }
+        return { ok: false, inFront };
+      };
+      const clickAny = (list) => {
+        const order = [...list.filter(clear), ...list.filter((q) => !clear(q))];
+        const covered = [];
+        for (const p of order) {
+          const r = clickOn(p);
+          if (r.ok) return { p, ok: true, covered };
+          covered.push(`${p.sprite} at ${p.tile} (${r.inFront || "nothing hit"} in front)`);
+        }
+        return { p: null, ok: false, covered };
+      };
+      const herbNodes = HERBS.filter((n) => n !== "grave_moss").flatMap((n) => nodesOf(kinds[n]));
+      const herbClick = clickAny(herbNodes);
+      const bankClick = clickAny(nodesOf(kinds.clay));
+      const said = (c) => (c.ok ? `${c.p.sprite} at ${c.p.tile} swayed${c.covered.length ? ` after ${c.covered.length} behind something tall` : ""}` : `none swayed: ${c.covered.slice(0, 4).join("; ")}`);
+      row("a click within reach finds an herb and a clay bank by their pixels and sways each (its stamp on the sim clock)", herbClick.ok && bankClick.ok, `${said(herbClick)}; ${said(bankClick)}`);
+      const herb = nodesOf(kinds.yarrow)[0];
+      const bank0 = bankClick.p || nodesOf(kinds.clay)[0];
       for (const p of [herb, bank0]) p.pokedAt = undefined;
       G.teleport(herb.tile[0] - 1.2, herb.tile[1]);
       G.loop.advance(1 / 60);
