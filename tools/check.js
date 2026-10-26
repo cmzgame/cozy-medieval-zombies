@@ -2614,6 +2614,8 @@ check("prop names: a made prop's done line and refusal, and a busy station's Pic
     labels.vat = read(vat);
     labels.stones = read(stones);
     labels.wheel = read(wheel);
+    labels.heldVat = placementMod.holdsProblem(vat); // Take apart's refusal, which agrees with the plural as Pick up does
+    labels.heldStones = placementMod.holdsProblem(stones);
     vat.queue = [];
     stones.queue = [];
   } finally {
@@ -2626,6 +2628,14 @@ check("prop names: a made prop's done line and refusal, and a busy station's Pic
   has(labels.stones, "Pick up millstones (they are still making something)");
   has(labels.stones, "Use the millstones");
   has(labels.wheel, "Use the spinning wheel");
+  if (labels.heldVat !== "It is still making something.") bad.push(`a busy vat's Take apart refusal "${labels.heldVat}"`);
+  if (labels.heldStones !== "They are still making something.") bad.push(`the busy millstones' Take apart refusal "${labels.heldStones}"`);
+  // The hover card's Use rows (item-info.usesOf) name a prop target by the same helper: the tinderbox and the torch light the jack-o'-lantern,
+  // never "pumpkin" (the card shows the first three targets; the list behind it is read whole).
+  for (const id of ["tinderbox", "torch"]) {
+    const on = itemInfoMod.usesOf(itemsMod.getItem(id)).flatMap((u) => u.on);
+    if (on.includes("pumpkin") || !on.includes("jack-o'-lantern")) bad.push(`the ${id}'s Use targets: ${on.join(", ")}`);
+  }
   const fire = mapMod.fireName({ sprite: "pumpkin" });
   if (fire !== "jack-o'-lantern") bad.push(`the jack-o'-lantern's fire is called "${fire}"`);
   assert(!bad.length, bad.join("; "));

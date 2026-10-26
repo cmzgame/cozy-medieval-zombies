@@ -24,7 +24,7 @@ import * as map from "./map.js";
 import * as inventory from "./inventory.js";
 import * as items from "./items.js";
 import { idleFrame, getDef, getSheet } from "./assets.js";
-import { propName } from "./prop-names.js"; // a prop's name in words, the one helper
+import { propName, propIsPlural } from "./prop-names.js"; // a prop's name in words, the one helper
 import { showMessage } from "./ui/prompt.js";
 import { rules } from "./rules.js";
 import * as tuning from "./tuning.js";
@@ -612,7 +612,7 @@ export function partsOf(t) {
 // queue still running (its ingredients are already in it).
 export function holdsProblem(prop) {
   if ([prop.bag, prop.output].some((b) => b && b.items && b.items.length)) return "Empty it first.";
-  if (prop.queue && prop.queue.length) return "It is still making something.";
+  if (prop.queue && prop.queue.length) return propIsPlural(prop.sprite) ? "They are still making something." : "It is still making something."; // the millstones are a plural, as Pick up says
   const f = prop.fire;
   if (f && f.burns && !f.switch) {
     if (f.lit) return "Put it out first.";

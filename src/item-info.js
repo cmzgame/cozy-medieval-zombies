@@ -37,7 +37,8 @@ function nameOfOn(on) {
   if (on === "corpse") return "a body of the dead";
   if (on === "tile") return "the ground";
   if (WORDS[on]) return WORDS[on];
-  return on.replace(/^floor_/, "").replace(/_y$/, "").replace(/_/g, " ");
+  if (on.startsWith("floor_")) return on.replace(/^floor_/, "").replace(/_y$/, "").replace(/_/g, " "); // a floor's id, not a prop's
+  return propName(on); // a prop's sprite id by prop-names.js (the jack-o'-lantern, not "pumpkin"); an item's id or a tag in words
 }
 
 // "a, b or c"; past four, the first three and "more".
