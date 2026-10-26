@@ -295,7 +295,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### 2026-10-25 — Protocol bumps on review (Michael)
 
-Approving #455's `net.PROTOCOL` bump from his phone, Michael added: "Protocol bumps in the builds you're running for me can go in on review from now on; tell me in the PR." So a `PROTOCOL` bump in a build Primary runs merges on a clean fresh review, without `needs-michael`; the pull request says so in its Risks. The rest of `github.md` section 8's list (the save format beyond expendable worlds, rulings, the rig, the deploy, secrets, the files every session reads) still waits for his word.
+Approving #455's `net.PROTOCOL` bump, Michael added: "Protocol bumps in the builds you're running for me can go in on review from now on; tell me in the PR." So a `PROTOCOL` bump in a build Primary runs merges on a clean fresh review, without `needs-michael`; the pull request says so in its Risks. The rest of `github.md` section 8's list (the save format beyond expendable worlds, rulings, the rig, the deploy, secrets, the files every session reads) still waits for his word. `github.md` section 8 step 6 still lists `net.PROTOCOL` among the things needing him; it is a file every session reads, so its pointer to this entry waits for his word too.
 
 ### 2026-10-25 — The off hand's swing moves the off arm (Michael's playtest; #423)
 

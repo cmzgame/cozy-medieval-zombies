@@ -25,7 +25,7 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 ## Status (2026-10-25, evening: the animals and natural resources are built; the sittings ahead wait for Michael)
 
-**Built and merged this evening**, Michael away from his desk and approving by remote (each PR reviewed by a fresh agent, run in the pane and in two tabs by Primary, and its wiki synced in cmz-wiki#35 to #37):
+**Built and merged this evening**, Michael away from his desk and approving by remote (each PR reviewed by a fresh agent, run in the pane and in two tabs by Primary, and its wiki synced in cmz-wiki#35 to #37 through game #466; the belt, #467, is still to sync):
 - **Natural resources ruled and built** (`docs/46`, #288): the comeback rule, rocks and ore rising from the ground (#453); herbs, clay, and salt (#457); saplings and Gather sticks (#461).
 - **Animals ruled and built** (`docs/45`, #289): in the world (#452), hunting (#456), keeping (#460), the recipes (#462). The companion waits for after the demo.
 - **Small issues:** the off hand's swing (#450), apple trees and the bees (#451), the belt's rulings (#467).
@@ -40,7 +40,7 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 4. The demo, the business, and so on.
 5. Eventually, the regions.
 
-**Open lines of `docs/39` by issue** (counted 2026-10-25, evening; 53 open, down from 162): #92 11 · #281 7 · #123 7 · #282 5 · #181 5 · #133 5 · #283 4 · #103 3 · #262 2 · #104 2 · #271, #261, #217, #106 1 each.
+**Open lines of `docs/39` by issue** (counted 2026-10-25, evening, by line; 52 open, down from 162): #92 11 · #281 7 · #123 7 · #282 5 · #133 5 · #181 4 · #283 4 · #103 3 · #262, #104, #271, #261, #217, #106 1 each.
 
 **In progress:** the Secondary's test-order hygiene (every instrument passing whatever ran before it in one page; a runner for a full sweep).
 
@@ -53,7 +53,7 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Parallel builders are allowed** (2026-10-25): Primary runs their pane and two-tab tests, merges main in, and reviews before main. **Protocol bumps in Primary's builds merge on a clean review** (Michael, 2026-10-25; `docs/02`).
 
-**Not done, Michael's hand:** the finished builders' worktrees under `.claude/worktrees/agent-*` (nineteen, all merged) are his to remove (`git worktree remove <path>`, then `git worktree prune`).
+**Not done, Michael's hand:** the finished builders' worktrees under `.claude/worktrees/agent-*` (twenty, all merged) are his to remove (`git worktree remove <path>`, then `git worktree prune`).
 
 **The design agent's worktree** (`C:/Users/micha/Dev/cozy-medieval-zombies-art`, branch `art-docs`) was fast-forwarded to main on 2026-10-20; its deliveries sit under `deliveries/`, untracked.
 
