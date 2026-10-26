@@ -56,6 +56,7 @@ One line per doc, with its kind (`CLAUDE.md`, "What a doc is"): a **rule** (bind
 - `45-animals.md` — **spec.** Animals (#289): seven kinds, game mostly in the woods but free to roam, livestock from the farms, safe pens, generous feathers, raw meat in recipes, the companion last; five build steps.
 - `46-natural-resources.md` — **spec.** Natural resources (#288): one comeback rule (random spots within defined areas, a steady count) for ore, stone, clay, herbs, and mushrooms; rocks rising from the ground; trees from saplings; sticks under trees; three build steps.
 - `47-potions-poisons-mana.md` — **spec.** Potions, poisons, and mana: clay vials, clean water, two herbs and a secondary at a cauldron, the mana bar and spell costs, poisons put on with Use, the splash; four build steps.
+- `48-sight-pull.md` — **spec.** Sight-pull: one of the dead first drawn to a player calls once to the dead near it that see it, scaled by the light, with no chain; sound stays out; one build step.
 
 ## Records: `history/`
 
