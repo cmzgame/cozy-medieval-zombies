@@ -103,6 +103,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
+- Sight-pull: one of the dead first turning to hunt a player calls once to the dead near it that see it, and those never call others; sound draws no one (2026-10-25, Sight-pull ruled)
 - Throwing knives pull and axes stop: the knife 15 and 30% to break, the axe 30, always staggering, knocking down at 0.35, 10% to break; they spin, and land or lodge like arrows (2026-10-25, Throwing knives and axes ruled)
 - Potions, poisons, and mana as `47`: clay vials, clean water, two herbs and a secondary at a cauldron, mana 100, the Fire Bolt 20 mana, poisons put on a blade or arrows with Use, a splash for every potion (2026-10-25, Potions, poisons, and mana ruled)
 - Repairs run out: one count per item, the grindstone to 60, 40, 20%, the anvil to 100, 80, 60%; Burn corpse destroys a body and all in it (2026-10-25, The dead ends ruled)
@@ -303,6 +304,14 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-25 — Sight-pull ruled: one of the dead drawn in calls once to those that see it, with no chain; sound stays out (Michael)
+
+Asked whether a pulled zombie alerts its neighbours, and whether sound draws the dead (it does not: they notice a player they see, a flame at night, and a blow), Michael ruled: "I think we need sight-pull to replace Zomboid's sound-pull. And I think this is especially crucial for long range weapons that go further than any other way a zombie could find you, so it's a safe attack on one zombie at a time. If you have social aggro, it stops being safe and adds some of the pressure back that not caring about sound is getting us. I think sound never being an aggro thing is probably the right call but who knows in the future." Shown the two ways to build it (a pulled one broadcasting once, or the idle dead watching for a chase), he chose: "Let's do the one time broadcast to nearby then no further chain reaction as you suggested." The spec is `docs/48`.
+
+- **The pull:** when one of the dead first turns to hunt a player, first-hand (it sees one, or a player's blow lands and it lives), it calls once to the dead within a few tiles that can see it, scaled by the light as a player's sight is; they join the hunt toward where it learnt of the player. Hunting a player is its own mark (`huntsPlayer`, Primary's reading), so one first drawn by a flame or a villager still pulls when it sees the player.
+- **No chain:** the ones it calls never call others; the call is made once, at the turn, never again while that hunt lasts.
+- **Sound is never aggro**, for now; the Noise someday stays open (`docs/05`).
 
 ### 2026-10-25 — Throwing knives and axes ruled: the knife pulls, the axe stops, they spin, and they break like the spear (Michael)
 
