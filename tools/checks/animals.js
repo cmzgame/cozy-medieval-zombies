@@ -136,8 +136,11 @@ export async function run(game) {
       // the checks, check("all")); the rows that need the dead make their own.
       const dead0 = S.zombies;
       S.zombies = [];
-      step(60 * 4);
-      S.zombies = [...dead0, ...S.zombies];
+      try {
+        step(60 * 4);
+      } finally {
+        S.zombies = [...dead0, ...S.zombies]; // put back, a throw or not
+      }
       row("with nothing within its clear distance it settles again", ["idle", "eat", "wander"].includes(rab.state), rab.state);
       G.teleport(...(field || meAt)); // back to the open ground, not the indoor spawn
       step();

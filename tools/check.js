@@ -2523,7 +2523,7 @@ check("hover card: every name that reaches a plural or a lower-cased line reads 
 
 // One of the dead saved at a door (`breach`, which the record drops) comes back in the chase, and the world steps on: a world saved with
 // one of them mid-breach threw on its first step after the load (found by check("all")'s sweep, 2026-10-25).
-check("save: one of the dead saved mid-breach comes back in the chase, and the world steps on", () => {
+check("save: one of the dead saved mid-breach takes up the chase on its first step, and the world steps on", () => {
   const json = read("data/maps/valley.json");
   gameMod.create({ json, rules: { zombieAggro: true } });
   const S = gameMod.state;
@@ -2532,9 +2532,12 @@ check("save: one of the dead saved mid-breach comes back in the chase, and the w
   Object.assign(z, { gx: me.gx + 3, gy: me.gy, state: "breach", aggro: true, breach: { tx: Math.round(me.gx), ty: Math.round(me.gy), edge: "n", stand: [me.gx, me.gy], into: [me.gx, me.gy] } });
   gameMod.restore(JSON.parse(JSON.stringify(gameMod.serialize())), json);
   const back = S.zombies.find((q) => q.id === z.id);
-  assert(back && back.state === "chase" && back.breach === null, `restored as ${back && back.state}, breach ${back && JSON.stringify(back.breach)}`);
+  // The record keeps the state and drops the opening (CH_DROPPED): restored as it was saved, as a guest's replica takes it too.
+  assert(back && back.state === "breach" && back.breach === null, `restored as ${back && back.state}, breach ${back && JSON.stringify(back.breach)}`);
+  gameMod.step(1 / 60, null); // zombie.js: a breach with no opening goes back to the chase, as breachHit and press do
+  assert(back.state === "chase", `after its first step it is in ${back.state}`);
   for (let i = 0; i < 120; i++) gameMod.step(1 / 60, null);
-  return `restored in the chase; stepped 120 times, now ${back.state}`;
+  return `restored in breach with no opening, in the chase after its first step; stepped 120 more, now ${back.state}`;
 });
 
 // An item's name counted in a sentence (src/items.js countName; docs/bugs.md, the butcher's "3 raw venisons"): a definition's `noun` "mass"

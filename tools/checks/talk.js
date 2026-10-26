@@ -86,7 +86,9 @@ export async function run(game) {
     // player about, so a run late in a page found one by the guide that the map never put there (the order-independence of the checks).
     const home = g.home || [g.gx, g.gy];
     const placed = (S.info.zombies || []).filter(([x, y]) => Math.hypot(x - home[0], y - home[1]) <= 8 || Math.hypot(x - S.info.spawn[0], y - S.info.spawn[1]) <= 8);
-    row("the welcome lands: the map puts none of the dead within the `deadNear` radius of the spawn or of the guide's home", placed.length === 0, `${placed.length} placed there; ${nearby.length} live near the guide now`);
+    // The live dead near the guide are named, not judged: on a fresh page one walked up by the boot would have failed the old row, and
+    // late in a page they are wherever earlier checks led them. What the welcome rests on is where the map puts them.
+    row("the welcome lands: the map puts none of the dead within the `deadNear` radius of the spawn or of the guide's home (the live ones near it named, not judged)", placed.length === 0, `${placed.length} placed there; ${nearby.length} live near the guide now`);
     G.clock.setHour(12);
     g.barkTurns = {};
     const welcome = poke();
@@ -379,20 +381,22 @@ export async function run(game) {
       // Each side of them with a clear line in turn (one may be a wall, and where a villager has wandered to late in a page the first open
       // side was not always one Talk reaches: the order-independence of the checks), until the panel opens.
       let opened = false;
+      const refused = []; // the clear sides where Talk did not open the panel, named in the row
       for (const [dx, dy] of [[1.2, 0], [-1.2, 0], [0, 1.2], [0, -1.2]]) {
         if (!G.map.isWalkableTile(Math.round(v.gx + dx), Math.round(v.gy + dy)) || G.map.wallBetween(Math.round(v.gx), Math.round(v.gy), Math.round(v.gx + dx), Math.round(v.gy + dy))) continue;
         G.teleport(v.gx + dx, v.gy + dy);
         step();
         if (G.interact.performByLabel(me, { kind: "character", id: v.id }, `Talk to ${v.name}`) && shown()) { opened = true; break; }
+        refused.push(`${dx > 0 ? "+x" : dx < 0 ? "-x" : dy > 0 ? "+y" : "-y"}`);
       }
-      if (!opened) { walked.push(`${v.name}: no panel`); continue; }
+      if (!opened) { walked.push(`${v.name}: no panel${refused.length ? ` (refused from ${refused.join(" ")})` : ""}`); continue; }
       const beforeV = worldText();
       seen.clear();
       walk(0);
       click("[data-close]");
       const same = worldText() === beforeV;
       if (!same) allSame = false;
-      walked.push(`${v.name} ${seen.size}${same ? "" : " DIFFERS"}`);
+      walked.push(`${v.name} ${seen.size}${same ? "" : " DIFFERS"}${refused.length ? ` (refused from ${refused.join(" ")} first)` : ""}`);
     }
     row("every villager's file asked through the panel leaves the world's text the same, the generator included", allSame && walked.length >= 8 && !walked.some((w) => /no panel/.test(w)), walked.join(", "));
   } catch (e) {

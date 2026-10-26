@@ -137,19 +137,23 @@ export async function run(game) {
     const GS = game.game.state;
     const bodies0 = { zombies: GS.zombies, villagers: GS.villagers, animals: GS.animals, corpses: GS.corpses }; // a body burning (burn's) flickers too
     for (const k of Object.keys(bodies0)) GS[k] = [];
-    // And no mark of this client's view fading between them: an Inspect's tile mark fades by the page's clock, and Object Highlight follows
-    // the cursor (an earlier check's Inspect left one).
-    (await import("/src/inspect-mark.js")).clear();
-    (await import("/src/highlight.js")).clear();
-    step(3);
-    const off = frame(game);
-    game.placement.beginBuild(game.placement.buildKinds()[0]?.id || "wall");
-    step(2);
-    const on = frame(game);
-    game.placement.cancel();
-    step(2);
-    const offAgain = frame(game);
-    for (const k of Object.keys(bodies0)) GS[k] = [...bodies0[k], ...GS[k].filter((c) => !bodies0[k].includes(c))];
+    let off, on, offAgain;
+    try {
+      // And no mark of this client's view fading between them: an Inspect's tile mark fades by the page's clock, and Object Highlight
+      // follows the cursor (an earlier check's Inspect left one).
+      (await import("/src/inspect-mark.js")).clear();
+      (await import("/src/highlight.js")).clear();
+      step(3);
+      off = frame(game);
+      game.placement.beginBuild(game.placement.buildKinds()[0]?.id || "wall");
+      step(2);
+      on = frame(game);
+      game.placement.cancel();
+      step(2);
+      offAgain = frame(game);
+    } finally {
+      for (const k of Object.keys(bodies0)) GS[k] = [...bodies0[k], ...GS[k].filter((c) => !bodies0[k].includes(c))]; // put back, a throw or not
+    }
     const lit = brighter(off, on);
     const stray = brighter(off, offAgain);
     const parityOk = Math.abs(even - odd) < 1;
