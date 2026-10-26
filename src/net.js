@@ -132,7 +132,10 @@ export function makeCode() {
 // changed shape; an older guest neither kept it nor marked the choice in its slot's menu and card (the key itself is the host's, either way).
 // 16 (2026-10-25, Michael's handedness): a player's heavy record carries `handed` ("right" or "left"), and the join carries the identity's;
 // the record changed shape, and an older guest drew every character right-handed and labelled its hands so.
-export const PROTOCOL = 16;
+// 17 (2026-10-25, the belt's slots by role, #478): a belt key's event in a guest's snapshot names the slot's role (`beltMain1`, `beltOff1`,
+// `beltUtility`, `beltMain2`, `beltOff2`; inventory.BELT_EVENTS) in place of its number (`belt1` to `belt4`), and the heavy record no longer
+// carries `beltHands`; an older guest's keys would be dropped by the host's filter.
+export const PROTOCOL = 17;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -258,7 +261,7 @@ const lastRoster = { zombies: "", villagers: "", corpses: "", animals: "" };
 // predicted swing is refused or allowed on the same step as the host's (rounded, a cooldown of 0.0167 would go as 0.02 and
 // the guest would hold a click the host took).
 const EXACT = new Set(["gx", "gy", "attackCooldown", "offCooldown", "swingLock", "shoveCooldown"]); // shoveCooldown: the shove's recovery gates a swing too (docs/41, step 2)
-const HEAVY = new Set(["worn", "hidden", "beltHands", "handed", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
+const HEAVY = new Set(["worn", "hidden", "handed", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
 const lastHeavy = new Map(); // player id -> the heavy part's text last sent
 const lastLight = new Map(); // player id -> the light record's text last sent
 const lastExtras = { rules: "", carriers: "", queues: "", animalHomes: "" }; // sent when they change, not every frame
@@ -494,7 +497,7 @@ function send(msg) {
 // What the host will take of a guest's snapshot: the shape the step reads, nothing else, every number finite
 // (a NaN aim or a far aim point would ride into the player's record and the save), the key events only the
 // ones that exist.
-const KEY_EVENTS = ["eTap", "ePressed", "bTap", "bHold", "t", "belt1", "belt2", "belt3", "belt4", "drawCancel", "wave"]; // drawCancel: a right tap during a draw (2026-10-15); wave: G or /wave (docs/43 section 7)
+const KEY_EVENTS = ["eTap", "ePressed", "bTap", "bHold", "t", "beltMain1", "beltOff1", "beltUtility", "beltMain2", "beltOff2", "drawCancel", "wave"]; // drawCancel: a right tap during a draw (2026-10-15); wave: G or /wave (docs/43 section 7)
 export function cleanSnap(raw) {
   const s = raw && typeof raw === "object" ? raw : {};
   const num = (v, lim) => (typeof v === "number" && Number.isFinite(v) ? Math.max(-lim, Math.min(lim, v)) : 0);

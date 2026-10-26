@@ -8,7 +8,7 @@ import { getItem, allItems, wearPerHit, wearPerShot, toolFor, countName, pluralN
 import { shotDamage, tunables as shot } from "./archery.js"; // a shot's damage by the draw and the flight's defaults (data/combat.json `bow`): the bow, a throw, a spell (#317)
 import { BURN } from "./burn.js"; // what burning does to the dead (data/combat.json `burn`): a fire arrow's and a fireball's line
 import { propName } from "./prop-names.js"; // a prop's name in words: its recipe's label, its definition's `name`, else its id
-import { beltDefault } from "./inventory.js"; // where the belt's key draws a thing by default (#285)
+import { beltAction, ROLE_WORD } from "./inventory.js"; // what a belt slot's key does by its role (2026-10-25)
 import { work, trees } from "./tuning.js"; // the repair ladders and the sawpit's item (docs/43 section 6); the sapling and the sticks (docs/46 step 3)
 import * as interactions from "./interactions.js";
 import * as stations from "./stations.js";
@@ -212,7 +212,8 @@ function shotLines(def) {
 }
 
 // The card for an item entry (a bag's, a slot's, a container's): never null for a known item.
-// `opts.beltHand`: on a belt slot, the hand its key draws into now ("main" or "off", inventory.beltHand), said on the Equip line (#285).
+// `opts.beltRole`: on a belt slot, its role ("main", "off", "utility"), and the card's first line says what that slot's key does with it
+// (inventory.beltAction, the key's own answer; Michael, 2026-10-25: "From this main-hand slot: drawn into your main hand").
 export function cardFor(entry, opts = {}) {
   const def = entry && getItem(entry.id);
   if (!def) return { name: String(entry && entry.id), kind: "", state: "", lines: [], fine: [] };
@@ -264,15 +265,10 @@ export function cardFor(entry, opts = {}) {
   }
   if (def.placeAs) lines.push(line(seg("Place as decoration", "word"), ": set down on the floor; picked up again, it is a decoration, not food."));
   if (def.bracket) lines.push(line(seg("Place", "word"), ": hang on a wall's face, to hold a torch."));
-  // The hands, and the belt's (#285): a thing too long for the belt says so; one that fits either hand says where the belt's key draws it,
-  // on a belt slot that slot's chosen hand (`opts.beltHand`, the panel's), else the default (inventory.beltDefault).
+  // The hands, and where a two-handed thing rides the belt (2026-10-25: a main-hand slot draws it into both hands, the utility slot stores
+  // it, an off-hand slot refuses it).
   if (def.hands) {
-    let belt = "";
-    if (def.noBelt) belt = "; too long for the belt";
-    else if (def.hands === "either") {
-      const d = opts.beltHand || beltDefault(def);
-      belt = opts.beltHand ? `; this slot draws it into the ${d} hand` : `; from the belt, ${d === "free" ? "a free hand" : `the ${d} hand`}`;
-    }
+    const belt = def.hands === "both" ? "; on the belt, a main-hand slot or the utility slot" : "";
     lines.push(line(seg("Equip", "word"), `: ${def.hands === "both" ? "both hands" : def.hands === "either" ? "main or off hand" : `${def.hands} hand`}${belt}.`));
   }
   if (def.wear) lines.push(line(seg("Equip", "word"), `: worn on your ${def.wear}${def.bag ? `; holds ${def.bag[0]}×${def.bag[1]}` : ""}${def.beltSlots ? `; ${def.beltSlots} belt slots` : ""}.`));
@@ -354,12 +350,46 @@ export function cardFor(entry, opts = {}) {
   }
   const dyed = dye.colourWords(entry);
   if (dyed) state.push(dyed); // what it was dyed, by the vat's names
-  return { name: def.name, kind, state: state.join(" · "), lines: lines.slice(0, MAX_LINES), fine: [line("Right-click for actions.")] };
+  // On a belt slot, what its key does with it, first, so a long card never cuts it.
+  const beltLine = opts.beltRole ? beltSlotLine(entry, def, opts.beltRole) : null;
+  return { name: def.name, kind, state: state.join(" · "), lines: beltLine ? [beltLine, ...lines.slice(0, MAX_LINES - 1)] : lines.slice(0, MAX_LINES), fine: [line("Right-click for actions.")] };
+}
+
+// The line a filled belt slot's card leads with: what the slot's key does with the thing there, from the key's own answer.
+function beltSlotLine(entry, def, role) {
+  const where = role === "utility" ? "From the utility slot" : `From this ${ROLE_WORD[role] || "slot"}`;
+  const a = beltAction(entry, role);
+  const lit = def.fire ? " Lit, it gives its light from the belt." : "";
+  if (a.act === "draw") return line(`${where}: drawn into ${a.hand === "both" ? "both hands" : `your ${a.hand} hand`}.${lit}`);
+  if (a.act === "eat") return line(`${where}: eaten.`);
+  // A held thing the key does not draw is still equipped from the slot's menu, as from the bag (interact.slotMenu): the card says so.
+  if (def.hands) return line(`${where}: stored. ${a.word} Its menu equips it.${lit}`);
+  return line(`${where}: carried only. ${a.word}${lit}`);
 }
 
 // The card for an empty slot: its name and what goes in it.
 export function cardForSlot(label) {
   return { name: label, kind: "Empty slot", state: "", lines: [], fine: [] };
+}
+
+// The card for an empty belt slot (Michael, 2026-10-25: "when empty and hovered it should tell you 'This is a main hand slot. It can ...'"):
+// what its key does, by its role, and what goes in it. `key` is the number that uses it under this client's order, or null.
+export const BELT_SLOT_TEXT = {
+  main: ["This is a main-hand slot. Its key draws what's here into your main hand, or eats it if it is food.", "A two-handed item goes here and is drawn into both hands; it never goes in an off-hand slot.", "Tapped empty, it does nothing: a stray key never takes the weapon out of your hand."],
+  off: ["This is an off-hand slot. Its key draws what's here into your off hand, or eats it if it is food.", "Two-handed items can't go here: they go in a main-hand slot or the utility slot.", "Tapped empty, it does nothing."],
+  utility: ["This is the utility slot. Its key eats what's here if it is food, and never equips anything.", "Anything else that goes on the belt rides here as storage, one cell whatever its size: a spare weapon, even a two-handed one.", "A lit torch gives its light from here."],
+};
+export function cardForBeltSlot(role, key = null) {
+  const name = role === "main" ? "Main-hand slot" : role === "off" ? "Off-hand slot" : "Utility slot";
+  const lines = (BELT_SLOT_TEXT[role] || []).map((t) => line(t));
+  if (role !== "utility") lines.push(line("A waterskin in any slot sips by itself when you are thirsty."));
+  return { name, kind: key != null ? `Belt slot, key ${key}` : "Belt slot", state: "Empty", lines, fine: [] };
+}
+
+// The card for a locked place on the hotbar (the "Hands grouped" order on a belt with fewer slots): the slot a leather belt adds there.
+export function cardForLockedSlot(role, key = null) {
+  const what = role === "main" ? "a second main-hand slot" : role === "off" ? "a second off-hand slot" : "a slot";
+  return { name: "Locked slot", kind: key != null ? `Belt slot, key ${key}` : "Belt slot", state: "", lines: [line(`A leather belt adds ${what} here.`)], fine: [] };
 }
 
 // The card as plain text, for the check and the log: one string per line.

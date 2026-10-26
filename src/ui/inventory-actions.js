@@ -57,8 +57,8 @@ export function takeAllFrom(player, from, h = createInventoryActions(() => playe
     const before = e.count;
     if (inventory.canStoreIn(e) && grid.transfer(from, mine, e)) { result.moved++; continue; }
     if (belt && e.count > 0) {
-      const i = belt.indexOf(null);
-      if (i >= 0 && h.canPlace(e, `belt:${i}`)) {
+      const i = belt.findIndex((q, k) => !q && h.canPlace(e, `belt:${k}`)); // every empty slot whose role takes it (a bow skips the off-hand slots)
+      if (i >= 0) {
         grid.remove(from, e);
         belt[i] = e;
         result.moved++;
@@ -79,6 +79,32 @@ export function takeAllWord(r) {
   if (r.left) return r.moved ? "Your bag is full: the rest stays." : "Your bag is full.";
   if (r.nested) return "A bag with things in it stays: empty it first.";
   return "";
+}
+
+// The words for a belt slot that refuses this entry by its role (a two-handed thing in an off-hand slot), or "".
+function beltRefusal(entry, slotId) {
+  const { kind, index } = inventory.parseSlot(slotId);
+  return kind === "belt" ? inventory.roleRefusal(inventory.beltRole(index), entry) : "";
+}
+
+// A slot's double-click entry: Unequip or Equip anywhere, Eat on the belt (#179), Drink only off the belt (a skin on the belt drinks by itself).
+// On the belt it is the key's path alone: the plain Equip (the slot's draw) or Eat; the menu's Equip into a hand for a thing the key does not
+// draw ("Equip (both hands)" in the utility slot, as from the bag) is never a double-click's, so the double-click says why as the key does.
+function slotUse(menu, slotId) {
+  const belt = inventory.parseSlot(slotId).kind === "belt";
+  if (belt) return menu.find((q) => q.label === "Equip" || q.label === "Eat");
+  return menu.find((q) => q.label === "Unequip" || q.label.startsWith("Equip") || q.label === "Eat" || q.label.startsWith("Drink"));
+}
+
+// A belt slot double-clicked whose key does nothing: the key's line, so the double-click is never silent where the key is not. False.
+function beltSays(player, slotId) {
+  const { kind, index } = inventory.parseSlot(slotId);
+  const e = kind === "belt" ? inventory.beltOf(player)?.[index] : null;
+  if (e) {
+    const a = inventory.beltAction(e, inventory.beltRole(index));
+    if (a.act === "none" && a.word) showMessage(a.word);
+  }
+  return false;
 }
 
 function restoreTo(player, entry, from) {
@@ -105,10 +131,11 @@ export function createInventoryActions(getPlayer) {
       const def = items.getItem(entry.id);
       if (kind === "worn") return def.wear === key;
       if (kind === "belt") {
-        // Hand items, one at a time, or consumables as a stack.
+        // Hand items, one at a time, or consumables as a stack; a slot's role may refuse a thing (a two-handed one in an off-hand slot,
+        // Michael 2026-10-25), and a guest's slot command meets the same rule (#226).
         const belt = inventory.beltOf(player);
         if (!belt || !Number.isInteger(index) || index < 0 || index >= belt.length) return false; // a guest's command can name any index
-        if (def.noBelt) return false; // too long for the belt (Michael, 2026-10-19: the halberd; #285), a guest's slot command refused too (#226)
+        if (!inventory.roleTakes(inventory.beltRole(index), entry)) return false;
         if (def.hands) return entry.count === 1;
         return def.kind === "food" || !!def.capacity || def.belt === true; // a food, a skin, or a thing that says it rides the belt (the tinderbox)
       }
@@ -186,10 +213,11 @@ export function createInventoryActions(getPlayer) {
     noRoom(intoBag) {
       showMessage(intoBag ? "No room in your bag." : "No room in there.");
     },
-    // A drag let go over a slot that refused it (the slot shown red): the reason, when it is one a player could not guess (the halberd
-    // is too long for the belt, #285). A read and a line on this screen, so a guest's is its own.
+    // A drag let go over a slot that refused it (the slot shown red): the reason, when it is one a player could not guess (a two-handed
+    // thing in an off-hand slot, 2026-10-25). A read and a line on this screen, so a guest's is its own.
     slotRefused(entry, slotId) {
-      if (inventory.parseSlot(slotId).kind === "belt" && inventory.offBelt(entry)) showMessage(inventory.offBeltWord(entry));
+      const word = beltRefusal(entry, slotId);
+      if (word) showMessage(word);
     },
     // The Take All button on a container's panel (#10).
     takeAll(bag) {
@@ -225,11 +253,12 @@ export function createInventoryActions(getPlayer) {
       return false;
     },
     // Double-click on a slot: its Equip or Unequip (Use comes first in the menu, and a double-click that began the
-    // Use mode never took anything off; the review of #66).
+    // Use mode never took anything off; the review of #66). On a belt slot it is the key's path: Equip or Eat, and a slot whose key does
+    // nothing says why, a skin's never drinking (2026-10-25).
     useSlot(slotId) {
       const m = interact.slotMenu(getPlayer(), slotId);
-      const a = m.find((q) => q.label === "Unequip" || q.label.startsWith("Equip") || q.label === "Eat" || q.label.startsWith("Drink")); // a food on the belt is eaten by a double-click (#179)
-      if (!a || a.enabled === false) return false;
+      const a = slotUse(m, slotId);
+      if (!a || a.enabled === false) return beltSays(getPlayer(), slotId);
       a.onSelect();
       return true;
     },
@@ -319,8 +348,8 @@ export function createRemoteInventoryActions(getPlayer, getOpen, send) {
     },
     useSlot(slotId) {
       const m = local.slotMenu(slotId);
-      const a = m.find((q) => q.label === "Unequip" || q.label.startsWith("Equip") || q.label === "Eat" || q.label.startsWith("Drink")); // as the host's own (above)
-      if (!a || a.enabled === false) return false;
+      const a = slotUse(m, slotId); // as the host's own (above); a belt slot's line read off the replica, a refusal on this screen alone
+      if (!a || a.enabled === false) return beltSays(getPlayer(), slotId);
       send({ op: "menu", label: a.label, src: { kind: "slot", id: slotId } });
       return true;
     },
@@ -395,7 +424,7 @@ export function performItemCommand(player, c) {
   if (c.op === "slot" && entry && typeof c.slot === "string") {
     // The same rule the host's own drag meets (the panel asks canPlace before it drops): a guest may not put an item where the host's player could not (#224).
     if (!h.canPlace(entry, c.slot)) {
-      showMessage(inventory.parseSlot(c.slot).kind === "belt" && inventory.offBelt(entry) ? inventory.offBeltWord(entry) : "That does not go there.");
+      showMessage(beltRefusal(entry, c.slot) || "That does not go there.");
       return false;
     }
     h.placeInSlot(entry, from, c.slot);

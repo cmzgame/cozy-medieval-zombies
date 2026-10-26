@@ -19,7 +19,7 @@ import { getSheet, idleFrame } from "./assets.js";
 import { resolveFacing, frameName } from "./sprites.js";
 import { getItem, toolFor, aName, countName, makeEntry, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
 import { stacks as bleedStacks, clear as clearBleed } from "./bleed.js";
-import { beltKey, beltHand, setBeltHand, handProblem, offBelt, offBeltWord, flameOf, NO_FLAME, skinsOf, carriedTool, toolProblem } from "./inventory.js";
+import { beltDraw, beltAction, beltRole, beltPositions, BELT_EVENTS, flameOf, NO_FLAME, skinsOf, carriedTool, toolProblem } from "./inventory.js";
 import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, restoreOffHand, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
 import { getDef } from "./assets.js";
 import * as names from "./prop-names.js"; // a prop's name in words: its recipe's label, its definition's `name`, else its id (docs/bugs.md, 2026-10-25)
@@ -1408,11 +1408,29 @@ export function wearFrom(player, entry, fromBag) {
 // state is this client's), a press of E, a press of T. They ride in the player's snapshot (main.js), so
 // a guest's go to the host in its input and the host performs them for the guest's player (game.step;
 // docs/31/05 item 10, tier 3). Nothing pressed gives an empty object, which the snapshot leaves out.
-// The belt keys, 1 to 4, as key events in the player's snapshot (item 4): performed by the world's step for the
-// player whose client pressed them (updateInteract), here or on the host.
-export function beltEvents() {
+// The belt keys, 1 to 5, as key events in the player's snapshot (item 4): performed by the world's step for the player whose client
+// pressed them (updateInteract), here or on the host. The client turns the number into the slot's role by its own key order (the setting
+// "Belt slot order", `order`; inventory.beltPositions), so what travels is the role (inventory.BELT_EVENTS) and the host, the other players,
+// and the save never see the setting (Michael, 2026-10-25). A number with no slot under that order sends nothing: a locked place on screen
+// (a grouped rope belt's 2 and 4) says "A leather belt adds a slot here." and any belt key with no belt worn says "You have no belt.", each on
+// this client's screen alone, since nothing in the world changes ("every expected slot action that fails should give you a log line"); a
+// number past a Sequential rope belt's three, with no place drawn for it, stays silent.
+export const NO_BELT = "You have no belt.";
+export const LOCKED_BELT_PLACE = "A leather belt adds a slot here.";
+export function beltEvents(player, order) {
+  const belt = player ? beltOf(player) : null;
   let ev = null;
-  for (let i = 1; i <= 4; i++) if (input.wasPressed(`Digit${i}`)) (ev = ev || {})[`belt${i}`] = true;
+  for (let n = 1; n <= 5; n++) {
+    if (!input.wasPressed(`Digit${n}`)) continue;
+    if (!belt) {
+      if (player) showMessage(NO_BELT);
+      continue;
+    }
+    const place = beltPositions(order, belt.length).find((q) => q.key === n);
+    const i = place ? place.index : null;
+    if (i != null && BELT_EVENTS[i]) (ev = ev || {})[BELT_EVENTS[i]] = true;
+    else if (place) showMessage(LOCKED_BELT_PLACE);
+  }
   return ev;
 }
 
@@ -1439,10 +1457,9 @@ export function keyEvents(dt) {
 // player's own client's (keyEvents), handed in by the step with its snapshot.
 export function updateInteract(player, dt, keys) {
   if (!keys) return;
-  // The belt (docs/11; the belt as utility slots, Michael 2026-10-10 late; one thing per slot, #285): a consumable on the slot is used;
-  // a held item, a light among them, swaps into the hand chosen for the slot. Moved from main.js into the world's step (item 4), so a
-  // guest's press reaches its body.
-  for (let i = 0; i < 4; i++) if (keys[`belt${i + 1}`]) beltPress(player, i);
+  // The belt (docs/11; the slots' roles, Michael 2026-10-25): a hand slot draws into its hand or eats, the utility slot eats, by the slot's
+  // role in the key's event. Moved from main.js into the world's step (item 4), so a guest's press reaches its body.
+  for (let i = 0; i < BELT_EVENTS.length; i++) if (keys[BELT_EVENTS[i]]) beltPress(player, i);
   if (keys.wave && !wave(player) && player.carrying) showMessage("Your arms are full."); // the wave (docs/43 section 7): played for its seconds, a field of the light record
   if (player.carrying) {
     // Only E, and only to put it down.
@@ -1507,39 +1524,32 @@ function eatOne(player, entry, def, take) {
   return true;
 }
 
-// A belt slot used (its key, a guest's too, and the slot's Equip, which a double-click runs; #285): exactly one thing for what is
-// there. A consumable is used; a held item swaps into the hand chosen for the slot (inventory.beltHand), refused in words when that
-// hand cannot take it; an empty slot takes what the main hand holds, as before. Returns beltKey's word, or "used".
+// A belt slot used (its key, a guest's too, and the slot's Equip, which a double-click runs; Michael, 2026-10-25): what the slot's role does
+// with what is there (inventory.beltAction). A hand slot draws into its hand, swapping what the hand held onto the slot, or eats a food; the
+// utility slot eats; anything else does nothing and says why ("every expected slot action that fails should give you a log line"). An empty
+// slot does nothing at all and says nothing, so a stray key in a fight never moves the weapon out of your hand. Returns "drawn", "eaten",
+// "refused", "none", or "nothing".
 export function beltPress(player, i) {
   const belt = beltOf(player);
-  const e = belt && belt[i];
-  const def = e && getItem(e.id);
-  if (def && !def.hands && (def.kind === "food" || def.capacity)) {
-    if (def.kind === "food") {
-      eatOne(player, e, def, () => { belt[i] = null; });
-    } else if ((e.fill ?? 0) > 0) drink(player, e);
-    else showMessage("It is empty.");
-    return "used";
+  const e = belt && Number.isInteger(i) && i >= 0 && i < belt.length ? belt[i] : null;
+  if (!e) return "nothing";
+  const def = getItem(e.id);
+  const a = beltAction(e, beltRole(i));
+  if (a.act === "eat") {
+    eatOne(player, e, def, () => { belt[i] = null; });
+    return "eaten";
   }
-  const held = !e && (player.hands.main || player.hands.off);
-  const r = beltKey(player, i);
-  if (r === "nobelt") showMessage("No belt, or no such slot.");
-  else if (r === "handsfull") {
-    // What would have to leave the hands could go nowhere: when that is a thing too long for the belt, say so (the review of #467).
-    const stuck = [player.hands.main, player.hands.off].find((q) => offBelt(q));
-    showMessage(stuck ? `${offBeltWord(stuck).slice(0, -1)}, and your bag is full.` : "Your hands are full.");
-  } else if (r === "wronghand") showMessage(handProblem(e, beltHand(player, i)));
-  else if (r === "nohands") showMessage(`The ${def.name.toLowerCase()} is not held in a hand.`);
-  else if (r === "toolong") showMessage(offBeltWord(held));
-  return r;
-}
-
-// The slot's two hand entries (#285): "Equip to main hand" and "Equip to off hand" choose the hand for the slot, kept on the player for
-// that kind of item, and draw it there now; refused in words when that hand cannot take it, the choice left as it was.
-function chooseBeltHand(player, i, hand) {
-  const no = setBeltHand(player, i, hand);
-  if (no) return showMessage(no);
-  beltPress(player, i);
+  if (a.act === "draw") {
+    const r = beltDraw(player, i);
+    for (const d of r.drop) map.dropItem(Math.round(player.gx), Math.round(player.gy), d); // the off hand's thing, with no room for it
+    if (!r.ok) {
+      showMessage(r.word);
+      return "refused";
+    }
+    return "drawn";
+  }
+  showMessage(a.word);
+  return "none";
 }
 
 // ---- the item menus, for the panel ----
@@ -1675,10 +1685,11 @@ export function slotMenu(player, slotId) {
     if (!entry) return out;
     const bdef = getItem(entry.id);
     const i = Number(key);
-    // A food on the belt is eaten from it, and a skin drunk from it (Michael, 2026-10-18, #179: "being able to eat from your belt"): the
-    // slot's first entry, so a double-click does it. A held item's Equip is what the key does (#285), into the hand chosen for the slot,
-    // so a double-click draws it there too (Primary's reading); then the two entries that choose the hand, the current one marked
-    // (`checked`, drawn by the context menu). A thing no hand holds (the tinderbox) has no Equip.
+    // A food on the belt is eaten from it (Michael, 2026-10-18, #179: "being able to eat from your belt"), and a skin drunk from its menu
+    // (never by its key, which says it drinks by itself): the slot's first entry. A held item's Equip is what a hand slot's key does
+    // (inventory.beltAction), so a double-click draws it there too. A held thing the slot's key does not draw (anything in the utility slot, a
+    // wrong-hand thing in a hand slot) is equipped from the menu into its own hand, as from the bag (equipFrom): only the key, and the
+    // double-click that follows it, never equip from there, and say why.
     if (bdef.kind === "food") {
       out.push({ label: "Eat", enabled: true, onSelect: () => { eatOne(player, entry, bdef, () => { belt[i] = null; }); } });
     } else if (bdef.capacity) {
@@ -1686,10 +1697,13 @@ export function slotMenu(player, slotId) {
       out.push({ label: drinkLabel(entry, pct), enabled: pct > 0, onSelect: () => drink(player, entry) });
       const boil = boilSkinEntry(player, entry);
       if (boil) out.push(boil);
-    } else if (bdef.hands) {
+    } else if (bdef.hands && beltAction(entry, beltRole(i)).act === "draw") {
       out.push({ label: "Equip", enabled: true, onSelect: () => beltPress(player, i) });
-      const now = beltHand(player, i);
-      for (const hand of ["main", "off"]) out.push({ label: `Equip to ${hand} hand`, enabled: true, checked: now === hand, onSelect: () => chooseBeltHand(player, i, hand) });
+    } else if (bdef.hands === "either") {
+      out.push({ label: "Equip (main hand)", enabled: true, onSelect: () => equipFrom(player, entry, "main") });
+      out.push({ label: "Equip (off hand)", enabled: true, onSelect: () => equipFrom(player, entry, "off") });
+    } else if (bdef.hands) {
+      out.push({ label: `Equip (${bdef.hands === "both" ? "both hands" : `${bdef.hands} hand`})`, enabled: true, onSelect: () => equipFrom(player, entry) });
     }
     out.push({
       label: "Put in bag",

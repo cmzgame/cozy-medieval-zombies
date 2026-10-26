@@ -85,7 +85,7 @@ export async function run(game) {
         full("the double-click on it", () => actions.useSlot(`belt:${slot2}`), () => belt[slot2] === null);
         const press = (await import("/src/interact.js")).updateInteract;
         oneStew();
-        full("the belt key", () => press(me, 1 / 60, { [`belt${slot2 + 1}`]: true }), () => belt[slot2] === null);
+        full("the belt key", () => press(me, 1 / 60, { [G.inventory.BELT_EVENTS[slot2]]: true }), () => belt[slot2] === null); // the key event names the slot by its role (2026-10-25)
         // With Survival off the needs stay full for good, and food heals all the same.
         G.rules.rules.survival = false;
         belt[slot2] = G.items.makeEntry("stew", 1);

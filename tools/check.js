@@ -2840,11 +2840,13 @@ check("client: a dead host's client.me stays its body when a guest joins the wor
   return `the body ${body.id} kept through a putPlayer and an addPlayer; the world's pick the friend's; a pick moves it`;
 });
 
-// The belt (#285; Michael, 2026-10-19): a slot's key does one thing; a held item swaps into the hand chosen for the slot in its menu, the
-// item's own by default; the choice kept on the player, in the save and the sync part, by the menu's label a guest sends; refused in words
-// only when the chosen hand cannot take it; the halberd never on the belt; a double-click draws into the chosen hand; the cards say it.
+// The belt's roles (Michael, 2026-10-25): the rope belt's main-hand, off-hand, and utility slots and the leather belt's second main and off;
+// a hand slot's key draws into its hand (both hands for a two-hander in a main-hand slot) and swaps, else eats, else says why; an empty slot's
+// key does nothing and says nothing; the utility slot eats and stores anything in one cell, never equipping; a two-hander refused in an
+// off-hand slot; a skin never drunk by a tap; the key order a client setting turned into the role before the snapshot; no choice on the
+// player, in the save, or in the sync part; a guest's key by role and its slot command; the cards.
 const promptMod = await import("../src/ui/prompt.js");
-check("belt: one thing per slot, the hand chosen per slot and kept, the defaults, the refusals, the halberd, a guest's command and key, the cards", () => {
+check("belt: the slots' roles, each key by role and item, the refusals in words, the utility slot's storage, the key orders, a guest's key and command, the cards", () => {
   const json = read("data/maps/valley.json");
   gameMod.create({ json, rules: { zombieAggro: false } });
   const S = gameMod.state;
@@ -2853,177 +2855,261 @@ check("belt: one thing per slot, the hand chosen per slot and kept, the defaults
   promptMod.setMessageSink((t) => { said.push(t); return true; });
   try {
     const mk = (id, props) => itemsMod.makeEntry(id, 1, props);
-    const fresh = (p) => {
-      p.worn.waist = mk("good_belt");
+    const fresh = (p, beltId = "good_belt") => {
+      p.worn.waist = mk(beltId);
       p.worn.back = mk("small_sack");
       p.hands.main = null;
       p.hands.off = null;
-      p.beltHands = [];
       p.offMemory = null;
       return inventoryMod.beltOf(p);
     };
-    let belt = fresh(me);
-    assert(belt.length === 4, `the leather belt has ${belt.length} slots`);
     const key = (p, i) => interactMod.beltPress(p, i);
-    const menu = (p, i) => interactMod.slotMenu(p, `belt:${i}`);
-    const marked = (p, i) => menu(p, i).filter((m) => m.checked).map((m) => m.label).join(",");
     const last = () => said[said.length - 1] || "";
-    // The defaults: the item's own hand.
-    const D = (id) => inventoryMod.beltDefault(itemsMod.getItem(id));
-    const defs = { sword: "main", book_of_fire: "off", shield: "off", torch: "free", spear: "main", bow: "both", bucket: "main", hatchet: "main", halberd: "both" };
-    for (const [id, want] of Object.entries(defs)) assert(D(id) === want, `${id}'s default is ${D(id)}, not ${want}`);
-    // Each kind's one thing. A food: eaten, the hands untouched.
-    belt[0] = mk("apple");
-    belt[0].count = 2;
-    me.hunger = 10;
-    assert(key(me, 0) === "used" && belt[0] && belt[0].count === 1 && !me.hands.main && !me.hands.off, "the apple's key did not eat one and only that");
-    // A skin: drunk from.
-    belt[0] = mk("waterskin", { fill: 80, clean: true });
-    assert(key(me, 0) === "used" && belt[0].fill < 80 && !me.hands.main, `the skin's key: fill ${belt[0].fill}`);
-    // A sword: the main hand; a book beside it: the off hand (its own default, so not refused until a hand is set).
+    const id = (e) => (e ? e.id : "-");
+    const held = (p) => `main ${id(p.hands.main)}, off ${id(p.hands.off)}`;
+    // The roles and the counts.
+    let belt = fresh(me, "belt");
+    assert(belt.length === 3 && [0, 1, 2].map(inventoryMod.beltRole).join(",") === "main,off,utility", `the rope belt: ${belt.length} slots`);
+    belt = fresh(me);
+    assert(belt.length === 5 && [0, 1, 2, 3, 4].map(inventoryMod.beltRole).join(",") === "main,off,utility,main,off", `the leather belt: ${belt.length} slots`);
+    // The key orders: the number to the slot index, on both belts; the default is Sequential.
+    const keys = (order, n) => [1, 2, 3, 4, 5].map((k) => inventoryMod.beltKeyIndex(order, n, k)).map((i) => (i == null ? "-" : i)).join("");
+    assert(keys("sequential", 3) === "012--" && keys("sequential", 5) === "01234", `sequential: rope ${keys("sequential", 3)}, leather ${keys("sequential", 5)}`);
+    assert(keys("grouped", 3) === "0-1-2" && keys("grouped", 5) === "03142", `grouped: rope ${keys("grouped", 3)}, leather ${keys("grouped", 5)}`);
+    assert(inventoryMod.beltPositions("grouped", 3).filter((p) => p.index == null).map((p) => p.key).join(",") === "2,4", "the rope belt's grouped places 2 and 4 are not the locked ones");
+    const settingsSrc = fs.readFileSync(path.join(root, "src/settings.js"), "utf8");
+    assert(/beltOrder: "sequential"/.test(settingsSrc) && /label: "Belt slot order"/.test(settingsSrc) && /\["grouped", "Hands grouped"\]/.test(settingsSrc), "the setting Belt slot order, Sequential by default, is not in settings.js");
+    // The role travels, never the number: the snapshot's filter keeps the role's events and drops the old numbers.
+    const clean = netMod.cleanSnap({ keys: { beltMain1: true, beltOff1: true, beltUtility: true, beltMain2: true, beltOff2: true, belt2: true } }).keys || {};
+    assert(Object.keys(clean).sort().join(",") === [...inventoryMod.BELT_EVENTS].sort().join(","), `the snapshot's belt keys: ${Object.keys(clean).join(",")}`);
+    assert(netMod.PROTOCOL === 17, `PROTOCOL ${netMod.PROTOCOL}`);
+
+    // ---- a main-hand slot (index 0) ----
+    belt = fresh(me);
     belt[0] = mk("sword");
-    belt[1] = mk("book_of_fire");
-    assert(key(me, 0) === "drawn" && me.hands.main && me.hands.main.id === "sword" && !belt[0], "the sword's key did not draw it into the main hand");
-    assert(key(me, 1) === "drawn" && me.hands.off && me.hands.off.id === "book_of_fire" && me.hands.main.id === "sword", `the book's key: main ${me.hands.main && me.hands.main.id}, off ${me.hands.off && me.hands.off.id}`);
-    // A book with both hands empty: still the off hand (the old code put it in the main hand).
-    belt = fresh(me);
-    belt[1] = mk("book_of_fire");
-    assert(key(me, 1) === "drawn" && me.hands.off && me.hands.off.id === "book_of_fire" && !me.hands.main, "a book with both hands empty did not go to the off hand");
-    // A torch: a free hand, as before (beside a sword, the off hand); a lit one on the belt stays lit there (its light is where it sits).
-    belt = fresh(me);
-    me.hands.main = mk("sword");
-    belt[2] = mk("torch");
-    belt[2].lit = true;
-    assert(itemsMod.isLit(belt[2]), "a lit torch on the belt is not giving light");
-    assert(key(me, 2) === "drawn" && me.hands.off && me.hands.off.id === "torch" && me.hands.main.id === "sword", "the torch's key beside a sword did not take the off hand");
-    // A thing no hand holds (the tinderbox): the key does nothing to it, and says so.
-    belt[3] = mk("tinderbox");
+    me.hands.main = mk("mace");
+    const mace = me.hands.main;
+    assert(key(me, 0) === "drawn" && id(me.hands.main) === "sword" && belt[0] === mace, `the sword's draw did not swap with the mace: ${held(me)}, slot ${id(belt[0])}`);
+    // An empty hand slot: nothing at all, and no line (a stray key never disarms you).
+    belt[0] = null;
     said.length = 0;
-    assert(key(me, 3) === "nohands" && belt[3] && belt[3].id === "tinderbox" && /not held in a hand/.test(last()), `the tinderbox's key: ${last()}`);
-    // An empty slot takes what the main hand holds, as before.
-    assert(key(me, 0) === "stowed" && belt[0] && belt[0].id === "sword" && !me.hands.main, "an empty slot's key did not take the sword");
-    // An empty slot whose choice is the off hand takes the off hand's first (the review of #467): its key toggles a book in and out; with no
-    // choice, or the main hand chosen, the main hand's.
-    belt = fresh(me);
-    me.hands.main = mk("sword");
-    belt[1] = mk("book_of_fire");
-    assert(inventoryMod.setBeltHand(me, 1, "off") === "", "the book's off hand was refused");
-    assert(key(me, 1) === "drawn" && me.hands.off && me.hands.off.id === "book_of_fire", "the book chosen for the off hand was not drawn there");
-    assert(key(me, 1) === "stowed" && belt[1] && belt[1].id === "book_of_fire" && me.hands.main && me.hands.main.id === "sword" && !me.hands.off, `key 2 again: slot ${belt[1] && belt[1].id}, main ${me.hands.main && me.hands.main.id}`);
-    me.hands.off = mk("book_of_fire");
-    belt[2] = null;
-    assert(key(me, 2) === "stowed" && belt[2] && belt[2].id === "sword" && me.hands.off && !me.hands.main, "an empty slot with no choice did not take the main hand's");
-    // The menu: Equip, then the two hands, the current one marked.
-    belt = fresh(me);
-    belt[1] = mk("book_of_fire");
-    const labels = menu(me, 1).map((m) => m.label);
-    assert(labels.join(",").startsWith("Use,Equip,Equip to main hand,Equip to off hand"), `the book's slot menu: ${labels.join(", ")}`);
-    assert(marked(me, 1) === "Equip to off hand", `the book's mark: ${marked(me, 1)}`);
-    belt[0] = mk("sword");
-    assert(marked(me, 0) === "Equip to main hand", `the sword's mark: ${marked(me, 0)}`);
-    // Chosen by the menu: drawn there now, and kept for the slot.
-    const players0 = gameMod.syncParts().players;
-    menu(me, 1).find((m) => m.label === "Equip to main hand").onSelect();
-    assert(me.hands.main && me.hands.main.id === "book_of_fire" && !belt[1], "Equip to main hand did not draw the book into the main hand");
-    assert(me.beltHands[1] && me.beltHands[1].id === "book_of_fire" && me.beltHands[1].hand === "main", `the choice: ${JSON.stringify(me.beltHands)}`);
-    const book = me.hands.main;
-    itemsMod.release(me.hands, book);
-    belt[1] = book;
-    assert(marked(me, 1) === "Equip to main hand" && inventoryMod.beltHand(me, 1) === "main", "the choice did not stick to the slot");
-    // Kept for that kind of item: another book there keeps it; a sword there takes its own default.
-    belt[2] = mk("sword");
-    assert(inventoryMod.beltHand(me, 2) === "main", "a sword's default is not the main hand");
-    me.beltHands[2] = { id: "torch", hand: "off" };
-    assert(inventoryMod.beltHand(me, 2) === "main", "a slot chosen for a torch's off hand sent a sword to the off hand");
-    belt[2] = mk("torch");
-    assert(inventoryMod.beltHand(me, 2) === "off", "a fresh torch in a slot chosen for a torch's off hand lost the choice");
-    me.beltHands[2] = null;
-    belt[2] = null;
-    // The sync part holds it: the players' part moves with the choice alone, and comes back without it.
-    const players1 = gameMod.syncParts().players;
-    const chosen = me.beltHands;
-    me.beltHands = [];
-    const players2 = gameMod.syncParts().players;
-    me.beltHands = chosen;
-    assert(players1 !== players0 && players2 === players0, `the players' sync part: ${players0} before, ${players1} chosen, ${players2} without the choice`);
-    // Kept through a save.
-    const saved = JSON.parse(JSON.stringify(gameMod.serialize()));
-    gameMod.restore(saved, json);
-    me = S.player;
-    belt = inventoryMod.beltOf(me);
-    assert(me.beltHands && me.beltHands[1] && me.beltHands[1].hand === "main" && belt[1] && belt[1].id === "book_of_fire", `after the restore: ${JSON.stringify(me.beltHands)}`);
-    assert(key(me, 1) === "drawn" && me.hands.main && me.hands.main.id === "book_of_fire", "after the restore the key did not draw the book into the main hand");
-    // The refusals: only when the chosen hand cannot take it, in words; the choice left as it was.
-    belt = fresh(me);
-    belt[0] = mk("shield");
-    belt[1] = mk("bow");
-    belt[2] = mk("spear");
-    said.length = 0;
-    menu(me, 0).find((m) => m.label === "Equip to main hand").onSelect();
-    assert(last() === "The wooden shield cannot be held in your main hand." && belt[0] && belt[0].id === "shield" && !me.hands.main && !me.beltHands[0], `the shield to the main hand: ${last()}`);
-    menu(me, 1).find((m) => m.label === "Equip to off hand").onSelect();
-    assert(last() === "The hunting bow needs both hands." && belt[1] && !me.hands.off, `the bow to the off hand: ${last()}`);
-    menu(me, 2).find((m) => m.label === "Equip to off hand").onSelect();
-    assert(last() === "The throwing spear cannot be held in your off hand." && belt[2], `the spear to the off hand: ${last()}`);
-    assert(marked(me, 0) === "Equip to off hand" && marked(me, 1) === "Equip to main hand" && marked(me, 2) === "Equip to main hand", `the marks: ${marked(me, 0)} / ${marked(me, 1)} / ${marked(me, 2)}`);
-    assert(key(me, 0) === "drawn" && me.hands.off && me.hands.off.id === "shield", "the shield's key did not take the off hand");
-    assert(key(me, 1) === "drawn" && me.hands.main && me.hands.main.id === "bow" && me.hands.off === me.hands.main, "the bow's key did not take both hands");
-    // The halberd: never on the belt, by the slot check (a guest's slot command too), by stow, and by an empty slot's key.
+    assert(key(me, 0) === "nothing" && id(me.hands.main) === "sword" && !belt[0] && said.length === 0, `an empty main-hand slot's key: ${held(me)}, said ${said.join(" / ")}`);
+    belt[1] = null;
+    me.hands.off = mk("shield");
+    assert(key(me, 1) === "nothing" && id(me.hands.off) === "shield" && said.length === 0, "an empty off-hand slot's key moved the shield or spoke");
+    // A wrong-hand thing rides the slot as storage; its key says why.
     belt = fresh(me);
     const h = invActionsMod.createInventoryActions(() => me);
-    const halberd = mk("halberd");
-    assert(h.canPlace(halberd, "belt:0") === false && h.canPlace(mk("sword"), "belt:0") === true, "the slot check let the halberd onto the belt");
-    inventoryMod.bagOf(me).items.push(halberd);
-    halberd.x = 0; halberd.y = 0; halberd.rot = false;
+    assert(h.canPlace(mk("shield"), "belt:0") && h.canPlace(mk("spear"), "belt:1"), "a wrong-hand thing was refused as storage");
+    belt[0] = mk("shield");
     said.length = 0;
-    const ranSlot = invActionsMod.performItemCommand(me, { op: "slot", uid: halberd.uid, src: { kind: "bag", bag: { mine: true } }, slot: "belt:0" });
-    assert(ranSlot === false && !belt[0] && inventoryMod.bagOf(me).items.includes(halberd) && last() === "The halberd is too long for the belt.", `a guest's slot command with the halberd: ran ${ranSlot}, ${last()}`);
-    gridMod.remove(inventoryMod.bagOf(me), halberd);
-    me.worn.back = null; // no bag: stow would have to use the belt
-    assert(inventoryMod.stow(me, halberd) === null && !belt.includes(halberd), "stow put the halberd on the belt");
+    assert(key(me, 0) === "none" && id(belt[0]) === "shield" && !me.hands.main && last() === "The wooden shield can't be held in your main hand.", `the shield's key in a main-hand slot: ${last()}`);
+    // Food eaten, a skin never drunk by a tap, the tinderbox left with a word, a torch drawn.
+    belt[0] = mk("bread");
+    me.hunger = 10;
+    assert(key(me, 0) === "eaten" && !belt[0] && me.hunger > 10, "the bread in a main-hand slot was not eaten");
+    belt[0] = mk("waterskin", { fill: 80, clean: true });
+    said.length = 0;
+    assert(key(me, 0) === "none" && belt[0].fill === 80 && last() === "Your waterskin drinks by itself from your belt.", `the skin's tap: fill ${belt[0].fill}, ${last()}`);
+    assert(inventoryMod.skinsOf(me).includes(belt[0]), "a skin on the belt is no longer among the skins that sip by themselves");
+    belt[0] = mk("tinderbox");
+    assert(key(me, 0) === "none" && id(belt[0]) === "tinderbox" && /not held in a hand/.test(last()), `the tinderbox: ${last()}`);
+    belt[0] = mk("torch");
+    assert(key(me, 0) === "drawn" && id(me.hands.main) === "torch", "the torch was not drawn into the main hand");
+    // A two-hander from a main-hand slot: both hands; the main hand's to the slot, the off hand's to an empty off-hand slot.
+    belt = fresh(me);
+    belt[0] = mk("halberd");
+    me.hands.main = mk("sword");
+    me.hands.off = mk("shield");
+    const shield = me.hands.off;
+    assert(key(me, 0) === "drawn" && id(me.hands.main) === "halberd" && me.hands.off === me.hands.main && id(belt[0]) === "sword" && belt[1] === shield, `the halberd's draw: ${held(me)}; slots ${belt.map(id).join(" ")}`);
+    // The sword back: the halberd to its slot, the shield it pushed out back in the off hand (docs/21).
+    assert(key(me, 0) === "drawn" && id(me.hands.main) === "sword" && me.hands.off === shield && id(belt[0]) === "halberd" && !belt[1], `the sword back: ${held(me)}; slots ${belt.map(id).join(" ")}`);
+    // No empty off-hand slot: the shield goes to the bag; no bag either: to the feet.
+    belt[1] = mk("book_of_fire");
+    belt[4] = mk("book_of_fire");
+    belt[3] = mk("bow");
+    assert(key(me, 3) === "drawn" && id(me.hands.main) === "bow" && id(belt[3]) === "sword" && inventoryMod.bagOf(me).items.includes(shield), `the bow with the off-hand slots full: ${held(me)}; shield in the bag ${inventoryMod.bagOf(me).items.includes(shield)}`);
+    gridMod.remove(inventoryMod.bagOf(me), shield);
+    me.worn.back = null;
+    itemsMod.release(me.hands, me.hands.main);
+    me.hands.main = mk("mace");
+    me.hands.off = shield;
+    belt[0] = mk("halberd");
+    const tx = Math.round(me.gx), ty = Math.round(me.gy);
+    // No off-hand slot and no bag: the empty utility slot before the feet (the review of #478, S1).
+    assert(key(me, 0) === "drawn" && id(me.hands.main) === "halberd" && belt[2] === shield && !mapMod.itemsAt(tx, ty).some((e) => e.uid === shield.uid), `the halberd with no off-hand slot or bag for the shield: ${held(me)}; utility ${id(belt[2])}`);
+    assert(key(me, 0) === "drawn" && id(me.hands.main) === "mace" && me.hands.off === shield && !belt[2] && id(belt[0]) === "halberd", `the mace back, the shield back from the utility slot: ${held(me)}; slots ${belt.map(id).join(" ")}`);
+    belt[2] = mk("bread"); // the utility slot full too: to the feet
+    assert(key(me, 0) === "drawn" && id(me.hands.main) === "halberd" && mapMod.itemsAt(tx, ty).some((e) => e.uid === shield.uid), `the halberd with nowhere for the shield: ${held(me)}; at the feet ${mapMod.itemsAt(tx, ty).map(id).join(",")}`);
+    mapMod.itemsAt(tx, ty).splice(mapMod.itemsAt(tx, ty).findIndex((e) => e.uid === shield.uid), 1); // dropItem lays a copy, by its uid
+    // The spear's dual rule: refused in words, everything as it was.
+    belt = fresh(me);
+    me.hands.off = mk("sword");
+    belt[0] = mk("spear");
+    said.length = 0;
+    assert(key(me, 0) === "refused" && id(belt[0]) === "spear" && id(me.hands.off) === "sword" && !me.hands.main && /can't be held beside another weapon/.test(last()), `the spear beside a sword: ${held(me)}; ${last()}`);
+
+    // ---- an off-hand slot (index 1) ----
+    belt = fresh(me);
+    me.hands.main = mk("sword");
+    belt[1] = mk("book_of_fire");
+    assert(key(me, 1) === "drawn" && id(me.hands.off) === "book_of_fire" && id(me.hands.main) === "sword" && !belt[1], `the book's draw: ${held(me)}`);
+    belt[1] = mk("shield");
+    const book = me.hands.off;
+    assert(key(me, 1) === "drawn" && id(me.hands.off) === "shield" && belt[1] === book, "the shield did not swap with the book in the off hand");
+    belt[1] = mk("spear");
+    assert(key(me, 1) === "none" && id(belt[1]) === "spear" && last() === "The throwing spear can't be held in your off hand.", `the spear in an off-hand slot: ${last()}`);
+    // A two-hander refused at placement in every off-hand slot, a guest's slot command too, with the line.
+    const bow = mk("bow");
+    assert(!h.canPlace(bow, "belt:1") && !h.canPlace(bow, "belt:4") && h.canPlace(bow, "belt:0") && h.canPlace(bow, "belt:2") && h.canPlace(bow, "belt:3"), "the bow's placement by role");
+    belt[4] = null;
+    me.worn.back = mk("small_sack");
+    gridMod.insert(inventoryMod.bagOf(me), bow);
+    said.length = 0;
+    const ranBow = invActionsMod.performItemCommand(me, { op: "slot", uid: bow.uid, src: { kind: "bag", bag: { mine: true } }, slot: "belt:4" });
+    assert(ranBow === false && !belt[4] && inventoryMod.bagOf(me).items.includes(bow) && last() === "The hunting bow needs both hands: it goes in a main-hand slot or the utility slot.", `a guest's bow onto an off-hand slot: ran ${ranBow}; ${last()}`);
+    said.length = 0;
+    h.slotRefused(bow, "belt:1");
+    assert(last() === "The hunting bow needs both hands: it goes in a main-hand slot or the utility slot.", `a drag's word: ${last()}`);
+    // An off-hand draw with a two-hander held: the two-hander to an empty main-hand slot, the slot left empty.
+    belt = fresh(me);
+    const halberd = mk("halberd");
     me.hands.main = halberd;
     me.hands.off = halberd;
-    said.length = 0;
-    assert(key(me, 0) === "toolong" && me.hands.main === halberd && !belt[0] && last() === "The halberd is too long for the belt.", `the empty slot's key with a halberd held: ${last()}`);
-    // A sword's key with the halberd held and nowhere to put it: says why (the review of #467), the sword left on the belt.
-    belt[1] = mk("sword");
-    assert(key(me, 1) === "handsfull" && me.hands.main === halberd && belt[1] && belt[1].id === "sword" && last() === "The halberd is too long for the belt, and your bag is full.", `a draw with the halberd stuck: ${last()}`);
-    belt[1] = null;
-    me.worn.back = mk("small_sack");
-    me.hands.main = null;
-    me.hands.off = null;
-    // A double-click draws into the chosen hand (Primary's reading): a sword chosen for the off hand.
+    belt[1] = mk("shield");
+    assert(key(me, 1) === "drawn" && id(me.hands.off) === "shield" && !me.hands.main && !belt[1] && (belt[0] === halberd || belt[3] === halberd), `the shield with the halberd held: ${held(me)}; slots ${belt.map(id).join(" ")}`);
+    // Both main-hand slots full and no bag: the bow pushed out by a draw into the off hand goes to the empty utility slot, never the floor (S1).
+    belt = fresh(me);
+    me.worn.back = null;
+    const heldBow = mk("bow");
+    me.hands.main = heldBow;
+    me.hands.off = heldBow;
     belt[0] = mk("sword");
-    assert(inventoryMod.setBeltHand(me, 0, "off") === "", "the sword's off hand was refused");
-    me.hands.main = mk("mace");
-    assert(h.useSlot("belt:0") === true && me.hands.off && me.hands.off.id === "sword" && me.hands.main.id === "mace", `the double-click: main ${me.hands.main && me.hands.main.id}, off ${me.hands.off && me.hands.off.id}`);
-    // A guest's menu command, by its label, and a guest's key, in its snapshot: the host runs them for the guest's player.
+    belt[3] = mk("mace");
+    belt[1] = mk("torch");
+    const fx = Math.round(me.gx), fy = Math.round(me.gy);
+    assert(key(me, 1) === "drawn" && id(me.hands.off) === "torch" && !me.hands.main && belt[2] === heldBow && !mapMod.itemsAt(fx, fy).some((e) => e.uid === heldBow.uid), `the torch drawn with the bow held and the main-hand slots full: ${held(me)}; slots ${belt.map(id).join(" ")}`);
+    me.worn.back = mk("small_sack");
+
+    // ---- the utility slot (index 2) ----
+    belt = fresh(me);
+    assert(h.canPlace(halberd, "belt:2"), "the utility slot refused the halberd");
+    belt[2] = halberd; // one cell, whatever its bag shape (1 by 5)
+    said.length = 0;
+    assert(key(me, 2) === "none" && belt[2] === halberd && !me.hands.main && last() === "You can't equip a weapon from the utility slot.", `the halberd's key in the utility slot: ${last()}`);
+    belt[2] = mk("sword");
+    assert(key(me, 2) === "none" && id(belt[2]) === "sword" && last() === "You can't equip a weapon from the utility slot.", "the sword in the utility slot");
+    belt[2] = mk("torch", { lit: true });
+    assert(key(me, 2) === "none" && id(belt[2]) === "torch" && last() === "You can't equip the torch from the utility slot." && itemsMod.isLit(belt[2]), `the torch in the utility slot: ${last()}`);
+    belt[2] = mk("book_of_fire");
+    assert(key(me, 2) === "none" && last() === "You can't equip the book of fire from the utility slot.", `the book in the utility slot: ${last()}`);
+    belt[2] = mk("bread");
+    me.hunger = 10;
+    assert(key(me, 2) === "eaten" && !belt[2], "the bread in the utility slot was not eaten");
+    belt[2] = mk("waterskin", { fill: 50, clean: true });
+    assert(key(me, 2) === "none" && belt[2].fill === 50 && last() === "Your waterskin drinks by itself from your belt.", "the skin's tap in the utility slot");
+    belt[2] = null;
+    said.length = 0;
+    assert(key(me, 2) === "nothing" && said.length === 0, "an empty utility slot spoke");
+    // stow with no bag: a two-hander to a main-hand or the utility slot, never an off-hand one.
+    belt = fresh(me);
+    me.worn.back = null;
+    belt[0] = mk("sword");
+    const bow2 = mk("bow");
+    assert(inventoryMod.stow(me, bow2) === "belt" && belt[2] === bow2 && !belt[1], `stow put the bow at ${belt.indexOf(bow2)}`);
+    // A one-handed weapon put away with no bag: the main-hand slots, then the utility slot, never an off-hand slot (so a swap never dual-wields).
+    belt = fresh(me);
+    me.worn.back = null;
+    const sw1 = mk("sword");
+    const sw2 = mk("mace");
+    const sw3 = mk("hatchet");
+    const sw4 = mk("knife");
+    assert(inventoryMod.stow(me, sw1) === "belt" && belt[0] === sw1 && inventoryMod.stow(me, sw2) === "belt" && belt[3] === sw2 && inventoryMod.stow(me, sw3) === "belt" && belt[2] === sw3, `stow's one-handers: slots ${belt.map(id).join(" ")}`);
+    assert(inventoryMod.stow(me, sw4) === null && !belt[1] && !belt[4], `a fourth one-hander went to an off-hand slot: slots ${belt.map(id).join(" ")}`);
+    assert(inventoryMod.stow(me, mk("book_of_fire")) === "belt" && id(belt[1]) === "book_of_fire", `a book did not go to the free off-hand slot: slots ${belt.map(id).join(" ")}`);
+    me.worn.back = mk("small_sack");
+    // Take All with the bag full: a bow tries every empty belt slot its role allows, the utility slot past the off-hand one (S2).
+    belt = fresh(me, "belt");
+    belt[0] = mk("sword");
+    const full = inventoryMod.bagOf(me);
+    for (let n = 0; n < 60 && gridMod.insert(full, mk("hatchet")); n++);
+    const chestBag = inventoryMod.createBag(3, 3, "chest");
+    const takeBow = mk("bow");
+    gridMod.insert(chestBag, takeBow);
+    const took = invActionsMod.takeAllFrom(me, chestBag, h);
+    assert(took.moved === 1 && took.left === 0 && belt[2] === takeBow && !belt[1] && chestBag.items.length === 0, `Take All's bow with the bag full: ${JSON.stringify(took)}; slots ${belt.map(id).join(" ")}`);
+    me.worn.back = mk("small_sack");
+
+    // ---- the slot's menu and the double-click ----
+    belt = fresh(me);
+    belt[0] = mk("sword");
+    belt[2] = mk("mace");
+    const labels = (i) => interactMod.slotMenu(me, `belt:${i}`).map((m) => m.label).join(",");
+    assert(labels(0).startsWith("Use,Equip,Put in bag") && !/Equip to/.test(labels(0)) && !interactMod.slotMenu(me, "belt:0").some((m) => "checked" in m), `the sword's slot menu: ${labels(0)}`);
+    // The utility slot's menu equips into the item's own hand, as from the bag; only its key (and the double-click, the key's path) never does (S3).
+    assert(labels(2) === "Use,Equip (main hand),Equip (off hand),Put in bag,Drop", `the utility slot's mace menu: ${labels(2)}`);
+    said.length = 0;
+    assert(h.useSlot("belt:2") === false && id(belt[2]) === "mace" && last() === "You can't equip a weapon from the utility slot.", `the utility slot's double-click: ${last()}`);
+    const uMace = belt[2];
+    interactMod.slotMenu(me, "belt:2").find((m) => m.label === "Equip (off hand)").onSelect();
+    assert(me.hands.off === uMace && !belt[2], `the utility slot's Equip (off hand): ${held(me)}; slots ${belt.map(id).join(" ")}`);
+    me.hands.off = null;
+    belt[2] = mk("halberd");
+    assert(labels(2) === "Use,Equip (both hands),Put in bag,Drop", `the utility slot's halberd menu: ${labels(2)}`);
+    belt[3] = mk("shield");
+    assert(labels(3) === "Use,Equip (off hand),Put in bag,Drop", `a shield's menu in a main-hand slot: ${labels(3)}`);
+    // A guest's way: the same label as a menu command, run on the host.
+    const uHal = belt[2];
+    assert(invActionsMod.performItemCommand(me, { op: "menu", label: "Equip (both hands)", src: { kind: "slot", id: "belt:2" } }) === true && me.hands.main === uHal && me.hands.off === uHal && !belt[2], `a guest's Equip (both hands) from the utility slot: ${held(me)}`);
+    itemsMod.release(me.hands, uHal);
+    belt[3] = null;
+    assert(h.useSlot("belt:0") === true && id(me.hands.main) === "sword", "the main-hand slot's double-click did not draw the sword");
+    belt[1] = mk("waterskin", { fill: 60, clean: true });
+    assert(h.useSlot("belt:1") === false && belt[1].fill === 60 && last() === "Your waterskin drinks by itself from your belt.", "a belt skin's double-click drank");
+
+    // ---- no choice on the player: not in the save, not in the sync part; an old save's dropped ----
+    assert(!("beltHands" in me), "a player still carries beltHands");
+    assert(!/beltHands/.test(gameMod.syncParts().players) && !/beltHands/.test(JSON.stringify(gameMod.serialize())), "beltHands is still in the sync part or the save");
+    const saved = JSON.parse(JSON.stringify(gameMod.serialize()));
+    const rec = saved.characters.players.find((p) => p.id === me.id);
+    rec.beltHands = [{ id: "sword", hand: "off" }];
+    gameMod.restore(saved, json);
+    me = S.player;
+    assert(!("beltHands" in me), "an old save's beltHands was restored onto the player");
+    // An old world's rope belt of two grows to three.
+    const old = mk("belt");
+    old.slots = [null, null];
+    assert(inventoryMod.ensureSlots(old).length === 3, "an old rope belt of two did not grow to three");
+
+    // ---- a guest: its key by role in its snapshot, run by the host's step ----
     const g = gameMod.addPlayer(me.gx + 1, me.gy, {});
-    const gb = fresh(g);
+    const gb = fresh(g, "belt");
     gb[1] = mk("book_of_fire");
-    const ranMenu = invActionsMod.performItemCommand(g, { op: "menu", label: "Equip to main hand", src: { kind: "slot", id: "belt:1" } });
-    assert(ranMenu && g.hands.main && g.hands.main.id === "book_of_fire" && g.beltHands[1] && g.beltHands[1].hand === "main" && me.beltHands[1] == null, `a guest's menu command: ran ${ranMenu}, ${JSON.stringify(g.beltHands)}`);
-    const gBook = g.hands.main;
-    itemsMod.release(g.hands, gBook);
-    gb[1] = gBook;
+    gb[0] = mk("sword");
     const idle = { axis: { x: 0, y: 0 }, sprint: false, aim: null, aimAt: null, clicked: false, clickSpent: false, leftDown: false, altPressed: false };
-    gameMod.step(1 / 60, { [g.id]: { ...idle, keys: { belt2: true } } });
-    assert(g.hands.main === gBook && !gb[1], `a guest's key 2 in its snapshot: main ${g.hands.main && g.hands.main.id}, slot ${gb[1] && gb[1].id}`);
-    const withG = gameMod.syncParts().players;
-    const gChosen = g.beltHands;
-    g.beltHands = [];
-    assert(gameMod.syncParts().players !== withG, "the guest's choice is not in the players' sync part");
-    g.beltHands = gChosen;
+    gameMod.step(1 / 60, { [g.id]: netMod.cleanSnap({ ...idle, keys: { beltOff1: true } }) });
+    assert(id(g.hands.off) === "book_of_fire" && !gb[1] && !g.hands.main, `a guest's off-hand key: ${held(g)}`);
+    gameMod.step(1 / 60, { [g.id]: netMod.cleanSnap({ ...idle, keys: { beltMain1: true } }) });
+    assert(id(g.hands.main) === "sword" && id(g.hands.off) === "book_of_fire", `a guest's main-hand key: ${held(g)}`);
     gameMod.removePlayer(g.id);
-    // The cards: where the belt's key draws a thing, and the slot's own hand on a belt slot.
-    const card = (id, opts) => itemInfoMod.textOf(itemInfoMod.cardFor(mk(id), opts)).join(" | ");
-    assert(card("sword").includes("Equip: main or off hand; from the belt, the main hand."), card("sword"));
-    assert(card("book_of_fire").includes("Equip: main or off hand; from the belt, the off hand."), card("book_of_fire"));
-    assert(card("torch").includes("Equip: main or off hand; from the belt, a free hand."), card("torch"));
-    assert(card("halberd").includes("Equip: both hands; too long for the belt."), card("halberd"));
-    assert(card("shield").includes("Equip: off hand.") && card("bow").includes("Equip: both hands."), `${card("shield")} || ${card("bow")}`);
-    assert(card("sword", { beltHand: "off" }).includes("Equip: main or off hand; this slot draws it into the off hand."), card("sword", { beltHand: "off" }));
-    return "a food eaten, a skin drunk, a sword to the main hand, a book to the off hand, a torch to a free hand, the tinderbox left; the menu's mark and choice kept per kind, through a save and the sync part; three refusals; the halberd off the belt four ways; a double-click; a guest's label and key; six cards";
+
+    // ---- the cards ----
+    const card = (e, role) => itemInfoMod.textOf(itemInfoMod.cardFor(e, role ? { beltRole: role } : {}));
+    const has = (e, role, text) => card(e, role).includes(text);
+    assert(has(mk("sword"), "main", "From this main-hand slot: drawn into your main hand."), card(mk("sword"), "main").join(" | "));
+    assert(has(mk("book_of_fire"), "off", "From this off-hand slot: drawn into your off hand."), card(mk("book_of_fire"), "off").join(" | "));
+    assert(has(mk("halberd"), "main", "From this main-hand slot: drawn into both hands."), card(mk("halberd"), "main").join(" | "));
+    assert(has(mk("halberd"), "utility", "From the utility slot: stored. You can't equip a weapon from the utility slot. Its menu equips it."), card(mk("halberd"), "utility").join(" | "));
+    assert(has(mk("shield"), "main", "From this main-hand slot: stored. The wooden shield can't be held in your main hand. Its menu equips it."), card(mk("shield"), "main").join(" | "));
+    assert(has(mk("bread"), "utility", "From the utility slot: eaten."), card(mk("bread"), "utility").join(" | "));
+    assert(card(mk("torch"), "off")[2] === "From this off-hand slot: drawn into your off hand. Lit, it gives its light from the belt.", card(mk("torch"), "off").join(" | "));
+    assert(has(mk("halberd"), null, "Equip: both hands; on the belt, a main-hand slot or the utility slot.") && has(mk("sword"), null, "Equip: main or off hand.") && !card(mk("sword")).some((l) => /from the belt|this slot/.test(l)), `${card(mk("halberd")).join(" | ")} || ${card(mk("sword")).join(" | ")}`);
+    const empty = (role) => itemInfoMod.textOf(itemInfoMod.cardForBeltSlot(role, 1)).join(" | ");
+    assert(/This is a main-hand slot\. Its key draws what's here into your main hand/.test(empty("main")) && /two-handed/i.test(empty("main")), empty("main"));
+    assert(/This is an off-hand slot\. Its key draws what's here into your off hand/.test(empty("off")) && /Two-handed items can't go here/.test(empty("off")), empty("off"));
+    assert(/This is the utility slot\. Its key eats what's here if it is food, and never equips anything/.test(empty("utility")) && /one cell whatever its size/.test(empty("utility")), empty("utility"));
+    return "the roles on both belts; both key orders on both belts and the role in the snapshot (PROTOCOL 17); each role's key for a weapon, a shield, a torch, food, a skin, the tinderbox, a two-hander, and an empty slot; the swap and the off hand's thing sent to a slot, the bag, or the feet; the spear's dual rule; a two-hander refused in an off-hand slot by the slot check, a guest's command, and a drag, each in words; the utility slot's halberd in one cell; stow by role; the menu and the double-click; no choice in the save or the sync part; a guest's keys; the cards";
   } finally {
     promptMod.setMessageSink(null);
   }
@@ -3074,7 +3160,7 @@ check("handedness: right by default, left only when chosen; the helper, the save
   assert(S.players.every((p) => p.handed === "right"), "an old save's players are not right-handed");
   // The join: the host keeps a guest's left hand and makes anything else right; the record changed shape, so PROTOCOL moved.
   assert(hostMod.clampIdentity({ name: "L", look: {}, handed: "left" }).handed === "left" && hostMod.clampIdentity({ name: "R", look: {}, handed: "both" }).handed === "right" && hostMod.clampIdentity({ name: "N", look: {} }).handed === "right", "clampIdentity's handedness");
-  assert(netMod.PROTOCOL === 16, `PROTOCOL is ${netMod.PROTOCOL}`);
+  assert(netMod.PROTOCOL === 17, `PROTOCOL is ${netMod.PROTOCOL}`);
   assert(/const HEAVY = new Set\(\[[^\]]*"handed"/.test(fs.readFileSync(path.join(root, "src/net.js"), "utf8")), "handed is not a heavy field of the player's record (sent once, not each frame)");
   // The figure: a left-handed pose is the right-handed one with the arms turned round, the main arm the left, in body space (l negated).
   const M = (pt) => [-pt[0], pt[1], pt[2]];
@@ -3112,7 +3198,7 @@ check("handedness: right by default, left only when chosen; the helper, the save
   const kL = keyOf({ ...ch, handed: "left" });
   assert(kR !== kL && kL.endsWith(',"left"]') && keyOf({ ...ch, handed: "right" }) === kR && JSON.parse(kR).length === 11, `the keys: ${kR.slice(-30)} / ${kL.slice(-30)}`);
   assert(keyOf({ ...ch, kind: "villager", handed: "left" }) === keyOf({ ...ch, kind: "villager" }) && keyOf({ ...ch, kind: "zombie", handed: "left" }) === keyOf({ ...ch, kind: "zombie" }), "a villager's or the dead's key took the left hand");
-  return `the helper and labels; right by default and through an old save; left through create, addPlayer, the save, the sync part, and the join's clamp; PROTOCOL 16, handed heavy; ${compared} frames mirrored arm for arm, the legs and head kept; the walk; the sheet's key`;
+  return `the helper and labels; right by default and through an old save; left through create, addPlayer, the save, the sync part, and the join's clamp; PROTOCOL 17, handed heavy; ${compared} frames mirrored arm for arm, the legs and head kept; the walk; the sheet's key`;
 });
 
 let failed = 0;

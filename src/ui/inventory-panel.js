@@ -16,9 +16,10 @@ import * as view from "../view.js";
 import * as settings from "../settings.js";
 import * as use from "../use.js";
 import * as hoverCard from "./hover-card.js"; // the card over an item (#262)
-import { cardFor, cardForSlot } from "../item-info.js";
+import { cardFor, cardForSlot, cardForBeltSlot, cardForLockedSlot } from "../item-info.js";
+import { beltIconURL, roleIconKey } from "./belt-icons.js"; // the faint hand or pouch on an empty belt slot (2026-10-25)
 import { holdsWater, isTainted } from "../water.js"; // the brown drop on a tainted skin or bucket (docs/44)
-import { parseSlot, HIDEABLE, beltHand } from "../inventory.js";
+import { parseSlot, HIDEABLE, beltRole, beltPositions, BELT_ROLES } from "../inventory.js";
 import { handLabel, handSideOf } from "../handed.js"; // the hand slots named by side, "Main hand (right)" (Michael, 2026-10-25)
 
 let CELL = view.BASE_CELL; // the bag's cell in UI pixels, read from the view at every render
@@ -331,8 +332,23 @@ function dollHtml(player) {
     </div>`;
 }
 
-function hotbarHtml(belt) {
-  return belt.map((e, i) => `<div class="hot-slot${e ? "" : " empty"}" data-slot="belt:${i}" data-label="Belt slot ${i + 1}" aria-label="Belt slot ${i + 1}"><span class="hot-key">${i + 1}</span>${e ? blockHtml(e, `data-slot="belt:${i}"`, HOT_CELL, 1, 1, "in-slot", true) : ""}</div>`).join("");
+// The belt's places in this client's key order (the setting "Belt slot order", inventory.beltPositions): each place its number key and its
+// slot's role, an empty one stamped with its role's faint icon (the hand the character favours on a main-hand slot, the other on an off-hand
+// slot, a pouch on the utility slot; ui/belt-icons.js), and a place the worn belt does not have drawn locked (Michael, 2026-10-25).
+const ROLE_LABEL = { main: "main hand", off: "off hand", utility: "utility" };
+function hotbarHtml(belt, player) {
+  const handed = (player && player.handed) || "right";
+  return beltPositions(settings.get("beltOrder"), belt.length).map(({ key, index }, k) => {
+    if (index == null) {
+      const role = BELT_ROLES[[0, 3, 1, 4, 2][k]] || "main"; // the slot a leather belt would put here (the grouped order's place k)
+      return `<div class="hot-slot locked" data-locked-role="${role}" data-key="${key}" aria-label="Locked belt slot, key ${key}"><span class="hot-key">${key}</span></div>`;
+    }
+    const e = belt[index];
+    const role = beltRole(index);
+    const label = `Belt slot ${key} (${ROLE_LABEL[role]})`;
+    const icon = e ? "" : `<img class="hot-role" src="${beltIconURL(roleIconKey(role, handed))}" alt="" draggable="false" data-role-icon="${roleIconKey(role, handed)}">`;
+    return `<div class="hot-slot${e ? "" : " empty"}" data-slot="belt:${index}" data-role="${role}" data-key="${key}" data-label="${label}" aria-label="${label}"><span class="hot-key">${key}</span>${icon}${e ? blockHtml(e, `data-slot="belt:${index}"`, HOT_CELL, 1, 1, "in-slot", true) : ""}</div>`;
+  }).join("");
 }
 
 // What a redraw compares: wear as itemHtml draws it (a bar from the first wear, its percent left, red past 0.8), and fill
@@ -346,12 +362,12 @@ export function renderInventoryPanel(player, inv, container, belt) {
   bags = { inv: inv || null, container: container || null };
   shown.player = player;
   // The hotbar is always shown while a belt is worn.
-  const beltSig = JSON.stringify(belt, shownAs);
+  const beltSig = JSON.stringify([belt, settings.get("beltOrder"), player && player.handed], shownAs);
   if (!belt) hotbar.hidden = true;
   else {
     hotbar.hidden = false;
     if (hotbar.dataset.sig !== beltSig) {
-      hotbar.innerHTML = hotbarHtml(belt);
+      hotbar.innerHTML = hotbarHtml(belt, player);
       hotbar.dataset.sig = beltSig;
       refreshCard();
     }
@@ -448,14 +464,17 @@ function cardAt(target, x, y) {
   const hit = entryFromEvent({ target });
   if (hit) {
     const en = hit.entry;
-    // On a belt slot the card says where its key draws the thing now (#285): the slot's chosen hand, read off the player shown.
+    // On a belt slot the card leads with what its key does there, by the slot's role (2026-10-25).
     const slot = hit.slot ? parseSlot(hit.slot) : null;
-    const hand = slot && slot.kind === "belt" && shown.player ? beltHand(shown.player, slot.index) : null;
-    hoverCard.show(`${en.uid ?? en.id}|${en.id}|${en.count}|${en.fill ?? ""}|${en.wear ?? ""}|${en.clean ? "clean" : ""}|${hand || ""}`, () => cardFor(en, hand ? { beltHand: hand } : {}), x, y);
+    const role = slot && slot.kind === "belt" ? beltRole(slot.index) : null;
+    hoverCard.show(`${en.uid ?? en.id}|${en.id}|${en.count}|${en.fill ?? ""}|${en.wear ?? ""}|${en.clean ? "clean" : ""}|${role || ""}`, () => cardFor(en, role ? { beltRole: role } : {}), x, y);
     return;
   }
+  const locked = target.closest(".hot-slot.locked");
+  if (locked) { hoverCard.show(`locked|${locked.dataset.key}`, () => cardForLockedSlot(locked.dataset.lockedRole, Number(locked.dataset.key)), x, y); return; }
   const slot = target.closest(".doll-slot.empty, .hot-slot.empty");
-  if (slot && slot.dataset.label) hoverCard.show(`slot|${slot.dataset.slot}`, () => cardForSlot(slot.dataset.label), x, y);
+  if (slot && slot.dataset.role) hoverCard.show(`belt|${slot.dataset.slot}|${slot.dataset.key}`, () => cardForBeltSlot(slot.dataset.role, Number(slot.dataset.key)), x, y); // what the empty slot is for
+  else if (slot && slot.dataset.label) hoverCard.show(`slot|${slot.dataset.slot}`, () => cardForSlot(slot.dataset.label), x, y);
   else hoverCard.hide();
 }
 
@@ -516,7 +535,7 @@ function gridAt(clientX, clientY) {
 // Which slot is under a screen point: worn, a hand, or the belt; the one on top where panels overlap.
 function slotAt(clientX, clientY) {
   let best = null;
-  for (const el of [...root.querySelectorAll(".doll-slot"), ...hotbar.querySelectorAll(".hot-slot")]) {
+  for (const el of [...root.querySelectorAll(".doll-slot"), ...hotbar.querySelectorAll(".hot-slot[data-slot]")]) { // a locked place is no slot
     const r = el.getBoundingClientRect();
     if (clientX < r.left || clientX >= r.right || clientY < r.top || clientY >= r.bottom) continue;
     if (best && zOf(el) <= zOf(best.el)) continue;
@@ -724,7 +743,7 @@ function onPointerUp(e) {
     else handlers.placeInGrid?.(d.entry, d.from, t.bag, t.x, t.y, d.rot);
     handlers.changed?.();
   } else if (t && t.slot) {
-    handlers.slotRefused?.(d.entry, t.slot); // the red slot's reason, when it has one (the halberd and the belt, #285)
+    handlers.slotRefused?.(d.entry, t.slot); // the red slot's reason, when it has one (a two-handed thing on an off-hand slot, 2026-10-25)
   } else if (!t && !overPanel(e.clientX, e.clientY)) {
     handlers.dropToFloor?.(d.entry, d.from);
   }
