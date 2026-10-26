@@ -2937,6 +2937,10 @@ check("belt: the slots' roles, each key by role and item, the refusals in words,
     me.hands.off = shield;
     belt[0] = mk("halberd");
     const tx = Math.round(me.gx), ty = Math.round(me.gy);
+    // No off-hand slot and no bag: the empty utility slot before the feet (the review of #478, S1).
+    assert(key(me, 0) === "drawn" && id(me.hands.main) === "halberd" && belt[2] === shield && !mapMod.itemsAt(tx, ty).some((e) => e.uid === shield.uid), `the halberd with no off-hand slot or bag for the shield: ${held(me)}; utility ${id(belt[2])}`);
+    assert(key(me, 0) === "drawn" && id(me.hands.main) === "mace" && me.hands.off === shield && !belt[2] && id(belt[0]) === "halberd", `the mace back, the shield back from the utility slot: ${held(me)}; slots ${belt.map(id).join(" ")}`);
+    belt[2] = mk("bread"); // the utility slot full too: to the feet
     assert(key(me, 0) === "drawn" && id(me.hands.main) === "halberd" && mapMod.itemsAt(tx, ty).some((e) => e.uid === shield.uid), `the halberd with nowhere for the shield: ${held(me)}; at the feet ${mapMod.itemsAt(tx, ty).map(id).join(",")}`);
     mapMod.itemsAt(tx, ty).splice(mapMod.itemsAt(tx, ty).findIndex((e) => e.uid === shield.uid), 1); // dropItem lays a copy, by its uid
     // The spear's dual rule: refused in words, everything as it was.
@@ -2975,6 +2979,18 @@ check("belt: the slots' roles, each key by role and item, the refusals in words,
     me.hands.off = halberd;
     belt[1] = mk("shield");
     assert(key(me, 1) === "drawn" && id(me.hands.off) === "shield" && !me.hands.main && !belt[1] && (belt[0] === halberd || belt[3] === halberd), `the shield with the halberd held: ${held(me)}; slots ${belt.map(id).join(" ")}`);
+    // Both main-hand slots full and no bag: the bow pushed out by a draw into the off hand goes to the empty utility slot, never the floor (S1).
+    belt = fresh(me);
+    me.worn.back = null;
+    const heldBow = mk("bow");
+    me.hands.main = heldBow;
+    me.hands.off = heldBow;
+    belt[0] = mk("sword");
+    belt[3] = mk("mace");
+    belt[1] = mk("torch");
+    const fx = Math.round(me.gx), fy = Math.round(me.gy);
+    assert(key(me, 1) === "drawn" && id(me.hands.off) === "torch" && !me.hands.main && belt[2] === heldBow && !mapMod.itemsAt(fx, fy).some((e) => e.uid === heldBow.uid), `the torch drawn with the bow held and the main-hand slots full: ${held(me)}; slots ${belt.map(id).join(" ")}`);
+    me.worn.back = mk("small_sack");
 
     // ---- the utility slot (index 2) ----
     belt = fresh(me);
@@ -3002,6 +3018,27 @@ check("belt: the slots' roles, each key by role and item, the refusals in words,
     belt[0] = mk("sword");
     const bow2 = mk("bow");
     assert(inventoryMod.stow(me, bow2) === "belt" && belt[2] === bow2 && !belt[1], `stow put the bow at ${belt.indexOf(bow2)}`);
+    // A one-handed weapon put away with no bag: the main-hand slots, then the utility slot, never an off-hand slot (so a swap never dual-wields).
+    belt = fresh(me);
+    me.worn.back = null;
+    const sw1 = mk("sword");
+    const sw2 = mk("mace");
+    const sw3 = mk("hatchet");
+    const sw4 = mk("knife");
+    assert(inventoryMod.stow(me, sw1) === "belt" && belt[0] === sw1 && inventoryMod.stow(me, sw2) === "belt" && belt[3] === sw2 && inventoryMod.stow(me, sw3) === "belt" && belt[2] === sw3, `stow's one-handers: slots ${belt.map(id).join(" ")}`);
+    assert(inventoryMod.stow(me, sw4) === null && !belt[1] && !belt[4], `a fourth one-hander went to an off-hand slot: slots ${belt.map(id).join(" ")}`);
+    assert(inventoryMod.stow(me, mk("book_of_fire")) === "belt" && id(belt[1]) === "book_of_fire", `a book did not go to the free off-hand slot: slots ${belt.map(id).join(" ")}`);
+    me.worn.back = mk("small_sack");
+    // Take All with the bag full: a bow tries every empty belt slot its role allows, the utility slot past the off-hand one (S2).
+    belt = fresh(me, "belt");
+    belt[0] = mk("sword");
+    const full = inventoryMod.bagOf(me);
+    for (let n = 0; n < 60 && gridMod.insert(full, mk("hatchet")); n++);
+    const chestBag = inventoryMod.createBag(3, 3, "chest");
+    const takeBow = mk("bow");
+    gridMod.insert(chestBag, takeBow);
+    const took = invActionsMod.takeAllFrom(me, chestBag, h);
+    assert(took.moved === 1 && took.left === 0 && belt[2] === takeBow && !belt[1] && chestBag.items.length === 0, `Take All's bow with the bag full: ${JSON.stringify(took)}; slots ${belt.map(id).join(" ")}`);
     me.worn.back = mk("small_sack");
 
     // ---- the slot's menu and the double-click ----
@@ -3010,9 +3047,23 @@ check("belt: the slots' roles, each key by role and item, the refusals in words,
     belt[2] = mk("mace");
     const labels = (i) => interactMod.slotMenu(me, `belt:${i}`).map((m) => m.label).join(",");
     assert(labels(0).startsWith("Use,Equip,Put in bag") && !/Equip to/.test(labels(0)) && !interactMod.slotMenu(me, "belt:0").some((m) => "checked" in m), `the sword's slot menu: ${labels(0)}`);
-    assert(!/Equip/.test(labels(2)), `the utility slot's menu offers Equip: ${labels(2)}`);
+    // The utility slot's menu equips into the item's own hand, as from the bag; only its key (and the double-click, the key's path) never does (S3).
+    assert(labels(2) === "Use,Equip (main hand),Equip (off hand),Put in bag,Drop", `the utility slot's mace menu: ${labels(2)}`);
     said.length = 0;
     assert(h.useSlot("belt:2") === false && id(belt[2]) === "mace" && last() === "You can't equip a weapon from the utility slot.", `the utility slot's double-click: ${last()}`);
+    const uMace = belt[2];
+    interactMod.slotMenu(me, "belt:2").find((m) => m.label === "Equip (off hand)").onSelect();
+    assert(me.hands.off === uMace && !belt[2], `the utility slot's Equip (off hand): ${held(me)}; slots ${belt.map(id).join(" ")}`);
+    me.hands.off = null;
+    belt[2] = mk("halberd");
+    assert(labels(2) === "Use,Equip (both hands),Put in bag,Drop", `the utility slot's halberd menu: ${labels(2)}`);
+    belt[3] = mk("shield");
+    assert(labels(3) === "Use,Equip (off hand),Put in bag,Drop", `a shield's menu in a main-hand slot: ${labels(3)}`);
+    // A guest's way: the same label as a menu command, run on the host.
+    const uHal = belt[2];
+    assert(invActionsMod.performItemCommand(me, { op: "menu", label: "Equip (both hands)", src: { kind: "slot", id: "belt:2" } }) === true && me.hands.main === uHal && me.hands.off === uHal && !belt[2], `a guest's Equip (both hands) from the utility slot: ${held(me)}`);
+    itemsMod.release(me.hands, uHal);
+    belt[3] = null;
     assert(h.useSlot("belt:0") === true && id(me.hands.main) === "sword", "the main-hand slot's double-click did not draw the sword");
     belt[1] = mk("waterskin", { fill: 60, clean: true });
     assert(h.useSlot("belt:1") === false && belt[1].fill === 60 && last() === "Your waterskin drinks by itself from your belt.", "a belt skin's double-click drank");
@@ -3049,8 +3100,8 @@ check("belt: the slots' roles, each key by role and item, the refusals in words,
     assert(has(mk("sword"), "main", "From this main-hand slot: drawn into your main hand."), card(mk("sword"), "main").join(" | "));
     assert(has(mk("book_of_fire"), "off", "From this off-hand slot: drawn into your off hand."), card(mk("book_of_fire"), "off").join(" | "));
     assert(has(mk("halberd"), "main", "From this main-hand slot: drawn into both hands."), card(mk("halberd"), "main").join(" | "));
-    assert(has(mk("halberd"), "utility", "From the utility slot: carried only. You can't equip a weapon from the utility slot."), card(mk("halberd"), "utility").join(" | "));
-    assert(has(mk("shield"), "main", "From this main-hand slot: carried only. The wooden shield can't be held in your main hand."), card(mk("shield"), "main").join(" | "));
+    assert(has(mk("halberd"), "utility", "From the utility slot: stored. You can't equip a weapon from the utility slot. Its menu equips it."), card(mk("halberd"), "utility").join(" | "));
+    assert(has(mk("shield"), "main", "From this main-hand slot: stored. The wooden shield can't be held in your main hand. Its menu equips it."), card(mk("shield"), "main").join(" | "));
     assert(has(mk("bread"), "utility", "From the utility slot: eaten."), card(mk("bread"), "utility").join(" | "));
     assert(card(mk("torch"), "off")[2] === "From this off-hand slot: drawn into your off hand. Lit, it gives its light from the belt.", card(mk("torch"), "off").join(" | "));
     assert(has(mk("halberd"), null, "Equip: both hands; on the belt, a main-hand slot or the utility slot.") && has(mk("sword"), null, "Equip: main or off hand.") && !card(mk("sword")).some((l) => /from the belt|this slot/.test(l)), `${card(mk("halberd")).join(" | ")} || ${card(mk("sword")).join(" | ")}`);

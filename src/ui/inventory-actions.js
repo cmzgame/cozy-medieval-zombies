@@ -57,8 +57,8 @@ export function takeAllFrom(player, from, h = createInventoryActions(() => playe
     const before = e.count;
     if (inventory.canStoreIn(e) && grid.transfer(from, mine, e)) { result.moved++; continue; }
     if (belt && e.count > 0) {
-      const i = belt.indexOf(null);
-      if (i >= 0 && h.canPlace(e, `belt:${i}`)) {
+      const i = belt.findIndex((q, k) => !q && h.canPlace(e, `belt:${k}`)); // every empty slot whose role takes it (a bow skips the off-hand slots)
+      if (i >= 0) {
         grid.remove(from, e);
         belt[i] = e;
         result.moved++;
@@ -88,9 +88,12 @@ function beltRefusal(entry, slotId) {
 }
 
 // A slot's double-click entry: Unequip or Equip anywhere, Eat on the belt (#179), Drink only off the belt (a skin on the belt drinks by itself).
+// On the belt it is the key's path alone: the plain Equip (the slot's draw) or Eat; the menu's Equip into a hand for a thing the key does not
+// draw ("Equip (both hands)" in the utility slot, as from the bag) is never a double-click's, so the double-click says why as the key does.
 function slotUse(menu, slotId) {
   const belt = inventory.parseSlot(slotId).kind === "belt";
-  return menu.find((q) => q.label === "Unequip" || q.label.startsWith("Equip") || q.label === "Eat" || (!belt && q.label.startsWith("Drink")));
+  if (belt) return menu.find((q) => q.label === "Equip" || q.label === "Eat");
+  return menu.find((q) => q.label === "Unequip" || q.label.startsWith("Equip") || q.label === "Eat" || q.label.startsWith("Drink"));
 }
 
 // A belt slot double-clicked whose key does nothing: the key's line, so the double-click is never silent where the key is not. False.

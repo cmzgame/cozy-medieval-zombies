@@ -218,13 +218,20 @@ export function canStoreIn(entry) {
 }
 
 // Put an entry somewhere on the player: the bag if it fits, else a free belt slot if it is holdable and the slot's role takes it (a
-// two-handed thing never an off-hand slot). Returns where it went, or null.
+// two-handed thing never an off-hand slot). A one-handed weapon tries the main-hand slots and then the utility slot, never an off-hand slot,
+// so a swap with the bag full never sets up a dual wield the player did not choose (docs/21: dual wielding comes only from a weapon put in
+// an off-hand slot); with none free it is the caller's to set down. Returns where it went, or null.
 export function stow(player, entry) {
   const bag = bagOf(player);
   if (bag && canStoreIn(entry) && grid.insert(bag, entry)) return "bag";
   const belt = beltOf(player);
   if (belt && handFor(entry.id)) {
-    const i = belt.findIndex((e, k) => !e && roleTakes(beltRole(k), entry));
+    const def = getItem(entry.id);
+    const oneHanded = def.hands !== "both" && def.hands !== "off" && weaponish(def);
+    const free = (k, role) => !belt[k] && beltRole(k) === role && roleTakes(role, entry);
+    const i = oneHanded
+      ? [...belt.keys()].filter((k) => free(k, "main")).concat([...belt.keys()].filter((k) => free(k, "utility")))[0] ?? -1
+      : belt.findIndex((e, k) => !e && roleTakes(beltRole(k), entry));
     if (i >= 0) {
       belt[i] = entry;
       return "belt";
@@ -341,7 +348,7 @@ export function beltAction(entry, role) {
   if (def.capacity) return { act: "none", word: `Your ${n} drinks by itself from your belt.` };
   if (role === "main" || role === "off") {
     const h = def.hands;
-    if (h === "both") return role === "main" ? { act: "draw", hand: "both" } : { act: "none", word: `The ${n} needs both hands.` }; // an off-hand slot never takes one; an old world's might hold one
+    if (h === "both") return role === "main" ? { act: "draw", hand: "both" } : { act: "none", word: roleRefusal(role, entry) }; // an off-hand slot never takes one; an old world's might hold one
     if (h === "either" || h === role) return { act: "draw", hand: role };
     if (def.kind === "food") return { act: "eat" };
     if (h) return { act: "none", word: `The ${n} can't be held in your ${role} hand.` };
@@ -355,7 +362,9 @@ export function beltAction(entry, role) {
   return { act: "none", word: "No such slot." };
 }
 
-// Into the bag if it fits, else a free slot of `role` that takes it: true when it went in (a two-hander's draw finds a home for what it pushes out).
+// Where a draw puts what it pushes out of a hand: a free slot of `role` that takes it, else the bag if it fits, else the empty utility slot
+// (which takes any held thing in one cell), so a weapon never falls to the floor while the belt has room for it. True when it went in; false
+// leaves it for the caller to set at the feet.
 function beltOrBag(player, entry, role) {
   const belt = beltOf(player) || [];
   const i = belt.findIndex((e, k) => !e && beltRole(k) === role && roleTakes(role, entry));
@@ -364,14 +373,20 @@ function beltOrBag(player, entry, role) {
     return true;
   }
   const bag = bagOf(player);
-  return !!(bag && canStoreIn(entry) && grid.insert(bag, entry));
+  if (bag && canStoreIn(entry) && grid.insert(bag, entry)) return true;
+  const u = belt.findIndex((e, k) => !e && beltRole(k) === "utility");
+  if (u >= 0) {
+    belt[u] = entry;
+    return true;
+  }
+  return false;
 }
 
-// A hand slot's draw (beltAction's "draw"), the key and the slot's Equip alike: the item into its hand, what that hand held into the slot
-// (Michael: "It swaps"). A two-handed thing from a main-hand slot takes both hands: the main hand's goes to the slot, the off hand's to an empty
-// off-hand slot, else the bag, else the feet (returned in `drop`, for the caller to set down; and remembered, so a one-handed draw later puts
-// it back, docs/21). A draw into the off hand while a two-hander is held sends the two-hander to an empty main-hand slot, else the bag, else
-// the feet, and the slot is left empty. Returns { ok, drop, word }: `word` the refusal when no hand could take it (the spear's dual rule),
+// A hand slot's draw (beltAction's "draw"), the key and the slot's Equip alike: the item into its hand, swapping what that hand held onto the
+// slot (docs/02, 2026-10-25). A two-handed thing from a main-hand slot takes both hands: the main hand's goes to the slot, the off hand's to an
+// empty off-hand slot, else the bag, else the empty utility slot, else the feet (returned in `drop`, for the caller to set down; and remembered,
+// so a one-handed draw later puts it back, docs/21). A draw into the off hand while a two-hander is held sends the two-hander to an empty
+// main-hand slot, else the bag, else the empty utility slot, else the feet, and the slot is left empty (beltOrBag). Returns { ok, drop, word }: `word` the refusal when no hand could take it (the spear's dual rule),
 // with everything put back as it was.
 export function beltDraw(player, index) {
   const belt = beltOf(player);

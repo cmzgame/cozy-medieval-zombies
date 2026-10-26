@@ -362,6 +362,8 @@ function beltSlotLine(entry, def, role) {
   const lit = def.fire ? " Lit, it gives its light from the belt." : "";
   if (a.act === "draw") return line(`${where}: drawn into ${a.hand === "both" ? "both hands" : `your ${a.hand} hand`}.${lit}`);
   if (a.act === "eat") return line(`${where}: eaten.`);
+  // A held thing the key does not draw is still equipped from the slot's menu, as from the bag (interact.slotMenu): the card says so.
+  if (def.hands) return line(`${where}: stored. ${a.word} Its menu equips it.${lit}`);
   return line(`${where}: carried only. ${a.word}${lit}`);
 }
 

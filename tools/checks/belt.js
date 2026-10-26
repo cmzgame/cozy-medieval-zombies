@@ -7,18 +7,20 @@
 // torch in the utility slot gives its light; the halberd stored in the utility slot as one cell by the slot command, and drawn into both
 // hands from a main-hand slot, the shield it pushes out going to an empty off-hand slot; the bow refused onto an off-hand slot by the slot
 // command with its line. The setting "Belt slot order": Hands grouped on the leather belt (2 the second main, 5 the utility) and on the rope
-// belt (2 and 4 drawn locked and doing nothing, 3 the off hand), Sequential on the rope belt; the hotbar's places in each order. On the page:
+// belt (2 and 4 drawn locked, doing nothing, and saying a leather belt adds a slot there), Sequential on the rope belt (4 and 5 silent); with no
+// belt, a key says so; what a draw pushes out going to the empty utility slot before the floor (the bow under a draw into the off hand, the
+// shield under the halberd's); Take All putting a bow on the utility slot past an empty off-hand slot; the hotbar's places in each order. On the page:
 // each empty slot stamped with its role's faint icon (the right hand on a main-hand slot and the left on an off-hand slot, mirrored for a
 // left-handed character; a pouch on the utility slot), the empty slots' and a locked place's hover cards, a filled slot's card naming what
-// its key does there, the slot's menu (Equip only where the key draws, no hand choice, no mark), and a double-click on the utility slot
-// saying why. Everything worn, held, carried, the setting, and the handedness are put back in the finally.
+// its key does there, the slot's menu (the key's Equip where it draws, else an Equip into the item's own hand as from the bag; no mark), the
+// utility slot's Equip (both hands) holding the halberd, and a double-click on the utility slot saying why. Everything worn, held, carried, the setting, and the handedness are put back in the finally.
 //
 // Two tabs (`?nosave&mute&relay=none`): on the host `await __game.check("belt", { keep: true })` runs the rows above and then gives every
 // other player the leather belt with a sword in its first main-hand slot and a book in its first off-hand slot, a bow in its bag where it
 // fits, and empty hands, and returns `kept`; on the guest `await __game.check("belt", { guest: <kept> })` reads its replica's belt, sends
 // the off-hand slot's key by its role in its snapshot (`net.setTestSnapshot`, `beltOff1`) and waits for the book in its off hand, then the
 // main-hand slot's (`beltMain1`) for the sword, sends the bow onto an off-hand slot by a slot command and sees it refused with the host's
-// line reaching it, then onto the utility slot and sees it stored there; then `await __game.check("sync")` on the host, and
+// line reaching it, then onto the utility slot and sees it stored there, and equips it from that slot's menu by a menu command; then `await __game.check("sync")` on the host, and
 // `await __game.check("belt", { stop: true })` there puts the other players' belts, hands, and bags back as `{ keep: true }` found them.
 
 // The other players as `{ keep: true }` found them, put back by `{ stop: true }` on the host after the guest's half (the module is cached by the page).
@@ -120,6 +122,12 @@ export async function run(game, opts = {}) {
         tap("beltUtility");
         await pump(() => /utility slot/.test(message()), 5000);
         row("my utility slot's key with the bow there equips nothing and the host's line reaches me", belt[2] && belt[2].uid === bow.uid && me.hands.main && sword && me.hands.main.uid === sword.uid && message() === "You can't equip a weapon from the utility slot.", `"${message()}"; ${held()}`);
+        // The utility slot's menu equips it into both hands, as from the bag (the review of #478, S3): the guest's menu command, run on the host.
+        const labels = G.interact.slotMenu(me, "belt:2").map((m) => m.label).join(",");
+        G.net.sendItem({ op: "menu", label: "Equip (both hands)", src: { kind: "slot", id: "belt:2" } });
+        const ms3 = await pump(() => me.hands.main && me.hands.main.uid === bow.uid, 5000);
+        belt = inv.beltOf(me);
+        row("my utility slot's menu offers Equip (both hands) for the bow, and my menu command equips it into both hands on the host", /Equip \(both hands\)/.test(labels) && me.hands.main && me.hands.main.uid === bow.uid && me.hands.off && me.hands.off.uid === bow.uid && !(belt[2] && belt[2].uid === bow.uid), `${labels}; ${held()}; ${ms3} ms`);
       } else row("my bow onto an off-hand slot", !!skipped, skipped ? "skipped: the host found no room for a bow in my bag" : "no bow in my bag");
       // The card on the replica for a filled slot: what its key does there.
       const swordCard = info.textOf(info.cardFor(mk("sword"), { beltRole: "main" })).join(" | ");
@@ -270,8 +278,10 @@ export async function run(game, opts = {}) {
     me.hands.main = mk("sword");
     clearMessage();
     press(2);
+    const said2 = message();
+    clearMessage();
     press(4);
-    row("Hands grouped on the rope belt: keys 2 and 4 are locked places and do nothing, saying nothing", id(me.hands.main) === "sword" && !me.hands.off && id(belt[1]) === "book_of_fire" && message() === "", `${held()}; "${message()}"`);
+    row("Hands grouped on the rope belt: keys 2 and 4 are locked places, do nothing, and say \"A leather belt adds a slot here.\" on this screen (S4)", id(me.hands.main) === "sword" && !me.hands.off && id(belt[1]) === "book_of_fire" && said2 === "A leather belt adds a slot here." && message() === "A leather belt adds a slot here.", `${held()}; "${said2}" / "${message()}"`);
     press(3);
     row("Hands grouped on the rope belt: key 3 is its off-hand slot (the book drawn)", id(me.hands.off) === "book_of_fire" && !belt[1], held());
     render();
@@ -288,6 +298,50 @@ export async function run(game, opts = {}) {
     me.hunger = 10;
     press(3);
     row("Sequential on the rope belt: key 3 is its utility slot (the bread eaten)", !belt[2] && me.hunger > 10, `hunger ${Math.round(me.hunger)}`);
+    clearMessage();
+    press(4);
+    press(5);
+    row("Sequential on the rope belt: keys 4 and 5, with no place drawn, do nothing and say nothing", message() === "", `"${message()}"`);
+    // No belt worn: every belt key says so, on this screen alone, and nothing moves (S4).
+    me.worn.waist = null;
+    me.hands.main = mk("sword");
+    clearMessage();
+    press(1);
+    row("with no belt worn, key 1 says \"You have no belt.\" and the sword stays in hand", message() === "You have no belt." && id(me.hands.main) === "sword", `"${message()}"; ${held()}`);
+    // A draw into the off hand with a two-hander held, both main-hand slots full and no bag: the bow to the utility slot, not the floor (S1).
+    fresh();
+    me.worn.back = null;
+    const heldBow = mk("bow");
+    me.hands.main = heldBow;
+    me.hands.off = heldBow;
+    belt[0] = mk("sword");
+    belt[3] = mk("mace");
+    belt[1] = mk("torch");
+    press(2);
+    row("the torch drawn into the off hand with the bow held, both main-hand slots full and no bag: the bow goes to the empty utility slot, not the floor", id(me.hands.off) === "torch" && !me.hands.main && belt[2] === heldBow, `${held()}; slots ${belt.map(id).join(" ")}`);
+    // The halberd from a main-hand slot with the off-hand slots full and no bag: the shield to the utility slot (S1).
+    fresh();
+    me.worn.back = null;
+    belt[0] = mk("halberd");
+    belt[1] = mk("book_of_fire");
+    belt[4] = mk("book_of_fire");
+    me.hands.main = mk("sword");
+    me.hands.off = mk("shield");
+    const shieldU = me.hands.off;
+    press(1);
+    row("the halberd drawn with both off-hand slots full and no bag: the shield goes to the empty utility slot, not the floor", id(me.hands.main) === "halberd" && belt[2] === shieldU, `${held()}; slots ${belt.map(id).join(" ")}`);
+    me.worn.back = worn0.back;
+    // Take All with the bag full: the bow tries every empty belt slot its role allows, the utility slot past the off-hand one (S2).
+    fresh("belt");
+    belt[0] = mk("sword");
+    const fullBag = inv.bagOf(me);
+    if (fullBag) for (let n = 0; n < 200 && G.grid.insert(fullBag, mk("hatchet")); n++);
+    const chestBag = inv.createBag(3, 3, "chest");
+    const takeBow = mk("bow");
+    G.grid.insert(chestBag, takeBow);
+    const took = actionsMod.takeAllFrom(me, chestBag, h);
+    row("Take All with the bag full puts a bow on the rope belt's empty utility slot, past its empty off-hand slot", took.moved === 1 && took.left === 0 && belt[2] === takeBow && !belt[1] && chestBag.items.length === 0, `${JSON.stringify(took)}; slots ${belt.map(id).join(" ")}`);
+    if (bag0 && fullBag) fullBag.items.splice(0, fullBag.items.length, ...bag0);
 
     // ---- the look: each empty slot's role icon, and the hover cards ----
     fresh();
@@ -316,7 +370,7 @@ export async function run(game, opts = {}) {
     const swordCard = await hoverText(slotEl(0));
     const halberdCard = await hoverText(slotEl(2));
     row("a filled main-hand slot's card names what its key does: \"From this main-hand slot: drawn into your main hand.\"", swordCard.includes("From this main-hand slot: drawn into your main hand."), swordCard.slice(0, 200));
-    row("the halberd's card in the utility slot: \"From the utility slot: carried only. You can't equip a weapon from the utility slot.\"", halberdCard.includes("From the utility slot: carried only. You can't equip a weapon from the utility slot."), halberdCard.slice(0, 200));
+    row("the halberd's card in the utility slot: \"From the utility slot: stored. You can't equip a weapon from the utility slot. Its menu equips it.\"", halberdCard.includes("From the utility slot: stored. You can't equip a weapon from the utility slot. Its menu equips it."), halberdCard.slice(0, 200));
     card.hide();
     // ---- the slot's menu on the page, and the double-click ----
     const menuOf = async (i) => {
@@ -330,7 +384,7 @@ export async function run(game, opts = {}) {
     const m0 = await menuOf(0);
     const m2 = await menuOf(2);
     row("the sword's main-hand slot menu: Use, Equip, Put in bag, Drop; no hand choice and no mark", m0.labels.join(",") === "Use,Equip,Put in bag,Drop" && m0.checked === 0, m0.labels.join(", "));
-    row("the halberd's utility slot menu has no Equip", !m2.labels.some((l) => /Equip/.test(l)), m2.labels.join(", "));
+    row("the halberd's utility slot menu equips it into both hands, as from the bag (S3): Use, Equip (both hands), Put in bag, Drop", m2.labels.join(",") === "Use,Equip (both hands),Put in bag,Drop" && m2.checked === 0, m2.labels.join(", "));
     clearMessage();
     const d2 = slotEl(2);
     if (d2) d2.dispatchEvent(new MouseEvent("dblclick", { bubbles: true, ...at(d2) }));
@@ -338,6 +392,14 @@ export async function run(game, opts = {}) {
     const d0 = slotEl(0);
     if (d0) d0.dispatchEvent(new MouseEvent("dblclick", { bubbles: true, ...at(d0) }));
     row("a double-click on the main-hand slot's sword draws it", id(me.hands.main) === "sword" && !belt[0], held());
+    // The menu's Equip from the utility slot: the halberd into both hands, the sword put away (S3).
+    const hal = belt[2];
+    const eq = h.slotMenu("belt:2").find((m) => m.label === "Equip (both hands)");
+    if (eq) eq.onSelect();
+    row("the utility slot's Equip (both hands) holds the halberd in both hands", !!eq && me.hands.main === hal && me.hands.off === hal && belt[2] !== hal, `${held()}; slots ${belt.map(id).join(" ")}`);
+    belt[3] = mk("shield");
+    const m3 = h.slotMenu("belt:3").map((m) => m.label).join(",");
+    row("a shield's menu in a main-hand slot offers Equip (off hand), its key still saying why", m3 === "Use,Equip (off hand),Put in bag,Drop", m3);
     // ---- no choice kept anywhere ----
     const rec = ((G.game.serialize().characters || {}).players || []).find((p) => p.id === me.id);
     row("no hand choice on the player, in the save, or in the players' sync part", !("beltHands" in me) && !!rec && !("beltHands" in rec) && !/beltHands/.test(G.game.syncParts().players), rec ? Object.keys(rec).filter((k) => /belt/i.test(k)).join(",") || "none" : "no record");

@@ -1,5 +1,5 @@
 {
-  "version": "746940a0",
+  "version": "31636b2a",
   "files": {
     "data/animals.json": {"size": 5400, "stamp": "778b4155"},
     "data/build.json": {"size": 3016, "stamp": "87aeb2be"},
@@ -835,7 +835,7 @@
     "data/talk/apprentice.json": {"size": 806, "stamp": "b1a25f39"},
     "data/talk/child.json": {"size": 721, "stamp": "30c61c33"},
     "data/talk/guest.json": {"size": 759, "stamp": "6d941b5e"},
-    "data/talk/guide.json": {"size": 13857, "stamp": "36690063"},
+    "data/talk/guide.json": {"size": 13972, "stamp": "a8da4fc9"},
     "data/talk/innkeeper.json": {"size": 1044, "stamp": "dbcf0009"},
     "data/talk/neighbour.json": {"size": 715, "stamp": "1f20ffd6"},
     "data/talk/priest.json": {"size": 785, "stamp": "ebccec7f"},
