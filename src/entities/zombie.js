@@ -558,21 +558,23 @@ function startSiege(z) {
 
 // Sight-pull (docs/48, Michael 2026-10-25): one of the dead turning to hunt a player first-hand calls, once, to the dead near it that see it,
 // and they join the hunt; the ones it calls never call others (they already hunt a player). Who hears: every other dead one not hunting a
-// player, not down, within `pullRadius` scaled by the light on the caller as sight is (`sightRange`), with a clear line to it. Each joins as
-// if struck from where the caller learnt of the player: `huntsPlayer`, `aggro`, the caller's `lastSeen`; idle, wander, and getting up turn
-// to the chase on their next step (the aggro branches), a search turns now, a breach or a press keeps at it. The tells only when one
-// answers: the caller's `pullText` and a `pullBubble` over each drawn in, lines the frame already carries. The order the world holds the dead
-// in decides who calls first when two turn on one step; nothing is rolled.
+// player, not lying down (one getting up answers), within `pullRadius` scaled by the light on the caller as sight is (`sightRange`), with a
+// clear line to it. Each joins as if struck from where the caller learnt of the player: `huntsPlayer`, `aggro`, the caller's `lastSeen`;
+// idle, wander, and getting up turn to the chase on their next step (the aggro branches and the rise's end), a search turns now; a breach
+// keeps at it, its own memory kept (the breach goes on while the room it remembers is the one it breaks into), and a press keeps at it. The
+// tells only when one answers: the caller's `pullText` (none from one lying down, as it does not groan) and a `pullBubble` over each drawn
+// in, lines the frame already carries. The order the world holds the dead in decides who calls first when two turn on one step; nothing is
+// rolled.
 function callOthers(z, others) {
   if (!(T.pullRadius > 0) || !others) return;
   const r = sightRange(T.pullRadius, z.gx, z.gy);
   let drawn = 0;
   for (const o of others) {
-    if (o === z || o.kind !== "zombie" || o.dead || o.huntsPlayer || isDown(o)) continue;
+    if (o === z || o.kind !== "zombie" || o.dead || o.huntsPlayer || (isDown(o) && !o.gettingUp)) continue;
     if (Math.hypot(o.gx - z.gx, o.gy - z.gy) > r || !lineOfSight(o.gx, o.gy, z.gx, z.gy)) continue;
     o.huntsPlayer = true;
     o.aggro = true;
-    o.lastSeen = z.lastSeen ? [z.lastSeen[0], z.lastSeen[1]] : [z.gx, z.gy];
+    if (!o.breach) o.lastSeen = z.lastSeen ? [z.lastSeen[0], z.lastSeen[1]] : [z.gx, z.gy]; // a breacher keeps its door (docs/48)
     o.sincePlayer = 0;
     if (o.state === "search") {
       o.state = "chase";
@@ -581,7 +583,7 @@ function callOthers(z, others) {
     say(o, T.pullBubble, T.pullBubbleSeconds);
     drawn++;
   }
-  if (drawn) say(z, T.pullText);
+  if (drawn && !isDown(z)) say(z, T.pullText);
 }
 
 function giveUp(z) {

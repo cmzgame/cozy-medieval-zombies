@@ -22,6 +22,7 @@ export async function run(game) {
     return finish();
   }
   const Z = await import("/src/entities/zombie.js");
+  const { lineOfSight } = await import("/src/visibility.js");
   const T = G.tuning.zombie;
   const S = G.game.state;
   const p = G.player;
@@ -102,7 +103,9 @@ export async function run(game) {
     G.teleport(n1.gx - 4, n1.gy);
     n1.sightTimer = 0;
     step();
-    row("one drawn in that then sees the player calls no one", n1.seesNow && !late.huntsPlayer && lineOf(n1) !== T.pullText, `it sees the player ${n1.seesNow}; the fresh one beside it hunts ${late.huntsPlayer}`);
+    // The fresh one within the drawn-in one's reach and sight, so its staying idle is the rule's and not its distance (the review of #504).
+    const lateIn = Math.hypot(late.gx - n1.gx, late.gy - n1.gy) <= Z.sightRange(T.pullRadius, n1.gx, n1.gy) && lineOfSight(late.gx, late.gy, n1.gx, n1.gy);
+    row("one drawn in that then sees the player calls no one (a fresh one within its reach stays)", lateIn && n1.seesNow && !late.huntsPlayer && lineOf(n1) !== T.pullText, `it sees the player ${n1.seesNow}; the fresh one ${Math.hypot(late.gx - n1.gx, late.gy - n1.gy).toFixed(1)} tiles off, within its reach ${lateIn}, hunts ${late.huntsPlayer}`);
 
     // 4. A killing blow brings none.
     away();
@@ -158,7 +161,65 @@ export async function run(game) {
     for (const z of [g8, ...group8]) { z.state = "search"; z.searchTimer = 0; z.seesNow = false; z.sincePlayer = 1e9; z.stagger = 0; z.knock = null; }
     step(5);
     const cleared = [g8, ...group8].every((z) => !z.huntsPlayer && !z.aggro);
-    row("giving up clears the mark, so a later turn pulls again", first && cleared, `joined first ${first}; after the search, hunting ${[g8, ...group8].map((z) => z.huntsPlayer).join(", ")}`);
+    // And a later turn is a pull again: the one drawn in the first time, struck now, calls the first caller back in.
+    for (const z of [g8, ...group8]) { z.state = "idle"; z.stagger = 0; z.knock = null; z.line = null; }
+    strike(group8[0]);
+    step();
+    const again = g8.huntsPlayer && lineOf(group8[0]) === T.pullText;
+    row("giving up clears the mark, and a later turn pulls again", first && cleared && again, `joined first ${first}; after the search, hunting ${[g8, ...group8].map((z) => z.huntsPlayer).join(", ")} then cleared ${cleared}; struck again, the first caller joined ${g8.huntsPlayer}`);
+
+    // 9. One getting up answers; one lying does not; and a caller floored by its blow calls without a word.
+    away();
+    const [c9, rising, lying] = make([[sx + 4, sy], [sx + 5, sy], [sx + 4, sy + 1]]);
+    for (const [z, up] of [[rising, true], [lying, false]]) Object.assign(z, { state: "down", gettingUp: up, upTimer: up ? 0.4 : 0, downTimer: up ? 0 : 30 });
+    Z.damageZombie(c9, 1, { from: [p.gx, p.gy], knockdown: true });
+    step();
+    row("one getting up answers the call and one lying does not; a caller floored by its blow says nothing", rising.huntsPlayer && !lying.huntsPlayer && c9.state === "down" && lineOf(c9) !== T.pullText && lineOf(rising) === T.pullBubble, `rising ${rising.huntsPlayer}, lying ${lying.huntsPlayer}; the caller ${c9.state}, its line "${lineOf(c9)}"`);
+    step(40);
+    row("the risen one turns to the chase", rising.state === "chase" || rising.state === "attack", rising.state);
+
+    // 10. One breaking a door keeps at it when drawn in, with its own memory (docs/48, Primary's reading in the review of #504).
+    away();
+    let door = null;
+    for (const room of [...G.map.allRooms()].sort((a, b) => a.id - b.id)) {
+      for (const op of room.openings || []) {
+        const w = G.map.tileAt(op.tx, op.ty)[op.edge];
+        if (!w || w.kind !== "door" || w.open || w.broken) continue;
+        const far = op.edge === "n" ? [op.tx, op.ty - 1] : [op.tx - 1, op.ty];
+        const nearIn = G.map.tileAt(op.tx, op.ty).room === room.id;
+        const out = nearIn ? far : [op.tx, op.ty];
+        if (G.map.tileAt(out[0], out[1]).room !== 0) continue; // from outdoors, as the review's probe
+        const t = G.map.breachTargets(room, out[0], out[1]).find((b) => b.wall === w);
+        if (t) { door = { room, t, out, was: { hp: w.hp, broken: w.broken, open: w.open } }; break; }
+      }
+      if (door) break;
+    }
+    if (!door) row("a breacher drawn in keeps at its door", false, "no shut door from outdoors in the grown rooms");
+    else {
+      const { t, out, room } = door;
+      const inside = t.into;
+      const [br] = make([[out[0], out[1]]]);
+      Object.assign(br, { aggro: true, lastSeen: [inside[0], inside[1]], sincePlayer: 0, sightTimer: 1e9 });
+      br.breach = { ...t, want: room.id };
+      br.state = "breach";
+      const memory = [...br.lastSeen];
+      // The caller, beside it outdoors and in its line, struck from far off: its memory is a place in the open (room 0).
+      const spotC = [[out[0] + 1, out[1]], [out[0] - 1, out[1]], [out[0], out[1] + 1], [out[0], out[1] - 1]].find(([x, y]) => G.map.isWalkableTile(x, y) && G.map.tileAt(x, y).room === 0 && lineOfSight(x, y, out[0], out[1]));
+      if (!spotC) row("a breacher drawn in keeps at its door", false, `no open tile beside the door's outside ${out}`);
+      else {
+        const caller = Z.createZombie(spotC[0], spotC[1]);
+        Object.assign(caller, { sightTimer: 1e9, groanTimer: 1e9, idleTimer: 1e9 });
+        S.zombies.push(caller);
+        made.push(caller);
+        Z.damageZombie(caller, 1, { from: [out[0] + 30, out[1]] });
+        const states = [];
+        for (let i = 0; i < 120; i++) { step(); if (!states.includes(br.state)) states.push(br.state); } // two seconds: past a blow, to the next
+        row("a breacher drawn in keeps at its door: its own memory, its breach", br.huntsPlayer && !!br.breach && ["breach", "breachHit"].includes(br.state) && br.lastSeen[0] === memory[0] && br.lastSeen[1] === memory[1], `drawn in ${br.huntsPlayer}; states ${states.join(" > ")}; breach ${!!br.breach}; memory ${br.lastSeen} (was ${memory})`);
+      }
+      const w = t.wall;
+      Object.assign(w, door.was);
+      G.map.touch(t.tx, t.ty);
+    }
     for (const z of made) { const i = S.zombies.indexOf(z); if (i >= 0) S.zombies.splice(i, 1); }
     made = [];
   } catch (e) {
