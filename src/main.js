@@ -1522,6 +1522,7 @@ async function boot() {
       const ctx = audio.init({ voices: soundsJson.voices, groups: soundsJson.groups });
       audio.setOn(settings.get("soundOn") !== false);
       audio.setMaster(settings.get("soundVolume"));
+      if (URLQ.has("mute")) audio.setSilent(true); // a test page heard by nobody, its log still filled (`?mute`)
       audio.setClock(loop.simTime);
       audio.unlock();
       const decode = ctx ? (buf) => ctx.decodeAudioData(buf) : null;
