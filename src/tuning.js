@@ -263,7 +263,19 @@ export const trees = {
   checkSeconds: 30,
 };
 
-const sections = { zombie, player, villager, world, population, sight, feel, floaters, objectHighlight, hoverCard, work, water, resources, trees };
+// Potions, drunk (docs/47 section 4, #481; src/potions.js): a healing potion gives `heal` health at once, a stamina potion fills the bar and
+// makes it come back `staminaMult` times as fast for `staminaSeconds` (the buff `player.buffs.stamina`), a mana potion gives `mana` mana (the
+// bar is #480's, `player.mana`); after any potion the next takes effect only `between` seconds of the sim clock later (`player.potionAt`).
+// Primary's defaults but the mana's 50 (Michael's), levers in docs/42.
+export const potions = {
+  heal: 40,
+  mana: 50,
+  staminaMult: 2,
+  staminaSeconds: 30,
+  between: 10,
+};
+
+const sections = { zombie, player, villager, world, population, sight, feel, floaters, objectHighlight, hoverCard, work, water, resources, trees, potions };
 
 // Lay a file's numbers over the defaults; a missing file or section changes nothing.
 export function load(json) {

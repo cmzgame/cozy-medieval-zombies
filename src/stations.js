@@ -15,7 +15,8 @@ import { getItem, aName, countName, containerGrid } from "./items.js";
 import { propAName, containerName, setRecipes as setPropRecipes } from "./prop-names.js"; // a made prop's name (docs/bugs.md, 2026-10-25)
 import * as loop from "./loop.js"; // the sim clock: a spot is read once a step
 import * as grid from "./grid.js";
-import { bagOf, beltOf, createBag, countAll, takeAll, toolProblem, detach } from "./inventory.js";
+import { bagOf, beltOf, createBag, countAll, takeAll, toolProblem, detach, skinsOf } from "./inventory.js";
+import { isTainted } from "./water.js"; // a recipe's draught is clean water alone (docs/47 section 3)
 import * as verbs from "./verbs.js";
 import { canReach, reachProblem, TOO_FAR } from "./reach.js"; // one reach test, distance and a clear line (#208)
 import { emit } from "./events.js";
@@ -162,6 +163,38 @@ export function shortfall(player, prop, r, count = 1) {
   return out;
 }
 
+// A recipe's draught of clean water (docs/47 section 3, #481): a row's `water`, the amount of a skin's fill, drawn from the clean waterskins the
+// brewer carries (the bag, the belt, the hands; never a container nearby, never a tainted skin) and taken with the ingredients when the make
+// starts. Without enough the Make is refused with why.
+export const NO_WATER = "Potions need clean water.";
+
+// The clean skins carried with water in them, the emptiest first (one is finished before the next is started, as the auto-sip does).
+function cleanSkins(player) {
+  const out = [];
+  for (const slot of ["main", "off"]) {
+    const e = player.hands && player.hands[slot];
+    if (e && getItem(e.id).capacity && !out.includes(e)) out.push(e);
+  }
+  for (const e of skinsOf(player)) if (!out.includes(e)) out.push(e);
+  return out.filter((e) => (e.fill ?? 0) > 0 && !isTainted(e)).sort((a, b) => (a.fill ?? 0) - (b.fill ?? 0));
+}
+
+// How much clean water the player carries, in a skin's fill.
+export function waterHave(player) {
+  return cleanSkins(player).reduce((n, e) => n + (e.fill ?? 0), 0);
+}
+
+function takeWater(player, amount) {
+  let left = amount;
+  for (const e of cleanSkins(player)) {
+    if (left <= 1e-9) break;
+    const t = Math.min(left, e.fill ?? 0);
+    e.fill = Math.round(((e.fill ?? 0) - t) * 1000) / 1000;
+    left -= t;
+  }
+  return amount - left;
+}
+
 function toolInHand(player, id) {
   return ["main", "off"].some((s) => player.hands[s] && player.hands[s].id === id);
 }
@@ -177,12 +210,14 @@ export function canMake(player, prop, r, count = 1) {
   { const why = roomProblem(prop, r); if (why) return why; } // refused before anything is spent: a made prop needs a spot beside it
   const short = shortfall(player, prop, r, count);
   if (short.length) return `Short of ${short.map((s) => `${s.need - s.have} ${nameOfWant(s.want)}`).join(", ")}.`;
+  if (r.water && waterHave(player) < r.water * count - 1e-9) return NO_WATER; // a draught a make, clean water carried (docs/47 section 3)
   return true;
 }
 
-// Start `count` makes: the ingredients are taken now, the work queued on the station.
+// Start `count` makes: the ingredients (and a recipe's draught of clean water) are taken now, the work queued on the station.
 export function start(player, prop, r, count = 1) {
   for (const want of r.in) take(player, prop, want, want.count * count);
+  if (r.water) takeWater(player, r.water * count);
   if (!prop.queue) prop.queue = [];
   prop.queue.push({ recipe: r.id, left: r.seconds, count, by: player.id });
   active.add(prop);

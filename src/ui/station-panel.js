@@ -120,7 +120,7 @@ export function close() {
 }
 
 function title(station) {
-  return { workbench: "Workbench", anvil: "Anvil", forge: "Forge", oven: "Oven", cooking: "Cooking", loom: "Loom", dyevat: "Dye vat", millstones: "Millstones" }[station] || station;
+  return { workbench: "Workbench", anvil: "Anvil", forge: "Forge", oven: "Oven", cooking: "Cooking", loom: "Loom", dyevat: "Dye vat", millstones: "Millstones", cauldron: "Cauldron" }[station] || station;
 }
 
 // What a recipe makes, named: an item by its definition, a prop by its sprite.
@@ -149,7 +149,7 @@ function render(player) {
       const n = stations.have(player, prop, w);
       const need = w.count * open.count;
       return `<div class="st-in${n < need ? " short" : ""}">${stations.nameOfWant(w)} <span>${n} / ${need}</span></div>`;
-    }).join("");
+    }).join("") + (r.water ? (() => { const n = Math.floor(stations.waterHave(player)); const need = r.water * open.count; return `<div class="st-in${n < need ? " short" : ""}">clean water <span>${n} / ${need}</span></div>`; })() : ""); // a draught from clean skins carried (docs/47 section 3)
     const extra = [r.fire ? "needs the fire lit" : "", r.tool ? `needs ${aName(r.tool)} in hand` : "", r.uses ? `needs ${toolFor(r.uses) ? aName(toolFor(r.uses).id) : "a tool"} on you` : ""].filter(Boolean).join(", ");
     const can = stations.canMake(player, prop, r, open.count);
     detail = `<div class="st-detail kit-well">${ins}${extra ? `<div class="st-note">${extra}</div>` : ""}<div class="st-make"><label>×<input type="number" min="1" max="10" value="${open.count}" data-count></label><button class="kit-button" data-make ${can === true ? "" : "disabled"} title="${can === true ? `${r.seconds} s` : can}">Make</button></div></div>`;

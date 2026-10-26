@@ -17,7 +17,7 @@ export function initDebuffRow() {
 
 function build(d) {
   const el = document.createElement("div");
-  el.className = "debuff";
+  el.className = d.buff ? "debuff buff" : "debuff"; // a buff framed in gold (docs/47 section 4; docs/39 section 12)
   el.dataset.id = d.id;
   const box = document.createElement("div");
   box.className = "db-box";

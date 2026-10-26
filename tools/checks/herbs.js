@@ -30,6 +30,7 @@ export async function run(game, opts = {}) {
   const ITEMS = [...HERBS, "mushroom", "clay", "salt"];
   const SOURCE = { sage: "Grows wild in the valley; gathered by hand.", nettle: "Grows wild in the valley; gathered by hand.", feverfew: "Grows wild in the valley; gathered by hand.", yarrow: "Grows wild in the valley; gathered by hand.", woad: "Grows wild in the valley; gathered by hand.", madder: "Grows wild in the valley; gathered by hand.", weld: "Grows wild in the valley; gathered by hand.", mana_herb: "Grows wild near water; gathered by hand.", nightshade: "Grows wild near trees; gathered by hand.", wolfsbane: "Grows wild near trees; gathered by hand.", grave_moss: "Grows wild in the graveyard; gathered by hand.", mushroom: "Forage under trees.", clay: "Dug from the clay banks by the river, a shovel carried.", salt: "Mined from salt rocks at the iron workings, a pickaxe in hand." };
   const KIND = { woad: "Dye plant", madder: "Dye plant", weld: "Dye plant", mushroom: "Forage", clay: "Material", salt: "Material" };
+  const GOES = { sage: "Goes into: healing potion.", yarrow: "Goes into: healing potion.", nettle: "Goes into: stamina potion.", mana_herb: "Goes into: mana potion.", mushroom: "Goes into: mana potion.", nightshade: "Goes into: poison.", wolfsbane: "Goes into: strong poison.", grave_moss: "Goes into: poison, strong poison.", clay: "Goes into: unfired vial." }; // the potions' step (docs/47, #481)
   const me = G.player;
   const cardText = (id) => info.textOf(info.cardFor(G.items.makeEntry(id))).join(" | ");
   let kept = null;
@@ -305,7 +306,10 @@ export async function run(game, opts = {}) {
       const name = G.items.getItem(id).name;
       const kind = KIND[id] || "Herb";
       const img = el.querySelector("img.inv-icon");
-      if (!text.startsWith(name) || !text.includes(kind) || !text.includes(SOURCE[id]) || /Use|Eat|Goes into|Made at/.test(text) || !img || !/^data:image\/png/.test(img.getAttribute("src"))) wrong.push(`${id}: "${text}", icon ${img ? "drawn" : "none"}`);
+      // Since the potions (docs/47, #481) a brewing herb, the mushroom, and clay say what they go into; nothing else is a use, and none is made anywhere.
+      const goes = GOES[id] || null;
+      const rest = goes ? text.replace(goes, "") : text;
+      if (!text.startsWith(name) || !text.includes(kind) || !text.includes(SOURCE[id]) || (goes && !text.includes(goes)) || /Use|Eat|Goes into|Made at/.test(rest) || !img || !/^data:image\/png/.test(img.getAttribute("src"))) wrong.push(`${id}: "${text}", icon ${img ? "drawn" : "none"}`);
     }
     (await import("/src/ui/hover-card.js")).hide();
     row("over the bag each new item shows its icon and its card: its full name, its kind, and where it is gathered, and no use that is not built", wrong.length === 0, wrong.length ? wrong.join("; ") : read.join(" || "));

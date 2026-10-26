@@ -11,6 +11,7 @@ import * as map from "../map.js";
 import * as interact from "../interact.js";
 import * as tuning from "../tuning.js";
 import * as use from "../use.js";
+import * as potions from "../potions.js"; // a potion drunk by a double-click in the bag (docs/47 section 4)
 import { showMessage } from "./prompt.js";
 import { refreshCorpse } from "../entities/character.js"; // a body drawn without what was taken
 import { canReach } from "../reach.js"; // distance and a clear line (#208)
@@ -92,7 +93,7 @@ function beltRefusal(entry, slotId) {
 // draw ("Equip (both hands)" in the utility slot, as from the bag) is never a double-click's, so the double-click says why as the key does.
 function slotUse(menu, slotId) {
   const belt = inventory.parseSlot(slotId).kind === "belt";
-  if (belt) return menu.find((q) => q.label === "Equip" || q.label === "Eat");
+  if (belt) return menu.find((q) => q.label === "Equip" || q.label === "Eat" || q.label === "Drink"); // Drink: a potion, the key's own (docs/47; a skin's is "Drink (80%)", never a double-click's)
   return menu.find((q) => q.label === "Unequip" || q.label.startsWith("Equip") || q.label === "Eat" || q.label.startsWith("Drink"));
 }
 
@@ -245,9 +246,12 @@ export function createInventoryActions(getPlayer) {
     itemMenu(entry, bag, otherBag) {
       return interact.itemMenu(getPlayer(), entry, bag, otherBag);
     },
-    // Double-click in your bag: equip what can be held, wear what can be worn.
+    // Double-click in your bag: equip what can be held, wear what can be worn, drink a potion (docs/47 section 4: its vial back in its cell;
+    // a poison says why not). True for a potion or a poison either way, so a refused drink never sends it across to an open container.
     use(entry, bag) {
       const def = items.getItem(entry.id);
+      if (potions.isPoison(def) && !def.hands) { showMessage(potions.POISON_WORD); return true; }
+      if (potions.potionOf(def) && !def.hands) { potions.drinkFrom(getPlayer(), entry, { kind: "bag", bag }); return true; }
       if (def.hands) return interact.equipFrom(getPlayer(), entry);
       if (def.wear) return interact.wearFrom(getPlayer(), entry, bag);
       return false;

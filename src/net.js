@@ -135,7 +135,10 @@ export function makeCode() {
 // 17 (2026-10-25, the belt's slots by role, #478): a belt key's event in a guest's snapshot names the slot's role (`beltMain1`, `beltOff1`,
 // `beltUtility`, `beltMain2`, `beltOff2`; inventory.BELT_EVENTS) in place of its number (`belt1` to `belt4`), and the heavy record no longer
 // carries `beltHands`; an older guest's keys would be dropped by the host's filter.
-export const PROTOCOL = 17;
+// 19 (2026-10-25, the potions' step 2, #481; 18 left to the mana's #480, built beside it): a player's light record carries `potionAt`, the sim
+// time of the last potion, and `buffs` (`{ stamina: { left } }`, its time to two decimals), so the record changed shape; an older guest
+// neither drew the stamina buff in its row nor regenerated its predicted stamina at the buff's rate, and knew none of the potions' items.
+export const PROTOCOL = 19;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -937,6 +940,7 @@ export function hostAfterStep() {
     for (const [k, v] of Object.entries(full)) {
       if (k === "full" || k === "ack" || k === "actionView" || k === "line") continue;
       if (HEAVY.has(k)) heavy[k] = v;
+      else if (k === "buffs" && v) light[k] = Object.fromEntries(Object.entries(v).map(([id, b]) => [id, { left: r2(b.left) }])); // a potion's buff (docs/47), its time to two decimals as Sick's
       else light[k] = (k === "bleed" || k === "sick") && v ? { stacks: v.stacks, left: r2(v.left) } : typeof v === "number" && !EXACT.has(k) ? r2(v) : v; // the wound's time, and Sick's (docs/44), to two decimals: the row of debuffs shows whole seconds (#308)
     }
     // A lit torch's wear rises every step (#156): compared to two decimals, so the heavy part goes whole when it changes by a

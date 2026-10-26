@@ -632,8 +632,36 @@ for row in load("data/recipes.json")["rows"]:
     # A row's own `verb` (#317: Tear) is said on the hover card of what goes in and what comes out, so it works an item into an item.
     if "verb" in row and not (isinstance(row["verb"], str) and row["verb"][:1].isupper() and out.get("id") and any(w.get("id") for w in row["in"])):
         fail(f"recipes.{rid}.verb: a capitalised word on a row that makes an item from an item")
+    # A draught of clean water (docs/47 section 3): `water`, a part of a skin's fill above 0 and at most a whole skin.
+    if "water" in row and not (num(row["water"]) and 0 < row["water"] <= 100):
+        fail(f"recipes.{rid}.water: an amount of a skin's fill above 0, at most 100")
 if not any(row["station"] == "loom" for row in load("data/recipes.json")["rows"]):
     fail("recipes: the loom has no rows")
+
+# Potions and poisons (docs/47 sections 4 and 6, #481): a potion's `potion` names what drinking it does, a poison's `poison` its tier (1 or 2),
+# never both; each stacks, rides the belt, and is brewed at the cauldron; drinking leaves the clay vial, which exists; the tuning's numbers are there.
+POTION_KINDS = ("heal", "stamina", "mana")
+_pt = load("data/tuning.json").get("potions") or {}
+for k in ("heal", "mana", "staminaMult", "staminaSeconds", "between"):
+    if not (num(_pt.get(k)) and _pt[k] > 0):
+        fail(f"tuning.potions.{k}: a number above 0")
+_rows_by_out = {(r.get("out") or {}).get("id"): r for r in load("data/recipes.json")["rows"]}
+for i in items:
+    if "potion" in i or "poison" in i:
+        where = f"items.{i['id']}"
+        if "potion" in i and i["potion"] not in POTION_KINDS:
+            fail(f"{where}.potion: one of {POTION_KINDS}, not {i['potion']!r}")
+        if "poison" in i and not (isinstance(i["poison"], dict) and i["poison"].get("tier") in (1, 2)):
+            fail(f"{where}.poison: {{ tier: 1 or 2 }}")
+        if "potion" in i and "poison" in i:
+            fail(f"{where}: a potion or a poison, not both")
+        if not (i.get("stack") and i.get("belt") is True):
+            fail(f"{where}: a potion stacks and rides the belt (`stack`, `belt` true)")
+        r = _rows_by_out.get(i["id"])
+        if not r or r.get("station") != "cauldron" or not r.get("water") or not r.get("fire") or not any(w.get("id") == "clay_vial" for w in r.get("in", [])):
+            fail(f"{where}: brewed at the cauldron over its fire from a clay vial and a draught of clean water (data/recipes.json)")
+if any("potion" in i for i in items) and "clay_vial" not in {i["id"] for i in items}:
+    fail("items: a potion leaves a clay vial, and there is none")
 
 # A bow's arrows (#317): its `ammo`, the order it takes them in (archery.launcherOf, and the hover cards of the bow and of each arrow), names
 # items of the kind ammo; an item's own `ignite` (a fire arrow's) is true or absent.
@@ -983,7 +1011,7 @@ for path in glob.glob("data/maps/*.json"):
 # The pair rule (docs/26): drawn world art and an icon come together. An icon generated from a design (`icon.placeholder`: a sprite's id
 # whose definition is a gatherable's dev art, or a design of its own; docs/46 step 2) is both halves from one design: main.js makes the
 # bag's picture and the item lying on the floor from it; it names a design src/gather-art.js draws, and no `src` of its own.
-ART_KINDS = ("herb", "mushroom", "lump", "sapling")
+ART_KINDS = ("herb", "mushroom", "lump", "sapling", "vial")  # vial: a clay vial and its potions (docs/47 section 8)
 generated = 0
 for i in items:
     ph = (i.get("icon") or {}).get("placeholder")

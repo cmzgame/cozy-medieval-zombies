@@ -190,6 +190,14 @@
     "burnCorpse": { "flame": "tinderbox", "fuel": "log", "hours": 1, "seconds": 2 }
   },
   "resources": { "days": [1, 2], "checkSeconds": 30, "tries": 8, "yardCap": 300, "riseSeconds": 1 },
+  "potions": {
+    "note": "Drinking (docs/47 section 4, #481; src/potions.js): a healing potion gives `heal` health at once; a stamina potion fills the bar and makes it come back `staminaMult` times as fast for `staminaSeconds` (a buff, player.buffs.stamina); a mana potion gives `mana` mana (Michael's 50; the bar is #480's); `between` seconds of the sim clock after any potion before the next takes effect (player.potionAt). Primary's defaults but the mana, levers in docs/42.",
+    "heal": 40,
+    "mana": 50,
+    "staminaMult": 2,
+    "staminaSeconds": 30,
+    "between": 10
+  },
   "trees": {
     "sapling": { "item": "sapling", "chance": 0.33, "days": 5, "stages": ["sapling_0", "sapling_1"], "grows": "tree_oak_m", "skill": "woodcutting", "level": 4 },
     "sticks": { "item": "stick", "count": [1, 2], "seconds": 2 },
