@@ -26,6 +26,7 @@ import * as iso from "./iso.js";
 import { performItemCommand, performUseCommand } from "./ui/inventory-actions.js";
 import { showMessage, setMessageSink } from "./ui/prompt.js";
 import * as tuning from "./tuning.js";
+import { handedOf } from "./handed.js"; // right- or left-handed (Michael, 2026-10-25)
 
 const S = game.state;
 
@@ -97,12 +98,13 @@ export function joinFor(hash, identity) {
   if (full()) return { full: true }; // the world's players at once (above), before a character is made or a hash filed
   const spawn = S.info ? S.info.spawn : me ? [me.gx, me.gy] : [0, 0];
   const at = map.nearestWalkable(spawn[0] + 1, spawn[1] + 1, (x, y) => S.players.some((p) => Math.round(p.gx) === x && Math.round(p.gy) === y)) || spawn;
-  const p = game.addPlayer(at[0], at[1], { look: identity.look, name: identity.name });
+  const p = game.addPlayer(at[0], at[1], { look: identity.look, name: identity.name, handed: identity.handed });
   if (hash) st.owners[hash] = p.id;
   return { player: p };
 }
 
-// A guest's identity as the host accepts it: a short name, a listed hair style, hex colours, nothing else.
+// A guest's identity as the host accepts it: a short name, a listed hair style, hex colours, right- or left-handed
+// (right unless it says left), nothing else.
 export function clampIdentity(raw) {
   const styles = new Set(figure.hairStyles());
   const hex = (v) => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
@@ -111,7 +113,7 @@ export function clampIdentity(raw) {
   if (styles.has(L.hairStyle)) look.hairStyle = L.hairStyle;
   for (const k of ["skin", "hair", "eyes"]) if (hex(L[k])) look[k] = L[k];
   const name = typeof raw.name === "string" ? raw.name.replace(/[\u0000-\u001f]/g, "").trim().slice(0, 24) : "";
-  return { name: name || null, look: lookOf({ look }) };
+  return { name: name || null, look: lookOf({ look }), handed: handedOf(raw && raw.handed) };
 }
 
 // A guest's character after the grace (net.js hooks.dormant): out of the simulation, its record kept.
