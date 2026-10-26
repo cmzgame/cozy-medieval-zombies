@@ -1,5 +1,5 @@
 {
- "note": "docs/30 section 6: a recipe is a row; `in` names item ids or tags with counts; `fire` needs the station's fire lit; `tool` needs that item in a hand; `out.prop` places a prop beside the station instead of an item in its output. Seconds are sim seconds (a game hour is 30). `uses` names a verb: the recipe needs a carried item whose `verbs` list it (a hand, the belt, or the bag: the tool rule, #214, #215; `tool` is the older in-hand check, the anvil's hammer, until open question 32 is ruled).",
+ "note": "docs/30 section 6: a recipe is a row; `in` names item ids or tags with counts; `fire` needs the station's fire lit; `tool` needs that item in a hand; `out.prop` places a prop beside the station instead of an item in its output. Seconds are sim seconds (a game hour is 30). `uses` names a verb: the recipe needs a carried item whose `verbs` list it (a hand, the belt, or the bag: the tool rule, #214, #215; `tool` is the older in-hand check, the anvil's hammer, until open question 32 is ruled). `verb` (optional) names how a row works one thing into another, for the hover card (#317): Tear, a garment into rags, is said \"Tear into 2 rags at the workbench\" on the garment and \"Tear clothing into rags\" on the rag, in place of its Made at and Goes into.",
  "rows": [
   {
    "id": "torch",
@@ -22,6 +22,7 @@
   },
   {
    "id": "tear_cap",
+   "verb": "Tear",
    "station": "workbench",
    "out": {
     "id": "rag",
@@ -39,6 +40,7 @@
   },
   {
    "id": "tear_hood",
+   "verb": "Tear",
    "station": "workbench",
    "out": {
     "id": "rag",
@@ -56,6 +58,7 @@
   },
   {
    "id": "tear_tunic",
+   "verb": "Tear",
    "station": "workbench",
    "out": {
     "id": "rag",
@@ -73,6 +76,7 @@
   },
   {
    "id": "tear_gloves",
+   "verb": "Tear",
    "station": "workbench",
    "out": {
     "id": "rag",
@@ -90,6 +94,7 @@
   },
   {
    "id": "tear_breeches",
+   "verb": "Tear",
    "station": "workbench",
    "out": {
     "id": "rag",
@@ -107,6 +112,7 @@
   },
   {
    "id": "tear_boots",
+   "verb": "Tear",
    "station": "workbench",
    "out": {
     "id": "rag",

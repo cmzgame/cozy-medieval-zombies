@@ -63,6 +63,12 @@ export const tunables = {
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 
+// What a shot of full-draw `damage` does at a draw of `c` (docs/20: `damage · (0.4 + 0.6 c)`), rounded as a hit is: the hits below, and
+// the hover card's "19 to 38 damage by the draw" (item-info.js, its low end at `minDraw`, #317).
+export function shotDamage(damage, c) {
+  return Math.round(damage * (0.4 + 0.6 * c));
+}
+
 // The fraction of the full-draw distance a draw of `c` (0 to 1) lands.
 export function drawFraction(c) {
   return 1 - Math.pow(1 - clamp01(c), tunables.ramp);
@@ -287,10 +293,10 @@ function land(a, met = null) {
   if (hit && hit.kind === "animal") {
     // An animal (docs/45 section 2): the shot's damage, the class the carcass keeps (an arrow the bow's, a thrown thing its own, a spell
     // its), and what stayed in it comes back when it is butchered. No fire: an animal does not burn.
-    damageAnimal(hit, Math.round(a.damage * (0.4 + 0.6 * a.c)), { by: a.shooter, cls: a.vanish ? "spell" : a.item ? "thrown" : "bow", from: [a.x0, a.y0] });
+    damageAnimal(hit, shotDamage(a.damage, a.c), { by: a.shooter, cls: a.vanish ? "spell" : a.item ? "thrown" : "bow", from: [a.x0, a.y0] });
   } else if (hit) {
     if (a.ignite) burn.ignite(hit); // before the damage, so a body it kills burns on as a corpse (#14)
-    damageZombie(hit, Math.round(a.damage * (0.4 + 0.6 * a.c)), { dir: [a.dx, a.dy], knockback: a.knockback, staggerChance: a.staggerChance, from: [a.x0, a.y0] });
+    damageZombie(hit, shotDamage(a.damage, a.c), { dir: [a.dx, a.dy], knockback: a.knockback, staggerChance: a.staggerChance, from: [a.x0, a.y0] });
   }
   if (hit) {
     // The arrow stays in the body (Michael): it comes out in the loot when the dead one is
@@ -736,10 +742,13 @@ export function launcherOf(player) {
   if (!def) return null;
   const common = { entry: e, range: tunables.range, speed: tunables.speed, arcMin: tunables.arcMin, arcMax: tunables.arcMax, z0: tunables.z0, drawTime: tunables.drawTime };
   // `button` is the button that draws it (docs/21): the bow on the left, a throw on the middle.
-  // Fire arrows before plain ones when both are carried (#14): each burns what it hits, and lands as a plain arrow.
+  // The bow's arrows are its `ammo` in data/items.json, the first carried in its order (#317): fire arrows before plain ones (#14), the last
+  // the one a bow with none asks for. An arrow whose item is `ignite` burns what it hits, and lands as a plain arrow.
   if (def.bow) {
-    const fire = countAll(player, "fire_arrow") > 0;
-    return { ...common, ...def.bow, kind: "bow", button: "primary", ammo: fire ? "fire_arrow" : "arrow", projectile: fire ? "fire_arrow" : "arrow", ignite: fire };
+    const list = def.bow.ammo || ["arrow"];
+    const ammo = list.find((id) => countAll(player, id) > 0) || list[list.length - 1];
+    const ad = getItem(ammo);
+    return { ...common, ...def.bow, kind: "bow", button: "primary", ammo, projectile: ammo, ignite: !!(ad && ad.ignite) };
   }
   if (def.thrown) return { ...common, ...def.thrown, kind: "thrown", button: "alt", ammo: null, projectile: def.thrown.projectile || def.id };
   return null;

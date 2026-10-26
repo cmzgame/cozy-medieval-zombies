@@ -628,8 +628,22 @@ for row in load("data/recipes.json")["rows"]:
     for key in ("tool",):
         if row.get(key):
             check_id(f"recipes.{rid}.{key}", row[key])
+    # A row's own `verb` (#317: Tear) is said on the hover card of what goes in and what comes out, so it works an item into an item.
+    if "verb" in row and not (isinstance(row["verb"], str) and row["verb"][:1].isupper() and out.get("id") and any(w.get("id") for w in row["in"])):
+        fail(f"recipes.{rid}.verb: a capitalised word on a row that makes an item from an item")
 if not any(row["station"] == "loom" for row in load("data/recipes.json")["rows"]):
     fail("recipes: the loom has no rows")
+
+# A bow's arrows (#317): its `ammo`, the order it takes them in (archery.launcherOf, and the hover cards of the bow and of each arrow), names
+# items of the kind ammo; an item's own `ignite` (a fire arrow's) is true or absent.
+by_id = {i["id"]: i for i in items}
+for i in items:
+    b = i.get("bow")
+    if b and "ammo" in b:
+        if not (isinstance(b["ammo"], list) and b["ammo"] and all(by_id.get(a, {}).get("kind") == "ammo" for a in b["ammo"])):
+            fail(f"items.{i['id']}.bow.ammo: a list of ammunition item ids")
+    if "ignite" in i and i["ignite"] is not True:
+        fail(f"items.{i['id']}.ignite: true or absent")
 
 # The farms and the mill (#201): every recipe's station is some sprite's `station` (or the cooking fire), the millstones grind grain, every crop's seed is in
 # both granaries' fixed tables (a seed source for every crop, never refilled), and no crop is a dead end (its harvest is an ingredient, by id or tag).

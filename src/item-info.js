@@ -1,10 +1,12 @@
 // What an item card says (#262; the law "Every item in a grid has a hover card", docs/02): the full name, the kind, and the direct uses, all read from the data and never
-// written per item: `data/items.json` (food, drink, weapon, hands, wear, verbs, bag, fire, splitsInto, repair, dye, tags: a seed, an herb, a dye plant, a mushroom name the kind), `data/interactions.json` (what the item can be Used on),
-// `data/recipes.json` (what it is made at and goes into), `data/crops.json` (what a seed plants), `data/dyes.json` (what a vat dyes it). It touches no DOM (it reads the registries the game loads: items, interactions, recipes, crops, and the build kinds), so a headless world can ask it and the check can read it;
+// written per item: `data/items.json` (food, drink, weapon, thrown, bow and its ammo, book.spell, staff, ignite, hands, wear, verbs, bag, fire, splitsInto, repair, dye, toCome, tags: a seed, an herb, a dye plant, a mushroom name the kind), `data/interactions.json` (what the item can be Used on, and what a Use makes of it),
+// `data/recipes.json` (what it is made at and goes into, and a row's own `verb`: Tear), `data/combat.json` (the flight's defaults and the burn), `data/crops.json` (what a seed plants), `data/dyes.json` (what a vat dyes it). It touches no DOM (it reads the registries the game loads: items, interactions, recipes, crops, and the build kinds), so a headless world can ask it and the check can read it;
 // ui/hover-card.js draws what this returns. A card is { name, kind, state, lines, fine }: `lines` and `fine` are lists of lines, a line a list of segments { t, k } where `k`
 // is "use" for the word Use (drawn in --gold, Michael 2026-10-18), "word" for another menu word (Eat, Equip, Drink, Apply), or absent for plain text.
 
-import { getItem, wearPerHit, wearPerShot, toolFor, countName, pluralName, namePlural } from "./items.js";
+import { getItem, allItems, wearPerHit, wearPerShot, toolFor, countName, pluralName, namePlural } from "./items.js";
+import { shotDamage, tunables as shot } from "./archery.js"; // a shot's damage by the draw and the flight's defaults (data/combat.json `bow`): the bow, a throw, a spell (#317)
+import { BURN } from "./burn.js"; // what burning does to the dead (data/combat.json `burn`): a fire arrow's and a fireball's line
 import { propName } from "./prop-names.js"; // a prop's name in words: its recipe's label, its definition's `name`, else its id
 import { beltDefault } from "./inventory.js"; // where the belt's key draws a thing by default (#285)
 import { work, trees } from "./tuning.js"; // the repair ladders and the sawpit's item (docs/43 section 6); the sapling and the sticks (docs/46 step 3)
@@ -112,22 +114,105 @@ export function fromTrees(def) {
   return out;
 }
 
-// The recipes that make it, and those it goes into, as station words: { madeAt: [stations], goesInto: [{ name, station }] }.
+// What a recipe needs carried or held, as words: its `uses` verb's tool carried (the tool rule, #214), or its `tool` in hand.
+function toolWords(r) {
+  const t = r.uses ? toolFor(r.uses) : r.tool ? getItem(r.tool) : null;
+  return t ? `, ${an(t.name.toLowerCase())} ${r.uses ? "carried" : "in hand"}` : "";
+}
+
+// The recipes that make it, and those it goes into, as station words: { madeAt: [stations], goesInto: [{ name, station }], worksInto, workedFrom }.
+// A row with a `verb` (#317: Tear, a garment into rags) works one thing into another and is said as its own line on both, never as a Made at or
+// a Goes into: `worksInto` [{ verb, out, count, station, how }] on what goes in, `workedFrom` [{ verb, from: [ids], count, station, how }] on what comes out.
 export function recipesOf(def) {
   const madeAt = [];
   const goesInto = [];
+  const worksInto = [];
+  const workedFrom = [];
   for (const r of stations.recipes()) {
     if (!stations.isOpen(r)) continue; // a recipe a world rule keeps off is not on a card (docs/43 section 5)
+    if (r.verb && r.out && r.out.id) {
+      const how = toolWords(r);
+      const count = r.out.count || 1;
+      if ((r.in || []).some((w) => w.id === def.id) && !worksInto.some((w) => w.verb === r.verb && w.out === r.out.id && w.station === r.station)) worksInto.push({ verb: r.verb, out: r.out.id, count, station: r.station, how });
+      if (r.out.id === def.id) {
+        let g = workedFrom.find((w) => w.verb === r.verb && w.station === r.station && w.how === how);
+        if (!g) workedFrom.push((g = { verb: r.verb, from: [], counts: [], station: r.station, how }));
+        for (const w of r.in || []) if (w.id && !g.from.includes(w.id)) g.from.push(w.id);
+        if (!g.counts.includes(count)) g.counts.push(count);
+      }
+      continue;
+    }
     if (r.out && r.out.id === def.id && !madeAt.includes(r.station)) madeAt.push(r.station);
     if ((r.in || []).some((w) => w.id === def.id || (w.tag && def.tags && def.tags.includes(w.tag)))) {
       const out = r.out && r.out.id ? getItem(r.out.id).name : r.label ? r.label : r.out && r.out.prop ? cap(propName(r.out.prop)) : r.id; // a recipe's own label first (the jack-o'-lantern's prop is "pumpkin")
       if (!goesInto.some((g) => g.name === out)) goesInto.push({ name: out, station: r.station });
     }
   }
-  return { madeAt, goesInto };
+  return { madeAt, goesInto, worksInto, workedFrom };
 }
 
 const stationWord = (s) => (s === "cooking" ? "a cooking fire" : `the ${s.replace(/_/g, " ")}`);
+
+// A shot's damage by the draw (docs/20, archery.shotDamage): what the least draw that flies does (`minDraw`) to the whole of a full one.
+function byDraw(d) {
+  const lo = shotDamage(d, shot.minDraw);
+  return lo < d ? `${lo} to ${d} damage by the draw` : `${d} damage`;
+}
+const tiles = (n) => `${n} tile${n === 1 ? "" : "s"}`;
+// What one burn does to the dead (data/combat.json `burn`): the whole of it, capped. Only the dead burn (burn.js).
+const burnLine = () => line(`Sets the dead it hits alight: ${Math.round(Math.min(BURN.cap, BURN.dps * BURN.duration))} damage over ${BURN.duration} seconds.`);
+// A cast's or a throw's cost where its data names one (`mana`, `stamina`); no spell has one yet (docs/24, Q2), so none is said.
+const costOf = (o) => [o.mana ? `${o.mana} mana` : "", o.stamina ? `${o.stamina} stamina` : ""].filter(Boolean).join(" and ");
+const ammoOf = (bowDef) => bowDef.bow.ammo || ["arrow"]; // a bow's arrows in the order it takes them (archery.launcherOf)
+
+// The lines for what is shot, thrown, or cast (#317), read from the item's `thrown`, `bow`, `book.spell`, and `staff` blocks, an arrow's bows
+// (their `ammo`) and its `ignite`, and what makes it (an interaction whose `args.to` it is: an arrow dipped in fire): so a new spell, a new
+// thrown thing, or a new arrow says what it does with no code.
+function shotLines(def) {
+  const out = [];
+  const th = def.thrown;
+  if (th && th.damage) {
+    const cost = costOf(th);
+    out.push(line(`Throw (middle button or Q): ${byDraw(th.damage)}, up to ${tiles(th.range ?? shot.range)}${cost ? `; ${cost} a throw` : ""}.`));
+    // A thrown thing is its own shot (archery.js): it lands as itself, or lodges in the body it hits and comes out in its loot; one that breaks is gone.
+    if (!th.vanish) out.push(line(`It lands to be picked up again, or stays in the body it hits${th.breakChance ? `; it may break (${Math.round(th.breakChance * 100)}%)` : ""}.`));
+    if (th.ignite) out.push(burnLine());
+  }
+  if (def.bow) {
+    const b = def.bow;
+    out.push(line(`Draw and release (left button): ${byDraw(b.damage ?? shot.damage)}, up to ${tiles(b.range ?? shot.range)}.`));
+    const ammo = ammoOf(def);
+    const first = ammo.slice(0, -1);
+    out.push(line(`Needs ${pluralName(ammo[ammo.length - 1])} carried${first.length ? `, ${listOr(first.map(pluralName))} first` : ""}${def.shots ? `; good for about ${def.shots} shots` : ""}.`));
+  }
+  // An arrow: the bows that shoot it, and where it stands in their order.
+  const bows = allItems().filter((d) => d.bow && ammoOf(d).includes(def.id));
+  if (bows.length) {
+    const order = ammoOf(bows[0]);
+    const i = order.indexOf(def.id);
+    const before = order.slice(0, i);
+    const after = order.slice(i + 1);
+    const dmg = bows.length === 1 ? ` (${byDraw(bows[0].bow.damage ?? shot.damage)})` : "";
+    out.push(line(`Shot from ${listOr(bows.map((d) => an(d.name.toLowerCase())))}${dmg}${after.length ? `, before any ${listOr(after.map(pluralName))}` : before.length ? `, when no ${listOr(before.map(pluralName))} are carried` : ""}.`));
+  }
+  if (def.ignite === true) out.push(burnLine());
+  for (const r of interactions.all()) if (r.args && r.args.to === def.id && r.args.from) out.push(line(`Made from ${pluralName(r.args.from)}: `, seg("Use", "use"), ` them on ${nameOfOn(r.on)} (${(r.verb || "use").toLowerCase()}).`));
+  // A spell, the book's (docs/24): cast with a staff in the other hand, drawn and released as the bow is.
+  const s = def.book && def.book.spell;
+  if (s) {
+    const cost = costOf(s);
+    out.push(line(`Cast ${s.name} (left button, a staff in the other hand): ${byDraw(s.damage)}, up to ${tiles(s.range ?? shot.range)}${cost ? `; ${cost} a cast` : ""}.`));
+    const burst = [s.contact ? "on the first of the dead it meets" : "", s.landRadius ? `within ${tiles(s.landRadius)} of where it lands` : ""].filter(Boolean);
+    if (burst.length) out.push(line(`${s.name} bursts ${burst.join(", or ")}.`));
+    if (s.ignite) out.push(burnLine());
+  }
+  // A staff: the spells of the books it casts.
+  if (def.staff) {
+    const books = allItems().filter((d) => d.book && d.book.spell);
+    if (books.length) out.push(line(`Cast (left button, a spellbook in the other hand): ${listOr(books.map((d) => `${d.book.spell.name} with the ${d.name}`))}.`));
+  }
+  return out;
+}
 
 // The card for an item entry (a bag's, a slot's, a container's): never null for a known item.
 // `opts.beltHand`: on a belt slot, the hand its key draws into now ("main" or "off", inventory.beltHand), said on the Equip line (#285).
@@ -165,11 +250,9 @@ export function cardFor(entry, opts = {}) {
     // The main hand's other mode on the middle button or Q (docs/21), with its own numbers and cost: the halberd's thrust.
     const a = w.alt;
     if (a && a.damage) lines.push(line(`${a.name ? a.name[0].toUpperCase() + a.name.slice(1) : "Other mode"} (middle button or Q): ${a.damage} damage${a.range ? `, reach ${a.range}` : ""}${a.stamina ? `; ${a.stamina} stamina` : ""}.`));
-    // A weapon thrown on the middle button or Q (docs/21): the spear. A full throw does the whole of it.
-    const th = def.thrown;
-    if (th && th.damage) lines.push(line(`Throw (middle button or Q): ${th.damage} damage at full draw, up to ${th.range} tiles${th.breakChance ? `; may break (${Math.round(th.breakChance * 100)}%)` : ""}.`));
   }
-  if (def.bow) lines.push(line(`Draw and release to shoot arrows${def.shots ? `; good for about ${def.shots} shots` : ""}.`));
+  // What is thrown (the spear, on the middle button or Q, docs/21), shot (the bow, its arrows), or cast (a spellbook, a staff): #317.
+  lines.push(...shotLines(def));
   if (def.rug) lines.push(line(seg("Place", "word"), ": lay on the floor."));
   if (def.painting) lines.push(line(seg("Place", "word"), ": hang on a wall's face."));
   if (def.place === "campfire") lines.push(line(seg("Place", "word"), ": set down outdoors as a campfire, cold and empty.")); // docs/43, section 3
@@ -215,6 +298,16 @@ export function cardFor(entry, opts = {}) {
     lines.push(line(`Repaired at an anvil with ${/^[aeiou]/.test(mat) ? "an" : "a"} ${mat}${rep.edged ? ", or sharpened at a grindstone" : ""}; ${n} repairs in all.`));
   }
   const rec = recipesOf(def);
+  // A recipe's own verb (#317): a garment torn into rags says so, and the rag says what it is torn from.
+  for (const w of rec.worksInto) lines.push(line(`${w.verb} into ${countName(w.out, w.count)} at ${stationWord(w.station)}${w.how}.`));
+  for (const w of rec.workedFrom) {
+    const each = w.counts.length === 1 && w.counts[0] > 1 ? ` (${w.counts[0]} each)` : "";
+    const from = w.from.map((id) => getItem(id));
+    const kinds = [...new Set(from.map((d) => d.kind))];
+    if (!from.length) continue; // a row of tags alone names no thing to tear
+    if (from.length === 1) lines.push(line(`${w.verb} ${an(from[0].name.toLowerCase())} into ${countName(def.id, w.counts[0])} at ${stationWord(w.station)}${w.how}.`));
+    else lines.push(line(`${w.verb} ${kinds.length === 1 ? (KIND[kinds[0]] || kinds[0]).toLowerCase() : "these"} into ${pluralName(def.id)}${each} at ${stationWord(w.station)}${w.how}: ${listOf(from.map((d) => d.name.toLowerCase()))}.`));
+  }
   if (rec.madeAt.length) lines.push(line(`Made at ${rec.madeAt.slice(0, 2).map(stationWord).join(" or ")}.`));
   if (rec.goesInto.length) lines.push(line(`Goes into: ${rec.goesInto.slice(0, 4).map((g) => g.name.toLowerCase()).join(", ")}${rec.goesInto.length > 4 ? " and more" : ""}.`));
   // What it builds: the walls of every wood are one entry ("wood wall"), a region's wood never appears (it is offered only with Free building on), and a door, a window, a fence, a gate each their own.
