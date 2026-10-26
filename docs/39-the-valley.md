@@ -99,7 +99,7 @@
 - **Carrying furniture** [built]: anything not rooted, built in, or burning; on your head, both hands empty; set down with the ghost; R turns it.
 - **Fine furniture** from spruce and mahogany (Crafting 5) [to build].
 - **Rugs and wall pieces** (Crafting 5) [to build] [open #261: on a wall's edge or against it; whether any does something; before or after the redraw].
-- **Workstations of your own** (Woodcutting 7 unlocks, Crafting makes) [change: the workbench recipe is open to all today] [to build]: the workbench, the loom, the drying rack, the composter, the cauldron, the smoking rack [built, #445: made at the workbench, four sticks and two planks], and the hive, never the forge, the anvil, the millstones, or the oven, so the village stays worth walking to; no speed bonus, a workshop at home (ruled 2026-10-23).
+- **Workstations of your own** (Woodcutting 7 unlocks, Crafting makes) [change: the workbench recipe is open to all today] [to build]: the workbench, the loom, the drying rack, the composter, the cauldron (made at the anvil, `47`), the smoking rack [built, #445: made at the workbench, four sticks and two planks], and the hive, never the forge, the anvil, the millstones, or the oven, so the village stays worth walking to; no speed bonus, a workshop at home (ruled 2026-10-23).
 - **The composter** (Farming 4) [to build].
 - **The henhouse** (Beastlore 1) [built, #444: Hollow Farm's hens lay into its coop; open to all until the skills]: the chicken coop is a hen's home in a pen; a fed hen lays its egg and feather into the coop's grid (`45`).
 - **Pens** for cows and sheep (Beastlore 4), pigs (Beastlore 7) [built, #444: any fenced yard with its gates shut, a led animal let go inside it stays; breeding inside; open to all until the skills].
@@ -153,7 +153,7 @@ One panel for every station; ingredients from the bag, the belt, and every conta
 - **Millstones** [built] (the mill's): flour from two grain; no fire. Unlock: Cooking 1 (ruled 2026-10-23).
 - **Charcoal clamp** [built] (the smithy's yard, three at the burners): three charcoal from four logs over half a game day, lit, a log of fuel a day. Unlock: Blacksmithing 1 (ruled 2026-10-23).
 - **Dye vats** [change] (three in the weaver's yard, all three usable): Crafting 3 unlocks a picker like a stripped-down character creation, each garment's regions and allowed colours or schemes its own data (2026-10-25, `43` section 8); whether a dye costs a plant waits for #288.
-- **Cauldron** [to build] (the witch's at the mere, `docs/30`): potions (Potions 1 on), section 5.8. The witch keeps it and teaches Potions (ruled 2026-10-19).
+- **Cauldron** [to build] (the witch's at the mere, `docs/30`; your own made at the anvil, `47`): potions (Potions 1 on), section 5.8; one prop with its fire under it, burning logs (`47`). The witch keeps it and teaches Potions (ruled 2026-10-19).
 - **Smoking rack** [built, #445: made at the workbench as a workstation of your own; smoked meat, a raw meat and a log] (the hunter's lodge's [to build]): smoked meat and fish (Cooking 5) [smoked fish to build].
 - **Composter** [to build] (Farming 4): rotten food, rotten fish, or bonemeal in; compost, and a better fertiliser from bonemeal, out at its own pace.
 - **Drying rack** [to build] (Herbalism 4): dried herbs that never rot.
@@ -351,7 +351,7 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 
 ### 5.8 Potions
 
-All [to build]: brewed at a cauldron from Herbalism's herbs and secondaries; drunk from the bag or the belt.
+All [to build]: brewed at a cauldron from Herbalism's herbs and secondaries; drunk from the bag or the belt. Ruled in full as `47` (2026-10-25): clay vials, clean water, two of a main herb and one secondary, the cauldron over a lit fire, poisons put on with Use, the splash.
 
 - **Healing potion:** Potions 1 (not "minor" unless a major one is a separate item, ruled 2026-10-19); the only big heal (ruled: food heals a little, potions big).
 - **Healing potions two at a brew:** Potions 2.
@@ -760,7 +760,7 @@ Later, not at the start: gems inlaid in metal armour.
 - **The cure** [to build]: mid to late game, gated by skill, and **not in the valley** (ruled 2026-10-19): found beyond it (Faith's Cure Undeath, learned in a region; a Divine Potion at Potions 10, the Abbey's (ruled 2026-10-23)). **Life Ward** against bites (Faith 3). The infection and combat difficulty are one dial (water's chance follows it, 2026-10-25, `44`).
 
 ### Mana
-- **Mana** [to build]: spells cost it; slow natural regeneration; mana potions (Potions 4); a free top-up praying at an altar (Faith 1); more mana (Faith 4); cheaper spells (Magic 2); perhaps special foods later. A mana bar [to build].
+- **Mana** [to build] (`47`: 100, one point every three seconds, the Fire Bolt 20): spells cost it; slow natural regeneration; mana potions (Potions 4); a free top-up praying at an altar (Faith 1); more mana (Faith 4); cheaper spells (Magic 2); perhaps special foods later. A mana bar [to build].
 
 ### Rot and preserving
 - **Food rots** [to build] (ruled; a pace, not world decay).
