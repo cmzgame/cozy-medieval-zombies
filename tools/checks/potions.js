@@ -178,7 +178,7 @@ export async function run(game, opts = {}) {
   const order0 = G.settings.get("beltOrder"); // shared with Michael's browser: put back in the finally
   const aggro0 = G.rules.rules.zombieAggro;
   const bag = inv.bagOf(me);
-  const save0 = { bag: bag ? bag.items.slice() : null, waist: me.worn.waist, belt: inv.beltOf(me) ? inv.beltOf(me).slice() : null, main: me.hands.main, off: me.hands.off, hp: me.hp, stamina: me.stamina, potionAt: me.potionAt, buffs: me.buffs, gx: me.gx, gy: me.gy, hunger: me.hunger, thirst: me.thirst };
+  const save0 = { bag: bag ? bag.items.slice() : null, waist: me.worn.waist, belt: inv.beltOf(me) ? inv.beltOf(me).slice() : null, main: me.hands.main, off: me.hands.off, hp: me.hp, stamina: me.stamina, potionAt: me.potionAt, buffs: me.buffs, gx: me.gx, gy: me.gy, hunger: me.hunger, thirst: me.thirst, tired: me.tired, clock: G.clock.getElapsed() };
   const bagOpen0 = panel.isBagOpen();
   const witch = G.map.propById("cauldron_witch");
   const witch0 = witch ? { fire: { ...witch.fire }, queue: witch.queue ? witch.queue.slice() : null, output: witch.output ? witch.output.items.slice() : null } : null;
@@ -276,7 +276,9 @@ export async function run(game, opts = {}) {
     intoBag(me, skin);
     G.interact.performByLabel(me, target, G.interact.actionsForTarget(target, me).find((a) => /^Light the cauldron/.test(a.label)).label);
     row("lit by its menu, a log and a flame carried, as the oven is", witch.fire.lit && witch.fire.fuel >= 1, JSON.stringify({ lit: witch.fire.lit, fuel: witch.fire.fuel }));
-    G.interact.performByLabel(me, target, "Use the cauldron");
+    // The panel alone, as the menu's Use the cauldron opens it (station-panel.openPanel): the menu's own path also opens the output beside the bag,
+    // a container main.js keeps open until the page next runs, which a check after this one would find (the review of #491).
+    stationPanel.openPanel(witch, me);
     const root = document.getElementById("station");
     const title = root ? (root.querySelector(".inv-title") || {}).textContent : "";
     const rowsN = root ? root.querySelectorAll(".st-row").length : 0;
@@ -389,7 +391,9 @@ export async function run(game, opts = {}) {
   } catch (e) {
     rows.push({ check: "ran to the end", result: "FAIL", detail: e && e.stack ? e.stack.split("\n").slice(0, 3).join(" | ") : String(e) });
   } finally {
+    for (const h of document.querySelectorAll("#hotbar, #inventory")) h.dispatchEvent(new PointerEvent("pointerleave", { bubbles: false })); // no card left resting under a pointer
     card.hide();
+    (await import("/src/ui/context-menu.js")).closeContextMenu();
     stationPanel.close();
     G.settings.set("beltOrder", order0);
     if (!kept) G.rules.set({ zombieAggro: aggro0 });
@@ -400,7 +404,8 @@ export async function run(game, opts = {}) {
     if (b && save0.belt) b.splice(0, b.length, ...save0.belt);
     me.hands.main = save0.main;
     me.hands.off = save0.off;
-    Object.assign(me, { hp: save0.hp, stamina: save0.stamina, potionAt: save0.potionAt, buffs: save0.buffs, hunger: save0.hunger, thirst: save0.thirst });
+    Object.assign(me, { hp: save0.hp, stamina: save0.stamina, potionAt: save0.potionAt, buffs: save0.buffs, hunger: save0.hunger, thirst: save0.thirst, tired: save0.tired });
+    G.clock.setElapsed(save0.clock); // the minute or so of game time the brew and the buff stepped
     if (witch && witch0 && !kept) {
       Object.assign(witch.fire, witch0.fire);
       witch.queue = witch0.queue;
