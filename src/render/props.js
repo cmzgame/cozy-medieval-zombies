@@ -264,8 +264,9 @@ export function floorItemDrawables(tiles, visible, out) {
       emit() {
         items.forEach((e, i) => {
           const lit = hl.isItem(e.uid); // Object Highlight (#301)
-          // An arrow that landed lies where it fell, pointing as it flew (docs/20).
-          if ((e.id === "arrow" || e.id === "spear") && e.at) {
+          // An arrow that landed lies where it fell, pointing as it flew (docs/20); a thrown knife or axe too, as its own picture turned to
+          // that angle (docs/24 section 1: its sheet named by its id, archery.lyingSheet).
+          if (e.at && (e.id === "arrow" || e.id === "spear" || projectileSheet(e.id)?.frames[`${e.id}_${e.angle || 0}`])) {
             const sp = iso.toScreen(e.at[0], e.at[1]);
             const sheet = projectileSheet(e.id);
             if (sheet && lit) hl.outline(sheet, `${e.id}_${e.angle || 0}`, Math.round(sp.x), Math.round(sp.y) - 1, { world: [e.at[0], e.at[1]], heights: 0 });

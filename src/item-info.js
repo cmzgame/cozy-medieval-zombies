@@ -172,7 +172,13 @@ function shotLines(def) {
   const out = [];
   const th = def.thrown;
   if (th && th.damage) {
-    out.push(line(`Throw (middle button or Q): ${byDraw(th.damage)}, up to ${tiles(th.range ?? shot.range)}.`));
+    // The button that throws it is the one archery.launcherOf gives it: the left for a pure throwable (the knife, the axe), the other mode for
+    // one that also stabs (the spear; docs/24 section 1).
+    out.push(line(`Throw (${def.weapon ? "middle button or Q" : "left button, from the main hand"}): ${byDraw(th.damage)}, up to ${tiles(th.range ?? shot.range)}.`));
+    // What its hit does to one of the dead beside the damage (docs/24 section 1): the stagger by its chance, and a knockdown if it has one.
+    const pct = (v) => `${Math.round(v * 100)}%`;
+    if (th.staggerChance != null && th.staggerChance > 0) out.push(line(th.staggerChance >= 1 ? "Every hit staggers the dead." : `A hit staggers the dead ${pct(th.staggerChance)} of the time.`));
+    if (th.knockdown > 0) out.push(line(`A hit knocks the dead down ${pct(th.knockdown)} of the time.`));
     // A thrown thing is its own shot (archery.js): it lands as itself, or lodges in the body it hits and comes out in its loot; one that breaks is gone.
     if (!th.vanish) out.push(line(`It lands to be picked up again, or stays in the body it hits${th.breakChance ? `; it may break (${Math.round(th.breakChance * 100)}%)` : ""}.`));
     if (th.ignite) out.push(burnLine());
