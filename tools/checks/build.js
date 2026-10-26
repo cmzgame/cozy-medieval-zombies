@@ -14,6 +14,7 @@
 
 export async function run(game) {
   const G = game;
+  const needs0 = (({ hunger, thirst, tired }) => ({ hunger, thirst, tired }))(G.player); // put back in the finally: its steps drain them (the order-independence of the checks, check("all"))
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const wasPaused = G.loop.isPaused();
@@ -28,6 +29,10 @@ export async function run(game) {
   const bag0 = bag ? bag.items.slice() : [];
   const counts0 = bag0.map((e) => [e, e.count]);
   const hands0 = { main: me.hands.main, off: me.hands.off };
+  // Every door and window grown, as it stood, put back in the finally (a door it broke for a row, one an earlier build stood over): the
+  // order-independence of the checks, check("all").
+  const openings0 = [];
+  for (const c of G.map.loadedChunks()) for (const t of c.tiles || []) for (const e of ["n", "w"]) { const w = t && t[e]; if (w && (w.kind === "door" || w.kind === "window")) openings0.push([w, { open: w.open, broken: w.broken, hp: w.hp, shutter: w.shutter }]); }
   try {
     G.loop.setPaused(true);
     G.rules.set({ freeBuilding: true, zombieAggro: false }); // each build runs five seconds of the world, and a bite from one of the dead that wanders up to the spot cancels the timed build (#349)
@@ -203,11 +208,14 @@ export async function run(game) {
     const vLabels = G.interact.actionsForTarget({ kind: "prop", id: village.id }, me).map((a) => a.label);
     row("the village's own chest is carried (Pick up), never taken apart", vLabels.some((l) => /^Pick up chest/.test(l)) && !vLabels.some((l) => /^Take apart/.test(l)), vLabels.join(", "));
   } finally {
+    Object.assign(G.player, needs0); // the hunger, thirst, and tiredness its steps drained
     for (const q of props) if (G.map.propById(q.id)) G.map.removeProp(q);
     if (bag) { bag.items.splice(0, bag.items.length, ...bag0); for (const [e, n] of counts0) e.count = n; }
     me.hands.main = hands0.main;
     me.hands.off = hands0.off;
     for (const [x, y, e] of made) if (G.map.tileAt(x, y)[e]) G.map.destroyWall(x, y, e);
+    for (const [w, was] of openings0) if (Object.keys(was).some((k) => w[k] !== was[k])) { Object.assign(w, was); if (w.at) G.map.touch(w.at[0], w.at[1]); }
+    G.map.rebuildRooms();
     G.teleport(meAt[0], meAt[1]);
     G.rules.set({ freeBuilding: free0, zombieAggro: aggro0 });
     G.loop.setPaused(wasPaused);

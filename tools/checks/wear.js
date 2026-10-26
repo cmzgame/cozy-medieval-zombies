@@ -19,7 +19,9 @@ export async function run(game) {
   const G = game;
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
+  const needs0 = (({ hunger, thirst, tired }) => ({ hunger, thirst, tired }))(G.player); // put back in the finally: its steps drain them (the order-independence of the checks, check("all"))
   const done = () => {
+    Object.assign(G.player, needs0); // the hunger, thirst, and tiredness its steps drained, on either way out
     const failed = rows.filter((r) => r.result === "FAIL").length;
     console.table(rows);
     return { rows, pass: rows.length - failed, fail: failed };

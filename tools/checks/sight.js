@@ -8,6 +8,7 @@
 
 export async function run(game) {
   const G = game;
+  const needs0 = (({ hunger, thirst, tired }) => ({ hunger, thirst, tired }))(G.player); // put back in the finally: its steps drain them (the order-independence of the checks, check("all"))
   const S = G.game.state;
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
@@ -175,9 +176,10 @@ export async function run(game) {
     // seen from beyond the short radius, is hidden with the shutters closed and seen with them open.
     G.clock.setHour(12);
     let room = null;
-    for (let id = 1; id < 300 && !room; id++) {
-      const r = G.map.getRoom(id);
-      if (!r || r.size > 24) continue;
+    for (const r of [...G.map.allRooms()].sort((a, b) => a.id - b.id)) { // every room, lowest id first (a room's id is never reused in a session, so after other checks build and take down walls the ids climb past any fixed bound; the order-independence of the checks)
+      if (room) break;
+      const id = r.id;
+      if (r.size > 24) continue;
       const wins = r.openings.map((op) => ({ op, wall: G.map.tileAt(op.tx, op.ty)[op.edge] })).filter((o) => o.wall && o.wall.kind === "window");
       const doorsShut = r.openings.every((op) => { const w = G.map.tileAt(op.tx, op.ty)[op.edge]; return !w || w.kind !== "door" || (!w.open && !w.broken); });
       if (wins.length === 1 && doorsShut && !G.map.boarded(wins[0].wall) && wins[0].wall.shutter === "closed") {
@@ -222,9 +224,9 @@ export async function run(game) {
     for (const [bx, by] of [[106, 165], [104, 130]]) G.map.ensureAround(bx, by, 3);
     G.map.rebuildRooms();
     let big = null;
-    for (let id = 1; id < 300 && !big; id++) {
-      const r = G.map.getRoom(id);
-      if (!r || r.size < 60) continue;
+    for (const r of [...G.map.allRooms()].sort((a, b) => a.id - b.id)) { // every room, as the small one's search
+      if (big) break;
+      if (r.size < 60) continue;
       const wins = r.openings.map((op) => ({ op, wall: G.map.tileAt(op.tx, op.ty)[op.edge] })).filter((o) => o.wall && o.wall.kind === "window" && !G.map.boarded(o.wall));
       if (wins.length >= 2 && r.openings.every((op) => { const w = G.map.tileAt(op.tx, op.ty)[op.edge]; return !w || w.kind !== "door" || (!w.open && !w.broken); })) big = { r, wins };
     }
@@ -253,6 +255,7 @@ export async function run(game) {
     row("a burning one is its own light", near(sight.seenAlpha(me, z), 1), "seen whole at nine tiles");
     z.burning = false;
   } finally {
+    Object.assign(G.player, needs0); // the hunger, thirst, and tiredness its steps drained
     G.rules.rules.zombieAggro = aggro0;
     Object.assign(me, body0);
     z.groanTimer = z0.groanTimer;

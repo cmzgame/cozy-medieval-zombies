@@ -4,7 +4,8 @@
 // in the same world, the body left; the world rule Village stations made with a world and kept (docs/43 section 5). From the console, on a tab with `?nosave` (the worlds
 // store is in memory there, so Michael's own worlds are never touched):
 //   await __game.check("worlds")
-// It leaves the pane in a fresh world of its own (#432), with the worlds it made in the page's store.
+// It leaves the pane in a fresh test world, never kept, as a `?nosave` boot makes one (#432; the order-independence of the checks), with
+// the worlds it made in the page's store.
 
 export async function run(game) {
   const G = game;
@@ -126,11 +127,11 @@ export async function run(game) {
         G.settings.set("villageStations", was);
       }
     }
-    // The checks after this one in the page need a world (#432: build ran with none): it ends in a fresh one of its own, made as the
-    // Sandbox step's last choices make one, so nothing remembered changes.
-    await W.create("Checks' world", a.id);
+    // The checks after this one in the page need a world (#432: build ran with none), and one like a `?nosave` boot's: never kept, by the
+    // test world's rules (check("cap") refuses a kept world, and a sweep of every check in one page must not hang on what ran first).
+    await W.test();
     step(2);
-    row("it ends in a fresh world, so the checks after it in the page have one", W.inWorld && !!G.player, `in a world ${W.inWorld}`);
+    row("it ends in a fresh test world, never kept, as a ?nosave boot makes one, so the checks after it in the page have one", W.inWorld && !!G.player && W.current === null, `in a world ${W.inWorld}, kept ${!!W.current}`);
   } finally {
     G.loop.setPaused(false);
   }

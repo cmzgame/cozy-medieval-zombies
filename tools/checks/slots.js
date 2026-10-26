@@ -10,6 +10,7 @@
 
 export async function run(game) {
   const G = game;
+  const ghost0 = !!(G.placement.state && G.placement.state.active); // a Place starts the ghost: ended in the finally if none was up (the order-independence of the checks, check("all"))
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const me = G.player;
@@ -96,6 +97,7 @@ export async function run(game) {
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message });
   } finally {
+    if (!ghost0 && G.placement.state && G.placement.state.active) { if (G.placement.state.kind === "prop") G.placement.syncCarried(me); else G.placement.cancel(); } // a carry's mode ends as the carry does (cancel leaves it), any other on cancel
     bag.items.splice(0, bag.items.length, ...bag0);
     if (belt) for (let i = 0; i < belt.length; i++) belt[i] = belt0[i];
     me.worn.head = head0;

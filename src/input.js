@@ -95,6 +95,11 @@ export function setScale(s) {
   scale = s;
 }
 
+// The keys held now, for the checks' runner (tools/checks/all.js names a check that leaves one down).
+export function heldKeys() {
+  return [...keys];
+}
+
 export function isDown(code) {
   return keys.has(code);
 }

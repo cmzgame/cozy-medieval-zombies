@@ -2,7 +2,7 @@
 // tab with `?nosave`:
 //   await __game.check("hidden")
 // It wears the good belt and compares figure sheets by pixels: shown, hidden through the guest's command (`performItemCommand`, op "hide"), hidden equals the figure with no belt
-// at all, shown again equals the first; the belt's four slots still work with it hidden; a slot with nothing worn cannot be hidden, and a command
+// at all, shown again equals the first; the belt's slots (its `beltSlots`, five since #478) still work with it hidden; a slot with nothing worn cannot be hidden, and a command
 // naming a hand or nonsense does nothing. The worn items, the belt, and what is hidden are put back.
 
 function hashPixels(canvas) {
@@ -47,7 +47,8 @@ export async function run(game) {
     let stays = false;
     if (beltNow) { beltNow[0] = torch; stays = G.inventory.beltOf(me)[0] === torch; beltNow[0] = null; }
     // (the figure code never reads the belt, the light, or the bag: only the worn art and the hidden list)
-    row("the belt keeps every use while hidden: its four slots are there and hold a torch", slots === 4 && slotsLive() === 4 && stays, `${slotsLive()} slots; a torch placed on the belt stays: ${stays}`);
+    const want = G.items.getItem("good_belt").beltSlots; // the data's count, never a number here (#478 made it five)
+    row("the belt keeps every use while hidden: its slots are there and hold a torch", slots === want && slotsLive() === want && stays, `${slotsLive()} slots of the leather belt's ${want}; a torch placed on the belt stays: ${stays}`);
     performItemCommand(me, { op: "hide", slot: "waist" });
     row("the eye again shows it: the sheet is the first one", !me.hidden.includes("waist") && sheetOf() === shown, `back to ${sheetOf()} (first ${shown})`);
     const emptyBefore = me.hidden.slice();

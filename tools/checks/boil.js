@@ -16,6 +16,7 @@
 
 export async function run(game, opts = {}) {
   const G = game;
+  const needs0 = (({ hunger, thirst, tired, hp, bleed, sick, infection }) => ({ hunger, thirst, tired, hp, bleed, sick, infection }))(G.player); // put back in the finally: its steps drain them and the dead may bite (the order-independence of the checks, check("all"))
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const yieldOnce = () => new Promise((r) => { const ch = new MessageChannel(); ch.port1.onmessage = () => r(); ch.port2.postMessage(0); });
@@ -231,6 +232,7 @@ export async function run(game, opts = {}) {
   } catch (e) {
     if (!e.guestDone && e.message !== "no ground") rows.push({ check: "setup", result: "FAIL", detail: e.message + (e.stack ? " " + e.stack.split("\n")[1] : "") });
   } finally {
+    if (G.player) Object.assign(G.player, needs0); // the needs and the health its steps and bites took
     (await import("/src/ui/hover-card.js")).hide();
     if (G.use.isActive()) G.use.cancel();
     if (role !== "guest") {

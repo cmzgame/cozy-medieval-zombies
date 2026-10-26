@@ -121,6 +121,7 @@ export async function run(game, opts = {}) {
   const look = () => { G.game.begin(0); G.clock.setElapsed(G.clock.getElapsed() + T.checkSeconds); };
   const lookUntil = (t) => { let n = 0; while (G.clock.getElapsed() < t && n < 5000) { look(); n++; } look(); return n + 1; };
   let restoreView = null;
+  let restoreOthers = null; // the world's villagers, dead, and animals, held out of the lists during the days of growing
   const sapEntry = () => { const e = G.items.makeEntry("sapling", 1); G.inventory.stow(me, e); return e; };
   try {
     G.loop.setPaused(true);
@@ -304,6 +305,15 @@ export async function run(game, opts = {}) {
     row("refused indoors, on a road, against a wall, and on tilled soil: the word said, nothing planted, the sapling kept", all.every(([, r, w]) => !r.planted && r.kept && r.said.includes(w)), all.map(([n, r]) => `${n}: "${r.said}" planted ${r.planted} kept ${r.kept}`).join("; "));
 
     // ---- growing over the days; waiting while stood on ----
+    // The world's villagers, dead, and animals sit out the days of growing, put back after: a villager wandering by the spawn stood on
+    // the first sapling now and then, and it rightly waited (the order-independence of the checks, check("all")); only the player stands.
+    const GS = G.game.state;
+    const others0 = { villagers: GS.villagers, zombies: GS.zombies, animals: GS.animals };
+    GS.villagers = [];
+    GS.zombies = [];
+    GS.animals = [];
+    const othersBack = () => { if (!others0) return; for (const k of Object.keys(others0)) GS[k] = [...others0[k], ...GS[k].filter((c) => !others0[k].includes(c))]; };
+    restoreOthers = othersBack;
     standAt(spot2[0], spot2[1]); // the player stands on the second
     const stamp0 = s2.sapling.waited;
     lookUntil(now0 + 0.6 * T.sapling.days * DAY);
@@ -317,6 +327,8 @@ export async function run(game, opts = {}) {
     const left = trees.daysLeft(s2);
     lookUntil(G.clock.getElapsed() + left * DAY + 60);
     const oak2 = map.peekTile(spot2[0], spot2[1]).prop;
+    othersBack();
+    restoreOthers = null;
     row("stepped off, it grows on from where it waited and is an oak in its own days", !!oak2 && oak2.sprite === T.sapling.grows && oak2.id === s2.id, `${left.toFixed(2)} days left when stepped off; ${oak2 ? oak2.sprite : "nothing"}`);
     standAt(open[0] + 0.9, open[1] + 0.3);
     me.hands.main = G.items.makeEntry("hatchet", 1);
@@ -442,6 +454,7 @@ export async function run(game, opts = {}) {
   } catch (e) {
     rows.push({ check: "ran to the end", result: "FAIL", detail: e && e.stack ? e.stack.split("\n").slice(0, 3).join(" | ") : String(e) });
   } finally {
+    if (restoreOthers) restoreOthers();
     T.sapling.chance = chance0;
     try { G.placement.cancel(); } catch { /* no mode */ }
     if (restoreView) restoreView();

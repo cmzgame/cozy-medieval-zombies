@@ -190,8 +190,15 @@ export async function run(game) {
     // The save: a chunk's record carries it, and back.
     const [cx, cy] = map.chunkCoord(x + 1, y);
     const rec = JSON.parse(JSON.stringify(map.serializeChunk(map.getChunk(cx, cy, false))));
+    const inChunk = ([tx, ty]) => Math.floor(tx / map.CHUNK) === cx && Math.floor(ty / map.CHUNK) === cy;
+    const reach = map.allProps().filter((q) => !inChunk(q.tile) && q.tiles.some(inChunk)).map((q) => JSON.parse(JSON.stringify(map.serializeProp(q))));
     row("the chunk's record carries the painting on the wall (the save and a guest's chunk)", JSON.stringify(rec).includes("painting_small_oak"), "in the record");
+    // The chunk put back as a load puts it: installChunk, then its own props, then a neighbour's that reaches onto it (installChunk lets
+    // go of every prop on its tiles, as a whole save's restore installs every prop after every chunk). The order-independence of the
+    // checks: without the props the chunk's stations, chests, and carts were gone from the page for every check after this one.
     map.installChunk(rec);
+    for (const p of rec.props) map.installProp(p);
+    for (const d of reach) map.installProp(d);
     row("after the restore the painting is on its wall", map.peekTile(x + 1, y).n.hangings?.[0]?.item === "painting_small_oak", JSON.stringify(map.peekTile(x + 1, y).n.hangings));
     // A wall bracket (docs/43 section 4): hung on a face as a painting is, by the guest's command; it holds a torch; empty, a player's own comes down again.
     {

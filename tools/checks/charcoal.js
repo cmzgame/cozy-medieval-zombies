@@ -6,6 +6,7 @@
 
 export async function run(game) {
   const G = game;
+  const needs0 = (({ hunger, thirst, tired, hp, bleed, sick, infection }) => ({ hunger, thirst, tired, hp, bleed, sick, infection }))(G.player); // put back in the finally: its steps drain them and the dead may bite (the order-independence of the checks, check("all"))
   const map = G.map;
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
@@ -101,6 +102,7 @@ export async function run(game) {
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message });
   } finally {
+    if (G.player) Object.assign(G.player, needs0); // the needs and the health its steps and bites took
     for (const q of made) map.removeProp(q);
     bag.items.splice(0, bag.items.length, ...bag0);
     G.teleport(saved.gx, saved.gy);

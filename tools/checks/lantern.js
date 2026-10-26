@@ -2,19 +2,24 @@
 // against 3), burning nothing, and not taken or mounted like a torch; put out and lit again since docs/43 section 3 (2026-10-25: light
 // will draw the dead, so a light must be snuffable). From the console, on a tab with `?nosave`:
 //   await __game.check("lantern")
-// It reads the valley as generated, steps the world ten minutes, and changes nothing it does not put back.
+// It reads the valley as generated, steps the world ten minutes (the dead's aggro off meanwhile, so a player near them is not bitten
+// to death for the checks after it), and changes nothing it does not put back: the lights, the place, the hour, the health, the rule.
 
 export async function run(game) {
   const G = game;
+  const needs0 = (({ hunger, thirst, tired }) => ({ hunger, thirst, tired }))(G.player); // put back in the finally: its steps drain them (the order-independence of the checks, check("all"))
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const wasPaused = G.loop.isPaused();
   const hour0 = G.clock.getHour();
   const me = G.player;
   const me0 = [me.gx, me.gy];
+  const aggro0 = G.rules.rules.zombieAggro;
+  const health0 = { hp: me.hp, bleed: me.bleed ? { ...me.bleed } : null, infection: me.infection ? { ...me.infection } : null };
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   try {
     G.loop.setPaused(true);
+    G.rules.set({ zombieAggro: false });
     const brackets = [...G.map.brackets()];
     const lanterns = brackets.filter((b) => b.wall.bracket.lantern);
     const torches = brackets.filter((b) => b.wall.bracket.torch);
@@ -64,9 +69,12 @@ export async function run(game) {
     G.light.update();
     row("a lantern post likewise: put out, dark, lit again", pOffRan === true && pDark && pOnRan === true && post.fire.lit === true, `put out ${pOffRan}, dark ${pDark}; lit ${pOnRan}`);
   } finally {
+    Object.assign(G.player, needs0); // the hunger, thirst, and tiredness its steps drained
     for (const b of G.map.brackets()) if (b.wall.bracket.lantern && b.wall.bracket.lit === false) G.map.setLantern(b, true); // every lantern lit as authored
     for (const p of G.map.fires()) if (p.sprite === "lantern_post" && !p.fire.lit) G.map.setFireLit(p, true);
     G.teleport(me0[0], me0[1]);
+    Object.assign(me, health0);
+    G.rules.set({ zombieAggro: aggro0 });
     G.clock.setHour(hour0);
     G.loop.setPaused(wasPaused);
   }

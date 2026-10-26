@@ -9,6 +9,7 @@
 
 export async function run(game) {
   const G = game;
+  const panelOpen0 = G.panel.isOpen(); // a Search or a container opens the bag: closed again in the finally if it was (the order-independence of the checks, check("all"))
   const map = G.map;
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
@@ -123,6 +124,7 @@ export async function run(game) {
   } catch (e) {
     if (!e.guestDone) rows.push({ check: "setup", result: "FAIL", detail: e.message + (e.stack ? " " + e.stack.split("\n")[1] : "") });
   } finally {
+    if (!panelOpen0) G.panel.closeAll();
     for (const p of made) { const t = map.propById(p.id); if (t) map.removeProp(t); }
     if (coop && coop0) { coop.bag = coop0.bag; coop.searched = coop0.searched; }
     if (hive && hive0) { if (hive0.had) hive.honeyAt = hive0.honeyAt; else delete hive.honeyAt; map.touch(hive.tile[0], hive.tile[1]); }

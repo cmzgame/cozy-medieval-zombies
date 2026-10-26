@@ -767,6 +767,10 @@ export function updateZombie(z, dt, players, others, villagers = null) {
     }
     case "breach": {
       const b = z.breach;
+      if (!b) { // no opening to break (a record restored mid-breach drops it): the chase again, as breachHit and press do
+        z.state = z.aggro ? "chase" : "idle";
+        break;
+      }
       // A bite in reach beats a door; a goal that moved rooms drops the breach.
       if (z.seesNow && distTo(z, tgt) <= T.contact) {
         z.breach = null;

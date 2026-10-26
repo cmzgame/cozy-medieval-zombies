@@ -9,6 +9,7 @@
 
 export async function run(game) {
   const G = game;
+  const needs0 = (({ hunger, thirst, tired }) => ({ hunger, thirst, tired }))(G.player); // put back in the finally: its steps drain them (the order-independence of the checks, check("all"))
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const S = G.game.state;
@@ -166,6 +167,7 @@ export async function run(game) {
     for (let i = 0; i < 60 * 2; i++) { pin(); step(1); plainStates.add(plain.state); }
     row("an at-risk villager does not cower", !plainStates.has("cower") && !plainStates.has("flee") && !plainStates.has("wary"), [...plainStates].join(", "));
   } finally {
+    Object.assign(G.player, needs0); // the hunger, thirst, and tiredness its steps drained
     for (const r of restore.reverse()) r();
     G.rules.set(rules0);
     G.clock.setHour(hour0);

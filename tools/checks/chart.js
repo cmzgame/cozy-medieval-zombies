@@ -17,6 +17,7 @@ export async function run(game) {
   const chart0 = JSON.stringify(chart.serialize());
   const aggro0 = G.rules.rules.zombieAggro;
   const wasPaused = G.loop.isPaused();
+  const screen0 = G.screens.currentScreen(); // the screen up when it began (the title on a `?nosave` boot), shown again at the end
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const made = [];
   const restore = [];
@@ -160,6 +161,9 @@ export async function run(game) {
 
 
     // ---- The panel (docs/33, #204): M, the world running, the markers, zoom and pan, Escape, the names ----
+    // Its keys reach the game only with no screen up: a `?nosave` boot leaves the title over the world, and an earlier check may leave
+    // another; whatever is up is hidden for the panel's rows and shown again in the finally (the order-independence of the checks).
+    if (screen0) G.screens.hide();
     const mp = await import("/src/ui/map-panel.js");
     const input = await import("/src/input.js");
     const key = (code, type = "keydown") => window.dispatchEvent(new KeyboardEvent(type, { code }));
@@ -322,6 +326,7 @@ export async function run(game) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message + (e.stack ? " " + e.stack.split("\n")[1] : "") });
   } finally {
     for (const r of restore.reverse()) r();
+    if (G.screens.currentScreen() !== screen0) { if (G.screens.currentScreen()) G.screens.hide(); if (screen0) G.screens.show(screen0); } // the screen it found: the pause menu its Escapes raise goes
     for (const q of made) { if (q.player) G.game.removePlayer(q.id); else { const t = map.propById(q.id); if (t) map.removeProp(t); } }
     chart.restore(JSON.parse(chart0));
     for (const p of S.players) p.chartTile = null;

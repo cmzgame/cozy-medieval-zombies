@@ -82,7 +82,13 @@ export async function run(game) {
     const poke = () => { g.pokedAt = -1e9; g.state = "idle"; pokeVillager(g, me); return g.line && g.line.text; };
     const guideFile = talk.get("guide");
     const group = (pred) => guideFile.barks.find(pred);
-    row("the welcome lands: no dead stand within the `deadNear` radius of the spawn or of the guide at the start", nearby.length === 0 && !S.zombies.some((q) => Math.hypot(q.gx - S.info.spawn[0], q.gy - S.info.spawn[1]) <= 8), `${nearby.length} near the guide`);
+    // Read off the map's own placing of the dead (the guide's home, the spawn): the live dead drift as other checks in the page move the
+    // player about, so a run late in a page found one by the guide that the map never put there (the order-independence of the checks).
+    const home = g.home || [g.gx, g.gy];
+    const placed = (S.info.zombies || []).filter(([x, y]) => Math.hypot(x - home[0], y - home[1]) <= 8 || Math.hypot(x - S.info.spawn[0], y - S.info.spawn[1]) <= 8);
+    // The live dead near the guide are named, not judged: on a fresh page one walked up by the boot would have failed the old row, and
+    // late in a page they are wherever earlier checks led them. What the welcome rests on is where the map puts them.
+    row("the welcome lands: the map puts none of the dead within the `deadNear` radius of the spawn or of the guide's home (the live ones near it named, not judged)", placed.length === 0, `${placed.length} placed there; ${nearby.length} live near the guide now`);
     G.clock.setHour(12);
     g.barkTurns = {};
     const welcome = poke();
@@ -185,6 +191,13 @@ export async function run(game) {
     freeze();
     restore.push(() => { for (const q of nearbyAgain) if (!S.zombies.includes(q)) S.zombies.push(q); });
     const talkLabel = (v) => G.interact.actionsForTarget({ kind: "character", id: v.id }, me).find((a) => /^Talk to/.test(a.label));
+    // The guide at its home, standing (put back after): it wanders, and late in a page it had wandered beside a window, whose shutters
+    // were then the nearest thing to E (the order-independence of the checks, check("all")).
+    const gAt = { gx: g.gx, gy: g.gy, state: g.state, path: g.path };
+    restore.push(() => Object.assign(g, gAt));
+    if (g.home) { g.gx = g.home[0]; g.gy = g.home[1]; }
+    g.state = "idle";
+    g.path = [];
     near();
     step();
     const entry = talkLabel(g);
@@ -273,6 +286,7 @@ export async function run(game) {
     step();
     G.interact.performByLabel(me, { kind: "character", id: g.id }, entry.label);
     window.dispatchEvent(new KeyboardEvent("keydown", { code: "Escape" }));
+    window.dispatchEvent(new KeyboardEvent("keyup", { code: "Escape" })); // let go: a key left down is never pressed again for the checks after (the order-independence of the checks, check("all"))
     row("Escape closes it, ahead of the pause menu", !shown() && !g.talkingWith.length, `panel ${shown() ? "open" : "shut"}`);
     // A wounded villager still talks (Michael, 2026-10-18): Talk is offered, enabled, and opens the panel.
     g.hp = 50;
@@ -295,7 +309,15 @@ export async function run(game) {
     const child = S.villagers.find((v) => v.name === "Child");
     const childTalk = child.talk;
     child.talk = "nobody";
-    G.teleport(child.gx + 1.2, child.gy);
+    child.state = "idle";
+    child.cowerTimer = 0;
+    child.cowerFrom = null;
+    // A side of the child with a clear line (it wanders, and the east side was a wall now and then late in a page).
+    for (const [dx, dy] of [[1.2, 0], [-1.2, 0], [0, 1.2], [0, -1.2]]) {
+      if (!G.map.isWalkableTile(Math.round(child.gx + dx), Math.round(child.gy + dy)) || G.map.wallBetween(Math.round(child.gx), Math.round(child.gy), Math.round(child.gx + dx), Math.round(child.gy + dy))) continue;
+      G.teleport(child.gx + dx, child.gy + dy);
+      break;
+    }
     step();
     const noFile = G.interact.performByLabel(me, { kind: "character", id: child.id }, "Talk to Child");
     row("a villager with no file has no conversation (a bark: their map line)", noFile === true && !child.talkingWith.length && !shown(), "map line");
@@ -334,10 +356,11 @@ export async function run(game) {
     const belt = G.inventory.beltOf(me);
     const hand0 = me.hands.main;
     const slot0 = belt[0];
+    const bagNow = G.inventory.bagOf(me) ? G.inventory.bagOf(me).items.slice() : null; // the swap may put the hatchet in the bag: it goes too (the order-independence of the checks)
     const torch = G.items.makeEntry("hammer", 1); // anything that is not a consumable swaps with the hand
     belt[0] = torch;
     me.hands.main = G.items.makeEntry("hatchet", 1);
-    restore.push(() => { belt[0] = slot0; me.hands.main = hand0; });
+    restore.push(() => { belt[0] = slot0; me.hands.main = hand0; const b = G.inventory.bagOf(me); if (b && bagNow) b.items.splice(0, b.items.length, ...bagNow); });
     window.dispatchEvent(new KeyboardEvent("keydown", { code: "Digit1" }));
     step(60);
     window.dispatchEvent(new KeyboardEvent("keyup", { code: "Digit1" }));
@@ -353,20 +376,27 @@ export async function run(game) {
       v.hp = v.maxHp ?? 100;
       v.state = "idle";
       v.talkingWith = [];
-      for (const [dx, dy] of [[1.2, 0], [-1.2, 0], [0, 1.2], [0, -1.2]]) { // a side of them with a clear line (one may be a wall)
+      v.cowerTimer = 0; // an immune villager the dead had frightened earlier in the page answers no Talk while it cowers (the order-independence of the checks)
+      v.cowerFrom = null;
+      // Each side of them with a clear line in turn (one may be a wall, and where a villager has wandered to late in a page the first open
+      // side was not always one Talk reaches: the order-independence of the checks), until the panel opens.
+      let opened = false;
+      const refused = []; // the clear sides where Talk did not open the panel, named in the row
+      for (const [dx, dy] of [[1.2, 0], [-1.2, 0], [0, 1.2], [0, -1.2]]) {
         if (!G.map.isWalkableTile(Math.round(v.gx + dx), Math.round(v.gy + dy)) || G.map.wallBetween(Math.round(v.gx), Math.round(v.gy), Math.round(v.gx + dx), Math.round(v.gy + dy))) continue;
         G.teleport(v.gx + dx, v.gy + dy);
-        break;
+        step();
+        if (G.interact.performByLabel(me, { kind: "character", id: v.id }, `Talk to ${v.name}`) && shown()) { opened = true; break; }
+        refused.push(`${dx > 0 ? "+x" : dx < 0 ? "-x" : dy > 0 ? "+y" : "-y"}`);
       }
-      step();
-      if (!G.interact.performByLabel(me, { kind: "character", id: v.id }, `Talk to ${v.name}`) || !shown()) { walked.push(`${v.name}: no panel`); continue; }
+      if (!opened) { walked.push(`${v.name}: no panel${refused.length ? ` (refused from ${refused.join(" ")})` : ""}`); continue; }
       const beforeV = worldText();
       seen.clear();
       walk(0);
       click("[data-close]");
       const same = worldText() === beforeV;
       if (!same) allSame = false;
-      walked.push(`${v.name} ${seen.size}${same ? "" : " DIFFERS"}`);
+      walked.push(`${v.name} ${seen.size}${same ? "" : " DIFFERS"}${refused.length ? ` (refused from ${refused.join(" ")} first)` : ""}`);
     }
     row("every villager's file asked through the panel leaves the world's text the same, the generator included", allSame && walked.length >= 8 && !walked.some((w) => /no panel/.test(w)), walked.join(", "));
   } catch (e) {

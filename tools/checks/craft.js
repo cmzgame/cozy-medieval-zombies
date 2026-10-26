@@ -4,12 +4,13 @@
 // prop recipe landing beside the station; the craft verb refusing what it
 // should; the made things of docs/43 section 4 (the furniture, the barrel, the jack-o'-lantern, a torch post and a wall bracket as items, the
 // strongbox at the anvil), each landing where it should, a made container empty and searched. From the console: await __game.check("craft")
-// It pauses the loop, uses the joiner's workbench and the baker's oven from the
-// valley (or any workbench and oven it finds), places a chest of its own
-// beside each, and takes everything away again.
+// It pauses the loop, sets down a workbench of its own on open ground beside the player (the valley's nearest was another one, inside
+// a house, once other checks in the page had grown more of it: the order-independence of the checks, check("all")), uses the baker's
+// oven from the valley (the nearest it finds), places a chest of its own beside each, and takes everything away again.
 
 export async function run(game) {
   const G = game;
+  const needs0 = (({ hunger, thirst, tired }) => ({ hunger, thirst, tired }))(G.player); // put back in the finally: its steps drain them (the order-independence of the checks, check("all"))
   const map = G.map;
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
@@ -23,9 +24,14 @@ export async function run(game) {
   const counts0 = bag0.map((e) => [e, e.count]); // the check's crafting uses up the kit's plank: its count goes back, not a 0-count entry
   for (const id of ["hammer", "knife"]) G.inventory.stow(p, G.items.makeEntry(id, 1)); // the tool rule (#215): the workbench's rows want a carried hammer or knife
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
+  // The station nearest where the player stood: the first in the chunks' order was another one each time more of the valley was grown
+  // (one inside a house, a wall in the way, after other checks in the page; the order-independence of the checks, check("all")).
   const find = (station) => {
-    for (const c of map.loadedChunks()) for (const t of c.tiles) if (t.prop && t.prop.tile && G.stations.stationOf(t.prop).includes(station) && map.peekTile(t.prop.tile[0], t.prop.tile[1]) === t) return t.prop;
-    return null;
+    let best = null;
+    for (const c of map.loadedChunks()) for (const t of c.tiles) if (t.prop && t.prop.tile && G.stations.stationOf(t.prop).includes(station) && map.peekTile(t.prop.tile[0], t.prop.tile[1]) === t) {
+      if (!best || Math.hypot(t.prop.tile[0] - saved.gx, t.prop.tile[1] - saved.gy) < Math.hypot(best.tile[0] - saved.gx, best.tile[1] - saved.gy)) best = t.prop;
+    }
+    return best;
   };
   const made = []; // props placed by the check, taken away after
   const standBy = (prop) => {
@@ -58,9 +64,22 @@ export async function run(game) {
   const aggro0 = G.rules.rules.zombieAggro; // the dead stay off for the run: a long craft or a loaded farm otherwise lets them kill the player (the checks run in sequence)
   try {
     G.rules.set({ zombieAggro: false });
-    bench = find("workbench");
+    // Open ground for the workbench: a 7 by 7 of walkable outdoor tiles with nothing on them, nearest where the player stands.
+    let ground = null;
+    for (let r = 2; r < 40 && !ground; r++) for (let dy = -r; dy <= r && !ground; dy++) for (let dx = -r; dx <= r && !ground; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      const x = Math.round(saved.gx) + dx, y = Math.round(saved.gy) + dy;
+      let ok = true;
+      for (let j = -3; j <= 3 && ok; j++) for (let i = -3; i <= 3 && ok; i++) { map.growTile(x + i, y + j); const t = map.tileAt(x + i, y + j); if (!map.isWalkableTile(x + i, y + j) || t.room !== 0 || t.prop || t.n || t.w) ok = false; }
+      if (ok) ground = [x, y];
+    }
+    if (ground) {
+      bench = map.createProp({ sprite: "workbench", tile: ground });
+      map.placeProp(bench, ground[0], ground[1]);
+      made.push(bench);
+    }
     const oven = find("oven");
-    if (!bench) throw new Error("no workbench in the loaded chunks");
+    if (!bench) throw new Error("no open ground for a workbench near the player");
     // 1. The workbench: arrows from a stick in a chest beside it.
     standBy(bench);
     const chest = chestBeside(bench, [["stick", 1], ["feather", 1], ["plank", 4]]); // arrows are fletched: a feather for five (docs/45 step 4)
@@ -322,6 +341,7 @@ export async function run(game) {
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message });
   } finally {
+    Object.assign(G.player, needs0); // the hunger, thirst, and tiredness its steps drained
     G.rules.set({ zombieAggro: aggro0 });
     for (const pr of made) map.removeProp(pr);
     if (bench) { bench.queue = []; if (bench.output) bench.output.items = []; }
@@ -330,12 +350,13 @@ export async function run(game) {
     G.teleport(saved.gx, saved.gy);
     G.loop.setPaused(wasPaused);
   }
-  // What a second run in this page needs (docs/bugs.md: the second run once met "There is a wall in the way"): the same workbench found
-  // again, standing on its tiles, and nothing the check made left on the map.
+  // What a second run in this page needs (docs/bugs.md: the second run once met "There is a wall in the way"): nothing the check made left
+  // on the map, its own workbench among them, and every workbench of the valley's still standing on all its tiles.
   if (bench) {
-    const again = find("workbench");
     const left = made.filter((q) => map.propById(q.id) === q);
-    row("the page is left as found: the same workbench found again on its tiles, and nothing the check made still stands", again === bench && left.length === 0, `found ${again ? `${again.id} at ${again.tile}` : "none"} (was ${bench.id}); ${left.length} left`);
+    const valley = [...map.allProps()].filter((q) => q.sprite === "workbench");
+    const standing = valley.every((q) => q.tiles.every(([x, y]) => map.peekTile(x, y).prop === q));
+    row("the page is left as found: nothing the check made still stands (its own workbench among them), and the valley's workbenches stand on their tiles", left.length === 0 && map.propById(bench.id) !== bench && standing, `${left.length} left; its own ${bench.id} ${map.propById(bench.id) ? "still there" : "gone"}; ${valley.length} of the valley's, ${standing ? "each on its tiles" : "one off its tiles"}`);
   }
   const failed = rows.filter((r) => r.result === "FAIL").length;
   console.table(rows);
