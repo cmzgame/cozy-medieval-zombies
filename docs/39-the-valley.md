@@ -159,7 +159,7 @@ One panel for every station; ingredients from the bag, the belt, and every conta
 - **Drying rack** [to build] (Herbalism 4): dried herbs that never rot.
 - **Cider press** [to build] (the orchard, `docs/30`): cider from apples (Cooking 3; ruled 2026-10-23). Ale is cut from 1.0 with hops.
 - **Tanning** [built, #445: a tanning vat made at the workbench; a hide to leather] (Crafting 3): hides to leather at a tanning vat (ruled 2026-10-23).
-- **Jugs and jars** [to build]: no kiln; clay (Mining 3) is shaped at the workbench (Crafting 1) and fired in any oven (ruled 2026-10-23).
+- **Jugs and jars** [to build; the clay jar first, for honey, ruled 2026-10-26]: no kiln; clay (Mining 3) is shaped at the workbench (Crafting 1) and fired in any oven (ruled 2026-10-23).
 - **Gem cutting** (Mining 4: "finding and chiselling") [open #281: a tool or a station, which skill].
 - **Building a station** of your own: section 2.
 
@@ -313,7 +313,7 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 - **Eggs** [built, #444]: laid by a fed hen into its coop (Beastlore 1, `45`).
 - **Raw meat** [built, #443: butchered, eaten raw; cooked alone at a fire and in recipes, #445]: hen, rabbit (Beastlore 3's snares), venison (the deer), beef (cows), mutton (sheep), pork (pigs and boar, Beastlore 7); each cooked alone at a fire or used raw in recipes (`45` section 4). **Bacon and lard** from a pig (Beastlore 7) (`45`) [built, #443].
 - **Milk** [built, #444: a jug, a bucket carried]: cows (Beastlore 4).
-- **Honey** [built, #410]: the hive (Beastlore 5), a pot every three game days (*default*); never rots.
+- **Honey** [built, #410]: the hive (Beastlore 5), a pot every three game days (*default*); never rots. [change: into an empty clay jar carried, the jar back when it is eaten; a couple of jars at the cottage to start (Michael, 2026-10-26)]
 - **Wheel of cheese** [built]: chests, pantries, and the inn's counter, and made from two jugs of milk at a fire (Cooking 3, open until the skills) [built, #445].
 - **Butter** [built, #445]: churned from milk at the workbench.
 - **Frostroot** (the Pale Reach's seed, Farming 8): a name only.
