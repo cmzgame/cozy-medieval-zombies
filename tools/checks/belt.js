@@ -197,7 +197,7 @@ export async function run(game, opts = {}) {
     me.beltHands = choice;
     row("the choice is in the players' sync part", parts0 !== parts1, `${parts0} with, ${parts1} without`);
     const saved = JSON.parse(JSON.stringify(G.game.serialize()));
-    const rec = saved.players && saved.players.find((p) => p.id === me.id);
+    const rec = ((saved.characters && saved.characters.players) || []).find((p) => p.id === me.id); // game.serialize keeps the players under `characters`
     row("the choice is in the save, on the player's record", !!rec && Array.isArray(rec.beltHands) && rec.beltHands[1] && rec.beltHands[1].hand === "main", rec ? JSON.stringify(rec.beltHands) : "no record");
     press(2);
     row("key 2 now draws the book into the main hand", me.hands.main && me.hands.main.id === "book_of_fire" && !belt[1], held());
