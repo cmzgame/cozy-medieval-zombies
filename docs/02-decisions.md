@@ -310,11 +310,11 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 From his playtest, on the checklist: "Sidling up to a beehive, taking honey, and getting an item called 'pot of honey' is really confusing now that we have you gathering vials for potions. It's a free pot vending machine? ... I think you should have to have pots, give maybe one for free at your house, rest are made?" Primary recommended a clay jar made as a vial is; Michael: "Honey goes into an empty clay jar, made like a vial; eating leaves the jar; a couple of jars at the cottage to start."
 
-- **Taking honey needs an empty clay jar** carried; it fills the jar. Without one, the hive says so.
+- **Taking honey needs an empty clay jar** carried; it fills the jar. Without one it is refused: "You need a clay jar to take honey." (Michael: "It should also refuse to take honey if no container.")
 - **A clay jar is made like a vial:** clay shaped at the workbench and fired in an oven (the clay ruling of 2026-10-23; `docs/47` section 2).
 - **Eating the honey leaves the empty jar**, as drinking a potion leaves its vial; so does honey spent in a recipe (pemmican's binder, the stamina potion's secondary).
 - **Your cottage starts with a couple of empty jars.**
-- *Primary's defaults:* one clay shapes one unfired jar (a vial is two to a clay; a jar is bigger), fired to a clay jar, 1 by 1, stacking 10 as the vial does; the item becomes the **Jar of honey**; "You need an empty jar." when there is none; two empty jars in the cottage's chest; the hives stay open to all (only a hive of your own is Beastlore 5, already ruled).
+- *Primary's defaults:* one clay shapes one unfired jar (a vial is two to a clay; a jar is bigger), fired to a clay jar, 1 by 1, stacking 10 as the vial does; the item becomes the **Jar of honey**; two empty jars in the cottage's chest; the hives stay open to all (only a hive of your own is Beastlore 5, already ruled).
 
 ### 2026-10-25 — Sight-pull ruled: one of the dead drawn in calls once to those that see it, with no chain; sound stays out (Michael)
 
