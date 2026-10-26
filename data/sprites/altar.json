@@ -1,1 +1,1 @@
-{"placeholder": {"kind": "box", "color": "#9a9a90", "height": 26, "inset": 8, "label": "Altar"}, "carry": false, "note": "a dev box for the altar (docs/30 step 1; docs/29/09 has its art request)"}
+{"placeholder": {"kind": "box", "color": "#9a9a90", "height": 26, "inset": 8, "label": "Altar"}, "carry": false, "pray": {"skill": "faith", "level": 1}, "note": "a dev box for the altar (docs/30 step 1; docs/29/09 has its art request); Pray at it refills mana and stamina (`pray`, src/mana.js; docs/47 section 5: Faith 1, recorded and not enforced until the skills)"}

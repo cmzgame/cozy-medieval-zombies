@@ -1,5 +1,5 @@
 {
-  "note": "The sound slots (docs/40, section 1): each a name the ear plays, its group, its volume (0 to 1, before the group's and the master's), its radius in tiles (heard at (1 - d / radius) squared, not at all beyond it), how many variants the generator makes, how many may sound at once (maxVoices), the recipe's numbers (gen), and a delivered recording's path (file: null for a placeholder generated at boot by src/sound-gen.js). A recording replaces a placeholder by filling in file, no code changed. Step 1: the footsteps, the dead's shuffle, the swing, the hit. Step 2 (#386): the shove, the bow's draw (a loop: `loop` true) and release, an arrow landing, a spell's cast, the dead's death and a downed one's fall, a door or shutters opening or closing (one placeholder for all four, Michael); the grass step gone, the player on grass shuffling as the dead do. #424: the dead's moan when one turns to the chase (throttled, `moan`), and a strike when the dead hit a door, shutters, boards, or a fence (one placeholder for all, heard with the jolt every client draws).",
+  "note": "The sound slots (docs/40, section 1): each a name the ear plays, its group, its volume (0 to 1, before the group's and the master's), its radius in tiles (heard at (1 - d / radius) squared, not at all beyond it), how many variants the generator makes, how many may sound at once (maxVoices), the recipe's numbers (gen), and a delivered recording's path (file: null for a placeholder generated at boot by src/sound-gen.js). A recording replaces a placeholder by filling in file, no code changed. Step 1: the footsteps, the dead's shuffle, the swing, the hit. Step 2 (#386): the shove, the bow's draw (a loop: `loop` true) and release, an arrow landing, a spell's cast, the dead's death and a downed one's fall, a door or shutters opening or closing (one placeholder for all four, Michael); the grass step gone, the player on grass shuffling as the dead do. #424: the dead's moan when one turns to the chase (throttled, `moan`), and a strike when the dead hit a door, shutters, boards, or a fence (one placeholder for all, heard with the jolt every client draws). docs/47 step 1 (#480): a cast the mana bar cannot pay for (`mana_short`, its twin the bar's flash) and a prayer at the altar beginning (`pray`, its twin the bar over the altar and the bars filling at its end), both placeholders on the cast's recipe.",
   "voices": 24,
   "groups": {
     "effects": 1,
@@ -278,6 +278,34 @@
         "freq": 72,
         "cut": 900,
         "noiseLength": 0.08
+      },
+      "file": null
+    },
+    "mana_short": {
+      "group": "interface",
+      "volume": 0.5,
+      "radius": 6,
+      "variants": 1,
+      "maxVoices": 2,
+      "gen": {
+        "recipe": "cast",
+        "length": 0.22,
+        "from": 900,
+        "to": 260
+      },
+      "file": null
+    },
+    "pray": {
+      "group": "effects",
+      "volume": 0.45,
+      "radius": 10,
+      "variants": 1,
+      "maxVoices": 2,
+      "gen": {
+        "recipe": "cast",
+        "length": 1.4,
+        "from": 220,
+        "to": 660
       },
       "file": null
     }

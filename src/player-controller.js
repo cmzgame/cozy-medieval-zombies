@@ -8,6 +8,7 @@
 import * as combat from "./combat.js";
 import * as archery from "./archery.js";
 import * as interact from "./interact.js";
+import * as mana from "./mana.js"; // a spell's cost: a guest's prediction flashes its own bar (docs/47 section 9)
 
 // `s`: { clicked, clickSpent, mouse, leftDown, altPressed, altDown, offDown, space, blocked }
 // `predict`: a guest's own player, between the host's frames (net.js; docs/31/04). The guard, the swing's start, the
@@ -42,6 +43,9 @@ export function controlPlayer(player, zombies, dt, s, predict = false) {
   // The main hand's other melee mode on the middle button (docs/21): the halberd's thrust.
   if (!onAlt && s.altPressed && !archery.drawState(player) && combat.altWeaponOf(player)) combat.tryAttack(player, zombies, "main", "alt", predict);
   const bracing = s.offDown && !!launcher && launcher.kind === "bow";
+  // A guest's own spell its bar cannot pay for (docs/47 section 9): the draw is the host's and is never predicted, so it never starts here alone;
+  // the bar flashes on my own replica at once, and the host's line and its record of the flash follow.
+  if (predict && launcher && launcher.kind === "spell" && !launcher.refuse && s.clicked && !s.clickSpent && !archery.drawState(player) && !((player.recover || 0) > 0) && !mana.canPay(player, mana.costOf(launcher))) mana.flash(player);
   if (!predict) archery.updateDraw(player, dt, {
     pressed: onAlt ? s.altPressed : s.clicked && !s.clickSpent,
     down: onAlt ? s.altDown : s.leftDown,
