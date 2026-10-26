@@ -138,7 +138,7 @@ export async function run(game, opts = {}) {
       debuffRow.updateDebuffs(me);
       const el = document.querySelector('#debuffs .debuff.buff[data-id="stamina"]');
       const border = el ? getComputedStyle(el.querySelector(".db-box")).borderTopColor : "";
-      row("after ten seconds it is drunk on the host: my bar full, the buff on my record, in my row framed in gold", me.stamina >= me.maxStamina - 0.5 && !!(me.buffs && me.buffs.stamina) && !!el && border === "rgb(232, 200, 96)", `stamina ${st0} to ${me.stamina}; buffs ${JSON.stringify(me.buffs)}; row ${el ? border : "none"}; ${ms2} ms`);
+      row("after ten seconds it is drunk on the host: my bar full, the buff on my record, in my row framed in gold", !bag().items.some((e) => e.uid === sp.uid) && me.stamina >= me.maxStamina - 0.5 &&!!(me.buffs && me.buffs.stamina) && !!el && border === "rgb(232, 200, 96)", `stamina ${st0} to ${me.stamina}; buffs ${JSON.stringify(me.buffs)}; row ${el ? border : "none"}; ${ms2} ms`);
       // A brew from my own panel on the replica: its Make is the panel's command to the host.
       if (witch) {
         stationPanel.openPanel(witch, me);
@@ -149,8 +149,12 @@ export async function run(game, opts = {}) {
         row("my panel on the replica: Cauldron, the five brews, clean water among the ingredients", title === "Cauldron" && rowsN === 5 && water, `${title}; ${rowsN} rows; water ${water}`);
         const make = root && root.querySelector("[data-make]");
         if (make) make.click();
-        const ms3 = await pump(() => !!(witch.output && witch.output.items.some((e) => e.id === "healing_potion")), 40000);
-        row("its Make goes to the host, the brew runs twenty seconds over the lit fire, and the healing potion is in the output on my replica", !!(witch.output && witch.output.items.some((e) => e.id === "healing_potion")) && !bag().items.some((e) => e.id === "yarrow"), `output ${witch.output ? witch.output.items.map(id).join(",") : "none"}; ${ms3} ms`);
+        // A frame's chunk installs the prop anew on my replica, so it is found again by its id each look.
+        const now = () => G.map.propById(witch.id);
+        const brewed = () => { const w = now(); return !!(w && w.output && w.output.items.some((e) => e.id === "healing_potion")); };
+        const ms3 = await pump(brewed, 40000);
+        const w2 = now();
+        row("its Make goes to the host, the brew runs twenty seconds over the lit fire, and the healing potion is in the output on my replica", brewed() && !bag().items.some((e) => e.id === "yarrow"), `output ${w2 && w2.output ? w2.output.items.map(id).join(",") : "none"}; ${ms3} ms`);
         stationPanel.close();
       }
     } catch (e) {

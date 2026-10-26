@@ -13,6 +13,8 @@
 
 The lists are issues (wave 4 of the sweep, #70): the hand items of the starting bag and the dev chest (torch, hatchet, sword, mace, stick, plank, log, spear, halberd, bow, shield and its raised guard, bandage, arrow, fire arrow); the six tools of `30` step 3 (pickaxe, hoe, scythe, shovel, knife, hammer), each a world picture, an icon, and a portrait; the icons of the twelve materials and foods of `30` step 3 and of the food and drink (bread, apple, cheese, waterskin); the icons and portraits of every garment and bag of the characters brief. The lists as they stood, with their sizes and the notes for whoever briefs the next round, are `history/26-art-owed-lists.md`; the generated effects and projectiles (the arrows and the spear in flight, the flames, embers, and smoke, the landing marker) are placeholders and the least urgent.
 
+**The potions' step (#481, `docs/47` section 8):** the unfired vial, the clay vial, the three potions, and the two poisons are on dev art from one design each (`src/gather-art.js` `vial`: the body earthen, the colour on the wax seal and a glazed band), each a drawn pair owed, and a 38 by 38 portrait each once step 4 makes them holdable; the cauldron (the prop and the Cauldron item) is a dev box until its art is drawn.
+
 **Briefed, not yet sent (2026-10-19, #309):** `art/11-brief-fences-and-everyday-icons.md` asks for the log, apple, plank, torch (unlit and lit), bread, waterskin, tinderbox, stick, bandage, stone, the six seeds, and the starting outfit (tunic, breeches, boots, rope belt, burlap sack), and optionally the home chest's hatchet and shovel, each a full set, with the fence and its gate.
 
 ## Already delivered and in the game (for the record)

@@ -99,7 +99,7 @@
 - **Carrying furniture** [built]: anything not rooted, built in, or burning; on your head, both hands empty; set down with the ghost; R turns it.
 - **Fine furniture** from spruce and mahogany (Crafting 5) [to build].
 - **Rugs and wall pieces** (Crafting 5) [to build] [open #261: on a wall's edge or against it; whether any does something; before or after the redraw].
-- **Workstations of your own** (Woodcutting 7 unlocks, Crafting makes) [change: the workbench recipe is open to all today] [to build]: the workbench, the loom, the drying rack, the composter, the cauldron (made at the anvil, `47`), the smoking rack [built, #445: made at the workbench, four sticks and two planks], and the hive, never the forge, the anvil, the millstones, or the oven, so the village stays worth walking to; no speed bonus, a workshop at home (ruled 2026-10-23).
+- **Workstations of your own** (Woodcutting 7 unlocks, Crafting makes) [change: the workbench recipe is open to all today] [to build]: the workbench, the loom, the drying rack, the composter, the cauldron (made at the anvil, `47`) [built, #481], the smoking rack [built, #445: made at the workbench, four sticks and two planks], and the hive, never the forge, the anvil, the millstones, or the oven, so the village stays worth walking to; no speed bonus, a workshop at home (ruled 2026-10-23).
 - **The composter** (Farming 4) [to build].
 - **The henhouse** (Beastlore 1) [built, #444: Hollow Farm's hens lay into its coop; open to all until the skills]: the chicken coop is a hen's home in a pen; a fed hen lays its egg and feather into the coop's grid (`45`).
 - **Pens** for cows and sheep (Beastlore 4), pigs (Beastlore 7) [built, #444: any fenced yard with its gates shut, a led animal let go inside it stays; breeding inside; open to all until the skills].
@@ -153,7 +153,7 @@ One panel for every station; ingredients from the bag, the belt, and every conta
 - **Millstones** [built] (the mill's): flour from two grain; no fire. Unlock: Cooking 1 (ruled 2026-10-23).
 - **Charcoal clamp** [built] (the smithy's yard, three at the burners): three charcoal from four logs over half a game day, lit, a log of fuel a day. Unlock: Blacksmithing 1 (ruled 2026-10-23).
 - **Dye vats** [change] (three in the weaver's yard, all three usable): Crafting 3 unlocks a picker like a stripped-down character creation, each garment's regions and allowed colours or schemes its own data (2026-10-25, `43` section 8); whether a dye costs a plant waits for #288.
-- **Cauldron** [to build] (the witch's at the mere, `docs/30`; your own made at the anvil, `47`): potions (Potions 1 on), section 5.8; one prop with its fire under it, burning logs (`47`). The witch keeps it and teaches Potions (ruled 2026-10-19).
+- **Cauldron** [built, #481: the witch's on the lane to the mere and your own; brewing and drinking; poisons' uses and throwing to build] (the witch's at the mere, `docs/30`; your own made at the anvil, `47`): potions (Potions 1 on), section 5.8; one prop with its fire under it, burning logs (`47`). The witch keeps it and teaches Potions (ruled 2026-10-19).
 - **Smoking rack** [built, #445: made at the workbench as a workstation of your own; smoked meat, a raw meat and a log] (the hunter's lodge's [to build]): smoked meat and fish (Cooking 5) [smoked fish to build].
 - **Composter** [to build] (Farming 4): rotten food, rotten fish, or bonemeal in; compost, and a better fertiliser from bonemeal, out at its own pace.
 - **Drying rack** [to build] (Herbalism 4): dried herbs that never rot.
@@ -861,7 +861,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 - Craft at a station: the panel, Make, the queue, collect from the output [built].
 - Cook at any fire that cooks, bake at the oven, smelt at the forge, smith at the anvil (a hammer in hand), weave at the loom, mill at the millstones, burn charcoal in the clamp [built].
 - Dye at the vats (`43` section 8) [to build].
-- Brew at the cauldron [to build]; smoke at the rack [built, #445]; salt food [to build]; press cider (Cooking 3) [to build]; tan hides [built, #445]; set a gem in a trinket [to build]; repair at the anvil [built, #410].
+- Brew at the cauldron [built, #481]; smoke at the rack [built, #445]; salt food [to build]; press cider (Cooking 3) [to build]; tan hides [built, #445]; set a gem in a trinket [to build]; repair at the anvil [built, #410].
 - Lay a feast on a table and eat from it [to build] (Cooking 10).
 - Learn from a teacher [to build]: a screen of what you can learn now, a button each (ruled 2026-10-23).
 
