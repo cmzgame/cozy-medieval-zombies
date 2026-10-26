@@ -2521,6 +2521,22 @@ check("hover card: every name that reaches a plural or a lower-cased line reads 
   return `every name regular; ${lines.length} such lines on the cards today`;
 });
 
+// One of the dead saved at a door (`breach`, which the record drops) comes back in the chase, and the world steps on: a world saved with
+// one of them mid-breach threw on its first step after the load (found by check("all")'s sweep, 2026-10-25).
+check("save: one of the dead saved mid-breach comes back in the chase, and the world steps on", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: true } });
+  const S = gameMod.state;
+  const me = S.player;
+  const z = S.zombies[0];
+  Object.assign(z, { gx: me.gx + 3, gy: me.gy, state: "breach", aggro: true, breach: { tx: Math.round(me.gx), ty: Math.round(me.gy), edge: "n", stand: [me.gx, me.gy], into: [me.gx, me.gy] } });
+  gameMod.restore(JSON.parse(JSON.stringify(gameMod.serialize())), json);
+  const back = S.zombies.find((q) => q.id === z.id);
+  assert(back && back.state === "chase" && back.breach === null, `restored as ${back && back.state}, breach ${back && JSON.stringify(back.breach)}`);
+  for (let i = 0; i < 120; i++) gameMod.step(1 / 60, null);
+  return `restored in the chase; stepped 120 times, now ${back.state}`;
+});
+
 // An item's name counted in a sentence (src/items.js countName; docs/bugs.md, the butcher's "3 raw venisons"): a definition's `noun` "mass"
 // reads "some lard" and "3 raw venison", "pair" reads "shears", and anything else "a"/"an" and +s. Every yield and product an animal gives is
 // read in the skin, butcher, milk, and shear lines this way.

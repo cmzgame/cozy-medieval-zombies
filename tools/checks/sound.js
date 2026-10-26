@@ -31,6 +31,11 @@ export async function run(game) {
   };
   const added = [];
   const S = G.game.state;
+  // The world's own dead sit out the run, put back in the finally: a check before this one that stepped the world leaves them walking
+  // near, and the ear steps only the nearest six walkers, so their shuffle crowded out the player's and the villager's steps. Every
+  // row that needs the dead makes its own (the order-independence of the instruments, check("all")).
+  const dead0 = S.zombies;
+  S.zombies = [];
   G.loop.setPaused(true);
   const step = (n = 1) => { for (let i = 0; i < n; i++) { G.loop.advance(1 / 60); snd.update(1 / 60); } };
   const clear = () => { snd.log.length = 0; };
@@ -140,7 +145,8 @@ export async function run(game) {
         clear();
         G.walkTo(wood.x + 3, wood.y);
         step(60);
-        const w = named(/^(step_|shuffle$)/);
+        // The player's own steps, on its line of walk: a villager or another player walking near is no step of this row's.
+        const w = named(/^(step_|shuffle$)/).filter((e) => e.at && Math.abs(e.at[1] - wood.y) < 0.3 && e.at[0] > wood.x - 0.3 && e.at[0] < wood.x + 3.3);
         row("a step on wood logs step_wood", w.length > 0 && w.every((e) => e.name === "step_wood"), w.map((e) => e.name).join(", ") || "no steps");
       }
       p.auto = null;
@@ -584,7 +590,7 @@ export async function run(game) {
 
       // F8: the same switch as the Sound tab, with a line.
       const was8 = G.settings.get("soundOn");
-      const press8 = () => document.dispatchEvent(new KeyboardEvent("keydown", { code: "F8", key: "F8", bubbles: true }));
+      const press8 = () => { document.dispatchEvent(new KeyboardEvent("keydown", { code: "F8", key: "F8", bubbles: true })); window.dispatchEvent(new KeyboardEvent("keyup", { code: "F8", key: "F8" })); }; // pressed and let go (the order-independence of the checks, check("all"))
       press8();
       const off = G.settings.get("soundOn");
       const lineOff = /Sound off\./.test(document.body.innerText);
@@ -600,6 +606,7 @@ export async function run(game) {
       const j = (G.corpses || []).indexOf(z);
       if (j >= 0) G.corpses.splice(j, 1);
     }
+    S.zombies = [...dead0, ...S.zombies.filter((z) => !dead0.includes(z))]; // the world's dead back, in their order, with any the ring grew meanwhile
     p.auto = null;
     p.hands.main = saved.main;
     p.hands.off = saved.off;

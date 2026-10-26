@@ -14,6 +14,10 @@ export async function run(game) {
   const life0 = { held: W.torchHeldLife, wall: W.torchWallLife };
   const wasPaused = G.loop.isPaused();
   const me = G.player;
+  // The dead's aggro off while it steps, and the player's health put back: minutes of torches burning down must not leave the player
+  // bitten (or dead) for the checks after it (the order-independence of the checks, check("all")).
+  const aggro0 = G.rules.rules.zombieAggro;
+  const health0 = { hp: me.hp, bleed: me.bleed ? { ...me.bleed } : null, infection: me.infection ? { ...me.infection } : null };
   const hands0 = { main: me.hands.main, off: me.hands.off };
   const belt = G.inventory.beltOf(me);
   const belt0 = belt ? [...belt] : null;
@@ -26,6 +30,7 @@ export async function run(game) {
   const restore = [];
   try {
     G.loop.setPaused(true);
+    G.rules.set({ zombieAggro: false });
     // The valley's own (docs/43 section 4): its torch posts by the square and along the high street, and its four brackets that stood empty,
     // each hold an unlit torch with no wear, for a player to light.
     const vPosts = [...G.map.allProps()].filter((q) => q.sprite === "torch_post" && !q.made); // read before the check sets up a post of its own
@@ -183,6 +188,8 @@ export async function run(game) {
     me.hands.main = hands0.main;
     me.hands.off = hands0.off;
     if (belt && belt0) belt.splice(0, belt.length, ...belt0);
+    Object.assign(me, health0);
+    G.rules.set({ zombieAggro: aggro0 });
     G.loop.setPaused(wasPaused);
   }
   for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);

@@ -147,6 +147,12 @@ function testIdentity() {
   return identities.last() || { name: settings.get("playerName") || null, look: { ...(settings.get("look") || {}), hairStyle: settings.get("hairStyle") || "short" } };
 }
 
+// The rules a test world plays by: the last choices, as the pane always had it, except the two a world is made with (Trees,
+// Starting population): a world Michael made with no dead or no trees must not leave every test page so.
+function testRules() {
+  return { ...sandboxChoices().rules, ...Object.fromEntries(rules.FIXED.map((k) => [k, rules.DEFAULTS[k]])) };
+}
+
 // Whose character is whose in the world here (docs/31/09): the save's wrapper for a world of this
 // browser's, a page's own for a test world. `owners`: a browser id's hash to the player it made;
 // `dormant`: the hash to the record of a character gone dormant with its player away.
@@ -378,8 +384,8 @@ async function enterNewWorld(name, identity, { keep = true, rules: chosenRules =
       json: mapJson,
       look: lookOf(identity),
       name: (identity && identity.name) || null,
-      devChest: keep ? !!devChest : false,
-      rules: keep ? chosenRules : null,
+      devChest: !!devChest, // a kept world's from the Sandbox step's choices; one never kept only when asked (a test world, worlds.test)
+      rules: chosenRules, // likewise: a stand-in world for a guest passes none
     });
     afterWorldSet();
     setInWorld(true);
@@ -1540,9 +1546,7 @@ async function boot() {
           look: lookOf(testIdentity()),
           name: testIdentity().name || null,
           devChest: !!settings.get("devChest"),
-          // The test world plays by the last choices, as the pane always had it, except for the two a world is made with
-          // (Trees, Starting population): a world Michael made with no dead or no trees must not leave every test page so.
-          rules: { ...sandboxChoices().rules, ...Object.fromEntries(rules.FIXED.map((k) => [k, rules.DEFAULTS[k]])) },
+          rules: testRules(),
         });
         refreshFigure();
         camera.snapTo(client.me.gx, client.me.gy);
@@ -2014,7 +2018,7 @@ async function boot() {
     // The worlds flow (docs/31/09), for check("worlds"): a world made, left, listed, played again; a new character after a death.
     // Stepping away (item 3), for the checks: the idle time shortened, the state, and the two moves by hand.
     away: { after: (ms) => { awayAfterMs = ms == null ? AWAY_AFTER_MS : ms; lastInputAt = performance.now(); }, get now() { return away; }, step: stepAway, back: comeBack, check: checkAway },
-    worlds: { moveUp, bringHome, playServer, ownerInfo, rotateCode, setRules, removePlayer, unbar, addOwned, rekey, create: (name, identityId, options = {}) => enterNewWorld(name, identities.get(identityId), options), setWorldRules, sandbox: sandboxChoices, play: playWorld, leave: exitGame, exitGame, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor: host.joinFor, full: host.full, awayNow: host.awayNow, backNow: host.backNow, dormantNow: host.dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
+    worlds: { moveUp, bringHome, playServer, ownerInfo, rotateCode, setRules, removePlayer, unbar, addOwned, rekey, create: (name, identityId, options = {}) => enterNewWorld(name, identities.get(identityId), options), setWorldRules, sandbox: sandboxChoices, test: () => enterNewWorld("", testIdentity(), { keep: false, rules: testRules(), devChest: !!settings.get("devChest") }), play: playWorld, leave: exitGame, exitGame, respawn: (id) => respawn(identities.get(id)), here, setOpen, save: () => saveWorld(), joinFor: host.joinFor, full: host.full, awayNow: host.awayNow, backNow: host.backNow, dormantNow: host.dormantNow, get current() { return currentWorld; }, get inWorld() { return inWorld; }, get store() { return ownersStore(); } },
     identities,
     addPlayer: (gx, gy, opts) => {
       const p = game.addPlayer(gx, gy, opts);

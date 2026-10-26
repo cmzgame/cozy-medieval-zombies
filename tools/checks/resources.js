@@ -169,16 +169,27 @@ export async function run(game, opts = {}) {
 
     // ---- a spot's chunk is grown through a mutator before the test ----
     let fresh = null;
+    const spotIn = (ccx, ccy) => { for (let i = 0; i < 256; i++) { const x = ccx * 16 + (i % 16); const y = ccy * 16 + Math.floor(i / 16); if (!G.map.resourceSpotProblem(stone, x, y, { live: false })) return [x, y]; } return null; };
     for (let ccy = 0; ccy < 16 && !fresh; ccy++) for (let ccx = 0; ccx < 16 && !fresh; ccx++) {
       if (G.map.peekTile(ccx * 16 + 8, ccy * 16 + 8)) continue;
-      for (let i = 0; i < 256 && !fresh; i++) { const x = ccx * 16 + (i % 16); const y = ccy * 16 + Math.floor(i / 16); if (!G.map.resourceSpotProblem(stone, x, y, { live: false })) fresh = [x, y]; }
+      fresh = spotIn(ccx, ccy);
+    }
+    // Once other checks in the page have walked the valley every chunk of it is grown, and none is left to try (a save holds every chunk
+    // grown, so a restore grows them all again). In a world of its own (not `keep`) the check then goes on in a fresh test world, as a
+    // `?nosave` boot makes one; its finally puts its own world back from its save, as always (the order-independence of the checks).
+    if (!fresh && !keep) {
+      await G.worlds.test();
+      for (let ccy = 0; ccy < 16 && !fresh; ccy++) for (let ccx = 0; ccx < 16 && !fresh; ccx++) {
+        if (G.map.peekTile(ccx * 16 + 8, ccy * 16 + 8)) continue;
+        fresh = spotIn(ccx, ccy);
+      }
     }
     if (fresh) {
       const grownBefore = !!G.map.peekTile(fresh[0], fresh[1]);
       const p = resources.grow(only(stone, [[fresh[0], fresh[1], 1, 1]]), bodies());
       row("a spot in a chunk not yet grown: the chunk is grown through a mutator, then tested, and the node stands on the live tile", !grownBefore && !!p && !!G.map.peekTile(fresh[0], fresh[1]) && G.map.tileAt(fresh[0], fresh[1]).prop === p, `${fresh.join(",")}: grown before ${grownBefore}, after ${!!G.map.peekTile(fresh[0], fresh[1])}, ${p ? p.sprite : "nothing placed"}`);
       if (p) undo.push(() => G.map.propById(p.id) && G.map.removeProp(p));
-    } else row("a spot in a chunk not yet grown is grown through a mutator", false, "every valley chunk is grown already: run on a fresh boot");
+    } else row("a spot in a chunk not yet grown is grown through a mutator", false, "every valley chunk is grown, and a two-tab run (keep) keeps its world");
 
     // ---- takes by the verb: an ore rock at the iron workings, a rock ----
     const mineIt = (prop) => {

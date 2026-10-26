@@ -20,6 +20,7 @@
 
 export async function run(game, opts = {}) {
   const G = game;
+  const needs0 = (({ hunger, thirst, tired, hp, bleed, sick, infection }) => ({ hunger, thirst, tired, hp, bleed, sick, infection }))(G.player); // put back in the finally: its steps drain them and the dead may bite (the order-independence of the checks, check("all"))
   const trials = opts.trials ?? 10;
   const seconds = opts.seconds ?? 30;
   const count0 = opts.count ?? 5;
@@ -178,6 +179,7 @@ export async function run(game, opts = {}) {
     row("the instrument ran: swings happened in every policy", ran, Object.keys(results).join(", "));
     clear();
   } finally {
+    if (G.player) Object.assign(G.player, needs0); // the needs and the health its steps and bites took
     G.events.off("bitten", onBitten);
     clear();
     G.zombies.push(...worldDead);

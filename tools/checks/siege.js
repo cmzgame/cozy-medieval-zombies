@@ -6,8 +6,9 @@
 // (the dead cannot get in, so the siege state is reached and held), and a house with two doors (the dead go to the one they saw
 // used). It turns zombie aggro on and restores it, and puts everything it moved or built back.
 
-export async function run(game) {
+export async function run(game, opts = {}) {
   const G = game;
+  const needs0 = (({ hunger, thirst, tired }) => ({ hunger, thirst, tired }))(G.player); // put back in the finally: its steps drain them (the order-independence of the checks, check("all"))
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const wasPaused = G.loop.isPaused();
@@ -15,10 +16,15 @@ export async function run(game) {
   const hour0 = G.clock.getHour();
   const me = G.player;
   const meAt = [me.gx, me.gy];
+  const health0 = { hp: me.hp, bleed: me.bleed ? { ...me.bleed } : null, infection: me.infection ? { ...me.infection } : null }; // the bites taken here are put back (the order-independence of the checks, check("all"))
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const restore = [];
+  // Its trials run from a seed of their own, the generator put back in the finally: the dead's looking and wandering roll it, and late in
+  // a page its state was another than a fresh boot's, so a run now and then saw no siege (the order-independence of the checks).
+  const rng0 = G.rng.getState();
   try {
     G.loop.setPaused(true);
+    G.rng.seed(opts.seed ?? 4242);
     G.rules.set({ zombieAggro: true });
     G.clock.setHour(0);
     // Open ground, grown first (reading never grows a chunk), with room round it.
@@ -36,9 +42,12 @@ export async function run(game) {
       return finish();
     }
     const [cx, cy] = c;
-    const z = G.zombies.find((q) => !q.dead && !q.corpse);
-    const z0 = { gx: z.gx, gy: z.gy, state: z.state, aggro: z.aggro };
-    restore.push(() => Object.assign(z, z0, { path: [], breach: null, siege: null, seenRoom: -1, noWay: 0, lastSeen: null, target: null }));
+    // One of the dead of its own, taken away in the finally: the world's first one may be in any state after other checks in the page (the
+    // order-independence of the checks, check("all")).
+    const { createZombie } = await import("/src/entities/zombie.js");
+    const z = createZombie(cx, cy - 5, { aggro: true });
+    G.zombies.push(z);
+    restore.push(() => { const i = G.zombies.indexOf(z); if (i >= 0) G.zombies.splice(i, 1); const j = (G.corpses || []).indexOf(z); if (j >= 0) G.corpses.splice(j, 1); });
     for (const o of G.zombies) if (o !== z && !o.dead && Math.hypot(o.gx - cx, o.gy - cy) < 60) { const keep = { gx: o.gx, gy: o.gy, aggro: o.aggro }; restore.push(() => Object.assign(o, keep, { path: [] })); o.aggro = false; o.gx = cx + 90; o.gy = cy + 90; }
     // A 3 by 3 house (interior x0-1..x0+1, y0-1..y0+1) of log wall; `openings` maps "n", "s", "e", "w" to "window" or "door".
     const made = [];
@@ -84,7 +93,7 @@ export async function run(game) {
       if (z.siege && z.siege.openings.some((o) => o.tx === sides.n[0] && o.ty === sides.n[1] && o.edge === "n")) sawOpening = true;
       if (z.state === "siege") sawSiege = true;
     }
-    row("seen through its window at night, it remembers the window", sawOpening, `siege ${JSON.stringify(z.siege && { at: z.siege.at, openings: z.siege.openings })}`);
+    row("seen through its window at night, it remembers the window", sawOpening, `siege ${JSON.stringify(z.siege && { at: z.siege.at, openings: z.siege.openings })}; the cell at ${cell}, light there ${G.light.lightAt(cell[0], cell[1]).toFixed(2)}`);
     row("with no way in, it reaches the siege state itself", sawSiege, `state ${z.state}`);
     let waiting = 0;
     let nearWindow = 0;
@@ -229,8 +238,11 @@ export async function run(game) {
     }
     row("with two doors close together, it remembers the one on the line from where it last saw them, not the one nearest them", !!remembered && remembered.tx === goneTo[0] && remembered.ty === goneTo[1] && remembered.edge === goneTo[2], remembered ? `remembered ${remembered.tx},${remembered.ty}${remembered.edge}, went through ${goneTo[0]},${goneTo[1]}${goneTo[2]}, the other is ${other[0]},${other[1]}${other[2]}` : "none remembered");
   } finally {
+    G.rng.setState(rng0);
+    Object.assign(G.player, needs0); // the hunger, thirst, and tiredness its steps drained
     for (const r of restore.reverse()) r();
     G.teleport(meAt[0], meAt[1]);
+    Object.assign(me, health0);
     G.rules.set({ zombieAggro: aggro0 });
     G.clock.setHour(hour0);
     G.loop.setPaused(wasPaused);

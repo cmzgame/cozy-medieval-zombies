@@ -20,6 +20,20 @@ export async function run(game) {
   const step = (n = 1) => { for (let i = 0; i < n; i++) G.loop.advance(1 / 60); };
   const restore = [];
   const mv = await import("/src/entities/movement.js");
+  // One of the dead of its own for each trial, taken away in the finally: the world's first one may be in any state after other checks
+  // in the page (the order-independence of the checks, check("all")).
+  const { createZombie } = await import("/src/entities/zombie.js");
+  const own = (at) => {
+    const z = createZombie(at[0], at[1], { aggro: true });
+    G.zombies.push(z);
+    restore.push(() => { const i = G.zombies.indexOf(z); if (i >= 0) G.zombies.splice(i, 1); const j = (G.corpses || []).indexOf(z); if (j >= 0) G.corpses.splice(j, 1); });
+    return z;
+  };
+  // Every door and window grown, as it stood: the dead it rouses batter more than the houses it uses, and what they open or break is
+  // put back in the finally with the needs and health its steps and bites took (the order-independence of the checks, check("all")).
+  const openings0 = [];
+  for (const c of G.map.loadedChunks()) for (const t of c.tiles || []) for (const e of ["n", "w"]) { const w = t && t[e]; if (w && (w.kind === "door" || w.kind === "window")) openings0.push([w, { open: w.open, broken: w.broken, hp: w.hp, shutter: w.shutter }]); }
+  const needs0 = (({ hunger, thirst, tired, hp, bleed, sick, infection }) => ({ hunger, thirst, tired, hp, bleed, sick, infection }))(me);
   try {
     G.loop.setPaused(true);
     G.rules.set({ zombieAggro: true });
@@ -27,9 +41,9 @@ export async function run(game) {
     // Houses with a window looking out on open ground and shut, whole doors: one with a door that opens outdoors, and one
     // whose doors all open into another shut room (a hall), where the dead must break that room's door first.
     const houses = { outdoors: null, nested: null };
-    for (let id = 1; id < 300 && !(houses.outdoors && houses.nested); id++) {
-      const room = G.map.getRoom(id);
-      if (!room) continue;
+    for (const room of [...G.map.allRooms()].sort((a, b) => a.id - b.id)) { // every room, lowest id first (a room's id is never reused in a session, so after other checks build and take down walls the ids climb past any fixed bound; the order-independence of the checks)
+      if (houses.outdoors && houses.nested) break;
+      const id = room.id;
       const ops = room.openings.map((op) => ({ op, wall: G.map.tileAt(op.tx, op.ty)[op.edge] })).filter((o) => o.wall);
       const wins = ops.filter((o) => o.wall.kind === "window");
       const doors = ops.filter((o) => o.wall.kind === "door");
@@ -87,9 +101,7 @@ export async function run(game) {
       G.map.touch(win.op.tx, win.op.ty);
       step(1); // the rooms are found again, and their ids with them
       const homeRoom = () => G.map.tileAt(w.inside[0], w.inside[1]).room; // rooms are found again, their ids with them: read it each time
-      const z = G.zombies.find((q) => !q.dead && !q.corpse);
-      const z0 = { gx: z.gx, gy: z.gy, state: z.state, aggro: z.aggro, hp: z.hp };
-      restore.push(() => { Object.assign(z, { gx: z0.gx, gy: z0.gy, state: z0.state, aggro: z0.aggro, hp: z0.hp, path: [], breach: null }); });
+      const z = own(from);
       for (const o of G.zombies) if (o !== z && !o.dead && Math.hypot(o.gx - w.inside[0], o.gy - w.inside[1]) < 30) { const keep = { gx: o.gx, gy: o.gy, aggro: o.aggro }; restore.push(() => Object.assign(o, keep, { path: [] })); o.aggro = false; }
       G.teleport(w.inside[0], w.inside[1]);
       z.gx = from[0];
@@ -143,9 +155,8 @@ export async function run(game) {
     // to stand at beside it). A window is never a way in, so a room whose doors are all hidden is a safe spot.
     const exceptions = [];
     let looked = 0;
-    for (let id = 1; id < 400; id++) {
-      const room = G.map.getRoom(id);
-      if (!room) continue;
+    for (const room of [...G.map.allRooms()].sort((a, b) => a.id - b.id)) { // every room, as the houses' search
+      const id = room.id;
       const wins = room.openings.filter((op) => { const w = G.map.tileAt(op.tx, op.ty)[op.edge]; return w && w.kind === "window"; });
       if (!wins.length) continue;
       for (const op of wins) {
@@ -180,9 +191,7 @@ export async function run(game) {
         G.map.placeProp(chair, c.stand[0], c.stand[1]);
         chairs.push(chair);
       }
-      const z = G.zombies.find((q) => !q.dead && !q.corpse);
-      const z0 = { gx: z.gx, gy: z.gy, state: z.state, aggro: z.aggro, hp: z.hp };
-      restore.push(() => { Object.assign(z, { gx: z0.gx, gy: z0.gy, state: z0.state, aggro: z0.aggro, hp: z0.hp, path: [], breach: null, noWay: 0 }); });
+      const z = own(from);
       G.teleport(w.inside[0], w.inside[1]);
       z.gx = from[0];
       z.gy = from[1];
@@ -219,6 +228,9 @@ export async function run(game) {
     }
   } finally {
     for (const r of restore.reverse()) r();
+    for (const [w, was] of openings0) if (Object.keys(was).some((k) => w[k] !== was[k])) { Object.assign(w, was); if (w.at) G.map.touch(w.at[0], w.at[1]); }
+    G.map.rebuildRooms(); // a door shut or a wall whole again closes its room
+    Object.assign(me, needs0);
     G.teleport(meAt[0], meAt[1]);
     G.rules.set({ zombieAggro: aggro0 });
     G.clock.setHour(hour0);

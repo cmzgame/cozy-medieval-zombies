@@ -12,6 +12,7 @@ import { swayOf, WIGGLE_MS } from "../../src/render/props.js";
 
 export async function run(game) {
   const G = game;
+  const needs0 = (({ hunger, thirst, tired }) => ({ hunger, thirst, tired }))(G.player); // put back in the finally: its steps drain them (the order-independence of the checks, check("all"))
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const wasPaused = G.loop.isPaused();
@@ -114,6 +115,7 @@ export async function run(game) {
       hive.pokedAt = undefined;
     }
   } finally {
+    Object.assign(G.player, needs0); // the hunger, thirst, and tiredness its steps drained
     G.teleport(px0, py0);
     G.loop.setPaused(wasPaused);
   }

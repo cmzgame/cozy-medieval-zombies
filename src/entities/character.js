@@ -112,6 +112,9 @@ export function restoreCharacter(data, makers) {
   ch.auto = null;
   ch.action = null;
   ch.line = null;
+  // A state that leans on what the record drops (the opening it breaks, the fence it presses) starts again from the chase: a world saved
+  // with one of the dead at a door threw on its first step after the load (found by check("all")'s sweep, 2026-10-25).
+  if (["breach", "breachHit", "press", "pressHit"].includes(ch.state)) ch.state = ch.aggro ? "chase" : "idle";
   ch._targetId = targetId || null;
   ch._carryingId = carryingId || null;
   ch._carried = carried || null; // the caller revives it when the id finds nothing on the map (game.js, net.js)

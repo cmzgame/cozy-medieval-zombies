@@ -11,6 +11,7 @@
 
 export async function run(game) {
   const G = game;
+  const needs0 = (({ hunger, thirst, tired, hp, bleed, sick, infection }) => ({ hunger, thirst, tired, hp, bleed, sick, infection }))(G.player); // put back in the finally: its steps drain them and the dead may bite (the order-independence of the checks, check("all"))
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const wasPaused = G.loop.isPaused();
@@ -493,6 +494,7 @@ export async function run(game) {
       G.teleport(meAt[0], meAt[1]);
     }
   } finally {
+    if (G.player) Object.assign(G.player, needs0); // the needs and the health its steps and bites took
     for (const r of restore.reverse()) r();
     bag.items.splice(0, bag.items.length, ...bagItems0);
     for (const [e, n] of counts0) e.count = n;

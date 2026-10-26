@@ -52,6 +52,8 @@ import * as stations from "./stations.js"; // the stations and their recipes (do
 import { client } from "./client.js"; // who I am, the client's (#102)
 
 export function createDevApi(ctx) {
+  // The check runner's fresh-page run goes on across its own reloads (tools/checks/all.js), only while its queue is in this tab.
+  try { if (sessionStorage.getItem("cmz-check-all")) setTimeout(() => import("/tools/checks/all.js").then((m) => m.resume(window.__game)), 0); } catch { /* a page with no storage: nothing to go on with */ }
   const P = () => ctx.player;
   const host = (name, fn) => (...args) => {
     if (ctx.net && ctx.net.isGuest()) throw new Error(`__game.${name} writes the world, and the world is the host's: a guest's console reads its replica (docs/31/07 question 14)`);
