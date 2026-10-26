@@ -20,10 +20,6 @@
 
 - **A prop removed or restaged in an ungrown chunk leaves a solid ghost out of the registry** (found building #447 and reproduced by its review under Node, 2026-10-25, on `primary/447-resources-comeback`; not reachable in play today). `map.removeProp` (`src/map.js` ~787) and `map.restage` reach the tile through `tileAt`, which for an ungrown chunk is the frozen blank tile: the prop leaves the registry, but the authored tile keeps it, so when the chunk grows it stands on its tile again, solid, not minable, and a sync mismatch. Every remover today stands in its own grown ring. Likely fix: reach the tile through `growTile`, as `placeProp` does (a mutator grows its chunk).
 
-- **A made prop's done line and refusal can name it oddly** (found syncing the wiki for #466, 2026-10-25, read from the code, *needs repro*). `src/stations.js` `madeWords` (~277-287) names a prop by its sprite's `name`, else its id with underscores spaced, so props with neither read wrong: the jack-o'-lantern (prop `pumpkin`) "Made a pumpkin.", the dye vat "Made a dyevat.", the millstones "Made a millstones." Likely fix: read the recipe's own `label` first.
-
-- **"Pick up … (it is still making something)" names a station by its raw id** (found with the above). `src/interact.js` `propName` (~295) gives "dyevat" and the like. Likely fix: the sprite's name or the recipe's label, as above.
-
 - **An infection caught from tainted water opens on Bitten, "The bite broke the skin."** (found syncing the wiki for #435, at `fa2997f`, *needs repro*). `src/moodles.js` (~26): the first stage's words assume a bite, and water gives no bite.
 
 ## Open: surprises for Michael to rule on
