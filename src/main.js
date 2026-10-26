@@ -1481,6 +1481,18 @@ async function boot() {
       assets.registerSheet("arrow", archery.generateArrow()); // the bow's arrow, flying and landed (docs/20)
       assets.registerSheet("spear", archery.generateSpear()); // the thrown spear
       assets.registerSheet("fire_arrow", archery.generateFireArrow()); // a fire arrow in flight (#14)
+      // A thrown knife's and axe's spin and the picture lying where it came down, turned from its drawn art (docs/24 section 1). A failed
+      // load leaves it flying and lying unseen, never the boot stopped.
+      for (const d of items.allItems()) {
+        if (!(d.thrown && d.thrown.spin && d.held && d.held.image)) continue;
+        try {
+          const img = await assets.loadImage(d.held.image);
+          assets.registerSheet(d.thrown.projectile, archery.spinSheet(img, d.thrown.projectile, d.thrown.spin));
+          assets.registerSheet(d.id, archery.lyingSheet(img, d.id));
+        } catch (err) {
+          console.warn(`the ${d.id}'s spin did not load:`, err && err.message);
+        }
+      }
       // The fireball (docs/24; the design agent's sheet). A failed load leaves the spell flying unseen, never the boot stopped.
       try {
         assets.registerSheet("fireball", archery.fireballSheet(await assets.loadImage("data/art/items/fireball.png")));

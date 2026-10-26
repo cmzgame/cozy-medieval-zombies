@@ -2,7 +2,7 @@
 // burning's particles, the figures with their held things and the shield's flash, and where they stand beside walls.
 // Cut from src/render.js on 2026-10-12 (docs/23a, D5): a move, no rule changed; the frame check proves the pixels.
 
-import { tunables as archeryTunables } from "../archery.js";
+import { tunables as archeryTunables, spinFrame } from "../archery.js";
 import * as iso from "../iso.js";
 import { getSheet, getDef, idleFrame } from "../assets.js";
 import { resolveFacing, frameName } from "../sprites.js";
@@ -57,7 +57,8 @@ export function arrowDrawables(arrows, visible, out) {
       emit() {
         // A projectile drawn to flicker (the fireball: three frames a direction) loops them by the wall clock, as flames do.
         const fl = sheet.flicker ? `_${Math.floor(performance.now() / 90) % sheet.flicker}` : "";
-        const name = `${a.projectile || "arrow"}_${a.frame}${fl}`;
+        // A thrown knife or axe turns along its arc (docs/24 section 1): its step by its own age, not the way it points.
+        const name = sheet.spin ? `${a.projectile}_${spinFrame(a, sheet.spin)}` : `${a.projectile || "arrow"}_${a.frame}${fl}`;
         const flags = sheet.flicker ? gl.FLAG_STANDING | gl.FLAG_NOFOG | gl.FLAG_UNLIT : gl.FLAG_STANDING | gl.FLAG_NOFOG;
         const k = sheet.scale | 0;
         if (k > 1) {

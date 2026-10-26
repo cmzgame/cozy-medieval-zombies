@@ -856,6 +856,44 @@
    "note": "docs/45 section 3: shears, Blacksmithing 1 (open until the skills)"
   },
   {
+   "id": "throwing_knife",
+   "station": "anvil",
+   "out": {
+    "id": "throwing_knife",
+    "count": 10
+   },
+   "in": [
+    {
+     "id": "iron_bar",
+     "count": 1
+    }
+   ],
+   "seconds": 8,
+   "tool": "hammer",
+   "note": "docs/24 section 1: Blacksmithing 3 (open until the skills); ten knives a bar, Primary's default"
+  },
+  {
+   "id": "throwing_axe",
+   "station": "anvil",
+   "out": {
+    "id": "throwing_axe",
+    "count": 2
+   },
+   "in": [
+    {
+     "id": "iron_bar",
+     "count": 1
+    },
+    {
+     "id": "plank",
+     "count": 1
+    }
+   ],
+   "seconds": 8,
+   "tool": "hammer",
+   "note": "docs/24 section 1: Blacksmithing 3 (open until the skills); two axes a bar and a plank, the plank their hafts, Primary's default"
+  },
+  {
    "id": "hammer",
    "station": "anvil",
    "out": {

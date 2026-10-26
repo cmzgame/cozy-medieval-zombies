@@ -253,11 +253,23 @@ function itemActions(entry, tx, ty, player) {
   return out;
 }
 
+// A throwable's pile (docs/24 section 1): every one of its kind lying on this tile and its neighbours, each floor entry as itself, so a
+// fight's worth of knives comes up with one press of E or one Pick up. Anything else is the one entry.
+function pileOf(entry, tx, ty) {
+  const def = getItem(entry.id);
+  if (!(def.thrown && def.stack)) return [[entry, tx, ty]];
+  const out = [];
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) for (const e of map.itemsAt(tx + dx, ty + dy)) if (e.id === entry.id) out.push([e, tx + dx, ty + dy]);
+  return out.some(([e]) => e === entry) ? out : [[entry, tx, ty], ...out];
+}
+
 function pickUpAction(entry, tx, ty, player, simple) {
   const def = getItem(entry.id);
   const tiles = [[tx, ty]];
+  const pile = pileOf(entry, tx, ty);
   const fill = entry.fill != null ? ` (${Math.round(entry.fill)}%)` : "";
-  const count = entry.count > 1 ? ` (${entry.count})` : "";
+  const total = pile.reduce((n, [e]) => n + (e.count || 1), 0);
+  const count = total > 1 ? ` (${total})` : "";
   const storable = canStoreIn(entry);
   return act({
     kind: "item",
@@ -270,13 +282,20 @@ function pickUpAction(entry, tx, ty, player, simple) {
     perform() {
       const bag = bagOf(player);
       if (bag && def.stack) {
-        const added = addItem(bag, entry.id, entry.count, entry.fill != null ? { fill: entry.fill } : {});
-        if (added <= 0) {
+        // The pile, one floor entry at a time (one entry unless it is a throwable's): what fits comes up, the rest stays where it lies.
+        let any = false;
+        for (const [e, x, y] of pileOf(entry, tx, ty)) {
+          const added = addItem(bag, e.id, e.count, e.fill != null ? { fill: e.fill } : {});
+          if (added <= 0) break;
+          any = true;
+          e.count -= added;
+          if (e.count <= 0) map.takeItem(x, y, e);
+          else map.touch(x, y); // a part of a stack came up: the count left on the floor reaches a guest
+        }
+        if (!any) {
           showMessage("No room in your bag.");
           return false;
         }
-        entry.count -= added;
-        if (entry.count <= 0) map.takeItem(tx, ty, entry);
         return true;
       }
       map.takeItem(tx, ty, entry);
