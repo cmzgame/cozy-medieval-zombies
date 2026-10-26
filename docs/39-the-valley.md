@@ -32,7 +32,7 @@
 - **The square:** cobble, the well, the market cross, four stalls (containers), a trough, the notice board (the quest board of a later version), the stocks, three lantern posts.
 - **The green:** the duck pond, the maypole, two benches, a woodpile. The willow by the pond [to build].
 - **The inn:** the taproom (a counter, four tables, two fireplaces, barrels, a cupboard, a shelf), three guest rooms with a bed and a chest each, a fenced yard (a well, a woodpile, a privy, a cart, a trough); the Innkeeper, the Guest, the Child.
-- **The chapel:** the nave (an altar, a lectern, a font, six pews), the vestry, a chest, a cupboard; the Priest. The altar's prayer for mana (Faith 1) [to build].
+- **The chapel:** the nave (an altar, a lectern, a font, six pews), the vestry, a chest, a cupboard; the Priest. The altar's prayer for mana and stamina (Faith 1) [built, #480].
 - **The graveyard:** a fence (a low stone wall when drawn) with its gate, eighteen headstones, eight of the dead standing. Its rising [to build]; open graves to dig [to build]; its herb [built, #448: grave moss, inside the wall, gathered and grown back at any hour (2026-10-25, The evening's rulings: no 'only at night' plants; Michael kept its name); Herbalism 7's line struck, its replacement open].
 - **The crypt:** two coffins, a chest.
 - **The priest's house.**
@@ -126,7 +126,7 @@
 - **Well** [built]: drink, fill skins and buckets; its winch; rooted.
 - **Trough** [built]: drink and fill, as the well; tainted, as every fixed source (2026-10-25, `44`).
 - **Font** [built]: fill a bucket; tainted, as every fixed source (2026-10-25, `44`).
-- **Altar** [built]: decoration [change: pray for mana and stamina, Faith 1; it also removes bleeds at Faith 4 and restores health at Faith 6].
+- **Altar** [built]: Pray, a 3 s bar that refills mana and stamina (Faith 1, recorded) [built, #480]; it also removes bleeds at Faith 4 and restores health at Faith 6 [to build].
 - **Fireplace** [built]: lights its room, cooks; not carried; not made [change: a switch, on and off, no fuel (2026-10-25, `43` section 2)].
 - **Hearth** [built]: as the fireplace; built from the palette, six stone, against a wall indoors; a switch, no fuel (`43`).
 - **Campfire** [built in the data]: a fire (logs) that cooks [change: built, placed at the woodcutters' camp and the charcoal burners (`43` section 2)].
@@ -234,8 +234,8 @@ The numbers are each weapon's block in `data/items.json` and `data/combat.json`.
 - **Hunting bow** [built]: Ranged 1; made at the workbench [change: Crafting 4, a bow from each wood: oak the basic, mahogany a better one].
 - **Arrows** [built]: five from a stick and a feather at the workbench, fletched [built, #445] [change: Crafting 4, bound with fish glue]; lodged arrows return in a body's loot; picked up again 25% of the time when missed (Ranged 5) [to build].
 - **Fire arrows** [built]: arrows dipped in a lit fire.
-- **Throwing knives** [change: they throw, Ranged 3]: art only today; the Developer Chest only. The bandits' camp (`docs/29-world/08`) and Blacksmithing 3 (ruled 2026-10-23).
-- **Throwing axes** [change: they throw, Ranged 6]: as the knives; the woodcutters' camp and Blacksmithing 3 (ruled 2026-10-23).
+- **Throwing knives** [change: they throw, Ranged 3; ruled 2026-10-25, `24` section 1: the puller, 15 damage, 30% to break]: art only today; the Developer Chest only. The bandits' camp (`docs/29-world/08`) and Blacksmithing 3 (ruled 2026-10-23).
+- **Throwing axes** [change: they throw, Ranged 6; ruled 2026-10-25, `24` section 1: the stopper, 30 damage, knockdown 0.35, 10% to break]: as the knives; the woodcutters' camp and Blacksmithing 3 (ruled 2026-10-23).
 - **Crossbow** [to build]: Ranged 8 to fire, Crafting 8 to make. Its bolts are Crafting 8 with it, their tips Blacksmithing 3 (ruled 2026-10-23).
 - **Silver arrows** [to build]: Blacksmithing 5 [open #283].
 - **Poisoned arrows** [to build]: Potions 5.
@@ -760,7 +760,7 @@ Later, not at the start: gems inlaid in metal armour.
 - **The cure** [to build]: mid to late game, gated by skill, and **not in the valley** (ruled 2026-10-19): found beyond it (Faith's Cure Undeath, learned in a region; a Divine Potion at Potions 10, the Abbey's (ruled 2026-10-23)). **Life Ward** against bites (Faith 3). The infection and combat difficulty are one dial (water's chance follows it, 2026-10-25, `44`).
 
 ### Mana
-- **Mana** [to build] (`47`: 100, one point every three seconds, the Fire Bolt 20): spells cost it; slow natural regeneration; mana potions (Potions 4); a free top-up praying at an altar (Faith 1); more mana (Faith 4); cheaper spells (Magic 2); perhaps special foods later. A mana bar [to build].
+- **Mana** [built, #480] (`47`: 100, one point every three seconds, the Fire Bolt 20): spells cost it, slow natural regeneration, a free top-up praying at an altar (Faith 1), and a mana bar [built, #480]; mana potions (Potions 4), more mana (Faith 4), cheaper spells (Magic 2), perhaps special foods later [to build].
 
 ### Rot and preserving
 - **Food rots** [to build] (ruled; a pace, not world decay).
@@ -892,7 +892,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 ### To build
 - **The hover card** on every item in a grid or slot (#262): its full name, its kind, its direct uses read from the data, **Use** in gold, wear, count, what a level gate needs ("Needs Melee 4"), what a skill changes; on the belt bar too. Beyond grids (the palette, recipe rows, props in the world) [open #262]. A short-name pass [open #262].
 - **The skills tab** on the character screen; a level-up's visual twin.
-- **A mana bar.**
+- **A mana bar** [built, #480: blue, under stamina, flashing on a cast it cannot pay for].
 - **The trinket slot** [open #282].
 - **The belt's slots stamped with their roles**, a hand or a pouch, each with its hover card [built, 2026-10-25].
 - **The station panel lists every recipe of the station** but boss-drop ones, the unlearned greyed with what they need, so a goal is always in view (ruled 2026-10-23) [to build].

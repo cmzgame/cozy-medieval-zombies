@@ -59,6 +59,7 @@ import * as setdown from "./setdown.js"; // an item set down as its prop, a brac
 import * as repair from "./repair.js"; // the grindstone sharpens, the anvil repairs, on one count per item (docs/43 section 6)
 import * as sawpit from "./sawpit.js"; // the sawpit saws a log into planks with no hatchet (docs/43 section 6)
 import * as hives from "./hives.js"; // the beehives give honey every few days (docs/43 section 6)
+import * as mana from "./mana.js"; // the altar's Pray (docs/47 section 5)
 import * as gather from "./gather.js"; // herbs gathered, mushrooms foraged, clay dug (docs/46 step 2, #448)
 import * as trees from "./trees.js"; // sticks under a tree, a sapling's Inspect (docs/46 step 3, #449)
 import * as water from "./water.js"; // tainted and clean water, and the boil verb (docs/44)
@@ -1016,7 +1017,7 @@ function propActions(prop, player) {
   if (getDef(prop.sprite).sleep) out.push(...sleepAction(prop, player));
   if (stations.stationOf(prop).length) out.push(...stationActions(prop, player));
   if (prop.fire && prop.fire.cooks && prop.fire.lit) out.push(boilAtFireAction(prop, player)); // Boil water at a lit cooking fire (docs/44)
-  out.push(...repair.propActions(prop, player, act, world), ...sawpit.propActions(prop, player, act, world), ...hives.propActions(prop, player, act, world)); // docs/43 section 6: each is nothing on a prop that is not its own
+  out.push(...repair.propActions(prop, player, act, world), ...sawpit.propActions(prop, player, act, world), ...hives.propActions(prop, player, act, world), ...mana.propActions(prop, player, act)); // docs/43 section 6, and the altar's Pray (docs/47 section 5): each is nothing on a prop that is not its own
   if (canCarry(prop)) out.push(carryAction(prop, player));
   if (prop.snare) out.push(lookAtSnareAction(prop)); // a set snare (docs/45 section 2): what it holds, the asking client's own line
   if (getDef(prop.sprite).item && (prop.made || !getDef(prop.sprite).station)) out.push(itemPickUpAction(prop, player)); // a torch post, a decoration, your own cauldron: back into the bag as its item (docs/43, section 4); the witch's is no one's to lift (docs/47 section 3)

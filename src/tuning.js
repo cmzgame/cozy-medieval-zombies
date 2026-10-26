@@ -56,6 +56,8 @@ export const player = {
   radius: 0.3,
   hp: 100,
   stamina: 100,
+  mana: 100, // the mana bar (docs/47 section 5, #480; Michael's): spells cost it (a book's `spell.mana`); raised later by gear and Faith 4
+  manaRegen: 0.333, // a second: one point every three seconds of the sim clock, full in five minutes from empty (Michael's)
   sprintMult: 1.75,
   // The parent drained 40 per second: a sprint lasted 2.5 s, about a third of a
   // screen. Michael wanted longer (2026-10-09): 16 per second is just over 6 s,
@@ -263,11 +265,13 @@ export const trees = {
   checkSeconds: 30,
 };
 
-// Potions, drunk (docs/47 section 4, #481; src/potions.js): a healing potion gives `heal` health at once, a stamina potion fills the bar and
-// makes it come back `staminaMult` times as fast for `staminaSeconds` (the buff `player.buffs.stamina`), a mana potion gives `mana` mana (the
-// bar is #480's, `player.mana`); after any potion the next takes effect only `between` seconds of the sim clock later (`player.potionAt`).
-// Primary's defaults but the mana's 50 (Michael's), levers in docs/42.
+// Potions, poisons, and mana (docs/47; src/mana.js, src/potions.js). Step 1 (#480): the altar's Pray is a bar of `praySeconds` that refills mana
+// and stamina. Step 2 (#481): a healing potion gives `heal` health at once, a stamina potion fills the bar and makes it come back `staminaMult`
+// times as fast for `staminaSeconds` (the buff `player.buffs.stamina`), a mana potion gives `mana` mana (`player.mana`, up to `maxMana`); after
+// any potion the next takes effect only `between` seconds of the sim clock later (`player.potionAt`). Primary's defaults but the mana's 50
+// (Michael's), levers in docs/42.
 export const potions = {
+  praySeconds: 3,
   heal: 40,
   mana: 50,
   staminaMult: 2,

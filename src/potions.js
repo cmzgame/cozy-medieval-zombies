@@ -1,7 +1,7 @@
 // Potions, drunk (docs/47 section 4, #481): a healing potion gives `potions.heal` health at once, a stamina potion fills the bar and makes it
 // come back `potions.staminaMult` times as fast for `potions.staminaSeconds` (a buff on the player, `player.buffs.stamina = { left }`, shown in
-// the debuff row in gold, src/debuffs.js), a mana potion gives `potions.mana` mana (the bar is #480's, `player.mana`; until it is on the player,
-// the potion is refused with why and kept). After any potion the next takes effect only `potions.between` seconds of the sim clock later, per
+// the debuff row in gold, src/debuffs.js), a mana potion gives `potions.mana` mana (the bar of #480, `player.mana` up to `player.maxMana`,
+// src/mana.js). After any potion the next takes effect only `potions.between` seconds of the sim clock later, per
 // player (`player.potionAt`, the sim time of the last), refused with "You can't drink another potion yet." A poison is never drunk: its key in
 // any belt slot says so (inventory.beltAction) and it has no Drink.
 //
@@ -25,7 +25,6 @@ import { showMessage } from "./ui/prompt.js";
 export { POISON_WORD };
 export const TOO_SOON = "You can't drink another potion yet.";
 export const BAG_FULL = "Your bag is full: the vial is at your feet.";
-export const NO_MANA = "You have no mana to restore yet.";
 export const VIAL = "clay_vial"; // what a potion leaves when it is drunk
 
 // What a potion does, by its item's `potion` ("heal", "stamina", "mana"), or null; a poison's `poison` block (never drunk).
@@ -47,13 +46,9 @@ export function drinkProblem(player, entry) {
   if (isPoison(def)) return POISON_WORD;
   const kind = potionOf(def);
   if (!kind) return "That is not for drinking.";
-  if (kind === "mana" && !Number.isFinite(player.mana)) return NO_MANA; // the bar is #480's: until it is built the potion is kept
   if (waitLeft(player) > 0) return TOO_SOON;
   return "";
 }
-
-// A player's most mana: their own (`maxMana`, raised by gear later), else the tuning's bar (#480), else 100.
-const manaMax = (player) => (Number.isFinite(player.maxMana) ? player.maxMana : Number.isFinite(TP.mana) ? TP.mana : 100);
 
 function apply(player, kind) {
   if (kind === "heal") {
@@ -65,7 +60,7 @@ function apply(player, kind) {
     player.winded = false;
     player.buffs = { ...(player.buffs || {}), stamina: { left: P.staminaSeconds } }; // a second potion later starts the time again, it does not add
   } else if (kind === "mana") {
-    player.mana = Math.min(manaMax(player), player.mana + P.mana);
+    player.mana = Math.min(player.maxMana, player.mana + P.mana); // the bar of #480 (src/mana.js), up to the player's own most
   }
 }
 

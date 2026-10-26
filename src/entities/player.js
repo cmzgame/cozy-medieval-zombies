@@ -36,6 +36,9 @@ export function createPlayer(gx, gy, { id = null } = {}) {
     aim: { sx: 0, sy: 1 },
     stamina: T.stamina,
     maxStamina: T.stamina,
+    mana: T.mana, // the mana bar (docs/47 section 5; mana.js): the host's step regenerates it, a spell's release spends it; a light field of the record
+    maxMana: T.mana, // raised later by gear and Faith 4; a heavy field, as maxStamina
+    manaFlash: 0, // seconds of the bar's flash after a cast it could not pay for (mana.refuse): every client draws it from the record
     sprinting: false,
     winded: false,
     moving: false,

@@ -60,6 +60,7 @@
   --gold: #e8c860; /* the swing timer */
   --orange: #e0862d; /* stamina: blue is kept for mana, gold for the swing timer */
   --green: #6fbf5f; /* health */
+  --blue: #4f86d8; /* mana (docs/47 section 5) */
   --red: #d05050;
   --panel: rgba(24, 18, 30, 0.92); /* the dark panels: screens, menus, the build list */
   --panel-edge: #6a5a70;
@@ -292,7 +293,8 @@ html, body {
 }
 
 .hud-health,
-.hud-stamina {
+.hud-stamina,
+.hud-mana {
   position: relative;
   width: 160px;
   height: 14px;
@@ -322,6 +324,23 @@ html, body {
   box-shadow: 0 0 6px var(--red);
 }
 
+/* Mana, in blue under stamina (docs/47 section 5); a cast it cannot pay for flashes the bar, the visual twin of the not-enough-mana sound. */
+.hud-mana-fill {
+  height: 100%;
+  width: 100%;
+  background: var(--blue);
+  transition: width 0.1s;
+}
+
+.hud-mana.short {
+  border-color: var(--red);
+  box-shadow: 0 0 6px var(--blue);
+}
+
+.hud-mana.short .hud-mana-fill {
+  filter: brightness(1.6);
+}
+
 .hud-health-fill {
   height: 100%;
   width: 100%;
@@ -330,7 +349,8 @@ html, body {
 }
 
 .hud-health-text,
-.hud-stamina-text {
+.hud-stamina-text,
+.hud-mana-text {
   position: absolute;
   inset: 0;
   padding-right: 4px;

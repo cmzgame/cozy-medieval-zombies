@@ -24,6 +24,7 @@ Two kinds:
 - **Knockdown:** `blow.knockdownChance` 0; the mace's `knockdown` 0.35, the halberd thrust's 0.5, the shove's 0.1 (`41` step 3).
 - **The finisher:** `finisher.mult` 1.5; the third-hit combo `combo.enabled` off, kept for testing (2026-10-12).
 - **The shove:** `shove` in `data/combat.json`: the push `knockback` (0.65 tiles, and a tired shove `tiredPush` 0.7 of it, 0.45; Michael, 2026-10-24), `stagger` 0.8 s, `stamina` 15, `cooldown` 0.5 s, `targets` 3 (`41` step 2).
+- **The throwing knife and axe** (2026-10-25, `24` section 1; not built): each one's `thrown` block in `data/items.json`. **Michael's:** `damage` 15 and 30, `breakChance` 0.3 and 0.1, `range` 13 and 9, the knife's `staggerChance` 0.3, the axe's 1 and `knockdown` 0.35. **Primary's defaults:** `speed` 22 and 13, `drawTime` 0.2 and 0.45 s, `knockback` 0.15 and 0.35, the arcs (`arcMin`, `arcMax`, `z0`: 4, 20, 30 and 6, 60, 36), `spin` 2 and 1.5 turns a second; ten knives a bar and two axes a bar and a plank (their rows at the anvil in `data/recipes.json`).
 - **The spear's break:** `thrown.breakChance` on the spear in `data/items.json`, 0.25, hit or miss (2026-10-24).
 - **Hit stop and the swing's commitment:** `blow.hitStop` 0.07, `blow.hitStopKill` 0.12, `blow.swingMove` 0.6 (`41` step 1).
 
@@ -47,8 +48,8 @@ Two kinds:
 - **The bags' sizes:** each bag's `bag` in `data/items.json`: the sack 6 by 4, the rucksack 8 by 5 today (8 by 6 ruled), the satchel 7 by 5 and the best bag 10 by 6 to build (2026-10-24, #260).
 - **A boss's capstone:** about 1 in 8 at first, rising with each kill that misses, certain by the twentieth, per player (2026-10-24, #268; not built).
 
-### Potions, poisons, and mana (2026-10-25, `47`; not built; Michael's where named, else Primary's defaults)
-- **Mana:** `player.mana` 100 (Michael's) and `player.manaRegen` 0.333 a second, one point every three seconds (Michael's), in `data/tuning.json`; each spell's cost, `mana` on its `spell` in `data/items.json` (`book_of_fire.book.spell.mana`), the Fire Bolt 20 (Michael's: "So maybe 20 mana?"); the altar's Pray bar 3 s (`data/tuning.json` `potions.praySeconds`).
+### Potions, poisons, and mana (2026-10-25, `47`; mana built, #480, the rest not built; Michael's where named, else Primary's defaults)
+- **Mana** (built, #480; `src/mana.js`): `player.mana` 100 (Michael's) and `player.manaRegen` 0.333 a second, one point every three seconds (Michael's), in `data/tuning.json`, regenerating in the host's step; each spell's cost, `mana` on its `spell` in `data/items.json` (`book_of_fire.book.spell.mana`), the Fire Bolt 20 (Michael's: "So maybe 20 mana?"), refused before the draw and spent on the release (`src/archery.js`); the altar's Pray bar 3 s (`data/tuning.json` `potions.praySeconds`, Primary's default).
 - **The vial and the brew:** two of the main herb and one secondary a potion (Michael's), the rows in `data/recipes.json` at the station `cauldron`, each brew 20 s (`seconds`) and a draught of clean water 10 of a skin's 100 (`water`); one clay shapes two unfired vials (the workbench's row in the same file); a clay vial stacks 10 and a potion 5 (`stack` in `data/items.json`); the cauldron's fire as the oven's, three logs at most, two game hours a log (`fire.maxFuel`, `fire.hoursPerUnit` in `data/sprites/cauldron.json`); your own made from three iron bars into the Cauldron item, set down with Place (its row at the anvil in `data/recipes.json`).
 - **Drinking:** in `data/tuning.json` `potions`: `heal` 40, `mana` 50 (Michael's), the stamina potion's bar filled and its regeneration doubled for 30 s (`staminaMult` 2, `staminaSeconds` 30), `between` 10 s from one potion to the next (a splash counting as a drink).
 - **Poisons:** in `data/combat.json` `poison`: `hits` 10, a coat's landed hits, and `arrows` 5 a vial (Michael's, "about"), `max` 3 stacks (Michael's), `duration` 10 s, `dpsByStacks` ordinary 1, 2, 3 a second and strong 2, 4, 6; grave moss's count 4 (the map's `resources` block, `46`) is the poisons' bottleneck.
@@ -68,3 +69,5 @@ Two kinds:
 - **The aim guide**, on by default from 2026-10-24 (#385; it was off since 2026-10-16), off for the challenge.
 - **Swing targets**, on (`41` step 1). **Swing timer**, on. **Floating numbers**, shown.
 - **Sound**, on; **Volume**, 75% (`docs/40`; 2026-10-24, question 1); a mute key, F8 (2026-10-24, #386).
+- **Belt slot order** (`beltOrder`, Display): Sequential by default (1 main, 2 off, 3 utility, a leather belt's 4 main and 5 off), or Hands grouped (1 and 2 main, 3 and 4 off, 5 utility); this client's own, never sent (Michael, 2026-10-25, `02` The belt's slots have roles; built, #478).
+- **Handedness** (an identity's `handed`, chosen on the identity screen, not the Settings screen): Right-handed by default, or Left-handed, never ambidextrous; the labels, the belt's icons, and the drawn arm, nothing mechanical (Michael, 2026-10-25, `02` Right- or left-handed; built, #477).

@@ -1246,6 +1246,7 @@ check("hover card: the spear, the bow, the arrows, the Book and Staff of Fire, t
   assert(!card("arrow").includes(burnt), "a plain arrow says it burns");
   const fb = I("book_of_fire").book.spell;
   has("book_of_fire", `Cast ${fb.name} (left button, a staff in the other hand): ${by(fb.damage)}, up to ${fb.range} tiles.`);
+  has("book_of_fire", `Costs ${fb.mana} mana a cast, spent when it is released.`); // docs/47 section 5
   has("book_of_fire", `${fb.name} bursts on the first of the dead or wild game it meets, or within ${fb.landRadius} tile${fb.landRadius === 1 ? "" : "s"} of where it lands; it passes tame animals by.`);
   has("book_of_fire", burnt);
   // The draw's scale written out (docs/20, 0.4 + 0.6 c at minDraw 0.15), so a wrong formula fails here and not only in step with the card:
@@ -2885,7 +2886,7 @@ check("belt: the slots' roles, each key by role and item, the refusals in words,
     // The role travels, never the number: the snapshot's filter keeps the role's events and drops the old numbers.
     const clean = netMod.cleanSnap({ keys: { beltMain1: true, beltOff1: true, beltUtility: true, beltMain2: true, beltOff2: true, belt2: true } }).keys || {};
     assert(Object.keys(clean).sort().join(",") === [...inventoryMod.BELT_EVENTS].sort().join(","), `the snapshot's belt keys: ${Object.keys(clean).join(",")}`);
-    assert(netMod.PROTOCOL >= 17, `PROTOCOL ${netMod.PROTOCOL}`); // 17 carried the roles; a later step may move it on
+    assert(netMod.PROTOCOL >= 17, `PROTOCOL ${netMod.PROTOCOL}`); // 17 the belt's roles; a later step's bump keeps it
 
     // ---- a main-hand slot (index 0) ----
     belt = fresh(me);
@@ -3112,7 +3113,7 @@ check("belt: the slots' roles, each key by role and item, the refusals in words,
     assert(/This is a main-hand slot\. Its key draws what's here into your main hand/.test(empty("main")) && /two-handed/i.test(empty("main")), empty("main"));
     assert(/This is an off-hand slot\. Its key draws what's here into your off hand/.test(empty("off")) && /Two-handed items can't go here/.test(empty("off")), empty("off"));
     assert(/This is the utility slot\. Its key eats what's here if it is food, and never equips anything/.test(empty("utility")) && /one cell whatever its size/.test(empty("utility")), empty("utility"));
-    return "the roles on both belts; both key orders on both belts and the role in the snapshot (PROTOCOL 17); each role's key for a weapon, a shield, a torch, food, a skin, the tinderbox, a two-hander, and an empty slot; the swap and the off hand's thing sent to a slot, the bag, or the feet; the spear's dual rule; a two-hander refused in an off-hand slot by the slot check, a guest's command, and a drag, each in words; the utility slot's halberd in one cell; stow by role; the menu and the double-click; no choice in the save or the sync part; a guest's keys; the cards";
+    return "the roles on both belts; both key orders on both belts and the role in the snapshot (PROTOCOL 17 or later); each role's key for a weapon, a shield, a torch, food, a skin, the tinderbox, a two-hander, and an empty slot; the swap and the off hand's thing sent to a slot, the bag, or the feet; the spear's dual rule; a two-hander refused in an off-hand slot by the slot check, a guest's command, and a drag, each in words; the utility slot's halberd in one cell; stow by role; the menu and the double-click; no choice in the save or the sync part; a guest's keys; the cards";
   } finally {
     promptMod.setMessageSink(null);
   }
@@ -3163,7 +3164,7 @@ check("handedness: right by default, left only when chosen; the helper, the save
   assert(S.players.every((p) => p.handed === "right"), "an old save's players are not right-handed");
   // The join: the host keeps a guest's left hand and makes anything else right; the record changed shape, so PROTOCOL moved.
   assert(hostMod.clampIdentity({ name: "L", look: {}, handed: "left" }).handed === "left" && hostMod.clampIdentity({ name: "R", look: {}, handed: "both" }).handed === "right" && hostMod.clampIdentity({ name: "N", look: {} }).handed === "right", "clampIdentity's handedness");
-  assert(netMod.PROTOCOL >= 16, `PROTOCOL is ${netMod.PROTOCOL}`); // 16 carried the hand; a later step may move it on
+  assert(netMod.PROTOCOL >= 16, `PROTOCOL is ${netMod.PROTOCOL}`); // 16 the handedness; a later step's bump keeps it
   assert(/const HEAVY = new Set\(\[[^\]]*"handed"/.test(fs.readFileSync(path.join(root, "src/net.js"), "utf8")), "handed is not a heavy field of the player's record (sent once, not each frame)");
   // The figure: a left-handed pose is the right-handed one with the arms turned round, the main arm the left, in body space (l negated).
   const M = (pt) => [-pt[0], pt[1], pt[2]];
@@ -3201,7 +3202,141 @@ check("handedness: right by default, left only when chosen; the helper, the save
   const kL = keyOf({ ...ch, handed: "left" });
   assert(kR !== kL && kL.endsWith(',"left"]') && keyOf({ ...ch, handed: "right" }) === kR && JSON.parse(kR).length === 11, `the keys: ${kR.slice(-30)} / ${kL.slice(-30)}`);
   assert(keyOf({ ...ch, kind: "villager", handed: "left" }) === keyOf({ ...ch, kind: "villager" }) && keyOf({ ...ch, kind: "zombie", handed: "left" }) === keyOf({ ...ch, kind: "zombie" }), "a villager's or the dead's key took the left hand");
-  return `the helper and labels; right by default and through an old save; left through create, addPlayer, the save, the sync part, and the join's clamp; PROTOCOL 17, handed heavy; ${compared} frames mirrored arm for arm, the legs and head kept; the walk; the sheet's key`;
+  return `the helper and labels; right by default and through an old save; left through create, addPlayer, the save, the sync part, and the join's clamp; PROTOCOL 16 or later, handed heavy; ${compared} frames mirrored arm for arm, the legs and head kept; the walk; the sheet's key`;
+});
+
+const manaMod = await import("../src/mana.js");
+const controllerMod = await import("../src/player-controller.js");
+check("mana: the bar and its regeneration in the host's step alone; the Fireball's 20 refused before the draw and spent on the release, never on a cancel or a dry draw; a guest's prediction; the altar's Pray; the save, the sync part, the wire, the card", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  const said = [];
+  promptMod.setMessageSink((t) => { said.push(t); return true; });
+  const last = () => said[said.length - 1] || "";
+  try {
+    const T = tuningMod.player;
+    assert(T.mana === 100 && Math.abs(T.manaRegen - 0.333) < 1e-9 && tuningMod.potions.praySeconds === 3, `the levers: mana ${T.mana}, regen ${T.manaRegen}, pray ${tuningMod.potions.praySeconds}`);
+    assert(me.mana === 100 && me.maxMana === 100 && me.manaFlash === 0, `a new player's bar: ${me.mana}/${me.maxMana}, flash ${me.manaFlash}`);
+    // Regeneration: the host's step, a point every three seconds; never updatePlayer, which a guest's prediction runs; never past the top.
+    me.mana = 50;
+    playerMod.updatePlayer(me, 1);
+    assert(me.mana === 50, `updatePlayer regenerated mana (a guest's prediction would): ${me.mana}`);
+    for (let i = 0; i < 1800; i++) gameMod.step(1 / 60, null);
+    assert(Math.abs(me.mana - (50 + 30 * T.manaRegen)) < 1e-6, `30 s of the host's step from 50: ${me.mana}`);
+    me.mana = 99.9;
+    for (let i = 0; i < 120; i++) gameMod.step(1 / 60, null);
+    assert(me.mana === 100, `regeneration passed the top: ${me.mana}`);
+    // The cost, on the spell in the data.
+    me.hands.main = itemsMod.makeEntry("staff_of_fire");
+    me.hands.off = itemsMod.makeEntry("book_of_fire");
+    const L = archeryMod.launcherOf(me);
+    const cost = itemsMod.getItem("book_of_fire").book.spell.mana;
+    assert(L && L.kind === "spell" && cost === 20 && manaMod.costOf(L) === 20, `the Fireball's cost: ${cost}, the launcher's ${manaMod.costOf(L)}`);
+    assert(manaMod.costOf({ kind: "bow", mana: 5 }) === 0 && manaMod.costOf(null) === 0, "a bow costs mana");
+    // Refused before the draw: the line, the flash, no draw, nothing spent.
+    me.recover = 0;
+    me.mana = 19.9;
+    said.length = 0;
+    assert(archeryMod.beginDraw(me, L, "script") === false && !me.draw && me.mana === 19.9, `a cast the bar cannot pay for drew: draw ${!!me.draw}, mana ${me.mana}`);
+    assert(last() === "Not enough mana." && me.manaFlash === manaMod.FLASH_SECONDS, `the refusal: "${last()}", flash ${me.manaFlash}`);
+    manaMod.update(me, 1);
+    assert(me.manaFlash === 0, `the flash did not run down in the host's step: ${me.manaFlash}`);
+    // The host's own click through the controller: refused the same way.
+    me.mana = 5;
+    said.length = 0;
+    controllerMod.controlPlayer(me, S.zombies, 1 / 60, { clicked: true, leftDown: true, aimAt: [me.gx + 4, me.gy] });
+    assert(!me.draw && last() === "Not enough mana." && me.manaFlash > 0 && me.mana === 5, `the controller's click: draw ${!!me.draw}, "${last()}", flash ${me.manaFlash}`);
+    // A guest's prediction: no draw and no line of its own (the host's comes back), but its own bar flashes at once.
+    me.manaFlash = 0;
+    said.length = 0;
+    controllerMod.controlPlayer(me, S.zombies, 1 / 60, { clicked: true, leftDown: true, aimAt: [me.gx + 4, me.gy] }, true);
+    assert(!me.draw && said.length === 0 && me.manaFlash === manaMod.FLASH_SECONDS && me.mana === 5, `the prediction: draw ${!!me.draw}, said ${said.join("/")}, flash ${me.manaFlash}`);
+    me.manaFlash = 0;
+    me.mana = 30;
+    controllerMod.controlPlayer(me, S.zombies, 1 / 60, { clicked: true, leftDown: true, aimAt: [me.gx + 4, me.gy] }, true);
+    assert(!me.draw && me.manaFlash === 0, `a prediction the bar can pay for flashed or drew: flash ${me.manaFlash}, draw ${!!me.draw}`);
+    // Paid: nothing at the draw's start, nothing on a cancel, nothing on a dry release; the cost on a release that flies.
+    assert(archeryMod.beginDraw(me, L, "script") === true && me.mana === 30, `the draw started with ${me.mana}`);
+    archeryMod.cancelDraw(me);
+    assert(me.mana === 30, `a cancelled draw spent mana: ${me.mana}`);
+    archeryMod.beginDraw(me, L, "script");
+    me.draw.c = archeryMod.tunables.minDraw / 2;
+    assert(archeryMod.releaseDraw(me, { aimAt: [me.gx + 5, me.gy] }) === null && me.mana === 30, `a dry release spent mana: ${me.mana}`);
+    archeryMod.beginDraw(me, L, "script");
+    me.draw.c = 1;
+    const flew = archeryMod.releaseDraw(me, { aimAt: [me.gx + 5, me.gy] });
+    assert(flew && flew.projectile === "fireball" && me.mana === 10, `the release: ${flew ? flew.projectile : "nothing"}, mana ${me.mana}`);
+    me.recover = 0;
+    said.length = 0;
+    assert(archeryMod.beginDraw(me, L, "script") === false && last() === "Not enough mana.", "the second cast at 10 was not refused");
+    archeryMod.reset();
+    me.hands.main = null;
+    me.hands.off = null;
+    // The altar's Pray: the chapel's altar, its menu's bar of praySeconds, the verb's `timed`, a guest's label, refused far and on another prop.
+    const [bx, by, bw, bh] = json.bounds;
+    for (let y = by; y < by + bh; y += 16) for (let x = bx; x < bx + bw; x += 16) mapMod.ensureAround(x, y, 0);
+    const altar = [...mapMod.allProps()].find((p) => p.sprite === "altar");
+    assert(altar && manaMod.isAltar(altar), "no altar in the valley");
+    let stand = null;
+    for (let r = 1; r <= 2 && !stand; r++) for (const [x, y] of altar.tiles) for (let dy = -r; dy <= r && !stand; dy++) for (let dx = -r; dx <= r && !stand; dx++) {
+      const t = mapMod.tileAt(x + dx, y + dy);
+      if (t && !t.prop && mapMod.isWalkableTile(x + dx, y + dy)) { me.gx = x + dx; me.gy = y + dy; if (verbsMod.get("pray").validate(worldMod.world, me, { prop: altar.id }) === true) stand = [x + dx, y + dy]; }
+    }
+    assert(stand, `nowhere to stand in reach of the altar at ${altar.tile}`);
+    const finish = () => { for (let i = 0; i < 600 && me.action; i++) interactMod.updateAction(me, 0.1); };
+    const onAltar = { kind: "prop", id: altar.id };
+    const labels = interactMod.actionsForTarget(onAltar, me).map((a) => a.label);
+    assert(labels.includes("Pray"), `the altar's menu: ${labels.join(", ")}`);
+    me.mana = 0;
+    me.stamina = 0;
+    me.winded = true;
+    said.length = 0;
+    assert(interactMod.performByLabel(me, onAltar, "Pray") === true && me.action && me.action.action.kind === "pray" && me.action.action.duration === tuningMod.potions.praySeconds, "a guest's label did not start the bar of praySeconds");
+    interactMod.updateAction(me, 1);
+    assert(me.mana === 0 && me.stamina === 0, `the bars filled before the prayer's end: ${me.mana}, ${me.stamina}`);
+    finish();
+    assert(me.mana === 100 && me.stamina === me.maxStamina && !me.winded && said.includes(manaMod.PRAYED), `the prayer: mana ${me.mana}, stamina ${me.stamina}, winded ${me.winded}, "${said.join(" / ")}"`);
+    me.mana = 3;
+    const t1 = verbsMod.run("pray", worldMod.world, me, { prop: altar.id }, { timed: true });
+    assert(t1.ok && t1.started && me.action && me.action.action.kind === "pray", `the verb's timed: ${t1.reason || ""}`);
+    finish();
+    assert(me.mana === 100, `the verb's bar did not fill mana: ${me.mana}`);
+    me.gx = stand[0] + 8;
+    const far = verbsMod.run("pray", worldMod.world, me, { prop: altar.id }, { timed: true });
+    assert(!far.ok && /far/i.test(far.reason || ""), `prayed from eight tiles: ${far.reason}`);
+    me.gx = stand[0];
+    const other = [...mapMod.allProps()].find((p) => p.sprite !== "altar" && !manaMod.isAltar(p));
+    const no = verbsMod.run("pray", worldMod.world, me, { prop: other.id });
+    assert(!no.ok && no.reason === "There is no altar there.", `prayed at a ${other.sprite}: ${no.reason}`);
+    // The save, the sync part, and the wire.
+    me.mana = 42.5;
+    const p0 = gameMod.syncParts().players;
+    me.mana = 42.51;
+    assert(gameMod.syncParts().players !== p0, "mana did not move the players' sync part");
+    me.mana = 42.511;
+    const p1 = gameMod.syncParts().players;
+    me.mana = 42.512;
+    assert(gameMod.syncParts().players === p1, "the sync part compared mana past two decimals (the wire's rounding)");
+    me.mana = 42.5;
+    const saved = JSON.parse(JSON.stringify(gameMod.serialize()));
+    gameMod.restore(saved, json);
+    const back = gameMod.state.player;
+    assert(back.mana === 42.5 && back.maxMana === 100, `the save: ${back.mana}/${back.maxMana}`);
+    const old = JSON.parse(JSON.stringify(saved));
+    for (const p of old.characters.players) { delete p.mana; delete p.maxMana; delete p.manaFlash; }
+    gameMod.restore(old, json);
+    assert(gameMod.state.player.mana === 100 && gameMod.state.player.maxMana === 100, "a save from before mana did not come back full");
+    const netSrc = fs.readFileSync(path.join(root, "src/net.js"), "utf8");
+    assert(netMod.PROTOCOL >= 18 && /const HEAVY = new Set\(\[[^\]]*"maxMana"/.test(netSrc) && !/const HEAVY = new Set\(\[[^\]]*"mana"/.test(netSrc), `the wire: PROTOCOL ${netMod.PROTOCOL}; maxMana heavy, mana light`);
+    // The card.
+    const card = itemInfoMod.textOf(itemInfoMod.cardFor(itemsMod.makeEntry("book_of_fire")));
+    assert(card.includes(`Costs ${cost} mana a cast, spent when it is released.`), `the book's card: ${card.join(" | ")}`);
+    return `100 a bar, ${T.manaRegen} a second in the host's step alone; ${cost} a Fireball, refused at 19.9 and 10 with the line and the flash, spent once on the release and never on a cancel or a dry one; a guest's prediction flashes and draws nothing; Pray by a label and by the verb, ${tuningMod.potions.praySeconds} s, refused far and elsewhere; the save, an old save, the sync part to two decimals, PROTOCOL 18 or later; the card`;
+  } finally {
+    promptMod.setMessageSink(null);
+  }
 });
 
 // Potions, step 2 (docs/47 sections 2 to 4, 8 and 9, #481): the vials made (one clay into two unfired vials at the workbench, one fired into a
@@ -3382,21 +3517,19 @@ check("potions: the vials, the cauldron (the witch's and your own), the brews wi
     loopMod.setSimTime(5020);
     potionsMod.drinkFrom(me, full, { kind: "bag", bag });
     assert(!bag.items.includes(full) && bag.items.some((e) => e.id === "clay_vial" && e.x === full.x && e.y === full.y), "the last of a stack's vial took its cell in a full bag");
-    // Mana: refused and kept with no bar (#480's), else 50 up to the most.
+    // Mana: 50 on the bar of #480 (`player.mana`), up to the player's own most (`maxMana`).
     clear();
     const mana = give("mana_potion", 1);
     const mana0 = me.mana;
-    delete me.mana;
     loopMod.setSimTime(6000);
-    assert(!potionsMod.drinkFrom(me, mana, { kind: "bag", bag }) && last() === potionsMod.NO_MANA && bag.items.includes(mana), `no mana bar: "${last()}"`);
     me.mana = 30;
     assert(potionsMod.drinkFrom(me, mana, { kind: "bag", bag }) && me.mana === 80, `mana from 30: ${me.mana}`);
     loopMod.setSimTime(6020);
     const mana2 = give("mana_potion", 1);
-    me.mana = 90;
+    me.mana = me.maxMana - 10;
     potionsMod.drinkFrom(me, mana2, { kind: "bag", bag });
-    assert(me.mana === (Number.isFinite(me.maxMana) ? me.maxMana : Number.isFinite(tuningMod.player.mana) ? tuningMod.player.mana : 100), `mana capped: ${me.mana}`);
-    if (mana0 === undefined) delete me.mana; else me.mana = mana0;
+    assert(me.mana === me.maxMana && me.maxMana === tuningMod.player.mana, `mana capped: ${me.mana} of ${me.maxMana}`);
+    me.mana = mana0;
     // The poisons: never drunk, the line from every slot and a double-click, no Drink in a menu.
     clear();
     belt[0] = mk("poison");

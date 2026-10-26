@@ -135,7 +135,9 @@ export function makeCode() {
 // 17 (2026-10-25, the belt's slots by role, #478): a belt key's event in a guest's snapshot names the slot's role (`beltMain1`, `beltOff1`,
 // `beltUtility`, `beltMain2`, `beltOff2`; inventory.BELT_EVENTS) in place of its number (`belt1` to `belt4`), and the heavy record no longer
 // carries `beltHands`; an older guest's keys would be dropped by the host's filter.
-// 19 (2026-10-25, the potions' step 2, #481; 18 left to the mana's #480, built beside it): a player's light record carries `potionAt`, the sim
+// 18 (2026-10-25, the mana bar, #480, docs/47 step 1): a player's light record carries `mana` (to two decimals) and `manaFlash`, the bar's flash
+// on a refused cast, and its heavy record `maxMana`; the record changed shape, and an older guest drew no mana bar and kept no mana.
+// 19 (2026-10-25, the potions' step 2, #481): a player's light record carries `potionAt`, the sim
 // time of the last potion, and `buffs` (`{ stamina: { left } }`, its time to two decimals), so the record changed shape; an older guest
 // neither drew the stamina buff in its row nor regenerated its predicted stamina at the buff's rate, and knew none of the potions' items.
 export const PROTOCOL = 19;
@@ -264,7 +266,7 @@ const lastRoster = { zombies: "", villagers: "", corpses: "", animals: "" };
 // predicted swing is refused or allowed on the same step as the host's (rounded, a cooldown of 0.0167 would go as 0.02 and
 // the guest would hold a click the host took).
 const EXACT = new Set(["gx", "gy", "attackCooldown", "offCooldown", "swingLock", "shoveCooldown"]); // shoveCooldown: the shove's recovery gates a swing too (docs/41, step 2)
-const HEAVY = new Set(["worn", "hidden", "handed", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
+const HEAVY = new Set(["worn", "hidden", "handed", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxMana", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
 const lastHeavy = new Map(); // player id -> the heavy part's text last sent
 const lastLight = new Map(); // player id -> the light record's text last sent
 const lastExtras = { rules: "", carriers: "", queues: "", animalHomes: "" }; // sent when they change, not every frame

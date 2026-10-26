@@ -160,7 +160,8 @@ function byDraw(d) {
 const tiles = (n) => `${n} tile${n === 1 ? "" : "s"}`;
 // What one burn does to the dead (data/combat.json `burn`): the whole of it, capped. Only the dead burn (burn.js).
 const burnLine = () => line(`Sets the dead it hits alight: ${Math.round(Math.min(BURN.cap, BURN.dps * BURN.duration))} damage over ${BURN.duration} seconds.`);
-// No cost is said for a cast or a throw: none is charged beyond the draw (docs/24, Q2), and a card never claims one the game does not take.
+// A throw costs nothing beyond the draw (docs/24, Q2); a spell costs its `mana` (docs/47 section 5), said on its book's card. A card never claims a
+// cost the game does not take.
 const ammoOf = (bowDef) => bowDef.bow.ammo || ["arrow"]; // a bow's arrows in the order it takes them (archery.launcherOf)
 
 // The lines for what is shot, thrown, or cast (#317), read from the item's `thrown`, `bow`, `book.spell`, and `staff` blocks, an arrow's bows
@@ -198,6 +199,8 @@ function shotLines(def) {
   const s = def.book && def.book.spell;
   if (s) {
     out.push(line(`Cast ${s.name} (left button, a staff in the other hand): ${byDraw(s.damage)}, up to ${tiles(s.range ?? shot.range)}.`));
+    // Its cost (docs/47 section 5): paid when the spell is released; refused before the draw when the bar cannot pay.
+    if (s.mana > 0) out.push(line(`Costs ${s.mana} mana a cast, spent when it is released.`));
     const burst = [s.contact ? "on the first of the dead or wild game it meets" : "", s.landRadius ? `within ${tiles(s.landRadius)} of where it lands` : ""].filter(Boolean);
     // A spell passes a tame animal by (archery.bodyAt, docs/45 section 2): the dead and wild game are what it meets.
     if (burst.length) out.push(line(`${s.name} bursts ${burst.join(", or ")}; it passes tame animals by.`));
