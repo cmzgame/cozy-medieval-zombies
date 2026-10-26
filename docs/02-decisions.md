@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Honey goes into a clay jar made like a vial; eating it leaves the jar; a couple of jars at the cottage to start (2026-10-26, Honey goes into a clay jar)
 - The mana herb is Mageroot for now; grave moss keeps its name; no plant is gathered or grows back only at night, Herbalism 6 and 7 struck and their replacements open (2026-10-25, The evening's rulings)
 - Pemmican heals 3 and fills 35; eggs do not stack, open to change after a playtest (2026-10-25, The evening's rulings)
 - A new rock, ore rock, or salt rock rises with a shudder, a cinematic entrance with no lore; a newborn animal may appear in view in its pen (2026-10-25, The evening's defaults ruled)
@@ -304,6 +305,16 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-26 — Honey goes into a clay jar: made like a vial, the jar back when it is eaten, a couple at the cottage (Michael)
+
+From his playtest, on the checklist: "Sidling up to a beehive, taking honey, and getting an item called 'pot of honey' is really confusing now that we have you gathering vials for potions. It's a free pot vending machine? ... I think you should have to have pots, give maybe one for free at your house, rest are made?" Primary recommended a clay jar made as a vial is; Michael: "Honey goes into an empty clay jar, made like a vial; eating leaves the jar; a couple of jars at the cottage to start."
+
+- **Taking honey needs an empty clay jar** carried; it fills the jar. Without one, the hive says so.
+- **A clay jar is made like a vial:** clay shaped at the workbench and fired in an oven (the clay ruling of 2026-10-23; `docs/47` section 2).
+- **Eating the honey leaves the empty jar**, as drinking a potion leaves its vial; so does honey spent in a recipe (pemmican's binder, the stamina potion's secondary).
+- **Your cottage starts with a couple of empty jars.**
+- *Primary's defaults:* one clay shapes one unfired jar (a vial is two to a clay; a jar is bigger), fired to a clay jar, 1 by 1, stacking 10 as the vial does; the item becomes the **Jar of honey**; "You need an empty jar." when there is none; two empty jars in the cottage's chest; the hives stay open to all (only a hive of your own is Beastlore 5, already ruled).
 
 ### 2026-10-25 — Sight-pull ruled: one of the dead drawn in calls once to those that see it, with no chain; sound stays out (Michael)
 
