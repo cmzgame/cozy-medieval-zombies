@@ -34,12 +34,12 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 - **Bugs:** two batches from `docs/bugs.md` (#454, #466), including a made counter landing on its own workbench.
 
 **The order ahead** (Michael, 2026-10-25), each a sit-down with him, **the belt's own discussion first** (pinned: "we come back to it before the sit downs"):
-1. Power items: gems (#281), trinkets (#282), silver (#283).
-2. Armour and difficulty (#133).
-3. Lore and the map (#217, #92), folding in villagers (#103), the wizard (#181), the regions' edge (#123).
-4. The demo, the business, and so on.
-5. Eventually, the regions.
-- **Potions, a sitting of its own, its place in the order Michael's to say** (Michael, 2026-10-25: "This may need its own sit, I want to make sure this system is built thoughtfully"): which herbs and how many go into each, and what making one takes (vials, water); with it, Herbalism 6 and 7's replacements (struck) and what the herb bed grows (`docs/02` open questions 35 and 36).
+1. **Potions**, first after the belt (Michael, 2026-10-25: "Put the potions sitting first, right after the belt discussion, before power items.") (Michael, 2026-10-25: "This may need its own sit, I want to make sure this system is built thoughtfully"): which herbs and how many go into each, and what making one takes (vials, water); with it, Herbalism 6 and 7's replacements (struck) and what the herb bed grows (`docs/02` open questions 35 and 36).
+2. Power items: gems (#281), trinkets (#282), silver (#283).
+3. Armour and difficulty (#133).
+4. Lore and the map (#217, #92), folding in villagers (#103), the wizard (#181), the regions' edge (#123).
+5. The demo, the business, and so on.
+6. Eventually, the regions.
 
 **Open lines of `docs/39` by issue** (counted 2026-10-25, evening, by line; 52 open, down from 162): #92 11 · #281 7 · #123 7 · #282 5 · #133 5 · #181 4 · #283 4 · #103 3 · #262, #104, #271, #261, #217, #106 1 each.
 
