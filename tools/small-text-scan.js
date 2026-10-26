@@ -2,6 +2,8 @@
 // (src/ui/small-text.js, SMALL_TEXT_MAX_PX) that is not set in the clear sans-serif (`--font-small`), every absolute size above it whose rule names
 // no face of its own (it would inherit a small container's), and every font size the scan cannot classify, so a new form fails until it is taught.
 // `tools/check.js` runs it on the real files and on planted snippets ("small text"); the page's computed fonts are `check("smalltext")`'s, in the pane.
+// It never throws: anything that would (a size nested thousands deep) is an unclassified failure named by its file and line. A quote the line
+// does not close, in the stylesheet, fails by its line too, rather than hiding the rest of the file.
 //
 // The stylesheet, rule by rule, its blocks read with strings and parentheses respected (so `content: "}"` hides nothing): a rule inside an at-rule
 // (@media, @supports ...) is its own; a rule nested inside another rule (native CSS nesting) fails, named by its line, since the scan does not
@@ -202,7 +204,7 @@ export function faceOf(family) {
   const f = family.replace(/!\s*important\s*$/i, "").trim();
   if (/^var\(\s*--font-small\s*[,)]/i.test(f)) return "small";
   if (GLOBAL.test(f) || /^initial$/i.test(f)) return "none";
-  const first = splitTop(f, ",")[0].replace(/^["']|["']$/g, "").trim().toLowerCase();
+  const first = (splitTop(f, ",")[0] || "").replace(/^["']|["']$/g, "").trim().toLowerCase();
   if (/^(?:ui-monospace|monospace|consolas|courier new|menlo|monaco)$/.test(first) || /^var\(\s*--font-mono\b/.test(first)) return "exempt";
   if (first === "pirata one" || /^var\(\s*--font-title\b/.test(first)) return "exempt";
   return "other";
@@ -221,10 +223,29 @@ const lineAt = (text) => {
 };
 
 export function scanCss(cssText, max, file = "style.css") {
-  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
-  const line = lineAt(css);
+  const line = lineAt(cssText);
   const rules = [];
   const bad = [], bigNoFace = [], unknown = [];
+  // The comments blanked (lengths and lines kept), quotes respected (`content: "/*"` opens no comment). A quote the line does not close ends
+  // there, as a browser ends a bad string, and fails by its line rather than hiding the rest of the file.
+  const chars = cssText.split("");
+  for (let i = 0, q = null, qAt = 0; i <= chars.length; i++) {
+    const c = chars[i];
+    if (q) {
+      if (c === "\\") i++;
+      else if (c === q) q = null;
+      else if (c === "\n" || c === undefined) { unknown.push(`${file}:${line(qAt)} (an unclosed quote: the line ends inside it)`); q = null; }
+      continue;
+    }
+    if (c === '"' || c === "'") { q = c; qAt = i; }
+    else if (c === "/" && chars[i + 1] === "*") {
+      const e = cssText.indexOf("*/", i + 2);
+      const end = e < 0 ? chars.length : e + 2;
+      for (let k = i; k < end; k++) if (chars[k] !== "\n") chars[k] = " ";
+      i = end - 1;
+    }
+  }
+  const css = chars.join("");
   // The blocks, one walk: `{` opens a block whose selector is the text since the last boundary, `;` ends a declaration, `}` closes; quotes and
   // parentheses are respected (a `;` in url(data:...), a `}` in content:).
   const stack = [{ sel: "", at: true, decls: [] }];
@@ -236,7 +257,7 @@ export function scanCss(cssText, max, file = "style.css") {
   };
   for (let i = 0; i < css.length; i++) {
     const c = css[i];
-    if (q) { if (c === "\\") i++; else if (c === q) q = null; continue; }
+    if (q) { if (c === "\\") i++; else if (c === q || c === "\n") q = null; continue; }
     if (c === '"' || c === "'") q = c;
     else if (c === "(") depth++;
     else if (c === ")") depth = Math.max(0, depth - 1);
@@ -248,12 +269,12 @@ export function scanCss(cssText, max, file = "style.css") {
       const parent = stack[stack.length - 1];
       const at = line(start + Math.max(0, raw.search(/\S/)));
       if (!parent.at) unknown.push(`${file}:${at} ${sel} (a rule nested inside ${parent.sel}: the scan does not read CSS nesting)`);
-      stack.push({ sel, at: sel.startsWith("@"), decls: [] });
+      stack.push({ sel, at: sel.startsWith("@"), decls: [], line: at });
       start = i + 1;
     } else if (c === "}") {
       const frame = stack.length > 1 ? stack.pop() : stack[0];
       declAt(frame, start, i);
-      if (frame !== stack[0]) rules.push({ sel: frame.sel, decls: frame.decls });
+      if (frame !== stack[0]) rules.push({ sel: frame.sel, decls: frame.decls, line: frame.line });
       start = i + 1;
     }
   }
@@ -261,7 +282,14 @@ export function scanCss(cssText, max, file = "style.css") {
   for (const r of rules) for (const d of r.decls) if (d.prop.startsWith("--")) (vars[d.prop] ||= []).push(d.value);
   let small = 0;
   const last = (list) => list.filter((d) => /!\s*important\s*$/i.test(d.value)).pop() || list[list.length - 1];
-  for (const { sel, decls } of rules) {
+  for (const { sel, decls, line: ruleLine } of rules) {
+    try {
+      classifyRule(sel, decls);
+    } catch (e) {
+      unknown.push(`${file}:${ruleLine} ${sel} (the scan threw: ${e.message})`); // never a crash: a named failure
+    }
+  }
+  function classifyRule(sel, decls) {
     const sizes = [], faces = [];
     for (const d of decls) {
       if (d.prop === "font-size") {
@@ -276,7 +304,7 @@ export function scanCss(cssText, max, file = "style.css") {
         faces.push({ ...d, face: faceOf(sh.family) });
       } else if (d.prop === "font-family") faces.push({ ...d, face: faceOf(d.value) });
     }
-    if (sizes.length === 0) continue;
+    if (sizes.length === 0) return;
     const size = last(sizes);
     const face = faces.length ? last(faces).face : "none";
     if (size.kind === "small") {
@@ -288,7 +316,7 @@ export function scanCss(cssText, max, file = "style.css") {
 }
 
 // The scripts' lexer: the text with its comments blanked (lengths and lines kept), the ranges of its strings and templates (a template whole,
-// its ${} parts inside it), and the ranges of literal text alone (a quoted string, a template's text between its ${} parts).
+// its ${} parts inside it), and the ranges of literal text alone (a quoted string, a template's text between its ${} parts, a regular expression).
 export function lexJs(src) {
   const code = src.split("");
   const strings = [];
@@ -329,7 +357,7 @@ export function lexJs(src) {
     }
     if (c === "`") { const s = i++; template(s); continue; }
     if (c === "/" && regexHere()) {
-      i++;
+      const r0 = i++;
       let cls = false;
       while (i < src.length && src[i] !== "\n") {
         const d = src[i];
@@ -340,6 +368,7 @@ export function lexJs(src) {
         i++;
       }
       i++;
+      text.push([r0, Math.min(i, src.length)]); // a regular expression is literal text too: its braces are no object's
       continue;
     }
     if (c === "{") depth++;
@@ -355,14 +384,19 @@ export function lexJs(src) {
 
 const SMALL_JS = /\bSMALL_FONT_VAR\b|\bsmallFamily\s*\(|var\(\s*--font-small\s*\)/;
 const MONO_JS = /monospace|Consolas/i;
+// An inline declaration and its value: quoted runs (a 'Courier New' inside a double-quoted attribute) and escapes kept whole.
+const DECL = /(?<![\w-])(font-size|font-family|font)\s*:\s*((?:\\.|[^;"'`\\]|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')*)/g;
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export function scanJs(files, max) {
   const badJs = [], unknown = [];
   let sites = 0;
   for (const [name, src] of files) {
+    let cur = 0, lineOf = null; // where the scan is, for a throw's file:line
+    try {
     const { code, strings, text } = lexJs(src);
     const line = lineAt(code);
+    lineOf = line;
     const lines = code.split("\n");
     const used = new Set(); // the indices a form has consumed
     const reads = new Set(); // the indices that are no write (a ternary's arm, a label, a destructuring)
@@ -401,7 +435,16 @@ export function scanJs(files, max) {
       }
       return b < code.length ? [a, b + 1] : null;
     };
-    const isPattern = (o) => /^\s*(?:=(?![=>])|of\b|in\b)/.test(code.slice(o[1], o[1] + 8)); // a destructuring: a read, not a style object
+    const isPattern = (o) => {
+      // a destructuring (a read, not a style object): the object, or one it is nested in, is followed by `=`, `of`, or `in`
+      for (let k = 0; o && k < 8; k++) {
+        const after = code.slice(o[1], o[1] + 8);
+        if (/^\s*(?:=(?![=>])|of\b|in\b)/.test(after)) return true;
+        if (!/^\s*[},]/.test(after)) return false;
+        o = objectAt(o[0]);
+      }
+      return false;
+    };
     const sizeNeedsFace = (v) => {
       // "ok" (a big literal, zero, a reset), "needs" (small, or not a literal: the small face must be there), "number", or "unknown"
       if (reset(v)) return "ok";
@@ -435,6 +478,7 @@ export function scanJs(files, max) {
     // 1. Writes on an element's style.
     const RECV = "([\\w$][\\w$.]*(?:\\[[^\\]\\n]*\\])*(?:\\.[\\w$]+)*)";
     for (const m of code.matchAll(new RegExp(`${RECV}\\.style\\s*(?:\\.fontSize\\b|\\[\\s*(["'\`])(?:fontSize|font-size)\\2\\s*\\])\\s*=(?!=)\\s*([^;\\n]*)`, "g"))) {
+      cur = m.index;
       if (inText[m.index]) continue;
       used.add(m.index + m[0].search(/fontSize|font-size/));
       const need = sizeNeedsFace(m[3]);
@@ -443,6 +487,7 @@ export function scanJs(files, max) {
       else if (need === "needs" && !faceOnElement(m[1], m.index)) report(badJs, m.index, `${m[1]}.style.fontSize without the small family on ${m[1]}`);
     }
     for (const m of code.matchAll(new RegExp(`${RECV}\\.style\\.setProperty\\(\\s*(["'\`])(font-size|font)\\2\\s*,\\s*([^;\\n]*)`, "g"))) {
+      cur = m.index;
       if (inText[m.index]) continue;
       m[4] = m[4].replace(/\)\s*$/, ""); // the call's own parenthesis
       used.add(m.index + m[0].indexOf(m[3], m[0].indexOf("setProperty")));
@@ -456,6 +501,7 @@ export function scanJs(files, max) {
     }
     // 2. Object keys: fontSize, "font-size" (an Object.assign onto a style, or any other style object), after a `{` or a `,`.
     for (const m of code.matchAll(/(?:(?<![\w$.])fontSize|(["'`])font-size\1)\s*:(?!:)\s*([^,}\n]*)/g)) {
+      cur = m.index;
       if (m[1] === undefined ? inText[m.index] : (stringAt(m.index) || [])[0] !== m.index) continue; // inside a string: an inline style's, below
       const key = m.index + (m[1] ? 1 : 0);
       if (!/[{,]/.test(prevChar(m.index))) { reads.add(key); continue; } // `big ? fontSize : 0`, a label: no key
@@ -476,50 +522,59 @@ export function scanJs(files, max) {
     }
     // 3. An inline style in a string or template: font-size: or font:, its face read from its own declaration block.
     const asCss = (v) => v.replace(/\$\{\s*(?:SMALL_FONT_VAR|smallFamily\(\s*\))\s*\}/g, "var(--font-small)");
+    const unesc = (v) => v.replace(/\\(.)/g, "$1"); // `\'Courier New\'` in a single-quoted string is 'Courier New'
     const blockAt = (s, at) => {
       // the style="..." attribute round `at` (its text between the quotes, ${} parts skipped over), or the whole string when it is in none
       let open = null;
-      for (const m of s.slice(0, at).matchAll(/\bstyle\s*=\s*(["'])/g)) open = m;
+      for (const m of s.slice(0, at).matchAll(/\bstyle\s*=\s*(\\?["'])/gi)) open = m;
       if (open) {
         const qc = open[1];
         let k = open.index + open[0].length, d = 0;
         for (; k < s.length; k++) {
-          if (s[k] === "$" && s[k + 1] === "{") { d++; k++; } else if (s[k] === "}" && d > 0) d--;
-          else if (s[k] === qc && d === 0) break;
+          if (s[k] === "$" && s[k + 1] === "{") { d++; k++; }
+          else if (d > 0) { if (s[k] === "{") d++; else if (s[k] === "}") d--; }
+          else if (s.startsWith(qc, k)) break;
         }
-        if (at < k) return s.slice(open.index + open[0].length, k);
+        const from = open.index + open[0].length;
+        if (at < k) return { text: s.slice(from, k), off: from };
       }
-      return s.replace(/^["'`]|["'`]$/g, "");
+      return { text: s.slice(1, -1), off: 1 }; // the string's own delimiters off
     };
     const blockFace = (block) => {
       // the block's last family, from font-family: or a font: shorthand: "small", "exempt", "other", or "none"
       let face = "none";
-      for (const m of asCss(block).matchAll(/(?<![\w-])(font-family|font)\s*:\s*([^;"'`]*)/g)) {
-        if (m[1] === "font-family") face = faceOf(m[2]);
-        else { const sh = shorthandOf(m[2]); if (sh) face = faceOf(sh.family); }
+      for (const m of block.matchAll(DECL)) {
+        const v = asCss(unesc(m[2]));
+        if (m[1] === "font-family") face = faceOf(v);
+        else if (m[1] === "font") { const sh = shorthandOf(v); if (sh) face = faceOf(sh.family); }
       }
       return face;
     };
     for (const [a, b] of strings) {
       const s = code.slice(a, b);
-      for (const m of s.matchAll(/(?<![\w-])(font-size|font)\s*:\s*([^;"'`]*)/g)) {
+      for (const m of s.matchAll(/(?<![\w-])(font-size|font)\s*:/g)) {
         const at = a + m.index;
+        cur = at;
         if (!inText[at] || stringAt(at)[0] !== a) continue; // in a ${} part, or a string inside it: its own turn
         used.add(at);
         const block = blockAt(s, m.index);
-        const face = blockFace(block);
+        const sticky = new RegExp(DECL.source, "y");
+        sticky.lastIndex = m.index - block.off;
+        const d = sticky.exec(block.text);
+        if (!d) { report(unknown, at, "an inline font size the scan cannot read"); continue; }
+        const value = asCss(unesc(d[2])).trim();
+        const face = blockFace(block.text);
         const sameFace = face === "small" || face === "exempt";
         if (m[1] === "font") {
-          const sh = shorthandOf(asCss(m[2]));
+          const sh = shorthandOf(value);
           const kind = sh && !/\$\{/.test(sh.size) ? sizeOf(sh.size, max) : "small";
           if (kind === "big" || kind === "rel" || kind === "zero" || sameFace) continue;
-          if (kind === null) report(unknown, at, `an inline font: ${m[2].trim()}`);
+          if (kind === null) report(unknown, at, `an inline font: ${value}`);
           else report(badJs, at, "an inline font: without the small family in its own style");
           continue;
         }
-        const v = /\$\{/.test(m[2]) ? null : m[2].trim();
-        const kind = v === null ? "small" : sizeOf(v, max);
-        if (kind === null) report(unknown, at, `an inline font-size: ${m[2].trim()}`);
+        const kind = /\$\{/.test(value) ? "small" : sizeOf(value, max);
+        if (kind === null) report(unknown, at, `an inline font-size: ${value}`);
         else if (kind === "small" && !sameFace) report(badJs, at, "an inline font-size without the small family in its own style");
       }
     }
@@ -537,6 +592,7 @@ export function scanJs(files, max) {
       return kind === "big" || kind === "rel" || kind === "zero";
     }
     for (const m of code.matchAll(/(?:\.font\s*=(?!=)|(?<![\w$.-])font\s*:(?!:))\s*([^;\n]*)/g)) {
+      cur = m.index;
       if (inText[m.index]) continue;
       const assign = m[0].startsWith(".");
       if (!assign && !/[{,]/.test(prevChar(m.index))) continue; // `big ? font : other`, a label: no key
@@ -551,6 +607,7 @@ export function scanJs(files, max) {
     }
     // 5. The guard: anything else that writes a font size.
     for (const m of code.matchAll(/fontSize\b(?=\s*(?:=(?!=)|:(?!:)))|(["'`])(?:fontSize|font-size)\1/g)) {
+      cur = m.index;
       const at = m.index + (m[1] ? 1 : 0);
       if (used.has(at) || used.has(m.index) || reads.has(at)) continue;
       if (m[1]) {
@@ -565,6 +622,9 @@ export function scanJs(files, max) {
       report(unknown, m.index, "a font size written in a form the scan does not classify");
     }
     sites += used.size;
+    } catch (e) {
+      unknown.push(`${name}:${lineOf ? lineOf(cur) : 1} (the scan threw: ${e.message})`); // never a crash: a named failure
+    }
   }
   return { badJs, unknown, sites };
 }
