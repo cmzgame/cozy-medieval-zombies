@@ -135,7 +135,9 @@ export function makeCode() {
 // 17 (2026-10-25, the belt's slots by role, #478): a belt key's event in a guest's snapshot names the slot's role (`beltMain1`, `beltOff1`,
 // `beltUtility`, `beltMain2`, `beltOff2`; inventory.BELT_EVENTS) in place of its number (`belt1` to `belt4`), and the heavy record no longer
 // carries `beltHands`; an older guest's keys would be dropped by the host's filter.
-export const PROTOCOL = 17;
+// 18 (2026-10-25, the mana bar, #480, docs/47 step 1): a player's light record carries `mana` (to two decimals) and `manaFlash`, the bar's flash
+// on a refused cast, and its heavy record `maxMana`; the record changed shape, and an older guest drew no mana bar and kept no mana.
+export const PROTOCOL = 18;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -261,7 +263,7 @@ const lastRoster = { zombies: "", villagers: "", corpses: "", animals: "" };
 // predicted swing is refused or allowed on the same step as the host's (rounded, a cooldown of 0.0167 would go as 0.02 and
 // the guest would hold a click the host took).
 const EXACT = new Set(["gx", "gy", "attackCooldown", "offCooldown", "swingLock", "shoveCooldown"]); // shoveCooldown: the shove's recovery gates a swing too (docs/41, step 2)
-const HEAVY = new Set(["worn", "hidden", "handed", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
+const HEAVY = new Set(["worn", "hidden", "handed", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxMana", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
 const lastHeavy = new Map(); // player id -> the heavy part's text last sent
 const lastLight = new Map(); // player id -> the light record's text last sent
 const lastExtras = { rules: "", carriers: "", queues: "", animalHomes: "" }; // sent when they change, not every frame

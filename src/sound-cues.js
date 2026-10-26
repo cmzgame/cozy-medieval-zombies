@@ -175,13 +175,16 @@ function listenerAt(S) {
 // does), the shove (its cooldown risen), the bow's draw (a loop while `draw` is up with a bow in hand, its rate following
 // the draw) and release (`recover` risen with a bow), a spell's cast (`recover` risen with a spell). A dry release sets no
 // `recover`, so it ends the draw's loop and plays no twang. A thrown spear's throw is a sound of its own, later.
+// The mana bar's flash rising is a cast it could not pay for (`mana_short`, docs/47 section 5), and a prayer's bar beginning is `pray` (the host's
+// timed action, or a guest's copy's `actionView` from the record): both for this client's own player alone.
 function clocks(p) {
-  return { main: p.attackCooldown || 0, off: p.offCooldown || 0, shove: p.shoveCooldown || 0, recover: p.recover || 0 };
+  const praying = p.action && p.action.action ? p.action.action.kind === "pray" : !!(p.actionView && p.actionView.label === "Pray");
+  return { main: p.attackCooldown || 0, off: p.offCooldown || 0, shove: p.shoveCooldown || 0, recover: p.recover || 0, flash: p.manaFlash || 0, praying };
 }
 
 function players(S) {
   for (const p of S.players) {
-    const was = hands.get(p.id) || { main: 0, off: 0, shove: 0, recover: 0 };
+    const was = hands.get(p.id) || { main: 0, off: 0, shove: 0, recover: 0, flash: 0, praying: false };
     const now = clocks(p);
     hands.set(p.id, now);
     if (p.dead) {
@@ -192,6 +195,9 @@ function players(S) {
     if (now.main - was.main > swingCfg.rise) audio.play(swingSlot(mainWeapon(p, now.main)), { at });
     if (now.off - was.off > swingCfg.rise) audio.play(swingSlot(combat.offWeaponOf(p) || combat.FISTS), { at });
     if (now.shove - was.shove > swingCfg.rise) audio.play("shove", { at });
+    // Mine alone, as their twins are (the bar's flash and the prayer's bar are this client's own HUD): interface sounds, at no place.
+    if (p === client.me && now.flash > was.flash + 1e-6) audio.play("mana_short", { at: null });
+    if (p === client.me && now.praying && !was.praying) audio.play("pray", { at: null });
     const L = archery.launcherOf(p);
     const kind = L && !L.refuse ? L.kind : null;
     if (p.draw && kind === "bow") {
