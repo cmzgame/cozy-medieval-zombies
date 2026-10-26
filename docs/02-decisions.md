@@ -159,7 +159,6 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 ### The character, the figure, and art
 
 - A character is right-handed or left-handed, never ambidextrous, right by default, chosen once with its identity; it is visual and a label alone: the hand slots' names on the character screen, the belt's hand icons, and the arm the main hand's thing is drawn in; everything mechanical stays main and off (2026-10-25, Right- or left-handed)
-
 - Cheery at home, spooky beyond: the valley start-as-Stardew, Tirisfal the outer regions' register, region by region, not a gradient (2026-10-25, Cheery at home, spooky beyond)
 - Habbo is no longer the visual reference; its techniques (flat side shading, stepped shadows) stay as how pixels are drawn (2026-10-25, Cheery at home, spooky beyond)
 - The long, thin items (the plank, the stick, the shovel, the hatchet) take the larger bag icon, the drawing rendered to fill the cell; the rope belt is drawn in today's belt's browns (2026-10-20, The everyday items' art: the large icons for the long items; the rope belt in today's belt's browns (Michael))
