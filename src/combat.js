@@ -27,6 +27,7 @@ import * as rng from "./rng.js";
 import { rules } from "./rules.js";
 import { detach } from "./inventory.js"; // a worn-out weapon leaves the hand (docs/30, 5.2)
 import * as animals from "./entities/animal.js"; // the blows that reach an animal (docs/45 section 2)
+import * as poison from "./poison.js"; // a blade's coat, spent by a swing that lands and poisoning every body it strikes (docs/47 section 6)
 
 // Tunables (docs/14).
 // The blow's own numbers (the wiki census, 2026-10-15: combat numbers are data): `data/combat.json` `blow` fills
@@ -70,6 +71,7 @@ export function setCombatData(data) {
   setInfectionData(data.infection);
   setBleedData(data.bleed);
   burn.setBurnData(data.burn);
+  poison.setPoisonData(data.poison);
   Object.assign(FINISHER, data.finisher || {});
   Object.assign(BLOW, data.blow || {});
 }
@@ -387,13 +389,18 @@ export function tryAttack(player, zombies, hand = "main", mode = null, predict =
   const dir = gridAim(player);
   const hit = [];
   let killed = false;
+  // A blade's coat (docs/47 section 6): every body the swing strikes is poisoned, and the swing spends one hit however many it strikes.
+  const coated = player.hands[hand];
+  const coatTier = poison.coatOf(coated) ? coated.poison.tier : 0;
   for (const z of blowTargets(player, weapon, zombies)) {
     hit.push(z);
     if (z.kind === "animal") {
       // An animal (docs/45 section 2): the blow's damage, no knockdown or combo; the weapon's class decides what the carcass gives.
       const swungEntry = player.hands[hand];
       const amount = Math.round(weapon.damage * (tired ? BLOW.tiredDamage : 1) * guardedMult(player) * (hand === "off" ? DUAL.offDamage : 1));
-      if (animals.damageAnimal(z, amount, { by: player, cls: animals.classOfItem(swungEntry && swungEntry.id), from: [player.gx, player.gy] }).killed) killed = true;
+      const cls = animals.classOfItem(swungEntry && swungEntry.id);
+      if (animals.damageAnimal(z, amount, { by: player, cls, from: [player.gx, player.gy] }).killed) killed = true;
+      if (coatTier) poison.apply(z, coatTier, cls); // after the blow: a body it killed is not poisoned
       continue;
     }
     // On the floor it is a finisher; rising it takes plain damage and nothing else (docs/41, step 3: the floor is
@@ -423,8 +430,10 @@ export function tryAttack(player, zombies, hand = "main", mode = null, predict =
     if (weapon.ignite && !dousedTorch && rng.chance(weapon.ignite)) burn.ignite(z);
     const r = damageZombie(z, amount, { dir: [dir.x, dir.y], knockback: push, knockdown, stagger: weapon.stagger, staggerChance: weapon.staggerChance, from: [player.gx, player.gy] });
     if (r.killed) killed = true;
+    if (coatTier) poison.apply(z, coatTier);
   }
   if (hit.length) {
+    if (coatTier) poison.spendCoat(coated); // one hit of the coat a swing that lands; a miss spends none
     loop.freeze(killed ? BLOW.hitStopKill : BLOW.hitStop);
     kick(player);
     emit("meleeHit", { count: hit.length, killed });

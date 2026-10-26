@@ -18,6 +18,7 @@ import { getSheet, idleFrame } from "./assets.js";
 import { damageZombie } from "./entities/zombie.js";
 import { damageAnimal, isWild } from "./entities/animal.js"; // game shot, and stock only when aimed at (docs/45 section 2)
 import * as burn from "./burn.js";
+import * as poison from "./poison.js"; // a poisoned arrow's hit, and a coated spear's landing hit (docs/47 section 6)
 import { DOOR_TOP, WINDOW_SILL, WINDOW_TOP } from "./placeholders.js";
 import { countAll, takeAll, detach } from "./inventory.js";
 import { release, wearPerShot } from "./items.js";
@@ -111,7 +112,7 @@ export function preview(from, dir, distance, c = 1, range = tunables.range) {
 // Fire one. The landing point, the path, and the flight time are fixed here.
 // `from` is anyone with gx and gy (the archer). Returns the arrow.
 export function shoot(from, dir, distance, c = 1, o = {}) {
-  const { shooter = from, damage = tunables.damage, knockback = tunables.knockback, range = tunables.range, speed = tunables.speed, arcMin = tunables.arcMin, arcMax = tunables.arcMax, z0 = tunables.z0, projectile = "arrow", breakChance = 0, staggerChance = undefined, item = null, flat = false, vanish = false, contact = 0, landRadius = null, ignite = false } = o;
+  const { shooter = from, damage = tunables.damage, knockback = tunables.knockback, range = tunables.range, speed = tunables.speed, arcMin = tunables.arcMin, arcMax = tunables.arcMax, z0 = tunables.z0, projectile = "arrow", breakChance = 0, staggerChance = undefined, item = null, flat = false, vanish = false, contact = 0, landRadius = null, ignite = false, poison: poisonTier = 0 } = o;
   const p = preview(from, dir, distance, c, range);
   const T = Math.max(1 / 120, p.landing / speed);
   const a = {
@@ -126,6 +127,7 @@ export function shoot(from, dir, distance, c = 1, o = {}) {
     contact, // tiles: above 0, it bursts on the first of the dead within this of it as it flies (the fireball; #11)
     landRadius, // tiles: its own hit radius where it lands, or null for tunables.hitRadius (the fireball's wider; #11)
     ignite, // the body it hits is set alight (the fireball, a fire arrow; #14)
+    poison: poisonTier, // the body it hits is poisoned at this tier (a poisoned arrow; docs/47 section 6); a thrown thing's coat is on its `item`
     speed,
     z0,
     shooter,
@@ -291,13 +293,18 @@ function land(a, met = null) {
   else if (a.stopD == null) hit = bodyAt(gx, gy, a.landRadius ?? tunables.hitRadius, { z: a.z, spell: a.vanish }); // never through a wall (#13)
   let keep = true;
   const broken = a.breakChance > 0 && rng.chance(a.breakChance);
+  // A poisoned arrow's tier, or a coated thrown thing's landing hit, which spends one of its coat (a miss spends none; docs/47 section 6).
+  const poisonTier = hit ? a.poison || (a.item ? poison.spendCoat(a.item) : 0) : 0;
   if (hit && hit.kind === "animal") {
     // An animal (docs/45 section 2): the shot's damage, the class the carcass keeps (an arrow the bow's, a thrown thing its own, a spell
     // its), and what stayed in it comes back when it is butchered. No fire: an animal does not burn.
-    damageAnimal(hit, shotDamage(a.damage, a.c), { by: a.shooter, cls: a.vanish ? "spell" : a.item ? "thrown" : "bow", from: [a.x0, a.y0] });
+    const cls = a.vanish ? "spell" : a.item ? "thrown" : "bow";
+    damageAnimal(hit, shotDamage(a.damage, a.c), { by: a.shooter, cls, from: [a.x0, a.y0] });
+    if (poisonTier) poison.apply(hit, poisonTier, cls);
   } else if (hit) {
     if (a.ignite) burn.ignite(hit); // before the damage, so a body it kills burns on as a corpse (#14)
     damageZombie(hit, shotDamage(a.damage, a.c), { dir: [a.dx, a.dy], knockback: a.knockback, staggerChance: a.staggerChance, from: [a.x0, a.y0] });
+    if (poisonTier) poison.apply(hit, poisonTier); // after it: a body it killed is not poisoned
   }
   if (hit) {
     // The arrow stays in the body (Michael): it comes out in the loot when the dead one is
@@ -698,6 +705,14 @@ export function generateFireArrow() {
   return makeProjectile("fire_arrow", { size: 24, len: 16, thick: 1, shaft: "#8a6a3a", head: "#5a4a3a", headLen: 3, fletch: "#e4dcc4", flame: true });
 }
 
+// A poisoned arrow in flight (docs/47 section 6): the arrow with its head green, the strong one's darker as its vial is. It lands, or lodges, as a plain arrow.
+export function generatePoisonArrow() {
+  return makeProjectile("poison_arrow", { size: 24, len: 16, thick: 1, shaft: "#8a6a3a", head: "#4aa040", headLen: 3, fletch: "#e4dcc4" });
+}
+export function generateStrongPoisonArrow() {
+  return makeProjectile("strong_poison_arrow", { size: 24, len: 16, thick: 1, shaft: "#8a6a3a", head: "#2a6a2a", headLen: 3, fletch: "#e4dcc4" });
+}
+
 // A wooden pole with a stone point (Michael): longer and thicker than an arrow, no fletching.
 export function generateSpear() {
   return makeProjectile("spear", { size: 32, len: 26, thick: 2, shaft: "#8a6a3a", head: "#b4b0a8", headLen: 6, fletch: null, cord: "#d8c8a0" });
@@ -743,13 +758,14 @@ export function launcherOf(player) {
   if (!def) return null;
   const common = { entry: e, range: tunables.range, speed: tunables.speed, arcMin: tunables.arcMin, arcMax: tunables.arcMax, z0: tunables.z0, drawTime: tunables.drawTime };
   // `button` is the button that draws it (docs/21): the bow on the left, a throw on the middle.
-  // The bow's arrows are its `ammo` in data/items.json, the first carried in its order (#317): fire arrows before plain ones (#14), the last
-  // the one a bow with none asks for. An arrow whose item is `ignite` burns what it hits, and lands as a plain arrow.
+  // The bow's arrows are its `ammo` in data/items.json, the first carried in its order (#317): fire arrows, then poisoned ones, then plain
+  // ones (#14, docs/47 section 6), the last the one a bow with none asks for. An arrow whose item is `ignite` burns what it hits, one whose
+  // item is `poisoned` poisons it, and either lands as a plain arrow.
   if (def.bow) {
     const list = def.bow.ammo || ["arrow"];
     const ammo = list.find((id) => countAll(player, id) > 0) || list[list.length - 1];
     const ad = getItem(ammo);
-    return { ...common, ...def.bow, kind: "bow", button: "primary", ammo, projectile: ammo, ignite: !!(ad && ad.ignite) };
+    return { ...common, ...def.bow, kind: "bow", button: "primary", ammo, projectile: ammo, ignite: !!(ad && ad.ignite), poison: poison.arrowTier(ad) };
   }
   if (def.thrown) return { ...common, ...def.thrown, kind: "thrown", button: "alt", ammo: null, projectile: def.thrown.projectile || def.id };
   return null;
@@ -867,7 +883,7 @@ export function releaseDraw(player, ctx) {
     item = { ...L.entry };
     release(player.hands, L.entry);
   }
-  const a = shoot(player, aim.dir, aim.distance, c, { damage: (L.damage ?? tunables.damage) * guardedMult(player), knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, staggerChance: L.staggerChance, item, flat: !!L.flat, vanish: !!L.vanish, contact: L.contact || 0, landRadius: L.landRadius ?? null, ignite: !!L.ignite });
+  const a = shoot(player, aim.dir, aim.distance, c, { damage: (L.damage ?? tunables.damage) * guardedMult(player), knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, staggerChance: L.staggerChance, item, flat: !!L.flat, vanish: !!L.vanish, contact: L.contact || 0, landRadius: L.landRadius ?? null, ignite: !!L.ignite, poison: L.kind === "bow" ? L.poison || 0 : 0 });
   player.recover = tunables.recoverTime;
   setPose(player, 3); // the release: the arrow loosed, the throw let go, the spell cast forward (docs/32, item 3)
   emit("arrowShot", { player, arrow: a, c });

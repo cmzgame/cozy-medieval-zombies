@@ -702,15 +702,7 @@ export function damageAnimal(a, amount, { by = null, cls = "melee", from = null 
   floaters.damage(a, amount);
   a.hp = Math.max(0, a.hp - amount);
   if (a.hp <= 0) {
-    a.dead = true;
-    a.state = "dead";
-    a.killedBy = cls;
-    a.path = [];
-    a.targetId = null;
-    a.leaderId = null; // a carcass keeps no leader
-    a.windup = 0;
-    playAnimation(a.anim, "dead", true);
-    emit("animalKilled", { animal: a, by, cls });
+    killAnimal(a, cls, by);
     return { killed: true };
   }
   const sp = speciesOf(a.species);
@@ -723,6 +715,29 @@ export function damageAnimal(a, amount, { by = null, cls = "melee", from = null 
     a.repathTimer = 0;
   } else if (sp.flee && at) startFlee(a, at, sp);
   return { killed: false };
+}
+
+// At nothing: a carcass, keeping the class of what killed it (`kills`), its leader let go.
+function killAnimal(a, cls, by = null) {
+  a.dead = true;
+  a.state = "dead";
+  a.killedBy = cls;
+  a.path = [];
+  a.targetId = null;
+  a.leaderId = null; // a carcass keeps no leader
+  a.windup = 0;
+  playAnimation(a.anim, "dead", true);
+  emit("animalKilled", { animal: a, by, cls });
+}
+
+// A poison's tick (src/poison.js, docs/47 section 6): health and nothing else, as a burn's share is on the dead (no flight, no charge; the
+// blow that poisoned it did those). A carcass it makes keeps `cls`, the class of the weapon whose hit poisoned it. Whether it killed.
+export function drainAnimal(a, amount, cls = "melee") {
+  if (!a || a.dead) return false;
+  a.hp = Math.max(0, a.hp - amount);
+  if (a.hp > 0) return false;
+  killAnimal(a, cls);
+  return true;
 }
 
 // ---- the carcass's yields: skinned, then butchered, a dirk carried (docs/45 section 2) ----

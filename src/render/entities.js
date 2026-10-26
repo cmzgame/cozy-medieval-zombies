@@ -16,6 +16,7 @@ import { seenAlpha } from "../sight.js";
 import { sight as sightTuning } from "../tuning.js";
 import * as hl from "./highlight.js"; // Object Highlight (#301)
 import { client } from "../client.js"; // the swing's targets, the client's own (#102)
+import { tintOf as poisonTintOf } from "../poison.js"; // a poisoned body's green (docs/47 section 6)
 
 export function projectileSheet(id) {
   try {
@@ -192,6 +193,16 @@ function burnTint() {
   return [1, 0.72 + 0.16 * k, 0.4 + 0.2 * k, 1];
 }
 
+// The colour a figure's body is drawn with: a burning one's orange pulse, a poisoned one's green pulsing with its stacks (poison.js `tintOf`,
+// from the record's tier and stacks, so a guest's replica draws it as the host does; docs/47 section 6), both multiplied together when it is
+// both, and the dark's fade; undefined for none.
+export function bodyTint(e, dim = null) {
+  const pt = e.poison && !e.dead ? poisonTintOf(e.poison, performance.now() / 1000) : null;
+  let c = e.burning ? burnTint() : dim;
+  if (pt) c = c ? c.map((v, i) => v * pt[i]) : pt;
+  return c || undefined;
+}
+
 const SHIELD_FLASH = [1, 0.95, 0.7, 1]; // a blow blocked
 const SHIELD_BROKEN = [1, 0.3, 0.25, 1]; // the guard broken
 
@@ -279,7 +290,7 @@ export function entityDrawables(entities, visible, out, drawAll, me = null) {
           if (h.tip) frameQuad(getSheet("flame"), `flame_${flameFrame(1)}`, h.x + h.tip[0], h.y + h.tip[1] - 2, { world, flags: gl.FLAG_UNLIT | gl.FLAG_NOFOG });
         };
         for (const h of held) if (!h.near) drawHeld(h);
-        frameQuad(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0, color: e.burning ? burnTint() : dim || undefined, flags: gl.FLAG_NOFOG | gl.FLAG_STANDING }, r.flip);
+        frameQuad(sheet, name, x, y, { world, heights: f ? [f[3], f[3], 0, 0] : 0, color: bodyTint(e, dim), flags: gl.FLAG_NOFOG | gl.FLAG_STANDING }, r.flip);
         for (const h of held) if (h.near) drawHeld(h);
         if (carried) {
           // Each footprint slice at its offset from the anchor, lifted over the head.

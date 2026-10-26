@@ -1481,6 +1481,8 @@ async function boot() {
       assets.registerSheet("arrow", archery.generateArrow()); // the bow's arrow, flying and landed (docs/20)
       assets.registerSheet("spear", archery.generateSpear()); // the thrown spear
       assets.registerSheet("fire_arrow", archery.generateFireArrow()); // a fire arrow in flight (#14)
+      assets.registerSheet("poison_arrow", archery.generatePoisonArrow()); // a poisoned arrow in flight, and a strongly poisoned one (docs/47 section 6)
+      assets.registerSheet("strong_poison_arrow", archery.generateStrongPoisonArrow());
       // The fireball (docs/24; the design agent's sheet). A failed load leaves the spell flying unseen, never the boot stopped.
       try {
         assets.registerSheet("fireball", archery.fireballSheet(await assets.loadImage("data/art/items/fireball.png")));

@@ -140,7 +140,11 @@ export function makeCode() {
 // 19 (2026-10-25, the potions' step 2, #481): a player's light record carries `potionAt`, the sim
 // time of the last potion, and `buffs` (`{ stamina: { left } }`, its time to two decimals), so the record changed shape; an older guest
 // neither drew the stamina buff in its row nor regenerated its predicted stamina at the buff's rate, and knew none of the potions' items.
-export const PROTOCOL = 19;
+// 20 (2026-10-26, the poisons' step 3, #482): the dead's record carries `po`, a poison's [tier, stacks], when there is one (its absence is
+// none), and an animal's `po` ("tier/stacks" or null), so both records changed shape; an entry may carry `poison: { tier, hits }`, a blade's
+// coat; and the bow's arrows include two new items (`poison_arrow`, `strong_poison_arrow`) flown by their own pictures. An older guest drew no
+// poisoned body green, kept a poison it was once sent for ever, and knew neither arrow.
+export const PROTOCOL = 20;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -781,9 +785,17 @@ const r2 = (n) => Math.round(n * 100) / 100;
 const roundAnim = (a) => (a && typeof a.elapsed === "number" ? { ...a, elapsed: r2(a.elapsed) } : a);
 const sameAnimKey = (r) => JSON.stringify(r.anim && typeof r.anim === "object" ? { ...r, anim: { name: r.anim.name, frame: r.anim.frame, done: r.anim.done } } : r);
 
+// A poison's tier and stacks from a frame ([tier, stacks]), as the replica's status, or null: the frame is a guest's input, so only small whole numbers.
+function poisonOf(po) {
+  if (!Array.isArray(po)) return null;
+  const [tier, stacks] = po;
+  return Number.isInteger(tier) && Number.isInteger(stacks) && tier >= 1 && tier <= 2 && stacks >= 1 && stacks <= 9 ? { tier, stacks } : null;
+}
+
 function slim(c) {
   const r = { id: c.id, gx: r3(c.gx), gy: r3(c.gy), facing: c.facing, anim: roundAnim(c.anim), hp: r2(c.hp), dead: c.dead, state: c.state, corpse: c.corpse, line: c.line ? { text: c.line.text, left: Math.ceil(c.line.left * 2) / 2 } : null, blocking: c.blocking, talkingWith: c.talkingWith, burning: !!c.burning, carryingId: c.carrying ? c.carrying.id : null };
   if (c.cremate) r.cremate = true; // a body set alight by Burn corpse (docs/43 section 7): a guest's menu greys its search; its removal is the roster's
+  if (c.poison) r.po = [c.poison.tier, c.poison.stacks]; // a poison's tier and stacks (docs/47 section 6), all the tint is drawn from; none sent is none (the record is whole)
   if (c.searched) {
     r.searched = true;
     r.loot = c.loot; // a body opened: its grid, for a guest with it open
@@ -800,7 +812,7 @@ function slim(c) {
 // has. Its home, what it is fed, and what it gives join here (or force a whole record) when steps 2 and 3 change them.
 const lastAnimal = new Map(); // animal id -> its fields as last sent
 function animalFields(a) {
-  return { gx: r3(a.gx), gy: r3(a.gy), facing: a.facing, an: a.anim.name, fr: a.anim.frame, state: a.state, hp: r2(a.hp), dead: !!a.dead, kb: a.killedBy || null, sk: !!a.skinned, ld: a.leaderId || null, fd: a.fedDay, tk: a.takenDay, hm: `${a.home[0]},${a.home[1]}` }; // a carcass's weapon class and its skinning as `kb` and `sk` (step 2); who leads it, the day it was fed, the day its milk or wool was taken, and its home, which a let-go moves (step 3)
+  return { gx: r3(a.gx), gy: r3(a.gy), facing: a.facing, an: a.anim.name, fr: a.anim.frame, state: a.state, hp: r2(a.hp), dead: !!a.dead, kb: a.killedBy || null, sk: !!a.skinned, ld: a.leaderId || null, fd: a.fedDay, tk: a.takenDay, hm: `${a.home[0]},${a.home[1]}`, po: a.poison ? `${a.poison.tier}/${a.poison.stacks}` : null }; // a carcass's weapon class and its skinning as `kb` and `sk` (step 2); who leads it, the day it was fed, the day its milk or wool was taken, and its home, which a let-go moves (step 3); a poison's tier and stacks, "1/2", as `po` (docs/47 section 6)
 }
 function animalRecord(a) {
   const now = animalFields(a);
@@ -1335,8 +1347,9 @@ function applyFrame(f) {
       }
     } else if (c && c.kind === "animal") {
       // An animal's delta (animalRecord): only what changed; the animation's name and frame as `an` and `fr`.
-      const { id: _id, an, fr, gx, gy, kb, sk, ld, fd, tk, hm, ...rest } = r;
+      const { id: _id, an, fr, gx, gy, kb, sk, ld, fd, tk, hm, po, ...rest } = r;
       Object.assign(c, rest);
+      if (po !== undefined) c.poison = poisonOf(typeof po === "string" ? po.split("/").map(Number) : null); // the tint's tier and stacks (docs/47 section 6)
       if (kb !== undefined) c.killedBy = kb;
       if (sk !== undefined) c.skinned = sk;
       if (ld !== undefined) c.leaderId = ld;
@@ -1346,10 +1359,11 @@ function applyFrame(f) {
       if (an !== undefined || fr !== undefined) c.anim = { ...c.anim, ...(an !== undefined ? { name: an } : {}), ...(fr !== undefined ? { frame: fr } : {}) };
       if (gx !== undefined || gy !== undefined) aimAt(c, gx ?? (c.netTo ? c.netTo[0] : c.gx), gy ?? (c.netTo ? c.netTo[1] : c.gy));
     } else if (c) {
-      const { carryingId, loot, worn, light: isLight, ...rest } = r;
+      const { carryingId, loot, worn, light: isLight, po, ...rest } = r;
       const wasX = c.gx;
       const wasY = c.gy;
       Object.assign(c, rest);
+      c.poison = poisonOf(po); // the slim record is whole: no `po` is no poison (docs/47 section 6)
       if (r.id !== myPlayerId && typeof rest.gx === "number") { const toX = c.gx; const toY = c.gy; c.gx = wasX; c.gy = wasY; aimAt(c, toX, toY); }
       if (loot) {
         // A body's grid is the body (docs/19): the same objects in the grid and on it, made one again by uid.

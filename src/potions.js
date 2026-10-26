@@ -3,7 +3,8 @@
 // the debuff row in gold, src/debuffs.js), a mana potion gives `potions.mana` mana (the bar of #480, `player.mana` up to `player.maxMana`,
 // src/mana.js). After any potion the next takes effect only `potions.between` seconds of the sim clock later, per
 // player (`player.potionAt`, the sim time of the last), refused with "You can't drink another potion yet." A poison is never drunk: its key in
-// any belt slot says so (inventory.beltAction) and it has no Drink.
+// any belt slot says so (inventory.beltAction) and it has no Drink; it goes on a blade or arrows by Use (src/poison.js), its vial back the same
+// way as a drink's (`spendVial`).
 //
 // The empty vial goes back where the potion was when that place is free (the last of a stack leaves its belt slot, its hand, or its bag
 // cell), else into the bag, else at the feet with "Your bag is full: the vial is at your feet." The ways in are food's (docs/39 section 5.6):
@@ -18,7 +19,7 @@ import * as map from "./map.js";
 import * as loop from "./loop.js";
 import * as floaters from "./floaters.js"; // the green number of a heal (#294)
 import { getItem, makeEntry, hold, release } from "./items.js";
-import { bagOf, beltOf, POISON_WORD } from "./inventory.js";
+import { bagOf, beltOf, detach, POISON_WORD } from "./inventory.js";
 import { potions as P, player as TP } from "./tuning.js";
 import { showMessage } from "./ui/prompt.js";
 
@@ -115,9 +116,28 @@ export function drinkFrom(player, entry, place) {
   player.potionAt = loop.simTime();
   player.presentFor = TP.presentTime; // the held-out pose while it goes down (docs/32, item 1)
   showMessage(`You drink the ${def.name.toLowerCase()}.`);
+  return spendVial(player, entry, place);
+}
+
+// Where an entry is on this player, as a drink's or a coat's `place`: { kind: "hand", slot } | { kind: "belt", index } | { kind: "bag", bag },
+// or null when it is not carried (an open chest's grid).
+export function placeOf(player, entry) {
+  if (!player || !entry) return null;
+  for (const slot of ["main", "off"]) if (player.hands && player.hands[slot] === entry) return { kind: "hand", slot };
+  const belt = beltOf(player);
+  if (belt && belt.includes(entry)) return { kind: "belt", index: belt.indexOf(entry) };
+  const bag = bagOf(player);
+  if (bag && bag.items.includes(entry)) return { kind: "bag", bag };
+  return null;
+}
+
+// One vial of `entry` used up at `place` (a potion drunk, a poison on a blade or arrows, docs/47 section 6): one from the stack, and the
+// empty clay vial back where it was when the last of the stack left that place, else into the bag, else at the feet with its line. True.
+export function spendVial(player, entry, place) {
   let put = null;
   if ((entry.count || 1) > 1) entry.count -= 1;
-  else put = vacate(player, entry, place);
+  else if (place) put = vacate(player, entry, place);
+  else detach(player, entry); // no place named: taken from wherever it is, the vial to the bag
   const vial = makeEntry(VIAL, 1);
   if (put && put(vial)) return true;
   const bag = bagOf(player);
