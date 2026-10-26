@@ -606,6 +606,44 @@ html, body {
 #hover-card .hc-use { color: var(--gold); font-weight: bold; }
 #hover-card .hc-word { color: #fff; font-weight: bold; }
 #hover-card .hc-warn { color: var(--red); font-weight: bold; } /* a warning: Burn corpse's "Burns the body and everything in it." (docs/43 section 7) */
+#hover-card .hc-danger { color: var(--red); } /* the rest of a warning line, not bold: tainted water's "drinking it may make you Sick." */
+/* A line that warns stands out from the card: a red rule down its left and a faint red ground (tainted water, Michael's playtest 2026-10-26). */
+#hover-card .hc-line:has(.hc-warn) { margin: 3px -4px 3px -5px; padding: 2px 4px 2px 3px; border-left: 2px solid var(--red); background: rgba(208, 80, 80, 0.16); }
+
+/* The Inspect card (ui/inspect-card.js; Michael's playtest, 2026-10-26): the hover card's look, standing above the inspected patch, with a close button; it takes the pointer. */
+#inspect-card {
+  position: absolute;
+  z-index: 55;
+  max-width: 260px;
+  padding: 6px 9px 7px;
+  background: rgba(8, 6, 12, 0.94);
+  border: 1px solid #8f8a98;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+  font-size: 12px;
+  font-family: var(--font-small);
+  line-height: 1.3;
+  color: #d9d4cc;
+}
+#inspect-card[hidden] { display: none; }
+#inspect-card .ic-head { display: flex; align-items: flex-start; gap: 10px; justify-content: space-between; margin-bottom: 2px; }
+#inspect-card .hc-name { font-size: 14px; font-family: var(--font-small); font-weight: bold; color: #fff; }
+#inspect-card .hc-line { margin-top: 2px; }
+#inspect-card .ic-close {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid #8f8a98;
+  border-radius: 4px;
+  background: rgba(40, 34, 48, 0.9);
+  color: #fff;
+  font-size: 13px;
+  font-family: var(--font-small);
+  line-height: 15px;
+  cursor: pointer;
+}
+#inspect-card .ic-close:hover { border-color: var(--gold); color: var(--gold); }
 
 .inv-item.selected {
   outline: 2px solid var(--gold);
@@ -1484,6 +1522,28 @@ html, body {
   max-width: 560px;
 }
 
+/* A question asked on the page (ui/screens.js ask): the desktop app's pane answers window.confirm false with no dialog. */
+.screen-ask {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 6, 14, 0.6);
+}
+.screen-ask .ask-box {
+  box-sizing: border-box;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 18px 22px 16px;
+  background: rgba(24, 18, 30, 0.98);
+  border: 2px solid var(--panel-edge);
+  border-radius: 8px;
+  text-align: center;
+}
+.screen-ask .ask-text { margin: 0 0 14px; font-size: 15px; font-family: var(--font-small); line-height: 1.45; color: var(--text); }
+.screen-ask .screen-buttons { justify-content: center; gap: 10px; }
+
 .screen h1 {
   font-size: 28px;
   font-family: var(--font-ui);
@@ -1492,7 +1552,7 @@ html, body {
 }
 
 /* No world chosen (docs/31/09): the title over black, none of the world's interface showing. */
-#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #debuffs, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #floaters, #ui.no-world #hover-card, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #dye, #ui.no-world #talk, #ui.no-world #nav-row, #ui.no-world #skills-panel, #ui.no-world #build-palette, #ui.no-world #map-panel, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
+#ui.no-world #hud, #ui.no-world #hotbar, #ui.no-world #log, #ui.no-world #log-input, #ui.no-world #moodles, #ui.no-world #debuffs, #ui.no-world #clock, #ui.no-world #swing-bars, #ui.no-world #zombie-bars, #ui.no-world #exposure-bar, #ui.no-world #names, #ui.no-world #floaters, #ui.no-world #hover-card, #ui.no-world #inspect-card, #ui.no-world #speech, #ui.no-world #message, #ui.no-world #inventory, #ui.no-world #station, #ui.no-world #dye, #ui.no-world #talk, #ui.no-world #nav-row, #ui.no-world #skills-panel, #ui.no-world #build-palette, #ui.no-world #map-panel, #ui.no-world .debug-corner, #ui.no-world ~ #debug { display: none !important; }
 /* #debug is #ui's sibling in index.html, not its child, so it is reached with ~; the chat box (#log-input) is #log's
    sibling, so it is named on its own (#16). */
 .screen h2 { font-size: 1.05em; margin: 10px 0 4px; color: #e8dcc0; }

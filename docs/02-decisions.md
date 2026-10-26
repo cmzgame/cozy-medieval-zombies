@@ -105,7 +105,8 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 ### Combat
 
 - Sight-pull: one of the dead first turning to hunt a player calls once to the dead near it that see it, and those never call others; sound draws no one (2026-10-25, Sight-pull ruled)
-- Throwing knives pull and axes stop: the knife 15 and 30% to break, the axe 30, always staggering, knocking down at 0.35, 10% to break; they spin, and land or lodge like arrows (2026-10-25, Throwing knives and axes ruled)
+- Throwing knives do 18 damage, not 15 (2026-10-26, Throwing knives do 18)
+- Throwing knives pull and axes stop: the knife 18 (15 until 2026-10-26) and 30% to break, the axe 30, always staggering, knocking down at 0.35, 10% to break; they spin, and land or lodge like arrows (2026-10-25, Throwing knives and axes ruled)
 - Potions, poisons, and mana as `47`: clay vials, clean water, two herbs and a secondary at a cauldron, mana 100, the Fire Bolt 20 mana, poisons put on a blade or arrows with Use, a splash for every potion (2026-10-25, Potions, poisons, and mana ruled)
 - Repairs run out: one count per item, the grindstone to 60, 40, 20%, the anvil to 100, 80, 60%; Burn corpse destroys a body and all in it (2026-10-25, The dead ends ruled)
 - The melee feel pass accepted as the baseline; tuning goes on with the skills (2026-10-24, The melee baseline)
@@ -306,6 +307,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ## Decisions
 
+### 2026-10-26 — Throwing knives do 18 (Michael)
+
+From his playtest, of the knife's damage: "Make throwing knives do 18 damage, your initial suggestion, 15 is too low." The knife's `thrown.damage` in `data/items.json` is 18 (nine throws to kill one of the dead at 150, where 15 took ten); everything else of 2026-10-25's ruling stands. `docs/24` section 1 and `docs/42` carry the number.
+
 ### 2026-10-26 — Honey goes into a clay jar: made like a vial, the jar back when it is eaten, a couple at the cottage (Michael)
 
 From his playtest, on the checklist: "Sidling up to a beehive, taking honey, and getting an item called 'pot of honey' is really confusing now that we have you gathering vials for potions. It's a free pot vending machine? ... I think you should have to have pots, give maybe one for free at your house, rest are made?" Primary recommended a clay jar made as a vial is; Michael: "Honey goes into an empty clay jar, made like a vial; eating leaves the jar; a couple of jars at the cottage to start."
@@ -328,7 +333,7 @@ Asked whether a pulled zombie alerts its neighbours, and whether sound draws the
 
 Asked whether the throwing knives and axes (drawn, never thrown) had an issue, Michael wanted them to "work pretty much like the spear, low damage but perhaps an increased chance to knock down", the axe doing more damage and costing more to make, and asked whether a knockdown spoils them for pulling the dead at range. Primary answered that it does not (a floored one still hunts the thrower and comes when it is up; a knockdown only holds it off longer) and proposed a job for each. Michael: "Drop axe damage to 30 and knife to 15. Otherwise adopted, you can write the spec. Also make sure we get a spinning knife or axe art to send along the arc because it'll look awesome." And on where they end up: "on bodies of dead zombies or ground like arrows? I think yes, with knives having a 30% chance to break, and axes like a 10% chance to break". The spec is `docs/24` section 1.
 
-- **The knife pulls:** 15 damage, 13 tiles, fast and flat, a 0.3 stagger chance, no knockdown, 30% to break, stacks of 20.
+- **The knife pulls:** ~~15 damage~~ (18 since 2026-10-26, Throwing knives do 18), 13 tiles, fast and flat, a 0.3 stagger chance, no knockdown, 30% to break, stacks of 20.
 - **The axe stops:** 30 damage, 9 tiles, a short arc, always staggers, knocks down at 0.35, 10% to break, stacks of 10.
 - **They spin along the arc**, lodge in a body or land on the ground like arrows, and are swept up with E.
 - **Made at Blacksmithing 3**, the axe dearer: *Primary's default*, one iron bar makes ten knives, an iron bar and a plank two axes, so a knife's throw costs less than an axe's at these breaks (`24` has the arithmetic).

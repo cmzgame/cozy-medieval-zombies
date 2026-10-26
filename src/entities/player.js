@@ -154,6 +154,27 @@ export function autoDrink(player) {
   return null;
 }
 
+// The line when the auto-sip finds water carried but none of it clean (Michael's playtest, 2026-10-26: deep into Thirsty with full skins and no
+// sip, not knowing why). A default (Primary's builder's), Michael's to overrule.
+export const TAINTED_ONLY = "Your waterskins hold only tainted water: boil it at a lit fire.";
+
+// Whether to say TAINTED_ONLY now: once each Thirsty stage reached (from T.autoDrinkStage), while every skin carried that holds water holds
+// only tainted water; the stage it was last said at is `player.taintNoted` (per player, on the host, saved with the player; a guest is told
+// by host.js), back to nothing once the thirst falls below the auto-sip's stage. The host's step asks it when the auto-sip took nothing.
+export function taintedOnlyNote(player) {
+  if (!rules.survival || player.dead || player.sleeping) return false;
+  const stage = thirstStage(player);
+  if (stage < T.autoDrinkStage) {
+    if (player.taintNoted) player.taintNoted = 0;
+    return false;
+  }
+  if ((player.taintNoted || 0) >= stage) return false;
+  const skins = [...(beltOf(player) || []).filter((e) => e && getItem(e.id).capacity), ...waterContainers(bagOf(player))].filter((e) => (e.fill ?? 0) > 0);
+  if (!skins.length || skins.some((e) => !isTainted(e))) return false;
+  player.taintNoted = stage;
+  return true;
+}
+
 // Hunger, thirst, and tiredness drain (docs/30, section 3); hunger and thirst
 // kill at zero, tiredness never does. The Survival setting turns all of it off
 // (Michael, 2026-10-10 late): off, nothing drains and the needs stay full, so

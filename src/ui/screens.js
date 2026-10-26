@@ -74,6 +74,35 @@ let hairApi = null; // { styles(), current(), set(name), reload() } from main.js
 let layersApi = null; // { slots(), names(slot), current(slot), set(slot, name) }
 let onReload = () => window.location.reload();
 let onSave = () => {};
+let asking = null; // the question up over the screen (ask): { el, resolve }
+
+// A question asked on the page itself, never the browser's window.confirm: the desktop app's browser pane shows no native dialog and
+// answers every confirm false at once, so a Delete that asked through it did nothing at all there (Michael's playtest, 2026-10-26).
+// Resolves true on its yes button, false on Cancel, Escape, or the screen drawn again under it.
+export function ask(text, yes = "Yes") {
+  settleAsk(false);
+  const host = root || screensEl;
+  if (!host) return Promise.resolve(false);
+  const el = document.createElement("div");
+  el.className = "screen-ask";
+  el.innerHTML = `<div class="ask-box" role="dialog" aria-modal="true"><p class="ask-text">${esc(text)}</p><div class="screen-buttons row"><button class="kit-button" data-ask="yes">${esc(yes)}</button><button class="kit-button" data-ask="no">Cancel</button></div></div>`;
+  host.appendChild(el);
+  return new Promise((resolve) => { asking = { el, resolve }; });
+}
+
+function settleAsk(answer) {
+  if (!asking) return false;
+  const a = asking;
+  asking = null;
+  a.el.remove();
+  a.resolve(answer);
+  return true;
+}
+
+// The question up, in words, or null (the checks read it).
+export function asked() {
+  return asking ? asking.el.querySelector(".ask-text").textContent : null;
+}
 let youApi = null; // the identity editor's api from main.js: name(), setName(n), look(), setLook(p), handed(), setHanded(h), styles(), palette(), sheet()
 let wireApi = null; // { status(), setOpen(on), join(code, identityId) } from main.js (net.js)
 let worldsApi = null; // { list(), friends(), play(id), remove(id), forget(code), create(name, identityId), respawn(identityId), defaultName(), here(), leave() }
@@ -124,6 +153,9 @@ export function initScreens(handlers = {}) {
 
 function listen(el) {
   el.addEventListener("click", (e) => {
+    const answer = e.target.closest("button[data-ask]");
+    if (answer) return settleAsk(answer.dataset.ask === "yes");
+    if (asking) return; // the question first: nothing under it takes a click meanwhile
     const btn = e.target.closest("button[data-go]");
     // The site's menu leaves what a page was doing: a character's creation, an identity half edited. Settings and
     // Controls come back to where they were opened from, so those two keep it (the review of #120).
@@ -288,6 +320,7 @@ export function hide() {
 
 // Escape. Returns true if a screen took it.
 export function back() {
+  if (settleAsk(false)) return true; // Escape answers the question Cancel, and goes no further
   if (!current) return false;
   if (SUB.has(current)) show(from || (outOfWorld() ? "title" : "pause"), data);
   else if (current === "about") show("title");
@@ -327,7 +360,7 @@ function go(where, ds = {}) {
   else if (where === "exit") {
     if (!worldsApi) return;
     const h = worldsApi.here();
-    if (h.role === "host" && h.guests > 0 && !window.confirm(`Exiting closes the world to ${h.guests === 1 ? "the friend" : `the ${h.guests}`} with you. Exit?`)) return;
+    if (h.role === "host" && h.guests > 0) return void ask(`Exiting closes the world to ${h.guests === 1 ? "the friend" : `the ${h.guests}`} with you. Exit?`, "Exit").then((yes) => { if (yes) worldsApi.exitGame(); });
     worldsApi.exitGame();
   }
   // The browser's own fullscreen, never forced: asked for here, by a click. Where the browser has Keyboard Lock (Chrome, Edge), Esc is
@@ -340,7 +373,7 @@ function go(where, ds = {}) {
   }
   // The Worlds screen's rows.
   else if (where === "play") { if (worldsApi) worldsApi.play(ds.world); }
-  else if (where === "delete") { if (worldsApi && window.confirm("Delete this world and every character in it?")) Promise.resolve(worldsApi.remove(ds.world)).then(() => { if (current === "worlds") render(); }); }
+  else if (where === "delete") { if (worldsApi) ask("Delete this world and every character in it?", "Delete").then((yes) => { if (yes) Promise.resolve(worldsApi.remove(ds.world)).then(() => { if (current === "worlds") render(); }); }); }
   else if (where === "forget") { if (worldsApi) { worldsApi.forget(ds.code); render(); } }
   else if (where === "move-up") startMoveUp(ds.world);
   // The owner's powers (item 5's sixth step).
@@ -348,8 +381,10 @@ function go(where, ds = {}) {
   else if (where === "owner-back") show(data.from === "pause" ? "pause" : "worlds", {});
   else if (where === "owned-play") { if (worldsApi && worldsApi.playOwned) worldsApi.playOwned(ds.code); }
   else if (where === "owner-rotate") {
-    if (!window.confirm("Change the code? The old one stops working at once; whoever is in stays. Give the new one to the friends you want.")) return;
-    worldsApi.rotateCode(data.code).then((r) => show("owner", { code: r.ok ? r.code : data.code, from: data.from, note: r.ok ? `The new code is ${r.code}.` : r.error }));
+    const d = data;
+    ask("Change the code? The old one stops working at once; whoever is in stays. Give the new one to the friends you want.", "Change the code").then((yes) => {
+      if (yes) worldsApi.rotateCode(d.code).then((r) => show("owner", { code: r.ok ? r.code : d.code, from: d.from, note: r.ok ? `The new code is ${r.code}.` : r.error }));
+    });
   }
   else if (where === "owner-rule") {
     const nextRules = { ...((data.info && data.info.rules) || {}), [ds.rule]: ds.value === "true" };
@@ -357,12 +392,15 @@ function go(where, ds = {}) {
   }
   else if (where === "owner-remove" || where === "owner-remove-rotate") {
     const rotate = where === "owner-remove-rotate";
-    if (!window.confirm(`Remove ${ds.name || "this player"}${rotate ? " and change the code" : ""}?`)) return;
-    worldsApi.removePlayer(data.code, ds.player).then(async (r) => {
-      if (!r.ok) return show("owner", { code: data.code, from: data.from, note: r.error });
-      if (!rotate) return show("owner", { code: data.code, from: data.from, note: `${r.name} is out.` });
-      const c = await worldsApi.rotateCode(data.code);
-      show("owner", { code: c.ok ? c.code : data.code, from: data.from, note: c.ok ? `${r.name} is out, and the new code is ${c.code}.` : `${r.name} is out; the code did not change: ${c.error}` });
+    const d = data;
+    ask(`Remove ${ds.name || "this player"}${rotate ? " and change the code" : ""}?`, "Remove").then((yes) => {
+      if (!yes) return;
+      worldsApi.removePlayer(d.code, ds.player).then(async (r) => {
+        if (!r.ok) return show("owner", { code: d.code, from: d.from, note: r.error });
+        if (!rotate) return show("owner", { code: d.code, from: d.from, note: `${r.name} is out.` });
+        const c = await worldsApi.rotateCode(d.code);
+        show("owner", { code: c.ok ? c.code : d.code, from: d.from, note: c.ok ? `${r.name} is out, and the new code is ${c.code}.` : `${r.name} is out; the code did not change: ${c.error}` });
+      });
     });
   }
   else if (where === "owner-unbar") worldsApi.unbar(data.code, ds.hash).then((r) => show("owner", { code: data.code, from: data.from, note: r.ok ? "Let back in." : r.error }));
@@ -378,7 +416,7 @@ function go(where, ds = {}) {
     worldsApi.rekey(code, creator).then((r) => (r.ok ? show("ownerkey", r) : show("addowned", { code, note: r.error })));
   }
   else if (where === "server-play") { if (worldsApi && worldsApi.playServer) worldsApi.playServer(ds.world); }
-  else if (where === "bring-home") { if (window.confirm("Bring this world home to this browser? Friends will join it here again, only while you play.")) startBringHome(ds.world); }
+  else if (where === "bring-home") ask("Bring this world home to this browser? Friends will join it here again, only while you play.", "Bring it home").then((yes) => { if (yes) startBringHome(ds.world); });
   else if (where === "creatorkey-save") {
     const field = root.querySelector("#creator-key");
     const key = field ? field.value.trim() : "";
@@ -427,7 +465,7 @@ function go(where, ds = {}) {
   // The identity editor, from the identities screen or from creation's first step.
   else if (where === "identity-new") { if (identitiesApi) { identitiesApi.beginNew(); show("identity"); } }
   else if (where === "identity-edit") { if (identitiesApi) { identitiesApi.beginEdit(ds.identity); show("identity"); } }
-  else if (where === "identity-delete") { if (identitiesApi && window.confirm("Delete this identity? Characters made from it are not touched.")) { identitiesApi.remove(ds.identity); render(); } }
+  else if (where === "identity-delete") { if (identitiesApi) ask("Delete this identity? Characters made from it are not touched.", "Delete").then((yes) => { if (yes) { identitiesApi.remove(ds.identity); render(); } }); }
   else if (where === "identity-save") {
     if (!identitiesApi) return;
     const saved = identitiesApi.commit();
@@ -860,7 +898,10 @@ function worldRows() {
 function startMoveUp(worldId) {
   if (!worldsApi || !worldsApi.moveUp) return;
   if (!worldsApi.creatorKey()) return show("creatorkey", { world: worldId });
-  if (!window.confirm("Move this world to the server? Your friends can play it while you are away. It plays only there until you bring it home.")) return;
+  ask("Move this world to the server? Your friends can play it while you are away. It plays only there until you bring it home.", "Move it").then((yes) => { if (yes) moveUpNow(worldId); });
+}
+
+function moveUpNow(worldId) {
   show("worlds", { note: "Moving the world to the server…" });
   worldsApi.moveUp(worldId).then((r) => {
     if (r.ok) return show("ownerkey", r);
@@ -958,6 +999,7 @@ function aboutHtml() {
 
 function render() {
   if (!root) return;
+  settleAsk(false); // a question over the screen goes with it
   // #screens takes the screen's name as its class (style.css: #screens.title); the site's page an attribute, so a
   // screen called "controls" never gives the page the .controls grid.
   if (root === screensEl) root.className = current || "";

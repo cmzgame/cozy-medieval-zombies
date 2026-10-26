@@ -130,7 +130,7 @@ export async function run(game) {
       const on = hl.update(args);
       row("update finds the tree under the mouse", !!on && on.kind === "prop" && on.id === tree.id, JSON.stringify(on));
       row("the answer is held while the mouse and the camera stand still, and asked again after the refresh", hl.update({ ...args, now: 1e6 + 10 }) === on && hl.update({ ...args, now: 1e6 + T.refreshMs + 1 }) !== on, "the same object, then a fresh one");
-      row("the setting off, a mode (placement, Use), a cursor off the world, and a carried thing each make none", hl.update({ ...args, enabled: false, now: 2e6 }) === null && hl.update({ ...args, blocked: true, now: 2.1e6 }) === null && hl.update({ ...args, mouse: { ...mouse, inside: false }, now: 2.2e6 }) === null && (() => { me.carrying = {}; const r = hl.update({ ...args, now: 2.3e6 }); me.carrying = null; return r === null; })(), "off, blocked, outside, carrying");
+      row("the setting off, a mode (placement; the Use mode outlines its own target, forUse), a cursor off the world, and a carried thing each make none", hl.update({ ...args, enabled: false, now: 2e6 }) === null && hl.update({ ...args, blocked: true, now: 2.1e6 }) === null && hl.update({ ...args, mouse: { ...mouse, inside: false }, now: 2.2e6 }) === null && (() => { me.carrying = {}; const r = hl.update({ ...args, now: 2.3e6 }); me.carrying = null; return r === null; })(), "off, blocked, outside, carrying");
       hl.clear();
       rhl.set(hl.targetAt(s.x, s.y - 12, me, null));
       row("the drawing knows its target: isProp, isItem, isCharacter", rhl.isProp(tree.id) && !rhl.isProp(chest.id) && !rhl.isItem("x") && !rhl.isCharacter("x"), "the tree and nothing else");

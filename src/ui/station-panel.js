@@ -99,6 +99,7 @@ export function openPanel(prop, player) {
   open = { propId: prop.id, station: kinds[0], stations: kinds, recipe: list[0] ? list[0].id : null, count: 1 };
   root.hidden = false;
   lastHtml = "";
+  root.innerHTML = ""; // a station opened afresh starts at the top of its list (render keeps the scroll only between its own redraws)
   render(player);
   return true;
 }
@@ -162,8 +163,14 @@ function render(player) {
   }).join("");
   const html = `<div class="inv-header kit-header"><span class="inv-title">${title(open.station)}</span><span class="inv-tools"><button class="kit-button" data-output title="Open the station's output box again">Output</button><button class="kit-button inv-close" data-close title="Close">×</button></span></div><div class="st-body"><div class="st-list kit-well">${rows || "<div class='st-note'>Nothing to make here yet.</div>"}</div>${detail}</div>${q ? `<div class="st-queue kit-well">${q}</div>` : ""}`;
   if (html !== lastHtml) {
+    // The list keeps where it was scrolled to across the redraw, so a recipe picked low in a long list stays in view beside its detail
+    // (Michael's playtest, 2026-10-26: it jumped to the top on every pick).
+    const oldList = root.querySelector(".st-list");
+    const scroll = oldList ? oldList.scrollTop : 0;
     root.innerHTML = html;
     lastHtml = html;
+    const list = root.querySelector(".st-list");
+    if (list && scroll) list.scrollTop = scroll;
   }
 }
 

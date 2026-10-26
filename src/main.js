@@ -19,7 +19,7 @@ import * as light from "./light.js";
 import * as gl from "./gl.js";
 import * as ground from "./ground.js";
 import { renderScene, night, shakeFence } from "./render.js";
-import { createPlayer, aimOrigin } from "./entities/player.js";
+import { createPlayer, aimOrigin, TAINTED_ONLY } from "./entities/player.js";
 import * as host from "./host.js"; // the authority's half of the game, shared with the server world (item 5's first step)
 import { lookOf } from "./host.js";
 import { handedOf } from "./handed.js"; // right- or left-handed, an identity's and its character's (Michael, 2026-10-25)
@@ -69,6 +69,7 @@ import * as dyePanel from "./ui/dye-panel.js";
 import * as dye from "./dye.js";
 import * as talkPanel from "./ui/talk-panel.js"; // a villager's conversation, on the kit (docs/34, #202)
 import * as inspectMark from "./inspect-mark.js"; // the tile an Inspect marks (interact.js)
+import * as inspectCard from "./ui/inspect-card.js"; // an Inspect's card above its patch, with a close button
 import * as navRow from "./ui/nav-row.js"; // the buttons bottom right, one per panel (#295)
 import * as interact from "./interact.js";
 import * as items from "./items.js";
@@ -284,7 +285,8 @@ function afterWorldSet() {
   mapPanel.forgetDrawn();
   floatersUi.clear(); // a world put back has none of the last one's numbers
   objectHighlight.clear();
-  inspectMark.clear(); // nor its marked tile
+  inspectCard.close(); // nor its Inspect card and marked tile
+  inspectMark.clear();
   floaters.reset();
   soundCues.reset(); // the ear starts again from a baseline
   light.update();
@@ -835,6 +837,9 @@ function handleMouse() {
       buttons.spendTap();
     } else if (use.cancel()) {
       // A right click in Use mode puts the thing down (use.js).
+    } else if (placement.cancel()) {
+      // A right click puts a placement ghost away as Escape does (a build, a rug, a painting, a set-down, a bracket), and opens no menu that
+      // click (Michael's playtest, 2026-10-26). A carried prop is no ghost: its menu still opens, to put it down.
     } else {
       openActionsMenu(tap);
     }
@@ -896,6 +901,7 @@ function handleEscape() {
   if (menu.tookEscape()) return;
   if (screens.back()) return; // a screen is over every panel (the row's Menu button opens the pause menu with panels open), so it goes first
   if (use.cancel()) return; // Use mode is the top thing that can close
+  if (inspectCard.close()) return; // an Inspect card, then the panels
   if (stationPanel.close()) return;
   if (talkPanel.close()) return; // Escape closes a conversation in the panels' order
   if (navRow.closeSkills()) return;
@@ -1267,6 +1273,7 @@ function renderUi() {
   }
   if (floatersUi.active()) floatersUi.update(dt, [...S.players, ...S.zombies, ...S.villagers, ...S.corpses, ...S.animals], visible, client.me); // the numbers over heads, from the same blended positions
   mapPanel.update({ player: client.me, players: S.players, places: (S.info && S.info.places) || [] });
+  inspectCard.update(client.me); // an Inspect's card above its patch (Michael's playtest, 2026-10-26)
   updateMessage(dt);
 }
 
@@ -1298,6 +1305,7 @@ async function restoreWorld(snap) {
   mapPanel.forgetDrawn();
   floatersUi.clear();
   objectHighlight.clear();
+  inspectCard.close();
   inspectMark.clear();
   floaters.reset();
   soundCues.reset();
@@ -1356,7 +1364,10 @@ function render() {
     fog: !drawAll,
     ghost: placement.ghost(),
     // The object under the cursor that a right-click would act on, outlined (Object Highlight, #301): asked of the step's own positions and origin, as a click is.
-    highlight: objectHighlight.update({ enabled: settings.get("objectHighlight") !== false, blocked: placement.state.active || use.isActive(), mouse: input.getMouse(), player: client.me, visible, now: performance.now() }),
+    // In the Use mode, the thing the next click is used on (Michael's playtest, 2026-10-26: the plot under the pointer outlined).
+    highlight: use.isActive()
+      ? objectHighlight.forUse(input.getMouse().inside ? useTargetAt(input.getMouse().x, input.getMouse().y) : null, client.me, visible)
+      : objectHighlight.update({ enabled: settings.get("objectHighlight") !== false, blocked: placement.state.active, mouse: input.getMouse(), player: client.me, visible, now: performance.now() }),
     hitShapes: combat.overlays(client.me, S.zombies, settings.get("showHitShapes")),
     tileMark: inspectMark.marked(), // the patch an Inspect speaks of
     tracks: tracks.near(client.me), // wild game's prints near me (docs/45 section 2; this client's view, nothing sent)
@@ -1829,6 +1840,9 @@ async function boot() {
       });
       events.on("drank", ({ who, auto }) => {
         if (auto && who === client.me.id) showMessage("You drink from your waterskin.", 2); // a guest's, host.js
+      });
+      events.on("taintedOnly", ({ who }) => {
+        if (who === client.me.id) log.push(TAINTED_ONLY, "result"); // every skin tainted, once a Thirsty stage (a guest's, host.js)
       });
       events.on("talkStarted", ({ villager, by }) => {
         if (by !== client.me) return; // a guest's player's conversation is told to the guest (host.js), not this screen

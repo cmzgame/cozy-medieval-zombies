@@ -3401,6 +3401,128 @@ check("playtest 2026-10-26: throwables' stacks in the hand slots, the belt's swa
   }
 });
 
+// Michael's second playtest batch, 2026-10-26 (docs/bugs.md, Fixed): the shovel beside the spear refused in the spear's words, never "No room
+// to swap."; the bucket's Use on a plot the map grew (wet until first looked at) watering it as the menu's Water does; each vessel its own
+// entry over a crop, the bucket first; the line when every skin is tainted, once a Thirsty stage; the knife's 18; the Inspect card's words.
+// What needs the page (the Worlds screen's Delete, the cooking list's scroll, the Use mode's outline, the right click, the card on screen,
+// the hover card's red, two tabs) is check("playtest2").
+const farmingPt2 = await import("../src/farming.js");
+const bucketPt2 = await import("../src/bucket.js");
+const inspectCardPt2 = await import("../src/ui/inspect-card.js");
+check("playtest 2026-10-26 (2): the spear's dual rule in its own words, the bucket's Use on any crop and each vessel its own Water, the tainted-only line, the knife's 18, the Inspect card's words", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false, survival: true } });
+  const me = gameMod.state.player;
+  const said = [];
+  promptMod.setMessageSink((t) => { said.push(t); return true; });
+  const notes = [];
+  const off = eventsMod.on("taintedOnly", ({ who }) => notes.push(who));
+  try {
+    const mk = (id, n = 1, props = {}) => itemsMod.makeEntry(id, n, props);
+    const id = (e) => (e ? e.id : "-");
+    const last = () => said[said.length - 1] || "";
+    me.worn.back = mk("small_sack");
+    const bag = () => inventoryMod.bagOf(me);
+    const h = invActionsMod.createInventoryActions(() => me);
+    // 1. The shovel beside the spear: refused by the spear's rule, in its words, with the bag half empty; nothing moved.
+    me.hands.main = mk("spear");
+    me.hands.off = null;
+    bag().items.length = 0;
+    gridMod.insert(bag(), mk("shovel"));
+    const shovel = bag().items.find((e) => e.id === "shovel");
+    const word = "The throwing spear can't be held beside the shovel: it is never dual wielded.";
+    assert(inventoryMod.equipProblem(me, shovel, "off") === word, `equipProblem: ${inventoryMod.equipProblem(me, shovel, "off")}`);
+    said.length = 0;
+    h.placeInSlot(shovel, { kind: "bag", bag: bag() }, "hand:off");
+    assert(!me.hands.off && bag().items.includes(shovel) && last() === word && !said.includes("No room to swap."), `the drag: off ${id(me.hands.off)}; "${last()}"`);
+    said.length = 0;
+    assert(invActionsMod.performItemCommand(me, { op: "slot", uid: shovel.uid, src: { kind: "bag", bag: { mine: true } }, slot: "hand:off" }) !== undefined && !me.hands.off && last() === word, `a guest's slot command: "${last()}"`);
+    // A torch and a shield are no weapons by the rule; and a full bag with a sword in the off hand is still the spear's word, not room's.
+    assert(!inventoryMod.equipProblem(me, mk("shield"), "off") && !inventoryMod.equipProblem(me, mk("torch"), "off"), "a shield or a torch beside the spear refused");
+    me.hands.main = mk("sword");
+    me.hands.off = mk("mace");
+    assert(inventoryMod.equipProblem(me, mk("spear"), "main") === "The throwing spear can't be held beside the flanged mace: it is never dual wielded.", `the spear onto the main hand beside a mace: ${inventoryMod.equipProblem(me, mk("spear"), "main")}`);
+    me.hands.main = null;
+    me.hands.off = null;
+    // "No room to swap." only when what the hand held has nowhere to go: a sword held, no belt and the bag full, a mace dragged onto the hand.
+    bag().items.length = 0;
+    me.worn.waist = null;
+    gridMod.insert(bag(), mk("mace"));
+    const mace = bag().items.find((e) => e.id === "mace");
+    while (gridMod.insert(bag(), mk("stone")));
+    me.hands.main = mk("sword");
+    said.length = 0;
+    h.placeInSlot(mace, { kind: "bag", bag: bag() }, "hand:main");
+    assert(id(me.hands.main) === "sword" && bag().items.includes(mace) && last() === "No room to swap.", `a full bag: main ${id(me.hands.main)}; "${last()}"`);
+    me.hands.main = null;
+    // 2. The bucket on a crop the map grew (wet until first looked at): the Use mode waters it as the menu's Water does.
+    bag().items.length = 0;
+    const authored = mapMod.allProps().find((p) => p.crop && p.crop.at === undefined);
+    assert(authored, "no authored crop on the valley");
+    const [cx, cy] = authored.tile;
+    gameMod.teleportPlayer ? gameMod.teleportPlayer(me, cx + 0.5, cy + 0.6) : (me.gx = cx + 0.5, me.gy = cy + 0.6);
+    mapMod.ensureAround(me.gx, me.gy, 2);
+    const bucket = mk("bucket", 1, { fill: itemsMod.getItem("bucket").vessel.capacity });
+    gridMod.insert(bag(), bucket);
+    const b = bag().items.find((e) => e.id === "bucket");
+    const r = verbsMod.run("pour", null, me, { kind: "prop", prop: authored, entry: b.uid, item: "bucket" });
+    assert(r.ok && b.fill === 0 && farmingPt2.isWet(authored) && authored.crop.at !== undefined, `the Use on an authored crop: ${r.reason || r.message}; fill ${b.fill}`);
+    // A crop already wet: watered again (its soil wet from now), as the skin's Water is; nothing planted near says so.
+    b.fill = itemsMod.getItem("bucket").vessel.capacity;
+    const r2 = verbsMod.run("pour", null, me, { kind: "prop", prop: authored, entry: b.uid, item: "bucket" });
+    assert(r2.ok, `the Use on a wet crop: ${r2.reason}`);
+    // 3. Each vessel its own Water over a crop, the bucket first; each by its label takes its own vessel.
+    b.fill = itemsMod.getItem("bucket").vessel.capacity;
+    gridMod.insert(bag(), mk("waterskin", 1, { fill: 100, clean: true }));
+    const skin = bag().items.find((e) => e.id === "waterskin");
+    const labels = interactMod.actionsForTarget({ kind: "prop", id: authored.id }, me).map((a) => a.label);
+    const iB = labels.indexOf(bucketPt2.POUR_LABEL);
+    const iS = labels.indexOf("Water with the waterskin");
+    assert(iB >= 0 && iS > iB && !labels.includes("Water"), `the crop's menu: ${labels.join(", ")}`);
+    assert(interactMod.performByLabel(me, { kind: "prop", id: authored.id }, "Water with the waterskin") === true, "Water with the waterskin by its label");
+    for (let i = 0; i < 100 && me.action; i++) interactMod.updateAction(me, 0.1);
+    assert(skin.fill === 100 - farmingPt2.get().soil.fillCost && b.fill === itemsMod.getItem("bucket").vessel.capacity, `the skin's label used the skin alone: skin ${skin.fill}, bucket ${b.fill}`);
+    assert(interactMod.performByLabel(me, { kind: "prop", id: authored.id }, bucketPt2.POUR_LABEL) === true, "Water with the bucket by its label");
+    for (let i = 0; i < 100 && me.action; i++) interactMod.updateAction(me, 0.1);
+    assert(b.fill === 0 && skin.fill === 100 - farmingPt2.get().soil.fillCost, `the bucket's label used the bucket alone: skin ${skin.fill}, bucket ${b.fill}`);
+    // With no water carried at all, one greyed Water says so.
+    skin.fill = 0;
+    const dry = interactMod.actionsForTarget({ kind: "prop", id: authored.id }, me).filter((a) => /^Water/.test(a.label));
+    assert(dry.length === 1 && dry[0].label === `${bucketPt2.POUR_LABEL} (empty)` && !dry[0].enabled, `nothing to water with: ${dry.map((a) => a.label).join(", ")}`);
+    bag().items.length = 0;
+    const none = interactMod.actionsForTarget({ kind: "prop", id: authored.id }, me).filter((a) => /^Water/.test(a.label));
+    assert(none.length === 1 && none[0].label === "Water (no water carried)" && !none[0].enabled, `no vessel: ${none.map((a) => a.label).join(", ")}`);
+    // 4. Thirsty with only tainted water: the line once a stage, none with a clean skin, none with no water; again after a drink.
+    const tainted = mk("waterskin", 1, { fill: 100 });
+    gridMod.insert(bag(), tainted);
+    me.thirst = 30; // Thirsty, the auto-sip's stage
+    const noteNow = () => { notes.length = 0; for (let i = 0; i < 3; i++) gameMod.step(1 / 60); return notes.filter((w) => w === me.id).length; };
+    const at2 = noteNow();
+    const again2 = noteNow();
+    me.thirst = 10; // the next stage
+    const at3 = noteNow();
+    me.thirst = 80; // watered
+    noteNow();
+    me.thirst = 30;
+    const back2 = noteNow();
+    tainted.clean = true; // a clean skin: the auto-sip drinks, no line
+    const clean2 = (me.taintNoted = 0, noteNow());
+    assert(at2 === 1 && again2 === 0 && at3 === 1 && back2 === 1 && clean2 === 0 && playerMod.TAINTED_ONLY === "Your waterskins hold only tainted water: boil it at a lit fire.", `at Thirsty ${at2}, again ${again2}, the next stage ${at3}, after a drink ${back2}, a clean skin ${clean2}`);
+    // 5. The knife's 18, and its card.
+    const kt = itemsMod.getItem("throwing_knife").thrown;
+    assert(kt.damage === 18, `the knife's damage ${kt.damage}`);
+    assert(itemInfoMod.textOf(itemInfoMod.cardFor(mk("throwing_knife", 5))).some((l) => /: 9 to 18 damage by the draw|18 damage/.test(l)), `the knife's card: ${itemInfoMod.textOf(itemInfoMod.cardFor(mk("throwing_knife", 5))).join(" / ")}`);
+    // 6. The tainted line first on the card, a warning's segments; the Inspect card's words from Inspect's sentence.
+    const tc = itemInfoMod.cardFor(mk("waterskin", 1, { fill: 50 }));
+    assert(tc.lines[0][0].k === "warn" && itemInfoMod.textOf(tc).includes("Tainted water: drinking it may make you Sick."), `the tainted skin's card: ${JSON.stringify(tc.lines[0])}`);
+    const ic = inspectCardPt2.cardOf("Potatoes: ready in about 2 days; watered; not fertilized; harvest with a shovel.");
+    assert(ic.name === "Potatoes" && ic.lines.join("|") === "Ready in about 2 days|Watered|Not fertilized|Harvest with a shovel", JSON.stringify(ic));
+    return `"${word}" by the drag and a guest's command, the bag half empty; the bucket's Use on an authored crop and a wet one; ${labels.filter((l) => /^Water/.test(l)).join(", ")} in that order, each its own vessel; the tainted-only line at Thirsty once, at the next stage once, again after a drink, none with a clean skin; the knife 18; the tainted line first; the Inspect card ${ic.name} with ${ic.lines.length} lines`;
+  } finally {
+    off && off();
+    promptMod.setMessageSink(null);
+  }
+});
+
 // Handedness (Michael, 2026-10-25): right- or left-handed, chosen on the identity screen, stamped on the character, a label for
 // the main and off hands and the arm the main hand's thing is drawn in; never ambidextrous, right by default. The sim never
 // reads it. What needs the page (the screen's choice, the labels, the baked sheets, two tabs) is check("handed").

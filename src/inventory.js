@@ -3,7 +3,7 @@
 // worn on the back, the hotbar is the belt worn at the waist, and an entry is
 // in exactly one place. Placement rules live in grid.js.
 
-import { getItem, toolFor, aName, release, canHold, hold, handFor } from "./items.js";
+import { getItem, toolFor, aName, release, canHold, hold, handFor, dualWord } from "./items.js";
 import * as grid from "./grid.js";
 
 export const WORN_SLOTS = ["head", "chest", "hands", "legs", "feet", "waist", "back"];
@@ -258,6 +258,8 @@ export function equip(player, entry, prefer = null) {
     const e = player.hands[s];
     if (e && !outgoing.includes(e)) outgoing.push(e);
   }
+  // Refused by the dual rule beside what stays in the other hand: before anything is moved (equipProblem says why).
+  if (equipProblem(player, entry, prefer)) return false;
   // Make room first; if what is in the hand cannot be stowed, refuse.
   for (const e of outgoing) {
     release(player.hands, e);
@@ -273,6 +275,18 @@ export function equip(player, entry, prefer = null) {
     else restoreOffHand(player);
   }
   return ok;
+}
+
+// Why equip would refuse this entry by the dual rule (the spear's, docs/21), in words, or null: the hands as they would be once what the
+// entry's hand (or both) holds has gone, beside what stays. A refusal for room is equip's own false with no word here.
+export function equipProblem(player, entry, prefer = null) {
+  let which = handFor(entry.id);
+  if (!which) return null;
+  if (which === "either") which = prefer || (!player.hands.main ? "main" : !player.hands.off ? "off" : "main");
+  const after = { main: player.hands.main, off: player.hands.off };
+  for (const s of which === "both" ? ["main", "off"] : [which]) if (after[s]) release(after, after[s]);
+  if (after.main === entry || after.off === entry) release(after, entry);
+  return dualWord(after, entry.id);
 }
 
 // The off-hand item a two-handed one pushed out comes back when a one-handed item takes the main
