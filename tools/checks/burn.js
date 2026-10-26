@@ -10,6 +10,7 @@
 
 export async function run(game) {
   const G = game;
+  const needs0 = (({ hunger, thirst, tired }) => ({ hunger, thirst, tired }))(G.player); // put back in the finally: its steps drain them (the order-independence of the checks, check("all"))
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const wasPaused = G.loop.isPaused();
@@ -307,6 +308,7 @@ export async function run(game) {
   } catch (e) {
     row("the check ran", false, String(e && e.stack || e));
   } finally {
+    Object.assign(G.player, needs0); // the hunger, thirst, and tiredness its steps drained
     for (const z of added) {
       const i = G.zombies.indexOf(z);
       if (i >= 0) G.zombies.splice(i, 1);

@@ -8,6 +8,7 @@
 
 export async function run(game) {
   const G = game;
+  const needs0 = (({ hunger, thirst, tired }) => ({ hunger, thirst, tired }))(G.player); // put back in the finally: its steps drain them (the order-independence of the checks, check("all"))
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const interp = await import("/src/interp.js");
@@ -26,14 +27,18 @@ export async function run(game) {
     if (screen0) G.screens.hide();
     G.loop.setPaused(true);
     G.rules.rules.zombieAggro = false;
-    // A stretch of open ground to walk across the screen on (D walks along gx up, gy down): twelve tiles of bare walkable grass with a tile of room each side.
+    // A stretch of open ground to walk across the screen on (D walks along gx up, gy down): twelve tiles of bare walkable grass with a tile of room each side,
+    // and no wall on an edge the walk crosses (a house's floor passed for open ground once other checks had grown its chunk: the order-independence of the checks).
     G.map.ensureAround(meAt[0], meAt[1], 3);
     let from = null;
-    for (let dy = 0; dy <= 30 && !from; dy += 2) for (let dx = -30; dx <= 30 && !from; dx += 2) {
+    for (let r = 0; r <= 40 && !from; r += 2) for (let dy = -r; dy <= r && !from; dy += 2) for (let dx = -r; dx <= r && !from; dx += 2) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue; // ring by ring outward, either side of the player
       const x = Math.round(meAt[0]) + dx;
       const y = Math.round(meAt[1]) + dy;
       let ok = true;
       for (let i = -1; i <= 14 && ok; i++) for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) { const t = G.map.peekTile(x + i + ox, y - i + oy); if (!t || t.prop || !G.map.isWalkableTile(x + i + ox, y - i + oy)) { ok = false; break; } }
+      // No wall on an edge the walk crosses (a step along gx up, gy down passes the edges round it).
+      for (let i = 0; i < 14 && ok; i++) { const ax = x + i, ay = y - i; if ([[ax + 1, ay, "w"], [ax + 1, ay, "n"], [ax, ay, "n"], [ax + 1, ay - 1, "w"]].some(([ex, ey, k]) => { const t = G.map.peekTile(ex, ey); return !t || !!t[k]; })) ok = false; }
       if (ok) from = [x, y];
     }
     if (!from) throw new Error("no open ground to walk on");
@@ -101,7 +106,7 @@ export async function run(game) {
     const last = rec[rec.length - 1];
     const lagTiles = Math.hypot(last[0] - last[2], last[1] - last[3]);
     const speed = Math.hypot(rec[299][0] - rec[239][0], rec[299][1] - rec[239][1]) / 1;
-    row("the camera trails a walking player by under half a tile (reported), and the player walks at the world's speed along the screen", lagTiles < 0.5 && Math.abs(speed - G.tuning.player.speed) < 0.1, `trailing ${lagTiles.toFixed(2)} tiles (${(lagTiles * 32 * 2).toFixed(0)} px at most); ${speed.toFixed(2)} tiles a second against ${G.tuning.player.speed}`);
+    row("the camera trails a walking player by under half a tile (reported), and the player walks at the world's speed along the screen", lagTiles < 0.5 && Math.abs(speed - G.tuning.player.speed) < 0.1, `trailing ${lagTiles.toFixed(2)} tiles (${(lagTiles * 32 * 2).toFixed(0)} px at most); ${speed.toFixed(2)} tiles a second against ${G.tuning.player.speed}; from ${from}, ${rec[0].slice(0, 2).map((v) => v.toFixed(1))} to ${rec[rec.length - 1].slice(0, 2).map((v) => v.toFixed(1))}`);
     // The camera's follow is a number in data/tuning.json (feel.cameraFollow): doubled, it trails half as far.
     const follow0 = G.tuning.feel.cameraFollow;
     G.tuning.feel.cameraFollow = follow0 * 2;
@@ -145,6 +150,7 @@ export async function run(game) {
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message + (e.stack ? " " + e.stack.split("\n")[1] : "") });
   } finally {
+    Object.assign(G.player, needs0); // the hunger, thirst, and tiredness its steps drained
     key("KeyD", "keyup");
     interp.restore();
     G.rules.rules.zombieAggro = aggro0;

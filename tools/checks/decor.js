@@ -165,6 +165,7 @@ export async function run(game) {
     const barrel = map.createProp({ sprite: "barrel", tile: [x + 7, y + 6] });
     map.placeProp(barrel, x + 7, y + 6);
     made.push(barrel);
+    extra.push(tree, anvil, crop, barrel); // `made` is narrowed to the rugs below: these go in the finally all the same (they were left in the page, an anvil across another check's ground; the order-independence of the checks)
     const fitTree = rugs.fitProblem("rug_bearskin", "y", x - 2, y - 2);
     const fitAnvil = rugs.fitProblem("rug_bearskin", "y", x - 2, y + 2);
     const fitCrop = rugs.fitProblem("rug_bearskin", "y", x - 1, y + 5);
@@ -220,10 +221,16 @@ export async function run(game) {
     // Save and restore: the chunk's record and back.
     const [cx, cy] = map.chunkCoord(x, y);
     const rec = JSON.parse(JSON.stringify(map.serializeChunk(map.getChunk(cx, cy, false))));
+    const inChunk = ([tx, ty]) => Math.floor(tx / map.CHUNK) === cx && Math.floor(ty / map.CHUNK) === cy;
+    const reach = map.allProps().filter((q) => !inChunk(q.tile) && q.tiles.some(inChunk)).map((q) => JSON.parse(JSON.stringify(map.serializeProp(q))));
     const recRug = rec.props.find((p) => p.sprite === "rug_bearskin" && p.tile[0] === x && p.tile[1] === y);
     row("the chunk's record carries the rug with its item, facing, and walkability", !!recRug && recRug.rugItem === "rug_bearskin" && (recRug.facing ?? "y") === "y" /* the first facing is the default, so a record leaves it out */ && recRug.solid === false, recRug ? JSON.stringify(recRug).slice(0, 120) : "not in the record");
+    // The chunk put back as a load puts it: installChunk, then its own props, then a neighbour's that reaches onto it (installChunk lets
+    // go of every prop on its tiles, as a whole save's restore installs every prop after every chunk). The order-independence of the
+    // checks: without the props the chunk's stations, chests, and carts were gone from the page for every check after this one.
     map.installChunk(rec);
     for (const p of rec.props) map.installProp(p);
+    for (const d of reach) map.installProp(d);
     const back = map.peekTile(x, y).rug;
     row("after the restore the rug is back on its six tiles, a rug, walkable, still giving its item", !!back && back.rugItem === "rug_bearskin" && back.tiles.every(([tx, ty]) => map.peekTile(tx, ty).rug === back) && back.solid === false, back ? `${back.sprite} ${back.facing}` : "gone");
     made.splice(0, made.length, back, map.peekTile(x + 2, y + 4).rug);

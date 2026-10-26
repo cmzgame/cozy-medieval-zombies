@@ -83,6 +83,18 @@ function brighter(a, b) {
   return n;
 }
 
+// Where on the canvas the pixels brighter in b lie, as a box from the top left: a row that fails names what moved.
+function brighterBox(a, b) {
+  const canvas = document.getElementById("game");
+  let x0 = Infinity, y0 = Infinity, x1 = -1, y1 = -1;
+  for (let i = 0; i < a.length; i += 4) {
+    if (!(b[i] + b[i + 1] + b[i + 2] > a[i] + a[i + 1] + a[i + 2] + 9)) continue;
+    const p = i / 4, x = p % canvas.width, y = canvas.height - 1 - Math.floor(p / canvas.width);
+    x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+  }
+  return x1 < 0 ? "" : `, at x ${x0} to ${x1} and y ${y0} to ${y1} of ${canvas.width} by ${canvas.height}`;
+}
+
 export async function run(game) {
   const G = game.ground;
   const rows = [];
@@ -120,19 +132,33 @@ export async function run(game) {
     // much (a flame's flicker is all that moves while paused).
     game.clock.setHour(10);
     game.teleport(40, 40);
-    step(3);
-    const off = frame(game);
-    game.placement.beginBuild(game.placement.buildKinds()[0]?.id || "wall");
-    step(2);
-    const on = frame(game);
-    game.placement.cancel();
-    step(2);
-    const offAgain = frame(game);
+    // The world's bodies sit out the three frames, put back after: one walking in view between them is pixels the grid did not change (the
+    // dead and the villagers drift as other checks in the page move the player about; the order-independence of the checks, check("all")).
+    const GS = game.game.state;
+    const bodies0 = { zombies: GS.zombies, villagers: GS.villagers, animals: GS.animals, corpses: GS.corpses }; // a body burning (burn's) flickers too
+    for (const k of Object.keys(bodies0)) GS[k] = [];
+    let off, on, offAgain;
+    try {
+      // And no mark of this client's view fading between them: an Inspect's tile mark fades by the page's clock, and Object Highlight
+      // follows the cursor (an earlier check's Inspect left one).
+      (await import("/src/inspect-mark.js")).clear();
+      (await import("/src/highlight.js")).clear();
+      step(3);
+      off = frame(game);
+      game.placement.beginBuild(game.placement.buildKinds()[0]?.id || "wall");
+      step(2);
+      on = frame(game);
+      game.placement.cancel();
+      step(2);
+      offAgain = frame(game);
+    } finally {
+      for (const k of Object.keys(bodies0)) GS[k] = [...bodies0[k], ...GS[k].filter((c) => !bodies0[k].includes(c))]; // put back, a throw or not
+    }
     const lit = brighter(off, on);
     const stray = brighter(off, offAgain);
     const parityOk = Math.abs(even - odd) < 1;
     const gridOk = lit > 2000 && stray < 200;
-    add(1, "No grid outside build mode", parityOk && gridOk, `grass mean on even and odd tiles ${even.toFixed(1)} and ${odd.toFixed(1)}; build mode brightens ${lit} pixels, leaving it ${stray}`);
+    add(1, "No grid outside build mode", parityOk && gridOk, `grass mean on even and odd tiles ${even.toFixed(1)} and ${odd.toFixed(1)}; build mode brightens ${lit} pixels, leaving it ${stray}${gridOk ? "" : brighterBox(off, offAgain)}`);
   }
 
   // 2. No seams, at the square, the road, the bounds' edge, and the wild.

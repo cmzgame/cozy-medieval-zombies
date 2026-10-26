@@ -72,10 +72,16 @@ export async function run(game) {
       // The swing's targets: a zombie stood in reach, the main hand a sword.
       const z = S.zombies.find((q) => !q.dead);
       if (z) {
-        moved = { z, gx: z.gx, gy: z.gy, auto: z.auto };
+        moved = { z, gx: z.gx, gy: z.gy, auto: z.auto, aim: { ...me.aim } };
         z.gx = me.gx + 0.9;
         z.gy = me.gy;
         me.hands.main = items.makeEntry("sword", 1);
+        // Faced, as the swing's own test needs: an earlier check may leave the aim anywhere (the order-independence of the checks).
+        const sz = G.iso.toScreen(z.gx, z.gy);
+        const so = G.iso.toScreen(me.gx, me.gy);
+        const n = G.iso.normalize(sz.x - so.x, sz.y - so.y);
+        me.aim.sx = n.x;
+        me.aim.sy = n.y;
         const marks = new Set();
         G.combat.markTargets(me, S.zombies, true, marks);
         const marked = marks.has(z.id);
@@ -97,7 +103,7 @@ export async function run(game) {
   } finally {
     if (joiner) G.game.removePlayer(joiner.id);
     if (other) { G.game.removePlayer(other.id); if (client.me !== me && S.players.includes(me)) G.game.pickPlayer(me); }
-    if (moved) Object.assign(moved.z, { gx: moved.gx, gy: moved.gy, auto: moved.auto });
+    if (moved) { Object.assign(moved.z, { gx: moved.gx, gy: moved.gy, auto: moved.auto }); Object.assign(me.aim, moved.aim); }
     if (hands0 && role !== "guest") { me.hands.main = hands0.main; me.hands.off = hands0.off; }
   }
   for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);

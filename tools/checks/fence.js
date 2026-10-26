@@ -6,8 +6,9 @@
 // It builds a ring of fence round the player on open ground (so the dead have no way round), sends one dead, then four, then crowds,
 // and takes the ring down again. It turns zombie aggro on and restores it, and puts the dead it moved back.
 
-export async function run(game) {
+export async function run(game, opts = {}) {
   const G = game;
+  const needs0 = (({ hunger, thirst, tired, hp, bleed, sick, infection }) => ({ hunger, thirst, tired, hp, bleed, sick, infection }))(G.player); // put back in the finally: its steps drain them and the dead may bite (the order-independence of the checks, check("all"))
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const wasPaused = G.loop.isPaused();
@@ -21,8 +22,12 @@ export async function run(game) {
   const shakes = []; // the strikes, one jolt each (`wallStruck`)
   const offBurst = G.events.on("fenceBurst", (e) => bursts.push(e));
   const offShake = G.events.on("wallStruck", (e) => shakes.push(e));
+  // Its trials run from a seed of their own, the generator put back in the finally: the crowd's steps and strikes roll it, and late in a
+  // page its state was another than a fresh boot's (the order-independence of the checks, check("all")).
+  const rng0 = G.rng.getState();
   try {
     G.loop.setPaused(true);
+    G.rng.seed(opts.seed ?? 4242);
     G.rules.set({ zombieAggro: true });
     G.clock.setHour(12);
     // Open ground: a tile with eight clear tiles round and ten more north of it.
@@ -48,7 +53,12 @@ export async function run(game) {
     restore.push(() => { for (const [x, y, e] of ring) if (G.map.tileAt(x, y)[e]) G.map.destroyWall(x, y, e); });
     row("a yard of fence stands round the player", ring.every(([x, y, e]) => G.map.isFence(G.map.tileAt(x, y)[e])), `${ring.length} edges at ${cx},${cy}`);
     G.teleport(cx, cy);
-    const dead = G.zombies.filter((q) => !q.dead && !q.corpse).slice(0, 8);
+    // Eight of the dead of its own, taken away in the finally: the world's first eight may be in any state after other checks in the page
+    // (the order-independence of the checks, check("all")).
+    const { createZombie } = await import("/src/entities/zombie.js");
+    const dead = Array.from({ length: 8 }, (_, i) => createZombie(cx + 80 + i, cy + 80, { aggro: false }));
+    G.zombies.push(...dead);
+    restore.push(() => { for (const z of dead) { const i = G.zombies.indexOf(z); if (i >= 0) G.zombies.splice(i, 1); const j = (G.corpses || []).indexOf(z); if (j >= 0) G.corpses.splice(j, 1); } });
     for (const o of G.zombies) if (!dead.includes(o) && !o.dead && Math.hypot(o.gx - cx, o.gy - cy) < 60) { const keep = { gx: o.gx, gy: o.gy, aggro: o.aggro }; restore.push(() => Object.assign(o, keep, { path: [] })); o.aggro = false; o.gx = cx + 90; o.gy = cy + 90; }
     for (const z of dead) { const keep = { gx: z.gx, gy: z.gy, state: z.state, aggro: z.aggro }; restore.push(() => Object.assign(z, keep, { path: [], breach: null, press: null, siege: null, seenRoom: -1, lastSeen: null, target: null, noWay: 0 })); }
     const north = [cx, cy - 1, "n"]; // the middle of the north side: the edge the dead press
@@ -269,6 +279,8 @@ export async function run(game) {
     for (let i = 0; i < 60 * 50; i++) { step(1); if (dead[0].state === "press") held++; }
     row("a dead one that knows the player is in a room keeps pressing the fence unseen, past pressGiveUp (day: no siege)", held > 60 * (G.tuning.zombie.pressGiveUp + 10), `${(held / 60).toFixed(0)} s of 50 in the press state (it gives up after ${G.tuning.zombie.pressGiveUp} s for one last seen in the open)`);
   } finally {
+    G.rng.setState(rng0);
+    if (G.player) Object.assign(G.player, needs0); // the needs and the health its steps and bites took
     offBurst();
     offShake();
     for (const r of restore.reverse()) r();

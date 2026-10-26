@@ -94,7 +94,12 @@ export async function run(game) {
     }
     row("stepped, they drift: moving, at most a few pixels a step", moved > 0 && jump <= 4, `${moved} moves in 30 steps, the largest ${jump} px`);
     row("each wing flickers on alternate steps, every step", flicks === shown, `${flicks} flicks in ${shown} bee-steps`);
-    row("most of them in front of the hive", behind / shown < 0.5, `${behind} of ${shown} bee-steps behind it`);
+    // Most of a loop is in front: read off the pure flight over a minute of sim time, not the half second just drawn, whose share is only where
+    // the bees happen to be on their loops (late in a page the sim clock stood elsewhere and it tipped past half; the order-independence of the checks).
+    let backLong = 0;
+    let allLong = 0;
+    for (let k = 0; k < 600; k++) for (const q of bees.beesAt(hive, G.loop.simTime() + k * 0.1, G.clock.getPhase(), 0)) { allLong++; if (q.back) backLong++; }
+    row("most of them in front of the hive", allLong > 0 && backLong / allLong < 0.5, `${backLong} of ${allLong} bee-moments behind it over a minute (${behind} of ${shown} in the half second drawn)`);
     // Take honey: livelier for a few seconds of the clock, from the prop's own day, then calm again.
     const r = G.verbs.run("honey", G.world, me, { prop: hive.id });
     row("Take honey by the verb (as the menu and a guest's label run it)", r.ok && Number.isFinite(hive.honeyAt), r.ok ? `honeyAt ${Math.round(hive.honeyAt)}` : String(r.reason));

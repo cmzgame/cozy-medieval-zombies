@@ -11,6 +11,7 @@
 
 export async function run(game) {
   const G = game;
+  const needs0 = (({ hunger, thirst, tired, hp, bleed, sick, infection }) => ({ hunger, thirst, tired, hp, bleed, sick, infection }))(G.player); // put back in the finally: its steps drain them and the dead may bite (the order-independence of the checks, check("all"))
   const S = G.game.state;
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
@@ -131,7 +132,15 @@ export async function run(game) {
       row("a rabbit that sees a player runs (its run, at its run's speed) and gets away", fled && d1 > d0 + 2, `state ${fled ? "flee, run" : rab.state} after a third of a second; ${d0.toFixed(1)} tiles to ${d1.toFixed(1)}`);
       // Far off, nothing near: it stands alert, then settles.
       G.teleport(rab.gx + 18, rab.gy); // past its clear distance, inside the active box (far enough and it would stand frozen mid-flight, unstepped)
-      step(60 * 4);
+      // The world's own dead sit out the settling: one an earlier check left walking near would keep it alert (the order-independence of
+      // the checks, check("all")); the rows that need the dead make their own.
+      const dead0 = S.zombies;
+      S.zombies = [];
+      try {
+        step(60 * 4);
+      } finally {
+        S.zombies = [...dead0, ...S.zombies]; // put back, a throw or not
+      }
       row("with nothing within its clear distance it settles again", ["idle", "eat", "wander"].includes(rab.state), rab.state);
       G.teleport(...(field || meAt)); // back to the open ground, not the indoor spawn
       step();
@@ -190,8 +199,18 @@ export async function run(game) {
     // ---- the renewal at a wild home ----
     {
       const sp = "deer";
-      const h = { id: "hcheck", species: sp, at: [10, 10], count: 2, cap: 2, renew: true, nextAt: null };
-      const list = [A.createAnimal(sp, 10, 10, { id: "rc1", homeId: "hcheck" })];
+      // The home on a free outdoor tile beside the player, grown and read live: a fixed tile reads as free only until other checks in the
+      // page grow its chunk (the order-independence of the checks, check("all")).
+      const hx0 = Math.round(me.gx), hy0 = Math.round(me.gy);
+      let hat = null;
+      for (let r = 3; r < 30 && !hat; r++) for (let dy = -r; dy <= r && !hat; dy++) for (let dx = -r; dx <= r && !hat; dx++) {
+        const x = hx0 + dx, y = hy0 + dy;
+        G.map.growTile(x, y);
+        if (G.map.isWalkableTile(x, y) && G.map.roomAt(x, y) === 0) hat = [x, y];
+      }
+      const [hx, hy] = hat || [10, 10];
+      const h = { id: "hcheck", species: sp, at: [hx, hy], count: 2, cap: 2, renew: true, nextAt: null };
+      const list = [A.createAnimal(sp, hx, hy, { id: "rc1", homeId: "hcheck" })];
       const R = A.renewRule();
       const c0 = clock.getElapsed();
       restore.push(() => clock.setElapsed(c0));
@@ -201,9 +220,9 @@ export async function run(game) {
       born = A.renewHomes([h], list, []);
       const early = born.length;
       clock.setElapsed(c0 + R.seconds + 1);
-      const near = A.renewHomes([h], list, [{ gx: 12, gy: 10, dead: false }]).length;
+      const near = A.renewHomes([h], list, [{ gx: hx + 2, gy: hy, dead: false }]).length;
       born = A.renewHomes([h], list, []);
-      const one = born.length === 1 && born[0].homeId === "hcheck" && born[0].gx === 10 && born[0].gy === 10;
+      const one = born.length === 1 && born[0].homeId === "hcheck" && born[0].gx === hx && born[0].gy === hy;
       list.push(...born);
       clock.setElapsed(c0 + R.seconds * 5);
       const past = A.renewHomes([h], list, []).length;
@@ -305,6 +324,7 @@ export async function run(game) {
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message + (e.stack ? " " + e.stack.split("\n")[1] : "") });
   } finally {
+    if (G.player) Object.assign(G.player, needs0); // the needs and the health its steps and bites took
     for (const a of added) { const i = S.animals.indexOf(a); if (i >= 0) S.animals.splice(i, 1); }
     S.animals.splice(0, S.animals.length, ...S.animals.filter((a) => ids0.has(a.id)));
     S.animalHomes.forEach((h, i) => { h.nextAt = homes0[i]; });

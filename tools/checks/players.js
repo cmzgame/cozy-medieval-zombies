@@ -22,6 +22,8 @@ export async function run(game) {
   const dist = (a, b) => Math.hypot(a.gx - b.gx, a.gy - b.gy);
   let other = null;
   const meAt = [me.gx, me.gy, me.hp];
+  const off0 = me.hands.off;
+  const ownDead = []; // the dead it made, taken away in the finally // row 6 lights a torch in it: put back (the order-independence of the checks, check("all"))
   const dead = G.zombies.slice(0, 2).map((z) => [z, z.gx, z.gy, z.state, z.aggro, z.lastSeen, z.target]);
   try {
     G.loop.setPaused(true);
@@ -60,7 +62,11 @@ export async function run(game) {
     step(3);
     row("the other player's body is drawn, not only seen", drawnWith > drawnWithout, `${drawnWith} drawables with them beside me, ${drawnWithout} with them far off`);
     // 3. The dead hunt whichever they see nearest: a zombie beside the other player targets them, not me.
-    const z = G.zombies.find((q) => !q.dead && !q.corpse);
+    // One of the dead of its own, taken away in the finally: the world's first one may be in any state after other checks in the page
+    // (a borrowed one stood by and never bit; the order-independence of the checks, check("all")).
+    const z = (await import("/src/entities/zombie.js")).createZombie(other.gx + 1.5, other.gy, { aggro: false });
+    G.zombies.push(z);
+    ownDead.push(z);
     if (z) {
       z.gx = other.gx + 1.5;
       z.gy = other.gy;
@@ -167,8 +173,11 @@ export async function run(game) {
   } finally {
     if (other) G.game.removePlayer(other.id);
     if (other) S.corpses = S.corpses.filter((c) => c !== other); // its body, from row 10
+    S.zombies = S.zombies.filter((q) => !ownDead.includes(q));
+    S.corpses = S.corpses.filter((q) => !ownDead.includes(q));
     for (const [z, gx, gy, state, aggro, lastSeen, target] of dead) { z.gx = gx; z.gy = gy; z.state = state; z.aggro = aggro; z.lastSeen = lastSeen; z.target = target; z.path = []; }
     me.gx = meAt[0]; me.gy = meAt[1]; me.hp = meAt[2];
+    me.hands.off = off0;
     G.clock.setHour(hour0);
     G.rules.set({ zombieAggro: aggro0 });
     step(1);
