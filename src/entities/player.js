@@ -10,7 +10,7 @@ import { getSheet, getDef } from "../assets.js";
 import { createAnimation, playAnimation, advanceAnimation } from "../sprites.js";
 import { createCharacter } from "./character.js";
 import { rules } from "../rules.js";
-import { player as T } from "../tuning.js";
+import { player as T, potions as POTIONS } from "../tuning.js";
 import { tiredStage, hungerStage, thirstStage } from "../moodles.js";
 import { stacks as bleedStacks } from "../bleed.js";
 import * as sick from "../sick.js"; // tainted water's debuff (docs/44): tiredness faster, food heals less, and the one roll a tainted drink makes
@@ -67,6 +67,8 @@ export function createPlayer(gx, gy, { id = null } = {}) {
     offMemory: null, // what a two-hander pushed out of the off hand, to come back (inventory.js)
     bleed: null, // { stacks, left } while bleeding (bleed.js)
     sick: null, // { stacks, left } while Sick from tainted water (sick.js; docs/44)
+    potionAt: null, // the sim time of the last potion drunk (potions.js; docs/47 section 4): the next waits `potions.between` seconds
+    buffs: null, // { stamina: { left } } while a potion's buff lasts (potions.js; the debuff row shows it in gold, debuffs.js)
     infection: null, // { since } once infected (infection.js)
     draw: null, // { t, c, source }: a bow or a throw drawn (archery.js; docs/31/05 item 12: on the player, so two can draw)
     recover: 0, // seconds after a shot before the next draw
@@ -185,11 +187,13 @@ export function regenPerMinute(player) {
 }
 
 // How fast stamina comes back, by the needs (docs/30, 3.2 and 3.3): halved past
-// "hungry" or "thirsty", three quarters past "tired".
+// "hungry" or "thirsty", three quarters past "tired"; a stamina potion's buff `potions.staminaMult` times as fast while it lasts (docs/47
+// section 4), read from the player's own record, so a guest's prediction regenerates as the host does.
 export function staminaRegenMult(player) {
   let k = 1;
   if (hungerStage(player) >= 3 || thirstStage(player) >= 3) k *= T.needsStaminaRegenMult;
   if (tiredStage(player) >= 2) k *= T.tiredStaminaRegenMult;
+  if (player.buffs && player.buffs.stamina && player.buffs.stamina.left > 0) k *= POTIONS.staminaMult;
   return k;
 }
 

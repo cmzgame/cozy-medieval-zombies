@@ -9,7 +9,7 @@ import { shotDamage, tunables as shot } from "./archery.js"; // a shot's damage 
 import { BURN } from "./burn.js"; // what burning does to the dead (data/combat.json `burn`): a fire arrow's and a fireball's line
 import { propName } from "./prop-names.js"; // a prop's name in words: its recipe's label, its definition's `name`, else its id
 import { beltAction, ROLE_WORD } from "./inventory.js"; // what a belt slot's key does by its role (2026-10-25)
-import { work, trees } from "./tuning.js"; // the repair ladders and the sawpit's item (docs/43 section 6); the sapling and the sticks (docs/46 step 3)
+import { work, trees, potions as POTIONS } from "./tuning.js"; // the repair ladders and the sawpit's item (docs/43 section 6); the sapling and the sticks (docs/46 step 3); what a potion does (docs/47 section 4)
 import * as interactions from "./interactions.js";
 import * as stations from "./stations.js";
 import * as farming from "./farming.js";
@@ -21,7 +21,7 @@ import { sourcesOf, snareRule, keptFrom } from "./entities/animal.js"; // where 
 import { defIdsWith, getDef } from "./assets.js"; // the nodes a gathered thing comes from (docs/46 step 2)
 import { resourceKindOf } from "./map.js"; // and where they grow: the map's resource kinds
 
-const KIND = { food: "Food", tool: "Tool", material: "Material", clothing: "Clothing", bag: "Bag", ammo: "Ammunition", medicine: "Medicine", drink: "Drink", decor: "Decor" };
+const KIND = { food: "Food", tool: "Tool", material: "Material", clothing: "Clothing", bag: "Bag", ammo: "Ammunition", medicine: "Medicine", drink: "Drink", decor: "Decor", potion: "Potion", poison: "Poison" };
 const MAX_LINES = 8; // a small card: the name and the basics, not a page
 const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 const seg = (t, k) => (k ? { t, k } : { t });
@@ -251,6 +251,15 @@ export function cardFor(entry, opts = {}) {
   // Which water it holds (docs/44 section 3): the item's name never changes, the card says it, and a brown drop marks a tainted one's icon (inventory-panel.js).
   if (holdsWater(entry)) lines.push(line(!isTainted(entry) ? "Clean water." : def.capacity ? "Tainted water: drinking it may make you Sick." : "Tainted water."));
   if (def.bandage) lines.push(line(seg("Apply", "word"), ": closes a bleeding wound."));
+  // A potion, drunk (docs/47 section 4), its numbers from data/tuning.json `potions`; a poison, never drunk (section 6).
+  if (def.potion === "heal") lines.push(line(seg("Drink", "word"), `: heals ${POTIONS.heal} at once.`));
+  if (def.potion === "stamina") lines.push(line(seg("Drink", "word"), `: fills your stamina, and it comes back ${POTIONS.staminaMult === 2 ? "twice" : `${POTIONS.staminaMult} times`} as fast for ${POTIONS.staminaSeconds} seconds.`));
+  if (def.potion === "mana") lines.push(line(seg("Drink", "word"), `: restores ${POTIONS.mana} mana at once.`));
+  if (def.potion) lines.push(line(`${POTIONS.between} seconds between one potion and the next; the empty vial is kept.`));
+  if (def.poison) {
+    lines.push(line(seg("Use", "use"), " on a blade or on arrows."));
+    lines.push(line(`${def.poison.tier > 1 ? "Strong" : "Ordinary"} poison: never drunk.`));
+  }
   if (def.weapon) {
     const w = def.weapon;
     lines.push(line(`${w.damage} damage${w.range ? `, reach ${w.range}` : ""}${w.stamina ? `; ${w.stamina} stamina a swing` : ""}.`)); // the cost since docs/41 step 4: stamina is the one pacer of melee
@@ -265,6 +274,13 @@ export function cardFor(entry, opts = {}) {
   if (def.place === "campfire") lines.push(line(seg("Place", "word"), ": set down outdoors as a campfire, cold and empty.")); // docs/43, section 3
   // docs/43, section 4: set down as its prop, by where it may stand; food placed as decoration does not come back food; a bracket hung as a painting is.
   if (def.place && def.place !== "campfire") lines.push(line(seg("Place", "word"), def.stand === "natural" ? ": plant on open grass outdoors." : def.stand === "outdoors" ? ": set down outdoors." : ": set down on the floor."));
+  // A station of your own set down from the bag (the cauldron, docs/47 section 3): what it makes and the fire under it, from its definition and the recipes.
+  const placed = def.place && def.place !== "campfire" ? getDefSafe(def.place) : null;
+  if (placed && placed.station) {
+    const n = stations.recipesFor(placed.station).length;
+    const fuel = placed.fire && placed.fire.burns ? pluralName(placed.fire.fuel || "log") : null;
+    lines.push(line(`Set down, it is a station: ${n} recipe${n === 1 ? "" : "s"}${fuel ? `, over a fire of ${fuel}` : ""}; picked up again while out and empty.`));
+  }
   // A sapling (docs/46 step 3): what it grows into and how long, from the tuning (trees.js).
   if (def.id === trees.sapling.item) {
     // The tree it grows into: the one its entry carries (an apple tree's sapling, #461), else the default's (the round oak, "an oak").
@@ -371,6 +387,8 @@ function beltSlotLine(entry, def, role) {
   const lit = def.fire ? " Lit, it gives its light from the belt." : "";
   if (a.act === "draw") return line(`${where}: drawn into ${a.hand === "both" ? "both hands" : `your ${a.hand} hand`}.${lit}`);
   if (a.act === "eat") return line(`${where}: eaten.`);
+  if (a.act === "drink") return line(`${where}: drunk.`); // a potion, from any slot (docs/47 section 4)
+  if (def.poison && !def.hands) return line(`${where}: carried only.`); // the card's own lines say Use and never drunk once (the review of #491)
   // A held thing the key does not draw is still equipped from the slot's menu, as from the bag (interact.slotMenu): the card says so.
   if (def.hands) return line(`${where}: stored. ${a.word} Its menu equips it.${lit}`);
   return line(`${where}: carried only. ${a.word}${lit}`);

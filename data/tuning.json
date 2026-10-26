@@ -198,7 +198,12 @@
     "checkSeconds": 30
   },
   "potions": {
-    "note": "Potions, poisons, and mana (docs/47; Michael, 2026-10-25). Step 1 (#480): `praySeconds` is the bar of the altar's Pray, which refills mana and stamina (src/mana.js; Primary's default). The mana bar itself is `player.mana` and `player.manaRegen`.",
-    "praySeconds": 3
+    "note": "Potions, poisons, and mana (docs/47; Michael, 2026-10-25). Step 1 (#480): `praySeconds` is the bar of the altar's Pray, which refills mana and stamina (src/mana.js; Primary's default). The mana bar itself is `player.mana` and `player.manaRegen`. Step 2 (#481; src/potions.js): drinking, a healing potion gives `heal` health at once; a stamina potion fills the bar and makes it come back `staminaMult` times as fast for `staminaSeconds` (a buff, player.buffs.stamina); a mana potion gives `mana` mana (Michael's 50) up to the player's `maxMana`; `between` seconds of the sim clock after any potion before the next takes effect (player.potionAt). Primary's defaults but the mana, levers in docs/42.",
+    "praySeconds": 3,
+    "heal": 40,
+    "mana": 50,
+    "staminaMult": 2,
+    "staminaSeconds": 30,
+    "between": 10
   }
 }

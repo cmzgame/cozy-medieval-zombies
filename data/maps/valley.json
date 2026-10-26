@@ -8591,6 +8591,30 @@
    ]
   },
   {
+   "name": "the witch's cauldron",
+   "rect": [
+    81,
+    17,
+    4,
+    4
+   ],
+   "padding": 1,
+   "buildings": [],
+   "floorRects": [],
+   "fences": [],
+   "props": [
+    {
+     "sprite": "cauldron",
+     "tile": [
+      1,
+      1
+     ],
+     "id": "cauldron_witch",
+     "note": "the witch's cauldron (docs/47 section 3)"
+    }
+   ]
+  },
+  {
    "name": "Long Acre's farmhouse",
    "rect": [
     66,

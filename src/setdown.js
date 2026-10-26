@@ -99,11 +99,20 @@ export function place(player, uid, tx, ty) {
 
 // Why a prop that names its item cannot be picked up now, or "": a torch post the village set up is the village's (only a player's own comes
 // up), and one holding a torch keeps it until the torch is taken.
+// A station of your own with a fire under it (the cauldron, docs/47 section 3) comes up only while it is out and empty, as the campfire does: no
+// fire burning or fuel left in it, nothing brewing, nothing in its output.
 export function pickUpProblem(prop) {
   const d = prop && getDef(prop.sprite);
   if (!d || !d.item) return "That cannot be picked up.";
-  if (d.fire && !prop.made) return "That is the village's.";
+  if (d.fire && !prop.made) return d.station ? "That is not yours to lift." : "That is the village's.";
   if (prop.fire && prop.fire.has) return "Take the torch first.";
+  const f = prop.fire;
+  if (f && f.burns && !f.switch) {
+    if (f.lit) return "Its fire is still burning; let it burn down.";
+    if (f.fuel > 0) return "It still has fuel in it; let it burn down.";
+  }
+  if (prop.queue && prop.queue.length) return "It is still making something.";
+  if (prop.output && prop.output.items && prop.output.items.length) return "Empty it first.";
   return "";
 }
 

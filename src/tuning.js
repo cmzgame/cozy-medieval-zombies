@@ -265,10 +265,18 @@ export const trees = {
   checkSeconds: 30,
 };
 
-// Potions, poisons, and mana (docs/47; src/mana.js). Step 1 (#480): the altar's Pray is a bar of `praySeconds` that refills mana and stamina
-// (Primary's default, a lever in docs/42).
+// Potions, poisons, and mana (docs/47; src/mana.js, src/potions.js). Step 1 (#480): the altar's Pray is a bar of `praySeconds` that refills mana
+// and stamina. Step 2 (#481): a healing potion gives `heal` health at once, a stamina potion fills the bar and makes it come back `staminaMult`
+// times as fast for `staminaSeconds` (the buff `player.buffs.stamina`), a mana potion gives `mana` mana (`player.mana`, up to `maxMana`); after
+// any potion the next takes effect only `between` seconds of the sim clock later (`player.potionAt`). Primary's defaults but the mana's 50
+// (Michael's), levers in docs/42.
 export const potions = {
   praySeconds: 3,
+  heal: 40,
+  mana: 50,
+  staminaMult: 2,
+  staminaSeconds: 30,
+  between: 10,
 };
 
 const sections = { zombie, player, villager, world, population, sight, feel, floaters, objectHighlight, hoverCard, work, water, resources, trees, potions };
