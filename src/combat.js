@@ -396,9 +396,8 @@ export function tryAttack(player, zombies, hand = "main", mode = null, predict =
     hit.push(z);
     if (z.kind === "animal") {
       // An animal (docs/45 section 2): the blow's damage, no knockdown or combo; the weapon's class decides what the carcass gives.
-      const swungEntry = player.hands[hand];
       const amount = Math.round(weapon.damage * (tired ? BLOW.tiredDamage : 1) * guardedMult(player) * (hand === "off" ? DUAL.offDamage : 1));
-      const cls = animals.classOfItem(swungEntry && swungEntry.id);
+      const cls = animals.classOfItem(coated && coated.id);
       if (animals.damageAnimal(z, amount, { by: player, cls, from: [player.gx, player.gy] }).killed) killed = true;
       if (coatTier) poison.apply(z, coatTier, cls); // after the blow: a body it killed is not poisoned
       continue;

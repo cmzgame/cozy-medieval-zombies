@@ -692,6 +692,10 @@ for k in ("max", "hits", "arrows"):
         fail(f"combat.poison.{k}: a whole number above 0")
 if not (num(_po.get("duration")) and _po["duration"] > 0):
     fail("combat.poison.duration: seconds above 0")
+# An `exact` Use row (src/interactions.js `usedBy`) matches its `use` as an item id alone, never a tag, so that `use` must be an item's id.
+for _r in load("data/interactions.json").get("rows", []):
+    if "exact" in _r and (_r["exact"] is not True or _r.get("use") not in by_id):
+        fail(f"interactions: the exact row for {_r.get('use')!r} on {_r.get('on')!r}: `exact` is true, and its `use` an item id")
 
 # The farms and the mill (#201): every recipe's station is some sprite's `station` (or the cooking fire), the millstones grind grain, every crop's seed is in
 # both granaries' fixed tables (a seed source for every crop, never refilled), and no crop is a dead end (its harvest is an ingredient, by id or tag).

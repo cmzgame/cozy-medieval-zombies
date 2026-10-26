@@ -17,7 +17,7 @@
 // coat on its replica and its card, makes five strongly poisoned arrows the same way, swings at the dead one through its snapshot's click
 // and sees the coat spend one hit and the body's record poisoned, draws its tint from the replica's record, and reads the ticks arrive as
 // floating numbers over it; then `await __game.check("sync")` on the host, and `await __game.check("poison", { stop: true })` there puts the
-// other players' hands and bags back and takes the dead it stood there away.
+// other players' hands, bags, health, places, and stamina back, takes the dead it stood there away, and puts Zombie aggro back as it was (off while kept, so the dead stay calm).
 
 const keptBack = []; // the other players as `{ keep: true }` found them (the module is cached by the page)
 const keptDead = [];
@@ -44,12 +44,12 @@ export async function run(game, opts = {}) {
       p.hands.off = k.off;
       const b = G.inventory.bagOf(p);
       if (b && k.bag) b.items.splice(0, b.items.length, ...k.bag);
-      p.hp = k.hp;
+      Object.assign(p, { hp: k.hp, gx: k.gx, gy: k.gy, auto: k.auto, stamina: k.stamina, winded: k.winded }); // where it stood and the bar its swing spent, as mana.js puts them back
       put.push(p.id);
     }
     for (const z of keptDead.splice(0)) takeAway(z);
     if (keptRules) { G.rules.set(keptRules); keptRules = null; }
-    row("the other players' hands, bags, and health put back as { keep: true } found them, the dead it stood there taken away, the rules back", true, put.join(", ") || "nobody kept");
+    row("the other players' hands, bags, health, places, walks, and stamina put back as { keep: true } found them, the dead it stood there taken away, the rules back (Zombie aggro, off while kept)", true, put.join(", ") || "nobody kept");
     return done();
   }
   const yieldOnce = () => new Promise((r) => { const ch = new MessageChannel(); ch.port1.onmessage = () => r(); ch.port2.postMessage(0); });
@@ -334,7 +334,7 @@ export async function run(game, opts = {}) {
       const dead = {};
       for (const p of others) {
         const b = inv.bagOf(p);
-        keptBack.push({ id: p.id, main: p.hands.main, off: p.hands.off, bag: b ? b.items.slice() : null, hp: p.hp });
+        keptBack.push({ id: p.id, main: p.hands.main, off: p.hands.off, bag: b ? b.items.slice() : null, hp: p.hp, gx: p.gx, gy: p.gy, auto: p.auto, stamina: p.stamina, winded: p.winded });
         p.hands.main = mk("sword");
         p.hands.off = null;
         if (b) { b.items.length = 0; for (const [v, n] of [["poison", 1], ["strong_poison", 1], ["arrow", 8]]) G.grid.add(b, v, n); }
@@ -352,7 +352,7 @@ export async function run(game, opts = {}) {
       }
       keptRules = { zombieAggro: rules0.zombieAggro, multiHit: rules0.multiHit };
       kept = others.length ? { players: others.map((p) => p.id), dead } : null;
-      row("kept for the guest: every other player with a sword in hand, a poison, a strong poison, and eight arrows in its bag, one of the dead standing 0.9 tiles east of it; `{ stop: true }` puts them back", !!kept, kept ? JSON.stringify(kept) : "no other player");
+      row("kept for the guest: every other player with a sword in hand, a poison, a strong poison, and eight arrows in its bag, one of the dead standing 0.9 tiles east of it, the dead kept calm (Zombie aggro off until `{ stop: true }`); `{ stop: true }` puts them back", !!kept, kept ? JSON.stringify(kept) : "no other player");
     }
   } catch (e) {
     rows.push({ check: "ran to the end", result: "FAIL", detail: e && e.stack ? e.stack.split("\n").slice(0, 3).join(" | ") : String(e) });

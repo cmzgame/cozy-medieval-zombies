@@ -32,9 +32,11 @@ import { bagOf, carriedEntry } from "./inventory.js";
 import { burnZombie } from "./entities/zombie.js";
 import { drainAnimal } from "./entities/animal.js";
 import { placeOf, spendVial } from "./potions.js";
+import { showMessage } from "./ui/prompt.js";
 
 export const POISON = { dpsByStacks: { ordinary: [1, 2, 3], strong: [2, 4, 6] }, max: 3, duration: 10, hits: 10, arrows: 5 };
 const NOTHING = "Nothing interesting happens.";
+export const ARROWS_AT_FEET = "Your bag is full: the arrows are at your feet."; // the poisoned arrows a full bag could not take
 const EPS = 1e-6; // a timer stepped down in sixtieths reaches its whole second within this
 
 export function setPoisonData(data) {
@@ -170,7 +172,10 @@ verbs.define("coat", {
         on.count -= n;
         const bag = bagOf(player);
         const put = bag ? grid.add(bag, args.to, n) : 0;
-        if (put < n) map.dropItem(Math.round(player.gx), Math.round(player.gy), makeEntry(args.to, n - put));
+        if (put < n) {
+          map.dropItem(Math.round(player.gx), Math.round(player.gy), makeEntry(args.to, n - put));
+          showMessage(ARROWS_AT_FEET); // as the vial's line says it (potions.BAG_FULL)
+        }
       }
       message = `You coat ${countName(args.from || "arrow", n)} with ${tierWord(tier)}.`;
     } else {

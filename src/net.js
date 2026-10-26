@@ -22,6 +22,7 @@ import * as light from "./light.js";
 import * as world from "./world.js";
 import * as rules from "./rules.js";
 import * as archery from "./archery.js";
+import { POISON } from "./poison.js"; // a poison's most stacks, the cap on what a frame may say (poisonOf)
 import * as burning from "./fire.js";
 import * as stations from "./stations.js";
 import * as interact from "./interact.js";
@@ -789,7 +790,7 @@ const sameAnimKey = (r) => JSON.stringify(r.anim && typeof r.anim === "object" ?
 function poisonOf(po) {
   if (!Array.isArray(po)) return null;
   const [tier, stacks] = po;
-  return Number.isInteger(tier) && Number.isInteger(stacks) && tier >= 1 && tier <= 2 && stacks >= 1 && stacks <= 9 ? { tier, stacks } : null;
+  return Number.isInteger(tier) && Number.isInteger(stacks) && tier >= 1 && tier <= 2 && stacks >= 1 && stacks <= POISON.max ? { tier, stacks } : null;
 }
 
 function slim(c) {

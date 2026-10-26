@@ -3770,6 +3770,22 @@ check("poison: the blade tag, a coat and poisoned arrows by Use (a guest's comma
     const sv = give("strong_poison", 1);
     useMod.applyWith(sv, { kind: "item", entry: few2 }, me);
     assert(few2.id === "strong_poison_arrow" && few2.count === 3 && count("strong_poison") === 0, `three arrows: ${few2.id} x${few2.count}`);
+    // A full bag: the five new arrows at the feet, with their line, as the vial's.
+    const bag0 = bag.items.slice();
+    const held = mk("arrow", 12);
+    me.hands.off = held;
+    const fv = give("poison", 1);
+    bag.items = bag.items.filter((e) => e.id !== "poison_arrow"); // no stack of them to top up
+    while (gridMod.add(bag, "clay_vial", 1) === 1); // every cell taken, the vials' stacks full
+    const tile = [Math.round(me.gx), Math.round(me.gy)];
+    const floor0 = mapMod.itemsAt(tile[0], tile[1]).filter((e) => e.id === "poison_arrow").reduce((n, e) => n + e.count, 0);
+    said.length = 0;
+    useMod.applyWith(fv, { kind: "item", entry: held, slot: "hand:off" }, me);
+    const floor1 = mapMod.itemsAt(tile[0], tile[1]).filter((e) => e.id === "poison_arrow").reduce((n, e) => n + e.count, 0);
+    assert(held.count === 7 && floor1 - floor0 === P.arrows && said.includes(poisonMod.ARROWS_AT_FEET), `a full bag: ${held.count} kept, ${floor1 - floor0} at the feet; said ${said.join(" / ")}`);
+    for (const e of mapMod.itemsAt(tile[0], tile[1]).filter((q) => q.id === "poison_arrow" || q.id === "clay_vial")) mapMod.takeItem(tile[0], tile[1], e);
+    bag.items.splice(0, bag.items.length, ...bag0);
+    me.hands.off = null;
     // The bow's order: fire, strong, ordinary, plain.
     me.hands.main = mk("bow");
     give("fire_arrow", 2);
