@@ -23,58 +23,37 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
-## Status (2026-10-25, later: the scoped work is built; next is the animals sitting, at Michael's word)
+## Status (2026-10-25, evening: the animals and natural resources are built; the sittings ahead wait for Michael)
 
-**Stopped at the animals sitting (#289), for Michael to say whether he has time for it now.** Everything scoped before it is built and merged:
-- **The dead ends** (`docs/43`), all seven steps:
-  1. Take apart (#413).
-  2. Fires and lights, home lights as switches (#421).
-  3. The made things and Place as decoration (#428).
-  4. The village's stations behind a world rule (#431).
-  5. Repairs, the sawpit, and honey (#416).
-  6. Burn corpse, the wave, and the cowering (#434).
-  7. The dye vat (#417).
-- **Water** (`docs/44`, #435): no fixed source clean, boiling by Use or either menu, a clean starting skin, the Sick debuff, the infection's third stage Queasy.
-- **The dead's moan and the strike sound** (#436, Michael's playtest note #424).
-- **Test fixes:**
-  - `check("slots")` independent of the checks before it (#430);
-  - `check("build")` after `check("worlds")`, with a stale Take apart target refused (#433, #432);
-  - `check("kindle")` from an empty bag, and a hover card measured before it flips near the right edge, a player-visible fix (#439, #437).
+**Built and merged this evening**, Michael away from his desk and approving by remote (each PR reviewed by a fresh agent, run in the pane and in two tabs by Primary, and its wiki synced in cmz-wiki#35 to #37):
+- **Natural resources ruled and built** (`docs/46`, #288): the comeback rule, rocks and ore rising from the ground (#453); herbs, clay, and salt (#457); saplings and Gather sticks (#461).
+- **Animals ruled and built** (`docs/45`, #289): in the world (#452), hunting (#456), keeping (#460), the recipes (#462). The companion waits for after the demo.
+- **Small issues:** the off hand's swing (#450), apple trees and the bees (#451), the belt's rulings (#467).
+- **Multiplayer:** a guest drops the chunks the host evicts (#455), a guest's arrows stepped from their launch (#463), seams 7 and 26 and a read-only guest console (#465), a prop across a chunk edge stays whole and one lift per piece (#468). `net.PROTOCOL` is 15.
+- **Engine and tests:** the pathfinder's reused memory (#458), the item census in `check("sync")` (#459), a click under a tree's crown finding the herb (#464).
+- **Bugs:** two batches from `docs/bugs.md` (#454, #466), including a made counter landing on its own workbench.
 
-**The order ahead** (Michael, 2026-10-25):
-1. The animals sitting (#289).
-2. The basic lore (#217), then the map redraw (#92), a pair that evolve together, the lore first. The game's own name belongs to the private infrastructure work: settled in session, never in public issues or docs.
-3. Then build the demo, and consider spending money (art, sound).
+**The order ahead** (Michael, 2026-10-25), each a sit-down with him:
+1. Power items: gems (#281), trinkets (#282), silver (#283).
+2. Armour and difficulty (#133).
+3. Lore and the map (#217, #92), folding in villagers (#103), the wizard (#181), the regions' edge (#123).
+4. The demo, the business, and so on.
+5. Eventually, the regions.
 
-Small issues fill the gaps.
+**Open lines of `docs/39` by issue** (counted 2026-10-25, evening; 53 open, down from 162): #92 11 · #281 7 · #123 7 · #282 5 · #181 5 · #133 5 · #283 4 · #103 3 · #262 2 · #104 2 · #271, #261, #217, #106 1 each.
 
-**Open lines of `docs/39` by issue** (counted 2026-10-25; 73 open, down from 162): #92 11 · #289 10 · #288 8 · #123 7 · #281 7 · #181, #282, #133 5 each · #283 4 · #103 3 · #104, #262 2 each · #217, #261, #106, #271 1 each.
+**In progress:** the Secondary's test-order hygiene (every instrument passing whatever ran before it in one page; a runner for a full sweep).
 
-**The wiki** for everything above is synced (cmz-wiki#31 to #34). **Next, for any Secondary:**
-- `check("debuffs")`' Sick-card row still fails late in one page, though it passes fresh: Primary reproduced it on #439's own branch, after its fix, running hovercard, villagers, talk, and kindle first (23 of 24; fresh 24 of 24);
-- #423, the off hand's swing animation and sound;
-- the Open lines in `docs/bugs.md`.
+**Waiting on Michael** (defaults built, his to confirm or overrule; each named in its PR's Risks):
+- the belt (#467): the hand choice kept per kind of item in a slot rather than per slot; Equip to a hand also draws; an empty off-hand slot takes the off hand's item; the two Equip spellings;
+- animals: a birth may appear in view; pemmican heals 3; spells spare tame stock; a weaker weapon's yield by expected value; milk as a jug; the smoking rack, tanning vat, and spinning wheel not carried;
+- resources: the "frozen zombie plan" reading (rocks rising whole through the ground); the counts (stone 40, ore 6, salt 4, clay 8, herbs 120, mushrooms 774); "Mana herb" and "Grave moss" as placeholder names; grave moss only at night; mushrooms as forage, not food; an apple tree's sapling growing an apple tree;
+- a guest's own shot drawn about 67 ms later than before (#463); the market's workbench now too full for a counter (#466);
+- from before: the shared repair count and the plank for the rod and bow (#425); water's infection opening on "Bitten"; a tainted sip at full thirst; #426 brightness and Plants vs Zombies; #415 spikes; #419 the Stardew notebook; the loot rates; the rucksack's recipe; the burst against a bow, shield, or brace; #271's items 6 and 8 to 11; #393 the downed art; knockdown on cards; music; #324; the `needs-michael` issues.
 
-**Waiting on Michael:**
-- whether a free sharpening should use up the anvil's repair too, and the plank that repairs the fishing rod and the bow (#425);
-- water's infection opening with the bite's "Bitten" line (#435's review);
-- whether a sip of tainted water at full thirst should still roll Sick (it does today; `docs/bugs.md`, from #439);
-- #426, how bright the valley is drawn, and Plants vs Zombies as a reference;
-- #415, defensive spikes;
-- #419, his Stardew Valley notebook;
-- the loot rates, from the wiki's Drop tables page;
-- the rucksack's default recipe;
-- the burst against a drawn bow, a raised shield, or a brace;
-- #271's items 6 and 8 to 11;
-- #393, the downed art brief; the satchel's drawn art;
-- whether the mace's and the thrust's cards name knockdown;
-- placeholder music;
-- #341, #324;
-- the `needs-michael` issues: #92, #94, #123, #133, #181, #217.
+**Parallel builders are allowed** (2026-10-25): Primary runs their pane and two-tab tests, merges main in, and reviews before main. **Protocol bumps in Primary's builds merge on a clean review** (Michael, 2026-10-25; `docs/02`).
 
-**Parallel builders are allowed** (2026-10-25): Primary runs their pane and two-tab tests, merges main in, and reviews before main.
-
-**Not done, Michael's hand:** the finished worktrees under `.claude/worktrees/` are merged and his to remove (`git worktree remove <path>`, then `git worktree prune`). Four of them are builders': `agent-a6d8d9d842bc1e0e6`, `agent-a0c864dfb44981bb9`, `agent-a14108f5070c7c9a8`, `agent-a4eee3c3d70381daa`.
+**Not done, Michael's hand:** the finished builders' worktrees under `.claude/worktrees/agent-*` (nineteen, all merged) are his to remove (`git worktree remove <path>`, then `git worktree prune`).
 
 **The design agent's worktree** (`C:/Users/micha/Dev/cozy-medieval-zombies-art`, branch `art-docs`) was fast-forwarded to main on 2026-10-20; its deliveries sit under `deliveries/`, untracked.
 
