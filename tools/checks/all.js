@@ -231,7 +231,7 @@ export async function run(game, opts = {}) {
     const passed = Object.values(rows).filter((v) => v === "pass").length;
     counts[name] = `${passed}/${Object.keys(rows).length}`;
     const base = fresh[name] && rekey(fresh[name]);
-    if (!base) continue;
+    if (!base) { if (halted) break; continue; } // a check with no fresh run is not compared, but a halt still stops the sweep
     // A row in both runs whose result changed differs; a row in one run only was reworded (its words carry a choice the run made, such as
     // which house it found), and differs only when it fails here: a row of the fresh run's gone from this one is reworded, whatever it was.
     for (const [k, v] of Object.entries(rows)) {

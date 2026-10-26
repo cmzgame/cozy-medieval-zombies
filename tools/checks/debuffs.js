@@ -99,6 +99,12 @@ export async function run(game) {
       const apply = G.interact.itemMenu(me, bandage, bag, null).find((m) => m.label === "Apply");
       apply.onSelect();
       row("a bandage clears the wound and the row is empty", !me.bleed && show().length === 0, `bleed ${JSON.stringify(me.bleed)}, ${show().length} in the row`);
+      // The bag is done with: closed, and the panels let go of the pointer, so the card over Sick is Sick's. A pointer resting over the bag
+      // (the pane's own cursor, held by the panels to redraw the card of what is under it) showed the Bandage's card there instead.
+      panel.setBagOpen(false);
+      panel.renderInventoryPanel(me, bag, null, G.inventory.beltOf(me));
+      for (const id of ["inventory", "hotbar"]) document.getElementById(id)?.dispatchEvent(new PointerEvent("pointerleave", { bubbles: false }));
+      card.hide();
 
       // Sick (docs/44 section 4): a tainted drink's debuff, its own icon in the row; its stacks are only time, half a game day each, up to three.
       const S = await import("/src/sick.js");
