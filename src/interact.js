@@ -145,7 +145,12 @@ export function actionsForTarget(t, player) {
 // A command from a client not here (net.js): the action with that label on that address, run as if
 // chosen from this player's own menu (the walk there, the timed bar, the message, all the host's).
 export function performByLabel(player, target, label) {
-  const a = actionsForTarget(target, player).find((q) => q.label === label);
+  // The label as the guest's menu wrote it, else the same label but for a count at its end, on either side: a pile's count (a throwable's
+  // Pick up, docs/24 section 1) is read from where each player stands and what each world holds that frame, so the guest's may say (3)
+  // where the host's says (2), or none. The actions are the one target's, by its address, so two labels apart only by a count are one action.
+  const bare = (l) => String(l).replace(/ \(\d+\)$/, "");
+  const all = actionsForTarget(target, player);
+  const a = all.find((q) => q.label === label) || all.find((q) => bare(q.label) === bare(label));
   if (!a || a.local) return false; // a local action (Inspect) is the asking client's own: never run for another
   runAction(player, a);
   return true;
@@ -255,19 +260,30 @@ function itemActions(entry, tx, ty, player) {
 }
 
 // A throwable's pile (docs/24 section 1): every one of its kind lying on this tile and its neighbours, each floor entry as itself, so a
-// fight's worth of knives comes up with one press of E or one Pick up. Anything else is the one entry.
-function pileOf(entry, tx, ty) {
+// fight's worth of knives comes up with one press of E or one Pick up. Anything else is the one entry. A neighbour counts only when the
+// player can reach it by the one reach test (#208): a wall, a shut door, or shut shutters between keep what lies past them where it is
+// (a sealed room is a cell, #147). Its reach is the action's and the pile's own spread, a tile and a diagonal, past the chosen tile.
+const PILE_SPREAD = 1.5;
+function pileOf(entry, tx, ty, player) {
   const def = getItem(entry.id);
   if (!(def.thrown && def.stack)) return [[entry, tx, ty]];
-  const out = [];
-  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) for (const e of map.itemsAt(tx + dx, ty + dy)) if (e.id === entry.id) out.push([e, tx + dx, ty + dy]);
-  return out.some(([e]) => e === entry) ? out : [[entry, tx, ty], ...out];
+  const out = [[entry, tx, ty]];
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const x = tx + dx;
+      const y = ty + dy;
+      const here = map.itemsAt(x, y).filter((e) => e.id === entry.id && e !== entry);
+      if (here.length && (dx || dy) && !canReach(player, [[x, y]], INTERACT_RANGE + PILE_SPREAD)) continue;
+      for (const e of here) out.push([e, x, y]);
+    }
+  }
+  return out;
 }
 
 function pickUpAction(entry, tx, ty, player, simple) {
   const def = getItem(entry.id);
   const tiles = [[tx, ty]];
-  const pile = pileOf(entry, tx, ty);
+  const pile = pileOf(entry, tx, ty, player);
   const fill = entry.fill != null ? ` (${Math.round(entry.fill)}%)` : "";
   const total = pile.reduce((n, [e]) => n + (e.count || 1), 0);
   const count = total > 1 ? ` (${total})` : "";
@@ -285,7 +301,7 @@ function pickUpAction(entry, tx, ty, player, simple) {
       if (bag && def.stack) {
         // The pile, one floor entry at a time (one entry unless it is a throwable's): what fits comes up, the rest stays where it lies.
         let any = false;
-        for (const [e, x, y] of pileOf(entry, tx, ty)) {
+        for (const [e, x, y] of pileOf(entry, tx, ty, player)) {
           const added = addItem(bag, e.id, e.count, e.fill != null ? { fill: e.fill } : {});
           if (added <= 0) break;
           any = true;

@@ -14,8 +14,8 @@ import { HELD_ANGLES, angleIndex, poseAt } from "./figure.js";
 import * as settings from "./settings.js";
 import { guardedMult, styleOf } from "./combat.js";
 import { getItem } from "./items.js";
-import { getSheet, idleFrame } from "./assets.js";
-import { damageZombie } from "./entities/zombie.js";
+import { getSheet, idleFrame, turnPixels } from "./assets.js";
+import { damageZombie, isDown } from "./entities/zombie.js";
 import { damageAnimal, isWild } from "./entities/animal.js"; // game shot, and stock only when aimed at (docs/45 section 2)
 import * as burn from "./burn.js";
 import { DOOR_TOP, WINDOW_SILL, WINDOW_TOP } from "./placeholders.js";
@@ -299,9 +299,11 @@ function land(a, met = null) {
     damageAnimal(hit, shotDamage(a.damage, a.c), { by: a.shooter, cls: a.vanish ? "spell" : a.item ? "thrown" : "bow", from: [a.x0, a.y0] });
   } else if (hit) {
     if (a.ignite) burn.ignite(hit); // before the damage, so a body it kills burns on as a corpse (#14)
-    // A knockdown is rolled here, on the authority, as a swing's is in combat.js (docs/24 section 1): only a shot that carries one rolls.
-    const down = a.knockdown > 0 && rng.chance(a.knockdown);
-    damageZombie(hit, shotDamage(a.damage, a.c), { dir: [a.dx, a.dy], knockback: a.knockback, staggerChance: a.staggerChance, knockdown: down, from: [a.x0, a.y0] });
+    // A knockdown is rolled here, on the authority, as a swing's is in combat.js (docs/24 section 1): only a shot that carries one rolls,
+    // and never on one already down or one the hit kills.
+    const amount = shotDamage(a.damage, a.c);
+    const down = a.knockdown > 0 && !isDown(hit) && amount < hit.hp && rng.chance(a.knockdown);
+    damageZombie(hit, amount, { dir: [a.dx, a.dy], knockback: a.knockback, staggerChance: a.staggerChance, knockdown: down, from: [a.x0, a.y0] });
   }
   if (hit) {
     // The arrow stays in the body (Michael): it comes out in the loot when the dead one is
@@ -730,26 +732,8 @@ function turnedSheet(img, name, steps) {
   const ctx = canvas.getContext("2d");
   const frames = {};
   for (let k = 0; k < steps; k++) {
-    const a = (k * 2 * Math.PI) / steps;
-    const cos = Math.cos(a);
-    const sin = Math.sin(a);
     const out = ctx.createImageData(S, S);
-    for (let y = 0; y < S; y++) {
-      for (let x = 0; x < S; x++) {
-        const dx = x + 0.5 - S / 2;
-        const dy = y + 0.5 - S / 2;
-        const sx = Math.floor(w / 2 + dx * cos + dy * sin);
-        const sy = Math.floor(h / 2 - dx * sin + dy * cos);
-        if (sx < 0 || sy < 0 || sx >= w || sy >= h) continue;
-        const i = (sy * w + sx) * 4;
-        if (sd[i + 3] === 0) continue;
-        const o = (y * S + x) * 4;
-        out.data[o] = sd[i];
-        out.data[o + 1] = sd[i + 1];
-        out.data[o + 2] = sd[i + 2];
-        out.data[o + 3] = 255;
-      }
-    }
+    turnPixels(sd, w, h, [w / 2, h / 2], (k * 2 * Math.PI) / steps, out.data, S); // about its middle, the held art's own sampler
     ctx.putImageData(out, k * S, 0);
     frames[`${name}_${k}`] = [k * S, 0, S, S];
   }

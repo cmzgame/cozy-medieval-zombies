@@ -33,7 +33,7 @@ export async function run(game, opts = {}) {
   const saved = {
     main: p.hands.main, off: p.hands.off, gx: p.gx, gy: p.gy, aim: { ...p.aim }, bag: bag ? bag.items.slice() : null, counts: bag ? bag.items.map((e) => e.count) : null,
     needs: (({ hp, hunger, thirst, tired, bleed, sick, infection, stamina }) => ({ hp, hunger, thirst, tired, bleed, sick, infection, stamina }))(p),
-    aggro: G.rules.rules.zombieAggro, rng: G.rng.getState(), paused: G.loop.isPaused(),
+    aggro: G.rules.rules.zombieAggro, rng: G.rng.getState(), paused: G.loop.isPaused(), elapsed: G.clock.getElapsed(), // its throws step the world's clock
     held: { zombies: S.zombies, villagers: S.villagers, animals: S.animals },
   };
   const made = []; // its own dead
@@ -199,6 +199,26 @@ export async function run(game, opts = {}) {
       const left = floorOf(...ground).filter(([e]) => e.id === "throwing_knife").length;
       row("E takes the pile from the tile and its neighbours in one press, and one two tiles off stays", action && /^Pick up Throwing knife \(6\)$/.test(action.label) && inBag === 6 && left === 1, `E said "${action && action.label}"; ${inBag} in the bag, ${left} left on the ground`);
 
+      // 9b. A knife past a wall stays (#208's reach, a sealed room is a cell, #147): the pile is only what the player can reach.
+      for (const [e, x, y] of floorOf(...ground)) G.map.takeItem(x, y, e);
+      const wx = sx + 8, wy = sy;
+      let built = false;
+      try {
+        built = G.map.buildWall(wx + 1, wy, "w", "wall", "wall_log"); // between (wx, wy) and (wx + 1, wy)
+        for (const [x, y] of [[wx, wy], [wx - 1, wy], [wx + 1, wy]]) G.map.dropItem(x, y, { ...G.items.makeEntry("throwing_knife", 1), at: [x, y], angle: 4 });
+        if (bag) bag.items.length = 0;
+        G.teleport(wx, wy);
+        step();
+        const a2 = G.interact.nearestSimpleAction(p);
+        G.interact.updateInteract(p, 1 / 60, { eTap: true });
+        step(2);
+        const got = bag ? bag.items.filter((e) => e.id === "throwing_knife").reduce((n, e) => n + e.count, 0) : 0;
+        const past = G.map.itemsAt(wx + 1, wy).filter((e) => e.id === "throwing_knife").length;
+        row("a knife past a wall stays where it lies: E takes only what the player can reach", !!built && a2 && /\(2\)$/.test(a2.label) && got === 2 && past === 1, `wall built ${!!built}; E said "${a2 && a2.label}"; ${got} in the bag, ${past} past the wall`);
+      } finally {
+        if (built) G.map.destroyWall(wx + 1, wy, "w");
+      }
+
       // 10. After a run of throws the item census holds no uid twice.
       const c = G.game.itemCensus();
       row("after the run the item census holds no uid twice", c.dups.length === 0, c.summary || `${c.entries} entries, ${c.dups.length} held twice`);
@@ -230,6 +250,7 @@ export async function run(game, opts = {}) {
     Object.assign(p, saved.needs);
     G.rules.rules.zombieAggro = saved.aggro;
     G.rng.setState(saved.rng);
+    G.clock.setElapsed(saved.elapsed);
     G.loop.setPaused(saved.paused);
   }
   return finish();
