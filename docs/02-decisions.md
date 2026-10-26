@@ -158,6 +158,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The character, the figure, and art
 
+- A character is right-handed or left-handed, never ambidextrous, right by default, chosen once with its identity; it is visual and a label alone: the hand slots' names on the character screen, the belt's hand icons, and the arm the main hand's thing is drawn in; everything mechanical stays main and off (2026-10-25, Right- or left-handed)
 - Cheery at home, spooky beyond: the valley start-as-Stardew, Tirisfal the outer regions' register, region by region, not a gradient (2026-10-25, Cheery at home, spooky beyond)
 - Habbo is no longer the visual reference; its techniques (flat side shading, stepped shadows) stay as how pixels are drawn (2026-10-25, Cheery at home, spooky beyond)
 - The long, thin items (the plank, the stick, the shovel, the hatchet) take the larger bag icon, the drawing rendered to fill the cell; the rope belt is drawn in today's belt's browns (2026-10-20, The everyday items' art: the large icons for the long items; the rope belt in today's belt's browns (Michael))
@@ -298,6 +299,18 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-25 — Right- or left-handed: chosen once, a label and a drawn arm, never mechanical (Michael)
+
+Michael asked: "since main and off hand are not quite synonymous with right hand and left hand respectively, can we offer players a setting in the start screen for 'right handed or left handed', never ambidextrous because that would kill the main and off distinction. Default to right handed." Then, narrowing it: "this should be a choose it once at character screen, mostly for flavor, and all it changes is the hand icon stamped in the slots (by default it's a right hand in the main slots) and which of your right and left hands are called main hand and off hand in your character screen. It's basically just a label for main and off, everything else cares about that distinction, never left or right." And clarifying: "Labels, icons, plus drawn matching arm! … Mostly I wanted to stress that all of these are visual and mechanical is still all the main/off thing."
+
+So a character is right-handed or left-handed (`handed`, "right" by default; no third choice). What it changes is visual: the character screen calls the hands by side, the belt's hand icons show the matching hand (a right hand in a main-hand slot for the right-handed, a left hand for the left-handed, the other hand in an off-hand slot), and the figure draws the main hand's thing in the matching arm with every pose on that side. The sim, combat, the belt's choices, and the mouse buttons (the left button is always the main hand, `docs/21`) read main and off and never left or right.
+
+*Primary's reading:* handedness belongs to the character, so every player sees which arm holds the sword (it rides in the player's record and the save); it is chosen on the identity screen beside the looks and stamped on each character made from the identity, as the look is.
+
+*The builder's readings, Michael's to overrule:* the labels read "Main hand (right)" and "Off-hand (left)", swapped for the left-handed; the doll's left column is the character's right hand (the doll faces you), so a left-handed character's main-hand slot stands in its right column; the figure turns the arms round in the rig (`pose`), not the sprite, so the face, the hair's parting, and the garments are never mirrored, and the walk's free arm keeps swinging with the opposite leg; the dead and villagers are right-handed; the identity screen's turning figure is empty-handed, so it looks the same either way.
+
+Docs: 12, 21, 32, `src/CLAUDE.md`, testing.
 
 ### 2026-10-25 — The evening's rulings: the belt pinned, Mageroot, potions to a sitting of their own, no plant only at night, pemmican as it is, eggs one a cell (Michael)
 

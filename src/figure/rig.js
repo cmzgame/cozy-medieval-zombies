@@ -271,9 +271,13 @@ const HOLD_PITCH = 55;
 const HOLD_OUT = 1.5;
 const OWN_STYLE = new Set(["shove", "reel", "wave", "cower"]); // animations posed from a style of their own name, whatever is held
 
-export function pose(variant, anim, i, holding = { main: false, off: false }, style = null) {
+// `left`: a left-handed figure (Michael, 2026-10-25; handed.js). The pose is worked out as ever, with the arms' arrays
+// as [off, main], and turned round at the end, so the main arm is the left; the walk's arm swing, which goes with the
+// legs, is by side and is turned round first so it comes back by side. The legs, the head, and the body are untouched.
+export function pose(variant, anim, i, holding = { main: false, off: false }, style = null, left = false) {
   const p = restPose();
   const zombie = variant === "zombie";
+  const mirrored = !!left && !zombie;
   const swing = [1, 0, -1, 0][i % 4];
   switch (anim) {
     case "idle":
@@ -300,8 +304,8 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
         const f = (POSES.walk || DEFAULT_POSES.walk).frames[i % 4];
         p.stride = [...f.stride];
         p.lift = [...f.lift];
-        p.armPitch = [...f.arms];
-        if (f.bends) p.bend = [...f.bends];
+        p.armPitch = mirrored ? [f.arms[1], f.arms[0]] : [...f.arms]; // by side: turned round here so the end's turn puts it back
+        if (f.bends) p.bend = mirrored ? [f.bends[1], f.bends[0]] : [...f.bends];
         p.bob = f.bob ?? 0;
         p.lean = f.lean ?? 0;
         p.headD = f.headD ?? 0;
@@ -403,6 +407,8 @@ export function pose(variant, anim, i, holding = { main: false, off: false }, st
       p.bend[1] = 0;
     }
   }
+  // Left-handed: the main arm's numbers to the left arm and the off arm's to the right (the arrays are [left, right]).
+  if (mirrored) for (const k of ["armPitch", "armOut", "bend", "heldTilt", "heldOut"]) p[k] = [p[k][1], p[k][0]];
   return p;
 }
 

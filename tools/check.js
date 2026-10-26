@@ -3029,6 +3029,92 @@ check("belt: one thing per slot, the hand chosen per slot and kept, the defaults
   }
 });
 
+// Handedness (Michael, 2026-10-25): right- or left-handed, chosen on the identity screen, stamped on the character, a label for
+// the main and off hands and the arm the main hand's thing is drawn in; never ambidextrous, right by default. The sim never
+// reads it. What needs the page (the screen's choice, the labels, the baked sheets, two tabs) is check("handed").
+const handedMod = await import("../src/handed.js");
+const rigMod = await import("../src/figure/rig.js");
+const wardrobeMod = await import("../src/figure/wardrobe.js");
+check("handedness: right by default, left only when chosen; the helper, the save, the sync part, the join, and the figure's arms mirrored", () => {
+  const H = handedMod;
+  // The helper: never ambidextrous, right unless it says left.
+  for (const v of [undefined, null, "", "both", "ambidextrous", "Left", 7]) assert(H.handedOf(v) === "right", `handedOf(${JSON.stringify(v)}) is ${H.handedOf(v)}`);
+  assert(H.handedOf("left") === "left" && H.HANDED.join() === "right,left", "left, and the two choices");
+  assert(H.handSideOf({ handed: "right" }, "main") === "right" && H.handSideOf({ handed: "right" }, "off") === "left", "a right-handed main hand is the right");
+  assert(H.handSideOf({ handed: "left" }, "main") === "left" && H.handSideOf({ handed: "left" }, "off") === "right", "a left-handed main hand is the left");
+  assert(H.handSideOf({}, "main") === "right" && H.handSideOf("left", "off") === "right", "a character with no field is right-handed; a handedness itself is read too");
+  assert(H.handLabel({}, "main") === "Main hand (right)" && H.handLabel({}, "off") === "Off-hand (left)" && H.handLabel({ handed: "left" }, "main") === "Main hand (left)" && H.handLabel({ handed: "left" }, "off") === "Off-hand (right)", "the labels");
+  // The world: a player is right-handed by default and left-handed when its identity says so, through the save, and in the players' sync part.
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  assert(S.player.handed === "right", `a world's first player is ${S.player.handed}`);
+  const plain = gameMod.addPlayer(S.player.gx + 1, S.player.gy, {});
+  assert(plain.handed === "right", "a second player with no identity's choice is right-handed");
+  gameMod.removePlayer(plain.id);
+  const hash0 = gameMod.hashText();
+  gameMod.create({ json, rules: { zombieAggro: false }, handed: "left" });
+  assert(S.player.handed === "left", "the identity's left hand did not reach the world's first player");
+  assert(gameMod.hashText() === hash0, "handedness moved the world's determinism text (the sim never reads it)");
+  const lefty = gameMod.addPlayer(S.player.gx + 1, S.player.gy, { handed: "left", name: "Lefty" });
+  assert(lefty.handed === "left", "addPlayer's left hand");
+  const parts0 = gameMod.syncParts().players;
+  lefty.handed = "right";
+  assert(gameMod.syncParts().players !== parts0, "handedness is not in the players' sync part");
+  lefty.handed = "left";
+  assert(gameMod.syncParts().players === parts0, "the sync part did not come back");
+  const save = JSON.parse(JSON.stringify(gameMod.serialize()));
+  assert(save.characters.players.every((p) => p.handed === "left"), `the save's players: ${save.characters.players.map((p) => p.handed).join()}`);
+  gameMod.restore(save, json);
+  assert(S.players.length === 2 && S.players.every((p) => p.handed === "left"), `restored: ${S.players.map((p) => p.handed).join()}`);
+  // An old save's player, with no field, comes back right-handed.
+  const old = JSON.parse(JSON.stringify(save));
+  for (const p of old.characters.players) delete p.handed;
+  gameMod.restore(old, json);
+  assert(S.players.every((p) => p.handed === "right"), "an old save's players are not right-handed");
+  // The join: the host keeps a guest's left hand and makes anything else right; the record changed shape, so PROTOCOL moved.
+  assert(hostMod.clampIdentity({ name: "L", look: {}, handed: "left" }).handed === "left" && hostMod.clampIdentity({ name: "R", look: {}, handed: "both" }).handed === "right" && hostMod.clampIdentity({ name: "N", look: {} }).handed === "right", "clampIdentity's handedness");
+  assert(netMod.PROTOCOL === 16, `PROTOCOL is ${netMod.PROTOCOL}`);
+  assert(/const HEAVY = new Set\(\[[^\]]*"handed"/.test(fs.readFileSync(path.join(root, "src/net.js"), "utf8")), "handed is not a heavy field of the player's record (sent once, not each frame)");
+  // The figure: a left-handed pose is the right-handed one with the arms turned round, the main arm the left, in body space (l negated).
+  const M = (pt) => [-pt[0], pt[1], pt[2]];
+  const near = (a, b) => a.every((v, i) => Math.abs(v - b[i]) < 1e-9);
+  const holdingSets = [{ main: true, off: false }, { main: true, off: true }, { main: true, off: false, mainPose: "present" }, { main: true, off: true, mainPose: "bow_rest" }, { main: false, off: false }];
+  let compared = 0;
+  for (const holding of holdingSets) {
+    for (const [anim, style, frames] of [["idle", null, 2], ["attack", "one_handed", 4], ["attack", "bow", 4], ["attack", "throw", 4], ["attack_alt", "thrust", 4], ["attack_off", "one_handed", 4], ["present", null, 1], ["wave", null, 2], ["shove", null, 3], ["hurt", null, 2], ["carry_idle", null, 2]]) {
+      for (let i = 0; i < frames; i++) {
+        const R = rigMod.joints(rigMod.pose("player", anim, i, holding, style));
+        const L = rigMod.joints(rigMod.pose("player", anim, i, holding, style, true));
+        assert(near(L.handL, M(R.handR)) && near(L.handR, M(R.handL)) && near(L.elbowL, M(R.elbowR)) && near(L.elbowR, M(R.elbowL)), `${anim} ${i} (${JSON.stringify(holding)}): the left-handed arms are not the right-handed ones mirrored`);
+        assert(near(L.footL, R.footL) && near(L.footR, R.footR) && near(L.head, R.head), `${anim} ${i}: the legs or the head moved`);
+        compared++;
+      }
+    }
+    // The walk: the arm swing goes with the legs (by side), so only the holding arm is mirrored; the swinging one keeps its side.
+    for (let i = 0; i < 4; i++) {
+      const R = rigMod.pose("player", "walk", i, holding);
+      const L = rigMod.pose("player", "walk", i, holding, null, true);
+      if (holding.main && !holding.mainPose) assert(L.armPitch[0] === R.armPitch[1] && L.armOut[0] === R.armOut[1], `walk ${i}: the left-handed main arm does not hold as the right-handed one does`);
+      if (!holding.main && !holding.off) assert(L.armPitch.join() === R.armPitch.join(), `walk ${i}: an empty-handed walk changed with the hand`);
+      if (holding.main && !holding.off && !holding.mainPose) assert(L.armPitch[1] === rigMod.pose("player", "walk", i, { main: false, off: false }).armPitch[1], `walk ${i}: the left-handed swinging arm is not the right arm's own swing`);
+      assert(L.stride.join() === R.stride.join(), `walk ${i}: the stride moved`);
+    }
+  }
+  // The dead are never left-handed; the default is the pose it always was.
+  assert(JSON.stringify(rigMod.pose("zombie", "attack", 1, { main: false, off: false }, "zombie", true)) === JSON.stringify(rigMod.pose("zombie", "attack", 1, { main: false, off: false }, "zombie")), "a dead one's pose took the left hand");
+  assert(JSON.stringify(rigMod.pose("player", "attack", 1, { main: true, off: true }, "one_handed", false)) === JSON.stringify(rigMod.pose("player", "attack", 1, { main: true, off: true }, "one_handed")), "the right-handed pose is not the pose as it was");
+  // The sheet's key: a left-handed figure's differs; a right-handed one's is the key it always was (no new entry), and a villager's and the dead's never take it.
+  const artOf = () => null;
+  const ch = { kind: "player", look: { hairStyle: "short" }, worn: {}, hands: { main: { id: "sword" }, off: null } };
+  const keyOf = (c) => wardrobeMod.specKey(wardrobeMod.characterSpec(wardrobeMod.characterInputs(c, artOf)));
+  const kR = keyOf(ch);
+  const kL = keyOf({ ...ch, handed: "left" });
+  assert(kR !== kL && kL.endsWith(',"left"]') && keyOf({ ...ch, handed: "right" }) === kR && JSON.parse(kR).length === 11, `the keys: ${kR.slice(-30)} / ${kL.slice(-30)}`);
+  assert(keyOf({ ...ch, kind: "villager", handed: "left" }) === keyOf({ ...ch, kind: "villager" }) && keyOf({ ...ch, kind: "zombie", handed: "left" }) === keyOf({ ...ch, kind: "zombie" }), "a villager's or the dead's key took the left hand");
+  return `the helper and labels; right by default and through an old save; left through create, addPlayer, the save, the sync part, and the join's clamp; PROTOCOL 16, handed heavy; ${compared} frames mirrored arm for arm, the legs and head kept; the walk; the sheet's key`;
+});
+
 let failed = 0;
 for (const r of results) {
   if (!r.ok) failed++;
