@@ -191,6 +191,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The interface and the screens
 
+- No browser dialog: every question is asked on the page, never through window.alert, confirm, or prompt; tools/check.js scans for them (2026-10-26, No browser dialog)
 - "Put out", never "douse"; a wave emote for the demo; immune villagers cower; the dye vat's picker and per-item colour schemes (2026-10-25, The dead ends ruled)
 - One thing a cell: only arrows, throwing knives and axes, bandages, seeds, and pemmican stack; bags made, never found, the satchel, the rucksack, and the valley's best in tiers (2026-10-24, The loot tables and the bags)
 - The aim guide on by default, off for the challenge; a mute key on F8 with a line as its twin; the player on grass steps as the dead shuffle; sounds step 2 widened to the shove, the bow, the cast, the dead's death and fall, doors and shutters (2026-10-24, The first real melee test)
@@ -308,6 +309,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-26 — No browser dialog: every question is the game's own, on the page (Michael)
+
+Michael, on the Worlds screen's Delete that did nothing: "I almost certainly misclicked and had the browser stop showing me those alerts and that is not easy to undo. Can we stop relying on browser alerts and use our own that can't be refused, since they are in game context and you can stop playing at any time or just not do the thing if you don't want the alert." #507 had already replaced the seven `window.confirm` questions with questions asked on the page; this makes it a rule: the game never calls `window.alert`, `confirm`, or `prompt`, and `tools/check.js` fails on one (`src/CLAUDE.md`, Rules the code keeps).
 
 ### 2026-10-26 — Fill waterskins skips clean water (Michael)
 
