@@ -22,6 +22,7 @@ import * as sick from "./sick.js"; // tainted water's debuff (docs/44)
 import * as mana from "./mana.js"; // the mana bar and the altar's Pray (docs/47 section 5)
 import * as potions from "./potions.js"; // a potion's buff runs down on the authority (docs/47 section 4)
 import * as burn from "./burn.js"; // burning as a status (#14): the step's, beside the visual fire.js
+import * as poison from "./poison.js"; // poison as a status of the dead and the animals (docs/47 section 6): the step's, beside the burn
 import * as fruit from "./fruit.js"; // bare fruit trees bear again (#190)
 import * as farming from "./farming.js"; // crops grow on the clock (#194)
 import * as resources from "./resources.js"; // a taken natural resource comes back elsewhere in its area (docs/46)
@@ -466,8 +467,8 @@ export function syncParts() {
   // A fire's fuel to the unit: a replica refreshes it at each whole unit burned (map.burnFires), not each step.
   const chunks = (m.chunks || []).slice().sort((a, b) => (a.cx - b.cx) || (a.cy - b.cy)).map((c) => ({ ...c, props: (c.props || []).map((p) => { const { pokedAt, playedAt, ...q } = p; return q.fire && typeof q.fire.fuel === "number" ? { ...q, fire: { ...q.fire, fuel: Math.floor(q.fire.fuel) } } : q; }) }));
   // An entry's wear in whole hundredths, as the wire compares it (net.js sends a player's heavy part when its wear rounds differently), and its
-  // repair count (docs/43 section 6), its dye (section 8), whether its water is clean (docs/44), and the tree a sapling grows into (docs/46 step 3): a guest's copy of a wear lags the host's by under a hundredth and never rounds otherwise.
-  const entryText = (e) => (e ? `${e.id}#${e.uid}x${e.count ?? 1}${e.lit ? "L" : ""}${e.fill != null ? `f${f(e.fill)}` : ""}${e.clean ? "clean" : ""}${e.tree ? `t${e.tree}` : ""}${e.wear > 0 ? `w${Math.round(e.wear * 100)}` : ""}${e.repairs ? `r${e.repairs}` : ""}${e.colours ? `c${e.colours.join("/")}` : ""}${e.colour ? `c${e.colour}` : ""}${e.bag ? `[${(e.bag.items || []).map(entryText).join(",")}]` : ""}` : "-");
+  // repair count (docs/43 section 6), a blade's poison coat (docs/47 section 6), its dye (section 8), whether its water is clean (docs/44), and the tree a sapling grows into (docs/46 step 3): a guest's copy of a wear lags the host's by under a hundredth and never rounds otherwise.
+  const entryText = (e) => (e ? `${e.id}#${e.uid}x${e.count ?? 1}${e.lit ? "L" : ""}${e.fill != null ? `f${f(e.fill)}` : ""}${e.clean ? "clean" : ""}${e.tree ? `t${e.tree}` : ""}${e.wear > 0 ? `w${Math.round(e.wear * 100)}` : ""}${e.repairs ? `r${e.repairs}` : ""}${e.poison ? `p${e.poison.tier}/${e.poison.hits}` : ""}${e.colours ? `c${e.colours.join("/")}` : ""}${e.colour ? `c${e.colour}` : ""}${e.bag ? `[${(e.bag.items || []).map(entryText).join(",")}]` : ""}` : "-");
   const at = (c) => (c.netTo ? c.netTo : [c.gx, c.gy]); // a replica's smoothing target is the host's truth (net.js)
   // Health as the wire carries it, to two decimals (net.js r2): a bleeding player's drains in fractions every step, so
   // three decimals differed between the host and every replica though nothing was wrong (found testing item 5's third
@@ -481,12 +482,12 @@ export function syncParts() {
     fires: hashOf(`${[...map.fires()].map((p) => `${p.id}:${p.fire && p.fire.lit ? "lit" : "out"}`).sort().join(",")}`),
     players: hashOf(S.players.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map(playerText).join("\n")),
     // The dead as the frames carry them (the wire sends them as a delta, so a missed update shows here): where, state, hp,
-    // facing, the frame of the animation, burning, a body set alight by Burn corpse (docs/43 section 7), a villager's cowering (its state).
-    dead: hashOf([...S.zombies, ...S.villagers, ...S.corpses].slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((z) => `${z.id} ${f(at(z)[0])},${f(at(z)[1])} ${z.state || "-"} hp ${hp2(z.hp)} ${z.dead ? "dead" : ""}${z.corpse ? "corpse" : ""} ${z.facing} ${z.anim ? `${z.anim.name}:${z.anim.frame}` : "-"}${z.burning ? " fire" : ""}${z.cremate ? " cremate" : ""}${z.talkingWith && z.talkingWith.length ? ` talk ${z.talkingWith.join("+")}` : ""}`).join("\n")),
+    // facing, the frame of the animation, burning, a poison's tier and stacks (docs/47 section 6: its timer is the host's), a body set alight by Burn corpse (docs/43 section 7), a villager's cowering (its state).
+    dead: hashOf([...S.zombies, ...S.villagers, ...S.corpses].slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((z) => `${z.id} ${f(at(z)[0])},${f(at(z)[1])} ${z.state || "-"} hp ${hp2(z.hp)} ${z.dead ? "dead" : ""}${z.corpse ? "corpse" : ""} ${z.facing} ${z.anim ? `${z.anim.name}:${z.anim.frame}` : "-"}${z.burning ? " fire" : ""}${z.poison ? ` poison ${z.poison.tier}/${z.poison.stacks}` : ""}${z.cremate ? " cremate" : ""}${z.talkingWith && z.talkingWith.length ? ` talk ${z.talkingWith.join("+")}` : ""}`).join("\n")),
     // The animals as the frames carry them (docs/45 section 7): where, the state, health, dead, how it was killed and whether it is
     // skinned (a carcass, step 2; a butchered one has left the list), who leads it and the days it was fed and its milk or wool taken
-    // (step 3), the facing and the frame of the animation, the home; and each home's renewal.
-    animals: hashOf([...S.animals.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((a) => `${a.id} ${a.species} ${f(at(a)[0])},${f(at(a)[1])} ${a.state} hp ${hp2(a.hp)} ${a.dead ? `dead ${a.killedBy || "-"}${a.skinned ? " skinned" : ""}` : ""}${a.leaderId ? ` led ${a.leaderId}` : ""} fed ${a.fedDay} taken ${a.takenDay} ${a.facing} ${a.anim.name}:${a.anim.frame} home ${a.homeId || "-"} ${a.home.join(",")}`), ...S.animalHomes.map((h) => `${h.id} ${h.species} cap ${h.cap} next ${h.nextAt === null ? "-" : f(h.nextAt)}`)].join("\n")),
+    // (step 3), a poison's tier and stacks (docs/47 section 6), the facing and the frame of the animation, the home; and each home's renewal.
+    animals: hashOf([...S.animals.slice().sort((a, b) => (a.id < b.id ? -1 : 1)).map((a) => `${a.id} ${a.species} ${f(at(a)[0])},${f(at(a)[1])} ${a.state} hp ${hp2(a.hp)} ${a.dead ? `dead ${a.killedBy || "-"}${a.skinned ? " skinned" : ""}` : ""}${a.poison ? ` poison ${a.poison.tier}/${a.poison.stacks}` : ""}${a.leaderId ? ` led ${a.leaderId}` : ""} fed ${a.fedDay} taken ${a.takenDay} ${a.facing} ${a.anim.name}:${a.anim.frame} home ${a.homeId || "-"} ${a.home.join(",")}`), ...S.animalHomes.map((h) => `${h.id} ${h.species} cap ${h.cap} next ${h.nextAt === null ? "-" : f(h.nextAt)}`)].join("\n")),
     clock: hashOf(`${f(clock.getElapsed())} ${f(loop.simTime())} ${world.world.timeScale}`),
     rules: hashOf(Object.keys(rules.rules).sort().map((k) => `${k}=${typeof rules.rules[k] === "boolean" ? (rules.rules[k] ? 1 : 0) : rules.rules[k]}`).join(" ")), // world state since the second step of item 5
   };
@@ -831,6 +832,7 @@ export function step(dt, snapshots = null) {
   const everyone = [...S.others, ...S.corpses]; // and the fallen, who burn and are drawn
   burn.update(everyone, dt); // the burn's timer and its damage, the world's (#14)
   burning.update(dt, everyone); // and its flames, a visual (docs/05)
+  poison.update(S.animals.length ? [...S.zombies, ...S.animals] : S.zombies, dt); // a poison's timer and its ticks, the world's, beside a burn and never spreading (docs/47 section 6)
   // A body burnt away by Burn corpse (docs/43 section 7): its fire out, it and everything in it are gone; the corpses' roster takes it from every guest.
   if (S.corpses.some(burn.burnedAway)) {
     for (const c of S.corpses) if (burn.burnedAway(c)) events.emit("corpseBurnedAway", { corpse: c });

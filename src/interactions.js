@@ -7,7 +7,8 @@
 // A row: { "use": <item id or tag>, "on": <what>, "verb": "Chop", "message": "...", ... }
 // `on` is an item id or tag (an item in a bag or slot), a prop's sprite id, "fire" (any prop
 // whose fire burns; #14), "bracket" (a wall bracket and what hangs in it, #170), one of "character" | "zombie" | "villager" | "corpse" (a body of the dead), a floor sprite id, or
-// "tile". The first matching row wins: a row for one fire in particular goes above "fire".
+// "tile". The first matching row wins: a row for one fire in particular goes above "fire". A row with `exact` matches its `use` as an id
+// alone, never a tag: the vials of poison on a blade or arrows (docs/47 section 6), not the herbs tagged `poison`.
 // A target: { kind: "item", entry } | { kind: "prop", prop } | { kind: "bracket", bracket } | { kind: "character", ch } | { kind: "tile", x, y, floor }.
 
 import { getItem } from "./items.js";
@@ -46,8 +47,15 @@ function targetMatches(what, target) {
 // The first row for `entry` used on `target`, or null.
 export function resolve(entry, target) {
   if (!entry || !target) return null;
-  for (const r of rows) if (itemMatches(r.use, entry) && targetMatches(r.on, target)) return r;
+  for (const r of rows) if (usedBy(r, entry) && targetMatches(r.on, target)) return r;
   return null;
+}
+
+// Whether a row's `use` is this entry: its id or one of its tags, or its id alone when the row says `exact` (a vial of poison, never the
+// herbs tagged poison; docs/47 section 6). item-info.js's cards ask the same.
+export function usedBy(r, entry) {
+  if (!r || !entry) return false;
+  return r.exact ? entry.id === r.use : itemMatches(r.use, entry);
 }
 
 // A name for a target, for "Use X -> Y".

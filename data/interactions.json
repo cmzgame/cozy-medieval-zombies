@@ -1,5 +1,5 @@
 {
- "note": "docs/30 law 2 (Michael's OSRS rule): anything can be used on anything and the default is 'Nothing interesting happens.' A row here replaces that with an outcome. `use` is an item id or tag; `on` is an item id or tag, a prop's sprite id, 'fire' (any prop whose fire burns: a campfire, a fireplace, a hearth, the forge, the oven; #14), 'bracket' (a wall bracket and what hangs in it, #170), 'character' | 'zombie' | 'villager' | 'corpse' (a body of the dead: the tinderbox's Burn, docs/43 section 7), a floor sprite id, or 'tile'. The first matching row wins, so a row for one fire in particular goes above a row for 'fire'. `verb` is the row's label; `action` names a verb in the verb table (src/verbs.js), run with the entry and the target and `args`; a row with only a `message` prints it to the log, and a row with both says its `message` when the verb succeeds.",
+ "note": "docs/30 law 2 (Michael's OSRS rule): anything can be used on anything and the default is 'Nothing interesting happens.' A row here replaces that with an outcome. `use` is an item id or tag; `on` is an item id or tag, a prop's sprite id, 'fire' (any prop whose fire burns: a campfire, a fireplace, a hearth, the forge, the oven; #14), 'bracket' (a wall bracket and what hangs in it, #170), 'character' | 'zombie' | 'villager' | 'corpse' (a body of the dead: the tinderbox's Burn, docs/43 section 7), a floor sprite id, or 'tile'. The first matching row wins, so a row for one fire in particular goes above a row for 'fire'. `verb` is the row's label; `action` names a verb in the verb table (src/verbs.js), run with the entry and the target and `args`; a row with only a `message` prints it to the log, and a row with both says its `message` when the verb succeeds. A poison on a `blade` (a tag: the edged weapons) coats it, and on `arrow` makes poisoned arrows (`coat`, src/poison.js, docs/47 section 6); a poison on a fire arrow, and a poisoned arrow on a fire, have no row, so nothing interesting happens: fire and poison do not mix. A row with `exact` true matches its `use` as an item id alone, never a tag (the vials of poison, not the herbs tagged `poison`).",
  "rows": [
   {"use": "tinderbox", "on": "campfire", "verb": "Light", "action": "light", "message": "You light the campfire."},
   {"use": "tinderbox", "on": "torch_post", "verb": "Light", "action": "light", "message": "You light the torch."},
@@ -19,6 +19,10 @@
   {"use": "torch", "on": "lantern_post", "verb": "Light", "action": "light", "message": "You light the torch."},
   {"use": "torch", "on": "fire", "verb": "Light", "action": "light", "message": "You light the torch."},
   {"use": "arrow", "on": "fire", "verb": "Dip", "action": "dip", "args": {"from": "arrow", "to": "fire_arrow"}, "message": "You dip the arrows in the fire."},
+  {"use": "poison", "exact": true, "on": "blade", "verb": "Coat", "action": "coat"},
+  {"use": "strong_poison", "exact": true, "on": "blade", "verb": "Coat", "action": "coat"},
+  {"use": "poison", "exact": true, "on": "arrow", "verb": "Coat", "action": "coat", "args": {"from": "arrow", "to": "poison_arrow"}},
+  {"use": "strong_poison", "exact": true, "on": "arrow", "verb": "Coat", "action": "coat", "args": {"from": "arrow", "to": "strong_poison_arrow"}},
   {"use": "hoe", "on": "floor_grass", "verb": "Till", "action": "till"},
   {"use": "hoe", "on": "floor_dirt", "verb": "Till", "action": "till"},
   {"use": "seed", "on": "floor_farm", "verb": "Plant", "action": "plant"},

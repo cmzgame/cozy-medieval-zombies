@@ -1237,9 +1237,12 @@ check("hover card: the spear, the bow, the arrows, the Book and Staff of Fire, t
   has("spear", `It lands to be picked up again, or stays in the body it hits; it may break (${Math.round(sp.breakChance * 100)}%).`);
   const bow = I("bow");
   has("bow", `Draw and release (left button): ${by(bow.bow.damage)}, up to ${T.range} tiles.`);
-  has("bow", `Needs arrows carried, fire arrows first; good for about ${bow.shots} shots.`);
-  has("arrow", `Shot from a hunting bow (${by(bow.bow.damage)}), when no fire arrows are carried.`);
-  has("fire_arrow", `Shot from a hunting bow (${by(bow.bow.damage)}), before any arrows.`);
+  has("bow", `Needs arrows carried, fire arrows first, then strongly poisoned arrows, then poisoned arrows; good for about ${bow.shots} shots.`); // the order (docs/47 section 6)
+  has("arrow", `Shot from a hunting bow (${by(bow.bow.damage)}), when no fire arrows, strongly poisoned arrows or poisoned arrows are carried.`);
+  has("fire_arrow", `Shot from a hunting bow (${by(bow.bow.damage)}), before any strongly poisoned arrows, poisoned arrows or arrows.`);
+  has("poison_arrow", `Shot from a hunting bow (${by(bow.bow.damage)}), after any fire arrows or strongly poisoned arrows and before any arrows.`);
+  has("poison_arrow", "Made from arrows: Use poison on them (coat).");
+  has("strong_poison_arrow", "Made from arrows: Use strong poison on them (coat).");
   has("fire_arrow", burnt);
   has("fire_arrow", "Made from arrows: Use them on fire (dip).");
   assert(itemInfoMod.cardFor(itemsMod.makeEntry("fire_arrow")).lines.flat().some((g) => g.k === "use" && g.t === "Use"), "the fire arrow's Use is not its own segment");
@@ -3489,7 +3492,7 @@ check("potions: the vials, the cauldron (the witch's and your own), the brews wi
     assert(itemsMod.getItem("clay_vial").stack === 10 && itemsMod.getItem("unfired_vial").stack === 10, "the vials stack 10");
     assert(has("healing_potion", "Drink: heals 40 at once.") && has("healing_potion", "10 seconds between one potion and the next; the empty vial is kept.") && has("healing_potion", "Made at the cauldron.") && itemInfoMod.cardFor(mk("healing_potion")).kind === "Potion", card("healing_potion").join(" | "));
     assert(has("stamina_potion", "Drink: fills your stamina, and it comes back twice as fast for 30 seconds.") && has("mana_potion", "Drink: restores 50 mana at once."), `${card("stamina_potion").join(" | ")} || ${card("mana_potion").join(" | ")}`);
-    assert(has("poison", "Use on a blade or on arrows.") && has("poison", "Ordinary poison: never drunk.") && has("strong_poison", "Strong poison: never drunk.") && !card("poison").some((l) => /^Drink/.test(l)) && itemInfoMod.cardFor(mk("poison")).kind === "Poison", `${card("poison").join(" | ")} || ${card("strong_poison").join(" | ")}`);
+    assert(has("poison", "Use on a blade or arrows: coat.") && card("poison").filter((l) => /^Use/.test(l)).length === 1 && has("poison", "Ordinary poison: never drunk.") && has("strong_poison", "Strong poison: never drunk.") && !card("poison").some((l) => /^Drink/.test(l)) && itemInfoMod.cardFor(mk("poison")).kind === "Poison", `${card("poison").join(" | ")} || ${card("strong_poison").join(" | ")}`);
     const useSeg = itemInfoMod.cardFor(mk("poison")).lines.flat().find((s) => s.t === "Use");
     assert(useSeg && useSeg.k === "use", "the poison's Use is not its own gold segment");
     assert(has("unfired_vial", "Made at the workbench.") && has("unfired_vial", "Goes into: clay vial.") && has("clay_vial", "Made at the oven.") && card("clay_vial").some((l) => /^Goes into: healing potion, stamina potion, mana potion, poison and more\.$/.test(l)), `${card("unfired_vial").join(" | ")} || ${card("clay_vial").join(" | ")}`);
@@ -3660,7 +3663,7 @@ check("potions: the vials, the cauldron (the witch's and your own), the brews wi
     said.length = 0;
     assert(acts.use(pz, bag) === true && last() === pw && bag.items.includes(pz), `the poison's double-click: "${last()}"`);
     const pcard = itemInfoMod.textOf(itemInfoMod.cardFor(belt[0], { beltRole: "off" }));
-    assert(pcard[2] === "From this off-hand slot: carried only." && pcard.filter((l) => /on a blade or on arrows/.test(l)).length === 1 && pcard.filter((l) => /never drunk/.test(l)).length === 1, `the poison's card on a slot says Use and never drunk once: ${pcard.join(" | ")}`);
+    assert(pcard[2] === "From this off-hand slot: carried only." && pcard.filter((l) => /on a blade or arrows/.test(l)).length === 1 && pcard.filter((l) => /never drunk/.test(l)).length === 1, `the poison's card on a slot says Use and never drunk once: ${pcard.join(" | ")}`);
     // A double-click on a potion in a chest's grid drinks nothing (only your own bag, belt, and hands); drinkFrom refuses a place that does not hold it.
     const chestBag = inventoryMod.createBag(3, 2, "chest");
     const inChest = mk("healing_potion");
@@ -3730,6 +3733,226 @@ check("potions: the vials, the cauldron (the witch's and your own), the brews wi
     return `the levers; the vials 1 clay to 2, fired at an oven; the witch's cauldron at ${witch.tile} (no carry, no village station, cooks nothing, its 5 rows open); a brew over a lit fire only, its draught from clean skins (refused "${stationsMod.NO_WATER}"), 20 s; drunk by 5 slots' keys, the slot's menu, double-clicks, the bag's Drink, a guest's two commands; 10 s between; the vial back, into the bag, at the feet; the buff doubled and gone in 30 s; mana against #480's bar; the poisons' line; your own cauldron made, set down by the host and a guest, picked up out and empty; the cards; the save and the sync part`;
   } finally {
     promptMod.setMessageSink(null);
+  }
+});
+
+// Poisons, step 3 (docs/47 section 6 and section 9's poison lines, #482): the levers equal to data/combat.json `poison`; the `blade` tag on
+// exactly the edged weapons; Use rows by the host's applyWith and a guest's command by uid: a poison on a blade coats it (ten hits, the vial
+// back), a strong one replaces it, a non-blade, the poisonous herbs, a fire arrow, and a poisoned arrow on a fire are "Nothing interesting
+// happens."; a poison on arrows makes five from a bigger stack and the whole of a smaller one; the bow's order; a landed swing spends one
+// hit and poisons every body it strikes, a miss none; a thrown spear's landing hit spends one and lodges with the rest, a miss lands whole;
+// a poisoned arrow's hit; the status (a stack a hit up to three, the timer refreshed, the ticks a second as floating numbers, the strong
+// tier lifting and kept), never a player or a villager, beside a burn, on wild game (a carcass keeping the poisoning weapon's class); the
+// world's step drains it; the cards; the save; the sync parts; the frames' `po`.
+const poisonMod = await import("../src/poison.js");
+const combatMod = await import("../src/combat.js"); // zombieMod is the file's own, above
+const interactionsMod = await import("../src/interactions.js");
+const isoMod = await import("../src/iso.js");
+const logMod = await import("../src/ui/log.js");
+check("poison: the blade tag, a coat and poisoned arrows by Use (a guest's command too), the coat spent by landed hits, the bow's order, the status on the dead and game, never a player, the cards, the save, the sync parts, the frames", () => {
+  const combatJson = read("data/combat.json");
+  const P = poisonMod.POISON;
+  for (const k of Object.keys(P)) assert(JSON.stringify(P[k]) === JSON.stringify(combatJson.poison[k]), `poison.js's ${k} ${JSON.stringify(P[k])} is not data/combat.json's ${JSON.stringify(combatJson.poison[k])}`);
+  poisonMod.setPoisonData(combatJson.poison);
+  assert(P.hits === 10 && P.arrows === 5 && P.max === 3 && P.duration === 10 && P.dpsByStacks.ordinary.join() === "1,2,3" && P.dpsByStacks.strong.join() === "2,4,6", `the levers: ${JSON.stringify(P)}`);
+  const blades = itemsMod.allItems().filter((d) => d.tags && d.tags.includes("blade")).map((d) => d.id).sort().join(",");
+  const edged = itemsMod.allItems().filter((d) => d.repair && d.repair.edged).map((d) => d.id).sort().join(",");
+  assert(blades === edged && blades === "hatchet,knife,scythe,spear,sword", `blades ${blades}; edged ${edged}`);
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false, multiHit: true } });
+  const S = gameMod.state;
+  const me = S.player;
+  const said = [];
+  promptMod.setMessageSink((t) => { said.push(t); return true; });
+  logMod.setSink((t) => { said.push(t); return true; });
+  const last = () => said[said.length - 1] || "";
+  const frames = [];
+  let host = null;
+  try {
+    const mk = (id, n = 1, props = {}) => itemsMod.makeEntry(id, n, props);
+    const card = (e) => itemInfoMod.textOf(itemInfoMod.cardFor(e));
+    const bag = inventoryMod.bagOf(me);
+    const clear = () => { bag.items.length = 0; const b = inventoryMod.beltOf(me); if (b) b.fill(null); me.hands.main = null; me.hands.off = null; };
+    const give = (id, n = 1, props = {}) => { assert(gridMod.add(bag, id, n, props) === n, `${id} did not fit the bag`); return bag.items.filter((e) => e.id === id).pop(); };
+    const count = (id) => inventoryMod.countAll(me, id);
+    // Open ground east of the spawn, nothing on it, outdoors.
+    const open = mapMod.nearestWalkable(Math.round(me.gx) + 4, Math.round(me.gy), (x, y) => {
+      for (let dx = -1; dx <= 8; dx++) for (let dy = -2; dy <= 2; dy++) { const t = mapMod.peekTile(x + dx, y + dy); if (!t || mapMod.roomAt(x + dx, y + dy) !== 0 || t.prop || !mapMod.isWalkableTile(x + dx, y + dy)) return true; }
+      return false;
+    });
+    me.gx = open[0];
+    me.gy = open[1];
+    S.zombies.length = 0; // the dead of this check alone
+    const bring = (dx, dy = 0) => { const z = zombieMod.createZombie(me.gx + dx, me.gy + dy); S.zombies.push(z); return z; };
+    const face = (z) => { const s = isoMod.toScreen(z.gx, z.gy); const o = isoMod.toScreen(me.gx, me.gy); const n = isoMod.normalize(s.x - o.x, s.y - o.y - 0.001); me.aim = { ...me.aim, sx: n.x, sy: n.y }; };
+    clear();
+    // ---- the Use rows ----
+    const sword = mk("sword");
+    me.hands.main = sword;
+    const vial = give("poison", 2);
+    const rowOf = (e, t) => interactionsMod.resolve(e, t);
+    assert(rowOf(vial, { kind: "item", entry: sword }).action === "coat" && !rowOf(mk("nightshade"), { kind: "item", entry: sword }) && !rowOf(vial, { kind: "item", entry: mk("bow") }) && !rowOf(vial, { kind: "item", entry: mk("fire_arrow", 5) }), "the rows: a poison on a blade, never the herbs tagged poison, a bow, or a fire arrow");
+    const fireProp = [...mapMod.fires()].find((f) => f.fire && f.fire.burns);
+    assert(!rowOf(mk("poison_arrow", 5), { kind: "prop", prop: fireProp }) && !rowOf(mk("strong_poison_arrow", 5), { kind: "prop", prop: fireProp }) && rowOf(mk("arrow", 5), { kind: "prop", prop: fireProp }).action === "dip", "a poisoned arrow on a fire has a row");
+    useMod.applyWith(vial, { kind: "item", entry: sword, slot: "hand:main" }, me);
+    assert(sword.poison && sword.poison.tier === 1 && sword.poison.hits === 10 && vial.count === 1 && count("clay_vial") === 1 && last() === "You coat the arming sword with poison.", `coated: ${JSON.stringify(sword.poison)}; vials ${vial.count}, clay ${count("clay_vial")}; "${last()}"`);
+    assert(card(sword).includes("Poisoned: 10 hits left."), card(sword).join(" | "));
+    useMod.applyWith(vial, { kind: "item", entry: mk("fire_arrow", 5) }, me);
+    assert(last() === interactionsMod.NOTHING && vial.count === 1, `a poison on a fire arrow: "${last()}"`);
+    // A guest's Use (inventory-actions' command by uid): the strong poison on the sword, from the bag onto the hand's slot; the new coat replaces the old.
+    const strong = give("strong_poison", 1);
+    assert(invActionsMod.performUseCommand(me, { uid: strong.uid, src: { kind: "bag", bag: { mine: true } }, target: { kind: "item", uid: sword.uid, slot: "hand:main" } }, null), "the guest's use command was not run");
+    assert(sword.poison.tier === 2 && sword.poison.hits === 10 && !bag.items.includes(strong) && count("strong_poison") === 0 && count("clay_vial") === 2 && card(sword).includes("Strongly poisoned: 10 hits left."), `strong: ${JSON.stringify(sword.poison)}; ${card(sword).join(" | ")}`);
+    // Arrows: five from a stack of twelve, the rest kept; the whole of a stack of three, in place.
+    const arrows = give("arrow", 12);
+    useMod.applyWith(vial, { kind: "item", entry: arrows }, me);
+    assert(arrows.id === "arrow" && arrows.count === 7 && count("poison_arrow") === 5 && count("poison") === 0 && count("clay_vial") === 3 && last() === "You coat 5 arrows with poison.", `arrows: ${arrows.count} left, ${count("poison_arrow")} poisoned; "${last()}"`);
+    inventoryMod.takeAll(me, "arrow", 99);
+    const few2 = give("arrow", 3);
+    const sv = give("strong_poison", 1);
+    useMod.applyWith(sv, { kind: "item", entry: few2 }, me);
+    assert(few2.id === "strong_poison_arrow" && few2.count === 3 && count("strong_poison") === 0, `three arrows: ${few2.id} x${few2.count}`);
+    // A full bag: the five new arrows at the feet, with their line, as the vial's.
+    const bag0 = bag.items.slice();
+    const held = mk("arrow", 12);
+    me.hands.off = held;
+    const fv = give("poison", 1);
+    bag.items = bag.items.filter((e) => e.id !== "poison_arrow"); // no stack of them to top up
+    while (gridMod.add(bag, "clay_vial", 1) === 1); // every cell taken, the vials' stacks full
+    const tile = [Math.round(me.gx), Math.round(me.gy)];
+    const floor0 = mapMod.itemsAt(tile[0], tile[1]).filter((e) => e.id === "poison_arrow").reduce((n, e) => n + e.count, 0);
+    said.length = 0;
+    useMod.applyWith(fv, { kind: "item", entry: held, slot: "hand:off" }, me);
+    const floor1 = mapMod.itemsAt(tile[0], tile[1]).filter((e) => e.id === "poison_arrow").reduce((n, e) => n + e.count, 0);
+    assert(held.count === 7 && floor1 - floor0 === P.arrows && said.includes(poisonMod.ARROWS_AT_FEET), `a full bag: ${held.count} kept, ${floor1 - floor0} at the feet; said ${said.join(" / ")}`);
+    for (const e of mapMod.itemsAt(tile[0], tile[1]).filter((q) => q.id === "poison_arrow" || q.id === "clay_vial")) mapMod.takeItem(tile[0], tile[1], e);
+    bag.items.splice(0, bag.items.length, ...bag0);
+    me.hands.off = null;
+    // The bow's order: fire, strong, ordinary, plain.
+    me.hands.main = mk("bow");
+    give("fire_arrow", 2);
+    const L = () => archeryMod.launcherOf(me);
+    const order = [];
+    for (const id of ["fire_arrow", "strong_poison_arrow", "poison_arrow", "arrow"]) { order.push(`${L().ammo}:${L().poison}`); inventoryMod.takeAll(me, id, 99); }
+    assert(order.join(" ") === "fire_arrow:0 strong_poison_arrow:2 poison_arrow:1 arrow:0", `the bow's order: ${order.join(" ")}`);
+    // ---- a swing: one hit spent however many it strikes, every body poisoned; a miss none ----
+    me.hands.main = sword;
+    sword.poison = { tier: 1, hits: 10 };
+    const z1 = bring(0.9, 0);
+    const z2 = bring(0.9, 0.35);
+    face(z1);
+    me.stamina = me.maxStamina;
+    me.attackCooldown = 0;
+    const hit = combatMod.tryAttack(me, S.zombies, "main");
+    assert(hit && hit.length === 2 && z1.poison && z2.poison && z1.poison.stacks === 1 && sword.poison.hits === 9, `the swing struck ${hit && hit.length}; poisoned ${!!z1.poison}, ${!!z2.poison}; ${sword.poison.hits} hits left`);
+    z1.gx = me.gx - 5; z2.gx = me.gx - 5;
+    me.attackCooldown = 0;
+    me.shoveCooldown = 0;
+    const miss = combatMod.tryAttack(me, S.zombies, "main");
+    assert(miss && miss.length === 0 && sword.poison.hits === 9, `a miss spent ${10 - sword.poison.hits - 1}`);
+    sword.poison.hits = 1;
+    z1.gx = me.gx + 0.9; z1.gy = me.gy; face(z1);
+    me.attackCooldown = 0;
+    combatMod.tryAttack(me, S.zombies, "main");
+    assert(!sword.poison && z1.poison.stacks === 2 && !card(sword).some((l) => /oisoned/.test(l)), `the last hit: ${JSON.stringify(sword.poison)}`);
+    // ---- the status ----
+    S.zombies.length = 0;
+    const z = bring(3, 0);
+    z.hp = 150;
+    floatersMod.takeForFrame();
+    poisonMod.apply(z, 1);
+    for (let i = 0; i < 600; i++) poisonMod.update(S.zombies, 1 / 60);
+    const ticks = floatersMod.takeForFrame().filter((e) => e[1] === z.id);
+    assert(!z.poison && Math.abs(150 - z.hp - 10) < 1e-6 && ticks.length === 10 && ticks.every((e) => e[0] === floatersMod.DAMAGE && e[2] === 1), `one stack for its timer: lost ${150 - z.hp}, ${ticks.length} ticks`);
+    z.hp = 150;
+    poisonMod.apply(z, 1);
+    poisonMod.apply(z, 1);
+    poisonMod.apply(z, 1);
+    poisonMod.apply(z, 1);
+    assert(z.poison.stacks === 3 && z.poison.tier === 1, `four hits: ${JSON.stringify(z.poison)}`);
+    for (let i = 0; i < 330; i++) poisonMod.update(S.zombies, 1 / 60); // 5.5 s
+    poisonMod.apply(z, 2); // a strong hit at 5.5 s: strong, the timer back to 10, the next tick still at 6
+    assert(z.poison.tier === 2 && z.poison.stacks === 3 && Math.abs(z.poison.left - 10) < 1e-6, `a strong hit: ${JSON.stringify(z.poison)}`);
+    poisonMod.apply(z, 1);
+    assert(z.poison.tier === 2, "an ordinary hit on a strong status made it ordinary");
+    for (let i = 0; i < 700; i++) poisonMod.update(S.zombies, 1 / 60);
+    assert(!z.poison && Math.abs(150 - z.hp - (5 * 3 + 10 * 6)) < 1e-6, `three stacks 5 s, then strong for 10: lost ${150 - z.hp} (wanted ${5 * 3 + 10 * 6})`);
+    // Never a player, a villager, or the dead already dead; it kills; it stands beside a burn; the world's step drains it.
+    assert(!poisonMod.apply(me, 2) && !me.poison && (!S.villagers[0] || (!poisonMod.apply(S.villagers[0], 2) && !S.villagers[0].poison)), "a player or a villager was poisoned");
+    z.hp = 2;
+    poisonMod.apply(z, 2);
+    for (let i = 0; i < 61; i++) poisonMod.update(S.zombies, 1 / 60);
+    assert(z.dead && !z.poison && !poisonMod.apply(z, 1), `a tick kills: dead ${z.dead}`);
+    S.zombies.length = 0;
+    const zb = bring(3, 1);
+    zb.hp = 150;
+    burnMod.ignite(zb);
+    poisonMod.apply(zb, 1);
+    for (let i = 0; i < 120; i++) gameMod.step(1 / 60, null);
+    assert(zb.burning && zb.poison && zb.poison.stacks === 1 && Math.abs(150 - zb.hp - (2 * 1 + 2 * burnMod.BURN.dps)) < 0.05, `beside a burn, by the world's step: lost ${(150 - zb.hp).toFixed(2)}, burning ${zb.burning}, poison ${JSON.stringify(zb.poison)}`);
+    // The save keeps the status and the coat; the sync parts compare the tier and stacks, and the coat in the entry text.
+    me.hands.main = sword;
+    sword.poison = { tier: 2, hits: 7 };
+    const saved = JSON.parse(JSON.stringify(gameMod.serialize()));
+    const zs = saved.characters.zombies.find((q) => q.id === zb.id);
+    const ps = saved.characters.players.find((q) => q.id === me.id);
+    assert(zs && zs.poison && zs.poison.stacks === 1 && ps && ps.hands.main.poison && ps.hands.main.poison.hits === 7, `the save: ${JSON.stringify(zs && zs.poison)}; ${JSON.stringify(ps && ps.hands.main && ps.hands.main.poison)}`);
+    const parts0 = gameMod.syncParts();
+    sword.poison.hits = 6;
+    poisonMod.apply(zb, 1);
+    const parts1 = gameMod.syncParts();
+    assert(parts0.players !== parts1.players && parts0.dead !== parts1.dead, "the coat or the stacks are not in the sync parts");
+    zb.poison.left = 3.21;
+    assert(gameMod.syncParts().dead === parts1.dead, "the poison's timer (the host's) is in the dead part");
+    // Wild game: poisoned by an arrow's landing hit, a carcass keeping the bow's class; a tame animal only struck as the blow rules allow.
+    const deer = S.animals.find((a) => animalMod.isWild(a) && !a.dead);
+    assert(!!deer, "no wild animal in the valley");
+    const deer0 = { gx: deer.gx, gy: deer.gy, hp: deer.hp };
+    deer.gx = me.gx + 5; deer.gy = me.gy;
+    deer.hp = 3;
+    archeryMod.reset();
+    archeryMod.shoot(me, [1, 0], 5, 1, { damage: 1, projectile: "poison_arrow", poison: 2 });
+    for (let i = 0; i < 120 && archeryMod.arrowsInFlight().length; i++) archeryMod.update(1 / 60);
+    assert(deer.poison && deer.poison.tier === 2 && deer.poison.cls === "bow", `the arrow's hit on the deer: ${JSON.stringify(deer.poison)}`);
+    const animalsPart = gameMod.syncParts().animals;
+    for (let i = 0; i < 61; i++) poisonMod.update(S.animals, 1 / 60);
+    assert(deer.dead && deer.killedBy === "bow" && !deer.poison && gameMod.syncParts().animals !== animalsPart, `the deer by the poison: dead ${deer.dead}, ${deer.killedBy}`);
+    // A thrown spear's landing hit: one hit of its coat spent, the rest lodged with it; a miss lands with the coat whole.
+    const zs2 = bring(5, 0);
+    zs2.hp = 150;
+    const spear = mk("spear", 1, { poison: { tier: 1, hits: 4 } });
+    archeryMod.shoot(me, [1, 0], 5, 1, { damage: 1, projectile: "spear", item: { ...spear } });
+    for (let i = 0; i < 120 && archeryMod.arrowsInFlight().length; i++) archeryMod.update(1 / 60);
+    const lodged = (zs2.lodgedItems || []).find((e) => e.uid === spear.uid);
+    assert(zs2.poison && lodged && lodged.poison && lodged.poison.hits === 3, `the spear's hit: ${JSON.stringify(zs2.poison)}, lodged ${JSON.stringify(lodged && lodged.poison)}`);
+    const spear2 = mk("spear", 1, { poison: { tier: 1, hits: 4 } });
+    const a = archeryMod.shoot(me, [0, 1], 3, 1, { damage: 1, projectile: "spear", item: { ...spear2 } });
+    for (let i = 0; i < 120 && archeryMod.arrowsInFlight().length; i++) archeryMod.update(1 / 60);
+    const fell = mapMod.itemsAt(Math.round(a.landAt[0]), Math.round(a.landAt[1])).find((e) => e.uid === spear2.uid);
+    assert(fell && fell.poison && fell.poison.hits === 4, `a missed throw: ${JSON.stringify(fell && fell.poison)}`);
+    Object.assign(deer, deer0);
+    // The frames: the dead's record carries `po` while poisoned and none after; PROTOCOL 20.
+    assert(netMod.PROTOCOL >= 20, `PROTOCOL ${netMod.PROTOCOL}`);
+    host = netMod.testHost((m) => { if (m.type === "frame") frames.push(JSON.parse(JSON.stringify(m))); });
+    host.joined();
+    const tickFrame = () => { loopMod.setSimTime(loopMod.simTime() + 1 / 60); netMod.hostAfterStep(); };
+    zs2.poison = null;
+    poisonMod.apply(zs2, 2);
+    for (let i = 0; i < 6; i++) tickFrame();
+    const withPo = frames.flatMap((f) => f.zombies || []).filter((r) => r.id === zs2.id && (r.po || (r.full && r.poison)));
+    frames.length = 0;
+    delete zs2.poison;
+    for (let i = 0; i < 6; i++) tickFrame();
+    const after = frames.flatMap((f) => f.zombies || []).filter((r) => r.id === zs2.id);
+    assert(withPo.length > 0 && after.length > 0 && after.every((r) => !r.po), `the frames: ${JSON.stringify(withPo.slice(-1))}; after ${JSON.stringify(after.map((r) => r.po))}`);
+    // The cards: the poisons say Use once, from the rows; the arrows say what they do.
+    const pc = card(mk("poison"));
+    assert(pc.filter((l) => l.startsWith("Use")).length === 1 && pc.includes("Use on a blade or arrows: coat.") && pc.includes(poisonMod.effectWords(1)) && card(mk("strong_poison")).includes(poisonMod.effectWords(2)), pc.join(" | "));
+    assert(card(mk("poison_arrow")).includes(poisonMod.effectWords(1)) && card(mk("strong_poison_arrow")).includes(poisonMod.effectWords(2)) && card(mk("nightshade")).every((l) => !l.startsWith("Use")), `${card(mk("poison_arrow")).join(" | ")} || ${card(mk("nightshade")).join(" | ")}`);
+    return `the levers; blades ${blades}; coated by Use and a guest's command, replaced by the strong; 5 arrows of 12, 3 of 3; the bow fire, strong, poisoned, plain; a swing on two spending one, a miss none; 10 ticks of 1, then 3 stacks lifted to strong (75 lost); never a player; beside a burn in the world's step; the save, the sync parts; a deer's carcass by the bow's class; a spear's coat spent on a hit and kept on a miss; the frames' po; the cards`;
+  } finally {
+    if (host) host.done();
+    promptMod.setMessageSink(null);
+    logMod.setSink(null);
   }
 });
 

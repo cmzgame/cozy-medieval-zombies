@@ -23,35 +23,37 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Sound:** every sound that carries information may have a visual twin where it makes sense (a bubble or a log line, a shake, a sway), but playing with the sound off is meant to cost something; Primary is the sound-on advocate. Anything in the game that makes a sound has it as a playable file on its wiki page, as its license allows. **Not waiting for the name** (*Primary's:* from the old infrastructure-day priority): an off-Fly copy of the server worlds' saves and a backup of the art generators, Michael's private half, kept off the repository.
 
-## Status (2026-10-25, late: the belt and handedness merged, the potions spec ruled and filed; the potions build is next)
+## Status (2026-10-26, night: stopped for Michael's playtest; the Playtest Checklist is the place to start)
 
-**Merged tonight with Michael at his desk** (each reviewed by a fresh agent, run in the pane and in two tabs by Primary, muted):
-- **The belt's slot roles** (#478; `docs/02`, The belt's slots have roles): main, off, and utility slots, the leather belt adding a main and an off; hand keys draw or else consume, the utility key consumes only; two-handers never in an off-hand slot; a line for every failed key; the Belt slot order setting (Sequential by default, Hands grouped); empty slots stamped with role icons. `net.PROTOCOL` 17.
-- **Handedness** (#477; `docs/02`, Right- or left-handed): chosen on the identity screen, right by default; the labels, the belt's icons, and the drawn arm, nothing mechanical. `net.PROTOCOL` 16.
-- **Test pages are silent** (#473, #474): `?mute` on every agent's test page.
-- **The potions sitting, ruled** (#479; `docs/47`, `docs/02` Potions, poisons, and mana ruled): clay vials, clean water, two herbs and a secondary at a cauldron, mana 100 and the Fire Bolt 20, poisons put on with Use, the splash. Filed as four build steps: mana (#480), vials, the cauldron, and drinking (#481), poisons (#482), throwing (#483).
+**Stopped here on purpose** (Michael, 2026-10-26: "I want to stop here at the playtesting page and my actual playtest"). Nothing merges until he has played. He tests from the **Playtest Checklist** (a private page of his, https://claude.ai/artifact/61HoYfV2iwDFboMeAikYws; the wiki's copy is the Playtest checklist page, which replaced Valley day): 110 tryable changes since 2026-10-17, his ticks, a note per item, and a bug-report box. **He filed 5 reports there on 2026-10-26, to handle next session, not before** ("do not deal with them now"): read the page's `reports` collection with ArtifactData, file each in `docs/bugs.md`, and set its `status` there so he can follow it.
 
-**Earlier this evening, Michael away** (synced in cmz-wiki#35 to #37): natural resources (`docs/46`: #453, #457, #461), animals (`docs/45`: #452, #456, #460, #462), the belt's first rulings (#467, replaced by #478), multiplayer seams (#455, #463, #465, #468), engine and test chores (#458, #459, #464), two bug batches (#454, #466).
+**Merged 2026-10-25 and 26** (each reviewed by a fresh agent and run in the pane and in two tabs by Primary, muted; the wiki synced):
+- The belt's slot roles (#478) and handedness (#477); test pages silent (#473, #474); the test runner `check("all")` and its order fixes (#487, the Secondary).
+- **Potions, poisons, and mana** (`docs/47`): mana (#488), vials, the cauldron, and drinking (#491), poisons (#496). Step 4, throwing potions and the splash (#483), is not built.
+- **Throwing knives and axes** (`docs/24` section 1; #494, the Secondary); their art owed (#493).
+- **Sight-pull** ruled (`docs/48`, #490); **built on the branch `secondary/sight-pull` (5a8c7d61), held, no PR**, for after the playtest (#492). Its open item: `check("windows")` fails after `check("melee")` in one page, with or without the pull, order-dependent, older than the branch.
+- Docs: the levers for the belt order and handedness (#485), a lit cauldron's Take apart line in `docs/bugs.md` (#495).
 
-**Next:** build the potions, #480 to #483 in order, through builders in parallel worktrees where the steps allow (step 1 and step 2 touch different files; 3 and 4 follow 2). Then the sittings, each a sit-down with Michael:
+**Next, after the playtest:** Michael's reports and notes from the checklist; then sight-pull's PR (#492) and throwing potions (#483); then the sittings, each a sit-down with him:
 1. Power items: gems (#281), trinkets (#282), silver (#283).
 2. Armour and difficulty (#133).
 3. Lore and the map (#217, #92), folding in villagers (#103), the wizard (#181), the regions' edge (#123).
 4. The demo, the business, and so on.
 5. Eventually, the regions.
-Still open from the potions' neighbours: Herbalism 6 and 7's replacements (struck) and what the herb bed grows (`docs/02` open questions 35 and 36).
+Still open beside them: Herbalism 6 and 7's replacements and what the herb bed grows (`docs/02` open questions 35 and 36).
+
+**The checklist is kept current:** each merge with a player-visible change adds a row to the page's `items` collection and to the wiki's Playtest checklist.
 
 **Open lines of `docs/39` by issue** (counted 2026-10-25, evening, by line; 52 open, down from 162): #92 11 · #281 7 · #123 7 · #282 5 · #133 5 · #181 4 · #283 4 · #103 3 · #262, #104, #271, #261, #217, #106 1 each.
 
-**In progress:** the Secondary's test-order hygiene (every instrument passing whatever ran before it in one page; a runner for a full sweep).
-
-**Waiting on Michael** (defaults built, his to confirm or overrule; each named in its PR's Risks):
-- **the belt** (#478): an item a draw pushes out tries an empty utility slot before the floor; the utility slot's menu offers Equip into the item's own hand; a locked or missing belt's key says a line on this client alone; the rest of the builder's readings in `docs/02`;
-- **handedness** (#477): a left-hander's main slot in the character screen's other column; the identity screen's figure shows no difference (it holds nothing);
-- **the potions' defaults** (`docs/47`): healing 40, the stamina buff, 10 s between potions, the brew's 20 s, the poison drain, the cauldron's fire as the oven's, and the vials coloured on seal and glazed band;
+**Waiting on Michael** (defaults built, his to confirm or overrule; each named in its PR's Risks and in `docs/47`, `docs/24`, `docs/48`):
+- the belt (#478): what a draw pushes out tries the utility slot before the floor; the utility slot's menu equips into the item's own hand;
+- handedness (#477): a left-hander's main slot in the character screen's other column;
+- potions and poisons: healing 40, the stamina buff, 10 s between potions, the brew's 20 s, the poison drain and its once-a-second tick, the vials coloured on seal and glazed band, ten knives an iron bar;
+- sight-pull: 4 tiles scaled by the light, the tells;
 - from before: the shared repair count and the plank for the rod and bow (#425); water's infection opening on "Bitten"; a tainted sip at full thirst; #426 brightness and Plants vs Zombies; #415 spikes; #419 the Stardew notebook; the loot rates; the rucksack's recipe; the burst against a bow, shield, or brace; #271's items 6 and 8 to 11; #393 the downed art; knockdown on cards; music; #324; the `needs-michael` issues.
 
-**Parallel builders are allowed** (2026-10-25): Primary runs their pane and two-tab tests, merges main in, and reviews before main. **Protocol bumps in Primary's builds merge on a clean review** (Michael, 2026-10-25; `docs/02`).
+**Parallel builders are allowed** (2026-10-25): Primary runs their pane and two-tab tests, merges main in, and reviews before main. **Protocol bumps in Primary's builds merge on a clean review** (Michael, 2026-10-25; `docs/02`). `net.PROTOCOL` is 20.
 
 **Not done, Michael's hand:** the finished builders' worktrees under `.claude/worktrees/agent-*` (all merged) are his to remove (`git worktree remove <path>`, then `git worktree prune`).
 

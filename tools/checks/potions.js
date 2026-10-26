@@ -247,7 +247,7 @@ export async function run(game, opts = {}) {
       healing_potion: ["Healing potion", "Potion", `Drink: heals ${P.heal} at once.`],
       stamina_potion: ["Stamina potion", "Potion", `for ${P.staminaSeconds} seconds.`],
       mana_potion: ["Mana potion", "Potion", `Drink: restores ${P.mana} mana at once.`],
-      poison: ["Poison", "Poison", "Use on a blade or on arrows."],
+      poison: ["Poison", "Poison", "Use on a blade or arrows: coat."],
       strong_poison: ["Strong poison", "Poison", "Strong poison: never drunk."],
       cauldron: ["Cauldron", "Furniture", "Set down, it is a station: 5 recipes, over a fire of logs"],
     };
