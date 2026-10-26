@@ -10,13 +10,16 @@
 // sound setting).
 //
 // Two tabs (`?nosave&mute&relay=none`): on the host `await __game.check("mana", { keep: true })` runs the rows above and then stands every other
-// player beside the altar with the staff and the book in its hands and 10 mana, and returns `kept`; on the guest
+// player beside the altar with the staff and the book in its hands and 10 mana, every player whole and the dead kept off (the altar is by the
+// graveyard: Zombie aggro stays off while kept), and returns `kept`; on the guest
 // `await __game.check("mana", { guest: <kept> })` reads its replica's bar from the host's record, its HUD, and its book's card; clicks to cast
 // through its snapshot and sees its own bar flash on that very step with no draw of its own, the host's line reach it, and no draw ever come
 // back; then sends Pray by its label (`net.sendAct`) and waits for its bars to fill from the host's step; then `await __game.check("sync")` on
-// the host, and `await __game.check("mana", { stop: true })` there puts the other players back as `{ keep: true }` found them.
+// the host, and `await __game.check("mana", { stop: true })` there puts the other players back as `{ keep: true }` found them (hands, places,
+// mana, stamina, health) and brings the host home from the altar with its health, its stamina, and the world's Zombie aggro.
 
 const keptBack = []; // the other players as `{ keep: true }` found them (the module is cached by the page)
+let hostBack = null; // and the host's own place, health, and stamina, and the world's Zombie aggro, which a keep run leaves off
 
 export async function run(game, opts = {}) {
   const G = game;
@@ -37,9 +40,21 @@ export async function run(game, opts = {}) {
       p.gy = k.gy;
       p.auto = null;
       p.mana = k.mana;
+      p.stamina = k.stamina;
+      p.hp = k.hp;
       put.push(p.id);
     }
-    row("the other players' hands, places, and mana put back as { keep: true } found them", true, put.join(", ") || "nobody kept");
+    let host = "no host state kept";
+    if (hostBack) {
+      const me = G.player;
+      G.teleport(hostBack.gx, hostBack.gy);
+      me.hp = hostBack.hp;
+      me.stamina = hostBack.stamina;
+      G.rules.set({ zombieAggro: hostBack.aggro });
+      host = `the host back at ${hostBack.gx.toFixed(1)},${hostBack.gy.toFixed(1)}, Zombie aggro ${hostBack.aggro}`;
+      hostBack = null;
+    }
+    row("the other players' hands, places, mana, stamina, and health put back as { keep: true } found them, and the host returned from the altar with the world's Zombie aggro", true, `${put.join(", ") || "nobody kept"}; ${host}`);
     return done();
   }
   const yieldOnce = () => new Promise((r) => { const ch = new MessageChannel(); ch.port1.onmessage = () => r(); ch.port2.postMessage(0); });
@@ -126,7 +141,7 @@ export async function run(game, opts = {}) {
   }
 
   // ---- the host's own (or a world of one's own) ----
-  const saved = { main: me.hands.main, off: me.hands.off, gx: me.gx, gy: me.gy, mana: me.mana, stamina: me.stamina, winded: me.winded, aggro: G.rules.rules.zombieAggro, aim: me.aimOverride };
+  const saved = { main: me.hands.main, off: me.hands.off, gx: me.gx, gy: me.gy, hp: me.hp, mana: me.mana, stamina: me.stamina, winded: me.winded, aggro: G.rules.rules.zombieAggro, aim: me.aimOverride };
   const A = G.archery;
   const step = (n = 1) => { for (let i = 0; i < n; i++) { G.loop.advance(1 / 60); if (snd) snd.update(1 / 60); } };
   let kept = null;
@@ -264,14 +279,16 @@ export async function run(game, opts = {}) {
     if (opts.keep) {
       const others = G.game.state.players.filter((p) => p !== me);
       for (const p of others) {
-        keptBack.push({ id: p.id, main: p.hands.main, off: p.hands.off, gx: p.gx, gy: p.gy, mana: p.mana });
+        keptBack.push({ id: p.id, main: p.hands.main, off: p.hands.off, gx: p.gx, gy: p.gy, mana: p.mana, stamina: p.stamina, hp: p.hp });
+        p.hp = p.maxHp; // the altar is by the graveyard: whole, with the dead kept off them while kept (Zombie aggro off until `{ stop: true }`)
         p.hands.main = G.items.makeEntry("staff_of_fire", 1);
         p.hands.off = G.items.makeEntry("book_of_fire", 1);
         if (stand) { p.gx = stand[0]; p.gy = stand[1]; p.auto = null; }
         p.mana = 10;
       }
       kept = others.length && stand ? { players: others.map((p) => p.id), altar: altar.id } : null;
-      row("kept for the guest: every other player beside the altar with the staff and the book in hand and 10 mana; `{ stop: true }` puts them back", !!kept, kept ? JSON.stringify(kept) : "no other player, or no altar");
+      if (kept) hostBack = { gx: saved.gx, gy: saved.gy, hp: saved.hp, stamina: saved.stamina, aggro: saved.aggro };
+      row("kept for the guest: every other player beside the altar, whole, with the staff and the book in hand and 10 mana, the host whole beside them, the dead kept off (Zombie aggro off); `{ stop: true }` puts it all back", !!kept, kept ? JSON.stringify(kept) : "no other player, or no altar");
     }
   } catch (e) {
     rows.push({ check: "ran to the end", result: "FAIL", detail: e && e.stack ? e.stack.split("\n").slice(0, 3).join(" | ") : String(e) });
@@ -281,13 +298,15 @@ export async function run(game, opts = {}) {
     A.setAim(null);
     me.hands.main = saved.main;
     me.hands.off = saved.off;
-    if (!opts.keep) G.teleport(saved.gx, saved.gy); // a keep run stays by the altar, so the guest's chunks stay the host's ring
+    const keeping = !!(opts.keep && kept);
+    if (!keeping) G.teleport(saved.gx, saved.gy); // a keep run stays by the altar, so the guest's chunks stay the host's ring; `{ stop: true }` brings it home
     me.mana = saved.mana;
+    if (keeping) me.hp = me.maxHp; else me.hp = saved.hp;
     me.stamina = saved.stamina;
     me.winded = saved.winded;
     me.manaFlash = 0;
     me.aimOverride = saved.aim;
-    G.rules.set({ zombieAggro: saved.aggro });
+    if (!keeping) G.rules.set({ zombieAggro: saved.aggro }); // a keep run leaves the dead calm until `{ stop: true }`
     G.settings.set("soundOn", soundOn0);
     drawHud();
     if (screen0) G.screens.show(screen0);

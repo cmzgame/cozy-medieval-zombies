@@ -3110,7 +3110,7 @@ check("belt: the slots' roles, each key by role and item, the refusals in words,
     assert(/This is a main-hand slot\. Its key draws what's here into your main hand/.test(empty("main")) && /two-handed/i.test(empty("main")), empty("main"));
     assert(/This is an off-hand slot\. Its key draws what's here into your off hand/.test(empty("off")) && /Two-handed items can't go here/.test(empty("off")), empty("off"));
     assert(/This is the utility slot\. Its key eats what's here if it is food, and never equips anything/.test(empty("utility")) && /one cell whatever its size/.test(empty("utility")), empty("utility"));
-    return "the roles on both belts; both key orders on both belts and the role in the snapshot (PROTOCOL 17); each role's key for a weapon, a shield, a torch, food, a skin, the tinderbox, a two-hander, and an empty slot; the swap and the off hand's thing sent to a slot, the bag, or the feet; the spear's dual rule; a two-hander refused in an off-hand slot by the slot check, a guest's command, and a drag, each in words; the utility slot's halberd in one cell; stow by role; the menu and the double-click; no choice in the save or the sync part; a guest's keys; the cards";
+    return "the roles on both belts; both key orders on both belts and the role in the snapshot (PROTOCOL 17 or later); each role's key for a weapon, a shield, a torch, food, a skin, the tinderbox, a two-hander, and an empty slot; the swap and the off hand's thing sent to a slot, the bag, or the feet; the spear's dual rule; a two-hander refused in an off-hand slot by the slot check, a guest's command, and a drag, each in words; the utility slot's halberd in one cell; stow by role; the menu and the double-click; no choice in the save or the sync part; a guest's keys; the cards";
   } finally {
     promptMod.setMessageSink(null);
   }
@@ -3199,7 +3199,7 @@ check("handedness: right by default, left only when chosen; the helper, the save
   const kL = keyOf({ ...ch, handed: "left" });
   assert(kR !== kL && kL.endsWith(',"left"]') && keyOf({ ...ch, handed: "right" }) === kR && JSON.parse(kR).length === 11, `the keys: ${kR.slice(-30)} / ${kL.slice(-30)}`);
   assert(keyOf({ ...ch, kind: "villager", handed: "left" }) === keyOf({ ...ch, kind: "villager" }) && keyOf({ ...ch, kind: "zombie", handed: "left" }) === keyOf({ ...ch, kind: "zombie" }), "a villager's or the dead's key took the left hand");
-  return `the helper and labels; right by default and through an old save; left through create, addPlayer, the save, the sync part, and the join's clamp; PROTOCOL 17, handed heavy; ${compared} frames mirrored arm for arm, the legs and head kept; the walk; the sheet's key`;
+  return `the helper and labels; right by default and through an old save; left through create, addPlayer, the save, the sync part, and the join's clamp; PROTOCOL 16 or later, handed heavy; ${compared} frames mirrored arm for arm, the legs and head kept; the walk; the sheet's key`;
 });
 
 const manaMod = await import("../src/mana.js");
@@ -3326,11 +3326,11 @@ check("mana: the bar and its regeneration in the host's step alone; the Fireball
     gameMod.restore(old, json);
     assert(gameMod.state.player.mana === 100 && gameMod.state.player.maxMana === 100, "a save from before mana did not come back full");
     const netSrc = fs.readFileSync(path.join(root, "src/net.js"), "utf8");
-    assert(netMod.PROTOCOL === 18 && /const HEAVY = new Set\(\[[^\]]*"maxMana"/.test(netSrc) && !/const HEAVY = new Set\(\[[^\]]*"mana"/.test(netSrc), `the wire: PROTOCOL ${netMod.PROTOCOL}; maxMana heavy, mana light`);
+    assert(netMod.PROTOCOL >= 18 && /const HEAVY = new Set\(\[[^\]]*"maxMana"/.test(netSrc) && !/const HEAVY = new Set\(\[[^\]]*"mana"/.test(netSrc), `the wire: PROTOCOL ${netMod.PROTOCOL}; maxMana heavy, mana light`);
     // The card.
     const card = itemInfoMod.textOf(itemInfoMod.cardFor(itemsMod.makeEntry("book_of_fire")));
     assert(card.includes(`Costs ${cost} mana a cast, spent when it is released.`), `the book's card: ${card.join(" | ")}`);
-    return `100 a bar, ${T.manaRegen} a second in the host's step alone; ${cost} a Fireball, refused at 19.9 and 10 with the line and the flash, spent once on the release and never on a cancel or a dry one; a guest's prediction flashes and draws nothing; Pray by a label and by the verb, ${tuningMod.potions.praySeconds} s, refused far and elsewhere; the save, an old save, the sync part to two decimals, PROTOCOL 18; the card`;
+    return `100 a bar, ${T.manaRegen} a second in the host's step alone; ${cost} a Fireball, refused at 19.9 and 10 with the line and the flash, spent once on the release and never on a cancel or a dry one; a guest's prediction flashes and draws nothing; Pray by a label and by the verb, ${tuningMod.potions.praySeconds} s, refused far and elsewhere; the save, an old save, the sync part to two decimals, PROTOCOL 18 or later; the card`;
   } finally {
     promptMod.setMessageSink(null);
   }

@@ -45,7 +45,8 @@ export function controlPlayer(player, zombies, dt, s, predict = false) {
   const bracing = s.offDown && !!launcher && launcher.kind === "bow";
   // A guest's own spell its bar cannot pay for (docs/47 section 9): the draw is the host's and is never predicted, so it never starts here alone;
   // the bar flashes on my own replica at once, and the host's line and its record of the flash follow.
-  if (predict && launcher && launcher.kind === "spell" && !launcher.refuse && s.clicked && !s.clickSpent && !archery.drawState(player) && !((player.recover || 0) > 0) && !mana.canPay(player, mana.costOf(launcher))) mana.flash(player);
+  // The guards are beginDraw's (a draw up, the recovery, the dead, arms full), so the flash shows exactly when the host will refuse for mana.
+  if (predict && launcher && launcher.kind === "spell" && !launcher.refuse && s.clicked && !s.clickSpent && !archery.drawState(player) && !((player.recover || 0) > 0) && !player.dead && !player.carrying && !mana.canPay(player, mana.costOf(launcher))) mana.flash(player);
   if (!predict) archery.updateDraw(player, dt, {
     pressed: onAlt ? s.altPressed : s.clicked && !s.clickSpent,
     down: onAlt ? s.altDown : s.leftDown,
