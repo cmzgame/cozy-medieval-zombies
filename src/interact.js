@@ -19,7 +19,7 @@ import { getSheet, idleFrame } from "./assets.js";
 import { resolveFacing, frameName } from "./sprites.js";
 import { getItem, toolFor, aName, countName, makeEntry, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
 import { stacks as bleedStacks, clear as clearBleed } from "./bleed.js";
-import { beltDraw, beltAction, beltRole, beltPositions, BELT_EVENTS, flameOf, NO_FLAME, skinsOf, carriedTool, toolProblem } from "./inventory.js";
+import { beltDraw, dropWord, beltAction, beltRole, beltPositions, BELT_EVENTS, flameOf, NO_FLAME, skinsOf, carriedTool, toolProblem } from "./inventory.js";
 import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, restoreOffHand, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
 import { getDef } from "./assets.js";
 import * as names from "./prop-names.js"; // a prop's name in words: its recipe's label, its definition's `name`, else its id (docs/bugs.md, 2026-10-25)
@@ -1147,7 +1147,8 @@ function openingsAtScreen(sx, sy) {
 }
 
 // A bracket under a canvas point (Use mode's target, #170): the nearest to the ground point under the cursor, as the right-click menu
-// finds it, or null. A torch in it, a lantern, or nothing: the light verb says which ("There is no torch there.", "A lantern is always lit.").
+// finds it, or null. A torch in it, a lantern, or nothing: the light verb says which ("There is no torch there.", "It is already lit.";
+// a lantern is a switch since docs/43, lit again once put out).
 export function bracketAt(sx, sy) {
   const g = iso.toGrid(sx, sy);
   const near = map.bracketsNear(g.gx, g.gy, 0.8); // any bracket: a Use on a lantern or an empty one gets its own word, not the grass's
@@ -1577,17 +1578,25 @@ export function beltPress(player, i) {
     return "eaten";
   }
   if (a.act === "drink") return potions.drinkFrom(player, e, { kind: "belt", index: i }) ? "drunk" : "refused";
-  if (a.act === "draw") {
-    const r = beltDraw(player, i);
-    for (const d of r.drop) map.dropItem(Math.round(player.gx), Math.round(player.gy), d); // the off hand's thing, with no room for it
-    if (!r.ok) {
-      showMessage(r.word);
-      return "refused";
-    }
-    return "drawn";
-  }
+  if (a.act === "draw") return beltEquip(player, i);
   showMessage(a.word);
   return "none";
+}
+
+// A belt slot's thing drawn into a hand: the slot's own (beltPress), or the hand the player chose (the slot menu's Equip into a hand, a drag
+// from the slot onto a hand: ui/inventory-actions.js), by inventory.beltDraw, so what the hand held goes to the slot just freed first
+// (Michael's playtest, 2026-10-26). What has nowhere else to go is set at the feet with its line. "drawn" or "refused".
+export function beltEquip(player, i, hand = null) {
+  const r = beltDraw(player, i, hand);
+  for (const d of r.drop) {
+    map.dropItem(Math.round(player.gx), Math.round(player.gy), d);
+    showMessage(dropWord(d));
+  }
+  if (!r.ok) {
+    showMessage(r.word);
+    return "refused";
+  }
+  return "drawn";
 }
 
 // ---- the item menus, for the panel ----
@@ -1742,10 +1751,10 @@ export function slotMenu(player, slotId) {
     } else if (bdef.hands && beltAction(entry, beltRole(i)).act === "draw") {
       out.push({ label: "Equip", enabled: true, onSelect: () => beltPress(player, i) });
     } else if (bdef.hands === "either") {
-      out.push({ label: "Equip (main hand)", enabled: true, onSelect: () => equipFrom(player, entry, "main") });
-      out.push({ label: "Equip (off hand)", enabled: true, onSelect: () => equipFrom(player, entry, "off") });
+      out.push({ label: "Equip (main hand)", enabled: true, onSelect: () => beltEquip(player, i, "main") });
+      out.push({ label: "Equip (off hand)", enabled: true, onSelect: () => beltEquip(player, i, "off") });
     } else if (bdef.hands) {
-      out.push({ label: `Equip (${bdef.hands === "both" ? "both hands" : `${bdef.hands} hand`})`, enabled: true, onSelect: () => equipFrom(player, entry) });
+      out.push({ label: `Equip (${bdef.hands === "both" ? "both hands" : `${bdef.hands} hand`})`, enabled: true, onSelect: () => beltEquip(player, i, bdef.hands === "both" ? "main" : bdef.hands) });
     }
     out.push({
       label: "Put in bag",

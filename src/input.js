@@ -49,11 +49,20 @@ export function init(targetCanvas) {
     if (document.hidden) dropAll();
   });
 
-  canvas.addEventListener("mousemove", (e) => {
+  // The pointer is followed over the whole window, a panel over the world too (the map on M, the bag), so the aim keeps turning the
+  // character with any panel open (Michael's playtest, 2026-10-26; only the pause menu stops the game). `inside` is the world's own:
+  // the canvas under the pointer, for a click, a hover, or a ghost on the world.
+  const follow = (e) => {
     const rect = canvas.getBoundingClientRect();
     mouse.x = (e.clientX - rect.left) / scale;
     mouse.y = (e.clientY - rect.top) / scale;
+  };
+  canvas.addEventListener("mousemove", (e) => {
+    follow(e);
     mouse.inside = true;
+  });
+  window.addEventListener("mousemove", (e) => {
+    if (e.target !== canvas) follow(e);
   });
   canvas.addEventListener("mouseleave", () => {
     mouse.inside = false;

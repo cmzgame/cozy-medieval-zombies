@@ -108,6 +108,12 @@ function beltSays(player, slotId) {
   return false;
 }
 
+// A held thing goes into a hand or a belt slot as one entry: one of it, or a stack of a thing that stacks (the throwing knives and axes, 20
+// and 10, held as a stack and thrown one at a time, docs/24 section 1; Michael's playtest, 2026-10-26: refused in every hand slot).
+function heldWhole(def, entry) {
+  return entry.count === 1 || entry.count <= (def.stack || 1);
+}
+
 function restoreTo(player, entry, from) {
   if (from.kind === "bag") {
     if (!grid.insert(from.bag, entry)) map.dropItem(Math.round(player.gx), Math.round(player.gy), entry);
@@ -137,11 +143,11 @@ export function createInventoryActions(getPlayer) {
         const belt = inventory.beltOf(player);
         if (!belt || !Number.isInteger(index) || index < 0 || index >= belt.length) return false; // a guest's command can name any index
         if (!inventory.roleTakes(inventory.beltRole(index), entry)) return false;
-        if (def.hands) return entry.count === 1;
+        if (def.hands) return heldWhole(def, entry);
         return def.kind === "food" || !!def.capacity || def.belt === true; // a food, a skin, or a thing that says it rides the belt (the tinderbox)
       }
       // A hand takes what fits it; an occupant swaps out if it can be stowed.
-      if (kind === "hand") return (key === "main" || key === "off") && !!def.hands && entry.count === 1 && (def.hands === "both" || def.hands === "either" || def.hands === key);
+      if (kind === "hand") return (key === "main" || key === "off") && !!def.hands && heldWhole(def, entry) && (def.hands === "both" || def.hands === "either" || def.hands === key);
       return false;
     },
     // Drop onto a worn or belt slot. An occupant goes to the bag or belt if
@@ -164,6 +170,17 @@ export function createInventoryActions(getPlayer) {
           player.hands[key] = entry;
           return;
         }
+      }
+      // From a belt slot onto a hand, or from a hand onto a belt slot that holds something: the belt's swap (inventory.beltDraw), so what
+      // the hand held takes the slot just freed and nothing goes to the bag while that slot can have it (Michael's playtest, 2026-10-26).
+      const fits = (e, k) => { const h = items.getItem(e.id).hands; return h === "both" || h === "either" || h === k; };
+      if (kind === "hand" && fromSlot && fromSlot.kind === "belt" && (key === "main" || key === "off") && inventory.beltOf(player)?.[fromSlot.index] === entry) {
+        interact.beltEquip(player, fromSlot.index, key); // refused: nothing moved, and its line said
+        return;
+      }
+      if (kind === "belt" && fromSlot && fromSlot.kind === "hand" && occupant && player.hands[fromSlot.key] === entry && fits(occupant, fromSlot.key)) {
+        interact.beltEquip(player, inventory.parseSlot(slotId).index, fromSlot.key); // the slot's thing into that hand, the hand's onto the slot
+        return;
       }
       detachFrom(player, entry, from);
       if (kind === "hand") {

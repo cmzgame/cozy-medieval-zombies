@@ -262,6 +262,18 @@ function arrowOf(facing) {
   return { x: Math.cos(a), y: Math.sin(a) };
 }
 
+// Your marker's shape: a disc of radius `r` with a point `tip` pixels from its centre toward `f` (a unit screen vector), the disc's edge
+// meeting the point along its two tangents, so the back is round and the point sharp.
+export const POINTER = { r: 6, tip: 15 };
+function pointerPath(x, y, f, r, tip) {
+  const a = Math.atan2(f.y, f.x);
+  const t = Math.acos(Math.min(1, r / tip)); // the tangent points' angle either side of the facing
+  ctx.beginPath();
+  ctx.moveTo(x + f.x * tip, y + f.y * tip);
+  ctx.arc(x, y, r, a + t, a - t + Math.PI * 2); // round the back, the long way
+  ctx.closePath();
+}
+
 function text(s, x, y, color = "#fff") {
   ctx.fillStyle = "#000";
   ctx.fillText(s, x + 1, y + 1);
@@ -328,29 +340,33 @@ export function update(state) {
     const m = project(p.gx, p.gy);
     if (m.x < -20 || m.y < -20 || m.x > W + 20 || m.y > Hh + 20) continue;
     const self = p === player;
-    shownMarkers.push({ id: p.id, self, x: m.x, y: m.y });
-    ctx.fillStyle = "#000";
-    ctx.beginPath();
-    ctx.arc(m.x, m.y, 4.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = self ? SELF : OTHER;
-    ctx.beginPath();
-    ctx.arc(m.x, m.y, 3.2, 0, Math.PI * 2);
-    ctx.fill();
-    if (self) {
-      const f = arrowOf(p.facing);
-      if (f) {
-        const tip = { x: m.x + f.x * 12, y: m.y + f.y * 12 };
-        ctx.strokeStyle = "#000";
-        ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.moveTo(m.x + f.x * 4, m.y + f.y * 4); ctx.lineTo(tip.x, tip.y); ctx.stroke();
-        ctx.strokeStyle = SELF;
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(m.x + f.x * 4, m.y + f.y * 4); ctx.lineTo(tip.x, tip.y); ctx.stroke();
-      }
+    const f = self ? arrowOf(p.facing) : null;
+    shownMarkers.push({ id: p.id, self, x: m.x, y: m.y, shape: f ? "pointer" : "dot" });
+    if (f) {
+      // Yours: a pointer with a round back (Michael's playtest, 2026-10-26), a disc at your position with its point toward your facing,
+      // so it turns with the mouse as the character does; outlined dark, larger than the others' dots.
+      pointerPath(m.x, m.y, f, POINTER.r + 1.5, POINTER.tip + 2);
+      ctx.fillStyle = "#000";
+      ctx.fill();
+      pointerPath(m.x, m.y, f, POINTER.r, POINTER.tip);
+      ctx.fillStyle = SELF;
+      ctx.fill();
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = self ? SELF : OTHER;
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, 3.2, 0, Math.PI * 2);
+      ctx.fill();
     }
     ctx.textAlign = "left";
-    text(p.name || p.id, Math.round(m.x + 8), Math.round(m.y - 8), self ? SELF : OTHER);
+    text(p.name || p.id, Math.round(m.x + (f ? 12 : 8)), Math.round(m.y - (f ? 12 : 8)), self ? SELF : OTHER);
     ctx.textAlign = "center";
   }
   // The compass: north is up and to the right, never a guess.

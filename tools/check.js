@@ -3199,6 +3199,144 @@ check("belt: the slots' roles, each key by role and item, the refusals in words,
   }
 });
 
+// Michael's playtest checklist, 2026-10-26 (docs/bugs.md, Fixed): the throwing knife's and axe's stacks taken by every hand slot and hand
+// belt slot; a swap from the belt sending what the hand held to the slot just freed, by the key, a drag either way, and the slot menu's Equip,
+// the feet last with a line; the swing's outline and its hit agreeing at the wedge's edges; Take apart's word for a lit fire that only burns
+// down. What needs the page (the map's aim and its marker, the real drags, two tabs) is check("playtest1").
+const combatPt = await import("../src/combat.js"); // the file's combatMod and isoMod are imported further down
+const isoPt = await import("../src/iso.js");
+check("playtest 2026-10-26: throwables' stacks in the hand slots, the belt's swap into the freed slot and the feet's line, the swing's outline at its edges, a lit cauldron's Take apart", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  const said = [];
+  promptMod.setMessageSink((t) => { said.push(t); return true; });
+  try {
+    const mk = (id, n = 1) => itemsMod.makeEntry(id, n);
+    const id = (e) => (e ? e.id : "-");
+    const last = () => said[said.length - 1] || "";
+    me.worn.waist = mk("good_belt");
+    me.worn.back = mk("small_sack");
+    const belt = inventoryMod.beltOf(me);
+    const bag = () => inventoryMod.bagOf(me);
+    const reset = () => { for (let i = 0; i < belt.length; i++) belt[i] = null; me.hands.main = null; me.hands.off = null; me.offMemory = null; bag().items.length = 0; };
+    const h = invActionsMod.createInventoryActions(() => me);
+    const where = () => `main ${id(me.hands.main)}, off ${id(me.hands.off)}; belt ${belt.map(id).join(" ")}; bag ${(bag() && bag().items.map(id).join(",")) || "-"}`;
+    // 1. The stacks: 20 knives and 10 axes go in every hand belt slot, the utility slot, and both hands; one past the stack, or two swords, do not.
+    reset();
+    for (const [item, n] of [["throwing_knife", 20], ["throwing_axe", 10]]) {
+      const s = mk(item, n);
+      const slots = ["belt:0", "belt:1", "belt:2", "belt:3", "belt:4", "hand:main", "hand:off"];
+      assert(slots.every((q) => h.canPlace(s, q)), `${item} x${n} refused at ${slots.filter((q) => !h.canPlace(s, q)).join(",")}`);
+      assert(!h.canPlace(mk(item, n + 1), "belt:0") && !h.canPlace(mk(item, n + 1), "hand:main"), `${item} x${n + 1} taken`);
+    }
+    assert(!h.canPlace(mk("sword", 2), "belt:0") && !h.canPlace(mk("sword", 2), "hand:main"), "two swords as one entry taken");
+    gridMod.insert(bag(), mk("throwing_knife", 20)); // a stack goes in as a new entry (grid.insert), so it is read back from the bag
+    const knives = bag().items.find((e) => e.id === "throwing_knife");
+    assert(invActionsMod.performItemCommand(me, { op: "slot", uid: knives.uid, src: { kind: "bag", bag: { mine: true } }, slot: "belt:1" }) === true && belt[1] === knives && knives.count === 20, `a guest's knives onto an off-hand slot: ${where()}`);
+    assert(interactMod.beltPress(me, 1) === "drawn" && me.hands.off === knives && !belt[1], `the off-hand slot's key with the knives: ${where()}`);
+    gridMod.insert(bag(), mk("throwing_axe", 10));
+    const axes = bag().items.find((e) => e.id === "throwing_axe");
+    assert(invActionsMod.performItemCommand(me, { op: "slot", uid: axes.uid, src: { kind: "bag", bag: { mine: true } }, slot: "hand:main" }) === true && me.hands.main === axes && axes.count === 10, `a guest's axes onto the main hand: ${where()}`);
+    // 2. The swap: Michael's own case, a bow held, a sword on the main-hand slot and a shield on the off-hand slot; key 1.
+    reset();
+    let bow = mk("bow");
+    me.hands.main = bow;
+    me.hands.off = bow;
+    belt[0] = mk("sword");
+    belt[1] = mk("shield");
+    assert(interactMod.beltPress(me, 0) === "drawn" && id(me.hands.main) === "sword" && belt[0] === bow && id(belt[1]) === "shield" && !bag().items.includes(bow), `key 1 with the bow held: ${where()}`);
+    // The same by a drag from the slot onto the main hand (it once went through equip's stow, bag first).
+    reset();
+    bow = mk("bow");
+    me.hands.main = bow;
+    me.hands.off = bow;
+    belt[0] = mk("sword");
+    h.placeInSlot(belt[0], { kind: "slot", id: "belt:0" }, "hand:main");
+    assert(id(me.hands.main) === "sword" && belt[0] === bow && !bag().items.includes(bow), `a drag from the slot onto the main hand: ${where()}`);
+    // And from the hand onto the occupied slot: a swap, the slot's thing into that hand.
+    reset();
+    const mace = mk("mace");
+    me.hands.main = mace;
+    belt[0] = mk("sword");
+    h.placeInSlot(mace, { kind: "slot", id: "hand:main" }, "belt:0");
+    assert(id(me.hands.main) === "sword" && belt[0] === mace && !bag().items.length, `a drag from the hand onto an occupied slot: ${where()}`);
+    // A sword dragged from the main-hand slot onto the off hand: the shield to that slot (any thing rides a main-hand slot).
+    reset();
+    const shield = mk("shield");
+    me.hands.main = mk("mace");
+    me.hands.off = shield;
+    belt[0] = mk("sword");
+    h.placeInSlot(belt[0], { kind: "slot", id: "belt:0" }, "hand:off");
+    assert(id(me.hands.off) === "sword" && belt[0] === shield && id(me.hands.main) === "mace", `a sword from the main-hand slot onto the off hand: ${where()}`);
+    // The slot menu's Equip into a hand from the utility slot: what that hand held to the utility slot.
+    reset();
+    me.hands.main = mk("mace");
+    const sh2 = mk("shield");
+    me.hands.off = sh2;
+    belt[2] = mk("sword");
+    interactMod.slotMenu(me, "belt:2").find((q) => q.label === "Equip (off hand)").onSelect();
+    assert(id(me.hands.off) === "sword" && belt[2] === sh2 && !bag().items.length, `the utility slot's Equip (off hand): ${where()}`);
+    // An off-hand draw from a main-hand slot with the bow held: the bow takes the freed main-hand slot, not the first empty one.
+    reset();
+    bow = mk("bow");
+    me.hands.main = bow;
+    me.hands.off = bow;
+    belt[3] = mk("shield");
+    interactMod.slotMenu(me, "belt:3").find((q) => q.label === "Equip (off hand)").onSelect();
+    assert(id(me.hands.off) === "shield" && belt[3] === bow && !belt[0], `the shield from the second main-hand slot with the bow held: ${where()}`);
+    // A two-hander never takes a freed off-hand slot: drawn into the off hand from there, the bow goes to an empty main-hand slot.
+    reset();
+    bow = mk("bow");
+    me.hands.main = bow;
+    me.hands.off = bow;
+    belt[1] = mk("shield");
+    assert(interactMod.beltPress(me, 1) === "drawn" && id(me.hands.off) === "shield" && !belt[1] && belt[0] === bow, `key 2 with the bow held: ${where()}`);
+    // Nowhere at all: the feet, with its line.
+    reset();
+    me.worn.back = null;
+    me.hands.main = mk("mace");
+    const sh3 = mk("shield");
+    me.hands.off = sh3;
+    belt[0] = mk("halberd");
+    belt[1] = mk("book_of_fire");
+    belt[2] = mk("bread");
+    belt[4] = mk("book_of_fire");
+    const tx = Math.round(me.gx), ty = Math.round(me.gy);
+    said.length = 0;
+    assert(interactMod.beltPress(me, 0) === "drawn" && id(me.hands.main) === "halberd" && id(belt[0]) === "mace" && mapMod.itemsAt(tx, ty).some((e) => e.uid === sh3.uid) && last() === "Nowhere to put the wooden shield: it is at your feet.", `the halberd with nowhere for the shield: ${where()}; "${last()}"`);
+    mapMod.itemsAt(tx, ty).splice(mapMod.itemsAt(tx, ty).findIndex((e) => e.uid === sh3.uid), 1);
+    me.worn.back = mk("small_sack");
+    // 3. The swing's outline is the swing's hit at the edges of its wedge: one of the dead just inside and just outside the reach and each
+    //    edge of the arc, and point blank behind; the outline (swingTargets) and the swing (tryAttack) name the same bodies.
+    reset();
+    me.hands.main = mk("sword");
+    const sw = combatPt.weaponOf(me);
+    const a = isoPt.gridDirToScreen(1, 0);
+    me.aim = { sx: a.sx, sy: a.sy };
+    const rows = [];
+    for (const [r, deg] of [[sw.range - 0.05, 0], [sw.range + 0.3, 0], [1, sw.arc / 2 - 4], [1, sw.arc / 2 + 30], [1, -(sw.arc / 2) + 4], [1, -(sw.arc / 2) - 30], [0.4, 180]]) {
+      const z = zombieMod.createZombie(me.gx + r * Math.cos((deg * Math.PI) / 180), me.gy + r * Math.sin((deg * Math.PI) / 180));
+      const lit = combatPt.swingTargets(me, [z]).includes(z);
+      me.attackCooldown = 0;
+      me.shoveCooldown = 0;
+      me.stamina = 100;
+      const hit = (combatPt.tryAttack(me, [z]) || []).includes(z);
+      rows.push(`${r.toFixed(2)}@${Math.round(deg)}: ${lit ? "lit" : "-"}/${hit ? "hit" : "-"}`);
+      assert(lit === hit, `the outline and the swing disagree: ${rows.join(", ")}`);
+    }
+    // 4. Take apart's word for a lit fire: a campfire is put out by hand, a cauldron's fire only burns down.
+    const cauldron = mapMod.createProp({ sprite: "cauldron", tile: [tx + 2, ty] });
+    cauldron.fire.lit = true;
+    cauldron.fire.fuel = 1;
+    const camp = mapMod.createProp({ sprite: "campfire", tile: [tx + 3, ty] });
+    camp.fire.lit = true;
+    assert(placementMod.holdsProblem(cauldron) === "Let it burn down first." && placementMod.holdsProblem(camp) === "Put it out first.", `${placementMod.holdsProblem(cauldron)} / ${placementMod.holdsProblem(camp)}`);
+    return `knives and axes in every hand slot as stacks, a guest's commands too; the swap into the freed slot by the key, both drags, and the menu; a two-hander never in a freed off-hand slot; the feet's line; the sword's outline ${rows.join(", ")}; a lit cauldron "Let it burn down first."`;
+  } finally {
+    promptMod.setMessageSink(null);
+  }
+});
+
 // Handedness (Michael, 2026-10-25): right- or left-handed, chosen on the identity screen, stamped on the character, a label for
 // the main and off hands and the arm the main hand's thing is drawn in; never ambidextrous, right by default. The sim never
 // reads it. What needs the page (the screen's choice, the labels, the baked sheets, two tabs) is check("handed").
