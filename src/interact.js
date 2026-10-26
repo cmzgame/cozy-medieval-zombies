@@ -19,7 +19,7 @@ import { getSheet, idleFrame } from "./assets.js";
 import { resolveFacing, frameName } from "./sprites.js";
 import { getItem, toolFor, aName, countName, makeEntry, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
 import { stacks as bleedStacks, clear as clearBleed } from "./bleed.js";
-import { beltKey, beltHand, setBeltHand, handProblem, offBeltWord, flameOf, NO_FLAME, skinsOf, carriedTool, toolProblem } from "./inventory.js";
+import { beltKey, beltHand, setBeltHand, handProblem, offBelt, offBeltWord, flameOf, NO_FLAME, skinsOf, carriedTool, toolProblem } from "./inventory.js";
 import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, restoreOffHand, addItem, createBag, waterContainers, canStoreIn, isContainer } from "./inventory.js";
 import { getDef } from "./assets.js";
 import { canPutDown, putDownTarget, canCarry, propRect } from "./placement.js";
@@ -1506,8 +1506,11 @@ export function beltPress(player, i) {
   const held = !e && (player.hands.main || player.hands.off);
   const r = beltKey(player, i);
   if (r === "nobelt") showMessage("No belt, or no such slot.");
-  else if (r === "handsfull") showMessage("Your hands are full.");
-  else if (r === "wronghand") showMessage(handProblem(e, beltHand(player, i)));
+  else if (r === "handsfull") {
+    // What would have to leave the hands could go nowhere: when that is a thing too long for the belt, say so (the review of #467).
+    const stuck = [player.hands.main, player.hands.off].find((q) => offBelt(q));
+    showMessage(stuck ? `${offBeltWord(stuck).slice(0, -1)}, and your bag is full.` : "Your hands are full.");
+  } else if (r === "wronghand") showMessage(handProblem(e, beltHand(player, i)));
   else if (r === "nohands") showMessage(`The ${def.name.toLowerCase()} is not held in a hand.`);
   else if (r === "toolong") showMessage(offBeltWord(held));
   return r;

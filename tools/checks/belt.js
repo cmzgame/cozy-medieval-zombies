@@ -15,10 +15,33 @@
 // guest `await __game.check("belt", { guest: <kept> })` reads its replica's belt and marks, sends Equip to main hand by its label (the
 // panel's command) and waits for the book in its main hand and the choice on its record, puts it back by a slot command, presses key 2
 // in its snapshot (`net.setTestSnapshot`) and waits for the book drawn into the main hand, double-clicks slot 1 through the remote
-// handlers, and sends the halberd onto the belt and sees it refused; then `await __game.check("sync")` on the host.
+// handlers, and sends the halberd onto the belt and sees it refused (skipped, said in its row, when the host found no room for a halberd in
+// its bag: none is laid over another entry); then `await __game.check("sync")` on the host, and `await __game.check("belt", { stop: true })`
+// there puts the other players' belts, hands, bags, and choices back as `{ keep: true }` found them.
+
+// The other players as `{ keep: true }` found them, put back by `{ stop: true }` on the host after the guest's half (the module is cached by the page).
+const keptBack = [];
 
 export async function run(game, opts = {}) {
   const G = game;
+  if (opts.stop) {
+    const put = [];
+    for (const k of keptBack.splice(0)) {
+      const p = G.game.state.players.find((q) => q.id === k.id);
+      if (!p) continue;
+      p.worn.waist = k.waist;
+      p.hands.main = k.hands.main;
+      p.hands.off = k.hands.off;
+      const b = G.inventory.bagOf(p);
+      if (b && k.bag) b.items.splice(0, b.items.length, ...k.bag);
+      p.beltHands = k.beltHands;
+      p.offMemory = k.offMemory;
+      put.push(p.id);
+    }
+    const rows = [{ check: "the other players' belts, hands, bags, and choices put back as { keep: true } found them", result: "pass", detail: put.join(", ") || "nobody kept" }];
+    for (const r of rows) console.log(`${r.result}  ${r.check}  (${r.detail})`);
+    return { rows, passed: rows.length, total: rows.length };
+  }
   const rows = [];
   const row = (check, ok, detail) => rows.push({ check, result: ok ? "pass" : "FAIL", detail });
   const yieldOnce = () => new Promise((r) => { const ch = new MessageChannel(); ch.port1.onmessage = () => r(); ch.port2.postMessage(0); });
@@ -83,9 +106,11 @@ export async function run(game, opts = {}) {
       const bag = inv.bagOf(me);
       const halberd = bag && bag.items.find((e) => e.id === "halberd");
       const free = inv.beltOf(me).indexOf(null);
+      const skipped = opts.guest.halberds && opts.guest.halberds[me.id] === false;
       if (halberd && free >= 0) G.net.sendItem({ op: "slot", uid: halberd.uid, src: { kind: "bag", bag: { mine: true } }, slot: `belt:${free}` });
-      await pump(() => /too long for the belt/.test(message()), 4000);
-      row("my halberd sent onto a free belt slot is refused by the host: still in my bag, the slot empty, and the word reaches me", !!halberd && free >= 0 && bag.items.some((e) => e.uid === halberd.uid) && !inv.beltOf(me)[free] && message() === "The halberd is too long for the belt.", `${halberd ? "a halberd" : "no halberd"}, slot ${free + 1}; "${message()}"`);
+      if (halberd) await pump(() => /too long for the belt/.test(message()), 4000);
+      if (skipped && !halberd) row("my halberd onto the belt: skipped, the host found no room for one in my bag (it never lays one over another entry)", true, "no halberd given");
+      else row("my halberd sent onto a free belt slot is refused by the host: still in my bag, the slot empty, and the word reaches me", !!halberd && free >= 0 && bag.items.some((e) => e.uid === halberd.uid) && !inv.beltOf(me)[free] && message() === "The halberd is too long for the belt.", `${halberd ? "a halberd" : "no halberd"}, slot ${free + 1}; "${message()}"`);
       // The cards on the replica: the sword's from the belt, and slot 1's own hand (the book is there now, or the slot is empty).
       const swordCard = info.textOf(info.cardFor(mk("sword"))).join(" | ");
       row("on the guest the sword's card says the belt draws it into the main hand", swordCard.includes("Equip: main or off hand; from the belt, the main hand."), swordCard);
@@ -126,12 +151,10 @@ export async function run(game, opts = {}) {
     return belt;
   };
   const render = () => panel.renderInventoryPanel(me, inv.bagOf(me), null, inv.beltOf(me));
-  // Into a bag where it fits, else laid at its corner (a halberd is five cells long: a sack's grid may have no room; the commands find it by uid).
+  // Into a bag where it fits (grid.insert tries both turns), never over another entry: true when it went in.
   const intoBag = (p, e) => {
     const b = inv.bagOf(p);
-    if (!b || G.grid.insert(b, e)) return;
-    Object.assign(e, { x: 0, y: 0, rot: false });
-    b.items.push(e);
+    return !!b && G.grid.insert(b, e);
   };
   const bagOpen0 = panel.isBagOpen();
   const slotEl = (i) => document.querySelector(`#hotbar .inv-item[data-slot="belt:${i}"]`);
@@ -233,7 +256,8 @@ export async function run(game, opts = {}) {
     fresh();
     const h = actionsMod.createInventoryActions(() => me);
     const halberd = mk("halberd");
-    intoBag(me, halberd);
+    // A full bag has no room for five cells: emptied for these rows (the bag is put back in the finally).
+    if (!intoBag(me, halberd)) { inv.bagOf(me).items.length = 0; intoBag(me, halberd); }
     const inBag = inv.bagOf(me).items.includes(halberd);
     row("the slot check refuses the halberd on every belt slot (a sword it takes)", [0, 1, 2, 3].every((i) => !h.canPlace(halberd, `belt:${i}`)) && h.canPlace(mk("sword"), "belt:0"), "belt:0 to belt:3");
     const ran = inBag ? actionsMod.performItemCommand(me, { op: "slot", uid: halberd.uid, src: { kind: "bag", bag: { mine: true } }, slot: "belt:0" }) : null;
@@ -267,7 +291,10 @@ export async function run(game, opts = {}) {
     // ---- two tabs: a belt, a sword, a book, and a halberd for every other player ----
     if (opts.keep) {
       const others = G.game.state.players.filter((p) => p !== me);
+      const halberds = {};
       for (const p of others) {
+        // What `{ stop: true }` puts back once the guest's half has run.
+        keptBack.push({ id: p.id, waist: p.worn.waist, hands: { main: p.hands.main, off: p.hands.off }, bag: inv.bagOf(p) ? inv.bagOf(p).items.slice() : null, beltHands: p.beltHands, offMemory: p.offMemory });
         p.worn.waist = mk("good_belt");
         const b = inv.beltOf(p);
         b[0] = mk("sword");
@@ -276,10 +303,10 @@ export async function run(game, opts = {}) {
         p.hands.off = null;
         p.beltHands = [];
         p.offMemory = null;
-        intoBag(p, mk("halberd"));
+        halberds[p.id] = intoBag(p, mk("halberd")); // none when its bag has no room: the guest's halberd row says it was skipped
       }
-      kept = others.length ? { players: others.map((p) => p.id) } : null;
-      row("kept for the guest: every other player has the leather belt with a sword and a book, a halberd in its bag, and empty hands", !!kept, kept ? JSON.stringify(kept) : "no other player");
+      kept = others.length ? { players: others.map((p) => p.id), halberds } : null;
+      row("kept for the guest: every other player has the leather belt with a sword and a book, a halberd in its bag where it fits, and empty hands; `{ stop: true }` puts them back", !!kept, kept ? JSON.stringify(kept) : "no other player");
     }
   } catch (e) {
     rows.push({ check: "ran to the end", result: "FAIL", detail: e && e.stack ? e.stack.split("\n").slice(0, 3).join(" | ") : String(e) });

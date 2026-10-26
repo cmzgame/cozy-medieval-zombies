@@ -347,7 +347,8 @@ export function setBeltHand(player, index, hand) {
 
 // Belt key n (docs/11; #285): a held item in slot n goes to the hand chosen for the slot (beltHand), swapping out what that hand holds;
 // "wronghand" when that hand cannot take it, "nohands" for a thing no hand holds (the tinderbox: carried, used from there). An empty
-// slot takes what the main hand holds, else the off hand's, as before; "toolong" for a thing too long for the belt (the halberd).
+// slot takes what the main hand holds, else the off hand's, as before (the off hand's first when that is the slot's choice); "toolong"
+// for a thing too long for the belt (the halberd).
 export function beltKey(player, index) {
   const belt = beltOf(player);
   if (!belt || index >= belt.length) return "nobelt";
@@ -362,8 +363,10 @@ export function beltKey(player, index) {
     belt[index] = e;
     return "handsfull";
   }
-  // An empty slot takes what the main hand holds, else the off-hand.
-  for (const s of ["main", "off"]) {
+  // An empty slot takes what the main hand holds, else the off-hand; a slot whose choice is the off hand takes the off hand's first, so its
+  // key puts back what it drew there (a default for Michael, the review of #467). With no choice, or the main hand chosen, the main hand's.
+  const c = Array.isArray(player.beltHands) ? player.beltHands[index] : null;
+  for (const s of c && c.hand === "off" ? ["off", "main"] : ["main", "off"]) {
     const held = player.hands[s];
     if (held && handFor(held.id)) {
       if (offBelt(held)) return "toolong";

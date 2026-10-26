@@ -2444,6 +2444,17 @@ check("belt: one thing per slot, the hand chosen per slot and kept, the defaults
     assert(key(me, 3) === "nohands" && belt[3] && belt[3].id === "tinderbox" && /not held in a hand/.test(last()), `the tinderbox's key: ${last()}`);
     // An empty slot takes what the main hand holds, as before.
     assert(key(me, 0) === "stowed" && belt[0] && belt[0].id === "sword" && !me.hands.main, "an empty slot's key did not take the sword");
+    // An empty slot whose choice is the off hand takes the off hand's first (the review of #467): its key toggles a book in and out; with no
+    // choice, or the main hand chosen, the main hand's.
+    belt = fresh(me);
+    me.hands.main = mk("sword");
+    belt[1] = mk("book_of_fire");
+    assert(inventoryMod.setBeltHand(me, 1, "off") === "", "the book's off hand was refused");
+    assert(key(me, 1) === "drawn" && me.hands.off && me.hands.off.id === "book_of_fire", "the book chosen for the off hand was not drawn there");
+    assert(key(me, 1) === "stowed" && belt[1] && belt[1].id === "book_of_fire" && me.hands.main && me.hands.main.id === "sword" && !me.hands.off, `key 2 again: slot ${belt[1] && belt[1].id}, main ${me.hands.main && me.hands.main.id}`);
+    me.hands.off = mk("book_of_fire");
+    belt[2] = null;
+    assert(key(me, 2) === "stowed" && belt[2] && belt[2].id === "sword" && me.hands.off && !me.hands.main, "an empty slot with no choice did not take the main hand's");
     // The menu: Equip, then the two hands, the current one marked.
     belt = fresh(me);
     belt[1] = mk("book_of_fire");
@@ -2516,6 +2527,10 @@ check("belt: one thing per slot, the hand chosen per slot and kept, the defaults
     me.hands.off = halberd;
     said.length = 0;
     assert(key(me, 0) === "toolong" && me.hands.main === halberd && !belt[0] && last() === "The halberd is too long for the belt.", `the empty slot's key with a halberd held: ${last()}`);
+    // A sword's key with the halberd held and nowhere to put it: says why (the review of #467), the sword left on the belt.
+    belt[1] = mk("sword");
+    assert(key(me, 1) === "handsfull" && me.hands.main === halberd && belt[1] && belt[1].id === "sword" && last() === "The halberd is too long for the belt, and your bag is full.", `a draw with the halberd stuck: ${last()}`);
+    belt[1] = null;
     me.worn.back = mk("small_sack");
     me.hands.main = null;
     me.hands.off = null;
