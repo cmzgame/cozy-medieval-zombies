@@ -1,7 +1,7 @@
 // Keeping, animals step 3 (docs/45, #444). From the console, on a tab with `?nosave` (the valley):
 //   await __game.check("keeping")
-// The lead, the shears, milk, wool, the egg, and hay as items with their cards (the lead and the shears drawn in the hand, grain, hay, and
-// eggs stacking), the lead made at the workbench and the shears at the anvil, the feeding trough in the build palette and by each farm's
+// The lead, the shears, milk, wool, the egg, and hay as items with their cards (the lead and the shears drawn in the hand, grain and hay
+// stacking, an egg one a cell: Michael, 2026-10-25), the lead made at the workbench and the shears at the anvil, the feeding trough in the build palette and by each farm's
 // stock, opening at once and taking feed alone; a cow led by the label a guest sends, keeping up with its leader at a walk and at a sprint
 // down the west road, let go where it stands by hand, lost (its old home kept) when its leader is shut in a house or gone; the byre's cows
 // eating from their own trough as soon as it is filled, never from one outside their fence; a calf born beside a parent with the player
@@ -73,7 +73,7 @@ export async function run(game, opts = {}) {
     row("the lead, shears, milk, wool, the egg, and hay have cards that say what they are for and where they come from; feed and the bucket say so too", badCards.length === 0, badCards.map(([id]) => `${id}: ${cards[id]}`).join(" || ") || Object.entries(cards).map(([id, t]) => `${id}: ${t}`).join(" || "));
     const held = ["lead", "shears"].filter((id) => !items.getItem(id).held);
     const stacks = ["grain", "hay", "egg"].map((id) => `${id} ${items.getItem(id).stack || 1}`);
-    row("the lead and the shears are drawn in the hand; grain, hay, and eggs stack (twenty)", held.length === 0 && ["grain", "hay", "egg"].every((id) => items.getItem(id).stack === 20), `no held: ${held.join(",") || "none"}; ${stacks.join(", ")}`);
+    row("the lead and the shears are drawn in the hand; grain and hay stack (twenty), an egg does not (Michael, 2026-10-25: \"Let's make eggs not stack\")", held.length === 0 && ["grain", "hay"].every((id) => items.getItem(id).stack === 20) && !items.getItem("egg").stack, `no held: ${held.join(",") || "none"}; ${stacks.join(", ")}`);
     const rec = (id) => stations.recipes().find((r) => r.out && r.out.id === id);
     const trough = placement.buildKinds().find((k) => k.sprite === "feed_trough");
     row("the lead is made at the workbench, the shears at the anvil, and the feeding trough is in the build palette (planks)", rec("lead")?.station === "workbench" && rec("shears")?.station === "anvil" && !!trough && trough.cost.plank > 0, `${rec("lead")?.station}, ${rec("shears")?.station}, ${trough ? JSON.stringify(trough.cost) : "no trough"}`);

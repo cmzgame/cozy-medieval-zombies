@@ -13088,7 +13088,6 @@
    "solid": false,
    "jitter": 0.5,
    "own": true,
-   "night": true,
    "where": "in the graveyard",
    "seed": 74
   },

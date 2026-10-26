@@ -33,7 +33,7 @@
 - **The green:** the duck pond, the maypole, two benches, a woodpile. The willow by the pond [to build].
 - **The inn:** the taproom (a counter, four tables, two fireplaces, barrels, a cupboard, a shelf), three guest rooms with a bed and a chest each, a fenced yard (a well, a woodpile, a privy, a cart, a trough); the Innkeeper, the Guest, the Child.
 - **The chapel:** the nave (an altar, a lectern, a font, six pews), the vestry, a chest, a cupboard; the Priest. The altar's prayer for mana (Faith 1) [to build].
-- **The graveyard:** a fence (a low stone wall when drawn) with its gate, eighteen headstones, eight of the dead standing. Its rising [to build]; open graves to dig [to build]; its herbs and fungi (Herbalism 7) [built, #448: one placeholder, grave moss, inside the wall, gathered only at night; its kinds Michael's to name].
+- **The graveyard:** a fence (a low stone wall when drawn) with its gate, eighteen headstones, eight of the dead standing. Its rising [to build]; open graves to dig [to build]; its herb [built, #448: grave moss, inside the wall, gathered and grown back at any hour (2026-10-25, The evening's rulings: no 'only at night' plants; Michael kept its name); Herbalism 7's line struck, its replacement open].
 - **The crypt:** two coffins, a chest.
 - **The priest's house.**
 - **The manor:** a stone house (two fireplaces, tables, a bed, a bookcase, a desk, a strongbox, cupboards), a walled garden with three beehives, two benches, a trough, and a fish pond. The hives worked for honey (Beastlore 5) [built, #410].
@@ -178,7 +178,7 @@ What comes back, today: stone, ore, salt, clay, herbs, and mushrooms at random s
 - **Salt and clay** [built, #448]: Mining 3 (open to all until the skills): eight clay banks on the river's bank, dug with a shovel carried for two clay; four salt rocks in the ore area, mined with a pickaxe for two salt, rising as the ore does; each comes back elsewhere in its area (`46`). Neither has a use yet (salting and jugs are to build). Each resource from the ground gets a prop of its own to mine, signposted by its look: the rock gives stone and the ore rock iron today; clay, salt, and gems need theirs (Michael, 2026-10-23: "design a small prop for each that can be mined. Also: gems!"). *Primary's reading:* a clay bank at the river's edge, a salt rock in the mine, gems by chance from the ore rock from Mining 4 and a crystal cluster deep in the mine for the finer ones. They come back at random within their areas, clay by the river and salt with the ore (`46`); gems are #281's.
 - **Silver** [to build]: Mining 5; where, and what it makes [open #283].
 - **Gems** [to build]: from any rock, rare (at most about 10% a rock); basic at Mining 4, finer at Mining 7; their kinds [open #281].
-- **Herbs** [built, #448]: gathered by hand (open to all until the skills; the level recorded on each), 120 in eleven kinds: sage, nettle, feverfew, yarrow, the mana herb ("Mana herb" until Michael names it), nightshade, wolfsbane, grave moss (the graveyard's, a placeholder), and the dye plants woad, madder, and weld (a default; their cost at the vats is Michael's, `43`). No use yet: potions, the tea, and seasoning are to build. The valley's common herbs and the healing herb in the wild (Herbalism 1); the mana herb near water (Herbalism 4); nightshade and wolfsbane (Herbalism 5); the graveyard's herbs and fungi, planted only at night (Herbalism 7). The common herbs are sage, nettle, and feverfew; yarrow is the healing herb; the mana herb's name is Michael's to choose (ruled 2026-10-23). They grow like weeds at random all over the ground, never in patches, and come back elsewhere once picked (`46`).
+- **Herbs** [built, #448]: gathered by hand (open to all until the skills; the level recorded on each), 120 in eleven kinds: sage, nettle, feverfew, yarrow, mageroot (named by Michael, 2026-10-25, The evening's rulings; the item `mana_herb`), nightshade, wolfsbane, grave moss (the graveyard's, its name kept), and the dye plants woad, madder, and weld (a default; their cost at the vats is Michael's, `43`). No use yet: potions, the tea, and seasoning are to build. The valley's common herbs and the healing herb in the wild (Herbalism 1); mageroot near water (Herbalism 4); nightshade and wolfsbane (Herbalism 5); ~~the graveyard's herbs and fungi, planted only at night (Herbalism 7)~~ (struck, 2026-10-25, The evening's rulings; grave moss is gathered at any hour, its level recorded as 7 until a replacement is ruled). The common herbs are sage, nettle, and feverfew; yarrow is the healing herb; the mana herb is Mageroot (2026-10-25, The evening's rulings). They grow like weeds at random all over the ground, never in patches, and come back elsewhere once picked (`46`).
 - **Mushrooms** [built]: placed by rule near trees (774 in the valley); foraged by hand for a mushroom (Herbalism 3, open to all until the skills; built, #448), for Potions and Cooking when they come; once foraged one comes back near trees elsewhere in the woods (`46`).
 - **Berries** on brambles at the forest's edges (`docs/29-world/06`): picked like herbs, Herbalism 1 (ruled 2026-10-23) [to build].
 - **Sticks** [built, #449]: the twigs under trees are decals, not items; a stick comes from a plank (a hatchet), a body, a haystack, or Gather sticks under any standing tree, one or two, once a day a tree (`46`).
@@ -386,7 +386,7 @@ All [to build]: brewed at a cauldron from Herbalism's herbs and secondaries; dru
 - **Fish oil** [to build]: Fishing 5; lamp and lantern fuel, longer-burning torches.
 - **Fish glue** [to build]: Fishing 9; stronger bows.
 - **Compost and a better fertiliser** [to build]: the composter (Farming 4).
-- **Herbs** [built, #448]: Herbalism 1, 4, 5, 7 (section 4); no use yet. **Dried herbs, cuttings, herb seeds** [to build]: Herbalism 4, 6. **Mushroom** [built, #448]: foraged (Herbalism 3); no use yet.
+- **Herbs** [built, #448]: Herbalism 1, 4, 5, 7 (section 4); no use yet. **Dried herbs** [to build]: Herbalism 4; ~~cuttings, herb seeds: Herbalism 6~~ (struck, 2026-10-25, The evening's rulings). **Mushroom** [built, #448]: foraged (Herbalism 3); no use yet.
 - **Rotten food, rotten fish** [to build]: what rot leaves (#264); the composter takes them.
 - **Hides** [built, #443] **and leather** [built, #445]: skinned (Beastlore 2), tanned (Crafting 3).
 - **Feathers** [built: a butchered hen's, #443; a fed hen's most days, #444]: generous, so arrows can be farmed: a fed hen a feather most days, a butchered hen three to five; one fletches five arrows (`45`).
@@ -633,10 +633,10 @@ A skill's level gate stops a player harvesting the food it gates, ripe fields in
 1. Picking the valley's common herbs in the wild, the healing herb among them.
 2. Sometimes two herbs a pick.
 3. Foraging mushrooms as secondaries [built, #448: open to all].
-4. The mana herb (near water); the drying rack.
+4. Mageroot (near water); the drying rack.
 5. Nightshade and wolfsbane, for poisons.
-6. Cuttings and seeds from herbs you can pick, for the herb bed.
-7. The graveyard's herbs and fungi, planted only at night.
+6. ~~Cuttings and seeds from herbs you can pick, for the herb bed.~~ (struck, 2026-10-25, The evening's rulings: herbs grow wild, never in patches, `46`; its replacement open)
+7. ~~The graveyard's herbs and fungi, planted only at night.~~ (struck, 2026-10-25, The evening's rulings: "I don't want any 'only at night' plants"; its replacement open)
 8. Frostmoss (the Pale Reach).
 9. Picks 25% faster; a rare secondary now and then.
 10. The Abbey's rarest herb (the Crimson Abbey).
@@ -837,7 +837,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 - Chisel a gem [open #281].
 - Pick apples (by hand) [built].
 - Cast the line (a rod in hand) [built]; gut a catch [to build]; set and empty a fish trap [to build].
-- Gather herbs, forage mushrooms (by hand) [built, #448] (Herbalism 1, 3, 4, 5, 7; open to all until the skills); take cuttings and seeds [to build] (Herbalism 6).
+- Gather herbs, forage mushrooms (by hand) [built, #448] (Herbalism 1, 3, 4, 5, 7; open to all until the skills); ~~take cuttings and seeds [to build] (Herbalism 6)~~ (struck, 2026-10-25, The evening's rulings).
 - Dig a clay bank (a shovel carried; Mining 3) [built, #448]; mine a salt rock (a pickaxe in hand; Mining 3) [built, #448].
 - Take from a stack: logs, planks, stone [built for the quarry's stone; the woodcutters' stacks to build].
 - Dig a grave, the buried chest, a plot [to build] (a shovel).
@@ -849,7 +849,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 - Till (a hoe), plant a seed, water (a skin for one tile, a bucket for 3 by 3), harvest (by the crop's tool), the scythe's row harvest, fill and pour a bucket [built].
 - Fertilise soil or a crop [to build] (Farming 4).
 - Put food or bonemeal in the composter, take what it makes [to build].
-- Plant herbs in the herb bed; the graveyard's only at night [to build] (Farming 7, Herbalism 6 and 7).
+- Plant herbs in the herb bed [to build] (Farming 7); ~~the graveyard's only at night (Herbalism 6 and 7)~~ (struck, 2026-10-25, The evening's rulings; what the herb bed grows, with Herbalism 6 gone, is open).
 - Dry herbs on the rack [to build] (Herbalism 4).
 - Tend pens and breed [to build] (Beastlore 4, 6).
 

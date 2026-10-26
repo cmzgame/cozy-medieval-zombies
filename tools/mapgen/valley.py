@@ -623,9 +623,9 @@ def build():
     g.resource("ore", {"ore_rock": 1}, 6, rects=ORE_AREA, open=["the iron workings"], rise=True, seed=62)
     g.resource("mushrooms", {"mushroom_0": 1, "mushroom_1": 1, "mushroom_2": 1, "mushroom_3": 1, "mushroom_4": 1}, 774, near=2, solid=False, jitter=0.6, seed=63, where="under trees")
     # Step 2 (#448): the herbs, 120 in all, grow like weeds at random on natural ground, never in patches, each kind favouring its ground
-    # (docs/46 section 2): the common herbs and the dye plants anywhere, the mana herb within two tiles of water (by the river and the brook
-    # west of Long Acre, the open water), nightshade and wolfsbane near trees, the graveyard's inside its wall (its own place, its fence
-    # open to it), coming back only at night. The rarer a kind, the fewer (a default, Primary's; the split is docs/42's lever). Clay banks
+    # (docs/46 section 2): the common herbs and the dye plants anywhere, mageroot (the item `mana_herb`) within two tiles of water (by the river and the brook
+    # west of Long Acre, the open water), nightshade and wolfsbane near trees, the graveyard's grave moss inside its wall (its own place, its fence
+    # open to it), coming back at any hour (no plant is night's alone: Michael, 2026-10-25). The rarer a kind, the fewer (a default, Primary's; the split is docs/42's lever). Clay banks
     # on the river's own dirt bank, beside its water, the ford's band left out (the drove's dirt meets the water there); salt rocks in the
     # ore area, rising as the ore does.
     RIVER = [[106, 0, 24, 110], [116, 110, 20, 80], [124, 190, 24, 66]]  # the river's corridor, top to bottom (its polyline at the top of build)
@@ -637,7 +637,7 @@ def build():
         ("woad", 10, {}), ("madder", 10, {}), ("weld", 10, {}),
         ("mana_herb", 10, {"rects": RIVER + [BROOK], "water": 2, "where": "near water"}),
         ("nightshade", 7, {"near": 2, "where": "near trees"}), ("wolfsbane", 7, {"near": 2, "where": "near trees"}),
-        ("grave_moss", 4, {"rects": [GRAVEYARD], "own": True, "night": True, "where": "in the graveyard"}),
+        ("grave_moss", 4, {"rects": [GRAVEYARD], "own": True, "where": "in the graveyard"}),
     ]
     for i, (name, count, where) in enumerate(HERBS):
         g.resource(name, {f"herb_{name}": 1}, count, solid=False, jitter=0.5, seed=64 + i, **{"where": "in the valley", **where})

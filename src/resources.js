@@ -5,13 +5,13 @@
 // spot at random in the area (`rng`), grows that spot's chunk through a mutator (`map.growTile`: reading never grows, and a blank tile would
 // test free), and tests it by the one rule of where a node may stand (`map.resourceSpotProblem`); a spot that fails draws again, `tries`
 // times, then the debt waits for the next look. A take in the wild queues nothing (the wild comes back by new chunks). Step 2 (#448) adds
-// the herbs (each kind its own area and count), clay banks by the river, and salt rocks with the ore; a kind marked `night` (the
-// graveyard's herbs) grows its replacements only at night.
+// the herbs (each kind its own area and count), clay banks by the river, and salt rocks with the ore. No kind waits for night (Michael, 2026-10-25: "I don't want any 'only at night' plants"):
+// the graveyard's grave moss comes back at any hour, as every herb does.
 //
 // What is kept: the debts and the last boundary looked at, the host's alone, in the save (game.serialize) and out of game.syncParts as the
 // generator's state is (a replica never rolls them). What a comeback grows reaches a guest as its touched chunk, the new prop in it; a rock
 // or an ore rock carries `risenAt`, the sim clock at its arrival, and every client draws it rising out of the ground from that stamp
-// (render/props.js `riseOf`), so nothing new crosses the wire beyond the prop. Mushrooms and herbs simply appear.
+// (render/props.js, `riseOf` and its shudder, `shudderOf`), so nothing new crosses the wire beyond the prop. Mushrooms and herbs simply appear.
 
 import * as map from "./map.js";
 import * as clock from "./clock.js";
@@ -74,11 +74,9 @@ export function step(bodies = []) {
   bucket = b;
   const at = b * RES.checkSeconds;
   let who = null;
-  const night = clock.getPhase() === "night";
   for (const kind of map.resourceKinds()) {
     const list = debts.get(kind.name);
     if (!list || !list.length) continue;
-    if (kind.night && !night) continue; // the graveyard's herbs come back only at night (step 2, #448): a debt fallen due by day waits for it
     for (let i = 0; i < list.length; i++) {
       const d = list[i];
       if (d.due > at) continue;
@@ -100,6 +98,28 @@ export function riseOf(prop, height, now = loop.simTime()) {
   if (k <= 0) return height;
   const below = (1 - k) * (1 - k);
   return Math.max(0, Math.min(height, Math.round(height * below)));
+}
+
+// The rise's shudder (Michael, 2026-10-25: "a little shudder as they rise from the ground, as if the ground had shifted and forced them to
+// the surface ... it's just give them a cinematic entrance"): how many whole pixels a rising rock is jolted sideways at `now`. The rise is cut
+// into `jolts` beats; each beat is a jolt to one side, the sides alternating (the first by the prop's id), and about one beat in four still (by
+// the id and the beat); a jolt is `reach` times what is left of the rise, rounded, so 2 px in the first sixteenth, then 1 px, and none from
+// about seven tenths of the rise on: it eases to still as the rock settles. From the sim clock and the prop's id alone, so every client draws
+// the same shake from the host's `risenAt` and nothing crosses the wire; 0 for a prop that never rose, before its stamp, and once risen.
+export const SHUDDER = { jolts: 8, reach: 1.6 };
+function idHash(s) { // FNV-1a over a string
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+export function shudderOf(prop, now = loop.simTime()) {
+  if (!prop || !Number.isFinite(prop.risenAt)) return 0;
+  const k = (now - prop.risenAt) / RES.riseSeconds;
+  if (!(k >= 0) || k >= 1) return 0;
+  const beat = Math.floor(k * SHUDDER.jolts);
+  if (idHash(`${prop.id}#${beat}`) % 4 === 0) return 0; // a beat of stillness
+  const side = (beat + idHash(String(prop.id))) % 2 ? -1 : 1;
+  return side * Math.round(SHUDDER.reach * (1 - k)) || 0; // never -0
 }
 
 // The save's part: the debts by kind and the last boundary looked at, so a restored world looks again where the running one would.

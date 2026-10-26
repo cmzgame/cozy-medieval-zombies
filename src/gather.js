@@ -2,7 +2,6 @@
 // by hand (an herb, Herbalism 1 to 7; a mushroom foraged, Herbalism 3), and one with a `dig` block is dug with a tool carried (a clay bank,
 // Mining 3, with the shovel):
 //   "gather": { "item": "sage", "count": [1, 1], "seconds": 1.5, "skill": "herbalism", "level": 1 }
-//   "gather": { "item": "grave_moss", ..., "night": true }                       only at night (the graveyard's)
 //   "gather": { "item": "mushroom", ..., "word": "Forage" }                       the menu's verb, "Gather" by default
 //   "dig": { "item": "clay", "count": [2, 2], "seconds": 3, "skill": "mining", "level": 3, "tool": "dig" }   a tool whose item `verbs` list
 //                                                                                 it, carried anywhere (the tool rule, inventory.carriedTool)
@@ -14,7 +13,6 @@
 
 import * as verbs from "./verbs.js";
 import * as map from "./map.js";
-import * as clock from "./clock.js";
 import * as rng from "./rng.js";
 import * as items from "./items.js";
 import * as inventory from "./inventory.js";
@@ -30,17 +28,15 @@ const VERBS = {
   dig: { field: "dig", word: "Dig", result: "dug", nothing: "There is nothing to dig." },
 };
 
-export const ONLY_AT_NIGHT = "only at night";
-
 // A prop's block for a verb, or null (a tree, a rock).
 export function blockOf(prop, verb = "gather") {
   if (!prop) return null;
   try { return getDef(prop.sprite)[VERBS[verb].field] || null; } catch { return null; }
 }
 
-// Why the block cannot be taken now by this player, or null: the graveyard's only at night, a dig's tool carried. Reach is the verb's.
+// Why the block cannot be taken now by this player, or null: a dig's tool carried. Reach is the verb's. Nothing is gathered only at
+// night (Michael, 2026-10-25: "I don't want any 'only at night' plants"; the graveyard's grave moss is gathered at any hour).
 export function blockProblem(player, b) {
-  if (b.night && clock.getPhase() !== "night") return `It can be gathered ${ONLY_AT_NIGHT}.`;
   if (b.tool) return inventory.toolProblem(player, b.tool);
   return null;
 }
@@ -87,7 +83,7 @@ function rowFor(verb) {
 verbs.define("gather", rowFor("gather"));
 verbs.define("dig", rowFor("dig"));
 
-// A node's entry on its menu: the label, greyed with why it cannot be taken now (only at night, the tool), a timed action of the block's
+// A node's entry on its menu: the label, greyed with why it cannot be taken now (the tool), a timed action of the block's
 // seconds that runs the verb. Nothing for a prop that is not a node of either verb.
 export function propActions(prop, player, act, world) {
   const out = [];
@@ -98,7 +94,7 @@ export function propActions(prop, player, act, world) {
     const base = { kind: verb, tiles: prop.tiles, mx: prop.tile[0], my: prop.tile[1] };
     const why = blockProblem(player, b);
     if (why) {
-      const short = b.night && clock.getPhase() !== "night" ? ONLY_AT_NIGHT : `need ${why.replace(/^You need /, "").replace(/\.$/, "")}`;
+      const short = `need ${why.replace(/^You need /, "").replace(/\.$/, "")}`;
       out.push(act({ ...base, label: `${label} (${short})`, enabled: false }));
       continue;
     }

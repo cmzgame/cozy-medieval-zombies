@@ -8,6 +8,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- The mana herb is Mageroot for now; grave moss keeps its name; no plant is gathered or grows back only at night, Herbalism 6 and 7 struck and their replacements open (2026-10-25, The evening's rulings)
+- Pemmican heals 3 and fills 35; eggs do not stack, open to change after a playtest (2026-10-25, The evening's rulings)
+- A new rock, ore rock, or salt rock rises with a shudder, a cinematic entrance with no lore; a newborn animal may appear in view in its pen (2026-10-25, The evening's defaults ruled)
+- Stand as built: the resources' counts, mushrooms as forage, an apple tree's sapling an apple tree; every spell passing tame stock by, yields by expected value, milk as a jug, the smoking rack, tanning vat, and spinning wheel not carried; the market's workbench too full for a counter; "a pair of millstones" (2026-10-25, The evening's defaults ruled)
 - Ore, stone, clay, herbs, and mushrooms come back at random spots within their areas, keeping a steady count; rocks and ore rise from the ground, herbs and mushrooms appear; no herb patches; trees from saplings, sticks under trees, fish never run out (2026-10-25, Natural resources ruled)
 - Animals: seven kinds; game mostly in the woods but free to roam, back slowly to a cap; livestock from the farms, led home, penned in a fenced yard; safe from the dead; fed animals produce; generous feathers; raw meat in recipes; the companion in 1.0, last (2026-10-25, Animals ruled)
 - No fixed water source is clean; boiling at a lit fire by Use or either menu; the starting skin clean; the sickness a debuff, Sick (the infection's third stage renamed Queasy), 20% a tainted drink, 1% of the infection (2026-10-25, Water ruled)
@@ -242,9 +246,11 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The owner's character follows the owner key; a removed player's browser stays barred (2026-10-14, Item 5's two defaults agreed)
 - A change on a chunk marks it for the wire or calls `map.unsaved` for the save (2026-10-15, A save that costs what changed)
 - The multiplayer core is Done; spectating, lighter frames, and the bounded rewind wait in `05` (2026-10-15, Multiplayer's last core work)
+- A guest's own shot is drawn on the bodies' clock, about 67 ms later than before (2026-10-25, The evening's defaults ruled)
 
 ### Process and the studio
 
+- The belt is pinned for a discussion of its own before the sittings; potions get a sitting of their own (2026-10-25, The evening's rulings)
 - A `net.PROTOCOL` bump in a build Primary runs merges on a clean fresh review, said in the PR's Risks; the rest of `github.md` section 8's list still waits for Michael (2026-10-25, Protocol bumps on review)
 - Every tuning lever Michael means to keep turning and every world setting he names has its line in `docs/42-levers.md`, added by the ruling that names it (2026-10-24, The first real melee test)
 - The first priority is a final scope for The Valley, with every dev value real and placeholder sounds in (art may lag); the demo is cut from the finished valley (2026-10-18, The Valley's final scope is the first priority; finished means sounds)
@@ -292,6 +298,30 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-25 — The evening's rulings: the belt pinned, Mageroot, potions to a sitting of their own, no plant only at night, pemmican as it is, eggs one a cell (Michael)
+
+Answering what the evening's builds still left open, Michael ruled:
+
+- **The belt waits for its own discussion:** "Let's hold on the belt situation and make that its own discussion after we wrap up the rest of this stuff. So pin in the belt, and we come back to it before the sit downs." The belt's open defaults (#467: the hand choice kept per kind of item in a slot, Equip to a hand also drawing, an empty off-hand slot taking the off hand's item, the two Equip spellings) stay as built and open, and get a discussion of their own before the sittings ahead.
+- **The names:** "Mana herb is Mageroot for now, keep grave moss." The item `mana_herb` is named Mageroot (its id, its node `herb_mana_herb`, and its map kind kept); grave moss is its name, no longer a placeholder.
+- **Potions get a sitting of their own:** "we have not yet explicitely talked about which herbs and in what quantities go into potions, how we handle making them (do you need vials, water?). This may need its own sit, I want to make sure this system is built thoughtfully." Open: which herbs and how many go into each potion, and what making one takes (vials, water); it joins the sittings ahead.
+- **No plant is night's alone:** "I don't want any 'only at night' plants, that is an old idea. If those skill lines are stale, strike them and we can talk about potential replacements." Grave moss is gathered and grows back at any hour, the `night` field gone from the data and the code (the validator refuses it). Struck in `docs/39`: Herbalism 7 ("The graveyard's herbs and fungi, planted only at night") and Herbalism 6 ("Cuttings and seeds from herbs you can pick, for the herb bed", stale since herbs grow wild, never in patches, 2026-10-25, Natural resources ruled). Open: their replacements, and what the herb bed (Farming 7) grows without Herbalism 6. Grave moss stays recorded at Herbalism 7 until then.
+- **Pemmican as it is:** "The current pemican health and hunger seems just right" It heals 3 and fills 35 hunger, stacking to twenty.
+- **Eggs do not stack:** "Let's make eggs not stack, but I would be open to changing that after playtesting." An egg is one a cell, so a coop's grid of six (3 by 2) holds six eggs and feathers between them, and a full coop takes no more until it is emptied.
+
+Docs: 39, 42, 45, 46, `src/CLAUDE.md`, sprite-definitions, testing, TODO.
+
+### 2026-10-25 — The evening's defaults ruled: a birth may appear in its pen, the rocks rise with a shudder, the rest as built (Michael)
+
+Shown the defaults the evening's builds left for him (`TODO.md`'s Status, each named in its pull request's Risks), Michael answered two and accepted the rest. The rulings:
+
+- **A newborn animal may appear in view in its pen** (Michael: "Definitely!"), confirming #460's default: a young one beside a parent, in view or not. The rule that nothing materialises in view was for the dead (2026-10-25, Natural resources ruled).
+- **The rocks' rise: the frozen-zombie reading stands, with a shudder:** "a little shudder as they rise from the ground, as if the ground had shifted and forced them to the surface. Doesn't need a lore explanation, it's just give them a cinematic entrance." So a new rock, ore rock, or salt rock rises whole through the ground line over `riseSeconds`, cut at the ground and never scaled, and is jolted sideways in whole pixels a few times as it comes, easing to still. *Primary's numbers* (`resources.shudderOf`): eight beats over the rise, about one in four still, the sides alternating; 2 px in the first sixteenth, then 1 px, none from about seven tenths of the rise on; the dust at its foot puffs up and out at the start and slows. From the sim clock and the prop's id, so every client draws the same shake from the host's `risenAt` and nothing new crosses the wire.
+- **The rest stand as built:** "Anything not commented on is fine as-is." They are: a guest's own shot drawn about 67 ms later than before, on the bodies' clock (#463); the market's workbench, now too full round it to make a counter there (#466); every spell passing tame stock by, aimed at it or not (#456); a weaker weapon's yield by expected value, the whole part and one more at the chance of the rest (#456); milk as a jug, not the bucket's fill (#460); the smoking rack, the tanning vat, and the spinning wheel not carried (#462); the resources' counts (stone 40, ore 6, salt 4, clay 8, herbs 120 by kind, mushrooms 774); ~~grave moss gathered and grown back only at night~~ (overturned the same evening: The evening's rulings, above); mushrooms as forage, not food; an apple tree's sapling growing an apple tree (#461); and the millstones named "a pair of millstones" (#470).
+- **Still open with him:** the belt's hand choice (#467), the two placeholder herb names ("Mana herb", "Grave moss"), and pemmican's heal of 3 (the names and pemmican ruled later the same evening, and the belt pinned for its own discussion: The evening's rulings, above).
+
+Docs: 45, 46, 42, `src/CLAUDE.md`, testing, TODO.
 
 ### 2026-10-25 — Protocol bumps on review (Michael)
 
@@ -1992,3 +2022,9 @@ Only the open ones live here. The answered ones, as they were written, are in `d
 ~~33. **Unsafe water** (Michael, 2026-10-19, Natural water is unsafe until purified; mana; drain heals never replace food; a region gates its spells: "all natural water (water tiles, wells) is not safe until purified"). How it is purified (*Primary's reading:* boiling at a fire, or Faith's Sanctify on carried water); what unsafe water does to you; whether the waterskin's sip by itself (2026-10-16) skips it; whether watering crops needs clean water (*Primary's lean:* no); whether the trough and the font count as natural water; how a skin shows clean or unsafe. The build is #279.~~ (answered in part (2026-10-19, Unsafe water: a sickness that may come and passes; the skin sips only clean water; crops take any water); the rest is 34)
 
 34. ~~**Unsafe water's remainder**~~ (answered 2026-10-25, Water ruled; `docs/44`) (from 33, answered in part 2026-10-19, Unsafe water: a sickness that may come and passes; the skin sips only clean water; crops take any water): how water is purified (*Primary's reading:* boiling at a fire, or Faith's Sanctify on carried water); whether the trough and the font count as natural water; how a skin shows clean or unsafe; the sickness's numbers; whether the sickness has a moodle of its own, and its name, since "Sick" is already the infection moodle's third stage (*Primary's reading* (2026-10-19, Debuffs apart from moodles; only pemmican stacks; hearty food carries buffs; the belt knife is the Dirk): a debuff, not a moodle, which would settle the name clash if Michael agrees); whether water's infection chance follows the one dial that sets combat difficulty and infection (2026-10-12). The build is #279.
+
+35. **Potions** (Michael, 2026-10-25, The evening's rulings): which herbs, and how many, go into each potion, and what making one takes (vials, water). A sitting of its own.
+
+36. **Herbalism 6 and 7's replacements** (struck 2026-10-25, The evening's rulings), and what the herb bed (Farming 7) grows without cuttings and seeds.
+
+37. **The belt** (#467; pinned 2026-10-25, The evening's rulings): the hand choice kept per kind of item in a slot, Equip to a hand also drawing, an empty off-hand slot taking the off hand's item, the two Equip spellings. A discussion of its own before the sittings.
