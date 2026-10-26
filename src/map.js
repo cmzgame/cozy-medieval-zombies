@@ -796,7 +796,38 @@ export function placeProp(prop, tx, ty) {
   if (prop.fire) fireProps.add(prop);
   propsById.set(prop.id, prop); // a lifted prop left the registry (removeProp); put down, it is findable by its id again
   touch(tx, ty);
+  markFootprint(prop);
   groundChanged(prop.tiles, prop);
+}
+
+// Whether (x, y) lies in chunk c.
+function inChunkTile(c, x, y) {
+  return x >= c.cx * CHUNK && x < (c.cx + 1) * CHUNK && y >= c.cy * CHUNK && y < (c.cy + 1) * CHUNK;
+}
+
+// A prop across a chunk's edge (#341): every chunk its tiles stand on beyond its anchor's is marked too, so the
+// neighbour's record (which names the part, `parts` in serializeChunk) goes to a guest, and the neighbour is dirty and
+// never evicted: a wild chunk dropped and grown again would grow without the prop's tiles.
+function markFootprint(prop) {
+  const [acx, acy] = chunkCoord(prop.tile[0], prop.tile[1]);
+  const done = new Set();
+  for (const [x, y] of prop.tiles) {
+    const [cx, cy] = chunkCoord(x, y);
+    if ((cx === acx && cy === acy) || done.has(chunkKey(cx, cy))) continue;
+    done.add(chunkKey(cx, cy));
+    markDirty(x, y);
+  }
+}
+
+// A prop leaving its tiles beyond chunk c (it is leaving the registry with c, or c's copy is replaced): each of its
+// tiles outside c that still holds it lets it go, so no neighbour keeps a part of a prop nothing answers to (#341).
+function clearForeignTiles(c, pr) {
+  const slot = slotOf(pr);
+  for (const [x, y] of pr.tiles || []) {
+    if (inChunkTile(c, x, y)) continue;
+    const t = peekTile(x, y, c.layer);
+    if (t && t[slot] === pr) t[slot] = null;
+  }
 }
 
 // A prop turned into another kind in place (a fruit tree picked bare, or bearing again), with the day it will change next or null: the
@@ -817,6 +848,7 @@ export function removeProp(prop) {
   fireProps.delete(prop);
   propsById.delete(prop.id);
   touch(prop.tile[0], prop.tile[1]);
+  markFootprint(prop); // the neighbour's record loses the part (#341)
   groundChanged(prop.tiles, prop);
 }
 
@@ -1369,6 +1401,7 @@ export function serializeChunk(c) {
   const walls = [];
   const props = [];
   const items = [];
+  const parts = []; // [lx, ly, id]: a tile holding part of a prop anchored in another chunk (#341)
   let last = null;
   for (let i = 0; i < CHUNK * CHUNK; i++) {
     const t = c.tiles[i];
@@ -1378,11 +1411,20 @@ export function serializeChunk(c) {
     const ly = (i - lx) / CHUNK;
     if (t.n) walls.push([lx, ly, "n", wallData(t.n)]);
     if (t.w) walls.push([lx, ly, "w", wallData(t.w)]);
-    if (t.prop && t.prop.tile[0] === c.cx * CHUNK + lx && t.prop.tile[1] === c.cy * CHUNK + ly) props.push(serializeProp(t.prop));
-    if (t.rug && t.rug.tile[0] === c.cx * CHUNK + lx && t.rug.tile[1] === c.cy * CHUNK + ly) props.push(serializeProp(t.rug)); // a laid rug, saved and sent like a prop (#327)
+    for (const pr of [t.prop, t.rug]) { // a laid rug, saved and sent like a prop (#327)
+      if (!pr) continue;
+      if (inChunkTile(c, pr.tile[0], pr.tile[1])) {
+        if (pr.tile[0] === c.cx * CHUNK + lx && pr.tile[1] === c.cy * CHUNK + ly) props.push(serializeProp(pr));
+      } else parts.push([lx, ly, pr.id]);
+    }
     if (t.items && t.items.length) items.push([lx, ly, t.items]);
   }
-  return { cx: c.cx, cy: c.cy, layer: c.layer, wild: !!c.wild, dirty: !!c.dirty, floors, walls, props, items };
+  // A prop is recorded whole with its anchor's chunk; a tile of it on this chunk is named here by the prop's id, so this chunk installed
+  // alone (a guest's frame) stands it again from the registry, and the sync check's map part sees a tile that lost it (#341). Only when
+  // there are any: a chunk with none has the record it always had.
+  const out = { cx: c.cx, cy: c.cy, layer: c.layer, wild: !!c.wild, dirty: !!c.dirty, floors, walls, props, items };
+  if (parts.length) out.parts = parts;
+  return out;
 }
 
 export function serializeMap() {
@@ -1422,9 +1464,10 @@ export function installChunk(d) {
   if (old) {
     for (const t of old.tiles) {
       for (const pr of [t && t.prop, t && t.rug]) {
-        if (!pr || pr.tile[0] < cx * CHUNK || pr.tile[0] >= (cx + 1) * CHUNK || pr.tile[1] < cy * CHUNK || pr.tile[1] >= (cy + 1) * CHUNK) continue;
+        if (!pr || !inChunkTile(old, pr.tile[0], pr.tile[1])) continue;
         fireProps.delete(pr);
         if (propsById.get(pr.id) === pr) propsById.delete(pr.id);
+        clearForeignTiles(old, pr); // its tiles on a neighbour let it go; the record's own copy stands on them again (installProp, #341)
       }
     }
   }
@@ -1442,6 +1485,14 @@ export function installChunk(d) {
   for (const [floor, n] of d.floors) for (let j = 0; j < n; j++) tiles[i++] = createTile(floor);
   for (const [lx, ly, edge, w] of d.walls) tiles[ly * CHUNK + lx][edge] = { ...w, at: [cx * CHUNK + lx, cy * CHUNK + ly] };
   for (const [lx, ly, list] of d.items) tiles[ly * CHUNK + lx].items = list;
+  // The tiles of props anchored on a neighbour (#341): stood again from the registry when the prop is there and still covers the tile. A prop not
+  // in it yet (its anchor's chunk comes later in a restore or a frame) stands on this tile when that chunk's installProp runs.
+  for (const [lx, ly, id] of d.parts || []) {
+    const pr = propsById.get(id);
+    const x = cx * CHUNK + lx;
+    const y = cy * CHUNK + ly;
+    if (pr && (pr.layer || 0) === layer && pr.tiles.some(([px, py]) => px === x && py === y)) tiles[ly * CHUNK + lx][slotOf(pr)] = pr;
+  }
   const c = { cx, cy, layer, tiles, wild: !!d.wild, dirty: !!d.dirty, lightVersion: 0, saved: null };
   chunks.set(k, c);
   lastChunk = null;
@@ -1536,9 +1587,10 @@ export function dropChunk(cx, cy, layer = 0) {
   // as ghosts in the host's registry, 2026-10-13); the chunk grows back with new props and new ids.
   for (const t of c.tiles) {
     for (const pr of [t && t.prop, t && t.rug]) {
-      if (!pr || pr.tile[0] < c.cx * CHUNK || pr.tile[0] >= (c.cx + 1) * CHUNK || pr.tile[1] < c.cy * CHUNK || pr.tile[1] >= (c.cy + 1) * CHUNK) continue;
+      if (!pr || !inChunkTile(c, pr.tile[0], pr.tile[1])) continue;
       fireProps.delete(pr);
       if (propsById.get(pr.id) === pr) propsById.delete(pr.id);
+      clearForeignTiles(c, pr); // and from its tiles on a neighbour (#341)
     }
   }
   chunks.delete(k);

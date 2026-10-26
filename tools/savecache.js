@@ -91,6 +91,17 @@ if (map.canBuildWall(px + 7, py + 5, "n")) {
 const at = [px + 4, py - 3];
 const bench = map.createProp({ sprite: "workbench", tile: at, footprint: [1, 1] });
 map.placeProp(bench, at[0], at[1]); did("a prop placed");
+// A bed across a chunk's edge (#341): the neighbour's record names its tile (`parts`), so placing and lifting it must drop that chunk's copy too.
+let edgeAt = null;
+for (let dy = -20; dy <= 20 && !edgeAt; dy++) for (let dx = -20; dx <= 20 && !edgeAt; dx++) {
+  const x = px + dx, y = py + dy;
+  if (((x % map.CHUNK) + map.CHUNK) % map.CHUNK !== map.CHUNK - 1) continue;
+  if ([0, 1].every((k) => { const t = map.peekTile(x + k, y); return t && !t.prop && !t.rug && map.isWalkableTile(x + k, y); })) edgeAt = [x, y];
+}
+if (!edgeAt) fail("no bare ground across a chunk's edge for the bed");
+const edgeBed = map.createProp({ sprite: "bed", tile: edgeAt, footprint: [2, 1], facing: "x" });
+map.placeProp(edgeBed, edgeAt[0], edgeAt[1]); did("a bed placed across a chunk's edge");
+map.removeProp(edgeBed); did("a bed across a chunk's edge lifted");
 // A door: opened as the interface opens it, hit short of breaking (the wire never sends that), boarded.
 if (!door) fail("the valley has no door to try");
 door.open = !door.open; map.touch(door.at[0], door.at[1]); did("a door opened");

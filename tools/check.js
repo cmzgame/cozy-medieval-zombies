@@ -627,6 +627,169 @@ check("rugs: laid from the bag into the rug slot, in the record and the sync has
   assert(rugsMod.pickUp(me, back) === true && !mapMod.peekTile(x, y).rug && bag.items.some((q) => q.id === "rug_bearskin"), "Pick up did not give the item back");
   return "laid, in the record and the hash, over by a chest, restored, picked up";
 });
+// A multi-tile prop across a chunk's edge (#341): recorded whole with its anchor's chunk, its tiles on the neighbour named in the neighbour's record (`parts`), so that
+// chunk installed alone (a guest's frame) holds them, the sync check's map part sees a tile that lost one, the anchor's chunk installed again lets its old copy go, and
+// the neighbour is marked by the placement, so it is never evicted and grown again without them.
+const promptImport = await import("../src/ui/prompt.js");
+const interactImport = await import("../src/interact.js");
+const C341 = 16;
+// A spot near (gx, gy) whose anchor is on the last column of a chunk, the w by h footprint and a ring round it bare walkable ground with no prop, rug, or wall.
+function edgeSpot(gx, gy, w, h, span = 24) {
+  for (let dy = -span; dy <= span; dy++) for (let dx = -span; dx <= span; dx++) {
+    const x = Math.round(gx) + dx;
+    const y = Math.round(gy) + dy;
+    if (((x % C341) + C341) % C341 !== C341 - 1) continue;
+    let ok = true;
+    for (let ay = -1; ay <= h && ok; ay++) for (let ax = -1; ax <= w && ok; ax++) { const t = mapMod.peekTile(x + ax, y + ay); ok = !!t && !t.prop && !t.rug && !t.n && !t.w && mapMod.isWalkableTile(x + ax, y + ay); }
+    if (ok) return [x, y];
+  }
+  return null;
+}
+const chunkOfTile = (x, y) => mapMod.getChunk(Math.floor(x / C341), Math.floor(y / C341), false);
+const recOf = (x, y) => JSON.parse(JSON.stringify(mapMod.serializeChunk(chunkOfTile(x, y))));
+check("chunk edge (#341): a bed and a rug across a chunk's edge: the neighbour's record names its tiles, installed alone it holds them, the sync hash sees a lost one, the anchor's chunk again lets its old copy go", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const me = gameMod.state.player;
+  mapMod.ensureAround(me.gx, me.gy, 3);
+  const out = [];
+  for (const kind of ["bed", "rug"]) {
+    const at = edgeSpot(me.gx, me.gy, 2, kind === "rug" ? 3 : 1);
+    assert(at, `no bare ground across a chunk's edge for the ${kind}`);
+    const [x, y] = at;
+    mapMod.takeTouched();
+    let prop;
+    if (kind === "bed") {
+      prop = mapMod.createProp({ sprite: "bed", tile: [x, y], footprint: [2, 1], facing: "x" });
+      mapMod.placeProp(prop, x, y);
+    } else {
+      const bag = inventoryMod.bagOf(me);
+      bag.items.length = 0;
+      const e = itemsMod.makeEntry("rug_regal_red", 1);
+      inventoryMod.stow(me, e);
+      me.gx = x + 0.5;
+      me.gy = y + 3.6;
+      const facing = rugsImport.facingsOf("rug_regal_red").find((f) => rugsImport.footprintFor("rug_regal_red", f)[0] === 2);
+      assert(facing && rugsImport.placeRug(me, e.uid, x, y, facing), `the rug was not laid across the edge ("${rugsImport.reachFor(me, "rug_regal_red", facing, x, y) || rugsImport.fitProblem("rug_regal_red", facing, x, y)}")`);
+      prop = mapMod.peekTile(x, y).rug;
+    }
+    const slot = kind === "rug" ? "rug" : "prop";
+    const holds = () => prop.tiles.every(([tx, ty]) => mapMod.peekTile(tx, ty)[slot] === prop);
+    const foreign = prop.tiles.filter(([tx]) => tx === x + 1);
+    assert(prop && prop.tiles.length >= 2 && foreign.length >= 1 && holds(), `the ${kind} does not stand on both sides of the edge`);
+    const A = chunkOfTile(x, y);
+    const B = chunkOfTile(x + 1, y);
+    assert(A !== B, "the spot does not cross an edge");
+    // The placement marks the neighbour: it goes to a guest, and it is play-changed, never evicted.
+    const touched = mapMod.takeTouched().map(([cx, cy]) => `${cx},${cy}`);
+    assert(B.dirty && touched.includes(`${B.cx},${B.cy}`) && touched.includes(`${A.cx},${A.cy}`), `the neighbour was not marked (dirty ${B.dirty}, touched ${touched.join(" ")})`);
+    // The records: the prop whole in its anchor's; its tiles named by id in the neighbour's.
+    const recA = recOf(x, y);
+    const recB = recOf(x + 1, y);
+    assert(recA.props.some((p) => p.id === prop.id) && !recB.props.some((p) => p.id === prop.id), "the prop is not recorded with its anchor's chunk alone");
+    assert(recB.parts && foreign.every(([tx, ty]) => recB.parts.some(([lx, ly, id]) => lx === tx - B.cx * C341 && ly === ty - B.cy * C341 && id === prop.id)), `the neighbour's record does not name the prop's tiles there: ${JSON.stringify(recB.parts)}`);
+    // The neighbour installed alone, as a guest's frame that carries only it: every tile still holds the prop.
+    mapMod.installChunk(recB);
+    for (const p of recB.props) mapMod.installProp(p);
+    assert(holds(), `the neighbour installed alone lost the ${kind}'s tiles`);
+    // The sync check's map part sees a tile that lost it (main's could not: the neighbour's record named nothing).
+    const sync0 = gameMod.syncParts().map;
+    const [fx, fy] = foreign[0];
+    mapMod.peekTile(fx, fy)[slot] = null;
+    const sync1 = gameMod.syncParts().map;
+    mapMod.peekTile(fx, fy)[slot] = prop;
+    assert(sync1 !== sync0 && gameMod.syncParts().map === sync0, "the sync check's map part did not see a tile that lost the prop");
+    // The anchor's chunk installed again (a guest's frame): its old copy leaves the neighbour's tiles and the record's own copy stands on all of them.
+    const reinstall = (rec) => { mapMod.installChunk(rec); let mine = null; for (const p of rec.props) { const q = mapMod.installProp(p); if (q.id === prop.id) mine = q; } return mine; };
+    const fresh = reinstall(recA);
+    assert(fresh && fresh !== prop && mapMod.propById(prop.id) === fresh && fresh.tiles.every(([tx, ty]) => mapMod.peekTile(tx, ty)[slot] === fresh), "the anchor's chunk installed again left the old copy on the neighbour, or the new one off it");
+    // The other order of one frame: the neighbour first (it stands the registry's copy), then the anchor's (it lets that copy go and stands its own).
+    mapMod.installChunk(recB);
+    assert(foreign.every(([tx, ty]) => mapMod.peekTile(tx, ty)[slot] === fresh), "the neighbour installed first did not stand the registry's copy");
+    const again = reinstall(recA);
+    assert(again && again !== fresh && again.tiles.every(([tx, ty]) => mapMod.peekTile(tx, ty)[slot] === again), "a frame with the neighbour before the anchor left a stale copy");
+    // The prop taken away and its anchor's chunk sent alone: the neighbour's tile is clear on the replica too.
+    const recGone = (() => { const r = recOf(x, y); r.props = r.props.filter((p) => p.id !== prop.id); return r; })();
+    mapMod.installChunk(recGone);
+    assert(foreign.every(([tx, ty]) => !mapMod.peekTile(tx, ty)[slot]) && !mapMod.propById(prop.id), "the anchor's chunk without the prop left its part on the neighbour");
+    // And put back (the record again), so the world is as it was for the next.
+    reinstall(recA);
+    out.push(`${kind} ${prop.tiles.length} tiles, ${foreign.length} on ${B.cx},${B.cy}`);
+  }
+  return out.join("; ");
+});
+check("chunk edge (#341): a bed across the edge of a wild chunk: the neighbour is kept by eviction and the world's save and a dropped anchor's chunk let it go whole", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const [bx, by, bw, bh] = json.bounds;
+  const gx = bx + bw + 48;
+  const gy = by + Math.floor(bh / 2);
+  mapMod.ensureAround(gx, gy, 2);
+  const at = edgeSpot(gx, gy, 2, 1, 30);
+  assert(at, "no bare wild ground across a chunk's edge");
+  const [x, y] = at;
+  const A = chunkOfTile(x, y);
+  const B = chunkOfTile(x + 1, y);
+  assert(A.wild && B.wild && !B.dirty, `the spot is not in two unchanged wild chunks (A wild ${A.wild}, B wild ${B.wild} dirty ${B.dirty})`);
+  // A control: an unchanged wild chunk beside them, which the same eviction drops.
+  let ctl = null;
+  for (const c of mapMod.loadedChunks()) if (c.wild && !c.dirty && c !== A && c !== B && Math.abs(c.cx - A.cx) <= 2 && Math.abs(c.cy - A.cy) <= 2) { ctl = c; break; }
+  assert(ctl, "no unchanged wild chunk to drop beside them");
+  const bed = mapMod.createProp({ sprite: "bed", tile: [x, y], footprint: [2, 1], facing: "x" });
+  mapMod.placeProp(bed, x, y);
+  assert(A.dirty && B.dirty, "the placement did not mark both chunks");
+  // Eviction from far away, free to drop these three alone: the control goes, the bed's two stay.
+  const keys = new Set([A, B, ctl].map((c) => `${c.cx},${c.cy}`));
+  const dropped = mapMod.evictFar(gx + 4000, gy, 8, (cx, cy) => !keys.has(`${cx},${cy}`)).map(([, cx, cy]) => `${cx},${cy}`);
+  assert(dropped.length === 1 && dropped[0] === `${ctl.cx},${ctl.cy}`, `the eviction dropped ${dropped.join(" ") || "nothing"} (the control is ${ctl.cx},${ctl.cy})`);
+  mapMod.takeEvicted();
+  // Grown again (the control), the bed still stands on both of its tiles.
+  mapMod.getChunk(ctl.cx, ctl.cy, true);
+  assert(mapMod.peekTile(x, y).prop === bed && mapMod.peekTile(x + 1, y).prop === bed && mapMod.growTile(x + 1, y).prop === bed, "the bed lost a tile through the eviction and the regrowth");
+  // The world's save and back: both tiles.
+  const save = JSON.parse(JSON.stringify(gameMod.serialize()));
+  assert(save.map.chunks.some((c) => c.cx === B.cx && c.cy === B.cy && c.dirty && (c.parts || []).some((p) => p[2] === bed.id)), "the save's neighbour does not name the bed's tile, or is not dirty");
+  gameMod.restore(save, json);
+  const back = mapMod.propById(bed.id);
+  assert(back && mapMod.peekTile(x, y).prop === back && mapMod.peekTile(x + 1, y).prop === back, "the bed did not come back whole from the save");
+  // A guest told the anchor's chunk was dropped: the neighbour's tile lets it go too (no part of a prop nothing answers to).
+  mapMod.dropChunk(A.cx, A.cy);
+  assert(!mapMod.propById(bed.id) && !mapMod.peekTile(x + 1, y).prop, "a dropped anchor's chunk left the bed's tile on the neighbour");
+  return `bed at ${x},${y} across ${A.cx},${A.cy} and ${B.cx},${B.cy}; the control ${ctl.cx},${ctl.cy} dropped and grown again`;
+});
+check("chunk edge (#341): two players lift one chest: the second lift meets it gone and gets nothing, with a word", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const a = gameMod.state.player;
+  mapMod.ensureAround(a.gx, a.gy, 3);
+  const at = edgeSpot(a.gx, a.gy, 1, 1);
+  assert(at, "no bare ground");
+  const [x, y] = at;
+  const chest = mapMod.createProp({ sprite: "chest", tile: [x, y] });
+  mapMod.placeProp(chest, x, y);
+  const b = gameMod.addPlayer(x + 0.5, y + 1, {});
+  a.gx = x - 0.5;
+  a.gy = y + 1;
+  for (const p of [a, b]) { p.hands.main = null; p.hands.off = null; p.carrying = null; }
+  const carry = (p) => interactImport.actionsForTarget({ kind: "prop", id: chest.id }, p).find((q) => q.kind === "carry");
+  const ca = carry(a);
+  const cb = carry(b); // both found it standing, as two walks to it do
+  assert(ca && cb && ca.enabled && cb.enabled, "a player was not offered Pick up chest");
+  const said = [];
+  promptImport.setMessageSink((text) => (said.push(text), true));
+  try {
+    assert(ca.perform() === true && a.carrying === chest && !mapMod.peekTile(x, y).prop, "the first lift did not take the chest");
+    assert(cb.perform() === false && !b.carrying, "the second lift took the same chest");
+    assert(said.includes("The chest is not there any more."), `the second lifter was told ${JSON.stringify(said)}`);
+    // Set down a tile on, the stale action still lifts nothing (the chest is not where its walk went); a fresh one, found where it stands now, lifts it.
+    mapMod.placeProp(a.carrying, x, y + 1);
+    a.carrying = null;
+    assert(cb.perform() === false && !b.carrying && mapMod.peekTile(x, y + 1).prop === chest, "the stale lift took a chest set down elsewhere");
+    const fresh = carry(b);
+    assert(fresh && fresh.perform() === true && b.carrying === chest, "a fresh lift of the chest set down was refused");
+  } finally {
+    promptImport.setMessageSink(null);
+  }
+  return `the first lift took ${chest.id}; the second told "${said[0]}"`;
+});
 // Paintings (#326): a painting hung from the bag is state on a wall segment (a wide one a holder and a cover), in the chunk's record and the sync hash, restored from a record; Pick up
 // gives the item back (from either segment of a wide one, once); refused on a door, a window, a hung segment, past a post, off the end of a wall; a wall taken down or a door built over it drops
 // the painting as an item, whole. (The drawing, the ghost, and the guest's two tabs are `check("paintings")`'s, in the pane.)
