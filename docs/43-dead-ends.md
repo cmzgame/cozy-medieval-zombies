@@ -58,7 +58,7 @@ The forge, the anvil, the oven, the millstones, the dye vats, and the wells stay
 
 ## 7. A body burned, a wave, and the cowering (step 6)
 
-- **Burn corpse**, on every body of the dead: greyed out unless you carry a **tinderbox and a log** (the log is spent). The body burns for about a game hour, giving light, then it and **everything in it** are gone. Its hover card warns in red: "Burns the body and everything in it." It uses the burning the dead already have (`burn.js`, `fire.js`).
+- **Burn corpse**, on every body of the dead: greyed out unless you carry a **tinderbox** ~~**and a log** (the log is spent)~~ (no log since 2026-10-26, `02` The playtest's rulings; and Use a lit torch on a body burns it too). The body burns for about a game hour, giving light, then it and **everything in it** are gone. Its hover card warns in red: "Burns the body and everything in it." It uses the burning the dead already have (`burn.js`, `fire.js`).
 - **Wave**, for the demo: **G** (a free key) and `/wave` in the chat play a two-second wave, seen by everyone. A new pose in `data/poses.json` (Michael's approval for the rig, here).
 - **Immune villagers cower** (the guide and the teachers, root `CLAUDE.md`): one of the dead within a few tiles, they cower about a second, **arms up in a defensive pose** (a new pose, approved here), a "!" speech bubble as its visual twin, then run a few tiles away and path back to their spot once no dead are near. It is the ground for the villagers who flee for real (`docs/04`).
 

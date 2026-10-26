@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- From the playtest: a bucket boiled and poured into skins; Burn corpse for a tinderbox alone, or Use a lit torch on a body; sleep fades to black and runs slower; container items open where they lie; a stack dropped on a matching stack fills it (2026-10-26, The playtest's rulings)
 - Honey goes into a clay jar made like a vial; eating it leaves the jar; a couple of jars at the cottage to start (2026-10-26, Honey goes into a clay jar)
 - The mana herb is Mageroot for now; grave moss keeps its name; no plant is gathered or grows back only at night, Herbalism 6 and 7 struck and their replacements open (2026-10-25, The evening's rulings)
 - Pemmican heals 3 and fills 35; eggs do not stack, open to change after a playtest (2026-10-25, The evening's rulings)
@@ -310,6 +311,16 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 ### 2026-10-26 — Throwing knives do 18 (Michael)
 
 From his playtest, of the knife's damage: "Make throwing knives do 18 damage, your initial suggestion, 15 is too low." The knife's `thrown.damage` in `data/items.json` is 18 (nine throws to kill one of the dead at 150, where 15 took ten); everything else of 2026-10-25's ruling stands. `docs/24` section 1 and `docs/42` carry the number.
+
+### 2026-10-26 — The playtest's rulings: a bucket boiled and poured, burning the dead for a tinderbox alone, sleep fades and lasts longer, bags open where they lie, stacks fill a stack (Michael)
+
+From his playtest reports on the Playtest Checklist. Primary answered each with a recommendation; Michael adopted them with two changes of his own.
+
+- **A bucket is boiled and poured** ("Adopted"): a bucket of tainted water is boiled at any lit cooking fire, the fireplace included, as a skin is, its bar longer (*default:* 60 s); Use a bucket on a waterskin fills the skin from it. Clean into clean, or tainted into tainted or into an empty skin, is fine; tainted into clean is refused, "That would taint the clean water." Michael: "Mostly what I want here is to make it so you can boil a bucket of water and distribute it to waterskins, should you prefer that over boiling each waterskin separately."
+- **Burning the dead costs nothing but a flame:** "Let's just make it have no cost but a tinderbox, or 'Use' a lit torch on a corpse should also do this." Burn corpse needs a tinderbox carried and spends nothing; Use a lit torch on a body of the dead burns it too. (`docs/43` section 7's log is struck.)
+- **Sleep fades to black** ("Adopted"): the screen fades to black over about a second as you sleep and back in as you wake; you stand beside the bed, about to get in or just got out; with friends only your own screen fades, and the others see you beside the bed with a "Zz" over you. A lying-down animation stays a someday. **And a night's sleep lasts longer:** "Let's also consider slowing down the clock a little for sleep, right now it only takes a couple of seconds for a full sleep." Today `player.sleepTimeScale` 60 runs eight game hours in four real seconds (a day is 720 s); *default:* 20, about twelve seconds for a night, a lever.
+- **A container item opens where it lies** ("Adopted"): any item that holds things (a belt, the satchel, the rucksack) has Open on the ground and in a chest, with Take All, as a body has; no need to equip it to move what is in it.
+- **A stack dropped on a matching stack fills it** ("Adopted"): in a hand, a belt slot, or a bag cell, up to the stack limit, the rest staying where it came from; entries that carry their own state (wear, colours, a fill, a coat) never merge. A split control can come later.
 
 ### 2026-10-26 — Honey goes into a clay jar: made like a vial, the jar back when it is eaten, a couple at the cottage (Michael)
 
