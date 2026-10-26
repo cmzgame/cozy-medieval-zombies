@@ -58,7 +58,7 @@ export function createCharacter(kind, gx, gy, { id = null, name = null, speed = 
 // same entries the body wears, so after the copy they are made one again by uid.
 
 const CH_BY_ID = new Set(["target", "carrying"]);
-const CH_DROPPED = new Set(["sprite", "breach", "press", "auto", "action", "line", "netBuf", "swingTarget"]); // swingTarget: an old save's renderer flag, shed (#102)
+const CH_DROPPED = new Set(["sprite", "breach", "press", "auto", "action", "line", "netBuf", "swingTarget", "beltHands"]); // swingTarget: an old save's renderer flag, shed (#102); beltHands: the belt's hand chosen per slot (#285), gone with the slots' roles (2026-10-25)
 
 export function serializeCharacter(ch) {
   const out = {};
@@ -81,7 +81,7 @@ export function restoreCharacter(data, makers) {
   if (data.kind === "player") ch = makers.player(data.gx, data.gy, { id: data.id });
   else if (data.kind === "zombie") ch = makers.zombie(data.gx, data.gy, { id: data.id });
   else ch = makers.villager(data.gx, data.gy, { id: data.id, name: data.name, line: data.greeting || null, wardrobe: data.wardrobe || 0 });
-  const { targetId, carryingId, carried, worn, hands, pockets, loot, ...rest } = data;
+  const { targetId, carryingId, carried, worn, hands, pockets, loot, beltHands: _beltHands, ...rest } = data; // an old save's beltHands is dropped (the belt's roles, 2026-10-25)
   Object.assign(ch, rest);
   // A save from before nobody climbed through a window (2026-10-16) may hold a climb in progress, { from, to, t }: the
   // body is landed at whichever end is nearer (the lengths were 0.9 s for a player, 1.6 s for the dead) and the climb dropped.

@@ -94,6 +94,7 @@ export function characterInputs(ch, artOf = artResolver, overrides = {}, style =
     style,
     altStyle: zombie ? null : extra.altStyle || null,
     offStyle: zombie ? null : extra.offStyle || null,
+    handed: ch.kind === "player" && ch.handed === "left" ? "left" : "right", // a left-handed player's main arm is its left (Michael, 2026-10-25); the dead and villagers are right-handed
   };
 }
 
@@ -135,7 +136,7 @@ export function characterSpec(inp) {
   painted.beard = getLayer("beard", overrides.beard || fullLook.beard || null); // facial hair (docs/25), a look like the hair
   const outfit = { ...inp.outfit };
   applyCovers(outfit, painted);
-  return { variant: "player", look: fullLook, outfit, wound: null, holding: inp.holding, painted, style: inp.style, altStyle: inp.altStyle || null, offStyle: inp.offStyle || null, noCarry: !!inp.noCarry };
+  return { variant: "player", look: fullLook, outfit, wound: null, holding: inp.holding, painted, style: inp.style, altStyle: inp.altStyle || null, offStyle: inp.offStyle || null, noCarry: !!inp.noCarry, handed: inp.handed === "left" ? "left" : "right" };
 }
 
 // The player's spec from their look and what they wear; `worn` is the slot map
@@ -152,8 +153,11 @@ export function zombieSpec(k) {
   return characterSpec(characterInputs({ kind: "zombie", look: w ? w.look : DEFAULT_LOOK, worn: wardrobeWorn(w), wardrobe: k, wound: w ? w.wound : null }));
 }
 
-// A key that changes when the drawing would.
+// A key that changes when the drawing would. A left-handed figure's key ends in "left"; a right-handed one's is the key
+// it always was (Michael, 2026-10-25), so nothing drawn for the default moved.
 export function specKey(spec) {
   const names = spec.painted ? Object.fromEntries(Object.entries(spec.painted).map(([k, v]) => [k, v ? v.name : null])) : null;
-  return JSON.stringify([spec.variant, spec.look, spec.outfit, spec.wound, spec.holding, names, layersVersion, spec.style || null, !!spec.noCarry, spec.altStyle || null, spec.offStyle || null]);
+  const key = [spec.variant, spec.look, spec.outfit, spec.wound, spec.holding, names, layersVersion, spec.style || null, !!spec.noCarry, spec.altStyle || null, spec.offStyle || null];
+  if (spec.handed === "left") key.push("left");
+  return JSON.stringify(key);
 }

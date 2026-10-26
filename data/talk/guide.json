@@ -375,7 +375,7 @@
    "say": [
     "Tab opens your bag, a grid where things take the room they take.",
     "C is your character: what you wear and hold. Double-click equips or unequips.",
-    "1 to 4 work a belt slot: swap it with your hand, or eat the food or drink the skin on it. A rope belt has two slots, a leather one four."
+    "Your rope belt has three slots: a main-hand slot, an off-hand slot, and the utility slot, each stamped with its role while empty; which number key is which is your setting, Belt slot order. A hand slot's key draws what is there into that hand, or eats the food on it; the utility slot's key only eats, and anything else rides there spare. A waterskin on it sips by itself. A leather belt adds a second main-hand and off-hand slot."
    ],
    "options": [
     {

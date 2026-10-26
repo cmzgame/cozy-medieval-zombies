@@ -22,6 +22,7 @@ import { renderScene, night, shakeFence } from "./render.js";
 import { createPlayer, aimOrigin } from "./entities/player.js";
 import * as host from "./host.js"; // the authority's half of the game, shared with the server world (item 5's first step)
 import { lookOf } from "./host.js";
+import { handedOf } from "./handed.js"; // right- or left-handed, an identity's and its character's (Michael, 2026-10-25)
 import { createZombie } from "./entities/zombie.js";
 import { createVillager } from "./entities/villager.js";
 import { initHud, updateHud } from "./ui/hud.js";
@@ -141,10 +142,12 @@ let looksJson = null; // the character screen's palettes (data/looks.json)
 
 // The identity a test world's player wears: `&as=<name>` on the URL, else the last kept, else what the
 // browser had before identities.
+// `&handed=left` makes it left-handed (a two-tab check's left-handed guest).
 function testIdentity() {
   const asName = URLQ.get("as");
-  if (asName) return { name: asName.slice(0, 24), look: { hairStyle: "short" } };
-  return identities.last() || { name: settings.get("playerName") || null, look: { ...(settings.get("look") || {}), hairStyle: settings.get("hairStyle") || "short" } };
+  const handed = URLQ.get("handed");
+  const base = asName ? { name: asName.slice(0, 24), look: { hairStyle: "short" } } : identities.last() || { name: settings.get("playerName") || null, look: { ...(settings.get("look") || {}), hairStyle: settings.get("hairStyle") || "short" } };
+  return handed ? { ...base, handed: handedOf(handed) } : base;
 }
 
 // The rules a test world plays by: the last choices, as the pane always had it, except the two a world is made with (Trees,
@@ -384,6 +387,7 @@ async function enterNewWorld(name, identity, { keep = true, rules: chosenRules =
       json: mapJson,
       look: lookOf(identity),
       name: (identity && identity.name) || null,
+      handed: handedOf(identity && identity.handed),
       devChest: !!devChest, // a kept world's from the Sandbox step's choices; one never kept only when asked (a test world, worlds.test)
       rules: chosenRules, // likewise: a stand-in world for a guest passes none
     });
@@ -476,7 +480,7 @@ function respawn(identity) {
   if (!inWorld) return false;
   const spawn = S.info ? S.info.spawn : [client.me.gx, client.me.gy];
   const at = map.nearestWalkable(spawn[0] + 1, spawn[1] + 1, (x, y) => S.players.some((p) => Math.round(p.gx) === x && Math.round(p.gy) === y)) || spawn;
-  const p = game.addPlayer(at[0], at[1], { look: lookOf(identity), name: identity.name || null });
+  const p = game.addPlayer(at[0], at[1], { look: lookOf(identity), name: identity.name || null, handed: handedOf(identity.handed) });
   game.pickPlayer(p);
   refreshFigureOf(p, true);
   camera.snapTo(p.gx, p.gy);
@@ -962,7 +966,7 @@ function updateInventoryUi() {
   }
   if (input.wasPressed("KeyC")) panel.toggleCharacter();
   if (openBag && (!panel.isBagOpen() || panel.takeContainerClose())) openBag = null; // the bag or the container closed by its X
-  // The belt keys (1 to 4) are key events in my snapshot, performed by the world's step for my player, here or on the
+  // The belt keys (1 to 5) are key events in my snapshot, by the slot's role, performed by the world's step for my player, here or on the
   // host (interact.beltEvents, updateInteract; item 4: on a guest they changed only its own replica).
   if (openBag && openBag.address) {
     // On a guest the replica's objects are new with every frame: the grid is found again by its address.
@@ -1017,7 +1021,7 @@ function refreshFigureOf(p, force = false) {
   const style = combat.styleOf(p, !!archery.drawState(p));
   const painted = p === client.me ? settings.get("paintedLayers") || {} : {};
   // What the sheet depends on, as ids: the cheap test every step; the spec and its key only when it changed (docs/23a, B7).
-  const quick = JSON.stringify([p.look, p.worn, p.hands, style, painted, p.hidden]);
+  const quick = JSON.stringify([p.look, p.worn, p.hands, style, painted, p.hidden, p.handed]);
   const keys = figureKeys.get(p.id) || { key: "", quick: "" };
   if (!force && quick === keys.quick) return; // `force`: the rig's numbers changed from the console (dev.js setLook), which no key sees
   keys.quick = quick;
@@ -1181,7 +1185,7 @@ function stepGame(dt) {
   // step, here or on the host (game.step), so a guest's boards and torch are the host's doing. They work with
   // any panel or menu open (Michael, 2026-10-15: only the pause menu stops the game), as the belt keys always have.
   const keyEv = interact.keyEvents(dt);
-  const beltEv = interact.beltEvents();
+  const beltEv = interact.beltEvents(client.me, settings.get("beltOrder")); // the number turned into the slot's role here, by my own key order
   const keys = keyEv || beltEv || drawCancelled ? { ...(keyEv || {}), ...(beltEv || {}), ...(drawCancelled ? { drawCancel: true } : {}) } : null;
   drawCancelled = false;
   // The world: the player from the mouse and the keys as a snapshot (docs/23a, D1;
@@ -1545,6 +1549,7 @@ async function boot() {
           json,
           look: lookOf(testIdentity()),
           name: testIdentity().name || null,
+          handed: handedOf(testIdentity().handed),
           devChest: !!settings.get("devChest"),
           rules: testRules(),
         });
@@ -1644,7 +1649,7 @@ async function boot() {
       });
       // Any screen up means the game is paused when played alone; the title is up at boot.
       const kitWorn = { chest: { id: "tunic" }, legs: { id: "breeches" }, feet: { id: "boots" }, waist: { id: "belt" }, back: { id: "small_sack" } };
-      const bake = (look, worn, painted) => figure.generateFigure(figure.characterSpec(figure.characterInputs({ kind: "player", look, worn, hands: { main: null, off: null } }, undefined, painted, null)));
+      const bake = (look, worn, painted, handed = "right") => figure.generateFigure(figure.characterSpec(figure.characterInputs({ kind: "player", look, worn, hands: { main: null, off: null }, handed }, undefined, painted, null)));
       screens.initScreens({
         onChange: (name) => setPaused(!!name),
         onReload: () => window.location.reload(),
@@ -1658,7 +1663,7 @@ async function boot() {
           joinAs: (identityId) => {
             const identity = identities.get(identityId);
             if (!identity || !net.isGuest()) return;
-            net.setIdentity({ name: identity.name || null, look: lookOf(identity) });
+            net.setIdentity({ name: identity.name || null, look: lookOf(identity), handed: handedOf(identity.handed) });
             identities.rememberJoined({ code: net.status().code, myCharacter: identity.name || null });
             screens.hide();
             showJoining(net.status().code); // back under the loading screen (#107)
@@ -1710,11 +1715,11 @@ async function boot() {
           last: () => identities.last(),
           setLast: (id) => identities.setLast(id),
           editing: () => editing,
-          beginNew: () => { editing = { id: null, name: "", look: { hairStyle: "short" } }; },
-          beginEdit: (id) => { const i = identities.get(id); editing = i ? { id: i.id, name: i.name, look: { ...i.look } } : null; },
+          beginNew: () => { editing = { id: null, name: "", look: { hairStyle: "short" }, handed: "right" }; },
+          beginEdit: (id) => { const i = identities.get(id); editing = i ? { id: i.id, name: i.name, look: { ...i.look }, handed: handedOf(i.handed) } : null; },
           commit: () => {
             if (!editing) return null;
-            const saved = editing.id ? identities.update(editing.id, { name: editing.name, look: editing.look }) : identities.add({ name: editing.name, look: editing.look });
+            const saved = editing.id ? identities.update(editing.id, { name: editing.name, look: editing.look, handed: editing.handed }) : identities.add({ name: editing.name, look: editing.look, handed: editing.handed });
             editing = null;
             return saved;
           },
@@ -1733,12 +1738,15 @@ async function boot() {
           setName: (n) => { if (editing) editing.name = String(n || "").slice(0, 24); },
           look: () => lookOf(editing),
           setLook: (partial) => { if (editing) editing.look = { ...editing.look, ...partial }; },
+          // Right- or left-handed (Michael, 2026-10-25): chosen here, stamped on each character made from the identity.
+          handed: () => handedOf(editing && editing.handed),
+          setHanded: (h) => { if (editing) editing.handed = handedOf(h); },
           styles: () => figure.hairStyles(),
           palette: () => looksJson || { skins: { living: [figure.DEFAULT_LOOK.skin], dead: [] }, hair: [figure.DEFAULT_LOOK.hair], eyes: [figure.DEFAULT_LOOK.eyes] },
           // The figure in the kit's clothes, the hands empty, baked by the game's own code.
-          sheet: () => bake(lookOf(editing), kitWorn, {}),
+          sheet: () => bake(lookOf(editing), kitWorn, {}, handedOf(editing && editing.handed)),
           // This world's character as it is, for the pause menu's Character screen.
-          characterSheet: () => (inWorld && client.me ? bake(client.me.look, client.me.worn, settings.get("paintedLayers") || {}) : null),
+          characterSheet: () => (inWorld && client.me ? bake(client.me.look, client.me.worn, settings.get("paintedLayers") || {}, client.me.handed) : null),
         },
         // Painted layers to try on, per slot, regardless of what is worn (docs/12).
         layers: {
@@ -1850,7 +1858,7 @@ async function boot() {
   urlLag = url.get("lag");
   net.setRelay(url.get("relay")); // `?relay=wss://...` for a relay (server/relay.js), `?relay=none` for the two-tab loopback
   const joinCode = TEST_WORLD ? url.get("join") : null; // `?host=` and `?join=` are the checks' (a test world); the game's own flow is the Worlds screen
-  net.setIdentity({ name: testIdentity().name || null, look: lookOf(testIdentity()) }); // the wire's identity until a join picks one
+  net.setIdentity({ name: testIdentity().name || null, look: lookOf(testIdentity()), handed: handedOf(testIdentity().handed) }); // the wire's identity until a join picks one
   net.init({ host: TEST_WORLD ? url.get("host") : null, join: joinCode, lag: urlLag }, {
     restore: async (snap, playerId, world) => {
       shell.worldStage("Receiving the world", 0.4);

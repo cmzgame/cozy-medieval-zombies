@@ -7,6 +7,7 @@ Started 2026-10-08.
 One line per idea: what, who, when, and the one sentence on what must not be foreclosed. An idea that was built or ruled leaves this page for `history/05-someday-done.md`; the longer scopes behind some lines are `history/05-someday-scopes.md`. The tracking issue for all of them is wave 4 of the sweep (#70).
 
 - **Burning, what is not built** (`02`, 2026-10-15, burning made real, #14; the wiki's Burning page points here): the dead **noticing** fire (they are drawn to a flame at night, not to a burning body), a **way out** for a burning body (water, rolling, time; a burn ends by its timer today), and **a player burning** (only the dead burn). Spreading fire is its own line, below. Nothing built may foreclose them.
+- **A second utility slot on the belt** (Primary's idea, 2026-10-25, the belt's roles): Michael ruled the utility slot "the one and only you ever get"; a legendary drop someday might add another. Keep a slot's role read from one table (`inventory.BELT_ROLES`), so a belt item could name its own.
 - **Rabbits in the crops** (Michael, 2026-10-25, #289: "Not sure if that is worth building, but an idea"): rabbits wandering into an unfenced field and eating its crops, a reason to fence one. Keep a crop something an animal could reach and change.
 - **The boiling pot** (Michael, 2026-10-25, #279: "a massive flavor win"): a pot for large stews that restore a lot of water as well as food (effects mid to low-mid) and that boils about four skins of water at once; it needs fluid transfer between containers and a "that container is full" refusal; perhaps built into a fireplace, raising a fireplace's cost against building them for free light and cooking. Keep a vessel's water an amount that could move between containers, not a flag alone.
 - **Things set on a surface** (Michael, 2026-10-25, #273: "that will be fun but is in no way crucial"): a jack-o'-lantern or a decoration on a table, a crate, or a barrel; a tile holds one prop and a rug today, so it wants an "on top" slot drawn at the surface's height. Do not assume a prop's tile can never hold a second thing.
@@ -41,3 +42,7 @@ One line per idea: what, who, when, and the one sentence on what must not be for
 ## From `02` (2026-10-17)
 
 - **Spreading fire** (2026-10-17, `02`, Only characters burn; fire lights what is made to be lit; the fireball as a flare): fire that catches on walls, crops, and fences. Only bodies burn today, and a fireball's landing is light only; spreading fire would make every missed shot at a siege a hazard to one's own house, so it waits.
+
+## From `47` (2026-10-25)
+
+- **Potions' someday** (2026-10-25, `47`): a healing splash that hurts the dead; a feverfew tonic that slows the infection's stages (feverfew has no use in `47`, and the cure stays the late Divine Potion). Not to foreclose: a splash's effect is read per body, so one that harms the dead and heals the living stays a data change; feverfew is left without a recipe so its use is still open.

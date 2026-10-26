@@ -6,6 +6,7 @@
 // joined. All of it lives in the settings blob, none of it in a world's save.
 
 import * as settings from "./settings.js";
+import { handedOf } from "./handed.js"; // right- or left-handed (Michael, 2026-10-25): a label for the main and off hands
 
 // `?nosave` (save.js) keeps these in memory for the page too: a check that makes identities leaves
 // nothing in the browser the pane shares with Michael's own (CLAUDE.md).
@@ -43,16 +44,17 @@ export function get(id) {
   return list().find((i) => i.id === id) || null;
 }
 
-// A new identity from a name and a look (the look partial: the character's maker fills the rest).
-export function add({ name = "", look = {} } = {}) {
-  const identity = { id: token("i"), name: String(name || "").slice(0, 24), look: { ...look } };
+// A new identity from a name, a look (the look partial: the character's maker fills the rest), and a handedness (right
+// unless it says left; never ambidextrous).
+export function add({ name = "", look = {}, handed = "right" } = {}) {
+  const identity = { id: token("i"), name: String(name || "").slice(0, 24), look: { ...look }, handed: handedOf(handed) };
   write("identities", [...list(), identity]);
   return identity;
 }
 
 // The stamp changed: every character made from it afterwards wears the change; none made before does.
-export function update(id, { name, look } = {}) {
-  const next = list().map((i) => (i.id === id ? { ...i, name: name !== undefined ? String(name || "").slice(0, 24) : i.name, look: look ? { ...i.look, ...look } : i.look } : i));
+export function update(id, { name, look, handed } = {}) {
+  const next = list().map((i) => (i.id === id ? { ...i, name: name !== undefined ? String(name || "").slice(0, 24) : i.name, look: look ? { ...i.look, ...look } : i.look, handed: handedOf(handed !== undefined ? handed : i.handed) } : i));
   write("identities", next);
   return next.find((i) => i.id === id) || null;
 }

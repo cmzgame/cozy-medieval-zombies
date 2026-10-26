@@ -46,6 +46,7 @@ import { createZombie, updateZombie, siegeHeldOn } from "./entities/zombie.js";
 import { createVillager, updateVillager, turnVillager, damageVillager, setTalkWorld, talkIdOf } from "./entities/villager.js";
 import { controlPlayer } from "./player-controller.js";
 import * as animal from "./entities/animal.js"; // the valley's game and livestock (docs/45)
+import { handedOf } from "./handed.js"; // right- or left-handed (Michael, 2026-10-25): stamped on a player from the identity
 import { getDef } from "./assets.js"; // a sprite definition's data (a feeding trough's `feed`; the item a placed prop stands as, itemCensus #101): read, never drawn
 
 export const state = {
@@ -91,7 +92,7 @@ export function pickPlayer(p) {
 // world stage) and headless (tools/world.js), so both worlds hash the same.
 // What the client does after (the camera, sight, the ground, the player's
 // sheet) touches nothing the hash sees.
-export function create({ json, look = null, name = null, devChest = false, rules: chosen = null }) {
+export function create({ json, look = null, name = null, handed = null, devChest = false, rules: chosen = null }) {
   const S = state;
   // The world's own rules (docs/38, #109): the defaults, over them what its Sandbox step chose; a server world's
   // source, when it has one, wins on the refresh below.
@@ -116,6 +117,7 @@ export function create({ json, look = null, name = null, devChest = false, rules
   setPlayer(createPlayer(info.spawn[0], info.spawn[1]));
   if (look) S.player.look = { ...S.player.look, ...look };
   if (name) S.player.name = name;
+  S.player.handed = handedOf(handed); // right unless the identity says left (Michael, 2026-10-25)
   giveStarterKit(S.player);
   S.zombies = placeAuthoredDead(info.zombies).map(([x, y]) => createZombie(x, y));
   S.corpses = [];
@@ -469,7 +471,7 @@ export function syncParts() {
   // three decimals differed between the host and every replica though nothing was wrong (found testing item 5's third
   // step, the first bleeding guest a sync check met; the rule a fire's fuel already follows: compare what the wire promises).
   const hp2 = (n) => (typeof n === "number" ? (Math.round(n * 100) / 100).toFixed(2) : String(n));
-  const playerText = (p) => [`${p.id} ${f(at(p)[0])},${f(at(p)[1])} hp ${hp2(p.hp)} ${p.dead ? "dead" : "alive"}`, `hands ${entryText(p.hands.main)} ${entryText(p.hands.off)}`, `worn ${Object.keys(p.worn).sort().map((k) => `${k}:${entryText(p.worn[k])}`).join(" ")}`, `hidden ${(p.hidden || []).join(",")}`, `belt ${(inventory.beltOf(p) || []).map(entryText).join(" ")}`, `beltHands ${(p.beltHands || []).map((c) => (c ? `${c.id}:${c.hand}` : "-")).join(" ")}`, `carrying ${p.carrying ? p.carrying.id : "-"}`, `bleed ${p.bleed ? `${p.bleed.stacks}/${hp2(p.bleed.left)}` : "-"}`, `sick ${p.sick ? `${p.sick.stacks}/${hp2(p.sick.left)}` : "-"}`].join(" | "); // the wound a bleeding player has, and Sick (docs/44): stacks and time, as the wire carries them (#308)
+  const playerText = (p) => [`${p.id} ${f(at(p)[0])},${f(at(p)[1])} hp ${hp2(p.hp)} ${p.dead ? "dead" : "alive"}`, `hands ${entryText(p.hands.main)} ${entryText(p.hands.off)}`, `worn ${Object.keys(p.worn).sort().map((k) => `${k}:${entryText(p.worn[k])}`).join(" ")}`, `hidden ${(p.hidden || []).join(",")}`, `belt ${(inventory.beltOf(p) || []).map(entryText).join(" ")}`, `handed ${handedOf(p.handed)}`, `carrying ${p.carrying ? p.carrying.id : "-"}`, `bleed ${p.bleed ? `${p.bleed.stacks}/${hp2(p.bleed.left)}` : "-"}`, `sick ${p.sick ? `${p.sick.stacks}/${hp2(p.sick.left)}` : "-"}`].join(" | "); // the wound a bleeding player has, and Sick (docs/44): stacks and time, as the wire carries them (#308)
   const parts = {
     map: hashOf(JSON.stringify(chunks, (k, v) => (k === "wear" && typeof v === "number" ? Math.floor(v * 100) / 100 : k === "hp" && typeof v === "number" ? undefined : k === "boards" && v && Array.isArray(v.near) ? { near: v.near.length, far: v.far.length } : v))), // a mounted torch's wear to the hundredth: what the wire sends (map.burnHolders); a wall's health not at all (the wire sends a break, not the blows: strikeFence, damageOpening), a board's health (a bare number in `wall.boards`) not either, only how many boards stand, so a broken one still shows
     chart: hashOf(chart.hashText()), // what the world has seen, the charted chunks sorted (docs/33)
@@ -634,11 +636,12 @@ export function idleSnapshot() {
 // A second (or later) player into the world (docs/31/03): their own character
 // with the kit, standing at (gx, gy). The client bakes their sheet when it sees
 // them (main.js refreshFigure). Returns the player.
-export function addPlayer(gx, gy, { look = null, name = null, id = null } = {}) {
+export function addPlayer(gx, gy, { look = null, name = null, id = null, handed = null } = {}) {
   const S = state;
   const p = createPlayer(gx, gy, { id });
   if (look) p.look = { ...p.look, ...look };
   if (name) p.name = name;
+  p.handed = handedOf(handed); // right unless the identity says left (Michael, 2026-10-25)
   giveStarterKit(p);
   S.players.push(p);
   if (!S.player) S.player = p; // the world's pick, never the client's: a guest joining a world whose host has fallen (the pick null after the restore) is not the host's screen (the review of #465); a client that wants it calls pickPlayer

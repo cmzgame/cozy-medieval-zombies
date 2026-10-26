@@ -41,7 +41,7 @@ const CONTROLS = [
   ["Your things", [
     ["Tab", "Your bag"],
     ["C", "Your character"],
-    ["1 to 4", "Swap a belt slot with your hand"],
+    ["1 to 5", "Use a belt slot: a hand slot draws what is there into its hand (or eats it), the utility slot eats; the order is a setting"],
     ["Double-click", "Equip or unequip a thing; else move it across"],
     ["T", "Light or put out the torch in hand (a tinderbox lights it)"],
   ]],
@@ -74,7 +74,7 @@ let hairApi = null; // { styles(), current(), set(name), reload() } from main.js
 let layersApi = null; // { slots(), names(slot), current(slot), set(slot, name) }
 let onReload = () => window.location.reload();
 let onSave = () => {};
-let youApi = null; // the identity editor's api from main.js: name(), setName(n), look(), setLook(p), styles(), palette(), sheet()
+let youApi = null; // the identity editor's api from main.js: name(), setName(n), look(), setLook(p), handed(), setHanded(h), styles(), palette(), sheet()
 let wireApi = null; // { status(), setOpen(on), join(code, identityId) } from main.js (net.js)
 let worldsApi = null; // { list(), friends(), play(id), remove(id), forget(code), create(name, identityId), respawn(identityId), defaultName(), here(), leave() }
 let identitiesApi = null; // { list(), editing(), beginNew(), beginEdit(id), commit(), cancel(), remove(id), last() }
@@ -210,6 +210,7 @@ function listen(el) {
     else if ("hair" in sel.dataset && hairApi) hairApi.set(JSON.parse(sel.value));
     else if (sel.dataset.layerSlot && layersApi) layersApi.set(sel.dataset.layerSlot, JSON.parse(sel.value) || null);
     else if (sel.dataset.lookKey && youApi) youApi.setLook({ [sel.dataset.lookKey]: JSON.parse(sel.value) });
+    else if ("handed" in sel.dataset && youApi && youApi.setHanded) youApi.setHanded(JSON.parse(sel.value)); // right- or left-handed (Michael, 2026-10-25)
     else if (sel.dataset.sandbox) sandboxSet(sel.dataset.sandbox, JSON.parse(sel.value));
     else return;
     render();
@@ -767,6 +768,7 @@ function identityHtml() {
           <div class="you-row"><span>Hair</span><span class="control">${styles}</span></div>
           ${swatchRow("Hair colour", "hair", pal.hair, look.hair)}
           ${swatchRow("Eyes", "eyes", pal.eyes, look.eyes)}
+          ${youApi.handed ? `<div class="you-row"><span>Handedness</span><span class="control">${selectHtml([["right", "Right-handed"], ["left", "Left-handed"]], youApi.handed(), `data-handed`)}</span></div>` : ""}
         </div>
       </div>
       <div class="screen-buttons row">${button("identity-save", "Save")}${button("identity-cancel", "Cancel")}</div>
@@ -909,7 +911,7 @@ function identityRows(pickable) {
   const picked = creation ? creation.identityId : null;
   return `<div class="rows">${rows.map((i) => `
     <div class="row-item${pickable && i.id === picked ? " on" : ""}">
-      <div class="row-main"><b>${esc(i.name || "(no name)")}</b><span class="row-sub">${i.look && i.look.hairStyle ? esc(i.look.hairStyle) : "short"} hair</span></div>
+      <div class="row-main"><b>${esc(i.name || "(no name)")}</b><span class="row-sub">${i.look && i.look.hairStyle ? esc(i.look.hairStyle) : "short"} hair, ${i.handed === "left" ? "left" : "right"}-handed</span></div>
       <div class="row-buttons">${pickable ? `<button class="kit-button${i.id === picked ? " on" : ""}" data-pick="${esc(i.id)}">${i.id === picked ? "Chosen" : "Choose"}</button>` : ""}${button("identity-edit", "Edit", ` data-identity="${esc(i.id)}"`)}${pickable ? "" : button("identity-delete", "Delete", ` data-identity="${esc(i.id)}"`)}</div>
     </div>`).join("")}</div>`;
 }

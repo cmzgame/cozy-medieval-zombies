@@ -32,7 +32,7 @@ export function createPlayer(gx, gy, { id = null } = {}) {
     // The shared player sheet until a client bakes this one's own (main.js refreshFigure names it player_<id>; docs/31/05, item 5).
     sprite: "player",
     hidden: [], // worn slots whose art is left out of the figure (an eye toggle on the character screen, #159); the item keeps every use
-    beltHands: [], // per belt slot, the hand chosen for it in its menu, { id, hand } or null (#285; inventory.beltHand): a heavy field of the record
+    handed: "right", // "right" or "left" (Michael, 2026-10-25; handed.js): which hand is called the main hand, stamped from the identity; a heavy field of the record
     aim: { sx: 0, sy: 1 },
     stamina: T.stamina,
     maxStamina: T.stamina,

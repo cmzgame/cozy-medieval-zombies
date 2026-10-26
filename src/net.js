@@ -37,6 +37,7 @@ import { createVillager } from "./entities/villager.js";
 import { serializeAnimal, restoreAnimal } from "./entities/animal.js"; // the animals, a record of their own (docs/45)
 import { say } from "./entities/character.js";
 import { client, refind } from "./client.js"; // my own player, the client's (docs/31/05 item 26, #102)
+import { handedOf } from "./handed.js"; // right- or left-handed, the join's (Michael, 2026-10-25)
 
 let role = null; // "host" | "guest" | null (alone)
 let code = null;
@@ -129,7 +130,12 @@ export function makeCode() {
 // are any), and installChunk stands them again from the registry; an older guest dropped those tiles whenever such a chunk came alone in a frame.
 // 15 (2026-10-25, #285): a player's heavy record carries `beltHands`, the hand chosen per belt slot ({ id, hand } or null), so the record
 // changed shape; an older guest neither kept it nor marked the choice in its slot's menu and card (the key itself is the host's, either way).
-export const PROTOCOL = 15;
+// 16 (2026-10-25, Michael's handedness): a player's heavy record carries `handed` ("right" or "left"), and the join carries the identity's;
+// the record changed shape, and an older guest drew every character right-handed and labelled its hands so.
+// 17 (2026-10-25, the belt's slots by role, #478): a belt key's event in a guest's snapshot names the slot's role (`beltMain1`, `beltOff1`,
+// `beltUtility`, `beltMain2`, `beltOff2`; inventory.BELT_EVENTS) in place of its number (`belt1` to `belt4`), and the heavy record no longer
+// carries `beltHands`; an older guest's keys would be dropped by the host's filter.
+export const PROTOCOL = 17;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -255,7 +261,7 @@ const lastRoster = { zombies: "", villagers: "", corpses: "", animals: "" };
 // predicted swing is refused or allowed on the same step as the host's (rounded, a cooldown of 0.0167 would go as 0.02 and
 // the guest would hold a click the host took).
 const EXACT = new Set(["gx", "gy", "attackCooldown", "offCooldown", "swingLock", "shoveCooldown"]); // shoveCooldown: the shove's recovery gates a swing too (docs/41, step 2)
-const HEAVY = new Set(["worn", "hidden", "beltHands", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
+const HEAVY = new Set(["worn", "hidden", "handed", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
 const lastHeavy = new Map(); // player id -> the heavy part's text last sent
 const lastLight = new Map(); // player id -> the light record's text last sent
 const lastExtras = { rules: "", carriers: "", queues: "", animalHomes: "" }; // sent when they change, not every frame
@@ -491,7 +497,7 @@ function send(msg) {
 // What the host will take of a guest's snapshot: the shape the step reads, nothing else, every number finite
 // (a NaN aim or a far aim point would ride into the player's record and the save), the key events only the
 // ones that exist.
-const KEY_EVENTS = ["eTap", "ePressed", "bTap", "bHold", "t", "belt1", "belt2", "belt3", "belt4", "drawCancel", "wave"]; // drawCancel: a right tap during a draw (2026-10-15); wave: G or /wave (docs/43 section 7)
+const KEY_EVENTS = ["eTap", "ePressed", "bTap", "bHold", "t", "beltMain1", "beltOff1", "beltUtility", "beltMain2", "beltOff2", "drawCancel", "wave"]; // drawCancel: a right tap during a draw (2026-10-15); wave: G or /wave (docs/43 section 7)
 export function cleanSnap(raw) {
   const s = raw && typeof raw === "object" ? raw : {};
   const num = (v, lim) => (typeof v === "number" && Number.isFinite(v) ? Math.max(-lim, Math.min(lim, v)) : 0);
@@ -595,7 +601,7 @@ export function hostStep(mySnap, me) {
           guests.delete(key);
         }
       }
-      const raw = msg.look && typeof msg.look === "object" ? { name: typeof msg.name === "string" ? msg.name : null, look: msg.look } : null;
+      const raw = msg.look && typeof msg.look === "object" ? { name: typeof msg.name === "string" ? msg.name : null, look: msg.look, handed: handedOf(msg.handed) } : null;
       const identity = raw && hooks.clampIdentity ? hooks.clampIdentity(raw) : raw; // the host trusts no payload (the review, 2026-10-13)
       // Whose character this is, by the browser's hash (the client keeps the owners; docs/31/09): the one
       // it made here, back from dormancy if it went; a dead one or an unknown browser asks for an identity.
@@ -604,7 +610,7 @@ export function hostStep(mySnap, me) {
       else {
         const spawn = game.state.info ? game.state.info.spawn : [me.gx, me.gy];
         const at = map.nearestWalkable(spawn[0] + 1, spawn[1] + 1, (x, y) => game.state.players.some((p) => Math.round(p.gx) === x && Math.round(p.gy) === y)) || spawn;
-        r = { player: game.addPlayer(at[0], at[1], { look: identity ? identity.look : null, name: identity ? identity.name : null }) };
+        r = { player: game.addPlayer(at[0], at[1], { look: identity ? identity.look : null, name: identity ? identity.name : null, handed: identity ? identity.handed : null }) };
       }
       if (r && r.full) {
         send({ type: "bye", to: msg.from, reason: "full" });
@@ -1031,7 +1037,7 @@ export function guestStep(mySnap) {
     joinSentAt = now;
     if (!firstJoinAt && transport && transport.ready) firstJoinAt = now; // the wait starts once the relay has answered the socket (a sleeping tier wakes slowly)
     // The browser's id and the protocol always; the identity when one was chosen (the host asks with `who` otherwise).
-    send({ type: "join", clientId, protocol: PROTOCOL, version: SAVE_VERSION, build: BUILD_ID, name: identity ? identity.name : null, look: identity ? identity.look : null, ...(ownerKey ? { ownerKey } : {}) });
+    send({ type: "join", clientId, protocol: PROTOCOL, version: SAVE_VERSION, build: BUILD_ID, name: identity ? identity.name : null, look: identity ? identity.look : null, handed: identity ? handedOf(identity.handed) : null, ...(ownerKey ? { ownerKey } : {}) });
   }
   const queue = inbox.splice(0);
   while (queue.length) {

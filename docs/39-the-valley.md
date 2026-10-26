@@ -99,7 +99,7 @@
 - **Carrying furniture** [built]: anything not rooted, built in, or burning; on your head, both hands empty; set down with the ghost; R turns it.
 - **Fine furniture** from spruce and mahogany (Crafting 5) [to build].
 - **Rugs and wall pieces** (Crafting 5) [to build] [open #261: on a wall's edge or against it; whether any does something; before or after the redraw].
-- **Workstations of your own** (Woodcutting 7 unlocks, Crafting makes) [change: the workbench recipe is open to all today] [to build]: the workbench, the loom, the drying rack, the composter, the cauldron, the smoking rack [built, #445: made at the workbench, four sticks and two planks], and the hive, never the forge, the anvil, the millstones, or the oven, so the village stays worth walking to; no speed bonus, a workshop at home (ruled 2026-10-23).
+- **Workstations of your own** (Woodcutting 7 unlocks, Crafting makes) [change: the workbench recipe is open to all today] [to build]: the workbench, the loom, the drying rack, the composter, the cauldron (made at the anvil, `47`), the smoking rack [built, #445: made at the workbench, four sticks and two planks], and the hive, never the forge, the anvil, the millstones, or the oven, so the village stays worth walking to; no speed bonus, a workshop at home (ruled 2026-10-23).
 - **The composter** (Farming 4) [to build].
 - **The henhouse** (Beastlore 1) [built, #444: Hollow Farm's hens lay into its coop; open to all until the skills]: the chicken coop is a hen's home in a pen; a fed hen lays its egg and feather into the coop's grid (`45`).
 - **Pens** for cows and sheep (Beastlore 4), pigs (Beastlore 7) [built, #444: any fenced yard with its gates shut, a led animal let go inside it stays; breeding inside; open to all until the skills].
@@ -153,7 +153,7 @@ One panel for every station; ingredients from the bag, the belt, and every conta
 - **Millstones** [built] (the mill's): flour from two grain; no fire. Unlock: Cooking 1 (ruled 2026-10-23).
 - **Charcoal clamp** [built] (the smithy's yard, three at the burners): three charcoal from four logs over half a game day, lit, a log of fuel a day. Unlock: Blacksmithing 1 (ruled 2026-10-23).
 - **Dye vats** [change] (three in the weaver's yard, all three usable): Crafting 3 unlocks a picker like a stripped-down character creation, each garment's regions and allowed colours or schemes its own data (2026-10-25, `43` section 8); whether a dye costs a plant waits for #288.
-- **Cauldron** [to build] (the witch's at the mere, `docs/30`): potions (Potions 1 on), section 5.8. The witch keeps it and teaches Potions (ruled 2026-10-19).
+- **Cauldron** [to build] (the witch's at the mere, `docs/30`; your own made at the anvil, `47`): potions (Potions 1 on), section 5.8; one prop with its fire under it, burning logs (`47`). The witch keeps it and teaches Potions (ruled 2026-10-19).
 - **Smoking rack** [built, #445: made at the workbench as a workstation of your own; smoked meat, a raw meat and a log] (the hunter's lodge's [to build]): smoked meat and fish (Cooking 5) [smoked fish to build].
 - **Composter** [to build] (Farming 4): rotten food, rotten fish, or bonemeal in; compost, and a better fertiliser from bonemeal, out at its own pace.
 - **Drying rack** [to build] (Herbalism 4): dried herbs that never rot.
@@ -223,8 +223,8 @@ The numbers are each weapon's block in `data/items.json` and `data/combat.json`.
 - **Wooden shield** [built]: block; Melee 1; made at the workbench.
 - **Throwing spear** [built]: stab (Melee 1), throw [change: Melee 5]; made at the anvil [change: Blacksmithing 3].
 - **Flanged mace** [built]: [change: Melee 3]; found once, in the toll house's chest (the castle's armoury when it is built); made at the anvil [change: Blacksmithing 3].
-- **Halberd** [built]: two hands, the sweep [change: Melee 4], the thrust [change: Melee 7]; never on the belt [to build, #285]. The Developer Chest only; found in the castle's armoury (`docs/29-world/03`) and forged at Blacksmithing 5 (every melee weapon is craftable, ruled 2026-10-23: weapons degrade and repair only delays it; the level is *Primary's reading*) [to build].
-- **Flail and greatsword** [to build]: Melee 8; the greatsword perhaps never on the belt (#285). Found in the castle's armoury and forged at Blacksmithing 7 (ruled 2026-10-23; the level *Primary's reading*).
+- **Halberd** [built]: two hands, the sweep [change: Melee 4], the thrust [change: Melee 7]; on the belt in a main-hand slot or the utility slot, never an off-hand slot (ruled 2026-10-25, built). The Developer Chest only; found in the castle's armoury (`docs/29-world/03`) and forged at Blacksmithing 5 (every melee weapon is craftable, ruled 2026-10-23: weapons degrade and repair only delays it; the level is *Primary's reading*) [to build].
+- **Flail and greatsword** [to build]: Melee 8; a two-handed greatsword rides the belt as the halberd does (2026-10-25). Found in the castle's armoury and forged at Blacksmithing 7 (ruled 2026-10-23; the level *Primary's reading*).
 - **Dual wielding** [built] [change: Melee 10].
 - **Silver-lined blades and a silver-tipped spear** [to build]: Blacksmithing 5 with Mining 5's silver [open #283].
 - **Poisoned blades** [to build]: coated with a poison (Potions 5).
@@ -260,8 +260,8 @@ The numbers are each weapon's block in `data/items.json` and `data/combat.json`.
 - **Work gloves** [built]: hands. One pair found, on Hollow Farm's barn rack (#268), and made at Crafting 3 (ruled 2026-10-23).
 - **Linen breeches** [built]: legs. The kit; made at the loom.
 - **Hobnail boots** [built]: feet. The kit, and made at Crafting 3 (ruled 2026-10-23).
-- **Rope belt** [built]: two belt slots. The kit only.
-- **Leather belt** [built]: four belt slots. One found, on Hollow Farm's barn rack (#268) [change: made at Crafting 3].
+- **Rope belt** [built]: three belt slots, a main-hand slot, an off-hand slot, and the utility slot (2026-10-25). The kit only.
+- **Leather belt** [built]: five belt slots, one more main-hand and one more off-hand (2026-10-25). One found, on Hollow Farm's barn rack (#268) [change: made at Crafting 3].
 - **Torn into rags** [built]: any garment, at the workbench, a dirk carried.
 - **Hiding a worn item's art** [built]: the eye on each worn slot.
 - **Dyed garments** [to build]: the dye vats (`43` section 8).
@@ -287,11 +287,15 @@ Ruled 2026-10-24 (#260): **a bag is made, never found** (Michael: "I think rucks
 
 ### 5.5 Belt items
 
-- **The belt's slots** [built]: two on the rope belt, four on the leather belt; a key per slot.
-- **Utility, no action** [built]: a torch there gives a little over half its light; [to build] a lantern there gives more.
-- **Consumables** [built]: food eaten by the key or a double-click; a waterskin sips by itself and is filled at water; [to build] potions drunk by the key.
-- **Held items** [change: the key swaps it into the hand chosen for that slot, the item's own hand by default, chosen in the slot's menu; #285]: weapons, a shield, a book; tools carried there count for the tool rule.
-- **Never on the belt** [to build, #285]: the halberd, perhaps the greatsword.
+- **The belt's slots have roles** [built] (Michael, 2026-10-25, `docs/02`): the rope belt's three are a main-hand slot, an off-hand slot, and the utility slot; the leather belt adds a main-hand and an off-hand slot. The utility slot never expands. A key per slot; each empty slot is stamped faint with its role (a hand, a pouch) and its hover card says what it is for.
+- **A main-hand slot's key** [built]: draws what is there into the main hand, swapping what the main hand held onto the slot; a two-hander into both hands, the off hand's thing to an empty off-hand slot, else the bag, else the feet; else eats a food; else does nothing and says why ("The wooden shield can't be held in your main hand.").
+- **An off-hand slot's key** [built]: the same for the off hand; a two-handed thing is refused in an off-hand slot at placement, with a line.
+- **The utility slot's key** [built]: eats a food, never equips ("You can't equip a weapon from the utility slot."); anything that goes on the belt rides there as storage, one cell whatever its size, a spare sword or a halberd.
+- **A tap on an empty hand slot** [built]: does nothing and says nothing, so a stray key in a fight never disarms you.
+- **Every key that does nothing says why** [built]; a waterskin in any slot sips by itself, and its tap says so and never drinks.
+- **Lights** [built]: a torch gives a little over half its light from any slot; a hand slot draws it, the utility slot keeps it; [to build] a lantern there gives more.
+- **The key order** [built]: the setting Belt slot order, Sequential by default (1 main, 2 off, 3 utility, the leather belt's 4 main and 5 off) or Hands grouped (1 and 2 main, 3 and 4 off, 5 utility, the rope belt's places 2 and 4 locked); a client's own, the key sent as the slot's role.
+- **Consumables** [built]: food eaten by the key or a double-click; [to build] potions drunk by the key.
 - **No left-click parity** [built as ruled]: a left press on a slot is a drag.
 - **Trinkets on the belt or a slot of their own** [open #282].
 
@@ -347,7 +351,7 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 
 ### 5.8 Potions
 
-All [to build]: brewed at a cauldron from Herbalism's herbs and secondaries; drunk from the bag or the belt.
+All [to build]: brewed at a cauldron from Herbalism's herbs and secondaries; drunk from the bag or the belt. Ruled in full as `47` (2026-10-25): clay vials, clean water, two of a main herb and one secondary, the cauldron over a lit fire, poisons put on with Use, the splash.
 
 - **Healing potion:** Potions 1 (not "minor" unless a major one is a separate item, ruled 2026-10-19); the only big heal (ruled: food heals a little, potions big).
 - **Healing potions two at a brew:** Potions 2.
@@ -411,7 +415,7 @@ The staff-and-book proposal (#275), proposed, not ruled, except the parts marked
 - **The staff is the permission** [to build]: held in either hand, the book in the other (ruled 2026-10-23: ambidextrous); decides the school; made from the school's wood and a gem (oak for fire) at Crafting 4; it degrades.
 - **A book is one spell** [to build]: held in the other hand from the staff, one at a time; left click casts; the Magic level gates which books; owning the book grants its spell, nothing to learn; a book never degrades (ruled 2026-10-23).
 - **A book in the off hand costs the shield** (ruled).
-- **A book on the belt swaps into its chosen hand** (ruled, #285).
+- **A book on the belt is drawn by its slot's role** (2026-10-25): an off-hand slot draws it into the off hand, a main-hand slot into the main hand.
 - **Utility books compete with spell books** (ruled within the proposal): Kindle, Sanctify, and the like.
 - **The Holy Symbol is Faith's permission** (ruled within the proposal): raised high, reading from the holy book.
 - **Owning a book grants its spell; a staff is one-handed; a hold of right does nothing with a book** (ruled 2026-10-23).
@@ -756,7 +760,7 @@ Later, not at the start: gems inlaid in metal armour.
 - **The cure** [to build]: mid to late game, gated by skill, and **not in the valley** (ruled 2026-10-19): found beyond it (Faith's Cure Undeath, learned in a region; a Divine Potion at Potions 10, the Abbey's (ruled 2026-10-23)). **Life Ward** against bites (Faith 3). The infection and combat difficulty are one dial (water's chance follows it, 2026-10-25, `44`).
 
 ### Mana
-- **Mana** [to build]: spells cost it; slow natural regeneration; mana potions (Potions 4); a free top-up praying at an altar (Faith 1); more mana (Faith 4); cheaper spells (Magic 2); perhaps special foods later. A mana bar [to build].
+- **Mana** [to build] (`47`: 100, one point every three seconds, the Fire Bolt 20): spells cost it; slow natural regeneration; mana potions (Potions 4); a free top-up praying at an altar (Faith 1); more mana (Faith 4); cheaper spells (Magic 2); perhaps special foods later. A mana bar [to build].
 
 ### Rot and preserving
 - **Food rots** [to build] (ruled; a pace, not world decay).
@@ -827,7 +831,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 - Drink a potion [to build]; boil water [built, #418] (Cooking 1); sanctify food and water [to build] (Faith 10).
 
 ### The belt and the bag
-- A belt slot's key does one thing [change: the hand chosen per slot, #285].
+- A belt slot's key does what its role does [built, 2026-10-25]: a hand slot draws or eats, the utility slot eats; the key order a setting.
 - Equip, unequip, Equip (main hand), Equip (off hand); put in bag; drop; pick up an item lying on the ground; drag in the grids; rotate a dragged item (R); Take All from a container; store in a container; split a log or a plank; hide a worn item's art; Use an item on an item or on the world [built].
 
 ### Gathering
@@ -890,7 +894,7 @@ Right-click is the whole interface; E the nearest simple action; an action out o
 - **The skills tab** on the character screen; a level-up's visual twin.
 - **A mana bar.**
 - **The trinket slot** [open #282].
-- **The belt slot's hand choice**, marked in its menu (#285).
+- **The belt's slots stamped with their roles**, a hand or a pouch, each with its hover card [built, 2026-10-25].
 - **The station panel lists every recipe of the station** but boss-drop ones, the unlearned greyed with what they need, so a goal is always in view (ruled 2026-10-23) [to build].
 - **Learn at a teacher** [to build]: the teacher's screen (ruled 2026-10-23).
 - **Debuffs** apart from the moodles (ruled 2026-10-19); Sick, from tainted water, a debuff (2026-10-25, `44`). **Buffs:** hearty food carries them (ruled 2026-10-19); shown in the debuff row, in gold, well fed among them, never as moodles: a moodle describes a general state and is read-only, a buff or a debuff is one specific effect, often directly interactable, as a bandage removes a bleed (ruled 2026-10-23). a mark on a food's icon on its last day, and "Spoils in N days" on its card (ruled 2026-10-23); clean or tainted water on a skin's card and a brown drop on a tainted icon (2026-10-25, `44`).
@@ -962,7 +966,6 @@ Placeholder sounds, generated or from a library [open #271]; every informative s
 - **Drops by chance** (ruled 2026-10-24, #268): each player's own roll; bad-luck protection kept on the player.
 - **The first day's curve** [open #123]: one per world.
 - **Sleep** [built]: time runs fast only while every living player is in bed.
-- **The belt's hand choice** [to build, #285]: per player, in the save, changed by a guest's command.
 - **Personal state on the player:** mana, rot on carried food, the sickness, the infection [to build].
 
 ## 15. Dev values to flip to real
@@ -1010,4 +1013,4 @@ The numbers are for tuning; this list is what must change before 1.0.
 - **#271:** placeholder sounds, generated or library, and which first.
 - **What the demo includes** of `43`'s dead ends (Michael, 2026-10-25: an open question).
 - **#281, #282, #283:** gems, trinkets, silver.
-- **#285:** the belt (to build, ruled).
+- **#285:** the belt (built as ruled 2026-10-25: the slots' roles).

@@ -127,6 +127,8 @@ export function createDevApi(ctx) {
     // The look from the console (the character screen is the real way, docs/31/09): skin, hair, hairStyle (short, long, bald), eyes.
     // Always rebakes, so an edit to figure.BODY from the console shows: __game.figure.BODY.hip = 17; __game.setLook({}).
     setLook: host("setLook", (partial) => { Object.assign(P().look, partial); ctx.refreshFigure(true); }),
+    // Right- or left-handed from the console, for the checks (the identity screen is the real way; Michael, 2026-10-25).
+    setHanded: host("setHanded", (h) => { P().handed = h === "left" ? "left" : "right"; ctx.refreshFigure(true); }),
     // The poses re-read from data/poses.json and the player rebaked (docs/32): edit the file, then __game.reloadPoses().
     async reloadPoses() {
       const json = await (await fetch("/data/poses.json", { cache: "no-store" })).json();

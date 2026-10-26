@@ -619,15 +619,6 @@ html, body {
   cursor: default;
 }
 
-/* The current choice among a menu's entries (a belt slot's hand, #285): a gold mark before it, the label's text unchanged. */
-.menu-entry.checked::before {
-  content: "\2713";
-  color: var(--gold);
-  display: inline-block;
-  width: 0;
-  margin-left: -10px;
-  margin-right: 10px;
-}
 
 .menu-entry.disabled:hover {
   background: transparent;
@@ -1956,6 +1947,24 @@ html, body {
   position: relative;
   width: calc(38px + 2 * var(--kit-well_thin-w, 3px));
   height: calc(38px + 2 * var(--kit-well_thin-w, 3px));
+}
+
+/* An empty belt slot's role, stamped faint on its grey (2026-10-25): a hand or a pouch, ui/belt-icons.js; a locked place dimmer still. */
+.hot-role {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 32px;
+  height: 32px;
+  transform: translate(-50%, -50%);
+  image-rendering: pixelated;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.hot-slot.locked {
+  opacity: 0.4;
+  filter: grayscale(1);
 }
 
 .hot-key {
