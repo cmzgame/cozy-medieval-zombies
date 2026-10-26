@@ -318,7 +318,18 @@ function takeApartAction(prop, player) {
   });
 }
 
+// Whether a prop still stands where an action found it (`tiles`, its tiles then): the registry answers its id with it, and it is on
+// those tiles and every one of them holds it. Lifted, taken apart, or carried off and set down elsewhere, it is not.
+export function stillStanding(prop, tiles = prop && prop.tiles) {
+  if (!prop || map.propById(prop.id) !== prop || !tiles || tiles.length !== prop.tiles.length) return false;
+  return tiles.every(([x, y], i) => {
+    const t = map.peekTile(x, y, prop.layer || 0);
+    return prop.tiles[i][0] === x && prop.tiles[i][1] === y && !!t && t.prop === prop;
+  });
+}
+
 function carryAction(prop, player) {
+  const at = prop.tiles.map(([x, y]) => [x, y]); // where it stood when the action was found: the walk goes there
   const free = !player.hands.main && !player.hands.off;
   const busy = !!(prop.queue && prop.queue.length); // a station mid-job stays where it is (the review of #462), as Take apart refuses it
   return act({
@@ -330,6 +341,12 @@ function carryAction(prop, player) {
     enabled: free && !player.carrying && !busy,
     perform() {
       if (player.carrying || !(!player.hands.main && !player.hands.off) || (prop.queue && prop.queue.length)) return false;
+      // Still where it stood (#341, as a rug's Pick up, #339): a walk to it (a guest's command, or a far click) that meets someone else's
+      // lift, or its Take apart, gets nothing, never a second of the same chest.
+      if (!stillStanding(prop, at)) {
+        showMessage(`The ${propName(prop)} is not there any more.`);
+        return false;
+      }
       map.removeProp(prop);
       player.carrying = prop;
       player.auto = null;

@@ -91,6 +91,28 @@ if (map.canBuildWall(px + 7, py + 5, "n")) {
 const at = [px + 4, py - 3];
 const bench = map.createProp({ sprite: "workbench", tile: at, footprint: [1, 1] });
 map.placeProp(bench, at[0], at[1]); did("a prop placed");
+// A bed across a chunk's edge (#341): the neighbour's record names its tile (`parts`), so placing and lifting it must drop that chunk's copy too.
+// The neighbour picked is one play has not changed, so its record's `dirty` and `parts` move only by the bed (markFootprint): the rows below
+// fail on a map that marks the anchor's chunk alone or records no parts.
+let edgeAt = null;
+const chunkAtTile = (x, y) => map.getChunk(Math.floor(x / map.CHUNK), Math.floor(y / map.CHUNK), false);
+for (const wantClean of [true, false]) for (let dy = -40; dy <= 40 && !edgeAt; dy++) for (let dx = -40; dx <= 40 && !edgeAt; dx++) {
+  const x = px + dx, y = py + dy;
+  if (((x % map.CHUNK) + map.CHUNK) % map.CHUNK !== map.CHUNK - 1) continue;
+  const nb = chunkAtTile(x + 1, y);
+  if (wantClean && (!nb || nb.dirty)) continue;
+  if ([0, 1].every((k) => { const t = map.peekTile(x + k, y); return t && !t.prop && !t.rug && map.isWalkableTile(x + k, y); })) edgeAt = [x, y];
+}
+if (!edgeAt) fail("no bare ground across a chunk's edge for the bed");
+const edgeNb = chunkAtTile(edgeAt[0] + 1, edgeAt[1]);
+const nbWasDirty = edgeNb.dirty;
+const nbRecord = () => game.serialize().map.chunks.find((c) => c.cx === edgeNb.cx && c.cy === edgeNb.cy);
+const edgeBed = map.createProp({ sprite: "bed", tile: edgeAt, footprint: [2, 1], facing: "x" });
+map.placeProp(edgeBed, edgeAt[0], edgeAt[1]); did("a bed placed across a chunk's edge");
+const placedRec = nbRecord();
+if (!edgeNb.dirty || !placedRec.dirty || !(placedRec.parts || []).some((q) => q[2] === edgeBed.id)) fail(`the bed's neighbour was not marked (dirty ${edgeNb.dirty}, was ${nbWasDirty}) or its saved record does not name the bed's tile (${JSON.stringify(placedRec.parts || null)})`);
+map.removeProp(edgeBed); did("a bed across a chunk's edge lifted");
+if ((nbRecord().parts || []).some((q) => q[2] === edgeBed.id)) fail("the bed's neighbour's saved record still names the lifted bed");
 // A door: opened as the interface opens it, hit short of breaking (the wire never sends that), boarded.
 if (!door) fail("the valley has no door to try");
 door.open = !door.open; map.touch(door.at[0], door.at[1]); did("a door opened");
