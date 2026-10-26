@@ -20,13 +20,13 @@ import { resolveFacing, frameName } from "./sprites.js";
 import { getItem, toolFor, aName, countName, makeEntry, hold, release, holding, heldEntry, canHold, handFor, containerGrid, rollLoot } from "./items.js";
 import { stacks as bleedStacks, clear as clearBleed } from "./bleed.js";
 import { beltDraw, dropWord, beltAction, beltRole, beltPositions, BELT_EVENTS, flameOf, NO_FLAME, skinsOf, carriedTool, toolProblem } from "./inventory.js";
-import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, equipProblem, restoreOffHand, addItem, createBag, waterContainers, canStoreIn, isContainer, containerBagOf, openedBagOf } from "./inventory.js";
+import { bagOf, beltOf, ensureBag, countAll, takeAll, findItem, detach, stow, equip, equipProblem, restoreOffHand, addItem, createBag, waterContainers, canStoreIn, isContainer, containerBagOf, openedBagOf, isBagOf } from "./inventory.js";
 import { getDef } from "./assets.js";
 import * as names from "./prop-names.js"; // a prop's name in words: its recipe's label, its definition's `name`, else its id (docs/bugs.md, 2026-10-25)
 import { canPutDown, putDownTarget, canCarry, propRect } from "./placement.js";
 import * as placement from "./placement.js";
 import * as grid from "./grid.js";
-import { autoWalk, eat, drink, wave } from "./entities/player.js";
+import { autoWalk, eat, drink, wave, wake } from "./entities/player.js";
 import * as burn from "./burn.js"; // Burn corpse (docs/43 section 7)
 import { showMessage } from "./ui/prompt.js";
 import { pokeVillager, startTalk, endTalk } from "./entities/villager.js";
@@ -175,10 +175,12 @@ export function containerAt(player, a) {
   }
   // A container item inside another container (Michael, 2026-10-26: a satchel or a belt in a chest or on a body opens where it lies): the item
   // by its uid within the container that holds it, its tiles that container's, so it closes with it and its reach is its.
+  // Never inside the player's own bag (a container there is always empty, the container rule; the review of #508: a crafted command filled one),
+  // and one level only. A bag opened so is take-only (inventory.takeOnlyView), as a belt's slots are.
   if (a.entryUid && a.within) {
-    const outer = a.within.within ? null : containerAt(player, a.within); // one level: a container in a container
+    const outer = a.within.within || a.within.mine ? null : containerAt(player, a.within);
     const e = outer && outer.bag.items.find((q) => q.uid === a.entryUid);
-    const bag = e ? containerBagOf(e) : null;
+    const bag = e ? containerBagOf(e, true) : null;
     return bag ? { bag, corpse: null, tiles: outer.tiles, outer } : null;
   }
   if (a.entryUid && a.tile) {
@@ -225,15 +227,14 @@ export function addressOfBag(player, bag) {
         if (p.bag) outers.push([{ propId: p.id }, p.bag]);
       }
       for (const e of map.itemsAt(x, y)) {
-        const b = openedBagOf(e);
-        if (!b) continue;
-        if (b === bag) return { entryUid: e.uid, tile: [x, y] };
+        if (!openedBagOf(e)) continue;
+        if (isBagOf(e, bag)) return { entryUid: e.uid, tile: [x, y] };
         if (e.bag) outers.push([{ entryUid: e.uid, tile: [x, y] }, e.bag]);
       }
     }
   }
   for (const [address, outer] of outers) {
-    for (const e of outer.items) if (openedBagOf(e) === bag) return { entryUid: e.uid, within: address };
+    for (const e of outer.items) if (isBagOf(e, bag)) return { entryUid: e.uid, within: address };
   }
   return null;
 }
@@ -242,10 +243,11 @@ export function addressOfBag(player, bag) {
 // view) opens as a container panel, Take All with it; a guest is told by the item's uid within the outer container's address (host.js `within`).
 function openWithin(player, entry, outerBag) {
   const within = addressOfBag(player, outerBag);
-  if (!within || within.mine) return false;
+  if (!within || within.mine || within.within) return false; // never in my own bag, never two levels deep: refused before anything is made
   const outer = containerAt(player, within);
-  const bag = containerBagOf(entry);
-  if (!outer || !bag) return false;
+  if (!outer || !outer.bag.items.includes(entry)) return false;
+  const bag = containerBagOf(entry, true); // take-only, as a belt's slots are (the review of #508)
+  if (!bag) return false;
   for (const [tx, ty] of outer.tiles) map.touch(tx, ty); // a bag's grid made on first use travels with what holds it
   const address = { entryUid: entry.uid, within };
   emit("containerOpened", { bag, tiles: outer.tiles, name: getItem(entry.id).name.toLowerCase(), entry, within, address });
@@ -1595,6 +1597,20 @@ export function queueWave() {
   waveQueued = true;
 }
 
+// Waking early (Michael, 2026-10-26: "any key or click wakes you early, with the fade back in"): while this client's player sleeps, any key or
+// click is a key event `wake` in its next snapshot, performed by the world's step (updateInteract), so a guest wakes on the host the same way.
+// A press counts only once this client has seen its player asleep a whole step, so the click that chose Sleep never wakes it. This client's
+// own input tracking, as the wave's queue is, never world state.
+let asleepSteps = 0;
+export function wakeEvents(me) {
+  if (!me || !me.sleeping || me.dead) {
+    asleepSteps = 0;
+    return null;
+  }
+  asleepSteps++;
+  return asleepSteps > 1 && input.anyPressed() ? { wake: true } : null;
+}
+
 export function keyEvents(dt) {
   const ev = {};
   track(keyE, dt, null, () => { ev.eTap = true; }); // no hold of E: a long press is a tap on its release
@@ -1611,6 +1627,11 @@ export function keyEvents(dt) {
 // player's own client's (keyEvents), handed in by the step with its snapshot.
 export function updateInteract(player, dt, keys) {
   if (!keys) return;
+  // A sleeper woken early by its own key or click (wakeEvents): it gets up, and that press does nothing else.
+  if (player.sleeping) {
+    if (keys.wake) wake(player);
+    return;
+  }
   // The belt (docs/11; the slots' roles, Michael 2026-10-25): a hand slot draws into its hand or eats, the utility slot eats, by the slot's
   // role in the key's event. Moved from main.js into the world's step (item 4), so a guest's press reaches its body.
   for (let i = 0; i < BELT_EVENTS.length; i++) if (keys[BELT_EVENTS[i]]) beltPress(player, i);
@@ -1726,7 +1747,8 @@ export function itemMenu(player, entry, bag, otherBag) {
   // Use: pick the thing up as what you are about to use on something (docs/30, law 2; Michael, 2026-10-12).
   out.push({ label: "Use", enabled: true, onSelect: () => use.begin(entry, { kind: "bag", bag }) });
   // A container item in a chest or on a body opens where it lies, with Take All (Michael, 2026-10-26, The playtest's rulings); in your own bag a
-  // container is always empty (the container rule), so it has nothing to open.
+  // container is always empty (the container rule), so it has nothing to open. A container opened inside another is a take-only view (a belt's
+  // slots, a nested bag), so nothing in it offers Open: never two levels deep (the review of #508).
   if (isContainer(entry) && !mine && !bag.takeOnly) out.push({ label: `Open ${def.name.toLowerCase()}`, enabled: true, onSelect: () => { if (!openWithin(player, entry, bag)) showMessage("You cannot open that from here."); } });
   // A rug is laid from the bag: Place begins the ghost on the floor (placement.js; #327).
   if (def.rug && mine) out.push({ label: "Place", enabled: true, onSelect: () => placement.beginRug(entry) });

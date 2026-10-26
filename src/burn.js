@@ -17,7 +17,7 @@ import { beltOf, carriedEntry as carried, flameOf, countAll, takeAll } from "./i
 import { getItem, aName } from "./items.js";
 import { burnZombie } from "./entities/zombie.js";
 import { reachProblem } from "./reach.js"; // one reach test, distance and a clear line (#208)
-import { work as WK } from "./tuning.js"; // Burn corpse's flame, fuel, and hours (docs/43 section 7)
+import { work as WK } from "./tuning.js"; // Burn corpse's flame, hours, and bar (docs/43 section 7; no fuel since 2026-10-26)
 
 export const BURN = { dps: 0.8, duration: 10, cap: 10 };
 
@@ -75,12 +75,15 @@ export function isBurnableBody(c) {
   return !!c && c.kind === "zombie" && c.dead && c.corpse;
 }
 
-// What a player lacks to burn a body, as the menu's reason, or null: a tinderbox carried anywhere on them, or, for a Use, the lit torch used
-// (`uid`, the entry the Use mode picked up: a torch must be lit).
+// What a player lacks to burn a body, as the menu's reason, or null: a tinderbox carried anywhere on them or a lit torch in a hand (Michael,
+// 2026-10-26: "the menu's Burn corpse works with a lit torch in hand too"), or, for a Use, the lit torch used (`uid`, the entry the Use mode
+// picked up: a torch must be lit).
+const litTorchHeld = (player) => ["main", "off"].some((k) => { const e = player.hands && player.hands[k]; return !!e && e.id === "torch" && !!e.lit; });
 export function burnNeed(player, uid = null) {
   const used = uid != null ? carried(player, uid) : null;
   if (used && used.id === "torch") return used.lit ? null : "a lit torch";
-  return countAll(player, WK.burnCorpse.flame) > 0 ? null : article(itemName(WK.burnCorpse.flame));
+  if (countAll(player, WK.burnCorpse.flame) > 0 || litTorchHeld(player)) return null;
+  return `${article(itemName(WK.burnCorpse.flame))} or a lit torch`;
 }
 
 // Set a body alight to burn away. Returns whether it is burning now.
@@ -107,7 +110,7 @@ export function burnCard(player = null) {
     state: need ? `needs ${need}` : "",
     lines: [
       [{ t: "Burns the body and everything in it.", k: "warn" }],
-      [{ t: `Needs ${article(itemName(WK.burnCorpse.flame))} carried; nothing is spent.` }],
+      [{ t: `Needs ${article(itemName(WK.burnCorpse.flame))} carried or a lit torch in hand; nothing is spent.` }],
       [{ t: "Use", k: "use" }, { t: " a lit torch on the body to burn it too." }],
       [{ t: `It burns about ${WK.burnCorpse.hours === 1 ? "a game hour" : `${WK.burnCorpse.hours} game hours`}, giving light.` }],
     ],

@@ -16,8 +16,11 @@
 // beside it, and a leather belt on the ground holding a sword and pemmican, and puts the host's own player asleep (its bed by id, tired) beside
 // them, and returns `kept`; on the guest `await __game.check("features1", { guest: <kept> })` pours the bucket into its skin by the Use mode's
 // sender, burns the body with its torch by Use, opens the belt on the ground by its label and takes all from it by its panel's command, drops its
-// pemmican on its belt stack by a slot command, and reads the "Zz" over the sleeping host; then `await __game.check("sync")` on the host, and
-// `await __game.check("features1", { stop: true })` there puts everything back.
+// pemmican on its belt stack by a slot command, opens a second belt and takes all from it, takes the sword alone from the first and leaves its
+// panel open (a partial take, the review of #508), and reads the "Zz" over the sleeping host; then on the host
+// `await __game.check("features1", { sleepOthers: true })` gets me up and puts every other player to bed, and on the guest
+// `await __game.check("features1", { wake: true })` sees its screen go black and wakes by a key (Michael, 2026-10-26: "any key or click wakes
+// you early"); then `await __game.check("sync")` on the host, and `await __game.check("features1", { stop: true })` there puts everything back.
 
 const keptBack = { players: [], bodies: [], items: [], host: null };
 
@@ -49,6 +52,8 @@ export async function run(game, opts = {}) {
       p.hands.main = k.hands.main;
       p.hands.off = k.hands.off;
       p.gx = k.at[0]; p.gy = k.at[1]; p.auto = null;
+      p.sleeping = null; // put to bed by { sleepOthers: true }
+      p.tired = k.tired;
       put.push(p.id);
     }
     for (const z of keptBack.bodies.splice(0)) {
@@ -58,9 +63,60 @@ export async function run(game, opts = {}) {
     if (keptBack.host) {
       me.sleeping = null;
       me.tired = keptBack.host.tired;
+      G.teleport(keptBack.host.at[0], keptBack.host.at[1]); // where { keep: true } found me
       keptBack.host = null;
     }
-    row("the other players' bags, belts, hands, and places put back, the body and the belt on the ground taken away, and I am awake", true, put.join(", ") || "nobody kept");
+    row("the other players' bags, belts, hands, places, and needs put back, awake, the body and the belts on the ground taken away, and I am awake where I was", true, put.join(", ") || "nobody kept");
+    return done();
+  }
+
+  // ---- two tabs, after the guest's first half: I get up, and every other player is put to bed, for the guest to wake by a key ----
+  if (opts.sleepOthers) {
+    let bed = null;
+    for (const pr of G.map.allProps()) if (G.assets.getDef(pr.sprite).sleep) { bed = pr; break; }
+    const playerMod = await import("/src/entities/player.js");
+    if (me.sleeping) playerMod.wake(me);
+    const others = G.game.state.players.filter((p) => p !== me);
+    for (const p of others) {
+      p.tired = 5; // not rested: asleep until woken
+      p.sleeping = { bed: bed.id, since: G.loop.simTime(), hour: G.clock.getHour() };
+    }
+    row("I am up and every other player is asleep (its bed by id, tired), the world at 1 while I am awake", !me.sleeping && others.length > 0 && others.every((p) => p.sleeping) && G.game.timeScaleNow() === 1, `${others.map((p) => p.id).join(", ")}; scale ${G.game.timeScaleNow()}`);
+    return done();
+  }
+
+  // ---- a guest put to bed: any key wakes it on the host, and its screen's fade comes back in ----
+  if (opts.wake) {
+    const sleepFade = await import("/src/ui/sleep-fade.js");
+    const wasPaused = G.loop.isPaused();
+    G.loop.setPaused(true);
+    const screenG = G.screens.currentScreen();
+    if (screenG) G.screens.hide();
+    const pump = async (until, ms = 15000) => {
+      const t0 = performance.now();
+      let last = t0;
+      while (!until() && performance.now() - t0 < ms) {
+        await yieldOnce();
+        if (performance.now() - last >= 1000 / 60) { last = performance.now(); G.loop.advance(1 / 60); }
+      }
+      return until();
+    };
+    try {
+      const asleep = await pump(() => !!G.player.sleeping, 10000);
+      sleepFade.update(G.player);
+      const dark = sleepFade.state();
+      for (let i = 0; i < 3; i++) G.loop.advance(1 / 60); // seen asleep a few steps: the press that put me to bed never wakes me
+      G.input.tap("KeyX"); // any key
+      const woke = await pump(() => !G.player.sleeping, 10000);
+      sleepFade.update(G.player);
+      const light = sleepFade.state();
+      row("on a guest put to bed by the host: my screen fades to black, any key wakes me on the host (a key event in my snapshot), and the fade comes back in", asleep && dark.on && woke && !light.on, `asleep ${asleep}, dark ${dark.on}; woke ${woke}, fade ${light.on}`);
+    } catch (e) {
+      rows.push({ check: "ran to the end", result: "FAIL", detail: e && e.stack ? e.stack.split("\n").slice(0, 3).join(" | ") : String(e) });
+    } finally {
+      if (screenG) G.screens.show(screenG);
+      G.loop.setPaused(wasPaused);
+    }
     return done();
   }
 
@@ -113,17 +169,34 @@ export async function run(game, opts = {}) {
           row("on a guest my pemmican dropped on my belt's stack of 12 fills it to 20 on the host, 7 staying in my bag", filled && !!rest && rest.count === 7, `slot ${(G.inventory.beltOf(me) || [])[2] ? G.inventory.beltOf(me)[2].count : "-"}, bag ${rest ? rest.count : "-"}`);
         }
       }
-      if (groundBelt()) {
-        const name = G.items.getItem("good_belt").name.toLowerCase();
-        const labels = G.interact.actionsForTarget({ kind: "item", tile: kept.belt.tile, uid: kept.belt.uid }, me).map((a) => a.label);
-        G.net.sendAct({ kind: "item", tile: kept.belt.tile, uid: kept.belt.uid }, `Open ${name}`);
-        const up = await pump(() => !!G.openBag && !!G.openBag.bag && G.openBag.bag.takeOnly && G.openBag.bag.items.length === 2);
-        row("on a guest the belt on the ground offers Open, sent by its label: the host opens it for me, its slots a panel on my replica", labels.includes(`Open ${name}`) && up && G.openBag.address && G.openBag.address.entryUid === kept.belt.uid, `${labels.join(", ")}; open ${!!G.openBag} ${G.openBag ? JSON.stringify(G.openBag.address) : ""}`);
+      const name = G.items.getItem("good_belt").name.toLowerCase();
+      const beltAt = (b) => G.map.itemsAt(b.tile[0], b.tile[1]).find((e) => e.uid === b.uid);
+      const openBelt = async (b) => {
+        G.net.sendAct({ kind: "item", tile: b.tile, uid: b.uid }, `Open ${name}`);
+        return pump(() => !!G.openBag && !!G.openBag.bag && G.openBag.bag.takeOnly && G.openBag.address && G.openBag.address.entryUid === b.uid && G.openBag.bag.items.length === 2);
+      };
+      // The second belt: opened by its label and emptied by Take All.
+      if (kept.belt2 && beltAt(kept.belt2)) {
+        const labels = G.interact.actionsForTarget({ kind: "item", tile: kept.belt2.tile, uid: kept.belt2.uid }, me).map((a) => a.label);
+        const up = await openBelt(kept.belt2);
+        row("on a guest a belt on the ground offers Open, sent by its label: the host opens it for me, its slots a panel on my replica", labels.includes(`Open ${name}`) && up, `${labels.join(", ")}; open ${!!G.openBag} ${G.openBag ? JSON.stringify(G.openBag.address) : ""}`);
         if (up) {
           G.handlers.takeAll(G.openBag.bag); // the panel's Take All, the command by the open container's address
-          const took = await pump(() => { const b = groundBelt(); return !!b && b.slots.every((s) => !s) && !!find("sword"); });
-          row("on a guest Take All on the belt's panel empties the belt on the ground into my bag, by its address on the host", took, (() => { const b = groundBelt(); return `slots ${b ? JSON.stringify(b.slots.map((s) => s && s.id)) : "-"}; sword in my bag ${!!find("sword")}`; })());
+          const took = await pump(() => { const b = beltAt(kept.belt2); return !!b && b.slots.every((s) => !s) && !!find("knife") && !!find("bread"); });
+          row("on a guest Take All on the belt's panel empties the belt on the ground into my bag, by its address on the host", took, (() => { const b = beltAt(kept.belt2); return `slots ${b ? JSON.stringify(b.slots.map((s) => s && s.id)) : "-"}; knife ${!!find("knife")}, bread ${!!find("bread")}`; })());
         }
+      }
+      // The first: a partial take (the review of #508), the sword alone dragged out by the panel's command, the pemmican left in slot 2 and the
+      // panel left open, so the replica lays the view out afresh from the host's chunk; `check("sync")` after shows the two agree.
+      if (groundBelt()) {
+        const up = await openBelt(kept.belt);
+        const sword = up ? G.openBag.bag.items.find((e) => e.id === "sword") : null;
+        const spot = sword ? G.grid.findSpot(bag(), "sword") : null;
+        if (sword && spot) G.handlers.moveInGrid(sword, G.openBag.bag, bag(), spot.x, spot.y, spot.rot);
+        const took = await pump(() => { const b = groundBelt(); return !!b && !b.slots[0] && !!b.slots[2] && !!find("sword"); });
+        const b = groundBelt();
+        const pem = b && b.slots[2];
+        row("on a guest the sword alone dragged out of the open belt's panel: in my bag, the belt keeping its pemmican in slot 2 at the place its slot gives it, the panel still open", up && took && !!pem && pem.x === 2 * G.items.allItems().reduce((w, d) => (d.hands || d.kind === "food" || d.capacity || d.belt === true ? Math.max(w, (d.size || [1, 1])[0]) : w), 1) && !!G.openBag && G.openBag.bag.items.length === 1, `slots ${b ? JSON.stringify(b.slots.map((s) => s && `${s.id}@${s.x}`)) : "-"}; sword ${!!find("sword")}; open ${!!G.openBag}`);
       }
       // The host asleep: a "Zz" over it on my screen, from its record's `sleeping`; never a line in the log.
       const host = G.game.state.players.find((p) => p.id === kept.host);
@@ -278,7 +351,7 @@ export async function run(game, opts = {}) {
         const gold = hc.querySelector(".hc-use");
         const goldOk = !!gold && getComputedStyle(gold).color !== getComputedStyle(hc).color;
         G.menu.closeContextMenu();
-        row("its card on the page: the warning first, \"Needs a tinderbox carried; nothing is spent.\", and \"Use a lit torch on the body to burn it too.\" with Use in gold", lines[0] === "Burns the body and everything in it." && lines.includes("Needs a tinderbox carried; nothing is spent.") && lines.includes("Use a lit torch on the body to burn it too.") && goldOk && !lines.some((l) => /log/.test(l)), `${lines.join(" | ")}; Use ${gold ? getComputedStyle(gold).color : "none"}`);
+        row("its card on the page: the warning first, \"Needs a tinderbox carried or a lit torch in hand; nothing is spent.\", and \"Use a lit torch on the body to burn it too.\" with Use in gold", lines[0] === "Burns the body and everything in it." && lines.includes("Needs a tinderbox carried or a lit torch in hand; nothing is spent.") && lines.includes("Use a lit torch on the body to burn it too.") && goldOk && !lines.some((l) => /log/.test(l)), `${lines.join(" | ")}; Use ${gold ? getComputedStyle(gold).color : "none"}`);
       }
       G.interact.performByLabel(me, addr, "Burn corpse");
       step(Math.ceil(WB.seconds * 60) + 3);
@@ -296,6 +369,20 @@ export async function run(game, opts = {}) {
       use.apply({ kind: "character", ch: body2 }, me);
       const lit = log.lines().slice(n0).join(" / ");
       row("Use an unlit torch on a body: \"The torch is not lit.\"; a lit one burns it, the torch kept and still lit", unlit === "The torch is not lit." && body2.cremate && body2.burning && me.hands.main === torch && torch.lit && /The body catches/.test(lit), `unlit "${unlit}"; lit "${lit}"; cremate ${body2.cremate}`);
+      // The menu's Burn corpse with a lit torch in hand and no tinderbox (Michael, 2026-10-26: "the menu's Burn corpse works with a lit torch in
+      // hand too"), greyed only with neither.
+      const body3 = lay(ox + 1, oy - 1);
+      const addr3 = { kind: "character", id: body3.id };
+      const burnLabel = () => { const a = G.interact.actionsForTarget(addr3, me).find((q) => /^Burn corpse/.test(q.label || "")); return a ? `${a.label}${a.enabled === false ? " (greyed)" : ""}` : "none"; };
+      torch.lit = false;
+      const neither = burnLabel();
+      torch.lit = true;
+      const withTorch = burnLabel();
+      G.interact.performByLabel(me, addr3, "Burn corpse");
+      step(Math.ceil(WB.seconds * 60) + 3);
+      row("the menu's Burn corpse with a lit torch in hand and no tinderbox: offered and done, the torch kept lit; with an unlit torch and no tinderbox, greyed \"(need a tinderbox or a lit torch)\"", G.inventory.countAll(me, "tinderbox") === 0 && neither === "Burn corpse (need a tinderbox or a lit torch) (greyed)" && withTorch === "Burn corpse" && body3.cremate && me.hands.main === torch && torch.lit, `${neither}; ${withTorch}; cremate ${body3.cremate}`);
+      body3.burning = false;
+      body3.cremate = false;
       me.hands.main = null;
       const t2 = mk("torch");
       G.grid.insert(bag, t2);
@@ -325,14 +412,32 @@ export async function run(game, opts = {}) {
         const want = G.game.everyoneAsleep() ? 20 : 1; // with a friend awake the world keeps its pace (Michael, 2026-10-13)
         // The fade: the page's own CSS transition, read whether or not the pane draws frames (a hidden pane's clock stands still): its
         // seconds, and the opacity it ends at once played out.
-        const settle = async () => { await wait(1150); const s = sleepFade.state(); const fading = s.fading; if (s.transition) s.transition.finish(); return { ...sleepFade.state(), fading }; };
+        // Read at once after the toggle, so the transition is found whether or not the pane draws frames (it fails when there is none), then
+        // played out to read where it ends.
+        const settle = () => { const s = sleepFade.state(); const fading = s.fading; if (s.transition) s.transition.finish(); return { ...sleepFade.state(), fading }; };
         sleepFade.update(me);
-        const dark = await settle();
-        row("asleep in the bed I stand beside it (never on it), the world at 20 (alone; at 1 with a friend awake), and my screen fades to black over about a second", r.ok && !!me.sleeping && !onBed && Math.abs(me.gx - stand[0]) < 0.01 && scale === want && (G.game.state.players.length > 1 || scale === 20) && dark.on && (dark.fading === 1 || dark.fading === 0) && dark.opacity > 0.99, `${r.ok ? "asleep" : r.reason}; at ${me.gx},${me.gy} beside ${bed.tile}; scale ${scale}; fade on ${dark.on}, ${dark.fading ? `a ${dark.fading} s transition` : "played out"}, opacity ${dark.opacity}`);
-        playerMod.wake(me);
+        const dark = settle();
+        row("asleep in the bed I stand beside it (never on it), the world at 20 (alone; at 1 with a friend awake), and my screen fades to black over a 1 s transition", r.ok && !!me.sleeping && !onBed && Math.abs(me.gx - stand[0]) < 0.01 && scale === want && (G.game.state.players.length > 1 || scale === 20) && dark.on && dark.fading === G.tuning.feel.sleepFadeSeconds && dark.opacity > 0.99, `${r.ok ? "asleep" : r.reason}; at ${me.gx},${me.gy} beside ${bed.tile}; scale ${scale}; fade on ${dark.on}, transition ${dark.fading} s, opacity ${dark.opacity}`);
+        // Waking early (Michael, 2026-10-26): any key or click, a key event in my snapshot performed by the world's step; never the press that put
+        // me to bed (a press counts once my client has seen me asleep a step).
+        G.input.tap("KeyX");
+        step();
+        const keptAsleep = !!me.sleeping;
+        step(2);
+        G.input.tap("KeyX");
+        step();
+        const wokeByKey = !me.sleeping;
         sleepFade.update(me);
-        const light = await settle();
-        row("woken, the screen fades back in over about a second, and the world runs at 1", !me.sleeping && !light.on && (light.fading === 1 || light.fading === 0) && light.opacity < 0.01 && G.game.timeScaleNow() === 1, `fade on ${light.on}, ${light.fading ? `a ${light.fading} s transition` : "played out"}, opacity ${light.opacity}; scale ${G.game.timeScaleNow()}`);
+        const light = settle();
+        row("a key pressed in the first step asleep does not wake me; any key after does, on the world's step, the screen fading back in over 1 s and the world at 1", keptAsleep && wokeByKey && !light.on && light.fading === G.tuning.feel.sleepFadeSeconds && light.opacity < 0.01 && G.game.timeScaleNow() === 1, `first step ${keptAsleep ? "asleep" : "woke"}; then ${wokeByKey ? "woke" : "asleep"}; fade on ${light.on}, transition ${light.fading} s, opacity ${light.opacity}; scale ${G.game.timeScaleNow()}`);
+        me.tired = 10;
+        const r2 = G.verbs.run("sleep", G.world, me, { prop: bed.id });
+        step(3);
+        document.getElementById("ui").dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, clientX: 5, clientY: 5 }));
+        step();
+        row("asleep again, a click anywhere on the page wakes me too", r2.ok && !me.sleeping, `${r2.ok ? "slept" : r2.reason}; ${me.sleeping ? "still asleep" : "woke"}`);
+        if (me.sleeping) playerMod.wake(me);
+        sleepFade.update(me);
         const dur = getComputedStyle(document.getElementById("sleep-fade")).transitionDuration;
         row("the fade's length on the page is the lever's, feel.sleepFadeSeconds", dur === `${G.tuning.feel.sleepFadeSeconds}s`, dur);
         me.tired = needs0.tired;
@@ -406,7 +511,14 @@ export async function run(game, opts = {}) {
       const col2 = document.querySelector(".container-wrap .inv-column");
       const title2 = col2 ? (col2.querySelector(".inv-header") || col2).textContent : "";
       const blocks2 = document.querySelectorAll('.container-wrap .inv-item[data-bag="container"]').length;
-      row("a linen satchel holding things in an open chest has Open on its menu there, which opens its grid as the container panel", chestOpen && !!sOpen && !!G.openBag && G.openBag.bag === sat.bag && G.openBag.address && G.openBag.address.within && G.openBag.address.within.propId === chest.id && /Linen satchel/.test(title2) && blocks2 === 2, `chest open ${chestOpen}; ${sOpen ? sOpen.label : "no Open"}; ${G.openBag ? JSON.stringify(G.openBag.address) : "nothing open"}; "${title2.trim().slice(0, 40)}", ${blocks2} blocks`);
+      // Take-only (Primary's reading on the review of #508): an apple dropped into it from my bag stays in my bag.
+      const apple2 = mk("apple");
+      G.grid.insert(bag, apple2);
+      if (G.openBag) G.handlers.moveInGrid(apple2, bag, G.openBag.bag, 0, 0, false);
+      const refusedIn = bag.items.includes(apple2) && sat.bag.items.length === 2;
+      G.grid.remove(bag, apple2);
+      row("the satchel opened inside the chest is take-only: an apple dragged into it stays in my bag, and nothing in it offers Open", refusedIn && !!G.openBag && G.openBag.bag.takeOnly && !G.handlers.itemMenu(mk("small_sack"), G.openBag.bag, bag).some((m) => /^Open/.test(m.label)), `stayed ${refusedIn}; take-only ${!!(G.openBag && G.openBag.bag.takeOnly)}`);
+      row("a linen satchel holding things in an open chest has Open on its menu there, which opens its grid as the container panel", chestOpen && !!sOpen && !!G.openBag && G.openBag.bag.items === sat.bag.items && G.openBag.address && G.openBag.address.within && G.openBag.address.within.propId === chest.id && /Linen satchel/.test(title2) && blocks2 === 2, `chest open ${chestOpen}; ${sOpen ? sOpen.label : "no Open"}; ${G.openBag ? JSON.stringify(G.openBag.address) : "nothing open"}; "${title2.trim().slice(0, 40)}", ${blocks2} blocks`);
       document.querySelector(".container-wrap [data-takeall]").dispatchEvent(new MouseEvent("click", { bubbles: true }));
       step();
       row("its Take All empties the satchel where it lies into my bag, the satchel still in the chest", sat.bag.items.length === 0 && G.inventory.countAll(me, "bread") === 1 && G.inventory.countAll(me, "apple") === 1 && cBag.items.includes(sat), `left ${sat.bag.items.length}; bread ${G.inventory.countAll(me, "bread")}, apple ${G.inventory.countAll(me, "apple")}`);
@@ -473,11 +585,20 @@ export async function run(game, opts = {}) {
       G.inventory.ensureSlots(gBelt);
       gBelt.slots[0] = mk("sword");
       gBelt.slots[2] = mk("pemmican", 3);
-      if (others.length) { G.map.dropItem(ox - 1, oy + 3, gBelt); keptBack.items.push([ox - 1, oy + 3, gBelt]); }
+      const gBelt2 = mk("good_belt"); // the second, for the guest's Take All; the first for its partial take
+      G.inventory.ensureSlots(gBelt2);
+      gBelt2.slots[0] = mk("knife");
+      gBelt2.slots[2] = mk("bread");
+      if (others.length) {
+        G.map.dropItem(ox - 1, oy + 3, gBelt);
+        keptBack.items.push([ox - 1, oy + 3, gBelt]);
+        G.map.dropItem(ox + 1, oy + 4, gBelt2);
+        keptBack.items.push([ox + 1, oy + 4, gBelt2]);
+      }
       for (const p of others) {
         const b = G.inventory.bagOf(p);
         const bl = G.inventory.beltOf(p);
-        keptBack.players.push({ id: p.id, bag: b ? b.items.slice() : null, belt: bl ? bl.slice() : null, hands: { main: p.hands.main, off: p.hands.off }, at: [p.gx, p.gy] });
+        keptBack.players.push({ id: p.id, bag: b ? b.items.slice() : null, belt: bl ? bl.slice() : null, hands: { main: p.hands.main, off: p.hands.off }, at: [p.gx, p.gy], tired: p.tired });
         if (!b) continue;
         b.items.length = 0;
         G.grid.insert(b, mk("bucket", 1, { fill: G.items.getItem("bucket").vessel.capacity, clean: true }));
@@ -493,11 +614,11 @@ export async function run(game, opts = {}) {
         p.auto = null;
       }
       if (bed && others.length) {
-        keptBack.host = { tired: me.tired };
+        keptBack.host = { tired: needs0.tired, at: at0 };
         me.tired = 5; // not rested: asleep until { stop: true }
         me.sleeping = { bed: bed.id, since: G.loop.simTime(), hour: G.clock.getHour() };
       }
-      kept = others.length && body ? { players: others.map((p) => p.id), body: body.id, belt: { uid: gBelt.uid, tile: [ox - 1, oy + 3] }, host: me.id } : null;
+      kept = others.length && body ? { players: others.map((p) => p.id), body: body.id, belt: { uid: gBelt.uid, tile: [ox - 1, oy + 3] }, belt2: { uid: gBelt2.uid, tile: [ox + 1, oy + 4] }, host: me.id } : null;
       row("kept for the guest: every other player with a clean bucket, an empty skin, a lit torch, pemmican on its belt and in its bag, beside a body and a belt on the ground, and me asleep; { stop: true } puts it back", !!kept && !!me.sleeping, kept ? JSON.stringify(kept) : "no other player");
     }
   } catch (e) {

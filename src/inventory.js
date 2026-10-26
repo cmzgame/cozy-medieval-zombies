@@ -3,7 +3,7 @@
 // worn on the back, the hotbar is the belt worn at the waist, and an entry is
 // in exactly one place. Placement rules live in grid.js.
 
-import { getItem, toolFor, aName, release, canHold, hold, handFor, dualWord } from "./items.js";
+import { getItem, allItems, toolFor, aName, release, canHold, hold, handFor, dualWord } from "./items.js";
 import * as grid from "./grid.js";
 
 export const WORN_SLOTS = ["head", "chest", "hands", "legs", "feet", "waist", "back"];
@@ -58,6 +58,14 @@ class SlotItems extends Array {
   }
 }
 const slotViews = new WeakMap(); // belt entry -> its view
+// A slot's column in the view: every slot as wide as the widest thing a belt slot can hold (a hand item, a food, a skin, a thing that rides the
+// belt), so an entry's place is its slot index alone and a view laid out afresh (a guest's replica, from a chunk the host sent) puts every
+// entry where the host's put it (the review of #508: packed by what was left, a partial take moved the rest on a replica and split the map).
+function slotColumn() {
+  let w = 1;
+  for (const d of allItems()) if (d.hands || d.kind === "food" || d.capacity || d.belt === true) w = Math.max(w, (d.size || [1, 1])[0]);
+  return w;
+}
 export function slotsView(entry) {
   const slots = ensureSlots(entry);
   if (!slots) return null;
@@ -66,27 +74,41 @@ export function slotsView(entry) {
   if (had && had.items.length === live.length && live.every((e) => had.items.includes(e))) return had;
   const items = new SlotItems();
   Object.defineProperty(items, "slots", { value: slots, enumerable: false });
-  let x = 0;
+  const col = slotColumn();
   let rows = 1;
-  for (const e of live) {
-    const [w, h] = getItem(e.id).size || [1, 1];
-    e.x = x;
+  slots.forEach((e, i) => {
+    if (!e) return;
+    e.x = i * col;
     e.y = 0;
     e.rot = false;
-    x += w;
-    rows = Math.max(rows, h);
+    rows = Math.max(rows, (getItem(e.id).size || [1, 1])[1]);
     items.push(e);
-  }
-  const view = { cols: Math.max(x, slots.length), rows, items, container: getItem(entry.id).name.toLowerCase(), takeOnly: true };
+  });
+  const view = { cols: slots.length * col, rows, items, container: getItem(entry.id).name.toLowerCase(), takeOnly: true };
   slotViews.set(entry, view);
   return view;
 }
 
-// The grid a container item opens as, wherever it lies: a bag's own, a belt's view of its slots; null for anything else.
-export function containerBagOf(entry) {
+// A bag inside another container (a satchel in a chest, a rucksack on the floor, a body) opens take-only (Primary's reading on the review of
+// #508, Michael's to overrule: "Open ... with Take All, as a body has"): a view sharing the bag's own list of items, so what is taken leaves the
+// bag itself, and nothing goes in, so no full bag is ever carried inside a worn one. Kept per entry while its grid is the same object.
+const bagViews = new WeakMap(); // bag entry -> { of: its grid, view }
+export function takeOnlyView(entry) {
+  const bag = ensureBag(entry);
+  if (!bag) return null;
+  const had = bagViews.get(entry);
+  if (had && had.of === bag) return had.view;
+  const view = { cols: bag.cols, rows: bag.rows, items: bag.items, container: bag.container, takeOnly: true };
+  bagViews.set(entry, { of: bag, view });
+  return view;
+}
+
+// The grid a container item opens as, wherever it lies: a bag's own (take-only when it lies in another container, `nested`), a belt's view of
+// its slots; null for anything else.
+export function containerBagOf(entry, nested = false) {
   const def = entry && getItem(entry.id);
   if (!def) return null;
-  if (def.bag) return ensureBag(entry);
+  if (def.bag) return nested ? takeOnlyView(entry) : ensureBag(entry);
   if (def.beltSlots) return slotsView(entry);
   return null;
 }
@@ -94,7 +116,14 @@ export function containerBagOf(entry) {
 // The view or grid an entry already has, made by nothing (a hit test: which container is this bag?).
 export function openedBagOf(entry) {
   if (!entry) return null;
-  return entry.bag || slotViews.get(entry) || null;
+  const v = bagViews.get(entry);
+  return (v && v.of === entry.bag ? v.view : null) || entry.bag || slotViews.get(entry) || null;
+}
+// Whether a grid is this entry's, its own or a view of it.
+export function isBagOf(entry, bag) {
+  if (!entry || !bag) return false;
+  const v = bagViews.get(entry);
+  return bag === entry.bag || (!!v && v.view === bag) || slotViews.get(entry) === bag;
 }
 
 // The grid of the bag on the player's back, or null.

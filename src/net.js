@@ -147,7 +147,7 @@ export function makeCode() {
 // poisoned body green, kept a poison it was once sent for ever, and knew neither arrow.
 // 21 (2026-10-26, the playtest's features, #506): the `opened` message may name a container item inside another container (`within`, the outer
 // container's address, with the item's `entryUid`), and a belt's slots open as a container (inventory.slotsView); an older guest found no grid
-// for either and opened nothing.
+// for either and opened nothing. A guest's snapshot may carry the key event `wake` (any key or click while asleep), which an older host drops.
 export const PROTOCOL = 21;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
@@ -510,7 +510,7 @@ function send(msg) {
 // What the host will take of a guest's snapshot: the shape the step reads, nothing else, every number finite
 // (a NaN aim or a far aim point would ride into the player's record and the save), the key events only the
 // ones that exist.
-const KEY_EVENTS = ["eTap", "ePressed", "bTap", "bHold", "t", "beltMain1", "beltOff1", "beltUtility", "beltMain2", "beltOff2", "drawCancel", "wave"]; // drawCancel: a right tap during a draw (2026-10-15); wave: G or /wave (docs/43 section 7)
+const KEY_EVENTS = ["eTap", "ePressed", "bTap", "bHold", "t", "beltMain1", "beltOff1", "beltUtility", "beltMain2", "beltOff2", "drawCancel", "wave", "wake"]; // drawCancel: a right tap during a draw (2026-10-15); wave: G or /wave (docs/43 section 7); wake: any key or click while asleep (2026-10-26, #508)
 export function cleanSnap(raw) {
   const s = raw && typeof raw === "object" ? raw : {};
   const num = (v, lim) => (typeof v === "number" && Number.isFinite(v) ? Math.max(-lim, Math.min(lim, v)) : 0);

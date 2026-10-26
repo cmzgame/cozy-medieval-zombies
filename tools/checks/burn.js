@@ -240,7 +240,7 @@ export async function run(game) {
     p.hands.main = G.items.makeEntry(WB.flame, 1); // the tinderbox carried in a hand: anywhere on you will do
     const ready = burnEntry(); // no log: none is needed (Michael, 2026-10-26)
     p.hands.off = G.items.makeEntry("log", 1); // a log carried, to show it is not spent
-    row("Burn corpse is greyed with why, then offered with a tinderbox alone, no log carried", none && none.enabled === false && none.label === "Burn corpse (need a tinderbox)" && ready && ready.enabled !== false && ready.label === "Burn corpse" && WB.fuel === undefined, [none, ready].map((a) => (a ? `${a.label}${a.enabled === false ? " (greyed)" : ""}` : "none")).join("; ") + `; fuel in the data ${WB.fuel}`);
+    row("Burn corpse is greyed with why, then offered with a tinderbox alone, no log carried", none && none.enabled === false && none.label === "Burn corpse (need a tinderbox or a lit torch)" && ready && ready.enabled !== false && ready.label === "Burn corpse" && WB.fuel === undefined, [none, ready].map((a) => (a ? `${a.label}${a.enabled === false ? " (greyed)" : ""}` : "none")).join("; ") + `; fuel in the data ${WB.fuel}`);
     const card = ready && ready.card;
     row("its card warns in red: Burns the body and everything in it.", !!card && card.lines[0][0].k === "warn" && card.lines[0][0].t === "Burns the body and everything in it.", card ? card.lines.map((l) => l.map((s) => s.t).join("")).join(" / ") : "no card");
     // On the page: the menu entry's card, shown while the pointer is over it, the warning in --red, gone with the menu.

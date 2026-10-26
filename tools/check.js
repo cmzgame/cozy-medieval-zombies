@@ -4287,6 +4287,7 @@ check("poison: the blade tag, a coat and poisoned arrows by Use (a guest's comma
 // guest's commands name them, the belt's view emptying the belt itself and taking nothing in; a stack dropped on a matching stack in a hand, a belt
 // slot, and a bag cell filling it to the limit, the rest staying, an entry with its own state never merging, a guest's commands the same.
 // The page's half (the cards read on the page, the fade, the "Zz", two tabs) is check("features1").
+const inputMod = await import("../src/input.js"); // a key tapped for one step, as the keyboard does (waking early)
 check("playtest features (#506): the bucket boiled and poured, Burn corpse by a tinderbox or a lit torch, sleep at 20, container items opened where they lie, stacks filling stacks", () => {
   const json = read("data/maps/valley.json");
   gameMod.create({ json, rules: { zombieAggro: false, survival: true } });
@@ -4424,7 +4425,7 @@ check("playtest features (#506): the bucket boiled and poured, Burn corpse by a 
     me.hands.main = mk("tinderbox");
     const lReady = label();
     const r1 = verbsMod.run("burncorpse", worldMod.world, me, { character: z1.id });
-    assert(lNone === "Burn corpse (need a tinderbox)" && lReady === "Burn corpse" && r1.ok && z1.cremate && inventoryMod.countAll(me, "tinderbox") === 1 && inventoryMod.countAll(me, "log") === 0, `${lNone}; ${lReady}; ${r1.reason || r1.message}; tinderboxes ${inventoryMod.countAll(me, "tinderbox")}`);
+    assert(lNone === "Burn corpse (need a tinderbox or a lit torch)" && lReady === "Burn corpse" && r1.ok && z1.cremate && inventoryMod.countAll(me, "tinderbox") === 1 && inventoryMod.countAll(me, "log") === 0, `${lNone}; ${lReady}; ${r1.reason || r1.message}; tinderboxes ${inventoryMod.countAll(me, "tinderbox")}`);
     me.hands.main = mk("torch");
     const z2 = lay(-1);
     logged.length = 0;
@@ -4437,16 +4438,41 @@ check("playtest features (#506): the bucket boiled and poured, Burn corpse by a 
     const find = (id) => S.corpses.find((c) => c.id === id) || S.zombies.find((c) => c.id === id) || null;
     assert(invActionsMod.performUseCommand(me, { uid: me.hands.main.uid, src: { kind: "slot", id: "hand:main" }, target: { kind: "character", id: z3.id } }, find) && z3.cremate, "a guest's Use of a lit torch on a body did not burn it");
     const bcard = burnMod.burnCard(me).lines.map((l) => l.map((s) => s.t).join("")).join(" | ");
-    assert(bcard.includes("Needs a tinderbox carried; nothing is spent.") && bcard.includes("Use a lit torch on the body to burn it too.") && card(me.hands.main).some((l) => l === "Use on a body of the dead: burn."), `the cards: ${bcard} || ${card(me.hands.main).join(" | ")}`);
-    for (const z of [z1, z2, z3]) Object.assign(z, { cremate: false, burning: false });
+    assert(bcard.includes("Needs a tinderbox carried or a lit torch in hand; nothing is spent.") && bcard.includes("Use a lit torch on the body to burn it too.") && card(me.hands.main).some((l) => l === "Use on a body of the dead: burn."), `the cards: ${bcard} || ${card(me.hands.main).join(" | ")}`);
+    // The menu's Burn corpse with a lit torch in hand and no tinderbox (Michael, 2026-10-26), greyed with neither.
+    const z4 = lay(-1.5);
+    const torch4 = me.hands.main;
+    const l4 = () => interactMod.actionsForTarget({ kind: "character", id: z4.id }, me).map((a) => `${a.label}${a.enabled === false ? " [off]" : ""}`).find((l) => l.startsWith("Burn corpse"));
+    torch4.lit = false;
+    const lNeither = l4();
+    torch4.lit = true;
+    const lTorch = l4();
+    const r4 = verbsMod.run("burncorpse", worldMod.world, me, { character: z4.id });
+    assert(inventoryMod.countAll(me, "tinderbox") === 0 && lNeither === "Burn corpse (need a tinderbox or a lit torch) [off]" && lTorch === "Burn corpse" && r4.ok && z4.cremate && torch4.lit, `the menu with a torch: ${lNeither}; ${lTorch}; ${r4.reason || r4.message}`);
+    for (const z of [z1, z2, z3, z4]) Object.assign(z, { cremate: false, burning: false });
     me.hands.main = null;
 
-    // ---- 4. sleep's speed ----
+    // ---- 4. sleep's speed, and waking early ----
     assert(tuningMod.player.sleepTimeScale === 20 && tuningMod.feel.sleepFadeSeconds === 1, `the levers: ${tuningMod.player.sleepTimeScale}, ${tuningMod.feel.sleepFadeSeconds}`);
     me.sleeping = { bed: "none", since: loopMod.simTime(), hour: 22 };
     const scale = gameMod.timeScaleNow();
     me.sleeping = null;
     assert(scale === 20 && gameMod.timeScaleNow() === 1, `asleep the world runs at ${scale}`);
+    // Any key or click wakes a sleeper early (Michael, 2026-10-26): `wakeEvents` makes the snapshot's `wake` once the client has seen its player
+    // asleep a step, and the world's step (updateInteract) gets it up, the press doing nothing else.
+    const bedProp = [...mapMod.allProps()].find((p) => getDef(p.sprite).sleep);
+    playerMod.startSleep(me, bedProp);
+    inputMod.tap("KeyX");
+    const firstStep = interactMod.wakeEvents(me);
+    inputMod.endStep();
+    const quiet = interactMod.wakeEvents(me);
+    inputMod.tap("KeyX");
+    const pressed = interactMod.wakeEvents(me);
+    inputMod.endStep();
+    interactMod.updateInteract(me, 1 / 60, pressed);
+    assert(firstStep === null && quiet === null && pressed && pressed.wake === true && !me.sleeping && gameMod.timeScaleNow() === 1 && interactMod.wakeEvents(me) === null, `waking early: first step ${JSON.stringify(firstStep)}, quiet ${JSON.stringify(quiet)}, pressed ${JSON.stringify(pressed)}, asleep ${!!me.sleeping}`);
+    const netText = fs.readFileSync(new URL("../src/net.js", import.meta.url), "utf8");
+    assert(/const KEY_EVENTS = \[[^\]]*"wake"/.test(netText), "the host's filter drops a guest's wake");
 
     // ---- 5. container items opened where they lie ----
     const [tx, ty] = [Math.round(me.gx), Math.round(me.gy)];
@@ -4471,6 +4497,15 @@ check("playtest features (#506): the bucket boiled and poured, Burn corpse by a 
     const outputs0 = [...mapMod.allProps()].filter((p) => p.output).length;
     assert(interactMod.addressOfBag(me, ev.bag) && interactMod.addressOfBag(me, ev.bag).entryUid === gBelt.uid, "the view's address not found again");
     assert([...mapMod.allProps()].filter((p) => p.output).length === outputs0, "addressOfBag made a prop's output bag (a hit test must change nothing)");
+    // A partial take (the review of #508): the sword alone by a guest's grid command from the view's address. An entry's place in the view is its
+    // slot's alone, so the belt sent to a guest and laid out afresh there puts the pemmican where the host's view has it, and the map agrees.
+    const col = Math.max(...itemsMod.allItems().filter((d) => d.hands || d.kind === "food" || d.capacity || d.belt === true).map((d) => (d.size || [1, 1])[0]));
+    const sSpot = gridMod.findSpot(bag, "sword");
+    assert(invActionsMod.performItemCommand(me, { op: "grid", uid: sword.uid, src: { kind: "bag", bag: ev.address }, bag: { mine: true }, x: sSpot.x, y: sSpot.y, rot: sSpot.rot }) && !gBelt.slots[0] && gBelt.slots[2] === pem && bag.items.includes(sword), `the partial take: slots ${JSON.stringify(gBelt.slots.map((s) => s && s.id))}`);
+    interactMod.containerAt(me, ev.address); // the host's panel finds it again, as it does every step
+    const sent = JSON.parse(JSON.stringify(gBelt)); // the belt as its chunk carries it to a guest
+    inventoryMod.slotsView(sent); // the guest's panel lays its own copy out
+    assert(pem.x === 2 * col && sent.slots[2].x === pem.x && JSON.stringify(sent) === JSON.stringify(gBelt), `the replica's layout after a partial take: host x ${pem.x}, guest x ${sent.slots[2].x} (a column ${col})`);
     // Take All by its address, as a guest's command names it: the belt itself emptied, nothing doubled.
     const tookBelt = invActionsMod.performItemCommand(me, { op: "takeall", bag: ev.address });
     const census = gameMod.itemCensus();
@@ -4496,10 +4531,26 @@ check("playtest features (#506): the bucket boiled and poured, Burn corpse by a 
     opened.length = 0;
     assert(invActionsMod.performItemCommand(me, { op: "menu", label: `Open ${satName}`, uid: sat.uid, src: { kind: "bag", bag: { propId: chest.id } } }), "a guest's Open command did not run");
     const ev2 = opened[0];
-    assert(ev2 && ev2.bag === sat.bag && ev2.within && ev2.within.propId === chest.id && ev2.address.entryUid === sat.uid && interactMod.containerAt(me, ev2.address).bag === sat.bag, `the satchel opened: ${ev2 ? JSON.stringify(ev2.address) : "nothing"}`);
+    assert(ev2 && ev2.bag.takeOnly && ev2.bag.items === sat.bag.items && ev2.within && ev2.within.propId === chest.id && ev2.address.entryUid === sat.uid && interactMod.containerAt(me, ev2.address).bag === ev2.bag, `the satchel opened: ${ev2 ? JSON.stringify(ev2.address) : "nothing"}`);
+    // Take-only, a bag opened inside another (Primary's reading on the review of #508): a guest's grid command putting bread into it is refused,
+    // and nothing in it offers Open, so nothing opens two levels deep.
+    const bread2 = mk("bread");
+    gridMod.insert(bag, bread2);
+    invActionsMod.performItemCommand(me, { op: "grid", uid: bread2.uid, src: { kind: "bag", bag: { mine: true } }, bag: ev2.address, x: 4, y: 3, rot: false });
+    assert(bag.items.includes(bread2) && sat.bag.items.length === 2 && !interactMod.itemMenu(me, mk("small_sack"), ev2.bag, bag).some((m) => /^Open/.test(m.label)), `into the nested satchel: bread in my bag ${bag.items.includes(bread2)}, the satchel holds ${sat.bag.items.length}`);
+    gridMod.remove(bag, bread2);
     invActionsMod.performItemCommand(me, { op: "takeall", bag: ev2.address });
     assert(sat.bag.items.length === 0 && inventoryMod.countAll(me, "bread") === 1 && inventoryMod.countAll(me, "apple") === 1 && cBag.items.includes(sat), `Take All from the satchel in the chest: left ${sat.bag.items.length}`);
     mapMod.removeProp(chest);
+    bag.items.length = 0;
+    // Never a container inside my own bag (the review of #508: a crafted command filled one): the nested address within { mine } finds nothing.
+    const mySat = mk("satchel");
+    inventoryMod.ensureBag(mySat);
+    gridMod.insert(bag, mySat);
+    const bread3 = mk("bread");
+    gridMod.insert(bag, bread3);
+    const ranMine = invActionsMod.performItemCommand(me, { op: "grid", uid: bread3.uid, src: { kind: "bag", bag: { mine: true } }, bag: { entryUid: mySat.uid, within: { mine: true } }, x: 0, y: 0, rot: false });
+    assert(!ranMine && mySat.bag.items.length === 0 && interactMod.containerAt(me, { entryUid: mySat.uid, within: { mine: true } }) === null, `a satchel in my own bag filled: ran ${ranMine}, holds ${mySat.bag.items.length}`);
     bag.items.length = 0;
     // A belt on a body of the dead: Open on its menu in the body's grid, its view by the body's address.
     const zb = lay(1);

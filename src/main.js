@@ -1196,7 +1196,8 @@ function stepGame(dt) {
   // any panel or menu open (Michael, 2026-10-15: only the pause menu stops the game), as the belt keys always have.
   const keyEv = interact.keyEvents(dt);
   const beltEv = interact.beltEvents(client.me, settings.get("beltOrder")); // the number turned into the slot's role here, by my own key order
-  const keys = keyEv || beltEv || drawCancelled ? { ...(keyEv || {}), ...(beltEv || {}), ...(drawCancelled ? { drawCancel: true } : {}) } : null;
+  const wakeEv = interact.wakeEvents(client.me); // asleep, any key or click wakes me early (Michael, 2026-10-26), here or on the host
+  const keys = keyEv || beltEv || drawCancelled || wakeEv ? { ...(keyEv || {}), ...(beltEv || {}), ...(drawCancelled ? { drawCancel: true } : {}), ...(wakeEv || {}) } : null;
   drawCancelled = false;
   // The world: the player from the mouse and the keys as a snapshot (docs/23a, D1;
   // never the input module), the dead, the villagers, the light (game.js).
