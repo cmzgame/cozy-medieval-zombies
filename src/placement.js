@@ -615,7 +615,7 @@ export function holdsProblem(prop) {
   if (prop.queue && prop.queue.length) return propIsPlural(prop.sprite) ? "They are still making something." : "It is still making something."; // the millstones are a plural, as Pick up says
   const f = prop.fire;
   if (f && f.burns && !f.switch) {
-    if (f.lit) return "Put it out first.";
+    if (f.lit) return map.putOutByHand(prop) ? "Put it out first." : "Let it burn down first."; // a campfire is put out by hand; a station's fire (the cauldron, the oven, the forge) only burns down
     if (f.fuel > 0) return "It still has fuel in it; let it burn down."; // a campfire's logs, as its Pick up asks (docs/43, section 3)
   }
   return "";

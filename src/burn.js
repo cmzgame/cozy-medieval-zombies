@@ -209,7 +209,8 @@ function lightTarget(player, target, flame) {
 }
 
 // The fire a target is, when it burns: a campfire or any burner that is lit, a torch on a post that is lit, a lit torch in a bracket
-// (a bracket torch is a fire source like a post's, #170), or a lantern (always lit, #175). { prop } or { at: [x, y] }, or null.
+// (a bracket torch is a fire source like a post's, #170), or a lantern while it is lit (#175; a switch since docs/43, put out and lit
+// again by hand). { prop } or { at: [x, y] }, or null.
 function burningFire(target) {
   if (target.bracket) {
     const b = [...map.brackets()].find((q) => q.tx === target.bracket.tx && q.ty === target.bracket.ty && q.edge === target.bracket.edge);
@@ -260,7 +261,7 @@ function putOutTarget(target) {
   }
   const prop = typeof target.prop === "string" ? map.propById(target.prop) : target.prop;
   const f = prop && prop.fire;
-  if (!f || !(f.switch || prop.sprite === "campfire" || (f.holds && f.has))) return { reason: "That cannot be put out." }; // the stations keep their fuel and their fire (docs/43)
+  if (!map.putOutByHand(prop)) return { reason: "That cannot be put out." }; // the stations keep their fuel and their fire (docs/43)
   if (!f.lit) return { reason: "It is already out." };
   return { put: () => map.setFireLit(prop, false), name: f.holds ? "torch" : map.fireName(prop), prop };
 }

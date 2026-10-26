@@ -390,16 +390,21 @@ function beltOrBag(player, entry, role) {
 }
 
 // A hand slot's draw (beltAction's "draw"), the key and the slot's Equip alike: the item into its hand, swapping what that hand held onto the
-// slot (docs/02, 2026-10-25). A two-handed thing from a main-hand slot takes both hands: the main hand's goes to the slot, the off hand's to an
-// empty off-hand slot, else the bag, else the empty utility slot, else the feet (returned in `drop`, for the caller to set down; and remembered,
-// so a one-handed draw later puts it back, docs/21). A draw into the off hand while a two-hander is held sends the two-hander to an empty
-// main-hand slot, else the bag, else the empty utility slot, else the feet, and the slot is left empty (beltOrBag). Returns { ok, drop, word }: `word` the refusal when no hand could take it (the spear's dual rule),
-// with everything put back as it was.
-export function beltDraw(player, index) {
+// slot (docs/02, 2026-10-25). What the hand held goes to the slot the drawn thing just left when that slot's key would draw it back (Michael's
+// playtest, 2026-10-26: "now that main hand [slot] is open it prefers that"; a two-hander only to a main-hand slot), else to an empty slot of
+// its own role, else the bag, else the empty utility slot, else the freed slot as storage, else the feet: so a shield drawn out by the slot
+// menu's Equip into the other hand never lands on a main-hand slot while an off-hand slot is empty. A two-handed thing takes both
+// hands: the main hand's goes to the slot, the off hand's to an empty off-hand slot, else the bag, else the empty utility slot, else the feet
+// (and is remembered, so a one-handed draw later puts it back, docs/21). Whatever has nowhere to go is returned in `drop`, for the caller to
+// set at the feet with its line (`dropWord`). `hand` names the hand when the player chose one (a drag onto a hand, the slot menu's Equip
+// into a hand: Michael's playtest, 2026-10-26, "a general thing about swapping from belt"), else the slot's role decides (beltAction).
+// `onto`: the hand's thing was dragged onto this very slot (a drag from a hand onto an occupied slot), so it goes there whatever its key does.
+// Returns { ok, drop, word }: `word` the refusal when no hand could take it (the spear's dual rule), with everything put back as it was.
+export function beltDraw(player, index, hand = null, onto = false) {
   const belt = beltOf(player);
   const e = belt && belt[index];
   const role = beltRole(index);
-  const a = e ? beltAction(e, role) : null;
+  const a = !e ? null : hand ? chosenDraw(e, hand) : beltAction(e, role);
   if (!a || a.act !== "draw") return { ok: false, drop: [], word: a ? a.word || "" : "" };
   const h = player.hands;
   const before = { main: h.main, off: h.off, slot: e, memory: player.offMemory };
@@ -418,13 +423,22 @@ export function beltDraw(player, index) {
     const spear = [e, h.main, h.off].find((q) => q && getItem(q.id).noDual);
     return spear ? `The ${getItem(spear.id).name.toLowerCase()} can't be held beside another weapon.` : "Your hands are full.";
   };
+  // What a hand held: the freed slot first when its key would draw it back (or it was dragged there), else a slot of `own` role, the bag,
+  // the utility slot, the freed slot as storage, the feet.
+  const free = (x) => !belt[index] && roleTakes(role, x);
+  const put = (x, own) => {
+    if (free(x) && (onto || beltAction(x, role).act === "draw")) belt[index] = x;
+    else if (beltOrBag(player, x, own)) return;
+    else if (free(x)) belt[index] = x;
+    else drop.push(x);
+  };
   if (a.hand === "both") {
     const oldMain = h.main;
     const oldOff = h.off && h.off !== h.main ? h.off : null;
     h.main = null;
     h.off = null;
     if (!hold(h, e)) return undo("Your hands are full.");
-    if (oldMain) belt[index] = oldMain;
+    if (oldMain) put(oldMain, "main");
     if (oldOff && !beltOrBag(player, oldOff, "off")) drop.push(oldOff);
     player.offMemory = oldOff || null;
     return { ok: true, drop, word: "" };
@@ -434,7 +448,7 @@ export function beltDraw(player, index) {
     const wasBoth = !!old && old === h.off;
     if (old) release(h, old);
     if (!hold(h, e, "main")) return undo(dualWord());
-    if (old) belt[index] = old;
+    if (old) put(old, "main");
     if (wasBoth || !h.off) restoreOffHand(player); // the shield a two-hander pushed out comes back (docs/21)
     else player.offMemory = null;
     return { ok: true, drop, word: "" };
@@ -444,11 +458,24 @@ export function beltDraw(player, index) {
   const wasBoth = !!old && old === h.main;
   if (old) release(h, old);
   if (!hold(h, e, "off")) return undo(dualWord());
-  if (old && wasBoth) {
-    if (!beltOrBag(player, old, "main")) drop.push(old);
-  } else if (old) belt[index] = old;
+  if (old) put(old, wasBoth ? "main" : "off"); // a two-hander takes the freed slot only when it is a main-hand or the utility slot
   player.offMemory = null;
   return { ok: true, drop, word: "" };
+}
+
+// A draw into a hand the player chose (beltDraw's `hand`): both hands for a two-handed thing, else that hand when the thing fits it.
+function chosenDraw(entry, hand) {
+  const def = getItem(entry.id);
+  if (!def.hands) return { act: "none", word: `The ${def.name.toLowerCase()} is not held in a hand.` };
+  if (def.hands === "both") return { act: "draw", hand: "both" };
+  if (def.hands === "either" || def.hands === hand) return { act: "draw", hand };
+  return { act: "none", word: `The ${def.name.toLowerCase()} can't be held in your ${hand} hand.` };
+}
+
+// The line for a thing a swap had nowhere to put but the ground ("if no slot anywhere is available, an item you are owed goes to the
+// ground", Michael's playtest, 2026-10-26): said by whoever sets it down.
+export function dropWord(entry) {
+  return `Nowhere to put the ${getItem(entry.id).name.toLowerCase()}: it is at your feet.`;
 }
 
 // The entry with this uid wherever the player carries it: the hands, the belt, the bag (the verbs' reach: a stack in an open chest is

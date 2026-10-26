@@ -333,6 +333,13 @@ export function setLantern(b, lit) {
 const FIRE_NAMES = { lantern_post: "lantern" }; // a fire called by its flame, not its prop
 export const fireName = (prop) => FIRE_NAMES[prop.sprite] || propName(prop.sprite);
 
+// Whether a prop's fire is put out by hand (the `putout` verb, burn.js): a switch, a campfire (it keeps its fuel), a post's or a holder's
+// torch. A station's fire (the oven, the forge, the cauldron) only burns down (docs/43). Take apart's word asks it too (placement.holdsProblem).
+export function putOutByHand(prop) {
+  const f = prop && prop.fire;
+  return !!(f && (f.switch || prop.sprite === "campfire" || (f.holds && f.has)));
+}
+
 // A prop's fire on or off with nothing spent: a switch (a fireplace, a hearth, a lantern post) either way; any burner or a post's torch
 // put out (a campfire keeps the fuel left). Touches its chunk. Returns whether it changed.
 export function setFireLit(prop, lit) {
