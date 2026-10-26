@@ -22,6 +22,7 @@ import { DOOR_TOP, WINDOW_SILL, WINDOW_TOP } from "./placeholders.js";
 import { countAll, takeAll, detach } from "./inventory.js";
 import { release, wearPerShot } from "./items.js";
 import { showMessage } from "./ui/prompt.js";
+import * as mana from "./mana.js"; // a spell's cost (docs/47 section 5): refused before the draw, spent on the release
 import * as loop from "./loop.js";
 import * as rng from "./rng.js";
 
@@ -755,7 +756,7 @@ export function launcherOf(player) {
 }
 
 // A spell (Michael, 2026-10-14; docs/24): a staff (any, for now) and a spellbook held together cast the book's spell on
-// the left button, drawn and released as the bow is, with no arc and nothing spent but the time. The book decides the
+// the left button, drawn and released as the bow is, with no arc, its mana spent on the release (`spell.mana`, docs/47 section 5). The book decides the
 // spell (`book.spell` in data/items.json: only the Book of Fire's fireball so far). Either one alone refuses to cast,
 // and the left button does nothing else meanwhile (no punch). Null when neither is held.
 export function spellOf(player) {
@@ -822,6 +823,11 @@ export function beginDraw(player, bow, source = "mouse") {
     showMessage("No arrows.");
     return false;
   }
+  // A spell the bar cannot pay for is refused before its draw starts (docs/47 section 5): the line and the bar's flash; nothing is spent.
+  if (!mana.canPay(player, mana.costOf(bow))) {
+    mana.refuse(player);
+    return false;
+  }
   player.auto = null;
   player.drawing = true;
   player.draw = { t: 0, c: 0, source };
@@ -850,7 +856,14 @@ export function releaseDraw(player, ctx) {
       showMessage("No arrows.");
       return null;
     }
-  } else if (L.kind !== "spell") {
+  } else if (L.kind === "spell") {
+    // The spell's mana is spent on its release, never on a cancelled or a dry draw (docs/47 section 5). Nothing else spends mana during a draw
+    // today, so this refusal is the guard against one that does.
+    if (!mana.spend(player, mana.costOf(L))) {
+      mana.refuse(player);
+      return null;
+    }
+  } else {
     item = { ...L.entry };
     release(player.hands, L.entry);
   }

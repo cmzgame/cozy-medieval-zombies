@@ -540,7 +540,7 @@ for name, d in sslots.items():
         fail(f"{where}: no file and no recipe sound-gen.js knows ({(d.get('gen') or {}).get('recipe')})")
     elif not (num(d["gen"].get("length")) and d["gen"]["length"] > 0):
         fail(f"{where}.gen.length: above 0")
-asked = {"hit", "swing_light", "swing_heavy", "shove", "bow_draw", "bow_release", "arrow_land", "cast", "death", "fall", "moan", "strike", snd.get("openings", {}).get("slot", "door")}  # the moan and the strike, #424
+asked = {"hit", "swing_light", "swing_heavy", "shove", "bow_draw", "bow_release", "arrow_land", "cast", "death", "fall", "moan", "strike", "mana_short", "pray", snd.get("openings", {}).get("slot", "door")}  # the moan and the strike, #424; not enough mana and the altar's prayer, #480
 mc = snd.get("moan", {})
 if not (isinstance(mc.get("from"), list) and mc["from"] and isinstance(mc.get("to"), list) and mc["to"] and num(mc.get("again")) and mc["again"] >= 0 and num(mc.get("gap")) and mc["gap"] >= 0):
     fail("sounds.moan: `from` a list of states, `again` and `gap` seconds at or above 0")

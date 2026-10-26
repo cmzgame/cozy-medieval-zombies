@@ -103,6 +103,8 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
+- Sight-pull: one of the dead first turning to hunt a player calls once to the dead near it that see it, and those never call others; sound draws no one (2026-10-25, Sight-pull ruled)
+- Throwing knives pull and axes stop: the knife 15 and 30% to break, the axe 30, always staggering, knocking down at 0.35, 10% to break; they spin, and land or lodge like arrows (2026-10-25, Throwing knives and axes ruled)
 - Potions, poisons, and mana as `47`: clay vials, clean water, two herbs and a secondary at a cauldron, mana 100, the Fire Bolt 20 mana, poisons put on a blade or arrows with Use, a splash for every potion (2026-10-25, Potions, poisons, and mana ruled)
 - Repairs run out: one count per item, the grindstone to 60, 40, 20%, the anvil to 100, 80, 60%; Burn corpse destroys a body and all in it (2026-10-25, The dead ends ruled)
 - The melee feel pass accepted as the baseline; tuning goes on with the skills (2026-10-24, The melee baseline)
@@ -302,6 +304,23 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-25 — Sight-pull ruled: one of the dead drawn in calls once to those that see it, with no chain; sound stays out (Michael)
+
+Asked whether a pulled zombie alerts its neighbours, and whether sound draws the dead (it does not: they notice a player they see, a flame at night, and a blow), Michael ruled: "I think we need sight-pull to replace Zomboid's sound-pull. And I think this is especially crucial for long range weapons that go further than any other way a zombie could find you, so it's a safe attack on one zombie at a time. If you have social aggro, it stops being safe and adds some of the pressure back that not caring about sound is getting us. I think sound never being an aggro thing is probably the right call but who knows in the future." Shown the two ways to build it (a pulled one broadcasting once, or the idle dead watching for a chase), he chose: "Let's do the one time broadcast to nearby then no further chain reaction as you suggested." The spec is `docs/48`.
+
+- **The pull:** when one of the dead first turns to hunt a player, first-hand (it sees one, or a player's blow lands and it lives), it calls once to the dead within a few tiles that can see it, scaled by the light as a player's sight is; they join the hunt toward where it learnt of the player. Hunting a player is its own mark (`huntsPlayer`, Primary's reading), so one first drawn by a flame or a villager still pulls when it sees the player.
+- **No chain:** the ones it calls never call others; the call is made once, at the turn, never again while that hunt lasts.
+- **Sound is never aggro**, for now; the Noise someday stays open (`docs/05`).
+
+### 2026-10-25 — Throwing knives and axes ruled: the knife pulls, the axe stops, they spin, and they break like the spear (Michael)
+
+Asked whether the throwing knives and axes (drawn, never thrown) had an issue, Michael wanted them to "work pretty much like the spear, low damage but perhaps an increased chance to knock down", the axe doing more damage and costing more to make, and asked whether a knockdown spoils them for pulling the dead at range. Primary answered that it does not (a floored one still hunts the thrower and comes when it is up; a knockdown only holds it off longer) and proposed a job for each. Michael: "Drop axe damage to 30 and knife to 15. Otherwise adopted, you can write the spec. Also make sure we get a spinning knife or axe art to send along the arc because it'll look awesome." And on where they end up: "on bodies of dead zombies or ground like arrows? I think yes, with knives having a 30% chance to break, and axes like a 10% chance to break". The spec is `docs/24` section 1.
+
+- **The knife pulls:** 15 damage, 13 tiles, fast and flat, a 0.3 stagger chance, no knockdown, 30% to break, stacks of 20.
+- **The axe stops:** 30 damage, 9 tiles, a short arc, always staggers, knocks down at 0.35, 10% to break, stacks of 10.
+- **They spin along the arc**, lodge in a body or land on the ground like arrows, and are swept up with E.
+- **Made at Blacksmithing 3**, the axe dearer: *Primary's default*, one iron bar makes ten knives, an iron bar and a plank two axes, so a knife's throw costs less than an axe's at these breaks (`24` has the arithmetic).
 
 ### 2026-10-25 — Potions, poisons, and mana ruled: clay vials, clean water, two herbs and a secondary at a cauldron, mana 100 and the Fire Bolt 20, poisons put on with Use, a splash for every potion (Michael)
 
