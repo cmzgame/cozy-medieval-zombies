@@ -222,7 +222,7 @@ export function stow(player, entry) {
   const bag = bagOf(player);
   if (bag && canStoreIn(entry) && grid.insert(bag, entry)) return "bag";
   const belt = beltOf(player);
-  if (belt && handFor(entry.id)) {
+  if (belt && handFor(entry.id) && !offBelt(entry)) {
     const i = belt.indexOf(null);
     if (i >= 0) {
       belt[i] = entry;
@@ -277,16 +277,88 @@ export function restoreOffHand(player) {
   return hold(player.hands, m, "off");
 }
 
-// Belt key n: swap slot n with the hand its item belongs to (docs/11).
+// ---- The belt's hands (#285; Michael, 2026-10-19: a belt slot's key does one thing, into the hand chosen for that slot) ----
+// A held item on the belt goes to the hand chosen for its slot in the slot's menu ("Equip to main hand", "Equip to off hand"), kept on
+// the player (`player.beltHands[i]`, { id, hand }) until it is changed. The choice is for the kind of item it was made on (the builder's
+// reading of "that item from that slot"): a fresh torch in a slot chosen for a torch's off hand keeps it, and a sword put there goes to
+// its own default, the main hand, so flipping through weapons is never dual wielding by accident (docs/21).
+
+// A thing too long for the belt (Michael, 2026-10-19: the halberd, "perhaps the greatsword"): its item says `noBelt`. The slot check
+// (inventory-actions canPlace) and stow ask this, so a guest's slot command is refused too (#226).
+export function offBelt(entry) {
+  return !!(entry && getItem(entry.id)?.noBelt);
+}
+
+export function offBeltWord(entry) {
+  return `The ${getItem(entry.id).name.toLowerCase()} is too long for the belt.`;
+}
+
+// The hand an item goes to from the belt by its own nature (the ruling's default, "the item's own hand"): a one-hand-only item its own
+// hand, a two-handed one both, a book the off hand, a light a free hand ("free": a torch drawn beside a sword goes to the off hand, as
+// before), and anything else that fits either the main hand. Null for a thing no hand holds.
+export function beltDefault(def) {
+  if (!def || !def.hands) return null;
+  if (def.hands !== "either") return def.hands;
+  if (def.book) return "off";
+  if (def.fire) return "free";
+  return "main";
+}
+
+// The hand slot `index`'s key draws its item into now, as the menu's two entries name it: "main" or "off" (a two-handed item's is "main",
+// both hands with it). The slot's choice when it was made on this kind of item, else the default. Null for an empty slot or a thing no hand holds.
+export function beltHand(player, index) {
+  const belt = beltOf(player);
+  const e = belt && belt[index];
+  const def = e && getItem(e.id);
+  if (!def || !def.hands) return null;
+  const c = Array.isArray(player.beltHands) ? player.beltHands[index] : null;
+  if (c && c.id === e.id && (c.hand === "main" || c.hand === "off")) return c.hand;
+  const d = beltDefault(def);
+  if (d === "both") return "main";
+  if (d === "free") return !player.hands.main ? "main" : !player.hands.off ? "off" : "main";
+  return d;
+}
+
+// Why `hand` cannot take this entry, or "" (the ruling: a visible refusal only when the chosen hand cannot take it).
+export function handProblem(entry, hand) {
+  const def = getItem(entry.id);
+  const n = def.name.toLowerCase();
+  if (def.hands === "both" && hand === "off") return `The ${n} needs both hands.`;
+  if (def.hands === "main" && hand === "off") return `The ${n} cannot be held in your off hand.`;
+  if (def.hands === "off" && hand === "main") return `The ${n} cannot be held in your main hand.`;
+  return "";
+}
+
+// Choose the hand for belt slot `index` (the slot's menu; a guest's by its label, run here): kept on the player for the kind of item there
+// now. Refused, with the refusal's words, when that hand cannot take it. Returns "" when chosen.
+export function setBeltHand(player, index, hand) {
+  const belt = beltOf(player);
+  const e = belt && Number.isInteger(index) && index >= 0 && index < belt.length ? belt[index] : null;
+  if (!e || !getItem(e.id).hands) return "Nothing there to hold.";
+  if (hand !== "main" && hand !== "off") return "No such hand.";
+  const no = handProblem(e, hand);
+  if (no) return no;
+  const list = Array.isArray(player.beltHands) ? player.beltHands.slice() : [];
+  while (list.length < belt.length) list.push(null);
+  list[index] = { id: e.id, hand };
+  player.beltHands = list;
+  return "";
+}
+
+// Belt key n (docs/11; #285): a held item in slot n goes to the hand chosen for the slot (beltHand), swapping out what that hand holds;
+// "wronghand" when that hand cannot take it, "nohands" for a thing no hand holds (the tinderbox: carried, used from there). An empty
+// slot takes what the main hand holds, else the off hand's, as before; "toolong" for a thing too long for the belt (the halberd).
 export function beltKey(player, index) {
   const belt = beltOf(player);
   if (!belt || index >= belt.length) return "nobelt";
   const e = belt[index];
   if (e) {
-    belt[index] = null;
-    // A weapon drawn from the belt takes the main hand (swapping), so flipping through them is not dual wielding by accident.
     const def = getItem(e.id);
-    if (equip(player, e, def.hands === "either" && def.weapon && !def.fire ? "main" : null)) return "drawn";
+    if (!def.hands) return "nohands";
+    const hand = beltHand(player, index);
+    if (handProblem(e, hand)) return "wronghand";
+    belt[index] = null;
+    if (equip(player, e, def.hands === "either" ? hand : null)) return "drawn";
     belt[index] = e;
     return "handsfull";
   }
@@ -294,6 +366,7 @@ export function beltKey(player, index) {
   for (const s of ["main", "off"]) {
     const held = player.hands[s];
     if (held && handFor(held.id)) {
+      if (offBelt(held)) return "toolong";
       release(player.hands, held);
       belt[index] = held;
       if (handFor(held.id) === "both") restoreOffHand(player);

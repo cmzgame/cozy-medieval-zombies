@@ -1,6 +1,7 @@
 // Copied from cozy-zombie-game src/ui/context-menu.js on 2026-10-10. Since: clamped to the UI layer's size
 // through view.js instead of 960 by 540, and an Escape that closed the menu is swallowed (docs/10, 2026-10-10).
-// Right-click context menu. Entries: [{ label, enabled, onSelect, card? }]: an entry with a `card` ({ name, kind, state, lines, fine }, as
+// Right-click context menu. Entries: [{ label, enabled, onSelect, card?, checked? }] (`checked` marks the current choice in gold, its
+// label unchanged, so a guest's command by label still finds it): an entry with a `card` ({ name, kind, state, lines, fine }, as
 // item-info.js makes them) shows it in the hover card while the pointer is over the entry (Burn corpse's warning, docs/43 section 7).
 import * as view from "../view.js";
 import * as hoverCard from "./hover-card.js";
@@ -50,7 +51,7 @@ export function openContextMenu(x, y, entries, canvasW = view.view.uiW, canvasH 
   root.innerHTML = "";
   for (const en of entries) {
     const el = document.createElement("div");
-    el.className = `menu-entry${en.enabled === false ? " disabled" : ""}`;
+    el.className = `menu-entry${en.enabled === false ? " disabled" : ""}${en.checked ? " checked" : ""}`; // `checked`: the current choice, marked (a belt slot's hand, #285)
     el.textContent = en.label;
     el._onSelect = en.onSelect;
     el._card = en.card || null;

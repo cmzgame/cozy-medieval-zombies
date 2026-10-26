@@ -125,7 +125,9 @@ export function makeCode() {
 // 13 (2026-10-25, #250): the frame's `arrows` is { go, end }, each flight's launch once and its end once (archery.launchRecord, endRecord), only
 // when there are any, and a guest steps the flights itself; the `flares` list is gone (a guest makes a fireball's flare where it lands). An older
 // guest read `arrows` as the positions in flight every frame.
-export const PROTOCOL = 13;
+// 14 (2026-10-25, #285): a player's heavy record carries `beltHands`, the hand chosen per belt slot ({ id, hand } or null); an older
+// guest drew from its belt into the hand its own replica guessed.
+export const PROTOCOL = 14;
 
 // A guest away (its socket gone, or its leave): its character stands for the grace, then goes dormant
 // through the client (hooks.dormant; docs/31/09; Michael, 2026-10-13: no more than sixty seconds).
@@ -251,7 +253,7 @@ const lastRoster = { zombies: "", villagers: "", corpses: "", animals: "" };
 // predicted swing is refused or allowed on the same step as the host's (rounded, a cooldown of 0.0167 would go as 0.02 and
 // the guest would hold a click the host took).
 const EXACT = new Set(["gx", "gy", "attackCooldown", "offCooldown", "swingLock", "shoveCooldown"]); // shoveCooldown: the shove's recovery gates a swing too (docs/41, step 2)
-const HEAVY = new Set(["worn", "hidden", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
+const HEAVY = new Set(["worn", "hidden", "beltHands", "hands", "pockets", "loot", "look", "name", "carried", "lootTable", "wardrobe", "corpseKey", "maxHp", "maxHunger", "maxStamina", "maxThirst", "maxTired", "radius", "speed", "kind", "layer"]);
 const lastHeavy = new Map(); // player id -> the heavy part's text last sent
 const lastLight = new Map(); // player id -> the light record's text last sent
 const lastExtras = { rules: "", carriers: "", queues: "", animalHomes: "" }; // sent when they change, not every frame

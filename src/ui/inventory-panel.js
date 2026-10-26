@@ -18,7 +18,7 @@ import * as use from "../use.js";
 import * as hoverCard from "./hover-card.js"; // the card over an item (#262)
 import { cardFor, cardForSlot } from "../item-info.js";
 import { holdsWater, isTainted } from "../water.js"; // the brown drop on a tainted skin or bucket (docs/44)
-import { parseSlot, HIDEABLE } from "../inventory.js";
+import { parseSlot, HIDEABLE, beltHand } from "../inventory.js";
 
 let CELL = view.BASE_CELL; // the bag's cell in UI pixels, read from the view at every render
 const HOT_CELL = view.BASE_CELL; // the belt is HUD and keeps the base size
@@ -445,7 +445,10 @@ function cardAt(target, x, y) {
   const hit = entryFromEvent({ target });
   if (hit) {
     const en = hit.entry;
-    hoverCard.show(`${en.uid ?? en.id}|${en.id}|${en.count}|${en.fill ?? ""}|${en.wear ?? ""}|${en.clean ? "clean" : ""}`, () => cardFor(en), x, y);
+    // On a belt slot the card says where its key draws the thing now (#285): the slot's chosen hand, read off the player shown.
+    const slot = hit.slot ? parseSlot(hit.slot) : null;
+    const hand = slot && slot.kind === "belt" && shown.player ? beltHand(shown.player, slot.index) : null;
+    hoverCard.show(`${en.uid ?? en.id}|${en.id}|${en.count}|${en.fill ?? ""}|${en.wear ?? ""}|${en.clean ? "clean" : ""}|${hand || ""}`, () => cardFor(en, hand ? { beltHand: hand } : {}), x, y);
     return;
   }
   const slot = target.closest(".doll-slot.empty, .hot-slot.empty");
@@ -717,6 +720,8 @@ function onPointerUp(e) {
     else if (d.from.kind === "bag") (handlers.moveInGrid ? handlers.moveInGrid(d.entry, d.from.bag, t.bag, t.x, t.y, d.rot) : grid.moveEntry(d.from.bag, t.bag, d.entry, t.x, t.y, d.rot));
     else handlers.placeInGrid?.(d.entry, d.from, t.bag, t.x, t.y, d.rot);
     handlers.changed?.();
+  } else if (t && t.slot) {
+    handlers.slotRefused?.(d.entry, t.slot); // the red slot's reason, when it has one (the halberd and the belt, #285)
   } else if (!t && !overPanel(e.clientX, e.clientY)) {
     handlers.dropToFloor?.(d.entry, d.from);
   }

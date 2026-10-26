@@ -5,6 +5,7 @@
 // is "use" for the word Use (drawn in --gold, Michael 2026-10-18), "word" for another menu word (Eat, Equip, Drink, Apply), or absent for plain text.
 
 import { getItem, wearPerHit, wearPerShot, toolFor, countName, pluralName } from "./items.js";
+import { beltDefault } from "./inventory.js"; // where the belt's key draws a thing by default (#285)
 import { work, trees } from "./tuning.js"; // the repair ladders and the sawpit's item (docs/43 section 6); the sapling and the sticks (docs/46 step 3)
 import * as interactions from "./interactions.js";
 import * as stations from "./stations.js";
@@ -127,7 +128,8 @@ export function recipesOf(def) {
 const stationWord = (s) => (s === "cooking" ? "a cooking fire" : `the ${s.replace(/_/g, " ")}`);
 
 // The card for an item entry (a bag's, a slot's, a container's): never null for a known item.
-export function cardFor(entry) {
+// `opts.beltHand`: on a belt slot, the hand its key draws into now ("main" or "off", inventory.beltHand), said on the Equip line (#285).
+export function cardFor(entry, opts = {}) {
   const def = entry && getItem(entry.id);
   if (!def) return { name: String(entry && entry.id), kind: "", state: "", lines: [], fine: [] };
   const lines = [];
@@ -180,7 +182,17 @@ export function cardFor(entry) {
   }
   if (def.placeAs) lines.push(line(seg("Place as decoration", "word"), ": set down on the floor; picked up again, it is a decoration, not food."));
   if (def.bracket) lines.push(line(seg("Place", "word"), ": hang on a wall's face, to hold a torch."));
-  if (def.hands) lines.push(line(seg("Equip", "word"), `: ${def.hands === "both" ? "both hands" : def.hands === "either" ? "main or off hand" : `${def.hands} hand`}.`));
+  // The hands, and the belt's (#285): a thing too long for the belt says so; one that fits either hand says where the belt's key draws it,
+  // on a belt slot that slot's chosen hand (`opts.beltHand`, the panel's), else the default (inventory.beltDefault).
+  if (def.hands) {
+    let belt = "";
+    if (def.noBelt) belt = "; too long for the belt";
+    else if (def.hands === "either") {
+      const d = opts.beltHand || beltDefault(def);
+      belt = opts.beltHand ? `; this slot draws it into the ${d} hand` : `; from the belt, ${d === "free" ? "a free hand" : `the ${d} hand`}`;
+    }
+    lines.push(line(seg("Equip", "word"), `: ${def.hands === "both" ? "both hands" : def.hands === "either" ? "main or off hand" : `${def.hands} hand`}${belt}.`));
+  }
   if (def.wear) lines.push(line(seg("Equip", "word"), `: worn on your ${def.wear}${def.bag ? `; holds ${def.bag[0]}×${def.bag[1]}` : ""}${def.beltSlots ? `; ${def.beltSlots} belt slots` : ""}.`));
   // What a dye vat can do to it (docs/43 section 8): its regions' colours, or its schemes, counted as the picker shows them (ui/dye-panel.js):
   // a palette colour equal to the item's own is its Undyed swatch, not one more (the breeches' own is Walnut brown, the boots' Dark brown).
