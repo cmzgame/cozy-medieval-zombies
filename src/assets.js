@@ -318,6 +318,30 @@ export async function heldSheetFromImage(held) {
   return { image: canvas, frames, anchor: [grip[0], grip[1]], animations: {}, facings: [], mirror: {}, tips: [] };
 }
 
+// The one nearest-pixel turn of a drawn picture (`sd` its RGBA, `w` by `h`) by `angle` radians clockwise about `pivot` (a point in its
+// pixels), into the S by S square `out` with the pivot at its middle: every pixel whole, nothing blended. A held item's sixteen angles turn
+// about its grip; a thrown knife's or axe's spin and the picture lying where it landed turn about its middle (archery.js, docs/24 section 1).
+export function turnPixels(sd, w, h, pivot, angle, out, S) {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const dx = x + 0.5 - S / 2;
+      const dy = y + 0.5 - S / 2;
+      const sx = Math.floor(pivot[0] + dx * cos + dy * sin);
+      const sy = Math.floor(pivot[1] - dx * sin + dy * cos);
+      if (sx < 0 || sy < 0 || sx >= w || sy >= h) continue;
+      const i = (sy * w + sx) * 4;
+      if (sd[i + 3] === 0) continue;
+      const o = (y * S + x) * 4;
+      out[o] = sd[i];
+      out[o + 1] = sd[i + 1];
+      out[o + 2] = sd[i + 2];
+      out[o + 3] = 255;
+    }
+  }
+}
+
 function heldSheetRotated(img, grip, S) {
   const src = document.createElement("canvas");
   src.width = img.width;
@@ -331,26 +355,8 @@ function heldSheetRotated(img, grip, S) {
   const ctx = canvas.getContext("2d");
   const frames = {};
   for (let k = 0; k < 16; k++) {
-    const a = (k * 22.5 * Math.PI) / 180;
-    const cos = Math.cos(a);
-    const sin = Math.sin(a);
     const out = ctx.createImageData(S, S);
-    for (let y = 0; y < S; y++) {
-      for (let x = 0; x < S; x++) {
-        const dx = x + 0.5 - S / 2;
-        const dy = y + 0.5 - S / 2;
-        const sx = Math.floor(grip[0] + 0.5 + dx * cos + dy * sin);
-        const sy = Math.floor(grip[1] + 0.5 - dx * sin + dy * cos);
-        if (sx < 0 || sy < 0 || sx >= img.width || sy >= img.height) continue;
-        const i = (sy * img.width + sx) * 4;
-        if (sd[i + 3] === 0) continue;
-        const o = (y * S + x) * 4;
-        out.data[o] = sd[i];
-        out.data[o + 1] = sd[i + 1];
-        out.data[o + 2] = sd[i + 2];
-        out.data[o + 3] = 255;
-      }
-    }
+    turnPixels(sd, img.width, img.height, [grip[0] + 0.5, grip[1] + 0.5], (k * 22.5 * Math.PI) / 180, out.data, S); // about the grip pixel's middle
     ctx.putImageData(out, k * S, 0);
     frames[`held_${k}`] = [k * S, 0, S, S];
   }

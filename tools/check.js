@@ -1260,10 +1260,17 @@ check("hover card: the spear, the bow, the arrows, the Book and Staff of Fire, t
   has("staff_of_fire", `Cast (left button, a spellbook in the other hand): ${fb.name} with the Book of Fire.`);
   const th = I("halberd").weapon.alt;
   has("halberd", `Thrust (middle button or Q): ${th.damage} damage, reach ${th.range}; ${th.stamina} stamina.`);
+  // The throwing knife and axe (docs/24 section 1): thrown on the left button, their damage, range, stagger, knockdown, and break from the data.
   for (const id of ["throwing_knife", "throwing_axe"]) {
-    has(id, "To come: thrown.");
-    assert(!card(id).some((l) => l.startsWith("Throw (")), `${id} says it throws, and it does not yet`);
+    const t = I(id).thrown;
+    has(id, `Throw (left button, from the main hand): ${by(t.damage)}, up to ${t.range} tiles.`);
+    has(id, `It lands to be picked up again, or stays in the body it hits; it may break (${Math.round(t.breakChance * 100)}%).`);
+    has(id, t.staggerChance >= 1 ? "Every hit staggers the dead." : `A hit staggers the dead ${Math.round(t.staggerChance * 100)}% of the time.`);
+    assert(!card(id).some((l) => l.startsWith("To come")), `${id} still says it is to come: ${card(id).join(" | ")}`);
   }
+  has("throwing_axe", `A hit knocks the dead down ${Math.round(I("throwing_axe").thrown.knockdown * 100)}% of the time.`);
+  assert(!card("throwing_knife").some((l) => /knocks/.test(l)), "the throwing knife says it knocks down");
+  assert(card("spear").some((l) => l.startsWith("Throw (middle button or Q)")), "the spear, which also stabs, no longer throws on the other mode");
   for (const id of ["cap", "hood", "tunic", "gloves", "breeches", "boots"]) {
     has(id, "Tear into 2 rags at the workbench, a dirk carried.");
     assert(!card(id).some((l) => /^Goes into:.*\brag\b/.test(l)), `${id}: the rag is in its Goes into as well`);
@@ -2542,6 +2549,57 @@ check("save: one of the dead saved mid-breach takes up the chase on its first st
   assert(back.state === "chase", `after its first step it is in ${back.state}`);
   for (let i = 0; i < 120; i++) gameMod.step(1 / 60, null);
   return `restored in breach with no opening, in the chase after its first step; stepped 120 more, now ${back.state}`;
+});
+
+// Throwing knives and axes (docs/24 section 1, #489): a throw from a stack takes one as an entry with a uid of its own and the hand empties
+// with the last; the axe's knockdown rides the shot to its landing and floors some of the dead, the knife's never; and after the throws the
+// item census holds no uid twice. The pane's check("throwing") draws, spins, lodges, breaks, and sweeps them up.
+const zombieMod = await import("../src/entities/zombie.js");
+const rngMod = await import("../src/rng.js");
+check("throwing: one from the stack with its own uid, the axe's knockdown rolled where it lands, and no uid held twice", () => {
+  gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
+  const S = gameMod.state;
+  const me = S.player;
+  S.zombies.length = 0;
+  S.villagers.length = 0;
+  rngMod.seed(4242);
+  // Open ground: three tiles east of the player with nothing on them and no wall across them (the spawn has a wall just east).
+  const open = (x0, y0) => { for (let dx = -1; dx <= 3; dx++) for (let dy = -1; dy <= 1; dy++) { const x = x0 + dx, y = y0 + dy; if (!mapMod.isWalkableTile(x, y) || mapMod.tileAt(x, y).prop || mapMod.wallBetween(x, y, x + 1, y) || mapMod.wallBetween(x, y, x, y + 1)) return false; } return true; };
+  const ox = Math.round(me.gx), oy = Math.round(me.gy);
+  let spot = null;
+  for (let r = 0; r <= 30 && !spot; r++) for (let dy = -r; dy <= r && !spot; dy++) for (let dx = -r; dx <= r && !spot; dx++) if ((Math.abs(dx) === r || Math.abs(dy) === r) && open(ox + dx, oy + dy)) spot = [ox + dx, oy + dy];
+  assert(spot, "no open ground near the spawn");
+  me.gx = spot[0];
+  me.gy = spot[1];
+  const throwAt = (x, y) => { me.recover = 0; me.draw = { t: 1, c: 1, source: "script" }; me.aimOverride = [x, y]; const f = archeryMod.releaseDraw(me, {}); me.aimOverride = null; for (let i = 0; i < 120 && archeryMod.arrowsInFlight().length; i++) gameMod.step(1 / 60, null); return f; };
+  const stack = itemsMod.makeEntry("throwing_knife", 2);
+  me.hands.main = stack;
+  me.hands.off = null;
+  const f = throwAt(me.gx + 1.5, me.gy);
+  assert(f && f.item && f.item.uid !== stack.uid && f.item.count === 1 && stack.count === 1 && me.hands.main === stack, `the first throw: ${f && f.item ? `${f.item.uid} ×${f.item.count}` : "nothing"} from ${stack.uid}, ${stack.count} left`);
+  throwAt(me.gx + 1.5, me.gy);
+  assert(me.hands.main === null, "the hand still holds the stack after its last knife");
+  const tally = (id) => {
+    let hit = 0;
+    let down = 0;
+    for (let i = 0; i < 30; i++) {
+      const z = zombieMod.createZombie(me.gx + 1.5, me.gy, { hp: 1000 });
+      S.zombies.push(z);
+      me.hands.main = itemsMod.makeEntry(id, 1);
+      throwAt(z.gx, z.gy);
+      if (z.hp < 1000) hit++;
+      if (z.state === "down") down++;
+      S.zombies.splice(S.zombies.indexOf(z), 1);
+    }
+    return { hit, down };
+  };
+  const ax = tally("throwing_axe");
+  const kn = tally("throwing_knife");
+  assert(ax.hit === 30 && ax.down > 0 && ax.down < ax.hit, `the axe: ${ax.hit} hits, ${ax.down} down`);
+  assert(kn.hit === 30 && kn.down === 0, `the knife: ${kn.hit} hits, ${kn.down} down`);
+  const c = gameMod.itemCensus();
+  assert(c.dups.length === 0, `after the throws: ${c.summary}`);
+  return `one from a stack of 2 with its own uid, the hand empty after the last; the axe floored ${ax.down} of ${ax.hit}, the knife ${kn.down} of ${kn.hit}; no uid twice`;
 });
 
 // An item's name counted in a sentence (src/items.js countName; docs/bugs.md, the butcher's "3 raw venisons"): a definition's `noun` "mass"

@@ -14,8 +14,8 @@ import { HELD_ANGLES, angleIndex, poseAt } from "./figure.js";
 import * as settings from "./settings.js";
 import { guardedMult, styleOf } from "./combat.js";
 import { getItem } from "./items.js";
-import { getSheet, idleFrame } from "./assets.js";
-import { damageZombie } from "./entities/zombie.js";
+import { getSheet, idleFrame, turnPixels } from "./assets.js";
+import { damageZombie, isDown } from "./entities/zombie.js";
 import { damageAnimal, isWild } from "./entities/animal.js"; // game shot, and stock only when aimed at (docs/45 section 2)
 import * as burn from "./burn.js";
 import { DOOR_TOP, WINDOW_SILL, WINDOW_TOP } from "./placeholders.js";
@@ -25,6 +25,7 @@ import { showMessage } from "./ui/prompt.js";
 import * as mana from "./mana.js"; // a spell's cost (docs/47 section 5): refused before the draw, spent on the release
 import * as loop from "./loop.js";
 import * as rng from "./rng.js";
+import { nextId } from "./world.js"; // a thrown one from a stack is an entry of its own (docs/24 section 1)
 
 // Everything is tunable from the console: __game.archery.tunables. The numbers are data since 2026-10-15
 // (`data/combat.json` `bow`, setBowData; the wiki census: combat numbers are data); these are the same as defaults.
@@ -111,7 +112,7 @@ export function preview(from, dir, distance, c = 1, range = tunables.range) {
 // Fire one. The landing point, the path, and the flight time are fixed here.
 // `from` is anyone with gx and gy (the archer). Returns the arrow.
 export function shoot(from, dir, distance, c = 1, o = {}) {
-  const { shooter = from, damage = tunables.damage, knockback = tunables.knockback, range = tunables.range, speed = tunables.speed, arcMin = tunables.arcMin, arcMax = tunables.arcMax, z0 = tunables.z0, projectile = "arrow", breakChance = 0, staggerChance = undefined, item = null, flat = false, vanish = false, contact = 0, landRadius = null, ignite = false } = o;
+  const { shooter = from, damage = tunables.damage, knockback = tunables.knockback, range = tunables.range, speed = tunables.speed, arcMin = tunables.arcMin, arcMax = tunables.arcMax, z0 = tunables.z0, projectile = "arrow", breakChance = 0, staggerChance = undefined, knockdown = 0, item = null, flat = false, vanish = false, contact = 0, landRadius = null, ignite = false } = o;
   const p = preview(from, dir, distance, c, range);
   const T = Math.max(1 / 120, p.landing / speed);
   const a = {
@@ -121,6 +122,7 @@ export function shoot(from, dir, distance, c = 1, o = {}) {
     item, // a thrown item's own entry, which is what lands (an arrow is made fresh)
     breakChance, // of a thrown item: rolled as it comes down; a broken one is gone
     staggerChance, // of the hit it lands (undefined: the default)
+    knockdown, // the chance the hit it lands floors one of the dead, rolled where it lands (the throwing axe's 0.35, docs/24 section 1)
     flat, // a spell's flight (docs/24): no arc, the same height all the way, so it cannot be lobbed over a wall
     vanish, // a spell leaves nothing: no item lands or lodges (Michael, 2026-10-14)
     contact, // tiles: above 0, it bursts on the first of the dead within this of it as it flies (the fireball; #11)
@@ -297,7 +299,11 @@ function land(a, met = null) {
     damageAnimal(hit, shotDamage(a.damage, a.c), { by: a.shooter, cls: a.vanish ? "spell" : a.item ? "thrown" : "bow", from: [a.x0, a.y0] });
   } else if (hit) {
     if (a.ignite) burn.ignite(hit); // before the damage, so a body it kills burns on as a corpse (#14)
-    damageZombie(hit, shotDamage(a.damage, a.c), { dir: [a.dx, a.dy], knockback: a.knockback, staggerChance: a.staggerChance, from: [a.x0, a.y0] });
+    // A knockdown is rolled here, on the authority, as a swing's is in combat.js (docs/24 section 1): only a shot that carries one rolls,
+    // and never on one already down or one the hit kills.
+    const amount = shotDamage(a.damage, a.c);
+    const down = a.knockdown > 0 && !isDown(hit) && amount < hit.hp && rng.chance(a.knockdown);
+    damageZombie(hit, amount, { dir: [a.dx, a.dy], knockback: a.knockback, staggerChance: a.staggerChance, knockdown: down, from: [a.x0, a.y0] });
   }
   if (hit) {
     // The arrow stays in the body (Michael): it comes out in the loot when the dead one is
@@ -320,7 +326,7 @@ function land(a, met = null) {
     map.kindleNear(gx, gy, tunables.kindleRadius, (px, py) => clearBetween(gx, gy, px, py, a.z)); // and it lights a campfire or a mounted torch there, not through a wall
   }
   // What lands is the thrown item itself (a spear keeps whatever it carries) or a fresh arrow.
-  if (keep) map.dropItem(Math.round(gx), Math.round(gy), { ...(a.item || { id: "arrow", count: 1 }), at: [gx, gy], angle: ground });
+  if (keep) map.dropItem(Math.round(gx), Math.round(gy), { ...(a.item || { id: "arrow", count: 1 }), at: [gx, gy], angle: ground }); // a thrown knife or axe lies as its picture at this angle too (render/props.js)
   emit("arrowLanded", { arrow: a, gx, gy, hit, kept: keep, broken, stoppedBy: a.stopWhy });
 }
 
@@ -703,6 +709,56 @@ export function generateSpear() {
   return makeProjectile("spear", { size: 32, len: 26, thick: 2, shaft: "#8a6a3a", head: "#b4b0a8", headLen: 6, fletch: null, cord: "#d8c8a0" });
 }
 
+// ---- a thrown knife's and axe's pictures, turned from their drawn art (docs/24 section 1) ----
+//
+// The item's upright world picture (data/art/items/throwing_knife_world.png, read as data) turned about its middle by the nearest pixel,
+// as a held item's angles are (assets.js, figure/held.js): every frame whole pixels, nothing scaled in the draw. The spin is eight steps of
+// 45 degrees (`${name}_${i}`), played at the sheet's `spin` turns a second (render/entities.js), the art agent's own frames to replace them
+// when drawn; the picture lying where it came down is sixteen angles, 22.5 apart, 0 the picture upright and clockwise (`${id}_${k}`), as
+// an arrow's are, so it points the way it flew.
+function turnedSheet(img, name, steps) {
+  const w = img.width;
+  const h = img.height;
+  const src = document.createElement("canvas");
+  src.width = w;
+  src.height = h;
+  const sctx = src.getContext("2d", { willReadFrequently: true });
+  sctx.drawImage(img, 0, 0);
+  const sd = sctx.getImageData(0, 0, w, h).data;
+  const S = 2 * Math.ceil((Math.hypot(w, h) + 2) / 2); // its diagonal, even, so every turn fits
+  const canvas = document.createElement("canvas");
+  canvas.width = S * steps;
+  canvas.height = S;
+  const ctx = canvas.getContext("2d");
+  const frames = {};
+  for (let k = 0; k < steps; k++) {
+    const out = ctx.createImageData(S, S);
+    turnPixels(sd, w, h, [w / 2, h / 2], (k * 2 * Math.PI) / steps, out.data, S); // about its middle, the held art's own sampler
+    ctx.putImageData(out, k * S, 0);
+    frames[`${name}_${k}`] = [k * S, 0, S, S];
+  }
+  return { image: canvas, frames, anchor: [S / 2, S / 2], animations: {}, facings: [], mirror: {} };
+}
+
+// In flight: the thrown item's `thrown.projectile` names it (`knife_spin`), so a flight's launch record (`p`) carries it to a guest.
+export function spinSheet(img, name, spin) {
+  return { ...turnedSheet(img, name, 8), spin };
+}
+
+// Down: the item's own id names it, as the arrow's and the spear's landed pictures are named.
+export function lyingSheet(img, id) {
+  return turnedSheet(img, id, HELD_ANGLES);
+}
+
+// The step of a spin a flight is drawn at: its age by the sheet's turns a second, from the way it was thrown, turning forward (clockwise
+// on the screen when thrown to the right, the other way to the left). Read from the flight's own age, so a guest's flight turns as the host's.
+export function spinFrame(a, spin) {
+  const sx = (a.dx - a.dy) * iso.HW;
+  const base = Math.round(angleIndex([sx, (a.dx + a.dy) * iso.HH]) / 2) % 8;
+  const step = Math.floor(Math.max(0, a.t) * spin * 8);
+  return sx >= 0 ? (base + step) % 8 : (((base - step) % 8) + 8) % 8;
+}
+
 // ---- the draw (docs/20, step 2) ----
 //
 // With a bow in the main hand the left button is the draw: hold to draw, release
@@ -742,7 +798,9 @@ export function launcherOf(player) {
   const def = e && getItem(e.id);
   if (!def) return null;
   const common = { entry: e, range: tunables.range, speed: tunables.speed, arcMin: tunables.arcMin, arcMax: tunables.arcMax, z0: tunables.z0, drawTime: tunables.drawTime };
-  // `button` is the button that draws it (docs/21): the bow on the left, a throw on the middle.
+  // `button` is the button that draws it (docs/21): the bow on the left, a throw on the middle, and the left for a pure throwable (a thrown
+  // block and no weapon block: the throwing knife and axe, docs/24 section 1), whose only mode is its throw; the spear, which also stabs, keeps
+  // its throw on the other mode.
   // The bow's arrows are its `ammo` in data/items.json, the first carried in its order (#317): fire arrows before plain ones (#14), the last
   // the one a bow with none asks for. An arrow whose item is `ignite` burns what it hits, and lands as a plain arrow.
   if (def.bow) {
@@ -751,7 +809,7 @@ export function launcherOf(player) {
     const ad = getItem(ammo);
     return { ...common, ...def.bow, kind: "bow", button: "primary", ammo, projectile: ammo, ignite: !!(ad && ad.ignite) };
   }
-  if (def.thrown) return { ...common, ...def.thrown, kind: "thrown", button: "alt", ammo: null, projectile: def.thrown.projectile || def.id };
+  if (def.thrown) return { ...common, ...def.thrown, kind: "thrown", button: def.weapon ? "alt" : "primary", ammo: null, projectile: def.thrown.projectile || def.id };
   return null;
 }
 
@@ -863,11 +921,17 @@ export function releaseDraw(player, ctx) {
       mana.refuse(player);
       return null;
     }
+  } else if (getItem(L.entry.id).stack) {
+    // One from a stack (docs/24 section 1): a new entry with a uid of its own, never a copy carrying the stack's, so a guest's addressing by
+    // uid holds and no uid is in two places; the hand empties when the last one goes.
+    item = { ...L.entry, count: 1, uid: nextId("e") };
+    L.entry.count = (L.entry.count || 1) - 1;
+    if (L.entry.count <= 0) release(player.hands, L.entry);
   } else {
     item = { ...L.entry };
     release(player.hands, L.entry);
   }
-  const a = shoot(player, aim.dir, aim.distance, c, { damage: (L.damage ?? tunables.damage) * guardedMult(player), knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, staggerChance: L.staggerChance, item, flat: !!L.flat, vanish: !!L.vanish, contact: L.contact || 0, landRadius: L.landRadius ?? null, ignite: !!L.ignite });
+  const a = shoot(player, aim.dir, aim.distance, c, { damage: (L.damage ?? tunables.damage) * guardedMult(player), knockback: L.knockback ?? tunables.knockback, range: L.range, speed: L.speed, arcMin: L.arcMin, arcMax: L.arcMax, z0: L.z0, projectile: L.projectile, breakChance: L.breakChance ?? 0, staggerChance: L.staggerChance, knockdown: L.knockdown || 0, item, flat: !!L.flat, vanish: !!L.vanish, contact: L.contact || 0, landRadius: L.landRadius ?? null, ignite: !!L.ignite });
   player.recover = tunables.recoverTime;
   setPose(player, 3); // the release: the arrow loosed, the throw let go, the spell cast forward (docs/32, item 3)
   emit("arrowShot", { player, arrow: a, c });
