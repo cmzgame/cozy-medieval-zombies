@@ -46,7 +46,7 @@ export const DEBUFFS = [
     name: "Stamina potion",
     buff: true,
     read: (p) => (p && p.buffs && p.buffs.stamina && p.buffs.stamina.left > 0 ? { stacks: 1, left: p.buffs.stamina.left } : null),
-    lines: () => [`Stamina comes back ${POTIONS.staminaMult} times as fast.`, "It passes."],
+    lines: () => [`Stamina comes back ${POTIONS.staminaMult === 2 ? "twice" : `${POTIONS.staminaMult} times`} as fast.`, "It passes."],
   },
 ];
 

@@ -247,7 +247,7 @@ export function cardFor(entry, opts = {}) {
   if (def.bandage) lines.push(line(seg("Apply", "word"), ": closes a bleeding wound."));
   // A potion, drunk (docs/47 section 4), its numbers from data/tuning.json `potions`; a poison, never drunk (section 6).
   if (def.potion === "heal") lines.push(line(seg("Drink", "word"), `: heals ${POTIONS.heal} at once.`));
-  if (def.potion === "stamina") lines.push(line(seg("Drink", "word"), `: fills your stamina, and it comes back ${POTIONS.staminaMult} times as fast for ${POTIONS.staminaSeconds} seconds.`));
+  if (def.potion === "stamina") lines.push(line(seg("Drink", "word"), `: fills your stamina, and it comes back ${POTIONS.staminaMult === 2 ? "twice" : `${POTIONS.staminaMult} times`} as fast for ${POTIONS.staminaSeconds} seconds.`));
   if (def.potion === "mana") lines.push(line(seg("Drink", "word"), `: restores ${POTIONS.mana} mana at once.`));
   if (def.potion) lines.push(line(`${POTIONS.between} seconds between one potion and the next; the empty vial is kept.`));
   if (def.poison) {
@@ -382,6 +382,7 @@ function beltSlotLine(entry, def, role) {
   if (a.act === "draw") return line(`${where}: drawn into ${a.hand === "both" ? "both hands" : `your ${a.hand} hand`}.${lit}`);
   if (a.act === "eat") return line(`${where}: eaten.`);
   if (a.act === "drink") return line(`${where}: drunk.`); // a potion, from any slot (docs/47 section 4)
+  if (def.poison && !def.hands) return line(`${where}: carried only.`); // the card's own lines say Use and never drunk once (the review of #491)
   // A held thing the key does not draw is still equipped from the slot's menu, as from the bag (interact.slotMenu): the card says so.
   if (def.hands) return line(`${where}: stored. ${a.word} Its menu equips it.${lit}`);
   return line(`${where}: carried only. ${a.word}${lit}`);

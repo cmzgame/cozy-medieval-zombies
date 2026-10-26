@@ -131,14 +131,20 @@ export async function run(game, opts = {}) {
       G.net.sendItem({ op: "dbl", uid: sp.uid, src: { kind: "bag", bag: { mine: true } } });
       await pump(() => message() === potions.TOO_SOON, 5000);
       row("my double-click on the stamina potion within ten seconds: the host refuses with its line, which reaches me", message() === potions.TOO_SOON && bag().items.some((e) => e.uid === sp.uid), `"${message()}"`);
-      await pump(() => false, (P.between + 1) * 1000);
+      await pump(() => false, (P.between - 1) * 1000);
+      // A sprint out and back first (my snapshot, the host's step), so the bar the potion fills was not full already.
+      const sprint = async (x) => { G.net.setTestSnapshot({ axis: { x, y: 0 }, sprint: true }); await pump(() => false, 1000); };
+      await sprint(1);
+      await sprint(-1);
+      G.net.setTestSnapshot(null);
+      await pump(() => false, 300);
       const st0 = me.stamina;
       G.net.sendItem({ op: "dbl", uid: sp.uid, src: { kind: "bag", bag: { mine: true } } });
       const ms2 = await pump(() => !!(me.buffs && me.buffs.stamina), 5000);
       debuffRow.updateDebuffs(me);
       const el = document.querySelector('#debuffs .debuff.buff[data-id="stamina"]');
       const border = el ? getComputedStyle(el.querySelector(".db-box")).borderTopColor : "";
-      row("after ten seconds it is drunk on the host: my bar full, the buff on my record, in my row framed in gold", !bag().items.some((e) => e.uid === sp.uid) && me.stamina >= me.maxStamina - 0.5 &&!!(me.buffs && me.buffs.stamina) && !!el && border === "rgb(232, 200, 96)", `stamina ${st0} to ${me.stamina}; buffs ${JSON.stringify(me.buffs)}; row ${el ? border : "none"}; ${ms2} ms`);
+      row("after ten seconds it is drunk on the host: my bar (drained by a sprint) full, the buff on my record, in my row framed in gold", !bag().items.some((e) => e.uid === sp.uid) && st0 < me.maxStamina - 5 && me.stamina >= me.maxStamina - 0.5 &&!!(me.buffs && me.buffs.stamina) && !!el && border === "rgb(232, 200, 96)", `stamina ${st0} to ${me.stamina}; buffs ${JSON.stringify(me.buffs)}; row ${el ? border : "none"}; ${ms2} ms`);
       // A brew from my own panel on the replica: its Make is the panel's command to the host.
       if (witch) {
         stationPanel.openPanel(witch, me);
@@ -324,7 +330,7 @@ export async function run(game, opts = {}) {
     await wait(HC.delayMs + 80);
     const hcEl = document.getElementById("hover-card");
     const bCard = hcEl && !hcEl.hidden ? hcEl.textContent.replace(/\s+/g, " ").trim() : "(no card)";
-    row("the buff in the row at the top right, framed in gold, its time, its card a Buff", !!bEl && border === "rgb(232, 200, 96)" && /30s/.test(bEl.textContent) && /Buff/.test(bCard) && /2 times as fast/.test(bCard), `${border}; "${bEl ? bEl.textContent : ""}"; ${bCard}`);
+    row("the buff in the row at the top right, framed in gold, its time, its card a Buff", !!bEl && border === "rgb(232, 200, 96)" && /30s/.test(bEl.textContent) && /Buff/.test(bCard) && /twice as fast/.test(bCard), `${border}; "${bEl ? bEl.textContent : ""}"; ${bCard}`);
     card.hide();
     for (let i = 0; i < 60 * (P.staminaSeconds + 1); i++) G.loop.advance(1 / 60);
     debuffRow.updateDebuffs(me);

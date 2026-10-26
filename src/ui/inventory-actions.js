@@ -250,8 +250,9 @@ export function createInventoryActions(getPlayer) {
     // a poison says why not). True for a potion or a poison either way, so a refused drink never sends it across to an open container.
     use(entry, bag) {
       const def = items.getItem(entry.id);
-      if (potions.isPoison(def) && !def.hands) { showMessage(potions.POISON_WORD); return true; }
-      if (potions.potionOf(def) && !def.hands) { potions.drinkFrom(getPlayer(), entry, { kind: "bag", bag }); return true; }
+      const own = bag === inventory.bagOf(getPlayer()); // a potion drinks from your own bag alone; in a chest a double-click moves it across
+      if (own && potions.isPoison(def) && !def.hands) { showMessage(potions.POISON_WORD); return true; }
+      if (own && potions.potionOf(def) && !def.hands) { potions.drinkFrom(getPlayer(), entry, { kind: "bag", bag }); return true; }
       if (def.hands) return interact.equipFrom(getPlayer(), entry);
       if (def.wear) return interact.wearFrom(getPlayer(), entry, bag);
       return false;

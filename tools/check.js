@@ -3370,7 +3370,7 @@ check("potions: the vials, the cauldron (the witch's and your own), the brews wi
     for (const id of ["healing_potion", "stamina_potion", "mana_potion", "poison", "strong_poison"]) assert(itemsMod.getItem(id).stack === 5 && itemsMod.getItem(id).belt === true, `${id}: stack ${itemsMod.getItem(id).stack}`);
     assert(itemsMod.getItem("clay_vial").stack === 10 && itemsMod.getItem("unfired_vial").stack === 10, "the vials stack 10");
     assert(has("healing_potion", "Drink: heals 40 at once.") && has("healing_potion", "10 seconds between one potion and the next; the empty vial is kept.") && has("healing_potion", "Made at the cauldron.") && itemInfoMod.cardFor(mk("healing_potion")).kind === "Potion", card("healing_potion").join(" | "));
-    assert(has("stamina_potion", "Drink: fills your stamina, and it comes back 2 times as fast for 30 seconds.") && has("mana_potion", "Drink: restores 50 mana at once."), `${card("stamina_potion").join(" | ")} || ${card("mana_potion").join(" | ")}`);
+    assert(has("stamina_potion", "Drink: fills your stamina, and it comes back twice as fast for 30 seconds.") && has("mana_potion", "Drink: restores 50 mana at once."), `${card("stamina_potion").join(" | ")} || ${card("mana_potion").join(" | ")}`);
     assert(has("poison", "Use on a blade or on arrows.") && has("poison", "Ordinary poison: never drunk.") && has("strong_poison", "Strong poison: never drunk.") && !card("poison").some((l) => /^Drink/.test(l)) && itemInfoMod.cardFor(mk("poison")).kind === "Poison", `${card("poison").join(" | ")} || ${card("strong_poison").join(" | ")}`);
     const useSeg = itemInfoMod.cardFor(mk("poison")).lines.flat().find((s) => s.t === "Use");
     assert(useSeg && useSeg.k === "use", "the poison's Use is not its own gold segment");
@@ -3480,7 +3480,7 @@ check("potions: the vials, the cauldron (the witch's and your own), the brews wi
     const base = (() => { const b = me.buffs; me.buffs = null; const k = playerMod.staminaRegenMult(me); me.buffs = b; return k; })();
     assert(playerMod.staminaRegenMult(me) === base * 2, `regeneration ${playerMod.staminaRegenMult(me)} against ${base}`);
     const row = debuffsMod.activeDebuffs(me).find((d) => d.id === "stamina");
-    assert(row && row.buff === true && row.time === "30s" && debuffsMod.cardOf(row).kind === "Buff" && /2 times as fast/.test(debuffsMod.cardOf(row).lines.flat().map((s) => s.t).join(" ")), `the row: ${JSON.stringify(row)}`);
+    assert(row && row.buff === true && row.time === "30s" && debuffsMod.cardOf(row).kind === "Buff" && /twice as fast/.test(debuffsMod.cardOf(row).lines.flat().map((s) => s.t).join(" ")), `the row: ${JSON.stringify(row)}`);
     const parts0 = gameMod.syncParts();
     for (let i = 0; i < 60 * 10; i++) gameMod.step(1 / 60, null);
     assert(me.buffs && Math.abs(me.buffs.stamina.left - 20) < 0.05 && gameMod.syncParts().players !== parts0.players, `ten seconds later: ${JSON.stringify(me.buffs)}`);
@@ -3541,7 +3541,16 @@ check("potions: the vials, the cauldron (the witch's and your own), the brews wi
     assert(!interactMod.itemMenu(me, pz, bag, null).some((m) => m.label.startsWith("Drink")) && !interactMod.slotMenu(me, "belt:0").some((m) => m.label.startsWith("Drink")), "a poison has a Drink");
     said.length = 0;
     assert(acts.use(pz, bag) === true && last() === pw && bag.items.includes(pz), `the poison's double-click: "${last()}"`);
-    assert(itemInfoMod.textOf(itemInfoMod.cardFor(belt[0], { beltRole: "off" }))[2] === `From this off-hand slot: carried only. ${pw}`, itemInfoMod.textOf(itemInfoMod.cardFor(belt[0], { beltRole: "off" })).join(" | "));
+    const pcard = itemInfoMod.textOf(itemInfoMod.cardFor(belt[0], { beltRole: "off" }));
+    assert(pcard[2] === "From this off-hand slot: carried only." && pcard.filter((l) => /on a blade or on arrows/.test(l)).length === 1 && pcard.filter((l) => /never drunk/.test(l)).length === 1, `the poison's card on a slot says Use and never drunk once: ${pcard.join(" | ")}`);
+    // A double-click on a potion in a chest's grid drinks nothing (only your own bag, belt, and hands); drinkFrom refuses a place that does not hold it.
+    const chestBag = inventoryMod.createBag(3, 2, "chest");
+    const inChest = mk("healing_potion");
+    gridMod.insert(chestBag, inChest);
+    const inC = chestBag.items[0];
+    loopMod.setSimTime(7000);
+    me.hp = 20;
+    assert(acts.use(inC, chestBag) === false && me.hp === 20 && !potionsMod.drinkFrom(me, inC, { kind: "bag", bag: chestBag }) && !potionsMod.drinkFrom(me, inC, { kind: "belt", index: 0 }) && me.hp === 20 && inC.count === 1, `a potion in a chest was drunk: hp ${me.hp}`);
     // Your own cauldron: made at the anvil with a smith's hammer carried (into the output, an item), set down from the bag, picked up out and empty.
     clear();
     const anvil = [...mapMod.allProps()].find((p) => p.sprite === "anvil");

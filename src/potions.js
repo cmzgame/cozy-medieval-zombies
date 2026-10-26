@@ -67,6 +67,15 @@ function apply(player, kind) {
 // Whether the stamina buff is on this player now (player.staminaRegenMult reads it; the debuff row shows it).
 export const staminaBuffed = (player) => !!(player && player.buffs && player.buffs.stamina && player.buffs.stamina.left > 0);
 
+// Whether the potion is where `place` says, on this player: a belt slot, a hand, or the player's own bag (never an open container's grid).
+function heldAt(player, entry, place) {
+  if (!player || !entry || !place) return false;
+  if (place.kind === "belt") { const belt = beltOf(player); return !!belt && belt[place.index] === entry; }
+  if (place.kind === "hand") return !!player.hands && player.hands[place.slot] === entry;
+  if (place.kind === "bag") { const bag = bagOf(player); return !!bag && place.bag === bag && bag.items.includes(entry); }
+  return false;
+}
+
 // Takes the potion out of its place when it was the last of its stack, and gives back a function that puts the vial there, or null when the
 // place cannot take it. `place` is { kind: "bag", bag } | { kind: "belt", index } | { kind: "hand", slot }.
 function vacate(player, entry, place) {
@@ -95,6 +104,7 @@ function vacate(player, entry, place) {
 // Drink one of the potion `entry` from `place`. Says why not and returns false; otherwise the potion works, its stamp is set, and the
 // empty vial goes back. True when one was drunk.
 export function drinkFrom(player, entry, place) {
+  if (!heldAt(player, entry, place)) return false; // a stale or a stranger's place (a guest's command, a chest's grid): nothing is drunk
   const why = drinkProblem(player, entry);
   if (why) {
     showMessage(why);
