@@ -113,6 +113,11 @@ export async function run(game, opts = {}) {
   const wasPaused = G.loop.isPaused();
   const screen0 = G.screens.currentScreen();
   const mapOpen0 = mp.isOpen();
+  const inp = await import("/src/input.js");
+  const use = await import("/src/use.js");
+  const panel = await import("/src/ui/inventory-panel.js");
+  const look0 = { facing: me.facing, aim: { ...me.aim }, mouse: { ...inp.getMouse() } }; // put back in the finally: the pointer is the page's
+  const bagOpen0 = panel.isBagOpen();
   const floor = [];
   let kept = null;
   G.loop.setPaused(true);
@@ -190,6 +195,7 @@ export async function run(game, opts = {}) {
     fresh();
     G.teleport(me.gx, me.gy);
     if (!mp.isOpen()) press("KeyM");
+    mp.update({ player: me, players: G.game.state.players, places: [] }); // a hidden pane draws no frame: the panel sizes its canvas when it draws
     const cv = document.querySelector("#map-panel canvas");
     const box = cv.getBoundingClientRect();
     const move = (x, y) => { cv.dispatchEvent(new MouseEvent("mousemove", { clientX: x, clientY: y, bubbles: true })); G.loop.advance(1 / 60); G.loop.advance(1 / 60); };
@@ -204,12 +210,18 @@ export async function run(game, opts = {}) {
     const aimR = { ...me.aim };
     const faceR = me.facing;
     row("with the map open, the pointer moved over the map turns the character: its aim points left, then right, and its facing follows", mp.isOpen() && overMap && aimL.sx < 0 && aimR.sx > 0 && faceL !== faceR, `open ${mp.isOpen()}, over the map ${overMap}; aim ${aimL.sx.toFixed(0)},${aimL.sy.toFixed(0)} facing ${faceL}, then ${aimR.sx.toFixed(0)},${aimR.sy.toFixed(0)} facing ${faceR}`);
+    // Over the map the pointer is not over the world: `inside` false, so no world hover (the zombie hand, a Use label) reads under it.
+    const game = document.getElementById("game");
+    game.dispatchEvent(new MouseEvent("mousemove", { clientX: right.x, clientY: right.y, bubbles: true }));
+    const insideOnWorld = inp.getMouse().inside;
+    move(right.x, right.y);
+    row("the pointer over the map is not over the world (input's inside false), and over the world's canvas it is", insideOnWorld === true && inp.getMouse().inside === false, `on the canvas ${insideOnWorld}, over the map ${inp.getMouse().inside}`);
     mp.update({ player: me, players: G.game.state.players, places: (G.game.state.info && G.game.state.info.places) || [] });
     const mine = mp.markers().find((q) => q.self);
     const i = iso.FACINGS.indexOf(me.facing);
     const f = { x: Math.cos((i * Math.PI) / 4), y: Math.sin((i * Math.PI) / 4) };
     const g2 = cv.getContext("2d");
-    const pix = (dx, dy) => Array.from(g2.getImageData(Math.round(mine.x + dx), Math.round(mine.y + dy), 1, 1).data);
+    const pix = (dx, dy) => Array.from(g2.getImageData(Math.round(Math.round(mine.x) + dx), Math.round(Math.round(mine.y) + dy), 1, 1).data); // drawn at whole pixels
     const gold = ([r, g, b]) => r > 180 && g > 140 && b < 130 && r - b > 90; // the gold, or its edge blended at a half pixel
     const P = mp.POINTER;
     const tipIn = gold(pix(f.x * (P.tip - 3), f.y * (P.tip - 3)));
@@ -217,12 +229,52 @@ export async function run(game, opts = {}) {
     const sideIn = gold(pix(-f.y * (P.r - 1.5), f.x * (P.r - 1.5)));
     const noTail = !gold(pix(-f.x * (P.r + 3), -f.y * (P.r + 3)));
     row("my marker on the map is a pointer with a round back: gold toward my facing out to its point, round behind and to the side, no tail behind, larger than the old dot", !!mine && mine.shape === "pointer" && tipIn && backIn && sideIn && noTail && P.r > 4.5 && P.tip > 12, mine ? `shape ${mine.shape}, facing ${me.facing}; point ${tipIn}, back ${backIn}, side ${sideIn}, no tail ${noTail}; r ${P.r}, point ${P.tip} px` : "no marker of mine");
+    // The name beside it is clear of the pointer whichever of the eight ways it turns: the point's reach (tip + 2 with its outline) and the
+    // disc's never enter the label's box (x from LABEL_SELF.x, y LABEL_SELF.y above the centre, an 11 px line).
+    const L = mp.LABEL_SELF;
+    const clear = iso.FACINGS.every((_, k) => {
+      const a = (k * Math.PI) / 4;
+      for (let t = -(P.r + 1.5); t <= P.tip + 2; t += 0.5) {
+        const w = t <= 0 ? Math.sqrt(Math.max(0, (P.r + 1.5) ** 2 - t * t)) : P.r + 1.5; // the disc behind, and no wider than the disc ahead
+        for (const s of [-w, 0, w]) {
+          const x = Math.cos(a) * t - Math.sin(a) * s;
+          const y = Math.sin(a) * t + Math.cos(a) * s;
+          if (x >= L.x - 1 && y >= -L.y - 7 && y <= -L.y + 7) return false;
+        }
+      }
+      return true;
+    });
+    row("my name on the map stands clear of the pointer in all eight facings", clear, `label at +${L.x}, -${L.y}; pointer r ${P.r}, point ${P.tip}`);
     const other = G.game.state.players.find((p) => p !== me && !p.dead);
     if (other) {
       const theirs = mp.markers().find((q) => q.id === other.id);
       row("another player's marker keeps its look, a dot in its colour", !theirs || theirs.shape === "dot", theirs ? theirs.shape : "off the map");
     }
     if (!mapOpen0) press("KeyM");
+
+    // ---- 4. the Use mode with the bag open: over the bag its label names nothing in the world under it ----
+    fresh();
+    G.grid.insert(bag(), mk("poison"));
+    const vial = bag().items.find((e) => e.id === "poison");
+    panel.setBagOpen(true);
+    panel.renderInventoryPanel(me, bag(), null, inv.beltOf(me));
+    // The pointer's event lands on the bag's grid (a hidden pane lays no panel out where a frame would, so the point is the grid's own
+    // and the event is sent to it, as the browser sends one over it).
+    const bagEl = document.querySelector("#inventory .inv-grid");
+    const bagBox = bagEl.getBoundingClientRect();
+    const onBag = { x: bagBox.left + bagBox.width / 2, y: bagBox.top + bagBox.height / 2 };
+    const overBag = !!bagEl.closest("#inventory") && !document.getElementById("inventory").hidden; // the bag is open, its grid the target
+    const label = () => ((document.getElementById("use-label") || {}).textContent || "").trim();
+    use.begin(vial, { kind: "bag", bag: bag() });
+    game.dispatchEvent(new MouseEvent("mousemove", { clientX: onBag.x, clientY: onBag.y, bubbles: true })); // the world's canvas at that very point
+    G.loop.advance(1 / 60);
+    const worldLabel = label();
+    document.querySelector("#inventory .inv-grid").dispatchEvent(new MouseEvent("mousemove", { clientX: onBag.x, clientY: onBag.y, bubbles: true })); // found again: the step redrew the panel
+    G.loop.advance(1 / 60);
+    const bagLabel = label();
+    use.cancel();
+    row("in the Use mode with the bag open, the label over the bag names nothing in the world (\"Use Poison →\"), where the world's canvas at that very point names what is under it", overBag && bagLabel === "Use Poison →" && worldLabel.startsWith("Use Poison → ") && worldLabel.length > bagLabel.length, `over the bag ${overBag}; "${bagLabel}"; on the canvas "${worldLabel}"`);
+    panel.setBagOpen(bagOpen0);
 
     // ---- two tabs: the swap and the knives for every other player ----
     if (opts.keep) {
@@ -247,6 +299,11 @@ export async function run(game, opts = {}) {
     rows.push({ check: "ran to the end", result: "FAIL", detail: e && e.stack ? e.stack.split("\n").slice(0, 3).join(" | ") : String(e) });
   } finally {
     if (!mapOpen0) mp.close();
+    if (use.isActive()) use.cancel();
+    panel.setBagOpen(bagOpen0);
+    me.facing = look0.facing;
+    me.aim = look0.aim;
+    Object.assign(inp.getMouse(), look0.mouse); // the pointer as the page had it
     for (const [x, y, uid] of floor) { const l = G.map.itemsAt(x, y); const k = l.findIndex((e) => e.uid === uid); if (k >= 0) l.splice(k, 1); G.map.markDirty(x, y); }
     G.settings.set("beltOrder", order0);
     me.worn.waist = worn0.waist;

@@ -3260,22 +3260,45 @@ check("playtest 2026-10-26: throwables' stacks in the hand slots, the belt's swa
     belt[0] = mk("sword");
     h.placeInSlot(mace, { kind: "slot", id: "hand:main" }, "belt:0");
     assert(id(me.hands.main) === "sword" && belt[0] === mace && !bag().items.length, `a drag from the hand onto an occupied slot: ${where()}`);
-    // A sword dragged from the main-hand slot onto the off hand: the shield to that slot (any thing rides a main-hand slot).
+    // And a shield dragged from the off hand onto a main-hand slot holding a sword: the sword into the off hand, the shield onto that slot,
+    // where it was dragged, though that slot's key would not draw it.
+    reset();
+    const sh0 = mk("shield");
+    me.hands.off = sh0;
+    belt[0] = mk("sword");
+    h.placeInSlot(sh0, { kind: "slot", id: "hand:off" }, "belt:0");
+    assert(id(me.hands.off) === "sword" && belt[0] === sh0 && !bag().items.length, `a shield dragged onto an occupied main-hand slot: ${where()}`);
+    // A sword dragged from the main-hand slot onto the off hand: the shield is no main-hand slot's to draw back, so it goes to an empty
+    // off-hand slot, not the freed main-hand one (the review of #501).
     reset();
     const shield = mk("shield");
     me.hands.main = mk("mace");
     me.hands.off = shield;
     belt[0] = mk("sword");
     h.placeInSlot(belt[0], { kind: "slot", id: "belt:0" }, "hand:off");
-    assert(id(me.hands.off) === "sword" && belt[0] === shield && id(me.hands.main) === "mace", `a sword from the main-hand slot onto the off hand: ${where()}`);
-    // The slot menu's Equip into a hand from the utility slot: what that hand held to the utility slot.
+    assert(id(me.hands.off) === "sword" && belt[1] === shield && !belt[0] && id(me.hands.main) === "mace", `a sword from the main-hand slot onto the off hand: ${where()}`);
+    // With both off-hand slots and the bag and the utility slot full, the freed main-hand slot holds it as storage, never the feet.
+    reset();
+    me.worn.back = null;
+    const sh1 = mk("shield");
+    me.hands.main = mk("mace");
+    me.hands.off = sh1;
+    belt[0] = mk("sword");
+    belt[1] = mk("book_of_fire");
+    belt[2] = mk("bread");
+    belt[4] = mk("book_of_fire");
+    h.placeInSlot(belt[0], { kind: "slot", id: "belt:0" }, "hand:off");
+    assert(id(me.hands.off) === "sword" && belt[0] === sh1, `the shield with nowhere but the freed slot: ${where()}`);
+    me.worn.back = mk("small_sack");
+    // The slot menu's Equip into a hand from the utility slot: the utility slot's key draws nothing, so what that hand held goes to an
+    // empty slot of its own role.
     reset();
     me.hands.main = mk("mace");
     const sh2 = mk("shield");
     me.hands.off = sh2;
     belt[2] = mk("sword");
     interactMod.slotMenu(me, "belt:2").find((q) => q.label === "Equip (off hand)").onSelect();
-    assert(id(me.hands.off) === "sword" && belt[2] === sh2 && !bag().items.length, `the utility slot's Equip (off hand): ${where()}`);
+    assert(id(me.hands.off) === "sword" && belt[1] === sh2 && !belt[2] && !bag().items.length, `the utility slot's Equip (off hand): ${where()}`);
     // An off-hand draw from a main-hand slot with the bow held: the bow takes the freed main-hand slot, not the first empty one.
     reset();
     bow = mk("bow");

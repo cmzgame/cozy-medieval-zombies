@@ -111,7 +111,7 @@ function beltSays(player, slotId) {
 // A held thing goes into a hand or a belt slot as one entry: one of it, or a stack of a thing that stacks (the throwing knives and axes, 20
 // and 10, held as a stack and thrown one at a time, docs/24 section 1; Michael's playtest, 2026-10-26: refused in every hand slot).
 function heldWhole(def, entry) {
-  return entry.count === 1 || entry.count <= (def.stack || 1);
+  return entry.count <= (def.stack || 1);
 }
 
 function restoreTo(player, entry, from) {
@@ -179,7 +179,7 @@ export function createInventoryActions(getPlayer) {
         return;
       }
       if (kind === "belt" && fromSlot && fromSlot.kind === "hand" && occupant && player.hands[fromSlot.key] === entry && fits(occupant, fromSlot.key)) {
-        interact.beltEquip(player, inventory.parseSlot(slotId).index, fromSlot.key); // the slot's thing into that hand, the hand's onto the slot
+        interact.beltEquip(player, inventory.parseSlot(slotId).index, fromSlot.key, true); // the slot's thing into that hand, the hand's onto the slot
         return;
       }
       detachFrom(player, entry, from);

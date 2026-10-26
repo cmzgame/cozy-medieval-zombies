@@ -261,7 +261,7 @@ function putOutTarget(target) {
   }
   const prop = typeof target.prop === "string" ? map.propById(target.prop) : target.prop;
   const f = prop && prop.fire;
-  if (!f || !(f.switch || prop.sprite === "campfire" || (f.holds && f.has))) return { reason: "That cannot be put out." }; // the stations keep their fuel and their fire (docs/43)
+  if (!map.putOutByHand(prop)) return { reason: "That cannot be put out." }; // the stations keep their fuel and their fire (docs/43)
   if (!f.lit) return { reason: "It is already out." };
   return { put: () => map.setFireLit(prop, false), name: f.holds ? "torch" : map.fireName(prop), prop };
 }

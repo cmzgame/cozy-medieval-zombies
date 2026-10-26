@@ -265,6 +265,8 @@ function arrowOf(facing) {
 // Your marker's shape: a disc of radius `r` with a point `tip` pixels from its centre toward `f` (a unit screen vector), the disc's edge
 // meeting the point along its two tangents, so the back is round and the point sharp.
 export const POINTER = { r: 6, tip: 15 };
+// Your name's place beside it: right of the point's furthest reach (tip + 2 with the outline) and above the disc, so the pointer never covers it.
+export const LABEL_SELF = { x: POINTER.tip + 5, y: POINTER.r + 10 };
 function pointerPath(x, y, f, r, tip) {
   const a = Math.atan2(f.y, f.x);
   const t = Math.acos(Math.min(1, r / tip)); // the tangent points' angle either side of the facing
@@ -345,10 +347,10 @@ export function update(state) {
     if (f) {
       // Yours: a pointer with a round back (Michael's playtest, 2026-10-26), a disc at your position with its point toward your facing,
       // so it turns with the mouse as the character does; outlined dark, larger than the others' dots.
-      pointerPath(m.x, m.y, f, POINTER.r + 1.5, POINTER.tip + 2);
+      pointerPath(Math.round(m.x), Math.round(m.y), f, POINTER.r + 1.5, POINTER.tip + 2);
       ctx.fillStyle = "#000";
       ctx.fill();
-      pointerPath(m.x, m.y, f, POINTER.r, POINTER.tip);
+      pointerPath(Math.round(m.x), Math.round(m.y), f, POINTER.r, POINTER.tip);
       ctx.fillStyle = SELF;
       ctx.fill();
     } else {
@@ -362,7 +364,7 @@ export function update(state) {
       ctx.fill();
     }
     ctx.textAlign = "left";
-    text(p.name || p.id, Math.round(m.x + (f ? 12 : 8)), Math.round(m.y - (f ? 12 : 8)), self ? SELF : OTHER);
+    text(p.name || p.id, Math.round(m.x + (f ? LABEL_SELF.x : 8)), Math.round(m.y - (f ? LABEL_SELF.y : 8)), self ? SELF : OTHER); // yours clear of the pointer whichever way it turns
     ctx.textAlign = "center";
   }
   // The compass: north is up and to the right, never a guess.

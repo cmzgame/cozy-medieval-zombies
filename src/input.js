@@ -62,7 +62,9 @@ export function init(targetCanvas) {
     mouse.inside = true;
   });
   window.addEventListener("mousemove", (e) => {
-    if (e.target !== canvas) follow(e);
+    if (e.target === canvas) return;
+    follow(e);
+    mouse.inside = false; // over a panel: the aim follows, the world's hovers and clicks do not (main.js)
   });
   canvas.addEventListener("mouseleave", () => {
     mouse.inside = false;

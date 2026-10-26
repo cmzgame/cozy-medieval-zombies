@@ -1585,9 +1585,10 @@ export function beltPress(player, i) {
 
 // A belt slot's thing drawn into a hand: the slot's own (beltPress), or the hand the player chose (the slot menu's Equip into a hand, a drag
 // from the slot onto a hand: ui/inventory-actions.js), by inventory.beltDraw, so what the hand held goes to the slot just freed first
-// (Michael's playtest, 2026-10-26). What has nowhere else to go is set at the feet with its line. "drawn" or "refused".
-export function beltEquip(player, i, hand = null) {
-  const r = beltDraw(player, i, hand);
+// (Michael's playtest, 2026-10-26). `onto`: a drag from a hand onto this occupied slot, whose thing goes there. What has nowhere else to
+// go is set at the feet with its line. "drawn" or "refused".
+export function beltEquip(player, i, hand = null, onto = false) {
+  const r = beltDraw(player, i, hand, onto);
   for (const d of r.drop) {
     map.dropItem(Math.round(player.gx), Math.round(player.gy), d);
     showMessage(dropWord(d));
@@ -1737,8 +1738,9 @@ export function slotMenu(player, slotId) {
     // A food on the belt is eaten from it (Michael, 2026-10-18, #179: "being able to eat from your belt"), and a skin drunk from its menu
     // (never by its key, which says it drinks by itself): the slot's first entry. A held item's Equip is what a hand slot's key does
     // (inventory.beltAction), so a double-click draws it there too. A held thing the slot's key does not draw (anything in the utility slot, a
-    // wrong-hand thing in a hand slot) is equipped from the menu into its own hand, as from the bag (equipFrom): only the key, and the
-    // double-click that follows it, never equip from there, and say why.
+    // wrong-hand thing in a hand slot) is equipped from the menu into its own hand (beltEquip with that hand: what the hand held goes back to
+    // this slot when its key would draw it, else where a pushed-out thing goes, never the bag first): only the key, and the double-click that
+    // follows it, never equip from there, and say why.
     if (bdef.kind === "food") {
       out.push({ label: "Eat", enabled: true, onSelect: () => { eatOne(player, entry, bdef, () => { belt[i] = null; }); } });
     } else if (potions.potionOf(bdef)) {
