@@ -826,7 +826,31 @@ function clearForeignTiles(c, pr) {
   for (const [x, y] of pr.tiles || []) {
     if (inChunkTile(c, x, y)) continue;
     const t = peekTile(x, y, c.layer);
-    if (t && t[slot] === pr) t[slot] = null;
+    if (t && t[slot] === pr) {
+      t[slot] = null;
+      unsaved(x, y, false); // the neighbour's saved copy named the part
+    }
+  }
+}
+
+// A chunk grown from the authored map holds the authored prop object on each of its tiles, a prop anchored on a neighbour too. When
+// that neighbour is loaded it decides (#341's review: a save holding the anchor's chunk but not this one): the prop standing at its
+// anchor by that id, when it still covers this tile, stands here; none, and the tile is clear. A neighbour not loaded leaves the
+// authored one, which is then the registry's.
+function settleForeignParts(c) {
+  for (let i = 0; i < CHUNK * CHUNK; i++) {
+    const t = c.tiles[i];
+    for (const slot of ["prop", "rug"]) {
+      const pr = t[slot];
+      if (!pr || !pr.tile || inChunkTile(c, pr.tile[0], pr.tile[1])) continue;
+      const [acx, acy] = chunkCoord(pr.tile[0], pr.tile[1]);
+      const ac = chunks.get(chunkKey(acx, acy, c.layer));
+      if (!ac) continue;
+      const x = c.cx * CHUNK + (i % CHUNK);
+      const y = c.cy * CHUNK + Math.floor(i / CHUNK);
+      const holder = ac.tiles[(pr.tile[1] - acy * CHUNK) * CHUNK + (pr.tile[0] - acx * CHUNK)][slot];
+      t[slot] = holder && holder.id === pr.id && holder.tiles.some(([px, py]) => px === x && py === y) ? holder : null;
+    }
   }
 }
 
@@ -1475,7 +1499,9 @@ export function installChunk(d) {
     const x = cx * CHUNK + (i % CHUNK);
     const y = cy * CHUNK + Math.floor(i / CHUNK);
     const st = layer === 0 && source && source(x, y);
-    if (st && st.prop) {
+    // Only an authored prop anchored here: one anchored on a neighbour is that chunk's (installed from it, or grown with it), and this
+    // chunk's `parts` stand it on its tiles here again (#341's review: a save holding the neighbour but not the anchor lost the tile).
+    if (st && st.prop && inChunkTile({ cx, cy }, st.prop.tile[0], st.prop.tile[1])) {
       fireProps.delete(st.prop);
       if (propsById.get(st.prop.id) === st.prop) propsById.delete(st.prop.id);
     }
@@ -1684,6 +1710,7 @@ export function getChunk(cx, cy, create = true, layer = 0) {
   }
   // `wild` and `dirty` decide eviction (docs/23a, B2); `lightVersion` is the light cache's key (B4).
   c = { cx, cy, layer, tiles, wild: anyWild, dirty: false, lightVersion: 0, saved: null };
+  settleForeignParts(c); // an authored prop anchored on a neighbour already loaded: that neighbour's copy, or none (#341)
   chunks.set(k, c);
   touched.add(k); // grown: a guest learns of it like any change (net.js; the guest cannot grow it itself, its settings could shape it differently)
   lastChunk = c;

@@ -756,6 +756,44 @@ check("chunk edge (#341): a bed across the edge of a wild chunk: the neighbour i
   assert(!mapMod.propById(bed.id) && !mapMod.peekTile(x + 1, y).prop, "a dropped anchor's chunk left the bed's tile on the neighbour");
   return `bed at ${x},${y} across ${A.cx},${A.cy} and ${B.cx},${B.cy}; the control ${ctl.cx},${ctl.cy} dropped and grown again`;
 });
+check("chunk edge (#341): an authored prop across an edge comes back whole from a save that holds only one of its chunks, and from one where it was lifted", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const key = (x, y) => `${Math.floor(x / C341)},${Math.floor(y / C341)}`;
+  const crossing = mapMod.allProps().filter((p) => p.tiles && new Set(p.tiles.map(([x, y]) => key(x, y))).size > 1 && !p.rugItem);
+  assert(crossing.length, "no authored prop crosses a chunk's edge in the valley");
+  const P = crossing[0];
+  const anchorKey = key(P.tile[0], P.tile[1]);
+  const other = P.tiles.find(([x, y]) => key(x, y) !== anchorKey);
+  const otherKey = key(other[0], other[1]);
+  const grow = (k) => { const [cx, cy] = k.split(",").map(Number); return mapMod.getChunk(cx, cy, true); };
+  const saveWithout = (k, lift = false) => {
+    gameMod.create({ json, rules: { zombieAggro: false } });
+    grow(anchorKey);
+    grow(otherKey);
+    if (lift) mapMod.removeProp(mapMod.propById(P.id));
+    const save = JSON.parse(JSON.stringify(gameMod.serialize({ fresh: true })));
+    save.map.chunks = save.map.chunks.filter((c) => `${c.cx},${c.cy}` !== k);
+    gameMod.restore(save, json);
+  };
+  const whole = () => { const q = mapMod.propById(P.id); return !!q && q.tiles.every(([x, y]) => mapMod.tileAt(x, y).prop === q); };
+  // The neighbour saved, the anchor's chunk not (the ring is four chunks): the neighbour's tile and the registry keep it, and the anchor grown again matches.
+  saveWithout(anchorKey);
+  const onOther = mapMod.peekTile(other[0], other[1]);
+  assert(onOther && onOther.prop && onOther.prop.id === P.id && mapMod.propById(P.id) === onOther.prop, `a save without the anchor's chunk lost the ${P.sprite}'s tile on the neighbour or its registry entry`);
+  grow(anchorKey);
+  assert(whole(), `the ${P.sprite}'s anchor grown again does not match its neighbour`);
+  // The anchor's chunk saved, the neighbour not: grown again, the neighbour's tile holds the restored prop, not the authored one.
+  saveWithout(otherKey);
+  assert(!mapMod.peekTile(other[0], other[1]), "the neighbour is loaded");
+  grow(otherKey);
+  assert(whole(), `the neighbour grown after the restore holds another copy of the ${P.sprite} than the registry's`);
+  // Lifted before the save, the neighbour not saved: grown again, its tile is clear (no authored ghost).
+  saveWithout(otherKey, true);
+  grow(otherKey);
+  assert(!mapMod.propById(P.id) && !mapMod.tileAt(other[0], other[1]).prop, `the lifted ${P.sprite} came back on the neighbour as a ghost`);
+  return `${P.sprite} ${P.id} at ${P.tile} across ${anchorKey} and ${otherKey} (${crossing.length} authored props cross an edge)`;
+});
 check("chunk edge (#341): two players lift one chest: the second lift meets it gone and gets nothing, with a word", () => {
   gameMod.create({ json: read("data/maps/valley.json"), rules: { zombieAggro: false } });
   const a = gameMod.state.player;
