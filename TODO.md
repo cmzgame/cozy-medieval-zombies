@@ -43,6 +43,8 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Open lines of `docs/39` by issue** (counted 2026-10-25, evening, by line; 52 open, down from 162): #92 11 · #281 7 · #123 7 · #282 5 · #133 5 · #181 4 · #283 4 · #103 3 · #262, #104, #271, #261, #217, #106 1 each.
 
+**The potions sitting is ruled** (2026-10-25): `docs/47`, potions, poisons, and mana, four build steps, one issue each.
+
 **In progress:** the Secondary's test-order hygiene (every instrument passing whatever ran before it in one page; a runner for a full sweep); the evening's rulings in #475 (`primary/rise-shudder`: the rocks' rise shudder, Mageroot, grave moss at any hour, eggs one a cell; for review).
 
 **Ruled this evening** (`docs/02`, 2026-10-25, The evening's defaults ruled, and The evening's rulings): a newborn may appear in view in its pen; the rocks rise as read, with a shudder; every other default he was shown stands as built (Michael: "Anything not commented on is fine as-is"); the mana herb is Mageroot and grave moss keeps its name; no plant is only at night (grave moss at any hour; Herbalism 6 and 7 struck, their replacements open); pemmican's 3 and 35 as they are; eggs do not stack, open to change after a playtest; potions get their own sitting.

@@ -47,6 +47,13 @@ Two kinds:
 - **The bags' sizes:** each bag's `bag` in `data/items.json`: the sack 6 by 4, the rucksack 8 by 5 today (8 by 6 ruled), the satchel 7 by 5 and the best bag 10 by 6 to build (2026-10-24, #260).
 - **A boss's capstone:** about 1 in 8 at first, rising with each kill that misses, certain by the twentieth, per player (2026-10-24, #268; not built).
 
+### Potions, poisons, and mana (2026-10-25, `47`; not built; every number Primary's default unless named)
+- **Mana:** `player.manaMax` 100 (Michael's), `player.manaRegen` 0.333 a second (one point every three seconds) in `data/tuning.json`; each spell's `mana` on its `spell` in `data/items.json`, the Fireball 20 (Michael's: "So maybe 20 mana?"); the altar's Pray bar 3 s.
+- **The vial and the brew:** one clay shapes two unfired vials; a clay vial stacks 10; a potion stacks 5; a brew 20 s for one potion; a draught of clean water 10 of a skin's 100; two of the main herb and one secondary a potion (Michael's); the cauldron's fire as the oven's (three logs, two game hours a log), your own made from three iron bars.
+- **Drinking:** in `data/tuning.json` `potions`: healing 40, mana 50 (Michael's), stamina the bar filled and its regeneration doubled for 30 s, 10 s between potions.
+- **Poisons:** in `data/combat.json` `poison`: a coat ten landed hits, five poisoned arrows a vial, stacks to 3, a 10 s timer, ordinary 1, 2, 3 a second by stacks and strong 2, 4, 6; grave moss's count 4 (`46`) is the poisons' bottleneck.
+- **The splash:** 1.5 tiles across, the drunk amounts.
+
 ## World settings
 
 ### A world's rules (`src/settings.js`, groups `rules` and `sandbox`)

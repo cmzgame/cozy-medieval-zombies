@@ -55,6 +55,7 @@ One line per doc, with its kind (`CLAUDE.md`, "What a doc is"): a **rule** (bind
 - `44-water.md` — **spec.** Water (#279): no fixed source clean, boiling by Use or either menu, a clean starting skin, the Sick debuff (the infection's third stage renamed Queasy); one build step.
 - `45-animals.md` — **spec.** Animals (#289): seven kinds, game mostly in the woods but free to roam, livestock from the farms, safe pens, generous feathers, raw meat in recipes, the companion last; five build steps.
 - `46-natural-resources.md` — **spec.** Natural resources (#288): one comeback rule (random spots within defined areas, a steady count) for ore, stone, clay, herbs, and mushrooms; rocks rising from the ground; trees from saplings; sticks under trees; three build steps.
+- `47-potions-poisons-mana.md` — **spec.** Potions, poisons, and mana: clay vials, clean water, two herbs and a secondary at a cauldron, the mana bar and spell costs, poisons put on with Use, the splash; four build steps.
 
 ## Records: `history/`
 

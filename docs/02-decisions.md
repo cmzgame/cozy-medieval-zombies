@@ -103,6 +103,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### Combat
 
+- Potions, poisons, and mana as `47`: clay vials, clean water, two herbs and a secondary at a cauldron, mana 100, the Fireball 20 mana, poisons put on a blade or arrows with Use, a splash for every potion (2026-10-25, Potions, poisons, and mana ruled)
 - Repairs run out: one count per item, the grindstone to 60, 40, 20%, the anvil to 100, 80, 60%; Burn corpse destroys a body and all in it (2026-10-25, The dead ends ruled)
 - The melee feel pass accepted as the baseline; tuning goes on with the skills (2026-10-24, The melee baseline)
 - The shove pushes 0.65 tiles, a tired one 0.45 (`shove.tiredPush`); the tired stagger stays under the shove's recovery (2026-10-24, The shove pushes farther)
@@ -298,6 +299,17 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-25 — Potions, poisons, and mana ruled: clay vials, clean water, two herbs and a secondary at a cauldron, mana 100 and the Fireball 20, poisons put on with Use, a splash for every potion (Michael)
+
+The potions sitting (Michael placed it first among the sittings, 2026-10-25), with poisons and a mana bar wrapped in. His questions were the supply ("some real busywork ... else people are going to be drowning in potions"), whether glass and sand were needed, what spells cost ("Fire bolt no longer two shots zombies ... So maybe 20 mana?"), a station or on the go, herbs and secondaries, poison levels and stacking, the splash, and blocking a drink of poison. Primary answered each with a recommendation; Michael: "I actually do not have a single change to suggest now. Anything that might need to change from the spec can be discovered in playtesting." He added that a poison is put on through Use: "I forgot about arrows and blades, that is a perfect case for our 'use' system." The spec is `docs/47`; its defaults are Primary's numbers and readings.
+
+- **Vials are clay**, under the clay ruling of 2026-10-23: shaped at the workbench, fired in any oven; no glass, no sand. Drinking leaves the empty vial; throwing shatters it.
+- **A potion needs clean water**, boiled (`44`), and is brewed **at a cauldron over a lit fire, never on the go**: the witch's at the mere first, your own made at the anvil later.
+- **Two of a potion's main herb and one secondary**; each potion its own main herb, the secondaries shared: healing yarrow and sage, stamina nettle and honey, mana mageroot and a mushroom, poison nightshade and grave moss, strong poison wolfsbane and grave moss.
+- **Mana:** a bar of 100, raised later by gear; slow regeneration; the mana potion gives 50; the altar's prayer refills it; a cast the bar cannot pay is refused with a log line. **Spells cost by their power:** the Fireball 20; a utility 5 to 10, a bolt about 20, the big ones 35 or more.
+- **Poisons are never drunk:** Use a poison on a blade to coat it for about ten hits, or on arrows for about five poisoned arrows. Two tiers, ordinary and strong; a poisoned hit adds a stack, up to three, refreshing the timer; poison never spreads and lights nothing; **it works on the dead.**
+- **Every potion splashes when thrown** (Potions 7): healing and mana help everyone in the area, poison stacks on the dead and wild game in it; a harmful splash never hurts a player.
 
 ### 2026-10-25 — The evening's rulings: the belt pinned, Mageroot, potions to a sitting of their own, no plant only at night, pemmican as it is, eggs one a cell (Michael)
 

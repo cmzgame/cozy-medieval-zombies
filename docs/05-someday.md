@@ -40,4 +40,5 @@ One line per idea: what, who, when, and the one sentence on what must not be for
 
 ## From `02` (2026-10-17)
 
+- **Potions' someday** (2026-10-25, `47`): a healing splash that hurts the dead; a feverfew tonic that slows the infection's stages (feverfew has no use in `47`, and the cure stays the late Divine Potion).
 - **Spreading fire** (2026-10-17, `02`, Only characters burn; fire lights what is made to be lit; the fireball as a flare): fire that catches on walls, crops, and fences. Only bodies burn today, and a fireball's landing is light only; spreading fire would make every missed shot at a siege a hazard to one's own house, so it waits.

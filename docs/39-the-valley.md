@@ -347,7 +347,7 @@ Each food fills hunger and heals a little, exactly its numbers, eaten full or no
 
 ### 5.8 Potions
 
-All [to build]: brewed at a cauldron from Herbalism's herbs and secondaries; drunk from the bag or the belt.
+All [to build]: brewed at a cauldron from Herbalism's herbs and secondaries; drunk from the bag or the belt. Ruled in full as `47` (2026-10-25): clay vials, clean water, two of a main herb and one secondary, the cauldron over a lit fire, poisons put on with Use, the splash.
 
 - **Healing potion:** Potions 1 (not "minor" unless a major one is a separate item, ruled 2026-10-19); the only big heal (ruled: food heals a little, potions big).
 - **Healing potions two at a brew:** Potions 2.
@@ -756,7 +756,7 @@ Later, not at the start: gems inlaid in metal armour.
 - **The cure** [to build]: mid to late game, gated by skill, and **not in the valley** (ruled 2026-10-19): found beyond it (Faith's Cure Undeath, learned in a region; a Divine Potion at Potions 10, the Abbey's (ruled 2026-10-23)). **Life Ward** against bites (Faith 3). The infection and combat difficulty are one dial (water's chance follows it, 2026-10-25, `44`).
 
 ### Mana
-- **Mana** [to build]: spells cost it; slow natural regeneration; mana potions (Potions 4); a free top-up praying at an altar (Faith 1); more mana (Faith 4); cheaper spells (Magic 2); perhaps special foods later. A mana bar [to build].
+- **Mana** [to build] (`47`: 100, one point every three seconds, the Fireball 20): spells cost it; slow natural regeneration; mana potions (Potions 4); a free top-up praying at an altar (Faith 1); more mana (Faith 4); cheaper spells (Magic 2); perhaps special foods later. A mana bar [to build].
 
 ### Rot and preserving
 - **Food rots** [to build] (ruled; a pace, not world decay).
