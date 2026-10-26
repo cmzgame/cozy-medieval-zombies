@@ -65,7 +65,11 @@ export async function run(game, opts = {}) {
       G.loop.advance(1 / 60);
       G.net.setTestSnapshot(null);
     };
+    const screenG = G.screens.currentScreen();
+    if (screenG) G.screens.hide(); // a screen up sends nothing pressed, whatever a check says (net.js)
     try {
+      // The host's kept state reaches my replica first.
+      await pump(() => { const b = inv.beltOf(me); return !!(b && b.length === 5 && b[0] && b[0].id === "sword" && me.hands.main && me.hands.main.id === "bow"); }, 10000);
       let belt = inv.beltOf(me);
       const bow = me.hands.main;
       const sword = belt && belt[0];
@@ -89,6 +93,7 @@ export async function run(game, opts = {}) {
       rows.push({ check: "ran to the end", result: "FAIL", detail: e && e.stack ? e.stack.split("\n").slice(0, 3).join(" | ") : String(e) });
     } finally {
       G.net.setTestSnapshot(null);
+      if (screenG) G.screens.show(screenG);
       G.loop.setPaused(wasPaused);
     }
     return done();

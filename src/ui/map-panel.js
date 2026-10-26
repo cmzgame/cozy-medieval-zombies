@@ -351,10 +351,6 @@ export function update(state) {
       pointerPath(m.x, m.y, f, POINTER.r, POINTER.tip);
       ctx.fillStyle = SELF;
       ctx.fill();
-      ctx.fillStyle = "#000";
-      ctx.beginPath();
-      ctx.arc(m.x, m.y, 1.6, 0, Math.PI * 2);
-      ctx.fill();
     } else {
       ctx.fillStyle = "#000";
       ctx.beginPath();
