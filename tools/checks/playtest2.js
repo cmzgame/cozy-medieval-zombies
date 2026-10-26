@@ -90,13 +90,14 @@ export async function run(game, opts = {}) {
         const s1 = find("waterskin");
         const b1 = find("bucket");
         row("on a guest Water with the waterskin sent by its label waters on the host with my skin alone, the bucket untouched", skinDone && s1.fill === fill0 - farming.get().soil.fillCost && b1.fill === bucket.fill, `skin ${fill0} to ${s1 ? s1.fill : "-"}, bucket ${b1 ? b1.fill : "-"}`);
-        // The bucket's Use on the third crop, through the Use mode's own sender (main.js armGuest): a use command by the bucket's uid.
+        // The bucket's Use on the second crop (within the pour's reach of where the host stood me), through the Use mode's own sender
+        // (main.js armGuest): a use command by the bucket's uid.
         use.begin(b1, { kind: "bag", bag: bag() });
-        const outlined = hl.forUse({ kind: "prop", prop: crops[2] }, me);
-        row("on a guest the Use mode outlines the crop under the pointer on my replica", !!outlined && outlined.kind === "prop" && outlined.id === crops[2].id, JSON.stringify(outlined));
-        use.apply({ kind: "prop", prop: crops[2] }, me);
-        const poured = await pump(() => { const b = find("bucket"); const c = G.map.propById(crops[2].id); return !!b && b.fill === 0 && !!c && farming.isWet(c); }, 15000);
-        row("on a guest the bucket's Use on a crop goes to the host and waters it: the bucket empty, the crop wet on my replica", poured, (() => { const b = find("bucket"); const c = G.map.propById(crops[2].id); return `bucket ${b ? b.fill : "-"}, wet ${c ? farming.isWet(c) : "-"}`; })());
+        const outlined = hl.forUse({ kind: "prop", prop: crops[1] }, me);
+        row("on a guest the Use mode outlines the crop under the pointer on my replica", !!outlined && outlined.kind === "prop" && outlined.id === crops[1].id, JSON.stringify(outlined));
+        use.apply({ kind: "prop", prop: crops[1] }, me);
+        const poured = await pump(() => { const b = find("bucket"); const c = G.map.propById(crops[1].id); return !!b && b.fill === 0 && !!c && farming.isWet(c); }, 15000);
+        row("on a guest the bucket's Use on a crop goes to the host and waters it: the bucket empty, the crop wet on my replica", poured, (() => { const b = find("bucket"); const c = G.map.propById(crops[1].id); return `bucket ${b ? b.fill : "-"}, wet ${c ? farming.isWet(c) : "-"}`; })());
       }
     } catch (e) {
       rows.push({ check: "ran to the end", result: "FAIL", detail: e && e.stack ? e.stack.split("\n").slice(0, 3).join(" | ") : String(e) });
@@ -245,7 +246,9 @@ export async function run(game, opts = {}) {
         plot.floors.push([x, y, G.map.peekTile(x, y).floor]);
         G.map.setFloor(x, y, "floor_farm");
         const c = G.map.createProp({ sprite: "crop_potato_1", tile: [x, y], solid: false });
-        c.crop = i === 0 ? { kind: "potato", stage: 1 } : { kind: "potato", grown: 0, at: now, wetUntil: now - 1 }; // the first as the map grows one: wet until first looked at
+        c.facing = G.map.furrowsOf(G.map.peekTile(x, y).floor) || c.facing; // as the plant verb makes one (farming.js), so the record a guest gets is the host's key for key
+        delete c.furrowsPending;
+        c.crop =i === 0 ? { kind: "potato", stage: 1 } : { kind: "potato", grown: 0, at: now, wetUntil: now - 1 }; // the first as the map grows one: wet until first looked at
         G.map.placeProp(c, x, y);
         plot.crops.push(c.id);
       }
