@@ -15,7 +15,7 @@ import * as loop from "../loop.js"; // the sim clock: a poke's stamp is in sim m
 import * as hl from "./highlight.js"; // Object Highlight (#301)
 import * as paintingArt from "./paintings.js"; // a painting hung on a wall (#326)
 import { resources as RES } from "../tuning.js"; // a rock's rise (docs/46)
-import { riseOf } from "../resources.js"; // how far a rising rock is still below the ground (docs/46)
+import { riseOf, shudderOf } from "../resources.js"; // how far a rising rock is still below the ground, and its shudder (docs/46)
 import * as bees from "./bees.js"; // bees round a hive by day (#441)
 
 // ---- props and characters ----
@@ -123,23 +123,27 @@ export function swayOf(prop, height) { // exported for tools/checks/sway.js
 // A rock or an ore rock rises out of the ground (docs/46 section 3; Michael: "they pop up out of the ground with an animation"): drawn whole,
 // as if risen from below, cut at the ground line, never scaled. How far it is still below is resources.riseOf, from the sim-clock stamp
 // the host put on it as it grew (`risenAt`, carried in its chunk to every guest). The slice of a rising prop: the top `height - sink` rows
-// of its frame, at the frame's own width, `sink` pixels lower, so the part below the ground line is not drawn; and a little broken soil and
-// dust at its foot while it rises (whole pixels, fading).
+// of its frame, at the frame's own width, `sink` pixels lower, so the part below the ground line is not drawn, and `shake` whole pixels to
+// the side (its shudder, resources.shudderOf: Michael, 2026-10-25, "as if the ground had shifted and forced them to the surface"; the soil
+// stays still, the rock jolts); and a little broken soil at its foot while it rises, with a puff of dust thrown up and out at the start that
+// slows as it drifts (whole pixels, fading).
 const SOIL = [[-15, 1], [-9, 3], [-3, 4], [4, 3], [10, 2], [16, 0]];
-function risingSlice(sheet, name, f, x, y, tx, ty, flags, sink, k) {
+function risingSlice(sheet, name, f, x, y, tx, ty, flags, sink, k, shake = 0) {
   const an = (sheet.frameAnchors && sheet.frameAnchors[name]) || sheet.anchor;
   const uv = gl.frameUV(sheet, name);
   const h = f[3] - sink;
-  if (uv && h > 0) gl.quad(x - an[0], y - an[1] + sink, f[2], h, [uv[0], uv[1], uv[2], uv[3] - sink, uv[4]], { world: [tx, ty], heights: [h, h, 0, 0], flags });
+  if (uv && h > 0) gl.quad(x + shake - an[0], y - an[1] + sink, f[2], h, [uv[0], uv[1], uv[2], uv[3] - sink, uv[4]], { world: [tx, ty], heights: [h, h, 0, 0], flags });
   const fade = Math.max(0, 1 - k);
+  const puff = 1 - fade * fade * fade; // fast at the start, slowing: one puff
   const soil = gl.rgb("#4a3a28", fade);
   const dust = gl.rgb("#9a8a6a", 0.7 * fade);
   for (const [dx, dy] of SOIL) {
     const sx = x + Math.round(dx * (0.6 + 0.4 * k));
     const sy = y + dy;
     gl.poly([[sx - 1, sy - 1], [sx + 1, sy - 1], [sx + 1, sy + 1], [sx - 1, sy + 1]], soil, { world: [tx, ty], flags: gl.FLAG_STANDING });
-    const py = sy - 2 - Math.round(k * 6);
-    gl.poly([[sx - 1, py - 1], [sx + 1, py - 1], [sx + 1, py + 1], [sx - 1, py + 1]], dust, { world: [tx, ty], flags: gl.FLAG_STANDING });
+    const px = x + Math.round(dx * (0.6 + 0.6 * puff));
+    const py = sy - 2 - Math.round(puff * 6);
+    gl.poly([[px - 1, py - 1], [px + 1, py - 1], [px + 1, py + 1], [px - 1, py + 1]], dust, { world: [tx, ty], flags: gl.FLAG_STANDING });
   }
 }
 
@@ -204,7 +208,7 @@ export function propDrawables(tiles, visible, out) {
       emit() {
         const flags = gl.FLAG_STANDING | (d.occluder ? gl.FLAG_OCCLUDER : 0);
         if (swarm) bees.emit(swarm, true, [tx, ty]);
-        if (sink > 0) risingSlice(sheet, name, f, x, y, tx, ty, flags, sink, (loop.simTime() - prop.risenAt) / RES.riseSeconds);
+        if (sink > 0) risingSlice(sheet, name, f, x, y, tx, ty, flags, sink, (loop.simTime() - prop.risenAt) / RES.riseSeconds, shudderOf(prop));
         else propSlice(sheet, name, f, x, y, tx, ty, flags, undefined, f ? swayOf(prop, f[3]) : 0);
         if (swarm) bees.emit(swarm, false, [tx, ty]);
         if (flame) frameQuad(sheet, flameName, x, y, { world: [tx, ty], flags: gl.FLAG_UNLIT });

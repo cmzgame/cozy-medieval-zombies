@@ -8,6 +8,8 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- A new rock, ore rock, or salt rock rises with a shudder, a cinematic entrance with no lore; a newborn animal may appear in view in its pen (2026-10-25, The evening's defaults ruled)
+- Stand as built: the resources' counts, grave moss only at night, mushrooms as forage, an apple tree's sapling an apple tree; every spell passing tame stock by, yields by expected value, milk as a jug, the smoking rack, tanning vat, and spinning wheel not carried; the market's workbench too full for a counter; "a pair of millstones" (2026-10-25, The evening's defaults ruled)
 - Ore, stone, clay, herbs, and mushrooms come back at random spots within their areas, keeping a steady count; rocks and ore rise from the ground, herbs and mushrooms appear; no herb patches; trees from saplings, sticks under trees, fish never run out (2026-10-25, Natural resources ruled)
 - Animals: seven kinds; game mostly in the woods but free to roam, back slowly to a cap; livestock from the farms, led home, penned in a fenced yard; safe from the dead; fed animals produce; generous feathers; raw meat in recipes; the companion in 1.0, last (2026-10-25, Animals ruled)
 - No fixed water source is clean; boiling at a lit fire by Use or either menu; the starting skin clean; the sickness a debuff, Sick (the infection's third stage renamed Queasy), 20% a tainted drink, 1% of the infection (2026-10-25, Water ruled)
@@ -242,6 +244,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The owner's character follows the owner key; a removed player's browser stays barred (2026-10-14, Item 5's two defaults agreed)
 - A change on a chunk marks it for the wire or calls `map.unsaved` for the save (2026-10-15, A save that costs what changed)
 - The multiplayer core is Done; spectating, lighter frames, and the bounded rewind wait in `05` (2026-10-15, Multiplayer's last core work)
+- A guest's own shot is drawn on the bodies' clock, about 67 ms later than before (2026-10-25, The evening's defaults ruled)
 
 ### Process and the studio
 
@@ -292,6 +295,17 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-25 — The evening's defaults ruled: a birth may appear in its pen, the rocks rise with a shudder, the rest as built (Michael)
+
+Shown the defaults the evening's builds left for him (`TODO.md`'s Status, each named in its pull request's Risks), Michael answered two and accepted the rest. The rulings:
+
+- **A newborn animal may appear in view in its pen** (Michael: "Definitely!"), confirming #460's default: a young one beside a parent, in view or not. The rule that nothing materialises in view was for the dead (2026-10-25, Natural resources ruled).
+- **The rocks' rise: the frozen-zombie reading stands, with a shudder:** "a little shudder as they rise from the ground, as if the ground had shifted and forced them to the surface. Doesn't need a lore explanation, it's just give them a cinematic entrance." So a new rock, ore rock, or salt rock rises whole through the ground line over `riseSeconds`, cut at the ground and never scaled, and is jolted sideways in whole pixels a few times as it comes, easing to still. *Primary's numbers* (`resources.shudderOf`): eight beats over the rise, about one in four still, the sides alternating; 2 px in the first sixteenth, then 1 px, none from about seven tenths of the rise on; the dust at its foot puffs up and out at the start and slows. From the sim clock and the prop's id, so every client draws the same shake from the host's `risenAt` and nothing new crosses the wire.
+- **The rest stand as built:** "Anything not commented on is fine as-is." They are: a guest's own shot drawn about 67 ms later than before, on the bodies' clock (#463); the market's workbench, now too full round it to make a counter there (#466); every spell passing tame stock by, aimed at it or not (#456); a weaker weapon's yield by expected value, the whole part and one more at the chance of the rest (#456); milk as a jug, not the bucket's fill (#460); the smoking rack, the tanning vat, and the spinning wheel not carried (#462); the resources' counts (stone 40, ore 6, salt 4, clay 8, herbs 120 by kind, mushrooms 774); grave moss gathered and grown back only at night; mushrooms as forage, not food; an apple tree's sapling growing an apple tree (#461); and the millstones named "a pair of millstones" (#470).
+- **Still open with him:** the belt's hand choice (#467), the two placeholder herb names ("Mana herb", "Grave moss"), and pemmican's heal of 3.
+
+Docs: 45, 46, 42, `src/CLAUDE.md`, testing, TODO.
 
 ### 2026-10-25 — Protocol bumps on review (Michael)
 

@@ -1467,6 +1467,26 @@ check("natural resources: counts kept per area, a debt per take, a comeback else
   return `stone 40, ore 6, mushrooms 774 with Trees on and off; ore back at ${newOre.tile.join(",")} (taken at ${debt.at.join(",")}) and a mushroom at ${newShroom.tile.join(",")} after ${looks} looks`;
 });
 
+// The rise's shudder (Michael, 2026-10-25: "a little shudder as they rise from the ground"): a rising rock is jolted sideways in whole pixels,
+// at most 2, a few times over its rise, easing to still (none in its last quarter), none before its stamp, once risen, or on a prop that never
+// rose; the same for the same id and time (what a guest draws from the host's `risenAt`), and not one shake for every id.
+check("the rise's shudder: whole pixels, at most 2, a few jolts easing to still, none once risen, the same for the same id and time", () => {
+  const T = RESOURCES.riseSeconds;
+  const rock = { id: "res_stone_7", risenAt: 100 };
+  const at = (p, k) => resourcesMod.shudderOf(p, p.risenAt + k * T);
+  const samples = Array.from({ length: 101 }, (_, i) => at(rock, i / 100));
+  assert(samples.every(Number.isInteger) && samples.every((v) => Math.abs(v) <= 2 && !Object.is(v, -0)), `not whole pixels within 2: ${samples.join(" ")}`);
+  const jolts = samples.filter((v, i) => v !== 0 && v !== samples[i - 1]).length;
+  assert(jolts >= 3, `fewer than three jolts over the rise: ${samples.join(" ")}`);
+  assert(samples.slice(75).every((v) => v === 0) && samples.slice(40).every((v) => Math.abs(v) <= 1), `it does not ease to still: ${samples.join(" ")}`);
+  assert(at(rock, -0.1) === 0 && at(rock, 1) === 0 && at(rock, 5) === 0 && resourcesMod.shudderOf({ id: "rock_a" }, 100.3) === 0, "a shudder before the stamp, once risen, or on a prop that never rose");
+  const copy = { id: "res_stone_7", risenAt: 100 }; // the guest's record of the same rock
+  assert(samples.every((v, i) => at(copy, i / 100) === v && at(rock, i / 100) === v), "the same id and time shook differently");
+  const other = Array.from({ length: 101 }, (_, i) => at({ id: "res_ore_3", risenAt: 100 }, i / 100));
+  assert(other.some((v, i) => v !== samples[i]), "every id shakes the same");
+  return `${jolts} jolts over ${T} s, at most ${Math.max(...samples.map(Math.abs))} px, still from ${(samples.findLastIndex((v) => v !== 0) + 1) / 100} of the rise: ${samples.filter((v, i) => i % 5 === 0).join(" ")}`;
+});
+
 // The dye vat (docs/43 section 8, #412): the three vats in the weaver's yard are stations that open the picker (on a guest's player, the word to
 // that guest); the `dye` verb, by the vat's id and the entry's uid, dyes a worn or carried garment a palette's colour or a scheme whole, and
 // refuses what the item does not allow, an item that is not dyeable or not carried, and a vat out of reach; its own colours undye it; the

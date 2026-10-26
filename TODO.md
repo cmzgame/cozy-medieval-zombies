@@ -42,13 +42,14 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 
 **Open lines of `docs/39` by issue** (counted 2026-10-25, evening, by line; 52 open, down from 162): #92 11 · #281 7 · #123 7 · #282 5 · #133 5 · #181 4 · #283 4 · #103 3 · #262, #104, #271, #261, #217, #106 1 each.
 
-**In progress:** the Secondary's test-order hygiene (every instrument passing whatever ran before it in one page; a runner for a full sweep).
+**In progress:** the Secondary's test-order hygiene (every instrument passing whatever ran before it in one page; a runner for a full sweep); the rocks' rise shudder (`primary/rise-shudder`, Michael's ruling, for review and the pane).
+
+**Ruled this evening** (`docs/02`, 2026-10-25, The evening's defaults ruled): a newborn may appear in view in its pen; the rocks rise as read, with a shudder; every other default he was shown stands as built (Michael: "Anything not commented on is fine as-is").
 
 **Waiting on Michael** (defaults built, his to confirm or overrule; each named in its PR's Risks):
 - the belt (#467): the hand choice kept per kind of item in a slot rather than per slot; Equip to a hand also draws; an empty off-hand slot takes the off hand's item; the two Equip spellings;
-- animals: a birth may appear in view; pemmican heals 3; spells spare tame stock; a weaker weapon's yield by expected value; milk as a jug; the smoking rack, tanning vat, and spinning wheel not carried;
-- resources: the "frozen zombie plan" reading (rocks rising whole through the ground); the counts (stone 40, ore 6, salt 4, clay 8, herbs 120, mushrooms 774); "Mana herb" and "Grave moss" as placeholder names; grave moss only at night; mushrooms as forage, not food; an apple tree's sapling growing an apple tree;
-- a guest's own shot drawn about 67 ms later than before (#463); the market's workbench now too full for a counter (#466);
+- pemmican heals 3 (#462);
+- "Mana herb" and "Grave moss" as placeholder names (#448);
 - from before: the shared repair count and the plank for the rod and bow (#425); water's infection opening on "Bitten"; a tainted sip at full thirst; #426 brightness and Plants vs Zombies; #415 spikes; #419 the Stardew notebook; the loot rates; the rucksack's recipe; the burst against a bow, shield, or brace; #271's items 6 and 8 to 11; #393 the downed art; knockdown on cards; music; #324; the `needs-michael` issues.
 
 **Parallel builders are allowed** (2026-10-25): Primary runs their pane and two-tab tests, merges main in, and reviews before main. **Protocol bumps in Primary's builds merge on a clean review** (Michael, 2026-10-25; `docs/02`).

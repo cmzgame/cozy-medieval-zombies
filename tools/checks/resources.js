@@ -4,7 +4,7 @@
 // new spot in the same area (an ore rock never where it was) and the count is back; the one rule of where a node may stand refuses a
 // reserved tile, a built floor, tilled soil, water, a road, a room, an authored fenced yard, a pen a player fenced, and a body; the quarry
 // is open to stone and the iron workings to ore; a take in the wild queues nothing; a spot in an ungrown chunk is grown through a mutator
-// before it is tested; a rising rock is drawn from below the ground line to whole; mushrooms come back in a world with Trees off; the debts
+// before it is tested; a rising rock is drawn from below the ground line to whole, shuddering as it comes (the same on a guest); mushrooms come back in a world with Trees off; the debts
 // survive a save and its restore. The world is put back from its own save at the end (a solo test: it restores the world under any guest).
 //
 // Two tabs (`?nosave&relay=none`): on the host `await __game.check("resources", { keep: true })` skips the rows that remake the world
@@ -23,6 +23,8 @@ export async function run(game, opts = {}) {
     return { rows, passed: rows.filter((r) => r.result === "pass").length, total: rows.length, kept };
   };
   let kept = null;
+  // A rising rock's shudder over its rise (resources.shudderOf: whole pixels to the side, from its id and stamp), sampled twenty times.
+  const shudders = (p) => Array.from({ length: 21 }, (_, i) => resources.shudderOf(p, p.risenAt + (i / 20) * RES.riseSeconds));
 
   // ---- a guest's side: the node the host kept, on the replica ----
   if (opts.guest) {
@@ -30,6 +32,8 @@ export async function run(game, opts = {}) {
     const p = G.map.propById(k.id);
     row("on the guest the risen ore rock is there by its id, at the host's tile, arrived through its touched chunk", !!p && p.sprite === k.sprite && p.tile[0] === k.tile[0] && p.tile[1] === k.tile[1] && G.map.tileAt(k.tile[0], k.tile[1]).prop === p, p ? `${p.id} ${p.sprite} at ${p.tile.join(",")}` : `no prop ${k.id}`);
     row("with the host's sim-clock stamp, so the replica draws the same rise (below the ground at its stamp, whole after)", !!p && p.risenAt === k.risenAt && resources.riseOf(p, 40, p.risenAt) === 40 && resources.riseOf(p, 40, p.risenAt + RES.riseSeconds) === 0, p ? `risenAt ${p.risenAt} (host ${k.risenAt}), the guest's clock ${G.loop.simTime().toFixed(2)}` : "-");
+    const shook = p ? shudders(p) : [];
+    row("and the same shudder as it rises (from its id and the host's stamp, nothing on the wire)", !!p && Array.isArray(k.shudder) && shook.join(" ") === k.shudder.join(" "), `the guest's ${shook.join(" ")}; the host's ${(k.shudder || []).join(" ")}`);
     return done();
   }
 
@@ -259,7 +263,9 @@ export async function run(game, opts = {}) {
       row("a rising rock's draw starts wholly below the ground line, comes up in whole pixels, and ends whole", Number.isFinite(r0) && samples[0] === 40 && samples[20] === 0 && samples.every(Number.isInteger) && monotone && samples.some((v) => v > 0 && v < 40), `stamp ${r0.toFixed(2)} (the sim clock), ${samples.join(" ")} px below, over ${RES.riseSeconds} s`);
       const authored = kindProps(stone).find((p) => p.risenAt === undefined);
       row("an authored rock never rose, and is drawn whole", !!authored && resources.riseOf(authored, 40) === 0, authored ? authored.id : "-");
-      if (keep) kept = { id: newOre.id, sprite: newOre.sprite, tile: [...newOre.tile], risenAt: newOre.risenAt };
+      const shook = shudders(newOre);
+      row("a rising rock shudders as it comes up (Michael, 2026-10-25): whole pixels, at most 2, a few jolts easing to still, none once risen or on an authored rock", shook.every((v) => Number.isInteger(v) && Math.abs(v) <= 2) && shook.filter((v) => v !== 0).length >= 3 && shook.slice(15).every((v) => v === 0) && resources.shudderOf(newOre, r0 + 2 * RES.riseSeconds) === 0 && (!authored || resources.shudderOf(authored) === 0), `${shook.join(" ")} px to the side, over ${RES.riseSeconds} s`);
+      if (keep) kept = { id: newOre.id, sprite: newOre.sprite, tile: [...newOre.tile], risenAt: newOre.risenAt, shudder: shook };
     }
 
     // ---- Trees off: mushrooms still come back (near where the trees would have stood) ----
