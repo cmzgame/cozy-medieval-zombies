@@ -1690,6 +1690,7 @@ const moodlesMod = await import("../src/moodles.js");
 const useMod = await import("../src/use.js");
 const invActionsMod = await import("../src/ui/inventory-actions.js");
 const tuningMod = await import("../src/tuning.js");
+const promptWater = await import("../src/ui/prompt.js"); // the file's promptMod is imported further down
 check("water: tainted and clean, boiling by Use and both menus, Sick and its rolls, Queasy, the sync parts and the save", () => {
   const json = read("data/maps/valley.json");
   gameMod.create({ json, rules: { zombieAggro: false, survival: true } });
@@ -1723,16 +1724,32 @@ check("water: tainted and clean, boiling by Use and both menus, Sick and its rol
   assert(playerMod.autoDrink(me) === null && tainted.fill === 60, "the auto-sip drank tainted water");
   kitSkin.fill = 80;
   assert(playerMod.autoDrink(me) === kitSkin && kitSkin.fill < 80, "the auto-sip did not drink the clean skin");
-  // Mixing taints: the clean skin topped up at the water is tainted all through; the bucket too.
+  // Fill waterskins at tainted water skips a skin holding clean water and fills a tainted one (Michael, 2026-10-26); with only clean skins to
+  // fill it says why. An empty skin marked clean fills and is tainted (mixing taints).
   const tile = { kind: "tile", tile: wet.water };
   const fillLabel = interactMod.actionsForTarget(tile, me).map((a) => a.label).find((l) => l.startsWith("Fill waterskins"));
   const drinkLabel = interactMod.actionsForTarget(tile, me).map((a) => a.label).find((l) => l.startsWith("Drink from"));
   assert(drinkLabel === "Drink from the water (tainted)", `the water's Drink: ${drinkLabel}`);
+  const kit0 = kitSkin.fill;
+  tainted.fill = 60;
   interactMod.performByLabel(me, tile, fillLabel);
   finish();
-  assert(kitSkin.fill === 100 && !kitSkin.clean && tainted.fill === 100, `filling at the water did not taint the clean skin: ${JSON.stringify(kitSkin)}`);
-  assert(itemInfoMod.textOf(itemInfoMod.cardFor(kitSkin)).includes("Tainted water: drinking it may make you Sick."), "the tainted skin's card");
-  assert(interactMod.itemMenu(me, kitSkin, bag, null).some((m) => m.label === "Drink (tainted, 100%)"), "Drink lost its (tainted)");
+  assert(kitSkin.fill === kit0 && kitSkin.clean === true && tainted.fill === 100, `the fill at tainted water: kit ${JSON.stringify(kitSkin)}, tainted ${tainted.fill}`);
+  const cleanLabel = interactMod.actionsForTarget(tile, me).map((a) => a.label).find((l) => l.startsWith("Fill waterskins"));
+  const said = [];
+  promptWater.setMessageSink((t) => { said.push(t); return true; });
+  const keptOk = interactMod.performByLabel(me, tile, cleanLabel);
+  finish();
+  promptWater.setMessageSink(null);
+  assert(cleanLabel === "Fill waterskins (they hold clean water)" && kitSkin.fill === kit0 && kitSkin.clean && said.includes("Your waterskins hold clean water: they won't be filled from tainted water."), `only a clean skin to fill: ${cleanLabel}; ${keptOk}; ${said.join(" / ")}`);
+  const emptyClean = itemsMod.makeEntry("waterskin", 1, { fill: 0, clean: true });
+  inventoryMod.stow(me, emptyClean);
+  interactMod.performByLabel(me, tile, "Fill waterskins");
+  finish();
+  assert(emptyClean.fill === 100 && !emptyClean.clean && kitSkin.fill === kit0 && kitSkin.clean, `an empty clean-marked skin: ${JSON.stringify(emptyClean)}`);
+  inventoryMod.detach(me, emptyClean);
+  assert(itemInfoMod.textOf(itemInfoMod.cardFor(tainted)).includes("Tainted water: drinking it may make you Sick."), "the tainted skin's card");
+  assert(interactMod.itemMenu(me, tainted, bag, null).some((m) => m.label === "Drink (tainted, 100%)"), "Drink lost its (tainted)");
   const bucket = itemsMod.makeEntry("bucket", 1, { fill: 0, clean: true });
   inventoryMod.stow(me, bucket);
   const r0 = verbsMod.run("fill", worldMod.world, me, { tile: wet.water, entry: bucket.uid });
@@ -3073,7 +3090,7 @@ check("belt: the slots' roles, each key by role and item, the refusals in words,
     me.hands.off = mk("sword");
     belt[0] = mk("spear");
     said.length = 0;
-    assert(key(me, 0) === "refused" && id(belt[0]) === "spear" && id(me.hands.off) === "sword" && !me.hands.main && /can't be held beside another weapon/.test(last()), `the spear beside a sword: ${held(me)}; ${last()}`);
+    assert(key(me, 0) === "refused" && id(belt[0]) === "spear" && id(me.hands.off) === "sword" && !me.hands.main && last() === "The throwing spear can't be held beside the arming sword: it is never dual wielded.", `the spear beside a sword: ${held(me)}; ${last()}`);
 
     // ---- an off-hand slot (index 1) ----
     belt = fresh(me);
@@ -3436,6 +3453,28 @@ check("playtest 2026-10-26 (2): the spear's dual rule in its own words, the buck
     assert(!me.hands.off && bag().items.includes(shovel) && last() === word && !said.includes("No room to swap."), `the drag: off ${id(me.hands.off)}; "${last()}"`);
     said.length = 0;
     assert(invActionsMod.performItemCommand(me, { op: "slot", uid: shovel.uid, src: { kind: "bag", bag: { mine: true } }, slot: "hand:off" }) !== undefined && !me.hands.off && last() === word, `a guest's slot command: "${last()}"`);
+    // A refused equip moves nothing: the spear in the main hand, a torch in the off hand, the shovel dragged onto the off hand; the torch
+    // is still held (equip once stowed it before the rule refused, the review of #507).
+    const torch = mk("torch");
+    me.hands.off = torch;
+    said.length = 0;
+    h.placeInSlot(shovel, { kind: "bag", bag: bag() }, "hand:off");
+    assert(me.hands.off === torch && bag().items.includes(shovel) && !bag().items.includes(torch) && last() === word, `the torch held: off ${id(me.hands.off)}; bag ${bag().items.map(id).join(",")}; "${last()}"`);
+    me.hands.off = null;
+    // The same shovel from a belt slot, by its key and by a drag: the same words (beltDraw's refusal is items.dualWord's).
+    me.worn.waist = mk("good_belt");
+    const beltP = inventoryMod.beltOf(me);
+    gridMod.remove(bag(), shovel);
+    beltP[1] = shovel;
+    said.length = 0;
+    const keyed = interactMod.beltPress(me, 1);
+    assert(keyed === "refused" && beltP[1] === shovel && !me.hands.off && last() === word, `the shovel's off-hand slot key: ${keyed}; "${last()}"`);
+    said.length = 0;
+    h.placeInSlot(shovel, { kind: "slot", id: "belt:1" }, "hand:off");
+    assert(beltP[1] === shovel && !me.hands.off && last() === word, `the shovel dragged from its belt slot: "${last()}"`);
+    beltP[1] = null;
+    me.worn.waist = null;
+    gridMod.insert(bag(), shovel);
     // A torch and a shield are no weapons by the rule; and a full bag with a sword in the off hand is still the spear's word, not room's.
     assert(!inventoryMod.equipProblem(me, mk("shield"), "off") && !inventoryMod.equipProblem(me, mk("torch"), "off"), "a shield or a torch beside the spear refused");
     me.hands.main = mk("sword");
@@ -3516,6 +3555,8 @@ check("playtest 2026-10-26 (2): the spear's dual rule in its own words, the buck
     assert(tc.lines[0][0].k === "warn" && itemInfoMod.textOf(tc).includes("Tainted water: drinking it may make you Sick."), `the tainted skin's card: ${JSON.stringify(tc.lines[0])}`);
     const ic = inspectCardPt2.cardOf("Potatoes: ready in about 2 days; watered; not fertilized; harvest with a shovel.");
     assert(ic.name === "Potatoes" && ic.lines.join("|") === "Ready in about 2 days|Watered|Not fertilized|Harvest with a shovel", JSON.stringify(ic));
+    const sc = inspectCardPt2.cardOf("A sapling that cannot grow into an oak here: there is a wall in the way. It waits until that changes.", "Sapling");
+    assert(sc.name === "Sapling" && sc.lines.length === 1 && sc.lines[0] === "A sapling that cannot grow into an oak here: there is a wall in the way. It waits until that changes.", `a sapling's card: ${JSON.stringify(sc)}`);
     return `"${word}" by the drag and a guest's command, the bag half empty; the bucket's Use on an authored crop and a wet one; ${labels.filter((l) => /^Water/.test(l)).join(", ")} in that order, each its own vessel; the tainted-only line at Thirsty once, at the next stage once, again after a drink, none with a clean skin; the knife 18; the tainted line first; the Inspect card ${ic.name} with ${ic.lines.length} lines`;
   } finally {
     off && off();

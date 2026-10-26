@@ -87,6 +87,8 @@ export function ask(text, yes = "Yes") {
   el.className = "screen-ask";
   el.innerHTML = `<div class="ask-box" role="dialog" aria-modal="true"><p class="ask-text">${esc(text)}</p><div class="screen-buttons row"><button class="kit-button" data-ask="yes">${esc(yes)}</button><button class="kit-button" data-ask="no">Cancel</button></div></div>`;
   host.appendChild(el);
+  const no = el.querySelector('[data-ask="no"]');
+  if (no) no.focus({ preventScroll: true }); // the safe answer has the focus: Enter is Cancel, as Escape is (never scrolling the page to it)
   return new Promise((resolve) => { asking = { el, resolve }; });
 }
 
@@ -309,6 +311,7 @@ export function show(name, extra = {}) {
 }
 
 export function hide() {
+  settleAsk(false); // a question goes with the screens, answered no
   stopPreview();
   current = null;
   from = null;
@@ -680,7 +683,7 @@ function pollOpen() {
       if (!was || was.open !== o.open || was.guests !== o.guests) changed = true;
       openState.set(code, o);
     }
-    if (changed) render();
+    if (changed && !asking) render(); // a question up stays up (a redraw would answer it no)
   });
 }
 

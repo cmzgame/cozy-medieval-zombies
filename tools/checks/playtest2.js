@@ -47,11 +47,12 @@ export async function run(game, opts = {}) {
       if (!p) continue;
       const b = G.inventory.bagOf(p);
       if (b && k.bag) b.items.splice(0, b.items.length, ...k.bag);
+      if (k.at) { p.gx = k.at[0]; p.gy = k.at[1]; p.auto = null; } // where { keep: true } found it
       put.push(p.id);
     }
     takePlot(keptBack.plot);
     keptBack.plot = null;
-    row("the plot taken away and the other players' bags put back as { keep: true } found them", true, put.join(", ") || "nobody kept");
+    row("the plot taken away and the other players' bags and places put back as { keep: true } found them", true, put.join(", ") || "nobody kept");
     return done();
   }
 
@@ -167,13 +168,20 @@ export async function run(game, opts = {}) {
       screens.back(); // Escape
       const afterEscape = listed() && !screens.asked() && G.screens.currentScreen() === "worlds";
       click(btn());
+      const focusNo = document.activeElement === askBtn("no"); // Enter is the safe no
+      G.screens.hide(); // the screens hidden answer it no
+      const afterHide = !screens.asked() && listed();
+      G.screens.show("worlds");
+      click(btn());
       click(askBtn("yes"));
       await wait(50);
+      row("the question opens with Cancel focused, and hiding the screens answers it no", focusNo && afterHide, `Cancel focused ${focusNo}; after hide asked ${screens.asked()}, listed ${listed()}`);
       row("the Worlds screen's Delete asks on the page (\"Delete this world and every character in it?\"), never through window.confirm, which the desktop app's pane answers false at once", q1 === "Delete this world and every character in it?" && shown && confirms === 0, `asked "${q1}", box shown ${shown}, window.confirm called ${confirms}`);
       row("Cancel and Escape keep the world; the question's Delete deletes it and the list is drawn again without it", afterCancel && afterEscape && !listed() && !btn(), `after Cancel ${afterCancel}, after Escape ${afterEscape}, listed at the end ${listed()}`);
       if (listed()) await G.save.deleteWorld(wid);
       window.confirm = confirm0;
       G.screens.hide();
+      G.loop.setPaused(true); // the screens' going lets the world run: held again
     }
 
     // ---- 2. the shovel beside the spear: the spear's words on the page, never "No room to swap." with room in the bag ----
@@ -187,6 +195,12 @@ export async function run(game, opts = {}) {
       h.placeInSlot(shovel, { kind: "bag", bag }, "hand:off");
       const m = msg();
       row("the shovel dragged onto the off hand beside the spear, the bag nearly empty: refused, and the page says the spear's rule, not \"No room to swap.\"", !me.hands.off && bag.items.includes(shovel) && m === "The throwing spear can't be held beside the shovel: it is never dual wielded.", `off ${me.hands.off ? me.hands.off.id : "-"}; "${m}"`);
+      clearMessage();
+      const torch = mk("torch");
+      me.hands.off = torch;
+      h.placeInSlot(shovel, { kind: "bag", bag }, "hand:off");
+      row("with a torch in the off hand the same drag moves nothing: the torch still held, never stowed in the bag", me.hands.off === torch && !bag.items.includes(torch) && bag.items.includes(shovel) && msg() === m, `off ${me.hands.off ? me.hands.off.id : "-"}; bag ${bag.items.map((e) => e.id).join(",")}; "${msg()}"`);
+      me.hands.off = null;
       clearMessage();
       me.hands.main = null;
       bag.items.length = 0;
@@ -305,6 +319,18 @@ export async function run(game, opts = {}) {
       const hcs = getComputedStyle(document.getElementById("hover-card"));
       row("Inspect shows a card, not the line at the top: the crop's name and a line for each fact, a close button, in the hover card's look", !!cur && cur.shown && !msg() && !!el.querySelector(".hc-name") && el.querySelector(".hc-name").textContent === "Potatoes" && el.querySelectorAll(".hc-line").length >= 3 && !!el.querySelector(".ic-close") && cs.backgroundColor === hcs.backgroundColor && cs.borderRadius === hcs.borderRadius, cur ? `${cur.text}; message "${msg()}"; ${cs.backgroundColor} / ${hcs.backgroundColor}` : "no card");
       row("the card stands above the inspected patch, not at the very top of the screen, and the patch is marked while it shows", !!cur && cur.rect.bottom <= tileTop + 2 && cur.rect.bottom >= tileTop - 120 && cur.rect.top > 40 && !!mark.marked(), cur ? `card ${Math.round(cur.rect.top)} to ${Math.round(cur.rect.bottom)}, the tile at ${Math.round(tileTop)}; marked ${!!mark.marked()}` : "no card");
+      // The pause menu from the nav row's Menu button covers it (the review of #507: it drew over the screens at 55); so does a right-click menu.
+      document.querySelector('[data-nav="menu"]').dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      const pauseUp = G.screens.currentScreen() === "pause";
+      const cr = el.getBoundingClientRect();
+      const atCard = document.elementFromPoint(cr.left + cr.width / 2, cr.top + cr.height / 2);
+      const covered = !!atCard && !atCard.closest("#inspect-card");
+      G.screens.hide();
+      G.loop.setPaused(true); // the pause menu's going let the world run: held again for the rows after
+      const zCard = Number(getComputedStyle(el).zIndex);
+      const zMenu = Number(getComputedStyle(document.getElementById("menu") || document.body).zIndex) || 9;
+      row("the pause menu opened from the nav row covers the Inspect card, and the card sits under the context menu and the screens", pauseUp && covered && zCard < zMenu && zCard < Number(getComputedStyle(document.getElementById("screens")).zIndex), `pause ${pauseUp}, at the card's middle ${atCard ? atCard.id || atCard.className : "-"}; z card ${zCard}, menu ${zMenu}`);
+      card.update(me);
       el.querySelector(".ic-close").dispatchEvent(new MouseEvent("click", { bubbles: true }));
       row("its close button closes it and the patch's mark goes with it", !card.current() && el.hidden && !mark.marked(), `open ${card.isOpen()}, hidden ${el.hidden}, marked ${!!mark.marked()}`);
       look();
@@ -387,12 +413,50 @@ export async function run(game, opts = {}) {
       bag.items.length = 0;
     }
 
+    // ---- 10. Fill waterskins at tainted water skips a skin holding clean water (Michael, 2026-10-26) ----
+    {
+      let bank = null;
+      const [cx, cy] = [Math.round(me.gx), Math.round(me.gy)];
+      for (let r = 0; r < 120 && !bank; r += 3) {
+        for (let y = cy - r; y <= cy + r && !bank; y += 3) for (let x = cx - r; x <= cx + r && !bank; x += 3) {
+          G.map.ensureAround(x, y, 0);
+          if (!G.map.drinkableAt(x, y)) continue;
+          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!bank && G.map.isWalkableTile(x + dx, y + dy) && !G.map.drinkableAt(x + dx, y + dy)) bank = { water: [x, y], stand: [x + dx, y + dy] };
+        }
+      }
+      if (!bank) row("water with a bank near the player", false, "none within 120 tiles");
+      else {
+        G.teleport(bank.stand[0], bank.stand[1]);
+        bag.items.length = 0;
+        G.grid.insert(bag, mk("waterskin", 1, { fill: 40, clean: true }));
+        const cleanSkin = bag.items.find((e) => e.id === "waterskin");
+        const tile = { kind: "tile", tile: bank.water };
+        const labels = () => G.interact.actionsForTarget(tile, me).map((a) => a.label);
+        const l1 = labels().find((l) => l.startsWith("Fill waterskins"));
+        clearMessage();
+        G.interact.performByLabel(me, tile, l1);
+        for (let i = 0; i < 240 && me.action; i++) G.loop.advance(1 / 60);
+        const m1 = msg();
+        row("with only a clean skin to fill, Fill waterskins at tainted water is offered as \"(they hold clean water)\", fills nothing, and the page says why", l1 === "Fill waterskins (they hold clean water)" && cleanSkin.fill === 40 && cleanSkin.clean === true && m1 === "Your waterskins hold clean water: they won't be filled from tainted water.", `"${l1}"; skin ${cleanSkin.fill} clean ${!!cleanSkin.clean}; "${m1}"`);
+        G.grid.insert(bag, mk("waterskin", 1, { fill: 30 }));
+        G.grid.insert(bag, mk("waterskin", 1, { fill: 0, clean: true }));
+        const [, tSkin, eSkin] = bag.items.filter((e) => e.id === "waterskin");
+        const l2 = labels().find((l) => l.startsWith("Fill waterskins"));
+        G.interact.performByLabel(me, tile, l2);
+        for (let i = 0; i < 240 && me.action; i++) G.loop.advance(1 / 60);
+        row("with a tainted skin and an empty one beside it, Fill waterskins fills those two and leaves the clean skin as it was", l2 === "Fill waterskins" && tSkin.fill === 100 && eSkin.fill === 100 && !eSkin.clean && cleanSkin.fill === 40 && cleanSkin.clean === true, `"${l2}"; tainted ${tSkin.fill}, empty ${eSkin.fill} clean ${!!eSkin.clean}, clean ${cleanSkin.fill} ${!!cleanSkin.clean}`);
+        clearMessage();
+        bag.items.length = 0;
+        G.teleport(at0[0], at0[1]);
+      }
+    }
+
     // ---- two tabs: a bucket and a skin for every other player, by three dry potatoes ----
     if (opts.keep) {
       const others = G.game.state.players.filter((p) => p !== me);
       for (const p of others) {
         const b = G.inventory.bagOf(p);
-        keptBack.players.push({ id: p.id, bag: b ? b.items.slice() : null });
+        keptBack.players.push({ id: p.id, bag: b ? b.items.slice() : null, at: [p.gx, p.gy] });
         if (!b) continue;
         b.items.length = 0;
         G.grid.insert(b, mk("bucket", 1, { fill: G.items.getItem("bucket").vessel.capacity }));

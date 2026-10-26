@@ -814,7 +814,7 @@ function inspectSaplingAction(prop) {
     range: INSPECT_RANGE,
     local: true,
     perform() {
-      inspectCard.open({ id: prop.id, tiles: prop.tiles, read: (p) => (p.sapling ? trees.report(p) : "") });
+      inspectCard.open({ id: prop.id, tiles: prop.tiles, name: "Sapling", read: (p) => (p.sapling ? trees.report(p) : "") });
       return true;
     },
   });
@@ -945,7 +945,12 @@ const drinkLabel = (entry, pct) => `Drink (${water.isTainted(entry) ? "tainted, 
 // { tiles, mx, my, name, clean, onStart? }. A tainted Drink rolls what it may bring (sick.taintedDrink, the one roll a skin's Drink makes too), and
 // a Fill from a tainted source taints the whole skin (docs/44: mixing taints).
 function waterActions(source, player) {
-  const toFill = () => skinsOf(player).filter((it) => (it.fill ?? 0) < 100); // the belt's skin too (#215)
+  // Fill waterskins at a tainted source skips a skin holding clean water; an empty or a tainted one still fills (Michael, 2026-10-26: the
+  // auto-sip keeps the clean skin the one never full, and a Fill tainted it all). A clean source fills every skin not full.
+  const holdsClean = (it) => (it.fill ?? 0) > 0 && !water.isTainted(it);
+  const notFull = () => skinsOf(player).filter((it) => (it.fill ?? 0) < 100); // the belt's skin too (#215)
+  const toFill = () => notFull().filter((it) => source.clean || !holdsClean(it));
+  const keptClean = () => !toFill().length && notFull().some(holdsClean); // every skin that could take water holds clean water
   return [
     act({
       kind: "water",
@@ -964,7 +969,18 @@ function waterActions(source, player) {
         return true;
       },
     }),
-    act({
+    // Every skin skipped for its clean water: offered, and at once says why (by its label too, a guest's command).
+    keptClean() ? act({
+      kind: "fill",
+      label: "Fill waterskins (they hold clean water)",
+      tiles: source.tiles,
+      mx: source.mx,
+      my: source.my,
+      perform() {
+        showMessage(water.CLEAN_KEPT);
+        return false;
+      },
+    }) : act({
       kind: "fill",
       label: toFill().length ? "Fill waterskins" : "Fill waterskins (none to fill)",
       tiles: source.tiles,

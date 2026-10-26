@@ -34,7 +34,9 @@ function ensure() {
 }
 
 // "Potatoes: ready in about 2 days; watered; not fertilized; harvest with a shovel." as a name and its lines.
-export function cardOf(text) {
+// With `title` (a sapling's, whose report is sentences, not facts) the name is that and the whole report its one line, as written.
+export function cardOf(text, title = null) {
+  if (title) { const s = String(text || "").trim(); return { name: title, lines: s ? [s[0].toUpperCase() + s.slice(1)] : [] }; }
   const t = String(text || "").trim().replace(/\.$/, "");
   const at = t.indexOf(": ");
   const name = at > 0 ? t.slice(0, at) : t;
@@ -42,8 +44,8 @@ export function cardOf(text) {
   return { name, lines };
 }
 
-function fill(text) {
-  const { name, lines } = cardOf(text);
+function fill(text, title = null) {
+  const { name, lines } = cardOf(text, title);
   const head = document.createElement("div");
   head.className = "ic-head";
   const n = document.createElement("span");
@@ -64,9 +66,9 @@ function fill(text) {
   el.replaceChildren(...parts);
 }
 
-// An Inspect done: the card for the prop `id` (its tiles marked), its words `read(prop)`.
-export function open({ id, tiles, read }) {
-  cur = { id, tiles: tiles.map(([x, y]) => [x, y]), read, text: null };
+// An Inspect done: the card for the prop `id` (its tiles marked), its words `read(prop)`, its title `name` when the words are not "Name: facts".
+export function open({ id, tiles, read, name = null }) {
+  cur = { id, tiles: tiles.map(([x, y]) => [x, y]), read, name, text: null };
   inspectMark.mark(cur.tiles, Infinity); // marked while the card shows
   if (!ensure()) return;
   refresh();
@@ -94,7 +96,7 @@ function refresh() {
   if (!text) return close(); // no longer the thing inspected (a sapling grown into its tree keeps its id)
   if (text !== cur.text) {
     cur.text = text;
-    fill(text);
+    fill(text, cur.name);
   }
   el.hidden = false;
 }

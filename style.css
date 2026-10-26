@@ -613,7 +613,7 @@ html, body {
 /* The Inspect card (ui/inspect-card.js; Michael's playtest, 2026-10-26): the hover card's look, standing above the inspected patch, with a close button; it takes the pointer. */
 #inspect-card {
   position: absolute;
-  z-index: 55;
+  z-index: 8; /* over the panels (7), under the context menu (9) and the screens (10) */
   max-width: 260px;
   padding: 6px 9px 7px;
   background: rgba(8, 6, 12, 0.94);
@@ -1543,6 +1543,7 @@ html, body {
 }
 .screen-ask .ask-text { margin: 0 0 14px; font-size: 15px; font-family: var(--font-small); line-height: 1.45; color: var(--text); }
 .screen-ask .screen-buttons { justify-content: center; gap: 10px; }
+.screen-ask button { font-size: 16px; font-family: var(--font-ui); padding: 4px 14px; } /* as .screen button: the box is outside .screen */
 
 .screen h1 {
   font-size: 28px;

@@ -8,6 +8,7 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 
 ### The world and the map
 
+- Fill waterskins at a tainted source skips any skin holding clean water; an empty or tainted one still fills (2026-10-26, Fill waterskins skips clean water)
 - From the playtest: a bucket boiled and poured into skins; Burn corpse for a tinderbox alone, or Use a lit torch on a body; sleep fades to black and runs slower; container items open where they lie; a stack dropped on a matching stack fills it (2026-10-26, The playtest's rulings)
 - Honey goes into a clay jar made like a vial; eating it leaves the jar; a couple of jars at the cottage to start (2026-10-26, Honey goes into a clay jar)
 - The mana herb is Mageroot for now; grave moss keeps its name; no plant is gathered or grows back only at night, Herbalism 6 and 7 struck and their replacements open (2026-10-25, The evening's rulings)
@@ -307,6 +308,10 @@ One line per ruling that stands, with the date and the entry it is from; the ent
 - The private half of the infrastructure day stays a checklist off the repository until the repositories are private (2026-10-16, The sweep)
 
 ## Decisions
+
+### 2026-10-26 — Fill waterskins skips clean water (Michael)
+
+Asked on #507 whether Fill waterskins should go on topping up the clean starting skin with tainted water (the auto-sip drinks only clean water, so the clean skin is the one never full, and the next Fill at a well tainted it all), Michael: "Yes: Fill waterskins at a tainted source skips any skin holding clean water; an empty or tainted one still fills." When every skin that could take water holds clean water, the line says why: "Your waterskins hold clean water: they won't be filled from tainted water." (*Primary's wording.*) A bucket's fill is unchanged. `docs/44` section 1.
 
 ### 2026-10-26 — Throwing knives do 18 (Michael)
 

@@ -433,10 +433,7 @@ export function beltDraw(player, index, hand = null, onto = false) {
     return { ok: false, drop: [], word };
   };
   belt[index] = null;
-  const dualWord = () => {
-    const spear = [e, h.main, h.off].find((q) => q && getItem(q.id).noDual);
-    return spear ? `The ${getItem(spear.id).name.toLowerCase()} can't be held beside another weapon.` : "Your hands are full.";
-  };
+  const refusedWord = () => dualWord(h, e.id) || "Your hands are full."; // the spear's dual rule in its one wording (items.dualWord), the hand already released
   // What a hand held: the freed slot first when its key would draw it back (or it was dragged there), else a slot of `own` role, the bag,
   // the utility slot, the freed slot as storage, the feet.
   const free = (x) => !belt[index] && roleTakes(role, x);
@@ -461,7 +458,7 @@ export function beltDraw(player, index, hand = null, onto = false) {
     const old = h.main;
     const wasBoth = !!old && old === h.off;
     if (old) release(h, old);
-    if (!hold(h, e, "main")) return undo(dualWord());
+    if (!hold(h, e, "main")) return undo(refusedWord());
     if (old) put(old, "main");
     if (wasBoth || !h.off) restoreOffHand(player); // the shield a two-hander pushed out comes back (docs/21)
     else player.offMemory = null;
@@ -471,7 +468,7 @@ export function beltDraw(player, index, hand = null, onto = false) {
   const old = h.off;
   const wasBoth = !!old && old === h.main;
   if (old) release(h, old);
-  if (!hold(h, e, "off")) return undo(dualWord());
+  if (!hold(h, e, "off")) return undo(refusedWord());
   if (old) put(old, wasBoth ? "main" : "off"); // a two-hander takes the freed slot only when it is a main-hand or the utility slot
   player.offMemory = null;
   return { ok: true, drop, word: "" };
