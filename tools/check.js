@@ -1157,6 +1157,86 @@ check("hover card: every item's card has its own full name, a kind, and what it 
   assert(tb.lines.flat().some((s) => s.k === "use" && s.t === "Use"), "the tinderbox's card has no Use");
   return `${defs.length} items, ${food} foods, every name its own`;
 });
+// The hover card's thrown, shot, and cast lines (#317), and a recipe's own verb: each item's card says what it does, its numbers read from the
+// data here as the card reads them (the damage by the draw from archery.shotDamage at `minDraw`, the burn from data/combat.json); and the bow
+// takes its arrows in its data's `ammo` order, a fire arrow's `ignite` setting what it hits alight.
+const burnMod = await import("../src/burn.js");
+check("hover card: the spear, the bow, the arrows, the Book and Staff of Fire, the halberd, the throwing knife and axe, the garments, and the rag say what they do (#317)", () => {
+  const json = read("data/maps/valley.json");
+  gameMod.create({ json, rules: { zombieAggro: false } });
+  const I = (id) => itemsMod.getItem(id);
+  const card = (id) => itemInfoMod.textOf(itemInfoMod.cardFor(itemsMod.makeEntry(id, 1)));
+  const has = (id, s) => assert(card(id).includes(s), `${id}: wanted "${s}"; the card: ${card(id).join(" | ")}`);
+  const T = archeryMod.tunables;
+  const by = (d) => `${archeryMod.shotDamage(d, T.minDraw)} to ${d} damage by the draw`;
+  const B = burnMod.BURN;
+  const burnt = `Sets the dead it hits alight: ${Math.round(Math.min(B.cap, B.dps * B.duration))} damage over ${B.duration} seconds.`;
+  const sp = I("spear").thrown;
+  has("spear", `Throw (middle button or Q): ${by(sp.damage)}, up to ${sp.range} tiles.`);
+  has("spear", `It lands to be picked up again, or stays in the body it hits; it may break (${Math.round(sp.breakChance * 100)}%).`);
+  const bow = I("bow");
+  has("bow", `Draw and release (left button): ${by(bow.bow.damage)}, up to ${T.range} tiles.`);
+  has("bow", `Needs arrows carried, fire arrows first; good for about ${bow.shots} shots.`);
+  has("arrow", `Shot from a hunting bow (${by(bow.bow.damage)}), when no fire arrows are carried.`);
+  has("fire_arrow", `Shot from a hunting bow (${by(bow.bow.damage)}), before any arrows.`);
+  has("fire_arrow", burnt);
+  has("fire_arrow", "Made from arrows: Use them on fire (dip).");
+  assert(itemInfoMod.cardFor(itemsMod.makeEntry("fire_arrow")).lines.flat().some((g) => g.k === "use" && g.t === "Use"), "the fire arrow's Use is not its own segment");
+  assert(!card("arrow").includes(burnt), "a plain arrow says it burns");
+  const fb = I("book_of_fire").book.spell;
+  has("book_of_fire", `Cast ${fb.name} (left button, a staff in the other hand): ${by(fb.damage)}, up to ${fb.range} tiles.`);
+  has("book_of_fire", `${fb.name} bursts on the first of the dead or wild game it meets, or within ${fb.landRadius} tile${fb.landRadius === 1 ? "" : "s"} of where it lands; it passes tame animals by.`);
+  has("book_of_fire", burnt);
+  // The draw's scale written out (docs/20, 0.4 + 0.6 c at minDraw 0.15), so a wrong formula fails here and not only in step with the card:
+  // shotDamage literally, and the cards' literal text while the data holds today's numbers (a tuned number skips the card literal, not the formula).
+  assert(archeryMod.shotDamage(38, 0.15) === 19 && archeryMod.shotDamage(150, 0.15) === 74 && archeryMod.shotDamage(45, 0.15) === 22 && archeryMod.shotDamage(38, 1) === 38, `shotDamage: ${archeryMod.shotDamage(38, 0.15)}, ${archeryMod.shotDamage(150, 0.15)}, ${archeryMod.shotDamage(45, 0.15)}, ${archeryMod.shotDamage(38, 1)}`);
+  if (T.minDraw === 0.15) {
+    if (bow.bow.damage === 38) has("bow", "Draw and release (left button): 19 to 38 damage by the draw, up to 22 tiles.");
+    if (sp.damage === 150) has("spear", "Throw (middle button or Q): 74 to 150 damage by the draw, up to 6.5 tiles.");
+    if (fb.damage === 45) has("book_of_fire", "Cast Fireball (left button, a staff in the other hand): 22 to 45 damage by the draw, up to 18 tiles.");
+  }
+  has("staff_of_fire", `Cast (left button, a spellbook in the other hand): ${fb.name} with the Book of Fire.`);
+  const th = I("halberd").weapon.alt;
+  has("halberd", `Thrust (middle button or Q): ${th.damage} damage, reach ${th.range}; ${th.stamina} stamina.`);
+  for (const id of ["throwing_knife", "throwing_axe"]) {
+    has(id, "To come: thrown.");
+    assert(!card(id).some((l) => l.startsWith("Throw (")), `${id} says it throws, and it does not yet`);
+  }
+  for (const id of ["cap", "hood", "tunic", "gloves", "breeches", "boots"]) {
+    has(id, "Tear into 2 rags at the workbench, a dirk carried.");
+    assert(!card(id).some((l) => /^Goes into:.*\brag\b/.test(l)), `${id}: the rag is in its Goes into as well`);
+  }
+  assert(!card("belt").some((l) => l.startsWith("Tear")), "the rope belt says it tears");
+  has("rag", "Tear clothing into rags (2 each) at the workbench, a dirk carried: linen cap, onion-head hat, linen tunic and more.");
+  assert(!card("rag").some((l) => l.startsWith("Made at")), `the rag still says Made at: ${card("rag").join(" | ")}`);
+  // The bow takes its data's `ammo` in order: plain arrows alone, then fire arrows first, which burn.
+  const me = gameMod.state.player;
+  const main0 = me.hands.main;
+  const bag = inventoryMod.bagOf(me);
+  const belt = inventoryMod.beltOf(me);
+  const bag0 = bag ? bag.items.slice() : null;
+  const belt0 = belt ? belt.slice() : null;
+  try {
+    if (bag) bag.items.length = 0;
+    if (belt) belt.fill(null);
+    me.hands.main = itemsMod.makeEntry("bow", 1);
+    assert(inventoryMod.stow(me, itemsMod.makeEntry("arrow", 5)), "the arrows did not fit");
+    const plain = archeryMod.launcherOf(me);
+    assert(plain && plain.ammo === "arrow" && plain.projectile === "arrow" && plain.ignite === false, `plain arrows: ${plain && plain.ammo} ignite ${plain && plain.ignite}`);
+    assert(inventoryMod.stow(me, itemsMod.makeEntry("fire_arrow", 2)), "the fire arrows did not fit");
+    const fire = archeryMod.launcherOf(me);
+    assert(fire && fire.ammo === "fire_arrow" && fire.projectile === "fire_arrow" && fire.ignite === true, `fire arrows: ${fire && fire.ammo} ignite ${fire && fire.ignite}`);
+    if (bag) bag.items.length = 0;
+    if (belt) belt.fill(null);
+    const none = archeryMod.launcherOf(me);
+    assert(none && none.ammo === "arrow" && none.ignite === false, `none carried: ${none && none.ammo}`);
+  } finally {
+    me.hands.main = main0;
+    if (bag) bag.items.splice(0, bag.items.length, ...bag0);
+    if (belt) for (let i = 0; i < belt.length; i++) belt[i] = belt0[i];
+  }
+  return `${card("book_of_fire")[2]} || ${card("bow")[2]} || ${card("cap").find((l) => l.startsWith("Tear"))}`;
+});
 // Floating numbers over heads (#294): the world records a hit, a heal, and a gather where they happen, regeneration records nothing, a guest records none of its own, and the
 // frame's small arrays are what a guest draws. (The drawing, the colours, and the setting are `check("floaters")`'s, in the pane.)
 check("floaters: a hit, a heal, and a gather are recorded where they happen; regeneration is not; a guest records none; the frame's arrays round-trip", () => {

@@ -61,6 +61,35 @@ export async function run(game) {
     const source = { sage: "Grows wild in the valley; gathered by hand.", nettle: "Grows wild in the valley; gathered by hand.", feverfew: "Grows wild in the valley; gathered by hand.", yarrow: "Grows wild in the valley; gathered by hand.", woad: "Grows wild in the valley; gathered by hand.", madder: "Grows wild in the valley; gathered by hand.", weld: "Grows wild in the valley; gathered by hand.", mana_herb: "Grows wild near water; gathered by hand.", nightshade: "Grows wild near trees; gathered by hand.", wolfsbane: "Grows wild near trees; gathered by hand.", grave_moss: "Grows wild in the graveyard; gathered by hand, only at night.", mushroom: "Forage under trees.", clay: "Dug from the clay banks by the river, a shovel carried.", salt: "Mined from salt rocks at the iron workings, a pickaxe in hand." };
     const offCards = Object.entries(gathered).filter(([id, kind]) => { const c = info.cardFor(G.items.makeEntry(id)); const ls = c.lines.map((l) => l.map((g) => g.t).join("")); return c.name !== G.items.getItem(id).name || c.kind !== kind || ls.length !== 1 || ls[0] !== source[id]; });
     row("the herbs, the dye plants, the mushroom, clay, and salt: each card its full name, its kind (Herb, Dye plant, Forage, Material), and where it is gathered, and no use that is not built", offCards.length === 0, Object.keys(gathered).map((id) => text(id).join(" | ")).join(" || "));
+    // What is thrown, shot, and cast, and a recipe's own verb (#317): the numbers read from the data as the card reads them.
+    const A = await import("/src/archery.js");
+    const { BURN } = await import("/src/burn.js");
+    const by = (d) => `${A.shotDamage(d, A.tunables.minDraw)} to ${d} damage by the draw`;
+    const burnt = `Sets the dead it hits alight: ${Math.round(Math.min(BURN.cap, BURN.dps * BURN.duration))} damage over ${BURN.duration} seconds.`;
+    const I = (id) => G.items.getItem(id);
+    const sp = I("spear").thrown;
+    const bw = I("bow");
+    const fb = I("book_of_fire").book.spell;
+    const alt = I("halberd").weapon.alt;
+    const SHOT = [
+      ["spear", "the throwing spear: its throw by the draw and its range, and that it comes back unless it breaks", [`Throw (middle button or Q): ${by(sp.damage)}, up to ${sp.range} tiles.`, `It lands to be picked up again, or stays in the body it hits; it may break (${Math.round(sp.breakChance * 100)}%).`]],
+      ["bow", "the bow: its damage by the draw, its range, and its arrows, fire arrows first", [`Draw and release (left button): ${by(bw.bow.damage)}, up to ${A.tunables.range} tiles.`, `Needs arrows carried, fire arrows first; good for about ${bw.shots} shots.`]],
+      ["arrow", "an arrow: shot from the bow, after fire arrows", [`Shot from a hunting bow (${by(bw.bow.damage)}), when no fire arrows are carried.`]],
+      ["fire_arrow", "a fire arrow: shot first, it sets the dead alight, and is made by dipping arrows", [`Shot from a hunting bow (${by(bw.bow.damage)}), before any arrows.`, burnt, "Made from arrows: Use them on fire (dip)."]],
+      ["book_of_fire", "the Book of Fire: it casts Fireball with a staff, its damage, range, burst, and burn", [`Cast ${fb.name} (left button, a staff in the other hand): ${by(fb.damage)}, up to ${fb.range} tiles.`, `${fb.name} bursts on the first of the dead or wild game it meets, or within ${fb.landRadius} tile${fb.landRadius === 1 ? "" : "s"} of where it lands; it passes tame animals by.`, burnt]],
+      ["staff_of_fire", "the Staff of Fire: the spell it casts with a book", [`Cast (left button, a spellbook in the other hand): ${fb.name} with the Book of Fire.`]],
+      ["halberd", "the halberd: its thrust on the middle button or Q", [`Thrust (middle button or Q): ${alt.damage} damage, reach ${alt.range}; ${alt.stamina} stamina.`]],
+      ["throwing_knife", "the throwing knife: thrown is still to come", ["To come: thrown."]],
+      ["throwing_axe", "the throwing axe: thrown is still to come", ["To come: thrown."]],
+      ["cap", "a garment tears into rags at the workbench", ["Tear into 2 rags at the workbench, a dirk carried."]],
+      ["rag", "the rag: torn from clothing", ["Tear clothing into rags (2 each) at the workbench, a dirk carried: linen cap, onion-head hat, linen tunic and more."]],
+    ];
+    for (const [id, label, want] of SHOT) row(`${label} (#317)`, want.every((w) => text(id).includes(w)), text(id).join(" | "));
+    // The draw's scale written out (docs/20), so a wrong formula fails: today's numbers literally (a tuned number skips the card literal, never the formula's).
+    const lit = [[38, 19], [150, 74], [45, 22]].every(([d, lo]) => A.shotDamage(d, 0.15) === lo);
+    const cardsLit = A.tunables.minDraw !== 0.15 || ((bw.bow.damage !== 38 || has("bow", "19 to 38 damage by the draw")) && (sp.damage !== 150 || has("spear", "74 to 150 damage by the draw")) && (fb.damage !== 45 || has("book_of_fire", "22 to 45 damage by the draw")));
+    row("the damage by the draw, literally: 19 to 38 (the bow), 74 to 150 (the spear), 22 to 45 (Fireball) (#317)", lit && cardsLit, `${A.shotDamage(38, 0.15)} ${A.shotDamage(150, 0.15)} ${A.shotDamage(45, 0.15)}; ${text("bow")[2]}`);
+    row("a garment's Goes into no longer names the rag, the rag says no Made at, and the rope belt does not tear (#317)", !text("cap").some((l) => /^Goes into:.*\brag\b/.test(l)) && !text("rag").some((l) => l.startsWith("Made at")) && !text("belt").some((l) => l.startsWith("Tear")), `${text("cap").join(" | ")} || ${text("rag").join(" | ")}`);
     // Every item: a name nobody else has, a kind, and no segment but Use is gold.
     const ids = [...new Set((all || []).map((d) => d.id))];
     const names = new Map();
@@ -164,6 +193,27 @@ export async function run(game) {
     const goldRgb = getComputedStyle(probe).color;
     probe.remove();
     row("the word Use is drawn in --gold", !!useEl && getComputedStyle(useEl).color === goldRgb, useEl ? `${getComputedStyle(useEl).color} vs ${goldRgb}` : "no Use word");
+    // The lines of #317 on the page: each item alone in the bag, its card read where a player reads it (one too long for the bag, in the main hand).
+    for (const [id, label, want] of SHOT) {
+      card.hide();
+      for (const e of [...bag.items]) bag.items.splice(bag.items.indexOf(e), 1);
+      if (belt) for (let i = 0; i < belt.length; i++) belt[i] = null;
+      me.hands.main = null;
+      const en = G.items.makeEntry(id, 1);
+      let sel = ".inv-item[data-bag='inv']";
+      let where = G.inventory.stow(me, en);
+      if (where !== "bag") {
+        if (belt) for (let i = 0; i < belt.length; i++) if (belt[i] === en) belt[i] = null;
+        me.hands.main = en;
+        sel = ".doll-slot[data-slot='hand:main'] .inv-item";
+        where = "the main hand";
+      }
+      panel.renderInventoryPanel(me, bag, null, belt);
+      el = await hoverOver(sel, `${id}'s card on the page`);
+      const shown = el && !cardEl().hidden ? cardEl().textContent : "";
+      const missing = want.filter((w) => !shown.includes(w));
+      row(`on the page, over ${where === "bag" ? "the bag" : where}: ${label} (#317)`, !!el && shown.includes(I(id).name) && missing.length === 0, missing.length ? `missing: ${missing.join(" / ")} || shown: ${shown.slice(0, 240)}` : shown.slice(0, 160));
+    }
   } catch (e) {
     rows.push({ check: "setup", result: "FAIL", detail: e.message + (e.stack ? " " + e.stack.split("\n")[1] : "") });
   } finally {
