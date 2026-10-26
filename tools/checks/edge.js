@@ -49,15 +49,24 @@ export async function run(game, opts = {}) {
         const on = beyond(q);
         row(`the ${q.kind}: at the host's tiles, across ${q.edge}`, !!p && p.tile[0] === q.tile[0] && p.tile[1] === q.tile[1] && JSON.stringify(p.tiles) === JSON.stringify(q.tiles), p ? `${p.sprite} at ${p.tile} with ${p.tiles.length} tiles (host ${q.tiles.length}), ${on.length} beyond its anchor's chunk` : "missing");
         row(`the ${q.kind}: every tile holds it on the replica, the neighbours' too, after each came alone in a frame`, holdsAll(p, slot), p ? p.tiles.map(([x, y]) => { const t = map.peekTile(x, y); return `${x},${y} ${t ? (t[slot] === p ? "holds it" : t[slot] ? `holds ${t[slot].id}` : "empty") : "not loaded"}`; }).join("; ") : "-");
-        // The host's record of each neighbour, installed alone here as a frame installs it: every tile still holds it.
-        for (const nb of q.neighbours) {
-          const rec = JSON.parse(JSON.stringify(nb.record));
+        // The host's record of each neighbour, installed alone here as a frame installs it: every tile still holds it. The record crossed
+        // the tabs in the save's safe form (game.toSafe: a plain wall's hp is Infinity, which bare JSON turns to null), and the replica's own
+        // chunk is put back afterwards from its own record, so the check leaves the replica as the frames made it and check("sync") agrees.
+        const install = (rec) => {
           map.installChunk(rec);
           for (const d of rec.props) map.installProp(d);
           map.rebuildBrackets();
           G.light.forgetAll();
+        };
+        for (const nb of q.neighbours) {
+          const [ncx, ncy] = nb.at.split(",").map(Number);
+          const mine = map.getChunk(ncx, ncy, false);
+          const own = mine ? G.game.toSafe(map.serializeChunk(mine)) : null;
+          const rec = G.game.fromSafe(nb.record);
+          install(rec);
           const after = map.propById(q.id);
           row(`the ${q.kind}: the host's record of ${nb.at} installed alone on the replica keeps its tiles (it names them: ${JSON.stringify(rec.parts || [])})`, holdsAll(after, slot) && (rec.parts || []).some((r) => r[2] === q.id), after ? `${after.tiles.filter(([x, y]) => map.peekTile(x, y)[slot] === after).length} of ${after.tiles.length} tiles hold it` : "gone from the registry");
+          if (own) install(G.game.fromSafe(own));
         }
         const after = map.propById(q.id);
         // The sync check's map part on the replica sees a tile that lost it (main's did not: nothing in the neighbour's record named it).
@@ -127,7 +136,7 @@ export async function run(game, opts = {}) {
       if (!nbs.length) continue;
       row(`the ${kind}: the placement marked every neighbour, so each is sent and never evicted`, A.dirty && nbs.every((n) => n.c.dirty), `anchor's dirty ${A.dirty}; ${nbs.map((n) => `${n.at} dirty ${n.c.dirty}${n.c.wild ? " (wild)" : ""}`).join(", ")}`);
       const recA = map.serializeChunk(A);
-      for (const nb of nbs) nb.record = JSON.parse(JSON.stringify(map.serializeChunk(nb.c)));
+      for (const nb of nbs) nb.record = G.game.toSafe(map.serializeChunk(nb.c)); // the save's safe form: JSON carries it to the guest's tab with a wall's Infinity intact
       const named = nbs.every((nb) => !nb.record.props.some((d) => d.id === p.id) && nb.tiles.every(([x, y]) => (nb.record.parts || []).some(([lx, ly, id]) => lx === x - nb.c.cx * C && ly === y - nb.c.cy * C && id === p.id)));
       row(`the ${kind}: recorded whole with its anchor's chunk, its tiles on each neighbour named in that neighbour's record`, recA.props.some((d) => d.id === p.id) && named, nbs.map((nb) => `${nb.at} parts ${JSON.stringify(nb.record.parts || [])}`).join("; "));
       // The sync check's map part sees a tile that lost it.
