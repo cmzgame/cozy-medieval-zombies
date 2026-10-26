@@ -37,9 +37,9 @@ Where work stands. The open work lives on GitHub, under the roadmap's milestones
 1. Power items: gems (#281), trinkets (#282), silver (#283).
 2. Armour and difficulty (#133).
 3. Lore and the map (#217, #92), folding in villagers (#103), the wizard (#181), the regions' edge (#123).
-4. **Potions** (Michael, 2026-10-25: "This may need its own sit, I want to make sure this system is built thoughtfully"): which herbs and how many go into each, and what making one takes (vials, water); with it, Herbalism 6 and 7's replacements (struck) and what the herb bed grows (`docs/02` open questions 35 and 36). *Primary's placing* in the order, Michael's to move.
-5. The demo, the business, and so on.
-6. Eventually, the regions.
+4. The demo, the business, and so on.
+5. Eventually, the regions.
+- **Potions, a sitting of its own, its place in the order Michael's to say** (Michael, 2026-10-25: "This may need its own sit, I want to make sure this system is built thoughtfully"): which herbs and how many go into each, and what making one takes (vials, water); with it, Herbalism 6 and 7's replacements (struck) and what the herb bed grows (`docs/02` open questions 35 and 36).
 
 **Open lines of `docs/39` by issue** (counted 2026-10-25, evening, by line; 52 open, down from 162): #92 11 · #281 7 · #123 7 · #282 5 · #133 5 · #181 4 · #283 4 · #103 3 · #262, #104, #271, #261, #217, #106 1 each.
 
