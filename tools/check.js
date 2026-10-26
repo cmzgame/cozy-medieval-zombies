@@ -1033,6 +1033,7 @@ check("woods: a door or a window of another wood than its wall: the leaf rules, 
 // The page's computed fonts are what `check("smalltext")` reads, in the pane.
 const walkJs = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walkJs(path.join(dir, e.name)) : e.name.endsWith(".js") && e.name !== "small-text.js" ? [path.join(dir, e.name)] : []));
 check("small text: every size at or under the threshold is set in --font-small, in the stylesheet and in the scripts, and every size is classified; the scan itself catches each form", () => {
+  const rowStart = performance.now();
   const { SMALL_TEXT_MAX_PX: MAX } = smallTextMod;
   const { scanSmallText } = smallTextScan;
   const css = fs.readFileSync(path.join(root, "style.css"), "utf8");
@@ -1078,6 +1079,9 @@ check("small text: every size at or under the threshold is set in --font-small, 
     "the small font named only in a custom property": [".x { font-size: 12px; font-family: var(--font-ui); --y: var(--font-small); }", "bad"],
     "monospace named only in content:": [".x { font-size: 12px; content: \"monospace\"; }", "bad"],
     "a later family overriding the small one": [".x { font-size: 12px; font-family: var(--font-small); font-family: var(--font-ui); }", "bad"],
+    "a closing brace in content: hiding the rest of the rule": [".x { content: \"}\"; font-size: 12px; }", "bad"],
+    "a rule nested inside another (native CSS nesting)": [".a { color: red; .b { font-size: 12px; font-family: var(--font-small); } }", "unknown"],
+    "a parent's own size beside a nested rule": [".a { font-size: 12px; font-family: var(--font-small); .b { color: red; } }", "unknown"],
     "a big px rule with no family": [".x { font-size: 18px; }", "bigNoFace"],
     "a big rem rule with no family": [".x { font-size: 1.5rem; }", "bigNoFace"],
     "a big keyword with no family": [".x { font-size: large; }", "bigNoFace"],
@@ -1104,6 +1108,8 @@ check("small text: every size at or under the threshold is set in --font-small, 
     ".x { font-size: 12px; font-size: 18px; font-family: var(--font-ui); }", ".x { font-size: 12px !important; font-family: var(--font-small); }",
     ".x { font-size: 12px; font-family: var(--font-small) !important; font-family: var(--font-ui); }",
     ":root { --tiny: 10px; } .x { font-size: var(--tiny); font-family: var(--font-small); }", ".x { font-size: var(--big, 20px); font-family: var(--font-ui); }",
+    ".x { font-size: 0; }", ".x { font-size: 0px; }", "@supports (display: grid) { .x { font-size: 12px; font-family: var(--font-small); } }",
+    ".x { background: url(\"data:image/svg+xml;utf8,<svg></svg>\"); font-size: 12px; font-family: var(--font-small); }",
   ];
   for (const rule of cssPass) {
     const r = planted(rule);
@@ -1132,6 +1138,12 @@ check("small text: every size at or under the threshold is set in --font-small, 
     "a quoted font-size key in a style object": ["const st = { \"font-size\": \"10px\" };\n", "badJs"],
     "an inline font shorthand": ["el.innerHTML = '<i style=\"font: 11px serif\">x</i>';\n", "badJs"],
     "style.font": ["el.style.font = '12px serif';\n", "badJs"],
+    "two style attributes, the small family only in the second": ["el.innerHTML = `<b style=\"font-size:12px\">a</b><i style=\"font-size:12px; font-family: var(--font-small)\">b</i>`;\n", "badJs"],
+    "the small family in another attribute": ["el.innerHTML = `<b style=\"font-size:12px\" data-x=\"font-family: var(--font-small)\">x</b>`;\n", "badJs"],
+    "monospace in the text, not the style": ["el.innerHTML = `<b style=\"font-size:12px\">monospace</b>`;\n", "badJs"],
+    "a canvas given SMALL_FONT_VAR": ["ctx.font = '11px ' + SMALL_FONT_VAR;\n", "badJs"],
+    "a canvas given var(--font-small)": ["ctx.font = `11px var(--font-small)`;\n", "badJs"],
+    "a numeric fontSize key": ["const t = { fontSize: 16 };\n", "unknown"],
     "a style alias": ["const s = el.style;\ns.fontSize = '10px';\n", "unknown"],
     "a size the scan cannot classify": ["el.style.fontSize = '1vw';\n", "unknown"],
     "an inline size it cannot classify": ["el.innerHTML = '<b style=\"font-size: 2vw\">x</b>';\n", "unknown"],
@@ -1152,6 +1164,11 @@ check("small text: every size at or under the threshold is set in --font-small, 
     "const px = parseFloat(getComputedStyle(el).fontSize);\nconst v = cs.getPropertyValue('font-size');\nif (a.fontSize === b.fontSize) x();\n",
     "const re = /'/; const u = \"http://x\";\nel.style.fontSize = '10px'; el.style.fontFamily = SMALL_FONT_VAR;\n",
     "const r = `${(w.in / 1024).toFixed(1)} KB/s`; // a property named in, then a division\nel.style.fontSize = '10px';\nel.style.fontFamily = SMALL_FONT_VAR;\n",
+    "el.style.fontSize = '';\nel.style.fontSize = null;\nel.style.setProperty('font-size', '');\nel.style.font = '';\n",
+    "const { fontSize: fs } = getComputedStyle(el);\nconst { fontSize = 12 } = opts;\n", "const f = big ? font : other;\nconst g = big ? fontSize : 0;\n",
+    "const st = { fontSize: '10px', label: '}', fontFamily: SMALL_FONT_VAR };\n", "el.style.font = `11px ${SMALL_FONT_VAR}`;\n",
+    "el.innerHTML = `<b style=\"font-size:12px; font-family: ${SMALL_FONT_VAR}\">a</b><i style=\"font-size: 20px\">b</i>`;\n",
+    "el.innerHTML = `<code style=\"font-size: 11px; font-family: ui-monospace, monospace\">x</code>`;\n", "el.innerHTML = '<b style=\"font-size: 0\">x</b>';\n",
   ];
   for (const text of jsPass) {
     const r = planted("", js(text));
@@ -1159,8 +1176,14 @@ check("small text: every size at or under the threshold is set in --font-small, 
   }
   const jsAt = planted("", js("x;\n\nb.style.fontSize = '10px';\n")).badJs[0] || "";
   assert(jsAt.startsWith("src/x.js:3 "), `a flagged script line is not named by its file and line: ${jsAt}`);
+  // A style key at the top of a big data object is found in one walk each way (it was quadratic: 61 s for this one, #472's review).
+  const table = "const T = {\n  fontSize: `${n}px`, fontFamily: SMALL_FONT_VAR,\n" + Array.from({ length: 6000 }, (_, i) => `  k${i}: { label: "row ${i}", n: ${i} },\n`).join("") + "};\n";
+  const t0 = performance.now();
+  const big = planted("", js(table));
+  const took = performance.now() - t0;
+  assert(LISTS.every((l) => big[l].length === 0) && took < 2000, `a ${Math.round(table.length / 1024)} KB object took ${Math.round(took)} ms, or was flagged: ${JSON.stringify(big)}`);
   const n = Object.keys(cssCatch).length + Object.keys(jsCatch).length, m = cssPass.length + jsPass.length;
-  return `${real.small} small rules in style.css, each in --font-small (or monospace, or the titles' face), every size classified; ${files.length} scripts, ${real.sites} places that size text, each with its small font; ${n} planted bad forms caught and ${m} clean ones passed (threshold ${MAX} UI px)`;
+  return `${real.small} small rules in style.css, each in --font-small (or monospace, or the titles' face), every size classified; ${files.length} scripts, ${real.sites} places that size text, each with its small font; ${n} planted bad forms caught and ${m} clean ones passed; a ${Math.round(table.length / 1024)} KB object in ${Math.round(took)} ms; the row in ${Math.round(performance.now() - rowStart)} ms (threshold ${MAX} UI px)`;
 });
 // The hover card (#262): every item's card says its own full name and a kind, no two read alike though six are drawn "Seed", food says what eating heals and fills,
 // and the word Use is its own segment. (The card on the page, its place and its look, is `check("hovercard")`'s, in the pane.)
