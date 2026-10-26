@@ -1154,12 +1154,15 @@ function stepGame(dt) {
   buttons.update(dt);
   let clicked = input.mouseLeftPressed() && !menu.tookClick();
   // With the hand cursor, the zombie hand over one of the dead (ui/cursor.js).
-  const under = interact.characterAt(input.getMouse().x, input.getMouse().y, client.me);
+  // Both world hovers ask that the pointer is over the world (`inside`): it is followed over every panel too since Michael's playtest of
+  // 2026-10-26 (input.js), and the dead or a tree under the bag or the map is not what the pointer is on.
+  const overWorld = input.getMouse().inside;
+  const under = overWorld ? interact.characterAt(input.getMouse().x, input.getMouse().y, client.me) : null;
   cursor.setOverDead(!!under && under.kind === "zombie" && !under.dead);
   // Use mode (use.js): the label names what is under the cursor, and a left click on the world is the target, spent here,
   // the bag open or not (a Use begun from the bag is aimed with the bag still open).
   if (use.isActive()) {
-    const target = useTargetAt(input.getMouse().x, input.getMouse().y);
+    const target = overWorld ? useTargetAt(input.getMouse().x, input.getMouse().y) : null; // over a panel nothing in the world is named
     use.hover(target);
     if (clicked) {
       use.apply(target, client.me);

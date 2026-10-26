@@ -48,19 +48,34 @@ export async function loadJson(path) {
 }
 
 // Images are fetched once per path and shared (several definitions and the
-// two-tile slices ask for the same picture).
+// two-tile slices ask for the same picture). A failed fetch is tried again
+// before the boot gives up: the boot asks for some three hundred pictures at
+// once, and one dropped by the server or the network killed it now and then
+// (Michael's playtest, 2026-10-26: "this has been an ongoing issue").
 const images = new Map();
+const IMAGE_RETRIES = [300, 1000, 2500]; // ms to wait before each try after the first
 export function loadImage(src) {
   if (!images.has(src)) {
-    images.set(src, new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => {
-        images.delete(src);
-        reject(new Error(`Failed to load image ${src}`));
+    const pending = new Promise((resolve, reject) => {
+      let attempt = 0;
+      const tryLoad = () => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => {
+          if (attempt < IMAGE_RETRIES.length) {
+            setTimeout(tryLoad, IMAGE_RETRIES[attempt++]);
+            return;
+          }
+          if (images.get(src) === pending) images.delete(src); // never a newer ask made while this one retried
+          reject(new Error(`Failed to load image ${src}`));
+        };
+        // A retry asks again past any cache that kept the failure.
+        const u = url(src);
+        img.src = attempt ? `${u}${u.includes("?") ? "&" : "?"}retry=${attempt}` : u;
       };
-      img.src = url(src);
-    }));
+      tryLoad();
+    });
+    images.set(src, pending);
   }
   return images.get(src);
 }
