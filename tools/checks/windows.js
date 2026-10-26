@@ -23,10 +23,17 @@ export async function run(game) {
   // One of the dead of its own for each trial, taken away in the finally: the world's first one may be in any state after other checks
   // in the page (the order-independence of the checks, check("all")).
   const { createZombie } = await import("/src/entities/zombie.js");
+  // The one before it is taken away when the next is made: one that broke into a house in its trial stays there, and a later trial that
+  // finds the same house (which houses are found depends on the chunks grown, so on what ran earlier in the page) had the player teleported
+  // in beside it and bitten to death (found by check("all") with melee before windows, #492).
+  const owned = [];
+  const drop = (z) => { const i = G.zombies.indexOf(z); if (i >= 0) G.zombies.splice(i, 1); const j = (G.corpses || []).indexOf(z); if (j >= 0) G.corpses.splice(j, 1); };
   const own = (at) => {
+    for (const old of owned.splice(0)) drop(old);
     const z = createZombie(at[0], at[1], { aggro: true });
     G.zombies.push(z);
-    restore.push(() => { const i = G.zombies.indexOf(z); if (i >= 0) G.zombies.splice(i, 1); const j = (G.corpses || []).indexOf(z); if (j >= 0) G.corpses.splice(j, 1); });
+    owned.push(z);
+    restore.push(() => drop(z));
     return z;
   };
   // Every door and window grown, as it stood: the dead it rouses batter more than the houses it uses, and what they open or break is
