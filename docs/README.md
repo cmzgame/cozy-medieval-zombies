@@ -26,7 +26,7 @@ One line per doc, with its kind (`CLAUDE.md`, "What a doc is"): a **rule** (bind
 - `20-archery.md` — the bow and the thrown spear: the idea, the control, the flight as numbers (`data/combat.json`), what an arrow hits, the decisions.
 - `21-combat-buttons.md` — **the current state of combat** (read its top first): the buttons, dual wielding, the guard, the swing timer, what is not built.
 - `23-engine-upgrade.md` — the engine upgrade's four pillars, its order, and the performance numbers that bind.
-- `24-throwables-and-fire-magic.md` — the fireball as built; the throw not built; the open questions (#50, #51).
+- `24-throwables-and-fire-magic.md` — the fireball as built; the throwing knife and axe ruled (2026-10-25), not built; the open questions (#50, #51).
 - `26-art-owed.md` — the pair-and-portrait rule and what has drawn art; the owed lists are issues (milestone Art owed).
 - `27-art-integration.md` — how the design agent's work comes in: the delivery checklist, the audit.
 - `28-painting-for-the-slicer.md` — the artist-facing page: the character's contract (the frame, the feet, the facings, the eyes) and how a part is painted and sliced.
